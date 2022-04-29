@@ -117,7 +117,9 @@ builtin_time_grains: Dict[Optional[str], str] = {
 }
 
 
-class TimestampExpression(ColumnClause):  # pylint: disable=abstract-method
+class TimestampExpression(
+    ColumnClause
+):  # pylint: disable=abstract-method, too-many-ancestors
     def __init__(self, expr: str, col: ColumnClause, **kwargs: Any) -> None:
         """Sqlalchemy class that can be can be used to render native column elements
         respeting engine-specific quoting rules as part of a string-based expression.
@@ -933,7 +935,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         ]
 
     @classmethod
-    def adjust_database_uri(cls, uri: URL, selected_schema: Optional[str]) -> None:
+    def adjust_database_uri(  # pylint: disable=unused-argument
+        cls,
+        uri: URL,
+        selected_schema: Optional[str],
+    ) -> URL:
         """
         Mutate the database component of the SQLAlchemy URI.
 
@@ -952,6 +958,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         Some database drivers like presto accept '{catalog}/{schema}' in
         the database component of the URL, that can be handled here.
         """
+        return uri
 
     @classmethod
     def patch(cls) -> None:
@@ -1208,7 +1215,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     @classmethod
     def modify_url_for_impersonation(
         cls, url: URL, impersonate_user: bool, username: Optional[str]
-    ) -> None:
+    ) -> URL:
         """
         Modify the SQL Alchemy URL object with the user to impersonate if applicable.
         :param url: SQLAlchemy URL object
@@ -1216,7 +1223,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param username: Effective username
         """
         if impersonate_user and username is not None:
-            url.username = username
+            url = url.set(username=username)
+
+        return url
 
     @classmethod
     def update_impersonation_config(
