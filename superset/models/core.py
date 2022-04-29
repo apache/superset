@@ -514,7 +514,7 @@ class Database(
         return sqla.inspect(engine)
 
     @cache_util.memoized_func(
-        key=lambda self, *args, **kwargs: f"db:{self.id}:schema:None:table_list",
+        key="db:{self.id}:schema:None:table_list",
         cache=cache_manager.data_cache,
     )
     def get_all_table_names_in_database(  # pylint: disable=unused-argument
@@ -529,7 +529,7 @@ class Database(
         return self.db_engine_spec.get_all_datasource_names(self, "table")
 
     @cache_util.memoized_func(
-        key=lambda self, *args, **kwargs: f"db:{self.id}:schema:None:view_list",
+        key="db:{self.id}:schema:None:view_list",
         cache=cache_manager.data_cache,
     )
     def get_all_view_names_in_database(  # pylint: disable=unused-argument
@@ -544,7 +544,7 @@ class Database(
         return self.db_engine_spec.get_all_datasource_names(self, "view")
 
     @cache_util.memoized_func(
-        key=lambda self, schema, *args, **kwargs: f"db:{self.id}:schema:{schema}:table_list",  # pylint: disable=line-too-long,useless-suppression
+        key="db:{self.id}:schema:{schema}:table_list",
         cache=cache_manager.data_cache,
     )
     def get_all_table_names_in_schema(  # pylint: disable=unused-argument
@@ -577,7 +577,7 @@ class Database(
             return []
 
     @cache_util.memoized_func(
-        key=lambda self, schema, *args, **kwargs: f"db:{self.id}:schema:{schema}:view_list",  # pylint: disable=line-too-long,useless-suppression
+        key="db:{self.id}:schema:{schema}:view_list",
         cache=cache_manager.data_cache,
     )
     def get_all_view_names_in_schema(  # pylint: disable=unused-argument
@@ -608,7 +608,7 @@ class Database(
             return []
 
     @cache_util.memoized_func(
-        key=lambda self, *args, **kwargs: f"db:{self.id}:schema_list",
+        key="db:{self.id}:schema_list",
         cache=cache_manager.data_cache,
     )
     def get_all_schema_names(  # pylint: disable=unused-argument

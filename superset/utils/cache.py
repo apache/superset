@@ -16,6 +16,7 @@
 # under the License.
 from __future__ import annotations
 
+import inspect
 import logging
 from datetime import datetime, timedelta
 from functools import wraps
@@ -94,7 +95,7 @@ def view_cache_key(*args: Any, **kwargs: Any) -> str:  # pylint: disable=unused-
 
 
 def memoized_func(
-    key: Callable[..., str] = view_cache_key,
+    key: Optional[str] = None,
     cache: Cache = cache_manager.cache,
 ) -> Callable[..., Any]:
     """Use this decorator to cache functions that have predefined first arg.
@@ -114,15 +115,23 @@ def memoized_func(
     """
 
     def wrap(f: Callable[..., Any]) -> Callable[..., Any]:
-        def wrapped_f(self: Any, *args: Any, **kwargs: Any) -> Any:
+        def wrapped_f(*args: Any, **kwargs: Any) -> Any:
             if not kwargs.get("cache", True):
-                return f(self, *args, **kwargs)
+                return f(*args, **kwargs)
 
-            cache_key = key(self, *args, **kwargs)
+            if key:
+                # format the key using args/kwargs passed to the decorated function
+                signature = inspect.signature(f)
+                bound_args = signature.bind(*args, **kwargs)
+                bound_args.apply_defaults()
+                cache_key = key.format(**bound_args.arguments)
+            else:
+                cache_key = view_cache_key(*args, **kwargs)
+
             obj = cache.get(cache_key)
             if not kwargs.get("force") and obj is not None:
                 return obj
-            obj = f(self, *args, **kwargs)
+            obj = f(*args, **kwargs)
             cache.set(cache_key, obj, timeout=kwargs.get("cache_timeout"))
             return obj
 
