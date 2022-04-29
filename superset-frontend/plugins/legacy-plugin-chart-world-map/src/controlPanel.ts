@@ -119,7 +119,7 @@ const config: ControlPanelConfig = {
                 [ColorBy.country, t('Country')],
               ],
               description: t(
-                'Whether to define a color by metric or country column',
+                'Choose whether a country should be shaded by the metric, or assigned a color based on a categorical color palette',
               ),
             },
           },
