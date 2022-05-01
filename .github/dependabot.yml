@@ -27,3 +27,10 @@ updates:
     schedule:
       interval: "daily"
     open-pull-requests-limit: 0
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule: 
+      interval: daily
+    labels: 
+     - "npm"
+     - "dependabot"
