@@ -20,6 +20,8 @@ import sqlparse
 from pytest_mock import MockerFixture
 from sqlalchemy.orm.session import Session
 
+from superset.utils.core import override_user
+
 
 def test_execute_sql_statement(mocker: MockerFixture, app: None) -> None:
     """
@@ -46,7 +48,6 @@ def test_execute_sql_statement(mocker: MockerFixture, app: None) -> None:
     execute_sql_statement(
         sql_statement,
         query,
-        user_name=None,
         session=session,
         cursor=cursor,
         log_params={},
@@ -95,7 +96,6 @@ def test_execute_sql_statement_with_rls(
     execute_sql_statement(
         sql_statement,
         query,
-        user_name=None,
         session=session,
         cursor=cursor,
         log_params={},
@@ -153,16 +153,24 @@ def test_sql_lab_insert_rls(
     session.add(query)
     session.commit()
 
-    # first without RLS
-    superset_result_set = execute_sql_statement(
-        sql_statement=query.sql,
-        query=query,
-        user_name="admin",
-        session=session,
-        cursor=cursor,
-        log_params=None,
-        apply_ctas=False,
+    admin = User(
+        first_name="Alice",
+        last_name="Doe",
+        email="adoe@example.org",
+        username="admin",
+        roles=[Role(name="Admin")],
     )
+
+    # first without RLS
+    with override_user(admin):
+        superset_result_set = execute_sql_statement(
+            sql_statement=query.sql,
+            query=query,
+            session=session,
+            cursor=cursor,
+            log_params=None,
+            apply_ctas=False,
+        )
     assert (
         superset_result_set.to_pandas_df().to_markdown()
         == """
@@ -177,13 +185,6 @@ def test_sql_lab_insert_rls(
     assert query.executed_sql == "SELECT c FROM t\nLIMIT 6"
 
     # now with RLS
-    admin = User(
-        first_name="Alice",
-        last_name="Doe",
-        email="adoe@example.org",
-        username="admin",
-        roles=[Role(name="Admin")],
-    )
     rls = RowLevelSecurityFilter(
         filter_type=RowLevelSecurityFilterType.REGULAR,
         tables=[SqlaTable(database_id=1, schema=None, table_name="t")],
@@ -196,15 +197,15 @@ def test_sql_lab_insert_rls(
     mocker.patch.object(SupersetSecurityManager, "find_user", return_value=admin)
     mocker.patch("superset.sql_lab.is_feature_enabled", return_value=True)
 
-    superset_result_set = execute_sql_statement(
-        sql_statement=query.sql,
-        query=query,
-        user_name="admin",
-        session=session,
-        cursor=cursor,
-        log_params=None,
-        apply_ctas=False,
-    )
+    with override_user(admin):
+        superset_result_set = execute_sql_statement(
+            sql_statement=query.sql,
+            query=query,
+            session=session,
+            cursor=cursor,
+            log_params=None,
+            apply_ctas=False,
+        )
     assert (
         superset_result_set.to_pandas_df().to_markdown()
         == """
