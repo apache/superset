@@ -112,6 +112,7 @@ MODEL_API_RW_METHOD_PERMISSION_MAP = {
     "schemas": "read",
     "select_star": "read",
     "table_metadata": "read",
+    "table_extra_metadata": "read",
     "test_connection": "read",
     "validate_parameters": "read",
     "favorite_status": "read",
