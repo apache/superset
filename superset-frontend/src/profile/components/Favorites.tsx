@@ -17,12 +17,13 @@
  * under the License.
  */
 import React from 'react';
+import rison from 'rison';
 import moment from 'moment';
 import { t } from '@superset-ui/core';
 
 import TableLoader from '../../components/TableLoader';
 import { Slice } from '../types';
-import { User, Dashboard } from '../../types/bootstrapTypes';
+import { User, DashboardResponse } from '../../types/bootstrapTypes';
 
 interface FavoritesProps {
   user: User;
@@ -50,19 +51,29 @@ export default class Favorites extends React.PureComponent<FavoritesProps> {
   }
 
   renderDashboardTable() {
-    const mutator = (data: Dashboard[]) =>
-      data.map(dash => ({
-        dashboard: <a href={dash.url}>{dash.title}</a>,
-        creator: <a href={dash.creator_url}>{dash.creator}</a>,
-        favorited: moment.utc(dash.dttm).fromNow(),
+    const search = [{ col: 'id', opr: 'dashboard_is_favorite', value: true }];
+    const query = rison.encode({
+      keys: ['none'],
+      columns: ['created_on_delta_humanized', 'dashboard_title', 'url'],
+      filters: search,
+      order_column: 'changed_on',
+      order_direction: 'desc',
+      page: 0,
+      page_size: 100,
+    });
+    const mutator = (data: DashboardResponse) =>
+      data.result.map(dash => ({
+        dashboard: <a href={dash.url}>{dash.dashboard_title}</a>,
+        created: dash.created_on_delta_humanized,
+        _created: dash.created_on_delta_humanized,
       }));
     return (
       <TableLoader
         className="table-condensed"
         mutator={mutator}
-        dataEndpoint={`/superset/fave_dashboards/${this.props.user.userId}/`}
+        dataEndpoint={`/api/v1/dashboard/?q=${query}`}
         noDataText={t('No favorite dashboards yet, go click on stars!')}
-        columns={['dashboard', 'creator', 'favorited']}
+        columns={['dashboard', 'creator', 'created']}
         sortable
       />
     );
