@@ -928,7 +928,9 @@ def send_email_smtp(  # pylint: disable=invalid-name,too-many-arguments,too-many
     # Attach any inline images, which may be required for display in
     # HTML content (inline)
     for msgid, imgdata in (images or {}).items():
-        image = MIMEImage(imgdata)
+        formatted_time = formatdate(localtime=True)
+        file_name = f"{subject} {formatted_time}"
+        image = MIMEImage(imgdata, name=file_name)
         image.add_header("Content-ID", "<%s>" % msgid)
         image.add_header("Content-Disposition", "inline")
         msg.attach(image)
