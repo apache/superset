@@ -1115,31 +1115,37 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         substr_parsed = utils.parse_js_uri_path_item(substr, eval_undefined=True)
 
         if schema_parsed:
-            tables = (
-                database.get_all_table_names_in_schema(
+            tables = [
+                utils.DatasourceName(*datasource_name)
+                for datasource_name in database.get_all_table_names_in_schema(
                     schema=schema_parsed,
                     force=force_refresh_parsed,
                     cache=database.table_cache_enabled,
                     cache_timeout=database.table_cache_timeout,
                 )
-                or []
-            )
-            views = (
-                database.get_all_view_names_in_schema(
+            ] or []
+            views = [
+                utils.DatasourceName(*datasource_name)
+                for datasource_name in database.get_all_view_names_in_schema(
                     schema=schema_parsed,
                     force=force_refresh_parsed,
                     cache=database.table_cache_enabled,
                     cache_timeout=database.table_cache_timeout,
                 )
-                or []
-            )
+            ] or []
         else:
-            tables = database.get_all_table_names_in_database(
-                cache=True, force=False, cache_timeout=24 * 60 * 60
-            )
-            views = database.get_all_view_names_in_database(
-                cache=True, force=False, cache_timeout=24 * 60 * 60
-            )
+            tables = [
+                utils.DatasourceName(*datasource_name)
+                for datasource_name in database.get_all_table_names_in_database(
+                    cache=True, force=False, cache_timeout=24 * 60 * 60
+                )
+            ]
+            views = [
+                utils.DatasourceName(*datasource_name)
+                for datasource_name in database.get_all_view_names_in_database(
+                    cache=True, force=False, cache_timeout=24 * 60 * 60
+                )
+            ]
         tables = security_manager.get_datasources_accessible_by_user(
             database, tables, schema_parsed
         )
