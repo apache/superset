@@ -30,6 +30,7 @@ import {
 import {
   DEFAULT_FORM_DATA,
   EchartsTimeseriesContributionType,
+  EchartsOrientType,
 } from '../../types';
 import {
   legendSection,
@@ -49,6 +50,7 @@ const {
   yAxisBounds,
   zoomable,
   xAxisLabelRotation,
+  orient,
 } = DEFAULT_FORM_DATA;
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -87,6 +89,28 @@ const config: ControlPanelConfig = {
     sections.advancedAnalyticsControls,
     sections.annotationsAndLayersControls,
     sections.forecastIntervalControls,
+    {
+      label: t('Chart Orient'),
+      expanded: true,
+      controlSetRows: [
+        [
+          {
+            name: 'bar_orient',
+            config: {
+              type: 'RadioButtonControl',
+              renderTrigger: true,
+              label: t('Bar orientation'),
+              default: orient,
+              options: [
+                [EchartsOrientType.vertical, t('Vertical')],
+                [EchartsOrientType.horizontal, t('Horizontal')],
+              ],
+              description: t('Orientation of bar chart'),
+            },
+          },
+        ],
+      ],
+    },
     sections.titleControls,
     {
       label: t('Chart Options'),
