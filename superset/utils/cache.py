@@ -98,7 +98,18 @@ def memoized_func(
     key: Optional[str] = None,
     cache: Cache = cache_manager.cache,
 ) -> Callable[..., Any]:
-    """Use this decorator to cache functions that have predefined first arg.
+    """
+    Decorator with configurable key and cache backend.
+
+        @memoized_func(key="{a}+{b}", cache=cache_manager.data_cache)
+        def sum(a: int, b: int) -> int:
+            return a + b
+
+    In the example above the result for `1+2` will be stored under the key of name "1+2",
+    in the `cache_manager.data_cache` cache.
+
+    Note: this decorator should be used only with functions that return primitives,
+    otherwise the deserialization might not work correctly.
 
     enable_cache is treated as True by default,
     except enable_cache = False is passed to the decorated function.

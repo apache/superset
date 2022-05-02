@@ -522,11 +522,16 @@ class Database(
         cache: bool = False,
         cache_timeout: Optional[bool] = None,
         force: bool = False,
-    ) -> List[utils.DatasourceName]:
+    ) -> List[Tuple[str, str]]:
         """Parameters need to be passed as keyword arguments."""
         if not self.allow_multi_schema_metadata_fetch:
             return []
-        return self.db_engine_spec.get_all_datasource_names(self, "table")
+        return [
+            (datasource_name.table, datasource_name.schema)
+            for datasource_name in self.db_engine_spec.get_all_datasource_names(
+                self, "table"
+            )
+        ]
 
     @cache_util.memoized_func(
         key="db:{self.id}:schema:None:view_list",
@@ -537,11 +542,16 @@ class Database(
         cache: bool = False,
         cache_timeout: Optional[bool] = None,
         force: bool = False,
-    ) -> List[utils.DatasourceName]:
+    ) -> List[Tuple[str, str]]:
         """Parameters need to be passed as keyword arguments."""
         if not self.allow_multi_schema_metadata_fetch:
             return []
-        return self.db_engine_spec.get_all_datasource_names(self, "view")
+        return [
+            (datasource_name.table, datasource_name.schema)
+            for datasource_name in self.db_engine_spec.get_all_datasource_names(
+                self, "view"
+            )
+        ]
 
     @cache_util.memoized_func(
         key="db:{self.id}:schema:{schema}:table_list",
@@ -553,7 +563,7 @@ class Database(
         cache: bool = False,
         cache_timeout: Optional[int] = None,
         force: bool = False,
-    ) -> List[utils.DatasourceName]:
+    ) -> List[Tuple[str, str]]:
         """Parameters need to be passed as keyword arguments.
 
         For unused parameters, they are referenced in
@@ -569,9 +579,7 @@ class Database(
             tables = self.db_engine_spec.get_table_names(
                 database=self, inspector=self.inspector, schema=schema
             )
-            return [
-                utils.DatasourceName(table=table, schema=schema) for table in tables
-            ]
+            return [(table, schema) for table in tables]
         except Exception as ex:  # pylint: disable=broad-except
             logger.warning(ex)
             return []
@@ -586,7 +594,7 @@ class Database(
         cache: bool = False,
         cache_timeout: Optional[int] = None,
         force: bool = False,
-    ) -> List[utils.DatasourceName]:
+    ) -> List[Tuple[str, str]]:
         """Parameters need to be passed as keyword arguments.
 
         For unused parameters, they are referenced in
@@ -602,7 +610,7 @@ class Database(
             views = self.db_engine_spec.get_view_names(
                 database=self, inspector=self.inspector, schema=schema
             )
-            return [utils.DatasourceName(table=view, schema=schema) for view in views]
+            return [(view, schema) for view in views]
         except Exception as ex:  # pylint: disable=broad-except
             logger.warning(ex)
             return []
