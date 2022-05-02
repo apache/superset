@@ -1543,6 +1543,11 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @expose("/fave_dashboards_by_username/<username>/", methods=["GET"])
     def fave_dashboards_by_username(self, username: str) -> FlaskResponse:
         """This lets us use a user's username to pull favourite dashboards"""
+        logger.warning(
+            "%s.fave_dashboards_by_username "
+            "This API endpoint is deprecated and will be removed in version 3.0.0",
+            self.__class__.__name__,
+        )
         user = security_manager.find_user(username=username)
         return self.fave_dashboards(user.id)
 
@@ -1551,6 +1556,11 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @event_logger.log_this
     @expose("/fave_dashboards/<int:user_id>/", methods=["GET"])
     def fave_dashboards(self, user_id: int) -> FlaskResponse:
+        logger.warning(
+            "%s.fave_dashboards "
+            "This API endpoint is deprecated and will be removed in version 3.0.0",
+            self.__class__.__name__,
+        )
         error_obj = self.get_user_activity_access_error(user_id)
         if error_obj:
             return error_obj
