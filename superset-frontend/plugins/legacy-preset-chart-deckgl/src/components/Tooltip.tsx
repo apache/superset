@@ -17,9 +17,8 @@
  * under the License.
  */
 
-import { t, styled } from '@superset-ui/core';
-import { number } from 'prop-types';
-import React, { useMemo, CSSProperties } from 'react';
+import { styled } from '@superset-ui/core';
+import React, { useMemo } from 'react';
 import { filterXSS } from 'xss';
 
 export type TooltipProps = {

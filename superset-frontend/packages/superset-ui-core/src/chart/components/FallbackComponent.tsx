@@ -18,6 +18,7 @@
  */
 
 import React from 'react';
+import { SupersetTheme } from '../../style';
 import { FallbackPropsWithDimension } from './SuperChart';
 
 export type Props = FallbackPropsWithDimension;
@@ -30,7 +31,7 @@ export default function FallbackComponent({
 }: Props) {
   return (
     <div
-      css={theme => ({
+      css={(theme: SupersetTheme) => ({
         backgroundColor: theme.colors.grayscale.dark2,
         color: theme.colors.grayscale.light5,
         overflow: 'auto',
