@@ -17,15 +17,7 @@
  * under the License.
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import {
-  css,
-  styled,
-  t,
-  makeApi,
-  SupersetClient,
-  JsonResponse,
-  DatasourceType,
-} from '@superset-ui/core';
+import { css, styled, t, DatasourceType } from '@superset-ui/core';
 import {
   ControlConfig,
   DatasourceMeta,
@@ -36,22 +28,12 @@ import { matchSorter, rankings } from 'match-sorter';
 import Collapse from 'src/components/Collapse';
 import Alert from 'src/components/Alert';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
-import { exploreChart } from 'src/explore/exploreUtils';
-import moment from 'moment';
-import rison from 'rison';
-import { RadioChangeEvent } from 'src/components';
 import { Input } from 'src/components/Input';
 import { FAST_DEBOUNCE } from 'src/constants';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { ExploreActions } from 'src/explore/actions/exploreActions';
 import Control from 'src/explore/components/Control';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
-import {
-  DatasetRadioState,
-  EXPLORE_CHART_DEFAULT,
-  DatasetOwner,
-  DatasetOptionAutocomplete,
-} from 'src/SqlLab/types';
 import DatasourcePanelDragOption from './DatasourcePanelDragOption';
 import { DndItemType } from '../DndItemType';
 import { StyledColumnOption, StyledMetricOption } from '../optionRenderers';
@@ -187,31 +169,6 @@ const StyledInfoboxWrapper = styled.div`
   `}
 `;
 
-const updateDataset = async (
-  dbId: number,
-  datasetId: number,
-  sql: string,
-  columns: Array<Record<string, any>>,
-  owners: [number],
-  overrideColumns: boolean,
-) => {
-  const endpoint = `api/v1/dataset/${datasetId}?override_columns=${overrideColumns}`;
-  const headers = { 'Content-Type': 'application/json' };
-  const body = JSON.stringify({
-    sql,
-    columns,
-    owners,
-    database_id: dbId,
-  });
-
-  const data: JsonResponse = await SupersetClient.put({
-    endpoint,
-    headers,
-    body,
-  });
-  return data.json.result;
-};
-
 const LabelContainer = (props: {
   children: React.ReactElement;
   className: string;
@@ -251,26 +208,7 @@ export default function DataSourcePanel({
     [_columns],
   );
 
-  const getDefaultDatasetName = () =>
-    `${datasource?.sl_dataset?.query.tab} ${moment().format(
-      'MM/DD/YYYY HH:mm:ss',
-    )}`;
-
   const [showSaveDatasetModal, setShowSaveDatasetModal] = useState(false);
-  const [newSaveDatasetName, setNewSaveDatasetName] = useState(
-    getDefaultDatasetName(),
-  );
-  const [saveDatasetRadioBtnState, setSaveDatasetRadioBtnState] = useState(
-    DatasetRadioState.SAVE_NEW,
-  );
-  const [shouldOverwriteDataSet, setShouldOverwriteDataSet] = useState(false);
-  const [userDatasetOptions, setUserDatasetOptions] = useState<
-    DatasetOptionAutocomplete[]
-  >([]);
-  const [datasetToOverwrite, setDatasetToOverwrite] = useState<
-    Record<string, any>
-  >({});
-  const [saveModalAutocompleteValue] = useState('');
   const [inputValue, setInputValue] = useState('');
   const [lists, setList] = useState({
     columns,
@@ -368,170 +306,6 @@ export default function DataSourcePanel({
           ),
     [lists.columns, showAllColumns],
   );
-
-  const handleOverwriteDataset = async () => {
-    const { sql, results, dbId } = datasource?.sl_dataset?.query;
-
-    await updateDataset(
-      dbId,
-      datasetToOverwrite.datasetId,
-      sql,
-      // TODO: lyndsiWilliams - Define d
-      results.selected_columns.map((d: any) => ({
-        column_name: d.name,
-        type: d.type,
-        is_dttm: d.is_dttm,
-      })),
-      datasetToOverwrite.owners.map((o: DatasetOwner) => o.id),
-      true,
-    );
-
-    setShowSaveDatasetModal(false);
-    setShouldOverwriteDataSet(false);
-    setDatasetToOverwrite({});
-    setNewSaveDatasetName(getDefaultDatasetName());
-
-    exploreChart({
-      ...EXPLORE_CHART_DEFAULT,
-      datasource: `${datasetToOverwrite.datasetId}__table`,
-      // TODO: lyndsiWilliams -  Define d
-      all_columns: results.selected_columns.map((d: any) => d.name),
-    });
-  };
-
-  const getUserDatasets = async (searchText = '') => {
-    // Making sure that autocomplete input has a value before rendering the dropdown
-    // Transforming the userDatasetsOwned data for SaveModalComponent)
-    const { userId } = user;
-    if (userId) {
-      const queryParams = rison.encode({
-        filters: [
-          {
-            col: 'table_name',
-            opr: 'ct',
-            value: searchText,
-          },
-          {
-            col: 'owners',
-            opr: 'rel_m_m',
-            value: userId,
-          },
-        ],
-        order_column: 'changed_on_delta_humanized',
-        order_direction: 'desc',
-      });
-
-      const response = await makeApi({
-        method: 'GET',
-        endpoint: '/api/v1/dataset',
-      })(`q=${queryParams}`);
-
-      return response.result.map(
-        (r: { table_name: string; id: number; owners: [DatasetOwner] }) => ({
-          value: r.table_name,
-          datasetId: r.id,
-          owners: r.owners,
-        }),
-      );
-    }
-
-    return null;
-  };
-
-  const handleSaveDatasetModalSearch = async (searchText: string) => {
-    const userDatasetsOwned = await getUserDatasets(searchText);
-    setUserDatasetOptions(userDatasetsOwned);
-  };
-
-  const handleSaveInDataset = () => {
-    // if user wants to overwrite a dataset we need to prompt them
-    if (saveDatasetRadioBtnState === DatasetRadioState.OVERWRITE_DATASET) {
-      setShouldOverwriteDataSet(true);
-      return;
-    }
-
-    // TODO: lyndsiWilliams - set up when the back end logic is implemented
-    // const { schema, sql, dbId } = datasource.sl_dataset.query;
-    let { templateParams } = datasource?.sl_dataset?.query;
-    // const selectedColumns =
-    //   datasource.sl_dataset.query?.results?.selected_columns || [];
-
-    // The filters param is only used to test jinja templates.
-    // Remove the special filters entry from the templateParams
-    // before saving the dataset.
-    if (templateParams) {
-      const p = JSON.parse(templateParams);
-      /* eslint-disable-next-line no-underscore-dangle */
-      if (p._filters) {
-        /* eslint-disable-next-line no-underscore-dangle */
-        delete p._filters;
-        templateParams = JSON.stringify(p);
-      }
-    }
-
-    // TODO: lyndsiWilliams - set up when the back end logic is implemented
-    // createDatasource({
-    //   schema,
-    //   sql,
-    //   dbId,
-    //   templateParams,
-    //   datasourceName: newSaveDatasetName,
-    //   columns: selectedColumns,
-    // });
-    // .then((data: { table_id: number }) => {
-    //   exploreChart({
-    //     datasource: `${data.table_id}__table`,
-    //     metrics: [],
-    //     groupby: [],
-    //     time_range: 'No filter',
-    //     viz_type: 'table',
-    //     all_columns: selectedColumns.map((c) => c.name),
-    //     row_limit: 1000,
-    //   });
-    // })
-    // .catch(() => {
-    //   actions.addDangerToast(t('An error occurred saving dataset'));
-    // });
-
-    setShowSaveDatasetModal(false);
-    setNewSaveDatasetName(getDefaultDatasetName());
-  };
-
-  const handleOverwriteDatasetOption = (
-    _data: string,
-    option: Record<string, any>,
-  ) => setDatasetToOverwrite(option);
-
-  const handleDatasetNameChange = (e: React.FormEvent<HTMLInputElement>) => {
-    // @ts-expect-error
-    setNewSaveDatasetName(e.target.value);
-  };
-
-  const handleHideSaveModal = () => {
-    setShowSaveDatasetModal(false);
-    setShouldOverwriteDataSet(false);
-  };
-
-  const handleSaveDatasetRadioBtnState = (e: RadioChangeEvent) => {
-    setSaveDatasetRadioBtnState(Number(e.target.value));
-  };
-
-  const handleOverwriteCancel = () => {
-    setShouldOverwriteDataSet(false);
-    setDatasetToOverwrite({});
-  };
-
-  const disableSaveAndExploreBtn =
-    (saveDatasetRadioBtnState === DatasetRadioState.SAVE_NEW &&
-      newSaveDatasetName.length === 0) ||
-    (saveDatasetRadioBtnState === DatasetRadioState.OVERWRITE_DATASET &&
-      Object.keys(datasetToOverwrite).length === 0 &&
-      saveModalAutocompleteValue.length === 0);
-
-  const handleFilterAutocompleteOption = (
-    inputValue: string,
-    option: { value: string; datasetId: number },
-  ) => option.value.toLowerCase().includes(inputValue.toLowerCase());
 
   const showInfoboxCheck = () => {
     if (sessionStorage.getItem('showInfobox') === 'false') return false;
@@ -678,23 +452,10 @@ export default function DataSourcePanel({
     <DatasourceContainer>
       <SaveDatasetModal
         visible={showSaveDatasetModal}
-        onOk={handleSaveInDataset}
-        saveDatasetRadioBtnState={saveDatasetRadioBtnState}
-        shouldOverwriteDataset={shouldOverwriteDataSet}
-        defaultCreateDatasetValue={newSaveDatasetName}
-        userDatasetOptions={userDatasetOptions}
-        disableSaveAndExploreBtn={disableSaveAndExploreBtn}
-        onHide={handleHideSaveModal}
-        handleDatasetNameChange={handleDatasetNameChange}
-        handleSaveDatasetRadioBtnState={handleSaveDatasetRadioBtnState}
-        handleOverwriteCancel={handleOverwriteCancel}
-        handleOverwriteDataset={handleOverwriteDataset}
-        handleOverwriteDatasetOption={handleOverwriteDatasetOption}
-        handleSaveDatasetModalSearch={handleSaveDatasetModalSearch}
-        filterAutocompleteOption={handleFilterAutocompleteOption}
-        onChangeAutoComplete={() => setDatasetToOverwrite({})}
+        onHide={() => setShowSaveDatasetModal(false)}
         buttonTextOnSave={t('Save')}
         buttonTextOnOverwrite={t('Overwrite')}
+        user={user}
       />
       <Control {...datasourceControl} name="datasource" actions={actions} />
       {datasource.id != null && mainBody}
