@@ -90,7 +90,7 @@ const config: ControlPanelConfig = {
     sections.annotationsAndLayersControls,
     sections.forecastIntervalControls,
     {
-      label: t('Chart Orient'),
+      label: t('Chart Orientation'),
       expanded: true,
       controlSetRows: [
         [
