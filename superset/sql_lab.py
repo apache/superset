@@ -186,7 +186,7 @@ def execute_sql_statement(  # pylint: disable=too-many-arguments,too-many-locals
     apply_ctas: bool = False,
 ) -> SupersetResultSet:
     """Executes a single SQL statement"""
-    database = query.database
+    database: Database = query.database
     db_engine_spec = database.db_engine_spec
     parsed_query = ParsedQuery(sql_statement)
     sql = parsed_query.stripped()
@@ -225,7 +225,9 @@ def execute_sql_statement(  # pylint: disable=too-many-arguments,too-many-locals
         sql = apply_limit_if_exists(database, increased_limit, query, sql)
 
     # Hook to allow environment-specific mutation (usually comments) to the SQL
-    sql = SQL_QUERY_MUTATOR(sql, user_name, security_manager, database)
+    sql = SQL_QUERY_MUTATOR(
+        sql, user_name=user_name, security_manager=security_manager, database=database
+    )
     try:
         query.executed_sql = sql
         if log_query:
@@ -526,6 +528,8 @@ def execute_sql_statements(  # pylint: disable=too-many-arguments, too-many-loca
 
     if store_results and results_backend:
         key = str(uuid.uuid4())
+        payload["query"]["resultsKey"] = key
+
         logger.info(
             "Query %s: Storing results in results backend, key: %s", str(query_id), key
         )

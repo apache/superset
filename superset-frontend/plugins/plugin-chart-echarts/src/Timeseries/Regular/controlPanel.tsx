@@ -77,19 +77,7 @@ const config: ControlPanelConfig = {
         emitFilterControl,
         ['limit'],
         ['timeseries_limit_metric'],
-        [
-          {
-            name: 'order_desc',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Sort Descending'),
-              default: true,
-              description: t('Whether to sort descending or ascending'),
-              visibility: ({ controls }) =>
-                Boolean(controls?.timeseries_limit_metric.value),
-            },
-          },
-        ],
+        ['order_desc'],
         ['row_limit'],
       ],
     },
@@ -148,7 +136,7 @@ const config: ControlPanelConfig = {
           },
         ],
         ...legendSection,
-        [<h1 className="section-header">{t('X Axis')}</h1>],
+        [<div className="section-header">{t('X Axis')}</div>],
         [
           {
             name: 'x_axis_time_format',
@@ -184,7 +172,7 @@ const config: ControlPanelConfig = {
         // eslint-disable-next-line react/jsx-key
         ...richTooltipSection,
         // eslint-disable-next-line react/jsx-key
-        [<h1 className="section-header">{t('Y Axis')}</h1>],
+        [<div className="section-header">{t('Y Axis')}</div>],
 
         ['y_axis_format'],
         [

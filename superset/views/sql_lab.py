@@ -14,20 +14,25 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import logging
+
 import simplejson as json
 from flask import g, redirect, request, Response
 from flask_appbuilder import expose
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access, has_access_api
 from flask_babel import lazy_gettext as _
+from sqlalchemy import and_
 
-from superset import db, is_feature_enabled
+from superset import db
 from superset.constants import MODEL_VIEW_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.models.sql_lab import Query, SavedQuery, TableSchema, TabState
-from superset.typing import FlaskResponse
+from superset.superset_typing import FlaskResponse
 from superset.utils import core as utils
 
 from .base import BaseSupersetView, DeleteMixin, json_success, SupersetModelView
+
+logger = logging.getLogger(__name__)
 
 
 class SavedQueryView(SupersetModelView, DeleteMixin):
@@ -78,9 +83,6 @@ class SavedQueryView(SupersetModelView, DeleteMixin):
     @expose("/list/")
     @has_access
     def list(self) -> FlaskResponse:
-        if not is_feature_enabled("ENABLE_REACT_CRUD_VIEWS"):
-            return super().list()
-
         return super().render_app_template()
 
     def pre_add(self, item: "SavedQueryView") -> None:
@@ -228,6 +230,29 @@ class TabStateView(BaseSupersetView):
     def delete_query(  # pylint: disable=no-self-use
         self, tab_state_id: int, client_id: str
     ) -> FlaskResponse:
+        # Before deleting the query, ensure it's not tied to any
+        # active tab as the last query. If so, replace the query
+        # with the latest one created in that tab
+        tab_state_query = db.session.query(TabState).filter_by(
+            id=tab_state_id, latest_query_id=client_id
+        )
+        if tab_state_query.count():
+            query = (
+                db.session.query(Query)
+                .filter(
+                    and_(
+                        Query.client_id != client_id,
+                        Query.user_id == g.user.get_id(),
+                        Query.sql_editor_id == str(tab_state_id),
+                    ),
+                )
+                .order_by(Query.id.desc())
+                .first()
+            )
+            tab_state_query.update(
+                {"latest_query_id": query.client_id if query else None}
+            )
+
         db.session.query(Query).filter_by(
             client_id=client_id,
             user_id=g.user.get_id(),
@@ -297,4 +322,7 @@ class SqlLab(BaseSupersetView):
     @has_access
     def my_queries(self) -> FlaskResponse:  # pylint: disable=no-self-use
         """Assigns a list of found users to the given role."""
+        logger.warning(
+            "This endpoint is deprecated and will be removed in the next major release"
+        )
         return redirect("/savedqueryview/list/?_flt_0_user={}".format(g.user.get_id()))

@@ -36,6 +36,7 @@ import {
   BOOL_FALSE_DISPLAY,
   BOOL_TRUE_DISPLAY,
   SLOW_DEBOUNCE,
+  NULL_DISPLAY,
 } from 'src/constants';
 import { Radio } from 'src/components/Radio';
 import Icons from 'src/components/Icons';
@@ -48,6 +49,10 @@ import {
   setTimeFormattedColumn,
   unsetTimeFormattedColumn,
 } from 'src/explore/actions/exploreActions';
+
+export const CellNull = styled('span')`
+  color: ${({ theme }) => theme.colors.grayscale.light1};
+`;
 
 export const CopyButton = styled(Button)`
   font-size: ${({ theme }) => theme.typography.sizes.s}px;
@@ -62,41 +67,56 @@ export const CopyButton = styled(Button)`
   }
 `;
 
-const CopyNode = (
-  <CopyButton buttonSize="xsmall" aria-label={t('Copy')}>
-    <i className="fa fa-clipboard" />
-  </CopyButton>
-);
-
 export const CopyToClipboardButton = ({
   data,
   columns,
 }: {
   data?: Record<string, any>;
   columns?: string[];
-}) => (
-  <CopyToClipboard
-    text={
-      data && columns ? prepareCopyToClipboardTabularData(data, columns) : ''
-    }
-    wrapped={false}
-    copyNode={CopyNode}
-  />
-);
+}) => {
+  const theme = useTheme();
+  return (
+    <CopyToClipboard
+      text={
+        data && columns ? prepareCopyToClipboardTabularData(data, columns) : ''
+      }
+      wrapped={false}
+      copyNode={
+        <Icons.CopyOutlined
+          iconColor={theme.colors.grayscale.base}
+          iconSize="l"
+          aria-label={t('Copy')}
+          role="button"
+          css={css`
+            &.anticon > * {
+              line-height: 0;
+            }
+          `}
+        />
+      }
+    />
+  );
+};
 
 export const FilterInput = ({
   onChangeHandler,
 }: {
   onChangeHandler(filterText: string): void;
 }) => {
+  const theme = useTheme();
   const debouncedChangeHandler = debounce(onChangeHandler, SLOW_DEBOUNCE);
   return (
     <Input
+      prefix={<Icons.Search iconColor={theme.colors.grayscale.base} />}
       placeholder={t('Search')}
       onChange={(event: any) => {
         const filterText = event.target.value;
         debouncedChangeHandler(filterText);
       }}
+      css={css`
+        width: 200px;
+        margin-right: ${theme.gridUnit * 2}px;
+      `}
     />
   );
 };
@@ -107,13 +127,7 @@ export const RowCount = ({
 }: {
   data?: Record<string, any>[];
   loading: boolean;
-}) => (
-  <RowCountLabel
-    rowcount={data?.length ?? 0}
-    loading={loading}
-    suffix={t('rows retrieved')}
-  />
-);
+}) => <RowCountLabel rowcount={data?.length ?? 0} loading={loading} />;
 
 enum FormatPickerValue {
   Formatted,
@@ -245,7 +259,9 @@ export const useFilteredTableData = (
   const rowsAsStrings = useMemo(
     () =>
       data?.map((row: Record<string, any>) =>
-        Object.values(row).map(value => value?.toString().toLowerCase()),
+        Object.values(row).map(value =>
+          value ? value.toString().toLowerCase() : t('N/A'),
+        ),
       ) ?? [],
     [data],
   );
@@ -302,6 +318,9 @@ export const useTableColumns = (
                   }
                   if (value === false) {
                     return BOOL_FALSE_DISPLAY;
+                  }
+                  if (value === null) {
+                    return <CellNull>{NULL_DISPLAY}</CellNull>;
                   }
                   if (timeFormattedColumnIndex > -1) {
                     return timeFormatter(value);

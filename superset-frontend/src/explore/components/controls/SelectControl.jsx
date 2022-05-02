@@ -52,6 +52,7 @@ const propTypes = {
   options: PropTypes.array,
   placeholder: PropTypes.string,
   filterOption: PropTypes.func,
+  tokenSeparators: PropTypes.arrayOf(PropTypes.string),
 
   // ControlHeader props
   label: PropTypes.string,
@@ -177,6 +178,7 @@ export default class SelectControl extends React.PureComponent {
       optionRenderer,
       showHeader,
       value,
+      tokenSeparators,
       // ControlHeader props
       description,
       renderTrigger,
@@ -242,6 +244,7 @@ export default class SelectControl extends React.PureComponent {
       placeholder,
       sortComparator: this.props.sortComparator,
       value: getValue(),
+      tokenSeparators,
     };
 
     return (

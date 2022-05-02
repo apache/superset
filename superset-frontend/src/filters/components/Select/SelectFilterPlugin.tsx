@@ -209,7 +209,8 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
 
   const handleChange = useCallback(
     (value?: SelectValue | number | string) => {
-      const values = ensureIsArray(value);
+      const values = value === null ? [null] : ensureIsArray(value);
+
       if (values.length === 0) {
         updateDataMask(null);
       } else {
@@ -305,7 +306,9 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
           value={filterState.value || []}
           disabled={isDisabled}
           getPopupContainer={
-            showOverflow ? () => parentRef?.current : undefined
+            showOverflow
+              ? () => parentRef?.current
+              : (trigger: HTMLElement) => trigger?.parentNode
           }
           showSearch={showSearch}
           mode={multiSelect ? 'multiple' : 'single'}

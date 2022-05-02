@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { styled, css, SupersetTheme } from '@superset-ui/core';
+import { css, styled, SupersetTheme } from '@superset-ui/core';
 import { JsonEditor } from 'src/components/AsyncAceEditor';
 import Button from 'src/components/Button';
 
@@ -49,20 +49,19 @@ export const StyledFormHeader = styled.header`
   .helper-top {
     padding-bottom: 0;
     color: ${({ theme }) => theme.colors.grayscale.base};
-    font-size: ${({ theme }) => theme.typography.sizes.s - 1}px;
+    font-size: ${({ theme }) => theme.typography.sizes.s}px;
     margin: 0;
   }
 
   .helper-bottom {
     padding-top: 0;
     color: ${({ theme }) => theme.colors.grayscale.base};
-    font-size: ${({ theme }) => theme.typography.sizes.s - 1}px;
+    font-size: ${({ theme }) => theme.typography.sizes.s}px;
     margin: 0;
   }
 
   h4 {
     color: ${({ theme }) => theme.colors.grayscale.dark2};
-    font-weight: bold;
     font-size: ${({ theme }) => theme.typography.sizes.l}px;
     margin: 0;
     padding: 0;
@@ -95,7 +94,6 @@ export const antdCollapseStyles = (theme: SupersetTheme) => css`
   }
   h4 {
     font-size: 16px;
-    font-weight: bold;
     margin-top: 0;
     margin-bottom: ${theme.gridUnit}px;
   }
@@ -155,10 +153,6 @@ export const antDModalStyles = (theme: SupersetTheme) => css`
     opacity: 1;
   }
 
-  .ant-modal-title > h4 {
-    font-weight: bold;
-  }
-
   .ant-modal-body {
     height: ${theme.gridUnit * 180.5}px;
   }
@@ -175,14 +169,14 @@ export const antDAlertStyles = (theme: SupersetTheme) => css`
 
   .ant-alert-message {
     color: ${theme.colors.info.dark2};
-    font-size: ${theme.typography.sizes.s + 1}px;
-    font-weight: bold;
+    font-size: ${theme.typography.sizes.m}px;
+    font-weight: ${theme.typography.weights.bold};
   }
 
   .ant-alert-description {
     color: ${theme.colors.info.dark2};
-    font-size: ${theme.typography.sizes.s + 1}px;
-    line-height: ${theme.gridUnit * 4}px;
+    font-size: ${theme.typography.sizes.m}px;
+    line-height: ${theme.gridUnit * 5}px;
 
     a {
       text-decoration: underline;
@@ -190,7 +184,7 @@ export const antDAlertStyles = (theme: SupersetTheme) => css`
 
     .ant-alert-icon {
       margin-right: ${theme.gridUnit * 2.5}px;
-      font-size: ${theme.typography.sizes.l + 1}px;
+      font-size: ${theme.typography.sizes.l}px;
       position: relative;
       top: ${theme.gridUnit / 4}px;
     }
@@ -198,7 +192,9 @@ export const antDAlertStyles = (theme: SupersetTheme) => css`
 `;
 
 export const StyledAlertMargin = styled.div`
-  margin: 0 ${({ theme }) => theme.gridUnit * 4}px -${({ theme }) => theme.gridUnit * 4}px;
+  ${({ theme }) => css`
+    margin: 0 ${theme.gridUnit * 4}px -${theme.gridUnit * 4}px;
+  `}
 `;
 
 export const antDErrorAlertStyles = (theme: SupersetTheme) => css`
@@ -207,12 +203,35 @@ export const antDErrorAlertStyles = (theme: SupersetTheme) => css`
   margin: ${theme.gridUnit * 8}px ${theme.gridUnit * 4}px;
   color: ${theme.colors.error.dark2};
   .ant-alert-message {
-    font-size: ${theme.typography.sizes.s + 1}px;
-    font-weight: bold;
+    font-size: ${theme.typography.sizes.m}px;
+    font-weight: ${theme.typography.weights.bold};
   }
+  .ant-alert-description {
+    font-size: ${theme.typography.sizes.m}px;
+    line-height: ${theme.gridUnit * 5}px;
+    .ant-alert-icon {
+      margin-right: ${theme.gridUnit * 2.5}px;
+      font-size: ${theme.typography.sizes.l}px;
+      position: relative;
+      top: ${theme.gridUnit / 4}px;
+    }
+  }
+`;
+
+export const antdWarningAlertStyles = (theme: SupersetTheme) => css`
+  border: 1px solid ${theme.colors.warning.light1};
+  padding: ${theme.gridUnit * 4}px;
+  margin: ${theme.gridUnit * 4}px 0;
+  color: ${theme.colors.warning.dark2};
+
+  .ant-alert-message {
+    margin: 0;
+  }
+
   .ant-alert-description {
     font-size: ${theme.typography.sizes.s + 1}px;
     line-height: ${theme.gridUnit * 4}px;
+
     .ant-alert-icon {
       margin-right: ${theme.gridUnit * 2.5}px;
       font-size: ${theme.typography.sizes.l + 1}px;
@@ -232,7 +251,7 @@ export const formHelperStyles = (theme: SupersetTheme) => css`
     display: block;
     padding: ${theme.gridUnit}px 0;
     color: ${theme.colors.grayscale.light1};
-    font-size: ${theme.typography.sizes.s - 1}px;
+    font-size: ${theme.typography.sizes.s}px;
     text-align: left;
   }
 `;
@@ -262,107 +281,108 @@ export const formStyles = (theme: SupersetTheme) => css`
   }
   .control-label {
     color: ${theme.colors.grayscale.dark1};
-    font-size: ${theme.typography.sizes.s - 1}px;
+    font-size: ${theme.typography.sizes.s}px;
   }
   .helper {
     color: ${theme.colors.grayscale.light1};
-    font-size: ${theme.typography.sizes.s - 1}px;
+    font-size: ${theme.typography.sizes.s}px;
     margin-top: ${theme.gridUnit * 1.5}px;
   }
   .ant-tabs-content-holder {
     overflow: auto;
-    max-height: 475px;
+    max-height: 480px;
   }
 `;
 
 export const validatedFormStyles = (theme: SupersetTheme) => css`
   label {
     color: ${theme.colors.grayscale.dark1};
-    font-size: ${theme.typography.sizes.s - 1}px;
+    font-size: ${theme.typography.sizes.s}px;
     margin-bottom: 0;
   }
 `;
 
 export const StyledInputContainer = styled.div`
-  margin-bottom: ${({ theme }) => theme.gridUnit * 6}px;
-  &.mb-0 {
-    margin-bottom: 0;
-  }
-  &.mb-8 {
-    margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
-  }
-
-  .control-label {
-    color: ${({ theme }) => theme.colors.grayscale.dark1};
-    font-size: ${({ theme }) => theme.typography.sizes.s - 1}px;
-    margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
-  }
-
-  &.extra-container {
-    padding-top: 8px;
-  }
-
-  .input-container {
-    display: flex;
-    align-items: top;
-
-    label {
-      display: flex;
-      margin-left: ${({ theme }) => theme.gridUnit * 2}px;
-      margin-top: ${({ theme }) => theme.gridUnit * 0.75}px;
-      font-family: ${({ theme }) => theme.typography.families.sansSerif};
-      font-size: ${({ theme }) => theme.typography.sizes.m}px;
-    }
-
-    i {
-      margin: 0 ${({ theme }) => theme.gridUnit}px;
-    }
-  }
-
-  input,
-  textarea {
-    flex: 1 1 auto;
-  }
-
-  textarea {
-    height: 160px;
-    resize: none;
-  }
-
-  input::placeholder,
-  textarea::placeholder {
-    color: ${({ theme }) => theme.colors.grayscale.light1};
-  }
-
-  textarea,
-  input[type='text'],
-  input[type='number'] {
-    padding: ${({ theme }) => theme.gridUnit * 1.5}px
-      ${({ theme }) => theme.gridUnit * 2}px;
-    border-style: none;
-    border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
-    border-radius: ${({ theme }) => theme.gridUnit}px;
-
-    &[name='name'] {
-      flex: 0 1 auto;
-      width: 40%;
-    }
-  }
-  &.expandable {
-    height: 0;
-    overflow: hidden;
-    transition: height 0.25s;
-    margin-left: ${({ theme }) => theme.gridUnit * 8}px;
-    margin-bottom: 0;
-    padding: 0;
-    .control-label {
+  ${({ theme }) => css`
+    margin-bottom: ${theme.gridUnit * 6}px;
+    &.mb-0 {
       margin-bottom: 0;
     }
-    &.open {
-      height: ${CTAS_CVAS_SCHEMA_FORM_HEIGHT}px;
-      padding-right: ${({ theme }) => theme.gridUnit * 5}px;
+    &.mb-8 {
+      margin-bottom: ${theme.gridUnit * 2}px;
     }
-  }
+
+    .control-label {
+      color: ${theme.colors.grayscale.dark1};
+      font-size: ${theme.typography.sizes.s}px;
+      margin-bottom: ${theme.gridUnit * 2}px;
+    }
+
+    &.extra-container {
+      padding-top: ${theme.gridUnit * 2}px;
+    }
+
+    .input-container {
+      display: flex;
+      align-items: top;
+
+      label {
+        display: flex;
+        margin-left: ${theme.gridUnit * 2}px;
+        margin-top: ${theme.gridUnit * 0.75}px;
+        font-family: ${theme.typography.families.sansSerif};
+        font-size: ${theme.typography.sizes.m}px;
+      }
+
+      i {
+        margin: 0 ${theme.gridUnit}px;
+      }
+    }
+
+    input,
+    textarea {
+      flex: 1 1 auto;
+    }
+
+    textarea {
+      height: 160px;
+      resize: none;
+    }
+
+    input::placeholder,
+    textarea::placeholder {
+      color: ${theme.colors.grayscale.light1};
+    }
+
+    textarea,
+    input[type='text'],
+    input[type='number'] {
+      padding: ${theme.gridUnit * 1.5}px ${theme.gridUnit * 2}px;
+      border-style: none;
+      border: 1px solid ${theme.colors.grayscale.light2};
+      border-radius: ${theme.gridUnit}px;
+
+      &[name='name'] {
+        flex: 0 1 auto;
+        width: 40%;
+      }
+    }
+    &.expandable {
+      height: 0;
+      overflow: hidden;
+      transition: height 0.25s;
+      margin-left: ${theme.gridUnit * 8}px;
+      margin-bottom: 0;
+      padding: 0;
+      .control-label {
+        margin-bottom: 0;
+      }
+      &.open {
+        height: ${CTAS_CVAS_SCHEMA_FORM_HEIGHT}px;
+        padding-right: ${theme.gridUnit * 5}px;
+      }
+    }
+  `}
 `;
 
 export const StyledJsonEditor = styled(JsonEditor)`
@@ -397,13 +417,20 @@ export const StyledAlignment = styled.div`
 `;
 
 export const buttonLinkStyles = (theme: SupersetTheme) => css`
-  font-weight: 400;
+  font-weight: ${theme.typography.weights.normal};
+  text-transform: initial;
+  padding-right: ${theme.gridUnit * 2}px;
+`;
+
+export const importDbButtonLinkStyles = (theme: SupersetTheme) => css`
+  font-size: ${theme.gridUnit * 3.5}px;
+  font-weight: ${theme.typography.weights.normal};
   text-transform: initial;
   padding-right: ${theme.gridUnit * 2}px;
 `;
 
 export const alchemyButtonLinkStyles = (theme: SupersetTheme) => css`
-  font-weight: 400;
+  font-weight: ${theme.typography.weights.normal};
   text-transform: initial;
   padding: ${theme.gridUnit * 8}px 0 0;
   margin-left: 0px;
@@ -417,14 +444,14 @@ export const TabHeader = styled.div`
 
   .helper {
     color: ${({ theme }) => theme.colors.grayscale.base};
-    font-size: ${({ theme }) => theme.typography.sizes.s - 1}px;
+    font-size: ${({ theme }) => theme.typography.sizes.s}px;
     margin: 0px;
   }
 `;
 
 export const CreateHeaderTitle = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.dark2};
-  font-weight: bold;
+  font-weight: ${({ theme }) => theme.typography.weights.bold};
   font-size: ${({ theme }) => theme.typography.sizes.m}px;
 `;
 
@@ -435,14 +462,14 @@ export const CreateHeaderSubtitle = styled.div`
 
 export const EditHeaderTitle = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.light1};
-  font-size: ${({ theme }) => theme.typography.sizes.s - 1}px;
+  font-size: ${({ theme }) => theme.typography.sizes.s}px;
   text-transform: uppercase;
 `;
 
 export const EditHeaderSubtitle = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.dark1};
   font-size: ${({ theme }) => theme.typography.sizes.l}px;
-  font-weight: bold;
+  font-weight: ${({ theme }) => theme.typography.weights.bold};
 `;
 
 export const CredentialInfoForm = styled.div`
@@ -514,8 +541,8 @@ export const SelectDatabaseStyles = styled.div`
   .available {
     margin: ${({ theme }) => theme.gridUnit * 4}px;
     .available-label {
-      font-size: ${({ theme }) => theme.typography.sizes.l * 1.1}px;
-      font-weight: bold;
+      font-size: ${({ theme }) => theme.typography.sizes.l}px;
+      font-weight: ${({ theme }) => theme.typography.weights.bold};
       margin: ${({ theme }) => theme.gridUnit * 6}px 0;
     }
     .available-select {
@@ -525,12 +552,12 @@ export const SelectDatabaseStyles = styled.div`
 
   .label-available-select {
     text-transform: uppercase;
-    font-size: ${({ theme }) => theme.typography.sizes.s - 1}px;
+    font-size: ${({ theme }) => theme.typography.sizes.s}px;
   }
 
   .control-label {
     color: ${({ theme }) => theme.colors.grayscale.dark1};
-    font-size: ${({ theme }) => theme.typography.sizes.s - 1}px;
+    font-size: ${({ theme }) => theme.typography.sizes.s}px;
     margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
   }
 `;
@@ -554,8 +581,8 @@ export const StyledCatalogTable = styled.div`
   }
 
   .gsheet-title {
-    font-size: ${({ theme }) => theme.typography.sizes.l * 1.1}px;
-    font-weight: bold;
+    font-size: ${({ theme }) => theme.typography.sizes.l}px;
+    font-weight: ${({ theme }) => theme.typography.weights.bold};
     margin: ${({ theme }) => theme.gridUnit * 10}px 0 16px;
   }
 
@@ -584,5 +611,15 @@ export const StyledCatalogTable = styled.div`
 
   .catalog-add-btn {
     width: 95%;
+  }
+`;
+
+export const StyledUploadWrapper = styled.div`
+  .ant-progress-inner {
+    display: none;
+  }
+
+  .ant-upload-list-item-card-actions {
+    display: none;
   }
 `;

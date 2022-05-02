@@ -5,14 +5,10 @@ labels: "#enhancement"
 
 ---
 
-**Is your feature request related to a problem? Please describe.**
-A clear and concise description of what the problem is. Ex. I'm always frustrated when [...]
+Github Discussions is our new home for discussing features and improvements!
 
-**Describe the solution you'd like**
-A clear and concise description of what you want to happen.
+https://github.com/apache/superset/discussions/categories/ideas
 
-**Describe alternatives you've considered**
-A clear and concise description of any alternative solutions or features you've considered.
+We'd like to keep Github Issues focuses on bugs and SIP's (Superset Improvement Proposals)!
 
-**Additional context**
-Add any other context or screenshots about the feature request here.
+Please note that feature requests opened as Github Issues will be moved to Discussions.

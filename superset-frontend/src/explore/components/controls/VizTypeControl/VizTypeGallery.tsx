@@ -33,8 +33,8 @@ import {
   ChartMetadata,
   SupersetTheme,
   useTheme,
-  ChartLabel,
-  ChartLabelWeight,
+  chartLabelWeight,
+  chartLabelExplanations,
 } from '@superset-ui/core';
 import { AntdCollapse } from 'src/components';
 import { Tooltip } from 'src/components/Tooltip';
@@ -414,10 +414,10 @@ const Thumbnail: React.FC<ThumbnailProps> = ({
       >
         {type.name}
       </div>
-      {type.label?.name && (
+      {type.label && (
         <ThumbnailLabelWrapper>
           <HighlightLabel>
-            <div>{t(type.label?.name)}</div>
+            <div>{t(type.label)}</div>
           </HighlightLabel>
         </ThumbnailLabelWrapper>
       )}
@@ -503,8 +503,7 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
       .map(([key, value]) => ({ key, value }))
       .filter(
         ({ value }) =>
-          nativeFilterGate(value.behaviors || []) &&
-          value.label?.name !== ChartLabel.DEPRECATED,
+          nativeFilterGate(value.behaviors || []) && !value.deprecated,
       );
     result.sort((a, b) => vizSortFactor(a) - vizSortFactor(b));
     return result;
@@ -593,12 +592,16 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
       .search(searchInputValue)
       .map(result => result.item)
       .sort((a, b) => {
-        const aName = a.value?.label?.name;
-        const bName = b.value?.label?.name;
+        const aLabel = a.value?.label;
+        const bLabel = b.value?.label;
         const aOrder =
-          aName && ChartLabelWeight[aName] ? ChartLabelWeight[aName].weight : 0;
+          aLabel && chartLabelWeight[aLabel]
+            ? chartLabelWeight[aLabel].weight
+            : 0;
         const bOrder =
-          bName && ChartLabelWeight[bName] ? ChartLabelWeight[bName].weight : 0;
+          bLabel && chartLabelWeight[bLabel]
+            ? chartLabelWeight[bLabel].weight
+            : 0;
         return bOrder - aOrder;
       });
   }, [searchInputValue, fuse]);
@@ -798,15 +801,18 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
               `}
             >
               {selectedVizMetadata?.name}
-              {selectedVizMetadata?.label?.name && (
+              {selectedVizMetadata?.label && (
                 <Tooltip
                   id="viz-badge-tooltip"
                   placement="top"
-                  title={selectedVizMetadata.label?.description}
+                  title={
+                    selectedVizMetadata.labelExplanation ??
+                    chartLabelExplanations[selectedVizMetadata.label]
+                  }
                 >
                   <TitleLabelWrapper>
                     <HighlightLabel>
-                      <div>{t(selectedVizMetadata.label?.name)}</div>
+                      <div>{t(selectedVizMetadata.label)}</div>
                     </HighlightLabel>
                   </TitleLabelWrapper>
                 </Tooltip>

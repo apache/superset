@@ -17,36 +17,23 @@
  * specific language governing permissions and limitationsxw
  * under the License.
  */
-import {
-  DTTM_ALIAS,
-  ensureIsArray,
-  isPhysicalColumn,
-  PostProcessingResample,
-} from '@superset-ui/core';
+import { PostProcessingResample } from '@superset-ui/core';
 import { PostProcessingFactory } from './types';
 
-export const resampleOperator: PostProcessingFactory<
-  PostProcessingResample | undefined
-> = (formData, queryObject) => {
+export const resampleOperator: PostProcessingFactory<PostProcessingResample> = (
+  formData,
+  queryObject,
+) => {
   const resampleZeroFill = formData.resample_method === 'zerofill';
   const resampleMethod = resampleZeroFill ? 'asfreq' : formData.resample_method;
   const resampleRule = formData.resample_rule;
   if (resampleMethod && resampleRule) {
-    const groupby_columns = ensureIsArray(queryObject.columns).map(column => {
-      if (isPhysicalColumn(column)) {
-        return column;
-      }
-      return column.label;
-    });
-
     return {
       operation: 'resample',
       options: {
         method: resampleMethod,
         rule: resampleRule,
         fill_value: resampleZeroFill ? 0 : null,
-        time_column: formData.x_axis || DTTM_ALIAS,
-        groupby_columns,
       },
     };
   }

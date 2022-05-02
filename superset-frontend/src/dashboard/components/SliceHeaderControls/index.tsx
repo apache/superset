@@ -21,6 +21,7 @@ import moment from 'moment';
 import {
   Behavior,
   getChartMetadataRegistry,
+  QueryFormData,
   styled,
   t,
 } from '@superset-ui/core';
@@ -63,7 +64,7 @@ const RefreshTooltip = styled.div`
   height: auto;
   margin: ${({ theme }) => theme.gridUnit}px 0;
   color: ${({ theme }) => theme.colors.grayscale.base};
-  line-height: ${({ theme }) => theme.typography.sizes.m * 1.5}px;
+  line-height: 21px;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -98,7 +99,7 @@ export interface SliceHeaderControlsProps {
   isExpanded?: boolean;
   updatedDttm: number | null;
   isFullSize?: boolean;
-  formData: { slice_id: number; datasource: string };
+  formData: Pick<QueryFormData, 'slice_id' | 'datasource'>;
   onExploreChart: () => void;
 
   forceRefresh: (sliceId: number, dashboardId: number) => void;
@@ -212,6 +213,8 @@ class SliceHeaderControls extends React.PureComponent<
 
   render() {
     const {
+      componentId,
+      dashboardId,
       slice,
       isFullSize,
       cachedDttm = [],
@@ -220,7 +223,6 @@ class SliceHeaderControls extends React.PureComponent<
       addDangerToast = () => {},
       supersetCanShare = false,
       isCached = [],
-      formData,
     } = this.props;
     const crossFilterItems = getChartMetadataRegistry().items;
     const isTable = slice.viz_type === 'table';
@@ -309,13 +311,14 @@ class SliceHeaderControls extends React.PureComponent<
 
         {supersetCanShare && (
           <ShareMenuItems
-            copyMenuItemTitle={t('Copy chart URL')}
-            emailMenuItemTitle={t('Share chart by email')}
+            dashboardId={dashboardId}
+            dashboardComponentId={componentId}
+            copyMenuItemTitle={t('Copy permalink to clipboard')}
+            emailMenuItemTitle={t('Share permalink by email')}
             emailSubject={t('Superset chart')}
             emailBody={t('Check out this chart: ')}
             addSuccessToast={addSuccessToast}
             addDangerToast={addDangerToast}
-            formData={formData}
           />
         )}
 

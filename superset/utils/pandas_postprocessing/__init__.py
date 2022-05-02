@@ -20,6 +20,7 @@ from superset.utils.pandas_postprocessing.compare import compare
 from superset.utils.pandas_postprocessing.contribution import contribution
 from superset.utils.pandas_postprocessing.cum import cum
 from superset.utils.pandas_postprocessing.diff import diff
+from superset.utils.pandas_postprocessing.flatten import flatten
 from superset.utils.pandas_postprocessing.geography import (
     geodetic_parse,
     geohash_decode,
@@ -27,6 +28,7 @@ from superset.utils.pandas_postprocessing.geography import (
 )
 from superset.utils.pandas_postprocessing.pivot import pivot
 from superset.utils.pandas_postprocessing.prophet import prophet
+from superset.utils.pandas_postprocessing.rename import rename
 from superset.utils.pandas_postprocessing.resample import resample
 from superset.utils.pandas_postprocessing.rolling import rolling
 from superset.utils.pandas_postprocessing.select import select
@@ -45,9 +47,11 @@ __all__ = [
     "geodetic_parse",
     "pivot",
     "prophet",
+    "rename",
     "resample",
     "rolling",
     "select",
     "sort",
+    "flatten",
     "_flatten_column_after_pivot",
 ]

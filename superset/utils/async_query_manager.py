@@ -134,7 +134,11 @@ class AsyncQueryManager:
                 session["async_user_id"] = user_id
 
                 sub = str(user_id) if user_id else None
-                token = self.generate_jwt({"channel": async_channel_id, "sub": sub})
+                token = jwt.encode(
+                    {"channel": async_channel_id, "sub": sub},
+                    self._jwt_secret,
+                    algorithm="HS256",
+                )
 
                 response.set_cookie(
                     self._jwt_cookie_name,
@@ -146,21 +150,13 @@ class AsyncQueryManager:
 
             return response
 
-    def generate_jwt(self, data: Dict[str, Any]) -> str:
-        encoded_jwt = jwt.encode(data, self._jwt_secret, algorithm="HS256")
-        return encoded_jwt.decode("utf-8")
-
-    def parse_jwt(self, token: str) -> Dict[str, Any]:
-        data = jwt.decode(token, self._jwt_secret, algorithms=["HS256"])
-        return data
-
     def parse_jwt_from_request(self, req: Request) -> Dict[str, Any]:
         token = req.cookies.get(self._jwt_cookie_name)
         if not token:
             raise AsyncQueryTokenException("Token not preset")
 
         try:
-            return self.parse_jwt(token)
+            return jwt.decode(token, self._jwt_secret, algorithms=["HS256"])
         except Exception as ex:
             logger.warning(ex)
             raise AsyncQueryTokenException("Failed to parse token") from ex

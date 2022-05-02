@@ -10,7 +10,7 @@ version: 1
 ### Configuration
 
 To configure your application, you need to create a file `superset_config.py` and add it to your
-`PYTHONPATH`. If your applcation was installed using docker-compose an alternative configuration is required. See [https://github.com/apache/superset/tree/master/docker#readme](https://github.com/apache/superset/tree/master/docker#readme) for details.
+`PYTHONPATH`. If your application was installed using docker-compose an alternative configuration is required. See [https://github.com/apache/superset/tree/master/docker#readme](https://github.com/apache/superset/tree/master/docker#readme) for details.
 
 Here are some of the parameters you can set in that file:
 ```
@@ -20,8 +20,12 @@ ROW_LIMIT = 5000
 SUPERSET_WEBSERVER_PORT = 8088
 
 # Flask App Builder configuration
-# Your App secret key
-SECRET_KEY = '\2\1thisismyscretkey\1\2\e\y\y\h'
+# Your App secret key will be used for securely signing the session cookie
+# and encrypting sensitive information on the database
+# Make sure you are changing this key for your deployment with a strong key.
+# You can generate a strong key using `openssl rand -base64 42`
+
+SECRET_KEY = 'YOUR_OWN_RANDOM_GENERATED_SECRET_KEY'
 
 # The SQLAlchemy connection string to your database backend
 # This connection defines the path to the database that stores your
@@ -65,6 +69,32 @@ you can add the endpoints to `WTF_CSRF_EXEMPT_LIST`:
 WTF_CSRF_EXEMPT_LIST = [‘’]
 ```
 
+### Using a production metastore
+
+By default Superset is configured to use SQLite, it's a simple and fast way to get you started
+(no installation needed). But for production environments you should use a different database engine on
+a separate host or container.
+
+Superset supports the following database engines/versions:
+
+| Database Engine                                           | Supported Versions                |
+| --------------------------------------------------------- | --------------------------------- |
+| [PostgreSQL](https://www.postgresql.org/)                 | 10.X, 11.X, 12.X, 13.X, 14.X      |
+| [MySQL](https://www.mysql.com/)                           | 5.X                               |
+
+
+Use the following database drivers and connection strings:
+
+| Database                                  | PyPI package                      | Connection String                                                        |
+| ----------------------------------------- | --------------------------------- | ------------------------------------------------------------------------ |
+| [PostgreSQL](https://www.postgresql.org/) | `pip install psycopg2`            | `postgresql://<UserName>:<DBPassword>@<Database Host>/<Database Name>`   |
+| [MySQL](https://www.mysql.com/)           | `pip install mysqlclient`         | `mysql://<UserName>:<DBPassword>@<Database Host>/<Database Name>`        |
+| SQLite                                    | No additional library needed      | `sqlite://`                                                              |
+
+To configure Superset metastore set `SQLALCHEMY_DATABASE_URI` config key on `superset_config`
+to the appropriate connection string.
+
+
 ### Running on a WSGI HTTP Server
 
 While you can run Superset on NGINX or Apache, we recommend using Gunicorn in async mode. This
@@ -95,7 +125,7 @@ If you're not using Gunicorn, you may want to disable the use of `flask-compress
 If you are running superset behind a load balancer or reverse proxy (e.g. NGINX or ELB on AWS), you
 may need to utilize a healthcheck endpoint so that your load balancer knows if your superset
 instance is running. This is provided at `/health` which will return a 200 response containing “OK”
-if the the webserver is running.
+if the webserver is running.
 
 If the load balancer is inserting `X-Forwarded-For/X-Forwarded-Proto` headers, you should set
 `ENABLE_PROXY_FIX = True` in the superset config file (`superset_config.py`) to extract and use the
@@ -110,7 +140,7 @@ RequestHeader set X-Forwarded-Proto "https"
 
 ### Custom OAuth2 Configuration
 
-Beyond FAB supported providers (Github, Twitter, LinkedIn, Google, Azure, etc), its easy to connect
+Beyond FAB supported providers (GitHub, Twitter, LinkedIn, Google, Azure, etc), its easy to connect
 Superset with other OAuth2 Authorization Server implementations that support “code” authorization.
 
 Make sure the pip package [`Authlib`](https://authlib.org/) is installed on the webserver.
@@ -242,3 +272,15 @@ FEATURE_FLAGS = {
 ```
 
 A current list of feature flags can be found in [RESOURCES/FEATURE_FLAGS.md](https://github.com/apache/superset/blob/master/RESOURCES/FEATURE_FLAGS.md).
+
+### SECRET_KEY Rotation
+
+If you want to rotate the SECRET_KEY(change the existing secret key), follow the below steps.
+
+Add the new SECRET_KEY and PREVIOUS_SECRET_KEY to `superset_config.py`:
+
+```python
+PREVIOUS_SECRET_KEY = 'CURRENT_SECRET_KEY' # The default SECRET_KEY for deployment is '21thisismyscretkey12eyyh'
+SECRET_KEY = 'YOUR_OWN_RANDOM_GENERATED_SECRET_KEY'
+```
+Then run `superset re-encrypt-secrets`

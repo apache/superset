@@ -20,7 +20,7 @@ from flask_babel import gettext as _
 from pandas import DataFrame
 
 from superset.constants import NULL_STRING, PandasAxis
-from superset.exceptions import QueryObjectValidationError
+from superset.exceptions import InvalidPostProcessingError
 from superset.utils.pandas_postprocessing.utils import (
     _flatten_column_after_pivot,
     _get_aggregate_funcs,
@@ -56,7 +56,7 @@ def pivot(  # pylint: disable=too-many-arguments,too-many-locals
     :param drop_missing_columns: Do not include columns whose entries are all missing
     :param combine_value_with_metric: Display metrics side by side within each column,
            as opposed to each column being displayed side by side for each metric.
-    :param aggregates: A mapping from aggregate column name to the the aggregate
+    :param aggregates: A mapping from aggregate column name to the aggregate
            config.
     :param marginal_distributions: Add totals for row/column. Default to False
     :param marginal_distribution_name: Name of row/column with marginal distribution.
@@ -64,14 +64,14 @@ def pivot(  # pylint: disable=too-many-arguments,too-many-locals
     :param flatten_columns: Convert column names to strings
     :param reset_index: Convert index to column
     :return: A pivot table
-    :raises QueryObjectValidationError: If the request in incorrect
+    :raises InvalidPostProcessingError: If the request in incorrect
     """
     if not index:
-        raise QueryObjectValidationError(
+        raise InvalidPostProcessingError(
             _("Pivot operation requires at least one index")
         )
     if not aggregates:
-        raise QueryObjectValidationError(
+        raise InvalidPostProcessingError(
             _("Pivot operation must include at least one aggregate")
         )
 

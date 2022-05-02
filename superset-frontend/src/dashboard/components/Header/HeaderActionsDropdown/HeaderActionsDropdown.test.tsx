@@ -17,10 +17,13 @@
  * under the License.
  */
 import React from 'react';
+import { shallow } from 'enzyme';
+import sinon from 'sinon';
 import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
 import { HeaderDropdownProps } from 'src/dashboard/components/Header/types';
+import injectCustomCss from 'src/dashboard/util/injectCustomCss';
 import HeaderActionsDropdown from '.';
 
 const createProps = () => ({
@@ -134,8 +137,8 @@ test('should show the share actions', async () => {
   };
   render(setup(canShareProps));
   await openDropdown();
-  expect(screen.getByText('Copy dashboard URL')).toBeInTheDocument();
-  expect(screen.getByText('Share dashboard by email')).toBeInTheDocument();
+  expect(screen.getByText('Copy permalink to clipboard')).toBeInTheDocument();
+  expect(screen.getByText('Share permalink by email')).toBeInTheDocument();
 });
 
 test('should render the "Save Modal" when user can save', async () => {
@@ -180,7 +183,9 @@ test('should NOT render the "Refresh dashboard" menu item as disabled', async ()
 
 test('should render with custom css', () => {
   const mockedProps = createProps();
+  const { customCss } = mockedProps;
   render(setup(mockedProps));
+  injectCustomCss(customCss);
   expect(screen.getByRole('button')).toHaveStyle('margin-left: 100px');
 });
 
@@ -198,4 +203,30 @@ test('should show the properties modal', async () => {
   await openDropdown();
   userEvent.click(screen.getByText('Edit dashboard properties'));
   expect(editModeOnProps.showPropertiesModal).toHaveBeenCalledTimes(1);
+});
+
+describe('UNSAFE_componentWillReceiveProps', () => {
+  let wrapper: any;
+  const mockedProps = createProps();
+  const props = { ...mockedProps, customCss: '' };
+
+  beforeEach(() => {
+    wrapper = shallow(<HeaderActionsDropdown {...props} />);
+    wrapper.setState({ css: props.customCss });
+    sinon.spy(wrapper.instance(), 'setState');
+  });
+
+  afterEach(() => {
+    wrapper.instance().setState.restore();
+  });
+
+  it('css should update state and inject custom css', () => {
+    wrapper.instance().UNSAFE_componentWillReceiveProps({
+      ...props,
+      customCss: mockedProps.customCss,
+    });
+    expect(wrapper.instance().setState.calledOnce).toBe(true);
+    const stateKeys = Object.keys(wrapper.instance().setState.lastCall.args[0]);
+    expect(stateKeys).toContain('css');
+  });
 });

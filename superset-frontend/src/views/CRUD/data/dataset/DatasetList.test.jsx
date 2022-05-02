@@ -55,6 +55,7 @@ const mockdatasets = [...new Array(3)].map((_, i) => ({
   id: i,
   schema: `schema ${i}`,
   table_name: `coolest table ${i}`,
+  owners: [{ username: 'admin', userId: 1 }],
 }));
 
 const mockUser = {
@@ -148,7 +149,7 @@ describe('DatasetList', () => {
       wrapper.find('[data-test="bulk-select-copy"]').text(),
     ).toMatchInlineSnapshot(`"0 Selected"`);
 
-    // Vitual Selected
+    // Virtual Selected
     act(() => {
       wrapper.find(IndeterminateCheckbox).at(1).props().onChange(checkedEvent);
     });

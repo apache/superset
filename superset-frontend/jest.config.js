@@ -19,7 +19,7 @@
 
 module.exports = {
   testRegex:
-    '\\/superset-frontend\\/(spec|src|plugins|packages)\\/.*(_spec|\\.test)\\.[jt]sx?$',
+    '\\/superset-frontend\\/(spec|src|plugins|packages|tools)\\/.*(_spec|\\.test)\\.[jt]sx?$',
   moduleNameMapper: {
     '\\.(css|less|geojson)$': '<rootDir>/spec/__mocks__/mockExportObject.js',
     '\\.(gif|ttf|eot|png|jpg)$': '<rootDir>/spec/__mocks__/mockExportString.js',

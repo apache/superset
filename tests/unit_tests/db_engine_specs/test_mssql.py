@@ -107,13 +107,25 @@ def test_time_exp_mixd_case_col_1y(app_context: AppContext) -> None:
 @pytest.mark.parametrize(
     "actual,expected",
     [
-        ("DATE", "CONVERT(DATE, '2019-01-02', 23)",),
-        ("DATETIME", "CONVERT(DATETIME, '2019-01-02T03:04:05.678', 126)",),
-        ("SMALLDATETIME", "CONVERT(SMALLDATETIME, '2019-01-02 03:04:05', 20)",),
+        (
+            "DATE",
+            "CONVERT(DATE, '2019-01-02', 23)",
+        ),
+        (
+            "DATETIME",
+            "CONVERT(DATETIME, '2019-01-02T03:04:05.678', 126)",
+        ),
+        (
+            "SMALLDATETIME",
+            "CONVERT(SMALLDATETIME, '2019-01-02 03:04:05', 20)",
+        ),
     ],
 )
 def test_convert_dttm(
-    app_context: AppContext, actual: str, expected: str, dttm: datetime,
+    app_context: AppContext,
+    actual: str,
+    expected: str,
+    dttm: datetime,
 ) -> None:
     from superset.db_engine_specs.mssql import MssqlEngineSpec
 
@@ -151,7 +163,9 @@ def test_fetch_data(app_context: AppContext) -> None:
     from superset.db_engine_specs.mssql import MssqlEngineSpec
 
     with mock.patch.object(
-        MssqlEngineSpec, "pyodbc_rows_to_tuples", return_value="converted",
+        MssqlEngineSpec,
+        "pyodbc_rows_to_tuples",
+        return_value="converted",
     ) as mock_pyodbc_rows_to_tuples:
         data = [(1, "foo")]
         with mock.patch.object(BaseEngineSpec, "fetch_data", return_value=data):
@@ -207,7 +221,10 @@ select * from currency union all select * from currency_2
 )"""
             ),
         ),
-        ("SELECT 1 as cnt", None,),
+        (
+            "SELECT 1 as cnt",
+            None,
+        ),
         (
             dedent(
                 """
