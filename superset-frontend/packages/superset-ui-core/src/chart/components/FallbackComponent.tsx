@@ -22,13 +22,6 @@ import { FallbackPropsWithDimension } from './SuperChart';
 
 export type Props = FallbackPropsWithDimension;
 
-const CONTAINER_STYLE = {
-  backgroundColor: '#000',
-  color: '#fff',
-  overflow: 'auto',
-  padding: 32,
-};
-
 export default function FallbackComponent({
   componentStack,
   error,
@@ -36,7 +29,15 @@ export default function FallbackComponent({
   width,
 }: Props) {
   return (
-    <div style={{ ...CONTAINER_STYLE, height, width }}>
+    <div
+      css={theme => ({
+        backgroundColor: theme.colors.grayscale.dark2,
+        color: theme.colors.grayscale.light5,
+        overflow: 'auto',
+        padding: 32,
+      })}
+      style={{ height, width }}
+    >
       <div>
         <div>
           <b>Oops! An error occured!</b>

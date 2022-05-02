@@ -17,6 +17,8 @@
  * under the License.
  */
 
+import { t, styled } from '@superset-ui/core';
+import { number } from 'prop-types';
 import React, { useMemo, CSSProperties } from 'react';
 import { filterXSS } from 'xss';
 
@@ -31,6 +33,22 @@ export type TooltipProps = {
     | undefined;
 };
 
+const StyledDiv = styled.div<{ top: number; left: number }>`
+  ${({ theme, top, left }) => `
+    position: absolute;
+    top: ${top}px;
+    left: ${left}px;
+    padding: ${theme.gridUnit * 2}px;
+    margin: ${theme.gridUnit * 2}px;
+    background: ${theme.colors.grayscale.dark2};
+    color: ${theme.colors.grayscale.light5};
+    maxWidth: 300px;
+    fontSize: ${theme.typography.sizes.s}px;
+    zIndex: 9;
+    pointerEvents: none;
+  `}
+`;
+
 export default function Tooltip(props: TooltipProps) {
   const { tooltip } = props;
   if (typeof tooltip === 'undefined' || tooltip === null) {
@@ -38,24 +56,6 @@ export default function Tooltip(props: TooltipProps) {
   }
 
   const { x, y, content } = tooltip;
-
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const style: CSSProperties = useMemo(
-    () => ({
-      position: 'absolute',
-      top: `${y}px`,
-      left: `${x}px`,
-      padding: '8px',
-      margin: '8px',
-      background: 'rgba(0, 0, 0, 0.8)',
-      color: '#fff',
-      maxWidth: '300px',
-      fontSize: '12px',
-      zIndex: 9,
-      pointerEvents: 'none',
-    }),
-    [x, y],
-  );
 
   if (typeof content === 'string') {
     // eslint-disable-next-line react-hooks/rules-of-hooks
@@ -66,14 +66,18 @@ export default function Tooltip(props: TooltipProps) {
       [content],
     );
     return (
-      <div style={style}>
+      <StyledDiv top={y} left={x}>
         <div
           // eslint-disable-next-line react/no-danger
           dangerouslySetInnerHTML={contentHtml}
         />
-      </div>
+      </StyledDiv>
     );
   }
 
-  return <div style={style}>{content}</div>;
+  return (
+    <StyledDiv top={y} left={x}>
+      {content}
+    </StyledDiv>
+  );
 }
