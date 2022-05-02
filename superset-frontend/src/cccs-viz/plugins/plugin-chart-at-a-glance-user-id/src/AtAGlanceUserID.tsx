@@ -238,7 +238,7 @@ function AtAGlanceUserIDCore(props: AtAGlanceUserIDProps) {
                 header={
                   <span className="header">
                     {' '}
-                    Number of Successful non Canadian Login Attemptszzz:{' '}
+                    Number of Successful non Canadian Login Attempts:{' '}
                     {aadDataManager.isLoading
                       ? 'Loading'
                       : nonCanadianIpsList.length}{' '}
