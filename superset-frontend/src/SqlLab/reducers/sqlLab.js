@@ -328,10 +328,8 @@ export default function sqlLabReducer(state = {}, action) {
       if (action.query.state === 'stopped') {
         return state;
       }
-
       const alts = {
         endDttm: now(),
-        resultsKey: action?.results?.query?.resultsKey,
         progress: 100,
         results: action.results,
         rows: action?.results?.query?.rows || 0,
