@@ -22,34 +22,36 @@ from flask_babel import _
 from sqlalchemy.orm import Session, subqueryload
 from sqlalchemy.orm.exc import NoResultFound
 
-from superset import db
 from superset.dao.base import BaseDAO
-from superset.connectors.sqla.models import SqlaTable, Table, Query
 from superset.datasets.commands.exceptions import DatasetNotFoundError
-from superset.models.sql_lab import SavedQuery
-from superset.datasets.models import Dataset
 
 if TYPE_CHECKING:
+    from superset.connectors.sqla.models import SqlaTable, Table, Query
     from superset.models.core import Database
+    from superset.models.sql_lab import SavedQuery
+    from superset.datasets.models import Dataset
 
-Datasource = Union[Dataset, SqlaTable, Table, Query, SavedQuery]
+    Datasource = Union[Dataset, SqlaTable, Table, Query, SavedQuery]
 
 
 class DatasourceDAO(BaseDAO):
+
     sources = {
-        "SqlaTable": SqlaTable,
-        "dataset": Dataset,
-        "table": Table,
-        "query": Query,  # query history log
-        "saved_query": SavedQuery,
+        "SqlaTable": "SqlaTable",
+        "dataset": "Dataset",
+        "table": "Table",
+        "query": "Query",  # query history log
+        "saved_query": "SavedQuery",
     }
 
-    def get_datasource(self, datasource_type: str, datasource_id: int) -> Datasource:
+    def get_datasource(
+        self, datasource_type: str, datasource_id: int, session: Session
+    ) -> "Datasource":
         if datasource_type not in self.sources:
             raise DatasetNotFoundError()
 
         datasource = (
-            db.session.query(self.sources[datasource_type])
+            session.query(self.sources[datasource_type])
             .filter_by(id=datasource_id)
             .one_or_none()
         )
@@ -59,15 +61,17 @@ class DatasourceDAO(BaseDAO):
 
         return datasource
 
-    def get_all_datasources(self, session: Session) -> List[Datasource]:
-        datasources: List[Datasource] = []
+    def get_all_datasources(self, session: Session) -> List["Datasource"]:
+        datasources: List["Datasource"] = []
         for source_class in DatasourceDAO.sources.values():
             qry = session.query(source_class)
             qry = source_class.default_query(qry)
             datasources.extend(qry.all())
         return datasources
 
-    def get_datasource_by_id(self, session: Session, datasource_id: int) -> Datasource:
+    def get_datasource_by_id(
+        self, session: Session, datasource_id: int
+    ) -> "Datasource":
         """
         Find a datasource instance based on the unique id.
 
@@ -95,7 +99,7 @@ class DatasourceDAO(BaseDAO):
         datasource_name: str,
         schema: str,
         database_name: str,
-    ) -> Optional[Datasource]:
+    ) -> Optional["Datasource"]:
         datasource_class = DatasourceDAO.sources[datasource_type]
         return datasource_class.get_datasource_by_name(
             session, datasource_name, schema, database_name
@@ -107,7 +111,7 @@ class DatasourceDAO(BaseDAO):
         database: "Database",
         permissions: Set[str],
         schema_perms: Set[str],
-    ) -> List[Datasource]:
+    ) -> List["Datasource"]:
         # TODO(bogdan): add unit test
         datasource_class = DatasourceDAO.sources[database.type]
         return (
@@ -124,7 +128,7 @@ class DatasourceDAO(BaseDAO):
 
     def get_eager_datasource(
         self, session: Session, datasource_type: str, datasource_id: int
-    ) -> Union[Dataset, SqlaTable, Table, Query, SavedQuery]:
+    ) -> "Datasource":
         """Returns datasource with columns and metrics."""
         datasource_class = DatasourceDAO.sources[datasource_type]
         return (
@@ -143,7 +147,7 @@ class DatasourceDAO(BaseDAO):
         database: "Database",
         datasource_name: str,
         schema: Optional[str] = None,
-    ) -> List[Union[Dataset, SqlaTable, Table, Query, SavedQuery]]:
+    ) -> List["Datasource"]:
         datasource_class = DatasourceDAO.sources[database.type]
         return datasource_class.query_datasources_by_name(
             session, database, datasource_name, schema=schema
