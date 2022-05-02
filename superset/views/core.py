@@ -1124,6 +1124,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                     cache_timeout=database.table_cache_timeout,
                 )
             ] or []
+            logger.debug("Loaded all tables from schema %s: %s", schema_parsed, tables)
             views = [
                 utils.DatasourceName(*datasource_name)
                 for datasource_name in database.get_all_view_names_in_schema(
@@ -1133,6 +1134,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                     cache_timeout=database.table_cache_timeout,
                 )
             ] or []
+            logger.debug("Loaded all views from schema %s: %s", schema_parsed, views)
         else:
             tables = [
                 utils.DatasourceName(*datasource_name)
@@ -1140,18 +1142,22 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                     cache=True, force=False, cache_timeout=24 * 60 * 60
                 )
             ]
+            logger.debug("Loaded all tables from database: %s", tables)
             views = [
                 utils.DatasourceName(*datasource_name)
                 for datasource_name in database.get_all_view_names_in_database(
                     cache=True, force=False, cache_timeout=24 * 60 * 60
                 )
             ]
+            logger.debug("Loaded all views from database: %s", views)
         tables = security_manager.get_datasources_accessible_by_user(
             database, tables, schema_parsed
         )
+        logger.debug("Filtered tables to: %s", tables)
         views = security_manager.get_datasources_accessible_by_user(
             database, views, schema_parsed
         )
+        logger.debug("Filtered views to: %s", views)
 
         def get_datasource_label(ds_name: utils.DatasourceName) -> str:
             return (
