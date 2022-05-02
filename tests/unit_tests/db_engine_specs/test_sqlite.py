@@ -46,7 +46,7 @@ def test_get_all_datasource_names_table(app_context: AppContext) -> None:
 
     database = mock.MagicMock()
     database.get_all_schema_names.return_value = ["schema1"]
-    table_names = ["table1", "table2"]
+    table_names = [("table1", "schema1"), ("table2", "schema1")]
     get_tables = mock.MagicMock(return_value=table_names)
     database.get_all_table_names_in_schema = get_tables
     result = SqliteEngineSpec.get_all_datasource_names(database, "table")
@@ -65,7 +65,7 @@ def test_get_all_datasource_names_view(app_context: AppContext) -> None:
 
     database = mock.MagicMock()
     database.get_all_schema_names.return_value = ["schema1"]
-    views_names = ["view1", "view2"]
+    views_names = [("view1", "schema1"), ("view2", "schema1")]
     get_views = mock.MagicMock(return_value=views_names)
     database.get_all_view_names_in_schema = get_views
     result = SqliteEngineSpec.get_all_datasource_names(database, "view")
