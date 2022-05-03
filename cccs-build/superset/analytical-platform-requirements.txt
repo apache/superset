@@ -1,1 +1,1 @@
-hogwarts-auth==1.9.0
+hogwarts-auth==1.8.0.7820
