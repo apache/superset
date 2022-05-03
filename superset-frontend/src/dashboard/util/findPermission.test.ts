@@ -58,7 +58,7 @@ const outsiderUser: UserWithPermissionsAndRoles = {
 
 const owner: Owner = {
   first_name: 'Test',
-  id: ownerUser.userId,
+  id: ownerUser.userId!,
   last_name: 'User',
   username: ownerUser.username,
 };
