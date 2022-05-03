@@ -1,7 +1,10 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { QueryFormData } from '@superset-ui/core';
 import Collapse from 'src/components/Collapse';
+import { AgGridReact } from '@ag-grid-community/react';
 import styles from './styles';
+
+import '@ag-grid-community/core/dist/styles/ag-theme-balham.css';
 
 type DataManager = {
   data: any[];
@@ -16,53 +19,16 @@ type AtAGlanceUserIDProps = QueryFormData & {
   ipDashBoardBaseUrl: string;
 };
 
-const getIPList = (ip_list: any) => {
-  const counter = {};
-
-  ip_list.forEach(function (obj: any) {
-    const key = JSON.stringify(obj.client_ip);
-    counter[key] = (counter[key] || 0) + 1;
-  });
-
-  return counter;
-};
-
 const generateClientIpLinksList = (
-  ipList: any,
+  columnDefs: any,
+  rowData: any,
   ipDashBoardBaseUrl: string,
   ipDashboardId: string,
   ipDashboardFilterId: string,
 ) => (
-  <table
-    className="table table-striped table-condensed"
-    style={styles.AtAGlanceLists}
-  >
-    <tbody>
-      <tr>
-        <th scope="col">IP Address</th>
-        <th scope="col">Count</th>
-      </tr>
-      {Object.keys(ipList)
-        .map(user_ip => user_ip.replaceAll('"', ''))
-        .map(user_ip => (
-          <tr>
-            <td>
-              <a
-                href={
-                  `${ipDashBoardBaseUrl}/superset/dashboard/${ipDashboardId}/?native_filters=%28NATIVE_FILTER-${ipDashboardFilterId}%3A%28__cache%3A%28label%3A'${user_ip}'` +
-                  `%2CvalidateStatus%3A%21f%2Cvalue%3A%21%28'${user_ip}'%29%29%2CextraFormData%3A%28filters%3A%21%28%28col%3Aip_string%2Cop%3AIN%2Cval%3A%21%28'${user_ip}'` +
-                  `%29%29%29%29%2CfilterState%3A%28label%3A'${user_ip}'%2CvalidateStatus%3A%21f%2Cvalue%3A%21%28'${user_ip}'%29%29%2Cid%3ANATIVE_FILTER-${ipDashboardFilterId}` +
-                  `%2CownState%3A%28%29%29%29`
-                }
-              >
-                {user_ip}
-              </a>
-            </td>
-            <td>&nbsp;{ipList[`"${user_ip}"`]}</td>
-          </tr>
-        ))}
-    </tbody>
-  </table>
+  <div className="ag-theme-balham" style={{ height: 400, width: 600 }}>
+    <AgGridReact rowData={rowData} columnDefs={columnDefs} />
+  </div>
 );
 
 /**
@@ -108,6 +74,9 @@ const getPayloadField = (field: string, payload: any) => {
 function AtAGlanceUserIDCore(props: AtAGlanceUserIDProps) {
   const [userIDString, setUserIDString] = useState('user@domain.invalid,');
 
+  const [columnDefs] = useState([{ field: 'IP Address' }, { field: 'Count' }]);
+  const [rowData, setRowData] = useState([{}]);
+
   let canadianIpsList: any[] = [];
   let nonCanadianIpsList: any[] = [];
   let unsuccessfulCanadianIpsList: any[] = [];
@@ -121,6 +90,18 @@ function AtAGlanceUserIDCore(props: AtAGlanceUserIDProps) {
   });
 
   let hasFiltered = false;
+
+  // useEffect(() => {
+  //   setRowData([
+  //     { 'IP Address': '1.1.1.1', Count: 1 },
+  //     { 'IP Address': '1.1.1.2', Count: 1 },
+  //   ]);
+  // }, [
+  //   canadianIpsList,
+  //   nonCanadianIpsList,
+  //   unsuccessfulCanadianIpsList,
+  //   unsuccessfulNonCanadianIpsList,
+  // ]);
 
   for (
     let i = 0;
@@ -227,7 +208,8 @@ function AtAGlanceUserIDCore(props: AtAGlanceUserIDProps) {
                   <></>
                 ) : (
                   generateClientIpLinksList(
-                    getIPList(canadianIpsList),
+                    columnDefs,
+                    rowData,
                     props.ipDashBoardBaseUrl,
                     props.ipDashboardId,
                     props.ipDashboardFilterId,
@@ -250,7 +232,8 @@ function AtAGlanceUserIDCore(props: AtAGlanceUserIDProps) {
                   <></>
                 ) : (
                   generateClientIpLinksList(
-                    getIPList(nonCanadianIpsList),
+                    columnDefs,
+                    rowData,
                     props.ipDashBoardBaseUrl,
                     props.ipDashboardId,
                     props.ipDashboardFilterId,
@@ -273,7 +256,8 @@ function AtAGlanceUserIDCore(props: AtAGlanceUserIDProps) {
                   <></>
                 ) : (
                   generateClientIpLinksList(
-                    getIPList(unsuccessfulCanadianIpsList),
+                    columnDefs,
+                    rowData,
                     props.ipDashBoardBaseUrl,
                     props.ipDashboardId,
                     props.ipDashboardFilterId,
@@ -296,7 +280,8 @@ function AtAGlanceUserIDCore(props: AtAGlanceUserIDProps) {
                   <></>
                 ) : (
                   generateClientIpLinksList(
-                    getIPList(unsuccessfulNonCanadianIpsList),
+                    columnDefs,
+                    rowData,
                     props.ipDashBoardBaseUrl,
                     props.ipDashboardId,
                     props.ipDashboardFilterId,
