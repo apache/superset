@@ -793,10 +793,11 @@ class TestDatabaseApi(SupersetTestCase):
                     "selectStar": "SELECT\nFROM wrong_table\nLIMIT 100\nOFFSET 0",
                 },
             )
-        self.assertEqual(rv.status_code, 422)
-        if example_db.backend == "mysql":
+        elif example_db.backend == "mysql":
+            self.assertEqual(rv.status_code, 422)
             self.assertEqual(data, {"message": "`wrong_table`"})
         else:
+            self.assertEqual(rv.status_code, 422)
             self.assertEqual(data, {"message": "wrong_table"})
 
     def test_get_table_metadata_no_db_permission(self):
