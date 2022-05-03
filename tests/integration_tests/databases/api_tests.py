@@ -779,9 +779,25 @@ class TestDatabaseApi(SupersetTestCase):
         self.login(username="admin")
         rv = self.client.get(uri)
         data = json.loads(rv.data.decode("utf-8"))
-        raise Exception(data)
+        if example_db.backend == "sqlite":
+            self.assertEqual(rv.status_code, 200)
+            self.assertEqual(
+                data,
+                {
+                    "columns": [],
+                    "comment": None,
+                    "foreignKeys": [],
+                    "indexes": [],
+                    "name": "wrong_table",
+                    "primaryKey": {"constrained_columns": None, "name": None},
+                    "selectStar": "SELECT\nFROM wrong_table\nLIMIT 100\nOFFSET 0",
+                },
+            )
         self.assertEqual(rv.status_code, 422)
-        self.assertEqual(data, {"message": "wrong_table"})
+        if example_db.backend == "mysql":
+            self.assertEqual(data, {"message": "`wrong_table`"})
+        else:
+            self.assertEqual(data, {"message": "wrong_table"})
 
     def test_get_table_metadata_no_db_permission(self):
         """
