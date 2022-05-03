@@ -53,7 +53,7 @@ export const ExploreReport = ({
   });
   const { userId, email } = useSelector<
     ExplorePageState,
-    { userId: number; email: string }
+    { userId?: number; email?: string }
   >(state => pick(state.explore.user, ['userId', 'email']));
 
   const handleReportDelete = useCallback(() => {
