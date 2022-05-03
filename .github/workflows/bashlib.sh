@@ -183,7 +183,7 @@ cypress-run-all() {
   nohup flask run --no-debugger -p $port >"$flasklog" 2>&1 </dev/null &
   local flaskProcessId=$!
 
-  cypress-run "*/**/[!applitools]*"
+  cypress-run "*/**/!(*.applitools.test.ts)"
 
   # After job is done, print out Flask log for debugging
   say "::group::Flask log for default run"
