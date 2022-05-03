@@ -40,15 +40,6 @@ export interface UserWithPermissionsAndRoles extends User {
 
 export type UndefinedUser = {};
 
-export type Dashboard = {
-  dttm: number;
-  id: number;
-  url: string;
-  title: string;
-  creator?: string;
-  creator_url?: string;
-};
-
 export type DashboardData = {
   dashboard_title?: string;
   created_on_delta_humanized?: string;

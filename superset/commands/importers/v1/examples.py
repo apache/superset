@@ -138,7 +138,7 @@ class ImportExamplesCommand(ImportModelsCommand):
 
                 dataset_info[str(dataset.uuid)] = {
                     "datasource_id": dataset.id,
-                    "datasource_type": "view" if dataset.is_sqllab_view else "table",
+                    "datasource_type": "table",
                     "datasource_name": dataset.table_name,
                 }
 

@@ -30,7 +30,6 @@ import {
   Table,
 } from 'react-virtualized';
 import { getMultipleTextDimensions, t, styled } from '@superset-ui/core';
-import { Tooltip } from 'src/components/Tooltip';
 import Button from '../Button';
 import CopyToClipboard from '../CopyToClipboard';
 import ModalTrigger from '../ModalTrigger';
@@ -312,14 +311,15 @@ export default class FilterableTable extends PureComponent<
     this.props.orderedColumnKeys.forEach((key, index) => {
       // we can't use Math.max(...colWidths.slice(...)) here since the number
       // of elements might be bigger than the number of allowed arguments in a
-      // JavaScript function
-      widthsByColumnKey[key] =
+      // Javascript function
+      const value = (widthsByColumnKey[key] =
         colWidths
           .slice(
             index * (this.list.length + 1),
             (index + 1) * (this.list.length + 1),
           )
-          .reduce((a, b) => Math.max(a, b)) + PADDING;
+          .reduce((a, b) => Math.max(a, b)) + PADDING);
+      widthsByColumnKey[key] = value;
     });
 
     return widthsByColumnKey;
@@ -513,20 +513,12 @@ export default class FilterableTable extends PureComponent<
       this.props.expandedColumns.indexOf(label) > -1
         ? 'header-style-disabled'
         : 'header-style';
+
     return (
-      <Tooltip
-        id="header-tooltip"
-        title={label}
-        placement="topLeft"
-        css={{ display: 'block' }}
-      >
-        <div className={className}>
-          {label}
-          {sortBy === dataKey && (
-            <SortIndicator sortDirection={sortDirection} />
-          )}
-        </div>
-      </Tooltip>
+      <div className={className}>
+        {label}
+        {sortBy === dataKey && <SortIndicator sortDirection={sortDirection} />}
+      </div>
     );
   }
 
@@ -545,32 +537,25 @@ export default class FilterableTable extends PureComponent<
         ? 'header-style-disabled'
         : 'header-style';
     return (
-      <Tooltip
+      <div
         key={key}
-        id="header-tooltip"
-        title={label}
-        placement="topLeft"
-        css={{ display: 'block' }}
+        style={{
+          ...style,
+          top:
+            typeof style.top === 'number'
+              ? style.top - GRID_POSITION_ADJUSTMENT
+              : style.top,
+        }}
+        className={`${className} grid-cell grid-header-cell`}
+        role="columnheader"
+        tabIndex={columnIndex}
+        onClick={() => this.sortGrid(label)}
       >
-        <div
-          style={{
-            ...style,
-            top:
-              typeof style.top === 'number'
-                ? style.top - GRID_POSITION_ADJUSTMENT
-                : style.top,
-          }}
-          className={`${className} grid-cell grid-header-cell`}
-          role="columnheader"
-          tabIndex={columnIndex}
-          onClick={() => this.sortGrid(label)}
-        >
-          {label}
-          {this.state.sortBy === label && (
-            <SortIndicator sortDirection={this.state.sortDirection} />
-          )}
-        </div>
-      </Tooltip>
+        {label}
+        {this.state.sortBy === label && (
+          <SortIndicator sortDirection={this.state.sortDirection} />
+        )}
+      </div>
     );
   }
 
