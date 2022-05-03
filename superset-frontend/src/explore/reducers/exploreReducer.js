@@ -273,6 +273,12 @@ export default function exploreReducer(state = {}, action) {
       );
       return { ...state, timeFormattedColumns: newTimeFormattedColumns };
     },
+    [actions.SET_FORCE_QUERY]() {
+      return {
+        ...state,
+        force: action.force,
+      };
+    },
   };
 
   if (action.type in actionHandlers) {

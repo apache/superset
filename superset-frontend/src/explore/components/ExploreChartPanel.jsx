@@ -189,6 +189,7 @@ const ExploreChartPanel = ({
   }, []);
 
   const refreshCachedQuery = useCallback(() => {
+    actions.setForceQuery(true);
     actions.postChartFormData(
       formData,
       true,
@@ -387,6 +388,7 @@ const ExploreChartPanel = ({
           <DataTablesPane
             ownState={ownState}
             queryFormData={queryFormData}
+            queryForce={force}
             onCollapseChange={onCollapseChange}
             chartStatus={chart.chartStatus}
             errorMessage={errorMessage}

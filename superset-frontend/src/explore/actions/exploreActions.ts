@@ -180,6 +180,14 @@ export function unsetTimeFormattedColumn(
   };
 }
 
+export const SET_FORCE_QUERY = 'SET_FORCE_QUERY';
+export function setForceQuery(force: boolean) {
+  return {
+    type: SET_FORCE_QUERY,
+    force,
+  };
+}
+
 export const exploreActions = {
   ...toastActions,
   setDatasourceType,
@@ -197,6 +205,7 @@ export const exploreActions = {
   sliceUpdated,
   setTimeFormattedColumn,
   unsetTimeFormattedColumn,
+  setForceQuery,
 };
 
 export type ExploreActions = typeof exploreActions;
