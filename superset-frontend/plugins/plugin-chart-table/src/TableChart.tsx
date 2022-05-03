@@ -317,7 +317,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   const getColumnConfigs = useCallback(
     (column: DataColumnMeta, i: number): ColumnWithLooseAccessor<D> => {
       const { key, label, isNumeric, dataType, isMetric, config = {} } = column;
-      const isFilter = !isNumeric && emitFilter;
+      const isFilter = emitFilter;
       const columnWidth = Number.isNaN(Number(config.columnWidth))
         ? config.columnWidth
         : Number(config.columnWidth);
