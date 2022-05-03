@@ -212,3 +212,22 @@ cypress-run-all() {
   # make sure the program exits
   kill $flaskProcessId
 }
+
+cypress-run-applitools() {
+  local flasklog="${HOME}/flask.log"
+  local port=8081
+  export CYPRESS_BASE_URL="http://localhost:${port}"
+
+  nohup flask run --no-debugger -p $port >"$flasklog" 2>&1 </dev/null &
+  local flaskProcessId=$!
+
+  cypress-run "*/**/*.applitools.test.ts"
+
+  # After job is done, print out Flask log for debugging
+  say "::group::Flask log for default run"
+  cat "$flasklog"
+  say "::endgroup::"
+
+  # make sure the program exits
+  kill $flaskProcessId
+}

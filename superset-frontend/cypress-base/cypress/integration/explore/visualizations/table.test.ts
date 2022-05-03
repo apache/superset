@@ -46,13 +46,6 @@ describe('Visualization > Table', () => {
   beforeEach(() => {
     cy.login();
     interceptChart({ legacy: false }).as('chartData');
-    cy.eyesOpen({
-      testName: 'Table viz',
-    });
-  });
-
-  afterEach(() => {
-    cy.eyesClose();
   });
 
   it('should work', () => {
@@ -61,7 +54,6 @@ describe('Visualization > Table', () => {
       granularity_sqla: undefined,
       metrics: ['count'],
     });
-    cy.eyesCheckWindow('Table viz loaded');
   });
 
   it('Use default time column', () => {

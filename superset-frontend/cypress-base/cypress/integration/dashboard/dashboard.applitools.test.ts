@@ -16,12 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-describe('SqlLab', () => {
+import {
+  waitForChartLoad,
+  WORLD_HEALTH_CHARTS,
+  WORLD_HEALTH_DASHBOARD,
+} from './dashboard.helper';
+
+describe('Dashboard load', () => {
   beforeEach(() => {
     cy.login();
-    cy.visit('/superset/sqllab');
     cy.eyesOpen({
-      testName: 'SqlLab view',
+      testName: 'Dashboard view',
     });
   });
 
@@ -29,7 +34,9 @@ describe('SqlLab', () => {
     cy.eyesClose();
   });
 
-  it('should work', () => {
-    cy.eyesCheckWindow('SqlLab view loaded');
+  it('should load the dashboard', () => {
+    cy.visit(WORLD_HEALTH_DASHBOARD);
+    WORLD_HEALTH_CHARTS.forEach(waitForChartLoad);
+    cy.eyesCheckWindow('Dashboard loaded');
   });
 });

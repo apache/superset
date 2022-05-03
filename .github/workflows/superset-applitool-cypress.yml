@@ -1,4 +1,10 @@
-name: E2E
+name: Applitools Cypress
+
+env:
+  APPLITOOLS_APP_NAME: Superset
+  APPLITOOLS_API_KEY: ${{ secrets.APPLITOOLS_API_KEY }}
+  APPLITOOLS_BATCH_ID: ${{ github.sha }}
+  APPLITOOLS_BATCH_NAME: Superset Cypress
 
 on:
   push:
@@ -12,15 +18,10 @@ on:
 jobs:
   cypress-matrix:
     if: github.event.pull_request.draft == false
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     strategy:
-      # when one test fails, DO NOT cancel the other
-      # containers, because this will kill Cypress processes
-      # leaving the Dashboard hanging ...
-      # https://github.com/cypress-io/github-action/issues/48
       fail-fast: false
       matrix:
-        containers: [1, 2, 3]
         browser: ["chrome"]
     env:
       FLASK_ENV: development
@@ -42,17 +43,9 @@ jobs:
         ports:
           - 16379:6379
     steps:
-      - name: "Checkout (pull) ${{ github.ref }} ( ${{ github.sha }} )"
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@v2
-        if: github.event_name == 'push'
         with:
-          persist-credentials: false
-          submodules: recursive
-      - name: "Checkout (pull_request) ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v2
-        if: github.event_name == 'pull_request' || github.event_name == 'pull_request_target'
-        with:
-          ref: "refs/pull/${{ github.event.number }}/merge"
           persist-credentials: false
           submodules: recursive
       - name: Check if python or frontend changes are present
@@ -108,17 +101,19 @@ jobs:
         uses: ./.github/actions/cached-dependencies
         with:
           run: cypress-install
-      - name: Run Cypress
+      - name: Run Applitools Cypress
         if: steps.check.outcome == 'failure'
         uses: ./.github/actions/cached-dependencies
         env:
           CYPRESS_BROWSER: ${{ matrix.browser }}
-          CYPRESS_KEY: YjljODE2MzAtODcwOC00NTA3LWE4NmMtMTU3YmFmMjIzOTRhCg==
         with:
-          run: cypress-run-all
-      - name: Upload Artifacts
-        uses: actions/upload-artifact@v2
-        if: failure()
+          run: cypress-run-applitools
+  batch-completion-notification:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-20.04
+    needs: cypress-matrix
+    steps:
+      - name: Update Applitools batch status
+        uses: wei/curl@v1.1.1
         with:
-          name: screenshots
-          path: ${{ github.workspace }}/superset-frontend/cypress-base/cypress/screenshots
+          args: -d "" -X POST https://eyesapi.applitools.com/api/externals/github/servers/github.com/commit/${{ env.APPLITOOLS_BATCH_ID }}/complete?apiKey=${{ secrets.APPLITOOLS_API_KEY }}

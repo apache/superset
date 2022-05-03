@@ -52,13 +52,6 @@ describe('Visualization > Big Number with Trendline', () => {
   beforeEach(() => {
     cy.login();
     interceptChart({ legacy: false }).as('chartData');
-    cy.eyesOpen({
-      testName: 'Big Number viz',
-    });
-  });
-
-  afterEach(() => {
-    cy.eyesClose();
   });
 
   it('should work', () => {
@@ -66,8 +59,6 @@ describe('Visualization > Big Number with Trendline', () => {
     cy.get('.chart-container .header-line');
     cy.get('.chart-container .subheader-line');
     cy.get('.chart-container canvas');
-
-    cy.eyesCheckWindow('Big Number viz loaded');
   });
 
   it('should work without subheader', () => {

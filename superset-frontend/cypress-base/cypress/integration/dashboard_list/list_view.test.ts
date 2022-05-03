@@ -23,13 +23,6 @@ describe('dashboard list view', () => {
     cy.login();
     cy.visit(DASHBOARD_LIST);
     cy.get('[aria-label="list-view"]').click();
-    cy.eyesOpen({
-      testName: 'Dashboard list view',
-    });
-  });
-
-  afterEach(() => {
-    cy.eyesClose();
   });
 
   it('should load rows', () => {
@@ -42,8 +35,6 @@ describe('dashboard list view', () => {
     cy.get('[data-test="sort-header"]').eq(5).contains('Created by');
     cy.get('[data-test="sort-header"]').eq(6).contains('Owners');
     cy.get('[data-test="sort-header"]').eq(7).contains('Actions');
-
-    cy.eyesCheckWindow('Dashboard list loaded');
   });
 
   xit('should sort correctly', () => {

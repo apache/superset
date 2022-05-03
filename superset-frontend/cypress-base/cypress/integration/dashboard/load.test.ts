@@ -25,27 +25,16 @@ import {
 describe('Dashboard load', () => {
   beforeEach(() => {
     cy.login();
-    cy.eyesOpen({
-      testName: 'Dashboard view',
-    });
-  });
-
-  afterEach(() => {
-    cy.eyesClose();
   });
 
   it('should load dashboard', () => {
     cy.visit(WORLD_HEALTH_DASHBOARD);
     WORLD_HEALTH_CHARTS.forEach(waitForChartLoad);
-
-    cy.eyesCheckWindow('Dashboard loaded');
   });
 
   it('should load in edit mode', () => {
     cy.visit(`${WORLD_HEALTH_DASHBOARD}?edit=true&standalone=true`);
     cy.get('[data-test="discard-changes-button"]').should('be.visible');
-
-    cy.eyesCheckWindow('Dashboard edit loaded');
   });
 
   it('should load in standalone mode', () => {
