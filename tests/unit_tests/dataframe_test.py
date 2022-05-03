@@ -61,7 +61,7 @@ def test_js_max_int(app_context: None) -> None:
 
 
 @pytest.mark.parametrize(
-    "inpt, expected",
+    "input_, expected",
     [
         pytest.param(
             [
@@ -69,25 +69,31 @@ def test_js_max_int(app_context: None) -> None:
                 (datetime.strptime("2262-04-11 23:47:17", "%Y-%m-%d %H:%M:%S"), 2),
             ],
             [
-                {"a": datetime.strptime("1677-09-22 00:12:43", "%Y-%m-%d %H:%M:%S"), "b": 1},
-                {"a": datetime.strptime("2262-04-11 23:47:17", "%Y-%m-%d %H:%M:%S"), "b": 2},
+                {
+                    "a": datetime.strptime("1677-09-22 00:12:43", "%Y-%m-%d %H:%M:%S"),
+                    "b": 1,
+                },
+                {
+                    "a": datetime.strptime("2262-04-11 23:47:17", "%Y-%m-%d %H:%M:%S"),
+                    "b": 2,
+                },
             ],
-            id="timestamp conversion fail"
+            id="timestamp conversion fail",
         ),
         pytest.param(
             [
                 (datetime.strptime("1677-09-22 00:12:44", "%Y-%m-%d %H:%M:%S"), 1),
-                (datetime.strptime("2262-04-11 23:47:16", "%Y-%m-%d %H:%M:%S"), 2)
+                (datetime.strptime("2262-04-11 23:47:16", "%Y-%m-%d %H:%M:%S"), 2),
             ],
             [
                 {"a": Timestamp("1677-09-22 00:12:44"), "b": 1},
-                {"a": Timestamp("2262-04-11 23:47:16"), "b": 2}
+                {"a": Timestamp("2262-04-11 23:47:16"), "b": 2},
             ],
-            id="timestamp conversion success"
-        )
-    ]
+            id="timestamp conversion success",
+        ),
+    ],
 )
-def test_max_pandas_timestamp(inpt, expected) -> None:
+def test_max_pandas_timestamp(input_, expected) -> None:
     from superset.db_engine_specs import BaseEngineSpec
     from superset.result_set import SupersetResultSet
 
@@ -95,7 +101,7 @@ def test_max_pandas_timestamp(inpt, expected) -> None:
         ("a", "datetime", None, None, None, None, False),
         ("b", "int", None, None, None, None, False),
     ]
-    results = SupersetResultSet(inpt, cursor_descr, BaseEngineSpec)
+    results = SupersetResultSet(input_, cursor_descr, BaseEngineSpec)
     df = results.to_pandas_df()
 
     assert df_to_records(df) == expected
