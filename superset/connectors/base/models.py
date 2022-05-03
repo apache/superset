@@ -14,15 +14,18 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
+
 import json
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, Hashable, List, Optional, Set, Type, Union
+from typing import Any, Dict, Hashable, List, Optional, Set, Type, TYPE_CHECKING, Union
 
 from flask_appbuilder.security.sqla.models import User
 from sqlalchemy import and_, Boolean, Column, Integer, String, Text
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import foreign, Query, relationship, RelationshipProperty, Session
+from sqlalchemy.sql import literal_column
 
 from superset import is_feature_enabled, security_manager
 from superset.constants import EMPTY_STRING, NULL_STRING
@@ -32,6 +35,9 @@ from superset.models.slice import Slice
 from superset.superset_typing import FilterValue, FilterValues, QueryObjectDict
 from superset.utils import core as utils
 from superset.utils.core import GenericDataType
+
+if TYPE_CHECKING:
+    from superset.db_engine_specs.base import BaseEngineSpec
 
 METRIC_FORM_DATA_PARAMS = [
     "metric",
@@ -387,25 +393,34 @@ class BaseDatasource(
         return data
 
     @staticmethod
-    def filter_values_handler(
+    def filter_values_handler(  # pylint: disable=too-many-arguments
         values: Optional[FilterValues],
-        target_column_type: utils.GenericDataType,
+        target_generic_type: GenericDataType,
+        target_native_type: Optional[str] = None,
         is_list_target: bool = False,
+        db_engine_spec: Optional[Type[BaseEngineSpec]] = None,
+        db_extra: Optional[Dict[str, Any]] = None,
     ) -> Optional[FilterValues]:
         if values is None:
             return None
 
         def handle_single_value(value: Optional[FilterValue]) -> Optional[FilterValue]:
-            # backward compatibility with previous <select> components
             if (
                 isinstance(value, (float, int))
-                and target_column_type == utils.GenericDataType.TEMPORAL
+                and target_generic_type == utils.GenericDataType.TEMPORAL
+                and target_native_type is not None
+                and db_engine_spec is not None
             ):
-                return datetime.utcfromtimestamp(value / 1000)
+                value = db_engine_spec.convert_dttm(
+                    target_type=target_native_type,
+                    dttm=datetime.utcfromtimestamp(value / 1000),
+                    db_extra=db_extra,
+                )
+                value = literal_column(value)
             if isinstance(value, str):
                 value = value.strip("\t\n")
 
-                if target_column_type == utils.GenericDataType.NUMERIC:
+                if target_generic_type == utils.GenericDataType.NUMERIC:
                     # For backwards compatibility and edge cases
                     # where a column data type might have changed
                     return utils.cast_to_num(value)
@@ -413,7 +428,7 @@ class BaseDatasource(
                     return None
                 if value == EMPTY_STRING:
                     return ""
-            if target_column_type == utils.GenericDataType.BOOLEAN:
+            if target_generic_type == utils.GenericDataType.BOOLEAN:
                 return utils.cast_to_boolean(value)
             return value
 

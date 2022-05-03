@@ -505,7 +505,7 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
         ),
         (
             re.compile(r"^date.*", re.IGNORECASE),
-            types.DATETIME(),
+            types.DATE(),
             GenericDataType.TEMPORAL,
         ),
         (
@@ -753,12 +753,12 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
         """
         tt = target_type.upper()
         if tt == utils.TemporalType.DATE:
-            return f"""from_iso8601_date('{dttm.date().isoformat()}')"""
+            return f"""DATE '{dttm.date().isoformat()}'"""
         if tt in (
             utils.TemporalType.TIMESTAMP,
             utils.TemporalType.TIMESTAMP_WITH_TIME_ZONE,
         ):
-            return f"""from_iso8601_timestamp('{dttm.isoformat(timespec="microseconds")}')"""  # pylint: disable=line-too-long,useless-suppression
+            return f"""TIMESTAMP '{dttm.isoformat(timespec="microseconds")}'"""
         return None
 
     @classmethod
