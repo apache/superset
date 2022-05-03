@@ -177,10 +177,7 @@ class SupersetResultSet:
         try:
             return table.to_pandas(integer_object_nulls=True)
         except pa.lib.ArrowInvalid:
-            return table.to_pandas(
-                integer_object_nulls=True,
-                timestamp_as_object=True
-            )
+            return table.to_pandas(integer_object_nulls=True, timestamp_as_object=True)
 
     @staticmethod
     def first_nonempty(items: List[Any]) -> Any:
