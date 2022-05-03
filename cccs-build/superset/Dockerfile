@@ -10,11 +10,11 @@ RUN sed -i '/^VERSION_SHA_LENGTH = .*/i # CCCS Superset Azure pipeline injection
   && rm /tmp/requirements.txt
 
 ENV BUILD_NUMBER_VAR=${BUILD_NUMBER}
-
+COPY analytical-platform-requirements.txt /tmp
 # Make pip use analytical-platform feed
 RUN --mount=type=secret,id=pipconfig,target=/tmp/pip2.conf,uid=1000 \
-    PIP_CONFIG_FILE="/tmp/pip2.conf" python -m pip install --no-cache-dir -r analytical-platform-requirements.txt && \
-    rm analytical-platform-requirements.txt
+    PIP_CONFIG_FILE="/tmp/pip2.conf" python -m pip install --no-cache-dir -r /tmp/analytical-platform-requirements.txt && \
+    rm /tmp/analytical-platform-requirements.txt
 
 USER superset
 
