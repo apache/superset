@@ -517,12 +517,12 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
 
         self.assertEqual(
             PrestoEngineSpec.convert_dttm("DATE", dttm),
-            "from_iso8601_date('2019-01-02')",
+            "DATE '2019-01-02'",
         )
 
         self.assertEqual(
             PrestoEngineSpec.convert_dttm("TIMESTAMP", dttm),
-            "from_iso8601_timestamp('2019-01-02T03:04:05.678900')",
+            "TIMESTAMP '2019-01-02T03:04:05.678900'",
         )
 
     def test_query_cost_formatter(self):
@@ -672,12 +672,10 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
 
         column_spec = PrestoEngineSpec.get_column_spec("time")
         assert isinstance(column_spec.sqla_type, types.Time)
-        assert type(column_spec.sqla_type).__name__ == "TemporalWrapperType"
         self.assertEqual(column_spec.generic_type, GenericDataType.TEMPORAL)
 
         column_spec = PrestoEngineSpec.get_column_spec("timestamp")
         assert isinstance(column_spec.sqla_type, types.TIMESTAMP)
-        assert type(column_spec.sqla_type).__name__ == "TemporalWrapperType"
         self.assertEqual(column_spec.generic_type, GenericDataType.TEMPORAL)
 
         sqla_type = PrestoEngineSpec.get_sqla_column_type(None)
