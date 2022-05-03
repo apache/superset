@@ -186,6 +186,8 @@ const usFmtPct = numberFormat({
   suffix: '%',
 });
 
+const fmtNonString = formatter => x => typeof x === 'string' ? x : formatter(x);
+
 const baseAggregatorTemplates = {
   count(formatter = usFmtInt) {
     return () =>
@@ -216,7 +218,7 @@ const baseAggregatorTemplates = {
           value() {
             return fn(this.uniq);
           },
-          format: formatter,
+          format: fmtNonString(formatter),
           numInputs: typeof attr !== 'undefined' ? 0 : 1,
         };
       };
@@ -238,7 +240,7 @@ const baseAggregatorTemplates = {
           value() {
             return this.sum;
           },
-          format: x => (typeof x === 'string' ? x : formatter(x)),
+          format: fmtNonString(formatter),
           numInputs: typeof attr !== 'undefined' ? 0 : 1,
         };
       };
@@ -303,21 +305,40 @@ const baseAggregatorTemplates = {
       return function () {
         return {
           vals: [],
+          strMap: {},
           push(record) {
-            const x = parseFloat(record[attr]);
-            if (!Number.isNaN(x)) {
+            const val = record[attr];
+            const x = parseFloat(val);
+
+            if (Number.isNaN(x)) {
+              this.strMap[val] = (this.strMap[val] || 0) + 1;
+            } else {
               this.vals.push(x);
             }
           },
           value() {
-            if (this.vals.length === 0) {
+            if (
+              this.vals.length === 0 &&
+              Object.keys(this.strMap).length === 0
+            ) {
               return null;
             }
+
+            if (Object.keys(this.strMap).length) {
+              const values = Object.values(this.strMap).sort((a, b) => a - b);
+              const middle = Math.floor(values.length / 2);
+
+              const keys = Object.keys(this.strMap);
+              return keys.length % 2 !== 0
+                ? keys[middle]
+                : (keys[middle - 1] + keys[middle]) / 2;
+            }
+
             this.vals.sort((a, b) => a - b);
             const i = (this.vals.length - 1) * q;
             return (this.vals[Math.floor(i)] + this.vals[Math.ceil(i)]) / 2.0;
           },
-          format: formatter,
+          format: fmtNonString(formatter),
           numInputs: typeof attr !== 'undefined' ? 0 : 1,
         };
       };
@@ -370,7 +391,7 @@ const baseAggregatorTemplates = {
                 throw new Error('unknown mode for runningStat');
             }
           },
-          format: x => (typeof x === 'string' ? x : formatter(x)),
+          format: fmtNonString(formatter),
           numInputs: typeof attr !== 'undefined' ? 0 : 1,
         };
       };
@@ -413,14 +434,17 @@ const baseAggregatorTemplates = {
           push(record) {
             this.inner.push(record);
           },
-          format: formatter,
+          format: fmtNonString(formatter),
           value() {
-            return (
-              this.inner.value() /
-              data
-                .getAggregator(...Array.from(this.selector || []))
-                .inner.value()
-            );
+            const acc = data
+              .getAggregator(...Array.from(this.selector || []))
+              .inner.value();
+
+            if (typeof acc === 'string') {
+              return acc;
+            }
+
+            return this.inner.value() / acc;
           },
           numInputs: wrapped(...Array.from(x || []))().numInputs,
         };
