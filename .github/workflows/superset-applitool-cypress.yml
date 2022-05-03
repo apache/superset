@@ -6,14 +6,7 @@ env:
   APPLITOOLS_BATCH_ID: ${{ github.sha }}
   APPLITOOLS_BATCH_NAME: Superset Cypress
 
-on:
-  push:
-    branches-ignore:
-      - "dependabot/**/docs/**"
-    paths-ignore:
-      - "docs/**"
-  pull_request:
-    types: [synchronize, opened, reopened, ready_for_review]
+on: pull_request
 
 jobs:
   cypress-applitools:
