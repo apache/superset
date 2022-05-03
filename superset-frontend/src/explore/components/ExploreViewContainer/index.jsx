@@ -285,6 +285,7 @@ function ExploreViewContainer(props) {
   }, [props.actions, props.chart.id, props.timeout]);
 
   const onQuery = useCallback(() => {
+    props.actions.setForceQuery(false);
     props.actions.triggerQuery(true, props.chart.id);
     addHistory();
     setLastQueriedControls(props.controls);
