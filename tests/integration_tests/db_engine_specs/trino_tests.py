@@ -32,12 +32,12 @@ class TestTrinoDbEngineSpec(TestDbEngineSpec):
 
         self.assertEqual(
             TrinoEngineSpec.convert_dttm("DATE", dttm),
-            "from_iso8601_date('2019-01-02')",
+            "DATE '2019-01-02'",
         )
 
         self.assertEqual(
             TrinoEngineSpec.convert_dttm("TIMESTAMP", dttm),
-            "from_iso8601_timestamp('2019-01-02T03:04:05.678900')",
+            "TIMESTAMP '2019-01-02T03:04:05.678900'",
         )
 
     def test_adjust_database_uri(self):
