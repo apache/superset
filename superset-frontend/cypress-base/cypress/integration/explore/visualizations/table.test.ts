@@ -48,14 +48,6 @@ describe('Visualization > Table', () => {
     interceptChart({ legacy: false }).as('chartData');
   });
 
-  it('should work', () => {
-    cy.visitChartByParams({
-      ...VIZ_DEFAULTS,
-      granularity_sqla: undefined,
-      metrics: ['count'],
-    });
-  });
-
   it('Use default time column', () => {
     cy.visitChartByParams({
       ...VIZ_DEFAULTS,

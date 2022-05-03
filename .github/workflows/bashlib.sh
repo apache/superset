@@ -223,7 +223,8 @@ cypress-run-applitools() {
 
   cypress-run "*/**/*.applitools.test.ts"
 
-  # After job is done, print out Flask log for debugging
+  codecov -c -F "cypress" || true
+
   say "::group::Flask log for default run"
   cat "$flasklog"
   say "::endgroup::"
