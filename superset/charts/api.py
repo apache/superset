@@ -516,14 +516,12 @@ class ChartRestApi(BaseSupersetModelRestApi):
                 schema:
                   $ref: '#/components/schemas/screenshot_query_schema'
           responses:
-            200:
+            202:
               description: Chart async result
               content:
                 application/json:
                   schema:
                     $ref: "#/components/schemas/ChartCacheScreenshotResponseSchema"
-            302:
-              description: Redirects to the current digest
             400:
               $ref: '#/components/responses/400'
             401:
@@ -596,8 +594,6 @@ class ChartRestApi(BaseSupersetModelRestApi):
                  schema:
                    type: string
                    format: binary
-            302:
-              description: Redirects to the current digest
             400:
               $ref: '#/components/responses/400'
             401:

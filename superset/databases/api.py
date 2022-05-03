@@ -236,8 +236,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                         type: number
                       result:
                         $ref: '#/components/schemas/{{self.__class__.__name__}}.post'
-            302:
-              description: Redirects to the current digest
             400:
               $ref: '#/components/responses/400'
             401:
@@ -659,7 +657,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             schema:
               type: integer
           responses:
-            200:
             200:
               description: Query result
               content:
