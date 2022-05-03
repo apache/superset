@@ -1115,31 +1115,37 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         substr_parsed = utils.parse_js_uri_path_item(substr, eval_undefined=True)
 
         if schema_parsed:
-            tables = (
-                database.get_all_table_names_in_schema(
+            tables = [
+                utils.DatasourceName(*datasource_name)
+                for datasource_name in database.get_all_table_names_in_schema(
                     schema=schema_parsed,
                     force=force_refresh_parsed,
                     cache=database.table_cache_enabled,
                     cache_timeout=database.table_cache_timeout,
                 )
-                or []
-            )
-            views = (
-                database.get_all_view_names_in_schema(
+            ] or []
+            views = [
+                utils.DatasourceName(*datasource_name)
+                for datasource_name in database.get_all_view_names_in_schema(
                     schema=schema_parsed,
                     force=force_refresh_parsed,
                     cache=database.table_cache_enabled,
                     cache_timeout=database.table_cache_timeout,
                 )
-                or []
-            )
+            ] or []
         else:
-            tables = database.get_all_table_names_in_database(
-                cache=True, force=False, cache_timeout=24 * 60 * 60
-            )
-            views = database.get_all_view_names_in_database(
-                cache=True, force=False, cache_timeout=24 * 60 * 60
-            )
+            tables = [
+                utils.DatasourceName(*datasource_name)
+                for datasource_name in database.get_all_table_names_in_database(
+                    cache=True, force=False, cache_timeout=24 * 60 * 60
+                )
+            ]
+            views = [
+                utils.DatasourceName(*datasource_name)
+                for datasource_name in database.get_all_view_names_in_database(
+                    cache=True, force=False, cache_timeout=24 * 60 * 60
+                )
+            ]
         tables = security_manager.get_datasources_accessible_by_user(
             database, tables, schema_parsed
         )
@@ -1543,6 +1549,11 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @expose("/fave_dashboards_by_username/<username>/", methods=["GET"])
     def fave_dashboards_by_username(self, username: str) -> FlaskResponse:
         """This lets us use a user's username to pull favourite dashboards"""
+        logger.warning(
+            "%s.fave_dashboards_by_username "
+            "This API endpoint is deprecated and will be removed in version 3.0.0",
+            self.__class__.__name__,
+        )
         user = security_manager.find_user(username=username)
         return self.fave_dashboards(user.id)
 
@@ -1551,6 +1562,11 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @event_logger.log_this
     @expose("/fave_dashboards/<int:user_id>/", methods=["GET"])
     def fave_dashboards(self, user_id: int) -> FlaskResponse:
+        logger.warning(
+            "%s.fave_dashboards "
+            "This API endpoint is deprecated and will be removed in version 3.0.0",
+            self.__class__.__name__,
+        )
         error_obj = self.get_user_activity_access_error(user_id)
         if error_obj:
             return error_obj

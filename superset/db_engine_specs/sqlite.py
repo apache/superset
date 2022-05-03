@@ -42,20 +42,22 @@ class SqliteEngineSpec(BaseEngineSpec):
         "PT1S": "DATETIME(STRFTIME('%Y-%m-%dT%H:%M:%S', {col}))",
         "PT1M": "DATETIME(STRFTIME('%Y-%m-%dT%H:%M:00', {col}))",
         "PT1H": "DATETIME(STRFTIME('%Y-%m-%dT%H:00:00', {col}))",
-        "P1D": "DATE({col})",
-        "P1W": "DATE({col}, -strftime('%w', {col}) || ' days')",
-        "P1M": "DATE({col}, -strftime('%d', {col}) || ' days', '+1 day')",
+        "P1D": "DATETIME({col}, 'start of day')",
+        "P1W": "DATETIME({col}, 'start of day', -strftime('%w', {col}) || ' days')",
+        "P1M": "DATETIME({col}, 'start of month')",
         "P3M": (
-            "DATETIME(STRFTIME('%Y-', {col}) || "  # year
-            "SUBSTR('00' || "  # pad with zeros to 2 chars
-            "((CAST(STRFTIME('%m', {col}) AS INTEGER)) - "  # month as integer
-            "(((CAST(STRFTIME('%m', {col}) AS INTEGER)) - 1) % 3)), "  # month in quarter
-            "-2) || "  # close pad
-            "'-01T00:00:00')"
+            "DATETIME({col}, 'start of month', "
+            "printf('-%d month', (strftime('%m', {col}) - 1) % 3))"
         ),
-        "P1Y": "DATETIME(STRFTIME('%Y-01-01T00:00:00', {col}))",
-        "P1W/1970-01-03T00:00:00Z": "DATE({col}, 'weekday 6')",
-        "1969-12-28T00:00:00Z/P1W": "DATE({col}, 'weekday 0', '-7 days')",
+        "P1Y": "DATETIME({col}, 'start of year')",
+        "P1W/1970-01-03T00:00:00Z": "DATETIME({col}, 'start of day', 'weekday 6')",
+        "P1W/1970-01-04T00:00:00Z": "DATETIME({col}, 'start of day', 'weekday 0')",
+        "1969-12-28T00:00:00Z/P1W": (
+            "DATETIME({col}, 'start of day', 'weekday 0', '-7 days')"
+        ),
+        "1969-12-29T00:00:00Z/P1W": (
+            "DATETIME({col}, 'start of day', 'weekday 1', '-7 days')"
+        ),
     }
 
     custom_errors: Dict[Pattern[str], Tuple[str, SupersetErrorType, Dict[str, Any]]] = {
@@ -81,19 +83,25 @@ class SqliteEngineSpec(BaseEngineSpec):
         )
         schema = schemas[0]
         if datasource_type == "table":
-            return database.get_all_table_names_in_schema(
-                schema=schema,
-                force=True,
-                cache=database.table_cache_enabled,
-                cache_timeout=database.table_cache_timeout,
-            )
+            return [
+                utils.DatasourceName(*datasource_name)
+                for datasource_name in database.get_all_table_names_in_schema(
+                    schema=schema,
+                    force=True,
+                    cache=database.table_cache_enabled,
+                    cache_timeout=database.table_cache_timeout,
+                )
+            ]
         if datasource_type == "view":
-            return database.get_all_view_names_in_schema(
-                schema=schema,
-                force=True,
-                cache=database.table_cache_enabled,
-                cache_timeout=database.table_cache_timeout,
-            )
+            return [
+                utils.DatasourceName(*datasource_name)
+                for datasource_name in database.get_all_view_names_in_schema(
+                    schema=schema,
+                    force=True,
+                    cache=database.table_cache_enabled,
+                    cache_timeout=database.table_cache_timeout,
+                )
+            ]
         raise Exception(f"Unsupported datasource_type: {datasource_type}")
 
     @classmethod

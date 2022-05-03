@@ -146,6 +146,10 @@ const config = {
           trackingID: 'G-133LHD3B3N',
           anonymizeIP: true,
         },
+        gtag: {
+          trackingID: 'G-133LHD3B3N',
+          anonymizeIP: true,
+        },
       }),
     ],
   ],
