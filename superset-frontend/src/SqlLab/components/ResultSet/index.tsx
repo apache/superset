@@ -39,7 +39,7 @@ import ProgressBar from 'src/components/ProgressBar';
 import Loading from 'src/components/Loading';
 import FilterableTable, {
   MAX_COLUMNS_FOR_TABLE,
-} from 'src/components/FilterableTable/FilterableTable';
+} from 'src/components/FilterableTable';
 import CopyToClipboard from 'src/components/CopyToClipboard';
 import { prepareCopyToClipboardTabularData } from 'src/utils/common';
 import { exploreChart } from 'src/explore/exploreUtils';
