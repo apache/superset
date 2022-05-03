@@ -24,15 +24,16 @@ steps:
     inputs:
       artifactFeeds: Analytical Platform/analytical-platform
       onlyAddExtraIndex: true
+  - bash: |
+      echo "[global]" > $(Build.SourcesDirectory)/pip.conf
+      echo "extra-index-url=$PIP_EXTRA_INDEX_URL" >> $(Build.SourcesDirectory)/pip.conf
+    displayName: Export Artifactory URL
   - task: Docker@2
     displayName: Login to $(containerRegistry)
     inputs:
       command: login
         containerRegistry: $(containerRegistry)
-  - bash: |
-      echo "[global]" > $(Build.SourcesDirectory)/pip.conf
-      echo "extra-index-url=$PIP_EXTRA_INDEX_URL" >> $(Build.SourcesDirectory)/pip.conf
-    displayName: Export Artifactory URL
+
   - task: Docker@2
     displayName: Build the image
     inputs:
