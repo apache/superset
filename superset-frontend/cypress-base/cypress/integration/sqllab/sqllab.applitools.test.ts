@@ -16,28 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { CHART_LIST } from './chart_list.helper';
 
-describe('chart list view', () => {
+describe('SqlLab view', () => {
   beforeEach(() => {
     cy.login();
-    cy.visit(CHART_LIST);
+    cy.visit('/superset/sqllab');
     cy.eyesOpen({
-      testName: 'Chart list view',
+      testName: 'SqlLab view',
     });
   });
-
   afterEach(() => {
     cy.eyesClose();
   });
 
-  it('should load the Chart list', () => {
-    cy.get('[aria-label="card-view"]').click();
-    cy.eyesCheckWindow('Chart list loaded');
-  });
-
-  it('should load the Chart card list', () => {
-    cy.get('[aria-label="card-view"]').click();
-    cy.eyesCheckWindow('Chart card list loaded');
+  it('should load the SqlLab', () => {
+    cy.eyesCheckWindow('SqlLab loaded');
   });
 });

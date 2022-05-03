@@ -16,28 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { CHART_LIST } from './chart_list.helper';
+import { DASHBOARD_LIST } from './dashboard_list.helper';
 
-describe('chart list view', () => {
+describe('dashboard list view', () => {
   beforeEach(() => {
     cy.login();
-    cy.visit(CHART_LIST);
+    cy.visit(DASHBOARD_LIST);
     cy.eyesOpen({
-      testName: 'Chart list view',
+      testName: 'Dashboard list view',
     });
   });
-
   afterEach(() => {
     cy.eyesClose();
   });
 
-  it('should load the Chart list', () => {
-    cy.get('[aria-label="card-view"]').click();
-    cy.eyesCheckWindow('Chart list loaded');
+  it('should load the Dashboard list', () => {
+    cy.get('[aria-label="list-view"]').click();
+    cy.eyesCheckWindow('Dashboard list loaded');
   });
 
-  it('should load the Chart card list', () => {
+  it('should load the Dashboard card list', () => {
     cy.get('[aria-label="card-view"]').click();
-    cy.eyesCheckWindow('Chart card list loaded');
+    cy.eyesCheckWindow('Dashboard card list loaded');
   });
 });

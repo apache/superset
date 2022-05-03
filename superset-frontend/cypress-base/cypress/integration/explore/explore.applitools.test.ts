@@ -16,28 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { CHART_LIST } from './chart_list.helper';
+import { FORM_DATA_DEFAULTS, NUM_METRIC } from './visualizations/shared.helper';
 
-describe('chart list view', () => {
+describe('explore view', () => {
   beforeEach(() => {
     cy.login();
-    cy.visit(CHART_LIST);
+    cy.intercept('POST', '/superset/explore_json/**').as('getJson');
     cy.eyesOpen({
-      testName: 'Chart list view',
+      testName: 'Explore view',
     });
   });
-
   afterEach(() => {
     cy.eyesClose();
   });
 
-  it('should load the Chart list', () => {
-    cy.get('[aria-label="card-view"]').click();
-    cy.eyesCheckWindow('Chart list loaded');
-  });
-
-  it('should load the Chart card list', () => {
-    cy.get('[aria-label="card-view"]').click();
-    cy.eyesCheckWindow('Chart card list loaded');
+  it('should load Explore', () => {
+    const LINE_CHART_DEFAULTS = { ...FORM_DATA_DEFAULTS, viz_type: 'line' };
+    const formData = { ...LINE_CHART_DEFAULTS, metrics: [NUM_METRIC] };
+    cy.visitChartByParams(JSON.stringify(formData));
+    cy.eyesCheckWindow('Explore view loaded');
   });
 });
