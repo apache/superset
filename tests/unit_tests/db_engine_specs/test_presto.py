@@ -26,21 +26,21 @@ from flask.ctx import AppContext
     "target_type,dttm,result",
     [
         ("VARCHAR", datetime(2022, 1, 1), None),
-        ("DATE", datetime(2022, 1, 1), "from_iso8601_date('2022-01-01')"),
+        ("DATE", datetime(2022, 1, 1), "DATE '2022-01-01'"),
         (
             "TIMESTAMP",
             datetime(2022, 1, 1, 1, 23, 45, 600000),
-            "from_iso8601_timestamp('2022-01-01T01:23:45.600000')",
+            "TIMESTAMP '2022-01-01T01:23:45.600000'",
         ),
         (
             "TIMESTAMP WITH TIME ZONE",
             datetime(2022, 1, 1, 1, 23, 45, 600000),
-            "from_iso8601_timestamp('2022-01-01T01:23:45.600000')",
+            "TIMESTAMP '2022-01-01T01:23:45.600000'",
         ),
         (
             "TIMESTAMP WITH TIME ZONE",
             datetime(2022, 1, 1, 1, 23, 45, 600000, tzinfo=pytz.UTC),
-            "from_iso8601_timestamp('2022-01-01T01:23:45.600000+00:00')",
+            "TIMESTAMP '2022-01-01T01:23:45.600000+00:00'",
         ),
     ],
 )
