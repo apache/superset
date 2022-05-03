@@ -779,6 +779,7 @@ class TestDatabaseApi(SupersetTestCase):
         self.login(username="admin")
         rv = self.client.get(uri)
         data = json.loads(rv.data.decode("utf-8"))
+        raise Exception(data)
         self.assertEqual(rv.status_code, 422)
         self.assertEqual(data, {"message": "wrong_table"})
 
