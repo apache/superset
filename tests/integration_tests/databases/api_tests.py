@@ -775,10 +775,30 @@ class TestDatabaseApi(SupersetTestCase):
         Database API: Test get invalid table from table metadata
         """
         example_db = get_example_database()
-        uri = f"api/v1/database/{example_db.id}/wrong_table/null/"
+        uri = f"api/v1/database/{example_db.id}/table/wrong_table/null/"
         self.login(username="admin")
         rv = self.client.get(uri)
-        self.assertEqual(rv.status_code, 404)
+        data = json.loads(rv.data.decode("utf-8"))
+        if example_db.backend == "sqlite":
+            self.assertEqual(rv.status_code, 200)
+            self.assertEqual(
+                data,
+                {
+                    "columns": [],
+                    "comment": None,
+                    "foreignKeys": [],
+                    "indexes": [],
+                    "name": "wrong_table",
+                    "primaryKey": {"constrained_columns": None, "name": None},
+                    "selectStar": "SELECT\nFROM wrong_table\nLIMIT 100\nOFFSET 0",
+                },
+            )
+        elif example_db.backend == "mysql":
+            self.assertEqual(rv.status_code, 422)
+            self.assertEqual(data, {"message": "`wrong_table`"})
+        else:
+            self.assertEqual(rv.status_code, 422)
+            self.assertEqual(data, {"message": "wrong_table"})
 
     def test_get_table_metadata_no_db_permission(self):
         """
@@ -789,6 +809,46 @@ class TestDatabaseApi(SupersetTestCase):
         uri = f"api/v1/database/{example_db.id}/birth_names/null/"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 404)
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_get_table_extra_metadata(self):
+        """
+        Database API: Test get table extra metadata info
+        """
+        example_db = get_example_database()
+        self.login(username="admin")
+        uri = f"api/v1/database/{example_db.id}/table_extra/birth_names/null/"
+        rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 200)
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(response, {})
+
+    def test_get_invalid_database_table_extra_metadata(self):
+        """
+        Database API: Test get invalid database from table extra metadata
+        """
+        database_id = 1000
+        self.login(username="admin")
+        uri = f"api/v1/database/{database_id}/table_extra/some_table/some_schema/"
+        rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 404)
+
+        uri = "api/v1/database/some_database/table_extra/some_table/some_schema/"
+        rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 404)
+
+    def test_get_invalid_table_table_extra_metadata(self):
+        """
+        Database API: Test get invalid table from table extra metadata
+        """
+        example_db = get_example_database()
+        uri = f"api/v1/database/{example_db.id}/table_extra/wrong_table/null/"
+        self.login(username="admin")
+        rv = self.client.get(uri)
+        data = json.loads(rv.data.decode("utf-8"))
+
+        self.assertEqual(rv.status_code, 200)
+        self.assertEqual(data, {})
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_get_select_star(self):

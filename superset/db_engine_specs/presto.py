@@ -899,7 +899,7 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
 
     @classmethod
     def extra_table_metadata(
-        cls, database: "Database", table_name: str, schema_name: str
+        cls, database: "Database", table_name: str, schema_name: Optional[str]
     ) -> Dict[str, Any]:
         metadata = {}
 
@@ -931,7 +931,7 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
 
     @classmethod
     def get_create_view(
-        cls, database: "Database", schema: str, table: str
+        cls, database: "Database", schema: Optional[str], table: str
     ) -> Optional[str]:
         """
         Return a CREATE VIEW statement, or `None` if not a view.
