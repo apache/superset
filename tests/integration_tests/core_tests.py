@@ -294,7 +294,6 @@ class TestCore(SupersetTestCase):
         def assert_admin_permission_in(role_name, assert_func):
             role = security_manager.find_role(role_name)
             permissions = [p.permission.name for p in role.permissions]
-            assert_func("can_sync_druid_source", permissions)
             assert_func("can_approve", permissions)
 
         assert_admin_permission_in("Admin", self.assertIn)

@@ -257,16 +257,6 @@ FAB_API_SWAGGER_UI = True
 DRUID_TZ = tz.tzutc()
 DRUID_ANALYSIS_TYPES = ["cardinality"]
 
-# Legacy Druid NoSQL (native) connector
-# Druid supports a SQL interface in its newer versions.
-# Setting this flag to True enables the deprecated, API-based Druid
-# connector. This feature may be removed at a future date.
-DRUID_IS_ACTIVE = False
-
-# If Druid is active whether to include the links to scan/refresh Druid datasources.
-# This should be disabled if you are trying to wean yourself off of the Druid NoSQL
-# connector.
-DRUID_METADATA_LINKS_ENABLED = True
 
 # ----------------------------------------------------
 # AUTHENTICATION CONFIG
@@ -645,19 +635,12 @@ TIME_GRAIN_ADDON_EXPRESSIONS: Dict[str, Dict[str, str]] = {}
 
 VIZ_TYPE_DENYLIST: List[str] = []
 
-# ---------------------------------------------------
-# List of data sources not to be refreshed in druid cluster
-# ---------------------------------------------------
-
-DRUID_DATA_SOURCE_DENYLIST: List[str] = []
-
 # --------------------------------------------------
 # Modules, datasources and middleware to be registered
 # --------------------------------------------------
 DEFAULT_MODULE_DS_MAP = OrderedDict(
     [
         ("superset.connectors.sqla.models", ["SqlaTable"]),
-        ("superset.connectors.druid.models", ["DruidDatasource"]),
     ]
 )
 ADDITIONAL_MODULE_DS_MAP: Dict[str, List[str]] = {}
@@ -983,7 +966,10 @@ BLUEPRINTS: List[Blueprint] = []
 # Provide a callable that receives a tracking_url and returns another
 # URL. This is used to translate internal Hadoop job tracker URL
 # into a proxied one
+
+
 TRACKING_URL_TRANSFORMER = lambda x: x
+
 
 # Interval between consecutive polls when using Hive Engine
 HIVE_POLL_INTERVAL = int(timedelta(seconds=5).total_seconds())
@@ -1202,7 +1188,9 @@ SSL_CERT_PATH: Optional[str] = None
 # to allow mutating the object with this callback.
 # This can be used to set any properties of the object based on naming
 # conventions and such. You can find examples in the tests.
+
 SQLA_TABLE_MUTATOR = lambda table: table
+
 
 # Global async query config options.
 # Requires GLOBAL_ASYNC_QUERIES feature flag to be enabled.
