@@ -81,7 +81,7 @@ def upload_to_s3(filename: str, upload_prefix: str, table: Table) -> str:
         filename,
         bucket_path,
         os.path.join(upload_prefix, table.table, os.path.basename(filename)),
-        Config=TransferConfig(use_threads=False),
+        Config=TransferConfig(use_threads=False),  # Threading is broken in Python 3.9.
     )
     return location
 
