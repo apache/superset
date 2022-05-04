@@ -48,12 +48,16 @@ class TestSqlValidatorEndpoint(SupersetTestCase):
     def tearDown(self):
         self.logout()
 
+    @patch("superset.views.core.get_validator_by_name")
+    @patch.dict(
+        "superset.config.SQL_VALIDATORS_BY_ENGINE",
+        {},
+        clear=True,
+    )
     def test_validate_sql_endpoint_noconfig(self):
         """Assert that validate_sql_json errors out when no validators are
         configured for any db"""
         self.login("admin")
-
-        app.config["SQL_VALIDATORS_BY_ENGINE"] = {}
 
         resp = self.validate_sql(
             "SELECT * FROM birth_names", client_id="1", raise_on_error=False

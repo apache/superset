@@ -20,6 +20,7 @@ from typing import Any, Dict, List, Optional, Type
 
 from flask import current_app
 from flask_babel import gettext as __
+
 from superset.commands.base import BaseCommand
 from superset.databases.commands.exceptions import (
     DatabaseNotFoundError,
@@ -66,7 +67,7 @@ class ValidateSQLCommand(BaseCommand):
             with utils.timeout(seconds=timeout, error_message=timeout_msg):
                 errors = self._validator.validate(sql, schema, self._model)
             return [err.to_dict() for err in errors]
-        except Exception as ex:  # pylint: disable=broad-except
+        except Exception as ex:
             logger.exception(ex)
             superset_error = SupersetError(
                 message=__(
@@ -82,8 +83,8 @@ class ValidateSQLCommand(BaseCommand):
 
             # Return as a 400 if the database error message says we got a 4xx error
             if re.search(r"([\W]|^)4\d{2}([\W]|$)", str(ex)):
-                raise ValidatorSQL400Error(superset_error)
-            raise ValidatorSQLError(superset_error)
+                raise ValidatorSQL400Error(superset_error) from ex
+            raise ValidatorSQLError(superset_error) from ex
 
     def validate(self) -> None:
         # Validate/populate model exists
@@ -109,7 +110,8 @@ class ValidateSQLCommand(BaseCommand):
             raise NoValidatorFoundError(
                 SupersetError(
                     message=__(
-                        "No validator named {} found (configured for the {} engine)".format(
+                        "No validator named {} found "
+                        "(configured for the {} engine)".format(
                             validator_name, spec.engine
                         )
                     ),

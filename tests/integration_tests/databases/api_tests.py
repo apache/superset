@@ -2410,7 +2410,6 @@ class TestDatabaseApi(SupersetTestCase):
         uri = f"api/v1/database/{example_db.id}/validate_sql"
         rv = self.client.post(uri, json=request_payload)
         response = json.loads(rv.data.decode("utf-8"))
-        raise Exception(str(response) + str(self.app.config["SQL_VALIDATORS_BY_ENGINE"]))
         self.assertEqual(rv.status_code, 200)
         self.assertEqual(response["result"], [])
 
@@ -2447,6 +2446,50 @@ class TestDatabaseApi(SupersetTestCase):
                 }
             ],
         )
+
+    @patch.dict(
+        "superset.config.SQL_VALIDATORS_BY_ENGINE",
+        SQL_VALIDATORS_BY_ENGINE,
+        clear=True,
+    )
+    def test_validate_sql_not_found(self):
+        """
+        Database API: validate SQL database not found
+        """
+        request_payload = {
+            "sql": "SELECT * from birth_names",
+            "schema": None,
+            "template_params": None,
+        }
+        self.login(username="admin")
+        uri = (
+            f"api/v1/database/{self.get_nonexistent_numeric_id(Database)}/validate_sql"
+        )
+        rv = self.client.post(uri, json=request_payload)
+        self.assertEqual(rv.status_code, 404)
+
+    @patch.dict(
+        "superset.config.SQL_VALIDATORS_BY_ENGINE",
+        SQL_VALIDATORS_BY_ENGINE,
+        clear=True,
+    )
+    def test_validate_sql_validation_fails(self):
+        """
+        Database API: validate SQL database payload validation fails
+        """
+        request_payload = {
+            "sql": None,
+            "schema": None,
+            "template_params": None,
+        }
+        self.login(username="admin")
+        uri = (
+            f"api/v1/database/{self.get_nonexistent_numeric_id(Database)}/validate_sql"
+        )
+        rv = self.client.post(uri, json=request_payload)
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(rv.status_code, 400)
+        self.assertEqual(response, {"message": {"sql": ["Field may not be null."]}})
 
     @patch.dict(
         "superset.config.SQL_VALIDATORS_BY_ENGINE",
