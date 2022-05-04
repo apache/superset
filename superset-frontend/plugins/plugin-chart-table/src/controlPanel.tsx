@@ -263,7 +263,6 @@ const config: ControlPanelConfig = {
           },
         ],
         ['adhoc_filters'],
-        ['metrics'],
         [
           {
             name: 'timeseries_limit_metric',
