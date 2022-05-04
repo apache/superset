@@ -19,6 +19,8 @@ import math
 from copy import copy
 from datetime import timedelta
 
+from sqlalchemy.pool import SingletonThreadPool
+
 from superset.config import *
 from tests.integration_tests.superset_test_custom_template_processors import (
     CustomPrestoTemplateProcessor,
@@ -48,6 +50,11 @@ if "sqlite" in SQLALCHEMY_DATABASE_URI:
         "SQLite Database support for metadata databases will be "
         "removed in a future version of Superset."
     )
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        "connect_args": {"check_same_thread": False},
+        "poolclass": SingletonThreadPool,
+    }
+
 
 # Speeding up the tests.integration_tests.
 PRESTO_POLL_INTERVAL = 0.1
