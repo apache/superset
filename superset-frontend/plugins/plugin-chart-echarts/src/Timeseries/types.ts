@@ -125,7 +125,7 @@ export const DEFAULT_FORM_DATA: EchartsTimeseriesFormData = {
   showValue: false,
   onlyTotal: false,
   percentageThreshold: 0,
-  orient: OrientationType.vertical,
+  orientation: OrientationType.vertical,
   ...DEFAULT_TITLE_FORM_DATA,
 };
 
