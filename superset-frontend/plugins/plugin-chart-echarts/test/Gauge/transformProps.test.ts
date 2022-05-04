@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps, SqlaFormData } from '@superset-ui/core';
+import { ChartProps, SqlaFormData, supersetTheme } from '@superset-ui/core';
 import transformProps from '../../src/Gauge/transformProps';
 import { EchartsGaugeChartProps } from '../../src/Gauge/types';
 
@@ -63,6 +63,7 @@ describe('Echarts Gauge transformProps', () => {
       width: 800,
       height: 600,
       queriesData,
+      theme: supersetTheme,
     };
 
     const chartProps = new ChartProps(chartPropsConfig);
@@ -123,6 +124,7 @@ describe('Echarts Gauge transformProps', () => {
       width: 800,
       height: 600,
       queriesData,
+      theme: supersetTheme,
     };
 
     const chartProps = new ChartProps(chartPropsConfig);
@@ -200,6 +202,7 @@ describe('Echarts Gauge transformProps', () => {
       width: 800,
       height: 600,
       queriesData,
+      theme: supersetTheme,
     };
 
     const chartProps = new ChartProps(chartPropsConfig);
@@ -279,6 +282,7 @@ describe('Echarts Gauge transformProps', () => {
       width: 800,
       height: 600,
       queriesData,
+      theme: supersetTheme,
     };
 
     const chartProps = new ChartProps(chartPropsConfig);
