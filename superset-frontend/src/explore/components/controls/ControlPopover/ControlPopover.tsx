@@ -50,7 +50,7 @@ const ControlPopover: React.FC<PopoverProps> = ({
   const triggerElementRef = useRef<HTMLElement>();
 
   const [visible, setVisible] = useState(
-    !!(visibleProp || props.defaultVisible),
+    visibleProp === undefined ? props.defaultVisible : visibleProp,
   );
   const [placement, setPlacement] = React.useState<TooltipPlacement>('right');
 
@@ -97,13 +97,13 @@ const ControlPopover: React.FC<PopoverProps> = ({
   );
 
   const handleOnVisibleChange = useCallback(
-    (visible: boolean) => {
+    (visible: boolean | undefined) => {
       if (visible === undefined) {
         changeContainerScrollStatus(visible);
       }
 
       setVisible(!!visible);
-      props.onVisibleChange?.(visible);
+      props.onVisibleChange?.(!!visible);
     },
     [props, changeContainerScrollStatus],
   );
@@ -119,7 +119,9 @@ const ControlPopover: React.FC<PopoverProps> = ({
   );
 
   useEffect(() => {
-    setVisible(!!visibleProp);
+    if (visibleProp !== undefined) {
+      setVisible(!!visibleProp);
+    }
   }, [visibleProp]);
 
   useEffect(() => {
