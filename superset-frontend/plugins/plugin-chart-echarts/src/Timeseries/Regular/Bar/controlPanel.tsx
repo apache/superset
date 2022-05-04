@@ -95,7 +95,7 @@ const config: ControlPanelConfig = {
       controlSetRows: [
         [
           {
-            name: 'bar_orient',
+            name: 'orientation',
             config: {
               type: 'RadioButtonControl',
               renderTrigger: true,
