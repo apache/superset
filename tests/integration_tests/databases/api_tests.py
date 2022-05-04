@@ -2106,7 +2106,8 @@ class TestDatabaseApi(SupersetTestCase):
                         "issue_codes": [
                             {
                                 "code": 1020,
-                                "message": "Issue 1020 - The submitted payload has the incorrect schema.",
+                                "message": "Issue 1020 - The submitted payload"
+                                " has the incorrect schema.",
                             }
                         ],
                     },
@@ -2120,7 +2121,8 @@ class TestDatabaseApi(SupersetTestCase):
                         "issue_codes": [
                             {
                                 "code": 1020,
-                                "message": "Issue 1020 - The submitted payload has the incorrect schema.",
+                                "message": "Issue 1020 - The submitted payload "
+                                "has the incorrect schema.",
                             }
                         ],
                     },
@@ -2153,7 +2155,8 @@ class TestDatabaseApi(SupersetTestCase):
         assert response == {
             "errors": [
                 {
-                    "message": "One or more parameters are missing: database, host, username",
+                    "message": "One or more parameters are missing: database, host,"
+                    " username",
                     "error_type": "CONNECTION_MISSING_PARAMETERS_ERROR",
                     "level": "warning",
                     "extra": {
@@ -2161,7 +2164,8 @@ class TestDatabaseApi(SupersetTestCase):
                         "issue_codes": [
                             {
                                 "code": 1018,
-                                "message": "Issue 1018 - One or more parameters needed to configure a database are missing.",
+                                "message": "Issue 1018 - One or more parameters "
+                                "needed to configure a database are missing.",
                             }
                         ],
                     },
@@ -2240,7 +2244,8 @@ class TestDatabaseApi(SupersetTestCase):
                     },
                 },
                 {
-                    "message": "The port must be an integer between 0 and 65535 (inclusive).",
+                    "message": "The port must be an integer between "
+                    "0 and 65535 (inclusive).",
                     "error_type": "CONNECTION_INVALID_PORT_ERROR",
                     "level": "error",
                     "extra": {
@@ -2292,7 +2297,8 @@ class TestDatabaseApi(SupersetTestCase):
                         "issue_codes": [
                             {
                                 "code": 1018,
-                                "message": "Issue 1018 - One or more parameters needed to configure a database are missing.",
+                                "message": "Issue 1018 - One or more parameters"
+                                " needed to configure a database are missing.",
                             }
                         ],
                     },
@@ -2306,7 +2312,8 @@ class TestDatabaseApi(SupersetTestCase):
                         "issue_codes": [
                             {
                                 "code": 1007,
-                                "message": "Issue 1007 - The hostname provided can't be resolved.",
+                                "message": "Issue 1007 - The hostname "
+                                "provided can't be resolved.",
                             }
                         ],
                     },
@@ -2403,6 +2410,7 @@ class TestDatabaseApi(SupersetTestCase):
         uri = f"api/v1/database/{example_db.id}/validate_sql"
         rv = self.client.post(uri, json=request_payload)
         response = json.loads(rv.data.decode("utf-8"))
+        raise Exception(response + self.app.config["SQL_VALIDATORS_BY_ENGINE"])
         self.assertEqual(rv.status_code, 200)
         self.assertEqual(response["result"], [])
 
