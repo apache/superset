@@ -25,9 +25,6 @@ import {
 describe('Dashboard load', () => {
   beforeEach(() => {
     cy.login();
-    cy.eyesOpen({
-      testName: 'Dashboard view',
-    });
   });
 
   afterEach(() => {
@@ -37,6 +34,9 @@ describe('Dashboard load', () => {
   it('should load the dashboard', () => {
     cy.visit(WORLD_HEALTH_DASHBOARD);
     WORLD_HEALTH_CHARTS.forEach(waitForChartLoad);
+    cy.eyesOpen({
+      testName: 'Dashboard page',
+    });
     cy.eyesCheckWindow('Dashboard loaded');
   });
 });

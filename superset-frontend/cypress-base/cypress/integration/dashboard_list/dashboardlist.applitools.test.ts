@@ -22,9 +22,6 @@ describe('dashboard list view', () => {
   beforeEach(() => {
     cy.login();
     cy.visit(DASHBOARD_LIST);
-    cy.eyesOpen({
-      testName: 'Dashboard list view',
-    });
   });
   afterEach(() => {
     cy.eyesClose();
@@ -32,11 +29,17 @@ describe('dashboard list view', () => {
 
   it('should load the Dashboard list', () => {
     cy.get('[aria-label="list-view"]').click();
-    cy.eyesCheckWindow('Dashboard list loaded');
+    cy.eyesOpen({
+      testName: 'Dashboards list-view',
+    });
+    cy.eyesCheckWindow('Dashboards loaded');
   });
 
   it('should load the Dashboard card list', () => {
     cy.get('[aria-label="card-view"]').click();
-    cy.eyesCheckWindow('Dashboard card list loaded');
+    cy.eyesOpen({
+      testName: 'Dashboards card-view',
+    });
+    cy.eyesCheckWindow('Dashboards loaded');
   });
 });

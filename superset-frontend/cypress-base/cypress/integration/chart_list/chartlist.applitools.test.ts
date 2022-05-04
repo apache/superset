@@ -22,9 +22,6 @@ describe('chart list view', () => {
   beforeEach(() => {
     cy.login();
     cy.visit(CHART_LIST);
-    cy.eyesOpen({
-      testName: 'Chart list view',
-    });
   });
 
   afterEach(() => {
@@ -33,11 +30,17 @@ describe('chart list view', () => {
 
   it('should load the Chart list', () => {
     cy.get('[aria-label="card-view"]').click();
-    cy.eyesCheckWindow('Chart list loaded');
+    cy.eyesOpen({
+      testName: 'Charts list-view',
+    });
+    cy.eyesCheckWindow('Charts loaded');
   });
 
   it('should load the Chart card list', () => {
     cy.get('[aria-label="card-view"]').click();
-    cy.eyesCheckWindow('Chart card list loaded');
+    cy.eyesOpen({
+      testName: 'Charts card-view',
+    });
+    cy.eyesCheckWindow('Charts loaded');
   });
 });

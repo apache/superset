@@ -22,9 +22,6 @@ describe('explore view', () => {
   beforeEach(() => {
     cy.login();
     cy.intercept('POST', '/superset/explore_json/**').as('getJson');
-    cy.eyesOpen({
-      testName: 'Explore view',
-    });
   });
   afterEach(() => {
     cy.eyesClose();
@@ -34,6 +31,9 @@ describe('explore view', () => {
     const LINE_CHART_DEFAULTS = { ...FORM_DATA_DEFAULTS, viz_type: 'line' };
     const formData = { ...LINE_CHART_DEFAULTS, metrics: [NUM_METRIC] };
     cy.visitChartByParams(JSON.stringify(formData));
-    cy.eyesCheckWindow('Explore view loaded');
+    cy.eyesOpen({
+      testName: 'Explore page',
+    });
+    cy.eyesCheckWindow('Explore loaded');
   });
 });

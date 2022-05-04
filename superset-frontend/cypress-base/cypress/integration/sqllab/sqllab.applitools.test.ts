@@ -21,15 +21,15 @@ describe('SqlLab view', () => {
   beforeEach(() => {
     cy.login();
     cy.visit('/superset/sqllab');
-    cy.eyesOpen({
-      testName: 'SqlLab view',
-    });
   });
   afterEach(() => {
     cy.eyesClose();
   });
 
   it('should load the SqlLab', () => {
+    cy.eyesOpen({
+      testName: 'SqlLab page',
+    });
     cy.eyesCheckWindow('SqlLab loaded');
   });
 });
