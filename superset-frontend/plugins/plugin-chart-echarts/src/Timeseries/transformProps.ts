@@ -39,7 +39,7 @@ import {
   EchartsTimeseriesSeriesType,
   TimeseriesChartTransformedProps,
 } from './types';
-import { ForecastSeriesEnum, ForecastValue, EchartsOrientType } from '../types';
+import { ForecastSeriesEnum, ForecastValue, OrientationType } from '../types';
 import { parseYAxisBound } from '../utils/controls';
 import {
   currentSeries,
@@ -136,13 +136,13 @@ export default function transformProps(
     yAxisTitlePosition,
     sliceId,
     timeGrainSqla,
-    barOrient,
+    orientation,
   }: EchartsTimeseriesFormData = { ...DEFAULT_FORM_DATA, ...formData };
 
   const colorScale = CategoricalColorNamespace.getScale(colorScheme as string);
   const rebasedData = rebaseForecastDatum(data, verboseMap);
   const xAxisCol = verboseMap[xAxisOrig] || xAxisOrig || DTTM_ALIAS;
-  const isHorizontal = barOrient === EchartsOrientType.horizontal;
+  const isHorizontal = orientation === OrientationType.horizontal;
   const rawSeries = extractSeries(rebasedData, {
     fillNeighborValue: stack && !forecastEnabled ? 0 : undefined,
     xAxis: xAxisCol,
@@ -352,7 +352,8 @@ export default function transformProps(
   };
 
   if (isHorizontal) {
-    [xAxis, yAxis] = [yAxis, xAxis]
+    [xAxis, yAxis] = [yAxis, xAxis];
+    [padding.bottom, padding.left] = [padding.left, padding.bottom];
   }
 
   const echartOptions: EChartsCoreOption = {

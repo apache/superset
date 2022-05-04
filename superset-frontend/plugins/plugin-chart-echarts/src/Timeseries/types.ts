@@ -38,7 +38,7 @@ export enum EchartsTimeseriesContributionType {
   Column = 'column',
 }
 
-export enum EchartsOrientType {
+export enum OrientationType {
   vertical = 'vertical',
   horizontal = 'horizontal',
 }
@@ -87,7 +87,7 @@ export type EchartsTimeseriesFormData = QueryFormData & {
   showValue: boolean;
   onlyTotal: boolean;
   percentageThreshold: number;
-  barOrient?: EchartsOrientType;
+  orientation?: OrientationType;
 } & EchartsLegendFormData &
   EchartsTitleFormData;
 
@@ -125,7 +125,7 @@ export const DEFAULT_FORM_DATA: EchartsTimeseriesFormData = {
   showValue: false,
   onlyTotal: false,
   percentageThreshold: 0,
-  orient: EchartsOrientType.vertical,
+  orient: OrientationType.vertical,
   ...DEFAULT_TITLE_FORM_DATA,
 };
 
