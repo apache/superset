@@ -109,7 +109,7 @@ export type toastState = {
   noDuplicate: boolean;
 };
 
-export type RootState = {
+export type SqlLabRootState = {
   sqlLab: {
     activeSouthPaneTab: string | number; // default is string; action.newQuery.id is number
     alerts: any[];
@@ -123,6 +123,32 @@ export type RootState = {
     queriesLastUpdate: number;
     user: UserWithPermissionsAndRoles;
     errorMessage: string | null;
+  };
+  localStorageUsageInKilobytes: number;
+  messageToasts: toastState[];
+  common: {};
+};
+
+export type ExploreRootState = {
+  explore: {
+    can_add: boolean;
+    can_download: boolean;
+    common: object;
+    controls: object;
+    controlsTransferred: object;
+    datasource: object;
+    datasource_id: number;
+    datasource_type: string;
+    force: boolean;
+    forced_height: object;
+    form_data: object;
+    isDatasourceMetaLoading: boolean;
+    isStarred: boolean;
+    slice: object;
+    sliceName: string;
+    standalone: boolean;
+    timeFormattedColumns: object;
+    user: UserWithPermissionsAndRoles;
   };
   localStorageUsageInKilobytes: number;
   messageToasts: toastState[];

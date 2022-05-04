@@ -30,14 +30,17 @@ import {
   makeApi,
   JsonResponse,
 } from '@superset-ui/core';
+import { useSelector } from 'react-redux';
 import moment from 'moment';
 import rison from 'rison';
+import { UserWithPermissionsAndRoles as User } from 'src/types/bootstrapTypes';
 import {
   DatasetRadioState,
   EXPLORE_CHART_DEFAULT,
   DatasetOwner,
   DatasetOptionAutocomplete,
   Query,
+  ExploreRootState,
 } from 'src/SqlLab/types';
 import { Dataset } from '@superset-ui/chart-controls';
 import { exploreChart } from 'src/explore/exploreUtils';
@@ -51,9 +54,6 @@ interface SaveDatasetModalProps {
   buttonTextOnOverwrite: string;
   modalDescription?: string;
   datasource?: ExploreDatasource;
-  user: {
-    userId: number;
-  };
   query?: Query;
   actions?: Record<string, any>;
 }
@@ -113,7 +113,6 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
   buttonTextOnSave,
   buttonTextOnOverwrite,
   modalDescription,
-  user,
   query,
   actions,
 }) => {
@@ -134,6 +133,11 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
     Record<string, any>
   >({});
   const [saveModalAutocompleteValue] = useState('');
+
+  const user = useSelector<ExploreRootState, User>(state => {
+    console.log('findme', state);
+    return state.explore.user;
+  });
 
   const handleOverwriteDataset = async () => {
     await updateDataset(
