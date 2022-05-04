@@ -70,21 +70,23 @@ const getPayloadField = (field: string, payload: any) => {
 
 const formatList = (ipList: any) => {
   const updatedList: { 'IP Address': string; Count: number }[] = [];
-  const counter = {};
+  const ipDictionary = {};
+  let counter = 0;
 
   ipList.forEach(function (obj: any) {
     const key = JSON.stringify(obj.client_ip);
-    counter[key] = (counter[key] || 0) + 1;
+    ipDictionary[key] = (ipDictionary[key] || 0) + 1;
+    counter += 1;
   });
 
-  Object.keys(counter).forEach(key => {
+  Object.keys(ipDictionary).forEach(key => {
     updatedList.push({
       'IP Address': key.replaceAll('"', ''),
-      Count: counter[key],
+      Count: ipDictionary[key],
     });
   });
 
-  return updatedList;
+  return [updatedList, counter];
 };
 
 // Main Component
@@ -244,7 +246,7 @@ function AtAGlanceUserIDCore(props: AtAGlanceUserIDProps) {
                     Number of Successful Canadian Login Attempts:{' '}
                     {aadDataManager.isLoading
                       ? 'Loading'
-                      : canadianIpsListData.length}{' '}
+                      : canadianIpsListData[1]}{' '}
                   </span>
                 }
                 key="1"
@@ -252,7 +254,7 @@ function AtAGlanceUserIDCore(props: AtAGlanceUserIDProps) {
                 {aadDataManager.isLoading && !aadDataManager.isInit ? (
                   <></>
                 ) : (
-                  generateClientIpLinksList(columnDefs, canadianIpsListData)
+                  generateClientIpLinksList(columnDefs, canadianIpsListData[0])
                 )}
               </Collapse.Panel>
               <Collapse.Panel
@@ -262,7 +264,7 @@ function AtAGlanceUserIDCore(props: AtAGlanceUserIDProps) {
                     Number of Successful non Canadian Login Attempts:{' '}
                     {aadDataManager.isLoading
                       ? 'Loading'
-                      : nonCanadianIpsListData.length}{' '}
+                      : nonCanadianIpsListData[1]}{' '}
                   </span>
                 }
                 key="2"
@@ -270,7 +272,10 @@ function AtAGlanceUserIDCore(props: AtAGlanceUserIDProps) {
                 {aadDataManager.isLoading && !aadDataManager.isInit ? (
                   <></>
                 ) : (
-                  generateClientIpLinksList(columnDefs, nonCanadianIpsListData)
+                  generateClientIpLinksList(
+                    columnDefs,
+                    nonCanadianIpsListData[0],
+                  )
                 )}
               </Collapse.Panel>
               <Collapse.Panel
@@ -280,7 +285,7 @@ function AtAGlanceUserIDCore(props: AtAGlanceUserIDProps) {
                     Number of Unsuccessful Canadian Login Attempts:{' '}
                     {aadDataManager.isLoading
                       ? 'Loading'
-                      : unsuccessfulCanadianIpsListData.length}{' '}
+                      : unsuccessfulCanadianIpsListData[1]}{' '}
                   </span>
                 }
                 key="3"
@@ -290,7 +295,7 @@ function AtAGlanceUserIDCore(props: AtAGlanceUserIDProps) {
                 ) : (
                   generateClientIpLinksList(
                     columnDefs,
-                    unsuccessfulCanadianIpsListData,
+                    unsuccessfulCanadianIpsListData[0],
                   )
                 )}
               </Collapse.Panel>
@@ -301,7 +306,7 @@ function AtAGlanceUserIDCore(props: AtAGlanceUserIDProps) {
                     Number of Unsuccessful non Canadian Login Attempts:{' '}
                     {aadDataManager.isLoading
                       ? 'Loading'
-                      : unsuccessfulNonCanadianIpsListData.length}{' '}
+                      : unsuccessfulNonCanadianIpsListData[1]}{' '}
                   </span>
                 }
                 key="4"
@@ -311,7 +316,7 @@ function AtAGlanceUserIDCore(props: AtAGlanceUserIDProps) {
                 ) : (
                   generateClientIpLinksList(
                     columnDefs,
-                    unsuccessfulNonCanadianIpsListData,
+                    unsuccessfulNonCanadianIpsListData[0],
                   )
                 )}
               </Collapse.Panel>
