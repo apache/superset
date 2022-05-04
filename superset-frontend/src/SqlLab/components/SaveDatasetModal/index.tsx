@@ -39,7 +39,7 @@ import {
   DatasetOptionAutocomplete,
   Query,
 } from 'src/SqlLab/types';
-import { DatasourceMeta } from '@superset-ui/chart-controls';
+import { Dataset } from '@superset-ui/chart-controls';
 import { exploreChart } from 'src/explore/exploreUtils';
 
 interface SaveDatasetModalProps {
@@ -48,7 +48,7 @@ interface SaveDatasetModalProps {
   buttonTextOnSave: string;
   buttonTextOnOverwrite: string;
   modalDescription?: string;
-  datasource?: DatasourceMeta;
+  datasource?: Dataset;
   user: {
     userId: number;
   };
@@ -111,15 +111,12 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
   buttonTextOnSave,
   buttonTextOnOverwrite,
   modalDescription,
-  datasource,
   user,
   query,
   actions,
 }) => {
   const getDefaultDatasetName = () =>
-    `${query?.tab || datasource?.sl_dataset?.query.tab} ${moment().format(
-      'MM/DD/YYYY HH:mm:ss',
-    )}`;
+    `${query?.tab} ${moment().format('MM/DD/YYYY HH:mm:ss')}`;
 
   const [newSaveDatasetName, setNewSaveDatasetName] = useState(
     getDefaultDatasetName(),

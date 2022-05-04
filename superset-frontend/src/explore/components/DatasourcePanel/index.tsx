@@ -20,7 +20,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { css, styled, t, DatasourceType } from '@superset-ui/core';
 import {
   ControlConfig,
-  DatasourceMeta,
+  Dataset,
   ColumnMeta,
 } from '@superset-ui/chart-controls';
 import { debounce } from 'lodash';
@@ -33,18 +33,16 @@ import { FAST_DEBOUNCE } from 'src/constants';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { ExploreActions } from 'src/explore/actions/exploreActions';
 import Control from 'src/explore/components/Control';
-import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import DatasourcePanelDragOption from './DatasourcePanelDragOption';
 import { DndItemType } from '../DndItemType';
 import { StyledColumnOption, StyledMetricOption } from '../optionRenderers';
 
 interface DatasourceControl extends ControlConfig {
-  datasource?: DatasourceMeta;
-  user: UserWithPermissionsAndRoles;
+  datasource?: Dataset;
 }
 
 export interface Props {
-  datasource: DatasourceMeta;
+  datasource: Dataset;
   controls: {
     datasource: DatasourceControl;
   };
