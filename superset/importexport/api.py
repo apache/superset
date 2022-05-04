@@ -64,8 +64,6 @@ class ImportExportRestApi(BaseApi):
                   schema:
                     type: string
                     format: binary
-            400:
-              $ref: '#/components/responses/400'
             401:
               $ref: '#/components/responses/401'
             404:
