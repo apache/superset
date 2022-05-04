@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { ChartProps } from '@superset-ui/core';
+import { ChartProps, supersetTheme } from '@superset-ui/core';
 import transformProps from '../../src/legacyPlugin/transformProps';
 
 describe('WordCloud transformProps', () => {
@@ -40,6 +40,7 @@ describe('WordCloud transformProps', () => {
         data: [{ name: 'Hulk', sum__num: 1 }],
       },
     ],
+    theme: supersetTheme,
   });
 
   it('should transform chart props for word cloud viz', () => {
