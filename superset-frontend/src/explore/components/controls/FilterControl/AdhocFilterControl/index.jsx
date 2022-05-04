@@ -19,11 +19,11 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import {
-  ensureIsArray,
+  t,
   logging,
   SupersetClient,
-  t,
   withTheme,
+  ensureIsArray,
 } from '@superset-ui/core';
 
 import ControlHeader from 'src/explore/components/ControlHeader';
@@ -31,8 +31,8 @@ import adhocMetricType from 'src/explore/components/controls/MetricControl/adhoc
 import savedMetricType from 'src/explore/components/controls/MetricControl/savedMetricType';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
 import {
-  OPERATOR_ENUM_TO_OPERATOR_TYPE,
   Operators,
+  OPERATOR_ENUM_TO_OPERATOR_TYPE,
 } from 'src/explore/constants';
 import FilterDefinitionOption from 'src/explore/components/controls/MetricControl/FilterDefinitionOption';
 import {
@@ -137,7 +137,7 @@ class AdhocFilterControl extends React.Component {
 
       if (!isSqllabView && dbId && name && schema) {
         SupersetClient.get({
-          endpoint: `${process.env.APP_PREFIX}/superset/extra_table_metadata/${dbId}/${name}/${schema}/`,
+          endpoint: `/api/v1/database/${dbId}/table_extra/${name}/${schema}/`,
         })
           .then(({ json }) => {
             if (json && json.partitions) {
