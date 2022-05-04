@@ -21,6 +21,7 @@ import json
 from collections import defaultdict
 from io import BytesIO
 from unittest import mock
+from unittest.mock import patch, MagicMock
 from zipfile import is_zipfile, ZipFile
 from operator import itemgetter
 
@@ -69,6 +70,21 @@ from tests.integration_tests.fixtures.unicode_dashboard import (
     load_unicode_data,
 )
 from tests.integration_tests.test_app import app
+
+
+SQL_VALIDATORS_BY_ENGINE = {
+    "presto": "PrestoDBSQLValidator",
+    "sqlite": "PrestoDBSQLValidator",
+    "postgresql": "PostgreSQLValidator",
+    "mysql": "PrestoDBSQLValidator",
+}
+
+PRESTO_SQL_VALIDATORS_BY_ENGINE = {
+    "presto": "PrestoDBSQLValidator",
+    "sqlite": "PrestoDBSQLValidator",
+    "postgresql": "PrestoDBSQLValidator",
+    "mysql": "PrestoDBSQLValidator",
+}
 
 
 class TestDatabaseApi(SupersetTestCase):
@@ -2365,3 +2381,142 @@ class TestDatabaseApi(SupersetTestCase):
         assert "charts" in rv.json
         assert "dashboards" in rv.json
         assert "sqllab_tab_states" in rv.json
+
+    @patch.dict(
+        "superset.config.SQL_VALIDATORS_BY_ENGINE",
+        SQL_VALIDATORS_BY_ENGINE,
+        clear=True,
+    )
+    def test_validate_sql(self):
+        """
+        Database API: validate SQL success
+        """
+        request_payload = {
+            "sql": "SELECT * from birth_names",
+            "schema": None,
+            "template_params": None,
+        }
+
+        self.login(username="admin")
+        example_db = get_example_database()
+
+        uri = f"api/v1/database/{example_db.id}/validate_sql"
+        rv = self.client.post(uri, json=request_payload)
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(rv.status_code, 200)
+        self.assertEqual(response["result"], [])
+
+    @patch.dict(
+        "superset.config.SQL_VALIDATORS_BY_ENGINE",
+        SQL_VALIDATORS_BY_ENGINE,
+        clear=True,
+    )
+    def test_validate_sql_errors(self):
+        """
+        Database API: validate SQL with errors
+        """
+        request_payload = {
+            "sql": "SELECT col1 froma table1",
+            "schema": None,
+            "template_params": None,
+        }
+
+        self.login(username="admin")
+        example_db = get_example_database()
+
+        uri = f"api/v1/database/{example_db.id}/validate_sql"
+        rv = self.client.post(uri, json=request_payload)
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(rv.status_code, 200)
+        self.assertEqual(
+            response["result"],
+            [
+                {
+                    "end_column": None,
+                    "line_number": 1,
+                    "message": 'ERROR: syntax error at or near "table1"',
+                    "start_column": None,
+                }
+            ],
+        )
+
+    @patch.dict(
+        "superset.config.SQL_VALIDATORS_BY_ENGINE",
+        {},
+        clear=True,
+    )
+    def test_validate_sql_endpoint_noconfig(self):
+        """Assert that validate_sql_json errors out when no validators are
+        configured for any db"""
+        request_payload = {
+            "sql": "SELECT col1 from table1",
+            "schema": None,
+            "template_params": None,
+        }
+
+        self.login("admin")
+
+        example_db = get_example_database()
+
+        uri = f"api/v1/database/{example_db.id}/validate_sql"
+        rv = self.client.post(uri, json=request_payload)
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(rv.status_code, 422)
+        self.assertEqual(
+            response,
+            {
+                "errors": [
+                    {
+                        "message": f"no SQL validator is configured for "
+                        f"{example_db.backend}",
+                        "error_type": "GENERIC_DB_ENGINE_ERROR",
+                        "level": "error",
+                        "extra": {
+                            "issue_codes": [
+                                {
+                                    "code": 1002,
+                                    "message": "Issue 1002 - The database returned an "
+                                    "unexpected error.",
+                                }
+                            ]
+                        },
+                    }
+                ]
+            },
+        )
+
+    @patch("superset.databases.commands.validate_sql.get_validator_by_name")
+    @patch.dict(
+        "superset.config.SQL_VALIDATORS_BY_ENGINE",
+        PRESTO_SQL_VALIDATORS_BY_ENGINE,
+        clear=True,
+    )
+    def test_validate_sql_endpoint_failure(self, get_validator_by_name):
+        """Assert that validate_sql_json errors out when the selected validator
+        raises an unexpected exception"""
+
+        request_payload = {
+            "sql": "SELECT * FROM birth_names",
+            "schema": None,
+            "template_params": None,
+        }
+
+        self.login("admin")
+
+        validator = MagicMock()
+        get_validator_by_name.return_value = validator
+        validator.validate.side_effect = Exception("Kaboom!")
+
+        self.login("admin")
+
+        example_db = get_example_database()
+
+        uri = f"api/v1/database/{example_db.id}/validate_sql"
+        rv = self.client.post(uri, json=request_payload)
+        response = json.loads(rv.data.decode("utf-8"))
+
+        # TODO(bkyryliuk): properly handle hive error
+        if get_example_database().backend == "hive":
+            return
+        self.assertEqual(rv.status_code, 422)
+        self.assertIn("Kaboom!", response["errors"][0]["message"])

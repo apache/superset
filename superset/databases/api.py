@@ -722,7 +722,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.validate_sql",
         log_to_statsd=False,
     )
-    def validate_sql(self, pk: int, **kwargs: Any) -> FlaskResponse:
+    def validate_sql(self, pk: int) -> FlaskResponse:
         """
         ---
         post:

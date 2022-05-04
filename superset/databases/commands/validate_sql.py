@@ -16,12 +16,10 @@
 # under the License.
 import logging
 import re
-from typing import Any, Dict, List, Optional, Type, TypedDict
+from typing import Any, Dict, List, Optional, Type
 
 from flask import current_app
 from flask_babel import gettext as __
-from marshmallow import ValidationError
-
 from superset.commands.base import BaseCommand
 from superset.databases.commands.exceptions import (
     DatabaseNotFoundError,
@@ -35,7 +33,7 @@ from superset.databases.dao import DatabaseDAO
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.models.core import Database
 from superset.sql_validators import get_validator_by_name
-from superset.sql_validators.base import BaseSQLValidator, SQLValidationAnnotation
+from superset.sql_validators.base import BaseSQLValidator
 from superset.utils import core as utils
 
 logger = logging.getLogger(__name__)
@@ -88,7 +86,6 @@ class ValidateSQLCommand(BaseCommand):
             raise ValidatorSQLError(superset_error)
 
     def validate(self) -> None:
-        exceptions: List[ValidationError] = []
         # Validate/populate model exists
         self._model = DatabaseDAO.find_by_id(self._model_id)
         if not self._model:

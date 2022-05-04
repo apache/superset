@@ -538,9 +538,7 @@ class SchemasResponseSchema(Schema):
 class ValidateSQLRequest(Schema):
     sql = fields.String(required=True, description="SQL statement to validate")
     schema = fields.String(required=False, allow_none=True)
-    template_params = fields.Dict(
-        required=False,
-    )
+    template_params = fields.Dict(required=False, allow_none=True)
 
 
 class ValidateSQLResponse(Schema):
