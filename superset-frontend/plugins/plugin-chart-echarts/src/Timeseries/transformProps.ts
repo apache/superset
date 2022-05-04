@@ -352,9 +352,7 @@ export default function transformProps(
   };
 
   if (isHorizontal) {
-    const temp = xAxis;
-    xAxis = yAxis;
-    yAxis = temp;
+    [xAxis, yAxis] = [yAxis, xAxis]
   }
 
   const echartOptions: EChartsCoreOption = {
