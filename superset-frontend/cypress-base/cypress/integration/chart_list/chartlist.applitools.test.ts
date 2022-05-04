@@ -24,23 +24,29 @@ describe('chart list view', () => {
     cy.visit(CHART_LIST);
   });
 
-  afterEach(() => {
-    cy.eyesClose();
-  });
-
   it('should load the Chart list', () => {
     cy.get('[aria-label="list-view"]').click();
-    cy.eyesOpen({
-      testName: 'Charts list-view',
-    });
-    cy.eyesCheckWindow('Charts loaded');
+    try {
+      cy.eyesOpen({
+        testName: 'Charts list-view',
+      });
+      cy.eyesCheckWindow('Charts loaded');
+      cy.eyesClose();
+    } catch {
+      cy.log('Applitools failed');
+    }
   });
 
   it('should load the Chart card list', () => {
     cy.get('[aria-label="card-view"]').click();
-    cy.eyesOpen({
-      testName: 'Charts card-view',
-    });
-    cy.eyesCheckWindow('Charts loaded');
+    try {
+      cy.eyesOpen({
+        testName: 'Charts card-view',
+      });
+      cy.eyesCheckWindow('Charts loaded');
+      cy.eyesClose();
+    } catch {
+      cy.log('Applitools failed');
+    }
   });
 });

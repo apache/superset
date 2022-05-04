@@ -1,6 +1,6 @@
 name: Applitools Cypress
 
-on: pull_request_target
+on: pull_request
 
 jobs:
   cypress-applitools:
@@ -17,6 +17,10 @@ jobs:
       PYTHONPATH: ${{ github.workspace }}
       REDIS_PORT: 16379
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      APPLITOOLS_APP_NAME: Superset
+      APPLITOOLS_API_KEY: ${{ secrets.APPLITOOLS_API_KEY }}
+      APPLITOOLS_BATCH_ID: ${{ github.sha }}
+      APPLITOOLS_BATCH_NAME: Superset Cypress
     services:
       postgres:
         image: postgres:14-alpine
@@ -92,10 +96,6 @@ jobs:
         if: steps.check.outcome == 'failure'
         uses: ./.github/actions/cached-dependencies
         env:
-          APPLITOOLS_APP_NAME: Superset
-          APPLITOOLS_API_KEY: ${{ secrets.APPLITOOLS_API_KEY }}
-          APPLITOOLS_BATCH_ID: ${{ github.sha }}
-          APPLITOOLS_BATCH_NAME: Superset Cypress
           CYPRESS_BROWSER: ${{ matrix.browser }}
         with:
           run: cypress-run-applitools
