@@ -42,13 +42,15 @@ import {
 import { Dataset } from '@superset-ui/chart-controls';
 import { exploreChart } from 'src/explore/exploreUtils';
 
+type ExploreDatasource = Dataset | Query;
+
 interface SaveDatasetModalProps {
   visible: boolean;
   onHide: () => void;
   buttonTextOnSave: string;
   buttonTextOnOverwrite: string;
   modalDescription?: string;
-  datasource?: Dataset;
+  datasource?: ExploreDatasource;
   user: {
     userId: number;
   };
