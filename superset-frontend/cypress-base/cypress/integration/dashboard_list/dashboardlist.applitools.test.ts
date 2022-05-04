@@ -24,29 +24,23 @@ describe('dashboard list view', () => {
     cy.visit(DASHBOARD_LIST);
   });
 
-  it('should load the Dashboard list', () => {
-    cy.get('[aria-label="list-view"]').click();
-    try {
-      cy.eyesOpen({
-        testName: 'Dashboards list-view',
-      });
-      cy.eyesCheckWindow('Dashboards loaded');
-      cy.eyesClose();
-    } catch {
-      cy.log('Applitools failed');
-    }
+  afterEach(() => {
+    cy.eyesClose();
   });
 
-  it('should load the Dashboard card list', () => {
+  it('should load the Dashboards list', () => {
+    cy.get('[aria-label="list-view"]').click();
+    cy.eyesOpen({
+      testName: 'Dashboards list-view',
+    });
+    cy.eyesCheckWindow('Dashboards loaded');
+  });
+
+  it('should load the Dashboards card list', () => {
     cy.get('[aria-label="card-view"]').click();
-    try {
-      cy.eyesOpen({
-        testName: 'Dashboards card-view',
-      });
-      cy.eyesCheckWindow('Dashboards loaded');
-      cy.eyesClose();
-    } catch {
-      cy.log('Applitools failed');
-    }
+    cy.eyesOpen({
+      testName: 'Dashboards card-view',
+    });
+    cy.eyesCheckWindow('Dashboards loaded');
   });
 });

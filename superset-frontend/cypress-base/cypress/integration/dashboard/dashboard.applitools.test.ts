@@ -29,18 +29,18 @@ describe('Dashboard load', () => {
     WORLD_HEALTH_CHARTS.forEach(waitForChartLoad);
   });
 
-  it('should load the dashboard', () => {
-    try {
-      cy.eyesOpen({
-        testName: 'Dashboard page',
-      });
-      cy.eyesCheckWindow('Dashboard loaded');
-    } catch {
-      cy.log('Applitools failed');
-    }
+  afterEach(() => {
+    cy.eyesClose();
   });
 
-  it('should load the dashboard in edit mode', () => {
+  it('should load the Dashboard', () => {
+    cy.eyesOpen({
+      testName: 'Dashboard page',
+    });
+    cy.eyesCheckWindow('Dashboard loaded');
+  });
+
+  it('should load the Dashboard in edit mode', () => {
     cy.get('[data-test="dashboard-header"]')
       .find('[aria-label=edit-alt]')
       .click();
@@ -48,14 +48,9 @@ describe('Dashboard load', () => {
     cy.get('[data-test="grid-container"]').find('.box_plot', {
       timeout: 10000,
     });
-    try {
-      cy.eyesOpen({
-        testName: 'Dashboard edit mode',
-      });
-      cy.eyesCheckWindow('Dashboard edit mode loaded');
-      cy.eyesClose();
-    } catch {
-      cy.log('Applitools failed');
-    }
+    cy.eyesOpen({
+      testName: 'Dashboard edit mode',
+    });
+    cy.eyesCheckWindow('Dashboard edit mode loaded');
   });
 });

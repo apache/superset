@@ -23,15 +23,14 @@ describe('SqlLab view', () => {
     cy.visit('/superset/sqllab');
   });
 
+  beforeEach(() => {
+    cy.eyesClose();
+  });
+
   it('should load the SqlLab', () => {
-    try {
-      cy.eyesOpen({
-        testName: 'SqlLab page',
-      });
-      cy.eyesCheckWindow('SqlLab loaded');
-      cy.eyesClose();
-    } catch {
-      cy.log('Applitools failed');
-    }
+    cy.eyesOpen({
+      testName: 'SqlLab page',
+    });
+    cy.eyesCheckWindow('SqlLab loaded');
   });
 });

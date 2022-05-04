@@ -18,35 +18,29 @@
  */
 import { CHART_LIST } from './chart_list.helper';
 
-describe('chart list view', () => {
+describe('charts list view', () => {
   beforeEach(() => {
     cy.login();
     cy.visit(CHART_LIST);
   });
 
-  it('should load the Chart list', () => {
-    cy.get('[aria-label="list-view"]').click();
-    try {
-      cy.eyesOpen({
-        testName: 'Charts list-view',
-      });
-      cy.eyesCheckWindow('Charts loaded');
-      cy.eyesClose();
-    } catch {
-      cy.log('Applitools failed');
-    }
+  afterEach(() => {
+    cy.eyesClose();
   });
 
-  it('should load the Chart card list', () => {
+  it('should load the Charts list', () => {
+    cy.get('[aria-label="list-view"]').click();
+    cy.eyesOpen({
+      testName: 'Charts list-view',
+    });
+    cy.eyesCheckWindow('Charts loaded');
+  });
+
+  it('should load the Charts card list', () => {
     cy.get('[aria-label="card-view"]').click();
-    try {
-      cy.eyesOpen({
-        testName: 'Charts card-view',
-      });
-      cy.eyesCheckWindow('Charts loaded');
-      cy.eyesClose();
-    } catch {
-      cy.log('Applitools failed');
-    }
+    cy.eyesOpen({
+      testName: 'Charts card-view',
+    });
+    cy.eyesCheckWindow('Charts loaded');
   });
 });
