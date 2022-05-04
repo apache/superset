@@ -25,6 +25,8 @@ import { getDatasourceParameter } from 'src/modules/utils';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 
 export const SET_ALL_SLICES = 'SET_ALL_SLICES';
+const FETCH_SLICES_PAGE_SIZE = 200;
+
 export function setAllSlices(slices) {
   return { type: SET_ALL_SLICES, payload: { slices } };
 }
@@ -39,19 +41,23 @@ export function fetchAllSlicesFailed(error) {
   return { type: FETCH_ALL_SLICES_FAILED, payload: { error } };
 }
 
-function fetchSlices(
+export function fetchSlices(
   userId,
   excludeFilterBox,
   dispatch,
   filter_value,
   sortColumn = 'changed_on_delta_humanized',
-  slices = {}
+  slices = {},
 ) {
-  const additional_filters = filter_value ? [
-    { col: 'slice_name', opr: 'sw', value: filter_value },
-    { col: 'viz_type', opr: 'sw', value: filter_value },
-    { col: 'datasource_name', opr: 'sw', value: filter_value },
-  ] : [];
+  const additional_filters = filter_value
+    ? [
+        { col: 'slice_name', opr: 'sw', value: filter_value },
+        { col: 'viz_type', opr: 'sw', value: filter_value },
+        { col: 'datasource_name', opr: 'sw', value: filter_value },
+      ]
+    : [];
+
+  const cloneSlices = { ...slices };
 
   return SupersetClient.get({
     endpoint: `/api/v1/chart/?q=${rison.encode({
@@ -72,11 +78,12 @@ function fetchSlices(
       ],
       filters: [
         { col: 'owners', opr: 'rel_m_m', value: userId },
-        ...additional_filters
+        ...additional_filters,
       ],
       page_size: FETCH_SLICES_PAGE_SIZE,
-      order_column: sortColumn == 'changed_on' ? 'changed_on_delta_humanized' : sortColumn,
-      order_direction: sortColumn == 'changed_on' ? 'desc' : 'asc',
+      order_column:
+        sortColumn === 'changed_on' ? 'changed_on_delta_humanized' : sortColumn,
+      order_direction: sortColumn === 'changed_on' ? 'desc' : 'asc',
     })}`,
   })
     .then(({ json }) => {
@@ -96,7 +103,7 @@ function fetchSlices(
               slice.datasource_type,
             ) || form_data.datasource,
         };
-        slices[slice.id] = {
+        cloneSlices[slice.id] = {
           slice_id: slice.id,
           slice_url: slice.url,
           slice_name: slice.slice_name,
@@ -114,41 +121,28 @@ function fetchSlices(
         };
       });
 
-      return dispatch(setAllSlices(slices));
+      return dispatch(setAllSlices(cloneSlices));
     })
-    .catch(
-      errorResponse =>
-        console.log(errorResponse) ||
-        getClientErrorObject(errorResponse).then(({ error }) => {
-          dispatch(
-            fetchAllSlicesFailed(
-              error || t('Could not fetch all saved charts'),
-            ),
-          );
-          dispatch(
-            addDangerToast(
-              t('Sorry there was an error fetching saved charts: ') + error,
-            ),
-          );
-        }),
+    .catch(errorResponse =>
+      getClientErrorObject(errorResponse).then(({ error }) => {
+        dispatch(
+          fetchAllSlicesFailed(error || t('Could not fetch all saved charts')),
+        );
+        dispatch(
+          addDangerToast(
+            t('Sorry there was an error fetching saved charts: ') + error,
+          ),
+        );
+      }),
     );
 }
 
-const FETCH_SLICES_PAGE_SIZE = 200;
-export function fetchAllSlices(
-  userId,
-  excludeFilterBox = false
-) {
+export function fetchAllSlices(userId, excludeFilterBox = false) {
   return (dispatch, getState) => {
     const { sliceEntities } = getState();
     if (sliceEntities.lastUpdated === 0) {
       dispatch(fetchAllSlicesStarted());
-      return fetchSlices(
-        userId,
-        excludeFilterBox,
-        dispatch,
-        undefined
-      );
+      return fetchSlices(userId, excludeFilterBox, dispatch, undefined);
     }
 
     return dispatch(setAllSlices(sliceEntities.slices));
@@ -158,7 +152,7 @@ export function fetchAllSlices(
 export function fetchSortedSlices(
   userId,
   excludeFilterBox = false,
-  order_column
+  order_column,
 ) {
   return dispatch => {
     dispatch(fetchAllSlicesStarted());
@@ -167,15 +161,15 @@ export function fetchSortedSlices(
       excludeFilterBox,
       dispatch,
       undefined,
-      order_column
+      order_column,
     );
-  }
+  };
 }
 
 export function fetchFilteredSlices(
   userId,
   excludeFilterBox = false,
-  filter_value
+  filter_value,
 ) {
   return (dispatch, getState) => {
     dispatch(fetchAllSlicesStarted());
@@ -186,7 +180,7 @@ export function fetchFilteredSlices(
       dispatch,
       filter_value,
       undefined,
-      sliceEntities.slices
+      sliceEntities.slices,
     );
-  }  
+  };
 }
