@@ -48,7 +48,6 @@ class TestSqlValidatorEndpoint(SupersetTestCase):
     def tearDown(self):
         self.logout()
 
-    @patch("superset.views.core.get_validator_by_name")
     @patch.dict(
         "superset.config.SQL_VALIDATORS_BY_ENGINE",
         {},
