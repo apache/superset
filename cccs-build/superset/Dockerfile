@@ -17,7 +17,7 @@ RUN sed -i '/^VERSION_SHA_LENGTH = .*/i # CCCS Superset Azure pipeline injection
 ENV BUILD_NUMBER_VAR=${BUILD_NUMBER}
 
 # Copy Vault CA certs
-COPY --from=vault_ca /usr/local/share/ca-certificates/ /app/superset_home/cabundle.crt
+COPY --from=vault_ca /usr/local/share/ca-certificates/ /usr/local/share/ca-certificates/
 
 
 # Make pip use analytical-platform feed
