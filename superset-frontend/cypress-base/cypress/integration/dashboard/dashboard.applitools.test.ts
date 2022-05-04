@@ -25,6 +25,8 @@ import {
 describe('Dashboard load', () => {
   beforeEach(() => {
     cy.login();
+    cy.visit(WORLD_HEALTH_DASHBOARD);
+    WORLD_HEALTH_CHARTS.forEach(waitForChartLoad);
   });
 
   afterEach(() => {
@@ -32,11 +34,23 @@ describe('Dashboard load', () => {
   });
 
   it('should load the dashboard', () => {
-    cy.visit(WORLD_HEALTH_DASHBOARD);
-    WORLD_HEALTH_CHARTS.forEach(waitForChartLoad);
     cy.eyesOpen({
       testName: 'Dashboard page',
     });
     cy.eyesCheckWindow('Dashboard loaded');
+  });
+
+  it('should load the dashboard in edit mode', () => {
+    cy.get('[data-test="dashboard-header"]')
+      .find('[aria-label=edit-alt]')
+      .click();
+    // wait for a chart to appear
+    cy.get('[data-test="grid-container"]').find('.box_plot', {
+      timeout: 10000,
+    });
+    cy.eyesOpen({
+      testName: 'Dashboard edit mode',
+    });
+    cy.eyesCheckWindow('Dashboard edit mode loaded');
   });
 });

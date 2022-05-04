@@ -31,6 +31,7 @@ describe('explore view', () => {
     const LINE_CHART_DEFAULTS = { ...FORM_DATA_DEFAULTS, viz_type: 'line' };
     const formData = { ...LINE_CHART_DEFAULTS, metrics: [NUM_METRIC] };
     cy.visitChartByParams(JSON.stringify(formData));
+    cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
     cy.eyesOpen({
       testName: 'Explore page',
     });

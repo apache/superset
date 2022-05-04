@@ -29,7 +29,7 @@ describe('chart list view', () => {
   });
 
   it('should load the Chart list', () => {
-    cy.get('[aria-label="card-view"]').click();
+    cy.get('[aria-label="list-view"]').click();
     cy.eyesOpen({
       testName: 'Charts list-view',
     });
