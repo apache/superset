@@ -19,15 +19,13 @@ type AtAGlanceUserIDProps = QueryFormData & {
   ipDashBoardBaseUrl: string;
 };
 
-const generateClientIpLinksList = (
-  columnDefs: any,
-  rowData: any,
-  ipDashBoardBaseUrl: string,
-  ipDashboardId: string,
-  ipDashboardFilterId: string,
-) => (
-  <div className="ag-theme-balham" style={{ height: 400, width: 600 }}>
-    <AgGridReact rowData={rowData} columnDefs={columnDefs} />
+const generateClientIpLinksList = (columnDefs: any, rowData: any) => (
+  <div className="ag-theme-balham">
+    <AgGridReact
+      rowData={rowData}
+      columnDefs={columnDefs}
+      domLayout="autoHeight"
+    />
   </div>
 );
 
@@ -70,17 +68,52 @@ const getPayloadField = (field: string, payload: any) => {
   return value;
 };
 
+const formatList = (ipList: any) => {
+  const updatedList: { 'IP Address': string; Count: number }[] = [];
+  const counter = {};
+
+  ipList.forEach(function (obj: any) {
+    const key = JSON.stringify(obj.client_ip);
+    counter[key] = (counter[key] || 0) + 1;
+  });
+
+  Object.keys(counter).forEach(key => {
+    updatedList.push({
+      'IP Address': key.replaceAll('"', ''),
+      Count: counter[key],
+    });
+  });
+
+  return updatedList;
+};
+
 // Main Component
 function AtAGlanceUserIDCore(props: AtAGlanceUserIDProps) {
   const [userIDString, setUserIDString] = useState('user@domain.invalid,');
 
-  const [columnDefs] = useState([{ field: 'IP Address' }, { field: 'Count' }]);
-  const [rowData, setRowData] = useState([{}]);
+  const [columnDefs] = useState([
+    {
+      field: 'IP Address',
+      sortable: true,
+      cellRenderer(params: any) {
+        const ipData = params.data['IP Address'];
+        const newLink = `<a href=${props.ipDashBoardBaseUrl}/superset/dashboard/${props.ipDashboardId}/?native_filters=%28NATIVE_FILTER-${props.ipDashboardFilterId}%3A%28__cache%3A%28label%3A'${ipData}'%2CvalidateStatus%3A%21f%2Cvalue%3A%21%28'${ipData}'%29%29%2CextraFormData%3A%28filters%3A%21%28%28col%3Aip_string%2Cop%3AIN%2Cval%3A%21%28'${ipData}'%29%29%29%29%2CfilterState%3A%28label%3A'${ipData}'%2CvalidateStatus%3A%21f%2Cvalue%3A%21%28'${ipData}'%29%29%2Cid%3ANATIVE_FILTER-${props.ipDashboardFilterId}%2CownState%3A%28%29%29%29 target="_blank">${ipData}</a>`;
 
-  let canadianIpsList: any[] = [];
-  let nonCanadianIpsList: any[] = [];
-  let unsuccessfulCanadianIpsList: any[] = [];
-  let unsuccessfulNonCanadianIpsList: any[] = [];
+        return newLink;
+      },
+    },
+    { field: 'Count', sortable: true },
+  ]);
+  const [canadianIpsListData, setCanadianIpsListData] = useState([{}]);
+  const [nonCanadianIpsListData, setNonCanadianIpsListData] = useState([{}]);
+  const [
+    unsuccessfulCanadianIpsListData,
+    setUnsuccessfulCanadianIpsListData,
+  ] = useState([{}]);
+  const [
+    unsuccessfulNonCanadianIpsListData,
+    setUnsuccessfulNonCanadianIpsListData,
+  ] = useState([{}]);
 
   const [aadDataManager, setAadDataManger] = useState<DataManager>({
     data: props.data,
@@ -90,18 +123,6 @@ function AtAGlanceUserIDCore(props: AtAGlanceUserIDProps) {
   });
 
   let hasFiltered = false;
-
-  // useEffect(() => {
-  //   setRowData([
-  //     { 'IP Address': '1.1.1.1', Count: 1 },
-  //     { 'IP Address': '1.1.1.2', Count: 1 },
-  //   ]);
-  // }, [
-  //   canadianIpsList,
-  //   nonCanadianIpsList,
-  //   unsuccessfulCanadianIpsList,
-  //   unsuccessfulNonCanadianIpsList,
-  // ]);
 
   for (
     let i = 0;
@@ -124,46 +145,70 @@ function AtAGlanceUserIDCore(props: AtAGlanceUserIDProps) {
     }
   }
 
-  const COUNTRY_NAME_FIELD = 'client_ip_cbs_geo_country_name';
-  const CANADA = 'canada';
-  const OPERATION = 'operation';
-  const USER_LOGGED_IN = 'UserLoggedIn';
-  if (
-    !aadDataManager.isLoading ||
-    (aadDataManager.isInit && hasFiltered === false)
-  ) {
-    canadianIpsList = aadDataManager.data.filter(function (item) {
-      return (
-        getPayloadField(COUNTRY_NAME_FIELD, item) === CANADA &&
-        getPayloadField(OPERATION, item) === USER_LOGGED_IN
-      );
-    });
+  useEffect(() => {
+    let canadianIpsList: any[] = [];
+    let nonCanadianIpsList: any[] = [];
+    let unsuccessfulCanadianIpsList: any[] = [];
+    let unsuccessfulNonCanadianIpsList: any[] = [];
 
-    nonCanadianIpsList = aadDataManager.data.filter(function (item) {
-      return (
-        getPayloadField(COUNTRY_NAME_FIELD, item) !== CANADA &&
-        getPayloadField(OPERATION, item) === USER_LOGGED_IN
-      );
-    });
+    const COUNTRY_NAME_FIELD = 'client_ip_cbs_geo_country_name';
+    const CANADA = 'canada';
+    const OPERATION = 'operation';
+    const USER_LOGGED_IN = 'UserLoggedIn';
 
-    unsuccessfulCanadianIpsList = aadDataManager.data.filter(function (item) {
-      return (
-        getPayloadField(COUNTRY_NAME_FIELD, item) === CANADA &&
-        getPayloadField(OPERATION, item) !== USER_LOGGED_IN
-      );
-    });
-
-    unsuccessfulNonCanadianIpsList = aadDataManager.data.filter(function (
-      item,
+    if (
+      !aadDataManager.isLoading ||
+      (aadDataManager.isInit && hasFiltered === false)
     ) {
-      return (
-        getPayloadField(COUNTRY_NAME_FIELD, item) !== CANADA &&
-        getPayloadField(OPERATION, item) !== USER_LOGGED_IN
-      );
-    });
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      canadianIpsList = aadDataManager.data.filter(function (item) {
+        return (
+          getPayloadField(COUNTRY_NAME_FIELD, item) === CANADA &&
+          getPayloadField(OPERATION, item) === USER_LOGGED_IN
+        );
+      });
 
-    hasFiltered = true;
-  }
+      setCanadianIpsListData(formatList(canadianIpsList));
+
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      nonCanadianIpsList = aadDataManager.data.filter(function (item) {
+        return (
+          getPayloadField(COUNTRY_NAME_FIELD, item) !== CANADA &&
+          getPayloadField(OPERATION, item) === USER_LOGGED_IN
+        );
+      });
+
+      setNonCanadianIpsListData(formatList(nonCanadianIpsList));
+
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      unsuccessfulCanadianIpsList = aadDataManager.data.filter(function (item) {
+        return (
+          getPayloadField(COUNTRY_NAME_FIELD, item) === CANADA &&
+          getPayloadField(OPERATION, item) !== USER_LOGGED_IN
+        );
+      });
+
+      setUnsuccessfulCanadianIpsListData(
+        formatList(unsuccessfulCanadianIpsList),
+      );
+
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      unsuccessfulNonCanadianIpsList = aadDataManager.data.filter(function (
+        item,
+      ) {
+        return (
+          getPayloadField(COUNTRY_NAME_FIELD, item) !== CANADA &&
+          getPayloadField(OPERATION, item) !== USER_LOGGED_IN
+        );
+      });
+
+      setUnsuccessfulNonCanadianIpsListData(
+        formatList(unsuccessfulNonCanadianIpsList),
+      );
+
+      hasFiltered = true;
+    }
+  }, [aadDataManager]);
 
   return (
     <div style={styles.AtAGlance}>
@@ -199,7 +244,7 @@ function AtAGlanceUserIDCore(props: AtAGlanceUserIDProps) {
                     Number of Successful Canadian Login Attempts:{' '}
                     {aadDataManager.isLoading
                       ? 'Loading'
-                      : canadianIpsList.length}{' '}
+                      : canadianIpsListData.length}{' '}
                   </span>
                 }
                 key="1"
@@ -207,13 +252,7 @@ function AtAGlanceUserIDCore(props: AtAGlanceUserIDProps) {
                 {aadDataManager.isLoading && !aadDataManager.isInit ? (
                   <></>
                 ) : (
-                  generateClientIpLinksList(
-                    columnDefs,
-                    rowData,
-                    props.ipDashBoardBaseUrl,
-                    props.ipDashboardId,
-                    props.ipDashboardFilterId,
-                  )
+                  generateClientIpLinksList(columnDefs, canadianIpsListData)
                 )}
               </Collapse.Panel>
               <Collapse.Panel
@@ -223,7 +262,7 @@ function AtAGlanceUserIDCore(props: AtAGlanceUserIDProps) {
                     Number of Successful non Canadian Login Attempts:{' '}
                     {aadDataManager.isLoading
                       ? 'Loading'
-                      : nonCanadianIpsList.length}{' '}
+                      : nonCanadianIpsListData.length}{' '}
                   </span>
                 }
                 key="2"
@@ -231,13 +270,7 @@ function AtAGlanceUserIDCore(props: AtAGlanceUserIDProps) {
                 {aadDataManager.isLoading && !aadDataManager.isInit ? (
                   <></>
                 ) : (
-                  generateClientIpLinksList(
-                    columnDefs,
-                    rowData,
-                    props.ipDashBoardBaseUrl,
-                    props.ipDashboardId,
-                    props.ipDashboardFilterId,
-                  )
+                  generateClientIpLinksList(columnDefs, nonCanadianIpsListData)
                 )}
               </Collapse.Panel>
               <Collapse.Panel
@@ -247,7 +280,7 @@ function AtAGlanceUserIDCore(props: AtAGlanceUserIDProps) {
                     Number of Unsuccessful Canadian Login Attempts:{' '}
                     {aadDataManager.isLoading
                       ? 'Loading'
-                      : unsuccessfulCanadianIpsList.length}{' '}
+                      : unsuccessfulCanadianIpsListData.length}{' '}
                   </span>
                 }
                 key="3"
@@ -257,10 +290,7 @@ function AtAGlanceUserIDCore(props: AtAGlanceUserIDProps) {
                 ) : (
                   generateClientIpLinksList(
                     columnDefs,
-                    rowData,
-                    props.ipDashBoardBaseUrl,
-                    props.ipDashboardId,
-                    props.ipDashboardFilterId,
+                    unsuccessfulCanadianIpsListData,
                   )
                 )}
               </Collapse.Panel>
@@ -271,7 +301,7 @@ function AtAGlanceUserIDCore(props: AtAGlanceUserIDProps) {
                     Number of Unsuccessful non Canadian Login Attempts:{' '}
                     {aadDataManager.isLoading
                       ? 'Loading'
-                      : unsuccessfulNonCanadianIpsList.length}{' '}
+                      : unsuccessfulNonCanadianIpsListData.length}{' '}
                   </span>
                 }
                 key="4"
@@ -281,10 +311,7 @@ function AtAGlanceUserIDCore(props: AtAGlanceUserIDProps) {
                 ) : (
                   generateClientIpLinksList(
                     columnDefs,
-                    rowData,
-                    props.ipDashBoardBaseUrl,
-                    props.ipDashboardId,
-                    props.ipDashboardFilterId,
+                    unsuccessfulNonCanadianIpsListData,
                   )
                 )}
               </Collapse.Panel>
