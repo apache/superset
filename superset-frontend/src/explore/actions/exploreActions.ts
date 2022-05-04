@@ -17,7 +17,7 @@
  * under the License.
  */
 /* eslint camelcase: 0 */
-import { DatasourceMeta } from '@superset-ui/chart-controls';
+import { Dataset } from '@superset-ui/chart-controls';
 import {
   t,
   SupersetClient,
@@ -39,12 +39,12 @@ export function setDatasourceType(datasourceType: DatasourceType) {
 }
 
 export const SET_DATASOURCE = 'SET_DATASOURCE';
-export function setDatasource(datasource: DatasourceMeta) {
+export function setDatasource(datasource: Dataset) {
   return { type: SET_DATASOURCE, datasource };
 }
 
 export const SET_DATASOURCES = 'SET_DATASOURCES';
-export function setDatasources(datasources: DatasourceMeta[]) {
+export function setDatasources(datasources: Dataset[]) {
   return { type: SET_DATASOURCES, datasources };
 }
 

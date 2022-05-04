@@ -16,13 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DatasourceMeta } from '../types';
+import { Dataset } from '../types';
 
 /**
  * Convert Datasource columns to column choices
  */
 export default function columnChoices(
-  datasource?: DatasourceMeta | null,
+  datasource?: Dataset | null,
 ): [string, string][] {
   return (
     datasource?.columns

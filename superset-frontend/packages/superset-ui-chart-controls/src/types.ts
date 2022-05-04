@@ -51,7 +51,7 @@ export type ColumnMeta = Omit<Column, 'id'> & {
   id?: number;
 } & AnyDict;
 
-export interface DatasourceMeta {
+export interface Dataset {
   id: number;
   type: DatasourceType;
   columns: ColumnMeta[];
@@ -65,16 +65,11 @@ export interface DatasourceMeta {
   granularity_sqla?: string;
   datasource_name: string | null;
   description: string | null;
-  sl_dataset?: {
-    sl_table?: any;
-    query?: any;
-    saved_query?: any;
-  };
 }
 
 export interface ControlPanelState {
   form_data: QueryFormData;
-  datasource: DatasourceMeta | null;
+  datasource: Dataset | null;
   controls: ControlStateMapping;
 }
 
@@ -93,7 +88,7 @@ export interface ActionDispatcher<
  * Mapping of action dispatchers
  */
 export interface ControlPanelActionDispatchers {
-  setDatasource: ActionDispatcher<[DatasourceMeta]>;
+  setDatasource: ActionDispatcher<[Dataset]>;
 }
 
 /**
