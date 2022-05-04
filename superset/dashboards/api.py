@@ -853,6 +853,8 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                     properties:
                       message:
                         type: string
+            302:
+              description: Redirects to the current digest
             401:
               $ref: '#/components/responses/401'
             404:
