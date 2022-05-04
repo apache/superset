@@ -28,7 +28,7 @@ import Button from 'src/components/Button';
 import { fDuration } from 'src/modules/dates';
 import Icons from 'src/components/Icons';
 import { Tooltip } from 'src/components/Tooltip';
-import { Query, RootState } from 'src/SqlLab/types';
+import { Query, SqlLabRootState } from 'src/SqlLab/types';
 import ModalTrigger from 'src/components/ModalTrigger';
 import { UserWithPermissionsAndRoles as User } from 'src/types/bootstrapTypes';
 import ResultSet from '../ResultSet';
@@ -91,7 +91,7 @@ const QueryTable = ({
     [columns],
   );
 
-  const user = useSelector<RootState, User>(state => state.sqlLab.user);
+  const user = useSelector<SqlLabRootState, User>(state => state.sqlLab.user);
 
   const {
     queryEditorSetSql,

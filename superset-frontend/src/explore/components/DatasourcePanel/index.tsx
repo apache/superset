@@ -49,9 +49,6 @@ export interface Props {
   actions: Partial<ExploreActions> & Pick<ExploreActions, 'setControlValue'>;
   // we use this props control force update when this panel resize
   shouldForceUpdate?: number;
-  user: {
-    userId: number;
-  };
 }
 
 const enableExploreDnd = isFeatureEnabled(
@@ -187,7 +184,6 @@ export default function DataSourcePanel({
   controls: { datasource: datasourceControl },
   actions,
   shouldForceUpdate,
-  user,
 }: Props) {
   const { columns: _columns, metrics } = datasource;
 
@@ -453,7 +449,6 @@ export default function DataSourcePanel({
         onHide={() => setShowSaveDatasetModal(false)}
         buttonTextOnSave={t('Save')}
         buttonTextOnOverwrite={t('Overwrite')}
-        user={user}
       />
       <Control {...datasourceControl} name="datasource" actions={actions} />
       {datasource.id != null && mainBody}
