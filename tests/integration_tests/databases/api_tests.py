@@ -2410,7 +2410,7 @@ class TestDatabaseApi(SupersetTestCase):
         uri = f"api/v1/database/{example_db.id}/validate_sql"
         rv = self.client.post(uri, json=request_payload)
         response = json.loads(rv.data.decode("utf-8"))
-        raise Exception(response + str(self.app.config["SQL_VALIDATORS_BY_ENGINE"]))
+        raise Exception(str(response) + str(self.app.config["SQL_VALIDATORS_BY_ENGINE"]))
         self.assertEqual(rv.status_code, 200)
         self.assertEqual(response["result"], [])
 
