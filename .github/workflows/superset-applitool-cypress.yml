@@ -1,11 +1,5 @@
 name: Applitools Cypress
 
-env:
-  APPLITOOLS_APP_NAME: Superset
-  APPLITOOLS_API_KEY: ${{ secrets.APPLITOOLS_API_KEY }}
-  APPLITOOLS_BATCH_ID: ${{ github.sha }}
-  APPLITOOLS_BATCH_NAME: Superset Cypress
-
 on: pull_request
 
 jobs:
@@ -98,6 +92,10 @@ jobs:
         if: steps.check.outcome == 'failure'
         uses: ./.github/actions/cached-dependencies
         env:
+          APPLITOOLS_APP_NAME: Superset
+          APPLITOOLS_API_KEY: ${{ secrets.APPLITOOLS_API_KEY }}
+          APPLITOOLS_BATCH_ID: ${{ github.sha }}
+          APPLITOOLS_BATCH_NAME: Superset Cypress
           CYPRESS_BROWSER: ${{ matrix.browser }}
         with:
           run: cypress-run-applitools
