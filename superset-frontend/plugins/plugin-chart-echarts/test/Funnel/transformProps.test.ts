@@ -16,7 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps, getNumberFormatter } from '@superset-ui/core';
+import {
+  ChartProps,
+  getNumberFormatter,
+  supersetTheme,
+} from '@superset-ui/core';
 import transformProps, {
   formatFunnelLabel,
 } from '../../src/Funnel/transformProps';
@@ -45,6 +49,7 @@ describe('Funnel transformProps', () => {
         ],
       },
     ],
+    theme: supersetTheme,
   });
 
   it('should transform chart props for viz', () => {

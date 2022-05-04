@@ -21,7 +21,7 @@ import React from 'react';
 import { mount, shallow } from 'enzyme';
 import mockConsole, { RestoreConsole } from 'jest-mock-console';
 
-import { ChartProps, promiseTimeout } from '@superset-ui/core';
+import { ChartProps, promiseTimeout, supersetTheme } from '@superset-ui/core';
 import SuperChartCore from '../../../src/chart/components/SuperChartCore';
 import {
   ChartKeys,
@@ -123,6 +123,7 @@ describe('SuperChartCore', () => {
     it('uses preTransformProps when specified', () => {
       const chartPropsWithPayload = new ChartProps({
         queriesData: [{ message: 'hulk' }],
+        theme: supersetTheme,
       });
       const wrapper = shallow(
         <SuperChartCore
