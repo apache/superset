@@ -71,7 +71,7 @@ export default styled.div`
       cursor: pointer;
     }
     td.dt-is-filter:hover {
-      background-color: ${theme.colors.secondary.light4} !important;
+      background-color: ${theme.colors.secondary.light4};
     }
     td.dt-is-active-filter,
     td.dt-is-active-filter:hover {

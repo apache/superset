@@ -33,6 +33,7 @@ import {
   ensureIsArray,
   GenericDataType,
   getTimeFormatterForGranularity,
+  styled,
   t,
   tn,
 } from '@superset-ui/core';
@@ -375,6 +376,19 @@ export default function TableChart<D extends DataRecord = DataRecord>(
               });
           }
 
+          const StyledCell = styled.td`
+            text-align: ${sharedStyle.textAlign};
+            background: ${backgroundColor ||
+            (valueRange
+              ? cellBar({
+                  value: value as number,
+                  valueRange,
+                  alignPositiveNegative,
+                  colorPositiveNegative,
+                })
+              : undefined)};
+          `;
+
           const cellProps = {
             // show raw number in title in case of numeric values
             title: typeof value === 'number' ? String(value) : undefined,
@@ -387,27 +401,14 @@ export default function TableChart<D extends DataRecord = DataRecord>(
               value == null ? 'dt-is-null' : '',
               isActiveFilterValue(key, value) ? ' dt-is-active-filter' : '',
             ].join(' '),
-            style: {
-              ...sharedStyle,
-              background:
-                backgroundColor ||
-                (valueRange
-                  ? cellBar({
-                      value: value as number,
-                      valueRange,
-                      alignPositiveNegative,
-                      colorPositiveNegative,
-                    })
-                  : undefined),
-            },
           };
           if (html) {
             // eslint-disable-next-line react/no-danger
-            return <td {...cellProps} dangerouslySetInnerHTML={html} />;
+            return <StyledCell {...cellProps} dangerouslySetInnerHTML={html} />;
           }
           // If cellProps renderes textContent already, then we don't have to
           // render `Cell`. This saves some time for large tables.
-          return <td {...cellProps}>{text}</td>;
+          return <StyledCell {...cellProps}>{text}</StyledCell>;
         },
         Header: ({ column: col, onClick, style }) => (
           <th
