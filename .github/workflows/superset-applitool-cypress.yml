@@ -41,10 +41,8 @@ jobs:
           submodules: recursive
       - name: Test
         env:
-          TEST_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TEST_SECRET: ${{ secrets.APPLITOOLS_API_KEY }}
         run: |
-          echo ${#TEST_GITHUB_TOKEN}
           echo ${#TEST_SECRET}
       - name: Check if python or frontend changes are present
         id: check
