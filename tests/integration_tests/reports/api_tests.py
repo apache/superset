@@ -508,7 +508,7 @@ class TestReportSchedulesApi(SupersetTestCase):
         rv = self.client.post(uri, json=report_schedule_data)
         assert rv.status_code == 422
         data = json.loads(rv.data.decode("utf-8"))
-        assert data == {"message": {"name": ["Name must be unique"]}}
+        assert data == {"message": {"name": ['An alert named "name3" already exists']}}
 
         # Check that uniqueness is composed by name and type
         report_schedule_data = {
@@ -1197,7 +1197,7 @@ class TestReportSchedulesApi(SupersetTestCase):
         rv = self.client.put(uri, json=report_schedule_data)
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 422
-        assert data == {"message": {"name": ["Name must be unique"]}}
+        assert data == {"message": {"name": ['An alert named "name3" already exists']}}
 
     @pytest.mark.usefixtures("create_report_schedules")
     def test_update_report_schedule_not_found(self):

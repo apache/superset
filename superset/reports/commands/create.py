@@ -73,7 +73,11 @@ class CreateReportScheduleCommand(CreateMixin, BaseReportScheduleCommand):
         if report_type and not ReportScheduleDAO.validate_update_uniqueness(
             name, report_type
         ):
-            exceptions.append(ReportScheduleNameUniquenessValidationError())
+            exceptions.append(
+                ReportScheduleNameUniquenessValidationError(
+                    report_type=report_type, name=name
+                )
+            )
 
         # validate relation by report type
         if report_type == ReportScheduleType.ALERT:
