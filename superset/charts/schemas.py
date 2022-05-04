@@ -199,7 +199,7 @@ class ChartPostSchema(Schema):
     datasource_id = fields.Integer(description=datasource_id_description, required=True)
     datasource_type = fields.String(
         description=datasource_type_description,
-        validate=validate.OneOf(choices=("druid", "table", "view")),
+        validate=validate.OneOf(choices=("druid", "table", "view", "query")),
         required=True,
     )
     datasource_name = fields.String(
@@ -245,7 +245,7 @@ class ChartPutSchema(Schema):
     )
     datasource_type = fields.String(
         description=datasource_type_description,
-        validate=validate.OneOf(choices=("druid", "table", "view")),
+        validate=validate.OneOf(choices=("druid", "table", "view", "query")),
         allow_none=True,
     )
     dashboards = fields.List(fields.Integer(description=dashboards_description))
@@ -984,7 +984,7 @@ class ChartDataDatasourceSchema(Schema):
     )
     type = fields.String(
         description="Datasource type",
-        validate=validate.OneOf(choices=("druid", "table")),
+        validate=validate.OneOf(choices=("druid", "table", "query")),
     )
 
 

@@ -42,6 +42,7 @@ from sqlalchemy.orm import backref, relationship
 from superset import security_manager
 from superset.models.helpers import (
     AuditMixinNullable,
+    ExploreMixin,
     ExtraJSONMixin,
     ImportExportMixin,
 )
@@ -51,13 +52,14 @@ from superset.sqllab.limiting_factor import LimitingFactor
 from superset.utils.core import QueryStatus, user_label
 
 
-class Query(Model, ExtraJSONMixin):
+class Query(Model, ExtraJSONMixin, ExploreMixin):
     """ORM model for SQL query
 
     Now that SQL Lab support multi-statement execution, an entry in this
     table may represent multiple SQL statements executed sequentially"""
 
     __tablename__ = "query"
+    type = "query"
     id = Column(Integer, primary_key=True)
     client_id = Column(String(11), unique=True, nullable=False)
 

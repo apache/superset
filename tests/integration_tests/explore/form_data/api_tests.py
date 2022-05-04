@@ -26,8 +26,10 @@ from superset.datasets.commands.exceptions import DatasetAccessDeniedError
 from superset.explore.form_data.commands.state import TemporaryExploreState
 from superset.extensions import cache_manager
 from superset.models.slice import Slice
+from superset.models.sql_lab import Query
 from tests.integration_tests.base_tests import login
 from tests.integration_tests.fixtures.client import client
+from tests.integration_tests.fixtures.query import get_query_datasource
 from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices,
     load_world_bank_data,
@@ -67,6 +69,14 @@ def dataset_id() -> int:
         return dataset.id
 
 
+@pytest.fixture
+def query_id() -> int:
+    with app.app_context() as ctx:
+        session: Session = ctx.app.appbuilder.get_session
+        query = session.query(Query).filter_by(tab_name="students").first()
+        return query.id
+
+
 @pytest.fixture(autouse=True)
 def cache(chart_id, admin_id, dataset_id):
     entry: TemporaryExploreState = {
@@ -86,6 +96,30 @@ def test_post(client, chart_id: int, dataset_id: int):
         "form_data": INITIAL_FORM_DATA,
     }
     resp = client.post("api/v1/explore/form_data", json=payload)
+    assert resp.status_code == 201
+
+
+@pytest.mark.usefixtures("get_query_datasource")
+def test_post_with_query(client, chart_id: int, query_id: int):
+    login(client, "admin")
+    form_data = {
+        "adhoc_filters": [],
+        "viz_type": "sankey",
+        "groupby": ["target"],
+        "metric": "sum__value",
+        "row_limit": 5000,
+        "slice_id": chart_id,
+        "time_range_endpoints": ["inclusive", "exclusive"],
+        "datasource": f"{query_id}__query",
+    }
+    payload = {
+        "datasource_id": query_id,
+        "chart_id": chart_id,
+        "form_data": json.dumps(form_data),
+        "datasource_type": "query",
+    }
+    resp = client.post("api/v1/explore/form_data", json=payload)
+    print(resp.data)
     assert resp.status_code == 201
 
 

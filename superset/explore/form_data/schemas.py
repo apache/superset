@@ -18,12 +18,15 @@ from marshmallow import fields, Schema
 
 
 class FormDataPostSchema(Schema):
-    dataset_id = fields.Integer(
-        required=True, allow_none=False, description="The dataset ID"
-    )
     chart_id = fields.Integer(required=False, description="The chart ID")
     form_data = fields.String(
         required=True, allow_none=False, description="Any type of JSON supported text."
+    )
+    datasource_id = fields.Integer(
+        required=True, allow_none=False, description="Datasource Id."
+    )
+    datasource_type = fields.String(
+        required=True, allow_none=False, description="Datasource type."
     )
 
 

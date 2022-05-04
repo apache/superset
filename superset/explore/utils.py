@@ -17,8 +17,9 @@
 from typing import Optional
 
 from flask_appbuilder.security.sqla.models import User
+from sqlalchemy.sql.sqltypes import String
 
-from superset import security_manager
+from superset import ConnectorRegistry, db, security_manager
 from superset.charts.commands.exceptions import (
     ChartAccessDeniedError,
     ChartNotFoundError,
@@ -33,9 +34,13 @@ from superset.views.base import is_user_admin
 from superset.views.utils import is_owner
 
 
-def check_dataset_access(dataset_id: int) -> Optional[bool]:
-    if dataset_id:
-        dataset = DatasetDAO.find_by_id(dataset_id)
+def check_dataset_access(datasource_id: int, datasource_type: str) -> Optional[bool]:
+    if datasource_id:
+        dataset = ConnectorRegistry.get_datasource(
+            datasource_type=datasource_type,
+            datasource_id=datasource_id,
+            session=db.session,
+        )
         if dataset:
             can_access_datasource = security_manager.can_access_datasource(dataset)
             if can_access_datasource:
@@ -45,9 +50,9 @@ def check_dataset_access(dataset_id: int) -> Optional[bool]:
 
 
 def check_access(
-    dataset_id: int, chart_id: Optional[int], actor: User
+    datasource_id: int, chart_id: Optional[int], actor: User, datasource_type: str
 ) -> Optional[bool]:
-    check_dataset_access(dataset_id)
+    check_dataset_access(datasource_id, datasource_type)
     if not chart_id:
         return True
     chart = ChartDAO.find_by_id(chart_id)

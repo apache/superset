@@ -24,3 +24,4 @@ class TemporaryExploreState(TypedDict):
     dataset_id: int
     chart_id: Optional[int]
     form_data: str
+    datasource_type: str
