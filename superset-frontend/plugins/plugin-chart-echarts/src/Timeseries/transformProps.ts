@@ -370,8 +370,7 @@ export default function transformProps(
       appendToBody: true,
       trigger: richTooltip ? 'axis' : 'item',
       formatter: (params: any) => {
-        const xIndex = isHorizontal ? 1 : 0;
-        const yIndex = isHorizontal ? 0 : 1;
+        const [xIndex, yIndex] = isHorizontal ? [1, 0] : [0, 1];
         const xValue: number = richTooltip
           ? params[0].value[xIndex]
           : params.value[xIndex];
