@@ -17,7 +17,7 @@
  * under the License.
  */
 /* eslint camelcase: 0 */
-import { SupersetClient, t } from '@superset-ui/core';
+import { t, SupersetClient } from '@superset-ui/core';
 import rison from 'rison';
 import {
   addDangerToast,
@@ -25,7 +25,6 @@ import {
 } from 'src/components/MessageToasts/actions';
 
 export const SET_REPORT = 'SET_REPORT';
-
 export function setReport(report) {
   return { type: SET_REPORT, report };
 }
@@ -57,7 +56,7 @@ export function fetchUISpecificReport(
   });
   return function fetchUISpecificReportThunk(dispatch) {
     return SupersetClient.get({
-      endpoint: `${process.env.APP_PREFIX}/api/v1/report/?q=${queryParams}`,
+      endpoint: `/api/v1/report/?q=${queryParams}`,
     })
       .then(({ json }) => {
         dispatch(setReport(json));
@@ -103,7 +102,7 @@ export const ADD_REPORT = 'ADD_REPORT';
 
 export const addReport = report => dispatch =>
   SupersetClient.post({
-    endpoint: `${process.env.APP_PREFIX}/api/v1/report/`,
+    endpoint: `/api/v1/report/`,
     jsonPayload: report,
   }).then(({ json }) => {
     dispatch({ type: ADD_REPORT, json });
@@ -112,29 +111,19 @@ export const addReport = report => dispatch =>
 
 export const EDIT_REPORT = 'EDIT_REPORT';
 
-export function editReport(id, report) {
-  return function (dispatch) {
-    SupersetClient.put({
-      endpoint: `${process.env.APP_PREFIX}/api/v1/report/${id}`,
-      jsonPayload: report,
-    })
-      .then(({ json }) => {
-        dispatch({ type: EDIT_REPORT, json });
-      })
-      .catch(() =>
-        dispatch(
-          addDangerToast(t('An error occurred while editing this report.')),
-        ),
-      );
-  };
-}
+export const editReport = (id, report) => dispatch =>
+  SupersetClient.put({
+    endpoint: `/api/v1/report/${id}`,
+    jsonPayload: report,
+  }).then(({ json }) => {
+    dispatch({ type: EDIT_REPORT, json });
+    dispatch(addSuccessToast(t('Report updated')));
+  });
 
 export function toggleActive(report, isActive) {
   return function toggleActiveThunk(dispatch) {
     return SupersetClient.put({
-      endpoint: encodeURI(
-        `${process.env.APP_PREFIX}/api/v1/report/${report.id}`,
-      ),
+      endpoint: encodeURI(`/api/v1/report/${report.id}`),
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         active: isActive,
@@ -156,9 +145,7 @@ export function toggleActive(report, isActive) {
 export function deleteActiveReport(report) {
   return function deleteActiveReportThunk(dispatch) {
     return SupersetClient.delete({
-      endpoint: encodeURI(
-        `${process.env.APP_PREFIX}/api/v1/report/${report.id}`,
-      ),
+      endpoint: encodeURI(`/api/v1/report/${report.id}`),
     })
       .catch(() => {
         dispatch(addDangerToast(t('Your report could not be deleted')));
