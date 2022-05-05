@@ -107,6 +107,7 @@ const DatasetModal: FunctionComponent<DatasetModalProps> = ({
         onDatasetAdd({ id: response.id, ...response });
       }
       addSuccessToast(t('The dataset has been saved'));
+      window.location.href = `/superset/explore/table/${response}`;
       hide();
     });
   };
@@ -116,7 +117,7 @@ const DatasetModal: FunctionComponent<DatasetModalProps> = ({
       disablePrimaryButton={disableSave}
       onHandledPrimaryAction={onSave}
       onHide={hide}
-      primaryButtonName={t('Add')}
+      primaryButtonName={t('Add Dataset and Create Chart')}
       show={show}
       title={t('Add dataset')}
     >
