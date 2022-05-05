@@ -26,7 +26,7 @@ import { URL_PARAMS } from 'src/constants';
 import { getFilterValue } from 'src/dashboard/components/nativeFilters/FilterBar/keyValue';
 
 export type URLShortLinkButtonProps = {
-  dashboardId?: number;
+  dashboardId: number;
   anchorLinkId?: string;
   emailSubject?: string;
   emailContent?: string;
@@ -36,27 +36,25 @@ export type URLShortLinkButtonProps = {
 export default function URLShortLinkButton({
   dashboardId,
   anchorLinkId,
+  placement = 'right',
   emailContent = '',
   emailSubject = '',
-  placement = 'left',
 }: URLShortLinkButtonProps) {
   const [shortUrl, setShortUrl] = useState('');
   const { addDangerToast } = useToasts();
 
   const getCopyUrl = async () => {
-    if (dashboardId) {
-      const nativeFiltersKey = getUrlParam(URL_PARAMS.nativeFiltersKey);
-      try {
-        const filterState = await getFilterValue(dashboardId, nativeFiltersKey);
-        const url = await getDashboardPermalink({
-          dashboardId,
-          filterState,
-          hash: anchorLinkId,
-        });
-        setShortUrl(url);
-      } catch (error) {
-        addDangerToast(error);
-      }
+    const nativeFiltersKey = getUrlParam(URL_PARAMS.nativeFiltersKey);
+    try {
+      const filterState = await getFilterValue(dashboardId, nativeFiltersKey);
+      const url = await getDashboardPermalink({
+        dashboardId,
+        filterState,
+        hash: anchorLinkId,
+      });
+      setShortUrl(url);
+    } catch (error) {
+      addDangerToast(error);
     }
   };
 
