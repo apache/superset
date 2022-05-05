@@ -19,6 +19,7 @@ from flask import current_app, Flask
 from werkzeug.local import LocalProxy
 
 from superset.app import create_app
+from superset.datasourcedao.datasource import DatasourceDAO
 from superset.extensions import (
     appbuilder,
     cache_manager,

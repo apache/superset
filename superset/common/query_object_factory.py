@@ -21,13 +21,12 @@ from typing import Any, Dict, Optional, Tuple, TYPE_CHECKING
 
 from superset.common.chart_data import ChartDataResultType
 from superset.common.query_object import QueryObject
-from superset.dao.datasource import DatasourceDAO
 from superset.utils.core import apply_max_row_limit, DatasourceDict
 from superset.utils.date_parser import get_since_until
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import sessionmaker
-
+    from superset import DatasourceDAO
     from superset.connectors.base.models import BaseDatasource
 
 

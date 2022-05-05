@@ -62,7 +62,7 @@ from sqlalchemy.orm.query import Query as SqlaQuery
 
 from superset import sql_parse
 
-from superset.dao.datasource import DatasourceDAO
+from superset.datasourcedao.datasource import DatasourceDAO
 from superset.constants import RouteMethod
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException

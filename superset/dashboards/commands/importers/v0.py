@@ -24,10 +24,9 @@ from typing import Any, Dict, Optional
 from flask_babel import lazy_gettext as _
 from sqlalchemy.orm import make_transient, Session
 
-from superset import db
+from superset import DatasourceDAO, db
 from superset.commands.base import BaseCommand
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
-from superset.dao.datasource import DatasourceDAO
 from superset.datasets.commands.importers.v0 import import_dataset
 from superset.exceptions import DashboardImportException
 from superset.models.dashboard import Dashboard
