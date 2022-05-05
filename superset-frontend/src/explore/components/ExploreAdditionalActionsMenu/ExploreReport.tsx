@@ -24,7 +24,6 @@ import ReportModal from 'src/components/ReportModal';
 import { ExplorePageState } from 'src/explore/reducers/getInitialState';
 import DeleteModal from 'src/components/DeleteModal';
 import { deleteActiveReport } from 'src/reports/actions/reports';
-import { ChartState } from 'src/explore/types';
 
 type ReportMenuItemsProps = {
   report: Record<string, any>;
@@ -41,16 +40,11 @@ export const ExploreReport = ({
   setIsDeleting,
 }: ReportMenuItemsProps) => {
   const dispatch = useDispatch();
-  const chart = useSelector<ExplorePageState, ChartState | undefined>(state => {
-    if (!state.charts) {
-      return undefined;
-    }
-    const charts = Object.values(state.charts);
-    if (charts.length > 0) {
-      return charts[0];
-    }
-    return undefined;
-  });
+  const { chart, chartName } = useSelector((state: ExplorePageState) => ({
+    chart: Object.values(state.charts || {})[0],
+    chartName: state.explore.sliceName,
+  }));
+
   const { userId, email } = useSelector<
     ExplorePageState,
     { userId?: number; email?: string }
@@ -69,6 +63,7 @@ export const ExploreReport = ({
         userId={userId}
         userEmail={email}
         chart={chart}
+        chartName={chartName}
         creationMethod="charts"
       />
       {isDeleting && (
