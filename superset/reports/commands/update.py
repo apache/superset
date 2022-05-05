@@ -86,9 +86,13 @@ class UpdateReportScheduleCommand(UpdateMixin, BaseReportScheduleCommand):
 
         # Validate name type uniqueness
         if not ReportScheduleDAO.validate_update_uniqueness(
-            name, report_type, report_schedule_id=self._model_id
+            name, report_type, expect_id=self._model_id
         ):
-            exceptions.append(ReportScheduleNameUniquenessValidationError())
+            exceptions.append(
+                ReportScheduleNameUniquenessValidationError(
+                    report_type=report_type, name=name
+                )
+            )
 
         if report_type == ReportScheduleType.ALERT:
             database_id = self._properties.get("database")
