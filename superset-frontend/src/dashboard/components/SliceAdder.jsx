@@ -35,10 +35,10 @@ import {
 } from 'src/dashboard/util/constants';
 import { slicePropShape } from 'src/dashboard/util/propShapes';
 import { FILTER_BOX_MIGRATION_STATES } from 'src/explore/constants';
+import _ from 'lodash';
 import AddSliceCard from './AddSliceCard';
 import AddSliceDragPreview from './dnd/AddSliceDragPreview';
 import DragDroppable from './dnd/DragDroppable';
-import _ from 'lodash';
 
 const propTypes = {
   fetchAllSlices: PropTypes.func.isRequired,
@@ -162,7 +162,7 @@ class SliceAdder extends React.Component {
     }
   }
 
-  handleChange = _.debounce((value) => {
+  handleChange = _.debounce(value => {
     this.searchUpdated(value);
 
     const { userId, filterboxMigrationState } = this.props;
@@ -172,7 +172,7 @@ class SliceAdder extends React.Component {
         filterboxMigrationState !== FILTER_BOX_MIGRATION_STATES.SNOOZED,
       value,
     );
-  }, 300)
+  }, 300);
 
   searchUpdated(searchTerm) {
     this.setState(prevState => ({
@@ -260,7 +260,7 @@ class SliceAdder extends React.Component {
           <Input
             placeholder={t('Filter your charts')}
             className="search-input"
-            onChange={(ev) => this.handleChange(ev.target.value)}
+            onChange={ev => this.handleChange(ev.target.value)}
             onKeyPress={this.handleKeyPress}
             data-test="dashboard-charts-filter-search-input"
           />
