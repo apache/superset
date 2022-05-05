@@ -29,15 +29,15 @@ export type ClientErrorObject = {
   error: string;
   errors?: SupersetError[];
   link?: string;
-  // marshmallow field validation returns the error mssage in the format
-  // of { field: [msg1, msg2] }
   message?: string;
   severity?: string;
   stacktrace?: string;
   statusText?: string;
 } & Partial<SupersetClientResponse>;
 
-interface ResponseWithTimeout extends Response {
+// see rejectAfterTimeout.ts
+interface TimeoutError {
+  statusText: 'timeout';
   timeout: number;
 }
 
@@ -48,7 +48,13 @@ export function parseErrorJson(responseObject: JsonObject): ClientErrorObject {
     error.error = error.description = error.errors[0].message;
     error.link = error.errors[0]?.extra?.link;
   }
-
+  // Marshmallow field validation returns the error mssage in the format
+  // of { message: { field1: [msg1, msg2], field2: [msg], } }
+  if (error.message && typeof error.message === 'object' && !error.error) {
+    error.error =
+      Object.values(error.message as Record<string, string[]>)[0]?.[0] ||
+      t('Invalid input');
+  }
   if (error.stack) {
     error = {
       ...error,
@@ -68,78 +74,95 @@ export function parseErrorJson(responseObject: JsonObject): ClientErrorObject {
 }
 
 export function getClientErrorObject(
-  response: SupersetClientResponse | ResponseWithTimeout | string,
+  response:
+    | SupersetClientResponse
+    | TimeoutError
+    | { response: Response }
+    | string,
 ): Promise<ClientErrorObject> {
   // takes a SupersetClientResponse as input, attempts to read response as Json if possible,
   // and returns a Promise that resolves to a plain object with error key and text value.
   return new Promise(resolve => {
     if (typeof response === 'string') {
       resolve({ error: response });
-    } else {
-      const responseObject =
-        response instanceof Response ? response : response.response;
-      if (responseObject && !responseObject.bodyUsed) {
-        // attempt to read the body as json, and fallback to text. we must clone the
-        // response in order to fallback to .text() because Response is single-read
-        responseObject
-          .clone()
-          .json()
-          .then(errorJson => {
-            const error = { ...responseObject, ...errorJson };
-            resolve(parseErrorJson(error));
-          })
-          .catch(() => {
-            // fall back to reading as text
-            responseObject.text().then((errorText: any) => {
-              resolve({ ...responseObject, error: errorText });
-            });
-          });
-      } else if (
-        'statusText' in response &&
-        response.statusText === 'timeout' &&
-        'timeout' in response
-      ) {
-        resolve({
-          ...responseObject,
-          error: 'Request timed out',
-          errors: [
-            {
-              error_type: ErrorTypeEnum.FRONTEND_TIMEOUT_ERROR,
-              extra: {
-                timeout: response.timeout / 1000,
-                issue_codes: [
-                  {
-                    code: 1000,
-                    message: t(
-                      'Issue 1000 - The dataset is too large to query.',
-                    ),
-                  },
-                  {
-                    code: 1001,
-                    message: t(
-                      'Issue 1001 - The database is under an unusual load.',
-                    ),
-                  },
-                ],
-              },
-              level: 'error',
-              message: 'Request timed out',
-            },
-          ],
-        });
-      } else {
-        // fall back to Response.statusText or generic error of we cannot read the response
-        let error = (response as any).statusText || (response as any).message;
-        if (!error) {
-          // eslint-disable-next-line no-console
-          console.error('non-standard error:', response);
-          error = t('An error occurred');
-        }
-        resolve({
-          ...responseObject,
-          error,
-        });
-      }
+      return;
     }
+
+    if (
+      response instanceof TypeError &&
+      response.message === 'Failed to fetch'
+    ) {
+      resolve({
+        error: t('Network error'),
+      });
+      return;
+    }
+
+    if (
+      'timeout' in response &&
+      'statusText' in response &&
+      response.statusText === 'timeout'
+    ) {
+      resolve({
+        ...response,
+        error: t('Request timed out'),
+        errors: [
+          {
+            error_type: ErrorTypeEnum.FRONTEND_TIMEOUT_ERROR,
+            extra: {
+              timeout: response.timeout / 1000,
+              issue_codes: [
+                {
+                  code: 1000,
+                  message: t('Issue 1000 - The dataset is too large to query.'),
+                },
+                {
+                  code: 1001,
+                  message: t(
+                    'Issue 1001 - The database is under an unusual load.',
+                  ),
+                },
+              ],
+            },
+            level: 'error',
+            message: 'Request timed out',
+          },
+        ],
+      });
+      return;
+    }
+
+    const responseObject =
+      response instanceof Response ? response : response.response;
+    if (responseObject && !responseObject.bodyUsed) {
+      // attempt to read the body as json, and fallback to text. we must clone the
+      // response in order to fallback to .text() because Response is single-read
+      responseObject
+        .clone()
+        .json()
+        .then(errorJson => {
+          const error = { ...responseObject, ...errorJson };
+          resolve(parseErrorJson(error));
+        })
+        .catch(() => {
+          // fall back to reading as text
+          responseObject.text().then((errorText: any) => {
+            resolve({ ...responseObject, error: errorText });
+          });
+        });
+      return;
+    }
+
+    // fall back to Response.statusText or generic error of we cannot read the response
+    let error = (response as any).statusText || (response as any).message;
+    if (!error) {
+      // eslint-disable-next-line no-console
+      console.error('non-standard error:', response);
+      error = t('An error occurred');
+    }
+    resolve({
+      ...responseObject,
+      error,
+    });
   });
 }
