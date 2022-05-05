@@ -147,15 +147,18 @@ export default class AlteredSliceTag extends React.Component {
     if (controlsMap[key]?.type === 'CollectionControl') {
       return value.map(v => safeStringify(v)).join(', ');
     }
-    if (controlsMap[key]?.type === 'MetricsControl' && value.constructor === Array) {
-      const formattedValue = value.map(v => (v?.label ?? v));
+    if (
+      controlsMap[key]?.type === 'MetricsControl' &&
+      value.constructor === Array
+    ) {
+      const formattedValue = value.map(v => v?.label ?? v);
       return formattedValue.length ? formattedValue.join(', ') : '[]';
     }
     if (typeof value === 'boolean') {
       return value ? 'true' : 'false';
     }
     if (value.constructor === Array) {
-      const formattedValue = value.map(v => (v?.label ?? v));
+      const formattedValue = value.map(v => v?.label ?? v);
       return formattedValue.length ? formattedValue.join(', ') : '[]';
     }
     if (typeof value === 'string' || typeof value === 'number') {
