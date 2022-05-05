@@ -25,7 +25,7 @@ export default {
 };
 
 export const InteractiveAnchorLink = (args: any) => (
-  <AnchorLink anchorLinkId="link" {...args} />
+  <AnchorLink id="link" {...args} />
 );
 
 const PLACEMENTS = ['right', 'left', 'top', 'bottom'];
