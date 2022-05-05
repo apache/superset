@@ -50,7 +50,7 @@ export function parseErrorJson(responseObject: JsonObject): ClientErrorObject {
   }
   // Marshmallow field validation returns the error mssage in the format
   // of { message: { field1: [msg1, msg2], field2: [msg], } }
-  if (typeof error.message === 'object' && !error.error) {
+  if (error.message && typeof error.message === 'object' && !error.error) {
     error.error =
       Object.values(error.message as Record<string, string[]>)[0]?.[0] ||
       t('Invalid input');

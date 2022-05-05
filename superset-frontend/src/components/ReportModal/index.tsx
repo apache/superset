@@ -38,7 +38,7 @@ import { CronError } from 'src/components/CronPicker';
 import { RadioChangeEvent } from 'src/components';
 import { ChartState } from 'src/explore/types';
 import {
-  ReportCreationMethodType,
+  ReportCreationMethod,
   ReportRecipientType,
   ReportScheduleType,
 } from 'src/reports/types';
@@ -94,7 +94,7 @@ interface ReportProps {
   chartName?: string;
   dashboardId?: number;
   dashboardName?: string;
-  creationMethod: ReportCreationMethodType;
+  creationMethod: ReportCreationMethod;
 }
 
 const TEXT_BASED_VISUALIZATION_TYPES = [
