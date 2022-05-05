@@ -16,20 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  ChartProps,
-  TimeseriesDataRecord,
-  QueryFormData,
-} from '@superset-ui/core';
+import { TimeseriesDataRecord, QueryFormData } from '@superset-ui/core';
+import { AAGUserIDChartProps } from '../types';
 
 export type AAGUserIDFormData = QueryFormData & {
   ipDashboardId?: string;
   ipDashBoardBaseUrl?: string;
   ipDashboardFilterId?: string;
-};
-
-export type AAGUserIDChartProps = ChartProps & {
-  formData: any;
 };
 
 export default function transformProps(chartProps: AAGUserIDChartProps) {
@@ -72,6 +65,7 @@ export default function transformProps(chartProps: AAGUserIDChartProps) {
     ipDashBoardBaseUrl,
   } = formData;
   const data = queriesData[0].data as TimeseriesDataRecord[];
+  const agGridLicenseKey = queriesData[0].agGridLicenseKey as String;
   const { setDataMask = () => {} } = hooks;
   return {
     setDataMask,
@@ -86,5 +80,6 @@ export default function transformProps(chartProps: AAGUserIDChartProps) {
     ipDashboardFilterId,
     ipDashBoardBaseUrl,
     formData,
+    agGridLicenseKey,
   };
 }
