@@ -32,6 +32,8 @@ Cypress.on('uncaught:exception', err => {
 });
 /* eslint-enable consistent-return */
 
+require('cy-verify-downloads').addCustomCommand();
+
 Cypress.Commands.add('login', () => {
   cy.request({
     method: 'POST',
