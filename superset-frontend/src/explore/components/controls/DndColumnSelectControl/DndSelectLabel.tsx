@@ -43,11 +43,17 @@ export type DndSelectLabelProps = {
   valuesRenderer: () => ReactNode;
   displayGhostButton?: boolean;
   onClickGhostButton?: () => void;
+  /**
+   * Adds a select all button next to the header, allowing the user to 
+   * select all options in one click. Can only be a SelectAllButton or null.  
+   */
+  selectAllButton?: ReactNode;
 };
 
 export default function DndSelectLabel({
   displayGhostButton = true,
   accept,
+  selectAllButton = null,
   ...props
 }: DndSelectLabelProps) {
   const theme = useTheme();
@@ -86,6 +92,7 @@ export default function DndSelectLabel({
     <div ref={datasourcePanelDrop}>
       <HeaderContainer>
         <ControlHeader {...props} />
+        {selectAllButton}
       </HeaderContainer>
       <DndLabelsContainer
         data-test="dnd-labels-container"

@@ -43,6 +43,7 @@ import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { SLOW_DEBOUNCE } from 'src/constants';
 import { rankedSearchCompare } from 'src/utils/rankedSearchCompare';
 import { getValue, hasOption, isLabeledValue } from './utils';
+import { HeaderContainer } from 'src/explore/components/controls/OptionControls';
 
 const { Option } = AntdSelect;
 
@@ -162,6 +163,12 @@ export interface SelectProps extends PickedSelectProps {
    * Will not apply to predefined `options` array when users are not searching.
    */
   sortComparator?: typeof DEFAULT_SORT_COMPARATOR;
+  /**
+   * Adds a select all button next to the header, allowing the user to 
+   * select all options in one click. Can be any ReactNode. 
+   * Only to be used when isSingleMode is false 
+   */
+  selectAllButton?: ReactNode;
 }
 
 const StyledContainer = styled.div`
@@ -309,6 +316,7 @@ const Select = (
     options,
     pageSize = DEFAULT_PAGE_SIZE,
     placeholder = t('Select ...'),
+    selectAllButton = null,
     showSearch = true,
     sortComparator = DEFAULT_SORT_COMPARATOR,
     tokenSeparators,
@@ -677,10 +685,13 @@ const Select = (
       setIsLoading(loading);
     }
   }, [isLoading, loading]);
-
+  
   return (
     <StyledContainer>
-      {header}
+      <HeaderContainer>
+        {header} 
+        {selectAllButton}
+      </HeaderContainer>
       <StyledSelect
         allowClear={!isLoading && allowClear}
         aria-label={ariaLabel || name}

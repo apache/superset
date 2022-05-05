@@ -34,10 +34,13 @@ import { DndItemType } from 'src/explore/components/DndItemType';
 import { useComponentDidUpdate } from 'src/hooks/useComponentDidUpdate';
 import ColumnSelectPopoverTrigger from './ColumnSelectPopoverTrigger';
 import { DndControlProps } from './types';
+import { SelectAllButton } from 'src/explore/components/SelectAllButton';
+import { valueEventAriaMessage } from 'react-select/src/accessibility';
 
 export type DndColumnSelectProps = DndControlProps<QueryFormColumn> & {
   options: Record<string, ColumnMeta>;
   isTemporal?: boolean;
+  showSelectAllButton?: boolean;
 };
 
 export function DndColumnSelect(props: DndColumnSelectProps) {
@@ -51,6 +54,7 @@ export function DndColumnSelect(props: DndColumnSelectProps) {
     name,
     label,
     isTemporal,
+    showSelectAllButton = false,
   } = props;
   const [newColumnPopoverVisible, setNewColumnPopoverVisible] = useState(false);
 
@@ -214,6 +218,44 @@ export function DndColumnSelect(props: DndColumnSelectProps) {
         multi ? 2 : 1,
       )
     : tn('Drop column here', 'Drop columns here', multi ? 2 : 1);
+  
+  const getSelectAllMode = () => {
+    /**
+     * Determines what the current select all mode is. 
+     * If ANY options are currently selected, then the select all mode is false. Otherwise it is true.
+     * Since there is no clear filter in the drag and drop select, select all mode is only true when
+     * the list of selected values is empty 
+     */
+    return(isEmpty(value));
+  }
+
+  const isSelectAllMode = (mode: boolean) => {
+    /**
+     * Checks if the current select all mode is equal to the mode parameter.
+     * select all mode is a boolean.
+     */
+    
+    return(getSelectAllMode() === mode);
+  };
+
+  const onSelectAll = useCallback(() => {
+    /**
+     * callback for select all button. 
+     * When select all mode is true, add all options to the selected values
+     * When select all mode is false, empty selected values (deselect all)
+     */
+    if(isSelectAllMode(true)) {
+      onChange(Object.keys(options));
+    } else {
+      onChange([]);
+    }
+  }, [onChange, optionSelector]);
+  
+  const selectAllButtonProps = {
+    onSelectAll: onSelectAll,
+    selectMode: getSelectAllMode,
+    deselectEnabled: true,
+  }
 
   return (
     <div>
@@ -229,6 +271,7 @@ export function DndColumnSelect(props: DndColumnSelectProps) {
             ? openPopover
             : undefined
         }
+        selectAllButton={showSelectAllButton ? <SelectAllButton {...selectAllButtonProps} /> : null}
         {...props}
       />
       <ColumnSelectPopoverTrigger

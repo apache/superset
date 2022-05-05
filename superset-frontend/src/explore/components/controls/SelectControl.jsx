@@ -21,6 +21,7 @@ import PropTypes from 'prop-types';
 import { css, isEqualArray, t } from '@superset-ui/core';
 import Select from 'src/components/Select/Select';
 import ControlHeader from 'src/explore/components/ControlHeader';
+import { SelectAllButton } from '../SelectAllButton';
 
 const propTypes = {
   ariaLabel: PropTypes.string,
@@ -47,6 +48,7 @@ const propTypes = {
     PropTypes.array,
   ]),
   showHeader: PropTypes.bool,
+  showSelectAllButton: PropTypes.bool,
   optionRenderer: PropTypes.func,
   valueKey: PropTypes.string,
   options: PropTypes.array,
@@ -80,6 +82,7 @@ const defaultProps = {
   onChange: () => {},
   onFocus: () => {},
   showHeader: true,
+  showSelectAllButton: false,
   valueKey: 'value',
 };
 
@@ -91,6 +94,7 @@ export default class SelectControl extends React.PureComponent {
     };
     this.onChange = this.onChange.bind(this);
     this.handleFilterOptions = this.handleFilterOptions.bind(this);
+    this.handleSelectAll = this.handleSelectAll.bind(this);
   }
 
   UNSAFE_componentWillReceiveProps(nextProps) {
@@ -160,6 +164,17 @@ export default class SelectControl extends React.PureComponent {
     return filterOption({ data: option }, text);
   }
 
+  handleSelectAll() {
+    /**
+     * Function to handle select all button.
+     * Adds all options to the selected values.
+     */
+    const { valueKey } = this.props;
+    let onChangeVal = this.state.options
+                        .map(v => v?.[valueKey] || v);
+    this.props.onChange(onChangeVal, []);
+  }
+
   render() {
     const {
       ariaLabel,
@@ -177,6 +192,7 @@ export default class SelectControl extends React.PureComponent {
       onFocus,
       optionRenderer,
       showHeader,
+      showSelectAllButton,
       value,
       tokenSeparators,
       // ControlHeader props
@@ -205,6 +221,21 @@ export default class SelectControl extends React.PureComponent {
       tooltipOnClick,
       warning,
       danger,
+    };
+    
+    const getSelectAllMode = () => {
+      /**
+       * Determines what the current select all mode is. 
+       * If all options are currently selected, then the select all mode is false. Otherwise it is true
+       */
+      const currentValue = value;
+      return (currentValue === null ? undefined : value.length !== this.props.options.length);
+    };
+
+    const selectAllButtonProps = {
+      onSelectAll: this.handleSelectAll,
+      selectMode: getSelectAllMode,
+      deselectEnabled: false
     };
 
     const getValue = () => {
@@ -242,6 +273,7 @@ export default class SelectControl extends React.PureComponent {
       optionRenderer,
       options: this.state.options,
       placeholder,
+      selectAllButton: showSelectAllButton && <SelectAllButton {...selectAllButtonProps} />,
       sortComparator: this.props.sortComparator,
       value: getValue(),
       tokenSeparators,
