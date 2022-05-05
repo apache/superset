@@ -68,23 +68,26 @@ export default function makeApi<
   Payload = SupersetPayload,
   Result = JsonObject,
   T extends ParseMethod = ParseMethod,
->({
-  endpoint,
-  method,
-  requestType: requestType_,
-  responseType,
-  processResponse,
-  ...requestOptions
-}: SupersetApiFactoryOptions & {
-  /**
-   * How to parse response, choose from: 'json' | 'text' | 'raw'.
-   */
-  responseType?: T;
-  /**
-   * Further process parsed response
-   */
-  processResponse?(result: ParsedResponseType<T>): Result;
-}) {
+>(
+  options: SupersetApiFactoryOptions & {
+    /**
+     * How to parse response, choose from: 'json' | 'text' | 'raw'.
+     */
+    responseType?: T;
+    /**
+     * Further process parsed response
+     */
+    processResponse?(result: ParsedResponseType<T>): Result;
+  },
+) {
+  const {
+    endpoint,
+    method,
+    requestType: requestType_,
+    responseType,
+    processResponse,
+    ...requestOptions
+  } = options;
   // use `search` payload (searchParams) when it's a GET request
   const requestType =
     requestType_ || (isPayloadless(method) ? 'search' : 'json');
@@ -140,6 +143,11 @@ export default function makeApi<
         processResponse ? processResponse(typedResult) : typedResult
       ) as Result;
     } catch (error) {
+      console.error('request failed, todo remove this log', {
+        options,
+        payload,
+        error,
+      });
       return handleError(error as ErrorInput);
     }
   }
