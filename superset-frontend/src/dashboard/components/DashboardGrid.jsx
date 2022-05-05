@@ -167,7 +167,11 @@ class DashboardGrid extends React.PureComponent {
           </>
         }
         buttonAction={() => {
-          window.open('/chart/add', '_blank', 'noopener noreferrer');
+          window.open(
+            `/chart/add?dashboardTitle:${this.props.dashboardTitle}`,
+            '_blank',
+            'noopener noreferrer',
+          );
         }}
         image="chart.svg"
       />
@@ -186,7 +190,11 @@ class DashboardGrid extends React.PureComponent {
           </>
         }
         buttonAction={() => {
-          window.open('/chart/add', '_blank', 'noopener noreferrer');
+          window.open(
+            `/chart/add?${this.props.dashboardTitle}`,
+            '_blank',
+            'noopener noreferrer',
+          );
         }}
         image="chart.svg"
       />
