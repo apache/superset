@@ -126,7 +126,7 @@ Join our growing community!
 
 ### Energy
 - [Airboxlab](https://foobot.io) [@antoine-galataud]
-- [DouroECI](http://douroeci.com/en/) [@nunohelibeires]
+- [DouroECI](https://www.douroeci.com/) [@nunohelibeires]
 - [Safaricom](https://www.safaricom.co.ke/) [@mmutiso]
 - [Scoot](https://scoot.co/) [@haaspt]
 

@@ -1997,61 +1997,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         return Response(status=200)
 
     @has_access
-    @expose("/sync_druid/", methods=["POST"])
-    @event_logger.log_this
-    def sync_druid_source(self) -> FlaskResponse:  # pylint: disable=no-self-use
-        """Syncs the druid datasource in main db with the provided config.
-
-        The endpoint takes 3 arguments:
-            user - user name to perform the operation as
-            cluster - name of the druid cluster
-            config - configuration stored in json that contains:
-                name: druid datasource name
-                dimensions: list of the dimensions, they become druid columns
-                    with the type STRING
-                metrics_spec: list of metrics (dictionary). Metric consists of
-                    2 attributes: type and name. Type can be count,
-                    etc. `count` type is stored internally as longSum
-                    other fields will be ignored.
-
-            Example: {
-                'name': 'test_click',
-                'metrics_spec': [{'type': 'count', 'name': 'count'}],
-                'dimensions': ['affiliate_id', 'campaign', 'first_seen']
-            }
-        """
-        payload = request.get_json(force=True)
-        druid_config = payload["config"]
-        user_name = payload["user"]
-        cluster_name = payload["cluster"]
-
-        user = security_manager.find_user(username=user_name)
-        DruidDatasource = ConnectorRegistry.sources[  # pylint: disable=invalid-name
-            "druid"
-        ]
-        DruidCluster = DruidDatasource.cluster_class  # pylint: disable=invalid-name
-        if not user:
-            err_msg = __("Can't find user, please ask your admin to create one.")
-            logger.error(err_msg, exc_info=True)
-            return json_error_response(err_msg)
-        cluster = (
-            db.session.query(DruidCluster)
-            .filter_by(cluster_name=cluster_name)
-            .one_or_none()
-        )
-        if not cluster:
-            err_msg = __("Can't find DruidCluster")
-            logger.error(err_msg, exc_info=True)
-            return json_error_response(err_msg)
-        try:
-            DruidDatasource.sync_to_db_from_config(druid_config, user, cluster)
-        except Exception as ex:  # pylint: disable=broad-except
-            err_msg = utils.error_msg_from_exception(ex)
-            logger.exception(err_msg)
-            return json_error_response(err_msg)
-        return Response(status=201)
-
-    @has_access
     @expose("/get_or_create_table/", methods=["POST"])
     @event_logger.log_this
     def sqllab_table_viz(self) -> FlaskResponse:  # pylint: disable=no-self-use
@@ -2154,6 +2099,12 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     def extra_table_metadata(  # pylint: disable=no-self-use
         self, database_id: int, table_name: str, schema: str
     ) -> FlaskResponse:
+        logger.warning(
+            "%s.extra_table_metadata "
+            "This API endpoint is deprecated and will be removed in version 3.0.0",
+            self.__class__.__name__,
+        )
+
         parsed_schema = utils.parse_js_uri_path_item(schema, eval_undefined=True)
         table_name = utils.parse_js_uri_path_item(table_name)  # type: ignore
         mydb = db.session.query(Database).filter_by(id=database_id).one()

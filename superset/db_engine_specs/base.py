@@ -641,7 +641,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         cls,
         database: "Database",
         table_name: str,
-        schema_name: str,
+        schema_name: Optional[str],
     ) -> Dict[str, Any]:
         """
         Returns engine-specific table metadata
