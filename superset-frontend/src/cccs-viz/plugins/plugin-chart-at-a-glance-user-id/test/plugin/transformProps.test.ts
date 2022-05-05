@@ -1,8 +1,8 @@
-import { ChartProps } from '@superset-ui/core';
-import transformProps, { AAGUserIDFormData } from '../../src/plugin/transformProps';
+import { AAGUserIDChartProps, AAGUserIDQueryFormData } from '../../src/types';
+import transformProps from '../../src/plugin/transformProps';
+
 describe('AtAGlance tranformProps', () => {
-  
-  const formData: AAGUserIDFormData = {
+  const formData: AAGUserIDQueryFormData = {
     colorScheme: 'bnbColors',
     datasource: '3__table',
     granularity_sqla: 'ds',
@@ -11,15 +11,16 @@ describe('AtAGlance tranformProps', () => {
     boldText: true,
     headerFontSize: 'xs',
     headerText: 'my text',
-    viz_type: "",
+    emitFilter: false,
+    viz_type: 'my_chart',
   };
-  const chartProps = new ChartProps({
+  const chartProps = new AAGUserIDChartProps({
     formData,
     width: 800,
     height: 600,
     queriesData: [
       {
-        data: [{ name: 'Hulk', sum__num: 1 }],
+        data: [{ name: 'Hulk', sum__num: 1, __timestamp: 599616000000 }],
       },
     ],
   });
@@ -31,7 +32,9 @@ describe('AtAGlance tranformProps', () => {
       boldText: true,
       headerFontSize: 'xs',
       headerText: 'my text',
-      data: [{ name: 'Hulk', sum__num: 1 }],
+      data: [
+        { name: 'Hulk', sum__num: 1, __timestamp: new Date(599616000000) },
+      ],
     });
   });
 });
