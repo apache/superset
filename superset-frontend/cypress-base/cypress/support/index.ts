@@ -21,6 +21,8 @@ import '@cypress/code-coverage/support';
 const BASE_EXPLORE_URL = '/superset/explore/?form_data=';
 const TokenName = Cypress.env('TOKEN_NAME');
 
+require('cy-verify-downloads').addCustomCommand();
+
 /* eslint-disable consistent-return */
 Cypress.on('uncaught:exception', err => {
   // ignore ResizeObserver client errors, as they are unrelated to operation
