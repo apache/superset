@@ -525,7 +525,7 @@ def load_deck_dash() -> None:  # pylint: disable=too-many-statements
     dash.published = True
     js = POSITION_JSON
     pos = json.loads(js)
-    update_slice_ids(pos, slices)
+    slices = update_slice_ids(pos)
     dash.position_json = json.dumps(pos, indent=4)
     dash.dashboard_title = title
     dash.slug = slug
