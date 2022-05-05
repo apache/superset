@@ -318,6 +318,17 @@ def AgGrid(result: Dict[Any, Any], form_data: Dict[str, Any]) -> Dict[Any, Any]:
 
     return result
 
+def AtAGlanceUserIDCore(result: Dict[Any, Any], form_data: Dict[str, Any]) -> Dict[Any, Any]:
+    """
+    AAG User ID.
+    """
+    try:
+        result["queries"][0]["agGridLicenseKey"] = config["AG_GRID_LICENSE_KEY"]
+    except KeyError as err:
+        logger.exception(err)
+
+    return result
+
 
 post_processors = {
     "pivot_table": pivot_table,
