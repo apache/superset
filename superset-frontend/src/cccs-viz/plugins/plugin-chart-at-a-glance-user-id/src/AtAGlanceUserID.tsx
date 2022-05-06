@@ -92,6 +92,8 @@ function AtAGlanceUserIDCore(props: AtAGlanceUserIDProps) {
   const [columnDefs] = useState([
     {
       field: 'IP Address',
+      flex: 1,
+      resizable: true,
       sortable: true,
       cellRenderer(params: any) {
         const ipData = params.data['IP Address'];
@@ -100,7 +102,12 @@ function AtAGlanceUserIDCore(props: AtAGlanceUserIDProps) {
         return newLink;
       },
     },
-    { field: 'Count', sortable: true },
+    {
+      field: 'Count',
+      flex: 1,
+      resizable: true,
+      sortable: true,
+    },
   ]);
 
   const [canadianIpsListData, setCanadianIpsListData] = useState([{}]);
