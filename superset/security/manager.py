@@ -79,7 +79,6 @@ from superset.utils.urls import get_url_host
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
     from superset.connectors.base.models import BaseDatasource
-    from superset.connectors.druid.models import DruidCluster
     from superset.models.core import Database
     from superset.models.dashboard import Dashboard
     from superset.models.sql_lab import Query
@@ -153,9 +152,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
     GAMMA_READ_ONLY_MODEL_VIEWS = {
         "Dataset",
-        "DruidColumnInlineView",
-        "DruidDatasourceModelView",
-        "DruidMetricInlineView",
         "Datasource",
     } | READ_ONLY_MODEL_VIEWS
 
@@ -325,7 +321,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         return self.can_access("all_database_access", "all_database_access")
 
-    def can_access_database(self, database: Union["Database", "DruidCluster"]) -> bool:
+    def can_access_database(self, database: "Database") -> bool:
         """
         Return True if the user can fully access the Superset database, False otherwise.
 
@@ -1312,6 +1308,24 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         if callable(audience):
             audience = audience()
         return audience
+
+    @staticmethod
+    def validate_guest_token_resources(resources: GuestTokenResources) -> None:
+        # pylint: disable=import-outside-toplevel
+        from superset.embedded.dao import EmbeddedDAO
+        from superset.embedded_dashboard.commands.exceptions import (
+            EmbeddedDashboardNotFoundError,
+        )
+        from superset.models.dashboard import Dashboard
+
+        for resource in resources:
+            if resource["type"] == GuestTokenResourceType.DASHBOARD.value:
+                # TODO (embedded): remove this check once uuids are rolled out
+                dashboard = Dashboard.get(str(resource["id"]))
+                if not dashboard:
+                    embedded = EmbeddedDAO.find_by_id(str(resource["id"]))
+                    if not embedded:
+                        raise EmbeddedDashboardNotFoundError()
 
     def create_guest_access_token(
         self,

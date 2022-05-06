@@ -126,17 +126,7 @@ export function DndColumnSelect(props: DndColumnSelectProps) {
     [onChange, optionSelector],
   );
 
-  const popoverOptions = useMemo(
-    () =>
-      Object.values(options).filter(
-        col =>
-          !optionSelector.values
-            .filter(isColumnMeta)
-            .map((val: ColumnMeta) => val.column_name)
-            .includes(col.column_name),
-      ),
-    [optionSelector.values, options],
-  );
+  const popoverOptions = useMemo(() => Object.values(options), [options]);
 
   const valuesRenderer = useCallback(
     () =>

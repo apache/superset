@@ -1204,6 +1204,7 @@
       "Run selection": ["运行选定的查询"],
       "Run": ["执行"],
       "Stop running (Ctrl + x)": ["停止运行 (Ctrl + x)"],
+      "Stop running (Ctrl + e)": ["停止运行 (Ctrl + e)"],
       "Run query (Ctrl + Return)": ["执行运行 (Ctrl + Return)"],
       "Save & Explore": ["保存和浏览"],
       "Overwrite & Explore": ["覆写和浏览"],
@@ -2824,8 +2825,8 @@
       "Annotation Source": ["注释来源"],
       "No options": ["没有选项"],
       "Superset annotation": ["Superset注释"],
-      "Use a pre defined Superset Chart as a source for annotations and overlays. your chart must be one of these visualization types:": [
-        "使用预定义的图表作为注释和覆盖的源。图表必须是以下可视化类型之一："
+      "Use another existing chart as a source for annotations and overlays. Your chart must be one of these visualization types: [%s]": [
+        "使用预定义的图表作为注释和覆盖的源。图表必须是以下可视化类型之一： [%s]"
       ],
       "Expects a formula with depending time parameter 'x'\n        in milliseconds since epoch. mathjs is used to evaluate the formulas.\n        Example: '2x+5'": [
         "需要一个从Epoch（1970年1月1日00:00:00 UTC）时间点开始的时间参数“x”，并以此来计算的公式（以毫秒为单位）。我们使用“mathjs”来进行公式的计算。例如：'2x+5'"

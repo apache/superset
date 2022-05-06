@@ -57,6 +57,8 @@ export default function EditableTitle({
   placeholder = '',
   certifiedBy,
   certificationDetails,
+  // rest is related to title tooltip
+  ...rest
 }: EditableTitleProps) {
   const [isEditing, setIsEditing] = useState(editing);
   const [currentTitle, setCurrentTitle] = useState(title);
@@ -214,11 +216,7 @@ export default function EditableTitle({
   }
   if (!canEdit) {
     // don't actually want an input in this case
-    titleComponent = (
-      <span data-test="editable-title-input" title={value}>
-        {value}
-      </span>
-    );
+    titleComponent = <span data-test="editable-title-input">{value}</span>;
   }
   return (
     <span
@@ -230,6 +228,7 @@ export default function EditableTitle({
         isEditing && 'editable-title--editing',
       )}
       style={style}
+      {...rest}
     >
       {certifiedBy && (
         <>

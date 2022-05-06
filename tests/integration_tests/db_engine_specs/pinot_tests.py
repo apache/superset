@@ -45,6 +45,19 @@ class TestPinotDbEngineSpec(TestDbEngineSpec):
             ),
         )
 
+    def test_pinot_time_expression_simple_date_format_10m_grain(self):
+        col = column("tstamp")
+        expr = PinotEngineSpec.get_timestamp_expr(col, "%Y-%m-%d %H:%M:%S", "PT10M")
+        result = str(expr.compile())
+        self.assertEqual(
+            result,
+            (
+                "DATETIMECONVERT(tstamp, "
+                + "'1:SECONDS:SIMPLE_DATE_FORMAT:yyyy-MM-dd HH:mm:ss', "
+                + "'1:SECONDS:SIMPLE_DATE_FORMAT:yyyy-MM-dd HH:mm:ss', '10:MINUTES')"
+            ),
+        )
+
     def test_pinot_time_expression_simple_date_format_1w_grain(self):
         col = column("tstamp")
         expr = PinotEngineSpec.get_timestamp_expr(col, "%Y-%m-%d %H:%M:%S", "P1W")

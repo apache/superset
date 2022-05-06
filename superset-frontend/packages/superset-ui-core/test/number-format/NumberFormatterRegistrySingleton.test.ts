@@ -26,7 +26,7 @@ import {
 
 describe('NumberFormatterRegistrySingleton', () => {
   describe('getNumberFormatterRegistry()', () => {
-    it('returns a NumberFormatterRegisry', () => {
+    it('returns a NumberFormatterRegistry', () => {
       expect(getNumberFormatterRegistry()).toBeInstanceOf(
         NumberFormatterRegistry,
       );

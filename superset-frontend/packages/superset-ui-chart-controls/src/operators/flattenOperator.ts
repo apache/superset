@@ -1,4 +1,3 @@
-/* eslint-disable camelcase */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -23,4 +22,6 @@ import { PostProcessingFactory } from './types';
 export const flattenOperator: PostProcessingFactory<PostProcessingFlatten> = (
   formData,
   queryObject,
-) => ({ operation: 'flatten' });
+) => ({
+  operation: 'flatten',
+});
