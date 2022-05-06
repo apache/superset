@@ -788,3 +788,139 @@ export function useDatabaseValidation() {
 
   return [validationErrors, getValidation, setValidationErrors] as const;
 }
+
+export type ObjectTagType = {
+  changed_on: number;
+  created_by?: any;
+  creator: string;
+  id: number;
+  name: string;
+  type: string;
+  url: string;
+};
+
+export interface ObjectTagsState {
+  objects?: ObjectTagType[];
+  objectType: string;
+  objectId: number;
+  includeTypes?: boolean;
+  handleErrorMsg: (message: string) => void;
+  tags?: any;
+  types?: string;
+}
+
+// 🚧 Call will look like this 🚧
+// const { fetchTags, fetchSuggestions, deleteTag, addTag, fetchObjects, state } =
+//   useObjectTags({ objectType: 'chart', objectId: 1 }, addDangerToast);
+
+export const useObjectTags = (
+  { objectType, objectId, includeTypes = false }: Partial<ObjectTagsState>,
+  handleErrorMsg: (message: string) => void,
+  // tags?: any,
+  types?: string,
+  // objects?: any,
+) => {
+  const [state, setState] = useState<Partial<ObjectTagsState>>({
+    objects: [],
+    objectType,
+    objectId,
+    includeTypes,
+    tags: [],
+    types,
+  });
+
+  console.log('findme hook state', state.tags);
+
+  const updateState = (update: Partial<ObjectTagsState>) => {
+    console.log('findme update', update);
+    setState(currentState => ({ ...currentState, ...update }));
+  };
+
+  const fetchTags = () => {
+    if (objectType === undefined || objectId === undefined) {
+      throw new Error('Need to specify objectType and objectId');
+    }
+    SupersetClient.get({ endpoint: `/tagview/tags/${objectType}/${objectId}/` })
+      .then(({ json }) => {
+        // json.forEach((tag: { id: number; name: string }) => {
+        //   console.log('findme com', tag);
+        //   updateState({ tags:  });
+        // });
+        const filteredJson = json.filter(
+          (tag: { id: number; name: string }) => tag.name.indexOf(':') === -1,
+        );
+        updateState({ tags: filteredJson });
+      })
+      .catch(response => handleErrorMsg(response));
+  };
+
+  const fetchSuggestions = () => {
+    SupersetClient.get({ endpoint: '/tagview/tags/suggestions/' })
+      .then(
+        ({ json }) =>
+          new Promise(() =>
+            json.filter(
+              (tag: { id: number; name: string }) =>
+                tag.name.indexOf(':') === -1 || includeTypes,
+            ),
+          ),
+      )
+      .catch(response => handleErrorMsg(response));
+  };
+
+  const deleteTag = (removedTag: string) => {
+    if (objectType === undefined || objectId === undefined) {
+      throw new Error('Need to specify objectType and objectId');
+    }
+    SupersetClient.delete({
+      endpoint: `/tagview/tags/${objectType}/${objectId}/`,
+      body: JSON.stringify([removedTag]),
+      parseMethod: 'text',
+    })
+      .then(({ text }) => new Promise(() => text))
+      .catch(response => handleErrorMsg(response));
+  };
+
+  const addTag = (newTag: { id: number; name: string }) => {
+    if (objectType === undefined || objectId === undefined) {
+      throw new Error('Need to specify objectType and objectId');
+    }
+    SupersetClient.post({
+      endpoint: `/tagview/tags/${objectType}/${objectId}/`,
+      body: JSON.stringify([newTag.name]),
+      parseMethod: 'text',
+    })
+      .then(({ text }) => new Promise(() => text))
+      .catch(response => handleErrorMsg(response));
+  };
+
+  const fetchObjects = (tags = '') => {
+    let url = `/tagview/tagged_objects/?tags=${tags}`;
+    if (types) {
+      url += `&types=${types}`;
+    }
+    SupersetClient.get({ endpoint: url })
+      .then(({ json = [] }) => {
+        updateState({ objects: json as ObjectTagType[] });
+        console.log('findme home json', json, state.objects);
+        return json;
+      })
+      .catch(response => handleErrorMsg(response));
+  };
+
+  return {
+    state: {
+      objects: state.objects,
+      objectType: state.objectType,
+      objectId: state.objectId,
+      includeTypes: state.includeTypes,
+      tags: state.tags,
+      types: state.types,
+    },
+    fetchTags,
+    fetchSuggestions,
+    deleteTag,
+    addTag,
+    fetchObjects,
+  };
+};

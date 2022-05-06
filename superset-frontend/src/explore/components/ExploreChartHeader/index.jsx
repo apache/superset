@@ -23,6 +23,7 @@ import PropTypes from 'prop-types';
 import {
   CategoricalColorNamespace,
   css,
+  styled,
   SupersetClient,
   t,
 } from '@superset-ui/core';
@@ -41,6 +42,7 @@ import PropertiesModal from 'src/explore/components/PropertiesModal';
 import { sliceUpdated } from 'src/explore/actions/exploreActions';
 import CertifiedBadge from 'src/components/CertifiedBadge';
 import { Tooltip } from 'src/components/Tooltip';
+import ObjectTags from 'src/components/ObjectTags';
 import ExploreAdditionalActionsMenu from '../ExploreAdditionalActionsMenu';
 import { ChartEditableTitle } from './ChartEditableTitle';
 
@@ -109,6 +111,10 @@ const buttonsStyles = theme => css`
 
 const saveButtonContainerStyles = theme => css`
   margin-right: ${theme.gridUnit * 2}px;
+`;
+
+const StyledObjectTagsContainer = styled.div`
+  padding-left: 8px;
 `;
 
 export class ExploreChartHeader extends React.PureComponent {
@@ -283,6 +289,9 @@ export class ExploreChartHeader extends React.PureComponent {
               )}
             </span>
           )}
+          <StyledObjectTagsContainer>
+            <ObjectTags objectId={chart.id} objectType="chart" />
+          </StyledObjectTagsContainer>
         </div>
         <div className="right-button-panel">
           <Tooltip

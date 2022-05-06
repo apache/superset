@@ -41,6 +41,7 @@ import PublishedStatus from 'src/dashboard/components/PublishedStatus';
 import UndoRedoKeyListeners from 'src/dashboard/components/UndoRedoKeyListeners';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
 import ReportModal from 'src/components/ReportModal';
+import ObjectTags from 'src/components/ObjectTags';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import {
@@ -137,6 +138,11 @@ const StyledDashboardHeader = styled.div`
       margin-left: ${({ theme }) => theme.gridUnit * 2.5}px;
     }
   }
+`;
+
+const StyledObjectTagsContainer = styled.div`
+  display: flex;
+  padding-left: 8px;
 `;
 
 class Header extends React.PureComponent {
@@ -563,6 +569,9 @@ class Header extends React.PureComponent {
               showTooltip
             />
           )}
+          <StyledObjectTagsContainer>
+            <ObjectTags objectId={dashboardInfo.id} objectType="dashboard" />
+          </StyledObjectTagsContainer>
         </div>
 
         <div className="button-container">

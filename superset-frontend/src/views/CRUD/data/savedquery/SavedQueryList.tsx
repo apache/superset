@@ -464,6 +464,25 @@ function SavedQueryList({
         input: 'search',
         operator: FilterOperator.allText,
       },
+      // 🚧 FINDME - need help figuring this out 🚧
+      {
+        Header: t('Tags'),
+        id: 'schema',
+        input: 'select',
+        operator: FilterOperator.equals, // not sure what this should be
+        unfilteredLabel: 'All',
+        // fetchSuggestions?
+        fetchSelects: createFetchDistinct(
+          'saved_query',
+          'schema', // this will be 'tags'
+          createErrorHandler(errMsg =>
+            addDangerToast(
+              t('An error occurred while fetching tag values: %s', errMsg),
+            ),
+          ),
+        ),
+        paginate: true,
+      },
     ],
     [addDangerToast],
   );

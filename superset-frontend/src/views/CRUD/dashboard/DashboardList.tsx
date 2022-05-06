@@ -525,6 +525,26 @@ function DashboardList(props: DashboardListProps) {
         input: 'search',
         operator: FilterOperator.titleOrSlug,
       },
+      // 🚧 FINDME - need help figuring this out 🚧
+      {
+        Header: t('Tags'),
+        id: 'owners',
+        input: 'select',
+        operator: FilterOperator.relationManyMany, // not sure what this should be
+        unfilteredLabel: t('All'),
+        // fetchSuggestions?
+        fetchSelects: createFetchRelated(
+          'chart',
+          'owners', // this will be 'tags'
+          createErrorHandler(errMsg =>
+            addDangerToast(
+              t('An error occurred while fetching tag values: %s', errMsg),
+            ),
+          ),
+          props.user, // this will be fetchSuggestions result
+        ),
+        paginate: true,
+      },
     ],
     [addDangerToast, favoritesFilter, props.user],
   );

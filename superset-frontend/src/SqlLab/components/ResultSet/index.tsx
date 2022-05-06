@@ -45,6 +45,7 @@ import { prepareCopyToClipboardTabularData } from 'src/utils/common';
 import { exploreChart } from 'src/explore/exploreUtils';
 import { CtasEnum } from 'src/SqlLab/actions/sqlLab';
 import { Query } from 'src/SqlLab/types';
+import ObjectTags from 'src/components/ObjectTags';
 import ExploreCtasResultsButton from '../ExploreCtasResultsButton';
 import ExploreResultsButton from '../ExploreResultsButton';
 import HighlightedSql from '../HighlightedSql';
@@ -146,6 +147,11 @@ const ResultSetButtons = styled.div`
 
 const ResultSetErrorMessage = styled.div`
   padding-top: ${({ theme }) => 4 * theme.gridUnit}px;
+`;
+
+const StyledObjectTagsContainer = styled.div`
+  display: flex;
+  padding-left: 8px;
 `;
 
 const updateDataset = async (
@@ -762,6 +768,12 @@ export default class ResultSet extends React.PureComponent<
           : [];
         return (
           <>
+            <StyledObjectTagsContainer>
+              <ObjectTags
+                objectId={Number(this.props.query.queryId)}
+                objectType="query"
+              />
+            </StyledObjectTagsContainer>
             {this.renderControls()}
             {this.renderRowsReturned()}
             {sql}

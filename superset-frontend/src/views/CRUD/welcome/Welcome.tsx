@@ -40,6 +40,8 @@ import {
 } from 'src/views/CRUD/utils';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { AntdSwitch } from 'src/components';
+import { Input } from 'src/components/Input';
+import { useObjectTags, ObjectTagType } from 'src/views/CRUD/hooks';
 
 import ActivityTable from './ActivityTable';
 import ChartTable from './ChartTable';
@@ -172,6 +174,26 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
   const collapseState = getItem(LocalStorageKeys.homepage_collapse_state, []);
   const [activeState, setActiveState] = useState<Array<string>>(collapseState);
 
+  const { fetchObjects, state } = useObjectTags(
+    { objectType: 'chart', objectId: 1 },
+    addDangerToast,
+  );
+  const [inputText, setInputText] = useState<string>('');
+  const [favorited, setFavorited] = useState<boolean>(false);
+
+  // const filteredObjects = state?.objects?.filter(obj => obj);
+
+  useEffect(() => {
+    fetchObjects(inputText);
+    console.log('findme home UE', state);
+  }, [inputText]);
+
+  useEffect(() => {
+    if (favorited) {
+      setInputText('favorited_by:1');
+    } else setInputText('');
+  }, [favorited]);
+
   const handleCollapse = (state: Array<string>) => {
     setActiveState(state);
     setItem(LocalStorageKeys.homepage_collapse_state, state);
@@ -276,6 +298,8 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
 
   const isRecentActivityLoading =
     !activityData?.Examples && !activityData?.Viewed;
+
+  console.log('findme home 1234', inputText, favorited);
   return (
     <WelcomeContainer>
       <WelcomeNav>
@@ -339,6 +363,50 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
               mine={queryData}
               featureFlag={isFeatureEnabled(FeatureFlag.THUMBNAILS)}
             />
+          )}
+        </Collapse.Panel>
+        <Collapse.Panel header={t('Tags')} key="5">
+          {!state.objects ? (
+            <LoadingCards cover={checked} />
+          ) : (
+            <>
+              <Input
+                css={{ width: '200px' }}
+                onChange={e => setInputText(e.target.value)}
+                placeholder="Tag name..."
+              />
+              {'   '}
+              <input
+                type="checkbox"
+                onChange={() => setFavorited(!favorited)}
+              />
+              {'   '}
+              Favorited
+              {state.objects.map((object: ObjectTagType, index: number) => (
+                <div
+                  role="button"
+                  tabIndex={index}
+                  onClick={() => {
+                    window.location.href = object.url;
+                  }}
+                  css={{ width: '600px' }}
+                >
+                  {/* <ListViewCard
+                    key={index}
+                    title={state.objects.name}
+                    url={state.objects.url}
+                    description={state.objects.changed_on}
+                    cover={<></>}
+                    // description=""
+                  /> */}
+                  <h3>
+                    {object.name}: {object.type}
+                    <br />
+                    ____________________________________________
+                  </h3>
+                </div>
+              ))}
+            </>
           )}
         </Collapse.Panel>
       </Collapse>
