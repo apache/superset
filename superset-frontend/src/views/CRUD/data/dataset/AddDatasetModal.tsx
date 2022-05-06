@@ -63,15 +63,18 @@ const DatasetModal: FunctionComponent<DatasetModalProps> = ({
     addDangerToast,
   );
 
-  const currentUserSelectedDb = getItem(
-    LocalStorageKeys.db,
-    null,
-  ) as DatabaseObject;
 
   useEffect(() => {
-    if (currentUserSelectedDb) setCurrentDatabase(currentUserSelectedDb);
     setDisableSave(currentDatabase === undefined || currentTableName === '');
   }, [currentTableName, currentDatabase]);
+
+  useEffect(() => {
+    const currentUserSelectedDb = getItem(
+      LocalStorageKeys.db,
+      null,
+    ) as DatabaseObject;
+    if (currentUserSelectedDb) setCurrentDatabase(currentUserSelectedDb);
+  }, []);
 
   const onDbChange = (db: DatabaseObject) => {
     setCurrentDatabase(db);

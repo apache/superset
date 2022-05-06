@@ -179,13 +179,13 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   const canExport = hasPerm('can_export');
 
   const initialSort = SORT_BY;
-
   useEffect(() => {
     const db = getItem(LocalStorageKeys.db, null);
-    if (db) {
+    if (!loading && db) {
       setDatasetAddModalOpen(true);
     }
-  }, []);
+  }, [loading]);
+
   const openDatasetEditModal = useCallback(
     ({ id }: Dataset) => {
       SupersetClient.get({
