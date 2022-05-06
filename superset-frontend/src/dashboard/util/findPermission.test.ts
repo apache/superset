@@ -16,10 +16,54 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import {
+  UndefinedUser,
+  UserWithPermissionsAndRoles,
+} from 'src/types/bootstrapTypes';
 import Dashboard from 'src/types/Dashboard';
 import Owner from 'src/types/Owner';
-import findPermission, { canUserEditDashboard } from './findPermission';
+import findPermission, {
+  canUserEditDashboard,
+  isUserAdmin,
+} from './findPermission';
+
+const ownerUser: UserWithPermissionsAndRoles = {
+  createdOn: '2021-05-12T16:56:22.116839',
+  email: 'user@example.com',
+  firstName: 'Test',
+  isActive: true,
+  isAnonymous: false,
+  lastName: 'User',
+  userId: 1,
+  username: 'owner',
+  permissions: {},
+  roles: { Alpha: [['can_write', 'Dashboard']] },
+};
+
+const adminUser: UserWithPermissionsAndRoles = {
+  ...ownerUser,
+  roles: {
+    ...(ownerUser?.roles || {}),
+    Admin: [['can_write', 'Dashboard']],
+  },
+  userId: 2,
+  username: 'admin',
+};
+
+const outsiderUser: UserWithPermissionsAndRoles = {
+  ...ownerUser,
+  userId: 3,
+  username: 'outsider',
+};
+
+const owner: Owner = {
+  first_name: 'Test',
+  id: ownerUser.userId!,
+  last_name: 'User',
+  username: ownerUser.username,
+};
+
+const undefinedUser: UndefinedUser = {};
 
 describe('findPermission', () => {
   it('findPermission for single role', () => {
@@ -70,41 +114,6 @@ describe('findPermission', () => {
 });
 
 describe('canUserEditDashboard', () => {
-  const ownerUser: UserWithPermissionsAndRoles = {
-    createdOn: '2021-05-12T16:56:22.116839',
-    email: 'user@example.com',
-    firstName: 'Test',
-    isActive: true,
-    lastName: 'User',
-    userId: 1,
-    username: 'owner',
-    permissions: {},
-    roles: { Alpha: [['can_write', 'Dashboard']] },
-  };
-
-  const adminUser: UserWithPermissionsAndRoles = {
-    ...ownerUser,
-    roles: {
-      ...ownerUser.roles,
-      Admin: [['can_write', 'Dashboard']],
-    },
-    userId: 2,
-    username: 'admin',
-  };
-
-  const outsiderUser: UserWithPermissionsAndRoles = {
-    ...ownerUser,
-    userId: 3,
-    username: 'outsider',
-  };
-
-  const owner: Owner = {
-    first_name: 'Test',
-    id: ownerUser.userId,
-    last_name: 'User',
-    username: ownerUser.username,
-  };
-
   const dashboard: Dashboard = {
     id: 1,
     dashboard_title: 'Test Dash',
@@ -135,9 +144,7 @@ describe('canUserEditDashboard', () => {
   it('rejects missing roles', () => {
     // in redux, when there is no user, the user is actually set to an empty object,
     // so we need to handle missing roles as well as a missing user.s
-    expect(
-      canUserEditDashboard(dashboard, {} as UserWithPermissionsAndRoles),
-    ).toEqual(false);
+    expect(canUserEditDashboard(dashboard, {})).toEqual(false);
   });
   it('rejects "admins" if the admin role does not have edit rights for some reason', () => {
     expect(
@@ -147,4 +154,16 @@ describe('canUserEditDashboard', () => {
       }),
     ).toEqual(false);
   });
+});
+
+test('isUserAdmin returns true for admin user', () => {
+  expect(isUserAdmin(adminUser)).toEqual(true);
+});
+
+test('isUserAdmin returns false for undefined user', () => {
+  expect(isUserAdmin(undefinedUser)).toEqual(false);
+});
+
+test('isUserAdmin returns false for non-admin user', () => {
+  expect(isUserAdmin(ownerUser)).toEqual(false);
 });

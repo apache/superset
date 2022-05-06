@@ -30,14 +30,13 @@ from sqlalchemy.sql.visitors import VisitableType
 
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
-from superset.utils.core import get_example_database
 
 logger = logging.getLogger(__name__)
 
 CHUNKSIZE = 512
 VARCHAR = re.compile(r"VARCHAR\((\d+)\)", re.IGNORECASE)
 
-JSON_KEYS = {"params", "template_params"}
+JSON_KEYS = {"params", "template_params", "extra"}
 
 
 type_map = {
@@ -96,13 +95,16 @@ def import_dataset(
                 config[key] = json.dumps(config[key])
             except TypeError:
                 logger.info("Unable to encode `%s` field: %s", key, config[key])
-    for metric in config.get("metrics", []):
-        if metric.get("extra") is not None:
-            try:
-                metric["extra"] = json.dumps(metric["extra"])
-            except TypeError:
-                logger.info("Unable to encode `extra` field: %s", metric["extra"])
-                metric["extra"] = None
+    for key in ("metrics", "columns"):
+        for attributes in config.get(key, []):
+            if attributes.get("extra") is not None:
+                try:
+                    attributes["extra"] = json.dumps(attributes["extra"])
+                except TypeError:
+                    logger.info(
+                        "Unable to encode `extra` field: %s", attributes["extra"]
+                    )
+                    attributes["extra"] = None
 
     # should we delete columns and metrics not present in the current import?
     sync = ["columns", "metrics"] if overwrite else []
@@ -127,9 +129,8 @@ def import_dataset(
     if dataset.id is None:
         session.flush()
 
-    example_database = get_example_database()
     try:
-        table_exists = example_database.has_table_by_name(dataset.table_name)
+        table_exists = dataset.database.has_table_by_name(dataset.table_name)
     except Exception:  # pylint: disable=broad-except
         # MySQL doesn't play nice with GSheets table names
         logger.warning(
@@ -139,7 +140,7 @@ def import_dataset(
 
     if data_uri and (not table_exists or force_data):
         logger.info("Downloading data from %s", data_uri)
-        load_data(data_uri, dataset, example_database, session)
+        load_data(data_uri, dataset, dataset.database, session)
 
     if hasattr(g, "user") and g.user:
         dataset.owners.append(g.user)
@@ -148,7 +149,7 @@ def import_dataset(
 
 
 def load_data(
-    data_uri: str, dataset: SqlaTable, example_database: Database, session: Session
+    data_uri: str, dataset: SqlaTable, database: Database, session: Session
 ) -> None:
     data = request.urlopen(data_uri)  # pylint: disable=consider-using-with
     if data_uri.endswith(".gz"):
@@ -162,14 +163,12 @@ def load_data(
             df[column_name] = pd.to_datetime(df[column_name])
 
     # reuse session when loading data if possible, to make import atomic
-    if example_database.sqlalchemy_uri == current_app.config.get(
-        "SQLALCHEMY_DATABASE_URI"
-    ) or not current_app.config.get("SQLALCHEMY_EXAMPLES_URI"):
+    if database.sqlalchemy_uri == current_app.config.get("SQLALCHEMY_DATABASE_URI"):
         logger.info("Loading data inside the import transaction")
         connection = session.connection()
     else:
         logger.warning("Loading data outside the import transaction")
-        connection = example_database.get_sqla_engine()
+        connection = database.get_sqla_engine()
 
     df.to_sql(
         dataset.table_name,

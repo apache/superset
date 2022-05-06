@@ -81,6 +81,7 @@ export interface RequestBase {
   fetchRetryOptions?: FetchRetryOptions;
   headers?: Headers;
   host?: Host;
+  ignoreUnauthorized?: boolean;
   mode?: Mode;
   method?: Method;
   jsonPayload?: Payload;
@@ -130,10 +131,13 @@ export interface ClientConfig {
   protocol?: Protocol;
   credentials?: Credentials;
   csrfToken?: CsrfToken;
+  guestToken?: string;
+  guestTokenHeaderName?: string;
   fetchRetryOptions?: FetchRetryOptions;
   headers?: Headers;
   mode?: Mode;
   timeout?: ClientTimeout;
+  unauthorizedHandler?: () => void;
 }
 
 export interface SupersetClientInterface
@@ -148,8 +152,7 @@ export interface SupersetClientInterface
     | 'isAuthenticated'
     | 'reAuthenticate'
   > {
-  configure: (config?: ClientConfig) => SupersetClientClass;
-  getInstance: (maybeClient?: SupersetClientClass) => SupersetClientClass;
+  configure: (config?: ClientConfig) => SupersetClientInterface;
   reset: () => void;
 }
 

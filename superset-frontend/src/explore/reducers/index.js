@@ -19,7 +19,7 @@
 import { combineReducers } from 'redux';
 
 import reports from 'src/reports/reducers/reports';
-import charts from 'src/chart/chartReducer';
+import charts from 'src/components/Chart/chartReducer';
 import dataMask from 'src/dataMask/reducer';
 import messageToasts from 'src/components/MessageToasts/reducers';
 import saveModal from './saveModalReducer';

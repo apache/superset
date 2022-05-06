@@ -1,4 +1,5 @@
 import { JsonObject, Locale } from '@superset-ui/core';
+import { isPlainObject } from 'lodash';
 
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -19,22 +20,30 @@ import { JsonObject, Locale } from '@superset-ui/core';
  * under the License.
  */
 export type User = {
-  createdOn: string;
-  email: string;
+  createdOn?: string;
+  email?: string;
   firstName: string;
   isActive: boolean;
+  isAnonymous: boolean;
   lastName: string;
-  userId: number;
+  userId?: number; // optional because guest user doesn't have a user id
   username: string;
 };
 
-export interface UserWithPermissionsAndRoles extends User {
+export type UserRoles = Record<string, [string, string][]>;
+export interface PermissionsAndRoles {
   permissions: {
     database_access?: string[];
     datasource_access?: string[];
   };
-  roles: Record<string, [string, string][]>;
+  roles: UserRoles;
 }
+
+export type UserWithPermissionsAndRoles = User & PermissionsAndRoles;
+
+export type UndefinedUser = {};
+
+export type BootstrapUser = UserWithPermissionsAndRoles | undefined;
 
 export type Dashboard = {
   dttm: number;
@@ -45,9 +54,29 @@ export type Dashboard = {
   creator_url?: string;
 };
 
+export type DashboardData = {
+  dashboard_title?: string;
+  created_on_delta_humanized?: string;
+  url: string;
+};
+
+export type DashboardResponse = {
+  result: DashboardData[];
+};
+
 export interface CommonBootstrapData {
   flash_messages: string[][];
   conf: JsonObject;
   locale: Locale;
   feature_flags: Record<string, boolean>;
+}
+
+export function isUser(user: any): user is User {
+  return isPlainObject(user) && 'username' in user;
+}
+
+export function isUserWithPermissionsAndRoles(
+  user: any,
+): user is UserWithPermissionsAndRoles {
+  return isUser(user) && 'permissions' in user && 'roles' in user;
 }

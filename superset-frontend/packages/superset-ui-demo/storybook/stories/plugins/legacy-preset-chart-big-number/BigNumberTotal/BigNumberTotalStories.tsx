@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { SuperChart } from '@superset-ui/core';
-import { BigNumberTotalChartPlugin } from '@superset-ui/legacy-preset-chart-big-number';
+import { BigNumberTotalChartPlugin } from '@superset-ui/plugin-chart-echarts';
 import data from './data';
 
 new BigNumberTotalChartPlugin()

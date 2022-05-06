@@ -30,9 +30,11 @@ from superset.datasets.commands.exceptions import DatasetNotFoundError
 from superset.datasets.commands.export import ExportDatasetsCommand
 from superset.datasets.commands.importers import v0, v1
 from superset.models.core import Database
-from superset.utils.core import get_example_database, get_example_default_schema
+from superset.utils.core import get_example_default_schema
+from superset.utils.database import get_example_database
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.energy_dashboard import (
+    load_energy_table_data,
     load_energy_table_with_slice,
 )
 from tests.integration_tests.fixtures.importexport import (
@@ -45,6 +47,7 @@ from tests.integration_tests.fixtures.importexport import (
 )
 from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices,
+    load_world_bank_data,
 )
 
 
@@ -216,6 +219,26 @@ class TestExportDatasetsCommand(SupersetTestCase):
             "database_uuid",
         ]
 
+    @patch("superset.security.manager.g")
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_export_dataset_command_no_related(self, mock_g):
+        """
+        Test that only datasets are exported when export_related=False.
+        """
+        mock_g.user = security_manager.find_user("admin")
+
+        example_db = get_example_database()
+        example_dataset = _get_table_from_list_by_name(
+            "energy_usage", example_db.tables
+        )
+        command = ExportDatasetsCommand([example_dataset.id], export_related=False)
+        contents = dict(command.run())
+
+        assert list(contents.keys()) == [
+            "metadata.yaml",
+            "datasets/examples/energy_usage.yaml",
+        ]
+
 
 class TestImportDatasetsCommand(SupersetTestCase):
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
@@ -323,7 +346,10 @@ class TestImportDatasetsCommand(SupersetTestCase):
         assert dataset.template_params == "{}"
         assert dataset.filter_select_enabled
         assert dataset.fetch_values_predicate is None
-        assert dataset.extra == "dttm > sysdate() -10 "
+        assert (
+            dataset.extra
+            == '{"certification": {"certified_by": "Data Platform Team", "details": "This table is the source of truth."}, "warning_markdown": "This is a warning."}'
+        )
 
         # user should be included as one of the owners
         assert dataset.owners == [mock_g.user]

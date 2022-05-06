@@ -24,7 +24,7 @@ import configureStore from 'redux-mock-store';
 import { act } from 'react-dom/test-utils';
 
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
-import SubMenu from 'src/components/Menu/SubMenu';
+import SubMenu from 'src/views/components/SubMenu';
 import SavedQueries from 'src/views/CRUD/welcome/SavedQueries';
 
 // store needed for withToasts(DashboardTable)
@@ -81,7 +81,7 @@ describe('SavedQueries', () => {
 
   const clickTab = (idx: number) => {
     act(() => {
-      const handler = wrapper.find('li.no-router a').at(idx).prop('onClick');
+      const handler = wrapper.find('[role="tab"] a').at(idx).prop('onClick');
       if (handler) {
         handler({} as any);
       }
@@ -105,7 +105,7 @@ describe('SavedQueries', () => {
 
   it('renders a submenu with clickable tables and buttons', async () => {
     expect(wrapper.find(SubMenu)).toExist();
-    expect(wrapper.find('li.no-router')).toHaveLength(1);
+    expect(wrapper.find('[role="tab"]')).toHaveLength(1);
     expect(wrapper.find('button')).toHaveLength(2);
     clickTab(0);
     await waitForComponentToPaint(wrapper);

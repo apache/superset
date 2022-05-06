@@ -17,7 +17,8 @@
  * under the License.
  */
 import React from 'react';
-import { Input } from 'antd';
+import { Input, Tooltip } from 'antd';
+import { EyeInvisibleOutlined, EyeOutlined } from '@ant-design/icons';
 import { styled, css, SupersetTheme } from '@superset-ui/core';
 import InfoTooltip from 'src/components/InfoTooltip';
 import errorIcon from 'src/assets/images/icons/error.svg';
@@ -29,7 +30,7 @@ export interface LabeledErrorBoundInputProps {
   validationMethods:
     | { onBlur: (value: any) => void }
     | { onChange: (value: any) => void };
-  errorMessage: string | null;
+  errorMessage?: string | null;
   helpText?: string;
   required?: boolean;
   hasTooltip?: boolean;
@@ -40,6 +41,10 @@ export interface LabeledErrorBoundInputProps {
 }
 
 const StyledInput = styled(Input)`
+  margin: ${({ theme }) => `${theme.gridUnit}px 0 ${theme.gridUnit * 2}px`};
+`;
+
+const StyledInputPassword = styled(Input.Password)`
   margin: ${({ theme }) => `${theme.gridUnit}px 0 ${theme.gridUnit * 2}px`};
 `;
 
@@ -114,7 +119,26 @@ const LabeledErrorBoundInput = ({
       help={errorMessage || helpText}
       hasFeedback={!!errorMessage}
     >
-      <StyledInput {...props} {...validationMethods} />
+      {props.name === 'password' ? (
+        <StyledInputPassword
+          {...props}
+          {...validationMethods}
+          iconRender={visible =>
+            visible ? (
+              <Tooltip title="Hide password.">
+                <EyeInvisibleOutlined />
+              </Tooltip>
+            ) : (
+              <Tooltip title="Show password.">
+                <EyeOutlined />
+              </Tooltip>
+            )
+          }
+          role="textbox"
+        />
+      ) : (
+        <StyledInput {...props} {...validationMethods} />
+      )}
     </FormItem>
   </StyledFormGroup>
 );

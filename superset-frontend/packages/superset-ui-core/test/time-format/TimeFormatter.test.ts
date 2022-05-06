@@ -17,9 +17,7 @@
  * under the License.
  */
 
-import TimeFormatter, {
-  PREVIEW_TIME,
-} from '@superset-ui/core/src/time-format/TimeFormatter';
+import { TimeFormatter, PREVIEW_TIME } from '@superset-ui/core';
 
 describe('TimeFormatter', () => {
   describe('new TimeFormatter(config)', () => {

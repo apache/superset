@@ -19,11 +19,10 @@
 
 import React from 'react';
 import { mount, shallow } from 'enzyme';
-import { promiseTimeout } from '@superset-ui/core';
 import mockConsole, { RestoreConsole } from 'jest-mock-console';
 
-import { ChartProps } from '@superset-ui/core/src/chart';
-import SuperChartCore from '@superset-ui/core/src/chart/components/SuperChartCore';
+import { ChartProps, promiseTimeout, supersetTheme } from '@superset-ui/core';
+import SuperChartCore from '../../../src/chart/components/SuperChartCore';
 import {
   ChartKeys,
   DiligentChartPlugin,
@@ -124,6 +123,7 @@ describe('SuperChartCore', () => {
     it('uses preTransformProps when specified', () => {
       const chartPropsWithPayload = new ChartProps({
         queriesData: [{ message: 'hulk' }],
+        theme: supersetTheme,
       });
       const wrapper = shallow(
         <SuperChartCore

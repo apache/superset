@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import createTime from '@superset-ui/core/src/time-format/utils/createTime';
+import createTime from '../../../src/time-format/utils/createTime';
 
 describe('createTime(mode, year, month, date, hours, minutes, seconds, milliseconds)', () => {
   describe('mode', () => {

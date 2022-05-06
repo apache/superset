@@ -35,6 +35,7 @@ import {
   yAxisLabel,
   yAxisShowMinmax,
   yAxisBounds,
+  richTooltip,
 } from '../NVD3Controls';
 
 const config: ControlPanelConfig = {
@@ -50,17 +51,7 @@ const config: ControlPanelConfig = {
         ['columns'],
         ['row_limit'],
         ['timeseries_limit_metric'],
-        [
-          {
-            name: 'order_desc',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Sort Descending'),
-              default: true,
-              description: t('Whether to sort descending or ascending'),
-            },
-          },
-        ],
+        ['order_desc'],
         [
           {
             name: 'contribution',
@@ -81,6 +72,7 @@ const config: ControlPanelConfig = {
         ['color_scheme'],
         [showLegend],
         [showBarValue],
+        [richTooltip],
         [barStacked],
         [
           {
@@ -114,7 +106,7 @@ const config: ControlPanelConfig = {
   ],
   controlOverrides: {
     groupby: {
-      label: t('Series'),
+      label: t('Dimensions'),
       validators: [validateNonEmpty],
       mapStateToProps: (state, controlState) => {
         const groupbyProps =

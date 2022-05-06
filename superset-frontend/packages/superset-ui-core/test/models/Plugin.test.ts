@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { Plugin } from '@superset-ui/core/src';
+import { Plugin } from '@superset-ui/core';
 
 describe('Plugin', () => {
   it('exists', () => {

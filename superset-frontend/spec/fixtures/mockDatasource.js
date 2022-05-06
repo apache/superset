@@ -167,6 +167,7 @@ export default {
     column_types: [0, 1, 2],
     id,
     granularity_sqla: [['ds', 'ds']],
+    main_dttm_col: 'ds',
     name: 'birth_names',
     owners: [{ first_name: 'joe', last_name: 'man', id: 1 }],
     database: {

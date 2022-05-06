@@ -61,23 +61,34 @@ def scheduler() -> None:
                         active_schedule.working_timeout
                         + app.config["ALERT_REPORTS_WORKING_SOFT_TIME_OUT_LAG"]
                     )
-                execute.apply_async((active_schedule.id, schedule,), **async_options)
+                execute.apply_async(
+                    (
+                        active_schedule.id,
+                        schedule,
+                    ),
+                    **async_options
+                )
 
 
 @celery_app.task(name="reports.execute")
 def execute(report_schedule_id: int, scheduled_dttm: str) -> None:
+    task_id = None
     try:
         task_id = execute.request.id
         scheduled_dttm_ = parser.parse(scheduled_dttm)
         AsyncExecuteReportScheduleCommand(
-            task_id, report_schedule_id, scheduled_dttm_,
+            task_id,
+            report_schedule_id,
+            scheduled_dttm_,
         ).run()
-    except ReportScheduleUnexpectedError as ex:
-        logger.error(
-            "An unexpected occurred while executing the report: %s", ex, exc_info=True
+    except ReportScheduleUnexpectedError:
+        logger.exception(
+            "An unexpected occurred while executing the report: %s", task_id
         )
-    except CommandException as ex:
-        logger.info("Report state: %s", ex)
+    except CommandException:
+        logger.exception(
+            "A downstream exception occurred while generating" " a report: %s", task_id
+        )
 
 
 @celery_app.task(name="reports.prune_log")
@@ -87,8 +98,4 @@ def prune_log() -> None:
     except SoftTimeLimitExceeded as ex:
         logger.warning("A timeout occurred while pruning report schedule logs: %s", ex)
     except CommandException as ex:
-        logger.error(
-            "An exception occurred while pruning report schedule logs: %s",
-            ex,
-            exc_info=True,
-        )
+        logger.exception("An exception occurred while pruning report schedule logs")

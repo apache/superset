@@ -88,7 +88,7 @@ describe('DatasourceEditor', () => {
       'Certification details',
     );
 
-    userEvent.type(await inputLabel, 'test_lable');
+    userEvent.type(await inputLabel, 'test_label');
     userEvent.type(await inputDescription, 'test');
     userEvent.type(await inputDtmFormat, 'test');
     userEvent.type(await inputCertifiedBy, 'test');
@@ -122,10 +122,9 @@ describe('DatasourceEditor', () => {
     });
     expect(addBtn).toBeInTheDocument();
     userEvent.click(addBtn);
-    const newColumn = screen.getByRole('button', {
-      name: /<new column>/i,
-    });
-    expect(newColumn).toBeInTheDocument();
+    // newColumn (Column name) is the first textbox in the tab
+    const newColumn = screen.getAllByRole('textbox', { name: '' })[0];
+    expect(newColumn).toHaveValue('<new column>');
   });
 
   it('renders isSqla fields', () => {
@@ -158,11 +157,11 @@ describe('DatasourceEditor', () => {
       const physicalRadioBtn = screen.getByRole('radio', {
         name: /physical \(table or view\)/i,
       });
-      const vituralRadioBtn = screen.getByRole('radio', {
+      const virtualRadioBtn = screen.getByRole('radio', {
         name: /virtual \(sql\)/i,
       });
       expect(physicalRadioBtn).toBeEnabled();
-      expect(vituralRadioBtn).toBeEnabled();
+      expect(virtualRadioBtn).toBeEnabled();
     });
 
     it('Source Tab: readOnly mode', () => {
@@ -171,11 +170,11 @@ describe('DatasourceEditor', () => {
       const physicalRadioBtn = screen.getByRole('radio', {
         name: /physical \(table or view\)/i,
       });
-      const vituralRadioBtn = screen.getByRole('radio', {
+      const virtualRadioBtn = screen.getByRole('radio', {
         name: /virtual \(sql\)/i,
       });
       expect(physicalRadioBtn).toBeDisabled();
-      expect(vituralRadioBtn).toBeDisabled();
+      expect(virtualRadioBtn).toBeDisabled();
     });
   });
 
@@ -229,5 +228,31 @@ describe('DatasourceEditor RTL', () => {
     expect(certifiedBy.value).toEqual('I am typing a new name');
     userEvent.type(certificationDetails, 'I am typing something new');
     expect(certificationDetails.value).toEqual('I am typing something new');
+  });
+  it('shows the default datetime column', async () => {
+    render(<DatasourceEditor {...props} />, { useRedux: true });
+    const metricButton = screen.getByTestId('collection-tab-Columns');
+    userEvent.click(metricButton);
+
+    const dsDefaultDatetimeRadio = screen.getByTestId('radio-default-dttm-ds');
+    expect(dsDefaultDatetimeRadio).toBeChecked();
+
+    const genderDefaultDatetimeRadio = screen.getByTestId(
+      'radio-default-dttm-gender',
+    );
+    expect(genderDefaultDatetimeRadio).not.toBeChecked();
+  });
+  it('allows choosing only temporal columns as the default datetime', async () => {
+    render(<DatasourceEditor {...props} />, { useRedux: true });
+    const metricButton = screen.getByTestId('collection-tab-Columns');
+    userEvent.click(metricButton);
+
+    const dsDefaultDatetimeRadio = screen.getByTestId('radio-default-dttm-ds');
+    expect(dsDefaultDatetimeRadio).toBeEnabled();
+
+    const genderDefaultDatetimeRadio = screen.getByTestId(
+      'radio-default-dttm-gender',
+    );
+    expect(genderDefaultDatetimeRadio).toBeDisabled();
   });
 });

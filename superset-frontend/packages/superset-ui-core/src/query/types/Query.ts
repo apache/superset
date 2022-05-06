@@ -19,9 +19,14 @@
  */
 import { DatasourceType } from './Datasource';
 import { BinaryOperator, SetOperator, UnaryOperator } from './Operator';
-import { AppliedTimeExtras, TimeRange, TimeRangeEndpoints } from './Time';
+import { AppliedTimeExtras, TimeRange } from './Time';
 import { AnnotationLayer } from './AnnotationLayer';
-import { QueryFields, QueryFormColumn, QueryFormMetric } from './QueryFormData';
+import {
+  QueryFields,
+  QueryFormColumn,
+  QueryFormData,
+  QueryFormMetric,
+} from './QueryFormData';
 import { Maybe } from '../../types';
 import { PostProcessingRule } from './PostProcessing';
 import { JsonObject } from '../../connection';
@@ -54,7 +59,6 @@ export type QueryObjectExtras = Partial<{
   relative_start?: string;
   relative_end?: string;
   time_grain_sqla?: TimeGranularity;
-  time_range_endpoints?: TimeRangeEndpoints;
   /** WHERE condition */
   where?: string;
 }>;
@@ -158,6 +162,7 @@ export interface QueryContext {
   /** Response format */
   result_format: string;
   queries: QueryObject[];
+  form_data?: QueryFormData;
 }
 
 export default {};

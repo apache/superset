@@ -20,19 +20,17 @@
 import { useSelector } from 'react-redux';
 import { filter, keyBy } from 'lodash';
 import {
-  Filters,
-  FilterSets as FilterSetsType,
-} from 'src/dashboard/reducers/types';
-import {
   DataMaskState,
   DataMaskStateWithId,
   DataMaskWithId,
-} from 'src/dataMask/types';
+  Filter,
+  Filters,
+  FilterSets as FilterSetsType,
+} from '@superset-ui/core';
 import { useContext, useEffect, useMemo, useState } from 'react';
 import { ChartsState, RootState } from 'src/dashboard/types';
 import { MigrationContext } from 'src/dashboard/containers/DashboardPage';
 import { FILTER_BOX_MIGRATION_STATES } from 'src/explore/constants';
-import { Filter } from 'src/dashboard/components/nativeFilters/types';
 import { NATIVE_FILTER_PREFIX } from '../FiltersConfigModal/utils';
 
 export const useFilterSets = () =>
@@ -44,7 +42,7 @@ export const useFilters = () => {
   const preselectedNativeFilters = useSelector<any, Filters>(
     state => state.dashboardState?.preselectNativeFilters,
   );
-  const nativeFilters = useSelector<any, Filters>(
+  const nativeFilters = useSelector<RootState, Filters>(
     state => state.nativeFilters.filters,
   );
   return useMemo(
@@ -88,7 +86,6 @@ export const useFilterUpdates = (
 ) => {
   const filters = useFilters();
   const dataMaskApplied = useNativeFiltersDataMask();
-
   useEffect(() => {
     // Remove deleted filters from local state
     Object.keys(dataMaskSelected).forEach(selectedId => {

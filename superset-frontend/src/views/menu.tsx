@@ -24,7 +24,7 @@ import ReactDOM from 'react-dom';
 import { CacheProvider } from '@emotion/react';
 import createCache from '@emotion/cache';
 import { ThemeProvider } from '@superset-ui/core';
-import Menu from 'src/components/Menu/Menu';
+import Menu from 'src/views/components/Menu';
 import { theme } from 'src/preamble';
 
 import { Provider } from 'react-redux';

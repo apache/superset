@@ -1,0 +1,26 @@
+---
+title: Dremio
+hide_title: true
+sidebar_position: 17
+version: 1
+---
+
+## Dremio
+
+The recommended connector library for Dremio is
+[sqlalchemy_dremio](https://pypi.org/project/sqlalchemy-dremio/).
+
+The expected connection string for ODBC (Default port is 31010) is formatted as follows:
+
+```
+dremio://{username}:{password}@{host}:{port}/{database_name}/dremio?SSL=1
+```
+
+The expected connection string for Arrow Flight (Dremio 4.9.1+. Default port is 32010) is formatted as follows:
+
+```
+dremio+flight://{username}:{password}@{host}:{port}/dremio
+```
+
+This [blog post by Dremio](https://www.dremio.com/tutorials/dremio-apache-superset/) has some
+additional helpful instructions on connecting Superset to Dremio.

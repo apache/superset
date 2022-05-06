@@ -17,10 +17,7 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import {
-  SupersetClientClass,
-  ClientConfig,
-} from '@superset-ui/core/src/connection';
+import { SupersetClientClass, ClientConfig, CallApi } from '@superset-ui/core';
 import { LOGIN_GLOB } from './fixtures/constants';
 
 describe('SupersetClientClass', () => {
@@ -321,13 +318,33 @@ describe('SupersetClientClass', () => {
       await client.init();
       await client.get({ url: mockGetUrl });
 
-      const fetchRequest = fetchMock.calls(mockGetUrl)[0][1];
+      const fetchRequest = fetchMock.calls(mockGetUrl)[0][1] as CallApi;
       expect(fetchRequest.mode).toBe(clientConfig.mode);
       expect(fetchRequest.credentials).toBe(clientConfig.credentials);
       expect(fetchRequest.headers).toEqual(
         expect.objectContaining(
           clientConfig.headers,
         ) as typeof fetchRequest.headers,
+      );
+    });
+
+    it('uses a guest token when provided', async () => {
+      expect.assertions(1);
+
+      const client = new SupersetClientClass({
+        protocol,
+        host,
+        guestToken: 'abc123',
+        guestTokenHeaderName: 'guestTokenHeader',
+      });
+
+      await client.init();
+      await client.get({ url: mockGetUrl });
+      const fetchRequest = fetchMock.calls(mockGetUrl)[0][1] as CallApi;
+      expect(fetchRequest.headers).toEqual(
+        expect.objectContaining({
+          guestTokenHeader: 'abc123',
+        }),
       );
     });
 
@@ -378,7 +395,7 @@ describe('SupersetClientClass', () => {
         await client.init();
         await client.get({ url: mockGetUrl, ...overrideConfig });
 
-        const fetchRequest = fetchMock.calls(mockGetUrl)[0][1];
+        const fetchRequest = fetchMock.calls(mockGetUrl)[0][1] as CallApi;
         expect(fetchRequest.mode).toBe(overrideConfig.mode);
         expect(fetchRequest.credentials).toBe(overrideConfig.credentials);
         expect(fetchRequest.headers).toEqual(
@@ -423,7 +440,7 @@ describe('SupersetClientClass', () => {
         await client.init();
         await client.post({ url: mockPostUrl, ...overrideConfig });
 
-        const fetchRequest = fetchMock.calls(mockPostUrl)[0][1];
+        const fetchRequest = fetchMock.calls(mockPostUrl)[0][1] as CallApi;
 
         expect(fetchRequest.mode).toBe(overrideConfig.mode);
         expect(fetchRequest.credentials).toBe(overrideConfig.credentials);
@@ -454,7 +471,8 @@ describe('SupersetClientClass', () => {
         await client.init();
         await client.post({ url: mockPostUrl, postPayload });
 
-        const formData = fetchMock.calls(mockPostUrl)[0][1].body as FormData;
+        const fetchRequest = fetchMock.calls(mockPostUrl)[0][1] as CallApi;
+        const formData = fetchRequest.body as FormData;
 
         expect(fetchMock.calls(mockPostUrl)).toHaveLength(1);
         Object.entries(postPayload).forEach(([key, value]) => {
@@ -470,13 +488,121 @@ describe('SupersetClientClass', () => {
         await client.init();
         await client.post({ url: mockPostUrl, postPayload, stringify: false });
 
-        const formData = fetchMock.calls(mockPostUrl)[0][1].body as FormData;
+        const fetchRequest = fetchMock.calls(mockPostUrl)[0][1] as CallApi;
+        const formData = fetchRequest.body as FormData;
 
         expect(fetchMock.calls(mockPostUrl)).toHaveLength(1);
         Object.entries(postPayload).forEach(([key, value]) => {
           expect(formData.get(key)).toBe(String(value));
         });
       });
+    });
+  });
+
+  describe('when unauthorized', () => {
+    let originalLocation: any;
+    let authSpy: jest.SpyInstance;
+    const mockRequestUrl = 'https://host/get/url';
+    const mockRequestPath = '/get/url';
+    const mockRequestSearch = '?param=1&param=2';
+    const mockHref = mockRequestUrl + mockRequestSearch;
+
+    beforeEach(() => {
+      originalLocation = window.location;
+      // @ts-ignore
+      delete window.location;
+      // @ts-ignore
+      window.location = {
+        pathname: mockRequestPath,
+        search: mockRequestSearch,
+        href: mockHref,
+      };
+      authSpy = jest
+        .spyOn(SupersetClientClass.prototype, 'ensureAuth')
+        .mockImplementation();
+      const rejectValue = { status: 401 };
+      fetchMock.get(mockRequestUrl, () => Promise.reject(rejectValue), {
+        overwriteRoutes: true,
+      });
+    });
+
+    afterEach(() => {
+      authSpy.mockReset();
+      window.location = originalLocation;
+    });
+
+    it('should redirect', async () => {
+      const client = new SupersetClientClass({});
+
+      let error;
+      try {
+        await client.request({ url: mockRequestUrl, method: 'GET' });
+      } catch (err) {
+        error = err;
+      } finally {
+        const redirectURL = window.location.href;
+        expect(redirectURL).toBe(`/login?next=${mockHref}`);
+        expect(error.status).toBe(401);
+      }
+    });
+
+    it('should not redirect again if already on login page', async () => {
+      const client = new SupersetClientClass({});
+
+      // @ts-expect-error
+      window.location = {
+        href: '/login?next=something',
+        pathname: '/login',
+        search: '?next=something',
+      };
+
+      let error;
+      try {
+        await client.request({ url: mockRequestUrl, method: 'GET' });
+      } catch (err) {
+        error = err;
+      } finally {
+        expect(window.location.href).toBe('/login?next=something');
+        expect(error.status).toBe(401);
+      }
+    });
+    it('does nothing if instructed to ignoreUnauthorized', async () => {
+      const client = new SupersetClientClass({});
+
+      let error;
+      try {
+        await client.request({
+          url: mockRequestUrl,
+          method: 'GET',
+          ignoreUnauthorized: true,
+        });
+      } catch (err) {
+        error = err;
+      } finally {
+        // unchanged href, no redirect
+        expect(window.location.href).toBe(mockHref);
+        expect(error.status).toBe(401);
+      }
+    });
+
+    it('accepts an unauthorizedHandler to override redirect behavior', async () => {
+      const unauthorizedHandler = jest.fn();
+      const client = new SupersetClientClass({ unauthorizedHandler });
+
+      let error;
+      try {
+        await client.request({
+          url: mockRequestUrl,
+          method: 'GET',
+        });
+      } catch (err) {
+        error = err;
+      } finally {
+        // unchanged href, no redirect
+        expect(window.location.href).toBe(mockHref);
+        expect(error.status).toBe(401);
+        expect(unauthorizedHandler).toHaveBeenCalledTimes(1);
+      }
     });
   });
 });

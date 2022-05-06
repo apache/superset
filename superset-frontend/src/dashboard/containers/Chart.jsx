@@ -29,7 +29,7 @@ import {
   addSuccessToast,
   addDangerToast,
 } from 'src/components/MessageToasts/actions';
-import { refreshChart } from 'src/chart/chartAction';
+import { refreshChart } from 'src/components/Chart/chartAction';
 import { logEvent } from 'src/logger/actions';
 import {
   getActiveFilters,
@@ -60,8 +60,9 @@ function mapStateToProps(
   const datasource =
     (chart && chart.form_data && datasources[chart.form_data.datasource]) ||
     PLACEHOLDER_DATASOURCE;
-  const { colorScheme, colorNamespace } = dashboardState;
+  const { colorScheme, colorNamespace, datasetsStatus } = dashboardState;
   const labelColors = dashboardInfo?.metadata?.label_colors || {};
+  const sharedLabelColors = dashboardInfo?.metadata?.shared_label_colors || {};
   // note: this method caches filters if possible to prevent render cascades
   const formData = getFormDataWithExtraFilters({
     layout: dashboardLayout.present,
@@ -77,6 +78,7 @@ function mapStateToProps(
     dataMask,
     extraControls,
     labelColors,
+    sharedLabelColors,
   });
 
   formData.dashboardId = dashboardInfo.id;
@@ -85,6 +87,7 @@ function mapStateToProps(
     chart,
     datasource,
     labelColors,
+    sharedLabelColors,
     slice: sliceEntities.slices[id],
     timeout: dashboardInfo.common.conf.SUPERSET_WEBSERVER_TIMEOUT,
     filters: getActiveFilters() || EMPTY_OBJECT,
@@ -101,6 +104,7 @@ function mapStateToProps(
     setControlValue,
     triggerRender,
     filterboxMigrationState: dashboardState.filterboxMigrationState,
+    datasetsStatus,
   };
 }
 

@@ -44,6 +44,7 @@ spec:
         checksum/extraSecrets: {{ .Values.extraSecrets | toYaml | sha256sum }}
         checksum/extraSecretEnv: {{ .Values.extraSecretEnv | toYaml | sha256sum }}
         checksum/configOverrides: {{ .Values.configOverrides | toYaml | sha256sum }}
+        checksum/configOverridesFiles: {{ .Values.configOverridesFiles | toYaml | sha256sum }}
         {{ if .Values.supersetCeleryBeat.forceReload }}
         # Optionally force the thing to reload
         force-reload: {{ randAlphaNum 5 | quote }}
@@ -54,6 +55,9 @@ spec:
       labels:
         app: {{ template "superset.name" . }}-celerybeat
         release: {{ .Release.Name }}
+      {{- if .Values.supersetCeleryBeat.podLabels }}
+        {{ toYaml .Values.supersetCeleryBeat.podLabels | nindent 8 }}
+      {{- end }}
     spec:
       securityContext:
         runAsUser: {{ .Values.runAsUser }}

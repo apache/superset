@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { ExtensibleFunction } from '@superset-ui/core/src';
+import { ExtensibleFunction } from '@superset-ui/core';
 
 describe('ExtensibleFunction', () => {
   interface Func1 {
@@ -55,7 +55,7 @@ describe('ExtensibleFunction', () => {
       // @ts-ignore
       super(function customName() {
         // @ts-ignore
-        return customName.x as unknown;
+        return customName.x;
       }); // named function
       this.x = x;
     }

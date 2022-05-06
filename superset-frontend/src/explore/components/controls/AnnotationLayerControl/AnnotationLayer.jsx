@@ -58,6 +58,7 @@ const propTypes = {
   value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   overrides: PropTypes.object,
   show: PropTypes.bool,
+  showLabel: PropTypes.bool,
   titleColumn: PropTypes.string,
   descriptionColumns: PropTypes.arrayOf(PropTypes.string),
   timeColumn: PropTypes.string,
@@ -85,6 +86,7 @@ const defaultProps = {
   overrides: {},
   colorScheme: 'd3Category10',
   show: true,
+  showLabel: false,
   titleColumn: '',
   descriptionColumns: [],
   timeColumn: '',
@@ -111,6 +113,7 @@ export default class AnnotationLayer extends React.PureComponent {
       value,
       overrides,
       show,
+      showLabel,
       titleColumn,
       descriptionColumns,
       timeColumn,
@@ -142,6 +145,7 @@ export default class AnnotationLayer extends React.PureComponent {
       value,
       overrides,
       show,
+      showLabel,
       // slice
       titleColumn,
       descriptionColumns,
@@ -323,6 +327,7 @@ export default class AnnotationLayer extends React.PureComponent {
         'value',
         'overrides',
         'show',
+        'showLabel',
         'titleColumn',
         'descriptionColumns',
         'timeColumn',
@@ -380,11 +385,13 @@ export default class AnnotationLayer extends React.PureComponent {
         description = 'Select the Annotation Layer you would like to use.';
       } else {
         label = t('Chart');
-        description = `Use a pre defined Superset Chart as a source for annotations and overlays.
-        your chart must be one of these visualization types:
-        [${this.getSupportedSourceTypes(annotationType)
-          .map(x => x.label)
-          .join(', ')}]`;
+        description = t(
+          `Use another existing chart as a source for annotations and overlays.
+          Your chart must be one of these visualization types: [%s]`,
+          this.getSupportedSourceTypes(annotationType)
+            .map(x => x.label)
+            .join(', '),
+        );
       }
     } else if (annotationType === ANNOTATION_TYPES.FORMULA) {
       label = 'Formula';
@@ -689,7 +696,8 @@ export default class AnnotationLayer extends React.PureComponent {
   }
 
   render() {
-    const { isNew, name, annotationType, sourceType, show } = this.state;
+    const { isNew, name, annotationType, sourceType, show, showLabel } =
+      this.state;
     const isValid = this.isValidForm();
     const metadata = getChartMetadataRegistry().get(this.props.vizType);
     const supportedAnnotationTypes = metadata
@@ -724,6 +732,14 @@ export default class AnnotationLayer extends React.PureComponent {
                 label={t('Hide layer')}
                 value={!show}
                 onChange={v => this.setState({ show: !v })}
+              />
+              <CheckboxControl
+                name="annotation-label-show"
+                label={t('Show label')}
+                value={showLabel}
+                hovered
+                description={t('Whether to always show the annotation label')}
+                onChange={v => this.setState({ showLabel: v })}
               />
               <SelectControl
                 ariaLabel={t('Annotation layer type')}

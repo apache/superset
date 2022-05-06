@@ -17,6 +17,7 @@
 # pylint: disable=too-many-lines
 from __future__ import annotations
 
+import inspect
 from typing import Any, Dict, Optional, TYPE_CHECKING
 
 from flask_babel import gettext as _
@@ -27,13 +28,12 @@ from marshmallow_enum import EnumField
 from superset import app
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.db_engine_specs.base import builtin_time_grains
-from superset.utils import schema as utils
+from superset.utils import pandas_postprocessing, schema as utils
 from superset.utils.core import (
     AnnotationType,
     FilterOperator,
     PostProcessingBoxplotWhiskerType,
     PostProcessingContributionOrientation,
-    TimeRangeEndpoint,
 )
 
 if TYPE_CHECKING:
@@ -210,6 +210,8 @@ class ChartPostSchema(Schema):
     certification_details = fields.String(
         description=certification_details_description, allow_none=True
     )
+    is_managed_externally = fields.Boolean(allow_none=True, default=False)
+    external_url = fields.String(allow_none=True)
 
 
 class ChartPutSchema(Schema):
@@ -251,6 +253,8 @@ class ChartPutSchema(Schema):
     certification_details = fields.String(
         description=certification_details_description, allow_none=True
     )
+    is_managed_externally = fields.Boolean(allow_none=True, default=False)
+    external_url = fields.String(allow_none=True)
 
 
 class ChartGetDatasourceObjectDataResponseSchema(Schema):
@@ -276,7 +280,8 @@ class ChartCacheScreenshotResponseSchema(Schema):
 
 class ChartDataColumnSchema(Schema):
     column_name = fields.String(
-        description="The name of the target column", example="mycol",
+        description="The name of the target column",
+        example="mycol",
     )
     type = fields.String(description="Type of target column", example="BIGINT")
 
@@ -322,7 +327,8 @@ class ChartDataAdhocMetricSchema(Schema):
         example="metric_aec60732-fac0-4b17-b736-93f1a5c93e30",
     )
     timeGrain = fields.String(
-        description="Optional time grain for temporal filters", example="PT1M",
+        description="Optional time grain for temporal filters",
+        example="PT1M",
     )
     isExtra = fields.Boolean(
         description="Indicates if the filter has been added by a filter component as "
@@ -367,7 +373,8 @@ class ChartDataAggregateOptionsSchema(ChartDataPostProcessingOperationOptionsSch
     groupby = (
         fields.List(
             fields.String(
-                allow_none=False, description="Columns by which to group by",
+                allow_none=False,
+                description="Columns by which to group by",
             ),
             minLength=1,
             required=True,
@@ -422,7 +429,9 @@ class ChartDataRollingOptionsSchema(ChartDataPostProcessingOperationOptionsSchem
         example="percentile",
     )
     window = fields.Integer(
-        description="Size of the rolling window in days.", required=True, example=7,
+        description="Size of the rolling window in days.",
+        required=True,
+        example=7,
     )
     rolling_type_options = fields.Dict(
         desctiption="Optional options to pass to rolling method. Needed for "
@@ -542,7 +551,7 @@ class ChartDataProphetOptionsSchema(ChartDataPostProcessingOperationOptionsSchem
     )
     periods = fields.Integer(
         descrption="Time periods (in units of `time_grain`) to predict into the future",
-        min=1,
+        min=0,
         example=7,
         required=True,
     )
@@ -589,7 +598,9 @@ class ChartDataBoxplotOptionsSchema(ChartDataPostProcessingOperationOptionsSchem
     """
 
     groupby = fields.List(
-        fields.String(description="Columns by which to group the query.",),
+        fields.String(
+            description="Columns by which to group the query.",
+        ),
         allow_none=True,
     )
 
@@ -598,7 +609,10 @@ class ChartDataBoxplotOptionsSchema(ChartDataPostProcessingOperationOptionsSchem
         description="Aggregate expressions. Metrics can be passed as both "
         "references to datasource metrics (strings), or ad-hoc metrics"
         "which are defined only within the query object. See "
-        "`ChartDataAdhocMetricSchema` for the structure of ad-hoc metrics.",
+        "`ChartDataAdhocMetricSchema` for the structure of ad-hoc metrics. "
+        "When metrics is undefined or null, the query is executed without a groupby. "
+        "However, when metrics is an array (length >= 0), a groupby clause is added to "
+        "the query.",
         allow_none=True,
     )
 
@@ -693,13 +707,16 @@ class ChartDataGeohashDecodeOptionsSchema(
     """
 
     geohash = fields.String(
-        description="Name of source column containing geohash string", required=True,
+        description="Name of source column containing geohash string",
+        required=True,
     )
     latitude = fields.String(
-        description="Name of target column for decoded latitude", required=True,
+        description="Name of target column for decoded latitude",
+        required=True,
     )
     longitude = fields.String(
-        description="Name of target column for decoded longitude", required=True,
+        description="Name of target column for decoded longitude",
+        required=True,
     )
 
 
@@ -711,13 +728,16 @@ class ChartDataGeohashEncodeOptionsSchema(
     """
 
     latitude = fields.String(
-        description="Name of source latitude column", required=True,
+        description="Name of source latitude column",
+        required=True,
     )
     longitude = fields.String(
-        description="Name of source longitude column", required=True,
+        description="Name of source longitude column",
+        required=True,
     )
     geohash = fields.String(
-        description="Name of target column for encoded geohash string", required=True,
+        description="Name of target column for encoded geohash string",
+        required=True,
     )
 
 
@@ -733,10 +753,12 @@ class ChartDataGeodeticParseOptionsSchema(
         required=True,
     )
     latitude = fields.String(
-        description="Name of target column for decoded latitude", required=True,
+        description="Name of target column for decoded latitude",
+        required=True,
     )
     longitude = fields.String(
-        description="Name of target column for decoded longitude", required=True,
+        description="Name of target column for decoded longitude",
+        required=True,
     )
     altitude = fields.String(
         description="Name of target column for decoded altitude. If omitted, "
@@ -749,23 +771,12 @@ class ChartDataPostProcessingOperationSchema(Schema):
         description="Post processing operation type",
         required=True,
         validate=validate.OneOf(
-            choices=(
-                "aggregate",
-                "boxplot",
-                "contribution",
-                "cum",
-                "geodetic_parse",
-                "geohash_decode",
-                "geohash_encode",
-                "pivot",
-                "prophet",
-                "rolling",
-                "select",
-                "sort",
-                "diff",
-                "compare",
-                "resample",
-            )
+            choices=[
+                name
+                for name, value in inspect.getmembers(
+                    pandas_postprocessing, inspect.isfunction
+                )
+            ]
         ),
         example="aggregate",
     )
@@ -782,7 +793,10 @@ class ChartDataPostProcessingOperationSchema(Schema):
                     "column": "age",
                     "options": {"q": 0.25},
                 },
-                "age_mean": {"operator": "mean", "column": "age",},
+                "age_mean": {
+                    "operator": "mean",
+                    "column": "age",
+                },
             },
         },
     )
@@ -809,7 +823,8 @@ class ChartDataFilterSchema(Schema):
         example=["China", "France", "Japan"],
     )
     grain = fields.String(
-        description="Optional time grain for temporal filters", example="PT1M",
+        description="Optional time grain for temporal filters",
+        example="PT1M",
     )
     isExtra = fields.Boolean(
         description="Indicates if the filter has been added by a filter component as "
@@ -819,7 +834,6 @@ class ChartDataFilterSchema(Schema):
 
 class ChartDataExtrasSchema(Schema):
 
-    time_range_endpoints = fields.List(EnumField(TimeRangeEndpoint, by_value=True))
     relative_start = fields.String(
         description="Start time for relative time deltas. "
         'Default: `config["DEFAULT_RELATIVE_START_TIME"]`',
@@ -867,7 +881,10 @@ class AnnotationLayerSchema(Schema):
         description="Type of annotation layer",
         validate=validate.OneOf(choices=[ann.value for ann in AnnotationType]),
     )
-    color = fields.String(description="Layer color", allow_none=True,)
+    color = fields.String(
+        description="Layer color",
+        allow_none=True,
+    )
     descriptionColumns = fields.List(
         fields.String(),
         description="Columns to use as the description. If none are provided, "
@@ -904,22 +921,44 @@ class AnnotationLayerSchema(Schema):
         allow_none=True,
     )
     show = fields.Boolean(description="Should the layer be shown", required=True)
+    showLabel = fields.Boolean(
+        description="Should the label always be shown",
+        allow_none=True,
+    )
     showMarkers = fields.Boolean(
         description="Should markers be shown. Only applies to line annotations.",
         required=True,
     )
     sourceType = fields.String(
         description="Type of source for annotation data",
-        validate=validate.OneOf(choices=("", "line", "NATIVE", "table",)),
+        validate=validate.OneOf(
+            choices=(
+                "",
+                "line",
+                "NATIVE",
+                "table",
+            )
+        ),
     )
     style = fields.String(
         description="Line style. Only applies to time-series annotations",
-        validate=validate.OneOf(choices=("dashed", "dotted", "solid", "longDashed",)),
+        validate=validate.OneOf(
+            choices=(
+                "dashed",
+                "dotted",
+                "solid",
+                "longDashed",
+            )
+        ),
     )
     timeColumn = fields.String(
-        description="Column with event date or interval start date", allow_none=True,
+        description="Column with event date or interval start date",
+        allow_none=True,
     )
-    titleColumn = fields.String(description="Column with title", allow_none=True,)
+    titleColumn = fields.String(
+        description="Column with title",
+        allow_none=True,
+    )
     width = fields.Float(
         description="Width of annotation line",
         validate=[
@@ -939,7 +978,10 @@ class AnnotationLayerSchema(Schema):
 
 class ChartDataDatasourceSchema(Schema):
     description = "Chart datasource"
-    id = fields.Integer(description="Datasource id", required=True,)
+    id = fields.Integer(
+        description="Datasource id",
+        required=True,
+    )
     type = fields.String(
         description="Datasource type",
         validate=validate.OneOf(choices=("druid", "table")),
@@ -1030,7 +1072,8 @@ class ChartDataQueryObjectSchema(Schema):
         allow_none=True,
     )
     is_timeseries = fields.Boolean(
-        description="Is the `query_object` a timeseries.", allow_none=True,
+        description="Is the `query_object` a timeseries.",
+        allow_none=True,
     )
     series_columns = fields.List(
         fields.Raw(),
@@ -1075,7 +1118,8 @@ class ChartDataQueryObjectSchema(Schema):
         ],
     )
     order_desc = fields.Boolean(
-        description="Reverse order. Default: `false`", allow_none=True,
+        description="Reverse order. Default: `false`",
+        allow_none=True,
     )
     extras = fields.Nested(
         ChartDataExtrasSchema,
@@ -1142,7 +1186,10 @@ class ChartDataQueryObjectSchema(Schema):
         description="Should the rowcount of the actual query be returned",
         allow_none=True,
     )
-    time_offsets = fields.List(fields.String(), allow_none=True,)
+    time_offsets = fields.List(
+        fields.String(),
+        allow_none=True,
+    )
 
 
 class ChartDataQueryContextSchema(Schema):
@@ -1156,6 +1203,8 @@ class ChartDataQueryContextSchema(Schema):
 
     result_type = EnumField(ChartDataResultType, by_value=True)
     result_format = EnumField(ChartDataResultFormat, by_value=True)
+
+    form_data = fields.Raw(allow_none=True, required=False)
 
     # pylint: disable=unused-argument
     @post_load
@@ -1179,7 +1228,9 @@ class AnnotationDataSchema(Schema):
         required=True,
     )
     records = fields.List(
-        fields.Dict(keys=fields.String(),),
+        fields.Dict(
+            keys=fields.String(),
+        ),
         description="records mapping the column name to it's value",
         required=True,
     )
@@ -1195,10 +1246,14 @@ class ChartDataResponseResult(Schema):
         allow_none=True,
     )
     cache_key = fields.String(
-        description="Unique cache key for query object", required=True, allow_none=True,
+        description="Unique cache key for query object",
+        required=True,
+        allow_none=True,
     )
     cached_dttm = fields.String(
-        description="Cache timestamp", required=True, allow_none=True,
+        description="Cache timestamp",
+        required=True,
+        allow_none=True,
     )
     cache_timeout = fields.Integer(
         description="Cache timeout in following order: custom timeout, datasource "
@@ -1206,12 +1261,19 @@ class ChartDataResponseResult(Schema):
         required=True,
         allow_none=True,
     )
-    error = fields.String(description="Error", allow_none=True,)
+    error = fields.String(
+        description="Error",
+        allow_none=True,
+    )
     is_cached = fields.Boolean(
-        description="Is the result cached", required=True, allow_none=None,
+        description="Is the result cached",
+        required=True,
+        allow_none=None,
     )
     query = fields.String(
-        description="The executed query statement", required=True, allow_none=False,
+        description="The executed query statement",
+        required=True,
+        allow_none=False,
     )
     status = fields.String(
         description="Status of the query",
@@ -1229,17 +1291,29 @@ class ChartDataResponseResult(Schema):
         allow_none=False,
     )
     stacktrace = fields.String(
-        desciption="Stacktrace if there was an error", allow_none=True,
+        desciption="Stacktrace if there was an error",
+        allow_none=True,
     )
     rowcount = fields.Integer(
-        description="Amount of rows in result set", allow_none=False,
+        description="Amount of rows in result set",
+        allow_none=False,
     )
     data = fields.List(fields.Dict(), description="A list with results")
+    colnames = fields.List(fields.String(), description="A list of column names")
+    coltypes = fields.List(
+        fields.Integer(), description="A list of generic data types of each column"
+    )
     applied_filters = fields.List(
         fields.Dict(), description="A list with applied filters"
     )
     rejected_filters = fields.List(
         fields.Dict(), description="A list with rejected filters"
+    )
+    from_dttm = fields.Integer(
+        desciption="Start timestamp of time range", required=False, allow_none=True
+    )
+    to_dttm = fields.Integer(
+        desciption="End timestamp of time range", required=False, allow_none=True
     )
 
 
@@ -1252,13 +1326,24 @@ class ChartDataResponseSchema(Schema):
 
 class ChartDataAsyncResponseSchema(Schema):
     channel_id = fields.String(
-        description="Unique session async channel ID", allow_none=False,
+        description="Unique session async channel ID",
+        allow_none=False,
     )
-    job_id = fields.String(description="Unique async job ID", allow_none=False,)
-    user_id = fields.String(description="Requesting user ID", allow_none=True,)
-    status = fields.String(description="Status value for async job", allow_none=False,)
+    job_id = fields.String(
+        description="Unique async job ID",
+        allow_none=False,
+    )
+    user_id = fields.String(
+        description="Requesting user ID",
+        allow_none=True,
+    )
+    status = fields.String(
+        description="Status value for async job",
+        allow_none=False,
+    )
     result_url = fields.String(
-        description="Unique result URL for fetching async query data", allow_none=False,
+        description="Unique result URL for fetching async query data",
+        allow_none=False,
     )
 
 
@@ -1283,6 +1368,8 @@ class ImportV1ChartSchema(Schema):
     uuid = fields.UUID(required=True)
     version = fields.String(required=True)
     dataset_uuid = fields.UUID(required=True)
+    is_managed_externally = fields.Boolean(allow_none=True, default=False)
+    external_url = fields.String(allow_none=True)
 
 
 CHART_SCHEMAS = (

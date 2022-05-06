@@ -16,13 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useMemo } from 'react';
+import React, { useContext, useMemo, useState } from 'react';
 import { styled, SupersetTheme } from '@superset-ui/core';
 import { FormItem as StyledFormItem, Form } from 'src/components/Form';
 import { Tooltip } from 'src/components/Tooltip';
 import { checkIsMissingRequiredValue } from '../utils';
 import FilterValue from './FilterValue';
 import { FilterProps } from './types';
+import { FilterCard } from '../../FilterCard';
+import { FilterBarScrollContext } from '../index';
 
 const StyledIcon = styled.div`
   position: absolute;
@@ -117,6 +119,8 @@ const FilterControl: React.FC<FilterProps> = ({
   showOverflow,
   parentRef,
 }) => {
+  const [isFilterActive, setIsFilterActive] = useState(false);
+
   const { name = '<undefined>' } = filter;
 
   const isMissingRequiredValue = checkIsMissingRequiredValue(
@@ -141,23 +145,30 @@ const FilterControl: React.FC<FilterProps> = ({
     [name, isRequired, filter.description, icon],
   );
 
+  const isScrolling = useContext(FilterBarScrollContext);
+
   return (
     <StyledFilterControlContainer layout="vertical">
-      <FormItem
-        label={label}
-        required={filter?.controlValues?.enableEmptyFilter}
-        validateStatus={isMissingRequiredValue ? 'error' : undefined}
-      >
-        <FilterValue
-          dataMaskSelected={dataMaskSelected}
-          filter={filter}
-          showOverflow={showOverflow}
-          directPathToChild={directPathToChild}
-          onFilterSelectionChange={onFilterSelectionChange}
-          inView={inView}
-          parentRef={parentRef}
-        />
-      </FormItem>
+      <FilterCard filter={filter} isVisible={!isFilterActive && !isScrolling}>
+        <div>
+          <FormItem
+            label={label}
+            required={filter?.controlValues?.enableEmptyFilter}
+            validateStatus={isMissingRequiredValue ? 'error' : undefined}
+          >
+            <FilterValue
+              dataMaskSelected={dataMaskSelected}
+              filter={filter}
+              showOverflow={showOverflow}
+              directPathToChild={directPathToChild}
+              onFilterSelectionChange={onFilterSelectionChange}
+              inView={inView}
+              parentRef={parentRef}
+              setFilterActive={setIsFilterActive}
+            />
+          </FormItem>
+        </div>
+      </FilterCard>
     </StyledFilterControlContainer>
   );
 };

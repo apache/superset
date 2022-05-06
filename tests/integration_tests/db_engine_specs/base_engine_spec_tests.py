@@ -31,12 +31,18 @@ from superset.db_engine_specs.mysql import MySQLEngineSpec
 from superset.db_engine_specs.sqlite import SqliteEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.sql_parse import ParsedQuery
-from superset.utils.core import get_example_database
+from superset.utils.database import get_example_database
 from tests.integration_tests.db_engine_specs.base_tests import TestDbEngineSpec
 from tests.integration_tests.test_app import app
 
-from ..fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
-from ..fixtures.energy_dashboard import load_energy_table_with_slice
+from ..fixtures.birth_names_dashboard import (
+    load_birth_names_dashboard_with_slices,
+    load_birth_names_data,
+)
+from ..fixtures.energy_dashboard import (
+    load_energy_table_data,
+    load_energy_table_with_slice,
+)
 from ..fixtures.pyodbcRow import Row
 
 
@@ -87,7 +93,9 @@ class TestDbEngineSpecs(TestDbEngineSpec):
 
     def test_limit_query_without_force(self):
         self.sql_limit_regex(
-            "SELECT * FROM a LIMIT 10", "SELECT * FROM a LIMIT 10", limit=11,
+            "SELECT * FROM a LIMIT 10",
+            "SELECT * FROM a LIMIT 10",
+            limit=11,
         )
 
     def test_limit_query_with_force(self):
@@ -393,7 +401,11 @@ def test_get_time_grain_with_unkown_values():
     config = app.config.copy()
 
     app.config["TIME_GRAIN_ADDON_EXPRESSIONS"] = {
-        "mysql": {"PT2H": "foo", "weird": "foo", "PT12H": "foo",}
+        "mysql": {
+            "PT2H": "foo",
+            "weird": "foo",
+            "PT12H": "foo",
+        }
     }
 
     with app.app_context():

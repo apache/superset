@@ -69,7 +69,7 @@ export enum LegendType {
   Plain = 'plain',
 }
 
-export type ProphetValue = {
+export type ForecastValue = {
   marker: TooltipMarker;
   observation?: number;
   forecastTrend?: number;
@@ -88,7 +88,7 @@ export const DEFAULT_LEGEND_FORM_DATA: EchartsLegendFormData = {
   legendMargin: null,
   legendOrientation: LegendOrientation.Top,
   legendType: LegendType.Scroll,
-  showLegend: false,
+  showLegend: true,
 };
 
 export type EventHandlers = Record<string, { (props: any): void }>;

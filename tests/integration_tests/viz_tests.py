@@ -417,7 +417,9 @@ class TestTableViz(SupersetTestCase):
                 "label": "adhoc_metric",
                 "expressionType": "SIMPLE",
                 "aggregate": "SUM",
-                "column": {"column_name": "sort_column",},
+                "column": {
+                    "column_name": "sort_column",
+                },
             }
         )
 
@@ -1067,6 +1069,13 @@ class TestTimeSeriesTableViz(SupersetTestCase):
         with self.assertRaises(Exception):
             test_viz.query_obj()
 
+    def test_query_obj_order_by(self):
+        test_viz = viz.TimeTableViz(
+            self.get_datasource_mock(), {"metrics": ["sum__A", "count"], "groupby": []}
+        )
+        query_obj = test_viz.query_obj()
+        self.assertEqual(query_obj["orderby"], [("sum__A", False)])
+
 
 class TestBaseDeckGLViz(SupersetTestCase):
     def test_get_metrics(self):
@@ -1498,13 +1507,29 @@ class TestFilterBoxViz(SupersetTestCase):
         test_viz = viz.FilterBoxViz(datasource, form_data)
         test_viz.dataframes = {
             "value1": pd.DataFrame(
-                data=[{"value1": "v1", "metric1": 1}, {"value1": "v2", "metric1": 2},]
+                data=[
+                    {"value1": "v1", "metric1": 1},
+                    {"value1": "v2", "metric1": 2},
+                ]
             ),
             "value2": pd.DataFrame(
-                data=[{"value2": "v3", "metric2": 3}, {"value2": "v4", "metric2": 4},]
+                data=[
+                    {"value2": "v3", "metric2": 3},
+                    {"value2": "v4", "metric2": 4},
+                ]
             ),
-            "value3": pd.DataFrame(data=[{"value3": "v5"}, {"value3": "v6"},]),
-            "value4": pd.DataFrame(data=[{"value4": "v7"}, {"value4": "v8"},]),
+            "value3": pd.DataFrame(
+                data=[
+                    {"value3": "v5"},
+                    {"value3": "v6"},
+                ]
+            ),
+            "value4": pd.DataFrame(
+                data=[
+                    {"value4": "v7"},
+                    {"value4": "v8"},
+                ]
+            ),
             "value5": pd.DataFrame(),
         }
 
@@ -1519,8 +1544,14 @@ class TestFilterBoxViz(SupersetTestCase):
                 {"id": "v3", "text": "v3", "metric": 3},
                 {"id": "v4", "text": "v4", "metric": 4},
             ],
-            "value3": [{"id": "v6", "text": "v6"}, {"id": "v5", "text": "v5"},],
-            "value4": [{"id": "v7", "text": "v7"}, {"id": "v8", "text": "v8"},],
+            "value3": [
+                {"id": "v6", "text": "v6"},
+                {"id": "v5", "text": "v5"},
+            ],
+            "value4": [
+                {"id": "v7", "text": "v7"},
+                {"id": "v8", "text": "v8"},
+            ],
             "value5": [],
             "value6": [],
         }

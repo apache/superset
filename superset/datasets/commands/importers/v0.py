@@ -27,16 +27,11 @@ from superset import db
 from superset.commands.base import BaseCommand
 from superset.commands.importers.exceptions import IncorrectVersionError
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
-from superset.connectors.druid.models import (
-    DruidCluster,
-    DruidColumn,
-    DruidDatasource,
-    DruidMetric,
-)
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.databases.commands.exceptions import DatabaseNotFoundError
+from superset.datasets.commands.exceptions import DatasetInvalidError
 from superset.models.core import Database
-from superset.utils.dict_import_export import DATABASES_KEY, DRUID_CLUSTERS_KEY
+from superset.utils.dict_import_export import DATABASES_KEY
 
 logger = logging.getLogger(__name__)
 
@@ -65,21 +60,6 @@ def lookup_sqla_database(table: SqlaTable) -> Optional[Database]:
     return database
 
 
-def lookup_druid_cluster(datasource: DruidDatasource) -> Optional[DruidCluster]:
-    return db.session.query(DruidCluster).filter_by(id=datasource.cluster_id).first()
-
-
-def lookup_druid_datasource(datasource: DruidDatasource) -> Optional[DruidDatasource]:
-    return (
-        db.session.query(DruidDatasource)
-        .filter(
-            DruidDatasource.datasource_name == datasource.datasource_name,
-            DruidDatasource.cluster_id == datasource.cluster_id,
-        )
-        .first()
-    )
-
-
 def import_dataset(
     i_datasource: BaseDatasource,
     database_id: Optional[int] = None,
@@ -97,9 +77,9 @@ def import_dataset(
     if isinstance(i_datasource, SqlaTable):
         lookup_database = lookup_sqla_database
         lookup_datasource = lookup_sqla_table
+
     else:
-        lookup_database = lookup_druid_cluster
-        lookup_datasource = lookup_druid_datasource
+        raise DatasetInvalidError
 
     return import_datasource(
         db.session,
@@ -122,22 +102,11 @@ def lookup_sqla_metric(session: Session, metric: SqlMetric) -> SqlMetric:
     )
 
 
-def lookup_druid_metric(session: Session, metric: DruidMetric) -> DruidMetric:
-    return (
-        session.query(DruidMetric)
-        .filter(
-            DruidMetric.datasource_id == metric.datasource_id,
-            DruidMetric.metric_name == metric.metric_name,
-        )
-        .first()
-    )
-
-
 def import_metric(session: Session, metric: BaseMetric) -> BaseMetric:
     if isinstance(metric, SqlMetric):
         lookup_metric = lookup_sqla_metric
     else:
-        lookup_metric = lookup_druid_metric
+        raise Exception(f"Invalid metric type: {metric}")
     return import_simple_obj(session, metric, lookup_metric)
 
 
@@ -152,22 +121,11 @@ def lookup_sqla_column(session: Session, column: TableColumn) -> TableColumn:
     )
 
 
-def lookup_druid_column(session: Session, column: DruidColumn) -> DruidColumn:
-    return (
-        session.query(DruidColumn)
-        .filter(
-            DruidColumn.datasource_id == column.datasource_id,
-            DruidColumn.column_name == column.column_name,
-        )
-        .first()
-    )
-
-
 def import_column(session: Session, column: BaseColumn) -> BaseColumn:
     if isinstance(column, TableColumn):
         lookup_column = lookup_sqla_column
     else:
-        lookup_column = lookup_druid_column
+        raise Exception(f"Invalid column type: {column}")
     return import_simple_obj(session, column, lookup_column)
 
 
@@ -257,19 +215,13 @@ def import_simple_obj(
 def import_from_dict(
     session: Session, data: Dict[str, Any], sync: Optional[List[str]] = None
 ) -> None:
-    """Imports databases and druid clusters from dictionary"""
+    """Imports databases from dictionary"""
     if not sync:
         sync = []
     if isinstance(data, dict):
         logger.info("Importing %d %s", len(data.get(DATABASES_KEY, [])), DATABASES_KEY)
         for database in data.get(DATABASES_KEY, []):
             Database.import_from_dict(session, database, sync=sync)
-
-        logger.info(
-            "Importing %d %s", len(data.get(DRUID_CLUSTERS_KEY, [])), DRUID_CLUSTERS_KEY
-        )
-        for datasource in data.get(DRUID_CLUSTERS_KEY, []):
-            DruidCluster.import_from_dict(session, datasource, sync=sync)
         session.commit()
     else:
         logger.info("Supplied object is not a dictionary.")
@@ -285,7 +237,10 @@ class ImportDatasetsCommand(BaseCommand):
 
     # pylint: disable=unused-argument
     def __init__(
-        self, contents: Dict[str, str], *args: Any, **kwargs: Any,
+        self,
+        contents: Dict[str, str],
+        *args: Any,
+        **kwargs: Any,
     ):
         self.contents = contents
         self._configs: Dict[str, Any] = {}
@@ -331,7 +286,7 @@ class ImportDatasetsCommand(BaseCommand):
             # CLI export
             if isinstance(config, dict):
                 # TODO (betodealmeida): validate with Marshmallow
-                if DATABASES_KEY not in config and DRUID_CLUSTERS_KEY not in config:
+                if DATABASES_KEY not in config:
                     raise IncorrectVersionError(f"{file_name} has no valid keys")
 
             # UI export

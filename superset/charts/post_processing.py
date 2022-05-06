@@ -18,7 +18,7 @@
 Functions to reproduce the post-processing of data on text charts.
 
 Some text-based charts (pivot tables and t-test table) perform
-post-processing of the data in Javascript. When sending the data
+post-processing of the data in JavaScript. When sending the data
 to users in reports we want to show the same data they would see
 on Explore.
 
@@ -32,7 +32,12 @@ from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
 import pandas as pd
 
 from superset.common.chart_data import ChartDataResultFormat
-from superset.utils.core import DTTM_ALIAS, extract_dataframe_dtypes, get_metric_name
+from superset.utils.core import (
+    DTTM_ALIAS,
+    extract_dataframe_dtypes,
+    get_column_names,
+    get_metric_names,
+)
 
 if TYPE_CHECKING:
     from superset.connectors.base.models import BaseDatasource
@@ -79,6 +84,8 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
 
     # pivot data; we'll compute totals and subtotals later
     if rows or columns:
+        # pivoting with null values will create an empty df
+        df = df.fillna("NULL")
         df = df.pivot_table(
             index=rows,
             columns=columns,
@@ -94,7 +101,10 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
     # if no rows were passed the metrics will be in the rows, so we
     # need to move them back to columns
     if columns and not rows:
-        df = df.stack().to_frame().T
+        df = df.stack()
+        if not isinstance(df, pd.DataFrame):
+            df = df.to_frame()
+        df = df.T
         df = df[metrics]
         df.index = pd.Index([*df.index[:-1], metric_name], name="metric")
 
@@ -209,18 +219,23 @@ pivot_v2_aggfunc_map = {
 }
 
 
-def pivot_table_v2(df: pd.DataFrame, form_data: Dict[str, Any]) -> pd.DataFrame:
+def pivot_table_v2(
+    df: pd.DataFrame,
+    form_data: Dict[str, Any],
+    datasource: Optional["BaseDatasource"] = None,
+) -> pd.DataFrame:
     """
     Pivot table v2.
     """
+    verbose_map = datasource.data["verbose_map"] if datasource else None
     if form_data.get("granularity_sqla") == "all" and DTTM_ALIAS in df:
         del df[DTTM_ALIAS]
 
     return pivot_df(
         df,
-        rows=form_data.get("groupbyRows") or [],
-        columns=form_data.get("groupbyColumns") or [],
-        metrics=[get_metric_name(m) for m in form_data["metrics"]],
+        rows=get_column_names(form_data.get("groupbyRows"), verbose_map),
+        columns=get_column_names(form_data.get("groupbyColumns"), verbose_map),
+        metrics=get_metric_names(form_data["metrics"], verbose_map),
         aggfunc=form_data.get("aggregateFunction", "Sum"),
         transpose_pivot=bool(form_data.get("transposePivot")),
         combine_metrics=bool(form_data.get("combineMetric")),
@@ -230,10 +245,15 @@ def pivot_table_v2(df: pd.DataFrame, form_data: Dict[str, Any]) -> pd.DataFrame:
     )
 
 
-def pivot_table(df: pd.DataFrame, form_data: Dict[str, Any]) -> pd.DataFrame:
+def pivot_table(
+    df: pd.DataFrame,
+    form_data: Dict[str, Any],
+    datasource: Optional["BaseDatasource"] = None,
+) -> pd.DataFrame:
     """
     Pivot table (v1).
     """
+    verbose_map = datasource.data["verbose_map"] if datasource else None
     if form_data.get("granularity") == "all" and DTTM_ALIAS in df:
         del df[DTTM_ALIAS]
 
@@ -249,9 +269,9 @@ def pivot_table(df: pd.DataFrame, form_data: Dict[str, Any]) -> pd.DataFrame:
 
     return pivot_df(
         df,
-        rows=form_data.get("groupby") or [],
-        columns=form_data.get("columns") or [],
-        metrics=[get_metric_name(m) for m in form_data["metrics"]],
+        rows=get_column_names(form_data.get("groupby"), verbose_map),
+        columns=get_column_names(form_data.get("columns"), verbose_map),
+        metrics=get_metric_names(form_data["metrics"], verbose_map),
         aggfunc=func_map.get(form_data.get("pandas_aggfunc", "sum"), "Sum"),
         transpose_pivot=bool(form_data.get("transpose_pivot")),
         combine_metrics=bool(form_data.get("combine_metric")),
@@ -261,7 +281,11 @@ def pivot_table(df: pd.DataFrame, form_data: Dict[str, Any]) -> pd.DataFrame:
     )
 
 
-def table(df: pd.DataFrame, form_data: Dict[str, Any]) -> pd.DataFrame:
+def table(
+    df: pd.DataFrame,
+    form_data: Dict[str, Any],
+    datasource: Optional["BaseDatasource"] = None,  # pylint: disable=unused-argument
+) -> pd.DataFrame:
     """
     Table.
     """
@@ -307,7 +331,7 @@ def apply_post_process(
         else:
             raise Exception(f"Result format {query['result_format']} not supported")
 
-        processed_df = post_processor(df, form_data)
+        processed_df = post_processor(df, form_data, datasource)
 
         query["colnames"] = list(processed_df.columns)
         query["indexnames"] = list(processed_df.index)

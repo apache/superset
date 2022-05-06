@@ -16,12 +16,14 @@
 # under the License.
 """ Superset utilities for pandas.DataFrame.
 """
-import warnings
+import logging
 from typing import Any, Dict, List
 
 import pandas as pd
 
 from superset.utils.core import JS_MAX_INTEGER
+
+logger = logging.getLogger(__name__)
 
 
 def _convert_big_integers(val: Any) -> Any:
@@ -43,10 +45,8 @@ def df_to_records(dframe: pd.DataFrame) -> List[Dict[str, Any]]:
     :returns: a list of dictionaries reflecting each single row of the DataFrame
     """
     if not dframe.columns.is_unique:
-        warnings.warn(
-            "DataFrame columns are not unique, some columns will be omitted.",
-            UserWarning,
-            stacklevel=2,
+        logger.warning(
+            "DataFrame columns are not unique, some columns will be omitted."
         )
     columns = dframe.columns
     return list(

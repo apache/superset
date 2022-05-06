@@ -18,7 +18,7 @@
  * under the License.
  */
 import React, { ReactNode, ReactText, ReactElement } from 'react';
-import {
+import type {
   AdhocColumn,
   Column,
   DatasourceType,
@@ -29,9 +29,9 @@ import {
 import { sharedControls } from './shared-controls';
 import sharedControlComponents from './shared-controls/components';
 
-export { Metric } from '@superset-ui/core';
-export { ControlFormItemSpec } from './components/ControlForm';
-export { ControlComponentProps } from './shared-controls/components/types';
+export type { Metric } from '@superset-ui/core';
+export type { ControlFormItemSpec } from './components/ControlForm';
+export type { ControlComponentProps } from './shared-controls/components/types';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyDict = Record<string, any>;
@@ -171,6 +171,8 @@ export type TabOverride = 'data' | 'customize' | boolean;
  *    bubbled up to the control header, section header and query panel header.
  * - warning: text shown as a tooltip on a warning icon in the control's header
  * - error: text shown as a tooltip on a error icon in the control's header
+ * - shouldMapStateToProps: a function that receives the previous and current app state
+ *   and determines if the control needs to recalculate it's props based on the new state.
  * - mapStateToProps: a function that receives the App's state and return an object of k/v
  *    to overwrite configuration at runtime. This is useful to alter a component based on
  *    anything external to it, like another control's value. For instance it's possible to
@@ -198,13 +200,23 @@ export interface BaseControlConfig<
   /**
    * Add additional props to chart control.
    */
+  shouldMapStateToProps?: (
+    prevState: ControlPanelState,
+    state: ControlPanelState,
+    controlState: ControlState,
+    // TODO: add strict `chartState` typing (see superset-frontend/src/explore/types)
+    chartState?: AnyDict,
+  ) => boolean;
   mapStateToProps?: (
     state: ControlPanelState,
     controlState: ControlState,
     // TODO: add strict `chartState` typing (see superset-frontend/src/explore/types)
     chartState?: AnyDict,
   ) => ExtraControlProps;
-  visibility?: (props: ControlPanelsContainerProps) => boolean;
+  visibility?: (
+    props: ControlPanelsContainerProps,
+    controlData: AnyDict,
+  ) => boolean;
 }
 
 export interface ControlValueValidator<
@@ -229,7 +241,7 @@ export type SelectControlType =
   | 'FilterBoxItemControl';
 
 // via react-select/src/filters
-interface FilterOption<T extends SelectOption> {
+export interface FilterOption<T extends SelectOption> {
   label: string;
   value: string;
   data: T;

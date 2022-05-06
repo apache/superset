@@ -97,17 +97,13 @@ describe('Dashboard edit action', () => {
       .get('[data-test="dashboard-title-input"]')
       .type(`{selectall}{backspace}${dashboardTitle}`);
 
-    cy.wait('@dashboardGet').then(() => {
-      selectColorScheme('d3Category20b');
-    });
-
     // save edit changes
     cy.get('.ant-modal-footer')
       .contains('Apply')
       .click()
       .then(() => {
         // assert that modal edit window has closed
-        cy.get('.ant-modal-body').should('not.exist');
+        cy.get('.ant-modal-body').should('not.be.visible');
 
         // assert title has been updated
         cy.get('.editable-title input').should('have.value', dashboardTitle);

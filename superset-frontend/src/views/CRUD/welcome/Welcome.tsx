@@ -22,8 +22,11 @@ import Collapse from 'src/components/Collapse';
 import { User } from 'src/types/bootstrapTypes';
 import { reject } from 'lodash';
 import {
-  getFromLocalStorage,
-  setInLocalStorage,
+  getItem,
+  dangerouslyGetItemDoNotUse,
+  setItem,
+  dangerouslySetItemDoNotUse,
+  LocalStorageKeys,
 } from 'src/utils/localStorageHelpers';
 import ListViewCard from 'src/components/ListViewCard';
 import withToasts from 'src/components/MessageToasts/withToasts';
@@ -35,12 +38,8 @@ import {
   getUserOwnedObjects,
   loadingCardCount,
 } from 'src/views/CRUD/utils';
-import {
-  HOMEPAGE_ACTIVITY_FILTER,
-  HOMEPAGE_COLLAPSE_STATE,
-} from 'src/views/CRUD/storageKeys';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
-import { Switch } from 'src/common/components';
+import { AntdSwitch } from 'src/components';
 
 import ActivityTable from './ActivityTable';
 import ChartTable from './ChartTable';
@@ -114,39 +113,48 @@ const WelcomeContainer = styled.div`
 `;
 
 const WelcomeNav = styled.div`
-  height: 50px;
-  background-color: white;
-  .navbar-brand {
-    margin-left: ${({ theme }) => theme.gridUnit * 2}px;
-    font-weight: ${({ theme }) => theme.typography.weights.bold};
-  }
-  .switch {
-    float: right;
-    margin: ${({ theme }) => theme.gridUnit * 5}px;
+  ${({ theme }) => `
     display: flex;
-    flex-direction: row;
-    span {
-      display: block;
-      margin: ${({ theme }) => theme.gridUnit * 1}px;
-      line-height: 1;
+    justify-content: space-between;
+    height: 50px;
+    background-color: ${theme.colors.grayscale.light5};
+    .welcome-header {
+      font-size: ${theme.typography.sizes.l}px;
+      padding: ${theme.gridUnit * 4}px ${theme.gridUnit * 2 + 2}px;
+      margin: 0 ${theme.gridUnit * 2}px;
     }
-  }
+    .switch {
+      display: flex;
+      flex-direction: row;
+      margin: ${theme.gridUnit * 4}px;
+      span {
+        display: block;
+        margin: ${theme.gridUnit * 1}px;
+        line-height: 1;
+      }
+    }
+  `}
 `;
 
 export const LoadingCards = ({ cover }: LoadingProps) => (
   <CardContainer showThumbnails={cover} className="loading-cards">
-    {[...new Array(loadingCardCount)].map(() => (
-      <ListViewCard cover={cover ? false : <></>} description="" loading />
+    {[...new Array(loadingCardCount)].map((_, index) => (
+      <ListViewCard
+        key={index}
+        cover={cover ? false : <></>}
+        description=""
+        loading
+      />
     ))}
   </CardContainer>
 );
 
 function Welcome({ user, addDangerToast }: WelcomeProps) {
   const userid = user.userId;
-  const id = userid.toString();
+  const id = userid!.toString(); // confident that user is not a guest user
   const recent = `/superset/recent_activity/${user.userId}/?limit=6`;
   const [activeChild, setActiveChild] = useState('Loading');
-  const userKey = getFromLocalStorage(id, null);
+  const userKey = dangerouslyGetItemDoNotUse(id, null);
   let defaultChecked = false;
   if (isFeatureEnabled(FeatureFlag.THUMBNAILS)) {
     defaultChecked =
@@ -161,18 +169,18 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
   );
   const [loadedCount, setLoadedCount] = useState(0);
 
-  const collapseState = getFromLocalStorage(HOMEPAGE_COLLAPSE_STATE, null);
+  const collapseState = getItem(LocalStorageKeys.homepage_collapse_state, []);
   const [activeState, setActiveState] = useState<Array<string>>(collapseState);
 
   const handleCollapse = (state: Array<string>) => {
     setActiveState(state);
-    setInLocalStorage(HOMEPAGE_COLLAPSE_STATE, state);
+    setItem(LocalStorageKeys.homepage_collapse_state, state);
   };
 
   useEffect(() => {
-    const activeTab = getFromLocalStorage(HOMEPAGE_ACTIVITY_FILTER, null);
-    setActiveState(collapseState || DEFAULT_TAB_ARR);
-    getRecentAcitivtyObjs(user.userId, recent, addDangerToast)
+    const activeTab = getItem(LocalStorageKeys.homepage_activity_filter, null);
+    setActiveState(collapseState.length > 0 ? collapseState : DEFAULT_TAB_ARR);
+    getRecentAcitivtyObjs(user.userId!, recent, addDangerToast)
       .then(res => {
         const data: ActivityData | null = {};
         data.Examples = res.examples;
@@ -183,7 +191,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
             setActiveChild('Viewed');
           } else if (!activeTab && !data.Viewed) {
             setActiveChild('Created');
-          } else setActiveChild(activeTab);
+          } else setActiveChild(activeTab || 'Created');
         } else if (!activeTab) setActiveChild('Created');
         else setActiveChild(activeTab);
         setActivityData(activityData => ({ ...activityData, ...data }));
@@ -198,7 +206,13 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
       );
 
     // Sets other activity data in parallel with recents api call
-
+    const ownSavedQueryFilters = [
+      {
+        col: 'created_by',
+        opr: 'rel_o_m',
+        value: `${id}`,
+      },
+    ];
     getUserOwnedObjects(id, 'dashboard')
       .then(r => {
         setDashboardData(r);
@@ -208,7 +222,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
         setDashboardData([]);
         setLoadedCount(loadedCount => loadedCount + 1);
         addDangerToast(
-          t('There was an issues fetching your dashboards: %s', err),
+          t('There was an issue fetching your dashboards: %s', err),
         );
       });
     getUserOwnedObjects(id, 'chart')
@@ -219,9 +233,9 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
       .catch((err: unknown) => {
         setChartData([]);
         setLoadedCount(loadedCount => loadedCount + 1);
-        addDangerToast(t('There was an issues fetching your chart: %s', err));
+        addDangerToast(t('There was an issue fetching your chart: %s', err));
       });
-    getUserOwnedObjects(id, 'saved_query')
+    getUserOwnedObjects(id, 'saved_query', ownSavedQueryFilters)
       .then(r => {
         setQueryData(r);
         setLoadedCount(loadedCount => loadedCount + 1);
@@ -237,7 +251,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
 
   const handleToggle = () => {
     setChecked(!checked);
-    setInLocalStorage(id, { thumbnails: !checked });
+    dangerouslySetItemDoNotUse(id, { thumbnails: !checked });
   };
 
   useEffect(() => {
@@ -265,10 +279,10 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
   return (
     <WelcomeContainer>
       <WelcomeNav>
-        <span className="navbar-brand">Home</span>
+        <h1 className="welcome-header">Home</h1>
         {isFeatureEnabled(FeatureFlag.THUMBNAILS) ? (
           <div className="switch">
-            <Switch checked={checked} onChange={handleToggle} />
+            <AntdSwitch checked={checked} onChange={handleToggle} />
             <span>Thumbnails</span>
           </div>
         ) : null}
@@ -281,7 +295,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
             activityData.Created) &&
           activeChild !== 'Loading' ? (
             <ActivityTable
-              user={user}
+              user={{ userId: user.userId! }} // user is definitely not a guest user on this page
               activeChild={activeChild}
               setActiveChild={setActiveChild}
               activityData={activityData}

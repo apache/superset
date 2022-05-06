@@ -22,11 +22,11 @@ import {
   getNumberFormatterRegistry,
   getNumberFormatter,
   formatNumber,
-} from '@superset-ui/core/src';
+} from '@superset-ui/core';
 
 describe('NumberFormatterRegistrySingleton', () => {
   describe('getNumberFormatterRegistry()', () => {
-    it('returns a NumberFormatterRegisry', () => {
+    it('returns a NumberFormatterRegistry', () => {
       expect(getNumberFormatterRegistry()).toBeInstanceOf(
         NumberFormatterRegistry,
       );

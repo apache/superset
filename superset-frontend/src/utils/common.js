@@ -20,10 +20,12 @@ import {
   SupersetClient,
   getTimeFormatter,
   TimeFormats,
+  ensureIsArray,
 } from '@superset-ui/core';
 
 // ATTENTION: If you change any constants, make sure to also change constants.py
 
+export const EMPTY_STRING = '<empty string>';
 export const NULL_STRING = '<NULL>';
 export const TRUE_STRING = 'TRUE';
 export const FALSE_STRING = 'FALSE';
@@ -61,7 +63,7 @@ export function optionLabel(opt) {
     return NULL_STRING;
   }
   if (opt === '') {
-    return '<empty string>';
+    return EMPTY_STRING;
   }
   if (opt === true) {
     return '<true>';
@@ -106,18 +108,24 @@ export function prepareCopyToClipboardTabularData(data, columns) {
   return result;
 }
 
-export function applyFormattingToTabularData(data) {
-  if (!data || data.length === 0 || !('__timestamp' in data[0])) {
+export function applyFormattingToTabularData(data, timeFormattedColumns) {
+  if (
+    !data ||
+    data.length === 0 ||
+    ensureIsArray(timeFormattedColumns).length === 0
+  ) {
     return data;
   }
+
   return data.map(row => ({
     ...row,
     /* eslint-disable no-underscore-dangle */
-    __timestamp:
-      row.__timestamp === 0 || row.__timestamp
-        ? DATETIME_FORMATTER(new Date(row.__timestamp))
-        : row.__timestamp,
-    /* eslint-enable no-underscore-dangle */
+    ...timeFormattedColumns.reduce((acc, colName) => {
+      if (row[colName] !== null && row[colName] !== undefined) {
+        acc[colName] = DATETIME_FORMATTER(row[colName]);
+      }
+      return acc;
+    }, {}),
   }));
 }
 
@@ -136,3 +144,5 @@ export const detectOS = () => {
 
   return 'Unknown OS';
 };
+
+export const isNullish = value => value === null || value === undefined;

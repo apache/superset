@@ -18,15 +18,15 @@
  */
 import React from 'react';
 import { styled, useTheme } from '@superset-ui/core';
-import { AntdCard, Skeleton, ThinSkeleton } from 'src/common/components';
+import { Skeleton, AntdCard } from 'src/components';
 import { Tooltip } from 'src/components/Tooltip';
 import ImageLoader, { BackgroundPosition } from './ImageLoader';
-import CertifiedIcon from '../CertifiedIcon';
+import CertifiedBadge from '../CertifiedBadge';
 
 const ActionsWrapper = styled.div`
   width: 64px;
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
 `;
 
 const StyledCard = styled(AntdCard)`
@@ -134,6 +134,16 @@ const CoverFooterRight = styled.div`
   max-width: 200px;
   overflow: hidden;
   text-overflow: ellipsis;
+`;
+
+const ThinSkeleton = styled(Skeleton)`
+  h3 {
+    margin: ${({ theme }) => theme.gridUnit}px 0;
+  }
+
+  ul {
+    margin-bottom: 0;
+  }
 `;
 
 const paragraphConfig = { rows: 1, width: 150 };
@@ -257,7 +267,7 @@ function ListViewCard({
                   <Link to={url!}>
                     {certifiedBy && (
                       <>
-                        <CertifiedIcon
+                        <CertifiedBadge
                           certifiedBy={certifiedBy}
                           details={certificationDetails}
                         />{' '}

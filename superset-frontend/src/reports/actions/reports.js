@@ -19,7 +19,6 @@
 /* eslint camelcase: 0 */
 import { t, SupersetClient } from '@superset-ui/core';
 import rison from 'rison';
-import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import {
   addDangerToast,
   addSuccessToast,
@@ -105,41 +104,21 @@ export const addReport = report => dispatch =>
   SupersetClient.post({
     endpoint: `/api/v1/report/`,
     jsonPayload: report,
-  })
-    .then(({ json }) => {
-      dispatch({ type: ADD_REPORT, json });
-      dispatch(addSuccessToast(t('The report has been created')));
-    })
-    .catch(async e => {
-      const parsedError = await getClientErrorObject(e);
-      const errorMessage = parsedError.message;
-      const errorArr = Object.keys(errorMessage);
-      const error = errorMessage[errorArr[0]];
-      dispatch(
-        addDangerToast(
-          t('An error occurred while editing this report: %s', error),
-        ),
-      );
-    });
+  }).then(({ json }) => {
+    dispatch({ type: ADD_REPORT, json });
+    dispatch(addSuccessToast(t('The report has been created')));
+  });
 
 export const EDIT_REPORT = 'EDIT_REPORT';
 
-export function editReport(id, report) {
-  return function (dispatch) {
-    SupersetClient.put({
-      endpoint: `/api/v1/report/${id}`,
-      jsonPayload: report,
-    })
-      .then(({ json }) => {
-        dispatch({ type: EDIT_REPORT, json });
-      })
-      .catch(() =>
-        dispatch(
-          addDangerToast(t('An error occurred while editing this report.')),
-        ),
-      );
-  };
-}
+export const editReport = (id, report) => dispatch =>
+  SupersetClient.put({
+    endpoint: `/api/v1/report/${id}`,
+    jsonPayload: report,
+  }).then(({ json }) => {
+    dispatch({ type: EDIT_REPORT, json });
+    dispatch(addSuccessToast(t('Report updated')));
+  });
 
 export function toggleActive(report, isActive) {
   return function toggleActiveThunk(dispatch) {

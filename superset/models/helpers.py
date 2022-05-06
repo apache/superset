@@ -29,6 +29,7 @@ import pytz
 import sqlalchemy as sa
 import yaml
 from flask import escape, g, Markup
+from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
 from flask_appbuilder.models.mixins import AuditMixin
 from flask_appbuilder.security.sqla.models import User
@@ -220,7 +221,7 @@ class ImportExportMixin:
         if not obj:
             is_new_obj = True
             # Create new DB object
-            obj = cls(**dict_rep)  # type: ignore
+            obj = cls(**dict_rep)
             logger.info("Importing new %s %s", obj.__tablename__, str(obj))
             if cls.export_parent and parent:
                 setattr(obj, cls.export_parent, parent)
@@ -341,7 +342,7 @@ class ImportExportMixin:
         self.params = json.dumps(params)
 
     def reset_ownership(self) -> None:
-        """ object will belong to the user the current user """
+        """object will belong to the user the current user"""
         # make sure the object doesn't have relations to a user
         # it will be filled by appbuilder on save
         self.created_by = None
@@ -419,6 +420,10 @@ class AuditMixinNullable(AuditMixin):
     def changed_on_delta_humanized(self) -> str:
         return self.changed_on_humanized
 
+    @renders("created_on")
+    def created_on_delta_humanized(self) -> str:
+        return self.created_on_humanized
+
     @renders("changed_on")
     def changed_on_utc(self) -> str:
         # Convert naive datetime to UTC
@@ -427,6 +432,10 @@ class AuditMixinNullable(AuditMixin):
     @property
     def changed_on_humanized(self) -> str:
         return humanize.naturaltime(datetime.now() - self.changed_on)
+
+    @property
+    def created_on_humanized(self) -> str:
+        return humanize.naturaltime(datetime.now() - self.created_on)
 
     @renders("changed_on")
     def modified(self) -> Markup:
@@ -446,6 +455,8 @@ class QueryResult:  # pylint: disable=too-few-public-methods
         status: str = QueryStatus.SUCCESS,
         error_message: Optional[str] = None,
         errors: Optional[List[Dict[str, Any]]] = None,
+        from_dttm: Optional[datetime] = None,
+        to_dttm: Optional[datetime] = None,
     ) -> None:
         self.df = df
         self.query = query
@@ -454,6 +465,8 @@ class QueryResult:  # pylint: disable=too-few-public-methods
         self.status = status
         self.error_message = error_message
         self.errors = errors or []
+        self.from_dttm = from_dttm
+        self.to_dttm = to_dttm
 
 
 class ExtraJSONMixin:
@@ -464,7 +477,7 @@ class ExtraJSONMixin:
     @property
     def extra(self) -> Dict[str, Any]:
         try:
-            return json.loads(self.extra_json)
+            return json.loads(self.extra_json) if self.extra_json else {}
         except (TypeError, JSONDecodeError) as exc:
             logger.error(
                 "Unable to load an extra json: %r. Leaving empty.", exc, exc_info=True
@@ -506,3 +519,27 @@ class CertificationMixin:
     @property
     def warning_markdown(self) -> Optional[str]:
         return self.get_extra_dict().get("warning_markdown")
+
+
+def clone_model(
+    target: Model,
+    ignore: Optional[List[str]] = None,
+    keep_relations: Optional[List[str]] = None,
+    **kwargs: Any,
+) -> Model:
+    """
+    Clone a SQLAlchemy model. By default will only clone naive column attributes.
+    To include relationship attributes, use `keep_relations`.
+    """
+    ignore = ignore or []
+
+    table = target.__table__
+    primary_keys = table.primary_key.columns.keys()
+    data = {
+        attr: getattr(target, attr)
+        for attr in list(table.columns.keys()) + (keep_relations or [])
+        if attr not in primary_keys and attr not in ignore
+    }
+    data.update(kwargs)
+
+    return target.__class__(**data)

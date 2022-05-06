@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { legacyValidateInteger } from '@superset-ui/core/src';
+import { legacyValidateInteger } from '@superset-ui/core';
 import './setup';
 
 describe('legacyValidateInteger()', () => {

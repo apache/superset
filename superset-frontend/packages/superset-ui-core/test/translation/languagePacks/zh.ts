@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { LanguagePack } from '@superset-ui/core/src/translation';
+import { LanguagePack } from '@superset-ui/core';
 
 const languagePack: LanguagePack = {
   domain: 'superset',

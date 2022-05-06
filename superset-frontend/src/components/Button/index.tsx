@@ -20,11 +20,22 @@ import React, { CSSProperties, Children, ReactElement } from 'react';
 import { kebabCase } from 'lodash';
 import { mix } from 'polished';
 import cx from 'classnames';
-import { Button as AntdButton } from 'antd';
+import { AntdButton } from 'src/components';
 import { useTheme } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
 
 export type OnClickHandler = React.MouseEventHandler<HTMLElement>;
+
+export type ButtonStyle =
+  | 'primary'
+  | 'secondary'
+  | 'tertiary'
+  | 'success'
+  | 'warning'
+  | 'danger'
+  | 'default'
+  | 'link'
+  | 'dashed';
 
 export interface ButtonProps {
   id?: string;
@@ -45,17 +56,9 @@ export interface ButtonProps {
     | 'rightTop'
     | 'rightBottom';
   onClick?: OnClickHandler;
+  onMouseDown?: OnClickHandler;
   disabled?: boolean;
-  buttonStyle?:
-    | 'primary'
-    | 'secondary'
-    | 'tertiary'
-    | 'success'
-    | 'warning'
-    | 'danger'
-    | 'default'
-    | 'link'
-    | 'dashed';
+  buttonStyle?: ButtonStyle;
   buttonSize?: 'default' | 'small' | 'xsmall';
   style?: CSSProperties;
   children?: React.ReactNode;
@@ -64,6 +67,14 @@ export interface ButtonProps {
   cta?: boolean;
   loading?: boolean | { delay?: number | undefined } | undefined;
   showMarginRight?: boolean;
+  type?:
+    | 'default'
+    | 'text'
+    | 'link'
+    | 'primary'
+    | 'dashed'
+    | 'ghost'
+    | undefined;
 }
 
 export default function Button(props: ButtonProps) {
@@ -200,14 +211,17 @@ export default function Button(props: ButtonProps) {
         },
         '&[disabled], &[disabled]:hover': {
           color: grayscale.base,
-          backgroundColor: backgroundColorDisabled,
-          borderColor: borderColorDisabled,
+          backgroundColor:
+            buttonStyle === 'link' ? 'transparent' : backgroundColorDisabled,
+          borderColor:
+            buttonStyle === 'link' ? 'transparent' : borderColorDisabled,
+          pointerEvents: 'none',
         },
         marginLeft: 0,
         '& + .superset-button': {
           marginLeft: theme.gridUnit * 2,
         },
-        '& :first-of-type': {
+        '& > :first-of-type': {
           marginRight: firstChildMargin,
         },
       }}
@@ -224,9 +238,22 @@ export default function Button(props: ButtonProps) {
         id={`${kebabCase(tooltip)}-tooltip`}
         title={tooltip}
       >
-        {/* this ternary wraps the button in a span so that the tooltip shows up
-        when the button is disabled.  */}
-        {disabled ? <span>{button}</span> : button}
+        {/* wrap the button in a span so that the tooltip shows up
+        when the button is disabled. */}
+        {disabled ? (
+          <span
+            css={{
+              cursor: 'not-allowed',
+              '& > .superset-button': {
+                marginLeft: theme.gridUnit * 2,
+              },
+            }}
+          >
+            {button}
+          </span>
+        ) : (
+          button
+        )}
       </Tooltip>
     );
   }

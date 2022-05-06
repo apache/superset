@@ -43,7 +43,7 @@ export default {
 };
 
 export const InteractiveModalTrigger = (args: IModalTriggerProps) => (
-  <ModalTrigger triggerNode={<span>Click me</span>} {...args} />
+  <ModalTrigger {...args} triggerNode={<span>Click me</span>} />
 );
 
 InteractiveModalTrigger.args = {

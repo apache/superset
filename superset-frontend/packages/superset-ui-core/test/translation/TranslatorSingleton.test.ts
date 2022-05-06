@@ -19,13 +19,8 @@
 
 /* eslint no-console: 0 */
 import mockConsole from 'jest-mock-console';
-import Translator from '@superset-ui/core/src/translation/Translator';
-import {
-  configure,
-  resetTranslation,
-  t,
-  tn,
-} from '@superset-ui/core/src/translation/TranslatorSingleton';
+import { configure, resetTranslation, t, tn } from '@superset-ui/core';
+import Translator from '../../src/translation/Translator';
 
 import languagePackEn from './languagePacks/en';
 import languagePackZh from './languagePacks/zh';
@@ -75,5 +70,17 @@ describe('TranslatorSingleton', () => {
         expect(tn('ox', 'oxen', 2)).toEqual('oxen');
       });
     });
+  });
+  it('should be reset translation setting', () => {
+    configure();
+    expect(t('second')).toEqual('second');
+
+    resetTranslation();
+    const restoreConsole = mockConsole();
+    expect(t('second')).toEqual('second');
+    resetTranslation();
+    expect(t('second')).toEqual('second');
+    expect(console.warn).toBeCalledTimes(2);
+    restoreConsole();
   });
 });

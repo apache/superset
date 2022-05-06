@@ -62,15 +62,6 @@ export const datasourceAndVizType: ControlPanelSectionConfig = {
           description: t('Extra parameters for use in jinja templated queries'),
         },
       },
-      {
-        name: 'time_range_endpoints',
-        config: {
-          type: 'HiddenControl',
-          label: t('Time range endpoints'),
-          hidden: true,
-          description: t('Time range endpoints (SIP-15)'),
-        },
-      },
     ],
   ],
 };
@@ -117,16 +108,8 @@ export const NVD3TimeSeries: ControlPanelSectionConfig[] = [
       ['adhoc_filters'],
       ['groupby'],
       ['limit', 'timeseries_limit_metric'],
+      ['order_desc'],
       [
-        {
-          name: 'order_desc',
-          config: {
-            type: 'CheckboxControl',
-            label: t('Sort descending'),
-            default: true,
-            description: t('Whether to sort descending or ascending'),
-          },
-        },
         {
           name: 'contribution',
           config: {
@@ -149,7 +132,7 @@ export const NVD3TimeSeries: ControlPanelSectionConfig[] = [
         'of query results',
     ),
     controlSetRows: [
-      [<h1 className="section-header">{t('Rolling window')}</h1>],
+      [<div className="section-header">{t('Rolling window')}</div>],
       [
         {
           name: 'rolling_type',
@@ -198,7 +181,7 @@ export const NVD3TimeSeries: ControlPanelSectionConfig[] = [
           },
         },
       ],
-      [<h1 className="section-header">{t('Time comparison')}</h1>],
+      [<div className="section-header">{t('Time comparison')}</div>],
       [
         {
           name: 'time_compare',
@@ -216,6 +199,8 @@ export const NVD3TimeSeries: ControlPanelSectionConfig[] = [
               '1 year',
               '104 weeks',
               '2 years',
+              '156 weeks',
+              '3 years',
             ]),
             description: t(
               'Overlay one or more timeseries from a ' +
@@ -245,9 +230,7 @@ export const NVD3TimeSeries: ControlPanelSectionConfig[] = [
           },
         },
       ],
-      [<h1 className="section-header">{t('Python functions')}</h1>],
-      // eslint-disable-next-line jsx-a11y/heading-has-content
-      [<h2 className="section-header">pandas.resample</h2>],
+      [<div className="section-header">{t('Resample')}</div>],
       [
         {
           name: 'resample_rule',

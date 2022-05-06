@@ -31,8 +31,6 @@
   "dependencies": {
     "@data-ui/theme": "^0.0.84",
     "@data-ui/xy-chart": "^0.0.84",
-    "@superset-ui/chart-controls": "0.18.25",
-    "@superset-ui/core": "0.18.25",
     "@vx/axis": "^0.0.198",
     "@vx/legend": "^0.0.198",
     "@vx/scale": "^0.0.197",
@@ -42,6 +40,8 @@
     "reselect": "^4.0.0"
   },
   "peerDependencies": {
+    "@superset-ui/chart-controls": "*",
+    "@superset-ui/core": "*",
     "react": "^16.2"
   }
 }

@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ComponentType, FunctionComponent, ReactElement } from 'react';
+import React, {
+  ComponentType,
+  FunctionComponent,
+  ReactElement,
+  forwardRef,
+} from 'react';
 import Select, {
   Props as SelectProps,
   OptionTypeBase,
@@ -71,5 +76,5 @@ export default function windowed<OptionType extends OptionTypeBase>(
     const components = { ...components_, MenuList };
     return <SelectComponent components={components} ref={ref} {...restProps} />;
   }
-  return React.forwardRef(WindowedSelect);
+  return forwardRef(WindowedSelect);
 }

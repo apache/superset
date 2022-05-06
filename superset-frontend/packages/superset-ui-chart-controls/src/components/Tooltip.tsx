@@ -20,10 +20,10 @@
 import React from 'react';
 import { useTheme, css } from '@superset-ui/core';
 import { Tooltip as BaseTooltip } from 'antd';
-import { TooltipProps } from 'antd/lib/tooltip';
+import type { TooltipProps } from 'antd/lib/tooltip';
 import { Global } from '@emotion/react';
 
-export { TooltipProps } from 'antd/lib/tooltip';
+export type { TooltipProps } from 'antd/lib/tooltip';
 
 export const Tooltip = ({ overlayStyle, color, ...props }: TooltipProps) => {
   const theme = useTheme();
@@ -46,9 +46,17 @@ export const Tooltip = ({ overlayStyle, color, ...props }: TooltipProps) => {
         overlayStyle={{
           fontSize: theme.typography.sizes.s,
           lineHeight: '1.6',
+          maxWidth: theme.gridUnit * 62,
+          minWidth: theme.gridUnit * 30,
           ...overlayStyle,
         }}
+        // make the tooltip display closer to the label
+        align={{ offset: [0, 1] }}
         color={defaultColor || color}
+        trigger="hover"
+        placement="bottom"
+        // don't allow hovering over the tooltip
+        mouseLeaveDelay={0}
         {...props}
       />
     </>

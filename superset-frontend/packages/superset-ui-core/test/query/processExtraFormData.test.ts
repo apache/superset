@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { overrideExtraFormData } from '@superset-ui/core/src/query/processExtraFormData';
+import { overrideExtraFormData } from '../../src/query/processExtraFormData';
 
 describe('overrideExtraFormData', () => {
   it('should assign allowed non-existent value', () => {
@@ -94,7 +94,7 @@ describe('overrideExtraFormData', () => {
             time_grain_sqla: 'PT1H',
           },
         },
-        { time_grain_sqla: 'PT2H' },
+        { time_grain_sqla: 'P1D' },
       ),
     ).toEqual({
       granularity: 'something',
@@ -102,7 +102,7 @@ describe('overrideExtraFormData', () => {
       datasource: 'table_1',
       time_range: '100 years ago',
       extras: {
-        time_grain_sqla: 'PT2H',
+        time_grain_sqla: 'P1D',
       },
     });
   });

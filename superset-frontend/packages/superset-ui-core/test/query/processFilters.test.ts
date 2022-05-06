@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import processFilters from '@superset-ui/core/src/query/processFilters';
+import processFilters from '../../src/query/processFilters';
 
 describe('processFilters', () => {
   it('should handle non-array adhoc_filters', () => {
@@ -132,12 +132,12 @@ describe('processFilters', () => {
           {
             expressionType: 'SQL',
             clause: 'WHERE',
-            sqlExpression: 'tea = "jasmine"',
+            sqlExpression: "tea = 'jasmine'",
           },
           {
             expressionType: 'SQL',
             clause: 'WHERE',
-            sqlExpression: 'cup = "large"',
+            sqlExpression: "cup = 'large' -- comment",
           },
           {
             expressionType: 'SQL',
@@ -147,13 +147,13 @@ describe('processFilters', () => {
           {
             expressionType: 'SQL',
             clause: 'HAVING',
-            sqlExpression: 'waitTime <= 180',
+            sqlExpression: 'waitTime <= 180 -- comment',
           },
         ],
       }),
     ).toEqual({
       extras: {
-        having: '(ice = 25 OR ice = 50) AND (waitTime <= 180)',
+        having: '(ice = 25 OR ice = 50) AND (waitTime <= 180 -- comment\n)',
         having_druid: [
           {
             col: 'sweetness',
@@ -166,7 +166,7 @@ describe('processFilters', () => {
             val: '50',
           },
         ],
-        where: '(tea = "jasmine") AND (cup = "large")',
+        where: "(tea = 'jasmine') AND (cup = 'large' -- comment\n)",
       },
       filters: [
         {

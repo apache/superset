@@ -19,10 +19,10 @@ import inspect
 from flask import Markup
 from flask_babel import lazy_gettext as _
 from sqlalchemy import MetaData
-from sqlalchemy.engine.url import make_url
 
 from superset import app, security_manager
 from superset.databases.filters import DatabaseFilter
+from superset.databases.utils import make_url_safe
 from superset.exceptions import SupersetException
 from superset.models.core import Database
 from superset.security.analytics_db_safety import check_sqlalchemy_uri
@@ -145,7 +145,10 @@ class DatabaseMixin:
             "4. the ``version`` field is a string specifying the this db's version. "
             "This should be used with Presto DBs so that the syntax is correct<br/>"
             "5. The ``allows_virtual_table_explore`` field is a boolean specifying "
-            "whether or not the Explore button in SQL Lab results is shown.",
+            "whether or not the Explore button in SQL Lab results is shown<br/>"
+            "6. The ``disable_data_preview`` field is a boolean specifying whether or"
+            "not data preview queries will be run when fetching table metadata in"
+            "SQL Lab.",
             True,
         ),
         "encrypted_extra": utils.markdown(
@@ -206,7 +209,7 @@ class DatabaseMixin:
 
     def _pre_add_update(self, database: Database) -> None:
         if app.config["PREVENT_UNSAFE_DB_CONNECTIONS"]:
-            check_sqlalchemy_uri(make_url(database.sqlalchemy_uri))
+            check_sqlalchemy_uri(make_url_safe(database.sqlalchemy_uri))
         self.check_extra(database)
         self.check_encrypted_extra(database)
         if database.server_cert:

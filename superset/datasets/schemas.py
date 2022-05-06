@@ -14,11 +14,16 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import json
 import re
+from typing import Any, Dict
 
 from flask_babel import lazy_gettext as _
-from marshmallow import fields, Schema, ValidationError
+from marshmallow import fields, pre_load, Schema, ValidationError
 from marshmallow.validate import Length
+from marshmallow_sqlalchemy import SQLAlchemyAutoSchema
+
+from superset.datasets.models import Dataset
 
 get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
 get_export_ids_schema = {"type": "array", "items": {"type": "integer"}}
@@ -42,11 +47,11 @@ def validate_python_date_format(value: str) -> None:
 class DatasetColumnsPutSchema(Schema):
     id = fields.Integer()
     column_name = fields.String(required=True, validate=Length(1, 255))
-    type = fields.String(validate=Length(1, 32))
+    type = fields.String(allow_none=True)
     verbose_name = fields.String(allow_none=True, Length=(1, 1024))
     description = fields.String(allow_none=True)
     expression = fields.String(allow_none=True)
-    extra = fields.Dict(allow_none=True)
+    extra = fields.String(allow_none=True)
     filterable = fields.Boolean()
     groupby = fields.Boolean()
     is_active = fields.Boolean()
@@ -54,17 +59,20 @@ class DatasetColumnsPutSchema(Schema):
     python_date_format = fields.String(
         allow_none=True, validate=[Length(1, 255), validate_python_date_format]
     )
-    uuid = fields.String(allow_none=True)
+    uuid = fields.UUID(allow_none=True)
 
 
 class DatasetMetricsPutSchema(Schema):
     id = fields.Integer()
     expression = fields.String(required=True)
     description = fields.String(allow_none=True)
+    extra = fields.String(allow_none=True)
     metric_name = fields.String(required=True, validate=Length(1, 255))
     metric_type = fields.String(allow_none=True, validate=Length(1, 32))
     d3format = fields.String(allow_none=True, validate=Length(1, 128))
+    verbose_name = fields.String(allow_none=True, Length=(1, 1024))
     warning_text = fields.String(allow_none=True)
+    uuid = fields.UUID(allow_none=True)
 
 
 class DatasetPostSchema(Schema):
@@ -72,6 +80,8 @@ class DatasetPostSchema(Schema):
     schema = fields.String(validate=Length(0, 250))
     table_name = fields.String(required=True, allow_none=False, validate=Length(1, 250))
     owners = fields.List(fields.Integer())
+    is_managed_externally = fields.Boolean(allow_none=True, default=False)
+    external_url = fields.String(allow_none=True)
 
 
 class DatasetPutSchema(Schema):
@@ -92,6 +102,8 @@ class DatasetPutSchema(Schema):
     columns = fields.List(fields.Nested(DatasetColumnsPutSchema))
     metrics = fields.List(fields.Nested(DatasetMetricsPutSchema))
     extra = fields.String(allow_none=True)
+    is_managed_externally = fields.Boolean(allow_none=True, default=False)
+    external_url = fields.String(allow_none=True)
 
 
 class DatasetRelatedChart(Schema):
@@ -127,6 +139,17 @@ class DatasetRelatedObjectsResponse(Schema):
 
 
 class ImportV1ColumnSchema(Schema):
+    # pylint: disable=no-self-use, unused-argument
+    @pre_load
+    def fix_extra(self, data: Dict[str, Any], **kwargs: Any) -> Dict[str, Any]:
+        """
+        Fix for extra initially beeing exported as a string.
+        """
+        if isinstance(data.get("extra"), str):
+            data["extra"] = json.loads(data["extra"])
+
+        return data
+
     column_name = fields.String(required=True)
     extra = fields.Dict(allow_none=True)
     verbose_name = fields.String(allow_none=True)
@@ -141,6 +164,17 @@ class ImportV1ColumnSchema(Schema):
 
 
 class ImportV1MetricSchema(Schema):
+    # pylint: disable=no-self-use, unused-argument
+    @pre_load
+    def fix_extra(self, data: Dict[str, Any], **kwargs: Any) -> Dict[str, Any]:
+        """
+        Fix for extra initially beeing exported as a string.
+        """
+        if isinstance(data.get("extra"), str):
+            data["extra"] = json.loads(data["extra"])
+
+        return data
+
     metric_name = fields.String(required=True)
     verbose_name = fields.String(allow_none=True)
     metric_type = fields.String(allow_none=True)
@@ -152,6 +186,17 @@ class ImportV1MetricSchema(Schema):
 
 
 class ImportV1DatasetSchema(Schema):
+    # pylint: disable=no-self-use, unused-argument
+    @pre_load
+    def fix_extra(self, data: Dict[str, Any], **kwargs: Any) -> Dict[str, Any]:
+        """
+        Fix for extra initially beeing exported as a string.
+        """
+        if isinstance(data.get("extra"), str):
+            data["extra"] = json.loads(data["extra"])
+
+        return data
+
     table_name = fields.String(required=True)
     main_dttm_col = fields.String(allow_none=True)
     description = fields.String(allow_none=True)
@@ -164,10 +209,23 @@ class ImportV1DatasetSchema(Schema):
     template_params = fields.Dict(allow_none=True)
     filter_select_enabled = fields.Boolean()
     fetch_values_predicate = fields.String(allow_none=True)
-    extra = fields.String(allow_none=True)
+    extra = fields.Dict(allow_none=True)
     uuid = fields.UUID(required=True)
     columns = fields.List(fields.Nested(ImportV1ColumnSchema))
     metrics = fields.List(fields.Nested(ImportV1MetricSchema))
     version = fields.String(required=True)
     database_uuid = fields.UUID(required=True)
     data = fields.URL()
+    is_managed_externally = fields.Boolean(allow_none=True, default=False)
+    external_url = fields.String(allow_none=True)
+
+
+class DatasetSchema(SQLAlchemyAutoSchema):
+    """
+    Schema for the ``Dataset`` model.
+    """
+
+    class Meta:  # pylint: disable=too-few-public-methods
+        model = Dataset
+        load_instance = True
+        include_relationships = True

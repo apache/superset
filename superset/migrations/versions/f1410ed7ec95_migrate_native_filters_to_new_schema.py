@@ -71,7 +71,7 @@ def downgrade_filters(native_filters: Iterable[Dict[str, Any]]) -> int:
         filter_state = default_data_mask.get("filterState")
         if filter_state is not None:
             changed_filters += 1
-            value = filter_state["value"]
+            value = filter_state.get("value")
             native_filter["defaultValue"] = value
     return changed_filters
 

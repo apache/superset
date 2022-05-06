@@ -18,7 +18,6 @@
  */
 
 import React from 'react';
-import { QueryFormData, DatasourceType } from '@superset-ui/core';
 import {
   ChartPlugin,
   ChartMetadata,
@@ -30,7 +29,10 @@ import {
   getChartTransformPropsRegistry,
   getChartBuildQueryRegistry,
   getChartControlPanelRegistry,
-} from '@superset-ui/core/src/chart';
+  QueryFormData,
+  DatasourceType,
+  supersetTheme,
+} from '@superset-ui/core';
 
 describe('ChartPlugin', () => {
   const FakeChart = () => <span>test</span>;
@@ -129,6 +131,7 @@ describe('ChartPlugin', () => {
         width: 400,
         height: 400,
         queriesData: [{}],
+        theme: supersetTheme,
       });
       it('defaults to identity function', () => {
         const plugin = new ChartPlugin({

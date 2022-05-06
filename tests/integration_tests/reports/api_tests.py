@@ -31,21 +31,22 @@ from superset.models.slice import Slice
 from superset.models.dashboard import Dashboard
 from superset.models.reports import (
     ReportSchedule,
-    ReportCreationMethodType,
+    ReportCreationMethod,
     ReportRecipients,
     ReportExecutionLog,
     ReportScheduleType,
     ReportRecipientType,
     ReportState,
 )
-from superset.utils.core import get_example_database
+from superset.utils.database import get_example_database
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
+    load_birth_names_data,
 )
+from tests.integration_tests.fixtures.tabbed_dashboard import tabbed_dashboard
 from tests.integration_tests.reports.utils import insert_report_schedule
-
 
 REPORTS_COUNT = 10
 
@@ -431,7 +432,7 @@ class TestReportSchedulesApi(SupersetTestCase):
         ReportSchedule Api: Test get releated report schedule
         """
         self.login(username="admin")
-        related_columns = ["owners", "chart", "dashboard", "database"]
+        related_columns = ["created_by", "chart", "dashboard", "database"]
         for related_column in related_columns:
             uri = f"api/v1/report/related/{related_column}"
             rv = self.client.get(uri)
@@ -451,7 +452,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             "name": "new3",
             "description": "description",
             "crontab": "0 9 * * *",
-            "creation_method": ReportCreationMethodType.ALERTS_REPORTS,
+            "creation_method": ReportCreationMethod.ALERTS_REPORTS,
             "recipients": [
                 {
                     "type": ReportRecipientType.EMAIL,
@@ -498,7 +499,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             "type": ReportScheduleType.ALERT,
             "name": "name3",
             "description": "description",
-            "creation_method": ReportCreationMethodType.ALERTS_REPORTS,
+            "creation_method": ReportCreationMethod.ALERTS_REPORTS,
             "crontab": "0 9 * * *",
             "chart": chart.id,
             "database": example_db.id,
@@ -507,7 +508,7 @@ class TestReportSchedulesApi(SupersetTestCase):
         rv = self.client.post(uri, json=report_schedule_data)
         assert rv.status_code == 422
         data = json.loads(rv.data.decode("utf-8"))
-        assert data == {"message": {"name": ["Name must be unique"]}}
+        assert data == {"message": {"name": ['An alert named "name3" already exists']}}
 
         # Check that uniqueness is composed by name and type
         report_schedule_data = {
@@ -515,7 +516,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             "name": "name3",
             "description": "description",
             "crontab": "0 9 * * *",
-            "creation_method": ReportCreationMethodType.ALERTS_REPORTS,
+            "creation_method": ReportCreationMethod.ALERTS_REPORTS,
             "chart": chart.id,
         }
         uri = "api/v1/report/"
@@ -545,7 +546,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             "type": ReportScheduleType.REPORT,
             "name": "name3",
             "description": "description",
-            "creation_method": ReportCreationMethodType.ALERTS_REPORTS,
+            "creation_method": ReportCreationMethod.ALERTS_REPORTS,
             "crontab": "0 9 * * *",
             "chart": chart.id,
             "database": example_db.id,
@@ -559,7 +560,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             "type": ReportScheduleType.ALERT,
             "name": "new3",
             "description": "description",
-            "creation_method": ReportCreationMethodType.ALERTS_REPORTS,
+            "creation_method": ReportCreationMethod.ALERTS_REPORTS,
             "crontab": "0 9 * * *",
             "recipients": [
                 {
@@ -584,7 +585,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             "type": ReportScheduleType.ALERT,
             "name": "new3",
             "description": "description",
-            "creation_method": ReportCreationMethodType.ALERTS_REPORTS,
+            "creation_method": ReportCreationMethod.ALERTS_REPORTS,
             "crontab": "0 9 * * *",
             "recipients": [
                 {
@@ -608,7 +609,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             "type": ReportScheduleType.ALERT,
             "name": "new3",
             "description": "description",
-            "creation_method": ReportCreationMethodType.ALERTS_REPORTS,
+            "creation_method": ReportCreationMethod.ALERTS_REPORTS,
             "crontab": "0 9 * * *",
             "recipients": [
                 {
@@ -634,7 +635,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             "type": ReportScheduleType.ALERT,
             "name": "new4",
             "description": "description",
-            "creation_method": ReportCreationMethodType.ALERTS_REPORTS,
+            "creation_method": ReportCreationMethod.ALERTS_REPORTS,
             "crontab": "0 9 * * *",
             "recipients": [
                 {
@@ -660,7 +661,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             "type": ReportScheduleType.ALERT,
             "name": "new5",
             "description": "description",
-            "creation_method": ReportCreationMethodType.ALERTS_REPORTS,
+            "creation_method": ReportCreationMethod.ALERTS_REPORTS,
             "crontab": "0 9 * * *",
             "recipients": [
                 {
@@ -686,7 +687,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             "type": ReportScheduleType.ALERT,
             "name": "new5",
             "description": "description",
-            "creation_method": ReportCreationMethodType.ALERTS_REPORTS,
+            "creation_method": ReportCreationMethod.ALERTS_REPORTS,
             "crontab": "0 9 * * *",
             "recipients": [
                 {
@@ -713,7 +714,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             "type": ReportScheduleType.ALERT,
             "name": "new5",
             "description": "description",
-            "creation_method": ReportCreationMethodType.ALERTS_REPORTS,
+            "creation_method": ReportCreationMethod.ALERTS_REPORTS,
             "crontab": "0 9 * * *",
             "recipients": [
                 {
@@ -744,7 +745,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             "type": ReportScheduleType.ALERT,
             "name": "new6",
             "description": "description",
-            "creation_method": ReportCreationMethodType.ALERTS_REPORTS,
+            "creation_method": ReportCreationMethod.ALERTS_REPORTS,
             "crontab": "0 9 * * *",
             "recipients": [
                 {
@@ -783,7 +784,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             "type": ReportScheduleType.REPORT,
             "name": "name3",
             "description": "description",
-            "creation_method": ReportCreationMethodType.CHARTS,
+            "creation_method": ReportCreationMethod.CHARTS,
             "crontab": "0 9 * * *",
             "chart": 0,
         }
@@ -811,7 +812,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             "type": ReportScheduleType.REPORT,
             "name": "name3",
             "description": "description",
-            "creation_method": ReportCreationMethodType.DASHBOARDS,
+            "creation_method": ReportCreationMethod.DASHBOARDS,
             "crontab": "0 9 * * *",
         }
         uri = "api/v1/report/"
@@ -838,7 +839,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             "type": ReportScheduleType.REPORT,
             "name": "name4",
             "description": "description",
-            "creation_method": ReportCreationMethodType.CHARTS,
+            "creation_method": ReportCreationMethod.CHARTS,
             "crontab": "0 9 * * *",
             "working_timeout": 3600,
             "chart": chart.id,
@@ -854,7 +855,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             "type": ReportScheduleType.REPORT,
             "name": "name5",
             "description": "description",
-            "creation_method": ReportCreationMethodType.CHARTS,
+            "creation_method": ReportCreationMethod.CHARTS,
             "crontab": "0 9 * * *",
             "working_timeout": 3600,
             "chart": chart.id,
@@ -896,7 +897,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             "type": ReportScheduleType.REPORT,
             "name": "name4",
             "description": "description",
-            "creation_method": ReportCreationMethodType.DASHBOARDS,
+            "creation_method": ReportCreationMethod.DASHBOARDS,
             "crontab": "0 9 * * *",
             "working_timeout": 3600,
             "dashboard": dashboard.id,
@@ -912,7 +913,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             "type": ReportScheduleType.REPORT,
             "name": "name5",
             "description": "description",
-            "creation_method": ReportCreationMethodType.DASHBOARDS,
+            "creation_method": ReportCreationMethod.DASHBOARDS,
             "crontab": "0 9 * * *",
             "working_timeout": 3600,
             "dashboard": dashboard.id,
@@ -955,7 +956,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             "name": "new3",
             "description": "description",
             "crontab": "0 9 * * *",
-            "creation_method": ReportCreationMethodType.ALERTS_REPORTS,
+            "creation_method": ReportCreationMethod.ALERTS_REPORTS,
             "chart": chart.id,
             "dashboard": dashboard.id,
             "database": example_db.id,
@@ -979,7 +980,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             "type": ReportScheduleType.ALERT,
             "name": "new3",
             "description": "description",
-            "creation_method": ReportCreationMethodType.ALERTS_REPORTS,
+            "creation_method": ReportCreationMethod.ALERTS_REPORTS,
             "crontab": "0 9 * * *",
             "chart": chart.id,
         }
@@ -1005,7 +1006,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             "type": ReportScheduleType.ALERT,
             "name": "new3",
             "description": "description",
-            "creation_method": ReportCreationMethodType.ALERTS_REPORTS,
+            "creation_method": ReportCreationMethod.ALERTS_REPORTS,
             "crontab": "0 9 * * *",
             "chart": chart_max_id + 1,
             "database": database_max_id + 1,
@@ -1028,7 +1029,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             "name": "new3",
             "description": "description",
             "crontab": "0 9 * * *",
-            "creation_method": ReportCreationMethodType.ALERTS_REPORTS,
+            "creation_method": ReportCreationMethod.ALERTS_REPORTS,
             "dashboard": dashboard_max_id + 1,
             "database": examples_db.id,
         }
@@ -1196,7 +1197,7 @@ class TestReportSchedulesApi(SupersetTestCase):
         rv = self.client.put(uri, json=report_schedule_data)
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 422
-        assert data == {"message": {"name": ["Name must be unique"]}}
+        assert data == {"message": {"name": ['An alert named "name3" already exists']}}
 
     @pytest.mark.usefixtures("create_report_schedules")
     def test_update_report_schedule_not_found(self):
@@ -1525,3 +1526,80 @@ class TestReportSchedulesApi(SupersetTestCase):
         assert rv.status_code == 405
         rv = self.client.delete(uri)
         assert rv.status_code == 405
+
+    @pytest.mark.usefixtures("create_report_schedules")
+    @pytest.mark.usefixtures("tabbed_dashboard")
+    def test_when_invalid_tab_ids_are_given_it_raises_bad_request(self):
+        """
+        when tab ids are specified in the extra argument, make sure that the
+        tab ids are valid.
+        """
+        self.login(username="admin")
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.slug == "tabbed-dash-test")
+            .first()
+        )
+        example_db = get_example_database()
+        report_schedule_data = {
+            "type": ReportScheduleType.ALERT,
+            "name": "new3",
+            "description": "description",
+            "crontab": "0 9 * * *",
+            "creation_method": ReportCreationMethod.ALERTS_REPORTS,
+            "recipients": [
+                {
+                    "type": ReportRecipientType.EMAIL,
+                    "recipient_config_json": {"target": "target@superset.org"},
+                },
+            ],
+            "grace_period": 14400,
+            "working_timeout": 3600,
+            "chart": None,
+            "dashboard": dashboard.id,
+            "database": example_db.id,
+            "extra": {"dashboard_tab_ids": ["INVALID-TAB-ID-1", "TABS-IpViLohnyP"]},
+        }
+        response = self.client.post("api/v1/report/", json=report_schedule_data)
+        assert response.status_code == 422
+        assert response.json == {
+            "message": {"extra": ["Invalid tab IDs selected: ['INVALID-TAB-ID-1']"]}
+        }
+
+    @pytest.mark.usefixtures("create_report_schedules")
+    @pytest.mark.usefixtures("tabbed_dashboard")
+    def test_when_tab_ids_are_given_it_gets_added_to_extra(self):
+        self.login(username="admin")
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.slug == "tabbed-dash-test")
+            .first()
+        )
+        example_db = get_example_database()
+        report_schedule_data = {
+            "type": ReportScheduleType.ALERT,
+            "name": "new3",
+            "description": "description",
+            "crontab": "0 9 * * *",
+            "creation_method": ReportCreationMethod.ALERTS_REPORTS,
+            "recipients": [
+                {
+                    "type": ReportRecipientType.EMAIL,
+                    "recipient_config_json": {"target": "target@superset.org"},
+                },
+            ],
+            "grace_period": 14400,
+            "working_timeout": 3600,
+            "chart": None,
+            "dashboard": dashboard.id,
+            "database": example_db.id,
+            "extra": {"dashboard_tab_ids": ["TABS-IpViLohnyP"]},
+        }
+        response = self.client.post("api/v1/report/", json=report_schedule_data)
+        assert response.status_code == 201
+        assert json.loads(
+            db.session.query(ReportSchedule)
+            .filter(ReportSchedule.id == response.json["id"])
+            .first()
+            .extra
+        ) == {"dashboard_tab_ids": ["TABS-IpViLohnyP"]}

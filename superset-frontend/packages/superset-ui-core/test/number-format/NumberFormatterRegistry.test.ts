@@ -21,7 +21,7 @@ import {
   NumberFormats,
   NumberFormatter,
   NumberFormatterRegistry,
-} from '@superset-ui/core/src';
+} from '@superset-ui/core';
 
 describe('NumberFormatterRegistry', () => {
   let registry: NumberFormatterRegistry;

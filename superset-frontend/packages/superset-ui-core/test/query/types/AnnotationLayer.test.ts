@@ -35,7 +35,7 @@ import {
   TableAnnotationLayer,
   TimeseriesAnnotationLayer,
   TimeseriesAnnotationResult,
-} from '@superset-ui/core/src/query/types/AnnotationLayer';
+} from '@superset-ui/core';
 
 describe('AnnotationLayer type guards', () => {
   const formulaAnnotationLayer: FormulaAnnotationLayer = {
