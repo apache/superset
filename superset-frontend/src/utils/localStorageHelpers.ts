@@ -31,6 +31,7 @@ export enum LocalStorageKeys {
    * and therefore should be done in a major release.
    */
   filter_box_transition_snoozed_at = 'filter_box_transition_snoozed_at',
+  db = 'db',
   chart_split_sizes = 'chart_split_sizes',
   controls_width = 'controls_width',
   datasource_width = 'datasource_width',

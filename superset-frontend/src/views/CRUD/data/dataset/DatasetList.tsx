@@ -22,6 +22,7 @@ import React, {
   useState,
   useMemo,
   useCallback,
+  useEffect,
 } from 'react';
 import rison from 'rison';
 import {
@@ -29,6 +30,7 @@ import {
   createFetchDistinct,
   createErrorHandler,
 } from 'src/views/CRUD/utils';
+import { getItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import { ColumnObject } from 'src/views/CRUD/data/dataset/types';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
@@ -178,6 +180,12 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
 
   const initialSort = SORT_BY;
 
+  useEffect(() => {
+    const db = getItem(LocalStorageKeys.db, null);
+    if (db) {
+      setDatasetAddModalOpen(true);
+    }
+  }, []);
   const openDatasetEditModal = useCallback(
     ({ id }: Dataset) => {
       SupersetClient.get({

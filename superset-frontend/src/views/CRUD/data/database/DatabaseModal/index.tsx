@@ -30,6 +30,7 @@ import React, {
   useReducer,
   Reducer,
 } from 'react';
+import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import { UploadChangeParam, UploadFile } from 'antd/lib/upload/interface';
 import Tabs from 'src/components/Tabs';
 import { AntdSelect, Upload } from 'src/components';
@@ -1085,6 +1086,25 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     return <></>;
   };
 
+  const renderCTABtns = () => (
+    <>
+      <Button
+        // eslint-disable-next-line no-return-assign
+        onClick={() => {
+          setLoading(true);
+          fetchResource(dbFetched?.id as number).then(r => {
+            setItem(LocalStorageKeys.db, r);
+          });
+          window.location.href = '/tablemodelview/list';
+        }}
+      >
+        {' '}
+        {t('CREATE A DATASET')}{' '}
+      </Button>
+      <Button> {t('GO TO SQL LAB')} </Button>
+    </>
+  );
+
   const renderFinishState = () => {
     if (!editNewDb) {
       return (
@@ -1417,6 +1437,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             dbModel={dbModel}
             editNewDb={editNewDb}
           />
+          {renderCTABtns()}
           {renderFinishState()}
         </>
       ) : (
