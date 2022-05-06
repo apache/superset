@@ -23,6 +23,7 @@ import React, {
   HTMLProps,
   MutableRefObject,
   CSSProperties,
+  memo,
 } from 'react';
 import {
   useTable,
@@ -74,7 +75,7 @@ const sortTypes = {
 };
 
 // Be sure to pass our updateMyData and the skipReset option
-export default function DataTable<D extends object>({
+export default memo(function DataTable<D extends object>({
   tableClassName,
   columns,
   data,
@@ -124,7 +125,7 @@ export default function DataTable<D extends object>({
   const defaultGetTableSize = useCallback(() => {
     if (wrapperRef.current) {
       // `initialWidth` and `initialHeight` could be also parameters like `100%`
-      // `Number` reaturns `NaN` on them, then we fallback to computed size
+      // `Number` returns `NaN` on them, then we fallback to computed size
       const width = Number(initialWidth) || wrapperRef.current.clientWidth;
       const height =
         (Number(initialHeight) || wrapperRef.current.clientHeight) -
@@ -287,7 +288,7 @@ export default function DataTable<D extends object>({
   let resultCurrentPage = pageIndex;
   let resultOnPageChange: (page: number) => void = gotoPage;
   if (serverPagination) {
-    const serverPageSize = serverPaginationData.pageSize ?? initialPageSize;
+    const serverPageSize = serverPaginationData?.pageSize ?? initialPageSize;
     resultPageCount = Math.ceil(rowCount / serverPageSize);
     if (!Number.isFinite(resultPageCount)) {
       resultPageCount = 0;
@@ -299,7 +300,7 @@ export default function DataTable<D extends object>({
     if (foundPageSizeIndex === -1) {
       resultCurrentPageSize = 0;
     }
-    resultCurrentPage = serverPaginationData.currentPage ?? 0;
+    resultCurrentPage = serverPaginationData?.currentPage ?? 0;
     resultOnPageChange = (pageNumber: number) =>
       onServerPaginationChange(pageNumber, serverPageSize);
   }
@@ -354,4 +355,4 @@ export default function DataTable<D extends object>({
       ) : null}
     </div>
   );
-}
+});
