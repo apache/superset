@@ -25,6 +25,7 @@ import React, {
   Dispatch,
   SetStateAction,
 } from 'react';
+import querystring from 'query-string';
 import Button from 'src/components/Button';
 import { t, styled, css, SupersetTheme } from '@superset-ui/core';
 import Collapse from 'src/components/Collapse';
@@ -35,6 +36,7 @@ import { QueryEditor } from 'src/SqlLab/types';
 import { DatabaseObject } from 'src/components/DatabaseSelector';
 import { EmptyStateSmall } from 'src/components/EmptyState';
 import TableElement, { Table, TableElementProps } from '../TableElement';
+import { getItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 
 interface ExtendedTable extends Table {
   expanded: boolean;
@@ -105,8 +107,14 @@ export default function SqlEditorLeftBar({
   // that require and modify the queryEditor
   const queryEditorRef = useRef<QueryEditor>(queryEditor);
   const [emptyResultsWithSearch, setEmptyResultsWithSearch] = useState(false);
+  const [userSelectedDb, setUserSelected] = useState(null);
 
   useEffect(() => {
+    const bool = querystring.parse(window.location.search).db;
+    const userSelected = getItem(LocalStorageKeys.db, null);
+    if(bool && userSelected) {
+      setUserSelected(userSelected)
+    }
     queryEditorRef.current = queryEditor;
   }, [queryEditor]);
 
@@ -216,13 +224,13 @@ export default function SqlEditorLeftBar({
     },
     [actions],
   );
-
+  console.log('userSelected',userSelectedDb)
   return (
     <div className="SqlEditorLeftBar">
       <TableSelectorMultiple
         onEmptyResults={onEmptyResults}
         emptyState={emptyStateComponent}
-        database={database}
+        database={userSelectedDb /*|| database*/}
         getDbList={actions.setDatabases}
         handleError={actions.addDangerToast}
         onDbChange={onDbChange}

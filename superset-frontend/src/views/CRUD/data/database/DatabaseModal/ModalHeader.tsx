@@ -109,8 +109,8 @@ const ModalHeader = ({
       <StyledFormHeader>
         <p className="helper-top"> STEP 3 OF 3 </p>
         <h4 className="step-3-text">
-          Your database was successfully connected! Here are some optional
-          settings for your database
+          Your database was successfully connected! Create a dataset to begin
+          visualizing your data as a chart or go to SQL Lab to query your data.
         </h4>
         <p className="helper-bottom">
           Need help? Learn more about{' '}

@@ -21,6 +21,7 @@ import {
   SupersetTheme,
   FeatureFlag,
   isFeatureEnabled,
+  styled,
 } from '@superset-ui/core';
 import React, {
   FunctionComponent,
@@ -175,6 +176,12 @@ type DBReducerActionType =
         configuration_method: CONFIGURATION_METHOD;
       };
     };
+
+const StyledBtns = styled.div`
+  display: flex;
+  justify-content: space-evenly;
+  padding: ${({ theme }) => theme.gridUnit * 4}px;
+`;
 
 function dbReducer(
   state: Partial<DatabaseObject> | null,
@@ -1087,9 +1094,10 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   };
 
   const renderCTABtns = () => (
-    <>
+    <StyledBtns>
       <Button
         // eslint-disable-next-line no-return-assign
+        buttonStyle="default"
         onClick={() => {
           setLoading(true);
           fetchResource(dbFetched?.id as number).then(r => {
@@ -1101,8 +1109,14 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         {' '}
         {t('CREATE A DATASET')}{' '}
       </Button>
-      <Button> {t('GO TO SQL LAB')} </Button>
-    </>
+      <Button
+        buttonStyle="default"
+        // eslint-disable-next-line no-return-assign
+        onClick={() => (window.location.href = `/superset/sqllab/?db=true`)}
+      >
+        {t('GO TO SQL LAB')}{' '}
+      </Button>
+    </StyledBtns>
   );
 
   const renderFinishState = () => {
