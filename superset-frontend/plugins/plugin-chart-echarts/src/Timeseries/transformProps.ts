@@ -38,8 +38,9 @@ import {
   EchartsTimeseriesFormData,
   EchartsTimeseriesSeriesType,
   TimeseriesChartTransformedProps,
+  OrientationType,
 } from './types';
-import { ForecastSeriesEnum, ForecastValue, OrientationType } from '../types';
+import { ForecastSeriesEnum, ForecastValue } from '../types';
 import { parseYAxisBound } from '../utils/controls';
 import {
   currentSeries,
