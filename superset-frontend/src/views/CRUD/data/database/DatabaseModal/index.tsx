@@ -519,7 +519,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     setImportingModal(false);
     setPasswords({});
     setConfirmedOverwrite(false);
-    if (onDatabaseAdd) onDatabaseAdd();
     onHide();
   };
 
