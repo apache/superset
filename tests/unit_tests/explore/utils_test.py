@@ -23,10 +23,12 @@ from superset.charts.commands.exceptions import (
     ChartAccessDeniedError,
     ChartNotFoundError,
 )
+from superset.commands.exceptions import DatasourceNotFoundValidationError
 from superset.datasets.commands.exceptions import (
     DatasetAccessDeniedError,
     DatasetNotFoundError,
 )
+from superset.utils.core import DatasourceType
 
 dataset_find_by_id = "superset.datasets.dao.DatasetDAO.find_by_id"
 chart_find_by_id = "superset.charts.dao.ChartDAO.find_by_id"
@@ -39,85 +41,136 @@ can_access = "superset.security.SupersetSecurityManager.can_access"
 
 
 def test_unsaved_chart_no_dataset_id(app_context: AppContext) -> None:
-    from superset.explore.utils import check_access
+    from superset.explore.utils import check_access as check_chart_access
 
-    with raises(DatasetNotFoundError):
-        check_access(dataset_id=0, chart_id=0, actor=User())
+    with raises(DatasourceNotFoundValidationError):
+        check_chart_access(
+            datasource_id=0,
+            chart_id=0,
+            actor=User(),
+            datasource_type=DatasourceType.TABLE,
+        )
 
 
 def test_unsaved_chart_unknown_dataset_id(
     mocker: MockFixture, app_context: AppContext
 ) -> None:
-    from superset.explore.utils import check_access
+    from superset.explore.utils import check_access as check_chart_access
 
     with raises(DatasetNotFoundError):
         mocker.patch(dataset_find_by_id, return_value=None)
-        check_access(dataset_id=1, chart_id=0, actor=User())
+        check_chart_access(
+            datasource_id=1,
+            chart_id=0,
+            actor=User(),
+            datasource_type=DatasourceType.TABLE,
+        )
 
 
 def test_unsaved_chart_unauthorized_dataset(
     mocker: MockFixture, app_context: AppContext
 ) -> None:
     from superset.connectors.sqla.models import SqlaTable
-    from superset.explore import utils
+    from superset.explore.utils import check_access as check_chart_access
 
     with raises(DatasetAccessDeniedError):
         mocker.patch(dataset_find_by_id, return_value=SqlaTable())
         mocker.patch(can_access_datasource, return_value=False)
-        utils.check_access(dataset_id=1, chart_id=0, actor=User())
+        check_chart_access(
+            datasource_id=1,
+            chart_id=0,
+            actor=User(),
+            datasource_type=DatasourceType.TABLE,
+        )
 
 
 def test_unsaved_chart_authorized_dataset(
     mocker: MockFixture, app_context: AppContext
 ) -> None:
     from superset.connectors.sqla.models import SqlaTable
-    from superset.explore.utils import check_access
+    from superset.explore.utils import check_access as check_chart_access
 
     mocker.patch(dataset_find_by_id, return_value=SqlaTable())
     mocker.patch(can_access_datasource, return_value=True)
-    check_access(dataset_id=1, chart_id=0, actor=User())
+    check_chart_access(
+        datasource_id=1,
+        chart_id=0,
+        actor=User(),
+        datasource_type=DatasourceType.TABLE,
+    )
+
+
+def test_saved_chart_no_datasource_type(
+    mocker: MockFixture, app_context: AppContext
+
+
+) -> None:
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.explore.utils import check_access as check_chart_access
+
+    with raises(DatasourceNotFoundValidationError):
+        mocker.patch(dataset_find_by_id, return_value=SqlaTable())
+        mocker.patch(can_access_datasource, return_value=True)
+        check_chart_access(
+            datasource_id=1, chart_id=1, actor=User(), datasource_type=None
+        )
 
 
 def test_saved_chart_unknown_chart_id(
     mocker: MockFixture, app_context: AppContext
 ) -> None:
     from superset.connectors.sqla.models import SqlaTable
-    from superset.explore.utils import check_access
+    from superset.explore.utils import check_access as check_chart_access
 
     with raises(ChartNotFoundError):
         mocker.patch(dataset_find_by_id, return_value=SqlaTable())
         mocker.patch(can_access_datasource, return_value=True)
         mocker.patch(chart_find_by_id, return_value=None)
-        check_access(dataset_id=1, chart_id=1, actor=User())
+        check_chart_access(
+            datasource_id=1,
+            chart_id=1,
+            actor=User(),
+            datasource_type=DatasourceType.TABLE,
+        )
 
 
 def test_saved_chart_unauthorized_dataset(
     mocker: MockFixture, app_context: AppContext
 ) -> None:
     from superset.connectors.sqla.models import SqlaTable
-    from superset.explore import utils
+    from superset.explore.utils import check_access as check_chart_access
 
     with raises(DatasetAccessDeniedError):
         mocker.patch(dataset_find_by_id, return_value=SqlaTable())
         mocker.patch(can_access_datasource, return_value=False)
-        utils.check_access(dataset_id=1, chart_id=1, actor=User())
+        check_chart_access(
+            datasource_id=1,
+            chart_id=1,
+            actor=User(),
+            datasource_type=DatasourceType.TABLE,
+        )
 
 
 def test_saved_chart_is_admin(mocker: MockFixture, app_context: AppContext) -> None:
     from superset.connectors.sqla.models import SqlaTable
-    from superset.explore.utils import check_access
+    from superset.explore.utils import check_access as check_chart_access
     from superset.models.slice import Slice
 
     mocker.patch(dataset_find_by_id, return_value=SqlaTable())
     mocker.patch(can_access_datasource, return_value=True)
     mocker.patch(is_user_admin, return_value=True)
     mocker.patch(chart_find_by_id, return_value=Slice())
-    check_access(dataset_id=1, chart_id=1, actor=User())
+    check_chart_access(
+        datasource_id=1,
+        chart_id=1,
+        actor=User(),
+        datasource_type=DatasourceType.TABLE,
+    )
 
 
 def test_saved_chart_is_owner(mocker: MockFixture, app_context: AppContext) -> None:
     from superset.connectors.sqla.models import SqlaTable
-    from superset.explore.utils import check_access
+    from superset.explore.utils import check_access as check_chart_access
     from superset.models.slice import Slice
 
     mocker.patch(dataset_find_by_id, return_value=SqlaTable())
@@ -125,12 +178,17 @@ def test_saved_chart_is_owner(mocker: MockFixture, app_context: AppContext) -> N
     mocker.patch(is_user_admin, return_value=False)
     mocker.patch(is_owner, return_value=True)
     mocker.patch(chart_find_by_id, return_value=Slice())
-    check_access(dataset_id=1, chart_id=1, actor=User())
+    check_chart_access(
+        datasource_id=1,
+        chart_id=1,
+        actor=User(),
+        datasource_type=DatasourceType.TABLE,
+    )
 
 
 def test_saved_chart_has_access(mocker: MockFixture, app_context: AppContext) -> None:
     from superset.connectors.sqla.models import SqlaTable
-    from superset.explore.utils import check_access
+    from superset.explore.utils import check_access as check_chart_access
     from superset.models.slice import Slice
 
     mocker.patch(dataset_find_by_id, return_value=SqlaTable())
@@ -139,12 +197,17 @@ def test_saved_chart_has_access(mocker: MockFixture, app_context: AppContext) ->
     mocker.patch(is_owner, return_value=False)
     mocker.patch(can_access, return_value=True)
     mocker.patch(chart_find_by_id, return_value=Slice())
-    check_access(dataset_id=1, chart_id=1, actor=User())
+    check_chart_access(
+        datasource_id=1,
+        chart_id=1,
+        actor=User(),
+        datasource_type=DatasourceType.TABLE,
+    )
 
 
 def test_saved_chart_no_access(mocker: MockFixture, app_context: AppContext) -> None:
     from superset.connectors.sqla.models import SqlaTable
-    from superset.explore.utils import check_access
+    from superset.explore.utils import check_access as check_chart_access
     from superset.models.slice import Slice
 
     with raises(ChartAccessDeniedError):
@@ -154,4 +217,9 @@ def test_saved_chart_no_access(mocker: MockFixture, app_context: AppContext) -> 
         mocker.patch(is_owner, return_value=False)
         mocker.patch(can_access, return_value=False)
         mocker.patch(chart_find_by_id, return_value=Slice())
-        check_access(dataset_id=1, chart_id=1, actor=User())
+        check_chart_access(
+            datasource_id=1,
+            chart_id=1,
+            actor=User(),
+            datasource_type=DatasourceType.TABLE,
+        )

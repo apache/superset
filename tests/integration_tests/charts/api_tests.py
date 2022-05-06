@@ -531,7 +531,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         self.assertEqual(rv.status_code, 422)
         response = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(
-            response, {"message": {"datasource_id": ["Dataset does not exist"]}}
+            response, {"message": {"datasource_id": ["Datasource does not exist"]}}
         )
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
@@ -694,7 +694,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         self.assertEqual(rv.status_code, 422)
         response = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(
-            response, {"message": {"datasource_id": ["Dataset does not exist"]}}
+            response, {"message": {"datasource_id": ["Datasource does not exist"]}}
         )
 
         db.session.delete(chart)

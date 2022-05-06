@@ -104,7 +104,8 @@ class ExploreFormDataRestApi(BaseApi, ABC):
             tab_id = request.args.get("tab_id")
             args = CommandParameters(
                 actor=g.user,
-                dataset_id=item["dataset_id"],
+                datasource_id=item["datasource_id"],
+                datasource_type=item["datasource_type"],
                 chart_id=item.get("chart_id"),
                 tab_id=tab_id,
                 form_data=item["form_data"],
@@ -174,7 +175,8 @@ class ExploreFormDataRestApi(BaseApi, ABC):
             tab_id = request.args.get("tab_id")
             args = CommandParameters(
                 actor=g.user,
-                dataset_id=item["dataset_id"],
+                datasource_id=item["datasource_id"],
+                datasource_type=item["datasource_type"],
                 chart_id=item.get("chart_id"),
                 tab_id=tab_id,
                 key=key,

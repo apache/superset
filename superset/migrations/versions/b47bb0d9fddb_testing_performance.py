@@ -14,18 +14,32 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from dataclasses import dataclass
-from typing import Optional
+"""testing performance
 
-from flask_appbuilder.security.sqla.models import User
+Revision ID: b47bb0d9fddb
+Revises: 6f139c533bea
+Create Date: 2022-05-24 17:48:22.786769
+
+"""
+
+# revision identifiers, used by Alembic.
+from superset.models.sql_lab import Query
+from sqlalchemy.dialects import postgresql
+import sqlalchemy as sa
+from alembic import op
+from superset import db
+revision = 'b47bb0d9fddb'
+down_revision = '6f139c533bea'
 
 
-@dataclass
-class CommandParameters:
-    actor: User
-    datasource_type: str = ""
-    datasource_id: int = 0
-    chart_id: int = 0
-    tab_id: Optional[int] = None
-    key: Optional[str] = None
-    form_data: Optional[str] = None
+def upgrade():
+    bind = op.get_bind()
+    session = db.Session(bind=bind)
+
+    count_query = session.query(Query).with_entities(sa.func.count(Query.id))
+    count = count_query.scalar()
+    print(f"COUNTCOUNT {count}")
+
+
+def downgrade():
+    pass

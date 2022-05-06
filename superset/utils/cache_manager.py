@@ -19,6 +19,8 @@ import logging
 from flask import Flask
 from flask_caching import Cache
 
+from superset.utils.core import DatasourceType
+
 logger = logging.getLogger(__name__)
 
 CACHE_IMPORT_PATH = "superset.extensions.metastore_cache.SupersetMetastoreCache"
@@ -93,4 +95,13 @@ class CacheManager:
 
     @property
     def explore_form_data_cache(self) -> Cache:
-        return self._explore_form_data_cache
+        # rename keys for existing cache based on new TemporaryExploreState model
+        cache = {
+            ("datasource_id" if key == "dataset_id" else key): value
+            for (key, value) in self._explore_form_data_cache.items()
+        }
+        # add default datasource_type if it doesn't exist
+        # temporarily defaulting to table until sqlatables are deprecated
+        if "datasource_type" not in cache:
+            cache["datasource_type"] = DatasourceType.TABLE
+        return cache

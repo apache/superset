@@ -175,7 +175,7 @@ class GenericDataType(IntEnum):
     # ROW = 7
 
 
-class DatasourceType(Enum):
+class DatasourceType(str, Enum):
     SQLATABLE = "sqlatable"
     TABLE = "table"
     DATASET = "dataset"
@@ -331,7 +331,8 @@ class ReservedUrlParameters(str, Enum):
 
     @staticmethod
     def is_standalone_mode() -> Optional[bool]:
-        standalone_param = request.args.get(ReservedUrlParameters.STANDALONE.value)
+        standalone_param = request.args.get(
+            ReservedUrlParameters.STANDALONE.value)
         standalone: Optional[bool] = bool(
             standalone_param and standalone_param != "false" and standalone_param != "0"
         )
@@ -499,7 +500,8 @@ class DashboardEncoder(json.JSONEncoder):
         if isinstance(o, uuid.UUID):
             return str(o)
         try:
-            vals = {k: v for k, v in o.__dict__.items() if k != "_sa_instance_state"}
+            vals = {k: v for k, v in o.__dict__.items() if k !=
+                    "_sa_instance_state"}
             return {"__{}__".format(o.__class__.__name__): vals}
         except Exception:  # pylint: disable=broad-except
             if isinstance(o, datetime):
@@ -583,7 +585,8 @@ def json_iso_dttm_ser(obj: Any, pessimistic: bool = False) -> str:
         if pessimistic:
             return "Unserializable [{}]".format(type(obj))
 
-        raise TypeError("Unserializable object {} of type {}".format(obj, type(obj)))
+        raise TypeError(
+            "Unserializable object {} of type {}".format(obj, type(obj)))
     return obj
 
 
@@ -604,7 +607,8 @@ def json_int_dttm_ser(obj: Any) -> float:
     elif isinstance(obj, date):
         obj = (obj - EPOCH.date()).total_seconds() * 1000
     else:
-        raise TypeError("Unserializable object {} of type {}".format(obj, type(obj)))
+        raise TypeError(
+            "Unserializable object {} of type {}".format(obj, type(obj)))
     return obj
 
 
@@ -1057,20 +1061,23 @@ def simple_filter_to_adhoc(
     }
     if filter_clause.get("isExtra"):
         result["isExtra"] = True
-    result["filterOptionName"] = md5_sha_from_dict(cast(Dict[Any, Any], result))
+    result["filterOptionName"] = md5_sha_from_dict(
+        cast(Dict[Any, Any], result))
 
     return result
 
 
 def form_data_to_adhoc(form_data: Dict[str, Any], clause: str) -> AdhocFilterClause:
     if clause not in ("where", "having"):
-        raise ValueError(__("Unsupported clause type: %(clause)s", clause=clause))
+        raise ValueError(
+            __("Unsupported clause type: %(clause)s", clause=clause))
     result: AdhocFilterClause = {
         "clause": clause.upper(),
         "expressionType": "SQL",
         "sqlExpression": form_data.get(clause),
     }
-    result["filterOptionName"] = md5_sha_from_dict(cast(Dict[Any, Any], result))
+    result["filterOptionName"] = md5_sha_from_dict(
+        cast(Dict[Any, Any], result))
 
     return result
 
@@ -1082,7 +1089,8 @@ def merge_extra_form_data(form_data: Dict[str, Any]) -> None:
     """
     filter_keys = ["filters", "adhoc_filters"]
     extra_form_data = form_data.pop("extra_form_data", {})
-    append_filters: List[QueryObjectFilterClause] = extra_form_data.get("filters", None)
+    append_filters: List[QueryObjectFilterClause] = extra_form_data.get(
+        "filters", None)
 
     # merge append extras
     for key in [key for key in EXTRA_FORM_DATA_APPEND_KEYS if key not in filter_keys]:
@@ -1119,7 +1127,8 @@ def merge_extra_form_data(form_data: Dict[str, Any]) -> None:
         for key, value in form_data.items():
             if re.match("adhoc_filter.*", key):
                 value.extend(
-                    simple_filter_to_adhoc({"isExtra": True, **fltr})  # type: ignore
+                    simple_filter_to_adhoc(
+                        {"isExtra": True, **fltr})  # type: ignore
                     for fltr in append_filters
                     if fltr
                 )
@@ -1162,7 +1171,8 @@ def merge_extra_filters(form_data: Dict[str, Any]) -> None:
                 and existing.get("comparator") is not None
                 and existing.get("subject") is not None
             ):
-                existing_filters[get_filter_key(existing)] = existing["comparator"]
+                existing_filters[get_filter_key(
+                    existing)] = existing["comparator"]
 
         for filtr in form_data[  # pylint: disable=too-many-nested-blocks
             "extra_filters"
@@ -1186,7 +1196,8 @@ def merge_extra_filters(form_data: Dict[str, Any]) -> None:
                             # Add filters for unequal lists
                             # order doesn't matter
                             if set(existing_filters[filter_key]) != set(filtr["val"]):
-                                adhoc_filters.append(simple_filter_to_adhoc(filtr))
+                                adhoc_filters.append(
+                                    simple_filter_to_adhoc(filtr))
                         else:
                             adhoc_filters.append(simple_filter_to_adhoc(filtr))
                     else:
@@ -1552,7 +1563,7 @@ def split(
         elif character == ")":
             parens -= 1
         elif character == quote:
-            if quotes and string[j - len(escaped_quote) + 1 : j + 1] != escaped_quote:
+            if quotes and string[j - len(escaped_quote) + 1: j + 1] != escaped_quote:
                 quotes = False
             elif not quotes:
                 quotes = True
@@ -1695,7 +1706,8 @@ def get_time_filter_status(
     datasource: "BaseDatasource",
     applied_time_extras: Dict[str, str],
 ) -> Tuple[List[Dict[str, str]], List[Dict[str, str]]]:
-    temporal_columns = {col.column_name for col in datasource.columns if col.is_dttm}
+    temporal_columns = {
+        col.column_name for col in datasource.columns if col.is_dttm}
     applied: List[Dict[str, str]] = []
     rejected: List[Dict[str, str]] = []
     time_column = applied_time_extras.get(ExtraFiltersTimeColumnType.TIME_COL)
