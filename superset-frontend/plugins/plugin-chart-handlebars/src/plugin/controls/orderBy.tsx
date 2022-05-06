@@ -32,6 +32,7 @@ export const orderByControlSetItem: ControlSetItem = {
       choices: datasource?.order_by_choices || [],
     }),
     visibility: isRawMode,
+    resetOnHide: false,
   },
 };
 
@@ -43,5 +44,6 @@ export const orderDescendingControlSetItem: ControlSetItem = {
     default: true,
     description: t('Whether to sort descending or ascending'),
     visibility: isAggMode,
+    resetOnHide: false,
   },
 };

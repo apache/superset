@@ -33,6 +33,7 @@ const percentMetrics: typeof sharedControls.metrics = {
   ),
   multi: true,
   visibility: isAggMode,
+  resetOnHide: false,
   mapStateToProps: ({ datasource, controls }, controlState) => ({
     columns: datasource?.columns || [],
     savedMetrics: datasource?.metrics || [],
@@ -86,6 +87,7 @@ export const metricsControlSetItem: ControlSetItem = {
       ]),
     }),
     rerender: ['groupby', 'percent_metrics'],
+    resetOnHide: false,
   },
 };
 
@@ -99,5 +101,6 @@ export const showTotalsControlSetItem: ControlSetItem = {
       'Show total aggregations of selected metrics. Note that row limit does not apply to the result.',
     ),
     visibility: isAggMode,
+    resetOnHide: false,
   },
 };

@@ -16,35 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import AnchorLink from '.';
+import React, { useState } from 'react';
+import { Tooltip, Typography } from 'antd';
+import { ParagraphProps } from 'antd/es/typography/Paragraph';
 
-export default {
-  title: 'AnchorLink',
-  component: AnchorLink,
+const TooltipParagraph: React.FC<ParagraphProps> = ({
+  children,
+  ellipsis,
+  ...props
+}) => {
+  const [truncated, setTruncated] = useState(false);
+
+  return (
+    <Tooltip title={truncated ? children : undefined}>
+      <Typography.Paragraph
+        {...props}
+        ellipsis={{ ...(ellipsis as any), onEllipsis: setTruncated }}
+      >
+        {/* NOTE: Fragment is necessary to avoid showing the title */}
+        <>{children}</>
+      </Typography.Paragraph>
+    </Tooltip>
+  );
 };
 
-export const InteractiveAnchorLink = (args: any) => (
-  <AnchorLink anchorLinkId="link" {...args} />
-);
-
-const PLACEMENTS = ['right', 'left', 'top', 'bottom'];
-
-InteractiveAnchorLink.args = {
-  showShortLinkButton: true,
-  placement: PLACEMENTS[0],
-};
-
-InteractiveAnchorLink.argTypes = {
-  type: {
-    placement: { type: 'select', options: PLACEMENTS },
-  },
-};
-
-InteractiveAnchorLink.story = {
-  parameters: {
-    knobs: {
-      disable: true,
-    },
-  },
-};
+export default TooltipParagraph;

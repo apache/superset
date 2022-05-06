@@ -119,13 +119,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.cachekeys.api import CacheRestApi
         from superset.charts.api import ChartRestApi
         from superset.charts.data.api import ChartDataRestApi
-        from superset.connectors.druid.views import (
-            Druid,
-            DruidClusterModelView,
-            DruidColumnInlineView,
-            DruidDatasourceModelView,
-            DruidMetricInlineView,
-        )
         from superset.connectors.sqla.views import (
             RowLevelSecurityFiltersModelView,
             SqlMetricInlineView,
@@ -152,7 +145,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.reports.logs.api import ReportExecutionLogRestApi
         from superset.security.api import SecurityRestApi
         from superset.views.access_requests import AccessRequestsModelView
-        from superset.views.alerts import AlertView, ReportView
+        from superset.views.alerts import AlertView
         from superset.views.annotations import (
             AnnotationLayerModelView,
             AnnotationModelView,
@@ -403,66 +396,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category_label=__("Security"),
             icon="fa-table",
             menu_cond=lambda: bool(self.config["ENABLE_ACCESS_REQUEST"]),
-        )
-
-        #
-        # Druid Views
-        #
-        appbuilder.add_separator(
-            "Data", cond=lambda: bool(self.config["DRUID_IS_ACTIVE"])
-        )
-        appbuilder.add_view(
-            DruidDatasourceModelView,
-            "Druid Datasources",
-            label=__("Druid Datasources"),
-            category="Data",
-            category_label=__("Data"),
-            icon="fa-cube",
-            menu_cond=lambda: bool(self.config["DRUID_IS_ACTIVE"]),
-        )
-        appbuilder.add_view(
-            DruidClusterModelView,
-            name="Druid Clusters",
-            label=__("Druid Clusters"),
-            icon="fa-cubes",
-            category="Data",
-            category_label=__("Data"),
-            category_icon="fa-database",
-            menu_cond=lambda: bool(self.config["DRUID_IS_ACTIVE"]),
-        )
-        appbuilder.add_view_no_menu(DruidMetricInlineView)
-        appbuilder.add_view_no_menu(DruidColumnInlineView)
-        appbuilder.add_view_no_menu(Druid)
-
-        appbuilder.add_link(
-            "Scan New Datasources",
-            label=__("Scan New Datasources"),
-            href="/druid/scan_new_datasources/",
-            category="Data",
-            category_label=__("Data"),
-            category_icon="fa-database",
-            icon="fa-refresh",
-            cond=lambda: bool(
-                self.config["DRUID_IS_ACTIVE"]
-                and self.config["DRUID_METADATA_LINKS_ENABLED"]
-            ),
-        )
-        appbuilder.add_view_no_menu(ReportView)
-        appbuilder.add_link(
-            "Refresh Druid Metadata",
-            label=__("Refresh Druid Metadata"),
-            href="/druid/refresh_datasources/",
-            category="Data",
-            category_label=__("Data"),
-            category_icon="fa-database",
-            icon="fa-cog",
-            cond=lambda: bool(
-                self.config["DRUID_IS_ACTIVE"]
-                and self.config["DRUID_METADATA_LINKS_ENABLED"]
-            ),
-        )
-        appbuilder.add_separator(
-            "Data", cond=lambda: bool(self.config["DRUID_IS_ACTIVE"])
         )
 
     def init_app_in_ctx(self) -> None:

@@ -19,7 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { isEqual, isEmpty } from 'lodash';
-import { t } from '@superset-ui/core';
+import { styled, t } from '@superset-ui/core';
 import { sanitizeFormData } from 'src/explore/exploreUtils/formData';
 import getControlsForVizType from 'src/utils/getControlsForVizType';
 import { safeStringify } from 'src/utils/safeStringify';
@@ -31,6 +31,18 @@ const propTypes = {
   origFormData: PropTypes.object.isRequired,
   currentFormData: PropTypes.object.isRequired,
 };
+
+const StyledLabel = styled.span`
+  ${({ theme }) => `
+    font-size: ${theme.typography.sizes.s}px;
+    color: ${theme.colors.grayscale.dark1};
+    background-color: ${theme.colors.alert.base};
+
+    &: hover {
+      background-color: ${theme.colors.alert.dark1};
+    }
+  `}
+`;
 
 function alterForComparison(value) {
   // Considering `[]`, `{}`, `null` and `undefined` as identical
@@ -183,9 +195,7 @@ export default class AlteredSliceTag extends React.Component {
   renderTriggerNode() {
     return (
       <Tooltip id="difference-tooltip" title={t('Click to see difference')}>
-        <span className="label label-warning" style={{ fontSize: '12px' }}>
-          {t('Altered')}
-        </span>
+        <StyledLabel className="label">{t('Altered')}</StyledLabel>
       </Tooltip>
     );
   }

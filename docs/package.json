@@ -21,6 +21,7 @@
     "@docsearch/react": "^3.0.0",
     "@docusaurus/core": "^2.0.0-beta.17",
     "@docusaurus/plugin-client-redirects": "^2.0.0-beta.17",
+    "@docusaurus/plugin-google-gtag": "^2.0.0-beta.18",
     "@docusaurus/preset-classic": "^2.0.0-beta.17",
     "@emotion/core": "^10.1.1",
     "@emotion/styled": "^10.0.27",

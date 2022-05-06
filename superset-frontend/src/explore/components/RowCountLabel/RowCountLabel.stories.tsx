@@ -17,16 +17,20 @@
  * under the License.
  */
 import React from 'react';
-import RowCountLabel from '.';
+import RowCountLabel, { RowCountLabelProps } from '.';
 
 export default {
   title: 'RowCountLabel',
   component: RowCountLabel,
 };
 
-const options = {
+const options: { [key in string]: RowCountLabelProps } = {
   loading: {
     loading: true,
+  },
+  single: {
+    rowcount: 1,
+    limit: 100,
   },
   full: {
     rowcount: 100,
@@ -35,10 +39,6 @@ const options = {
   medium: {
     rowcount: 50,
     limit: 100,
-  },
-  suffix: {
-    rowcount: 1,
-    suffix: 'suffix',
   },
 };
 
@@ -51,7 +51,6 @@ export const RowCountLabelGallery = () => (
           loading={options[name].loading}
           rowcount={options[name].rowcount}
           limit={options[name].limit}
-          suffix={options[name].suffix}
         />
       </>
     ))}

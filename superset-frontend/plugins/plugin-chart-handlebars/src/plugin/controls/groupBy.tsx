@@ -28,6 +28,7 @@ export const groupByControlSetItem: ControlSetItem = {
   name: 'groupby',
   override: {
     visibility: isAggMode,
+    resetOnHide: false,
     mapStateToProps: (state: ControlPanelState, controlState: ControlState) => {
       const { controls } = state;
       const originalMapStateToProps = sharedControls?.groupby?.mapStateToProps;
@@ -37,7 +38,6 @@ export const groupByControlSetItem: ControlSetItem = {
         controls.percent_metrics?.value,
         controlState.value,
       ]);
-
       return newState;
     },
     rerender: ['metrics', 'percent_metrics'],

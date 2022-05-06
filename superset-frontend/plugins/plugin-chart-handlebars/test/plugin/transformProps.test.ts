@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps, QueryFormData } from '@superset-ui/core';
+import { ChartProps, QueryFormData, supersetTheme } from '@superset-ui/core';
 import { HandlebarsQueryFormData } from '../../src/types';
 import transformProps from '../../src/plugin/transformProps';
 
@@ -31,15 +31,13 @@ describe('Handlebars tranformProps', () => {
     height: 500,
     viz_type: 'handlebars',
   };
+  const data = [{ name: 'Hulk', sum__num: 1, __timestamp: 599616000000 }];
   const chartProps = new ChartProps<QueryFormData>({
     formData,
     width: 800,
     height: 600,
-    queriesData: [
-      {
-        data: [{ name: 'Hulk', sum__num: 1, __timestamp: 599616000000 }],
-      },
-    ],
+    queriesData: [{ data }],
+    theme: supersetTheme,
   });
 
   it('should tranform chart props for viz', () => {
@@ -47,9 +45,7 @@ describe('Handlebars tranformProps', () => {
       expect.objectContaining({
         width: 800,
         height: 600,
-        data: [
-          { name: 'Hulk', sum__num: 1, __timestamp: new Date(599616000000) },
-        ],
+        data,
       }),
     );
   });

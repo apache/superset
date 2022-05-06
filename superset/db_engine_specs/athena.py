@@ -67,10 +67,10 @@ class AthenaEngineSpec(BaseEngineSpec):
     ) -> Optional[str]:
         tt = target_type.upper()
         if tt == utils.TemporalType.DATE:
-            return f"from_iso8601_date('{dttm.date().isoformat()}')"
+            return f"DATE '{dttm.date().isoformat()}'"
         if tt == utils.TemporalType.TIMESTAMP:
             datetime_formatted = dttm.isoformat(timespec="microseconds")
-            return f"""from_iso8601_timestamp('{datetime_formatted}')"""
+            return f"""TIMESTAMP '{datetime_formatted}'"""
         return None
 
     @classmethod
