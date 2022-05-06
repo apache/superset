@@ -23,7 +23,6 @@ import React, {
   HTMLProps,
   MutableRefObject,
   CSSProperties,
-  memo,
 } from 'react';
 import {
   useTable,
@@ -37,6 +36,7 @@ import {
   Row,
 } from 'react-table';
 import { matchSorter, rankings } from 'match-sorter';
+import { typedMemo } from '@superset-ui/core';
 import GlobalFilter, { GlobalFilterProps } from './components/GlobalFilter';
 import SelectPageSize, {
   SelectPageSizeProps,
@@ -75,7 +75,7 @@ const sortTypes = {
 };
 
 // Be sure to pass our updateMyData and the skipReset option
-export default memo(function DataTable<D extends object>({
+export default typedMemo(function DataTable<D extends object>({
   tableClassName,
   columns,
   data,
