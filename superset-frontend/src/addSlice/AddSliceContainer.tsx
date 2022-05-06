@@ -195,13 +195,13 @@ export default class AddSliceContainer extends React.PureComponent<
   }
 
   exploreUrl() {
-    const url = window.location.href;
-    const dashboardTitleIndex = url.search('dashboardTitle:');
-    const dashboardExists = dashboardTitleIndex !== -1;
+    const url = window.location.search;
+    const urlParams = new URLSearchParams(url);
+    const dashboardExists = urlParams.has('dashboardInfo');
+    const dashboardInfo = urlParams.get('dashboardInfo');
     const dashboardTitle = dashboardExists
-      ? `dashboardTitle: ${url.slice(dashboardTitleIndex + 15)}`
+      ? `dashboardInfo=${dashboardInfo}`
       : '';
-    // 15 is how long dashboardtitle: is//
     const formData = encodeURIComponent(
       JSON.stringify({
         viz_type: this.state.visType,

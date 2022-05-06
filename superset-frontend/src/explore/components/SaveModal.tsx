@@ -32,7 +32,9 @@ import { connect } from 'react-redux';
 
 // Session storage key for recent dashboard
 const SK_DASHBOARD_ID = 'save_chart_recent_dashboard';
-const SELECT_PLACEHOLDER = t('**Select** a dashboard OR **create** a new one');
+const SELECT_PLACEHOLDER = t(
+  '**Select** a dashboard OR type in a title to **create** a new one',
+);
 
 type SaveModalProps = {
   onHide: () => void;
@@ -55,6 +57,7 @@ type SaveModalState = {
   newDashboardName?: string;
   alert: string | null;
   action: ActionType;
+  newlyCreatedDashboard?: number;
 };
 
 export const StyledModal = styled(Modal)`
@@ -174,9 +177,20 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
     this.setState({ alert: null });
   }
 
+  newlyCreatedDashboardName(): number | null {
+    const url = window.location.search;
+    const urlParams = new URLSearchParams(url);
+    const dashInfoExists = urlParams.has('dashboardInfo');
+    const stringifiedDash = dashInfoExists && urlParams.get('dashboardInfo');
+    const dashboardInfo = stringifiedDash && JSON.parse(stringifiedDash);
+    return dashboardInfo.value;
+  }
+
   render() {
     const dashboardSelectValue =
-      this.state.saveToDashboardId || this.state.newDashboardName;
+      this.state.saveToDashboardId ||
+      this.state.newDashboardName ||
+      this.newlyCreatedDashboardName();
     return (
       <StyledModal
         show

@@ -81,7 +81,7 @@ describe('AddSliceContainer', () => {
       visType: 'table',
     });
     const formattedUrl =
-      '/superset/explore/?form_data=%7B%22viz_type%22%3A%22table%22%2C%22datasource%22%3A%221%22%7D';
+      '/superset/explore/?form_data=%7B%22viz_type%22%3A%22table%22%2C%22datasource%22%3A%221%22%7D&';
     expect(wrapper.instance().exploreUrl()).toBe(formattedUrl);
   });
 });

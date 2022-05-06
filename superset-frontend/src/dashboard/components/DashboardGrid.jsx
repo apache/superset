@@ -154,6 +154,12 @@ class DashboardGrid extends React.PureComponent {
     const shouldDisplayTopLevelTabEmptyState =
       shouldDisplayEmptyState && gridComponent.type === TAB_TYPE;
 
+    const dashboardProps = encodeURIComponent(
+      JSON.stringify({
+        value: this.props.dashboardId,
+      }),
+    );
+
     const dashboardEmptyState = editMode && (
       <EmptyStateBig
         title={t('Drag and drop components and charts to the dashboard')}
@@ -168,7 +174,7 @@ class DashboardGrid extends React.PureComponent {
         }
         buttonAction={() => {
           window.open(
-            `/chart/add?dashboardTitle:${this.props.dashboardTitle}`,
+            `/chart/add?dashboardInfo=${dashboardProps}`,
             '_blank',
             'noopener noreferrer',
           );
@@ -190,11 +196,7 @@ class DashboardGrid extends React.PureComponent {
           </>
         }
         buttonAction={() => {
-          window.open(
-            `/chart/add?${this.props.dashboardTitle}`,
-            '_blank',
-            'noopener noreferrer',
-          );
+          window.open('/chart/add', '_blank', 'noopener noreferrer');
         }}
         image="chart.svg"
       />

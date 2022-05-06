@@ -30,7 +30,7 @@ function mapStateToProps({ dashboardState, dashboardInfo }) {
   return {
     editMode: dashboardState.editMode,
     canEdit: dashboardInfo.dash_edit_perm,
-    dashboardTitle: dashboardInfo.dashboard_title,
+    dashboardId: dashboardInfo.id,
   };
 }
 
