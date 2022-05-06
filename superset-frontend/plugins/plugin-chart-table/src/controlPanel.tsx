@@ -137,8 +137,8 @@ const dnd_all_columns: typeof sharedControls.groupby = {
     newState.queryMode = getQueryMode(controls);
     newState.externalValidationErrors =
       isRawMode({ controls }) && ensureIsArray(controlState.value).length === 0
-      ? [t('must have a value')]
-      : [];
+        ? [t('must have a value')]
+        : [];
     return newState;
   },
   showSelectAllButton: true,

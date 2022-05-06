@@ -685,7 +685,7 @@ const Select = (
       setIsLoading(loading);
     }
   }, [isLoading, loading]);
-  
+
   return (
     <StyledContainer>
       <HeaderContainer>
