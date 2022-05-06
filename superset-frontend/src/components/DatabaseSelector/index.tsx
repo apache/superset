@@ -27,29 +27,29 @@ import { useToasts } from 'src/components/MessageToasts/withToasts';
 
 const DatabaseSelectorWrapper = styled.div`
   ${({ theme }) => `
-    .refresh {
-      display: flex;
-      align-items: center;
-      width: 30px;
-      margin-left: ${theme.gridUnit}px;
-      margin-top: ${theme.gridUnit * 5}px;
-    }
-
-    .section {
-      display: flex;
-      flex-direction: row;
-      align-items: center;
-    }
-
-    .select {
-      width: calc(100% - 30px - ${theme.gridUnit}px);
-      flex: 1;
-    }
-
-    & > div {
-      margin-bottom: ${theme.gridUnit * 4}px;
-    }
-  `}
+     .refresh {
+       display: flex;
+       align-items: center;
+       width: 30px;
+       margin-left: ${theme.gridUnit}px;
+       margin-top: ${theme.gridUnit * 5}px;
+     }
+ 
+     .section {
+       display: flex;
+       flex-direction: row;
+       align-items: center;
+     }
+ 
+     .select {
+       width: calc(100% - 30px - ${theme.gridUnit}px);
+       flex: 1;
+     }
+ 
+     & > div {
+       margin-bottom: ${theme.gridUnit * 4}px;
+     }
+   `}
 `;
 
 const LabelStyle = styled.div`
@@ -89,13 +89,15 @@ export type DatabaseObject = {
 type SchemaValue = { label: string; value: string };
 type CatalogValue = { label: string; value: string };
 
-interface DatabaseSelectorProps {
+export interface DatabaseSelectorProps {
   db?: DatabaseObject;
+  emptyState?: ReactNode;
   formMode?: boolean;
   getDbList?: (arg0: any) => {};
   handleError: (msg: string) => void;
   isDatabaseSelectEnabled?: boolean;
   onDbChange?: (db: DatabaseObject) => void;
+  onEmptyResults?: (searchText?: string) => void;
   onSchemaChange?: (schema?: string) => void;
   onSchemasLoad?: (schemas: Array<object>) => void;
   readOnly?: boolean;
@@ -124,10 +126,12 @@ const SelectLabel = ({
 export default function DatabaseSelector({
   db,
   formMode = false,
+  emptyState,
   getDbList,
   handleError,
   isDatabaseSelectEnabled = true,
   onDbChange,
+  onEmptyResults,
   onSchemaChange,
   onSchemasLoad,
   readOnly = false,
@@ -164,16 +168,60 @@ export default function DatabaseSelector({
 
   const { addSuccessToast } = useToasts();
 
-  useEffect(() => {
-    if (currentDb) {
-      if (currentDb.has_catalogs) fetchCatalogs();
-      else fetchSchemas(currentDb);
-    }
-  }, [currentDb]);
+  const getQueryParams = ({
+    page,
+    search,
+    pageSize,
+  }: {
+    page: number;
+    search: string;
+    pageSize: number;
+  }) => {
+    const filters =
+      formMode || !sqlLabMode
+        ? { filters: [{ col: 'database_name', opr: 'ct', value: search }] }
+        : {
+            filters: [
+              { col: 'database_name', opr: 'ct', value: search },
+              {
+                opr: 'eq',
+                value: true,
+                col: 'expose_in_sqllab',
+              },
+            ],
+          };
+    return rison.encode({
+      ...filters,
+      page,
+      page_size: pageSize,
+      order_direction: 'asc',
+      order_columns: 'database_name',
+    });
+  };
 
-  useEffect(() => {
-    if (currentDb && currentCatalog) fetchSchemas(currentDb);
-  }, [currentCatalog]);
+  const getDatabasesFromResponse = ({
+    json,
+    search,
+  }: {
+    search: string;
+    json: JsonObject;
+  }) => {
+    const { result } = json;
+    if (getDbList) getDbList(result);
+    if (result.length === 0) if (onEmptyResults) onEmptyResults(search);
+    const options = result.map((row: DatabaseObject) => ({
+      id: row.id,
+      value: row.id,
+      backend: row.backend,
+      has_catalogs: row.has_catalogs,
+      database_name: row.database_name,
+      label: (
+        <SelectLabel backend={row.backend} databaseName={row.database_name} />
+      ),
+      allow_multi_schema_metadata_fetch: row.allow_multi_schema_metadata_fetch,
+    }));
+    return { data: options, totalCount: options.length };
+  };
 
   const loadDatabases = useMemo(
     () =>
@@ -188,10 +236,10 @@ export default function DatabaseSelector({
         const queryParams = getQueryParams({ page, search, pageSize });
         const endpoint = `/api/v1/database/?q=${queryParams}`;
         return SupersetClient.get({ endpoint }).then(({ json }) =>
-          getDatabasesFromResponse(json),
+          getDatabasesFromResponse({ json, search }),
         );
       },
-    [formMode, getDbList, handleError, sqlLabMode],
+    [formMode, getDbList, sqlLabMode],
   );
 
   const fetchCatalogs = () => {
@@ -240,58 +288,19 @@ export default function DatabaseSelector({
       });
   };
 
+  useEffect(() => {
+    if (currentDb) {
+      if (currentDb.has_catalogs) fetchCatalogs();
+      else fetchSchemas(currentDb);
+    }
+  }, [currentDb]);
+
+  useEffect(() => {
+    if (currentDb && currentCatalog) fetchSchemas(currentDb);
+  }, [currentCatalog]);
+
   const showSchema = (db: DatabaseObject | undefined) =>
     db?.has_catalogs ? !!currentCatalog : true;
-
-  const getQueryParams = ({
-    page,
-    search,
-    pageSize,
-  }: {
-    page: number;
-    search: string;
-    pageSize: number;
-  }) => {
-    const filters =
-      formMode || !sqlLabMode
-        ? { filters: [{ col: 'database_name', opr: 'ct', value: search }] }
-        : {
-            filters: [
-              { col: 'database_name', opr: 'ct', value: search },
-              {
-                opr: 'eq',
-                value: true,
-                col: 'expose_in_sqllab',
-              },
-            ],
-          };
-    return rison.encode({
-      ...filters,
-      page,
-      page_size: pageSize,
-      order_direction: 'asc',
-      order_columns: 'database_name',
-    });
-  };
-
-  const getDatabasesFromResponse = (json: JsonObject) => {
-    const { result } = json;
-    if (getDbList) getDbList(result);
-    if (result.length === 0)
-      handleError(t("It seems you don't have access to any database"));
-    const options = result.map((row: DatabaseObject) => ({
-      id: row.id,
-      value: row.id,
-      backend: row.backend,
-      has_catalogs: row.has_catalogs,
-      database_name: row.database_name,
-      label: (
-        <SelectLabel backend={row.backend} databaseName={row.database_name} />
-      ),
-      allow_multi_schema_metadata_fetch: row.allow_multi_schema_metadata_fetch,
-    }));
-    return { data: options, totalCount: options.length };
-  };
 
   function changeDataBase(
     value: { label: string; value: number },
@@ -342,6 +351,7 @@ export default function DatabaseSelector({
         data-test="select-database"
         header={<FormLabel>{t('Database')}</FormLabel>}
         lazyLoading={false}
+        notFoundContent={emptyState}
         onChange={changeDataBase}
         value={currentDb}
         placeholder={t('Select database or type database name')}
@@ -359,11 +369,10 @@ export default function DatabaseSelector({
         tooltipContent={t('Force refresh schema list')}
       />
     );
-
     return renderSelectRow(
       <Select
         ariaLabel={t('Select schema or type schema name')}
-        disabled={readOnly}
+        disabled={!currentDb || readOnly}
         header={<FormLabel>{t('Schema')}</FormLabel>}
         labelInValue
         lazyLoading={false}
