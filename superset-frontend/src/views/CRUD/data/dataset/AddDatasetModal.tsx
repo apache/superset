@@ -107,7 +107,7 @@ const DatasetModal: FunctionComponent<DatasetModalProps> = ({
         onDatasetAdd({ id: response.id, ...response });
       }
       addSuccessToast(t('The dataset has been saved'));
-      window.location.href = `/superset/explore/table/${response}`;
+      window.location.href = `/chart/add?dataset=${currentTableName}`;
       hide();
     });
   };

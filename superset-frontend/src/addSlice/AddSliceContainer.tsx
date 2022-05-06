@@ -18,8 +18,10 @@
  */
 import React, { ReactNode } from 'react';
 import rison from 'rison';
+import querystring from 'query-string';
 import { styled, t, SupersetClient, JsonResponse } from '@superset-ui/core';
 import Button from 'src/components/Button';
+import extractUrlParams from 'src/dashboard/util/extractUrlParams';
 import { Select, Steps } from 'src/components';
 import { FormLabel } from 'src/components/Form';
 import { Tooltip } from 'src/components/Tooltip';
@@ -27,6 +29,7 @@ import { Tooltip } from 'src/components/Tooltip';
 import VizTypeGallery, {
   MAX_ADVISABLE_VIZ_GALLERY_WIDTH,
 } from 'src/explore/components/controls/VizTypeControl/VizTypeGallery';
+import _ from 'lodash';
 
 type Dataset = {
   id: number;
@@ -40,6 +43,7 @@ export type AddSliceContainerProps = {};
 export type AddSliceContainerState = {
   datasource?: { label: string; value: string };
   visType: string | null;
+  datasetName?: string | string[] | null;
 };
 
 const ESTIMATED_NAV_HEIGHT = 56;
@@ -194,6 +198,16 @@ export default class AddSliceContainer extends React.PureComponent<
     this.loadDatasources = this.loadDatasources.bind(this);
   }
 
+  componentDidMount() {
+    const params = querystring.parse(window.location.search)?.dataset as string;
+    if (params) {
+      this.loadDatasources(params, 0, 1).then(r => {
+        const datasource = r.data[0];
+        this.setState({ datasource });
+      });
+    }
+  }
+
   exploreUrl() {
     const formData = encodeURIComponent(
       JSON.stringify({
@@ -209,6 +223,7 @@ export default class AddSliceContainer extends React.PureComponent<
   }
 
   changeDatasource(datasource: { label: string; value: string }) {
+    console.log('datasource', datasource)
     this.setState({ datasource });
   }
 
