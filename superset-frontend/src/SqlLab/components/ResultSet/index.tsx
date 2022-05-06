@@ -39,7 +39,7 @@ import ProgressBar from 'src/components/ProgressBar';
 import Loading from 'src/components/Loading';
 import FilterableTable, {
   MAX_COLUMNS_FOR_TABLE,
-} from 'src/components/FilterableTable/FilterableTable';
+} from 'src/components/FilterableTable';
 import CopyToClipboard from 'src/components/CopyToClipboard';
 import { prepareCopyToClipboardTabularData } from 'src/utils/common';
 import { exploreChart } from 'src/explore/exploreUtils';
@@ -247,16 +247,9 @@ export default class ResultSet extends React.PureComponent<
         this.clearQueryResults(nextProps.query),
       );
     }
-
-    // Only fetch results if the result key change
-    // If we didn't have a result key before, then the results are loaded elsewhere
-    // so we can skip it, unless the query id changed, in that case we should
-    // refetch regardless.
     if (
-      (this.props.query.resultsKey &&
-        nextProps.query.resultsKey &&
-        nextProps.query.resultsKey !== this.props.query.resultsKey) ||
-      (nextProps.query.id !== this.props.query.id && nextProps.query.resultsKey)
+      nextProps.query.resultsKey &&
+      nextProps.query.resultsKey !== this.props.query.resultsKey
     ) {
       this.fetchResults(nextProps.query);
     }

@@ -63,6 +63,7 @@ from superset.databases.schemas import (
     get_export_ids_schema,
     SchemasResponseSchema,
     SelectStarResponseSchema,
+    TableExtraMetadataResponseSchema,
     TableMetadataResponseSchema,
 )
 from superset.databases.utils import get_table_metadata
@@ -71,7 +72,7 @@ from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.extensions import security_manager
 from superset.models.core import Database
 from superset.superset_typing import FlaskResponse
-from superset.utils.core import error_msg_from_exception
+from superset.utils.core import error_msg_from_exception, parse_js_uri_path_item
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
     requires_form_data,
@@ -89,6 +90,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         RouteMethod.EXPORT,
         RouteMethod.IMPORT,
         "table_metadata",
+        "table_extra_metadata",
         "select_star",
         "schemas",
         "test_connection",
@@ -197,6 +199,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         DatabaseRelatedObjectsResponse,
         DatabaseTestConnectionSchema,
         DatabaseValidateParametersSchema,
+        TableExtraMetadataResponseSchema,
         TableMetadataResponseSchema,
         SelectStarResponseSchema,
         SchemasResponseSchema,
@@ -236,8 +239,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                         type: number
                       result:
                         $ref: '#/components/schemas/{{self.__class__.__name__}}.post'
-            302:
-              description: Redirects to the current digest
             400:
               $ref: '#/components/responses/400'
             401:
@@ -529,6 +530,69 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         self.incr_stats("success", self.table_metadata.__name__)
         return self.response(200, **table_info)
 
+    @expose("/<int:pk>/table_extra/<table_name>/<schema_name>/", methods=["GET"])
+    @protect()
+    @check_datasource_access
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
+        f".table_extra_metadata",
+        log_to_statsd=False,
+    )
+    def table_extra_metadata(
+        self, database: Database, table_name: str, schema_name: str
+    ) -> FlaskResponse:
+        """Table schema info
+        ---
+        get:
+          summary: >-
+            Get table extra metadata
+          description: >-
+            Response depends on each DB engine spec normally focused on partitions
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+            description: The database id
+          - in: path
+            schema:
+              type: string
+            name: table_name
+            description: Table name
+          - in: path
+            schema:
+              type: string
+            name: schema_name
+            description: Table schema
+          responses:
+            200:
+              description: Table extra metadata information
+              content:
+                application/json:
+                  schema:
+                    $ref: "#/components/schemas/TableExtraMetadataResponseSchema"
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        self.incr_stats("init", self.table_metadata.__name__)
+
+        parsed_schema = parse_js_uri_path_item(schema_name, eval_undefined=True)
+        table_name = parse_js_uri_path_item(table_name)  # type: ignore
+        payload = database.db_engine_spec.extra_table_metadata(
+            database, table_name, parsed_schema
+        )
+        return self.response(200, **payload)
+
     @expose("/<int:pk>/select_star/<table_name>/", methods=["GET"])
     @expose("/<int:pk>/select_star/<table_name>/<schema_name>/", methods=["GET"])
     @protect()
@@ -659,7 +723,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             schema:
               type: integer
           responses:
-            200:
             200:
               description: Query result
               content:
