@@ -154,7 +154,7 @@ const config: ControlPanelConfig = {
         [onlyTotalControl],
         [
           {
-            name: 'extra_controls',
+            name: 'show_extra_controls',
             config: {
               type: 'CheckboxControl',
               label: t('Extra Controls'),

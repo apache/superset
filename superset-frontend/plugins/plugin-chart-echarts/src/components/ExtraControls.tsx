@@ -16,18 +16,30 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import { HandlerFunction, JsonValue } from '@superset-ui/core';
-import { RadioButtonOption } from '@superset-ui/chart-controls';
-import { EchartsTimeseriesFormData } from './types';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { HandlerFunction, JsonValue, styled } from '@superset-ui/core';
+import {
+  RadioButtonOption,
+  sharedControlComponents,
+} from '@superset-ui/chart-controls';
 import { AreaChartExtraControlsOptions } from '../constants';
 
-export default function ({
+const { RadioButtonControl } = sharedControlComponents;
+
+const ExtraControlsWrapper = styled.div`
+  text-align: center;
+`;
+
+export function useExtraControl<
+  F extends {
+    stack: any;
+    area: boolean;
+  },
+>({
   formData,
   setControlValue,
 }: {
-  formData: EchartsTimeseriesFormData;
+  formData: F;
   setControlValue?: HandlerFunction;
 }) {
   const { stack, area } = formData;
@@ -63,4 +75,38 @@ export default function ({
     extraControlsHandler,
     extraValue,
   };
+}
+
+export function ExtraControls<
+  F extends {
+    stack: any;
+    area: boolean;
+    showExtraControls: boolean;
+  },
+>({
+  formData,
+  setControlValue,
+}: {
+  formData: F;
+  setControlValue?: HandlerFunction;
+}) {
+  const { extraControlsOptions, extraControlsHandler, extraValue } =
+    useExtraControl<F>({
+      formData,
+      setControlValue,
+    });
+
+  if (!formData.showExtraControls) {
+    return null;
+  }
+
+  return (
+    <ExtraControlsWrapper>
+      <RadioButtonControl
+        options={extraControlsOptions}
+        onChange={extraControlsHandler}
+        value={extraValue}
+      />
+    </ExtraControlsWrapper>
+  );
 }

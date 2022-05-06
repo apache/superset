@@ -20,52 +20,13 @@ import React, { useCallback, useRef } from 'react';
 import { ViewRootGroup } from 'echarts/types/src/util/types';
 import GlobalModel from 'echarts/types/src/model/Global';
 import ComponentModel from 'echarts/types/src/model/Component';
-import { sharedControlComponents } from '@superset-ui/chart-controls';
-import { HandlerFunction, styled } from '@superset-ui/core';
 import { EchartsHandler, EventHandlers } from '../types';
 import Echart from '../components/Echart';
-import {
-  EchartsTimeseriesFormData,
-  TimeseriesChartTransformedProps,
-} from './types';
+import { TimeseriesChartTransformedProps } from './types';
 import { currentSeries } from '../utils/series';
-import useExtraControl from './useExtraControl';
-
-const { RadioButtonControl } = sharedControlComponents;
+import { ExtraControls } from '../components/ExtraControls';
 
 const TIMER_DURATION = 300;
-
-const ExtraControlsWrapper = styled.div`
-  text-align: center;
-`;
-
-function ExtraControls({
-  formData,
-  setControlValue,
-}: {
-  formData: EchartsTimeseriesFormData;
-  setControlValue?: HandlerFunction;
-}) {
-  const { extraControlsOptions, extraControlsHandler, extraValue } =
-    useExtraControl({
-      formData,
-      setControlValue,
-    });
-
-  if (formData.extraControls) {
-    return null;
-  }
-
-  return (
-    <ExtraControlsWrapper>
-      <RadioButtonControl
-        options={extraControlsOptions}
-        onChange={extraControlsHandler}
-        value={extraValue}
-      />
-    </ExtraControlsWrapper>
-  );
-}
 
 // @ts-ignore
 export default function EchartsTimeseries({
