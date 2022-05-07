@@ -2001,13 +2001,13 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             return redirect("/dashboard/list/")
         if not value:
             return json_error_response(_("permalink state not found"), status=404)
-        dashboard_id = value["dashboardId"]
+        dashboard_id, state = value["dashboardId"], value.get("state", {})
         url = f"/superset/dashboard/{dashboard_id}?permalink_key={key}"
-        url_params = value["state"].get("urlParams")
+        url_params = state.get("urlParams")
         if url_params:
             params = parse.urlencode(url_params)
             url = f"{url}&{params}"
-        hash_ = value["state"].get("hash")
+        hash_ = state.get("anchor", state.get("hash"))
         if hash_:
             url = f"{url}#{hash_}"
         return redirect(url)
