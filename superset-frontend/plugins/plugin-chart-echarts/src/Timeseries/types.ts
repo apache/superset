@@ -31,8 +31,8 @@ import {
   EChartTransformedProps,
   EchartsTitleFormData,
   DEFAULT_TITLE_FORM_DATA,
+  StackType,
 } from '../types';
-import { AreaChartExtraControlsValue } from '../constants';
 
 export enum EchartsTimeseriesContributionType {
   Row = 'row',
@@ -68,7 +68,7 @@ export type EchartsTimeseriesFormData = QueryFormData & {
   orderDesc: boolean;
   rowLimit: number;
   seriesType: EchartsTimeseriesSeriesType;
-  stack: boolean | null | Partial<AreaChartExtraControlsValue>;
+  stack: StackType;
   tooltipTimeFormat?: string;
   truncateYAxis: boolean;
   yAxisFormat?: string;

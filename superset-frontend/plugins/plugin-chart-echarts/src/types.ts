@@ -25,6 +25,7 @@ import {
 import { EChartsCoreOption, ECharts } from 'echarts';
 import { TooltipMarker } from 'echarts/types/src/util/format';
 import { OptionName } from 'echarts/types/src/util/types';
+import { AreaChartExtraControlsValue } from './constants';
 
 export type EchartsStylesProps = {
   height: number;
@@ -138,5 +139,7 @@ export const DEFAULT_TITLE_FORM_DATA: EchartsTitleFormData = {
   yAxisTitleMargin: 0,
   yAxisTitlePosition: 'Top',
 };
+
+export type StackType = boolean | null | Partial<AreaChartExtraControlsValue>;
 
 export * from './Timeseries/types';

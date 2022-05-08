@@ -87,6 +87,9 @@ export default function getFormDataWithExtraFilters({
     !!cachedFormData &&
     areObjectsEqual(cachedFormData?.dataMask, dataMask, {
       ignoreUndefined: true,
+    }) &&
+    areObjectsEqual(cachedFormData?.extraControls, extraControls, {
+      ignoreUndefined: true,
     })
   ) {
     return cachedFormData;
@@ -123,7 +126,7 @@ export default function getFormDataWithExtraFilters({
   };
 
   cachedFiltersByChart[sliceId] = filters;
-  cachedFormdataByChart[sliceId] = { ...formData, dataMask };
+  cachedFormdataByChart[sliceId] = { ...formData, dataMask, extraControls };
 
   return formData;
 }

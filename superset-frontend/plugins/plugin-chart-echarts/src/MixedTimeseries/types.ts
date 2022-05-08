@@ -32,13 +32,13 @@ import {
   EchartsLegendFormData,
   EchartsTitleFormData,
   DEFAULT_TITLE_FORM_DATA,
+  StackType,
 } from '../types';
 import {
   DEFAULT_FORM_DATA as TIMESERIES_DEFAULTS,
   EchartsTimeseriesContributionType,
   EchartsTimeseriesSeriesType,
 } from '../Timeseries/types';
-import { AreaChartExtraControlsValue } from '../constants';
 
 export type EchartsMixedTimeseriesFormData = QueryFormData & {
   annotationLayers: AnnotationLayer[];
@@ -79,8 +79,8 @@ export type EchartsMixedTimeseriesFormData = QueryFormData & {
   seriesTypeB: EchartsTimeseriesSeriesType;
   showValue: boolean;
   showValueB: boolean;
-  stack: boolean | Partial<AreaChartExtraControlsValue> | null;
-  stackB: boolean | Partial<AreaChartExtraControlsValue> | null;
+  stack: StackType;
+  stackB: StackType;
   yAxisIndex?: number;
   yAxisIndexB?: number;
   groupby: QueryFormColumn[];

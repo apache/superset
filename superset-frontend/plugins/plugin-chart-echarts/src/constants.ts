@@ -64,14 +64,15 @@ export enum OpacityEnum {
 }
 
 export enum AreaChartExtraControlsValue {
-  Stacked = 'Stacked',
-  Expanded = 'Expanded',
+  Stack = 'Stack',
+  Expand = 'Expand',
 }
 
 export const AreaChartExtraControlsOptions: [
   JsonValue,
   Exclude<ReactNode, null | undefined | boolean>,
 ][] = [
-  [AreaChartExtraControlsValue.Stacked, t('Stacked')],
-  [AreaChartExtraControlsValue.Expanded, t('Expanded')],
+  [null, t('None')],
+  [AreaChartExtraControlsValue.Stack, t('Stack')],
+  [AreaChartExtraControlsValue.Expand, t('Expand')],
 ];

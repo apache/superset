@@ -39,7 +39,7 @@ import {
   richTooltipSection,
   xAxisControl,
 } from '../../controls';
-import { AreaChartExtraControlsValue } from '../../constants';
+import { AreaChartExtraControlsOptions } from '../../constants';
 
 const {
   contributionMode,
@@ -142,11 +142,8 @@ const config: ControlPanelConfig = {
               type: 'SelectControl',
               label: t('Stacked Style'),
               renderTrigger: true,
-              choices: [
-                [AreaChartExtraControlsValue.Stacked, 'stack'],
-                [AreaChartExtraControlsValue.Expanded, 'expand'],
-              ],
-              default: 'stack',
+              choices: AreaChartExtraControlsOptions,
+              default: null,
               description: t('Stack series on top of each other'),
             },
           },

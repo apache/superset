@@ -41,7 +41,7 @@ export default function RadioButtonControl({
   onChange,
   ...props
 }: RadioButtonControlProps) {
-  const currentValue = initialValue === null ? options[0][0] : initialValue;
+  const currentValue = initialValue || options[0][0];
   const theme = useTheme();
   return (
     <div

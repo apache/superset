@@ -48,7 +48,7 @@ export function useExtraControl<
   );
 
   useEffect(() => {
-    setExtraValue(stack ?? undefined);
+    setExtraValue(stack);
   }, [stack]);
 
   const extraControlsOptions = useMemo(() => {
@@ -63,7 +63,7 @@ export function useExtraControl<
       if (area) {
         if (setControlValue) {
           setControlValue('stack', value);
-          setExtraValue(value ?? undefined);
+          setExtraValue(value);
         }
       }
     },

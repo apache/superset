@@ -55,7 +55,7 @@ function mapStateToProps(
   },
   ownProps,
 ) {
-  const { id, extraControls, setControlValue, triggerRender } = ownProps;
+  const { id, extraControls, setControlValue } = ownProps;
   const chart = chartQueries[id] || EMPTY_OBJECT;
   const datasource =
     (chart && chart.form_data && datasources[chart.form_data.datasource]) ||
@@ -102,7 +102,6 @@ function mapStateToProps(
     filterState: dataMask[id]?.filterState,
     maxRows: common.conf.SQL_MAX_ROW,
     setControlValue,
-    triggerRender,
     filterboxMigrationState: dashboardState.filterboxMigrationState,
     datasetsStatus,
   };

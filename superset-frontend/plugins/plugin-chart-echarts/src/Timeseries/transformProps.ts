@@ -48,7 +48,8 @@ import {
   extractSeries,
   getColtypesMapping,
   getLegendProps,
-  extractSeriesLabelValues,
+  extractDataTotalValues,
+  extractShowValueIndexes,
 } from '../utils/series';
 import { extractAnnotationLabels } from '../utils/annotation';
 import {
@@ -146,20 +147,28 @@ export default function transformProps(
   const colorScale = CategoricalColorNamespace.getScale(colorScheme as string);
   const rebasedData = rebaseForecastDatum(data, verboseMap);
   const xAxisCol = verboseMap[xAxisOrig] || xAxisOrig || DTTM_ALIAS;
+  const { totalStackedValues, thresholdValues } = extractDataTotalValues(
+    rebasedData,
+    {
+      stack,
+      percentageThreshold,
+      xAxisCol,
+    },
+  );
   const rawSeries = extractSeries(rebasedData, {
     fillNeighborValue: stack && !forecastEnabled ? 0 : undefined,
     xAxis: xAxisCol,
     removeNulls: seriesType === EchartsTimeseriesSeriesType.Scatter,
+    stack,
+    totalStackedValues,
+  });
+  const showValueIndexes = extractShowValueIndexes(rawSeries, {
+    stack,
   });
   const seriesContexts = extractForecastSeriesContexts(
     Object.values(rawSeries).map(series => series.name as string),
   );
-  const isAreaExpanded = stack === AreaChartExtraControlsValue.Expanded;
-  const seriesLabelValues = extractSeriesLabelValues(rebasedData, rawSeries, {
-    stack,
-    percentageThreshold,
-    xAxisCol,
-  });
+  const isAreaExpand = stack === AreaChartExtraControlsValue.Expand;
   const xAxisDataType = dataTypes?.[xAxisCol];
   let xAxisType: 'time' | 'value' | 'category';
   switch (xAxisDataType) {
@@ -175,7 +184,7 @@ export default function transformProps(
   }
   const series: SeriesOption[] = [];
   const formatter = getNumberFormatter(
-    contributionMode || isAreaExpanded ? ',.0%' : yAxisFormat,
+    contributionMode || isAreaExpand ? ',.0%' : yAxisFormat,
   );
 
   rawSeries.forEach(entry => {
@@ -187,11 +196,13 @@ export default function transformProps(
       markerSize,
       areaOpacity: opacity,
       seriesType,
-      stack: Boolean(stack),
+      stack,
       formatter,
       showValue,
       onlyTotal,
-      seriesLabelValues,
+      totalStackedValues,
+      showValueIndexes,
+      thresholdValues,
       richTooltip,
       sliceId,
     });
@@ -254,7 +265,7 @@ export default function transformProps(
   let [min, max] = (yAxisBounds || []).map(parseYAxisBound);
 
   // default to 0-100% range when doing row-level contribution chart
-  if ((contributionMode === 'row' || isAreaExpanded) && stack) {
+  if ((contributionMode === 'row' || isAreaExpand) && stack) {
     if (min === undefined) min = 0;
     if (max === undefined) max = 1;
   }

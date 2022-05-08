@@ -52,7 +52,6 @@ const propTypes = {
   isComponentVisible: PropTypes.bool,
   handleToggleFullSize: PropTypes.func.isRequired,
   setControlValue: PropTypes.func,
-  triggerRender: PropTypes.bool,
 
   // from redux
   chart: chartPropShape.isRequired,
@@ -349,7 +348,6 @@ export default class Chart extends React.Component {
       handleToggleFullSize,
       isFullSize,
       setControlValue,
-      triggerRender,
       filterboxMigrationState,
       postTransformProps,
       datasetsStatus,
@@ -478,7 +476,6 @@ export default class Chart extends React.Component {
             triggerQuery={chart.triggerQuery}
             vizType={slice.viz_type}
             setControlValue={setControlValue}
-            triggerRender={triggerRender}
             isDeactivatedViz={isDeactivatedViz}
             filterboxMigrationState={filterboxMigrationState}
             postTransformProps={postTransformProps}

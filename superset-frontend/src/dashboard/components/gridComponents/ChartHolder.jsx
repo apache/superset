@@ -192,7 +192,6 @@ class ChartHolder extends React.Component {
       outlinedColumnName: null,
       directPathLastUpdated: 0,
       extraControls: {},
-      triggerRender: false,
     };
 
     this.handleChangeFocus = this.handleChangeFocus.bind(this);
@@ -261,7 +260,6 @@ class ChartHolder extends React.Component {
         ...prevState.extraControls,
         [name]: value,
       },
-      triggerRender: true,
     }));
   }
 
@@ -271,7 +269,7 @@ class ChartHolder extends React.Component {
   }
 
   render() {
-    const { isFocused, extraControls, triggerRender } = this.state;
+    const { isFocused, extraControls } = this.state;
     const {
       component,
       parentComponent,
@@ -387,7 +385,6 @@ class ChartHolder extends React.Component {
                 isFullSize={isFullSize}
                 setControlValue={this.handleExtraControl}
                 extraControls={extraControls}
-                triggerRender={triggerRender}
                 postTransformProps={this.handlePostTransformProps}
               />
               {editMode && (
