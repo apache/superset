@@ -133,17 +133,21 @@ function AtAGlanceUserIDCore(props: AtAGlanceUserIDProps) {
     const OPERATION = 'operation';
     const USER_LOGGED_IN = 'UserLoggedIn';
 
-    for (
-      let i = 0;
-      i < props.formData?.extraFormData?.filters?.length;
-      i += 1
-    ) {
-      const filter = props.formData.extraFormData.filters[i];
-      if (filter.col === 'user_id') {
-        const localUserId: string = filter.val[0];
-        setUserIDString(localUserId);
-        break;
+    if (typeof props.formData?.extraFormData?.filters !== 'undefined') {
+      for (
+        let i = 0;
+        i < props.formData?.extraFormData?.filters?.length;
+        i += 1
+      ) {
+        const filter = props.formData.extraFormData.filters[i];
+        if (filter.col === 'user_id') {
+          const localUserId: string = filter.val[0];
+          setUserIDString(localUserId);
+          break;
+        }
       }
+    } else {
+      setUserIDString('');
     }
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
