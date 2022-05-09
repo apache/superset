@@ -126,7 +126,7 @@ export default class LineChart extends PureComponent<Props> {
         const series: Series = {
           key: key.length === 0 ? channels.y.getTitle() : key,
           fill: channels.fill.encodeDatum(firstDatum, false),
-          stroke: channels.stroke.encodeDatum(firstDatum, '#222'),
+          stroke: channels.stroke?.encodeDatum(firstDatum, '#222'),
           strokeDasharray: channels.strokeDasharray.encodeDatum(firstDatum, ''),
           strokeWidth: channels.strokeWidth.encodeDatum(firstDatum, 1),
           values: [],

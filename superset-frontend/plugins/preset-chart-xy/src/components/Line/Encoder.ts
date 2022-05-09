@@ -28,7 +28,7 @@ export type LineEncodingConfig = {
   x: ['X', number];
   y: ['Y', number];
   fill: ['Category', boolean];
-  stroke: ['Color', string];
+  stroke?: ['Color', string];
   strokeDasharray: ['Category', string];
   strokeWidth: ['Numeric', number];
 };
@@ -46,7 +46,7 @@ export const lineEncoderFactory = createEncoderFactory<LineEncodingConfig>({
     x: { field: 'x', type: 'quantitative' },
     y: { field: 'y', type: 'quantitative' },
     fill: { value: false, legend: false },
-    stroke: { value: '#222' },
+    stroke: { value: '#222' }, // eslint-disable-line theme-colors/no-literal-colors
     strokeDasharray: { value: '' },
     strokeWidth: { value: 1 },
   },
