@@ -24,38 +24,64 @@ from superset.charts.commands.exceptions import (
     ChartNotFoundError,
 )
 from superset.charts.dao import ChartDAO
-from superset.commands.exceptions import DatasourceNotFoundValidationError
+from superset.commands.exceptions import (
+    DatasourceNotFoundValidationError,
+    DatasourceTypeInvalidError,
+    QueryNotFoundValidationError,
+)
 from superset.datasets.commands.exceptions import (
     DatasetAccessDeniedError,
     DatasetNotFoundError,
 )
 from superset.datasets.dao import DatasetDAO
+from superset.queries.dao import QueryDAO
 from superset.utils.core import DatasourceType
 from superset.views.base import is_user_admin
 from superset.views.utils import is_owner
-
-
-def check_datasource_access(datasource_id: int, datasource_type: str) -> Optional[bool]:
-    if datasource_id:
-        if datasource_type == DatasourceType.TABLE:
-            return check_dataset_access(datasource_id)
-    raise DatasourceNotFoundValidationError
 
 
 def check_dataset_access(dataset_id: int) -> Optional[bool]:
     if dataset_id:
         dataset = DatasetDAO.find_by_id(dataset_id)
         if dataset:
-            can_access_datasource = security_manager.can_access_datasource(
-                dataset)
+            can_access_datasource = security_manager.can_access_datasource(dataset)
             if can_access_datasource:
                 return True
             raise DatasetAccessDeniedError()
     raise DatasetNotFoundError()
 
 
+def check_query_access(query_id: int) -> Optional[bool]:
+    if query_id:
+        query = QueryDAO.find_by_id(query_id)
+        if query:
+            security_manager.raise_for_access(query=query)
+            return True
+    raise QueryNotFoundValidationError()
+
+
+ACCESS_FUNCTION_MAP = {
+    DatasourceType.TABLE: check_dataset_access,
+    DatasourceType.QUERY: check_query_access,
+}
+
+
+def check_datasource_access(
+    datasource_id: int, datasource_type: DatasourceType
+) -> Optional[bool]:
+    if datasource_id:
+        try:
+            return ACCESS_FUNCTION_MAP[datasource_type](datasource_id)
+        except KeyError as ex:
+            raise DatasourceTypeInvalidError() from ex
+    raise DatasourceNotFoundValidationError()
+
+
 def check_access(
-    datasource_id: int, chart_id: Optional[int], actor: User, datasource_type: str
+    datasource_id: int,
+    chart_id: Optional[int],
+    actor: User,
+    datasource_type: DatasourceType,
 ) -> Optional[bool]:
     check_datasource_access(datasource_id, datasource_type)
     if not chart_id:

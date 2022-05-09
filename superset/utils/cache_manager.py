@@ -35,7 +35,7 @@ class ExploreFormDataCache(Cache):
         if not cache:
             return None
 
-        # rename keys for existing cache based on new TemporaryExploreState model
+        # rename data keys for existing cache based on new TemporaryExploreState model
         if isinstance(cache, dict):
             cache = {
                 ("datasource_id" if key == "dataset_id" else key): value

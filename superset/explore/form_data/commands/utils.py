@@ -31,9 +31,15 @@ from superset.temporary_cache.commands.exceptions import (
     TemporaryCacheAccessDeniedError,
     TemporaryCacheResourceNotFoundError,
 )
+from superset.utils.core import DatasourceType
 
 
-def check_access(datasource_id: int, chart_id: Optional[int], actor: User, datasource_type: str) -> None:
+def check_access(
+    datasource_id: int,
+    chart_id: Optional[int],
+    actor: User,
+    datasource_type: DatasourceType,
+) -> None:
     try:
         explore_check_access(datasource_id, chart_id, actor, datasource_type)
     except (ChartNotFoundError, DatasetNotFoundError) as ex:

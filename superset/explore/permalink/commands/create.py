@@ -25,6 +25,7 @@ from superset.explore.permalink.exceptions import ExplorePermalinkCreateFailedEr
 from superset.explore.utils import check_access as check_chart_access
 from superset.key_value.commands.create import CreateKeyValueCommand
 from superset.key_value.utils import encode_permalink_key
+from superset.utils.core import DatasourceType
 
 logger = logging.getLogger(__name__)
 
@@ -39,9 +40,9 @@ class CreateExplorePermalinkCommand(BaseExplorePermalinkCommand):
     def run(self) -> str:
         self.validate()
         try:
-            datasource = self.datasource.split("__")
-            datasource_id: int = int(datasource[0])
-            datasource_type: str = datasource[1]
+            d_id, d_type = self.datasource.split("__")
+            datasource_id = int(d_id)
+            datasource_type = DatasourceType(d_type)
             check_chart_access(
                 datasource_id, self.chart_id, self.actor, datasource_type
             )
@@ -59,8 +60,7 @@ class CreateExplorePermalinkCommand(BaseExplorePermalinkCommand):
             )
             key = command.run()
             if key.id is None:
-                raise ExplorePermalinkCreateFailedError(
-                    "Unexpected missing key id")
+                raise ExplorePermalinkCreateFailedError("Unexpected missing key id")
             return encode_permalink_key(key=key.id, salt=self.salt)
         except SQLAlchemyError as ex:
             logger.exception("Error running create command")

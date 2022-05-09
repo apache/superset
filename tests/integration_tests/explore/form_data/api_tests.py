@@ -56,7 +56,7 @@ def admin_id() -> int:
 
 
 @pytest.fixture
-def datasource_id() -> int:
+def datasource() -> int:
     with app.app_context() as ctx:
         session: Session = ctx.app.appbuilder.get_session
         dataset = (
@@ -64,38 +64,26 @@ def datasource_id() -> int:
             .filter_by(table_name="wb_health_population")
             .first()
         )
-        return dataset.id
-
-
-@pytest.fixture
-def datasource_type() -> int:
-    with app.app_context() as ctx:
-        session: Session = ctx.app.appbuilder.get_session
-        dataset = (
-            session.query(SqlaTable)
-            .filter_by(table_name="wb_health_population")
-            .first()
-        )
-        return dataset.type
+        return dataset
 
 
 @pytest.fixture(autouse=True)
-def cache(chart_id, admin_id, datasource_id, datasource_type):
+def cache(chart_id, admin_id, datasource):
     entry: TemporaryExploreState = {
         "owner": admin_id,
-        "datasource_id": datasource_id,
-        "datasource_type": datasource_type,
+        "datasource_id": datasource.id,
+        "datasource_type": datasource.type,
         "chart_id": chart_id,
         "form_data": INITIAL_FORM_DATA,
     }
     cache_manager.explore_form_data_cache.set(KEY, entry)
 
 
-def test_post(client, chart_id: int, datasource_id: int, datasource_type: str):
+def test_post(client, chart_id: int, datasource: SqlaTable):
     login(client, "admin")
     payload = {
-        "datasource_id": datasource_id,
-        "datasource_type": datasource_type,
+        "datasource_id": datasource.id,
+        "datasource_type": datasource.type,
         "chart_id": chart_id,
         "form_data": INITIAL_FORM_DATA,
     }
@@ -103,13 +91,11 @@ def test_post(client, chart_id: int, datasource_id: int, datasource_type: str):
     assert resp.status_code == 201
 
 
-def test_post_bad_request_non_string(
-    client, chart_id: int, datasource_id: int, datasource_type: str
-):
+def test_post_bad_request_non_string(client, chart_id: int, datasource: SqlaTable):
     login(client, "admin")
     payload = {
-        "datasource_id": datasource_id,
-        "datasource_type": datasource_type,
+        "datasource_id": datasource.id,
+        "datasource_type": datasource.type,
         "chart_id": chart_id,
         "form_data": 1234,
     }
@@ -117,13 +103,11 @@ def test_post_bad_request_non_string(
     assert resp.status_code == 400
 
 
-def test_post_bad_request_non_json_string(
-    client, chart_id: int, datasource_id: int, datasource_type: str
-):
+def test_post_bad_request_non_json_string(client, chart_id: int, datasource: SqlaTable):
     login(client, "admin")
     payload = {
-        "datasource_id": datasource_id,
-        "datasource_type": datasource_type,
+        "datasource_id": datasource.id,
+        "datasource_type": datasource.type,
         "chart_id": chart_id,
         "form_data": "foo",
     }
@@ -131,13 +115,11 @@ def test_post_bad_request_non_json_string(
     assert resp.status_code == 400
 
 
-def test_post_access_denied(
-    client, chart_id: int, datasource_id: int, datasource_type: str
-):
+def test_post_access_denied(client, chart_id: int, datasource: SqlaTable):
     login(client, "gamma")
     payload = {
-        "datasource_id": datasource_id,
-        "datasource_type": datasource_type,
+        "datasource_id": datasource.id,
+        "datasource_type": datasource.type,
         "chart_id": chart_id,
         "form_data": INITIAL_FORM_DATA,
     }
@@ -145,13 +127,11 @@ def test_post_access_denied(
     assert resp.status_code == 404
 
 
-def test_post_same_key_for_same_context(
-    client, chart_id: int, datasource_id: int, datasource_type: str
-):
+def test_post_same_key_for_same_context(client, chart_id: int, datasource: SqlaTable):
     login(client, "admin")
     payload = {
-        "datasource_id": datasource_id,
-        "datasource_type": datasource_type,
+        "datasource_id": datasource.id,
+        "datasource_type": datasource.type,
         "chart_id": chart_id,
         "form_data": UPDATED_FORM_DATA,
     }
@@ -165,12 +145,12 @@ def test_post_same_key_for_same_context(
 
 
 def test_post_different_key_for_different_context(
-    client, chart_id: int, datasource_id: int, datasource_type: str
+    client, chart_id: int, datasource: SqlaTable
 ):
     login(client, "admin")
     payload = {
-        "datasource_id": datasource_id,
-        "datasource_type": datasource_type,
+        "datasource_id": datasource.id,
+        "datasource_type": datasource.type,
         "chart_id": chart_id,
         "form_data": UPDATED_FORM_DATA,
     }
@@ -178,8 +158,8 @@ def test_post_different_key_for_different_context(
     data = json.loads(resp.data.decode("utf-8"))
     first_key = data.get("key")
     payload = {
-        "datasource_id": datasource_id,
-        "datasource_type": datasource_type,
+        "datasource_id": datasource.id,
+        "datasource_type": datasource.type,
         "form_data": json.dumps({"test": "initial value"}),
     }
     resp = client.post("api/v1/explore/form_data?tab_id=1", json=payload)
@@ -188,13 +168,11 @@ def test_post_different_key_for_different_context(
     assert first_key != second_key
 
 
-def test_post_same_key_for_same_tab_id(
-    client, chart_id: int, datasource_id: int, datasource_type: str
-):
+def test_post_same_key_for_same_tab_id(client, chart_id: int, datasource: SqlaTable):
     login(client, "admin")
     payload = {
-        "datasource_id": datasource_id,
-        "datasource_type": datasource_type,
+        "datasource_id": datasource.id,
+        "datasource_type": datasource.type,
         "chart_id": chart_id,
         "form_data": json.dumps({"test": "initial value"}),
     }
@@ -208,12 +186,12 @@ def test_post_same_key_for_same_tab_id(
 
 
 def test_post_different_key_for_different_tab_id(
-    client, chart_id: int, datasource_id: int, datasource_type: str
+    client, chart_id: int, datasource: SqlaTable
 ):
     login(client, "admin")
     payload = {
-        "datasource_id": datasource_id,
-        "datasource_type": datasource_type,
+        "datasource_id": datasource.id,
+        "datasource_type": datasource.type,
         "chart_id": chart_id,
         "form_data": json.dumps({"test": "initial value"}),
     }
@@ -226,13 +204,11 @@ def test_post_different_key_for_different_tab_id(
     assert first_key != second_key
 
 
-def test_post_different_key_for_no_tab_id(
-    client, chart_id: int, datasource_id: int, datasource_type: str
-):
+def test_post_different_key_for_no_tab_id(client, chart_id: int, datasource: SqlaTable):
     login(client, "admin")
     payload = {
-        "datasource_id": datasource_id,
-        "datasource_type": datasource_type,
+        "datasource_id": datasource.id,
+        "datasource_type": datasource.type,
         "chart_id": chart_id,
         "form_data": INITIAL_FORM_DATA,
     }
@@ -245,11 +221,11 @@ def test_post_different_key_for_no_tab_id(
     assert first_key != second_key
 
 
-def test_put(client, chart_id: int, datasource_id: int, datasource_type: str):
+def test_put(client, chart_id: int, datasource: SqlaTable):
     login(client, "admin")
     payload = {
-        "datasource_id": datasource_id,
-        "datasource_type": datasource_type,
+        "datasource_id": datasource.id,
+        "datasource_type": datasource.type,
         "chart_id": chart_id,
         "form_data": UPDATED_FORM_DATA,
     }
@@ -257,13 +233,11 @@ def test_put(client, chart_id: int, datasource_id: int, datasource_type: str):
     assert resp.status_code == 200
 
 
-def test_put_same_key_for_same_tab_id(
-    client, chart_id: int, datasource_id: int, datasource_type: str
-):
+def test_put_same_key_for_same_tab_id(client, chart_id: int, datasource: SqlaTable):
     login(client, "admin")
     payload = {
-        "datasource_id": datasource_id,
-        "datasource_type": datasource_type,
+        "datasource_id": datasource.id,
+        "datasource_type": datasource.type,
         "chart_id": chart_id,
         "form_data": UPDATED_FORM_DATA,
     }
@@ -277,12 +251,12 @@ def test_put_same_key_for_same_tab_id(
 
 
 def test_put_different_key_for_different_tab_id(
-    client, chart_id: int, datasource_id: int, datasource_type: str
+    client, chart_id: int, datasource: SqlaTable
 ):
     login(client, "admin")
     payload = {
-        "datasource_id": datasource_id,
-        "datasource_type": datasource_type,
+        "datasource_id": datasource.id,
+        "datasource_type": datasource.type,
         "chart_id": chart_id,
         "form_data": UPDATED_FORM_DATA,
     }
@@ -295,13 +269,11 @@ def test_put_different_key_for_different_tab_id(
     assert first_key != second_key
 
 
-def test_put_different_key_for_no_tab_id(
-    client, chart_id: int, datasource_id: int, datasource_type: str
-):
+def test_put_different_key_for_no_tab_id(client, chart_id: int, datasource: SqlaTable):
     login(client, "admin")
     payload = {
-        "datasource_id": datasource_id,
-        "datasource_type": datasource_type,
+        "datasource_id": datasource.id,
+        "datasource_type": datasource.type,
         "chart_id": chart_id,
         "form_data": UPDATED_FORM_DATA,
     }
@@ -314,13 +286,11 @@ def test_put_different_key_for_no_tab_id(
     assert first_key != second_key
 
 
-def test_put_bad_request(
-    client, chart_id: int, datasource_id: int, datasource_type: str
-):
+def test_put_bad_request(client, chart_id: int, datasource: SqlaTable):
     login(client, "admin")
     payload = {
-        "datasource_id": datasource_id,
-        "datasource_type": datasource_type,
+        "datasource_id": datasource.id,
+        "datasource_type": datasource.type,
         "chart_id": chart_id,
         "form_data": 1234,
     }
@@ -328,13 +298,11 @@ def test_put_bad_request(
     assert resp.status_code == 400
 
 
-def test_put_bad_request_non_string(
-    client, chart_id: int, datasource_id: int, datasource_type: str
-):
+def test_put_bad_request_non_string(client, chart_id: int, datasource: SqlaTable):
     login(client, "admin")
     payload = {
-        "datasource_id": datasource_id,
-        "datasource_type": datasource_type,
+        "datasource_id": datasource.id,
+        "datasource_type": datasource.type,
         "chart_id": chart_id,
         "form_data": 1234,
     }
@@ -342,13 +310,11 @@ def test_put_bad_request_non_string(
     assert resp.status_code == 400
 
 
-def test_put_bad_request_non_json_string(
-    client, chart_id: int, datasource_id: int, datasource_type: str
-):
+def test_put_bad_request_non_json_string(client, chart_id: int, datasource: SqlaTable):
     login(client, "admin")
     payload = {
-        "datasource_id": datasource_id,
-        "datasource_type": datasource_type,
+        "datasource_id": datasource.id,
+        "datasource_type": datasource.type,
         "chart_id": chart_id,
         "form_data": "foo",
     }
@@ -356,13 +322,11 @@ def test_put_bad_request_non_json_string(
     assert resp.status_code == 400
 
 
-def test_put_access_denied(
-    client, chart_id: int, datasource_id: int, datasource_type: str
-):
+def test_put_access_denied(client, chart_id: int, datasource: SqlaTable):
     login(client, "gamma")
     payload = {
-        "datasource_id": datasource_id,
-        "datasource_type": datasource_type,
+        "datasource_id": datasource.id,
+        "datasource_type": datasource.type,
         "chart_id": chart_id,
         "form_data": UPDATED_FORM_DATA,
     }
@@ -370,11 +334,11 @@ def test_put_access_denied(
     assert resp.status_code == 404
 
 
-def test_put_not_owner(client, chart_id: int, datasource_id: int, datasource_type: str):
+def test_put_not_owner(client, chart_id: int, datasource: SqlaTable):
     login(client, "gamma")
     payload = {
-        "datasource_id": datasource_id,
-        "datasource_type": datasource_type,
+        "datasource_id": datasource.id,
+        "datasource_type": datasource.type,
         "chart_id": chart_id,
         "form_data": UPDATED_FORM_DATA,
     }
@@ -422,15 +386,13 @@ def test_delete_access_denied(client):
     assert resp.status_code == 404
 
 
-def test_delete_not_owner(
-    client, chart_id: int, datasource_id: int, datasource_type: str, admin_id: int
-):
+def test_delete_not_owner(client, chart_id: int, datasource: SqlaTable, admin_id: int):
     another_key = "another_key"
     another_owner = admin_id + 1
     entry: TemporaryExploreState = {
         "owner": another_owner,
-        "datasource_id": datasource_id,
-        "datasource_type": datasource_type,
+        "datasource_id": datasource.id,
+        "datasource_type": datasource.type,
         "chart_id": chart_id,
         "form_data": INITIAL_FORM_DATA,
     }
