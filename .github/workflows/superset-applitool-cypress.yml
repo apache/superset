@@ -110,4 +110,4 @@ jobs:
           APPLITOOLS_BATCH_ID: ${{ github.sha }}
           APPLITOOLS_API_KEY: ${{ secrets.APPLITOOLS_API_KEY }}
         with:
-          args: -X POST https://eyesapi.applitools.com/api/externals/github/servers/github.com/commit/${{ env.APPLITOOLS_BATCH_ID }}/complete?apiKey=${{ env.APPLITOOLS_API_KEY }} -H "Content-Type: application/json" -H "Content-Length: 0"
+          args: -X POST https://eyesapi.applitools.com/api/externals/github/servers/github.com/commit/${{ env.APPLITOOLS_BATCH_ID }}/complete?apiKey=${{ env.APPLITOOLS_API_KEY }}
