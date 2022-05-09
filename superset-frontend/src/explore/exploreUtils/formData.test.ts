@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { sanitizeFormData } from './formData';
+import { sanitizeFormData, isEqualish } from './formData';
 
 test('sanitizeFormData removes temporary control values', () => {
   expect(
@@ -25,4 +25,26 @@ test('sanitizeFormData removes temporary control values', () => {
       metrics: ['foo', 'bar'],
     }),
   ).toEqual({ metrics: ['foo', 'bar'] });
+});
+
+test('isEqualish', () => {
+  // considers null, undefined, {} and [] as equal
+  expect(isEqualish(null, undefined)).toBe(true);
+  expect(isEqualish(null, [])).toBe(true);
+  expect(isEqualish(null, {})).toBe(true);
+  expect(isEqualish(undefined, {})).toBe(true);
+
+  // considers empty strings are the same as null
+  expect(isEqualish(undefined, '')).toBe(true);
+  expect(isEqualish(null, '')).toBe(true);
+
+  // considers deeply equal objects as equal
+  expect(isEqualish('', '')).toBe(true);
+  expect(isEqualish({ a: 1, b: 2, c: 3 }, { a: 1, b: 2, c: 3 })).toBe(true);
+
+  // Out of order
+  expect(isEqualish({ a: 1, b: 2, c: 3 }, { b: 2, a: 1, c: 3 })).toBe(true);
+
+  // Actually  not equal
+  expect(isEqualish({ a: 1, b: 2, z: 9 }, { a: 1, b: 2, c: 3 })).toBe(false);
 });
