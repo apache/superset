@@ -234,6 +234,11 @@ class TestPrestoValidator(SupersetTestCase):
 
         self.assertEqual(1, len(errors))
 
+    @patch.dict(
+        "superset.config.SQL_VALIDATORS_BY_ENGINE",
+        {},
+        clear=True,
+    )
     def test_validate_sql_endpoint(self):
         self.login("admin")
         # NB this is effectively an integration test -- when there's a default
