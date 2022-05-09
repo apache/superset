@@ -51,13 +51,14 @@ export default function reportsReducer(state = {}, action) {
     [ADD_REPORT]() {
       const { result, id } = action.json;
       const report = { ...result, id };
-      const reportId = report.dashboard || report.chart;
+      const reportTypeId = report.dashboard || report.chart;
+      // this is the id of either the chart or the dashboard associated with the report.
 
       return {
         ...state,
         [report.creation_method]: {
           ...state[report.creation_method],
-          [reportId]: report,
+          [reportTypeId]: report,
         },
       };
     },
@@ -67,13 +68,13 @@ export default function reportsReducer(state = {}, action) {
         ...action.json.result,
         id: action.json.id,
       };
-      const reportId = report.dashboard || report.chart;
+      const reportTypeId = report.dashboard || report.chart;
 
       return {
         ...state,
         [report.creation_method]: {
           ...state[report.creation_method],
-          [reportId]: report,
+          [reportTypeId]: report,
         },
       };
     },

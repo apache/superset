@@ -133,7 +133,7 @@ describe('Header Report Dropdown', () => {
     expect(screen.getByText('Delete email report')).toBeInTheDocument();
   });
 
-  it('opens an edit modal', () => {
+  it('opens an edit modal', async () => {
     const mockedProps = createProps();
     act(() => {
       setup(mockedProps, stateWithUserAndReport);
@@ -142,7 +142,8 @@ describe('Header Report Dropdown', () => {
     userEvent.click(emailReportModalButton);
     const editModal = screen.getByText('Edit email report');
     userEvent.click(editModal);
-    expect(screen.getByText('Edit Email Report')).toBeInTheDocument();
+    const textBoxes = await screen.findAllByText('Edit email report');
+    expect(textBoxes).toHaveLength(2);
   });
 
   it('opens a delete modal', () => {
@@ -164,7 +165,7 @@ describe('Header Report Dropdown', () => {
     });
     const emailReportModalButton = screen.getByRole('button');
     userEvent.click(emailReportModalButton);
-    expect(screen.getByText('New Email Report')).toBeInTheDocument();
+    expect(screen.getByText('Schedule a new email report')).toBeInTheDocument();
   });
 
   it('renders Manage Email Reports Menu if textMenu is set to true and there is a report', () => {

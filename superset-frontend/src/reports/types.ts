@@ -29,3 +29,32 @@ export enum ReportType {
   DASHBOARDS = 'dashboards',
   CHARTS = 'charts',
 }
+
+export enum NOTIFICATION_FORMATS {
+  TEXT = 'TEXT',
+  PNG = 'PNG',
+  CSV = 'CSV',
+}
+export interface ReportObject {
+  id?: number;
+  active: boolean;
+  crontab: string;
+  dashboard?: number;
+  chart?: number;
+  description?: string;
+  log_retention: number;
+  name: string;
+  owners: number[];
+  recipients: [
+    { recipient_config_json: { target: string }; type: ReportRecipientType },
+  ];
+  report_format: string;
+  timezone: string;
+  type: ReportScheduleType;
+  validator_config_json: {} | null;
+  validator_type: string;
+  working_timeout: number;
+  creation_method: string;
+  force_screenshot: boolean;
+  error?: string;
+}

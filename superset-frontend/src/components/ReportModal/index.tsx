@@ -35,8 +35,11 @@ import { CronError } from 'src/components/CronPicker';
 import { RadioChangeEvent } from 'src/components';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { ChartState } from 'src/explore/types';
-import { ReportCreationMethod, ReportType } from 'src/reports/types';
-import { ReportObject, NOTIFICATION_FORMATS } from 'src/views/CRUD/alert/types';
+import {
+  ReportCreationMethod,
+  ReportObject,
+  NOTIFICATION_FORMATS,
+} from 'src/reports/types';
 import { reportSelector } from 'src/views/CRUD/hooks';
 import { CreationMethod } from './HeaderReportDropdown';
 import {
