@@ -15,29 +15,28 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from typing import List, Optional, Set, TYPE_CHECKING, Union
+from typing import List, Optional, Set, Union
 
 from flask_babel import _
 from sqlalchemy import or_
 from sqlalchemy.orm import Session, subqueryload
 from sqlalchemy.orm.exc import NoResultFound
 
+from superset.connectors.sqla.models import Query, SqlaTable, Table
 from superset.dao.base import BaseDAO
 from superset.datasets.commands.exceptions import DatasetNotFoundError
+from superset.datasets.models import Dataset
+from superset.models.core import Database
+from superset.models.sql_lab import SavedQuery
 
-if TYPE_CHECKING:
-    from superset.connectors.sqla.models import Query, SqlaTable, Table
-    from superset.datasets.models import Dataset
-    from superset.models.core import Database
-    from superset.models.sql_lab import SavedQuery
-
-    Datasource = Union[Dataset, SqlaTable, Table, Query, SavedQuery]
+Datasource = Union[Dataset, SqlaTable, Table, Query, SavedQuery]
 
 
 class DatasourceDAO(BaseDAO):
 
     sources = {
-        "table": SqlaTable,  # using table -> SqlaTable for backward compatibility at the moment
+        # using table -> SqlaTable for backward compatibility at the moment
+        "table": SqlaTable,
         "query": Query,
         "saved_query": SavedQuery,
         "sl_dataset": Dataset,
@@ -46,7 +45,7 @@ class DatasourceDAO(BaseDAO):
 
     def get_datasource(
         self, datasource_type: str, datasource_id: int, session: Session
-    ) -> "Datasource":
+    ) -> Datasource:
         if datasource_type not in self.sources:
             raise DatasetNotFoundError()
 
@@ -61,7 +60,7 @@ class DatasourceDAO(BaseDAO):
 
         return datasource
 
-    def get_all_datasources(self, session: Session) -> List["Datasource"]:
+    def get_all_datasources(self, session: Session) -> List[Datasource]:
         datasources: List["Datasource"] = []
         for source_class in DatasourceDAO.sources.values():
             qry = session.query(source_class)
@@ -69,9 +68,7 @@ class DatasourceDAO(BaseDAO):
             datasources.extend(qry.all())
         return datasources
 
-    def get_datasource_by_id(
-        self, session: Session, datasource_id: int
-    ) -> "Datasource":
+    def get_datasource_by_id(self, session: Session, datasource_id: int) -> Datasource:
         """
         Find a datasource instance based on the unique id.
         :param session: Session to use
@@ -98,7 +95,7 @@ class DatasourceDAO(BaseDAO):
         datasource_name: str,
         schema: str,
         database_name: str,
-    ) -> Optional["Datasource"]:
+    ) -> Optional[Datasource]:
         datasource_class = DatasourceDAO.sources[datasource_type]
         return datasource_class.get_datasource_by_name(
             session, datasource_name, schema, database_name
@@ -107,10 +104,10 @@ class DatasourceDAO(BaseDAO):
     def query_datasources_by_permissions(  # pylint: disable=invalid-name
         self,
         session: Session,
-        database: "Database",
+        database: Database,
         permissions: Set[str],
         schema_perms: Set[str],
-    ) -> List["Datasource"]:
+    ) -> List[Datasource]:
         # TODO(bogdan): add unit test
         datasource_class = DatasourceDAO.sources[database.type]
         return (
@@ -127,7 +124,7 @@ class DatasourceDAO(BaseDAO):
 
     def get_eager_datasource(
         self, session: Session, datasource_type: str, datasource_id: int
-    ) -> "Datasource":
+    ) -> Datasource:
         """Returns datasource with columns and metrics."""
         datasource_class = DatasourceDAO.sources[datasource_type]
         return (
@@ -143,10 +140,10 @@ class DatasourceDAO(BaseDAO):
     def query_datasources_by_name(
         self,
         session: Session,
-        database: "Database",
+        database: Database,
         datasource_name: str,
         schema: Optional[str] = None,
-    ) -> List["Datasource"]:
+    ) -> List[Datasource]:
         datasource_class = DatasourceDAO.sources[database.type]
         return datasource_class.query_datasources_by_name(
             session, database, datasource_name, schema=schema
