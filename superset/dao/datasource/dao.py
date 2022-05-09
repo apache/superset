@@ -43,14 +43,15 @@ class DatasourceDAO(BaseDAO):
         "sl_table": Table,
     }
 
+    @classmethod
     def get_datasource(
-        self, datasource_type: str, datasource_id: int, session: Session
+        cls, datasource_type: str, datasource_id: int, session: Session
     ) -> Datasource:
-        if datasource_type not in self.sources:
+        if datasource_type not in cls.sources:
             raise DatasetNotFoundError()
 
         datasource = (
-            session.query(self.sources[datasource_type])
+            session.query(cls.sources[datasource_type])
             .filter_by(id=datasource_id)
             .one_or_none()
         )
