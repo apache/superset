@@ -107,7 +107,7 @@ export default async function callApi({
         request.headers = { ...request.headers, 'If-None-Match': etag };
       }
     } catch (err) {
-      console.error('failed to check cache', err);
+      console.log('failed to check cache', err);
     }
 
     const response = await fetchWithRetry(url, request);
