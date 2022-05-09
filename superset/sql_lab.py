@@ -26,12 +26,20 @@ import backoff
 import msgpack
 import pyarrow as pa
 import simplejson as json
+import sqlparse
 from celery import Task
 from celery.exceptions import SoftTimeLimitExceeded
+from flask import g
 from flask_babel import gettext as __
 from sqlalchemy.orm import Session
 
-from superset import app, results_backend, results_backend_use_msgpack, security_manager
+from superset import (
+    app,
+    is_feature_enabled,
+    results_backend,
+    results_backend_use_msgpack,
+    security_manager,
+)
 from superset.common.db_query_status import QueryStatus
 from superset.dataframe import df_to_records
 from superset.db_engine_specs import BaseEngineSpec
@@ -41,7 +49,7 @@ from superset.extensions import celery_app
 from superset.models.core import Database
 from superset.models.sql_lab import Query
 from superset.result_set import SupersetResultSet
-from superset.sql_parse import CtasMethod, ParsedQuery
+from superset.sql_parse import CtasMethod, insert_rls, ParsedQuery
 from superset.sqllab.limiting_factor import LimitingFactor
 from superset.utils.celery import session_scope
 from superset.utils.core import json_iso_dttm_ser, QuerySource, zlib_compress
@@ -176,7 +184,7 @@ def get_sql_results(  # pylint: disable=too-many-arguments
             return handle_query_error(ex, query, session)
 
 
-def execute_sql_statement(  # pylint: disable=too-many-arguments,too-many-locals
+def execute_sql_statement(  # pylint: disable=too-many-arguments,too-many-locals,too-many-statements
     sql_statement: str,
     query: Query,
     user_name: Optional[str],
@@ -188,7 +196,21 @@ def execute_sql_statement(  # pylint: disable=too-many-arguments,too-many-locals
     """Executes a single SQL statement"""
     database: Database = query.database
     db_engine_spec = database.db_engine_spec
-    parsed_query = ParsedQuery(sql_statement)
+
+    if is_feature_enabled("RLS_IN_SQLLAB"):
+        # Insert any applicable RLS predicates
+        parsed_query = ParsedQuery(
+            str(
+                insert_rls(
+                    sqlparse.parse(sql_statement)[0],
+                    database.id,
+                    query.schema,
+                )
+            )
+        )
+    else:
+        parsed_query = ParsedQuery(sql_statement)
+
     sql = parsed_query.stripped()
     # This is a test to see if the query is being
     # limited by either the dropdown or the sql.
@@ -365,6 +387,10 @@ def execute_sql_statements(  # pylint: disable=too-many-arguments, too-many-loca
     if store_results and start_time:
         # only asynchronous queries
         stats_logger.timing("sqllab.query.time_pending", now_as_float() - start_time)
+
+    if not hasattr(g, "user"):
+        # pylint: disable=assigning-non-slot)
+        g.user = security_manager.find_user(username=user_name)
 
     query = get_query(query_id, session)
     payload: Dict[str, Any] = dict(query_id=query_id)
