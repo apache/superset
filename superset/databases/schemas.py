@@ -527,6 +527,12 @@ class TableMetadataResponseSchema(Schema):
     selectStar = fields.String(description="SQL select star")
 
 
+class TableExtraMetadataResponseSchema(Schema):
+    metadata = fields.Dict()
+    partitions = fields.Dict()
+    clustering = fields.Dict()
+
+
 class SelectStarResponseSchema(Schema):
     result = fields.String(description="SQL select star")
 

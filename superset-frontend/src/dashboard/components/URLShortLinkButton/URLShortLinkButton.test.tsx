@@ -20,7 +20,7 @@ import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
-import URLShortLinkButton from 'src/components/URLShortLinkButton';
+import URLShortLinkButton from 'src/dashboard/components/URLShortLinkButton';
 import ToastContainer from 'src/components/MessageToasts/ToastContainer';
 
 const DASHBOARD_ID = 10;

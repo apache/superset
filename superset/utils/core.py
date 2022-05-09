@@ -928,7 +928,9 @@ def send_email_smtp(  # pylint: disable=invalid-name,too-many-arguments,too-many
     # Attach any inline images, which may be required for display in
     # HTML content (inline)
     for msgid, imgdata in (images or {}).items():
-        image = MIMEImage(imgdata)
+        formatted_time = formatdate(localtime=True)
+        file_name = f"{subject} {formatted_time}"
+        image = MIMEImage(imgdata, name=file_name)
         image.add_header("Content-ID", "<%s>" % msgid)
         image.add_header("Content-Disposition", "inline")
         msg.attach(image)
@@ -1746,14 +1748,14 @@ def normalize_dttm_col(
             # Column is formatted as a numeric value
             unit = timestamp_format.replace("epoch_", "")
             df[DTTM_ALIAS] = pd.to_datetime(
-                dttm_col, utc=False, unit=unit, origin="unix"
+                dttm_col, utc=False, unit=unit, origin="unix", errors="coerce"
             )
         else:
             # Column has already been formatted as a timestamp.
             df[DTTM_ALIAS] = dttm_col.apply(pd.Timestamp)
     else:
         df[DTTM_ALIAS] = pd.to_datetime(
-            df[DTTM_ALIAS], utc=False, format=timestamp_format
+            df[DTTM_ALIAS], utc=False, format=timestamp_format, errors="coerce"
         )
     if offset:
         df[DTTM_ALIAS] += timedelta(hours=offset)

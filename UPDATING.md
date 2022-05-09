@@ -30,6 +30,7 @@ assists people when migrating to a new version.
 
 ### Breaking Changes
 
+- [19770](https://github.com/apache/superset/pull/19770): As per SIPs 11 and 68, the native NoSQL Druid connector is deprecated and has been removed. Druid is still supported through SQLAlchemy via pydruid. The config keys `DRUID_IS_ACTIVE` and `DRUID_METADATA_LINKS_ENABLED` have also been removed.
 - [19274](https://github.com/apache/superset/pull/19274): The `PUBLIC_ROLE_LIKE_GAMMA` config key has been removed, set `PUBLIC_ROLE_LIKE = "Gamma"` to have the same functionality.
 - [19273](https://github.com/apache/superset/pull/19273): The `SUPERSET_CELERY_WORKERS` and `SUPERSET_WORKERS` config keys has been removed. Configure Celery directly using `CELERY_CONFIG` on Superset.
 - [19262](https://github.com/apache/superset/pull/19262): Per [SIP-11](https://github.com/apache/superset/issues/6032) and [SIP-68](https://github.com/apache/superset/issues/14909) the native NoSQL Druid connector is deprecated and will no longer be supported. Druid SQL is still [supported](https://superset.apache.org/docs/databases/druid).

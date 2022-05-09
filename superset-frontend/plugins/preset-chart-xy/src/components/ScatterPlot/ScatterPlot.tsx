@@ -67,7 +67,9 @@ type Props = {
   Readonly<typeof defaultProps>;
 
 export default class ScatterPlot extends PureComponent<Props> {
-  private createEncoder = scatterPlotEncoderFactory.createSelector();
+  private createEncoder = scatterPlotEncoderFactory(
+    this.props.theme?.colors.darkGray,
+  ).createSelector();
 
   private createMargin = createMarginSelector();
 

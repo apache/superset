@@ -64,7 +64,7 @@ setup(
     zip_safe=False,
     entry_points={
         "console_scripts": ["superset=superset.cli.main:superset"],
-        "sqlalchemy.dialects": ["trinonative = sqlalchemy_trino.dialect:TrinoDialect"],
+        "sqlalchemy.dialects": ["trinonative = trino.sqlalchemy.dialect:TrinoDialect"],
     },
     install_requires=[
         "backoff>=1.8.0",
@@ -152,7 +152,7 @@ setup(
         "pinot": ["pinotdb>=0.3.3, <0.4"],
         "postgres": ["psycopg2-binary==2.9.1"],
         "presto": ["pyhive[presto]>=0.4.0"],
-        "trino": ["sqlalchemy-trino>=0.2"],
+        "trino": ["trino>=0.313.0"],
         "prophet": ["prophet>=1.0.1, <1.1", "pystan<3.0"],
         "redshift": ["sqlalchemy-redshift>=0.8.1, < 0.9"],
         "rockset": ["rockset>=0.8.10, <0.9"],

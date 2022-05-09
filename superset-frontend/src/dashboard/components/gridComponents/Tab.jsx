@@ -23,12 +23,12 @@ import { connect } from 'react-redux';
 import { styled, t } from '@superset-ui/core';
 
 import { EmptyStateMedium } from 'src/components/EmptyState';
+import EditableTitle from 'src/components/EditableTitle';
 import { setEditMode } from 'src/dashboard/actions/dashboardState';
-import DashboardComponent from '../../containers/DashboardComponent';
-import DragDroppable from '../dnd/DragDroppable';
-import EditableTitle from '../../../components/EditableTitle';
-import AnchorLink from '../../../components/AnchorLink';
-import { componentShape } from '../../util/propShapes';
+import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
+import AnchorLink from 'src/dashboard/components/AnchorLink';
+import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
+import { componentShape } from 'src/dashboard/util/propShapes';
 
 export const RENDER_TAB = 'RENDER_TAB';
 export const RENDER_TAB_CONTENT = 'RENDER_TAB_CONTENT';
@@ -45,7 +45,6 @@ const propTypes = {
   onDropOnTab: PropTypes.func,
   editMode: PropTypes.bool.isRequired,
   canEdit: PropTypes.bool.isRequired,
-  filters: PropTypes.object.isRequired,
 
   // grid related
   availableColumnCount: PropTypes.number,
@@ -251,7 +250,6 @@ class Tab extends React.PureComponent {
       index,
       depth,
       editMode,
-      filters,
       isFocused,
       isHighlighted,
     } = this.props;
@@ -283,10 +281,8 @@ class Tab extends React.PureComponent {
             />
             {!editMode && (
               <AnchorLink
-                anchorLinkId={component.id}
+                id={component.id}
                 dashboardId={this.props.dashboardId}
-                filters={filters}
-                showShortLinkButton
                 placement={index >= 5 ? 'left' : 'right'}
               />
             )}
