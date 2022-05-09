@@ -16,16 +16,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-// This function is called when a project is opened or re-opened (e.g. due to
-// the project's config changing)
+import { FORM_DATA_DEFAULTS, NUM_METRIC } from './visualizations/shared.helper';
 
-const { isFileExist, findFiles } = require('cy-verify-downloads');
+describe('explore view', () => {
+  beforeEach(() => {
+    cy.login();
+    cy.intercept('POST', '/superset/explore_json/**').as('getJson');
+  });
 
-module.exports = (on, config) => {
-  // eslint-disable-next-line global-require
-  require('@cypress/code-coverage/task')(on, config);
-  on('task', { isFileExist, findFiles });
-  return config;
-};
+  afterEach(() => {
+    cy.eyesClose();
+  });
 
-require('@applitools/eyes-cypress')(module);
+  it('should load Explore', () => {
+    const LINE_CHART_DEFAULTS = { ...FORM_DATA_DEFAULTS, viz_type: 'line' };
+    const formData = { ...LINE_CHART_DEFAULTS, metrics: [NUM_METRIC] };
+    cy.visitChartByParams(JSON.stringify(formData));
+    cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
+    cy.eyesOpen({
+      testName: 'Explore page',
+    });
+    cy.eyesCheckWindow('Explore loaded');
+  });
+});
