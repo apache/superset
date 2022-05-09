@@ -74,9 +74,7 @@ from tests.integration_tests.test_app import app
 
 SQL_VALIDATORS_BY_ENGINE = {
     "presto": "PrestoDBSQLValidator",
-    "sqlite": "PrestoDBSQLValidator",
     "postgresql": "PostgreSQLValidator",
-    "mysql": "PrestoDBSQLValidator",
 }
 
 PRESTO_SQL_VALIDATORS_BY_ENGINE = {
@@ -2406,12 +2404,11 @@ class TestDatabaseApi(SupersetTestCase):
 
         self.login(username="admin")
         example_db = get_example_database()
-
+        if example_db.backend not in ("presto", "postgresql"):
+            pytest.skip("Only presto and PG are implemented")
         uri = f"api/v1/database/{example_db.id}/validate_sql"
         rv = self.client.post(uri, json=request_payload)
         response = json.loads(rv.data.decode("utf-8"))
-        if rv.status_code == 422:
-            raise Exception(response)
         self.assertEqual(rv.status_code, 200)
         self.assertEqual(response["result"], [])
 
