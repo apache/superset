@@ -2410,6 +2410,8 @@ class TestDatabaseApi(SupersetTestCase):
         uri = f"api/v1/database/{example_db.id}/validate_sql"
         rv = self.client.post(uri, json=request_payload)
         response = json.loads(rv.data.decode("utf-8"))
+        if rv.status_code == 422:
+            raise Exception(response)
         self.assertEqual(rv.status_code, 200)
         self.assertEqual(response["result"], [])
 
