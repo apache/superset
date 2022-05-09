@@ -204,6 +204,7 @@
     "yargs": "^15.4.1"
   },
   "devDependencies": {
+    "@applitools/eyes-storybook": "^3.27.6",
     "@babel/cli": "^7.16.0",
     "@babel/compat-data": "^7.15.0",
     "@babel/core": "^7.15.5",
@@ -289,7 +290,7 @@
     "eslint-plugin-jest-dom": "^3.6.5",
     "eslint-plugin-jsx-a11y": "^6.4.1",
     "eslint-plugin-no-only-tests": "^2.4.0",
-    "eslint-plugin-prettier": "^3.3.1",
+    "eslint-plugin-prettier": "^4.0.0",
     "eslint-plugin-react": "^7.22.0",
     "eslint-plugin-react-hooks": "^4.2.0",
     "eslint-plugin-testing-library": "^3.10.1",

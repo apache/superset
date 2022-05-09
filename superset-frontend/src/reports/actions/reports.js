@@ -111,22 +111,14 @@ export const addReport = report => dispatch =>
 
 export const EDIT_REPORT = 'EDIT_REPORT';
 
-export function editReport(id, report) {
-  return function (dispatch) {
-    SupersetClient.put({
-      endpoint: `/api/v1/report/${id}`,
-      jsonPayload: report,
-    })
-      .then(({ json }) => {
-        dispatch({ type: EDIT_REPORT, json });
-      })
-      .catch(() =>
-        dispatch(
-          addDangerToast(t('An error occurred while editing this report.')),
-        ),
-      );
-  };
-}
+export const editReport = (id, report) => dispatch =>
+  SupersetClient.put({
+    endpoint: `/api/v1/report/${id}`,
+    jsonPayload: report,
+  }).then(({ json }) => {
+    dispatch({ type: EDIT_REPORT, json });
+    dispatch(addSuccessToast(t('Report updated')));
+  });
 
 export function toggleActive(report, isActive) {
   return function toggleActiveThunk(dispatch) {

@@ -1,0 +1,113 @@
+name: Applitools Cypress
+
+on: pull_request
+
+jobs:
+  cypress-applitools:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: ["chrome"]
+    env:
+      FLASK_ENV: development
+      SUPERSET_CONFIG: tests.integration_tests.superset_test_config
+      SUPERSET__SQLALCHEMY_DATABASE_URI: postgresql+psycopg2://superset:superset@127.0.0.1:15432/superset
+      PYTHONPATH: ${{ github.workspace }}
+      REDIS_PORT: 16379
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      APPLITOOLS_APP_NAME: Superset
+      APPLITOOLS_API_KEY: ${{ secrets.APPLITOOLS_API_KEY }}
+      APPLITOOLS_BATCH_ID: ${{ github.sha }}
+      APPLITOOLS_BATCH_NAME: Superset Cypress
+    services:
+      postgres:
+        image: postgres:14-alpine
+        env:
+          POSTGRES_USER: superset
+          POSTGRES_PASSWORD: superset
+        ports:
+          - 15432:5432
+      redis:
+        image: redis:5-alpine
+        ports:
+          - 16379:6379
+    steps:
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+        uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+          submodules: recursive
+      - name: Check if python or frontend changes are present
+        id: check
+        env:
+          GITHUB_REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        continue-on-error: true
+        run: ./scripts/ci_check_no_file_changes.sh python frontend
+      - name: Setup Python
+        if: steps.check.outcome == 'failure'
+        uses: actions/setup-python@v2
+        with:
+          python-version: "3.8"
+      - name: OS dependencies
+        if: steps.check.outcome == 'failure'
+        uses: ./.github/actions/cached-dependencies
+        with:
+          run: apt-get-install
+      - name: Install python dependencies
+        if: steps.check.outcome == 'failure'
+        uses: ./.github/actions/cached-dependencies
+        with:
+          run: |
+            pip-upgrade
+            pip install -r requirements/testing.txt
+      - name: Setup postgres
+        if: steps.check.outcome == 'failure'
+        uses: ./.github/actions/cached-dependencies
+        with:
+          run: setup-postgres
+      - name: Import test data
+        if: steps.check.outcome == 'failure'
+        uses: ./.github/actions/cached-dependencies
+        with:
+          run: testdata
+      - name: Setup Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: "16"
+      - name: Install npm dependencies
+        if: steps.check.outcome == 'failure'
+        uses: ./.github/actions/cached-dependencies
+        with:
+          run: npm-install
+      - name: Build javascript packages
+        if: steps.check.outcome == 'failure'
+        uses: ./.github/actions/cached-dependencies
+        with:
+          run: build-instrumented-assets
+      - name: Install cypress
+        if: steps.check.outcome == 'failure'
+        uses: ./.github/actions/cached-dependencies
+        with:
+          run: cypress-install
+      - name: Run Applitools Cypress
+        if: steps.check.outcome == 'failure'
+        uses: ./.github/actions/cached-dependencies
+        env:
+          CYPRESS_BROWSER: ${{ matrix.browser }}
+        with:
+          run: cypress-run-applitools
+  batch-completion-notification:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    needs: cypress-applitools
+    steps:
+      - name: Update Applitools batch status
+        uses: wei/curl@v1.1.1
+        env:
+          APPLITOOLS_BATCH_ID: ${{ github.sha }}
+          APPLITOOLS_API_KEY: ${{ secrets.APPLITOOLS_API_KEY }}
+        with:
+          args: -d "" -X POST https://eyesapi.applitools.com/api/externals/github/servers/github.com/commit/${{ env.APPLITOOLS_BATCH_ID }}/complete?apiKey=${{ env.APPLITOOLS_API_KEY }}

@@ -18,6 +18,7 @@
  */
 
 import Owner from 'src/types/Owner';
+import { ReportRecipientType, ReportScheduleType } from 'src/reports/types';
 
 type user = {
   id: number;
@@ -108,10 +109,12 @@ export interface ReportObject {
   log_retention: number;
   name: string;
   owners: number[];
-  recipients: [{ recipient_config_json: { target: string }; type: string }];
+  recipients: [
+    { recipient_config_json: { target: string }; type: ReportRecipientType },
+  ];
   report_format: string;
   timezone: string;
-  type: string;
+  type: ReportScheduleType;
   validator_config_json: {} | null;
   validator_type: string;
   working_timeout: number;

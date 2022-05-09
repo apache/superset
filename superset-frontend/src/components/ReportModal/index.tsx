@@ -19,9 +19,9 @@
 import React, {
   useState,
   useEffect,
-  useCallback,
   useReducer,
-  Reducer,
+  useCallback,
+  useMemo,
 } from 'react';
 import { t, SupersetTheme } from '@superset-ui/core';
 import { useDispatch, useSelector } from 'react-redux';
@@ -31,9 +31,11 @@ import Alert from 'src/components/Alert';
 import TimezoneSelector from 'src/components/TimezoneSelector';
 import LabeledErrorBoundInput from 'src/components/Form/LabeledErrorBoundInput';
 import Icons from 'src/components/Icons';
-import withToasts from 'src/components/MessageToasts/withToasts';
 import { CronError } from 'src/components/CronPicker';
 import { RadioChangeEvent } from 'src/components';
+import withToasts from 'src/components/MessageToasts/withToasts';
+import { ChartState } from 'src/explore/types';
+import { ReportCreationMethod, ReportType } from 'src/reports/types';
 import { ReportObject, NOTIFICATION_FORMATS } from 'src/views/CRUD/alert/types';
 import { reportSelector } from 'src/views/CRUD/hooks';
 import { CreationMethod } from './HeaderReportDropdown';
@@ -55,59 +57,19 @@ import {
   StyledRadioGroup,
 } from './styles';
 
-interface ChartObject {
-  id: number;
-  chartAlert: string;
-  chartStatus: string;
-  chartUpdateEndTime: number;
-  chartUpdateStartTime: number;
-  latestQueryFormData: object;
-  sliceFormData: Record<string, any>;
-  queryController: { abort: () => {} };
-  queriesResponse: object;
-  triggerQuery: boolean;
-  lastRendered: number;
-}
 interface ReportProps {
   onHide: () => {};
   addDangerToast: (msg: string) => void;
   show: boolean;
   userId: number;
   userEmail: string;
+  chart?: ChartState;
+  chartName?: string;
   dashboardId?: number;
-  chart?: ChartObject;
-  creationMethod: string;
-  props?: any;
+  dashboardName?: string;
+  creationMethod: ReportCreationMethod;
+  props: any;
 }
-
-interface ReportPayloadType {
-  name: string;
-  value: string;
-}
-
-enum ActionType {
-  inputChange,
-  fetched,
-  reset,
-  error,
-}
-
-type ReportActionType =
-  | {
-      type: ActionType.inputChange;
-      payload: ReportPayloadType;
-    }
-  | {
-      type: ActionType.fetched;
-      payload: Partial<ReportObject>;
-    }
-  | {
-      type: ActionType.reset;
-    }
-  | {
-      type: ActionType.error;
-      payload: { name?: string[] };
-    };
 
 const TEXT_BASED_VISUALIZATION_TYPES = [
   'pivot_table',
@@ -116,41 +78,16 @@ const TEXT_BASED_VISUALIZATION_TYPES = [
   'paired_ttest',
 ];
 
-const defaultErrorMsg = t(
-  'We were unable to create your report. Please try again.',
-);
+const INITIAL_STATE = {
+  crontab: '0 12 * * 1',
+};
 
-const reportReducer = (
-  state: Partial<ReportObject> | null,
-  action: ReportActionType,
-): Partial<ReportObject> | null => {
-  const initialState = {
-    name: 'Weekly Report',
-    crontab: '0 12 * * 1',
-  };
-
-  switch (action.type) {
-    case ActionType.inputChange:
-      return {
-        ...initialState,
-        ...state,
-        [action.payload.name]: action.payload.value,
-      };
-    case ActionType.fetched:
-      return {
-        ...initialState,
-        ...action.payload,
-      };
-    case ActionType.reset:
-      return { ...initialState };
-    case ActionType.error:
-      return {
-        ...state,
-        error: action.payload?.name?.[0] || defaultErrorMsg,
-      };
-    default:
-      return state;
-  }
+type ReportObjectState = Partial<ReportObject> & {
+  error?: string;
+  /**
+   * Is submitting changes to the backend.
+   */
+  isSubmitting?: boolean;
 };
 
 function ReportModal({
@@ -161,20 +98,46 @@ function ReportModal({
   userId,
   userEmail,
   creationMethod,
+  dashboardName,
+  chartName,
 }: ReportProps) {
   const vizType = chart?.sliceFormData?.viz_type;
   const isChart = !!chart;
-  const defaultNotificationFormat =
-    vizType && TEXT_BASED_VISUALIZATION_TYPES.includes(vizType)
-      ? NOTIFICATION_FORMATS.TEXT
-      : NOTIFICATION_FORMATS.PNG;
-  const [currentReport, setCurrentReport] = useReducer<
-    Reducer<Partial<ReportObject> | null, ReportActionType>
-  >(reportReducer, null);
-  const onReducerChange = useCallback((type: any, payload: any) => {
-    setCurrentReport({ type, payload });
-  }, []);
+  const isTextBasedChart =
+    isChart && vizType && TEXT_BASED_VISUALIZATION_TYPES.includes(vizType);
+  const defaultNotificationFormat = isTextBasedChart
+    ? NOTIFICATION_FORMATS.TEXT
+    : NOTIFICATION_FORMATS.PNG;
+  const entityName = dashboardName || chartName;
+  const initialState: ReportObjectState = useMemo(
+    () => ({
+      ...INITIAL_STATE,
+      name: entityName
+        ? t('Weekly Report for %s', entityName)
+        : t('Weekly Report'),
+    }),
+    [entityName],
+  );
+
+  const reportReducer = useCallback(
+    (state: ReportObjectState | null, action: 'reset' | ReportObjectState) => {
+      if (action === 'reset') {
+        return initialState;
+      }
+      return {
+        ...state,
+        ...action,
+      };
+    },
+    [initialState],
+  );
+
+  const [currentReport, setCurrentReport] = useReducer(
+    reportReducer,
+    initialState,
+  );
   const [cronError, setCronError] = useState<CronError>();
+
   const dispatch = useDispatch();
   // Report fetch logic
   const report = useSelector<any, ReportObject>(state => {
@@ -187,25 +150,21 @@ function ReportModal({
 
   useEffect(() => {
     if (isEditMode) {
-      setCurrentReport({
-        type: ActionType.fetched,
-        payload: report,
-      });
+      setCurrentReport(report);
     } else {
-      setCurrentReport({
-        type: ActionType.reset,
-      });
+      setCurrentReport('reset');
     }
-  }, [report]);
+  }, [isEditMode, report]);
 
   const onSave = async () => {
     // Create new Report
     const newReportValues: Partial<ReportObject> = {
-      crontab: currentReport?.crontab,
+      type: 'Report',
+      active: true,
+      force_screenshot: false,
+      creation_method: creationMethod,
       dashboard: dashboardId,
       chart: chart?.id,
-      description: currentReport?.description,
-      name: currentReport?.name,
       owners: [userId],
       recipients: [
         {
@@ -213,35 +172,35 @@ function ReportModal({
           type: 'Email',
         },
       ],
-      type: 'Report',
-      creation_method: creationMethod,
-      active: true,
-      report_format: currentReport?.report_format || defaultNotificationFormat,
-      timezone: currentReport?.timezone,
-      force_screenshot: false,
+      name: currentReport.name,
+      description: currentReport.description,
+      crontab: currentReport.crontab,
+      report_format: currentReport.report_format || defaultNotificationFormat,
+      timezone: currentReport.timezone,
     };
 
-    if (isEditMode) {
-      await dispatch(
-        editReport(currentReport?.id, newReportValues as ReportObject),
-      );
-      onHide();
-    } else {
-      try {
+    setCurrentReport({ isSubmitting: true, error: undefined });
+    try {
+      if (isEditMode) {
+        await dispatch(
+          editReport(currentReport.id, newReportValues as ReportObject),
+        );
+      } else {
         await dispatch(addReport(newReportValues as ReportObject));
-        onHide();
-      } catch (e) {
-        const { message } = await getClientErrorObject(e);
-        onReducerChange(ActionType.error, message);
       }
+      onHide();
+    } catch (e) {
+      const { error } = await getClientErrorObject(e);
+      setCurrentReport({ error });
     }
+    setCurrentReport({ isSubmitting: false });
   };
 
   const wrappedTitle = (
     <StyledIconWrapper>
       <Icons.Calendar />
       <span className="text">
-        {isEditMode ? t('Edit Email Report') : t('New Email Report')}
+        {isEditMode ? t('Edit email report') : t('Schedule a new email report')}
       </span>
     </StyledIconWrapper>
   );
@@ -255,7 +214,8 @@ function ReportModal({
         key="submit"
         buttonStyle="primary"
         onClick={onSave}
-        disabled={!currentReport?.name}
+        disabled={!currentReport.name}
+        loading={currentReport.isSubmitting}
       >
         {isEditMode ? t('Save') : t('Add')}
       </StyledFooterButton>
@@ -265,19 +225,16 @@ function ReportModal({
   const renderMessageContentSection = (
     <>
       <StyledMessageContentTitle>
-        <h4>{t('Message Content')}</h4>
+        <h4>{t('Message content')}</h4>
       </StyledMessageContentTitle>
       <div className="inline-container">
         <StyledRadioGroup
           onChange={(event: RadioChangeEvent) => {
-            onReducerChange(ActionType.inputChange, {
-              name: 'report_format',
-              value: event.target.value,
-            });
+            setCurrentReport({ report_format: event.target.value });
           }}
-          value={currentReport?.report_format || defaultNotificationFormat}
+          value={currentReport.report_format || defaultNotificationFormat}
         >
-          {vizType && TEXT_BASED_VISUALIZATION_TYPES.includes(vizType) && (
+          {isTextBasedChart && (
             <StyledRadio value={NOTIFICATION_FORMATS.TEXT}>
               {t('Text embedded in email')}
             </StyledRadio>
@@ -293,15 +250,6 @@ function ReportModal({
     </>
   );
 
-  const errorAlert = () => (
-    <Alert
-      type="error"
-      css={(theme: SupersetTheme) => antDErrorAlertStyles(theme)}
-      message={t('Report Creation Error')}
-      description={currentReport?.error}
-    />
-  );
-
   return (
     <StyledModal
       show={show}
@@ -315,15 +263,12 @@ function ReportModal({
         <LabeledErrorBoundInput
           id="name"
           name="name"
-          value={currentReport?.name || ''}
-          placeholder={t('Weekly Report')}
+          value={currentReport.name || ''}
+          placeholder={initialState.name}
           required
           validationMethods={{
             onChange: ({ target }: { target: HTMLInputElement }) =>
-              onReducerChange(ActionType.inputChange, {
-                name: target.name,
-                value: target.value,
-              }),
+              setCurrentReport({ name: target.value }),
           }}
           label="Report Name"
           data-test="report-name-test"
@@ -333,11 +278,9 @@ function ReportModal({
           name="description"
           value={currentReport?.description || ''}
           validationMethods={{
-            onChange: ({ target }: { target: HTMLInputElement }) =>
-              onReducerChange(ActionType.inputChange, {
-                name: target.name,
-                value: target.value,
-              }),
+            onChange: ({ target }: { target: HTMLInputElement }) => {
+              setCurrentReport({ description: target.value });
+            },
           }}
           label={t('Description')}
           placeholder={t(
@@ -353,17 +296,16 @@ function ReportModal({
           <h4 css={(theme: SupersetTheme) => SectionHeaderStyle(theme)}>
             {t('Schedule')}
           </h4>
-          <p>{t('Scheduled reports will be sent to your email as a PNG')}</p>
+          <p>
+            {t('A screenshot of the dashboard will be sent to your email at')}
+          </p>
         </StyledScheduleTitle>
 
         <StyledCronPicker
           clearButton={false}
-          value={t(currentReport?.crontab || '0 12 * * 1')}
+          value={currentReport.crontab || '0 12 * * 1'}
           setValue={(newValue: string) => {
-            onReducerChange(ActionType.inputChange, {
-              name: 'crontab',
-              value: newValue,
-            });
+            setCurrentReport({ crontab: newValue });
           }}
           onError={setCronError}
         />
@@ -375,17 +317,25 @@ function ReportModal({
           {t('Timezone')}
         </div>
         <TimezoneSelector
+          timezone={currentReport.timezone}
           onTimezoneChange={value => {
-            setCurrentReport({
-              type: ActionType.inputChange,
-              payload: { name: 'timezone', value },
-            });
+            setCurrentReport({ timezone: value });
           }}
-          timezone={currentReport?.timezone}
         />
         {isChart && renderMessageContentSection}
       </StyledBottomSection>
-      {currentReport?.error && errorAlert()}
+      {currentReport.error && (
+        <Alert
+          type="error"
+          css={(theme: SupersetTheme) => antDErrorAlertStyles(theme)}
+          message={
+            isEditMode
+              ? t('Failed to update report')
+              : t('Failed to create report')
+          }
+          description={currentReport.error}
+        />
+      )}
     </StyledModal>
   );
 }

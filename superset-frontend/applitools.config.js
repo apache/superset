@@ -16,35 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import AnchorLink from '.';
-
-export default {
-  title: 'AnchorLink',
-  component: AnchorLink,
-};
-
-export const InteractiveAnchorLink = (args: any) => (
-  <AnchorLink anchorLinkId="link" {...args} />
-);
-
-const PLACEMENTS = ['right', 'left', 'top', 'bottom'];
-
-InteractiveAnchorLink.args = {
-  showShortLinkButton: true,
-  placement: PLACEMENTS[0],
-};
-
-InteractiveAnchorLink.argTypes = {
-  type: {
-    placement: { type: 'select', options: PLACEMENTS },
-  },
-};
-
-InteractiveAnchorLink.story = {
-  parameters: {
-    knobs: {
-      disable: true,
-    },
+module.exports = {
+  apiKey: process.env.APPLITOOLS_API_KEY,
+  batchId: process.env.APPLITOOLS_BATCH_ID,
+  batchName: process.env.APPLITOOLS_BATCH_NAME,
+  puppeteerOptions: {
+    headless: true,
+    args: ['--no-sandbox', '--disable-setuid-sandbox'],
   },
 };

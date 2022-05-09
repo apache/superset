@@ -20,6 +20,7 @@ import {
   ChartProps,
   getNumberFormatter,
   SqlaFormData,
+  supersetTheme,
 } from '@superset-ui/core';
 import transformProps, { formatPieLabel } from '../../src/Pie/transformProps';
 import { EchartsPieChartProps, EchartsPieLabelType } from '../../src/Pie/types';
@@ -45,6 +46,7 @@ describe('Pie transformProps', () => {
         ],
       },
     ],
+    theme: supersetTheme,
   });
 
   it('should transform chart props for viz', () => {
