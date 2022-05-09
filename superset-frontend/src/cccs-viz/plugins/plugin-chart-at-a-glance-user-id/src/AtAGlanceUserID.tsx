@@ -86,7 +86,7 @@ const formatList = (ipList: any) => {
 
 // Main Component
 function AtAGlanceUserIDCore(props: AtAGlanceUserIDProps) {
-  const [userIDString, setUserIDString] = useState('user@domain.invalid');
+  const [userIDString, setUserIDString] = useState('');
   LicenseManager.setLicenseKey(props.agGridLicenseKey);
 
   const [columnDefs] = useState([
@@ -107,6 +107,7 @@ function AtAGlanceUserIDCore(props: AtAGlanceUserIDProps) {
       flex: 1,
       resizable: true,
       sortable: true,
+      sort: 'desc',
     },
   ]);
 
@@ -199,10 +200,18 @@ function AtAGlanceUserIDCore(props: AtAGlanceUserIDProps) {
             </td>
           </tr>
           <tr>
+            <td>*This chart only contains the first 100 results*</td>
+          </tr>
+          <tr>
             <td>User Email: {userIDString}</td>
           </tr>
           <tr>
-            <td>User ID: {getPayloadField('user_key', props.data[0])}</td>
+            <td>
+              User ID:{' '}
+              {userIDString !== ''
+                ? getPayloadField('user_key', props.data[0])
+                : ''}
+            </td>
           </tr>
         </table>
       </div>
@@ -214,7 +223,7 @@ function AtAGlanceUserIDCore(props: AtAGlanceUserIDProps) {
                 header={
                   <span className="header">
                     {' '}
-                    Number of Successful Canadian Login Attempts:{' '}
+                    Number of successful Canadian login attempts:{' '}
                     {canadianIpsListData[1]}{' '}
                   </span>
                 }
@@ -226,7 +235,7 @@ function AtAGlanceUserIDCore(props: AtAGlanceUserIDProps) {
                 header={
                   <span className="header">
                     {' '}
-                    Number of Successful non Canadian Login Attempts:{' '}
+                    Number of successful non-Canadian login attempts:{' '}
                     {nonCanadianIpsListData[1]}{' '}
                   </span>
                 }
@@ -241,7 +250,7 @@ function AtAGlanceUserIDCore(props: AtAGlanceUserIDProps) {
                 header={
                   <span className="header">
                     {' '}
-                    Number of Unsuccessful Canadian Login Attempts:{' '}
+                    Number of unsuccessful Canadian login attempts:{' '}
                     {unsuccessfulCanadianIpsListData[1]}{' '}
                   </span>
                 }
@@ -256,7 +265,7 @@ function AtAGlanceUserIDCore(props: AtAGlanceUserIDProps) {
                 header={
                   <span className="header">
                     {' '}
-                    Number of Unsuccessful non Canadian Login Attempts:{' '}
+                    Number of unsuccessful non-Canadian login attempts:{' '}
                     {unsuccessfulNonCanadianIpsListData[1]}{' '}
                   </span>
                 }
