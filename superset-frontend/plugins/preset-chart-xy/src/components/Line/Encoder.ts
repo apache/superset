@@ -28,7 +28,7 @@ export type LineEncodingConfig = {
   x: ['X', number];
   y: ['Y', number];
   fill: ['Category', boolean];
-  stroke?: ['Color', string];
+  stroke: ['Color', string];
   strokeDasharray: ['Category', string];
   strokeWidth: ['Numeric', number];
 };
