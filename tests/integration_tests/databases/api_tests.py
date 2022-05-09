@@ -2402,10 +2402,11 @@ class TestDatabaseApi(SupersetTestCase):
             "template_params": None,
         }
 
-        self.login(username="admin")
         example_db = get_example_database()
         if example_db.backend not in ("presto", "postgresql"):
             pytest.skip("Only presto and PG are implemented")
+
+        self.login(username="admin")
         uri = f"api/v1/database/{example_db.id}/validate_sql"
         rv = self.client.post(uri, json=request_payload)
         response = json.loads(rv.data.decode("utf-8"))
@@ -2427,9 +2428,11 @@ class TestDatabaseApi(SupersetTestCase):
             "template_params": None,
         }
 
-        self.login(username="admin")
         example_db = get_example_database()
+        if example_db.backend not in ("presto", "postgresql"):
+            pytest.skip("Only presto and PG are implemented")
 
+        self.login(username="admin")
         uri = f"api/v1/database/{example_db.id}/validate_sql"
         rv = self.client.post(uri, json=request_payload)
         response = json.loads(rv.data.decode("utf-8"))
