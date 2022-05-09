@@ -43,6 +43,8 @@ const propTypes = {
   onOpenInEditor: PropTypes.func,
   latestQueryFormData: PropTypes.object.isRequired,
   slice: PropTypes.object,
+  canDownloadCSV: PropTypes.bool,
+  canAddReports: PropTypes.bool,
 };
 
 const MENU_KEYS = {
@@ -215,7 +217,7 @@ const ExploreAdditionalActionsMenu = ({
           break;
         case MENU_KEYS.DOWNLOAD_AS_IMAGE:
           downloadAsImage(
-            '.panel-body > .chart-container',
+            '.panel-body .chart-container',
             // eslint-disable-next-line camelcase
             slice?.slice_name ?? t('New chart'),
             {},
@@ -370,31 +372,35 @@ const ExploreAdditionalActionsMenu = ({
               </Menu.Item>
             </Menu.SubMenu>
             <Menu.Divider />
-            {canAddReports &&
-              (report ? (
-                <Menu.SubMenu
-                  title={t('Manage email report')}
-                  key={MENU_KEYS.REPORT_SUBMENU}
-                >
-                  <Menu.Item key={MENU_KEYS.SET_REPORT_ACTIVE}>
-                    <MenuItemWithCheckboxContainer>
-                      <Checkbox checked={isReportActive} onChange={noOp} />
-                      {t('Email reports active')}
-                    </MenuItemWithCheckboxContainer>
+            {canAddReports && (
+              <>
+                {report ? (
+                  <Menu.SubMenu
+                    title={t('Manage email report')}
+                    key={MENU_KEYS.REPORT_SUBMENU}
+                  >
+                    <Menu.Item key={MENU_KEYS.SET_REPORT_ACTIVE}>
+                      <MenuItemWithCheckboxContainer>
+                        <Checkbox checked={isReportActive} onChange={noOp} />
+                        {t('Email reports active')}
+                      </MenuItemWithCheckboxContainer>
+                    </Menu.Item>
+                    <Menu.Item key={MENU_KEYS.EDIT_REPORT}>
+                      {t('Edit email report')}
+                    </Menu.Item>
+                    <Menu.Item key={MENU_KEYS.DELETE_REPORT}>
+                      {t('Delete email report')}
+                    </Menu.Item>
+                  </Menu.SubMenu>
+                ) : (
+                  <Menu.Item key={MENU_KEYS.SET_UP_REPORT}>
+                    {t('Set up an email report')}
                   </Menu.Item>
-                  <Menu.Item key={MENU_KEYS.EDIT_REPORT}>
-                    {t('Edit email report')}
-                  </Menu.Item>
-                  <Menu.Item key={MENU_KEYS.DELETE_REPORT}>
-                    {t('Delete email report')}
-                  </Menu.Item>
-                </Menu.SubMenu>
-              ) : (
-                <Menu.Item key={MENU_KEYS.SET_UP_REPORT}>
-                  {t('Set up an email report')}
-                </Menu.Item>
-              ))}
-            <Menu.Divider />
+                )}
+                <Menu.Divider />
+              </>
+            )}
+
             <Menu.Item key={MENU_KEYS.VIEW_QUERY}>
               <ModalTrigger
                 triggerNode={

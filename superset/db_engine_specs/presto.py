@@ -47,9 +47,11 @@ from superset.exceptions import SupersetTemplateException
 from superset.models.sql_lab import Query
 from superset.models.sql_types.presto_sql_types import (
     Array,
+    Date,
     Interval,
     Map,
     Row,
+    TimeStamp,
     TinyInteger,
 )
 from superset.result_set import destringify
@@ -506,7 +508,7 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
         ),
         (
             re.compile(r"^date.*", re.IGNORECASE),
-            types.DATETIME(),
+            types.DATE(),
             GenericDataType.TEMPORAL,
         ),
         (
@@ -754,12 +756,12 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
         """
         tt = target_type.upper()
         if tt == utils.TemporalType.DATE:
-            return f"""from_iso8601_date('{dttm.date().isoformat()}')"""
+            return f"""DATE '{dttm.date().isoformat()}'"""
         if tt in (
             utils.TemporalType.TIMESTAMP,
             utils.TemporalType.TIMESTAMP_WITH_TIME_ZONE,
         ):
-            return f"""from_iso8601_timestamp('{dttm.isoformat(timespec="microseconds")}')"""  # pylint: disable=line-too-long,useless-suppression
+            return f"""TIMESTAMP '{dttm.isoformat(timespec="microseconds")}'"""
         return None
 
     @classmethod
@@ -897,7 +899,7 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
 
     @classmethod
     def extra_table_metadata(
-        cls, database: "Database", table_name: str, schema_name: str
+        cls, database: "Database", table_name: str, schema_name: Optional[str]
     ) -> Dict[str, Any]:
         metadata = {}
 
@@ -929,7 +931,7 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
 
     @classmethod
     def get_create_view(
-        cls, database: "Database", schema: str, table: str
+        cls, database: "Database", schema: Optional[str], table: str
     ) -> Optional[str]:
         """
         Return a CREATE VIEW statement, or `None` if not a view.
@@ -1096,10 +1098,18 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
         if values is None:
             return None
 
-        column_names = {column.get("name") for column in columns or []}
+        column_type_by_name = {
+            column.get("name"): column.get("type") for column in columns or []
+        }
+
         for col_name, value in zip(col_names, values):
-            if col_name in column_names:
-                query = query.where(Column(col_name) == value)
+            if col_name in column_type_by_name:
+                if column_type_by_name.get(col_name) == "TIMESTAMP":
+                    query = query.where(Column(col_name, TimeStamp()) == value)
+                elif column_type_by_name.get(col_name) == "DATE":
+                    query = query.where(Column(col_name, Date()) == value)
+                else:
+                    query = query.where(Column(col_name) == value)
         return query
 
     @classmethod
@@ -1188,7 +1198,7 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
         part_fields = indexes[0]["column_names"]
         for k in kwargs.keys():  # pylint: disable=consider-iterating-dictionary
             if k not in k in part_fields:  # pylint: disable=comparison-with-itself
-                msg = "Field [{k}] is not part of the portioning key"
+                msg = f"Field [{k}] is not part of the portioning key"
                 raise SupersetTemplateException(msg)
         if len(kwargs.keys()) != len(part_fields) - 1:
             msg = (

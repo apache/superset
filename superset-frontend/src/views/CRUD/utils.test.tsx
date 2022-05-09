@@ -213,7 +213,7 @@ test('successfully modified rison to encode correctly', () => {
   });
 });
 
-test('checkUploadExtenssions should return valid upload extensions', () => {
+test('checkUploadExtensions should return valid upload extensions', () => {
   const uploadExtensionTest = ['a', 'b', 'c'];
   const randomExtension = ['a', 'c'];
   const randomExtensionTwo = ['c'];

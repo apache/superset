@@ -40,7 +40,7 @@ import Loading from 'src/components/Loading';
 import { usePrevious } from 'src/hooks/usePrevious';
 import FilterableTable, {
   MAX_COLUMNS_FOR_TABLE,
-} from 'src/components/FilterableTable/FilterableTable';
+} from 'src/components/FilterableTable';
 import CopyToClipboard from 'src/components/CopyToClipboard';
 import { prepareCopyToClipboardTabularData } from 'src/utils/common';
 import { exploreChart } from 'src/explore/exploreUtils';
@@ -217,17 +217,11 @@ const ResultSet = ({
       setCachedData(query.results.data);
       actions.clearQueryResults(query);
     }
-
-    // Only fetch results if the result key change
-    // If we didn't have a result key before, then the results are loaded elsewhere
-    // so we can skip it, unless the query id changed, in that case we should
-    // refetch regardless.
     if (
-      (query.resultsKey &&
-        prevQuery &&
-        prevQuery.resultsKey &&
-        query.resultsKey !== prevQuery.resultsKey) ||
-      (prevQuery && query.id !== prevQuery.id && query.resultsKey)
+      query.resultsKey &&
+      prevQuery &&
+      prevQuery.resultsKey &&
+      query.resultsKey !== prevQuery.resultsKey
     ) {
       // eslint-disable-next-line @typescript-eslint/no-use-before-define
       fetchResults(query);

@@ -61,7 +61,6 @@ from superset import security_manager, sql_parse
 from superset.databases.utils import make_url_safe
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.models.sql_lab import Query
-from superset.models.sql_types.base import literal_dttm_type_factory
 from superset.sql_parse import ParsedQuery, Table
 from superset.superset_typing import ResultSetColumnType
 from superset.utils import core as utils
@@ -269,7 +268,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         ),
         (
             re.compile(r"^date", re.IGNORECASE),
-            types.DateTime(),
+            types.Date(),
             GenericDataType.TEMPORAL,
         ),
         (
@@ -642,7 +641,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         cls,
         database: "Database",
         table_name: str,
-        schema_name: str,
+        schema_name: Optional[str],
     ) -> Dict[str, Any]:
         """
         Returns engine-specific table metadata
@@ -864,18 +863,24 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         all_datasources: List[utils.DatasourceName] = []
         for schema in schemas:
             if datasource_type == "table":
-                all_datasources += database.get_all_table_names_in_schema(
-                    schema=schema,
-                    force=True,
-                    cache=database.table_cache_enabled,
-                    cache_timeout=database.table_cache_timeout,
+                all_datasources.extend(
+                    utils.DatasourceName(*datasource_name)
+                    for datasource_name in database.get_all_table_names_in_schema(
+                        schema=schema,
+                        force=True,
+                        cache=database.table_cache_enabled,
+                        cache_timeout=database.table_cache_timeout,
+                    )
                 )
             elif datasource_type == "view":
-                all_datasources += database.get_all_view_names_in_schema(
-                    schema=schema,
-                    force=True,
-                    cache=database.table_cache_enabled,
-                    cache_timeout=database.table_cache_timeout,
+                all_datasources.extend(
+                    utils.DatasourceName(*datasource_name)
+                    for datasource_name in database.get_all_view_names_in_schema(
+                        schema=schema,
+                        force=True,
+                        cache=database.table_cache_enabled,
+                        cache_timeout=database.table_cache_timeout,
+                    )
                 )
             else:
                 raise Exception(f"Unsupported datasource_type: {datasource_type}")
@@ -1482,12 +1487,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         )
         if col_types:
             column_type, generic_type = col_types
-            # wrap temporal types in custom type that supports literal binding
-            # using datetimes
-            if generic_type == GenericDataType.TEMPORAL:
-                column_type = literal_dttm_type_factory(
-                    column_type, cls, native_type or "", db_extra=db_extra or {}
-                )
             is_dttm = generic_type == GenericDataType.TEMPORAL
             return ColumnSpec(
                 sqla_type=column_type, generic_type=generic_type, is_dttm=is_dttm

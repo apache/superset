@@ -1045,7 +1045,7 @@ function getTableMetadata(table, query, dispatch) {
 function getTableExtendedMetadata(table, query, dispatch) {
   return SupersetClient.get({
     endpoint: encodeURI(
-      `/superset/extra_table_metadata/${query.dbId}/` +
+      `/api/v1/database/${query.dbId}/table_extra/` +
         `${encodeURIComponent(table.name)}/${encodeURIComponent(
           table.schema,
         )}/`,
@@ -1279,6 +1279,7 @@ export function popSavedQuery(saveQueryId) {
       .then(({ json }) => {
         const queryEditorProps = {
           ...convertQueryToClient(json.result),
+          loaded: true,
           autorun: false,
         };
         return dispatch(addQueryEditor(queryEditorProps));

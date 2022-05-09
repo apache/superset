@@ -418,9 +418,11 @@ export function transformTimeseriesAnnotation(
   markerSize: number,
   data: TimeseriesDataRecord[],
   annotationData: AnnotationData,
+  colorScale: CategoricalColorScale,
+  sliceId?: number,
 ): SeriesOption[] {
   const series: SeriesOption[] = [];
-  const { hideLine, name, opacity, showMarkers, style, width } = layer;
+  const { hideLine, name, opacity, showMarkers, style, width, color } = layer;
   const result = annotationData[name];
   if (isTimeseriesAnnotationResult(result)) {
     result.forEach(annotation => {
@@ -435,6 +437,7 @@ export function transformTimeseriesAnnotation(
           opacity: parseAnnotationOpacity(opacity),
           type: style as ZRLineType,
           width: hideLine ? 0 : width,
+          color: color || colorScale(name, sliceId),
         },
       });
     });

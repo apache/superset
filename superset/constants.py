@@ -100,7 +100,6 @@ MODEL_VIEW_RW_METHOD_PERMISSION_MAP = {
 
 MODEL_API_RW_METHOD_PERMISSION_MAP = {
     "bulk_delete": "write",
-    "created_by_me": "read",
     "delete": "write",
     "distinct": "read",
     "get": "read",
@@ -113,6 +112,7 @@ MODEL_API_RW_METHOD_PERMISSION_MAP = {
     "schemas": "read",
     "select_star": "read",
     "table_metadata": "read",
+    "table_extra_metadata": "read",
     "test_connection": "read",
     "validate_parameters": "read",
     "favorite_status": "read",

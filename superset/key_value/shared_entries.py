@@ -20,7 +20,6 @@ from uuid import uuid3
 
 from superset.key_value.types import KeyValueResource, SharedKey
 from superset.key_value.utils import get_uuid_namespace, random_key
-from superset.utils.memoized import memoized
 
 RESOURCE = KeyValueResource.APP
 NAMESPACE = get_uuid_namespace("")
@@ -42,7 +41,6 @@ def set_shared_value(key: SharedKey, value: Any) -> None:
     CreateKeyValueCommand(resource=RESOURCE, value=value, key=uuid_key).run()
 
 
-@memoized
 def get_permalink_salt(key: SharedKey) -> str:
     salt = get_shared_value(key)
     if salt is None:
