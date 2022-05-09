@@ -18,83 +18,86 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { reactify, styled, css } from '@superset-ui/core';
+import { reactify, styled, css, useTheme } from '@superset-ui/core';
 import { Global } from '@emotion/react';
 import Component from './Calendar';
 
 const ReactComponent = reactify(Component);
 
-const Calender = ({ className, ...otherProps }) => (
-  <div className={className}>
-    <Global
-      styles={theme => css`
-        .d3-tip {
-          line-height: 1;
-          padding: ${theme.gridUnit * 3}px;
-          background: ${theme.colors.grayscale.dark2};
-          color: ${theme.colors.grayscale.light5};
-          border-radius: 4px;
-          pointer-events: none;
-          z-index: 1000;
-          font-size: ${theme.typography.sizes.s}px;
-        }
-        /* Creates a small triangle extender for the tooltip */
-        .d3-tip:after {
-          box-sizing: border-box;
-          display: inline;
-          font-size: ${theme.typography.sizes.xs};
-          width: 100%;
-          line-height: 1;
-          color: ${theme.colors.grayscale.dark2};
-          position: absolute;
-          pointer-events: none;
-        }
-        /* Northward tooltips */
-        .d3-tip.n:after {
-          content: '\\25BC';
-          margin: -${theme.gridUnit}px 0 0 0;
-          top: 100%;
-          left: 0;
-          text-align: center;
-        }
-        /* Eastward tooltips */
-        .d3-tip.e:after {
-          content: '\\25C0';
-          margin: -${theme.gridUnit}px 0 0 0;
-          top: 50%;
-          left: -${theme.gridUnit * 2}px;
-        }
-        /* Southward tooltips */
-        .d3-tip.s:after {
-          content: '\\25B2';
-          margin: 0;
-          top: -${theme.gridUnit * 2}px;
-          left: 0;
-          text-align: center;
-        }
-        /* Westward tooltips */
-        .d3-tip.w:after {
-          content: '\\25B6';
-          margin: -${theme.gridUnit}px 0 0 0px;
-          top: 50%;
-          left: 100%;
-        }
-      `}
-    />
-    <ReactComponent {...otherProps} />
-  </div>
-);
+const Calendar = ({ className, ...otherProps }) => {
+  const theme = useTheme();
+  return (
+    <div className={className}>
+      <Global
+        styles={css`
+          .d3-tip {
+            line-height: 1;
+            padding: ${theme.gridUnit * 3}px;
+            background: ${theme.colors.grayscale.dark2};
+            color: ${theme.colors.grayscale.light5};
+            border-radius: 4px;
+            pointer-events: none;
+            z-index: 1000;
+            font-size: ${theme.typography.sizes.s}px;
+          }
+          /* Creates a small triangle extender for the tooltip */
+          .d3-tip:after {
+            box-sizing: border-box;
+            display: inline;
+            font-size: ${theme.typography.sizes.xs};
+            width: 100%;
+            line-height: 1;
+            color: ${theme.colors.grayscale.dark2};
+            position: absolute;
+            pointer-events: none;
+          }
+          /* Northward tooltips */
+          .d3-tip.n:after {
+            content: '\\25BC';
+            margin: -${theme.gridUnit}px 0 0 0;
+            top: 100%;
+            left: 0;
+            text-align: center;
+          }
+          /* Eastward tooltips */
+          .d3-tip.e:after {
+            content: '\\25C0';
+            margin: -${theme.gridUnit}px 0 0 0;
+            top: 50%;
+            left: -${theme.gridUnit * 2}px;
+          }
+          /* Southward tooltips */
+          .d3-tip.s:after {
+            content: '\\25B2';
+            margin: 0;
+            top: -${theme.gridUnit * 2}px;
+            left: 0;
+            text-align: center;
+          }
+          /* Westward tooltips */
+          .d3-tip.w:after {
+            content: '\\25B6';
+            margin: -${theme.gridUnit}px 0 0 0px;
+            top: 50%;
+            left: 100%;
+          }
+        `}
+      />
+      <ReactComponent {...otherProps} theme={theme} />
+    </div>
+  );
+};
 
-Calender.defaultProps = {
+Calendar.defaultProps = {
   otherProps: {},
 };
 
-Calender.propTypes = {
+Calendar.propTypes = {
   className: PropTypes.string.isRequired,
   otherProps: PropTypes.objectOf(PropTypes.any),
 };
 
-export default styled(Calender)`
+export default styled(Calendar)`
   ${({ theme }) => `
     .superset-legacy-chart-calendar {
       padding: ${theme.gridUnit * 3}px;
