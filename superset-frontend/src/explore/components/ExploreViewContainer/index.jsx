@@ -17,12 +17,18 @@
  * under the License.
  */
 /* eslint camelcase: 0 */
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { styled, t, css, useTheme, logging } from '@superset-ui/core';
-import { debounce, pick } from 'lodash';
+import { debounce, pick, isEmpty } from 'lodash';
 import { Resizable } from 're-resizable';
 import { useChangeEffect } from 'src/hooks/useChangeEffect';
 import { usePluginContext } from 'src/components/DynamicPlugins';
@@ -43,7 +49,11 @@ import * as chartActions from 'src/components/Chart/chartAction';
 import { fetchDatasourceMetadata } from 'src/dashboard/actions/datasources';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
 import { mergeExtraFormData } from 'src/dashboard/components/nativeFilters/utils';
-import { postFormData, putFormData } from 'src/explore/exploreUtils/formData';
+import {
+  getFormDataDiffs,
+  postFormData,
+  putFormData,
+} from 'src/explore/exploreUtils/formData';
 import { useTabId } from 'src/hooks/useTabId';
 import ExploreChartPanel from '../ExploreChartPanel';
 import ConnectedControlPanelsContainer from '../ControlPanelsContainer';
@@ -236,6 +246,8 @@ function ExploreViewContainer(props) {
 
   const theme = useTheme();
 
+  const isBeforeUnloadActive = useRef(false);
+
   const defaultSidebarsWidth = {
     controls_width: 320,
     datasource_width: 300,
@@ -364,6 +376,25 @@ function ExploreViewContainer(props) {
       document.removeEventListener('keydown', handleKeydown);
     };
   }, [handleKeydown, previousHandleKeyDown]);
+
+  useEffect(() => {
+    const handleCloseEvent = e => {
+      e.preventDefault();
+      e.returnValue = 'Controls changed';
+    };
+    const formDataChanged = !isEmpty(
+      getFormDataDiffs(props.chart.sliceFormData, props.form_data),
+    );
+    if (formDataChanged && !isBeforeUnloadActive.current) {
+      window.addEventListener('beforeunload', handleCloseEvent);
+      isBeforeUnloadActive.current = true;
+    }
+    if (!formDataChanged && isBeforeUnloadActive.current) {
+      window.removeEventListener('beforeunload', handleCloseEvent);
+      isBeforeUnloadActive.current = false;
+    }
+    return () => window.removeEventListener('beforeunload', handleCloseEvent);
+  }, [props.chart.sliceFormData, props.form_data]);
 
   useEffect(() => {
     if (wasDynamicPluginLoading && !isDynamicPluginLoading) {
