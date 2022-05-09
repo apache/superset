@@ -27,7 +27,6 @@ from superset.explore.form_data.commands.state import TemporaryExploreState
 from superset.explore.form_data.commands.utils import check_access
 from superset.extensions import cache_manager
 from superset.temporary_cache.commands.exceptions import TemporaryCacheGetFailedError
-from superset.utils.core import DatasourceType
 
 logger = logging.getLogger(__name__)
 

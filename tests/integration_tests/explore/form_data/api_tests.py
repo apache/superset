@@ -100,7 +100,6 @@ def test_post(client, chart_id: int, datasource_id: int, datasource_type: str):
         "form_data": INITIAL_FORM_DATA,
     }
     resp = client.post("api/v1/explore/form_data", json=payload)
-    print(resp.data)
     assert resp.status_code == 201
 
 
