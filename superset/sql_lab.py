@@ -26,7 +26,6 @@ import backoff
 import msgpack
 import pyarrow as pa
 import simplejson as json
-import sqlparse
 from celery import Task
 from celery.exceptions import SoftTimeLimitExceeded
 from flask import g
@@ -197,19 +196,18 @@ def execute_sql_statement(  # pylint: disable=too-many-arguments,too-many-locals
     database: Database = query.database
     db_engine_spec = database.db_engine_spec
 
+    parsed_query = ParsedQuery(sql_statement)
     if is_feature_enabled("RLS_IN_SQLLAB"):
         # Insert any applicable RLS predicates
         parsed_query = ParsedQuery(
             str(
                 insert_rls(
-                    sqlparse.parse(sql_statement)[0],
+                    parsed_query._parsed[0],  # pylint: disable=protected-access
                     database.id,
                     query.schema,
                 )
             )
         )
-    else:
-        parsed_query = ParsedQuery(sql_statement)
 
     sql = parsed_query.stripped()
     # This is a test to see if the query is being
@@ -389,7 +387,7 @@ def execute_sql_statements(  # pylint: disable=too-many-arguments, too-many-loca
         stats_logger.timing("sqllab.query.time_pending", now_as_float() - start_time)
 
     if not hasattr(g, "user"):
-        # pylint: disable=assigning-non-slot)
+        # pylint: disable=assigning-non-slot
         g.user = security_manager.find_user(username=user_name)
 
     query = get_query(query_id, session)
