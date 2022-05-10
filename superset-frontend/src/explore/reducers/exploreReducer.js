@@ -215,12 +215,10 @@ export default function exploreReducer(state = {}, action) {
 
         if (targetControlPanel.denormalizeFormData) {
           const sfd = getStandadizedFormData(state.form_data);
-          console.log('sfd????', sfd);
           const fd = targetControlPanel.denormalizeFormData(sfd);
           fd.viz_type = action.value;
           currentControlsState = getControlsState(state, fd);
           new_form_data = fd;
-          console.log('??????', new_form_data);
         } else {
           currentControlsState = getControlsState(
             state,
