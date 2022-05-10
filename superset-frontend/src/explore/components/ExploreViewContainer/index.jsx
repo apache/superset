@@ -231,6 +231,11 @@ const updateHistory = debounce(
   1000,
 );
 
+const handleUnloadEvent = e => {
+  e.preventDefault();
+  e.returnValue = 'Controls changed';
+};
+
 function ExploreViewContainer(props) {
   const dynamicPluginContext = usePluginContext();
   const dynamicPlugin = dynamicPluginContext.dynamicPlugins[props.vizType];
@@ -385,23 +390,25 @@ function ExploreViewContainer(props) {
   }, [handleKeydown, previousHandleKeyDown]);
 
   useEffect(() => {
-    const handleCloseEvent = e => {
-      e.preventDefault();
-      e.returnValue = 'Controls changed';
-    };
     const formDataChanged = !isEmpty(
       getFormDataDiffs(props.chart.sliceFormData, props.form_data),
     );
     if (formDataChanged && !isBeforeUnloadActive.current) {
-      window.addEventListener('beforeunload', handleCloseEvent);
+      window.addEventListener('beforeunload', handleUnloadEvent);
       isBeforeUnloadActive.current = true;
     }
     if (!formDataChanged && isBeforeUnloadActive.current) {
-      window.removeEventListener('beforeunload', handleCloseEvent);
+      window.removeEventListener('beforeunload', handleUnloadEvent);
       isBeforeUnloadActive.current = false;
     }
-    return () => window.removeEventListener('beforeunload', handleCloseEvent);
   }, [props.chart.sliceFormData, props.form_data]);
+
+  // cleanup beforeunload event listener
+  // we use separate useEffect to call it only on component unmount instead of on every form data change
+  useEffect(
+    () => () => window.removeEventListener('beforeunload', handleUnloadEvent),
+    [],
+  );
 
   useEffect(() => {
     if (wasDynamicPluginLoading && !isDynamicPluginLoading) {
