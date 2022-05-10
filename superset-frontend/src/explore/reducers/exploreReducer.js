@@ -29,7 +29,7 @@ import {
 } from 'src/explore/controlUtils';
 import * as actions from 'src/explore/actions/exploreActions';
 import { LocalStorageKeys, setItem } from 'src/utils/localStorageHelpers';
-import { getStandadizedFormData } from '@superset-ui/chart-controls';
+import { StandardizedFormData } from '@superset-ui/chart-controls';
 
 export default function exploreReducer(state = {}, action) {
   const actionHandlers = {
@@ -214,7 +214,7 @@ export default function exploreReducer(state = {}, action) {
           getChartControlPanelRegistry().get(action.value) || {};
 
         if (targetControlPanel.denormalizeFormData) {
-          const sfd = getStandadizedFormData(state.form_data);
+          const sfd = new StandardizedFormData(state.form_data);
           const fd = targetControlPanel.denormalizeFormData(sfd);
           fd.viz_type = action.value;
           currentControlsState = getControlsState(state, fd);

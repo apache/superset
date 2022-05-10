@@ -17,7 +17,7 @@
  * under the License.
  */
 import { SqlaFormData } from '@superset-ui/core';
-import { getStandadizedFormData } from '../../src';
+import { StandardizedFormData } from '../../src';
 
 const formData: SqlaFormData = {
   metrics: [
@@ -30,7 +30,8 @@ const formData: SqlaFormData = {
 };
 
 test('should standardize metrics', () => {
-  expect(getStandadizedFormData(formData).sharedFormData.metrics).toEqual([
+  const sfd = new StandardizedFormData(formData);
+  expect(sfd.sharedFormData.metrics).toEqual([
     'count(*)',
     { label: 'sum(val)', expressionType: 'SQL', sqlExpression: 'sum(val)' },
     'max(sales)',

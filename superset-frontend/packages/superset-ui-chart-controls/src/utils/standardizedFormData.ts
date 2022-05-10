@@ -26,39 +26,67 @@ import {
   QueryFormData,
 } from '@superset-ui/core';
 
-const sharedControls = {
-  metrics: ['metric', 'metrics', 'metric_2'],
-  columns: ['groupby', 'columns'],
-  filters: ['adhoc_filters'],
-};
-const reversedMap = new Map();
-Object.entries(sharedControls).forEach(([key, names]) => {
-  names.forEach(name => {
-    reversedMap.set(name, key);
-  });
-});
-
 function isStandardizedFormData(formData: JsonObject): boolean {
   return 'sharedFormData' in formData && 'memorizedFormData' in formData;
 }
 
-export interface SharedFormData {
-  metrics: AdhocMetric[];
-  columns: (AdhocColumn | PhysicalColumn)[];
-  filters: AdhocFilter[];
+interface iStandardizedFormData {
+  sharedFormData: {
+    metrics: AdhocMetric[];
+    columns: (AdhocColumn | PhysicalColumn)[];
+    filters: AdhocFilter[];
+  };
+  memorizedFormData: Map<string, QueryFormData>;
 }
 
 export class StandardizedFormData {
-  private sfd;
+  private sfd: iStandardizedFormData;
 
-  constructor(
-    sharedFormData: SharedFormData,
-    memorizedFormData: Map<string, QueryFormData>,
-  ) {
+  constructor(sourceFormData: QueryFormData) {
+    const sharedFormData = {
+      metrics: [],
+      columns: [],
+      filters: [],
+    };
+    // shallow copy
+    const formData = { ...sourceFormData };
+    const reversedMap = StandardizedFormData.getReversedMap();
+
+    Object.entries(formData).forEach(([key, value]) => {
+      if (reversedMap.has(key)) {
+        sharedFormData[reversedMap.get(key)].push(...ensureIsArray(value));
+      }
+    });
+
+    const memorizedFormData =
+      isStandardizedFormData(formData) &&
+      Array.isArray(formData.memorizedFormData)
+        ? new Map(formData.memorizedFormData)
+        : new Map();
+    const vizType = formData.viz_type;
+    if (memorizedFormData.has(vizType)) {
+      memorizedFormData.delete(vizType);
+    }
+    memorizedFormData.set(vizType, formData);
     this.sfd = {
       sharedFormData,
       memorizedFormData,
     };
+  }
+
+  static getReversedMap() {
+    const sharedControls = {
+      metrics: ['metric', 'metrics', 'metric_2'],
+      columns: ['groupby', 'columns'],
+      filters: ['adhoc_filters'],
+    };
+    const reversedMap = new Map();
+    Object.entries(sharedControls).forEach(([key, names]) => {
+      names.forEach(name => {
+        reversedMap.set(name, key);
+      });
+    });
+    return reversedMap;
   }
 
   getLatestFormData(vizType: string) {
@@ -76,33 +104,4 @@ export class StandardizedFormData {
   get memorizedFormData() {
     return Array.from(this.sfd.memorizedFormData.entries());
   }
-}
-
-export function getStandadizedFormData(
-  sourceFormData: QueryFormData,
-): StandardizedFormData {
-  const sharedFormData = {
-    metrics: [],
-    columns: [],
-    filters: [],
-  };
-  const formData = { ...sourceFormData };
-  Object.entries(formData).forEach(([key, value]) => {
-    if (reversedMap.has(key)) {
-      sharedFormData[reversedMap.get(key)].push(...ensureIsArray(value));
-    }
-  });
-
-  const memorizedFormData =
-    isStandardizedFormData(formData) &&
-    Array.isArray(formData.memorizedFormData)
-      ? new Map(formData.memorizedFormData)
-      : new Map();
-  const vizType = formData.viz_type;
-  if (memorizedFormData.has(vizType)) {
-    memorizedFormData.delete(vizType);
-  }
-  memorizedFormData.set(vizType, formData);
-
-  return new StandardizedFormData(sharedFormData, memorizedFormData);
 }
