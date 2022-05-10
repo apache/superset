@@ -31,20 +31,24 @@ const TEMPORARY_CONTROLS = ['url_params'];
 export const sanitizeFormData = (formData: JsonObject): JsonObject =>
   omit(formData, TEMPORARY_CONTROLS);
 
-export const getNullIfEmpty = (value: JsonValue | undefined) => {
+export const alterForComparison = (value: JsonValue | undefined) => {
   // Considering `[]`, `{}`, `null` and `undefined` as identical
   // for this purpose
-  if (value === undefined || value === null || value === '') {
+  if (
+    value === undefined ||
+    value === null ||
+    value === '' ||
+    (Array.isArray(value) && value.length === 0) ||
+    (typeof value === 'object' && Object.keys(value).length === 0)
+  ) {
     return null;
   }
+  if (Array.isArray(value)) {
+    // omit prototype for comparison of class instances with json objects
+    return value.map(v => (typeof v === 'object' ? omit(v, ['__proto__']) : v));
+  }
   if (typeof value === 'object') {
-    if (Array.isArray(value) && value.length === 0) {
-      return null;
-    }
-    const keys = Object.keys(value);
-    if (keys && keys.length === 0) {
-      return null;
-    }
+    return omit(value, ['__proto__']);
   }
   return value;
 };
@@ -52,7 +56,7 @@ export const getNullIfEmpty = (value: JsonValue | undefined) => {
 export const isEqualish = (
   val1: JsonValue | undefined,
   val2: JsonValue | undefined,
-) => isEqual(getNullIfEmpty(val1), getNullIfEmpty(val2));
+) => isEqual(alterForComparison(val1), alterForComparison(val2));
 
 export const getFormDataDiffs = (
   formData1: JsonObject,
@@ -70,7 +74,7 @@ export const getFormDataDiffs = (
     if (['filters', 'having', 'having_filters', 'where'].includes(fdKey)) {
       return;
     }
-    if (!isEqual(getNullIfEmpty(ofd[fdKey]), getNullIfEmpty(cfd[fdKey]))) {
+    if (!isEqualish(ofd[fdKey], cfd[fdKey])) {
       diffs[fdKey] = { before: ofd[fdKey], after: cfd[fdKey] };
     }
   });
