@@ -143,11 +143,6 @@ export default function makeApi<
         processResponse ? processResponse(typedResult) : typedResult
       ) as Result;
     } catch (error) {
-      console.error('request failed, todo remove this log', {
-        options,
-        payload,
-        error,
-      });
       return handleError(error as ErrorInput);
     }
   }
