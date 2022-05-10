@@ -16,10 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export * from './selectOptions';
-export * from './D3Formatting';
-export * from './expandControlConfig';
-export * from './getColorFormatters';
-export { default as mainMetric } from './mainMetric';
-export { default as columnChoices } from './columnChoices';
-export * from './normalizedFormData';
+import { SqlaFormData } from '@superset-ui/core';
+import { getStandadizedFormData } from '../../src';
+
+const formData: SqlaFormData = {
+  metrics: [
+    'count(*)',
+    { label: 'sum(val)', expressionType: 'SQL', sqlExpression: 'sum(val)' },
+  ],
+  metric: 'max(sales)',
+  datasource: 'foo',
+  viz_type: 'table',
+};
+
+test('should standardize metrics', () => {
+  expect(getStandadizedFormData(formData).sharedFormData.metrics).toEqual([
+    'count(*)',
+    { label: 'sum(val)', expressionType: 'SQL', sqlExpression: 'sum(val)' },
+    'max(sales)',
+  ]);
+});

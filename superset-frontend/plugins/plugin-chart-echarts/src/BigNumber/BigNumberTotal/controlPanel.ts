@@ -96,4 +96,13 @@ export default {
       label: t('Number format'),
     },
   },
+
+  denormalizeFormData: sfd => {
+    const formData = sfd.getLatestFormData('big_number_total');
+    return {
+      ...formData,
+      metric: sfd.sharedFormData.metrics[0],
+      adhoc_filters: sfd.sharedFormData.filters,
+    };
+  },
 } as ControlPanelConfig;

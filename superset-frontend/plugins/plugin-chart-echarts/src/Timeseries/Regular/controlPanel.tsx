@@ -240,6 +240,14 @@ const config: ControlPanelConfig = {
       default: rowLimit,
     },
   },
+  denormalizeFormData: sfd => {
+    const formData = sfd.getLatestFormData('echarts_timeseries_line');
+    return {
+      ...formData,
+      metrics: sfd.sharedFormData.metrics,
+      adhoc_filters: sfd.sharedFormData.filters,
+    };
+  },
 };
 
 export default config;

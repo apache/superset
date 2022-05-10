@@ -17,7 +17,7 @@
  * under the License.
  */
 /* eslint camelcase: 0 */
-import { ensureIsArray } from '@superset-ui/core';
+import { ensureIsArray, getChartControlPanelRegistry } from '@superset-ui/core';
 import { DYNAMIC_PLUGIN_CONTROLS_READY } from 'src/components/Chart/chartAction';
 import { DEFAULT_TIME_RANGE } from 'src/explore/constants';
 import { getControlsState } from 'src/explore/store';
@@ -29,6 +29,7 @@ import {
 } from 'src/explore/controlUtils';
 import * as actions from 'src/explore/actions/exploreActions';
 import { LocalStorageKeys, setItem } from 'src/utils/localStorageHelpers';
+import { getStandadizedFormData } from '@superset-ui/chart-controls';
 
 export default function exploreReducer(state = {}, action) {
   const actionHandlers = {
@@ -205,18 +206,31 @@ export default function exploreReducer(state = {}, action) {
       });
       const hasErrors = errors && errors.length > 0;
 
-      const currentControlsState =
+      const isVizSwitch =
         action.controlName === 'viz_type' &&
-        action.value !== state.controls.viz_type.value
-          ? // rebuild the full control state if switching viz type
-            getControlsState(
-              state,
-              getFormDataFromControls({
-                ...state.controls,
-                viz_type: control,
-              }),
-            )
-          : state.controls;
+        action.value !== state.controls.viz_type.value;
+      let currentControlsState = state.controls;
+      if (isVizSwitch) {
+        const targetControlPanel =
+          getChartControlPanelRegistry().get(action.value) || {};
+
+        if (targetControlPanel.denormalizeFormData) {
+          const fd = targetControlPanel.denormalizeFormData(
+            getStandadizedFormData(state.form_data),
+          );
+          fd.viz_type = action.value;
+          currentControlsState = getControlsState(state, fd);
+          new_form_data = fd;
+        } else {
+          currentControlsState = getControlsState(
+            state,
+            getFormDataFromControls({
+              ...state.controls,
+              viz_type: control,
+            }),
+          );
+        }
+      }
 
       return {
         ...state,
