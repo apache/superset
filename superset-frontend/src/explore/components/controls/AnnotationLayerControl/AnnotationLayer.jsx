@@ -27,6 +27,7 @@ import {
   getChartMetadataRegistry,
   validateNonEmpty,
   isValidExpression,
+  withTheme,
 } from '@superset-ui/core';
 
 import SelectControl from 'src/explore/components/controls/SelectControl';
@@ -97,7 +98,7 @@ const defaultProps = {
   close: () => {},
 };
 
-export default class AnnotationLayer extends React.PureComponent {
+class AnnotationLayer extends React.PureComponent {
   constructor(props) {
     super(props);
     const {
@@ -710,7 +711,9 @@ export default class AnnotationLayer extends React.PureComponent {
     return (
       <>
         {this.props.error && (
-          <span style={{ color: 'red' }}>ERROR: {this.props.error}</span>
+          <span style={{ color: this.props.theme.colors.error.base }}>
+            ERROR: {this.props.error}
+          </span>
         )}
         <div style={{ display: 'flex', flexDirection: 'row' }}>
           <div style={{ marginRight: '2rem' }}>
@@ -807,3 +810,5 @@ export default class AnnotationLayer extends React.PureComponent {
 
 AnnotationLayer.propTypes = propTypes;
 AnnotationLayer.defaultProps = defaultProps;
+
+export default withTheme(AnnotationLayer);

@@ -96,21 +96,23 @@ const validatorMap =
 const scheduledQueriesConf = bootstrapData?.common?.conf?.SCHEDULED_QUERIES;
 
 const LimitSelectStyled = styled.span`
-  .ant-dropdown-trigger {
-    align-items: center;
-    color: black;
-    display: flex;
-    font-size: 12px;
-    margin-right: ${({ theme }) => theme.gridUnit * 2}px;
-    text-decoration: none;
-    span {
-      display: inline-block;
-      margin-right: ${({ theme }) => theme.gridUnit * 2}px;
-      &:last-of-type: {
-        margin-right: ${({ theme }) => theme.gridUnit * 4}px;
+  ${({ theme }) => `
+    .ant-dropdown-trigger {
+      align-items: center;
+      color: ${theme.colors.grayscale.dark2};
+      display: flex;
+      font-size: 12px;
+      margin-right: ${theme.gridUnit * 2}px;
+      text-decoration: none;
+      span {
+        display: inline-block;
+        margin-right: ${theme.gridUnit * 2}px;
+        &:last-of-type: {
+          margin-right: ${theme.gridUnit * 4}px;
+        }
       }
     }
-  }
+  `}
 `;
 
 const StyledToolbar = styled.div`
