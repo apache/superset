@@ -66,9 +66,7 @@ export class StandardizedFormData {
       return this.sfd.memorizedFormData.get(vizType);
     }
 
-    return this.sfd.memorizedFormData.size === 0
-      ? {}
-      : this.sfd.memorizedFormData[this.sfd.memorizedFormData.keys()[0]];
+    return this.memorizedFormData.slice(-1)[0][1];
   }
 
   get sharedFormData() {
@@ -81,14 +79,14 @@ export class StandardizedFormData {
 }
 
 export function getStandadizedFormData(
-  formData: QueryFormData,
+  sourceFormData: QueryFormData,
 ): StandardizedFormData {
   const sharedFormData = {
     metrics: [],
     columns: [],
     filters: [],
   };
-
+  const formData = { ...sourceFormData };
   Object.entries(formData).forEach(([key, value]) => {
     if (reversedMap.has(key)) {
       sharedFormData[reversedMap.get(key)].push(...ensureIsArray(value));

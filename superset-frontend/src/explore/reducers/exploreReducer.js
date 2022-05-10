@@ -131,11 +131,10 @@ export default function exploreReducer(state = {}, action) {
       };
     },
     [actions.SET_FIELD_VALUE]() {
-      const new_form_data = state.form_data;
+      const { controlName, value, validationErrors } = action;
+      let new_form_data = { ...state.form_data, [controlName]: value };
       const old_metrics_data = state.form_data.metrics;
       const new_column_config = state.form_data.column_config;
-      const { controlName, value, validationErrors } = action;
-      new_form_data[controlName] = value;
 
       const vizType = new_form_data.viz_type;
 
@@ -215,12 +214,13 @@ export default function exploreReducer(state = {}, action) {
           getChartControlPanelRegistry().get(action.value) || {};
 
         if (targetControlPanel.denormalizeFormData) {
-          const fd = targetControlPanel.denormalizeFormData(
-            getStandadizedFormData(state.form_data),
-          );
+          const sfd = getStandadizedFormData(state.form_data);
+          console.log('sfd????', sfd);
+          const fd = targetControlPanel.denormalizeFormData(sfd);
           fd.viz_type = action.value;
           currentControlsState = getControlsState(state, fd);
           new_form_data = fd;
+          console.log('??????', new_form_data);
         } else {
           currentControlsState = getControlsState(
             state,
