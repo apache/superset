@@ -21,7 +21,6 @@ import rison from 'rison';
 import querystring from 'query-string';
 import { styled, t, SupersetClient, JsonResponse } from '@superset-ui/core';
 import Button from 'src/components/Button';
-import extractUrlParams from 'src/dashboard/util/extractUrlParams';
 import { Select, Steps } from 'src/components';
 import { FormLabel } from 'src/components/Form';
 import { Tooltip } from 'src/components/Tooltip';
@@ -223,7 +222,6 @@ export default class AddSliceContainer extends React.PureComponent<
   }
 
   changeDatasource(datasource: { label: string; value: string }) {
-    console.log('datasource', datasource)
     this.setState({ datasource });
   }
 
