@@ -210,7 +210,7 @@ def load_misc_dashboard() -> None:
     """
     )
     pos = json.loads(js)
-    pos, slices = update_slice_ids(pos)
+    slices = update_slice_ids(pos)
     dash.dashboard_title = "Misc Charts"
     dash.position_json = json.dumps(pos, indent=4)
     dash.slug = DASH_SLUG

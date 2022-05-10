@@ -46,12 +46,11 @@ def update_slice_ids(pos: Dict[Any, Any]) -> List[Slice]:
         for component in pos.values()
         if isinstance(component, dict) and component.get("type") == "CHART"
     ]
-    slices = {
-        name: db.session.query(Slice).filter_by(slice_name=name).first()
-        for name in set(
-            component["meta"]["sliceName"] for component in slice_components
-        )
-    }
+    slices = {}
+    for name in set(component["meta"]["sliceName"] for component in slice_components):
+        slc = db.session.query(Slice).filter_by(slice_name=name).first()
+        if slc:
+            slices[name] = slc
     for component in slice_components:
         slc = slices.get(component["meta"]["sliceName"])
         if slc:
