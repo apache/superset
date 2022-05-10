@@ -28,7 +28,6 @@ import pyarrow as pa
 import simplejson as json
 from celery import Task
 from celery.exceptions import SoftTimeLimitExceeded
-from flask import g
 from flask_babel import gettext as __
 from sqlalchemy.orm import Session
 
@@ -205,6 +204,7 @@ def execute_sql_statement(  # pylint: disable=too-many-arguments,too-many-locals
                     parsed_query._parsed[0],  # pylint: disable=protected-access
                     database.id,
                     query.schema,
+                    username=user_name,
                 )
             )
         )
@@ -385,10 +385,6 @@ def execute_sql_statements(  # pylint: disable=too-many-arguments, too-many-loca
     if store_results and start_time:
         # only asynchronous queries
         stats_logger.timing("sqllab.query.time_pending", now_as_float() - start_time)
-
-    if not hasattr(g, "user"):
-        # pylint: disable=assigning-non-slot
-        g.user = security_manager.find_user(username=user_name)
 
     query = get_query(query_id, session)
     payload: Dict[str, Any] = dict(query_id=query_id)

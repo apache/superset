@@ -1135,7 +1135,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             ]
         return []
 
-    def get_rls_filters(self, table: "BaseDatasource") -> List[SqlaQuery]:
+    def get_rls_filters(
+        self,
+        table: "BaseDatasource",
+        username: Optional[str] = None,
+    ) -> List[SqlaQuery]:
         """
         Retrieves the appropriate row level security filters for the current user and
         the passed table.
@@ -1144,63 +1148,66 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :returns: A list of filters
         """
         if hasattr(g, "user"):
-            # pylint: disable=import-outside-toplevel
-            from superset.connectors.sqla.models import (
-                RLSFilterRoles,
-                RLSFilterTables,
-                RowLevelSecurityFilter,
-            )
+            user = g.user
+        elif username:
+            user = self.find_user(username=username)
+        else:
+            return []
 
-            user_roles = [role.id for role in self.get_user_roles()]
-            regular_filter_roles = (
-                self.get_session.query(RLSFilterRoles.c.rls_filter_id)
-                .join(RowLevelSecurityFilter)
-                .filter(
-                    RowLevelSecurityFilter.filter_type
-                    == RowLevelSecurityFilterType.REGULAR
-                )
-                .filter(RLSFilterRoles.c.role_id.in_(user_roles))
-                .subquery()
+        # pylint: disable=import-outside-toplevel
+        from superset.connectors.sqla.models import (
+            RLSFilterRoles,
+            RLSFilterTables,
+            RowLevelSecurityFilter,
+        )
+
+        user_roles = [role.id for role in self.get_user_roles(user)]
+        regular_filter_roles = (
+            self.get_session.query(RLSFilterRoles.c.rls_filter_id)
+            .join(RowLevelSecurityFilter)
+            .filter(
+                RowLevelSecurityFilter.filter_type == RowLevelSecurityFilterType.REGULAR
             )
-            base_filter_roles = (
-                self.get_session.query(RLSFilterRoles.c.rls_filter_id)
-                .join(RowLevelSecurityFilter)
-                .filter(
-                    RowLevelSecurityFilter.filter_type
-                    == RowLevelSecurityFilterType.BASE
-                )
-                .filter(RLSFilterRoles.c.role_id.in_(user_roles))
-                .subquery()
+            .filter(RLSFilterRoles.c.role_id.in_(user_roles))
+            .subquery()
+        )
+        base_filter_roles = (
+            self.get_session.query(RLSFilterRoles.c.rls_filter_id)
+            .join(RowLevelSecurityFilter)
+            .filter(
+                RowLevelSecurityFilter.filter_type == RowLevelSecurityFilterType.BASE
             )
-            filter_tables = (
-                self.get_session.query(RLSFilterTables.c.rls_filter_id)
-                .filter(RLSFilterTables.c.table_id == table.id)
-                .subquery()
+            .filter(RLSFilterRoles.c.role_id.in_(user_roles))
+            .subquery()
+        )
+        filter_tables = (
+            self.get_session.query(RLSFilterTables.c.rls_filter_id)
+            .filter(RLSFilterTables.c.table_id == table.id)
+            .subquery()
+        )
+        query = (
+            self.get_session.query(
+                RowLevelSecurityFilter.id,
+                RowLevelSecurityFilter.group_key,
+                RowLevelSecurityFilter.clause,
             )
-            query = (
-                self.get_session.query(
-                    RowLevelSecurityFilter.id,
-                    RowLevelSecurityFilter.group_key,
-                    RowLevelSecurityFilter.clause,
-                )
-                .filter(RowLevelSecurityFilter.id.in_(filter_tables))
-                .filter(
-                    or_(
-                        and_(
-                            RowLevelSecurityFilter.filter_type
-                            == RowLevelSecurityFilterType.REGULAR,
-                            RowLevelSecurityFilter.id.in_(regular_filter_roles),
-                        ),
-                        and_(
-                            RowLevelSecurityFilter.filter_type
-                            == RowLevelSecurityFilterType.BASE,
-                            RowLevelSecurityFilter.id.notin_(base_filter_roles),
-                        ),
-                    )
+            .filter(RowLevelSecurityFilter.id.in_(filter_tables))
+            .filter(
+                or_(
+                    and_(
+                        RowLevelSecurityFilter.filter_type
+                        == RowLevelSecurityFilterType.REGULAR,
+                        RowLevelSecurityFilter.id.in_(regular_filter_roles),
+                    ),
+                    and_(
+                        RowLevelSecurityFilter.filter_type
+                        == RowLevelSecurityFilterType.BASE,
+                        RowLevelSecurityFilter.id.notin_(base_filter_roles),
+                    ),
                 )
             )
-            return query.all()
-        return []
+        )
+        return query.all()
 
     def get_rls_ids(self, table: "BaseDatasource") -> List[int]:
         """

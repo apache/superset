@@ -1120,7 +1120,9 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                 col.name = f"{col.name}__"
 
     def get_sqla_row_level_filters(
-        self, template_processor: BaseTemplateProcessor
+        self,
+        template_processor: BaseTemplateProcessor,
+        username: Optional[str] = None,
     ) -> List[TextClause]:
         """
         Return the appropriate row level security filters for
@@ -1133,7 +1135,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         all_filters: List[TextClause] = []
         filter_groups: Dict[Union[int, str], List[TextClause]] = defaultdict(list)
         try:
-            for filter_ in security_manager.get_rls_filters(self):
+            for filter_ in security_manager.get_rls_filters(self, username):
                 clause = self.text(
                     f"({template_processor.process_template(filter_.clause)})"
                 )
