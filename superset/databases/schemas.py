@@ -541,6 +541,19 @@ class SchemasResponseSchema(Schema):
     result = fields.List(fields.String(description="A database schema name"))
 
 
+class ValidateSQLRequest(Schema):
+    sql = fields.String(required=True, description="SQL statement to validate")
+    schema = fields.String(required=False, allow_none=True)
+    template_params = fields.Dict(required=False, allow_none=True)
+
+
+class ValidateSQLResponse(Schema):
+    line_number = fields.Integer()
+    start_column = fields.Integer()
+    end_column = fields.Integer()
+    message = fields.String()
+
+
 class DatabaseRelatedChart(Schema):
     id = fields.Integer()
     slice_name = fields.String()
