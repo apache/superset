@@ -22,25 +22,22 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { styled, t, getSharedLabelColor } from '@superset-ui/core';
 import ButtonGroup from 'src/components/ButtonGroup';
-
+import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import {
   LOG_ACTIONS_PERIODIC_RENDER_DASHBOARD,
   LOG_ACTIONS_FORCE_REFRESH_DASHBOARD,
   LOG_ACTIONS_TOGGLE_EDIT_DASHBOARD,
 } from 'src/logger/LogUtils';
-import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
-
 import Icons from 'src/components/Icons';
 import Button from 'src/components/Button';
 import EditableTitle from 'src/components/EditableTitle';
 import FaveStar from 'src/components/FaveStar';
 import { safeStringify } from 'src/utils/safeStringify';
 import HeaderActionsDropdown from 'src/dashboard/components/Header/HeaderActionsDropdown';
-import HeaderReportActionsDropdown from 'src/components/ReportModal/HeaderReportActionsDropdown';
+import HeaderReportDropdown from 'src/components/ReportModal/HeaderReportDropdown';
 import PublishedStatus from 'src/dashboard/components/PublishedStatus';
 import UndoRedoKeyListeners from 'src/dashboard/components/UndoRedoKeyListeners';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
-import ReportModal from 'src/components/ReportModal';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import {
@@ -78,7 +75,6 @@ const propTypes = {
   onChange: PropTypes.func.isRequired,
   fetchFaveStar: PropTypes.func.isRequired,
   fetchCharts: PropTypes.func.isRequired,
-  fetchUISpecificReport: PropTypes.func.isRequired,
   saveFaveStar: PropTypes.func.isRequired,
   savePublished: PropTypes.func.isRequired,
   updateDashboardTitle: PropTypes.func.isRequired,
@@ -153,7 +149,6 @@ class Header extends React.PureComponent {
       didNotifyMaxUndoHistoryToast: false,
       emphasizeUndo: false,
       showingPropertiesModal: false,
-      showingReportModal: false,
     };
 
     this.handleChangeText = this.handleChangeText.bind(this);
@@ -165,26 +160,11 @@ class Header extends React.PureComponent {
     this.overwriteDashboard = this.overwriteDashboard.bind(this);
     this.showPropertiesModal = this.showPropertiesModal.bind(this);
     this.hidePropertiesModal = this.hidePropertiesModal.bind(this);
-    this.showReportModal = this.showReportModal.bind(this);
-    this.hideReportModal = this.hideReportModal.bind(this);
-    this.renderReportModal = this.renderReportModal.bind(this);
   }
 
   componentDidMount() {
-    const { refreshFrequency, user, dashboardInfo } = this.props;
+    const { refreshFrequency } = this.props;
     this.startPeriodicRender(refreshFrequency * 1000);
-    if (this.canAddReports()) {
-      // this is in case there is an anonymous user.
-      if (Object.entries(dashboardInfo).length) {
-        this.props.fetchUISpecificReport(
-          user.userId,
-          'dashboard_id',
-          'dashboards',
-          dashboardInfo.id,
-          user.email,
-        );
-      }
-    }
   }
 
   componentDidUpdate(prevProps) {
@@ -195,7 +175,6 @@ class Header extends React.PureComponent {
   }
 
   UNSAFE_componentWillReceiveProps(nextProps) {
-    const { user } = this.props;
     if (
       UNDO_LIMIT - nextProps.undoLength <= 0 &&
       !this.state.didNotifyMaxUndoHistoryToast
@@ -208,19 +187,6 @@ class Header extends React.PureComponent {
       !this.props.maxUndoHistoryExceeded
     ) {
       this.props.setMaxUndoHistoryExceeded();
-    }
-    if (
-      this.canAddReports() &&
-      nextProps.dashboardInfo.id !== this.props.dashboardInfo.id
-    ) {
-      // this is in case there is an anonymous user.
-      this.props.fetchUISpecificReport(
-        user?.userId,
-        'dashboard_id',
-        'dashboards',
-        nextProps?.dashboardInfo?.id,
-        user?.email,
-      );
     }
   }
 
@@ -414,14 +380,6 @@ class Header extends React.PureComponent {
     this.setState({ showingPropertiesModal: false });
   }
 
-  showReportModal() {
-    this.setState({ showingReportModal: true });
-  }
-
-  hideReportModal() {
-    this.setState({ showingReportModal: false });
-  }
-
   showEmbedModal = () => {
     this.setState({ showingEmbedModal: true });
   };
@@ -429,47 +387,6 @@ class Header extends React.PureComponent {
   hideEmbedModal = () => {
     this.setState({ showingEmbedModal: false });
   };
-
-  renderReportModal() {
-    const attachedReportExists = !!Object.keys(this.props.reports).length;
-    return attachedReportExists ? (
-      <HeaderReportActionsDropdown
-        showReportModal={this.showReportModal}
-        toggleActive={this.props.toggleActive}
-        deleteActiveReport={this.props.deleteActiveReport}
-      />
-    ) : (
-      <>
-        <span
-          role="button"
-          title={t('Schedule email report')}
-          tabIndex={0}
-          className="action-button"
-          onClick={this.showReportModal}
-        >
-          <Icons.Calendar />
-        </span>
-      </>
-    );
-  }
-
-  canAddReports() {
-    if (!isFeatureEnabled(FeatureFlag.ALERT_REPORTS)) {
-      return false;
-    }
-    const { user } = this.props;
-    if (!user?.userId) {
-      // this is in the case that there is an anonymous user.
-      return false;
-    }
-    const roles = Object.keys(user.roles || []);
-    const permissions = roles.map(key =>
-      user.roles[key].filter(
-        perms => perms[0] === 'menu_access' && perms[1] === 'Manage',
-      ),
-    );
-    return permissions[0].length > 0;
-  }
 
   render() {
     const {
@@ -500,6 +417,7 @@ class Header extends React.PureComponent {
       lastModifiedTime,
       filterboxMigrationState,
     } = this.props;
+
     const userCanEdit =
       dashboardInfo.dash_edit_perm &&
       filterboxMigrationState !== FILTER_BOX_MIGRATION_STATES.REVIEWING &&
@@ -511,7 +429,6 @@ class Header extends React.PureComponent {
     const userCanCurate =
       isFeatureEnabled(FeatureFlag.EMBEDDED_SUPERSET) &&
       findPermission('can_set_embedded', 'Dashboard', user.roles);
-    const shouldShowReport = !editMode && this.canAddReports();
     const refreshLimit =
       dashboardInfo.common?.conf?.SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT;
     const refreshWarning =
@@ -625,48 +542,41 @@ class Header extends React.PureComponent {
               )}
             </div>
           )}
-          {editMode && (
+          {editMode ? (
             <UndoRedoKeyListeners
               onUndo={this.handleCtrlZ}
               onRedo={this.handleCtrlY}
             />
-          )}
-
-          {!editMode && userCanEdit && (
+          ) : (
             <>
-              <span
-                role="button"
-                title={t('Edit dashboard')}
-                tabIndex={0}
-                className="action-button"
-                onClick={this.toggleEditMode}
-              >
-                <Icons.EditAlt />
-              </span>
+              {userCanEdit && (
+                <span
+                  role="button"
+                  title={t('Edit dashboard')}
+                  tabIndex={0}
+                  className="action-button"
+                  onClick={this.toggleEditMode}
+                >
+                  <Icons.EditAlt />
+                </span>
+              )}
+              <HeaderReportDropdown
+                key={dashboardInfo.id}
+                dashboardId={dashboardInfo.id}
+              />
             </>
           )}
-          {shouldShowReport && this.renderReportModal()}
 
-          <PropertiesModal
-            dashboardId={dashboardInfo.id}
-            dashboardInfo={dashboardInfo}
-            dashboardTitle={dashboardTitle}
-            show={this.state.showingPropertiesModal}
-            onHide={this.hidePropertiesModal}
-            colorScheme={this.props.colorScheme}
-            onSubmit={handleOnPropertiesChange}
-            onlyApply
-          />
-
-          {this.state.showingReportModal && (
-            <ReportModal
-              show={this.state.showingReportModal}
-              onHide={this.hideReportModal}
-              userId={user.userId}
-              userEmail={user.email}
+          {this.state.showingPropertiesModal && (
+            <PropertiesModal
               dashboardId={dashboardInfo.id}
-              dashboardName={dashboardInfo.name}
-              creationMethod="dashboards"
+              dashboardInfo={dashboardInfo}
+              dashboardTitle={dashboardTitle}
+              show={this.state.showingPropertiesModal}
+              onHide={this.hidePropertiesModal}
+              colorScheme={this.props.colorScheme}
+              onSubmit={handleOnPropertiesChange}
+              onlyApply
             />
           )}
 
