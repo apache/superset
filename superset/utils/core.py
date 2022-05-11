@@ -174,8 +174,16 @@ class GenericDataType(IntEnum):
     # ROW = 7
 
 
+class DatasourceType(Enum):
+    SQLATABLE = "sqlatable"
+    TABLE = "table"
+    DATASET = "dataset"
+    QUERY = "query"
+    SAVEDQUERY = "saved_query"
+
+
 class DatasourceDict(TypedDict):
-    type: str
+    type: str  # todo(hugh): update this to be DatasourceType
     id: int
 
 

@@ -1,0 +1,34 @@
+name: Applitools Storybook
+
+on:
+  schedule:
+    - cron: "0 0 * * *"
+
+env:
+  APPLITOOLS_APP_NAME: Superset
+  APPLITOOLS_API_KEY: ${{ secrets.APPLITOOLS_API_KEY }}
+  APPLITOOLS_BATCH_ID: ${{ github.sha }}
+  APPLITOOLS_BATCH_NAME: Superset Storybook
+
+jobs:
+  cron:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [16]
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Node.js
+        uses: actions/setup-node@v3.1.1
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Install Chrome-related packages
+        run: sudo apt-get update -y && sudo apt-get -y install gconf-service ca-certificates libxshmfence-dev fonts-liberation libappindicator3-1 libasound2 libatk-bridge2.0-0 libatk1.0-0 libc6 libcairo2 libcups2 libdbus-1-3 libexpat1 libfontconfig1 libgbm1 libgcc1 libgconf-2-4 libglib2.0-0 libgdk-pixbuf2.0-0 libgtk-3-0 libnspr4 libnss3 libpangocairo-1.0-0 libstdc++6 libx11-6 libx11-xcb1 libxcb1 libxcomposite1 libxcursor1 libxdamage1 libxext6 libxfixes3 libxi6 libxrandr2 libxrender1 libxss1 libxtst6 lsb-release xdg-utils libappindicator1
+      - name: Install NPM dependencies
+        working-directory: ./superset-frontend
+        run: |
+          npm ci
+          ls ./node_modules/puppeteer/.local-chromium
+      - name: Run Applitools Eyes-Storybook
+        working-directory: ./superset-frontend
+        run: npx eyes-storybook -u https://superset-storybook.netlify.app/
