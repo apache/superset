@@ -87,7 +87,7 @@ const FilterPopoverContentContainer = styled.div`
 `;
 
 const FilterActionsContainer = styled.div`
-  margin-top: 8px;
+  margin-top: ${({ theme }) => theme.gridUnit * 2}px;;
 `;
 
 export default class AdhocFilterEditPopover extends React.Component {
