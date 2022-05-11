@@ -532,10 +532,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     const dbToUpdate = JSON.parse(JSON.stringify(update));
 
     if (dbToUpdate.configuration_method === CONFIGURATION_METHOD.DYNAMIC_FORM) {
-      if (
-        !dbToUpdate?.parameters?.catalog &&
-        dbToUpdate.database_name === 'Google Sheets'
-      ) {
+      if (!dbToUpdate?.parameters?.catalog && dbToUpdate.engine === 'gsheets') {
         // send empty catalog if there is empty fields for name or url
         // since the database could parse it as valid
         dbToUpdate.parameters = { catalog: { name: '', url: '' } };
