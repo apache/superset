@@ -18,12 +18,16 @@
 import pytest
 from sqlalchemy.orm.session import Session
 
+from superset.utils.core import DatasourceType
+
 
 def create_test_data(session: Session) -> None:
     from superset.columns.models import Column
     from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.datasets.models import Dataset
     from superset.models.core import Database
     from superset.models.sql_lab import Query, SavedQuery
+    from superset.tables.models import Table
 
     engine = session.get_bind()
     SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
@@ -58,6 +62,32 @@ def create_test_data(session: Session) -> None:
 
     saved_query = SavedQuery(database=db, sql="select * from foo")
 
+    table = Table(
+        name="my_table",
+        schema="my_schema",
+        catalog="my_catalog",
+        database=db,
+        columns=[],
+    )
+
+    dataset = Dataset(
+        database=table.database,
+        name="positions",
+        expression="""
+SELECT array_agg(array[longitude,latitude]) AS position
+FROM my_catalog.my_schema.my_table
+""",
+        tables=[table],
+        columns=[
+            Column(
+                name="position",
+                expression="array_agg(array[longitude,latitude])",
+            ),
+        ],
+    )
+
+    session.add(dataset)
+    session.add(table)
     session.add(saved_query)
     session.add(query_obj)
     session.add(db)
@@ -72,7 +102,7 @@ def test_get_datasource_sqlatable(app_context: None, session: Session) -> None:
     create_test_data(session)
 
     result = DatasourceDAO.get_datasource(
-        datasource_type="table", datasource_id=1, session=session
+        datasource_type=DatasourceType.SQLATABLE, datasource_id=1, session=session
     )
 
     assert 1 == result.id
@@ -87,7 +117,7 @@ def test_get_datasource_query(app_context: None, session: Session) -> None:
     create_test_data(session)
 
     result = DatasourceDAO.get_datasource(
-        datasource_type="query", datasource_id=1, session=session
+        datasource_type=DatasourceType.QUERY, datasource_id=1, session=session
     )
 
     assert result.id == 1
@@ -101,7 +131,7 @@ def test_get_datasource_saved_query(app_context: None, session: Session) -> None
     create_test_data(session)
 
     result = DatasourceDAO.get_datasource(
-        datasource_type="saved_query", datasource_id=1, session=session
+        datasource_type=DatasourceType.SAVEDQUERY, datasource_id=1, session=session
     )
 
     assert result.id == 1
@@ -109,8 +139,43 @@ def test_get_datasource_saved_query(app_context: None, session: Session) -> None
 
 
 def test_get_datasource_sl_table(app_context: None, session: Session) -> None:
-    pass
+    from superset.dao.datasource.dao import DatasourceDAO
+    from superset.tables.models import Table
+
+    create_test_data(session)
+
+    # todo(hugh): This will break once we remove the dual write
+    # update the datsource_id=1 and this will pass again
+    result = DatasourceDAO.get_datasource(
+        datasource_type=DatasourceType.TABLE, datasource_id=2, session=session
+    )
+
+    assert result.id == 2
+    assert isinstance(result, Table)
 
 
 def test_get_datasource_sl_dataset(app_context: None, session: Session) -> None:
-    pass
+    from superset.dao.datasource.dao import DatasourceDAO
+    from superset.datasets.models import Dataset
+
+    create_test_data(session)
+
+    # todo(hugh): This will break once we remove the dual write
+    # update the datsource_id=1 and this will pass again
+    result = DatasourceDAO.get_datasource(
+        datasource_type=DatasourceType.DATASET, datasource_id=2, session=session
+    )
+
+    assert result.id == 2
+    assert isinstance(result, Dataset)
+
+
+def test_get_all_datasources(app_context: None, session: Session) -> None:
+    from superset.dao.datasource.dao import DatasourceDAO
+
+    create_test_data(session)
+
+    # todo(hugh): This will break once we remove the dual write
+    # update the assert len(result) == 5 and this will pass again
+    result = DatasourceDAO.get_all_datasources(session=session)
+    assert len(result) == 7
