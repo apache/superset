@@ -26,41 +26,37 @@ import isDashboardLoading from 'src/dashboard/util/isDashboardLoading';
 import { dashboardInfoChanged } from 'src/dashboard/actions/dashboardInfo';
 
 import {
-  fetchCharts,
+  setEditMode,
+  showBuilderPane,
   fetchFaveStar,
-  maxUndoHistoryToast,
-  onChange,
-  onRefresh,
-  saveDashboardRequest,
   saveFaveStar,
   savePublished,
   setColorSchemeAndUnsavedChanges,
-  setEditMode,
-  setMaxUndoHistoryExceeded,
-  setRefreshFrequency,
-  showBuilderPane,
+  fetchCharts,
   updateCss,
+  onChange,
+  saveDashboardRequest,
+  setMaxUndoHistoryExceeded,
+  maxUndoHistoryToast,
+  setRefreshFrequency,
+  onRefresh,
 } from 'src/dashboard/actions/dashboardState';
 
 import {
-  dashboardTitleChanged,
-  redoLayoutAction,
   undoLayoutAction,
+  redoLayoutAction,
   updateDashboardTitle,
+  dashboardTitleChanged,
 } from 'src/dashboard/actions/dashboardLayout';
 import {
-  addDangerToast,
   addSuccessToast,
+  addDangerToast,
   addWarningToast,
 } from 'src/components/MessageToasts/actions';
 
 import { logEvent } from 'src/logger/actions';
 import { DASHBOARD_HEADER_ID } from 'src/dashboard/util/constants';
-import {
-  deleteActiveReport,
-  fetchUISpecificReport,
-  toggleActive,
-} from 'src/reports/actions/reports';
+import { fetchUISpecificReport } from 'src/reports/actions/reports';
 
 function mapStateToProps({
   dashboardLayout: undoableLayout,
@@ -134,8 +130,6 @@ function mapDispatchToProps(dispatch) {
       dashboardTitleChanged,
       updateDataMask,
       fetchUISpecificReport,
-      toggleActive,
-      deleteActiveReport,
     },
     dispatch,
   );
