@@ -73,6 +73,8 @@ export class StandardizedFormData {
   }
 
   getLatestFormData(vizType: string): QueryFormData {
+    console.log('memorized formdata', this.sfd.memorizedFormData);
+    console.log('vizType', vizType);
     if (this.sfd.memorizedFormData.has(vizType)) {
       return this.sfd.memorizedFormData.get(vizType) as QueryFormData;
     }
@@ -103,9 +105,9 @@ export class StandardizedFormData {
     formData: QueryFormData;
     controlsState: any;
   } {
-    const sourceFormData = this.getLatestFormData(sourceVizType);
+    const latestFormData = this.getLatestFormData(targetVizType);
     const targetControlsState = getControlsState(exploreState, {
-      ...sourceFormData,
+      ...latestFormData,
       viz_type: targetVizType,
     });
     const targetFormData = {
