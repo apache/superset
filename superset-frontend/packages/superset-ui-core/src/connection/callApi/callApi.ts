@@ -107,7 +107,7 @@ export default async function callApi({
         request.headers = { ...request.headers, 'If-None-Match': etag };
       }
     } catch {
-      // todo: caches.open handle error
+      // If superset is in an iframe and third-party cookies are disabled, caches.open throws
     }
 
     const response = await fetchWithRetry(url, request);
