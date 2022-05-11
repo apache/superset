@@ -19,7 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { TextArea } from 'src/components/Input';
-import { t, withTheme } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
 
 import Button from 'src/components/Button';
 import { TextAreaEditor } from 'src/components/AsyncAceEditor';
@@ -57,7 +57,7 @@ const defaultProps = {
   readOnly: false,
 };
 
-class TextAreaControl extends React.Component {
+export default class TextAreaControl extends React.Component {
   onControlChange(event) {
     const { value } = event.target;
     this.props.onChange(value);
@@ -70,9 +70,7 @@ class TextAreaControl extends React.Component {
   renderEditor(inModal = false) {
     const minLines = inModal ? 40 : this.props.minLines || 12;
     if (this.props.language) {
-      const style = {
-        border: `1px solid ${this.props.theme.colors.grayscale.light1}`,
-      };
+      const style = { border: '1px solid #CCC' };
       if (this.props.readOnly) {
         style.backgroundColor = '#f2f2f2';
       }
@@ -139,5 +137,3 @@ class TextAreaControl extends React.Component {
 
 TextAreaControl.propTypes = propTypes;
 TextAreaControl.defaultProps = defaultProps;
-
-export default withTheme(TextAreaControl);

@@ -18,7 +18,6 @@
  */
 
 import Owner from 'src/types/Owner';
-import { NOTIFICATION_FORMATS } from 'src/reports/types';
 
 type user = {
   id: number;
@@ -60,16 +59,13 @@ export type Operator = '<' | '>' | '<=' | '>=' | '==' | '!=' | 'not null';
 
 export type AlertObject = {
   active?: boolean;
-  creation_method?: string;
   chart?: MetaObject;
   changed_by?: user;
   changed_on_delta_humanized?: string;
-  chart_id: number;
   created_by?: user;
   created_on?: string;
   crontab?: string;
   dashboard?: MetaObject;
-  dashboard_id?: number;
   database?: MetaObject;
   description?: string;
   force_screenshot: boolean;
@@ -83,7 +79,7 @@ export type AlertObject = {
   sql?: string;
   timezone?: string;
   recipients?: Array<Recipient>;
-  report_format?: NOTIFICATION_FORMATS;
+  report_format?: 'PNG' | 'CSV' | 'TEXT';
   type?: string;
   validator_config_json?: {
     op?: Operator;
@@ -91,7 +87,6 @@ export type AlertObject = {
   };
   validator_type?: string;
   working_timeout?: number;
-  error?: string;
 };
 
 export type LogObject = {

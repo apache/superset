@@ -236,7 +236,7 @@ const StyledTabs = styled(Tabs)`
   .ant-tabs-nav {
     position: sticky;
     top: 0;
-    background: ${({ theme }) => theme.colors.grayscale.light5};
+    background: white;
     z-index: 1;
   }
 

@@ -241,10 +241,10 @@ const TimeTable = ({
         <span
           key={column.key}
           data-value={v}
-          css={theme =>
+          style={
             color && {
               boxShadow: `inset 0px -2.5px 0px 0px ${color}`,
-              borderRight: `2px solid ${theme.colors.grayscale.light5}`,
+              borderRight: '2px solid #fff',
             }
           }
         >

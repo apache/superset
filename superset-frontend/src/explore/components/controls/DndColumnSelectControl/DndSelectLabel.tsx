@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ReactNode, useMemo } from 'react';
+import React, { ReactNode } from 'react';
 import { useDrop } from 'react-dnd';
 import { t, useTheme } from '@superset-ui/core';
 import ControlHeader from 'src/explore/components/ControlHeader';
@@ -48,7 +48,6 @@ export type DndSelectLabelProps = {
 export default function DndSelectLabel({
   displayGhostButton = true,
   accept,
-  valuesRenderer,
   ...props
 }: DndSelectLabelProps) {
   const theme = useTheme();
@@ -70,8 +69,6 @@ export default function DndSelectLabel({
       type: monitor.getItemType(),
     }),
   });
-
-  const values = useMemo(() => valuesRenderer(), [valuesRenderer]);
 
   function renderGhostButton() {
     return (
@@ -95,7 +92,7 @@ export default function DndSelectLabel({
         canDrop={canDrop}
         isOver={isOver}
       >
-        {values}
+        {props.valuesRenderer()}
         {displayGhostButton && renderGhostButton()}
       </DndLabelsContainer>
     </div>

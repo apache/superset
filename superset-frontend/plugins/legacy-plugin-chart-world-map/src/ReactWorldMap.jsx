@@ -18,19 +18,16 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { styled, reactify, useTheme } from '@superset-ui/core';
+import { styled, reactify } from '@superset-ui/core';
 import WorldMap from './WorldMap';
 
 const ReactWorldMap = reactify(WorldMap);
 
-const WorldMapComponent = ({ className, ...otherProps }) => {
-  const theme = useTheme();
-  return (
-    <div className={className}>
-      <ReactWorldMap {...otherProps} theme={theme} />
-    </div>
-  );
-};
+const WorldMapComponent = ({ className, ...otherProps }) => (
+  <div className={className}>
+    <ReactWorldMap {...otherProps} />
+  </div>
+);
 
 WorldMapComponent.propTypes = {
   className: PropTypes.string.isRequired,

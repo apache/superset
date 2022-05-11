@@ -25,27 +25,27 @@ import {
 } from 'src/components/MessageToasts/actions';
 
 export const SET_REPORT = 'SET_REPORT';
-export function setReport(report, resourceId, creationMethod, filterField) {
-  return { type: SET_REPORT, report, resourceId, creationMethod, filterField };
+export function setReport(report) {
+  return { type: SET_REPORT, report };
 }
 
-export function fetchUISpecificReport({
+export function fetchUISpecificReport(
   userId,
-  filterField,
-  creationMethod,
-  resourceId,
-}) {
+  filter_field,
+  creation_method,
+  dashboardId,
+) {
   const queryParams = rison.encode({
     filters: [
       {
-        col: filterField,
+        col: filter_field,
         opr: 'eq',
-        value: resourceId,
+        value: dashboardId,
       },
       {
         col: 'creation_method',
         opr: 'eq',
-        value: creationMethod,
+        value: creation_method,
       },
       {
         col: 'created_by',
@@ -59,7 +59,7 @@ export function fetchUISpecificReport({
       endpoint: `/api/v1/report/?q=${queryParams}`,
     })
       .then(({ json }) => {
-        dispatch(setReport(json, resourceId, creationMethod, filterField));
+        dispatch(setReport(json));
       })
       .catch(() =>
         dispatch(
@@ -78,22 +78,22 @@ const structureFetchAction = (dispatch, getState) => {
   const { user, dashboardInfo, charts, explore } = state;
   if (dashboardInfo) {
     dispatch(
-      fetchUISpecificReport({
-        userId: user.userId,
-        filterField: 'dashboard_id',
-        creationMethod: 'dashboards',
-        resourceId: dashboardInfo.id,
-      }),
+      fetchUISpecificReport(
+        user.userId,
+        'dashboard_id',
+        'dashboards',
+        dashboardInfo.id,
+      ),
     );
   } else {
     const [chartArr] = Object.keys(charts);
     dispatch(
-      fetchUISpecificReport({
-        userId: explore.user.userId,
-        filterField: 'chart_id',
-        creationMethod: 'charts',
-        resourceId: charts[chartArr].id,
-      }),
+      fetchUISpecificReport(
+        explore.user.userId,
+        'chart_id',
+        'charts',
+        charts[chartArr].id,
+      ),
     );
   }
 };

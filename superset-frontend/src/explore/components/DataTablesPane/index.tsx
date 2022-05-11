@@ -336,6 +336,7 @@ export const DataTablesPane = ({
     },
     [queryFormData, columnNames],
   );
+
   useEffect(() => {
     setItem(LocalStorageKeys.is_datapanel_open, panelOpen);
   }, [panelOpen]);

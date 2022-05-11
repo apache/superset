@@ -19,7 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { SketchPicker } from 'react-color';
-import { getCategoricalSchemeRegistry, styled } from '@superset-ui/core';
+import { getCategoricalSchemeRegistry } from '@superset-ui/core';
 import Popover from 'src/components/Popover';
 import ControlHeader from '../ControlHeader';
 
@@ -42,19 +42,18 @@ const swatchCommon = {
   bottom: '0px',
 };
 
-const StyledSwatch = styled.div`
-  ${({ theme }) => `
-      width: 50px;
-      height: 20px;
-      position: relative;
-      padding: ${theme.gridUnit}px;
-      borderRadius: ${theme.borderRadius}px;
-      display: inline-block;
-      cursor: pointer;
-    `}
-`;
-
 const styles = {
+  swatch: {
+    width: '50px',
+    height: '20px',
+    position: 'relative',
+    padding: '5px',
+    borderRadius: '1px',
+    display: 'inline-block',
+    cursor: 'pointer',
+    boxShadow:
+      'rgba(0, 0, 0, 0.15) 0px 0px 0px 1px inset, rgba(0, 0, 0, 0.25) 0px 0px 4px inset',
+  },
   color: {
     ...swatchCommon,
     borderRadius: '2px',
@@ -104,10 +103,10 @@ export default class ColorPickerControl extends React.Component {
           placement="right"
           content={this.renderPopover()}
         >
-          <StyledSwatch>
+          <div style={styles.swatch}>
             <div style={styles.checkboard} />
             <div style={colStyle} />
-          </StyledSwatch>
+          </div>
         </Popover>
       </div>
     );
