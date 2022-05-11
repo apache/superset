@@ -288,7 +288,7 @@ class SliceHeaderControls extends React.PureComponent<
             key={MENU_KEYS.EXPLORE_CHART}
             onClick={this.props.onExploreChart}
           >
-            {t('View chart in Explore')}
+            {t('Edit chart')}
           </Menu.Item>
         )}
 

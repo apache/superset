@@ -130,9 +130,7 @@ test('Should render default props', () => {
   userEvent.click(
     screen.getByRole('menuitem', { name: 'Toggle chart description' }),
   );
-  userEvent.click(
-    screen.getByRole('menuitem', { name: 'View chart in Explore' }),
-  );
+  userEvent.click(screen.getByRole('menuitem', { name: 'Edit chart' }));
   userEvent.click(screen.getByRole('menuitem', { name: 'Export CSV' }));
   userEvent.click(screen.getByRole('menuitem', { name: /Force refresh/ }));
 
