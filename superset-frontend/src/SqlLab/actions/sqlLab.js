@@ -369,19 +369,24 @@ export function validateQuery(query) {
     dispatch(startQueryValidation(query));
 
     const postPayload = {
+      client_id: query.id,
+      database_id: query.dbId,
+      json: true,
       schema: query.schema,
       sql: query.sql,
-      template_params: query.templateParams,
+      sql_editor_id: query.sqlEditorId,
+      templateParams: query.templateParams,
+      validate_only: true,
     };
 
     return SupersetClient.post({
-      endpoint: `/api/v1/database/${query.dbId}/validate_sql`,
-      body: JSON.stringify(postPayload),
-      headers: { 'Content-Type': 'application/json' },
+      endpoint: `/superset/validate_sql_json/${window.location.search}`,
+      postPayload,
+      stringify: false,
     })
-      .then(({ json }) => dispatch(queryValidationReturned(query, json.result)))
+      .then(({ json }) => dispatch(queryValidationReturned(query, json)))
       .catch(response =>
-        getClientErrorObject(response.result).then(error => {
+        getClientErrorObject(response).then(error => {
           let message = error.error || error.statusText || t('Unknown error');
           if (message.includes('CSRF token')) {
             message = t(COMMON_ERR_MESSAGES.SESSION_TIMED_OUT);

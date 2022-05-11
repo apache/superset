@@ -20,14 +20,18 @@ import React from 'react';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
-import { Tooltip } from 'src/components/Tooltip';
 import {
   CategoricalColorNamespace,
   css,
   SupersetClient,
   t,
 } from '@superset-ui/core';
-import { toggleActive, deleteActiveReport } from 'src/reports/actions/reports';
+import {
+  fetchUISpecificReport,
+  toggleActive,
+  deleteActiveReport,
+} from 'src/reports/actions/reports';
+import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
 import AlteredSliceTag from 'src/components/AlteredSliceTag';
 import FaveStar from 'src/components/FaveStar';
@@ -36,6 +40,7 @@ import Icons from 'src/components/Icons';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
 import { sliceUpdated } from 'src/explore/actions/exploreActions';
 import CertifiedBadge from 'src/components/CertifiedBadge';
+import { Tooltip } from 'src/components/Tooltip';
 import ExploreAdditionalActionsMenu from '../ExploreAdditionalActionsMenu';
 import { ChartEditableTitle } from './ChartEditableTitle';
 
@@ -119,6 +124,16 @@ export class ExploreChartHeader extends React.PureComponent {
 
   componentDidMount() {
     const { dashboardId } = this.props;
+    if (this.canAddReports()) {
+      const { user, chart } = this.props;
+      // this is in the case that there is an anonymous user.
+      this.props.fetchUISpecificReport(
+        user.userId,
+        'chart_id',
+        'charts',
+        chart.id,
+      );
+    }
     if (dashboardId) {
       this.fetchChartDashboardData();
     }
@@ -184,6 +199,24 @@ export class ExploreChartHeader extends React.PureComponent {
     this.setState({
       isPropertiesModalOpen: false,
     });
+  }
+
+  canAddReports() {
+    if (!isFeatureEnabled(FeatureFlag.ALERT_REPORTS)) {
+      return false;
+    }
+    const { user } = this.props;
+    if (!user?.userId) {
+      // this is in the case that there is an anonymous user.
+      return false;
+    }
+    const roles = Object.keys(user.roles || []);
+    const permissions = roles.map(key =>
+      user.roles[key].filter(
+        perms => perms[0] === 'menu_access' && perms[1] === 'Manage',
+      ),
+    );
+    return permissions[0].length > 0;
   }
 
   render() {
@@ -279,6 +312,7 @@ export class ExploreChartHeader extends React.PureComponent {
             slice={slice}
             canDownloadCSV={canDownload}
             latestQueryFormData={latestQueryFormData}
+            canAddReports={this.canAddReports()}
           />
         </div>
       </div>
@@ -290,7 +324,7 @@ ExploreChartHeader.propTypes = propTypes;
 
 function mapDispatchToProps(dispatch) {
   return bindActionCreators(
-    { sliceUpdated, toggleActive, deleteActiveReport },
+    { sliceUpdated, fetchUISpecificReport, toggleActive, deleteActiveReport },
     dispatch,
   );
 }

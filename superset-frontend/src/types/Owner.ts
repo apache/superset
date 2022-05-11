@@ -26,5 +26,4 @@ export default interface Owner {
   id: number;
   last_name: string;
   username: string;
-  email?: string;
 }

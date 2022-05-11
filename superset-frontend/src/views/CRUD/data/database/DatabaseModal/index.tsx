@@ -18,7 +18,6 @@
  */
 import {
   t,
-  styled,
   SupersetTheme,
   FeatureFlag,
   isFeatureEnabled,
@@ -96,18 +95,6 @@ const engineSpecificAlertMapping = {
       'you choose to connect here.',
   },
 };
-
-const TabsStyled = styled(Tabs)`
-  .ant-tabs-content {
-    display: flex;
-    width: 100%;
-    overflow: inherit;
-
-    & > .ant-tabs-tabpane {
-      position: relative;
-    }
-  }
-`;
 
 const googleSheetConnectionEngine = 'gsheets';
 
@@ -1245,7 +1232,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           />
         </TabHeader>
       </StyledStickyHeader>
-      <TabsStyled
+      <Tabs
         defaultActiveKey={DEFAULT_TAB_KEY}
         activeKey={tabKey}
         onTabClick={tabChange}
@@ -1398,7 +1385,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           />
           {showDBError && errorAlert()}
         </Tabs.TabPane>
-      </TabsStyled>
+      </Tabs>
     </Modal>
   ) : (
     <Modal
@@ -1434,7 +1421,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         </>
       ) : (
         <>
-          {/* Dynamic Form Step 1 */}
+          {/* Dyanmic Form Step 1 */}
           {!isLoading &&
             (!db ? (
               <SelectDatabaseStyles>

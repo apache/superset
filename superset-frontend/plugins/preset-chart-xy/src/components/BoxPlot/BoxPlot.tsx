@@ -68,9 +68,7 @@ type Props = {
   Readonly<typeof defaultProps>;
 
 export default class BoxPlot extends React.PureComponent<Props> {
-  private createEncoder = boxPlotEncoderFactory(
-    this.props.theme?.colors.darkGray,
-  ).createSelector();
+  private createEncoder = boxPlotEncoderFactory.createSelector();
 
   private createMargin = createMarginSelector();
 

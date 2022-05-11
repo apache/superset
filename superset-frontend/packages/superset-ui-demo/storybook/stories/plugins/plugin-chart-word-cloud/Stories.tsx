@@ -54,7 +54,7 @@ export const basic = ({ width, height }) => (
     formData={{
       encoding: {
         color: {
-          field: 'name',
+          value: '#0097e6',
         },
         fontSize: {
           field: 'sum__num',
@@ -120,7 +120,7 @@ export const encodesFontByFirstLetter = ({ width, height }) => (
     formData={{
       encoding: {
         color: {
-          field: 'name',
+          value: '#8c7ae6',
         },
         fontFamily: {
           field: 'name[0]',

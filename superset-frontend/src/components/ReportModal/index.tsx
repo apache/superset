@@ -20,28 +20,28 @@ import React, {
   useState,
   useEffect,
   useReducer,
+  FunctionComponent,
   useCallback,
   useMemo,
 } from 'react';
 import { t, SupersetTheme } from '@superset-ui/core';
-import { useDispatch, useSelector } from 'react-redux';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
+import { useDispatch, useSelector } from 'react-redux';
 import { addReport, editReport } from 'src/reports/actions/reports';
+
 import Alert from 'src/components/Alert';
 import TimezoneSelector from 'src/components/TimezoneSelector';
 import LabeledErrorBoundInput from 'src/components/Form/LabeledErrorBoundInput';
 import Icons from 'src/components/Icons';
+import withToasts from 'src/components/MessageToasts/withToasts';
 import { CronError } from 'src/components/CronPicker';
 import { RadioChangeEvent } from 'src/components';
-import withToasts from 'src/components/MessageToasts/withToasts';
 import { ChartState } from 'src/explore/types';
 import {
   ReportCreationMethod,
-  ReportObject,
-  NOTIFICATION_FORMATS,
+  ReportRecipientType,
+  ReportScheduleType,
 } from 'src/reports/types';
-import { reportSelector } from 'src/views/CRUD/hooks';
-import { CreationMethod } from './HeaderReportDropdown';
 import {
   antDErrorAlertStyles,
   StyledModal,
@@ -60,8 +60,32 @@ import {
   StyledRadioGroup,
 } from './styles';
 
+export interface ReportObject {
+  id?: number;
+  active: boolean;
+  crontab: string;
+  dashboard?: number;
+  chart?: number;
+  description?: string;
+  log_retention: number;
+  name: string;
+  owners: number[];
+  recipients: [
+    { recipient_config_json: { target: string }; type: ReportRecipientType },
+  ];
+  report_format: string;
+  timezone: string;
+  type: ReportScheduleType;
+  validator_config_json: {} | null;
+  validator_type: string;
+  working_timeout: number;
+  creation_method: string;
+  force_screenshot: boolean;
+}
+
 interface ReportProps {
   onHide: () => {};
+  onReportAdd: (report?: ReportObject) => {};
   addDangerToast: (msg: string) => void;
   show: boolean;
   userId: number;
@@ -71,7 +95,6 @@ interface ReportProps {
   dashboardId?: number;
   dashboardName?: string;
   creationMethod: ReportCreationMethod;
-  props: any;
 }
 
 const TEXT_BASED_VISUALIZATION_TYPES = [
@@ -80,6 +103,12 @@ const TEXT_BASED_VISUALIZATION_TYPES = [
   'table',
   'paired_ttest',
 ];
+
+const NOTIFICATION_FORMATS = {
+  TEXT: 'TEXT',
+  PNG: 'PNG',
+  CSV: 'CSV',
+};
 
 const INITIAL_STATE = {
   crontab: '0 12 * * 1',
@@ -93,25 +122,20 @@ type ReportObjectState = Partial<ReportObject> & {
   isSubmitting?: boolean;
 };
 
-function ReportModal({
+const ReportModal: FunctionComponent<ReportProps> = ({
+  onReportAdd,
   onHide,
   show = false,
-  dashboardId,
-  chart,
-  userId,
-  userEmail,
-  creationMethod,
-  dashboardName,
-  chartName,
-}: ReportProps) {
-  const vizType = chart?.sliceFormData?.viz_type;
-  const isChart = !!chart;
+  ...props
+}) => {
+  const vizType = props.chart?.sliceFormData?.viz_type;
+  const isChart = !!props.chart;
   const isTextBasedChart =
     isChart && vizType && TEXT_BASED_VISUALIZATION_TYPES.includes(vizType);
   const defaultNotificationFormat = isTextBasedChart
     ? NOTIFICATION_FORMATS.TEXT
     : NOTIFICATION_FORMATS.PNG;
-  const entityName = dashboardName || chartName;
+  const entityName = props.dashboardName || props.chartName;
   const initialState: ReportObjectState = useMemo(
     () => ({
       ...INITIAL_STATE,
@@ -142,22 +166,18 @@ function ReportModal({
   const [cronError, setCronError] = useState<CronError>();
 
   const dispatch = useDispatch();
-  // Report fetch logic
-  const report = useSelector<any, ReportObject>(state => {
-    const resourceType = dashboardId
-      ? CreationMethod.DASHBOARDS
-      : CreationMethod.CHARTS;
-    return reportSelector(state, resourceType, dashboardId || chart?.id);
-  });
-  const isEditMode = report && Object.keys(report).length;
+  const reports = useSelector<any, ReportObject>(state => state.reports);
+  const isEditMode = reports && Object.keys(reports).length;
 
   useEffect(() => {
     if (isEditMode) {
+      const reportsIds = Object.keys(reports);
+      const report = reports[reportsIds[0]];
       setCurrentReport(report);
     } else {
       setCurrentReport('reset');
     }
-  }, [isEditMode, report]);
+  }, [isEditMode, reports]);
 
   const onSave = async () => {
     // Create new Report
@@ -165,13 +185,13 @@ function ReportModal({
       type: 'Report',
       active: true,
       force_screenshot: false,
-      creation_method: creationMethod,
-      dashboard: dashboardId,
-      chart: chart?.id,
-      owners: [userId],
+      creation_method: props.creationMethod,
+      dashboard: props.dashboardId,
+      chart: props.chart?.id,
+      owners: [props.userId],
       recipients: [
         {
-          recipient_config_json: { target: userEmail },
+          recipient_config_json: { target: props.userEmail },
           type: 'Email',
         },
       ],
@@ -197,6 +217,8 @@ function ReportModal({
       setCurrentReport({ error });
     }
     setCurrentReport({ isSubmitting: false });
+
+    if (onReportAdd) onReportAdd();
   };
 
   const wrappedTitle = (
@@ -341,6 +363,6 @@ function ReportModal({
       )}
     </StyledModal>
   );
-}
+};
 
 export default withToasts(ReportModal);

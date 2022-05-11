@@ -48,15 +48,12 @@ class TestSqlValidatorEndpoint(SupersetTestCase):
     def tearDown(self):
         self.logout()
 
-    @patch.dict(
-        "superset.config.SQL_VALIDATORS_BY_ENGINE",
-        {},
-        clear=True,
-    )
     def test_validate_sql_endpoint_noconfig(self):
         """Assert that validate_sql_json errors out when no validators are
         configured for any db"""
         self.login("admin")
+
+        app.config["SQL_VALIDATORS_BY_ENGINE"] = {}
 
         resp = self.validate_sql(
             "SELECT * FROM birth_names", client_id="1", raise_on_error=False
@@ -234,11 +231,6 @@ class TestPrestoValidator(SupersetTestCase):
 
         self.assertEqual(1, len(errors))
 
-    @patch.dict(
-        "superset.config.SQL_VALIDATORS_BY_ENGINE",
-        {},
-        clear=True,
-    )
     def test_validate_sql_endpoint(self):
         self.login("admin")
         # NB this is effectively an integration test -- when there's a default

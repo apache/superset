@@ -103,7 +103,7 @@ describe('Dashboard edit action', () => {
       .click()
       .then(() => {
         // assert that modal edit window has closed
-        cy.get('.ant-modal-body').should('not.exist');
+        cy.get('.ant-modal-body').should('not.be.visible');
 
         // assert title has been updated
         cy.get('.editable-title input').should('have.value', dashboardTitle);

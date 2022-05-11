@@ -55,7 +55,6 @@ function WorldMap(element, props) {
     showBubbles,
     linearColorScheme,
     color,
-    theme,
   } = props;
   const div = d3.select(element);
   div.classed('superset-legacy-chart-world-map', true);
@@ -91,14 +90,14 @@ function WorldMap(element, props) {
     height,
     data: processedData,
     fills: {
-      defaultFill: theme.colors.grayscale.light2,
+      defaultFill: '#eee',
     },
     geographyConfig: {
       popupOnHover: true,
       highlightOnHover: true,
       borderWidth: 1,
-      borderColor: theme.colors.grayscale.light5,
-      highlightBorderColor: theme.colors.grayscale.light5,
+      borderColor: '#feffff',
+      highlightBorderColor: '#feffff',
       highlightFillColor: color,
       highlightBorderWidth: 1,
       popupTemplate: (geo, d) =>
@@ -120,7 +119,7 @@ function WorldMap(element, props) {
       animate: true,
       highlightOnHover: true,
       highlightFillColor: color,
-      highlightBorderColor: theme.colors.grayscale.dark2,
+      highlightBorderColor: 'black',
       highlightBorderWidth: 2,
       highlightBorderOpacity: 1,
       highlightFillOpacity: 0.85,
