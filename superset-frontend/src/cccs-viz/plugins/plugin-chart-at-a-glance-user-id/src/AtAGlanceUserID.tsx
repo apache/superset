@@ -84,6 +84,9 @@ const formatList = (ipList: any) => {
   return [updatedList, counter];
 };
 
+const ipToInt = (ip: any) =>
+  ip.split('.').reduce((int: any, v: any) => int * 256 + +v);
+
 // Main Component
 function AtAGlanceUserIDCore(props: AtAGlanceUserIDProps) {
   const [userIDString, setUserIDString] = useState('');
@@ -100,6 +103,16 @@ function AtAGlanceUserIDCore(props: AtAGlanceUserIDProps) {
         const newLink = `<a href=${props.ipDashBoardBaseUrl}/superset/dashboard/${props.ipDashboardId}/?native_filters=%28NATIVE_FILTER-${props.ipDashboardFilterId}%3A%28__cache%3A%28label%3A'${ipData}'%2CvalidateStatus%3A%21f%2Cvalue%3A%21%28'${ipData}'%29%29%2CextraFormData%3A%28filters%3A%21%28%28col%3Aip_string%2Cop%3AIN%2Cval%3A%21%28'${ipData}'%29%29%29%29%2CfilterState%3A%28label%3A'${ipData}'%2CvalidateStatus%3A%21f%2Cvalue%3A%21%28'${ipData}'%29%29%2Cid%3ANATIVE_FILTER-${props.ipDashboardFilterId}%2CownState%3A%28%29%29%29 target="_blank">${ipData}</a>`;
 
         return newLink;
+      },
+      comparator: (
+        valueA: any,
+        valueB: any,
+        nodeA: any,
+        nodeB: any,
+        isInverted: any,
+      ) => {
+        if (valueA === valueB) return 0;
+        return ipToInt(valueA) > ipToInt(valueB) ? 1 : -1;
       },
     },
     {
