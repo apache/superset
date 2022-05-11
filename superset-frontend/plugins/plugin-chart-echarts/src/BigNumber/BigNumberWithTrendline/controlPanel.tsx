@@ -270,6 +270,10 @@ const config: ControlPanelConfig = {
       label: t('Number format'),
     },
   },
+  denormalizeFormData: formData => ({
+    ...formData,
+    metric: formData.standardized_form_data.sharedFormData.metrics[0],
+  }),
 };
 
 export default config;

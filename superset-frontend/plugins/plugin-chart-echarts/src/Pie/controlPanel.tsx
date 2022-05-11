@@ -253,6 +253,11 @@ const config: ControlPanelConfig = {
       default: 100,
     },
   },
+  denormalizeFormData: formData => ({
+    ...formData,
+    metric: formData.standardized_form_data.sharedFormData.metrics[0],
+    columns: formData.standardized_form_data.sharedFormData.columns,
+  }),
 };
 
 export default config;
