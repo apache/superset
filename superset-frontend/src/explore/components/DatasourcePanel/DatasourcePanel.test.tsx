@@ -78,9 +78,6 @@ const props: DatasourcePanelProps = {
   actions: {
     setControlValue: jest.fn(),
   },
-  user: {
-    userId: 1,
-  },
 };
 
 const setup = (props: DatasourcePanelProps) => (
@@ -95,19 +92,19 @@ function search(value: string, input: HTMLElement) {
 }
 
 test('should render', () => {
-  const { container } = render(setup(props));
+  const { container } = render(setup(props), { useRedux: true });
   expect(container).toBeVisible();
 });
 
 test('should display items in controls', () => {
-  render(setup(props));
+  render(setup(props), { useRedux: true });
   expect(screen.getByText('birth_names')).toBeInTheDocument();
   expect(screen.getByText('Metrics')).toBeInTheDocument();
   expect(screen.getByText('Columns')).toBeInTheDocument();
 });
 
 test('should render the metrics', () => {
-  render(setup(props));
+  render(setup(props), { useRedux: true });
   const metricsNum = metrics.length;
   metrics.forEach(metric =>
     expect(screen.getByText(metric.metric_name)).toBeInTheDocument(),
@@ -118,7 +115,7 @@ test('should render the metrics', () => {
 });
 
 test('should render the columns', () => {
-  render(setup(props));
+  render(setup(props), { useRedux: true });
   const columnsNum = columns.length;
   columns.forEach(col =>
     expect(screen.getByText(col.column_name)).toBeInTheDocument(),
@@ -129,7 +126,7 @@ test('should render the columns', () => {
 });
 
 test('should render 0 search results', async () => {
-  render(setup(props));
+  render(setup(props), { useRedux: true });
   const searchInput = screen.getByPlaceholderText('Search Metrics & Columns');
 
   search('nothing', searchInput);
@@ -137,7 +134,7 @@ test('should render 0 search results', async () => {
 });
 
 test('should search and render matching columns', async () => {
-  render(setup(props));
+  render(setup(props), { useRedux: true });
   const searchInput = screen.getByPlaceholderText('Search Metrics & Columns');
 
   search(columns[0].column_name, searchInput);
@@ -149,7 +146,7 @@ test('should search and render matching columns', async () => {
 });
 
 test('should search and render matching metrics', async () => {
-  render(setup(props));
+  render(setup(props), { useRedux: true });
   const searchInput = screen.getByPlaceholderText('Search Metrics & Columns');
 
   search(metrics[0].metric_name, searchInput);
@@ -177,6 +174,7 @@ test('should render a warning', async () => {
         },
       },
     }),
+    { useRedux: true },
   );
   expect(
     await screen.findByRole('img', { name: 'alert-solid' }),
@@ -189,9 +187,10 @@ test('should render a create dataset infobox', () => {
       ...props,
       datasource: {
         ...datasource,
-        type: DatasourceType.SavedQuery,
+        type: DatasourceType.Query,
       },
     }),
+    { useRedux: true },
   );
 
   const createButton = screen.getByRole('button', {
@@ -209,9 +208,10 @@ test('should render a save dataset modal when "Create a dataset" is clicked', ()
       ...props,
       datasource: {
         ...datasource,
-        type: DatasourceType.SavedQuery,
+        type: DatasourceType.Query,
       },
     }),
+    { useRedux: true },
   );
 
   const createButton = screen.getByRole('button', {

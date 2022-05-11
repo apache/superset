@@ -33,6 +33,7 @@ import { FAST_DEBOUNCE } from 'src/constants';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { ExploreActions } from 'src/explore/actions/exploreActions';
 import Control from 'src/explore/components/Control';
+import { Query } from 'src/SqlLab/types';
 import DatasourcePanelDragOption from './DatasourcePanelDragOption';
 import { DndItemType } from '../DndItemType';
 import { StyledColumnOption, StyledMetricOption } from '../optionRenderers';
@@ -322,6 +323,7 @@ export default function DataSourcePanel({
         <div className="field-selections">
           {datasource.type === DatasourceType.Dataset ||
             datasource.type === DatasourceType.SlTable ||
+            datasource.type === DatasourceType.Query ||
             (datasource.type === DatasourceType.SavedQuery &&
               showInfoboxCheck() && (
                 <StyledInfoboxWrapper>
@@ -449,6 +451,7 @@ export default function DataSourcePanel({
         onHide={() => setShowSaveDatasetModal(false)}
         buttonTextOnSave={t('Save')}
         buttonTextOnOverwrite={t('Overwrite')}
+        datasource={datasource as unknown as Query}
       />
       <Control {...datasourceControl} name="datasource" actions={actions} />
       {datasource.id != null && mainBody}

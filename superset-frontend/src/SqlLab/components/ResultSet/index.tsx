@@ -233,8 +233,7 @@ export default class ResultSet extends React.PureComponent<
             modalDescription={t(
               'Save this query as a virtual dataset to continue exploring',
             )}
-            query={this.props.query}
-            actions={this.props.actions}
+            datasource={this.props.query}
           />
           <ResultSetButtons>
             {this.props.visualize &&

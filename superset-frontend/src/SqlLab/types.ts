@@ -155,6 +155,8 @@ export type ExploreRootState = {
   common: {};
 };
 
+export type SqlLabExploreRootState = SqlLabRootState | ExploreRootState;
+
 export enum DatasetRadioState {
   SAVE_NEW = 1,
   OVERWRITE_DATASET = 2,
