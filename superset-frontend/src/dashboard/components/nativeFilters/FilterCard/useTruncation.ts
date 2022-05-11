@@ -16,18 +16,47 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { RefObject, useLayoutEffect, useState } from 'react';
+import { RefObject, useLayoutEffect, useState, useRef } from 'react';
 
 export const useTruncation = (elementRef: RefObject<HTMLElement>) => {
   const [elementsTruncated, setElementsTruncated] = useState(0);
   const [hasHiddenElements, setHasHiddenElements] = useState(false);
+
+  const previousEffectInfoRef = useRef({
+    scrollWidth: 0,
+    parentElementWidth: 0,
+  });
 
   useLayoutEffect(() => {
     const currentElement = elementRef.current;
     if (!currentElement) {
       return;
     }
+
     const { scrollWidth, clientWidth, childNodes } = currentElement;
+
+    // By using the result of this effect to truncate content
+    // we're effectively changing it's size.
+    // That will trigger another pass at this effect.
+    // Depending on the content elements width, that second rerender could
+    // yield a different truncate count, thus potentially leading to a
+    // rendering loop.
+    // There's only a need to recompute if the parent width or the width of
+    // the child nodes changes.
+    const previousEffectInfo = previousEffectInfoRef.current;
+    const parentElementWidth = currentElement.parentElement?.clientWidth || 0;
+    previousEffectInfoRef.current = {
+      scrollWidth,
+      parentElementWidth,
+    };
+
+    if (
+      previousEffectInfo.parentElementWidth === parentElementWidth &&
+      previousEffectInfo.scrollWidth === scrollWidth
+    ) {
+      return;
+    }
+
     if (scrollWidth > clientWidth) {
       // "..." is around 6px wide
       const maxWidth = clientWidth - 6;
