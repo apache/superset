@@ -216,7 +216,6 @@ export default function exploreReducer(state = {}, action) {
           action.value,
           state,
         );
-        console.log(transformed);
         new_form_data = transformed.formData;
         currentControlsState = transformed.controlsState;
       }

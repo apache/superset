@@ -73,8 +73,6 @@ export class StandardizedFormData {
   }
 
   getLatestFormData(vizType: string): QueryFormData {
-    console.log('memorized formdata', this.sfd.memorizedFormData);
-    console.log('vizType', vizType);
     if (this.sfd.memorizedFormData.has(vizType)) {
       return this.sfd.memorizedFormData.get(vizType) as QueryFormData;
     }
