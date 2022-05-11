@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { getChartControlPanelRegistry, SqlaFormData } from '@superset-ui/core';
+import { SqlaFormData } from '@superset-ui/core';
 import { StandardizedFormData } from './standardizedFormData';
 
 const formData: SqlaFormData = {
@@ -30,14 +30,7 @@ const formData: SqlaFormData = {
 };
 
 test('should standardize metrics', () => {
-  getChartControlPanelRegistry().registerValue('big_number_total', {
-    controlPanelSections: [],
-    denormalizeFormData: () => {
-      console.log('xxx');
-    },
-  });
   const sfd = new StandardizedFormData(formData);
-  // sfd.transform('big_number_total');
   expect(sfd.sharedFormData.metrics).toEqual([
     'count(*)',
     { label: 'sum(val)', expressionType: 'SQL', sqlExpression: 'sum(val)' },
