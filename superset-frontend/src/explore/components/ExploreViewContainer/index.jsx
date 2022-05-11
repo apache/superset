@@ -257,6 +257,7 @@ function ExploreViewContainer(props) {
   const theme = useTheme();
 
   const isBeforeUnloadActive = useRef(false);
+  const initialFormData = useRef(props.form_data);
 
   const defaultSidebarsWidth = {
     controls_width: 320,
@@ -391,7 +392,7 @@ function ExploreViewContainer(props) {
 
   useEffect(() => {
     const formDataChanged = !isEmpty(
-      getFormDataDiffs(props.chart.sliceFormData, props.form_data),
+      getFormDataDiffs(initialFormData.current, props.form_data),
     );
     if (formDataChanged && !isBeforeUnloadActive.current) {
       window.addEventListener('beforeunload', handleUnloadEvent);
@@ -401,7 +402,7 @@ function ExploreViewContainer(props) {
       window.removeEventListener('beforeunload', handleUnloadEvent);
       isBeforeUnloadActive.current = false;
     }
-  }, [props.chart.sliceFormData, props.form_data]);
+  }, [props.form_data]);
 
   // cleanup beforeunload event listener
   // we use separate useEffect to call it only on component unmount instead of on every form data change
