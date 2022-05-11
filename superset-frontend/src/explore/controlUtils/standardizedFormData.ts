@@ -50,6 +50,9 @@ export class StandardizedFormData {
   private sfd: iStandardizedFormData;
 
   constructor(sourceFormData: QueryFormData) {
+    /*
+     * Support form_data for smooth switching between different viz
+     * */
     const sharedFormData = {
       metrics: [],
       columns: [],
@@ -121,6 +124,15 @@ export class StandardizedFormData {
     formData: QueryFormData;
     controlsState: ControlStateMapping;
   } {
+    /*
+     * Transfrom form_data between different viz. Return new form_data and controlsState.
+     * 1. get memorized form_data by viz type or get previous form_data
+     * 2. collect public control values
+     * 3. generate initial targetControlsState
+     * 4. attach `standardized_form_data` to the initial form_data
+     * 5. call denormalizeFormData to transform initial form_data if the plugin was defined
+     * 6. use final form_data to generate controlsState
+     * */
     const latestFormData = this.getLatestFormData(targetVizType);
     const publicFormData = {};
     publicControls.forEach(key => {
