@@ -30,7 +30,7 @@ COLUMN_TYPES = [
     sqlalchemy.sql.sqltypes.FLOAT(),
     sqlalchemy.sql.sqltypes.DATE(),
     sqlalchemy.sql.sqltypes.TIME(),
-    sqlalchemy.sql.sqltypes.DATETIME(),
+    sqlalchemy.sql.sqltypes.TIMESTAMP(),
 ]
 
 
