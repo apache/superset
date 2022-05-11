@@ -147,7 +147,7 @@ setup(
         "pinot": ["pinotdb>=0.3.3, <0.4"],
         "postgres": ["psycopg2-binary==2.8.5"],
         "presto": ["pyhive[presto]>=0.4.0"],
-        "trino": ["sqlalchemy-trino>=0.2"],
+        "trino": ["trino>=0.313.0"],
         "prophet": ["prophet>=1.0.1, <1.1", "pystan<3.0"],
         "redshift": ["sqlalchemy-redshift>=0.8.1, < 0.9"],
         "rockset": ["rockset>=0.7.68, <0.8"],
