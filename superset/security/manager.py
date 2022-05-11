@@ -1144,7 +1144,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         Retrieves the appropriate row level security filters for the current user and
         the passed table.
 
-        :param table: The table to check against
+        :param BaseDatasource table: The table to check against.
+        :param Optional[str] username: Optional username if there's no user in the Flask
+        global namespace.
         :returns: A list of filters
         """
         if hasattr(g, "user"):

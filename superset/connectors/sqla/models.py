@@ -1125,11 +1125,14 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         username: Optional[str] = None,
     ) -> List[TextClause]:
         """
-        Return the appropriate row level security filters for
-        this table and the current user.
+        Return the appropriate row level security filters for this table and the
+        current user. A custom username can be passed when the user is not present in the
+        Flask global namespace.
 
-        :param BaseTemplateProcessor template_processor: The template
-        processor to apply to the filters.
+        :param BaseTemplateProcessor template_processor: The template processor to apply
+        to the filters.
+        :param Optional[str] username: Optional username if there's no user in the Flask
+        global namespace.
         :returns: A list of SQL clauses to be ANDed together.
         """
         all_filters: List[TextClause] = []
