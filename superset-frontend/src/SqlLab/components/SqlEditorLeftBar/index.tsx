@@ -35,8 +35,8 @@ import { IconTooltip } from 'src/components/IconTooltip';
 import { QueryEditor } from 'src/SqlLab/types';
 import { DatabaseObject } from 'src/components/DatabaseSelector';
 import { EmptyStateSmall } from 'src/components/EmptyState';
+import { getItem, LocalStorageKeys, setItem } from 'src/utils/localStorageHelpers';
 import TableElement, { Table, TableElementProps } from '../TableElement';
-import { getItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 
 interface ExtendedTable extends Table {
   expanded: boolean;
@@ -107,16 +107,26 @@ export default function SqlEditorLeftBar({
   // that require and modify the queryEditor
   const queryEditorRef = useRef<QueryEditor>(queryEditor);
   const [emptyResultsWithSearch, setEmptyResultsWithSearch] = useState(false);
-  const [userSelectedDb, setUserSelected] = useState(null);
+  const [userSelectedDb, setUserSelected] = useState<DatabaseObject | null>(
+    null,
+  );
 
   useEffect(() => {
     const bool = querystring.parse(window.location.search).db;
-    const userSelected = getItem(LocalStorageKeys.db, null);
-    if(bool && userSelected) {
-      setUserSelected(userSelected)
-    }
+    const userSelected = getItem(
+      LocalStorageKeys.db,
+      null,
+    ) as DatabaseObject | null;
+
+    if (bool && userSelected) {
+      setUserSelected(userSelected);
+      setItem(LocalStorageKeys.db, null);
+    } else setUserSelected(database);
+  }, []);
+
+  useEffect(() => {
     queryEditorRef.current = queryEditor;
-  }, [queryEditor]);
+  }, [queryEditor, database]);
 
   const onEmptyResults = (searchText?: string) => {
     setEmptyResultsWithSearch(!!searchText);
@@ -224,13 +234,13 @@ export default function SqlEditorLeftBar({
     },
     [actions],
   );
-  console.log('userSelected',userSelectedDb)
+
   return (
     <div className="SqlEditorLeftBar">
       <TableSelectorMultiple
         onEmptyResults={onEmptyResults}
         emptyState={emptyStateComponent}
-        database={userSelectedDb /*|| database*/}
+        database={userSelectedDb}
         getDbList={actions.setDatabases}
         handleError={actions.addDangerToast}
         onDbChange={onDbChange}

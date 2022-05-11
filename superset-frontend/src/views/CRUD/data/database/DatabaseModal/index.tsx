@@ -1093,16 +1093,20 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     return <></>;
   };
 
+  const fetchAndSetDB = () => {
+    setLoading(true);
+    fetchResource(dbFetched?.id as number).then(r => {
+      setItem(LocalStorageKeys.db, r);
+    });
+  };
+
   const renderCTABtns = () => (
     <StyledBtns>
       <Button
         // eslint-disable-next-line no-return-assign
         buttonStyle="default"
         onClick={() => {
-          setLoading(true);
-          fetchResource(dbFetched?.id as number).then(r => {
-            setItem(LocalStorageKeys.db, r);
-          });
+          fetchAndSetDB();
           window.location.href = '/tablemodelview/list';
         }}
       >
@@ -1112,7 +1116,10 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       <Button
         buttonStyle="default"
         // eslint-disable-next-line no-return-assign
-        onClick={() => (window.location.href = `/superset/sqllab/?db=true`)}
+        onClick={() => {
+          fetchAndSetDB();
+          window.location.href = `/superset/sqllab/?db=true`;
+        }}
       >
         {t('GO TO SQL LAB')}{' '}
       </Button>

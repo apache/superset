@@ -23,7 +23,7 @@ import Modal from 'src/components/Modal';
 import TableSelector from 'src/components/TableSelector';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { DatabaseObject } from 'src/components/DatabaseSelector';
-import { getItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
+import { getItem, LocalStorageKeys, setItem } from 'src/utils/localStorageHelpers';
 
 type DatasetAddObject = {
   id: number;
@@ -96,6 +96,7 @@ const DatasetModal: FunctionComponent<DatasetModalProps> = ({
   };
 
   const hide = () => {
+    setItem(LocalStorageKeys.db, null);
     clearModal();
     onHide();
   };
