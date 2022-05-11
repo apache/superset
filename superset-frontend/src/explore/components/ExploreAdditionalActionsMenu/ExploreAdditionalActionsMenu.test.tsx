@@ -80,8 +80,8 @@ const createProps = () => ({
   chartStatus: 'rendered',
   onOpenPropertiesModal: jest.fn(),
   onOpenInEditor: jest.fn(),
-  canAddReports: false,
   canDownloadCSV: false,
+  showReportSubMenu: false,
 });
 
 fetchMock.post(
@@ -118,18 +118,6 @@ test('Should open a menu', () => {
 
   expect(screen.queryByText('Set up an email report')).not.toBeInTheDocument();
   expect(screen.queryByText('Manage email report')).not.toBeInTheDocument();
-});
-
-test('Menu has email report item if user can add report', () => {
-  const props = createProps();
-  props.canAddReports = true;
-  render(<ExploreAdditionalActionsMenu {...props} />, {
-    useRedux: true,
-  });
-
-  userEvent.click(screen.getByRole('button'));
-  expect(screen.queryByText('Manage email report')).not.toBeInTheDocument();
-  expect(screen.getByText('Set up an email report')).toBeInTheDocument();
 });
 
 test('Should open download submenu', async () => {
@@ -172,31 +160,6 @@ test('Should open share submenu', async () => {
   ).toBeInTheDocument();
   expect(await screen.findByText('Embed code')).toBeInTheDocument();
   expect(await screen.findByText('Share chart by email')).toBeInTheDocument();
-});
-
-test('Should open report submenu if report exists', async () => {
-  const props = createProps();
-  props.canAddReports = true;
-  render(<ExploreAdditionalActionsMenu {...props} />, {
-    useRedux: true,
-    initialState: {
-      reports: {
-        '1': { name: 'Test report' },
-      },
-    },
-  });
-
-  userEvent.click(screen.getByRole('button'));
-
-  expect(screen.queryByText('Email reports active')).not.toBeInTheDocument();
-  expect(screen.queryByText('Edit email report')).not.toBeInTheDocument();
-  expect(screen.queryByText('Download as image')).not.toBeInTheDocument();
-
-  expect(screen.getByText('Manage email report')).toBeInTheDocument();
-  userEvent.hover(screen.getByText('Manage email report'));
-  expect(await screen.findByText('Email reports active')).toBeInTheDocument();
-  expect(await screen.findByText('Edit email report')).toBeInTheDocument();
-  expect(await screen.findByText('Delete email report')).toBeInTheDocument();
 });
 
 test('Should call onOpenPropertiesModal when click on "Edit chart properties"', () => {
