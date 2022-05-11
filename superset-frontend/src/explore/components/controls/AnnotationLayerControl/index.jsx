@@ -141,10 +141,14 @@ class AnnotationLayerControl extends React.PureComponent {
   }
 
   renderInfo(anno) {
-    const { annotationError, annotationQuery } = this.props;
+    const { annotationError, annotationQuery, theme } = this.props;
     if (annotationQuery[anno.name]) {
       return (
-        <i className="fa fa-refresh" style={{ color: 'orange' }} aria-hidden />
+        <i
+          className="fa fa-refresh"
+          style={{ color: theme.colors.primary.base }}
+          aria-hidden
+        />
       );
     }
     if (annotationError[anno.name]) {
@@ -157,7 +161,7 @@ class AnnotationLayerControl extends React.PureComponent {
       );
     }
     if (!anno.show) {
-      return <span style={{ color: 'red' }}> Hidden </span>;
+      return <span style={{ color: theme.colors.error.base }}> Hidden </span>;
     }
     return '';
   }
