@@ -21,12 +21,13 @@ import PropTypes from 'prop-types';
 import { CompactPicker } from 'react-color';
 import Button from 'src/components/Button';
 import {
+  t,
+  SupersetClient,
   getCategoricalSchemeRegistry,
   getChartMetadataRegistry,
-  isValidExpression,
-  SupersetClient,
-  t,
   validateNonEmpty,
+  isValidExpression,
+  withTheme,
 } from '@superset-ui/core';
 
 import SelectControl from 'src/explore/components/controls/SelectControl';
@@ -34,11 +35,11 @@ import TextControl from 'src/explore/components/controls/TextControl';
 import CheckboxControl from 'src/explore/components/controls/CheckboxControl';
 import {
   ANNOTATION_SOURCE_TYPES,
-  ANNOTATION_SOURCE_TYPES_METADATA,
   ANNOTATION_TYPES,
   ANNOTATION_TYPES_METADATA,
   DEFAULT_ANNOTATION_TYPE,
   requiresQuery,
+  ANNOTATION_SOURCE_TYPES_METADATA,
 } from 'src/modules/AnnotationTypes';
 import PopoverSection from 'src/components/PopoverSection';
 import ControlHeader from 'src/explore/components/ControlHeader';
@@ -97,7 +98,7 @@ const defaultProps = {
   close: () => {},
 };
 
-export default class AnnotationLayer extends React.PureComponent {
+class AnnotationLayer extends React.PureComponent {
   constructor(props) {
     super(props);
     const {
@@ -282,20 +283,22 @@ export default class AnnotationLayer extends React.PureComponent {
           });
         });
       } else if (requiresQuery(sourceType)) {
-        SupersetClient.get({
-          endpoint: `${process.env.APP_PREFIX}/superset/user_slices`,
-        }).then(({ json }) => {
-          const registry = getChartMetadataRegistry();
-          this.setState({
-            isLoadingOptions: false,
-            valueOptions: json
-              .filter(x => {
-                const metadata = registry.get(x.viz_type);
-                return metadata && metadata.canBeAnnotationType(annotationType);
-              })
-              .map(x => ({ value: x.id, label: x.title, slice: x })),
-          });
-        });
+        SupersetClient.get({ endpoint: '/superset/user_slices' }).then(
+          ({ json }) => {
+            const registry = getChartMetadataRegistry();
+            this.setState({
+              isLoadingOptions: false,
+              valueOptions: json
+                .filter(x => {
+                  const metadata = registry.get(x.viz_type);
+                  return (
+                    metadata && metadata.canBeAnnotationType(annotationType)
+                  );
+                })
+                .map(x => ({ value: x.id, label: x.title, slice: x })),
+            });
+          },
+        );
       } else {
         this.setState({
           isLoadingOptions: false,
@@ -708,7 +711,9 @@ export default class AnnotationLayer extends React.PureComponent {
     return (
       <>
         {this.props.error && (
-          <span style={{ color: 'red' }}>ERROR: {this.props.error}</span>
+          <span style={{ color: this.props.theme.colors.error.base }}>
+            ERROR: {this.props.error}
+          </span>
         )}
         <div style={{ display: 'flex', flexDirection: 'row' }}>
           <div style={{ marginRight: '2rem' }}>
@@ -805,3 +810,5 @@ export default class AnnotationLayer extends React.PureComponent {
 
 AnnotationLayer.propTypes = propTypes;
 AnnotationLayer.defaultProps = defaultProps;
+
+export default withTheme(AnnotationLayer);

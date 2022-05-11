@@ -94,20 +94,22 @@ const StyledRow = styled(Row)`
 `;
 
 export const StyledButtonComponent = styled(Button)`
-  background: none;
-  text-transform: none;
-  padding: 0px;
-  color: rgba(0, 0, 0, 0.85);
-  font-size: 14px;
-  font-weight: ${({ theme }) => theme.typography.weights.normal};
-  &:disabled {
+  ${({ theme }) => `
     background: none;
-    color: rgba(0, 0, 0, 0.85);
-    &:hover {
+    text-transform: none;
+    padding: 0px;
+    color: ${theme.colors.grayscale.dark2};
+    font-size: 14px;
+    font-weight: ${theme.typography.weights.normal};
+    &:disabled {
       background: none;
-      color: rgba(0, 0, 0, 0.85);
+      color: ${theme.colors.grayscale.dark2};
+      &:hover {
+        background: none;
+        color: ${theme.colors.grayscale.dark2};
+      }
     }
-  }
+  `}
 `;
 
 const StyledJsonSchema = styled.div`
