@@ -26,9 +26,9 @@ import type {
   Metric,
   QueryFormData,
 } from '@superset-ui/core';
+import { AdhocMetric, PhysicalColumn } from '@superset-ui/core';
 import { sharedControls } from './shared-controls';
 import sharedControlComponents from './shared-controls/components';
-import { StandardizedFormData } from './utils';
 
 export type { Metric } from '@superset-ui/core';
 export type { ControlFormItemSpec } from './components/ControlForm';
@@ -341,12 +341,22 @@ export interface ControlPanelSectionConfig {
   controlSetRows: ControlSetRow[];
 }
 
+export interface iStandardizedFormData {
+  sharedFormData: {
+    metrics: AdhocMetric[];
+    columns: (AdhocColumn | PhysicalColumn)[];
+  };
+  memorizedFormData: Map<string, QueryFormData>;
+}
+
 export interface ControlPanelConfig {
   controlPanelSections: (ControlPanelSectionConfig | null)[];
   controlOverrides?: ControlOverrides;
   sectionOverrides?: SectionOverrides;
   onInit?: (state: ControlStateMapping) => void;
-  denormalizeFormData?: (formData: StandardizedFormData) => QueryFormData;
+  denormalizeFormData?: (
+    formData: QueryFormData & { standardized_form_data: iStandardizedFormData },
+  ) => QueryFormData;
 }
 
 export type ControlOverrides = {

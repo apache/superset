@@ -17,19 +17,18 @@
  * under the License.
  */
 /* eslint camelcase: 0 */
-import { ensureIsArray, getChartControlPanelRegistry } from '@superset-ui/core';
+import { ensureIsArray } from '@superset-ui/core';
 import { DYNAMIC_PLUGIN_CONTROLS_READY } from 'src/components/Chart/chartAction';
 import { DEFAULT_TIME_RANGE } from 'src/explore/constants';
 import { getControlsState } from 'src/explore/store';
 import {
   getControlConfig,
-  getFormDataFromControls,
   getControlStateFromControlConfig,
   getControlValuesCompatibleWithDatasource,
+  StandardizedFormData,
 } from 'src/explore/controlUtils';
 import * as actions from 'src/explore/actions/exploreActions';
 import { LocalStorageKeys, setItem } from 'src/utils/localStorageHelpers';
-import { StandardizedFormData } from '@superset-ui/chart-controls';
 
 export default function exploreReducer(state = {}, action) {
   const actionHandlers = {
@@ -210,24 +209,16 @@ export default function exploreReducer(state = {}, action) {
         action.value !== state.controls.viz_type.value;
       let currentControlsState = state.controls;
       if (isVizSwitch) {
-        const targetControlPanel =
-          getChartControlPanelRegistry().get(action.value) || {};
-
-        if (targetControlPanel.denormalizeFormData) {
-          const sfd = new StandardizedFormData(state.form_data);
-          const fd = targetControlPanel.denormalizeFormData(sfd);
-          fd.viz_type = action.value;
-          currentControlsState = getControlsState(state, fd);
-          new_form_data = fd;
-        } else {
-          currentControlsState = getControlsState(
-            state,
-            getFormDataFromControls({
-              ...state.controls,
-              viz_type: control,
-            }),
-          );
-        }
+        // get StandardizedFormData from source form_data
+        const sfd = new StandardizedFormData(state.form_data);
+        const transformed = sfd.transform(
+          state.controls.viz_type.value,
+          action.value,
+          state,
+        );
+        console.log(transformed);
+        new_form_data = transformed.formData;
+        currentControlsState = transformed.controlsState;
       }
 
       return {

@@ -17,27 +17,13 @@
  * under the License.
  */
 import {
-  AdhocColumn,
-  AdhocFilter,
-  AdhocMetric,
   ensureIsArray,
-  JsonObject,
-  PhysicalColumn,
+  getChartControlPanelRegistry,
   QueryFormData,
 } from '@superset-ui/core';
-
-function isStandardizedFormData(formData: JsonObject): boolean {
-  return 'sharedFormData' in formData && 'memorizedFormData' in formData;
-}
-
-interface iStandardizedFormData {
-  sharedFormData: {
-    metrics: AdhocMetric[];
-    columns: (AdhocColumn | PhysicalColumn)[];
-    filters: AdhocFilter[];
-  };
-  memorizedFormData: Map<string, QueryFormData>;
-}
+import { iStandardizedFormData } from '@superset-ui/chart-controls';
+import { getControlsState } from 'src/explore/store';
+import { getFormDataFromControls } from './getFormDataFromControls';
 
 export class StandardizedFormData {
   private sfd: iStandardizedFormData;
@@ -46,9 +32,7 @@ export class StandardizedFormData {
     const sharedFormData = {
       metrics: [],
       columns: [],
-      filters: [],
     };
-    // shallow copy
     const formData = { ...sourceFormData };
     const reversedMap = StandardizedFormData.getReversedMap();
 
@@ -58,11 +42,11 @@ export class StandardizedFormData {
       }
     });
 
-    const memorizedFormData =
-      isStandardizedFormData(formData) &&
-      Array.isArray(formData.memorizedFormData)
-        ? new Map(formData.memorizedFormData)
-        : new Map();
+    const memorizedFormData = Array.isArray(
+      formData?.standardized_form_data?.memorizedFormData,
+    )
+      ? new Map(formData.standardized_form_data.memorizedFormData)
+      : new Map();
     const vizType = formData.viz_type;
     if (memorizedFormData.has(vizType)) {
       memorizedFormData.delete(vizType);
@@ -78,7 +62,6 @@ export class StandardizedFormData {
     const sharedControls = {
       metrics: ['metric', 'metrics', 'metric_2'],
       columns: ['groupby', 'columns'],
-      filters: ['adhoc_filters'],
     };
     const reversedMap = new Map();
     Object.entries(sharedControls).forEach(([key, names]) => {
@@ -89,9 +72,9 @@ export class StandardizedFormData {
     return reversedMap;
   }
 
-  getLatestFormData(vizType: string) {
+  getLatestFormData(vizType: string): QueryFormData {
     if (this.sfd.memorizedFormData.has(vizType)) {
-      return this.sfd.memorizedFormData.get(vizType);
+      return this.sfd.memorizedFormData.get(vizType) as QueryFormData;
     }
 
     return this.memorizedFormData.slice(-1)[0][1];
@@ -103,5 +86,45 @@ export class StandardizedFormData {
 
   get memorizedFormData() {
     return Array.from(this.sfd.memorizedFormData.entries());
+  }
+
+  dumpSFD() {
+    return {
+      sharedFormData: this.sharedFormData,
+      memorizedFormData: this.memorizedFormData,
+    };
+  }
+
+  transform(
+    sourceVizType: string,
+    targetVizType: string,
+    exploreState: Record<string, any>,
+  ): {
+    formData: QueryFormData;
+    controlsState: any;
+  } {
+    const sourceFormData = this.getLatestFormData(sourceVizType);
+    const targetControlsState = getControlsState(exploreState, {
+      ...sourceFormData,
+      viz_type: targetVizType,
+    });
+    const targetFormData = {
+      ...getFormDataFromControls(targetControlsState),
+      standardized_form_data: this.dumpSFD(),
+    };
+
+    const controlPanel = getChartControlPanelRegistry().get(targetVizType);
+    if (controlPanel?.denormalizeFormData) {
+      const transformed = controlPanel.denormalizeFormData(targetFormData);
+      return {
+        formData: transformed,
+        controlsState: getControlsState(exploreState, transformed),
+      };
+    }
+
+    return {
+      formData: targetFormData,
+      controlsState: targetControlsState,
+    };
   }
 }
