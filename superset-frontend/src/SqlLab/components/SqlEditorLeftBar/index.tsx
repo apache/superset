@@ -35,7 +35,11 @@ import { IconTooltip } from 'src/components/IconTooltip';
 import { QueryEditor } from 'src/SqlLab/types';
 import { DatabaseObject } from 'src/components/DatabaseSelector';
 import { EmptyStateSmall } from 'src/components/EmptyState';
-import { getItem, LocalStorageKeys, setItem } from 'src/utils/localStorageHelpers';
+import {
+  getItem,
+  LocalStorageKeys,
+  setItem,
+} from 'src/utils/localStorageHelpers';
 import TableElement, { Table, TableElementProps } from '../TableElement';
 
 interface ExtendedTable extends Table {
