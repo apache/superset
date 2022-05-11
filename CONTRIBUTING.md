@@ -55,6 +55,7 @@ little bit helps, and credit will always be given.
       - [Images](#images)
     - [Flask server](#flask-server)
       - [OS Dependencies](#os-dependencies)
+      - [Dependencies](#dependencies)
       - [Logging to the browser console](#logging-to-the-browser-console)
     - [Frontend](#frontend)
       - [Prerequisite](#prerequisite)
@@ -68,11 +69,13 @@ little bit helps, and credit will always be given.
       - [Feature flags](#feature-flags)
   - [Git Hooks](#git-hooks)
   - [Linting](#linting)
+    - [Python](#python)
+    - [TypeScript](#typescript)
   - [Conventions](#conventions)
-    - [Python](#python-conventions)
+    - [Python Conventions](#python-conventions)
   - [Typing](#typing)
-    - [Python](#python-typing)
-    - [TypeScript](#typeScript-typing)
+    - [Python Typing](#python-typing)
+    - [TypeScript Typing](#typescript-typing)
   - [Testing](#testing)
     - [Python Testing](#python-testing)
     - [Frontend Testing](#frontend-testing)
@@ -92,7 +95,7 @@ little bit helps, and credit will always be given.
     - [SQL Lab Async](#sql-lab-async)
     - [Async Chart Queries](#async-chart-queries)
   - [Chart Parameters](#chart-parameters)
-    - [Datasource & Chart Type](#datasource--chart-type)
+    - [Datasource \& Chart Type](#datasource--chart-type)
     - [Time](#time)
     - [GROUP BY](#group-by)
     - [NOT GROUPED BY](#not-grouped-by)
@@ -568,7 +571,22 @@ There are three types of assets you can build:
 
 #### Webpack dev server
 
-The dev server by default starts at `http://localhost:9000` and proxies the backend requests to `http://localhost:8088`. It's possible to change these settings:
+The dev server by default starts at `http://localhost:9000` and proxies the backend requests to `http://localhost:8088`.
+
+So a typical development workflow is the following:
+
+1. [run Superset locally](#flask-server) using Flask, on port `8088` — but don't access it directly,<br/>
+   ```bash
+   # Install Superset and dependencies, plus load your virtual environment first, as detailed above.
+   FLASK_ENV=development superset run -p 8088 --with-threads --reload --debugger
+   ```
+2. in parallel, run the Webpack dev server locally on port `9000`,<br/>
+   ```bash
+   npm run dev-server
+   ```
+3. access `http://localhost:9000` (the Webpack server, _not_ Flask) in your web browser. This will use the hot-reloading front-end assets from the Webpack development server while redirecting back-end queries to Flask/Superset: your changes on Superset codebase — either front or back-end — will then be reflected live in the browser.
+
+It's possible to change the Webpack server settings:
 
 ```bash
 # Start the dev server at http://localhost:9000
