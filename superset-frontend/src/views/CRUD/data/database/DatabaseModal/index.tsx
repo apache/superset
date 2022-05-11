@@ -22,7 +22,6 @@ import {
   SupersetTheme,
   FeatureFlag,
   isFeatureEnabled,
-  styled,
 } from '@superset-ui/core';
 import React, {
   FunctionComponent,

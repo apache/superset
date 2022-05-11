@@ -55,6 +55,7 @@ export enum LocalStorageKeys {
 
 export type LocalStorageValues = {
   filter_box_transition_snoozed_at: Record<number, number>;
+  db: object;
   chart_split_sizes: [number, number];
   controls_width: number;
   datasource_width: number;
