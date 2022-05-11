@@ -37,6 +37,7 @@ export default function getInitialState({
    * To allow for a transparent migration, the initial state is a combination
    * of the backend state (if any) with the browser state (if any).
    */
+  console.log('findme INITIALSTATE');
   const queryEditors = [];
   const defaultQueryEditor = {
     id: null,

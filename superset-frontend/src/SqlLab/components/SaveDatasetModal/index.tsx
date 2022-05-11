@@ -33,6 +33,8 @@ import {
 import { useSelector } from 'react-redux';
 import moment from 'moment';
 import rison from 'rison';
+import { createDatasource } from 'src/SqlLab/actions/sqlLab';
+import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { UserWithPermissionsAndRoles as User } from 'src/types/bootstrapTypes';
 import {
   DatasetRadioState,
@@ -40,12 +42,14 @@ import {
   DatasetOwner,
   DatasetOptionAutocomplete,
   Query,
+  SqlLabExploreRootState,
+  SqlLabRootState,
   ExploreRootState,
 } from 'src/SqlLab/types';
-import { Dataset } from '@superset-ui/chart-controls';
+// import { Dataset } from '@superset-ui/chart-controls';
 import { exploreChart } from 'src/explore/exploreUtils';
 
-type ExploreDatasource = Dataset | Query;
+// type ExploreDatasource = Dataset | Query;
 
 interface SaveDatasetModalProps {
   visible: boolean;
@@ -53,30 +57,28 @@ interface SaveDatasetModalProps {
   buttonTextOnSave: string;
   buttonTextOnOverwrite: string;
   modalDescription?: string;
-  datasource?: ExploreDatasource;
-  query?: Query;
-  actions?: Record<string, any>;
+  datasource: Query;
 }
 
 const Styles = styled.div`
-  .smd-body {
+  .sdm-body {
     margin: 0 8px;
   }
-  .smd-input {
+  .sdm-input {
     margin-left: 45px;
     width: 401px;
   }
-  .smd-autocomplete {
+  .sdm-autocomplete {
     margin-left: 8px;
     width: 401px;
   }
-  .smd-radio {
+  .sdm-radio {
     display: block;
     height: 30px;
     margin: 10px 0px;
     line-height: 30px;
   }
-  .smd-overwrite-msg {
+  .sdm-overwrite-msg {
     margin: 7px;
   }
 `;
@@ -113,16 +115,12 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
   buttonTextOnSave,
   buttonTextOnOverwrite,
   modalDescription,
-  query,
-  actions,
+  datasource,
 }) => {
   const getDefaultDatasetName = () =>
-    `${query?.tab} ${moment().format('MM/DD/YYYY HH:mm:ss')}`;
-
-  const [newSaveDatasetName, setNewSaveDatasetName] = useState(
-    getDefaultDatasetName(),
-  );
-  const [saveDatasetRadioBtnState, setSaveDatasetRadioBtnState] = useState(
+    `${datasource.tab} ${moment().format('MM/DD/YYYY HH:mm:ss')}`;
+  const [datasetName, setDatasetName] = useState(getDefaultDatasetName());
+  const [newOrOverwrite, setNewOrOverwrite] = useState(
     DatasetRadioState.SAVE_NEW,
   );
   const [shouldOverwriteDataset, setShouldOverwriteDataset] = useState(false);
@@ -132,20 +130,21 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
   const [datasetToOverwrite, setDatasetToOverwrite] = useState<
     Record<string, any>
   >({});
-  const [saveModalAutocompleteValue] = useState('');
+  const [autocompleteValue, setAutocompleteValue] = useState('');
 
-  const user = useSelector<ExploreRootState, User>(state => {
-    console.log('findme', state);
+  const user = useSelector<any, User>(state => {
+    if (state.sqlLab) return state.sqlLab.user;
     return state.explore.user;
   });
+  console.log('findme user', user);
 
   const handleOverwriteDataset = async () => {
     await updateDataset(
-      query!.dbId,
+      datasource.dbId,
       datasetToOverwrite.datasetId,
-      query!.sql,
+      datasource.sql,
       // TODO: lyndsiWilliams - Define d
-      query!.results.selected_columns.map((d: any) => ({
+      datasource.results.selected_columns.map((d: any) => ({
         column_name: d.name,
         type: d.type,
         is_dttm: d.is_dttm,
@@ -156,13 +155,13 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
 
     setShouldOverwriteDataset(false);
     setDatasetToOverwrite({});
-    setNewSaveDatasetName(getDefaultDatasetName());
+    setDatasetName(getDefaultDatasetName());
 
     exploreChart({
       ...EXPLORE_CHART_DEFAULT,
       datasource: `${datasetToOverwrite.datasetId}__table`,
       // TODO: lyndsiWilliams -  Define d
-      all_columns: query!.results.selected_columns.map((d: any) => d.name),
+      all_columns: datasource.results.selected_columns.map((d: any) => d.name),
     });
   };
 
@@ -204,40 +203,42 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
 
     return null;
   };
+  console.log('findme selectedColumns', datasource);
 
   const handleSaveInDataset = () => {
     // if user wants to overwrite a dataset we need to prompt them
-    if (saveDatasetRadioBtnState === DatasetRadioState.OVERWRITE_DATASET) {
+    if (newOrOverwrite === DatasetRadioState.OVERWRITE_DATASET) {
       setShouldOverwriteDataset(true);
       return;
     }
 
-    const selectedColumns = query?.results?.selected_columns || [];
+    const selectedColumns = datasource.results.selected_columns || [];
 
     // The filters param is only used to test jinja templates.
     // Remove the special filters entry from the templateParams
     // before saving the dataset.
-    if (query?.templateParams) {
-      const p = JSON.parse(query?.templateParams);
+    if (datasource.templateParams) {
+      const p = JSON.parse(datasource.templateParams);
       /* eslint-disable-next-line no-underscore-dangle */
       if (p._filters) {
         /* eslint-disable-next-line no-underscore-dangle */
         delete p._filters;
         // eslint-disable-next-line no-param-reassign
-        query.templateParams = JSON.stringify(p);
+        datasource.templateParams = JSON.stringify(p);
       }
     }
 
     // TODO: lyndsiWilliams - set up when the back end logic is implemented
-    actions
-      ?.createDatasource({
-        schema: query?.schema,
-        sql: query?.sql,
-        dbId: query?.dbId,
-        templateParams: query?.templateParams,
-        datasourceName: newSaveDatasetName,
+    new Promise(
+      createDatasource({
+        schema: datasource.schema,
+        sql: datasource.sql,
+        dbId: datasource.dbId,
+        templateParams: datasource.templateParams,
+        datasourceName: datasetName,
         columns: selectedColumns,
-      })
+      }),
+    )
       .then((data: { table_id: number }) => {
         exploreChart({
           datasource: `${data.table_id}__table`,
@@ -250,10 +251,10 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
         });
       })
       .catch(() => {
-        actions.addDangerToast(t('An error occurred saving dataset'));
+        addDangerToast(t('An error occurred saving dataset'));
       });
 
-    setNewSaveDatasetName(getDefaultDatasetName());
+    setDatasetName(getDefaultDatasetName());
     onHide();
   };
 
@@ -269,11 +270,7 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
 
   const handleDatasetNameChange = (e: React.FormEvent<HTMLInputElement>) => {
     // @ts-expect-error
-    setNewSaveDatasetName(e.target.value);
-  };
-
-  const handleSaveDatasetRadioBtnState = (e: RadioChangeEvent) => {
-    setSaveDatasetRadioBtnState(Number(e.target.value));
+    setDatasetName(e.target.value);
   };
 
   const handleOverwriteCancel = () => {
@@ -282,11 +279,11 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
   };
 
   const disableSaveAndExploreBtn =
-    (saveDatasetRadioBtnState === DatasetRadioState.SAVE_NEW &&
-      newSaveDatasetName.length === 0) ||
-    (saveDatasetRadioBtnState === DatasetRadioState.OVERWRITE_DATASET &&
+    (newOrOverwrite === DatasetRadioState.SAVE_NEW &&
+      datasetName.length === 0) ||
+    (newOrOverwrite === DatasetRadioState.OVERWRITE_DATASET &&
       Object.keys(datasetToOverwrite).length === 0 &&
-      saveModalAutocompleteValue.length === 0);
+      autocompleteValue.length === 0);
 
   const filterAutocompleteOption = (
     inputValue: string,
@@ -327,41 +324,47 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
     >
       <Styles>
         {!shouldOverwriteDataset && (
-          <div className="smd-body">
+          <div className="sdm-body">
             {modalDescription && (
-              <div className="smd-prompt">{modalDescription}</div>
+              <div className="sdm-prompt">{modalDescription}</div>
             )}
             <Radio.Group
-              onChange={handleSaveDatasetRadioBtnState}
-              value={saveDatasetRadioBtnState}
+              onChange={(e: RadioChangeEvent) => {
+                setNewOrOverwrite(Number(e.target.value));
+              }}
+              value={newOrOverwrite}
             >
-              <Radio className="smd-radio" value={1}>
+              <Radio className="sdm-radio" value={1}>
                 {t('Save as new')}
                 <Input
-                  className="smd-input"
-                  defaultValue={newSaveDatasetName}
+                  className="sdm-input"
+                  defaultValue={datasetName}
                   onChange={handleDatasetNameChange}
-                  disabled={saveDatasetRadioBtnState !== 1}
+                  disabled={newOrOverwrite !== 1}
                 />
               </Radio>
-              <Radio className="smd-radio" value={2}>
+              <Radio className="sdm-radio" value={2}>
                 {t('Overwrite existing')}
                 <AutoComplete
-                  className="smd-autocomplete"
+                  className="sdm-autocomplete"
                   options={userDatasetOptions}
                   onSelect={handleOverwriteDatasetOption}
                   onSearch={handleSaveDatasetModalSearch}
-                  onChange={() => setDatasetToOverwrite({})}
+                  onChange={value => {
+                    setDatasetToOverwrite({});
+                    setAutocompleteValue(value);
+                  }}
                   placeholder={t('Select or type dataset name')}
                   filterOption={filterAutocompleteOption}
-                  disabled={saveDatasetRadioBtnState !== 2}
+                  disabled={newOrOverwrite !== 2}
+                  value={autocompleteValue}
                 />
               </Radio>
             </Radio.Group>
           </div>
         )}
         {shouldOverwriteDataset && (
-          <div className="smd-overwrite-msg">
+          <div className="sdm-overwrite-msg">
             {t('Are you sure you want to overwrite this dataset?')}
           </div>
         )}
