@@ -28,10 +28,11 @@ import {
 import {
   SupersetThemeProps,
   withTheme,
-  seedRandom,
+  seed,
   CategoricalColorScale,
 } from '@superset-ui/core';
 
+const seedRandom = seed('superset-ui');
 export const ROTATION = {
   flat: () => 0,
   // this calculates a random rotation between -90 and 90 degrees.
