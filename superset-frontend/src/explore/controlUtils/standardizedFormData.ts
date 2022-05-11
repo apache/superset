@@ -32,7 +32,19 @@ import { getFormDataFromControls } from './getFormDataFromControls';
 const sharedControls: Record<keyof SharedFormData, string[]> = {
   metrics: ['metric', 'metrics', 'metric_2'],
   columns: ['groupby', 'columns'],
+  xaxis: ['x_axis'],
 };
+const publicControls = [
+  'granularity',
+  'granularity_sqla',
+  'time_grain_sqla',
+  'time_range',
+  'adhoc_filters',
+  'limit',
+  'timeseries_limit_metric',
+  'order_desc',
+  'row_limit',
+];
 
 export class StandardizedFormData {
   private sfd: iStandardizedFormData;
@@ -109,8 +121,15 @@ export class StandardizedFormData {
     controlsState: ControlStateMapping;
   } {
     const latestFormData = this.getLatestFormData(targetVizType);
+    const publicFormData = {};
+    publicControls.forEach(key => {
+      if (key in exploreState.form_data) {
+        publicFormData[key] = exploreState.form_data[key];
+      }
+    });
     const targetControlsState = getControlsState(exploreState, {
       ...latestFormData,
+      ...publicFormData,
       viz_type: targetVizType,
     });
     const targetFormData = {

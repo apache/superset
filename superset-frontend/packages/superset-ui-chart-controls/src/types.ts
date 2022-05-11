@@ -344,6 +344,7 @@ export interface ControlPanelSectionConfig {
 export interface SharedFormData {
   metrics: AdhocMetric[];
   columns: (AdhocColumn | PhysicalColumn)[];
+  xaxis: (AdhocColumn | PhysicalColumn)[];
 }
 
 export interface iStandardizedFormData {
