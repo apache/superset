@@ -23,7 +23,11 @@ import Modal from 'src/components/Modal';
 import TableSelector from 'src/components/TableSelector';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { DatabaseObject } from 'src/components/DatabaseSelector';
-import { getItem, LocalStorageKeys, setItem } from 'src/utils/localStorageHelpers';
+import {
+  getItem,
+  LocalStorageKeys,
+  setItem,
+} from 'src/utils/localStorageHelpers';
 
 type DatasetAddObject = {
   id: number;
@@ -62,7 +66,6 @@ const DatasetModal: FunctionComponent<DatasetModalProps> = ({
     t('dataset'),
     addDangerToast,
   );
-
 
   useEffect(() => {
     setDisableSave(currentDatabase === undefined || currentTableName === '');
