@@ -21,9 +21,18 @@ import {
   getChartControlPanelRegistry,
   QueryFormData,
 } from '@superset-ui/core';
-import { iStandardizedFormData } from '@superset-ui/chart-controls';
+import {
+  ControlStateMapping,
+  SharedFormData,
+  iStandardizedFormData,
+} from '@superset-ui/chart-controls';
 import { getControlsState } from 'src/explore/store';
 import { getFormDataFromControls } from './getFormDataFromControls';
+
+const sharedControls: Record<keyof SharedFormData, string[]> = {
+  metrics: ['metric', 'metrics', 'metric_2'],
+  columns: ['groupby', 'columns'],
+};
 
 export class StandardizedFormData {
   private sfd: iStandardizedFormData;
@@ -59,10 +68,6 @@ export class StandardizedFormData {
   }
 
   static getReversedMap() {
-    const sharedControls = {
-      metrics: ['metric', 'metrics', 'metric_2'],
-      columns: ['groupby', 'columns'],
-    };
     const reversedMap = new Map();
     Object.entries(sharedControls).forEach(([key, names]) => {
       names.forEach(name => {
@@ -101,7 +106,7 @@ export class StandardizedFormData {
     exploreState: Record<string, any>,
   ): {
     formData: QueryFormData;
-    controlsState: any;
+    controlsState: ControlStateMapping;
   } {
     const latestFormData = this.getLatestFormData(targetVizType);
     const targetControlsState = getControlsState(exploreState, {

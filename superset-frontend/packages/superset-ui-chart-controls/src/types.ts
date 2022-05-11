@@ -341,11 +341,13 @@ export interface ControlPanelSectionConfig {
   controlSetRows: ControlSetRow[];
 }
 
+export interface SharedFormData {
+  metrics: AdhocMetric[];
+  columns: (AdhocColumn | PhysicalColumn)[];
+}
+
 export interface iStandardizedFormData {
-  sharedFormData: {
-    metrics: AdhocMetric[];
-    columns: (AdhocColumn | PhysicalColumn)[];
-  };
+  sharedFormData: SharedFormData;
   memorizedFormData: Map<string, QueryFormData>;
 }
 
