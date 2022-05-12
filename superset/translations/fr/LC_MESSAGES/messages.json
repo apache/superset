@@ -506,6 +506,7 @@
       "Fetch Values From": ["Récupérer les valeurs des prédicats"],
       "Changed By": ["Modifié par"],
       "Modified": ["Modifié"],
+      "Edit the dashboard": ["Modifier le tableau de bord"],
       "Refreshed metadata from cluster [{}]": [
         "Métadonnées du cluster [{}] rafraîchies"
       ],
@@ -847,6 +848,9 @@
         "Veuillez corriger une erreur de syntaxe dans la requête près de \"%(syntax_error)s\". Puis essayez de relancer la requête."
       ],
       "Original value": ["Valeur d'origine"],
+      "Duration in ms (66000 => 1m 6s)": ["Durée en ms (66000 => 1m 6s)"],
+      "Duration in ms (1.40008 => 1ms 400µs 80ns)": ["Durée en ms (1.40008 => 1ms 400µs 80ns)"],
+      "Adaptive formatting": ["Formatage adapté"],
       "Second": ["Seconde"],
       "5 second": ["5 secondes"],
       "30 second": ["30 secondes"],

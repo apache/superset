@@ -676,7 +676,7 @@ msgstr "Intervalle de temps courant"
 #: superset-frontend/packages/superset-ui-chart-controls/src/utils/D3Formatting.ts:49
 #, fuzzy
 msgid "Adaptive formatting"
-msgstr "Format Datetime"
+msgstr "Formatage adapté"
 
 #: superset-frontend/src/components/ReportModal/index.tsx:267
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FilterTitlePane.tsx:133
@@ -4241,7 +4241,7 @@ msgstr "Filtre de date"
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:216
 #, fuzzy
 msgid "Date format"
-msgstr "Format Datetime"
+msgstr "Format Date"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/components/CustomFrame.tsx:235
 msgid "Date/Time"
@@ -5023,11 +5023,11 @@ msgstr ""
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/utils/D3Formatting.ts:41
 msgid "Duration in ms (1.40008 => 1ms 400µs 80ns)"
-msgstr ""
+msgstr "Durée en ms (1.40008 => 1ms 400µs 80ns)"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/utils/D3Formatting.ts:40
 msgid "Duration in ms (66000 => 1m 6s)"
-msgstr ""
+msgstr "Durée en ms (66000 => 1m 6s)"
 
 #: superset-frontend/src/views/CRUD/data/query/QueryList.tsx:205
 #, python-format
