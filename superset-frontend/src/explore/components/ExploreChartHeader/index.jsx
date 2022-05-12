@@ -156,12 +156,12 @@ export const ExploreChartHeader = ({
         }}
         showTitlePanelItems={!!slice}
         certificatiedBadgeProps={{
-          certifiedBy: slice.certified_by,
-          details: slice.certification_details,
+          certifiedBy: slice?.certified_by,
+          details: slice?.certification_details,
         }}
-        showFaveStar={!!user.userId}
+        showFaveStar={!!user?.userId}
         faveStarProps={{
-          itemId: slice.slice_id,
+          itemId: slice?.slice_id,
           fetchFaveStar: actions.fetchFaveStar,
           saveFaveStar: actions.saveFaveStar,
           isStarred,
