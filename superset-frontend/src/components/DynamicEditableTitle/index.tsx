@@ -26,7 +26,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { css, styled, t } from '@superset-ui/core';
+import { css, SupersetTheme, t } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
 import { useResizeDetector } from 'react-resize-detector';
 
@@ -38,43 +38,41 @@ export type DynamicEditableTitleProps = {
   label: string | undefined;
 };
 
-const Styles = styled.div`
-  ${({ theme }) => css`
-    display: flex;
-    font-size: ${theme.typography.sizes.xl}px;
-    font-weight: ${theme.typography.weights.bold};
+const titleStyles = (theme: SupersetTheme) => css`
+  display: flex;
+  font-size: ${theme.typography.sizes.xl}px;
+  font-weight: ${theme.typography.weights.bold};
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  & .dynamic-title,
+  & .dynamic-title-input {
+    display: inline-block;
+    max-width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
 
-    & .dynamic-title,
-    & .dynamic-title-input {
-      display: inline-block;
-      max-width: 100%;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
+  & .dynamic-title {
+    cursor: default;
+  }
+  & .dynamic-title-input {
+    border: none;
+    padding: 0;
+    outline: none;
 
-    & .dynamic-title {
-      cursor: default;
+    &::placeholder {
+      color: ${theme.colors.grayscale.light1};
     }
-    & .dynamic-title-input {
-      border: none;
-      padding: 0;
-      outline: none;
+  }
 
-      &::placeholder {
-        color: ${theme.colors.grayscale.light1};
-      }
-    }
-
-    & .input-sizer {
-      position: absolute;
-      left: -9999px;
-      display: inline-block;
-    }
-  `}
+  & .input-sizer {
+    position: absolute;
+    left: -9999px;
+    display: inline-block;
+  }
 `;
 
 export const DynamicEditableTitle = ({
@@ -172,7 +170,7 @@ export const DynamicEditableTitle = ({
   );
 
   return (
-    <Styles ref={containerRef}>
+    <div css={titleStyles} ref={containerRef}>
       <Tooltip
         id="title-tooltip"
         title={showTooltip && currentTitle && !isEditing ? currentTitle : null}
@@ -210,6 +208,6 @@ export const DynamicEditableTitle = ({
         )}
       </Tooltip>
       <span ref={sizerRef} className="input-sizer" aria-hidden tabIndex={-1} />
-    </Styles>
+    </div>
   );
 };
