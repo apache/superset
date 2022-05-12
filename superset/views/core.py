@@ -2101,7 +2101,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access
     @expose("/extra_table_metadata/<int:database_id>/<table_name>/<schema>/")
     @event_logger.log_this
-    def extra_table_metadata(  # pylint: disable=no-self-use
+    def extra_table_metadata(
         self, database_id: int, table_name: str, schema: str
     ) -> FlaskResponse:
         logger.warning(
