@@ -74,7 +74,6 @@ export class StandardizedFormData {
     const sharedFormData = {
       metrics: [],
       columns: [],
-      xaxis: [],
     };
     const formData = { ...sourceFormData };
     const reversedMap = StandardizedFormData.getReversedMap();
