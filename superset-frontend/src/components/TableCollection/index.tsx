@@ -149,7 +149,7 @@ export const Table = styled.table`
     .table-row {
       .actions {
         opacity: 0;
-        font-size: ${theme.typography.sizes.xl}px;
+        display: flex;
       }
 
       &:hover {
