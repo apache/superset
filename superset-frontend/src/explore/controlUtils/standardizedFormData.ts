@@ -93,7 +93,7 @@ export class StandardizedFormData {
     return reversedMap;
   }
 
-  getLatestFormData(vizType: string): QueryFormData {
+  private getLatestFormData(vizType: string): QueryFormData {
     if (this.sfd.memorizedFormData.has(vizType)) {
       return this.sfd.memorizedFormData.get(vizType) as QueryFormData;
     }
@@ -101,11 +101,11 @@ export class StandardizedFormData {
     return this.memorizedFormData.slice(-1)[0][1];
   }
 
-  get sharedFormData() {
+  private get sharedFormData() {
     return this.sfd.sharedFormData;
   }
 
-  get memorizedFormData() {
+  private get memorizedFormData() {
     return Array.from(this.sfd.memorizedFormData.entries());
   }
 
@@ -117,7 +117,6 @@ export class StandardizedFormData {
   }
 
   transform(
-    sourceVizType: string,
     targetVizType: string,
     exploreState: Record<string, any>,
   ): {
@@ -133,6 +132,14 @@ export class StandardizedFormData {
      * 5. call denormalizeFormData to transform initial form_data if the plugin was defined
      * 6. use final form_data to generate controlsState
      * */
+    // const foo = {};
+    // Object.entries(exploreState.controls).forEach(([key, value]) => foo[key] = {'value': value.value})
+    // console.log(
+    //   {
+    //     form_data: exploreState.form_data,
+    //     controls: foo,
+    //   });
+
     const latestFormData = this.getLatestFormData(targetVizType);
     const publicFormData = {};
     publicControls.forEach(key => {

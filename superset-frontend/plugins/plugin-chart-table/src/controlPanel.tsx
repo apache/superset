@@ -531,6 +531,14 @@ const config: ControlPanelConfig = {
       ],
     },
   ],
+  denormalizeFormData: formData => ({
+    ...formData,
+    metrics: formData.standardized_form_data.sharedFormData.metrics,
+    groupby: [
+      ...formData.standardized_form_data.sharedFormData.columns,
+      ...formData.standardized_form_data.sharedFormData.xaxis,
+    ],
+  }),
 };
 
 export default config;

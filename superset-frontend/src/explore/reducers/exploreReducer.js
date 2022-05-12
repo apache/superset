@@ -211,11 +211,7 @@ export default function exploreReducer(state = {}, action) {
       if (isVizSwitch) {
         // get StandardizedFormData from source form_data
         const sfd = new StandardizedFormData(state.form_data);
-        const transformed = sfd.transform(
-          state.controls.viz_type.value,
-          action.value,
-          state,
-        );
+        const transformed = sfd.transform(action.value, state);
         new_form_data = transformed.formData;
         currentControlsState = transformed.controlsState;
       }
