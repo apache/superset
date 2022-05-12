@@ -110,6 +110,10 @@ const StyledHeader = styled.div`
         padding: ${({ theme }) => theme.gridUnit * 2}px
           ${({ theme }) => theme.gridUnit * 4}px;
       }
+
+      &.active a {
+        text-decoration: underline;
+      }
     }
 
     li.active > a,
