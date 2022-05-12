@@ -1165,7 +1165,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         user_roles = [role.id for role in self.get_user_roles(user)]
         regular_filter_roles = (
-            self.get_session.query(RLSFilterRoles.c.rls_filter_id)
+            self.get_session()
+            .query(RLSFilterRoles.c.rls_filter_id)
             .join(RowLevelSecurityFilter)
             .filter(
                 RowLevelSecurityFilter.filter_type == RowLevelSecurityFilterType.REGULAR
@@ -1174,7 +1175,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             .subquery()
         )
         base_filter_roles = (
-            self.get_session.query(RLSFilterRoles.c.rls_filter_id)
+            self.get_session()
+            .query(RLSFilterRoles.c.rls_filter_id)
             .join(RowLevelSecurityFilter)
             .filter(
                 RowLevelSecurityFilter.filter_type == RowLevelSecurityFilterType.BASE
@@ -1183,12 +1185,14 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             .subquery()
         )
         filter_tables = (
-            self.get_session.query(RLSFilterTables.c.rls_filter_id)
+            self.get_session()
+            .query(RLSFilterTables.c.rls_filter_id)
             .filter(RLSFilterTables.c.table_id == table.id)
             .subquery()
         )
         query = (
-            self.get_session.query(
+            self.get_session()
+            .query(
                 RowLevelSecurityFilter.id,
                 RowLevelSecurityFilter.group_key,
                 RowLevelSecurityFilter.clause,
