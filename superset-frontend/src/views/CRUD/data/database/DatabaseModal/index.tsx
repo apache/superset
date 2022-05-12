@@ -1101,7 +1101,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           type="error"
           css={(theme: SupersetTheme) => antDErrorAlertStyles(theme)}
           message={t('Database Creation Error')}
-          description={alertErrors?.[0]}
+          description={t(alertErrors[0])}
         />
       );
     }
