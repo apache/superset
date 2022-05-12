@@ -99,6 +99,7 @@ class Query(Model, ExtraJSONMixin):
     end_time = Column(Numeric(precision=20, scale=6))
     end_result_backend_time = Column(Numeric(precision=20, scale=6))
     tracking_url = Column(Text)
+    json_metadata = Column(Text)
 
     changed_on = Column(
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=True
