@@ -18,7 +18,7 @@
  */
 import React, { ReactNode, ReactElement } from 'react';
 import { css, SupersetTheme, t, useTheme } from '@superset-ui/core';
-import { AntdDropdown } from 'src/components';
+import { AntdDropdown, AntdDropdownProps } from 'src/components';
 import {
   DynamicEditableTitle,
   DynamicEditableTitleProps,
@@ -27,7 +27,6 @@ import CertifiedBadge, { CertifiedBadgeProps } from '../CertifiedBadge';
 import FaveStar, { FaveStarProps } from '../FaveStar';
 import Icons from '../Icons';
 import Button from '../Button';
-import { DropdownProps } from '../Dropdown';
 
 export const menuTriggerStyles = (theme: SupersetTheme) => css`
   width: ${theme.gridUnit * 8}px;
@@ -89,7 +88,7 @@ const additionalActionsContainerStyles = (theme: SupersetTheme) => css`
   margin-left: ${theme.gridUnit * 2}px;
 `;
 
-type PageHeaderWithActionsProps = {
+export type PageHeaderWithActionsProps = {
   editableTitleProps: DynamicEditableTitleProps;
   showTitlePanelItems: boolean;
   certificatiedBadgeProps: CertifiedBadgeProps;
@@ -98,7 +97,7 @@ type PageHeaderWithActionsProps = {
   titlePanelAdditionalItems: ReactNode;
   rightPanelAdditionalItems: ReactNode;
   additionalActionsMenu: ReactElement;
-  menuDropdownProps: Omit<DropdownProps, 'overlay'>;
+  menuDropdownProps: Omit<AntdDropdownProps, 'overlay'>;
 };
 
 export const PageHeaderWithActions = ({
