@@ -15,13 +15,16 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from typing import Iterator
+
 import pytest
 from sqlalchemy.orm.session import Session
 
 from superset.utils.core import DatasourceType
 
 
-def create_test_data(session: Session) -> None:
+@pytest.fixture
+def session_with_data(session: Session) -> Iterator[Session]:
     from superset.columns.models import Column
     from superset.connectors.sqla.models import SqlaTable, TableColumn
     from superset.datasets.models import Dataset
@@ -93,16 +96,19 @@ FROM my_catalog.my_schema.my_table
     session.add(db)
     session.add(sqla_table)
     session.flush()
+    yield session
 
 
-def test_get_datasource_sqlatable(app_context: None, session: Session) -> None:
+def test_get_datasource_sqlatable(
+    app_context: None, session_with_data: Session
+) -> None:
     from superset.connectors.sqla.models import SqlaTable
     from superset.dao.datasource.dao import DatasourceDAO
 
-    create_test_data(session)
-
     result = DatasourceDAO.get_datasource(
-        datasource_type=DatasourceType.SQLATABLE, datasource_id=1, session=session
+        datasource_type=DatasourceType.SQLATABLE,
+        datasource_id=1,
+        session=session_with_data,
     )
 
     assert 1 == result.id
@@ -110,72 +116,70 @@ def test_get_datasource_sqlatable(app_context: None, session: Session) -> None:
     assert isinstance(result, SqlaTable)
 
 
-def test_get_datasource_query(app_context: None, session: Session) -> None:
+def test_get_datasource_query(app_context: None, session_with_data: Session) -> None:
     from superset.dao.datasource.dao import DatasourceDAO
     from superset.models.sql_lab import Query
 
-    create_test_data(session)
-
     result = DatasourceDAO.get_datasource(
-        datasource_type=DatasourceType.QUERY, datasource_id=1, session=session
+        datasource_type=DatasourceType.QUERY, datasource_id=1, session=session_with_data
     )
 
     assert result.id == 1
     assert isinstance(result, Query)
 
 
-def test_get_datasource_saved_query(app_context: None, session: Session) -> None:
+def test_get_datasource_saved_query(
+    app_context: None, session_with_data: Session
+) -> None:
     from superset.dao.datasource.dao import DatasourceDAO
     from superset.models.sql_lab import SavedQuery
 
-    create_test_data(session)
-
     result = DatasourceDAO.get_datasource(
-        datasource_type=DatasourceType.SAVEDQUERY, datasource_id=1, session=session
+        datasource_type=DatasourceType.SAVEDQUERY,
+        datasource_id=1,
+        session=session_with_data,
     )
 
     assert result.id == 1
     assert isinstance(result, SavedQuery)
 
 
-def test_get_datasource_sl_table(app_context: None, session: Session) -> None:
+def test_get_datasource_sl_table(app_context: None, session_with_data: Session) -> None:
     from superset.dao.datasource.dao import DatasourceDAO
     from superset.tables.models import Table
-
-    create_test_data(session)
 
     # todo(hugh): This will break once we remove the dual write
     # update the datsource_id=1 and this will pass again
     result = DatasourceDAO.get_datasource(
-        datasource_type=DatasourceType.TABLE, datasource_id=2, session=session
+        datasource_type=DatasourceType.TABLE, datasource_id=2, session=session_with_data
     )
 
     assert result.id == 2
     assert isinstance(result, Table)
 
 
-def test_get_datasource_sl_dataset(app_context: None, session: Session) -> None:
+def test_get_datasource_sl_dataset(
+    app_context: None, session_with_data: Session
+) -> None:
     from superset.dao.datasource.dao import DatasourceDAO
     from superset.datasets.models import Dataset
-
-    create_test_data(session)
 
     # todo(hugh): This will break once we remove the dual write
     # update the datsource_id=1 and this will pass again
     result = DatasourceDAO.get_datasource(
-        datasource_type=DatasourceType.DATASET, datasource_id=2, session=session
+        datasource_type=DatasourceType.DATASET,
+        datasource_id=2,
+        session=session_with_data,
     )
 
     assert result.id == 2
     assert isinstance(result, Dataset)
 
 
-def test_get_all_datasources(app_context: None, session: Session) -> None:
+def test_get_all_sqlatables_datasources(
+    app_context: None, session_with_data: Session
+) -> None:
     from superset.dao.datasource.dao import DatasourceDAO
 
-    create_test_data(session)
-
-    # todo(hugh): This will break once we remove the dual write
-    # update the assert len(result) == 5 and this will pass again
-    result = DatasourceDAO.get_all_datasources(session=session)
-    assert len(result) == 7
+    result = DatasourceDAO.get_all_sqlatables_datasources(session=session_with_data)
+    assert len(result) == 1
