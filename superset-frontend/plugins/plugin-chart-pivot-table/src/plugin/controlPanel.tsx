@@ -18,6 +18,7 @@
  */
 import React from 'react';
 import {
+  ensureIsArray,
   QueryFormMetric,
   smartDateFormatter,
   t,
@@ -367,6 +368,17 @@ const config: ControlPanelConfig = {
       ],
     },
   ],
+  denormalizeFormData: formData => {
+    const groupbyColumns =
+      formData.standardized_form_data.sharedFormData.columns.filter(
+        col => !ensureIsArray(formData.groupbyRows).includes(col),
+      );
+    return {
+      ...formData,
+      metrics: formData.standardized_form_data.sharedFormData.metrics,
+      groupbyColumns,
+    };
+  },
 };
 
 export default config;

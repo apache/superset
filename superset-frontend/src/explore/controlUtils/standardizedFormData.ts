@@ -31,8 +31,7 @@ import { getFormDataFromControls } from './getFormDataFromControls';
 
 const sharedControls: Record<keyof SharedFormData, string[]> = {
   metrics: ['metric', 'metrics', 'metric_2'],
-  columns: ['groupby', 'columns'],
-  xaxis: ['x_axis'],
+  columns: ['groupby', 'columns', 'groupbyColumns', 'groupbyRows'],
 };
 const publicControls = [
   'granularity',
@@ -42,8 +41,10 @@ const publicControls = [
   'adhoc_filters',
   'limit',
   'timeseries_limit_metric',
+  'series_limit_metric',
   'order_desc',
   'row_limit',
+  'x_axis',
 ];
 
 export class StandardizedFormData {

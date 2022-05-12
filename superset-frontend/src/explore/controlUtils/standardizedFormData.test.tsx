@@ -161,7 +161,6 @@ test('should collect control values and create SFD', () => {
     'min(sales)',
   ]);
   expect(sfd.dumpSFD().sharedFormData.columns).toEqual(['foo', 'bar']);
-  expect(sfd.dumpSFD().sharedFormData.xaxis).toEqual(['dttm']);
   expect(sfd.dumpSFD().memorizedFormData).toEqual([
     ['table', transformationMockFD],
   ]);
