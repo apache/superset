@@ -34,6 +34,7 @@ import CrossFilterScopingModal from 'src/dashboard/components/CrossFilterScoping
 import Icons from 'src/components/Icons';
 import ModalTrigger from 'src/components/ModalTrigger';
 import ViewQueryModal from 'src/explore/components/controls/ViewQueryModal';
+import { FileImageOutlined, FileOutlined } from '@ant-design/icons';
 
 const MENU_KEYS = {
   CROSS_FILTER_SCOPING: 'cross_filter_scoping',
@@ -99,6 +100,7 @@ export interface SliceHeaderControlsProps {
   isExpanded?: boolean;
   updatedDttm: number | null;
   isFullSize?: boolean;
+  isDescriptionExpanded?: boolean;
   formData: Pick<QueryFormData, 'slice_id' | 'datasource'>;
   onExploreChart: () => void;
 
@@ -256,7 +258,9 @@ class SliceHeaderControls extends React.PureComponent<
           : item}
       </div>
     ));
-    const resizeLabel = isFullSize ? t('Minimize chart') : t('Maximize chart');
+    const resizeLabel = isFullSize
+      ? t('Exit fullscreen')
+      : t('Enter fullscreen');
     const menu = (
       <Menu
         onClick={this.handleMenuClick}
@@ -275,11 +279,15 @@ class SliceHeaderControls extends React.PureComponent<
           </RefreshTooltip>
         </Menu.Item>
 
+        <Menu.Item key={MENU_KEYS.RESIZE_LABEL}>{resizeLabel}</Menu.Item>
+
         <Menu.Divider />
 
         {slice.description && (
           <Menu.Item key={MENU_KEYS.TOGGLE_CHART_DESCRIPTION}>
-            {t('Toggle chart description')}
+            {this.props.isDescriptionExpanded
+              ? t('Hide chart description')
+              : t('Show chart description')}
           </Menu.Item>
         )}
 
@@ -288,7 +296,7 @@ class SliceHeaderControls extends React.PureComponent<
             key={MENU_KEYS.EXPLORE_CHART}
             onClick={this.props.onExploreChart}
           >
-            {t('View chart in Explore')}
+            {t('Edit chart')}
           </Menu.Item>
         )}
 
@@ -309,46 +317,63 @@ class SliceHeaderControls extends React.PureComponent<
           </Menu.Item>
         )}
 
-        {supersetCanShare && (
-          <ShareMenuItems
-            dashboardId={dashboardId}
-            dashboardComponentId={componentId}
-            copyMenuItemTitle={t('Copy permalink to clipboard')}
-            emailMenuItemTitle={t('Share permalink by email')}
-            emailSubject={t('Superset chart')}
-            emailBody={t('Check out this chart: ')}
-            addSuccessToast={addSuccessToast}
-            addDangerToast={addDangerToast}
-          />
+        {(slice.description || this.props.supersetCanExplore) && (
+          <Menu.Divider />
         )}
-
-        <Menu.Item key={MENU_KEYS.RESIZE_LABEL}>{resizeLabel}</Menu.Item>
-
-        <Menu.Item key={MENU_KEYS.DOWNLOAD_AS_IMAGE}>
-          {t('Download as image')}
-        </Menu.Item>
-
-        {this.props.slice.viz_type !== 'filter_box' &&
-          this.props.supersetCanCSV && (
-            <Menu.Item key={MENU_KEYS.EXPORT_CSV}>{t('Export CSV')}</Menu.Item>
-          )}
-
-        {this.props.slice.viz_type !== 'filter_box' &&
-          isFeatureEnabled(FeatureFlag.ALLOW_FULL_CSV_EXPORT) &&
-          this.props.supersetCanCSV &&
-          isTable && (
-            <Menu.Item key={MENU_KEYS.EXPORT_FULL_CSV}>
-              {t('Export full CSV')}
-            </Menu.Item>
-          )}
 
         {isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS) &&
           isCrossFilter &&
           canEmitCrossFilter && (
-            <Menu.Item key={MENU_KEYS.CROSS_FILTER_SCOPING}>
-              {t('Cross-filter scoping')}
-            </Menu.Item>
+            <>
+              <Menu.Item key={MENU_KEYS.CROSS_FILTER_SCOPING}>
+                {t('Cross-filter scoping')}
+              </Menu.Item>
+              <Menu.Divider />
+            </>
           )}
+
+        {supersetCanShare && (
+          <Menu.SubMenu title={t('Share')}>
+            <ShareMenuItems
+              dashboardId={dashboardId}
+              dashboardComponentId={componentId}
+              copyMenuItemTitle={t('Copy permalink to clipboard')}
+              emailMenuItemTitle={t('Share chart by email')}
+              emailSubject={t('Superset chart')}
+              emailBody={t('Check out this chart: ')}
+              addSuccessToast={addSuccessToast}
+              addDangerToast={addDangerToast}
+            />
+          </Menu.SubMenu>
+        )}
+
+        <Menu.SubMenu title={t('Download')}>
+          {this.props.slice.viz_type !== 'filter_box' &&
+            this.props.supersetCanCSV && (
+              <Menu.Item key={MENU_KEYS.EXPORT_CSV} icon={<FileOutlined />}>
+                {t('Export to .CSV')}
+              </Menu.Item>
+            )}
+
+          {this.props.slice.viz_type !== 'filter_box' &&
+            isFeatureEnabled(FeatureFlag.ALLOW_FULL_CSV_EXPORT) &&
+            this.props.supersetCanCSV &&
+            isTable && (
+              <Menu.Item
+                key={MENU_KEYS.EXPORT_FULL_CSV}
+                icon={<FileOutlined />}
+              >
+                {t('Export to full .CSV')}
+              </Menu.Item>
+            )}
+
+          <Menu.Item
+            key={MENU_KEYS.DOWNLOAD_AS_IMAGE}
+            icon={<FileImageOutlined />}
+          >
+            {t('Download as image')}
+          </Menu.Item>
+        </Menu.SubMenu>
       </Menu>
     );
 
