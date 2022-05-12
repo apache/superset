@@ -112,12 +112,13 @@ const StyledEditableTabs = styled(StyledTabs)`
     }
 
     ${
-      fullWidth &&
-      css`
-        .ant-tabs-nav-list {
-          width: 100%;
-        }
-      `
+      fullWidth
+        ? css`
+            .ant-tabs-nav-list {
+              width: 100%;
+            }
+          `
+        : ''
     }
   `}
 `;
