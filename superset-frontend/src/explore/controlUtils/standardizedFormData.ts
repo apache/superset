@@ -34,17 +34,34 @@ const sharedControls: Record<keyof SharedFormData, string[]> = {
   columns: ['groupby', 'columns', 'groupbyColumns', 'groupbyRows'],
 };
 const publicControls = [
+  // time section
   'granularity',
   'granularity_sqla',
   'time_grain_sqla',
   'time_range',
+  // filters
   'adhoc_filters',
+  // subquery limit(series limit)
   'limit',
+  // order by clause
   'timeseries_limit_metric',
   'series_limit_metric',
+  // desc or asc in order by clause
   'order_desc',
+  // outer query limit
   'row_limit',
+  // x asxs column
   'x_axis',
+  // advanced analytics - rolling window
+  'rolling_type',
+  'rolling_periods',
+  'min_periods',
+  // advanced analytics - time comparison
+  'time_compare',
+  'comparison_type',
+  // advanced analytics - resample
+  'resample_rule',
+  'resample_method',
 ];
 
 export class StandardizedFormData {
