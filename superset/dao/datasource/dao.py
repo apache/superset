@@ -15,7 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from typing import Any, Dict, List, Optional, Set, Union
+from enum import Enum
+from typing import Any, Dict, List, Optional, Set, Type, Union
 
 from flask_babel import _
 from sqlalchemy import or_
@@ -32,12 +33,12 @@ from superset.models.sql_lab import Query, SavedQuery
 from superset.tables.models import Table
 from superset.utils.core import DatasourceType
 
-Datasource = Union[Dataset, SqlaTable, Table, Query, SavedQuery, Any]
+Datasource = Union[Dataset, SqlaTable, Table, Query, SavedQuery]
 
 
 class DatasourceDAO(BaseDAO):
 
-    sources: Dict[DatasourceType, Datasource] = {
+    sources: Dict[DatasourceType, Type[Datasource]] = {
         DatasourceType.SQLATABLE: SqlaTable,
         DatasourceType.QUERY: Query,
         DatasourceType.SAVEDQUERY: SavedQuery,
