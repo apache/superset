@@ -62,7 +62,8 @@ const formatPercentChange = getNumberFormatter(
 export default function transformProps(
   chartProps: BigNumberWithTrendlineChartProps,
 ) {
-  const { width, height, queriesData, formData, rawFormData } = chartProps;
+  const { width, height, queriesData, formData, rawFormData, theme } =
+    chartProps;
   const {
     colorPicker,
     compareLag: compareLag_,
@@ -194,7 +195,7 @@ export default function transformProps(
                 },
                 {
                   offset: 1,
-                  color: 'white',
+                  color: theme.colors.grayscale.light5,
                 },
               ]),
             },
