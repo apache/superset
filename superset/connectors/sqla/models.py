@@ -1129,10 +1129,9 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         current user. A custom username can be passed when the user is not present in the
         Flask global namespace.
 
-        :param BaseTemplateProcessor template_processor: The template processor to apply
-        to the filters.
-        :param Optional[str] username: Optional username if there's no user in the Flask
-        global namespace.
+        :param template_processor: The template processor to apply to the filters.
+        :param username: Optional username if there's no user in the Flask global
+        namespace.
         :returns: A list of SQL clauses to be ANDed together.
         """
         all_filters: List[TextClause] = []
