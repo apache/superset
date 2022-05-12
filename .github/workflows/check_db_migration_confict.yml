@@ -50,10 +50,11 @@ jobs:
                   repo: context.repo.repo,
                   issue_number: pull.number,
                   body:
-                    `⚠️ @${pull.user.login} Your base branch \`${currentBranch}\` has just ` +
+                    `# 🙅‍♂️ 🙅‍♂️ 🙅‍♂️ 🙅‍♂️ 🙅‍♂️ 🙅‍♂️ 🙅‍♂️ 🙅‍♂️ 🙅‍♂️ 🙅‍♂️ 🙅‍♂️ 🙅‍♂️ 🙅‍♂️ 🙅‍♂️ 🙅‍♂️ 🙅‍♂️` +
+                    `❗ @${pull.user.login} Your base branch \`${currentBranch}\` has ` +
                     'also updated `superset/migrations`.\n' +
                     '\n' +
-                    '❗ **Please consider rebasing your branch to avoid db migration conflicts.**',
+                    '**Please consider rebasing your branch and [resolving potential db migration conflicts](https://github.com/apache/superset/blob/master/CONTRIBUTING.md#merging-db-migrations).**',
                 });
               }
             }
