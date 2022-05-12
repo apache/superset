@@ -132,14 +132,6 @@ export class StandardizedFormData {
      * 5. call denormalizeFormData to transform initial form_data if the plugin was defined
      * 6. use final form_data to generate controlsState
      * */
-    // const foo = {};
-    // Object.entries(exploreState.controls).forEach(([key, value]) => foo[key] = {'value': value.value})
-    // console.log(
-    //   {
-    //     form_data: exploreState.form_data,
-    //     controls: foo,
-    //   });
-
     const latestFormData = this.getLatestFormData(targetVizType);
     const publicFormData = {};
     publicControls.forEach(key => {
