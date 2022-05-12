@@ -89,6 +89,7 @@ export default function transformProps(
     hooks,
     queriesData,
     datasource,
+    theme,
   } = chartProps;
   const { verboseMap = {} } = datasource;
   const [queryData] = queriesData;
@@ -239,6 +240,7 @@ export default function transformProps(
             data,
             annotationData,
             colorScale,
+            theme,
             sliceId,
           ),
         );
@@ -249,6 +251,7 @@ export default function transformProps(
             data,
             annotationData,
             colorScale,
+            theme,
             sliceId,
           ),
         );
