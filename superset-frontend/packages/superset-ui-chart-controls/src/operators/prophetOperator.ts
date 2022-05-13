@@ -16,13 +16,18 @@
  * specific language governing permissions and limitationsxw
  * under the License.
  */
-import { DTTM_ALIAS, PostProcessingProphet } from '@superset-ui/core';
+import {
+  DTTM_ALIAS,
+  getColumnLabel,
+  PostProcessingProphet,
+} from '@superset-ui/core';
 import { PostProcessingFactory } from './types';
 
 export const prophetOperator: PostProcessingFactory<PostProcessingProphet> = (
   formData,
   queryObject,
 ) => {
+  const index = getColumnLabel(formData.x_axis || DTTM_ALIAS);
   if (formData.forecastEnabled) {
     return {
       operation: 'prophet',
@@ -33,7 +38,7 @@ export const prophetOperator: PostProcessingFactory<PostProcessingProphet> = (
         yearly_seasonality: formData.forecastSeasonalityYearly,
         weekly_seasonality: formData.forecastSeasonalityWeekly,
         daily_seasonality: formData.forecastSeasonalityDaily,
-        index: formData.x_axis || DTTM_ALIAS,
+        index,
       },
     };
   }
