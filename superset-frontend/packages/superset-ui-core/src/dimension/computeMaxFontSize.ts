@@ -27,9 +27,17 @@ function decreaseSizeUntil(
 ): number {
   let size = startSize;
   let dimension = computeDimension(size);
+
   while (!condition(dimension)) {
     size -= 1;
-    if (size === 0) {
+
+    // Here if the size goes below zero most likely is because it has additional style applied
+    // in which case we assume the user knows what it's doing and we just let them use that.
+    // And so the size will keep shrinking, visually it works, although it could have another
+    // solution like having an updated reference to the actual element fontSize.
+
+    if (size < 0) {
+      size = startSize;
       break;
     }
     dimension = computeDimension(size);
