@@ -29,13 +29,12 @@ import {
 import { getControlsState } from 'src/explore/store';
 import { getFormDataFromControls } from './getFormDataFromControls';
 
-const sharedControls: Record<keyof SharedFormData, string[]> = {
+export const sharedControls: Record<keyof SharedFormData, string[]> = {
   metrics: ['metric', 'metrics', 'metric_2'],
   columns: ['groupby', 'columns', 'groupbyColumns', 'groupbyRows'],
 };
-const publicControls = [
+export const publicControls = [
   // time section
-  'granularity',
   'granularity_sqla',
   'time_grain_sqla',
   'time_range',
