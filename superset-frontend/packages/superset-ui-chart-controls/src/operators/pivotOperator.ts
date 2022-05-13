@@ -33,7 +33,7 @@ export const pivotOperator: PostProcessingFactory<PostProcessingPivot> = (
   const { x_axis: xAxis } = formData;
 
   if ((xAxis || queryObject.is_timeseries) && metricLabels.length) {
-    const index = [getColumnLabel(formData.x_axis || DTTM_ALIAS)];
+    const index = [getColumnLabel(xAxis || DTTM_ALIAS)];
     return {
       operation: 'pivot',
       options: {
