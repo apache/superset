@@ -40,8 +40,6 @@ describe('should collect control values and create SFD', () => {
   const sourceMockFormData: SqlaFormData = {
     ...sharedControlsFormData,
     ...publicControlsFormData,
-    removedKey: 'removedKey',
-    removedKey2: ['foo', 'bar'],
     datasource: '100__table',
     viz_type: 'source_viz',
   };
