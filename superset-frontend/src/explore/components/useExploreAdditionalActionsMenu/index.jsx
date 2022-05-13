@@ -16,33 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { useSelector } from 'react-redux';
-import PropTypes from 'prop-types';
 import { FileOutlined, FileImageOutlined } from '@ant-design/icons';
 import { css, styled, t, useTheme } from '@superset-ui/core';
-import { AntdDropdown } from 'src/components';
 import { Menu } from 'src/components/Menu';
-import Icons from 'src/components/Icons';
 import ModalTrigger from 'src/components/ModalTrigger';
 import Button from 'src/components/Button';
-import withToasts from 'src/components/MessageToasts/withToasts';
+import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { exportChart } from 'src/explore/exploreUtils';
 import downloadAsImage from 'src/utils/downloadAsImage';
 import { getChartPermalink } from 'src/utils/urlUtils';
+import copyTextToClipboard from 'src/utils/copy';
 import HeaderReportDropDown from 'src/components/ReportModal/HeaderReportDropdown';
 import ViewQueryModal from '../controls/ViewQueryModal';
 import EmbedCodeContent from '../EmbedCodeContent';
-import copyTextToClipboard from '../../../utils/copy';
-
-const propTypes = {
-  onOpenPropertiesModal: PropTypes.func,
-  onOpenInEditor: PropTypes.func,
-  latestQueryFormData: PropTypes.object.isRequired,
-  slice: PropTypes.object,
-  canDownloadCSV: PropTypes.bool,
-  canAddReports: PropTypes.bool,
-};
 
 const MENU_KEYS = {
   EDIT_PROPERTIES: 'edit_properties',
@@ -101,29 +89,29 @@ export const MenuTrigger = styled(Button)`
   `}
 `;
 
-const ExploreAdditionalActionsMenu = ({
+export const useExploreAdditionalActionsMenu = (
   latestQueryFormData,
   canDownloadCSV,
-  addDangerToast,
-  addSuccessToast,
   slice,
   onOpenInEditor,
   onOpenPropertiesModal,
-}) => {
+) => {
   const theme = useTheme();
+  const { addDangerToast, addSuccessToast } = useToasts();
   const [showReportSubMenu, setShowReportSubMenu] = useState(null);
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
   const [openSubmenus, setOpenSubmenus] = useState([]);
-  const chart = useSelector(state => {
-    if (!state.charts) {
+  const charts = useSelector(state => state.charts);
+  const chart = useMemo(() => {
+    if (!charts) {
       return undefined;
     }
-    const charts = Object.values(state.charts);
-    if (charts.length > 0) {
-      return charts[0];
+    const chartsValues = Object.values(charts);
+    if (chartsValues.length > 0) {
+      return chartsValues[0];
     }
     return undefined;
-  });
+  }, [charts]);
 
   const { datasource } = latestQueryFormData;
   const sqlSupported = datasource && datasource.split('__')[1] === 'table';
@@ -258,157 +246,144 @@ const ExploreAdditionalActionsMenu = ({
     ],
   );
 
-  return (
-    <>
-      <AntdDropdown
-        trigger="click"
-        data-test="query-dropdown"
-        visible={isDropdownVisible}
-        onVisibleChange={setIsDropdownVisible}
-        overlay={
-          <Menu
-            onClick={handleMenuClick}
-            selectable={false}
-            openKeys={openSubmenus}
-            onOpenChange={setOpenSubmenus}
-          >
-            {slice && (
-              <>
-                <Menu.Item key={MENU_KEYS.EDIT_PROPERTIES}>
-                  {t('Edit chart properties')}
-                </Menu.Item>
-                <Menu.Divider />
-              </>
-            )}
-            <Menu.SubMenu
-              title={t('Download')}
-              key={MENU_KEYS.DOWNLOAD_SUBMENU}
-            >
-              {VIZ_TYPES_PIVOTABLE.includes(latestQueryFormData.viz_type) ? (
-                <>
-                  <Menu.Item
-                    key={MENU_KEYS.EXPORT_TO_CSV}
-                    icon={<FileOutlined />}
-                    disabled={!canDownloadCSV}
-                  >
-                    {t('Export to original .CSV')}
-                  </Menu.Item>
-                  <Menu.Item
-                    key={MENU_KEYS.EXPORT_TO_CSV_PIVOTED}
-                    icon={<FileOutlined />}
-                    disabled={!canDownloadCSV}
-                  >
-                    {t('Export to pivoted .CSV')}
-                  </Menu.Item>
-                </>
-              ) : (
-                <Menu.Item
-                  key={MENU_KEYS.EXPORT_TO_CSV}
-                  icon={<FileOutlined />}
-                  disabled={!canDownloadCSV}
-                >
-                  {t('Export to .CSV')}
-                </Menu.Item>
-              )}
-              <Menu.Item key={MENU_KEYS.EXPORT_TO_JSON} icon={<FileOutlined />}>
-                {t('Export to .JSON')}
+  const menu = useMemo(
+    () => (
+      <Menu
+        onClick={handleMenuClick}
+        selectable={false}
+        openKeys={openSubmenus}
+        onOpenChange={setOpenSubmenus}
+      >
+        {slice && (
+          <>
+            <Menu.Item key={MENU_KEYS.EDIT_PROPERTIES}>
+              {t('Edit chart properties')}
+            </Menu.Item>
+            <Menu.Divider />
+          </>
+        )}
+        <Menu.SubMenu title={t('Download')} key={MENU_KEYS.DOWNLOAD_SUBMENU}>
+          {VIZ_TYPES_PIVOTABLE.includes(latestQueryFormData.viz_type) ? (
+            <>
+              <Menu.Item
+                key={MENU_KEYS.EXPORT_TO_CSV}
+                icon={<FileOutlined />}
+                disabled={!canDownloadCSV}
+              >
+                {t('Export to original .CSV')}
               </Menu.Item>
               <Menu.Item
-                key={MENU_KEYS.DOWNLOAD_AS_IMAGE}
-                icon={<FileImageOutlined />}
+                key={MENU_KEYS.EXPORT_TO_CSV_PIVOTED}
+                icon={<FileOutlined />}
+                disabled={!canDownloadCSV}
               >
-                {t('Download as image')}
+                {t('Export to pivoted .CSV')}
               </Menu.Item>
-            </Menu.SubMenu>
-            <Menu.SubMenu title={t('Share')} key={MENU_KEYS.SHARE_SUBMENU}>
-              <Menu.Item key={MENU_KEYS.COPY_PERMALINK}>
-                {t('Copy permalink to clipboard')}
-              </Menu.Item>
-              <Menu.Item key={MENU_KEYS.SHARE_BY_EMAIL}>
-                {t('Share chart by email')}
-              </Menu.Item>
-              <Menu.Item key={MENU_KEYS.EMBED_CODE}>
-                <ModalTrigger
-                  triggerNode={
-                    <span data-test="embed-code-button">{t('Embed code')}</span>
-                  }
-                  modalTitle={t('Embed code')}
-                  modalBody={
-                    <EmbedCodeContent
-                      formData={latestQueryFormData}
-                      addDangerToast={addDangerToast}
-                    />
-                  }
-                  maxWidth={`${theme.gridUnit * 100}px`}
-                  destroyOnClose
-                  responsive
+            </>
+          ) : (
+            <Menu.Item
+              key={MENU_KEYS.EXPORT_TO_CSV}
+              icon={<FileOutlined />}
+              disabled={!canDownloadCSV}
+            >
+              {t('Export to .CSV')}
+            </Menu.Item>
+          )}
+          <Menu.Item key={MENU_KEYS.EXPORT_TO_JSON} icon={<FileOutlined />}>
+            {t('Export to .JSON')}
+          </Menu.Item>
+          <Menu.Item
+            key={MENU_KEYS.DOWNLOAD_AS_IMAGE}
+            icon={<FileImageOutlined />}
+          >
+            {t('Download as image')}
+          </Menu.Item>
+        </Menu.SubMenu>
+        <Menu.SubMenu title={t('Share')} key={MENU_KEYS.SHARE_SUBMENU}>
+          <Menu.Item key={MENU_KEYS.COPY_PERMALINK}>
+            {t('Copy permalink to clipboard')}
+          </Menu.Item>
+          <Menu.Item key={MENU_KEYS.SHARE_BY_EMAIL}>
+            {t('Share chart by email')}
+          </Menu.Item>
+          <Menu.Item key={MENU_KEYS.EMBED_CODE}>
+            <ModalTrigger
+              triggerNode={
+                <span data-test="embed-code-button">{t('Embed code')}</span>
+              }
+              modalTitle={t('Embed code')}
+              modalBody={
+                <EmbedCodeContent
+                  formData={latestQueryFormData}
+                  addDangerToast={addDangerToast}
                 />
-              </Menu.Item>
+              }
+              maxWidth={`${theme.gridUnit * 100}px`}
+              destroyOnClose
+              responsive
+            />
+          </Menu.Item>
+        </Menu.SubMenu>
+        <Menu.Divider />
+        {showReportSubMenu ? (
+          <>
+            <Menu.SubMenu title={t('Manage email report')}>
+              <HeaderReportDropDown
+                chart={chart}
+                setShowReportSubMenu={setShowReportSubMenu}
+                showReportSubMenu={showReportSubMenu}
+                setIsDropdownVisible={setIsDropdownVisible}
+                isDropdownVisible={isDropdownVisible}
+                useTextMenu
+              />
             </Menu.SubMenu>
             <Menu.Divider />
-            {showReportSubMenu ? (
-              <>
-                <Menu.SubMenu title={t('Manage email report')}>
-                  <HeaderReportDropDown
-                    chart={chart}
-                    setShowReportSubMenu={setShowReportSubMenu}
-                    showReportSubMenu={showReportSubMenu}
-                    setIsDropdownVisible={setIsDropdownVisible}
-                    isDropdownVisible={isDropdownVisible}
-                    useTextMenu
-                  />
-                </Menu.SubMenu>
-                <Menu.Divider />
-              </>
-            ) : (
-              <Menu>
-                <HeaderReportDropDown
-                  chart={chart}
-                  setShowReportSubMenu={setShowReportSubMenu}
-                  setIsDropdownVisible={setIsDropdownVisible}
-                  isDropdownVisible={isDropdownVisible}
-                  useTextMenu
-                />
-              </Menu>
-            )}
-            <Menu.Item key={MENU_KEYS.VIEW_QUERY}>
-              <ModalTrigger
-                triggerNode={
-                  <span data-test="view-query-menu-item">
-                    {t('View query')}
-                  </span>
-                }
-                modalTitle={t('View query')}
-                modalBody={
-                  <ViewQueryModal latestQueryFormData={latestQueryFormData} />
-                }
-                draggable
-                resizable
-                responsive
-              />
-            </Menu.Item>
-            {sqlSupported && (
-              <Menu.Item key={MENU_KEYS.RUN_IN_SQL_LAB}>
-                {t('Run in SQL Lab')}
-              </Menu.Item>
-            )}
+          </>
+        ) : (
+          <Menu>
+            <HeaderReportDropDown
+              chart={chart}
+              setShowReportSubMenu={setShowReportSubMenu}
+              setIsDropdownVisible={setIsDropdownVisible}
+              isDropdownVisible={isDropdownVisible}
+              useTextMenu
+            />
           </Menu>
-        }
-      >
-        <MenuTrigger
-          buttonStyle="tertiary"
-          aria-label={t('Menu actions trigger')}
-        >
-          <Icons.MoreHoriz
-            iconColor={theme.colors.primary.dark2}
-            iconSize="l"
+        )}
+        <Menu.Item key={MENU_KEYS.VIEW_QUERY}>
+          <ModalTrigger
+            triggerNode={
+              <span data-test="view-query-menu-item">{t('View query')}</span>
+            }
+            modalTitle={t('View query')}
+            modalBody={
+              <ViewQueryModal latestQueryFormData={latestQueryFormData} />
+            }
+            draggable
+            resizable
+            responsive
           />
-        </MenuTrigger>
-      </AntdDropdown>
-    </>
+        </Menu.Item>
+        {sqlSupported && (
+          <Menu.Item key={MENU_KEYS.RUN_IN_SQL_LAB}>
+            {t('Run in SQL Lab')}
+          </Menu.Item>
+        )}
+      </Menu>
+    ),
+    [
+      addDangerToast,
+      canDownloadCSV,
+      chart,
+      handleMenuClick,
+      isDropdownVisible,
+      latestQueryFormData,
+      openSubmenus,
+      showReportSubMenu,
+      slice,
+      sqlSupported,
+      theme.gridUnit,
+    ],
   );
+  return [menu, isDropdownVisible, setIsDropdownVisible];
 };
-
-ExploreAdditionalActionsMenu.propTypes = propTypes;
-
-export default withToasts(ExploreAdditionalActionsMenu);
