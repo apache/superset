@@ -26,62 +26,62 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { css, styled, t } from '@superset-ui/core';
+import { css, SupersetTheme, t } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
 import { useResizeDetector } from 'react-resize-detector';
 
-export type ChartEditableTitleProps = {
+export type DynamicEditableTitleProps = {
   title: string;
   placeholder: string;
   onSave: (title: string) => void;
   canEdit: boolean;
+  label: string | undefined;
 };
 
-const Styles = styled.div`
-  ${({ theme }) => css`
-    display: flex;
-    font-size: ${theme.typography.sizes.xl}px;
-    font-weight: ${theme.typography.weights.bold};
+const titleStyles = (theme: SupersetTheme) => css`
+  display: flex;
+  font-size: ${theme.typography.sizes.xl}px;
+  font-weight: ${theme.typography.weights.bold};
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  & .dynamic-title,
+  & .dynamic-title-input {
+    display: inline-block;
+    max-width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
 
-    & .chart-title,
-    & .chart-title-input {
-      display: inline-block;
-      max-width: 100%;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
+  & .dynamic-title {
+    cursor: default;
+  }
+  & .dynamic-title-input {
+    border: none;
+    padding: 0;
+    outline: none;
 
-    & .chart-title {
-      cursor: default;
+    &::placeholder {
+      color: ${theme.colors.grayscale.light1};
     }
-    & .chart-title-input {
-      border: none;
-      padding: 0;
-      outline: none;
+  }
 
-      &::placeholder {
-        color: ${theme.colors.grayscale.light1};
-      }
-    }
-
-    & .input-sizer {
-      position: absolute;
-      left: -9999px;
-      display: inline-block;
-    }
-  `}
+  & .input-sizer {
+    position: absolute;
+    left: -9999px;
+    display: inline-block;
+  }
 `;
 
-export const ChartEditableTitle = ({
+export const DynamicEditableTitle = ({
   title,
   placeholder,
   onSave,
   canEdit,
-}: ChartEditableTitleProps) => {
+  label,
+}: DynamicEditableTitleProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [currentTitle, setCurrentTitle] = useState(title || '');
   const contentRef = useRef<HTMLInputElement>(null);
@@ -170,7 +170,7 @@ export const ChartEditableTitle = ({
   );
 
   return (
-    <Styles ref={containerRef}>
+    <div css={titleStyles} ref={containerRef}>
       <Tooltip
         id="title-tooltip"
         title={showTooltip && currentTitle && !isEditing ? currentTitle : null}
@@ -178,8 +178,8 @@ export const ChartEditableTitle = ({
         {canEdit ? (
           <input
             data-test="editable-title-input"
-            className="chart-title-input"
-            aria-label={t('Chart title')}
+            className="dynamic-title-input"
+            aria-label={label ?? t('Title')}
             ref={contentRef}
             onChange={handleChange}
             onBlur={handleBlur}
@@ -199,8 +199,8 @@ export const ChartEditableTitle = ({
           />
         ) : (
           <span
-            className="chart-title"
-            aria-label={t('Chart title')}
+            className="dynamic-title"
+            aria-label={label ?? t('Title')}
             ref={contentRef}
           >
             {currentTitle}
@@ -208,6 +208,6 @@ export const ChartEditableTitle = ({
         )}
       </Tooltip>
       <span ref={sizerRef} className="input-sizer" aria-hidden tabIndex={-1} />
-    </Styles>
+    </div>
   );
 };
