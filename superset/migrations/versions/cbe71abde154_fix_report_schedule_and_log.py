@@ -66,6 +66,8 @@ def upgrade():
         schedule.last_value = None
         schedule.last_value_row_json = None
 
+    session.commit()
+
     for execution_log in (
         session.query(ReportExecutionLog)
         .filter(ReportExecutionLog.state == ReportState.WORKING)
