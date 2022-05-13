@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import memoizeOne from 'memoize-one';
 import { DataRecord } from '@superset-ui/core';
 import {
   ColorFormatters,
@@ -180,30 +181,32 @@ export const getColorFunction = (
   };
 };
 
-export const getColorFormatters = (
-  columnConfig: ConditionalFormattingConfig[] | undefined,
-  data: DataRecord[],
-) =>
-  columnConfig?.reduce(
-    (acc: ColorFormatters, config: ConditionalFormattingConfig) => {
-      if (
-        config?.column !== undefined &&
-        (config?.operator === COMPARATOR.NONE ||
-          (config?.operator !== undefined &&
-            (MULTIPLE_VALUE_COMPARATORS.includes(config?.operator)
-              ? config?.targetValueLeft !== undefined &&
-                config?.targetValueRight !== undefined
-              : config?.targetValue !== undefined)))
-      ) {
-        acc.push({
-          column: config?.column,
-          getColorFromValue: getColorFunction(
-            config,
-            data.map(row => row[config.column!] as number),
-          ),
-        });
-      }
-      return acc;
-    },
-    [],
-  ) ?? [];
+export const getColorFormatters = memoizeOne(
+  (
+    columnConfig: ConditionalFormattingConfig[] | undefined,
+    data: DataRecord[],
+  ) =>
+    columnConfig?.reduce(
+      (acc: ColorFormatters, config: ConditionalFormattingConfig) => {
+        if (
+          config?.column !== undefined &&
+          (config?.operator === COMPARATOR.NONE ||
+            (config?.operator !== undefined &&
+              (MULTIPLE_VALUE_COMPARATORS.includes(config?.operator)
+                ? config?.targetValueLeft !== undefined &&
+                  config?.targetValueRight !== undefined
+                : config?.targetValue !== undefined)))
+        ) {
+          acc.push({
+            column: config?.column,
+            getColorFromValue: getColorFunction(
+              config,
+              data.map(row => row[config.column!] as number),
+            ),
+          });
+        }
+        return acc;
+      },
+      [],
+    ) ?? [],
+);
