@@ -20,6 +20,7 @@ import { SupersetError } from 'src/components/ErrorMessage/types';
 import { CtasEnum } from 'src/SqlLab/actions/sqlLab';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { ToastType } from 'src/components/MessageToasts/types';
+import { DatasourceType } from '@superset-ui/core';
 
 // same as superset.result_set.ResultSetColumnType
 export type Column = {
@@ -86,6 +87,7 @@ export type Query = {
   executedSql: string;
   output: string | Record<string, any>;
   actions: Record<string, any>;
+  type: DatasourceType.Query;
 };
 
 export interface QueryEditor {
@@ -156,6 +158,20 @@ export type ExploreRootState = {
 };
 
 export type SqlLabExploreRootState = SqlLabRootState | ExploreRootState;
+
+export const getInitialState = (state: SqlLabExploreRootState) => {
+  if (state.hasOwnProperty('sqlLab')) {
+    const {
+      sqlLab: { user },
+    } = state as SqlLabRootState;
+    return user;
+  }
+
+  const {
+    explore: { user },
+  } = state as ExploreRootState;
+  return user;
+};
 
 export enum DatasetRadioState {
   SAVE_NEW = 1,
