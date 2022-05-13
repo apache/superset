@@ -389,7 +389,7 @@ export default class Chart extends React.Component {
         <SliceHeader
           innerRef={this.setHeaderRef}
           slice={slice}
-          isExpanded={!!isExpanded}
+          isExpanded={isExpanded}
           isCached={isCached}
           cachedDttm={cachedDttm}
           updatedDttm={chartUpdateEndTime}
