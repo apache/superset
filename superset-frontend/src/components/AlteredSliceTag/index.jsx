@@ -20,7 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { isEqual, isEmpty } from 'lodash';
 import { styled, t } from '@superset-ui/core';
-import { sanitizeFormData } from 'src/explore/exploreUtils/formData';
+import { getFormDataDiffs } from 'src/explore/exploreUtils/formData';
 import getControlsForVizType from 'src/utils/getControlsForVizType';
 import { safeStringify } from 'src/utils/safeStringify';
 import { Tooltip } from 'src/components/Tooltip';
@@ -43,24 +43,6 @@ const StyledLabel = styled.span`
     }
   `}
 `;
-
-function alterForComparison(value) {
-  // Considering `[]`, `{}`, `null` and `undefined` as identical
-  // for this purpose
-  if (value === undefined || value === null || value === '') {
-    return null;
-  }
-  if (typeof value === 'object') {
-    if (Array.isArray(value) && value.length === 0) {
-      return null;
-    }
-    const keys = Object.keys(value);
-    if (keys && keys.length === 0) {
-      return null;
-    }
-  }
-  return value;
-}
 
 export default class AlteredSliceTag extends React.Component {
   constructor(props) {
@@ -95,27 +77,7 @@ export default class AlteredSliceTag extends React.Component {
   getDiffs(props) {
     // Returns all properties that differ in the
     // current form data and the saved form data
-    const ofd = sanitizeFormData(props.origFormData);
-    const cfd = sanitizeFormData(props.currentFormData);
-
-    const fdKeys = Object.keys(cfd);
-    const diffs = {};
-    fdKeys.forEach(fdKey => {
-      if (!ofd[fdKey] && !cfd[fdKey]) {
-        return;
-      }
-      if (['filters', 'having', 'having_filters', 'where'].includes(fdKey)) {
-        return;
-      }
-      if (!this.isEqualish(ofd[fdKey], cfd[fdKey])) {
-        diffs[fdKey] = { before: ofd[fdKey], after: cfd[fdKey] };
-      }
-    });
-    return diffs;
-  }
-
-  isEqualish(val1, val2) {
-    return isEqual(alterForComparison(val1), alterForComparison(val2));
+    return getFormDataDiffs(props.origFormData, props.currentFormData);
   }
 
   formatValue(value, key, controlsMap) {

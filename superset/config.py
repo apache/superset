@@ -412,6 +412,9 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "UX_BETA": False,
     "GENERIC_CHART_AXES": False,
     "ALLOW_ADHOC_SUBQUERY": False,
+    # Apply RLS rules to SQL Lab queries. This requires parsing and manipulating the
+    # query, and might break queries and/or allow users to bypass RLS. Use with care!
+    "RLS_IN_SQLLAB": False,
 }
 
 # Feature flags may also be set via 'SUPERSET_FEATURE_' prefixed environment vars.
@@ -677,7 +680,7 @@ BACKUP_COUNT = 30
 #     database,
 #     query,
 #     schema=None,
-#     user=None,
+#     user=None,  # TODO(john-bodley): Deprecate in 3.0.
 #     client=None,
 #     security_manager=None,
 #     log_params=None,
@@ -1017,9 +1020,14 @@ DB_CONNECTION_MUTATOR = None
 # The use case is can be around adding some sort of comment header
 # with information such as the username and worker node information
 #
-#    def SQL_QUERY_MUTATOR(sql, user_name=user_name, security_manager=security_manager, database=database):
+#    def SQL_QUERY_MUTATOR(
+#        sql,
+#        user_name=user_name,  # TODO(john-bodley): Deprecate in 3.0.
+#        security_manager=security_manager,
+#        database=database,
+#    ):
 #        dttm = datetime.now().isoformat()
-#        return f"-- [SQL LAB] {username} {dttm}\n{sql}"
+#        return f"-- [SQL LAB] {user_name} {dttm}\n{sql}"
 # For backward compatibility, you can unpack any of the above arguments in your
 # function definition, but keep the **kwargs as the last argument to allow new args
 # to be added later without any errors.

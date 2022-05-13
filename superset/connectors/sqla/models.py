@@ -120,6 +120,7 @@ from superset.utils import core as utils
 from superset.utils.core import (
     GenericDataType,
     get_column_name,
+    get_username,
     is_adhoc_column,
     MediumText,
     QueryObjectFilterClause,
@@ -917,10 +918,9 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         Typically adds comments to the query with context"""
         sql_query_mutator = config["SQL_QUERY_MUTATOR"]
         if sql_query_mutator:
-            username = utils.get_username()
             sql = sql_query_mutator(
                 sql,
-                user_name=username,
+                user_name=get_username(),  # TODO(john-bodley): Deprecate in 3.0.
                 security_manager=security_manager,
                 database=self.database,
             )
@@ -1120,20 +1120,24 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                 col.name = f"{col.name}__"
 
     def get_sqla_row_level_filters(
-        self, template_processor: BaseTemplateProcessor
+        self,
+        template_processor: BaseTemplateProcessor,
+        username: Optional[str] = None,
     ) -> List[TextClause]:
         """
-        Return the appropriate row level security filters for
-        this table and the current user.
+        Return the appropriate row level security filters for this table and the
+        current user. A custom username can be passed when the user is not present in the
+        Flask global namespace.
 
-        :param BaseTemplateProcessor template_processor: The template
-        processor to apply to the filters.
+        :param template_processor: The template processor to apply to the filters.
+        :param username: Optional username if there's no user in the Flask global
+        namespace.
         :returns: A list of SQL clauses to be ANDed together.
         """
         all_filters: List[TextClause] = []
         filter_groups: Dict[Union[int, str], List[TextClause]] = defaultdict(list)
         try:
-            for filter_ in security_manager.get_rls_filters(self):
+            for filter_ in security_manager.get_rls_filters(self, username):
                 clause = self.text(
                     f"({template_processor.process_template(filter_.clause)})"
                 )

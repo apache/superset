@@ -27,3 +27,5 @@ module.exports = (on, config) => {
   on('task', { isFileExist, findFiles });
   return config;
 };
+
+require('@applitools/eyes-cypress')(module);
