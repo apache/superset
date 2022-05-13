@@ -1064,7 +1064,7 @@ class TestCore(SupersetTestCase):
             LIMIT 10;
             """,
             client_id="client_id_1",
-            user_name="admin",
+            username="admin",
         )
         count_ds = []
         count_name = []
@@ -1454,7 +1454,7 @@ class TestCore(SupersetTestCase):
         self.run_sql(
             "SELECT name FROM birth_names",
             "client_id_1",
-            user_name=username,
+            username=username,
             raise_on_error=True,
             sql_editor_id=str(tab_state_id),
         )
@@ -1462,7 +1462,7 @@ class TestCore(SupersetTestCase):
         self.run_sql(
             "SELECT name FROM birth_names",
             "client_id_2",
-            user_name=username,
+            username=username,
             raise_on_error=True,
         )
 

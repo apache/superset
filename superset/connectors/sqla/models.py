@@ -120,6 +120,7 @@ from superset.utils import core as utils
 from superset.utils.core import (
     GenericDataType,
     get_column_name,
+    get_username,
     is_adhoc_column,
     MediumText,
     QueryObjectFilterClause,
@@ -917,10 +918,9 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         Typically adds comments to the query with context"""
         sql_query_mutator = config["SQL_QUERY_MUTATOR"]
         if sql_query_mutator:
-            username = utils.get_username()
             sql = sql_query_mutator(
                 sql,
-                user_name=username,
+                user_name=get_username(),  # TODO(john-bodley): Deprecate in 3.0.
                 security_manager=security_manager,
                 database=self.database,
             )
