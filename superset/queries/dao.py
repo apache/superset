@@ -14,8 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import json
 import logging
 from datetime import datetime
+from typing import Any, Dict, List
 
 from superset.dao.base import BaseDAO
 from superset.extensions import db
@@ -48,3 +50,21 @@ class QueryDAO(BaseDAO):
                 saved_query.rows = query.rows
                 saved_query.last_run = datetime.now()
             db.session.commit()
+
+    @staticmethod
+    def save_metadata(query: Query, query_payload: str) -> None:
+        # parse payload
+        try:
+            payload: Dict[str, Any] = json.loads(query_payload)
+        except json.JSONDecodeError:
+            logger.warning("Error parsing query_payload: %s", query_payload)
+            return None
+
+        # pull relevant data from payload and store in json_metadata
+        columns = payload.get("columns", {})
+        metadata: Dict[str, Any] = {"columns": columns}
+
+        # save payload into query object
+        query.json_metadata = json.dumps(metadata)
+        db.session.commit()
+        return None

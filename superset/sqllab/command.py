@@ -94,11 +94,20 @@ class ExecuteSqlCommand(BaseCommand):
                 status = SqlJsonExecutionStatus.QUERY_ALREADY_CREATED
             else:
                 status = self._run_sql_json_exec_from_scratch()
+
+            payload = self._execution_context_convertor.to_payload(
+                self._execution_context, status
+            )
+
+            # save columns into metadata_json
+            if query:
+                self._query_dao.save_metadata(query, payload)
+            else:
+                self._query_dao.save_metadata(self._execution_context.query, payload)
+
             return {
                 "status": status,
-                "payload": self._execution_context_convertor.to_payload(
-                    self._execution_context, status
-                ),
+                "payload": payload,
             }
         except (SqlLabException, SupersetErrorsException) as ex:
             raise ex
