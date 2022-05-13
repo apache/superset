@@ -29,6 +29,7 @@ import {
   SupersetClient,
   makeApi,
   JsonResponse,
+  // DatasourceType,
 } from '@superset-ui/core';
 import { useSelector } from 'react-redux';
 import moment from 'moment';
@@ -43,8 +44,7 @@ import {
   DatasetOptionAutocomplete,
   Query,
   SqlLabExploreRootState,
-  SqlLabRootState,
-  ExploreRootState,
+  getInitialState,
 } from 'src/SqlLab/types';
 // import { Dataset } from '@superset-ui/chart-controls';
 import { exploreChart } from 'src/explore/exploreUtils';
@@ -108,6 +108,11 @@ const updateDataset = async (
   return data.json.result;
 };
 
+// const getDatasourceState = (datasource: ExploreDatasource) => {
+//   if (datasource.type === DatasourceType.Dataset) return datasource as Dataset;
+//   return datasource as Query;
+// };
+
 // eslint-disable-next-line no-empty-pattern
 export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
   visible,
@@ -132,11 +137,9 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
   >({});
   const [autocompleteValue, setAutocompleteValue] = useState('');
 
-  const user = useSelector<any, User>(state => {
-    if (state.sqlLab) return state.sqlLab.user;
-    return state.explore.user;
-  });
-  console.log('findme user', user);
+  const user = useSelector<SqlLabExploreRootState, User>(state =>
+    getInitialState(state),
+  );
 
   const handleOverwriteDataset = async () => {
     await updateDataset(
@@ -203,7 +206,6 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
 
     return null;
   };
-  console.log('findme selectedColumns', datasource);
 
   const handleSaveInDataset = () => {
     // if user wants to overwrite a dataset we need to prompt them
@@ -227,6 +229,8 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
         datasource.templateParams = JSON.stringify(p);
       }
     }
+
+    console.log('findme save state', datasource, datasetName, selectedColumns);
 
     // TODO: lyndsiWilliams - set up when the back end logic is implemented
     new Promise(
