@@ -40,7 +40,7 @@ import pandas as pd
 import sqlparse
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
-from flask import current_app, g
+from flask import current_app
 from flask_babel import gettext as __, lazy_gettext as _
 from marshmallow import fields, Schema
 from marshmallow.validate import Range
@@ -64,7 +64,7 @@ from superset.models.sql_lab import Query
 from superset.sql_parse import ParsedQuery, Table
 from superset.superset_typing import ResultSetColumnType
 from superset.utils import core as utils
-from superset.utils.core import ColumnSpec, GenericDataType
+from superset.utils.core import ColumnSpec, GenericDataType, get_username
 from superset.utils.hashing import md5_sha_from_str
 from superset.utils.network import is_hostname_valid, is_port_open
 
@@ -392,10 +392,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         schema: Optional[str] = None,
         source: Optional[str] = None,
     ) -> Engine:
-        user_name = utils.get_username()
-        return database.get_sqla_engine(
-            schema=schema, nullpool=True, user_name=user_name, source=source
-        )
+        return database.get_sqla_engine(schema=schema, source=source)
 
     @classmethod
     def get_timestamp_expr(
@@ -1158,15 +1155,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         raise Exception("Database does not support cost estimation")
 
     @classmethod
-    def process_statement(
-        cls, statement: str, database: "Database", user_name: str
-    ) -> str:
+    def process_statement(cls, statement: str, database: "Database") -> str:
         """
         Process a SQL statement by stripping and mutating it.
 
         :param statement: A single SQL statement
         :param database: Database instance
-        :param user_name: Effective username
         :return: Dictionary with different costs
         """
         parsed_query = ParsedQuery(statement)
@@ -1175,7 +1169,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         if sql_query_mutator:
             sql = sql_query_mutator(
                 sql,
-                user_name=user_name,
+                user_name=get_username(),  # TODO(john-bodley): Deprecate in 3.0.
                 security_manager=security_manager,
                 database=database,
             )
@@ -1198,7 +1192,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         if not cls.get_allow_cost_estimate(extra):
             raise Exception("Database does not support cost estimation")
 
-        user_name = g.user.username if g.user and hasattr(g.user, "username") else None
         parsed_query = sql_parse.ParsedQuery(sql)
         statements = parsed_query.get_statements()
 
@@ -1207,9 +1200,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         with closing(engine.raw_connection()) as conn:
             cursor = conn.cursor()
             for statement in statements:
-                processed_statement = cls.process_statement(
-                    statement, database, user_name
-                )
+                processed_statement = cls.process_statement(statement, database)
                 costs.append(cls.estimate_statement_cost(processed_statement, cursor))
         return costs
 
