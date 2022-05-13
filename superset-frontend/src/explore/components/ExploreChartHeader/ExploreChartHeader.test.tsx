@@ -18,10 +18,13 @@
  */
 
 import React from 'react';
-import { render, screen } from 'spec/helpers/testing-library';
+import sinon from 'sinon';
+import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
-
 import fetchMock from 'fetch-mock';
+import * as chartAction from 'src/components/Chart/chartAction';
+import * as downloadAsImage from 'src/utils/downloadAsImage';
+import * as exploreUtils from 'src/explore/exploreUtils';
 import ExploreHeader from '.';
 
 const chartEndpoint = 'glob:*api/v1/chart/*';
@@ -30,6 +33,7 @@ fetchMock.get(chartEndpoint, { json: 'foo' });
 
 const createProps = () => ({
   chart: {
+    id: 1,
     latestQueryFormData: {
       viz_type: 'histogram',
       datasource: '49__table',
@@ -88,16 +92,28 @@ const createProps = () => ({
   },
   slice_name: 'Age distribution of respondents',
   actions: {
-    postChartFormData: () => null,
-    updateChartTitle: () => null,
-    fetchFaveStar: () => null,
-    saveFaveStar: () => null,
+    postChartFormData: jest.fn(),
+    updateChartTitle: jest.fn(),
+    fetchFaveStar: jest.fn(),
+    saveFaveStar: jest.fn(),
+    redirectSQLLab: jest.fn(),
   },
   user: {
     userId: 1,
   },
   onSaveChart: jest.fn(),
+  canOverwrite: false,
+  canDownload: false,
+  isStarred: false,
 });
+
+fetchMock.post(
+  'http://api/v1/chart/data?form_data=%7B%22slice_id%22%3A318%7D',
+  { body: {} },
+  {
+    sendAsJson: false,
+  },
+);
 
 test('Cancelling changes to the properties should reset previous properties', () => {
   const props = createProps();
@@ -135,4 +151,209 @@ test('Save disabled', () => {
   render(<ExploreHeader {...props} saveDisabled />, { useRedux: true });
   userEvent.click(screen.getByText('Save'));
   expect(props.onSaveChart).not.toHaveBeenCalled();
+});
+
+describe('Additional actions tests', () => {
+  test('Should render a button', () => {
+    const props = createProps();
+    render(<ExploreHeader {...props} />, { useRedux: true });
+    expect(screen.getByLabelText('Menu actions trigger')).toBeInTheDocument();
+  });
+
+  test('Should open a menu', () => {
+    const props = createProps();
+    render(<ExploreHeader {...props} />, {
+      useRedux: true,
+    });
+
+    userEvent.click(screen.getByLabelText('Menu actions trigger'));
+
+    expect(screen.getByText('Edit chart properties')).toBeInTheDocument();
+    expect(screen.getByText('Download')).toBeInTheDocument();
+    expect(screen.getByText('Share')).toBeInTheDocument();
+    expect(screen.getByText('View query')).toBeInTheDocument();
+    expect(screen.getByText('Run in SQL Lab')).toBeInTheDocument();
+
+    expect(
+      screen.queryByText('Set up an email report'),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Manage email report')).not.toBeInTheDocument();
+  });
+
+  test('Should open download submenu', async () => {
+    const props = createProps();
+    render(<ExploreHeader {...props} />, {
+      useRedux: true,
+    });
+
+    userEvent.click(screen.getByLabelText('Menu actions trigger'));
+
+    expect(screen.queryByText('Export to .CSV')).not.toBeInTheDocument();
+    expect(screen.queryByText('Export to .JSON')).not.toBeInTheDocument();
+    expect(screen.queryByText('Download as image')).not.toBeInTheDocument();
+
+    expect(screen.getByText('Download')).toBeInTheDocument();
+    userEvent.hover(screen.getByText('Download'));
+    expect(await screen.findByText('Export to .CSV')).toBeInTheDocument();
+    expect(await screen.findByText('Export to .JSON')).toBeInTheDocument();
+    expect(await screen.findByText('Download as image')).toBeInTheDocument();
+  });
+
+  test('Should open share submenu', async () => {
+    const props = createProps();
+    render(<ExploreHeader {...props} />, {
+      useRedux: true,
+    });
+
+    userEvent.click(screen.getByLabelText('Menu actions trigger'));
+
+    expect(
+      screen.queryByText('Copy permalink to clipboard'),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Embed code')).not.toBeInTheDocument();
+    expect(screen.queryByText('Share chart by email')).not.toBeInTheDocument();
+
+    expect(screen.getByText('Share')).toBeInTheDocument();
+    userEvent.hover(screen.getByText('Share'));
+    expect(
+      await screen.findByText('Copy permalink to clipboard'),
+    ).toBeInTheDocument();
+    expect(await screen.findByText('Embed code')).toBeInTheDocument();
+    expect(await screen.findByText('Share chart by email')).toBeInTheDocument();
+  });
+
+  test('Should call onOpenPropertiesModal when click on "Edit chart properties"', async () => {
+    const props = createProps();
+    render(<ExploreHeader {...props} />, {
+      useRedux: true,
+    });
+    expect(props.actions.redirectSQLLab).toBeCalledTimes(0);
+    userEvent.click(screen.getByLabelText('Menu actions trigger'));
+    userEvent.click(
+      screen.getByRole('menuitem', { name: 'Edit chart properties' }),
+    );
+    expect(await screen.findByText('Edit Chart Properties')).toBeVisible();
+  });
+
+  test('Should call getChartDataRequest when click on "View query"', async () => {
+    const props = createProps();
+    const getChartDataRequest = jest.spyOn(chartAction, 'getChartDataRequest');
+    render(<ExploreHeader {...props} />, {
+      useRedux: true,
+    });
+
+    expect(getChartDataRequest).toBeCalledTimes(0);
+    userEvent.click(screen.getByLabelText('Menu actions trigger'));
+    expect(getChartDataRequest).toBeCalledTimes(0);
+
+    const menuItem = screen.getByText('View query').parentElement!;
+    userEvent.click(menuItem);
+
+    await waitFor(() => expect(getChartDataRequest).toBeCalledTimes(1));
+  });
+
+  test('Should call onOpenInEditor when click on "Run in SQL Lab"', () => {
+    const props = createProps();
+    render(<ExploreHeader {...props} />, {
+      useRedux: true,
+    });
+
+    expect(props.actions.redirectSQLLab).toBeCalledTimes(0);
+    userEvent.click(screen.getByLabelText('Menu actions trigger'));
+    expect(props.actions.redirectSQLLab).toBeCalledTimes(0);
+
+    userEvent.click(screen.getByRole('menuitem', { name: 'Run in SQL Lab' }));
+    expect(props.actions.redirectSQLLab).toBeCalledTimes(1);
+  });
+
+  describe('Download', () => {
+    let spyDownloadAsImage = sinon.spy();
+    let spyExportChart = sinon.spy();
+
+    beforeEach(() => {
+      spyDownloadAsImage = sinon.spy(downloadAsImage, 'default');
+      spyExportChart = sinon.spy(exploreUtils, 'exportChart');
+    });
+    afterEach(() => {
+      spyDownloadAsImage.restore();
+      spyExportChart.restore();
+    });
+    test('Should call downloadAsImage when click on "Download as image"', async () => {
+      const props = createProps();
+      const spy = jest.spyOn(downloadAsImage, 'default');
+      render(<ExploreHeader {...props} />, {
+        useRedux: true,
+      });
+
+      expect(spy).toBeCalledTimes(0);
+      userEvent.click(screen.getByLabelText('Menu actions trigger'));
+      expect(spy).toBeCalledTimes(0);
+
+      userEvent.hover(screen.getByText('Download'));
+      const downloadAsImageElement = await screen.findByText(
+        'Download as image',
+      );
+      userEvent.click(downloadAsImageElement);
+
+      expect(spy).toBeCalledTimes(1);
+    });
+
+    test('Should not export to CSV if canDownload=false', async () => {
+      const props = createProps();
+      render(<ExploreHeader {...props} />, {
+        useRedux: true,
+      });
+      userEvent.click(screen.getByLabelText('Menu actions trigger'));
+      userEvent.hover(screen.getByText('Download'));
+      const exportCSVElement = await screen.findByText('Export to .CSV');
+      userEvent.click(exportCSVElement);
+      expect(spyExportChart.callCount).toBe(0);
+      spyExportChart.restore();
+    });
+
+    test('Should export to CSV if canDownload=true', async () => {
+      const props = createProps();
+      props.canDownload = true;
+      render(<ExploreHeader {...props} />, {
+        useRedux: true,
+      });
+
+      userEvent.click(screen.getByLabelText('Menu actions trigger'));
+      userEvent.hover(screen.getByText('Download'));
+      const exportCSVElement = await screen.findByText('Export to .CSV');
+      userEvent.click(exportCSVElement);
+      expect(spyExportChart.callCount).toBe(1);
+      spyExportChart.restore();
+    });
+
+    test('Should export to JSON', async () => {
+      const props = createProps();
+      render(<ExploreHeader {...props} />, {
+        useRedux: true,
+      });
+
+      userEvent.click(screen.getByLabelText('Menu actions trigger'));
+      userEvent.hover(screen.getByText('Download'));
+      const exportJsonElement = await screen.findByText('Export to .JSON');
+      userEvent.click(exportJsonElement);
+      expect(spyExportChart.callCount).toBe(1);
+    });
+
+    test('Should export to pivoted CSV if canDownloadCSV=true and viz_type=pivot_table_v2', async () => {
+      const props = createProps();
+      props.canDownload = true;
+      props.chart.latestQueryFormData.viz_type = 'pivot_table_v2';
+      render(<ExploreHeader {...props} />, {
+        useRedux: true,
+      });
+
+      userEvent.click(screen.getByLabelText('Menu actions trigger'));
+      userEvent.hover(screen.getByText('Download'));
+      const exportCSVElement = await screen.findByText(
+        'Export to pivoted .CSV',
+      );
+      userEvent.click(exportCSVElement);
+      expect(spyExportChart.callCount).toBe(1);
+    });
+  });
 });
