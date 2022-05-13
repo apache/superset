@@ -25,7 +25,7 @@ from celery.exceptions import SoftTimeLimitExceeded
 from flask_appbuilder.security.sqla.models import User
 from sqlalchemy.orm import Session
 
-from superset import app
+from superset import app, security_manager
 from superset.commands.base import BaseCommand
 from superset.commands.exceptions import CommandException
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
@@ -179,11 +179,10 @@ class BaseReportState:
             **kwargs,
         )
 
-    def _get_user(self) -> User:
-        user = (
-            self._session.query(User)
-            .filter(User.username == app.config["THUMBNAIL_SELENIUM_USER"])
-            .one_or_none()
+    @staticmethod
+    def _get_user() -> User:
+        user = security_manager.find_user(
+            username=app.config["THUMBNAIL_SELENIUM_USER"]
         )
         if not user:
             raise ReportScheduleSelleniumUserNotFoundError()

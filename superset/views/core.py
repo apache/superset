@@ -1367,11 +1367,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             )
             database.set_sqlalchemy_uri(uri)
             database.db_engine_spec.mutate_db_for_connection_test(database)
-
-            username = (
-                g.user.username if g.user and hasattr(g.user, "username") else None
-            )
-            engine = database.get_sqla_engine(user_name=username)
+            engine = database.get_sqla_engine()
 
             with closing(engine.raw_connection()) as conn:
                 if engine.dialect.do_ping(conn):
@@ -2298,7 +2294,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             )
             return self.json_response("OK")
 
-        if not sql_lab.cancel_query(query, g.user.username if g.user else None):
+        if not sql_lab.cancel_query(query):
             raise SupersetCancelQueryException("Could not cancel query")
 
         query.status = QueryStatus.STOPPED
