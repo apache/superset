@@ -29,6 +29,9 @@ function decreaseSizeUntil(
   let dimension = computeDimension(size);
   while (!condition(dimension)) {
     size -= 1;
+    if (size === 0) {
+      break;
+    }
     dimension = computeDimension(size);
   }
 
@@ -43,7 +46,6 @@ export default function computeMaxFontSize(
   },
 ) {
   const { idealFontSize, maxWidth, maxHeight, style, ...rest } = input;
-
   let size: number;
   if (idealFontSize !== undefined && idealFontSize !== null) {
     size = idealFontSize;
@@ -66,7 +68,7 @@ export default function computeMaxFontSize(
     size = decreaseSizeUntil(
       size,
       computeDimension,
-      dim => dim.width <= maxWidth,
+      dim => dim.width > 0 && dim.width <= maxWidth,
     );
   }
 
@@ -74,7 +76,7 @@ export default function computeMaxFontSize(
     size = decreaseSizeUntil(
       size,
       computeDimension,
-      dim => dim.height <= maxHeight,
+      dim => dim.height > 0 && dim.height <= maxHeight,
     );
   }
 
