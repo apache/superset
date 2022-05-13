@@ -218,6 +218,7 @@ export default function transformProps(
           bottom: 0,
         },
         tooltip: {
+          appendToBody: true,
           show: true,
           trigger: 'axis',
           confine: true,
