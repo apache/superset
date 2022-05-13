@@ -94,35 +94,39 @@ class BaseReportState:
         self._start_dttm = datetime.utcnow()
         self._execution_id = execution_id
 
-    def set_state_and_log(
+    def update_report_schedule_and_log(
         self,
         state: ReportState,
         error_message: Optional[str] = None,
     ) -> None:
         """
-        Updates current ReportSchedule state and TS. If on final state writes the log
-        for this execution
+        Update the report schedule state et al. and reflect the change in the execution
+        log.
         """
-        now_dttm = datetime.utcnow()
-        self.set_state(state, now_dttm)
-        self.create_log(
-            state,
-            error_message=error_message,
-        )
 
-    def set_state(self, state: ReportState, dttm: datetime) -> None:
+        self.update_report_schedule(state)
+        self.create_log(error_message)
+
+    def update_report_schedule(self, state: ReportState) -> None:
         """
-        Set the current report schedule state, on this case we want to
-        commit immediately
+        Update the report schedule state et al.
+
+        When the report state is WORKING we must ensure that the values from the last
+        execution run are cleared to ensure that they are not propagated to the
+        execution log.
         """
+
+        if state == ReportState.WORKING:
+            self._report_schedule.last_value = None
+            self._report_schedule.last_value_row_json = None
+
         self._report_schedule.last_state = state
-        self._report_schedule.last_eval_dttm = dttm
+        self._report_schedule.last_eval_dttm = datetime.utcnow()
+
         self._session.merge(self._report_schedule)
         self._session.commit()
 
-    def create_log(
-        self, state: ReportState, error_message: Optional[str] = None
-    ) -> None:
+    def create_log(self, error_message: Optional[str] = None) -> None:
         """
         Creates a Report execution log, uses the current computed last_value for Alerts
         """
@@ -132,7 +136,7 @@ class BaseReportState:
             end_dttm=datetime.utcnow(),
             value=self._report_schedule.last_value,
             value_row_json=self._report_schedule.last_value_row_json,
-            state=state,
+            state=self._report_schedule.last_state,
             error_message=error_message,
             report_schedule=self._report_schedule,
             uuid=self._execution_id,
@@ -489,17 +493,19 @@ class ReportNotTriggeredErrorState(BaseReportState):
     initial = True
 
     def next(self) -> None:
-        self.set_state_and_log(ReportState.WORKING)
+        self.update_report_schedule_and_log(ReportState.WORKING)
         try:
             # If it's an alert check if the alert is triggered
             if self._report_schedule.type == ReportScheduleType.ALERT:
                 if not AlertCommand(self._report_schedule).run():
-                    self.set_state_and_log(ReportState.NOOP)
+                    self.update_report_schedule_and_log(ReportState.NOOP)
                     return
             self.send()
-            self.set_state_and_log(ReportState.SUCCESS)
+            self.update_report_schedule_and_log(ReportState.SUCCESS)
         except CommandException as first_ex:
-            self.set_state_and_log(ReportState.ERROR, error_message=str(first_ex))
+            self.update_report_schedule_and_log(
+                ReportState.ERROR, error_message=str(first_ex)
+            )
             # TODO (dpgaspar) convert this logic to a new state eg: ERROR_ON_GRACE
             if not self.is_in_error_grace_period():
                 try:
@@ -508,12 +514,12 @@ class ReportNotTriggeredErrorState(BaseReportState):
                         f" {self._report_schedule.name}",
                         str(first_ex),
                     )
-                    self.set_state_and_log(
+                    self.update_report_schedule_and_log(
                         ReportState.ERROR,
                         error_message=REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER,
                     )
                 except CommandException as second_ex:
-                    self.set_state_and_log(
+                    self.update_report_schedule_and_log(
                         ReportState.ERROR, error_message=str(second_ex)
                     )
             raise first_ex
@@ -532,13 +538,13 @@ class ReportWorkingState(BaseReportState):
     def next(self) -> None:
         if self.is_on_working_timeout():
             exception_timeout = ReportScheduleWorkingTimeoutError()
-            self.set_state_and_log(
+            self.update_report_schedule_and_log(
                 ReportState.ERROR,
                 error_message=str(exception_timeout),
             )
             raise exception_timeout
         exception_working = ReportSchedulePreviousWorkingError()
-        self.set_state_and_log(
+        self.update_report_schedule_and_log(
             ReportState.WORKING,
             error_message=str(exception_working),
         )
@@ -559,15 +565,15 @@ class ReportSuccessState(BaseReportState):
     def next(self) -> None:
         if self._report_schedule.type == ReportScheduleType.ALERT:
             if self.is_in_grace_period():
-                self.set_state_and_log(
+                self.update_report_schedule_and_log(
                     ReportState.GRACE,
                     error_message=str(ReportScheduleAlertGracePeriodError()),
                 )
                 return
-            self.set_state_and_log(ReportState.WORKING)
+            self.update_report_schedule_and_log(ReportState.WORKING)
             try:
                 if not AlertCommand(self._report_schedule).run():
-                    self.set_state_and_log(ReportState.NOOP)
+                    self.update_report_schedule_and_log(ReportState.NOOP)
                     return
             except CommandException as ex:
                 self.send_error(
@@ -575,7 +581,7 @@ class ReportSuccessState(BaseReportState):
                     f" {self._report_schedule.name}",
                     str(ex),
                 )
-                self.set_state_and_log(
+                self.update_report_schedule_and_log(
                     ReportState.ERROR,
                     error_message=REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER,
                 )
@@ -583,9 +589,11 @@ class ReportSuccessState(BaseReportState):
 
         try:
             self.send()
-            self.set_state_and_log(ReportState.SUCCESS)
+            self.update_report_schedule_and_log(ReportState.SUCCESS)
         except CommandException as ex:
-            self.set_state_and_log(ReportState.ERROR, error_message=str(ex))
+            self.update_report_schedule_and_log(
+                ReportState.ERROR, error_message=str(ex)
+            )
 
 
 class ReportScheduleStateMachine:  # pylint: disable=too-few-public-methods
