@@ -16,8 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { debounce } from 'lodash';
 import { formatSelectOptions } from '@superset-ui/chart-controls';
-import { addLocaleData, t } from '@superset-ui/core';
+import { addLocaleData, SLOW_DEBOUNCE, t } from '@superset-ui/core';
 import i18n from './i18n';
 
 addLocaleData(i18n);
@@ -35,3 +36,8 @@ export const PAGE_SIZE_OPTIONS = formatSelectOptions<number>([
   100,
   200,
 ]);
+
+export const debounceFunc = debounce(
+  (func: (val: string) => void, source: string) => func(source),
+  SLOW_DEBOUNCE,
+);

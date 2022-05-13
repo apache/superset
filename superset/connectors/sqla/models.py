@@ -125,6 +125,7 @@ from superset.utils import core as utils
 from superset.utils.core import (
     GenericDataType,
     get_column_name,
+    get_username,
     is_adhoc_column,
     MediumText,
     QueryObjectFilterClause,
@@ -924,10 +925,9 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         Typically adds comments to the query with context"""
         sql_query_mutator = config["SQL_QUERY_MUTATOR"]
         if sql_query_mutator:
-            username = utils.get_username()
             sql = sql_query_mutator(
                 sql,
-                user_name=username,
+                user_name=get_username(),  # TODO(john-bodley): Deprecate in 3.0.
                 security_manager=security_manager,
                 database=self.database,
             )
@@ -1127,20 +1127,24 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                 col.name = f"{col.name}__"
 
     def get_sqla_row_level_filters(
-        self, template_processor: BaseTemplateProcessor
+        self,
+        template_processor: BaseTemplateProcessor,
+        username: Optional[str] = None,
     ) -> List[TextClause]:
         """
-        Return the appropriate row level security filters for
-        this table and the current user.
+        Return the appropriate row level security filters for this table and the
+        current user. A custom username can be passed when the user is not present in the
+        Flask global namespace.
 
-        :param BaseTemplateProcessor template_processor: The template
-        processor to apply to the filters.
+        :param template_processor: The template processor to apply to the filters.
+        :param username: Optional username if there's no user in the Flask global
+        namespace.
         :returns: A list of SQL clauses to be ANDed together.
         """
         all_filters: List[TextClause] = []
         filter_groups: Dict[Union[int, str], List[TextClause]] = defaultdict(list)
         try:
-            for filter_ in security_manager.get_rls_filters(self):
+            for filter_ in security_manager.get_rls_filters(self, username):
                 clause = self.text(
                     f"({template_processor.process_template(filter_.clause)})"
                 )
@@ -1464,24 +1468,29 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                     )
                 elif col_obj:
                     sqla_col = col_obj.get_sqla_col()
+                col_type = col_obj.type if col_obj else None
                 col_spec = db_engine_spec.get_column_spec(
-                    col_obj.type if col_obj else None
+                    native_type=col_type,
+                    db_extra=self.database.get_extra(),
                 )
                 is_list_target = op in (
                     utils.FilterOperator.IN.value,
                     utils.FilterOperator.NOT_IN.value,
                 )
+
                 col_advanced_data_type = col_obj.advanced_data_type if col_obj else ""
 
                 if col_spec and not col_advanced_data_type:
-                    target_type = col_spec.generic_type
+                    target_generic_type = col_spec.generic_type
                 else:
-                    target_type = GenericDataType.STRING
-
+                    target_generic_type = GenericDataType.STRING
                 eq = self.filter_values_handler(
                     values=val,
-                    target_column_type=target_type,
+                    target_generic_type=target_generic_type,
+                    target_native_type=col_type,
                     is_list_target=is_list_target,
+                    db_engine_spec=db_engine_spec,
+                    db_extra=self.database.get_extra(),
                 )
                 if (
                     col_advanced_data_type != ""
@@ -1515,11 +1524,12 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                         raise QueryObjectValidationError(
                             _("Filter value list cannot be empty")
                         )
-                    if None in eq:
-                        eq = [x for x in eq if x is not None]
+                    if len(eq) > len(
+                        eq_without_none := [x for x in eq if x is not None]
+                    ):
                         is_null_cond = sqla_col.is_(None)
                         if eq:
-                            cond = or_(is_null_cond, sqla_col.in_(eq))
+                            cond = or_(is_null_cond, sqla_col.in_(eq_without_none))
                         else:
                             cond = is_null_cond
                     else:

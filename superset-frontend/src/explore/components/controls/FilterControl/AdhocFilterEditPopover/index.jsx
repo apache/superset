@@ -86,6 +86,10 @@ const FilterPopoverContentContainer = styled.div`
   }
 `;
 
+const FilterActionsContainer = styled.div`
+  margin-top: ${({ theme }) => theme.gridUnit * 2}px;
+`;
+
 export default class AdhocFilterEditPopover extends React.Component {
   constructor(props) {
     super(props);
@@ -249,7 +253,7 @@ export default class AdhocFilterEditPopover extends React.Component {
             </ErrorBoundary>
           </Tabs.TabPane>
         </Tabs>
-        <div>
+        <FilterActionsContainer>
           <Button buttonSize="small" onClick={this.props.onClose} cta>
             {t('Close')}
           </Button>
@@ -273,7 +277,7 @@ export default class AdhocFilterEditPopover extends React.Component {
             onMouseDown={this.onDragDown}
             className="fa fa-expand edit-popover-resize text-muted"
           />
-        </div>
+        </FilterActionsContainer>
       </FilterPopoverContentContainer>
     );
   }

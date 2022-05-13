@@ -30,5 +30,6 @@ export const includeTimeControlSetItem: ControlSetItem = {
     ),
     default: false,
     visibility: isAggMode,
+    resetOnHide: false,
   },
 };

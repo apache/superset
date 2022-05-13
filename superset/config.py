@@ -270,16 +270,6 @@ FAB_API_SWAGGER_UI = True
 DRUID_TZ = tz.tzutc()
 DRUID_ANALYSIS_TYPES = ["cardinality"]
 
-# Legacy Druid NoSQL (native) connector
-# Druid supports a SQL interface in its newer versions.
-# Setting this flag to True enables the deprecated, API-based Druid
-# connector. This feature may be removed at a future date.
-DRUID_IS_ACTIVE = False
-
-# If Druid is active whether to include the links to scan/refresh Druid datasources.
-# This should be disabled if you are trying to wean yourself off of the Druid NoSQL
-# connector.
-DRUID_METADATA_LINKS_ENABLED = True
 
 # ----------------------------------------------------
 # AUTHENTICATION CONFIG
@@ -435,6 +425,9 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "UX_BETA": False,
     "GENERIC_CHART_AXES": False,
     "ALLOW_ADHOC_SUBQUERY": False,
+    # Apply RLS rules to SQL Lab queries. This requires parsing and manipulating the
+    # query, and might break queries and/or allow users to bypass RLS. Use with care!
+    "RLS_IN_SQLLAB": False,
 }
 
 # Feature flags may also be set via 'SUPERSET_FEATURE_' prefixed environment vars.
@@ -659,19 +652,12 @@ TIME_GRAIN_ADDON_EXPRESSIONS: Dict[str, Dict[str, str]] = {}
 
 VIZ_TYPE_DENYLIST: List[str] = []
 
-# ---------------------------------------------------
-# List of data sources not to be refreshed in druid cluster
-# ---------------------------------------------------
-
-DRUID_DATA_SOURCE_DENYLIST: List[str] = []
-
 # --------------------------------------------------
 # Modules, datasources and middleware to be registered
 # --------------------------------------------------
 DEFAULT_MODULE_DS_MAP = OrderedDict(
     [
         ("superset.connectors.sqla.models", ["SqlaTable"]),
-        ("superset.connectors.druid.models", ["DruidDatasource"]),
     ]
 )
 ADDITIONAL_MODULE_DS_MAP: Dict[str, List[str]] = {}
@@ -707,7 +693,7 @@ BACKUP_COUNT = 30
 #     database,
 #     query,
 #     schema=None,
-#     user=None,
+#     user=None,  # TODO(john-bodley): Deprecate in 3.0.
 #     client=None,
 #     security_manager=None,
 #     log_params=None,
@@ -997,7 +983,10 @@ BLUEPRINTS: List[Blueprint] = []
 # Provide a callable that receives a tracking_url and returns another
 # URL. This is used to translate internal Hadoop job tracker URL
 # into a proxied one
+
+
 TRACKING_URL_TRANSFORMER = lambda x: x
+
 
 # Interval between consecutive polls when using Hive Engine
 HIVE_POLL_INTERVAL = int(timedelta(seconds=5).total_seconds())
@@ -1044,9 +1033,14 @@ DB_CONNECTION_MUTATOR = None
 # The use case is can be around adding some sort of comment header
 # with information such as the username and worker node information
 #
-#    def SQL_QUERY_MUTATOR(sql, user_name=user_name, security_manager=security_manager, database=database):
+#    def SQL_QUERY_MUTATOR(
+#        sql,
+#        user_name=user_name,  # TODO(john-bodley): Deprecate in 3.0.
+#        security_manager=security_manager,
+#        database=database,
+#    ):
 #        dttm = datetime.now().isoformat()
-#        return f"-- [SQL LAB] {username} {dttm}\n{sql}"
+#        return f"-- [SQL LAB] {user_name} {dttm}\n{sql}"
 # For backward compatibility, you can unpack any of the above arguments in your
 # function definition, but keep the **kwargs as the last argument to allow new args
 # to be added later without any errors.
@@ -1216,7 +1210,9 @@ SSL_CERT_PATH: Optional[str] = None
 # to allow mutating the object with this callback.
 # This can be used to set any properties of the object based on naming
 # conventions and such. You can find examples in the tests.
+
 SQLA_TABLE_MUTATOR = lambda table: table
+
 
 # Global async query config options.
 # Requires GLOBAL_ASYNC_QUERIES feature flag to be enabled.
