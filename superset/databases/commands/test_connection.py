@@ -25,6 +25,8 @@ from flask_babel import gettext as _
 from func_timeout import func_timeout, FunctionTimedOut
 from sqlalchemy.exc import DBAPIError, NoSuchModuleError
 
+from sqlalchemy.engine import Engine
+
 from superset.commands.base import BaseCommand
 from superset.databases.commands.exceptions import (
     DatabaseSecurityUnsafeError,
@@ -74,7 +76,10 @@ class TestConnectionDatabaseCommand(BaseCommand):
             )
 
             database.set_sqlalchemy_uri(uri)
+            database.set_sqlalchemy_uri(uri)
+            database.set_sqlalchemy_uri(uri)
             database.db_engine_spec.mutate_db_for_connection_test(database)
+<<<<<<< HEAD
 
             with override_user(self._actor):
                 engine = database.get_sqla_engine()
@@ -112,6 +117,45 @@ class TestConnectionDatabaseCommand(BaseCommand):
                         alive = False
                     if not alive:
                         raise DBAPIError(None, None, None)
+=======
+            username = self._actor.username if self._actor is not None else None
+            engine = database.get_sqla_engine(user_name=username)
+            event_logger.log_with_context(
+                action="test_connection_attempt",
+                engine=database.db_engine_spec.__name__,
+            )
+
+            def ping(engine: Engine) -> bool:
+                with closing(engine.raw_connection()) as conn:
+                    return engine.dialect.do_ping(conn)
+
+            try:
+                alive = func_timeout(
+                    int(app.config["TEST_DATABASE_CONNECTION_TIMEOUT"].total_seconds()),
+                    ping,
+                    args=(engine,),
+                )
+
+            except (sqlite3.ProgrammingError, RuntimeError):
+                # SQLite can't run on a separate thread, so ``func_timeout`` fails
+                # RuntimeError catches the equivalent error from duckdb.
+                alive = engine.dialect.do_ping(engine)
+            except FunctionTimedOut as ex:
+                raise SupersetTimeoutException(
+                    error_type=SupersetErrorType.CONNECTION_DATABASE_TIMEOUT,
+                    message=(
+                        "Please check your connection details and database settings, "
+                        "and ensure that your database is accepting connections, "
+                        "then try connecting again."
+                    ),
+                    level=ErrorLevel.ERROR,
+                    extra={"sqlalchemy_uri": database.sqlalchemy_uri},
+                ) from ex
+            except Exception:  # pylint: disable=broad-except
+                alive = False
+            if not alive:
+                raise DBAPIError(None, None, None)
+>>>>>>> 54a2385d2... fix: check for connect on ping
 
             # Log succesful connection test with engine
             event_logger.log_with_context(
@@ -144,6 +188,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
             )
             raise DatabaseSecurityUnsafeError(message=str(ex)) from ex
         except SupersetTimeoutException as ex:
+
             event_logger.log_with_context(
                 action=f"test_connection_error.{ex.__class__.__name__}",
                 engine=database.db_engine_spec.__name__,
