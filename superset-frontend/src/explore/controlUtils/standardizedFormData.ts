@@ -24,7 +24,7 @@ import {
 import {
   ControlStateMapping,
   SharedFormData,
-  iStandardizedFormData,
+  StandardizedFormDataInterface,
 } from '@superset-ui/chart-controls';
 import { getControlsState } from 'src/explore/store';
 import { getFormDataFromControls } from './getFormDataFromControls';
@@ -64,7 +64,7 @@ export const publicControls = [
 ];
 
 export class StandardizedFormData {
-  private sfd: iStandardizedFormData;
+  private sfd: StandardizedFormDataInterface;
 
   constructor(sourceFormData: QueryFormData) {
     /*
@@ -74,7 +74,7 @@ export class StandardizedFormData {
       metrics: [],
       columns: [],
     };
-    const formData = { ...sourceFormData };
+    const formData = Object.freeze(sourceFormData);
     const reversedMap = StandardizedFormData.getReversedMap();
 
     Object.entries(formData).forEach(([key, value]) => {

@@ -346,7 +346,7 @@ export interface SharedFormData {
   columns: (AdhocColumn | PhysicalColumn)[];
 }
 
-export interface iStandardizedFormData {
+export interface StandardizedFormDataInterface {
   sharedFormData: SharedFormData;
   memorizedFormData: Map<string, QueryFormData>;
 }
@@ -357,7 +357,9 @@ export interface ControlPanelConfig {
   sectionOverrides?: SectionOverrides;
   onInit?: (state: ControlStateMapping) => void;
   denormalizeFormData?: (
-    formData: QueryFormData & { standardized_form_data: iStandardizedFormData },
+    formData: QueryFormData & {
+      standardized_form_data: StandardizedFormDataInterface;
+    },
   ) => QueryFormData;
 }
 
