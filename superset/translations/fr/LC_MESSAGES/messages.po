@@ -11351,7 +11351,7 @@ msgstr "Valeur unique"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FiltersConfigForm.tsx:1251
 msgid "Single value type"
-msgstr ""
+msgstr "Type de valeur unique"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Tree/controlPanel.tsx:261
 msgid "Size of edge symbols"
@@ -16336,3 +16336,19 @@ msgstr "Mettre à jour"
 #: superset-frontend/src/explore/components/DataTablesPane/index.tsx:500
 msgid "Samples"
 msgstr "Exemples"
+
+#: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/DependencyList.tsx:193
+msgid "Values are dependent on other filters"
+msgstr "Les valeurs dépendent d'autres filtres"
+
+#: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/DependencyList.tsx:197
+msgid "Values selected in other filters will affect the filter options to only show relevant values"
+msgstr "Les valeurs sélectionnées dans d'autres filtres affecteront les options de filtrage afin de n'afficher que les valeurs pertinentes"
+
+#: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/DependencyList.tsx:197
+msgid "Values dependent on"
+msgstr "Valeurs dépendent de"
+
+#: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/DependencyList.tsx:197
+msgid "No results were returned for this query"
+msgstr "Aucun résultat avec ces paramètres"

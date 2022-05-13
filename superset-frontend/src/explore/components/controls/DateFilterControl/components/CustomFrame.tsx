@@ -41,16 +41,9 @@ import {
   CustomRangeKey,
   FrameComponentProps,
 } from 'src/explore/components/controls/DateFilterControl/types';
-import { bootstrapData } from 'src/preamble';
-import localeFR from 'antd/es/date-picker/locale/fr_FR';
-import localeEN from 'antd/es/date-picker/locale/en_US';
 
 export function CustomFrame(props: FrameComponentProps) {
   const { customRange, matchedFlag } = customTimeRangeDecode(props.value);
-  let locale = localeEN;
-  if (bootstrapData.common.locale === 'fr') {
-    locale = localeFR;
-  }
   if (!matchedFlag) {
     props.onChange(customTimeRangeEncode(customRange));
   }
@@ -139,7 +132,6 @@ export function CustomFrame(props: FrameComponentProps) {
                   onChange('sinceDatetime', datetime.format(MOMENT_FORMAT))
                 }
                 allowClear={false}
-                locale={locale}
               />
             </Row>
           )}
@@ -192,7 +184,6 @@ export function CustomFrame(props: FrameComponentProps) {
                   onChange('untilDatetime', datetime.format(MOMENT_FORMAT))
                 }
                 allowClear={false}
-                locale={locale}
               />
             </Row>
           )}
@@ -250,7 +241,6 @@ export function CustomFrame(props: FrameComponentProps) {
                   }
                   allowClear={false}
                   className="control-anchor-to-datetime"
-                  locale={locale}
                 />
               </Col>
             )}

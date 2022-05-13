@@ -3810,6 +3810,10 @@
       "Samples": ["Exemples"],
       "Number format": ["Format D3"],
       "Date format": ["Format Date"],
+      "Values dependent on": ["Valeurs dépendent de"],
+      "No results were returned for this query": ["Aucun résultat avec ces paramètres"],
+      "Values selected in other filters will affect the filter options to only show relevant values": ["Les valeurs sélectionnées dans d'autres filtres affecteront les options de filtrage afin de n'afficher que les valeurs pertinentes"],
+      "Values are dependent on other filters": ["Les valeurs dépendent d'autres filtres"],
       "Display metrics side by side within each column, as opposed to each column being displayed side by side for each metric.": ["Affichez les indicateurs côte à côte dans chaque colonne, au lieu d'afficher chaque colonne côte à côte pour chaque indicateur."],
       "Click the button above to add a filter to the dashboard": ["Cliquez sur le bouton ci-dessus pour ajouter un filtre au tableau de bord"]
     }
