@@ -67,6 +67,7 @@ export default class EchartsTimeseriesChartPlugin extends ChartPlugin<
         name: t('Mixed Time-Series'),
         thumbnail,
         tags: [
+          t('Advanced-Analytics'),
           t('Aesthetic'),
           t('ECharts'),
           t('Experimental'),
