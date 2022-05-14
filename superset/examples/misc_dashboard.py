@@ -19,9 +19,8 @@ import textwrap
 
 from superset import db
 from superset.models.dashboard import Dashboard
-from superset.models.slice import Slice
 
-from .helpers import misc_dash_slices, update_slice_ids
+from .helpers import update_slice_ids
 
 DASH_SLUG = "misc_charts"
 
@@ -211,11 +210,7 @@ def load_misc_dashboard() -> None:
     """
     )
     pos = json.loads(js)
-    slices = (
-        db.session.query(Slice).filter(Slice.slice_name.in_(misc_dash_slices)).all()
-    )
-    slices = sorted(slices, key=lambda x: x.id)
-    update_slice_ids(pos, slices)
+    slices = update_slice_ids(pos)
     dash.dashboard_title = "Misc Charts"
     dash.position_json = json.dumps(pos, indent=4)
     dash.slug = DASH_SLUG
