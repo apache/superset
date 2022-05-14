@@ -61,7 +61,7 @@ describe('Dashboard edit markdown', () => {
 
     cy.get('[data-test="dashboard-markdown-editor"]').contains('Test resize');
 
-    cy.get('@component-background-first').click('right');
+    cy.get('[data-test="nav-list"]:first').click('right', { force: true });
     cy.get('[data-test="dashboard-component-chart-holder"]')
       .find('.ace_content')
       .should('not.exist');
