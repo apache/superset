@@ -205,6 +205,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
                 addDangerToast={addDangerToast}
                 handleToggleFullSize={handleToggleFullSize}
                 isFullSize={isFullSize}
+                isDescriptionExpanded={isExpanded}
                 chartStatus={chartStatus}
                 formData={formData}
               />
