@@ -1,8 +1,6 @@
 name: Applitools Cypress
 
-on:
-  schedule:
-    - cron: "0 1 * * *"
+on: gollum
 
 jobs:
   cypress-applitools:
@@ -36,11 +34,17 @@ jobs:
         ports:
           - 16379:6379
     steps:
-      - uses: actions/checkout@v3
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+        uses: actions/checkout@v3
+        with:
+          persist-credentials: false
+          submodules: recursive
       - name: Setup Python
         uses: actions/setup-python@v2
         with:
           python-version: "3.8"
+      - name: Install bc dependency
+        run: sudo apt-get update -y && sudo apt-get -y install bc
       - name: OS dependencies
         uses: ./.github/actions/cached-dependencies
         with:
@@ -59,8 +63,8 @@ jobs:
         uses: ./.github/actions/cached-dependencies
         with:
           run: testdata
-      - name: Set up Node.js
-        uses: actions/setup-node@v3.1.1
+      - name: Setup Node.js
+        uses: actions/setup-node@v2
         with:
           node-version: ${{ matrix.node }}
       - name: Install npm dependencies
@@ -75,7 +79,7 @@ jobs:
         uses: ./.github/actions/cached-dependencies
         with:
           run: cypress-install
-      - name: Run Applitools Cypress
+      - name: Run Cypress
         uses: ./.github/actions/cached-dependencies
         env:
           CYPRESS_BROWSER: ${{ matrix.browser }}
