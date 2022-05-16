@@ -100,10 +100,7 @@ class ExecuteSqlCommand(BaseCommand):
             )
 
             # save columns into metadata_json
-            if query:
-                self._query_dao.save_metadata(query, payload)
-            else:
-                self._query_dao.save_metadata(self._execution_context.query, payload)
+            self._query_dao.save_metadata(self._execution_context.query, payload)
 
             return {
                 "status": status,

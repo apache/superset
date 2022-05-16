@@ -64,6 +64,6 @@ class QueryDAO(BaseDAO):
         columns = payload.get("columns", {})
 
         # save payload into query object
+        db.session.add(query)
         query.set_extra_json_key("columns", columns)
-        db.session.commit()
         return None
