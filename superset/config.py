@@ -26,20 +26,33 @@ import importlib.util
 import json
 import logging
 import os
-import pkg_resources
 import re
 import sys
-from cachelib.base import BaseCache
-from celery.schedules import crontab
 from collections import OrderedDict
 from datetime import timedelta
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Literal,
+    Optional,
+    Type,
+    TYPE_CHECKING,
+    Union,
+)
+
+import pkg_resources
+from cachelib.base import BaseCache
+from celery.schedules import crontab
 from dateutil import tz
 from flask import Blueprint
 from flask_appbuilder.security.manager import AUTH_DB
 from pandas._libs.parsers import STR_NA_VALUES  # pylint: disable=no-name-in-module
-from typing import Any, Callable, Dict, List, Optional, Type, TYPE_CHECKING, Union
-from typing_extensions import Literal
 
+from superset.advanced_data_type.plugins.internet_address import internet_address
+from superset.advanced_data_type.plugins.internet_port import internet_port
+from superset.advanced_data_type.types import AdvancedDataType
 from superset.constants import CHANGE_ME_SECRET_KEY
 from superset.jinja_context import BaseTemplateProcessor
 from superset.stats_logger import DummyStatsLogger
@@ -221,7 +234,7 @@ SHOW_STACKTRACE = True
 
 # Use all X-Forwarded headers when ENABLE_PROXY_FIX is True.
 # When proxying to a different port, set "x_port" to 0 to avoid downstream issues.
-ENABLE_PROXY_FIX = True
+ENABLE_PROXY_FIX = False
 PROXY_FIX_CONFIG = {"x_for": 1, "x_proto": 1, "x_host": 1, "x_port": 1, "x_prefix": 1}
 
 # ------------------------------
@@ -235,7 +248,7 @@ APP_ICON = "/static/assets/images/superset-logo-horiz.png"
 
 # Specify where clicking the logo would take the user
 # e.g. setting it to '/' would take the user to '/superset/welcome/'
-LOGO_TARGET_PATH = os.environ["APP_PREFIX"]+"/superset/welcome/"
+LOGO_TARGET_PATH = None
 
 # Specify tooltip that should appear when hovering over the App Icon/Logo
 LOGO_TOOLTIP = ""
@@ -392,6 +405,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "DASHBOARD_RBAC": False,
     "ENABLE_EXPLORE_DRAG_AND_DROP": True,
     "ENABLE_FILTER_BOX_MIGRATION": False,
+    "ENABLE_ADVANCED_DATA_TYPES": False,
     "ENABLE_DND_WITH_CLICK_UX": True,
     # Enabling ALERTS_ATTACH_REPORTS, the system sends email and slack message
     # with screenshot and link
@@ -1180,7 +1194,7 @@ SQLALCHEMY_EXAMPLES_URI = None
 
 # Optional prefix to be added to all static asset paths when rendering the UI.
 # This is useful for hosting assets in an external CDN, for example
-STATIC_ASSETS_PREFIX = "/analytics"
+STATIC_ASSETS_PREFIX = ""
 
 # Some sqlalchemy connection strings can open Superset to security risks.
 # Typically these should not be allowed.
@@ -1267,6 +1281,13 @@ MENU_HIDE_USER_INFO = False
 
 # Set to False to only allow viewing own recent activity
 ENABLE_BROAD_ACTIVITY_ACCESS = True
+
+# the advanced data type key should correspond to that set in the column metadata
+ADVANCED_DATA_TYPES: Dict[str, AdvancedDataType] = {
+    "internet_address": internet_address,
+    "port": internet_port,
+}
+
 
 # -------------------------------------------------------------------
 # *                WARNING:  STOP EDITING  HERE                    *
