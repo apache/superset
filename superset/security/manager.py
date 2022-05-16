@@ -930,7 +930,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         connection: Connection,
         target: "Database",
     ) -> None:
-        session = inspect(target).session
+        view_menu_table = self.viewmenu_model.__table__  # pylint: disable=no-member
+        permission_view_menu_table = (
+            self.permissionview_model.__table__
+        )  # pylint: disable=no-member
+
         view_menu_name = target.get_perm()
 
         # Clean database access permission
@@ -941,12 +945,18 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 view_menu_name,
             )
             return
-        session.delete(db_pvm)
-        session.delete(db_pvm.view_menu)
+        connection.execute(
+            permission_view_menu_table.delete().where(
+                permission_view_menu_table.c.id == db_pvm.id
+            )
+        )
+        connection.execute(
+            view_menu_table.delete().where(view_menu_table.c.id == db_pvm.view_menu_id)
+        )
 
         # Clean database schema permissions
         schema_pvms = (
-            session.query(self.permissionview_model)
+            self.get_session.query(self.permissionview_model)
             .join(self.permission_model)
             .join(self.viewmenu_model)
             .filter(self.permission_model.name == "schema_access")
@@ -954,17 +964,24 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             .all()
         )
         for schema_pvm in schema_pvms:
-            session.delete(schema_pvm)
-            session.delete(schema_pvm.view_menu)
-        session.commit()
+            connection.execute(
+                permission_view_menu_table.delete().where(
+                    permission_view_menu_table.c.id == schema_pvm.id
+                )
+            )
+            connection.execute(
+                view_menu_table.delete().where(
+                    view_menu_table.c.id == schema_pvm.view_menu_id
+                )
+            )
 
-    def database_after_update(
+    def database_after_update(  # pylint: disable=unused-argument
         self,
         mapper: Mapper,
         connection: Connection,
         target: "Database",
     ) -> None:
-        state = inspect(target)  # pylint: disable=no-member
+        state = inspect(target)
 
         history = state.get_history("database_name", True)
         # Check if database name has changed
