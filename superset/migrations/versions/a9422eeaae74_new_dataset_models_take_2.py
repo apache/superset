@@ -597,7 +597,7 @@ def postprocess_datasets(session: Session) -> None:
                 )
                 updated = True
 
-            if not is_physical and expression:
+            if not is_physical and drivername and expression:
                 table_refrences = extract_table_references(
                     expression, get_dialect_name(drivername), show_warning=False
                 )

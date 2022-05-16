@@ -150,6 +150,7 @@ export const Table = styled.table`
       .actions {
         opacity: 0;
         font-size: ${theme.typography.sizes.xl}px;
+        display: flex;
       }
 
       &:hover {

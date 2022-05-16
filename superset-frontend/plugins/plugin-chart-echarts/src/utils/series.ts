@@ -101,6 +101,7 @@ export function extractSeries(
     removeNulls?: boolean;
     stack?: StackType;
     totalStackedValues?: number[];
+    isHorizontal?: boolean;
   } = {},
 ): SeriesOption[] {
   const {
@@ -109,6 +110,7 @@ export function extractSeries(
     removeNulls = false,
     stack = false,
     totalStackedValues = [],
+    isHorizontal = false,
   } = opts;
   if (data.length === 0) return [];
   const rows: DataRecord[] = data.map(datum => ({
@@ -140,7 +142,8 @@ export function extractSeries(
           }
           return [row[xAxis], value];
         })
-        .filter(obs => !removeNulls || (obs[0] !== null && obs[1] !== null)),
+        .filter(obs => !removeNulls || (obs[0] !== null && obs[1] !== null))
+        .map(obs => (isHorizontal ? [obs[1], obs[0]] : obs)),
     }));
 }
 
