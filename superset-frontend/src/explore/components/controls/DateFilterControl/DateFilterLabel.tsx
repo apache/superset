@@ -373,7 +373,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
       >
         <Tooltip placement="top" title={tooltipTitle}>
           <Label className="pointer" data-test="time-range-trigger">
-            {t(actualTimeRange)}
+            {actualTimeRange}
           </Label>
         </Tooltip>
       </StyledPopover>
