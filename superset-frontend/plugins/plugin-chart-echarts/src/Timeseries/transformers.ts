@@ -86,6 +86,7 @@ export function transformSeries(
     richTooltip?: boolean;
     seriesKey?: OptionName;
     sliceId?: number;
+    isHorizontal?: boolean;
   },
 ): SeriesOption | undefined {
   const { name } = series;
@@ -108,6 +109,7 @@ export function transformSeries(
     richTooltip,
     seriesKey,
     sliceId,
+    isHorizontal = false,
   } = opts;
   const contexts = seriesContexts[name || ''] || [];
   const hasForecast =
@@ -217,14 +219,10 @@ export function transformSeries(
     symbolSize: markerSize,
     label: {
       show: !!showValue,
-      position: 'top',
+      position: isHorizontal ? 'right' : 'top',
       formatter: (params: any) => {
-        const {
-          value: [, numericValue],
-          dataIndex,
-          seriesIndex,
-          seriesName,
-        } = params;
+        const { value, dataIndex, seriesIndex, seriesName } = params;
+        const numericValue = isHorizontal ? value[0] : value[1];
         const isSelectedLegend = currentSeries.legend === seriesName;
         if (!formatter) return numericValue;
         if (!stack || isSelectedLegend) return formatter(numericValue);

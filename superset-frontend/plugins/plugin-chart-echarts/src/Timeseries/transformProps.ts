@@ -39,6 +39,7 @@ import {
   EchartsTimeseriesFormData,
   EchartsTimeseriesSeriesType,
   TimeseriesChartTransformedProps,
+  OrientationType,
 } from './types';
 import { ForecastSeriesEnum, ForecastValue } from '../types';
 import { parseYAxisBound } from '../utils/controls';
@@ -138,16 +139,19 @@ export default function transformProps(
     yAxisTitlePosition,
     sliceId,
     timeGrainSqla,
+    orientation,
   }: EchartsTimeseriesFormData = { ...DEFAULT_FORM_DATA, ...formData };
 
   const colorScale = CategoricalColorNamespace.getScale(colorScheme as string);
   const rebasedData = rebaseForecastDatum(data, verboseMap);
   const xAxisCol =
     verboseMap[xAxisOrig] || getColumnLabel(xAxisOrig || DTTM_ALIAS);
+  const isHorizontal = orientation === OrientationType.horizontal;
   const rawSeries = extractSeries(rebasedData, {
     fillNeighborValue: stack && !forecastEnabled ? 0 : undefined,
     xAxis: xAxisCol,
     removeNulls: seriesType === EchartsTimeseriesSeriesType.Scatter,
+    isHorizontal,
   });
   const seriesContexts = extractForecastSeriesContexts(
     Object.values(rawSeries).map(series => series.name as string),
@@ -213,6 +217,7 @@ export default function transformProps(
       thresholdValues,
       richTooltip,
       sliceId,
+      isHorizontal,
     });
     if (transformedSeries) series.push(transformedSeries);
   });
@@ -325,57 +330,66 @@ export default function transformProps(
     .map(entry => entry.name || '')
     .concat(extractAnnotationLabels(annotationLayers, annotationData));
 
+  let xAxis: any = {
+    type: xAxisType,
+    name: xAxisTitle,
+    nameGap: convertInteger(xAxisTitleMargin),
+    nameLocation: 'middle',
+    axisLabel: {
+      hideOverlap: true,
+      formatter: xAxisFormatter,
+      rotate: xAxisLabelRotation,
+    },
+    minInterval:
+      xAxisType === 'time' && timeGrainSqla
+        ? TimeGrainToTimestamp[timeGrainSqla]
+        : 0,
+  };
+  let yAxis: any = {
+    ...defaultYAxis,
+    type: logAxis ? 'log' : 'value',
+    min,
+    max,
+    minorTick: { show: true },
+    minorSplitLine: { show: minorSplitLine },
+    axisLabel: { formatter },
+    scale: truncateYAxis,
+    name: yAxisTitle,
+    nameGap: convertInteger(yAxisTitleMargin),
+    nameLocation: yAxisTitlePosition === 'Left' ? 'middle' : 'end',
+  };
+
+  if (isHorizontal) {
+    [xAxis, yAxis] = [yAxis, xAxis];
+    [padding.bottom, padding.left] = [padding.left, padding.bottom];
+  }
+
   const echartOptions: EChartsCoreOption = {
     useUTC: true,
     grid: {
       ...defaultGrid,
       ...padding,
     },
-    xAxis: {
-      type: xAxisType,
-      name: xAxisTitle,
-      nameGap: convertInteger(xAxisTitleMargin),
-      nameLocation: 'middle',
-      axisLabel: {
-        hideOverlap: true,
-        formatter: xAxisFormatter,
-        rotate: xAxisLabelRotation,
-      },
-      minInterval:
-        xAxisType === 'time' && timeGrainSqla
-          ? TimeGrainToTimestamp[timeGrainSqla]
-          : 0,
-    },
-    yAxis: {
-      ...defaultYAxis,
-      type: logAxis ? 'log' : 'value',
-      min,
-      max,
-      minorTick: { show: true },
-      minorSplitLine: { show: minorSplitLine },
-      axisLabel: { formatter },
-      scale: truncateYAxis,
-      name: yAxisTitle,
-      nameGap: convertInteger(yAxisTitleMargin),
-      nameLocation: yAxisTitlePosition === 'Left' ? 'middle' : 'end',
-    },
+    xAxis,
+    yAxis,
     tooltip: {
       ...defaultTooltip,
       appendToBody: true,
       trigger: richTooltip ? 'axis' : 'item',
       formatter: (params: any) => {
+        const [xIndex, yIndex] = isHorizontal ? [1, 0] : [0, 1];
         const xValue: number = richTooltip
-          ? params[0].value[0]
-          : params.value[0];
+          ? params[0].value[xIndex]
+          : params.value[xIndex];
         const forecastValue: any[] = richTooltip ? params : [params];
 
         if (richTooltip && tooltipSortByMetric) {
-          forecastValue.sort((a, b) => b.data[1] - a.data[1]);
+          forecastValue.sort((a, b) => b.data[yIndex] - a.data[yIndex]);
         }
 
         const rows: Array<string> = [`${tooltipFormatter(xValue)}`];
         const forecastValues: Record<string, ForecastValue> =
-          extractForecastValuesFromTooltipParams(forecastValue);
+          extractForecastValuesFromTooltipParams(forecastValue, isHorizontal);
 
         Object.keys(forecastValues).forEach(key => {
           const value = forecastValues[key];
