@@ -42,8 +42,6 @@ const useAdvancedDataTypes = (validHandler: (isValid: boolean) => void) => {
       subjectAdvancedDataType?: string,
     ) => {
       const values = ensureIsArray(comp);
-      console.log(values);
-      console.log(subjectAdvancedDataType);
       if (!subjectAdvancedDataType) {
         setAdvancedDataTypesState(INITIAL_ADVANCED_DATA_TYPES_STATE);
         return;

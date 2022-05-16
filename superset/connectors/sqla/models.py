@@ -74,9 +74,7 @@ from sqlalchemy.sql.expression import Label, Select, TextAsFrom
 from sqlalchemy.sql.selectable import Alias, TableClause
 
 from superset import app, db, is_feature_enabled, security_manager
-from superset.advanced_data_type.advanced_data_type_response import (
-    AdvancedDataTypeResponse,
-)
+from superset.advanced_data_type.types import AdvancedDataTypeResponse
 from superset.columns.models import Column as NewColumn, UNKOWN_TYPE
 from superset.common.db_query_status import QueryStatus
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
@@ -1439,6 +1437,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
 
         where_clause_and = []
         having_clause_and = []
+
         for flt in filter:  # type: ignore
             if not all(flt.get(s) for s in ["col", "op"]):
                 continue
@@ -1459,6 +1458,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                 if get_column_name(flt_col) in removed_filters:
                     # Skip generating SQLA filter when the jinja template handles it.
                     continue
+
             if col_obj or sqla_col is not None:
                 if sqla_col is not None:
                     pass

@@ -441,7 +441,7 @@ def test_create_physical_sqlatable(
     }
 
 
-def columns_default(
+def test_create_virtual_sqlatable(
     app_context: None,
     mocker: MockFixture,
     session: Session,

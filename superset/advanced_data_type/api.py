@@ -21,10 +21,8 @@ from flask.wrappers import Response
 from flask_appbuilder.api import BaseApi, expose, permission_name, protect, rison, safe
 from flask_babel import lazy_gettext as _
 
-from superset.advanced_data_type.advanced_data_type_response import (
-    AdvancedDataTypeResponse,
-)
 from superset.advanced_data_type.schemas import advanced_data_type_convert_schema
+from superset.advanced_data_type.types import AdvancedDataTypeResponse
 from superset.extensions import event_logger
 
 config = app.config

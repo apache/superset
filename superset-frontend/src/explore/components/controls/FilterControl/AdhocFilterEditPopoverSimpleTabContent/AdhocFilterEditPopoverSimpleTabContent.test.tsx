@@ -51,7 +51,7 @@ const simpleAdhocFilter = new AdhocFilter({
   clause: CLAUSES.WHERE,
 });
 
-const businessTestAdhocFilterTest = new AdhocFilter({
+const advancedTypeTestAdhocFilterTest = new AdhocFilter({
   expressionType: EXPRESSION_TYPES.SIMPLE,
   subject: 'advancedDataType',
   operatorId: null,
@@ -95,7 +95,7 @@ const getAdvancedDataTypeTestProps = (overrides?: Record<string, any>) => {
   const onChange = sinon.spy();
   const validHandler = sinon.spy();
   const props = {
-    adhocFilter: businessTestAdhocFilterTest,
+    adhocFilter: advancedTypeTestAdhocFilterTest,
     onChange,
     options: [{ type: 'DOUBLE', column_name: 'advancedDataType', id: 5 }],
     datasource: {

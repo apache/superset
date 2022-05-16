@@ -23,17 +23,19 @@ from sqlalchemy import null
 from superset.connectors.sqla.models import SqlaTable
 from superset.utils.core import get_example_default_schema
 
-from tests.integration_tests.base_tests import SupersetTestCase
+from tests.integration_tests.base_tests import (
+    SupersetTestCase,
+    logged_in_admin,
+    test_client,
+)
 from tests.integration_tests.test_app import app
 from tests.integration_tests.utils.get_dashboards import get_dashboards_ids
 from unittest import mock
 from sqlalchemy import Column
 from typing import Any, List
-from superset.advanced_data_type.advanced_data_type import AdvancedDataType
-from superset.advanced_data_type.advanced_data_type_request import (
+from superset.advanced_data_type.types import (
+    AdvancedDataType,
     AdvancedDataTypeRequest,
-)
-from superset.advanced_data_type.advanced_data_type_response import (
     AdvancedDataTypeResponse,
 )
 from superset.utils.core import FilterOperator, FilterStringOperators
@@ -74,76 +76,68 @@ CHART_DATA_URI = "api/v1/chart/advanced_data_type"
 CHARTS_FIXTURE_COUNT = 10
 
 
-class TestAdvancedDataTypeApi(SupersetTestCase):
+@mock.patch(
+    "superset.advanced_data_type.api.ADVANCED_DATA_TYPES",
+    {"type": 1},
+)
+def test_types_type_request(logged_in_admin):
     """
-    Test the Advanced Data Type API to ensure it works as intended
+    Advanced Data Type API: Test to see if the API call returns all the valid advanced data types
     """
+    uri = f"api/v1/advanced_data_type/types"
+    response_value = test_client.get(uri)
+    data = json.loads(response_value.data.decode("utf-8"))
+    assert response_value.status_code == 200
+    assert data == {"result": ["type"]}
 
-    resource_name = "advanced_data_type"
 
-    @mock.patch(
-        "superset.advanced_data_type.api.ADVANCED_DATA_TYPES",
-        {"type": 1},
-    )
-    def test_types_type_request(self):
-        """
-        Advanced Data Type API: Test to see if the API call returns all the valid advanced data types
-        """
-        self.login(username="admin")
-        uri = f"api/v1/advanced_data_type/types"
-        response_value = self.client.get(uri)
-        data = json.loads(response_value.data.decode("utf-8"))
-        assert response_value.status_code == 200
-        assert data == {"result": ["type"]}
+def test_types_convert_bad_request_no_vals(logged_in_admin):
+    """
+    Advanced Data Type API: Test request to see if it behaves as expected when no values are passed
+    """
+    arguments = {"type": "type", "values": []}
+    uri = f"api/v1/advanced_data_type/convert?q={prison.dumps(arguments)}"
+    response_value = test_client.get(uri)
+    assert response_value.status_code == 400
 
-    def test_types_convert_bad_request_no_vals(self):
-        """
-        Advanced Data Type API: Test request to see if it behaves as expected when no values are passed
-        """
-        self.login(username="admin")
-        arguments = {"type": "type", "values": []}
-        uri = f"api/v1/advanced_data_type/convert?q={prison.dumps(arguments)}"
-        response_value = self.client.get(uri)
-        assert response_value.status_code == 400
 
-    def test_types_convert_bad_request_no_type(self):
-        """
-        Advanced Data Type API: Test request to see if it behaves as expected when no type is passed
-        """
-        self.login(username="admin")
-        arguments = {"type": "", "values": [1]}
-        uri = f"api/v1/advanced_data_type/convert?q={prison.dumps(arguments)}"
-        response_value = self.client.get(uri)
-        assert response_value.status_code == 400
+def test_types_convert_bad_request_no_type(logged_in_admin):
+    """
+    Advanced Data Type API: Test request to see if it behaves as expected when no type is passed
+    """
+    arguments = {"type": "", "values": [1]}
+    uri = f"api/v1/advanced_data_type/convert?q={prison.dumps(arguments)}"
+    response_value = test_client.get(uri)
+    assert response_value.status_code == 400
 
-    @mock.patch(
-        "superset.advanced_data_type.api.ADVANCED_DATA_TYPES",
-        {"type": 1},
-    )
-    def test_types_convert_bad_request_type_not_found(self):
-        """
-        Advanced Data Type API: Test request to see if it behaves as expected when passed in type is
-        not found/not valid
-        """
-        self.login(username="admin")
-        arguments = {"type": "not_found", "values": [1]}
-        uri = f"api/v1/advanced_data_type/convert?q={prison.dumps(arguments)}"
-        response_value = self.client.get(uri)
-        assert response_value.status_code == 400
 
-    @mock.patch(
-        "superset.advanced_data_type.api.ADVANCED_DATA_TYPES",
-        {"type": test_type},
-    )
-    def test_types_convert_request(self):
-        """
-        Advanced Data Type API: Test request to see if it behaves as expected when a valid type
-        and valid values are passed in
-        """
-        self.login(username="admin")
-        arguments = {"type": "type", "values": [1]}
-        uri = f"api/v1/advanced_data_type/convert?q={prison.dumps(arguments)}"
-        response_value = self.client.get(uri)
-        assert response_value.status_code == 200
-        data = json.loads(response_value.data.decode("utf-8"))
-        assert data == {"result": target_resp}
+@mock.patch(
+    "superset.advanced_data_type.api.ADVANCED_DATA_TYPES",
+    {"type": 1},
+)
+def test_types_convert_bad_request_type_not_found(logged_in_admin):
+    """
+    Advanced Data Type API: Test request to see if it behaves as expected when passed in type is
+    not found/not valid
+    """
+    arguments = {"type": "not_found", "values": [1]}
+    uri = f"api/v1/advanced_data_type/convert?q={prison.dumps(arguments)}"
+    response_value = test_client.get(uri)
+    assert response_value.status_code == 400
+
+
+@mock.patch(
+    "superset.advanced_data_type.api.ADVANCED_DATA_TYPES",
+    {"type": test_type},
+)
+def test_types_convert_request(logged_in_admin):
+    """
+    Advanced Data Type API: Test request to see if it behaves as expected when a valid type
+    and valid values are passed in
+    """
+    arguments = {"type": "type", "values": [1]}
+    uri = f"api/v1/advanced_data_type/convert?q={prison.dumps(arguments)}"
+    response_value = test_client.get(uri)
+    assert response_value.status_code == 200
+    data = json.loads(response_value.data.decode("utf-8"))
+    assert data == {"result": target_resp}

@@ -22,10 +22,8 @@ import sqlalchemy
 from flask.ctx import AppContext
 from sqlalchemy import Column, Integer
 from tests.integration_tests.base_tests import SupersetTestCase
-from superset.advanced_data_type.advanced_data_type_request import (
+from superset.advanced_data_type.types import (
     AdvancedDataTypeRequest,
-)
-from superset.advanced_data_type.advanced_data_type_response import (
     AdvancedDataTypeResponse,
 )
 from superset.utils.core import FilterOperator, FilterStringOperators
