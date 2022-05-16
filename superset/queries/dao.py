@@ -62,9 +62,8 @@ class QueryDAO(BaseDAO):
 
         # pull relevant data from payload and store in json_metadata
         columns = payload.get("columns", {})
-        metadata: Dict[str, Any] = {"columns": columns}
 
         # save payload into query object
-        query.json_metadata = json.dumps(metadata)
+        query.set_extra_json_key("columns", columns)
         db.session.commit()
         return None
