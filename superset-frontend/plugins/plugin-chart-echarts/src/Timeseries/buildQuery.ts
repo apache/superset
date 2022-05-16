@@ -96,11 +96,11 @@ export default function buildQuery(formData: QueryFormData) {
             ...baseQueryObject,
             ...{ is_timeseries },
           }),
-          flattenOperator(formData, baseQueryObject),
-          // todo: move contribution and prophet before flatten
           contributionOperator(formData, baseQueryObject),
+          flattenOperator(formData, baseQueryObject),
+          // todo: move prophet before flatten
           prophetOperator(formData, baseQueryObject),
-        ],
+        ].filter(op => op),
       },
     ];
   });
