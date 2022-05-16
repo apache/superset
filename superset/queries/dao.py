@@ -17,7 +17,7 @@
 import json
 import logging
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 from superset.dao.base import BaseDAO
 from superset.extensions import db
