@@ -16,7 +16,6 @@
 # under the License.
 """A collection of ORM sqlalchemy models for SQL Lab"""
 import re
-import pytz
 from datetime import datetime
 from typing import Any, Dict, List
 
@@ -230,10 +229,6 @@ class SavedQuery(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
     @property
     def user_email(self) -> str:
         return self.user.email
-
-    @property
-    def last_run(self) -> str:
-        return self.changed_on.astimezone(pytz.utc).strftime("%Y-%m-%dT%H:%M:%S.%f%z")
 
     @property
     def sqlalchemy_uri(self) -> URL:
