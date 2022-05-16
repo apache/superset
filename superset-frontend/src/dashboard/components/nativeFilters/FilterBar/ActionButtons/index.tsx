@@ -53,7 +53,10 @@ const ActionButtonsContainer = styled.div`
     padding: ${theme.gridUnit * 4}px;
     padding-top: ${theme.gridUnit * 6}px;
 
-    background: linear-gradient(transparent, white 25%);
+    background: linear-gradient(
+      ${theme.transparent},
+      ${theme.colors.grayscale.light5} ${theme.opacity.mediumLight}
+    );
 
     pointer-events: none;
 

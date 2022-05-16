@@ -94,7 +94,7 @@ const actionButtonsContainerStyles = (theme: SupersetTheme) => css`
   padding: ${theme.gridUnit * 4}px;
   z-index: 999;
   background: linear-gradient(
-    transparent,
+    ${theme.transparent},
     ${theme.colors.grayscale.light5} ${theme.opacity.mediumLight}
   );
 
