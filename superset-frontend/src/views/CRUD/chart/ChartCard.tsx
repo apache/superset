@@ -30,6 +30,7 @@ import { AntdDropdown } from 'src/components';
 import { Menu } from 'src/components/Menu';
 import FaveStar from 'src/components/FaveStar';
 import FacePile from 'src/components/FacePile';
+import moment from 'moment';
 import { handleChartDelete, CardStyles } from '../utils';
 
 interface ChartCardProps {
@@ -155,7 +156,7 @@ export default function ChartCard({
         url={bulkSelectEnabled ? undefined : chart.url}
         imgURL={chart.thumbnail_url || ''}
         imgFallbackURL="/static/assets/images/chart-card-fallback.svg"
-        description={t('Modified %s', chart.changed_on_delta_humanized)}
+        description={t('Modified %s', moment(chart.changed_on_utc).fromNow())}
         coverLeft={<FacePile users={chart.owners || []} />}
         coverRight={
           <Label type="secondary">{chart.datasource_name_text}</Label>
