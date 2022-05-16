@@ -1107,7 +1107,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     # Datasources are definitionally subsets of the tables backing them,
                     # so this relationship is backwards.
                     # If some future traveller changes this, please be aware that
-                    # the chart data endpoint (get_sqla_query) will also need to change
+                    # the chart data endpoint (get_sqla_query) may also need to change
                     # to partially compile the query so that virtual datasets
                     # don't result in false negatives.
                     for datasource_ in datasources:

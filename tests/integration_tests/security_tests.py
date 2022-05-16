@@ -999,16 +999,26 @@ class TestSecurityManager(SupersetTestCase):
         with self.assertRaises(SupersetSecurityException):
             security_manager.raise_for_access(query=query)
 
+    @patch("superset.common.query_actions.compile_query")
     @patch("superset.security.SupersetSecurityManager.can_access")
     @patch("superset.security.SupersetSecurityManager.can_access_schema")
     def test_raise_for_access_query_context(
-        self, mock_can_access_schema, mock_can_access
+        self, mock_can_access_schema, mock_can_access, mock_compile_query
     ):
-        query_context = Mock(datasource=self.get_datasource_mock())
-
+        query_context = self.get_query_context_mock()
+        mock_compile_query.return_value = {"query": "select * from some_table"}
         mock_can_access_schema.return_value = True
+
         security_manager.raise_for_access(query_context=query_context)
 
+    @patch("superset.common.query_actions.compile_query")
+    @patch("superset.security.SupersetSecurityManager.can_access")
+    @patch("superset.security.SupersetSecurityManager.can_access_schema")
+    def test_raise_for_access_query_context_bad_table(
+        self, mock_can_access_schema, mock_can_access, mock_compile_query
+    ):
+        query_context = self.get_query_context_mock()
+        mock_compile_query.return_value = {"query": "select * from some_table"}
         mock_can_access.return_value = False
         mock_can_access_schema.return_value = False
 

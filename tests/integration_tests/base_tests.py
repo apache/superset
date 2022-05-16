@@ -34,6 +34,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.sql import func
 from sqlalchemy.dialects.mysql import dialect
 
+from superset.common.query_context import QueryContext
 from tests.integration_tests.test_app import app
 from superset.sql_parse import CtasMethod
 from superset import db, security_manager
@@ -296,6 +297,9 @@ class SupersetTestCase(TestCase):
         datasource.database.db_engine_spec = Mock()
         datasource.database.db_engine_spec.mutate_expression_label = lambda x: x
         return datasource
+
+    def get_query_context_mock(self) -> QueryContext:
+        return Mock(datasource=self.get_datasource_mock(), queries=[Mock()])
 
     def get_resp(
         self, url, data=None, follow_redirects=True, raise_on_error=True, json_=None
