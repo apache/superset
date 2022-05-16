@@ -33,6 +33,7 @@ POSITION_JSON = """\
     "CHART-3afd9d70": {
         "meta": {
             "chartId": 66,
+            "sliceName": "Deck.gl Scatterplot",
             "width": 6,
             "height": 50
         },
@@ -43,6 +44,7 @@ POSITION_JSON = """\
     "CHART-2ee7fa5e": {
         "meta": {
             "chartId": 67,
+            "sliceName": "Deck.gl Screen grid",
             "width": 6,
             "height": 50
         },
@@ -53,6 +55,7 @@ POSITION_JSON = """\
     "CHART-201f7715": {
         "meta": {
             "chartId": 68,
+            "sliceName": "Deck.gl Hexagons",
             "width": 6,
             "height": 50
         },
@@ -63,6 +66,7 @@ POSITION_JSON = """\
     "CHART-d02f6c40": {
         "meta": {
             "chartId": 69,
+            "sliceName": "Deck.gl Grid",
             "width": 6,
             "height": 50
         },
@@ -73,6 +77,7 @@ POSITION_JSON = """\
     "CHART-2673431d": {
         "meta": {
             "chartId": 70,
+            "sliceName": "Deck.gl Polygons",
             "width": 6,
             "height": 50
         },
@@ -83,6 +88,7 @@ POSITION_JSON = """\
     "CHART-85265a60": {
         "meta": {
             "chartId": 71,
+            "sliceName": "Deck.gl Arcs",
             "width": 6,
             "height": 50
         },
@@ -93,6 +99,7 @@ POSITION_JSON = """\
     "CHART-2b87513c": {
         "meta": {
             "chartId": 72,
+            "sliceName": "Deck.gl Path",
             "width": 6,
             "height": 50
         },
@@ -204,7 +211,7 @@ def load_deck_dash() -> None:  # pylint: disable=too-many-statements
 
     print("Creating Scatterplot slice")
     slc = Slice(
-        slice_name="Scatterplot",
+        slice_name="Deck.gl Scatterplot",
         viz_type="deck_scatter",
         datasource_type="table",
         datasource_id=tbl.id,
@@ -239,7 +246,7 @@ def load_deck_dash() -> None:  # pylint: disable=too-many-statements
     }
     print("Creating Screen Grid slice")
     slc = Slice(
-        slice_name="Screen grid",
+        slice_name="Deck.gl Screen grid",
         viz_type="deck_screengrid",
         datasource_type="table",
         datasource_id=tbl.id,
@@ -275,7 +282,7 @@ def load_deck_dash() -> None:  # pylint: disable=too-many-statements
     }
     print("Creating Hex slice")
     slc = Slice(
-        slice_name="Hexagons",
+        slice_name="Deck.gl Hexagons",
         viz_type="deck_hex",
         datasource_type="table",
         datasource_id=tbl.id,
@@ -312,7 +319,7 @@ def load_deck_dash() -> None:  # pylint: disable=too-many-statements
     }
     print("Creating Grid slice")
     slc = Slice(
-        slice_name="Grid",
+        slice_name="Deck.gl Grid",
         viz_type="deck_grid",
         datasource_type="table",
         datasource_id=tbl.id,
@@ -401,7 +408,7 @@ def load_deck_dash() -> None:  # pylint: disable=too-many-statements
 
     print("Creating Polygon slice")
     slc = Slice(
-        slice_name="Polygons",
+        slice_name="Deck.gl Polygons",
         viz_type="deck_polygon",
         datasource_type="table",
         datasource_id=polygon_tbl.id,
@@ -451,7 +458,7 @@ def load_deck_dash() -> None:  # pylint: disable=too-many-statements
 
     print("Creating Arc slice")
     slc = Slice(
-        slice_name="Arcs",
+        slice_name="Deck.gl Arcs",
         viz_type="deck_arc",
         datasource_type="table",
         datasource_id=db.session.query(table)
@@ -503,7 +510,7 @@ def load_deck_dash() -> None:  # pylint: disable=too-many-statements
 
     print("Creating Path slice")
     slc = Slice(
-        slice_name="Path",
+        slice_name="Deck.gl Path",
         viz_type="deck_path",
         datasource_type="table",
         datasource_id=db.session.query(table)
@@ -525,7 +532,7 @@ def load_deck_dash() -> None:  # pylint: disable=too-many-statements
     dash.published = True
     js = POSITION_JSON
     pos = json.loads(js)
-    update_slice_ids(pos, slices)
+    slices = update_slice_ids(pos)
     dash.position_json = json.dumps(pos, indent=4)
     dash.dashboard_title = title
     dash.slug = slug

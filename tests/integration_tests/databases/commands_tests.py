@@ -185,6 +185,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
                     "is_dttm": True,
                     "python_date_format": None,
                     "type": ds_type,
+                    "advanced_data_type": None,
                     "verbose_name": None,
                 },
                 {
@@ -197,6 +198,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
                     "is_dttm": False,
                     "python_date_format": None,
                     "type": "STRING" if example_db.backend == "hive" else "VARCHAR(16)",
+                    "advanced_data_type": None,
                     "verbose_name": None,
                 },
                 {
@@ -211,6 +213,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
                     "type": "STRING"
                     if example_db.backend == "hive"
                     else "VARCHAR(255)",
+                    "advanced_data_type": None,
                     "verbose_name": None,
                 },
                 {
@@ -223,6 +226,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
                     "is_dttm": False,
                     "python_date_format": None,
                     "type": big_int_type,
+                    "advanced_data_type": None,
                     "verbose_name": None,
                 },
                 {
@@ -235,6 +239,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
                     "is_dttm": False,
                     "python_date_format": None,
                     "type": None,
+                    "advanced_data_type": None,
                     "verbose_name": None,
                 },
                 {
@@ -247,6 +252,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
                     "is_dttm": False,
                     "python_date_format": None,
                     "type": "STRING" if example_db.backend == "hive" else "VARCHAR(10)",
+                    "advanced_data_type": None,
                     "verbose_name": None,
                 },
                 {
@@ -259,6 +265,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
                     "is_dttm": False,
                     "python_date_format": None,
                     "type": big_int_type,
+                    "advanced_data_type": None,
                     "verbose_name": None,
                 },
                 {
@@ -271,6 +278,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
                     "is_dttm": False,
                     "python_date_format": None,
                     "type": big_int_type,
+                    "advanced_data_type": None,
                     "verbose_name": None,
                 },
             ],

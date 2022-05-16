@@ -162,6 +162,9 @@ function SelectPageSize({
   );
 }
 
+const getNoResultsMessage = (filter: string) =>
+  t(filter ? 'No matching records found' : 'No records found');
+
 export default function TableChart<D extends DataRecord = DataRecord>(
   props: TableChartTransformedProps<D> & {
     sticky?: DataTableProps<D>['sticky'];
@@ -474,12 +477,12 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     [columnsMeta, getColumnConfigs],
   );
 
-  const handleServerPaginationChange = (
-    pageNumber: number,
-    pageSize: number,
-  ) => {
-    updateExternalFormData(setDataMask, pageNumber, pageSize);
-  };
+  const handleServerPaginationChange = useCallback(
+    (pageNumber: number, pageSize: number) => {
+      updateExternalFormData(setDataMask, pageNumber, pageSize);
+    },
+    [setDataMask],
+  );
 
   return (
     <Styles>
@@ -497,9 +500,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         onServerPaginationChange={handleServerPaginationChange}
         // 9 page items in > 340px works well even for 100+ pages
         maxPageItemCount={width > 340 ? 9 : 7}
-        noResults={(filter: string) =>
-          t(filter ? 'No matching records found' : 'No records found')
-        }
+        noResults={getNoResultsMessage}
         searchInput={includeSearch && SearchInput}
         selectPageSize={pageSize !== null && SelectPageSize}
         // not in use in Superset, but needed for unit tests

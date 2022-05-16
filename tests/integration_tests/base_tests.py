@@ -329,7 +329,7 @@ class SupersetTestCase(TestCase):
         self,
         sql,
         client_id=None,
-        user_name=None,
+        username=None,
         raise_on_error=False,
         query_limit=None,
         database_name="examples",
@@ -340,9 +340,9 @@ class SupersetTestCase(TestCase):
         ctas_method=CtasMethod.TABLE,
         template_params="{}",
     ):
-        if user_name:
+        if username:
             self.logout()
-            self.login(username=(user_name or "admin"))
+            self.login(username=username)
         dbid = SupersetTestCase.get_database_by_name(database_name).id
         json_payload = {
             "database_id": dbid,
@@ -427,14 +427,14 @@ class SupersetTestCase(TestCase):
         self,
         sql,
         client_id=None,
-        user_name=None,
+        username=None,
         raise_on_error=False,
         database_name="examples",
         template_params=None,
     ):
-        if user_name:
+        if username:
             self.logout()
-            self.login(username=(user_name if user_name else "admin"))
+            self.login(username=username)
         dbid = SupersetTestCase.get_database_by_name(database_name).id
         resp = self.get_json_resp(
             "/superset/validate_sql_json/",
