@@ -39,7 +39,7 @@ def test_convert_dttm(app_context: AppContext, dttm: datetime) -> None:
 
     assert (
         AthenaEngineSpec.convert_dttm("TIMESTAMP", dttm)
-        == "TIMESTAMP '2019-01-02T03:04:05.678900'"
+        == "TIMESTAMP '2019-01-02 03:04:05.678'"
     )
 
 
