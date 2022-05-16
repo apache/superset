@@ -30,7 +30,17 @@ import re
 import sys
 from collections import OrderedDict
 from datetime import timedelta
-from typing import Any, Callable, Dict, List, Optional, Type, TYPE_CHECKING, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Literal,
+    Optional,
+    Type,
+    TYPE_CHECKING,
+    Union,
+)
 
 import pkg_resources
 from cachelib.base import BaseCache
@@ -39,8 +49,10 @@ from dateutil import tz
 from flask import Blueprint
 from flask_appbuilder.security.manager import AUTH_DB
 from pandas._libs.parsers import STR_NA_VALUES  # pylint: disable=no-name-in-module
-from typing_extensions import Literal
 
+from superset.advanced_data_type.plugins.internet_address import internet_address
+from superset.advanced_data_type.plugins.internet_port import internet_port
+from superset.advanced_data_type.types import AdvancedDataType
 from superset.constants import CHANGE_ME_SECRET_KEY
 from superset.jinja_context import BaseTemplateProcessor
 from superset.stats_logger import DummyStatsLogger
@@ -393,6 +405,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "DASHBOARD_RBAC": False,
     "ENABLE_EXPLORE_DRAG_AND_DROP": True,
     "ENABLE_FILTER_BOX_MIGRATION": False,
+    "ENABLE_ADVANCED_DATA_TYPES": False,
     "ENABLE_DND_WITH_CLICK_UX": True,
     # Enabling ALERTS_ATTACH_REPORTS, the system sends email and slack message
     # with screenshot and link
@@ -1268,6 +1281,13 @@ MENU_HIDE_USER_INFO = False
 
 # Set to False to only allow viewing own recent activity
 ENABLE_BROAD_ACTIVITY_ACCESS = True
+
+# the advanced data type key should correspond to that set in the column metadata
+ADVANCED_DATA_TYPES: Dict[str, AdvancedDataType] = {
+    "internet_address": internet_address,
+    "port": internet_port,
+}
+
 
 # -------------------------------------------------------------------
 # *                WARNING:  STOP EDITING  HERE                    *
