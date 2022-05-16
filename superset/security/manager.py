@@ -54,7 +54,7 @@ from flask_appbuilder.security.views import (
 from flask_appbuilder.widgets import ListWidget
 from flask_login import AnonymousUserMixin, LoginManager
 from jwt.api_jwt import _jwt_global_obj
-from sqlalchemy import and_, or_
+from sqlalchemy import and_, inspect, or_
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.mapper import Mapper
@@ -924,6 +924,69 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         return pvm.permission.name in {"can_override_role_permissions", "can_approve"}
 
+    def database_after_delete(  # pylint: disable=unused-argument
+        self,
+        mapper: Mapper,
+        connection: Connection,
+        target: "Database",
+    ) -> None:
+        session = inspect(target).session
+        view_menu_name = target.get_perm()
+
+        # Clean database access permission
+        db_pvm = self.find_permission_view_menu("database_access", view_menu_name)
+        if not db_pvm:
+            logger.warning(
+                "Could not find previous database permission %s",
+                view_menu_name,
+            )
+            return
+        session.delete(db_pvm)
+        session.delete(db_pvm.view_menu)
+
+        # Clean database schema permissions
+        schema_pvms = (
+            session.query(self.permissionview_model)
+            .join(self.permission_model)
+            .join(self.viewmenu_model)
+            .filter(self.permission_model.name == "schema_access")
+            .filter(self.viewmenu_model.name.like(f"[{target.database_name}].[%]"))
+            .all()
+        )
+        for schema_pvm in schema_pvms:
+            session.delete(schema_pvm)
+            session.delete(schema_pvm.view_menu)
+        session.commit()
+
+    def database_after_update(
+        self,
+        mapper: Mapper,
+        connection: Connection,
+        target: "Database",
+    ) -> None:
+        state = inspect(target)  # pylint: disable=no-member
+
+        history = state.get_history("database_name", True)
+        # Check if database name has changed
+        if history.has_changes() and len(history.deleted) > 0:
+            old_view_menu_name = f"[{history.deleted[0]}].(id:{target.id})"
+            view_menu_table = self.viewmenu_model.__table__  # pylint: disable=no-member
+            db_pvm = self.find_permission_view_menu(
+                "database_access", old_view_menu_name
+            )
+            if not db_pvm:
+                logger.warning(
+                    "Could not find previous database permission %s",
+                    old_view_menu_name,
+                )
+                return
+            connection.execute(
+                view_menu_table.update()
+                .where(view_menu_table.c.id == db_pvm.view_menu_id)
+                .values(name=target.get_perm())
+            )
+        return
+
     def set_perm(  # pylint: disable=unused-argument
         self, mapper: Mapper, connection: Connection, target: "BaseDatasource"
     ) -> None:
@@ -943,6 +1006,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             )
             target.perm = target.get_perm()
 
+        # check schema perm for datasets
         if (
             hasattr(target, "schema_perm")
             and target.schema_perm != target.get_schema_perm()
