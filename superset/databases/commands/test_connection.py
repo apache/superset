@@ -23,9 +23,8 @@ from flask import current_app as app
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import gettext as _
 from func_timeout import func_timeout, FunctionTimedOut
-from sqlalchemy.exc import DBAPIError, NoSuchModuleError
-
 from sqlalchemy.engine import Engine
+from sqlalchemy.exc import DBAPIError, NoSuchModuleError
 
 from superset.commands.base import BaseCommand
 from superset.databases.commands.exceptions import (
