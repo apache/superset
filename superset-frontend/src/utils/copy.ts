@@ -41,49 +41,47 @@ const copyTextWithClipboardApi = async (getText: () => Promise<string>) => {
   }
 };
 
-const copyTextToClipboard = async (getText: () => Promise<string>) => {
-  try {
-    await copyTextWithClipboardApi(getText);
-  } catch {
+const copyTextToClipboard = (getText: () => Promise<string>) =>
+  copyTextWithClipboardApi(getText)
     // If the Clipboard API is not supported, fallback to the older method.
-    const text = await getText();
-    const copyPromise = new Promise<void>((resolve, reject) => {
-      const selection: Selection | null = document.getSelection();
-      if (selection) {
-        selection.removeAllRanges();
-        const range = document.createRange();
-        const span = document.createElement('span');
-        span.textContent = text;
-        span.style.position = 'fixed';
-        span.style.top = '0';
-        span.style.clip = 'rect(0, 0, 0, 0)';
-        span.style.whiteSpace = 'pre';
+    .catch(() =>
+      getText().then(
+        text =>
+          new Promise<void>((resolve, reject) => {
+            const selection: Selection | null = document.getSelection();
+            if (selection) {
+              selection.removeAllRanges();
+              const range = document.createRange();
+              const span = document.createElement('span');
+              span.textContent = text;
+              span.style.position = 'fixed';
+              span.style.top = '0';
+              span.style.clip = 'rect(0, 0, 0, 0)';
+              span.style.whiteSpace = 'pre';
 
-        document.body.appendChild(span);
-        range.selectNode(span);
-        selection.addRange(range);
+              document.body.appendChild(span);
+              range.selectNode(span);
+              selection.addRange(range);
 
-        try {
-          if (!document.execCommand('copy')) {
-            reject();
-          }
-        } catch (err) {
-          reject();
-        }
+              try {
+                if (!document.execCommand('copy')) {
+                  reject();
+                }
+              } catch (err) {
+                reject();
+              }
 
-        document.body.removeChild(span);
-        if (selection.removeRange) {
-          selection.removeRange(range);
-        } else {
-          selection.removeAllRanges();
-        }
-      }
+              document.body.removeChild(span);
+              if (selection.removeRange) {
+                selection.removeRange(range);
+              } else {
+                selection.removeAllRanges();
+              }
+            }
 
-      resolve();
-    });
-
-    await copyPromise;
-  }
-};
+            resolve();
+          }),
+      ),
+    );
 
 export default copyTextToClipboard;
