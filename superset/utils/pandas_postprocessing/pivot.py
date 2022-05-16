@@ -80,8 +80,7 @@ def pivot(  # pylint: disable=too-many-arguments,too-many-locals
 
     aggregate_funcs = _get_aggregate_funcs(df, aggregates)
 
-    # TODO (villebro): Pandas 1.0.3 doesn't yet support NamedAgg in pivot_table.
-    #  Remove once/if support is added.
+    # NamedAgg isn't supported in pivot_table
     aggfunc = {na.column: na.aggfunc for na in aggregate_funcs.values()}
 
     # When dropna = False, the pivot_table function will calculate cartesian-product

@@ -327,7 +327,7 @@ def apply_post_process(
         if query["result_format"] == ChartDataResultFormat.JSON:
             df = pd.DataFrame.from_dict(query["data"])
         elif query["result_format"] == ChartDataResultFormat.CSV:
-            df = pd.read_csv(StringIO(query["data"]))
+            df = pd.read_csv(StringIO(query["data"]), engine="pyarrow")
         else:
             raise Exception(f"Result format {query['result_format']} not supported")
 
