@@ -25,8 +25,9 @@ import type {
   JsonValue,
   Metric,
   QueryFormData,
+  QueryFormMetric,
+  QueryFormColumn,
 } from '@superset-ui/core';
-import { AdhocMetric, PhysicalColumn } from '@superset-ui/core';
 import { sharedControls } from './shared-controls';
 import sharedControlComponents from './shared-controls/components';
 
@@ -342,8 +343,8 @@ export interface ControlPanelSectionConfig {
 }
 
 export interface SharedFormData {
-  metrics: AdhocMetric[];
-  columns: (AdhocColumn | PhysicalColumn)[];
+  metrics: QueryFormMetric[];
+  columns: QueryFormColumn[];
 }
 
 export interface StandardizedFormDataInterface {

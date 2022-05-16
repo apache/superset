@@ -234,10 +234,10 @@ describe('should transform form_data between table and bigNumberTotal', () => {
   test('transform', () => {
     // table -> bigNumberTotal
     const sfd = new StandardizedFormData(tableVizFormData);
-    const { formData: bntFormData, controlsState: btnControlsState } =
+    const { formData: bntFormData, controlsState: bntControlsState } =
       sfd.transform('big_number_total', tableVizStore);
     expect(Object.keys(bntFormData).sort()).toEqual(
-      [...Object.keys(btnControlsState), 'standardized_form_data'].sort(),
+      [...Object.keys(bntControlsState), 'standardized_form_data'].sort(),
     );
     expect(bntFormData.viz_type).toBe('big_number_total');
     expect(bntFormData.metric).toBe('count');
@@ -245,8 +245,8 @@ describe('should transform form_data between table and bigNumberTotal', () => {
     // change control values
     bntFormData.metric = 'sum(sales)';
     bntFormData.time_range = '2021 : 2022';
-    btnControlsState.metric.value = 'sum(sales)';
-    btnControlsState.time_range.value = '2021 : 2022';
+    bntControlsState.metric.value = 'sum(sales)';
+    bntControlsState.time_range.value = '2021 : 2022';
 
     // bigNumberTotal -> table
     const sfd2 = new StandardizedFormData(bntFormData);
@@ -254,7 +254,7 @@ describe('should transform form_data between table and bigNumberTotal', () => {
       sfd2.transform('table', {
         ...tableVizStore,
         form_data: bntFormData,
-        controls: btnControlsState,
+        controls: bntControlsState,
       });
     expect(Object.keys(tblFormData).sort()).toEqual(
       [...Object.keys(tblControlsState), 'standardized_form_data'].sort(),
