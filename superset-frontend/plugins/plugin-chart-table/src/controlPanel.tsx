@@ -533,8 +533,8 @@ const config: ControlPanelConfig = {
   ],
   denormalizeFormData: formData => ({
     ...formData,
-    metrics: formData.standardized_form_data.sharedFormData.metrics,
-    groupby: formData.standardized_form_data.sharedFormData.columns,
+    metrics: formData.standardizedFormData.sharedFormData.metrics,
+    groupby: formData.standardizedFormData.sharedFormData.columns,
   }),
 };
 

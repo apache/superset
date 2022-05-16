@@ -84,9 +84,9 @@ export class StandardizedFormData {
     });
 
     const memorizedFormData = Array.isArray(
-      formData?.standardized_form_data?.memorizedFormData,
+      formData?.standardizedorm_data?.memorizedFormData,
     )
-      ? new Map(formData.standardized_form_data.memorizedFormData)
+      ? new Map(formData.standardizedFormData.memorizedFormData)
       : new Map();
     const vizType = formData.viz_type;
     if (memorizedFormData.has(vizType)) {
@@ -144,7 +144,7 @@ export class StandardizedFormData {
      * 1. get memorized form_data by viz type or get previous form_data
      * 2. collect public control values
      * 3. generate initial targetControlsState
-     * 4. attach `standardized_form_data` to the initial form_data
+     * 4. attach `standardizedFormData` to the initial form_data
      * 5. call denormalizeFormData to transform initial form_data if the plugin was defined
      * 6. use final form_data to generate controlsState
      * */
@@ -162,7 +162,7 @@ export class StandardizedFormData {
     });
     const targetFormData = {
       ...getFormDataFromControls(targetControlsState),
-      standardized_form_data: this.dumpSFD(),
+      standardizedFormData: this.dumpSFD(),
     };
 
     const controlPanel = getChartControlPanelRegistry().get(targetVizType);

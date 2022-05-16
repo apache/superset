@@ -370,12 +370,12 @@ const config: ControlPanelConfig = {
   ],
   denormalizeFormData: formData => {
     const groupbyColumns =
-      formData.standardized_form_data.sharedFormData.columns.filter(
+      formData.standardizedFormData.sharedFormData.columns.filter(
         col => !ensureIsArray(formData.groupbyRows).includes(col),
       );
     return {
       ...formData,
-      metrics: formData.standardized_form_data.sharedFormData.metrics,
+      metrics: formData.standardizedFormData.sharedFormData.metrics,
       groupbyColumns,
     };
   },

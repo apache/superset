@@ -359,7 +359,7 @@ export interface ControlPanelConfig {
   onInit?: (state: ControlStateMapping) => void;
   denormalizeFormData?: (
     formData: QueryFormData & {
-      standardized_form_data: StandardizedFormDataInterface;
+      standardizedFormData: StandardizedFormDataInterface;
     },
   ) => QueryFormData;
 }

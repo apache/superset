@@ -98,6 +98,6 @@ export default {
   },
   denormalizeFormData: formData => ({
     ...formData,
-    metric: formData.standardized_form_data.sharedFormData.metrics[0],
+    metric: formData.standardizedFormData.sharedFormData.metrics[0],
   }),
 } as ControlPanelConfig;

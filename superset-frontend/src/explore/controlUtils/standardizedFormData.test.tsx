@@ -84,8 +84,8 @@ describe('should collect control values and create SFD', () => {
       ],
       denormalizeFormData: (formData: SqlaFormData) => ({
         ...formData,
-        columns: formData.standardized_form_data.sharedFormData.columns,
-        metrics: formData.standardized_form_data.sharedFormData.metrics,
+        columns: formData.standardizedFormData.sharedFormData.columns,
+        metrics: formData.standardizedFormData.sharedFormData.metrics,
       }),
     });
   });
@@ -237,7 +237,7 @@ describe('should transform form_data between table and bigNumberTotal', () => {
     const { formData: bntFormData, controlsState: bntControlsState } =
       sfd.transform('big_number_total', tableVizStore);
     expect(Object.keys(bntFormData).sort()).toEqual(
-      [...Object.keys(bntControlsState), 'standardized_form_data'].sort(),
+      [...Object.keys(bntControlsState), 'standardizedFormData'].sort(),
     );
     expect(bntFormData.viz_type).toBe('big_number_total');
     expect(bntFormData.metric).toBe('count');
@@ -257,7 +257,7 @@ describe('should transform form_data between table and bigNumberTotal', () => {
         controls: bntControlsState,
       });
     expect(Object.keys(tblFormData).sort()).toEqual(
-      [...Object.keys(tblControlsState), 'standardized_form_data'].sort(),
+      [...Object.keys(tblControlsState), 'standardizedFormData'].sort(),
     );
     expect(tblFormData.viz_type).toBe('table');
     expect(tblFormData.metrics).toEqual(['sum(sales)']);
