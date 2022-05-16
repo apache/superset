@@ -552,21 +552,15 @@ class ExploreMixin:
     """
 
     @property
-    def database(self):
+    def database(self) -> str:
         raise NotImplementedError
 
     @property
-    def schema(self):
+    def schema(self) -> str:
         raise NotImplementedError
 
-    # @property
-    # def type(self) -> str:
-    #     return f"{self.__class__.__name__.lower()}"
-
-    type = "query"
-
     @staticmethod
-    def default_query(qry):
+    def default_query(qry: str) -> str:
         return qry
 
     @property

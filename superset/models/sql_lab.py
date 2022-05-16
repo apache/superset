@@ -49,7 +49,7 @@ from superset.models.helpers import (
 from superset.models.tags import QueryUpdater
 from superset.sql_parse import CtasMethod, ParsedQuery, Table
 from superset.sqllab.limiting_factor import LimitingFactor
-from superset.utils.core import QueryStatus, user_label
+from superset.utils.core import DatasourceType, QueryStatus, user_label
 
 
 class Query(Model, ExtraJSONMixin, ExploreMixin):
@@ -166,6 +166,10 @@ class Query(Model, ExtraJSONMixin, ExploreMixin):
     @property
     def sql_tables(self) -> List[Table]:
         return list(ParsedQuery(self.sql).tables)
+
+    @property
+    def model_type(self) -> str:
+        return DatasourceType.Query
 
     def raise_for_access(self) -> None:
         """

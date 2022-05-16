@@ -54,4 +54,5 @@ def get_query_datasource():
         yield query
 
         # rollback changes
-        # todo
+        db.session.delete(query)
+        db.session.delete(students)
