@@ -32,6 +32,10 @@ import sliceEntities from 'src/dashboard/reducers/sliceEntities';
 import dashboardLayout from 'src/dashboard/reducers/undoableDashboardLayout';
 import logger from 'src/middleware/loggerMiddleware';
 import shortid from 'shortid';
+import {
+  BootstrapUser,
+  UserWithPermissionsAndRoles,
+} from 'src/types/bootstrapTypes';
 
 // Some reducers don't do anything, and redux is just used to reference the initial "state".
 // This may change later, as the client application takes on more responsibilities.
@@ -57,11 +61,28 @@ const dashboardReducers = {
   reports,
 };
 
+export const USER_LOADED = 'USER_LOADED';
+
+export type UserLoadedAction = {
+  type: typeof USER_LOADED;
+  user: UserWithPermissionsAndRoles;
+};
+
+const userReducer = (
+  user: BootstrapUser = bootstrap.user || {},
+  action: UserLoadedAction,
+): BootstrapUser => {
+  if (action.type === USER_LOADED) {
+    return action.user;
+  }
+  return user;
+};
+
 // exported for tests
 export const rootReducer = combineReducers({
   messageToasts: messageToastReducer,
   common: noopReducer(bootstrap.common || {}),
-  user: noopReducer(bootstrap.user || {}),
+  user: userReducer,
   impressionId: noopReducer(shortid.generate()),
   ...dashboardReducers,
 });

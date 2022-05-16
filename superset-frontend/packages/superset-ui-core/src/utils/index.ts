@@ -28,3 +28,4 @@ export { default as logging } from './logging';
 export { default as removeDuplicates } from './removeDuplicates';
 export * from './featureFlags';
 export * from './random';
+export * from './typedMemo';

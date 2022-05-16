@@ -128,13 +128,12 @@ def load_world_bank_health_n_pop(  # pylint: disable=too-many-locals, too-many-s
         dash = Dashboard()
     dash.published = True
     pos = dashboard_positions
-    update_slice_ids(pos, slices)
+    slices = update_slice_ids(pos)
 
     dash.dashboard_title = dash_name
     dash.position_json = json.dumps(pos, indent=4)
     dash.slug = slug
-
-    dash.slices = slices[:-1]
+    dash.slices = slices
     db.session.merge(dash)
     db.session.commit()
 
@@ -458,12 +457,6 @@ dashboard_positions = {
         "children": [],
         "id": "CHART-a4808bba",
         "meta": {"chartId": 49, "height": 50, "sliceName": "Treemap", "width": 8},
-        "type": "CHART",
-    },
-    "CHART-3nc0d8sk": {
-        "children": [],
-        "id": "CHART-3nc0d8sk",
-        "meta": {"chartId": 50, "height": 50, "sliceName": "Treemap", "width": 8},
         "type": "CHART",
     },
     "COLUMN-071bbbad": {

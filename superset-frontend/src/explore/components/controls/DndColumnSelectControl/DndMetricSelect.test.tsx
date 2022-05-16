@@ -17,7 +17,14 @@
  * under the License.
  */
 import React from 'react';
-import { render, screen } from 'spec/helpers/testing-library';
+import userEvent from '@testing-library/user-event';
+import {
+  render,
+  screen,
+  within,
+  fireEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import { DndMetricSelect } from 'src/explore/components/controls/DndColumnSelectControl/DndMetricSelect';
 import { AGGREGATES } from 'src/explore/constants';
 import { EXPRESSION_TYPES } from '../MetricControl/AdhocMetric';
@@ -27,6 +34,7 @@ const defaultProps = {
     {
       metric_name: 'metric_a',
       expression: 'expression_a',
+      verbose_name: 'metric_a',
     },
     {
       metric_name: 'metric_b',
@@ -281,4 +289,111 @@ test('update adhoc metric name when column label in dataset changes', () => {
   expect(screen.getByText('Metric B')).toBeVisible();
   expect(screen.getByText('SUM(new col A name)')).toBeVisible();
   expect(screen.getByText('SUM(new col B name)')).toBeVisible();
+});
+
+test('can drag metrics', async () => {
+  const metricValues = ['metric_a', 'metric_b', adhocMetricB];
+  render(<DndMetricSelect {...defaultProps} value={metricValues} multi />, {
+    useDnd: true,
+  });
+
+  expect(screen.getByText('metric_a')).toBeVisible();
+  expect(screen.getByText('Metric B')).toBeVisible();
+
+  const container = screen.getByTestId('dnd-labels-container');
+  expect(container.childElementCount).toBe(4);
+
+  const firstMetric = container.children[0] as HTMLElement;
+  const lastMetric = container.children[2] as HTMLElement;
+  expect(within(firstMetric).getByText('metric_a')).toBeVisible();
+  expect(within(lastMetric).getByText('SUM(Column B)')).toBeVisible();
+
+  fireEvent.mouseOver(within(firstMetric).getByText('metric_a'));
+  expect(await screen.findByText('Metric name')).toBeInTheDocument();
+
+  fireEvent.dragStart(firstMetric);
+  fireEvent.dragEnter(lastMetric);
+  fireEvent.dragOver(lastMetric);
+  fireEvent.drop(lastMetric);
+
+  expect(within(firstMetric).getByText('SUM(Column B)')).toBeVisible();
+  expect(within(lastMetric).getByText('metric_a')).toBeVisible();
+});
+
+test('title changes on custom SQL text change', async () => {
+  let metricValues = [adhocMetricA, 'metric_b'];
+  const onChange = (val: any[]) => {
+    metricValues = [...val];
+  };
+
+  const { rerender } = render(
+    <DndMetricSelect
+      {...defaultProps}
+      value={metricValues}
+      onChange={onChange}
+      multi
+    />,
+    {
+      useDnd: true,
+    },
+  );
+
+  expect(screen.getByText('SUM(column_a)')).toBeVisible();
+
+  metricValues = [adhocMetricA, 'metric_b', 'metric_a'];
+  rerender(
+    <DndMetricSelect
+      {...defaultProps}
+      value={metricValues}
+      onChange={onChange}
+      multi
+    />,
+  );
+
+  expect(screen.getByText('SUM(column_a)')).toBeVisible();
+  expect(screen.getByText('metric_a')).toBeVisible();
+
+  fireEvent.click(screen.getByText('metric_a'));
+  expect(await screen.findByText('Custom SQL')).toBeInTheDocument();
+
+  fireEvent.click(screen.getByText('Custom SQL'));
+  expect(screen.getByText('Custom SQL').parentElement).toHaveClass(
+    'ant-tabs-tab-active',
+  );
+
+  const container = screen.getByTestId('adhoc-metric-edit-tabs');
+  await waitFor(() => {
+    const textArea = container.getElementsByClassName(
+      'ace_text-input',
+    ) as HTMLCollectionOf<HTMLTextAreaElement>;
+    expect(textArea.length).toBe(1);
+    expect(textArea[0].value).toBe('');
+  });
+
+  expect(screen.getByTestId('AdhocMetricEditTitle#trigger')).toHaveTextContent(
+    'metric_a',
+  );
+
+  const textArea = container.getElementsByClassName(
+    'ace_text-input',
+  )[0] as HTMLTextAreaElement;
+
+  // Changing the ACE editor via pasting, since the component
+  // handles the textarea value internally, and changing it doesn't
+  // trigger the onChange
+  await userEvent.paste(textArea, 'New metric');
+
+  await waitFor(() => {
+    expect(
+      screen.getByTestId('AdhocMetricEditTitle#trigger'),
+    ).toHaveTextContent('New metric');
+  });
+
+  // Ensure the title does not reset on mouse over
+  fireEvent.mouseEnter(screen.getByTestId('AdhocMetricEditTitle#trigger'));
+  fireEvent.mouseOut(screen.getByTestId('AdhocMetricEditTitle#trigger'));
+
+  expect(screen.getByTestId('AdhocMetricEditTitle#trigger')).toHaveTextContent(
+    'New metric',
+  );
 });

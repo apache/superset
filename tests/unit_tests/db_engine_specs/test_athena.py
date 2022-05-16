@@ -35,13 +35,11 @@ def test_convert_dttm(app_context: AppContext, dttm: datetime) -> None:
 
     from superset.db_engine_specs.athena import AthenaEngineSpec
 
-    assert (
-        AthenaEngineSpec.convert_dttm("DATE", dttm) == "from_iso8601_date('2019-01-02')"
-    )
+    assert AthenaEngineSpec.convert_dttm("DATE", dttm) == "DATE '2019-01-02'"
 
     assert (
         AthenaEngineSpec.convert_dttm("TIMESTAMP", dttm)
-        == "from_iso8601_timestamp('2019-01-02T03:04:05.678900')"
+        == "TIMESTAMP '2019-01-02 03:04:05.678'"
     )
 
 
@@ -80,8 +78,7 @@ def test_get_text_clause_with_colon(app_context: AppContext) -> None:
     from superset.db_engine_specs.athena import AthenaEngineSpec
 
     query = (
-        "SELECT foo FROM tbl WHERE "
-        "abc >= from_iso8601_timestamp('2021-11-26T00\:00\:00.000000')"
+        "SELECT foo FROM tbl WHERE " "abc >= TIMESTAMP '2021-11-26T00\:00\:00.000000'"
     )
     text_clause = AthenaEngineSpec.get_text_clause(query)
     assert text_clause.text == query

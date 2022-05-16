@@ -31,7 +31,7 @@ import {
 import React from 'react';
 import { getQueryMode, isRawMode } from './shared';
 
-export const allColumns: typeof sharedControls.groupby = {
+const allColumns: typeof sharedControls.groupby = {
   type: 'SelectControl',
   label: t('Columns'),
   description: t('Columns to display'),
@@ -52,6 +52,7 @@ export const allColumns: typeof sharedControls.groupby = {
         : [],
   }),
   visibility: isRawMode,
+  resetOnHide: false,
 };
 
 const dndAllColumns: typeof sharedControls.groupby = {
@@ -75,6 +76,7 @@ const dndAllColumns: typeof sharedControls.groupby = {
     return newState;
   },
   visibility: isRawMode,
+  resetOnHide: false,
 };
 
 export const allColumnsControlSetItem: ControlSetItem = {

@@ -122,6 +122,11 @@ def assert_log(state: str, error_message: Optional[str] = None):
     assert state in log_states
     assert error_message in [log.error_message for log in logs]
 
+    for log in logs:
+        if log.state == ReportState.WORKING:
+            assert log.value is None
+            assert log.value_row_json is None
+
 
 def create_report_notification(
     email_target: Optional[str] = None,
@@ -370,11 +375,15 @@ def create_report_slack_chart_working():
         )
         report_schedule.last_state = ReportState.WORKING
         report_schedule.last_eval_dttm = datetime(2020, 1, 1, 0, 0)
+        report_schedule.last_value = None
+        report_schedule.last_value_row_json = None
         db.session.commit()
         log = ReportExecutionLog(
             scheduled_dttm=report_schedule.last_eval_dttm,
             start_dttm=report_schedule.last_eval_dttm,
             end_dttm=report_schedule.last_eval_dttm,
+            value=report_schedule.last_value,
+            value_row_json=report_schedule.last_value_row_json,
             state=ReportState.WORKING,
             report_schedule=report_schedule,
             uuid=uuid4(),

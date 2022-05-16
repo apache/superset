@@ -370,42 +370,39 @@ postgresql:
   ## Use the PostgreSQL chart dependency.
   ## Set to false if bringing your own PostgreSQL.
   enabled: true
-  ##
-  ## The name of an existing secret that contains the postgres password.
-  existingSecret:
-  ## Name of the key containing the secret.
-  existingSecretKey: postgresql-password
-  ##
-  ## If you are bringing your own PostgreSQL, you should set postgresHost and
-  ## also probably service.port, postgresqlUsername, postgresqlPassword, and postgresqlDatabase
-  ## postgresHost:
-  ##
-  ## PostgreSQL port
-  service:
-    port: 5432
-  ## PostgreSQL User to create.
-  postgresqlUsername: superset
-  ##
-  ## PostgreSQL Password for the new user.
-  ## If not set, a random 10 characters password will be used.
-  postgresqlPassword: superset
-  ##
-  ## PostgreSQL Database to create.
-  postgresqlDatabase: superset
-  ##
-  ## Persistent Volume Storage configuration.
-  ## ref: https://kubernetes.io/docs/user-guide/persistent-volumes
-  persistence:
+
+  ## Authentication parameters
+  auth:
+    ## The name of an existing secret that contains the postgres password.
+    existingSecret:
+    ## PostgreSQL name for a custom user to create
+    username: superset
+    ## PostgreSQL password for the custom user to create. Ignored if `auth.existingSecret` with key `password` is provided
+    password: superset
+    ## PostgreSQL name for a custom database to create
+    database: superset
+
+
+  ## PostgreSQL Primary parameters
+  primary:
     ##
-    ## Enable PostgreSQL persistence using Persistent Volume Claims.
-    enabled: true
-    ##
-    ## Persistant class
-    # storageClass: classname
-    ##
-    ## Access modes:
-    accessModes:
-      - ReadWriteOnce
+    ## Persistent Volume Storage configuration.
+    ## ref: https://kubernetes.io/docs/user-guide/persistent-volumes
+    persistence:
+      ##
+      ## Enable PostgreSQL persistence using Persistent Volume Claims.
+      enabled: true
+      ##
+      ## Persistant class
+      # storageClass: classname
+      ##
+      ## Access modes:
+      accessModes:
+        - ReadWriteOnce
+    ## PostgreSQL port
+    service:
+      ports:
+        postgresql: "5432"
 
 ## Configuration values for the Redis dependency.
 ## ref: https://github.com/bitnami/charts/blob/master/bitnami/redis
