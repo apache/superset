@@ -29,6 +29,7 @@ import {
   NumberFormatter,
   smartDateDetailedFormatter,
   smartDateFormatter,
+  SupersetTheme,
   TimeFormatter,
   TimeseriesAnnotationLayer,
   TimeseriesDataRecord,
@@ -272,6 +273,7 @@ export function transformIntervalAnnotation(
   data: TimeseriesDataRecord[],
   annotationData: AnnotationData,
   colorScale: CategoricalColorScale,
+  theme: SupersetTheme,
   sliceId?: number,
 ): SeriesOption[] {
   const series: SeriesOption[] = [];
@@ -297,7 +299,7 @@ export function transformIntervalAnnotation(
     const intervalLabel: SeriesLabelOption = showLabel
       ? {
           show: true,
-          color: '#000000',
+          color: theme.colors.grayscale.dark2,
           position: 'insideTop',
           verticalAlign: 'top',
           fontWeight: 'bold',
@@ -305,19 +307,19 @@ export function transformIntervalAnnotation(
           emphasis: {
             position: 'insideTop',
             verticalAlign: 'top',
-            backgroundColor: '#ffffff',
+            backgroundColor: theme.colors.grayscale.light5,
           },
         }
       : {
           show: false,
-          color: '#000000',
+          color: theme.colors.grayscale.dark2,
           // @ts-ignore
           emphasis: {
             fontWeight: 'bold',
             show: true,
             position: 'insideTop',
             verticalAlign: 'top',
-            backgroundColor: '#ffffff',
+            backgroundColor: theme.colors.grayscale.light5,
           },
         };
     series.push({
@@ -346,6 +348,7 @@ export function transformEventAnnotation(
   data: TimeseriesDataRecord[],
   annotationData: AnnotationData,
   colorScale: CategoricalColorScale,
+  theme: SupersetTheme,
   sliceId?: number,
 ): SeriesOption[] {
   const series: SeriesOption[] = [];
@@ -375,25 +378,25 @@ export function transformEventAnnotation(
     const eventLabel: SeriesLineLabelOption = showLabel
       ? {
           show: true,
-          color: '#000000',
+          color: theme.colors.grayscale.dark2,
           position: 'insideEndTop',
           fontWeight: 'bold',
           formatter: (params: CallbackDataParams) => params.name,
           // @ts-ignore
           emphasis: {
-            backgroundColor: '#ffffff',
+            backgroundColor: theme.colors.grayscale.light5,
           },
         }
       : {
           show: false,
-          color: '#000000',
+          color: theme.colors.grayscale.dark2,
           position: 'insideEndTop',
           // @ts-ignore
           emphasis: {
             formatter: (params: CallbackDataParams) => params.name,
             fontWeight: 'bold',
             show: true,
-            backgroundColor: '#ffffff',
+            backgroundColor: theme.colors.grayscale.light5,
           },
         };
 

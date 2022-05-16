@@ -135,7 +135,7 @@ function getTotalValuePadding({
 export default function transformProps(
   chartProps: EchartsPieChartProps,
 ): PieChartTransformedProps {
-  const { formData, height, hooks, filterState, queriesData, width } =
+  const { formData, height, hooks, filterState, queriesData, width, theme } =
     chartProps;
   const { data = [] } = queriesData[0];
   const coltypeMapping = getColtypesMapping(queriesData[0]);
@@ -251,7 +251,7 @@ export default function transformProps(
   const defaultLabel = {
     formatter,
     show: showLabels,
-    color: '#000000',
+    color: theme.colors.grayscale.dark2,
   };
 
   const chartPadding = getChartPadding(
@@ -285,7 +285,7 @@ export default function transformProps(
         label: {
           show: true,
           fontWeight: 'bold',
-          backgroundColor: 'white',
+          backgroundColor: theme.colors.grayscale.light5,
         },
       },
       data: transformedData,

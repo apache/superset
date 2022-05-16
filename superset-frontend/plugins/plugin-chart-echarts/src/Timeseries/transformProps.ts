@@ -23,6 +23,7 @@ import {
   DataRecordValue,
   DTTM_ALIAS,
   GenericDataType,
+  getColumnLabel,
   getNumberFormatter,
   isEventAnnotationLayer,
   isFormulaAnnotationLayer,
@@ -89,6 +90,7 @@ export default function transformProps(
     hooks,
     queriesData,
     datasource,
+    theme,
   } = chartProps;
   const { verboseMap = {} } = datasource;
   const [queryData] = queriesData;
@@ -140,7 +142,8 @@ export default function transformProps(
 
   const colorScale = CategoricalColorNamespace.getScale(colorScheme as string);
   const rebasedData = rebaseForecastDatum(data, verboseMap);
-  const xAxisCol = verboseMap[xAxisOrig] || xAxisOrig || DTTM_ALIAS;
+  const xAxisCol =
+    verboseMap[xAxisOrig] || getColumnLabel(xAxisOrig || DTTM_ALIAS);
   const rawSeries = extractSeries(rebasedData, {
     fillNeighborValue: stack && !forecastEnabled ? 0 : undefined,
     xAxis: xAxisCol,
@@ -239,6 +242,7 @@ export default function transformProps(
             data,
             annotationData,
             colorScale,
+            theme,
             sliceId,
           ),
         );
@@ -249,6 +253,7 @@ export default function transformProps(
             data,
             annotationData,
             colorScale,
+            theme,
             sliceId,
           ),
         );

@@ -19,20 +19,21 @@
 import React from 'react';
 import userEvent from '@testing-library/user-event';
 import { render, screen } from 'spec/helpers/testing-library';
-import { ChartEditableTitle } from './index';
+import { DynamicEditableTitle } from '.';
 
 const createProps = (overrides: Record<string, any> = {}) => ({
   title: 'Chart title',
   placeholder: 'Add the name of the chart',
   canEdit: true,
   onSave: jest.fn(),
+  label: 'Chart title',
   ...overrides,
 });
 
 describe('Chart editable title', () => {
   it('renders chart title', () => {
     const props = createProps();
-    render(<ChartEditableTitle {...props} />);
+    render(<DynamicEditableTitle {...props} />);
     expect(screen.getByText('Chart title')).toBeVisible();
   });
 
@@ -40,13 +41,13 @@ describe('Chart editable title', () => {
     const props = createProps({
       title: '',
     });
-    render(<ChartEditableTitle {...props} />);
+    render(<DynamicEditableTitle {...props} />);
     expect(screen.getByText('Add the name of the chart')).toBeVisible();
   });
 
   it('click, edit and save title', () => {
     const props = createProps();
-    render(<ChartEditableTitle {...props} />);
+    render(<DynamicEditableTitle {...props} />);
     const textboxElement = screen.getByRole('textbox');
     userEvent.click(textboxElement);
     userEvent.type(textboxElement, ' edited');
@@ -57,7 +58,7 @@ describe('Chart editable title', () => {
 
   it('renders in non-editable mode', () => {
     const props = createProps({ canEdit: false });
-    render(<ChartEditableTitle {...props} />);
+    render(<DynamicEditableTitle {...props} />);
     const titleElement = screen.getByLabelText('Chart title');
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
     expect(titleElement).toBeVisible();
