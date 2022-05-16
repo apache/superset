@@ -20,6 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { DragLayer } from 'react-dnd';
 
+import moment from 'moment';
 import AddSliceCard from '../AddSliceCard';
 import { slicePropShape } from '../../util/propShapes';
 import {
@@ -72,7 +73,7 @@ function AddSliceDragPreview({ dragItem, slices, isDragging, currentOffset }) {
         transform: `translate(${currentOffset.x}px, ${currentOffset.y}px)`,
       }}
       sliceName={slice.slice_name}
-      lastModified={slice.changed_on_humanized}
+      lastModified={moment.utc(slice.changed_on).fromNow()}
       visType={slice.viz_type}
       datasourceUrl={slice.datasource_url}
       datasourceName={slice.datasource_name}

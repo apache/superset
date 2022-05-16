@@ -30,6 +30,7 @@ import ListViewCard from 'src/components/ListViewCard';
 import DeleteModal from 'src/components/DeleteModal';
 import Icons from 'src/components/Icons';
 import SubMenu from 'src/views/components/SubMenu';
+import moment from 'moment';
 import EmptyState from './EmptyState';
 import {
   CardContainer,
@@ -52,6 +53,7 @@ interface Query {
   end_time?: string;
   label?: string;
   changed_on_delta_humanized?: string;
+  last_run?: string;
   sql?: string | null;
 }
 
@@ -316,7 +318,7 @@ const SavedQueries = ({
                 url={`/superset/sqllab?savedQueryId=${q.id}`}
                 title={q.label}
                 imgFallbackURL="/static/assets/images/empty-query.svg"
-                description={t('Ran %s', q.changed_on_delta_humanized)}
+                description={t('Ran %s', moment(q.last_run).fromNow())}
                 cover={
                   q?.sql?.length && showThumbnails && featureFlag ? (
                     <QueryContainer>
