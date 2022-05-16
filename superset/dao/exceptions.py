@@ -53,3 +53,15 @@ class DAOConfigError(DAOException):
     """
 
     message = "DAO is not configured correctly missing model definition"
+
+
+class DatasourceTypeNotSupportedError(DAOException):
+    """
+    DAO datasource query source type is not supported
+    """
+
+    message = "DAO datasource query source type is not supported"
+
+
+class DatasourceNotFound(DAOException):
+    message = "Datasource does not exist"

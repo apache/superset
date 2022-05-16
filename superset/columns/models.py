@@ -94,6 +94,10 @@ class Column(
     # Raw type as returned and used by db engine.
     type = sa.Column(sa.Text, default=UNKOWN_TYPE)
 
+    # Assigns column advnaced type to determine custom behavior
+    # does nothing unless feature flag ENABLE_ADVANCED_DATA_TYPES in true
+    advanced_data_type = sa.Column(sa.Text)
+
     # Columns are defined by expressions. For tables, these are the actual columns names,
     # and should match the ``name`` attribute. For datasets, these can be any valid SQL
     # expression. If the SQL expression is an aggregation the column is a metric,
