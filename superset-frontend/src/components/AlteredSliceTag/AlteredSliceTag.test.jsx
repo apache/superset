@@ -69,6 +69,17 @@ describe('AlteredSliceTag', () => {
     expect(wrapper.instance().render()).toBeNull();
   });
 
+  it('does not run when temporary controls have changes', () => {
+    props = {
+      origFormData: { ...props.origFormData, url_params: { foo: 'foo' } },
+      currentFormData: { ...props.origFormData, url_params: { bar: 'bar' } },
+    };
+    wrapper = mount(<AlteredSliceTag {...props} />);
+    expect(wrapper.instance().state.rows).toEqual([]);
+    expect(wrapper.instance().state.hasDiffs).toBe(false);
+    expect(wrapper.instance().render()).toBeNull();
+  });
+
   it('sets new rows when receiving new props', () => {
     const testRows = ['testValue'];
     const getRowsFromDiffsStub = jest
@@ -295,36 +306,6 @@ describe('AlteredSliceTag', () => {
       expect(
         wrapper.instance().formatValue(filters, 'adhoc_filters', controlsMap),
       ).toBe(expected);
-    });
-  });
-  describe('isEqualish', () => {
-    it('considers null, undefined, {} and [] as equal', () => {
-      const inst = wrapper.instance();
-      expect(inst.isEqualish(null, undefined)).toBe(true);
-      expect(inst.isEqualish(null, [])).toBe(true);
-      expect(inst.isEqualish(null, {})).toBe(true);
-      expect(inst.isEqualish(undefined, {})).toBe(true);
-    });
-    it('considers empty strings are the same as null', () => {
-      const inst = wrapper.instance();
-      expect(inst.isEqualish(undefined, '')).toBe(true);
-      expect(inst.isEqualish(null, '')).toBe(true);
-    });
-    it('considers deeply equal objects as equal', () => {
-      const inst = wrapper.instance();
-      expect(inst.isEqualish('', '')).toBe(true);
-      expect(inst.isEqualish({ a: 1, b: 2, c: 3 }, { a: 1, b: 2, c: 3 })).toBe(
-        true,
-      );
-      // Out of order
-      expect(inst.isEqualish({ a: 1, b: 2, c: 3 }, { b: 2, a: 1, c: 3 })).toBe(
-        true,
-      );
-
-      // Actually  not equal
-      expect(inst.isEqualish({ a: 1, b: 2, z: 9 }, { a: 1, b: 2, c: 3 })).toBe(
-        false,
-      );
     });
   });
 });

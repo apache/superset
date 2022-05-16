@@ -125,16 +125,22 @@ test('Should render default props', () => {
   delete props.sliceCanEdit;
 
   render(<SliceHeaderControls {...props} />, { useRedux: true });
-  userEvent.click(screen.getByRole('menuitem', { name: 'Maximize chart' }));
-  userEvent.click(screen.getByRole('menuitem', { name: /Force refresh/ }));
-  userEvent.click(
-    screen.getByRole('menuitem', { name: 'Toggle chart description' }),
-  );
-  userEvent.click(
-    screen.getByRole('menuitem', { name: 'View chart in Explore' }),
-  );
-  userEvent.click(screen.getByRole('menuitem', { name: 'Export CSV' }));
-  userEvent.click(screen.getByRole('menuitem', { name: /Force refresh/ }));
+  expect(
+    screen.getByRole('menuitem', { name: 'Enter fullscreen' }),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByRole('menuitem', { name: /Force refresh/ }),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByRole('menuitem', { name: 'Show chart description' }),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByRole('menuitem', { name: 'Edit chart' }),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByRole('menuitem', { name: 'Download' }),
+  ).toBeInTheDocument();
+  expect(screen.getByRole('menuitem', { name: 'Share' })).toBeInTheDocument();
 
   expect(
     screen.getByRole('button', { name: 'More Options' }),
@@ -142,82 +148,67 @@ test('Should render default props', () => {
   expect(screen.getByTestId('NoAnimationDropdown')).toBeInTheDocument();
 });
 
-test('Should "export to CSV"', () => {
+test('Should "export to CSV"', async () => {
   const props = createProps();
   render(<SliceHeaderControls {...props} />, { useRedux: true });
 
   expect(props.exportCSV).toBeCalledTimes(0);
-  userEvent.click(screen.getByRole('menuitem', { name: 'Export CSV' }));
+  userEvent.hover(screen.getByText('Download'));
+  userEvent.click(await screen.findByText('Export to .CSV'));
   expect(props.exportCSV).toBeCalledTimes(1);
   expect(props.exportCSV).toBeCalledWith(371);
 });
 
-test('Should not show "Export to CSV" if slice is filter box', () => {
+test('Should not show "Download" if slice is filter box', () => {
   const props = createProps('filter_box');
   render(<SliceHeaderControls {...props} />, { useRedux: true });
-  expect(screen.queryByRole('menuitem', { name: 'Export CSV' })).toBe(null);
+  expect(screen.queryByText('Download')).not.toBeInTheDocument();
 });
 
-test('Export full CSV is under featureflag', () => {
+test('Export full CSV is under featureflag', async () => {
   // @ts-ignore
   global.featureFlags = {
     [FeatureFlag.ALLOW_FULL_CSV_EXPORT]: false,
   };
   const props = createProps('table');
   render(<SliceHeaderControls {...props} />, { useRedux: true });
-  expect(screen.queryByRole('menuitem', { name: 'Export full CSV' })).toBe(
-    null,
-  );
+  userEvent.hover(screen.getByText('Download'));
+  expect(await screen.findByText('Export to .CSV')).toBeInTheDocument();
+  expect(screen.queryByText('Export to full .CSV')).not.toBeInTheDocument();
 });
 
-test('Should "export full CSV"', () => {
+test('Should "export full CSV"', async () => {
   // @ts-ignore
   global.featureFlags = {
     [FeatureFlag.ALLOW_FULL_CSV_EXPORT]: true,
   };
   const props = createProps('table');
   render(<SliceHeaderControls {...props} />, { useRedux: true });
-  expect(screen.queryByRole('menuitem', { name: 'Export full CSV' })).not.toBe(
-    null,
-  );
   expect(props.exportFullCSV).toBeCalledTimes(0);
-  userEvent.click(screen.getByRole('menuitem', { name: 'Export full CSV' }));
+  userEvent.hover(screen.getByText('Download'));
+  userEvent.click(await screen.findByText('Export to full .CSV'));
   expect(props.exportFullCSV).toBeCalledTimes(1);
   expect(props.exportFullCSV).toBeCalledWith(371);
 });
 
-test('Should not show export full CSV if report is not table', () => {
+test('Should not show export full CSV if report is not table', async () => {
   // @ts-ignore
   global.featureFlags = {
     [FeatureFlag.ALLOW_FULL_CSV_EXPORT]: true,
   };
   const props = createProps();
   render(<SliceHeaderControls {...props} />, { useRedux: true });
-  expect(screen.queryByRole('menuitem', { name: 'Export full CSV' })).toBe(
-    null,
-  );
+  userEvent.hover(screen.getByText('Download'));
+  expect(await screen.findByText('Export to .CSV')).toBeInTheDocument();
+  expect(screen.queryByText('Export to full .CSV')).not.toBeInTheDocument();
 });
 
-test('Should not show export full CSV if slice is filter box', () => {
-  // @ts-ignore
-  global.featureFlags = {
-    [FeatureFlag.ALLOW_FULL_CSV_EXPORT]: true,
-  };
-  const props = createProps('filter_box');
-  render(<SliceHeaderControls {...props} />, { useRedux: true });
-  expect(screen.queryByRole('menuitem', { name: 'Export full CSV' })).toBe(
-    null,
-  );
-});
-
-test('Should "Toggle chart description"', () => {
+test('Should "Show chart description"', () => {
   const props = createProps();
   render(<SliceHeaderControls {...props} />, { useRedux: true });
 
   expect(props.toggleExpandSlice).toBeCalledTimes(0);
-  userEvent.click(
-    screen.getByRole('menuitem', { name: 'Toggle chart description' }),
-  );
+  userEvent.click(screen.getByText('Show chart description'));
   expect(props.toggleExpandSlice).toBeCalledTimes(1);
   expect(props.toggleExpandSlice).toBeCalledWith(371);
 });
@@ -227,17 +218,17 @@ test('Should "Force refresh"', () => {
   render(<SliceHeaderControls {...props} />, { useRedux: true });
 
   expect(props.forceRefresh).toBeCalledTimes(0);
-  userEvent.click(screen.getByRole('menuitem', { name: /Force refresh/ }));
+  userEvent.click(screen.getByText('Force refresh'));
   expect(props.forceRefresh).toBeCalledTimes(1);
   expect(props.forceRefresh).toBeCalledWith(371, 26);
   expect(props.addSuccessToast).toBeCalledTimes(1);
 });
 
-test('Should "Maximize chart"', () => {
+test('Should "Enter fullscreen"', () => {
   const props = createProps();
   render(<SliceHeaderControls {...props} />, { useRedux: true });
 
   expect(props.handleToggleFullSize).toBeCalledTimes(0);
-  userEvent.click(screen.getByRole('menuitem', { name: 'Maximize chart' }));
+  userEvent.click(screen.getByText('Enter fullscreen'));
   expect(props.handleToggleFullSize).toBeCalledTimes(1);
 });

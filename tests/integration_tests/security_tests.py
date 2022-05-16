@@ -32,7 +32,6 @@ from flask import current_app
 from superset.models.dashboard import Dashboard
 
 from superset import app, appbuilder, db, security_manager, viz, ConnectorRegistry
-from superset.connectors.druid.models import DruidCluster, DruidDatasource
 from superset.connectors.sqla.models import SqlaTable
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
@@ -273,93 +272,6 @@ class TestRolePermission(SupersetTestCase):
         session.delete(stored_table)
         session.commit()
 
-    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
-    def test_set_perm_druid_datasource(self):
-        self.create_druid_test_objects()
-        session = db.session
-        druid_cluster = (
-            session.query(DruidCluster).filter_by(cluster_name="druid_test").one()
-        )
-        datasource = DruidDatasource(
-            datasource_name="tmp_datasource",
-            cluster=druid_cluster,
-            cluster_id=druid_cluster.id,
-        )
-        session.add(datasource)
-        session.commit()
-
-        # store without a schema
-        stored_datasource = (
-            session.query(DruidDatasource)
-            .filter_by(datasource_name="tmp_datasource")
-            .one()
-        )
-        self.assertEqual(
-            stored_datasource.perm,
-            f"[druid_test].[tmp_datasource](id:{stored_datasource.id})",
-        )
-        self.assertIsNotNone(
-            security_manager.find_permission_view_menu(
-                "datasource_access", stored_datasource.perm
-            )
-        )
-        self.assertIsNone(stored_datasource.schema_perm)
-
-        # store with a schema
-        stored_datasource.datasource_name = "tmp_schema.tmp_datasource"
-        session.commit()
-        self.assertEqual(
-            stored_datasource.perm,
-            f"[druid_test].[tmp_schema.tmp_datasource](id:{stored_datasource.id})",
-        )
-        self.assertIsNotNone(
-            security_manager.find_permission_view_menu(
-                "datasource_access", stored_datasource.perm
-            )
-        )
-        self.assertIsNotNone(stored_datasource.schema_perm, "[druid_test].[tmp_schema]")
-        self.assertIsNotNone(
-            security_manager.find_permission_view_menu(
-                "schema_access", stored_datasource.schema_perm
-            )
-        )
-
-        session.delete(stored_datasource)
-        session.commit()
-
-    def test_set_perm_druid_cluster(self):
-        session = db.session
-        cluster = DruidCluster(cluster_name="tmp_druid_cluster")
-        session.add(cluster)
-
-        stored_cluster = (
-            session.query(DruidCluster)
-            .filter_by(cluster_name="tmp_druid_cluster")
-            .one()
-        )
-        self.assertEqual(
-            stored_cluster.perm, f"[tmp_druid_cluster].(id:{stored_cluster.id})"
-        )
-        self.assertIsNotNone(
-            security_manager.find_permission_view_menu(
-                "database_access", stored_cluster.perm
-            )
-        )
-
-        stored_cluster.cluster_name = "tmp_druid_cluster2"
-        session.commit()
-        self.assertEqual(
-            stored_cluster.perm, f"[tmp_druid_cluster2].(id:{stored_cluster.id})"
-        )
-        self.assertIsNotNone(
-            security_manager.find_permission_view_menu(
-                "database_access", stored_cluster.perm
-            )
-        )
-
-        session.delete(stored_cluster)
-        session.commit()
-
     def test_set_perm_database(self):
         session = db.session
         database = Database(database_name="tmp_database", sqlalchemy_uri="sqlite://")
@@ -389,28 +301,6 @@ class TestRolePermission(SupersetTestCase):
 
         session.delete(stored_db)
         session.commit()
-
-    def test_hybrid_perm_druid_cluster(self):
-        cluster = DruidCluster(cluster_name="tmp_druid_cluster3")
-        db.session.add(cluster)
-
-        id_ = (
-            db.session.query(DruidCluster.id)
-            .filter_by(cluster_name="tmp_druid_cluster3")
-            .scalar()
-        )
-
-        record = (
-            db.session.query(DruidCluster)
-            .filter_by(perm=f"[tmp_druid_cluster3].(id:{id_})")
-            .one()
-        )
-
-        self.assertEqual(record.get_perm(), record.perm)
-        self.assertEqual(record.id, id_)
-        self.assertEqual(record.cluster_name, "tmp_druid_cluster3")
-        db.session.delete(cluster)
-        db.session.commit()
 
     def test_hybrid_perm_database(self):
         database = Database(database_name="tmp_database3", sqlalchemy_uri="sqlite://")
@@ -706,7 +596,6 @@ class TestRolePermission(SupersetTestCase):
 
         self.assertIn(("all_database_access", "all_database_access"), perm_set)
         self.assertIn(("can_override_role_permissions", "Superset"), perm_set)
-        self.assertIn(("can_sync_druid_source", "Superset"), perm_set)
         self.assertIn(("can_override_role_permissions", "Superset"), perm_set)
         self.assertIn(("can_approve", "Superset"), perm_set)
 
@@ -889,6 +778,7 @@ class TestRolePermission(SupersetTestCase):
             ["AuthDBView", "login"],
             ["AuthDBView", "logout"],
             ["CurrentUserRestApi", "get_me"],
+            ["CurrentUserRestApi", "get_my_roles"],
             # TODO (embedded) remove Dashboard:embedded after uuids have been shipped
             ["Dashboard", "embedded"],
             ["EmbeddedView", "embedded"],

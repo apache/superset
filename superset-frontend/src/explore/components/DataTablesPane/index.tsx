@@ -233,6 +233,7 @@ const TableControls = ({
 
 export const DataTablesPane = ({
   queryFormData,
+  queryForce,
   onCollapseChange,
   chartStatus,
   ownState,
@@ -240,6 +241,7 @@ export const DataTablesPane = ({
   queriesResponse,
 }: {
   queryFormData: Record<string, any>;
+  queryForce: boolean;
   chartStatus: string;
   ownState?: JsonObject;
   onCollapseChange: (isOpen: boolean) => void;
@@ -271,6 +273,7 @@ export const DataTablesPane = ({
       }));
       return getChartDataRequest({
         formData: queryFormData,
+        force: queryForce,
         resultFormat: 'json',
         resultType,
         ownState,
@@ -333,7 +336,6 @@ export const DataTablesPane = ({
     },
     [queryFormData, columnNames],
   );
-
   useEffect(() => {
     setItem(LocalStorageKeys.is_datapanel_open, panelOpen);
   }, [panelOpen]);

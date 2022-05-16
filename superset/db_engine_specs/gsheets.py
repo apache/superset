@@ -97,7 +97,7 @@ class GSheetsEngineSpec(SqliteEngineSpec):
         cls,
         database: "Database",
         table_name: str,
-        schema_name: str,
+        schema_name: Optional[str],
     ) -> Dict[str, Any]:
         engine = cls.get_engine(database, schema=schema_name)
         with closing(engine.raw_connection()) as conn:
@@ -216,7 +216,11 @@ class GSheetsEngineSpec(SqliteEngineSpec):
             except Exception:  # pylint: disable=broad-except
                 errors.append(
                     SupersetError(
-                        message="URL could not be identified",
+                        message=(
+                            "The URL could not be identified. Please check for typos "
+                            "and make sure that ‘Type of Google Sheets allowed’ "
+                            "selection matches the input."
+                        ),
                         error_type=SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR,
                         level=ErrorLevel.WARNING,
                         extra={"catalog": {"idx": idx, "url": True}},

@@ -18,13 +18,12 @@
  */
 import memoizeOne from 'memoize-one';
 import {
+  UserRoles,
   isUserWithPermissionsAndRoles,
   UndefinedUser,
   UserWithPermissionsAndRoles,
 } from 'src/types/bootstrapTypes';
 import Dashboard from 'src/types/Dashboard';
-
-type UserRoles = Record<string, [string, string][]>;
 
 const findPermission = memoizeOne(
   (perm: string, view: string, roles?: UserRoles | null) =>
