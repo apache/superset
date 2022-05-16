@@ -98,6 +98,7 @@ export default class AdhocFilterEditPopover extends React.Component {
     this.onMouseMove = this.onMouseMove.bind(this);
     this.onMouseUp = this.onMouseUp.bind(this);
     this.onAdhocFilterChange = this.onAdhocFilterChange.bind(this);
+    this.setSimpleTabIsValid = this.setSimpleTabIsValid.bind(this);
     this.adjustHeight = this.adjustHeight.bind(this);
     this.onTabChange = this.onTabChange.bind(this);
 
@@ -106,6 +107,7 @@ export default class AdhocFilterEditPopover extends React.Component {
       width: POPOVER_INITIAL_WIDTH,
       height: POPOVER_INITIAL_HEIGHT,
       activeKey: this.props?.adhocFilter?.expressionType || 'SIMPLE',
+      isSimpleTabValid: true,
     };
 
     this.popoverContentRef = React.createRef();
@@ -122,6 +124,10 @@ export default class AdhocFilterEditPopover extends React.Component {
 
   onAdhocFilterChange(adhocFilter) {
     this.setState({ adhocFilter });
+  }
+
+  setSimpleTabIsValid(isValid) {
+    this.setState({ isSimpleTabValid: isValid });
   }
 
   onSave() {
@@ -214,6 +220,7 @@ export default class AdhocFilterEditPopover extends React.Component {
                 onHeightChange={this.adjustHeight}
                 partitionColumn={partitionColumn}
                 popoverRef={this.popoverContentRef.current}
+                validHandler={this.setSimpleTabIsValid}
               />
             </ErrorBoundary>
           </Tabs.TabPane>
@@ -252,7 +259,7 @@ export default class AdhocFilterEditPopover extends React.Component {
           </Button>
           <Button
             data-test="adhoc-filter-edit-popover-save-button"
-            disabled={!stateIsValid}
+            disabled={!stateIsValid || !this.state.isSimpleTabValid}
             buttonStyle={
               hasUnsavedChanges && stateIsValid ? 'primary' : 'default'
             }
