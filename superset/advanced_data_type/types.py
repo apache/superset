@@ -20,12 +20,8 @@ from typing import Any, Callable, List, Optional, TypedDict, Union
 from sqlalchemy import Column
 from sqlalchemy.sql.expression import BinaryExpression
 
-from superset.utils.core import FilterOperator
 from superset.superset_typing import FilterValues
-from superset.utils.core import FilterStringOperators
-
-
-
+from superset.utils.core import FilterOperator, FilterStringOperators
 
 
 class AdvancedDataTypeRequest(TypedDict):
@@ -48,6 +44,7 @@ class AdvancedDataTypeResponse(TypedDict, total=False):
     values: List[Any]  # parsed value (can be any value)
     display_value: str  # The string representation of the parsed values
     valid_filter_operators: List[FilterStringOperators]
+
 
 @dataclass
 class AdvancedDataType:
