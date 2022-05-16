@@ -272,7 +272,7 @@ const config: ControlPanelConfig = {
   },
   denormalizeFormData: formData => ({
     ...formData,
-    metric: formData.standardizedFormData.sharedFormData.metrics[0],
+    metric: formData.standardizedFormData.standardizedState.metrics[0],
   }),
 };
 

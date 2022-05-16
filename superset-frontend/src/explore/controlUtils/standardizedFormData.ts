@@ -23,13 +23,13 @@ import {
 } from '@superset-ui/core';
 import {
   ControlStateMapping,
-  SharedFormData,
+  standardizedState,
   StandardizedFormDataInterface,
 } from '@superset-ui/chart-controls';
 import { getControlsState } from 'src/explore/store';
 import { getFormDataFromControls } from './getFormDataFromControls';
 
-export const sharedControls: Record<keyof SharedFormData, string[]> = {
+export const sharedControls: Record<keyof standardizedState, string[]> = {
   metrics: ['metric', 'metrics', 'metric_2'],
   columns: ['groupby', 'columns', 'groupbyColumns', 'groupbyRows'],
 };
@@ -70,7 +70,7 @@ export class StandardizedFormData {
     /*
      * Support form_data for smooth switching between different viz
      * */
-    const sharedFormData = {
+    const standardizedState = {
       metrics: [],
       columns: [],
     };
@@ -79,7 +79,7 @@ export class StandardizedFormData {
 
     Object.entries(formData).forEach(([key, value]) => {
       if (reversedMap.has(key)) {
-        sharedFormData[reversedMap.get(key)].push(...ensureIsArray(value));
+        standardizedState[reversedMap.get(key)].push(...ensureIsArray(value));
       }
     });
 
@@ -94,7 +94,7 @@ export class StandardizedFormData {
     }
     memorizedFormData.set(vizType, formData);
     this.sfd = {
-      sharedFormData,
+      standardizedState,
       memorizedFormData,
     };
   }
@@ -117,8 +117,8 @@ export class StandardizedFormData {
     return this.memorizedFormData.slice(-1)[0][1];
   }
 
-  private get sharedFormData() {
-    return this.sfd.sharedFormData;
+  private get standardizedState() {
+    return this.sfd.standardizedState;
   }
 
   private get memorizedFormData() {
@@ -127,7 +127,7 @@ export class StandardizedFormData {
 
   dumpSFD() {
     return {
-      sharedFormData: this.sharedFormData,
+      standardizedState: this.standardizedState,
       memorizedFormData: this.memorizedFormData,
     };
   }

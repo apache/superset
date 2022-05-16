@@ -84,8 +84,8 @@ describe('should collect control values and create SFD', () => {
       ],
       denormalizeFormData: (formData: SqlaFormData) => ({
         ...formData,
-        columns: formData.standardizedFormData.sharedFormData.columns,
-        metrics: formData.standardizedFormData.sharedFormData.metrics,
+        columns: formData.standardizedFormData.standardizedState.columns,
+        metrics: formData.standardizedFormData.standardizedState.metrics,
       }),
     });
   });
@@ -93,10 +93,10 @@ describe('should collect control values and create SFD', () => {
   test('collect sharedControls', () => {
     const sfd = new StandardizedFormData(sourceMockFormData);
 
-    expect(sfd.dumpSFD().sharedFormData.metrics).toEqual(
+    expect(sfd.dumpSFD().standardizedState.metrics).toEqual(
       sharedControls.metrics.map(controlName => controlName),
     );
-    expect(sfd.dumpSFD().sharedFormData.columns).toEqual(
+    expect(sfd.dumpSFD().standardizedState.columns).toEqual(
       sharedControls.columns.map(controlName => controlName),
     );
   });
