@@ -1036,10 +1036,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         if denied:
             raise SupersetSecurityException(self.get_table_access_error_object(denied))
 
-    def raise_for_datasource_access(self, datasource: "BaseDatasource") -> None:
-        """
-        Raise an exception if the user cannot access the datasource
-        """
+    def can_access_datasource(self, datasource: "BaseDatasource") -> bool:
         # pylint: disable=import-outside-toplevel
         from superset.extensions import feature_flag_manager
 
@@ -1048,14 +1045,20 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             or self.is_guest_user()
         )
 
-        if not (
+        return (
             self.can_access_schema(datasource)
             or self.can_access("datasource_access", datasource.perm or "")
             or (
                 should_check_dashboard_access
                 and self.can_access_based_on_dashboard(datasource)
             )
-        ):
+        )
+
+    def raise_for_datasource_access(self, datasource: "BaseDatasource") -> None:
+        """
+        Raise an exception if the user cannot access the datasource
+        """
+        if not self.can_access_datasource(datasource):
             raise SupersetSecurityException(
                 self.get_datasource_access_error_object(datasource)
             )
@@ -1111,7 +1114,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     # to partially compile the query so that virtual datasets
                     # don't result in false negatives.
                     for datasource_ in datasources:
-                        if self.can_access("datasource_access", datasource_.perm):
+                        if self.can_access_datasource(datasource_):
                             break
                     else:
                         raise SupersetSecurityException(
