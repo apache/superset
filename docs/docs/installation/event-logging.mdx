@@ -42,6 +42,45 @@ End by updating your config to pass in an instance of the logger you want to use
 EVENT_LOGGER = JSONStdOutEventLogger()
 ```
 
+### Logging to both JSON logs and DBEventLogger
+Example above for JSONStdOutEventLogger() stops logging events to internal database and they are not available
+in Superset's **Security > Action Log** anymore. 
+Here's the example for logger for both JSONStdOutEventLogger() and DBEventLogger() at the same time:
+
+```python
+event_logger.py: |
+from superset.utils.log import DBEventLogger
+import json
+class JSONStdOutEventLogger(DBEventLogger):
+    def log(self, user_id, action, *args, **kwargs):
+        records = kwargs.get('records', list())
+        dashboard_id = kwargs.get('dashboard_id')
+        slice_id = kwargs.get('slice_id')
+        duration_ms = kwargs.get('duration_ms')
+        referrer = kwargs.get('referrer')
+        super().log(user_id, action, *args, **kwargs)
+
+        for record in records:
+            if 'rison' in record:
+                del record["rison"]
+            log = dict(
+                action=action,
+                json=record,
+                dashboard_id=dashboard_id,
+                slice_id=slice_id,
+                duration_ms=duration_ms,
+                referrer=referrer,
+                user_id=user_id
+            )
+            print(json.dumps(log))
+```
+Settings:
+```
+logger_settings: |
+    from event_logger import JSONStdOutEventLogger
+    EVENT_LOGGER = JSONStdOutEventLogger()
+```
+
 ### StatsD Logging
 
 Superset can be instrumented to log events to StatsD if desired. Most endpoints hit are logged as
