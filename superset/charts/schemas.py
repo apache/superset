@@ -156,7 +156,6 @@ class ChartEntityResponseSchema(Schema):
     slice_name = fields.String(description=slice_name_description)
     cache_timeout = fields.Integer(description=cache_timeout_description)
     changed_on = fields.String(description=changed_on_description)
-    modified = fields.String()
     description = fields.String(description=description_description)
     description_markeddown = fields.String(
         description=description_markeddown_description

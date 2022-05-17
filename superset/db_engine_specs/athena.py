@@ -69,7 +69,7 @@ class AthenaEngineSpec(BaseEngineSpec):
         if tt == utils.TemporalType.DATE:
             return f"DATE '{dttm.date().isoformat()}'"
         if tt == utils.TemporalType.TIMESTAMP:
-            datetime_formatted = dttm.isoformat(timespec="microseconds")
+            datetime_formatted = dttm.isoformat(sep=" ", timespec="milliseconds")
             return f"""TIMESTAMP '{datetime_formatted}'"""
         return None
 
