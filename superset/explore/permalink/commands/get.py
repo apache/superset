@@ -28,6 +28,7 @@ from superset.explore.utils import check_chart_access
 from superset.key_value.commands.get import GetKeyValueCommand
 from superset.key_value.exceptions import KeyValueGetFailedError, KeyValueParseKeyError
 from superset.key_value.utils import decode_permalink_id
+from superset.utils.core import DatasourceType
 
 logger = logging.getLogger(__name__)
 
@@ -48,8 +49,15 @@ class GetExplorePermalinkCommand(BaseExplorePermalinkCommand):
             if value:
                 chart_id: Optional[int] = value.get("chartId")
                 datasource_id: int = value["datasourceId"]
-                datasource_type: str = value["datasourceType"]
-                check_chart_access(datasource_id, chart_id, self.actor, datasource_type)
+                datasource_type: DatasourceType = DatasourceType(
+                    value["datasourceType"]
+                )
+                check_chart_access(
+                    datasource_id=datasource_id,
+                    datasource_type=datasource_type,
+                    chart_id=chart_id,
+                    actor=self.actor,
+                )
                 return value
             return None
         except (

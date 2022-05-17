@@ -25,6 +25,7 @@ from superset.explore.permalink.exceptions import ExplorePermalinkCreateFailedEr
 from superset.explore.utils import check_chart_access
 from superset.key_value.commands.create import CreateKeyValueCommand
 from superset.key_value.utils import encode_permalink_key
+from superset.utils.core import DatasourceType
 
 logger = logging.getLogger(__name__)
 
@@ -41,9 +42,12 @@ class CreateExplorePermalinkCommand(BaseExplorePermalinkCommand):
         try:
             datasource = self.datasource.split("__")
             datasource_id: int = int(datasource[0])
-            datasource_type: str = datasource[1]
+            datasource_type: DatasourceType = DatasourceType(datasource[1])
             check_chart_access(
-                datasource_id, self.chart_id, self.actor, datasource_type
+                datasource_id=datasource_id,
+                datasource_type=datasource_type,
+                chart_id=self.chart_id,
+                actor=self.actor,
             )
             value = {
                 "chartId": self.chart_id,

@@ -35,10 +35,12 @@ from superset.views.base import is_user_admin
 from superset.views.utils import is_owner
 
 
-def check_datasource_access(datasource_id: int, datasource_type: str) -> Optional[bool]:
+def check_datasource_access(
+    datasource_id: int, datasource_type: DatasourceType
+) -> Optional[bool]:
     if datasource_id:
         # currently Table is the default, but we need to expand this to other types
-        if datasource_type == DatasourceType.TABLE:
+        if DatasourceType(datasource_type) == DatasourceType.TABLE:
             return check_dataset_access(datasource_id)
     raise DatasourceNotFoundValidationError
 
@@ -55,7 +57,10 @@ def check_dataset_access(dataset_id: int) -> Optional[bool]:
 
 
 def check_chart_access(
-    datasource_id: int, chart_id: Optional[int], actor: User, datasource_type: str
+    datasource_id: int,
+    datasource_type: DatasourceType,
+    actor: User,
+    chart_id: Optional[int],
 ) -> Optional[bool]:
     check_datasource_access(datasource_id, datasource_type)
     if not chart_id:

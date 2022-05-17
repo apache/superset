@@ -46,10 +46,10 @@ class GetFormDataCommand(BaseCommand, ABC):
             )
             if state:
                 check_chart_access(
-                    state["datasource_id"],
-                    state["chart_id"],
-                    actor,
-                    state["datasource_type"],
+                    datasource_id=state["datasource_id"],
+                    datasource_type=state["datasource_type"],
+                    chart_id=state["chart_id"],
+                    actor=actor,
                 )
                 if self._refresh_timeout:
                     cache_manager.explore_form_data_cache.set(key, state)

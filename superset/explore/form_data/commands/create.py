@@ -27,6 +27,7 @@ from superset.extensions import cache_manager
 from superset.key_value.utils import random_key
 from superset.temporary_cache.commands.exceptions import TemporaryCacheCreateFailedError
 from superset.temporary_cache.utils import cache_key
+from superset.utils.core import DatasourceType
 from superset.utils.schema import validate_json
 
 logger = logging.getLogger(__name__)
@@ -45,7 +46,12 @@ class CreateFormDataCommand(BaseCommand):
             tab_id = self._cmd_params.tab_id
             actor = self._cmd_params.actor
             form_data = self._cmd_params.form_data
-            check_chart_access(datasource_id, chart_id, actor, datasource_type)
+            check_chart_access(
+                datasource_id=datasource_id,
+                datasource_type=datasource_type,
+                chart_id=chart_id,
+                actor=actor,
+            )
             contextual_key = cache_key(
                 session.get("_id"), tab_id, datasource_id, chart_id, datasource_type
             )

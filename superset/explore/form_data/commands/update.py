@@ -53,7 +53,12 @@ class UpdateFormDataCommand(BaseCommand, ABC):
             actor = self._cmd_params.actor
             key = self._cmd_params.key
             form_data = self._cmd_params.form_data
-            check_chart_access(datasource_id, chart_id, actor, datasource_type)
+            check_chart_access(
+                datasource_id=datasource_id,
+                datasource_type=datasource_type,
+                chart_id=chart_id,
+                actor=actor,
+            )
             state: TemporaryExploreState = cache_manager.explore_form_data_cache.get(
                 key
             )

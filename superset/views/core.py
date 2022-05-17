@@ -129,7 +129,11 @@ from superset.tasks.async_queries import load_explore_json_into_cache
 from superset.utils import core as utils, csv
 from superset.utils.async_query_manager import AsyncQueryTokenException
 from superset.utils.cache import etag_cache
-from superset.utils.core import apply_max_row_limit, ReservedUrlParameters
+from superset.utils.core import (
+    apply_max_row_limit,
+    DatasourceType,
+    ReservedUrlParameters,
+)
 from superset.utils.dates import now_as_float
 from superset.utils.decorators import check_dashboard_access
 from superset.views.base import (
@@ -767,7 +771,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 return redirect("/chart/list/")
         elif form_data_key:
             parameters = CommandParameters(
-                datasource_type="table", actor=g.user, key=form_data_key
+                datasource_type=DatasourceType.TABLE, actor=g.user, key=form_data_key
             )
             value = GetFormDataCommand(parameters).run()
             initial_form_data = json.loads(value) if value else {}

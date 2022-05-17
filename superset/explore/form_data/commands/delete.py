@@ -31,6 +31,7 @@ from superset.temporary_cache.commands.exceptions import (
     TemporaryCacheDeleteFailedError,
 )
 from superset.temporary_cache.utils import cache_key
+from superset.utils.core import DatasourceType
 
 logger = logging.getLogger(__name__)
 
@@ -49,8 +50,15 @@ class DeleteFormDataCommand(BaseCommand, ABC):
             if state:
                 datasource_id: int = state["datasource_id"]
                 chart_id: Optional[int] = state["chart_id"]
-                datasource_type: str = state["datasource_type"]
-                check_chart_access(datasource_id, chart_id, actor, datasource_type)
+                datasource_type: DatasourceType = DatasourceType(
+                    state["datasource_type"]
+                )
+                check_chart_access(
+                    datasource_id=datasource_id,
+                    datasource_type=datasource_type,
+                    chart_id=chart_id,
+                    actor=actor,
+                )
                 if state["owner"] != actor.get_user_id():
                     raise TemporaryCacheAccessDeniedError()
                 tab_id = self._cmd_params.tab_id
