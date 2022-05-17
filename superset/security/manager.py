@@ -357,22 +357,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             or self.can_access("schema_access", datasource.schema_perm or "")
         )
 
-    def can_access_datasource(self, datasource: "BaseDatasource") -> bool:
-        """
-        Return True if the user can fully access of the Superset datasource, False
-        otherwise.
-
-        :param datasource: The Superset datasource
-        :returns: Whether the user can fully access the Superset datasource
-        """
-
-        try:
-            self.raise_for_datasource_access(datasource)
-        except SupersetSecurityException:
-            return False
-
-        return True
-
     @staticmethod
     def get_datasource_access_error_msg(datasource: "BaseDatasource") -> str:
         """
@@ -1037,6 +1021,13 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             raise SupersetSecurityException(self.get_table_access_error_object(denied))
 
     def can_access_datasource(self, datasource: "BaseDatasource") -> bool:
+        """
+        Return True if the user can fully access of the Superset datasource, False
+        otherwise.
+
+        :param datasource: The Superset datasource
+        :returns: Whether the user can fully access the Superset datasource
+        """
         # pylint: disable=import-outside-toplevel
         from superset.extensions import feature_flag_manager
 
