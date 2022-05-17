@@ -26,7 +26,6 @@ from superset.charts.commands.exceptions import (
     ChartNotFoundError,
 )
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
-from superset.utils.core import DatasourceType
 from superset.datasets.commands.exceptions import (
     DatasetAccessDeniedError,
     DatasetNotFoundError,
@@ -39,6 +38,7 @@ from superset.explore.form_data.commands.update import UpdateFormDataCommand
 from superset.explore.form_data.schemas import FormDataPostSchema, FormDataPutSchema
 from superset.extensions import event_logger
 from superset.temporary_cache.commands.exceptions import TemporaryCacheAccessDeniedError
+from superset.utils.core import DatasourceType
 from superset.views.base_api import requires_json
 
 logger = logging.getLogger(__name__)
