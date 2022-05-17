@@ -154,12 +154,13 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
           query.dbId,
           datasetToOverwrite.datasetId,
           query.sql,
-          // TODO: lyndsiWilliams - Define d
-          query.results.selected_columns.map((d: any) => ({
-            column_name: d.name,
-            type: d.type,
-            is_dttm: d.is_dttm,
-          })),
+          query.results.selected_columns.map(
+            (d: { name: string; type: string; is_dttm: boolean }) => ({
+              column_name: d.name,
+              type: d.type,
+              is_dttm: d.is_dttm,
+            }),
+          ),
           datasetToOverwrite.owners.map((o: DatasetOwner) => o.id),
           true,
         );
@@ -168,7 +169,7 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
         dataset.id,
         datasetToOverwrite.datasetId,
         dataset.main_dttm_col,
-        // TODO: lyndsiWilliams - Define d
+        // TODO: lyndsiWilliams - Define dataset d
         dataset.columns.map((d: any) => ({
           column_name: d.name,
           type: d.type,
@@ -187,9 +188,11 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
     exploreChart({
       ...EXPLORE_CHART_DEFAULT,
       datasource: `${datasetToOverwrite.datasetId}__table`,
-      // TODO: lyndsiWilliams -  Define d
+      // TODO: lyndsiWilliams -  Define dataset d
       all_columns: datasourceIsQuery
-        ? query.results.selected_columns.map((d: any) => d.name)
+        ? query.results.selected_columns.map(
+            (d: { name: string; type: string; is_dttm: boolean }) => d.name,
+          )
         : dataset.columns.map((d: any) => d.name),
     });
   };
