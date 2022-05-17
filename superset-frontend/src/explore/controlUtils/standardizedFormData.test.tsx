@@ -112,27 +112,44 @@ describe('should collect control values and create SFD', () => {
     });
   });
 
-  test('should inherit standardizedFormData', () => {
+  test('should inherit standardizedFormData and memorizedFormData is LIFO', () => {
     // from source_viz to target_viz
     const sfd = new StandardizedFormData(sourceMockFormData);
     const { formData, controlsState } = sfd.transform(
       'target_viz',
       sourceMockStore,
     );
+    expect(
+      formData.standardizedFormData.memorizedFormData.map(
+        (fd: [string, QueryFormData]) => fd[0],
+      ),
+    ).toEqual(['source_viz']);
 
     // from target_viz to source_viz
     const sfd2 = new StandardizedFormData(formData);
-    const { formData: fd2 } = sfd2.transform('source_viz', {
+    const { formData: fd2, controlsState: cs2 } = sfd2.transform('source_viz', {
       ...sourceMockStore,
       form_data: formData,
       controls: controlsState,
     });
-
     expect(
       fd2.standardizedFormData.memorizedFormData.map(
         (fd: [string, QueryFormData]) => fd[0],
       ),
     ).toEqual(['source_viz', 'target_viz']);
+
+    // from source_viz to target_viz
+    const sfd3 = new StandardizedFormData(fd2);
+    const { formData: fd3 } = sfd3.transform('target_viz', {
+      ...sourceMockStore,
+      form_data: fd2,
+      controls: cs2,
+    });
+    expect(
+      fd3.standardizedFormData.memorizedFormData.map(
+        (fd: [string, QueryFormData]) => fd[0],
+      ),
+    ).toEqual(['target_viz', 'source_viz']);
   });
 });
 
