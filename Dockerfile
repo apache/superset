@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1.2
 #
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
@@ -57,11 +58,14 @@ ENV BUILD_CMD=${NPM_BUILD_CMD}
 RUN mkdir -p /app/superset-frontend
 RUN mkdir -p /app/superset/assets
 COPY ./docker/frontend-mem-nag.sh /
-COPY ./superset-frontend /app/superset-frontend
-RUN /frontend-mem-nag.sh \
+COPY ./superset-frontend/package* /app/superset-frontend/
+RUN --mount=type=secret,id=npmrc,target=/tmp/.npmrc,uid=1000 \
+        /frontend-mem-nag.sh \
         && cd /app/superset-frontend \
-        && npm ci
+        && npm install --legacy-peer-deps --userconfig=/tmp/.npmrc
 
+# Next, copy in the rest and let webpack do its thing
+COPY ./superset-frontend /app/superset-frontend
 # This seems to be the most expensive step
 RUN cd /app/superset-frontend \
         && npm run ${BUILD_CMD} \
@@ -90,7 +94,6 @@ RUN mkdir -p ${PYTHONPATH} \
             default-libmysqlclient-dev \
             libsasl2-modules-gssapi-mit \
             libpq-dev \
-            libecpg-dev \
         && rm -rf /var/lib/apt/lists/*
 
 COPY --from=superset-py /usr/local/lib/python3.8/site-packages/ /usr/local/lib/python3.8/site-packages/
@@ -104,12 +107,9 @@ COPY superset /app/superset
 COPY setup.py MANIFEST.in README.md /app/
 RUN cd /app \
         && chown -R superset:superset * \
-        && pip install -e . \
-        && flask fab babel-compile --target superset/translations
+        && pip install -e .
 
-COPY ./docker/run-server.sh /usr/bin/
-
-RUN chmod a+x /usr/bin/run-server.sh
+COPY ./docker/docker-entrypoint.sh /usr/bin/
 
 WORKDIR /app
 
@@ -119,7 +119,7 @@ HEALTHCHECK CMD curl -f "http://localhost:$SUPERSET_PORT/health"
 
 EXPOSE ${SUPERSET_PORT}
 
-CMD /usr/bin/run-server.sh
+ENTRYPOINT ["/usr/bin/docker-entrypoint.sh"]
 
 ######################################################################
 # Dev image...
