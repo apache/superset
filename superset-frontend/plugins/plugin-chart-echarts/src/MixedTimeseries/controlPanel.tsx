@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { t } from '@superset-ui/core';
+import { FeatureFlag, isFeatureEnabled, t } from '@superset-ui/core';
 import { cloneDeep } from 'lodash';
 import {
   ControlPanelConfig,
@@ -31,7 +31,7 @@ import {
 
 import { DEFAULT_FORM_DATA } from './types';
 import { EchartsTimeseriesSeriesType } from '../Timeseries/types';
-import { legendSection, richTooltipSection } from '../controls';
+import { legendSection, richTooltipSection, xAxisControl } from '../controls';
 
 const {
   area,
@@ -446,5 +446,13 @@ const config: ControlPanelConfig = {
     },
   ],
 };
+
+if (isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES)) {
+  config.controlPanelSections.splice(1, 0, {
+    label: t('Shared query fields'),
+    expanded: true,
+    controlSetRows: [[xAxisControl]],
+  });
+}
 
 export default config;

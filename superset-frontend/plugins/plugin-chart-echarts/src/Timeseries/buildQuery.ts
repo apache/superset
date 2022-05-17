@@ -20,9 +20,9 @@ import {
   buildQueryContext,
   DTTM_ALIAS,
   ensureIsArray,
-  QueryFormData,
   normalizeOrderBy,
   PostProcessingPivot,
+  QueryFormData,
 } from '@superset-ui/core';
 import {
   rollingWindowOperator,
