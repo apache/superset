@@ -193,6 +193,7 @@ test('should render a create dataset infobox', () => {
     { useRedux: true },
   );
 
+  screen.logTestingPlaygroundURL();
   const createButton = screen.getByRole('button', {
     name: /create a dataset/i,
   });
@@ -223,4 +224,19 @@ test('should render a save dataset modal when "Create a dataset" is clicked', ()
   const saveDatasetModalTitle = screen.getByText(/save or overwrite dataset/i);
 
   expect(saveDatasetModalTitle).toBeVisible();
+});
+
+test('should not render a save dataset modal when datasource is not query or dataset', () => {
+  render(
+    setup({
+      ...props,
+      datasource: {
+        ...datasource,
+        type: DatasourceType.Table,
+      },
+    }),
+    { useRedux: true },
+  );
+
+  expect(screen.queryByText(/create a dataset/i)).toBe(null);
 });
