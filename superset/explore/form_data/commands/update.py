@@ -24,7 +24,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from superset.commands.base import BaseCommand
 from superset.explore.form_data.commands.parameters import CommandParameters
 from superset.explore.form_data.commands.state import TemporaryExploreState
-from superset.explore.utils import check_access
+from superset.explore.utils import check_chart_access
 from superset.extensions import cache_manager
 from superset.key_value.utils import random_key
 from superset.temporary_cache.commands.exceptions import (
@@ -47,12 +47,13 @@ class UpdateFormDataCommand(BaseCommand, ABC):
     def run(self) -> Optional[str]:
         self.validate()
         try:
-            dataset_id = self._cmd_params.dataset_id
+            datasource_id = self._cmd_params.datasource_id
             chart_id = self._cmd_params.chart_id
+            datasource_type = self._cmd_params.datasource_type
             actor = self._cmd_params.actor
             key = self._cmd_params.key
             form_data = self._cmd_params.form_data
-            check_access(dataset_id, chart_id, actor)
+            check_chart_access(datasource_id, chart_id, actor, datasource_type)
             state: TemporaryExploreState = cache_manager.explore_form_data_cache.get(
                 key
             )
@@ -64,8 +65,13 @@ class UpdateFormDataCommand(BaseCommand, ABC):
                 # Generate a new key if tab_id changes or equals 0
                 tab_id = self._cmd_params.tab_id
                 contextual_key = cache_key(
-                    session.get("_id"), tab_id, dataset_id, chart_id
+                    session.get("_id"), tab_id, datasource_id, chart_id, datasource_type
                 )
+                if contextual_key is None:
+                    # check again with old keys
+                    contextual_key = cache_key(
+                        session.get("_id"), tab_id, datasource_id, chart_id
+                    )
                 key = cache_manager.explore_form_data_cache.get(contextual_key)
                 if not key or not tab_id:
                     key = random_key()
@@ -73,7 +79,8 @@ class UpdateFormDataCommand(BaseCommand, ABC):
 
                 new_state: TemporaryExploreState = {
                     "owner": actor.get_user_id(),
-                    "dataset_id": dataset_id,
+                    "datasource_id": datasource_id,
+                    "datasource_type": datasource_type,
                     "chart_id": chart_id,
                     "form_data": form_data,
                 }

@@ -26,6 +26,7 @@ from superset.charts.commands.exceptions import (
     ChartNotFoundError,
 )
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
+from superset.core.utils import DatasourceType
 from superset.datasets.commands.exceptions import (
     DatasetAccessDeniedError,
     DatasetNotFoundError,
@@ -109,8 +110,8 @@ class ExploreFormDataRestApi(BaseApi, ABC):
             tab_id = request.args.get("tab_id")
             args = CommandParameters(
                 actor=g.user,
-                datasource_type=item["datasource_type"],
                 datasource_id=item["datasource_id"],
+                datasource_type=item["datasource_type"],
                 chart_id=item.get("chart_id"),
                 tab_id=tab_id,
                 form_data=item["form_data"],
@@ -184,7 +185,8 @@ class ExploreFormDataRestApi(BaseApi, ABC):
             tab_id = request.args.get("tab_id")
             args = CommandParameters(
                 actor=g.user,
-                dataset_id=item["dataset_id"],
+                datasource_id=item["datasource_id"],
+                datasource_type=item["datasource_type"],
                 chart_id=item.get("chart_id"),
                 tab_id=tab_id,
                 key=key,
@@ -246,7 +248,9 @@ class ExploreFormDataRestApi(BaseApi, ABC):
               $ref: '#/components/responses/500'
         """
         try:
-            args = CommandParameters(actor=g.user, key=key)
+            args = CommandParameters(
+                datasource_type=DatasourceType.SQLATABLE, actor=g.user, key=key
+            )
             form_data = GetFormDataCommand(args).run()
             if not form_data:
                 return self.response_404()
@@ -302,7 +306,9 @@ class ExploreFormDataRestApi(BaseApi, ABC):
               $ref: '#/components/responses/500'
         """
         try:
-            args = CommandParameters(actor=g.user, key=key)
+            args = CommandParameters(
+                datasource_type=DatasourceType.SQLATABLE, actor=g.user, key=key
+            )
             result = DeleteFormDataCommand(args).run()
             if not result:
                 return self.response_404()

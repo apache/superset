@@ -22,7 +22,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from superset.commands.base import BaseCommand
 from superset.explore.form_data.commands.parameters import CommandParameters
 from superset.explore.form_data.commands.state import TemporaryExploreState
-from superset.explore.utils import check_access
+from superset.explore.utils import check_chart_access
 from superset.extensions import cache_manager
 from superset.key_value.utils import random_key
 from superset.temporary_cache.commands.exceptions import TemporaryCacheCreateFailedError
@@ -45,9 +45,9 @@ class CreateFormDataCommand(BaseCommand):
             tab_id = self._cmd_params.tab_id
             actor = self._cmd_params.actor
             form_data = self._cmd_params.form_data
-            check_access(datasource_id, chart_id, actor, datasource_type)
+            check_chart_access(datasource_id, chart_id, actor, datasource_type)
             contextual_key = cache_key(
-                session.get("_id"), tab_id, datasource_id, chart_id
+                session.get("_id"), tab_id, datasource_id, chart_id, datasource_type
             )
             key = cache_manager.explore_form_data_cache.get(contextual_key)
             if not key or not tab_id:
@@ -56,6 +56,7 @@ class CreateFormDataCommand(BaseCommand):
                 state: TemporaryExploreState = {
                     "owner": actor.get_user_id(),
                     "datasource_id": datasource_id,
+                    "datasource_type": datasource_type,
                     "chart_id": chart_id,
                     "form_data": form_data,
                 }

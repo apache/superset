@@ -17,30 +17,35 @@
 from typing import Optional
 
 from flask_appbuilder.security.sqla.models import User
-from sqlalchemy.sql.sqltypes import String
 
-from superset import ConnectorRegistry, db, security_manager
+from superset import security_manager
 from superset.charts.commands.exceptions import (
     ChartAccessDeniedError,
     ChartNotFoundError,
 )
 from superset.charts.dao import ChartDAO
+from superset.commands.exceptions import DatasourceNotFoundValidationError
 from superset.datasets.commands.exceptions import (
     DatasetAccessDeniedError,
     DatasetNotFoundError,
 )
 from superset.datasets.dao import DatasetDAO
+from superset.utils.core import DatasourceType
 from superset.views.base import is_user_admin
 from superset.views.utils import is_owner
 
 
-def check_dataset_access(datasource_id: int, datasource_type: str) -> Optional[bool]:
+def check_datasource_access(datasource_id: int, datasource_type: str) -> Optional[bool]:
     if datasource_id:
-        dataset = ConnectorRegistry.get_datasource(
-            datasource_type=datasource_type,
-            datasource_id=datasource_id,
-            session=db.session,
-        )
+        # currently Table is the default, but we need to expand this to other types
+        if datasource_type == DatasourceType.TABLE:
+            return check_dataset_access(datasource_id)
+    raise DatasourceNotFoundValidationError
+
+
+def check_dataset_access(dataset_id: int) -> Optional[bool]:
+    if dataset_id:
+        dataset = DatasetDAO.find_by_id(dataset_id)
         if dataset:
             can_access_datasource = security_manager.can_access_datasource(dataset)
             if can_access_datasource:
@@ -49,10 +54,10 @@ def check_dataset_access(datasource_id: int, datasource_type: str) -> Optional[b
     raise DatasetNotFoundError()
 
 
-def check_access(
+def check_chart_access(
     datasource_id: int, chart_id: Optional[int], actor: User, datasource_type: str
 ) -> Optional[bool]:
-    check_dataset_access(datasource_id, datasource_type)
+    check_datasource_access(datasource_id, datasource_type)
     if not chart_id:
         return True
     chart = ChartDAO.find_by_id(chart_id)

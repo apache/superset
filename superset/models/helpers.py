@@ -544,32 +544,3 @@ def clone_model(
     data.update(kwargs)
 
     return target.__class__(**data)
-
-
-class ExploreMixin:
-    """
-    Sets up data to allow an object to be used to power a chart
-    """
-
-    @property
-    def database(self):
-        raise NotImplementedError
-
-    @property
-    def schema(self):
-        raise NotImplementedError
-
-    @staticmethod
-    def default_query(qry):
-        return qry
-
-    @property
-    def perm(self) -> Optional[str]:
-        return f"[{self.database.database_name}].(id:{self.database.id})"
-
-    def get_perm(self) -> Optional[str]:
-        return self.perm
-
-    def get_schema_perm(self) -> Optional[str]:
-        """Returns schema permission if present, database one otherwise."""
-        return security_manager.get_schema_perm(self.database, self.schema)

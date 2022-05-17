@@ -320,9 +320,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         def clean_fulfilled_requests(session: Session) -> None:
             for dar in session.query(DAR).all():
                 datasource = ConnectorRegistry.get_datasource(
-                    dar.datasource_type,
-                    dar.datasource_id,
-                    session,
+                    dar.datasource_type, dar.datasource_id, session
                 )
                 if not datasource or security_manager.can_access_datasource(datasource):
                     # Dataset does not exist anymore
@@ -462,7 +460,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 "data": payload["df"].to_dict("records"),
                 "colnames": payload.get("colnames"),
                 "coltypes": payload.get("coltypes"),
-            },
+            }
         )
 
     def get_samples(self, viz_obj: BaseViz) -> FlaskResponse:
@@ -630,8 +628,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             and not security_manager.can_access("can_csv", "Superset")
         ):
             return json_error_response(
-                _("You don't have the rights to ") + _("download as csv"),
-                status=403,
+                _("You don't have the rights to ") + _("download as csv"), status=403
             )
 
         form_data = get_form_data()[0]
@@ -769,7 +766,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 flash(__("Error: %(msg)s", msg=ex.message), "danger")
                 return redirect("/chart/list/")
         elif form_data_key:
-            parameters = CommandParameters(actor=g.user, key=form_data_key)
+            parameters = CommandParameters(
+                datasource_type="table", actor=g.user, key=form_data_key
+            )
             value = GetFormDataCommand(parameters).run()
             initial_form_data = json.loads(value) if value else {}
 
@@ -947,9 +946,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         """
         # TODO: Cache endpoint by user, datasource and column
         datasource = ConnectorRegistry.get_datasource(
-            datasource_type,
-            datasource_id,
-            db.session,
+            datasource_type, datasource_id, db.session
         )
         if not datasource:
             return json_error_response(DATASOURCE_MISSING_ERR)
@@ -1367,7 +1364,11 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             )
             database.set_sqlalchemy_uri(uri)
             database.db_engine_spec.mutate_db_for_connection_test(database)
-            engine = database.get_sqla_engine()
+
+            username = (
+                g.user.username if g.user and hasattr(g.user, "username") else None
+            )
+            engine = database.get_sqla_engine(user_name=username)
 
             with closing(engine.raw_connection()) as conn:
                 if engine.dialect.do_ping(conn):
@@ -1414,10 +1415,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         try:
             security_manager.raise_for_user_activity_access(user_id)
         except SupersetSecurityException as ex:
-            return json_error_response(
-                ex.message,
-                status=403,
-            )
+            return json_error_response(ex.message, status=403)
         return None
 
     @api
@@ -1440,8 +1438,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         has_subject_title = or_(
             and_(
-                Dashboard.dashboard_title is not None,
-                Dashboard.dashboard_title != "",
+                Dashboard.dashboard_title is not None, Dashboard.dashboard_title != ""
             ),
             and_(Slice.slice_name is not None, Slice.slice_name != ""),
         )
@@ -1475,10 +1472,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                     Slice.slice_name,
                 )
                 .outerjoin(Dashboard, Dashboard.id == subqry.c.dashboard_id)
-                .outerjoin(
-                    Slice,
-                    Slice.id == subqry.c.slice_id,
-                )
+                .outerjoin(Slice, Slice.id == subqry.c.slice_id)
                 .filter(has_subject_title)
                 .order_by(subqry.c.dttm.desc())
                 .limit(limit)
@@ -1969,8 +1963,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access
     @expose("/dashboard/p/<key>/", methods=["GET"])
     def dashboard_permalink(  # pylint: disable=no-self-use
-        self,
-        key: str,
+        self, key: str
     ) -> FlaskResponse:
         try:
             value = GetDashboardPermalinkCommand(g.user, key).run()
@@ -2290,7 +2283,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             QueryStatus.TIMED_OUT,
         ]:
             logger.warning(
-                "Query with client_id could not be stopped: query already complete",
+                "Query with client_id could not be stopped: query already complete"
             )
             return self.json_response("OK")
 
@@ -2444,8 +2437,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             ex.status = 403
 
     def _create_response_from_execution_context(  # pylint: disable=invalid-name, no-self-use
-        self,
-        command_result: CommandResult,
+        self, command_result: CommandResult
     ) -> FlaskResponse:
 
         status_code = 200
@@ -2536,9 +2528,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         datasource_id, datasource_type = request.args["datasourceKey"].split("__")
         datasource = ConnectorRegistry.get_datasource(
-            datasource_type,
-            datasource_id,
-            db.session,
+            datasource_type, datasource_id, db.session
         )
         # Check if datasource exists
         if not datasource:

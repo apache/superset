@@ -520,7 +520,11 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         response = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(
             response,
-            {"message": {"datasource_type": ["Must be one of: druid, table, view."]}},
+            {
+                "message": {
+                    "datasource_type": ["Must be one of: druid, table, view, query."]
+                }
+            },
         )
         chart_data = {
             "slice_name": "title1",
