@@ -134,8 +134,8 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
   >({});
   const [autocompleteValue, setAutocompleteValue] = useState('');
 
-  const user = useSelector<SqlLabExploreRootState, User>(state =>
-    getInitialState(state),
+  const user = useSelector<SqlLabExploreRootState, User>(user =>
+    getInitialState(user),
   );
   const dispatch = useDispatch<(dispatch: any) => Promise<JsonObject>>();
 
