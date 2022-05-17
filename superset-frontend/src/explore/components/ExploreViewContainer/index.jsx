@@ -197,7 +197,6 @@ const updateHistory = debounce(
 );
 
 function ExploreViewContainer(props) {
-  console.log('findme evc', props);
   const dynamicPluginContext = usePluginContext();
   const dynamicPlugin = dynamicPluginContext.dynamicPlugins[props.vizType];
   const isDynamicPluginLoading = dynamicPlugin && dynamicPlugin.mounting;
