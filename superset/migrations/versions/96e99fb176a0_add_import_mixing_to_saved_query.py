@@ -32,9 +32,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy_utils import UUIDType
 
 from superset import db
-from superset.migrations.versions.b56500de1855_add_uuid_column_to_import_mixin import (
-    add_uuids,
-)
+from superset.migrations.shared.utils import assign_uuids
 
 # revision identifiers, used by Alembic.
 revision = "96e99fb176a0"
@@ -65,19 +63,22 @@ def upgrade():
         with op.batch_alter_table("saved_query") as batch_op:
             batch_op.add_column(
                 sa.Column(
-                    "uuid", UUIDType(binary=True), primary_key=False, default=uuid4,
+                    "uuid",
+                    UUIDType(binary=True),
+                    primary_key=False,
+                    default=uuid4,
                 ),
             )
     except OperationalError:
         # Ignore column update errors so that we can run upgrade multiple times
         pass
 
-    add_uuids(SavedQuery, "saved_query", session)
+    assign_uuids(SavedQuery, session)
 
     try:
         # Add uniqueness constraint
         with op.batch_alter_table("saved_query") as batch_op:
-            # Batch mode is required for sqllite
+            # Batch mode is required for sqlite
             batch_op.create_unique_constraint("uq_saved_query_uuid", ["uuid"])
     except OperationalError:
         pass

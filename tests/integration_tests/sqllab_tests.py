@@ -68,9 +68,9 @@ class TestSqlLab(SupersetTestCase):
     def run_some_queries(self):
         db.session.query(Query).delete()
         db.session.commit()
-        self.run_sql(QUERY_1, client_id="client_id_1", user_name="admin")
-        self.run_sql(QUERY_2, client_id="client_id_3", user_name="admin")
-        self.run_sql(QUERY_3, client_id="client_id_2", user_name="gamma_sqllab")
+        self.run_sql(QUERY_1, client_id="client_id_1", username="admin")
+        self.run_sql(QUERY_2, client_id="client_id_3", username="admin")
+        self.run_sql(QUERY_3, client_id="client_id_2", username="gamma_sqllab")
         self.logout()
 
     def tearDown(self):
@@ -162,7 +162,7 @@ class TestSqlLab(SupersetTestCase):
         db.session.commit()
 
         with freeze_time(datetime.now().isoformat(timespec="seconds")):
-            self.run_sql(sql_statement, "1")
+            self.run_sql(sql_statement, "1", username="admin")
             saved_query_ = (
                 db.session.query(SavedQuery)
                 .filter(
@@ -248,7 +248,7 @@ class TestSqlLab(SupersetTestCase):
         # Gamma user, with sqllab and db permission
         self.create_user_with_roles("Gagarin", ["ExampleDBAccess", "Gamma", "sql_lab"])
 
-        data = self.run_sql(QUERY_1, "1", user_name="Gagarin")
+        data = self.run_sql(QUERY_1, "1", username="Gagarin")
         db.session.query(Query).delete()
         db.session.commit()
         self.assertLess(0, len(data["data"]))
@@ -260,8 +260,10 @@ class TestSqlLab(SupersetTestCase):
             # sqlite doesn't support database creation
             return
 
-        sqllab_test_db_schema_permission_view = security_manager.add_permission_view_menu(
-            "schema_access", f"[{examples_db.name}].[{CTAS_SCHEMA_NAME}]"
+        sqllab_test_db_schema_permission_view = (
+            security_manager.add_permission_view_menu(
+                "schema_access", f"[{examples_db.name}].[{CTAS_SCHEMA_NAME}]"
+            )
         )
         schema_perm_role = security_manager.add_role("SchemaPermission")
         security_manager.add_permission_role(
@@ -276,14 +278,14 @@ class TestSqlLab(SupersetTestCase):
         )
 
         data = self.run_sql(
-            f"SELECT * FROM {CTAS_SCHEMA_NAME}.test_table", "3", user_name="SchemaUser"
+            f"SELECT * FROM {CTAS_SCHEMA_NAME}.test_table", "3", username="SchemaUser"
         )
         self.assertEqual(1, len(data["data"]))
 
         data = self.run_sql(
             f"SELECT * FROM {CTAS_SCHEMA_NAME}.test_table",
             "4",
-            user_name="SchemaUser",
+            username="SchemaUser",
             schema=CTAS_SCHEMA_NAME,
         )
         self.assertEqual(1, len(data["data"]))
@@ -293,7 +295,7 @@ class TestSqlLab(SupersetTestCase):
             data = self.run_sql(
                 "SELECT * FROM test_table",
                 "5",
-                user_name="SchemaUser",
+                username="SchemaUser",
                 schema=CTAS_SCHEMA_NAME,
             )
             self.assertEqual(1, len(data["data"]))
@@ -439,7 +441,7 @@ class TestSqlLab(SupersetTestCase):
         self.run_sql(
             "SELECT name as col, gender as col FROM birth_names LIMIT 10",
             client_id="2e2df3",
-            user_name="admin",
+            username="admin",
             raise_on_error=True,
         )
 
@@ -475,8 +477,8 @@ class TestSqlLab(SupersetTestCase):
             "datasourceName": f"test_viz_flow_table_{random()}",
             "schema": "superset",
             "columns": [
-                {"is_date": False, "type": "STRING", "name": f"viz_type_{random()}"},
-                {"is_date": False, "type": "OBJECT", "name": f"ccount_{random()}"},
+                {"is_dttm": False, "type": "STRING", "name": f"viz_type_{random()}"},
+                {"is_dttm": False, "type": "OBJECT", "name": f"ccount_{random()}"},
             ],
             "sql": """\
                 SELECT *
@@ -505,8 +507,8 @@ class TestSqlLab(SupersetTestCase):
             "chartType": "dist_bar",
             "schema": "superset",
             "columns": [
-                {"is_date": False, "type": "STRING", "name": f"viz_type_{random()}"},
-                {"is_date": False, "type": "OBJECT", "name": f"ccount_{random()}"},
+                {"is_dttm": False, "type": "STRING", "name": f"viz_type_{random()}"},
+                {"is_dttm": False, "type": "OBJECT", "name": f"ccount_{random()}"},
             ],
             "sql": """\
                 SELECT *
@@ -587,13 +589,17 @@ class TestSqlLab(SupersetTestCase):
         )
 
         data = self.run_sql(
-            "SELECT * FROM birth_names", client_id="sql_limit_6", query_limit=10000,
+            "SELECT * FROM birth_names",
+            client_id="sql_limit_6",
+            query_limit=10000,
         )
         self.assertEqual(len(data["data"]), 1200)
         self.assertEqual(data["query"]["limitingFactor"], LimitingFactor.NOT_LIMITED)
 
         data = self.run_sql(
-            "SELECT * FROM birth_names", client_id="sql_limit_7", query_limit=1200,
+            "SELECT * FROM birth_names",
+            client_id="sql_limit_7",
+            query_limit=1200,
         )
         self.assertEqual(len(data["data"]), 1200)
         self.assertEqual(data["query"]["limitingFactor"], LimitingFactor.NOT_LIMITED)
@@ -741,7 +747,6 @@ class TestSqlLab(SupersetTestCase):
             rendered_query=sql,
             return_results=True,
             store_results=False,
-            user_name="admin",
             session=mock_session,
             start_time=None,
             expand_data=False,
@@ -752,7 +757,6 @@ class TestSqlLab(SupersetTestCase):
                 mock.call(
                     "SET @value = 42",
                     mock_query,
-                    "admin",
                     mock_session,
                     mock_cursor,
                     None,
@@ -761,7 +765,6 @@ class TestSqlLab(SupersetTestCase):
                 mock.call(
                     "SELECT @value AS foo",
                     mock_query,
-                    "admin",
                     mock_session,
                     mock_cursor,
                     None,
@@ -798,7 +801,6 @@ class TestSqlLab(SupersetTestCase):
                 rendered_query=sql,
                 return_results=True,
                 store_results=False,
-                user_name="admin",
                 session=mock_session,
                 start_time=None,
                 expand_data=False,
@@ -852,7 +854,6 @@ class TestSqlLab(SupersetTestCase):
             rendered_query=sql,
             return_results=True,
             store_results=False,
-            user_name="admin",
             session=mock_session,
             start_time=None,
             expand_data=False,
@@ -863,7 +864,6 @@ class TestSqlLab(SupersetTestCase):
                 mock.call(
                     "SET @value = 42",
                     mock_query,
-                    "admin",
                     mock_session,
                     mock_cursor,
                     None,
@@ -872,7 +872,6 @@ class TestSqlLab(SupersetTestCase):
                 mock.call(
                     "SELECT @value AS foo",
                     mock_query,
-                    "admin",
                     mock_session,
                     mock_cursor,
                     None,
@@ -889,7 +888,6 @@ class TestSqlLab(SupersetTestCase):
                 rendered_query=sql,
                 return_results=True,
                 store_results=False,
-                user_name="admin",
                 session=mock_session,
                 start_time=None,
                 expand_data=False,
@@ -923,7 +921,6 @@ class TestSqlLab(SupersetTestCase):
                 rendered_query=sql,
                 return_results=True,
                 store_results=False,
-                user_name="admin",
                 session=mock_session,
                 start_time=None,
                 expand_data=False,

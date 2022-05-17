@@ -56,6 +56,7 @@ export interface ButtonProps {
     | 'rightTop'
     | 'rightBottom';
   onClick?: OnClickHandler;
+  onMouseDown?: OnClickHandler;
   disabled?: boolean;
   buttonStyle?: ButtonStyle;
   buttonSize?: 'default' | 'small' | 'xsmall';
@@ -66,6 +67,14 @@ export interface ButtonProps {
   cta?: boolean;
   loading?: boolean | { delay?: number | undefined } | undefined;
   showMarginRight?: boolean;
+  type?:
+    | 'default'
+    | 'text'
+    | 'link'
+    | 'primary'
+    | 'dashed'
+    | 'ghost'
+    | undefined;
 }
 
 export default function Button(props: ButtonProps) {
@@ -229,10 +238,19 @@ export default function Button(props: ButtonProps) {
         id={`${kebabCase(tooltip)}-tooltip`}
         title={tooltip}
       >
-        {/* this ternary wraps the button in a span so that the tooltip shows up
-        when the button is disabled.  */}
+        {/* wrap the button in a span so that the tooltip shows up
+        when the button is disabled. */}
         {disabled ? (
-          <span css={{ cursor: 'not-allowed' }}>{button}</span>
+          <span
+            css={{
+              cursor: 'not-allowed',
+              '& > .superset-button': {
+                marginLeft: theme.gridUnit * 2,
+              },
+            }}
+          >
+            {button}
+          </span>
         ) : (
           button
         )}

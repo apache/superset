@@ -34,6 +34,7 @@
  * control interface.
  */
 import React from 'react';
+import { isEmpty } from 'lodash';
 import {
   FeatureFlag,
   t,
@@ -43,7 +44,6 @@ import {
   SequentialScheme,
   legacyValidateInteger,
   validateNonEmpty,
-  JsonArray,
   ComparisionType,
 } from '@superset-ui/core';
 
@@ -91,6 +91,11 @@ export const PRIMARY_COLOR = { r: 0, g: 122, b: 135, a: 1 };
 const ROW_LIMIT_OPTIONS = [10, 50, 100, 250, 500, 1000, 5000, 10000, 50000];
 const SERIES_LIMITS = [5, 10, 25, 50, 100, 500];
 
+const appContainer = document.getElementById('app');
+const { user } = JSON.parse(
+  appContainer?.getAttribute('data-bootstrap') || '{}',
+);
+
 type Control = {
   savedMetrics?: Metric[] | null;
   default?: unknown;
@@ -103,7 +108,7 @@ type SelectDefaultOption = {
 
 const groupByControl: SharedControlConfig<'SelectControl', ColumnMeta> = {
   type: 'SelectControl',
-  label: t('Group by'),
+  label: t('Dimensions'),
   multi: true,
   freeForm: true,
   clearable: true,
@@ -167,6 +172,7 @@ const datasourceControl: SharedControlConfig<'DatasourceControl'> = {
   mapStateToProps: ({ datasource, form_data }) => ({
     datasource,
     form_data,
+    user,
   }),
 };
 
@@ -352,7 +358,7 @@ const order_desc: SharedControlConfig<'CheckboxControl'> = {
   visibility: ({ controls }) =>
     Boolean(
       controls?.timeseries_limit_metric.value &&
-        (controls?.timeseries_limit_metric.value as JsonArray).length,
+        !isEmpty(controls?.timeseries_limit_metric.value),
     ),
 };
 
@@ -403,7 +409,7 @@ const sort_by: SharedControlConfig<'MetricsControl'> = {
 
 const series: typeof groupByControl = {
   ...groupByControl,
-  label: t('Series'),
+  label: t('Dimensions'),
   multi: false,
   default: null,
   description: t(

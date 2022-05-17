@@ -369,24 +369,19 @@ export function validateQuery(query) {
     dispatch(startQueryValidation(query));
 
     const postPayload = {
-      client_id: query.id,
-      database_id: query.dbId,
-      json: true,
       schema: query.schema,
       sql: query.sql,
-      sql_editor_id: query.sqlEditorId,
-      templateParams: query.templateParams,
-      validate_only: true,
+      template_params: query.templateParams,
     };
 
     return SupersetClient.post({
-      endpoint: `/superset/validate_sql_json/${window.location.search}`,
-      postPayload,
-      stringify: false,
+      endpoint: `/api/v1/database/${query.dbId}/validate_sql`,
+      body: JSON.stringify(postPayload),
+      headers: { 'Content-Type': 'application/json' },
     })
-      .then(({ json }) => dispatch(queryValidationReturned(query, json)))
+      .then(({ json }) => dispatch(queryValidationReturned(query, json.result)))
       .catch(response =>
-        getClientErrorObject(response).then(error => {
+        getClientErrorObject(response.result).then(error => {
           let message = error.error || error.statusText || t('Unknown error');
           if (message.includes('CSRF token')) {
             message = t(COMMON_ERR_MESSAGES.SESSION_TIMED_OUT);
@@ -791,7 +786,7 @@ export function queryEditorSetSchema(queryEditor, schema) {
         dispatch({
           type: QUERY_EDITOR_SET_SCHEMA,
           queryEditor: queryEditor || {},
-          schema: schema || {},
+          schema,
         }),
       )
       .catch(() =>
@@ -1045,7 +1040,7 @@ function getTableMetadata(table, query, dispatch) {
 function getTableExtendedMetadata(table, query, dispatch) {
   return SupersetClient.get({
     endpoint: encodeURI(
-      `/superset/extra_table_metadata/${query.dbId}/` +
+      `/api/v1/database/${query.dbId}/table_extra/` +
         `${encodeURIComponent(table.name)}/${encodeURIComponent(
           table.schema,
         )}/`,
@@ -1279,6 +1274,7 @@ export function popSavedQuery(saveQueryId) {
       .then(({ json }) => {
         const queryEditorProps = {
           ...convertQueryToClient(json.result),
+          loaded: true,
           autorun: false,
         };
         return dispatch(addQueryEditor(queryEditorProps));
@@ -1393,10 +1389,21 @@ export function queryEditorSetFunctionNames(queryEditor, dbId) {
           functionNames: json.function_names,
         }),
       )
-      .catch(() =>
-        dispatch(
-          addDangerToast(t('An error occurred while fetching function names.')),
-        ),
-      );
+      .catch(err => {
+        if (err.status === 404) {
+          // for databases that have been deleted, just reset the function names
+          dispatch({
+            type: QUERY_EDITOR_SET_FUNCTION_NAMES,
+            queryEditor,
+            functionNames: [],
+          });
+        } else {
+          dispatch(
+            addDangerToast(
+              t('An error occurred while fetching function names.'),
+            ),
+          );
+        }
+      });
   };
 }

@@ -79,7 +79,6 @@ from superset.utils.urls import get_url_host
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
     from superset.connectors.base.models import BaseDatasource
-    from superset.connectors.druid.models import DruidCluster
     from superset.models.core import Database
     from superset.models.dashboard import Dashboard
     from superset.models.sql_lab import Query
@@ -153,9 +152,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
     GAMMA_READ_ONLY_MODEL_VIEWS = {
         "Dataset",
-        "DruidColumnInlineView",
-        "DruidDatasourceModelView",
-        "DruidMetricInlineView",
         "Datasource",
     } | READ_ONLY_MODEL_VIEWS
 
@@ -189,6 +185,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "can_update_role",
         "all_query_access",
         "can_grant_guest_token",
+        "can_set_embedded",
     }
 
     READ_ONLY_PERMISSION = {
@@ -324,7 +321,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         return self.can_access("all_database_access", "all_database_access")
 
-    def can_access_database(self, database: Union["Database", "DruidCluster"]) -> bool:
+    def can_access_database(self, database: "Database") -> bool:
         """
         Return True if the user can fully access the Superset database, False otherwise.
 
@@ -1138,72 +1135,85 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             ]
         return []
 
-    def get_rls_filters(self, table: "BaseDatasource") -> List[SqlaQuery]:
+    def get_rls_filters(
+        self,
+        table: "BaseDatasource",
+        username: Optional[str] = None,
+    ) -> List[SqlaQuery]:
         """
         Retrieves the appropriate row level security filters for the current user and
         the passed table.
 
-        :param table: The table to check against
+        :param BaseDatasource table: The table to check against.
+        :param Optional[str] username: Optional username if there's no user in the Flask
+        global namespace.
         :returns: A list of filters
         """
         if hasattr(g, "user"):
-            # pylint: disable=import-outside-toplevel
-            from superset.connectors.sqla.models import (
-                RLSFilterRoles,
-                RLSFilterTables,
-                RowLevelSecurityFilter,
-            )
+            user = g.user
+        elif username:
+            user = self.find_user(username=username)
+        else:
+            return []
 
-            user_roles = [role.id for role in self.get_user_roles()]
-            regular_filter_roles = (
-                self.get_session.query(RLSFilterRoles.c.rls_filter_id)
-                .join(RowLevelSecurityFilter)
-                .filter(
-                    RowLevelSecurityFilter.filter_type
-                    == RowLevelSecurityFilterType.REGULAR
-                )
-                .filter(RLSFilterRoles.c.role_id.in_(user_roles))
-                .subquery()
+        # pylint: disable=import-outside-toplevel
+        from superset.connectors.sqla.models import (
+            RLSFilterRoles,
+            RLSFilterTables,
+            RowLevelSecurityFilter,
+        )
+
+        user_roles = [role.id for role in self.get_user_roles(user)]
+        regular_filter_roles = (
+            self.get_session()
+            .query(RLSFilterRoles.c.rls_filter_id)
+            .join(RowLevelSecurityFilter)
+            .filter(
+                RowLevelSecurityFilter.filter_type == RowLevelSecurityFilterType.REGULAR
             )
-            base_filter_roles = (
-                self.get_session.query(RLSFilterRoles.c.rls_filter_id)
-                .join(RowLevelSecurityFilter)
-                .filter(
-                    RowLevelSecurityFilter.filter_type
-                    == RowLevelSecurityFilterType.BASE
-                )
-                .filter(RLSFilterRoles.c.role_id.in_(user_roles))
-                .subquery()
+            .filter(RLSFilterRoles.c.role_id.in_(user_roles))
+            .subquery()
+        )
+        base_filter_roles = (
+            self.get_session()
+            .query(RLSFilterRoles.c.rls_filter_id)
+            .join(RowLevelSecurityFilter)
+            .filter(
+                RowLevelSecurityFilter.filter_type == RowLevelSecurityFilterType.BASE
             )
-            filter_tables = (
-                self.get_session.query(RLSFilterTables.c.rls_filter_id)
-                .filter(RLSFilterTables.c.table_id == table.id)
-                .subquery()
+            .filter(RLSFilterRoles.c.role_id.in_(user_roles))
+            .subquery()
+        )
+        filter_tables = (
+            self.get_session()
+            .query(RLSFilterTables.c.rls_filter_id)
+            .filter(RLSFilterTables.c.table_id == table.id)
+            .subquery()
+        )
+        query = (
+            self.get_session()
+            .query(
+                RowLevelSecurityFilter.id,
+                RowLevelSecurityFilter.group_key,
+                RowLevelSecurityFilter.clause,
             )
-            query = (
-                self.get_session.query(
-                    RowLevelSecurityFilter.id,
-                    RowLevelSecurityFilter.group_key,
-                    RowLevelSecurityFilter.clause,
-                )
-                .filter(RowLevelSecurityFilter.id.in_(filter_tables))
-                .filter(
-                    or_(
-                        and_(
-                            RowLevelSecurityFilter.filter_type
-                            == RowLevelSecurityFilterType.REGULAR,
-                            RowLevelSecurityFilter.id.in_(regular_filter_roles),
-                        ),
-                        and_(
-                            RowLevelSecurityFilter.filter_type
-                            == RowLevelSecurityFilterType.BASE,
-                            RowLevelSecurityFilter.id.notin_(base_filter_roles),
-                        ),
-                    )
+            .filter(RowLevelSecurityFilter.id.in_(filter_tables))
+            .filter(
+                or_(
+                    and_(
+                        RowLevelSecurityFilter.filter_type
+                        == RowLevelSecurityFilterType.REGULAR,
+                        RowLevelSecurityFilter.id.in_(regular_filter_roles),
+                    ),
+                    and_(
+                        RowLevelSecurityFilter.filter_type
+                        == RowLevelSecurityFilterType.BASE,
+                        RowLevelSecurityFilter.id.notin_(base_filter_roles),
+                    ),
                 )
             )
-            return query.all()
-        return []
+        )
+        return query.all()
 
     def get_rls_ids(self, table: "BaseDatasource") -> List[int]:
         """
@@ -1221,11 +1231,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         return [f.get("clause", "") for f in self.get_guest_rls_filters(table)]
 
     def get_rls_cache_key(self, datasource: "BaseDatasource") -> List[str]:
-        # pylint: disable=import-outside-toplevel
-        from superset import is_feature_enabled
-
         rls_ids = []
-        if is_feature_enabled("ROW_LEVEL_SECURITY") and datasource.is_rls_supported:
+        if datasource.is_rls_supported:
             rls_ids = self.get_rls_ids(datasource)
         rls_str = [str(rls_id) for rls_id in rls_ids]
         guest_rls = self.get_guest_rls_filters_str(datasource)
@@ -1268,10 +1275,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 for dashboard_role in dashboard.roles
             )
 
-        if self.is_guest_user():
-            can_access = self.has_guest_access(
-                GuestTokenResourceType.DASHBOARD, dashboard.id
-            )
+        if self.is_guest_user() and dashboard.embedded:
+            can_access = self.has_guest_access(dashboard)
         else:
             can_access = (
                 is_user_admin()
@@ -1307,7 +1312,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
     @staticmethod
     def _get_current_epoch_time() -> float:
-        """ This is used so the tests can mock time """
+        """This is used so the tests can mock time"""
         return time.time()
 
     @staticmethod
@@ -1316,6 +1321,24 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         if callable(audience):
             audience = audience()
         return audience
+
+    @staticmethod
+    def validate_guest_token_resources(resources: GuestTokenResources) -> None:
+        # pylint: disable=import-outside-toplevel
+        from superset.embedded.dao import EmbeddedDAO
+        from superset.embedded_dashboard.commands.exceptions import (
+            EmbeddedDashboardNotFoundError,
+        )
+        from superset.models.dashboard import Dashboard
+
+        for resource in resources:
+            if resource["type"] == GuestTokenResourceType.DASHBOARD.value:
+                # TODO (embedded): remove this check once uuids are rolled out
+                dashboard = Dashboard.get(str(resource["id"]))
+                if not dashboard:
+                    embedded = EmbeddedDAO.find_by_id(str(resource["id"]))
+                    if not embedded:
+                        raise EmbeddedDashboardNotFoundError()
 
     def create_guest_access_token(
         self,
@@ -1376,7 +1399,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
     def get_guest_user_from_token(self, token: GuestToken) -> GuestUser:
         return self.guest_user_cls(
-            token=token, roles=[self.find_role(current_app.config["GUEST_ROLE_NAME"])],
+            token=token,
+            roles=[self.find_role(current_app.config["GUEST_ROLE_NAME"])],
         )
 
     def parse_jwt_guest_token(self, raw_token: str) -> Dict[str, Any]:
@@ -1409,15 +1433,26 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             return g.user
         return None
 
-    def has_guest_access(
-        self, resource_type: GuestTokenResourceType, resource_id: Union[str, int]
-    ) -> bool:
+    def has_guest_access(self, dashboard: "Dashboard") -> bool:
         user = self.get_current_guest_user_if_guest()
         if not user:
             return False
 
-        strid = str(resource_id)
-        for resource in user.resources:
-            if resource["type"] == resource_type.value and str(resource["id"]) == strid:
+        dashboards = [
+            r
+            for r in user.resources
+            if r["type"] == GuestTokenResourceType.DASHBOARD.value
+        ]
+
+        # TODO (embedded): remove this check once uuids are rolled out
+        for resource in dashboards:
+            if str(resource["id"]) == str(dashboard.id):
+                return True
+
+        if not dashboard.embedded:
+            return False
+
+        for resource in dashboards:
+            if str(resource["id"]) == str(dashboard.embedded[0].uuid):
                 return True
         return False

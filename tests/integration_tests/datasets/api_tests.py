@@ -107,7 +107,10 @@ class TestDatasetApi(SupersetTestCase):
             for table_name in self.fixture_virtual_table_names:
                 datasets.append(
                     self.insert_dataset(
-                        table_name, [admin.id], main_db, "SELECT * from ab_view_menu;",
+                        table_name,
+                        [admin.id],
+                        main_db,
+                        "SELECT * from ab_view_menu;",
                     )
                 )
             yield datasets
@@ -286,7 +289,10 @@ class TestDatasetApi(SupersetTestCase):
             )
             datasets.append(
                 self.insert_dataset(
-                    "columns", [], get_main_database(), schema="information_schema",
+                    "columns",
+                    [],
+                    get_main_database(),
+                    schema="information_schema",
                 )
             )
             schema_values = [
@@ -570,7 +576,12 @@ class TestDatasetApi(SupersetTestCase):
         """
 
         mock_get_columns.return_value = [
-            {"name": "col", "type": "VARCHAR", "type_generic": None, "is_dttm": None,}
+            {
+                "name": "col",
+                "type": "VARCHAR",
+                "type_generic": None,
+                "is_dttm": None,
+            }
         ]
 
         mock_has_table_by_name.return_value = False
@@ -649,6 +660,7 @@ class TestDatasetApi(SupersetTestCase):
             "description": "description",
             "expression": "expression",
             "type": "INTEGER",
+            "advanced_data_type": "ADVANCED_DATA_TYPE",
             "verbose_name": "New Col",
         }
         dataset_data = {
@@ -665,6 +677,9 @@ class TestDatasetApi(SupersetTestCase):
         assert new_col_dict["description"] in [col.description for col in columns]
         assert new_col_dict["expression"] in [col.expression for col in columns]
         assert new_col_dict["type"] in [col.type for col in columns]
+        assert new_col_dict["advanced_data_type"] in [
+            col.advanced_data_type for col in columns
+        ]
 
         db.session.delete(dataset)
         db.session.commit()
@@ -682,6 +697,7 @@ class TestDatasetApi(SupersetTestCase):
             "expression": "expression",
             "extra": '{"abc":123}',
             "type": "INTEGER",
+            "advanced_data_type": "ADVANCED_DATA_TYPE",
             "verbose_name": "New Col",
             "uuid": "c626b60a-3fb2-4e99-9f01-53aca0b17166",
         }
@@ -738,6 +754,7 @@ class TestDatasetApi(SupersetTestCase):
         assert columns[2].description == new_column_data["description"]
         assert columns[2].expression == new_column_data["expression"]
         assert columns[2].type == new_column_data["type"]
+        assert columns[2].advanced_data_type == new_column_data["advanced_data_type"]
         assert columns[2].extra == new_column_data["extra"]
         assert columns[2].verbose_name == new_column_data["verbose_name"]
         assert str(columns[2].uuid) == new_column_data["uuid"]
@@ -774,6 +791,7 @@ class TestDatasetApi(SupersetTestCase):
             "description": "description",
             "expression": "expression",
             "type": "INTEGER",
+            "advanced_data_type": "ADVANCED_DATA_TYPE",
             "verbose_name": "New Col",
         }
         uri = f"api/v1/dataset/{dataset.id}"

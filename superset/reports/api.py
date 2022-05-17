@@ -125,12 +125,14 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "changed_by.last_name",
         "changed_on",
         "changed_on_delta_humanized",
+        "chart_id",
         "created_by.first_name",
         "created_by.last_name",
         "created_on",
         "creation_method",
         "crontab",
         "crontab_humanized",
+        "dashboard_id",
         "description",
         "id",
         "last_eval_dttm",
@@ -189,6 +191,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "name",
         "active",
         "created_by",
+        "owners",
         "type",
         "last_state",
         "creation_method",
@@ -212,6 +215,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "chart": "slice_name",
         "database": "database_name",
         "created_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
+        "owners": RelatedFieldFilter("first_name", FilterRelatedOwners),
     }
 
     apispec_parameter_schemas = {
@@ -308,6 +312,8 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/401'
             404:
               $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
             500:
               $ref: '#/components/responses/500'
         """
@@ -377,6 +383,8 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/403'
             404:
               $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
             500:
               $ref: '#/components/responses/500'
         """

@@ -39,7 +39,7 @@ import ProgressBar from 'src/components/ProgressBar';
 import Loading from 'src/components/Loading';
 import FilterableTable, {
   MAX_COLUMNS_FOR_TABLE,
-} from 'src/components/FilterableTable/FilterableTable';
+} from 'src/components/FilterableTable';
 import CopyToClipboard from 'src/components/CopyToClipboard';
 import { prepareCopyToClipboardTabularData } from 'src/utils/common';
 import { exploreChart } from 'src/explore/exploreUtils';
@@ -280,7 +280,8 @@ export default class ResultSet extends React.PureComponent<
       sql,
       results.selected_columns.map(d => ({
         column_name: d.name,
-        is_dttm: d.is_date,
+        type: d.type,
+        is_dttm: d.is_dttm,
       })),
       datasetToOverwrite.owners.map((o: DatasetOwner) => o.id),
       true,

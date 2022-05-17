@@ -90,11 +90,16 @@ def get_chart_csv_data(
 def get_chart_dataframe(
     chart_url: str, auth_cookies: Optional[Dict[str, str]] = None
 ) -> Optional[pd.DataFrame]:
+    # Disable all the unnecessary-lambda violations in this function
+    # pylint: disable=unnecessary-lambda
     content = get_chart_csv_data(chart_url, auth_cookies)
     if content is None:
         return None
 
     result = simplejson.loads(content.decode("utf-8"))
+
+    # need to convert float value to string to show full long number
+    pd.set_option("display.float_format", lambda x: str(x))
     df = pd.DataFrame.from_dict(result["result"][0]["data"])
 
     # rebuild hierarchical columns and index

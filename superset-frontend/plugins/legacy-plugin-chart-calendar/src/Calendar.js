@@ -21,7 +21,6 @@ import { extent as d3Extent, range as d3Range } from 'd3-array';
 import { select as d3Select } from 'd3-selection';
 import { getSequentialSchemeRegistry } from '@superset-ui/core';
 import CalHeatMap from './vendor/cal-heatmap';
-import './vendor/cal-heatmap.css';
 
 const propTypes = {
   data: PropTypes.shape({
@@ -51,6 +50,7 @@ const propTypes = {
   timeFormatter: PropTypes.func,
   valueFormatter: PropTypes.func,
   verboseMap: PropTypes.object,
+  theme: PropTypes.object,
 };
 
 function Calendar(element, props) {
@@ -70,6 +70,7 @@ function Calendar(element, props) {
     timeFormatter,
     valueFormatter,
     verboseMap,
+    theme,
   } = props;
 
   const container = d3Select(element)
@@ -121,7 +122,7 @@ function Calendar(element, props) {
         colorScale,
         min: legendColors[0],
         max: legendColors[legendColors.length - 1],
-        empty: 'white',
+        empty: theme.colors.grayscale.light5,
       },
       displayLegend: showLegend,
       itemName: '',

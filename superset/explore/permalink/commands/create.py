@@ -48,9 +48,13 @@ class CreateExplorePermalinkCommand(BaseExplorePermalinkCommand):
                 "state": self.state,
             }
             command = CreateKeyValueCommand(
-                actor=self.actor, resource=self.resource, value=value,
+                actor=self.actor,
+                resource=self.resource,
+                value=value,
             )
             key = command.run()
+            if key.id is None:
+                raise ExplorePermalinkCreateFailedError("Unexpected missing key id")
             return encode_permalink_key(key=key.id, salt=self.salt)
         except SQLAlchemyError as ex:
             logger.exception("Error running create command")

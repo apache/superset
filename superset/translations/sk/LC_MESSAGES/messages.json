@@ -1146,6 +1146,7 @@
       "Run selection": [""],
       "Run": [""],
       "Stop running (Ctrl + x)": [""],
+      "Stop running (Ctrl + e)": [""],
       "Run query (Ctrl + Return)": [""],
       "Save & Explore": [""],
       "Overwrite & Explore": [""],
