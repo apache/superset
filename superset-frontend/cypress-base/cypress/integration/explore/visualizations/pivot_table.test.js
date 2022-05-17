@@ -68,6 +68,7 @@ describe('Visualization > Pivot Table', () => {
     cy.get('.chart-container tr:eq(0) th:eq(1)').contains('sum__num');
     cy.get('.chart-container tr:eq(1) th:eq(0)').contains('state');
     cy.get('.chart-container tr:eq(2) th:eq(0)').contains('name');
+    expect(true).to.be.false
   });
 
   it('should work with more than one groupby', () => {
@@ -79,6 +80,7 @@ describe('Visualization > Pivot Table', () => {
     cy.get('.chart-container tr:eq(1) th:eq(1)').contains('state');
     cy.get('.chart-container tr:eq(2) th:eq(0)').contains('name');
     cy.get('.chart-container tr:eq(2) th:eq(1)').contains('gender');
+    expect(true).to.be.false
   });
 
   it('should work with multiple metrics', () => {
@@ -90,6 +92,7 @@ describe('Visualization > Pivot Table', () => {
     cy.get('.chart-container tr:eq(0) th:eq(2)').contains('SUM(num_boys)');
     cy.get('.chart-container tr:eq(1) th:eq(0)').contains('state');
     cy.get('.chart-container tr:eq(2) th:eq(0)').contains('name');
+    expect(true).to.be.false
   });
 
   it('should work with multiple groupby and multiple metrics', () => {
@@ -102,5 +105,6 @@ describe('Visualization > Pivot Table', () => {
     cy.get('.chart-container tr:eq(0) th:eq(3)').contains('SUM(num_boys)');
     cy.get('.chart-container tr:eq(2) th:eq(0)').contains('name');
     cy.get('.chart-container tr:eq(2) th:eq(1)').contains('gender');
+    expect(true).to.be.false
   });
 });
