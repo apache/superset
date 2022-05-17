@@ -17,18 +17,12 @@
  * under the License.
  */
 /* eslint camelcase: 0 */
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { styled, t, css, useTheme, logging } from '@superset-ui/core';
-import { debounce, pick, isEmpty } from 'lodash';
+import { debounce, pick } from 'lodash';
 import { Resizable } from 're-resizable';
 import { useChangeEffect } from 'src/hooks/useChangeEffect';
 import { usePluginContext } from 'src/components/DynamicPlugins';
@@ -49,11 +43,7 @@ import * as chartActions from 'src/components/Chart/chartAction';
 import { fetchDatasourceMetadata } from 'src/dashboard/actions/datasources';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
 import { mergeExtraFormData } from 'src/dashboard/components/nativeFilters/utils';
-import {
-  getFormDataDiffs,
-  postFormData,
-  putFormData,
-} from 'src/explore/exploreUtils/formData';
+import { postFormData, putFormData } from 'src/explore/exploreUtils/formData';
 import { useTabId } from 'src/hooks/useTabId';
 import ExploreChartPanel from '../ExploreChartPanel';
 import ConnectedControlPanelsContainer from '../ControlPanelsContainer';
@@ -226,11 +216,6 @@ const updateHistory = debounce(
   1000,
 );
 
-const handleUnloadEvent = e => {
-  e.preventDefault();
-  e.returnValue = 'Controls changed';
-};
-
 function ExploreViewContainer(props) {
   const dynamicPluginContext = usePluginContext();
   const dynamicPlugin = dynamicPluginContext.dynamicPlugins[props.vizType];
@@ -250,9 +235,6 @@ function ExploreViewContainer(props) {
   const tabId = useTabId();
 
   const theme = useTheme();
-
-  const isBeforeUnloadActive = useRef(false);
-  const initialFormData = useRef(props.form_data);
 
   const defaultSidebarsWidth = {
     controls_width: 320,
@@ -382,27 +364,6 @@ function ExploreViewContainer(props) {
       document.removeEventListener('keydown', handleKeydown);
     };
   }, [handleKeydown, previousHandleKeyDown]);
-
-  useEffect(() => {
-    const formDataChanged = !isEmpty(
-      getFormDataDiffs(initialFormData.current, props.form_data),
-    );
-    if (formDataChanged && !isBeforeUnloadActive.current) {
-      window.addEventListener('beforeunload', handleUnloadEvent);
-      isBeforeUnloadActive.current = true;
-    }
-    if (!formDataChanged && isBeforeUnloadActive.current) {
-      window.removeEventListener('beforeunload', handleUnloadEvent);
-      isBeforeUnloadActive.current = false;
-    }
-  }, [props.form_data]);
-
-  // cleanup beforeunload event listener
-  // we use separate useEffect to call it only on component unmount instead of on every form data change
-  useEffect(
-    () => () => window.removeEventListener('beforeunload', handleUnloadEvent),
-    [],
-  );
 
   useEffect(() => {
     if (wasDynamicPluginLoading && !isDynamicPluginLoading) {
