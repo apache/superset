@@ -26,8 +26,8 @@ function reset_db() {
   echo --------------------
   echo Reseting test DB
   echo --------------------
-  # docker-compose stop superset-tests-worker superset || true
-  psql -U ${DB_USER}
+  docker-compose stop superset-tests-worker superset || true
+  RESET_DB_CMD="psql \"postgresql://${DB_USER}:${DB_PASSWORD}@127.0.0.1:5432\" <<-EOF
     DROP DATABASE IF EXISTS ${DB_NAME};
     CREATE DATABASE ${DB_NAME};
     \\c ${DB_NAME}
@@ -35,11 +35,10 @@ function reset_db() {
     CREATE SCHEMA sqllab_test_db;
     DROP SCHEMA IF EXISTS admin_database;
     CREATE SCHEMA admin_database;
-
-
-
-  # docker exec -i superset_db bash -c ""
-  # docker-compose start superset-tests-worker superset
+EOF
+"
+  docker exec -i superset_db bash -c "${RESET_DB_CMD}"
+  docker-compose start superset-tests-worker superset
 }
 
 #
