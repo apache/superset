@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { getChartControlPanelRegistry, SqlaFormData } from '@superset-ui/core';
+import { getChartControlPanelRegistry, QueryFormData } from '@superset-ui/core';
 import TableChartPlugin from '@superset-ui/plugin-chart-table';
 import { BigNumberTotalChartPlugin } from '@superset-ui/plugin-chart-echarts';
 import { sections } from '@superset-ui/chart-controls';
@@ -37,7 +37,7 @@ describe('should collect control values and create SFD', () => {
   const publicControlsFormData = Object.fromEntries(
     publicControls.map((name, idx) => [[name], idx]),
   );
-  const sourceMockFormData: SqlaFormData = {
+  const sourceMockFormData: QueryFormData = {
     ...sharedControlsFormData,
     ...publicControlsFormData,
     datasource: '100__table',
@@ -66,7 +66,7 @@ describe('should collect control values and create SFD', () => {
         },
         {
           label: 'axis column',
-          controlSetRows: [xAxisControl],
+          controlSetRows: [[xAxisControl]],
         },
       ],
     });
@@ -82,7 +82,7 @@ describe('should collect control values and create SFD', () => {
           controlSetRows: [[xAxisControl]],
         },
       ],
-      denormalizeFormData: (formData: SqlaFormData) => ({
+      denormalizeFormData: (formData: QueryFormData) => ({
         ...formData,
         columns: formData.standardizedFormData.standardizedState.columns,
         metrics: formData.standardizedFormData.standardizedState.metrics,
@@ -110,6 +110,29 @@ describe('should collect control values and create SFD', () => {
     Object.entries(sharedControls).forEach(([key, value]) => {
       expect(formData[key]).toEqual(value);
     });
+  });
+
+  test('should inherit standardizedFormData', () => {
+    // from source_viz to target_viz
+    const sfd = new StandardizedFormData(sourceMockFormData);
+    const { formData, controlsState } = sfd.transform(
+      'target_viz',
+      sourceMockStore,
+    );
+
+    // from target_viz to source_viz
+    const sfd2 = new StandardizedFormData(formData);
+    const { formData: fd2 } = sfd2.transform('source_viz', {
+      ...sourceMockStore,
+      form_data: formData,
+      controls: controlsState,
+    });
+
+    expect(
+      fd2.standardizedFormData.memorizedFormData.map(
+        (fd: [string, QueryFormData]) => fd[0],
+      ),
+    ).toEqual(['source_viz', 'target_viz']);
   });
 });
 

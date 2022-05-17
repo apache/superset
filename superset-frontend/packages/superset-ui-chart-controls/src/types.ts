@@ -342,13 +342,13 @@ export interface ControlPanelSectionConfig {
   controlSetRows: ControlSetRow[];
 }
 
-export interface standardizedState {
+export interface StandardizedState {
   metrics: QueryFormMetric[];
   columns: QueryFormColumn[];
 }
 
 export interface StandardizedFormDataInterface {
-  standardizedState: standardizedState;
+  standardizedState: StandardizedState;
   memorizedFormData: Map<string, QueryFormData>;
 }
 

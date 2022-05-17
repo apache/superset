@@ -23,13 +23,13 @@ import {
 } from '@superset-ui/core';
 import {
   ControlStateMapping,
-  standardizedState,
+  StandardizedState,
   StandardizedFormDataInterface,
 } from '@superset-ui/chart-controls';
 import { getControlsState } from 'src/explore/store';
 import { getFormDataFromControls } from './getFormDataFromControls';
 
-export const sharedControls: Record<keyof standardizedState, string[]> = {
+export const sharedControls: Record<keyof StandardizedState, string[]> = {
   metrics: ['metric', 'metrics', 'metric_2'],
   columns: ['groupby', 'columns', 'groupbyColumns', 'groupbyRows'],
 };
@@ -84,7 +84,7 @@ export class StandardizedFormData {
     });
 
     const memorizedFormData = Array.isArray(
-      formData?.standardizedorm_data?.memorizedFormData,
+      formData?.standardizedFormData?.memorizedFormData,
     )
       ? new Map(formData.standardizedFormData.memorizedFormData)
       : new Map();
