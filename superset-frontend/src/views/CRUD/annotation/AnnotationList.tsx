@@ -19,7 +19,7 @@
 
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useHistory } from 'react-router-dom';
-import { t, styled, SupersetClient } from '@superset-ui/core';
+import { css, t, styled, SupersetClient } from '@superset-ui/core';
 import moment from 'moment';
 import rison from 'rison';
 
@@ -28,9 +28,9 @@ import Button from 'src/components/Button';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import DeleteModal from 'src/components/DeleteModal';
 import ListView, { ListViewProps } from 'src/components/ListView';
-import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
+import SubMenu, { SubMenuProps } from 'src/views/components/SubMenu';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
-import withToasts from 'src/messageToasts/enhancers/withToasts';
+import withToasts from 'src/components/MessageToasts/withToasts';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import { createErrorHandler } from 'src/views/CRUD/utils';
 
@@ -43,6 +43,21 @@ interface AnnotationListProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
 }
+
+const StyledHeader = styled.div`
+  ${({ theme }) => css`
+    display: flex;
+    flex-direction: row;
+
+    a,
+    Link {
+      margin-left: ${theme.gridUnit * 4}px;
+      font-size: ${theme.typography.sizes.s}px;
+      font-weight: ${theme.typography.weights.normal};
+      text-decoration: underline;
+    }
+  `}
+`;
 
 function AnnotationList({
   addDangerToast,
@@ -65,18 +80,13 @@ function AnnotationList({
     addDangerToast,
     false,
   );
-  const [annotationModalOpen, setAnnotationModalOpen] = useState<boolean>(
-    false,
-  );
+  const [annotationModalOpen, setAnnotationModalOpen] =
+    useState<boolean>(false);
   const [annotationLayerName, setAnnotationLayerName] = useState<string>('');
-  const [
-    currentAnnotation,
-    setCurrentAnnotation,
-  ] = useState<AnnotationObject | null>(null);
-  const [
-    annotationCurrentlyDeleting,
-    setAnnotationCurrentlyDeleting,
-  ] = useState<AnnotationObject | null>(null);
+  const [currentAnnotation, setCurrentAnnotation] =
+    useState<AnnotationObject | null>(null);
+  const [annotationCurrentlyDeleting, setAnnotationCurrentlyDeleting] =
+    useState<AnnotationObject | null>(null);
   const handleAnnotationEdit = (annotation: AnnotationObject | null) => {
     setCurrentAnnotation(annotation);
     setAnnotationModalOpen(true);
@@ -219,19 +229,6 @@ function AnnotationList({
     buttonStyle: 'secondary',
     'data-test': 'annotation-bulk-select',
   });
-
-  const StyledHeader = styled.div`
-    display: flex;
-    flex-direction: row;
-
-    a,
-    Link {
-      margin-left: 16px;
-      font-size: 12px;
-      font-weight: normal;
-      text-decoration: underline;
-    }
-  `;
 
   let hasHistory = true;
 

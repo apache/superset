@@ -17,17 +17,32 @@
  * under the License.
  */
 import React from 'react';
-import { useTheme } from '@superset-ui/core';
+import { useTheme, css } from '@superset-ui/core';
 import { Tooltip as AntdTooltip } from 'antd';
 import { TooltipProps } from 'antd/lib/tooltip';
+import { Global } from '@emotion/react';
 
 export const Tooltip = (props: TooltipProps) => {
   const theme = useTheme();
   return (
-    <AntdTooltip
-      overlayStyle={{ fontSize: theme.typography.sizes.s, lineHeight: '1.6' }}
-      color={`${theme.colors.grayscale.dark2}e6`}
-      {...props}
-    />
+    <>
+      {/* Safari hack to hide browser default tooltips */}
+      <Global
+        styles={css`
+          .ant-tooltip-open {
+            display: inline-block;
+            &::after {
+              content: '';
+              display: block;
+            }
+          }
+        `}
+      />
+      <AntdTooltip
+        overlayStyle={{ fontSize: theme.typography.sizes.s, lineHeight: '1.6' }}
+        color={`${theme.colors.grayscale.dark2}e6`}
+        {...props}
+      />
+    </>
   );
 };

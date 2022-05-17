@@ -34,7 +34,7 @@ def sqlalchemy_uri_validator(
     """
     try:
         make_url(uri.strip())
-    except (ArgumentError, AttributeError):
+    except (ArgumentError, AttributeError) as ex:
         raise exception(
             [
                 _(
@@ -45,13 +45,13 @@ def sqlalchemy_uri_validator(
                     "</p>"
                 )
             ]
-        )
+        ) from ex
 
 
-def schema_allows_csv_upload(database: Database, schema: Optional[str]) -> bool:
-    if not database.allow_csv_upload:
+def schema_allows_file_upload(database: Database, schema: Optional[str]) -> bool:
+    if not database.allow_file_upload:
         return False
-    schemas = database.get_schema_access_for_csv_upload()
+    schemas = database.get_schema_access_for_file_upload()
     if schemas:
         return schema in schemas
     return security_manager.can_access_database(database)

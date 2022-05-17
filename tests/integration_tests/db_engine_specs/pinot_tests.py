@@ -21,7 +21,7 @@ from tests.integration_tests.db_engine_specs.base_tests import TestDbEngineSpec
 
 
 class TestPinotDbEngineSpec(TestDbEngineSpec):
-    """ Tests pertaining to our Pinot database support """
+    """Tests pertaining to our Pinot database support"""
 
     def test_pinot_time_expression_sec_one_1d_grain(self):
         col = column("tstamp")
@@ -62,7 +62,8 @@ class TestPinotDbEngineSpec(TestDbEngineSpec):
         expr = PinotEngineSpec.get_timestamp_expr(col, "epoch_s", "P1M")
         result = str(expr.compile())
         self.assertEqual(
-            result, "DATETRUNC('month', tstamp, 'SECONDS')",
+            result,
+            "DATETRUNC('month', tstamp, 'SECONDS')",
         )
 
     def test_invalid_get_time_expression_arguments(self):

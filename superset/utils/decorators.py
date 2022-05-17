@@ -91,6 +91,7 @@ def check_dashboard_access(
     def decorator(f: Callable[..., Any]) -> Callable[..., Any]:
         @wraps(f)
         def wrapper(self: Any, *args: Any, **kwargs: Any) -> Any:
+            # pylint: disable=import-outside-toplevel
             from superset.models.dashboard import Dashboard
 
             dashboard = Dashboard.get(str(kwargs["dashboard_id_or_slug"]))

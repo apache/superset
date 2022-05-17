@@ -25,7 +25,7 @@ import pandas as pd
 from celery.exceptions import SoftTimeLimitExceeded
 from flask_babel import lazy_gettext as _
 
-from superset import jinja_context
+from superset import app, jinja_context
 from superset.commands.base import BaseCommand
 from superset.models.reports import ReportSchedule, ReportScheduleValidatorType
 from superset.reports.commands.exceptions import (
@@ -77,10 +77,9 @@ class AlertCommand(BaseCommand):
             threshold = json.loads(self._report_schedule.validator_config_json)[
                 "threshold"
             ]
-
-            return OPERATOR_FUNCTIONS[operator](self._result, threshold)
-        except (KeyError, json.JSONDecodeError):
-            raise AlertValidatorConfigError()
+            return OPERATOR_FUNCTIONS[operator](self._result, threshold)  # type: ignore
+        except (KeyError, json.JSONDecodeError) as ex:
+            raise AlertValidatorConfigError() from ex
 
     def _validate_not_null(self, rows: np.recarray) -> None:
         self._validate_result(rows)
@@ -115,8 +114,8 @@ class AlertCommand(BaseCommand):
             # Check if it's float or if we can convert it
             self._result = float(rows[0][1])
             return
-        except (AssertionError, TypeError, ValueError):
-            raise AlertQueryInvalidTypeError()
+        except (AssertionError, TypeError, ValueError) as ex:
+            raise AlertQueryInvalidTypeError() from ex
 
     @property
     def _is_validator_not_null(self) -> bool:
@@ -146,8 +145,11 @@ class AlertCommand(BaseCommand):
             limited_rendered_sql = self._report_schedule.database.apply_limit_to_sql(
                 rendered_sql, ALERT_SQL_LIMIT
             )
+            query_username = app.config["THUMBNAIL_SELENIUM_USER"]
             start = default_timer()
-            df = self._report_schedule.database.get_df(limited_rendered_sql)
+            df = self._report_schedule.database.get_df(
+                sql=limited_rendered_sql, username=query_username
+            )
             stop = default_timer()
             logger.info(
                 "Query for %s took %.2f ms",
@@ -157,9 +159,9 @@ class AlertCommand(BaseCommand):
             return df
         except SoftTimeLimitExceeded as ex:
             logger.warning("A timeout occurred while executing the alert query: %s", ex)
-            raise AlertQueryTimeout()
+            raise AlertQueryTimeout() from ex
         except Exception as ex:
-            raise AlertQueryError(message=str(ex))
+            raise AlertQueryError(message=str(ex)) from ex
 
     def validate(self) -> None:
         """

@@ -19,7 +19,10 @@
 /* eslint camelcase: 0 */
 import { t, SupersetClient } from '@superset-ui/core';
 import rison from 'rison';
-import { addDangerToast, addSuccessToast } from '../../messageToasts/actions';
+import {
+  addDangerToast,
+  addSuccessToast,
+} from 'src/components/MessageToasts/actions';
 
 export const SET_REPORT = 'SET_REPORT';
 export function setReport(report) {
@@ -97,21 +100,14 @@ const structureFetchAction = (dispatch, getState) => {
 
 export const ADD_REPORT = 'ADD_REPORT';
 
-export const addReport = report => dispatch => {
+export const addReport = report => dispatch =>
   SupersetClient.post({
     endpoint: `/api/v1/report/`,
     jsonPayload: report,
-  })
-    .then(() => {
-      dispatch({ type: ADD_REPORT, report });
-      dispatch(addSuccessToast(t('The report has been created')));
-    })
-    .catch(() =>
-      dispatch(
-        addDangerToast(t('An error occurred while creating this report.')),
-      ),
-    );
-};
+  }).then(({ json }) => {
+    dispatch({ type: ADD_REPORT, json });
+    dispatch(addSuccessToast(t('The report has been created')));
+  });
 
 export const EDIT_REPORT = 'EDIT_REPORT';
 

@@ -157,7 +157,8 @@ const createProps = () => ({
   forceRefresh: jest.fn(),
   logExploreChart: jest.fn(),
   exportCSV: jest.fn(),
-  formData: {},
+  onExploreChart: jest.fn(),
+  formData: { slice_id: 1, datasource: '58__table' },
 });
 
 test('Should render', () => {

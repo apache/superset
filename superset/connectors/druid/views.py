@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=too-many-ancestors
 import json
 import logging
 from datetime import datetime
@@ -35,7 +34,7 @@ from superset.connectors.base.views import BS3TextFieldROWidget, DatasourceModel
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.druid import models
 from superset.constants import RouteMethod
-from superset.typing import FlaskResponse
+from superset.superset_typing import FlaskResponse
 from superset.utils import core as utils
 from superset.views.base import (
     BaseSupersetView,
@@ -62,7 +61,11 @@ class EnsureEnabledMixin:
             raise NotFound()
 
 
-class DruidColumnInlineView(CompactCRUDMixin, EnsureEnabledMixin, SupersetModelView):
+class DruidColumnInlineView(  # pylint: disable=too-many-ancestors
+    CompactCRUDMixin,
+    EnsureEnabledMixin,
+    SupersetModelView,
+):
     datamodel = SQLAInterface(models.DruidColumn)
     include_route_methods = RouteMethod.RELATED_VIEW_SET
 
@@ -127,7 +130,7 @@ class DruidColumnInlineView(CompactCRUDMixin, EnsureEnabledMixin, SupersetModelV
             try:
                 dimension_spec = json.loads(item.dimension_spec_json)
             except ValueError as ex:
-                raise ValueError("Invalid Dimension Spec JSON: " + str(ex))
+                raise ValueError("Invalid Dimension Spec JSON: " + str(ex)) from ex
             if not isinstance(dimension_spec, dict):
                 raise ValueError("Dimension Spec must be a JSON object")
             if "outputName" not in dimension_spec:
@@ -149,7 +152,11 @@ class DruidColumnInlineView(CompactCRUDMixin, EnsureEnabledMixin, SupersetModelV
         self.post_update(item)
 
 
-class DruidMetricInlineView(CompactCRUDMixin, EnsureEnabledMixin, SupersetModelView):
+class DruidMetricInlineView(  # pylint: disable=too-many-ancestors
+    CompactCRUDMixin,
+    EnsureEnabledMixin,
+    SupersetModelView,
+):
     datamodel = SQLAInterface(models.DruidMetric)
     include_route_methods = RouteMethod.RELATED_VIEW_SET
 
@@ -202,8 +209,11 @@ class DruidMetricInlineView(CompactCRUDMixin, EnsureEnabledMixin, SupersetModelV
     edit_form_extra_fields = add_form_extra_fields
 
 
-class DruidClusterModelView(
-    EnsureEnabledMixin, SupersetModelView, DeleteMixin, YamlExportMixin,
+class DruidClusterModelView(  # pylint: disable=too-many-ancestors
+    EnsureEnabledMixin,
+    SupersetModelView,
+    DeleteMixin,
+    YamlExportMixin,
 ):
     datamodel = SQLAInterface(models.DruidCluster)
     include_route_methods = RouteMethod.CRUD_SET
@@ -266,8 +276,11 @@ class DruidClusterModelView(
         DeleteMixin._delete(self, pk)
 
 
-class DruidDatasourceModelView(
-    EnsureEnabledMixin, DatasourceModelView, DeleteMixin, YamlExportMixin,
+class DruidDatasourceModelView(  # pylint: disable=too-many-ancestors
+    EnsureEnabledMixin,
+    DatasourceModelView,
+    DeleteMixin,
+    YamlExportMixin,
 ):
     datamodel = SQLAInterface(models.DruidDatasource)
     include_route_methods = RouteMethod.CRUD_SET

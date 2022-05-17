@@ -17,10 +17,9 @@
  * under the License.
  */
 import { combineReducers } from 'redux';
-
+import messageToasts from 'src/components/MessageToasts/reducers';
 import sqlLab from './sqlLab';
 import localStorageUsageInKilobytes from './localStorageUsage';
-import messageToasts from '../../messageToasts/reducers/index';
 import common from './common';
 
 export default combineReducers({

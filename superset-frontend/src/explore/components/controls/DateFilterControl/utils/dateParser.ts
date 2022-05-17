@@ -87,12 +87,12 @@ export const customTimeRangeDecode = (
 
     // specific : specific
     if (ISO8601_AND_CONSTANT.test(since) && ISO8601_AND_CONSTANT.test(until)) {
-      const sinceMode = (DATETIME_CONSTANT.includes(since)
-        ? since
-        : 'specific') as DateTimeModeType;
-      const untilMode = (DATETIME_CONSTANT.includes(until)
-        ? until
-        : 'specific') as DateTimeModeType;
+      const sinceMode = (
+        DATETIME_CONSTANT.includes(since) ? since : 'specific'
+      ) as DateTimeModeType;
+      const untilMode = (
+        DATETIME_CONSTANT.includes(until) ? until : 'specific'
+      ) as DateTimeModeType;
       return {
         customRange: {
           ...defaultCustomRange,
@@ -113,9 +113,9 @@ export const customTimeRangeDecode = (
       since.includes(until)
     ) {
       const [dttm, grainValue, grain] = sinceCapturedGroup.slice(1);
-      const untilMode = (DATETIME_CONSTANT.includes(until)
-        ? until
-        : 'specific') as DateTimeModeType;
+      const untilMode = (
+        DATETIME_CONSTANT.includes(until) ? until : 'specific'
+      ) as DateTimeModeType;
       return {
         customRange: {
           ...defaultCustomRange,
@@ -138,9 +138,9 @@ export const customTimeRangeDecode = (
       until.includes(since)
     ) {
       const [dttm, grainValue, grain] = [...untilCapturedGroup.slice(1)];
-      const sinceMode = (DATETIME_CONSTANT.includes(since)
-        ? since
-        : 'specific') as DateTimeModeType;
+      const sinceMode = (
+        DATETIME_CONSTANT.includes(since) ? since : 'specific'
+      ) as DateTimeModeType;
       return {
         customRange: {
           ...defaultCustomRange,

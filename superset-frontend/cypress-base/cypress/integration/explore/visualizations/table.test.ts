@@ -54,7 +54,7 @@ describe('Visualization > Table', () => {
       granularity_sqla: undefined,
       metrics: ['count'],
     });
-    cy.get('input[name="select-granularity_sqla"]').should('have.value', 'ds');
+    cy.get('[data-test=granularity_sqla] .column-option-label').contains('ds');
   });
 
   it('Format non-numeric metrics correctly', () => {
@@ -62,7 +62,7 @@ describe('Visualization > Table', () => {
       ...VIZ_DEFAULTS,
       include_time: true,
       granularity_sqla: 'ds',
-      time_grain_sqla: 'P0.25Y',
+      time_grain_sqla: 'P3M',
       metrics: [NUM_METRIC, MAX_DS, MAX_STATE],
     });
     // when format with smart_date, time column use format by granularity
@@ -77,7 +77,7 @@ describe('Visualization > Table', () => {
       ...VIZ_DEFAULTS,
       include_time: true,
       granularity_sqla: 'ds',
-      time_grain_sqla: 'P0.25Y',
+      time_grain_sqla: 'P3M',
       table_timestamp_format: '%Y-%m-%d %H:%M',
       metrics: [NUM_METRIC, MAX_DS, MAX_STATE],
     });
@@ -111,7 +111,7 @@ describe('Visualization > Table', () => {
       ...VIZ_DEFAULTS,
       include_time: true,
       granularity_sqla: 'ds',
-      time_grain_sqla: 'P0.25Y',
+      time_grain_sqla: 'P3M',
       metrics: [NUM_METRIC, MAX_DS],
       groupby: ['name'],
     });

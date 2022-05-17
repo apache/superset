@@ -20,7 +20,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import AntdIcon from '@ant-design/icons';
 import { styled } from '@superset-ui/core';
-import { ReactComponent as TransparentIcon } from 'images/icons/transparent.svg';
+import TransparentIcon from 'src/assets/images/icons/transparent.svg';
 import IconType from './IconType';
 
 const AntdIconComponent = ({
@@ -42,7 +42,7 @@ export const StyledIcon = styled(AntdIconComponent)<IconType>`
       : '24px'};
 `;
 
-interface IconProps extends IconType {
+export interface IconProps extends IconType {
   fileName: string;
 }
 
@@ -53,15 +53,21 @@ export const Icon = (props: IconProps) => {
   const name = fileName.replace('_', '-');
 
   useEffect(() => {
+    let cancelled = false;
     async function importIcon(): Promise<void> {
       ImportedSVG.current = (
         await import(
-          `!!@svgr/webpack?-svgo,+titleProp,+ref!images/icons/${fileName}.svg`
+          `!!@svgr/webpack?-svgo,+titleProp,+ref!src/assets/images/icons/${fileName}.svg`
         )
       ).default;
-      setLoaded(true);
+      if (!cancelled) {
+        setLoaded(true);
+      }
     }
     importIcon();
+    return () => {
+      cancelled = true;
+    };
   }, [fileName, ImportedSVG]);
 
   return (

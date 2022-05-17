@@ -37,35 +37,29 @@ export default function getComponentWidthFromDrop({
     return component.meta.width;
   }
 
-  const {
-    width: draggingWidth,
-    minimumWidth: minDraggingWidth,
-  } = getDetailedComponentWidth({
-    component,
-    components,
-  });
+  const { width: draggingWidth, minimumWidth: minDraggingWidth } =
+    getDetailedComponentWidth({
+      component,
+      components,
+    });
 
-  const {
-    width: destinationWidth,
-    occupiedWidth: draggingOccupiedWidth,
-  } = getDetailedComponentWidth({
-    id: destination.id,
-    components,
-  });
+  const { width: destinationWidth, occupiedWidth: draggingOccupiedWidth } =
+    getDetailedComponentWidth({
+      id: destination.id,
+      components,
+    });
 
   let destinationCapacity = Number(destinationWidth - draggingOccupiedWidth);
 
   if (Number.isNaN(destinationCapacity)) {
-    const {
-      width: grandparentWidth,
-      occupiedWidth: grandparentOccupiedWidth,
-    } = getDetailedComponentWidth({
-      id: findParentId({
-        childId: destination.id,
-        layout: components,
-      }),
-      components,
-    });
+    const { width: grandparentWidth, occupiedWidth: grandparentOccupiedWidth } =
+      getDetailedComponentWidth({
+        id: findParentId({
+          childId: destination.id,
+          layout: components,
+        }),
+        components,
+      });
 
     destinationCapacity = Number(grandparentWidth - grandparentOccupiedWidth);
   }

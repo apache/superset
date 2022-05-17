@@ -21,7 +21,9 @@
 from enum import Enum
 
 NULL_STRING = "<NULL>"
+EMPTY_STRING = "<empty string>"
 
+CHANGE_ME_SECRET_KEY = "CHANGE_ME_TO_A_COMPLEX_RANDOM_SECRET"
 
 # UUID for the examples database
 EXAMPLES_DB_UUID = "a2dc77af-e654-49bb-b321-40f6b559a1ee"
@@ -100,7 +102,6 @@ MODEL_API_RW_METHOD_PERMISSION_MAP = {
     "bulk_delete": "write",
     "delete": "write",
     "distinct": "read",
-    "export": "read",
     "get": "read",
     "get_list": "read",
     "info": "read",
@@ -125,6 +126,7 @@ MODEL_API_RW_METHOD_PERMISSION_MAP = {
     "get_datasets": "read",
     "function_names": "read",
     "available": "read",
+    "get_data": "read",
 }
 
 EXTRA_FORM_DATA_APPEND_KEYS = {
@@ -164,7 +166,7 @@ class PandasAxis(int, Enum):
 
 
 class PandasPostprocessingCompare(str, Enum):
-    ABS = "absolute"
+    DIFF = "difference"
     PCT = "percentage"
     RAT = "ratio"
 

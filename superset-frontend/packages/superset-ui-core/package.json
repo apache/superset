@@ -1,0 +1,78 @@
+{
+  "name": "@superset-ui/core",
+  "version": "0.18.25",
+  "description": "Superset UI core",
+  "sideEffects": false,
+  "main": "lib/index.js",
+  "module": "esm/index.js",
+  "files": [
+    "esm",
+    "lib"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/apache-superset/superset-ui.git"
+  },
+  "keywords": [
+    "superset"
+  ],
+  "author": "Superset",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/apache-superset/superset-ui/issues"
+  },
+  "homepage": "https://github.com/apache-superset/superset-ui#readme",
+  "publishConfig": {
+    "access": "public"
+  },
+  "devDependencies": {
+    "@emotion/styled": "^11.3.0",
+    "resize-observer-polyfill": "1.5.1",
+    "fetch-mock": "^6.5.2",
+    "jest-mock-console": "^1.0.0"
+  },
+  "dependencies": {
+    "@babel/runtime": "^7.1.2",
+    "@types/d3-format": "^1.3.0",
+    "@types/d3-interpolate": "^1.3.1",
+    "@types/d3-scale": "^2.1.1",
+    "@types/d3-time": "^1.0.9",
+    "@types/d3-time-format": "^2.1.0",
+    "@types/lodash": "^4.14.149",
+    "@types/math-expression-evaluator": "^1.2.1",
+    "@types/rison": "0.0.6",
+    "@types/seedrandom": "^2.4.28",
+    "@types/fetch-mock": "^7.3.3",
+    "@types/enzyme": "^3.10.5",
+    "@types/prop-types": "^15.7.2",
+    "@vx/responsive": "^0.0.199",
+    "csstype": "^2.6.4",
+    "d3-format": "^1.3.2",
+    "d3-interpolate": "^1.4.0",
+    "d3-scale": "^3.0.0",
+    "d3-time": "^1.0.10",
+    "d3-time-format": "^2.2.0",
+    "fetch-retry": "^4.0.1",
+    "jed": "^1.1.1",
+    "lodash": "^4.17.11",
+    "math-expression-evaluator": "^1.3.8",
+    "pretty-ms": "^7.0.0",
+    "react-error-boundary": "^1.2.5",
+    "react-markdown": "^4.3.1",
+    "reselect": "^4.0.0",
+    "rison": "^0.1.1",
+    "seedrandom": "^3.0.5",
+    "whatwg-fetch": "^3.0.0"
+  },
+  "peerDependencies": {
+    "@emotion/cache": "^11.4.0",
+    "@emotion/react": "^11.4.1",
+    "@emotion/styled": "^11.3.0",
+    "@types/react": "*",
+    "@types/react-loadable": "*",
+    "@types/tinycolor2": "*",
+    "tinycolor2": "*",
+    "react": "^16.13.1",
+    "react-loadable": "^5.5.0"
+  }
+}

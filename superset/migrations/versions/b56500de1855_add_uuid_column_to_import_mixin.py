@@ -171,7 +171,10 @@ def upgrade():
         with op.batch_alter_table(table_name) as batch_op:
             batch_op.add_column(
                 sa.Column(
-                    "uuid", UUIDType(binary=True), primary_key=False, default=uuid4,
+                    "uuid",
+                    UUIDType(binary=True),
+                    primary_key=False,
+                    default=uuid4,
                 ),
             )
 

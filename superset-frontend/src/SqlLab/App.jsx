@@ -22,6 +22,7 @@ import { Provider } from 'react-redux';
 import thunkMiddleware from 'redux-thunk';
 import { hot } from 'react-hot-loader/root';
 import { ThemeProvider } from '@superset-ui/core';
+import { GlobalStyles } from 'src/GlobalStyles';
 import {
   initFeatureFlags,
   isFeatureEnabled,
@@ -39,7 +40,7 @@ import { BYTES_PER_CHAR, KB_STORAGE } from './constants';
 import setupApp from '../setup/setupApp';
 
 import './main.less';
-import '../../stylesheets/reactable-pagination.less';
+import '../assets/stylesheets/reactable-pagination.less';
 import '../components/FilterableTable/FilterableTableStyles.less';
 import { theme } from '../preamble';
 
@@ -127,6 +128,7 @@ if (sqlLabMenu) {
 const Application = () => (
   <Provider store={store}>
     <ThemeProvider theme={theme}>
+      <GlobalStyles />
       <App />
     </ThemeProvider>
   </Provider>

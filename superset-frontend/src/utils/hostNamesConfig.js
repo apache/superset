@@ -28,12 +28,22 @@ function getDomainsConfig() {
     return [];
   }
 
+  const availableDomains = new Set([window.location.hostname]);
+
+  // don't do domain sharding if a certain query param is set
+  const disableDomainSharding =
+    new URLSearchParams(window.location.search).get('disableDomainSharding') ===
+    '1';
+  if (disableDomainSharding) {
+    return Array.from(availableDomains);
+  }
+
   const bootstrapData = JSON.parse(appContainer.getAttribute('data-bootstrap'));
   // this module is a little special, it may be loaded before index.jsx,
   // where window.featureFlags get initialized
   // eslint-disable-next-line camelcase
   initFeatureFlags(bootstrapData?.common?.feature_flags);
-  const availableDomains = new Set([window.location.hostname]);
+
   if (
     isFeatureEnabled(FeatureFlag.ALLOW_DASHBOARD_DOMAIN_SHARDING) &&
     bootstrapData &&

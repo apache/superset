@@ -16,119 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export const pmc = [
-  {
-    name: ' Aaron Suddjian',
-    github: 'https://github.com/suddjian',
-    image: 'https://github.com/suddjian.png',
-  },
-  {
-    name: 'Beto Dealmeida',
-    github: 'https://github.com/betodealmeida',
-    image: 'https://github.com/betodealmeida.png',
-  },
-  {
-    name: 'Bogdan Kyryliuk',
-    github: 'https://github.com/bkyryliuk',
-    image: 'https://github.com/bkyryliuk.png',
-  },
-  {
-    name: 'Chris Williams',
-    github: 'https://github.com/williaster',
-    image: 'https://github.com/williaster.png',
-  },
-  {
-    name: 'Craig Rueda',
-    github: 'https://github.com/craig-rueda',
-    image: 'https://github.com/craig-rueda.png',
-  },
-  {
-    name: 'Daniel Gaspar',
-    github: 'https://github.com/dpgaspar',
-    image: 'https://github.com/dpgaspar.png',
-  },
-  {
-    name: 'Erik Ritter',
-    github: 'https://github.com/etr2460',
-    image: 'https://github.com/etr2460.png',
-  },
-  {
-    name: 'Evan Rusackas',
-    github: 'https://github.com/rusackas',
-    image: 'https://github.com/rusackas.png',
-  },
-
-  {
-    name: 'Grace Guo',
-    github: 'https://github.com/graceguo-supercat',
-    image: 'https://github.com/graceguo-supercat.png',
-  },
-
-  {
-    name: 'Jeff Feng',
-    github: 'https://github.com/jfeng15',
-    image: 'https://github.com/jfeng15.png',
-  },
-
-  {
-    name: 'Jesse Yang',
-    github: 'https://github.com/ktmud',
-    image: 'https://github.com/ktmud.png',
-  },
-
-  {
-    name: 'John Bodley',
-    github: 'https://github.com/john-bodley',
-    image: 'https://github.com/john-bodley.png',
-  },
-
-  {
-    name: 'Krist Wongsuphasawat',
-    github: 'https://github.com/kristw',
-    image: 'https://github.com/kristw.png',
-  },
-  {
-    name: 'Maxime Beauchemin',
-    github: 'https://github.com/mistercrunch',
-    image: 'https://github.com/mistercrunch.png',
-  },
-
-  {
-    name: 'Michelle Thomas',
-    github: 'https://github.com/michellethomas',
-    image: 'https://github.com/michellethomas.png',
-  },
-
-  {
-    name: 'Nishant Bangarwa',
-    github: 'https://github.com/nishantmonu51',
-    image: 'https://github.com/nishantmonu51.png',
-  },
-
-  {
-    name: 'Tai Dupree',
-    github: 'https://github.com/nytai',
-    image: 'https://github.com/nytai.png',
-  },
-
-  {
-    name: 'Ville Brofeldt',
-    github: 'https://github.com/villebro',
-    image: 'https://github.com/villebro.png',
-  },
-  {
-    name: 'Will Barrett',
-    github: 'https://github.com/willbarrett',
-    image: 'https://github.com/willbarrett.png',
-  },
-];
 
 export const Databases = [
   {
     title: 'Amazon Redshfit',
     href: 'https://aws.amazon.com/redshift/',
     imgName: 'aws-redshift.png',
-    width: 50,
   },
   {
     title: 'Apache Druid',
@@ -240,4 +133,14 @@ export const Databases = [
     href: 'https://www.ibm.com/products/netezza',
     imgName: 'netezza.png',
   },
+  {
+    title: 'Teradata',
+    href: "www.teradata.com",
+    imgName: 'teradata.png'
+  },
+  {
+    title: 'YugabyteDB',
+    href: "www.yugabyte.com",
+    imgName: 'yugabyte.png'
+  }
 ];

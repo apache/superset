@@ -1,79 +1,62 @@
 {
-  "name": "apache-superset-docs",
+  "name": "docs-v-2",
+  "version": "0.0.0",
   "private": true,
-  "description": "The landing page and doc size for getting started with Apache Superset",
-  "version": "0.1.0",
-  "author": "preset.io",
+  "license": "Apache-2.0",
+  "scripts": {
+    "docusaurus": "docusaurus",
+    "start": "docusaurus start",
+    "build": "docusaurus build",
+    "swizzle": "docusaurus swizzle",
+    "deploy": "docusaurus deploy",
+    "clear": "docusaurus clear",
+    "serve": "docusaurus serve",
+    "write-translations": "docusaurus write-translations",
+    "write-heading-ids": "docusaurus write-heading-ids",
+    "typecheck": "tsc"
+  },
   "dependencies": {
-    "@ant-design/icons": "^4.2.2",
+    "@algolia/client-search": "^4.13.0",
+    "@ant-design/icons": "^4.7.0",
+    "@docsearch/react": "^3.0.0",
+    "@docusaurus/core": "^2.0.0-beta.17",
+    "@docusaurus/plugin-client-redirects": "^2.0.0-beta.17",
+    "@docusaurus/preset-classic": "^2.0.0-beta.17",
     "@emotion/core": "^10.1.1",
     "@emotion/styled": "^10.0.27",
-    "@mdx-js/mdx": "^1.6.21",
-    "@mdx-js/react": "^1.6.21",
+    "@mdx-js/react": "^1.6.22",
+    "@saucelabs/theme-github-codeblock": "^0.1.1",
     "@superset-ui/style": "^0.14.23",
-    "antd": "^4.8.0",
-    "docz": "^2.3.1",
-    "emotion": "^10.0.27",
-    "gatsby": "^2.25.3",
-    "gatsby-dynamical-navigation": "^0.4.1",
-    "gatsby-image": "^2.4.21",
-    "gatsby-plugin-antd": "^2.2.0",
-    "gatsby-plugin-client-side-redirect": "^1.1.0",
-    "gatsby-plugin-emotion": "^4.3.15",
-    "gatsby-plugin-google-fonts": "^1.0.1",
-    "gatsby-plugin-gtag": "^1.0.13",
-    "gatsby-plugin-manifest": "^2.5.2",
-    "gatsby-plugin-react-helmet": "^3.3.14",
-    "gatsby-plugin-remove-serviceworker": "^1.0.0",
-    "gatsby-plugin-sass": "^2.4.2",
-    "gatsby-plugin-sharp": "^2.7.1",
-    "gatsby-source-filesystem": "^2.4.2",
-    "gatsby-theme-docz": "^2.3.1",
-    "gatsby-transformer-sharp": "^2.5.21",
-    "node-sass": "^4.14.1",
-    "prop-types": "^15.7.2",
-    "react": "^16.14.0",
-    "react-dom": "^16.14.0",
+    "@svgr/webpack": "^5.5.0",
+    "antd": "^4.19.3",
+    "buffer": "^6.0.3",
+    "clsx": "^1.1.1",
+    "file-loader": "^6.2.0",
+    "prism-react-renderer": "^1.2.1",
+    "react": "^17.0.1",
+    "react-dom": "^17.0.1",
     "react-github-btn": "^1.2.0",
-    "react-grid-gallery": "^0.5.5",
-    "react-helmet": "^6.1.0",
-    "swagger-ui-react": "^3.36.2",
-    "theme-ui": "^0.3.1",
-    "three": "^0.125.0"
+    "stream": "^0.0.2",
+    "swagger-ui-react": "^4.1.2",
+    "url-loader": "^4.1.1"
   },
   "devDependencies": {
-    "eslint-config-airbnb": "^18.2.1",
-    "gatsby-plugin-eslint": "^2.0.8",
-    "prettier": "^2.1.2",
-    "typescript": "^3.9.7"
+    "@docusaurus/module-type-aliases": "^2.0.0-beta.17",
+    "@tsconfig/docusaurus": "^1.0.4",
+    "@types/react": "^17.0.42",
+    "typescript": "^4.3.5",
+    "webpack": "^5.61.0"
   },
-  "keywords": [
-    "gatsby"
-  ],
-  "license": "0BSD",
-  "scripts": {
-    "build": "gatsby build && cp .htaccess .asf.yaml public/",
-    "develop": "gatsby develop",
-    "develop-ga": "GATSBY_GTAG_DEBUG=true gatsby develop",
-    "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,md,mdx}\"",
-    "start": "npm run develop",
-    "serve": "gatsby serve",
-    "clean": "gatsby clean",
-    "lint": "eslint src/ --ext .ts,.js,.tsx,.jsx",
-    "lint-fix": "eslint --fix src/ --ext .ts,.js,.tsx,.jsx",
-    "test": "echo \"Write tests! -> https://gatsby.dev/unit-testing\" && exit 1"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/gatsbyjs/gatsby-starter-default"
-  },
-  "eslintConfig": {
-    "globals": {
-      "window": true,
-      "console": true
-    }
-  },
-  "bugs": {
-    "url": "https://github.com/gatsbyjs/gatsby/issues"
+  "browserslist": {
+    "production": [
+      ">0.5%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
   }
 }

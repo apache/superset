@@ -30,8 +30,8 @@ from werkzeug.exceptions import NotFound
 from superset import is_feature_enabled
 from superset.constants import RouteMethod
 from superset.models.alerts import Alert, AlertLog, SQLObservation
+from superset.superset_typing import FlaskResponse
 from superset.tasks.alerts.validator import check_validator
-from superset.typing import FlaskResponse
 from superset.utils import core as utils
 from superset.utils.core import get_email_address_str, markdown
 
@@ -122,9 +122,7 @@ class ReportView(BaseAlertReportView):
     class_permission_name = "ReportSchedule"
 
 
-class AlertModelView(
-    EnsureEnabledMixin, SupersetModelView
-):  # pylint: disable=too-many-ancestors
+class AlertModelView(EnsureEnabledMixin, SupersetModelView):
     datamodel = SQLAInterface(Alert)
     route_base = "/alerts"
     include_route_methods = RouteMethod.CRUD_SET | {"log"}

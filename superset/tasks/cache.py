@@ -14,8 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=too-few-public-methods
-
 import json
 import logging
 from typing import Any, Dict, List, Optional, Union
@@ -85,7 +83,7 @@ def get_url(chart: Slice, extra_filters: Optional[Dict[str, Any]] = None) -> str
         return f"{baseurl}{chart.get_explore_url(overrides=extra_filters)}"
 
 
-class Strategy:
+class Strategy:  # pylint: disable=too-few-public-methods
     """
     A cache warm up strategy.
 
@@ -115,7 +113,7 @@ class Strategy:
         raise NotImplementedError("Subclasses must implement get_urls!")
 
 
-class DummyStrategy(Strategy):
+class DummyStrategy(Strategy):  # pylint: disable=too-few-public-methods
     """
     Warm up all charts.
 
@@ -140,7 +138,7 @@ class DummyStrategy(Strategy):
         return [get_url(chart) for chart in charts]
 
 
-class TopNDashboardsStrategy(Strategy):
+class TopNDashboardsStrategy(Strategy):  # pylint: disable=too-few-public-methods
     """
     Warm up charts in the top-n dashboards.
 
@@ -161,7 +159,7 @@ class TopNDashboardsStrategy(Strategy):
     name = "top_n_dashboards"
 
     def __init__(self, top_n: int = 5, since: str = "7 days ago") -> None:
-        super(TopNDashboardsStrategy, self).__init__()
+        super().__init__()
         self.top_n = top_n
         self.since = parse_human_datetime(since) if since else None
 
@@ -187,7 +185,7 @@ class TopNDashboardsStrategy(Strategy):
         return urls
 
 
-class DashboardTagsStrategy(Strategy):
+class DashboardTagsStrategy(Strategy):  # pylint: disable=too-few-public-methods
     """
     Warm up charts in dashboards with custom tags.
 
@@ -206,7 +204,7 @@ class DashboardTagsStrategy(Strategy):
     name = "dashboard_tags"
 
     def __init__(self, tags: Optional[List[str]] = None) -> None:
-        super(DashboardTagsStrategy, self).__init__()
+        super().__init__()
         self.tags = tags or []
 
     def get_urls(self) -> List[str]:
@@ -288,7 +286,7 @@ def cache_warmup(
     for url in strategy.get_urls():
         try:
             logger.info("Fetching %s", url)
-            request.urlopen(url)
+            request.urlopen(url)  # pylint: disable=consider-using-with
             results["success"].append(url)
         except URLError:
             logger.exception("Error warming up cache!")

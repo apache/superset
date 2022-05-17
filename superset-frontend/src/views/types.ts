@@ -16,11 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { NotificationMethodOption } from './CRUD/alert/types';
+
 export interface ViewState {
   common: {
     conf: {
       SQLALCHEMY_DOCS_URL: string;
       SQLALCHEMY_DISPLAY_TEXT: string;
+      ALERT_REPORTS_NOTIFICATION_METHODS: NotificationMethodOption[];
     };
   };
   messageToast: Array<Object>;

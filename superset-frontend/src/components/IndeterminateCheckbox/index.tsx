@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { forwardRef, useRef, useEffect } from 'react';
 import { styled } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 
@@ -67,7 +67,7 @@ const InputContainer = styled.div`
   position: relative;
 `;
 
-const IndeterminateCheckbox = React.forwardRef(
+const IndeterminateCheckbox = forwardRef(
   (
     {
       indeterminate,
@@ -79,10 +79,10 @@ const IndeterminateCheckbox = React.forwardRef(
     }: IndeterminateCheckboxProps,
     ref: React.MutableRefObject<any>,
   ) => {
-    const defaultRef = React.useRef<HTMLInputElement>();
+    const defaultRef = useRef<HTMLInputElement>();
     const resolvedRef = ref || defaultRef;
 
-    React.useEffect(() => {
+    useEffect(() => {
       resolvedRef.current.indeterminate = indeterminate;
     }, [resolvedRef, indeterminate]);
 

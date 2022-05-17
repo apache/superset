@@ -1,0 +1,61 @@
+---
+title: Country Map Tools
+hide_title: true
+sidebar_position: 1
+version: 1
+---
+
+## The Country Map Visualization
+
+The Country Map visualization allows you to plot lightweight choropleth maps of
+your countries by province, states, or other subdivision types. It does not rely
+on any third-party map services but would require you to provide the
+[ISO-3166-2](https://en.wikipedia.org/wiki/ISO_3166-2) codes of your country's
+top-level subdivisions. Comparing to a province or state's full names, the ISO
+code is less ambiguous and is unique to all regions in the world.
+
+## Included Maps
+
+The Country Maps visualization already ships with the maps for the following countries:
+
+- Belgium
+- Brazil
+- Bulgaria
+- Canada
+- China
+- Egypt
+- France
+- Germany
+- India
+- Iran
+- Italy
+- Japan
+- Korea
+- Liechtenstein
+- Morocco
+- Myanmar
+- Netherlands
+- Portugal
+- Russia
+- Singapore
+- Spain
+- Switzerland
+- Syria
+- Thailand
+- Timorleste
+- UK
+- Ukraine
+- Uruguay
+- USA
+- Zambia
+
+## Adding a New Country
+
+To add a new country to the list, you'd have to edit files in
+[@superset-ui/legacy-plugin-chart-country-map](https://github.com/apache-superset/superset-ui/tree/master/plugins/legacy-plugin-chart-country-map).
+
+1. Generate a new GeoJSON file for your country following the guide in [this Jupyter notebook](https://github.com/apache-superset/superset-ui/blob/master/plugins/legacy-plugin-chart-country-map/scripts/Country%20Map%20GeoJSON%20Generator.ipynb).
+2. Edit the countries list in [legacy-plugin-chart-country-map/src/countries.js](https://github.com/apache-superset/superset-ui/blob/master/plugins/legacy-plugin-chart-country-map/src/countries.js).
+3. Ping one of the Superset committers to get the `@superset-ui/legacy-plugin-chart-country-map` package published, or
+   publish it under another name yourself.
+4. Update npm dependencies in `superset-frontend/package.json` to install the updated plugin package.

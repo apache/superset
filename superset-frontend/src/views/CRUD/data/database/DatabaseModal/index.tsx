@@ -30,13 +30,13 @@ import React, {
   Reducer,
 } from 'react';
 import Tabs from 'src/components/Tabs';
-import { Select } from 'src/common/components';
+import { AntdSelect } from 'src/components';
 import Alert from 'src/components/Alert';
 import Modal from 'src/components/Modal';
 import Button from 'src/components/Button';
 import IconButton from 'src/components/IconButton';
 import InfoTooltip from 'src/components/InfoTooltip';
-import withToasts from 'src/messageToasts/enhancers/withToasts';
+import withToasts from 'src/components/MessageToasts/withToasts';
 import {
   testDatabaseConnection,
   useSingleViewResource,
@@ -76,40 +76,56 @@ import {
 } from './styles';
 import ModalHeader, { DOCUMENTATION_LINK } from './ModalHeader';
 
+const engineSpecificAlertMapping = {
+  gsheets: {
+    message: 'Why do I need to create a database?',
+    description:
+      'To begin using your Google Sheets, you need to create a database first. ' +
+      'Databases are used as a way to identify ' +
+      'your data so that it can be queried and visualized. This ' +
+      'database will hold all of your individual Google Sheets ' +
+      'you choose to connect here.',
+  },
+};
+
 const errorAlertMapping = {
   CONNECTION_MISSING_PARAMETERS_ERROR: {
-    message: 'Missing Required Fields',
-    description: 'Please complete all required fields.',
+    message: t('Missing Required Fields'),
+    description: t('Please complete all required fields.'),
   },
   CONNECTION_INVALID_HOSTNAME_ERROR: {
-    message: 'Could not verify the host',
-    description:
+    message: t('Could not verify the host'),
+    description: t(
       'The host is invalid. Please verify that this field is entered correctly.',
+    ),
   },
   CONNECTION_PORT_CLOSED_ERROR: {
-    message: 'Port is closed',
-    description: 'Please verify that port is open to connect.',
+    message: t('Port is closed'),
+    description: t('Please verify that port is open to connect.'),
   },
   CONNECTION_INVALID_PORT_ERROR: {
-    message: 'Invalid Port Number',
-    description: 'The port must be a whole number less than or equal to 65535.',
+    message: t('Invalid Port Number'),
+    description: t(
+      'The port must be a whole number less than or equal to 65535.',
+    ),
   },
   CONNECTION_ACCESS_DENIED_ERROR: {
-    message: 'Invalid account information',
-    description: 'Either the username or password is incorrect.',
+    message: t('Invalid account information'),
+    description: t('Either the username or password is incorrect.'),
   },
   CONNECTION_INVALID_PASSWORD_ERROR: {
-    message: 'Invalid account information',
-    description: 'Either the username or password is incorrect.',
+    message: t('Invalid account information'),
+    description: t('Either the username or password is incorrect.'),
   },
   INVALID_PAYLOAD_SCHEMA_ERROR: {
-    message: 'Incorrect Fields',
-    description: 'Please make sure all fields are filled out correctly',
+    message: t('Incorrect Fields'),
+    description: t('Please make sure all fields are filled out correctly'),
   },
   TABLE_DOES_NOT_EXIST_ERROR: {
-    message: 'URL could not be identified',
-    description:
+    message: t('URL could not be identified'),
+    description: t(
       'The URL could not be identified. Please check for typos and make sure that "Type of google sheet allowed" selection matches the input',
+    ),
   },
 };
 interface DatabaseModalProps {
@@ -119,6 +135,7 @@ interface DatabaseModalProps {
   onHide: () => void;
   show: boolean;
   databaseId: number | undefined; // If included, will go into edit mode
+  dbEngine: string | undefined; // if included goto step 2 with engine already set
 }
 
 enum ActionType {
@@ -134,6 +151,7 @@ enum ActionType {
   extraEditorChange,
   addTableCatalogSheet,
   removeTableCatalogSheet,
+  queryChange,
 }
 
 interface DBReducerPayloadType {
@@ -151,6 +169,7 @@ type DBReducerActionType =
         | ActionType.extraEditorChange
         | ActionType.extraInputChange
         | ActionType.textChange
+        | ActionType.queryChange
         | ActionType.inputChange
         | ActionType.editorChange
         | ActionType.parametersChange;
@@ -193,8 +212,9 @@ function dbReducer(
   const trimmedState = {
     ...(state || {}),
   };
-  let query = '';
-  let deserializeExtraJSON = {};
+  let query = {};
+  let query_input = '';
+  let deserializeExtraJSON = { allows_virtual_table_explore: true };
   let extra_json: DatabaseObject['extra_json'];
 
   switch (action.type) {
@@ -222,12 +242,12 @@ function dbReducer(
           },
         };
       }
-      if (action.payload.name === 'schemas_allowed_for_csv_upload') {
+      if (action.payload.name === 'schemas_allowed_for_file_upload') {
         return {
           ...trimmedState,
           extra_json: {
             ...trimmedState.extra_json,
-            schemas_allowed_for_csv_upload: (action.payload.value || '').split(
+            schemas_allowed_for_file_upload: (action.payload.value || '').split(
               ',',
             ),
           },
@@ -306,6 +326,15 @@ function dbReducer(
         ...trimmedState,
         [action.payload.name]: action.payload.json,
       };
+    case ActionType.queryChange:
+      return {
+        ...trimmedState,
+        parameters: {
+          ...trimmedState.parameters,
+          query: Object.fromEntries(new URLSearchParams(action.payload.value)),
+        },
+        query_input: action.payload.value,
+      };
     case ActionType.textChange:
       return {
         ...trimmedState,
@@ -319,70 +348,40 @@ function dbReducer(
         } as DatabaseObject['extra_json'];
 
         deserializeExtraJSON = {
+          ...deserializeExtraJSON,
           ...JSON.parse(action.payload.extra || ''),
           metadata_params: JSON.stringify(extra_json?.metadata_params),
           engine_params: JSON.stringify(extra_json?.engine_params),
-          schemas_allowed_for_csv_upload:
-            extra_json?.schemas_allowed_for_csv_upload,
+          schemas_allowed_for_file_upload:
+            extra_json?.schemas_allowed_for_file_upload,
         };
       }
 
+      // convert query to a string and store in query_input
+      query = action.payload?.parameters?.query || {};
+      query_input = Object.entries(query)
+        .map(([key, value]) => `${key}=${value}`)
+        .join('&');
+
       if (
-        action.payload.backend === 'bigquery' &&
+        action.payload.encrypted_extra &&
         action.payload.configuration_method ===
           CONFIGURATION_METHOD.DYNAMIC_FORM
       ) {
+        const engineParamsCatalog = Object.keys(
+          extra_json?.engine_params?.catalog || {},
+        ).map(e => ({
+          name: e,
+          value: extra_json?.engine_params?.catalog[e],
+        }));
         return {
           ...action.payload,
-          engine: action.payload.backend,
-          configuration_method: action.payload.configuration_method,
-          extra_json: deserializeExtraJSON,
-          parameters: {
-            query,
-            credentials_info: JSON.stringify(
-              action.payload?.parameters?.credentials_info || '',
-            ),
-          },
-        };
-      }
-
-      if (
-        action.payload.backend === 'gsheets' &&
-        action.payload.configuration_method ===
-          CONFIGURATION_METHOD.DYNAMIC_FORM &&
-        extra_json?.engine_params?.catalog !== undefined
-      ) {
-        // pull catalog from engine params
-        const engineParamsCatalog = extra_json?.engine_params?.catalog;
-
-        return {
-          ...action.payload,
-          engine: action.payload.backend,
-          configuration_method: action.payload.configuration_method,
-          extra_json: deserializeExtraJSON,
-          catalog: Object.keys(engineParamsCatalog).map(e => ({
-            name: e,
-            value: engineParamsCatalog[e],
-          })),
-        } as DatabaseObject;
-      }
-
-      if (action.payload?.parameters?.query) {
-        // convert query into URI params string
-        query = new URLSearchParams(
-          action.payload.parameters.query as string,
-        ).toString();
-
-        return {
-          ...action.payload,
-          encrypted_extra: action.payload.encrypted_extra || '',
           engine: action.payload.backend || trimmedState.engine,
           configuration_method: action.payload.configuration_method,
           extra_json: deserializeExtraJSON,
-          parameters: {
-            ...action.payload.parameters,
-            query,
-          },
+          catalog: engineParamsCatalog,
+          parameters: action.payload.parameters,
+          query_input,
         };
       }
 
@@ -392,9 +391,8 @@ function dbReducer(
         engine: action.payload.backend || trimmedState.engine,
         configuration_method: action.payload.configuration_method,
         extra_json: deserializeExtraJSON,
-        parameters: {
-          ...action.payload.parameters,
-        },
+        parameters: action.payload.parameters,
+        query_input,
       };
 
     case ActionType.dbSelected:
@@ -418,10 +416,10 @@ const serializeExtra = (extraJson: DatabaseObject['extra_json']) =>
     ...extraJson,
     metadata_params: JSON.parse((extraJson?.metadata_params as string) || '{}'),
     engine_params: JSON.parse(
-      ((extraJson?.engine_params as unknown) as string) || '{}',
+      (extraJson?.engine_params as unknown as string) || '{}',
     ),
-    schemas_allowed_for_csv_upload: (
-      extraJson?.schemas_allowed_for_csv_upload || []
+    schemas_allowed_for_file_upload: (
+      extraJson?.schemas_allowed_for_file_upload || []
     ).filter(schema => schema !== ''),
   });
 
@@ -432,21 +430,20 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   onHide,
   show,
   databaseId,
+  dbEngine,
 }) => {
   const [db, setDB] = useReducer<
     Reducer<Partial<DatabaseObject> | null, DBReducerActionType>
   >(dbReducer, null);
   const [tabKey, setTabKey] = useState<string>(DEFAULT_TAB_KEY);
   const [availableDbs, getAvailableDbs] = useAvailableDatabases();
-  const [
-    validationErrors,
-    getValidation,
-    setValidationErrors,
-  ] = useDatabaseValidation();
+  const [validationErrors, getValidation, setValidationErrors] =
+    useDatabaseValidation();
   const [hasConnectedDb, setHasConnectedDb] = useState<boolean>(false);
   const [dbName, setDbName] = useState('');
   const [editNewDb, setEditNewDb] = useState<boolean>(false);
   const [isLoading, setLoading] = useState<boolean>(false);
+  const [testInProgress, setTestInProgress] = useState<boolean>(false);
   const conf = useCommonConf();
   const dbImages = getDatabaseImages();
   const connectionAlert = getConnectionAlert();
@@ -454,10 +451,11 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const sslForced = isFeatureEnabled(
     FeatureFlag.FORCE_DATABASE_CONNECTIONS_SSL,
   );
+  const hasAlert =
+    connectionAlert || !!(db?.engine && engineSpecificAlertMapping[db.engine]);
   const useSqlAlchemyForm =
     db?.configuration_method === CONFIGURATION_METHOD.SQLALCHEMY_URI;
   const useTabLayout = isEditMode || useSqlAlchemyForm;
-
   // Database fetch logic
   const {
     state: { loading: dbLoading, resource: dbFetched, error: dbErrors },
@@ -471,9 +469,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     addDangerToast,
   );
   const isDynamic = (engine: string | undefined) =>
-    availableDbs?.databases.filter(
+    availableDbs?.databases?.find(
       (DB: DatabaseObject) => DB.backend === engine || DB.engine === engine,
-    )[0].parameters !== undefined;
+    )?.parameters !== undefined;
   const showDBError = validationErrors || dbErrors;
   const isEmpty = (data?: Object | null) =>
     data && Object.keys(data).length === 0;
@@ -500,8 +498,18 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       encrypted_extra: db?.encrypted_extra || '',
       server_cert: db?.server_cert || undefined,
     };
-
-    testDatabaseConnection(connection, addDangerToast, addSuccessToast);
+    setTestInProgress(true);
+    testDatabaseConnection(
+      connection,
+      (errorMsg: string) => {
+        setTestInProgress(false);
+        addDangerToast(errorMsg);
+      },
+      (errorMsg: string) => {
+        setTestInProgress(false);
+        addSuccessToast(errorMsg);
+      },
+    );
   };
 
   const onClose = () => {
@@ -512,11 +520,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     setEditNewDb(false);
     onHide();
   };
-
   const onSave = async () => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { id, ...update } = db || {};
-
     // Clone DB object
     const dbToUpdate = JSON.parse(JSON.stringify(update));
 
@@ -526,46 +532,44 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       if (validationErrors && !isEmpty(validationErrors)) {
         return;
       }
+      const parameters_schema = isEditMode
+        ? dbToUpdate.parameters_schema.properties
+        : dbModel?.parameters.properties;
+      const additionalEncryptedExtra = JSON.parse(
+        dbToUpdate.encrypted_extra || '{}',
+      );
+      const paramConfigArray = Object.keys(parameters_schema || {});
 
-      if (dbToUpdate?.parameters?.query) {
-        // convert query params into dictionary
-        dbToUpdate.parameters.query = JSON.parse(
-          `{"${decodeURI((dbToUpdate?.parameters?.query as string) || '')
-            .replace(/"/g, '\\"')
-            .replace(/&/g, '","')
-            .replace(/=/g, '":"')}"}`,
-        );
-      } else if (
-        dbToUpdate?.parameters?.query === '' &&
-        'query' in dbModel.parameters.properties
-      ) {
-        dbToUpdate.parameters.query = {};
-      }
-
-      const engine = dbToUpdate.backend || dbToUpdate.engine;
-      if (engine === 'bigquery' && dbToUpdate.parameters?.credentials_info) {
-        // wrap encrypted_extra in credentials_info only for BigQuery
+      paramConfigArray.forEach(paramConfig => {
+        /*
+         * Parameters that are annotated with the `x-encrypted-extra` properties should be moved to
+         * `encrypted_extra`, so that they are stored encrypted in the backend when the database is
+         * created or edited.
+         */
         if (
-          dbToUpdate.parameters?.credentials_info &&
-          typeof dbToUpdate.parameters?.credentials_info === 'object' &&
-          dbToUpdate.parameters?.credentials_info.constructor === Object
+          parameters_schema[paramConfig]['x-encrypted-extra'] &&
+          dbToUpdate.parameters?.[paramConfig]
         ) {
-          // Don't cast if object
-          dbToUpdate.encrypted_extra = JSON.stringify({
-            credentials_info: dbToUpdate.parameters?.credentials_info,
-          });
-
-          // Convert credentials info string before updating
-          dbToUpdate.parameters.credentials_info = JSON.stringify(
-            dbToUpdate.parameters.credentials_info,
-          );
-        } else {
-          dbToUpdate.encrypted_extra = JSON.stringify({
-            credentials_info: JSON.parse(
-              dbToUpdate.parameters?.credentials_info,
-            ),
-          });
+          if (typeof dbToUpdate.parameters?.[paramConfig] === 'object') {
+            // add new encrypted extra to encrypted_extra object
+            additionalEncryptedExtra[paramConfig] =
+              dbToUpdate.parameters?.[paramConfig];
+            // The backend expects `encrypted_extra` as a string for historical reasons.
+            dbToUpdate.parameters[paramConfig] = JSON.stringify(
+              dbToUpdate.parameters[paramConfig],
+            );
+          } else {
+            additionalEncryptedExtra[paramConfig] = JSON.parse(
+              dbToUpdate.parameters?.[paramConfig] || '{}',
+            );
+          }
         }
+      });
+      // cast the new encrypted extra object into a string
+      dbToUpdate.encrypted_extra = JSON.stringify(additionalEncryptedExtra);
+      // this needs to be added by default to gsheets
+      if (dbToUpdate.engine === 'gsheets') {
+        dbToUpdate.impersonate_user = true;
       }
     }
 
@@ -596,6 +600,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         }
         if (!editNewDb) {
           onClose();
+          addSuccessToast(t('Database settings updated'));
         }
       }
     } else if (db) {
@@ -614,6 +619,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           // tab layout only has one step
           // so it should close immediately on save
           onClose();
+          addSuccessToast(t('Database connected'));
         }
       }
     }
@@ -642,45 +648,63 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   };
 
   const setDatabaseModel = (database_name: string) => {
-    const selectedDbModel = availableDbs?.databases.filter(
-      (db: DatabaseObject) => db.name === database_name,
-    )[0];
-    const { engine, parameters } = selectedDbModel;
-    const isDynamic = parameters !== undefined;
-    setDB({
-      type: ActionType.dbSelected,
-      payload: {
-        database_name,
-        configuration_method: isDynamic
-          ? CONFIGURATION_METHOD.DYNAMIC_FORM
-          : CONFIGURATION_METHOD.SQLALCHEMY_URI,
-        engine,
-      },
-    });
+    if (database_name === 'Other') {
+      // Allow users to connect to DB via legacy SQLA form
+      setDB({
+        type: ActionType.dbSelected,
+        payload: {
+          database_name,
+          configuration_method: CONFIGURATION_METHOD.SQLALCHEMY_URI,
+          engine: undefined,
+        },
+      });
+    } else {
+      const selectedDbModel = availableDbs?.databases.filter(
+        (db: DatabaseObject) => db.name === database_name,
+      )[0];
+      const { engine, parameters } = selectedDbModel;
+      const isDynamic = parameters !== undefined;
+      setDB({
+        type: ActionType.dbSelected,
+        payload: {
+          database_name,
+          engine,
+          configuration_method: isDynamic
+            ? CONFIGURATION_METHOD.DYNAMIC_FORM
+            : CONFIGURATION_METHOD.SQLALCHEMY_URI,
+        },
+      });
+    }
+
     setDB({ type: ActionType.addTableCatalogSheet });
   };
 
   const renderAvailableSelector = () => (
     <div className="available">
       <h4 className="available-label">
-        Or choose from a list of other databases we support:
+        {t('Or choose from a list of other databases we support:')}
       </h4>
-      <div className="control-label">Supported databases</div>
-      <Select
+      <div className="control-label">{t('Supported databases')}</div>
+      <AntdSelect
         className="available-select"
         onChange={setDatabaseModel}
-        placeholder="Choose a database..."
+        placeholder={t('Choose a database...')}
+        showSearch
       >
         {[...(availableDbs?.databases || [])]
           ?.sort((a: DatabaseForm, b: DatabaseForm) =>
             a.name.localeCompare(b.name),
           )
           .map((database: DatabaseForm) => (
-            <Select.Option value={database.name} key={database.name}>
+            <AntdSelect.Option value={database.name} key={database.name}>
               {database.name}
-            </Select.Option>
+            </AntdSelect.Option>
           ))}
-      </Select>
+        {/* Allow users to connect to DB via legacy SQLA form */}
+        <AntdSelect.Option value="Other" key="Other">
+          {t('Other')}
+        </AntdSelect.Option>
+      </AntdSelect>
       <Alert
         showIcon
         closable={false}
@@ -693,8 +717,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         description={
           connectionAlert?.ADD_DATABASE ? (
             <>
-              Any databases that allow connections via SQL Alchemy URIs can be
-              added.{' '}
+              {t(
+                'Any databases that allow connections via SQL Alchemy URIs can be added. ',
+              )}
               <a
                 href={connectionAlert?.ADD_DATABASE.contact_link}
                 target="_blank"
@@ -706,14 +731,15 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             </>
           ) : (
             <>
-              Any databases that allow connections via SQL Alchemy URIs can be
-              added. Learn about how to connect a database driver{' '}
+              {t(
+                'Any databases that allow connections via SQL Alchemy URIs can be added. Learn about how to connect a database driver ',
+              )}
               <a
                 href={DOCUMENTATION_LINK}
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                here
+                {t('here')}
               </a>
               .
             </>
@@ -759,14 +785,14 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         return (
           <>
             <StyledFooterButton key="back" onClick={handleBackButtonOnConnect}>
-              Back
+              {t('Back')}
             </StyledFooterButton>
             <StyledFooterButton
               key="submit"
               buttonStyle="primary"
               onClick={onSave}
             >
-              Connect
+              {t('Connect')}
             </StyledFooterButton>
           </>
         );
@@ -775,7 +801,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       return (
         <>
           <StyledFooterButton key="back" onClick={handleBackButtonOnFinish}>
-            Back
+            {t('Back')}
           </StyledFooterButton>
           <StyledFooterButton
             key="submit"
@@ -783,7 +809,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             onClick={onSave}
             data-test="modal-confirm-button"
           >
-            Finish
+            {t('Finish')}
           </StyledFooterButton>
         </>
       );
@@ -791,13 +817,25 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     return [];
   };
 
-  const renderEditModalFooter = () => (
+  const renderEditModalFooter = (db: Partial<DatabaseObject> | null) => (
     <>
       <StyledFooterButton key="close" onClick={onClose}>
-        Close
+        {t('Close')}
       </StyledFooterButton>
-      <StyledFooterButton key="submit" buttonStyle="primary" onClick={onSave}>
-        Finish
+      <StyledFooterButton
+        key="submit"
+        buttonStyle="primary"
+        onClick={onSave}
+        disabled={db?.is_managed_externally}
+        tooltip={
+          db?.is_managed_externally
+            ? t(
+                "This database is managed externally, and can't be edited in Superset",
+              )
+            : ''
+        }
+      >
+        {t('Finish')}
       </StyledFooterButton>
     </>
   );
@@ -828,10 +866,47 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     if (isLoading) {
       setLoading(false);
     }
+
+    if (availableDbs && dbEngine) {
+      // set model if passed into props
+      setDatabaseModel(dbEngine);
+    }
   }, [availableDbs]);
 
   const tabChange = (key: string) => {
     setTabKey(key);
+  };
+
+  const renderStepTwoAlert = () => {
+    const { hostname } = window.location;
+    let ipAlert = connectionAlert?.REGIONAL_IPS?.default || '';
+    const regionalIPs = connectionAlert?.REGIONAL_IPS || {};
+    Object.entries(regionalIPs).forEach(([ipRegion, ipRange]) => {
+      const regex = new RegExp(ipRegion);
+      if (hostname.match(regex)) {
+        ipAlert = ipRange;
+      }
+    });
+    return (
+      db?.engine && (
+        <StyledAlertMargin>
+          <Alert
+            closable={false}
+            css={(theme: SupersetTheme) => antDAlertStyles(theme)}
+            type="info"
+            showIcon
+            message={
+              engineSpecificAlertMapping[db.engine]?.message ||
+              connectionAlert?.DEFAULT?.message
+            }
+            description={
+              engineSpecificAlertMapping[db.engine]?.description ||
+              connectionAlert?.DEFAULT?.description + ipAlert
+            }
+          />
+        </StyledAlertMargin>
+      )
+    );
   };
 
   const errorAlert = () => {
@@ -861,14 +936,14 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         />
       );
     }
-
-    const message: Array<string> = Object.values(dbErrors);
+    const message: Array<string> =
+      typeof dbErrors === 'object' ? Object.values(dbErrors) : [];
     return (
       <Alert
         type="error"
         css={(theme: SupersetTheme) => antDErrorAlertStyles(theme)}
-        message="Database Creation Error"
-        description={message[0]}
+        message={t('Database Creation Error')}
+        description={message?.[0] || dbErrors}
       />
     );
   };
@@ -929,6 +1004,12 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             value: target.value,
           })
         }
+        onQueryChange={({ target }: { target: HTMLInputElement }) =>
+          onChange(ActionType.queryChange, {
+            name: target.name,
+            value: target.value,
+          })
+        }
         onAddTableCatalog={() =>
           setDB({ type: ActionType.addTableCatalogSheet })
         }
@@ -964,7 +1045,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       title={
         <h4>{isEditMode ? t('Edit database') : t('Connect a database')}</h4>
       }
-      footer={isEditMode ? renderEditModalFooter() : renderModalFooter()}
+      footer={isEditMode ? renderEditModalFooter(db) : renderModalFooter()}
     >
       <StyledStickyHeader>
         <TabHeader>
@@ -1001,6 +1082,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 conf={conf}
                 testConnection={testConnection}
                 isEditMode={isEditMode}
+                testInProgress={testInProgress}
               />
               {isDynamic(db?.backend || db?.engine) && !isEditMode && (
                 <div css={(theme: SupersetTheme) => infoTooltip(theme)}>
@@ -1019,7 +1101,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                     }
                     css={theme => alchemyButtonLinkStyles(theme)}
                   >
-                    Connect this database using the dynamic form instead
+                    {t('Connect this database using the dynamic form instead')}
                   </Button>
                   <InfoTooltip
                     tooltip={t(
@@ -1050,6 +1132,12 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   value: target.value,
                 })
               }
+              onQueryChange={({ target }: { target: HTMLInputElement }) =>
+                onChange(ActionType.queryChange, {
+                  name: target.name,
+                  value: target.value,
+                })
+              }
               onAddTableCatalog={() =>
                 setDB({ type: ActionType.addTableCatalogSheet })
               }
@@ -1072,16 +1160,16 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 showIcon
                 description={
                   <>
-                    Select databases require additional fields to be completed
-                    in the Advanced tab to successfully connect the database.
-                    Learn what requirements your databases has{' '}
+                    {t(
+                      'Select databases require additional fields to be completed in the Advanced tab to successfully connect the database. Learn what requirements your databases has ',
+                    )}
                     <a
                       href={DOCUMENTATION_LINK}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="additional-fields-alert-description"
                     >
-                      here
+                      {t('here')}
                     </a>
                     .
                   </>
@@ -1188,18 +1276,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   dbName={dbName}
                   dbModel={dbModel}
                 />
-                {connectionAlert && (
-                  <StyledAlertMargin>
-                    <Alert
-                      closable={false}
-                      css={(theme: SupersetTheme) => antDAlertStyles(theme)}
-                      type="info"
-                      showIcon
-                      message={t('IP Allowlist')}
-                      description={connectionAlert.ALLOWED_IPS}
-                    />
-                  </StyledAlertMargin>
-                )}
+                {hasAlert && renderStepTwoAlert()}
                 <DatabaseConnectionForm
                   db={db}
                   sslForced={sslForced}
@@ -1207,6 +1284,12 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   onAddTableCatalog={() => {
                     setDB({ type: ActionType.addTableCatalogSheet });
                   }}
+                  onQueryChange={({ target }: { target: HTMLInputElement }) =>
+                    onChange(ActionType.queryChange, {
+                      name: target.name,
+                      value: target.value,
+                    })
+                  }
                   onRemoveTableCatalog={(idx: number) => {
                     setDB({
                       type: ActionType.removeTableCatalogSheet,
@@ -1251,7 +1334,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                     }
                     css={buttonLinkStyles}
                   >
-                    Connect this database with a SQLAlchemy URI string instead
+                    {t(
+                      'Connect this database with a SQLAlchemy URI string instead',
+                    )}
                   </Button>
                   <InfoTooltip
                     tooltip={t(

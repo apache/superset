@@ -25,3 +25,13 @@ export interface DatasourcePanelDndItem {
   value: DndItemValue;
   type: DndItemType;
 }
+
+export function isDatasourcePanelDndItem(
+  item: any,
+): item is DatasourcePanelDndItem {
+  return item?.value && item?.type;
+}
+
+export function isSavedMetric(item: any): item is Metric {
+  return item?.metric_name;
+}

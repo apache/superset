@@ -24,7 +24,7 @@ import CopyToClipboard from 'src/components/CopyToClipboard';
 import Loading from 'src/components/Loading';
 import { CopyButton } from 'src/explore/components/DataTableControl';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
-import { getChartDataRequest } from 'src/chart/chartAction';
+import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import markdownSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/markdown';
 import htmlSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/htmlbars';
 import sqlSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/sql';
@@ -49,6 +49,14 @@ type Result = {
   query: string;
   language: string;
 };
+
+const StyledSyntaxContainer = styled.div`
+  height: 100%;
+`;
+
+const StyledSyntaxHighlighter = styled(SyntaxHighlighter)`
+  height: calc(100% - 26px); // 100% - clipboard height
+`;
 
 const ViewQueryModal: React.FC<Props> = props => {
   const [result, setResult] = useState<Result[]>([]);
@@ -93,7 +101,7 @@ const ViewQueryModal: React.FC<Props> = props => {
     <>
       {result.map(item =>
         item.query ? (
-          <div>
+          <StyledSyntaxContainer key={item.query}>
             <CopyToClipboard
               text={item.query}
               shouldShowText={false}
@@ -103,13 +111,13 @@ const ViewQueryModal: React.FC<Props> = props => {
                 </CopyButtonViewQuery>
               }
             />
-            <SyntaxHighlighter
+            <StyledSyntaxHighlighter
               language={item.language || undefined}
               style={github}
             >
               {item.query}
-            </SyntaxHighlighter>
-          </div>
+            </StyledSyntaxHighlighter>
+          </StyledSyntaxContainer>
         ) : null,
       )}
     </>

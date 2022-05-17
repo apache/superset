@@ -25,7 +25,7 @@ import { styledMount as mount } from 'spec/helpers/theming';
 
 import AnnotationLayersList from 'src/views/CRUD/annotationlayers/AnnotationLayersList';
 import AnnotationLayerModal from 'src/views/CRUD/annotationlayers/AnnotationLayerModal';
-import SubMenu from 'src/components/Menu/SubMenu';
+import SubMenu from 'src/views/components/SubMenu';
 import ListView from 'src/components/ListView';
 import Filters from 'src/components/ListView/Filters';
 import DeleteModal from 'src/components/DeleteModal';

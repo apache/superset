@@ -14,17 +14,82 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# pylint: disable=redefined-outer-name, import-outside-toplevel
+
+import importlib
+from typing import Any, Iterator
 
 import pytest
+from pytest_mock import MockFixture
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm.session import Session
+
+from superset.app import SupersetApp
+from superset.extensions import appbuilder
+from superset.initialization import SupersetAppInitializer
 
 
 @pytest.fixture
-def app_context():
+def session(mocker: MockFixture) -> Iterator[Session]:
     """
-    A fixture for running the test inside an app context.
+    Create an in-memory SQLite session to test models.
     """
-    from superset.app import create_app
+    engine = create_engine("sqlite://")
+    Session_ = sessionmaker(bind=engine)  # pylint: disable=invalid-name
+    in_memory_session = Session_()
 
-    app = create_app()
+    # flask calls session.remove()
+    in_memory_session.remove = lambda: None
+
+    # patch session
+    mocker.patch(
+        "superset.security.SupersetSecurityManager.get_session",
+        return_value=in_memory_session,
+    )
+    mocker.patch("superset.db.session", in_memory_session)
+
+    yield in_memory_session
+
+
+@pytest.fixture(scope="module")
+def app() -> Iterator[SupersetApp]:
+    """
+    A fixture that generates a Superset app.
+    """
+    app = SupersetApp(__name__)
+
+    app.config.from_object("superset.config")
+    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite://"
+    app.config["TESTING"] = True
+
+    # ``superset.extensions.appbuilder`` is a singleton, and won't rebuild the
+    # routes when this fixture is called multiple times; we need to clear the
+    # registered views to ensure the initialization can happen more than once.
+    appbuilder.baseviews = []
+
+    app_initializer = SupersetAppInitializer(app)
+    app_initializer.init_app()
+
+    # reload base views to ensure error handlers are applied to the app
+    with app.app_context():
+        import superset.views.base
+
+        importlib.reload(superset.views.base)
+
+    yield app
+
+
+@pytest.fixture
+def client(app: SupersetApp) -> Any:
+    with app.test_client() as client:
+        yield client
+
+
+@pytest.fixture
+def app_context(app: SupersetApp) -> Iterator[None]:
+    """
+    A fixture that yields and application context.
+    """
     with app.app_context():
         yield

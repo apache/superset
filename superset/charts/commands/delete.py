@@ -52,7 +52,7 @@ class DeleteChartCommand(BaseCommand):
             chart = ChartDAO.delete(self._model)
         except DAODeleteFailedError as ex:
             logger.exception(ex.exception)
-            raise ChartDeleteFailedError()
+            raise ChartDeleteFailedError() from ex
         return chart
 
     def validate(self) -> None:
@@ -70,5 +70,5 @@ class DeleteChartCommand(BaseCommand):
         # Check ownership
         try:
             check_ownership(self._model)
-        except SupersetSecurityException:
-            raise ChartForbiddenError()
+        except SupersetSecurityException as ex:
+            raise ChartForbiddenError() from ex

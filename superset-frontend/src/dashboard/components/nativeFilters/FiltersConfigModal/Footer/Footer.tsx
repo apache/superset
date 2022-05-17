@@ -27,9 +27,11 @@ type FooterProps = {
   onConfirmCancel: OnClickHandler;
   onDismiss: OnClickHandler;
   saveAlertVisible: boolean;
+  canSave?: boolean;
 };
 
 const Footer: FC<FooterProps> = ({
+  canSave = true,
   onCancel,
   handleSave,
   onDismiss,
@@ -60,6 +62,7 @@ const Footer: FC<FooterProps> = ({
         {t('Cancel')}
       </Button>
       <Button
+        disabled={!canSave}
         key="submit"
         buttonStyle="primary"
         onClick={handleSave}

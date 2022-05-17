@@ -21,6 +21,7 @@ from datetime import datetime, timedelta
 from time import struct_time
 from typing import Dict, List, Optional, Tuple
 
+import pandas as pd
 import parsedatetime
 from dateutil.parser import parse
 from dateutil.relativedelta import relativedelta
@@ -44,6 +45,7 @@ from superset.charts.commands.exceptions import (
     TimeRangeAmbiguousError,
     TimeRangeParseFailError,
 )
+from superset.utils.core import NO_TIME_RANGE
 from superset.utils.memoized import memoized
 from superset import app
 
@@ -53,7 +55,7 @@ logger = logging.getLogger(__name__)
 
 
 def parse_human_datetime(human_readable: str) -> datetime:
-    """ Returns ``datetime.datetime`` from human readable strings """
+    """Returns ``datetime.datetime`` from human readable strings"""
     x_periods = r"^\s*([0-9]+)\s+(second|minute|hour|day|week|month|quarter|year)s?\s*$"
     if re.search(x_periods, human_readable, re.IGNORECASE):
         raise TimeRangeAmbiguousError(human_readable)
@@ -66,7 +68,7 @@ def parse_human_datetime(human_readable: str) -> datetime:
         # 0 == not parsed at all
         if parsed_flags == 0:
             logger.debug(ex)
-            raise TimeRangeParseFailError(human_readable)
+            raise TimeRangeParseFailError(human_readable) from ex
         # when time is not extracted, we 'reset to midnight'
         if parsed_flags & 2 == 0:
             parsed_dttm = parsed_dttm.replace(hour=0, minute=0, second=0)
@@ -75,7 +77,7 @@ def parse_human_datetime(human_readable: str) -> datetime:
 
 
 def normalize_time_delta(human_readable: str) -> Dict[str, int]:
-    x_unit = r"^\s*([0-9]+)\s+(second|minute|hour|day|week|month|quarter|year)s?\s+(ago|later)*$"  # pylint: disable=line-too-long
+    x_unit = r"^\s*([0-9]+)\s+(second|minute|hour|day|week|month|quarter|year)s?\s+(ago|later)*$"  # pylint: disable=line-too-long,useless-suppression
     matched = re.match(x_unit, human_readable, re.IGNORECASE)
     if not matched:
         raise TimeDeltaAmbiguousError(human_readable)
@@ -98,7 +100,8 @@ def dttm_from_timetuple(date_: struct_time) -> datetime:
 
 
 def get_past_or_future(
-    human_readable: Optional[str], source_time: Optional[datetime] = None,
+    human_readable: Optional[str],
+    source_time: Optional[datetime] = None,
 ) -> datetime:
     cal = parsedatetime.Calendar()
     source_dttm = dttm_from_timetuple(
@@ -108,7 +111,8 @@ def get_past_or_future(
 
 
 def parse_human_timedelta(
-    human_readable: Optional[str], source_time: Optional[datetime] = None,
+    human_readable: Optional[str],
+    source_time: Optional[datetime] = None,
 ) -> timedelta:
     """
     Returns ``datetime.timedelta`` from natural language time deltas
@@ -134,12 +138,12 @@ def parse_past_timedelta(
     or datetime.timedelta(365).
     """
     return -parse_human_timedelta(
-        delta_str if delta_str.startswith("-") else f"-{delta_str}", source_time,
+        delta_str if delta_str.startswith("-") else f"-{delta_str}",
+        source_time,
     )
 
 
-# pylint: disable=too-many-arguments, too-many-locals, too-many-branches
-def get_since_until(
+def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branches
     time_range: Optional[str] = None,
     since: Optional[str] = None,
     until: Optional[str] = None,
@@ -179,7 +183,7 @@ def get_since_until(
     _relative_start = relative_start if relative_start else default_relative_start
     _relative_end = relative_end if relative_end else default_relative_end
 
-    if time_range == "No filter":
+    if time_range == NO_TIME_RANGE:
         return None, None
 
     if time_range and time_range.startswith("Last") and separator not in time_range:
@@ -215,11 +219,11 @@ def get_since_until(
             ),
             (
                 r"^last\s+([0-9]+)\s+(second|minute|hour|day|week|month|year)s?$",
-                lambda delta, unit: f"DATEADD(DATETIME('{_relative_start}'), -{int(delta)}, {unit})",  # pylint: disable=line-too-long
+                lambda delta, unit: f"DATEADD(DATETIME('{_relative_start}'), -{int(delta)}, {unit})",  # pylint: disable=line-too-long,useless-suppression
             ),
             (
                 r"^next\s+([0-9]+)\s+(second|minute|hour|day|week|month|year)s?$",
-                lambda delta, unit: f"DATEADD(DATETIME('{_relative_end}'), {int(delta)}, {unit})",  # pylint: disable=line-too-long
+                lambda delta, unit: f"DATEADD(DATETIME('{_relative_end}'), {int(delta)}, {unit})",  # pylint: disable=line-too-long,useless-suppression
             ),
             (
                 r"^(DATETIME.*|DATEADD.*|DATETRUNC.*|LASTDAY.*|HOLIDAY.*)$",
@@ -327,10 +331,14 @@ class EvalDateTruncFunc:  # pylint: disable=too-few-public-methods
             dttm = dttm.replace(
                 month=1, day=1, hour=0, minute=0, second=0, microsecond=0
             )
+        if unit == "quarter":
+            dttm = (
+                pd.Period(pd.Timestamp(dttm), freq="Q").to_timestamp().to_pydatetime()
+            )
         elif unit == "month":
             dttm = dttm.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
         elif unit == "week":
-            dttm = dttm - relativedelta(days=dttm.weekday())
+            dttm -= relativedelta(days=dttm.weekday())
             dttm = dttm.replace(hour=0, minute=0, second=0, microsecond=0)
         elif unit == "day":
             dttm = dttm.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -448,7 +456,7 @@ def datetime_parser() -> ParseResults:  # pylint: disable=too-many-locals
         + Group(
             date_expr
             + comma
-            + (YEAR | MONTH | WEEK | DAY | HOUR | MINUTE | SECOND)
+            + (YEAR | QUARTER | MONTH | WEEK | DAY | HOUR | MINUTE | SECOND)
             + ppOptional(comma)
         )
         + rparen
@@ -480,8 +488,8 @@ def datetime_eval(datetime_expression: Optional[str] = None) -> Optional[datetim
     if datetime_expression:
         try:
             return datetime_parser().parseString(datetime_expression)[0].eval()
-        except ParseException as error:
-            raise ValueError(error)
+        except ParseException as ex:
+            raise ValueError(ex) from ex
     return None
 
 

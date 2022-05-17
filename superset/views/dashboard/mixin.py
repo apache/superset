@@ -39,7 +39,7 @@ class DashboardMixin:  # pylint: disable=too-few-public-methods
         "json_metadata",
         "published",
     ]
-    show_columns = edit_columns + ["table_names", "charts"]
+    show_columns = edit_columns + ["charts"]
     search_columns = ("dashboard_title", "slug", "owners", "published")
     add_columns = edit_columns
     base_order = ("changed_on", "desc")
@@ -87,7 +87,6 @@ class DashboardMixin:  # pylint: disable=too-few-public-methods
         "position_json": _("Position JSON"),
         "css": _("CSS"),
         "json_metadata": _("JSON Metadata"),
-        "table_names": _("Underlying Tables"),
     }
 
     def pre_delete(self, item: "DashboardMixin") -> None:  # pylint: disable=no-self-use

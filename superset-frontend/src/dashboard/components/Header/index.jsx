@@ -20,7 +20,7 @@
 import moment from 'moment';
 import React from 'react';
 import PropTypes from 'prop-types';
-import { styled, CategoricalColorNamespace, t } from '@superset-ui/core';
+import { styled, t, getSharedLabelColor } from '@superset-ui/core';
 import ButtonGroup from 'src/components/ButtonGroup';
 
 import {
@@ -48,8 +48,13 @@ import {
   SAVE_TYPE_OVERWRITE,
   DASHBOARD_POSITION_DATA_LIMIT,
 } from 'src/dashboard/util/constants';
-import setPeriodicRunner from 'src/dashboard/util/setPeriodicRunner';
+import setPeriodicRunner, {
+  stopPeriodicRender,
+} from 'src/dashboard/util/setPeriodicRunner';
 import { options as PeriodicRefreshOptions } from 'src/dashboard/components/RefreshIntervalModal';
+import findPermission from 'src/dashboard/util/findPermission';
+import { FILTER_BOX_MIGRATION_STATES } from 'src/explore/constants';
+import { DashboardEmbedModal } from '../DashboardEmbedControls';
 
 const propTypes = {
   addSuccessToast: PropTypes.func.isRequired,
@@ -168,18 +173,29 @@ class Header extends React.PureComponent {
   componentDidMount() {
     const { refreshFrequency, user, dashboardInfo } = this.props;
     this.startPeriodicRender(refreshFrequency * 1000);
-    if (user && isFeatureEnabled(FeatureFlag.ALERT_REPORTS)) {
+    if (this.canAddReports()) {
       // this is in case there is an anonymous user.
-      this.props.fetchUISpecificReport(
-        user.userId,
-        'dashboard_id',
-        'dashboards',
-        dashboardInfo.id,
-      );
+      if (Object.entries(dashboardInfo).length) {
+        this.props.fetchUISpecificReport(
+          user.userId,
+          'dashboard_id',
+          'dashboards',
+          dashboardInfo.id,
+          user.email,
+        );
+      }
+    }
+  }
+
+  componentDidUpdate(prevProps) {
+    if (this.props.refreshFrequency !== prevProps.refreshFrequency) {
+      const { refreshFrequency } = this.props;
+      this.startPeriodicRender(refreshFrequency * 1000);
     }
   }
 
   UNSAFE_componentWillReceiveProps(nextProps) {
+    const { user } = this.props;
     if (
       UNDO_LIMIT - nextProps.undoLength <= 0 &&
       !this.state.didNotifyMaxUndoHistoryToast
@@ -193,9 +209,24 @@ class Header extends React.PureComponent {
     ) {
       this.props.setMaxUndoHistoryExceeded();
     }
+    if (
+      this.canAddReports() &&
+      nextProps.dashboardInfo.id !== this.props.dashboardInfo.id
+    ) {
+      // this is in case there is an anonymous user.
+      this.props.fetchUISpecificReport(
+        user?.userId,
+        'dashboard_id',
+        'dashboards',
+        nextProps?.dashboardInfo?.id,
+        user?.email,
+      );
+    }
   }
 
   componentWillUnmount() {
+    stopPeriodicRender(this.refreshTimer);
+    this.props.setRefreshFrequency(0);
     clearTimeout(this.ctrlYTimeout);
     clearTimeout(this.ctrlZTimeout);
   }
@@ -273,11 +304,19 @@ class Header extends React.PureComponent {
       });
       this.props.addWarningToast(
         t(
-          `This dashboard is currently force refreshing; the next force refresh will be in %s.`,
+          `This dashboard is currently auto refreshing; the next auto refresh will be in %s.`,
           intervalMessage,
         ),
       );
-
+      if (dashboardInfo.common.conf.DASHBOARD_AUTO_REFRESH_MODE === 'fetch') {
+        // force-refresh while auto-refresh in dashboard
+        return fetchCharts(
+          affectedCharts,
+          false,
+          interval * 0.2,
+          dashboardInfo.id,
+        );
+      }
       return fetchCharts(
         affectedCharts,
         true,
@@ -304,45 +343,47 @@ class Header extends React.PureComponent {
     const {
       dashboardTitle,
       layout: positions,
-      expandedSlices,
-      customCss,
-      colorNamespace,
       colorScheme,
+      colorNamespace,
+      customCss,
       dashboardInfo,
       refreshFrequency: currentRefreshFrequency,
       shouldPersistRefreshFrequency,
       lastModifiedTime,
+      slug,
     } = this.props;
-
-    const scale = CategoricalColorNamespace.getScale(
-      colorScheme,
-      colorNamespace,
-    );
-
-    // use the colorScheme for default labels
-    let labelColors = colorScheme ? scale.getColorMap() : {};
-    // but allow metadata to overwrite if it exists
-    // eslint-disable-next-line camelcase
-    const metadataLabelColors = dashboardInfo.metadata?.label_colors;
-    if (metadataLabelColors) {
-      labelColors = { ...labelColors, ...metadataLabelColors };
-    }
 
     // check refresh frequency is for current session or persist
     const refreshFrequency = shouldPersistRefreshFrequency
       ? currentRefreshFrequency
-      : dashboardInfo.metadata?.refresh_frequency; // eslint-disable-line camelcase
+      : dashboardInfo.metadata?.refresh_frequency;
+
+    const currentColorScheme =
+      dashboardInfo?.metadata?.color_scheme || colorScheme;
+    const currentColorNamespace =
+      dashboardInfo?.metadata?.color_namespace || colorNamespace;
+    const currentSharedLabelColors = getSharedLabelColor().getColorMap(
+      currentColorNamespace,
+      currentColorScheme,
+    );
 
     const data = {
-      positions,
-      expanded_slices: expandedSlices,
+      certified_by: dashboardInfo.certified_by,
+      certification_details: dashboardInfo.certification_details,
       css: customCss,
-      color_namespace: colorNamespace,
-      color_scheme: colorScheme,
-      label_colors: labelColors,
       dashboard_title: dashboardTitle,
-      refresh_frequency: refreshFrequency,
       last_modified_time: lastModifiedTime,
+      owners: dashboardInfo.owners,
+      roles: dashboardInfo.roles,
+      slug,
+      metadata: {
+        ...dashboardInfo?.metadata,
+        color_namespace: currentColorNamespace,
+        color_scheme: currentColorScheme,
+        positions,
+        refresh_frequency: refreshFrequency,
+        shared_label_colors: currentSharedLabelColors,
+      },
     };
 
     // make sure positions data less than DB storage limitation:
@@ -381,43 +422,50 @@ class Header extends React.PureComponent {
     this.setState({ showingReportModal: false });
   }
 
+  showEmbedModal = () => {
+    this.setState({ showingEmbedModal: true });
+  };
+
+  hideEmbedModal = () => {
+    this.setState({ showingEmbedModal: false });
+  };
+
   renderReportModal() {
     const attachedReportExists = !!Object.keys(this.props.reports).length;
-    const canAddReports = isFeatureEnabled(FeatureFlag.ALERT_REPORTS);
-    return (
-      (canAddReports || null) &&
-      (attachedReportExists ? (
-        <HeaderReportActionsDropdown
-          showReportModal={this.showReportModal}
-          toggleActive={this.props.toggleActive}
-          deleteActiveReport={this.props.deleteActiveReport}
-        />
-      ) : (
-        <>
-          <span
-            role="button"
-            title={t('Schedule email report')}
-            tabIndex={0}
-            className="action-button"
-            onClick={this.showReportModal}
-          >
-            <Icons.Calendar />
-          </span>
-        </>
-      ))
+    return attachedReportExists ? (
+      <HeaderReportActionsDropdown
+        showReportModal={this.showReportModal}
+        toggleActive={this.props.toggleActive}
+        deleteActiveReport={this.props.deleteActiveReport}
+      />
+    ) : (
+      <>
+        <span
+          role="button"
+          title={t('Schedule email report')}
+          tabIndex={0}
+          className="action-button"
+          onClick={this.showReportModal}
+        >
+          <Icons.Calendar />
+        </span>
+      </>
     );
   }
 
   canAddReports() {
+    if (!isFeatureEnabled(FeatureFlag.ALERT_REPORTS)) {
+      return false;
+    }
     const { user } = this.props;
-    if (!user) {
+    if (!user?.userId) {
       // this is in the case that there is an anonymous user.
       return false;
     }
     const roles = Object.keys(user.roles || []);
     const permissions = roles.map(key =>
       user.roles[key].filter(
-        perms => perms[0] === 'can_add' && perms[1] === 'AlertModelView',
+        perms => perms[0] === 'menu_access' && perms[1] === 'Manage',
       ),
     );
     return permissions[0].length > 0;
@@ -450,16 +498,39 @@ class Header extends React.PureComponent {
       shouldPersistRefreshFrequency,
       setRefreshFrequency,
       lastModifiedTime,
+      filterboxMigrationState,
     } = this.props;
-    const userCanEdit = dashboardInfo.dash_edit_perm;
+    const userCanEdit =
+      dashboardInfo.dash_edit_perm &&
+      filterboxMigrationState !== FILTER_BOX_MIGRATION_STATES.REVIEWING &&
+      !dashboardInfo.is_managed_externally;
     const userCanShare = dashboardInfo.dash_share_perm;
-    const userCanSaveAs = dashboardInfo.dash_save_perm;
+    const userCanSaveAs =
+      dashboardInfo.dash_save_perm &&
+      filterboxMigrationState !== FILTER_BOX_MIGRATION_STATES.REVIEWING;
+    const userCanCurate =
+      isFeatureEnabled(FeatureFlag.EMBEDDED_SUPERSET) &&
+      findPermission('can_set_embedded', 'Dashboard', user.roles);
     const shouldShowReport = !editMode && this.canAddReports();
     const refreshLimit =
-      dashboardInfo.common.conf.SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT;
+      dashboardInfo.common?.conf?.SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT;
     const refreshWarning =
-      dashboardInfo.common.conf
-        .SUPERSET_DASHBOARD_PERIODICAL_REFRESH_WARNING_MESSAGE;
+      dashboardInfo.common?.conf
+        ?.SUPERSET_DASHBOARD_PERIODICAL_REFRESH_WARNING_MESSAGE;
+
+    const handleOnPropertiesChange = updates => {
+      const { dashboardInfoChanged, dashboardTitleChanged } = this.props;
+      dashboardInfoChanged({
+        slug: updates.slug,
+        metadata: JSON.parse(updates.jsonMetadata || '{}'),
+        certified_by: updates.certifiedBy,
+        certification_details: updates.certificationDetails,
+        owners: updates.owners,
+        roles: updates.roles,
+      });
+      setColorSchemeAndUnsavedChanges(updates.colorScheme);
+      dashboardTitleChanged(updates.title);
+    };
 
     return (
       <StyledDashboardHeader
@@ -473,6 +544,8 @@ class Header extends React.PureComponent {
             canEdit={userCanEdit && editMode}
             onSaveTitle={this.handleChangeText}
             showTooltip={false}
+            certifiedBy={dashboardInfo.certified_by}
+            certificationDetails={dashboardInfo.certification_details}
           />
           <PublishedStatus
             dashboardId={dashboardInfo.id}
@@ -481,7 +554,7 @@ class Header extends React.PureComponent {
             canEdit={userCanEdit}
             canSave={userCanSaveAs}
           />
-          {user?.userId && (
+          {user?.userId && dashboardInfo?.id && (
             <FaveStar
               itemId={dashboardInfo.id}
               fetchFaveStar={this.props.fetchFaveStar}
@@ -508,6 +581,7 @@ class Header extends React.PureComponent {
                       buttonStyle={
                         this.state.emphasizeUndo ? 'primary' : undefined
                       }
+                      showMarginRight={false}
                     >
                       <i
                         title="Undo"
@@ -523,6 +597,7 @@ class Header extends React.PureComponent {
                       buttonStyle={
                         this.state.emphasizeRedo ? 'primary' : undefined
                       }
+                      showMarginRight={false}
                     >
                       &nbsp;
                       <i title="Redo" className="redo-action fa fa-share" />
@@ -572,33 +647,16 @@ class Header extends React.PureComponent {
           )}
           {shouldShowReport && this.renderReportModal()}
 
-          {this.state.showingPropertiesModal && (
-            <PropertiesModal
-              dashboardId={dashboardInfo.id}
-              show={this.state.showingPropertiesModal}
-              onHide={this.hidePropertiesModal}
-              colorScheme={this.props.colorScheme}
-              onSubmit={updates => {
-                const {
-                  dashboardInfoChanged,
-                  dashboardTitleChanged,
-                } = this.props;
-                dashboardInfoChanged({
-                  slug: updates.slug,
-                  metadata: JSON.parse(updates.jsonMetadata),
-                });
-                setColorSchemeAndUnsavedChanges(updates.colorScheme);
-                dashboardTitleChanged(updates.title);
-                if (updates.slug) {
-                  window.history.pushState(
-                    { event: 'dashboard_properties_changed' },
-                    '',
-                    `/superset/dashboard/${updates.slug}/`,
-                  );
-                }
-              }}
-            />
-          )}
+          <PropertiesModal
+            dashboardId={dashboardInfo.id}
+            dashboardInfo={dashboardInfo}
+            dashboardTitle={dashboardTitle}
+            show={this.state.showingPropertiesModal}
+            onHide={this.hidePropertiesModal}
+            colorScheme={this.props.colorScheme}
+            onSubmit={handleOnPropertiesChange}
+            onlyApply
+          />
 
           {this.state.showingReportModal && (
             <ReportModal
@@ -610,6 +668,14 @@ class Header extends React.PureComponent {
                 dashboardId: dashboardInfo.id,
                 creationMethod: 'dashboards',
               }}
+            />
+          )}
+
+          {userCanCurate && (
+            <DashboardEmbedModal
+              show={this.state.showingEmbedModal}
+              onHide={this.hideEmbedModal}
+              dashboardId={dashboardInfo.id}
             />
           )}
 
@@ -638,11 +704,14 @@ class Header extends React.PureComponent {
             userCanEdit={userCanEdit}
             userCanShare={userCanShare}
             userCanSave={userCanSaveAs}
+            userCanCurate={userCanCurate}
             isLoading={isLoading}
             showPropertiesModal={this.showPropertiesModal}
+            manageEmbedded={this.showEmbedModal}
             refreshLimit={refreshLimit}
             refreshWarning={refreshWarning}
             lastModifiedTime={lastModifiedTime}
+            filterboxMigrationState={filterboxMigrationState}
           />
         </div>
       </StyledDashboardHeader>

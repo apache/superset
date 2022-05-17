@@ -28,6 +28,7 @@ from tests.integration_tests.dashboards.consts import *
 from tests.integration_tests.dashboards.dashboard_test_utils import *
 from tests.integration_tests.dashboards.superset_factory_util import *
 from tests.integration_tests.fixtures.energy_dashboard import (
+    load_energy_table_data,
     load_energy_table_with_slice,
 )
 
@@ -90,11 +91,14 @@ class TestDashboardDatasetSecurity(DashboardTestCase):
         username = "gamma"
         user = security_manager.find_user(username)
         my_owned_dashboard = create_dashboard_to_db(
-            dashboard_title="My Dashboard", published=False, owners=[user],
+            dashboard_title="My Dashboard",
+            published=False,
+            owners=[user],
         )
 
         not_my_owned_dashboard = create_dashboard_to_db(
-            dashboard_title="Not My Dashboard", published=False,
+            dashboard_title="Not My Dashboard",
+            published=False,
         )
 
         self.login(user.username)

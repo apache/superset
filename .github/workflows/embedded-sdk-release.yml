@@ -1,0 +1,23 @@
+name: Embedded SDK Release
+
+on:
+  push:
+    branches:
+      - 'master'
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    defaults:
+      run:
+        working-directory: superset-embedded-sdk
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: "16"
+          registry-url: 'https://registry.npmjs.org'
+      - run: npm ci
+      - run: npm run ci:release
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

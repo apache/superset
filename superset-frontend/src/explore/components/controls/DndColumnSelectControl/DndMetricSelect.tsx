@@ -24,16 +24,19 @@ import {
   GenericDataType,
   isFeatureEnabled,
   Metric,
+  QueryFormMetric,
   tn,
 } from '@superset-ui/core';
 import { ColumnMeta } from '@superset-ui/chart-controls';
 import { isEqual } from 'lodash';
-import { usePrevious } from 'src/common/hooks/usePrevious';
+import { usePrevious } from 'src/hooks/usePrevious';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
 import AdhocMetricPopoverTrigger from 'src/explore/components/controls/MetricControl/AdhocMetricPopoverTrigger';
 import MetricDefinitionValue from 'src/explore/components/controls/MetricControl/MetricDefinitionValue';
-import { OptionValueType } from 'src/explore/components/controls/DndColumnSelectControl/types';
-import { DatasourcePanelDndItem } from 'src/explore/components/DatasourcePanel/types';
+import {
+  DatasourcePanelDndItem,
+  isDatasourcePanelDndItem,
+} from 'src/explore/components/DatasourcePanel/types';
 import { DndItemType } from 'src/explore/components/DndItemType';
 import DndSelectLabel from 'src/explore/components/controls/DndColumnSelectControl/DndSelectLabel';
 import { savedMetricType } from 'src/explore/components/controls/MetricControl/types';
@@ -75,33 +78,51 @@ const getOptionsForSavedMetrics = (
       : savedMetric,
   ) ?? [];
 
-const columnsContainAllMetrics = (
-  value: (string | AdhocMetric | ColumnMeta)[],
-  columns: ColumnMeta[],
-  savedMetrics: savedMetricType[],
-) => {
-  const columnNames = new Set(
-    [...(columns || []), ...(savedMetrics || [])]
-      // eslint-disable-next-line camelcase
-      .map(
-        item =>
-          (item as ColumnMeta).column_name ||
-          (item as savedMetricType).metric_name,
-      ),
-  );
+type ValueType = Metric | AdhocMetric | QueryFormMetric;
 
-  return (
-    ensureIsArray(value)
-      .filter(metric => metric)
-      // find column names
-      .map(metric =>
-        (metric as AdhocMetric).column
-          ? (metric as AdhocMetric).column.column_name
-          : (metric as ColumnMeta).column_name || metric,
-      )
-      .filter(name => name && typeof name === 'string')
-      .every(name => columnNames.has(name))
-  );
+// TODO: use typeguards to distinguish saved metrics from adhoc metrics
+const getMetricsMatchingCurrentDataset = (
+  values: ValueType[],
+  columns: ColumnMeta[],
+  savedMetrics: (savedMetricType | Metric)[],
+  prevColumns: ColumnMeta[],
+  prevSavedMetrics: (savedMetricType | Metric)[],
+): ValueType[] => {
+  const areSavedMetricsEqual =
+    !prevSavedMetrics || isEqual(prevSavedMetrics, savedMetrics);
+  const areColsEqual = !prevColumns || isEqual(prevColumns, columns);
+
+  if (areColsEqual && areSavedMetricsEqual) {
+    return values;
+  }
+  return values.reduce((acc: ValueType[], metric) => {
+    if (typeof metric === 'string' || (metric as Metric).metric_name) {
+      if (
+        areSavedMetricsEqual ||
+        savedMetrics?.some(
+          savedMetric =>
+            savedMetric.metric_name === metric ||
+            savedMetric.metric_name === (metric as Metric).metric_name,
+        )
+      ) {
+        acc.push(metric);
+      }
+      return acc;
+    }
+
+    if (!areColsEqual) {
+      const newCol = columns?.find(
+        column =>
+          (metric as AdhocMetric).column?.column_name === column.column_name,
+      );
+      if (newCol) {
+        acc.push({ ...(metric as AdhocMetric), column: newCol });
+      }
+    } else {
+      acc.push(metric);
+    }
+    return acc;
+  }, []);
 };
 
 export const DndMetricSelect = (props: any) => {
@@ -130,12 +151,12 @@ export const DndMetricSelect = (props: any) => {
     [multi, onChange],
   );
 
-  const [value, setValue] = useState<(AdhocMetric | Metric | string)[]>(
+  const [value, setValue] = useState<ValueType[]>(
     coerceAdhocMetrics(props.value),
   );
-  const [droppedItem, setDroppedItem] = useState<DatasourcePanelDndItem | null>(
-    null,
-  );
+  const [droppedItem, setDroppedItem] = useState<
+    DatasourcePanelDndItem | typeof EMPTY_OBJECT
+  >({});
   const [newMetricPopoverVisible, setNewMetricPopoverVisible] = useState(false);
   const prevColumns = usePrevious(columns);
   const prevSavedMetrics = usePrevious(savedMetrics);
@@ -145,25 +166,25 @@ export const DndMetricSelect = (props: any) => {
   }, [JSON.stringify(props.value)]);
 
   useEffect(() => {
-    if (
-      !isEqual(prevColumns, columns) ||
-      !isEqual(prevSavedMetrics, savedMetrics)
-    ) {
-      // Remove all metrics if selected value no longer a valid column
-      // in the dataset. Must use `nextProps` here because Redux reducers may
-      // have already updated the value for this control.
-      if (!columnsContainAllMetrics(props.value, columns, savedMetrics)) {
-        onChange([]);
-      }
+    // Remove selected custom metrics that do not exist in the dataset anymore
+    // Remove selected adhoc metrics that use columns which do not exist in the dataset anymore
+    // Sync adhoc metrics with dataset columns when they are modified by the user
+    if (!props.value) {
+      return;
     }
-  }, [
-    prevColumns,
-    columns,
-    prevSavedMetrics,
-    savedMetrics,
-    props.value,
-    onChange,
-  ]);
+    const propsValues = ensureIsArray(props.value);
+    const matchingMetrics = getMetricsMatchingCurrentDataset(
+      propsValues,
+      columns,
+      savedMetrics,
+      prevColumns,
+      prevSavedMetrics,
+    );
+
+    if (!isEqual(propsValues, matchingMetrics)) {
+      handleChange(matchingMetrics);
+    }
+  }, [columns, savedMetrics, handleChange]);
 
   const canDrop = useCallback(
     (item: DatasourcePanelDndItem) => {
@@ -185,10 +206,13 @@ export const DndMetricSelect = (props: any) => {
 
   const onMetricEdit = useCallback(
     (changedMetric: Metric | AdhocMetric, oldMetric: Metric | AdhocMetric) => {
+      if (oldMetric instanceof AdhocMetric && oldMetric.equals(changedMetric)) {
+        return;
+      }
       const newValue = value.map(value => {
         if (
           // compare saved metrics
-          value === (oldMetric as Metric).metric_name ||
+          ('metric_name' in oldMetric && value === oldMetric.metric_name) ||
           // compare adhoc metrics
           typeof (value as AdhocMetric).optionName !== 'undefined'
             ? (value as AdhocMetric).optionName ===
@@ -245,10 +269,13 @@ export const DndMetricSelect = (props: any) => {
     [props.savedMetrics, props.value],
   );
 
-  const handleDropLabel = useCallback(() => onChange(value), [onChange, value]);
+  const handleDropLabel = useCallback(
+    () => onChange(multi ? value : value[0]),
+    [multi, onChange, value],
+  );
 
   const valueRenderer = useCallback(
-    (option: Metric | AdhocMetric | string, index: number) => (
+    (option: ValueType, index: number) => (
       <MetricDefinitionValue
         key={index}
         index={index}
@@ -258,20 +285,22 @@ export const DndMetricSelect = (props: any) => {
         columns={props.columns}
         savedMetrics={props.savedMetrics}
         savedMetricsOptions={getSavedMetricOptionsForMetric(index)}
-        datasourceType={props.datasourceType}
+        datasource={props.datasource}
         onMoveLabel={moveLabel}
         onDropLabel={handleDropLabel}
         type={`${DndItemType.AdhocMetricOption}_${props.name}_${props.label}`}
+        multi={multi}
       />
     ),
     [
       getSavedMetricOptionsForMetric,
       handleDropLabel,
       moveLabel,
+      multi,
       onMetricEdit,
       onRemoveMetric,
       props.columns,
-      props.datasourceType,
+      props.datasource,
       props.label,
       props.name,
       props.savedMetrics,
@@ -304,11 +333,19 @@ export const DndMetricSelect = (props: any) => {
     [onNewMetric, togglePopover],
   );
 
+  const handleClickGhostButton = useCallback(() => {
+    setDroppedItem({});
+    togglePopover(true);
+  }, [togglePopover]);
+
   const adhocMetric = useMemo(() => {
-    if (droppedItem?.type === DndItemType.Column) {
-      const itemValue = droppedItem?.value as ColumnMeta;
+    if (
+      isDatasourcePanelDndItem(droppedItem) &&
+      droppedItem.type === DndItemType.Column
+    ) {
+      const itemValue = droppedItem.value as ColumnMeta;
       const config: Partial<AdhocMetric> = {
-        column: { column_name: itemValue?.column_name },
+        column: itemValue,
       };
       if (isFeatureEnabled(FeatureFlag.UX_BETA)) {
         if (itemValue.type_generic === GenericDataType.NUMERIC) {
@@ -326,19 +363,32 @@ export const DndMetricSelect = (props: any) => {
     return new AdhocMetric({ isNew: true });
   }, [droppedItem]);
 
+  const ghostButtonText = isFeatureEnabled(FeatureFlag.ENABLE_DND_WITH_CLICK_UX)
+    ? tn(
+        'Drop a column/metric here or click',
+        'Drop columns/metrics here or click',
+        multi ? 2 : 1,
+      )
+    : tn(
+        'Drop column or metric here',
+        'Drop columns or metrics here',
+        multi ? 2 : 1,
+      );
+
   return (
     <div className="metrics-select">
-      <DndSelectLabel<OptionValueType, OptionValueType[]>
+      <DndSelectLabel
         onDrop={handleDrop}
         canDrop={canDrop}
         valuesRenderer={valuesRenderer}
         accept={DND_ACCEPTED_TYPES}
-        ghostButtonText={tn(
-          'Drop column or metric',
-          'Drop columns or metrics',
-          multi ? 2 : 1,
-        )}
+        ghostButtonText={ghostButtonText}
         displayGhostButton={multi || value.length === 0}
+        onClickGhostButton={
+          isFeatureEnabled(FeatureFlag.ENABLE_DND_WITH_CLICK_UX)
+            ? handleClickGhostButton
+            : undefined
+        }
         {...props}
       />
       <AdhocMetricPopoverTrigger
@@ -347,12 +397,11 @@ export const DndMetricSelect = (props: any) => {
         columns={props.columns}
         savedMetricsOptions={newSavedMetricOptions}
         savedMetric={EMPTY_OBJECT as savedMetricType}
-        datasourceType={props.datasourceType}
+        datasource={props.datasource}
         isControlledComponent
         visible={newMetricPopoverVisible}
         togglePopover={togglePopover}
         closePopover={closePopover}
-        createNew
       >
         <div />
       </AdhocMetricPopoverTrigger>

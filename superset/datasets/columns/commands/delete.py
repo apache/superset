@@ -51,7 +51,7 @@ class DeleteDatasetColumnCommand(BaseCommand):
             return column
         except DAODeleteFailedError as ex:
             logger.exception(ex.exception)
-            raise DatasetColumnDeleteFailedError()
+            raise DatasetColumnDeleteFailedError() from ex
 
     def validate(self) -> None:
         # Validate/populate model exists
@@ -61,5 +61,5 @@ class DeleteDatasetColumnCommand(BaseCommand):
         # Check ownership
         try:
             check_ownership(self._model)
-        except SupersetSecurityException:
-            raise DatasetColumnForbiddenError()
+        except SupersetSecurityException as ex:
+            raise DatasetColumnForbiddenError() from ex

@@ -16,10 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { isFeatureEnabled, Preset } from '@superset-ui/core';
-import {
-  BigNumberTotalChartPlugin,
-} from '@superset-ui/legacy-preset-chart-big-number';
+import { isFeatureEnabled, Preset, FeatureFlag } from '@superset-ui/core';
 import CalendarChartPlugin from '@superset-ui/legacy-plugin-chart-calendar';
 import ChordChartPlugin from '@superset-ui/legacy-plugin-chart-chord';
 import CountryMapChartPlugin from '@superset-ui/legacy-plugin-chart-country-map';
@@ -53,9 +50,17 @@ import {
 } from '@superset-ui/legacy-preset-chart-nvd3';
 import { DeckGLChartPreset } from '@superset-ui/legacy-preset-chart-deckgl';
 import {
+  BigNumberChartPlugin,
+  BigNumberTotalChartPlugin,
   EchartsPieChartPlugin,
   EchartsBoxPlotChartPlugin,
+  EchartsAreaChartPlugin,
   EchartsTimeseriesChartPlugin,
+  EchartsTimeseriesBarChartPlugin,
+  EchartsTimeseriesLineChartPlugin,
+  EchartsTimeseriesScatterChartPlugin,
+  EchartsTimeseriesSmoothLineChartPlugin,
+  EchartsTimeseriesStepChartPlugin,
   EchartsGraphChartPlugin,
   EchartsGaugeChartPlugin,
   EchartsRadarChartPlugin,
@@ -74,7 +79,6 @@ import {
 } from 'src/filters/components/';
 import { PivotTableChartPlugin as PivotTableChartPluginV2 } from '@superset-ui/plugin-chart-pivot-table';
 import FilterBoxChartPlugin from '../FilterBox/FilterBoxChartPlugin';
-import TimeTableChartPlugin from '../TimeTable/TimeTableChartPlugin';
 import {
   GwwkChartsChartPlugin,
   GwwkDatasetsChartPlugin,
@@ -84,7 +88,7 @@ import {
   StatusIndicatorChartPlugin,
   BigNumberChartPlugin
 } from 'src/cccs-viz/plugins/';
-import { FeatureFlag } from '../../featureFlags';
+import TimeTableChartPlugin from '../TimeTable';
 
 export default class MainPreset extends Preset {
   constructor() {
@@ -148,8 +152,26 @@ export default class MainPreset extends Preset {
         new TreemapChartPlugin().configure({ key: 'treemap' }),
         new WordCloudChartPlugin().configure({ key: 'word_cloud' }),
         new WorldMapChartPlugin().configure({ key: 'world_map' }),
+        new EchartsAreaChartPlugin().configure({
+          key: 'echarts_area',
+        }),
         new EchartsTimeseriesChartPlugin().configure({
           key: 'echarts_timeseries',
+        }),
+        new EchartsTimeseriesBarChartPlugin().configure({
+          key: 'echarts_timeseries_bar',
+        }),
+        new EchartsTimeseriesLineChartPlugin().configure({
+          key: 'echarts_timeseries_line',
+        }),
+        new EchartsTimeseriesSmoothLineChartPlugin().configure({
+          key: 'echarts_timeseries_smooth',
+        }),
+        new EchartsTimeseriesScatterChartPlugin().configure({
+          key: 'echarts_timeseries_scatter',
+        }),
+        new EchartsTimeseriesStepChartPlugin().configure({
+          key: 'echarts_timeseries_step',
         }),
         new SelectFilterPlugin().configure({ key: 'filter_select' }),
         new RangeFilterPlugin().configure({ key: 'filter_range' }),

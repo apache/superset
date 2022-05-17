@@ -25,8 +25,8 @@ import numpy as np
 import pandas as pd
 import pyarrow as pa
 
-from superset import db_engine_specs
-from superset.typing import DbapiDescription, DbapiResult
+from superset.db_engine_specs import BaseEngineSpec
+from superset.superset_typing import DbapiDescription, DbapiResult, ResultSetColumnType
 from superset.utils import core as utils
 
 logger = logging.getLogger(__name__)
@@ -72,11 +72,11 @@ def destringify(obj: str) -> Any:
 
 
 class SupersetResultSet:
-    def __init__(  # pylint: disable=too-many-locals,too-many-branches
+    def __init__(  # pylint: disable=too-many-locals
         self,
         data: DbapiResult,
         cursor_description: DbapiDescription,
-        db_engine_spec: Type[db_engine_specs.BaseEngineSpec],
+        db_engine_spec: Type[BaseEngineSpec],
     ):
         self.db_engine_spec = db_engine_spec
         data = data or []
@@ -210,17 +210,17 @@ class SupersetResultSet:
         return self.table.num_rows
 
     @property
-    def columns(self) -> List[Dict[str, Any]]:
+    def columns(self) -> List[ResultSetColumnType]:
         if not self.table.column_names:
             return []
 
         columns = []
         for col in self.table.schema:
             db_type_str = self.data_type(col.name, col.type)
-            column = {
+            column: ResultSetColumnType = {
                 "name": col.name,
                 "type": db_type_str,
-                "is_date": self.is_temporal(db_type_str),
+                "is_dttm": self.is_temporal(db_type_str),
             }
             columns.append(column)
 

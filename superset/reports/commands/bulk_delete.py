@@ -47,7 +47,7 @@ class BulkDeleteReportScheduleCommand(BaseCommand):
             return None
         except DAODeleteFailedError as ex:
             logger.exception(ex.exception)
-            raise ReportScheduleBulkDeleteFailedError()
+            raise ReportScheduleBulkDeleteFailedError() from ex
 
     def validate(self) -> None:
         # Validate/populate model exists
@@ -59,5 +59,5 @@ class BulkDeleteReportScheduleCommand(BaseCommand):
         for model in self._models:
             try:
                 check_ownership(model)
-            except SupersetSecurityException:
-                raise ReportScheduleForbiddenError()
+            except SupersetSecurityException as ex:
+                raise ReportScheduleForbiddenError() from ex

@@ -50,7 +50,7 @@ class DeleteDashboardCommand(BaseCommand):
             dashboard = DashboardDAO.delete(self._model)
         except DAODeleteFailedError as ex:
             logger.exception(ex.exception)
-            raise DashboardDeleteFailedError()
+            raise DashboardDeleteFailedError() from ex
         return dashboard
 
     def validate(self) -> None:
@@ -68,5 +68,5 @@ class DeleteDashboardCommand(BaseCommand):
         # Check ownership
         try:
             check_ownership(self._model)
-        except SupersetSecurityException:
-            raise DashboardForbiddenError()
+        except SupersetSecurityException as ex:
+            raise DashboardForbiddenError() from ex

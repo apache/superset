@@ -13,9 +13,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#
-# pylint: disable=no-value-for-parameter
-
 import csv as lib_csv
 import os
 import re
@@ -170,7 +167,10 @@ class GitChangeLog:
         return f"### {self._version} ({self._logs[0].time})"
 
     def _parse_change_log(
-        self, changelog: Dict[str, str], pr_info: Dict[str, str], github_login: str,
+        self,
+        changelog: Dict[str, str],
+        pr_info: Dict[str, str],
+        github_login: str,
     ) -> None:
         formatted_pr = (
             f"- [#{pr_info.get('id')}]"
@@ -358,7 +358,8 @@ def compare(base_parameters: BaseParameters) -> None:
 
 @cli.command("changelog")
 @click.option(
-    "--csv", help="The csv filename to export the changelog to",
+    "--csv",
+    help="The csv filename to export the changelog to",
 )
 @click.option(
     "--access_token",

@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Row, Col } from 'src/common/components';
+import { Row, Col } from 'src/components';
 import { t } from '@superset-ui/core';
 
 import Label from 'src/components/Label';
@@ -134,6 +134,7 @@ export default class SpatialControl extends React.Component {
   renderSelect(name, type) {
     return (
       <SelectControl
+        ariaLabel={name}
         name={name}
         choices={this.props.choices}
         value={this.state[name]}
