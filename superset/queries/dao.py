@@ -52,13 +52,7 @@ class QueryDAO(BaseDAO):
             db.session.commit()
 
     @staticmethod
-    def save_metadata(query: Query, query_payload: str) -> None:
-        # parse payload
-        try:
-            payload: Dict[str, Any] = json.loads(query_payload)
-        except json.JSONDecodeError:
-            logger.warning("Error parsing query_payload: %s", query_payload)
-            return None
+    def save_metadata(query: Query, payload: Dict[str, Any]) -> None:
 
         # pull relevant data from payload and store in json_metadata
         columns = payload.get("columns", {})
@@ -66,4 +60,4 @@ class QueryDAO(BaseDAO):
         # save payload into query object
         db.session.add(query)
         query.set_extra_json_key("columns", columns)
-        return None
+        return
