@@ -1,4 +1,3 @@
-# syntax=docker/dockerfile:1.2
 #
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
@@ -61,7 +60,7 @@ COPY ./docker/frontend-mem-nag.sh /
 COPY ./superset-frontend /app/superset-frontend
 RUN /frontend-mem-nag.sh \
         && cd /app/superset-frontend \
-        && npm install --legacy-peer-deps --userconfig=/tmp/.npmrc
+        && npm ci
 
 # This seems to be the most expensive step
 RUN cd /app/superset-frontend \
