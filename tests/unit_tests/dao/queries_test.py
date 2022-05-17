@@ -51,5 +51,5 @@ def test_query_dao_save_metadata(app_context: None, session: Session) -> None:
     from superset.queries.dao import QueryDAO
 
     query = session.query(Query).one()
-    QueryDAO.save_metadata(query=query, query_payload=json.dumps({"columns": []}))
+    QueryDAO.save_metadata(query=query, payload={"columns": []})
     assert query.extra.get("columns", None) == []

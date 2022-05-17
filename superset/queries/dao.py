@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
 import logging
 from datetime import datetime
 from typing import Any, Dict
@@ -53,11 +52,7 @@ class QueryDAO(BaseDAO):
 
     @staticmethod
     def save_metadata(query: Query, payload: Dict[str, Any]) -> None:
-
-        # pull relevant data from payload and store in json_metadata
+        # pull relevant data from payload and store in extra_json
         columns = payload.get("columns", {})
-
-        # save payload into query object
         db.session.add(query)
         query.set_extra_json_key("columns", columns)
-        return

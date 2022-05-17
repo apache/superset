@@ -54,7 +54,7 @@ class ExecutionContextConvertor:
 
     def serialize_payload(self) -> str:
         if self._exc_status == SqlJsonExecutionStatus.HAS_RESULTS:
-            json.dumps(
+            return json.dumps(
                 apply_display_max_row_configuration_if_require(
                     self.payload, self._max_row_in_display_configuration
                 ),
