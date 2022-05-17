@@ -1088,7 +1088,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     let alertErrors: string[] = [];
     if (isEmpty(dbErrors) === false) {
       alertErrors = typeof dbErrors === 'object' ? Object.values(dbErrors) : [];
-    } else if (db?.engine === Engines.Snowflake) {
+    } else if (isEmpty(validationErrors) === false) {
       alertErrors =
         validationErrors?.error_type === 'GENERIC_DB_ENGINE_ERROR'
           ? [validationErrors?.description]
