@@ -26,7 +26,7 @@ from superset.charts.commands.exceptions import (
     ChartNotFoundError,
 )
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
-from superset.core.utils import DatasourceType
+from superset.utils.core import DatasourceType
 from superset.datasets.commands.exceptions import (
     DatasetAccessDeniedError,
     DatasetNotFoundError,
