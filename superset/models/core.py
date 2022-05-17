@@ -360,7 +360,7 @@ class Database(
         # If using MySQL or Presto for example, will set url.username
         # If using Hive, will not do anything yet since that relies on a
         # configuration parameter instead.
-        sqlalchemy_url = self.db_engine_spec.modify_url_for_impersonation(
+        sqlalchemy_url = self.db_engine_spec.get_url_for_impersonation(
             sqlalchemy_url, self.impersonate_user, effective_username
         )
 

@@ -81,7 +81,7 @@ class GSheetsEngineSpec(SqliteEngineSpec):
     }
 
     @classmethod
-    def modify_url_for_impersonation(
+    def get_url_for_impersonation(
         cls,
         url: URL,
         impersonate_user: bool,

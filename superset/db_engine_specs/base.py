@@ -941,7 +941,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         selected_schema: Optional[str],
     ) -> URL:
         """
-        Mutate the database component of the SQLAlchemy URI.
+        Return a modified URL with a new database component.
 
         The URI here represents the URI as entered when saving the database,
         ``selected_schema`` is the schema currently active presumably in
@@ -955,7 +955,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         For those it's probably better to not alter the database
         component of the URI with the schema name, it won't work.
 
-        Some database drivers like presto accept '{catalog}/{schema}' in
+        Some database drivers like Presto accept '{catalog}/{schema}' in
         the database component of the URL, that can be handled here.
         """
         return uri
@@ -1213,11 +1213,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return costs
 
     @classmethod
-    def modify_url_for_impersonation(
+    def get_url_for_impersonation(
         cls, url: URL, impersonate_user: bool, username: Optional[str]
     ) -> URL:
         """
-        Modify the SQL Alchemy URL object with the user to impersonate if applicable.
+        Return a modified URL with the username set.
+
         :param url: SQLAlchemy URL object
         :param impersonate_user: Flag indicating if impersonation is enabled
         :param username: Effective username

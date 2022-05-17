@@ -33,7 +33,7 @@ from flask_babel import gettext as __, lazy_gettext as _
 from sqlalchemy import Column, literal_column, types
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.reflection import Inspector
-from sqlalchemy.engine.result import Row as RowProxy
+from sqlalchemy.engine.result import Row as ResultRow
 from sqlalchemy.engine.url import URL
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.expression import ColumnClause, Select
@@ -430,7 +430,7 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
     @classmethod
     def _show_columns(
         cls, inspector: Inspector, table_name: str, schema: Optional[str]
-    ) -> List[RowProxy]:
+    ) -> List[ResultRow]:
         """
         Show presto column names
         :param inspector: object that performs database schema inspection

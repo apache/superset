@@ -120,7 +120,7 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
             database = uri.database.split("/")[0]
         if selected_schema:
             selected_schema = parse.quote(selected_schema, safe="")
-            uri = uri.set(database=database + "/" + selected_schema)
+            uri = uri.set(database=f"{database}/{selected_schema}")
 
         return uri
 
