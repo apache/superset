@@ -4,12 +4,12 @@ import styles from './styles';
 
 export default function ApplicationLinks(props: ApplicationsProps) {
   const { application, appVal, appType } = props;
-  const [alfredCount, ] = useState(-1);
+  const [alfredCount] = useState(-1);
 
   let url = '';
   let infoType = '';
   // TODO: this can be re added CLDN-929
-  //let callback_url = '';
+  // let callback_url = '';
 
   if (application === 'ALFRED') {
     if (appType === 'USER_ID') {
@@ -34,7 +34,7 @@ export default function ApplicationLinks(props: ApplicationsProps) {
         </a>
         {alfredCount > 0 ? (
           <p style={styles.InlineText}>
-            Alfred has seen this {infoType} {alfredCount} time(s).  Search the{' '}
+            Alfred has seen this {infoType} {alfredCount} time(s). Search the{' '}
             <a href={url} target="_blank" rel="noreferrer">
               Alfred
             </a>{' '}
@@ -42,7 +42,7 @@ export default function ApplicationLinks(props: ApplicationsProps) {
           </p>
         ) : (
           <p style={styles.InlineText}>
-            Alfred has not seen this {infoType}.  Search the{' '}
+            Alfred has not seen this {infoType}. Search the{' '}
             <a href={url} target="_blank" rel="noreferrer">
               Alfred
             </a>{' '}

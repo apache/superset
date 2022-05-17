@@ -25,26 +25,30 @@ export default function transformProps(chartProps: ChartProps) {
   let data = queriesData[0].data as TimeseriesDataRecord[];
   console.log('formData via TransformProps.ts', formData);
 
-  const selected_values = getSelectedValues(formData)
-  const selected_filter_name = getSelectedFilterName(formData)
+  const selected_values = getSelectedValues(formData);
+  const selected_filter_name = getSelectedFilterName(formData);
 
-    data = data.filter(row => {
-      if (row.json_metadata) {
-        const jsonString = row.json_metadata
-        if (typeof jsonString == 'string') {
-          const metadata = JSON.parse(jsonString)
-          if (metadata.native_filter_configuration) {
-            for (let index = 0; index < metadata.native_filter_configuration.length; index++) {
-              const nativeFilter = metadata.native_filter_configuration[index];
-              if (nativeFilter.name == selected_filter_name) {
-                return true
-              }
+  data = data.filter(row => {
+    if (row.json_metadata) {
+      const jsonString = row.json_metadata;
+      if (typeof jsonString === 'string') {
+        const metadata = JSON.parse(jsonString);
+        if (metadata.native_filter_configuration) {
+          for (
+            let index = 0;
+            index < metadata.native_filter_configuration.length;
+            index++
+          ) {
+            const nativeFilter = metadata.native_filter_configuration[index];
+            if (nativeFilter.name == selected_filter_name) {
+              return true;
             }
           }
         }
       }
-      return false
-    });
+    }
+    return false;
+  });
 
   return {
     width,
@@ -55,6 +59,6 @@ export default function transformProps(chartProps: ChartProps) {
     mode,
     boldText,
     headerFontSize,
-    headerText
+    headerText,
   };
 }

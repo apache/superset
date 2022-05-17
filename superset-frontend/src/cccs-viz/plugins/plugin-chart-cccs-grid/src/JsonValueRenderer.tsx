@@ -61,13 +61,16 @@ function addJsonModal(
           <CopyToClipboard shouldShowText={false} text={jsonString} />
         </Button>
       }
-      modalTitle={'Cell content as JSON'}
+      modalTitle="Cell content as JSON"
       triggerNode={node}
     />
   );
 }
 
-export default class JsonValueRenderer extends Component<{}, { cellValue: any }>{
+export default class JsonValueRenderer extends Component<
+  {},
+  { cellValue: any }
+> {
   constructor(props: any) {
     super(props);
 
@@ -86,16 +89,14 @@ export default class JsonValueRenderer extends Component<{}, { cellValue: any }>
   render() {
     const cellData = this.state.cellValue;
     const jsonObject = safeJsonObjectParse(this.state.cellValue);
-    const cellNode = (
-        <div>{cellData}</div>
-    );
+    const cellNode = <div>{cellData}</div>;
     if (jsonObject) {
       return addJsonModal(cellNode, jsonObject, cellData);
     }
     return cellData;
   }
 
-  static getValueToDisplay(params: { valueFormatted: any; value: any; }) {
+  static getValueToDisplay(params: { valueFormatted: any; value: any }) {
     return params.valueFormatted ? params.valueFormatted : params.value;
   }
 }

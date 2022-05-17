@@ -25,14 +25,12 @@ const config: ControlPanelConfig = {
     {
       label: t('Query'),
       expanded: true,
-      controlSetRows: [
-        ['adhoc_filters']],
+      controlSetRows: [['adhoc_filters']],
     },
     {
       label: t('Controls'),
       expanded: true,
-      controlSetRows: [
-      ],
+      controlSetRows: [],
     },
   ],
 

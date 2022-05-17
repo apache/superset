@@ -22,6 +22,8 @@ import { css, isEqualArray, t } from '@superset-ui/core';
 import Select from 'src/components/Select/Select';
 import ControlHeader from 'src/explore/components/ControlHeader';
 
+const SELECT_ALL_STRING = `''`;
+
 const propTypes = {
   ariaLabel: PropTypes.string,
   autoFocus: PropTypes.bool,
@@ -86,7 +88,6 @@ const defaultProps = {
   deprecatedSelectFlag: false,
   showHeader: true,
   valueKey: 'value',
-  promptTextCreator: label => `Create Option ${label}`,
 };
 
 export default class SelectControl extends React.PureComponent {
@@ -212,8 +213,6 @@ export default class SelectControl extends React.PureComponent {
       placeholder,
       onFocus,
       optionRenderer,
-      promptTextCreator,
-      valueRenderer,
       showHeader,
       value,
       tokenSeparators,
@@ -285,35 +284,6 @@ export default class SelectControl extends React.PureComponent {
       tokenSeparators,
     };
 
-    const deprecatedProps = {
-      autoFocus,
-      'aria-label': label,
-      clearable,
-      disabled,
-      filterOption,
-      ignoreAccents: false,
-      isLoading,
-      isMulti: this.props.isMulti || this.props.multi,
-      labelKey: 'label',
-      menuPlacement,
-      forceOverflow,
-      menuPortalTarget,
-      menuPosition,
-      name: `select-${name}`,
-      noResultsText: 'No results found',
-      onChange: this.onChangeDeprecated,
-      onFocus,
-      optionRenderer,
-      value: getValue(),
-      options: this.state.options,
-      placeholder,
-      assistiveText: '',
-      promptTextCreator,
-      selectRef: this.getSelectRef,
-      valueKey,
-      valueRenderer,
-    };
-
     return (
       <div
         css={theme => css`
@@ -328,14 +298,7 @@ export default class SelectControl extends React.PureComponent {
           }
         `}
       >
-        {this.props.deprecatedSelectFlag === true ? (
-          <>
-            <ControlHeader {...headerProps} />
-            <DeprecatedSelect {...deprecatedProps} />
-          </>
-        ) : (
-          <Select {...selectProps} />
-        )}
+        <Select {...selectProps} />
       </div>
     );
   }

@@ -22,7 +22,7 @@ import {
   QueryFormData,
   SetDataMaskHook,
   supersetTheme,
-  TimeseriesDataRecord
+  TimeseriesDataRecord,
 } from '@superset-ui/core';
 
 export type CccsGridQueryFormData = QueryFormData & {
@@ -30,7 +30,7 @@ export type CccsGridQueryFormData = QueryFormData & {
   setDataMask?: SetDataMaskHook;
   selectedValues?: Record<number, string>;
   emitFilter: boolean;
-}
+};
 
 export interface CccsGridStylesProps {
   height: number;
@@ -42,35 +42,37 @@ export interface CccsGridStylesProps {
 // @ts-ignore
 export const DEFAULT_FORM_DATA: CccsGridQueryFormData = {
   emitFilter: false,
-  result_type: "post_processed",
-  viz_type: "cccs_grid",
-}
+  result_type: 'post_processed',
+  viz_type: 'cccs_grid',
+};
 
-export interface CccsGridChartDataResponseResult extends ChartDataResponseResult {
+export interface CccsGridChartDataResponseResult
+  extends ChartDataResponseResult {
   agGridLicenseKey: string;
 }
 
 export class CccsGridChartProps extends ChartProps {
   declare formData: CccsGridQueryFormData;
+
   declare queriesData: CccsGridChartDataResponseResult[];
 }
 
 export interface CccsGridTransformedProps extends CccsGridStylesProps {
-    formData: CccsGridQueryFormData;
-    setDataMask: SetDataMaskHook,
-    selectedValues: Record<number, string>;
-    emitFilter: boolean;
-    data: TimeseriesDataRecord[];
-    columnDefs: any;
-    rowData: any;
-    tooltipShowDelay: any;
-    frameworkComponents: any;
-    modules: any;
-    defaultColDef: any;
-    rowSelection: any;
-    filters: any;
-    // add typing here for the props you pass in from transformProps.ts!
-    agGridLicenseKey: string;
+  formData: CccsGridQueryFormData;
+  setDataMask: SetDataMaskHook;
+  selectedValues: Record<number, string>;
+  emitFilter: boolean;
+  data: TimeseriesDataRecord[];
+  columnDefs: any;
+  rowData: any;
+  tooltipShowDelay: any;
+  frameworkComponents: any;
+  modules: any;
+  defaultColDef: any;
+  rowSelection: any;
+  filters: any;
+  // add typing here for the props you pass in from transformProps.ts!
+  agGridLicenseKey: string;
 }
 
 export type EventHandlers = Record<string, { (props: any): void }>;

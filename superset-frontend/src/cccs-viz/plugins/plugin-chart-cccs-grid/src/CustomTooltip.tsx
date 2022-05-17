@@ -1,18 +1,19 @@
 import React, { Component } from 'react';
 
-export default class CustomTooltip extends Component <{
-  rowIndex: any,
-  api: any,
-  color: any,
-},{}>
-{
+export default class CustomTooltip extends Component<
+  {
+    rowIndex: any;
+    api: any;
+    color: any;
+  },
+  {}
+> {
   getReactContainerClasses() {
     return ['custom-tooltip'];
   }
 
   render() {
-    const data = this.props.api.getDisplayedRowAtIndex(this.props.rowIndex)
-      .data;
+    const { data } = this.props.api.getDisplayedRowAtIndex(this.props.rowIndex);
     return (
       <div
         className="custom-tooltip"

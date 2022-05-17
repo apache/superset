@@ -16,7 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps, TimeseriesDataRecord, QueryFormData } from '@superset-ui/core';
+import {
+  ChartProps,
+  TimeseriesDataRecord,
+  QueryFormData,
+} from '@superset-ui/core';
 
 export type AAGUserIDFormData = QueryFormData & {
   ipDashboardId?: string;
@@ -27,7 +31,6 @@ export type AAGUserIDFormData = QueryFormData & {
 export type AAGUserIDChartProps = ChartProps & {
   formData: any;
 };
-
 
 export default function transformProps(chartProps: AAGUserIDChartProps) {
   /**
@@ -60,7 +63,14 @@ export default function transformProps(chartProps: AAGUserIDChartProps) {
    * be seen until restarting the development server.
    */
   const { width, height, formData, queriesData, hooks } = chartProps;
-  const { boldText, headerFontSize, headerText, ipDashboardId, ipDashboardFilterId, ipDashBoardBaseUrl } = formData;
+  const {
+    boldText,
+    headerFontSize,
+    headerText,
+    ipDashboardId,
+    ipDashboardFilterId,
+    ipDashBoardBaseUrl,
+  } = formData;
   const data = queriesData[0].data as TimeseriesDataRecord[];
   const { setDataMask = () => {} } = hooks;
   return {

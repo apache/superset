@@ -18,7 +18,8 @@
  */
 import {
   t,
-  FeatureFlag, isFeatureEnabled,
+  FeatureFlag,
+  isFeatureEnabled,
   QueryMode,
   QueryFormColumn,
   ensureIsArray,
@@ -43,7 +44,9 @@ function getQueryMode(controls: ControlStateMapping): QueryMode {
   if (mode === QueryMode.aggregate || mode === QueryMode.raw) {
     return mode as QueryMode;
   }
-  const rawColumns = controls?.all_columns?.value as QueryFormColumn[] | undefined;
+  const rawColumns = controls?.all_columns?.value as
+    | QueryFormColumn[]
+    | undefined;
   const hasRawColumns = rawColumns && rawColumns.length > 0;
   return hasRawColumns ? QueryMode.raw : QueryMode.aggregate;
 }
@@ -52,7 +55,8 @@ function getQueryMode(controls: ControlStateMapping): QueryMode {
  * Visibility check
  */
 function isQueryMode(mode: QueryMode) {
-  return ({ controls }: ControlPanelsContainerProps) => getQueryMode(controls) === mode;
+  return ({ controls }: ControlPanelsContainerProps) =>
+    getQueryMode(controls) === mode;
 }
 
 const isAggMode = isQueryMode(QueryMode.aggregate);
@@ -70,7 +74,10 @@ const queryMode: ControlConfig<'RadioButtonControl'> = {
   rerender: ['columns', 'groupby', 'metrics'],
 };
 
-const validateAggControlValues = (controls: ControlStateMapping, values: any[]) => {
+const validateAggControlValues = (
+  controls: ControlStateMapping,
+  values: any[],
+) => {
   const areControlsEmpty = values.every(val => ensureIsArray(val).length === 0);
   // @ts-ignore
   return areControlsEmpty && isAggMode({ controls })
@@ -174,14 +181,19 @@ const config: ControlPanelConfig = {
             name: 'groupby',
             override: {
               visibility: isAggMode,
-              mapStateToProps: (state: ControlPanelState, controlState: ControlState) => {
+              mapStateToProps: (
+                state: ControlPanelState,
+                controlState: ControlState,
+              ) => {
                 const { controls } = state;
-                const originalMapStateToProps = sharedControls?.groupby?.mapStateToProps;
-                const newState = originalMapStateToProps?.(state, controlState) ?? {};
-                newState.externalValidationErrors = validateAggControlValues(controls, [
-                  controls.metrics?.value,
-                  controlState.value,
-                ]);
+                const originalMapStateToProps =
+                  sharedControls?.groupby?.mapStateToProps;
+                const newState =
+                  originalMapStateToProps?.(state, controlState) ?? {};
+                newState.externalValidationErrors = validateAggControlValues(
+                  controls,
+                  [controls.metrics?.value, controlState.value],
+                );
                 return newState;
               },
               rerender: ['metrics'],
@@ -194,14 +206,19 @@ const config: ControlPanelConfig = {
             override: {
               visibility: isAggMode,
               validators: [],
-              mapStateToProps: (state: ControlPanelState, controlState: ControlState) => {
+              mapStateToProps: (
+                state: ControlPanelState,
+                controlState: ControlState,
+              ) => {
                 const { controls } = state;
-                const originalMapStateToProps = sharedControls?.metrics?.mapStateToProps;
-                const newState = originalMapStateToProps?.(state, controlState) ?? {};
-                newState.externalValidationErrors = validateAggControlValues(controls, [
-                  controls.groupby?.value,
-                  controlState.value,
-                ]);
+                const originalMapStateToProps =
+                  sharedControls?.metrics?.mapStateToProps;
+                const newState =
+                  originalMapStateToProps?.(state, controlState) ?? {};
+                newState.externalValidationErrors = validateAggControlValues(
+                  controls,
+                  [controls.groupby?.value, controlState.value],
+                );
                 return newState;
               },
               rerender: ['groupby'],
@@ -213,18 +230,25 @@ const config: ControlPanelConfig = {
             name: 'columns',
             override: {
               visibility: isRawMode,
-              mapStateToProps: (state: ControlPanelState, controlState: ControlState) => {
+              mapStateToProps: (
+                state: ControlPanelState,
+                controlState: ControlState,
+              ) => {
                 const { controls } = state;
-                const originalMapStateToProps = sharedControls?.columns?.mapStateToProps;
-                const newState = originalMapStateToProps?.(state, controlState) ?? {};
-                // @ts-ignore
-                newState.externalValidationErrors = isRawMode({ controls }) && ensureIsArray(controlState.value).length === 0
-                  ? [t('must have a value')]
-                  : [];
+                const originalMapStateToProps =
+                  sharedControls?.columns?.mapStateToProps;
+                const newState =
+                  originalMapStateToProps?.(state, controlState) ?? {};
+                newState.externalValidationErrors =
+                  // @ts-ignore
+                  isRawMode({ controls }) &&
+                  ensureIsArray(controlState.value).length === 0
+                    ? [t('must have a value')]
+                    : [];
                 return newState;
               },
             },
-          }
+          },
         ],
         [
           {
@@ -248,8 +272,8 @@ const config: ControlPanelConfig = {
             name: 'adhoc_filters',
             override: {
               // validators: [adhocFilterValidator],
-            }
-          }
+            },
+          },
         ],
         [
           {
@@ -258,10 +282,8 @@ const config: ControlPanelConfig = {
               default: 100,
             },
           },
-
         ],
       ],
-
     },
     // For CLDN-941: hiding away options that are not hooked up to the ag-grid, moving all to a block that
     // will hide / show the tab based on DASHBOARD_CROSS_FILTERS being enabled since that's the only option
@@ -345,7 +367,7 @@ const config: ControlPanelConfig = {
       clearable: false,
     },
     viz_type: {
-      default: 'cccs_grid'
+      default: 'cccs_grid',
     },
     time_range: {
       default: t('Last day'),
@@ -369,12 +391,16 @@ if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
             label: t('Enable emitting filters'),
             default: false,
             renderTrigger: true,
-            description: t('Whether to apply filter to dashboards when grid cells are clicked.'),
+            description: t(
+              'Whether to apply filter to dashboards when grid cells are clicked.',
+            ),
           },
         },
       ],
-    ]
+    ],
   });
 }
 
 export default config;
+
+

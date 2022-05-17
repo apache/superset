@@ -197,7 +197,6 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
     value = DEFAULT_TIME_RANGE,
     endpoints,
     onChange,
-    type,
     onOpenPopover = noOp,
     onClosePopover = noOp,
   } = props;
@@ -237,10 +236,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
         ) {
           setActualTimeRange(value);
           setTooltipTitle(actualRange || '');
-        } else if (
-          guessedFrame === 'Today' ||
-          guessedFrame === 'Yesterday'
-        ) {
+        } else if (guessedFrame === 'Today' || guessedFrame === 'Yesterday') {
           setActualTimeRange(guessedFrame);
           setTooltipTitle(actualRange || '');
         } else {

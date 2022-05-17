@@ -59,7 +59,7 @@ const HostList = {
 const RowBullet = {
   display: 'list-item',
   'list-style-type': 'disc',
-  'list-style-position': 'inside'
+  'list-style-position': 'inside',
 };
 
 const HostnameTitle = {

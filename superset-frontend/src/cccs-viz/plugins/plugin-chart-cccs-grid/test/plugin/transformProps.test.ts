@@ -1,4 +1,4 @@
-import { CccsGridQueryFormData, CccsGridChartProps } from '../../src/types'
+import { CccsGridQueryFormData, CccsGridChartProps } from '../../src/types';
 import transformProps from '../../src/plugin/transformProps';
 
 describe('CccsGrid tranformProps', () => {
@@ -18,9 +18,11 @@ describe('CccsGrid tranformProps', () => {
     formData,
     width: 800,
     height: 600,
-    queriesData: [{
-      data: [{ name: 'Hulk', sum__num: 1, __timestamp: 599616000000 }],
-    }],
+    queriesData: [
+      {
+        data: [{ name: 'Hulk', sum__num: 1, __timestamp: 599616000000 }],
+      },
+    ],
   });
 
   it('should tranform chart props for viz', () => {
@@ -30,7 +32,9 @@ describe('CccsGrid tranformProps', () => {
       boldText: true,
       headerFontSize: 'xs',
       headerText: 'my text',
-      data: [{ name: 'Hulk', sum__num: 1, __timestamp: new Date(599616000000) }],
+      data: [
+        { name: 'Hulk', sum__num: 1, __timestamp: new Date(599616000000) },
+      ],
     });
   });
 });

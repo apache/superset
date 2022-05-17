@@ -34,9 +34,7 @@ import { getSearchKeywords } from '../utils';
  * if a viz needs multiple different result sets.
  */
 
-
 export default function buildQuery(formData: QueryFormData) {
-
   /*
   We receive a filter ip_string IN ('1.1.1.1')
   our job is to determine the type of this filter and to use
@@ -47,26 +45,34 @@ export default function buildQuery(formData: QueryFormData) {
    */
 
   return buildQueryContext(formData, baseQueryObject => {
-
-    if (!baseQueryObject.filters) baseQueryObject.filters = []
-    const filter = baseQueryObject.filters.pop()
+    if (!baseQueryObject.filters) baseQueryObject.filters = [];
+    const filter = baseQueryObject.filters.pop();
     while (baseQueryObject.filters.length > 0) {
-      baseQueryObject.filters.pop()
+      baseQueryObject.filters.pop();
     }
     if (filter) {
-      baseQueryObject.filters?.push({ col: 'keywords', op: 'IN', val: getSearchKeywords(filter.col) });
+      baseQueryObject.filters?.push({
+        col: 'keywords',
+        op: 'IN',
+        val: getSearchKeywords(filter.col.toString()),
+      });
     }
-    baseQueryObject.columns = ['id', 'name', 'filter_name', 'filter_type', 'dataset_column_names']
+    baseQueryObject.columns = [
+      'id',
+      'name',
+      'filter_name',
+      'filter_type',
+      'dataset_column_names',
+    ];
 
     // Run a RAW query (not AGGREGATED)
     // clear metrics attribute to perform a RAW mode query.
-    baseQueryObject.metrics = undefined
+    baseQueryObject.metrics = undefined;
 
     return [
       {
         ...baseQueryObject,
       },
-    ]
+    ];
   });
 }
-

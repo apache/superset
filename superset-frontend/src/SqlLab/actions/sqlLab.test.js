@@ -754,7 +754,7 @@ describe('async actions', () => {
             expect(fetchMock.calls(updateTabStateEndpoint)).toHaveLength(0);
           });
       });
-      
+
       it('updates and runs data preview query when configured', () => {
         expect.assertions(2);
 

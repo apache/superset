@@ -54,21 +54,20 @@ export default function transformProps(chartProps: ChartProps) {
 
   console.log('formData via TransformProps.ts', formData);
 
-
-  var ip = '3.1.1.1';
+  let ip = '3.1.1.1';
   var num = formData?.adhocFilters?.length;
 
   for (var i = 0; i < num; i++) {
     var f = formData?.adhocFilters[i];
-    if(f.subject == "ip_string") {
+    if (f.subject == 'ip_string') {
       ip = f.comparator[0];
       break;
     }
-    if(f.subject == "src_ip_string") {
+    if (f.subject == 'src_ip_string') {
       ip = f.comparator[0];
       break;
     }
-    if(f.subject == "dst_ip_string") {
+    if (f.subject == 'dst_ip_string') {
       ip = f.comparator[0];
       break;
     }
@@ -78,15 +77,15 @@ export default function transformProps(chartProps: ChartProps) {
 
   for (var i = 0; i < num; i++) {
     var f = formData?.extraFilters[i];
-    if(f.col == "ip_string") {
+    if (f.col == 'ip_string') {
       ip = f.val[0];
       break;
     }
-    if(f.col == "src_ip_string") {
+    if (f.col == 'src_ip_string') {
       ip = f.val[0];
       break;
     }
-    if(f.col == "dst_ip_string") {
+    if (f.col == 'dst_ip_string') {
       ip = f.val[0];
       break;
     }
@@ -96,21 +95,21 @@ export default function transformProps(chartProps: ChartProps) {
 
   for (var i = 0; i < num; i++) {
     var f = formData?.extraFormData?.append_form_data?.filters[i];
-    if(f.col == "ip_string") {
+    if (f.col == 'ip_string') {
       ip = f.val[0];
       break;
     }
-    if(f.col == "src_ip_string") {
+    if (f.col == 'src_ip_string') {
       ip = f.val[0];
       break;
     }
-    if(f.col == "dst_ip_string") {
+    if (f.col == 'dst_ip_string') {
       ip = f.val[0];
       break;
     }
   }
 
-  console.log("IP: " + ip)
+  console.log(`IP: ${ip}`);
 
   return {
     width,

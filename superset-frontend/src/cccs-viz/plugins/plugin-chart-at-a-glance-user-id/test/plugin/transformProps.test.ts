@@ -1,7 +1,9 @@
 import { ChartProps } from '@superset-ui/core';
-import transformProps, { AAGUserIDFormData } from '../../src/plugin/transformProps';
+import transformProps, {
+  AAGUserIDFormData,
+} from '../../src/plugin/transformProps';
+
 describe('AtAGlance tranformProps', () => {
-  
   const formData: AAGUserIDFormData = {
     colorScheme: 'bnbColors',
     datasource: '3__table',
@@ -11,7 +13,7 @@ describe('AtAGlance tranformProps', () => {
     boldText: true,
     headerFontSize: 'xs',
     headerText: 'my text',
-    viz_type: "",
+    viz_type: '',
   };
   const chartProps = new ChartProps({
     formData,

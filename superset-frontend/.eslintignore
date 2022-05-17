@@ -23,6 +23,7 @@ src/assets/stylesheets/*
 node_modules/*
 node_modules*/*
 vendor/*
+src/cccs-viz/*
 docs/*
 src/dashboard/deprecated/*
 src/temp/*

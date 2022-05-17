@@ -116,8 +116,12 @@ export const CALENDAR_RANGE_SET: Set<CalendarRangeType> = new Set([
 export const MOMENT_FORMAT = 'YYYY-MM-DD[T]HH:mm:ss';
 export const SEVEN_DAYS_AGO = moment()
   .utc()
-  .add(DEFAULT_RELATIVE_START_TIME == 'tomorrow' ? 1 : 0, 'days')
+  .add(DEFAULT_RELATIVE_START_TIME === 'tomorrow' ? 1 : 0, 'days')
   .startOf('day')
   .subtract(7, 'days')
   .format(MOMENT_FORMAT);
-export const MIDNIGHT = moment().utc().add(DEFAULT_RELATIVE_END_TIME == 'tomorrow' ? 1 : 0, 'days').startOf('day').format(MOMENT_FORMAT);
+export const MIDNIGHT = moment()
+  .utc()
+  .add(DEFAULT_RELATIVE_END_TIME === 'tomorrow' ? 1 : 0, 'days')
+  .startOf('day')
+  .format(MOMENT_FORMAT);

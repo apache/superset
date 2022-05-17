@@ -20,13 +20,10 @@ import {
   buildQueryContext,
   PostProcessingRule,
   QueryMode,
-  QueryObject
+  QueryObject,
 } from '@superset-ui/core';
-import { BuildQuery } from '@superset-ui/core/lib/chart/registries/ChartBuildQueryRegistrySingleton';
-import {
-  CccsGridQueryFormData,
-  DEFAULT_FORM_DATA,
-} from '../types';
+import { BuildQuery } from '@superset-ui/core/src/chart/registries/ChartBuildQueryRegistrySingleton';
+import { CccsGridQueryFormData, DEFAULT_FORM_DATA } from '../types';
 
 /**
  * The buildQuery function is used to create an instance of QueryContext that's
@@ -52,7 +49,10 @@ export function getQueryMode(formData: CccsGridQueryFormData) {
   return hasRawColumns ? QueryMode.raw : QueryMode.aggregate;
 }
 
-const buildQuery: BuildQuery<CccsGridQueryFormData> = (formData: CccsGridQueryFormData, options) => {
+const buildQuery: BuildQuery<CccsGridQueryFormData> = (
+  formData: CccsGridQueryFormData,
+  options: any,
+) => {
   const queryMode = getQueryMode(formData);
   let formDataCopy = {
     ...formData,
@@ -69,7 +69,7 @@ const buildQuery: BuildQuery<CccsGridQueryFormData> = (formData: CccsGridQueryFo
 
   return buildQueryContext(formDataCopy, baseQueryObject => {
     let { metrics, orderby = [] } = baseQueryObject;
-    let postProcessing: PostProcessingRule[] = [];
+    const postProcessing: PostProcessingRule[] = [];
 
     if (queryMode === QueryMode.aggregate) {
       metrics = metrics || [];
@@ -82,11 +82,13 @@ const buildQuery: BuildQuery<CccsGridQueryFormData> = (formData: CccsGridQueryFo
     const moreProps: Partial<QueryObject> = {};
     const ownState = options?.ownState ?? {};
     if (formDataCopy.server_pagination) {
-      moreProps.row_limit = ownState.pageSize ?? formDataCopy.server_page_length;
-      moreProps.row_offset = (ownState.currentPage ?? 0) * (ownState.pageSize ?? 0);
+      moreProps.row_limit =
+        ownState.pageSize ?? formDataCopy.server_page_length;
+      moreProps.row_offset =
+        (ownState.currentPage ?? 0) * (ownState.pageSize ?? 0);
     }
 
-    let queryObject = {
+    const queryObject = {
       ...baseQueryObject,
       orderby,
       metrics,
@@ -95,10 +97,16 @@ const buildQuery: BuildQuery<CccsGridQueryFormData> = (formData: CccsGridQueryFo
     };
 
     // Because we use same buildQuery for all table on the page we need split them by id
-    options?.hooks?.setCachedChanges({ [formData.slice_id]: queryObject.filters });
+    options?.hooks?.setCachedChanges({
+      [formData.slice_id]: queryObject.filters,
+    });
 
     const extraQueries: QueryObject[] = [];
-    if (metrics?.length && formData.show_totals && queryMode === QueryMode.aggregate) {
+    if (
+      metrics?.length &&
+      formData.show_totals &&
+      queryMode === QueryMode.aggregate
+    ) {
       extraQueries.push({
         ...queryObject,
         columns: [],
@@ -110,13 +118,21 @@ const buildQuery: BuildQuery<CccsGridQueryFormData> = (formData: CccsGridQueryFo
 
     const interactiveGroupBy = formData.extra_form_data?.interactive_groupby;
     if (interactiveGroupBy && queryObject.columns) {
-      queryObject.columns = [...new Set([...queryObject.columns, ...interactiveGroupBy])];
+      queryObject.columns = [
+        ...new Set([...queryObject.columns, ...interactiveGroupBy]),
+      ];
     }
 
     if (formData.server_pagination) {
       return [
         { ...queryObject },
-        { ...queryObject, row_limit: 0, row_offset: 0, post_processing: [], is_rowcount: true },
+        {
+          ...queryObject,
+          row_limit: 0,
+          row_offset: 0,
+          post_processing: [],
+          is_rowcount: true,
+        },
         ...extraQueries,
       ];
     }
@@ -133,7 +149,7 @@ export const cachedBuildQuery = (): BuildQuery<CccsGridQueryFormData> => {
     cachedChanges = { ...cachedChanges, ...newChanges };
   };
 
-  return (formData, options) =>
+  return (formData: any, options: any) =>
     buildQuery(
       { ...formData },
       {
@@ -141,7 +157,7 @@ export const cachedBuildQuery = (): BuildQuery<CccsGridQueryFormData> => {
         ownState: options?.ownState ?? {},
         hooks: {
           ...options?.hooks,
-          setDataMask: () => { },
+          setDataMask: () => {},
           setCachedChanges,
         },
       },

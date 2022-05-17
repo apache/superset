@@ -50,7 +50,6 @@ import {
 } from '@superset-ui/legacy-preset-chart-nvd3';
 import { DeckGLChartPreset } from '@superset-ui/legacy-preset-chart-deckgl';
 import {
-  BigNumberChartPlugin,
   BigNumberTotalChartPlugin,
   EchartsPieChartPlugin,
   EchartsBoxPlotChartPlugin,
@@ -78,7 +77,6 @@ import {
   GroupByFilterPlugin,
 } from 'src/filters/components/';
 import { PivotTableChartPlugin as PivotTableChartPluginV2 } from '@superset-ui/plugin-chart-pivot-table';
-import FilterBoxChartPlugin from '../FilterBox/FilterBoxChartPlugin';
 import {
   GwwkChartsChartPlugin,
   GwwkDatasetsChartPlugin,
@@ -93,6 +91,7 @@ import {
   AtAGlanceUserIDSasChartPlugin,
   ApplicationLinksChartPlugin,
 } from 'src/cccs-viz/plugins/';
+import FilterBoxChartPlugin from '../FilterBox/FilterBoxChartPlugin';
 import TimeTableChartPlugin from '../TimeTable';
 
 export default class MainPreset extends Preset {
