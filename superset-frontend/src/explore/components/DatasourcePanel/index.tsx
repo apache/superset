@@ -451,7 +451,7 @@ export default function DataSourcePanel({
         onHide={() => setShowSaveDatasetModal(false)}
         buttonTextOnSave={t('Save')}
         buttonTextOnOverwrite={t('Overwrite')}
-        datasource={datasource as unknown as Query}
+        datasource={datasource}
       />
       <Control {...datasourceControl} name="datasource" actions={actions} />
       {datasource.id != null && mainBody}

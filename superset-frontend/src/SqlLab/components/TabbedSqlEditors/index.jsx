@@ -319,7 +319,6 @@ class TabbedSqlEditors extends React.PureComponent {
   }
 
   render() {
-    console.log('findme TABBEDSQLEDITORS');
     const noQueryEditors = this.props.queryEditors?.length === 0;
     const editors = this.props.queryEditors.map(qe => {
       let latestQuery;

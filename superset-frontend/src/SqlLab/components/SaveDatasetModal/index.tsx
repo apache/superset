@@ -29,9 +29,10 @@ import {
   SupersetClient,
   makeApi,
   JsonResponse,
+  JsonObject,
   // DatasourceType,
 } from '@superset-ui/core';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import moment from 'moment';
 import rison from 'rison';
 import { createDatasource } from 'src/SqlLab/actions/sqlLab';
@@ -46,10 +47,10 @@ import {
   SqlLabExploreRootState,
   getInitialState,
 } from 'src/SqlLab/types';
-// import { Dataset } from '@superset-ui/chart-controls';
+import { Dataset } from '@superset-ui/chart-controls';
 import { exploreChart } from 'src/explore/exploreUtils';
 
-// type ExploreDatasource = Dataset | Query;
+type ExploreDatasource = Dataset | Query;
 
 interface SaveDatasetModalProps {
   visible: boolean;
@@ -57,7 +58,7 @@ interface SaveDatasetModalProps {
   buttonTextOnSave: string;
   buttonTextOnOverwrite: string;
   modalDescription?: string;
-  datasource: Query;
+  datasource: ExploreDatasource;
 }
 
 const Styles = styled.div`
@@ -108,11 +109,6 @@ const updateDataset = async (
   return data.json.result;
 };
 
-// const getDatasourceState = (datasource: ExploreDatasource) => {
-//   if (datasource.type === DatasourceType.Dataset) return datasource as Dataset;
-//   return datasource as Query;
-// };
-
 // eslint-disable-next-line no-empty-pattern
 export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
   visible,
@@ -122,8 +118,17 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
   modalDescription,
   datasource,
 }) => {
-  const getDefaultDatasetName = () =>
-    `${datasource.tab} ${moment().format('MM/DD/YYYY HH:mm:ss')}`;
+  const query = datasource as Query;
+  const dataset = datasource as Dataset;
+  const datasourceIsQuery = datasource.hasOwnProperty('tab');
+  const getDefaultDatasetName = () => {
+    if (datasourceIsQuery) {
+      return `${query.tab} ${moment().format('MM/DD/YYYY HH:mm:ss')}`;
+    }
+    return `${dataset.datasource_name} ${moment().format(
+      'MM/DD/YYYY HH:mm:ss',
+    )}`;
+  };
   const [datasetName, setDatasetName] = useState(getDefaultDatasetName());
   const [newOrOverwrite, setNewOrOverwrite] = useState(
     DatasetRadioState.SAVE_NEW,
@@ -140,21 +145,40 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
   const user = useSelector<SqlLabExploreRootState, User>(state =>
     getInitialState(state),
   );
+  const dispatch = useDispatch<(dispatch: any) => Promise<JsonObject>>();
 
   const handleOverwriteDataset = async () => {
-    await updateDataset(
-      datasource.dbId,
-      datasetToOverwrite.datasetId,
-      datasource.sql,
-      // TODO: lyndsiWilliams - Define d
-      datasource.results.selected_columns.map((d: any) => ({
-        column_name: d.name,
-        type: d.type,
-        is_dttm: d.is_dttm,
-      })),
-      datasetToOverwrite.owners.map((o: DatasetOwner) => o.id),
-      true,
-    );
+    const unionUpdateDataset = () => {
+      if (datasourceIsQuery) {
+        return updateDataset(
+          query.dbId,
+          datasetToOverwrite.datasetId,
+          query.sql,
+          // TODO: lyndsiWilliams - Define d
+          query.results.selected_columns.map((d: any) => ({
+            column_name: d.name,
+            type: d.type,
+            is_dttm: d.is_dttm,
+          })),
+          datasetToOverwrite.owners.map((o: DatasetOwner) => o.id),
+          true,
+        );
+      }
+      return updateDataset(
+        dataset.id,
+        datasetToOverwrite.datasetId,
+        dataset.main_dttm_col,
+        // TODO: lyndsiWilliams - Define d
+        dataset.columns.map((d: any) => ({
+          column_name: d.name,
+          type: d.type,
+          is_dttm: d.is_dttm,
+        })),
+        datasetToOverwrite.owners.map((o: DatasetOwner) => o.id),
+        true,
+      );
+    };
+    await unionUpdateDataset();
 
     setShouldOverwriteDataset(false);
     setDatasetToOverwrite({});
@@ -164,7 +188,9 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
       ...EXPLORE_CHART_DEFAULT,
       datasource: `${datasetToOverwrite.datasetId}__table`,
       // TODO: lyndsiWilliams -  Define d
-      all_columns: datasource.results.selected_columns.map((d: any) => d.name),
+      all_columns: datasourceIsQuery
+        ? query.results.selected_columns.map((d: any) => d.name)
+        : dataset.columns.map((d: any) => d.name),
     });
   };
 
@@ -214,35 +240,45 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
       return;
     }
 
-    const selectedColumns = datasource.results.selected_columns || [];
+    const querySelectedColumns = query.results.selected_columns || [];
+    const datasetSelectedColumns = dataset.columns || [];
 
     // The filters param is only used to test jinja templates.
     // Remove the special filters entry from the templateParams
     // before saving the dataset.
-    if (datasource.templateParams) {
-      const p = JSON.parse(datasource.templateParams);
+    if (query.templateParams) {
+      const p = JSON.parse(query.templateParams);
       /* eslint-disable-next-line no-underscore-dangle */
       if (p._filters) {
         /* eslint-disable-next-line no-underscore-dangle */
         delete p._filters;
         // eslint-disable-next-line no-param-reassign
-        datasource.templateParams = JSON.stringify(p);
+        query.templateParams = JSON.stringify(p);
       }
     }
 
-    console.log('findme save state', datasource, datasetName, selectedColumns);
-
-    // TODO: lyndsiWilliams - set up when the back end logic is implemented
-    new Promise(
-      createDatasource({
-        schema: datasource.schema,
-        sql: datasource.sql,
-        dbId: datasource.dbId,
-        templateParams: datasource.templateParams,
+    const unionCreateDatasource = () => {
+      if (datasourceIsQuery) {
+        return createDatasource({
+          schema: query.schema,
+          sql: query.sql,
+          dbId: query.dbId,
+          templateParams: query.templateParams,
+          datasourceName: datasetName,
+          columns: querySelectedColumns,
+        });
+      }
+      return createDatasource({
+        schema: dataset.description,
+        sql: dataset.main_dttm_col,
+        dbId: dataset.id,
+        templateParams: dataset.time_grain_sqla,
         datasourceName: datasetName,
-        columns: selectedColumns,
-      }),
-    )
+        columns: datasetSelectedColumns,
+      });
+    };
+
+    dispatch(unionCreateDatasource)
       .then((data: { table_id: number }) => {
         exploreChart({
           datasource: `${data.table_id}__table`,
@@ -250,7 +286,9 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
           groupby: [],
           time_range: 'No filter',
           viz_type: 'table',
-          all_columns: selectedColumns.map(c => c.name),
+          all_columns: datasourceIsQuery
+            ? querySelectedColumns.map(c => c.name)
+            : datasetSelectedColumns.map(c => c.name),
           row_limit: 1000,
         });
       })
