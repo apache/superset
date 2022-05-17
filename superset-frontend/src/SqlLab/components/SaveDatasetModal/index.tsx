@@ -119,16 +119,8 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
   datasource,
 }) => {
   const query = datasource as Query;
-  const dataset = datasource as Dataset;
-  const datasourceIsQuery = datasource.hasOwnProperty('tab');
-  const getDefaultDatasetName = () => {
-    if (datasourceIsQuery) {
-      return `${query.tab} ${moment().format('MM/DD/YYYY HH:mm:ss')}`;
-    }
-    return `${dataset.datasource_name} ${moment().format(
-      'MM/DD/YYYY HH:mm:ss',
-    )}`;
-  };
+  const getDefaultDatasetName = () =>
+    `${query.tab} ${moment().format('MM/DD/YYYY HH:mm:ss')}`;
   const [datasetName, setDatasetName] = useState(getDefaultDatasetName());
   const [newOrOverwrite, setNewOrOverwrite] = useState(
     DatasetRadioState.SAVE_NEW,
@@ -148,38 +140,20 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
   const dispatch = useDispatch<(dispatch: any) => Promise<JsonObject>>();
 
   const handleOverwriteDataset = async () => {
-    const unionUpdateDataset = () => {
-      if (datasourceIsQuery) {
-        return updateDataset(
-          query.dbId,
-          datasetToOverwrite.datasetId,
-          query.sql,
-          query.results.selected_columns.map(
-            (d: { name: string; type: string; is_dttm: boolean }) => ({
-              column_name: d.name,
-              type: d.type,
-              is_dttm: d.is_dttm,
-            }),
-          ),
-          datasetToOverwrite.owners.map((o: DatasetOwner) => o.id),
-          true,
-        );
-      }
-      return updateDataset(
-        dataset.id,
-        datasetToOverwrite.datasetId,
-        dataset.main_dttm_col,
-        // TODO: lyndsiWilliams - Define dataset d
-        dataset.columns.map((d: any) => ({
+    await updateDataset(
+      query.dbId,
+      datasetToOverwrite.datasetId,
+      query.sql,
+      query.results.selected_columns.map(
+        (d: { name: string; type: string; is_dttm: boolean }) => ({
           column_name: d.name,
           type: d.type,
           is_dttm: d.is_dttm,
-        })),
-        datasetToOverwrite.owners.map((o: DatasetOwner) => o.id),
-        true,
-      );
-    };
-    await unionUpdateDataset();
+        }),
+      ),
+      datasetToOverwrite.owners.map((o: DatasetOwner) => o.id),
+      true,
+    );
 
     setShouldOverwriteDataset(false);
     setDatasetToOverwrite({});
@@ -188,12 +162,9 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
     exploreChart({
       ...EXPLORE_CHART_DEFAULT,
       datasource: `${datasetToOverwrite.datasetId}__table`,
-      // TODO: lyndsiWilliams -  Define dataset d
-      all_columns: datasourceIsQuery
-        ? query.results.selected_columns.map(
-            (d: { name: string; type: string; is_dttm: boolean }) => d.name,
-          )
-        : dataset.columns.map((d: any) => d.name),
+      all_columns: query.results.selected_columns.map(
+        (d: { name: string; type: string; is_dttm: boolean }) => d.name,
+      ),
     });
   };
 
@@ -243,8 +214,7 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
       return;
     }
 
-    const querySelectedColumns = query.results.selected_columns || [];
-    const datasetSelectedColumns = dataset.columns || [];
+    const selectedColumns = query.results.selected_columns || [];
 
     // The filters param is only used to test jinja templates.
     // Remove the special filters entry from the templateParams
@@ -260,28 +230,16 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
       }
     }
 
-    const unionCreateDatasource = () => {
-      if (datasourceIsQuery) {
-        return createDatasource({
-          schema: query.schema,
-          sql: query.sql,
-          dbId: query.dbId,
-          templateParams: query.templateParams,
-          datasourceName: datasetName,
-          columns: querySelectedColumns,
-        });
-      }
-      return createDatasource({
-        schema: dataset.description,
-        sql: dataset.main_dttm_col,
-        dbId: dataset.id,
-        templateParams: dataset.time_grain_sqla,
+    dispatch(
+      createDatasource({
+        schema: query.schema,
+        sql: query.sql,
+        dbId: query.dbId,
+        templateParams: query.templateParams,
         datasourceName: datasetName,
-        columns: datasetSelectedColumns,
-      });
-    };
-
-    dispatch(unionCreateDatasource)
+        columns: selectedColumns,
+      }),
+    )
       .then((data: { table_id: number }) => {
         exploreChart({
           datasource: `${data.table_id}__table`,
@@ -289,9 +247,7 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
           groupby: [],
           time_range: 'No filter',
           viz_type: 'table',
-          all_columns: datasourceIsQuery
-            ? querySelectedColumns.map(c => c.name)
-            : datasetSelectedColumns.map(c => c.name),
+          all_columns: selectedColumns.map(c => c.name),
           row_limit: 1000,
         });
       })
