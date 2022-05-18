@@ -3234,6 +3234,9 @@
             "nullable": true,
             "type": "boolean"
           },
+          "kind": {
+            "readOnly": true
+          },
           "main_dttm_col": {
             "maxLength": 250,
             "nullable": true,

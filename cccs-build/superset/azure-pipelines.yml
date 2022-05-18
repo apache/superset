@@ -19,6 +19,16 @@ steps:
       BRANCH_NAME=$(echo "$SYSTEM_PULLREQUEST_SOURCEBRANCH $BUILD_SOURCEBRANCH" | sed -r 's/^\s*(refs\/heads\/)?(\S*).*$/\2/' | sed 's/\//_/g')
       echo "##vso[task.setvariable variable=BRANCH_NAME]$BRANCH_NAME"
     displayName: Parse Source Control Branch Name
+  - task: PipAuthenticate@1
+    displayName: Authentication to Azure Artifacts feed
+    inputs:
+      artifactFeeds: Analytical Platform/analytical-platform
+      onlyAddExtraIndex: true
+
+  - bash: |
+      echo "[global]" > $(Build.SourcesDirectory)/pip.conf
+      echo "extra-index-url=$PIP_EXTRA_INDEX_URL" >> $(Build.SourcesDirectory)/pip.conf
+    displayName: Export Artifactory URL
 
   - task: Docker@2
     displayName: Login to $(containerRegistry)
@@ -33,7 +43,7 @@ steps:
       containerRegistry: $(containerRegistry)
       repository: $(imageRepository)
       dockerfile: $(dockerfile)
-      arguments: --build-arg BUILD_NUMBER=$(Build.BuildNumber)
+      arguments: --secret id=pipconfig,src=$(Build.SourcesDirectory)/pip.conf --progress=plain --build-arg BUILD_NUMBER=$(Build.BuildNumber)
       tags: |
         $(BRANCH_NAME)
         $(BRANCH_NAME)_$(buildTimestamp)_b$(Build.BuildId)
