@@ -31,7 +31,7 @@ from tests.integration_tests.fixtures.birth_names_dashboard import (
 )
 
 import pytest
-from sqlalchemy.engine.url import make_url, URL
+from sqlalchemy.engine.url import make_url
 from sqlalchemy.types import DateTime
 
 import tests.integration_tests.test_app
