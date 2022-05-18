@@ -70,7 +70,7 @@ test('should do forecastOperator with default index', () => {
   });
 });
 
-test('should do prophetOperator over named column', () => {
+test('should do forecastOperator over named column', () => {
   expect(
     forecastOperator(
       {
@@ -86,7 +86,7 @@ test('should do prophetOperator over named column', () => {
       queryObject,
     ),
   ).toEqual({
-    operation: 'prophet',
+    operation: 'forecast',
     options: {
       time_grain: 'P1Y',
       periods: 3.0,
@@ -99,9 +99,9 @@ test('should do prophetOperator over named column', () => {
   });
 });
 
-test('should do prophetOperator over adhoc column', () => {
+test('should do forecastOperator over adhoc column', () => {
   expect(
-    prophetOperator(
+    forecastOperator(
       {
         ...formData,
         x_axis: {
@@ -119,7 +119,7 @@ test('should do prophetOperator over adhoc column', () => {
       queryObject,
     ),
   ).toEqual({
-    operation: 'prophet',
+    operation: 'forecast',
     options: {
       time_grain: 'P1Y',
       periods: 3.0,
