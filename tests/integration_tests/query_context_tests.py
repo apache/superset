@@ -26,7 +26,7 @@ from superset.charts.schemas import ChartDataQueryContextSchema
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.query_context import QueryContext
 from superset.common.query_object import QueryObject
-from superset.connectors.connector_registry import ConnectorRegistry
+from superset.datasource.dao import DatasourceDAO
 from superset.connectors.sqla.models import SqlMetric
 from superset.extensions import cache_manager
 from superset.utils.core import AdhocMetricExpressionType, backend, QueryStatus
@@ -132,7 +132,7 @@ class TestQueryContext(SupersetTestCase):
         cache_key_original = query_context.query_cache_key(query_object)
 
         # make temporary change and revert it to refresh the changed_on property
-        datasource = ConnectorRegistry.get_datasource(
+        datasource = DatasourceDAO.get_datasource(
             datasource_type=payload["datasource"]["type"],
             datasource_id=payload["datasource"]["id"],
             session=db.session,
@@ -156,7 +156,7 @@ class TestQueryContext(SupersetTestCase):
         payload = get_query_context("birth_names")
 
         # make temporary change and revert it to refresh the changed_on property
-        datasource = ConnectorRegistry.get_datasource(
+        datasource = DatasourceDAO.get_datasource(
             datasource_type=payload["datasource"]["type"],
             datasource_id=payload["datasource"]["id"],
             session=db.session,
