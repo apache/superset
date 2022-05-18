@@ -388,7 +388,8 @@ export function exploreJSON(
       requestParams,
       ownState,
     });
-
+    const { datasource } = formData;
+    const datasourceInfo = datasource?.split('__');
     dispatch(chartUpdateStarted(controller, formData, key));
 
     const chartDataRequestCaught = chartDataRequest
@@ -425,6 +426,8 @@ export function exploreJSON(
               force_refresh: force,
               row_count: resultItem.rowcount,
               datasource: formData.datasource,
+              datasource_id: datasourceInfo[0],
+              datasource_type: datasourceInfo[1],
               start_offset: logStart,
               ts: new Date().getTime(),
               duration: Logger.getTimestamp() - logStart,
