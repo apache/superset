@@ -30,6 +30,7 @@ import {
   sections,
   sharedControls,
   emitFilterControl,
+  Dataset,
 } from '@superset-ui/chart-controls';
 import { MetricsLayoutEnum } from '../types';
 
@@ -349,7 +350,8 @@ const config: ControlPanelConfig = {
                 const values =
                   (explore?.controls?.metrics?.value as QueryFormMetric[]) ??
                   [];
-                const verboseMap = explore?.datasource?.verbose_map ?? {};
+                const verboseMap =
+                  (explore?.datasource as Dataset)?.verbose_map ?? {};
                 const metricColumn = values.map(value => {
                   if (typeof value === 'string') {
                     return { value, label: verboseMap[value] ?? value };

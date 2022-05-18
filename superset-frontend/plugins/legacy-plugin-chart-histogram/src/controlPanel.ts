@@ -29,6 +29,7 @@ import {
   formatSelectOptions,
   sections,
   dndColumnsControl,
+  Dataset,
 } from '@superset-ui/chart-controls';
 
 const allColumns = {
@@ -37,7 +38,7 @@ const allColumns = {
   default: null,
   description: t('Select the numeric columns to draw the histogram'),
   mapStateToProps: (state: ControlPanelState) => ({
-    choices: columnChoices(state.datasource),
+    choices: columnChoices(state.datasource as Dataset),
   }),
   multi: true,
   validators: [validateNonEmpty],

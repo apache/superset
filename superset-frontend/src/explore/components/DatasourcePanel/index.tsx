@@ -39,7 +39,7 @@ import { DndItemType } from '../DndItemType';
 import { StyledColumnOption, StyledMetricOption } from '../optionRenderers';
 
 interface DatasourceControl extends ControlConfig {
-  datasource?: Dataset;
+  datasource?: Dataset | Query;
 }
 
 export interface Props {
