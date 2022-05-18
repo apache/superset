@@ -341,7 +341,7 @@ export interface ControlPanelSectionConfig {
 }
 
 export interface ControlPanelConfig {
-  controlPanelSections: ControlPanelSectionConfig[];
+  controlPanelSections: (ControlPanelSectionConfig | null)[];
   controlOverrides?: ControlOverrides;
   sectionOverrides?: SectionOverrides;
   onInit?: (state: ControlStateMapping) => void;

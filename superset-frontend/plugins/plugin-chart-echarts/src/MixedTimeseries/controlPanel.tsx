@@ -278,6 +278,13 @@ function createAdvancedAnalyticsSection(
 const config: ControlPanelConfig = {
   controlPanelSections: [
     sections.legacyTimeseriesTime,
+    isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES)
+      ? {
+          label: t('Shared query fields'),
+          expanded: true,
+          controlSetRows: [[xAxisControl]],
+        }
+      : null,
     createQuerySection(t('Query A'), ''),
     createAdvancedAnalyticsSection(t('Advanced analytics Query A'), ''),
     createQuerySection(t('Query B'), '_b'),
@@ -446,13 +453,5 @@ const config: ControlPanelConfig = {
     },
   ],
 };
-
-if (isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES)) {
-  config.controlPanelSections.splice(1, 0, {
-    label: t('Shared query fields'),
-    expanded: true,
-    controlSetRows: [[xAxisControl]],
-  });
-}
 
 export default config;
