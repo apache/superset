@@ -24,11 +24,6 @@
 ARG PY_VER=3.8.12
 FROM python:${PY_VER} AS superset-py
 
-COPY ssl_proxy_corp_cse-cst_gc_ca.pem /usr/share/ca-certificates
-RUN update-ca-certificates
-
-RUN python -m pip config set global.cert /usr/share/ca-certificates/ssl_proxy_corp_cse-cst_gc_ca.pem
-
 RUN mkdir /app \
         && apt-get update -y \
         && apt-get install -y --no-install-recommends \
@@ -55,14 +50,8 @@ RUN cd /app \
 ######################################################################
 FROM node:16 AS superset-node
 
-COPY ssl_proxy_corp_cse-cst_gc_ca.pem /usr/share/ca-certificates
-RUN update-ca-certificates
-
-
 ARG NPM_VER=7
 RUN npm install -g npm@${NPM_VER}
-
-RUN npm config set cafile /usr/share/ca-certificates/ssl_proxy_corp_cse-cst_gc_ca.pem
 
 ARG NPM_BUILD_CMD="build"
 ENV BUILD_CMD=${NPM_BUILD_CMD}
