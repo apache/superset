@@ -34,7 +34,7 @@ steps:
     inputs:
       command: 'build'
       repository: $(imageRepository)
-      arguments: --secret id=npmrc,src=$(npmrc) --progress=plain
+      arguments: --log-opt max-size=100m --progress=plain
       dockerfile: $(dockerfile)
       tags: |
         $(BRANCH_NAME)
