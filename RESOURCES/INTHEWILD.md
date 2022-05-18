@@ -25,8 +25,8 @@ all you have to do is file a simple PR [like this one](https://github.com/apache
 the categorization is inaccurate, please file a PR with your correction as well.
 Join our growing community!
 
-### Sharing Economy
 
+### Sharing Economy
 - [Airbnb](https://github.com/airbnb)
 - [Faasos](http://faasos.com/) [@shashanksingh]
 - [Hostnfly](https://www.hostnfly.com/) [@alexisrosuel]
@@ -35,7 +35,6 @@ Join our growing community!
 - [Ontruck](https://www.ontruck.com/)
 
 ### Financial Services
-
 - [Aktia Bank plc](https://www.aktia.com) [@villebro]
 - [American Express](https://www.americanexpress.com) [@TheLastSultan]
 - [Cape Crypto](https://capecrypto.com)
@@ -44,12 +43,10 @@ Join our growing community!
 - [Xendit](http://xendit.co/) [@LieAlbertTriAdrian]
 
 ### Gaming
-
 - [Digit Game Studios](https://www.digitgaming.com/)
 - [Popoko VM Games Studio](https://popoko.live)
 
 ### E-Commerce
-
 - [AiHello](https://www.aihello.com) [@ganeshkrishnan1]
 - [Dragonpass](https://www.dragonpass.com.cn/) [@zhxjdwh]
 - [Fanatics](https://www.fanatics.com) [@coderfender]
@@ -69,7 +66,6 @@ Join our growing community!
 - [Zalora](https://www.zalora.com) [@ksaagariconic]
 
 ### Enterprise Technology
-
 - [A3Data](https://a3data.com.br) [@neylsoncrepalde]
 - [Apollo GraphQL](https://www.apollographql.com/) [@evans]
 - [Astronomer](https://www.astronomer.io) [@ryw]
@@ -113,7 +109,6 @@ Join our growing community!
 - [Zeta](https://www.zeta.tech/) [@shaikidris]
 
 ### Entertainment
-
 - [6play](https://www.6play.fr) [@CoryChaplin]
 - [bilibili](https://www.bilibili.com) [@Moinheart]
 - [Douban](https://www.douban.com/) [@luchuan]
@@ -124,22 +119,19 @@ Join our growing community!
 - [Zaihang](http://www.zaih.com/)
 
 ### Education
-
 - [Brilliant.org](https://brilliant.org/)
-- [Udemy](https://www.udemy.com/) [@sungjuly]
-- [VIPKID](https://www.vipkid.com.cn/) [@illpanda]
 - [Sunbird](https://www.sunbird.org/) [@eksteporg]
 - [The GRAPH Network](https://thegraphnetwork.org/)[@fccoelho]
+- [Udemy](https://www.udemy.com/) [@sungjuly]
+- [VIPKID](https://www.vipkid.com.cn/) [@illpanda]
 
 ### Energy
-
 - [Airboxlab](https://foobot.io) [@antoine-galataud]
 - [DouroECI](https://www.douroeci.com/) [@nunohelibeires]
 - [Safaricom](https://www.safaricom.co.ke/) [@mmutiso]
 - [Scoot](https://scoot.co/) [@haaspt]
 
 ### Healthcare
-
 - [Amino](https://amino.com) [@shkr]
 - [Care](https://www.getcare.io/)[@alandao2021]
 - [Living Goods](https://www.livinggoods.org) [@chelule]
@@ -149,11 +141,9 @@ Join our growing community!
 - [WeSure](https://www.wesure.cn/)
 
 ### HR / Staffing
-
 - [Symmetrics](https://www.symmetrics.fyi)
 
 ### Others
-
 - [Dropbox](https://www.dropbox.com/) [@bkyryliuk]
 - [Grassroot](https://www.grassrootinstitute.org/)
 - [komoot](https://www.komoot.com/) [@christophlingg]
