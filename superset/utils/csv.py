@@ -22,6 +22,8 @@ from urllib.error import URLError
 import pandas as pd
 import simplejson
 
+from superset.utils.core import GenericDataType
+
 negative_number_re = re.compile(r"^-[0-9.]+$")
 
 # This regex will match if the string starts with:
@@ -97,10 +99,17 @@ def get_chart_dataframe(
         return None
 
     result = simplejson.loads(content.decode("utf-8"))
-
     # need to convert float value to string to show full long number
     pd.set_option("display.float_format", lambda x: str(x))
     df = pd.DataFrame.from_dict(result["result"][0]["data"])
+
+    # if any column type is equal to 2, need to convert data into datetime timestamp for that column.
+    if GenericDataType.TEMPORAL in result["result"][0]["coltypes"]:
+        for i in range(len(result["result"][0]["coltypes"])):
+            if result["result"][0]["coltypes"][i] == GenericDataType.TEMPORAL:
+                df[result["result"][0]["colnames"][i]] = df[
+                    result["result"][0]["colnames"][i]
+                ].astype("datetime64[ms]")
 
     # rebuild hierarchical columns and index
     df.columns = pd.MultiIndex.from_tuples(
