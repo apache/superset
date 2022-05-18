@@ -527,6 +527,7 @@ class TestCore(SupersetTestCase):
                 "impersonate_user": False,
             }
         )
+
         response = self.client.post(
             "/superset/testconn", data=data, content_type="application/json"
         )
@@ -544,6 +545,7 @@ class TestCore(SupersetTestCase):
         response = self.client.post(
             "/superset/testconn", data=data, content_type="application/json"
         )
+
         assert response.status_code == 200
         assert response.headers["Content-Type"] == "application/json"
 
