@@ -17,12 +17,7 @@
  * under the License.
  */
 import { ReactNode } from 'react';
-import {
-  DatasourceType,
-  ensureIsArray,
-  JsonValue,
-  QueryFormData,
-} from '@superset-ui/core';
+import { DatasourceType, ensureIsArray, JsonValue } from '@superset-ui/core';
 import {
   ControlConfig,
   ControlPanelState,
@@ -155,8 +150,7 @@ export function getControlState(
 export function getAllControlsState(
   vizType: string,
   datasourceType: DatasourceType,
-  state: ControlPanelState,
-  formData: QueryFormData,
+  state: Partial<ControlPanelState>,
 ) {
   const controlsState = {};
   getSectionsToRender(vizType, datasourceType).forEach(section =>
@@ -167,7 +161,7 @@ export function getAllControlsState(
           controlsState[name] = getControlStateFromControlConfig(
             config,
             state,
-            formData[name],
+            state.form_data?.[name],
           );
         }
       }),

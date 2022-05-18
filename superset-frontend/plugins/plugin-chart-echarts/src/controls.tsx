@@ -17,9 +17,15 @@
  * under the License.
  */
 import React from 'react';
-import { t, validateNonEmpty } from '@superset-ui/core';
+import {
+  FeatureFlag,
+  isFeatureEnabled,
+  t,
+  validateNonEmpty,
+} from '@superset-ui/core';
 import {
   ControlPanelsContainerProps,
+  ControlPanelState,
   ControlSetItem,
   ControlSetRow,
   sharedControls,
@@ -143,7 +149,21 @@ export const xAxisControl: ControlSetItem = {
   config: {
     ...sharedControls.groupby,
     label: t('X-axis'),
-    default: null,
+    default: (
+      control: { value: any },
+      controlPanel: Partial<ControlPanelState>,
+    ) => {
+      // default to the chosen time column if x-axis is unset and the
+      // GENERIC_CHART_AXES feature flag is enabled
+      const { value } = control;
+      if (value || !controlPanel) {
+        return value;
+      }
+      if (isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES)) {
+        return controlPanel?.controls?.granularity_sqla?.value;
+      }
+      return value;
+    },
     multi: false,
     description: t('Dimension to use on x-axis.'),
     validators: [validateNonEmpty],
