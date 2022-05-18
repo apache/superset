@@ -27,6 +27,7 @@ import {
   formatSelectOptionsForRange,
   sections,
   SelectControlConfig,
+  Dataset,
 } from '@superset-ui/chart-controls';
 
 const config: ControlPanelConfig = {
@@ -44,7 +45,7 @@ const config: ControlPanelConfig = {
               label: t('Event Names'),
               description: t('Columns to display'),
               mapStateToProps: state => ({
-                choices: columnChoices(state?.datasource),
+                choices: columnChoices(state?.datasource as Dataset),
               }),
               // choices is from `mapStateToProps`
               default: (control: ControlState) =>
@@ -109,7 +110,7 @@ const config: ControlPanelConfig = {
               valueKey: 'column_name',
               allowAll: true,
               mapStateToProps: state => ({
-                options: state.datasource ? state.datasource.columns : [],
+                options: (state.datasource as Dataset)?.columns || [],
               }),
               commaChoosesOption: false,
               freeForm: true,

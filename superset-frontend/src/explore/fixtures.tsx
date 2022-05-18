@@ -24,6 +24,7 @@ import {
   ColumnOption,
   ControlConfig,
   ControlPanelSectionConfig,
+  Dataset,
 } from '@superset-ui/chart-controls';
 
 export const controlPanelSectionsChartOptions: (ControlPanelSectionConfig | null)[] =
@@ -99,7 +100,7 @@ export const controlPanelSectionsChartOptionsTable: ControlPanelSectionConfig[] 
               optionRenderer: c => <ColumnOption column={c} showType />,
               valueKey: 'column_name',
               mapStateToProps: stateRef => ({
-                options: stateRef.datasource ? stateRef.datasource.columns : [],
+                options: (stateRef.datasource as Dataset)?.columns || [],
               }),
               freeForm: true,
             } as ControlConfig<'SelectControl', ColumnMeta>,
