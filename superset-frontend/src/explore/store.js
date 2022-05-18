@@ -64,13 +64,7 @@ export function getControlsState(state, inputFormData) {
 export function applyDefaultFormData(inputFormData) {
   const datasourceType = inputFormData.datasource.split('__')[1];
   const vizType = inputFormData.viz_type;
-  let controlsState = getAllControlsState(vizType, datasourceType, {
-    form_data: inputFormData,
-  });
-  // do a new pass, so we can check the control values of other controls in
-  // the control's default value callback
-  controlsState = getAllControlsState(vizType, datasourceType, {
-    controls: controlsState,
+  const controlsState = getAllControlsState(vizType, datasourceType, {
     form_data: inputFormData,
   });
   const controlFormData = getFormDataFromControls(controlsState);

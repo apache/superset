@@ -85,7 +85,7 @@ export function applyMapStateToPropsToControl<T = ControlType>(
   const { mapStateToProps } = controlState;
   let state = { ...controlState };
   let { value } = state; // value is current user-input value
-  if (mapStateToProps && controlPanelState) {
+  if (mapStateToProps) {
     state = {
       ...controlState,
       ...mapStateToProps.call(controlState, controlPanelState, controlState),
@@ -124,11 +124,7 @@ export function getControlStateFromControlConfig<T = ControlType>(
   }
   const controlState = { ...controlConfig, value } as ControlState<T>;
   // only apply mapStateToProps when control states have been initialized
-  // or when explicitly didn't provide control panel state (mostly for testing)
-  if (
-    (controlPanelState && controlPanelState.controls) ||
-    controlPanelState === null
-  ) {
+  if (controlPanelState.controls) {
     return applyMapStateToPropsToControl(controlState, controlPanelState);
   }
   return controlState;

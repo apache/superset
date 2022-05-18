@@ -160,7 +160,7 @@ export const xAxisControl: ControlSetItem = {
         return value;
       }
       if (isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES)) {
-        return controlPanel?.controls?.granularity_sqla?.value;
+        return controlPanel?.form_data?.granularity_sqla;
       }
       return value;
     },
