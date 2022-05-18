@@ -103,7 +103,7 @@ def test_get_datasource_sqlatable(
     app_context: None, session_with_data: Session
 ) -> None:
     from superset.connectors.sqla.models import SqlaTable
-    from superset.dao.datasource.dao import DatasourceDAO
+    from superset.datasource.dao import DatasourceDAO
 
     result = DatasourceDAO.get_datasource(
         datasource_type=DatasourceType.SQLATABLE,
@@ -117,7 +117,7 @@ def test_get_datasource_sqlatable(
 
 
 def test_get_datasource_query(app_context: None, session_with_data: Session) -> None:
-    from superset.dao.datasource.dao import DatasourceDAO
+    from superset.datasource.dao import DatasourceDAO
     from superset.models.sql_lab import Query
 
     result = DatasourceDAO.get_datasource(
@@ -131,7 +131,7 @@ def test_get_datasource_query(app_context: None, session_with_data: Session) -> 
 def test_get_datasource_saved_query(
     app_context: None, session_with_data: Session
 ) -> None:
-    from superset.dao.datasource.dao import DatasourceDAO
+    from superset.datasource.dao import DatasourceDAO
     from superset.models.sql_lab import SavedQuery
 
     result = DatasourceDAO.get_datasource(
@@ -145,7 +145,7 @@ def test_get_datasource_saved_query(
 
 
 def test_get_datasource_sl_table(app_context: None, session_with_data: Session) -> None:
-    from superset.dao.datasource.dao import DatasourceDAO
+    from superset.datasource.dao import DatasourceDAO
     from superset.tables.models import Table
 
     # todo(hugh): This will break once we remove the dual write
@@ -161,7 +161,7 @@ def test_get_datasource_sl_table(app_context: None, session_with_data: Session) 
 def test_get_datasource_sl_dataset(
     app_context: None, session_with_data: Session
 ) -> None:
-    from superset.dao.datasource.dao import DatasourceDAO
+    from superset.datasource.dao import DatasourceDAO
     from superset.datasets.models import Dataset
 
     # todo(hugh): This will break once we remove the dual write
@@ -179,7 +179,7 @@ def test_get_datasource_sl_dataset(
 def test_get_all_sqlatables_datasources(
     app_context: None, session_with_data: Session
 ) -> None:
-    from superset.dao.datasource.dao import DatasourceDAO
+    from superset.datasource.dao import DatasourceDAO
 
     result = DatasourceDAO.get_all_sqlatables_datasources(session=session_with_data)
     assert len(result) == 1
