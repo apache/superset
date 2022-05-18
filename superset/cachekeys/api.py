@@ -25,7 +25,7 @@ from marshmallow.exceptions import ValidationError
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset.cachekeys.schemas import CacheInvalidationRequestSchema
-from superset.connectors.connector_registry import ConnectorRegistry
+from superset.datasource.dao import DatasourceDAO
 from superset.extensions import cache_manager, db, event_logger
 from superset.models.cache import CacheKey
 from superset.views.base_api import BaseSupersetModelRestApi, statsd_metrics
@@ -83,7 +83,7 @@ class CacheRestApi(BaseSupersetModelRestApi):
             return self.response_400(message=str(error))
         datasource_uids = set(datasources.get("datasource_uids", []))
         for ds in datasources.get("datasources", []):
-            ds_obj = ConnectorRegistry.get_datasource_by_name(
+            ds_obj = DatasourceDAO.get_datasource_by_name(
                 session=db.session,
                 datasource_type=ds.get("datasource_type"),
                 datasource_name=ds.get("datasource_name"),
