@@ -24,7 +24,8 @@ from typing import Any, Dict, Optional
 from flask_babel import lazy_gettext as _
 from sqlalchemy.orm import make_transient, Session
 
-from superset import ConnectorRegistry, db
+from superset import db
+from superset.datasource.dao import DatasourceDAO
 from superset.commands.base import BaseCommand
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.datasets.commands.importers.v0 import import_dataset
@@ -63,7 +64,7 @@ def import_chart(
     slc_to_import = slc_to_import.copy()
     slc_to_import.reset_ownership()
     params = slc_to_import.params_dict
-    datasource = ConnectorRegistry.get_datasource_by_name(
+    datasource = DatasourceDAO.get_datasource_by_name(
         session,
         slc_to_import.datasource_type,
         params["datasource_name"],

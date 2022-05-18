@@ -26,7 +26,6 @@ from superset.commands.exceptions import (
     RolesNotFoundValidationError,
 )
 from superset.datasource.dao import DatasourceDAO
-from superset.connectors.connector_registry import ConnectorRegistry
 from superset.datasets.commands.exceptions import DatasetNotFoundError
 from superset.extensions import db, security_manager
 
