@@ -59,6 +59,10 @@ const StyledDiv = styled.div`
       margin-left: ${theme.gridUnit}px;
     }
 
+    .reactable-data tr {
+      font-feature-settings: 'tnum' 1;
+    }
+
     .reactable-data tr,
     .reactable-header-sortable {
       -webkit-transition: ease-in-out 0.1s;
