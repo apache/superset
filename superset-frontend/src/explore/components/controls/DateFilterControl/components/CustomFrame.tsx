@@ -41,16 +41,24 @@ import {
   CustomRangeKey,
   FrameComponentProps,
 } from 'src/explore/components/controls/DateFilterControl/types';
-import { bootstrapData } from 'src/preamble';
-import localeFR from 'antd/es/date-picker/locale/fr_FR';
-import localeEN from 'antd/es/date-picker/locale/en_US';
+import { locales } from 'antd/dist/antd-with-locales';
+import { bootstrapData } from '../../../../../preamble';
 
 export function CustomFrame(props: FrameComponentProps) {
-  const { customRange, matchedFlag } = customTimeRangeDecode(props.value);
-  let locale = localeEN;
+  let localeFiltrer = locales.en_US;
+  // There are two locale with 'fr', one for France and one for Belgium so for the moment by default we take France
+  // TODO : Once the correction is done on antd, we have to remove the if
   if (bootstrapData.common.locale === 'fr') {
-    locale = localeFR;
+    localeFiltrer = locales.fr_FR.DatePicker;
+  } else {
+    for (const locale in locales) {
+      if (locales[locale].locale === bootstrapData.common.locale) {
+        localeFiltrer = locales[locale].DatePicker;
+        break;
+      }
+    }
   }
+  const { customRange, matchedFlag } = customTimeRangeDecode(props.value);
   if (!matchedFlag) {
     props.onChange(customTimeRangeEncode(customRange));
   }
@@ -139,7 +147,7 @@ export function CustomFrame(props: FrameComponentProps) {
                   onChange('sinceDatetime', datetime.format(MOMENT_FORMAT))
                 }
                 allowClear={false}
-                locale={locale}
+                locale={localeFiltrer}
               />
             </Row>
           )}
@@ -192,7 +200,7 @@ export function CustomFrame(props: FrameComponentProps) {
                   onChange('untilDatetime', datetime.format(MOMENT_FORMAT))
                 }
                 allowClear={false}
-                locale={locale}
+                locale={localeFiltrer}
               />
             </Row>
           )}
@@ -250,7 +258,7 @@ export function CustomFrame(props: FrameComponentProps) {
                   }
                   allowClear={false}
                   className="control-anchor-to-datetime"
-                  locale={locale}
+                  locale={localeFiltrer}
                 />
               </Col>
             )}
