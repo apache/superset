@@ -3478,7 +3478,7 @@
       "This dashboard was saved successfully.": [
         "Dit dashboard is succesvol opgeslagen."
       ],
-      "Sorry, an unknown error occured": [""],
+      "Sorry, an unknown error occurred": [""],
       "Sorry, there was an error saving this dashboard: %s": [""],
       "You do not have permission to edit this dashboard": [
         "U hebt geen toestemming om dit dashboard te bewerken"
