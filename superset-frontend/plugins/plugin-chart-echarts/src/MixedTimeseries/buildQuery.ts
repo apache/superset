@@ -83,10 +83,10 @@ export default function buildQuery(formData: QueryFormData) {
           renameOperator(fd, {
             ...queryObject,
             columns: fd.groupby,
-            ...{ is_timeseries },
+            is_timeseries,
           }),
           flattenOperator(fd, queryObject),
-        ].filter(op => op),
+        ].filter(Boolean),
       } as QueryObject;
       return [normalizeOrderBy(tmpQueryObject)];
     }),
