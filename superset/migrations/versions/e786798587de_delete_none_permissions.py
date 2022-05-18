@@ -56,6 +56,9 @@ class ViewMenu(Base):
     id = Column(Integer, Sequence("ab_view_menu_id_seq"), primary_key=True)
     name = Column(String(250), unique=True, nullable=False)
 
+    def __repr__(self) -> str:
+        return self.name
+
 
 assoc_permissionview_role = Table(
     "ab_permission_view_role",
@@ -76,6 +79,9 @@ class Role(Base):
         "PermissionView", secondary=assoc_permissionview_role, backref="role"
     )
 
+    def __repr__(self) -> str:
+        return f"{self.name}"
+
 
 class PermissionView(Base):
     __tablename__ = "ab_permission_view"
@@ -85,6 +91,9 @@ class PermissionView(Base):
     permission = relationship("Permission")
     view_menu_id = Column(Integer, ForeignKey("ab_view_menu.id"))
     view_menu = relationship("ViewMenu")
+
+    def __repr__(self) -> str:
+        return f"{self.permission.name} on {self.view_menu.name}"
 
 
 def upgrade():
@@ -102,11 +111,31 @@ def upgrade():
         )
         .all()
     )
+
+    roles = (
+        session.query(Role)
+        .outerjoin(Role.permissions)
+        .join(ViewMenu)
+        .join(Permission)
+        .filter(
+            Permission.name.in_(("datasource_access", "schema_access")),
+            ViewMenu.name.like("[None].%"),
+        )
+        .all()
+    )
+
     for pvm in pvms:
-        print(f"Going to delete {pvm.view_menu}")
+        for role in roles:
+            if pvm in role.permissions:
+                print(
+                    f"Going to delete a data access permission [{pvm}] on Role [{role}]"
+                )
+                role.permissions.remove(pvm)
+        print(f"Going to delete a data access permission [{pvm}]")
         session.delete(pvm)
         session.delete(pvm.view_menu)
     session.commit()
+    session.close()
     # ### end Alembic commands ###
 
 
