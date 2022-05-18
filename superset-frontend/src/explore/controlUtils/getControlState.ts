@@ -17,7 +17,12 @@
  * under the License.
  */
 import { ReactNode } from 'react';
-import { DatasourceType, ensureIsArray, JsonValue } from '@superset-ui/core';
+import {
+  DatasourceType,
+  ensureIsArray,
+  JsonValue,
+  QueryFormData,
+} from '@superset-ui/core';
 import {
   ControlConfig,
   ControlPanelState,
@@ -80,12 +85,12 @@ function handleMissingChoice<T = ControlType>(control: ControlState<T>) {
 
 export function applyMapStateToPropsToControl<T = ControlType>(
   controlState: ControlState<T>,
-  controlPanelState: Partial<ControlPanelState>,
+  controlPanelState: Partial<ControlPanelState> | null,
 ) {
   const { mapStateToProps } = controlState;
   let state = { ...controlState };
   let { value } = state; // value is current user-input value
-  if (mapStateToProps) {
+  if (mapStateToProps && controlPanelState) {
     state = {
       ...controlState,
       ...mapStateToProps.call(controlState, controlPanelState, controlState),
@@ -115,7 +120,7 @@ export function applyMapStateToPropsToControl<T = ControlType>(
 
 export function getControlStateFromControlConfig<T = ControlType>(
   controlConfig: ControlConfig<T> | null,
-  controlPanelState: Partial<ControlPanelState>,
+  controlPanelState: Partial<ControlPanelState> | null,
   value?: JsonValue,
 ) {
   // skip invalid config values
@@ -123,7 +128,12 @@ export function getControlStateFromControlConfig<T = ControlType>(
     return null;
   }
   const controlState = { ...controlConfig, value } as ControlState<T>;
-  return applyMapStateToPropsToControl(controlState, controlPanelState);
+  // only apply mapStateToProps when control states have been initialized
+  // or when explicitly didn't provide control panel state (mostly for testing)
+  if (controlPanelState?.controls || controlPanelState === null) {
+    return applyMapStateToPropsToControl(controlState, controlPanelState);
+  }
+  return controlState;
 }
 
 export function getControlState(
@@ -142,7 +152,8 @@ export function getControlState(
 export function getAllControlsState(
   vizType: string,
   datasourceType: DatasourceType,
-  state: Partial<ControlPanelState>,
+  state: ControlPanelState | null,
+  formData: QueryFormData,
 ) {
   const controlsState = {};
   getSectionsToRender(vizType, datasourceType).forEach(section =>
@@ -153,7 +164,7 @@ export function getAllControlsState(
           controlsState[name] = getControlStateFromControlConfig(
             config,
             state,
-            state.form_data?.[name],
+            formData[name],
           );
         }
       }),

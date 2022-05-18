@@ -162,7 +162,7 @@ export const xAxisControl: ControlSetItem = {
       if (isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES)) {
         return controlPanel?.form_data?.granularity_sqla;
       }
-      return value;
+      return null;
     },
     multi: false,
     description: t('Dimension to use on x-axis.'),
