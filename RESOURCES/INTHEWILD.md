@@ -123,6 +123,7 @@ Join our growing community!
 - [Udemy](https://www.udemy.com/) [@sungjuly]
 - [VIPKID](https://www.vipkid.com.cn/) [@illpanda]
 - [Sunbird](https://www.sunbird.org/) [@eksteporg]
+- [The GRAPH Network](https://thegraphnetwork.org/)[@fccoelho]
 
 ### Energy
 - [Airboxlab](https://foobot.io) [@antoine-galataud]
