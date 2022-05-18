@@ -135,23 +135,26 @@ def _set_table_metadata(datasource: SqlaTable, database: "Database") -> None:
 
 
 def _add_table_metrics(datasource: SqlaTable) -> None:
-    if not any(col.column_name == "num_california" for col in datasource.columns):
+    # By accessing the attribute first, we make sure `datasource.columns` and
+    # `datasource.metrics` are already loaded. Otherwise accessing them later
+    # may trigger an unnecessary and unexpected `after_update` event.
+    columns, metrics = datasource.columns, datasource.metrics
+
+    if not any(col.column_name == "num_california" for col in columns):
         col_state = str(column("state").compile(db.engine))
         col_num = str(column("num").compile(db.engine))
-        datasource.columns.append(
+        columns.append(
             TableColumn(
                 column_name="num_california",
                 expression=f"CASE WHEN {col_state} = 'CA' THEN {col_num} ELSE 0 END",
             )
         )
 
-    if not any(col.metric_name == "sum__num" for col in datasource.metrics):
+    if not any(col.metric_name == "sum__num" for col in metrics):
         col = str(column("num").compile(db.engine))
-        datasource.metrics.append(
-            SqlMetric(metric_name="sum__num", expression=f"SUM({col})")
-        )
+        metrics.append(SqlMetric(metric_name="sum__num", expression=f"SUM({col})"))
 
-    for col in datasource.columns:
+    for col in columns:
         if col.column_name == "ds":
             col.is_dttm = True
             break
@@ -844,7 +847,7 @@ def create_dashboard(slices: List[Slice]) -> Dashboard:
     # pylint: enable=line-too-long
     # dashboard v2 doesn't allow add markup slice
     dash.slices = [slc for slc in slices if slc.viz_type != "markup"]
-    update_slice_ids(pos, dash.slices)
+    update_slice_ids(pos)
     dash.dashboard_title = "USA Births Names"
     dash.position_json = json.dumps(pos, indent=4)
     dash.slug = "births"

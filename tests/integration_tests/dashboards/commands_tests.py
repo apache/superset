@@ -168,12 +168,6 @@ class TestExportDashboardsCommand(SupersetTestCase):
                     "meta": {"height": 50, "sliceName": "Treemap", "width": 8},
                     "type": "CHART",
                 },
-                "CHART-3nc0d8sk": {
-                    "children": [],
-                    "id": "CHART-3nc0d8sk",
-                    "meta": {"height": 50, "sliceName": "Treemap", "width": 8},
-                    "type": "CHART",
-                },
                 "COLUMN-071bbbad": {
                     "children": ["ROW-1e064e3c", "ROW-afdefba9"],
                     "id": "COLUMN-071bbbad",

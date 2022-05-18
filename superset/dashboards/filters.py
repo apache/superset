@@ -224,12 +224,14 @@ class DashboardCertifiedFilter(BaseFilter):  # pylint: disable=too-few-public-me
             return query.filter(
                 and_(
                     Dashboard.certified_by.isnot(None),
+                    Dashboard.certified_by != "",
                 )
             )
         if value is False:
             return query.filter(
-                and_(
+                or_(
                     Dashboard.certified_by.is_(None),
+                    Dashboard.certified_by == "",
                 )
             )
         return query

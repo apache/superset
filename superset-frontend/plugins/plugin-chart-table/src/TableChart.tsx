@@ -33,6 +33,7 @@ import {
   ensureIsArray,
   GenericDataType,
   getTimeFormatterForGranularity,
+  styled,
   t,
   tn,
 } from '@superset-ui/core';
@@ -160,6 +161,9 @@ function SelectPageSize({
     </span>
   );
 }
+
+const getNoResultsMessage = (filter: string) =>
+  t(filter ? 'No matching records found' : 'No records found');
 
 export default function TableChart<D extends DataRecord = DataRecord>(
   props: TableChartTransformedProps<D> & {
@@ -317,7 +321,6 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   const getColumnConfigs = useCallback(
     (column: DataColumnMeta, i: number): ColumnWithLooseAccessor<D> => {
       const { key, label, isNumeric, dataType, isMetric, config = {} } = column;
-      const isFilter = !isNumeric && emitFilter;
       const columnWidth = Number.isNaN(Number(config.columnWidth))
         ? config.columnWidth
         : Number(config.columnWidth);
@@ -348,7 +351,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         getValueRange(key, alignPositiveNegative);
 
       let className = '';
-      if (isFilter) {
+      if (emitFilter) {
         className += ' dt-is-filter';
       }
 
@@ -376,6 +379,19 @@ export default function TableChart<D extends DataRecord = DataRecord>(
               });
           }
 
+          const StyledCell = styled.td`
+            text-align: ${sharedStyle.textAlign};
+            background: ${backgroundColor ||
+            (valueRange
+              ? cellBar({
+                  value: value as number,
+                  valueRange,
+                  alignPositiveNegative,
+                  colorPositiveNegative,
+                })
+              : undefined)};
+          `;
+
           const cellProps = {
             // show raw number in title in case of numeric values
             title: typeof value === 'number' ? String(value) : undefined,
@@ -388,27 +404,14 @@ export default function TableChart<D extends DataRecord = DataRecord>(
               value == null ? 'dt-is-null' : '',
               isActiveFilterValue(key, value) ? ' dt-is-active-filter' : '',
             ].join(' '),
-            style: {
-              ...sharedStyle,
-              background:
-                backgroundColor ||
-                (valueRange
-                  ? cellBar({
-                      value: value as number,
-                      valueRange,
-                      alignPositiveNegative,
-                      colorPositiveNegative,
-                    })
-                  : undefined),
-            },
           };
           if (html) {
             // eslint-disable-next-line react/no-danger
-            return <td {...cellProps} dangerouslySetInnerHTML={html} />;
+            return <StyledCell {...cellProps} dangerouslySetInnerHTML={html} />;
           }
           // If cellProps renderes textContent already, then we don't have to
           // render `Cell`. This saves some time for large tables.
-          return <td {...cellProps}>{text}</td>;
+          return <StyledCell {...cellProps}>{text}</StyledCell>;
         },
         Header: ({ column: col, onClick, style }) => (
           <th
@@ -474,12 +477,12 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     [columnsMeta, getColumnConfigs],
   );
 
-  const handleServerPaginationChange = (
-    pageNumber: number,
-    pageSize: number,
-  ) => {
-    updateExternalFormData(setDataMask, pageNumber, pageSize);
-  };
+  const handleServerPaginationChange = useCallback(
+    (pageNumber: number, pageSize: number) => {
+      updateExternalFormData(setDataMask, pageNumber, pageSize);
+    },
+    [setDataMask],
+  );
 
   return (
     <Styles>
@@ -497,9 +500,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         onServerPaginationChange={handleServerPaginationChange}
         // 9 page items in > 340px works well even for 100+ pages
         maxPageItemCount={width > 340 ? 9 : 7}
-        noResults={(filter: string) =>
-          t(filter ? 'No matching records found' : 'No records found')
-        }
+        noResults={getNoResultsMessage}
         searchInput={includeSearch && SearchInput}
         selectPageSize={pageSize !== null && SelectPageSize}
         // not in use in Superset, but needed for unit tests

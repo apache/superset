@@ -31,7 +31,10 @@ import {
   TimeFormats,
   TimeFormatter,
 } from '@superset-ui/core';
-import { getColorFormatters } from '@superset-ui/chart-controls';
+import {
+  ColorFormatters,
+  getColorFormatters,
+} from '@superset-ui/chart-controls';
 
 import isEqualColumns from './utils/isEqualColumns';
 import DateWithFormatter from './utils/DateWithFormatter';
@@ -189,6 +192,8 @@ const getPageSize = (
   return numRecords * numColumns > 5000 ? 200 : 0;
 };
 
+const defaultServerPaginationData = {};
+const defaultColorFormatters = [] as ColorFormatters;
 const transformProps = (
   chartProps: TableChartProps,
 ): TableChartTransformedProps => {
@@ -198,7 +203,7 @@ const transformProps = (
     rawFormData: formData,
     queriesData = [],
     filterState,
-    ownState: serverPaginationData = {},
+    ownState: serverPaginationData,
     hooks: { onAddFilter: onChangeFilter, setDataMask = () => {} },
   } = chartProps;
 
@@ -237,7 +242,7 @@ const transformProps = (
       ? totalQuery?.data[0]
       : undefined;
   const columnColorFormatters =
-    getColorFormatters(conditionalFormatting, data) ?? [];
+    getColorFormatters(conditionalFormatting, data) ?? defaultColorFormatters;
 
   return {
     height,
@@ -249,7 +254,9 @@ const transformProps = (
     serverPagination,
     metrics,
     percentMetrics,
-    serverPaginationData,
+    serverPaginationData: serverPagination
+      ? serverPaginationData
+      : defaultServerPaginationData,
     setDataMask,
     alignPositiveNegative,
     colorPositiveNegative,

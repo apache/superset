@@ -16,9 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { SupersetTheme } from '@superset-ui/core';
 
 /* eslint-disable sort-keys, no-magic-numbers */
-export default {
+export const generateData = (theme: SupersetTheme) => ({
   geoJSON: {
     type: 'FeatureCollection',
     features: [
@@ -5538,5 +5539,5 @@ export default {
   ],
   renderWhileDragging: true,
   tooltip: null,
-  color: 'rgb(0, 122, 135)',
-};
+  color: theme.colors.primary.base,
+});

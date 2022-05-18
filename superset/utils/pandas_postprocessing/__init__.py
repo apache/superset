@@ -28,6 +28,7 @@ from superset.utils.pandas_postprocessing.geography import (
     geohash_encode,
 )
 from superset.utils.pandas_postprocessing.pivot import pivot
+from superset.utils.pandas_postprocessing.rename import rename
 from superset.utils.pandas_postprocessing.resample import resample
 from superset.utils.pandas_postprocessing.rolling import rolling
 from superset.utils.pandas_postprocessing.select import select
@@ -46,6 +47,7 @@ __all__ = [
     "geodetic_parse",
     "pivot",
     "forecast",
+    "rename",
     "resample",
     "rolling",
     "select",

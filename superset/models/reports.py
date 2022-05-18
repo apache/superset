@@ -77,7 +77,7 @@ class ReportDataFormat(str, enum.Enum):
     TEXT = "TEXT"
 
 
-class ReportCreationMethodType(str, enum.Enum):
+class ReportCreationMethod(str, enum.Enum):
     CHARTS = "charts"
     DASHBOARDS = "dashboards"
     ALERTS_REPORTS = "alerts_reports"
@@ -112,7 +112,7 @@ class ReportSchedule(Model, AuditMixinNullable):
     active = Column(Boolean, default=True, index=True)
     crontab = Column(String(1000), nullable=False)
     creation_method = Column(
-        String(255), server_default=ReportCreationMethodType.ALERTS_REPORTS
+        String(255), server_default=ReportCreationMethod.ALERTS_REPORTS
     )
     timezone = Column(String(100), default="UTC", nullable=False)
     report_format = Column(String(50), default=ReportDataFormat.VISUALIZATION)

@@ -67,7 +67,7 @@ const StyledHeader = styled.div`
     padding-left: 10px;
   }
   .menu {
-    background-color: white;
+    background-color: ${({ theme }) => theme.colors.grayscale.light5};
     .ant-menu-horizontal {
       line-height: inherit;
       .ant-menu-item {
@@ -88,7 +88,8 @@ const StyledHeader = styled.div`
   }
 
   .menu .ant-menu-item {
-    li {
+    li,
+    div {
       a,
       div {
         font-size: ${({ theme }) => theme.typography.sizes.s}px;
@@ -98,6 +99,10 @@ const StyledHeader = styled.div`
           margin: 0;
           padding: ${({ theme }) => theme.gridUnit * 4}px;
           line-height: ${({ theme }) => theme.gridUnit * 5}px;
+
+          &:hover {
+            text-decoration: none;
+          }
         }
       }
 
@@ -105,12 +110,19 @@ const StyledHeader = styled.div`
         padding: ${({ theme }) => theme.gridUnit * 2}px
           ${({ theme }) => theme.gridUnit * 4}px;
       }
+
+      &.active a {
+        text-decoration: underline;
+      }
     }
+
     li.active > a,
     li.active > div,
+    div.active > div,
     li > a:hover,
     li > a:focus,
-    li > div:hover {
+    li > div:hover,
+    div > div:hover {
       background: ${({ theme }) => theme.colors.secondary.light4};
       border-bottom: none;
       border-radius: ${({ theme }) => theme.borderRadius}px;
@@ -148,6 +160,7 @@ const StyledHeader = styled.div`
 const styledDisabled = (theme: SupersetTheme) => css`
   color: ${theme.colors.grayscale.base};
   backgroundColor: ${theme.colors.grayscale.light2}};
+
   .ant-menu-item:hover {
     color: ${theme.colors.grayscale.base};
     cursor: default;
