@@ -16,7 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps, getNumberFormatter } from '@superset-ui/core';
+import {
+  ChartProps,
+  getNumberFormatter,
+  supersetTheme,
+} from '@superset-ui/core';
 import transformProps, {
   formatFunnelLabel,
 } from '../../src/Funnel/transformProps';
@@ -25,7 +29,7 @@ import {
   EchartsFunnelLabelTypeType,
 } from '../../src/Funnel/types';
 
-describe('Funnel tranformProps', () => {
+describe('Funnel transformProps', () => {
   const formData = {
     colorScheme: 'bnbColors',
     datasource: '3__table',
@@ -45,9 +49,10 @@ describe('Funnel tranformProps', () => {
         ],
       },
     ],
+    theme: supersetTheme,
   });
 
-  it('should tranform chart props for viz', () => {
+  it('should transform chart props for viz', () => {
     expect(transformProps(chartProps as EchartsFunnelChartProps)).toEqual(
       expect.objectContaining({
         width: 800,

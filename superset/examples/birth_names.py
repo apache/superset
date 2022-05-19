@@ -847,7 +847,7 @@ def create_dashboard(slices: List[Slice]) -> Dashboard:
     # pylint: enable=line-too-long
     # dashboard v2 doesn't allow add markup slice
     dash.slices = [slc for slc in slices if slc.viz_type != "markup"]
-    update_slice_ids(pos, dash.slices)
+    update_slice_ids(pos)
     dash.dashboard_title = "USA Births Names"
     dash.position_json = json.dumps(pos, indent=4)
     dash.slug = "births"

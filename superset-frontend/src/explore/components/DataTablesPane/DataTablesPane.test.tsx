@@ -54,6 +54,7 @@ const createProps = () => ({
     sort_y_axis: 'alpha_asc',
     extra_form_data: {},
   },
+  queryForce: false,
   chartStatus: 'rendered',
   onCollapseChange: jest.fn(),
   queriesResponse: [
@@ -103,7 +104,7 @@ describe('DataTablesPane', () => {
       useRedux: true,
     });
     userEvent.click(screen.getByText('Results'));
-    expect(await screen.findByText('0 rows retrieved')).toBeVisible();
+    expect(await screen.findByText('0 rows')).toBeVisible();
     expect(await screen.findByLabelText('Collapse data panel')).toBeVisible();
     localStorage.clear();
   });
@@ -114,7 +115,7 @@ describe('DataTablesPane', () => {
       useRedux: true,
     });
     userEvent.click(screen.getByText('Samples'));
-    expect(await screen.findByText('0 rows retrieved')).toBeVisible();
+    expect(await screen.findByText('0 rows')).toBeVisible();
     expect(await screen.findByLabelText('Collapse data panel')).toBeVisible();
   });
 
@@ -158,7 +159,7 @@ describe('DataTablesPane', () => {
       },
     );
     userEvent.click(screen.getByText('Results'));
-    expect(await screen.findByText('1 rows retrieved')).toBeVisible();
+    expect(await screen.findByText('1 row')).toBeVisible();
 
     userEvent.click(screen.getByLabelText('Copy'));
     expect(copyToClipboardSpy).toHaveBeenCalledWith(
@@ -210,7 +211,7 @@ describe('DataTablesPane', () => {
       },
     );
     userEvent.click(screen.getByText('Results'));
-    expect(await screen.findByText('2 rows retrieved')).toBeVisible();
+    expect(await screen.findByText('2 rows')).toBeVisible();
     expect(screen.getByText('Action')).toBeVisible();
     expect(screen.getByText('Horror')).toBeVisible();
 

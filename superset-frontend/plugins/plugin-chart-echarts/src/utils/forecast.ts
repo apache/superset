@@ -53,12 +53,13 @@ export const extractForecastSeriesContexts = (
 
 export const extractForecastValuesFromTooltipParams = (
   params: any[],
+  isHorizontal = false,
 ): Record<string, ForecastValue> => {
   const values: Record<string, ForecastValue> = {};
   params.forEach(param => {
     const { marker, seriesId, value } = param;
     const context = extractForecastSeriesContext(seriesId);
-    const numericValue = (value as [Date, number])[1];
+    const numericValue = isHorizontal ? value[0] : value[1];
     if (numericValue) {
       if (!(context.name in values))
         values[context.name] = {

@@ -25,6 +25,7 @@ import {
   FormulaAnnotationLayer,
   IntervalAnnotationLayer,
   SqlaFormData,
+  supersetTheme,
   TimeseriesAnnotationLayer,
 } from '@superset-ui/core';
 import { EchartsTimeseriesChartProps } from '../../src/types';
@@ -52,9 +53,10 @@ describe('EchartsTimeseries transformProps', () => {
     width: 800,
     height: 600,
     queriesData,
+    theme: supersetTheme,
   };
 
-  it('should tranform chart props for viz', () => {
+  it('should transform chart props for viz', () => {
     const chartProps = new ChartProps(chartPropsConfig);
     expect(transformProps(chartProps as EchartsTimeseriesChartProps)).toEqual(
       expect.objectContaining({
@@ -315,6 +317,7 @@ describe('Does transformProps transform series correctly', () => {
     width: 800,
     height: 600,
     queriesData,
+    theme: supersetTheme,
   };
 
   const totalStackedValues = queriesData[0].data.reduce(

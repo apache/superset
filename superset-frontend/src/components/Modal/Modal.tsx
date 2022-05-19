@@ -34,6 +34,7 @@ export interface ModalProps {
   className?: string;
   children: React.ReactNode;
   disablePrimaryButton?: boolean;
+  primaryButtonLoading?: boolean;
   onHide: () => void;
   onHandledPrimaryAction?: () => void;
   primaryButtonName?: string;
@@ -190,6 +191,7 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
 const CustomModal = ({
   children,
   disablePrimaryButton = false,
+  primaryButtonLoading = false,
   onHide,
   onHandledPrimaryAction,
   primaryButtonName = t('OK'),
@@ -240,6 +242,7 @@ const CustomModal = ({
           key="submit"
           buttonStyle={primaryButtonType}
           disabled={disablePrimaryButton}
+          loading={primaryButtonLoading}
           onClick={onHandledPrimaryAction}
           cta
           data-test="modal-confirm-button"

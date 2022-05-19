@@ -196,6 +196,10 @@ class QueryObjectValidationError(SupersetException):
     status = 400
 
 
+class AdvancedDataTypeResponseError(SupersetException):
+    status = 400
+
+
 class InvalidPostProcessingError(SupersetException):
     status = 400
 
