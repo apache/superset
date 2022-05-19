@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { t } from '@superset-ui/core';
+import { FeatureFlag, isFeatureEnabled, t } from '@superset-ui/core';
 import { cloneDeep } from 'lodash';
 import {
   ControlPanelConfig,
@@ -31,7 +31,7 @@ import {
 
 import { DEFAULT_FORM_DATA } from './types';
 import { EchartsTimeseriesSeriesType } from '../Timeseries/types';
-import { legendSection, richTooltipSection } from '../controls';
+import { legendSection, richTooltipSection, xAxisControl } from '../controls';
 
 const {
   area,
@@ -278,6 +278,13 @@ function createAdvancedAnalyticsSection(
 const config: ControlPanelConfig = {
   controlPanelSections: [
     sections.legacyTimeseriesTime,
+    isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES)
+      ? {
+          label: t('Shared query fields'),
+          expanded: true,
+          controlSetRows: [[xAxisControl]],
+        }
+      : null,
     createQuerySection(t('Query A'), ''),
     createAdvancedAnalyticsSection(t('Advanced analytics Query A'), ''),
     createQuerySection(t('Query B'), '_b'),
