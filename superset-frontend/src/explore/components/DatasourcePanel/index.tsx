@@ -307,6 +307,17 @@ export default function DataSourcePanel({
     return true;
   };
 
+  const datasourceTypeCheck = () => {
+    if (
+      datasource.type === DatasourceType.Dataset ||
+      datasource.type === DatasourceType.SlTable ||
+      datasource.type === DatasourceType.SavedQuery ||
+      datasource.type === DatasourceType.Query
+    )
+      return true;
+    return false;
+  };
+
   const mainBody = useMemo(
     () => (
       <>
@@ -321,32 +332,29 @@ export default function DataSourcePanel({
           placeholder={t('Search Metrics & Columns')}
         />
         <div className="field-selections">
-          {datasource.type === DatasourceType.Dataset ||
-            datasource.type === DatasourceType.SlTable ||
-            datasource.type === DatasourceType.SavedQuery ||
-            (datasource.type === DatasourceType.Query && showInfoboxCheck() && (
-              <StyledInfoboxWrapper>
-                <Alert
-                  closable
-                  onClose={() => sessionStorage.setItem('showInfobox', 'false')}
-                  type="info"
-                  message=""
-                  description={
-                    <>
-                      <span
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => setShowSaveDatasetModal(true)}
-                        className="add-dataset-alert-description"
-                      >
-                        {t('Create a dataset')}
-                      </span>
-                      {t(' to edit or add columns and metrics.')}
-                    </>
-                  }
-                />
-              </StyledInfoboxWrapper>
-            ))}
+          {datasourceTypeCheck() && showInfoboxCheck() && (
+            <StyledInfoboxWrapper>
+              <Alert
+                closable
+                onClose={() => sessionStorage.setItem('showInfobox', 'false')}
+                type="info"
+                message=""
+                description={
+                  <>
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => setShowSaveDatasetModal(true)}
+                      className="add-dataset-alert-description"
+                    >
+                      {t('Create a dataset')}
+                    </span>
+                    {t(' to edit or add columns and metrics.')}
+                  </>
+                }
+              />
+            </StyledInfoboxWrapper>
+          )}
           <Collapse
             defaultActiveKey={['metrics', 'column']}
             expandIconPosition="right"
