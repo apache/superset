@@ -113,6 +113,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         # the global Flask app
         #
         # pylint: disable=import-outside-toplevel,too-many-locals,too-many-statements
+        from superset.advanced_data_type.api import AdvancedDataTypeRestApi
         from superset.annotation_layers.annotations.api import AnnotationRestApi
         from superset.annotation_layers.api import AnnotationLayerRestApi
         from superset.async_events.api import AsyncEventsRestApi
@@ -145,7 +146,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.reports.logs.api import ReportExecutionLogRestApi
         from superset.security.api import SecurityRestApi
         from superset.views.access_requests import AccessRequestsModelView
-        from superset.views.alerts import AlertView
+        from superset.views.alerts import AlertView, ReportView
         from superset.views.annotations import (
             AnnotationLayerModelView,
             AnnotationModelView,
@@ -190,6 +191,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(AnnotationRestApi)
         appbuilder.add_api(AnnotationLayerRestApi)
         appbuilder.add_api(AsyncEventsRestApi)
+        appbuilder.add_api(AdvancedDataTypeRestApi)
         appbuilder.add_api(CacheRestApi)
         appbuilder.add_api(ChartRestApi)
         appbuilder.add_api(ChartDataRestApi)
@@ -300,6 +302,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view_no_menu(TableSchemaView)
         appbuilder.add_view_no_menu(TabStateView)
         appbuilder.add_view_no_menu(TagView)
+        appbuilder.add_view_no_menu(ReportView)
 
         #
         # Add links

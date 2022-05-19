@@ -75,6 +75,7 @@ export default function transformProps(
     hooks,
     filterState,
     datasource,
+    theme,
   } = chartProps;
   const { annotation_data: annotationData_ } = queriesData[0];
   const annotationData = annotationData_ || {};
@@ -216,6 +217,7 @@ export default function transformProps(
             data1,
             annotationData,
             colorScale,
+            theme,
             sliceId,
           ),
         );
@@ -226,6 +228,7 @@ export default function transformProps(
             data1,
             annotationData,
             colorScale,
+            theme,
             sliceId,
           ),
         );
