@@ -40,26 +40,28 @@ class AdvancedDataTypeRestApi(BaseApi):
     allow_browser_login = True
     include_route_methods = {"get", "get_types"}
     resource_name = "advanced_data_type"
+    class_permission_name = "AdvancedDataType"
 
     openapi_spec_tag = "Advanced Data Type"
     apispec_parameter_schemas = {
         "advanced_data_type_convert_schema": advanced_data_type_convert_schema,
     }
+    openapi_spec_component_schemas = (AdvancedDataTypeResponse,)
 
     @protect()
     @safe
     @expose("/convert", methods=["GET"])
-    @permission_name("get")
+    @permission_name("read")
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get",
         log_to_statsd=False,  # pylint: disable-arguments-renamed
     )
-    @rison()
+    @rison(advanced_data_type_convert_schema)
     def get(self, **kwargs: Any) -> Response:
         """Returns a AdvancedDataTypeResponse object populated with the passed in args
         ---
         get:
-          description: >-
+          summary: >-
             Returns a AdvancedDataTypeResponse object populated with the passed in args.
           parameters:
           - in: query
@@ -77,16 +79,7 @@ class AdvancedDataTypeRestApi(BaseApi):
                   schema:
                     type: object
                     properties:
-                      status:
-                        type: string
-                      values:
-                        type: array
-                      formatted_value:
-                        type: string
-                      error_message:
-                        type: string
-                      valid_filter_operators:
-                        type: string
+                      $ref: '#/components/schemas/AdvancedDataTypeResponse'
             400:
               $ref: '#/components/responses/400'
             401:
