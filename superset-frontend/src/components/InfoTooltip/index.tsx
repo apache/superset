@@ -48,7 +48,7 @@ export interface InfoTooltipProps {
 const StyledTooltip = styled(Tooltip)`
   cursor: pointer;
   path:first-of-type {
-    fill: #999999;
+    fill: ${({ theme }) => theme.colors.grayscale.base};
   }
 `;
 

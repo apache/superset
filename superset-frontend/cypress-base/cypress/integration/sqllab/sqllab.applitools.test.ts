@@ -16,16 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-// This function is called when a project is opened or re-opened (e.g. due to
-// the project's config changing)
 
-const { isFileExist, findFiles } = require('cy-verify-downloads');
+describe('SqlLab view', () => {
+  beforeEach(() => {
+    cy.login();
+    cy.visit('/superset/sqllab');
+  });
 
-module.exports = (on, config) => {
-  // eslint-disable-next-line global-require
-  require('@cypress/code-coverage/task')(on, config);
-  on('task', { isFileExist, findFiles });
-  return config;
-};
-
-require('@applitools/eyes-cypress')(module);
+  it('should load the SqlLab', () => {
+    cy.eyesOpen({
+      testName: 'SqlLab page',
+    });
+    cy.eyesCheckWindow('SqlLab loaded');
+    cy.eyesClose();
+  });
+});
