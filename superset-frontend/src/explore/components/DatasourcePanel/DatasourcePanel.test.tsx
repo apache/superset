@@ -193,7 +193,6 @@ test('should render a create dataset infobox', () => {
     { useRedux: true },
   );
 
-  screen.logTestingPlaygroundURL();
   const createButton = screen.getByRole('button', {
     name: /create a dataset/i,
   });
