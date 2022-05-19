@@ -1334,6 +1334,11 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @expose("/testconn", methods=["POST", "GET"])
     def testconn(self) -> FlaskResponse:
         """Tests a sqla connection"""
+        logger.warning(
+            "%s.testconn "
+            "This API endpoint is deprecated and will be removed in version 3.0.0",
+            self.__class__.__name__,
+        )
         db_name = request.json.get("name")
         uri = request.json.get("uri")
         try:
@@ -2308,6 +2313,12 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         """Validates that arbitrary sql is acceptable for the given database.
         Returns a list of error/warning annotations as json.
         """
+        logger.warning(
+            "%s.validate_sql_json "
+            "This API endpoint is deprecated and will be removed in version 3.0.0",
+            self.__class__.__name__,
+        )
+
         sql = request.form["sql"]
         database_id = request.form["database_id"]
         schema = request.form.get("schema") or None

@@ -23,7 +23,7 @@ import { DecoratorFunction } from '@storybook/addons';
 import ResizablePanel, { Size } from './ResizablePanel';
 
 export const SupersetBody = styled.div`
-  background: #f5f5f5;
+  background: ${({ theme }) => theme.colors.grayscale.light4};
   padding: 16px;
   min-height: 100%;
 

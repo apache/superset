@@ -49,6 +49,7 @@ from superset.databases.commands.importers.dispatcher import ImportDatabasesComm
 from superset.databases.commands.test_connection import TestConnectionDatabaseCommand
 from superset.databases.commands.update import UpdateDatabaseCommand
 from superset.databases.commands.validate import ValidateDatabaseParametersCommand
+from superset.databases.commands.validate_sql import ValidateSQLCommand
 from superset.databases.dao import DatabaseDAO
 from superset.databases.decorators import check_datasource_access
 from superset.databases.filters import DatabaseFilter, DatabaseUploadEnabledFilter
@@ -66,7 +67,9 @@ from superset.databases.schemas import (
     TableExtraMetadataResponseSchema,
     TableMetadataResponseSchema,
     database_catalogs_query_schema,
-    CatalogsResponseSchema
+    CatalogsResponseSchema,
+    ValidateSQLRequest,
+    ValidateSQLResponse,
 )
 from superset.databases.utils import get_table_metadata
 from superset.db_engine_specs import get_available_engine_specs
@@ -102,6 +105,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "validate_parameters",
         "catalogs",
         "catalog_schemas",
+        "validate_sql",
     }
     resource_name = "database"
     class_permission_name = "Database"
@@ -199,6 +203,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "get_export_ids_schema": get_export_ids_schema,
         "database_catalogs_query_schema": database_catalogs_query_schema,
     }
+
     openapi_spec_tag = "Database"
     openapi_spec_component_schemas = (
         DatabaseFunctionNamesResponse,
@@ -209,7 +214,9 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         TableMetadataResponseSchema,
         SelectStarResponseSchema,
         SchemasResponseSchema,
-        CatalogsResponseSchema
+        CatalogsResponseSchema,
+        ValidateSQLRequest,
+        ValidateSQLResponse,
     )
 
     @expose("/", methods=["POST"])
@@ -905,6 +912,66 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 "result": sqllab_tab_states,
             },
         )
+
+    @expose("/<int:pk>/validate_sql", methods=["POST"])
+    @protect()
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.validate_sql",
+        log_to_statsd=False,
+    )
+    def validate_sql(self, pk: int) -> FlaskResponse:
+        """
+        ---
+        post:
+          summary: >-
+            Validates that arbitrary sql is acceptable for the given database
+          description: >-
+            Validates arbitrary SQL.
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+          requestBody:
+            description: Validate SQL request
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/ValidateSQLRequest'
+          responses:
+            200:
+              description: Validation result
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        description: >-
+                          A List of SQL errors found on the statement
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/ValidateSQLResponse'
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            sql_request = ValidateSQLRequest().load(request.json)
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
+        try:
+            validator_errors = ValidateSQLCommand(pk, sql_request).run()
+            return self.response(200, result=validator_errors)
+        except DatabaseNotFoundError:
+            return self.response_404()
 
     @expose("/export/", methods=["GET"])
     @protect()

@@ -129,6 +129,7 @@ MODEL_API_RW_METHOD_PERMISSION_MAP = {
     "get_datasets": "read",
     "function_names": "read",
     "available": "read",
+    "validate_sql": "read",
     "get_data": "read",
 }
 
