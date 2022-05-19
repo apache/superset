@@ -25,7 +25,7 @@ advanced_data_type_convert_schema = {
         "type": {"type": "string", "default": "port"},
         "values": {
             "type": "array",
-            "items": {"type": "string", "default": "http"},
+            "items": {"default": "http"},
             "minItems": 1,
         },
     },
