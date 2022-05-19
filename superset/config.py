@@ -1050,6 +1050,14 @@ def SQL_QUERY_MUTATOR(  # pylint: disable=invalid-name,unused-argument
 ) -> str:
     return sql
 
+# A variable that chooses whether to apply the SQL_QUERY_MUTATOR before or after splitting the input query
+# It allows for using the SQL_QUERY_MUTATOR function for more than comments
+# Usage: If you want to apply a change to every statement to a given query, set MUTATE_AFTER_SPLIT = True
+# An example use case is if data has role based access controls, and you want to apply
+# a SET ROLE statement alongside every user query. Changing this variable maintains
+# functionality for both the SQL_Lab and Charts.
+MUTATE_AFTER_SPLIT = False
+
 # ---------------------------------------------------
 # Alerts & Reports
 # ---------------------------------------------------
