@@ -19,7 +19,7 @@
 import React, { useState, useEffect } from 'react';
 import Button from 'src/components/Button';
 import Select from 'src/components/Select';
-import { styled, t, SupersetClient } from '@superset-ui/core';
+import { styled, t, SupersetClient, Query } from '@superset-ui/core';
 import { debounce } from 'lodash';
 import Loading from 'src/components/Loading';
 import {
@@ -29,7 +29,6 @@ import {
   epochTimeXYearsAgo,
 } from 'src/modules/dates';
 import AsyncSelect from 'src/components/AsyncSelect';
-import { Query } from 'src/SqlLab/types';
 import { STATUS_OPTIONS, TIME_OPTIONS } from 'src/SqlLab/constants';
 import QueryTable from '../QueryTable';
 

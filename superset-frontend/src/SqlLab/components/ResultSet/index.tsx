@@ -21,7 +21,7 @@ import ButtonGroup from 'src/components/ButtonGroup';
 import Alert from 'src/components/Alert';
 import Button from 'src/components/Button';
 import shortid from 'shortid';
-import { styled, t } from '@superset-ui/core';
+import { styled, t, Query } from '@superset-ui/core';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
@@ -33,7 +33,6 @@ import FilterableTable, {
 import CopyToClipboard from 'src/components/CopyToClipboard';
 import { prepareCopyToClipboardTabularData } from 'src/utils/common';
 import { CtasEnum } from 'src/SqlLab/actions/sqlLab';
-import { Query } from 'src/SqlLab/types';
 import ExploreCtasResultsButton from '../ExploreCtasResultsButton';
 import ExploreResultsButton from '../ExploreResultsButton';
 import HighlightedSql from '../HighlightedSql';

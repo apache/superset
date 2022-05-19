@@ -312,7 +312,7 @@ export type Query = {
   executedSql: string;
   output: string | Record<string, any>;
   actions: Record<string, any>;
-  type: string;
+  type: DatasourceType.Query;
 };
 
 export default {};
