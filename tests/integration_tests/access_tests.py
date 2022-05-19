@@ -21,6 +21,8 @@ import unittest
 from unittest import mock
 
 import pytest
+from flask import g
+from flask.ctx import AppContext
 from sqlalchemy import inspect
 
 from tests.integration_tests.fixtures.birth_names_dashboard import (
@@ -41,6 +43,7 @@ from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.sqla.models import SqlaTable
 from superset.models import core as models
 from superset.models.datasource_access_request import DatasourceAccessRequest
+from superset.utils.core import get_username, override_user
 from superset.utils.database import get_example_database
 
 from .base_tests import SupersetTestCase
@@ -86,7 +89,7 @@ DB_ACCESS_ROLE = "db_access_role"
 SCHEMA_ACCESS_ROLE = "schema_access_role"
 
 
-def create_access_request(session, ds_type, ds_name, role_name, user_name):
+def create_access_request(session, ds_type, ds_name, role_name, username):
     ds_class = ConnectorRegistry.sources[ds_type]
     # TODO: generalize datasource names
     if ds_type == "table":
@@ -102,7 +105,7 @@ def create_access_request(session, ds_type, ds_name, role_name, user_name):
     access_request = DatasourceAccessRequest(
         datasource_id=ds.id,
         datasource_type=ds_type,
-        created_by_fk=security_manager.find_user(username=user_name).id,
+        created_by_fk=security_manager.find_user(username=username).id,
     )
     session.add(access_request)
     session.commit()
@@ -563,6 +566,47 @@ class TestRequestAccess(SupersetTestCase):
             gamma_user = security_manager.find_user(username="gamma")
             gamma_user.roles.remove(security_manager.find_role("dummy_role"))
             session.commit()
+
+
+@pytest.mark.parametrize(
+    "username",
+    [
+        None,
+        "gamma",
+    ],
+)
+def test_get_username(app_context: AppContext, username: str) -> None:
+    assert not hasattr(g, "user")
+    assert get_username() is None
+
+    g.user = security_manager.find_user(username)
+    assert get_username() == username
+
+
+@pytest.mark.parametrize(
+    "username",
+    [
+        None,
+        "gamma",
+    ],
+)
+def test_override_user(app_context: AppContext, username: str) -> None:
+    admin = security_manager.find_user(username="admin")
+    user = security_manager.find_user(username)
+
+    assert not hasattr(g, "user")
+
+    with override_user(user):
+        assert g.user == user
+
+    assert not hasattr(g, "user")
+
+    g.user = admin
+
+    with override_user(user):
+        assert g.user == user
+
+    assert g.user == admin
 
 
 if __name__ == "__main__":

@@ -31,8 +31,15 @@ import {
   OPERATOR_ENUM_TO_OPERATOR_TYPE,
 } from 'src/explore/constants';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
+import { render, screen, act, waitFor } from '@testing-library/react';
+import { supersetTheme, FeatureFlag, ThemeProvider } from '@superset-ui/core';
+import * as featureFlags from 'src/featureFlags';
+import userEvent from '@testing-library/user-event';
+import fetchMock from 'fetch-mock';
+
 import AdhocFilterEditPopoverSimpleTabContent, {
   useSimpleTabFilterProps,
+  Props,
 } from '.';
 
 const simpleAdhocFilter = new AdhocFilter({
@@ -42,6 +49,15 @@ const simpleAdhocFilter = new AdhocFilter({
   operator: OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.GREATER_THAN].operation,
   comparator: '10',
   clause: CLAUSES.WHERE,
+});
+
+const advancedTypeTestAdhocFilterTest = new AdhocFilter({
+  expressionType: EXPRESSION_TYPES.SIMPLE,
+  subject: 'advancedDataType',
+  operatorId: null,
+  operator: null,
+  comparator: null,
+  clause: null,
 });
 
 const simpleMultiAdhocFilter = new AdhocFilter({
@@ -55,8 +71,9 @@ const simpleMultiAdhocFilter = new AdhocFilter({
 
 const sumValueAdhocMetric = new AdhocMetric({
   expressionType: EXPRESSION_TYPES.SIMPLE,
-  column: { type: 'VARCHAR(255)', column_name: 'source' },
+  column: { type: 'VARCHAR(255)', column_name: 'source', id: 5 },
   aggregate: AGGREGATES.SUM,
+  label: 'test-AdhocMetric',
 });
 
 const simpleCustomFilter = new AdhocFilter({
@@ -74,8 +91,29 @@ const options = [
   sumValueAdhocMetric,
 ];
 
+const getAdvancedDataTypeTestProps = (overrides?: Record<string, any>) => {
+  const onChange = sinon.spy();
+  const validHandler = sinon.spy();
+  const props = {
+    adhocFilter: advancedTypeTestAdhocFilterTest,
+    onChange,
+    options: [{ type: 'DOUBLE', column_name: 'advancedDataType', id: 5 }],
+    datasource: {
+      id: 'test-id',
+      columns: [],
+      type: 'postgres',
+      filter_select: false,
+    },
+    partitionColumn: 'test',
+    ...overrides,
+    validHandler,
+  };
+  return props;
+};
+
 function setup(overrides?: Record<string, any>) {
   const onChange = sinon.spy();
+  const validHandler = sinon.spy();
   const props = {
     adhocFilter: simpleAdhocFilter,
     onChange,
@@ -88,6 +126,7 @@ function setup(overrides?: Record<string, any>) {
     },
     partitionColumn: 'test',
     ...overrides,
+    validHandler,
   };
   const wrapper = shallow(
     <AdhocFilterEditPopoverSimpleTabContent {...props} />,
@@ -318,5 +357,198 @@ describe('AdhocFilterEditPopoverSimpleTabContent', () => {
       );
       expect(props.onChange.lastCall.args[0].comparator).toBe(null);
     });
+  });
+});
+
+const ADVANCED_DATA_TYPE_ENDPOINT_VALID =
+  'glob:*/api/v1/advanced_data_type/convert?q=(type:type,values:!(v))';
+const ADVANCED_DATA_TYPE_ENDPOINT_INVALID =
+  'glob:*/api/v1/advanced_data_type/convert?q=(type:type,values:!(e))';
+fetchMock.get(ADVANCED_DATA_TYPE_ENDPOINT_VALID, {
+  result: {
+    display_value: 'VALID',
+    error_message: '',
+    valid_filter_operators: [Operators.EQUALS],
+    values: ['VALID'],
+  },
+});
+fetchMock.get(ADVANCED_DATA_TYPE_ENDPOINT_INVALID, {
+  result: {
+    display_value: '',
+    error_message: 'error',
+    valid_filter_operators: [],
+    values: [],
+  },
+});
+
+describe('AdhocFilterEditPopoverSimpleTabContent Advanced data Type Test', () => {
+  const setupFilter = async (props: Props) => {
+    await act(async () => {
+      render(
+        <ThemeProvider theme={supersetTheme}>
+          <AdhocFilterEditPopoverSimpleTabContent {...props} />
+        </ThemeProvider>,
+      );
+    });
+  };
+
+  let isFeatureEnabledMock: any;
+  beforeEach(async () => {
+    isFeatureEnabledMock = jest
+      .spyOn(featureFlags, 'isFeatureEnabled')
+      .mockImplementation(
+        (featureFlag: FeatureFlag) =>
+          featureFlag === FeatureFlag.ENABLE_ADVANCED_DATA_TYPES,
+      );
+  });
+
+  afterAll(() => {
+    isFeatureEnabledMock.restore();
+  });
+
+  it('should not call API when column has no advanced data type', async () => {
+    fetchMock.resetHistory();
+
+    const props = getAdvancedDataTypeTestProps();
+
+    await setupFilter(props);
+
+    const filterValueField = screen.getByPlaceholderText(
+      'Filter value (case sensitive)',
+    );
+    await act(async () => {
+      userEvent.type(filterValueField, 'v');
+    });
+
+    await act(async () => {
+      userEvent.type(filterValueField, '{enter}');
+    });
+
+    // When the column is not a advanced data type,
+    // the advanced data type endpoint should not be called
+    await waitFor(() =>
+      expect(fetchMock.calls(ADVANCED_DATA_TYPE_ENDPOINT_VALID)).toHaveLength(
+        0,
+      ),
+    );
+  });
+
+  it('should call API when column has advanced data type', async () => {
+    fetchMock.resetHistory();
+
+    const props = getAdvancedDataTypeTestProps({
+      options: [
+        {
+          type: 'DOUBLE',
+          column_name: 'advancedDataType',
+          id: 5,
+          advanced_data_type: 'type',
+        },
+      ],
+    });
+
+    await setupFilter(props);
+
+    const filterValueField = screen.getByPlaceholderText(
+      'Filter value (case sensitive)',
+    );
+    await act(async () => {
+      userEvent.type(filterValueField, 'v');
+    });
+
+    await act(async () => {
+      userEvent.type(filterValueField, '{enter}');
+    });
+
+    // When the column is a advanced data type,
+    // the advanced data type endpoint should be called
+    await waitFor(() =>
+      expect(fetchMock.calls(ADVANCED_DATA_TYPE_ENDPOINT_VALID)).toHaveLength(
+        1,
+      ),
+    );
+    expect(props.validHandler.lastCall.args[0]).toBe(true);
+  });
+
+  it('save button should be disabled if error message from API is returned', async () => {
+    fetchMock.resetHistory();
+
+    const props = getAdvancedDataTypeTestProps({
+      options: [
+        {
+          type: 'DOUBLE',
+          column_name: 'advancedDataType',
+          id: 5,
+          advanced_data_type: 'type',
+        },
+      ],
+    });
+
+    await setupFilter(props);
+
+    const filterValueField = screen.getByPlaceholderText(
+      'Filter value (case sensitive)',
+    );
+    await act(async () => {
+      userEvent.type(filterValueField, 'e');
+    });
+
+    await act(async () => {
+      userEvent.type(filterValueField, '{enter}');
+    });
+
+    // When the column is a advanced data type but an error response is given by the endpoint,
+    // the save button should be disabled
+    await waitFor(() =>
+      expect(fetchMock.calls(ADVANCED_DATA_TYPE_ENDPOINT_INVALID)).toHaveLength(
+        1,
+      ),
+    );
+    expect(props.validHandler.lastCall.args[0]).toBe(false);
+  });
+
+  it('advanced data type operator list should update after API response', async () => {
+    fetchMock.resetHistory();
+
+    const props = getAdvancedDataTypeTestProps({
+      options: [
+        {
+          type: 'DOUBLE',
+          column_name: 'advancedDataType',
+          id: 5,
+          advanced_data_type: 'type',
+        },
+      ],
+    });
+
+    await setupFilter(props);
+
+    const filterValueField = screen.getByPlaceholderText(
+      'Filter value (case sensitive)',
+    );
+    await act(async () => {
+      userEvent.type(filterValueField, 'v');
+    });
+
+    await act(async () => {
+      userEvent.type(filterValueField, '{enter}');
+    });
+
+    // When the column is a advanced data type,
+    // the advanced data type endpoint should be called
+    await waitFor(() =>
+      expect(fetchMock.calls(ADVANCED_DATA_TYPE_ENDPOINT_VALID)).toHaveLength(
+        1,
+      ),
+    );
+    expect(props.validHandler.lastCall.args[0]).toBe(true);
+
+    const operatorValueField = screen.getByText('1 operator(s)');
+
+    await act(async () => {
+      userEvent.type(operatorValueField, '{enter}');
+    });
+
+    expect(screen.getByText('EQUALS')).toBeTruthy();
   });
 });

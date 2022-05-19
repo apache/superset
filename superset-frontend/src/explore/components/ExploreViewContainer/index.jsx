@@ -532,7 +532,6 @@ function ExploreViewContainer(props) {
     <ExploreContainer>
       <ExploreHeaderContainer>
         <ConnectedExploreChartHeader
-          ownState={props.ownState}
           actions={props.actions}
           canOverwrite={props.can_overwrite}
           canDownload={props.can_download}
@@ -542,7 +541,6 @@ function ExploreViewContainer(props) {
           sliceName={props.sliceName}
           table_name={props.table_name}
           formData={props.form_data}
-          timeout={props.timeout}
           chart={props.chart}
           user={props.user}
           reports={props.reports}
