@@ -19,6 +19,9 @@
 import React, { ReactNode } from 'react';
 import rison from 'rison';
 import { styled, t, SupersetClient, JsonResponse } from '@superset-ui/core';
+import { getUrlParam } from 'src/utils/urlUtils';
+import { URL_PARAMS } from 'src/constants';
+import { isNullish } from 'src/utils/common';
 import Button from 'src/components/Button';
 import { Select, Steps } from 'src/components';
 import { FormLabel } from 'src/components/Form';
@@ -27,9 +30,6 @@ import { Tooltip } from 'src/components/Tooltip';
 import VizTypeGallery, {
   MAX_ADVISABLE_VIZ_GALLERY_WIDTH,
 } from 'src/explore/components/controls/VizTypeControl/VizTypeGallery';
-import { getUrlParam } from '../utils/urlUtils';
-import { URL_PARAMS } from '../constants';
-import { isNullish } from '../utils/common';
 
 type Dataset = {
   id: number;
