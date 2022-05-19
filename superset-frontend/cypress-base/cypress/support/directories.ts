@@ -630,7 +630,8 @@ export const dashboardView = {
     trashIcon: dataTestLocator('dashboard-delete-component-button'),
     refreshChart: dataTestLocator('refresh-chart-menu-item'),
   },
-  threeDotsMenuIcon: '#save-dash-split-button',
+  threeDotsMenuIcon:
+    '.header-with-actions .right-button-panel .ant-dropdown-trigger',
   threeDotsMenuDropdown: dataTestLocator('header-actions-menu'),
   refreshDashboard: dataTestLocator('refresh-dashboard-menu-item'),
   saveAsMenuOption: dataTestLocator('save-as-menu-item'),

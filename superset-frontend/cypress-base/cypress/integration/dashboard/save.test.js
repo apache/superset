@@ -25,8 +25,10 @@ import {
 } from './dashboard.helper';
 
 function openDashboardEditProperties() {
-  cy.get('.dashboard-header [aria-label=edit-alt]').click();
-  cy.get('#save-dash-split-button').trigger('click', { force: true });
+  cy.get('[data-test="dashboard-header"] span[aria-label=edit-alt]').click();
+  cy.get(
+    '.header-with-actions .right-button-panel .ant-dropdown-trigger',
+  ).trigger('click', { force: true });
   cy.get('.dropdown-menu').contains('Edit dashboard properties').click();
 }
 
@@ -142,7 +144,7 @@ describe('Dashboard save action', () => {
             cy.get('.ant-modal-body').should('not.exist');
 
             // save dashboard changes
-            cy.get('.dashboard-header').contains('Save').click();
+            cy.get('[data-test="dashboard-header"]').contains('Save').click();
 
             // assert success flash
             cy.contains('saved successfully').should('be.visible');

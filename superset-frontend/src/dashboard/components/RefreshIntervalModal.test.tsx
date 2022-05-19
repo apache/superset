@@ -68,7 +68,8 @@ describe('RefreshIntervalModal - Enzyme', () => {
 const createProps = () => ({
   addSuccessToast: jest.fn(),
   addDangerToast: jest.fn(),
-  customCss: '#save-dash-split-button{margin-left: 100px;}',
+  customCss:
+    '.header-with-actions .right-button-panel .ant-dropdown-trigger{margin-left: 100px;}',
   dashboardId: 1,
   dashboardInfo: {
     id: 1,

@@ -66,7 +66,11 @@ function openAdvancedProperties() {
 
 function openDashboardEditProperties() {
   // open dashboard properties edit modal
-  cy.get('#save-dash-split-button').trigger('click', { force: true });
+  cy.get(
+    '.header-with-actions .right-button-panel .ant-dropdown-trigger',
+  ).trigger('click', {
+    force: true,
+  });
   cy.get('[data-test=header-actions-menu]')
     .contains('Edit dashboard properties')
     .click({ force: true });
@@ -80,7 +84,7 @@ describe('Dashboard edit action', () => {
     cy.get('.dashboard-grid', { timeout: 50000 })
       .should('be.visible') // wait for 50 secs to load dashboard
       .then(() => {
-        cy.get('.dashboard-header [aria-label=edit-alt]')
+        cy.get('[data-test="dashboard-header"] span[aria-label=edit-alt]')
           .should('be.visible')
           .click();
         openDashboardEditProperties();

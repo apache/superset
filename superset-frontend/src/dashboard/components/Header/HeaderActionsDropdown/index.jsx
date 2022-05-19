@@ -19,11 +19,9 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-import { styled, SupersetClient, t } from '@superset-ui/core';
+import { SupersetClient, t } from '@superset-ui/core';
 
 import { Menu } from 'src/components/Menu';
-import { NoAnimationDropdown } from 'src/components/Dropdown';
-import Icons from 'src/components/Icons';
 import { URL_PARAMS } from 'src/constants';
 import ShareMenuItems from 'src/dashboard/components/menu/ShareMenuItems';
 import CssEditor from 'src/dashboard/components/CssEditor';
@@ -92,13 +90,6 @@ const MENU_KEYS = {
   TOGGLE_FULLSCREEN: 'toggle-fullscreen',
   MANAGE_EMBEDDED: 'manage-embedded',
 };
-
-const DropdownButton = styled.div`
-  margin-left: ${({ theme }) => theme.gridUnit * 2.5}px;
-  span {
-    color: ${({ theme }) => theme.colors.grayscale.base};
-  }
-`;
 
 const SCREENSHOT_NODE_SELECTOR = '.dashboard';
 
@@ -268,16 +259,23 @@ class HeaderActionsDropdown extends React.PureComponent {
           </Menu.Item>
         )}
         {userCanShare && (
-          <ShareMenuItems
-            url={url}
-            copyMenuItemTitle={t('Copy permalink to clipboard')}
-            emailMenuItemTitle={t('Share permalink by email')}
-            emailSubject={emailSubject}
-            emailBody={emailBody}
-            addSuccessToast={addSuccessToast}
-            addDangerToast={addDangerToast}
-            dashboardId={dashboardId}
-          />
+          <Menu.SubMenu
+            key={MENU_KEYS.SHARE_DASHBOARD}
+            data-test="share-dashboard-menu-item"
+            disabled={isLoading}
+            title={t('Share')}
+          >
+            <ShareMenuItems
+              url={url}
+              copyMenuItemTitle={t('Copy permalink to clipboard')}
+              emailMenuItemTitle={t('Share permalink by email')}
+              emailSubject={emailSubject}
+              emailBody={emailBody}
+              addSuccessToast={addSuccessToast}
+              addDangerToast={addDangerToast}
+              dashboardId={dashboardId}
+            />
+          </Menu.SubMenu>
         )}
         <Menu.Item
           key={MENU_KEYS.REFRESH_DASHBOARD}
@@ -347,19 +345,7 @@ class HeaderActionsDropdown extends React.PureComponent {
         )}
       </Menu>
     );
-    return (
-      <NoAnimationDropdown
-        overlay={menu}
-        trigger={['click']}
-        getPopupContainer={triggerNode =>
-          triggerNode.closest('.dashboard-header')
-        }
-      >
-        <DropdownButton id="save-dash-split-button" role="button">
-          <Icons.MoreHoriz />
-        </DropdownButton>
-      </NoAnimationDropdown>
-    );
+    return menu;
   }
 }
 

@@ -93,6 +93,10 @@ export const DynamicEditableTitle = ({
   });
 
   useEffect(() => {
+    setCurrentTitle(title);
+  }, [title]);
+
+  useEffect(() => {
     if (isEditing && contentRef?.current) {
       contentRef.current.focus();
       // move cursor and scroll to the end
