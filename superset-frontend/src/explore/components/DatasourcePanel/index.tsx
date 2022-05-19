@@ -306,16 +306,11 @@ export default function DataSourcePanel({
     return true;
   };
 
-  const datasourceTypeCheck = () => {
-    if (
-      datasource.type === DatasourceType.Dataset ||
-      datasource.type === DatasourceType.SlTable ||
-      datasource.type === DatasourceType.SavedQuery ||
-      datasource.type === DatasourceType.Query
-    )
-      return true;
-    return false;
-  };
+  const datasourceTypeCheck =
+    datasource.type === DatasourceType.Dataset ||
+    datasource.type === DatasourceType.SlTable ||
+    datasource.type === DatasourceType.SavedQuery ||
+    datasource.type === DatasourceType.Query;
 
   const mainBody = useMemo(
     () => (
@@ -331,7 +326,7 @@ export default function DataSourcePanel({
           placeholder={t('Search Metrics & Columns')}
         />
         <div className="field-selections">
-          {datasourceTypeCheck() && showInfoboxCheck() && (
+          {datasourceTypeCheck && showInfoboxCheck() && (
             <StyledInfoboxWrapper>
               <Alert
                 closable
