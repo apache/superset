@@ -46,7 +46,7 @@ from sqlalchemy.orm.session import object_session
 from sqlalchemy.sql import join, select
 from sqlalchemy.sql.elements import BinaryExpression
 
-from superset import app, ConnectorRegistry, db, is_feature_enabled, security_manager
+from superset import app, db, is_feature_enabled, security_manager
 from superset.datasource.dao import DatasourceDAO
 from superset.common.request_contexed_based import is_user_admin
 from superset.connectors.base.models import BaseDatasource
@@ -409,7 +409,7 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
                     if id_ is None:
                         continue
                     #todo(phillip): get datasource type for this method
-                    datasource = ConnectorRegistry.get_datasource_by_id(session, id_)
+                    datasource = DatasourceDAO.get_datasource_by_id(session, id_)
                     datasource_ids.add((datasource.id, datasource.type))
 
             copied_dashboard.alter_params(remote_id=dashboard_id)

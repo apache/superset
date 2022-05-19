@@ -32,7 +32,7 @@ from sqlalchemy.orm.exc import NoResultFound
 import superset.models.core as models
 from superset import app, dataframe, db, result_set, viz
 from superset.common.db_query_status import QueryStatus
-from superset.connectors.connector_registry import ConnectorRegistry
+from superset.datasource.dao import DatasourceDAO
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     CacheLoadError,
@@ -127,7 +127,7 @@ def get_viz(
     force_cached: bool = False,
 ) -> BaseViz:
     viz_type = form_data.get("viz_type", "table")
-    datasource = ConnectorRegistry.get_datasource(
+    datasource = DatasourceDAO.get_datasource(
         datasource_type, datasource_id, db.session
     )
     viz_obj = viz.viz_types[viz_type](
