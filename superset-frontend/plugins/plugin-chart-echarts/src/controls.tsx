@@ -28,6 +28,7 @@ import {
   ControlPanelState,
   ControlSetItem,
   ControlSetRow,
+  ControlState,
   sharedControls,
 } from '@superset-ui/chart-controls';
 import { DEFAULT_LEGEND_FORM_DATA } from './types';
@@ -150,17 +151,18 @@ export const xAxisControl: ControlSetItem = {
     ...sharedControls.groupby,
     label: t('X-axis'),
     default: (
-      control: { value: any },
+      control: ControlState,
       controlPanel: Partial<ControlPanelState>,
     ) => {
       // default to the chosen time column if x-axis is unset and the
       // GENERIC_CHART_AXES feature flag is enabled
       const { value } = control;
-      if (value || !controlPanel) {
+      if (value) {
         return value;
       }
-      if (isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES)) {
-        return controlPanel?.form_data?.granularity_sqla;
+      const timeColumn = controlPanel?.form_data?.granularity_sqla;
+      if (isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES) && timeColumn) {
+        return timeColumn;
       }
       return null;
     },
