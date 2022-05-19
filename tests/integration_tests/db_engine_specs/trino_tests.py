@@ -27,19 +27,6 @@ from tests.integration_tests.db_engine_specs.base_tests import TestDbEngineSpec
 
 
 class TestTrinoDbEngineSpec(TestDbEngineSpec):
-    def test_convert_dttm(self):
-        dttm = self.get_dttm()
-
-        self.assertEqual(
-            TrinoEngineSpec.convert_dttm("DATE", dttm),
-            "DATE '2019-01-02'",
-        )
-
-        self.assertEqual(
-            TrinoEngineSpec.convert_dttm("TIMESTAMP", dttm),
-            "TIMESTAMP '2019-01-02T03:04:05.678900'",
-        )
-
     def test_adjust_database_uri(self):
         url = URL(drivername="trino", database="hive")
         TrinoEngineSpec.adjust_database_uri(url, selected_schema="foobar")
