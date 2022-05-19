@@ -30,6 +30,7 @@ partaking in the process should join the channel.
 
 ## Release notes for recent releases
 
+- [1.5](release-notes-1-5/README.md)
 - [1.4](release-notes-1-4/README.md)
 - [1.3](release-notes-1-3/README.md)
 - [1.2](release-notes-1-2/README.md)

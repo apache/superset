@@ -247,9 +247,16 @@ export default class ResultSet extends React.PureComponent<
         this.clearQueryResults(nextProps.query),
       );
     }
+
+    // Only fetch results if the result key change
+    // If we didn't have a result key before, then the results are loaded elsewhere
+    // so we can skip it, unless the query id changed, in that case we should
+    // refetch regardless.
     if (
-      nextProps.query.resultsKey &&
-      nextProps.query.resultsKey !== this.props.query.resultsKey
+      (this.props.query.resultsKey &&
+        nextProps.query.resultsKey &&
+        nextProps.query.resultsKey !== this.props.query.resultsKey) ||
+      (nextProps.query.id !== this.props.query.id && nextProps.query.resultsKey)
     ) {
       this.fetchResults(nextProps.query);
     }
@@ -280,7 +287,8 @@ export default class ResultSet extends React.PureComponent<
       sql,
       results.selected_columns.map(d => ({
         column_name: d.name,
-        is_dttm: d.is_date,
+        type: d.type,
+        is_dttm: d.is_dttm,
       })),
       datasetToOverwrite.owners.map((o: DatasetOwner) => o.id),
       true,

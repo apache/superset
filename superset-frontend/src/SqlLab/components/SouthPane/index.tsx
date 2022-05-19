@@ -224,6 +224,7 @@ export default function SouthPane({
             queries={editorQueries}
             actions={actions}
             displayLimit={displayLimit}
+            latestQueryId={latestQueryId}
           />
         </Tabs.TabPane>
         {renderDataPreviewTabs()}

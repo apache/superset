@@ -43,7 +43,10 @@ def key_value_entry() -> Generator[KeyValueEntry, None, None]:
     from superset.key_value.models import KeyValueEntry
 
     entry = KeyValueEntry(
-        id=ID_KEY, uuid=UUID_KEY, resource=RESOURCE, value=pickle.dumps(VALUE),
+        id=ID_KEY,
+        uuid=UUID_KEY,
+        resource=RESOURCE,
+        value=pickle.dumps(VALUE),
     )
     db.session.add(entry)
     db.session.commit()

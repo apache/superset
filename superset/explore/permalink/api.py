@@ -162,7 +162,10 @@ class ExplorePermalinkRestApi(BaseApi):
             return self.response(200, **value)
         except ExplorePermalinkInvalidStateError as ex:
             return self.response(400, message=str(ex))
-        except (ChartAccessDeniedError, DatasetAccessDeniedError,) as ex:
+        except (
+            ChartAccessDeniedError,
+            DatasetAccessDeniedError,
+        ) as ex:
             return self.response(403, message=str(ex))
         except (ChartNotFoundError, DatasetNotFoundError) as ex:
             return self.response(404, message=str(ex))

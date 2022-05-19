@@ -31,7 +31,7 @@ from superset.models.helpers import AuditMixinNullable, ImportExportMixin, Query
 from superset.models.slice import Slice
 from superset.superset_typing import FilterValue, FilterValues, QueryObjectDict
 from superset.utils import core as utils
-from superset.utils.core import GenericDataType
+from superset.utils.core import GenericDataType, MediumText
 
 METRIC_FORM_DATA_PARAMS = [
     "metric",
@@ -586,7 +586,7 @@ class BaseColumn(AuditMixinNullable, ImportExportMixin):
     type = Column(Text)
     groupby = Column(Boolean, default=True)
     filterable = Column(Boolean, default=True)
-    description = Column(Text)
+    description = Column(MediumText())
     is_dttm = None
 
     # [optional] Set this to support import/export functionality
@@ -672,7 +672,7 @@ class BaseMetric(AuditMixinNullable, ImportExportMixin):
     metric_name = Column(String(255), nullable=False)
     verbose_name = Column(String(1024))
     metric_type = Column(String(32))
-    description = Column(Text)
+    description = Column(MediumText())
     d3format = Column(String(128))
     warning_text = Column(Text)
 

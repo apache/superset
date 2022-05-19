@@ -126,10 +126,10 @@ const DatasetModal: FunctionComponent<DatasetModalProps> = ({
           formMode
           database={currentDatabase}
           schema={currentSchema}
-          tableName={currentTableName}
+          tableValue={currentTableName}
           onDbChange={onDbChange}
           onSchemaChange={onSchemaChange}
-          onTableChange={onTableChange}
+          onTableSelectChange={onTableChange}
           handleError={addDangerToast}
         />
       </TableSelectorContainer>

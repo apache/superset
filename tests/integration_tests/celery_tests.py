@@ -130,8 +130,8 @@ def cta_result(ctas_method: CtasMethod):
     if backend() != "presto":
         return [], []
     if ctas_method == CtasMethod.TABLE:
-        return [{"rows": 1}], [{"name": "rows", "type": "BIGINT", "is_date": False}]
-    return [{"result": True}], [{"name": "result", "type": "BOOLEAN", "is_date": False}]
+        return [{"rows": 1}], [{"name": "rows", "type": "BIGINT", "is_dttm": False}]
+    return [{"result": True}], [{"name": "result", "type": "BOOLEAN", "is_dttm": False}]
 
 
 # TODO(bkyryliuk): quote table and schema names for all databases
@@ -256,7 +256,11 @@ def test_run_async_query_cta_config(setup_sqllab, ctas_method):
         return
     tmp_table_name = f"{TEST_ASYNC_CTA_CONFIG}_{ctas_method.lower()}"
     result = run_sql(
-        QUERY, cta=True, ctas_method=ctas_method, async_=True, tmp_table=tmp_table_name,
+        QUERY,
+        cta=True,
+        ctas_method=ctas_method,
+        async_=True,
+        tmp_table=tmp_table_name,
     )
 
     query = wait_for_success(result)

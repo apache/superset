@@ -28,7 +28,6 @@ down_revision = "ab104a954a8f"
 
 import sqlalchemy as sa
 from alembic import op
-from sqlalchemy.dialects import postgresql
 
 
 def upgrade():
@@ -42,8 +41,14 @@ def upgrade():
         sa.Column("bundle_url", sa.String(length=1000), nullable=False),
         sa.Column("created_by_fk", sa.Integer(), nullable=True),
         sa.Column("changed_by_fk", sa.Integer(), nullable=True),
-        sa.ForeignKeyConstraint(["changed_by_fk"], ["ab_user.id"],),
-        sa.ForeignKeyConstraint(["created_by_fk"], ["ab_user.id"],),
+        sa.ForeignKeyConstraint(
+            ["changed_by_fk"],
+            ["ab_user.id"],
+        ),
+        sa.ForeignKeyConstraint(
+            ["created_by_fk"],
+            ["ab_user.id"],
+        ),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("key"),
         sa.UniqueConstraint("name"),

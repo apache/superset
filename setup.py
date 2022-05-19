@@ -23,8 +23,8 @@ import sys
 from setuptools import find_packages, setup
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
-
 PACKAGE_JSON = os.path.join(BASE_DIR, "superset-frontend", "package.json")
+
 with open(PACKAGE_JSON, "r") as package_file:
     version_string = json.load(package_file)["version"]
 
@@ -140,7 +140,7 @@ setup(
         "excel": ["xlrd>=1.2.0, <1.3"],
         "firebird": ["sqlalchemy-firebird>=0.7.0, <0.8"],
         "firebolt": ["firebolt-sqlalchemy>=0.0.1"],
-        "gsheets": ["shillelagh[gsheetsapi]>=1.0.3, <2"],
+        "gsheets": ["shillelagh[gsheetsapi]>=1.0.11, <2"],
         "hana": ["hdbcli==2.4.162", "sqlalchemy_hana==0.4.0"],
         "hive": ["pyhive[hive]>=0.6.1", "tableschema", "thrift>=0.11.0, <1.0.0"],
         "impala": ["impyla>0.16.2, <0.17"],
@@ -163,7 +163,7 @@ setup(
             "snowflake-sqlalchemy==1.2.4"
         ],  # PINNED! 1.2.5 introduced breaking changes requiring sqlalchemy>=1.4.0
         "teradata": ["teradatasql>=16.20.0.23"],
-        "thumbnails": ["Pillow>=8.3.2, <10.0.0"],
+        "thumbnails": ["Pillow>=9.0.1, <10.0.0"],
         "vertica": ["sqlalchemy-vertica-python>=0.5.9, < 0.6"],
         "netezza": ["nzalchemy>=11.0.2"],
     },

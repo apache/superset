@@ -28,7 +28,7 @@ export const titleControls: ControlPanelSectionConfig = {
   tabOverride: 'customize',
   expanded: true,
   controlSetRows: [
-    [<h1 className="section-header">{t('X Axis')}</h1>],
+    [<div className="section-header">{t('X Axis')}</div>],
     [
       {
         name: 'x_axis_title',
@@ -56,7 +56,7 @@ export const titleControls: ControlPanelSectionConfig = {
         },
       },
     ],
-    [<h1 className="section-header">{t('Y Axis')}</h1>],
+    [<div className="section-header">{t('Y Axis')}</div>],
     [
       {
         name: 'y_axis_title',

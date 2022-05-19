@@ -114,7 +114,10 @@ def prophet(  # pylint: disable=too-many-arguments
         raise InvalidPostProcessingError(_("Time grain missing"))
     if time_grain not in PROPHET_TIME_GRAIN_MAP:
         raise InvalidPostProcessingError(
-            _("Unsupported time grain: %(time_grain)s", time_grain=time_grain,)
+            _(
+                "Unsupported time grain: %(time_grain)s",
+                time_grain=time_grain,
+            )
         )
     freq = PROPHET_TIME_GRAIN_MAP[time_grain]
     # check type at runtime due to marhsmallow schema not being able to handle

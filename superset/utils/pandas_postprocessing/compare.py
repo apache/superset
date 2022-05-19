@@ -22,7 +22,7 @@ from pandas import DataFrame
 
 from superset.constants import PandasPostprocessingCompare
 from superset.exceptions import InvalidPostProcessingError
-from superset.utils.core import TIME_COMPARISION
+from superset.utils.core import TIME_COMPARISON
 from superset.utils.pandas_postprocessing.utils import validate_column_args
 
 
@@ -65,17 +65,16 @@ def compare(  # pylint: disable=too-many-arguments
         c_df = df.loc[:, [c_col]]
         c_df.rename(columns={c_col: "__intermediate"}, inplace=True)
         if compare_type == PandasPostprocessingCompare.DIFF:
-            diff_df = c_df - s_df
+            diff_df = s_df - c_df
         elif compare_type == PandasPostprocessingCompare.PCT:
-            # https://en.wikipedia.org/wiki/Relative_change_and_difference#Percentage_change
-            diff_df = ((c_df - s_df) / s_df).astype(float).round(precision)
+            diff_df = ((s_df - c_df) / c_df).astype(float).round(precision)
         else:
             # compare_type == "ratio"
-            diff_df = (c_df / s_df).astype(float).round(precision)
+            diff_df = (s_df / c_df).astype(float).round(precision)
 
         diff_df.rename(
             columns={
-                "__intermediate": TIME_COMPARISION.join([compare_type, s_col, c_col])
+                "__intermediate": TIME_COMPARISON.join([compare_type, s_col, c_col])
             },
             inplace=True,
         )

@@ -85,7 +85,8 @@ class BaseFilterSetCommand:
                     )
         except NotAuthorizedException as err:
             raise FilterSetForbiddenError(
-                str(self._filter_set_id), "user not authorized to access the filterset",
+                str(self._filter_set_id),
+                "user not authorized to access the filterset",
             ) from err
         except FilterSetForbiddenError as err:
             raise err

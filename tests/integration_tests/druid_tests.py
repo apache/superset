@@ -290,7 +290,7 @@ class TestDruid(SupersetTestCase):
             .one()
         )
         # columns and metrics are not deleted if config is changed as
-        # user could define his own dimensions / metrics and want to keep them
+        # user could define their own dimensions / metrics and want to keep them
         assert set([c.column_name for c in druid_ds.columns]) == set(
             ["affiliate_id", "campaign", "first_seen", "second_seen"]
         )

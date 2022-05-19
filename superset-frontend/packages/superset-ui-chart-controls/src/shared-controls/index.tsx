@@ -34,6 +34,7 @@
  * control interface.
  */
 import React from 'react';
+import { isEmpty } from 'lodash';
 import {
   FeatureFlag,
   t,
@@ -43,7 +44,6 @@ import {
   SequentialScheme,
   legacyValidateInteger,
   validateNonEmpty,
-  JsonArray,
   ComparisionType,
 } from '@superset-ui/core';
 
@@ -103,7 +103,7 @@ type SelectDefaultOption = {
 
 const groupByControl: SharedControlConfig<'SelectControl', ColumnMeta> = {
   type: 'SelectControl',
-  label: t('Group by'),
+  label: t('Dimensions'),
   multi: true,
   freeForm: true,
   clearable: true,
@@ -352,7 +352,7 @@ const order_desc: SharedControlConfig<'CheckboxControl'> = {
   visibility: ({ controls }) =>
     Boolean(
       controls?.timeseries_limit_metric.value &&
-        (controls?.timeseries_limit_metric.value as JsonArray).length,
+        !isEmpty(controls?.timeseries_limit_metric.value),
     ),
 };
 
@@ -403,7 +403,7 @@ const sort_by: SharedControlConfig<'MetricsControl'> = {
 
 const series: typeof groupByControl = {
   ...groupByControl,
-  label: t('Series'),
+  label: t('Dimensions'),
   multi: false,
   default: null,
   description: t(

@@ -37,7 +37,9 @@ if TYPE_CHECKING:
 
 class TestGetFilterSetsApi:
     def test_with_dashboard_not_exists__404(
-        self, not_exists_dashboard_id: int, client: FlaskClient[Any],
+        self,
+        not_exists_dashboard_id: int,
+        client: FlaskClient[Any],
     ):
         # arrange
         login(client, "admin")

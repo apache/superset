@@ -201,10 +201,23 @@ export type PostProcessingResample =
   | _PostProcessingResample
   | DefaultPostProcessing;
 
+interface _PostProcessingRename {
+  operation: 'rename';
+  options: {
+    columns: Record<string, string | null>;
+    inplace?: boolean;
+    level?: number | string;
+  };
+}
+export type PostProcessingRename =
+  | _PostProcessingRename
+  | DefaultPostProcessing;
+
 interface _PostProcessingFlatten {
   operation: 'flatten';
   options?: {
     reset_index?: boolean;
+    drop_levels?: number[] | string[];
   };
 }
 export type PostProcessingFlatten =
@@ -227,6 +240,7 @@ export type PostProcessingRule =
   | PostProcessingCompare
   | PostProcessingSort
   | PostProcessingResample
+  | PostProcessingRename
   | PostProcessingFlatten;
 
 export function isPostProcessingAggregation(

@@ -595,15 +595,16 @@ class TestRolePermission(SupersetTestCase):
         for pvm in current_app.config["FAB_ROLES"]["TestRole"]:
             assert pvm in public_role_resource_names
 
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_sqllab_gamma_user_schema_access_to_sqllab(self):
         session = db.session
-
         example_db = session.query(Database).filter_by(database_name="examples").one()
         example_db.expose_in_sqllab = True
         session.commit()
 
         arguments = {
             "keys": ["none"],
+            "columns": ["expose_in_sqllab"],
             "filters": [{"col": "expose_in_sqllab", "opr": "eq", "value": True}],
             "order_columns": "database_name",
             "order_direction": "asc",
@@ -888,7 +889,9 @@ class TestRolePermission(SupersetTestCase):
             ["AuthDBView", "login"],
             ["AuthDBView", "logout"],
             ["CurrentUserRestApi", "get_me"],
+            # TODO (embedded) remove Dashboard:embedded after uuids have been shipped
             ["Dashboard", "embedded"],
+            ["EmbeddedView", "embedded"],
             ["R", "index"],
             ["Superset", "log"],
             ["Superset", "theme"],
