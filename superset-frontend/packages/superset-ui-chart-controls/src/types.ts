@@ -413,3 +413,9 @@ export function isAdhocColumn(
 ): column is AdhocColumn {
   return 'label' in column && 'sqlExpression' in column;
 }
+
+export function isControlPanelSectionConfig(
+  section: ControlPanelSectionConfig | null,
+): section is ControlPanelSectionConfig {
+  return section !== null;
+}
