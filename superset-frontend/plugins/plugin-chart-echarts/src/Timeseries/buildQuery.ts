@@ -20,9 +20,9 @@ import {
   buildQueryContext,
   DTTM_ALIAS,
   ensureIsArray,
-  QueryFormData,
   normalizeOrderBy,
   PostProcessingPivot,
+  QueryFormData,
 } from '@superset-ui/core';
 import {
   rollingWindowOperator,
@@ -94,13 +94,13 @@ export default function buildQuery(formData: QueryFormData) {
           resampleOperator(formData, baseQueryObject),
           renameOperator(formData, {
             ...baseQueryObject,
-            ...{ is_timeseries },
+            is_timeseries,
           }),
           contributionOperator(formData, baseQueryObject),
           flattenOperator(formData, baseQueryObject),
           // todo: move prophet before flatten
           prophetOperator(formData, baseQueryObject),
-        ].filter(op => op),
+        ].filter(Boolean),
       },
     ];
   });
