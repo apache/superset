@@ -27,6 +27,9 @@ import { Tooltip } from 'src/components/Tooltip';
 import VizTypeGallery, {
   MAX_ADVISABLE_VIZ_GALLERY_WIDTH,
 } from 'src/explore/components/controls/VizTypeControl/VizTypeGallery';
+import { getUrlParam } from '../utils/urlUtils';
+import { URL_PARAMS } from '../constants';
+import { isNullish } from '../utils/common';
 
 type Dataset = {
   id: number;
@@ -195,10 +198,12 @@ export default class AddSliceContainer extends React.PureComponent<
   }
 
   exploreUrl() {
+    const dashboardId = getUrlParam(URL_PARAMS.dashboardId);
     const formData = encodeURIComponent(
       JSON.stringify({
         viz_type: this.state.visType,
         datasource: this.state.datasource?.value,
+        ...(!isNullish(dashboardId) && { dashboardId }),
       }),
     );
     return `/superset/explore/?form_data=${formData}`;
