@@ -90,15 +90,9 @@ class AdvancedDataTypeRestApi(BaseApi):
             500:
               $ref: '#/components/responses/500'
         """
-        items = kwargs["rison"]
-        advanced_data_type = items.get("type")
-        if not advanced_data_type:
-            return self.response(
-                400, message=_("Missing advanced data type in request")
-            )
-        values = items["values"]
-        if not values:
-            return self.response(400, message=_("Missing values in request"))
+        item = kwargs["rison"]
+        advanced_data_type = item["type"]
+        values = item["values"]
         addon = ADVANCED_DATA_TYPES.get(advanced_data_type)
         if not addon:
             return self.response(

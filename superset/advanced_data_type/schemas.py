@@ -19,16 +19,16 @@ Schemas for advanced data types
 """
 from marshmallow import fields, Schema
 
-
 advanced_data_type_convert_schema = {
-    "type": "array",
-    "items": {
-        "type": "object",
-        "properties": {
-            "type": {"type": "string"},
-            "values": {"type": "array"},
+    "type": "object",
+    "properties": {
+        "type": {"type": "string"},
+        "values": {
+            "type": "array",
+            "minItems": 1,
         },
     },
+    "required": ["types", "values"],
 }
 
 
