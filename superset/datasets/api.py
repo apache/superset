@@ -166,6 +166,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     show_columns = show_select_columns + [
         "columns.type_generic",
         "database.backend",
+        "columns.advanced_data_type",
         "is_managed_externally",
     ]
     add_model_schema = DatasetPostSchema()
