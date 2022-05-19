@@ -218,6 +218,7 @@ export default class ResultSet extends React.PureComponent<
       const { columns } = this.props.query.results;
       // Added compute logic to stop user from being able to Save & Explore
       const { showSaveDatasetModal } = this.state;
+      const { query } = this.props;
 
       return (
         <ResultSetControls>
@@ -229,7 +230,7 @@ export default class ResultSet extends React.PureComponent<
             modalDescription={t(
               'Save this query as a virtual dataset to continue exploring',
             )}
-            datasource={this.props.query}
+            datasource={query}
           />
           <ResultSetButtons>
             {this.props.visualize &&
@@ -240,10 +241,7 @@ export default class ResultSet extends React.PureComponent<
                 />
               )}
             {this.props.csv && (
-              <Button
-                buttonSize="small"
-                href={`/superset/csv/${this.props.query.id}`}
-              >
+              <Button buttonSize="small" href={`/superset/csv/${query.id}`}>
                 <i className="fa fa-file-text-o" /> {t('Download to CSV')}
               </Button>
             )}
