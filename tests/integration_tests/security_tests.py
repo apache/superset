@@ -298,6 +298,8 @@ class TestRolePermission(SupersetTestCase):
                 "datasource_access", f"[None].[tmp_perm_table](id:{stored_table.id})"
             )
         )
+        session.delete(table)
+        session.commit()
 
     def test_set_perm_database(self):
         session = db.session
