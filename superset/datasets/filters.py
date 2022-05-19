@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from typing import Any
+
 from flask_babel import lazy_gettext as _
 from sqlalchemy import not_, or_
 from sqlalchemy.orm.query import Query
@@ -33,3 +35,20 @@ class DatasetIsNullOrEmptyFilter(BaseFilter):  # pylint: disable=too-few-public-
             filter_clause = not_(filter_clause)
 
         return query.filter(filter_clause)
+
+
+class DatasetCertifiedFilter(BaseFilter):  # pylint: disable=too-few-public-methods
+    name = _("Is certified")
+    arg_name = "dataset_is_certified"
+
+    def apply(self, query: Query, value: Any) -> Query:
+        if value is True:
+            return query.filter(SqlaTable.extra.ilike("%certification%"))
+        if value is False:
+            return query.filter(
+                or_(
+                    SqlaTable.extra.notlike("%certification%"),
+                    SqlaTable.extra.is_(None),
+                )
+            )
+        return query

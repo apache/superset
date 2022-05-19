@@ -27,7 +27,6 @@ from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
 from marshmallow import ValidationError
-from sqlalchemy import not_
 
 from superset import event_logger, is_feature_enabled
 from superset.commands.importers.exceptions import NoValidFilesFoundError
@@ -53,7 +52,7 @@ from superset.datasets.commands.importers.dispatcher import ImportDatasetsComman
 from superset.datasets.commands.refresh import RefreshDatasetCommand
 from superset.datasets.commands.update import UpdateDatasetCommand
 from superset.datasets.dao import DatasetDAO
-from superset.datasets.filters import DatasetIsNullOrEmptyFilter
+from superset.datasets.filters import DatasetCertifiedFilter, DatasetIsNullOrEmptyFilter
 from superset.datasets.schemas import (
     DatasetPostSchema,
     DatasetPutSchema,
@@ -73,24 +72,6 @@ from superset.views.base_api import (
 from superset.views.filters import FilterRelatedOwners
 
 logger = logging.getLogger(__name__)
-
-from flask_babel import lazy_gettext as _
-from sqlalchemy.orm.query import Query
-
-from superset.views.base import BaseFilter
-
-
-class DatasetCertifiedFilter(BaseFilter):
-    name = _("Is certified")
-    arg_name = "dataset_is_certified"
-
-    def apply(self, query: Query, value: Any) -> Query:
-        breakpoint()
-        if value is True:
-            return query.filter(SqlaTable.extra.ilike("%certification%"))
-        if value is False:
-            return query.exclude(SqlaTable.extra.ilike("%certification%"))
-        return query
 
 
 class DatasetRestApi(BaseSupersetModelRestApi):
@@ -216,8 +197,9 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     }
     search_filters = {
         "sql": [DatasetIsNullOrEmptyFilter],
-        "sql": [DatasetCertifiedFilter],
+        "id": [DatasetCertifiedFilter],
     }
+    search_columns = ["id", "sql"]
     filter_rel_fields = {"database": [["id", DatabaseFilter, lambda: []]]}
     allowed_rel_fields = {"database", "owners"}
     allowed_distinct_fields = {"schema"}
