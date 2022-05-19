@@ -30,6 +30,7 @@ import {
   formatSelectOptionsForRange,
   sections,
   dndEntity,
+  Dataset,
 } from '@superset-ui/chart-controls';
 
 const sortAxisChoices = [
@@ -44,7 +45,7 @@ const allColumns = {
   default: null,
   description: t('Columns to display'),
   mapStateToProps: (state: ControlPanelState) => ({
-    choices: columnChoices(state.datasource),
+    choices: columnChoices(state.datasource as Dataset),
   }),
   validators: [validateNonEmpty],
 };
