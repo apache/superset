@@ -21,6 +21,7 @@ import { CtasEnum } from 'src/SqlLab/actions/sqlLab';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { ToastType } from 'src/components/MessageToasts/types';
 import { DatasourceType } from '@superset-ui/core';
+import { ExploreRootState } from 'src/explore/types';
 
 // same as superset.result_set.ResultSetColumnType
 export type Column = {
@@ -125,32 +126,6 @@ export type SqlLabRootState = {
     queriesLastUpdate: number;
     user: UserWithPermissionsAndRoles;
     errorMessage: string | null;
-  };
-  localStorageUsageInKilobytes: number;
-  messageToasts: toastState[];
-  common: {};
-};
-
-export type ExploreRootState = {
-  explore: {
-    can_add: boolean;
-    can_download: boolean;
-    common: object;
-    controls: object;
-    controlsTransferred: object;
-    datasource: object;
-    datasource_id: number;
-    datasource_type: string;
-    force: boolean;
-    forced_height: object;
-    form_data: object;
-    isDatasourceMetaLoading: boolean;
-    isStarred: boolean;
-    slice: object;
-    sliceName: string;
-    standalone: boolean;
-    timeFormattedColumns: object;
-    user: UserWithPermissionsAndRoles;
   };
   localStorageUsageInKilobytes: number;
   messageToasts: toastState[];
