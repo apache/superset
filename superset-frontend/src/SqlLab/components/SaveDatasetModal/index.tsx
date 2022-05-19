@@ -30,7 +30,7 @@ import {
   makeApi,
   JsonResponse,
   JsonObject,
-  // DatasourceType,
+  Query,
 } from '@superset-ui/core';
 import { useSelector, useDispatch } from 'react-redux';
 import moment from 'moment';
@@ -43,7 +43,6 @@ import {
   EXPLORE_CHART_DEFAULT,
   DatasetOwner,
   DatasetOptionAutocomplete,
-  Query,
   SqlLabExploreRootState,
   getInitialState,
 } from 'src/SqlLab/types';
