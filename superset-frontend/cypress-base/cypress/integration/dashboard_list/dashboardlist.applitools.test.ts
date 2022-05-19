@@ -16,16 +16,31 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-// This function is called when a project is opened or re-opened (e.g. due to
-// the project's config changing)
+import { DASHBOARD_LIST } from './dashboard_list.helper';
 
-const { isFileExist, findFiles } = require('cy-verify-downloads');
+describe('dashboard list view', () => {
+  beforeEach(() => {
+    cy.login();
+    cy.visit(DASHBOARD_LIST);
+  });
 
-module.exports = (on, config) => {
-  // eslint-disable-next-line global-require
-  require('@cypress/code-coverage/task')(on, config);
-  on('task', { isFileExist, findFiles });
-  return config;
-};
+  afterEach(() => {
+    cy.eyesClose();
+  });
 
-require('@applitools/eyes-cypress')(module);
+  it('should load the Dashboards list', () => {
+    cy.get('[aria-label="list-view"]').click();
+    cy.eyesOpen({
+      testName: 'Dashboards list-view',
+    });
+    cy.eyesCheckWindow('Dashboards loaded');
+  });
+
+  it('should load the Dashboards card list', () => {
+    cy.get('[aria-label="card-view"]').click();
+    cy.eyesOpen({
+      testName: 'Dashboards card-view',
+    });
+    cy.eyesCheckWindow('Dashboards loaded');
+  });
+});

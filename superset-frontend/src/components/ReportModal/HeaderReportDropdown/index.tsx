@@ -44,7 +44,7 @@ import {
   deleteActiveReport,
 } from 'src/reports/actions/reports';
 import { reportSelector } from 'src/views/CRUD/hooks';
-import { MenuItemWithCheckboxContainer } from 'src/explore/components/useExploreAdditionalActionsMenu/index';
+import { MenuItemWithCheckboxContainer } from 'src/explore/components/useExploreAdditionalActionsMenu';
 
 const deleteColor = (theme: SupersetTheme) => css`
   color: ${theme.colors.error.base};
