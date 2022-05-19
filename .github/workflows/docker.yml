@@ -1,7 +1,6 @@
 name: Docker
 
 on:
-  workflow_dispatch:
   push:
     branches:
       - 'master'
@@ -16,41 +15,28 @@ jobs:
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@v2
-        # with:
-        #   persist-credentials: false
-
-      # - shell: bash
-      #   env:
-      #     DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
-      #     DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
-      #   run: |
-      #     .github/workflows/docker_build_push.sh
-
-      # - name: Build ephemeral env image
-      #   if: github.event_name == 'pull_request'
-      #   run: |
-      #     mkdir -p ./build
-      #     echo ${{ github.sha }} > ./build/SHA
-      #     echo ${{ github.event.pull_request.number }} > ./build/PR-NUM
-      #     docker build --target ci -t ${{ github.sha }} -t "pr-${{ github.event.pull_request.number }}" .
-      #     docker save ${{ github.sha }} | gzip > ./build/${{ github.sha }}.tar.gz
-
-      # - name: Upload build artifacts
-      #   if: github.event_name == 'pull_request'
-      #   uses: actions/upload-artifact@v2
-      #   with:
-      #     name: build
-      #     path: build/
-
-      - name: Login to GitHub Packages
-        uses: docker/login-action@v1
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          persist-credentials: false
 
-      - name: Build and push
-        uses: docker/build-push-action@v2
+      - shell: bash
+        env:
+          DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          .github/workflows/docker_build_push.sh
+
+      - name: Build ephemeral env image
+        if: github.event_name == 'pull_request'
+        run: |
+          mkdir -p ./build
+          echo ${{ github.sha }} > ./build/SHA
+          echo ${{ github.event.pull_request.number }} > ./build/PR-NUM
+          docker build --target ci -t ${{ github.sha }} -t "pr-${{ github.event.pull_request.number }}" .
+          docker save ${{ github.sha }} | gzip > ./build/${{ github.sha }}.tar.gz
+
+      - name: Upload build artifacts
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v2
         with:
-          push: true
-          tags: ghcr.io/ofs-digital/superset:${{ github.sha }}
+          name: build
+          path: build/
