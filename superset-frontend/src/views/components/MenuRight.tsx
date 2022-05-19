@@ -166,7 +166,7 @@ const RightMenu = ({
     },
     {
       label: t('Chart'),
-      url: !Number.isNaN(dashboardId)
+      url: Number.isInteger(dashboardId)
         ? `/chart/add?dashboard_id=${dashboardId}`
         : '/chart/add',
       icon: 'fa-fw fa-bar-chart',
