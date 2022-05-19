@@ -24,6 +24,7 @@ import {
 import {
   ControlPanelConfig,
   expandControlConfig,
+  isControlPanelSectionConfig,
 } from '@superset-ui/chart-controls';
 
 import * as SECTIONS from 'src/explore/controlPanels/sections';
@@ -60,8 +61,7 @@ const getMemoizedSectionsToRender = memoizeOne(
         : ['granularity_sqla', 'time_grain_sqla'];
 
     return [datasourceAndVizType]
-      .concat(controlPanelSections)
-      .filter(section => !!section)
+      .concat(controlPanelSections.filter(isControlPanelSectionConfig))
       .map(section => {
         const { controlSetRows } = section;
         return {
