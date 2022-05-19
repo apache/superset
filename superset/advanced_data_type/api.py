@@ -21,7 +21,10 @@ from flask.wrappers import Response
 from flask_appbuilder.api import BaseApi, expose, permission_name, protect, rison, safe
 from flask_babel import lazy_gettext as _
 
-from superset.advanced_data_type.schemas import advanced_data_type_convert_schema
+from superset.advanced_data_type.schemas import (
+    advanced_data_type_convert_schema,
+    AdvancedDataTypeSchema,
+)
 from superset.advanced_data_type.types import AdvancedDataTypeResponse
 from superset.extensions import event_logger
 
@@ -46,7 +49,7 @@ class AdvancedDataTypeRestApi(BaseApi):
     apispec_parameter_schemas = {
         "advanced_data_type_convert_schema": advanced_data_type_convert_schema,
     }
-    openapi_spec_component_schemas = (AdvancedDataTypeResponse,)
+    openapi_spec_component_schemas = (AdvancedDataTypeSchema,)
 
     @protect()
     @safe
@@ -77,9 +80,7 @@ class AdvancedDataTypeRestApi(BaseApi):
               content:
                 application/json:
                   schema:
-                    type: object
-                    properties:
-                      $ref: '#/components/schemas/AdvancedDataTypeResponse'
+                    $ref: '#/components/schemas/AdvancedDataTypeSchema'
             400:
               $ref: '#/components/responses/400'
             401:
@@ -117,7 +118,7 @@ class AdvancedDataTypeRestApi(BaseApi):
     @protect()
     @safe
     @expose("/types", methods=["GET"])
-    @permission_name("get")
+    @permission_name("read")
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get",
         log_to_statsd=False,  # pylint: disable-arguments-renamed
@@ -140,8 +141,8 @@ class AdvancedDataTypeRestApi(BaseApi):
                     properties:
                       result:
                         type: array
-            400:
-              $ref: '#/components/responses/400'
+                        items:
+                          type: string
             401:
               $ref: '#/components/responses/401'
             404:

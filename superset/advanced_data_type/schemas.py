@@ -17,6 +17,8 @@
 """
 Schemas for advanced data types
 """
+from marshmallow import fields, Schema
+
 
 advanced_data_type_convert_schema = {
     "type": "array",
@@ -28,3 +30,16 @@ advanced_data_type_convert_schema = {
         },
     },
 }
+
+
+class AdvancedDataTypeSchema(Schema):
+    """
+    AdvancedDataType response schema
+    """
+
+    error_message = fields.String()
+    values = fields.List(fields.String(description="parsed value (can be any value)"))
+    display_value = fields.String(
+        description="The string representation of the parsed values"
+    )
+    valid_filter_operators = fields.List(fields.String())
