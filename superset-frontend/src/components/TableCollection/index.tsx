@@ -172,6 +172,7 @@ export const Table = styled.table`
     }
 
     .table-cell {
+      font-feature-settings: 'tnum' 1;
       text-overflow: ellipsis;
       overflow: hidden;
       max-width: 320px;
