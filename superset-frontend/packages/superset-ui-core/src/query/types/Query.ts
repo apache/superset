@@ -293,7 +293,7 @@ export type Query = {
   state: QueryState;
   tab: string | null;
   tempSchema: string | null;
-  tempTable: string | null;
+  tempTable: string;
   trackingUrl: string | null;
   templateParams: any;
   rows: number;
