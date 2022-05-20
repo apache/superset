@@ -90,7 +90,7 @@ const createProps = (viz_type = 'sunburst') => ({
   chartStatus: 'rendered',
   showControls: true,
   supersetCanShare: true,
-  formData: { slice_id: 1, datasource: '58__table' },
+  formData: { slice_id: 1, datasource: '58__table', viz_type: 'sunburst' },
 });
 
 test('Should render', () => {
