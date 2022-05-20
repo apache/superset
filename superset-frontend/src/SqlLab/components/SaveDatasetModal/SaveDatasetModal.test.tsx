@@ -20,14 +20,14 @@ import React from 'react';
 import { Query } from '@superset-ui/core';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { render, screen } from 'spec/helpers/testing-library';
-import { query } from 'src/SqlLab/fixtures';
+import { testQuery } from 'src/SqlLab/fixtures';
 
 const mockedProps = {
   visible: true,
   onHide: () => {},
   buttonTextOnSave: 'Save',
   buttonTextOnOverwrite: 'Overwrite',
-  datasource: query as Query,
+  datasource: testQuery as Query,
 };
 
 describe('SaveDatasetModal RTL', () => {

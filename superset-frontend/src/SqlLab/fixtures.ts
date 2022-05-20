@@ -17,9 +17,9 @@
  * under the License.
  */
 import sinon from 'sinon';
-import { DatasourceType, Query } from '@superset-ui/core';
 import * as actions from 'src/SqlLab/actions/sqlLab';
 import { ColumnKeyTypeType } from 'src/SqlLab/components/ColumnElement';
+import { DatasourceType, Query } from '@superset-ui/core';
 
 export const mockedActions = sinon.stub({ ...actions });
 
@@ -562,14 +562,25 @@ export const initialState = {
   },
 };
 
-export const query: Query = {
+export const query = {
   id: 'clientId2353',
   dbId: 1,
   sql: 'SELECT * FROM something',
   sqlEditorId: defaultQueryEditor.id,
   tab: 'unimportant',
   tempTable: null,
-  // runAsync: false,
+  runAsync: false,
+  ctas: false,
+  cached: false,
+};
+
+export const testQuery: Query = {
+  id: 'clientId2353',
+  dbId: 1,
+  sql: 'SELECT * FROM something',
+  sqlEditorId: defaultQueryEditor.id,
+  tab: 'unimportant',
+  tempTable: '',
   ctas: false,
   cached: false,
   errorMessage: null,
