@@ -19,10 +19,10 @@
 /* eslint camelcase: 0 */
 import { DatasourceMeta } from '@superset-ui/chart-controls';
 import {
+  t,
+  SupersetClient,
   DatasourceType,
   QueryFormData,
-  SupersetClient,
-  t,
 } from '@superset-ui/core';
 import { Dispatch } from 'redux';
 import {
@@ -31,53 +31,45 @@ import {
 } from 'src/components/MessageToasts/actions';
 import { Slice } from 'src/types/Chart';
 
-const FAVESTAR_BASE_URL = `${process.env.APP_PREFIX}/superset/favstar/slice`;
+const FAVESTAR_BASE_URL = '/superset/favstar/slice';
 
 export const SET_DATASOURCE_TYPE = 'SET_DATASOURCE_TYPE';
-
 export function setDatasourceType(datasourceType: DatasourceType) {
   return { type: SET_DATASOURCE_TYPE, datasourceType };
 }
 
 export const SET_DATASOURCE = 'SET_DATASOURCE';
-
 export function setDatasource(datasource: DatasourceMeta) {
   return { type: SET_DATASOURCE, datasource };
 }
 
 export const SET_DATASOURCES = 'SET_DATASOURCES';
-
 export function setDatasources(datasources: DatasourceMeta[]) {
   return { type: SET_DATASOURCES, datasources };
 }
 
 export const POST_DATASOURCE_STARTED = 'POST_DATASOURCE_STARTED';
 export const FETCH_DATASOURCE_SUCCEEDED = 'FETCH_DATASOURCE_SUCCEEDED';
-
 export function fetchDatasourceSucceeded() {
   return { type: FETCH_DATASOURCE_SUCCEEDED };
 }
 
 export const FETCH_DATASOURCES_STARTED = 'FETCH_DATASOURCES_STARTED';
-
 export function fetchDatasourcesStarted() {
   return { type: FETCH_DATASOURCES_STARTED };
 }
 
 export const FETCH_DATASOURCES_SUCCEEDED = 'FETCH_DATASOURCES_SUCCEEDED';
-
 export function fetchDatasourcesSucceeded() {
   return { type: FETCH_DATASOURCES_SUCCEEDED };
 }
 
 export const TOGGLE_FAVE_STAR = 'TOGGLE_FAVE_STAR';
-
 export function toggleFaveStar(isStarred: boolean) {
   return { type: TOGGLE_FAVE_STAR, isStarred };
 }
 
 export const FETCH_FAVE_STAR = 'FETCH_FAVE_STAR';
-
 export function fetchFaveStar(sliceId: string) {
   return function (dispatch: Dispatch) {
     SupersetClient.get({
@@ -91,7 +83,6 @@ export function fetchFaveStar(sliceId: string) {
 }
 
 export const SAVE_FAVE_STAR = 'SAVE_FAVE_STAR';
-
 export function saveFaveStar(sliceId: string, isStarred: boolean) {
   return function (dispatch: Dispatch) {
     const urlSuffix = isStarred ? 'unselect' : 'select';
@@ -108,7 +99,6 @@ export function saveFaveStar(sliceId: string, isStarred: boolean) {
 }
 
 export const SET_FIELD_VALUE = 'SET_FIELD_VALUE';
-
 export function setControlValue(
   controlName: string,
   value: any,
@@ -118,19 +108,16 @@ export function setControlValue(
 }
 
 export const SET_EXPLORE_CONTROLS = 'UPDATE_EXPLORE_CONTROLS';
-
 export function setExploreControls(formData: QueryFormData) {
   return { type: SET_EXPLORE_CONTROLS, formData };
 }
 
 export const UPDATE_CHART_TITLE = 'UPDATE_CHART_TITLE';
-
 export function updateChartTitle(sliceName: string) {
   return { type: UPDATE_CHART_TITLE, sliceName };
 }
 
 export const CREATE_NEW_SLICE = 'CREATE_NEW_SLICE';
-
 export function createNewSlice(
   can_add: boolean,
   can_download: boolean,
@@ -149,32 +136,31 @@ export function createNewSlice(
 }
 
 export const SLICE_UPDATED = 'SLICE_UPDATED';
-
 export function sliceUpdated(slice: Slice) {
   return { type: SLICE_UPDATED, slice };
 }
 
-export const SET_TIME_FORMATTED_COLUMN = 'SET_TIME_FORMATTED_COLUMN';
-
-export function setTimeFormattedColumn(
+export const SET_ORIGINAL_FORMATTED_TIME_COLUMN =
+  'SET_ORIGINAL_FORMATTED_TIME_COLUMN';
+export function setOriginalFormattedTimeColumn(
   datasourceId: string,
   columnName: string,
 ) {
   return {
-    type: SET_TIME_FORMATTED_COLUMN,
+    type: SET_ORIGINAL_FORMATTED_TIME_COLUMN,
     datasourceId,
     columnName,
   };
 }
 
-export const UNSET_TIME_FORMATTED_COLUMN = 'UNSET_TIME_FORMATTED_COLUMN';
-
-export function unsetTimeFormattedColumn(
+export const UNSET_ORIGINAL_FORMATTED_TIME_COLUMN =
+  'UNSET_ORIGINAL_FORMATTED_TIME_COLUMN';
+export function unsetOriginalFormattedTimeColumn(
   datasourceId: string,
   columnIndex: number,
 ) {
   return {
-    type: UNSET_TIME_FORMATTED_COLUMN,
+    type: UNSET_ORIGINAL_FORMATTED_TIME_COLUMN,
     datasourceId,
     columnIndex,
   };
@@ -203,8 +189,8 @@ export const exploreActions = {
   updateChartTitle,
   createNewSlice,
   sliceUpdated,
-  setTimeFormattedColumn,
-  unsetTimeFormattedColumn,
+  setOriginalFormattedTimeColumn,
+  unsetOriginalFormattedTimeColumn,
   setForceQuery,
 };
 
