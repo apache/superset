@@ -208,6 +208,8 @@
   },
   "devDependencies": {
     "@applitools/eyes-storybook": "^3.27.6",
+    "@ag-grid-community/react": "^26.0.0",
+    "@ag-grid-enterprise/all-modules": "^26.0.0",
     "@babel/cli": "^7.16.0",
     "@babel/compat-data": "^7.15.0",
     "@babel/core": "^7.15.5",
