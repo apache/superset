@@ -39,6 +39,7 @@ from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.extensions import security_manager
 from superset.models.core import Database
 from superset.superset_typing import FlaskResponse
+from superset.utils.core import DatasourceType
 from superset.views.base import (
     api,
     BaseSupersetView,
@@ -155,7 +156,7 @@ class Datasource(BaseSupersetView):
 
         datasource = DatasourceDAO.get_datasource_by_name(
             session=db.session,
-            datasource_type=params["datasource_type"],
+            datasource_type=DatasourceType(params["datasource_type"]),
             database_name=params["database_name"],
             schema=params["schema_name"],
             datasource_name=params["table_name"],

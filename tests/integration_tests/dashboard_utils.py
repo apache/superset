@@ -27,7 +27,7 @@ from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from superset.utils.core import get_example_default_schema
+from superset.utils.core import DatasourceType, get_example_default_schema
 
 
 def get_table(
@@ -36,7 +36,7 @@ def get_table(
     schema: Optional[str] = None,
 ):
     schema = schema or get_example_default_schema()
-    table_source = DatasourceDAO.sources["table"]
+    table_source = DatasourceDAO.sources[DatasourceType.SQLATABLE]
     return (
         db.session.query(table_source)
         .filter_by(database_id=database.id, schema=schema, table_name=table_name)
@@ -55,7 +55,7 @@ def create_table_metadata(
 
     table = get_table(table_name, database, schema)
     if not table:
-        table_source = DatasourceDAO.sources["table"]
+        table_source = DatasourceDAO.sources[DatasourceType.SQLATABLE]
         table = table_source(schema=schema, table_name=table_name)
     if fetch_values_predicate:
         table.fetch_values_predicate = fetch_values_predicate

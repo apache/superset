@@ -39,7 +39,7 @@ from tests.integration_tests.fixtures.energy_dashboard import (
 )
 from tests.integration_tests.test_app import app  # isort:skip
 from superset import db, security_manager
-from superset.connectors.connector_registry import ConnectorRegistry
+from superset.datasource.dao import DatasourceDAO
 from superset.connectors.sqla.models import SqlaTable
 from superset.models import core as models
 from superset.models.datasource_access_request import DatasourceAccessRequest
@@ -90,7 +90,7 @@ SCHEMA_ACCESS_ROLE = "schema_access_role"
 
 
 def create_access_request(session, ds_type, ds_name, role_name, username):
-    ds_class = ConnectorRegistry.sources[ds_type]
+    ds_class = DatasourceDAO.sources[ds_type]
     # TODO: generalize datasource names
     if ds_type == "table":
         ds = session.query(ds_class).filter(ds_class.table_name == ds_name).first()
