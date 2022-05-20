@@ -20,8 +20,7 @@
 import moment from 'moment';
 import React from 'react';
 import PropTypes from 'prop-types';
-import { css, styled, t, getSharedLabelColor } from '@superset-ui/core';
-import ButtonGroup from 'src/components/ButtonGroup';
+import { css, t, getSharedLabelColor } from '@superset-ui/core';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import {
   LOG_ACTIONS_PERIODIC_RENDER_DASHBOARD,
@@ -30,9 +29,9 @@ import {
 } from 'src/logger/LogUtils';
 import Icons from 'src/components/Icons';
 import Button from 'src/components/Button';
+import { Tooltip } from 'src/components/Tooltip';
 import { safeStringify } from 'src/utils/safeStringify';
 import HeaderActionsDropdown from 'src/dashboard/components/Header/HeaderActionsDropdown';
-import HeaderReportDropdown from 'src/components/ReportModal/HeaderReportDropdown';
 import PublishedStatus from 'src/dashboard/components/PublishedStatus';
 import UndoRedoKeyListeners from 'src/dashboard/components/UndoRedoKeyListeners';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
@@ -127,18 +126,12 @@ const undoRedoStyle = theme => css`
   }
 `;
 
-const StyledUndo = styled(Icons.Undo)`
-  ${({ theme, emphasizeUndo, disabled }) => `
-    ${emphasizeUndo ? `color: ${theme.colors.grayscale.base};` : ''}
-    ${disabled ? `color: ${theme.colors.grayscale.light2};` : ''}
-  `}
+const undoRedoEmphasized = theme => css`
+  color: ${theme.colors.grayscale.base};
 `;
 
-const StyledRedo = styled(Icons.Redo)`
-  ${({ theme, emphasizeRedo, disabled }) => `
-    ${emphasizeRedo ? `color: ${theme.colors.grayscale.base};` : ''}
-    ${disabled ? `color: ${theme.colors.grayscale.light2};` : ''}
-  `}
+const undoRedoDisabled = theme => css`
+  color: ${theme.colors.grayscale.light2};
 `;
 
 class Header extends React.PureComponent {
@@ -156,6 +149,7 @@ class Header extends React.PureComponent {
       emphasizeUndo: false,
       emphasizeRedo: false,
       showingPropertiesModal: false,
+      isDropdownVisible: false,
     };
 
     this.handleChangeText = this.handleChangeText.bind(this);
@@ -167,6 +161,7 @@ class Header extends React.PureComponent {
     this.overwriteDashboard = this.overwriteDashboard.bind(this);
     this.showPropertiesModal = this.showPropertiesModal.bind(this);
     this.hidePropertiesModal = this.hidePropertiesModal.bind(this);
+    this.setIsDropdownVisible = this.setIsDropdownVisible.bind(this);
   }
 
   componentDidMount() {
@@ -210,6 +205,12 @@ class Header extends React.PureComponent {
       updateDashboardTitle(nextText);
       onChange();
     }
+  }
+
+  setIsDropdownVisible(visible) {
+    this.setState({
+      isDropdownVisible: visible,
+    });
   }
 
   handleCtrlY() {
@@ -464,7 +465,7 @@ class Header extends React.PureComponent {
           editableTitleProps={{
             title: dashboardTitle,
             canEdit: userCanEdit && editMode,
-            onSaveTitle: this.handleChangeText,
+            onSave: this.handleChangeText,
             placeholder: t('Add the name of the dashboard'),
             label: t('Dashboard title'),
             showTooltip: false,
@@ -498,24 +499,38 @@ class Header extends React.PureComponent {
                 >
                   {editMode && (
                     <div css={actionButtonsStyle}>
-                      <ButtonGroup className="m-r-5">
-                        <StyledUndo
-                          css={undoRedoStyle}
-                          onClick={onUndo}
-                          disabled={undoLength < 1}
-                          emphasizeUndo={this.state.emphasizeUndo}
-                          data-test="undo-action"
-                          iconSize="xl"
-                        />
-                        <StyledRedo
-                          css={undoRedoStyle}
-                          onClick={onRedo}
-                          emphasizeRedo={this.state.emphasizeRedo}
-                          disabled={redoLength < 1}
-                          data-test="redo-action"
-                          iconSize="xl"
-                        />
-                      </ButtonGroup>
+                      <div className="m-r-5">
+                        <Tooltip
+                          id="dashboard-undo-tooltip"
+                          title={t('Undo the action')}
+                        >
+                          <Icons.Undo
+                            css={[
+                              undoRedoStyle,
+                              this.state.emphasizeUndo && undoRedoEmphasized,
+                              undoLength < 1 && undoRedoDisabled,
+                            ]}
+                            onClick={undoLength && onUndo}
+                            data-test="undo-action"
+                            iconSize="xl"
+                          />
+                        </Tooltip>
+                        <Tooltip
+                          id="dashboard-redo-tooltip"
+                          title={t('Redo the action')}
+                        >
+                          <Icons.Redo
+                            css={[
+                              undoRedoStyle,
+                              this.state.emphasizeRedo && undoRedoEmphasized,
+                              redoLength < 1 && undoRedoDisabled,
+                            ]}
+                            onClick={redoLength && onRedo}
+                            data-test="redo-action"
+                            iconSize="xl"
+                          />
+                        </Tooltip>
+                      </div>
                       <Button
                         buttonSize="small"
                         className="m-r-5"
@@ -556,10 +571,6 @@ class Header extends React.PureComponent {
                       {t('Edit dashboard')}
                     </Button>
                   )}
-                  <HeaderReportDropdown
-                    key={dashboardInfo.id}
-                    dashboardId={dashboardInfo.id}
-                  />
                 </div>
               )}
             </div>
@@ -567,6 +578,8 @@ class Header extends React.PureComponent {
           menuDropdownProps={{
             getPopupContainer: triggerNode =>
               triggerNode.closest('.header-with-actions'),
+            visible: this.state.isDropdownVisible,
+            onVisibleChange: this.setIsDropdownVisible,
           }}
           additionalActionsMenu={
             <HeaderActionsDropdown
@@ -602,6 +615,8 @@ class Header extends React.PureComponent {
               refreshWarning={refreshWarning}
               lastModifiedTime={lastModifiedTime}
               filterboxMigrationState={filterboxMigrationState}
+              isDropdownVisible={this.state.isDropdownVisible}
+              setIsDropdownVisible={this.setIsDropdownVisible}
             />
           }
           showFaveStar={user?.userId && dashboardInfo?.id}
