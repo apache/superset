@@ -15,18 +15,14 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Type, Union
+from typing import Dict, List, Optional, Set, Type, Union
 
-from flask_babel import _
 from sqlalchemy import or_
 from sqlalchemy.orm import Session, subqueryload
-from sqlalchemy.orm.exc import NoResultFound
 
 from superset.connectors.sqla.models import SqlaTable
 from superset.dao.base import BaseDAO
 from superset.dao.exceptions import DatasourceNotFound, DatasourceTypeNotSupportedError
-from superset.datasets.commands.exceptions import DatasetNotFoundError
 from superset.datasets.models import Dataset
 from superset.models.core import Database
 from superset.models.sql_lab import Query, SavedQuery

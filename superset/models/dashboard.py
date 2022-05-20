@@ -418,7 +418,7 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
             copied_dashboards.append(copied_dashboard)
 
         eager_datasources = []
-        for datasource_id, datasource_type in datasource_ids:
+        for datasource_id, _ in datasource_ids:
             eager_datasource = DatasourceDAO.get_eager_sqlatable_datasource(
                 db.session, datasource_id
             )
