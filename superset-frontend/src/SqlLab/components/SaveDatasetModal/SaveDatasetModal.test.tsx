@@ -35,13 +35,11 @@ describe('SaveDatasetModal RTL', () => {
     render(<SaveDatasetModal {...mockedProps} />, { useRedux: true });
 
     const saveRadioBtn = screen.getByRole('radio', {
-      name: /save as new unimportant 05\/19\/2022/i,
+      name: /save as new unimportant/i,
     });
     const fieldLabel = screen.getByText(/save as new/i);
     const inputField = screen.getByRole('textbox');
-    const inputFieldText = screen.getByDisplayValue(
-      /unimportant 05\/19\/2022/i,
-    );
+    const inputFieldText = screen.getByDisplayValue(/unimportant/i);
 
     expect(saveRadioBtn).toBeVisible();
     expect(fieldLabel).toBeVisible();
