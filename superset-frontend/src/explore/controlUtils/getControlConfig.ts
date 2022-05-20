@@ -19,19 +19,22 @@
 import memoizeOne from 'memoize-one';
 import { getChartControlPanelRegistry } from '@superset-ui/core';
 import {
+  ControlPanelConfig,
   ControlPanelSectionConfig,
   expandControlConfig,
+  isControlPanelSectionConfig,
 } from '@superset-ui/chart-controls';
 
 /**
  * Find control item from control panel config.
  */
 export function findControlItem(
-  controlPanelSections: ControlPanelSectionConfig[],
+  controlPanelSections: (ControlPanelSectionConfig | null)[],
   controlKey: string,
 ) {
   return (
     controlPanelSections
+      .filter(isControlPanelSectionConfig)
       .map(section => section.controlSetRows)
       .flat(2)
       .find(
@@ -46,7 +49,7 @@ export function findControlItem(
 }
 
 const getMemoizedControlConfig = memoizeOne(
-  (controlKey, controlPanelConfig) => {
+  (controlKey, controlPanelConfig: ControlPanelConfig) => {
     const { controlOverrides = {}, controlPanelSections = [] } =
       controlPanelConfig;
     const control = expandControlConfig(
