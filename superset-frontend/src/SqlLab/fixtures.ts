@@ -17,6 +17,7 @@
  * under the License.
  */
 import sinon from 'sinon';
+import { DatasourceType, Query } from '@superset-ui/core';
 import * as actions from 'src/SqlLab/actions/sqlLab';
 import { ColumnKeyTypeType } from 'src/SqlLab/components/ColumnElement';
 
@@ -561,14 +562,73 @@ export const initialState = {
   },
 };
 
-export const query = {
+export const query: Query = {
   id: 'clientId2353',
   dbId: 1,
   sql: 'SELECT * FROM something',
   sqlEditorId: defaultQueryEditor.id,
   tab: 'unimportant',
   tempTable: null,
-  runAsync: false,
+  // runAsync: false,
   ctas: false,
   cached: false,
+  errorMessage: null,
+  extra: { progress: null },
+  isDataPreview: false,
+  progress: 0,
+  results: {
+    columns: [
+      {
+        is_dttm: true,
+        name: 'ds',
+        type: 'STRING',
+      },
+      {
+        is_dttm: false,
+        name: 'gender',
+        type: 'STRING',
+      },
+    ],
+    selected_columns: [
+      {
+        is_dttm: true,
+        name: 'ds',
+        type: 'STRING',
+      },
+      {
+        is_dttm: false,
+        name: 'gender',
+        type: 'STRING',
+      },
+    ],
+    expanded_columns: [],
+    query: { limit: 0 },
+    displayLimitReached: false,
+    data: [
+      { col1: 0, col2: 1 },
+      { col1: 2, col2: 3 },
+    ],
+  },
+  resultsKey: null,
+  state: 'success',
+  tempSchema: null,
+  trackingUrl: null,
+  templateParams: null,
+  rows: 42,
+  queryLimit: 100,
+  limitingFactor: '',
+  endDttm: 1476910579693,
+  duration: '',
+  startDttm: 1476910566092.96,
+  time: {},
+  user: {},
+  userId: 1,
+  db: {},
+  started: '',
+  querylink: {},
+  queryId: 1,
+  executedSql: '',
+  output: '',
+  actions: {},
+  type: DatasourceType.Query,
 };
