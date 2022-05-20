@@ -72,7 +72,7 @@ function openDashboardEditProperties() {
     force: true,
   });
   cy.get('[data-test=header-actions-menu]')
-    .contains('Edit dashboard properties')
+    .contains('Edit properties')
     .click({ force: true });
 }
 

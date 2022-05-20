@@ -101,6 +101,7 @@ const createProps = () => ({
   userCanSave: false,
   userCanShare: false,
   lastModifiedTime: 0,
+  isDropdownVisible: true,
 });
 
 const editModeOnProps = {
@@ -117,9 +118,6 @@ const setup = (overrides?: any) => (
 fetchMock.get('glob:*/csstemplateasyncmodelview/api/read', {});
 
 const openRefreshIntervalModal = async () => {
-  const headerActionsButton = screen.getByRole('img', { name: 'more-horiz' });
-  userEvent.click(headerActionsButton);
-
   const autoRefreshOption = screen.getByText('Set auto-refresh interval');
   userEvent.click(autoRefreshOption);
 };

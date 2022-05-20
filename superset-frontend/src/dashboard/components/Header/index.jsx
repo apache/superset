@@ -20,7 +20,7 @@
 import moment from 'moment';
 import React from 'react';
 import PropTypes from 'prop-types';
-import { css, t, getSharedLabelColor } from '@superset-ui/core';
+import { styled, css, t, getSharedLabelColor } from '@superset-ui/core';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import {
   LOG_ACTIONS_PERIODIC_RENDER_DASHBOARD,
@@ -29,6 +29,7 @@ import {
 } from 'src/logger/LogUtils';
 import Icons from 'src/components/Icons';
 import Button from 'src/components/Button';
+import { AntdButton } from 'src/components/';
 import { Tooltip } from 'src/components/Tooltip';
 import { safeStringify } from 'src/utils/safeStringify';
 import HeaderActionsDropdown from 'src/dashboard/components/Header/HeaderActionsDropdown';
@@ -115,6 +116,13 @@ const actionButtonsStyle = theme => css`
 
   .action-schedule-report {
     margin-left: ${theme.gridUnit * 2}px;
+  }
+`;
+
+const StyledUndoRedoButton = styled(AntdButton)`
+  padding: 0;
+  &:hover {
+    background: transparent;
   }
 `;
 
@@ -504,31 +512,41 @@ class Header extends React.PureComponent {
                           id="dashboard-undo-tooltip"
                           title={t('Undo the action')}
                         >
-                          <Icons.Undo
-                            css={[
-                              undoRedoStyle,
-                              this.state.emphasizeUndo && undoRedoEmphasized,
-                              undoLength < 1 && undoRedoDisabled,
-                            ]}
-                            onClick={undoLength && onUndo}
-                            data-test="undo-action"
-                            iconSize="xl"
-                          />
+                          <StyledUndoRedoButton
+                            type="text"
+                            disabled={undoLength < 1}
+                          >
+                            <Icons.Undo
+                              css={[
+                                undoRedoStyle,
+                                this.state.emphasizeUndo && undoRedoEmphasized,
+                                undoLength < 1 && undoRedoDisabled,
+                              ]}
+                              onClick={undoLength && onUndo}
+                              data-test="undo-action"
+                              iconSize="xl"
+                            />
+                          </StyledUndoRedoButton>
                         </Tooltip>
                         <Tooltip
                           id="dashboard-redo-tooltip"
                           title={t('Redo the action')}
                         >
-                          <Icons.Redo
-                            css={[
-                              undoRedoStyle,
-                              this.state.emphasizeRedo && undoRedoEmphasized,
-                              redoLength < 1 && undoRedoDisabled,
-                            ]}
-                            onClick={redoLength && onRedo}
-                            data-test="redo-action"
-                            iconSize="xl"
-                          />
+                          <StyledUndoRedoButton
+                            type="text"
+                            disabled={redoLength < 1}
+                          >
+                            <Icons.Redo
+                              css={[
+                                undoRedoStyle,
+                                this.state.emphasizeRedo && undoRedoEmphasized,
+                                redoLength < 1 && undoRedoDisabled,
+                              ]}
+                              onClick={redoLength && onRedo}
+                              data-test="redo-action"
+                              iconSize="xl"
+                            />
+                          </StyledUndoRedoButton>
                         </Tooltip>
                       </div>
                       <Button

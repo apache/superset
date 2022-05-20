@@ -206,6 +206,7 @@ export const DynamicEditableTitle = ({
             className="dynamic-title"
             aria-label={label ?? t('Title')}
             ref={contentRef}
+            data-test="editable-title"
           >
             {currentTitle}
           </span>

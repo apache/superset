@@ -241,30 +241,32 @@ class HeaderActionsDropdown extends React.PureComponent {
     });
 
     return (
-      <Menu
-        onClick={this.handleMenuClick}
-        selectable={false}
-        data-test="header-actions-menu"
-        {...rest}
-      >
+      <Menu selectable={false} data-test="header-actions-menu" {...rest}>
         {!editMode && (
           <Menu.Item
             key={MENU_KEYS.REFRESH_DASHBOARD}
             data-test="refresh-dashboard-menu-item"
             disabled={isLoading}
+            onClick={this.handleMenuClick}
           >
             {t('Refresh dashboard')}
           </Menu.Item>
         )}
         {!editMode && (
-          <Menu.Item key={MENU_KEYS.TOGGLE_FULLSCREEN}>
+          <Menu.Item
+            key={MENU_KEYS.TOGGLE_FULLSCREEN}
+            onClick={this.handleMenuClick}
+          >
             {getUrlParam(URL_PARAMS.standalone)
               ? t('Exit fullscreen')
               : t('Enter fullscreen')}
           </Menu.Item>
         )}
         {editMode && (
-          <Menu.Item key={MENU_KEYS.EDIT_PROPERTIES}>
+          <Menu.Item
+            key={MENU_KEYS.EDIT_PROPERTIES}
+            onClick={this.handleMenuClick}
+          >
             {t('Edit properties')}
           </Menu.Item>
         )}
@@ -305,7 +307,10 @@ class HeaderActionsDropdown extends React.PureComponent {
           </Menu.Item>
         )}
         {!editMode && (
-          <Menu.Item key={MENU_KEYS.DOWNLOAD_AS_IMAGE}>
+          <Menu.Item
+            key={MENU_KEYS.DOWNLOAD_AS_IMAGE}
+            onClick={this.handleMenuClick}
+          >
             {t('Download as image')}
           </Menu.Item>
         )}
@@ -329,7 +334,10 @@ class HeaderActionsDropdown extends React.PureComponent {
           </Menu.SubMenu>
         )}
         {!editMode && userCanCurate && (
-          <Menu.Item key={MENU_KEYS.MANAGE_EMBEDDED}>
+          <Menu.Item
+            key={MENU_KEYS.MANAGE_EMBEDDED}
+            onClick={this.handleMenuClick}
+          >
             {t('Embed dashboard')}
           </Menu.Item>
         )}

@@ -29,7 +29,7 @@ function openDashboardEditProperties() {
   cy.get(
     '.header-with-actions .right-button-panel .ant-dropdown-trigger',
   ).trigger('click', { force: true });
-  cy.get('.dropdown-menu').contains('Edit dashboard properties').click();
+  cy.get('.dropdown-menu').contains('Edit properties').click();
 }
 
 describe('Dashboard save action', () => {
