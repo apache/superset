@@ -204,6 +204,8 @@
     "yargs": "^15.4.1"
   },
   "devDependencies": {
+    "@ag-grid-community/react": "^26.0.0",
+    "@ag-grid-enterprise/all-modules": "^26.0.0",
     "@babel/cli": "^7.16.0",
     "@babel/compat-data": "^7.15.0",
     "@babel/core": "^7.15.5",
@@ -215,8 +217,6 @@
     "@babel/plugin-transform-runtime": "^7.15.0",
     "@babel/preset-env": "^7.15.6",
     "@babel/preset-react": "^7.14.5",
-    "@babel/register": "^7.15.3",
-    "@cypress/react": "^5.10.0",
     "@emotion/jest": "^11.3.0",
     "@hot-loader/react-dom": "^16.13.0",
     "@istanbuljs/nyc-config-typescript": "^1.0.1",
