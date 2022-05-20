@@ -27,7 +27,7 @@ const mockedProps = {
   onHide: () => {},
   buttonTextOnSave: 'Save',
   buttonTextOnOverwrite: 'Overwrite',
-  datasource: query as unknown as Query,
+  datasource: query as Query,
 };
 
 describe('SaveDatasetModal RTL', () => {
