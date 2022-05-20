@@ -19,11 +19,11 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional, TYPE_CHECKING
 
 from superset import app, db
-from superset.datasource.dao import DatasourceDAO
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.query_context import QueryContext
 from superset.common.query_object_factory import QueryObjectFactory
-from superset.utils.core import DatasourceDict
+from superset.datasource.dao import DatasourceDAO
+from superset.utils.core import DatasourceDict, DatasourceType
 
 if TYPE_CHECKING:
     from superset.connectors.base.models import BaseDatasource
@@ -81,5 +81,5 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
     # pylint: disable=no-self-use
     def _convert_to_model(self, datasource: DatasourceDict) -> BaseDatasource:
         return DatasourceDAO.get_datasource(
-            str(datasource["type"]), int(datasource["id"]), db.session
+            db.session, DatasourceType(datasource["type"]), int(datasource["id"])
         )

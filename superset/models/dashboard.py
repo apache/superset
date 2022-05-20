@@ -47,10 +47,10 @@ from sqlalchemy.sql import join, select
 from sqlalchemy.sql.elements import BinaryExpression
 
 from superset import app, db, is_feature_enabled, security_manager
-from superset.datasource.dao import DatasourceDAO
 from superset.common.request_contexed_based import is_user_admin
 from superset.connectors.base.models import BaseDatasource
 from superset.connectors.sqla.models import SqlMetric, TableColumn
+from superset.datasource.dao import DatasourceDAO
 from superset.extensions import cache_manager
 from superset.models.filter_set import FilterSet
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
@@ -408,8 +408,10 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
                     id_ = target.get("datasetId")
                     if id_ is None:
                         continue
-                    #todo(phillip): get datasource type for this method
-                    datasource = DatasourceDAO.get_datasource_by_id(session, id_)
+                    # todo(phillip): get datasource type for this method
+                    datasource = DatasourceDAO.get_datasource(
+                        session, utils.DatasourceType.SQLATABLE, id_
+                    )
                     datasource_ids.add((datasource.id, datasource.type))
 
             copied_dashboard.alter_params(remote_id=dashboard_id)
@@ -417,8 +419,8 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
 
         eager_datasources = []
         for datasource_id, datasource_type in datasource_ids:
-            eager_datasource = DatasourceDAO.get_eager_datasource(
-                db.session, datasource_type, datasource_id
+            eager_datasource = DatasourceDAO.get_eager_sqlatable_datasource(
+                db.session, datasource_id
             )
             copied_datasource = eager_datasource.copy()
             copied_datasource.alter_params(

@@ -65,7 +65,7 @@ class DatasourceDAO(BaseDAO):
         return datasource
 
     @classmethod
-    def get_all_sqlatables_datasources(cls, session: Session) -> List[Datasource]:
+    def get_all_sqlatables_datasources(cls, session: Session) -> List[SqlaTable]:
         source_class = DatasourceDAO.sources[DatasourceType.SQLATABLE]
         qry = session.query(source_class)
         qry = source_class.default_query(qry)
@@ -113,18 +113,15 @@ class DatasourceDAO(BaseDAO):
         )
 
     @classmethod
-    def get_eager_datasource(
-        cls, session: Session, datasource_type: str, datasource_id: int
-    ) -> Optional[Datasource]:
-        """Returns datasource with columns and metrics."""
-        datasource_class = DatasourceDAO.sources[DatasourceType[datasource_type]]
-        if not isinstance(datasource_class, SqlaTable):
-            return None
+    def get_eager_sqlatable_datasource(
+        cls, session: Session, datasource_id: int
+    ) -> SqlaTable:
+        """Returns SqlaTable with columns and metrics."""
         return (
-            session.query(datasource_class)
+            session.query(SqlaTable)
             .options(
-                subqueryload(datasource_class.columns),
-                subqueryload(datasource_class.metrics),
+                subqueryload(SqlaTable.columns),
+                subqueryload(SqlaTable.metrics),
             )
             .filter_by(id=datasource_id)
             .one()

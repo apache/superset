@@ -26,8 +26,8 @@ from superset.charts.schemas import ChartDataQueryContextSchema
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.query_context import QueryContext
 from superset.common.query_object import QueryObject
-from superset.datasource.dao import DatasourceDAO
 from superset.connectors.sqla.models import SqlMetric
+from superset.datasource.dao import DatasourceDAO
 from superset.extensions import cache_manager
 from superset.utils.core import AdhocMetricExpressionType, backend, QueryStatus
 from tests.integration_tests.base_tests import SupersetTestCase

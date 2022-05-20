@@ -161,8 +161,8 @@ def test_get_datasource_sl_table(app_context: None, session_with_data: Session) 
 def test_get_datasource_sl_dataset(
     app_context: None, session_with_data: Session
 ) -> None:
-    from superset.datasource.dao import DatasourceDAO
     from superset.datasets.models import Dataset
+    from superset.datasource.dao import DatasourceDAO
 
     # todo(hugh): This will break once we remove the dual write
     # update the datsource_id=1 and this will pass again

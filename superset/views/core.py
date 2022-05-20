@@ -61,8 +61,6 @@ from superset.charts.dao import ChartDAO
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.db_query_status import QueryStatus
 from superset.connectors.base.models import BaseDatasource
-from superset.datasource.dao import DatasourceDAO
-
 from superset.connectors.sqla.models import (
     AnnotationDatasource,
     SqlaTable,
@@ -78,6 +76,7 @@ from superset.databases.dao import DatabaseDAO
 from superset.databases.filters import DatabaseFilter
 from superset.databases.utils import make_url_safe
 from superset.datasets.commands.exceptions import DatasetNotFoundError
+from superset.datasource.dao import DatasourceDAO
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     CacheLoadError,
@@ -130,7 +129,11 @@ from superset.tasks.async_queries import load_explore_json_into_cache
 from superset.utils import core as utils, csv
 from superset.utils.async_query_manager import AsyncQueryTokenException
 from superset.utils.cache import etag_cache
-from superset.utils.core import apply_max_row_limit, ReservedUrlParameters
+from superset.utils.core import (
+    apply_max_row_limit,
+    DatasourceType,
+    ReservedUrlParameters,
+)
 from superset.utils.dates import now_as_float
 from superset.utils.decorators import check_dashboard_access
 from superset.views.base import (
@@ -811,7 +814,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         if datasource_id is not None:
             try:
                 datasource = DatasourceDAO.get_datasource(
-                    cast(str, datasource_type), datasource_id, db.session
+                    db.session,
+                    DatasourceType(cast(str, datasource_type)),
+                    datasource_id,
                 )
             except DatasetNotFoundError:
                 pass
@@ -948,9 +953,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         """
         # TODO: Cache endpoint by user, datasource and column
         datasource = DatasourceDAO.get_datasource(
-            datasource_type,
-            datasource_id,
-            db.session,
+            db.session, DatasourceType(datasource_type), datasource_id
         )
         if not datasource:
             return json_error_response(DATASOURCE_MISSING_ERR)
@@ -1920,7 +1923,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         if config["ENABLE_ACCESS_REQUEST"]:
             for datasource in dashboard.datasources:
                 datasource = DatasourceDAO.get_datasource(
-                    datasource_type=datasource.type,
+                    datasource_type=DatasourceType(datasource.type),
                     datasource_id=datasource.id,
                     session=db.session(),
                 )

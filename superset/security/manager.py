@@ -673,7 +673,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             if pv.permission and pv.view_menu:
                 all_pvs.add((pv.permission.name, pv.view_menu.name))
 
-        def merge_pv(view_menu: str, perm: str) -> None:
+        def merge_pv(view_menu: str, perm: Optional[str]) -> None:
             """Create permission view menu only if it doesn't exist"""
             if view_menu and perm and (view_menu, perm) not in all_pvs:
                 self.add_permission_view_menu(view_menu, perm)

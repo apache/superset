@@ -25,6 +25,7 @@ from urllib import request
 from superset import app, db
 from superset.datasource.dao import DatasourceDAO
 from superset.models.slice import Slice
+from superset.utils.core import DatasourceType
 
 BASE_URL = "https://github.com/apache-superset/examples-data/blob/master/"
 
@@ -32,7 +33,7 @@ misc_dash_slices: Set[str] = set()  # slices assembled in a 'Misc Chart' dashboa
 
 
 def get_table_connector_registry() -> Any:
-    return DatasourceDAO.sources["table"]
+    return DatasourceDAO.sources[DatasourceType.SQLATABLE]
 
 
 def get_examples_folder() -> str:

@@ -25,10 +25,10 @@ from marshmallow.exceptions import ValidationError
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset.cachekeys.schemas import CacheInvalidationRequestSchema
+from superset.datasource.dao import DatasourceDAO
 from superset.extensions import cache_manager, db, event_logger
 from superset.models.cache import CacheKey
 from superset.views.base_api import BaseSupersetModelRestApi, statsd_metrics
-from superset.datasource.dao import DatasourceDAO
 
 logger = logging.getLogger(__name__)
 

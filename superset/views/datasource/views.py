@@ -29,16 +29,17 @@ from sqlalchemy.orm.exc import NoResultFound
 
 from superset import db, event_logger
 from superset.commands.utils import populate_owners
-from superset.datasource.dao import DatasourceDAO
 from superset.connectors.sqla.utils import get_physical_table_metadata
 from superset.datasets.commands.exceptions import (
     DatasetForbiddenError,
     DatasetNotFoundError,
 )
+from superset.datasource.dao import DatasourceDAO
 from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.extensions import security_manager
 from superset.models.core import Database
 from superset.superset_typing import FlaskResponse
+from superset.utils.core import DatasourceType
 from superset.views.base import (
     api,
     BaseSupersetView,
@@ -118,7 +119,7 @@ class Datasource(BaseSupersetView):
     @handle_api_exception
     def get(self, datasource_type: str, datasource_id: int) -> FlaskResponse:
         datasource = DatasourceDAO.get_datasource(
-            datasource_type, datasource_id, db.session
+            db.session, DatasourceType(datasource_type), datasource_id
         )
         return self.json_response(sanitize_datasource_data(datasource.data))
 
@@ -131,7 +132,9 @@ class Datasource(BaseSupersetView):
     ) -> FlaskResponse:
         """Gets column info from the source system"""
         datasource = DatasourceDAO.get_datasource(
-            datasource_type, datasource_id, db.session
+            db.session,
+            DatasourceType(datasource_type),
+            datasource_id,
         )
         try:
             external_metadata = datasource.external_metadata()
@@ -155,7 +158,7 @@ class Datasource(BaseSupersetView):
 
         datasource = DatasourceDAO.get_datasource_by_name(
             session=db.session,
-            datasource_type=params["datasource_type"],
+            datasource_type=DatasourceType(params["datasource_type"]),
             database_name=params["database_name"],
             schema=params["schema_name"],
             datasource_name=params["table_name"],
