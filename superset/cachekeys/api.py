@@ -85,7 +85,7 @@ class CacheRestApi(BaseSupersetModelRestApi):
         for ds in datasources.get("datasources", []):
             ds_obj = DatasourceDAO.get_datasource_by_name(
                 session=db.session,
-                datasource_type=ds.get("datasource_type"),
+                DatasourceType(datasource_type=ds.get("datasource_type"))
                 datasource_name=ds.get("datasource_name"),
                 schema=ds.get("schema"),
                 database_name=ds.get("database_name"),
