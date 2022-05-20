@@ -156,7 +156,7 @@ const SectionHeader = styled.span`
 
 const StyledInfoboxWrapper = styled.div`
   ${({ theme }) => css`
-    margin: 0 ${theme.gridUnit * 2.5};
+    margin: 0 ${theme.gridUnit * 2.5}px;
 
     span {
       text-decoration: underline;
