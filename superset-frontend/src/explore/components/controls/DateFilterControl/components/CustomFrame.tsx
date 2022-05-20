@@ -44,20 +44,30 @@ import {
 import { locales } from 'antd/dist/antd-with-locales';
 import { bootstrapData } from '../../../../../preamble';
 
+const languages = {
+  en: 'en_US',
+  fr: 'fr_FR',
+  es: 'es_ES',
+  it: 'it_IT',
+  zh: 'zh_CN',
+  ja: 'ja_JP',
+  de: 'de_DE',
+  pt: 'pt_PT',
+  pt_BR: 'pt_BR',
+  ru: 'ru_RU',
+  ko: 'ko_KR',
+  sk: 'sk_SK',
+  sl: 'sl_SI',
+  nl: 'nl_NL',
+};
+
 export function CustomFrame(props: FrameComponentProps) {
-  let localeFiltrer = locales.en_US;
-  // There are two locale with 'fr', one for France and one for Belgium so for the moment by default we take France
-  // TODO : Once the correction is done on antd, we have to remove the if
-  if (bootstrapData.common.locale === 'fr') {
-    localeFiltrer = locales.fr_FR.DatePicker;
-  } else {
-    for (const locale in locales) {
-      if (locales[locale].locale === bootstrapData.common.locale) {
-        localeFiltrer = locales[locale].DatePicker;
-        break;
-      }
-    }
+  let localLanguage = languages[bootstrapData.common.locale];
+  if (localLanguage == null) {
+    localLanguage = 'en_US';
   }
+  const localeFiltrer = locales[localLanguage].DatePicker;
+
   const { customRange, matchedFlag } = customTimeRangeDecode(props.value);
   if (!matchedFlag) {
     props.onChange(customTimeRangeEncode(customRange));
