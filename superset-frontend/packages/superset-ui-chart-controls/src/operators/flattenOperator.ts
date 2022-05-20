@@ -23,4 +23,6 @@ import { PostProcessingFactory } from './types';
 export const flattenOperator: PostProcessingFactory<PostProcessingFlatten> = (
   formData,
   queryObject,
-) => ({ operation: 'flatten' });
+) => ({
+  operation: 'flatten',
+});

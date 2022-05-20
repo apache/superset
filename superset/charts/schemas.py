@@ -17,6 +17,7 @@
 # pylint: disable=too-many-lines
 from __future__ import annotations
 
+import inspect
 from typing import Any, Dict, Optional, TYPE_CHECKING
 
 from flask_babel import gettext as _
@@ -27,7 +28,7 @@ from marshmallow_enum import EnumField
 from superset import app
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.db_engine_specs.base import builtin_time_grains
-from superset.utils import schema as utils
+from superset.utils import pandas_postprocessing, schema as utils
 from superset.utils.core import (
     AnnotationType,
     FilterOperator,
@@ -771,24 +772,12 @@ class ChartDataPostProcessingOperationSchema(Schema):
         description="Post processing operation type",
         required=True,
         validate=validate.OneOf(
-            choices=(
-                "aggregate",
-                "boxplot",
-                "contribution",
-                "cum",
-                "geodetic_parse",
-                "geohash_decode",
-                "geohash_encode",
-                "pivot",
-                "prophet",
-                "rolling",
-                "select",
-                "sort",
-                "diff",
-                "compare",
-                "resample",
-                "flatten",
-            )
+            choices=[
+                name
+                for name, value in inspect.getmembers(
+                    pandas_postprocessing, inspect.isfunction
+                )
+            ]
         ),
         example="aggregate",
     )

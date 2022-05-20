@@ -1,6 +1,6 @@
 {
   "name": "superset",
-  "version": "1.3.0",
+  "version": "1.5.0",
   "description": "Superset is a data exploration platform designed to be visual, intuitive, and interactive.",
   "keywords": [
     "big",
@@ -73,8 +73,6 @@
     "last 3 edge versions"
   ],
   "dependencies": {
-    "@ag-grid-community/react": "^26.0.0",
-    "@ag-grid-enterprise/all-modules": "^26.0.0",
     "@ant-design/icons": "^4.2.2",
     "@babel/runtime-corejs3": "^7.12.5",
     "@data-ui/sparkline": "^0.0.84",
@@ -167,7 +165,6 @@
     "react-draggable": "^4.4.3",
     "react-gravatar": "^2.6.1",
     "react-hot-loader": "^4.12.20",
-    "react-icons": "^4.2.0",
     "react-js-cron": "^1.2.0",
     "react-json-tree": "^0.11.2",
     "react-jsonschema-form": "^1.2.0",
@@ -219,8 +216,8 @@
     "@babel/preset-env": "^7.15.6",
     "@babel/preset-react": "^7.14.5",
     "@babel/register": "^7.15.3",
-    "@emotion/jest": "^11.3.0",
     "@cypress/react": "^5.10.0",
+    "@emotion/jest": "^11.3.0",
     "@hot-loader/react-dom": "^16.13.0",
     "@istanbuljs/nyc-config-typescript": "^1.0.1",
     "@storybook/addon-actions": "^6.4.19",

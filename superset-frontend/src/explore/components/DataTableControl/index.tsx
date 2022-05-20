@@ -250,7 +250,9 @@ export const useFilteredTableData = (
   const rowsAsStrings = useMemo(
     () =>
       data?.map((row: Record<string, any>) =>
-        Object.values(row).map(value => value?.toString().toLowerCase()),
+        Object.values(row).map(value =>
+          value ? value.toString().toLowerCase() : t('N/A'),
+        ),
       ) ?? [],
     [data],
   );
