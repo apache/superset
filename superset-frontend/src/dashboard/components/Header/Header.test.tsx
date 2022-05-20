@@ -20,7 +20,6 @@ import React from 'react';
 import { render, screen, fireEvent } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
-import { trim } from 'lodash';
 import { HeaderProps } from './types';
 import Header from '.';
 
