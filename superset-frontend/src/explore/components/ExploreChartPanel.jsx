@@ -388,11 +388,11 @@ const ExploreChartPanel = ({
           <DataTablesPane
             ownState={ownState}
             queryFormData={queryFormData}
+            datasource={datasource}
             queryForce={force}
             onCollapseChange={onCollapseChange}
-            chartStatus={chart.chartStatus}
             errorMessage={errorMessage}
-            queriesResponse={chart.queriesResponse}
+            actions={actions}
           />
         </Split>
       )}
