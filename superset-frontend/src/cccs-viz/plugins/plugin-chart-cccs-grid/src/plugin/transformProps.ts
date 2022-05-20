@@ -74,6 +74,7 @@ export default function transformProps(chartProps: CccsGridChartProps) {
     headerText,
     emitFilter,
     query_mode,
+    include_search,
   }: CccsGridQueryFormData = { ...DEFAULT_FORM_DATA, ...formData };
   const data = queriesData[0].data as TimeseriesDataRecord[];
   const agGridLicenseKey = queriesData[0].agGridLicenseKey as String;
@@ -229,6 +230,7 @@ export default function transformProps(chartProps: CccsGridChartProps) {
     headerFontSize,
     headerText,
     emitFilter,
+    include_search,
     agGridLicenseKey,
   };
 }

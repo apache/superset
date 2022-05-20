@@ -7,6 +7,7 @@ describe('CccsGrid buildQuery', () => {
     granularity_sqla: 'ds',
     series: 'foo',
     emitFilter: false,
+    include_search: false,
     viz_type: 'my_chart',
   };
 

@@ -16,12 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
- import React, { ChangeEvent, useCallback, useState } from 'react';
-// import { styled } from '@superset-ui/core';
-import { AgGridReact } from '@ag-grid-community/react';
-import { AllModules, LicenseManager } from '@ag-grid-enterprise/all-modules';
-import { NULL_STRING } from 'src/utils/common';
-import { ensureIsArray } from '@superset-ui/core';
+import React, { ChangeEvent, useCallback, useEffect, useState } from 'react';
 //import { styled } from '@superset-ui/core';
 import { CccsGridTransformedProps } from './types';
 
@@ -32,13 +27,21 @@ import DomainValueRenderer from './DomainValueRenderer';
 import JsonValueRenderer from './JsonValueRenderer';
 import CustomTooltip from './CustomTooltip';
 
-/// / jcc
+//// jcc
 
-// 'use strict';
+//'use strict';
 
+import { AgGridReact } from '@ag-grid-community/react';
 import '@ag-grid-community/all-modules/dist/styles/ag-grid.css';
 import '@ag-grid-community/core/dist/styles/ag-grid.css';
 import '@ag-grid-community/core/dist/styles/ag-theme-balham.css';
+
+import { AllModules } from '@ag-grid-enterprise/all-modules';
+import { NULL_STRING } from 'src/utils/common';
+
+import { LicenseManager } from '@ag-grid-enterprise/all-modules';
+
+import { ensureIsArray } from '@superset-ui/core';
 
 const DEFAULT_COLUMN_DEF = {
   editable: false,
@@ -60,6 +63,7 @@ export default function CccsGrid({
   tooltipShowDelay,
   rowSelection,
   emitFilter = false,
+  include_search,
   filters: initialFilters = {},
 }: CccsGridTransformedProps) {
   LicenseManager.setLicenseKey(agGridLicenseKey);
@@ -93,7 +97,7 @@ export default function CccsGrid({
                   return {
                     col,
                     op: 'IN',
-                    val,
+                    val: val,
                   };
                 }),
         },
@@ -226,9 +230,9 @@ export default function CccsGrid({
 
   function autoSizeFirst100Columns(params: any) {
     // Autosizes only the first 100 Columns in Ag-Grid
-    const allColumnIds = params.columnApi
-      .getAllColumns()
-      .map((col: any) => col.getColId());
+    const allColumnIds = params.columnApi.getAllColumns().map((col: any) => {
+      return col.getColId();
+    });
     params.columnApi.autoSizeColumns(allColumnIds.slice(0, 100), false);
   }
 
@@ -237,6 +241,12 @@ export default function CccsGrid({
     e.preventDefault();
     setSearchValue(target.value);
   }
+
+  useEffect(() => {
+    if (!include_search) {
+      setSearchValue("");
+    }
+  }, [include_search])
 
   const gridOptions = {
     suppressColumnVirtualisation: true,
@@ -248,6 +258,7 @@ export default function CccsGrid({
 
   return (
     <div style={{ width, height }} className="ag-theme-balham">
+      { include_search ? (
       <div className="form-inline" style={{ paddingBottom: "0.5em" }}> 
         <div className="row">
           <div className="col-sm-6"></div>
@@ -264,22 +275,24 @@ export default function CccsGrid({
           </div>
         </div>
       </div>
+      ) : null}
       <AgGridReact
         modules={AllModules}
         columnDefs={columnDefs}
         defaultColDef={DEFAULT_COLUMN_DEF}
         frameworkComponents={frameworkComponents}
-        enableRangeSelection
-        allowContextMenuWithControlKey
+        enableRangeSelection={true}
+        allowContextMenuWithControlKey={true}
         gridOptions={gridOptions}
         onGridColumnsChanged={autoSizeFirst100Columns}
-        // getContextMenuItems={getContextMenuItems}
+        //getContextMenuItems={getContextMenuItems}
         onGridReady={onGridReady}
         onRangeSelectionChanged={onRangeSelectionChanged}
         onSelectionChanged={onSelectionChanged}
         rowData={rowData}
         cacheQuickFilter={true}
         quickFilterText={searchValue}
+        rowGroupPanelShow="always"
       />
     </div>
   );
