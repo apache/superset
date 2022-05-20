@@ -21,10 +21,13 @@ import { render, screen } from 'spec/helpers/testing-library';
 import { Provider } from 'react-redux';
 import fetchMock from 'fetch-mock';
 import { storeWithState } from 'spec/fixtures/mockStore';
-import ToastPresenter from 'src/messageToasts/containers/ToastPresenter';
+import ToastContainer from 'src/components/MessageToasts/ToastContainer';
 import TableLoader, { TableLoaderProps } from '.';
 
-fetchMock.get('glob:*/api/v1/mock', [
+const NO_DATA_TEXT = 'No data available';
+const MOCK_GLOB = 'glob:*/api/v1/mock';
+
+fetchMock.get(MOCK_GLOB, [
   { id: 1, name: 'John Doe' },
   { id: 2, name: 'Jane Doe' },
 ]);
@@ -32,13 +35,14 @@ fetchMock.get('glob:*/api/v1/mock', [
 const defaultProps: TableLoaderProps = {
   dataEndpoint: '/api/v1/mock',
   addDangerToast: jest.fn(),
+  noDataText: NO_DATA_TEXT,
 };
 
 function renderWithProps(props: TableLoaderProps = defaultProps) {
   return render(
     <Provider store={storeWithState({})}>
       <TableLoader {...props} />
-      <ToastPresenter />
+      <ToastContainer />
     </Provider>,
   );
 }
@@ -83,12 +87,36 @@ test('renders with mutator', async () => {
   expect(await screen.findAllByRole('heading', { level: 4 })).toHaveLength(2);
 });
 
-test('renders error message', async () => {
-  fetchMock.mock('glob:*/api/v1/mock', 500, {
+test('renders empty message', async () => {
+  fetchMock.mock(MOCK_GLOB, [], {
     overwriteRoutes: true,
   });
 
   renderWithProps();
 
+  expect(await screen.findByText('No data available')).toBeInTheDocument();
+});
+
+test('renders blocked message', async () => {
+  fetchMock.mock(MOCK_GLOB, 403, {
+    overwriteRoutes: true,
+  });
+
+  renderWithProps();
+
+  expect(
+    await screen.findByText('Access to user activity data is restricted'),
+  ).toBeInTheDocument();
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+});
+
+test('renders error message', async () => {
+  fetchMock.mock(MOCK_GLOB, 500, {
+    overwriteRoutes: true,
+  });
+
+  renderWithProps();
+
+  expect(await screen.findByText(NO_DATA_TEXT)).toBeInTheDocument();
   expect(await screen.findByRole('alert')).toBeInTheDocument();
 });

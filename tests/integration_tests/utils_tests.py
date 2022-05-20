@@ -26,6 +26,7 @@ from typing import Any, Tuple, List, Optional
 from unittest.mock import Mock, patch
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
+    load_birth_names_data,
 )
 
 import numpy as np
@@ -47,12 +48,12 @@ from superset.utils.core import (
     convert_legacy_filters_into_adhoc,
     create_ssl_cert_file,
     DTTM_ALIAS,
+    extract_dataframe_dtypes,
     format_timedelta,
     GenericDataType,
     get_form_data_token,
     get_iterable,
     get_email_address_list,
-    get_or_create_db,
     get_stacktrace,
     json_int_dttm_ser,
     json_iso_dttm_ser,
@@ -60,16 +61,17 @@ from superset.utils.core import (
     merge_extra_filters,
     merge_extra_form_data,
     merge_request_params,
+    NO_TIME_RANGE,
     normalize_dttm_col,
     parse_ssl_cert,
     parse_js_uri_path_item,
-    extract_dataframe_dtypes,
     split,
     TimeRangeEndpoint,
     validate_json,
     zlib_compress,
     zlib_decompress,
 )
+from superset.utils.database import get_or_create_db
 from superset.utils import schema
 from superset.utils.hashing import md5_sha_from_str
 from superset.views.utils import (
@@ -80,22 +82,10 @@ from superset.views.utils import (
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices,
+    load_world_bank_data,
 )
 
 from .fixtures.certificates import ssl_certificate
-
-
-def mock_to_adhoc(filt, expressionType="SIMPLE", clause="where"):
-    result = {"clause": clause.upper(), "expressionType": expressionType}
-
-    if expressionType == "SIMPLE":
-        result.update(
-            {"comparator": filt["val"], "operator": filt["op"], "subject": filt["col"]}
-        )
-    elif expressionType == "SQL":
-        result.update({"sqlExpression": filt[clause]})
-
-    return result
 
 
 class TestUtils(SupersetTestCase):
@@ -129,6 +119,7 @@ class TestUtils(SupersetTestCase):
         assert isinstance(base_json_conv(set([1])), list) is True
         assert isinstance(base_json_conv(Decimal("1.0")), float) is True
         assert isinstance(base_json_conv(uuid.uuid4()), str) is True
+        assert isinstance(base_json_conv(time()), str) is True
         assert isinstance(base_json_conv(timedelta(0)), str) is True
 
     def test_zlib_compression(self):
@@ -137,7 +128,6 @@ class TestUtils(SupersetTestCase):
         got_str = zlib_decompress(blob)
         self.assertEqual(json_str, got_str)
 
-    @patch("superset.utils.core.to_adhoc", mock_to_adhoc)
     def test_merge_extra_filters(self):
         # does nothing if no extra filters
         form_data = {"A": 1, "B": 2, "c": "test"}
@@ -168,6 +158,8 @@ class TestUtils(SupersetTestCase):
                     "clause": "WHERE",
                     "comparator": "someval",
                     "expressionType": "SIMPLE",
+                    "filterOptionName": "90cfb3c34852eb3bc741b0cc20053b46",
+                    "isExtra": True,
                     "operator": "in",
                     "subject": "a",
                 },
@@ -175,6 +167,8 @@ class TestUtils(SupersetTestCase):
                     "clause": "WHERE",
                     "comparator": ["c1", "c2"],
                     "expressionType": "SIMPLE",
+                    "filterOptionName": "6c178d069965f1c02640661280415d96",
+                    "isExtra": True,
                     "operator": "==",
                     "subject": "B",
                 },
@@ -212,6 +206,8 @@ class TestUtils(SupersetTestCase):
                     "clause": "WHERE",
                     "comparator": "someval",
                     "expressionType": "SIMPLE",
+                    "filterOptionName": "90cfb3c34852eb3bc741b0cc20053b46",
+                    "isExtra": True,
                     "operator": "in",
                     "subject": "a",
                 },
@@ -219,6 +215,8 @@ class TestUtils(SupersetTestCase):
                     "clause": "WHERE",
                     "comparator": ["c1", "c2"],
                     "expressionType": "SIMPLE",
+                    "filterOptionName": "6c178d069965f1c02640661280415d96",
+                    "isExtra": True,
                     "operator": "==",
                     "subject": "B",
                 },
@@ -244,6 +242,8 @@ class TestUtils(SupersetTestCase):
                     "clause": "WHERE",
                     "comparator": "hello",
                     "expressionType": "SIMPLE",
+                    "filterOptionName": "e3cbdd92a2ae23ca92c6d7fca42e36a6",
+                    "isExtra": True,
                     "operator": "like",
                     "subject": "A",
                 }
@@ -264,7 +264,6 @@ class TestUtils(SupersetTestCase):
         merge_extra_filters(form_data)
         self.assertEqual(form_data, expected)
 
-    @patch("superset.utils.core.to_adhoc", mock_to_adhoc)
     def test_merge_extra_filters_ignores_empty_filters(self):
         form_data = {
             "extra_filters": [
@@ -276,7 +275,6 @@ class TestUtils(SupersetTestCase):
         merge_extra_filters(form_data)
         self.assertEqual(form_data, expected)
 
-    @patch("superset.utils.core.to_adhoc", mock_to_adhoc)
     def test_merge_extra_filters_ignores_nones(self):
         form_data = {
             "adhoc_filters": [
@@ -305,7 +303,6 @@ class TestUtils(SupersetTestCase):
         merge_extra_filters(form_data)
         self.assertEqual(form_data, expected)
 
-    @patch("superset.utils.core.to_adhoc", mock_to_adhoc)
     def test_merge_extra_filters_ignores_equal_filters(self):
         form_data = {
             "extra_filters": [
@@ -366,7 +363,6 @@ class TestUtils(SupersetTestCase):
         merge_extra_filters(form_data)
         self.assertEqual(form_data, expected)
 
-    @patch("superset.utils.core.to_adhoc", mock_to_adhoc)
     def test_merge_extra_filters_merges_different_val_types(self):
         form_data = {
             "extra_filters": [
@@ -410,6 +406,8 @@ class TestUtils(SupersetTestCase):
                     "clause": "WHERE",
                     "comparator": ["g1", "g2"],
                     "expressionType": "SIMPLE",
+                    "filterOptionName": "c11969c994b40a83a4ae7d48ff1ea28e",
+                    "isExtra": True,
                     "operator": "in",
                     "subject": "a",
                 },
@@ -460,6 +458,8 @@ class TestUtils(SupersetTestCase):
                     "clause": "WHERE",
                     "comparator": "someval",
                     "expressionType": "SIMPLE",
+                    "filterOptionName": "90cfb3c34852eb3bc741b0cc20053b46",
+                    "isExtra": True,
                     "operator": "in",
                     "subject": "a",
                 },
@@ -469,7 +469,6 @@ class TestUtils(SupersetTestCase):
         merge_extra_filters(form_data)
         self.assertEqual(form_data, expected)
 
-    @patch("superset.utils.core.to_adhoc", mock_to_adhoc)
     def test_merge_extra_filters_adds_unequal_lists(self):
         form_data = {
             "extra_filters": [
@@ -513,6 +512,8 @@ class TestUtils(SupersetTestCase):
                     "clause": "WHERE",
                     "comparator": ["g1", "g2", "g3"],
                     "expressionType": "SIMPLE",
+                    "filterOptionName": "21cbb68af7b17e62b3b2f75e2190bfd7",
+                    "isExtra": True,
                     "operator": "in",
                     "subject": "a",
                 },
@@ -520,6 +521,8 @@ class TestUtils(SupersetTestCase):
                     "clause": "WHERE",
                     "comparator": ["c1", "c2", "c3"],
                     "expressionType": "SIMPLE",
+                    "filterOptionName": "0a8dcb928f1f4bba97643c6e68d672f1",
+                    "isExtra": True,
                     "operator": "==",
                     "subject": "B",
                 },
@@ -580,18 +583,21 @@ class TestUtils(SupersetTestCase):
         with self.assertRaises(SupersetException):
             validate_json(invalid)
 
-    @patch("superset.utils.core.to_adhoc", mock_to_adhoc)
     def test_convert_legacy_filters_into_adhoc_where(self):
         form_data = {"where": "a = 1"}
         expected = {
             "adhoc_filters": [
-                {"clause": "WHERE", "expressionType": "SQL", "sqlExpression": "a = 1"}
+                {
+                    "clause": "WHERE",
+                    "expressionType": "SQL",
+                    "filterOptionName": "46fb6d7891e23596e42ae38da94a57e0",
+                    "sqlExpression": "a = 1",
+                }
             ]
         }
         convert_legacy_filters_into_adhoc(form_data)
         self.assertEqual(form_data, expected)
 
-    @patch("superset.utils.core.to_adhoc", mock_to_adhoc)
     def test_convert_legacy_filters_into_adhoc_filters(self):
         form_data = {"filters": [{"col": "a", "op": "in", "val": "someval"}]}
         expected = {
@@ -600,6 +606,7 @@ class TestUtils(SupersetTestCase):
                     "clause": "WHERE",
                     "comparator": "someval",
                     "expressionType": "SIMPLE",
+                    "filterOptionName": "135c7ee246666b840a3d7a9c3a30cf38",
                     "operator": "in",
                     "subject": "a",
                 }
@@ -608,7 +615,6 @@ class TestUtils(SupersetTestCase):
         convert_legacy_filters_into_adhoc(form_data)
         self.assertEqual(form_data, expected)
 
-    @patch("superset.utils.core.to_adhoc", mock_to_adhoc)
     def test_convert_legacy_filters_into_adhoc_having(self):
         form_data = {"having": "COUNT(1) = 1"}
         expected = {
@@ -616,6 +622,7 @@ class TestUtils(SupersetTestCase):
                 {
                     "clause": "HAVING",
                     "expressionType": "SQL",
+                    "filterOptionName": "683f1c26466ab912f75a00842e0f2f7b",
                     "sqlExpression": "COUNT(1) = 1",
                 }
             ]
@@ -623,7 +630,6 @@ class TestUtils(SupersetTestCase):
         convert_legacy_filters_into_adhoc(form_data)
         self.assertEqual(form_data, expected)
 
-    @patch("superset.utils.core.to_adhoc", mock_to_adhoc)
     def test_convert_legacy_filters_into_adhoc_having_filters(self):
         form_data = {"having_filters": [{"col": "COUNT(1)", "op": "==", "val": 1}]}
         expected = {
@@ -632,6 +638,7 @@ class TestUtils(SupersetTestCase):
                     "clause": "HAVING",
                     "comparator": 1,
                     "expressionType": "SIMPLE",
+                    "filterOptionName": "967d0fb409f6d9c7a6c03a46cf933c9c",
                     "operator": "==",
                     "subject": "COUNT(1)",
                 }
@@ -640,18 +647,21 @@ class TestUtils(SupersetTestCase):
         convert_legacy_filters_into_adhoc(form_data)
         self.assertEqual(form_data, expected)
 
-    @patch("superset.utils.core.to_adhoc", mock_to_adhoc)
     def test_convert_legacy_filters_into_adhoc_present_and_empty(self):
         form_data = {"adhoc_filters": [], "where": "a = 1"}
         expected = {
             "adhoc_filters": [
-                {"clause": "WHERE", "expressionType": "SQL", "sqlExpression": "a = 1"}
+                {
+                    "clause": "WHERE",
+                    "expressionType": "SQL",
+                    "filterOptionName": "46fb6d7891e23596e42ae38da94a57e0",
+                    "sqlExpression": "a = 1",
+                }
             ]
         }
         convert_legacy_filters_into_adhoc(form_data)
         self.assertEqual(form_data, expected)
 
-    @patch("superset.utils.core.to_adhoc", mock_to_adhoc)
     def test_convert_legacy_filters_into_adhoc_present_and_nonempty(self):
         form_data = {
             "adhoc_filters": [
@@ -841,7 +851,54 @@ class TestUtils(SupersetTestCase):
         }
         merge_extra_form_data(form_data)
         self.assertEqual(
-            form_data, {"time_range": "Last 10 days", "adhoc_filters": [],},
+            form_data,
+            {
+                "time_range": "Last 10 days",
+                "adhoc_filters": [],
+            },
+        )
+
+    def test_merge_extra_filters_with_unset_legacy_time_range(self):
+        """
+        Make sure native filter is applied if filter box time range is unset.
+        """
+        form_data = {
+            "time_range": "Last 10 days",
+            "extra_filters": [
+                {"col": "__time_range", "op": "==", "val": NO_TIME_RANGE},
+            ],
+            "extra_form_data": {"time_range": "Last year"},
+        }
+        merge_extra_filters(form_data)
+        self.assertEqual(
+            form_data,
+            {
+                "time_range": "Last year",
+                "applied_time_extras": {},
+                "adhoc_filters": [],
+            },
+        )
+
+    def test_merge_extra_filters_with_conflicting_time_ranges(self):
+        """
+        Make sure filter box takes precedence if both native filter and filter box
+        time ranges are set.
+        """
+        form_data = {
+            "time_range": "Last 10 days",
+            "extra_filters": [{"col": "__time_range", "op": "==", "val": "Last week"}],
+            "extra_form_data": {
+                "time_range": "Last year",
+            },
+        }
+        merge_extra_filters(form_data)
+        self.assertEqual(
+            form_data,
+            {
+                "time_range": "Last week",
+                "applied_time_extras": {"__time_range": "Last week"},
+                "adhoc_filters": [],
+            },
         )
 
     def test_merge_extra_filters_with_extras(self):
@@ -1072,7 +1129,9 @@ class TestUtils(SupersetTestCase):
         generated_token = get_form_data_token({})
         assert re.match(r"^token_[a-z0-9]{8}$", generated_token) is not None
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_extract_dataframe_dtypes(self):
+        slc = self.get_slice("Girls", db.session)
         cols: Tuple[Tuple[str, GenericDataType, List[Any]], ...] = (
             ("dt", GenericDataType.TEMPORAL, [date(2021, 2, 4), date(2021, 2, 4)]),
             (
@@ -1098,10 +1157,13 @@ class TestUtils(SupersetTestCase):
             ("float_null", GenericDataType.NUMERIC, [None, 0.5]),
             ("bool_null", GenericDataType.BOOLEAN, [None, False]),
             ("obj_null", GenericDataType.STRING, [None, {"a": 1}]),
+            # Non-timestamp columns should be identified as temporal if
+            # `is_dttm` is set to `True` in the underlying datasource
+            ("ds", GenericDataType.TEMPORAL, [None, {"ds": "2017-01-01"}]),
         )
 
         df = pd.DataFrame(data={col[0]: col[2] for col in cols})
-        assert extract_dataframe_dtypes(df) == [col[1] for col in cols]
+        assert extract_dataframe_dtypes(df, slc.datasource) == [col[1] for col in cols]
 
     def test_normalize_dttm_col(self):
         def normalize_col(

@@ -50,8 +50,10 @@ class TestDruidDbEngineSpec(TestDbEngineSpec):
         col = "__time"
         sqla_col = column(col)
         test_cases = {
-            "PT1S": f"FLOOR({col} TO SECOND)",
-            "PT5M": f"TIME_FLOOR({col}, 'PT5M')",
+            "PT1S": f"TIME_FLOOR(CAST({col} AS TIMESTAMP), 'PT1S')",
+            "PT5M": f"TIME_FLOOR(CAST({col} AS TIMESTAMP), 'PT5M')",
+            "P1W/1970-01-03T00:00:00Z": f"TIME_SHIFT(TIME_FLOOR(TIME_SHIFT(CAST({col} AS TIMESTAMP), 'P1D', 1), 'P1W'), 'P1D', 5)",
+            "1969-12-28T00:00:00Z/P1W": f"TIME_SHIFT(TIME_FLOOR(TIME_SHIFT(CAST({col} AS TIMESTAMP), 'P1D', 1), 'P1W'), 'P1D', -1)",
         }
         for grain, expected in test_cases.items():
             actual = DruidEngineSpec.get_timestamp_expr(

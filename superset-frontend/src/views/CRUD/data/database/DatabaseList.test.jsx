@@ -18,6 +18,7 @@
  */
 import React from 'react';
 import thunk from 'redux-thunk';
+import * as redux from 'react-redux';
 import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
 import { Provider } from 'react-redux';
@@ -30,7 +31,7 @@ import * as featureFlags from 'src/featureFlags';
 import DatabaseList from 'src/views/CRUD/data/database/DatabaseList';
 import DatabaseModal from 'src/views/CRUD/data/database/DatabaseModal';
 import DeleteModal from 'src/components/DeleteModal';
-import SubMenu from 'src/components/Menu/SubMenu';
+import SubMenu from 'src/views/components/SubMenu';
 import ListView from 'src/components/ListView';
 import Filters from 'src/components/ListView/Filters';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
@@ -39,6 +40,17 @@ import { act } from 'react-dom/test-utils';
 // store needed for withToasts(DatabaseList)
 const mockStore = configureStore([thunk]);
 const store = mockStore({});
+
+const mockAppState = {
+  common: {
+    config: {
+      CSV_EXTENSIONS: ['csv'],
+      EXCEL_EXTENSIONS: ['xls', 'xlsx'],
+      COLUMNAR_EXTENSIONS: ['parquet', 'zip'],
+      ALLOWED_EXTENSIONS: ['parquet', 'zip', 'xls', 'xlsx', 'csv'],
+    },
+  },
+};
 
 const databasesInfoEndpoint = 'glob:*/api/v1/database/_info*';
 const databasesEndpoint = 'glob:*/api/v1/database/?*';
@@ -54,7 +66,7 @@ const mockdatabases = [...new Array(3)].map((_, i) => ({
   backend: 'postgresql',
   allow_run_async: true,
   allow_dml: false,
-  allow_csv_upload: true,
+  allow_file_upload: true,
   expose_in_sqllab: false,
   changed_on_delta_humanized: `${i} day(s) ago`,
   changed_on: new Date().toISOString,
@@ -88,14 +100,28 @@ fetchMock.get(databaseRelatedEndpoint, {
     count: 0,
     result: [],
   },
+  sqllab_tab_states: {
+    count: 0,
+    result: [],
+  },
 });
 
+const useSelectorMock = jest.spyOn(redux, 'useSelector');
+
 describe('DatabaseList', () => {
+  useSelectorMock.mockReturnValue({
+    CSV_EXTENSIONS: ['csv'],
+    EXCEL_EXTENSIONS: ['xls', 'xlsx'],
+    COLUMNAR_EXTENSIONS: ['parquet', 'zip'],
+    ALLOWED_EXTENSIONS: ['parquet', 'zip', 'xls', 'xlsx', 'csv'],
+  });
+
   const wrapper = mount(
     <Provider store={store}>
       <DatabaseList user={mockUser} />
     </Provider>,
   );
+
   beforeAll(async () => {
     await waitForComponentToPaint(wrapper);
   });
@@ -131,7 +157,7 @@ describe('DatabaseList', () => {
     await waitForComponentToPaint(wrapper);
 
     expect(wrapper.find(DeleteModal).props().description).toMatchInlineSnapshot(
-      `"The database db 0 is linked to 0 charts that appear on 0 dashboards. Are you sure you want to continue? Deleting the database will break those objects."`,
+      `"The database db 0 is linked to 0 charts that appear on 0 dashboards and users have 0 SQL Lab tabs using this database open. Are you sure you want to continue? Deleting the database will break those objects."`,
     );
 
     act(() => {
@@ -161,13 +187,13 @@ describe('DatabaseList', () => {
         .find('[name="expose_in_sqllab"]')
         .first()
         .props()
-        .onSelect(true);
+        .onSelect({ label: 'Yes', value: true });
 
       filtersWrapper
         .find('[name="allow_run_async"]')
         .first()
         .props()
-        .onSelect(false);
+        .onSelect({ label: 'Yes', value: false });
 
       filtersWrapper
         .find('[name="database_name"]')
@@ -191,6 +217,7 @@ describe('RTL', () => {
           <DatabaseList user={mockUser} />
         </QueryParamProvider>,
         { useRedux: true },
+        mockAppState,
       );
     });
 
@@ -211,7 +238,7 @@ describe('RTL', () => {
   });
 
   it('renders an "Import Database" tooltip under import button', async () => {
-    const importButton = screen.getByTestId('import-button');
+    const importButton = await screen.findByTestId('import-button');
     userEvent.hover(importButton);
 
     await screen.findByRole('tooltip');

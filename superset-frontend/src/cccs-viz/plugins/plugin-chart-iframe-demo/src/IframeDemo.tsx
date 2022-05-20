@@ -37,8 +37,10 @@ const Styles = styled.div<IframeDemoStylesProps>`
 
   h3 {
     /* You can use your props to control CSS! */
-    font-size: ${({ theme, headerFontSize }) => theme.typography.sizes[headerFontSize]};
-    font-weight: ${({ theme, boldText }) => theme.typography.weights[boldText ? 'bold' : 'normal']};
+    font-size: ${({ theme, headerFontSize }) =>
+      theme.typography.sizes[headerFontSize]};
+    font-weight: ${({ theme, boldText }) =>
+      theme.typography.weights[boldText ? 'bold' : 'normal']};
   }
 `;
 
@@ -55,8 +57,6 @@ export default function IframeDemo(props: IframeDemoProps) {
   // There is also a `data` prop, which is, of course, your DATA 🎉
   const { ip, height, width } = props;
 
-
-
   const rootElem = createRef<HTMLDivElement>();
 
   // Often, you just want to get a hold of the DOM and go nuts.
@@ -70,9 +70,9 @@ export default function IframeDemo(props: IframeDemoProps) {
 
   console.log('Plugin ip', ip);
 
-  const url = "https://e365mwebsvc.azurewebsites.net/IPLookup?ip=" + ip + "&mode=maponly";
+  const url = `https://e365mwebsvc.azurewebsites.net/IPLookup?ip=${ip}&mode=maponly`;
 
-  //const url = "https://glenfinnan.hogwarts.u.azure.chimera.cyber.gc.ca/ataglance?theme=light&standalone=true&ip=" + ip;
+  // const url = "https://glenfinnan.hogwarts.u.azure.chimera.cyber.gc.ca/ataglance?theme=light&standalone=true&ip=" + ip;
 
   return (
     <Styles
@@ -82,14 +82,14 @@ export default function IframeDemo(props: IframeDemoProps) {
       height={height}
       width={width}
     >
-        <iframe
-          width={width}
-          height={height}
-          seamless
-          frameBorder="0"
-          scrolling="no"
-          src={url}
-        />
+      <iframe
+        width={width}
+        height={height}
+        seamless
+        frameBorder="0"
+        scrolling="no"
+        src={url}
+      />
     </Styles>
   );
 }

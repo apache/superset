@@ -18,7 +18,8 @@
  */
 import { FeatureFlagMap, FeatureFlag } from '@superset-ui/core';
 
-export { FeatureFlagMap, FeatureFlag } from '@superset-ui/core';
+export { FeatureFlag } from '@superset-ui/core';
+export type { FeatureFlagMap } from '@superset-ui/core';
 
 export function initFeatureFlags(featureFlags: FeatureFlagMap) {
   if (!window.featureFlags) {

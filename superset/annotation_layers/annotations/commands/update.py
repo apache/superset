@@ -52,11 +52,11 @@ class UpdateAnnotationCommand(BaseCommand):
             annotation = AnnotationDAO.update(self._model, self._properties)
         except DAOUpdateFailedError as ex:
             logger.exception(ex.exception)
-            raise AnnotationUpdateFailedError()
+            raise AnnotationUpdateFailedError() from ex
         return annotation
 
     def validate(self) -> None:
-        exceptions: List[ValidationError] = list()
+        exceptions: List[ValidationError] = []
         layer_id: Optional[int] = self._properties.get("layer")
         short_descr: str = self._properties.get("short_descr", "")
 
@@ -73,7 +73,9 @@ class UpdateAnnotationCommand(BaseCommand):
 
             # Validate short descr uniqueness on this layer
             if not AnnotationDAO.validate_update_uniqueness(
-                layer_id, short_descr, annotation_id=self._model_id,
+                layer_id,
+                short_descr,
+                annotation_id=self._model_id,
             ):
                 exceptions.append(AnnotationUniquenessValidationError())
         else:

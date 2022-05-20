@@ -28,8 +28,8 @@ OPERATOR_FUNCTIONS = {">=": ge, ">": gt, "<=": le, "<": lt, "==": eq, "!=": ne}
 
 
 class AlertValidatorType(str, enum.Enum):
-    not_null = "not null"
-    operator = "operator"
+    NOT_NULL = "not null"
+    OPERATOR = "operator"
 
     @classmethod
     def valid_type(cls, validator_type: str) -> bool:
@@ -44,7 +44,7 @@ def check_validator(validator_type: str, config: str) -> None:
 
     config_dict = json.loads(config)
 
-    if validator_type == AlertValidatorType.operator.value:
+    if validator_type == AlertValidatorType.OPERATOR.value:
 
         if not (config_dict.get("op") and config_dict.get("threshold") is not None):
             raise SupersetException(
@@ -102,8 +102,8 @@ def get_validator_function(
     """Returns a validation function based on validator_type"""
 
     alert_validators = {
-        AlertValidatorType.not_null.value: not_null_validator,
-        AlertValidatorType.operator.value: operator_validator,
+        AlertValidatorType.NOT_NULL.value: not_null_validator,
+        AlertValidatorType.OPERATOR.value: operator_validator,
     }
     if alert_validators.get(validator_type.lower()):
         return alert_validators[validator_type.lower()]

@@ -64,6 +64,7 @@ const IconFileNames = [
   'dataset_virtual_greyscale',
   'dataset_virtual',
   'download',
+  'drag',
   'edit_alt',
   'edit',
   'email',
@@ -164,7 +165,7 @@ IconFileNames.forEach(fileName => {
   );
 });
 
-export { IconType };
+export type { IconType };
 
 export default {
   ...AntdEnhancedIcons,

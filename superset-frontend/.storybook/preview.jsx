@@ -20,7 +20,7 @@ import React from 'react';
 import { addDecorator } from '@storybook/react';
 import { jsxDecorator } from 'storybook-addon-jsx';
 import { addParameters } from '@storybook/react';
-import { withPaddings } from 'storybook-addon-paddings';
+import WithPaddings from 'storybook-addon-paddings';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import { combineReducers, createStore, applyMiddleware, compose } from 'redux';
 import thunk from 'redux-thunk';
@@ -49,15 +49,18 @@ const providerDecorator = Story => (
 addDecorator(jsxDecorator);
 addDecorator(themeDecorator);
 addDecorator(providerDecorator);
-addDecorator(withPaddings);
+addDecorator(WithPaddings);
 
 addParameters({
-  paddings: [
-    { name: 'None', value: '0px' },
-    { name: 'Small', value: '16px' },
-    { name: 'Medium', value: '32px', default: true },
-    { name: 'Large', value: '64px' },
-  ],
+  paddings: {
+    values: [
+      { name: 'None', value: '0px' },
+      { name: 'Small', value: '16px' },
+      { name: 'Medium', value: '32px' },
+      { name: 'Large', value: '64px' },
+    ],
+    default: 'Medium',
+  },
   options: {
     storySort: {
       method: 'alphabetical',

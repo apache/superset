@@ -18,8 +18,10 @@
  */
 /* eslint-env browser */
 import cx from 'classnames';
-import React, { FC } from 'react';
-import { JsonObject, styled, css } from '@superset-ui/core';
+import React, { FC, useCallback, useMemo } from 'react';
+import { JsonObject, styled, css, t } from '@superset-ui/core';
+import { Global } from '@emotion/react';
+import { useDispatch, useSelector } from 'react-redux';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import BuilderComponentPane from 'src/dashboard/components/BuilderComponentPane';
 import DashboardHeader from 'src/dashboard/containers/DashboardHeader';
@@ -30,11 +32,10 @@ import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
 import WithPopoverMenu from 'src/dashboard/components/menu/WithPopoverMenu';
 import getDirectPathToTabIndex from 'src/dashboard/util/getDirectPathToTabIndex';
 import { URL_PARAMS } from 'src/constants';
-import { useDispatch, useSelector } from 'react-redux';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { DashboardLayout, RootState } from 'src/dashboard/types';
 import { setDirectPathToChild } from 'src/dashboard/actions/dashboardState';
-import { useElementOnScreen } from 'src/common/hooks/useElementOnScreen';
+import { useElementOnScreen } from 'src/hooks/useElementOnScreen';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import {
   deleteTopLevelTabs,
@@ -48,18 +49,21 @@ import {
 } from 'src/dashboard/util/constants';
 import FilterBar from 'src/dashboard/components/nativeFilters/FilterBar';
 import Loading from 'src/components/Loading';
-import { Global } from '@emotion/react';
+import { EmptyStateBig } from 'src/components/EmptyState';
+import { useUiConfig } from 'src/components/UiConfigContext';
+import {
+  BUILDER_SIDEPANEL_WIDTH,
+  CLOSED_FILTER_BAR_WIDTH,
+  FILTER_BAR_HEADER_HEIGHT,
+  FILTER_BAR_TABS_HEIGHT,
+  HEADER_HEIGHT,
+  MAIN_HEADER_HEIGHT,
+  OPEN_FILTER_BAR_WIDTH,
+  TABS_HEIGHT,
+} from 'src/dashboard/constants';
 import { shouldFocusTabs, getRootLevelTabsComponent } from './utils';
 import DashboardContainer from './DashboardContainer';
 import { useNativeFilters } from './state';
-
-const MAIN_HEADER_HEIGHT = 53;
-const TABS_HEIGHT = 50;
-const HEADER_HEIGHT = 72;
-const CLOSED_FILTER_BAR_WIDTH = 32;
-const OPEN_FILTER_BAR_WIDTH = 260;
-const FILTER_BAR_HEADER_HEIGHT = 80;
-const FILTER_BAR_TABS_HEIGHT = 46;
 
 type DashboardBuilderProps = {};
 
@@ -68,6 +72,48 @@ const StyledDiv = styled.div`
   grid-template-columns: auto 1fr;
   grid-template-rows: auto 1fr;
   flex: 1;
+  /* Special cases */
+
+  /* A row within a column has inset hover menu */
+  .dragdroppable-column .dragdroppable-row .hover-menu--left {
+    left: -12px;
+    background: ${({ theme }) => theme.colors.grayscale.light5};
+    border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+  }
+
+  .dashboard-component-tabs {
+    position: relative;
+  }
+
+  /* A column within a column or tabs has inset hover menu */
+  .dragdroppable-column .dragdroppable-column .hover-menu--top,
+  .dashboard-component-tabs .dragdroppable-column .hover-menu--top {
+    top: -12px;
+    background: ${({ theme }) => theme.colors.grayscale.light5};
+    border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+  }
+
+  /* move Tabs hover menu to top near actual Tabs */
+  .dashboard-component-tabs > .hover-menu-container > .hover-menu--left {
+    top: 0;
+    transform: unset;
+    background: transparent;
+  }
+
+  /* push Chart actions to upper right */
+  .dragdroppable-column .dashboard-component-chart-holder .hover-menu--top,
+  .dragdroppable .dashboard-component-header .hover-menu--top {
+    right: 8px;
+    top: 8px;
+    background: transparent;
+    border: none;
+    transform: unset;
+    left: unset;
+  }
+  div:hover > .hover-menu-container .hover-menu,
+  .hover-menu-container .hover-menu:hover {
+    opacity: 1;
+  }
 `;
 
 // @z-index-above-dashboard-charts + 1 = 11
@@ -89,7 +135,7 @@ const StyledHeader = styled.div`
   grid-column: 2;
   grid-row: 1;
   position: sticky;
-  top: 0px;
+  top: 0;
   z-index: 100;
 `;
 
@@ -105,6 +151,7 @@ const StyledContent = styled.div<{
 const StyledDashboardContent = styled.div<{
   dashboardFiltersOpen: boolean;
   editMode: boolean;
+  nativeFiltersEnabled: boolean;
 }>`
   display: flex;
   flex-direction: row;
@@ -119,18 +166,36 @@ const StyledDashboardContent = styled.div<{
 
   .grid-container {
     /* without this, the grid will not get smaller upon toggling the builder panel on */
-    width: 0px;
+    width: 0;
     flex: 1;
     position: relative;
     margin-top: ${({ theme }) => theme.gridUnit * 6}px;
     margin-right: ${({ theme }) => theme.gridUnit * 8}px;
     margin-bottom: ${({ theme }) => theme.gridUnit * 6}px;
-    margin-left: ${({ theme, dashboardFiltersOpen, editMode }) => {
-      if (!dashboardFiltersOpen && !editMode) {
+    margin-left: ${({
+      theme,
+      dashboardFiltersOpen,
+      editMode,
+      nativeFiltersEnabled,
+    }) => {
+      if (!dashboardFiltersOpen && !editMode && nativeFiltersEnabled) {
         return 0;
       }
       return theme.gridUnit * 8;
     }}px;
+
+    ${({ editMode, theme }) =>
+      editMode &&
+      `
+      max-width: calc(100% - ${
+        BUILDER_SIDEPANEL_WIDTH + theme.gridUnit * 16
+      }px);
+    `}
+  }
+
+  .dashboard-builder-sidepane {
+    width: ${BUILDER_SIDEPANEL_WIDTH}px;
+    z-index: 1;
   }
 
   .dashboard-component-chart-holder {
@@ -144,11 +209,16 @@ const StyledDashboardContent = styled.div<{
 
 const DashboardBuilder: FC<DashboardBuilderProps> = () => {
   const dispatch = useDispatch();
+  const uiConfig = useUiConfig();
+
   const dashboardLayout = useSelector<RootState, DashboardLayout>(
     state => state.dashboardLayout.present,
   );
   const editMode = useSelector<RootState, boolean>(
     state => state.dashboardState.editMode,
+  );
+  const canEdit = useSelector<RootState, boolean>(
+    ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
   );
   const directPathToChild = useSelector<RootState, string[]>(
     state => state.dashboardState.directPathToChild,
@@ -157,15 +227,14 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
     state => state.dashboardState.fullSizeChartId,
   );
 
-  const handleChangeTab = ({
-    pathToTabIndex,
-  }: {
-    pathToTabIndex: string[];
-  }) => {
-    dispatch(setDirectPathToChild(pathToTabIndex));
-  };
+  const handleChangeTab = useCallback(
+    ({ pathToTabIndex }: { pathToTabIndex: string[] }) => {
+      dispatch(setDirectPathToChild(pathToTabIndex));
+    },
+    [dispatch],
+  );
 
-  const handleDeleteTopLevelTabs = () => {
+  const handleDeleteTopLevelTabs = useCallback(() => {
     dispatch(deleteTopLevelTabs());
 
     const firstTab = getDirectPathToTabIndex(
@@ -173,18 +242,25 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
       0,
     );
     dispatch(setDirectPathToChild(firstTab));
-  };
+  }, [dashboardLayout, dispatch]);
+
+  const handleDrop = useCallback(
+    dropResult => dispatch(handleComponentDrop(dropResult)),
+    [dispatch],
+  );
 
   const dashboardRoot = dashboardLayout[DASHBOARD_ROOT_ID];
-  const rootChildId = dashboardRoot.children[0];
+  const rootChildId = dashboardRoot?.children[0];
   const topLevelTabs =
     rootChildId !== DASHBOARD_GRID_ID
       ? dashboardLayout[rootChildId]
       : undefined;
-  const StandaloneMode = getUrlParam(URL_PARAMS.standalone);
-  const isReport = StandaloneMode === DashboardStandaloneMode.REPORT;
+  const standaloneMode = getUrlParam(URL_PARAMS.standalone);
+  const isReport = standaloneMode === DashboardStandaloneMode.REPORT;
   const hideDashboardHeader =
-    StandaloneMode === DashboardStandaloneMode.HIDE_NAV_AND_TITLE || isReport;
+    uiConfig.hideTitle ||
+    standaloneMode === DashboardStandaloneMode.HIDE_NAV_AND_TITLE ||
+    isReport;
 
   const barTopOffset =
     (hideDashboardHeader ? 0 : HEADER_HEIGHT) +
@@ -211,11 +287,61 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
 
   const offset =
     FILTER_BAR_HEADER_HEIGHT +
-    (isSticky || StandaloneMode ? 0 : MAIN_HEADER_HEIGHT) +
+    (isSticky || standaloneMode ? 0 : MAIN_HEADER_HEIGHT) +
     (filterSetEnabled ? FILTER_BAR_TABS_HEIGHT : 0);
 
   const filterBarHeight = `calc(100vh - ${offset}px)`;
   const filterBarOffset = dashboardFiltersOpen ? 0 : barTopOffset + 20;
+
+  const draggableStyle = useMemo(
+    () => ({
+      marginLeft:
+        dashboardFiltersOpen || editMode || !nativeFiltersEnabled ? 0 : -32,
+    }),
+    [dashboardFiltersOpen, editMode, nativeFiltersEnabled],
+  );
+
+  const renderDraggableContent = useCallback(
+    ({ dropIndicatorProps }: { dropIndicatorProps: JsonObject }) => (
+      <div>
+        {!hideDashboardHeader && <DashboardHeader />}
+        {dropIndicatorProps && <div {...dropIndicatorProps} />}
+        {!isReport && topLevelTabs && !uiConfig.hideNav && (
+          <WithPopoverMenu
+            shouldFocus={shouldFocusTabs}
+            menuItems={[
+              <IconButton
+                icon={<Icons.FallOutlined iconSize="xl" />}
+                label="Collapse tab content"
+                onClick={handleDeleteTopLevelTabs}
+              />,
+            ]}
+            editMode={editMode}
+          >
+            {/* @ts-ignore */}
+            <DashboardComponent
+              id={topLevelTabs?.id}
+              parentId={DASHBOARD_ROOT_ID}
+              depth={DASHBOARD_ROOT_DEPTH + 1}
+              index={0}
+              renderTabContent={false}
+              renderHoverMenu={false}
+              onChangeTab={handleChangeTab}
+            />
+          </WithPopoverMenu>
+        )}
+      </div>
+    ),
+    [
+      editMode,
+      handleChangeTab,
+      handleDeleteTopLevelTabs,
+      hideDashboardHeader,
+      isReport,
+      topLevelTabs,
+      uiConfig.hideNav,
+    ],
+  );
 
   return (
     <StyledDiv>
@@ -244,45 +370,13 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
           depth={DASHBOARD_ROOT_DEPTH}
           index={0}
           orientation="column"
-          onDrop={dropResult => dispatch(handleComponentDrop(dropResult))}
+          onDrop={handleDrop}
           editMode={editMode}
           // you cannot drop on/displace tabs if they already exist
           disableDragDrop={!!topLevelTabs}
-          style={{
-            marginLeft: dashboardFiltersOpen || editMode ? 0 : -32,
-          }}
+          style={draggableStyle}
         >
-          {({ dropIndicatorProps }: { dropIndicatorProps: JsonObject }) => (
-            <div>
-              {!hideDashboardHeader && <DashboardHeader />}
-              {dropIndicatorProps && <div {...dropIndicatorProps} />}
-              {!isReport && topLevelTabs && (
-                <WithPopoverMenu
-                  shouldFocus={shouldFocusTabs}
-                  menuItems={[
-                    <IconButton
-                      icon={<Icons.FallOutlined iconSize="xl" />}
-                      label="Collapse tab content"
-                      onClick={handleDeleteTopLevelTabs}
-                    />,
-                  ]}
-                  editMode={editMode}
-                >
-                  {/*
-                      // @ts-ignore */}
-                  <DashboardComponent
-                    id={topLevelTabs?.id}
-                    parentId={DASHBOARD_ROOT_ID}
-                    depth={DASHBOARD_ROOT_DEPTH + 1}
-                    index={0}
-                    renderTabContent={false}
-                    renderHoverMenu={false}
-                    onChangeTab={handleChangeTab}
-                  />
-                </WithPopoverMenu>
-              )}
-            </div>
-          )}
+          {renderDraggableContent}
         </DragDroppable>
       </StyledHeader>
       <StyledContent fullSizeChartId={fullSizeChartId}>
@@ -293,6 +387,20 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
             `div > .filterStatusPopover.ant-popover{z-index: 101}`}
           `}
         />
+        {!editMode &&
+          !topLevelTabs &&
+          dashboardLayout[DASHBOARD_GRID_ID]?.children?.length === 0 && (
+            <EmptyStateBig
+              title={t('There are no charts added to this dashboard')}
+              description={
+                canEdit &&
+                t(
+                  'Go to the edit mode to configure the dashboard and add charts',
+                )
+              }
+              image="dashboard.svg"
+            />
+          )}
         <div
           data-test="dashboard-content"
           className={cx('dashboard', editMode && 'dashboard--editing')}
@@ -301,13 +409,19 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
             className="dashboard-content"
             dashboardFiltersOpen={dashboardFiltersOpen}
             editMode={editMode}
+            nativeFiltersEnabled={nativeFiltersEnabled}
           >
             {showDashboard ? (
               <DashboardContainer topLevelTabs={topLevelTabs} />
             ) : (
               <Loading />
             )}
-            {editMode && <BuilderComponentPane topOffset={barTopOffset} />}
+            {editMode && (
+              <BuilderComponentPane
+                isStandalone={!!standaloneMode}
+                topOffset={barTopOffset}
+              />
+            )}
           </StyledDashboardContent>
         </div>
       </StyledContent>

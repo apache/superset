@@ -17,9 +17,12 @@
  * under the License.
  */
 import React, { useCallback, useState } from 'react';
-//import { styled } from '@superset-ui/core';
+// import { styled } from '@superset-ui/core';
+import { AgGridReact } from '@ag-grid-community/react';
+import { AllModules, LicenseManager } from '@ag-grid-enterprise/all-modules';
+import { NULL_STRING } from 'src/utils/common';
+import { ensureIsArray } from '@superset-ui/core';
 import { CccsGridTransformedProps } from './types';
-
 
 import CountryValueRenderer from './CountryValueRenderer';
 import Ipv4ValueRenderer from './Ipv4ValueRenderer';
@@ -28,25 +31,13 @@ import DomainValueRenderer from './DomainValueRenderer';
 import JsonValueRenderer from './JsonValueRenderer';
 import CustomTooltip from './CustomTooltip';
 
+/// / jcc
 
+// 'use strict';
 
-//// jcc
-
-//'use strict';
-
-import { AgGridReact } from '@ag-grid-community/react';
 import '@ag-grid-community/all-modules/dist/styles/ag-grid.css';
 import '@ag-grid-community/core/dist/styles/ag-grid.css';
 import '@ag-grid-community/core/dist/styles/ag-theme-balham.css';
-
-import { AllModules } from "@ag-grid-enterprise/all-modules";
-import { NULL_STRING } from 'src/utils/common';
-
-import { LicenseManager } from '@ag-grid-enterprise/all-modules';
-
-import {
-  ensureIsArray
-} from '@superset-ui/core';
 
 const DEFAULT_COLUMN_DEF = {
   editable: false,
@@ -70,7 +61,6 @@ export default function CccsGrid({
   emitFilter = false,
   filters: initialFilters = {},
 }: CccsGridTransformedProps) {
-
   LicenseManager.setLicenseKey(agGridLicenseKey);
 
   const [setFilters] = useState(initialFilters);
@@ -78,33 +68,40 @@ export default function CccsGrid({
   const [prevRow, setPrevRow] = useState(-1);
   const [prevColumn, setPrevColumn] = useState('');
 
-  const handleChange = useCallback(filters => {
-    if (!emitFilter) {
-      return;
-    }
-
-    const groupBy = Object.keys(filters);
-    const groupByValues = Object.values(filters);
-    setDataMask({
-      extraFormData: {
-        filters: groupBy.length === 0 ? [] : groupBy.map(col => {
-          const val = ensureIsArray(filters?.[col]);
-          if (val === null || val === undefined) return {
-            col,
-            op: 'IS NULL'
-          };
-          return {
-            col,
-            op: 'IN',
-            val: val
-          };
-        })
-      },
-      filterState: {
-        value: groupByValues.length ? groupByValues : null
+  const handleChange = useCallback(
+    filters => {
+      if (!emitFilter) {
+        return;
       }
-    });
-  }, [emitFilter, setDataMask]); // only take relevant page size options
+
+      const groupBy = Object.keys(filters);
+      const groupByValues = Object.values(filters);
+      setDataMask({
+        extraFormData: {
+          filters:
+            groupBy.length === 0
+              ? []
+              : groupBy.map(col => {
+                  const val = ensureIsArray(filters?.[col]);
+                  if (val === null || val === undefined)
+                    return {
+                      col,
+                      op: 'IS NULL',
+                    };
+                  return {
+                    col,
+                    op: 'IN',
+                    val,
+                  };
+                }),
+        },
+        filterState: {
+          value: groupByValues.length ? groupByValues : null,
+        },
+      });
+    },
+    [emitFilter, setDataMask],
+  ); // only take relevant page size options
 
   // getContextMenuItems = (params) => {
   //   var result = [
@@ -151,7 +148,10 @@ export default function CccsGrid({
       return false;
     }
     const range = cellRanges[0];
-    return range.startRow.rowIndex == range.endRow.rowIndex && range.columns.length == 1;
+    return (
+      range.startRow.rowIndex == range.endRow.rowIndex &&
+      range.columns.length == 1
+    );
   }
 
   function isSameSingleSelection(range: any): boolean {
@@ -186,8 +186,7 @@ export default function CccsGrid({
         cellRanges = gridApi.getCellRanges();
         // Clear previous selection
         clearSingleSelection();
-      }
-      else {
+      } else {
         // remember the single cell selection
         cacheSingleSelection(cellRanges[0]);
       }
@@ -196,12 +195,18 @@ export default function CccsGrid({
     const updatedFilters = {};
     cellRanges.forEach((range: any) => {
       range.columns.forEach((column: any) => {
-        const col = getEmitTarget(column.colDef?.field)
+        const col = getEmitTarget(column.colDef?.field);
         updatedFilters[col] = updatedFilters[col] || [];
-        const startRow = Math.min(range.startRow.rowIndex, range.endRow.rowIndex);
+        const startRow = Math.min(
+          range.startRow.rowIndex,
+          range.endRow.rowIndex,
+        );
         const endRow = Math.max(range.startRow.rowIndex, range.endRow.rowIndex);
         for (let rowIndex = startRow; rowIndex <= endRow; rowIndex++) {
-          const value = gridApi.getValue(column, gridApi.getModel().getRow(rowIndex));
+          const value = gridApi.getValue(
+            column,
+            gridApi.getModel().getRow(rowIndex),
+          );
           if (!updatedFilters[col].includes(value)) {
             updatedFilters[col].push(value);
           }
@@ -211,7 +216,7 @@ export default function CccsGrid({
 
     setFilters(updatedFilters);
     handleChange(updatedFilters);
-  }
+  };
 
   function getEmitTarget(col: string) {
     return formData.column_config?.[col]?.emitTarget || col;
@@ -219,30 +224,32 @@ export default function CccsGrid({
 
   function autoSizeFirst100Columns(params: any) {
     // Autosizes only the first 100 Columns in Ag-Grid
-    const allColumnIds = params.columnApi.getAllColumns().map((col: any) => { return col.getColId() });
+    const allColumnIds = params.columnApi
+      .getAllColumns()
+      .map((col: any) => col.getColId());
     params.columnApi.autoSizeColumns(allColumnIds.slice(0, 100), false);
   }
 
   const gridOptions = {
     suppressColumnVirtualisation: true,
-    animateRows: true
+    animateRows: true,
     // Disables a Key performance feature for Ag-Grid to enable autosizing of multiple columns
     // if not disabled, only the first 10-15 columns will autosize
     // This change will make initial load up of Ag-Grid slower than before
   };
 
   return (
-    <div style={{ width, height }} className="ag-theme-balham" >
+    <div style={{ width, height }} className="ag-theme-balham">
       <AgGridReact
         modules={AllModules}
         columnDefs={columnDefs}
         defaultColDef={DEFAULT_COLUMN_DEF}
         frameworkComponents={frameworkComponents}
-        enableRangeSelection={true}
-        allowContextMenuWithControlKey={true}
+        enableRangeSelection
+        allowContextMenuWithControlKey
         gridOptions={gridOptions}
         onGridColumnsChanged={autoSizeFirst100Columns}
-        //getContextMenuItems={getContextMenuItems}
+        // getContextMenuItems={getContextMenuItems}
         onGridReady={onGridReady}
         onRangeSelectionChanged={onRangeSelectionChanged}
         onSelectionChanged={onSelectionChanged}

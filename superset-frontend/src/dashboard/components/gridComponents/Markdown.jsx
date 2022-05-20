@@ -18,14 +18,16 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-
+import { connect } from 'react-redux';
 import cx from 'classnames';
+
 import { t, SafeMarkdown } from '@superset-ui/core';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
 import { MarkdownEditor } from 'src/components/AsyncAceEditor';
 
 import DeleteComponentButton from 'src/dashboard/components/DeleteComponentButton';
 import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
+import HoverMenu from 'src/dashboard/components/menu/HoverMenu';
 import ResizableContainer from 'src/dashboard/components/resizable/ResizableContainer';
 import MarkdownModeDropdown from 'src/dashboard/components/menu/MarkdownModeDropdown';
 import WithPopoverMenu from 'src/dashboard/components/menu/WithPopoverMenu';
@@ -108,13 +110,8 @@ class Markdown extends React.PureComponent {
   }
 
   static getDerivedStateFromProps(nextProps, state) {
-    const {
-      hasError,
-      editorMode,
-      markdownSource,
-      undoLength,
-      redoLength,
-    } = state;
+    const { hasError, editorMode, markdownSource, undoLength, redoLength } =
+      state;
     const {
       component: nextComponent,
       undoLength: nextUndoLength,
@@ -316,7 +313,6 @@ class Markdown extends React.PureComponent {
                 value={this.state.editorMode}
                 onChange={this.handleChangeEditorMode}
               />,
-              <DeleteComponentButton onDelete={this.handleDeleteComponent} />,
             ]}
             editMode={editMode}
           >
@@ -349,6 +345,13 @@ class Markdown extends React.PureComponent {
                   className="dashboard-component dashboard-component-chart-holder"
                   data-test="dashboard-component-chart-holder"
                 >
+                  {editMode && (
+                    <HoverMenu position="top">
+                      <DeleteComponentButton
+                        onDelete={this.handleDeleteComponent}
+                      />
+                    </HoverMenu>
+                  )}
                   {editMode && isEditing
                     ? this.renderEditMode()
                     : this.renderPreviewMode()}
@@ -366,4 +369,10 @@ class Markdown extends React.PureComponent {
 Markdown.propTypes = propTypes;
 Markdown.defaultProps = defaultProps;
 
-export default Markdown;
+function mapStateToProps(state) {
+  return {
+    undoLength: state.dashboardLayout.past.length,
+    redoLength: state.dashboardLayout.future.length,
+  };
+}
+export default connect(mapStateToProps)(Markdown);

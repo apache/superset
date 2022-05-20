@@ -14,8 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=line-too-long
-
 from typing import Any, Dict, List
 
 # example V0 import/export format
@@ -375,7 +373,7 @@ dataset_config: Dict[str, Any] = {
     "template_params": {},
     "filter_select_enabled": True,
     "fetch_values_predicate": None,
-    "extra": "dttm > sysdate() -10 ",
+    "extra": '{ "certification": { "certified_by": "Data Platform Team", "details": "This table is the source of truth." }, "warning_markdown": "This is a warning." }',
     "metrics": [
         {
             "metric_name": "count",
@@ -444,13 +442,14 @@ chart_config: Dict[str, Any] = {
         },
         "viz_type": "deck_path",
     },
+    "query_context": '{"datasource":{"id":12,"type":"table"},"force":false,"queries":[{"time_range":" : ","filters":[],"extras":{"time_grain_sqla":null,"having":"","having_druid":[],"where":""},"applied_time_extras":{},"columns":[],"metrics":[],"annotation_layers":[],"row_limit":5000,"timeseries_limit":0,"order_desc":true,"url_params":{},"custom_params":{},"custom_form_data":{}}],"result_format":"json","result_type":"full"}',
     "cache_timeout": None,
     "uuid": "0c23747a-6528-4629-97bf-e4b78d3b9df1",
     "version": "1.0.0",
     "dataset_uuid": "10808100-158b-42c4-842e-f32b99d88dfb",
 }
 
-dashboard_config = {
+dashboard_config: Dict[str, Any] = {
     "dashboard_title": "Test dash",
     "description": None,
     "css": "",
@@ -493,7 +492,9 @@ dashboard_config = {
     },
     "metadata": {
         "timed_refresh_immune_slices": [83],
-        "filter_scopes": {"83": {"region": {"scope": ["ROOT_ID"], "immune": [83]}},},
+        "filter_scopes": {
+            "83": {"region": {"scope": ["ROOT_ID"], "immune": [83]}},
+        },
         "expanded_slices": {"83": True},
         "refresh_frequency": 0,
         "default_filters": "{}",

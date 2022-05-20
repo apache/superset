@@ -17,7 +17,6 @@
  * under the License.
  */
 import React from 'react';
-import PropTypes from 'prop-types';
 import { t } from '@superset-ui/core';
 
 import Popover from 'src/components/Popover';
@@ -25,13 +24,8 @@ import { FormLabel } from 'src/components/Form';
 import Icons from 'src/components/Icons';
 import { Tooltip } from 'src/components/Tooltip';
 import CopyToClipboard from 'src/components/CopyToClipboard';
-import { getShortUrl } from 'src/utils/urlUtils';
 import { URL_PARAMS } from 'src/constants';
-import { getExploreLongUrl, getURIDirectory } from '../exploreUtils';
-
-const propTypes = {
-  latestQueryFormData: PropTypes.object.isRequired,
-};
+import { getChartPermalink } from 'src/utils/urlUtils';
 
 export default class EmbedCodeButton extends React.Component {
   constructor(props) {
@@ -39,24 +33,11 @@ export default class EmbedCodeButton extends React.Component {
     this.state = {
       height: '400',
       width: '600',
-      shortUrlId: 0,
+      url: '',
+      errorMessage: '',
     };
     this.handleInputChange = this.handleInputChange.bind(this);
-    this.getCopyUrl = this.getCopyUrl.bind(this);
-    this.onShortUrlSuccess = this.onShortUrlSuccess.bind(this);
-  }
-
-  onShortUrlSuccess(shortUrl) {
-    const shortUrlId = shortUrl.substring(shortUrl.indexOf('/r/') + 3);
-    this.setState(() => ({
-      shortUrlId,
-    }));
-  }
-
-  getCopyUrl() {
-    return getShortUrl(getExploreLongUrl(this.props.latestQueryFormData))
-      .then(this.onShortUrlSuccess)
-      .catch(this.props.addDangerToast);
+    this.updateUrl = this.updateUrl.bind(this);
   }
 
   handleInputChange(e) {
@@ -66,10 +47,21 @@ export default class EmbedCodeButton extends React.Component {
     this.setState(data);
   }
 
+  updateUrl() {
+    this.setState({ url: '' });
+    getChartPermalink(this.props.formData)
+      .then(url => this.setState({ errorMessage: '', url }))
+      .catch(() => {
+        this.setState({ errorMessage: t('Error') });
+        this.props.addDangerToast(
+          t('Sorry, something went wrong. Try again later.'),
+        );
+      });
+  }
+
   generateEmbedHTML() {
-    const srcLink = `${window.location.origin + getURIDirectory()}?r=${
-      this.state.shortUrlId
-    }&${URL_PARAMS.standalone.name}=1&height=${this.state.height}`;
+    if (!this.state.url) return '';
+    const srcLink = `${this.state.url}?${URL_PARAMS.standalone.name}=1&height=${this.state.height}`;
     return (
       '<iframe\n' +
       `  width="${this.state.width}"\n` +
@@ -85,6 +77,8 @@ export default class EmbedCodeButton extends React.Component {
 
   renderPopoverContent() {
     const html = this.generateEmbedHTML();
+    const text =
+      this.state.errorMessage || html || t('Generating link, please wait..');
     return (
       <div id="embed-code-popover" data-test="embed-code-popover">
         <div className="row">
@@ -92,10 +86,12 @@ export default class EmbedCodeButton extends React.Component {
             <textarea
               data-test="embed-code-textarea"
               name="embedCode"
-              value={html}
+              disabled={!html}
+              value={text}
               rows="4"
               readOnly
               className="form-control input-sm"
+              style={{ resize: 'vertical' }}
             />
           </div>
           <div className="col-sm-2">
@@ -149,7 +145,7 @@ export default class EmbedCodeButton extends React.Component {
       <Popover
         trigger="click"
         placement="left"
-        onClick={this.getCopyUrl}
+        onClick={this.updateUrl}
         content={this.renderPopoverContent()}
       >
         <Tooltip
@@ -170,5 +166,3 @@ export default class EmbedCodeButton extends React.Component {
     );
   }
 }
-
-EmbedCodeButton.propTypes = propTypes;

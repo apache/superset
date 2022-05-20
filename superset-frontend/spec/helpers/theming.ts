@@ -17,6 +17,7 @@
  * under the License.
  */
 import { shallow as enzymeShallow, mount as enzymeMount } from 'enzyme';
+// eslint-disable-next-line no-restricted-imports
 import { supersetTheme } from '@superset-ui/core';
 import { ReactElement } from 'react';
 import { ProviderWrapper } from './ProviderWrapper';

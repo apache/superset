@@ -17,14 +17,16 @@
  * under the License.
  */
 import { ReactNode } from 'react';
-import { Metric } from '@superset-ui/core';
+import { AdhocColumn, JsonValue } from '@superset-ui/core';
+import { ControlComponentProps } from 'src/explore/components/Control';
 import { ColumnMeta } from '@superset-ui/chart-controls';
-import { DatasourcePanelDndItem } from '../../DatasourcePanel/types';
-import { DndItemType } from '../../DndItemType';
 
 export interface OptionProps {
-  children: ReactNode;
+  children?: ReactNode;
   index: number;
+  label?: string;
+  tooltipTitle?: string;
+  column?: ColumnMeta | AdhocColumn;
   clickClose: (index: number) => void;
   withCaret?: boolean;
   isExtra?: boolean;
@@ -36,37 +38,15 @@ export interface OptionItemInterface {
   dragIndex: number;
 }
 
-export interface LabelProps<T = string[] | string> {
-  name: string;
-  value?: T;
-  onChange: (value?: T) => void;
-  options: { string: ColumnMeta };
-  multi?: boolean;
-  canDelete?: boolean;
-  ghostButtonText?: string;
-  label?: string;
-}
-
-export interface DndColumnSelectProps<
-  T = string[] | string,
-  O = string[] | string
-> extends LabelProps<T> {
-  onDrop: (item: DatasourcePanelDndItem) => void;
-  canDrop: (item: DatasourcePanelDndItem) => boolean;
-  valuesRenderer: () => ReactNode;
-  accept: DndItemType | DndItemType[];
-  ghostButtonText?: string;
-  displayGhostButton?: boolean;
-}
+/**
+ * Shared control props for all DnD control.
+ */
+export type DndControlProps<ValueType extends JsonValue> =
+  ControlComponentProps<ValueType | ValueType[] | null> & {
+    multi?: boolean;
+    canDelete?: boolean;
+    ghostButtonText?: string;
+    onChange: (value: ValueType | ValueType[] | null | undefined) => void;
+  };
 
 export type OptionValueType = Record<string, any>;
-export interface DndFilterSelectProps {
-  name: string;
-  value: OptionValueType[];
-  columns: ColumnMeta[];
-  datasource: Record<string, any>;
-  formData: Record<string, any>;
-  savedMetrics: Metric[];
-  onChange: (filters: OptionValueType[]) => void;
-  options: { string: ColumnMeta };
-}

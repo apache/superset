@@ -19,6 +19,7 @@ from unittest import mock
 
 import pytest
 
+from superset.utils.core import backend
 from tests.integration_tests.dashboards.dashboard_test_utils import *
 from tests.integration_tests.dashboards.security.base_case import (
     BaseTestDashboardSecurity,
@@ -31,6 +32,7 @@ from tests.integration_tests.dashboards.superset_factory_util import (
 )
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
+    load_birth_names_data,
 )
 from tests.integration_tests.fixtures.public_role import public_role_like_gamma
 from tests.integration_tests.fixtures.query_context import get_query_context
@@ -39,7 +41,8 @@ CHART_DATA_URI = "api/v1/chart/data"
 
 
 @mock.patch.dict(
-    "superset.extensions.feature_flag_manager._feature_flags", DASHBOARD_RBAC=True,
+    "superset.extensions.feature_flag_manager._feature_flags",
+    DASHBOARD_RBAC=True,
 )
 class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
     def test_get_dashboard_view__admin_can_access(self):
@@ -90,8 +93,8 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
         response = self.get_dashboard_view_response(dashboard_to_access)
 
         request_payload = get_query_context("birth_names")
-        rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "post_data")
-        self.assertEqual(rv.status_code, 401)
+        rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
+        self.assertEqual(rv.status_code, 403)
 
         # assert
         self.assert403(response)
@@ -118,6 +121,9 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_get_dashboard_view__user_access_with_dashboard_permission(self):
+        if backend() == "hive":
+            return
+
         # arrange
 
         username = random_str()
@@ -140,7 +146,7 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
         self.assert200(response)
 
         request_payload = get_query_context("birth_names")
-        rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "post_data")
+        rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
         self.assertEqual(rv.status_code, 200)
 
         # post
@@ -275,7 +281,10 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
 
         # assert
         self.assert_dashboards_list_view_response(
-            response, len(published_dashboards), published_dashboards, draft_dashboards,
+            response,
+            len(published_dashboards),
+            published_dashboards,
+            draft_dashboards,
         )
 
         # post
@@ -335,7 +344,10 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
 
         # assert
         self.assert_dashboards_list_view_response(
-            response, len(published_dashboards), published_dashboards, draft_dashboards,
+            response,
+            len(published_dashboards),
+            published_dashboards,
+            draft_dashboards,
         )
 
         # post
@@ -397,7 +409,10 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
 
         # assert
         self.assert_dashboards_api_response(
-            response, len(published_dashboards), published_dashboards, draft_dashboards,
+            response,
+            len(published_dashboards),
+            published_dashboards,
+            draft_dashboards,
         )
 
         # post
@@ -441,7 +456,10 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
 
         # assert
         self.assert_dashboards_api_response(
-            response, len(published_dashboards), published_dashboards, draft_dashboards,
+            response,
+            len(published_dashboards),
+            published_dashboards,
+            draft_dashboards,
         )
 
         # post

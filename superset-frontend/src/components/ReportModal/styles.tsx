@@ -20,6 +20,8 @@
 import { styled, css, SupersetTheme } from '@superset-ui/core';
 import Modal from 'src/components/Modal';
 import Button from 'src/components/Button';
+import { Radio } from 'src/components/Radio';
+import { CronPicker } from 'src/components/CronPicker';
 
 export const StyledModal = styled(Modal)`
   .ant-modal-body {
@@ -61,6 +63,14 @@ export const StyledIconWrapper = styled.span`
 
 export const StyledScheduleTitle = styled.div`
   margin-bottom: ${({ theme }) => theme.gridUnit * 7}px;
+
+  h4 {
+    margin-bottom: ${({ theme }) => theme.gridUnit * 3}px;
+  }
+`;
+
+export const StyledCronPicker = styled(CronPicker)`
+  margin-bottom: ${({ theme }) => theme.gridUnit * 3}px;
 `;
 
 export const StyledCronError = styled.p`
@@ -81,5 +91,39 @@ export const TimezoneHeaderStyle = (theme: SupersetTheme) => css`
 
 export const SectionHeaderStyle = (theme: SupersetTheme) => css`
   margin: ${theme.gridUnit * 3}px 0;
-  font-weight: ${theme.typography.weights.bold};
+`;
+
+export const StyledMessageContentTitle = styled.div`
+  margin: ${({ theme }) => theme.gridUnit * 8}px 0
+    ${({ theme }) => theme.gridUnit * 4}px;
+`;
+
+export const StyledRadio = styled(Radio)`
+  display: block;
+  line-height: ${({ theme }) => theme.gridUnit * 8}px;
+`;
+
+export const StyledRadioGroup = styled(Radio.Group)`
+  margin-left: ${({ theme }) => theme.gridUnit * 0.5}px;
+`;
+
+export const antDErrorAlertStyles = (theme: SupersetTheme) => css`
+  border: ${theme.colors.error.base} 1px solid;
+  padding: ${theme.gridUnit * 4}px;
+  margin: ${theme.gridUnit * 8}px ${theme.gridUnit * 4}px;
+  color: ${theme.colors.error.dark2};
+  .ant-alert-message {
+    font-size: ${theme.typography.sizes.s + 1}px;
+    font-weight: bold;
+  }
+  .ant-alert-description {
+    font-size: ${theme.typography.sizes.s + 1}px;
+    line-height: ${theme.gridUnit * 4}px;
+    .ant-alert-icon {
+      margin-right: ${theme.gridUnit * 2.5}px;
+      font-size: ${theme.typography.sizes.l + 1}px;
+      position: relative;
+      top: ${theme.gridUnit / 4}px;
+    }
+  }
 `;

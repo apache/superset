@@ -17,6 +17,7 @@
 # isort:skip_file
 from datetime import datetime
 from unittest import mock
+from typing import List
 
 import pytest
 import pandas as pd
@@ -165,7 +166,10 @@ def test_convert_dttm():
 def test_df_to_csv() -> None:
     with pytest.raises(SupersetException):
         HiveEngineSpec.df_to_sql(
-            mock.MagicMock(), Table("foobar"), pd.DataFrame(), {"if_exists": "append"},
+            mock.MagicMock(),
+            Table("foobar"),
+            pd.DataFrame(),
+            {"if_exists": "append"},
         )
 
 
@@ -379,3 +383,23 @@ def test_where_latest_partition_no_columns_no_values(mock_method):
             "test_table", "test_schema", db, select()
         )
     assert result is None
+
+
+def test__latest_partition_from_df():
+    def is_correct_result(data: List, result: List) -> bool:
+        df = pd.DataFrame({"partition": data})
+        return HiveEngineSpec._latest_partition_from_df(df) == result
+
+    assert is_correct_result(["ds=01-01-19"], ["01-01-19"])
+    assert is_correct_result(
+        ["ds=01-01-19", "ds=01-03-19", "ds=01-02-19"], ["01-03-19"]
+    )
+    assert is_correct_result(["ds=01-01-19/hour=1"], ["01-01-19", "1"])
+    assert is_correct_result(
+        ["ds=01-01-19/hour=1", "ds=01-03-19/hour=1", "ds=01-02-19/hour=1"],
+        ["01-03-19", "1"],
+    )
+    assert is_correct_result(
+        ["ds=01-01-19/hour=1", "ds=01-03-19/hour=1", "ds=01-02-19/hour=2"],
+        ["01-03-19", "1"],
+    )

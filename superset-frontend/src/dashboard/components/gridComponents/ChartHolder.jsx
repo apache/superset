@@ -20,9 +20,9 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import cx from 'classnames';
 import { useTheme } from '@superset-ui/core';
-import { useSelector } from 'react-redux';
+import { useSelector, connect } from 'react-redux';
 
-import { getChartIdsInFilterScope } from 'src/dashboard/util/activeDashboardFilters';
+import { getChartIdsInFilterBoxScope } from 'src/dashboard/util/activeDashboardFilters';
 import Chart from '../../containers/Chart';
 import AnchorLink from '../../../components/AnchorLink';
 import DeleteComponentButton from '../DeleteComponentButton';
@@ -48,6 +48,7 @@ const propTypes = {
   dashboardId: PropTypes.number.isRequired,
   component: componentShape.isRequired,
   parentComponent: componentShape.isRequired,
+  getComponentById: PropTypes.func.isRequired,
   index: PropTypes.number.isRequired,
   depth: PropTypes.number.isRequired,
   editMode: PropTypes.bool.isRequired,
@@ -68,6 +69,7 @@ const propTypes = {
   updateComponents: PropTypes.func.isRequired,
   handleComponentDrop: PropTypes.func.isRequired,
   setFullSizeChartId: PropTypes.func.isRequired,
+  postAddSliceFromDashboard: PropTypes.func,
 };
 
 const defaultProps = {
@@ -114,8 +116,9 @@ const FilterFocusHighlight = React.forwardRef(
       dashboardFilters,
     );
     const focusedNativeFilterId = nativeFilters.focusedFilterId;
-    if (!(focusedFilterScope || focusedNativeFilterId))
+    if (!(focusedFilterScope || focusedNativeFilterId)) {
       return <div ref={ref} {...otherProps} />;
+    }
 
     // we use local styles here instead of a conditionally-applied class,
     // because adding any conditional class to this container
@@ -140,7 +143,7 @@ const FilterFocusHighlight = React.forwardRef(
       }
     } else if (
       chartId === focusedFilterScope.chartId ||
-      getChartIdsInFilterScope({
+      getChartIdsInFilterBoxScope({
         filterScope: focusedFilterScope.scope,
       }).includes(chartId)
     ) {
@@ -166,10 +169,8 @@ class ChartHolder extends React.Component {
 
   static getDerivedStateFromProps(props, state) {
     const { component, directPathToChild, directPathLastUpdated } = props;
-    const {
-      label: columnName,
-      chart: chartComponentId,
-    } = getChartAndLabelComponentIdFromPath(directPathToChild);
+    const { label: columnName, chart: chartComponentId } =
+      getChartAndLabelComponentIdFromPath(directPathToChild);
 
     if (
       directPathLastUpdated !== state.directPathLastUpdated &&
@@ -197,6 +198,7 @@ class ChartHolder extends React.Component {
     this.handleDeleteComponent = this.handleDeleteComponent.bind(this);
     this.handleUpdateSliceName = this.handleUpdateSliceName.bind(this);
     this.handleToggleFullSize = this.handleToggleFullSize.bind(this);
+    this.handlePostTransformProps = this.handlePostTransformProps.bind(this);
   }
 
   componentDidMount() {
@@ -251,6 +253,11 @@ class ChartHolder extends React.Component {
     setFullSizeChartId(isFullSize ? null : chartId);
   }
 
+  handlePostTransformProps(props) {
+    this.props.postAddSliceFromDashboard();
+    return props;
+  }
+
   render() {
     const { isFocused } = this.state;
     const {
@@ -268,16 +275,22 @@ class ChartHolder extends React.Component {
       isComponentVisible,
       dashboardId,
       fullSizeChartId,
+      getComponentById = () => undefined,
     } = this.props;
 
     const { chartId } = component.meta;
     const isFullSize = fullSizeChartId === chartId;
 
     // inherit the size of parent columns
-    const widthMultiple =
-      parentComponent.type === COLUMN_TYPE
-        ? parentComponent.meta.width || GRID_MIN_COLUMN_COUNT
-        : component.meta.width || GRID_MIN_COLUMN_COUNT;
+    const columnParentWidth = getComponentById(
+      parentComponent.parents?.find(parent => parent.startsWith(COLUMN_TYPE)),
+    )?.meta?.width;
+    let widthMultiple = component.meta.width || GRID_MIN_COLUMN_COUNT;
+    if (parentComponent.type === COLUMN_TYPE) {
+      widthMultiple = parentComponent.meta.width || GRID_MIN_COLUMN_COUNT;
+    } else if (columnParentWidth && widthMultiple > columnParentWidth) {
+      widthMultiple = columnParentWidth;
+    }
 
     let chartWidth = 0;
     let chartHeight = 0;
@@ -358,6 +371,7 @@ class ChartHolder extends React.Component {
                 isComponentVisible={isComponentVisible}
                 handleToggleFullSize={this.handleToggleFullSize}
                 isFullSize={isFullSize}
+                postTransformProps={this.handlePostTransformProps}
               />
               {editMode && (
                 <HoverMenu position="top">
@@ -381,4 +395,10 @@ class ChartHolder extends React.Component {
 ChartHolder.propTypes = propTypes;
 ChartHolder.defaultProps = defaultProps;
 
-export default ChartHolder;
+function mapStateToProps(state) {
+  return {
+    directPathToChild: state.dashboardState.directPathToChild,
+    directPathLastUpdated: state.dashboardState.directPathLastUpdated,
+  };
+}
+export default connect(mapStateToProps)(ChartHolder);

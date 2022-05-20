@@ -65,6 +65,7 @@ class PrestoDBSQLValidator(BaseSQLValidator):
         # engine spec's handle_cursor implementation since we don't record
         # these EXPLAIN queries done in validation as proper Query objects
         # in the superset ORM.
+        # pylint: disable=import-outside-toplevel
         from pyhive.exc import DatabaseError
 
         try:

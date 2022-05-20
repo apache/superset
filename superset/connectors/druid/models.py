@@ -58,8 +58,9 @@ from superset.exceptions import SupersetException
 from superset.extensions import encrypted_field_factory
 from superset.models.core import Database
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin, QueryResult
-from superset.typing import (
+from superset.superset_typing import (
     AdhocMetric,
+    AdhocMetricColumn,
     FilterValues,
     Granularity,
     Metric,
@@ -93,7 +94,13 @@ except ImportError:
     pass
 
 try:
-    from superset.utils.core import DimSelector, DTTM_ALIAS, FilterOperator, flasher
+    from superset.utils.core import (
+        DimSelector,
+        DTTM_ALIAS,
+        FilterOperator,
+        flasher,
+        get_metric_name,
+    )
 except ImportError:
     pass
 
@@ -120,7 +127,6 @@ try:
         def __init__(self, name: str, post_aggregator: Dict[str, Any]) -> None:
             self.name = name
             self.post_aggregator = post_aggregator
-
 
 except NameError:
     pass
@@ -1022,7 +1028,7 @@ class DruidDatasource(Model, BaseDatasource):
 
     @staticmethod
     def druid_type_from_adhoc_metric(adhoc_metric: AdhocMetric) -> str:
-        column_type = adhoc_metric["column"]["type"].lower()
+        column_type = adhoc_metric["column"]["type"].lower()  # type: ignore
         aggregate = adhoc_metric["aggregate"].lower()
 
         if aggregate == "count":
@@ -1064,11 +1070,13 @@ class DruidDatasource(Model, BaseDatasource):
                 _("Metric(s) {} must be aggregations.").format(invalid_metric_names)
             )
         for adhoc_metric in adhoc_metrics:
-            aggregations[adhoc_metric["label"]] = {
-                "fieldName": adhoc_metric["column"]["column_name"],
-                "fieldNames": [adhoc_metric["column"]["column_name"]],
+            label = get_metric_name(adhoc_metric)
+            column = cast(AdhocMetricColumn, adhoc_metric["column"])
+            aggregations[label] = {
+                "fieldName": column["column_name"],
+                "fieldNames": [column["column_name"]],
                 "type": DruidDatasource.druid_type_from_adhoc_metric(adhoc_metric),
-                "name": adhoc_metric["label"],
+                "name": label,
             }
         return aggregations
 

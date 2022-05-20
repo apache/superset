@@ -18,18 +18,18 @@
 import json
 import logging
 from io import IOBase
-from typing import Optional, Union
+from typing import Sequence, Union
 
 import backoff
 from flask_babel import gettext as __
 from slack import WebClient
 from slack.errors import SlackApiError, SlackClientError
-from tabulate import tabulate
 
 from superset import app
 from superset.models.reports import ReportRecipientType
 from superset.reports.notifications.base import BaseNotification
 from superset.reports.notifications.exceptions import NotificationError
+from superset.utils.urls import modify_url_query
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +48,11 @@ class SlackNotification(BaseNotification):  # pylint: disable=too-few-public-met
         return json.loads(self._recipient.recipient_config_json)["target"]
 
     def _message_template(self, table: str = "") -> str:
+        url = (
+            modify_url_query(self._content.url, standalone="0")
+            if self._content.url is not None
+            else ""
+        )
         return __(
             """*%(name)s*
 
@@ -59,7 +64,7 @@ class SlackNotification(BaseNotification):  # pylint: disable=too-few-public-met
 """,
             name=self._content.name,
             description=self._content.description or "",
-            url=self._content.url,
+            url=url,
             table=table,
         )
 
@@ -89,6 +94,20 @@ Error: %(text)s
         # Embed data in the message
         df = self._content.embedded_data
 
+        # Flatten columns/index so they show up nicely in the table
+        df.columns = [
+            " ".join(str(name) for name in column).strip()
+            if isinstance(column, tuple)
+            else column
+            for column in df.columns
+        ]
+        df.index = [
+            " ".join(str(name) for name in index).strip()
+            if isinstance(index, tuple)
+            else index
+            for index in df.index
+        ]
+
         # Slack Markdown only works on messages shorter than 4k chars, so we might
         # need to truncate the data
         for i in range(len(df) - 1):
@@ -96,7 +115,7 @@ Error: %(text)s
             truncated_df = truncated_df.append(
                 {k: "..." for k in df.columns}, ignore_index=True
             )
-            tabulated = tabulate(truncated_df, headers="keys", showindex=False)
+            tabulated = df.to_markdown()
             table = f"```\n{tabulated}\n```\n\n(table was truncated)"
             message = self._message_template(table)
             if len(message) > MAXIMUM_MESSAGE_SIZE:
@@ -105,7 +124,7 @@ Error: %(text)s
                 truncated_df = truncated_df.append(
                     {k: "..." for k in df.columns}, ignore_index=True
                 )
-                tabulated = tabulate(truncated_df, headers="keys", showindex=False)
+                tabulated = df.to_markdown()
                 table = (
                     f"```\n{tabulated}\n```\n\n(table was truncated)"
                     if len(truncated_df) > 0
@@ -115,21 +134,21 @@ Error: %(text)s
 
         # Send full data
         else:
-            tabulated = tabulate(df, headers="keys", showindex=False)
+            tabulated = df.to_markdown()
             table = f"```\n{tabulated}\n```"
 
         return self._message_template(table)
 
-    def _get_inline_file(self) -> Optional[Union[str, IOBase, bytes]]:
+    def _get_inline_files(self) -> Sequence[Union[str, IOBase, bytes]]:
         if self._content.csv:
-            return self._content.csv
-        if self._content.screenshot:
-            return self._content.screenshot
-        return None
+            return [self._content.csv]
+        if self._content.screenshots:
+            return self._content.screenshots
+        return []
 
     @backoff.on_exception(backoff.expo, SlackApiError, factor=10, base=2, max_tries=5)
     def send(self) -> None:
-        file = self._get_inline_file()
+        files = self._get_inline_files()
         title = self._content.name
         channel = self._get_channel()
         body = self._get_body()
@@ -140,16 +159,17 @@ Error: %(text)s
                 token = token()
             client = WebClient(token=token, proxy=app.config["SLACK_PROXY"])
             # files_upload returns SlackResponse as we run it in sync mode.
-            if file:
-                client.files_upload(
-                    channels=channel,
-                    file=file,
-                    initial_comment=body,
-                    title=title,
-                    filetype=file_type,
-                )
+            if files:
+                for file in files:
+                    client.files_upload(
+                        channels=channel,
+                        file=file,
+                        initial_comment=body,
+                        title=title,
+                        filetype=file_type,
+                    )
             else:
                 client.chat_postMessage(channel=channel, text=body)
             logger.info("Report sent to slack")
         except SlackClientError as ex:
-            raise NotificationError(ex)
+            raise NotificationError(ex) from ex

@@ -26,7 +26,14 @@ spec:
   template:
     metadata:
       name: {{ template "superset.name" . }}-init-db
+      {{- if .Values.init.podAnnotations }}
+      annotations:
+        {{ toYaml .Values.init.podAnnotations | nindent 8 }}
+      {{- end }}
     spec:
+      {{- if or (.Values.serviceAccount.create) (.Values.serviceAccountName) }}
+      serviceAccountName: {{ template "superset.serviceAccountName" . }}
+      {{- end }}
       securityContext:
         runAsUser: {{ .Values.runAsUser }}
       {{- if .Values.init.initContainers }}
@@ -36,11 +43,14 @@ spec:
       containers:
       - name: {{ template "superset.name" . }}-init-db
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-        {{ if .Values.extraEnv }}
+        {{- if or .Values.extraEnv .Values.extraEnvRaw }}
         env:
           {{- range $key, $value := .Values.extraEnv }}
           - name: {{ $key | quote }}
             value: {{ $value | quote }}
+          {{- end }}
+          {{- if .Values.extraEnvRaw }}
+          {{- toYaml .Values.extraEnvRaw | nindent 10 }}
           {{- end }}
         {{- end }}
         envFrom:
@@ -60,6 +70,9 @@ spec:
             mountPath: {{ .Values.extraConfigMountPath | quote }}
             readOnly: true
         {{- end }}
+        {{- with .Values.extraVolumeMounts }}
+        {{- tpl (toYaml .) $ | nindent 10 -}}
+        {{- end }}
         command: {{  tpl (toJson .Values.init.command) . }}
         resources:
 {{ toYaml .Values.init.resources | indent 10 }}
@@ -75,6 +88,9 @@ spec:
         - name: superset-extra-config
           configMap:
             name: {{ template "superset.fullname" . }}-extra-config
+        {{- end }}
+        {{- with .Values.extraVolumes }}
+        {{- tpl (toYaml .) $ | nindent 8 -}}
         {{- end }}
       restartPolicy: Never
 {{- end }}

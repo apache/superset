@@ -43,12 +43,13 @@ import {
   ROW_TYPE,
   TABS_TYPE,
   TAB_TYPE,
+  DYNAMIC_TYPE,
 } from './componentTypes';
 
 import { DASHBOARD_ROOT_DEPTH as rootDepth } from './constants';
 
 const depthOne = rootDepth + 1;
-const depthTwo = rootDepth + 2;
+// const depthTwo = rootDepth + 2; // Meantime no need
 const depthThree = rootDepth + 3;
 const depthFour = rootDepth + 4;
 const depthFive = rootDepth + 5;
@@ -62,6 +63,7 @@ const parentMaxDepthLookup = {
 
   [DASHBOARD_GRID_TYPE]: {
     [CHART_TYPE]: depthOne,
+    [DYNAMIC_TYPE]: depthOne,
     [MARKDOWN_TYPE]: depthOne,
     [COLUMN_TYPE]: depthOne,
     [DIVIDER_TYPE]: depthOne,
@@ -72,22 +74,24 @@ const parentMaxDepthLookup = {
 
   [ROW_TYPE]: {
     [CHART_TYPE]: depthFour,
+    [DYNAMIC_TYPE]: depthFour,
     [MARKDOWN_TYPE]: depthFour,
     [COLUMN_TYPE]: depthFour,
   },
 
   [TABS_TYPE]: {
-    [TAB_TYPE]: depthTwo,
+    [TAB_TYPE]: depthThree,
   },
 
   [TAB_TYPE]: {
-    [CHART_TYPE]: depthTwo,
-    [MARKDOWN_TYPE]: depthTwo,
-    [COLUMN_TYPE]: depthTwo,
-    [DIVIDER_TYPE]: depthTwo,
-    [HEADER_TYPE]: depthTwo,
-    [ROW_TYPE]: depthTwo,
-    [TABS_TYPE]: depthTwo,
+    [CHART_TYPE]: depthFive,
+    [DYNAMIC_TYPE]: depthFive,
+    [MARKDOWN_TYPE]: depthFive,
+    [COLUMN_TYPE]: depthThree,
+    [DIVIDER_TYPE]: depthFive,
+    [HEADER_TYPE]: depthFive,
+    [ROW_TYPE]: depthThree,
+    [TABS_TYPE]: depthThree,
   },
 
   [COLUMN_TYPE]: {
@@ -96,10 +100,12 @@ const parentMaxDepthLookup = {
     [MARKDOWN_TYPE]: depthFive,
     [ROW_TYPE]: depthThree,
     [DIVIDER_TYPE]: depthThree,
+    [TABS_TYPE]: depthThree,
   },
 
   // these have no valid children
   [CHART_TYPE]: {},
+  [DYNAMIC_TYPE]: {},
   [DIVIDER_TYPE]: {},
   [HEADER_TYPE]: {},
   [MARKDOWN_TYPE]: {},

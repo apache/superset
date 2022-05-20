@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 # isort:skip_file
-# pylint: disable=too-many-public-methods, no-self-use, invalid-name, too-many-arguments
 """Unit tests for Superset"""
 import json
 from io import BytesIO
@@ -54,9 +53,11 @@ from tests.integration_tests.fixtures.importexport import (
 from tests.integration_tests.utils.get_dashboards import get_dashboards_ids
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
+    load_birth_names_data,
 )
 from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices,
+    load_world_bank_data,
 )
 
 DASHBOARDS_FIXTURE_COUNT = 10
@@ -71,7 +72,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         "slug": "slug1_changed",
         "position_json": '{"b": "B"}',
         "css": "css_changed",
-        "json_metadata": '{"refresh_frequency": 30}',
+        "json_metadata": '{"refresh_frequency": 30, "timed_refresh_immune_slices": [], "expanded_slices": {}, "color_scheme": "", "label_colors": {}, "shared_label_colors": {}}',
         "published": False,
     }
 
@@ -87,6 +88,8 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         css: str = "",
         json_metadata: str = "",
         published: bool = False,
+        certified_by: Optional[str] = None,
+        certification_details: Optional[str] = None,
     ) -> Dashboard:
         obj_owners = list()
         obj_roles = list()
@@ -108,6 +111,8 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
             slices=slices,
             published=published,
             created_by=created_by,
+            certified_by=certified_by,
+            certification_details=certification_details,
         )
         db.session.add(dashboard)
         db.session.commit()
@@ -126,6 +131,8 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
                     f"slug{cx}",
                     [admin.id],
                     slices=charts if cx < half_dash_count else [],
+                    certified_by="John Doe",
+                    certification_details="Sample certification",
                 )
                 if cx < half_dash_count:
                     chart = self.insert_chart(f"slice{cx}", [admin.id], 1, params="{}")
@@ -316,11 +323,17 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         rv = self.get_assert_metric(uri, "get")
         self.assertEqual(rv.status_code, 200)
         expected_result = {
+            "certified_by": None,
+            "certification_details": None,
             "changed_by": None,
             "changed_by_name": "",
             "changed_by_url": "",
             "charts": [],
-            "created_by": {"id": 1, "first_name": "admin", "last_name": "user",},
+            "created_by": {
+                "id": 1,
+                "first_name": "admin",
+                "last_name": "user",
+            },
             "id": dashboard.id,
             "css": "",
             "dashboard_title": "title",
@@ -339,15 +352,18 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
             "published": False,
             "url": "/superset/dashboard/slug1/",
             "slug": "slug1",
-            "table_names": "",
             "thumbnail_url": dashboard.thumbnail_url,
+            "is_managed_externally": False,
         }
         data = json.loads(rv.data.decode("utf-8"))
         self.assertIn("changed_on", data["result"])
         self.assertIn("changed_on_delta_humanized", data["result"])
         for key, value in data["result"].items():
             # We can't assert timestamp values
-            if key not in ("changed_on", "changed_on_delta_humanized",):
+            if key not in (
+                "changed_on",
+                "changed_on_delta_humanized",
+            ):
                 self.assertEqual(value, expected_result[key])
         # rollback changes
         db.session.delete(dashboard)
@@ -372,9 +388,14 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         rv = self.get_assert_metric(uri, "info")
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 200
-        assert "can_read" in data["permissions"]
-        assert "can_write" in data["permissions"]
-        assert len(data["permissions"]) == 2
+        assert set(data["permissions"]) == {
+            "can_read",
+            "can_write",
+            "can_export",
+            "can_get_embedded",
+            "can_delete_embedded",
+            "can_set_embedded",
+        }
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_get_dashboard_not_found(self):
@@ -397,7 +418,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         self.login(username="gamma")
         uri = f"api/v1/dashboard/{dashboard.id}"
         rv = self.client.get(uri)
-        self.assertEqual(rv.status_code, 200)
+        assert rv.status_code == 200
         # rollback changes
         db.session.delete(dashboard)
         db.session.commit()
@@ -409,29 +430,29 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         from datetime import datetime
         import humanize
 
-        admin = self.get_user("admin")
-        start_changed_on = datetime.now()
-        dashboard = self.insert_dashboard("title", "slug1", [admin.id])
+        with freeze_time("2020-01-01T00:00:00Z"):
+            admin = self.get_user("admin")
+            dashboard = self.insert_dashboard("title", "slug1", [admin.id])
 
-        self.login(username="admin")
+            self.login(username="admin")
 
-        arguments = {
-            "order_column": "changed_on_delta_humanized",
-            "order_direction": "desc",
-        }
-        uri = f"api/v1/dashboard/?q={prison.dumps(arguments)}"
+            arguments = {
+                "order_column": "changed_on_delta_humanized",
+                "order_direction": "desc",
+            }
+            uri = f"api/v1/dashboard/?q={prison.dumps(arguments)}"
 
-        rv = self.get_assert_metric(uri, "get_list")
-        self.assertEqual(rv.status_code, 200)
-        data = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(
-            data["result"][0]["changed_on_delta_humanized"],
-            humanize.naturaltime(datetime.now() - start_changed_on),
-        )
+            rv = self.get_assert_metric(uri, "get_list")
+            self.assertEqual(rv.status_code, 200)
+            data = json.loads(rv.data.decode("utf-8"))
+            self.assertEqual(
+                data["result"][0]["changed_on_delta_humanized"],
+                humanize.naturaltime(datetime.now()),
+            )
 
-        # rollback changes
-        db.session.delete(dashboard)
-        db.session.commit()
+            # rollback changes
+            db.session.delete(dashboard)
+            db.session.commit()
 
     def test_get_dashboards_filter(self):
         """
@@ -612,6 +633,48 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
             assert (
                 expected_model.dashboard_title == data["result"][i]["dashboard_title"]
             )
+
+    @pytest.mark.usefixtures("create_dashboards")
+    def test_gets_certified_dashboards_filter(self):
+        arguments = {
+            "filters": [
+                {
+                    "col": "id",
+                    "opr": "dashboard_is_certified",
+                    "value": True,
+                }
+            ],
+            "keys": ["none"],
+            "columns": ["dashboard_title"],
+        }
+        self.login(username="admin")
+
+        uri = f"api/v1/dashboard/?q={prison.dumps(arguments)}"
+        rv = self.get_assert_metric(uri, "get_list")
+        self.assertEqual(rv.status_code, 200)
+        data = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(data["count"], DASHBOARDS_FIXTURE_COUNT)
+
+    @pytest.mark.usefixtures("create_dashboards")
+    def test_gets_not_certified_dashboards_filter(self):
+        arguments = {
+            "filters": [
+                {
+                    "col": "id",
+                    "opr": "dashboard_is_certified",
+                    "value": False,
+                }
+            ],
+            "keys": ["none"],
+            "columns": ["dashboard_title"],
+        }
+        self.login(username="admin")
+
+        uri = f"api/v1/dashboard/?q={prison.dumps(arguments)}"
+        rv = self.get_assert_metric(uri, "get_list")
+        self.assertEqual(rv.status_code, 200)
+        data = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(data["count"], 6)
 
     def create_dashboard_import(self):
         buf = BytesIO()
@@ -1096,7 +1159,12 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         slices.append(db.session.query(Slice).filter_by(slice_name="Trends").first())
         slices.append(db.session.query(Slice).filter_by(slice_name="Boys").first())
 
-        dashboard = self.insert_dashboard("title1", "slug1", [admin.id], slices=slices,)
+        dashboard = self.insert_dashboard(
+            "title1",
+            "slug1",
+            [admin.id],
+            slices=slices,
+        )
         self.login(username="admin")
         uri = f"api/v1/dashboard/{dashboard.id}"
         dashboard_data = {"owners": [user_alpha1.id, user_alpha2.id]}
@@ -1110,7 +1178,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         for slice in slices:
             self.assertIn(user_alpha1, slice.owners)
             self.assertIn(user_alpha2, slice.owners)
-            self.assertIn(admin, slice.owners)
+            self.assertNotIn(admin, slice.owners)
             # Revert owners on slice
             slice.owners = []
             db.session.commit()
@@ -1150,22 +1218,45 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         db.session.delete(model)
         db.session.commit()
 
-    def test_update_dashboard_new_owner(self):
+    def test_update_dashboard_new_owner_not_admin(self):
         """
-        Dashboard API: Test update set new owner to current user
+        Dashboard API: Test update set new owner implicitly adds logged in owner
         """
-        gamma_id = self.get_user("gamma").id
+        gamma = self.get_user("gamma")
+        alpha = self.get_user("alpha")
+        dashboard_id = self.insert_dashboard("title1", "slug1", [alpha.id]).id
+        dashboard_data = {"dashboard_title": "title1_changed", "owners": [gamma.id]}
+        self.login(username="alpha")
+        uri = f"api/v1/dashboard/{dashboard_id}"
+        rv = self.client.put(uri, json=dashboard_data)
+        self.assertEqual(rv.status_code, 200)
+        model = db.session.query(Dashboard).get(dashboard_id)
+        self.assertIn(gamma, model.owners)
+        self.assertIn(alpha, model.owners)
+        for slc in model.slices:
+            self.assertIn(gamma, slc.owners)
+            self.assertIn(alpha, slc.owners)
+        db.session.delete(model)
+        db.session.commit()
+
+    def test_update_dashboard_new_owner_admin(self):
+        """
+        Dashboard API: Test update set new owner as admin to other than current user
+        """
+        gamma = self.get_user("gamma")
         admin = self.get_user("admin")
-        dashboard_id = self.insert_dashboard("title1", "slug1", [gamma_id]).id
-        dashboard_data = {"dashboard_title": "title1_changed"}
+        dashboard_id = self.insert_dashboard("title1", "slug1", [admin.id]).id
+        dashboard_data = {"dashboard_title": "title1_changed", "owners": [gamma.id]}
         self.login(username="admin")
         uri = f"api/v1/dashboard/{dashboard_id}"
         rv = self.client.put(uri, json=dashboard_data)
         self.assertEqual(rv.status_code, 200)
         model = db.session.query(Dashboard).get(dashboard_id)
-        self.assertIn(admin, model.owners)
+        self.assertIn(gamma, model.owners)
+        self.assertNotIn(admin, model.owners)
         for slc in model.slices:
-            self.assertIn(admin, slc.owners)
+            self.assertIn(gamma, slc.owners)
+            self.assertNotIn(admin, slc.owners)
         db.session.delete(model)
         db.session.commit()
 
@@ -1638,3 +1729,58 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
 
         response_roles = [result["text"] for result in response["result"]]
         assert "Alpha" in response_roles
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    def test_embedded_dashboards(self):
+        self.login(username="admin")
+        uri = "api/v1/dashboard/world_health/embedded"
+
+        # initial get should return 404
+        resp = self.get_assert_metric(uri, "get_embedded")
+        self.assertEqual(resp.status_code, 404)
+
+        # post succeeds and returns value
+        allowed_domains = ["test.example", "embedded.example"]
+        resp = self.post_assert_metric(
+            uri,
+            {"allowed_domains": allowed_domains},
+            "set_embedded",
+        )
+        self.assertEqual(resp.status_code, 200)
+        result = json.loads(resp.data.decode("utf-8"))["result"]
+        self.assertIsNotNone(result["uuid"])
+        self.assertNotEqual(result["uuid"], "")
+        self.assertEqual(result["allowed_domains"], allowed_domains)
+
+        # get returns value
+        resp = self.get_assert_metric(uri, "get_embedded")
+        self.assertEqual(resp.status_code, 200)
+        result = json.loads(resp.data.decode("utf-8"))["result"]
+        self.assertIsNotNone(result["uuid"])
+        self.assertNotEqual(result["uuid"], "")
+        self.assertEqual(result["allowed_domains"], allowed_domains)
+
+        # save uuid for later
+        original_uuid = result["uuid"]
+
+        # put succeeds and returns value
+        resp = self.post_assert_metric(uri, {"allowed_domains": []}, "set_embedded")
+        self.assertEqual(resp.status_code, 200)
+        self.assertIsNotNone(result["uuid"])
+        self.assertNotEqual(result["uuid"], "")
+        self.assertEqual(result["allowed_domains"], allowed_domains)
+
+        # get returns changed value
+        resp = self.get_assert_metric(uri, "get_embedded")
+        self.assertEqual(resp.status_code, 200)
+        result = json.loads(resp.data.decode("utf-8"))["result"]
+        self.assertEqual(result["uuid"], original_uuid)
+        self.assertEqual(result["allowed_domains"], [])
+
+        # delete succeeds
+        resp = self.delete_assert_metric(uri, "delete_embedded")
+        self.assertEqual(resp.status_code, 200)
+
+        # get returns 404
+        resp = self.get_assert_metric(uri, "get_embedded")
+        self.assertEqual(resp.status_code, 404)

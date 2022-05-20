@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ensureIsArray, ExtraFormData, t, tn } from '@superset-ui/core';
+import {
+  ensureIsArray,
+  ExtraFormData,
+  getColumnLabel,
+  t,
+  tn,
+} from '@superset-ui/core';
 import React, { useEffect, useState } from 'react';
 import { FormItemProps } from 'antd/lib/form';
 import { Select } from 'src/components';
@@ -32,9 +38,11 @@ export default function PluginFilterGroupBy(props: PluginFilterGroupByProps) {
     setDataMask,
     setFocusedFilter,
     unsetFocusedFilter,
+    setFilterActive,
     filterState,
+    inputRef,
   } = props;
-  const { defaultValue, inputRef, multiSelect } = formData;
+  const { defaultValue, multiSelect } = formData;
 
   const [value, setValue] = useState<string[]>(defaultValue ?? []);
 
@@ -62,15 +70,11 @@ export default function PluginFilterGroupBy(props: PluginFilterGroupByProps) {
     // so we can process it like this `JSON.stringify` or start to use `Immer`
   }, [JSON.stringify(defaultValue), multiSelect]);
 
-  const groupby = formData?.groupby?.[0]?.length
-    ? formData?.groupby?.[0]
-    : null;
+  const groupbys = ensureIsArray(formData.groupby).map(getColumnLabel);
+  const groupby = groupbys[0].length ? groupbys[0] : null;
 
   const withData = groupby
-    ? data.filter(dataItem =>
-        // @ts-ignore
-        groupby.includes(dataItem.column_name),
-      )
+    ? data.filter(row => groupby.includes(row.column_name as string))
     : data;
 
   const columns = data ? withData : [];
@@ -114,6 +118,7 @@ export default function PluginFilterGroupBy(props: PluginFilterGroupByProps) {
           onFocus={setFocusedFilter}
           ref={inputRef}
           options={options}
+          onDropdownVisibleChange={setFilterActive}
         />
       </StyledFormItem>
     </FilterPluginStyle>

@@ -26,6 +26,7 @@ from slack import errors, WebClient
 
 from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices,
+    load_world_bank_data,
 )
 from tests.integration_tests.test_app import app
 from superset import db

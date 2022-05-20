@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=unused-argument, invalid-name
 from flask.ctx import AppContext
 from pytest_mock import MockFixture
 
@@ -28,7 +27,8 @@ class ProgrammingError(Exception):
 
 
 def test_validate_parameters_simple(
-    mocker: MockFixture, app_context: AppContext,
+    mocker: MockFixture,
+    app_context: AppContext,
 ) -> None:
     from superset.db_engine_specs.gsheets import (
         GSheetsEngineSpec,
@@ -36,32 +36,16 @@ def test_validate_parameters_simple(
     )
 
     parameters: GSheetsParametersType = {
-        "credentials_info": {},
+        "service_account_info": "",
         "catalog": {},
     }
     errors = GSheetsEngineSpec.validate_parameters(parameters)
-    assert errors == [
-        SupersetError(
-            message="URL is required",
-            error_type=SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR,
-            level=ErrorLevel.WARNING,
-            extra={
-                "invalid": ["catalog"],
-                "name": "",
-                "url": "",
-                "issue_codes": [
-                    {
-                        "code": 1018,
-                        "message": "Issue 1018 - One or more parameters needed to configure a database are missing.",
-                    }
-                ],
-            },
-        )
-    ]
+    assert errors == []
 
 
 def test_validate_parameters_catalog(
-    mocker: MockFixture, app_context: AppContext,
+    mocker: MockFixture,
+    app_context: AppContext,
 ) -> None:
     from superset.db_engine_specs.gsheets import (
         GSheetsEngineSpec,
@@ -81,7 +65,7 @@ def test_validate_parameters_catalog(
     ]
 
     parameters: GSheetsParametersType = {
-        "credentials_info": {},
+        "service_account_info": "",
         "catalog": {
             "private_sheet": "https://docs.google.com/spreadsheets/d/1/edit",
             "public_sheet": "https://docs.google.com/spreadsheets/d/1/edit#gid=1",
@@ -96,9 +80,10 @@ def test_validate_parameters_catalog(
             error_type=SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR,
             level=ErrorLevel.WARNING,
             extra={
-                "invalid": ["catalog"],
-                "name": "private_sheet",
-                "url": "https://docs.google.com/spreadsheets/d/1/edit",
+                "catalog": {
+                    "idx": 0,
+                    "url": True,
+                },
                 "issue_codes": [
                     {
                         "code": 1003,
@@ -116,9 +101,10 @@ def test_validate_parameters_catalog(
             error_type=SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR,
             level=ErrorLevel.WARNING,
             extra={
-                "invalid": ["catalog"],
-                "name": "not_a_sheet",
-                "url": "https://www.google.com/",
+                "catalog": {
+                    "idx": 2,
+                    "url": True,
+                },
                 "issue_codes": [
                     {
                         "code": 1003,
@@ -134,12 +120,15 @@ def test_validate_parameters_catalog(
     ]
 
     create_engine.assert_called_with(
-        "gsheets://", service_account_info={}, subject="admin@example.com",
+        "gsheets://",
+        service_account_info={},
+        subject="admin@example.com",
     )
 
 
 def test_validate_parameters_catalog_and_credentials(
-    mocker: MockFixture, app_context: AppContext,
+    mocker: MockFixture,
+    app_context: AppContext,
 ) -> None:
     from superset.db_engine_specs.gsheets import (
         GSheetsEngineSpec,
@@ -159,7 +148,7 @@ def test_validate_parameters_catalog_and_credentials(
     ]
 
     parameters: GSheetsParametersType = {
-        "credentials_info": {},
+        "service_account_info": "",
         "catalog": {
             "private_sheet": "https://docs.google.com/spreadsheets/d/1/edit",
             "public_sheet": "https://docs.google.com/spreadsheets/d/1/edit#gid=1",
@@ -173,9 +162,10 @@ def test_validate_parameters_catalog_and_credentials(
             error_type=SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR,
             level=ErrorLevel.WARNING,
             extra={
-                "invalid": ["catalog"],
-                "name": "not_a_sheet",
-                "url": "https://www.google.com/",
+                "catalog": {
+                    "idx": 2,
+                    "url": True,
+                },
                 "issue_codes": [
                     {
                         "code": 1003,
@@ -191,5 +181,7 @@ def test_validate_parameters_catalog_and_credentials(
     ]
 
     create_engine.assert_called_with(
-        "gsheets://", service_account_info={}, subject="admin@example.com",
+        "gsheets://",
+        service_account_info={},
+        subject="admin@example.com",
     )

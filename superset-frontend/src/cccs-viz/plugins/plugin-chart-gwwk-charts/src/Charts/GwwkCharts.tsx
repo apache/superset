@@ -16,10 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { GwwkChartsProps } from '../types';
 import { getURIDirectory } from 'src/explore/exploreUtils';
 import { safeStringify } from 'src/utils/safeStringify';
-import { Container, Table, Td, Tr } from '../utils'
+import { GwwkChartsProps } from '../types';
+import { Container, Table, Td, Tr } from '../utils';
 /* eslint camelcase: 0 */
 const URI = require('urijs');
 
@@ -31,7 +31,7 @@ const URI = require('urijs');
 // https://github.com/apache-superset/superset-ui/blob/master/packages/superset-ui-core/src/style/index.ts
 
 function buildUrl(id: string, filter_name: string, selected_values: string[]) {
-  let adhoc_filters = [
+  const adhoc_filters = [
     {
       clause: 'WHERE',
       comparator: selected_values,
@@ -39,11 +39,11 @@ function buildUrl(id: string, filter_name: string, selected_values: string[]) {
       operator: 'IN',
       subject: filter_name,
     },
-  ]
+  ];
 
   const formData = {
     slice_id: id,
-    adhoc_filters: adhoc_filters,
+    adhoc_filters,
     time_range: 'No filter',
   };
 
@@ -62,7 +62,7 @@ export default function GwwkCharts(props: GwwkChartsProps) {
   // There is also a `data` prop, which is, of course, your DATA 🎉
   const { selected_values, data, height, width } = props;
   return (
-    <Container style={{ height: height, width: width }}>
+    <Container style={{ height, width }}>
       <h3>Charts for {selected_values.join(', ')}</h3>
       <Table>
         <tbody>
@@ -70,10 +70,10 @@ export default function GwwkCharts(props: GwwkChartsProps) {
             const url = buildUrl(row.id, row.filter_name, selected_values);
             return (
               <Tr>
-                <Td><a href={url}>
-                  <span style={{ fontWeight: 'bold' }}>
-                    {row.name}
-                  </span></a>
+                <Td>
+                  <a href={url}>
+                    <span style={{ fontWeight: 'bold' }}>{row.name}</span>
+                  </a>
                 </Td>
                 <Td>
                   <span style={{ fontWeight: 'normal' }}>
@@ -81,10 +81,10 @@ export default function GwwkCharts(props: GwwkChartsProps) {
                   </span>
                 </Td>
               </Tr>
-            )
+            );
           })}
         </tbody>
       </Table>
     </Container>
-  )
+  );
 }

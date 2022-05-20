@@ -22,20 +22,24 @@ import Collapse from 'src/components/Collapse';
 import { User } from 'src/types/bootstrapTypes';
 import { reject } from 'lodash';
 import {
-  getFromLocalStorage,
-  setInLocalStorage,
+  getItem,
+  dangerouslyGetItemDoNotUse,
+  setItem,
+  dangerouslySetItemDoNotUse,
+  LocalStorageKeys,
 } from 'src/utils/localStorageHelpers';
-import withToasts from 'src/messageToasts/enhancers/withToasts';
-import Loading from 'src/components/Loading';
+import ListViewCard from 'src/components/ListViewCard';
+import withToasts from 'src/components/MessageToasts/withToasts';
 import {
   createErrorHandler,
   getRecentAcitivtyObjs,
   mq,
+  CardContainer,
   getUserOwnedObjects,
+  loadingCardCount,
 } from 'src/views/CRUD/utils';
-import { HOMEPAGE_ACTIVITY_FILTER } from 'src/views/CRUD/storageKeys';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
-import { Switch } from 'src/common/components';
+import { AntdSwitch } from 'src/components';
 
 import ActivityTable from './ActivityTable';
 import ChartTable from './ChartTable';
@@ -52,6 +56,10 @@ export interface ActivityData {
   Edited?: Array<object>;
   Viewed?: Array<object>;
   Examples?: Array<object>;
+}
+
+interface LoadingProps {
+  cover?: boolean;
 }
 
 const DEFAULT_TAB_ARR = ['2', '3'];
@@ -96,6 +104,12 @@ const WelcomeContainer = styled.div`
   div.ant-collapse-item:last-child .ant-collapse-header {
     padding-bottom: ${({ theme }) => theme.gridUnit * 9}px;
   }
+  .loading-cards {
+    margin-top: ${({ theme }) => theme.gridUnit * 8}px;
+    .ant-card-cover > div {
+      height: 168px;
+    }
+  }
 `;
 
 const WelcomeNav = styled.div`
@@ -118,12 +132,25 @@ const WelcomeNav = styled.div`
   }
 `;
 
+export const LoadingCards = ({ cover }: LoadingProps) => (
+  <CardContainer showThumbnails={cover} className="loading-cards">
+    {[...new Array(loadingCardCount)].map((_, index) => (
+      <ListViewCard
+        key={index}
+        cover={cover ? false : <></>}
+        description=""
+        loading
+      />
+    ))}
+  </CardContainer>
+);
+
 function Welcome({ user, addDangerToast }: WelcomeProps) {
   const userid = user.userId;
   const id = userid.toString();
   const recent = `/superset/recent_activity/${user.userId}/?limit=6`;
   const [activeChild, setActiveChild] = useState('Loading');
-  const userKey = getFromLocalStorage(id, null);
+  const userKey = dangerouslyGetItemDoNotUse(id, null);
   let defaultChecked = false;
   if (isFeatureEnabled(FeatureFlag.THUMBNAILS)) {
     defaultChecked =
@@ -137,16 +164,18 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
     null,
   );
   const [loadedCount, setLoadedCount] = useState(0);
-  const [activeState, setActiveState] = useState<Array<string>>(
-    DEFAULT_TAB_ARR,
-  );
+
+  const collapseState = getItem(LocalStorageKeys.homepage_collapse_state, []);
+  const [activeState, setActiveState] = useState<Array<string>>(collapseState);
 
   const handleCollapse = (state: Array<string>) => {
     setActiveState(state);
+    setItem(LocalStorageKeys.homepage_collapse_state, state);
   };
 
   useEffect(() => {
-    const activeTab = getFromLocalStorage(HOMEPAGE_ACTIVITY_FILTER, null);
+    const activeTab = getItem(LocalStorageKeys.homepage_activity_filter, null);
+    setActiveState(collapseState.length > 0 ? collapseState : DEFAULT_TAB_ARR);
     getRecentAcitivtyObjs(user.userId, recent, addDangerToast)
       .then(res => {
         const data: ActivityData | null = {};
@@ -158,7 +187,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
             setActiveChild('Viewed');
           } else if (!activeTab && !data.Viewed) {
             setActiveChild('Created');
-          } else setActiveChild(activeTab);
+          } else setActiveChild(activeTab || 'Created');
         } else if (!activeTab) setActiveChild('Created');
         else setActiveChild(activeTab);
         setActivityData(activityData => ({ ...activityData, ...data }));
@@ -173,7 +202,13 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
       );
 
     // Sets other activity data in parallel with recents api call
-
+    const ownSavedQueryFilters = [
+      {
+        col: 'created_by',
+        opr: 'rel_o_m',
+        value: `${id}`,
+      },
+    ];
     getUserOwnedObjects(id, 'dashboard')
       .then(r => {
         setDashboardData(r);
@@ -183,7 +218,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
         setDashboardData([]);
         setLoadedCount(loadedCount => loadedCount + 1);
         addDangerToast(
-          t('There was an issues fetching your dashboards: %s', err),
+          t('There was an issue fetching your dashboards: %s', err),
         );
       });
     getUserOwnedObjects(id, 'chart')
@@ -194,9 +229,9 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
       .catch((err: unknown) => {
         setChartData([]);
         setLoadedCount(loadedCount => loadedCount + 1);
-        addDangerToast(t('There was an issues fetching your chart: %s', err));
+        addDangerToast(t('There was an issue fetching your chart: %s', err));
       });
-    getUserOwnedObjects(id, 'saved_query')
+    getUserOwnedObjects(id, 'saved_query', ownSavedQueryFilters)
       .then(r => {
         setQueryData(r);
         setLoadedCount(loadedCount => loadedCount + 1);
@@ -212,11 +247,11 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
 
   const handleToggle = () => {
     setChecked(!checked);
-    setInLocalStorage(id, { thumbnails: !checked });
+    dangerouslySetItemDoNotUse(id, { thumbnails: !checked });
   };
 
   useEffect(() => {
-    if (queryData?.length) {
+    if (!collapseState && queryData?.length) {
       setActiveState(activeState => [...activeState, '4']);
     }
     setActivityData(activityData => ({
@@ -230,7 +265,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
   }, [chartData, queryData, dashboardData]);
 
   useEffect(() => {
-    if (activityData?.Viewed?.length) {
+    if (!collapseState && activityData?.Viewed?.length) {
       setActiveState(activeState => ['1', ...activeState]);
     }
   }, [activityData]);
@@ -243,7 +278,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
         <span className="navbar-brand">Home</span>
         {isFeatureEnabled(FeatureFlag.THUMBNAILS) ? (
           <div className="switch">
-            <Switch checked={checked} onChange={handleToggle} />
+            <AntdSwitch checked={checked} onChange={handleToggle} />
             <span>Thumbnails</span>
           </div>
         ) : null}
@@ -263,12 +298,12 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
               loadedCount={loadedCount}
             />
           ) : (
-            <Loading position="inline" />
+            <LoadingCards />
           )}
         </Collapse.Panel>
         <Collapse.Panel header={t('Dashboards')} key="2">
           {!dashboardData || isRecentActivityLoading ? (
-            <Loading position="inline" />
+            <LoadingCards cover={checked} />
           ) : (
             <DashboardTable
               user={user}
@@ -280,7 +315,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
         </Collapse.Panel>
         <Collapse.Panel header={t('Charts')} key="3">
           {!chartData || isRecentActivityLoading ? (
-            <Loading position="inline" />
+            <LoadingCards cover={checked} />
           ) : (
             <ChartTable
               showThumbnails={checked}
@@ -292,7 +327,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
         </Collapse.Panel>
         <Collapse.Panel header={t('Saved queries')} key="4">
           {!queryData ? (
-            <Loading position="inline" />
+            <LoadingCards cover={checked} />
           ) : (
             <SavedQueries
               showThumbnails={checked}

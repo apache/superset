@@ -25,29 +25,38 @@ import React, {
   FunctionComponent,
 } from 'react';
 import { t, SupersetTheme } from '@superset-ui/core';
+import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { bindActionCreators } from 'redux';
 import { connect, useDispatch, useSelector } from 'react-redux';
 import { addReport, editReport } from 'src/reports/actions/reports';
 import { AlertObject } from 'src/views/CRUD/alert/types';
-import LabeledErrorBoundInput from 'src/components/Form/LabeledErrorBoundInput';
+
+import Alert from 'src/components/Alert';
 import TimezoneSelector from 'src/components/TimezoneSelector';
+import LabeledErrorBoundInput from 'src/components/Form/LabeledErrorBoundInput';
 import Icons from 'src/components/Icons';
-import withToasts from 'src/messageToasts/enhancers/withToasts';
-import { CronPicker, CronError } from 'src/components/CronPicker';
+import withToasts from 'src/components/MessageToasts/withToasts';
+import { CronError } from 'src/components/CronPicker';
+import { RadioChangeEvent } from 'src/components';
 import {
+  antDErrorAlertStyles,
   StyledModal,
   StyledTopSection,
   StyledBottomSection,
   StyledIconWrapper,
   StyledScheduleTitle,
+  StyledCronPicker,
   StyledCronError,
   noBottomMargin,
   StyledFooterButton,
   TimezoneHeaderStyle,
   SectionHeaderStyle,
+  StyledMessageContentTitle,
+  StyledRadio,
+  StyledRadioGroup,
 } from './styles';
 
-interface ReportObject {
+export interface ReportObject {
   id?: number;
   active: boolean;
   crontab: string;
@@ -65,28 +74,35 @@ interface ReportObject {
   validator_type: string;
   working_timeout: number;
   creation_method: string;
+  force_screenshot: boolean;
+  error: string;
+}
+
+interface ChartObject {
+  id: number;
+  chartAlert: string;
+  chartStatus: string;
+  chartUpdateEndTime: number;
+  chartUpdateStartTime: number;
+  latestQueryFormData: object;
+  queryController: { abort: () => {} };
+  queriesResponse: object;
+  triggerQuery: boolean;
+  lastRendered: number;
 }
 
 interface ReportProps {
-  addDangerToast: (msg: string) => void;
-  addSuccessToast: (msg: string) => void;
   addReport: (report?: ReportObject) => {};
   onHide: () => {};
   onReportAdd: (report?: ReportObject) => {};
+  addDangerToast: (msg: string) => void;
   show: boolean;
   userId: number;
   userEmail: string;
   dashboardId?: number;
-  chartId?: number;
+  chart?: ChartObject;
   creationMethod: string;
   props: any;
-}
-
-enum ActionType {
-  textChange,
-  inputChange,
-  fetched,
-  reset,
 }
 
 interface ReportPayloadType {
@@ -94,9 +110,16 @@ interface ReportPayloadType {
   value: string;
 }
 
+enum ActionType {
+  inputChange,
+  fetched,
+  reset,
+  error,
+}
+
 type ReportActionType =
   | {
-      type: ActionType.textChange | ActionType.inputChange;
+      type: ActionType.inputChange;
       payload: ReportPayloadType;
     }
   | {
@@ -105,29 +128,56 @@ type ReportActionType =
     }
   | {
       type: ActionType.reset;
+    }
+  | {
+      type: ActionType.error;
+      payload: { name: string[] };
     };
+
+const TEXT_BASED_VISUALIZATION_TYPES = [
+  'pivot_table',
+  'pivot_table_v2',
+  'table',
+  'paired_ttest',
+];
+
+const NOTIFICATION_FORMATS = {
+  TEXT: 'TEXT',
+  PNG: 'PNG',
+  CSV: 'CSV',
+};
+
+const defaultErrorMsg = t(
+  'We were unable to create your report. Please try again.',
+);
 
 const reportReducer = (
   state: Partial<ReportObject> | null,
   action: ReportActionType,
 ): Partial<ReportObject> | null => {
   const initialState = {
-    name: state?.name || 'Weekly Report',
-    ...(state || {}),
+    name: 'Weekly Report',
   };
 
   switch (action.type) {
-    case ActionType.textChange:
+    case ActionType.inputChange:
       return {
         ...initialState,
+        ...state,
         [action.payload.name]: action.payload.value,
       };
     case ActionType.fetched:
       return {
+        ...initialState,
         ...action.payload,
       };
     case ActionType.reset:
-      return null;
+      return { ...initialState };
+    case ActionType.error:
+      return {
+        ...state,
+        error: action.payload?.name[0] || defaultErrorMsg,
+      };
     default:
       return state;
   }
@@ -139,18 +189,24 @@ const ReportModal: FunctionComponent<ReportProps> = ({
   show = false,
   ...props
 }) => {
+  const vizType = props.props.chart?.sliceFormData?.viz_type;
+  const isChart = !!props.props.chart;
+  const defaultNotificationFormat =
+    isChart && TEXT_BASED_VISUALIZATION_TYPES.includes(vizType)
+      ? NOTIFICATION_FORMATS.TEXT
+      : NOTIFICATION_FORMATS.PNG;
   const [currentReport, setCurrentReport] = useReducer<
     Reducer<Partial<ReportObject> | null, ReportActionType>
   >(reportReducer, null);
-  const onChange = useCallback((type: any, payload: any) => {
+  const onReducerChange = useCallback((type: any, payload: any) => {
     setCurrentReport({ type, payload });
   }, []);
-  const [error, setError] = useState<CronError>();
-  // const [isLoading, setLoading] = useState<boolean>(false);
+  const [cronError, setCronError] = useState<CronError>();
   const dispatch = useDispatch();
   // Report fetch logic
   const reports = useSelector<any, AlertObject>(state => state.reports);
   const isEditMode = reports && Object.keys(reports).length;
+
   useEffect(() => {
     if (isEditMode) {
       const reportsIds = Object.keys(reports);
@@ -165,16 +221,13 @@ const ReportModal: FunctionComponent<ReportProps> = ({
       });
     }
   }, [reports]);
-  const onClose = () => {
-    // setLoading(false);
-    onHide();
-  };
+
   const onSave = async () => {
     // Create new Report
     const newReportValues: Partial<ReportObject> = {
       crontab: currentReport?.crontab,
       dashboard: props.props.dashboardId,
-      chart: props.props.chartId,
+      chart: props.props.chart?.id,
       description: currentReport?.description,
       name: currentReport?.name,
       owners: [props.props.userId],
@@ -187,22 +240,27 @@ const ReportModal: FunctionComponent<ReportProps> = ({
       type: 'Report',
       creation_method: props.props.creationMethod,
       active: true,
+      report_format: currentReport?.report_format || defaultNotificationFormat,
+      timezone: currentReport?.timezone,
+      force_screenshot: false,
     };
 
-    // setLoading(true);
     if (isEditMode) {
       await dispatch(
         editReport(currentReport?.id, newReportValues as ReportObject),
       );
+      onHide();
     } else {
-      await dispatch(addReport(newReportValues as ReportObject));
+      try {
+        await dispatch(addReport(newReportValues as ReportObject));
+        onHide();
+      } catch (e) {
+        const { message } = await getClientErrorObject(e);
+        onReducerChange(ActionType.error, message);
+      }
     }
 
-    if (onReportAdd) {
-      onReportAdd();
-    }
-
-    onClose();
+    if (onReportAdd) onReportAdd();
   };
 
   const wrappedTitle = (
@@ -216,8 +274,8 @@ const ReportModal: FunctionComponent<ReportProps> = ({
 
   const renderModalFooter = (
     <>
-      <StyledFooterButton key="back" onClick={onClose}>
-        Cancel
+      <StyledFooterButton key="back" onClick={onHide}>
+        {t('Cancel')}
       </StyledFooterButton>
       <StyledFooterButton
         key="submit"
@@ -225,15 +283,55 @@ const ReportModal: FunctionComponent<ReportProps> = ({
         onClick={onSave}
         disabled={!currentReport?.name}
       >
-        Add
+        {isEditMode ? t('Save') : t('Add')}
       </StyledFooterButton>
     </>
+  );
+
+  const renderMessageContentSection = (
+    <>
+      <StyledMessageContentTitle>
+        <h4>{t('Message Content')}</h4>
+      </StyledMessageContentTitle>
+      <div className="inline-container">
+        <StyledRadioGroup
+          onChange={(event: RadioChangeEvent) => {
+            onReducerChange(ActionType.inputChange, {
+              name: 'report_format',
+              value: event.target.value,
+            });
+          }}
+          value={currentReport?.report_format || defaultNotificationFormat}
+        >
+          {TEXT_BASED_VISUALIZATION_TYPES.includes(vizType) && (
+            <StyledRadio value={NOTIFICATION_FORMATS.TEXT}>
+              {t('Text embedded in email')}
+            </StyledRadio>
+          )}
+          <StyledRadio value={NOTIFICATION_FORMATS.PNG}>
+            {t('Image (PNG) embedded in email')}
+          </StyledRadio>
+          <StyledRadio value={NOTIFICATION_FORMATS.CSV}>
+            {t('Formatted CSV attached in email')}
+          </StyledRadio>
+        </StyledRadioGroup>
+      </div>
+    </>
+  );
+
+  const errorAlert = () => (
+    <Alert
+      type="error"
+      css={(theme: SupersetTheme) => antDErrorAlertStyles(theme)}
+      message={t('Report Creation Error')}
+      description={currentReport?.error}
+    />
   );
 
   return (
     <StyledModal
       show={show}
-      onHide={onClose}
+      onHide={onHide}
       title={wrappedTitle}
       footer={renderModalFooter}
       width="432"
@@ -244,38 +342,33 @@ const ReportModal: FunctionComponent<ReportProps> = ({
           id="name"
           name="name"
           value={currentReport?.name || ''}
-          placeholder="Weekly Report"
+          placeholder={t('Weekly Report')}
           required
           validationMethods={{
             onChange: ({ target }: { target: HTMLInputElement }) =>
-              onChange(ActionType.textChange, {
+              onReducerChange(ActionType.inputChange, {
                 name: target.name,
                 value: target.value,
               }),
           }}
-          errorMessage={
-            currentReport?.name === 'error' ? t('REPORT NAME ERROR') : ''
-          }
           label="Report Name"
           data-test="report-name-test"
         />
-
         <LabeledErrorBoundInput
           id="description"
           name="description"
           value={currentReport?.description || ''}
           validationMethods={{
             onChange: ({ target }: { target: HTMLInputElement }) =>
-              onChange(ActionType.textChange, {
+              onReducerChange(ActionType.inputChange, {
                 name: target.name,
                 value: target.value,
               }),
           }}
-          errorMessage={
-            currentReport?.description === 'error' ? t('DESCRIPTION ERROR') : ''
-          }
-          label="Description"
-          placeholder="Include a description that will be sent with your report"
+          label={t('Description')}
+          placeholder={t(
+            'Include a description that will be sent with your report',
+          )}
           css={noBottomMargin}
           data-test="report-description-test"
         />
@@ -284,23 +377,23 @@ const ReportModal: FunctionComponent<ReportProps> = ({
       <StyledBottomSection>
         <StyledScheduleTitle>
           <h4 css={(theme: SupersetTheme) => SectionHeaderStyle(theme)}>
-            Schedule
+            {t('Schedule')}
           </h4>
-          <p>Scheduled reports will be sent to your email as a PNG</p>
+          <p>{t('Scheduled reports will be sent to your email as a PNG')}</p>
         </StyledScheduleTitle>
 
-        <CronPicker
+        <StyledCronPicker
           clearButton={false}
-          value={currentReport?.crontab || '0 12 * * 1'}
+          value={t(currentReport?.crontab || '0 12 * * 1')}
           setValue={(newValue: string) => {
-            onChange(ActionType.textChange, {
+            onReducerChange(ActionType.inputChange, {
               name: 'crontab',
               value: newValue,
             });
           }}
-          onError={setError}
+          onError={setCronError}
         />
-        <StyledCronError>{error}</StyledCronError>
+        <StyledCronError>{cronError}</StyledCronError>
         <div
           className="control-label"
           css={(theme: SupersetTheme) => TimezoneHeaderStyle(theme)}
@@ -310,13 +403,15 @@ const ReportModal: FunctionComponent<ReportProps> = ({
         <TimezoneSelector
           onTimezoneChange={value => {
             setCurrentReport({
-              type: ActionType.textChange,
+              type: ActionType.inputChange,
               payload: { name: 'timezone', value },
             });
           }}
           timezone={currentReport?.timezone}
         />
+        {isChart && renderMessageContentSection}
       </StyledBottomSection>
+      {currentReport?.error && errorAlert()}
     </StyledModal>
   );
 };

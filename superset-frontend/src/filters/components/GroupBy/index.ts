@@ -28,6 +28,7 @@ export default class FilterGroupByPlugin extends ChartPlugin {
       name: t('Group By'),
       description: t('Group By filter plugin'),
       behaviors: [Behavior.INTERACTIVE_CHART, Behavior.NATIVE_FILTER],
+      tags: [t('Experimental')],
       thumbnail,
     });
 

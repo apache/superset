@@ -1,8 +1,9 @@
 import { Component } from 'react';
 
-
-
-export default class Ipv4ValueRenderer extends Component<{}, { cellValue: any }>{
+export default class Ipv4ValueRenderer extends Component<
+  {},
+  { cellValue: any }
+> {
   constructor(props: any) {
     super(props);
 
@@ -19,25 +20,22 @@ export default class Ipv4ValueRenderer extends Component<{}, { cellValue: any }>
   }
 
   formatIpV4(v: any) {
-    var converted = ((v >> 24) & 0xff) + '.' +
-      ((v >> 16) & 0xff) + '.' +
-      ((v >> 8) & 0xff) + '.' +
-      (v & 0xff);
+    const converted = `${(v >> 24) & 0xff}.${(v >> 16) & 0xff}.${
+      (v >> 8) & 0xff
+    }.${v & 0xff}`;
     return converted;
   }
 
-
   render() {
-
     let ipString = this.state.cellValue;
-    if (typeof this.state.cellValue == "number") {
+    if (typeof this.state.cellValue === 'number') {
       ipString = this.formatIpV4(this.state.cellValue);
     }
 
     return ipString;
   }
 
-  static getValueToDisplay(params: { valueFormatted: any; value: any; }) {
+  static getValueToDisplay(params: { valueFormatted: any; value: any }) {
     return params.valueFormatted ? params.valueFormatted : params.value;
   }
 }

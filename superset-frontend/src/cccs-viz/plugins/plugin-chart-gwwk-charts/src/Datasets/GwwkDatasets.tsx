@@ -16,10 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { GwwkChartsProps } from '../types';
 import { getURIDirectory } from 'src/explore/exploreUtils';
 import { safeStringify } from 'src/utils/safeStringify';
-import {Container, Table, Td, Tr} from '../utils'
+import { GwwkChartsProps } from '../types';
+import { Container, Table, Td, Tr } from '../utils';
 /* eslint camelcase: 0 */
 const URI = require('urijs');
 
@@ -30,8 +30,13 @@ const URI = require('urijs');
 // imported from @superset-ui/core. For variables available, please visit
 // https://github.com/apache-superset/superset-ui/blob/master/packages/superset-ui-core/src/style/index.ts
 
-function buildUrl(id: string, filter_name: string, selected_values: string[], dataset_column_names: string){
-  let adhoc_filters = [
+function buildUrl(
+  id: string,
+  filter_name: string,
+  selected_values: string[],
+  dataset_column_names: string,
+) {
+  const adhoc_filters = [
     {
       clause: 'WHERE',
       comparator: selected_values,
@@ -39,19 +44,19 @@ function buildUrl(id: string, filter_name: string, selected_values: string[], da
       operator: 'IN',
       subject: filter_name,
     },
-  ]
+  ];
 
-  const columns = JSON.parse(dataset_column_names as string)
+  const columns = JSON.parse(dataset_column_names as string);
 
   const formData = {
     datasource: `${id}__table`,
-    columns: columns,
-    adhoc_filters: adhoc_filters,
+    columns,
+    adhoc_filters,
     metrics: [],
     groupby: [],
     time_range: 'No filter',
     viz_type: 'cccs_grid',
-    query_mode: "raw",
+    query_mode: 'raw',
   };
 
   const uri = new URI('/');
@@ -69,18 +74,23 @@ export default function GwwkDatasets(props: GwwkChartsProps) {
   const { selected_values, data, height, width } = props;
 
   return (
-    <Container style={{ height: height, width: width }}>
+    <Container style={{ height, width }}>
       <h3>Datasets for {selected_values.join(', ')}</h3>
       <Table>
         <tbody>
           {data.map((row: any) => {
-            const url = buildUrl(row.id, row.filter_name, selected_values, row.dataset_column_names);
+            const url = buildUrl(
+              row.id,
+              row.filter_name,
+              selected_values,
+              row.dataset_column_names,
+            );
             return (
               <Tr>
-                <Td><a href={url}>
-                  <span style={{ fontWeight: 'bold' }}>
-                    {row.name}
-                  </span></a>
+                <Td>
+                  <a href={url}>
+                    <span style={{ fontWeight: 'bold' }}>{row.name}</span>
+                  </a>
                 </Td>
                 <Td>
                   <span style={{ fontWeight: 'normal' }}>
@@ -88,10 +98,10 @@ export default function GwwkDatasets(props: GwwkChartsProps) {
                   </span>
                 </Td>
               </Tr>
-            )
+            );
           })}
         </tbody>
       </Table>
     </Container>
-  )
+  );
 }

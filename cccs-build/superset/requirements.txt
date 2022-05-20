@@ -5,6 +5,7 @@ authlib==0.15.4
 python-json-logger==2.0.2
 
 # Additional drivers for Superset (or SQLAlchemy) to use
-sqlalchemy-trino>=0.4.0
+trino>=0.313.0
 mysql-connector-python==8.0.26
 elasticsearch-dbapi==0.2.4
+msal==1.17.0

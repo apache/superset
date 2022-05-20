@@ -18,7 +18,10 @@
  */
 import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
 import controlPanel from './controlPanel';
-import transformProps, { BigNumberChartProps, BigNumberFormData } from './transformProps';
+import transformProps, {
+  BigNumberChartProps,
+  BigNumberFormData,
+} from './transformProps';
 import thumbnail from './images/thumbnail.png';
 
 const metadata = new ChartMetadata({

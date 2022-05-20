@@ -18,6 +18,7 @@
 import json
 from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices,
+    load_world_bank_data,
 )
 
 import pytest
@@ -28,7 +29,7 @@ import tests.integration_tests.test_app
 from superset import db, security_manager
 from superset.extensions import appbuilder
 from superset.models.dashboard import Dashboard
-from superset.views.base_api import BaseSupersetModelRestApi
+from superset.views.base_api import BaseSupersetModelRestApi, requires_json
 
 from .base_tests import SupersetTestCase
 
@@ -153,6 +154,19 @@ class TestBaseModelRestApi(SupersetTestCase):
         }
         self.assertEqual(response, expected_response)
 
+    def test_refuse_invalid_format_request(self):
+        """
+        API: Test invalid format of request
+
+        We want to make sure that non-JSON request are refused
+        """
+        self.login(username="admin")
+        uri = "api/v1/report/"  # endpoint decorated with @requires_json
+        rv = self.client.post(
+            uri, data="a: value\nb: 1\n", content_type="application/yaml"
+        )
+        self.assertEqual(rv.status_code, 400)
+
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_default_missing_declaration_put(self):
         """
@@ -201,6 +215,40 @@ class ApiOwnersTestCaseMixin:
         response_users = [result["text"] for result in response["result"]]
         for expected_user in expected_users:
             assert expected_user in response_users
+
+    def test_get_related_owners_paginated(self):
+        """
+        API: Test get related owners with pagination
+        """
+        self.login(username="admin")
+        page_size = 1
+        argument = {"page_size": page_size}
+        uri = f"api/v1/{self.resource_name}/related/owners?q={prison.dumps(argument)}"
+        rv = self.client.get(uri)
+        assert rv.status_code == 200
+        response = json.loads(rv.data.decode("utf-8"))
+        users = db.session.query(security_manager.user_model).all()
+
+        # the count should correspond with the total number of users
+        assert response["count"] == len(users)
+
+        # the length of the result should be at most equal to the page size
+        assert len(response["result"]) == min(page_size, len(users))
+
+        # make sure all received users are included in the full set of users
+        all_users = [str(user) for user in users]
+        for received_user in [result["text"] for result in response["result"]]:
+            assert received_user in all_users
+
+    def test_get_ids_related_owners_paginated(self):
+        """
+        API: Test get related owners with pagination returns 422
+        """
+        self.login(username="admin")
+        argument = {"page": 1, "page_size": 1, "include_ids": [2]}
+        uri = f"api/v1/{self.resource_name}/related/owners?q={prison.dumps(argument)}"
+        rv = self.client.get(uri)
+        assert rv.status_code == 422
 
     def test_get_filter_related_owners(self):
         """

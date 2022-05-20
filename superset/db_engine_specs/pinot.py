@@ -37,7 +37,7 @@ class PinotEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         "P1D": "1:DAYS",
         "P1W": "week",
         "P1M": "month",
-        "P0.25Y": "quarter",
+        "P3MY": "quarter",
         "P1Y": "year",
     }
 
@@ -57,7 +57,7 @@ class PinotEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         "P1D": False,
         "P1W": True,
         "P1M": True,
-        "P0.25Y": True,
+        "P3M": True,
         "P1Y": True,
     }
 

@@ -17,7 +17,7 @@
  * under the License.
  */
 import { flatMapDeep } from 'lodash';
-import { FormInstance } from 'antd/lib/form';
+import { FormInstance } from 'src/components';
 import React from 'react';
 import { CustomControlItem, DatasourceMeta } from '@superset-ui/chart-controls';
 import { Column, ensureIsArray, GenericDataType } from '@superset-ui/core';
@@ -30,6 +30,7 @@ export const FILTER_SUPPORTED_TYPES = {
   filter_timegrain: [GenericDataType.TEMPORAL],
   filter_timecolumn: [GenericDataType.TEMPORAL],
   filter_select: [
+    GenericDataType.BOOLEAN,
     GenericDataType.STRING,
     GenericDataType.NUMERIC,
     GenericDataType.TEMPORAL,

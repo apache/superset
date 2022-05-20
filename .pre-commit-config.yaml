@@ -15,18 +15,15 @@
 # limitations under the License.
 #
 repos:
-  - repo: https://github.com/asottile/seed-isort-config
-    rev: v1.9.3
-    hooks:
-      - id: seed-isort-config
-  - repo: https://github.com/pre-commit/mirrors-isort
-    rev: v4.3.21
+  - repo: https://github.com/PyCQA/isort
+    rev: 5.9.3
     hooks:
       - id: isort
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v0.790
+    rev: v0.941
     hooks:
       - id: mypy
+        additional_dependencies: [types-all]
   - repo: https://github.com/peterdemin/pip-compile-multi
     rev: v2.4.1
     hooks:
@@ -36,6 +33,7 @@ repos:
     hooks:
       - id: check-docstring-first
       - id: check-added-large-files
+        exclude: \.(geojson)$
       - id: check-yaml
         exclude: ^helm/superset/templates/
       - id: debug-statements
@@ -43,7 +41,13 @@ repos:
       - id: trailing-whitespace
         args: ["--markdown-linebreak-ext=md"]
   - repo: https://github.com/psf/black
-    rev: 19.10b0
+    rev: 22.3.0
     hooks:
       - id: black
         language_version: python3
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v2.4.1 # Use the sha or tag you want to point at
+    hooks:
+      - id: prettier
+        args: ['--ignore-path=./superset-frontend/.prettierignore']
+        files: 'superset-frontend'

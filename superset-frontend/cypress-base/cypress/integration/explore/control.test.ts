@@ -105,14 +105,32 @@ describe('VizType control', () => {
     cy.get('[role="button"]').contains('Line Chart').click();
     cy.get('button').contains('Select').click();
 
-    // should load mathjs for line chart
-    cy.get('script[src*="mathjs"]').should('have.length', 1);
-
     cy.get('button[data-test="run-query-button"]').click();
     cy.verifySliceSuccess({
       waitAlias: '@lineChartData',
       chartSelector: 'svg',
     });
+  });
+});
+
+describe('Test datatable', () => {
+  beforeEach(() => {
+    cy.login();
+    interceptChart({ legacy: false }).as('tableChartData');
+    interceptChart({ legacy: true }).as('lineChartData');
+    cy.visitChartByName('Daily Totals');
+  });
+  it('Data Pane opens and loads results', () => {
+    cy.get('[data-test="data-tab"]').click();
+    cy.get('[data-test="row-count-label"]').contains('26 rows retrieved');
+    cy.contains('View results');
+    cy.get('.ant-empty-description').should('not.exist');
+  });
+  it('Datapane loads view samples', () => {
+    cy.get('[data-test="data-tab"]').click();
+    cy.contains('View samples').click();
+    cy.get('[data-test="row-count-label"]').contains('1k rows retrieved');
+    cy.get('.ant-empty-description').should('not.exist');
   });
 });
 
@@ -238,8 +256,8 @@ describe('Groupby control', () => {
     cy.verifySliceSuccess({ waitAlias: '@chartData' });
 
     cy.get('[data-test=groupby]').within(() => {
-      cy.get('.Select__control').click();
-      cy.get('input[type=text]').type('state{enter}');
+      cy.get('.ant-select').click();
+      cy.get('input[type=search]').type('state{enter}');
     });
     cy.get('button[data-test="run-query-button"]').click();
     cy.verifySliceSuccess({ waitAlias: '@chartData', chartSelector: 'svg' });

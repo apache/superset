@@ -24,4 +24,8 @@ export { default as GwwkDatasetsChartPlugin } from './plugin-chart-gwwk-charts/s
 export { default as GwwkDashboardsChartPlugin } from './plugin-chart-gwwk-charts/src/Dashboards';
 export { default as IframeDemoChartPlugin } from './plugin-chart-iframe-demo/src/plugin';
 export { default as CccsGridChartPlugin } from './plugin-chart-cccs-grid/src/plugin';
-export { default as StatusIndicatorChartPlugin } from './plugin-chart-status-indicator/src/chart';
+export { default as AtAGlanceChartIpPlugin } from './plugin-chart-at-a-glance-ip/src/plugin';
+export { default as AtAGlanceChartDnsPlugin } from './plugin-chart-at-a-glance-dns/src/plugin';
+export { default as AtAGlanceUserIdChartPlugin } from './plugin-chart-at-a-glance-user-id/src/plugin';
+export { default as AtAGlanceUserIDSasChartPlugin } from './plugin-chart-at-a-glance-user-id-sas/src/plugin';
+export { default as ApplicationLinksChartPlugin } from './plugin-chart-application-links/src/plugin';

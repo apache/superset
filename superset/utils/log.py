@@ -125,6 +125,7 @@ class AbstractEventLogger(ABC):
         log_to_statsd: bool = True,
         **payload_override: Optional[Dict[str, Any]],
     ) -> None:
+        # pylint: disable=import-outside-toplevel
         from superset.views.core import get_form_data
 
         referrer = request.referrer[:1000] if request and request.referrer else None
@@ -193,8 +194,11 @@ class AbstractEventLogger(ABC):
         )
 
     @contextmanager
-    def log_context(  # pylint: disable=too-many-locals
-        self, action: str, object_ref: Optional[str] = None, log_to_statsd: bool = True,
+    def log_context(
+        self,
+        action: str,
+        object_ref: Optional[str] = None,
+        log_to_statsd: bool = True,
     ) -> Iterator[Callable[..., None]]:
         """
         Log an event with additional information from the request context.
@@ -321,6 +325,7 @@ class DBEventLogger(AbstractEventLogger):
         *args: Any,
         **kwargs: Any,
     ) -> None:
+        # pylint: disable=import-outside-toplevel
         from superset.models.core import Log
 
         records = kwargs.get("records", [])

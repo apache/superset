@@ -75,7 +75,7 @@ export const PRIMARY_COLOR = { r: 0, g: 122, b: 135, a: 1 };
 
 // input choices & options
 export const D3_FORMAT_OPTIONS = [
-  ['SMART_NUMBER', 'Adaptative formating'],
+  ['SMART_NUMBER', 'Adaptive formatting'],
   ['~g', 'Original value'],
   [',d', ',d (12345.432 => 12,345)'],
   ['.1s', '.1s (12345.432 => 10k)'],
@@ -92,13 +92,13 @@ export const D3_FORMAT_OPTIONS = [
 
 const ROW_LIMIT_OPTIONS = [10, 50, 100, 250, 500, 1000, 5000, 10000, 50000];
 
-const SERIES_LIMITS = [0, 5, 10, 25, 50, 100, 500];
+const SERIES_LIMITS = [5, 10, 25, 50, 100, 500];
 
 export const D3_FORMAT_DOCS =
   'D3 format syntax: https://github.com/d3/d3-format';
 
 export const D3_TIME_FORMAT_OPTIONS = [
-  ['smart_date', 'Adaptative formating'],
+  ['smart_date', 'Adaptive formatting'],
   ['%d/%m/%Y', '%d/%m/%Y | 14/01/2019'],
   ['%m/%d/%Y', '%m/%d/%Y | 01/14/2019'],
   ['%Y-%m-%d', '%Y-%m-%d | 2019-01-14'],
@@ -123,11 +123,14 @@ const groupByControl = {
   label: t('Group by'),
   default: [],
   includeTime: false,
-  description: t('One or many controls to group by'),
+  description: t(
+    'One or many columns to group by. High cardinality groupings should include a series limit ' +
+      'to limit the number of fetched and rendered series.',
+  ),
   optionRenderer: c => <StyledColumnOption column={c} showType />,
   valueRenderer: c => <StyledColumnOption column={c} />,
+  deprecatedSelectFlag: true,
   valueKey: 'column_name',
-  allowAll: true,
   filterOption: ({ data: opt }, text) =>
     (opt.column_name &&
       opt.column_name.toLowerCase().indexOf(text.toLowerCase()) >= 0) ||
@@ -144,7 +147,6 @@ const groupByControl = {
     }
     return newState;
   },
-  commaChoosesOption: false,
 };
 
 const metrics = {
@@ -157,7 +159,7 @@ const metrics = {
     return {
       columns: datasource ? datasource.columns : [],
       savedMetrics: datasource ? datasource.metrics : [],
-      datasourceType: datasource && datasource.type,
+      datasource,
     };
   },
   description: t('One or many metrics to display'),
@@ -266,7 +268,7 @@ export const controls = {
     type: 'SelectControl',
     freeForm: true,
     label: TIME_FILTER_LABELS.granularity,
-    default: 'one day',
+    default: 'P1D',
     choices: [
       [null, 'all'],
       ['PT5S', '5 seconds'],
@@ -304,7 +306,6 @@ export const controls = {
     ),
     clearable: false,
     optionRenderer: c => <StyledColumnOption column={c} showType />,
-    valueRenderer: c => <StyledColumnOption column={c} />,
     valueKey: 'column_name',
     mapStateToProps: state => {
       const props = {};
@@ -363,6 +364,7 @@ export const controls = {
     validators: [legacyValidateInteger],
     default: 10000,
     choices: formatSelectOptions(ROW_LIMIT_OPTIONS),
+    description: t('Limits the number of rows that get displayed.'),
   },
 
   limit: {
@@ -371,11 +373,12 @@ export const controls = {
     label: t('Series limit'),
     validators: [legacyValidateInteger],
     choices: formatSelectOptions(SERIES_LIMITS),
+    clearable: true,
     description: t(
-      'Limits the number of time series that get displayed. A sub query ' +
-        '(or an extra phase where sub queries are not supported) is applied to limit ' +
-        'the number of time series that get fetched and displayed. This feature is useful ' +
-        'when grouping by high cardinality dimension(s).',
+      'Limits the number of series that get displayed. A joined subquery (or an extra phase ' +
+        'where subqueries are not supported) is applied to limit the number of series that get ' +
+        'fetched and rendered. This feature is useful when grouping by high cardinality ' +
+        'column(s) though does increase the query complexity and cost.',
     ),
   },
 
@@ -384,11 +387,14 @@ export const controls = {
     label: t('Sort by'),
     default: null,
     clearable: true,
-    description: t('Metric used to define the top series'),
+    description: t(
+      'Metric used to define how the top series are sorted if a series or row limit is present. ' +
+        'If undefined reverts to the first metric (where appropriate).',
+    ),
     mapStateToProps: state => ({
       columns: state.datasource ? state.datasource.columns : [],
       savedMetrics: state.datasource ? state.datasource.metrics : [],
-      datasourceType: state.datasource && state.datasource.type,
+      datasource: state.datasource,
     }),
   },
 
@@ -480,16 +486,5 @@ export const controls = {
     choices: () => categoricalSchemeRegistry.keys().map(s => [s, s]),
     description: t('The color scheme for rendering chart'),
     schemes: () => categoricalSchemeRegistry.getMap(),
-  },
-
-  label_colors: {
-    type: 'ColorMapControl',
-    label: t('Color map'),
-    default: {},
-    renderTrigger: true,
-    mapStateToProps: state => ({
-      colorNamespace: state.form_data.color_namespace,
-      colorScheme: state.form_data.color_scheme,
-    }),
   },
 };

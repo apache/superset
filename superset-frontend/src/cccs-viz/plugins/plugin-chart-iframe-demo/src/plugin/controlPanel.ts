@@ -99,7 +99,12 @@ const config: ControlPanelConfig = {
     {
       label: t('Query'),
       expanded: true,
-      controlSetRows: [['groupby'], ['metrics'], ['adhoc_filters'], ['row_limit', null]],
+      controlSetRows: [
+        ['groupby'],
+        ['metrics'],
+        ['adhoc_filters'],
+        ['row_limit', null],
+      ],
     },
     {
       label: t('Hello Controls!'),

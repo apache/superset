@@ -48,7 +48,7 @@ class RefreshDatasetCommand(BaseCommand):
                 return self._model
             except Exception as ex:
                 logger.exception(ex)
-                raise DatasetRefreshFailedError()
+                raise DatasetRefreshFailedError() from ex
         raise DatasetRefreshFailedError()
 
     def validate(self) -> None:
@@ -59,5 +59,5 @@ class RefreshDatasetCommand(BaseCommand):
         # Check ownership
         try:
             check_ownership(self._model)
-        except SupersetSecurityException:
-            raise DatasetForbiddenError()
+        except SupersetSecurityException as ex:
+            raise DatasetForbiddenError() from ex

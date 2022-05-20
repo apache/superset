@@ -49,7 +49,7 @@ class BulkDeleteChartCommand(BaseCommand):
             ChartDAO.bulk_delete(self._models)
         except DeleteFailedError as ex:
             logger.exception(ex.exception)
-            raise ChartBulkDeleteFailedError()
+            raise ChartBulkDeleteFailedError() from ex
 
     def validate(self) -> None:
         # Validate/populate model exists
@@ -67,5 +67,5 @@ class BulkDeleteChartCommand(BaseCommand):
         for model in self._models:
             try:
                 check_ownership(model)
-            except SupersetSecurityException:
-                raise ChartForbiddenError()
+            except SupersetSecurityException as ex:
+                raise ChartForbiddenError() from ex

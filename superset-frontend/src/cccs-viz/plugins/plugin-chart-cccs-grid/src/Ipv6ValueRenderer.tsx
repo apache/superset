@@ -1,9 +1,11 @@
 import React, { Component } from 'react';
-//import { IPv6 } from "ip-num";
-//import bigInt from "big-integer";
+// import { IPv6 } from "ip-num";
+// import bigInt from "big-integer";
 
-
-export default class Ipv6ValueRenderer extends Component<{}, { cellValue: any }> {
+export default class Ipv6ValueRenderer extends Component<
+  {},
+  { cellValue: any }
+> {
   constructor(props: any) {
     super(props);
 
@@ -19,11 +21,9 @@ export default class Ipv6ValueRenderer extends Component<{}, { cellValue: any }>
     };
   }
 
-
   render() {
-
-//    const ipv6 = IPv6.fromBigInteger(bigInt(this.state.cellValue));
-//    const ipString = ipv6.toString();
+    //    const ipv6 = IPv6.fromBigInteger(bigInt(this.state.cellValue));
+    //    const ipString = ipv6.toString();
     const ipString = this.state.cellValue;
 
     return (
@@ -33,7 +33,7 @@ export default class Ipv6ValueRenderer extends Component<{}, { cellValue: any }>
     );
   }
 
-  static getValueToDisplay(params: { valueFormatted: any; value: any; }) {
+  static getValueToDisplay(params: { valueFormatted: any; value: any }) {
     return params.valueFormatted ? params.valueFormatted : params.value;
   }
 }

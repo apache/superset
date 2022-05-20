@@ -28,6 +28,7 @@ from superset.models.dashboard import Dashboard
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices,
+    load_world_bank_data,
 )
 
 
@@ -85,6 +86,7 @@ class TestDashboardDAO(SupersetTestCase):
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_get_dashboard_changed_on(self):
+        self.login(username="admin")
         session = db.session()
         dashboard = session.query(Dashboard).filter_by(slug="world_health").first()
 

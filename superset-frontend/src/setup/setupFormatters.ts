@@ -74,18 +74,18 @@ export default function setupFormatters() {
 
   decimals.forEach(decimal => {
     currencies.forEach(symbol => {
-      getNumberFormatterRegistry()
-        .registerValue(symbol + ',.' + decimal + 'f',
-          createD3NumberFormatter({
-            formatString: '$,.' + decimal + 'f',
-            locale: {
-              decimal: '.',
-              thousands: ',',
-              grouping: [3],
-              currency: [symbol, ''],
-            },
-          })
-        );
+      getNumberFormatterRegistry().registerValue(
+        `${symbol},.${decimal}f`,
+        createD3NumberFormatter({
+          formatString: `$,.${decimal}f`,
+          locale: {
+            decimal: '.',
+            thousands: ',',
+            grouping: [3],
+            currency: [symbol, ''],
+          },
+        }),
+      );
     });
   });
 

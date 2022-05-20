@@ -15,25 +15,36 @@
 # specific language governing permissions and limitations
 # under the License.
 # isort:skip_file
+import json
 import textwrap
 import unittest
 from unittest import mock
+
+from superset.connectors.sqla.models import SqlaTable
+from superset.exceptions import SupersetException
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
+    load_birth_names_data,
 )
 
-import pandas
 import pytest
 from sqlalchemy.engine.url import make_url
+from sqlalchemy.types import DateTime
 
 import tests.integration_tests.test_app
 from superset import app, db as metadata_db
+from superset.db_engine_specs.postgres import PostgresEngineSpec
+from superset.common.db_query_status import QueryStatus
 from superset.models.core import Database
 from superset.models.slice import Slice
-from superset.utils.core import get_example_database, QueryStatus
+from superset.models.sql_types.base import literal_dttm_type_factory
+from superset.utils.database import get_example_database
 
 from .base_tests import SupersetTestCase
-from .fixtures.energy_dashboard import load_energy_table_with_slice
+from .fixtures.energy_dashboard import (
+    load_energy_table_with_slice,
+    load_energy_table_data,
+)
 
 
 class TestDatabaseModel(SupersetTestCase):
@@ -128,7 +139,7 @@ class TestDatabaseModel(SupersetTestCase):
                                }
                     },
                     "metadata_cache_timeout": {},
-                    "schemas_allowed_for_csv_upload": []
+                    "schemas_allowed_for_file_upload": []
                 }
                 """
 
@@ -201,7 +212,7 @@ class TestDatabaseModel(SupersetTestCase):
                                }
                     },
                     "metadata_cache_timeout": {},
-                    "schemas_allowed_for_csv_upload": []
+                    "schemas_allowed_for_file_upload": []
                 }
                 """
 
@@ -335,16 +346,49 @@ class TestDatabaseModel(SupersetTestCase):
             df = main_db.get_df("USE superset; SELECT ';';", None)
             self.assertEqual(df.iat[0, 0], ";")
 
+    @mock.patch("superset.models.core.Database.get_sqla_engine")
+    def test_username_param(self, mocked_get_sqla_engine):
+        main_db = get_example_database()
+        main_db.impersonate_user = True
+        test_username = "test_username_param"
+
+        if main_db.backend == "mysql":
+            main_db.get_df("USE superset; SELECT 1", username=test_username)
+            mocked_get_sqla_engine.assert_called_with(
+                schema=None,
+                user_name="test_username_param",
+            )
+
+    @mock.patch("superset.models.core.create_engine")
+    def test_get_sqla_engine(self, mocked_create_engine):
+        model = Database(
+            database_name="test_database",
+            sqlalchemy_uri="mysql://root@localhost",
+        )
+        model.db_engine_spec.get_dbapi_exception_mapping = mock.Mock(
+            return_value={Exception: SupersetException}
+        )
+        mocked_create_engine.side_effect = Exception()
+        with self.assertRaises(SupersetException):
+            model.get_sqla_engine()
+
 
 class TestSqlaTableModel(SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_get_timestamp_expression(self):
+        col_type = (
+            "VARCHAR"
+            if get_example_database().backend == "presto"
+            else "TemporalWrapperType"
+        )
         tbl = self.get_table(name="birth_names")
         ds_col = tbl.get_column("ds")
         sqla_literal = ds_col.get_timestamp_expression(None)
         self.assertEqual(str(sqla_literal.compile()), "ds")
+        assert type(sqla_literal.type).__name__ == col_type
 
         sqla_literal = ds_col.get_timestamp_expression("P1D")
+        assert type(sqla_literal.type).__name__ == col_type
         compiled = "{}".format(sqla_literal.compile())
         if tbl.database.backend == "mysql":
             self.assertEqual(compiled, "DATE(ds)")
@@ -352,6 +396,7 @@ class TestSqlaTableModel(SupersetTestCase):
         prev_ds_expr = ds_col.expression
         ds_col.expression = "DATE_ADD(ds, 1)"
         sqla_literal = ds_col.get_timestamp_expression("P1D")
+        assert type(sqla_literal.type).__name__ == col_type
         compiled = "{}".format(sqla_literal.compile())
         if tbl.database.backend == "mysql":
             self.assertEqual(compiled, "DATE(DATE_ADD(ds, 1))")
@@ -408,6 +453,7 @@ class TestSqlaTableModel(SupersetTestCase):
             from_dttm=None,
             to_dttm=None,
             extras=dict(time_grain_sqla="P1Y"),
+            series_limit=15 if inner_join and is_timeseries else None,
         )
         qr = tbl.query(query_obj)
         self.assertEqual(qr.status, QueryStatus.SUCCESS)
@@ -492,18 +538,89 @@ class TestSqlaTableModel(SupersetTestCase):
         self.assertTrue("Metric 'invalid' does not exist", context.exception)
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    def test_data_for_slices(self):
+    def test_data_for_slices_with_no_query_context(self):
         tbl = self.get_table(name="birth_names")
         slc = (
             metadata_db.session.query(Slice)
             .filter_by(
                 datasource_id=tbl.id,
                 datasource_type=tbl.type,
-                slice_name="Participants",
+                slice_name="Genders",
             )
             .first()
         )
         data_for_slices = tbl.data_for_slices([slc])
-        self.assertEqual(len(data_for_slices["columns"]), 0)
-        self.assertEqual(len(data_for_slices["metrics"]), 1)
-        self.assertEqual(len(data_for_slices["verbose_map"].keys()), 2)
+        assert len(data_for_slices["metrics"]) == 1
+        assert len(data_for_slices["columns"]) == 1
+        assert data_for_slices["metrics"][0]["metric_name"] == "sum__num"
+        assert data_for_slices["columns"][0]["column_name"] == "gender"
+        assert set(data_for_slices["verbose_map"].keys()) == {
+            "__timestamp",
+            "sum__num",
+            "gender",
+        }
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_data_for_slices_with_query_context(self):
+        tbl = self.get_table(name="birth_names")
+        slc = (
+            metadata_db.session.query(Slice)
+            .filter_by(
+                datasource_id=tbl.id,
+                datasource_type=tbl.type,
+                slice_name="Pivot Table v2",
+            )
+            .first()
+        )
+        data_for_slices = tbl.data_for_slices([slc])
+        assert len(data_for_slices["metrics"]) == 1
+        assert len(data_for_slices["columns"]) == 2
+        assert data_for_slices["metrics"][0]["metric_name"] == "sum__num"
+        assert data_for_slices["columns"][0]["column_name"] == "name"
+        assert set(data_for_slices["verbose_map"].keys()) == {
+            "__timestamp",
+            "sum__num",
+            "name",
+            "state",
+        }
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_data_for_slices_with_adhoc_column(self):
+        # should perform sqla.model.BaseDatasource.data_for_slices() with adhoc
+        # column and legacy chart
+        tbl = self.get_table(name="birth_names")
+        dashboard = self.get_dash_by_slug("births")
+        slc = Slice(
+            slice_name="slice with adhoc column",
+            datasource_type="table",
+            viz_type="table",
+            params=json.dumps(
+                {
+                    "adhoc_filters": [],
+                    "granularity_sqla": "ds",
+                    "groupby": [
+                        "name",
+                        {"label": "adhoc_column", "sqlExpression": "name"},
+                    ],
+                    "metrics": ["sum__num"],
+                    "time_range": "No filter",
+                    "viz_type": "table",
+                }
+            ),
+            datasource_id=tbl.id,
+        )
+        dashboard.slices.append(slc)
+        datasource_info = slc.datasource.data_for_slices([slc])
+        assert "database" in datasource_info
+
+        # clean up and auto commit
+        metadata_db.session.delete(slc)
+
+
+def test_literal_dttm_type_factory():
+    orig_type = DateTime()
+    new_type = literal_dttm_type_factory(
+        orig_type, PostgresEngineSpec, "TIMESTAMP", db_extra={}
+    )
+    assert type(new_type).__name__ == "TemporalWrapperType"
+    assert str(new_type) == str(orig_type)
