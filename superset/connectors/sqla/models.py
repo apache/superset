@@ -2036,14 +2036,6 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             sqla_query = self.get_sqla_query(**query_obj)
             extra_cache_keys += sqla_query.extra_cache_keys
 
-        sqlalchemy_url = make_url_safe(self.database.sqlalchemy_uri_decrypted)
-
-        if effective_user := self.database.get_effective_user(sqlalchemy_url):
-            logger.debug("User impersonation is enabled for database '%s', adding "
-                         "current username to '%s' datasource's extra cache keys",
-                         self.database_name, self.datasource_name)
-            extra_cache_keys.append(effective_user)
-
         return extra_cache_keys
 
     @property
