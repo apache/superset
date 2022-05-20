@@ -78,8 +78,8 @@ export default function getInitialState(
       initialFormData,
     ) as ControlStateMapping,
     controlsTransferred: [],
-    timeFormattedColumns: getItem(
-      LocalStorageKeys.explore__data_table_time_formatted_columns,
+    originalFormattedTimeColumns: getItem(
+      LocalStorageKeys.explore__data_table_original_formatted_time_columns,
       {},
     ),
   };
