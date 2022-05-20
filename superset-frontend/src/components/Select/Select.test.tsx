@@ -25,6 +25,8 @@ const ARIA_LABEL = 'Test';
 const NEW_OPTION = 'Kyle';
 const NO_DATA = 'No Data';
 const LOADING = 'Loading...';
+const SELECT_ALL = 'Select all';
+
 const OPTIONS = [
   { label: 'John', value: 1, gender: 'Male' },
   { label: 'Liam', value: 2, gender: 'Male' },
@@ -50,6 +52,7 @@ const OPTIONS = [
   { label: 'Cher', value: 22, gender: 'Female' },
   { label: 'Her', value: 23, gender: 'Male' },
 ].sort((option1, option2) => option1.label.localeCompare(option2.label));
+
 const NULL_OPTION = { label: '<NULL>', value: null } as unknown as {
   label: string;
   value: number;
@@ -410,6 +413,92 @@ test('adds the null option when selected in multiple mode', async () => {
   const values = await findAllSelectValues();
   expect(values[0]).toHaveTextContent(OPTIONS[0].label);
   expect(values[1]).toHaveTextContent(NULL_OPTION.label);
+});
+
+test('renders "Select all" for multiple select', async () => {
+  render(<Select {...defaultProps} options={OPTIONS} mode="multiple" />);
+  await open();
+  expect(await findSelectOption(SELECT_ALL)).toBeInTheDocument();
+});
+
+test('does not render "Select all" for single select', async () => {
+  render(<Select {...defaultProps} options={OPTIONS} mode="single" />);
+  await open();
+  expect(screen.queryByText(SELECT_ALL)).not.toBeInTheDocument();
+});
+
+test('does not render "Select all" for an empty multiple select', async () => {
+  render(<Select {...defaultProps} options={[]} mode="multiple" />);
+  await open();
+  expect(screen.queryByText(SELECT_ALL)).not.toBeInTheDocument();
+});
+
+test('does not render "Select all" when searching', async () => {
+  render(<Select {...defaultProps} options={OPTIONS} mode="multiple" />);
+  await open();
+  await type('Select');
+  expect(await findSelectOption(SELECT_ALL)).not.toBeInTheDocument();
+});
+
+test('does not render "Select all" as one of the tags after selection', async () => {
+  render(<Select {...defaultProps} options={OPTIONS} mode="multiple" />);
+  await open();
+  userEvent.click(await findSelectOption(SELECT_ALL));
+  const values = await findAllSelectValues();
+  expect(values[0]).not.toHaveTextContent(SELECT_ALL);
+});
+
+test('keeps "Select all" at the top after a selection', async () => {
+  const selected = OPTIONS[2];
+  render(<Select {...defaultProps} options={OPTIONS} mode="multiple" />);
+  await open();
+  userEvent.click(await findSelectOption(selected.label));
+  const options = await findAllSelectOptions();
+  expect(options[0]).toHaveTextContent(SELECT_ALL);
+  expect(options[1]).toHaveTextContent(selected.label);
+});
+
+test('selects all values', async () => {
+  render(<Select {...defaultProps} options={OPTIONS} mode="multiple" />);
+  await open();
+  userEvent.click(await findSelectOption(SELECT_ALL));
+  const values = await findAllSelectValues();
+  expect(values.length).toBe(OPTIONS.length);
+});
+
+test('unselects all values', async () => {
+  render(<Select {...defaultProps} options={OPTIONS} mode="multiple" />);
+  await open();
+  userEvent.click(await findSelectOption(SELECT_ALL));
+  const values = await findAllSelectValues();
+  expect(values.length).toBe(OPTIONS.length);
+  userEvent.click(await findSelectOption(SELECT_ALL));
+  expect(values.length).toBe(0);
+});
+
+test('deselecting a value also deselects "Select all"', async () => {
+  render(<Select {...defaultProps} options={OPTIONS} mode="multiple" />);
+  await open();
+  userEvent.click(await findSelectOption(SELECT_ALL));
+  let values = await findAllSelectValues();
+  expect(values[0]).toHaveTextContent(SELECT_ALL);
+  userEvent.click(await findSelectOption(OPTIONS[0].label));
+  values = await findAllSelectValues();
+  expect(values[0]).toHaveTextContent(OPTIONS[1].label);
+});
+
+test('selecting all values also selects "Select all"', async () => {
+  render(<Select {...defaultProps} options={OPTIONS} mode="multiple" />);
+  await open();
+  const options = await findAllSelectOptions();
+  options.forEach((option, index) => {
+    // skip select all
+    if (index > 0) {
+      userEvent.click(option);
+    }
+  });
+  const values = await findAllSelectValues();
+  expect(values[0]).toHaveTextContent(SELECT_ALL);
 });
 
 test('static - renders the select with default props', () => {

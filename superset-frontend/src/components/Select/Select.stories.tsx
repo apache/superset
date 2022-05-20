@@ -18,6 +18,7 @@
  */
 import React, { ReactNode, useState, useCallback } from 'react';
 import ControlHeader from 'src/explore/components/ControlHeader';
+import { SelectValue } from 'antd/lib/select';
 import Select, { SelectProps, OptionsTypePage, OptionsType } from './Select';
 
 export default {
@@ -210,17 +211,6 @@ InteractiveSelect.argTypes = {
     description: `It adds a header on top of the Select. Can be any ReactNode.`,
     control: { type: 'inline-radio', options: ['none', 'text', 'control'] },
   },
-  pageSize: {
-    description: `It defines how many results should be included in the query response.
-      Works in async mode only (See the options property).
-    `,
-  },
-  fetchOnlyOnSearch: {
-    description: `It fires a request against the server only after searching.
-      Works in async mode only (See the options property).
-      Undefined by default.
-    `,
-  },
 };
 
 InteractiveSelect.story = {
@@ -387,6 +377,7 @@ export const AsyncSelect = ({
   responseTime: number;
 }) => {
   const [requests, setRequests] = useState<ReactNode[]>([]);
+  const [value, setValue] = useState<SelectValue>();
 
   const getResults = (username?: string) => {
     let results: { label: string; value: string }[] = [];
@@ -466,6 +457,7 @@ export const AsyncSelect = ({
               ? { label: 'Valentina', value: 'Valentina' }
               : undefined
           }
+          onChange={value => setValue(value)}
         />
       </div>
       <div
@@ -484,6 +476,20 @@ export const AsyncSelect = ({
           <p key={`request-${index}`}>{request}</p>
         ))}
       </div>
+      <div
+        style={{
+          position: 'absolute',
+          top: 450,
+          left: DEFAULT_WIDTH + 100,
+          height: 200,
+          width: 600,
+          overflowY: 'auto',
+          border: '1px solid #d9d9d9',
+          padding: 20,
+        }}
+      >
+        {value ? JSON.stringify(value) : ''}
+      </div>
     </>
   );
 };
@@ -491,8 +497,6 @@ export const AsyncSelect = ({
 AsyncSelect.args = {
   allowClear: false,
   allowNewOptions: false,
-  fetchOnlyOnSearch: false,
-  pageSize: 10,
   withError: false,
   withInitialValue: false,
   tokenSeparators: ['\n', '\t', ';'],
@@ -511,6 +515,9 @@ AsyncSelect.argTypes = {
     },
   },
   pageSize: {
+    description: `It defines how many results should be included in the query response.
+      Works in async mode only (See the options property).
+    `,
     defaultValue: 10,
     control: {
       type: 'range',
@@ -518,6 +525,13 @@ AsyncSelect.argTypes = {
       max: 50,
       step: 10,
     },
+  },
+  fetchOnlyOnSearch: {
+    description: `It fires a request against the server only after searching.
+      Works in async mode only (See the options property).
+      Undefined by default.
+    `,
+    defaultValue: false,
   },
   responseTime: {
     defaultValue: 0.5,
