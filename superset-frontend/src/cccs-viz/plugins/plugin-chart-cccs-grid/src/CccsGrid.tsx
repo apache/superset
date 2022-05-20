@@ -16,12 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useState } from 'react';
+ import React, { ChangeEvent, useCallback, useState } from 'react';
 // import { styled } from '@superset-ui/core';
 import { AgGridReact } from '@ag-grid-community/react';
 import { AllModules, LicenseManager } from '@ag-grid-enterprise/all-modules';
 import { NULL_STRING } from 'src/utils/common';
 import { ensureIsArray } from '@superset-ui/core';
+//import { styled } from '@superset-ui/core';
 import { CccsGridTransformedProps } from './types';
 
 import CountryValueRenderer from './CountryValueRenderer';
@@ -67,6 +68,7 @@ export default function CccsGrid({
 
   const [prevRow, setPrevRow] = useState(-1);
   const [prevColumn, setPrevColumn] = useState('');
+  const [searchValue, setSearchValue] = useState('');
 
   const handleChange = useCallback(
     filters => {
@@ -230,6 +232,13 @@ export default function CccsGrid({
     params.columnApi.autoSizeColumns(allColumnIds.slice(0, 100), false);
   }
 
+  function setSearch(e: ChangeEvent<HTMLInputElement>) {
+    const target = e.target as HTMLInputElement;
+    e.preventDefault();
+    console.log(target.value);
+    setSearchValue(target.value);
+  }
+
   const gridOptions = {
     suppressColumnVirtualisation: true,
     animateRows: true,
@@ -240,6 +249,22 @@ export default function CccsGrid({
 
   return (
     <div style={{ width, height }} className="ag-theme-balham">
+      <div className="form-inline" style={{ paddingBottom: "0.5em" }}> 
+        <div className="row">
+          <div className="col-sm-6"></div>
+          <div className="col-sm-6">
+            <span className="float-right">
+              Search{' '}
+              <input
+                className="form-control input-sm"
+                placeholder={`${rowData.length} records...`}
+                value={searchValue}
+                onChange={setSearch}
+              />
+            </span>
+          </div>
+        </div>
+      </div>
       <AgGridReact
         modules={AllModules}
         columnDefs={columnDefs}
@@ -254,6 +279,8 @@ export default function CccsGrid({
         onRangeSelectionChanged={onRangeSelectionChanged}
         onSelectionChanged={onSelectionChanged}
         rowData={rowData}
+        cacheQuickFilter={true}
+        quickFilterText={searchValue}
       />
     </div>
   );
