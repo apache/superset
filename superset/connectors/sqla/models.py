@@ -88,6 +88,7 @@ from superset.datasets.models import Dataset as NewDataset
 from superset.db_engine_specs.base import BaseEngineSpec, CTE_ALIAS, TimestampExpression
 from superset.exceptions import (
     AdvancedDataTypeResponseError,
+    DatasetInvalidPermissionEvaluationException,
     QueryClauseValidationException,
     QueryObjectValidationError,
 )
@@ -785,6 +786,13 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         return security_manager.get_schema_perm(self.database, self.schema)
 
     def get_perm(self) -> str:
+        """
+        Return this dataset permission name
+        :return: dataset permission name
+        :raises DatasetInvalidPermissionEvaluationException: When database is missing
+        """
+        if self.database is None:
+            raise DatasetInvalidPermissionEvaluationException()
         return f"[{self.database}].[{self.table_name}](id:{self.id})"
 
     @property
