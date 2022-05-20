@@ -235,7 +235,6 @@ export default function CccsGrid({
   function setSearch(e: ChangeEvent<HTMLInputElement>) {
     const target = e.target as HTMLInputElement;
     e.preventDefault();
-    console.log(target.value);
     setSearchValue(target.value);
   }
 
