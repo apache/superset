@@ -324,9 +324,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         def clean_fulfilled_requests(session: Session) -> None:
             for dar in session.query(DAR).all():
                 datasource = DatasourceDAO.get_datasource(
-                    dar.datasource_type,
-                    dar.datasource_id,
-                    session,
+                    session, DatasourceType(dar.datasource_type), dar.datasource_id
                 )
                 if not datasource or security_manager.can_access_datasource(datasource):
                     # Dataset does not exist anymore
@@ -341,7 +339,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         session = db.session
         datasource = DatasourceDAO.get_datasource(
-            datasource_type, datasource_id, session
+            session, DatasourceType(datasource_type), int(datasource_id)
         )
 
         if not datasource:
@@ -2540,9 +2538,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         datasource_id, datasource_type = request.args["datasourceKey"].split("__")
         datasource = DatasourceDAO.get_datasource(
-            datasource_type,
-            datasource_id,
-            db.session,
+            db.session, DatasourceType(datasource_type), int(datasource_id)
         )
         # Check if datasource exists
         if not datasource:

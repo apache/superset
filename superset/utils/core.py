@@ -176,8 +176,8 @@ class GenericDataType(IntEnum):
 
 
 class DatasourceType(Enum):
-    SQLATABLE = "sqlatable"
-    TABLE = "table"
+    SQLATABLE = "table"
+    TABLE = "sl_table"
     DATASET = "dataset"
     QUERY = "query"
     SAVEDQUERY = "saved_query"

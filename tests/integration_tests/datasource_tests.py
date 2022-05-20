@@ -22,12 +22,14 @@ from unittest import mock
 import prison
 import pytest
 
-from superset import app, ConnectorRegistry, db
+from superset import app, db
 from superset.connectors.sqla.models import SqlaTable
+from superset.dao.exceptions import DatasourceNotFound, DatasourceTypeNotSupportedError
 from superset.datasets.commands.exceptions import DatasetNotFoundError
+from superset.datasource.dao import DatasourceDAO
 from superset.exceptions import SupersetGenericDBErrorException
 from superset.models.core import Database
-from superset.utils.core import get_example_default_schema
+from superset.utils.core import DatasourceType, get_example_default_schema
 from superset.utils.database import get_example_database
 from tests.integration_tests.base_tests import db_insert_temp_object, SupersetTestCase
 from tests.integration_tests.fixtures.birth_names_dashboard import (
@@ -256,8 +258,8 @@ class TestDatasource(SupersetTestCase):
 
         pytest.raises(
             SupersetGenericDBErrorException,
-            lambda: ConnectorRegistry.get_datasource(
-                "table", tbl.id, db.session
+            lambda: DatasourceDAO.get_datasource(
+                db.session, DatasourceType.SQLATABLE, tbl.id
             ).external_metadata(),
         )
 
@@ -385,21 +387,27 @@ class TestDatasource(SupersetTestCase):
         app.config["DATASET_HEALTH_CHECK"] = my_check
         self.login(username="admin")
         tbl = self.get_table(name="birth_names")
-        datasource = ConnectorRegistry.get_datasource("table", tbl.id, db.session)
+        datasource = DatasourceDAO.get_datasource(
+            db.session, DatasourceType.SQLATABLE, tbl.id
+        )
         assert datasource.health_check_message == "Warning message!"
         app.config["DATASET_HEALTH_CHECK"] = None
 
     def test_get_datasource_failed(self):
         pytest.raises(
-            DatasetNotFoundError,
-            lambda: ConnectorRegistry.get_datasource("table", 9999999, db.session),
+            DatasourceNotFound,
+            lambda: DatasourceDAO.get_datasource(
+                db.session, DatasourceType.SQLATABLE, 9999999
+            ),
         )
 
         self.login(username="admin")
         resp = self.get_json_resp("/datasource/get/druid/500000/", raise_on_error=False)
-        self.assertEqual(resp.get("error"), "Dataset does not exist")
+        self.assertEqual(resp.get("error"), "'druid' is not a valid DatasourceType")
 
         resp = self.get_json_resp(
             "/datasource/get/invalid-datasource-type/500000/", raise_on_error=False
         )
-        self.assertEqual(resp.get("error"), "Dataset does not exist")
+        self.assertEqual(
+            resp.get("error"), "'invalid-datasource-type' is not a valid DatasourceType"
+        )

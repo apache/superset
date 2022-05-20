@@ -408,7 +408,6 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
                     id_ = target.get("datasetId")
                     if id_ is None:
                         continue
-                    # todo(phillip): get datasource type for this method
                     datasource = DatasourceDAO.get_datasource(
                         session, utils.DatasourceType.SQLATABLE, id_
                     )

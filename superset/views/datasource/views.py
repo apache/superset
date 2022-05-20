@@ -76,7 +76,7 @@ class Datasource(BaseSupersetView):
         datasource_type = datasource_dict.get("type")
         database_id = datasource_dict["database"].get("id")
         orm_datasource = DatasourceDAO.get_datasource(
-            datasource_type, datasource_id, db.session
+            db.session, DatasourceType(datasource_type), datasource_id
         )
         orm_datasource.database_id = database_id
 

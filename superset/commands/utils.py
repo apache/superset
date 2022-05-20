@@ -25,7 +25,7 @@ from superset.commands.exceptions import (
     OwnersNotFoundValidationError,
     RolesNotFoundValidationError,
 )
-from superset.datasets.commands.exceptions import DatasetNotFoundError
+from superset.dao.exceptions import DatasourceNotFound
 from superset.datasource.dao import DatasourceDAO
 from superset.extensions import db, security_manager
 from superset.utils.core import DatasourceType
@@ -83,5 +83,5 @@ def get_datasource_by_id(datasource_id: int, datasource_type: str) -> BaseDataso
         return DatasourceDAO.get_datasource(
             db.session, DatasourceType(datasource_type), datasource_id
         )
-    except DatasetNotFoundError as ex:
+    except DatasourceNotFound as ex:
         raise DatasourceNotFoundValidationError() from ex

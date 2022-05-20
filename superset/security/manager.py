@@ -471,7 +471,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         schema_perms = self.user_view_menu_names("schema_access")
         user_datasources = set()
 
-        # Todo(Phllip): make this work all new models in SIP-68
+        # pylint: disable=import-outside-toplevel
         from superset.connectors.sqla.models import SqlaTable
 
         user_datasources.update(

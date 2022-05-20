@@ -77,11 +77,9 @@ class DatasourceDAO(BaseDAO):
         schema: str,
     ) -> Optional[Datasource]:
         datasource_class = DatasourceDAO.sources[datasource_type]
-        if isinstance(datasource_class, SqlaTable):
-            return datasource_class.get_datasource_by_name(
-                session, datasource_name, schema, database_name
-            )
-        return None
+        return datasource_class.get_datasource_by_name(
+            session, datasource_name, schema, database_name
+        )
 
     @classmethod
     def query_datasources_by_permissions(  # pylint: disable=invalid-name
@@ -92,7 +90,7 @@ class DatasourceDAO(BaseDAO):
         schema_perms: Set[str],
     ) -> List[Datasource]:
         # TODO(hughhhh): add unit test
-        datasource_class = DatasourceDAO.sources[DatasourceType[database.type]]
+        datasource_class = DatasourceDAO.sources[DatasourceType(database.type)]
         if not isinstance(datasource_class, SqlaTable):
             return []
 
@@ -131,7 +129,7 @@ class DatasourceDAO(BaseDAO):
         datasource_name: str,
         schema: Optional[str] = None,
     ) -> List[Datasource]:
-        datasource_class = DatasourceDAO.sources[DatasourceType[database.type]]
+        datasource_class = DatasourceDAO.sources[DatasourceType(database.type)]
         if not isinstance(datasource_class, SqlaTable):
             return []
 

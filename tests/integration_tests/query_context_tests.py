@@ -29,7 +29,12 @@ from superset.common.query_object import QueryObject
 from superset.connectors.sqla.models import SqlMetric
 from superset.datasource.dao import DatasourceDAO
 from superset.extensions import cache_manager
-from superset.utils.core import AdhocMetricExpressionType, backend, QueryStatus
+from superset.utils.core import (
+    AdhocMetricExpressionType,
+    backend,
+    DatasourceType,
+    QueryStatus,
+)
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
@@ -133,9 +138,9 @@ class TestQueryContext(SupersetTestCase):
 
         # make temporary change and revert it to refresh the changed_on property
         datasource = DatasourceDAO.get_datasource(
-            datasource_type=payload["datasource"]["type"],
-            datasource_id=payload["datasource"]["id"],
             session=db.session,
+            datasource_type=DatasourceType(payload["datasource"]["type"]),
+            datasource_id=payload["datasource"]["id"],
         )
         description_original = datasource.description
         datasource.description = "temporary description"
@@ -157,9 +162,9 @@ class TestQueryContext(SupersetTestCase):
 
         # make temporary change and revert it to refresh the changed_on property
         datasource = DatasourceDAO.get_datasource(
-            datasource_type=payload["datasource"]["type"],
-            datasource_id=payload["datasource"]["id"],
             session=db.session,
+            datasource_type=DatasourceType(payload["datasource"]["type"]),
+            datasource_id=payload["datasource"]["id"],
         )
 
         datasource.metrics.append(SqlMetric(metric_name="foo", expression="select 1;"))

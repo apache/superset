@@ -32,6 +32,7 @@ from superset.datasource.dao import DatasourceDAO
 from superset.exceptions import DashboardImportException
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
+from superset.utils.core import DatasourceType
 from superset.utils.dashboard_filter_scopes_converter import (
     convert_filter_scopes,
     copy_filter_scopes,
@@ -66,10 +67,10 @@ def import_chart(
     params = slc_to_import.params_dict
     datasource = DatasourceDAO.get_datasource_by_name(
         session,
-        slc_to_import.datasource_type,
+        DatasourceType(slc_to_import.datasource_type),
         params["datasource_name"],
-        params["schema"],
         params["database_name"],
+        params["schema"],
     )
     slc_to_import.datasource_id = datasource.id  # type: ignore
     if slc_to_override:
