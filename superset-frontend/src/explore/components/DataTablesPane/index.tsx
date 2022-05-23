@@ -52,7 +52,7 @@ import {
   useTableColumns,
 } from 'src/explore/components/DataTableControl';
 import { applyFormattingToTabularData } from 'src/utils/common';
-import { useTimeFormattedColumns } from '../useTimeFormattedColumns';
+import { useOriginalFormattedTimeColumns } from '../useOriginalFormattedTimeColumns';
 
 const RESULT_TYPES = {
   results: 'results' as const,
@@ -147,7 +147,8 @@ const DataTable = ({
   errorMessage,
   type,
 }: DataTableProps) => {
-  const timeFormattedColumns = useTimeFormattedColumns(datasource);
+  const originalFormattedTimeColumns =
+    useOriginalFormattedTimeColumns(datasource);
   // this is to preserve the order of the columns, even if there are integer values,
   // while also only grabbing the first column's keys
   const columns = useTableColumns(
@@ -155,7 +156,7 @@ const DataTable = ({
     columnTypes,
     data,
     datasource,
-    timeFormattedColumns,
+    originalFormattedTimeColumns,
   );
   const filteredData = useFilteredTableData(filterText, data);
 
@@ -210,10 +211,11 @@ const TableControls = ({
   columnNames: string[];
   isLoading: boolean;
 }) => {
-  const timeFormattedColumns = useTimeFormattedColumns(datasourceId);
+  const originalFormattedTimeColumns =
+    useOriginalFormattedTimeColumns(datasourceId);
   const formattedData = useMemo(
-    () => applyFormattingToTabularData(data, timeFormattedColumns),
-    [data, timeFormattedColumns],
+    () => applyFormattingToTabularData(data, originalFormattedTimeColumns),
+    [data, originalFormattedTimeColumns],
   );
   return (
     <TableControlsWrapper>

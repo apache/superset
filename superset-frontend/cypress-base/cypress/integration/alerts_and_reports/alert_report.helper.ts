@@ -16,13 +16,5 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { sanitizeFormData } from './formData';
-
-test('sanitizeFormData removes temporary control values', () => {
-  expect(
-    sanitizeFormData({
-      url_params: { foo: 'bar' },
-      metrics: ['foo', 'bar'],
-    }),
-  ).toEqual({ metrics: ['foo', 'bar'] });
-});
+export const ALERT_LIST = '/alert/list/';
+export const REPORT_LIST = '/report/list/';

@@ -64,7 +64,10 @@ from superset import sql_parse
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.constants import RouteMethod
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import SupersetSecurityException
+from superset.exceptions import (
+    DatasetInvalidPermissionEvaluationException,
+    SupersetSecurityException,
+)
 from superset.security.guest_token import (
     GuestToken,
     GuestTokenResources,
@@ -934,14 +937,19 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :param connection: The DB-API connection
         :param target: The mapped instance being persisted
         """
+        try:
+            target_get_perm = target.get_perm()
+        except DatasetInvalidPermissionEvaluationException:
+            logger.warning("Dataset has no database refusing to set permission")
+            return
         link_table = target.__table__
-        if target.perm != target.get_perm():
+        if target.perm != target_get_perm:
             connection.execute(
                 link_table.update()
                 .where(link_table.c.id == target.id)
-                .values(perm=target.get_perm())
+                .values(perm=target_get_perm)
             )
-            target.perm = target.get_perm()
+            target.perm = target_get_perm
 
         if (
             hasattr(target, "schema_perm")
@@ -956,9 +964,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         pvm_names = []
         if target.__tablename__ in {"dbs", "clusters"}:
-            pvm_names.append(("database_access", target.get_perm()))
+            pvm_names.append(("database_access", target_get_perm))
         else:
-            pvm_names.append(("datasource_access", target.get_perm()))
+            pvm_names.append(("datasource_access", target_get_perm))
             if target.schema:
                 pvm_names.append(("schema_access", target.get_schema_perm()))
 
