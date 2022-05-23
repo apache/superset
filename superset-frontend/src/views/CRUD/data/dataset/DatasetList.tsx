@@ -258,6 +258,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         accessor: 'kind_icon',
         disableSortBy: true,
         size: 'xs',
+        id: 'id',
       },
       {
         Cell: ({
@@ -504,6 +505,18 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         selects: [
           { label: 'Virtual', value: false },
           { label: 'Physical', value: true },
+        ],
+      },
+      {
+        Header: t('Certified'),
+        id: 'id',
+        urlDisplay: 'certified',
+        input: 'select',
+        operator: FilterOperator.datasetIsCertified,
+        unfilteredLabel: t('Any'),
+        selects: [
+          { label: t('Yes'), value: true },
+          { label: t('No'), value: false },
         ],
       },
       {
