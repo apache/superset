@@ -122,6 +122,10 @@ const actionButtonsStyle = theme => css`
   .action-schedule-report {
     margin-left: ${theme.gridUnit * 2}px;
   }
+
+  .undoRedo {
+    margin-right: ${theme.gridUnit * 2}px;
+  }
 `;
 
 const StyledUndoRedoButton = styled(AntdButton)`
@@ -148,10 +152,12 @@ const undoRedoDisabled = theme => css`
 
 const saveBtnStyle = theme => css`
   min-width: ${theme.gridUnit * 17}px;
+  height: ${theme.gridUnit * 8}px;
 `;
 
 const discardBtnStyle = theme => css`
   min-width: ${theme.gridUnit * 22}px;
+  height: ${theme.gridUnit * 8}px;
 `;
 
 class Header extends React.PureComponent {
@@ -521,7 +527,7 @@ class Header extends React.PureComponent {
                 >
                   {editMode && (
                     <div css={actionButtonsStyle}>
-                      <div className="m-r-5">
+                      <div className="undoRedo">
                         <Tooltip
                           id="dashboard-undo-tooltip"
                           title={t('Undo the action')}
