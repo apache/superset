@@ -416,7 +416,7 @@ class Database(
     ) -> pd.DataFrame:
         sqls = self.db_engine_spec.parse_sql(sql)
 
-        engine = self.get_sqla_engine(schema=schema, user_name=username)
+        engine = self.get_sqla_engine(schema)
         username = utils.get_username() or username
         mutate_after_split = config["MUTATE_AFTER_SPLIT"]
         sql_query_mutator = config["SQL_QUERY_MUTATOR"]
