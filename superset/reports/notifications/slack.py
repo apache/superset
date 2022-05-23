@@ -24,6 +24,7 @@ import backoff
 from flask_babel import gettext as __
 from slack import WebClient
 from slack.errors import SlackApiError, SlackClientError
+from utils.decorators import statsd_gauge
 
 from superset import app
 from superset.models.reports import ReportRecipientType
@@ -147,6 +148,7 @@ Error: %(text)s
         return []
 
     @backoff.on_exception(backoff.expo, SlackApiError, factor=10, base=2, max_tries=5)
+    @statsd_gauge
     def send(self) -> None:
         files = self._get_inline_files()
         title = self._content.name

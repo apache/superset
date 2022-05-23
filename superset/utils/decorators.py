@@ -32,6 +32,23 @@ if TYPE_CHECKING:
     from superset.stats_logger import BaseStatsLogger
 
 
+def statsd_gauge(f: Callable[..., Any]) -> Callable[..., Any]:
+    """
+    Handle sending statsd gauge metric from any method or function
+    """
+
+    def wraps(*args: Any, **kwargs: Any) -> Any:
+        try:
+            result = f(*args, **kwargs)
+            current_app.config["STATS_LOGGER"].gauge(f"{f.__name__}.ok", 1)
+            return result
+        except Exception as ex:
+            current_app.config["STATS_LOGGER"].gauge(f"{f.__name__}.error", 1)
+            raise ex
+
+    return wraps
+
+
 @contextmanager
 def stats_timing(stats_key: str, stats_logger: BaseStatsLogger) -> Iterator[float]:
     """Provide a transactional scope around a series of operations."""
