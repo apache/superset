@@ -37,7 +37,7 @@ def statsd_gauge(f: Callable[..., Any]) -> Callable[..., Any]:
     Handle sending statsd gauge metric from any method or function
     """
 
-    def wraps(*args: Any, **kwargs: Any) -> Any:
+    def wrapped(*args: Any, **kwargs: Any) -> Any:
         try:
             result = f(*args, **kwargs)
             current_app.config["STATS_LOGGER"].gauge(f"{f.__name__}.ok", 1)
@@ -46,7 +46,7 @@ def statsd_gauge(f: Callable[..., Any]) -> Callable[..., Any]:
             current_app.config["STATS_LOGGER"].gauge(f"{f.__name__}.error", 1)
             raise ex
 
-    return wraps
+    return wrapped
 
 
 @contextmanager
