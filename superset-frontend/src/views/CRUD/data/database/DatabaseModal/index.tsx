@@ -1433,7 +1433,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       width="500px"
       centered
       show={show}
-      title={t('Connect a database')}
+      title={<h4>{t('Connect a database')}</h4>}
       footer={renderModalFooter()}
     >
       {hasConnectedDb ? (
