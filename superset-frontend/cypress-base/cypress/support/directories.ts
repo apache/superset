@@ -661,7 +661,7 @@ export const dashboardView = {
   },
   sliceThreeDots: '[aria-label="More Options"]',
   sliceThreeDotsDropdown: '[role="menu"]',
-  editDashboardButton: '[aria-label=Edit dashboard]',
+  editDashboardButton: '[aria-label="Edit dashboard"]',
   starIcon: dataTestLocator('fave-unfave-icon'),
   dashboardHeader: dataTestLocator('dashboard-header'),
   dashboardSectionContainer: dataTestLocator(

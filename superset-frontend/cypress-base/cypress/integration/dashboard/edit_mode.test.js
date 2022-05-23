@@ -22,7 +22,9 @@ describe('Dashboard edit mode', () => {
   beforeEach(() => {
     cy.login();
     cy.visit(WORLD_HEALTH_DASHBOARD);
-    cy.get('.header-with-actions').find('[aria-label=Edit dashboard]').click();
+    cy.get('.header-with-actions')
+      .find('[aria-label="Edit dashboard"]')
+      .click();
   });
 
   it('remove, and add chart flow', () => {

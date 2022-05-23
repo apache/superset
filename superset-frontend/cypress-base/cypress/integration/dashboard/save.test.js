@@ -25,7 +25,7 @@ import {
 } from './dashboard.helper';
 
 function openDashboardEditProperties() {
-  cy.get('.header-with-actions [aria-label=Edit dashboard]').click();
+  cy.get('.header-with-actions [aria-label="Edit dashboard"]').click();
   cy.get(
     '.header-with-actions .right-button-panel .ant-dropdown-trigger',
   ).trigger('click', { force: true });
@@ -81,14 +81,16 @@ describe('Dashboard save action', () => {
       .should('not.exist');
 
     cy.intercept('PUT', '/api/v1/dashboard/**').as('putDashboardRequest');
-    cy.get('header-with-actions')
+    cy.get('.header-with-actions')
       .find('[data-test="header-save-button"]')
       .contains('Save')
       .click();
 
     // go back to view mode
     cy.wait('@putDashboardRequest');
-    cy.get('header-with-actions').find('[aria-label="Edit dashboard"]').click();
+    cy.get('.header-with-actions')
+      .find('[aria-label="Edit dashboard"]')
+      .click();
 
     // deleted boxplot should still not exist
     cy.get('[data-test="grid-container"]')
