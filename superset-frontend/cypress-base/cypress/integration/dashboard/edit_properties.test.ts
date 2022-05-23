@@ -110,7 +110,10 @@ describe('Dashboard edit action', () => {
         cy.get('.ant-modal-body').should('not.exist');
 
         // assert title has been updated
-        cy.get('.editable-title input').should('have.value', dashboardTitle);
+        cy.get('[data-test="editable-title-input"]').should(
+          'have.value',
+          dashboardTitle,
+        );
       });
   });
   describe('the color picker is changed', () => {

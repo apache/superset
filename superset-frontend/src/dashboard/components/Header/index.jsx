@@ -478,7 +478,11 @@ class Header extends React.PureComponent {
     };
 
     return (
-      <div css={headerContainerStyle}>
+      <div
+        css={headerContainerStyle}
+        data-test-id={dashboardInfo.id}
+        className="dashboard-header-container"
+      >
         <PageHeaderWithActions
           editableTitleProps={{
             title: dashboardTitle,
