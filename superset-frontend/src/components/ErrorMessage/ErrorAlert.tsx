@@ -87,6 +87,7 @@ interface ErrorAlertProps {
   source?: ErrorSource;
   subtitle: ReactNode;
   title: ReactNode;
+  description?: string;
 }
 
 export default function ErrorAlert({
@@ -96,6 +97,7 @@ export default function ErrorAlert({
   source = 'dashboard',
   subtitle,
   title,
+  description,
 }: ErrorAlertProps) {
   const theme = useTheme();
 
@@ -127,6 +129,11 @@ export default function ErrorAlert({
           </span>
         )}
       </div>
+      {description && (
+        <div className="error-body">
+          <p>{description}</p>
+        </div>
+      )}
       {isExpandable ? (
         <div className="error-body">
           <p>{subtitle}</p>

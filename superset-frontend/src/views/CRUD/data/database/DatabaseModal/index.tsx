@@ -30,7 +30,6 @@ import React, {
   useState,
   useReducer,
   Reducer,
-  ReactElement,
 } from 'react';
 import { UploadChangeParam, UploadFile } from 'antd/lib/upload/interface';
 import Tabs from 'src/components/Tabs';
@@ -42,6 +41,7 @@ import IconButton from 'src/components/IconButton';
 import InfoTooltip from 'src/components/InfoTooltip';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import ValidatedInput from 'src/components/Form/LabeledErrorBoundInput';
+import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import {
   testDatabaseConnection,
   useSingleViewResource,
@@ -63,7 +63,6 @@ import ExtraOptions from './ExtraOptions';
 import SqlAlchemyForm from './SqlAlchemyForm';
 import DatabaseConnectionForm from './DatabaseConnectionForm';
 import {
-  antDErrorAlertStyles,
   antDAlertStyles,
   antdWarningAlertStyles,
   StyledAlertMargin,
@@ -113,6 +112,10 @@ const TabsStyled = styled(Tabs)`
       position: relative;
     }
   }
+`;
+
+const ErrorAlertContainer = styled.div`
+  margin: 32px 16px;
 `;
 
 interface DatabaseModalProps {
@@ -448,7 +451,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const [confirmedOverwrite, setConfirmedOverwrite] = useState<boolean>(false);
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [importingModal, setImportingModal] = useState<boolean>(false);
-  const [errorDetailModal, setErrorDetailModal] = useState<boolean>(false);
 
   const conf = useCommonConf();
   const dbImages = getDatabaseImages();
@@ -820,23 +822,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     return false;
   };
 
-  const handleErrorDetailModal = () => {
-    setErrorDetailModal(!errorDetailModal);
-  };
-
   const renderModalFooter = () => {
     if (db) {
       // if db show back + connenct
-      if (errorDetailModal) {
-        return (
-          <>
-            <StyledFooterButton key="back" onClick={handleErrorDetailModal}>
-              {t('Back')}
-            </StyledFooterButton>
-          </>
-        );
-      }
-
       if (!hasConnectedDb || editNewDb) {
         return (
           <>
@@ -1101,38 +1089,25 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
   // eslint-disable-next-line consistent-return
   const errorAlert = () => {
-    let alertErrors: Array<ReactElement> = [];
+    let alertErrors: string[] = [];
     if (isEmpty(dbErrors)) {
       alertErrors = typeof dbErrors === 'object' ? Object.values(dbErrors) : [];
     } else if (!isEmpty(validationErrors)) {
       alertErrors =
         validationErrors?.error_type === 'GENERIC_DB_ENGINE_ERROR'
           ? [
-              <>
-                {t('We are unable to connect to your database. Click ')}
-                <a
-                  className="additional-fields-alert-description"
-                  onClick={handleErrorDetailModal}
-                  role="button"
-                  tabIndex={0}
-                >
-                  {t('See more')}
-                </a>
-                {t(
-                  ' for database-provided information that may help troubleshoot the issue.',
-                )}
-              </>,
+              'We are unable to connect to your database. Click See more for database-provided information that may help troubleshoot the issue.',
             ]
           : [];
     }
 
     if (alertErrors.length) {
       return (
-        <Alert
-          type="error"
-          css={(theme: SupersetTheme) => antDErrorAlertStyles(theme)}
-          message={t('Database Creation Error')}
-          description={alertErrors[0]}
+        <ErrorMessageWithStackTrace
+          title={t('Database Creation Error')}
+          description={t(alertErrors[0])}
+          subtitle={t(validationErrors?.description)}
+          copyText={t(validationErrors?.description)}
         />
       );
     }
@@ -1437,7 +1412,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               onChange(ActionType.extraEditorChange, payload);
             }}
           />
-          {showDBError && errorAlert()}
+          {showDBError && (
+            <ErrorAlertContainer>{errorAlert()}</ErrorAlertContainer>
+          )}
         </Tabs.TabPane>
       </TabsStyled>
     </Modal>
@@ -1445,28 +1422,21 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     <Modal
       css={(theme: SupersetTheme) => [
         antDModalNoPaddingStyles,
-        !errorDetailModal && antDModalStyles(theme),
+        antDModalStyles(theme),
         formHelperStyles(theme),
         formStyles(theme),
       ]}
       name="database"
       onHandledPrimaryAction={onSave}
-      onHide={errorDetailModal ? handleErrorDetailModal : onClose}
+      onHide={onClose}
       primaryButtonName={hasConnectedDb ? t('Finish') : t('Connect')}
       width="500px"
       centered
       show={show}
-      title={errorDetailModal ? t('Error Detail') : t('Connect a database')}
+      title={t('Connect a database')}
       footer={renderModalFooter()}
     >
-      {errorDetailModal ? (
-        <Alert
-          type="error"
-          css={(theme: SupersetTheme) => antDErrorAlertStyles(theme)}
-          message={t('DB-Provided Error')}
-          description={t(validationErrors?.description)}
-        />
-      ) : hasConnectedDb ? (
+      {hasConnectedDb ? (
         <>
           <ModalHeader
             isLoading={isLoading}
@@ -1603,7 +1573,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   )}
                 </div>
                 {/* Step 2 */}
-                {showDBError && errorAlert()}
+                {showDBError && (
+                  <ErrorAlertContainer>{errorAlert()}</ErrorAlertContainer>
+                )}
               </>
             ))}
         </>
