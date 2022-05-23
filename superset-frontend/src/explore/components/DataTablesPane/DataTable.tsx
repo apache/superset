@@ -27,7 +27,7 @@ import {
 } from 'src/explore/components/DataTableControl';
 import { useOriginalFormattedTimeColumns } from 'src/explore/components/useOriginalFormattedTimeColumns';
 import { TableControls } from './DataTableControls';
-import { useGetResultsOrSamples } from './utils';
+import { useGetResultsOrSamples } from './useGetResultsOrSamples';
 import { DataTableProps } from './types';
 
 const Error = styled.pre`

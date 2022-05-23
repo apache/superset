@@ -33,6 +33,7 @@ export function useGetResultsOrSamples({
   ownState,
   actions,
 }: requestPayload): responseData {
+  // todo: this hook should split into useGetResults and useGetSamples after change endpoint
   const [response, setResponse] = useState<responseData>({
     isLoading: false,
     colnames: [],
@@ -40,7 +41,6 @@ export function useGetResultsOrSamples({
     data: [],
     responseError: '',
   });
-  // todo: support multiple key of objects in weakMap, should add `ownState` in weakmap
   const cacheKey = resultType === 'samples' ? datasource || {} : queryFormData;
 
   useEffect(() => {
