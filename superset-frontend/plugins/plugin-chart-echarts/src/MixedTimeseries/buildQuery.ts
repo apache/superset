@@ -86,7 +86,7 @@ export default function buildQuery(formData: QueryFormData) {
             is_timeseries,
           }),
           flattenOperator(fd, queryObject),
-        ].filter(Boolean),
+        ],
       } as QueryObject;
       return [normalizeOrderBy(tmpQueryObject)];
     }),
