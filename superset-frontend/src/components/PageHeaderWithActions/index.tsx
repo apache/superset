@@ -20,6 +20,12 @@ import React, { ReactNode, ReactElement } from 'react';
 import { css, SupersetTheme, t, useTheme } from '@superset-ui/core';
 import { AntdDropdown, AntdDropdownProps } from 'src/components';
 import {
+  FunctionInterpolation,
+  Interpolation,
+  SerializedStyles,
+  Theme,
+} from '@emotion/react';
+import {
   DynamicEditableTitle,
   DynamicEditableTitleProps,
 } from '../DynamicEditableTitle';

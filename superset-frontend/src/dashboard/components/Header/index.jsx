@@ -21,6 +21,7 @@ import moment from 'moment';
 import React from 'react';
 import PropTypes from 'prop-types';
 import { styled, css, t, getSharedLabelColor } from '@superset-ui/core';
+import { Global } from '@emotion/react';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import {
   LOG_ACTIONS_PERIODIC_RENDER_DASHBOARD,
@@ -106,6 +107,10 @@ const defaultProps = {
   colorScheme: undefined,
 };
 
+const headerContainerStyle = theme => css`
+  border-bottom: 1px solid ${theme.colors.grayscale.light2};
+`;
+
 const editButtonStyle = theme => css`
   color: ${theme.colors.primary.dark2};
 `;
@@ -128,7 +133,6 @@ const StyledUndoRedoButton = styled(AntdButton)`
 
 const undoRedoStyle = theme => css`
   color: ${theme.colors.grayscale.light1};
-  padding-top: ${theme.gridUnit * 2}px;
   &:hover {
     color: ${theme.colors.grayscale.base};
   }
@@ -140,6 +144,14 @@ const undoRedoEmphasized = theme => css`
 
 const undoRedoDisabled = theme => css`
   color: ${theme.colors.grayscale.light2};
+`;
+
+const saveBtnStyle = theme => css`
+  min-width: ${theme.gridUnit * 17}px;
+`;
+
+const discardBtnStyle = theme => css`
+  min-width: ${theme.gridUnit * 22}px;
 `;
 
 class Header extends React.PureComponent {
@@ -466,10 +478,8 @@ class Header extends React.PureComponent {
     };
 
     return (
-      <>
+      <div css={headerContainerStyle}>
         <PageHeaderWithActions
-          data-test="dashboard-header"
-          data-test-id={`${dashboardInfo.id}`}
           editableTitleProps={{
             title: dashboardTitle,
             canEdit: userCanEdit && editMode,
@@ -550,20 +560,23 @@ class Header extends React.PureComponent {
                         </Tooltip>
                       </div>
                       <Button
+                        css={discardBtnStyle}
                         buttonSize="small"
-                        className="m-r-5"
                         onClick={this.constructor.discardChanges}
                         buttonStyle="default"
                         data-test="discard-changes-button"
+                        aria-label={t('Discard')}
                       >
                         {t('Discard')}
                       </Button>
                       <Button
+                        css={saveBtnStyle}
                         buttonSize="small"
                         disabled={!hasUnsavedChanges}
                         buttonStyle="primary"
                         onClick={this.overwriteDashboard}
                         data-test="header-save-button"
+                        aria-label={t('Save')}
                       >
                         {t('Save')}
                       </Button>
@@ -585,6 +598,7 @@ class Header extends React.PureComponent {
                       data-test="query-save-button"
                       className="action-button"
                       css={editButtonStyle}
+                      aria-label={t('Edit dashboard')}
                     >
                       {t('Edit dashboard')}
                     </Button>
@@ -660,7 +674,14 @@ class Header extends React.PureComponent {
             dashboardId={dashboardInfo.id}
           />
         )}
-      </>
+        <Global
+          styles={css`
+            .ant-menu-vertical {
+              border-right: none;
+            }
+          `}
+        />
+      </div>
     );
   }
 }

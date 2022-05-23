@@ -25,7 +25,7 @@ import {
 } from './dashboard.helper';
 
 function openDashboardEditProperties() {
-  cy.get('[data-test="dashboard-header"] span[aria-label=edit-alt]').click();
+  cy.get('.header-with-actions [aria-label=Edit dashboard]').click();
   cy.get(
     '.header-with-actions .right-button-panel .ant-dropdown-trigger',
   ).trigger('click', { force: true });
@@ -37,7 +37,7 @@ describe('Dashboard save action', () => {
     cy.login();
     cy.visit(WORLD_HEALTH_DASHBOARD);
     cy.get('#app').then(data => {
-      cy.get('[data-test="dashboard-header"]').then(headerElement => {
+      cy.get('.header-with-actions').then(headerElement => {
         const dashboardId = headerElement.attr('data-test-id');
 
         cy.intercept('POST', `/superset/copy_dash/${dashboardId}/`).as(
@@ -70,7 +70,7 @@ describe('Dashboard save action', () => {
     WORLD_HEALTH_CHARTS.forEach(waitForChartLoad);
 
     // remove box_plot chart from dashboard
-    cy.get('[aria-label="edit-alt"]').click({ timeout: 5000 });
+    cy.get('[aria-label="Edit dashboard"]').click({ timeout: 5000 });
     cy.get('[data-test="dashboard-delete-component-button"]')
       .last()
       .trigger('mouseenter')
@@ -81,16 +81,14 @@ describe('Dashboard save action', () => {
       .should('not.exist');
 
     cy.intercept('PUT', '/api/v1/dashboard/**').as('putDashboardRequest');
-    cy.get('[data-test="dashboard-header"]')
+    cy.get('header-with-actions')
       .find('[data-test="header-save-button"]')
       .contains('Save')
       .click();
 
     // go back to view mode
     cy.wait('@putDashboardRequest');
-    cy.get('[data-test="dashboard-header"]')
-      .find('[aria-label="edit-alt"]')
-      .click();
+    cy.get('header-with-actions').find('[aria-label="Edit dashboard"]').click();
 
     // deleted boxplot should still not exist
     cy.get('[data-test="grid-container"]')
@@ -144,7 +142,7 @@ describe('Dashboard save action', () => {
             cy.get('.ant-modal-body').should('not.exist');
 
             // save dashboard changes
-            cy.get('[data-test="dashboard-header"]').contains('Save').click();
+            cy.get('.header-with-actions').contains('Save').click();
 
             // assert success flash
             cy.contains('saved successfully').should('be.visible');

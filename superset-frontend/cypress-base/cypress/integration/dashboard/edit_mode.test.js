@@ -22,9 +22,7 @@ describe('Dashboard edit mode', () => {
   beforeEach(() => {
     cy.login();
     cy.visit(WORLD_HEALTH_DASHBOARD);
-    cy.get('[data-test="dashboard-header"]')
-      .find('[aria-label=edit-alt]')
-      .click();
+    cy.get('.header-with-actions').find('[aria-label=Edit dashboard]').click();
   });
 
   it('remove, and add chart flow', () => {
@@ -94,9 +92,9 @@ describe('Dashboard edit mode', () => {
       .find('[data-test="discard-changes-button"]')
       .should('be.visible')
       .click();
-    cy.get('[data-test="dashboard-header"]').within(() => {
+    cy.get('.header-with-actions').within(() => {
       cy.get('[data-test="dashboard-edit-actions"]').should('not.be.visible');
-      cy.get('[aria-label="edit-alt"]').should('be.visible');
+      cy.get('[aria-label="Edit dashboard"]').should('be.visible');
     });
   });
 });

@@ -41,9 +41,7 @@ describe('Dashboard load', () => {
   });
 
   it('should load the Dashboard in edit mode', () => {
-    cy.get('[data-test="dashboard-header"]')
-      .find('[aria-label=edit-alt]')
-      .click();
+    cy.get('.header-with-actions').find('[aria-label=Edit dashboard]').click();
     // wait for a chart to appear
     cy.get('[data-test="grid-container"]').find('.box_plot', {
       timeout: 10000,
