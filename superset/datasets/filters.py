@@ -14,8 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any
-
 from flask_babel import lazy_gettext as _
 from sqlalchemy import not_, or_
 from sqlalchemy.orm.query import Query
@@ -41,7 +39,7 @@ class DatasetCertifiedFilter(BaseFilter):  # pylint: disable=too-few-public-meth
     name = _("Is certified")
     arg_name = "dataset_is_certified"
 
-    def apply(self, query: Query, value: Any) -> Query:
+    def apply(self, query: Query, value: bool) -> Query:
         check_value = '%"certification":%'
         if value is True:
             return query.filter(SqlaTable.extra.ilike(check_value))

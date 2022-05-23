@@ -1813,22 +1813,11 @@ class TestDatasetApi(SupersetTestCase):
             ]
         }
 
-    @pytest.mark.usefixtures("create_datasets", "create_virtual_datasets")
+    @pytest.mark.usefixtures("create_datasets")
     def test_get_datasets_is_certified_filter(self):
         """
         Dataset API: Test custom dataset_is_certified filter
         """
-        arguments = {
-            "filters": [{"col": "id", "opr": "dataset_is_certified", "value": False}]
-        }
-        self.login(username="admin")
-        uri = f"api/v1/dataset/?q={prison.dumps(arguments)}"
-        rv = self.client.get(uri)
-
-        assert rv.status_code == 200
-        response = json.loads(rv.data.decode("utf-8"))
-        assert response.get("count") == 5
-
         table_w_certification = SqlaTable(
             table_name="foo",
             schema=None,
