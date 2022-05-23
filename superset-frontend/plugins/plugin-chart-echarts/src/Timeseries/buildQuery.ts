@@ -100,7 +100,7 @@ export default function buildQuery(formData: QueryFormData) {
           flattenOperator(formData, baseQueryObject),
           // todo: move prophet before flatten
           prophetOperator(formData, baseQueryObject),
-        ].filter(Boolean),
+        ],
       },
     ];
   });
