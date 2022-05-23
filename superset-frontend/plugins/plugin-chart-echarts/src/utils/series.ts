@@ -239,3 +239,15 @@ export const currentSeries = {
   name: '',
   legend: '',
 };
+
+export function getAxisType(
+  dataType?: GenericDataType,
+): 'time' | 'value' | 'category' {
+  if (dataType === GenericDataType.TEMPORAL) {
+    return 'time';
+  }
+  if (dataType === GenericDataType.NUMERIC) {
+    return 'value';
+  }
+  return 'category';
+}

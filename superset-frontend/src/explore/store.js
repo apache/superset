@@ -64,9 +64,12 @@ export function getControlsState(state, inputFormData) {
 export function applyDefaultFormData(inputFormData) {
   const datasourceType = inputFormData.datasource.split('__')[1];
   const vizType = inputFormData.viz_type;
-  const controlsState = getAllControlsState(vizType, datasourceType, null, {
-    ...inputFormData,
-  });
+  const controlsState = getAllControlsState(
+    vizType,
+    datasourceType,
+    null,
+    inputFormData,
+  );
   const controlFormData = getFormDataFromControls(controlsState);
 
   const formData = {};
