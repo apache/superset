@@ -107,6 +107,28 @@ const NotFoundContentWrapper = styled.div`
   }
 `;
 
+const NotFoundContent = () => (
+  <NotFoundContentWrapper>
+    <EmptyStateSmall
+      title={t('No annotation layers')}
+      description={
+        <span>
+          {t('Add an annotation layer')}{' '}
+          <a
+            href="/annotationlayermodelview/list"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {t('here')}
+          </a>
+          .
+        </span>
+      }
+      image="empty.svg"
+    />
+  </NotFoundContentWrapper>
+);
+
 class AnnotationLayer extends React.PureComponent {
   constructor(props) {
     super(props);
@@ -425,15 +447,7 @@ class AnnotationLayer extends React.PureComponent {
           onChange={this.handleValue}
           validationErrors={!value ? ['Mandatory'] : []}
           optionRenderer={this.renderOption}
-          notFoundContent={
-            <NotFoundContentWrapper>
-              <EmptyStateSmall
-                title={t('No annotation layers')}
-                description={t('Add an annotation layer here')}
-                image="empty.svg"
-              />
-            </NotFoundContentWrapper>
-          }
+          notFoundContent={<NotFoundContent />}
         />
       );
     }
@@ -781,27 +795,7 @@ class AnnotationLayer extends React.PureComponent {
                   label={t('Annotation source')}
                   name="annotation-source-type"
                   options={supportedSourceTypes}
-                  notFoundContent={
-                    <NotFoundContentWrapper>
-                      <EmptyStateSmall
-                        title={t('No annotation layers')}
-                        description={
-                          <span>
-                            {t('Add an annotation layer')}{' '}
-                            <a
-                              href="/annotationlayermodelview/list"
-                              target="_blank"
-                              rel="noopener noreferrer"
-                            >
-                              {t('here')}
-                            </a>
-                            .
-                          </span>
-                        }
-                        image="empty.svg"
-                      />
-                    </NotFoundContentWrapper>
-                  }
+                  notFoundContent={<NotFoundContent />}
                   value={sourceType}
                   onChange={this.handleAnnotationSourceType}
                   validationErrors={!sourceType ? [t('Mandatory')] : []}
