@@ -512,7 +512,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         id: 'id',
         urlDisplay: 'certified',
         input: 'select',
-        operator: 'dataset_is_certified',
+        operator: FilterOperator.datasetIsCertified,
         unfilteredLabel: t('Any'),
         selects: [
           { label: t('Yes'), value: true },
