@@ -96,10 +96,7 @@ const defaultProps = {
 const RESIZE_TIMEOUT = 350;
 const SHOULD_UPDATE_ON_PROP_CHANGES = Object.keys(propTypes).filter(
   prop =>
-    prop !== 'width' &&
-    prop !== 'height' &&
-    prop !== 'isComponentVisible' &&
-    prop !== 'chart',
+    prop !== 'width' && prop !== 'height' && prop !== 'isComponentVisible',
 );
 const OVERFLOWABLE_VIZ_TYPES = new Set(['filter_box']);
 const DEFAULT_HEADER_HEIGHT = 22;
@@ -129,6 +126,7 @@ export default class Chart extends React.Component {
       width: props.width,
       height: props.height,
       descriptionHeight: 0,
+      isUpdated: false,
     };
 
     this.changeFilter = this.changeFilter.bind(this);
@@ -158,7 +156,7 @@ export default class Chart extends React.Component {
     }
 
     if (!isEqual(nextProps.chart, this.props.chart)) {
-      return true;
+      this.setState({ isUpdated: true });
     }
 
     // allow chart update/re-render only if visible:
@@ -180,6 +178,11 @@ export default class Chart extends React.Component {
       ) {
         clearTimeout(this.resizeTimeout);
         this.resizeTimeout = setTimeout(this.resize, RESIZE_TIMEOUT);
+      }
+
+      if (nextState.isUpdated) {
+        this.setState({ isUpdated: false });
+        return true;
       }
 
       for (let i = 0; i < SHOULD_UPDATE_ON_PROP_CHANGES.length; i += 1) {
