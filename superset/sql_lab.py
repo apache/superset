@@ -548,6 +548,7 @@ def execute_sql_statements(  # pylint: disable=too-many-arguments, too-many-loca
 
     if store_results and results_backend:
         key = str(uuid.uuid4())
+        payload["query"]["resultsKey"] = key
         logger.info(
             "Query %s: Storing results in results backend, key: %s", str(query_id), key
         )
