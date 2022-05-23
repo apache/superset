@@ -24,12 +24,12 @@ import backoff
 from flask_babel import gettext as __
 from slack import WebClient
 from slack.errors import SlackApiError, SlackClientError
-from utils.decorators import statsd_gauge
 
 from superset import app
 from superset.models.reports import ReportRecipientType
 from superset.reports.notifications.base import BaseNotification
 from superset.reports.notifications.exceptions import NotificationError
+from superset.utils.decorators import statsd_gauge
 from superset.utils.urls import modify_url_query
 
 logger = logging.getLogger(__name__)
