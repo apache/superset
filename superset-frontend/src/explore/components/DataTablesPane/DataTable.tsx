@@ -71,13 +71,13 @@ export const DataTable = ({
   );
   const filteredData = useFilteredTableData(filterText, data);
 
-  if (isLoading) {
-    return <Loading />;
-  }
-
   if (errorMessage && resultType === 'results') {
     const title = t('Run a query to display results');
     return <EmptyStateMedium image="document.svg" title={title} />;
+  }
+
+  if (isLoading) {
+    return <Loading />;
   }
 
   if (responseError) {
