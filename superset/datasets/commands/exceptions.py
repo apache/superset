@@ -173,6 +173,10 @@ class DatasetRefreshFailedError(UpdateFailedError):
     message = _("Dataset could not be updated.")
 
 
+class DatasetSamplesFailedError(CommandInvalidError):
+    message = _("Dataset could not be sampled.")
+
+
 class DatasetForbiddenError(ForbiddenError):
     message = _("Changing this dataset is forbidden")
 
