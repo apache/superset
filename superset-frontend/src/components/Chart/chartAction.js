@@ -481,7 +481,6 @@ export function exploreJSON(
     return Promise.all([
       chartDataRequestCaught,
       dispatch(triggerQuery(false, key)),
-      dispatch(updateQueryFormData(formData, key)),
       ...annotationLayers.map(annotation =>
         dispatch(
           runAnnotationQuery({

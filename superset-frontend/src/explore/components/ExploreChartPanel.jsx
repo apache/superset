@@ -198,6 +198,7 @@ const ExploreChartPanel = ({
       undefined,
       ownState,
     );
+    actions.updateQueryFormData(formData, chart.id);
   }, [actions, chart.id, formData, ownState, timeout]);
 
   const onCollapseChange = useCallback(isOpen => {
