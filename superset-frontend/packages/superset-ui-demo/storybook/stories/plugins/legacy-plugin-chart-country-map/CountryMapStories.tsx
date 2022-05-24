@@ -22,6 +22,7 @@ import {
   seedRandom,
   SuperChart,
   SequentialD3,
+  useTheme,
 } from '@superset-ui/core';
 import CountryMapChartPlugin, {
   countries,
@@ -44,6 +45,7 @@ function generateData(geojson: JsonObject) {
 }
 
 export const basic = function BasicCountryMapStory({ width, height }) {
+  const theme = useTheme();
   const country = select('Country', Object.keys(countries!), 'france');
   const colorSchema = select<any>(
     'Color schema',
@@ -67,7 +69,13 @@ export const basic = function BasicCountryMapStory({ width, height }) {
 
   if (!data) {
     return (
-      <div style={{ color: '#aaa', textAlign: 'center', padding: 20 }}>
+      <div
+        style={{
+          color: theme.colors.grayscale.base,
+          textAlign: 'center',
+          padding: 20,
+        }}
+      >
         Loading...
       </div>
     );

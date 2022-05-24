@@ -476,12 +476,31 @@ def test_create_virtual_sqlatable(
             name="ds",
             is_temporal=True,
             type="TIMESTAMP",
+            advanced_data_type=None,
             expression="ds",
             is_physical=True,
         ),
-        dict(name="num_boys", type="INTEGER", expression="num_boys", is_physical=True),
-        dict(name="revenue", type="INTEGER", expression="revenue", is_physical=True),
-        dict(name="expenses", type="INTEGER", expression="expenses", is_physical=True),
+        dict(
+            name="num_boys",
+            type="INTEGER",
+            advanced_data_type=None,
+            expression="num_boys",
+            is_physical=True,
+        ),
+        dict(
+            name="revenue",
+            type="INTEGER",
+            advanced_data_type=None,
+            expression="revenue",
+            is_physical=True,
+        ),
+        dict(
+            name="expenses",
+            type="INTEGER",
+            advanced_data_type=None,
+            expression="expenses",
+            is_physical=True,
+        ),
     ]
     # create a physical ``Table`` that the virtual dataset points to
     database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")

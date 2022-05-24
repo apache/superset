@@ -98,3 +98,36 @@ test('should do prophetOperator over named column', () => {
     },
   });
 });
+
+test('should do prophetOperator over adhoc column', () => {
+  expect(
+    prophetOperator(
+      {
+        ...formData,
+        x_axis: {
+          label: 'my_case_expr',
+          expressionType: 'SQL',
+          expression: 'case when a = 1 then 1 else 0 end',
+        },
+        forecastEnabled: true,
+        forecastPeriods: '3',
+        forecastInterval: '5',
+        forecastSeasonalityYearly: true,
+        forecastSeasonalityWeekly: false,
+        forecastSeasonalityDaily: false,
+      },
+      queryObject,
+    ),
+  ).toEqual({
+    operation: 'prophet',
+    options: {
+      time_grain: 'P1Y',
+      periods: 3.0,
+      confidence_interval: 5.0,
+      yearly_seasonality: true,
+      weekly_seasonality: false,
+      daily_seasonality: false,
+      index: 'my_case_expr',
+    },
+  });
+});

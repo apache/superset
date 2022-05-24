@@ -196,6 +196,10 @@ class QueryObjectValidationError(SupersetException):
     status = 400
 
 
+class AdvancedDataTypeResponseError(SupersetException):
+    status = 400
+
+
 class InvalidPostProcessingError(SupersetException):
     status = 400
 
@@ -210,6 +214,12 @@ class QueryClauseValidationException(SupersetException):
 
 class DashboardImportException(SupersetException):
     pass
+
+
+class DatasetInvalidPermissionEvaluationException(SupersetException):
+    """
+    When a dataset can't compute its permission name
+    """
 
 
 class SerializationError(SupersetException):

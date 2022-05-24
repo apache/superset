@@ -527,12 +527,31 @@ class TableMetadataResponseSchema(Schema):
     selectStar = fields.String(description="SQL select star")
 
 
+class TableExtraMetadataResponseSchema(Schema):
+    metadata = fields.Dict()
+    partitions = fields.Dict()
+    clustering = fields.Dict()
+
+
 class SelectStarResponseSchema(Schema):
     result = fields.String(description="SQL select star")
 
 
 class SchemasResponseSchema(Schema):
     result = fields.List(fields.String(description="A database schema name"))
+
+
+class ValidateSQLRequest(Schema):
+    sql = fields.String(required=True, description="SQL statement to validate")
+    schema = fields.String(required=False, allow_none=True)
+    template_params = fields.Dict(required=False, allow_none=True)
+
+
+class ValidateSQLResponse(Schema):
+    line_number = fields.Integer()
+    start_column = fields.Integer()
+    end_column = fields.Integer()
+    message = fields.String()
 
 
 class DatabaseRelatedChart(Schema):

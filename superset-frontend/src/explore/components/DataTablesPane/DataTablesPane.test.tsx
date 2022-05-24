@@ -54,6 +54,7 @@ const createProps = () => ({
     sort_y_axis: 'alpha_asc',
     extra_form_data: {},
   },
+  queryForce: false,
   chartStatus: 'rendered',
   onCollapseChange: jest.fn(),
   queriesResponse: [
@@ -150,7 +151,7 @@ describe('DataTablesPane', () => {
         useRedux: true,
         initialState: {
           explore: {
-            timeFormattedColumns: {
+            originalFormattedTimeColumns: {
               '34__table': ['__timestamp'],
             },
           },
@@ -202,7 +203,7 @@ describe('DataTablesPane', () => {
         useRedux: true,
         initialState: {
           explore: {
-            timeFormattedColumns: {
+            originalFormattedTimeColumns: {
               '34__table': ['__timestamp'],
             },
           },
