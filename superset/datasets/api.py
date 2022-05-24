@@ -52,7 +52,7 @@ from superset.datasets.commands.importers.dispatcher import ImportDatasetsComman
 from superset.datasets.commands.refresh import RefreshDatasetCommand
 from superset.datasets.commands.update import UpdateDatasetCommand
 from superset.datasets.dao import DatasetDAO
-from superset.datasets.filters import DatasetIsNullOrEmptyFilter
+from superset.datasets.filters import DatasetCertifiedFilter, DatasetIsNullOrEmptyFilter
 from superset.datasets.schemas import (
     DatasetPostSchema,
     DatasetPutSchema,
@@ -166,6 +166,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     show_columns = show_select_columns + [
         "columns.type_generic",
         "database.backend",
+        "columns.advanced_data_type",
         "is_managed_externally",
     ]
     add_model_schema = DatasetPostSchema()
@@ -194,7 +195,11 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "owners": RelatedFieldFilter("first_name", FilterRelatedOwners),
         "database": "database_name",
     }
-    search_filters = {"sql": [DatasetIsNullOrEmptyFilter]}
+    search_filters = {
+        "sql": [DatasetIsNullOrEmptyFilter],
+        "id": [DatasetCertifiedFilter],
+    }
+    search_columns = ["id", "database", "owners", "sql", "table_name"]
     filter_rel_fields = {"database": [["id", DatabaseFilter, lambda: []]]}
     allowed_rel_fields = {"database", "owners"}
     allowed_distinct_fields = {"schema"}

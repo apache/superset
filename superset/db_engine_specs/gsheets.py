@@ -97,7 +97,7 @@ class GSheetsEngineSpec(SqliteEngineSpec):
         cls,
         database: "Database",
         table_name: str,
-        schema_name: str,
+        schema_name: Optional[str],
     ) -> Dict[str, Any]:
         engine = cls.get_engine(database, schema=schema_name)
         with closing(engine.raw_connection()) as conn:

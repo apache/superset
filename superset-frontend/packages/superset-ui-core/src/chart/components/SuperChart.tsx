@@ -24,6 +24,7 @@ import ErrorBoundary, {
 } from 'react-error-boundary';
 import { ParentSize } from '@vx/responsive';
 import { createSelector } from 'reselect';
+import { withTheme } from '@emotion/react';
 import { parseLength, Dimension } from '../../dimension';
 import SuperChartCore, { Props as SuperChartCoreProps } from './SuperChartCore';
 import DefaultFallbackComponent from './FallbackComponent';
@@ -88,7 +89,7 @@ export type Props = Omit<SuperChartCoreProps, 'chartProps'> &
 
 type PropsWithDefault = Props & Readonly<typeof defaultProps>;
 
-export default class SuperChart extends React.PureComponent<Props, {}> {
+class SuperChart extends React.PureComponent<Props, {}> {
   /**
    * SuperChart's core
    */
@@ -156,6 +157,7 @@ export default class SuperChart extends React.PureComponent<Props, {}> {
       queriesData,
       enableNoResults,
       noResults,
+      theme,
       ...rest
     } = this.props as PropsWithDefault;
 
@@ -164,6 +166,7 @@ export default class SuperChart extends React.PureComponent<Props, {}> {
       queriesData,
       height,
       width,
+      theme,
     });
 
     let chart;
@@ -247,3 +250,5 @@ export default class SuperChart extends React.PureComponent<Props, {}> {
     return this.renderChart(widthInfo.value, heightInfo.value);
   }
 }
+
+export default withTheme(SuperChart);

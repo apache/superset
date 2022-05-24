@@ -61,18 +61,25 @@ export default function buildQueryContext(
   } = typeof options === 'function'
     ? { buildQuery: options, queryFields: {} }
     : options || {};
+  const queries = buildQuery(buildQueryObject(formData, queryFields), {
+    extras: {},
+    ownState,
+    hooks: {
+      setDataMask: () => {},
+      setCachedChanges: () => {},
+      ...hooks,
+    },
+  });
+  queries.forEach(query => {
+    if (Array.isArray(query.post_processing)) {
+      // eslint-disable-next-line no-param-reassign
+      query.post_processing = query.post_processing.filter(Boolean);
+    }
+  });
   return {
     datasource: new DatasourceKey(formData.datasource).toObject(),
     force: formData.force || false,
-    queries: buildQuery(buildQueryObject(formData, queryFields), {
-      extras: {},
-      ownState,
-      hooks: {
-        setDataMask: () => {},
-        setCachedChanges: () => {},
-        ...hooks,
-      },
-    }),
+    queries,
     form_data: formData,
     result_format: formData.result_format || 'json',
     result_type: formData.result_type || 'full',

@@ -135,13 +135,13 @@ def cta_result(ctas_method: CtasMethod):
 
 
 # TODO(bkyryliuk): quote table and schema names for all databases
-def get_select_star(table: str, schema: Optional[str] = None):
+def get_select_star(table: str, limit: int, schema: Optional[str] = None):
     if backend() in {"presto", "hive"}:
         schema = quote_f(schema)
         table = quote_f(table)
     if schema:
-        return f"SELECT *\nFROM {schema}.{table}"
-    return f"SELECT *\nFROM {table}"
+        return f"SELECT *\nFROM {schema}.{table}\nLIMIT {limit}"
+    return f"SELECT *\nFROM {table}\nLIMIT {limit}"
 
 
 @pytest.mark.parametrize("ctas_method", [CtasMethod.TABLE, CtasMethod.VIEW])
@@ -236,8 +236,9 @@ def test_run_sync_query_cta_config(setup_sqllab, ctas_method):
         f"CREATE {ctas_method} {CTAS_SCHEMA_NAME}.{tmp_table_name} AS \n{QUERY}"
         == query.executed_sql
     )
-
-    assert query.select_sql == get_select_star(tmp_table_name, schema=CTAS_SCHEMA_NAME)
+    assert query.select_sql == get_select_star(
+        tmp_table_name, limit=query.limit, schema=CTAS_SCHEMA_NAME
+    )
     results = run_sql(query.select_sql)
     assert QueryStatus.SUCCESS == results["status"], result
 
@@ -266,7 +267,10 @@ def test_run_async_query_cta_config(setup_sqllab, ctas_method):
     query = wait_for_success(result)
 
     assert QueryStatus.SUCCESS == query.status
-    assert get_select_star(tmp_table_name, schema=CTAS_SCHEMA_NAME) == query.select_sql
+    assert (
+        get_select_star(tmp_table_name, limit=query.limit, schema=CTAS_SCHEMA_NAME)
+        == query.select_sql
+    )
     assert (
         f"CREATE {ctas_method} {CTAS_SCHEMA_NAME}.{tmp_table_name} AS \n{QUERY}"
         == query.executed_sql
@@ -290,7 +294,7 @@ def test_run_async_cta_query(setup_sqllab, ctas_method):
     query = wait_for_success(result)
 
     assert QueryStatus.SUCCESS == query.status
-    assert get_select_star(table_name) in query.select_sql
+    assert get_select_star(table_name, query.limit) in query.select_sql
 
     assert f"CREATE {ctas_method} {table_name} AS \n{QUERY}" == query.executed_sql
     assert QUERY == query.sql
@@ -313,14 +317,20 @@ def test_run_async_cta_query_with_lower_limit(setup_sqllab, ctas_method):
         QUERY, cta=True, ctas_method=ctas_method, async_=True, tmp_table=tmp_table
     )
     query = wait_for_success(result)
-
     assert QueryStatus.SUCCESS == query.status
 
-    assert get_select_star(tmp_table) == query.select_sql
+    sqllite_select_sql = f"SELECT *\nFROM {tmp_table}\nLIMIT {query.limit}\nOFFSET 0"
+    assert query.select_sql == (
+        sqllite_select_sql
+        if backend() == "sqlite"
+        else get_select_star(tmp_table, query.limit)
+    )
+
     assert f"CREATE {ctas_method} {tmp_table} AS \n{QUERY}" == query.executed_sql
     assert QUERY == query.sql
+
     assert query.rows == (1 if backend() == "presto" else 0)
-    assert query.limit is None
+    assert query.limit == 10000
     assert query.select_as_cta
     assert query.select_as_cta_used
 
