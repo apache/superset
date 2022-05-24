@@ -164,6 +164,7 @@ export interface QueryContext {
   result_format: string;
   queries: QueryObject[];
   form_data?: QueryFormData;
+  vis_type?: string;
 }
 
 export default {};
