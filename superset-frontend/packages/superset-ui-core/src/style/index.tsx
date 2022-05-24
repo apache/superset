@@ -160,7 +160,6 @@ const defaultTheme = {
   },
   transitionTiming: 0.3,
   gridUnit: 4,
-  transparent: 'rgba(255, 255, 255, 0)',
 };
 
 export type SupersetTheme = typeof defaultTheme;

@@ -27,6 +27,7 @@ import {
 import Button from 'src/components/Button';
 import { isNullish } from 'src/utils/common';
 import { OPEN_FILTER_BAR_WIDTH } from 'src/dashboard/constants';
+import { rgba } from 'emotion-rgba';
 import { getFilterBarTestId } from '../index';
 
 interface ActionButtonsProps {
@@ -54,7 +55,7 @@ const ActionButtonsContainer = styled.div`
     padding-top: ${theme.gridUnit * 6}px;
 
     background: linear-gradient(
-      ${theme.transparent},
+      ${rgba(theme.colors.grayscale.light5, 0)},
       ${theme.colors.grayscale.light5} ${theme.opacity.mediumLight}
     );
 
