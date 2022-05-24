@@ -19,6 +19,7 @@
 import sinon from 'sinon';
 import * as actions from 'src/SqlLab/actions/sqlLab';
 import { ColumnKeyTypeType } from 'src/SqlLab/components/ColumnElement';
+import { Query } from './types';
 
 export const mockedActions = sinon.stub({ ...actions });
 
@@ -512,7 +513,86 @@ export const failedQueryWithErrors = {
   tempTable: '',
 };
 
-export const runningQuery = {
+const baseQuery: Query = {
+  queryId: 567,
+  dbId: 1,
+  sql: 'SELECT * FROM superset.slices',
+  sqlEditorId: 'SJ8YO72R',
+  tab: 'Demo',
+  ctas: false,
+  cached: false,
+  id: 'BkA1CLrJg',
+  progress: 100,
+  startDttm: 1476910566092.96,
+  state: 'success',
+  tempSchema: null,
+  tempTable: 'temp',
+  userId: 1,
+  executedSql: 'SELECT * FROM superset.slices',
+  rows: 42,
+  started: 'started',
+  queryLimit: 100,
+  endDttm: 1476910566798,
+  schema: 'test_schema',
+  errorMessage: null,
+  db: { key: 'main' },
+  user: { key: 'admin' },
+  isDataPreview: false,
+  resultsKey: null,
+  trackingUrl: null,
+  templateParams: null,
+  limitingFactor: 'capacity',
+  duration: '2334645675467',
+  time: { key: 'value' },
+  querylink: { key: 'value' },
+  output: { key: 'value' },
+  actions: { key: 'value' },
+  extra: {
+    progress: null,
+  },
+  results: {
+    displayLimitReached: false,
+    query: { limit: 6 },
+    columns: [
+      {
+        is_dttm: true,
+        name: 'ds',
+        type: 'STRING',
+      },
+      {
+        is_dttm: false,
+        name: 'gender',
+        type: 'STRING',
+      },
+    ],
+    selected_columns: [
+      {
+        is_dttm: true,
+        name: 'ds',
+        type: 'STRING',
+      },
+      {
+        is_dttm: false,
+        name: 'gender',
+        type: 'STRING',
+      },
+    ],
+    expanded_columns: [
+      {
+        is_dttm: true,
+        name: 'ds',
+        type: 'STRING',
+      },
+    ],
+    data: [
+      { col1: '0', col2: '1' },
+      { col1: '2', col2: '3' },
+    ],
+  },
+};
+
+export const runningQuery: Query = {
+  ...baseQuery,
   dbId: 1,
   cached: false,
   ctas: false,
@@ -521,6 +601,18 @@ export const runningQuery = {
   state: 'running',
   startDttm: Date.now() - 500,
 };
+
+export const successfulQuery: Query = {
+  ...baseQuery,
+  dbId: 1,
+  cached: false,
+  ctas: false,
+  id: 'ryhMUZCGb',
+  progress: 100,
+  state: 'success',
+  startDttm: Date.now() - 500,
+};
+
 export const cachedQuery = { ...queries[0], cached: true };
 
 export const user = {

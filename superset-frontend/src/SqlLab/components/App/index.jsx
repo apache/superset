@@ -30,7 +30,7 @@ import {
 } from 'src/SqlLab/constants';
 import * as Actions from 'src/SqlLab/actions/sqlLab';
 import TabbedSqlEditors from '../TabbedSqlEditors';
-import QueryAutoRefresh from '../QueryAutoRefresh';
+import QueryAutoRefreshContainer from '../QueryAutoRefresh/QueryAutoRefreshContainer';
 
 class App extends React.PureComponent {
   constructor(props) {
@@ -99,7 +99,7 @@ class App extends React.PureComponent {
     }
     return (
       <div className="App SqlLab">
-        <QueryAutoRefresh />
+        <QueryAutoRefreshContainer />
         <TabbedSqlEditors />
         <ToastContainer />
       </div>
