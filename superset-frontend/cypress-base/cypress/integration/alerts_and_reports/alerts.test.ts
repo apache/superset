@@ -38,7 +38,8 @@ describe('alert list view', () => {
     cy.get('[data-test="sort-header"]').eq(4).contains('Notification method');
     cy.get('[data-test="sort-header"]').eq(5).contains('Created by');
     cy.get('[data-test="sort-header"]').eq(6).contains('Owners');
-    cy.get('[data-test="sort-header"]').eq(7).contains('Active');
-    cy.get('[data-test="sort-header"]').eq(8).contains('Actions');
+    cy.get('[data-test="sort-header"]').eq(7).contains('Modified');
+    cy.get('[data-test="sort-header"]').eq(8).contains('Active');
+    cy.get('[data-test="sort-header"]').eq(9).contains('Actions');
   });
 });
