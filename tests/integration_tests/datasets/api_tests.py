@@ -1842,3 +1842,30 @@ class TestDatasetApi(SupersetTestCase):
 
         db.session.delete(table_w_certification)
         db.session.commit()
+
+    @pytest.mark.usefixtures("create_datasets")
+    def test_get_dataset_samples(self):
+        """
+        Dataset API: Test get dataset samples
+        """
+        dataset = self.get_fixture_datasets()[0]
+
+        self.login(username="admin")
+        uri = f"api/v1/dataset/{dataset.id}/samples"
+        # feeds data
+        self.client.get(uri)
+        # get from cache
+        rv = self.client.get(uri)
+        rv_data = json.loads(rv.data)
+        assert rv.status_code == 200
+        assert "samples" in rv_data
+        assert rv_data["samples"]["cached_dttm"] is not None
+
+        # force query
+        uri2 = f"api/v1/dataset/{dataset.id}/samples?force=true"
+        # feeds data
+        self.client.get(uri2)
+        # force query
+        rv2 = self.client.get(uri2)
+        rv_data2 = json.loads(rv2.data)
+        assert rv_data2["samples"]["cached_dttm"] is None

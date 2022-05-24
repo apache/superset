@@ -36,12 +36,13 @@ logger = logging.getLogger(__name__)
 
 
 class SamplesDatasetCommand(BaseCommand):
-    def __init__(self, user: User, model_id: int):
+    def __init__(self, user: User, model_id: int, force: bool):
         self._actor = user
         self._model_id = model_id
+        self._force = force
         self._model: Optional[SqlaTable] = None
 
-    def run(self, force_cached: bool = False) -> Dict[str, Any]:
+    def run(self) -> Dict[str, Any]:
         self.validate()
         if not self._model:
             raise DatasetNotFoundError()
@@ -53,13 +54,13 @@ class SamplesDatasetCommand(BaseCommand):
             },
             queries=[{}],
             result_type=ChartDataResultType.SAMPLES,
-            force=force_cached,
+            force=self._force,
         )
         results = qc_instance.get_payload()
         try:
             return results["queries"][0]
-        except (IndexError, KeyError):
-            raise DatasetSamplesFailedError
+        except (IndexError, KeyError) as exc:
+            raise DatasetSamplesFailedError from exc
 
     def validate(self) -> None:
         # Validate/populate model exists

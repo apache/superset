@@ -769,13 +769,13 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}" f".samples",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.samples",
         log_to_statsd=False,
     )
     def samples(self, pk: int) -> Response:
         """get samples from a Dataset
         ---
-        put:
+        get:
           description: >-
             get samples from a Dataset
           parameters:
@@ -796,6 +796,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
                     type: object
                     properties:
                       samples:
+                        description: dataset samples
                         type: object
             401:
               $ref: '#/components/responses/401'
@@ -810,7 +811,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         """
         try:
             force = parse_boolean_string(request.args.get("force"))
-            rv = SamplesDatasetCommand(g.user, pk).run(force_cached=force)
+            rv = SamplesDatasetCommand(g.user, pk, force).run()
             return self.response(200, samples=rv)
         except DatasetNotFoundError:
             return self.response_404()
@@ -818,7 +819,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             return self.response_403()
         except DatasetSamplesFailedError as ex:
             logger.error(
-                "Error refreshing dataset %s: %s",
+                "Error get dataset samples %s: %s",
                 self.__class__.__name__,
                 str(ex),
                 exc_info=True,
