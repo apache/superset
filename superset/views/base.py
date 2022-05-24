@@ -19,7 +19,7 @@ import functools
 import logging
 import traceback
 from datetime import datetime
-from typing import Any, Callable, cast, Dict, List, Optional, TYPE_CHECKING, Union
+from typing import Any, Callable, cast, Dict, List, Optional, Union
 
 import simplejson as json
 import yaml
@@ -79,16 +79,12 @@ from superset.utils import core as utils
 
 from .utils import bootstrap_user_data
 
-if TYPE_CHECKING:
-    from superset.connectors.druid.views import DruidClusterModelView
-
 FRONTEND_CONF_KEYS = (
     "SUPERSET_WEBSERVER_TIMEOUT",
     "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT",
     "SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT",
     "SUPERSET_DASHBOARD_PERIODICAL_REFRESH_WARNING_MESSAGE",
     "DISABLE_DATASET_SOURCE_EDIT",
-    "DRUID_IS_ACTIVE",
     "ENABLE_JAVASCRIPT_CONTROLS",
     "DEFAULT_SQLLAB_LIMIT",
     "DEFAULT_VIZ_TYPE",

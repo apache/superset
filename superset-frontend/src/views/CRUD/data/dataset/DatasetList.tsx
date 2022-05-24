@@ -56,7 +56,9 @@ import InfoTooltip from 'src/components/InfoTooltip';
 import ImportModelsModal from 'src/components/ImportModal/index';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
+import { isUserAdmin } from 'src/dashboard/util/findPermission';
 import AddDatasetModal from './AddDatasetModal';
+
 import {
   PAGE_SIZE,
   SORT_BY,
@@ -75,6 +77,25 @@ const FlexRowContainer = styled.div`
 
 const Actions = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.base};
+
+  .disabled {
+    svg,
+    i {
+      &:hover {
+        path {
+          fill: ${({ theme }) => theme.colors.grayscale.light1};
+        }
+      }
+    }
+    color: ${({ theme }) => theme.colors.grayscale.light1};
+    .ant-menu-item:hover {
+      color: ${({ theme }) => theme.colors.grayscale.light1};
+      cursor: default;
+    }
+    &::after {
+      color: ${({ theme }) => theme.colors.grayscale.light1};
+    }
+  }
 `;
 
 type Dataset = {
@@ -344,6 +365,11 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       },
       {
         Cell: ({ row: { original } }: any) => {
+          // Verify owner or isAdmin
+          const allowEdit =
+            original.owners.map((o: Owner) => o.id).includes(user.userId) ||
+            isUserAdmin(user);
+
           const handleEdit = () => openDatasetEditModal(original);
           const handleDelete = () => openDatasetDeleteModal(original);
           const handleExport = () => handleBulkDatasetExport([original]);
@@ -387,14 +413,20 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
               {canEdit && (
                 <Tooltip
                   id="edit-action-tooltip"
-                  title={t('Edit')}
-                  placement="bottom"
+                  title={
+                    allowEdit
+                      ? t('Edit')
+                      : t(
+                          'You must be a dataset owner in order to edit. Please reach out to a dataset owner to request modifications or edit access.',
+                        )
+                  }
+                  placement="bottomRight"
                 >
                   <span
                     role="button"
                     tabIndex={0}
-                    className="action-button"
-                    onClick={handleEdit}
+                    className={allowEdit ? 'action-button' : 'disabled'}
+                    onClick={allowEdit ? handleEdit : undefined}
                   >
                     <Icons.EditAlt />
                   </span>

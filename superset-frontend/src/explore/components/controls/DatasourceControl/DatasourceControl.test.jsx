@@ -41,6 +41,7 @@ const defaultProps = {
     id: 1,
     columns: [],
     metrics: [],
+    owners: [{ username: 'admin', userId: 1 }],
     database: {
       backend: 'mysql',
       name: 'main',
@@ -51,6 +52,17 @@ const defaultProps = {
     setDatasource: sinon.spy(),
   },
   onChange: sinon.spy(),
+  user: {
+    createdOn: '2021-04-27T18:12:38.952304',
+    email: 'admin',
+    firstName: 'admin',
+    isActive: true,
+    lastName: 'admin',
+    permissions: {},
+    roles: { Admin: Array(173) },
+    userId: 1,
+    username: 'admin',
+  },
 };
 
 describe('DatasourceControl', () => {
@@ -107,6 +119,7 @@ describe('DatasourceControl', () => {
         id: 1,
         columns: [],
         metrics: [],
+        owners: [{ username: 'admin', userId: 1 }],
         database: {
           backend: 'druid',
           name: 'main',

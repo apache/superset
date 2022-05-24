@@ -28,31 +28,53 @@ const asciiChars = [];
 for (let i = 32; i < 127; i += 1) {
   asciiChars.push(String.fromCharCode(i));
 }
-const asciiKey = asciiChars.join('');
-const unicodeKey = '你好. 吃了吗?';
+const ASCII_KEY = asciiChars.join('');
+const UNICODE_KEY = '你好. 吃了吗?';
+const NUMTIME_KEY = 'numtime';
+const STRTIME_KEY = 'strtime';
+const NUMTIME_VALUE = 1640995200000;
+const NUMTIME_FORMATTED_VALUE = '2022-01-01 00:00:00';
+const STRTIME_VALUE = '2022-01-01';
 
-const data = [
-  { col01: true, col02: false, [asciiKey]: asciiKey, [unicodeKey]: unicodeKey },
-  { col01: true, col02: false, [asciiKey]: asciiKey, [unicodeKey]: unicodeKey },
-  { col01: true, col02: false, [asciiKey]: asciiKey, [unicodeKey]: unicodeKey },
-  {
-    col01: true,
-    col02: false,
-    col03: 'secret',
-    [asciiKey]: asciiKey,
-    [unicodeKey]: unicodeKey,
-  },
+const colnames = [
+  'col01',
+  'col02',
+  ASCII_KEY,
+  UNICODE_KEY,
+  NUMTIME_KEY,
+  STRTIME_KEY,
 ];
-const all_columns = ['col01', 'col02', 'col03', asciiKey, unicodeKey];
 const coltypes = [
   GenericDataType.BOOLEAN,
   GenericDataType.BOOLEAN,
   GenericDataType.STRING,
   GenericDataType.STRING,
+  GenericDataType.TEMPORAL,
+  GenericDataType.TEMPORAL,
 ];
 
+const cellValues = {
+  col01: true,
+  col02: false,
+  [ASCII_KEY]: ASCII_KEY,
+  [UNICODE_KEY]: UNICODE_KEY,
+  [NUMTIME_KEY]: NUMTIME_VALUE,
+  [STRTIME_KEY]: STRTIME_VALUE,
+};
+
+const data = [cellValues, cellValues, cellValues, cellValues];
+
+const expectedDisplayValues = {
+  col01: BOOL_TRUE_DISPLAY,
+  col02: BOOL_FALSE_DISPLAY,
+  [ASCII_KEY]: ASCII_KEY,
+  [UNICODE_KEY]: UNICODE_KEY,
+  [NUMTIME_KEY]: NUMTIME_FORMATTED_VALUE,
+  [STRTIME_KEY]: STRTIME_VALUE,
+};
+
 test('useTableColumns with no options', () => {
-  const hook = renderHook(() => useTableColumns(all_columns, coltypes, data));
+  const hook = renderHook(() => useTableColumns(colnames, coltypes, data));
   expect(hook.result.current).toEqual([
     {
       Cell: expect.any(Function),
@@ -68,102 +90,61 @@ test('useTableColumns with no options', () => {
     },
     {
       Cell: expect.any(Function),
-      Header: asciiKey,
+      Header: ASCII_KEY,
       accessor: expect.any(Function),
-      id: asciiKey,
+      id: ASCII_KEY,
     },
     {
       Cell: expect.any(Function),
-      Header: unicodeKey,
+      Header: UNICODE_KEY,
       accessor: expect.any(Function),
-      id: unicodeKey,
+      id: UNICODE_KEY,
+    },
+    {
+      Cell: expect.any(Function),
+      Header: expect.objectContaining({
+        type: expect.objectContaining({
+          name: 'DataTableTemporalHeaderCell',
+        }),
+        props: expect.objectContaining({
+          originalFormattedTimeColumnIndex: -1,
+        }),
+      }),
+      accessor: expect.any(Function),
+      id: NUMTIME_KEY,
+    },
+    {
+      Cell: expect.any(Function),
+      Header: STRTIME_KEY,
+      accessor: expect.any(Function),
+      id: STRTIME_KEY,
     },
   ]);
   hook.result.current.forEach((col: JsonObject) => {
-    expect(col.accessor(data[0])).toBe(data[0][col.Header]);
+    expect(col.accessor(data[0])).toBe(data[0][col.id]);
   });
 
   hook.result.current.forEach((col: JsonObject) => {
     data.forEach(row => {
-      expect(col.Cell({ value: row.col01 })).toBe(BOOL_TRUE_DISPLAY);
-      expect(col.Cell({ value: row.col02 })).toBe(BOOL_FALSE_DISPLAY);
-      expect(col.Cell({ value: row[asciiKey] })).toBe(asciiKey);
-      expect(col.Cell({ value: row[unicodeKey] })).toBe(unicodeKey);
+      expect(col.Cell({ value: row[col.id] })).toBe(
+        expectedDisplayValues[col.id],
+      );
     });
-  });
-});
-
-test('use only the first record columns', () => {
-  const newData = [data[3], data[0]];
-  const hook = renderHook(() =>
-    useTableColumns(all_columns, coltypes, newData),
-  );
-  expect(hook.result.current).toEqual([
-    {
-      Cell: expect.any(Function),
-      Header: 'col01',
-      accessor: expect.any(Function),
-      id: 'col01',
-    },
-    {
-      Cell: expect.any(Function),
-      Header: 'col02',
-      accessor: expect.any(Function),
-      id: 'col02',
-    },
-    {
-      Cell: expect.any(Function),
-      Header: 'col03',
-      accessor: expect.any(Function),
-      id: 'col03',
-    },
-    {
-      Cell: expect.any(Function),
-      Header: asciiKey,
-      accessor: expect.any(Function),
-      id: asciiKey,
-    },
-    {
-      Cell: expect.any(Function),
-      Header: unicodeKey,
-      accessor: expect.any(Function),
-      id: unicodeKey,
-    },
-  ]);
-
-  hook.result.current.forEach((col: JsonObject) => {
-    expect(col.accessor(newData[0])).toBe(newData[0][col.Header]);
-  });
-
-  hook.result.current.forEach((col: JsonObject) => {
-    expect(col.Cell({ value: newData[0].col01 })).toBe(BOOL_TRUE_DISPLAY);
-    expect(col.Cell({ value: newData[0].col02 })).toBe(BOOL_FALSE_DISPLAY);
-    expect(col.Cell({ value: newData[0].col03 })).toBe('secret');
-    expect(col.Cell({ value: newData[0][asciiKey] })).toBe(asciiKey);
-    expect(col.Cell({ value: newData[0][unicodeKey] })).toBe(unicodeKey);
-  });
-
-  hook.result.current.forEach((col: JsonObject) => {
-    expect(col.Cell({ value: newData[1].col01 })).toBe(BOOL_TRUE_DISPLAY);
-    expect(col.Cell({ value: newData[1].col02 })).toBe(BOOL_FALSE_DISPLAY);
-    expect(col.Cell({ value: newData[1].col03 })).toBe('undefined');
-    expect(col.Cell({ value: newData[1][asciiKey] })).toBe(asciiKey);
-    expect(col.Cell({ value: newData[1][unicodeKey] })).toBe(unicodeKey);
   });
 });
 
 test('useTableColumns with options', () => {
   const hook = renderHook(() =>
-    useTableColumns(all_columns, coltypes, data, undefined, [], {
-      col01: { id: 'ID' },
+    useTableColumns(colnames, coltypes, data, undefined, [], {
+      col01: { Header: 'Header' },
     }),
   );
   expect(hook.result.current).toEqual([
     {
       Cell: expect.any(Function),
-      Header: 'col01',
+      Header: 'Header',
       accessor: expect.any(Function),
-      id: 'ID',
+      id: 'col01',
     },
     {
       Cell: expect.any(Function),
@@ -173,27 +154,45 @@ test('useTableColumns with options', () => {
     },
     {
       Cell: expect.any(Function),
-      Header: asciiKey,
+      Header: ASCII_KEY,
       accessor: expect.any(Function),
-      id: asciiKey,
+      id: ASCII_KEY,
     },
     {
       Cell: expect.any(Function),
-      Header: unicodeKey,
+      Header: UNICODE_KEY,
       accessor: expect.any(Function),
-      id: unicodeKey,
+      id: UNICODE_KEY,
+    },
+    {
+      Cell: expect.any(Function),
+      Header: expect.objectContaining({
+        type: expect.objectContaining({
+          name: 'DataTableTemporalHeaderCell',
+        }),
+        props: expect.objectContaining({
+          originalFormattedTimeColumnIndex: -1,
+        }),
+      }),
+      accessor: expect.any(Function),
+      id: NUMTIME_KEY,
+    },
+    {
+      Cell: expect.any(Function),
+      Header: STRTIME_KEY,
+      accessor: expect.any(Function),
+      id: STRTIME_KEY,
     },
   ]);
   hook.result.current.forEach((col: JsonObject) => {
-    expect(col.accessor(data[0])).toBe(data[0][col.Header]);
+    expect(col.accessor(data[0])).toBe(data[0][col.id]);
   });
 
   hook.result.current.forEach((col: JsonObject) => {
     data.forEach(row => {
-      expect(col.Cell({ value: row.col01 })).toBe(BOOL_TRUE_DISPLAY);
-      expect(col.Cell({ value: row.col02 })).toBe(BOOL_FALSE_DISPLAY);
-      expect(col.Cell({ value: row[asciiKey] })).toBe(asciiKey);
-      expect(col.Cell({ value: row[unicodeKey] })).toBe(unicodeKey);
+      expect(col.Cell({ value: row[col.id] })).toBe(
+        expectedDisplayValues[col.id],
+      );
     });
   });
 });
