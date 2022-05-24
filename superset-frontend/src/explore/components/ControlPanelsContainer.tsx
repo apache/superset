@@ -58,6 +58,7 @@ import { ExplorePageState } from 'src/explore/reducers/getInitialState';
 import { ChartState } from 'src/explore/types';
 import { Tooltip } from 'src/components/Tooltip';
 
+import { rgba } from 'emotion-rgba';
 import ControlRow from './ControlRow';
 import Control from './Control';
 import { ExploreAlert } from './ExploreAlert';
@@ -94,7 +95,7 @@ const actionButtonsContainerStyles = (theme: SupersetTheme) => css`
   padding: ${theme.gridUnit * 4}px;
   z-index: 999;
   background: linear-gradient(
-    transparent,
+    ${rgba(theme.colors.grayscale.light5, 0)},
     ${theme.colors.grayscale.light5} ${theme.opacity.mediumLight}
   );
 
