@@ -171,6 +171,14 @@ class GSheetsEngineSpec(SqliteEngineSpec):
 
         if not table_catalog:
             # Allowing users to submit empty catalogs
+            errors.append(
+                SupersetError(
+                    message="Sheet name is required",
+                    error_type=SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR,
+                    level=ErrorLevel.WARNING,
+                    extra={"catalog": {"idx": 0, "name": True}},
+                ),
+            )
             return errors
 
         # We need a subject in case domain wide delegation is set, otherwise the
