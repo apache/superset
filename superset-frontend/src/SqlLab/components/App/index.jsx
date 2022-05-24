@@ -21,6 +21,7 @@ import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { t } from '@superset-ui/core';
+import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import throttle from 'lodash/throttle';
 import ToastContainer from 'src/components/MessageToasts/ToastContainer';
 import {
@@ -31,6 +32,7 @@ import {
 import * as Actions from 'src/SqlLab/actions/sqlLab';
 import TabbedSqlEditors from '../TabbedSqlEditors';
 import QueryAutoRefresh from '../QueryAutoRefresh';
+import QuerySearch from '../QuerySearch';
 
 class App extends React.PureComponent {
   constructor(props) {
@@ -94,8 +96,24 @@ class App extends React.PureComponent {
   }
 
   render() {
+    let content;
     if (this.state.hash && this.state.hash === '#search') {
-      return window.location.replace('/superset/sqllab/history/');
+      if (isFeatureEnabled(FeatureFlag.ENABLE_REACT_CRUD_VIEWS)) {
+        return window.location.replace('/superset/sqllab/history/');
+      }
+      content = (
+        <QuerySearch
+          actions={this.props.actions}
+          displayLimit={this.props.common.conf.DISPLAY_MAX_ROW}
+        />
+      );
+    } else {
+      content = (
+        <>
+          <QueryAutoRefresh />
+          <TabbedSqlEditors />
+        </>
+      );
     }
     return (
       <div className="App SqlLab">
