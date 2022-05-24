@@ -149,6 +149,7 @@ export interface QueryObject
   series_columns?: QueryFormColumn[];
   series_limit?: number;
   series_limit_metric?: Maybe<QueryFormMetric>;
+
 }
 
 export interface QueryContext {
@@ -164,6 +165,7 @@ export interface QueryContext {
   result_format: string;
   queries: QueryObject[];
   form_data?: QueryFormData;
+  viz_type: string;
 }
 
 export default {};
