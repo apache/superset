@@ -1276,7 +1276,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 }
                 conf={conf}
                 testConnection={testConnection}
-                isEditMode={isEditMode}
                 testInProgress={testInProgress}
               />
               {isDynamic(db?.backend || db?.engine) && !isEditMode && (

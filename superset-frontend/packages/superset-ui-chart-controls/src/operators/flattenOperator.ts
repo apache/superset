@@ -19,9 +19,7 @@
 import { PostProcessingFlatten } from '@superset-ui/core';
 import { PostProcessingFactory } from './types';
 
-export const flattenOperator: PostProcessingFactory<PostProcessingFlatten> = (
-  formData,
-  queryObject,
-) => ({
-  operation: 'flatten',
-});
+export const flattenOperator: PostProcessingFactory<PostProcessingFlatten> =
+  () => ({
+    operation: 'flatten',
+  });

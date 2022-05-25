@@ -233,13 +233,13 @@ const wsConnect = (): void => {
   if (lastReceivedEventId) url += `?last_id=${lastReceivedEventId}`;
   ws = new WebSocket(url);
 
-  ws.addEventListener('open', event => {
+  ws.addEventListener('open', () => {
     logging.log('WebSocket connected');
     clearTimeout(wsConnectTimeout);
     wsConnectRetries = 0;
   });
 
-  ws.addEventListener('close', event => {
+  ws.addEventListener('close', () => {
     wsConnectTimeout = setTimeout(() => {
       wsConnectRetries += 1;
       if (wsConnectRetries <= wsConnectMaxRetries) {
@@ -251,7 +251,7 @@ const wsConnect = (): void => {
     }, wsConnectErrorDelay);
   });
 
-  ws.addEventListener('error', event => {
+  ws.addEventListener('error', () => {
     // https://developer.mozilla.org/en-US/docs/Web/API/WebSocket/readyState
     if (ws.readyState < 2) ws.close();
   });

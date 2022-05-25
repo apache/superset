@@ -335,7 +335,7 @@ const time_range: SharedControlConfig<'DateFilterControl'> = {
       "using the engine's local timezone. Note one can explicitly set the timezone " +
       'per the ISO 8601 format if specifying either the start and/or end time.',
   ),
-  mapStateToProps: ({ datasource, form_data }) => ({
+  mapStateToProps: ({ datasource }) => ({
     datasource,
   }),
 };

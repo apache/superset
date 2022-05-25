@@ -23,24 +23,22 @@ import {
 } from '@superset-ui/core';
 import { PostProcessingFactory } from './types';
 
-export const prophetOperator: PostProcessingFactory<PostProcessingProphet> = (
-  formData,
-  queryObject,
-) => {
-  const index = getColumnLabel(formData.x_axis || DTTM_ALIAS);
-  if (formData.forecastEnabled) {
-    return {
-      operation: 'prophet',
-      options: {
-        time_grain: formData.time_grain_sqla,
-        periods: parseInt(formData.forecastPeriods, 10),
-        confidence_interval: parseFloat(formData.forecastInterval),
-        yearly_seasonality: formData.forecastSeasonalityYearly,
-        weekly_seasonality: formData.forecastSeasonalityWeekly,
-        daily_seasonality: formData.forecastSeasonalityDaily,
-        index,
-      },
-    };
-  }
-  return undefined;
-};
+export const prophetOperator: PostProcessingFactory<PostProcessingProphet> =
+  formData => {
+    const index = getColumnLabel(formData.x_axis || DTTM_ALIAS);
+    if (formData.forecastEnabled) {
+      return {
+        operation: 'prophet',
+        options: {
+          time_grain: formData.time_grain_sqla,
+          periods: parseInt(formData.forecastPeriods, 10),
+          confidence_interval: parseFloat(formData.forecastInterval),
+          yearly_seasonality: formData.forecastSeasonalityYearly,
+          weekly_seasonality: formData.forecastSeasonalityWeekly,
+          daily_seasonality: formData.forecastSeasonalityDaily,
+          index,
+        },
+      };
+    }
+    return undefined;
+  };
