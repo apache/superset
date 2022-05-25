@@ -210,7 +210,6 @@ class SliceHeaderControls extends React.PureComponent<
         downloadAsImage(
           getScreenshotNodeSelector(this.props.slice.slice_id),
           this.props.slice.slice_name,
-          {},
           true,
           // @ts-ignore
         )(domEvent).then(() => {
