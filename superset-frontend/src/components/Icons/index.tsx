@@ -155,6 +155,8 @@ const IconFileNames = [
   'tags',
   'ballot',
   'category',
+  'undo',
+  'redo',
 ];
 
 const iconOverrides: Record<string, React.FC> = {};
