@@ -796,8 +796,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
                     type: object
                     properties:
                       samples:
-                        description: dataset samples
-                        type: object
+                        $ref: '#/components/schemas/ChartDataResponseResult'
             401:
               $ref: '#/components/responses/401'
             403:

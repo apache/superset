@@ -1852,6 +1852,8 @@ class TestDatasetApi(SupersetTestCase):
 
         self.login(username="admin")
         uri = f"api/v1/dataset/{dataset.id}/samples"
+
+        # 1. should cache data
         # feeds data
         self.client.get(uri)
         # get from cache
@@ -1861,7 +1863,7 @@ class TestDatasetApi(SupersetTestCase):
         assert "samples" in rv_data
         assert rv_data["samples"]["cached_dttm"] is not None
 
-        # force query
+        # 2. should through cache
         uri2 = f"api/v1/dataset/{dataset.id}/samples?force=true"
         # feeds data
         self.client.get(uri2)
@@ -1869,3 +1871,14 @@ class TestDatasetApi(SupersetTestCase):
         rv2 = self.client.get(uri2)
         rv_data2 = json.loads(rv2.data)
         assert rv_data2["samples"]["cached_dttm"] is None
+
+        # 3. data precision
+        assert "colnames" in rv_data2["samples"]
+        assert "coltypes" in rv_data2["samples"]
+        assert "data" in rv_data2["samples"]
+
+        eager_samples = dataset.database.get_df(
+            f"select * from {dataset.table_name}"
+            f' limit {self.app.config["SAMPLES_ROW_LIMIT"]}'
+        ).to_dict(orient="records")
+        assert eager_samples == rv_data2["samples"]["data"]
