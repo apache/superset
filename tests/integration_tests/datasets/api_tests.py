@@ -213,6 +213,27 @@ class TestDatasetApi(SupersetTestCase):
         response = json.loads(rv.data.decode("utf-8"))
         assert response["result"] == []
 
+    def test_get_dataset_list_gamma_owned(self):
+        """
+        Dataset API: Test get dataset list owned by gamma
+        """
+        main_db = get_main_database()
+        owned_dataset = self.insert_dataset(
+            "ab_user", [self.get_user("gamma").id], main_db
+        )
+
+        self.login(username="gamma")
+        uri = "api/v1/dataset/"
+        rv = self.get_assert_metric(uri, "get_list")
+        assert rv.status_code == 200
+        response = json.loads(rv.data.decode("utf-8"))
+
+        assert response["count"] == 1
+        assert response["result"][0]["table_name"] == "ab_user"
+
+        db.session.delete(owned_dataset)
+        db.session.commit()
+
     def test_get_dataset_related_database_gamma(self):
         """
         Dataset API: Test get dataset related databases gamma
