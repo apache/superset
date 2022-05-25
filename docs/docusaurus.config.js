@@ -38,10 +38,10 @@ const config = {
   themes: ['@saucelabs/theme-github-codeblock'],
   plugins: [
     ["docusaurus-plugin-less", {
-                    lessOptions: {
-                        javascriptEnabled: true,
-                    }
-                }],
+      lessOptions: {
+        javascriptEnabled: true,
+      }
+    }],
     [
       '@docusaurus/plugin-client-redirects',
       {
