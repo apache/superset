@@ -47,6 +47,7 @@ export const runningQueryStateList: QueryState[] = [
   QueryState.STARTED,
   QueryState.PENDING,
   QueryState.FETCHING,
+  QueryState.SCHEDULED,
 ];
 
 // Indicates a Query's state has completed processing regardless of success / failure
