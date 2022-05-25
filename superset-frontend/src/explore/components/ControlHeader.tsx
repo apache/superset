@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { FC, ReactNode } from 'react';
-import { t, css, useTheme } from '@superset-ui/core';
+import { t, css, useTheme, SupersetTheme } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import { Tooltip } from 'src/components/Tooltip';
 import { FormLabel } from 'src/components/Form';
@@ -106,10 +106,12 @@ const ControlHeader: FC<ControlHeaderProps> = ({
     <div className="ControlHeader" data-test={`${name}-header`}>
       <div className="pull-left">
         <FormLabel
-          css={{
-            marginBottom: 0,
-            position: 'relative',
-          }}
+          css={(theme: SupersetTheme) =>
+            css`
+              margin-bottom: ${theme.gridUnit * 0.5}px;
+              position: relative;
+            `
+          }
         >
           {leftNode && <span>{leftNode}</span>}
           <span

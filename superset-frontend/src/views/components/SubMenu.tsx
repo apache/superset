@@ -18,8 +18,9 @@
  */
 import React, { ReactNode, useState, useEffect } from 'react';
 import { Link, useHistory } from 'react-router-dom';
-import { styled } from '@superset-ui/core';
+import { styled, SupersetTheme, css, t } from '@superset-ui/core';
 import cx from 'classnames';
+import { Tooltip } from 'src/components/Tooltip';
 import { debounce } from 'lodash';
 import { Row } from 'src/components';
 import { Menu, MenuMode, MainNav as DropdownMenu } from 'src/components/Menu';
@@ -66,7 +67,7 @@ const StyledHeader = styled.div`
     padding-left: 10px;
   }
   .menu {
-    background-color: white;
+    background-color: ${({ theme }) => theme.colors.grayscale.light5};
     .ant-menu-horizontal {
       line-height: inherit;
       .ant-menu-item {
@@ -87,7 +88,8 @@ const StyledHeader = styled.div`
   }
 
   .menu .ant-menu-item {
-    li {
+    li,
+    div {
       a,
       div {
         font-size: ${({ theme }) => theme.typography.sizes.s}px;
@@ -97,6 +99,10 @@ const StyledHeader = styled.div`
           margin: 0;
           padding: ${({ theme }) => theme.gridUnit * 4}px;
           line-height: ${({ theme }) => theme.gridUnit * 5}px;
+
+          &:hover {
+            text-decoration: none;
+          }
         }
       }
 
@@ -104,12 +110,19 @@ const StyledHeader = styled.div`
         padding: ${({ theme }) => theme.gridUnit * 2}px
           ${({ theme }) => theme.gridUnit * 4}px;
       }
+
+      &.active a {
+        text-decoration: underline;
+      }
     }
+
     li.active > a,
     li.active > div,
+    div.active > div,
     li > a:hover,
     li > a:focus,
-    li > div:hover {
+    li > div:hover,
+    div > div:hover {
       background: ${({ theme }) => theme.colors.secondary.light4};
       border-bottom: none;
       border-radius: ${({ theme }) => theme.borderRadius}px;
@@ -141,6 +154,16 @@ const StyledHeader = styled.div`
   .dropdown-menu-links > div.ant-menu-submenu-title,
   .ant-menu-submenu-open.ant-menu-submenu-active > div.ant-menu-submenu-title {
     color: ${({ theme }) => theme.colors.primary.dark1};
+  }
+`;
+
+const styledDisabled = (theme: SupersetTheme) => css`
+  color: ${theme.colors.grayscale.base};
+  backgroundColor: ${theme.colors.grayscale.light2}};
+
+  .ant-menu-item:hover {
+    color: ${theme.colors.grayscale.base};
+    cursor: default;
   }
 `;
 
@@ -230,7 +253,7 @@ const SubMenuComponent: React.FunctionComponent<SubMenuProps> = props => {
             if ((props.usesRouter || hasHistory) && !!tab.usesRouter) {
               return (
                 <Menu.Item key={tab.label}>
-                  <li
+                  <div
                     role="tab"
                     data-test={tab['data-test']}
                     className={tab.name === props.activeChild ? 'active' : ''}
@@ -238,14 +261,14 @@ const SubMenuComponent: React.FunctionComponent<SubMenuProps> = props => {
                     <div>
                       <Link to={tab.url || ''}>{tab.label}</Link>
                     </div>
-                  </li>
+                  </div>
                 </Menu.Item>
               );
             }
 
             return (
               <Menu.Item key={tab.label}>
-                <li
+                <div
                   className={cx('no-router', {
                     active: tab.name === props.activeChild,
                   })}
@@ -254,7 +277,7 @@ const SubMenuComponent: React.FunctionComponent<SubMenuProps> = props => {
                   <a href={tab.url} onClick={tab.onClick}>
                     {tab.label}
                   </a>
-                </li>
+                </div>
               </Menu.Item>
             );
           })}
@@ -271,7 +294,18 @@ const SubMenuComponent: React.FunctionComponent<SubMenuProps> = props => {
               >
                 {link.childs?.map(item => {
                   if (typeof item === 'object') {
-                    return (
+                    return item.disable ? (
+                      <DropdownMenu.Item key={item.label} css={styledDisabled}>
+                        <Tooltip
+                          placement="top"
+                          title={t(
+                            "Enable 'Allow data upload' in any database's settings",
+                          )}
+                        >
+                          {item.label}
+                        </Tooltip>
+                      </DropdownMenu.Item>
+                    ) : (
                       <DropdownMenu.Item key={item.label}>
                         <a href={item.url}>{item.label}</a>
                       </DropdownMenu.Item>

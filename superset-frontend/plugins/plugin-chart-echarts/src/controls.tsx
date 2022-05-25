@@ -17,11 +17,18 @@
  * under the License.
  */
 import React from 'react';
-import { t, validateNonEmpty } from '@superset-ui/core';
+import {
+  FeatureFlag,
+  isFeatureEnabled,
+  t,
+  validateNonEmpty,
+} from '@superset-ui/core';
 import {
   ControlPanelsContainerProps,
+  ControlPanelState,
   ControlSetItem,
   ControlSetRow,
+  ControlState,
   sharedControls,
 } from '@superset-ui/chart-controls';
 import { DEFAULT_LEGEND_FORM_DATA } from './types';
@@ -94,7 +101,7 @@ const legendOrientationControl: ControlSetItem = {
 };
 
 export const legendSection: ControlSetRow[] = [
-  [<h1 className="section-header">{t('Legend')}</h1>],
+  [<div className="section-header">{t('Legend')}</div>],
   [showLegendControl],
   [legendTypeControl],
   [legendOrientationControl],
@@ -143,7 +150,22 @@ export const xAxisControl: ControlSetItem = {
   config: {
     ...sharedControls.groupby,
     label: t('X-axis'),
-    default: null,
+    default: (
+      control: ControlState,
+      controlPanel: Partial<ControlPanelState>,
+    ) => {
+      // default to the chosen time column if x-axis is unset and the
+      // GENERIC_CHART_AXES feature flag is enabled
+      const { value } = control;
+      if (value) {
+        return value;
+      }
+      const timeColumn = controlPanel?.form_data?.granularity_sqla;
+      if (isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES) && timeColumn) {
+        return timeColumn;
+      }
+      return null;
+    },
     multi: false,
     description: t('Dimension to use on x-axis.'),
     validators: [validateNonEmpty],
@@ -219,7 +241,7 @@ const tooltipSortByMetricControl: ControlSetItem = {
 };
 
 export const richTooltipSection: ControlSetRow[] = [
-  [<h1 className="section-header">{t('Tooltip')}</h1>],
+  [<div className="section-header">{t('Tooltip')}</div>],
   [richTooltipControl],
   [tooltipSortByMetricControl],
   [tooltipTimeFormatControl],

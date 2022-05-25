@@ -1148,6 +1148,7 @@
       "Run Selection": ["Executar a query selecionada"],
       "Run": [""],
       "Stop running (Ctrl + x)": [""],
+      "Stop running (Ctrl + e)": [""],
       "Run query (Ctrl + Return)": [""],
       "Save & Explore": ["Grave uma visualização"],
       "Overwrite & Explore": ["Substitua a visualização %s"],

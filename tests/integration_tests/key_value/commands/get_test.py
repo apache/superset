@@ -53,7 +53,8 @@ def test_get_uuid_entry(
 
 
 def test_get_id_entry_missing(
-    app_context: AppContext, key_value_entry: KeyValueEntry,
+    app_context: AppContext,
+    key_value_entry: KeyValueEntry,
 ) -> None:
     from superset.key_value.commands.get import GetKeyValueCommand
 

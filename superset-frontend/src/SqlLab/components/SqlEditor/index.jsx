@@ -66,6 +66,8 @@ import {
   setItem,
 } from 'src/utils/localStorageHelpers';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
+import { EmptyStateBig } from 'src/components/EmptyState';
+import { isEmpty } from 'lodash';
 import TemplateParamsEditor from '../TemplateParamsEditor';
 import ConnectedSouthPane from '../SouthPane/state';
 import SaveQuery from '../SaveQuery';
@@ -75,6 +77,7 @@ import ShareSqlLabQuery from '../ShareSqlLabQuery';
 import SqlEditorLeftBar from '../SqlEditorLeftBar';
 import AceEditorWrapper from '../AceEditorWrapper';
 import RunQueryActionButton from '../RunQueryActionButton';
+import { newQueryTabName } from '../../utils/newQueryTabName';
 
 const LIMIT_DROPDOWN = [10, 100, 1000, 10000, 100000];
 const SQL_EDITOR_PADDING = 10;
@@ -93,21 +96,23 @@ const validatorMap =
 const scheduledQueriesConf = bootstrapData?.common?.conf?.SCHEDULED_QUERIES;
 
 const LimitSelectStyled = styled.span`
-  .ant-dropdown-trigger {
-    align-items: center;
-    color: black;
-    display: flex;
-    font-size: 12px;
-    margin-right: ${({ theme }) => theme.gridUnit * 2}px;
-    text-decoration: none;
-    span {
-      display: inline-block;
-      margin-right: ${({ theme }) => theme.gridUnit * 2}px;
-      &:last-of-type: {
-        margin-right: ${({ theme }) => theme.gridUnit * 4}px;
+  ${({ theme }) => `
+    .ant-dropdown-trigger {
+      align-items: center;
+      color: ${theme.colors.grayscale.dark2};
+      display: flex;
+      font-size: 12px;
+      margin-right: ${theme.gridUnit * 2}px;
+      text-decoration: none;
+      span {
+        display: inline-block;
+        margin-right: ${theme.gridUnit * 2}px;
+        &:last-of-type: {
+          margin-right: ${theme.gridUnit * 4}px;
+        }
       }
     }
-  }
+  `}
 `;
 
 const StyledToolbar = styled.div`
@@ -179,6 +184,7 @@ class SqlEditor extends React.PureComponent {
       ),
       showCreateAsModal: false,
       createAs: '',
+      showEmptyState: false,
     };
     this.sqlEditorRef = React.createRef();
     this.northPaneRef = React.createRef();
@@ -188,6 +194,7 @@ class SqlEditor extends React.PureComponent {
     this.onResizeEnd = this.onResizeEnd.bind(this);
     this.canValidateQuery = this.canValidateQuery.bind(this);
     this.runQuery = this.runQuery.bind(this);
+    this.setEmptyState = this.setEmptyState.bind(this);
     this.stopQuery = this.stopQuery.bind(this);
     this.saveQuery = this.saveQuery.bind(this);
     this.onSqlChanged = this.onSqlChanged.bind(this);
@@ -227,7 +234,11 @@ class SqlEditor extends React.PureComponent {
     // We need to measure the height of the sql editor post render to figure the height of
     // the south pane so it gets rendered properly
     // eslint-disable-next-line react/no-did-mount-set-state
+    const db = this.props.database;
     this.setState({ height: this.getSqlEditorHeight() });
+    if (!db || isEmpty(db)) {
+      this.setEmptyState(true);
+    }
 
     window.addEventListener('resize', this.handleWindowResize);
     window.addEventListener('beforeunload', this.onBeforeUnload);
@@ -237,6 +248,12 @@ class SqlEditor extends React.PureComponent {
     hotkeys.forEach(keyConfig => {
       Mousetrap.bind([keyConfig.key], keyConfig.func);
     });
+  }
+
+  componentDidUpdate() {
+    if (this.props.queryEditor.sql !== this.state.sql) {
+      this.onSqlChanged(this.props.queryEditor.sql);
+    }
   }
 
   componentWillUnmount() {
@@ -333,16 +350,16 @@ class SqlEditor extends React.PureComponent {
         key: userOS === 'Windows' ? 'ctrl+q' : 'ctrl+t',
         descr: t('New tab'),
         func: () => {
+          const title = newQueryTabName(this.props.queryEditors || []);
           this.props.addQueryEditor({
             ...this.props.queryEditor,
-            title: t('Untitled query'),
-            sql: '',
+            title,
           });
         },
       },
       {
         name: 'stopQuery',
-        key: 'ctrl+x',
+        key: userOS === 'MacOS' ? 'ctrl+x' : 'ctrl+e',
         descr: t('Stop query'),
         func: this.stopQuery,
       },
@@ -360,6 +377,10 @@ class SqlEditor extends React.PureComponent {
     }
 
     return base;
+  }
+
+  setEmptyState(bool) {
+    this.setState({ showEmptyState: bool });
   }
 
   setQueryEditorSql(sql) {
@@ -753,10 +774,21 @@ class SqlEditor extends React.PureComponent {
               queryEditor={this.props.queryEditor}
               tables={this.props.tables}
               actions={this.props.actions}
+              setEmptyState={this.setEmptyState}
             />
           </div>
         </CSSTransition>
-        {this.queryPane()}
+        {this.state.showEmptyState ? (
+          <EmptyStateBig
+            image="vector.svg"
+            title={t('Select a database to write a query')}
+            description={t(
+              'Choose one of the available databases from the panel on the left.',
+            )}
+          />
+        ) : (
+          this.queryPane()
+        )}
         <StyledModal
           visible={this.state.showCreateAsModal}
           title={t(createViewModalTitle)}
@@ -804,13 +836,12 @@ class SqlEditor extends React.PureComponent {
 SqlEditor.defaultProps = defaultProps;
 SqlEditor.propTypes = propTypes;
 
-function mapStateToProps(state, props) {
-  const { sqlLab } = state;
+function mapStateToProps({ sqlLab }, props) {
   const queryEditor = sqlLab.queryEditors.find(
     editor => editor.id === props.queryEditorId,
   );
 
-  return { sqlLab, ...props, queryEditor };
+  return { sqlLab, ...props, queryEditor, queryEditors: sqlLab.queryEditors };
 }
 
 function mapDispatchToProps(dispatch) {

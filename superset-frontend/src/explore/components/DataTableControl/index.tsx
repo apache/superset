@@ -35,8 +35,8 @@ import { Input } from 'src/components/Input';
 import {
   BOOL_FALSE_DISPLAY,
   BOOL_TRUE_DISPLAY,
-  SLOW_DEBOUNCE,
   NULL_DISPLAY,
+  SLOW_DEBOUNCE,
 } from 'src/constants';
 import { Radio } from 'src/components/Radio';
 import Icons from 'src/components/Icons';
@@ -46,8 +46,8 @@ import { prepareCopyToClipboardTabularData } from 'src/utils/common';
 import CopyToClipboard from 'src/components/CopyToClipboard';
 import RowCountLabel from 'src/explore/components/RowCountLabel';
 import {
-  setTimeFormattedColumn,
-  unsetTimeFormattedColumn,
+  setOriginalFormattedTimeColumn,
+  unsetOriginalFormattedTimeColumn,
 } from 'src/explore/actions/exploreActions';
 
 export const CellNull = styled('span')`
@@ -67,41 +67,56 @@ export const CopyButton = styled(Button)`
   }
 `;
 
-const CopyNode = (
-  <CopyButton buttonSize="xsmall" aria-label={t('Copy')}>
-    <i className="fa fa-clipboard" />
-  </CopyButton>
-);
-
 export const CopyToClipboardButton = ({
   data,
   columns,
 }: {
   data?: Record<string, any>;
   columns?: string[];
-}) => (
-  <CopyToClipboard
-    text={
-      data && columns ? prepareCopyToClipboardTabularData(data, columns) : ''
-    }
-    wrapped={false}
-    copyNode={CopyNode}
-  />
-);
+}) => {
+  const theme = useTheme();
+  return (
+    <CopyToClipboard
+      text={
+        data && columns ? prepareCopyToClipboardTabularData(data, columns) : ''
+      }
+      wrapped={false}
+      copyNode={
+        <Icons.CopyOutlined
+          iconColor={theme.colors.grayscale.base}
+          iconSize="l"
+          aria-label={t('Copy')}
+          role="button"
+          css={css`
+            &.anticon > * {
+              line-height: 0;
+            }
+          `}
+        />
+      }
+    />
+  );
+};
 
 export const FilterInput = ({
   onChangeHandler,
 }: {
   onChangeHandler(filterText: string): void;
 }) => {
+  const theme = useTheme();
   const debouncedChangeHandler = debounce(onChangeHandler, SLOW_DEBOUNCE);
   return (
     <Input
+      prefix={<Icons.Search iconColor={theme.colors.grayscale.base} />}
       placeholder={t('Search')}
       onChange={(event: any) => {
         const filterText = event.target.value;
         debouncedChangeHandler(filterText);
       }}
+      css={css`
+        width: 200px;
+        margin-right: ${theme.gridUnit * 2}px;
+      `}
     />
   );
 };
@@ -112,13 +127,7 @@ export const RowCount = ({
 }: {
   data?: Record<string, any>[];
   loading: boolean;
-}) => (
-  <RowCountLabel
-    rowcount={data?.length ?? 0}
-    loading={loading}
-    suffix={t('rows retrieved')}
-  />
-);
+}) => <RowCountLabel rowcount={data?.length ?? 0} loading={loading} />;
 
 enum FormatPickerValue {
   Formatted,
@@ -134,8 +143,8 @@ const FormatPicker = ({
 }) => (
   <Radio.Group value={value} onChange={onChange}>
     <Space direction="vertical">
-      <Radio value={FormatPickerValue.Original}>{t('Original value')}</Radio>
       <Radio value={FormatPickerValue.Formatted}>{t('Formatted date')}</Radio>
+      <Radio value={FormatPickerValue.Original}>{t('Original value')}</Radio>
     </Space>
   </Radio.Group>
 );
@@ -157,15 +166,15 @@ const FormatPickerLabel = styled.span`
 const DataTableTemporalHeaderCell = ({
   columnName,
   datasourceId,
-  timeFormattedColumnIndex,
+  originalFormattedTimeColumnIndex,
 }: {
   columnName: string;
   datasourceId?: string;
-  timeFormattedColumnIndex: number;
+  originalFormattedTimeColumnIndex: number;
 }) => {
   const theme = useTheme();
   const dispatch = useDispatch();
-  const isColumnTimeFormatted = timeFormattedColumnIndex > -1;
+  const isTimeColumnOriginalFormatted = originalFormattedTimeColumnIndex > -1;
 
   const onChange = useCallback(
     e => {
@@ -174,24 +183,27 @@ const DataTableTemporalHeaderCell = ({
       }
       if (
         e.target.value === FormatPickerValue.Original &&
-        isColumnTimeFormatted
+        !isTimeColumnOriginalFormatted
       ) {
-        dispatch(
-          unsetTimeFormattedColumn(datasourceId, timeFormattedColumnIndex),
-        );
+        dispatch(setOriginalFormattedTimeColumn(datasourceId, columnName));
       } else if (
         e.target.value === FormatPickerValue.Formatted &&
-        !isColumnTimeFormatted
+        isTimeColumnOriginalFormatted
       ) {
-        dispatch(setTimeFormattedColumn(datasourceId, columnName));
+        dispatch(
+          unsetOriginalFormattedTimeColumn(
+            datasourceId,
+            originalFormattedTimeColumnIndex,
+          ),
+        );
       }
     },
     [
-      timeFormattedColumnIndex,
+      originalFormattedTimeColumnIndex,
       columnName,
       datasourceId,
       dispatch,
-      isColumnTimeFormatted,
+      isTimeColumnOriginalFormatted,
     ],
   );
   const overlayContent = useMemo(
@@ -210,14 +222,14 @@ const DataTableTemporalHeaderCell = ({
           <FormatPicker
             onChange={onChange}
             value={
-              isColumnTimeFormatted
-                ? FormatPickerValue.Formatted
-                : FormatPickerValue.Original
+              isTimeColumnOriginalFormatted
+                ? FormatPickerValue.Original
+                : FormatPickerValue.Formatted
             }
           />
         </FormatPickerContainer>
       ) : null,
-    [datasourceId, isColumnTimeFormatted, onChange],
+    [datasourceId, isTimeColumnOriginalFormatted, onChange],
   );
 
   return datasourceId ? (
@@ -250,7 +262,9 @@ export const useFilteredTableData = (
   const rowsAsStrings = useMemo(
     () =>
       data?.map((row: Record<string, any>) =>
-        Object.values(row).map(value => value?.toString().toLowerCase()),
+        Object.values(row).map(value =>
+          value ? value.toString().toLowerCase() : t('N/A'),
+        ),
       ) ?? [],
     [data],
   );
@@ -274,7 +288,7 @@ export const useTableColumns = (
   coltypes?: GenericDataType[],
   data?: Record<string, any>[],
   datasourceId?: string,
-  timeFormattedColumns: string[] = [],
+  originalFormattedTimeColumns: string[] = [],
   moreConfigs?: { [key: string]: Partial<Column> },
 ) =>
   useMemo(
@@ -283,20 +297,25 @@ export const useTableColumns = (
         ? colnames
             .filter((column: string) => Object.keys(data[0]).includes(column))
             .map((key, index) => {
-              const timeFormattedColumnIndex =
-                coltypes?.[index] === GenericDataType.TEMPORAL
-                  ? timeFormattedColumns.indexOf(key)
+              const colType = coltypes?.[index];
+              const firstValue = data[0][key];
+              const originalFormattedTimeColumnIndex =
+                colType === GenericDataType.TEMPORAL
+                  ? originalFormattedTimeColumns.indexOf(key)
                   : -1;
               return {
                 id: key,
                 accessor: row => row[key],
                 // When the key is empty, have to give a string of length greater than 0
                 Header:
-                  coltypes?.[index] === GenericDataType.TEMPORAL ? (
+                  colType === GenericDataType.TEMPORAL &&
+                  typeof firstValue !== 'string' ? (
                     <DataTableTemporalHeaderCell
                       columnName={key}
                       datasourceId={datasourceId}
-                      timeFormattedColumnIndex={timeFormattedColumnIndex}
+                      originalFormattedTimeColumnIndex={
+                        originalFormattedTimeColumnIndex
+                      }
                     />
                   ) : (
                     key
@@ -311,7 +330,11 @@ export const useTableColumns = (
                   if (value === null) {
                     return <CellNull>{NULL_DISPLAY}</CellNull>;
                   }
-                  if (timeFormattedColumnIndex > -1) {
+                  if (
+                    colType === GenericDataType.TEMPORAL &&
+                    originalFormattedTimeColumnIndex === -1 &&
+                    typeof value === 'number'
+                  ) {
                     return timeFormatter(value);
                   }
                   return String(value);
@@ -320,5 +343,12 @@ export const useTableColumns = (
               } as Column;
             })
         : [],
-    [colnames, data, coltypes, datasourceId, moreConfigs, timeFormattedColumns],
+    [
+      colnames,
+      data,
+      coltypes,
+      datasourceId,
+      moreConfigs,
+      originalFormattedTimeColumns,
+    ],
   );

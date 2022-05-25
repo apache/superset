@@ -39,7 +39,8 @@ logger = logging.getLogger(__name__)
 
 class UpdateFormDataCommand(BaseCommand, ABC):
     def __init__(
-        self, cmd_params: CommandParameters,
+        self,
+        cmd_params: CommandParameters,
     ):
         self._cmd_params = cmd_params
 

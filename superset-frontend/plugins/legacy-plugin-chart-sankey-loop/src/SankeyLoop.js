@@ -26,8 +26,6 @@ import {
   CategoricalColorNamespace,
 } from '@superset-ui/core';
 
-import './SankeyLoop.css';
-
 // a problem with 'd3-sankey-diagram'  is that the sankey().extent() paramters, which
 // informs the layout of the bounding box of the sankey columns, does not account
 // for labels and paths which happen to be layedout outside that rectangle.

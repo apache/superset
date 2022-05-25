@@ -27,6 +27,7 @@ import {
   getChartMetadataRegistry,
   validateNonEmpty,
   isValidExpression,
+  withTheme,
 } from '@superset-ui/core';
 
 import SelectControl from 'src/explore/components/controls/SelectControl';
@@ -97,7 +98,7 @@ const defaultProps = {
   close: () => {},
 };
 
-export default class AnnotationLayer extends React.PureComponent {
+class AnnotationLayer extends React.PureComponent {
   constructor(props) {
     super(props);
     const {
@@ -385,11 +386,13 @@ export default class AnnotationLayer extends React.PureComponent {
         description = 'Select the Annotation Layer you would like to use.';
       } else {
         label = t('Chart');
-        description = `Use a pre defined Superset Chart as a source for annotations and overlays.
-        your chart must be one of these visualization types:
-        [${this.getSupportedSourceTypes(annotationType)
-          .map(x => x.label)
-          .join(', ')}]`;
+        description = t(
+          `Use another existing chart as a source for annotations and overlays.
+          Your chart must be one of these visualization types: [%s]`,
+          this.getSupportedSourceTypes(annotationType)
+            .map(x => x.label)
+            .join(', '),
+        );
       }
     } else if (annotationType === ANNOTATION_TYPES.FORMULA) {
       label = 'Formula';
@@ -708,7 +711,9 @@ export default class AnnotationLayer extends React.PureComponent {
     return (
       <>
         {this.props.error && (
-          <span style={{ color: 'red' }}>ERROR: {this.props.error}</span>
+          <span style={{ color: this.props.theme.colors.error.base }}>
+            ERROR: {this.props.error}
+          </span>
         )}
         <div style={{ display: 'flex', flexDirection: 'row' }}>
           <div style={{ marginRight: '2rem' }}>
@@ -805,3 +810,5 @@ export default class AnnotationLayer extends React.PureComponent {
 
 AnnotationLayer.propTypes = propTypes;
 AnnotationLayer.defaultProps = defaultProps;
+
+export default withTheme(AnnotationLayer);

@@ -151,7 +151,8 @@ def import_dashboard(
                 old_dataset_id = target.get("datasetId")
                 if dataset_id_mapping and old_dataset_id is not None:
                     target["datasetId"] = dataset_id_mapping.get(
-                        old_dataset_id, old_dataset_id,
+                        old_dataset_id,
+                        old_dataset_id,
                     )
         dashboard.json_metadata = json.dumps(json_metadata)
 
@@ -268,20 +269,11 @@ def import_dashboard(
     return dashboard_to_import.id  # type: ignore
 
 
-def decode_dashboards(  # pylint: disable=too-many-return-statements
-    o: Dict[str, Any]
-) -> Any:
+def decode_dashboards(o: Dict[str, Any]) -> Any:
     """
     Function to be passed into json.loads obj_hook parameter
     Recreates the dashboard object from a json representation.
     """
-    # pylint: disable=import-outside-toplevel
-    from superset.connectors.druid.models import (
-        DruidCluster,
-        DruidColumn,
-        DruidDatasource,
-        DruidMetric,
-    )
 
     if "__Dashboard__" in o:
         return Dashboard(**o["__Dashboard__"])
@@ -293,14 +285,6 @@ def decode_dashboards(  # pylint: disable=too-many-return-statements
         return SqlaTable(**o["__SqlaTable__"])
     if "__SqlMetric__" in o:
         return SqlMetric(**o["__SqlMetric__"])
-    if "__DruidCluster__" in o:
-        return DruidCluster(**o["__DruidCluster__"])
-    if "__DruidColumn__" in o:
-        return DruidColumn(**o["__DruidColumn__"])
-    if "__DruidDatasource__" in o:
-        return DruidDatasource(**o["__DruidDatasource__"])
-    if "__DruidMetric__" in o:
-        return DruidMetric(**o["__DruidMetric__"])
     if "__datetime__" in o:
         return datetime.strptime(o["__datetime__"], "%Y-%m-%dT%H:%M:%S")
 

@@ -63,12 +63,20 @@ body {
   display: flex;
   max-width: 100%;
   align-items: flex-start;
+  min-height: 0;
 
   & > .header-title {
     overflow: hidden;
     text-overflow: ellipsis;
     max-width: 100%;
     flex-grow: 1;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+
+    & > span.ant-tooltip-open {
+      display: inline;
+    }
   }
 
   & > .header-controls {

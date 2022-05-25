@@ -30,9 +30,7 @@ import logging
 
 import sqlalchemy as sa
 from alembic import op
-from sqlalchemy import and_, func, or_
-from sqlalchemy.dialects import postgresql
-from sqlalchemy.sql.schema import Table
+from sqlalchemy import func
 
 from superset import db
 from superset.connectors.sqla.models import SqlaTable

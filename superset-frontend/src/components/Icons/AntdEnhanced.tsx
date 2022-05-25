@@ -23,6 +23,7 @@ import { StyledIcon } from './Icon';
 import IconType from './IconType';
 
 const AntdEnhancedIcons = Object.keys(AntdIcons)
+  .filter(k => !k.includes('TwoTone'))
   .map(k => ({
     [k]: (props: IconType) => (
       <StyledIcon component={AntdIcons[k]} {...props} />

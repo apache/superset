@@ -29,7 +29,8 @@ logger = logging.getLogger(__name__)
 
 class UpdateTemporaryCacheCommand(BaseCommand, ABC):
     def __init__(
-        self, cmd_params: CommandParameters,
+        self,
+        cmd_params: CommandParameters,
     ):
         self._parameters = cmd_params
 
