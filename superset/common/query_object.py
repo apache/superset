@@ -43,6 +43,7 @@ from superset.utils.core import (
     is_adhoc_metric,
     json_int_dttm_ser,
     QueryObjectFilterClause,
+    get_username,
 )
 from superset.utils.date_parser import parse_human_timedelta
 from superset.utils.hashing import md5_sha_from_dict
