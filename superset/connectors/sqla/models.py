@@ -84,7 +84,6 @@ from superset.connectors.sqla.utils import (
     get_virtual_table_metadata,
     validate_adhoc_subquery,
 )
-from superset.databases.utils import make_url_safe
 from superset.datasets.models import Dataset as NewDataset
 from superset.db_engine_specs.base import BaseEngineSpec, CTE_ALIAS, TimestampExpression
 from superset.exceptions import (
@@ -2035,7 +2034,6 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         if self.has_extra_cache_key_calls(query_obj):
             sqla_query = self.get_sqla_query(**query_obj)
             extra_cache_keys += sqla_query.extra_cache_keys
-
         return extra_cache_keys
 
     @property
