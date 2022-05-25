@@ -47,6 +47,7 @@ describe('ChartPlugin', () => {
     force: false,
     result_format: 'json',
     result_type: 'full',
+    viz_type: 'table',
   });
 
   const controlPanel = { abc: 1 };
