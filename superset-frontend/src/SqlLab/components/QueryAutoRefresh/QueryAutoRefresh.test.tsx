@@ -23,11 +23,17 @@ import QueryAutoRefresh, {
   shouldCheckForQueries,
 } from 'src/SqlLab/components/QueryAutoRefresh';
 import { successfulQuery, runningQuery } from 'src/SqlLab/fixtures';
+import { QueryDictionary } from 'src/SqlLab/types';
 
 // NOTE: The uses of @ts-ignore in this file is to enable testing of bad inputs to verify the
 // function / component handles bad data elegantly
 describe('QueryAutoRefresh', () => {
-  const queries = [runningQuery];
+  const runningQueries: QueryDictionary = {};
+  runningQueries[runningQuery.id] = runningQuery;
+
+  const successfulQueries: QueryDictionary = {};
+  successfulQueries[successfulQuery.id] = successfulQuery;
+
   const actions = {
     setUserOffline: jest.fn(),
     refreshQueries: jest.fn(),
@@ -60,11 +66,11 @@ describe('QueryAutoRefresh', () => {
   });
 
   it('shouldCheckForQueries is true for valid running query', () => {
-    expect(shouldCheckForQueries([runningQuery])).toBe(true);
+    expect(shouldCheckForQueries(runningQueries)).toBe(true);
   });
 
   it('shouldCheckForQueries is false for valid completed query', () => {
-    expect(shouldCheckForQueries([successfulQuery])).toBe(false);
+    expect(shouldCheckForQueries(successfulQueries)).toBe(false);
   });
 
   it('shouldCheckForQueries is false for invalid inputs', () => {
@@ -74,14 +80,23 @@ describe('QueryAutoRefresh', () => {
     expect(shouldCheckForQueries(undefined)).toBe(false);
     expect(
       // @ts-ignore
-      shouldCheckForQueries([null, 'hello world', [], undefined, 23]),
+      shouldCheckForQueries({
+        // @ts-ignore
+        '1234': null,
+        // @ts-ignore
+        '23425': 'hello world',
+        // @ts-ignore
+        '345': [],
+        // @ts-ignore
+        '57346': undefined,
+      }),
     ).toBe(false);
   });
 
   it('Attempts to refresh when given pending query', () => {
     render(
       <QueryAutoRefresh
-        queries={queries}
+        queries={runningQueries}
         actions={actions}
         queriesLastUpdate={queriesLastUpdate}
       />,
@@ -96,7 +111,7 @@ describe('QueryAutoRefresh', () => {
     render(
       <QueryAutoRefresh
         // @ts-ignore
-        queries={[runningQuery, null]}
+        queries={{ ...runningQueries, g324t: null }}
         actions={actions}
         queriesLastUpdate={queriesLastUpdate}
       />,
@@ -110,7 +125,7 @@ describe('QueryAutoRefresh', () => {
   it('Does NOT Attempt to refresh when given only completed queries', () => {
     render(
       <QueryAutoRefresh
-        queries={[successfulQuery]}
+        queries={successfulQueries}
         actions={actions}
         queriesLastUpdate={queriesLastUpdate}
       />,
