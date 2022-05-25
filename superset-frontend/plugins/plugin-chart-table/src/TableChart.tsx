@@ -412,20 +412,20 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             ].join(' '),
           };
           if (html) {
+            if (truncateLongCells) {
+              // eslint-disable-next-line react/no-danger
+              return (
+                <StyledCell {...cellProps}>
+                  <div
+                    className="dt-truncate-cell"
+                    style={columnWidth ? { width: columnWidth } : undefined}
+                    dangerouslySetInnerHTML={html}
+                  />
+                </StyledCell>
+              );
+            }
             // eslint-disable-next-line react/no-danger
-            return (
-              <StyledCell {...cellProps}>
-                <div
-                  {...(truncateLongCells
-                    ? {
-                        className: 'dt-truncate-cell',
-                        style: columnWidth ? { width: columnWidth } : undefined,
-                      }
-                    : undefined)}
-                  dangerouslySetInnerHTML={html}
-                />
-              </StyledCell>
-            );
+            return <StyledCell {...cellProps} dangerouslySetInnerHTML={html} />;
           }
           // If cellProps renderes textContent already, then we don't have to
           // render `Cell`. This saves some time for large tables.
