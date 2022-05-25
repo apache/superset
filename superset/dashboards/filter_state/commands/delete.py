@@ -18,6 +18,7 @@ from flask import session
 
 from superset.dashboards.dao import DashboardDAO
 from superset.extensions import cache_manager
+from superset.key_value.utils import get_owner
 from superset.temporary_cache.commands.delete import DeleteTemporaryCacheCommand
 from superset.temporary_cache.commands.entry import Entry
 from superset.temporary_cache.commands.exceptions import TemporaryCacheAccessDeniedError
@@ -34,7 +35,7 @@ class DeleteFilterStateCommand(DeleteTemporaryCacheCommand):
         if dashboard:
             entry: Entry = cache_manager.filter_state_cache.get(key)
             if entry:
-                if entry["owner"] != actor.get_user_id():
+                if entry["owner"] != get_owner(actor):
                     raise TemporaryCacheAccessDeniedError()
                 tab_id = cmd_params.tab_id
                 contextual_key = cache_key(session.get("_id"), tab_id, resource_id)
