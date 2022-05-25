@@ -128,6 +128,7 @@ class TestDatasetApi(SupersetTestCase):
             main_db = get_main_database()
             for tables_name in self.fixture_tables_names:
                 datasets.append(self.insert_dataset(tables_name, [admin.id], main_db))
+
             yield datasets
 
             # rollback changes
@@ -1811,3 +1812,33 @@ class TestDatasetApi(SupersetTestCase):
                 }
             ]
         }
+
+    @pytest.mark.usefixtures("create_datasets")
+    def test_get_datasets_is_certified_filter(self):
+        """
+        Dataset API: Test custom dataset_is_certified filter
+        """
+        table_w_certification = SqlaTable(
+            table_name="foo",
+            schema=None,
+            owners=[],
+            database=get_main_database(),
+            sql=None,
+            extra='{"certification": 1}',
+        )
+        db.session.add(table_w_certification)
+        db.session.commit()
+
+        arguments = {
+            "filters": [{"col": "id", "opr": "dataset_is_certified", "value": True}]
+        }
+        self.login(username="admin")
+        uri = f"api/v1/dataset/?q={prison.dumps(arguments)}"
+        rv = self.client.get(uri)
+
+        assert rv.status_code == 200
+        response = json.loads(rv.data.decode("utf-8"))
+        assert response.get("count") == 1
+
+        db.session.delete(table_w_certification)
+        db.session.commit()

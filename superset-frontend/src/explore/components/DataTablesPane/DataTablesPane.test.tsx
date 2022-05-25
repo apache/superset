@@ -151,7 +151,7 @@ describe('DataTablesPane', () => {
         useRedux: true,
         initialState: {
           explore: {
-            timeFormattedColumns: {
+            originalFormattedTimeColumns: {
               '34__table': ['__timestamp'],
             },
           },
@@ -203,7 +203,7 @@ describe('DataTablesPane', () => {
         useRedux: true,
         initialState: {
           explore: {
-            timeFormattedColumns: {
+            originalFormattedTimeColumns: {
               '34__table': ['__timestamp'],
             },
           },
