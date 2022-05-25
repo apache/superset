@@ -243,7 +243,11 @@ export default function HeaderReportDropDown({
             triggerNode.closest('.action-button')
           }
         >
-          <span role="button" className="action-button" tabIndex={0}>
+          <span
+            role="button"
+            className="action-button action-schedule-report"
+            tabIndex={0}
+          >
             <Icons.Calendar />
           </span>
         </NoAnimationDropdown>
@@ -253,7 +257,7 @@ export default function HeaderReportDropDown({
         role="button"
         title={t('Schedule email report')}
         tabIndex={0}
-        className="action-button"
+        className="action-button action-schedule-report"
         onClick={() => setShowModal(true)}
       >
         <Icons.Calendar />
