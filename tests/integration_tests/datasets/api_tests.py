@@ -1860,8 +1860,8 @@ class TestDatasetApi(SupersetTestCase):
         rv = self.client.get(uri)
         rv_data = json.loads(rv.data)
         assert rv.status_code == 200
-        assert "samples" in rv_data
-        assert rv_data["samples"]["cached_dttm"] is not None
+        assert "result" in rv_data
+        assert rv_data["result"]["cached_dttm"] is not None
 
         # 2. should through cache
         uri2 = f"api/v1/dataset/{dataset.id}/samples?force=true"
@@ -1870,15 +1870,15 @@ class TestDatasetApi(SupersetTestCase):
         # force query
         rv2 = self.client.get(uri2)
         rv_data2 = json.loads(rv2.data)
-        assert rv_data2["samples"]["cached_dttm"] is None
+        assert rv_data2["result"]["cached_dttm"] is None
 
         # 3. data precision
-        assert "colnames" in rv_data2["samples"]
-        assert "coltypes" in rv_data2["samples"]
-        assert "data" in rv_data2["samples"]
+        assert "colnames" in rv_data2["result"]
+        assert "coltypes" in rv_data2["result"]
+        assert "data" in rv_data2["result"]
 
         eager_samples = dataset.database.get_df(
             f"select * from {dataset.table_name}"
             f' limit {self.app.config["SAMPLES_ROW_LIMIT"]}'
         ).to_dict(orient="records")
-        assert eager_samples == rv_data2["samples"]["data"]
+        assert eager_samples == rv_data2["result"]["data"]
