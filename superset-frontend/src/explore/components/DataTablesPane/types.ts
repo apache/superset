@@ -34,13 +34,20 @@ export interface DataTablesPaneProps {
   actions: ExploreActions;
 }
 
-export interface DataTableProps {
+export interface ResultsPaneProps {
   isRequest: boolean;
-  resultType: 'results' | 'samples';
   queryFormData: QueryFormData;
-  datasource?: Datasource;
   queryForce: boolean;
   ownState?: JsonObject;
+  errorMessage?: React.ReactElement;
+  actions?: ExploreActions;
+  dataSize?: number;
+}
+
+export interface SamplesPaneProps {
+  isRequest: boolean;
+  datasource: Datasource;
+  queryForce: boolean;
   errorMessage?: React.ReactElement;
   actions?: ExploreActions;
   dataSize?: number;

@@ -16,5 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export { DataTablesPane } from './DataTablesPane';
-export * from './components';
+export { ResultsPane } from './ResultsPane';
+export { SamplesPane } from './SamplesPane';
+export { TableControls, TableControlsWrapper } from './DataTableControls';

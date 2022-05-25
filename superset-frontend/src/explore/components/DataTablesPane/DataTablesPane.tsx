@@ -31,8 +31,7 @@ import {
   setItem,
   LocalStorageKeys,
 } from 'src/utils/localStorageHelpers';
-import { DataTable } from './DataTable';
-import { TableControlsWrapper } from './DataTableControls';
+import { ResultsPane, SamplesPane, TableControlsWrapper } from './components';
 import { DataTablesPaneProps } from './types';
 
 enum ResultTypes {
@@ -93,7 +92,7 @@ export const DataTablesPane = ({
   const theme = useTheme();
   const [activeTabKey, setActiveTabKey] = useState<string>(ResultTypes.results);
   const [isRequest, setIsRequest] = useState<Record<ResultTypes, boolean>>({
-    results: false,
+    results: getItem(LocalStorageKeys.is_datapanel_open, false),
     samples: false,
   });
   const [panelOpen, setPanelOpen] = useState(
@@ -192,11 +191,9 @@ export const DataTablesPane = ({
         onTabClick={handleTabClick}
       >
         <Tabs.TabPane tab={t('Results')} key={ResultTypes.results}>
-          <DataTable
+          <ResultsPane
             errorMessage={errorMessage}
-            resultType={ResultTypes.results}
             queryFormData={queryFormData}
-            datasource={datasource}
             queryForce={queryForce}
             ownState={ownState}
             isRequest={isRequest.results}
@@ -204,13 +201,10 @@ export const DataTablesPane = ({
           />
         </Tabs.TabPane>
         <Tabs.TabPane tab={t('Samples')} key={ResultTypes.samples}>
-          <DataTable
+          <SamplesPane
             errorMessage={errorMessage}
-            resultType={ResultTypes.samples}
-            queryFormData={queryFormData}
             datasource={datasource}
             queryForce={queryForce}
-            ownState={ownState}
             isRequest={isRequest.samples}
             actions={actions}
           />

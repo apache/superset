@@ -20,7 +20,7 @@ import { useState, useEffect } from 'react';
 import { t, ensureIsArray } from '@superset-ui/core';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
-import { requestPayload, responseData } from './types';
+import { requestPayload, responseData } from '../types';
 
 const cache = new WeakMap();
 

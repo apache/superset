@@ -24,7 +24,7 @@ import {
   RowCount,
 } from 'src/explore/components/DataTableControl';
 import { applyFormattingToTabularData } from 'src/utils/common';
-import { useOriginalFormattedTimeColumns } from '../useOriginalFormattedTimeColumns';
+import { useOriginalFormattedTimeColumns } from 'src/explore/components/useOriginalFormattedTimeColumns';
 
 export const TableControlsWrapper = styled.div`
   ${({ theme }) => `

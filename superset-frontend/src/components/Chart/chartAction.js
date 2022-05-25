@@ -43,6 +43,10 @@ import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { allowCrossDomain as domainShardingEnabled } from 'src/utils/hostNamesConfig';
 import { updateDataMask } from 'src/dataMask/actions';
 import { waitForAsyncData } from 'src/middleware/asyncEvent';
+import {
+  buildTimeRangeString,
+  formatTimeRange,
+} from '../../explore/components/controls/DateFilterControl/utils';
 
 export const CHART_UPDATE_STARTED = 'CHART_UPDATE_STARTED';
 export function chartUpdateStarted(queryController, latestQueryFormData, key) {
@@ -595,3 +599,16 @@ export function refreshChart(chartKey, force, dashboardId) {
     );
   };
 }
+
+export const getDatasetSamples = async (datasetId, force) => {
+  const endpoint = `/api/v1/dataset/${datasetId}/samples?force=${force}`;
+  try {
+    const response = await SupersetClient.get({ endpoint });
+    return response.json.samples;
+  } catch (response) {
+    const clientError = await getClientErrorObject(response);
+    return {
+      error: clientError.message || clientError.error,
+    };
+  }
+};

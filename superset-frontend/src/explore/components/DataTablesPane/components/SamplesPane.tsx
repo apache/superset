@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState } from 'react';
-import { styled, t } from '@superset-ui/core';
+import React, { useState, useEffect } from 'react';
+import { GenericDataType, styled, t } from '@superset-ui/core';
 import Loading from 'src/components/Loading';
 import { EmptyStateMedium } from 'src/components/EmptyState';
 import TableView, { EmptyWrapperType } from 'src/components/TableView';
@@ -26,39 +26,55 @@ import {
   useTableColumns,
 } from 'src/explore/components/DataTableControl';
 import { useOriginalFormattedTimeColumns } from 'src/explore/components/useOriginalFormattedTimeColumns';
+import { getDatasetSamples } from 'src/components/Chart/chartAction';
+import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { TableControls } from './DataTableControls';
-import { useGetResultsOrSamples } from './useGetResultsOrSamples';
-import { DataTableProps } from './types';
+import { SamplesPaneProps } from '../types';
 
 const Error = styled.pre`
   margin-top: ${({ theme }) => `${theme.gridUnit * 4}px`};
 `;
 
-export const DataTable = ({
+export const SamplesPane = ({
   isRequest,
-  resultType,
-  queryFormData,
   datasource,
   queryForce,
-  ownState,
   errorMessage,
   actions,
   dataSize = 50,
-}: DataTableProps) => {
+}: SamplesPaneProps) => {
   const [filterText, setFilterText] = useState('');
-  const { isLoading, data, colnames, coltypes, responseError } =
-    useGetResultsOrSamples({
-      isRequest: isRequest && !errorMessage,
-      resultType,
-      datasource,
-      queryFormData,
-      queryForce,
-      ownState,
-      actions,
-    });
+  const [data, setData] = useState<Record<string, any>[][]>([]);
+  const [colnames, setColnames] = useState<string[]>([]);
+  const [coltypes, setColtypes] = useState<GenericDataType[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [responseError, setResponseError] = useState<string>('');
+
+  useEffect(() => {
+    if (isRequest) {
+      setIsLoading(true);
+      getDatasetSamples(datasource.id, queryForce)
+        .then(response => {
+          setData(response.data);
+          setColnames(response.colnames);
+          setColtypes(response.coltypes);
+          if (queryForce && actions) {
+            actions.setForceQuery(false);
+          }
+        })
+        .catch(response => {
+          getClientErrorObject(response).then(({ error, message }) => {
+            setResponseError(error || message || t('Sorry, an error occurred'));
+          });
+        })
+        .finally(() => {
+          setIsLoading(false);
+        });
+    }
+  }, [datasource, isRequest]);
 
   const originalFormattedTimeColumns = useOriginalFormattedTimeColumns(
-    queryFormData.datasource,
+    datasource.id,
   );
   // this is to preserve the order of the columns, even if there are integer values,
   // while also only grabbing the first column's keys
@@ -66,12 +82,12 @@ export const DataTable = ({
     colnames,
     coltypes,
     data,
-    queryFormData.datasource,
+    datasource.id,
     originalFormattedTimeColumns,
   );
   const filteredData = useFilteredTableData(filterText, data);
 
-  if (errorMessage && resultType === 'results') {
+  if (errorMessage) {
     const title = t('Run a query to display results');
     return <EmptyStateMedium image="document.svg" title={title} />;
   }
@@ -86,7 +102,7 @@ export const DataTable = ({
         <TableControls
           data={filteredData}
           columnNames={colnames}
-          datasourceId={queryFormData?.datasource}
+          datasourceId={datasource?.id}
           onInputChange={input => setFilterText(input)}
           isLoading={isLoading}
         />
@@ -96,10 +112,7 @@ export const DataTable = ({
   }
 
   if (data.length === 0) {
-    const title =
-      resultType === 'samples'
-        ? t('No samples were returned for this query')
-        : t('No results were returned for this query');
+    const title = t('No results were returned for this query');
     return <EmptyStateMedium image="document.svg" title={title} />;
   }
 
@@ -108,7 +121,7 @@ export const DataTable = ({
       <TableControls
         data={filteredData}
         columnNames={colnames}
-        datasourceId={queryFormData?.datasource}
+        datasourceId={datasource?.id}
         onInputChange={input => setFilterText(input)}
         isLoading={isLoading}
       />
