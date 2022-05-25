@@ -128,6 +128,7 @@ class TestDatasetApi(SupersetTestCase):
             main_db = get_main_database()
             for tables_name in self.fixture_tables_names:
                 datasets.append(self.insert_dataset(tables_name, [admin.id], main_db))
+
             yield datasets
 
             # rollback changes
@@ -212,6 +213,27 @@ class TestDatasetApi(SupersetTestCase):
         assert rv.status_code == 200
         response = json.loads(rv.data.decode("utf-8"))
         assert response["result"] == []
+
+    def test_get_dataset_list_gamma_owned(self):
+        """
+        Dataset API: Test get dataset list owned by gamma
+        """
+        main_db = get_main_database()
+        owned_dataset = self.insert_dataset(
+            "ab_user", [self.get_user("gamma").id], main_db
+        )
+
+        self.login(username="gamma")
+        uri = "api/v1/dataset/"
+        rv = self.get_assert_metric(uri, "get_list")
+        assert rv.status_code == 200
+        response = json.loads(rv.data.decode("utf-8"))
+
+        assert response["count"] == 1
+        assert response["result"][0]["table_name"] == "ab_user"
+
+        db.session.delete(owned_dataset)
+        db.session.commit()
 
     def test_get_dataset_related_database_gamma(self):
         """
@@ -1811,3 +1833,73 @@ class TestDatasetApi(SupersetTestCase):
                 }
             ]
         }
+
+    @pytest.mark.usefixtures("create_datasets")
+    def test_get_datasets_is_certified_filter(self):
+        """
+        Dataset API: Test custom dataset_is_certified filter
+        """
+        table_w_certification = SqlaTable(
+            table_name="foo",
+            schema=None,
+            owners=[],
+            database=get_main_database(),
+            sql=None,
+            extra='{"certification": 1}',
+        )
+        db.session.add(table_w_certification)
+        db.session.commit()
+
+        arguments = {
+            "filters": [{"col": "id", "opr": "dataset_is_certified", "value": True}]
+        }
+        self.login(username="admin")
+        uri = f"api/v1/dataset/?q={prison.dumps(arguments)}"
+        rv = self.client.get(uri)
+
+        assert rv.status_code == 200
+        response = json.loads(rv.data.decode("utf-8"))
+        assert response.get("count") == 1
+
+        db.session.delete(table_w_certification)
+        db.session.commit()
+
+    @pytest.mark.usefixtures("create_datasets")
+    def test_get_dataset_samples(self):
+        """
+        Dataset API: Test get dataset samples
+        """
+        dataset = self.get_fixture_datasets()[0]
+
+        self.login(username="admin")
+        uri = f"api/v1/dataset/{dataset.id}/samples"
+
+        # 1. should cache data
+        # feeds data
+        self.client.get(uri)
+        # get from cache
+        rv = self.client.get(uri)
+        rv_data = json.loads(rv.data)
+        assert rv.status_code == 200
+        assert "result" in rv_data
+        assert rv_data["result"]["cached_dttm"] is not None
+
+        # 2. should through cache
+        uri2 = f"api/v1/dataset/{dataset.id}/samples?force=true"
+        # feeds data
+        self.client.get(uri2)
+        # force query
+        rv2 = self.client.get(uri2)
+        rv_data2 = json.loads(rv2.data)
+        assert rv_data2["result"]["cached_dttm"] is None
+
+        # 3. data precision
+        assert "colnames" in rv_data2["result"]
+        assert "coltypes" in rv_data2["result"]
+        assert "data" in rv_data2["result"]
+
+        eager_samples = dataset.database.get_df(
+            f"select * from {dataset.table_name}"
+            f' limit {self.app.config["SAMPLES_ROW_LIMIT"]}'
+        ).to_dict(orient="records")
+        assert eager_samples == rv_data2["result"]["data"]

@@ -122,7 +122,7 @@ function setup(props: HeaderProps, initialState = {}) {
 async function openActionsDropdown() {
   const btn = screen.getByRole('img', { name: 'more-horiz' });
   userEvent.click(btn);
-  expect(await screen.findByRole('menu')).toBeInTheDocument();
+  expect(await screen.findByTestId('header-actions-menu')).toBeInTheDocument();
 }
 
 test('should render', () => {
@@ -134,7 +134,9 @@ test('should render', () => {
 test('should render the title', () => {
   const mockedProps = createProps();
   setup(mockedProps);
-  expect(screen.getByText('Dashboard Title')).toBeInTheDocument();
+  expect(screen.getByTestId('editable-title')).toHaveTextContent(
+    'Dashboard Title',
+  );
 });
 
 test('should render the editable title', () => {
@@ -161,21 +163,30 @@ test('should render the "Draft" status', () => {
 });
 
 test('should publish', () => {
-  setup(editableProps);
+  const mockedProps = createProps();
+  const canEditProps = {
+    ...mockedProps,
+    dashboardInfo: {
+      ...mockedProps.dashboardInfo,
+      dash_edit_perm: true,
+      dash_save_perm: true,
+    },
+  };
+  setup(canEditProps);
   const draft = screen.getByText('Draft');
-  expect(editableProps.savePublished).not.toHaveBeenCalled();
+  expect(mockedProps.savePublished).toHaveBeenCalledTimes(0);
   userEvent.click(draft);
-  expect(editableProps.savePublished).toHaveBeenCalledTimes(1);
+  expect(mockedProps.savePublished).toHaveBeenCalledTimes(1);
 });
 
 test('should render the "Undo" action as disabled', () => {
   setup(editableProps);
-  expect(screen.getByTitle('Undo').parentElement).toBeDisabled();
+  expect(screen.getByTestId('undo-action').parentElement).toBeDisabled();
 });
 
 test('should undo', () => {
   setup(undoProps);
-  const undo = screen.getByTitle('Undo');
+  const undo = screen.getByTestId('undo-action');
   expect(undoProps.onUndo).not.toHaveBeenCalled();
   userEvent.click(undo);
   expect(undoProps.onUndo).toHaveBeenCalledTimes(1);
@@ -191,12 +202,12 @@ test('should undo with key listener', () => {
 
 test('should render the "Redo" action as disabled', () => {
   setup(editableProps);
-  expect(screen.getByTitle('Redo').parentElement).toBeDisabled();
+  expect(screen.getByTestId('redo-action').parentElement).toBeDisabled();
 });
 
 test('should redo', () => {
   setup(redoProps);
-  const redo = screen.getByTitle('Redo');
+  const redo = screen.getByTestId('redo-action');
   expect(redoProps.onRedo).not.toHaveBeenCalled();
   userEvent.click(redo);
   expect(redoProps.onRedo).toHaveBeenCalledTimes(1);
@@ -212,7 +223,7 @@ test('should redo with key listener', () => {
 
 test('should render the "Discard changes" button', () => {
   setup(editableProps);
-  expect(screen.getByText('Discard changes')).toBeInTheDocument();
+  expect(screen.getByText('Discard')).toBeInTheDocument();
 });
 
 test('should render the "Save" button as disabled', () => {
@@ -297,8 +308,8 @@ test('should toggle the edit mode', () => {
     },
   };
   setup(canEditProps);
-  const editDashboard = screen.getByTitle('Edit dashboard');
-  expect(screen.queryByTitle('Edit dashboard')).toBeInTheDocument();
+  const editDashboard = screen.getByText('Edit dashboard');
+  expect(screen.queryByText('Edit dashboard')).toBeInTheDocument();
   userEvent.click(editDashboard);
   expect(mockedProps.logEvent).toHaveBeenCalled();
 });
