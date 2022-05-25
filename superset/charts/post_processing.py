@@ -44,6 +44,8 @@ from superset.common.query_context import QueryContext
 if TYPE_CHECKING:
     from superset.connectors.base.models import BaseDatasource
 
+config = app.config
+logger = logging.getLogger(__name__)
 
 def get_column_key(label: Tuple[str, ...], metrics: List[str]) -> Tuple[Any, ...]:
     """
