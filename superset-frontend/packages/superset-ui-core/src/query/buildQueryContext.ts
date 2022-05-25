@@ -76,6 +76,6 @@ export default function buildQueryContext(
     form_data: formData,
     result_format: formData.result_format || 'json',
     result_type: formData.result_type || 'full',
-    vis_type: formData.vis_type || 'full',
+    viz_type: formData.viz_type  || '',
   };
 }
