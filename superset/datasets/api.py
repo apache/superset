@@ -795,7 +795,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
                   schema:
                     type: object
                     properties:
-                      samples:
+                      result:
                         $ref: '#/components/schemas/ChartDataResponseResult'
             401:
               $ref: '#/components/responses/401'
@@ -811,7 +811,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         try:
             force = parse_boolean_string(request.args.get("force"))
             rv = SamplesDatasetCommand(g.user, pk, force).run()
-            return self.response(200, samples=rv)
+            return self.response(200, result=rv)
         except DatasetNotFoundError:
             return self.response_404()
         except DatasetForbiddenError:
