@@ -16,11 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { SupersetClient } from '@superset-ui/core';
 import * as Actions from 'src/SqlLab/actions/sqlLab';
 import { Query } from 'src/SqlLab/types';
-import useInterval from '../../utils/useInterval';
+import useInterval from 'src/SqlLab/utils/useInterval';
 
 const QUERY_UPDATE_FREQ = 2000;
 const QUERY_UPDATE_BUFFER_MS = 5000;
@@ -41,7 +41,6 @@ interface Actions {
 }
 
 export interface QueryAutoRefreshProps {
-  offline: boolean;
   queries: Query[];
   actions: Actions;
   queriesLastUpdate: number;
@@ -49,7 +48,7 @@ export interface QueryAutoRefreshProps {
 
 // returns true if the Query.state matches one of the specifc values indicating the query is still processing on server
 export const isQueryRunning = (q: Query): boolean =>
-  ['running', 'started', 'pending', 'fetching'].indexOf(q?.state) >= 0;
+  ['running', 'started', 'pending', 'fetching'].includes(q?.state);
 
 // returns true if at least one query is running and within the max age to poll timeframe
 export const shouldCheckForQueries = (queryList: Query[]): boolean => {
@@ -65,27 +64,16 @@ export const shouldCheckForQueries = (queryList: Query[]): boolean => {
 };
 
 function QueryAutoRefresh({
-  offline,
   queries,
   actions,
   queriesLastUpdate,
 }: QueryAutoRefreshProps) {
-  // In case of an error / timeout requesting query execution state
-  // we set isOffline to true.  the interval timer will continue to run 
-  // and update status if connection succeeds later
-  const [isOffline, setIsOffline] = useState(offline);
   // We do not want to spam requests in the case of slow connections and potentially recieve responses out of order
   // pendingRequest check ensures we only have one active http call to check for query statuses
   const [pendingRequest, setPendingRequest] = useState(false);
 
-  useEffect(() => {
-    if (isOffline !== offline) {
-      actions?.setUserOffline(isOffline);
-    }
-  }, [isOffline, offline, actions]);
-
   const refreshQueries = () => {
-    if (!pendingRequest && (shouldCheckForQueries(queries) || isOffline)) {
+    if (!pendingRequest && shouldCheckForQueries(queries)) {
       setPendingRequest(true);
       SupersetClient.get({
         endpoint: `/superset/queries/${
@@ -94,14 +82,15 @@ function QueryAutoRefresh({
         timeout: QUERY_TIMEOUT_LIMIT,
       })
         .then(({ json }) => {
-          if (json && Object.keys(json)?.length > 0) {
+          if (json) {
             actions?.refreshQueries(json);
           }
-          setIsOffline(false);
-          setPendingRequest(false);
+          actions?.setUserOffline(false);
         })
         .catch(() => {
-          setIsOffline(true);
+          actions?.setUserOffline(true);
+        })
+        .finally(() => {
           setPendingRequest(false);
         });
     }
@@ -110,7 +99,9 @@ function QueryAutoRefresh({
   // Solves issue where direct usage of setInterval in function components
   // uses stale props / state from closure
   // See comments in the useInterval.ts file for more information
-  useInterval(refreshQueries, QUERY_UPDATE_FREQ);
+  useInterval(() => {
+    refreshQueries();
+  }, QUERY_UPDATE_FREQ);
 
   return null;
 }

@@ -27,7 +27,6 @@ import { successfulQuery, runningQuery } from 'src/SqlLab/fixtures';
 // NOTE: The uses of @ts-ignore in this file is to enable testing of bad inputs to verify the
 // function / component handles bad data elegantly
 describe('QueryAutoRefresh', () => {
-  const offline = false;
   const queries = [runningQuery];
   const actions = {
     setUserOffline: jest.fn(),
@@ -83,7 +82,6 @@ describe('QueryAutoRefresh', () => {
     render(
       <QueryAutoRefresh
         queries={queries}
-        offline={offline}
         actions={actions}
         queriesLastUpdate={queriesLastUpdate}
       />,
@@ -99,7 +97,6 @@ describe('QueryAutoRefresh', () => {
       <QueryAutoRefresh
         // @ts-ignore
         queries={[runningQuery, null]}
-        offline={offline}
         actions={actions}
         queriesLastUpdate={queriesLastUpdate}
       />,
@@ -114,7 +111,6 @@ describe('QueryAutoRefresh', () => {
     render(
       <QueryAutoRefresh
         queries={[successfulQuery]}
-        offline={offline}
         actions={actions}
         queriesLastUpdate={queriesLastUpdate}
       />,

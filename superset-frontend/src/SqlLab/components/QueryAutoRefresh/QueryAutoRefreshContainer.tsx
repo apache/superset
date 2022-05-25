@@ -24,14 +24,12 @@ import { RootState } from 'src/SqlLab/types';
 import QueryAutoRefresh, { QueryAutoRefreshProps } from '.';
 
 function QueryAutoRefreshConnector({
-  offline,
   queries,
   actions,
   queriesLastUpdate,
 }: QueryAutoRefreshProps) {
   return (
     <QueryAutoRefresh
-      offline={offline}
       queries={queries}
       actions={actions}
       queriesLastUpdate={queriesLastUpdate}
@@ -41,7 +39,6 @@ function QueryAutoRefreshConnector({
 
 function mapStateToProps({ sqlLab }: RootState) {
   return {
-    offline: sqlLab.offline,
     queries: sqlLab.queries,
     queriesLastUpdate: sqlLab.queriesLastUpdate,
   };
