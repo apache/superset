@@ -1537,6 +1537,18 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     def parse_sql(cls, sql: str) -> List[str]:
         return [str(s).strip(" ;") for s in sqlparse.parse(sql)]
 
+    @classmethod
+    def get_impersonation_key(
+        cls,
+        username: Optional[str]
+    ) -> Any:
+        """
+        Construct an impersonation key, by default it's the given username.
+
+        :param username: logged in user's username
+        """
+        return username
+
 
 # schema for adding a database by providing parameters instead of the
 # full SQLAlchemy URI
