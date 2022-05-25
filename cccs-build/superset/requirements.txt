@@ -9,3 +9,4 @@ trino>=0.313.0
 mysql-connector-python==8.0.26
 elasticsearch-dbapi==0.2.4
 cachetools~=5.0.0
+typing-extensions<4,>=3.10
