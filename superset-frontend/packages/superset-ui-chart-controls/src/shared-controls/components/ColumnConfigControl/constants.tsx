@@ -192,7 +192,6 @@ export const DEFAULT_CONFIG_FORM_LAYOUT: ColumnConfigFormLayout = {
       'columnWidth',
       { name: 'horizontalAlign', override: { defaultValue: 'right' } },
     ],
-    ['truncateLongCells'],
     ['d3NumberFormat'],
     ['d3SmallNumberFormat'],
     ['alignPositiveNegative', 'colorPositiveNegative'],
@@ -203,7 +202,6 @@ export const DEFAULT_CONFIG_FORM_LAYOUT: ColumnConfigFormLayout = {
       'columnWidth',
       { name: 'horizontalAlign', override: { defaultValue: 'left' } },
     ],
-    ['truncateLongCells'],
     ['d3TimeFormat'],
   ],
   [GenericDataType.BOOLEAN]: [
@@ -211,6 +209,5 @@ export const DEFAULT_CONFIG_FORM_LAYOUT: ColumnConfigFormLayout = {
       'columnWidth',
       { name: 'horizontalAlign', override: { defaultValue: 'left' } },
     ],
-    ['truncateLongCells'],
   ],
 };
