@@ -19,7 +19,7 @@
 import { useState } from 'react';
 import { SupersetClient } from '@superset-ui/core';
 import * as Actions from 'src/SqlLab/actions/sqlLab';
-import { Query } from 'src/SqlLab/types';
+import { Query, runningQueryStateList } from 'src/SqlLab/types';
 import useInterval from 'src/SqlLab/utils/useInterval';
 
 const QUERY_UPDATE_FREQ = 2000;
@@ -48,7 +48,7 @@ export interface QueryAutoRefreshProps {
 
 // returns true if the Query.state matches one of the specifc values indicating the query is still processing on server
 export const isQueryRunning = (q: Query): boolean =>
-  ['running', 'started', 'pending', 'fetching'].includes(q?.state);
+  runningQueryStateList.includes(q?.state);
 
 // returns true if at least one query is running and within the max age to poll timeframe
 export const shouldCheckForQueries = (queryList: Query[]): boolean => {

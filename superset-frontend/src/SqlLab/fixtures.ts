@@ -19,7 +19,7 @@
 import sinon from 'sinon';
 import * as actions from 'src/SqlLab/actions/sqlLab';
 import { ColumnKeyTypeType } from 'src/SqlLab/components/ColumnElement';
-import { Query } from './types';
+import { Query, QueryState } from './types';
 
 export const mockedActions = sinon.stub({ ...actions });
 
@@ -202,7 +202,7 @@ export const queries = [
     id: 'BkA1CLrJg',
     progress: 100,
     startDttm: 1476910566092.96,
-    state: 'success',
+    state: QueryState.SUCCESS,
     changedOn: 1476910566000,
     tempTable: null,
     userId: 1,
@@ -261,7 +261,7 @@ export const queries = [
     id: 'S1zeAISkx',
     progress: 100,
     startDttm: 1476910570802.2,
-    state: 'success',
+    state: QueryState.SUCCESS,
     changedOn: 1476910572000,
     tempTable: null,
     userId: 1,
@@ -295,7 +295,7 @@ export const queryWithNoQueryLimit = {
   id: 'BkA1CLrJg',
   progress: 100,
   startDttm: 1476910566092.96,
-  state: 'success',
+  state: QueryState.SUCCESS,
   changedOn: 1476910566000,
   tempTable: null,
   userId: 1,
@@ -465,7 +465,7 @@ export const stoppedQuery = {
   sql: 'SELECT ...',
   sqlEditorId: 'rJaf5u9WZ',
   startDttm: 1497400851936,
-  state: 'stopped',
+  state: QueryState.STOPPED,
   tab: 'Untitled Query 2',
   tempTable: '',
 };
@@ -483,7 +483,7 @@ export const failedQueryWithErrorMessage = {
   sql: 'SELECT ...',
   sqlEditorId: 'rJaf5u9WZ',
   startDttm: 1497400851936,
-  state: 'failed',
+  state: QueryState.FAILED,
   tab: 'Untitled Query 2',
   tempTable: '',
 };
@@ -508,7 +508,7 @@ export const failedQueryWithErrors = {
   sql: 'SELECT ...',
   sqlEditorId: 'rJaf5u9WZ',
   startDttm: 1497400851936,
-  state: 'failed',
+  state: QueryState.FAILED,
   tab: 'Untitled Query 2',
   tempTable: '',
 };
@@ -524,7 +524,7 @@ const baseQuery: Query = {
   id: 'BkA1CLrJg',
   progress: 100,
   startDttm: 1476910566092.96,
-  state: 'success',
+  state: QueryState.SUCCESS,
   tempSchema: null,
   tempTable: 'temp',
   userId: 1,
@@ -598,7 +598,7 @@ export const runningQuery: Query = {
   ctas: false,
   id: 'ryhMUZCGb',
   progress: 90,
-  state: 'running',
+  state: QueryState.RUNNING,
   startDttm: Date.now() - 500,
 };
 
@@ -609,7 +609,7 @@ export const successfulQuery: Query = {
   ctas: false,
   id: 'ryhMUZCGb',
   progress: 100,
-  state: 'success',
+  state: QueryState.SUCCESS,
   startDttm: Date.now() - 500,
 };
 
