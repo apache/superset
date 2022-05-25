@@ -174,7 +174,7 @@ class DatasetRefreshFailedError(UpdateFailedError):
 
 
 class DatasetSamplesFailedError(CommandInvalidError):
-    message = _("Dataset could not be sampled.")
+    message = _("Samples for dataset could not be retrieved.")
 
 
 class DatasetForbiddenError(ForbiddenError):
