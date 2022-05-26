@@ -16,12 +16,33 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useSelector } from 'react-redux';
-import { ExplorePageState } from '../reducers/getInitialState';
+import { Datasource, JsonObject, QueryFormData } from '@superset-ui/core';
+import { ExploreActions } from 'src/explore/actions/exploreActions';
 
-export const useOriginalFormattedTimeColumns = (datasourceId?: string) =>
-  useSelector<ExplorePageState, string[]>(state =>
-    datasourceId
-      ? state?.explore?.originalFormattedTimeColumns?.[datasourceId] ?? []
-      : [],
-  );
+export interface DataTablesPaneProps {
+  queryFormData: QueryFormData;
+  datasource: Datasource;
+  queryForce: boolean;
+  ownState?: JsonObject;
+  onCollapseChange: (isOpen: boolean) => void;
+  errorMessage?: JSX.Element;
+  actions: ExploreActions;
+}
+
+export interface ResultsPaneProps {
+  isRequest: boolean;
+  queryFormData: QueryFormData;
+  queryForce: boolean;
+  ownState?: JsonObject;
+  errorMessage?: React.ReactElement;
+  actions?: ExploreActions;
+  dataSize?: number;
+}
+
+export interface SamplesPaneProps {
+  isRequest: boolean;
+  datasource: Datasource;
+  queryForce: boolean;
+  actions?: ExploreActions;
+  dataSize?: number;
+}
