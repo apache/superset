@@ -150,7 +150,7 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
     def _get_to(self) -> str:
         return json.loads(self._recipient.recipient_config_json)["target"]
 
-    @statsd_gauge("email.send")
+    @statsd_gauge("reports.email.send")
     def send(self) -> None:
         subject = self._get_subject()
         content = self._get_content()

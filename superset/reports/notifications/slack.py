@@ -148,7 +148,7 @@ Error: %(text)s
         return []
 
     @backoff.on_exception(backoff.expo, SlackApiError, factor=10, base=2, max_tries=5)
-    @statsd_gauge("slack.send")
+    @statsd_gauge("reports.slack.send")
     def send(self) -> None:
         files = self._get_inline_files()
         title = self._content.name
