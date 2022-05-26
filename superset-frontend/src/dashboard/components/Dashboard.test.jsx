@@ -48,6 +48,7 @@ describe('Dashboard', () => {
       removeSliceFromDashboard() {},
       triggerQuery() {},
       logEvent() {},
+      updateQueryFormData() {},
     },
     initMessages: [],
     dashboardState,

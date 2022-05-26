@@ -16,12 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useSelector } from 'react-redux';
-import { ExplorePageState } from '../reducers/getInitialState';
-
-export const useOriginalFormattedTimeColumns = (datasourceId?: string) =>
-  useSelector<ExplorePageState, string[]>(state =>
-    datasourceId
-      ? state?.explore?.originalFormattedTimeColumns?.[datasourceId] ?? []
-      : [],
-  );
+export { ResultsPane } from './ResultsPane';
+export { SamplesPane } from './SamplesPane';
+export { TableControls, TableControlsWrapper } from './DataTableControls';
