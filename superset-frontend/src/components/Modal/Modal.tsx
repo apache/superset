@@ -325,7 +325,7 @@ const CustomModal = ({
       mask={shouldShowMask}
       draggable={draggable}
       resizable={resizable}
-      destroyOnClose={destroyOnClose || resizable || draggable}
+      destroyOnClose={destroyOnClose}
       {...rest}
     >
       {children}
