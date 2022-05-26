@@ -587,39 +587,6 @@ export const testQuery: Query = {
   extra: { progress: null },
   isDataPreview: false,
   progress: 0,
-  results: {
-    columns: [
-      {
-        is_dttm: true,
-        name: 'ds',
-        type: 'STRING',
-      },
-      {
-        is_dttm: false,
-        name: 'gender',
-        type: 'STRING',
-      },
-    ],
-    selected_columns: [
-      {
-        is_dttm: true,
-        name: 'ds',
-        type: 'STRING',
-      },
-      {
-        is_dttm: false,
-        name: 'gender',
-        type: 'STRING',
-      },
-    ],
-    expanded_columns: [],
-    query: { limit: 0 },
-    displayLimitReached: false,
-    data: [
-      { col1: 0, col2: 1 },
-      { col1: 2, col2: 3 },
-    ],
-  },
   resultsKey: null,
   state: 'success',
   tempSchema: null,
@@ -642,4 +609,5 @@ export const testQuery: Query = {
   output: '',
   actions: {},
   type: DatasourceType.Query,
+  columns: [],
 };
