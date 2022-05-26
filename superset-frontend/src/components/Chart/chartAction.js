@@ -605,10 +605,11 @@ export const getDatasetSamples = async (datasetId, force) => {
   try {
     const response = await SupersetClient.get({ endpoint });
     return response.json.result;
-  } catch (response) {
-    const clientError = await getClientErrorObject(response);
-    return {
-      error: clientError.message || clientError.error,
-    };
+  } catch (err) {
+    const clientError = await getClientErrorObject(err);
+    throw new Error(
+      clientError.message || clientError.error || t('Sorry, an error occurred'),
+      { cause: err },
+    );
   }
 };

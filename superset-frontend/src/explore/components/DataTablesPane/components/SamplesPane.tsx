@@ -27,7 +27,6 @@ import {
 } from 'src/explore/components/DataTableControl';
 import { useOriginalFormattedTimeColumns } from 'src/explore/components/useOriginalFormattedTimeColumns';
 import { getDatasetSamples } from 'src/components/Chart/chartAction';
-import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { TableControls } from './DataTableControls';
 import { SamplesPaneProps } from '../types';
 
@@ -73,10 +72,8 @@ export const SamplesPane = ({
             actions.setForceQuery(false);
           }
         })
-        .catch(response => {
-          getClientErrorObject(response).then(({ error, message }) => {
-            setResponseError(error || message || t('Sorry, an error occurred'));
-          });
+        .catch(error => {
+          setResponseError(`${error.name}: ${error.message}`);
         })
         .finally(() => {
           setIsLoading(false);
@@ -117,7 +114,7 @@ export const SamplesPane = ({
   }
 
   if (data.length === 0) {
-    const title = t('No results were returned for this query');
+    const title = t('No samples were returned for this dataset');
     return <EmptyStateMedium image="document.svg" title={title} />;
   }
 
