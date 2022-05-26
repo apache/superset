@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { css, styled, t, DatasourceType, Query } from '@superset-ui/core';
+import { css, styled, t, DatasourceType } from '@superset-ui/core';
 import {
   ControlConfig,
   Dataset,
