@@ -140,6 +140,7 @@ class BigQueryEngineSpec(BaseEngineSpec):
         "PT1H": "{func}({col}, HOUR)",
         "P1D": "{func}({col}, DAY)",
         "P1W": "{func}({col}, WEEK)",
+        "1969-12-29T00:00:00Z/P1W": "{func}({col}, ISOWEEK)",
         "P1M": "{func}({col}, MONTH)",
         "P3M": "{func}({col}, QUARTER)",
         "P1Y": "{func}({col}, YEAR)",
