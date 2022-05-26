@@ -45,11 +45,9 @@ import {
   DatasetOptionAutocomplete,
   SqlLabExploreRootState,
   getInitialState,
+  ExploreDatasource,
 } from 'src/SqlLab/types';
-import { Dataset } from '@superset-ui/chart-controls';
 import { exploreChart } from 'src/explore/exploreUtils';
-
-type ExploreDatasource = Dataset | QueryResponse;
 
 interface SaveDatasetModalProps {
   visible: boolean;
