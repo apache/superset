@@ -41,10 +41,10 @@ from superset.utils.core import (
     find_duplicates,
     get_column_names,
     get_metric_names,
+    get_username,
     is_adhoc_metric,
     json_int_dttm_ser,
     QueryObjectFilterClause,
-    get_username,
 )
 from superset.utils.date_parser import parse_human_timedelta
 from superset.utils.hashing import md5_sha_from_dict
@@ -399,21 +399,22 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             cache_dict["annotation_layers"] = annotation_layers
 
         # Add an impersonation key to cache if impersonation is enabled on the db
-        if feature_flag_manager.is_feature_enabled("CACHE_IMPERSONATION") and \
-           self.datasource and hasattr(self.datasource, 'database') and \
-           self.datasource.database.impersonate_user:
+        if (
+            feature_flag_manager.is_feature_enabled("CACHE_IMPERSONATION")
+            and self.datasource
+            and hasattr(self.datasource, "database")
+            and self.datasource.database.impersonate_user
+        ):
 
-            username = get_username()
+            if key := self.datasource.database.db_engine_spec.get_impersonation_key(
+                get_username()
+            ):
 
-            if impersonation_key := self \
-               .datasource \
-               .database.db_engine_spec \
-               .get_impersonation_key(username):
+                logger.debug(
+                    "Adding impersonation key to QueryObject cache dict: %s", key
+                )
 
-                logger.debug('Adding impersonation key to QueryObject cache dict: %s',
-                             impersonation_key)
-
-                cache_dict['impersonation_key'] = impersonation_key
+                cache_dict["impersonation_key"] = key
 
         return md5_sha_from_dict(cache_dict, default=json_int_dttm_ser, ignore_nan=True)
 
