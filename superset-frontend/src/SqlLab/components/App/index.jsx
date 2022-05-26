@@ -104,7 +104,8 @@ class App extends React.PureComponent {
           queries={queries}
           refreshQueries={actions?.refreshQueries}
           setUserOffline={actions?.setUserOffline}
-          queriesLastUpdate={queriesLastUpdate}/>
+          queriesLastUpdate={queriesLastUpdate}
+        />
         <TabbedSqlEditors />
         <ToastContainer />
       </div>
