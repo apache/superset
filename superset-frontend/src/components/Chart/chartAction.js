@@ -43,10 +43,6 @@ import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { allowCrossDomain as domainShardingEnabled } from 'src/utils/hostNamesConfig';
 import { updateDataMask } from 'src/dataMask/actions';
 import { waitForAsyncData } from 'src/middleware/asyncEvent';
-import {
-  buildTimeRangeString,
-  formatTimeRange,
-} from '../../explore/components/controls/DateFilterControl/utils';
 
 export const CHART_UPDATE_STARTED = 'CHART_UPDATE_STARTED';
 export function chartUpdateStarted(queryController, latestQueryFormData, key) {
