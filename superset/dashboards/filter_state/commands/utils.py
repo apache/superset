@@ -14,11 +14,22 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Optional
 
-from typing_extensions import TypedDict
+from superset.dashboards.commands.exceptions import (
+    DashboardAccessDeniedError,
+    DashboardNotFoundError,
+)
+from superset.dashboards.dao import DashboardDAO
+from superset.temporary_cache.commands.exceptions import (
+    TemporaryCacheAccessDeniedError,
+    TemporaryCacheResourceNotFoundError,
+)
 
 
-class Entry(TypedDict):
-    owner: Optional[int]
-    value: str
+def check_access(resource_id: int) -> None:
+    try:
+        DashboardDAO.get_by_id_or_slug(str(resource_id))
+    except DashboardNotFoundError as ex:
+        raise TemporaryCacheResourceNotFoundError from ex
+    except DashboardAccessDeniedError as ex:
+        raise TemporaryCacheAccessDeniedError from ex
