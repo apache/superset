@@ -16,12 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  Datasource,
-  GenericDataType,
-  JsonObject,
-  QueryFormData,
-} from '@superset-ui/core';
+import { Datasource, JsonObject, QueryFormData } from '@superset-ui/core';
 import { ExploreActions } from 'src/explore/actions/exploreActions';
 
 export interface DataTablesPaneProps {
@@ -48,25 +43,6 @@ export interface SamplesPaneProps {
   isRequest: boolean;
   datasource: Datasource;
   queryForce: boolean;
-  errorMessage?: React.ReactElement;
   actions?: ExploreActions;
   dataSize?: number;
-}
-
-export interface responseData {
-  data: Record<string, any>[][];
-  colnames: string[];
-  coltypes?: GenericDataType[];
-  isLoading: boolean;
-  responseError: string;
-}
-
-export interface requestPayload {
-  isRequest: boolean;
-  resultType: 'results' | 'samples';
-  queryFormData: QueryFormData;
-  datasource?: Datasource;
-  queryForce: boolean;
-  ownState?: JsonObject;
-  actions?: ExploreActions;
 }

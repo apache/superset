@@ -202,7 +202,6 @@ export const DataTablesPane = ({
         </Tabs.TabPane>
         <Tabs.TabPane tab={t('Samples')} key={ResultTypes.samples}>
           <SamplesPane
-            errorMessage={errorMessage}
             datasource={datasource}
             queryForce={queryForce}
             isRequest={isRequest.samples}

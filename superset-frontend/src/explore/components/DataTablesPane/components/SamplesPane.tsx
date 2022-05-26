@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { GenericDataType, styled, t } from '@superset-ui/core';
 import Loading from 'src/components/Loading';
 import { EmptyStateMedium } from 'src/components/EmptyState';
@@ -35,11 +35,12 @@ const Error = styled.pre`
   margin-top: ${({ theme }) => `${theme.gridUnit * 4}px`};
 `;
 
+const cache = new WeakSet();
+
 export const SamplesPane = ({
   isRequest,
   datasource,
   queryForce,
-  errorMessage,
   actions,
   dataSize = 50,
 }: SamplesPaneProps) => {
@@ -49,15 +50,25 @@ export const SamplesPane = ({
   const [coltypes, setColtypes] = useState<GenericDataType[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [responseError, setResponseError] = useState<string>('');
+  const datasourceId = useMemo(
+    () => `${datasource.id}__${datasource.type}`,
+    [datasource],
+  );
 
   useEffect(() => {
-    if (isRequest) {
+    if (isRequest && queryForce) {
+      cache.delete(datasource);
+    }
+
+    if (isRequest && !cache.has(datasource)) {
       setIsLoading(true);
       getDatasetSamples(datasource.id, queryForce)
         .then(response => {
           setData(response.data);
           setColnames(response.colnames);
           setColtypes(response.coltypes);
+          setResponseError('');
+          cache.add(datasource);
           if (queryForce && actions) {
             actions.setForceQuery(false);
           }
@@ -71,26 +82,20 @@ export const SamplesPane = ({
           setIsLoading(false);
         });
     }
-  }, [datasource, isRequest]);
+  }, [datasource, isRequest, queryForce]);
 
-  const originalFormattedTimeColumns = useOriginalFormattedTimeColumns(
-    datasource.id,
-  );
+  const originalFormattedTimeColumns =
+    useOriginalFormattedTimeColumns(datasourceId);
   // this is to preserve the order of the columns, even if there are integer values,
   // while also only grabbing the first column's keys
   const columns = useTableColumns(
     colnames,
     coltypes,
     data,
-    datasource.id,
+    datasourceId,
     originalFormattedTimeColumns,
   );
   const filteredData = useFilteredTableData(filterText, data);
-
-  if (errorMessage) {
-    const title = t('Run a query to display results');
-    return <EmptyStateMedium image="document.svg" title={title} />;
-  }
 
   if (isLoading) {
     return <Loading />;
@@ -102,7 +107,7 @@ export const SamplesPane = ({
         <TableControls
           data={filteredData}
           columnNames={colnames}
-          datasourceId={datasource?.id}
+          datasourceId={datasourceId}
           onInputChange={input => setFilterText(input)}
           isLoading={isLoading}
         />
@@ -121,7 +126,7 @@ export const SamplesPane = ({
       <TableControls
         data={filteredData}
         columnNames={colnames}
-        datasourceId={datasource?.id}
+        datasourceId={datasourceId}
         onInputChange={input => setFilterText(input)}
         isLoading={isLoading}
       />

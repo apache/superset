@@ -35,6 +35,8 @@ const Error = styled.pre`
   margin-top: ${({ theme }) => `${theme.gridUnit * 4}px`};
 `;
 
+const cache = new WeakSet();
+
 export const ResultsPane = ({
   isRequest,
   queryFormData,
@@ -52,7 +54,9 @@ export const ResultsPane = ({
   const [responseError, setResponseError] = useState<string>('');
 
   useEffect(() => {
-    if (isRequest) {
+    // it's an invalid formData when gets a errorMessage
+    if (errorMessage) return;
+    if (isRequest && !cache.has(queryFormData)) {
       setIsLoading(true);
       getChartDataRequest({
         formData: queryFormData,
@@ -84,6 +88,8 @@ export const ResultsPane = ({
             setColnames(colnames);
             setColtypes(coltypes);
           }
+          setResponseError('');
+          cache.add(queryFormData);
           if (queryForce && actions) {
             actions.setForceQuery(false);
           }
