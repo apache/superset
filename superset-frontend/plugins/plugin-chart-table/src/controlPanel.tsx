@@ -45,6 +45,7 @@ import {
   ControlState,
   emitFilterControl,
   Dataset,
+  ColumnMeta,
 } from '@superset-ui/chart-controls';
 
 import i18n from './i18n';
@@ -110,7 +111,7 @@ const all_columns: typeof sharedControls.groupby = {
   valueRenderer: c => <ColumnOption column={c} />,
   valueKey: 'column_name',
   mapStateToProps: ({ datasource, controls }, controlState) => ({
-    options: (datasource as Dataset)?.columns || [],
+    options: datasource?.columns || [],
     queryMode: getQueryMode(controls),
     externalValidationErrors:
       isRawMode({ controls }) && ensureIsArray(controlState.value).length === 0
@@ -129,10 +130,12 @@ const dnd_all_columns: typeof sharedControls.groupby = {
   mapStateToProps({ datasource, controls }, controlState) {
     const newState: ExtraControlProps = {};
     if (datasource) {
-      const options = (datasource as Dataset).columns;
-      newState.options = Object.fromEntries(
-        options.map(option => [option.column_name, option]),
-      );
+      if (datasource?.columns?.hasOwnProperty('filterable')) {
+        const options = (datasource as Dataset).columns;
+        newState.options = Object.fromEntries(
+          options.map((option: ColumnMeta) => [option.column_name, option]),
+        );
+      } else newState.options = datasource.columns;
     }
     newState.queryMode = getQueryMode(controls);
     newState.externalValidationErrors =
@@ -155,7 +158,7 @@ const percent_metrics: typeof sharedControls.metrics = {
   visibility: isAggMode,
   resetOnHide: false,
   mapStateToProps: ({ datasource, controls }, controlState) => ({
-    columns: (datasource as Dataset)?.columns || [],
+    columns: datasource?.columns || [],
     savedMetrics: (datasource as Dataset)?.metrics || [],
     datasource,
     datasourceType: (datasource as Dataset)?.type,
@@ -230,9 +233,11 @@ const config: ControlPanelConfig = {
                 { controls, datasource, form_data }: ControlPanelState,
                 controlState: ControlState,
               ) => ({
-                columns:
-                  (datasource as Dataset)?.columns.filter(c => c.filterable) ||
-                  [],
+                columns: datasource?.columns?.hasOwnProperty('filterable')
+                  ? (datasource as Dataset)?.columns?.filter(
+                      (c: ColumnMeta) => c.filterable,
+                    )
+                  : datasource?.columns,
                 savedMetrics: (datasource as Dataset)?.metrics || [],
                 // current active adhoc metrics
                 selectedMetrics:

@@ -25,7 +25,7 @@ import type {
   JsonValue,
   Metric,
   QueryFormData,
-  Query,
+  QueryResponse,
 } from '@superset-ui/core';
 import { sharedControls } from './shared-controls';
 import sharedControlComponents from './shared-controls/components';
@@ -70,7 +70,7 @@ export interface Dataset {
 
 export interface ControlPanelState {
   form_data: QueryFormData;
-  datasource: Dataset | Query | null;
+  datasource: Dataset | QueryResponse | null;
   controls: ControlStateMapping;
 }
 

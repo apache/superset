@@ -278,14 +278,6 @@ export type Query = {
   isDataPreview: boolean;
   link?: string;
   progress: number;
-  results: {
-    displayLimitReached: boolean;
-    columns: QueryColumn[];
-    data: Record<string, unknown>[];
-    expanded_columns: QueryColumn[];
-    selected_columns: QueryColumn[];
-    query: { limit: number };
-  };
   resultsKey: string | null;
   schema?: string;
   sql: string;
@@ -313,6 +305,20 @@ export type Query = {
   output: string | Record<string, any>;
   actions: Record<string, any>;
   type: DatasourceType.Query;
+  columns: QueryColumn[];
 };
+
+export type QueryResults = {
+  results: {
+    displayLimitReached: boolean;
+    columns: QueryColumn[];
+    data: Record<string, unknown>[];
+    expanded_columns: QueryColumn[];
+    selected_columns: QueryColumn[];
+    query: { limit: number };
+  };
+};
+
+export type QueryResponse = Query & QueryResults;
 
 export default {};

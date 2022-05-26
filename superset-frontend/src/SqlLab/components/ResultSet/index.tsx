@@ -21,7 +21,7 @@ import ButtonGroup from 'src/components/ButtonGroup';
 import Alert from 'src/components/Alert';
 import Button from 'src/components/Button';
 import shortid from 'shortid';
-import { styled, t, Query } from '@superset-ui/core';
+import { styled, t, QueryResponse } from '@superset-ui/core';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
@@ -55,7 +55,7 @@ interface ResultSetProps {
   database?: Record<string, any>;
   displayLimit: number;
   height: number;
-  query: Query;
+  query: QueryResponse;
   search?: boolean;
   showSql?: boolean;
   visualize?: boolean;
@@ -166,7 +166,7 @@ export default class ResultSet extends React.PureComponent<
     }
   };
 
-  clearQueryResults(query: Query) {
+  clearQueryResults(query: QueryResponse) {
     this.props.actions.clearQueryResults(query);
   }
 
@@ -191,11 +191,11 @@ export default class ResultSet extends React.PureComponent<
     this.setState({ searchText: event.target.value });
   }
 
-  fetchResults(query: Query) {
+  fetchResults(query: QueryResponse) {
     this.props.actions.fetchQueryResults(query, this.props.displayLimit);
   }
 
-  reFetchQueryResults(query: Query) {
+  reFetchQueryResults(query: QueryResponse) {
     this.props.actions.reFetchQueryResults(query);
   }
 
