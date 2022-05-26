@@ -45,6 +45,7 @@ import {
   queryEditorSetAutorun,
   queryEditorSetQueryLimit,
   queryEditorSetSql,
+  queryEditorSetAndSaveSql,
   queryEditorSetTemplateParams,
   runQuery,
   saveQuery,
@@ -177,7 +178,6 @@ class SqlEditor extends React.PureComponent {
       ctas: '',
       northPercent: props.queryEditor.northPercent || INITIAL_NORTH_PERCENT,
       southPercent: props.queryEditor.southPercent || INITIAL_SOUTH_PERCENT,
-      sql: props.queryEditor.sql,
       autocompleteEnabled: getItem(
         LocalStorageKeys.sqllab__is_autocomplete_enabled,
         true,
@@ -198,12 +198,13 @@ class SqlEditor extends React.PureComponent {
     this.stopQuery = this.stopQuery.bind(this);
     this.saveQuery = this.saveQuery.bind(this);
     this.onSqlChanged = this.onSqlChanged.bind(this);
-    this.setQueryEditorSql = this.setQueryEditorSql.bind(this);
-    this.setQueryEditorSqlWithDebounce = debounce(
-      this.setQueryEditorSql.bind(this),
+    this.setQueryEditorAndSaveSql = this.setQueryEditorAndSaveSql.bind(this);
+    this.setQueryEditorAndSaveSqlWithDebounce = debounce(
+      this.setQueryEditorAndSaveSql.bind(this),
       SET_QUERY_EDITOR_SQL_DEBOUNCE_MS,
     );
     this.queryPane = this.queryPane.bind(this);
+    this.getHotkeyConfig = this.getHotkeyConfig.bind(this);
     this.renderQueryLimit = this.renderQueryLimit.bind(this);
     this.getAceEditorAndSouthPaneHeights =
       this.getAceEditorAndSouthPaneHeights.bind(this);
@@ -250,12 +251,6 @@ class SqlEditor extends React.PureComponent {
     });
   }
 
-  componentDidUpdate() {
-    if (this.props.queryEditor.sql !== this.state.sql) {
-      this.onSqlChanged(this.props.queryEditor.sql);
-    }
-  }
-
   componentWillUnmount() {
     window.removeEventListener('resize', this.handleWindowResize);
     window.removeEventListener('beforeunload', this.onBeforeUnload);
@@ -290,12 +285,12 @@ class SqlEditor extends React.PureComponent {
   }
 
   onSqlChanged(sql) {
-    this.setState({ sql });
-    this.setQueryEditorSqlWithDebounce(sql);
+    this.props.queryEditorSetSql(this.props.queryEditor, sql);
+    this.setQueryEditorAndSaveSqlWithDebounce(sql);
     // Request server-side validation of the query text
     if (this.canValidateQuery()) {
       // NB. requestValidation is debounced
-      this.requestValidation();
+      this.requestValidation(sql);
     }
   }
 
@@ -330,7 +325,7 @@ class SqlEditor extends React.PureComponent {
         key: 'ctrl+r',
         descr: t('Run query'),
         func: () => {
-          if (this.state.sql.trim() !== '') {
+          if (this.props.queryEditor.sql.trim() !== '') {
             this.runQuery();
           }
         },
@@ -340,7 +335,7 @@ class SqlEditor extends React.PureComponent {
         key: 'ctrl+enter',
         descr: t('Run query'),
         func: () => {
-          if (this.state.sql.trim() !== '') {
+          if (this.props.queryEditor.sql.trim() !== '') {
             this.runQuery();
           }
         },
@@ -383,8 +378,8 @@ class SqlEditor extends React.PureComponent {
     this.setState({ showEmptyState: bool });
   }
 
-  setQueryEditorSql(sql) {
-    this.props.queryEditorSetSql(this.props.queryEditor, sql);
+  setQueryEditorAndSaveSql(sql) {
+    this.props.queryEditorSetAndSaveSql(this.props.queryEditor, sql);
   }
 
   setQueryLimit(queryLimit) {
@@ -396,7 +391,7 @@ class SqlEditor extends React.PureComponent {
       const qe = this.props.queryEditor;
       const query = {
         dbId: qe.dbId,
-        sql: qe.selectedText ? qe.selectedText : this.state.sql,
+        sql: qe.selectedText ? qe.selectedText : this.props.queryEditor.sql,
         sqlEditorId: qe.id,
         schema: qe.schema,
         templateParams: qe.templateParams,
@@ -429,12 +424,12 @@ class SqlEditor extends React.PureComponent {
     };
   }
 
-  requestValidation() {
+  requestValidation(sql) {
     if (this.props.database) {
       const qe = this.props.queryEditor;
       const query = {
         dbId: qe.dbId,
-        sql: this.state.sql,
+        sql,
         sqlEditorId: qe.id,
         schema: qe.schema,
         templateParams: qe.templateParams,
@@ -466,7 +461,7 @@ class SqlEditor extends React.PureComponent {
     const qe = this.props.queryEditor;
     const query = {
       dbId: qe.dbId,
-      sql: qe.selectedText ? qe.selectedText : this.state.sql,
+      sql: qe.selectedText ? qe.selectedText : qe.sql,
       sqlEditorId: qe.id,
       tab: qe.title,
       schema: qe.schema,
@@ -682,7 +677,7 @@ class SqlEditor extends React.PureComponent {
               runQuery={this.runQuery}
               selectedText={qe.selectedText}
               stopQuery={this.stopQuery}
-              sql={this.state.sql}
+              sql={this.props.queryEditor.sql}
               overlayCreateAsMenu={showMenu ? runMenuBtn : null}
             />
           </span>
@@ -854,6 +849,7 @@ function mapDispatchToProps(dispatch) {
       queryEditorSetAutorun,
       queryEditorSetQueryLimit,
       queryEditorSetSql,
+      queryEditorSetAndSaveSql,
       queryEditorSetTemplateParams,
       runQuery,
       saveQuery,
