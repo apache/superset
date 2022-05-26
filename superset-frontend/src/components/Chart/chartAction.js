@@ -604,7 +604,7 @@ export const getDatasetSamples = async (datasetId, force) => {
   const endpoint = `/api/v1/dataset/${datasetId}/samples?force=${force}`;
   try {
     const response = await SupersetClient.get({ endpoint });
-    return response.json.samples;
+    return response.json.result;
   } catch (response) {
     const clientError = await getClientErrorObject(response);
     return {
