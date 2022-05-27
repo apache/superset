@@ -250,7 +250,7 @@ Example:
 python changelog.py --previous_version 0.37 --current_version 0.38 changelog --access_token {GITHUB_TOKEN} --risk
 ```
 
-The script will checkout both branches and compare all the PR's and output the line that are needed to be added to the
+The script will checkout both branches, compare all the PRs, and output the lines that are needed to be added to the
 `CHANGELOG.md` file in the root of the repo. Remember to also make sure to update the branch id (with the above command
 `1.5` needs to be changed to `1.5.0`)
 
