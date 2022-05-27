@@ -44,6 +44,7 @@ _static/*
 searchindex.js
 # auto generated
 requirements/*
+RELEASING/requirements*
 # vendorized
 vendor/*
 # github configuration
