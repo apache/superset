@@ -917,9 +917,13 @@ export function updateSavedQuery(query) {
 }
 
 export function queryEditorSetSql(queryEditor, sql) {
+  return { type: QUERY_EDITOR_SET_SQL, queryEditor, sql };
+}
+
+export function queryEditorSetAndSaveSql(queryEditor, sql) {
   return function (dispatch) {
     // saved query and set tab state use this action
-    dispatch({ type: QUERY_EDITOR_SET_SQL, queryEditor, sql });
+    dispatch(queryEditorSetSql(queryEditor, sql));
     if (isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)) {
       return SupersetClient.put({
         endpoint: encodeURI(`/tabstateview/${queryEditor.id}`),
