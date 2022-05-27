@@ -23,6 +23,7 @@ under the License.
 
 **Fixes**
 
+- [#19685](https://github.com/apache/superset/pull/19685) fix: login button does not render (@villebro)
 - [#20181](https://github.com/apache/superset/pull/20181) fix(temporary-cache): when user is anonymous (@villebro)
 - [#20091](https://github.com/apache/superset/pull/20091) fix: "Week Staring Monday" time grain for BigQuery (@ramunas-omnisend)
 - [#20135](https://github.com/apache/superset/pull/20135) fix: Allow dataset owners to see their datasets (@cccs-tom)
