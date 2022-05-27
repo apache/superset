@@ -46,7 +46,7 @@ interface QueryTableQuery
 interface QueryTableProps {
   columns?: string[];
   actions: {
-    queryEditorSetSql: Function;
+    queryEditorSetAndSaveSql: Function;
     cloneQueryToNewTab: Function;
     fetchQueryResults: Function;
     clearQueryResults: Function;
@@ -94,7 +94,7 @@ const QueryTable = ({
   const user = useSelector<RootState, User>(state => state.sqlLab.user);
 
   const {
-    queryEditorSetSql,
+    queryEditorSetAndSaveSql,
     cloneQueryToNewTab,
     fetchQueryResults,
     clearQueryResults,
@@ -103,7 +103,7 @@ const QueryTable = ({
 
   const data = useMemo(() => {
     const restoreSql = (query: Query) => {
-      queryEditorSetSql({ id: query.sqlEditorId }, query.sql);
+      queryEditorSetAndSaveSql({ id: query.sqlEditorId }, query.sql);
     };
 
     const openQueryInNewTab = (query: Query) => {
@@ -314,7 +314,7 @@ const QueryTable = ({
     clearQueryResults,
     cloneQueryToNewTab,
     fetchQueryResults,
-    queryEditorSetSql,
+    queryEditorSetAndSaveSql,
     removeQuery,
   ]);
 
