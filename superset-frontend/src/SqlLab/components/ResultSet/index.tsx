@@ -59,7 +59,6 @@ const EXPLORE_CHART_DEFAULT = {
   metrics: [],
   groupby: [],
   time_range: 'No filter',
-  viz_type: 'table',
 };
 
 enum LIMITING_FACTOR {
@@ -343,7 +342,6 @@ export default class ResultSet extends React.PureComponent<
           metrics: [],
           groupby: [],
           time_range: 'No filter',
-          viz_type: '',
           all_columns: selectedColumns.map(c => c.name),
           row_limit: 1000,
         });

@@ -834,7 +834,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         if not viz_type and datasource and datasource.default_endpoint:
             return redirect(datasource.default_endpoint)
 
-        if form_data.get("viz_type") == "":
+        if ("viz_type" not in form_data):
             form_data["viz_type"] = app.config["DEFAULT_VIZ_TYPE"]
 
         # slc perms
