@@ -46,7 +46,7 @@ interface SouthPanePropTypes {
   latestQueryId?: string;
   dataPreviewQueries: any[];
   actions: {
-    queryEditorSetSql: Function;
+    queryEditorSetAndSaveSql: Function;
     cloneQueryToNewTab: Function;
     fetchQueryResults: Function;
     clearQueryResults: Function;
