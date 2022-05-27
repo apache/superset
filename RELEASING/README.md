@@ -198,7 +198,7 @@ cherrytree bake -r apache/superset -m master -l v${SUPERSET_GITHUB_BRANCH} -nd $
 
 #### Resolving conflicts
 
-If there are conflicts, you can issue the following command to apply all cherries up until the conflict manually, and then
+If there are conflicts, you can issue the following command to apply all cherries up until the conflict automatically, and then
 break by adding the `-error-mode break` flag (`-e break` for short):
 
 ```bash
