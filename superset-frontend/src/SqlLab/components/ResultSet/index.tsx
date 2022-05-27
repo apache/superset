@@ -342,7 +342,7 @@ export default class ResultSet extends React.PureComponent<
           metrics: [],
           groupby: [],
           time_range: 'No filter',
-          all_columns: selectedColumns.map(c => c.name),
+          selectedColumns,
           row_limit: 1000,
         });
       })

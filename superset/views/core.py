@@ -834,8 +834,15 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         if not viz_type and datasource and datasource.default_endpoint:
             return redirect(datasource.default_endpoint)
 
-        if ("viz_type" not in form_data):
+        selectedColumns = form_data.pop("selectedColumns")
+
+        if "viz_type" not in form_data:
             form_data["viz_type"] = app.config["DEFAULT_VIZ_TYPE"]
+            if app.config["DEFAULT_VIZ_TYPE"] == "table":
+                all_columns = []
+                for x in selectedColumns:
+                    all_columns.append(x["name"])
+                form_data["all_columns"] = all_columns
 
         # slc perms
         slice_add_perm = security_manager.can_access("can_write", "Chart")
