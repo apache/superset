@@ -261,8 +261,8 @@ section for the new release.
 
 #### Patch release (e.g. 1.5.1)
 
-To compare the forthcoming patch release with the latest release from the same branch, et the previous
-version as the tag of the previous release (in this example `1.5.0`; remember to update accordingly)
+To compare the forthcoming patch release with the latest release from the same branch, set
+`--previous_version` as the tag of the previous release (in this example `1.5.0`; remember to update accordingly)
 
 ```bash
 python changelog.py --previous_version 1.5.0 --current_version ${SUPERSET_GITHUB_BRANCH} changelog
@@ -270,7 +270,7 @@ python changelog.py --previous_version 1.5.0 --current_version ${SUPERSET_GITHUB
 
 ### Set version number
 
-Finally bump the version number on `superset-frontend/package.json` (replace with whichever version is being released excluding the RC version):
+Finally, bump the version number on `superset-frontend/package.json` (replace with whichever version is being released excluding the RC version):
 
 ```
 "version": "0.38.0"
@@ -302,7 +302,7 @@ the tag and create a signed source tarball from it:
 
 Note that `make_tarball.sh`:
 
-- By default assumes you have already executed an SVN checkout to `$HOME/svn/superset_dev`.
+- By default, the script assumes you have already executed an SVN checkout to `$HOME/svn/superset_dev`.
 This can be overridden by setting `SUPERSET_SVN_DEV_PATH` environment var to a different svn dev directory
 - Will refuse to craft a new release candidate if a release already exists on your local svn dev directory
 - Will check `package.json` version number and fails if it's not correctly set
