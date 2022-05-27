@@ -171,7 +171,7 @@ git pull
 git checkout ${SUPERSET_GITHUB_BRANCH}
 ```
 
-### Cherrypicking
+### Cherry picking
 
 It is customary to label PRs that have been introduced after the cut with the label
 `v<MAJOR>.<MINOR>`. For example, for any PRs that should be included in the 1.5 branch, the
