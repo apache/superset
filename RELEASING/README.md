@@ -68,7 +68,7 @@ need to be done at every release.
 ```
 
 To minimize the risk of mixing up your local development environment, it's recommended to work on the
-release in a different directory than where the devenv is located. In this example we'll clone
+release in a different directory than where the devenv is located. In this example, we'll clone
 the repo directly from the main `apache/superset` repo to a new directory `superset-release`:
 
 ```bash
