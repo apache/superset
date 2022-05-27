@@ -87,7 +87,7 @@ source venv/bin/activate
 
 
 In addition, we recommend using the [`cherrytree`](https://pypi.org/project/cherrytree/) tool for
-automating cherrypicking, as it will help speed up the release process. To install `cherrytree`
+automating cherry picking, as it will help speed up the release process. To install `cherrytree`
 and other dependencies that are required for the release process, run the following commands:
 
 ```bash
