@@ -72,7 +72,7 @@ release in a different directory than where the devenv is located. In this examp
 the repo directly from the main `apache/superset` repo to a new directory `superset-release`:
 
 ```bash
-cd ~/<MY PROJECTS PATH>
+cd <MY PROJECTS PATH>
 git clone git@github.com:apache/superset.git superset-release
 cd superset-release
 ```
@@ -85,11 +85,13 @@ virtualenv venv
 source venv/bin/activate
 ```
 
+
 In addition, we recommend using the [`cherrytree`](https://pypi.org/project/cherrytree/) tool for
-automating cherrypicking, as it will help speed up the development process a fair bit.
+automating cherrypicking, as it will help speed up the release process. To install `cherrytree`
+and other dependencies that are required for the release process, run the following commands:
 
 ```bash
-pip install cherrytree
+pip install -r RELEASING/requirements.txt
 ```
 
 ## Setting up the release environment (do every time)
@@ -103,35 +105,39 @@ the wrong files/using wrong names. There's a script to help you set correctly al
 necessary environment variables. Change your current directory to `superset/RELEASING`
 and execute the `set_release_env.sh` script with the relevant parameters:
 
+
+Usage (MacOS/ZSH):
+```bash
+cd RELEASING
+source set_release_env.sh <SUPERSET_RC_VERSION> <PGP_KEY_FULLNAME>
+```
+
 Usage (BASH):
 ```bash
 . set_release_env.sh <SUPERSET_RC_VERSION> <PGP_KEY_FULLNAME>
 ```
 
-Usage (ZSH):
-```bash
-source set_release_env.sh <SUPERSET_RC_VERSION> <PGP_KEY_FULLNAME>
-```
-
 Example:
 ```bash
-source set_release_env.sh 0.38.0rc1 myid@apache.org
+source set_release_env.sh 1.5.1rc1 myid@apache.org
 ```
 
-The script will output the exported variables. Here's example for 0.38.0rc1:
+The script will output the exported variables. Here's example for 1.5.1rc1:
 
 ```
+-------------------------------
 Set Release env variables
-SUPERSET_VERSION=0.38.0
+SUPERSET_VERSION=1.5.1
 SUPERSET_RC=1
-SUPERSET_GITHUB_BRANCH=0.38
-SUPERSET_PGP_FULLNAME=myid@apache.org
-SUPERSET_VERSION_RC=0.38.0rc1
-SUPERSET_RELEASE=apache-superset-0.38.0
-SUPERSET_RELEASE_RC=apache-superset-0.38.0rc1
-SUPERSET_RELEASE_TARBALL=apache-superset-0.38.0-source.tar.gz
-SUPERSET_RELEASE_RC_TARBALL=apache-superset-0.38.0rc1-source.tar.gz
-SUPERSET_TMP_ASF_SITE_PATH=/tmp/superset-site-0.38.0
+SUPERSET_GITHUB_BRANCH=1.5
+SUPERSET_PGP_FULLNAME=villebro@apache.org
+SUPERSET_VERSION_RC=1.5.1rc1
+SUPERSET_RELEASE=apache-superset-1.5.1
+SUPERSET_RELEASE_RC=apache-superset-1.5.1rc1
+SUPERSET_RELEASE_TARBALL=apache-superset-1.5.1-source.tar.gz
+SUPERSET_RELEASE_RC_TARBALL=apache-superset-1.5.1rc1-source.tar.gz
+SUPERSET_TMP_ASF_SITE_PATH=/tmp/incubator-superset-site-1.5.1
+-------------------------------
 ```
 
 ## Crafting a source release
@@ -266,7 +272,7 @@ python changelog.py --previous_version 1.5.0 --current_version ${SUPERSET_GITHUB
 
 Finally bump the version number on `superset-frontend/package.json` (replace with whichever version is being released excluding the RC version):
 
-```json
+```
 "version": "0.38.0"
 ```
 
