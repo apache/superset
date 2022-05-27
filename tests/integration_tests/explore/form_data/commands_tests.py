@@ -23,6 +23,7 @@ from superset import app, db, security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.explore.form_data.commands.create import CreateFormDataCommand
 from superset.explore.form_data.commands.parameters import CommandParameters
+from superset.explore.form_data.commands.update import UpdateFormDataCommand
 from superset.models.slice import Slice
 from superset.utils.core import DatasourceType, get_example_default_schema
 from superset.utils.database import get_example_database
@@ -92,3 +93,38 @@ class TestCreateFormDataCommand(SupersetTestCase):
         command = CreateFormDataCommand(args)
 
         assert isinstance(command.run(), str)
+
+
+# TODO
+# @patch("superset.security.manager.g")
+# @pytest.mark.usefixtures("create_dataset", "create_slice")
+# def test_update_form_data_command(self, mock_g):
+#     mock_g.user = security_manager.find_user("admin")
+
+#     dataset = (
+#         db.session.query(SqlaTable).filter_by(
+#             table_name="dummy_sql_table").first()
+#     )
+#     slice = db.session.query(Slice).filter_by(
+#         slice_name="slice_name").first()
+#     create_args = CommandParameters(
+#         actor=mock_g.user,
+#         datasource_id=dataset.id,
+#         datasource_type=DatasourceType.TABLE,
+#         chart_id=slice.id,
+#         tab_id=1,
+#         form_data="",
+#     )
+#     key = CreateFormDataCommand(create_args)
+#     update_args = CommandParameters(
+#         actor=mock_g.user,
+#         datasource_id=dataset.id,
+#         datasource_type=DatasourceType.TABLE,
+#         chart_id=slice.id,
+#         tab_id=1,
+#         form_data="",
+#         key=key
+#     )
+#     command = UpdateFormDataCommand(update_args)
+
+#     assert isinstance(command.run(), str)

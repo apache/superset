@@ -67,11 +67,6 @@ class UpdateFormDataCommand(BaseCommand, ABC):
                 contextual_key = cache_key(
                     session.get("_id"), tab_id, datasource_id, chart_id, datasource_type
                 )
-                if contextual_key is None:
-                    # check again with old keys
-                    contextual_key = cache_key(
-                        session.get("_id"), tab_id, datasource_id, chart_id
-                    )
                 key = cache_manager.explore_form_data_cache.get(contextual_key)
                 if not key or not tab_id:
                     key = random_key()

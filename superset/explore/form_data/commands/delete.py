@@ -59,11 +59,6 @@ class DeleteFormDataCommand(BaseCommand, ABC):
                 contextual_key = cache_key(
                     session.get("_id"), tab_id, datasource_id, chart_id, datasource_type
                 )
-                if contextual_key is None:
-                    # check again with old keys
-                    contextual_key = cache_key(
-                        session.get("_id"), tab_id, datasource_id, chart_id
-                    )
                 cache_manager.explore_form_data_cache.delete(contextual_key)
                 return cache_manager.explore_form_data_cache.delete(key)
             return False
