@@ -17,8 +17,7 @@
  * under the License.
  */
 
-import TimeFormatter from '@superset-ui/core/src/time-format/TimeFormatter';
-import smartDateVerboseFormatter from '@superset-ui/core/src/time-format/formatters/smartDateVerbose';
+import { TimeFormatter, smartDateVerboseFormatter } from '@superset-ui/core';
 
 describe('smartDateVerboseFormatter', () => {
   const formatter = smartDateVerboseFormatter;

@@ -56,9 +56,12 @@ spec:
       labels:
         app: {{ template "superset.name" . }}
         release: {{ .Release.Name }}
+      {{- if .Values.supersetNode.podLabels }}
+        {{ toYaml .Values.supersetNode.podLabels | nindent 8 }}
+      {{- end }}
     spec:
-      {{- if .Values.serviceAccountName }}
-      serviceAccountName: {{ .Values.serviceAccountName }}
+      {{- if or (.Values.serviceAccount.create) (.Values.serviceAccountName) }}
+      serviceAccountName: {{ template "superset.serviceAccountName" . }}
       {{- end }}
       securityContext:
         runAsUser: {{ .Values.runAsUser }}
@@ -112,7 +115,11 @@ spec:
               containerPort: {{ .Values.service.port }}
               protocol: TCP
           resources:
+          {{- if .Values.supersetNode.resources }}
+{{ toYaml .Values.supersetNode.resources | indent 12 }}
+          {{- else }}
 {{ toYaml .Values.resources | indent 12 }}
+          {{- end }}
     {{- with .Values.nodeSelector }}
       nodeSelector:
 {{ toYaml . | indent 8 }}

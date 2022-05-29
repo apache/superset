@@ -21,8 +21,9 @@ from io import BytesIO
 from typing import Any
 from zipfile import is_zipfile, ZipFile
 
+import simplejson
 import yaml
-from flask import g, request, Response, send_file
+from flask import g, make_response, request, Response, send_file
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
@@ -45,14 +46,16 @@ from superset.datasets.commands.exceptions import (
     DatasetInvalidError,
     DatasetNotFoundError,
     DatasetRefreshFailedError,
+    DatasetSamplesFailedError,
     DatasetUpdateFailedError,
 )
 from superset.datasets.commands.export import ExportDatasetsCommand
 from superset.datasets.commands.importers.dispatcher import ImportDatasetsCommand
 from superset.datasets.commands.refresh import RefreshDatasetCommand
+from superset.datasets.commands.samples import SamplesDatasetCommand
 from superset.datasets.commands.update import UpdateDatasetCommand
 from superset.datasets.dao import DatasetDAO
-from superset.datasets.filters import DatasetIsNullOrEmptyFilter
+from superset.datasets.filters import DatasetCertifiedFilter, DatasetIsNullOrEmptyFilter
 from superset.datasets.schemas import (
     DatasetPostSchema,
     DatasetPutSchema,
@@ -60,11 +63,13 @@ from superset.datasets.schemas import (
     get_delete_ids_schema,
     get_export_ids_schema,
 )
-from superset.utils.core import parse_boolean_string
+from superset.utils.core import json_int_dttm_ser, parse_boolean_string
 from superset.views.base import DatasourceFilter, generate_download_headers
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
     RelatedFieldFilter,
+    requires_form_data,
+    requires_json,
     statsd_metrics,
 )
 from superset.views.filters import FilterRelatedOwners
@@ -88,6 +93,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "bulk_delete",
         "refresh",
         "related_objects",
+        "samples",
     }
     list_columns = [
         "id",
@@ -161,7 +167,12 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "url",
         "extra",
     ]
-    show_columns = show_select_columns + ["columns.type_generic", "database.backend"]
+    show_columns = show_select_columns + [
+        "columns.type_generic",
+        "database.backend",
+        "columns.advanced_data_type",
+        "is_managed_externally",
+    ]
     add_model_schema = DatasetPostSchema()
     edit_model_schema = DatasetPutSchema()
     add_columns = ["database", "schema", "table_name", "owners"]
@@ -188,7 +199,11 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "owners": RelatedFieldFilter("first_name", FilterRelatedOwners),
         "database": "database_name",
     }
-    search_filters = {"sql": [DatasetIsNullOrEmptyFilter]}
+    search_filters = {
+        "sql": [DatasetIsNullOrEmptyFilter],
+        "id": [DatasetCertifiedFilter],
+    }
+    search_columns = ["id", "database", "owners", "sql", "table_name"]
     filter_rel_fields = {"database": [["id", DatabaseFilter, lambda: []]]}
     allowed_rel_fields = {"database", "owners"}
     allowed_distinct_fields = {"schema"}
@@ -206,6 +221,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.post",
         log_to_statsd=False,
     )
+    @requires_json
     def post(self) -> Response:
         """Creates a new Dataset
         ---
@@ -240,8 +256,6 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        if not request.is_json:
-            return self.response_400(message="Request is not JSON")
         try:
             item = self.add_model_schema.load(request.json)
         # This validates custom Schema with custom validations
@@ -270,6 +284,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.put",
         log_to_statsd=False,
     )
+    @requires_json
     def put(self, pk: int) -> Response:
         """Changes a Dataset
         ---
@@ -322,8 +337,6 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             if "override_columns" in request.args
             else False
         )
-        if not request.is_json:
-            return self.response_400(message="Request is not JSON")
         try:
             item = self.edit_model_schema.load(request.json)
         # This validates custom Schema with custom validations
@@ -680,6 +693,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.import_",
         log_to_statsd=False,
     )
+    @requires_form_data
     def import_(self) -> Response:
         """Import dataset(s) with associated databases
         ---
@@ -696,7 +710,12 @@ class DatasetRestApi(BaseSupersetModelRestApi):
                       type: string
                       format: binary
                     passwords:
-                      description: JSON map of passwords for each file
+                      description: >-
+                        JSON map of passwords for each featured database in the
+                        ZIP file. If the ZIP includes a database config in the path
+                        `databases/MyDatabase.yaml`, the password should be provided
+                        in the following format:
+                        `{"databases/MyDatabase.yaml": "my_password"}`.
                       type: string
                     overwrite:
                       description: overwrite existing datasets?
@@ -745,3 +764,71 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         )
         command.run()
         return self.response(200, message="OK")
+
+    @expose("/<pk>/samples")
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.samples",
+        log_to_statsd=False,
+    )
+    def samples(self, pk: int) -> Response:
+        """get samples from a Dataset
+        ---
+        get:
+          description: >-
+            get samples from a Dataset
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+          - in: query
+            schema:
+              type: boolean
+            name: force
+          responses:
+            200:
+              description: Dataset samples
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        $ref: '#/components/schemas/ChartDataResponseResult'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            force = parse_boolean_string(request.args.get("force"))
+            rv = SamplesDatasetCommand(g.user, pk, force).run()
+            response_data = simplejson.dumps(
+                {"result": rv},
+                default=json_int_dttm_ser,
+                ignore_nan=True,
+            )
+            resp = make_response(response_data, 200)
+            resp.headers["Content-Type"] = "application/json; charset=utf-8"
+            return resp
+        except DatasetNotFoundError:
+            return self.response_404()
+        except DatasetForbiddenError:
+            return self.response_403()
+        except DatasetSamplesFailedError as ex:
+            logger.error(
+                "Error get dataset samples %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
+            )
+            return self.response_422(message=str(ex))

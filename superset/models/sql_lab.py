@@ -118,7 +118,7 @@ class Query(Model, ExtraJSONMixin):
             "changedOn": self.changed_on,
             "changed_on": self.changed_on.isoformat(),
             "dbId": self.database_id,
-            "db": self.database.database_name,
+            "db": self.database.database_name if self.database else None,
             "endDttm": self.end_time,
             "errorMessage": self.error_message,
             "executedSql": self.executed_sql,
@@ -211,6 +211,11 @@ class SavedQuery(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
     def __repr__(self) -> str:
         return str(self.label)
 
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "id": self.id,
+        }
+
     @property
     def pop_tab_link(self) -> Markup:
         return Markup(
@@ -260,7 +265,7 @@ class TabState(Model, AuditMixinNullable, ExtraJSONMixin):
     active = Column(Boolean, default=False)
 
     # selected DB and schema
-    database_id = Column(Integer, ForeignKey("dbs.id"))
+    database_id = Column(Integer, ForeignKey("dbs.id", ondelete="CASCADE"))
     database = relationship("Database", foreign_keys=[database_id])
     schema = Column(String(256))
 
@@ -277,13 +282,21 @@ class TabState(Model, AuditMixinNullable, ExtraJSONMixin):
     query_limit = Column(Integer)
 
     # latest query that was run
-    latest_query_id = Column(Integer, ForeignKey("query.client_id"))
+    latest_query_id = Column(
+        Integer, ForeignKey("query.client_id", ondelete="SET NULL")
+    )
     latest_query = relationship("Query")
 
     # other properties
     autorun = Column(Boolean, default=False)
     template_params = Column(Text)
     hide_left_bar = Column(Boolean, default=False)
+
+    # any saved queries that are associated with the Tab State
+    saved_query_id = Column(
+        Integer, ForeignKey("saved_query.id", ondelete="SET NULL"), nullable=True
+    )
+    saved_query = relationship("SavedQuery", foreign_keys=[saved_query_id])
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -300,6 +313,7 @@ class TabState(Model, AuditMixinNullable, ExtraJSONMixin):
             "autorun": self.autorun,
             "template_params": self.template_params,
             "hide_left_bar": self.hide_left_bar,
+            "saved_query": self.saved_query.to_dict() if self.saved_query else None,
         }
 
 
@@ -310,7 +324,9 @@ class TableSchema(Model, AuditMixinNullable, ExtraJSONMixin):
     id = Column(Integer, primary_key=True, autoincrement=True)
     tab_state_id = Column(Integer, ForeignKey("tab_state.id", ondelete="CASCADE"))
 
-    database_id = Column(Integer, ForeignKey("dbs.id"), nullable=False)
+    database_id = Column(
+        Integer, ForeignKey("dbs.id", ondelete="CASCADE"), nullable=False
+    )
     database = relationship("Database", foreign_keys=[database_id])
     schema = Column(String(256))
     table = Column(String(256))

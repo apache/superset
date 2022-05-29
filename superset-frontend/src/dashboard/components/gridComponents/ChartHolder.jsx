@@ -22,23 +22,22 @@ import cx from 'classnames';
 import { useTheme } from '@superset-ui/core';
 import { useSelector, connect } from 'react-redux';
 
-import { getChartIdsInFilterScope } from 'src/dashboard/util/activeDashboardFilters';
-import Chart from '../../containers/Chart';
-import AnchorLink from '../../../components/AnchorLink';
-import DeleteComponentButton from '../DeleteComponentButton';
-import DragDroppable from '../dnd/DragDroppable';
-import HoverMenu from '../menu/HoverMenu';
-import ResizableContainer from '../resizable/ResizableContainer';
-import getChartAndLabelComponentIdFromPath from '../../util/getChartAndLabelComponentIdFromPath';
-import { componentShape } from '../../util/propShapes';
-import { COLUMN_TYPE, ROW_TYPE } from '../../util/componentTypes';
-
+import { getChartIdsInFilterBoxScope } from 'src/dashboard/util/activeDashboardFilters';
+import Chart from 'src/dashboard/containers/Chart';
+import AnchorLink from 'src/dashboard/components/AnchorLink';
+import DeleteComponentButton from 'src/dashboard/components/DeleteComponentButton';
+import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
+import HoverMenu from 'src/dashboard/components/menu/HoverMenu';
+import ResizableContainer from 'src/dashboard/components/resizable/ResizableContainer';
+import getChartAndLabelComponentIdFromPath from 'src/dashboard/util/getChartAndLabelComponentIdFromPath';
+import { componentShape } from 'src/dashboard/util/propShapes';
+import { COLUMN_TYPE, ROW_TYPE } from 'src/dashboard/util/componentTypes';
 import {
   GRID_BASE_UNIT,
   GRID_GUTTER_SIZE,
   GRID_MIN_COLUMN_COUNT,
   GRID_MIN_ROW_UNITS,
-} from '../../util/constants';
+} from 'src/dashboard/util/constants';
 
 const CHART_MARGIN = 32;
 
@@ -69,6 +68,7 @@ const propTypes = {
   updateComponents: PropTypes.func.isRequired,
   handleComponentDrop: PropTypes.func.isRequired,
   setFullSizeChartId: PropTypes.func.isRequired,
+  postAddSliceFromDashboard: PropTypes.func,
 };
 
 const defaultProps = {
@@ -115,8 +115,9 @@ const FilterFocusHighlight = React.forwardRef(
       dashboardFilters,
     );
     const focusedNativeFilterId = nativeFilters.focusedFilterId;
-    if (!(focusedFilterScope || focusedNativeFilterId))
+    if (!(focusedFilterScope || focusedNativeFilterId)) {
       return <div ref={ref} {...otherProps} />;
+    }
 
     // we use local styles here instead of a conditionally-applied class,
     // because adding any conditional class to this container
@@ -141,7 +142,7 @@ const FilterFocusHighlight = React.forwardRef(
       }
     } else if (
       chartId === focusedFilterScope.chartId ||
-      getChartIdsInFilterScope({
+      getChartIdsInFilterBoxScope({
         filterScope: focusedFilterScope.scope,
       }).includes(chartId)
     ) {
@@ -196,6 +197,7 @@ class ChartHolder extends React.Component {
     this.handleDeleteComponent = this.handleDeleteComponent.bind(this);
     this.handleUpdateSliceName = this.handleUpdateSliceName.bind(this);
     this.handleToggleFullSize = this.handleToggleFullSize.bind(this);
+    this.handlePostTransformProps = this.handlePostTransformProps.bind(this);
   }
 
   componentDidMount() {
@@ -248,6 +250,11 @@ class ChartHolder extends React.Component {
     const { chartId } = component.meta;
     const isFullSize = fullSizeChartId === chartId;
     setFullSizeChartId(isFullSize ? null : chartId);
+  }
+
+  handlePostTransformProps(props) {
+    this.props.postAddSliceFromDashboard();
+    return props;
   }
 
   render() {
@@ -336,14 +343,18 @@ class ChartHolder extends React.Component {
               className={cx(
                 'dashboard-component',
                 'dashboard-component-chart-holder',
+                // The following class is added to support custom dashboard styling via the CSS editor
+                `dashboard-chart-id-${chartId}`,
                 this.state.outlinedComponentId ? 'fade-in' : 'fade-out',
                 isFullSize && 'full-size',
               )}
             >
               {!editMode && (
                 <AnchorLink
-                  anchorLinkId={component.id}
-                  inFocus={!!this.state.outlinedComponentId}
+                  id={component.id}
+                  scrollIntoView={
+                    this.state.outlinedComponentId === component.id
+                  }
                 />
               )}
               {!!this.state.outlinedComponentId &&
@@ -363,6 +374,7 @@ class ChartHolder extends React.Component {
                 isComponentVisible={isComponentVisible}
                 handleToggleFullSize={this.handleToggleFullSize}
                 isFullSize={isFullSize}
+                postTransformProps={this.handlePostTransformProps}
               />
               {editMode && (
                 <HoverMenu position="top">

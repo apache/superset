@@ -120,7 +120,7 @@ class DeckMulti extends React.PureComponent {
   };
 
   render() {
-    const { payload, formData, setControlValue } = this.props;
+    const { payload, formData, setControlValue, height, width } = this.props;
     const { subSlicesLayers } = this.state;
 
     const layers = Object.values(subSlicesLayers);
@@ -134,6 +134,8 @@ class DeckMulti extends React.PureComponent {
         mapStyle={formData.mapbox_style}
         setControlValue={setControlValue}
         onViewportChange={this.onViewportChange}
+        height={height}
+        width={width}
       />
     );
   }

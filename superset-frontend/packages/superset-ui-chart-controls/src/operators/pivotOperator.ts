@@ -17,28 +17,27 @@
  * under the License.
  */
 import {
+  DTTM_ALIAS,
   ensureIsArray,
   getColumnLabel,
   getMetricLabel,
   PostProcessingPivot,
 } from '@superset-ui/core';
 import { PostProcessingFactory } from './types';
-import { TIME_COLUMN, isValidTimeCompare } from './utils';
-import { timeComparePivotOperator } from './timeComparePivotOperator';
 
-export const pivotOperator: PostProcessingFactory<
-  PostProcessingPivot | undefined
-> = (formData, queryObject) => {
+export const pivotOperator: PostProcessingFactory<PostProcessingPivot> = (
+  formData,
+  queryObject,
+) => {
   const metricLabels = ensureIsArray(queryObject.metrics).map(getMetricLabel);
-  if (queryObject.is_timeseries && metricLabels.length) {
-    if (isValidTimeCompare(formData, queryObject)) {
-      return timeComparePivotOperator(formData, queryObject);
-    }
+  const { x_axis: xAxis } = formData;
 
+  if ((xAxis || queryObject.is_timeseries) && metricLabels.length) {
+    const index = [getColumnLabel(xAxis || DTTM_ALIAS)];
     return {
       operation: 'pivot',
       options: {
-        index: [TIME_COLUMN],
+        index,
         columns: ensureIsArray(queryObject.columns).map(getColumnLabel),
         // Create 'dummy' mean aggregates to assign cell values in pivot table
         // use the 'mean' aggregates to avoid drop NaN. PR: https://github.com/apache-superset/superset-ui/pull/1231
@@ -46,6 +45,8 @@ export const pivotOperator: PostProcessingFactory<
           metricLabels.map(metric => [metric, { operator: 'mean' }]),
         ),
         drop_missing_columns: false,
+        flatten_columns: false,
+        reset_index: false,
       },
     };
   }

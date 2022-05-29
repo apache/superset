@@ -29,6 +29,7 @@ import {
   NumberFormatter,
   smartDateDetailedFormatter,
   smartDateFormatter,
+  SupersetTheme,
   TimeFormatter,
   TimeseriesAnnotationLayer,
   TimeseriesDataRecord,
@@ -50,7 +51,7 @@ import {
 } from 'echarts/types/src/component/marker/MarkAreaModel';
 import { MarkLine1DDataItemOption } from 'echarts/types/src/component/marker/MarkLineModel';
 
-import { extractForecastSeriesContext } from '../utils/prophet';
+import { extractForecastSeriesContext } from '../utils/forecast';
 import { ForecastSeriesEnum, LegendOrientation } from '../types';
 import { EchartsTimeseriesSeriesType } from './types';
 
@@ -81,7 +82,11 @@ export function transformSeries(
     formatter?: NumberFormatter;
     totalStackedValues?: number[];
     showValueIndexes?: number[];
+    thresholdValues?: number[];
     richTooltip?: boolean;
+    seriesKey?: OptionName;
+    sliceId?: number;
+    isHorizontal?: boolean;
   },
 ): SeriesOption | undefined {
   const { name } = series;
@@ -100,7 +105,11 @@ export function transformSeries(
     formatter,
     totalStackedValues = [],
     showValueIndexes = [],
+    thresholdValues = [],
     richTooltip,
+    seriesKey,
+    sliceId,
+    isHorizontal = false,
   } = opts;
   const contexts = seriesContexts[name || ''] || [];
   const hasForecast =
@@ -145,8 +154,9 @@ export function transformSeries(
   } else {
     plotType = seriesType === 'bar' ? 'bar' : 'line';
   }
+  // forcing the colorScale to return a different color for same metrics across different queries
   const itemStyle = {
-    color: colorScale(forecastSeries.name),
+    color: colorScale(seriesKey || forecastSeries.name, sliceId),
     opacity,
   };
   let emphasis = {};
@@ -196,23 +206,31 @@ export function transformSeries(
             opacity: opacity * areaOpacity,
           }
         : undefined,
-    emphasis,
+    emphasis: {
+      // bold on hover as required since 5.3.0 to retain backwards feature parity:
+      // https://apache.github.io/echarts-handbook/en/basics/release-note/5-3-0/#removing-the-default-bolding-emphasis-effect-in-the-line-chart
+      // TODO: should consider only adding emphasis to currently hovered series
+      lineStyle: {
+        width: 'bolder',
+      },
+      ...emphasis,
+    },
     showSymbol,
     symbolSize: markerSize,
     label: {
       show: !!showValue,
-      position: 'top',
+      position: isHorizontal ? 'right' : 'top',
       formatter: (params: any) => {
-        const {
-          value: [, numericValue],
-          dataIndex,
-          seriesIndex,
-          seriesName,
-        } = params;
+        const { value, dataIndex, seriesIndex, seriesName } = params;
+        const numericValue = isHorizontal ? value[0] : value[1];
         const isSelectedLegend = currentSeries.legend === seriesName;
         if (!formatter) return numericValue;
-        if (!stack || !onlyTotal || isSelectedLegend) {
-          return formatter(numericValue);
+        if (!stack || isSelectedLegend) return formatter(numericValue);
+        if (!onlyTotal) {
+          if (numericValue >= thresholdValues[dataIndex]) {
+            return formatter(numericValue);
+          }
+          return '';
         }
         if (seriesIndex === showValueIndexes[dataIndex]) {
           return formatter(totalStackedValues[dataIndex]);
@@ -227,13 +245,14 @@ export function transformFormulaAnnotation(
   layer: FormulaAnnotationLayer,
   data: TimeseriesDataRecord[],
   colorScale: CategoricalColorScale,
+  sliceId?: number,
 ): SeriesOption {
   const { name, color, opacity, width, style } = layer;
   return {
     name,
     id: name,
     itemStyle: {
-      color: color || colorScale(name),
+      color: color || colorScale(name, sliceId),
     },
     lineStyle: {
       opacity: parseAnnotationOpacity(opacity),
@@ -252,6 +271,8 @@ export function transformIntervalAnnotation(
   data: TimeseriesDataRecord[],
   annotationData: AnnotationData,
   colorScale: CategoricalColorScale,
+  theme: SupersetTheme,
+  sliceId?: number,
 ): SeriesOption[] {
   const series: SeriesOption[] = [];
   const annotations = extractRecordAnnotations(layer, annotationData);
@@ -276,7 +297,7 @@ export function transformIntervalAnnotation(
     const intervalLabel: SeriesLabelOption = showLabel
       ? {
           show: true,
-          color: '#000000',
+          color: theme.colors.grayscale.dark2,
           position: 'insideTop',
           verticalAlign: 'top',
           fontWeight: 'bold',
@@ -284,19 +305,19 @@ export function transformIntervalAnnotation(
           emphasis: {
             position: 'insideTop',
             verticalAlign: 'top',
-            backgroundColor: '#ffffff',
+            backgroundColor: theme.colors.grayscale.light5,
           },
         }
       : {
           show: false,
-          color: '#000000',
+          color: theme.colors.grayscale.dark2,
           // @ts-ignore
           emphasis: {
             fontWeight: 'bold',
             show: true,
             position: 'insideTop',
             verticalAlign: 'top',
-            backgroundColor: '#ffffff',
+            backgroundColor: theme.colors.grayscale.light5,
           },
         };
     series.push({
@@ -306,7 +327,7 @@ export function transformIntervalAnnotation(
       markArea: {
         silent: false,
         itemStyle: {
-          color: color || colorScale(name),
+          color: color || colorScale(name, sliceId),
           opacity: parseAnnotationOpacity(opacity || AnnotationOpacity.Medium),
           emphasis: {
             opacity: 0.8,
@@ -325,6 +346,8 @@ export function transformEventAnnotation(
   data: TimeseriesDataRecord[],
   annotationData: AnnotationData,
   colorScale: CategoricalColorScale,
+  theme: SupersetTheme,
+  sliceId?: number,
 ): SeriesOption[] {
   const series: SeriesOption[] = [];
   const annotations = extractRecordAnnotations(layer, annotationData);
@@ -335,14 +358,14 @@ export function transformEventAnnotation(
     const eventData: MarkLine1DDataItemOption[] = [
       {
         name: label,
-        xAxis: time as unknown as number,
+        xAxis: time,
       },
     ];
 
     const lineStyle: LineStyleOption & DefaultStatesMixin['emphasis'] = {
       width,
       type: style as ZRLineType,
-      color: color || colorScale(name),
+      color: color || colorScale(name, sliceId),
       opacity: parseAnnotationOpacity(opacity),
       emphasis: {
         width: width ? width + 1 : width,
@@ -353,25 +376,25 @@ export function transformEventAnnotation(
     const eventLabel: SeriesLineLabelOption = showLabel
       ? {
           show: true,
-          color: '#000000',
+          color: theme.colors.grayscale.dark2,
           position: 'insideEndTop',
           fontWeight: 'bold',
           formatter: (params: CallbackDataParams) => params.name,
           // @ts-ignore
           emphasis: {
-            backgroundColor: '#ffffff',
+            backgroundColor: theme.colors.grayscale.light5,
           },
         }
       : {
           show: false,
-          color: '#000000',
+          color: theme.colors.grayscale.dark2,
           position: 'insideEndTop',
           // @ts-ignore
           emphasis: {
             formatter: (params: CallbackDataParams) => params.name,
             fontWeight: 'bold',
             show: true,
-            backgroundColor: '#ffffff',
+            backgroundColor: theme.colors.grayscale.light5,
           },
         };
 
@@ -396,9 +419,11 @@ export function transformTimeseriesAnnotation(
   markerSize: number,
   data: TimeseriesDataRecord[],
   annotationData: AnnotationData,
+  colorScale: CategoricalColorScale,
+  sliceId?: number,
 ): SeriesOption[] {
   const series: SeriesOption[] = [];
-  const { hideLine, name, opacity, showMarkers, style, width } = layer;
+  const { hideLine, name, opacity, showMarkers, style, width, color } = layer;
   const result = annotationData[name];
   if (isTimeseriesAnnotationResult(result)) {
     result.forEach(annotation => {
@@ -413,6 +438,7 @@ export function transformTimeseriesAnnotation(
           opacity: parseAnnotationOpacity(opacity),
           type: style as ZRLineType,
           width: hideLine ? 0 : width,
+          color: color || colorScale(name, sliceId),
         },
       });
     });
@@ -439,18 +465,18 @@ export function getPadding(
   const yAxisOffset = addYAxisTitleOffset
     ? TIMESERIES_CONSTANTS.yAxisLabelTopOffset
     : 0;
-  const xAxisOffset = addXAxisTitleOffset ? xAxisTitleMargin || 0 : 0;
+  const xAxisOffset = addXAxisTitleOffset ? Number(xAxisTitleMargin) || 0 : 0;
   return getChartPadding(showLegend, legendOrientation, margin, {
     top:
       yAxisTitlePosition && yAxisTitlePosition === 'Top'
-        ? TIMESERIES_CONSTANTS.gridOffsetTop + (yAxisTitleMargin || 0)
+        ? TIMESERIES_CONSTANTS.gridOffsetTop + (Number(yAxisTitleMargin) || 0)
         : TIMESERIES_CONSTANTS.gridOffsetTop + yAxisOffset,
     bottom: zoomable
       ? TIMESERIES_CONSTANTS.gridOffsetBottomZoomable + xAxisOffset
       : TIMESERIES_CONSTANTS.gridOffsetBottom + xAxisOffset,
     left:
       yAxisTitlePosition === 'Left'
-        ? TIMESERIES_CONSTANTS.gridOffsetLeft + (yAxisTitleMargin || 0)
+        ? TIMESERIES_CONSTANTS.gridOffsetLeft + (Number(yAxisTitleMargin) || 0)
         : TIMESERIES_CONSTANTS.gridOffsetLeft,
     right:
       showLegend && legendOrientation === LegendOrientation.Right

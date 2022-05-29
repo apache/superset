@@ -16,6 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
+// Deprecated component
+/* eslint-disable theme-colors/no-literal-colors */
+
 import React, { CSSProperties, ComponentType, ReactNode } from 'react';
 import { SerializedStyles } from '@emotion/react';
 import { SupersetTheme, css } from '@superset-ui/core';
@@ -25,10 +29,10 @@ import {
   SelectComponentsConfig,
   components as defaultComponents,
   InputProps as ReactSelectInputProps,
+  Props as SelectProps,
 } from 'react-select';
-import { Props as SelectProps } from 'react-select/src/Select';
-import { colors as reactSelectColors } from 'react-select/src/theme';
-import { DeepNonNullable } from 'react-select/src/components';
+import type { colors as reactSelectColors } from 'react-select/src/theme';
+import type { DeepNonNullable } from 'react-select/src/components';
 import { OptionType } from 'antd/lib/select';
 import { SupersetStyledSelectProps } from './DeprecatedSelect';
 
@@ -101,6 +105,7 @@ export const defaultTheme: (theme: SupersetTheme) => PartialThemeConfig =
       fontSize: 14,
       minWidth: '6.5em',
     },
+    weights: theme.typography.weights,
   });
 
 // let styles accept serialized CSS, too
@@ -219,6 +224,7 @@ export const DEFAULT_STYLES: PartialStylesConfig = {
       theme: {
         colors,
         spacing: { lineHeight, fontSize },
+        weights,
       },
     },
   ) => {
@@ -237,7 +243,7 @@ export const DEFAULT_STYLES: PartialStylesConfig = {
         font-size: ${fontSize}px;
         background-color: ${backgroundColor};
         color: ${color};
-        font-weight: ${isSelected ? 600 : 400};
+        font-weight: ${isSelected ? weights.bold : weights.normal};
         white-space: nowrap;
         &:hover:active {
           background-color: ${colors.grayBg};

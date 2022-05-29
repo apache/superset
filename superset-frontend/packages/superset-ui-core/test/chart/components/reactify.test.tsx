@@ -20,9 +20,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import { mount } from 'enzyme';
-import reactify, {
-  RenderFuncType,
-} from '@superset-ui/core/src/chart/components/reactify';
+import { reactify } from '@superset-ui/core';
+import { RenderFuncType } from '../../../src/chart/components/reactify';
 
 describe('reactify(renderFn)', () => {
   const renderFn: RenderFuncType<{ content?: string }> = jest.fn(
@@ -87,7 +86,7 @@ describe('reactify(renderFn)', () => {
         expect(renderFn).toHaveBeenCalledTimes(2);
         expect(wrapper.html()).toEqual('<div id="test"><b>def</b></div>');
         wrapper.unmount();
-        done();
+        done(undefined);
       }, 20);
     }));
   describe('displayName', () => {
@@ -141,7 +140,7 @@ describe('reactify(renderFn)', () => {
       setTimeout(() => {
         wrapper.unmount();
         expect(willUnmountCb).toHaveBeenCalledTimes(1);
-        done();
+        done(undefined);
       }, 20);
     }));
 });

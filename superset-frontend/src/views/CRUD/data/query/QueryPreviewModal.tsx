@@ -30,14 +30,14 @@ import { QueryObject } from 'src/views/CRUD/types';
 
 const QueryTitle = styled.div`
   color: ${({ theme }) => theme.colors.secondary.light2};
-  font-size: ${({ theme }) => theme.typography.sizes.s - 1}px;
+  font-size: ${({ theme }) => theme.typography.sizes.s}px;
   margin-bottom: 0;
   text-transform: uppercase;
 `;
 
 const QueryLabel = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.dark2};
-  font-size: ${({ theme }) => theme.typography.sizes.m - 1}px;
+  font-size: ${({ theme }) => theme.typography.sizes.m}px;
   padding: 4px 0 24px 0;
 `;
 

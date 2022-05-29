@@ -17,11 +17,9 @@
 # isort:skip_file
 """Unit tests for Superset"""
 import json
-from datetime import datetime
 from io import BytesIO
 from zipfile import is_zipfile, ZipFile
 
-import humanize
 import prison
 import pytest
 import yaml
@@ -84,7 +82,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
             charts = []
             admin = self.get_user("admin")
             for cx in range(CHARTS_FIXTURE_COUNT - 1):
-                charts.append(self.insert_chart(f"name{cx}", [admin.id], 1,))
+                charts.append(self.insert_chart(f"name{cx}", [admin.id], 1))
             fav_charts = []
             for cx in range(round(CHARTS_FIXTURE_COUNT / 2)):
                 fav_star = FavStar(
@@ -749,6 +747,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
             "slice_name": "title",
             "viz_type": None,
             "query_context": None,
+            "is_managed_externally": False,
         }
         data = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(data["result"], expected_result)
@@ -802,7 +801,6 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         Dashboard API: Test get charts changed on
         """
         admin = self.get_user("admin")
-        start_changed_on = datetime.now()
         chart = self.insert_chart("foo_a", [admin.id], 1, description="ZY_bar")
 
         self.login(username="admin")
@@ -816,9 +814,9 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         rv = self.get_assert_metric(uri, "get_list")
         self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(
-            data["result"][0]["changed_on_delta_humanized"],
-            humanize.naturaltime(datetime.now() - start_changed_on),
+        assert data["result"][0]["changed_on_delta_humanized"] in (
+            "now",
+            "a second ago",
         )
 
         # rollback changes
@@ -916,7 +914,11 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         # test filtering on datasource_name
         arguments = {
             "filters": [
-                {"col": "slice_name", "opr": "chart_all_text", "value": "energy",}
+                {
+                    "col": "slice_name",
+                    "opr": "chart_all_text",
+                    "value": "energy",
+                }
             ],
             "keys": ["none"],
             "columns": ["slice_name"],
@@ -932,7 +934,13 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
     @pytest.mark.usefixtures("create_certified_charts")
     def test_gets_certified_charts_filter(self):
         arguments = {
-            "filters": [{"col": "id", "opr": "chart_is_certified", "value": True,}],
+            "filters": [
+                {
+                    "col": "id",
+                    "opr": "chart_is_certified",
+                    "value": True,
+                }
+            ],
             "keys": ["none"],
             "columns": ["slice_name"],
         }
@@ -947,7 +955,13 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
     @pytest.mark.usefixtures("create_charts")
     def test_gets_not_certified_charts_filter(self):
         arguments = {
-            "filters": [{"col": "id", "opr": "chart_is_certified", "value": False,}],
+            "filters": [
+                {
+                    "col": "id",
+                    "opr": "chart_is_certified",
+                    "value": False,
+                }
+            ],
             "keys": ["none"],
             "columns": ["slice_name"],
         }
@@ -964,7 +978,11 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         # test filtering on datasource_name
         arguments = {
             "filters": [
-                {"col": "slice_name", "opr": "chart_all_text", "value": "energy",}
+                {
+                    "col": "slice_name",
+                    "opr": "chart_all_text",
+                    "value": "energy",
+                }
             ],
             "keys": ["none"],
             "columns": ["slice_name"],

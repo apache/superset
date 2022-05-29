@@ -23,6 +23,7 @@ import pandas as pd
 from sqlalchemy import DateTime, inspect, String
 from sqlalchemy.sql import column
 
+import superset.utils.database
 from superset import app, db
 from superset.connectors.sqla.models import SqlMetric
 from superset.models.dashboard import Dashboard
@@ -42,11 +43,13 @@ from .helpers import (
 
 
 def load_world_bank_health_n_pop(  # pylint: disable=too-many-locals, too-many-statements
-    only_metadata: bool = False, force: bool = False, sample: bool = False,
+    only_metadata: bool = False,
+    force: bool = False,
+    sample: bool = False,
 ) -> None:
     """Loads the world bank health dataset, slices and a dashboard"""
     tbl_name = "wb_health_population"
-    database = utils.get_example_database()
+    database = superset.utils.database.get_example_database()
     engine = database.get_sqla_engine()
     schema = inspect(engine).default_schema_name
     table_exists = database.has_table_by_name(tbl_name)
@@ -125,13 +128,12 @@ def load_world_bank_health_n_pop(  # pylint: disable=too-many-locals, too-many-s
         dash = Dashboard()
     dash.published = True
     pos = dashboard_positions
-    update_slice_ids(pos, slices)
+    slices = update_slice_ids(pos)
 
     dash.dashboard_title = dash_name
     dash.position_json = json.dumps(pos, indent=4)
     dash.slug = slug
-
-    dash.slices = slices[:-1]
+    dash.slices = slices
     db.session.merge(dash)
     db.session.commit()
 
@@ -160,7 +162,6 @@ def create_slices(tbl: BaseDatasource) -> List[Slice]:
         "since": "2014-01-01",
         "until": "2014-01-02",
         "time_range": "2014-01-01 : 2014-01-02",
-        "time_range_endpoints": ["inclusive", "exclusive"],
         "markup_type": "markdown",
         "country_fieldtype": "cca3",
         "entity": "country_code",
@@ -456,12 +457,6 @@ dashboard_positions = {
         "children": [],
         "id": "CHART-a4808bba",
         "meta": {"chartId": 49, "height": 50, "sliceName": "Treemap", "width": 8},
-        "type": "CHART",
-    },
-    "CHART-3nc0d8sk": {
-        "children": [],
-        "id": "CHART-3nc0d8sk",
-        "meta": {"chartId": 50, "height": 50, "sliceName": "Treemap", "width": 8},
         "type": "CHART",
     },
     "COLUMN-071bbbad": {

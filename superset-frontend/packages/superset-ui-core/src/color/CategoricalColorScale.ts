@@ -22,15 +22,18 @@ import { scaleOrdinal, ScaleOrdinal } from 'd3-scale';
 import { ExtensibleFunction } from '../models';
 import { ColorsLookup } from './types';
 import stringifyAndTrim from './stringifyAndTrim';
+import getSharedLabelColor from './SharedLabelColorSingleton';
+import { getAnalogousColors } from './utils';
 
 // Use type augmentation to correct the fact that
 // an instance of CategoricalScale is also a function
-
 interface CategoricalColorScale {
-  (x: { toString(): string }): string;
+  (x: { toString(): string }, y?: number): string;
 }
 
 class CategoricalColorScale extends ExtensibleFunction {
+  originColors: string[];
+
   colors: string[];
 
   scale: ScaleOrdinal<{ toString(): string }, string>;
@@ -39,6 +42,8 @@ class CategoricalColorScale extends ExtensibleFunction {
 
   forcedColors: ColorsLookup;
 
+  multiple: number;
+
   /**
    * Constructor
    * @param {*} colors an array of colors
@@ -46,29 +51,47 @@ class CategoricalColorScale extends ExtensibleFunction {
    * (usually CategoricalColorNamespace) and supersede this.forcedColors
    */
   constructor(colors: string[], parentForcedColors?: ColorsLookup) {
-    super((value: string) => this.getColor(value));
+    super((value: string, sliceId?: number) => this.getColor(value, sliceId));
 
+    this.originColors = colors;
     this.colors = colors;
     this.scale = scaleOrdinal<{ toString(): string }, string>();
     this.scale.range(colors);
     this.parentForcedColors = parentForcedColors;
     this.forcedColors = {};
+    this.multiple = 0;
   }
 
-  getColor(value?: string) {
+  getColor(value?: string, sliceId?: number) {
     const cleanedValue = stringifyAndTrim(value);
+    const sharedLabelColor = getSharedLabelColor();
+
     const parentColor =
       this.parentForcedColors && this.parentForcedColors[cleanedValue];
     if (parentColor) {
+      sharedLabelColor.addSlice(cleanedValue, parentColor, sliceId);
       return parentColor;
     }
 
     const forcedColor = this.forcedColors[cleanedValue];
     if (forcedColor) {
+      sharedLabelColor.addSlice(cleanedValue, forcedColor, sliceId);
       return forcedColor;
     }
 
-    return this.scale(cleanedValue);
+    const multiple = Math.floor(
+      this.domain().length / this.originColors.length,
+    );
+    if (multiple > this.multiple) {
+      this.multiple = multiple;
+      const newRange = getAnalogousColors(this.originColors, multiple);
+      this.range(this.originColors.concat(newRange));
+    }
+
+    const color = this.scale(cleanedValue);
+    sharedLabelColor.addSlice(cleanedValue, color, sliceId);
+
+    return color;
   }
 
   /**

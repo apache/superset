@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { getColumnLabel } from '@superset-ui/core/src/query';
+import { getColumnLabel } from '@superset-ui/core';
 
 describe('getColumnLabel', () => {
   it('should handle physical column', () => {
@@ -28,6 +28,7 @@ describe('getColumnLabel', () => {
       getColumnLabel({
         sqlExpression: "case when 1 then 'a' else 'b' end",
         label: 'my col',
+        expressionType: 'SQL',
       }),
     ).toEqual('my col');
   });
@@ -36,6 +37,7 @@ describe('getColumnLabel', () => {
     expect(
       getColumnLabel({
         sqlExpression: "case when 1 then 'a' else 'b' end",
+        expressionType: 'SQL',
       }),
     ).toEqual("case when 1 then 'a' else 'b' end");
   });

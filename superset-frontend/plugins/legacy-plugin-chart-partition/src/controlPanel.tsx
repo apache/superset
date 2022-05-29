@@ -40,18 +40,8 @@ const config: ControlPanelConfig = {
         ['adhoc_filters'],
         ['groupby'],
         ['limit', 'timeseries_limit_metric'],
+        ['order_desc'],
         [
-          {
-            name: 'order_desc',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Sort Descending'),
-              default: true,
-              description: t('Whether to sort descending or ascending'),
-              visibility: ({ controls }) =>
-                Boolean(controls?.timeseries_limit_metric.value),
-            },
-          },
           {
             name: 'contribution',
             config: {
@@ -250,7 +240,7 @@ const config: ControlPanelConfig = {
       ),
       controlSetRows: [
         // eslint-disable-next-line react/jsx-key
-        [<h1 className="section-header">{t('Rolling Window')}</h1>],
+        [<div className="section-header">{t('Rolling Window')}</div>],
         [
           {
             name: 'rolling_type',
@@ -302,7 +292,7 @@ const config: ControlPanelConfig = {
           },
         ],
         // eslint-disable-next-line react/jsx-key
-        [<h1 className="section-header">{t('Time Comparison')}</h1>],
+        [<div className="section-header">{t('Time Comparison')}</div>],
         [
           {
             name: 'time_compare',
@@ -320,6 +310,8 @@ const config: ControlPanelConfig = {
                 '1 year',
                 '104 weeks',
                 '2 years',
+                '156 weeks',
+                '3 years',
               ]),
               description: t(
                 'Overlay one or more timeseries from a ' +
@@ -349,10 +341,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        // eslint-disable-next-line react/jsx-key
-        [<h1 className="section-header">{t('Python Functions')}</h1>],
-        // eslint-disable-next-line react/jsx-key
-        [<h2 className="section-header">pandas.resample</h2>],
+        [<div className="section-header">{t('Resample')}</div>],
         [
           {
             name: 'resample_rule',

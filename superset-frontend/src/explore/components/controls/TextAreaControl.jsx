@@ -18,8 +18,8 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { TextArea } from 'src/common/components';
-import { t } from '@superset-ui/core';
+import { TextArea } from 'src/components/Input';
+import { t, withTheme } from '@superset-ui/core';
 
 import Button from 'src/components/Button';
 import { TextAreaEditor } from 'src/components/AsyncAceEditor';
@@ -57,16 +57,22 @@ const defaultProps = {
   readOnly: false,
 };
 
-export default class TextAreaControl extends React.Component {
+class TextAreaControl extends React.Component {
   onControlChange(event) {
     const { value } = event.target;
+    this.props.onChange(value);
+  }
+
+  onAreaEditorChange(value) {
     this.props.onChange(value);
   }
 
   renderEditor(inModal = false) {
     const minLines = inModal ? 40 : this.props.minLines || 12;
     if (this.props.language) {
-      const style = { border: '1px solid #CCC' };
+      const style = {
+        border: `1px solid ${this.props.theme.colors.grayscale.light1}`,
+      };
       if (this.props.readOnly) {
         style.backgroundColor = '#f2f2f2';
       }
@@ -76,7 +82,6 @@ export default class TextAreaControl extends React.Component {
           style={style}
           minLines={minLines}
           maxLines={inModal ? 1000 : this.props.maxLines}
-          onChange={this.props.onChange}
           width="100%"
           height={`${minLines}em`}
           editorProps={{ $blockScrolling: true }}
@@ -84,6 +89,7 @@ export default class TextAreaControl extends React.Component {
           readOnly={this.props.readOnly}
           key={this.props.name}
           {...this.props}
+          onChange={this.onAreaEditorChange.bind(this)}
         />
       );
     }
@@ -133,3 +139,5 @@ export default class TextAreaControl extends React.Component {
 
 TextAreaControl.propTypes = propTypes;
 TextAreaControl.defaultProps = defaultProps;
+
+export default withTheme(TextAreaControl);

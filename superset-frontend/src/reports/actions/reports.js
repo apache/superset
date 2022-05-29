@@ -19,34 +19,33 @@
 /* eslint camelcase: 0 */
 import { t, SupersetClient } from '@superset-ui/core';
 import rison from 'rison';
-import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import {
   addDangerToast,
   addSuccessToast,
 } from 'src/components/MessageToasts/actions';
 
 export const SET_REPORT = 'SET_REPORT';
-export function setReport(report) {
-  return { type: SET_REPORT, report };
+export function setReport(report, resourceId, creationMethod, filterField) {
+  return { type: SET_REPORT, report, resourceId, creationMethod, filterField };
 }
 
-export function fetchUISpecificReport(
+export function fetchUISpecificReport({
   userId,
-  filter_field,
-  creation_method,
-  dashboardId,
-) {
+  filterField,
+  creationMethod,
+  resourceId,
+}) {
   const queryParams = rison.encode({
     filters: [
       {
-        col: filter_field,
+        col: filterField,
         opr: 'eq',
-        value: dashboardId,
+        value: resourceId,
       },
       {
         col: 'creation_method',
         opr: 'eq',
-        value: creation_method,
+        value: creationMethod,
       },
       {
         col: 'created_by',
@@ -60,7 +59,7 @@ export function fetchUISpecificReport(
       endpoint: `/api/v1/report/?q=${queryParams}`,
     })
       .then(({ json }) => {
-        dispatch(setReport(json));
+        dispatch(setReport(json, resourceId, creationMethod, filterField));
       })
       .catch(() =>
         dispatch(
@@ -79,22 +78,22 @@ const structureFetchAction = (dispatch, getState) => {
   const { user, dashboardInfo, charts, explore } = state;
   if (dashboardInfo) {
     dispatch(
-      fetchUISpecificReport(
-        user.userId,
-        'dashboard_id',
-        'dashboards',
-        dashboardInfo.id,
-      ),
+      fetchUISpecificReport({
+        userId: user.userId,
+        filterField: 'dashboard_id',
+        creationMethod: 'dashboards',
+        resourceId: dashboardInfo.id,
+      }),
     );
   } else {
     const [chartArr] = Object.keys(charts);
     dispatch(
-      fetchUISpecificReport(
-        explore.user.userId,
-        'chart_id',
-        'charts',
-        charts[chartArr].id,
-      ),
+      fetchUISpecificReport({
+        userId: explore.user.userId,
+        filterField: 'chart_id',
+        creationMethod: 'charts',
+        resourceId: charts[chartArr].id,
+      }),
     );
   }
 };
@@ -105,41 +104,21 @@ export const addReport = report => dispatch =>
   SupersetClient.post({
     endpoint: `/api/v1/report/`,
     jsonPayload: report,
-  })
-    .then(({ json }) => {
-      dispatch({ type: ADD_REPORT, json });
-      dispatch(addSuccessToast(t('The report has been created')));
-    })
-    .catch(async e => {
-      const parsedError = await getClientErrorObject(e);
-      const errorMessage = parsedError.message;
-      const errorArr = Object.keys(errorMessage);
-      const error = errorMessage[errorArr[0]];
-      dispatch(
-        addDangerToast(
-          t('An error occurred while editing this report: %s', error),
-        ),
-      );
-    });
+  }).then(({ json }) => {
+    dispatch({ type: ADD_REPORT, json });
+    dispatch(addSuccessToast(t('The report has been created')));
+  });
 
 export const EDIT_REPORT = 'EDIT_REPORT';
 
-export function editReport(id, report) {
-  return function (dispatch) {
-    SupersetClient.put({
-      endpoint: `/api/v1/report/${id}`,
-      jsonPayload: report,
-    })
-      .then(({ json }) => {
-        dispatch({ type: EDIT_REPORT, json });
-      })
-      .catch(() =>
-        dispatch(
-          addDangerToast(t('An error occurred while editing this report.')),
-        ),
-      );
-  };
-}
+export const editReport = (id, report) => dispatch =>
+  SupersetClient.put({
+    endpoint: `/api/v1/report/${id}`,
+    jsonPayload: report,
+  }).then(({ json }) => {
+    dispatch({ type: EDIT_REPORT, json });
+    dispatch(addSuccessToast(t('Report updated')));
+  });
 
 export function toggleActive(report, isActive) {
   return function toggleActiveThunk(dispatch) {

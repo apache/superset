@@ -28,7 +28,7 @@ import { QueryParamProvider } from 'use-query-params';
 import { act } from 'react-dom/test-utils';
 import * as featureFlags from 'src/featureFlags';
 import SavedQueryList from 'src/views/CRUD/data/savedquery/SavedQueryList';
-import SubMenu from 'src/components/Menu/SubMenu';
+import SubMenu from 'src/views/components/SubMenu';
 import ListView from 'src/components/ListView';
 import Filters from 'src/components/ListView/Filters';
 import ActionsBar from 'src/components/ListView/ActionsBar';

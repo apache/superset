@@ -19,7 +19,7 @@
 
 import React from 'react';
 import { shallow } from 'enzyme';
-import { TooltipTable } from '@superset-ui/core/src';
+import { TooltipTable } from '@superset-ui/core';
 
 describe('TooltipTable', () => {
   it('sets className', () => {

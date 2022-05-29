@@ -17,8 +17,8 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import callApi from '@superset-ui/core/src/connection/callApi/callApi';
-import parseResponse from '@superset-ui/core/src/connection/callApi/parseResponse';
+import callApi from '../../../src/connection/callApi/callApi';
+import parseResponse from '../../../src/connection/callApi/parseResponse';
 
 import { LOGIN_GLOB } from '../fixtures/constants';
 

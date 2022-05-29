@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { removeDuplicates } from '@superset-ui/core/src';
+import { removeDuplicates } from '@superset-ui/core';
 
 describe('removeDuplicates([...])', () => {
   it('should remove duplicates from a simple list', () => {

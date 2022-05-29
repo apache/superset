@@ -100,7 +100,7 @@ jest.mock('src/dashboard/components/FiltersBadge', () => ({
   ),
 }));
 
-const createProps = () => ({
+const createProps = (overrides: any = {}) => ({
   filters: {}, // is in typing but not being used
   editMode: false,
   annotationQuery: { param01: 'annotationQuery' } as any,
@@ -129,8 +129,6 @@ const createProps = () => ({
       row_limit: 10000,
       show_legend: false,
       time_range: 'No filter',
-      time_range_endpoints: ['inclusive', 'exclusive'],
-      url_params: {},
       viz_type: 'dist_bar',
       x_ticks_layout: 'auto',
       y_axis_format: 'SMART_NUMBER',
@@ -157,7 +155,11 @@ const createProps = () => ({
   forceRefresh: jest.fn(),
   logExploreChart: jest.fn(),
   exportCSV: jest.fn(),
-  formData: {},
+  onExploreChart: jest.fn(),
+  formData: { slice_id: 1, datasource: '58__table' },
+  width: 100,
+  height: 100,
+  ...overrides,
 });
 
 test('Should render', () => {
@@ -261,6 +263,48 @@ test('Should render title', () => {
   const props = createProps();
   render(<SliceHeader {...props} />, { useRedux: true });
   expect(screen.getByText('Vaccine Candidates per Phase')).toBeInTheDocument();
+});
+
+test('Should render click to edit prompt and run onExploreChart on click', async () => {
+  const props = createProps();
+  render(<SliceHeader {...props} />, { useRedux: true });
+  userEvent.hover(screen.getByText('Vaccine Candidates per Phase'));
+  expect(
+    await screen.findByText(
+      'Click to edit Vaccine Candidates per Phase in a new tab',
+    ),
+  ).toBeInTheDocument();
+
+  userEvent.click(screen.getByText('Vaccine Candidates per Phase'));
+  expect(props.onExploreChart).toHaveBeenCalled();
+});
+
+test('Should not render click to edit prompt and run onExploreChart on click if supersetCanExplore=false', () => {
+  const props = createProps({ supersetCanExplore: false });
+  render(<SliceHeader {...props} />, { useRedux: true });
+  userEvent.hover(screen.getByText('Vaccine Candidates per Phase'));
+  expect(
+    screen.queryByText(
+      'Click to edit Vaccine Candidates per Phase in a new tab',
+    ),
+  ).not.toBeInTheDocument();
+
+  userEvent.click(screen.getByText('Vaccine Candidates per Phase'));
+  expect(props.onExploreChart).not.toHaveBeenCalled();
+});
+
+test('Should not render click to edit prompt and run onExploreChart on click if in edit mode', () => {
+  const props = createProps({ editMode: true });
+  render(<SliceHeader {...props} />, { useRedux: true });
+  userEvent.hover(screen.getByText('Vaccine Candidates per Phase'));
+  expect(
+    screen.queryByText(
+      'Click to edit Vaccine Candidates per Phase in a new tab',
+    ),
+  ).not.toBeInTheDocument();
+
+  userEvent.click(screen.getByText('Vaccine Candidates per Phase'));
+  expect(props.onExploreChart).not.toHaveBeenCalled();
 });
 
 test('Should render "annotationsLoading"', () => {

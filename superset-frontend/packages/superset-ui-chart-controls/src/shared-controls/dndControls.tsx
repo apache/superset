@@ -28,7 +28,7 @@ import { TIME_COLUMN_OPTION, TIME_FILTER_LABELS } from '../constants';
 
 export const dndGroupByControl: SharedControlConfig<'DndColumnSelect'> = {
   type: 'DndColumnSelect',
-  label: t('Group by'),
+  label: t('Dimensions'),
   default: [],
   description: t(
     'One or many columns to group by. High cardinality groupings should include a series limit ' +
@@ -58,7 +58,7 @@ export const dndColumnsControl: typeof dndGroupByControl = {
 
 export const dndSeries: typeof dndGroupByControl = {
   ...dndGroupByControl,
-  label: t('Series'),
+  label: t('Dimensions'),
   multi: false,
   default: null,
   description: t(
@@ -80,7 +80,7 @@ export const dndEntity: typeof dndGroupByControl = {
 export const dnd_adhoc_filters: SharedControlConfig<'DndFilterSelect'> = {
   type: 'DndFilterSelect',
   label: t('Filters'),
-  default: null,
+  default: [],
   description: '',
   mapStateToProps: ({ datasource, form_data }) => ({
     columns: datasource?.columns.filter(c => c.filterable) || [],
@@ -186,6 +186,7 @@ export const dnd_granularity_sqla: typeof dndGroupByControl = {
       options,
       default:
         datasource?.main_dttm_col || temporalColumns[0]?.column_name || null,
+      isTemporal: true,
     };
   },
 };

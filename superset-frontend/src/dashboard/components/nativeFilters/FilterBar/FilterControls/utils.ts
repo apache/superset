@@ -22,32 +22,6 @@ import {
   setFocusedNativeFilter,
   unsetFocusedNativeFilter,
 } from 'src/dashboard/actions/nativeFilters';
-import { Filter, NativeFilterType, Divider } from '../../types';
-import { CascadeFilter } from '../CascadeFilters/types';
-import { mapParentFiltersToChildren } from '../utils';
-
-// eslint-disable-next-line import/prefer-default-export
-export function buildCascadeFiltersTree(
-  filters: Array<Divider | Filter>,
-): Array<CascadeFilter | Divider> {
-  const cascadeChildren = mapParentFiltersToChildren(filters);
-
-  const getCascadeFilter = (filter: Filter): CascadeFilter => {
-    const children = cascadeChildren[filter.id] || [];
-    return {
-      ...filter,
-      cascadeChildren: children.map(getCascadeFilter),
-    };
-  };
-
-  return filters
-    .filter(
-      filter =>
-        filter.type === NativeFilterType.DIVIDER ||
-        !(filter as Filter).cascadeParentIds?.length,
-    )
-    .map(getCascadeFilter);
-}
 
 export const dispatchFocusAction = debounce(
   (dispatch: Dispatch<any>, id?: string) => {

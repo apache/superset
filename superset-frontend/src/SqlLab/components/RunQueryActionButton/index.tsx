@@ -16,16 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { t, styled, supersetTheme } from '@superset-ui/core';
+import React, { useMemo } from 'react';
+import { t, styled, useTheme } from '@superset-ui/core';
 
-import { Menu } from 'src/common/components';
+import { Menu } from 'src/components/Menu';
 import Button, { ButtonProps } from 'src/components/Button';
 import Icons from 'src/components/Icons';
 import {
   DropdownButton,
   DropdownButtonProps,
 } from 'src/components/DropdownButton';
+import { detectOS } from 'src/utils/common';
 
 interface Props {
   allowAsync: boolean;
@@ -93,6 +94,10 @@ const RunQueryActionButton = ({
   runQuery,
   stopQuery,
 }: Props) => {
+  const theme = useTheme();
+
+  const userOS = detectOS();
+
   const shouldShowStopBtn =
     !!queryState && ['running', 'pending'].indexOf(queryState) > -1;
 
@@ -101,6 +106,14 @@ const RunQueryActionButton = ({
     : Button;
 
   const isDisabled = !sql.trim();
+
+  const stopButtonTooltipText = useMemo(
+    () =>
+      userOS === 'MacOS'
+        ? t('Stop running (Ctrl + x)')
+        : t('Stop running (Ctrl + e)'),
+    [userOS],
+  );
 
   return (
     <StyledButton>
@@ -112,7 +125,7 @@ const RunQueryActionButton = ({
         tooltip={
           (!isDisabled &&
             (shouldShowStopBtn
-              ? t('Stop running (Ctrl + x)')
+              ? stopButtonTooltipText
               : t('Run query (Ctrl + Return)'))) as string
         }
         cta
@@ -123,8 +136,8 @@ const RunQueryActionButton = ({
                 <Icons.CaretDown
                   iconColor={
                     isDisabled
-                      ? supersetTheme.colors.grayscale.base
-                      : supersetTheme.colors.grayscale.light5
+                      ? theme.colors.grayscale.base
+                      : theme.colors.grayscale.light5
                   }
                   name="caret-down"
                 />

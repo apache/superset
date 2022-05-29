@@ -20,17 +20,13 @@ import shortid from 'shortid';
 import { find, isEmpty } from 'lodash';
 
 import {
-  Filter,
-  NativeFilterType,
-} from 'src/dashboard/components/nativeFilters/types';
-import {
   FILTER_CONFIG_ATTRIBUTES,
   TIME_FILTER_LABELS,
   TIME_FILTER_MAP,
 } from 'src/explore/constants';
 import { DASHBOARD_FILTER_SCOPE_GLOBAL } from 'src/dashboard/reducers/dashboardFilters';
-import { TimeGranularity } from '@superset-ui/core';
-import { getChartIdsInFilterScope } from './activeDashboardFilters';
+import { Filter, NativeFilterType, TimeGranularity } from '@superset-ui/core';
+import { getChartIdsInFilterBoxScope } from './activeDashboardFilters';
 import getFilterConfigsFromFormdata from './getFilterConfigsFromFormdata';
 
 interface FilterConfig {
@@ -151,7 +147,7 @@ const getFilterboxDependencies = (filterScopes: FilterScopesMetadata) => {
   Object.entries(filterScopes).forEach(([key, filterFields]) => {
     filterFieldsDependencies[key] = {};
     Object.entries(filterFields).forEach(([filterField, filterScope]) => {
-      filterFieldsDependencies[key][filterField] = getChartIdsInFilterScope({
+      filterFieldsDependencies[key][filterField] = getChartIdsInFilterBoxScope({
         filterScope,
       }).filter(
         chartId => filterChartIds.includes(chartId) && String(chartId) !== key,
@@ -514,7 +510,8 @@ export default function getNativeFilterConfig(
               childComponent.filterType as FILTER_COMPONENT_FILTER_TYPES,
             )
           ) {
-            childComponent.cascadeParentIds ||= [];
+            childComponent.cascadeParentIds =
+              childComponent.cascadeParentIds || [];
             childComponent.cascadeParentIds.push(parentComponentId);
           }
         });

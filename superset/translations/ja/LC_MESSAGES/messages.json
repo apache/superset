@@ -1300,6 +1300,7 @@
       "Run selection": [""],
       "Run": ["実行"],
       "Stop running (Ctrl + x)": ["実行を停止 (Ctrl + x)"],
+      "Stop running (Ctrl + e)": ["実行を停止 (Ctrl + e)"],
       "Run query (Ctrl + Return)": ["クエリを実行 (Ctrl + Return)"],
       "Save & Explore": [""],
       "Overwrite & Explore": [""],

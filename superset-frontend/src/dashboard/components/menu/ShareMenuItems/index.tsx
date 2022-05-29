@@ -17,31 +17,27 @@
  * under the License.
  */
 import React from 'react';
-import { useUrlShortener } from 'src/common/hooks/useUrlShortener';
 import copyTextToClipboard from 'src/utils/copy';
-import { t } from '@superset-ui/core';
-import { Menu } from 'src/common/components';
-import { getUrlParam } from 'src/utils/urlUtils';
+import { t, logging } from '@superset-ui/core';
+import { Menu } from 'src/components/Menu';
+import { getDashboardPermalink, getUrlParam } from 'src/utils/urlUtils';
 import { URL_PARAMS } from 'src/constants';
-import {
-  createFilterKey,
-  getFilterValue,
-} from 'src/dashboard/components/nativeFilters/FilterBar/keyValue';
+import { getFilterValue } from 'src/dashboard/components/nativeFilters/FilterBar/keyValue';
 
 interface ShareMenuItemProps {
-  url: string;
+  url?: string;
   copyMenuItemTitle: string;
   emailMenuItemTitle: string;
   emailSubject: string;
   emailBody: string;
   addDangerToast: Function;
   addSuccessToast: Function;
-  dashboardId?: string;
+  dashboardId: string | number;
+  dashboardComponentId?: string;
 }
 
 const ShareMenuItems = (props: ShareMenuItemProps) => {
   const {
-    url,
     copyMenuItemTitle,
     emailMenuItemTitle,
     emailSubject,
@@ -49,51 +45,49 @@ const ShareMenuItems = (props: ShareMenuItemProps) => {
     addDangerToast,
     addSuccessToast,
     dashboardId,
+    dashboardComponentId,
     ...rest
   } = props;
 
-  const getShortUrl = useUrlShortener(url);
-
-  async function getCopyUrl() {
-    const risonObj = getUrlParam(URL_PARAMS.nativeFilters);
-    if (typeof risonObj === 'object' || !dashboardId) return null;
-    const prevData = await getFilterValue(
+  async function generateUrl() {
+    const nativeFiltersKey = getUrlParam(URL_PARAMS.nativeFiltersKey);
+    let filterState = {};
+    if (nativeFiltersKey && dashboardId) {
+      filterState = await getFilterValue(dashboardId, nativeFiltersKey);
+    }
+    return getDashboardPermalink({
       dashboardId,
-      getUrlParam(URL_PARAMS.nativeFiltersKey),
-    );
-    const newDataMaskKey = await createFilterKey(
-      dashboardId,
-      JSON.stringify(prevData),
-    );
-    const newUrl = new URL(`${window.location.origin}${url}`);
-    newUrl.searchParams.set(URL_PARAMS.nativeFilters.name, newDataMaskKey);
-    return `${newUrl.pathname}${newUrl.search}`;
+      filterState,
+      hash: dashboardComponentId,
+    });
   }
 
   async function onCopyLink() {
     try {
-      const copyUrl = await getCopyUrl();
-      const shortUrl = await getShortUrl(copyUrl);
-      await copyTextToClipboard(shortUrl);
+      const url = await generateUrl();
+      await copyTextToClipboard(url);
       addSuccessToast(t('Copied to clipboard!'));
     } catch (error) {
-      addDangerToast(t('Sorry, your browser does not support copying.'));
+      logging.error(error);
+      addDangerToast(t('Sorry, something went wrong. Try again later.'));
     }
   }
 
   async function onShareByEmail() {
     try {
-      const copyUrl = await getCopyUrl();
-      const shortUrl = await getShortUrl(copyUrl);
-      const bodyWithLink = `${emailBody}${shortUrl}`;
-      window.location.href = `mailto:?Subject=${emailSubject}%20&Body=${bodyWithLink}`;
+      const encodedBody = encodeURIComponent(
+        `${emailBody}${await generateUrl()}`,
+      );
+      const encodedSubject = encodeURIComponent(emailSubject);
+      window.location.href = `mailto:?Subject=${encodedSubject}%20&Body=${encodedBody}`;
     } catch (error) {
+      logging.error(error);
       addDangerToast(t('Sorry, something went wrong. Try again later.'));
     }
   }
 
   return (
-    <>
+    <Menu selectable={false}>
       <Menu.Item key="copy-url" {...rest}>
         <div onClick={onCopyLink} role="button" tabIndex={0}>
           {copyMenuItemTitle}
@@ -104,7 +98,7 @@ const ShareMenuItems = (props: ShareMenuItemProps) => {
           {emailMenuItemTitle}
         </div>
       </Menu.Item>
-    </>
+    </Menu>
   );
 };
 

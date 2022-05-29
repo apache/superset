@@ -19,12 +19,10 @@ from typing import Any, Dict
 
 from sqlalchemy.orm import Session
 
-from superset.connectors.druid.models import DruidCluster
 from superset.models.core import Database
 
 EXPORT_VERSION = "1.0.0"
 DATABASES_KEY = "databases"
-DRUID_CLUSTERS_KEY = "druid_clusters"
 logger = logging.getLogger(__name__)
 
 
@@ -33,14 +31,9 @@ def export_schema_to_dict(back_references: bool) -> Dict[str, Any]:
     databases = [
         Database.export_schema(recursive=True, include_parent_ref=back_references)
     ]
-    clusters = [
-        DruidCluster.export_schema(recursive=True, include_parent_ref=back_references)
-    ]
     data = {}
     if databases:
         data[DATABASES_KEY] = databases
-    if clusters:
-        data[DRUID_CLUSTERS_KEY] = clusters
     return data
 
 
@@ -59,19 +52,7 @@ def export_to_dict(
         for database in dbs
     ]
     logger.info("Exported %d %s", len(databases), DATABASES_KEY)
-    cls = session.query(DruidCluster)
-    clusters = [
-        cluster.export_to_dict(
-            recursive=recursive,
-            include_parent_ref=back_references,
-            include_defaults=include_defaults,
-        )
-        for cluster in cls
-    ]
-    logger.info("Exported %d %s", len(clusters), DRUID_CLUSTERS_KEY)
     data = {}
     if databases:
         data[DATABASES_KEY] = databases
-    if clusters:
-        data[DRUID_CLUSTERS_KEY] = clusters
     return data

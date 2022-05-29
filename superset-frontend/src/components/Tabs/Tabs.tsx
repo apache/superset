@@ -18,10 +18,10 @@
  */
 import React from 'react';
 import { css, styled } from '@superset-ui/core';
-import AntDTabs, { TabsProps as AntDTabsProps } from 'antd/lib/tabs';
+import AntdTabs, { TabsProps as AntdTabsProps } from 'antd/lib/tabs';
 import Icons from 'src/components/Icons';
 
-export interface TabsProps extends AntDTabsProps {
+export interface TabsProps extends AntdTabsProps {
   fullWidth?: boolean;
   allowOverflow?: boolean;
 }
@@ -32,7 +32,7 @@ const StyledTabs = ({
   allowOverflow = true,
   ...props
 }: TabsProps) => (
-  <AntDTabs
+  <AntdTabs
     animated={animated}
     {...props}
     css={theme => css`
@@ -89,34 +89,38 @@ const StyledTabs = ({
   />
 );
 
-const StyledTabPane = styled(AntDTabs.TabPane)``;
+const StyledTabPane = styled(AntdTabs.TabPane)``;
 
 const Tabs = Object.assign(StyledTabs, {
   TabPane: StyledTabPane,
 });
 
 const StyledEditableTabs = styled(StyledTabs)`
-  .ant-tabs-content-holder {
-    background: white;
-  }
+  ${({ theme, fullWidth }) => `
+    .ant-tabs-content-holder {
+      background: ${theme.colors.grayscale.light5};
+    }
 
-  & > .ant-tabs-nav {
-    margin-bottom: 0;
-  }
+    & > .ant-tabs-nav {
+      margin-bottom: 0;
+    }
 
-  .ant-tabs-tab-remove {
-    padding-top: 0;
-    padding-bottom: 0;
-    height: ${({ theme }) => theme.gridUnit * 6}px;
-  }
+    .ant-tabs-tab-remove {
+      padding-top: 0;
+      padding-bottom: 0;
+      height: ${theme.gridUnit * 6}px;
+    }
 
-  ${({ fullWidth }) =>
-    fullWidth &&
-    css`
-      .ant-tabs-nav-list {
-        width: 100%;
-      }
-    `}
+    ${
+      fullWidth
+        ? css`
+            .ant-tabs-nav-list {
+              width: 100%;
+            }
+          `
+        : ''
+    }
+  `}
 `;
 
 const StyledCancelXIcon = styled(Icons.CancelX)`

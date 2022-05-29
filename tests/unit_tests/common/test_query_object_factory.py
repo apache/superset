@@ -29,9 +29,7 @@ def create_app_config() -> Dict[str, Any]:
         "DEFAULT_RELATIVE_START_TIME": "today",
         "DEFAULT_RELATIVE_END_TIME": "today",
         "SAMPLES_ROW_LIMIT": 1000,
-        "SIP_15_ENABLED": True,
         "SQL_MAX_ROW": 100000,
-        "SIP_15_GRACE_PERIOD_END": None,
     }
 
 

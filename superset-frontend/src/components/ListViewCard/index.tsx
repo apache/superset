@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { styled, useTheme } from '@superset-ui/core';
-import { AntdCard, Skeleton, ThinSkeleton } from 'src/common/components';
+import { Skeleton, AntdCard } from 'src/components';
 import { Tooltip } from 'src/components/Tooltip';
 import ImageLoader, { BackgroundPosition } from './ImageLoader';
 import CertifiedBadge from '../CertifiedBadge';
@@ -26,52 +26,35 @@ import CertifiedBadge from '../CertifiedBadge';
 const ActionsWrapper = styled.div`
   width: 64px;
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
 `;
 
 const StyledCard = styled(AntdCard)`
-  border: 1px solid #d9dbe4;
-  border-radius: ${({ theme }) => theme.gridUnit}px;
-  overflow: hidden;
+  ${({ theme }) => `
+    border: 1px solid ${theme.colors.grayscale.light2};
+    border-radius: ${theme.gridUnit}px;
+    overflow: hidden;
 
-  .ant-card-body {
-    padding: ${({ theme }) => theme.gridUnit * 4}px
-      ${({ theme }) => theme.gridUnit * 2}px;
-  }
-  .ant-card-meta-detail > div:not(:last-child) {
-    margin-bottom: 0;
-  }
-  .gradient-container {
-    position: relative;
-    height: 100%;
-  }
-  &:hover {
-    box-shadow: 8px 8px 28px 0px rgba(0, 0, 0, 0.24);
-    transition: box-shadow ${({ theme }) => theme.transitionTiming}s ease-in-out;
-
-    .gradient-container:after {
-      content: '';
-      position: absolute;
-      left: 0;
-      top: 0;
-      width: 100%;
+    .ant-card-body {
+      padding: ${theme.gridUnit * 4}px
+        ${theme.gridUnit * 2}px;
+    }
+    .ant-card-meta-detail > div:not(:last-child) {
+      margin-bottom: 0;
+    }
+    .gradient-container {
+      position: relative;
       height: 100%;
-      display: inline-block;
-      background: linear-gradient(
-        180deg,
-        rgba(0, 0, 0, 0) 47.83%,
-        rgba(0, 0, 0, 0.219135) 79.64%,
-        rgba(0, 0, 0, 0.5) 100%
-      );
-
-      transition: background ${({ theme }) => theme.transitionTiming}s
-        ease-in-out;
     }
+    &:hover {
+      box-shadow: 8px 8px 28px 0px ${theme.colors.grayscale.light1};
+      transition: box-shadow ${theme.transitionTiming}s ease-in-out;
 
-    .cover-footer {
-      transform: translateY(0);
+      .cover-footer {
+        transform: translateY(0);
+      }
     }
-  }
+  `}
 `;
 
 const Cover = styled.div`
@@ -134,6 +117,16 @@ const CoverFooterRight = styled.div`
   max-width: 200px;
   overflow: hidden;
   text-overflow: ellipsis;
+`;
+
+const ThinSkeleton = styled(Skeleton)`
+  h3 {
+    margin: ${({ theme }) => theme.gridUnit}px 0;
+  }
+
+  ul {
+    margin-bottom: 0;
+  }
 `;
 
 const paragraphConfig = { rows: 1, width: 150 };

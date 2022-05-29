@@ -26,7 +26,7 @@ import pandas as pd
 import pyarrow as pa
 
 from superset.db_engine_specs import BaseEngineSpec
-from superset.typing import DbapiDescription, DbapiResult
+from superset.superset_typing import DbapiDescription, DbapiResult, ResultSetColumnType
 from superset.utils import core as utils
 
 logger = logging.getLogger(__name__)
@@ -174,7 +174,10 @@ class SupersetResultSet:
 
     @staticmethod
     def convert_table_to_df(table: pa.Table) -> pd.DataFrame:
-        return table.to_pandas(integer_object_nulls=True)
+        try:
+            return table.to_pandas(integer_object_nulls=True)
+        except pa.lib.ArrowInvalid:
+            return table.to_pandas(integer_object_nulls=True, timestamp_as_object=True)
 
     @staticmethod
     def first_nonempty(items: List[Any]) -> Any:
@@ -210,17 +213,17 @@ class SupersetResultSet:
         return self.table.num_rows
 
     @property
-    def columns(self) -> List[Dict[str, Any]]:
+    def columns(self) -> List[ResultSetColumnType]:
         if not self.table.column_names:
             return []
 
         columns = []
         for col in self.table.schema:
             db_type_str = self.data_type(col.name, col.type)
-            column = {
+            column: ResultSetColumnType = {
                 "name": col.name,
                 "type": db_type_str,
-                "is_date": self.is_temporal(db_type_str),
+                "is_dttm": self.is_temporal(db_type_str),
             }
             columns.append(column)
 

@@ -36,19 +36,7 @@ const config: ControlPanelConfig = {
         ['groupby'],
         ['row_limit'],
         ['timeseries_limit_metric'],
-        [
-          {
-            name: 'order_desc',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Sort Descending'),
-              default: true,
-              description: t('Whether to sort descending or ascending'),
-              visibility: ({ controls }) =>
-                Boolean(controls?.timeseries_limit_metric.value),
-            },
-          },
-        ],
+        ['order_desc'],
       ],
     },
     {

@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { t } from '@superset-ui/core';
+import { FeatureFlag, isFeatureEnabled, t } from '@superset-ui/core';
 import {
   ControlPanelConfig,
   ControlPanelsContainerProps,
@@ -36,6 +36,7 @@ import {
   legendSection,
   richTooltipSection,
   showValueSection,
+  xAxisControl,
 } from '../../controls';
 
 const {
@@ -59,6 +60,7 @@ const config: ControlPanelConfig = {
       label: t('Query'),
       expanded: true,
       controlSetRows: [
+        isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES) ? [xAxisControl] : [],
         ['metrics'],
         ['groupby'],
         [
@@ -70,10 +72,10 @@ const config: ControlPanelConfig = {
               default: contributionMode,
               choices: [
                 [null, 'None'],
-                [EchartsTimeseriesContributionType.Row, 'Total'],
+                [EchartsTimeseriesContributionType.Row, 'Row'],
                 [EchartsTimeseriesContributionType.Column, 'Series'],
               ],
-              description: t('Calculate contribution per series or total'),
+              description: t('Calculate contribution per series or row'),
             },
           },
         ],
@@ -81,19 +83,7 @@ const config: ControlPanelConfig = {
         emitFilterControl,
         ['limit'],
         ['timeseries_limit_metric'],
-        [
-          {
-            name: 'order_desc',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Sort Descending'),
-              default: true,
-              description: t('Whether to sort descending or ascending'),
-              visibility: ({ controls }) =>
-                Boolean(controls?.timeseries_limit_metric.value),
-            },
-          },
-        ],
+        ['order_desc'],
         ['row_limit'],
       ],
     },
@@ -188,7 +178,7 @@ const config: ControlPanelConfig = {
           },
         ],
         ...legendSection,
-        [<h1 className="section-header">{t('X Axis')}</h1>],
+        [<div className="section-header">{t('X Axis')}</div>],
         [
           {
             name: 'x_axis_time_format',
@@ -223,7 +213,7 @@ const config: ControlPanelConfig = {
         ],
         ...richTooltipSection,
         // eslint-disable-next-line react/jsx-key
-        [<h1 className="section-header">{t('Y Axis')}</h1>],
+        [<div className="section-header">{t('Y Axis')}</div>],
         ['y_axis_format'],
         [
           {

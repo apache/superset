@@ -118,7 +118,8 @@ def upgrade():
             sa.Column("validator_config", sa.Text(), default="", nullable=True),
         )
         op.add_column(
-            "alerts", sa.Column("database_id", sa.Integer(), default=0, nullable=False),
+            "alerts",
+            sa.Column("database_id", sa.Integer(), default=0, nullable=False),
         )
         op.add_column("alerts", sa.Column("sql", sa.Text(), default="", nullable=False))
         op.add_column(
@@ -159,7 +160,10 @@ def upgrade():
             sa.Column("alert_id", sa.Integer(), nullable=True),
             sa.Column("value", sa.Float(), nullable=True),
             sa.Column("error_msg", sa.String(length=500), nullable=True),
-            sa.ForeignKeyConstraint(["alert_id"], ["alerts.id"],),
+            sa.ForeignKeyConstraint(
+                ["alert_id"],
+                ["alerts.id"],
+            ),
             sa.PrimaryKeyConstraint("id"),
         )
     else:
@@ -192,7 +196,11 @@ def downgrade():
         sa.Column("created_on", sa.DateTime(), nullable=True),
         sa.Column("changed_on", sa.DateTime(), nullable=True),
         sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
-        sa.Column("validator_type", sa.String(length=100), nullable=False,),
+        sa.Column(
+            "validator_type",
+            sa.String(length=100),
+            nullable=False,
+        ),
         sa.Column("config", sa.Text(), nullable=True),
         sa.Column("created_by_fk", sa.Integer(), autoincrement=False, nullable=True),
         sa.Column("changed_by_fk", sa.Integer(), autoincrement=False, nullable=True),
@@ -261,10 +269,22 @@ def downgrade():
             sa.Column("created_by_fk", sa.Integer(), nullable=True),
             sa.Column("created_on", sa.DateTime(), nullable=True),
             sa.Column("slack_channel", sa.Text(), nullable=True),
-            sa.ForeignKeyConstraint(["dashboard_id"], ["dashboards.id"],),
-            sa.ForeignKeyConstraint(["slice_id"], ["slices.id"],),
-            sa.ForeignKeyConstraint(["created_by_fk"], ["ab_user.id"],),
-            sa.ForeignKeyConstraint(["changed_by_fk"], ["ab_user.id"],),
+            sa.ForeignKeyConstraint(
+                ["dashboard_id"],
+                ["dashboards.id"],
+            ),
+            sa.ForeignKeyConstraint(
+                ["slice_id"],
+                ["slices.id"],
+            ),
+            sa.ForeignKeyConstraint(
+                ["created_by_fk"],
+                ["ab_user.id"],
+            ),
+            sa.ForeignKeyConstraint(
+                ["changed_by_fk"],
+                ["ab_user.id"],
+            ),
             sa.PrimaryKeyConstraint("id"),
         )
     else:

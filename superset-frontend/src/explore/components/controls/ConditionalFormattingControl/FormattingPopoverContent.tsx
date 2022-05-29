@@ -17,10 +17,11 @@
  * under the License.
  */
 import React from 'react';
-import { styled, t } from '@superset-ui/core';
+import { styled, SupersetTheme, t, useTheme } from '@superset-ui/core';
 import { Form, FormItem, FormProps } from 'src/components/Form';
-import Select, { propertyComparator } from 'src/components/Select/Select';
-import { Col, InputNumber, Row } from 'src/common/components';
+import Select from 'src/components/Select/Select';
+import { Col, Row } from 'src/components';
+import { InputNumber } from 'src/components/Input';
 import Button from 'src/components/Button';
 import {
   COMPARATOR,
@@ -37,24 +38,24 @@ const JustifyEnd = styled.div`
   justify-content: flex-end;
 `;
 
-const colorSchemeOptions = [
-  { value: 'rgb(0,255,0)', label: t('green') },
-  { value: 'rgb(255,255,0)', label: t('yellow') },
-  { value: 'rgb(255,0,0)', label: t('red') },
+const colorSchemeOptions = (theme: SupersetTheme) => [
+  { value: theme.colors.success.light1, label: t('green') },
+  { value: theme.colors.alert.light1, label: t('yellow') },
+  { value: theme.colors.error.light1, label: t('red') },
 ];
 
 const operatorOptions = [
-  { value: COMPARATOR.NONE, label: 'None', order: 0 },
-  { value: COMPARATOR.GREATER_THAN, label: '>', order: 1 },
-  { value: COMPARATOR.LESS_THAN, label: '<', order: 2 },
-  { value: COMPARATOR.GREATER_OR_EQUAL, label: '≥', order: 3 },
-  { value: COMPARATOR.LESS_OR_EQUAL, label: '≤', order: 4 },
-  { value: COMPARATOR.EQUAL, label: '=', order: 5 },
-  { value: COMPARATOR.NOT_EQUAL, label: '≠', order: 6 },
-  { value: COMPARATOR.BETWEEN, label: '< x <', order: 7 },
-  { value: COMPARATOR.BETWEEN_OR_EQUAL, label: '≤ x ≤', order: 8 },
-  { value: COMPARATOR.BETWEEN_OR_LEFT_EQUAL, label: '≤ x <', order: 9 },
-  { value: COMPARATOR.BETWEEN_OR_RIGHT_EQUAL, label: '< x ≤', order: 10 },
+  { value: COMPARATOR.NONE, label: 'None' },
+  { value: COMPARATOR.GREATER_THAN, label: '>' },
+  { value: COMPARATOR.LESS_THAN, label: '<' },
+  { value: COMPARATOR.GREATER_OR_EQUAL, label: '≥' },
+  { value: COMPARATOR.LESS_OR_EQUAL, label: '≤' },
+  { value: COMPARATOR.EQUAL, label: '=' },
+  { value: COMPARATOR.NOT_EQUAL, label: '≠' },
+  { value: COMPARATOR.BETWEEN, label: '< x <' },
+  { value: COMPARATOR.BETWEEN_OR_EQUAL, label: '≤ x ≤' },
+  { value: COMPARATOR.BETWEEN_OR_LEFT_EQUAL, label: '≤ x <' },
+  { value: COMPARATOR.BETWEEN_OR_RIGHT_EQUAL, label: '< x ≤' },
 ];
 
 const targetValueValidator =
@@ -126,11 +127,7 @@ const operatorField = (
     rules={rulesRequired}
     initialValue={operatorOptions[0].value}
   >
-    <Select
-      ariaLabel={t('Operator')}
-      options={operatorOptions}
-      sortComparator={propertyComparator('order')}
-    />
+    <Select ariaLabel={t('Operator')} options={operatorOptions} />
   </FormItem>
 );
 
@@ -190,44 +187,48 @@ export const FormattingPopoverContent = ({
   config?: ConditionalFormattingConfig;
   onChange: (config: ConditionalFormattingConfig) => void;
   columns: { label: string; value: string }[];
-}) => (
-  <Form
-    onFinish={onChange}
-    initialValues={config}
-    requiredMark="optional"
-    layout="vertical"
-  >
-    <Row gutter={12}>
-      <Col span={12}>
-        <FormItem
-          name="column"
-          label={t('Column')}
-          rules={rulesRequired}
-          initialValue={columns[0]?.value}
-        >
-          <Select ariaLabel={t('Select column')} options={columns} />
-        </FormItem>
-      </Col>
-      <Col span={12}>
-        <FormItem
-          name="colorScheme"
-          label={t('Color scheme')}
-          rules={rulesRequired}
-          initialValue={colorSchemeOptions[0].value}
-        >
-          <Select ariaLabel={t('Color scheme')} options={colorSchemeOptions} />
-        </FormItem>
-      </Col>
-    </Row>
-    <FormItem noStyle shouldUpdate={shouldFormItemUpdate}>
-      {renderOperatorFields}
-    </FormItem>
-    <FormItem>
-      <JustifyEnd>
-        <Button htmlType="submit" buttonStyle="primary">
-          {t('Apply')}
-        </Button>
-      </JustifyEnd>
-    </FormItem>
-  </Form>
-);
+}) => {
+  const theme = useTheme();
+  const colorScheme = colorSchemeOptions(theme);
+  return (
+    <Form
+      onFinish={onChange}
+      initialValues={config}
+      requiredMark="optional"
+      layout="vertical"
+    >
+      <Row gutter={12}>
+        <Col span={12}>
+          <FormItem
+            name="column"
+            label={t('Column')}
+            rules={rulesRequired}
+            initialValue={columns[0]?.value}
+          >
+            <Select ariaLabel={t('Select column')} options={columns} />
+          </FormItem>
+        </Col>
+        <Col span={12}>
+          <FormItem
+            name="colorScheme"
+            label={t('Color scheme')}
+            rules={rulesRequired}
+            initialValue={colorScheme[0].value}
+          >
+            <Select ariaLabel={t('Color scheme')} options={colorScheme} />
+          </FormItem>
+        </Col>
+      </Row>
+      <FormItem noStyle shouldUpdate={shouldFormItemUpdate}>
+        {renderOperatorFields}
+      </FormItem>
+      <FormItem>
+        <JustifyEnd>
+          <Button htmlType="submit" buttonStyle="primary">
+            {t('Apply')}
+          </Button>
+        </JustifyEnd>
+      </FormItem>
+    </Form>
+  );
+};

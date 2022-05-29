@@ -38,14 +38,14 @@ from tests.integration_tests.test_app import app
 from superset.sql_parse import CtasMethod
 from superset import db, security_manager
 from superset.connectors.base.models import BaseDatasource
-from superset.connectors.druid.models import DruidCluster, DruidDatasource
 from superset.connectors.sqla.models import SqlaTable
 from superset.models import core as models
 from superset.models.slice import Slice
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.datasource_access_request import DatasourceAccessRequest
-from superset.utils.core import get_example_database, get_example_default_schema
+from superset.utils.core import get_example_default_schema
+from superset.utils.database import get_example_database
 from superset.views.base_api import BaseSupersetModelRestApi
 
 FAKE_DB_NAME = "fake_db_100"
@@ -152,7 +152,7 @@ class SupersetTestCase(TestCase):
         user_to_create.roles = []
         for chosen_user_role in roles:
             if should_create_roles:
-                ## copy role from gamma but without data permissions
+                # copy role from gamma but without data permissions
                 security_manager.copy_role("Gamma", chosen_user_role, merge=False)
             user_to_create.roles.append(security_manager.find_role(chosen_user_role))
         db.session.commit()
@@ -189,30 +189,6 @@ class SupersetTestCase(TestCase):
             .one_or_none()
         )
         return user
-
-    @classmethod
-    def create_druid_test_objects(cls):
-        # create druid cluster and druid datasources
-
-        with app.app_context():
-            session = db.session
-            cluster = (
-                session.query(DruidCluster).filter_by(cluster_name="druid_test").first()
-            )
-            if not cluster:
-                cluster = DruidCluster(cluster_name="druid_test")
-                session.add(cluster)
-                session.commit()
-
-                druid_datasource1 = DruidDatasource(
-                    datasource_name="druid_ds_1", cluster=cluster
-                )
-                session.add(druid_datasource1)
-                druid_datasource2 = DruidDatasource(
-                    datasource_name="druid_ds_2", cluster=cluster
-                )
-                session.add(druid_datasource2)
-                session.commit()
 
     @staticmethod
     def get_table_by_id(table_id: int) -> SqlaTable:
@@ -273,10 +249,6 @@ class SupersetTestCase(TestCase):
             return get_example_database()
         else:
             raise ValueError("Database doesn't exist")
-
-    @staticmethod
-    def get_druid_ds_by_name(name: str) -> DruidDatasource:
-        return db.session.query(DruidDatasource).filter_by(datasource_name=name).first()
 
     @staticmethod
     def get_datasource_mock() -> BaseDatasource:
@@ -357,7 +329,7 @@ class SupersetTestCase(TestCase):
         self,
         sql,
         client_id=None,
-        user_name=None,
+        username=None,
         raise_on_error=False,
         query_limit=None,
         database_name="examples",
@@ -368,9 +340,9 @@ class SupersetTestCase(TestCase):
         ctas_method=CtasMethod.TABLE,
         template_params="{}",
     ):
-        if user_name:
+        if username:
             self.logout()
-            self.login(username=(user_name or "admin"))
+            self.login(username=username)
         dbid = SupersetTestCase.get_database_by_name(database_name).id
         json_payload = {
             "database_id": dbid,
@@ -455,14 +427,14 @@ class SupersetTestCase(TestCase):
         self,
         sql,
         client_id=None,
-        user_name=None,
+        username=None,
         raise_on_error=False,
         database_name="examples",
         template_params=None,
     ):
-        if user_name:
+        if username:
             self.logout()
-            self.login(username=(user_name if user_name else "admin"))
+            self.login(username=username)
         dbid = SupersetTestCase.get_database_by_name(database_name).id
         resp = self.get_json_resp(
             "/superset/validate_sql_json/",

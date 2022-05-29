@@ -88,7 +88,7 @@ describe('DatasourceEditor', () => {
       'Certification details',
     );
 
-    userEvent.type(await inputLabel, 'test_lable');
+    userEvent.type(await inputLabel, 'test_label');
     userEvent.type(await inputDescription, 'test');
     userEvent.type(await inputDtmFormat, 'test');
     userEvent.type(await inputCertifiedBy, 'test');
@@ -122,10 +122,9 @@ describe('DatasourceEditor', () => {
     });
     expect(addBtn).toBeInTheDocument();
     userEvent.click(addBtn);
-    const newColumn = screen.getByRole('button', {
-      name: /<new column>/i,
-    });
-    expect(newColumn).toBeInTheDocument();
+    // newColumn (Column name) is the first textbox in the tab
+    const newColumn = screen.getAllByRole('textbox', { name: '' })[0];
+    expect(newColumn).toHaveValue('<new column>');
   });
 
   it('renders isSqla fields', () => {
@@ -158,11 +157,11 @@ describe('DatasourceEditor', () => {
       const physicalRadioBtn = screen.getByRole('radio', {
         name: /physical \(table or view\)/i,
       });
-      const vituralRadioBtn = screen.getByRole('radio', {
+      const virtualRadioBtn = screen.getByRole('radio', {
         name: /virtual \(sql\)/i,
       });
       expect(physicalRadioBtn).toBeEnabled();
-      expect(vituralRadioBtn).toBeEnabled();
+      expect(virtualRadioBtn).toBeEnabled();
     });
 
     it('Source Tab: readOnly mode', () => {
@@ -171,11 +170,11 @@ describe('DatasourceEditor', () => {
       const physicalRadioBtn = screen.getByRole('radio', {
         name: /physical \(table or view\)/i,
       });
-      const vituralRadioBtn = screen.getByRole('radio', {
+      const virtualRadioBtn = screen.getByRole('radio', {
         name: /virtual \(sql\)/i,
       });
       expect(physicalRadioBtn).toBeDisabled();
-      expect(vituralRadioBtn).toBeDisabled();
+      expect(virtualRadioBtn).toBeDisabled();
     });
   });
 

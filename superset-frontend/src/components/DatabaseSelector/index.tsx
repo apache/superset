@@ -23,6 +23,7 @@ import { Select } from 'src/components';
 import Label from 'src/components/Label';
 import { FormLabel } from 'src/components/Form';
 import RefreshLabel from 'src/components/RefreshLabel';
+import { useToasts } from 'src/components/MessageToasts/withToasts';
 
 const DatabaseSelectorWrapper = styled.div`
   ${({ theme }) => `
@@ -85,13 +86,15 @@ export type DatabaseObject = {
 
 type SchemaValue = { label: string; value: string };
 
-interface DatabaseSelectorProps {
+export interface DatabaseSelectorProps {
   db?: DatabaseObject;
+  emptyState?: ReactNode;
   formMode?: boolean;
   getDbList?: (arg0: any) => {};
   handleError: (msg: string) => void;
   isDatabaseSelectEnabled?: boolean;
   onDbChange?: (db: DatabaseObject) => void;
+  onEmptyResults?: (searchText?: string) => void;
   onSchemaChange?: (schema?: string) => void;
   onSchemasLoad?: (schemas: Array<object>) => void;
   readOnly?: boolean;
@@ -117,10 +120,12 @@ const SelectLabel = ({
 export default function DatabaseSelector({
   db,
   formMode = false,
+  emptyState,
   getDbList,
   handleError,
   isDatabaseSelectEnabled = true,
   onDbChange,
+  onEmptyResults,
   onSchemaChange,
   onSchemasLoad,
   readOnly = false,
@@ -144,6 +149,7 @@ export default function DatabaseSelector({
     schema ? { label: schema, value: schema } : undefined,
   );
   const [refresh, setRefresh] = useState(0);
+  const { addSuccessToast } = useToasts();
 
   const loadDatabases = useMemo(
     () =>
@@ -180,7 +186,7 @@ export default function DatabaseSelector({
             getDbList(result);
           }
           if (result.length === 0) {
-            handleError(t("It seems you don't have access to any database"));
+            if (onEmptyResults) onEmptyResults(search);
           }
           const options = result.map((row: DatabaseObject) => ({
             label: (
@@ -196,13 +202,14 @@ export default function DatabaseSelector({
             allow_multi_schema_metadata_fetch:
               row.allow_multi_schema_metadata_fetch,
           }));
+
           return {
             data: options,
             totalCount: options.length,
           };
         });
       },
-    [formMode, getDbList, handleError, sqlLabMode],
+    [formMode, getDbList, sqlLabMode],
   );
 
   useEffect(() => {
@@ -224,6 +231,7 @@ export default function DatabaseSelector({
           }
           setSchemaOptions(options);
           setLoadingSchemas(false);
+          if (refresh > 0) addSuccessToast('List refreshed');
         })
         .catch(() => {
           setLoadingSchemas(false);
@@ -270,6 +278,7 @@ export default function DatabaseSelector({
         data-test="select-database"
         header={<FormLabel>{t('Database')}</FormLabel>}
         lazyLoading={false}
+        notFoundContent={emptyState}
         onChange={changeDataBase}
         value={currentDb}
         placeholder={t('Select database or type database name')}
@@ -287,11 +296,10 @@ export default function DatabaseSelector({
         tooltipContent={t('Force refresh schema list')}
       />
     );
-
     return renderSelectRow(
       <Select
         ariaLabel={t('Select schema or type schema name')}
-        disabled={readOnly}
+        disabled={!currentDb || readOnly}
         header={<FormLabel>{t('Schema')}</FormLabel>}
         labelInValue
         lazyLoading={false}

@@ -17,13 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import {
-  render,
-  screen,
-  waitFor,
-  waitForElementToBeRemoved,
-  within,
-} from 'spec/helpers/testing-library';
+import { render, screen, waitFor, within } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { Select } from 'src/components';
 
@@ -52,7 +46,14 @@ const OPTIONS = [
   { label: 'Irfan', value: 18, gender: 'Male' },
   { label: 'George', value: 19, gender: 'Male' },
   { label: 'Ashfaq', value: 20, gender: 'Male' },
+  { label: 'Herme', value: 21, gender: 'Male' },
+  { label: 'Cher', value: 22, gender: 'Female' },
+  { label: 'Her', value: 23, gender: 'Male' },
 ].sort((option1, option2) => option1.label.localeCompare(option2.label));
+const NULL_OPTION = { label: '<NULL>', value: null } as unknown as {
+  label: string;
+  value: number;
+};
 
 const loadOptions = async (search: string, page: number, pageSize: number) => {
   const totalCount = OPTIONS.length;
@@ -102,6 +103,18 @@ const findAllSelectValues = () =>
 
 const clearAll = () => userEvent.click(screen.getByLabelText('close-circle'));
 
+const matchOrder = async (expectedLabels: string[]) => {
+  const actualLabels: string[] = [];
+  (await findAllSelectOptions()).forEach(option => {
+    actualLabels.push(option.textContent || '');
+  });
+  // menu is a virtual list, which means it may not render all options
+  expect(actualLabels.slice(0, expectedLabels.length)).toEqual(
+    expectedLabels.slice(0, actualLabels.length),
+  );
+  return true;
+};
+
 const type = (text: string) => {
   const select = getSelect();
   userEvent.clear(select);
@@ -117,9 +130,21 @@ test('displays a header', async () => {
 });
 
 test('adds a new option if the value is not in the options', async () => {
-  render(<Select {...defaultProps} options={[]} value={OPTIONS[0]} />);
+  const { rerender } = render(
+    <Select {...defaultProps} options={[]} value={OPTIONS[0]} />,
+  );
   await open();
   expect(await findSelectOption(OPTIONS[0].label)).toBeInTheDocument();
+
+  rerender(
+    <Select {...defaultProps} options={[OPTIONS[1]]} value={OPTIONS[0]} />,
+  );
+  await open();
+  const options = await findAllSelectOptions();
+  expect(options).toHaveLength(2);
+  options.forEach((option, i) =>
+    expect(option).toHaveTextContent(OPTIONS[i].label),
+  );
 });
 
 test('inverts the selection', async () => {
@@ -155,39 +180,69 @@ test('sort the options using a custom sort comparator', async () => {
   const options = await findAllSelectOptions();
   const optionsPage = OPTIONS.slice(0, defaultProps.pageSize);
   const sortedOptions = optionsPage.sort(sortComparator);
-  options.forEach((option, key) =>
-    expect(option).toHaveTextContent(sortedOptions[key].label),
-  );
+  options.forEach((option, key) => {
+    expect(option).toHaveTextContent(sortedOptions[key].label);
+  });
 });
 
-test('displays the selected values first', async () => {
-  render(<Select {...defaultProps} mode="multiple" />);
-  const option3 = OPTIONS[2].label;
-  const option8 = OPTIONS[7].label;
+test('should sort selected to top when in single mode', async () => {
+  render(<Select {...defaultProps} mode="single" />);
+  const originalLabels = OPTIONS.map(option => option.label);
   await open();
-  userEvent.click(await findSelectOption(option3));
-  userEvent.click(await findSelectOption(option8));
-  await type('{esc}');
-  await open();
-  const sortedOptions = await findAllSelectOptions();
-  expect(sortedOptions[0]).toHaveTextContent(option3);
-  expect(sortedOptions[1]).toHaveTextContent(option8);
-});
+  userEvent.click(await findSelectOption(originalLabels[1]));
+  // after selection, keep the original order
+  expect(await matchOrder(originalLabels)).toBe(true);
 
-test('displays the original order when unselecting', async () => {
-  render(<Select {...defaultProps} mode="multiple" />);
-  const option3 = OPTIONS[2].label;
-  const option8 = OPTIONS[7].label;
-  await open();
-  userEvent.click(await findSelectOption(option3));
-  userEvent.click(await findSelectOption(option8));
+  // order selected to top when reopen
   await type('{esc}');
+  await open();
+  let labels = originalLabels.slice();
+  labels = labels.splice(1, 1).concat(labels);
+  expect(await matchOrder(labels)).toBe(true);
+
+  // keep clicking other items, the updated order should still based on
+  // original order
+  userEvent.click(await findSelectOption(originalLabels[5]));
+  await matchOrder(labels);
+  await type('{esc}');
+  await open();
+  labels = originalLabels.slice();
+  labels = labels.splice(5, 1).concat(labels);
+  expect(await matchOrder(labels)).toBe(true);
+
+  // should revert to original order
   clearAll();
+  await type('{esc}');
   await open();
-  const options = await findAllSelectOptions();
-  options.forEach((option, key) =>
-    expect(option).toHaveTextContent(OPTIONS[key].label),
-  );
+  expect(await matchOrder(originalLabels)).toBe(true);
+});
+
+test('should sort selected to the top when in multi mode', async () => {
+  render(<Select {...defaultProps} mode="multiple" />);
+  const originalLabels = OPTIONS.map(option => option.label);
+  let labels = originalLabels.slice();
+
+  await open();
+  userEvent.click(await findSelectOption(labels[1]));
+  expect(await matchOrder(labels)).toBe(true);
+
+  await type('{esc}');
+  await open();
+  labels = labels.splice(1, 1).concat(labels);
+  expect(await matchOrder(labels)).toBe(true);
+
+  await open();
+  userEvent.click(await findSelectOption(labels[5]));
+  await type('{esc}');
+  await open();
+  labels = [labels.splice(0, 1)[0], labels.splice(4, 1)[0]].concat(labels);
+  expect(await matchOrder(labels)).toBe(true);
+
+  // should revert to original order
+  clearAll();
+  await type('{esc}');
+  await open();
+  expect(await matchOrder(originalLabels)).toBe(true);
 });
 
 test('searches for label or value', async () => {
@@ -200,10 +255,42 @@ test('searches for label or value', async () => {
   expect(options[0]).toHaveTextContent(option.label);
 });
 
+test('search order exact and startWith match first', async () => {
+  render(<Select {...defaultProps} />);
+  await type('Her');
+  const options = await findAllSelectOptions();
+  expect(options.length).toBe(4);
+  expect(options[0]?.textContent).toEqual('Her');
+  expect(options[1]?.textContent).toEqual('Herme');
+  expect(options[2]?.textContent).toEqual('Cher');
+  expect(options[3]?.textContent).toEqual('Guilherme');
+});
+
 test('ignores case when searching', async () => {
   render(<Select {...defaultProps} />);
   await type('george');
   expect(await findSelectOption('George')).toBeInTheDocument();
+});
+
+test('same case should be ranked to the top', async () => {
+  render(
+    <Select
+      {...defaultProps}
+      options={[
+        { value: 'Cac' },
+        { value: 'abac' },
+        { value: 'acbc' },
+        { value: 'CAc' },
+      ]}
+    />,
+  );
+  await type('Ac');
+  const options = await findAllSelectOptions();
+  expect(options.length).toBe(4);
+  expect(options[0]?.textContent).toEqual('acbc');
+  expect(options[1]?.textContent).toEqual('CAc');
+  expect(options[2]?.textContent).toEqual('abac');
+  expect(options[3]?.textContent).toEqual('Cac');
 });
 
 test('ignores special keys when searching', async () => {
@@ -220,14 +307,26 @@ test('searches for custom fields', async () => {
   expect(options[0]).toHaveTextContent('Liam');
   await type('Female');
   options = await findAllSelectOptions();
-  expect(options.length).toBe(5);
+  expect(options.length).toBe(6);
   expect(options[0]).toHaveTextContent('Ava');
   expect(options[1]).toHaveTextContent('Charlotte');
-  expect(options[2]).toHaveTextContent('Emma');
-  expect(options[3]).toHaveTextContent('Nikole');
-  expect(options[4]).toHaveTextContent('Olivia');
+  expect(options[2]).toHaveTextContent('Cher');
+  expect(options[3]).toHaveTextContent('Emma');
+  expect(options[4]).toHaveTextContent('Nikole');
+  expect(options[5]).toHaveTextContent('Olivia');
   await type('1');
   expect(screen.getByText(NO_DATA)).toBeInTheDocument();
+});
+
+test('removes duplicated values', async () => {
+  render(<Select {...defaultProps} mode="multiple" allowNewOptions />);
+  await type('a,b,b,b,c,d,d');
+  const values = await findAllSelectValues();
+  expect(values.length).toBe(4);
+  expect(values[0]).toHaveTextContent('a');
+  expect(values[1]).toHaveTextContent('b');
+  expect(values[2]).toHaveTextContent('c');
+  expect(values[3]).toHaveTextContent('d');
 });
 
 test('renders a custom label', async () => {
@@ -287,6 +386,30 @@ test('does not add a new option if allowNewOptions is false', async () => {
   await open();
   await type(NEW_OPTION);
   expect(await screen.findByText(NO_DATA)).toBeInTheDocument();
+});
+
+test('adds the null option when selected in single mode', async () => {
+  render(<Select {...defaultProps} options={[OPTIONS[0], NULL_OPTION]} />);
+  await open();
+  userEvent.click(await findSelectOption(NULL_OPTION.label));
+  const values = await findAllSelectValues();
+  expect(values[0]).toHaveTextContent(NULL_OPTION.label);
+});
+
+test('adds the null option when selected in multiple mode', async () => {
+  render(
+    <Select
+      {...defaultProps}
+      options={[OPTIONS[0], NULL_OPTION, OPTIONS[2]]}
+      mode="multiple"
+    />,
+  );
+  await open();
+  userEvent.click(await findSelectOption(OPTIONS[0].label));
+  userEvent.click(await findSelectOption(NULL_OPTION.label));
+  const values = await findAllSelectValues();
+  expect(values[0]).toHaveTextContent(OPTIONS[0].label);
+  expect(values[1]).toHaveTextContent(NULL_OPTION.label);
 });
 
 test('static - renders the select with default props', () => {
@@ -388,13 +511,6 @@ test('static - does not show "Loading..." when allowNewOptions is false and a ne
   expect(screen.queryByText(LOADING)).not.toBeInTheDocument();
 });
 
-test('static - shows "Loading..." when allowNewOptions is true and a new option is entered', async () => {
-  render(<Select {...defaultProps} allowNewOptions />);
-  await open();
-  await type(NEW_OPTION);
-  expect(await screen.findByText(LOADING)).toBeInTheDocument();
-});
-
 test('static - does not add a new option if the option already exists', async () => {
   render(<Select {...defaultProps} allowNewOptions />);
   const option = OPTIONS[0].label;
@@ -456,15 +572,6 @@ test('async - displays the loading indicator when opening', async () => {
   expect(screen.queryByText(LOADING)).not.toBeInTheDocument();
 });
 
-test('async - displays the loading indicator while searching', async () => {
-  render(<Select {...defaultProps} options={loadOptions} />);
-  await type('John');
-  expect(screen.getByText(LOADING)).toBeInTheDocument();
-  await waitFor(() =>
-    expect(screen.queryByText(LOADING)).not.toBeInTheDocument(),
-  );
-});
-
 test('async - makes a selection in single mode', async () => {
   render(<Select {...defaultProps} options={loadOptions} />);
   const optionText = 'Emma';
@@ -514,17 +621,35 @@ test('async - changes the selected item in single mode', async () => {
 test('async - deselects an item in multiple mode', async () => {
   render(<Select {...defaultProps} options={loadOptions} mode="multiple" />);
   await open();
-  const [firstOption, secondOption] = OPTIONS;
-  userEvent.click(await findSelectOption(firstOption.label));
-  userEvent.click(await findSelectOption(secondOption.label));
+  const option3 = OPTIONS[2];
+  const option8 = OPTIONS[7];
+  userEvent.click(await findSelectOption(option8.label));
+  userEvent.click(await findSelectOption(option3.label));
+
+  let options = await findAllSelectOptions();
+  expect(options).toHaveLength(Math.min(defaultProps.pageSize, OPTIONS.length));
+  expect(options[0]).toHaveTextContent(OPTIONS[0].label);
+  expect(options[1]).toHaveTextContent(OPTIONS[1].label);
+
+  await type('{esc}');
+  await open();
+
+  // should rank selected options to the top after menu closes
+  options = await findAllSelectOptions();
+  expect(options).toHaveLength(Math.min(defaultProps.pageSize, OPTIONS.length));
+  expect(options[0]).toHaveTextContent(option3.label);
+  expect(options[1]).toHaveTextContent(option8.label);
+
   let values = await findAllSelectValues();
-  expect(values.length).toBe(2);
-  expect(values[0]).toHaveTextContent(firstOption.label);
-  expect(values[1]).toHaveTextContent(secondOption.label);
-  userEvent.click(await findSelectOption(firstOption.label));
+  expect(values).toHaveLength(2);
+  // should keep the order by which the options were selected
+  expect(values[0]).toHaveTextContent(option8.label);
+  expect(values[1]).toHaveTextContent(option3.label);
+
+  userEvent.click(await findSelectOption(option3.label));
   values = await findAllSelectValues();
   expect(values.length).toBe(1);
-  expect(values[0]).toHaveTextContent(secondOption.label);
+  expect(values[0]).toHaveTextContent(option8.label);
 });
 
 test('async - adds a new option if none is available and allowNewOptions is true', async () => {
@@ -587,24 +712,29 @@ test('async - sets a initial value in multiple mode', async () => {
   expect(values[1]).toHaveTextContent(OPTIONS[1].label);
 });
 
-test('async - searches for an item already loaded', async () => {
+test('async - searches for matches in both loaded and unloaded pages', async () => {
   render(<Select {...defaultProps} options={loadOptions} />);
-  const search = 'Oli';
   await open();
-  await type(search);
-  await waitForElementToBeRemoved(screen.getByText(LOADING));
-  const options = await findAllSelectOptions();
+  await type('and');
+
+  let options = await findAllSelectOptions();
+  expect(options.length).toBe(1);
+  expect(options[0]).toHaveTextContent('Alehandro');
+
+  await screen.findByText('Sandro');
+  options = await findAllSelectOptions();
   expect(options.length).toBe(2);
-  expect(options[0]).toHaveTextContent('Oliver');
-  expect(options[1]).toHaveTextContent('Olivia');
+  expect(options[0]).toHaveTextContent('Alehandro');
+  expect(options[1]).toHaveTextContent('Sandro');
 });
 
 test('async - searches for an item in a page not loaded', async () => {
-  render(<Select {...defaultProps} options={loadOptions} />);
-  const search = 'Ashfaq';
+  const mock = jest.fn(loadOptions);
+  render(<Select {...defaultProps} options={mock} />);
+  const search = 'Sandro';
   await open();
   await type(search);
-  await waitForElementToBeRemoved(screen.getByText(LOADING));
+  await waitFor(() => expect(mock).toHaveBeenCalledTimes(2));
   const options = await findAllSelectOptions();
   expect(options.length).toBe(1);
   expect(options[0]).toHaveTextContent(search);
@@ -650,7 +780,7 @@ test('async - does not fire a new request for the same search input', async () =
   expect(loadOptions).toHaveBeenCalledTimes(1);
   clearAll();
   await type('search');
-  expect(await screen.findByText(NO_DATA)).toBeInTheDocument();
+  expect(await screen.findByText(LOADING)).toBeInTheDocument();
   expect(loadOptions).toHaveBeenCalledTimes(1);
 });
 
@@ -668,13 +798,18 @@ test('async - does not fire a new request if all values have been fetched', asyn
 
 test('async - fires a new request if all values have not been fetched', async () => {
   const mock = jest.fn(loadOptions);
-  const search = 'George';
   const pageSize = OPTIONS.length / 2;
   render(<Select {...defaultProps} options={mock} pageSize={pageSize} />);
   await open();
   expect(mock).toHaveBeenCalledTimes(1);
-  await type(search);
-  expect(await findSelectOption(search)).toBeInTheDocument();
+  await type('or');
+
+  // `George` is on the first page so when it appears the API has not been called again
+  expect(await findSelectOption('George')).toBeInTheDocument();
+  expect(mock).toHaveBeenCalledTimes(1);
+
+  // `Igor` is on the second paged API request
+  expect(await findSelectOption('Igor')).toBeInTheDocument();
   expect(mock).toHaveBeenCalledTimes(2);
 });
 

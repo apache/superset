@@ -56,7 +56,10 @@ const DatasetModal: FunctionComponent<DatasetModalProps> = ({
   const [currentSchema, setSchema] = useState<string | undefined>('');
   const [currentTableName, setTableName] = useState('');
   const [disableSave, setDisableSave] = useState(true);
-  const { createResource } = useSingleViewResource<Partial<DatasetAddObject>>(
+  const {
+    createResource,
+    state: { loading },
+  } = useSingleViewResource<Partial<DatasetAddObject>>(
     'dataset',
     t('dataset'),
     addDangerToast,
@@ -114,6 +117,7 @@ const DatasetModal: FunctionComponent<DatasetModalProps> = ({
   return (
     <Modal
       disablePrimaryButton={disableSave}
+      primaryButtonLoading={loading}
       onHandledPrimaryAction={onSave}
       onHide={hide}
       primaryButtonName={t('Add')}
@@ -126,10 +130,10 @@ const DatasetModal: FunctionComponent<DatasetModalProps> = ({
           formMode
           database={currentDatabase}
           schema={currentSchema}
-          tableName={currentTableName}
+          tableValue={currentTableName}
           onDbChange={onDbChange}
           onSchemaChange={onSchemaChange}
-          onTableChange={onTableChange}
+          onTableSelectChange={onTableChange}
           handleError={addDangerToast}
         />
       </TableSelectorContainer>

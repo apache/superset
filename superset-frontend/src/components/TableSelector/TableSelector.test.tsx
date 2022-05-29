@@ -18,14 +18,15 @@
  */
 
 import React from 'react';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import { render, screen, waitFor, within } from 'spec/helpers/testing-library';
 import { SupersetClient } from '@superset-ui/core';
+import { act } from 'react-dom/test-utils';
 import userEvent from '@testing-library/user-event';
-import TableSelector from '.';
+import TableSelector, { TableSelectorMultiple } from '.';
 
 const SupersetClientGet = jest.spyOn(SupersetClient, 'get');
 
-const createProps = () => ({
+const createProps = (props = {}) => ({
   database: {
     id: 1,
     database_name: 'main',
@@ -34,25 +35,42 @@ const createProps = () => ({
   },
   schema: 'test_schema',
   handleError: jest.fn(),
+  ...props,
 });
 
-beforeAll(() => {
-  SupersetClientGet.mockImplementation(
-    async () =>
-      ({
-        json: {
-          options: [
-            { label: 'table_a', value: 'table_a' },
-            { label: 'table_b', value: 'table_b' },
-          ],
-        },
-      } as any),
-  );
+afterEach(() => {
+  jest.clearAllMocks();
 });
+
+const getSchemaMockFunction = async () =>
+  ({
+    json: {
+      result: ['schema_a', 'schema_b'],
+    },
+  } as any);
+
+const getTableMockFunction = async () =>
+  ({
+    json: {
+      options: [
+        { label: 'table_a', value: 'table_a' },
+        { label: 'table_b', value: 'table_b' },
+        { label: 'table_c', value: 'table_c' },
+        { label: 'table_d', value: 'table_d' },
+      ],
+    },
+  } as any);
+
+const getSelectItemContainer = (select: HTMLElement) =>
+  select.parentElement?.parentElement?.getElementsByClassName(
+    'ant-select-selection-item',
+  );
 
 test('renders with default props', async () => {
+  SupersetClientGet.mockImplementation(getTableMockFunction);
+
   const props = createProps();
-  render(<TableSelector {...props} />);
+  render(<TableSelector {...props} />, { useRedux: true });
   const databaseSelect = screen.getByRole('combobox', {
     name: 'Select database or type database name',
   });
@@ -70,8 +88,10 @@ test('renders with default props', async () => {
 });
 
 test('renders table options', async () => {
+  SupersetClientGet.mockImplementation(getTableMockFunction);
+
   const props = createProps();
-  render(<TableSelector {...props} />);
+  render(<TableSelector {...props} />, { useRedux: true });
   const tableSelect = screen.getByRole('combobox', {
     name: 'Select table or type table name',
   });
@@ -85,12 +105,143 @@ test('renders table options', async () => {
 });
 
 test('renders disabled without schema', async () => {
+  SupersetClientGet.mockImplementation(getTableMockFunction);
+
   const props = createProps();
-  render(<TableSelector {...props} schema={undefined} />);
+  render(<TableSelector {...props} schema={undefined} />, { useRedux: true });
   const tableSelect = screen.getByRole('combobox', {
     name: 'Select table or type table name',
   });
   await waitFor(() => {
     expect(tableSelect).toBeDisabled();
   });
+});
+
+test('table options are notified after schema selection', async () => {
+  SupersetClientGet.mockImplementation(getSchemaMockFunction);
+
+  const callback = jest.fn();
+  const props = createProps({
+    onTablesLoad: callback,
+    schema: undefined,
+  });
+  render(<TableSelector {...props} />, { useRedux: true });
+
+  const schemaSelect = screen.getByRole('combobox', {
+    name: 'Select schema or type schema name',
+  });
+  expect(schemaSelect).toBeInTheDocument();
+  expect(callback).not.toHaveBeenCalled();
+
+  userEvent.click(schemaSelect);
+
+  expect(
+    await screen.findByRole('option', { name: 'schema_a' }),
+  ).toBeInTheDocument();
+  expect(
+    await screen.findByRole('option', { name: 'schema_b' }),
+  ).toBeInTheDocument();
+
+  SupersetClientGet.mockImplementation(getTableMockFunction);
+
+  act(() => {
+    userEvent.click(screen.getAllByText('schema_a')[1]);
+  });
+
+  await waitFor(() => {
+    expect(callback).toHaveBeenCalledWith([
+      { label: 'table_a', value: 'table_a' },
+      { label: 'table_b', value: 'table_b' },
+      { label: 'table_c', value: 'table_c' },
+      { label: 'table_d', value: 'table_d' },
+    ]);
+  });
+});
+
+test('table select retain value if not in SQL Lab mode', async () => {
+  SupersetClientGet.mockImplementation(getTableMockFunction);
+
+  const callback = jest.fn();
+  const props = createProps({
+    onTableSelectChange: callback,
+    sqlLabMode: false,
+  });
+
+  render(<TableSelector {...props} />, { useRedux: true });
+
+  const tableSelect = screen.getByRole('combobox', {
+    name: 'Select table or type table name',
+  });
+
+  expect(screen.queryByText('table_a')).not.toBeInTheDocument();
+  expect(getSelectItemContainer(tableSelect)).toHaveLength(0);
+
+  userEvent.click(tableSelect);
+
+  expect(
+    await screen.findByRole('option', { name: 'table_a' }),
+  ).toBeInTheDocument();
+
+  act(() => {
+    userEvent.click(screen.getAllByText('table_a')[1]);
+  });
+
+  expect(callback).toHaveBeenCalled();
+
+  const selectedValueContainer = getSelectItemContainer(tableSelect);
+
+  expect(selectedValueContainer).toHaveLength(1);
+  expect(
+    await within(selectedValueContainer?.[0] as HTMLElement).findByText(
+      'table_a',
+    ),
+  ).toBeInTheDocument();
+});
+
+test('table multi select retain all the values selected', async () => {
+  SupersetClientGet.mockImplementation(getTableMockFunction);
+
+  const callback = jest.fn();
+  const props = createProps({
+    onTableSelectChange: callback,
+  });
+
+  render(<TableSelectorMultiple {...props} />, { useRedux: true });
+
+  const tableSelect = screen.getByRole('combobox', {
+    name: 'Select table or type table name',
+  });
+
+  expect(screen.queryByText('table_a')).not.toBeInTheDocument();
+  expect(getSelectItemContainer(tableSelect)).toHaveLength(0);
+
+  userEvent.click(tableSelect);
+
+  expect(
+    await screen.findByRole('option', { name: 'table_a' }),
+  ).toBeInTheDocument();
+
+  act(() => {
+    const item = screen.getAllByText('table_a');
+    userEvent.click(item[item.length - 1]);
+  });
+
+  act(() => {
+    const item = screen.getAllByText('table_c');
+    userEvent.click(item[item.length - 1]);
+  });
+
+  const selectedValueContainer = getSelectItemContainer(tableSelect);
+
+  expect(selectedValueContainer).toHaveLength(2);
+  expect(
+    await within(selectedValueContainer?.[0] as HTMLElement).findByText(
+      'table_a',
+    ),
+  ).toBeInTheDocument();
+  expect(
+    await within(selectedValueContainer?.[1] as HTMLElement).findByText(
+      'table_c',
+    ),
+  ).toBeInTheDocument();
 });

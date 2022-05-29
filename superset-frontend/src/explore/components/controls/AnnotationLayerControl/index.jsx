@@ -18,15 +18,15 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { List } from 'src/common/components';
+import { List } from 'src/components';
 import { connect } from 'react-redux';
 import { t, withTheme } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
-import Popover from 'src/components/Popover';
 import AsyncEsmComponent from 'src/components/AsyncEsmComponent';
 import { getChartKey } from 'src/explore/exploreUtils';
-import { runAnnotationQuery } from 'src/chart/chartAction';
+import { runAnnotationQuery } from 'src/components/Chart/chartAction';
 import CustomListItem from 'src/explore/components/controls/CustomListItem';
+import ControlPopover from '../ControlPopover/ControlPopover';
 
 const AnnotationLayer = AsyncEsmComponent(
   () => import('./AnnotationLayer'),
@@ -98,7 +98,11 @@ class AnnotationLayerControl extends React.PureComponent {
       this.setState({ addedAnnotationIndex: annotations.length - 1 });
     }
 
-    this.props.refreshAnnotationData(newAnnotation);
+    this.props.refreshAnnotationData({
+      annotation: newAnnotation,
+      force: true,
+    });
+
     this.props.onChange(annotations);
   }
 
@@ -137,10 +141,14 @@ class AnnotationLayerControl extends React.PureComponent {
   }
 
   renderInfo(anno) {
-    const { annotationError, annotationQuery } = this.props;
+    const { annotationError, annotationQuery, theme } = this.props;
     if (annotationQuery[anno.name]) {
       return (
-        <i className="fa fa-refresh" style={{ color: 'orange' }} aria-hidden />
+        <i
+          className="fa fa-refresh"
+          style={{ color: theme.colors.primary.base }}
+          aria-hidden
+        />
       );
     }
     if (annotationError[anno.name]) {
@@ -153,7 +161,7 @@ class AnnotationLayerControl extends React.PureComponent {
       );
     }
     if (!anno.show) {
-      return <span style={{ color: 'red' }}> Hidden </span>;
+      return <span style={{ color: theme.colors.error.base }}> Hidden </span>;
     }
     return '';
   }
@@ -163,10 +171,9 @@ class AnnotationLayerControl extends React.PureComponent {
     const addedAnnotation = this.props.value[addedAnnotationIndex];
 
     const annotations = this.props.value.map((anno, i) => (
-      <Popover
+      <ControlPopover
         key={i}
         trigger="click"
-        placement="right"
         title={t('Edit annotation layer')}
         css={theme => ({
           '&:hover': {
@@ -186,7 +193,7 @@ class AnnotationLayerControl extends React.PureComponent {
           <span>{anno.name}</span>
           <span style={{ float: 'right' }}>{this.renderInfo(anno)}</span>
         </CustomListItem>
-      </Popover>
+      </ControlPopover>
     ));
 
     const addLayerPopoverKey = 'add';
@@ -194,9 +201,8 @@ class AnnotationLayerControl extends React.PureComponent {
       <div>
         <List bordered css={theme => ({ borderRadius: theme.gridUnit })}>
           {annotations}
-          <Popover
+          <ControlPopover
             trigger="click"
-            placement="right"
             content={this.renderPopover(addLayerPopoverKey, addedAnnotation)}
             title={t('Add annotation layer')}
             visible={this.state.popoverVisible[addLayerPopoverKey]}
@@ -212,7 +218,7 @@ class AnnotationLayerControl extends React.PureComponent {
               />{' '}
               &nbsp; {t('Add annotation layer')}
             </CustomListItem>
-          </Popover>
+          </ControlPopover>
         </List>
       </div>
     );
@@ -239,8 +245,8 @@ function mapStateToProps({ charts, explore }) {
 
 function mapDispatchToProps(dispatch) {
   return {
-    refreshAnnotationData: annotationLayer =>
-      dispatch(runAnnotationQuery(annotationLayer)),
+    refreshAnnotationData: annotationObj =>
+      dispatch(runAnnotationQuery(annotationObj)),
   };
 }
 

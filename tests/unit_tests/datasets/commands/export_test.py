@@ -49,7 +49,11 @@ def test_export(app_context: None, session: Session) -> None:
         ),
     ]
     metrics = [
-        SqlMetric(metric_name="cnt", expression="COUNT(*)"),
+        SqlMetric(
+            metric_name="cnt",
+            expression="COUNT(*)",
+            extra=json.dumps({"warning_markdown": None}),
+        ),
     ]
 
     sqla_table = SqlaTable(
@@ -65,7 +69,11 @@ def test_export(app_context: None, session: Session) -> None:
         schema="my_schema",
         sql=None,
         params=json.dumps(
-            {"remote_id": 64, "database_name": "examples", "import_time": 1606677834,}
+            {
+                "remote_id": 64,
+                "database_name": "examples",
+                "import_time": 1606677834,
+            }
         ),
         perm=None,
         filter_select_enabled=1,
@@ -98,7 +106,8 @@ template_params:
   answer: '42'
 filter_select_enabled: 1
 fetch_values_predicate: foo IN (1, 2)
-extra: '{{\"warning_markdown\": \"*WARNING*\"}}'
+extra:
+  warning_markdown: '*WARNING*'
 uuid: null
 metrics:
 - metric_name: cnt
@@ -107,7 +116,8 @@ metrics:
   expression: COUNT(*)
   description: null
   d3format: null
-  extra: null
+  extra:
+    warning_markdown: null
   warning_text: null
 columns:
 - column_name: profit
@@ -115,6 +125,7 @@ columns:
   is_dttm: null
   is_active: null
   type: INTEGER
+  advanced_data_type: null
   groupby: null
   filterable: null
   expression: revenue-expenses
@@ -127,6 +138,7 @@ columns:
   is_dttm: 1
   is_active: null
   type: TIMESTAMP
+  advanced_data_type: null
   groupby: null
   filterable: null
   expression: null
@@ -138,6 +150,7 @@ columns:
   is_dttm: null
   is_active: null
   type: INTEGER
+  advanced_data_type: null
   groupby: null
   filterable: null
   expression: null
@@ -149,6 +162,7 @@ columns:
   is_dttm: null
   is_active: null
   type: INTEGER
+  advanced_data_type: null
   groupby: null
   filterable: null
   expression: null
@@ -160,6 +174,7 @@ columns:
   is_dttm: null
   is_active: null
   type: INTEGER
+  advanced_data_type: null
   groupby: null
   filterable: null
   expression: null

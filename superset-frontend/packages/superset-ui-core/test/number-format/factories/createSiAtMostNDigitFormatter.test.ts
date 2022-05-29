@@ -20,7 +20,7 @@
 import {
   NumberFormatter,
   createSiAtMostNDigitFormatter,
-} from '@superset-ui/core/src/number-format';
+} from '@superset-ui/core';
 
 describe('createSiAtMostNDigitFormatter({ n })', () => {
   it('creates an instance of NumberFormatter', () => {

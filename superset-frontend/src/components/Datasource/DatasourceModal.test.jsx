@@ -70,9 +70,7 @@ describe('DatasourceModal', () => {
   let wrapper;
   let isFeatureEnabledMock;
   beforeEach(async () => {
-    isFeatureEnabledMock = jest
-      .spyOn(featureFlags, 'isFeatureEnabled')
-      .mockReturnValue(true);
+    isFeatureEnabledMock = jest.spyOn(featureFlags, 'isFeatureEnabled');
     fetchMock.reset();
     wrapper = await mountAndWait();
   });
@@ -117,33 +115,9 @@ describe('DatasourceModal', () => {
   });
 
   it('renders a legacy data source btn', () => {
+    featureFlags.DISABLE_LEGACY_DATASOURCE_EDITOR = false;
     expect(
       wrapper.find('button[data-test="datasource-modal-legacy-edit"]'),
     ).toExist();
-  });
-});
-
-describe('DatasourceModal without legacy data btn', () => {
-  let wrapper;
-  let isFeatureEnabledMock;
-  beforeEach(async () => {
-    isFeatureEnabledMock = jest
-      .spyOn(featureFlags, 'isFeatureEnabled')
-      .mockReturnValue(false);
-    fetchMock.reset();
-    wrapper = await mountAndWait();
-  });
-
-  afterAll(() => {
-    isFeatureEnabledMock.restore();
-  });
-
-  it('hides legacy data source btn', () => {
-    isFeatureEnabledMock = jest
-      .spyOn(featureFlags, 'isFeatureEnabled')
-      .mockReturnValue(false);
-    expect(
-      wrapper.find('button[data-test="datasource-modal-legacy-edit"]'),
-    ).not.toExist();
   });
 });

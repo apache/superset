@@ -14,11 +14,15 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+
+# pylint: disable=abstract-method
 from typing import Any, Dict, List, Optional, Type
 
-from sqlalchemy.sql.sqltypes import Integer
+from sqlalchemy.engine.interfaces import Dialect
+from sqlalchemy.sql.sqltypes import DATE, Integer, TIMESTAMP
 from sqlalchemy.sql.type_api import TypeEngine
 from sqlalchemy.sql.visitors import Visitable
+from sqlalchemy.types import TypeDecorator
 
 # _compiler_dispatch is defined to help with type compilation
 
@@ -91,3 +95,35 @@ class Row(TypeEngine):
     @classmethod
     def _compiler_dispatch(cls, _visitor: Visitable, **_kw: Any) -> str:
         return "ROW"
+
+
+class TimeStamp(TypeDecorator):
+    """
+    A type to extend functionality of timestamp data type.
+    """
+
+    impl = TIMESTAMP
+
+    @classmethod
+    def process_bind_param(cls, value: str, dialect: Dialect) -> str:
+        """
+        Used for in-line rendering of TIMESTAMP data type
+        as Presto does not support automatic casting.
+        """
+        return f"TIMESTAMP '{value}'"
+
+
+class Date(TypeDecorator):
+    """
+    A type to extend functionality of date data type.
+    """
+
+    impl = DATE
+
+    @classmethod
+    def process_bind_param(cls, value: str, dialect: Dialect) -> str:
+        """
+        Used for in-line rendering of DATE data type
+        as Presto does not support automatic casting.
+        """
+        return f"DATE '{value}'"

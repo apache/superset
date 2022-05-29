@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { SupersetTheme, t } from '@superset-ui/core';
-import { Switch } from 'src/common/components';
+import { AntdSwitch } from 'src/components';
 import InfoTooltip from 'src/components/InfoTooltip';
 import ValidatedInput from 'src/components/Form/LabeledErrorBoundInput';
 import { FieldPropTypes } from '.';
@@ -122,7 +122,7 @@ export const passwordField = ({
     id="password"
     name="password"
     required={required}
-    type={isEditMode && 'password'}
+    visibilityToggle={!isEditMode}
     value={db?.parameters?.password}
     validationMethods={{ onBlur: getValidation }}
     errorMessage={validationErrors?.password}
@@ -183,7 +183,7 @@ export const forceSSLField = ({
   sslForced,
 }: FieldPropTypes) => (
   <div css={(theme: SupersetTheme) => infoTooltip(theme)}>
-    <Switch
+    <AntdSwitch
       disabled={sslForced && !isEditMode}
       checked={db?.parameters?.encryption || sslForced}
       onChange={changed => {
