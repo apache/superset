@@ -67,6 +67,7 @@ const propTypes = {
   danger: PropTypes.string,
   canCopy: PropTypes.bool,
   copyOnClick: PropTypes.func,
+  promptTextCreator: PropTypes.func,
 };
 
 const defaultProps = {
@@ -181,16 +182,6 @@ export default class SelectControl extends React.PureComponent {
 
   optionsIncludesSelectAll(o) {
     return o.findIndex(o => this.isMetaSelectAllOption(o)) >= 0;
-  }
-
-  createMetaSelectAllOption() {
-    const option = {
-      label: SELECT_ALL_STRING,
-      meta: true,
-      value: SELECT_ALL_STRING,
-    };
-    option[this.props.valueKey] = SELECT_ALL_STRING;
-    return option;
   }
 
   handleCopy() {
