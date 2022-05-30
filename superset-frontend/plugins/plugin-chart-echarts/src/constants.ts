@@ -17,6 +17,7 @@
  * under the License.
  */
 
+import { TimeGranularity } from '@superset-ui/core';
 import { LabelPositionEnum } from './types';
 
 // eslint-disable-next-line import/prefer-default-export
@@ -59,3 +60,11 @@ export enum OpacityEnum {
   SemiTransparent = 0.3,
   NonTransparent = 1,
 }
+
+export const TIMEGRAIN_TO_TIMESTAMP = {
+  [TimeGranularity.HOUR]: 3600 * 1000,
+  [TimeGranularity.DAY]: 3600 * 1000 * 24,
+  [TimeGranularity.MONTH]: 3600 * 1000 * 24 * 31,
+  [TimeGranularity.QUARTER]: 3600 * 1000 * 24 * 31 * 3,
+  [TimeGranularity.YEAR]: 3600 * 1000 * 24 * 31 * 12,
+};

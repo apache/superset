@@ -26,6 +26,8 @@ import {
   screen,
   waitForElementToBeRemoved,
 } from 'spec/helpers/testing-library';
+import { DatasourceType } from '@superset-ui/core';
+import { exploreActions } from 'src/explore/actions/exploreActions';
 import { DataTablesPane } from '.';
 
 const createProps = () => ({
@@ -62,6 +64,16 @@ const createProps = () => ({
       colnames: [],
     },
   ],
+  datasource: {
+    id: 0,
+    name: '',
+    type: DatasourceType.Table,
+    columns: [],
+    metrics: [],
+    columnFormats: {},
+    verboseMap: {},
+  },
+  actions: exploreActions,
 });
 
 describe('DataTablesPane', () => {
@@ -151,7 +163,7 @@ describe('DataTablesPane', () => {
         useRedux: true,
         initialState: {
           explore: {
-            timeFormattedColumns: {
+            originalFormattedTimeColumns: {
               '34__table': ['__timestamp'],
             },
           },
@@ -203,7 +215,7 @@ describe('DataTablesPane', () => {
         useRedux: true,
         initialState: {
           explore: {
-            timeFormattedColumns: {
+            originalFormattedTimeColumns: {
               '34__table': ['__timestamp'],
             },
           },

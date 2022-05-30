@@ -44,12 +44,10 @@ def check_dataset_access(dataset_id: int) -> Optional[bool]:
     raise DatasetNotFoundError()
 
 
-def check_access(
-    dataset_id: int, chart_id: Optional[int], actor: User
-) -> Optional[bool]:
+def check_access(dataset_id: int, chart_id: Optional[int], actor: User) -> None:
     check_dataset_access(dataset_id)
     if not chart_id:
-        return True
+        return
     chart = ChartDAO.find_by_id(chart_id)
     if chart:
         can_access_chart = (
@@ -58,6 +56,6 @@ def check_access(
             or security_manager.can_access("can_read", "Chart")
         )
         if can_access_chart:
-            return True
+            return
         raise ChartAccessDeniedError()
     raise ChartNotFoundError()

@@ -21,7 +21,10 @@ from flask.wrappers import Response
 from flask_appbuilder.api import BaseApi, expose, permission_name, protect, rison, safe
 from flask_babel import lazy_gettext as _
 
-from superset.advanced_data_type.schemas import advanced_data_type_convert_schema
+from superset.advanced_data_type.schemas import (
+    advanced_data_type_convert_schema,
+    AdvancedDataTypeSchema,
+)
 from superset.advanced_data_type.types import AdvancedDataTypeResponse
 from superset.extensions import event_logger
 
@@ -40,26 +43,28 @@ class AdvancedDataTypeRestApi(BaseApi):
     allow_browser_login = True
     include_route_methods = {"get", "get_types"}
     resource_name = "advanced_data_type"
+    class_permission_name = "AdvancedDataType"
 
     openapi_spec_tag = "Advanced Data Type"
     apispec_parameter_schemas = {
         "advanced_data_type_convert_schema": advanced_data_type_convert_schema,
     }
+    openapi_spec_component_schemas = (AdvancedDataTypeSchema,)
 
     @protect()
     @safe
     @expose("/convert", methods=["GET"])
-    @permission_name("get")
+    @permission_name("read")
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get",
         log_to_statsd=False,  # pylint: disable-arguments-renamed
     )
-    @rison()
+    @rison(advanced_data_type_convert_schema)
     def get(self, **kwargs: Any) -> Response:
         """Returns a AdvancedDataTypeResponse object populated with the passed in args
         ---
         get:
-          description: >-
+          summary: >-
             Returns a AdvancedDataTypeResponse object populated with the passed in args.
           parameters:
           - in: query
@@ -75,18 +80,7 @@ class AdvancedDataTypeRestApi(BaseApi):
               content:
                 application/json:
                   schema:
-                    type: object
-                    properties:
-                      status:
-                        type: string
-                      values:
-                        type: array
-                      formatted_value:
-                        type: string
-                      error_message:
-                        type: string
-                      valid_filter_operators:
-                        type: string
+                    $ref: '#/components/schemas/AdvancedDataTypeSchema'
             400:
               $ref: '#/components/responses/400'
             401:
@@ -96,15 +90,9 @@ class AdvancedDataTypeRestApi(BaseApi):
             500:
               $ref: '#/components/responses/500'
         """
-        items = kwargs["rison"]
-        advanced_data_type = items.get("type")
-        if not advanced_data_type:
-            return self.response(
-                400, message=_("Missing advanced data type in request")
-            )
-        values = items["values"]
-        if not values:
-            return self.response(400, message=_("Missing values in request"))
+        item = kwargs["rison"]
+        advanced_data_type = item["type"]
+        values = item["values"]
         addon = ADVANCED_DATA_TYPES.get(advanced_data_type)
         if not addon:
             return self.response(
@@ -124,7 +112,7 @@ class AdvancedDataTypeRestApi(BaseApi):
     @protect()
     @safe
     @expose("/types", methods=["GET"])
-    @permission_name("get")
+    @permission_name("read")
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get",
         log_to_statsd=False,  # pylint: disable-arguments-renamed
@@ -147,8 +135,8 @@ class AdvancedDataTypeRestApi(BaseApi):
                     properties:
                       result:
                         type: array
-            400:
-              $ref: '#/components/responses/400'
+                        items:
+                          type: string
             401:
               $ref: '#/components/responses/401'
             404:

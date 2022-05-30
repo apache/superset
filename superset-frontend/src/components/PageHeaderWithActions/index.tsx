@@ -50,7 +50,21 @@ const headerStyles = (theme: SupersetTheme) => css`
   align-items: center;
   flex-wrap: nowrap;
   justify-content: space-between;
-  height: 100%;
+  background-color: ${theme.colors.grayscale.light5};
+  height: ${theme.gridUnit * 16}px;
+  padding: 0 ${theme.gridUnit * 4}px;
+
+  .editable-title {
+    overflow: hidden;
+
+    & > input[type='button'],
+    & > span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
+      white-space: nowrap;
+    }
+  }
 
   span[role='button'] {
     display: flex;
@@ -113,7 +127,7 @@ export const PageHeaderWithActions = ({
 }: PageHeaderWithActionsProps) => {
   const theme = useTheme();
   return (
-    <div css={headerStyles}>
+    <div css={headerStyles} className="header-with-actions">
       <div className="title-panel">
         <DynamicEditableTitle {...editableTitleProps} />
         {showTitlePanelItems && (
