@@ -115,7 +115,11 @@ spec:
               containerPort: {{ .Values.service.port }}
               protocol: TCP
           resources:
+          {{- if .Values.supersetNode.resources }}
+{{ toYaml .Values.supersetNode.resources | indent 12 }}
+          {{- else }}
 {{ toYaml .Values.resources | indent 12 }}
+          {{- end }}
     {{- with .Values.nodeSelector }}
       nodeSelector:
 {{ toYaml . | indent 8 }}

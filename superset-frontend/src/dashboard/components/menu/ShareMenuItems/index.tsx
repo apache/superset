@@ -87,7 +87,7 @@ const ShareMenuItems = (props: ShareMenuItemProps) => {
   }
 
   return (
-    <>
+    <Menu selectable={false}>
       <Menu.Item key="copy-url" {...rest}>
         <div onClick={onCopyLink} role="button" tabIndex={0}>
           {copyMenuItemTitle}
@@ -98,7 +98,7 @@ const ShareMenuItems = (props: ShareMenuItemProps) => {
           {emailMenuItemTitle}
         </div>
       </Menu.Item>
-    </>
+    </Menu>
   );
 };
 
