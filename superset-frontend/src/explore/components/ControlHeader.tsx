@@ -38,6 +38,8 @@ export type ControlHeaderProps = {
   tooltipOnClick?: () => void;
   warning?: string;
   danger?: string;
+  canCopy?: boolean;
+  copyOnClick?: () => void;
 };
 
 const ControlHeader: FC<ControlHeaderProps> = ({
@@ -53,6 +55,8 @@ const ControlHeader: FC<ControlHeaderProps> = ({
   tooltipOnClick = () => {},
   warning,
   danger,
+  canCopy,
+  copyOnClick,
 }) => {
   const { gridUnit, colors } = useTheme();
 
@@ -83,6 +87,17 @@ const ControlHeader: FC<ControlHeaderProps> = ({
               tooltip={description}
               placement="top"
               onClick={tooltipOnClick}
+            />{' '}
+          </span>
+        )}
+        {canCopy && (
+          <span>
+            <InfoTooltipWithTrigger
+              label={t('copy')}
+              tooltip={t('Copy the content of this control')}
+              placement="top"
+              icon="copy"
+              onClick={copyOnClick}
             />{' '}
           </span>
         )}
