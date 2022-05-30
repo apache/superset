@@ -81,7 +81,7 @@ const validateAggControlValues = (
   const areControlsEmpty = values.every(val => ensureIsArray(val).length === 0);
   // @ts-ignore
   return areControlsEmpty && isAggMode({ controls })
-    ? [t('Metrics or Group By must have a value')]
+    ? [t('Group By, Metrics, or Percent Metrics must have a value')]
     : [];
 };
 
@@ -192,11 +192,11 @@ const config: ControlPanelConfig = {
                   originalMapStateToProps?.(state, controlState) ?? {};
                 newState.externalValidationErrors = validateAggControlValues(
                   controls,
-                  [controls.metrics?.value, controlState.value],
+                  [controls.metrics?.value, controlState.value, controls.percent_metrics?.value],
                 );
                 return newState;
               },
-              rerender: ['metrics'],
+              rerender: ['metrics', 'percent_metrics'],
             },
           },
         ],
@@ -217,11 +217,47 @@ const config: ControlPanelConfig = {
                   originalMapStateToProps?.(state, controlState) ?? {};
                 newState.externalValidationErrors = validateAggControlValues(
                   controls,
-                  [controls.groupby?.value, controlState.value],
+                  [controls.groupby?.value, controlState.value, controls.percent_metrics?.value],
                 );
                 return newState;
               },
-              rerender: ['groupby'],
+              rerender: ['groupby', 'percent_metrics'],
+            },
+          },
+        ],
+        [
+          {
+            name: 'percent_metrics',
+            config: {
+              type: 'MetricsControl',
+              label: t('Percentage metrics'),
+              description: t(
+                'Metrics for which percentage of total are to be displayed. Calculated from only data within the row limit.',
+              ),
+              multi: true,
+              visibility: isAggMode,
+              mapStateToProps: ({ datasource, controls }, controlState) => ({
+                columns: datasource?.columns || [],
+                savedMetrics: datasource?.metrics || [],
+                datasourceType: datasource?.type,
+                queryMode: getQueryMode(controls),
+                externalValidationErrors: validateAggControlValues(controls, [
+                  controls.groupby?.value,
+                  controls.metrics?.value,
+                  controlState.value,
+                ]),
+              }),
+              rerender: ['groupby', 'metrics'],
+              default: [],
+              validators: [],
+            },
+          },
+        ],
+        [
+          {
+            name: 'timeseries_limit_metric',
+            override: {
+              visibility: isAggMode
             },
           },
         ],
@@ -282,6 +318,32 @@ const config: ControlPanelConfig = {
               default: 100,
             },
           },
+        ],
+        [
+          {
+            name: 'order_desc',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Sort descending'),
+              default: true,
+              description: t('Whether to sort descending or ascending'),
+              visibility: isAggMode,
+            },
+          },
+        ],
+        [
+          isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS) ? {
+            name: 'table_filter',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Enable emitting filters'),
+              default: false,
+              renderTrigger: true,
+              description: t(
+                'Whether to apply filter to dashboards when grid cells are clicked.',
+              ),
+            },
+          } : null,
         ],
       ],
     },
@@ -375,32 +437,4 @@ const config: ControlPanelConfig = {
   },
 };
 
-// CLDN-941: Only show the CUSTOMIZE tab if DASHBOARD_CROSS_FILTERS are enabled in the system.
-// When more customization is added in the future this code can be removed and the code above
-// can be re-enabled.
-if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
-  config.controlPanelSections.push({
-    label: t('CCCS Grid Options'),
-    expanded: true,
-    controlSetRows: [
-      [
-        {
-          name: 'table_filter',
-          config: {
-            type: 'CheckboxControl',
-            label: t('Enable emitting filters'),
-            default: false,
-            renderTrigger: true,
-            description: t(
-              'Whether to apply filter to dashboards when grid cells are clicked.',
-            ),
-          },
-        },
-      ],
-    ],
-  });
-}
-
 export default config;
-
-
