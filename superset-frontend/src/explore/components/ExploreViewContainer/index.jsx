@@ -267,7 +267,6 @@ function ExploreViewContainer(props) {
   const onQuery = useCallback(() => {
     props.actions.setForceQuery(false);
     props.actions.triggerQuery(true, props.chart.id);
-    props.actions.updateQueryFormData(props.form_data, props.chart.id);
     addHistory();
     setLastQueriedControls(props.controls);
   }, [props.controls, addHistory, props.actions, props.chart.id]);
