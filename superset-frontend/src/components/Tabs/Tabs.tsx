@@ -97,30 +97,30 @@ const Tabs = Object.assign(StyledTabs, {
 
 const StyledEditableTabs = styled(StyledTabs)`
   ${({ theme, fullWidth }) => `
-     .ant-tabs-content-holder {
-       background: ${theme.colors.grayscale.light5};
-     }
- 
-     & > .ant-tabs-nav {
-       margin-bottom: 0;
-     }
- 
-     .ant-tabs-tab-remove {
-       padding-top: 0;
-       padding-bottom: 0;
-       height: ${theme.gridUnit * 6}px;
-     }
- 
-     ${
-       fullWidth
-         ? css`
-             .ant-tabs-nav-list {
-               width: 100%;
-             }
-           `
-         : ''
-     }
-   `}
+    .ant-tabs-content-holder {
+      background: ${theme.colors.grayscale.light5};
+    }
+
+    & > .ant-tabs-nav {
+      margin-bottom: 0;
+    }
+
+    .ant-tabs-tab-remove {
+      padding-top: 0;
+      padding-bottom: 0;
+      height: ${theme.gridUnit * 6}px;
+    }
+
+    ${
+      fullWidth
+        ? css`
+            .ant-tabs-nav-list {
+              width: 100%;
+            }
+          `
+        : ''
+    }
+  `}
 `;
 
 const StyledCancelXIcon = styled(Icons.CancelX)`
