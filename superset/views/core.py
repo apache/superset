@@ -834,7 +834,10 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         if not viz_type and datasource and datasource.default_endpoint:
             return redirect(datasource.default_endpoint)
 
-        selectedColumns = form_data.pop("selectedColumns")
+        selectedColumns = []
+
+        if "selectedColumns" in form_data:
+            selectedColumns = form_data.pop("selectedColumns")
 
         if "viz_type" not in form_data:
             form_data["viz_type"] = app.config["DEFAULT_VIZ_TYPE"]
