@@ -74,6 +74,7 @@ from sqlalchemy.sql.expression import Label, Select, TextAsFrom
 from sqlalchemy.sql.selectable import Alias, TableClause
 
 from superset import app, db, is_feature_enabled, security_manager
+from superset.advanced_data_type.types import AdvancedDataTypeResponse
 from superset.columns.models import Column as NewColumn, UNKOWN_TYPE
 from superset.common.db_query_status import QueryStatus
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
@@ -86,9 +87,12 @@ from superset.connectors.sqla.utils import (
 from superset.datasets.models import Dataset as NewDataset
 from superset.db_engine_specs.base import BaseEngineSpec, CTE_ALIAS, TimestampExpression
 from superset.exceptions import (
+    AdvancedDataTypeResponseError,
+    DatasetInvalidPermissionEvaluationException,
     QueryClauseValidationException,
     QueryObjectValidationError,
 )
+from superset.extensions import feature_flag_manager
 from superset.jinja_context import (
     BaseTemplateProcessor,
     ExtraCache,
@@ -130,7 +134,7 @@ from superset.utils.core import (
 config = app.config
 metadata = Model.metadata  # pylint: disable=no-member
 logger = logging.getLogger(__name__)
-
+ADVANCED_DATA_TYPES = config["ADVANCED_DATA_TYPES"]
 VIRTUAL_TABLE_ALIAS = "virtual_table"
 
 # a non-exhaustive set of additive metrics
@@ -242,6 +246,7 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
         "is_dttm",
         "is_active",
         "type",
+        "advanced_data_type",
         "groupby",
         "filterable",
         "expression",
@@ -414,6 +419,7 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
             "is_dttm",
             "type",
             "type_generic",
+            "advanced_data_type",
             "python_date_format",
             "is_certified",
             "certified_by",
@@ -780,6 +786,13 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         return security_manager.get_schema_perm(self.database, self.schema)
 
     def get_perm(self) -> str:
+        """
+        Return this dataset permission name
+        :return: dataset permission name
+        :raises DatasetInvalidPermissionEvaluationException: When database is missing
+        """
+        if self.database is None:
+            raise DatasetInvalidPermissionEvaluationException()
         return f"[{self.database}].[{self.table_name}](id:{self.id})"
 
     @property
@@ -1472,7 +1485,10 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                     utils.FilterOperator.IN.value,
                     utils.FilterOperator.NOT_IN.value,
                 )
-                if col_spec:
+
+                col_advanced_data_type = col_obj.advanced_data_type if col_obj else ""
+
+                if col_spec and not col_advanced_data_type:
                     target_generic_type = col_spec.generic_type
                 else:
                     target_generic_type = GenericDataType.STRING
@@ -1484,7 +1500,33 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                     db_engine_spec=db_engine_spec,
                     db_extra=self.database.get_extra(),
                 )
-                if is_list_target:
+                if (
+                    col_advanced_data_type != ""
+                    and feature_flag_manager.is_feature_enabled(
+                        "ENABLE_ADVANCED_DATA_TYPES"
+                    )
+                    and col_advanced_data_type in ADVANCED_DATA_TYPES
+                ):
+                    values = eq if is_list_target else [eq]  # type: ignore
+                    bus_resp: AdvancedDataTypeResponse = ADVANCED_DATA_TYPES[
+                        col_advanced_data_type
+                    ].translate_type(
+                        {
+                            "type": col_advanced_data_type,
+                            "values": values,
+                        }
+                    )
+                    if bus_resp["error_message"]:
+                        raise AdvancedDataTypeResponseError(
+                            _(bus_resp["error_message"])
+                        )
+
+                    where_clause_and.append(
+                        ADVANCED_DATA_TYPES[col_advanced_data_type].translate_filter(
+                            sqla_col, op, bus_resp["values"]
+                        )
+                    )
+                elif is_list_target:
                     assert isinstance(eq, (tuple, list))
                     if len(eq) == 0:
                         raise QueryObjectValidationError(

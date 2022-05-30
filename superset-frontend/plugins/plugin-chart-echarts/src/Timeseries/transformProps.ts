@@ -29,7 +29,6 @@ import {
   isFormulaAnnotationLayer,
   isIntervalAnnotationLayer,
   isTimeseriesAnnotationLayer,
-  TimeGranularity,
   TimeseriesChartDataResponseResult,
   t,
 } from '@superset-ui/core';
@@ -48,6 +47,7 @@ import {
   currentSeries,
   dedupSeries,
   extractSeries,
+  getAxisType,
   getColtypesMapping,
   getLegendProps,
   extractDataTotalValues,
@@ -76,15 +76,8 @@ import {
 import {
   AreaChartExtraControlsValue,
   TIMESERIES_CONSTANTS,
+  TIMEGRAIN_TO_TIMESTAMP,
 } from '../constants';
-
-const TimeGrainToTimestamp = {
-  [TimeGranularity.HOUR]: 3600 * 1000,
-  [TimeGranularity.DAY]: 3600 * 1000 * 24,
-  [TimeGranularity.MONTH]: 3600 * 1000 * 24 * 31,
-  [TimeGranularity.QUARTER]: 3600 * 1000 * 24 * 31 * 3,
-  [TimeGranularity.YEAR]: 3600 * 1000 * 24 * 31 * 12,
-};
 
 export default function transformProps(
   chartProps: EchartsTimeseriesChartProps,
@@ -177,18 +170,7 @@ export default function transformProps(
   );
   const isAreaExpand = stack === AreaChartExtraControlsValue.Expand;
   const xAxisDataType = dataTypes?.[xAxisCol];
-  let xAxisType: 'time' | 'value' | 'category';
-  switch (xAxisDataType) {
-    case GenericDataType.TEMPORAL:
-      xAxisType = 'time';
-      break;
-    case GenericDataType.NUMERIC:
-      xAxisType = 'value';
-      break;
-    default:
-      xAxisType = 'category';
-      break;
-  }
+  const xAxisType = getAxisType(xAxisDataType);
   const series: SeriesOption[] = [];
   const formatter = getNumberFormatter(
     contributionMode || isAreaExpand ? ',.0%' : yAxisFormat,
@@ -340,7 +322,7 @@ export default function transformProps(
     },
     minInterval:
       xAxisType === 'time' && timeGrainSqla
-        ? TimeGrainToTimestamp[timeGrainSqla]
+        ? TIMEGRAIN_TO_TIMESTAMP[timeGrainSqla]
         : 0,
   };
   let yAxis: any = {

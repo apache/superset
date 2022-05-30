@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { JsonValue, t } from '@superset-ui/core';
+import { JsonValue, t, TimeGranularity } from '@superset-ui/core';
 import { ReactNode } from 'react';
 import { LabelPositionEnum } from './types';
 
@@ -76,3 +76,11 @@ export const AreaChartExtraControlsOptions: [
   [AreaChartExtraControlsValue.Stack, t('Stack')],
   [AreaChartExtraControlsValue.Expand, t('Expand')],
 ];
+
+export const TIMEGRAIN_TO_TIMESTAMP = {
+  [TimeGranularity.HOUR]: 3600 * 1000,
+  [TimeGranularity.DAY]: 3600 * 1000 * 24,
+  [TimeGranularity.MONTH]: 3600 * 1000 * 24 * 31,
+  [TimeGranularity.QUARTER]: 3600 * 1000 * 24 * 31 * 3,
+  [TimeGranularity.YEAR]: 3600 * 1000 * 24 * 31 * 12,
+};

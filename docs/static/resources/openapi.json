@@ -3205,6 +3205,12 @@
           "owners": {
             "$ref": "#/components/schemas/DashboardRestApi.get_list.User2"
           },
+          "advanced_data_type": {
+            "maxLength": 255,
+            "minLength": 1,
+            "nullable": true,
+            "type": "string"
+          },
           "position_json": {
             "nullable": true,
             "type": "string"
@@ -4241,6 +4247,12 @@
           },
           "metric_type": {
             "maxLength": 32,
+            "minLength": 1,
+            "nullable": true,
+            "type": "string"
+          },
+          "advanced_data_type": {
+            "maxLength": 255,
             "minLength": 1,
             "nullable": true,
             "type": "string"

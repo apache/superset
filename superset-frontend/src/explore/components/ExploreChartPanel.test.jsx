@@ -17,12 +17,12 @@
  * under the License.
  */
 import React from 'react';
+import userEvent from '@testing-library/user-event';
 import { render, screen } from 'spec/helpers/testing-library';
 import ChartContainer from 'src/explore/components/ExploreChartPanel';
 
 const createProps = (overrides = {}) => ({
   sliceName: 'Trend Line',
-  vizType: 'line',
   height: '500px',
   actions: {},
   can_overwrite: false,
@@ -30,9 +30,29 @@ const createProps = (overrides = {}) => ({
   containerId: 'foo',
   width: '500px',
   isStarred: false,
-  chartIsStale: false,
-  chart: {},
-  form_data: {},
+  vizType: 'histogram',
+  chart: {
+    id: 1,
+    latestQueryFormData: {
+      viz_type: 'histogram',
+      datasource: '49__table',
+      slice_id: 318,
+      url_params: {},
+      granularity_sqla: 'time_start',
+      time_range: 'No filter',
+      all_columns_x: ['age'],
+      adhoc_filters: [],
+      row_limit: 10000,
+      groupby: null,
+      color_scheme: 'supersetColors',
+      label_colors: {},
+      link_length: '25',
+      x_axis_label: 'age',
+      y_axis_label: 'count',
+    },
+    chartStatus: 'rendered',
+    queriesResponse: [{ is_cached: true }],
+  },
   ...overrides,
 });
 
@@ -82,5 +102,38 @@ describe('ChartContainer', () => {
     expect(
       screen.getByText('Required control values have been removed'),
     ).toBeVisible();
+  });
+
+  it('should render cached button and call expected actions', () => {
+    const setForceQuery = jest.fn();
+    const postChartFormData = jest.fn();
+    const updateQueryFormData = jest.fn();
+    const props = createProps({
+      actions: {
+        setForceQuery,
+        postChartFormData,
+        updateQueryFormData,
+      },
+    });
+    render(<ChartContainer {...props} />, { useRedux: true });
+
+    const cached = screen.queryByText('Cached');
+    expect(cached).toBeInTheDocument();
+
+    userEvent.click(cached);
+    expect(setForceQuery).toHaveBeenCalledTimes(1);
+    expect(postChartFormData).toHaveBeenCalledTimes(1);
+    expect(updateQueryFormData).toHaveBeenCalledTimes(1);
+  });
+
+  it('should hide cached button', () => {
+    const props = createProps({
+      chart: {
+        chartStatus: 'rendered',
+        queriesResponse: [{ is_cached: false }],
+      },
+    });
+    render(<ChartContainer {...props} />, { useRedux: true });
+    expect(screen.queryByText('Cached')).not.toBeInTheDocument();
   });
 });

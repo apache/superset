@@ -98,7 +98,11 @@ spec:
           {{- tpl (toYaml .) $ | nindent 12 -}}
           {{- end }}
           resources:
+          {{- if .Values.supersetCeleryBeat.resources }}
+{{ toYaml .Values.supersetCeleryBeat.resources | indent 12 }}
+          {{- else }}
 {{ toYaml .Values.resources | indent 12 }}
+          {{- end }}
     {{- with .Values.nodeSelector }}
       nodeSelector:
 {{ toYaml . | indent 8 }}
