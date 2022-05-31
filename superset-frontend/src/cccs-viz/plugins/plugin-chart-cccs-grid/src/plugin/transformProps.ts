@@ -16,10 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { ValueFormatterParams } from '@ag-grid-enterprise/all-modules';
 import {
   Column,
   getMetricLabel,
+  getNumberFormatter,
   Metric,
+  NumberFormats,
   QueryMode,
   t,
   TimeseriesDataRecord,
@@ -153,6 +156,10 @@ export default function transformProps(chartProps: CccsGridChartProps) {
     JSON: 'jsonValueRenderer',
   };
 
+  const percentMetricValueFormatter = function (params: ValueFormatterParams) {
+    return getNumberFormatter(NumberFormats.PERCENT_3_POINT).format(params.value);
+  }
+
   let columnDefs: Column[] = [];
 
   if (query_mode === QueryMode.raw) {
@@ -220,6 +227,23 @@ export default function transformProps(chartProps: CccsGridChartProps) {
         };
       });
       columnDefs = columnDefs.concat(metricsColumnDefs);
+    }
+
+    if (formData.percent_metrics) {
+      const percentMetricsColumnDefs = formData.percent_metrics
+        .map(getMetricLabel)
+        .map((metric: any) => {
+          const metricHeader = metricVerboseNameMap[metric]
+            ? metricVerboseNameMap[metric]
+            : metric;
+          return {
+            field: `%${metric}`,
+            headerName: `%${metricHeader}`,
+            sortable: true,
+            valueFormatter: percentMetricValueFormatter,
+          };
+        });
+      columnDefs = columnDefs.concat(percentMetricsColumnDefs);
     }
   }
 

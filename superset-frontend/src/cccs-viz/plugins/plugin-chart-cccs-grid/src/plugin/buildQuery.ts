@@ -18,9 +18,12 @@
  */
 import {
   buildQueryContext,
+  ensureIsArray,
+  getMetricLabel,
   PostProcessingRule,
   QueryMode,
   QueryObject,
+  removeDuplicates,
 } from '@superset-ui/core';
 import { BuildQuery } from '@superset-ui/core/src/chart/registries/ChartBuildQueryRegistrySingleton';
 import { CccsGridQueryFormData, DEFAULT_FORM_DATA } from '../types';
@@ -54,10 +57,12 @@ const buildQuery: BuildQuery<CccsGridQueryFormData> = (
   options: any,
 ) => {
   const queryMode = getQueryMode(formData);
+  const sortByMetric = ensureIsArray(formData.timeseries_limit_metric)[0];
   let formDataCopy = {
     ...formData,
     ...DEFAULT_FORM_DATA,
   };
+  const { percent_metrics: percentMetrics, order_desc: orderDesc = false } = formData;
   // never include time in raw records mode
   if (queryMode === QueryMode.raw) {
     formDataCopy = {
@@ -73,9 +78,25 @@ const buildQuery: BuildQuery<CccsGridQueryFormData> = (
 
     if (queryMode === QueryMode.aggregate) {
       metrics = metrics || [];
-      if (metrics?.length > 0) {
+      if (sortByMetric) {
+        orderby = [[sortByMetric, !orderDesc]];
+      } else if (metrics?.length > 0) {
         // default to ordering by first metric in descending order
         orderby = [[metrics[0], false]];
+      }
+      // add postprocessing for percent metrics only when in aggregation mode
+      if (percentMetrics && percentMetrics.length > 0) {
+        const percentMetricLabels = removeDuplicates(percentMetrics.map(getMetricLabel));
+        metrics = removeDuplicates(metrics.concat(percentMetrics), getMetricLabel);
+        postProcessing.push(
+          {
+            operation: 'contribution',
+            options: {
+              columns: percentMetricLabels as string[],
+              rename_columns: percentMetricLabels.map(x => `%${x}`),
+            },
+          },
+        );
       }
     }
 
