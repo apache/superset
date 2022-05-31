@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import logging
 import re
 import urllib.request
 from typing import Any, Dict, Optional
@@ -23,6 +24,8 @@ import pandas as pd
 import simplejson
 
 from superset.utils.core import GenericDataType
+
+logger = logging.getLogger(__name__)
 
 negative_number_re = re.compile(r"^-[0-9.]+$")
 
@@ -103,13 +106,17 @@ def get_chart_dataframe(
     pd.set_option("display.float_format", lambda x: str(x))
     df = pd.DataFrame.from_dict(result["result"][0]["data"])
 
-    # if any column type is equal to 2, need to convert data into datetime timestamp for that column.
-    if GenericDataType.TEMPORAL in result["result"][0]["coltypes"]:
-        for i in range(len(result["result"][0]["coltypes"])):
-            if result["result"][0]["coltypes"][i] == GenericDataType.TEMPORAL:
-                df[result["result"][0]["colnames"][i]] = df[
-                    result["result"][0]["colnames"][i]
-                ].astype("datetime64[ms]")
+    try:
+        # if any column type is equal to 2, need to convert data into
+        # datetime timestamp for that column.
+        if GenericDataType.TEMPORAL in result["result"][0]["coltypes"]:
+            for i in range(len(result["result"][0]["coltypes"])):
+                if result["result"][0]["coltypes"][i] == GenericDataType.TEMPORAL:
+                    df[result["result"][0]["colnames"][i]] = df[
+                        result["result"][0]["colnames"][i]
+                    ].astype("datetime64[ms]")
+    except BaseException as err:
+        logger.error(err)
 
     # rebuild hierarchical columns and index
     df.columns = pd.MultiIndex.from_tuples(
