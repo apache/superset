@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import {
   css,
   GenericDataType,
@@ -29,7 +29,6 @@ import {
 import { Global } from '@emotion/react';
 import { Column } from 'react-table';
 import debounce from 'lodash/debounce';
-import { useDispatch } from 'react-redux';
 import { Space } from 'src/components';
 import { Input } from 'src/components/Input';
 import {
@@ -45,10 +44,7 @@ import Popover from 'src/components/Popover';
 import { prepareCopyToClipboardTabularData } from 'src/utils/common';
 import CopyToClipboard from 'src/components/CopyToClipboard';
 import RowCountLabel from 'src/explore/components/RowCountLabel';
-import {
-  setOriginalFormattedTimeColumn,
-  unsetOriginalFormattedTimeColumn,
-} from 'src/explore/actions/exploreActions';
+import { getTimeColumns, setTimeColumns } from './utils';
 
 export const CellNull = styled('span')`
   color: ${({ theme }) => theme.colors.grayscale.light1};
@@ -130,8 +126,8 @@ export const RowCount = ({
 }) => <RowCountLabel rowcount={data?.length ?? 0} loading={loading} />;
 
 enum FormatPickerValue {
-  Formatted,
-  Original,
+  Formatted = 'formatted',
+  Original = 'original',
 }
 
 const FormatPicker = ({
@@ -165,47 +161,26 @@ const FormatPickerLabel = styled.span`
 
 const DataTableTemporalHeaderCell = ({
   columnName,
+  onTimeColumnChange,
   datasourceId,
-  originalFormattedTimeColumnIndex,
 }: {
   columnName: string;
+  onTimeColumnChange: (
+    columnName: string,
+    columnType: FormatPickerValue,
+  ) => void;
   datasourceId?: string;
-  originalFormattedTimeColumnIndex: number;
 }) => {
   const theme = useTheme();
-  const dispatch = useDispatch();
-  const isTimeColumnOriginalFormatted = originalFormattedTimeColumnIndex > -1;
-
-  const onChange = useCallback(
-    e => {
-      if (!datasourceId) {
-        return;
-      }
-      if (
-        e.target.value === FormatPickerValue.Original &&
-        !isTimeColumnOriginalFormatted
-      ) {
-        dispatch(setOriginalFormattedTimeColumn(datasourceId, columnName));
-      } else if (
-        e.target.value === FormatPickerValue.Formatted &&
-        isTimeColumnOriginalFormatted
-      ) {
-        dispatch(
-          unsetOriginalFormattedTimeColumn(
-            datasourceId,
-            originalFormattedTimeColumnIndex,
-          ),
-        );
-      }
-    },
-    [
-      originalFormattedTimeColumnIndex,
-      columnName,
-      datasourceId,
-      dispatch,
-      isTimeColumnOriginalFormatted,
-    ],
+  const [isOriginalTimeColumn, setIsOriginalTimeColumn] = useState<boolean>(
+    getTimeColumns(datasourceId).includes(columnName),
   );
+
+  const onChange = (e: any) => {
+    onTimeColumnChange(columnName, e.target.value);
+    setIsOriginalTimeColumn(getTimeColumns(datasourceId).includes(columnName));
+  };
+
   const overlayContent = useMemo(
     () =>
       datasourceId ? ( // eslint-disable-next-line jsx-a11y/no-static-element-interactions
@@ -222,14 +197,14 @@ const DataTableTemporalHeaderCell = ({
           <FormatPicker
             onChange={onChange}
             value={
-              isTimeColumnOriginalFormatted
+              isOriginalTimeColumn
                 ? FormatPickerValue.Original
                 : FormatPickerValue.Formatted
             }
           />
         </FormatPickerContainer>
       ) : null,
-    [datasourceId, isTimeColumnOriginalFormatted, onChange],
+    [datasourceId, isOriginalTimeColumn],
   );
 
   return datasourceId ? (
@@ -288,10 +263,45 @@ export const useTableColumns = (
   coltypes?: GenericDataType[],
   data?: Record<string, any>[],
   datasourceId?: string,
-  originalFormattedTimeColumns: string[] = [],
+  isVisible?: boolean,
   moreConfigs?: { [key: string]: Partial<Column> },
-) =>
-  useMemo(
+) => {
+  const [originalFormattedTimeColumns, setOriginalFormattedTimeColumns] =
+    useState<string[]>(getTimeColumns(datasourceId));
+
+  const onTimeColumnChange = (
+    columnName: string,
+    columnType: FormatPickerValue,
+  ) => {
+    if (!datasourceId) {
+      return;
+    }
+    if (
+      columnType === FormatPickerValue.Original &&
+      !originalFormattedTimeColumns.includes(columnName)
+    ) {
+      const cols = getTimeColumns(datasourceId);
+      cols.push(columnName);
+      setTimeColumns(datasourceId, cols);
+      setOriginalFormattedTimeColumns(cols);
+    } else if (
+      columnType === FormatPickerValue.Formatted &&
+      originalFormattedTimeColumns.includes(columnName)
+    ) {
+      const cols = getTimeColumns(datasourceId);
+      cols.splice(cols.indexOf(columnName), 1);
+      setTimeColumns(datasourceId, cols);
+      setOriginalFormattedTimeColumns(cols);
+    }
+  };
+
+  useEffect(() => {
+    if (isVisible) {
+      setOriginalFormattedTimeColumns(getTimeColumns(datasourceId));
+    }
+  }, [datasourceId, isVisible]);
+
+  return useMemo(
     () =>
       colnames && data?.length
         ? colnames
@@ -313,9 +323,7 @@ export const useTableColumns = (
                     <DataTableTemporalHeaderCell
                       columnName={key}
                       datasourceId={datasourceId}
-                      originalFormattedTimeColumnIndex={
-                        originalFormattedTimeColumnIndex
-                      }
+                      onTimeColumnChange={onTimeColumnChange}
                     />
                   ) : (
                     key
@@ -352,3 +360,4 @@ export const useTableColumns = (
       originalFormattedTimeColumns,
     ],
   );
+};

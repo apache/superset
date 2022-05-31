@@ -35,7 +35,6 @@ import {
   getFormDataFromControls,
   applyMapStateToPropsToControl,
 } from 'src/explore/controlUtils';
-import { getItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 
 export interface ExplorePageBootstrapData extends JsonObject {
   can_add: boolean;
@@ -78,10 +77,6 @@ export default function getInitialState(
       initialFormData,
     ) as ControlStateMapping,
     controlsTransferred: [],
-    originalFormattedTimeColumns: getItem(
-      LocalStorageKeys.explore__data_table_original_formatted_time_columns,
-      {},
-    ),
   };
 
   // apply initial mapStateToProps for all controls, must execute AFTER
