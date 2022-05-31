@@ -97,7 +97,7 @@ const ControlHeader: FC<ControlHeaderProps> = ({
         {canSelectAll && (
           <span>
             <InfoTooltipWithTrigger
-              label={t('copy')}
+              label={t('select-all')}
               tooltip={t('Select All (ctl+a)')}
               placement="top"
               icon="chevron-up"
