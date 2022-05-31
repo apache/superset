@@ -18,6 +18,8 @@ cached-property==1.5.2
     # via tableschema
 certifi==2021.10.8
     # via requests
+chardet==4.0.0
+    # via tabulator
 et-xmlfile==1.1.0
     # via openpyxl
 flask-cors==3.0.10
