@@ -36,7 +36,7 @@ import {
 } from 'src/explore/constants';
 import { DashboardStandaloneMode } from 'src/dashboard/util/constants';
 import { optionLabel } from '../../utils/common';
-import { APP_PREFIX } from '../../constants';
+ //import { APP_PREFIX }from '../../constants';
 
 export function getChartKey(explore) {
   const { slice } = explore;
@@ -85,9 +85,9 @@ export function getURIDirectory(endpointType = 'base') {
       endpointType,
     )
   ) {
-    return `/${APP_PREFIX}/superset/explore_json/`;
+    return `${process.env.APP_PREFIX}/superset/explore_json/`;
   }
-  return `/${APP_PREFIX}/superset/explore/`;
+  return `${process.env.APP_PREFIX}/superset/explore/`;
 }
 
 export function mountExploreUrl(endpointType, extraSearch = {}, force = false) {
@@ -286,7 +286,7 @@ export const exportChart = ({
     });
     payload = formData;
   } else {
-    url = `/${APP_PREFIX}/api/v1/chart/data`;
+    url = `${process.env.APP_PREFIX}/api/v1/chart/data`;
     payload = buildV1ChartDataPayload({
       formData,
       force,

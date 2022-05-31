@@ -149,7 +149,7 @@ export function getChartPermalink(
   formData: Pick<QueryFormData, 'datasource'>,
   excludedUrlParams?: string[],
 ) {
-  return getPermalink(`/${APP_PREFIX}/api/v1/explore/permalink`, {
+  return getPermalink(`${process.env.APP_PREFIX}/api/v1/explore/permalink`, {
     formData,
     urlParams: getChartUrlParams(excludedUrlParams),
   });
@@ -166,7 +166,7 @@ export function getDashboardPermalink({
 }) {
   // only encode filter box state if non-empty
   return getPermalink(
-    `/${APP_PREFIX}/api/v1/dashboard/${dashboardId}/permalink`,
+    `${process.env.APP_PREFIX}/api/v1/dashboard/${dashboardId}/permalink`,
     {
       filterState,
       urlParams: getDashboardUrlParams(),

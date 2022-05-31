@@ -20,7 +20,7 @@ import { Dispatch } from 'redux';
 import { makeApi, CategoricalColorNamespace } from '@superset-ui/core';
 import { isString } from 'lodash';
 import { ChartConfiguration, DashboardInfo } from '../reducers/types';
-import { APP_PREFIX } from 'src/constants';
+ //import { APP_PREFIX }from 'src/constants';
 
 export const DASHBOARD_INFO_UPDATED = 'DASHBOARD_INFO_UPDATED';
 
@@ -89,7 +89,7 @@ export const setChartConfiguration =
       { result: DashboardInfo }
     >({
       method: 'PUT',
-      endpoint: `/${APP_PREFIX}/api/v1/dashboard/${id}`,
+      endpoint: `${process.env.APP_PREFIX}/api/v1/dashboard/${id}`,
     });
 
     try {

@@ -21,7 +21,7 @@ import React, { ReactNode, SyntheticEvent } from 'react';
 import { styled, css, SupersetTheme } from '@superset-ui/core';
 import { Empty } from 'src/components';
 import Button from 'src/components/Button';
-import { APP_PREFIX } from 'src/constants';
+ //import { APP_PREFIX }from 'src/constants';
 
 export enum EmptyStateSize {
   Small,
@@ -120,7 +120,7 @@ const ActionButton = styled(Button)`
 
 const getImage = (image: string | ReactNode) =>
   typeof image === 'string'
-    ? `/${APP_PREFIX}/static/assets/images/${image}`
+    ? `${process.env.APP_PREFIX}/static/assets/images/${image}`
     : image;
 
 const getImageHeight = (size: EmptyStateSize) => {

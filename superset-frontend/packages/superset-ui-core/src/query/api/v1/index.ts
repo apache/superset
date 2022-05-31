@@ -18,11 +18,11 @@
  */
 import makeApi from './makeApi';
 import { ChartDataResponse, QueryContext } from '../../types';
-import { APP_PREFIX } from '../../../../../../../src/constants';
+ //import { APP_PREFIX }from '../../../../../../../src/constants';
 
 export const getChartData = makeApi<QueryContext, ChartDataResponse>({
   method: 'POST',
-  endpoint: `/${APP_PREFIX}/api/v1/chart/data`,
+  endpoint: `${process.env.APP_PREFIX}/api/v1/chart/data`,
 });
 
 /**

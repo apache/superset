@@ -70,7 +70,7 @@ interface AlertListProps {
 const deleteAlerts = makeApi<number[], { message: string }>({
   requestType: 'rison',
   method: 'DELETE',
-  endpoint: `/${APP_PREFIX}/api/v1/report/`,
+  endpoint: `${process.env.APP_PREFIX}/api/v1/report/`,
 });
 
 const RefreshContainer = styled.div`
@@ -153,7 +153,7 @@ function AlertList({
 
   const handleAlertDelete = ({ id, name }: AlertObject) => {
     SupersetClient.delete({
-      endpoint: `/${APP_PREFIX}/api/v1/report/${id}`,
+      endpoint: `${process.env.APP_PREFIX}/api/v1/report/${id}`,
     }).then(
       () => {
         refreshData();

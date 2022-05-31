@@ -30,7 +30,7 @@ import { Menu } from 'src/components/Menu';
 import FaveStar from 'src/components/FaveStar';
 import FacePile from 'src/components/FacePile';
 import { handleChartDelete, CardStyles } from '../utils';
-import { APP_PREFIX } from '../../../constants';
+ //import { APP_PREFIX }from '../../../constants';
 
 interface ChartCardProps {
   chart: Chart;
@@ -153,7 +153,7 @@ export default function ChartCard({
         }
         url={bulkSelectEnabled ? undefined : chart.url}
         imgURL={chart.thumbnail_url || ''}
-        imgFallbackURL={`/${APP_PREFIX}/static/assets/images/chart-card-fallback.svg`}
+        imgFallbackURL={`${process.env.APP_PREFIX}/static/assets/images/chart-card-fallback.svg`}
         description={t('Modified %s', chart.changed_on_delta_humanized)}
         coverLeft={<FacePile users={chart.owners || []} />}
         coverRight={

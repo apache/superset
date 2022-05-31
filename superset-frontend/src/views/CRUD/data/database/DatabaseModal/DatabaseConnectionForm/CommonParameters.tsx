@@ -23,7 +23,7 @@ import InfoTooltip from 'src/components/InfoTooltip';
 import ValidatedInput from 'src/components/Form/LabeledErrorBoundInput';
 import { FieldPropTypes } from '.';
 import { toggleStyle, infoTooltip } from '../styles';
-import { APP_PREFIX } from '../../../../../../constants';
+ //import { APP_PREFIX }from '../../../../../../constants';
 
 export const hostField = ({
   required,

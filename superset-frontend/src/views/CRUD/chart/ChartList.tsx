@@ -61,7 +61,7 @@ import setupPlugins from 'src/setup/setupPlugins';
 import InfoTooltip from 'src/components/InfoTooltip';
 import CertifiedBadge from 'src/components/CertifiedBadge';
 import ChartCard from './ChartCard';
-import { APP_PREFIX } from '../../../constants';
+ //import { APP_PREFIX }from '../../../constants';
 
 const FlexRowContainer = styled.div`
   align-items: center;
@@ -116,7 +116,7 @@ const createFetchDatasets = async (
   });
 
   const { json = {} } = await SupersetClient.get({
-    endpoint: `/${APP_PREFIX}/api/v1/dataset/?q=${queryParams}`,
+    endpoint: `${process.env.APP_PREFIX}/api/v1/dataset/?q=${queryParams}`,
   });
 
   const datasets = json?.result?.map(
@@ -221,7 +221,7 @@ function ChartList(props: ChartListProps) {
 
   function handleBulkChartDelete(chartsToDelete: Chart[]) {
     SupersetClient.delete({
-      endpoint: `/${APP_PREFIX}/api/v1/chart/?q=${rison.encode(
+      endpoint: `${process.env.APP_PREFIX}/api/v1/chart/?q=${rison.encode(
         chartsToDelete.map(({ id }) => id),
       )}`,
     }).then(

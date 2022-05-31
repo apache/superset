@@ -179,7 +179,7 @@ export default function DatabaseSelector({
                 ],
               }),
         });
-        const endpoint = `/${APP_PREFIX}/api/v1/database/?q=${queryParams}`;
+        const endpoint = `${process.env.APP_PREFIX}/api/v1/database/?q=${queryParams}`;
         return SupersetClient.get({ endpoint }).then(({ json }) => {
           const { result } = json;
           if (getDbList) {
@@ -216,7 +216,7 @@ export default function DatabaseSelector({
     if (currentDb) {
       setLoadingSchemas(true);
       const queryParams = rison.encode({ force: refresh > 0 });
-      const endpoint = `/${APP_PREFIX}/api/v1/database/${currentDb.value}/schemas/?q=${queryParams}`;
+      const endpoint = `${process.env.APP_PREFIX}/api/v1/database/${currentDb.value}/schemas/?q=${queryParams}`;
 
       // TODO: Would be nice to add pagination in a follow-up. Needs endpoint changes.
       SupersetClient.get({ endpoint })

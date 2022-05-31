@@ -34,7 +34,7 @@ export default function getFormData({
 }: Params) {
   const promise = client
     .get({
-      endpoint: `/${APP_PREFIX}/api/v1/form_data/?slice_id=${sliceId}`,
+      endpoint: `${process.env.APP_PREFIX}/api/v1/form_data/?slice_id=${sliceId}`,
       ...requestConfig,
     })
     .then(({ json }) => json as QueryFormData);

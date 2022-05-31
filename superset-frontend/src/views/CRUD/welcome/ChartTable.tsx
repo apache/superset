@@ -44,7 +44,7 @@ import ErrorBoundary from 'src/components/ErrorBoundary';
 import SubMenu from 'src/views/components/SubMenu';
 import EmptyState from './EmptyState';
 import { WelcomeTable } from './types';
-import { APP_PREFIX } from '../../../constants';
+ //import { APP_PREFIX }from '../../../constants';
 
 interface ChartTableProps {
   addDangerToast: (message: string) => void;
@@ -223,10 +223,10 @@ function ChartTable({
             onClick: () => {
               const target =
                 chartFilter === 'Favorite'
-                  ? `/${APP_PREFIX}/chart/list/?filters=(favorite:(label:${t(
+                  ? `${process.env.APP_PREFIX}/chart/list/?filters=(favorite:(label:${t(
                       'Yes',
                     )},value:!t))`
-                  : `/${APP_PREFIX}/chart/list/`;
+                  : `${process.env.APP_PREFIX}/chart/list/`;
               history.push(target);
             },
           },

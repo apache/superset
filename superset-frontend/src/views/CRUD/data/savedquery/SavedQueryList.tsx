@@ -51,7 +51,7 @@ import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import ImportModelsModal from 'src/components/ImportModal/index';
 import Icons from 'src/components/Icons';
 import SavedQueryPreviewModal from './SavedQueryPreviewModal';
-import { APP_PREFIX } from 'src/constants';
+ //import { APP_PREFIX }from 'src/constants';
 
 const PAGE_SIZE = 25;
 const PASSWORDS_NEEDED_MESSAGE = t(
@@ -139,14 +139,14 @@ function SavedQueryList({
 
   const openNewQuery = () => {
     window.open(
-      `${window.location.origin}/${APP_PREFIX}/superset/sqllab?new=true`,
+      `${window.location.origin}${process.env.APP_PREFIX}/superset/sqllab?new=true`,
     );
   };
 
   const handleSavedQueryPreview = useCallback(
     (id: number) => {
       SupersetClient.get({
-        endpoint: `/${APP_PREFIX}/api/v1/saved_query/${id}`,
+        endpoint: `${process.env.APP_PREFIX}/api/v1/saved_query/${id}`,
       }).then(
         ({ json = {} }) => {
           setSavedQueryCurrentlyPreviewing({ ...json.result });
@@ -209,14 +209,14 @@ function SavedQueryList({
   // Action methods
   const openInSqlLab = (id: number) => {
     window.open(
-      `${window.location.origin}/${APP_PREFIX}/superset/sqllab?savedQueryId=${id}`,
+      `${window.location.origin}${process.env.APP_PREFIX}/superset/sqllab?savedQueryId=${id}`,
     );
   };
 
   const copyQueryLink = useCallback(
     (id: number) => {
       copyTextToClipboard(
-        `${window.location.origin}/${APP_PREFIX}/superset/sqllab?savedQueryId=${id}`,
+        `${window.location.origin}${process.env.APP_PREFIX}/superset/sqllab?savedQueryId=${id}`,
       )
         .then(() => {
           addSuccessToast(t('Link Copied!'));
@@ -230,7 +230,7 @@ function SavedQueryList({
 
   const handleQueryDelete = ({ id, label }: SavedQueryObject) => {
     SupersetClient.delete({
-      endpoint: `/${APP_PREFIX}/api/v1/saved_query/${id}`,
+      endpoint: `${process.env.APP_PREFIX}/api/v1/saved_query/${id}`,
     }).then(
       () => {
         refreshData();
@@ -255,7 +255,7 @@ function SavedQueryList({
 
   const handleBulkQueryDelete = (queriesToDelete: SavedQueryObject[]) => {
     SupersetClient.delete({
-      endpoint: `/${APP_PREFIX}/api/v1/saved_query/?q=${rison.encode(
+      endpoint: `${process.env.APP_PREFIX}/api/v1/saved_query/?q=${rison.encode(
         queriesToDelete.map(({ id }) => id),
       )}`,
     }).then(

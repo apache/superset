@@ -36,7 +36,7 @@ import RefreshLabel from 'src/components/RefreshLabel';
 import CertifiedBadge from 'src/components/CertifiedBadge';
 import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
-import { APP_PREFIX } from 'src/constants';
+ //import { APP_PREFIX }from 'src/constants';
 
 const TableSelectorWrapper = styled.div`
   ${({ theme }) => `
@@ -212,7 +212,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
       const forceRefresh = refresh !== previousRefresh;
       // TODO: Would be nice to add pagination in a follow-up. Needs endpoint changes.
       const endpoint = encodeURI(
-        `/${APP_PREFIX}/superset/tables/${currentDatabase.id}/${encodedSchema}/undefined/${forceRefresh}/`,
+        `${process.env.APP_PREFIX}/superset/tables/${currentDatabase.id}/${encodedSchema}/undefined/${forceRefresh}/`,
       );
 
       if (previousRefresh !== refresh) {

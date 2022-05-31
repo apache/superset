@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-describe('Advanced ${APP_PREFIX}', () => {
+describe('Advanced Analytics', () => {
   beforeEach(() => {
     cy.login();
     cy.intercept('POST', '/superset/explore_json/**').as('postJson');
@@ -29,7 +29,7 @@ describe('Advanced ${APP_PREFIX}', () => {
     cy.visitChartByName('Num Births Trend');
     cy.verifySliceSuccess({ waitAlias: '@postJson' });
 
-    cy.get('.ant-collapse-header').contains('Advanced ${APP_PREFIX}').click();
+    cy.get('.ant-collapse-header').contains('Advanced Analytics').click();
 
     cy.get('[data-test=time_compare]').find('.ant-select').click();
     cy.get('[data-test=time_compare]')
@@ -49,7 +49,7 @@ describe('Advanced ${APP_PREFIX}', () => {
       chartSelector: 'svg',
     });
     cy.wait('@getExplore');
-    cy.get('.ant-collapse-header').contains('Advanced ${APP_PREFIX}').click();
+    cy.get('.ant-collapse-header').contains('Advanced Analytics').click();
     cy.get('[data-test=time_compare]')
       .find('.ant-select-selector')
       .contains('28 days');

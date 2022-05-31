@@ -17,7 +17,7 @@
  * under the License.
  */
 import { t } from '@superset-ui/core';
-import { APP_PREFIX } from '../../../constants';
+ //import { APP_PREFIX }from '../../../constants';
 
 export const commonMenuData = {
   name: t('Data'),
@@ -25,25 +25,25 @@ export const commonMenuData = {
     {
       name: 'Databases',
       label: t('Databases'),
-      url: `/${APP_PREFIX}/databaseview/list/`,
+      url: `${process.env.APP_PREFIX}/databaseview/list/`,
       usesRouter: true,
     },
     {
       name: 'Datasets',
       label: t('Datasets'),
-      url: `/${APP_PREFIX}/tablemodelview/list/`,
+      url: `${process.env.APP_PREFIX}/tablemodelview/list/`,
       usesRouter: true,
     },
     {
       name: 'Saved queries',
       label: t('Saved queries'),
-      url: `/${APP_PREFIX}/savedqueryview/list/`,
+      url: `${process.env.APP_PREFIX}/savedqueryview/list/`,
       usesRouter: true,
     },
     {
       name: 'Query history',
       label: t('Query history'),
-      url: `/${APP_PREFIX}/superset/sqllab/history/`,
+      url: `${process.env.APP_PREFIX}/superset/sqllab/history/`,
       usesRouter: true,
     },
   ],

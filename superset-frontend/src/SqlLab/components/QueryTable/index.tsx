@@ -60,7 +60,7 @@ interface QueryTableProps {
 }
 
 const openQuery = (id: number) => {
-  const url = `/${APP_PREFIX}/superset/sqllab?queryId=${id}`;
+  const url = `${process.env.APP_PREFIX}/superset/sqllab?queryId=${id}`;
   window.open(url);
 };
 

@@ -38,7 +38,7 @@ import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import DatabaseModal from './DatabaseModal';
 
 import { DatabaseObject } from './types';
-import { APP_PREFIX } from '../../../../constants';
+ //import { APP_PREFIX }from '../../../../constants';
 
 const PAGE_SIZE = 25;
 
@@ -113,7 +113,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
 
   const openDatabaseDeleteModal = (database: DatabaseObject) =>
     SupersetClient.get({
-      endpoint: `/${APP_PREFIX}/api/v1/database/${database.id}/related_objects/`,
+      endpoint: `${process.env.APP_PREFIX}/api/v1/database/${database.id}/related_objects/`,
     })
       .then(({ json = {} }) => {
         setDatabaseCurrentlyDeleting({
@@ -134,7 +134,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
 
   function handleDatabaseDelete({ id, database_name: dbName }: DatabaseObject) {
     SupersetClient.delete({
-      endpoint: `/${APP_PREFIX}/api/v1/database/${id}`,
+      endpoint: `${process.env.APP_PREFIX}/api/v1/database/${id}`,
     }).then(
       () => {
         refreshData();

@@ -19,7 +19,7 @@
 import parseCookie from 'src/utils/parseCookie';
 import rison from 'rison';
 import shortid from 'shortid';
-import { APP_PREFIX } from '../constants';
+ 
 
 export default function handleResourceExport(
   resource: string,
@@ -28,7 +28,7 @@ export default function handleResourceExport(
   interval = 200,
 ): void {
   const token = shortid.generate();
-  const url = `/${APP_PREFIX}/api/v1/${resource}/export/?q=${rison.encode(
+  const url = `${process.env.APP_PREFIX}/api/v1/${resource}/export/?q=${rison.encode(
     ids,
   )}&token=${token}`;
 

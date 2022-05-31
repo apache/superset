@@ -21,7 +21,7 @@ import Button from 'src/components/Button';
 import { Empty } from 'src/components';
 import { t, styled } from '@superset-ui/core';
 import { WelcomeTable } from './types';
-import { APP_PREFIX } from '../../../constants';
+ //import { APP_PREFIX }from '../../../constants';
 
 const welcomeTableLabels: Record<WelcomeTable, string> = {
   [WelcomeTable.Charts]: t('charts'),
@@ -55,14 +55,14 @@ type Redirects = Record<
 
 export default function EmptyState({ tableName, tab }: EmptyStateProps) {
   const mineRedirects: Redirects = {
-    [WelcomeTable.Charts]: `/${APP_PREFIX}/chart/add`,
-    [WelcomeTable.Dashboards]: `/${APP_PREFIX}/dashboard/new`,
-    [WelcomeTable.SavedQueries]: `/${APP_PREFIX}/superset/sqllab?new=true`,
+    [WelcomeTable.Charts]: `${process.env.APP_PREFIX}/chart/add`,
+    [WelcomeTable.Dashboards]: `${process.env.APP_PREFIX}/dashboard/new`,
+    [WelcomeTable.SavedQueries]: `${process.env.APP_PREFIX}/superset/sqllab?new=true`,
   };
   const favRedirects: Redirects = {
-    [WelcomeTable.Charts]: `/${APP_PREFIX}/chart/list`,
-    [WelcomeTable.Dashboards]: `/${APP_PREFIX}/dashboard/list/`,
-    [WelcomeTable.SavedQueries]: `/${APP_PREFIX}/savedqueryview/list/`,
+    [WelcomeTable.Charts]: `${process.env.APP_PREFIX}/chart/list`,
+    [WelcomeTable.Dashboards]: `${process.env.APP_PREFIX}/dashboard/list/`,
+    [WelcomeTable.SavedQueries]: `${process.env.APP_PREFIX}/savedqueryview/list/`,
   };
   const tableIcon: Record<WelcomeTable, string> = {
     [WelcomeTable.Charts]: 'empty-charts.svg',
@@ -107,7 +107,7 @@ export default function EmptyState({ tableName, tab }: EmptyStateProps) {
     return (
       <EmptyContainer>
         <Empty
-          image={`/${APP_PREFIX}/static/assets/images/${tableIcon[tableName]}`}
+          image={`${process.env.APP_PREFIX}/static/assets/images/${tableIcon[tableName]}`}
           description={
             tableName === 'RECENTS' || tab === 'Examples' ? recent : mine
           }
@@ -138,7 +138,7 @@ export default function EmptyState({ tableName, tab }: EmptyStateProps) {
   return (
     <EmptyContainer>
       <Empty
-        image={`${APP_PREFIX}/static/assets/images/star-circle.svg`}
+        image={`Analytics/static/assets/images/star-circle.svg`}
         description={
           <span className="no-favorites">
             {t("You don't have any favorites yet!")}
