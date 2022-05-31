@@ -22,6 +22,6 @@ import { ExplorePageState } from '../reducers/getInitialState';
 export const useOriginalFormattedTimeColumns = (datasourceId?: string) =>
   useSelector<ExplorePageState, string[]>(state =>
     datasourceId
-      ? state.explore.originalFormattedTimeColumns?.[datasourceId] ?? []
+      ? state?.explore?.originalFormattedTimeColumns?.[datasourceId] ?? []
       : [],
   );

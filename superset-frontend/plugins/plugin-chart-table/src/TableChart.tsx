@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { CSSProperties, useCallback, useMemo } from 'react';
+import React, { CSSProperties, useCallback, useMemo, useState } from 'react';
 import {
   ColumnInstance,
   ColumnWithLooseAccessor,
@@ -192,11 +192,15 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     filters,
     sticky = true, // whether to use sticky header
     columnColorFormatters,
+    allowRearrangeColumns = false,
   } = props;
   const timestampFormatter = useCallback(
     value => getTimeFormatterForGranularity(timeGrain)(value),
     [timeGrain],
   );
+
+  // keep track of whether column order changed, so that column widths can too
+  const [columnOrderToggle, setColumnOrderToggle] = useState(false);
 
   const handleChange = useCallback(
     (filters: { [x: string]: DataRecordValue[] }) => {
@@ -413,7 +417,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           // render `Cell`. This saves some time for large tables.
           return <StyledCell {...cellProps}>{text}</StyledCell>;
         },
-        Header: ({ column: col, onClick, style }) => (
+        Header: ({ column: col, onClick, style, onDragStart, onDrop }) => (
           <th
             title="Shift + Click to sort by multiple columns"
             className={[className, col.isSorted ? 'is-sorted' : ''].join(' ')}
@@ -422,6 +426,14 @@ export default function TableChart<D extends DataRecord = DataRecord>(
               ...style,
             }}
             onClick={onClick}
+            data-column-name={col.id}
+            {...(allowRearrangeColumns && {
+              draggable: 'true',
+              onDragStart,
+              onDragOver: e => e.preventDefault(),
+              onDragEnter: e => e.preventDefault(),
+              onDrop,
+            })}
           >
             {/* can't use `columnWidth &&` because it may also be zero */}
             {config.columnWidth ? (
@@ -434,12 +446,13 @@ export default function TableChart<D extends DataRecord = DataRecord>(
               />
             ) : null}
             <div
+              data-column-name={col.id}
               css={{
                 display: 'inline-flex',
                 alignItems: 'center',
               }}
             >
-              <span>{label}</span>
+              <span data-column-name={col.id}>{label}</span>
               <SortIcon column={col} />
             </div>
           </th>
@@ -469,6 +482,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       toggleFilter,
       totals,
       columnColorFormatters,
+      columnOrderToggle,
     ],
   );
 
@@ -498,6 +512,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         height={height}
         serverPagination={serverPagination}
         onServerPaginationChange={handleServerPaginationChange}
+        onColumnOrderChange={() => setColumnOrderToggle(!columnOrderToggle)}
         // 9 page items in > 340px works well even for 100+ pages
         maxPageItemCount={width > 340 ? 9 : 7}
         noResults={getNoResultsMessage}
