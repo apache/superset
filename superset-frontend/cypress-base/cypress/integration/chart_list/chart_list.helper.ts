@@ -16,6 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { APP_PREFIX } from '../../../../src/constants';
+ //import { APP_PREFIX }from '../../../../src/constants';
 
-export const CHART_LIST = `/${APP_PREFIX}/chart/list/`;
+export const CHART_LIST = `${process.env.APP_PREFIX}/chart/list/`;

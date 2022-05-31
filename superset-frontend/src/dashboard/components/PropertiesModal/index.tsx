@@ -126,7 +126,7 @@ const PropertiesModal = ({
         page_size: pageSize,
       });
       return SupersetClient.get({
-        endpoint: `/${APP_PREFIX}/api/v1/dashboard/related/${accessType}?q=${query}`,
+        endpoint: `${process.env.APP_PREFIX}/api/v1/dashboard/related/${accessType}?q=${query}`,
       }).then(response => ({
         data: response.json.result.map(
           (item: { value: number; text: string }) => ({
@@ -186,7 +186,7 @@ const PropertiesModal = ({
     // At some point when we have a more consistent frontend
     // datamodel, the dashboard could probably just be passed as a prop.
     SupersetClient.get({
-      endpoint: `/${APP_PREFIX}/api/v1/dashboard/${dashboardId}`,
+      endpoint: `${process.env.APP_PREFIX}/api/v1/dashboard/${dashboardId}`,
     }).then(response => {
       const dashboard = response.json.result;
       const jsonMetadataObj = dashboard.json_metadata?.length
@@ -336,7 +336,7 @@ const PropertiesModal = ({
       onHide();
     } else {
       SupersetClient.put({
-        endpoint: `/${APP_PREFIX}/api/v1/dashboard/${dashboardId}`,
+        endpoint: `${process.env.APP_PREFIX}/api/v1/dashboard/${dashboardId}`,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           dashboard_title: title,

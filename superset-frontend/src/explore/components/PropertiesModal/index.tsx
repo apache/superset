@@ -79,7 +79,7 @@ function PropertiesModal({
     async function fetchChartOwners() {
       try {
         const response = await SupersetClient.get({
-          endpoint: `/${APP_PREFIX}/api/v1/chart/${slice.slice_id}`,
+          endpoint: `${process.env.APP_PREFIX}/api/v1/chart/${slice.slice_id}`,
         });
         const chart = response.json.result;
         setSelectedOwners(
@@ -105,7 +105,7 @@ function PropertiesModal({
           page_size: pageSize,
         });
         return SupersetClient.get({
-          endpoint: `/${APP_PREFIX}/api/v1/chart/related/owners?q=${query}`,
+          endpoint: `${process.env.APP_PREFIX}/api/v1/chart/related/owners?q=${query}`,
         }).then(response => ({
           data: response.json.result.map(
             (item: { value: number; text: string }) => ({
@@ -150,7 +150,7 @@ function PropertiesModal({
     }
     try {
       const res = await SupersetClient.put({
-        endpoint: `/${APP_PREFIX}/api/v1/chart/${slice.slice_id}`,
+        endpoint: `${process.env.APP_PREFIX}/api/v1/chart/${slice.slice_id}`,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });

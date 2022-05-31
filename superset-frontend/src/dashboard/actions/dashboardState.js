@@ -56,7 +56,7 @@ import {
   updateDirectPathToFilter,
 } from './dashboardFilters';
 import { SET_FILTER_CONFIG_COMPLETE } from './nativeFilters';
-import { APP_PREFIX } from '../../constants';
+ //import { APP_PREFIX }from '../../constants';
 
 export const SET_UNSAVED_CHANGES = 'SET_UNSAVED_CHANGES';
 export function setUnsavedChanges(hasUnsavedChanges) {
@@ -78,7 +78,7 @@ export function resetSlice() {
   return { type: RESET_SLICE };
 }
 
-const FAVESTAR_BASE_URL = `/${APP_PREFIX}/superset/favstar/Dashboard`;
+const FAVESTAR_BASE_URL = `${process.env.APP_PREFIX}/superset/favstar/Dashboard`;
 export const TOGGLE_FAVE_STAR = 'TOGGLE_FAVE_STAR';
 export function toggleFaveStar(isStarred) {
   return { type: TOGGLE_FAVE_STAR, isStarred };
@@ -131,7 +131,7 @@ export function togglePublished(isPublished) {
 export function savePublished(id, isPublished) {
   return function savePublishedThunk(dispatch) {
     return SupersetClient.put({
-      endpoint: `/${APP_PREFIX}/api/v1/dashboard/${id}`,
+      endpoint: `${process.env.APP_PREFIX}/api/v1/dashboard/${id}`,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         published: isPublished,
@@ -317,7 +317,7 @@ export function saveDashboardRequest(data, id, saveType) {
       window.history.pushState(
         { event: 'dashboard_properties_changed' },
         '',
-        `/${APP_PREFIX}/superset/dashboard/${slug || id}/`,
+        `${process.env.APP_PREFIX}/superset/dashboard/${slug || id}/`,
       );
 
       dispatch(addSuccessToast(t('This dashboard was saved successfully.')));
@@ -362,7 +362,7 @@ export function saveDashboardRequest(data, id, saveType) {
       };
 
       return SupersetClient.put({
-        endpoint: `/${APP_PREFIX}/api/v1/dashboard/${id}`,
+        endpoint: `${process.env.APP_PREFIX}/api/v1/dashboard/${id}`,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updatedDashboard),
       })
@@ -380,7 +380,7 @@ export function saveDashboardRequest(data, id, saveType) {
       ...(cleanedData?.metadata || {}),
     };
     return SupersetClient.post({
-      endpoint: `/${APP_PREFIX}/superset/copy_dash/${id}/`,
+      endpoint: `${process.env.APP_PREFIX}/superset/copy_dash/${id}/`,
       postPayload: {
         data: {
           ...finalCopyData,

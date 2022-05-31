@@ -20,7 +20,7 @@ import React, { lazy } from 'react';
 
 // not lazy loaded since this is the home page.
 import Welcome from 'src/views/CRUD/welcome/Welcome';
-import { APP_PREFIX } from '../constants';
+
 
 const AnnotationLayersList = lazy(
   () =>
@@ -104,66 +104,66 @@ type Routes = {
 
 export const routes: Routes = [
   {
-    path: `/${APP_PREFIX}/superset/welcome/`,
+    path: `${process.env.APP_PREFIX}/superset/welcome/`,
     Component: Welcome,
   },
   {
-    path: `/${APP_PREFIX}/dashboard/list/`,
+    path: `${process.env.APP_PREFIX}/dashboard/list/`,
     Component: DashboardList,
   },
   {
-    path: `/${APP_PREFIX}/superset/dashboard/:idOrSlug/`,
+    path: `${process.env.APP_PREFIX}/superset/dashboard/:idOrSlug/`,
     Component: DashboardPage,
   },
   {
-    path: `/${APP_PREFIX}/chart/list/`,
+    path: `${process.env.APP_PREFIX}/chart/list/`,
     Component: ChartList,
   },
   {
-    path: `/${APP_PREFIX}/tablemodelview/list/`,
+    path: `${process.env.APP_PREFIX}/tablemodelview/list/`,
     Component: DatasetList,
   },
   {
-    path: `/${APP_PREFIX}/databaseview/list/`,
+    path: `${process.env.APP_PREFIX}/databaseview/list/`,
     Component: DatabaseList,
   },
   {
-    path: `/${APP_PREFIX}/savedqueryview/list/`,
+    path: `${process.env.APP_PREFIX}/savedqueryview/list/`,
     Component: SavedQueryList,
   },
   {
-    path: `/${APP_PREFIX}/csstemplatemodelview/list/`,
+    path: `${process.env.APP_PREFIX}/csstemplatemodelview/list/`,
     Component: CssTemplatesList,
   },
   {
-    path: `/${APP_PREFIX}/annotationlayermodelview/list/`,
+    path: `${process.env.APP_PREFIX}/annotationlayermodelview/list/`,
     Component: AnnotationLayersList,
   },
   {
-    path: `/${APP_PREFIX}/annotationmodelview/:annotationLayerId/annotation/`,
+    path: `${process.env.APP_PREFIX}/annotationmodelview/:annotationLayerId/annotation/`,
     Component: AnnotationList,
   },
   {
-    path: `/${APP_PREFIX}/superset/sqllab/history/`,
+    path: `${process.env.APP_PREFIX}/superset/sqllab/history/`,
     Component: QueryList,
   },
   {
-    path: `/${APP_PREFIX}/alert/list/`,
+    path: `${process.env.APP_PREFIX}/alert/list/`,
     Component: AlertList,
   },
   {
-    path: `/${APP_PREFIX}/report/list/`,
+    path: `${process.env.APP_PREFIX}/report/list/`,
     Component: AlertList,
     props: {
       isReportEnabled: true,
     },
   },
   {
-    path: `/${APP_PREFIX}/alert/:alertId/log/`,
+    path: `${process.env.APP_PREFIX}/alert/:alertId/log/`,
     Component: ExecutionLog,
   },
   {
-    path: `/${APP_PREFIX}/report/:alertId/log/`,
+    path: `${process.env.APP_PREFIX}/report/:alertId/log/`,
     Component: ExecutionLog,
     props: {
       isReportEnabled: true,

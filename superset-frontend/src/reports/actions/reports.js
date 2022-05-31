@@ -56,7 +56,7 @@ export function fetchUISpecificReport(
   });
   return function fetchUISpecificReportThunk(dispatch) {
     return SupersetClient.get({
-      endpoint: `/${APP_PREFIX}/api/v1/report/?q=${queryParams}`,
+      endpoint: `${process.env.APP_PREFIX}/api/v1/report/?q=${queryParams}`,
     })
       .then(({ json }) => {
         dispatch(setReport(json));
@@ -102,7 +102,7 @@ export const ADD_REPORT = 'ADD_REPORT';
 
 export const addReport = report => dispatch =>
   SupersetClient.post({
-    endpoint: `/${APP_PREFIX}/api/v1/report/`,
+    endpoint: `${process.env.APP_PREFIX}/api/v1/report/`,
     jsonPayload: report,
   }).then(({ json }) => {
     dispatch({ type: ADD_REPORT, json });
@@ -114,7 +114,7 @@ export const EDIT_REPORT = 'EDIT_REPORT';
 export function editReport(id, report) {
   return function (dispatch) {
     SupersetClient.put({
-      endpoint: `/${APP_PREFIX}/api/v1/report/${id}`,
+      endpoint: `${process.env.APP_PREFIX}/api/v1/report/${id}`,
       jsonPayload: report,
     })
       .then(({ json }) => {
@@ -131,7 +131,7 @@ export function editReport(id, report) {
 export function toggleActive(report, isActive) {
   return function toggleActiveThunk(dispatch) {
     return SupersetClient.put({
-      endpoint: encodeURI(`/${APP_PREFIX}/api/v1/report/${report.id}`),
+      endpoint: encodeURI(`${process.env.APP_PREFIX}/api/v1/report/${report.id}`),
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         active: isActive,
@@ -153,7 +153,7 @@ export function toggleActive(report, isActive) {
 export function deleteActiveReport(report) {
   return function deleteActiveReportThunk(dispatch) {
     return SupersetClient.delete({
-      endpoint: encodeURI(`/${APP_PREFIX}/api/v1/report/${report.id}`),
+      endpoint: encodeURI(`${process.env.APP_PREFIX}/api/v1/report/${report.id}`),
     })
       .catch(() => {
         dispatch(addDangerToast(t('Your report could not be deleted')));

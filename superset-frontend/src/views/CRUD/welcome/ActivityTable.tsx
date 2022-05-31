@@ -36,7 +36,7 @@ import Icons from 'src/components/Icons';
 
 import EmptyState from './EmptyState';
 import { WelcomeTable } from './types';
-import { APP_PREFIX } from '../../../constants';
+ //import { APP_PREFIX }from '../../../constants';
 
 /**
  * Return result from /superset/recent_activity/{user_id}
@@ -115,7 +115,7 @@ const getEntityIcon = (entity: ActivityObject) => {
 
 const getEntityUrl = (entity: ActivityObject) => {
   if ('sql' in entity)
-    return `/${APP_PREFIX}/superset/sqllab?savedQueryId=${entity.id}`;
+    return `${process.env.APP_PREFIX}/superset/sqllab?savedQueryId=${entity.id}`;
   if ('url' in entity) return entity.url;
   return entity.item_url;
 };

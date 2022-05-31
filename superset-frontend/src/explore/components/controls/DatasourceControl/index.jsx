@@ -35,7 +35,7 @@ import Button from 'src/components/Button';
 import ErrorAlert from 'src/components/ErrorMessage/ErrorAlert';
 import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
 import { URL_PARAMS } from 'src/constants';
-import { APP_PREFIX } from '../../../../constants';
+ //import { APP_PREFIX }from '../../../../constants';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -178,7 +178,7 @@ class DatasourceControl extends React.PureComponent {
         datasourceKey: `${datasource.id}__${datasource.type}`,
         sql: datasource.sql,
       };
-      postForm(`/${APP_PREFIX}/superset/sqllab/`, payload);
+      postForm(`${process.env.APP_PREFIX}/superset/sqllab/`, payload);
     }
   }
 

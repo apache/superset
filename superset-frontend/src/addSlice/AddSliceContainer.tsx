@@ -201,7 +201,7 @@ export default class AddSliceContainer extends React.PureComponent<
         datasource: this.state.datasource?.value,
       }),
     );
-    return `/${APP_PREFIX}/superset/explore/?form_data=${formData}`;
+    return `${process.env.APP_PREFIX}/superset/explore/?form_data=${formData}`;
   }
 
   gotoSlice() {
@@ -249,7 +249,7 @@ export default class AddSliceContainer extends React.PureComponent<
       order_direction: 'asc',
     });
     return SupersetClient.get({
-      endpoint: `/${APP_PREFIX}/api/v1/dataset/?q=${query}`,
+      endpoint: `${process.env.APP_PREFIX}/api/v1/dataset/?q=${query}`,
     }).then((response: JsonResponse) => {
       const list: {
         customLabel: ReactNode;

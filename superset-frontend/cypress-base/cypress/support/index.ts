@@ -17,9 +17,9 @@
  * under the License.
  */
 import '@cypress/code-coverage/support';
-import { APP_PREFIX } from '../../../src/constants';
+ //import { APP_PREFIX }from '../../../src/constants';
 
-const BASE_EXPLORE_URL = `/${APP_PREFIX}/superset/explore/?form_data=`;
+const BASE_EXPLORE_URL = `${process.env.APP_PREFIX}/superset/explore/?form_data=`;
 
 /* eslint-disable consistent-return */
 Cypress.on('uncaught:exception', err => {

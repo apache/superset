@@ -103,7 +103,7 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
   const handleQueryPreview = useCallback(
     (id: number) => {
       SupersetClient.get({
-        endpoint: `/${APP_PREFIX}/api/v1/query/${id}`,
+        endpoint: `${process.env.APP_PREFIX}/api/v1/query/${id}`,
       }).then(
         ({ json = {} }) => {
           setQueryCurrentlyPreviewing({ ...json.result });
@@ -319,7 +319,7 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
           },
         }: any) => (
           <Tooltip title={t('Open query in SQL Lab')} placement="bottom">
-            <a href={`/${APP_PREFIX}/superset/sqllab?queryId=${id}`}>
+            <a href={`${process.env.APP_PREFIX}/superset/sqllab?queryId=${id}`}>
               <Icons.Full iconColor={theme.colors.grayscale.base} />
             </a>
           </Tooltip>
@@ -409,7 +409,7 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
           fetchData={handleQueryPreview}
           openInSqlLab={(id: number) =>
             window.location.assign(
-              `/${APP_PREFIX}/superset/sqllab?queryId=${id}`,
+              `${process.env.APP_PREFIX}/superset/sqllab?queryId=${id}`,
             )
           }
           show

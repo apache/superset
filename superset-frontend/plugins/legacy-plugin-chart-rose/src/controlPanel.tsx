@@ -114,7 +114,7 @@ const config: ControlPanelConfig = {
       ],
     },
     {
-      label: t('Advanced ${APP_PREFIX}'),
+      label: t('Advanced Analytics'),
       tabOverride: 'data',
       description: t(
         'This section contains options ' +

@@ -21,7 +21,7 @@ import * as reactRedux from 'react-redux';
 import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { Menu } from './Menu';
-import { APP_PREFIX } from '../../constants';
+ //import { APP_PREFIX }from '../../constants';
 
 const dropdownItems = [
   {
@@ -74,7 +74,7 @@ const dropdownItems = [
   },
   {
     label: 'Dashboard',
-    url: `/${APP_PREFIX}/dashboard/new`,
+    url: `${process.env.APP_PREFIX}/dashboard/new`,
     icon: 'fa-fw fa-dashboard',
     perm: 'can_write',
     view: 'Dashboard',

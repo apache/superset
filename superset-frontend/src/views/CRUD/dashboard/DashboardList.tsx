@@ -51,7 +51,7 @@ import Dashboard from 'src/dashboard/containers/Dashboard';
 import CertifiedBadge from 'src/components/CertifiedBadge';
 import DashboardCard from './DashboardCard';
 import { DashboardStatus } from './types';
-import { APP_PREFIX } from '../../../constants';
+ //import { APP_PREFIX }from '../../../constants';
 
 const PAGE_SIZE = 25;
 const PASSWORDS_NEEDED_MESSAGE = t(
@@ -161,7 +161,7 @@ function DashboardList(props: DashboardListProps) {
 
   function handleDashboardEdit(edits: Dashboard) {
     return SupersetClient.get({
-      endpoint: `/${APP_PREFIX}/api/v1/dashboard/${edits.id}`,
+      endpoint: `${process.env.APP_PREFIX}/api/v1/dashboard/${edits.id}`,
     }).then(
       ({ json = {} }) => {
         setDashboards(
@@ -215,7 +215,7 @@ function DashboardList(props: DashboardListProps) {
 
   function handleBulkDashboardDelete(dashboardsToDelete: Dashboard[]) {
     return SupersetClient.delete({
-      endpoint: `/${APP_PREFIX}/api/v1/dashboard/?q=${rison.encode(
+      endpoint: `${process.env.APP_PREFIX}/api/v1/dashboard/?q=${rison.encode(
         dashboardsToDelete.map(({ id }) => id),
       )}`,
     }).then(
@@ -586,7 +586,7 @@ function DashboardList(props: DashboardListProps) {
       ),
       buttonStyle: 'primary',
       onClick: () => {
-        window.location.assign(`/${APP_PREFIX}/dashboard/new`);
+        window.location.assign(`${process.env.APP_PREFIX}/dashboard/new`);
       },
     });
 

@@ -20,11 +20,11 @@
 import { Dashboard, Datasource } from 'src/dashboard/types';
 import { Chart } from 'src/types/Chart';
 import { useApiV1Resource, useTransformedResource } from './apiResources';
-import { APP_PREFIX } from '../../constants';
+ //import { APP_PREFIX }from '../../constants';
 
 export const useDashboard = (idOrSlug: string | number) =>
   useTransformedResource(
-    useApiV1Resource<Dashboard>(`/${APP_PREFIX}/api/v1/dashboard/${idOrSlug}`),
+    useApiV1Resource<Dashboard>(`${process.env.APP_PREFIX}/api/v1/dashboard/${idOrSlug}`),
     dashboard => ({
       ...dashboard,
       metadata:
@@ -37,7 +37,7 @@ export const useDashboard = (idOrSlug: string | number) =>
 // gets the chart definitions for a dashboard
 export const useDashboardCharts = (idOrSlug: string | number) =>
   useApiV1Resource<Chart[]>(
-    `/${APP_PREFIX}/api/v1/dashboard/${idOrSlug}/charts`,
+    `${process.env.APP_PREFIX}/api/v1/dashboard/${idOrSlug}/charts`,
   );
 
 // gets the datasets for a dashboard
@@ -45,5 +45,5 @@ export const useDashboardCharts = (idOrSlug: string | number) =>
 // that are necessary for rendering the given dashboard
 export const useDashboardDatasets = (idOrSlug: string | number) =>
   useApiV1Resource<Datasource[]>(
-    `/${APP_PREFIX}/api/v1/dashboard/${idOrSlug}/datasets`,
+    `${process.env.APP_PREFIX}/api/v1/dashboard/${idOrSlug}/datasets`,
   );

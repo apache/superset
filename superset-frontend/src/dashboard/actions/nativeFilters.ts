@@ -127,7 +127,7 @@ export const setFilterConfiguration =
       { result: DashboardInfo }
     >({
       method: 'PUT',
-      endpoint: `/${APP_PREFIX}/api/v1/dashboard/${id}`,
+      endpoint: `${process.env.APP_PREFIX}/api/v1/dashboard/${id}`,
     });
 
     const mergedFilterConfig = filterConfig.map(filter => {
@@ -233,7 +233,7 @@ export const getFilterSets =
       }
     >({
       method: 'GET',
-      endpoint: `/${APP_PREFIX}/api/v1/dashboard/${dashboardId}/filtersets`,
+      endpoint: `${process.env.APP_PREFIX}/api/v1/dashboard/${dashboardId}/filtersets`,
     });
 
     dispatch({
@@ -265,7 +265,7 @@ export const createFilterSet =
       }
     >({
       method: 'POST',
-      endpoint: `/${APP_PREFIX}/api/v1/dashboard/${dashboardId}/filtersets`,
+      endpoint: `${process.env.APP_PREFIX}/api/v1/dashboard/${dashboardId}/filtersets`,
     });
 
     dispatch({
@@ -301,7 +301,7 @@ export const updateFilterSet =
       {}
     >({
       method: 'PUT',
-      endpoint: `/${APP_PREFIX}/api/v1/dashboard/${dashboardId}/filtersets/${filterSet.id}`,
+      endpoint: `${process.env.APP_PREFIX}/api/v1/dashboard/${dashboardId}/filtersets/${filterSet.id}`,
     });
 
     dispatch({
@@ -335,7 +335,7 @@ export const deleteFilterSet =
     const dashboardId = getState().dashboardInfo.id;
     const deleteFilterSets = makeApi<{}, {}>({
       method: 'DELETE',
-      endpoint: `/${APP_PREFIX}/api/v1/dashboard/${dashboardId}/filtersets/${filterSetId}`,
+      endpoint: `${process.env.APP_PREFIX}/api/v1/dashboard/${dashboardId}/filtersets/${filterSetId}`,
     });
 
     dispatch({

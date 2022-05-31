@@ -21,7 +21,7 @@ import { SupersetClient, Method, Endpoint } from '../../../connection';
 import { QueryFormData } from '../../types/QueryFormData';
 import { LegacyChartDataResponse } from './types';
 import { BaseParams } from '../types';
-import { APP_PREFIX } from '../../../../../../../src/constants';
+ //import { APP_PREFIX }from '../../../../../../../src/constants';
 
 export interface Params extends BaseParams {
   method?: Method;
@@ -33,7 +33,7 @@ export default async function fetchExploreJson({
   client = SupersetClient,
   method = 'POST',
   requestConfig,
-  endpoint = `/${APP_PREFIX}/superset/explore_json/`,
+  endpoint = `${process.env.APP_PREFIX}/superset/explore_json/`,
   formData,
 }: Params) {
   const { json } = await client.request({
