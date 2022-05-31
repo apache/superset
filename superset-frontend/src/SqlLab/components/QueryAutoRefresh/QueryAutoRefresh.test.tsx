@@ -34,10 +34,9 @@ describe('QueryAutoRefresh', () => {
   const successfulQueries: QueryDictionary = {};
   successfulQueries[successfulQuery.id] = successfulQuery;
 
-  const actions = {
-    setUserOffline: jest.fn(),
-    refreshQueries: jest.fn(),
-  };
+  const setUserOffline = jest.fn();
+  const refreshQueries = jest.fn();
+
   const queriesLastUpdate = Date.now();
 
   it('isQueryRunning returns true for valid running query', () => {
@@ -97,13 +96,14 @@ describe('QueryAutoRefresh', () => {
     render(
       <QueryAutoRefresh
         queries={runningQueries}
-        actions={actions}
+        setUserOffline={setUserOffline}
+        refreshQueries={refreshQueries}
         queriesLastUpdate={queriesLastUpdate}
       />,
     );
     setTimeout(() => {
-      expect(actions.refreshQueries).toHaveBeenCalled();
-      expect(actions.setUserOffline).not.toHaveBeenCalled();
+      expect(refreshQueries).toHaveBeenCalled();
+      expect(setUserOffline).not.toHaveBeenCalled();
     }, 1000);
   });
 
@@ -112,13 +112,14 @@ describe('QueryAutoRefresh', () => {
       <QueryAutoRefresh
         // @ts-ignore
         queries={{ ...runningQueries, g324t: null }}
-        actions={actions}
+        setUserOffline={setUserOffline}
+        refreshQueries={refreshQueries}
         queriesLastUpdate={queriesLastUpdate}
       />,
     );
     setTimeout(() => {
-      expect(actions.refreshQueries).toHaveBeenCalled();
-      expect(actions.setUserOffline).not.toHaveBeenCalled();
+      expect(refreshQueries).toHaveBeenCalled();
+      expect(setUserOffline).not.toHaveBeenCalled();
     }, 1000);
   });
 
@@ -126,13 +127,14 @@ describe('QueryAutoRefresh', () => {
     render(
       <QueryAutoRefresh
         queries={successfulQueries}
-        actions={actions}
+        setUserOffline={setUserOffline}
+        refreshQueries={refreshQueries}
         queriesLastUpdate={queriesLastUpdate}
       />,
     );
     setTimeout(() => {
-      expect(actions.refreshQueries).not.toHaveBeenCalled();
-      expect(actions.setUserOffline).not.toHaveBeenCalled();
+      expect(refreshQueries).not.toHaveBeenCalled();
+      expect(setUserOffline).not.toHaveBeenCalled();
     }, 1000);
   });
 });
