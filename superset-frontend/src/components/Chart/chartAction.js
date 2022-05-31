@@ -481,7 +481,6 @@ export function exploreJSON(
     return Promise.all([
       chartDataRequestCaught,
       dispatch(triggerQuery(false, key)),
-      dispatch(updateQueryFormData(formData, key)),
       ...annotationLayers.map(annotation =>
         dispatch(
           runAnnotationQuery({
@@ -595,3 +594,17 @@ export function refreshChart(chartKey, force, dashboardId) {
     );
   };
 }
+
+export const getDatasetSamples = async (datasetId, force) => {
+  const endpoint = `/api/v1/dataset/${datasetId}/samples?force=${force}`;
+  try {
+    const response = await SupersetClient.get({ endpoint });
+    return response.json.result;
+  } catch (err) {
+    const clientError = await getClientErrorObject(err);
+    throw new Error(
+      clientError.message || clientError.error || t('Sorry, an error occurred'),
+      { cause: err },
+    );
+  }
+};

@@ -20,7 +20,7 @@ import { t } from '@superset-ui/core';
 
 import getInitialState from './getInitialState';
 import * as actions from '../actions/sqlLab';
-import { now } from '../../modules/dates';
+import { now } from '../../utils/dates';
 import {
   addToObject,
   alterInObject,

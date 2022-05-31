@@ -105,8 +105,8 @@ describe('chart actions', () => {
       const actionThunk = actions.postChartFormData({});
 
       return actionThunk(dispatch).then(() => {
-        // chart update, trigger query, update form data, success
-        expect(dispatch.callCount).toBe(5);
+        // chart update, trigger query, success
+        expect(dispatch.callCount).toBe(4);
         expect(fetchMock.calls(MOCK_URL)).toHaveLength(1);
         expect(dispatch.args[0][0].type).toBe(actions.CHART_UPDATE_STARTED);
       });
@@ -116,43 +116,32 @@ describe('chart actions', () => {
       const actionThunk = actions.postChartFormData({});
       return actionThunk(dispatch).then(() => {
         // chart update, trigger query, update form data, success
-        expect(dispatch.callCount).toBe(5);
+        expect(dispatch.callCount).toBe(4);
         expect(fetchMock.calls(MOCK_URL)).toHaveLength(1);
         expect(dispatch.args[1][0].type).toBe(actions.TRIGGER_QUERY);
-      });
-    });
-
-    it('should dispatch UPDATE_QUERY_FORM_DATA action with the query', () => {
-      const actionThunk = actions.postChartFormData({});
-      return actionThunk(dispatch).then(() => {
-        // chart update, trigger query, update form data, success
-        expect(dispatch.callCount).toBe(5);
-        expect(fetchMock.calls(MOCK_URL)).toHaveLength(1);
-        expect(dispatch.args[2][0].type).toBe(actions.UPDATE_QUERY_FORM_DATA);
       });
     });
 
     it('should dispatch logEvent async action', () => {
       const actionThunk = actions.postChartFormData({});
       return actionThunk(dispatch).then(() => {
-        // chart update, trigger query, update form data, success
-        expect(dispatch.callCount).toBe(5);
+        // chart update, trigger query, success
+        expect(dispatch.callCount).toBe(4);
         expect(fetchMock.calls(MOCK_URL)).toHaveLength(1);
-        expect(typeof dispatch.args[3][0]).toBe('function');
 
-        dispatch.args[3][0](dispatch);
-        expect(dispatch.callCount).toBe(6);
-        expect(dispatch.args[5][0].type).toBe(LOG_EVENT);
+        dispatch.args[2][0](dispatch);
+        expect(dispatch.callCount).toBe(5);
+        expect(dispatch.args[4][0].type).toBe(LOG_EVENT);
       });
     });
 
     it('should dispatch CHART_UPDATE_SUCCEEDED action upon success', () => {
       const actionThunk = actions.postChartFormData({});
       return actionThunk(dispatch).then(() => {
-        // chart update, trigger query, update form data, success
-        expect(dispatch.callCount).toBe(5);
+        // chart update, trigger query, success
+        expect(dispatch.callCount).toBe(4);
         expect(fetchMock.calls(MOCK_URL)).toHaveLength(1);
-        expect(dispatch.args[4][0].type).toBe(actions.CHART_UPDATE_SUCCEEDED);
+        expect(dispatch.args[3][0].type).toBe(actions.CHART_UPDATE_SUCCEEDED);
       });
     });
 
@@ -168,8 +157,8 @@ describe('chart actions', () => {
       return actionThunk(dispatch).then(() => {
         // chart update, trigger query, update form data, fail
         expect(fetchMock.calls(MOCK_URL)).toHaveLength(1);
-        expect(dispatch.callCount).toBe(5);
-        expect(dispatch.args[4][0].type).toBe(actions.CHART_UPDATE_FAILED);
+        expect(dispatch.callCount).toBe(4);
+        expect(dispatch.args[3][0].type).toBe(actions.CHART_UPDATE_FAILED);
         setupDefaultFetchMock();
       });
     });
@@ -185,9 +174,9 @@ describe('chart actions', () => {
       const actionThunk = actions.postChartFormData({}, false, timeoutInSec);
 
       return actionThunk(dispatch).then(() => {
-        // chart update, trigger query, update form data, fail
-        expect(dispatch.callCount).toBe(5);
-        const updateFailedAction = dispatch.args[4][0];
+        // chart update, trigger query, fail
+        expect(dispatch.callCount).toBe(4);
+        const updateFailedAction = dispatch.args[3][0];
         expect(updateFailedAction.type).toBe(actions.CHART_UPDATE_FAILED);
         expect(updateFailedAction.queriesResponse[0].error).toBe('misc error');
 
