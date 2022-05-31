@@ -350,6 +350,7 @@ function useInstance<D extends object>(instance: TableInstance<D>) {
     data,
     page,
     rows,
+    allColumns,
     getTableSize = () => undefined,
   } = instance;
 
@@ -370,7 +371,7 @@ function useInstance<D extends object>(instance: TableInstance<D>) {
       useMountedMemo(getTableSize, [getTableSize]) || sticky;
     // only change of data should trigger re-render
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    const table = useMemo(renderer, [page, rows]);
+    const table = useMemo(renderer, [page, rows, allColumns]);
 
     useLayoutEffect(() => {
       if (!width || !height) {

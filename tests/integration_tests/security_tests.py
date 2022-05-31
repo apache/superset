@@ -272,6 +272,35 @@ class TestRolePermission(SupersetTestCase):
         session.delete(stored_table)
         session.commit()
 
+    def test_set_perm_sqla_table_none(self):
+        session = db.session
+        table = SqlaTable(
+            schema="tmp_schema",
+            table_name="tmp_perm_table",
+            # Setting database_id instead of database will skip permission creation
+            database_id=get_example_database().id,
+        )
+        session.add(table)
+        session.commit()
+
+        stored_table = (
+            session.query(SqlaTable).filter_by(table_name="tmp_perm_table").one()
+        )
+        # Assert no permission is created
+        self.assertIsNone(
+            security_manager.find_permission_view_menu(
+                "datasource_access", stored_table.perm
+            )
+        )
+        # Assert no bogus permission is created
+        self.assertIsNone(
+            security_manager.find_permission_view_menu(
+                "datasource_access", f"[None].[tmp_perm_table](id:{stored_table.id})"
+            )
+        )
+        session.delete(table)
+        session.commit()
+
     def test_set_perm_database(self):
         session = db.session
         database = Database(database_name="tmp_database", sqlalchemy_uri="sqlite://")

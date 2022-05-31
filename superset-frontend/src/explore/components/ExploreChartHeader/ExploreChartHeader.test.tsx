@@ -97,6 +97,7 @@ const createProps = () => ({
     fetchFaveStar: jest.fn(),
     saveFaveStar: jest.fn(),
     redirectSQLLab: jest.fn(),
+    updateQueryFormData: jest.fn(),
   },
   user: {
     userId: 1,

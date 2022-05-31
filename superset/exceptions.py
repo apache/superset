@@ -216,6 +216,12 @@ class DashboardImportException(SupersetException):
     pass
 
 
+class DatasetInvalidPermissionEvaluationException(SupersetException):
+    """
+    When a dataset can't compute its permission name
+    """
+
+
 class SerializationError(SupersetException):
     pass
 

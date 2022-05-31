@@ -265,41 +265,51 @@ export default function exploreReducer(state = {}, action) {
         sliceName: action.slice.slice_name ?? state.sliceName,
       };
     },
-    [actions.SET_TIME_FORMATTED_COLUMN]() {
+    [actions.SET_ORIGINAL_FORMATTED_TIME_COLUMN]() {
       const { datasourceId, columnName } = action;
-      const newTimeFormattedColumns = { ...state.timeFormattedColumns };
-      const newTimeFormattedColumnsForDatasource = ensureIsArray(
-        newTimeFormattedColumns[datasourceId],
+      const newOriginalFormattedColumns = {
+        ...state.originalFormattedTimeColumns,
+      };
+      const newOriginalFormattedColumnsForDatasource = ensureIsArray(
+        newOriginalFormattedColumns[datasourceId],
       ).slice();
 
-      newTimeFormattedColumnsForDatasource.push(columnName);
-      newTimeFormattedColumns[datasourceId] =
-        newTimeFormattedColumnsForDatasource;
+      newOriginalFormattedColumnsForDatasource.push(columnName);
+      newOriginalFormattedColumns[datasourceId] =
+        newOriginalFormattedColumnsForDatasource;
       setItem(
-        LocalStorageKeys.explore__data_table_time_formatted_columns,
-        newTimeFormattedColumns,
+        LocalStorageKeys.explore__data_table_original_formatted_time_columns,
+        newOriginalFormattedColumns,
       );
-      return { ...state, timeFormattedColumns: newTimeFormattedColumns };
+      return {
+        ...state,
+        originalFormattedTimeColumns: newOriginalFormattedColumns,
+      };
     },
-    [actions.UNSET_TIME_FORMATTED_COLUMN]() {
+    [actions.UNSET_ORIGINAL_FORMATTED_TIME_COLUMN]() {
       const { datasourceId, columnIndex } = action;
-      const newTimeFormattedColumns = { ...state.timeFormattedColumns };
-      const newTimeFormattedColumnsForDatasource = ensureIsArray(
-        newTimeFormattedColumns[datasourceId],
+      const newOriginalFormattedColumns = {
+        ...state.originalFormattedTimeColumns,
+      };
+      const newOriginalFormattedColumnsForDatasource = ensureIsArray(
+        newOriginalFormattedColumns[datasourceId],
       ).slice();
 
-      newTimeFormattedColumnsForDatasource.splice(columnIndex, 1);
-      newTimeFormattedColumns[datasourceId] =
-        newTimeFormattedColumnsForDatasource;
+      newOriginalFormattedColumnsForDatasource.splice(columnIndex, 1);
+      newOriginalFormattedColumns[datasourceId] =
+        newOriginalFormattedColumnsForDatasource;
 
-      if (newTimeFormattedColumnsForDatasource.length === 0) {
-        delete newTimeFormattedColumns[datasourceId];
+      if (newOriginalFormattedColumnsForDatasource.length === 0) {
+        delete newOriginalFormattedColumns[datasourceId];
       }
       setItem(
-        LocalStorageKeys.explore__data_table_time_formatted_columns,
-        newTimeFormattedColumns,
+        LocalStorageKeys.explore__data_table_original_formatted_time_columns,
+        newOriginalFormattedColumns,
       );
-      return { ...state, timeFormattedColumns: newTimeFormattedColumns };
+      return {
+        ...state,
+        originalFormattedTimeColumns: newOriginalFormattedColumns,
+      };
     },
     [actions.SET_FORCE_QUERY]() {
       return {

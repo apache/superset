@@ -341,7 +341,7 @@ export interface ControlPanelSectionConfig {
 }
 
 export interface ControlPanelConfig {
-  controlPanelSections: ControlPanelSectionConfig[];
+  controlPanelSections: (ControlPanelSectionConfig | null)[];
   controlOverrides?: ControlOverrides;
   sectionOverrides?: SectionOverrides;
   onInit?: (state: ControlStateMapping) => void;
@@ -412,4 +412,10 @@ export function isAdhocColumn(
   column: AdhocColumn | ColumnMeta,
 ): column is AdhocColumn {
   return 'label' in column && 'sqlExpression' in column;
+}
+
+export function isControlPanelSectionConfig(
+  section: ControlPanelSectionConfig | null,
+): section is ControlPanelSectionConfig {
+  return section !== null;
 }

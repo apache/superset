@@ -19,9 +19,9 @@
 import { useSelector } from 'react-redux';
 import { ExplorePageState } from '../reducers/getInitialState';
 
-export const useTimeFormattedColumns = (datasourceId?: string) =>
+export const useOriginalFormattedTimeColumns = (datasourceId?: string) =>
   useSelector<ExplorePageState, string[]>(state =>
     datasourceId
-      ? state.explore.timeFormattedColumns?.[datasourceId] ?? []
+      ? state?.explore?.originalFormattedTimeColumns?.[datasourceId] ?? []
       : [],
   );

@@ -23,8 +23,9 @@ from sqlalchemy.exc import SQLAlchemyError
 from superset.commands.base import BaseCommand
 from superset.explore.form_data.commands.parameters import CommandParameters
 from superset.explore.form_data.commands.state import TemporaryExploreState
-from superset.explore.utils import check_access
+from superset.explore.form_data.commands.utils import check_access
 from superset.extensions import cache_manager
+from superset.key_value.utils import get_owner
 from superset.temporary_cache.commands.exceptions import (
     TemporaryCacheAccessDeniedError,
     TemporaryCacheDeleteFailedError,
@@ -49,7 +50,7 @@ class DeleteFormDataCommand(BaseCommand, ABC):
                 dataset_id = state["dataset_id"]
                 chart_id = state["chart_id"]
                 check_access(dataset_id, chart_id, actor)
-                if state["owner"] != actor.get_user_id():
+                if state["owner"] != get_owner(actor):
                     raise TemporaryCacheAccessDeniedError()
                 tab_id = self._cmd_params.tab_id
                 contextual_key = cache_key(
