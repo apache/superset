@@ -113,7 +113,7 @@ from superset.sqllab.exceptions import (
     QueryIsForbiddenToAccessException,
     SqlLabException,
 )
-from superset.sqllab.execution_context_convertor import ExecutionContextConvertorImpl
+from superset.sqllab.execution_context_convertor import ExecutionContextConvertor
 from superset.sqllab.limiting_factor import LimitingFactor
 from superset.sqllab.query_render import SqlQueryRenderImpl
 from superset.sqllab.sql_json_executer import (
@@ -889,8 +889,11 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         except (SupersetException, SQLAlchemyError):
             datasource_data = dummy_datasource_data
 
+        columns: List[Dict[str, Any]] = []
         if datasource:
             datasource_data["owners"] = datasource.owners_data
+            if isinstance(datasource, Query):
+                columns = datasource.extra.get("columns", [])
 
         bootstrap_data = {
             "can_add": slice_add_perm,
@@ -905,6 +908,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             "user": bootstrap_user_data(g.user, include_perms=True),
             "forced_height": request.args.get("height"),
             "common": common_bootstrap_payload(),
+            "columns": columns,
         }
         if slc:
             title = slc.slice_name
@@ -1331,7 +1335,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access_api
     @event_logger.log_this
     @expose("/testconn", methods=["POST", "GET"])
-    def testconn(self) -> FlaskResponse:  # pylint: disable=no-self-use
+    def testconn(self) -> FlaskResponse:
         """Tests a sqla connection"""
         logger.warning(
             "%s.testconn "
@@ -2306,7 +2310,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @event_logger.log_this
     @expose("/validate_sql_json/", methods=["POST", "GET"])
     def validate_sql_json(
-        # pylint: disable=too-many-locals,no-self-use
+        # pylint: disable=too-many-locals
         self,
     ) -> FlaskResponse:
         """Validates that arbitrary sql is acceptable for the given database.
@@ -2406,7 +2410,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         sql_json_executor = Superset._create_sql_json_executor(
             execution_context, query_dao
         )
-        execution_context_convertor = ExecutionContextConvertorImpl()
+        execution_context_convertor = ExecutionContextConvertor()
         execution_context_convertor.set_max_row_in_display(
             int(config.get("DISPLAY_MAX_ROW"))  # type: ignore
         )

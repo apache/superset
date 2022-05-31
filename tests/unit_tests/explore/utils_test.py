@@ -75,7 +75,7 @@ def test_unsaved_chart_authorized_dataset(
 
     mocker.patch(dataset_find_by_id, return_value=SqlaTable())
     mocker.patch(can_access_datasource, return_value=True)
-    assert check_access(dataset_id=1, chart_id=0, actor=User()) == True
+    check_access(dataset_id=1, chart_id=0, actor=User())
 
 
 def test_saved_chart_unknown_chart_id(
@@ -112,7 +112,7 @@ def test_saved_chart_is_admin(mocker: MockFixture, app_context: AppContext) -> N
     mocker.patch(can_access_datasource, return_value=True)
     mocker.patch(is_user_admin, return_value=True)
     mocker.patch(chart_find_by_id, return_value=Slice())
-    assert check_access(dataset_id=1, chart_id=1, actor=User()) is True
+    check_access(dataset_id=1, chart_id=1, actor=User())
 
 
 def test_saved_chart_is_owner(mocker: MockFixture, app_context: AppContext) -> None:
@@ -125,7 +125,7 @@ def test_saved_chart_is_owner(mocker: MockFixture, app_context: AppContext) -> N
     mocker.patch(is_user_admin, return_value=False)
     mocker.patch(is_owner, return_value=True)
     mocker.patch(chart_find_by_id, return_value=Slice())
-    assert check_access(dataset_id=1, chart_id=1, actor=User()) == True
+    check_access(dataset_id=1, chart_id=1, actor=User())
 
 
 def test_saved_chart_has_access(mocker: MockFixture, app_context: AppContext) -> None:
@@ -139,7 +139,7 @@ def test_saved_chart_has_access(mocker: MockFixture, app_context: AppContext) ->
     mocker.patch(is_owner, return_value=False)
     mocker.patch(can_access, return_value=True)
     mocker.patch(chart_find_by_id, return_value=Slice())
-    assert check_access(dataset_id=1, chart_id=1, actor=User()) == True
+    check_access(dataset_id=1, chart_id=1, actor=User())
 
 
 def test_saved_chart_no_access(mocker: MockFixture, app_context: AppContext) -> None:
