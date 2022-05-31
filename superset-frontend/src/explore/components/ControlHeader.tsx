@@ -40,6 +40,8 @@ export type ControlHeaderProps = {
   danger?: string;
   canCopy?: boolean;
   copyOnClick?: () => void;
+  canSelectAll?: boolean;
+  selectAllOnClick?: () => void;
 };
 
 const ControlHeader: FC<ControlHeaderProps> = ({
@@ -57,6 +59,8 @@ const ControlHeader: FC<ControlHeaderProps> = ({
   danger,
   canCopy,
   copyOnClick,
+  canSelectAll,
+  selectAllOnClick,
 }) => {
   const { gridUnit, colors } = useTheme();
 
@@ -87,6 +91,17 @@ const ControlHeader: FC<ControlHeaderProps> = ({
               tooltip={description}
               placement="top"
               onClick={tooltipOnClick}
+            />{' '}
+          </span>
+        )}
+        {canSelectAll && (
+          <span>
+            <InfoTooltipWithTrigger
+              label={t('copy')}
+              tooltip={t('Select All (ctl+a)')}
+              placement="top"
+              icon="chevron-up"
+              onClick={selectAllOnClick}
             />{' '}
           </span>
         )}
