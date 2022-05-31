@@ -150,6 +150,7 @@ class Tab extends React.PureComponent {
       isComponentVisible,
       canEdit,
       setEditMode,
+      dashboardId,
     } = this.props;
 
     const shouldDisplayEmptyState = tabComponent.children.length === 0;
@@ -183,7 +184,7 @@ class Tab extends React.PureComponent {
                 <span>
                   {t('You can')}{' '}
                   <a
-                    href="/chart/add"
+                    href={`/chart/add?dashboard_id=${dashboardId}`}
                     rel="noopener noreferrer"
                     target="_blank"
                   >
