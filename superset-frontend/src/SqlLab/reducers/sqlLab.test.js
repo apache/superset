@@ -18,8 +18,8 @@
  */
 import sqlLabReducer from 'src/SqlLab/reducers/sqlLab';
 import * as actions from 'src/SqlLab/actions/sqlLab';
-import { now } from 'src/modules/dates';
-import { initialState as mockState, table } from '../fixtures';
+import { now } from 'src/utils/dates';
+import { table, initialState as mockState } from '../fixtures';
 
 const initialState = mockState.sqlLab;
 

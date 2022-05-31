@@ -16,18 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Button from 'src/components/Button';
 import Select from 'src/components/Select';
-import { styled, SupersetClient, t } from '@superset-ui/core';
+import { styled, t, SupersetClient } from '@superset-ui/core';
 import { debounce } from 'lodash';
 import Loading from 'src/components/Loading';
 import {
-  epochTimeXDaysAgo,
-  epochTimeXHoursAgo,
-  epochTimeXYearsAgo,
   now,
-} from 'src/modules/dates';
+  epochTimeXHoursAgo,
+  epochTimeXDaysAgo,
+  epochTimeXYearsAgo,
+} from 'src/utils/dates';
 import AsyncSelect from 'src/components/AsyncSelect';
 import { Query } from 'src/SqlLab/types';
 import { STATUS_OPTIONS, TIME_OPTIONS } from 'src/SqlLab/constants';
@@ -78,7 +78,6 @@ const TableStyles = styled.div`
 const StyledTableStylesContainer = styled.div`
   overflow: auto;
 `;
-
 function QuerySearch({ actions, displayLimit }: QuerySearchProps) {
   const [databaseId, setDatabaseId] = useState<string>('');
   const [userId, setUserId] = useState<string>('');
@@ -130,10 +129,7 @@ function QuerySearch({ actions, displayLimit }: QuerySearchProps) {
 
     try {
       const response = await SupersetClient.get({
-        endpoint: insertParams(
-          `${process.env.APP_PREFIX}/superset/search_queries`,
-          params,
-        ),
+        endpoint: insertParams('/superset/search_queries', params),
       });
       const queries = Object.values(response.json);
       setQueriesArray(queries);
@@ -207,7 +203,7 @@ function QuerySearch({ actions, displayLimit }: QuerySearchProps) {
         <div className="col-sm-2">
           <AsyncSelect
             onChange={(db: any) => setDatabaseId(db?.value)}
-            dataEndpoint={`${process.env.APP_PREFIX}/api/v1/database/?q=(filters:!((col:expose_in_sqllab,opr:eq,value:!t)))`}
+            dataEndpoint="/api/v1/database/?q=(filters:!((col:expose_in_sqllab,opr:eq,value:!t)))"
             value={databaseId}
             mutator={dbMutator}
             placeholder={t('Filter by database')}
@@ -294,5 +290,4 @@ function QuerySearch({ actions, displayLimit }: QuerySearchProps) {
     </TableWrapper>
   );
 }
-
 export default QuerySearch;

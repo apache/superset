@@ -25,7 +25,7 @@ import { t, useTheme } from '@superset-ui/core';
 import { useSelector } from 'react-redux';
 import TableView from 'src/components/TableView';
 import Button from 'src/components/Button';
-import { fDuration } from 'src/modules/dates';
+import { fDuration } from 'src/utils/dates';
 import Icons from 'src/components/Icons';
 import { Tooltip } from 'src/components/Tooltip';
 import { Query, RootState } from 'src/SqlLab/types';

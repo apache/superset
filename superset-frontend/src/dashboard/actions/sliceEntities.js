@@ -21,7 +21,6 @@ import { SupersetClient, t } from '@superset-ui/core';
 import rison from 'rison';
 
 import { addDangerToast } from 'src/components/MessageToasts/actions';
-import { getDatasourceParameter } from 'src/modules/utils';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 
 export const SET_ALL_SLICES = 'SET_ALL_SLICES';
@@ -40,6 +39,10 @@ export const FETCH_ALL_SLICES_FAILED = 'FETCH_ALL_SLICES_FAILED';
 
 export function fetchAllSlicesFailed(error) {
   return { type: FETCH_ALL_SLICES_FAILED, payload: { error } };
+}
+
+export function getDatasourceParameter(datasourceId, datasourceType) {
+  return `${datasourceId}__${datasourceType}`;
 }
 
 const FETCH_SLICES_PAGE_SIZE = 200;
