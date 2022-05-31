@@ -71,6 +71,10 @@ export const URL_PARAMS = {
     name: 'dataset_id',
     type: 'string',
   },
+  dashboardId: {
+    name: 'dashboard_id',
+    type: 'string',
+  },
   force: {
     name: 'force',
     type: 'boolean',
