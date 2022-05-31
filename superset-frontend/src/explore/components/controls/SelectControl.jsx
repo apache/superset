@@ -16,13 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {useCallback}  from 'react';
+import React from 'react';
 import PropTypes from 'prop-types';
 import { css, isEqualArray, t } from '@superset-ui/core';
 import Select from 'src/components/Select/Select';
 import ControlHeader from 'src/explore/components/ControlHeader';
-import { getTimeOrNumberFormatter } from 'plugins/legacy-preset-chart-nvd3/src/utils';
-
 
 const propTypes = {
   ariaLabel: PropTypes.string,
@@ -121,7 +119,10 @@ export default class SelectControl extends React.PureComponent {
 
   componentWillUnmount() {
     this.selectRef.removeEventListener('copy', this.handleCopy.bind(this));
-    this.selectRef.removeEventListener('keydown', this.handleKeyDown.bind(this));
+    this.selectRef.removeEventListener(
+      'keydown',
+      this.handleKeyDown.bind(this),
+    );
   }
 
   // Beware: This is acting like an on-click instead of an on-change
@@ -193,21 +194,19 @@ export default class SelectControl extends React.PureComponent {
   handleCopy() {
     this.props.copyOnClick(this.props.value);
   }
-  
+
   selectAllOnClick() {
     this.onChange(this.props.options);
-  } 
+  }
 
-  handleKeyDown = (event) => {
+  handleKeyDown = event => {
     if (event.ctrlKey === false) {
       return;
     }
     if (event.key === 'a') {
-      this.selectAllOnClick()
+      this.selectAllOnClick();
     }
-  }
-
-
+  };
 
   render() {
     const {
@@ -240,7 +239,6 @@ export default class SelectControl extends React.PureComponent {
       warning,
       danger,
       canCopy,
-      canSelectAll,
     } = this.props;
 
     const getValue = () => {
@@ -276,9 +274,9 @@ export default class SelectControl extends React.PureComponent {
         this.props.copyOnClick(getValue());
       },
       canSelectAll: true,
-      selectAllOnClick: () =>{
+      selectAllOnClick: () => {
         this.onChange(this.props.options);
-      } 
+      },
     };
 
     const selectProps = {
