@@ -86,26 +86,6 @@ const ExploreContainer = styled.div`
   height: 100%;
 `;
 
-const ExploreHeaderContainer = styled.div`
-  ${({ theme }) => css`
-    background-color: ${theme.colors.grayscale.light5};
-    height: ${theme.gridUnit * 16}px;
-    padding: 0 ${theme.gridUnit * 4}px;
-
-    .editable-title {
-      overflow: hidden;
-
-      & > input[type='button'],
-      & > span {
-        overflow: hidden;
-        text-overflow: ellipsis;
-        max-width: 100%;
-        white-space: nowrap;
-      }
-    }
-  `}
-`;
-
 const ExplorePanelContainer = styled.div`
   ${({ theme }) => css`
     background: ${theme.colors.grayscale.light5};
@@ -287,6 +267,7 @@ function ExploreViewContainer(props) {
   const onQuery = useCallback(() => {
     props.actions.setForceQuery(false);
     props.actions.triggerQuery(true, props.chart.id);
+    props.actions.updateQueryFormData(props.form_data, props.chart.id);
     addHistory();
     setLastQueriedControls(props.controls);
   }, [props.controls, addHistory, props.actions, props.chart.id]);
@@ -530,24 +511,22 @@ function ExploreViewContainer(props) {
 
   return (
     <ExploreContainer>
-      <ExploreHeaderContainer>
-        <ConnectedExploreChartHeader
-          actions={props.actions}
-          canOverwrite={props.can_overwrite}
-          canDownload={props.can_download}
-          dashboardId={props.dashboardId}
-          isStarred={props.isStarred}
-          slice={props.slice}
-          sliceName={props.sliceName}
-          table_name={props.table_name}
-          formData={props.form_data}
-          chart={props.chart}
-          user={props.user}
-          reports={props.reports}
-          onSaveChart={toggleModal}
-          saveDisabled={errorMessage || props.chart.chartStatus === 'loading'}
-        />
-      </ExploreHeaderContainer>
+      <ConnectedExploreChartHeader
+        actions={props.actions}
+        canOverwrite={props.can_overwrite}
+        canDownload={props.can_download}
+        dashboardId={props.dashboardId}
+        isStarred={props.isStarred}
+        slice={props.slice}
+        sliceName={props.sliceName}
+        table_name={props.table_name}
+        formData={props.form_data}
+        chart={props.chart}
+        user={props.user}
+        reports={props.reports}
+        onSaveChart={toggleModal}
+        saveDisabled={errorMessage || props.chart.chartStatus === 'loading'}
+      />
       <ExplorePanelContainer id="explore-container">
         <Global
           styles={css`

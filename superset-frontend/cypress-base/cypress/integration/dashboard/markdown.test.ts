@@ -25,14 +25,12 @@ describe('Dashboard edit markdown', () => {
   });
 
   it('should add markdown component to dashboard', () => {
-    cy.get('[data-test="dashboard-header"]')
-      .find('[aria-label="edit-alt"]')
+    cy.get('.header-with-actions')
+      .find('[aria-label="Edit dashboard"]')
       .click();
 
     // lazy load - need to open dropdown for the scripts to load
-    cy.get('[data-test="dashboard-header"]')
-      .find('[aria-label="more-horiz"]')
-      .click();
+    cy.get('.header-with-actions').find('[aria-label="more-horiz"]').click();
     cy.get('[data-test="grid-row-background--transparent"]')
       .first()
       .as('component-background-first');

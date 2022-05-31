@@ -25,9 +25,11 @@ import {
 } from './dashboard.helper';
 
 function openDashboardEditProperties() {
-  cy.get('.dashboard-header [aria-label=edit-alt]').click();
-  cy.get('#save-dash-split-button').trigger('click', { force: true });
-  cy.get('.dropdown-menu').contains('Edit dashboard properties').click();
+  cy.get('.header-with-actions [aria-label="Edit dashboard"]').click();
+  cy.get(
+    '.header-with-actions .right-button-panel .ant-dropdown-trigger',
+  ).trigger('click', { force: true });
+  cy.get('.dropdown-menu').contains('Edit properties').click();
 }
 
 describe('Dashboard save action', () => {
@@ -35,8 +37,8 @@ describe('Dashboard save action', () => {
     cy.login();
     cy.visit(WORLD_HEALTH_DASHBOARD);
     cy.get('#app').then(data => {
-      cy.get('[data-test="dashboard-header"]').then(headerElement => {
-        const dashboardId = headerElement.attr('data-test-id');
+      cy.get('.dashboard-header-container').then(headerContainerElement => {
+        const dashboardId = headerContainerElement.attr('data-test-id');
 
         cy.intercept('POST', `/superset/copy_dash/${dashboardId}/`).as(
           'copyRequest',
@@ -56,7 +58,7 @@ describe('Dashboard save action', () => {
   // change to what the title should be
   it('should save as new dashboard', () => {
     cy.wait('@copyRequest').then(xhr => {
-      cy.get('[data-test="editable-title-input"]').then(element => {
+      cy.get('[data-test="editable-title"]').then(element => {
         const dashboardTitle = element.attr('title');
         expect(dashboardTitle).to.not.equal(`World Bank's Data`);
       });
@@ -68,7 +70,7 @@ describe('Dashboard save action', () => {
     WORLD_HEALTH_CHARTS.forEach(waitForChartLoad);
 
     // remove box_plot chart from dashboard
-    cy.get('[aria-label="edit-alt"]').click({ timeout: 5000 });
+    cy.get('[aria-label="Edit dashboard"]').click({ timeout: 5000 });
     cy.get('[data-test="dashboard-delete-component-button"]')
       .last()
       .trigger('mouseenter')
@@ -79,15 +81,15 @@ describe('Dashboard save action', () => {
       .should('not.exist');
 
     cy.intercept('PUT', '/api/v1/dashboard/**').as('putDashboardRequest');
-    cy.get('[data-test="dashboard-header"]')
+    cy.get('.header-with-actions')
       .find('[data-test="header-save-button"]')
       .contains('Save')
       .click();
 
     // go back to view mode
     cy.wait('@putDashboardRequest');
-    cy.get('[data-test="dashboard-header"]')
-      .find('[aria-label="edit-alt"]')
+    cy.get('.header-with-actions')
+      .find('[aria-label="Edit dashboard"]')
       .click();
 
     // deleted boxplot should still not exist
@@ -142,7 +144,7 @@ describe('Dashboard save action', () => {
             cy.get('.ant-modal-body').should('not.exist');
 
             // save dashboard changes
-            cy.get('.dashboard-header').contains('Save').click();
+            cy.get('.header-with-actions').contains('Save').click();
 
             // assert success flash
             cy.contains('saved successfully').should('be.visible');
