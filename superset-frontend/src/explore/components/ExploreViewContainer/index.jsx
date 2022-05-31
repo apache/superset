@@ -678,12 +678,17 @@ function mapStateToProps(state) {
   const chartKey = Object.keys(charts)[0];
   const chart = charts[chartKey];
 
+  let dashboardId = Number(explore.form_data?.dashboardId);
+  if (Number.isNaN(dashboardId)) {
+    dashboardId = undefined;
+  }
+
   return {
     isDatasourceMetaLoading: explore.isDatasourceMetaLoading,
     datasource: explore.datasource,
     datasource_type: explore.datasource.type,
     datasourceId: explore.datasource_id,
-    dashboardId: explore.form_data ? explore.form_data.dashboardId : undefined,
+    dashboardId,
     controls: explore.controls,
     can_overwrite: !!explore.can_overwrite,
     can_add: !!explore.can_add,

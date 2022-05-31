@@ -58,6 +58,7 @@ const propTypes = {
   editMode: PropTypes.bool,
   height: PropTypes.number,
   filterboxMigrationState: FILTER_BOX_MIGRATION_STATES,
+  dashboardId: PropTypes.number,
 };
 
 const defaultProps = {
@@ -276,7 +277,11 @@ class SliceAdder extends React.Component {
             buttonStyle="link"
             buttonSize="xsmall"
             onClick={() =>
-              window.open('/chart/add', '_blank', 'noopener noreferrer')
+              window.open(
+                `/chart/add?dashboard_id=${this.props.dashboardId}`,
+                '_blank',
+                'noopener noreferrer',
+              )
             }
           >
             <Icons.PlusSmall />

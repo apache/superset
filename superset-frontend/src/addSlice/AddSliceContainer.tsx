@@ -18,7 +18,10 @@
  */
 import React, { ReactNode } from 'react';
 import rison from 'rison';
-import { JsonResponse, styled, SupersetClient, t } from '@superset-ui/core';
+import { styled, t, SupersetClient, JsonResponse } from '@superset-ui/core';
+import { getUrlParam } from 'src/utils/urlUtils';
+import { URL_PARAMS } from 'src/constants';
+import { isNullish } from 'src/utils/common';
 import Button from 'src/components/Button';
 import { Select, Steps } from 'src/components';
 import { FormLabel } from 'src/components/Form';
@@ -195,13 +198,15 @@ export default class AddSliceContainer extends React.PureComponent<
   }
 
   exploreUrl() {
+    const dashboardId = getUrlParam(URL_PARAMS.dashboardId);
     const formData = encodeURIComponent(
       JSON.stringify({
         viz_type: this.state.visType,
         datasource: this.state.datasource?.value,
+        ...(!isNullish(dashboardId) && { dashboardId }),
       }),
     );
-    return `${process.env.APP_PREFIX}/superset/explore/?form_data=${formData}`;
+    return `/superset/explore/?form_data=${formData}`;
   }
 
   gotoSlice() {
@@ -249,7 +254,7 @@ export default class AddSliceContainer extends React.PureComponent<
       order_direction: 'asc',
     });
     return SupersetClient.get({
-      endpoint: `${process.env.APP_PREFIX}/api/v1/dataset/?q=${query}`,
+      endpoint: `/api/v1/dataset/?q=${query}`,
     }).then((response: JsonResponse) => {
       const list: {
         customLabel: ReactNode;
