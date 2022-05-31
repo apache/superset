@@ -77,6 +77,7 @@ export default function transformProps(chartProps: CccsGridChartProps) {
     headerText,
     emitFilter,
     query_mode,
+    include_search,
   }: CccsGridQueryFormData = { ...DEFAULT_FORM_DATA, ...formData };
   const data = queriesData[0].data as TimeseriesDataRecord[];
   const agGridLicenseKey = queriesData[0].agGridLicenseKey as String;
@@ -178,6 +179,7 @@ export default function transformProps(chartProps: CccsGridChartProps) {
       const cellRenderer =
         columnType in rendererMap ? rendererMap[columnType] : undefined;
       const isSortable = true;
+      const enableRowGroup = true;
       return {
         field: column,
         headerName: columnHeader,
@@ -185,6 +187,7 @@ export default function transformProps(chartProps: CccsGridChartProps) {
         sortable: isSortable,
         sort: sortDirection,
         sortIndex,
+        enableRowGroup,
       };
     });
   } else {
@@ -197,11 +200,13 @@ export default function transformProps(chartProps: CccsGridChartProps) {
         const cellRenderer =
           columnType in rendererMap ? rendererMap[columnType] : undefined;
         const isSortable = true;
+        const enableRowGroup = true;
         return {
           field: column,
           headerName: columnHeader,
           cellRenderer,
           sortable: isSortable,
+          enableRowGroup,
         };
       });
       columnDefs = columnDefs.concat(groupByColumnDefs);
@@ -211,15 +216,16 @@ export default function transformProps(chartProps: CccsGridChartProps) {
       const metricsColumnDefs = formData.metrics
         .map(getMetricLabel)
         .map((metric: any) => {
-          const metricHeader = metricVerboseNameMap[metric]
-            ? metricVerboseNameMap[metric]
-            : metric;
-          return {
-            field: metric,
-            headerName: metricHeader,
-            sortable: true,
-          };
-        });
+        const metricHeader = metricVerboseNameMap[metric]
+          ? metricVerboseNameMap[metric]
+          : metric;
+        return {
+          field: metric,
+          headerName: metricHeader,
+          sortable: true,
+          enableRowGroup: true,
+        };
+      });
       columnDefs = columnDefs.concat(metricsColumnDefs);
     }
 
@@ -253,6 +259,7 @@ export default function transformProps(chartProps: CccsGridChartProps) {
     headerFontSize,
     headerText,
     emitFilter,
+    include_search,
     agGridLicenseKey,
   };
 }

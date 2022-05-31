@@ -65,6 +65,10 @@ const propTypes = {
   tooltipOnClick: PropTypes.func,
   warning: PropTypes.string,
   danger: PropTypes.string,
+  canCopy: PropTypes.bool,
+  copyOnClick: PropTypes.func,
+  canSelectAll: PropTypes.bool,
+  promptTextCreator: PropTypes.func,
 };
 
 const defaultProps = {
@@ -81,6 +85,11 @@ const defaultProps = {
   onFocus: () => {},
   showHeader: true,
   valueKey: 'value',
+  promptTextCreator: label => `Create Option ${label}`,
+  canCopy: false,
+  copyOnClick: v => {
+    navigator.clipboard.writeText(v);
+  },
 };
 
 export default class SelectControl extends React.PureComponent {
@@ -103,6 +112,19 @@ export default class SelectControl extends React.PureComponent {
     }
   }
 
+  componentDidMount() {
+    this.selectRef.addEventListener('copy', this.handleCopy.bind(this));
+    this.selectRef.addEventListener('keydown', this.handleKeyDown.bind(this));
+  }
+
+  componentWillUnmount() {
+    this.selectRef.removeEventListener('copy', this.handleCopy.bind(this));
+    this.selectRef.removeEventListener(
+      'keydown',
+      this.handleKeyDown.bind(this),
+    );
+  }
+
   // Beware: This is acting like an on-click instead of an on-change
   // (firing every time user chooses vs firing only if a new option is chosen).
   onChange(val) {
@@ -119,6 +141,7 @@ export default class SelectControl extends React.PureComponent {
     if (typeof val === 'object' && val?.[valueKey] !== undefined) {
       onChangeVal = val[valueKey];
     }
+
     this.props.onChange(onChangeVal, []);
   }
 
@@ -160,6 +183,31 @@ export default class SelectControl extends React.PureComponent {
     return filterOption({ data: option }, text);
   }
 
+  isMetaSelectAllOption(o) {
+    return o.meta && o.meta === true && o.label === 'Select all';
+  }
+
+  optionsIncludesSelectAll(o) {
+    return o.findIndex(o => this.isMetaSelectAllOption(o)) >= 0;
+  }
+
+  handleCopy() {
+    this.props.copyOnClick(this.props.value);
+  }
+
+  selectAllOnClick() {
+    this.onChange(this.props.options);
+  }
+
+  handleKeyDown = event => {
+    if (event.ctrlKey === false) {
+      return;
+    }
+    if (event.key === 'a') {
+      this.selectAllOnClick();
+    }
+  };
+
   render() {
     const {
       ariaLabel,
@@ -190,22 +238,8 @@ export default class SelectControl extends React.PureComponent {
       tooltipOnClick,
       warning,
       danger,
+      canCopy,
     } = this.props;
-
-    const headerProps = {
-      name,
-      label,
-      description,
-      renderTrigger,
-      rightNode,
-      leftNode,
-      validationErrors,
-      onClick,
-      hovered,
-      tooltipOnClick,
-      warning,
-      danger,
-    };
 
     const getValue = () => {
       const currentValue =
@@ -220,6 +254,29 @@ export default class SelectControl extends React.PureComponent {
         return undefined;
       }
       return currentValue;
+    };
+
+    const headerProps = {
+      name,
+      label,
+      description,
+      renderTrigger,
+      rightNode,
+      leftNode,
+      validationErrors,
+      onClick,
+      hovered,
+      tooltipOnClick,
+      warning,
+      danger,
+      canCopy,
+      copyOnClick: () => {
+        this.props.copyOnClick(getValue());
+      },
+      canSelectAll: true,
+      selectAllOnClick: () => {
+        this.onChange(this.props.options);
+      },
     };
 
     const selectProps = {
@@ -260,6 +317,9 @@ export default class SelectControl extends React.PureComponent {
             align-items: center;
           }
         `}
+        ref={elem => {
+          this.selectRef = elem;
+        }}
       >
         <Select {...selectProps} />
       </div>

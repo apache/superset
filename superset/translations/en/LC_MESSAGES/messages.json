@@ -2034,7 +2034,8 @@
       "Check to include time origin dropdown": [""],
       "Limit selector values": [""],
       "These filters apply to the values available in the dropdowns": [""],
-      "Time-series Table": [""]
+      "Time-series Table": [""],
+      "Copy the content of this control": [""]
     }
   }
 }

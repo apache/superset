@@ -12,6 +12,7 @@ describe('CccsGrid tranformProps', () => {
     headerFontSize: 'xs',
     headerText: 'my text',
     emitFilter: false,
+    include_search: false,
     viz_type: 'my_chart',
   };
   const chartProps = new CccsGridChartProps({
@@ -32,6 +33,7 @@ describe('CccsGrid tranformProps', () => {
       boldText: true,
       headerFontSize: 'xs',
       headerText: 'my text',
+      include_search: false,
       data: [
         { name: 'Hulk', sum__num: 1, __timestamp: new Date(599616000000) },
       ],
