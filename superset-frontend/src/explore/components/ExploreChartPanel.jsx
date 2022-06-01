@@ -392,6 +392,7 @@ const ExploreChartPanel = ({
             datasource={datasource}
             queryForce={force}
             onCollapseChange={onCollapseChange}
+            chartStatus={chart.chartStatus}
             errorMessage={errorMessage}
             actions={actions}
           />
