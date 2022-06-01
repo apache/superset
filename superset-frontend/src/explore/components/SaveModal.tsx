@@ -53,6 +53,7 @@ type SaveModalState = {
   saveToDashboardId: number | string | null;
   newSliceName?: string;
   newDashboardName?: string;
+  datasetName: '';
   alert: string | null;
   action: ActionType;
 };
@@ -71,12 +72,14 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
       newSliceName: props.sliceName,
       alert: null,
       action: this.canOverwriteSlice() ? 'overwrite' : 'saveas',
+      datasetName: '',
     };
     this.onDashboardSelectChange = this.onDashboardSelectChange.bind(this);
     this.onSliceNameChange = this.onSliceNameChange.bind(this);
     this.changeAction = this.changeAction.bind(this);
     this.saveOrOverwrite = this.saveOrOverwrite.bind(this);
     this.isNewDashboard = this.isNewDashboard.bind(this);
+    this.handleDatasetNameChange = this.handleDatasetNameChange(this);
   }
 
   isNewDashboard(): boolean {
@@ -112,6 +115,11 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
       }
     });
   }
+
+  handleDatasetNameChange = (e: React.FormEvent<HTMLInputElement>) => {
+    // @ts-expect-error
+    this.setState({ datasetName: e.target.value });
+  };
 
   onSliceNameChange(event: React.ChangeEvent<HTMLInputElement>) {
     this.setState({ newSliceName: event.target.value });
@@ -256,7 +264,8 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
               checked={this.state.action === 'saveas'}
               onChange={() => this.changeAction('saveas')}
             >
-              {t('Save as...')}
+              {' '}
+              {t('Save as ...')} &nbsp;
             </Radio>
           </FormItem>
           <hr />
@@ -268,6 +277,16 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
               value={this.state.newSliceName}
               onChange={this.onSliceNameChange}
               data-test="new-chart-name"
+            />
+          </FormItem>
+          <FormItem label={t('Dataset Name')} required>
+            <Input
+              name="dataset_name"
+              type="text"
+              placeholder="Dataset Name"
+              value={this.state.datasetName}
+              onChange={this.handleDatasetNameChange}
+              data-test="new-dataset-name"
             />
           </FormItem>
           <FormItem
