@@ -18,12 +18,14 @@
  */
 import { Datasource, JsonObject, QueryFormData } from '@superset-ui/core';
 import { ExploreActions } from 'src/explore/actions/exploreActions';
+import { ChartStatus } from 'src/explore/types';
 
 export interface DataTablesPaneProps {
   queryFormData: QueryFormData;
   datasource: Datasource;
   queryForce: boolean;
   ownState?: JsonObject;
+  chartStatus: ChartStatus;
   onCollapseChange: (isOpen: boolean) => void;
   errorMessage?: JSX.Element;
   actions: ExploreActions;
