@@ -22,7 +22,9 @@ from flask_appbuilder.security.sqla.models import User
 from superset.commands.base import BaseCommand
 from superset.common.chart_data import ChartDataResultType
 from superset.common.query_context_factory import QueryContextFactory
+from superset.common.utils.query_cache_manager import QueryCacheManager
 from superset.connectors.sqla.models import SqlaTable
+from superset.constants import CacheRegion
 from superset.datasets.commands.exceptions import (
     DatasetForbiddenError,
     DatasetNotFoundError,
@@ -30,6 +32,7 @@ from superset.datasets.commands.exceptions import (
 )
 from superset.datasets.dao import DatasetDAO
 from superset.exceptions import SupersetSecurityException
+from superset.utils.core import QueryStatus
 from superset.views.base import check_ownership
 
 logger = logging.getLogger(__name__)
@@ -58,7 +61,13 @@ class SamplesDatasetCommand(BaseCommand):
         )
         results = qc_instance.get_payload()
         try:
-            return results["queries"][0]
+            sample_data = results["queries"][0]
+            error_msg = sample_data.get("error")
+            if sample_data.get("status") == QueryStatus.FAILED and error_msg:
+                cache_key = sample_data.get("cache_key")
+                QueryCacheManager.delete(cache_key, region=CacheRegion.DATA)
+                raise DatasetSamplesFailedError(error_msg)
+            return sample_data
         except (IndexError, KeyError) as exc:
             raise DatasetSamplesFailedError from exc
 
