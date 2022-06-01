@@ -50,7 +50,7 @@ export const ResultsPane = ({
   const [data, setData] = useState<Record<string, any>[][]>([]);
   const [colnames, setColnames] = useState<string[]>([]);
   const [coltypes, setColtypes] = useState<GenericDataType[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [responseError, setResponseError] = useState<string>('');
 
   useEffect(() => {
@@ -105,6 +105,12 @@ export const ResultsPane = ({
     }
   }, [queryFormData, isRequest]);
 
+  useEffect(() => {
+    if (errorMessage) {
+      setIsLoading(false);
+    }
+  }, [errorMessage]);
+
   const originalFormattedTimeColumns = useOriginalFormattedTimeColumns(
     queryFormData.datasource,
   );
@@ -119,13 +125,13 @@ export const ResultsPane = ({
   );
   const filteredData = useFilteredTableData(filterText, data);
 
+  if (isLoading) {
+    return <Loading />;
+  }
+
   if (errorMessage) {
     const title = t('Run a query to display results');
     return <EmptyStateMedium image="document.svg" title={title} />;
-  }
-
-  if (isLoading) {
-    return <Loading />;
   }
 
   if (responseError) {
