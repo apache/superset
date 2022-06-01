@@ -113,7 +113,7 @@ GROUP BY ds,
     )
 
     assert (
-        dataset_macro(1, include_metrics=True, groupby=["ds"])
+        dataset_macro(1, include_metrics=True, columns=["ds"])
         == """(SELECT ds AS ds,
        COUNT(*) AS cnt
 FROM my_schema.old_dataset

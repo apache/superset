@@ -286,7 +286,7 @@ Once you have the ID you can query it as if it were a table:
 SELECT * FROM {{ dataset(42) }} LIMIT 10
 ```
 
-IF you want to select the metric definitions as well, in addition to the columns, you need to pass an additional keyword argument:
+If you want to select the metric definitions as well, in addition to the columns, you need to pass an additional keyword argument:
 
 ```
 SELECT * FROM {{ dataset(42, include_metrics=True) }} LIMIT 10
@@ -295,5 +295,5 @@ SELECT * FROM {{ dataset(42, include_metrics=True) }} LIMIT 10
 Since metrics are aggregations, the resulting SQL expression will be grouped by all non-metric columns. You can specify a subset of columns to group by instead:
 
 ```
-SELECT * FROM {{ dataset(42, include_metrics=True, groupby=["ds", "category"]) }} LIMIT 10
+SELECT * FROM {{ dataset(42, include_metrics=True, columns=["ds", "category"]) }} LIMIT 10
 ```

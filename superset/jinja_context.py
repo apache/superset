@@ -609,7 +609,7 @@ def get_template_processor(
 def dataset_macro(
     dataset_id: int,
     include_metrics: bool = False,
-    groupby: Optional[List[str]] = None,
+    columns: Optional[List[str]] = None,
 ) -> str:
     """
     Given a dataset ID, return the SQL that represents it.
@@ -624,14 +624,13 @@ def dataset_macro(
     if not dataset:
         raise DatasetNotFoundError(f"Dataset {dataset_id} not found!")
 
-    columns = [column.column_name for column in dataset.columns]
+    columns = columns or [column.column_name for column in dataset.columns]
     metrics = [metric.metric_name for metric in dataset.metrics]
     query_obj = {
         "is_timeseries": False,
         "filter": [],
         "metrics": metrics if include_metrics else None,
         "columns": columns,
-        "groupby": groupby,
     }
     sqla_query = dataset.get_query_str_extended(query_obj)
     sql = sqla_query.sql
