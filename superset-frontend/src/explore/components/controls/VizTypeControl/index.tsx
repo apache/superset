@@ -17,25 +17,15 @@
  * under the License.
  */
 import React, { useCallback, useState } from 'react';
-import PropTypes from 'prop-types';
-import { t, getChartMetadataRegistry, styled } from '@superset-ui/core';
+import { css, t, getChartMetadataRegistry, styled } from '@superset-ui/core';
 import { usePluginContext } from 'src/components/DynamicPlugins';
 import Modal from 'src/components/Modal';
-import { Tooltip } from 'src/components/Tooltip';
-import Label, { Type } from 'src/components/Label';
-import ControlHeader from 'src/explore/components/ControlHeader';
+import { Type } from 'src/components/Label';
+import Icons from 'src/components/Icons';
+import { noOp } from 'src/utils/common';
 import VizTypeGallery, {
   MAX_ADVISABLE_VIZ_GALLERY_WIDTH,
 } from './VizTypeGallery';
-
-const propTypes = {
-  description: PropTypes.string,
-  label: PropTypes.string,
-  name: PropTypes.string.isRequired,
-  onChange: PropTypes.func,
-  value: PropTypes.string.isRequired,
-  labelType: PropTypes.string,
-};
 
 interface VizTypeControlProps {
   description?: string;
@@ -47,10 +37,23 @@ interface VizTypeControlProps {
   isModalOpenInit?: boolean;
 }
 
-const defaultProps = {
-  onChange: () => {},
-  labelType: 'default',
-};
+const FEATURED_CHARTS = [
+  {
+    name: 'echarts_timeseries_line',
+    icon: <Icons.LineChartTile viewBox="0 0 16 16" />,
+  },
+  { name: 'table', icon: <Icons.TableChartTile viewBox="0 0 16 16" /> },
+  {
+    name: 'big_number',
+    icon: <Icons.BigNumberChartTile viewBox="0 0 16 16" />,
+  },
+  { name: 'pie', icon: <Icons.PieChartTile viewBox="0 0 16 16" /> },
+  {
+    name: 'echarts_timeseries_bar',
+    icon: <Icons.BarChartTile viewBox="0 0 16 16" />,
+  },
+  { name: 'echarts_area', icon: <Icons.AreaChartTile viewBox="0 0 16 16" /> },
+];
 
 const metadataRegistry = getChartMetadataRegistry();
 
@@ -76,8 +79,12 @@ const UnpaddedModal = styled(Modal)`
 `;
 
 /** Manages the viz type and the viz picker modal */
-const VizTypeControl = (props: VizTypeControlProps) => {
-  const { value: initialValue, onChange, isModalOpenInit, labelType } = props;
+const VizTypeControl = ({
+  value: initialValue,
+  onChange = noOp,
+  isModalOpenInit,
+  labelType = 'default',
+}: VizTypeControlProps) => {
   const { mountedPluginMetadata } = usePluginContext();
   const [showModal, setShowModal] = useState(!!isModalOpenInit);
   // a trick to force re-initialization of the gallery each time the modal opens,
@@ -101,29 +108,29 @@ const VizTypeControl = (props: VizTypeControlProps) => {
     setSelectedViz(initialValue);
   }, [initialValue]);
 
-  const labelContent = initialValue
+  const chartName = initialValue
     ? mountedPluginMetadata[initialValue]?.name || `${initialValue}`
     : t('Select Viz Type');
 
   return (
     <div>
-      <ControlHeader {...props} />
-      <Tooltip
-        id="error-tooltip"
-        placement="right"
-        title={t('Click to change visualization type')}
+      <div
+        css={css`
+          display: flex;
+        `}
       >
-        <>
-          <Label
-            onClick={openModal}
-            type={labelType}
-            data-test="visualization-type"
+        {FEATURED_CHARTS.map((featuredChart, index) => (
+          <div
+            css={css`
+              padding-right: 4px;
+            `}
+            key={index}
           >
-            {labelContent}
-          </Label>
-          {initialValue && <VizSupportValidation vizType={initialValue} />}
-        </>
-      </Tooltip>
+            {featuredChart.icon}
+          </div>
+        ))}
+      </div>
+      {initialValue && <VizSupportValidation vizType={initialValue} />}
 
       <UnpaddedModal
         show={showModal}
@@ -145,8 +152,5 @@ const VizTypeControl = (props: VizTypeControlProps) => {
     </div>
   );
 };
-
-VizTypeControl.propTypes = propTypes;
-VizTypeControl.defaultProps = defaultProps;
 
 export default VizTypeControl;
