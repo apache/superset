@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { useState, useEffect, useMemo } from 'react';
-import { GenericDataType, styled, t } from '@superset-ui/core';
+import { ensureIsArray, GenericDataType, styled, t } from '@superset-ui/core';
 import Loading from 'src/components/Loading';
 import { EmptyStateMedium } from 'src/components/EmptyState';
 import TableView, { EmptyWrapperType } from 'src/components/TableView';
@@ -63,9 +63,9 @@ export const SamplesPane = ({
       setIsLoading(true);
       getDatasetSamples(datasource.id, queryForce)
         .then(response => {
-          setData(response.data);
-          setColnames(response.colnames);
-          setColtypes(response.coltypes);
+          setData(ensureIsArray(response.data));
+          setColnames(ensureIsArray(response.colnames));
+          setColtypes(ensureIsArray(response.coltypes));
           setResponseError('');
           cache.add(datasource);
           if (queryForce && actions) {
@@ -73,6 +73,9 @@ export const SamplesPane = ({
           }
         })
         .catch(error => {
+          setData([]);
+          setColnames([]);
+          setColtypes([]);
           setResponseError(`${error.name}: ${error.message}`);
         })
         .finally(() => {
