@@ -449,7 +449,7 @@ class BaseDatasource(
     def get_query_str(self, query_obj: QueryObjectDict) -> str:
         """Returns a query as a string
 
-        This is used to be displayed to the user so that she/he can
+        This is used to be displayed to the user so that they can
         understand what is taking place behind the scene"""
         raise NotImplementedError()
 
