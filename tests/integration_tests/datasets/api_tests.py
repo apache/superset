@@ -1903,3 +1903,23 @@ class TestDatasetApi(SupersetTestCase):
             f' limit {self.app.config["SAMPLES_ROW_LIMIT"]}'
         ).to_dict(orient="records")
         assert eager_samples == rv_data2["result"]["data"]
+
+    @pytest.mark.usefixtures("create_datasets")
+    def test_get_dataset_samples_with_failed_cc(self):
+        dataset = self.get_fixture_datasets()[0]
+
+        self.login(username="admin")
+        uri = f"api/v1/dataset/{dataset.id}/samples"
+        failed_column = TableColumn(
+            column_name="DUMMY CC",
+            type="VARCHAR(255)",
+            table=dataset,
+            expression="INCORRECT SQL",
+        )
+        dataset.columns.append(failed_column)
+        rv = self.client.get(uri)
+        assert rv.status_code == 400
+        rv_data = json.loads(rv.data)
+        assert "message" in rv_data
+        if dataset.database.db_engine_spec.engine_name == "PostgreSQL":
+            assert "INCORRECT SQL" in rv_data.get("message")

@@ -30,6 +30,7 @@ from superset.datasets.commands.exceptions import (
 )
 from superset.datasets.dao import DatasetDAO
 from superset.exceptions import SupersetSecurityException
+from superset.utils.core import QueryStatus
 from superset.views.base import check_ownership
 
 logger = logging.getLogger(__name__)
@@ -58,7 +59,11 @@ class SamplesDatasetCommand(BaseCommand):
         )
         results = qc_instance.get_payload()
         try:
-            return results["queries"][0]
+            sample_data = results["queries"][0]
+            error_msg = sample_data.get("error")
+            if sample_data.get("status") == QueryStatus.FAILED and error_msg:
+                raise DatasetSamplesFailedError(error_msg)
+            return sample_data
         except (IndexError, KeyError) as exc:
             raise DatasetSamplesFailedError from exc
 
