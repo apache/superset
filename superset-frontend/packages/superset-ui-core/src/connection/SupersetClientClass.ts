@@ -27,11 +27,11 @@ import {
   Headers,
   Host,
   Mode,
+  ParseMethod,
   Protocol,
   RequestConfig,
-  ParseMethod,
 } from './types';
-import { DEFAULT_FETCH_RETRY_OPTIONS, DEFAULT_BASE_URL } from './constants';
+import { DEFAULT_BASE_URL, DEFAULT_FETCH_RETRY_OPTIONS } from './constants';
 
 const defaultUnauthorizedHandler = () => {
   if (!window.location.pathname.startsWith('/login')) {
@@ -88,7 +88,7 @@ export default class SupersetClientClass {
       // as the base of baseUrl
       window.location.href,
     );
-    this.baseUrl = `${url.href.replace(/\/+$/, '')}/data`; // always strip trailing slash
+    this.baseUrl = `${url.href.replace(/\/+$/, '')}`; // always strip trailing slash
     this.host = url.host;
     this.protocol = url.protocol as Protocol;
     this.headers = { Accept: 'application/json', ...headers }; // defaulting accept to json
