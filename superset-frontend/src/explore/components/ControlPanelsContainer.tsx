@@ -535,7 +535,6 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
             defaultActiveKey={expandedQuerySections}
             expandIconPosition="right"
             ghost
-            key={`query-sections-${props.form_data.datasource}-${props.form_data.viz_type}`}
           >
             {showDatasourceAlert && <DatasourceAlert />}
             {querySections.map(renderControlPanelSection)}
@@ -547,7 +546,6 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
               defaultActiveKey={expandedCustomizeSections}
               expandIconPosition="right"
               ghost
-              key={`customize-sections-${props.form_data.datasource}-${props.form_data.viz_type}`}
             >
               {customizeSections.map(renderControlPanelSection)}
             </Collapse>
