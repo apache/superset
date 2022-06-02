@@ -29,6 +29,7 @@ from superset.charts.filters import ChartFilter
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.dashboards.filters import DashboardAccessFilter
 from superset.databases.filters import DatabaseFilter
+from superset.extensions import event_logger
 from superset.models.reports import ReportSchedule
 from superset.reports.commands.bulk_delete import BulkDeleteReportScheduleCommand
 from superset.reports.commands.create import CreateReportScheduleCommand
@@ -227,8 +228,12 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
     @expose("/<int:pk>", methods=["DELETE"])
     @protect()
     @safe
-    @statsd_metrics
     @permission_name("delete")
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.data",
+        log_to_statsd=False,
+    )
     def delete(self, pk: int) -> Response:
         """Delete a Report Schedule
         ---
@@ -281,6 +286,10 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @permission_name("post")
     @requires_json
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.data",
+        log_to_statsd=False,
+    )
     def post(self) -> Response:
         """Creates a new Report Schedule
         ---
@@ -344,6 +353,10 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @permission_name("put")
     @requires_json
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.data",
+        log_to_statsd=False,
+    )
     def put(self, pk: int) -> Response:
         """Updates an Report Schedule
         ---
@@ -416,6 +429,10 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @rison(get_delete_ids_schema)
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.data",
+        log_to_statsd=False,
+    )
     def bulk_delete(self, **kwargs: Any) -> Response:
         """Delete bulk Report Schedule layers
         ---
