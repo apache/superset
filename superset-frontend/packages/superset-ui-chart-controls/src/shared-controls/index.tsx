@@ -45,6 +45,8 @@ import {
   legacyValidateInteger,
   validateNonEmpty,
   ComparisionType,
+  QueryResponse,
+  QueryColumn,
 } from '@superset-ui/core';
 
 import {
@@ -56,7 +58,11 @@ import {
   DEFAULT_TIME_FORMAT,
   DEFAULT_NUMBER_FORMAT,
 } from '../utils';
-import { TIME_FILTER_LABELS, TIME_COLUMN_OPTION } from '../constants';
+import {
+  TIME_FILTER_LABELS,
+  TIME_COLUMN_OPTION,
+  DEFAULT_METRICS,
+} from '../constants';
 import {
   Metric,
   SharedControlConfig,
@@ -132,14 +138,14 @@ const groupByControl: SharedControlConfig<'SelectControl', ColumnMeta> = {
   promptTextCreator: (label: unknown) => label,
   mapStateToProps(state, { includeTime }) {
     const newState: ExtraControlProps = {};
-    const dataset = state.datasource as Dataset;
-    if (state.datasource) {
-      const options = dataset.columns.filter(c => c.groupby);
+    const { datasource } = state;
+    if (datasource?.columns?.hasOwnProperty('groupby')) {
+      const options = (datasource as Dataset).columns.filter(c => c.groupby);
       if (includeTime) {
         options.unshift(TIME_COLUMN_OPTION);
       }
       newState.options = options;
-    }
+    } else newState.options = datasource?.columns;
     return newState;
   },
   commaChoosesOption: false,
@@ -150,16 +156,14 @@ const metrics: SharedControlConfig<'MetricsControl'> = {
   multi: true,
   label: t('Metrics'),
   validators: [validateNonEmpty],
-  mapStateToProps: ({ datasource }) => {
-    const dataset = datasource as Dataset;
-
-    return {
-      columns: dataset?.columns || [],
-      savedMetrics: dataset?.metrics || [],
-      datasource,
-      datasourceType: dataset?.type,
-    };
-  },
+  mapStateToProps: ({ datasource }) => ({
+    columns: datasource?.columns || [],
+    savedMetrics: datasource?.hasOwnProperty('metrics')
+      ? (datasource as Dataset)?.metrics || []
+      : DEFAULT_METRICS,
+    datasource,
+    datasourceType: datasource?.type,
+  }),
   description: t('One or many metrics to display'),
 };
 
@@ -298,16 +302,21 @@ const granularity_sqla: SharedControlConfig<'SelectControl', ColumnMeta> = {
   valueRenderer: c => <ColumnOption column={c} />,
   valueKey: 'column_name',
   mapStateToProps: state => {
-    const props: Partial<SelectControlConfig<ColumnMeta>> = {};
-    const dataset = state.datasource as Dataset;
-    if (state.datasource) {
-      props.options = dataset.columns.filter(c => c.is_dttm);
+    const props: Partial<SelectControlConfig<ColumnMeta | QueryColumn>> = {};
+    const { datasource } = state;
+    const dataset = datasource as Dataset;
+    const query = datasource as QueryResponse;
+    if (datasource?.columns?.hasOwnProperty('main_dttm_col')) {
+      props.options = dataset.columns.filter((c: ColumnMeta) => c.is_dttm);
       props.default = null;
       if (dataset.main_dttm_col) {
         props.default = dataset.main_dttm_col;
-      } else if (props.options && props.options.length > 0) {
-        props.default = props.options[0].column_name;
+      } else if (props?.options) {
+        props.default = (props.options[0] as ColumnMeta).column_name;
       }
+    } else {
+      props.options = query?.columns.filter((c: QueryColumn) => c.is_dttm);
+      if (props?.options) props.default = props.options[0].name;
     }
     return props;
   },
@@ -406,15 +415,14 @@ const sort_by: SharedControlConfig<'MetricsControl'> = {
     'Metric used to define how the top series are sorted if a series or row limit is present. ' +
       'If undefined reverts to the first metric (where appropriate).',
   ),
-  mapStateToProps: ({ datasource }) => {
-    const dataset = datasource as Dataset;
-    return {
-      columns: dataset?.columns || [],
-      savedMetrics: dataset?.metrics || [],
-      datasource,
-      datasourceType: dataset?.type,
-    };
-  },
+  mapStateToProps: ({ datasource }) => ({
+    columns: datasource?.columns || [],
+    savedMetrics: datasource?.hasOwnProperty('metrics')
+      ? (datasource as Dataset)?.metrics || []
+      : DEFAULT_METRICS,
+    datasource,
+    datasourceType: datasource?.type,
+  }),
 };
 
 const series: typeof groupByControl = {
@@ -502,17 +510,18 @@ const adhoc_filters: SharedControlConfig<'AdhocFilterControl'> = {
   label: t('Filters'),
   default: [],
   description: '',
-  mapStateToProps: ({ datasource, form_data }) => {
-    const dataset = datasource as Dataset;
-    return {
-      columns: dataset?.columns.filter(c => c.filterable) || [],
-      savedMetrics: dataset?.metrics || [],
-      // current active adhoc metrics
-      selectedMetrics:
-        form_data.metrics || (form_data.metric ? [form_data.metric] : []),
-      datasource,
-    };
-  },
+  mapStateToProps: ({ datasource, form_data }) => ({
+    columns: datasource?.hasOwnProperty('filterable')
+      ? (datasource as Dataset)?.columns.filter(c => c.filterable)
+      : datasource?.columns || [],
+    savedMetrics: datasource?.hasOwnProperty('metrics')
+      ? (datasource as Dataset)?.metrics || []
+      : DEFAULT_METRICS,
+    // current active adhoc metrics
+    selectedMetrics:
+      form_data.metrics || (form_data.metric ? [form_data.metric] : []),
+    datasource,
+  }),
 };
 
 const color_scheme: SharedControlConfig<'ColorSchemeControl'> = {

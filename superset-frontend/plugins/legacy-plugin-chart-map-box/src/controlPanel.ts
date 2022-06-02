@@ -24,14 +24,13 @@ import {
   formatSelectOptions,
   sections,
   dndEntity,
-  Dataset,
 } from '@superset-ui/chart-controls';
 
 const allColumns = {
   type: 'SelectControl',
   default: null,
   mapStateToProps: (state: ControlPanelState) => ({
-    choices: columnChoices(state.datasource as Dataset),
+    choices: columnChoices(state.datasource),
   }),
 };
 
@@ -123,9 +122,7 @@ const config: ControlPanelConfig = {
                   'on the largest cluster',
               ),
               mapStateToProps: state => {
-                const datasourceChoices = columnChoices(
-                  state.datasource as Dataset,
-                );
+                const datasourceChoices = columnChoices(state.datasource);
                 const choices: [string, string][] = formatSelectOptions([
                   'Auto',
                 ]);
@@ -170,7 +167,7 @@ const config: ControlPanelConfig = {
                   'Leave empty to get a count of points in each cluster.',
               ),
               mapStateToProps: state => ({
-                choices: columnChoices(state.datasource as Dataset),
+                choices: columnChoices(state.datasource),
               }),
             },
           },

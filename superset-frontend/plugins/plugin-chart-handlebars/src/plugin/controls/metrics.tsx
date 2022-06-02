@@ -23,6 +23,7 @@ import {
   sharedControls,
   Dataset,
   ColumnMeta,
+  DEFAULT_METRICS,
 } from '@superset-ui/chart-controls';
 import { FeatureFlag, isFeatureEnabled, t } from '@superset-ui/core';
 import { getQueryMode, isAggMode, validateAggControlValues } from './shared';
@@ -38,9 +39,11 @@ const percentMetrics: typeof sharedControls.metrics = {
   resetOnHide: false,
   mapStateToProps: ({ datasource, controls }, controlState) => ({
     columns: datasource?.columns || [],
-    savedMetrics: (datasource as Dataset)?.metrics || [],
+    savedMetrics: datasource?.hasOwnProperty('metrics')
+      ? (datasource as Dataset)?.metrics || []
+      : DEFAULT_METRICS,
     datasource,
-    datasourceType: (datasource as Dataset)?.type,
+    datasourceType: datasource?.type,
     queryMode: getQueryMode(controls),
     externalValidationErrors: validateAggControlValues(controls, [
       controls.groupby?.value,
@@ -81,7 +84,9 @@ export const metricsControlSetItem: ControlSetItem = {
             (c: ColumnMeta) => c.filterable,
           )
         : datasource?.columns,
-      savedMetrics: (datasource as Dataset)?.metrics || [],
+      savedMetrics: datasource?.hasOwnProperty('metrics')
+        ? (datasource as Dataset)?.metrics || []
+        : DEFAULT_METRICS,
       // current active adhoc metrics
       selectedMetrics:
         form_data.metrics || (form_data.metric ? [form_data.metric] : []),
