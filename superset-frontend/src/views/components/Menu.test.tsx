@@ -73,7 +73,7 @@ const dropdownItems = [
   },
   {
     label: 'Dashboard',
-    url: `${process.env.APP_PREFIX}/dashboard/new`,
+    url: `/dashboard/new`,
     icon: 'fa-fw fa-dashboard',
     perm: 'can_write',
     view: 'Dashboard',
