@@ -139,7 +139,7 @@ const groupByControl: SharedControlConfig<'SelectControl', ColumnMeta> = {
   mapStateToProps(state, { includeTime }) {
     const newState: ExtraControlProps = {};
     const { datasource } = state;
-    if (datasource?.columns?.hasOwnProperty('groupby')) {
+    if (datasource?.columns[0]?.hasOwnProperty('groupby')) {
       const options = (datasource as Dataset).columns.filter(c => c.groupby);
       if (includeTime) {
         options.unshift(TIME_COLUMN_OPTION);
@@ -306,7 +306,7 @@ const granularity_sqla: SharedControlConfig<'SelectControl', ColumnMeta> = {
     const { datasource } = state;
     const dataset = datasource as Dataset;
     const query = datasource as QueryResponse;
-    if (datasource?.columns?.hasOwnProperty('main_dttm_col')) {
+    if (datasource?.columns[0]?.hasOwnProperty('main_dttm_col')) {
       props.options = dataset.columns.filter((c: ColumnMeta) => c.is_dttm);
       props.default = null;
       if (dataset.main_dttm_col) {
@@ -511,7 +511,7 @@ const adhoc_filters: SharedControlConfig<'AdhocFilterControl'> = {
   default: [],
   description: '',
   mapStateToProps: ({ datasource, form_data }) => ({
-    columns: datasource?.hasOwnProperty('filterable')
+    columns: datasource?.columns[0]?.hasOwnProperty('filterable')
       ? (datasource as Dataset)?.columns.filter(c => c.filterable)
       : datasource?.columns || [],
     savedMetrics: datasource?.hasOwnProperty('metrics')

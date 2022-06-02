@@ -42,7 +42,7 @@ export const dndGroupByControl: SharedControlConfig<'DndColumnSelect'> = {
   mapStateToProps(state, { includeTime }) {
     const newState: ExtraControlProps = {};
     const { datasource } = state;
-    if (datasource?.columns?.hasOwnProperty('groupby')) {
+    if (datasource?.columns[0]?.hasOwnProperty('groupby')) {
       const options = (datasource as Dataset).columns.filter(c => c.groupby);
       if (includeTime) {
         options.unshift(TIME_COLUMN_OPTION);
@@ -89,7 +89,7 @@ export const dnd_adhoc_filters: SharedControlConfig<'DndFilterSelect'> = {
   default: [],
   description: '',
   mapStateToProps: ({ datasource, form_data }) => ({
-    columns: datasource?.hasOwnProperty('filterable')
+    columns: datasource?.columns[0]?.hasOwnProperty('filterable')
       ? (datasource as Dataset)?.columns.filter(c => c.filterable)
       : datasource?.columns || [],
     savedMetrics: datasource?.hasOwnProperty('metrics')
@@ -192,7 +192,7 @@ export const dnd_granularity_sqla: typeof dndGroupByControl = {
       : 'Drop temporal column here',
   ),
   mapStateToProps: ({ datasource }) => {
-    if (datasource?.columns?.hasOwnProperty('column_name')) {
+    if (datasource?.columns[0]?.hasOwnProperty('column_name')) {
       const temporalColumns =
         (datasource as Dataset)?.columns.filter(c => c.is_dttm) ?? [];
       const options = Object.fromEntries(

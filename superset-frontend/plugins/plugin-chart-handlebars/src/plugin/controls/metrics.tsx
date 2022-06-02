@@ -79,7 +79,7 @@ export const metricsControlSetItem: ControlSetItem = {
       { controls, datasource, form_data }: ControlPanelState,
       controlState: ControlState,
     ) => ({
-      columns: datasource?.columns?.hasOwnProperty('filterable')
+      columns: datasource?.columns[0]?.hasOwnProperty('filterable')
         ? (datasource as Dataset)?.columns?.filter(
             (c: ColumnMeta) => c.filterable,
           )

@@ -130,7 +130,7 @@ const dnd_all_columns: typeof sharedControls.groupby = {
   default: [],
   mapStateToProps({ datasource, controls }, controlState) {
     const newState: ExtraControlProps = {};
-    if (datasource?.columns?.hasOwnProperty('column_name')) {
+    if (datasource?.columns[0]?.hasOwnProperty('column_name')) {
       const options = (datasource as Dataset).columns;
       newState.options = Object.fromEntries(
         options.map((option: ColumnMeta) => [option.column_name, option]),
@@ -234,7 +234,7 @@ const config: ControlPanelConfig = {
                 { controls, datasource, form_data }: ControlPanelState,
                 controlState: ControlState,
               ) => ({
-                columns: datasource?.columns?.hasOwnProperty('filterable')
+                columns: datasource?.columns[0]?.hasOwnProperty('filterable')
                   ? (datasource as Dataset)?.columns?.filter(
                       (c: ColumnMeta) => c.filterable,
                     )
