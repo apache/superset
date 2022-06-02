@@ -25,6 +25,7 @@ import {
   QueryFormColumn,
   ensureIsArray,
   validateNonEmpty,
+  legacyValidateInteger,
 } from '@superset-ui/core';
 import {
   ControlConfig,
@@ -36,10 +37,20 @@ import {
   sharedControls,
   ControlPanelState,
   ControlState,
+  formatSelectOptions,
 } from '@superset-ui/chart-controls';
 import { StyledColumnOption } from 'src/explore/components/optionRenderers';
 
-// import cidrRegex from 'cidr-regex';
+//import cidrRegex from 'cidr-regex';
+
+const PAGE_SIZE_OPTIONS = formatSelectOptions<number>([
+  [0, t('page_size.all')],
+  10,
+  20,
+  50,
+  100,
+  200,
+]);
 
 function getQueryMode(controls: ControlStateMapping): QueryMode {
   const mode = controls?.query_mode?.value;
@@ -90,36 +101,25 @@ const validateAggControlValues = (
 const validateColumnValues = (
   controls: ControlStateMapping,
   values: any[],
-  state: ControlPanelState,
+  state: ControlPanelState
 ) => {
-  const invalidColumns = values.filter(
-    (val: any) =>
-      val !== undefined &&
-      !state.datasource?.columns.some(col => col.column_name === val),
-  );
+  const invalidColumns = values.filter((val: any) => val !== undefined && !state.datasource?.columns.some(col => col.column_name === val));
   return invalidColumns.length !== 0
-    ? [
-        tn(
-          'Invalid column: %s',
-          'Invalid columns: %s',
-          invalidColumns.length,
-          invalidColumns.join(', '),
-        ),
-      ]
+    ? [tn('Invalid column: %s', 'Invalid columns: %s', invalidColumns.length, invalidColumns.join(", "))]
     : [];
-};
+}
 
 const validateAggColumnValues = (
   controls: ControlStateMapping,
   values: any[],
-  state: ControlPanelState,
+  state: ControlPanelState
 ) => {
   const result = validateAggControlValues(controls, values);
   if (result.length === 0 && isAggMode({ controls })) {
     return validateColumnValues(controls, values[1], state);
-  }
+  };
   return result;
-};
+}
 
 // function isIP(v: unknown) {
 //   if (typeof v === 'string' && v.trim().length > 0) {
@@ -223,7 +223,7 @@ const config: ControlPanelConfig = {
               freeForm: true,
               allowAll: true,
               default: [],
-              valueKey: 'column_name',
+              valueKey: "column_name",
               includeTime: false,
               optionRenderer: c => <StyledColumnOption showType column={c} />,
               valueRenderer: c => <StyledColumnOption column={c} />,
@@ -239,12 +239,8 @@ const config: ControlPanelConfig = {
                   originalMapStateToProps?.(state, controlState) ?? {};
                 newState.externalValidationErrors = validateAggColumnValues(
                   controls,
-                  [
-                    controls.metrics?.value,
-                    controlState.value,
-                    controls.percent_metrics?.value,
-                  ],
-                  state,
+                  [controls.metrics?.value, controlState.value, controls.percent_metrics?.value],
+                  state
                 );
                 return newState;
               },
@@ -270,11 +266,7 @@ const config: ControlPanelConfig = {
                   originalMapStateToProps?.(state, controlState) ?? {};
                 newState.externalValidationErrors = validateAggControlValues(
                   controls,
-                  [
-                    controls.groupby?.value,
-                    controlState.value,
-                    controls.percent_metrics?.value,
-                  ],
+                  [controls.groupby?.value, controlState.value, controls.percent_metrics?.value],
                 );
                 return newState;
               },
@@ -314,7 +306,7 @@ const config: ControlPanelConfig = {
           {
             name: 'timeseries_limit_metric',
             override: {
-              visibility: isAggMode,
+              visibility: isAggMode
             },
           },
         ],
@@ -343,16 +335,12 @@ const config: ControlPanelConfig = {
                   originalMapStateToProps?.(state, controlState) ?? {};
                 newState.externalValidationErrors =
                   // @ts-ignore
-                  isRawMode({ controls }) &&
+                  (isRawMode({ controls }) &&
                   ensureIsArray(controlState.value).length === 0
                     ? [t('must have a value')]
                     : isRawMode({ controls })
-                    ? validateColumnValues(
-                        controls,
-                        ensureIsArray(controlState.value),
-                        state,
-                      )
-                    : [];
+                    ? validateColumnValues(controls, ensureIsArray(controlState.value), state)
+                    : []);
                 return newState;
               },
               visibility: isRawMode,
@@ -406,20 +394,18 @@ const config: ControlPanelConfig = {
           },
         ],
         [
-          isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)
-            ? {
-                name: 'emitFilter',
-                config: {
-                  type: 'CheckboxControl',
-                  label: t('Enable emitting filters'),
-                  default: false,
-                  renderTrigger: true,
-                  description: t(
-                    'Whether to apply filter to dashboards when grid cells are clicked.',
-                  ),
-                },
-              }
-            : null,
+          isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS) ? {
+            name: 'table_filter',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Enable emitting filters'),
+              default: false,
+              renderTrigger: true,
+              description: t(
+                'Whether to apply filter to dashboards when grid cells are clicked.',
+              ),
+            },
+          } : null,
         ],
       ],
     },
@@ -523,6 +509,20 @@ if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
     controlSetRows: [
       [
         {
+          name: 'table_filter',
+          config: {
+            type: 'CheckboxControl',
+            label: t('Enable emitting filters'),
+            default: false,
+            renderTrigger: true,
+            description: t(
+              'Whether to apply filter to dashboards when grid cells are clicked.',
+            ),
+          },
+        },
+      ],
+      [
+        {
           name: 'include_search',
           config: {
             type: 'CheckboxControl',
@@ -530,6 +530,21 @@ if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
             renderTrigger: true,
             default: false,
             description: t('Whether to include a client-side search box'),
+          },
+        },
+      ],
+      [
+        {
+          name: 'page_length',
+          config: {
+            type: 'SelectControl',
+            freeForm: true,
+            renderTrigger: true,
+            label: t('Page length'),
+            default: 100,
+            choices: PAGE_SIZE_OPTIONS,
+            description: t('Rows per page, 0 means no pagination'),
+            validators: [legacyValidateInteger],
           },
         },
       ],
