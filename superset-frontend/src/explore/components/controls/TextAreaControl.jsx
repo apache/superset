@@ -79,13 +79,17 @@ class TextAreaControl extends React.Component {
     this.props.onChange(value);
   }
 
-  renderEditor(inModal = false) {
-    let { value } = this.state;
-    if (this.initialValue !== this.props.value) {
-      this.initialValue = this.props.value;
-      // eslint-disable-next-line prefer-destructuring
-      value = this.props.value;
+  UNSAFE_componentWillReceiveProps(nextProps) {
+    if (this.initialValue !== nextProps.value) {
+      this.initialValue = nextProps.value;
+      this.setState({
+        value: nextProps.value,
+      });
     }
+  }
+
+  renderEditor(inModal = false) {
+    const { value } = this.state;
 
     const minLines = inModal ? 40 : this.props.minLines || 12;
     if (this.props.language) {
