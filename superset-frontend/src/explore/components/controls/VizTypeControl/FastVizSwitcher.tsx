@@ -202,6 +202,7 @@ export const FastVizSwitcher = React.memo(
           justify-content: space-between;
           column-gap: ${theme.gridUnit}px;
         `}
+        data-test="fast-viz-switcher"
       >
         {vizTiles.map(vizMeta => (
           <VizTile
