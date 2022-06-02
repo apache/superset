@@ -39,6 +39,7 @@ from superset.models.core import Database
 from superset.models.slice import Slice
 from superset.sql_parse import Table
 from superset.utils.core import (
+    DatasourceType,
     backend,
     get_example_default_schema,
 )
@@ -120,7 +121,7 @@ class TestRolePermission(SupersetTestCase):
 
         ds_slices = (
             session.query(Slice)
-            .filter_by(datasource_type="table")
+            .filter_by(datasource_type=DatasourceType.TABLE)
             .filter_by(datasource_id=ds.id)
             .all()
         )
@@ -143,7 +144,7 @@ class TestRolePermission(SupersetTestCase):
         ds.schema_perm = None
         ds_slices = (
             session.query(Slice)
-            .filter_by(datasource_type="table")
+            .filter_by(datasource_type=DatasourceType.TABLE)
             .filter_by(datasource_id=ds.id)
             .all()
         )
@@ -365,7 +366,7 @@ class TestRolePermission(SupersetTestCase):
         # no schema permission
         slice = Slice(
             datasource_id=table.id,
-            datasource_type="table",
+            datasource_type=DatasourceType.TABLE,
             datasource_name="tmp_perm_table",
             slice_name="slice_name",
         )
