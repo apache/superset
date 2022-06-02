@@ -25,7 +25,7 @@ import { Dataset } from '../types';
 export default function columnChoices(
   datasource?: Dataset | QueryResponse | null,
 ): [string, string][] {
-  if (datasource?.columns?.hasOwnProperty('column_name')) {
+  if (datasource?.columns[0]?.hasOwnProperty('column_name')) {
     return (
       (datasource as Dataset)?.columns
         .map((col): [string, string] => [
