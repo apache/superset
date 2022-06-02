@@ -25,6 +25,7 @@ import {
   QueryFormColumn,
   ensureIsArray,
   validateNonEmpty,
+  legacyValidateInteger,
 } from '@superset-ui/core';
 import {
   ControlConfig,
@@ -36,10 +37,20 @@ import {
   sharedControls,
   ControlPanelState,
   ControlState,
+  formatSelectOptions,
 } from '@superset-ui/chart-controls';
 import { StyledColumnOption } from 'src/explore/components/optionRenderers';
 
 //import cidrRegex from 'cidr-regex';
+
+const PAGE_SIZE_OPTIONS = formatSelectOptions<number>([
+  [0, t('page_size.all')],
+  10,
+  20,
+  50,
+  100,
+  200,
+]);
 
 function getQueryMode(controls: ControlStateMapping): QueryMode {
   const mode = controls?.query_mode?.value;
@@ -520,8 +531,23 @@ if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
             default: false,
             description: t('Whether to include a client-side search box'),
           },
-        }
-      ]
+        },
+      ],
+      [
+        {
+          name: 'page_length',
+          config: {
+            type: 'SelectControl',
+            freeForm: true,
+            renderTrigger: true,
+            label: t('Page length'),
+            default: 100,
+            choices: PAGE_SIZE_OPTIONS,
+            description: t('Rows per page, 0 means no pagination'),
+            validators: [legacyValidateInteger],
+          },
+        },
+      ],
     ],
   });
 }

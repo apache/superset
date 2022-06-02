@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ChangeEvent, useCallback, useEffect, useState } from 'react';
+import React, { ChangeEvent, useCallback, useEffect, useRef, useState } from 'react';
 //import { styled } from '@superset-ui/core';
 import { CccsGridTransformedProps } from './types';
 
@@ -64,15 +64,20 @@ export default function CccsGrid({
   rowSelection,
   emitFilter = false,
   include_search,
+  page_length = 0,
   filters: initialFilters = {},
 }: CccsGridTransformedProps) {
   LicenseManager.setLicenseKey(agGridLicenseKey);
 
-  const [setFilters] = useState(initialFilters);
+  const [,setFilters] = useState(initialFilters);
 
   const [prevRow, setPrevRow] = useState(-1);
   const [prevColumn, setPrevColumn] = useState('');
   const [searchValue, setSearchValue] = useState('');
+
+  const gridRef = useRef<AgGridReact>(null);
+  const keyRefresh = useRef<number>(0);
+  const pageSize = useRef<number>(page_length);
 
   const handleChange = useCallback(
     filters => {
@@ -236,6 +241,12 @@ export default function CccsGrid({
     params.columnApi.autoSizeColumns(allColumnIds.slice(0, 100), false);
   }
 
+  useEffect(() => {
+    pageSize.current = page_length <= 0 ? 0 : page_length;
+    gridRef.current?.props.api?.paginationSetPageSize(pageSize.current);
+    keyRefresh.current += 1
+  }, [page_length]);
+  
   function setSearch(e: ChangeEvent<HTMLInputElement>) {
     const target = e.target as HTMLInputElement;
     e.preventDefault();
@@ -277,6 +288,8 @@ export default function CccsGrid({
       </div>
       ) : null}
       <AgGridReact
+        key={keyRefresh.current}
+        ref={gridRef}
         modules={AllModules}
         columnDefs={columnDefs}
         defaultColDef={DEFAULT_COLUMN_DEF}
@@ -290,6 +303,8 @@ export default function CccsGrid({
         onRangeSelectionChanged={onRangeSelectionChanged}
         onSelectionChanged={onSelectionChanged}
         rowData={rowData}
+        paginationPageSize={pageSize.current}
+        pagination={pageSize.current !== 0}
         cacheQuickFilter={true}
         quickFilterText={searchValue}
         rowGroupPanelShow="always"

@@ -76,6 +76,7 @@ export default function transformProps(chartProps: CccsGridChartProps) {
     headerFontSize,
     headerText,
     emitFilter,
+    page_length,
     query_mode,
     include_search,
   }: CccsGridQueryFormData = { ...DEFAULT_FORM_DATA, ...formData };
@@ -260,6 +261,7 @@ export default function transformProps(chartProps: CccsGridChartProps) {
     headerText,
     emitFilter,
     include_search,
+    page_length,
     agGridLicenseKey,
   };
 }
