@@ -105,8 +105,8 @@ export interface SliceHeaderControlsProps {
   forceRefresh: (sliceId: number, dashboardId: number) => void;
   logExploreChart?: (sliceId: number) => void;
   toggleExpandSlice?: (sliceId: number) => void;
-  exportCSV?: (sliceId: number) => void;
-  exportFullCSV?: (sliceId: number) => void;
+  exportCSV?: (isFullCSV?: boolean) => void;
+  exportFullCSV?: () => void;
   handleToggleFullSize: () => void;
 
   addDangerToast: (message: string) => void;
@@ -180,15 +180,14 @@ class SliceHeaderControls extends React.PureComponent<
         break;
       case MENU_KEYS.EXPORT_CSV:
         // eslint-disable-next-line no-unused-expressions
-        this.props.exportCSV && this.props.exportCSV(this.props.slice.slice_id);
+        this.props.exportCSV && this.props.exportCSV();
         break;
       case MENU_KEYS.RESIZE_LABEL:
         this.props.handleToggleFullSize();
         break;
       case MENU_KEYS.EXPORT_FULL_CSV:
         // eslint-disable-next-line no-unused-expressions
-        this.props.exportFullCSV &&
-          this.props.exportFullCSV(this.props.slice.slice_id);
+        this.props.exportFullCSV && this.props.exportFullCSV();
         break;
       case MENU_KEYS.DOWNLOAD_AS_IMAGE: {
         // menu closes with a delay, we need to hide it manually,
