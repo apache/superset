@@ -65,6 +65,7 @@ export const ExploreChartHeader = ({
   slice,
   actions,
   formData,
+  ownState,
   chart,
   user,
   canOverwrite,
@@ -138,6 +139,7 @@ export const ExploreChartHeader = ({
       slice,
       actions.redirectSQLLab,
       openPropertiesModal,
+      ownState,
     );
 
   const oldSliceName = slice?.slice_name;
