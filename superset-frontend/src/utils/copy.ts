@@ -17,21 +17,29 @@
  * under the License.
  */
 
+import { isSafari } from './common';
+
 // Use the new Clipboard API if the browser supports it
 const copyTextWithClipboardApi = async (getText: () => Promise<string>) => {
-  try {
-    // Safari (WebKit) does not support delayed generation of clipboard.
-    // This means that writing to the clipboard, from the moment the user
-    // interacts with the app, must be instantaneous.
-    // However, neither writeText nor write accepts a Promise, so
-    // we need to create a ClipboardItem that accepts said Promise to
-    // delay the text generation, as needed.
-    // Source: https://bugs.webkit.org/show_bug.cgi?id=222262
-    const clipboardItem = new ClipboardItem({
-      'text/plain': getText(),
-    });
-    await navigator.clipboard.write([clipboardItem]);
-  } catch {
+  // Safari (WebKit) does not support delayed generation of clipboard.
+  // This means that writing to the clipboard, from the moment the user
+  // interacts with the app, must be instantaneous.
+  // However, neither writeText nor write accepts a Promise, so
+  // we need to create a ClipboardItem that accepts said Promise to
+  // delay the text generation, as needed.
+  // Source: https://bugs.webkit.org/show_bug.cgi?id=222262P
+  if (isSafari()) {
+    try {
+      const clipboardItem = new ClipboardItem({
+        'text/plain': getText(),
+      });
+      await navigator.clipboard.write([clipboardItem]);
+    } catch {
+      // Fallback to default clipboard API implementation
+      const text = await getText();
+      await navigator.clipboard.writeText(text);
+    }
+  } else {
     // For Blink, the above method won't work, but we can use the
     // default (intended) API, since the delayed generation of the
     // clipboard is now supported.

@@ -145,4 +145,10 @@ export const detectOS = () => {
   return 'Unknown OS';
 };
 
+export const isSafari = () => {
+  const { userAgent } = navigator;
+
+  return userAgent && /^((?!chrome|android).)*safari/i.test(userAgent);
+};
+
 export const isNullish = value => value === null || value === undefined;
