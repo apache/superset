@@ -85,7 +85,6 @@ virtualenv venv
 source venv/bin/activate
 ```
 
-
 In addition, we recommend using the [`cherrytree`](https://pypi.org/project/cherrytree/) tool for
 automating cherry picking, as it will help speed up the release process. To install `cherrytree`
 and other dependencies that are required for the release process, run the following commands:
@@ -105,19 +104,21 @@ the wrong files/using wrong names. There's a script to help you set correctly al
 necessary environment variables. Change your current directory to `superset/RELEASING`
 and execute the `set_release_env.sh` script with the relevant parameters:
 
-
 Usage (MacOS/ZSH):
+
 ```bash
 cd RELEASING
 source set_release_env.sh <SUPERSET_RC_VERSION> <PGP_KEY_FULLNAME>
 ```
 
 Usage (BASH):
+
 ```bash
 . set_release_env.sh <SUPERSET_RC_VERSION> <PGP_KEY_FULLNAME>
 ```
 
 Example:
+
 ```bash
 source set_release_env.sh 1.5.1rc1 myid@apache.org
 ```
@@ -151,6 +152,7 @@ that belong to the MAJOR.MINOR version.
 
 The MAJOR.MINOR branch is normally a "cut" from a specific point in time from the master branch.
 When creating the initial minor release (e.g. 1.5.0), create a new branch:
+
 ```bash
 git checkout master
 git pull
@@ -194,7 +196,6 @@ by adding the `--no-dry-run` flag (`-nd` for short):
 ```bash
 cherrytree bake -r apache/superset -m master -l v${SUPERSET_GITHUB_BRANCH} -nd ${SUPERSET_GITHUB_BRANCH}
 ```
-
 
 #### Resolving conflicts
 
@@ -246,6 +247,7 @@ python changelog.py --previous_version 1.4 --current_version ${SUPERSET_GITHUB_B
 
 You can get a list of pull requests with labels started with blocking, risk, hold, revert and security by using the parameter `--risk`.
 Example:
+
 ```bash
 python changelog.py --previous_version 0.37 --current_version 0.38 changelog --access_token {GITHUB_TOKEN} --risk
 ```
@@ -287,6 +289,10 @@ git tag ${SUPERSET_VERSION_RC}
 git push origin ${SUPERSET_VERSION_RC}
 ```
 
+### Create a release on Github
+
+After submitting the tag, follow the steps [here](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository) to create the release. Use the vote email text as the content for the release description. Make sure to check the "This is a pre-release" checkbox for release canditates. You can check previous releases if you need an example.
+
 ## Preparing the release candidate
 
 The first step of preparing an Apache Release is packaging a release candidate
@@ -303,13 +309,14 @@ the tag and create a signed source tarball from it:
 Note that `make_tarball.sh`:
 
 - By default, the script assumes you have already executed an SVN checkout to `$HOME/svn/superset_dev`.
-This can be overridden by setting `SUPERSET_SVN_DEV_PATH` environment var to a different svn dev directory
+  This can be overridden by setting `SUPERSET_SVN_DEV_PATH` environment var to a different svn dev directory
 - Will refuse to craft a new release candidate if a release already exists on your local svn dev directory
 - Will check `package.json` version number and fails if it's not correctly set
 
 ### Build and test the created source tarball
 
 To build and run the **local copy** of the recently created tarball:
+
 ```bash
 # Build and run a release candidate tarball
 ./test_run_tarball.sh local
@@ -331,6 +338,7 @@ svn update
 ### Build and test from SVN source tarball
 
 To build and run the recently created tarball **from SVN**:
+
 ```bash
 # Build and run a release candidate tarball
 ./test_run_tarball.sh
@@ -339,6 +347,7 @@ To build and run the recently created tarball **from SVN**:
 ```
 
 ### Voting
+
 Now you're ready to start the [VOTE] thread. Here's an example of a
 previous release vote thread:
 https://lists.apache.org/thread.html/e60f080ebdda26896214f7d3d5be1ccadfab95d48fbe813252762879@<dev.superset.apache.org>
@@ -347,17 +356,10 @@ To easily send a voting request to Superset community, still on the `superset/RE
 
 ```bash
 # Note: use Superset's virtualenv
-(venv)$ python send_email.py vote_pmc
+(venv)$ python generate_email.py vote_pmc
 ```
 
-The script will interactively ask for extra information so it can authenticate on the Apache Email Relay.
-The release version and release candidate number are fetched from the previously set environment variables.
-
-```
-Sender email (ex: user@apache.org): your_apache_email@apache.org
-Apache username: your_apache_user
-Apache password: your_apache_password
-```
+The script will generate the email text that should be sent to dev@superset.apache.org using an email client. The release version and release candidate number are fetched from the previously set environment variables.
 
 Once 3+ binding votes (by PMC members) have been cast and at
 least 72 hours have past, you can post a [RESULT] thread:
@@ -367,23 +369,20 @@ To easily send the result email, still on the `superset/RELEASING` directory:
 
 ```bash
 # Note: use Superset's virtualenv
-python send_email.py result_pmc
+python generate_email.py result_pmc
 ```
 
 The script will interactively ask for extra information needed to fill out the email template. Based on the
 voting description, it will generate a passing, non passing or non conclusive email.
-here's an example:
+Here's an example:
 
 ```
-Sender email (ex: user@apache.org): your_apache_email@apache.org
-Apache username: your_apache_user
-Apache password: your_apache_password
 A List of people with +1 binding vote (ex: Max,Grace,Krist): Daniel,Alan,Max,Grace
 A List of people with +1 non binding vote (ex: Ville): Ville
 A List of people with -1 vote (ex: John):
 ```
 
-Following the result thread, yet another [VOTE] thread should be
+The script will generate the email text that should be sent to dev@superset.apache.org using an email client. The release version and release candidate number are fetched from the previously set environment variables.
 
 ### Validating a release
 
@@ -392,6 +391,7 @@ https://www.apache.org/info/verification.html
 ## Publishing a successful release
 
 Upon a successful vote, you'll have to copy the folder into the non-"dev/" folder.
+
 ```bash
 cp -r ~/svn/superset_dev/${SUPERSET_VERSION_RC}/ ~/svn/superset/${SUPERSET_VERSION}/
 cd ~/svn/superset/
@@ -403,6 +403,7 @@ svn update
 ```
 
 Then tag the final release:
+
 ```bash
 # Go to the root directory of the repo, e.g. `~/src/superset`
 cd ~/src/superset/
@@ -434,8 +435,10 @@ Once it's all done, an [ANNOUNCE] thread announcing the release to the dev@ mail
 
 ```bash
 # Note use Superset's virtualenv
-python send_email.py announce
+python generate_email.py announce
 ```
+
+The script will generate the email text that should be sent to dev@superset.apache.org using an email client. The release version is fetched from the previously set environment variables.
 
 ### GitHub Release
 
