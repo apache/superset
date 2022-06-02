@@ -19,7 +19,7 @@
 # PY stage that simply does a pip install on our requirements
 ######################################################################
 ARG PY_VER=3.8.12
-ARG APP_PREFIX
+ARG APP_PREFIX=""
 FROM python:${PY_VER} AS superset-py
 ENV APP_PREFIX=${APP_PREFIX}
 
@@ -54,7 +54,7 @@ RUN npm install -g npm@${NPM_VER}
 
 
 ARG NPM_BUILD_CMD="build"
-ARG APP_PREFIX
+ARG APP_PREFIX=""
 ENV BUILD_CMD=${NPM_BUILD_CMD}
 ENV APP_PREFIX=${APP_PREFIX}
 
@@ -78,7 +78,7 @@ RUN cd /app/superset-frontend \
 # Final lean image...
 ######################################################################
 ARG PY_VER=3.8.12
-ARG APP_PREFIX
+ARG APP_PREFIX=""
 FROM python:${PY_VER} AS lean
 
 ENV LANG=C.UTF-8 \
@@ -136,7 +136,7 @@ CMD /usr/bin/run-server.sh
 FROM lean AS dev
 ARG GECKODRIVER_VERSION=v0.28.0
 ARG FIREFOX_VERSION=88.0
-ARG APP_PREFIX
+ARG APP_PREFIX=""
 ENV APP_PREFIX=${APP_PREFIX}
 COPY ./requirements/*.txt ./docker/requirements-*.txt/ /app/requirements/
 
@@ -167,7 +167,7 @@ USER superset
 # CI image...
 ######################################################################
 FROM lean AS ci
-ARG APP_PREFIX
+ARG APP_PREFIX=""
 ENV APP_PREFIX=${APP_PREFIX}
 
 COPY --chown=superset ./docker/docker-bootstrap.sh /app/docker/
