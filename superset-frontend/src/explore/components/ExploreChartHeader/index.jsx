@@ -36,6 +36,24 @@ import PropertiesModal from 'src/explore/components/PropertiesModal';
 import { sliceUpdated } from 'src/explore/actions/exploreActions';
 import { PageHeaderWithActions } from 'src/components/PageHeaderWithActions';
 import { useExploreAdditionalActionsMenu } from '../useExploreAdditionalActionsMenu';
+import CertifiedBadge from 'src/components/CertifiedBadge';
+import ExploreActionButtons from '../ExploreActionButtons';
+import RowCountLabel from '../RowCountLabel';
+import ObjectTags from '../../components/ObjectTags';
+import {
+  addTag,
+  deleteTag,
+  fetchSuggestions,
+  fetchTags,
+  OBJECT_TYPES,
+} from '../../tags';
+import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
+
+const CHART_STATUS_MAP = {
+  failed: 'danger',
+  loading: 'warning',
+  success: 'success',
+};
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -58,6 +76,11 @@ const saveButtonStyles = theme => css`
   & > span[role='img'] {
     margin-right: 0;
   }
+`;
+
+const StyledButtons = styled.span`
+  display: flex;
+  align-items: center;
 `;
 
 export const ExploreChartHeader = ({
@@ -170,16 +193,44 @@ export const ExploreChartHeader = ({
           showTooltip: true,
         }}
         titlePanelAdditionalItems={
-          sliceFormData ? (
-            <AlteredSliceTag
-              className="altered"
-              origFormData={{
-                ...sliceFormData,
-                chartTitle: oldSliceName,
-              }}
-              currentFormData={{ ...formData, chartTitle: sliceName }}
-            />
-          ) : null
+          [
+            sliceFormData ? (
+              <AlteredSliceTag
+                className="altered"
+                origFormData={{
+                  ...sliceFormData,
+                  chartTitle: oldSliceName,
+                }}
+                currentFormData={{ ...formData, chartTitle: sliceName }}
+              />
+            ) : null,
+            isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM) ? (
+              <ObjectTags
+                fetchTags={fetchTags({
+                  objectType: OBJECT_TYPES.DASHBOARD,
+                  objectId: dashboardId,
+                  includeTypes: false,
+                })}
+                fetchSuggestions={fetchSuggestions({includeTypes: false})}
+                deleteTag={deleteTag({
+                  objectType: OBJECT_TYPES.DASHBOARD,
+                  objectId: dashboardId,
+                })}
+                addTag={addTag({
+                  objectType: OBJECT_TYPES.DASHBOARD,
+                  objectId: dashboardId,
+                  includeTypes: false,
+                })}
+                editable={
+                  canOverwrite ||
+                  (slice?.owners || []).includes(
+                    user?.userId,
+                  ) ||
+                  !!user?.roles?.Admin
+                }
+              />
+            ) : null
+          ]
         }
         rightPanelAdditionalItems={
           <Tooltip

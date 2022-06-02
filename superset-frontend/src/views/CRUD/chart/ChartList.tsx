@@ -39,6 +39,7 @@ import {
 } from 'src/views/CRUD/hooks';
 import handleResourceExport from 'src/utils/export';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
+import { TagsList } from 'src/components/TagsList';
 import SubMenu, { SubMenuProps } from 'src/views/components/SubMenu';
 import FaveStar from 'src/components/FaveStar';
 import { Link, useHistory } from 'react-router-dom';
@@ -55,6 +56,7 @@ import withToasts from 'src/components/MessageToasts/withToasts';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
 import ImportModelsModal from 'src/components/ImportModal/index';
 import Chart from 'src/types/Chart';
+import Tag from 'src/types/Tag';
 import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
 import { nativeFilterGate } from 'src/dashboard/components/nativeFilters/utils';
@@ -365,6 +367,18 @@ function ChartList(props: ChartListProps) {
         accessor: 'created_by',
         disableSortBy: true,
         size: 'xl',
+      },
+      {
+        Cell: ({
+          row: {
+            original: { tags = [] },
+          },
+        }: any) => (
+          <TagsList tags={tags.filter((tag: Tag) => tag.type === 1)} />
+        ),
+        Header: t('Tags'),
+        accessor: 'tags',
+        disableSortBy: true,
       },
       {
         Cell: ({ row: { original } }: any) => {

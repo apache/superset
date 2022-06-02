@@ -103,15 +103,19 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
         "database.id",
         "db_id",
         "description",
+        "extra",
         "id",
         "label",
+        "last_run_delta_humanized",
+        "rows",
         "schema",
         "sql",
         "sql_tables",
-        "rows",
-        "last_run_delta_humanized",
-        "extra",
+        "tags.id",
+        "tags.name",
+        "tags.type",
     ]
+    list_select_columns = list_columns + ["changed_by_fk", "changed_on"]
     add_columns = ["db_id", "description", "label", "schema", "sql"]
     edit_columns = add_columns
     order_columns = [

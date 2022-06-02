@@ -83,7 +83,7 @@ class TaggedObject(Model, AuditMixinNullable):
     __tablename__ = "tagged_object"
     id = Column(Integer, primary_key=True)
     tag_id = Column(Integer, ForeignKey("tag.id"))
-    object_id = Column(Integer)
+    object_id = Column(Integer, ForeignKey("dashboards.id"), ForeignKey("slices.id"), ForeignKey("saved_query.id"))
     object_type = Column(Enum(ObjectTypes))
 
     tag = relationship("Tag", backref="objects")

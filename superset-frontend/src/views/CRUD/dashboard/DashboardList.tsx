@@ -28,6 +28,7 @@ import {
 } from 'src/views/CRUD/utils';
 import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
+import { TagsList } from 'src/components/TagsList';
 import handleResourceExport from 'src/utils/export';
 import Loading from 'src/components/Loading';
 import SubMenu, { SubMenuProps } from 'src/views/components/SubMenu';
@@ -39,6 +40,7 @@ import ListView, {
 } from 'src/components/ListView';
 import { dangerouslyGetItemDoNotUse } from 'src/utils/localStorageHelpers';
 import Owner from 'src/types/Owner';
+import Tag from 'src/types/Tag';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import FacePile from 'src/components/FacePile';
 import Icons from 'src/components/Icons';
@@ -87,6 +89,7 @@ interface Dashboard {
   url: string;
   thumbnail_url: string;
   owners: Owner[];
+  tags: Tag[];
   created_by: object;
 }
 
@@ -338,6 +341,18 @@ function DashboardList(props: DashboardListProps) {
         accessor: 'owners',
         disableSortBy: true,
         size: 'xl',
+      },
+      {
+        Cell: ({
+          row: {
+            original: { tags = [] },
+          },
+        }: any) => (
+          <TagsList tags={tags.filter((tag: Tag) => tag.type === 1)} />
+        ),
+        Header: t('Tags'),
+        accessor: 'tags',
+        disableSortBy: true,
       },
       {
         Cell: ({ row: { original } }: any) => {

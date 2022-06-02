@@ -43,10 +43,12 @@ import ListView, {
 import Loading from 'src/components/Loading';
 import DeleteModal from 'src/components/DeleteModal';
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
+import { TagsList } from 'src/components/TagsList';
 import { Tooltip } from 'src/components/Tooltip';
 import { commonMenuData } from 'src/views/CRUD/data/common';
 import { SavedQueryObject } from 'src/views/CRUD/types';
 import copyTextToClipboard from 'src/utils/copy';
+import Tag from 'src/types/Tag';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import ImportModelsModal from 'src/components/ImportModal/index';
 import Icons from 'src/components/Icons';
@@ -361,6 +363,18 @@ function SavedQueryList({
         Header: t('Modified'),
         accessor: 'changed_on_delta_humanized',
         size: 'xl',
+      },
+      {
+        Cell: ({
+          row: {
+            original: { tags = [] },
+          },
+        }: any) => (
+          <TagsList tags={tags.filter((tag: Tag) => tag.type === 1)} />
+        ),
+        Header: t('Tags'),
+        accessor: 'tags',
+        disableSortBy: true,
       },
       {
         Cell: ({ row: { original } }: any) => {

@@ -33,6 +33,9 @@ import Button from 'src/components/Button';
 import { AntdButton } from 'src/components/';
 import { findPermission } from 'src/utils/findPermission';
 import { Tooltip } from 'src/components/Tooltip';
+import EditableTitle from 'src/components/EditableTitle';
+import FaveStar from 'src/components/FaveStar';
+import ObjectTags from 'src/components/ObjectTags';
 import { safeStringify } from 'src/utils/safeStringify';
 import HeaderActionsDropdown from 'src/dashboard/components/Header/HeaderActionsDropdown';
 import PublishedStatus from 'src/dashboard/components/PublishedStatus';
@@ -52,6 +55,13 @@ import { options as PeriodicRefreshOptions } from 'src/dashboard/components/Refr
 import { FILTER_BOX_MIGRATION_STATES } from 'src/explore/constants';
 import { PageHeaderWithActions } from 'src/components/PageHeaderWithActions';
 import { DashboardEmbedModal } from '../DashboardEmbedControls';
+import {
+  addTag,
+  deleteTag,
+  fetchSuggestions,
+  fetchTags,
+  OBJECT_TYPES,
+} from '../../../tags';
 
 const propTypes = {
   addSuccessToast: PropTypes.func.isRequired,
@@ -188,6 +198,26 @@ class Header extends React.PureComponent {
     this.showPropertiesModal = this.showPropertiesModal.bind(this);
     this.hidePropertiesModal = this.hidePropertiesModal.bind(this);
     this.setIsDropdownVisible = this.setIsDropdownVisible.bind(this);
+    this.showReportModal = this.showReportModal.bind(this);
+    this.hideReportModal = this.hideReportModal.bind(this);
+    this.renderReportModal = this.renderReportModal.bind(this);
+    this.fetchTags = fetchTags.bind(this, {
+      objectType: OBJECT_TYPES.DASHBOARD,
+      objectId: props.dashboardInfo.id,
+      includeTypes: false,
+    });
+    this.fetchSuggestions = fetchSuggestions.bind(this, {
+      includeTypes: false,
+    });
+    this.deleteTag = deleteTag.bind(this, {
+      objectType: OBJECT_TYPES.DASHBOARD,
+      objectId: props.dashboardInfo.id,
+    });
+    this.addTag = addTag.bind(this, {
+      objectType: OBJECT_TYPES.DASHBOARD,
+      objectId: props.dashboardInfo.id,
+      includeTypes: false,
+    });
   }
 
   componentDidMount() {
@@ -615,6 +645,16 @@ class Header extends React.PureComponent {
                   )}
                 </div>
               )}
+              { isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM) ? (
+                <ObjectTags
+                  fetchTags={this.fetchTags}
+                  fetchSuggestions={this.fetchSuggestions}
+                  deleteTag={this.deleteTag}
+                  addTag={this.addTag}
+                  editable={dashboardInfo.dash_edit_perm}
+                />
+              ) : null
+              }
             </div>
           }
           menuDropdownProps={{
