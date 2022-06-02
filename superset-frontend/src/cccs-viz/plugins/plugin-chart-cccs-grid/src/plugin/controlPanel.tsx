@@ -18,6 +18,7 @@
  */
 import {
   t,
+  tn,
   FeatureFlag,
   isFeatureEnabled,
   QueryMode,
@@ -36,8 +37,9 @@ import {
   ControlPanelState,
   ControlState,
 } from '@superset-ui/chart-controls';
+import { StyledColumnOption } from 'src/explore/components/optionRenderers';
 
-//import cidrRegex from 'cidr-regex';
+// import cidrRegex from 'cidr-regex';
 
 function getQueryMode(controls: ControlStateMapping): QueryMode {
   const mode = controls?.query_mode?.value;
@@ -55,7 +57,7 @@ function getQueryMode(controls: ControlStateMapping): QueryMode {
  * Visibility check
  */
 function isQueryMode(mode: QueryMode) {
-  return ({ controls }: ControlPanelsContainerProps) =>
+  return ({ controls }: Pick<ControlPanelsContainerProps, 'controls'>) =>
     getQueryMode(controls) === mode;
 }
 
@@ -83,6 +85,40 @@ const validateAggControlValues = (
   return areControlsEmpty && isAggMode({ controls })
     ? [t('Group By, Metrics, or Percent Metrics must have a value')]
     : [];
+};
+
+const validateColumnValues = (
+  controls: ControlStateMapping,
+  values: any[],
+  state: ControlPanelState,
+) => {
+  const invalidColumns = values.filter(
+    (val: any) =>
+      val !== undefined &&
+      !state.datasource?.columns.some(col => col.column_name === val),
+  );
+  return invalidColumns.length !== 0
+    ? [
+        tn(
+          'Invalid column: %s',
+          'Invalid columns: %s',
+          invalidColumns.length,
+          invalidColumns.join(', '),
+        ),
+      ]
+    : [];
+};
+
+const validateAggColumnValues = (
+  controls: ControlStateMapping,
+  values: any[],
+  state: ControlPanelState,
+) => {
+  const result = validateAggControlValues(controls, values);
+  if (result.length === 0 && isAggMode({ controls })) {
+    return validateColumnValues(controls, values[1], state);
+  }
+  return result;
 };
 
 // function isIP(v: unknown) {
@@ -179,7 +215,18 @@ const config: ControlPanelConfig = {
         [
           {
             name: 'groupby',
-            override: {
+            config: {
+              type: 'SelectControl',
+              label: t('Group by'),
+              description: sharedControls.groupby.description,
+              multi: true,
+              freeForm: true,
+              allowAll: true,
+              default: [],
+              valueKey: 'column_name',
+              includeTime: false,
+              optionRenderer: c => <StyledColumnOption showType column={c} />,
+              valueRenderer: c => <StyledColumnOption column={c} />,
               visibility: isAggMode,
               mapStateToProps: (
                 state: ControlPanelState,
@@ -190,14 +237,20 @@ const config: ControlPanelConfig = {
                   sharedControls?.groupby?.mapStateToProps;
                 const newState =
                   originalMapStateToProps?.(state, controlState) ?? {};
-                newState.externalValidationErrors = validateAggControlValues(
+                newState.externalValidationErrors = validateAggColumnValues(
                   controls,
-                  [controls.metrics?.value, controlState.value, controls.percent_metrics?.value],
+                  [
+                    controls.metrics?.value,
+                    controlState.value,
+                    controls.percent_metrics?.value,
+                  ],
+                  state,
                 );
                 return newState;
               },
               rerender: ['metrics', 'percent_metrics'],
-            },
+              canCopy: true,
+            } as typeof sharedControls.groupby,
           },
         ],
         [
@@ -217,7 +270,11 @@ const config: ControlPanelConfig = {
                   originalMapStateToProps?.(state, controlState) ?? {};
                 newState.externalValidationErrors = validateAggControlValues(
                   controls,
-                  [controls.groupby?.value, controlState.value, controls.percent_metrics?.value],
+                  [
+                    controls.groupby?.value,
+                    controlState.value,
+                    controls.percent_metrics?.value,
+                  ],
                 );
                 return newState;
               },
@@ -257,15 +314,24 @@ const config: ControlPanelConfig = {
           {
             name: 'timeseries_limit_metric',
             override: {
-              visibility: isAggMode
+              visibility: isAggMode,
             },
           },
         ],
         [
           {
             name: 'columns',
-            override: {
-              visibility: isRawMode,
+            config: {
+              type: 'SelectControl',
+              label: t('Columns'),
+              description: t('Columns to display'),
+              multi: true,
+              freeForm: true,
+              allowAll: true,
+              default: [],
+              optionRenderer: c => <StyledColumnOption showType column={c} />,
+              valueRenderer: c => <StyledColumnOption column={c} />,
+              valueKey: 'column_name',
               mapStateToProps: (
                 state: ControlPanelState,
                 controlState: ControlState,
@@ -280,10 +346,18 @@ const config: ControlPanelConfig = {
                   isRawMode({ controls }) &&
                   ensureIsArray(controlState.value).length === 0
                     ? [t('must have a value')]
+                    : isRawMode({ controls })
+                    ? validateColumnValues(
+                        controls,
+                        ensureIsArray(controlState.value),
+                        state,
+                      )
                     : [];
                 return newState;
               },
-            },
+              visibility: isRawMode,
+              canCopy: true,
+            } as typeof sharedControls.groupby,
           },
         ],
         [
@@ -332,18 +406,20 @@ const config: ControlPanelConfig = {
           },
         ],
         [
-          isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS) ? {
-            name: 'table_filter',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Enable emitting filters'),
-              default: false,
-              renderTrigger: true,
-              description: t(
-                'Whether to apply filter to dashboards when grid cells are clicked.',
-              ),
-            },
-          } : null,
+          isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)
+            ? {
+                name: 'emitFilter',
+                config: {
+                  type: 'CheckboxControl',
+                  label: t('Enable emitting filters'),
+                  default: false,
+                  renderTrigger: true,
+                  description: t(
+                    'Whether to apply filter to dashboards when grid cells are clicked.',
+                  ),
+                },
+              }
+            : null,
         ],
       ],
     },
@@ -436,5 +512,29 @@ const config: ControlPanelConfig = {
     },
   },
 };
+
+// CLDN-941: Only show the CUSTOMIZE tab if DASHBOARD_CROSS_FILTERS are enabled in the system.
+// When more customization is added in the future this code can be removed and the code above
+// can be re-enabled.
+if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
+  config.controlPanelSections.push({
+    label: t('CCCS Grid Options'),
+    expanded: true,
+    controlSetRows: [
+      [
+        {
+          name: 'include_search',
+          config: {
+            type: 'CheckboxControl',
+            label: t('Search box'),
+            renderTrigger: true,
+            default: false,
+            description: t('Whether to include a client-side search box'),
+          },
+        },
+      ],
+    ],
+  });
+}
 
 export default config;
