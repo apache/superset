@@ -24,6 +24,7 @@ import superset.utils.database as database_utils
 from superset import db
 from superset.connectors.sqla.models import SqlMetric
 from superset.models.slice import Slice
+from superset.utils.core import DatasourceType
 
 from .helpers import (
     get_example_data,
@@ -112,7 +113,7 @@ def load_country_map_data(only_metadata: bool = False, force: bool = False) -> N
     slc = Slice(
         slice_name="Birth in France by department in 2016",
         viz_type="country_map",
-        datasource_type="table",
+        datasource_type=DatasourceType.TABLE,
         datasource_id=tbl.id,
         params=get_slice_json(slice_data),
     )
