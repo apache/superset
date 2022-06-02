@@ -69,3 +69,17 @@ test('should be false if series name does not match time_compare', () => {
     false,
   );
 });
+
+test('should be false if time compare is not suffix', () => {
+  const series = {
+    id: '1 month ago__metric',
+    name: '1 month ago__metric',
+    data: [100],
+  };
+  const formDataWithActualTypes = {
+    ...formData,
+    comparison_type: ComparisionType.Values,
+    time_compare: ['1 month ago', '1 month later'],
+  };
+  expect(isDerivedSeries(series, formDataWithActualTypes)).toEqual(false);
+});

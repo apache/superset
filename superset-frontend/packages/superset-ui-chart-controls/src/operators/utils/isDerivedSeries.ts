@@ -34,8 +34,8 @@ export const isDerivedSeries = (
     return false;
   }
 
-  const timeCompare = ensureIsArray(formData?.time_compare);
+  const timeCompare: string[] = ensureIsArray(formData?.time_compare);
   return isString(series.name)
-    ? !!timeCompare.find(timeOffset => series.name.includes(timeOffset))
+    ? !!timeCompare.find(timeOffset => series.name.endsWith(timeOffset))
     : false;
 };
