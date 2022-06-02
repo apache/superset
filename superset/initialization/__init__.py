@@ -18,16 +18,14 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import Any, Callable, Dict, TYPE_CHECKING
-
 import wtforms_json
 from deprecation import deprecated
 from flask import Flask, redirect
 from flask_appbuilder import expose, IndexView
 from flask_babel import gettext as __, lazy_gettext as _
 from flask_compress import Compress
+from typing import Any, Callable, Dict, TYPE_CHECKING
 from werkzeug.middleware.proxy_fix import ProxyFix
-from superset.config import BLUEPRINTS
 
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.constants import CHANGE_ME_SECRET_KEY
@@ -231,7 +229,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_link(
             "Home",
             label=__("Home"),
-            href="/analytics/superset/welcome/",
+            href= os.environ["APP_PREFIX"]+"/superset/welcome/",
             cond=lambda: bool(appbuilder.app.config["LOGO_TARGET_PATH"]),
         )
         appbuilder.add_view(
@@ -724,4 +722,4 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 class SupersetIndexView(IndexView):
     @expose("/")
     def index(self) -> FlaskResponse:
-        return redirect("/analytics/superset/welcome/")
+        return redirect(os.environ["APP_PREFIX"]+"/superset/welcome/")

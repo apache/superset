@@ -16,7 +16,6 @@
 # limitations under the License.
 #
 set -e
-export APP_PREFIX="/analytics"
 cd /app/superset-frontend
 npm install -g npm@7
 npm install -f --no-optional --global webpack webpack-cli

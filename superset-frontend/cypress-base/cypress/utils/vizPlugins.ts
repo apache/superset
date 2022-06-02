@@ -89,7 +89,9 @@ export function interceptChart({
   legacy?: boolean;
   method?: 'POST' | 'GET';
 }) {
-  const urlBase = legacy ? '**${process.env.APP_PREFIX}/superset/explore_json/' : '**${process.env.APP_PREFIX}/api/v1/chart/data';
+  const urlBase = legacy
+    ? `**${process.env.APP_PREFIX}/superset/explore_json/`
+    : `**${process.env.APP_PREFIX}/api/v1/chart/data`;
   let url;
   if (sliceId) {
     const encodedFormData = encodeURIComponent(
