@@ -41,7 +41,7 @@
     "build-storybook": "build-storybook",
     "check-translation": "prettier --check ../superset/translations/**/LC_MESSAGES/*.json",
     "clean-translation": "prettier --write ../superset/translations/**/LC_MESSAGES/*.json",
-    "cover": "cross-env NODE_ENV=test jest --coverage",
+    "cover": "cross-env NODE_ENV=test APP_PREFIX= jest --coverage",
     "dev": "webpack --mode=development --color --watch",
     "dev-server": "cross-env NODE_ENV=development BABEL_ENV=development node --max_old_space_size=4096 ./node_modules/webpack-dev-server/bin/webpack-dev-server.js --mode=development",
     "format": "npm run _prettier -- --write",
@@ -61,9 +61,9 @@
     "prettier-check": "npm run _prettier -- --check",
     "prod": "npm run build",
     "prune": "rm -rf ./{packages,plugins}/*/{lib,esm,tsconfig.tsbuildinfo,package-lock.json}",
-    "storybook": "cross-env NODE_ENV=development BABEL_ENV=development start-storybook -p 6006",
-    "tdd": "cross-env NODE_ENV=test jest --watch",
-    "test": "cross-env NODE_ENV=test jest",
+    "storybook": "cross-env NODE_ENV=development BABEL_ENV=development start-storybook -s ./src/assets/images -p 6006",
+    "tdd": "cross-env NODE_ENV=test APP_PREFIX= jest --watch",
+    "test": "cross-env NODE_ENV=test APP_PREFIX=  jest",
     "type": "tsc --noEmit"
   },
   "browserslist": [
