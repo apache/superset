@@ -17,8 +17,8 @@
  * under the License.
  */
 import rison from 'rison';
-import { useState, useEffect, useCallback } from 'react';
-import { makeApi, SupersetClient, t, JsonObject } from '@superset-ui/core';
+import { useCallback, useEffect, useState } from 'react';
+import { JsonObject, makeApi, SupersetClient, t } from '@superset-ui/core';
 
 import {
   createErrorHandler,
@@ -32,8 +32,7 @@ import Chart, { Slice } from 'src/types/Chart';
 import copyTextToClipboard from 'src/utils/copy';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import SupersetText from 'src/utils/textUtils';
-import { FavoriteStatus, ImportResourceName, DatabaseObject } from './types';
- //import { APP_PREFIX }from 'src/constants';
+import { DatabaseObject, FavoriteStatus, ImportResourceName } from './types';
 
 interface ListViewResourceState<D extends object = any> {
   loading: boolean;
@@ -90,7 +89,9 @@ export function useListViewResource<D extends object = any>(
   useEffect(() => {
     if (!infoEnable) return;
     SupersetClient.get({
-      endpoint: `${process.env.APP_PREFIX}/api/v1/${resource}/_info?q=${rison.encode({
+      endpoint: `${
+        process.env.APP_PREFIX
+      }/api/v1/${resource}/_info?q=${rison.encode({
         keys: ['permissions'],
       })}`,
     }).then(

@@ -25,7 +25,7 @@ import Alert from 'src/components/Alert';
 import Badge from 'src/components/Badge';
 import shortid from 'shortid';
 import { styled, SupersetClient, t, withTheme } from '@superset-ui/core';
-import { Select, Row, Col } from 'src/components';
+import { Col, Row, Select } from 'src/components';
 import { FormLabel } from 'src/components/Form';
 import Button from 'src/components/Button';
 import Tabs from 'src/components/Tabs';
@@ -466,6 +466,7 @@ function ColumnCollectionTable({
     />
   );
 }
+
 ColumnCollectionTable.propTypes = {
   columns: PropTypes.array.isRequired,
   datasource: PropTypes.object.isRequired,

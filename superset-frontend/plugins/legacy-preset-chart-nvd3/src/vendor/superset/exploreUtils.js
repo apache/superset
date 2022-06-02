@@ -19,8 +19,6 @@
 /* eslint camelcase: 0 */
 import URI from 'urijs';
 import safeStringify from 'fast-safe-stringify';
-// @ts-ignore
- //import { APP_PREFIX }from '../../../../../src/constants';
 
 const MAX_URL_LENGTH = 8000;
 

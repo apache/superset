@@ -20,13 +20,13 @@
 import React from 'react';
 import { styled } from '@superset-ui/core';
 import cls from 'classnames';
- //import { APP_PREFIX }from '../../constants';
 
 export type PositionOption =
   | 'floating'
   | 'inline'
   | 'inline-centered'
   | 'normal';
+
 export interface Props {
   position?: PositionOption;
   className?: string;

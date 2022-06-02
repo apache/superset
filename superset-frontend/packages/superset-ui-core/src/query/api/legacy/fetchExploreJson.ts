@@ -21,7 +21,6 @@ import { SupersetClient, Method, Endpoint } from '../../../connection';
 import { QueryFormData } from '../../types/QueryFormData';
 import { LegacyChartDataResponse } from './types';
 import { BaseParams } from '../types';
- //import { APP_PREFIX }from '../../../../../../../src/constants';
 
 export interface Params extends BaseParams {
   method?: Method;

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SupersetClient, logging } from '@superset-ui/core';
+import { logging, SupersetClient } from '@superset-ui/core';
 import { DashboardPermalinkValue } from 'src/dashboard/types';
 
 const assembleEndpoint = (

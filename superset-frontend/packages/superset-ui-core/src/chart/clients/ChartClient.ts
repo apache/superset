@@ -18,21 +18,19 @@
  */
 
 import {
-  isDefined,
-  SupersetClient,
-  SupersetClientInterface,
-  RequestConfig,
-  SupersetClientClass,
-  QueryFormData,
   Datasource,
+  isDefined,
+  QueryFormData,
+  RequestConfig,
+  SupersetClient,
+  SupersetClientClass,
+  SupersetClientInterface,
 } from '../..';
 import getChartBuildQueryRegistry from '../registries/ChartBuildQueryRegistrySingleton';
 import getChartMetadataRegistry from '../registries/ChartMetadataRegistrySingleton';
 import { QueryData } from '../types/QueryResponse';
 import { AnnotationLayerMetadata } from '../types/Annotation';
 import { PlainObject } from '../types/Base';
-// @ts-ignore
- //import { APP_PREFIX }from '../../../../../../src/constants';
 
 // This expands to Partial<All> & (union of all possible single-property types)
 type AtLeastOne<All, Each = { [K in keyof All]: Pick<All, K> }> = Partial<All> &

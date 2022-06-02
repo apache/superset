@@ -17,7 +17,6 @@
 
 import logging
 import os
-
 from flask import Flask
 
 from superset.initialization import SupersetAppInitializer
@@ -29,16 +28,15 @@ logger = logging.getLogger(__name__)
 def create_app() -> Flask:
     app = SupersetApp(__name__)
     app.debug = True
-    
-    
+
     try:
         # Allow user to override our config completely
         config_module = os.environ.get("SUPERSET_CONFIG", "superset.config")
         app.config.from_object(config_module)
-        app_prefix = app.app.config["APP_PREFIX"]
-        os.environ["APP_PREFIX"]=app_prefix
-        app.wsgi_app = '/' + PrefixMiddleware(app.wsgi_app,prefix=app_prefix)
+        app_prefix = os.environ["APP_PREFIX"]
         
+        app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix=app_prefix)
+
         app_initializer = app.config.get("APP_INITIALIZER", SupersetAppInitializer)(app)
         app_initializer.init_app()
 

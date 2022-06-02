@@ -1,4 +1,3 @@
- //import { APP_PREFIX }from 'src/constants';
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -22,7 +21,6 @@ export const TIME_WITH_MS = 'HH:mm:ss.SSS';
 
 export const BOOL_TRUE_DISPLAY = 'True';
 export const BOOL_FALSE_DISPLAY = 'False';
-
 
 export const URL_PARAMS = {
   migrationState: {

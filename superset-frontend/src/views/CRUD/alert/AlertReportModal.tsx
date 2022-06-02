@@ -18,17 +18,17 @@
  */
 import React, {
   FunctionComponent,
-  useState,
+  useCallback,
   useEffect,
   useMemo,
-  useCallback,
+  useState,
 } from 'react';
 import {
-  styled,
-  t,
-  SupersetClient,
   css,
+  styled,
+  SupersetClient,
   SupersetTheme,
+  t,
 } from '@superset-ui/core';
 import rison from 'rison';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
@@ -46,19 +46,18 @@ import { AntdCheckbox } from 'src/components';
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
 import { useCommonConf } from 'src/views/CRUD/data/database/state';
 import {
-  NotificationMethodOption,
   AlertObject,
   ChartObject,
   DashboardObject,
   DatabaseObject,
   MetaObject,
+  NotificationMethodOption,
   Operator,
   Recipient,
 } from 'src/views/CRUD/alert/types';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import { AlertReportCronScheduler } from './components/AlertReportCronScheduler';
 import { NotificationMethod } from './components/NotificationMethod';
- //import { APP_PREFIX }from 'src/constants';
 
 const TIMEOUT_MIN = 1;
 const TEXT_BASED_VISUALIZATION_TYPES = [

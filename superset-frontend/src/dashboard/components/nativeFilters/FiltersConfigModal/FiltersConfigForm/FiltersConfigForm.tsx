@@ -50,7 +50,7 @@ import { PluginFilterSelectCustomizeProps } from 'src/filters/components/Select/
 import { useSelector } from 'react-redux';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import { Input, TextArea } from 'src/components/Input';
-import { Select, FormInstance } from 'src/components';
+import { FormInstance, Select } from 'src/components';
 import Collapse from 'src/components/Collapse';
 import BasicErrorAlert from 'src/components/ErrorMessage/BasicErrorAlert';
 import { FormItem } from 'src/components/Form';

@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { t, useTheme } from '@superset-ui/core';
-import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
+import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import Icons from 'src/components/Icons';
 import Chart from 'src/types/Chart';
@@ -29,8 +29,7 @@ import { AntdDropdown } from 'src/components';
 import { Menu } from 'src/components/Menu';
 import FaveStar from 'src/components/FaveStar';
 import FacePile from 'src/components/FacePile';
-import { handleChartDelete, CardStyles } from '../utils';
- //import { APP_PREFIX }from '../../../constants';
+import { CardStyles, handleChartDelete } from '../utils';
 
 interface ChartCardProps {
   chart: Chart;

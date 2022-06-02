@@ -100,6 +100,7 @@ class QueryAutoRefresh extends React.PureComponent {
     return null;
   }
 }
+
 QueryAutoRefresh.propTypes = {
   offline: PropTypes.bool.isRequired,
   queries: PropTypes.object.isRequired,

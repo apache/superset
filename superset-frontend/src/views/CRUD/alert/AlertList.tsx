@@ -17,9 +17,9 @@
  * under the License.
  */
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useHistory } from 'react-router-dom';
-import { t, SupersetClient, makeApi, styled } from '@superset-ui/core';
+import { makeApi, styled, SupersetClient, t } from '@superset-ui/core';
 import moment from 'moment';
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
 import FacePile from 'src/components/FacePile';
@@ -31,7 +31,7 @@ import ListView, {
 } from 'src/components/ListView';
 import SubMenu, { SubMenuProps } from 'src/views/components/SubMenu';
 import { Switch } from 'src/components/Switch';
-import { APP_PREFIX, DATETIME_WITH_TIME_ZONE } from 'src/constants';
+import { DATETIME_WITH_TIME_ZONE } from 'src/constants';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import AlertStatusIcon from 'src/views/CRUD/alert/components/AlertStatusIcon';
 import RecipientIcon from 'src/views/CRUD/alert/components/RecipientIcon';
@@ -67,6 +67,7 @@ interface AlertListProps {
     lastName: string;
   };
 }
+
 const deleteAlerts = makeApi<number[], { message: string }>({
   requestType: 'rison',
   method: 'DELETE',

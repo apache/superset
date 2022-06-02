@@ -19,7 +19,7 @@
 import React, { useEffect, useState } from 'react';
 import moment from 'moment';
 import { styled, t } from '@superset-ui/core';
-import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
+import { LocalStorageKeys, setItem } from 'src/utils/localStorageHelpers';
 
 import ListViewCard from 'src/components/ListViewCard';
 import SubMenu from 'src/views/components/SubMenu';
@@ -36,7 +36,6 @@ import Icons from 'src/components/Icons';
 
 import EmptyState from './EmptyState';
 import { WelcomeTable } from './types';
- //import { APP_PREFIX }from '../../../constants';
 
 /**
  * Return result from /superset/recent_activity/{user_id}
@@ -64,6 +63,7 @@ export enum SetTabType {
   VIEWED = 'Viewed',
   EXAMPLE = 'Examples',
 }
+
 /**
  * Recent activity objects fetched by `getRecentAcitivtyObjs`.
  */

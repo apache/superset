@@ -25,14 +25,11 @@ import VerifyCORS, {
   Props as VerifyCORSProps,
 } from '../../shared/components/VerifyCORS';
 import Expandable from '../../shared/components/Expandable';
-// @ts-ignore
- //import { APP_PREFIX }from '../../../../../src/constants';
 
 const REQUEST_METHODS = ['GET', 'POST'];
-let path = `${process.env.APP_PREFIX}/api/v1/chart/data`;
 const ENDPOINTS = {
   '(Empty - verify auth only)': '/',
-  path: path,
+  path: `${process.env.APP_PREFIX}/api/v1/chart/data`,
 };
 
 export default {

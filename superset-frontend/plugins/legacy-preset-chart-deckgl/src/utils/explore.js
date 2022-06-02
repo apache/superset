@@ -18,7 +18,6 @@
  */
 import URI from 'urijs';
 import { safeStringify } from './safeStringify';
- //import { APP_PREFIX }from '../../../../../src/constants';
 
 const MAX_URL_LENGTH = 8000;
 

@@ -25,11 +25,11 @@ import Button from 'src/components/Button';
 import shortid from 'shortid';
 import rison from 'rison';
 import {
-  styled,
-  t,
-  makeApi,
-  SupersetClient,
   JsonResponse,
+  makeApi,
+  styled,
+  SupersetClient,
+  t,
 } from '@superset-ui/core';
 import { debounce } from 'lodash';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
@@ -49,7 +49,6 @@ import ExploreCtasResultsButton from '../ExploreCtasResultsButton';
 import ExploreResultsButton from '../ExploreResultsButton';
 import HighlightedSql from '../HighlightedSql';
 import QueryStateLabel from '../QueryStateLabel';
- //import { APP_PREFIX }from 'src/constants';
 
 enum DatasetRadioState {
   SAVE_NEW = 1,
@@ -463,7 +462,8 @@ export default class ResultSet extends React.PureComponent<
       title: tempTable,
       autorun: false,
       dbId: this.props.query.dbId,
-      sql: `SELECT * FROM ${tempSchema ? `${tempSchema}.` : ''}${tempTable}`,
+      sql: `SELECT *
+            FROM ${tempSchema ? `${tempSchema}.` : ''} ${tempTable}`,
     };
     this.props.actions.addQueryEditor(qe);
   }

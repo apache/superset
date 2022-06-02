@@ -38,7 +38,6 @@ import {
   shortenSQL,
 } from '../utils';
 import { WelcomeTable } from './types';
- //import { APP_PREFIX }from '../../../constants';
 
 SyntaxHighlighter.registerLanguage('sql', sql);
 

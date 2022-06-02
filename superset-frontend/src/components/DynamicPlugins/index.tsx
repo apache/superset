@@ -26,7 +26,6 @@ import {
 } from '@superset-ui/core';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { omitBy } from 'lodash';
- //import { APP_PREFIX }from '../../constants';
 
 const metadataRegistry = getChartMetadataRegistry();
 
