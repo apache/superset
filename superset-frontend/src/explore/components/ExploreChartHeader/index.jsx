@@ -374,6 +374,7 @@ export class ExploreChartHeader extends React.PureComponent {
               ...this.props.actions,
               openPropertiesModal: this.openPropertiesModal,
             }}
+            ownState={this.props.ownState}
             slice={this.props.slice}
             canDownloadCSV={this.props.can_download}
             chartStatus={chartStatus}
