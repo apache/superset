@@ -16,13 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useMemo, useState, useCallback, ReactElement } from 'react';
-import { SupersetClient, t, styled, useTheme } from '@superset-ui/core';
+import React, { ReactElement, useCallback, useMemo, useState } from 'react';
+import { styled, SupersetClient, t, useTheme } from '@superset-ui/core';
 import moment from 'moment';
 import {
-  createFetchRelated,
-  createFetchDistinct,
   createErrorHandler,
+  createFetchDistinct,
+  createFetchRelated,
   shortenSQL,
 } from 'src/views/CRUD/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
@@ -31,8 +31,8 @@ import SubMenu, { SubMenuProps } from 'src/views/components/SubMenu';
 import Popover from 'src/components/Popover';
 import { commonMenuData } from 'src/views/CRUD/data/common';
 import ListView, {
-  Filters,
   FilterOperator,
+  Filters,
   ListViewProps,
 } from 'src/components/ListView';
 import { Tooltip } from 'src/components/Tooltip';

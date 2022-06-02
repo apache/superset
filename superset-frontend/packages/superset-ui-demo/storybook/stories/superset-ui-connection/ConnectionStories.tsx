@@ -29,7 +29,7 @@ import Expandable from '../../shared/components/Expandable';
 const REQUEST_METHODS = ['GET', 'POST'];
 const ENDPOINTS = {
   '(Empty - verify auth only)': '/',
-  '/api/v1/chart/data': '/api/v1/chart/data',
+  path: `${process.env.APP_PREFIX}/api/v1/chart/data`,
 };
 
 export default {

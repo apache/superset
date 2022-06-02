@@ -17,7 +17,7 @@
  * under the License.
  */
 import { omit } from 'lodash';
-import { SupersetClient, JsonObject } from '@superset-ui/core';
+import { JsonObject, SupersetClient } from '@superset-ui/core';
 
 type Payload = {
   datasource_id: number;

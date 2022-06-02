@@ -18,10 +18,10 @@
  */
 import React, {
   FunctionComponent,
-  useState,
   ReactNode,
-  useMemo,
   useEffect,
+  useMemo,
+  useState,
 } from 'react';
 import { SelectValue } from 'antd/lib/select';
 

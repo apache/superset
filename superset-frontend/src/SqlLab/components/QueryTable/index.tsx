@@ -33,7 +33,7 @@ import ModalTrigger from 'src/components/ModalTrigger';
 import { UserWithPermissionsAndRoles as User } from 'src/types/bootstrapTypes';
 import ResultSet from '../ResultSet';
 import HighlightedSql from '../HighlightedSql';
-import { StaticPosition, verticalAlign, StyledTooltip } from './styles';
+import { StaticPosition, StyledTooltip, verticalAlign } from './styles';
 
 interface QueryTableQuery
   extends Omit<QueryResponse, 'state' | 'sql' | 'progress' | 'results'> {

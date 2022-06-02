@@ -43,6 +43,7 @@ export function getChartKey(explore) {
 }
 
 let requestCounter = 0;
+
 export function getHostName(allowDomainSharding = false) {
   let currentIndex = 0;
   if (allowDomainSharding) {

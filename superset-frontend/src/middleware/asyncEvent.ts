@@ -18,9 +18,9 @@
  */
 import {
   ensureIsArray,
+  logging,
   makeApi,
   SupersetClient,
-  logging,
 } from '@superset-ui/core';
 import { SupersetError } from 'src/components/ErrorMessage/types';
 import { FeatureFlag, isFeatureEnabled } from '../featureFlags';

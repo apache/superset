@@ -18,13 +18,13 @@
  */
 
 import {
-  isDefined,
-  SupersetClient,
-  SupersetClientInterface,
-  RequestConfig,
-  SupersetClientClass,
-  QueryFormData,
   Datasource,
+  isDefined,
+  QueryFormData,
+  RequestConfig,
+  SupersetClient,
+  SupersetClientClass,
+  SupersetClientInterface,
 } from '../..';
 import getChartBuildQueryRegistry from '../registries/ChartBuildQueryRegistrySingleton';
 import getChartMetadataRegistry from '../registries/ChartMetadataRegistrySingleton';

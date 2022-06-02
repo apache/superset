@@ -18,13 +18,13 @@
  */
 
 import {
-  t,
-  SupersetClient,
-  SupersetClientResponse,
+  css,
   logging,
   styled,
+  SupersetClient,
+  SupersetClientResponse,
   SupersetTheme,
-  css,
+  t,
 } from '@superset-ui/core';
 import Chart from 'src/types/Chart';
 import { intersection } from 'lodash';
@@ -73,7 +73,7 @@ const createFetchResourceMethod =
     user?: { userId: string | number; firstName: string; lastName: string },
   ) =>
   async (filterValue = '', page: number, pageSize: number) => {
-    const resourceEndpoint = `/api/v1/${resource}/${method}/${relation}`;
+    const resourceEndpoint = `${process.env.APP_PREFIX}/api/v1/${resource}/${method}/${relation}`;
     const queryParams = rison.encode_uri({
       filter: filterValue,
       page,
@@ -144,10 +144,14 @@ export const getEditedObjects = (userId: string | number) => {
   };
   const batch = [
     SupersetClient.get({
-      endpoint: `/api/v1/dashboard/?q=${getParams(filters.edited)}`,
+      endpoint: `${process.env.APP_PREFIX}/api/v1/dashboard/?q=${getParams(
+        filters.edited,
+      )}`,
     }),
     SupersetClient.get({
-      endpoint: `/api/v1/chart/?q=${getParams(filters.edited)}`,
+      endpoint: `${process.env.APP_PREFIX}/api/v1/chart/?q=${getParams(
+        filters.edited,
+      )}`,
     }),
   ];
   return Promise.all(batch)
@@ -173,7 +177,9 @@ export const getUserOwnedObjects = (
   ],
 ) =>
   SupersetClient.get({
-    endpoint: `/api/v1/${resource}/?q=${getParams(filters)}`,
+    endpoint: `${process.env.APP_PREFIX}/api/v1/${resource}/?q=${getParams(
+      filters,
+    )}`,
   }).then(res => res.json?.result);
 
 export const getRecentAcitivtyObjs = (
@@ -192,10 +198,14 @@ export const getRecentAcitivtyObjs = (
     ];
     const newBatch = [
       SupersetClient.get({
-        endpoint: `/api/v1/chart/?q=${getParams(filters)}`,
+        endpoint: `${process.env.APP_PREFIX}/api/v1/chart/?q=${getParams(
+          filters,
+        )}`,
       }),
       SupersetClient.get({
-        endpoint: `/api/v1/dashboard/?q=${getParams(filters)}`,
+        endpoint: `${process.env.APP_PREFIX}/api/v1/dashboard/?q=${getParams(
+          filters,
+        )}`,
       }),
     ];
     return Promise.all(newBatch)
@@ -266,7 +276,7 @@ export function handleChartDelete(
     ],
   };
   SupersetClient.delete({
-    endpoint: `/api/v1/chart/${id}`,
+    endpoint: `${process.env.APP_PREFIX}/api/v1/chart/${id}`,
   }).then(
     () => {
       if (chartFilter === 'Mine') refreshData(filters);
@@ -288,7 +298,7 @@ export function handleDashboardDelete(
   userId?: string | number,
 ) {
   return SupersetClient.delete({
-    endpoint: `/api/v1/dashboard/${id}`,
+    endpoint: `${process.env.APP_PREFIX}/api/v1/dashboard/${id}`,
   }).then(
     () => {
       const filters = {

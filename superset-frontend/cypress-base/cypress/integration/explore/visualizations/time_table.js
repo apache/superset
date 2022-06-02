@@ -23,7 +23,10 @@ describe('Visualization > Time TableViz', () => {
 
   beforeEach(() => {
     cy.login();
-    cy.intercept('POST', '/superset/explore_json/**').as('getJson');
+    cy.intercept(
+      'POST',
+      `${process.env.APP_PREFIX}/superset/explore_json/**`,
+    ).as('getJson');
   });
 
   it('Test time series table multiple metrics last year total', () => {

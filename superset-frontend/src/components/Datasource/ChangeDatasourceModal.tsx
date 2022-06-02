@@ -18,13 +18,13 @@
  */
 import React, {
   FunctionComponent,
-  useState,
-  useRef,
-  useEffect,
   useCallback,
+  useEffect,
+  useRef,
+  useState,
 } from 'react';
 import Alert from 'src/components/Alert';
-import { SupersetClient, t, styled } from '@superset-ui/core';
+import { styled, SupersetClient, t } from '@superset-ui/core';
 import TableView, { EmptyWrapperType } from 'src/components/TableView';
 import { ServerPagination, SortByType } from 'src/components/TableView/types';
 import StyledModal from 'src/components/Modal';

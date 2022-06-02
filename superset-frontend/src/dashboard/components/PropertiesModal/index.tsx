@@ -21,15 +21,15 @@ import { Input } from 'src/components/Input';
 import { FormItem } from 'src/components/Form';
 import jsonStringify from 'json-stringify-pretty-compact';
 import Button from 'src/components/Button';
-import { Select, Row, Col, AntdForm } from 'src/components';
+import { AntdForm, Col, Row, Select } from 'src/components';
 import rison from 'rison';
 import {
-  styled,
-  t,
-  SupersetClient,
-  getCategoricalSchemeRegistry,
   ensureIsArray,
+  getCategoricalSchemeRegistry,
   getSharedLabelColor,
+  styled,
+  SupersetClient,
+  t,
 } from '@superset-ui/core';
 
 import Modal from 'src/components/Modal';

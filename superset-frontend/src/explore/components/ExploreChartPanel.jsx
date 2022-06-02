@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
 import Split from 'react-split';
 import {
@@ -32,8 +32,8 @@ import { chartPropShape } from 'src/dashboard/util/propShapes';
 import ChartContainer from 'src/components/Chart/ChartContainer';
 import {
   getItem,
-  setItem,
   LocalStorageKeys,
+  setItem,
 } from 'src/utils/localStorageHelpers';
 import { DataTablesPane } from './DataTablesPane';
 import { buildV1ChartDataPayload } from '../exploreUtils';

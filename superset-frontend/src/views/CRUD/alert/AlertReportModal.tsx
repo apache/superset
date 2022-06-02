@@ -18,17 +18,17 @@
  */
 import React, {
   FunctionComponent,
-  useState,
+  useCallback,
   useEffect,
   useMemo,
-  useCallback,
+  useState,
 } from 'react';
 import {
-  styled,
-  t,
-  SupersetClient,
   css,
+  styled,
+  SupersetClient,
   SupersetTheme,
+  t,
 } from '@superset-ui/core';
 import rison from 'rison';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
@@ -46,12 +46,12 @@ import { AntdCheckbox } from 'src/components';
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
 import { useCommonConf } from 'src/views/CRUD/data/database/state';
 import {
-  NotificationMethodOption,
   AlertObject,
   ChartObject,
   DashboardObject,
   DatabaseObject,
   MetaObject,
+  NotificationMethodOption,
   Operator,
   Recipient,
 } from 'src/views/CRUD/alert/types';
