@@ -125,7 +125,7 @@ def boxplot(
 
     # nanpercentile needs numeric values, otherwise the isnan function
     # that's used in the underlying function will fail
-    for column in df:
+    for column in metrics:
         if df.dtypes[column] == np.object:
             df[column] = to_numeric(df[column], errors="coerce")
 
