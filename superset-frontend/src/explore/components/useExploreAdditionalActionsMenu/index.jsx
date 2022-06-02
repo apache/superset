@@ -95,6 +95,7 @@ export const useExploreAdditionalActionsMenu = (
   slice,
   onOpenInEditor,
   onOpenPropertiesModal,
+  ownState,
 ) => {
   const theme = useTheme();
   const { addDangerToast, addSuccessToast } = useToasts();
@@ -132,6 +133,7 @@ export const useExploreAdditionalActionsMenu = (
       canDownloadCSV
         ? exportChart({
             formData: latestQueryFormData,
+            ownState,
             resultType: 'full',
             resultFormat: 'csv',
           })

@@ -299,6 +299,7 @@ export default class Chart extends React.Component {
       resultType: 'full',
       resultFormat: 'csv',
       force: true,
+      ownState: this.props.ownState,
     });
   }
 
