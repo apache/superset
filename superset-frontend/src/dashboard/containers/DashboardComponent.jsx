@@ -30,14 +30,14 @@ import { COLUMN_TYPE, ROW_TYPE } from 'src/dashboard/util/componentTypes';
 import {
   createComponent,
   deleteComponent,
-  updateComponents,
   handleComponentDrop,
+  updateComponents,
 } from 'src/dashboard/actions/dashboardLayout';
 import {
-  setDirectPathToChild,
-  setActiveTabs,
-  setFullSizeChartId,
   postAddSliceFromDashboard,
+  setActiveTabs,
+  setDirectPathToChild,
+  setFullSizeChartId,
 } from 'src/dashboard/actions/dashboardState';
 
 const propTypes = {

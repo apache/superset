@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { MouseEventHandler, forwardRef } from 'react';
+import React, { forwardRef, MouseEventHandler } from 'react';
 import { SupersetTheme } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
 import Icons, { IconType } from 'src/components/Icons';

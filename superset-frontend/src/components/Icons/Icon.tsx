@@ -54,6 +54,7 @@ export const Icon = (props: IconProps) => {
 
   useEffect(() => {
     let cancelled = false;
+
     async function importIcon(): Promise<void> {
       ImportedSVG.current = (
         await import(
@@ -64,6 +65,7 @@ export const Icon = (props: IconProps) => {
         setLoaded(true);
       }
     }
+
     importIcon();
     return () => {
       cancelled = true;

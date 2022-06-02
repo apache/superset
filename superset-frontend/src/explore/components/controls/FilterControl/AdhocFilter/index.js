@@ -18,8 +18,8 @@
  */
 import {
   CUSTOM_OPERATORS,
-  Operators,
   OPERATOR_ENUM_TO_OPERATOR_TYPE,
+  Operators,
 } from 'src/explore/constants';
 import { getSimpleSQLExpression } from 'src/explore/exploreUtils';
 

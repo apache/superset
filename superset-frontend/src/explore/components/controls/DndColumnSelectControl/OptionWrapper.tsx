@@ -18,15 +18,15 @@
  */
 import React, { useRef } from 'react';
 import {
+  DragSourceMonitor,
+  DropTargetMonitor,
   useDrag,
   useDrop,
-  DropTargetMonitor,
-  DragSourceMonitor,
 } from 'react-dnd';
 import { DragContainer } from 'src/explore/components/controls/OptionControls';
 import {
-  OptionProps,
   OptionItemInterface,
+  OptionProps,
 } from 'src/explore/components/controls/DndColumnSelectControl/types';
 import { Tooltip } from 'src/components/Tooltip';
 import { StyledColumnOption } from 'src/explore/components/optionRenderers';

@@ -21,12 +21,12 @@ import PropTypes from 'prop-types';
 import { CompactPicker } from 'react-color';
 import Button from 'src/components/Button';
 import {
-  t,
-  SupersetClient,
   getCategoricalSchemeRegistry,
   getChartMetadataRegistry,
-  validateNonEmpty,
   isValidExpression,
+  SupersetClient,
+  t,
+  validateNonEmpty,
 } from '@superset-ui/core';
 
 import SelectControl from 'src/explore/components/controls/SelectControl';
@@ -34,15 +34,14 @@ import TextControl from 'src/explore/components/controls/TextControl';
 import CheckboxControl from 'src/explore/components/controls/CheckboxControl';
 import {
   ANNOTATION_SOURCE_TYPES,
+  ANNOTATION_SOURCE_TYPES_METADATA,
   ANNOTATION_TYPES,
   ANNOTATION_TYPES_METADATA,
   DEFAULT_ANNOTATION_TYPE,
   requiresQuery,
-  ANNOTATION_SOURCE_TYPES_METADATA,
 } from 'src/modules/AnnotationTypes';
 import PopoverSection from 'src/components/PopoverSection';
 import ControlHeader from 'src/explore/components/ControlHeader';
- //import { APP_PREFIX }from '../../../../constants';
 
 const AUTOMATIC_COLOR = '';
 

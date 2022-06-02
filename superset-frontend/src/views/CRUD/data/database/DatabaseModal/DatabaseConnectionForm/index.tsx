@@ -17,17 +17,17 @@
  * under the License.
  */
 import React, { FormEvent } from 'react';
-import { SupersetTheme, JsonObject } from '@superset-ui/core';
+import { JsonObject, SupersetTheme } from '@superset-ui/core';
 import { InputProps } from 'antd/lib/input';
 import {
-  hostField,
-  portField,
   databaseField,
-  usernameField,
-  passwordField,
   displayField,
-  queryField,
   forceSSLField,
+  hostField,
+  passwordField,
+  portField,
+  queryField,
+  usernameField,
 } from './CommonParameters';
 import { validatedInputField } from './ValidatedInputField';
 import { EncryptedField } from './EncryptedField';

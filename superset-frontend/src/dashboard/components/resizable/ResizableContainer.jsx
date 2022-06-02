@@ -80,6 +80,7 @@ const HANDLE_CLASSES = {
   right: 'resizable-container-handle--right',
   bottom: 'resizable-container-handle--bottom',
 };
+
 class ResizableContainer extends React.PureComponent {
   constructor(props) {
     super(props);

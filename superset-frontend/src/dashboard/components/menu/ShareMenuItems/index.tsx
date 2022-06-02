@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import copyTextToClipboard from 'src/utils/copy';
-import { t, logging, QueryFormData } from '@superset-ui/core';
+import { logging, QueryFormData, t } from '@superset-ui/core';
 import { Menu } from 'src/components/Menu';
 import {
   getChartPermalink,

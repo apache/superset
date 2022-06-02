@@ -18,23 +18,23 @@
  */
 import React, { useEffect, useState } from 'react';
 import { Select } from 'src/components';
-import { t, SupersetClient, SupersetTheme, styled } from '@superset-ui/core';
+import { styled, SupersetClient, SupersetTheme, t } from '@superset-ui/core';
 import {
-  Operators,
-  OPERATORS_OPTIONS,
-  TABLE_ONLY_OPERATORS,
+  AGGREGATES,
+  CUSTOM_OPERATORS,
+  DISABLE_INPUT_OPERATORS,
   DRUID_ONLY_OPERATORS,
   HAVING_OPERATORS,
   MULTI_OPERATORS,
-  CUSTOM_OPERATORS,
-  DISABLE_INPUT_OPERATORS,
-  AGGREGATES,
   OPERATOR_ENUM_TO_OPERATOR_TYPE,
+  Operators,
+  OPERATORS_OPTIONS,
+  TABLE_ONLY_OPERATORS,
 } from 'src/explore/constants';
 import FilterDefinitionOption from 'src/explore/components/controls/MetricControl/FilterDefinitionOption';
 import AdhocFilter, {
-  EXPRESSION_TYPES,
   CLAUSES,
+  EXPRESSION_TYPES,
 } from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import { Input } from 'src/components/Input';
 import { optionLabel } from 'src/utils/common';
@@ -69,6 +69,7 @@ export interface SimpleExpressionType {
   aggregate: keyof typeof AGGREGATES;
   label: string;
 }
+
 export interface SQLExpressionType {
   expressionType: keyof typeof EXPRESSION_TYPES;
   sqlExpression: string;
@@ -98,6 +99,7 @@ export interface Props {
   partitionColumn: string;
   operators?: Operators[];
 }
+
 export const useSimpleTabFilterProps = (props: Props) => {
   const isOperatorRelevant = (operator: Operators, subject: string) => {
     const column = props.datasource.columns?.find(

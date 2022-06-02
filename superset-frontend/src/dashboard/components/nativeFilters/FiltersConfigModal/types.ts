@@ -19,8 +19,8 @@
 import {
   AdhocFilter,
   DataMask,
-  NativeFilterType,
   NativeFilterScope,
+  NativeFilterType,
 } from '@superset-ui/core';
 
 export interface NativeFiltersFormItem {
@@ -48,6 +48,7 @@ export interface NativeFiltersFormItem {
   type: typeof NativeFilterType.NATIVE_FILTER;
   description: string;
 }
+
 export interface NativeFilterDivider {
   id: string;
   type: typeof NativeFilterType.DIVIDER;

@@ -21,8 +21,8 @@ import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import cx from 'classnames';
 
-import { t, SafeMarkdown } from '@superset-ui/core';
-import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
+import { SafeMarkdown, t } from '@superset-ui/core';
+import { LOG_ACTIONS_RENDER_CHART, Logger } from 'src/logger/LogUtils';
 import { MarkdownEditor } from 'src/components/AsyncAceEditor';
 
 import DeleteComponentButton from 'src/dashboard/components/DeleteComponentButton';
@@ -32,11 +32,11 @@ import ResizableContainer from 'src/dashboard/components/resizable/ResizableCont
 import MarkdownModeDropdown from 'src/dashboard/components/menu/MarkdownModeDropdown';
 import WithPopoverMenu from 'src/dashboard/components/menu/WithPopoverMenu';
 import { componentShape } from 'src/dashboard/util/propShapes';
-import { ROW_TYPE, COLUMN_TYPE } from 'src/dashboard/util/componentTypes';
+import { COLUMN_TYPE, ROW_TYPE } from 'src/dashboard/util/componentTypes';
 import {
+  GRID_BASE_UNIT,
   GRID_MIN_COLUMN_COUNT,
   GRID_MIN_ROW_UNITS,
-  GRID_BASE_UNIT,
 } from 'src/dashboard/util/constants';
 
 const propTypes = {
@@ -375,4 +375,5 @@ function mapStateToProps(state) {
     redoLength: state.dashboardLayout.future.length,
   };
 }
+
 export default connect(mapStateToProps)(Markdown);

@@ -117,6 +117,7 @@ export interface SliceHeaderControlsProps {
   supersetCanCSV?: boolean;
   sliceCanEdit?: boolean;
 }
+
 interface State {
   showControls: boolean;
   showCrossFilterScopingModal: boolean;

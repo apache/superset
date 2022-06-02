@@ -30,7 +30,9 @@ jest.mock('./utils', () => ({
 }));
 
 const formMock: FormInstance = {
-  __INTERNAL__: { itemRef: () => () => {} },
+  __INTERNAL__: {
+    itemRef: () => () => {},
+  },
   scrollToField: () => {},
   getFieldInstance: () => {},
   getFieldValue: () => {},

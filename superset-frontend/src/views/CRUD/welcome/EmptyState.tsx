@@ -19,9 +19,8 @@
 import React from 'react';
 import Button from 'src/components/Button';
 import { Empty } from 'src/components';
-import { t, styled } from '@superset-ui/core';
+import { styled, t } from '@superset-ui/core';
 import { WelcomeTable } from './types';
- //import { APP_PREFIX }from '../../../constants';
 
 const welcomeTableLabels: Record<WelcomeTable, string> = {
   [WelcomeTable.Charts]: t('charts'),
@@ -34,6 +33,7 @@ interface EmptyStateProps {
   tableName: WelcomeTable;
   tab?: string;
 }
+
 const EmptyContainer = styled.div`
   min-height: 200px;
   display: flex;
@@ -139,7 +139,7 @@ export default function EmptyState({ tableName, tab }: EmptyStateProps) {
   return (
     <EmptyContainer>
       <Empty
-        image={`Analytics/static/assets/images/star-circle.svg`}
+        image={`${process.env.APP_PREFIX}/static/assets/images/star-circle.svg`}
         description={
           <span className="no-favorites">
             {t("You don't have any favorites yet!")}

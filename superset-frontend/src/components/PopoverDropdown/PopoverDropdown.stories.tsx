@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { useState } from 'react';
-import PopoverDropdown, { PopoverDropdownProps, OptionProps } from '.';
+import PopoverDropdown, { OptionProps, PopoverDropdownProps } from '.';
 
 export default {
   title: 'PopoverDropdown',

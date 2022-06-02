@@ -16,11 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { snakeCase, isEqual } from 'lodash';
+import { isEqual, snakeCase } from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
-import { SuperChart, logging, Behavior, t } from '@superset-ui/core';
-import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
+import { Behavior, logging, SuperChart, t } from '@superset-ui/core';
+import { LOG_ACTIONS_RENDER_CHART, Logger } from 'src/logger/LogUtils';
 import { EmptyStateBig, EmptyStateSmall } from 'src/components/EmptyState';
 
 const propTypes = {

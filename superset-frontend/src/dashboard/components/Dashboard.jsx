@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { isFeatureEnabled, t, FeatureFlag } from '@superset-ui/core';
+import { FeatureFlag, isFeatureEnabled, t } from '@superset-ui/core';
 
 import { PluginContext } from 'src/components/DynamicPlugins';
 import Loading from 'src/components/Loading';
@@ -27,9 +27,9 @@ import getLayoutComponentFromChartId from '../util/getLayoutComponentFromChartId
 import DashboardBuilder from './DashboardBuilder/DashboardBuilder';
 import {
   chartPropShape,
-  slicePropShape,
   dashboardInfoPropShape,
   dashboardStatePropShape,
+  slicePropShape,
 } from '../util/propShapes';
 import {
   LOG_ACTIONS_HIDE_BROWSER_TAB,

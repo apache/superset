@@ -26,7 +26,7 @@ import { initialState } from 'src/SqlLab/fixtures';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { Provider } from 'react-redux';
-import { screen, render } from 'spec/helpers/testing-library';
+import { render, screen } from 'spec/helpers/testing-library';
 import { CHART_TYPE, ROW_TYPE } from '../../util/componentTypes';
 import { ChartHolder } from './index';
 

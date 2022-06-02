@@ -17,7 +17,6 @@
  * under the License.
  */
 import '@cypress/code-coverage/support';
- //import { APP_PREFIX }from '../../../src/constants';
 
 const BASE_EXPLORE_URL = `${process.env.APP_PREFIX}/superset/explore/?form_data=`;
 

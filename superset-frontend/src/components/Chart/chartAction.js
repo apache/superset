@@ -19,33 +19,33 @@
 /* eslint no-undef: 'error' */
 /* eslint no-param-reassign: ["error", { "props": false }] */
 import moment from 'moment';
-import { t, SupersetClient } from '@superset-ui/core';
+import { SupersetClient, t } from '@superset-ui/core';
 import { getControlsState } from 'src/explore/store';
-import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
+import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import {
+  buildV1ChartDataPayload,
   getAnnotationJsonUrl,
+  getChartDataUri,
   getExploreUrl,
   getLegacyEndpointType,
-  buildV1ChartDataPayload,
   postForm,
   shouldUseLegacyApi,
-  getChartDataUri,
 } from 'src/explore/exploreUtils';
 import {
-  requiresQuery,
   ANNOTATION_SOURCE_TYPES,
+  requiresQuery,
 } from 'src/modules/AnnotationTypes';
 
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { logEvent } from 'src/logger/actions';
-import { Logger, LOG_ACTIONS_LOAD_CHART } from 'src/logger/LogUtils';
+import { LOG_ACTIONS_LOAD_CHART, Logger } from 'src/logger/LogUtils';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { allowCrossDomain as domainShardingEnabled } from 'src/utils/hostNamesConfig';
 import { updateDataMask } from 'src/dataMask/actions';
 import { waitForAsyncData } from 'src/middleware/asyncEvent';
- //import { APP_PREFIX }from '../../constants';
 
 export const CHART_UPDATE_STARTED = 'CHART_UPDATE_STARTED';
+
 export function chartUpdateStarted(queryController, latestQueryFormData, key) {
   return {
     type: CHART_UPDATE_STARTED,
@@ -56,46 +56,55 @@ export function chartUpdateStarted(queryController, latestQueryFormData, key) {
 }
 
 export const CHART_UPDATE_SUCCEEDED = 'CHART_UPDATE_SUCCEEDED';
+
 export function chartUpdateSucceeded(queriesResponse, key) {
   return { type: CHART_UPDATE_SUCCEEDED, queriesResponse, key };
 }
 
 export const CHART_UPDATE_STOPPED = 'CHART_UPDATE_STOPPED';
+
 export function chartUpdateStopped(key) {
   return { type: CHART_UPDATE_STOPPED, key };
 }
 
 export const CHART_UPDATE_FAILED = 'CHART_UPDATE_FAILED';
+
 export function chartUpdateFailed(queriesResponse, key) {
   return { type: CHART_UPDATE_FAILED, queriesResponse, key };
 }
 
 export const CHART_RENDERING_FAILED = 'CHART_RENDERING_FAILED';
+
 export function chartRenderingFailed(error, key, stackTrace) {
   return { type: CHART_RENDERING_FAILED, error, key, stackTrace };
 }
 
 export const CHART_RENDERING_SUCCEEDED = 'CHART_RENDERING_SUCCEEDED';
+
 export function chartRenderingSucceeded(key) {
   return { type: CHART_RENDERING_SUCCEEDED, key };
 }
 
 export const REMOVE_CHART = 'REMOVE_CHART';
+
 export function removeChart(key) {
   return { type: REMOVE_CHART, key };
 }
 
 export const ANNOTATION_QUERY_SUCCESS = 'ANNOTATION_QUERY_SUCCESS';
+
 export function annotationQuerySuccess(annotation, queryResponse, key) {
   return { type: ANNOTATION_QUERY_SUCCESS, annotation, queryResponse, key };
 }
 
 export const ANNOTATION_QUERY_STARTED = 'ANNOTATION_QUERY_STARTED';
+
 export function annotationQueryStarted(annotation, queryController, key) {
   return { type: ANNOTATION_QUERY_STARTED, annotation, queryController, key };
 }
 
 export const ANNOTATION_QUERY_FAILED = 'ANNOTATION_QUERY_FAILED';
+
 export function annotationQueryFailed(annotation, queryResponse, key) {
   return { type: ANNOTATION_QUERY_FAILED, annotation, queryResponse, key };
 }
@@ -330,17 +339,20 @@ export function runAnnotationQuery({
 }
 
 export const TRIGGER_QUERY = 'TRIGGER_QUERY';
+
 export function triggerQuery(value = true, key) {
   return { type: TRIGGER_QUERY, value, key };
 }
 
 // this action is used for forced re-render without fetch data
 export const RENDER_TRIGGERED = 'RENDER_TRIGGERED';
+
 export function renderTriggered(value, key) {
   return { type: RENDER_TRIGGERED, value, key };
 }
 
 export const UPDATE_QUERY_FORM_DATA = 'UPDATE_QUERY_FORM_DATA';
+
 export function updateQueryFormData(value, key) {
   return { type: UPDATE_QUERY_FORM_DATA, value, key };
 }
@@ -348,11 +360,13 @@ export function updateQueryFormData(value, key) {
 // in the sql lab -> explore flow, user can inline edit chart title,
 // then the chart will be assigned a new slice_id
 export const UPDATE_CHART_ID = 'UPDATE_CHART_ID';
+
 export function updateChartId(newId, key = 0) {
   return { type: UPDATE_CHART_ID, newId, key };
 }
 
 export const ADD_CHART = 'ADD_CHART';
+
 export function addChart(chart, key) {
   return { type: ADD_CHART, chart, key };
 }
@@ -500,6 +514,7 @@ export function exploreJSON(
 }
 
 export const GET_SAVED_CHART = 'GET_SAVED_CHART';
+
 export function getSavedChart(
   formData,
   force = false,
@@ -530,6 +545,7 @@ export function getSavedChart(
 }
 
 export const POST_CHART_FORM_DATA = 'POST_CHART_FORM_DATA';
+
 export function postChartFormData(
   formData,
   force = false,

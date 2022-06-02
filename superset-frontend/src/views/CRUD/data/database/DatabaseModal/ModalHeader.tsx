@@ -20,8 +20,8 @@
 import React from 'react';
 import { getDatabaseDocumentationLinks } from 'src/views/CRUD/hooks';
 import {
-  EditHeaderTitle,
   EditHeaderSubtitle,
+  EditHeaderTitle,
   StyledFormHeader,
   StyledStickyHeader,
 } from './styles';

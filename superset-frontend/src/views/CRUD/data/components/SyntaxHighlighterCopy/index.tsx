@@ -77,6 +77,7 @@ export default function SyntaxHighlighterCopy({
         }
       });
   }
+
   return (
     <SyntaxHighlighterWrapper>
       <Icons.Copy

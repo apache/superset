@@ -24,7 +24,7 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
 import Split from 'react-split';
-import { t, styled, withTheme } from '@superset-ui/core';
+import { styled, t, withTheme } from '@superset-ui/core';
 import debounce from 'lodash/debounce';
 import throttle from 'lodash/throttle';
 import StyledModal from 'src/components/Modal';
@@ -38,6 +38,7 @@ import Icons from 'src/components/Icons';
 import { detectOS } from 'src/utils/common';
 import {
   addQueryEditor,
+  addSavedQueryToTabState,
   CtasEnum,
   estimateQueryCost,
   persistEditorHeight,
@@ -48,17 +49,16 @@ import {
   queryEditorSetTemplateParams,
   runQuery,
   saveQuery,
-  addSavedQueryToTabState,
   scheduleQuery,
   setActiveSouthPaneTab,
   updateSavedQuery,
   validateQuery,
 } from 'src/SqlLab/actions/sqlLab';
 import {
-  STATE_TYPE_MAP,
   SQL_EDITOR_GUTTER_HEIGHT,
   SQL_EDITOR_GUTTER_MARGIN,
   SQL_TOOLBAR_HEIGHT,
+  STATE_TYPE_MAP,
 } from 'src/SqlLab/constants';
 import {
   getItem,
@@ -801,6 +801,7 @@ class SqlEditor extends React.PureComponent {
     );
   }
 }
+
 SqlEditor.defaultProps = defaultProps;
 SqlEditor.propTypes = propTypes;
 

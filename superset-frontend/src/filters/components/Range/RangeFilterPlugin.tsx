@@ -28,7 +28,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { AntdSlider } from 'src/components';
 import { rgba } from 'emotion-rgba';
 import { PluginFilterRangeProps } from './types';
-import { StatusMessage, StyledFormItem, FilterPluginStyle } from '../common';
+import { FilterPluginStyle, StatusMessage, StyledFormItem } from '../common';
 import { getRangeExtraFormData } from '../../utils';
 import { SingleValueType } from './SingleValueType';
 

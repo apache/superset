@@ -18,13 +18,13 @@
  */
 
 import {
-  t,
-  SupersetClient,
-  SupersetClientResponse,
+  css,
   logging,
   styled,
+  SupersetClient,
+  SupersetClientResponse,
   SupersetTheme,
-  css,
+  t,
 } from '@superset-ui/core';
 import Chart from 'src/types/Chart';
 import { intersection } from 'lodash';
@@ -34,7 +34,6 @@ import { FetchDataConfig } from 'src/components/ListView';
 import SupersetText from 'src/utils/textUtils';
 import findPermission from 'src/dashboard/util/findPermission';
 import { Dashboard, Filters } from './types';
- //import { APP_PREFIX }from '../../constants';
 
 // Modifies the rison encoding slightly to match the backend's rison encoding/decoding. Applies globally.
 // Code pulled from rison.js (https://github.com/Nanonid/rison), rison is licensed under the MIT license.
@@ -150,7 +149,9 @@ export const getEditedObjects = (userId: string | number) => {
       )}`,
     }),
     SupersetClient.get({
-      endpoint: `${process.env.APP_PREFIX}/api/v1/chart/?q=${getParams(filters.edited)}`,
+      endpoint: `${process.env.APP_PREFIX}/api/v1/chart/?q=${getParams(
+        filters.edited,
+      )}`,
     }),
   ];
   return Promise.all(batch)
@@ -176,7 +177,9 @@ export const getUserOwnedObjects = (
   ],
 ) =>
   SupersetClient.get({
-    endpoint: `${process.env.APP_PREFIX}/api/v1/${resource}/?q=${getParams(filters)}`,
+    endpoint: `${process.env.APP_PREFIX}/api/v1/${resource}/?q=${getParams(
+      filters,
+    )}`,
   }).then(res => res.json?.result);
 
 export const getRecentAcitivtyObjs = (
@@ -195,10 +198,14 @@ export const getRecentAcitivtyObjs = (
     ];
     const newBatch = [
       SupersetClient.get({
-        endpoint: `${process.env.APP_PREFIX}/api/v1/chart/?q=${getParams(filters)}`,
+        endpoint: `${process.env.APP_PREFIX}/api/v1/chart/?q=${getParams(
+          filters,
+        )}`,
       }),
       SupersetClient.get({
-        endpoint: `${process.env.APP_PREFIX}/api/v1/dashboard/?q=${getParams(filters)}`,
+        endpoint: `${process.env.APP_PREFIX}/api/v1/dashboard/?q=${getParams(
+          filters,
+        )}`,
       }),
     ];
     return Promise.all(newBatch)

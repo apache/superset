@@ -20,8 +20,8 @@ import {
   createDurationFormatter,
   getNumberFormatter,
   getNumberFormatterRegistry,
-  NumberFormats,
   getTimeFormatterRegistry,
+  NumberFormats,
   smartDateFormatter,
   smartDateVerboseFormatter,
 } from '@superset-ui/core';

@@ -20,8 +20,8 @@
 import $ from 'jquery';
 import { SupersetClient } from '@superset-ui/core';
 import {
-  getClientErrorObject,
   ClientErrorObject,
+  getClientErrorObject,
 } from 'src/utils/getClientErrorObject';
 import setupErrorMessages from 'src/setup/setupErrorMessages';
 

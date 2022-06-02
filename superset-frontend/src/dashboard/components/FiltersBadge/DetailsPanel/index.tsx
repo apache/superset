@@ -18,12 +18,12 @@
  */
 import React, { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
-import { Global, css } from '@emotion/react';
+import { css, Global } from '@emotion/react';
 import { t, useTheme } from '@superset-ui/core';
 import {
-  MinusCircleFilled,
   CheckCircleFilled,
   ExclamationCircleFilled,
+  MinusCircleFilled,
 } from '@ant-design/icons';
 import Popover from 'src/components/Popover';
 import Collapse from 'src/components/Collapse';

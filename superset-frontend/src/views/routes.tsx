@@ -21,7 +21,6 @@ import React, { lazy } from 'react';
 // not lazy loaded since this is the home page.
 import Welcome from 'src/views/CRUD/welcome/Welcome';
 
-
 const AnnotationLayersList = lazy(
   () =>
     import(

@@ -16,16 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { CSSProperties, ComponentType, ReactNode } from 'react';
+import React, { ComponentType, CSSProperties, ReactNode } from 'react';
 import { SerializedStyles } from '@emotion/react';
-import { SupersetTheme, css } from '@superset-ui/core';
+import { css, SupersetTheme } from '@superset-ui/core';
 import {
-  Styles,
-  Theme,
-  SelectComponentsConfig,
   components as defaultComponents,
   InputProps as ReactSelectInputProps,
   Props as SelectProps,
+  SelectComponentsConfig,
+  Styles,
+  Theme,
 } from 'react-select';
 import type { colors as reactSelectColors } from 'react-select/src/theme';
 import type { DeepNonNullable } from 'react-select/src/components';

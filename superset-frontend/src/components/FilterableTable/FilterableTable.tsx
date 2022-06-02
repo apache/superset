@@ -29,7 +29,7 @@ import {
   SortIndicator,
   Table,
 } from 'react-virtualized';
-import { getMultipleTextDimensions, t, styled } from '@superset-ui/core';
+import { getMultipleTextDimensions, styled, t } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
 import Button from '../Button';
 import CopyToClipboard from '../CopyToClipboard';

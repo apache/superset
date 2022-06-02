@@ -35,78 +35,105 @@ import { FilterSetFullData } from '../reducers/types';
 import { DashboardInfo, RootState } from '../types';
 
 export const SET_FILTER_CONFIG_BEGIN = 'SET_FILTER_CONFIG_BEGIN';
+
 export interface SetFilterConfigBegin {
   type: typeof SET_FILTER_CONFIG_BEGIN;
   filterConfig: FilterConfiguration;
 }
 
 export const SET_FILTER_CONFIG_COMPLETE = 'SET_FILTER_CONFIG_COMPLETE';
+
 export interface SetFilterConfigComplete {
   type: typeof SET_FILTER_CONFIG_COMPLETE;
   filterConfig: FilterConfiguration;
 }
+
 export const SET_FILTER_CONFIG_FAIL = 'SET_FILTER_CONFIG_FAIL';
+
 export interface SetFilterConfigFail {
   type: typeof SET_FILTER_CONFIG_FAIL;
   filterConfig: FilterConfiguration;
 }
+
 export const SET_IN_SCOPE_STATUS_OF_FILTERS = 'SET_IN_SCOPE_STATUS_OF_FILTERS';
+
 export interface SetInScopeStatusOfFilters {
   type: typeof SET_IN_SCOPE_STATUS_OF_FILTERS;
   filterConfig: FilterConfiguration;
 }
+
 export const SET_FILTER_SETS_BEGIN = 'SET_FILTER_SETS_BEGIN';
+
 export interface SetFilterSetsBegin {
   type: typeof SET_FILTER_SETS_BEGIN;
 }
+
 export const SET_FILTER_SETS_COMPLETE = 'SET_FILTER_SETS_COMPLETE';
+
 export interface SetFilterSetsComplete {
   type: typeof SET_FILTER_SETS_COMPLETE;
   filterSets: FilterSet[];
 }
+
 export const SET_FILTER_SETS_FAIL = 'SET_FILTER_SETS_FAIL';
+
 export interface SetFilterSetsFail {
   type: typeof SET_FILTER_SETS_FAIL;
 }
 
 export const CREATE_FILTER_SET_BEGIN = 'CREATE_FILTER_SET_BEGIN';
+
 export interface CreateFilterSetBegin {
   type: typeof CREATE_FILTER_SET_BEGIN;
 }
+
 export const CREATE_FILTER_SET_COMPLETE = 'CREATE_FILTER_SET_COMPLETE';
+
 export interface CreateFilterSetComplete {
   type: typeof CREATE_FILTER_SET_COMPLETE;
   filterSet: FilterSet;
 }
+
 export const CREATE_FILTER_SET_FAIL = 'CREATE_FILTER_SET_FAIL';
+
 export interface CreateFilterSetFail {
   type: typeof CREATE_FILTER_SET_FAIL;
 }
 
 export const DELETE_FILTER_SET_BEGIN = 'DELETE_FILTER_SET_BEGIN';
+
 export interface DeleteFilterSetBegin {
   type: typeof DELETE_FILTER_SET_BEGIN;
 }
+
 export const DELETE_FILTER_SET_COMPLETE = 'DELETE_FILTER_SET_COMPLETE';
+
 export interface DeleteFilterSetComplete {
   type: typeof DELETE_FILTER_SET_COMPLETE;
   filterSet: FilterSet;
 }
+
 export const DELETE_FILTER_SET_FAIL = 'DELETE_FILTER_SET_FAIL';
+
 export interface DeleteFilterSetFail {
   type: typeof DELETE_FILTER_SET_FAIL;
 }
 
 export const UPDATE_FILTER_SET_BEGIN = 'UPDATE_FILTER_SET_BEGIN';
+
 export interface UpdateFilterSetBegin {
   type: typeof UPDATE_FILTER_SET_BEGIN;
 }
+
 export const UPDATE_FILTER_SET_COMPLETE = 'UPDATE_FILTER_SET_COMPLETE';
+
 export interface UpdateFilterSetComplete {
   type: typeof UPDATE_FILTER_SET_COMPLETE;
   filterSet: FilterSet;
 }
+
 export const UPDATE_FILTER_SET_FAIL = 'UPDATE_FILTER_SET_FAIL';
+
 export interface UpdateFilterSetFail {
   type: typeof UPDATE_FILTER_SET_FAIL;
 }
@@ -351,11 +378,14 @@ export const deleteFilterSet =
   };
 
 export const SET_FOCUSED_NATIVE_FILTER = 'SET_FOCUSED_NATIVE_FILTER';
+
 export interface SetFocusedNativeFilter {
   type: typeof SET_FOCUSED_NATIVE_FILTER;
   id: string;
 }
+
 export const UNSET_FOCUSED_NATIVE_FILTER = 'UNSET_FOCUSED_NATIVE_FILTER';
+
 export interface UnsetFocusedNativeFilter {
   type: typeof UNSET_FOCUSED_NATIVE_FILTER;
 }
@@ -366,6 +396,7 @@ export function setFocusedNativeFilter(id: string): SetFocusedNativeFilter {
     id,
   };
 }
+
 export function unsetFocusedNativeFilter(): UnsetFocusedNativeFilter {
   return {
     type: UNSET_FOCUSED_NATIVE_FILTER,

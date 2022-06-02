@@ -17,9 +17,9 @@
  * under the License.
  */
 import {
+  FeatureFlag,
   initFeatureFlags,
   isFeatureEnabled,
-  FeatureFlag,
 } from 'src/featureFlags';
 
 function getDomainsConfig() {

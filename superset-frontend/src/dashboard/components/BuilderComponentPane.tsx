@@ -19,10 +19,10 @@
 /* eslint-env browser */
 import React from 'react';
 import Tabs from 'src/components/Tabs';
-import { StickyContainer, Sticky } from 'react-sticky';
+import { Sticky, StickyContainer } from 'react-sticky';
 import { ParentSize } from '@vx/responsive';
 
-import { t, styled } from '@superset-ui/core';
+import { styled, t } from '@superset-ui/core';
 
 import NewColumn from './gridComponents/new/NewColumn';
 import NewDivider from './gridComponents/new/NewDivider';

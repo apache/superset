@@ -26,40 +26,40 @@ import isDashboardLoading from 'src/dashboard/util/isDashboardLoading';
 import { dashboardInfoChanged } from 'src/dashboard/actions/dashboardInfo';
 
 import {
-  setEditMode,
-  showBuilderPane,
+  fetchCharts,
   fetchFaveStar,
+  maxUndoHistoryToast,
+  onChange,
+  onRefresh,
+  saveDashboardRequest,
   saveFaveStar,
   savePublished,
   setColorSchemeAndUnsavedChanges,
-  fetchCharts,
-  updateCss,
-  onChange,
-  saveDashboardRequest,
+  setEditMode,
   setMaxUndoHistoryExceeded,
-  maxUndoHistoryToast,
   setRefreshFrequency,
-  onRefresh,
+  showBuilderPane,
+  updateCss,
 } from 'src/dashboard/actions/dashboardState';
 
 import {
-  undoLayoutAction,
-  redoLayoutAction,
-  updateDashboardTitle,
   dashboardTitleChanged,
+  redoLayoutAction,
+  undoLayoutAction,
+  updateDashboardTitle,
 } from 'src/dashboard/actions/dashboardLayout';
 import {
-  addSuccessToast,
   addDangerToast,
+  addSuccessToast,
   addWarningToast,
 } from 'src/components/MessageToasts/actions';
 
 import { logEvent } from 'src/logger/actions';
 import { DASHBOARD_HEADER_ID } from 'src/dashboard/util/constants';
 import {
+  deleteActiveReport,
   fetchUISpecificReport,
   toggleActive,
-  deleteActiveReport,
 } from 'src/reports/actions/reports';
 
 function mapStateToProps({

@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { useTheme, t } from '@superset-ui/core';
+import { t, useTheme } from '@superset-ui/core';
 
 import { Tooltip } from 'src/components/Tooltip';
 import { ClassNames } from '@emotion/react';

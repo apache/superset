@@ -23,8 +23,8 @@ import { shallow } from 'enzyme';
 import MetricDefinitionOption from 'src/explore/components/controls/MetricControl/MetricDefinitionOption';
 import AggregateOption from 'src/explore/components/controls/MetricControl/AggregateOption';
 import {
-  StyledMetricOption,
   StyledColumnOption,
+  StyledMetricOption,
 } from 'src/explore/components/optionRenderers';
 
 describe('MetricDefinitionOption', () => {

@@ -19,7 +19,7 @@
 /* eslint-disable camelcase */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { t, styled, ensureIsArray } from '@superset-ui/core';
+import { ensureIsArray, styled, t } from '@superset-ui/core';
 import Tabs from 'src/components/Tabs';
 import Button from 'src/components/Button';
 import { Select } from 'src/components';
@@ -40,8 +40,8 @@ import AdhocMetric, {
   EXPRESSION_TYPES,
 } from 'src/explore/components/controls/MetricControl/AdhocMetric';
 import {
-  StyledMetricOption,
   StyledColumnOption,
+  StyledMetricOption,
 } from 'src/explore/components/optionRenderers';
 
 const propTypes = {

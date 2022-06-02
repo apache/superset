@@ -19,11 +19,11 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import {
-  t,
+  ensureIsArray,
   logging,
   SupersetClient,
+  t,
   withTheme,
-  ensureIsArray,
 } from '@superset-ui/core';
 
 import ControlHeader from 'src/explore/components/ControlHeader';
@@ -31,8 +31,8 @@ import adhocMetricType from 'src/explore/components/controls/MetricControl/adhoc
 import savedMetricType from 'src/explore/components/controls/MetricControl/savedMetricType';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
 import {
-  Operators,
   OPERATOR_ENUM_TO_OPERATOR_TYPE,
+  Operators,
 } from 'src/explore/constants';
 import FilterDefinitionOption from 'src/explore/components/controls/MetricControl/FilterDefinitionOption';
 import {

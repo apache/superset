@@ -10,13 +10,13 @@
     "experimentalDecorators": true,
     "noImplicitAny": false,
     "noEmit": false,
-    "baseUrl": "../../",
+    "baseUrl": "../../"
   },
   "include": [
     "storybook",
     "../**/src",
     "../../packages/superset-ui-core/test",
     "../../plugins/**/src",
-    "../../plugins/**/types",
+    "../../plugins/**/types"
   ]
 }

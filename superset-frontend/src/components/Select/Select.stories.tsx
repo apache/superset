@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ReactNode, useState, useCallback } from 'react';
+import React, { ReactNode, useCallback, useState } from 'react';
 import ControlHeader from 'src/explore/components/ControlHeader';
-import Select, { SelectProps, OptionsTypePage, OptionsType } from './Select';
+import Select, { OptionsType, OptionsTypePage, SelectProps } from './Select';
 
 export default {
   title: 'Select',

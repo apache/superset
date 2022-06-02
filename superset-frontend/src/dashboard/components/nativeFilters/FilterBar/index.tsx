@@ -20,34 +20,34 @@
 /* eslint-disable no-param-reassign */
 import throttle from 'lodash/throttle';
 import React, {
-  useEffect,
-  useState,
+  createContext,
   useCallback,
+  useEffect,
   useMemo,
   useRef,
-  createContext,
+  useState,
 } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import cx from 'classnames';
 import {
+  DataMask,
   DataMaskStateWithId,
   DataMaskWithId,
   Filter,
-  DataMask,
   HandlerFunction,
+  isNativeFilter,
+  SLOW_DEBOUNCE,
   styled,
   t,
-  SLOW_DEBOUNCE,
-  isNativeFilter,
 } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import { AntdTabs } from 'src/components';
 import { useHistory } from 'react-router-dom';
 import { usePrevious } from 'src/hooks/usePrevious';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
-import { updateDataMask, clearDataMask } from 'src/dataMask/actions';
+import { clearDataMask, updateDataMask } from 'src/dataMask/actions';
 import { useImmer } from 'use-immer';
-import { isEmpty, isEqual, debounce } from 'lodash';
+import { debounce, isEmpty, isEqual } from 'lodash';
 import { testWithId } from 'src/utils/testUtils';
 import Loading from 'src/components/Loading';
 import { getInitialDataMask } from 'src/dataMask/reducer';
@@ -59,11 +59,11 @@ import { RootState } from 'src/dashboard/types';
 import { checkIsApplyDisabled, TabIds } from './utils';
 import FilterSets from './FilterSets';
 import {
-  useNativeFiltersDataMask,
   useFilters,
   useFilterSets,
   useFilterUpdates,
   useInitialization,
+  useNativeFiltersDataMask,
 } from './state';
 import { createFilterKey, updateFilterKey } from './keyValue';
 import EditSection from './FilterSets/EditSection';

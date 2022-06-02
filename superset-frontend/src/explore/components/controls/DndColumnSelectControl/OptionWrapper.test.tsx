@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { render, screen, fireEvent } from 'spec/helpers/testing-library';
+import { fireEvent, render, screen } from 'spec/helpers/testing-library';
 import { DndItemType } from 'src/explore/components/DndItemType';
 import OptionWrapper from 'src/explore/components/controls/DndColumnSelectControl/OptionWrapper';
 

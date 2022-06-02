@@ -19,7 +19,7 @@
 /* eslint-disable no-unused-expressions */
 import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
-import { ThemeProvider, supersetTheme } from '@superset-ui/core';
+import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import CheckboxControl from 'src/explore/components/controls/CheckboxControl';
 import userEvent from '@testing-library/user-event';
 

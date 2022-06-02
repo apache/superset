@@ -19,12 +19,12 @@
 import moment from 'moment';
 import { t } from '@superset-ui/core';
 import {
-  SelectOptionType,
-  PreviousCalendarWeek,
-  PreviousCalendarMonth,
-  PreviousCalendarYear,
-  CommonRangeType,
   CalendarRangeType,
+  CommonRangeType,
+  PreviousCalendarMonth,
+  PreviousCalendarWeek,
+  PreviousCalendarYear,
+  SelectOptionType,
 } from 'src/explore/components/controls/DateFilterControl/types';
 
 export const FRAME_OPTIONS: SelectOptionType[] = [

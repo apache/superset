@@ -24,15 +24,15 @@ import React, {
   useState,
 } from 'react';
 import {
-  QueryFormData,
-  SuperChart,
-  DataMask,
-  t,
-  styled,
   Behavior,
   ChartDataResponseResult,
-  JsonObject,
+  DataMask,
   getChartMetadataRegistry,
+  JsonObject,
+  QueryFormData,
+  styled,
+  SuperChart,
+  t,
 } from '@superset-ui/core';
 import { useDispatch, useSelector } from 'react-redux';
 import { isEqual, isEqualWith } from 'lodash';

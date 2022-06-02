@@ -23,19 +23,19 @@ import {
   CHART_TYPE,
   COLUMN_TYPE,
   DIVIDER_TYPE,
+  DYNAMIC_TYPE,
   HEADER_TYPE,
   MARKDOWN_TYPE,
   ROW_TYPE,
-  TABS_TYPE,
   TAB_TYPE,
-  DYNAMIC_TYPE,
+  TABS_TYPE,
 } from './componentTypes';
 
 import {
-  MEDIUM_HEADER,
   BACKGROUND_TRANSPARENT,
-  GRID_DEFAULT_CHART_WIDTH,
   GRID_COLUMN_COUNT,
+  GRID_DEFAULT_CHART_WIDTH,
+  MEDIUM_HEADER,
 } from './constants';
 
 const typeToDefaultMetaData = {

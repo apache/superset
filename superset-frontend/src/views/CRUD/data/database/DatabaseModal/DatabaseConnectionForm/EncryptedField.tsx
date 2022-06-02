@@ -23,7 +23,7 @@ import InfoTooltip from 'src/components/InfoTooltip';
 import FormLabel from 'src/components/Form/FormLabel';
 import { DeleteFilled } from '@ant-design/icons';
 import { FieldPropTypes } from '.';
-import { infoTooltip, labelMarginBotton, CredentialInfoForm } from '../styles';
+import { CredentialInfoForm, infoTooltip, labelMarginBotton } from '../styles';
 
 enum CredentialInfoOptions {
   jsonUpload,

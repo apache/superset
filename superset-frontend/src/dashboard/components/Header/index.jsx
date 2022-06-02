@@ -20,15 +20,15 @@
 import moment from 'moment';
 import React from 'react';
 import PropTypes from 'prop-types';
-import { styled, t, getSharedLabelColor } from '@superset-ui/core';
+import { getSharedLabelColor, styled, t } from '@superset-ui/core';
 import ButtonGroup from 'src/components/ButtonGroup';
 
 import {
-  LOG_ACTIONS_PERIODIC_RENDER_DASHBOARD,
   LOG_ACTIONS_FORCE_REFRESH_DASHBOARD,
+  LOG_ACTIONS_PERIODIC_RENDER_DASHBOARD,
   LOG_ACTIONS_TOGGLE_EDIT_DASHBOARD,
 } from 'src/logger/LogUtils';
-import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
+import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 
 import Icons from 'src/components/Icons';
 import Button from 'src/components/Button';
@@ -44,9 +44,9 @@ import ReportModal from 'src/components/ReportModal';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import {
-  UNDO_LIMIT,
-  SAVE_TYPE_OVERWRITE,
   DASHBOARD_POSITION_DATA_LIMIT,
+  SAVE_TYPE_OVERWRITE,
+  UNDO_LIMIT,
 } from 'src/dashboard/util/constants';
 import setPeriodicRunner, {
   stopPeriodicRender,

@@ -18,10 +18,10 @@
  */
 import React, {
   FunctionComponent,
-  useState,
   ReactNode,
-  useMemo,
   useEffect,
+  useMemo,
+  useState,
 } from 'react';
 import { styled, SupersetClient, t } from '@superset-ui/core';
 import { Select } from 'src/components';
@@ -34,7 +34,6 @@ import RefreshLabel from 'src/components/RefreshLabel';
 import CertifiedBadge from 'src/components/CertifiedBadge';
 import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
- //import { APP_PREFIX }from 'src/constants';
 
 const TableSelectorWrapper = styled.div`
   ${({ theme }) => `

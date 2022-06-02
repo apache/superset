@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { mount } from 'enzyme';
-import { ThemeProvider, supersetTheme } from '@superset-ui/core';
+import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import Toast from 'src/components/MessageToasts/Toast';
 import { act } from 'react-dom/test-utils';
 import mockMessageToasts from './mockMessageToasts';

@@ -17,11 +17,11 @@
  * under the License.
  */
 import React, { useEffect, useState } from 'react';
-import { t, SupersetClient } from '@superset-ui/core';
+import { SupersetClient, t } from '@superset-ui/core';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import { Select } from 'src/components';
-import { SelectProps, OptionsType } from 'src/components/Select/Select';
-import { SelectValue, LabeledValue } from 'antd/lib/select';
+import { OptionsType, SelectProps } from 'src/components/Select/Select';
+import { LabeledValue, SelectValue } from 'antd/lib/select';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 

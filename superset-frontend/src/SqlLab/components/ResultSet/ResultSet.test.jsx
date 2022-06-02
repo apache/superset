@@ -36,12 +36,12 @@ import {
   cachedQuery,
   failedQueryWithErrorMessage,
   failedQueryWithErrors,
+  initialState,
   queries,
+  queryWithNoQueryLimit,
   runningQuery,
   stoppedQuery,
-  initialState,
   user,
-  queryWithNoQueryLimit,
 } from 'src/SqlLab/fixtures';
 
 const mockStore = configureStore([thunk]);

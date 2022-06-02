@@ -18,10 +18,10 @@
  */
 import React, {
   CSSProperties,
+  forwardRef,
+  RefObject,
   useEffect,
   useState,
-  RefObject,
-  forwardRef,
 } from 'react';
 import Loading from '../Loading';
 

@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useEffect, useMemo } from 'react';
-import { t, SupersetClient, JsonObject } from '@superset-ui/core';
+import React, { useEffect, useMemo, useState } from 'react';
+import { JsonObject, SupersetClient, t } from '@superset-ui/core';
 import TableView, { EmptyWrapperType } from 'src/components/TableView';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import Loading from 'src/components/Loading';
@@ -28,6 +28,7 @@ export interface TableLoaderProps {
   mutator?: (data: JsonObject) => any[];
   columns?: string[];
   noDataText?: string;
+
   addDangerToast(text: string): any;
 }
 

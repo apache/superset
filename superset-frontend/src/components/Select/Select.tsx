@@ -22,17 +22,17 @@ import React, {
   ReactNode,
   RefObject,
   UIEvent,
+  useCallback,
   useEffect,
   useMemo,
-  useState,
   useRef,
-  useCallback,
+  useState,
 } from 'react';
 import { ensureIsArray, styled, t } from '@superset-ui/core';
 import AntdSelect, {
+  LabeledValue as AntdLabeledValue,
   SelectProps as AntdSelectProps,
   SelectValue as AntdSelectValue,
-  LabeledValue as AntdLabeledValue,
 } from 'antd/lib/select';
 import { DownOutlined, SearchOutlined } from '@ant-design/icons';
 import debounce from 'lodash/debounce';

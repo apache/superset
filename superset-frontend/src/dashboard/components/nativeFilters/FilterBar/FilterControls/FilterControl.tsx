@@ -18,7 +18,7 @@
  */
 import React, { useContext, useMemo, useState } from 'react';
 import { styled, SupersetTheme } from '@superset-ui/core';
-import { FormItem as StyledFormItem, Form } from 'src/components/Form';
+import { Form, FormItem as StyledFormItem } from 'src/components/Form';
 import { Tooltip } from 'src/components/Tooltip';
 import { checkIsMissingRequiredValue } from '../utils';
 import FilterValue from './FilterValue';

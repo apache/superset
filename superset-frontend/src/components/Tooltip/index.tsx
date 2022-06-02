@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { useTheme, css } from '@superset-ui/core';
+import { css, useTheme } from '@superset-ui/core';
 import { Tooltip as AntdTooltip } from 'antd';
 import { TooltipProps } from 'antd/lib/tooltip';
 import { Global } from '@emotion/react';

@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { shallow, mount } from 'enzyme';
+import { mount, shallow } from 'enzyme';
 import { mockStore } from 'spec/fixtures/mockStore';
 import ExploreActionButtons from 'src/explore/components/ExploreActionButtons';
 import * as exploreUtils from 'src/explore/exploreUtils';

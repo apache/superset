@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { withKnobs, number } from '@storybook/addon-knobs';
+import { number, withKnobs } from '@storybook/addon-knobs';
 import FacePile from '.';
 
 export default {

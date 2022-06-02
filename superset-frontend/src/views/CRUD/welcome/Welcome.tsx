@@ -22,21 +22,21 @@ import Collapse from 'src/components/Collapse';
 import { User } from 'src/types/bootstrapTypes';
 import { reject } from 'lodash';
 import {
-  getItem,
   dangerouslyGetItemDoNotUse,
-  setItem,
   dangerouslySetItemDoNotUse,
+  getItem,
   LocalStorageKeys,
+  setItem,
 } from 'src/utils/localStorageHelpers';
 import ListViewCard from 'src/components/ListViewCard';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import {
+  CardContainer,
   createErrorHandler,
   getRecentAcitivtyObjs,
-  mq,
-  CardContainer,
   getUserOwnedObjects,
   loadingCardCount,
+  mq,
 } from 'src/views/CRUD/utils';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { AntdSwitch } from 'src/components';
@@ -45,7 +45,6 @@ import ActivityTable from './ActivityTable';
 import ChartTable from './ChartTable';
 import SavedQueries from './SavedQueries';
 import DashboardTable from './DashboardTable';
- //import { APP_PREFIX }from '../../../constants';
 
 interface WelcomeProps {
   user: User;

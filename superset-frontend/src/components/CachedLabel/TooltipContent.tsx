@@ -24,6 +24,7 @@ import { t } from '@superset-ui/core';
 interface Props {
   cachedTimestamp?: string;
 }
+
 export const TooltipContent: React.FC<Props> = ({ cachedTimestamp }) => {
   const cachedText = cachedTimestamp ? (
     <span>

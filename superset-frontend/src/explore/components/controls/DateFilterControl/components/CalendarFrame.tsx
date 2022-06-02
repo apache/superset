@@ -25,8 +25,8 @@ import {
 } from 'src/explore/components/controls/DateFilterControl/utils';
 import {
   CalendarRangeType,
-  PreviousCalendarWeek,
   FrameComponentProps,
+  PreviousCalendarWeek,
 } from '../types';
 
 export function CalendarFrame({ onChange, value }: FrameComponentProps) {

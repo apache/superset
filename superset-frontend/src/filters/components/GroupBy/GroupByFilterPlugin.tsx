@@ -26,7 +26,7 @@ import {
 import React, { useEffect, useState } from 'react';
 import { FormItemProps } from 'antd/lib/form';
 import { Select } from 'src/components';
-import { FilterPluginStyle, StyledFormItem, StatusMessage } from '../common';
+import { FilterPluginStyle, StatusMessage, StyledFormItem } from '../common';
 import { PluginFilterGroupByProps } from './types';
 
 export default function PluginFilterGroupBy(props: PluginFilterGroupByProps) {

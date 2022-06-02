@@ -17,7 +17,7 @@ specific language governing permissions and limitations
 under the License.
 -->
 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-<rect x="10" y="8" width="8" height="2" rx="1" transform="rotate(90 10 8)" fill="#B2B2B2"/>
-<rect x="13" y="8" width="8" height="2" rx="1" transform="rotate(90 13 8)" fill="#666666"/>
-<rect x="16" y="8" width="8" height="2" rx="1" transform="rotate(90 16 8)" fill="#323232"/>
+    <rect x="10" y="8" width="8" height="2" rx="1" transform="rotate(90 10 8)" fill="#B2B2B2"/>
+    <rect x="13" y="8" width="8" height="2" rx="1" transform="rotate(90 13 8)" fill="#666666"/>
+    <rect x="16" y="8" width="8" height="2" rx="1" transform="rotate(90 16 8)" fill="#323232"/>
 </svg>

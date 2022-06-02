@@ -27,14 +27,14 @@ import React, {
 import Fuse from 'fuse.js';
 import cx from 'classnames';
 import {
-  t,
-  styled,
-  css,
-  ChartMetadata,
-  SupersetTheme,
-  useTheme,
-  chartLabelWeight,
   chartLabelExplanations,
+  chartLabelWeight,
+  ChartMetadata,
+  css,
+  styled,
+  SupersetTheme,
+  t,
+  useTheme,
 } from '@superset-ui/core';
 import { AntdCollapse } from 'src/components';
 import { Tooltip } from 'src/components/Tooltip';

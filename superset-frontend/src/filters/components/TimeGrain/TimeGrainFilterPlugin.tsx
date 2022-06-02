@@ -26,7 +26,7 @@ import {
 import React, { useEffect, useMemo, useState } from 'react';
 import { Select } from 'src/components';
 import { FormItemProps } from 'antd/lib/form';
-import { FilterPluginStyle, StyledFormItem, StatusMessage } from '../common';
+import { FilterPluginStyle, StatusMessage, StyledFormItem } from '../common';
 import { PluginFilterTimeGrainProps } from './types';
 
 export default function PluginFilterTimegrain(

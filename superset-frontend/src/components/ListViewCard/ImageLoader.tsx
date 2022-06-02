@@ -17,9 +17,10 @@
  * under the License.
  */
 import React, { useEffect, useState } from 'react';
-import { styled, logging } from '@superset-ui/core';
+import { logging, styled } from '@superset-ui/core';
 
 export type BackgroundPosition = 'top' | 'bottom';
+
 interface ImageContainerProps {
   src: string;
   position: BackgroundPosition;
@@ -34,6 +35,7 @@ const ImageContainer = styled.div<ImageContainerProps>`
   width: calc(100% - 2px);
   margin: 1px 1px 0 1px;
 `;
+
 interface ImageLoaderProps
   extends React.DetailedHTMLProps<
     React.HTMLAttributes<HTMLDivElement>,

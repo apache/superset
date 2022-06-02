@@ -20,11 +20,11 @@ import React from 'react';
 import fetchMock from 'fetch-mock';
 import userEvent from '@testing-library/user-event';
 import {
+  act,
+  cleanup,
   render,
   screen,
   within,
-  cleanup,
-  act,
 } from 'spec/helpers/testing-library';
 /* -- These imports are used for the mock functions that currently don't work
 import {

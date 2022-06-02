@@ -26,8 +26,8 @@ import {
 } from 'src/views/CRUD/hooks';
 import {
   getItem,
-  setItem,
   LocalStorageKeys,
+  setItem,
 } from 'src/utils/localStorageHelpers';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { useHistory } from 'react-router-dom';
@@ -44,7 +44,6 @@ import ErrorBoundary from 'src/components/ErrorBoundary';
 import SubMenu from 'src/views/components/SubMenu';
 import EmptyState from './EmptyState';
 import { WelcomeTable } from './types';
- //import { APP_PREFIX }from '../../../constants';
 
 interface ChartTableProps {
   addDangerToast: (message: string) => void;
@@ -214,7 +213,7 @@ function ChartTable({
             ),
             buttonStyle: 'tertiary',
             onClick: () => {
-              window.location.assign('/chart/add');
+              window.location.assign(`${process.env.APP_PREFIX}/chart/add`);
             },
           },
           {
@@ -223,7 +222,9 @@ function ChartTable({
             onClick: () => {
               const target =
                 chartFilter === 'Favorite'
-                  ? `${process.env.APP_PREFIX}/chart/list/?filters=(favorite:(label:${t(
+                  ? `${
+                      process.env.APP_PREFIX
+                    }/chart/list/?filters=(favorite:(label:${t(
                       'Yes',
                     )},value:!t))`
                   : `${process.env.APP_PREFIX}/chart/list/`;

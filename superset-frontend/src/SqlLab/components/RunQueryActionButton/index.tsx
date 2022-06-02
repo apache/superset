@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { t, styled, supersetTheme } from '@superset-ui/core';
+import { styled, supersetTheme, t } from '@superset-ui/core';
 
 import { Menu } from 'src/components/Menu';
 import Button, { ButtonProps } from 'src/components/Button';

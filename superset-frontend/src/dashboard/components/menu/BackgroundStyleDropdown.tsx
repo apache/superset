@@ -21,8 +21,8 @@ import cx from 'classnames';
 
 import backgroundStyleOptions from 'src/dashboard/util/backgroundStyleOptions';
 import PopoverDropdown, {
-  OptionProps,
   OnChangeHandler,
+  OptionProps,
 } from 'src/components/PopoverDropdown';
 
 interface BackgroundStyleDropdownProps {

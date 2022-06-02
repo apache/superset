@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { Input } from 'antd';
-import { styled, css, SupersetTheme } from '@superset-ui/core';
+import { css, styled, SupersetTheme } from '@superset-ui/core';
 import InfoTooltip from 'src/components/InfoTooltip';
 import errorIcon from 'src/assets/images/icons/error.svg';
 import FormItem from './FormItem';
@@ -36,6 +36,7 @@ export interface LabeledErrorBoundInputProps {
   tooltipText?: string | null;
   id?: string;
   classname?: string;
+
   [x: string]: any;
 }
 

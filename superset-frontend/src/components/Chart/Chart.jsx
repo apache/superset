@@ -18,15 +18,15 @@
  */
 import PropTypes from 'prop-types';
 import React from 'react';
-import { styled, logging, t } from '@superset-ui/core';
+import { logging, styled, t } from '@superset-ui/core';
 
-import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
+import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { PLACEHOLDER_DATASOURCE } from 'src/dashboard/constants';
 import Button from 'src/components/Button';
 import Loading from 'src/components/Loading';
 import { EmptyStateBig } from 'src/components/EmptyState';
 import ErrorBoundary from 'src/components/ErrorBoundary';
-import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
+import { LOG_ACTIONS_RENDER_CHART, Logger } from 'src/logger/LogUtils';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
 import ChartRenderer from './ChartRenderer';

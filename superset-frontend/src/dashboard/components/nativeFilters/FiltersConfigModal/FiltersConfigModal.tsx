@@ -17,20 +17,20 @@
  * under the License.
  */
 import React, {
-  useEffect,
   useCallback,
+  useEffect,
   useMemo,
-  useState,
   useRef,
+  useState,
 } from 'react';
-import { uniq, isEqual, sortBy, debounce } from 'lodash';
+import { debounce, isEqual, sortBy, uniq } from 'lodash';
 import {
+  Divider,
   Filter,
   FilterConfiguration,
   NativeFilterType,
-  Divider,
-  styled,
   SLOW_DEBOUNCE,
+  styled,
   t,
 } from '@superset-ui/core';
 import { AntdForm } from 'src/components';
@@ -46,13 +46,13 @@ import Footer from './Footer/Footer';
 import { useOpenModal, useRemoveCurrentFilter } from './state';
 import { FilterRemoval, NativeFiltersForm } from './types';
 import {
-  createHandleSave,
   createHandleRemoveItem,
+  createHandleSave,
   generateFilterId,
   getFilterIds,
-  validateForm,
-  NATIVE_FILTER_DIVIDER_PREFIX,
   hasCircularDependency,
+  NATIVE_FILTER_DIVIDER_PREFIX,
+  validateForm,
 } from './utils';
 import DividerConfigForm from './DividerConfigForm';
 
@@ -89,6 +89,7 @@ export interface FiltersConfigModalProps {
   onSave: (filterConfig: FilterConfiguration) => Promise<void>;
   onCancel: () => void;
 }
+
 export const ALLOW_DEPENDENCIES = ['filter_select'];
 
 /**

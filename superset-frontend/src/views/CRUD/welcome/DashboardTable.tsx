@@ -29,8 +29,8 @@ import handleResourceExport from 'src/utils/export';
 import { useHistory } from 'react-router-dom';
 import {
   getItem,
-  setItem,
   LocalStorageKeys,
+  setItem,
 } from 'src/utils/localStorageHelpers';
 import { LoadingCards } from 'src/views/CRUD/welcome/Welcome';
 import {
@@ -45,7 +45,6 @@ import DashboardCard from 'src/views/CRUD/dashboard/DashboardCard';
 import SubMenu from 'src/views/components/SubMenu';
 import EmptyState from './EmptyState';
 import { WelcomeTable } from './types';
- //import { APP_PREFIX }from '../../../constants';
 
 export interface FilterValue {
   col: string;
@@ -231,7 +230,9 @@ function DashboardTable({
             onClick: () => {
               const target =
                 dashboardFilter === 'Favorite'
-                  ? `${process.env.APP_PREFIX}/dashboard/list/?filters=(favorite:(label:${t(
+                  ? `${
+                      process.env.APP_PREFIX
+                    }/dashboard/list/?filters=(favorite:(label:${t(
                       'Yes',
                     )},value:!t))`
                   : `${process.env.APP_PREFIX}/dashboard/list/`;

@@ -16,12 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { t } from '@superset-ui/core';
 import { Select } from 'src/components';
 import { Filter, SelectOption } from 'src/components/ListView/types';
 import { FormLabel } from 'src/components/Form';
-import { FilterContainer, BaseFilter } from './Base';
+import { BaseFilter, FilterContainer } from './Base';
 
 interface SelectFilterProps extends BaseFilter {
   fetchSelects?: Filter['fetchSelects'];
@@ -88,4 +88,5 @@ function SelectFilter({
     </FilterContainer>
   );
 }
+
 export default SelectFilter;

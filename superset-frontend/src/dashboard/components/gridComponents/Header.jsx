@@ -33,8 +33,8 @@ import headerStyleOptions from 'src/dashboard/util/headerStyleOptions';
 import backgroundStyleOptions from 'src/dashboard/util/backgroundStyleOptions';
 import { componentShape } from 'src/dashboard/util/propShapes';
 import {
-  SMALL_HEADER,
   BACKGROUND_TRANSPARENT,
+  SMALL_HEADER,
 } from 'src/dashboard/util/constants';
 
 const propTypes = {

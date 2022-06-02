@@ -21,7 +21,7 @@ import PropTypes from 'prop-types';
 import { AntdDropdown } from 'src/components';
 import { Menu } from 'src/components/Menu';
 import Button from 'src/components/Button';
-import { t, styled } from '@superset-ui/core';
+import { styled, t } from '@superset-ui/core';
 import ModalTrigger from 'src/components/ModalTrigger';
 import { CssEditor as AceCssEditor } from 'src/components/AsyncAceEditor';
 

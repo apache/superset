@@ -24,7 +24,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { AdhocColumn, t, styled, css } from '@superset-ui/core';
+import { AdhocColumn, css, styled, t } from '@superset-ui/core';
 import {
   ColumnMeta,
   isAdhocColumn,

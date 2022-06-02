@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { isEqual, isEmpty } from 'lodash';
+import { isEmpty, isEqual } from 'lodash';
 import { t } from '@superset-ui/core';
 import getControlsForVizType from 'src/utils/getControlsForVizType';
 import { safeStringify } from 'src/utils/safeStringify';

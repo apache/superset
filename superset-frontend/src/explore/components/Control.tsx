@@ -18,8 +18,8 @@
  */
 import React, { ReactNode, useCallback, useState } from 'react';
 import {
-  ControlType,
   ControlComponentProps as BaseControlComponentProps,
+  ControlType,
 } from '@superset-ui/chart-controls';
 import { JsonValue, QueryFormData } from '@superset-ui/core';
 import ErrorBoundary from 'src/components/ErrorBoundary';

@@ -17,10 +17,9 @@
  * under the License.
  */
 import { Dispatch } from 'redux';
-import { makeApi, CategoricalColorNamespace } from '@superset-ui/core';
+import { CategoricalColorNamespace, makeApi } from '@superset-ui/core';
 import { isString } from 'lodash';
 import { ChartConfiguration, DashboardInfo } from '../reducers/types';
- //import { APP_PREFIX }from 'src/constants';
 
 export const DASHBOARD_INFO_UPDATED = 'DASHBOARD_INFO_UPDATED';
 
@@ -59,21 +58,28 @@ export function dashboardInfoChanged(newInfo: { metadata: any }) {
 
   return { type: DASHBOARD_INFO_UPDATED, newInfo };
 }
+
 export const SET_CHART_CONFIG_BEGIN = 'SET_CHART_CONFIG_BEGIN';
+
 export interface SetChartConfigBegin {
   type: typeof SET_CHART_CONFIG_BEGIN;
   chartConfiguration: ChartConfiguration;
 }
+
 export const SET_CHART_CONFIG_COMPLETE = 'SET_CHART_CONFIG_COMPLETE';
+
 export interface SetChartConfigComplete {
   type: typeof SET_CHART_CONFIG_COMPLETE;
   chartConfiguration: ChartConfiguration;
 }
+
 export const SET_CHART_CONFIG_FAIL = 'SET_CHART_CONFIG_FAIL';
+
 export interface SetChartConfigFail {
   type: typeof SET_CHART_CONFIG_FAIL;
   chartConfiguration: ChartConfiguration;
 }
+
 export const setChartConfiguration =
   (chartConfiguration: ChartConfiguration) =>
   async (dispatch: Dispatch, getState: () => any) => {

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled, css } from '@superset-ui/core';
+import { css, styled } from '@superset-ui/core';
 import { IconTooltip } from '../../../components/IconTooltip';
 
 export const StaticPosition = css`

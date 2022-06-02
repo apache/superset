@@ -18,10 +18,10 @@
  */
 import shortid from 'shortid';
 import JSONbig from 'json-bigint';
-import { t, SupersetClient } from '@superset-ui/core';
+import { SupersetClient, t } from '@superset-ui/core';
 import invert from 'lodash/invert';
 import mapKeys from 'lodash/mapKeys';
-import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
+import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 
 import { now } from 'src/modules/dates';
 import {
@@ -32,7 +32,6 @@ import {
 } from 'src/components/MessageToasts/actions';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import COMMON_ERR_MESSAGES from 'src/utils/errorMessages';
- //import { APP_PREFIX }from '../../constants';
 
 export const RESET_STATE = 'RESET_STATE';
 export const ADD_QUERY_EDITOR = 'ADD_QUERY_EDITOR';
@@ -637,7 +636,9 @@ export function switchQueryEditor(queryEditor, displayLimit) {
       !queryEditor.loaded
     ) {
       SupersetClient.get({
-        endpoint: encodeURI(`${process.env.APP_PREFIX}/tabstateview/${queryEditor.id}`),
+        endpoint: encodeURI(
+          `${process.env.APP_PREFIX}/tabstateview/${queryEditor.id}`,
+        ),
       })
         .then(({ json }) => {
           const loadedQueryEditor = {
@@ -690,7 +691,9 @@ export function toggleLeftBar(queryEditor) {
   return function (dispatch) {
     const sync = isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)
       ? SupersetClient.put({
-          endpoint: encodeURI(`${process.env.APP_PREFIX}/tabstateview/${queryEditor.id}`),
+          endpoint: encodeURI(
+            `${process.env.APP_PREFIX}/tabstateview/${queryEditor.id}`,
+          ),
           postPayload: { hide_left_bar: hideLeftBar },
         })
       : Promise.resolve();
@@ -719,7 +722,9 @@ export function removeQueryEditor(queryEditor) {
   return function (dispatch) {
     const sync = isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)
       ? SupersetClient.delete({
-          endpoint: encodeURI(`${process.env.APP_PREFIX}/tabstateview/${queryEditor.id}`),
+          endpoint: encodeURI(
+            `${process.env.APP_PREFIX}/tabstateview/${queryEditor.id}`,
+          ),
         })
       : Promise.resolve();
 
@@ -765,7 +770,9 @@ export function queryEditorSetDb(queryEditor, dbId) {
   return function (dispatch) {
     const sync = isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)
       ? SupersetClient.put({
-          endpoint: encodeURI(`${process.env.APP_PREFIX}/tabstateview/${queryEditor.id}`),
+          endpoint: encodeURI(
+            `${process.env.APP_PREFIX}/tabstateview/${queryEditor.id}`,
+          ),
           postPayload: { database_id: dbId },
         })
       : Promise.resolve();
@@ -829,7 +836,9 @@ export function queryEditorSetAutorun(queryEditor, autorun) {
   return function (dispatch) {
     const sync = isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)
       ? SupersetClient.put({
-          endpoint: encodeURI(`${process.env.APP_PREFIX}/tabstateview/${queryEditor.id}`),
+          endpoint: encodeURI(
+            `${process.env.APP_PREFIX}/tabstateview/${queryEditor.id}`,
+          ),
           postPayload: { autorun },
         })
       : Promise.resolve();
@@ -854,7 +863,9 @@ export function queryEditorSetTitle(queryEditor, title) {
   return function (dispatch) {
     const sync = isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)
       ? SupersetClient.put({
-          endpoint: encodeURI(`${process.env.APP_PREFIX}/tabstateview/${queryEditor.id}`),
+          endpoint: encodeURI(
+            `${process.env.APP_PREFIX}/tabstateview/${queryEditor.id}`,
+          ),
           postPayload: { label: title },
         })
       : Promise.resolve();
@@ -938,7 +949,9 @@ export function queryEditorSetSql(queryEditor, sql) {
     dispatch({ type: QUERY_EDITOR_SET_SQL, queryEditor, sql });
     if (isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)) {
       return SupersetClient.put({
-        endpoint: encodeURI(`${process.env.APP_PREFIX}/tabstateview/${queryEditor.id}`),
+        endpoint: encodeURI(
+          `${process.env.APP_PREFIX}/tabstateview/${queryEditor.id}`,
+        ),
         postPayload: { sql, latest_query_id: queryEditor.latestQueryId },
       }).catch(() =>
         dispatch(
@@ -960,7 +973,9 @@ export function queryEditorSetQueryLimit(queryEditor, queryLimit) {
   return function (dispatch) {
     const sync = isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)
       ? SupersetClient.put({
-          endpoint: encodeURI(`${process.env.APP_PREFIX}/tabstateview/${queryEditor.id}`),
+          endpoint: encodeURI(
+            `${process.env.APP_PREFIX}/tabstateview/${queryEditor.id}`,
+          ),
           postPayload: { query_limit: queryLimit },
         })
       : Promise.resolve();
@@ -994,7 +1009,9 @@ export function queryEditorSetTemplateParams(queryEditor, templateParams) {
     });
     const sync = isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)
       ? SupersetClient.put({
-          endpoint: encodeURI(`${process.env.APP_PREFIX}/tabstateview/${queryEditor.id}`),
+          endpoint: encodeURI(
+            `${process.env.APP_PREFIX}/tabstateview/${queryEditor.id}`,
+          ),
           postPayload: { template_params: templateParams },
         })
       : Promise.resolve();
@@ -1023,9 +1040,11 @@ export function mergeTable(table, query, prepend) {
 function getTableMetadata(table, query, dispatch) {
   return SupersetClient.get({
     endpoint: encodeURI(
-      `${process.env.APP_PREFIX}/api/v1/database/${query.dbId}/table/${encodeURIComponent(
-        table.name,
-      )}/${encodeURIComponent(table.schema)}/`,
+      `${process.env.APP_PREFIX}/api/v1/database/${
+        query.dbId
+      }/table/${encodeURIComponent(table.name)}/${encodeURIComponent(
+        table.schema,
+      )}/`,
     ),
   })
     .then(({ json }) => {
@@ -1282,6 +1301,7 @@ export function popStoredQuery(urlId) {
       .catch(() => dispatch(addDangerToast(ERR_MSG_CANT_LOAD_QUERY)));
   };
 }
+
 export function popSavedQuery(saveQueryId) {
   return function (dispatch) {
     return SupersetClient.get({
@@ -1297,6 +1317,7 @@ export function popSavedQuery(saveQueryId) {
       .catch(() => dispatch(addDangerToast(ERR_MSG_CANT_LOAD_QUERY)));
   };
 }
+
 export function popQuery(queryId) {
   return function (dispatch) {
     return SupersetClient.get({
@@ -1316,6 +1337,7 @@ export function popQuery(queryId) {
       .catch(() => dispatch(addDangerToast(ERR_MSG_CANT_LOAD_QUERY)));
   };
 }
+
 export function popDatasourceQuery(datasourceKey, sql) {
   return function (dispatch) {
     return SupersetClient.get({
@@ -1337,13 +1359,16 @@ export function popDatasourceQuery(datasourceKey, sql) {
       );
   };
 }
+
 export function createDatasourceStarted() {
   return { type: CREATE_DATASOURCE_STARTED };
 }
+
 export function createDatasourceSuccess(data) {
   const datasource = `${data.table_id}__table`;
   return { type: CREATE_DATASOURCE_SUCCESS, datasource };
 }
+
 export function createDatasourceFailed(err) {
   return { type: CREATE_DATASOURCE_FAILED, err };
 }

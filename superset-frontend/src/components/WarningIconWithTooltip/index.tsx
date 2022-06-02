@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { useTheme, SafeMarkdown } from '@superset-ui/core';
+import { SafeMarkdown, useTheme } from '@superset-ui/core';
 import Icons, { IconType } from 'src/components/Icons';
 import { Tooltip } from 'src/components/Tooltip';
 

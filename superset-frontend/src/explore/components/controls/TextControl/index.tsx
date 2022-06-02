@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { legacyValidateNumber, legacyValidateInteger } from '@superset-ui/core';
+import { legacyValidateInteger, legacyValidateNumber } from '@superset-ui/core';
 import debounce from 'lodash/debounce';
 import { FAST_DEBOUNCE } from 'src/constants';
 import ControlHeader from 'src/explore/components/ControlHeader';

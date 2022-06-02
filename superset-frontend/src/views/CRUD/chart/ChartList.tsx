@@ -61,7 +61,6 @@ import setupPlugins from 'src/setup/setupPlugins';
 import InfoTooltip from 'src/components/InfoTooltip';
 import CertifiedBadge from 'src/components/CertifiedBadge';
 import ChartCard from './ChartCard';
- //import { APP_PREFIX }from '../../../constants';
 
 const FlexRowContainer = styled.div`
   align-items: center;
@@ -619,6 +618,7 @@ function ChartList(props: ChartListProps) {
       />
     );
   }
+
   const subMenuButtons: SubMenuProps['buttons'] = [];
   if (canDelete || canExport) {
     subMenuButtons.push({

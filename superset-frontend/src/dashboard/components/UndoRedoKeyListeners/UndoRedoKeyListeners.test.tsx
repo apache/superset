@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { render, fireEvent } from 'spec/helpers/testing-library';
+import { fireEvent, render } from 'spec/helpers/testing-library';
 import UndoRedoKeyListeners from '.';
 
 const defaultProps = {

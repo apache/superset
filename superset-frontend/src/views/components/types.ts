@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { NavBarProps, MenuObjectProps } from './Menu';
+import { MenuObjectProps, NavBarProps } from './Menu';
 
 export interface ExtentionConfigs {
   ALLOWED_EXTENSIONS: Array<any>;
@@ -26,6 +26,7 @@ export interface ExtentionConfigs {
   EXCEL_EXTENSIONS: Array<any>;
   HAS_GSHEETS_INSTALLED: boolean;
 }
+
 export interface RightMenuProps {
   align: 'flex-start' | 'flex-end';
   settings: MenuObjectProps[];

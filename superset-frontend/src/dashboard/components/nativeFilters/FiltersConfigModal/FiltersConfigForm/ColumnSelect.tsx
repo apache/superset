@@ -16,10 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useState, useMemo, useEffect } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Column, ensureIsArray, SupersetClient, t } from '@superset-ui/core';
 import { useChangeEffect } from 'src/hooks/useChangeEffect';
-import { Select, FormInstance } from 'src/components';
+import { FormInstance, Select } from 'src/components';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { cacheWrapper } from 'src/utils/cacheWrapper';

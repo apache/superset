@@ -18,15 +18,15 @@
  */
 import React, {
   ComponentType,
+  forwardRef,
   FunctionComponent,
   ReactElement,
-  forwardRef,
 } from 'react';
 import Select, {
-  Props as SelectProps,
-  OptionTypeBase,
-  MenuListComponentProps,
   components as defaultComponents,
+  MenuListComponentProps,
+  OptionTypeBase,
+  Props as SelectProps,
 } from 'react-select';
 import WindowedMenuList, { WindowedMenuListProps } from './WindowedMenuList';
 
@@ -76,5 +76,6 @@ export default function windowed<OptionType extends OptionTypeBase>(
     const components = { ...components_, MenuList };
     return <SelectComponent components={components} ref={ref} {...restProps} />;
   }
+
   return forwardRef(WindowedSelect);
 }

@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { TableInstance, Row } from 'react-table';
+import { Row, TableInstance } from 'react-table';
 import { styled } from '@superset-ui/core';
 import cx from 'classnames';
 

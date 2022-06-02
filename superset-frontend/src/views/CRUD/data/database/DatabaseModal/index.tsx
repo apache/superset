@@ -17,17 +17,17 @@
  * under the License.
  */
 import {
-  t,
-  SupersetTheme,
   FeatureFlag,
   isFeatureEnabled,
+  SupersetTheme,
+  t,
 } from '@superset-ui/core';
 import React, {
   FunctionComponent,
-  useEffect,
-  useState,
-  useReducer,
   Reducer,
+  useEffect,
+  useReducer,
+  useState,
 } from 'react';
 import Tabs from 'src/components/Tabs';
 import { AntdSelect } from 'src/components';
@@ -38,41 +38,41 @@ import IconButton from 'src/components/IconButton';
 import InfoTooltip from 'src/components/InfoTooltip';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import {
+  getConnectionAlert,
+  getDatabaseImages,
   testDatabaseConnection,
-  useSingleViewResource,
   useAvailableDatabases,
   useDatabaseValidation,
-  getDatabaseImages,
-  getConnectionAlert,
+  useSingleViewResource,
 } from 'src/views/CRUD/hooks';
 import { useCommonConf } from 'src/views/CRUD/data/database/state';
 import {
-  DatabaseObject,
-  DatabaseForm,
-  CONFIGURATION_METHOD,
   CatalogObject,
+  CONFIGURATION_METHOD,
+  DatabaseForm,
+  DatabaseObject,
 } from 'src/views/CRUD/data/database/types';
 import Loading from 'src/components/Loading';
 import ExtraOptions from './ExtraOptions';
 import SqlAlchemyForm from './SqlAlchemyForm';
 import DatabaseConnectionForm from './DatabaseConnectionForm';
 import {
-  antDErrorAlertStyles,
+  alchemyButtonLinkStyles,
   antDAlertStyles,
-  StyledAlertMargin,
+  antDErrorAlertStyles,
   antDModalNoPaddingStyles,
   antDModalStyles,
   antDTabsStyles,
   buttonLinkStyles,
-  alchemyButtonLinkStyles,
-  TabHeader,
   formHelperStyles,
   formStyles,
-  StyledAlignment,
-  SelectDatabaseStyles,
   infoTooltip,
+  SelectDatabaseStyles,
+  StyledAlertMargin,
+  StyledAlignment,
   StyledFooterButton,
   StyledStickyHeader,
+  TabHeader,
 } from './styles';
 import ModalHeader, { DOCUMENTATION_LINK } from './ModalHeader';
 
@@ -128,6 +128,7 @@ const errorAlertMapping = {
     ),
   },
 };
+
 interface DatabaseModalProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;

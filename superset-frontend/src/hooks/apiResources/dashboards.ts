@@ -20,11 +20,12 @@
 import { Dashboard, Datasource } from 'src/dashboard/types';
 import { Chart } from 'src/types/Chart';
 import { useApiV1Resource, useTransformedResource } from './apiResources';
- //import { APP_PREFIX }from '../../constants';
 
 export const useDashboard = (idOrSlug: string | number) =>
   useTransformedResource(
-    useApiV1Resource<Dashboard>(`${process.env.APP_PREFIX}/api/v1/dashboard/${idOrSlug}`),
+    useApiV1Resource<Dashboard>(
+      `${process.env.APP_PREFIX}/api/v1/dashboard/${idOrSlug}`,
+    ),
     dashboard => ({
       ...dashboard,
       metadata:

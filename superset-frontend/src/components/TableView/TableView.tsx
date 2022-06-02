@@ -23,7 +23,7 @@ import { useFilters, usePagination, useSortBy, useTable } from 'react-table';
 import { Empty } from 'src/components';
 import Pagination from 'src/components/Pagination';
 import TableCollection from 'src/components/TableCollection';
-import { SortByType, ServerPagination } from './types';
+import { ServerPagination, SortByType } from './types';
 
 const DEFAULT_PAGE_SIZE = 10;
 

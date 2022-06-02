@@ -20,18 +20,17 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { t, supersetTheme, ThemeProvider } from '@superset-ui/core';
+import { supersetTheme, t, ThemeProvider } from '@superset-ui/core';
 import throttle from 'lodash/throttle';
 import ToastContainer from 'src/components/MessageToasts/ToastContainer';
 import {
   LOCALSTORAGE_MAX_USAGE_KB,
-  LOCALSTORAGE_WARNING_THRESHOLD,
   LOCALSTORAGE_WARNING_MESSAGE_THROTTLE_MS,
+  LOCALSTORAGE_WARNING_THRESHOLD,
 } from 'src/SqlLab/constants';
 import * as Actions from 'src/SqlLab/actions/sqlLab';
 import TabbedSqlEditors from '../TabbedSqlEditors';
 import QueryAutoRefresh from '../QueryAutoRefresh';
- //import { APP_PREFIX }from '../../../constants';
 
 class App extends React.PureComponent {
   constructor(props) {
@@ -96,7 +95,9 @@ class App extends React.PureComponent {
 
   render() {
     if (this.state.hash && this.state.hash === '#search') {
-      return window.location.replace(`${process.env.APP_PREFIX}/superset/sqllab/history/`);
+      return window.location.replace(
+        `${process.env.APP_PREFIX}/superset/sqllab/history/`,
+      );
     }
     return (
       <ThemeProvider theme={supersetTheme}>

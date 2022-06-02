@@ -25,8 +25,8 @@ import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
 import DraggableNewComponent from 'src/dashboard/components/gridComponents/new/DraggableNewComponent';
 import { NEW_COMPONENTS_SOURCE_ID } from 'src/dashboard/util/constants';
 import {
-  NEW_COMPONENT_SOURCE_TYPE,
   CHART_TYPE,
+  NEW_COMPONENT_SOURCE_TYPE,
 } from 'src/dashboard/util/componentTypes';
 
 describe('DraggableNewComponent', () => {

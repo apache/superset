@@ -1,5 +1,4 @@
 import { getChartAlias, Slice } from 'cypress/utils/vizPlugins';
- //import { APP_PREFIX }from '../../../../src/constants';
 
 /**
  * Licensed to the Apache Software Foundation (ASF) under one

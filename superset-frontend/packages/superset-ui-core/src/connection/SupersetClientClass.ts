@@ -32,7 +32,6 @@ import {
   ParseMethod,
 } from './types';
 import { DEFAULT_FETCH_RETRY_OPTIONS, DEFAULT_BASE_URL } from './constants';
- //import { APP_PREFIX }from '../../../../../src/constants';
 
 const defaultUnauthorizedHandler = () => {
   window.location.href = `/login?next=${
@@ -206,7 +205,9 @@ export default class SupersetClientClass {
       method: 'GET',
       mode: this.mode,
       timeout: this.timeout,
-      url: this.getUrl({ endpoint: `${process.env.APP_PREFIX}/api/v1/security/csrf_token/` }),
+      url: this.getUrl({
+        endpoint: `${process.env.APP_PREFIX}/api/v1/security/csrf_token/`,
+      }),
       parseMethod: 'json',
     }).then(({ json }) => {
       if (typeof json === 'object') {

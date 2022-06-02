@@ -20,8 +20,8 @@ import React from 'react';
 import { withTheme } from '@superset-ui/core';
 
 import {
-  FilterValue,
   Filters,
+  FilterValue,
   InternalFilter,
   SelectOption,
 } from 'src/components/ListView/types';

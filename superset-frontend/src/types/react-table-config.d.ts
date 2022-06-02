@@ -64,10 +64,10 @@ import {
   UseSortByOptions,
   UseSortByState,
 } from 'react-table';
-import { ColumnSizer } from 'react-virtualized';
 
 declare module 'react-table' {
   type ColumnSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+
   export interface TableOptions<D extends object>
     extends UseExpandedOptions<D>,
       UseFiltersOptions<D>,

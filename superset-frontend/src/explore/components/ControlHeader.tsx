@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { FC, ReactNode } from 'react';
-import { t, css, useTheme } from '@superset-ui/core';
+import { css, t, useTheme } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import { Tooltip } from 'src/components/Tooltip';
 import { FormLabel } from 'src/components/Form';

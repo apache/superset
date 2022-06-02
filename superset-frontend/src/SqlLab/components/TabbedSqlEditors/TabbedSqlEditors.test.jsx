@@ -21,7 +21,7 @@ import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import URI from 'urijs';
 import { Provider } from 'react-redux';
-import { shallow, mount } from 'enzyme';
+import { mount, shallow } from 'enzyme';
 import sinon from 'sinon';
 import { act } from 'react-dom/test-utils';
 import fetchMock from 'fetch-mock';
@@ -29,7 +29,7 @@ import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import { EditableTabs } from 'src/components/Tabs';
 import TabbedSqlEditors from 'src/SqlLab/components/TabbedSqlEditors';
 import SqlEditor from 'src/SqlLab/components/SqlEditor';
-import { table, initialState } from 'src/SqlLab/fixtures';
+import { initialState, table } from 'src/SqlLab/fixtures';
 
 fetchMock.get('glob:*/api/v1/database/*', {});
 fetchMock.get('glob:*/savedqueryviewapi/api/get/*', {});

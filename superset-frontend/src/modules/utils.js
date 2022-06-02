@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 /* eslint camelcase: 0 */
 
 export function formatSelectOptions(options) {

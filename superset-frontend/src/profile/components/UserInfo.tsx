@@ -19,7 +19,7 @@
 import React from 'react';
 import Gravatar from 'react-gravatar';
 import moment from 'moment';
-import { t, styled } from '@superset-ui/core';
+import { styled, t } from '@superset-ui/core';
 import { UserWithPermissionsAndRoles } from '../../types/bootstrapTypes';
 
 interface UserInfoProps {

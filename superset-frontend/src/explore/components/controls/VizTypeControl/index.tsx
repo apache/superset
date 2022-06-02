@@ -18,7 +18,7 @@
  */
 import React, { useCallback, useState } from 'react';
 import PropTypes from 'prop-types';
-import { t, getChartMetadataRegistry, styled } from '@superset-ui/core';
+import { getChartMetadataRegistry, styled, t } from '@superset-ui/core';
 import { usePluginContext } from 'src/components/DynamicPlugins';
 import Modal from 'src/components/Modal';
 import { Tooltip } from 'src/components/Tooltip';

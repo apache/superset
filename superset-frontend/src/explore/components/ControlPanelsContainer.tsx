@@ -26,13 +26,13 @@ import React, {
   useState,
 } from 'react';
 import {
+  css,
+  DatasourceType,
   ensureIsArray,
-  t,
-  styled,
   getChartControlPanelRegistry,
   QueryFormData,
-  DatasourceType,
-  css,
+  styled,
+  t,
 } from '@superset-ui/core';
 import {
   ControlPanelSectionConfig,

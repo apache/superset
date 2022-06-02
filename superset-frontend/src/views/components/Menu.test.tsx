@@ -21,7 +21,6 @@ import * as reactRedux from 'react-redux';
 import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { Menu } from './Menu';
- //import { APP_PREFIX }from '../../constants';
 
 const dropdownItems = [
   {

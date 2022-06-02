@@ -17,7 +17,7 @@
  * under the License.
  */
 /* eslint-disable camelcase */
-import { SET_REPORT, ADD_REPORT, EDIT_REPORT } from '../actions/reports';
+import { ADD_REPORT, EDIT_REPORT, SET_REPORT } from '../actions/reports';
 
 export default function reportsReducer(state = {}, action) {
   const actionHandlers = {

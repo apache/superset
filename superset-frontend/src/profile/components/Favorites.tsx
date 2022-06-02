@@ -22,7 +22,7 @@ import { t } from '@superset-ui/core';
 
 import TableLoader from '../../components/TableLoader';
 import { Slice } from '../types';
-import { User, Dashboard } from '../../types/bootstrapTypes';
+import { Dashboard, User } from '../../types/bootstrapTypes';
 
 interface FavoritesProps {
   user: User;

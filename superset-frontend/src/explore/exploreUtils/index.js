@@ -35,7 +35,6 @@ import {
 } from 'src/explore/constants';
 import { DashboardStandaloneMode } from 'src/dashboard/util/constants';
 import { optionLabel } from '../../utils/common';
- //import { APP_PREFIX }from '../../constants';
 
 export function getChartKey(explore) {
   const { slice } = explore;
@@ -43,6 +42,7 @@ export function getChartKey(explore) {
 }
 
 let requestCounter = 0;
+
 export function getHostName(allowDomainSharding = false) {
   let currentIndex = 0;
   if (allowDomainSharding) {

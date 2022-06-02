@@ -19,7 +19,7 @@
 /* eslint-env browser */
 import cx from 'classnames';
 import React, { FC, useCallback, useMemo } from 'react';
-import { JsonObject, styled, css, t } from '@superset-ui/core';
+import { css, JsonObject, styled, t } from '@superset-ui/core';
 import { Global } from '@emotion/react';
 import { useDispatch, useSelector } from 'react-redux';
 import ErrorBoundary from 'src/components/ErrorBoundary';
@@ -43,8 +43,8 @@ import {
 } from 'src/dashboard/actions/dashboardLayout';
 import {
   DASHBOARD_GRID_ID,
-  DASHBOARD_ROOT_ID,
   DASHBOARD_ROOT_DEPTH,
+  DASHBOARD_ROOT_ID,
   DashboardStandaloneMode,
 } from 'src/dashboard/util/constants';
 import FilterBar from 'src/dashboard/components/nativeFilters/FilterBar';
@@ -61,7 +61,7 @@ import {
   OPEN_FILTER_BAR_WIDTH,
   TABS_HEIGHT,
 } from 'src/dashboard/constants';
-import { shouldFocusTabs, getRootLevelTabsComponent } from './utils';
+import { getRootLevelTabsComponent, shouldFocusTabs } from './utils';
 import DashboardContainer from './DashboardContainer';
 import { useNativeFilters } from './state';
 

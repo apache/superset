@@ -17,24 +17,24 @@
  * under the License.
  */
 import React from 'react';
-import { createStore, compose, applyMiddleware } from 'redux';
+import { applyMiddleware, compose, createStore } from 'redux';
 import { Provider } from 'react-redux';
 import thunkMiddleware from 'redux-thunk';
 import { hot } from 'react-hot-loader/root';
 import { ThemeProvider } from '@superset-ui/core';
 import { GlobalStyles } from 'src/GlobalStyles';
 import {
+  FeatureFlag,
   initFeatureFlags,
   isFeatureEnabled,
-  FeatureFlag,
 } from 'src/featureFlags';
 import getInitialState from './reducers/getInitialState';
 import rootReducer from './reducers/index';
 import { initEnhancer } from '../reduxUtils';
 import App from './components/App';
 import {
-  emptyQueryResults,
   clearQueryEditors,
+  emptyQueryResults,
 } from './utils/reduxStateToLocalStorageHelper';
 import { BYTES_PER_CHAR, KB_STORAGE } from './constants';
 import setupApp from '../setup/setupApp';

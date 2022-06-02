@@ -22,15 +22,15 @@ import { List } from 'src/components';
 import shortid from 'shortid';
 import { t, withTheme } from '@superset-ui/core';
 import {
-  SortableContainer,
-  SortableHandle,
-  SortableElement,
   arrayMove,
+  SortableContainer,
+  SortableElement,
+  SortableHandle,
 } from 'react-sortable-hoc';
 import Icons from 'src/components/Icons';
 import {
-  HeaderContainer,
   AddIconButton,
+  HeaderContainer,
 } from 'src/explore/components/controls/OptionControls';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import ControlHeader from 'src/explore/components/ControlHeader';

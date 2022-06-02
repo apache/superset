@@ -25,7 +25,7 @@ import {
   t,
   useTheme,
 } from '@superset-ui/core';
-import { Typography, AntdTooltip, AntdCollapse } from 'src/components';
+import { AntdCollapse, AntdTooltip, Typography } from 'src/components';
 import Icons from 'src/components/Icons';
 import { areObjectsEqual } from 'src/reduxUtils';
 import { getFilterValueForDisplay } from './utils';

@@ -19,12 +19,12 @@
 import {
   AppSection,
   Behavior,
+  ChartDataResponseResult,
   ChartProps,
   DataRecord,
   FilterState,
   GenericDataType,
   QueryFormData,
-  ChartDataResponseResult,
 } from '@superset-ui/core';
 import { RefObject } from 'react';
 import { PluginFilterHooks, PluginFilterStylesProps } from '../types';

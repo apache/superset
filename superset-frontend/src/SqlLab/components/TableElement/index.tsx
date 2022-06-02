@@ -16,11 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import Collapse from 'src/components/Collapse';
 import Card from 'src/components/Card';
 import ButtonGroup from 'src/components/ButtonGroup';
-import { t, styled } from '@superset-ui/core';
+import { styled, t } from '@superset-ui/core';
 import { debounce } from 'lodash';
 
 import { Tooltip } from 'src/components/Tooltip';

@@ -17,7 +17,6 @@
  * under the License.
  */
 import { t } from '@superset-ui/core';
- //import { APP_PREFIX }from '../../../constants';
 
 export const commonMenuData = {
   name: t('Data'),

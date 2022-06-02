@@ -20,7 +20,6 @@
 import rison from 'rison';
 import Chart from 'src/types/Chart';
 import { useApiV1Resource, useTransformedResource } from './apiResources';
- //import { APP_PREFIX }from '../../constants';
 
 function extractOwnerNames({ owners }: Chart) {
   if (!owners) return null;

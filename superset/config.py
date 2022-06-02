@@ -26,19 +26,18 @@ import importlib.util
 import json
 import logging
 import os
+import pkg_resources
 import re
 import sys
-from collections import OrderedDict
-from datetime import timedelta
-from typing import Any, Callable, Dict, List, Optional, Type, TYPE_CHECKING, Union
-
-import pkg_resources
 from cachelib.base import BaseCache
 from celery.schedules import crontab
+from collections import OrderedDict
+from datetime import timedelta
 from dateutil import tz
 from flask import Blueprint
 from flask_appbuilder.security.manager import AUTH_DB
 from pandas._libs.parsers import STR_NA_VALUES  # pylint: disable=no-name-in-module
+from typing import Any, Callable, Dict, List, Optional, Type, TYPE_CHECKING, Union
 from typing_extensions import Literal
 
 from superset.constants import CHANGE_ME_SECRET_KEY
@@ -231,9 +230,9 @@ PROXY_FIX_CONFIG = {"x_for": 1, "x_proto": 1, "x_host": 1, "x_port": 1, "x_prefi
 # ------------------------------
 # Uncomment to setup Your App name
 APP_NAME = "Superset"
-APP_PREFIX = 'analytics'
+
 # Specify the App icon
-APP_ICON = "/analytics/static/assets/images/superset-logo-horiz.png"
+APP_ICON = "/static/assets/images/superset-logo-horiz.png"
 
 # Specify where clicking the logo would take the user
 # e.g. setting it to '/' would take the user to '/superset/welcome/'

@@ -17,14 +17,14 @@
  * under the License.
  */
 import React, {
-  useState,
-  useEffect,
-  useCallback,
-  useReducer,
-  Reducer,
   FunctionComponent,
+  Reducer,
+  useCallback,
+  useEffect,
+  useReducer,
+  useState,
 } from 'react';
-import { t, SupersetTheme } from '@superset-ui/core';
+import { SupersetTheme, t } from '@superset-ui/core';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { bindActionCreators } from 'redux';
 import { connect, useDispatch, useSelector } from 'react-redux';
@@ -38,20 +38,20 @@ import withToasts from 'src/components/MessageToasts/withToasts';
 import { CronError } from 'src/components/CronPicker';
 import { RadioChangeEvent } from 'src/components';
 import {
-  StyledModal,
-  StyledTopSection,
-  StyledBottomSection,
-  StyledIconWrapper,
-  StyledScheduleTitle,
-  StyledCronPicker,
-  StyledCronError,
   noBottomMargin,
-  StyledFooterButton,
-  TimezoneHeaderStyle,
   SectionHeaderStyle,
+  StyledBottomSection,
+  StyledCronError,
+  StyledCronPicker,
+  StyledFooterButton,
+  StyledIconWrapper,
   StyledMessageContentTitle,
+  StyledModal,
   StyledRadio,
   StyledRadioGroup,
+  StyledScheduleTitle,
+  StyledTopSection,
+  TimezoneHeaderStyle,
 } from './styles';
 
 export interface ReportObject {

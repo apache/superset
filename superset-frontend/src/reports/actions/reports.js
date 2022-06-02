@@ -17,7 +17,7 @@
  * under the License.
  */
 /* eslint camelcase: 0 */
-import { t, SupersetClient } from '@superset-ui/core';
+import { SupersetClient, t } from '@superset-ui/core';
 import rison from 'rison';
 import {
   addDangerToast,
@@ -25,6 +25,7 @@ import {
 } from 'src/components/MessageToasts/actions';
 
 export const SET_REPORT = 'SET_REPORT';
+
 export function setReport(report) {
   return { type: SET_REPORT, report };
 }
@@ -131,7 +132,9 @@ export function editReport(id, report) {
 export function toggleActive(report, isActive) {
   return function toggleActiveThunk(dispatch) {
     return SupersetClient.put({
-      endpoint: encodeURI(`${process.env.APP_PREFIX}/api/v1/report/${report.id}`),
+      endpoint: encodeURI(
+        `${process.env.APP_PREFIX}/api/v1/report/${report.id}`,
+      ),
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         active: isActive,
@@ -153,7 +156,9 @@ export function toggleActive(report, isActive) {
 export function deleteActiveReport(report) {
   return function deleteActiveReportThunk(dispatch) {
     return SupersetClient.delete({
-      endpoint: encodeURI(`${process.env.APP_PREFIX}/api/v1/report/${report.id}`),
+      endpoint: encodeURI(
+        `${process.env.APP_PREFIX}/api/v1/report/${report.id}`,
+      ),
     })
       .catch(() => {
         dispatch(addDangerToast(t('Your report could not be deleted')));

@@ -21,7 +21,7 @@ import { FormInstance } from 'src/components';
 import React from 'react';
 import { CustomControlItem, DatasourceMeta } from '@superset-ui/chart-controls';
 import { Column, ensureIsArray, GenericDataType } from '@superset-ui/core';
-import { DatasourcesState, ChartsState } from 'src/dashboard/types';
+import { ChartsState, DatasourcesState } from 'src/dashboard/types';
 
 const FILTERS_FIELD_NAME = 'filters';
 
