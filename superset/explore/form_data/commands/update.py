@@ -47,12 +47,13 @@ class UpdateFormDataCommand(BaseCommand, ABC):
     def run(self) -> Optional[str]:
         self.validate()
         try:
-            dataset_id = self._cmd_params.dataset_id
+            datasource_id = self._cmd_params.datasource_id
             chart_id = self._cmd_params.chart_id
+            datasource_type = self._cmd_params.datasource_type
             actor = self._cmd_params.actor
             key = self._cmd_params.key
             form_data = self._cmd_params.form_data
-            check_access(dataset_id, chart_id, actor)
+            check_access(datasource_id, chart_id, actor, datasource_type)
             state: TemporaryExploreState = cache_manager.explore_form_data_cache.get(
                 key
             )
@@ -64,7 +65,7 @@ class UpdateFormDataCommand(BaseCommand, ABC):
                 # Generate a new key if tab_id changes or equals 0
                 tab_id = self._cmd_params.tab_id
                 contextual_key = cache_key(
-                    session.get("_id"), tab_id, dataset_id, chart_id
+                    session.get("_id"), tab_id, datasource_id, chart_id, datasource_type
                 )
                 key = cache_manager.explore_form_data_cache.get(contextual_key)
                 if not key or not tab_id:
@@ -73,7 +74,8 @@ class UpdateFormDataCommand(BaseCommand, ABC):
 
                 new_state: TemporaryExploreState = {
                     "owner": owner,
-                    "dataset_id": dataset_id,
+                    "datasource_id": datasource_id,
+                    "datasource_type": datasource_type,
                     "chart_id": chart_id,
                     "form_data": form_data,
                 }
