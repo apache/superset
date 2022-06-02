@@ -521,6 +521,7 @@ function ExploreViewContainer(props) {
         table_name={props.table_name}
         formData={props.form_data}
         chart={props.chart}
+        ownState={props.ownState}
         user={props.user}
         reports={props.reports}
         onSaveChart={toggleModal}
