@@ -189,9 +189,9 @@ class DatasourceControl extends React.PureComponent {
     const isMissingDatasource = datasource.id == null;
     let isMissingParams = false;
     if (isMissingDatasource) {
-      const datasetId = getUrlParam(URL_PARAMS.datasetId);
+      const datasourceId = getUrlParam(URL_PARAMS.datasourceId);
       const sliceId = getUrlParam(URL_PARAMS.sliceId);
-      if (!datasetId && !sliceId) {
+      if (!datasourceId && !sliceId) {
         isMissingParams = true;
       }
     }
