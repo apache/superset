@@ -18,6 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
+import { omit } from 'lodash';
 import { TextArea } from 'src/components/Input';
 import { t, withTheme } from '@superset-ui/core';
 
@@ -58,16 +59,34 @@ const defaultProps = {
 };
 
 class TextAreaControl extends React.Component {
+  constructor(props) {
+    super(props);
+    this.initialValue = props.initialValue;
+
+    this.state = {
+      value: this.initialValue,
+    };
+  }
+
   onControlChange(event) {
     const { value } = event.target;
+    this.setState({ value });
     this.props.onChange(value);
   }
 
   onAreaEditorChange(value) {
+    this.setState({ value });
     this.props.onChange(value);
   }
 
   renderEditor(inModal = false) {
+    let { value } = this.state;
+    if (this.initialValue !== this.props.value) {
+      this.initialValue = this.props.value;
+      // eslint-disable-next-line prefer-destructuring
+      value = this.props.value;
+    }
+
     const minLines = inModal ? 40 : this.props.minLines || 12;
     if (this.props.language) {
       const style = {
@@ -86,6 +105,7 @@ class TextAreaControl extends React.Component {
           height={`${minLines}em`}
           editorProps={{ $blockScrolling: true }}
           defaultValue={this.props.initialValue}
+          value={value}
           readOnly={this.props.readOnly}
           key={this.props.name}
           {...this.props}
@@ -93,13 +113,28 @@ class TextAreaControl extends React.Component {
         />
       );
     }
+
+    const textAreaProps = omit(this.props, [
+      'name',
+      'initialValue',
+      'height',
+      'minLines',
+      'maxLines',
+      'offerEditInModal',
+      'language',
+      'aboveEditorSection',
+      'readOnly',
+    ]);
+
     return (
       <TextArea
         placeholder={t('textarea')}
-        onChange={this.onControlChange.bind(this)}
         defaultValue={this.props.initialValue}
+        value={value}
         disabled={this.props.readOnly}
         style={{ height: this.props.height }}
+        {...textAreaProps}
+        onChange={this.onControlChange.bind(this)}
       />
     );
   }
