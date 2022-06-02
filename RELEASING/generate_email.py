@@ -28,7 +28,7 @@ try:
 except ModuleNotFoundError:
     exit("Click is a required dependency for this script")
 
-
+RECEIVER_EMAIL = "dev@superset.apache.org"
 PROJECT_NAME = "Superset"
 PROJECT_MODULE = "superset"
 PROJECT_DESCRIPTION = "Apache Superset is a modern, enterprise-ready business intelligence web application"
@@ -77,6 +77,7 @@ def cli(
 ) -> None:
     """Welcome to releasing send email CLI interface!"""
     base_parameters = BaseParameters(version, version_rc)
+    base_parameters.template_arguments["receiver_email"] = RECEIVER_EMAIL
     base_parameters.template_arguments["project_name"] = PROJECT_NAME
     base_parameters.template_arguments["project_module"] = PROJECT_MODULE
     base_parameters.template_arguments["project_description"] = PROJECT_DESCRIPTION
