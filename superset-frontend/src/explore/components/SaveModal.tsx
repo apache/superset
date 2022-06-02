@@ -21,7 +21,7 @@ import React from 'react';
 import { Input } from 'src/components/Input';
 import { Form, FormItem } from 'src/components/Form';
 import Alert from 'src/components/Alert';
-import { JsonObject, t, styled } from '@superset-ui/core';
+import { JsonObject, t, styled, SupersetClient } from '@superset-ui/core';
 import ReactMarkdown from 'react-markdown';
 import Modal from 'src/components/Modal';
 import { Radio } from 'src/components/Radio';
@@ -29,6 +29,7 @@ import Button from 'src/components/Button';
 import { Select } from 'src/components';
 import { SelectValue } from 'antd/lib/select';
 import { connect } from 'react-redux';
+import { exploreChart } from '../exploreUtils';
 
 // Session storage key for recent dashboard
 const SK_DASHBOARD_ID = 'save_chart_recent_dashboard';
@@ -79,7 +80,7 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
     this.changeAction = this.changeAction.bind(this);
     this.saveOrOverwrite = this.saveOrOverwrite.bind(this);
     this.isNewDashboard = this.isNewDashboard.bind(this);
-    this.handleDatasetNameChange = this.handleDatasetNameChange(this);
+    this.handleDatasetNameChange = this.handleDatasetNameChange.bind(this);
   }
 
   isNewDashboard(): boolean {
@@ -156,6 +157,8 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
     sliceParams.new_dashboard_name = this.state.newDashboardName;
     const { url_params, ...formData } = this.props.form_data || {};
 
+    console.log('this.props.datasource', this.props.datasource);
+
     this.props.actions
       .saveSlice(formData, sliceParams)
       .then((data: JsonObject) => {
@@ -172,6 +175,36 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
         }
         window.location.assign(url);
       });
+
+    if (this.props.datasource?.type === 'query') {
+      const { schema, sql, dbId } = this.props.datasource as Query;
+      const { templateParams } = this.props.datasource as Query;
+      const selectedColumns =
+        this.props.datasource?.results?.selected_columns || [];
+      SupersetClient.post({
+        endpoint: '/superset/sqllab_viz/',
+        postPayload: {
+          data: {
+            schema,
+            sql,
+            dbId,
+            templateParams,
+            datasourceName: this.state.datasetName,
+            columns: selectedColumns,
+          },
+        },
+      }).then((data: { table_id: number }) => {
+        exploreChart({
+          datasource: `${data.table_id}__table`,
+          metrics: [],
+          groupby: [],
+          time_range: 'No filter',
+          viz_type: 'table',
+          all_columns: selectedColumns.map(c => c.name),
+          row_limit: 1000,
+        });
+      });
+    }
     this.props.onHide();
   }
 
@@ -183,6 +216,7 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
   }
 
   render() {
+    console.log('this.props.datasource', this.props.datasource);
     const dashboardSelectValue =
       this.state.saveToDashboardId || this.state.newDashboardName;
     return (
@@ -279,16 +313,18 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
               data-test="new-chart-name"
             />
           </FormItem>
-          <FormItem label={t('Dataset Name')} required>
-            <Input
-              name="dataset_name"
-              type="text"
-              placeholder="Dataset Name"
-              value={this.state.datasetName}
-              onChange={this.handleDatasetNameChange}
-              data-test="new-dataset-name"
-            />
-          </FormItem>
+          {this.props.datasource && this.props.datasource.type === 'query' ? (
+            <FormItem label={t('Dataset Name')} required>
+              <Input
+                name="dataset_name"
+                type="text"
+                placeholder="Dataset Name"
+                value={this.state.datasetName}
+                onChange={this.handleDatasetNameChange}
+                data-test="new-dataset-name"
+              />
+            </FormItem>
+          ) : null}
           <FormItem
             label={t('Add to dashboard')}
             data-test="save-chart-modal-select-dashboard-form"
@@ -320,7 +356,43 @@ function mapStateToProps({
   saveModal,
 }: Record<string, any>): Partial<SaveModalProps> {
   return {
-    datasource: explore.datasource,
+    datasource: {
+      id: 'clientId2353',
+      dbId: 1,
+      sql: 'SELECT * FROM something',
+      sqlEditorId: 3,
+      tab: 'unimportant',
+      tempTable: '',
+      ctas: false,
+      cached: false,
+      errorMessage: null,
+      extra: { progress: null },
+      isDataPreview: false,
+      progress: 0,
+      resultsKey: null,
+      state: 'success',
+      tempSchema: null,
+      trackingUrl: null,
+      templateParams: null,
+      rows: 42,
+      queryLimit: 100,
+      limitingFactor: '',
+      endDttm: 1476910579693,
+      duration: '',
+      startDttm: 1476910566092.96,
+      time: {},
+      user: {},
+      userId: 1,
+      db: {},
+      started: '',
+      querylink: {},
+      queryId: 1,
+      executedSql: '',
+      output: '',
+      actions: {},
+      type: 'query',
+      columns: [],
+    }, /// explore.datasource,
     slice: explore.slice,
     userId: explore.user?.userId,
     dashboards: saveModal.dashboards,
