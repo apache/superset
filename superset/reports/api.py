@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any, Callable, Optional
+from typing import Any, Optional
 
 from flask import g, request, Response
 from flask_appbuilder.api import expose, permission_name, protect, rison, safe
@@ -286,13 +286,8 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @permission_name("post")
     @requires_json
-    @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.post",
-        log_to_statsd=False,
-        allow_extra_payload=True,
-    )
     def post(
-        self, add_extra_log_payload: Callable[..., None] = lambda **kwargs: None
+        self,
     ) -> Response:
         """Creates a new Report Schedule
         ---
@@ -331,11 +326,15 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         """
         try:
             item = self.add_model_schema.load(request.json)
-            add_extra_log_payload(
+            # normally this would be covered by a decorator, however
+            # due to this model being formatted incorrectly the data
+            # needed some manipulation.
+            event_logger.log_with_context(
+                action="ReportScheduleRestApi.post",
                 dashboard_id=request.json.get("dashboard", None),
-                active=request.json.get("active", None),
-                report_format=request.json.get("report_format", None),
                 chart_id=request.json.get("chart", None),
+                report_format=request.json.get("report_format", None),
+                active=request.json.get("active", None),
             )
         # This validates custom Schema with custom validations
         except ValidationError as error:
@@ -362,10 +361,6 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @permission_name("put")
     @requires_json
-    @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.put",
-        log_to_statsd=False,
-    )
     def put(self, pk: int) -> Response:
         """Updates an Report Schedule
         ---
@@ -412,6 +407,16 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         """
         try:
             item = self.edit_model_schema.load(request.json)
+            # normally this would be covered by a decorator, however
+            # due to this model being formatted incorrectly the data
+            # needed some manipulation.
+            event_logger.log_with_context(
+                action="ReportScheduleRestApi.put",
+                dashboard_id=request.json.get("dashboard", None),
+                chart_id=request.json.get("chart", None),
+                report_format=request.json.get("report_format", None),
+                active=request.json.get("active", None),
+            )
         # This validates custom Schema with custom validations
         except ValidationError as error:
             return self.response_400(message=error.messages)
