@@ -446,7 +446,7 @@ def show_http_exception(ex: HTTPException) -> FlaskResponse:
 # or SupersetErrorsException, with a specific status code and error type
 @superset_app.errorhandler(CommandException)
 def show_command_errors(ex: CommandException) -> FlaskResponse:
-    logger.warning("Command Exception", exc_info=True)
+    logger.warning("CommandException", exc_info=True)
     if "text/html" in request.accept_mimetypes and not config["DEBUG"]:
         path = resource_filename("superset", "static/assets/500.html")
         return send_file(path, cache_timeout=0), 500
