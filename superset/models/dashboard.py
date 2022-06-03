@@ -18,15 +18,14 @@ from __future__ import annotations
 
 import json
 import logging
-from collections import defaultdict
-from functools import partial
-from typing import Any, Callable, Dict, List, Set, Tuple, Type, Union
-
+import os
 import sqlalchemy as sqla
+from collections import defaultdict
 from flask import g
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
 from flask_appbuilder.security.sqla.models import User
+from functools import partial
 from markupsafe import escape, Markup
 from sqlalchemy import (
     Boolean,
@@ -45,6 +44,7 @@ from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.orm.session import object_session
 from sqlalchemy.sql import join, select
 from sqlalchemy.sql.elements import BinaryExpression
+from typing import Any, Callable, Dict, List, Set, Tuple, Type, Union
 
 from superset import app, ConnectorRegistry, db, is_feature_enabled, security_manager
 from superset.common.request_contexed_based import is_user_admin
@@ -169,7 +169,8 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
 
     @property
     def url(self) -> str:
-        return f"/analytics/superset/dashboard/{self.slug or self.id}/"
+        prefix = os.environ["APP_PREFIX"]
+        return f"{prefix}/superset/dashboard/{self.slug or self.id}/"
 
     @property
     def datasources(self) -> Set[BaseDatasource]:
@@ -247,7 +248,8 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
         Returns a thumbnail URL with a HEX digest. We want to avoid browser cache
         if the dashboard has changed
         """
-        return f"/analytics/api/v1/dashboard/{self.id}/thumbnail/{self.digest}/"
+        prefix = os.environ["APP_PREFIX"]
+        return f"{prefix}/api/v1/dashboard/{self.id}/thumbnail/{self.digest}/"
 
     @property
     def changed_by_name(self) -> str:
@@ -259,7 +261,8 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
     def changed_by_url(self) -> str:
         if not self.changed_by:
             return ""
-        return f"/analytics/superset/profile/{self.changed_by.username}"
+        prefix = os.environ["APP_PREFIX"]
+        return f"{prefix}/superset/profile/{self.changed_by.username}"
 
     @property
     def data(self) -> Dict[str, Any]:

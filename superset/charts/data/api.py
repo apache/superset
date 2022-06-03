@@ -18,13 +18,12 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Any, Dict, Optional, TYPE_CHECKING
-
 import simplejson
 from flask import current_app, g, make_response, request, Response
 from flask_appbuilder.api import expose, protect
 from flask_babel import gettext as _
 from marshmallow import ValidationError
+from typing import Any, Dict, Optional, TYPE_CHECKING
 
 from superset import is_feature_enabled, security_manager
 from superset.charts.api import ChartRestApi
@@ -245,7 +244,7 @@ class ChartDataRestApi(ChartRestApi):
             command, form_data=form_data, datasource=query_context.datasource
         )
 
-    @expose("/analytics/<cache_key>", methods=["GET"])
+    @expose("/<cache_key>", methods=["GET"])
     @protect()
     @statsd_metrics
     @event_logger.log_this_with_context(

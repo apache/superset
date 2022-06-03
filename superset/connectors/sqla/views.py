@@ -16,10 +16,9 @@
 # under the License.
 """Views used by the SqlAlchemy connector"""
 import logging
+import os
 import re
 from dataclasses import dataclass, field
-from typing import Any, cast, Dict, List, Union
-
 from flask import current_app, flash, Markup, redirect
 from flask_appbuilder import CompactCRUDMixin, expose
 from flask_appbuilder.actions import action
@@ -28,6 +27,7 @@ from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access
 from flask_babel import gettext as __, lazy_gettext as _
+from typing import Any, cast, Dict, List, Union
 from werkzeug.exceptions import NotFound
 from wtforms.ext.sqlalchemy.fields import QuerySelectField
 from wtforms.validators import Regexp
@@ -559,7 +559,7 @@ class TableModelView(  # pylint: disable=too-many-ancestors
         resp = super().edit(pk)
         if isinstance(resp, str):
             return resp
-        return redirect("/analytics/superset/explore/table/{}/".format(pk))
+        return redirect({os.environ["APP_PREFIX"]}+"/superset/explore/table/{}/".format(pk))
 
     @action(
         "refresh", __("Refresh Metadata"), __("Refresh column metadata"), "fa-refresh"
@@ -642,7 +642,7 @@ class TableModelView(  # pylint: disable=too-many-ancestors
             )
             flash(failure_msg, "danger")
 
-        return redirect("/analytics/tablemodelview/list/")
+        return redirect({os.environ["APP_PREFIX"]}+"/tablemodelview/list/")
 
     @expose("/list/")
     @has_access

@@ -17,17 +17,15 @@
 # pylint: disable=too-many-lines, invalid-name
 from __future__ import annotations
 
-import logging
-import re
-from contextlib import closing
-from datetime import datetime, timedelta
-from typing import Any, Callable, cast, Dict, List, Optional, Union
-from urllib import parse
-
 import backoff
 import humanize
+import logging
+import os
 import pandas as pd
+import re
 import simplejson as json
+from contextlib import closing
+from datetime import datetime, timedelta
 from flask import abort, flash, g, redirect, render_template, request, Response
 from flask_appbuilder import expose
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -43,6 +41,8 @@ from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import ArgumentError, DBAPIError, NoSuchModuleError, SQLAlchemyError
 from sqlalchemy.orm.session import Session
 from sqlalchemy.sql import functions as func
+from typing import Any, Callable, cast, Dict, List, Optional, Union
+from urllib import parse
 
 from superset import (
     app,
@@ -294,7 +294,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             )
         )
         if has_access_:
-            return redirect("/analytics/superset/dashboard/{}".format(dashboard_id))
+            return redirect(os.environ["APP_PREFIX"]+"/superset/dashboard/{}".format(dashboard_id))
 
         if request.args.get("action") == "go":
             for datasource in datasources:
@@ -725,7 +725,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 )
             if success:
                 flash("Dashboard(s) have been imported", "success")
-                return redirect("/analytics/dashboard/list/")
+                return redirect(os.environ["APP_PREFIX"]+"/dashboard/list/")
 
         databases = db.session.query(Database).all()
         return self.render_template(
@@ -764,7 +764,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                     )
             except (ChartNotFoundError, ExplorePermalinkGetFailedError) as ex:
                 flash(__("Error: %(msg)s", msg=ex.message), "danger")
-                return redirect("/analytics/chart/list/")
+                return redirect(os.environ["APP_PREFIX"]+"/chart/list/")
         elif form_data_key:
             parameters = CommandParameters(actor=g.user, key=form_data_key)
             value = GetFormDataCommand(parameters).run()
@@ -929,7 +929,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @handle_api_exception
     @has_access_api
     @event_logger.log_this
-    @expose("/analytics/filter/<datasource_type>/<int:datasource_id>/<column>/")
+    @expose(os.environ["APP_PREFIX"]+"/filter/<datasource_type>/<int:datasource_id>/<column>/")
     def filter(  # pylint: disable=no-self-use
         self, datasource_type: str, datasource_id: int, column: str
     ) -> FlaskResponse:
@@ -1603,7 +1603,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             if o.Dashboard.created_by:
                 user = o.Dashboard.created_by
                 dash["creator"] = str(user)
-                dash["creator_url"] = "/analytics/superset/profile/{}/".format(user.username)
+                dash["creator_url"] = os.environ["APP_PREFIX"]+"/superset/profile/{}/".format(user.username)
             payload.append(dash)
         return json_success(json.dumps(payload, default=utils.json_int_dttm_ser))
 
@@ -1755,7 +1755,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             if o.Slice.created_by:
                 user = o.Slice.created_by
                 dash["creator"] = str(user)
-                dash["creator_url"] = "/analytics/superset/profile/{}/".format(user.username)
+                dash["creator_url"] = os.environ["APP_PREFIX"]+"/superset/profile/{}/".format(user.username)
             payload.append(dash)
         return json_success(json.dumps(payload, default=utils.json_int_dttm_ser))
 
@@ -1953,6 +1953,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             default value to appease pylint
         :param dashboard: added by `check_dashboard_access`
         """
+        prefix = os.environ["APP_PREFIX"]
         if not dashboard:
             abort(404)
 
@@ -1973,7 +1974,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                         "danger",
                     )
                     return redirect(
-                        f"/analytics/superset/request_access/?dashboard_id={dashboard.id}"
+                        f"{prefix}/superset/request_access/?dashboard_id={dashboard.id}"
                     )
 
         dash_edit_perm = check_ownership(
@@ -2017,7 +2018,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         if not value:
             return json_error_response(_("permalink state not found"), status=404)
         dashboard_id = value["dashboardId"]
-        url = f"/analytics/superset/dashboard/{dashboard_id}?permalink_key={key}"
+        prefix = os.environ["APP_PREFIX"]
+        url = f"{prefix}/superset/dashboard/{dashboard_id}?permalink_key={key}"
         url_params = value["state"].get("urlParams")
         if url_params:
             params = parse.urlencode(url_params)

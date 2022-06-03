@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-
+import os
 from flask import current_app, g, request, Response
 from flask_appbuilder.api import BaseApi, expose, protect, safe
 from marshmallow import ValidationError
@@ -108,7 +108,8 @@ class DashboardPermalinkRestApi(BaseApi):
                 actor=g.user, dashboard_id=pk, state=state, key_type=key_type,
             ).run()
             http_origin = request.headers.environ.get("HTTP_ORIGIN")
-            url = f"{http_origin}/analytics/superset/dashboard/p/{key}/"
+            prefix= os.environ["APP_PREFIX"]
+            url = f"{http_origin}{prefix}/superset/dashboard/p/{key}/"
             return self.response(201, key=key, url=url)
         except (ValidationError, DashboardPermalinkInvalidStateError) as ex:
             return self.response(400, message=str(ex))

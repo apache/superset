@@ -18,12 +18,12 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Any, Dict
-
+import os
 from flask_appbuilder import Model
 from sqlalchemy import Column, ForeignKey, Integer, MetaData, String, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy_utils import generic_relationship
+from typing import Any, Dict
 
 from superset import app, db
 from superset.models.helpers import AuditMixinNullable
@@ -50,7 +50,8 @@ class FilterSet(Model, AuditMixinNullable):
 
     @property
     def url(self) -> str:
-        return f"/analytics/api/filtersets/{self.id}/"
+        prefix = os.environ["APP_PREFIX"]
+        return f"{prefix}/api/filtersets/{self.id}/"
 
     @property
     def sqla_metadata(self) -> None:
@@ -66,9 +67,10 @@ class FilterSet(Model, AuditMixinNullable):
 
     @property
     def changed_by_url(self) -> str:
+        prefix = os.environ["APP_PREFIX"]
         if not self.changed_by:
             return ""
-        return f"/analytics/superset/profile/{self.changed_by.username}"
+        return f"{prefix}/superset/profile/{self.changed_by.username}"
 
     def to_dict(self) -> Dict[str, Any]:
         return {

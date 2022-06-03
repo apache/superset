@@ -321,7 +321,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_link(
             "Import Dashboards",
             label=__("Import Dashboards"),
-            href="/analytics/superset/import_dashboards/",
+            href=os.environ["APP_PREFIX"]+"/superset/import_dashboards/",
             icon="fa-cloud-upload",
             category="Manage",
             category_label=__("Manage"),
@@ -333,7 +333,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_link(
             "SQL Editor",
             label=_("SQL Editor"),
-            href="/analytics/superset/sqllab/",
+            href=os.environ["APP_PREFIX"]+"/superset/sqllab/",
             category_icon="fa-flask",
             icon="fa-flask",
             category="SQL Lab",
@@ -341,14 +341,14 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         )
         appbuilder.add_link(
             __("Saved Queries"),
-            href="/analytics/savedqueryview/list/",
+            href=os.environ["APP_PREFIX"]+"/savedqueryview/list/",
             icon="fa-save",
             category="SQL Lab",
         )
         appbuilder.add_link(
             "Query Search",
             label=_("Query History"),
-            href="/analytics/superset/sqllab/history/",
+            href=os.environ["APP_PREFIX"]+"/superset/sqllab/history/",
             icon="fa-search",
             category_icon="fa-flask",
             category="SQL Lab",
@@ -366,7 +366,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_link(
             "Datasets",
             label=__("Datasets"),
-            href="/analytics/tablemodelview/list/",
+            href=os.environ["APP_PREFIX"]+"/tablemodelview/list/",
             icon="fa-table",
             category="Data",
             category_label=__("Data"),

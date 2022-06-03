@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import os
 import simplejson as json
 from flask import g, redirect, request, Response
 from flask_appbuilder import expose
@@ -318,4 +319,4 @@ class SqlLab(BaseSupersetView):
     @has_access
     def my_queries(self) -> FlaskResponse:  # pylint: disable=no-self-use
         """Assigns a list of found users to the given role."""
-        return redirect("/analytics/savedqueryview/list/?_flt_0_user={}".format(g.user.get_id()))
+        return redirect(os.environ["APP_PREFIX"]+"/savedqueryview/list/?_flt_0_user={}".format(g.user.get_id()))

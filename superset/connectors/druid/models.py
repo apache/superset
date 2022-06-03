@@ -17,22 +17,21 @@
 # pylint: skip-file
 import json
 import logging
+import os
+import pandas as pd
 import re
+import sqlalchemy as sa
 from collections import OrderedDict
 from copy import deepcopy
 from datetime import datetime, timedelta
-from distutils.version import LooseVersion
-from multiprocessing.pool import ThreadPool
-from typing import Any, cast, Dict, Iterable, List, Optional, Set, Tuple, Union
-
-import pandas as pd
-import sqlalchemy as sa
 from dateutil.parser import parse as dparse
+from distutils.version import LooseVersion
 from flask import escape, Markup
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import lazy_gettext as _
+from multiprocessing.pool import ThreadPool
 from sqlalchemy import (
     Boolean,
     Column,
@@ -50,6 +49,7 @@ from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import backref, relationship, Session
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.sql import expression
+from typing import Any, cast, Dict, Iterable, List, Optional, Set, Tuple, Union
 
 from superset import conf, db, security_manager
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
@@ -594,7 +594,8 @@ class DruidDatasource(Model, BaseDatasource):
 
     @renders("datasource_name")
     def datasource_link(self) -> str:
-        url = f"/analytics/superset/explore/{self.type}/{self.id}/"
+        prefix = os.environ["APP_PREFIX"]
+        url = f"{prefix}/superset/explore/{self.type}/{self.id}/"
         name = escape(self.datasource_name)
         return Markup(f'<a href="{url}">{name}</a>')
 

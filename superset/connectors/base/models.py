@@ -15,14 +15,14 @@
 # specific language governing permissions and limitations
 # under the License.
 import json
+import os
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, Hashable, List, Optional, Set, Type, Union
-
 from flask_appbuilder.security.sqla.models import User
 from sqlalchemy import and_, Boolean, Column, Integer, String, Text
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import foreign, Query, relationship, RelationshipProperty, Session
+from typing import Any, Dict, Hashable, List, Optional, Set, Type, Union
 
 from superset import is_feature_enabled, security_manager
 from superset.constants import EMPTY_STRING, NULL_STRING
@@ -199,9 +199,10 @@ class BaseDatasource(
 
     @property
     def explore_url(self) -> str:
+        prefix = os.environ["APP_PREFIX"]
         if self.default_endpoint:
             return self.default_endpoint
-        return f"/analytics/superset/explore/{self.type}/{self.id}/"
+        return f"{prefix}/superset/explore/{self.type}/{self.id}/"
 
     @property
     def column_formats(self) -> Dict[str, Optional[str]]:

@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import os
 import dataclasses
 import functools
 import logging
@@ -300,7 +301,7 @@ class BaseSupersetView(BaseView):
 
 def menu_data() -> Dict[str, Any]:
     menu = appbuilder.menu.get_data()
-
+    prefix = os.environ["APP_PREFIX"]
     languages = {}
     for lang in appbuilder.languages:
         languages[lang] = {
@@ -338,7 +339,8 @@ def menu_data() -> Dict[str, Any]:
             "user_login_url": appbuilder.get_url_for_login,
             "user_profile_url": None
             if g.user.is_anonymous or appbuilder.app.config["MENU_HIDE_USER_INFO"]
-            else f"/analytics/superset/profile/{g.user.username}",
+
+            else f"{prefix}/superset/profile/{g.user.username}",
             "locale": session.get("locale", "en"),
         },
     }
