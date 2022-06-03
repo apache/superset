@@ -111,6 +111,10 @@ const StyledHeader = styled.div`
           ${({ theme }) => theme.gridUnit * 4}px;
       }
 
+      &.active {
+       background: ${({ theme }) => theme.colors.secondary.light4};
+      }
+
       &.active a {
         text-decoration: underline;
       }
@@ -122,7 +126,8 @@ const StyledHeader = styled.div`
     li > a:hover,
     li > a:focus,
     li > div:hover,
-    div > div:hover {
+    div > div:hover,
+    div > a:hover {
       background: ${({ theme }) => theme.colors.secondary.light4};
       border-bottom: none;
       border-radius: ${({ theme }) => theme.borderRadius}px;
