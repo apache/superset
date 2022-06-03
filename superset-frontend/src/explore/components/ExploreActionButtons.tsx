@@ -109,8 +109,7 @@ const ExploreActionButtons = (props: ExploreActionButtonsProps) => {
   const doCopyLink = async () => {
     try {
       setCopyTooltip(t('Loading...'));
-      const url = await getChartPermalink(latestQueryFormData);
-      await copyTextToClipboard(url);
+      await copyTextToClipboard(() => getChartPermalink(latestQueryFormData));
       setCopyTooltip(t('Copied to clipboard!'));
       addSuccessToast(t('Copied to clipboard!'));
     } catch (error) {

@@ -144,8 +144,9 @@ test('Should copy data table content correctly', async () => {
   expect(await screen.findByText('1 rows retrieved')).toBeVisible();
 
   userEvent.click(screen.getByRole('button', { name: 'Copy' }));
-  expect(copyToClipboardSpy).toHaveBeenCalledWith(
-    '2009-01-01 00:00:00\tAction\n',
-  );
-  fetchMock.done();
+  expect(copyToClipboardSpy).toHaveBeenCalledTimes(1);
+  const value = await copyToClipboardSpy.mock.calls[0][0]();
+  expect(value).toBe('2009-01-01 00:00:00\tAction\n');
+  copyToClipboardSpy.mockRestore();
+  fetchMock.restore();
 });
