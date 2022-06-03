@@ -158,7 +158,7 @@ class AsyncQueryManager:
         try:
             return jwt.decode(token, self._jwt_secret, algorithms=["HS256"])
         except Exception as ex:
-            logger.warning(ex)
+            logger.warning("Parse jwt failed", exc_info=True)
             raise AsyncQueryTokenException("Failed to parse token") from ex
 
     def init_job(self, channel_id: str, user_id: Optional[str]) -> Dict[str, Any]:
