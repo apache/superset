@@ -94,28 +94,6 @@ const ControlHeader: FC<ControlHeaderProps> = ({
             />{' '}
           </span>
         )}
-        {canSelectAll && (
-          <span>
-            <InfoTooltipWithTrigger
-              label={t('select-all')}
-              tooltip={t('Select All (ctl+a)')}
-              placement="top"
-              icon="chevron-up"
-              onClick={selectAllOnClick}
-            />{' '}
-          </span>
-        )}
-        {canCopy && (
-          <span>
-            <InfoTooltipWithTrigger
-              label={t('copy')}
-              tooltip={t('Copy the content of this control')}
-              placement="top"
-              icon="copy"
-              onClick={copyOnClick}
-            />{' '}
-          </span>
-        )}
         {renderTrigger && (
           <span>
             <InfoTooltipWithTrigger
@@ -129,11 +107,47 @@ const ControlHeader: FC<ControlHeaderProps> = ({
       </span>
     );
   };
+  const renderOptionalActionIcons = () => (
+    <span
+      css={() => css`
+            padding-left: ${gridUnit}px;
+          `}    
+    >
+      {canSelectAll && (
+        <span>
+          <InfoTooltipWithTrigger
+            label={t('select-all')}
+            tooltip={t('Select All (ctl+a)')}
+            placement="top"
+            icon="arrow-circle-up"
+            onClick={selectAllOnClick}
+          />{' '}
+        </span>
+      )}
+      {canCopy && (
+        <span>
+          <InfoTooltipWithTrigger
+            label={t('copy')}
+            tooltip={t('Copy the content of this control')}
+            placement="top"
+            icon="copy"
+            onClick={copyOnClick}
+          />{' '}
+        </span>
+      )}
+    </span>
+  );
 
   const labelClass = validationErrors?.length > 0 ? 'text-danger' : '';
 
   return (
-    <div className="ControlHeader" data-test={`${name}-header`}>
+    <div
+      className="ControlHeader"
+      data-test={`${name}-header`}
+      css={() => css`
+        width: 100%;
+      `}
+    >
       <div className="pull-left">
         <FormLabel
           css={(theme: SupersetTheme) =>
@@ -181,6 +195,11 @@ const ControlHeader: FC<ControlHeaderProps> = ({
           {renderOptionalIcons()}
         </FormLabel>
       </div>
+
+      {!rightNode && (
+        <div className="pull-right">{renderOptionalActionIcons()}</div>
+      )}
+
       {rightNode && <div className="pull-right">{rightNode}</div>}
       <div className="clearfix" />
     </div>

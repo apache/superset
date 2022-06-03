@@ -91,6 +91,7 @@ const defaultProps = {
   copyOnClick: v => {
     navigator.clipboard.writeText(v);
   },
+  canSelectAll: false,
 };
 
 export default class SelectControl extends React.PureComponent {
@@ -241,6 +242,7 @@ export default class SelectControl extends React.PureComponent {
       warning,
       danger,
       canCopy,
+      canSelectAll,
     } = this.props;
 
     const getValue = () => {
@@ -275,7 +277,7 @@ export default class SelectControl extends React.PureComponent {
       copyOnClick: () => {
         this.props.copyOnClick(getValue());
       },
-      canSelectAll: true,
+      canSelectAll,
       selectAllOnClick: () => {
         this.onChange(this.props.options);
       },
