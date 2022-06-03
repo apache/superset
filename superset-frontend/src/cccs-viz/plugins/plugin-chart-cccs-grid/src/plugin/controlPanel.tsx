@@ -73,7 +73,7 @@ const queryMode: ControlConfig<'RadioButtonControl'> = {
     [QueryMode.raw, QueryModeLabel[QueryMode.raw]],
   ],
   mapStateToProps: ({ controls }) => ({ value: getQueryMode(controls) }),
-  rerender: ['columns', 'groupby', 'metrics'],
+  rerender: ['columns', 'groupby', 'metrics', 'percent_metrics'],
 };
 
 const validateAggControlValues = (
