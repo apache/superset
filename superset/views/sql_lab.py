@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import os
 import logging
 
 import simplejson as json
@@ -322,7 +323,8 @@ class SqlLab(BaseSupersetView):
     @has_access
     def my_queries(self) -> FlaskResponse:  # pylint: disable=no-self-use
         """Assigns a list of found users to the given role."""
+
         logger.warning(
             "This endpoint is deprecated and will be removed in the next major release"
         )
-        return redirect("/savedqueryview/list/?_flt_0_user={}".format(g.user.get_id()))
+        return redirect(os.environ["APP_PREFIX"]+"/savedqueryview/list/?_flt_0_user={}".format(g.user.get_id()))

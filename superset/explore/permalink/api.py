@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-
+import os
 from flask import g, request, Response
 from flask_appbuilder.api import BaseApi, expose, protect, safe
 from marshmallow import ValidationError
@@ -102,7 +102,8 @@ class ExplorePermalinkRestApi(BaseApi):
             state = self.add_model_schema.load(request.json)
             key = CreateExplorePermalinkCommand(actor=g.user, state=state).run()
             http_origin = request.headers.environ.get("HTTP_ORIGIN")
-            url = f"{http_origin}/superset/explore/p/{key}/"
+            prefix = os.environ["APP_PREFIX"]
+            url = f"{http_origin}{prefix}/superset/explore/p/{key}/"
             return self.response(201, key=key, url=url)
         except ValidationError as ex:
             return self.response(400, message=ex.messages)

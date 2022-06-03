@@ -15,29 +15,29 @@
 # specific language governing permissions and limitations
 # under the License.
 """a collection of model-related helper classes and functions"""
+import humanize
 import json
 import logging
-import re
-import uuid
-from datetime import datetime, timedelta
-from json.decoder import JSONDecodeError
-from typing import Any, Dict, List, Optional, Set, Union
-
-import humanize
+import os
 import pandas as pd
 import pytz
+import re
 import sqlalchemy as sa
+import uuid
 import yaml
+from datetime import datetime, timedelta
 from flask import escape, g, Markup
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
 from flask_appbuilder.models.mixins import AuditMixin
 from flask_appbuilder.security.sqla.models import User
+from json.decoder import JSONDecodeError
 from sqlalchemy import and_, or_, UniqueConstraint
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import Mapper, Session
 from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy_utils import UUIDType
+from typing import Any, Dict, List, Optional, Set, Union
 
 from superset.common.db_query_status import QueryStatus
 
@@ -364,7 +364,7 @@ class ImportExportMixin:
 def _user_link(user: User) -> Union[Markup, str]:
     if not user:
         return ""
-    url = "/superset/profile/{}/".format(user.username)
+    url = os.environ["APP_PREFIX"]+"/superset/profile/{}/".format(user.username)
     return Markup('<a href="{}">{}</a>'.format(url, escape(user) or ""))
 
 

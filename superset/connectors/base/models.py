@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import json
+import os
 from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, Hashable, List, Optional, Set, Type, TYPE_CHECKING, Union
@@ -207,9 +208,10 @@ class BaseDatasource(
 
     @property
     def explore_url(self) -> str:
+        prefix = os.environ["APP_PREFIX"]
         if self.default_endpoint:
             return self.default_endpoint
-        return f"/superset/explore/{self.type}/{self.id}/"
+        return f"{prefix}/superset/explore/{self.type}/{self.id}/"
 
     @property
     def column_formats(self) -> Dict[str, Optional[str]]:
