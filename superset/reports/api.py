@@ -231,7 +231,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
     @permission_name("delete")
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.data",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.delete",
         log_to_statsd=False,
     )
     def delete(self, pk: int) -> Response:
@@ -287,7 +287,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
     @permission_name("post")
     @requires_json
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.data",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.post",
         log_to_statsd=False,
     )
     def post(self) -> Response:
@@ -354,7 +354,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
     @permission_name("put")
     @requires_json
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.data",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.put",
         log_to_statsd=False,
     )
     def put(self, pk: int) -> Response:
@@ -430,7 +430,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @rison(get_delete_ids_schema)
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.data",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.bulk_delete",
         log_to_statsd=False,
     )
     def bulk_delete(self, **kwargs: Any) -> Response:
