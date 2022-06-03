@@ -50,7 +50,7 @@ export const TableControls = ({
   isLoading,
 }: TableControlsProps) => {
   const originalTimeColumns = getTimeColumns(datasourceId);
-  const formttedTimeColumns = zip<string, GenericDataType>(
+  const formattedTimeColumns = zip<string, GenericDataType>(
     columnNames,
     columnTypes,
   )
@@ -62,8 +62,8 @@ export const TableControls = ({
     )
     .map(([colname]) => colname);
   const formattedData = useMemo(
-    () => applyFormattingToTabularData(data, formttedTimeColumns),
-    [data, formttedTimeColumns],
+    () => applyFormattingToTabularData(data, formattedTimeColumns),
+    [data, formattedTimeColumns],
   );
   return (
     <TableControlsWrapper>
