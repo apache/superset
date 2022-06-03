@@ -51,7 +51,7 @@ const FEATURED_CHARTS: VizMeta[] = [
   },
   { name: 'table', icon: <Icons.TableChartTile /> },
   {
-    name: 'big_number',
+    name: 'big_number_total',
     icon: <Icons.BigNumberChartTile />,
   },
   { name: 'pie', icon: <Icons.PieChartTile /> },
@@ -66,6 +66,7 @@ const VizTile = ({ isActive, vizMeta, onTileClick }: VizTileProps) => {
   const { mountedPluginMetadata } = usePluginContext();
   const chartNameRef = useRef<HTMLSpanElement>(null);
   const theme = useTheme();
+  const TILE_TRANSITION_TIME = theme.transitionTiming * 2;
   const [tooltipVisible, setTooltipVisible] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
@@ -79,8 +80,8 @@ const VizTile = ({ isActive, vizMeta, onTileClick }: VizTileProps) => {
     setTooltipVisible(false);
     setTimeout(() => {
       setIsTransitioning(false);
-    }, theme.transitionTiming * 1000);
-  }, [onTileClick, theme.transitionTiming, vizMeta.name]);
+    }, TILE_TRANSITION_TIME * 1000);
+  }, [onTileClick, TILE_TRANSITION_TIME, vizMeta.name]);
 
   // Antd tooltip seems to be bugged - when elements move, the tooltip sometimes
   // stays visible even when user doesn't hover over the element.
@@ -111,6 +112,7 @@ const VizTile = ({ isActive, vizMeta, onTileClick }: VizTileProps) => {
       onVisibleChange={visible => setTooltipVisible(visible)}
       visible={tooltipVisible && !isTransitioning}
       placement="top"
+      mouseEnterDelay={0.4}
     >
       <div
         {...containerProps}
@@ -124,10 +126,12 @@ const VizTile = ({ isActive, vizMeta, onTileClick }: VizTileProps) => {
           border-radius: 6px;
           white-space: nowrap;
           overflow: hidden;
+          max-width: fit-content;
 
           ${!isActive &&
           css`
-            max-width: ${theme.gridUnit * 6}px;
+            flex-shrink: 0;
+            width: ${theme.gridUnit * 6}px;
             background-color: transparent;
             transition: none;
             &:hover svg path {
@@ -138,10 +142,10 @@ const VizTile = ({ isActive, vizMeta, onTileClick }: VizTileProps) => {
 
           ${isActive &&
           css`
-            max-width: 100%;
+            width: 100%;
             background-color: ${theme.colors.grayscale.light4};
-            transition: max-width ${theme.transitionTiming}s ease-out,
-              background-color ${theme.transitionTiming}s ease-out;
+            transition: width ${TILE_TRANSITION_TIME}s ease-out,
+              background-color ${TILE_TRANSITION_TIME}s ease-out;
             cursor: default;
             svg path {
               fill: ${theme.colors.primary.base};

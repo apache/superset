@@ -29,7 +29,7 @@ import userEvent from '@testing-library/user-event';
 import { DynamicPluginProvider } from 'src/components/DynamicPlugins';
 import { testWithId } from 'src/utils/testUtils';
 import {
-  BigNumberChartPlugin,
+  BigNumberTotalChartPlugin,
   EchartsAreaChartPlugin,
   EchartsMixedTimeseriesChartPlugin,
   EchartsPieChartPlugin,
@@ -51,7 +51,7 @@ class MainPreset extends Preset {
       plugins: [
         new LineChartPlugin().configure({ key: 'line' }),
         new TableChartPlugin().configure({ key: 'table' }),
-        new BigNumberChartPlugin().configure({ key: 'big_number' }),
+        new BigNumberTotalChartPlugin().configure({ key: 'big_number_total' }),
         new EchartsTimeseriesLineChartPlugin().configure({
           key: 'echarts_timeseries_line',
         }),
@@ -139,9 +139,7 @@ describe('VizTypeControl', () => {
       within(screen.getByTestId('fast-viz-switcher')).getByText('Table'),
     ).toBeInTheDocument();
     expect(
-      within(screen.getByTestId('fast-viz-switcher')).getByText(
-        'Big Number with Trendline',
-      ),
+      within(screen.getByTestId('fast-viz-switcher')).getByText('Big Number'),
     ).toBeInTheDocument();
     expect(
       within(screen.getByTestId('fast-viz-switcher')).getByText('Pie Chart'),
@@ -240,7 +238,7 @@ describe('VizTypeControl', () => {
     ).not.toBeInTheDocument();
     expect(within(visualizations).queryByText('Table')).not.toBeInTheDocument();
     expect(
-      within(visualizations).queryByText('Big Number with Trendline'),
+      within(visualizations).queryByText('Big Number'),
     ).not.toBeInTheDocument();
     expect(
       within(visualizations).queryByText('Pie Chart'),
