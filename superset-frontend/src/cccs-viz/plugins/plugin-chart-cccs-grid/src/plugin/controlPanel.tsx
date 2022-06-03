@@ -84,7 +84,7 @@ const queryMode: ControlConfig<'RadioButtonControl'> = {
     [QueryMode.raw, QueryModeLabel[QueryMode.raw]],
   ],
   mapStateToProps: ({ controls }) => ({ value: getQueryMode(controls) }),
-  rerender: ['columns', 'groupby', 'metrics'],
+  rerender: ['columns', 'groupby', 'metrics', 'percent_metrics'],
 };
 
 const validateAggControlValues = (
@@ -225,6 +225,7 @@ const config: ControlPanelConfig = {
               default: [],
               valueKey: "column_name",
               includeTime: false,
+              canSelectAll: true,
               optionRenderer: c => <StyledColumnOption showType column={c} />,
               valueRenderer: c => <StyledColumnOption column={c} />,
               visibility: isAggMode,
@@ -321,6 +322,7 @@ const config: ControlPanelConfig = {
               freeForm: true,
               allowAll: true,
               default: [],
+              canSelectAll: true,
               optionRenderer: c => <StyledColumnOption showType column={c} />,
               valueRenderer: c => <StyledColumnOption column={c} />,
               valueKey: 'column_name',
