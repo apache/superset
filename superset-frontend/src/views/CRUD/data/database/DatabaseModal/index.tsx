@@ -651,6 +651,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         confirmedOverwrite,
       );
       if (dbId) {
+        if (onDatabaseAdd) onDatabaseAdd();
         onClose();
         addSuccessToast(t('Database connected'));
       }
