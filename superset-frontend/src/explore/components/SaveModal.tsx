@@ -29,6 +29,7 @@ import Button from 'src/components/Button';
 import { Select } from 'src/components';
 import { SelectValue } from 'antd/lib/select';
 import { connect } from 'react-redux';
+import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import { exploreChart } from '../exploreUtils';
 
 // Session storage key for recent dashboard
@@ -62,6 +63,11 @@ type SaveModalState = {
 export const StyledModal = styled(Modal)`
   .ant-modal-body {
     overflow: visible;
+  }
+  i {
+    position: absolute;
+    top: -21px;
+    left: 107px;
   }
 `;
 
@@ -156,8 +162,6 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
     sliceParams.save_to_dashboard_id = this.state.saveToDashboardId;
     sliceParams.new_dashboard_name = this.state.newDashboardName;
     const { url_params, ...formData } = this.props.form_data || {};
-
-    console.log('this.props.datasource', this.props.datasource);
 
     this.props.actions
       .saveSlice(formData, sliceParams)
@@ -315,6 +319,10 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
           </FormItem>
           {this.props.datasource && this.props.datasource.type === 'query' ? (
             <FormItem label={t('Dataset Name')} required>
+              <InfoTooltipWithTrigger
+                tooltip={t('A reusable dataset will be saved with your chart.')}
+                placement="right"
+              />
               <Input
                 name="dataset_name"
                 type="text"
@@ -322,7 +330,7 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
                 value={this.state.datasetName}
                 onChange={this.handleDatasetNameChange}
                 data-test="new-dataset-name"
-              />
+              />{' '}
             </FormItem>
           ) : null}
           <FormItem
