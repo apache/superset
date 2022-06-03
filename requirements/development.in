@@ -18,7 +18,6 @@
 #
 -r base.in
 -e .[cors,druid,hive,mysql,postgres,thumbnails]
-flask-cors>=2.0.0
 ipython
 progress>=1.5,<2
 pyinstrument>=4.0.2,<5
