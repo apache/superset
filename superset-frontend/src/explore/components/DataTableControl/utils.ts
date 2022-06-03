@@ -16,12 +16,34 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useSelector } from 'react-redux';
-import { ExplorePageState } from '../reducers/getInitialState';
+import { ensureIsArray } from '@superset-ui/core';
+import {
+  LocalStorageKeys,
+  setItem,
+  getItem,
+} from 'src/utils/localStorageHelpers';
 
-export const useOriginalFormattedTimeColumns = (datasourceId?: string) =>
-  useSelector<ExplorePageState, string[]>(state =>
-    datasourceId
-      ? state?.explore?.originalFormattedTimeColumns?.[datasourceId] ?? []
-      : [],
+export const getTimeColumns = (datasourceId?: string): string[] => {
+  const colsMap = getItem(
+    LocalStorageKeys.explore__data_table_original_formatted_time_columns,
+    {},
   );
+  if (datasourceId === undefined) {
+    return [];
+  }
+  return ensureIsArray(colsMap[datasourceId]);
+};
+
+export const setTimeColumns = (datasourceId: string, columns: string[]) => {
+  const colsMap = getItem(
+    LocalStorageKeys.explore__data_table_original_formatted_time_columns,
+    {},
+  );
+  setItem(
+    LocalStorageKeys.explore__data_table_original_formatted_time_columns,
+    {
+      ...colsMap,
+      [datasourceId]: columns,
+    },
+  );
+};
