@@ -420,7 +420,7 @@ def refresh_csrf_token(ex: CSRFError) -> FlaskResponse:
 
 @superset_app.errorhandler(HTTPException)
 def show_http_exception(ex: HTTPException) -> FlaskResponse:
-    logger.warning("HTTP Exception", exc_info=True)
+    logger.warning("HTTPException", exc_info=True)
     if (
         "text/html" in request.accept_mimetypes
         and not config["DEBUG"]
