@@ -112,7 +112,7 @@ const StyledHeader = styled.div`
       }
 
       &.active {
-       background: ${({ theme }) => theme.colors.secondary.light4};
+        background: ${({ theme }) => theme.colors.secondary.light4};
       }
 
       &.active a {
