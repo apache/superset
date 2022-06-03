@@ -49,6 +49,8 @@ export type EmbedDashboardParams = {
   dashboardUiConfig?: UiConfigType
   /** Are we in debug mode? */
   debug?: boolean
+  /** The parameters to provide to the dashboard or chart query string */
+  queryParameters?: {[key: string]: string}
 }
 
 export type Size = {
@@ -69,7 +71,8 @@ export async function embedDashboard({
   mountPoint,
   fetchGuestToken,
   dashboardUiConfig,
-  debug = false
+  debug = false,
+  queryParameters = {}
 }: EmbedDashboardParams): Promise<EmbeddedDashboard> {
   function log(...info: unknown[]) {
     if (debug) {
@@ -99,6 +102,9 @@ export async function embedDashboard({
     return new Promise(resolve => {
       const iframe = document.createElement('iframe');
       const dashboardConfig = dashboardUiConfig ? `?uiConfig=${calculateConfig()}` : ""
+      const queryParams = queryParameters ?
+        (dashboardConfig === "" ? "?" : "&") + new URLSearchParams(queryParameters).toString() :
+        ""
 
       // setup the iframe's sandbox configuration
       iframe.sandbox.add("allow-same-origin"); // needed for postMessage to work
@@ -131,7 +137,7 @@ export async function embedDashboard({
         resolve(new Switchboard({ port: ourPort, name: 'superset-embedded-sdk', debug }));
       });
 
-      iframe.src = `${supersetDomain}/embedded/${id}${dashboardConfig}`;
+      iframe.src = `${supersetDomain}/embedded/${id}${dashboardConfig}${queryParams}`;
       mountPoint.replaceChildren(iframe);
       log('placed the iframe')
     });
