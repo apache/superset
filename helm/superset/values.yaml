@@ -203,6 +203,8 @@ resources: {}
   # choice for the user. This also increases chances charts run on environments with little
   # resources, such as Minikube. If you do want to specify resources, uncomment the following
   # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # The limits below will apply to all Superset components. To set individual resource limitations refer to the pod specific values below.
+  # The pod specific values will overwrite anything that is set here.
   # limits:
   #   cpu: 100m
   #   memory: 128Mi
@@ -253,6 +255,14 @@ supersetNode:
   podAnnotations: {}
   ## Labels to be added to supersetNode pods
   podLabels: {}
+  # Resource settings for the supersetNode pods - these settings overwrite might existing values from the global resources object defined above.
+  resources: {}
+    # limits:
+    #  cpu: 100m
+    #  memory: 128Mi
+    # requests:
+    #  cpu: 100m
+    #  memory: 128Mi
 ##
 ## Superset worker configuration
 supersetWorker:
@@ -275,6 +285,14 @@ supersetWorker:
   podAnnotations: {}
   ## Labels to be added to supersetWorker pods
   podLabels: {}
+  # Resource settings for the supersetWorker pods - these settings overwrite might existing values from the global resources object defined above.
+  resources: {}
+    # limits:
+    #  cpu: 100m
+    #  memory: 128Mi
+    # requests:
+    #  cpu: 100m
+    #  memory: 128Mi
 ##
 ## Superset beat configuration (to trigger scheduled jobs like reports)
 supersetCeleryBeat:
@@ -299,6 +317,14 @@ supersetCeleryBeat:
   podAnnotations: {}
   ## Labels to be added to supersetCeleryBeat pods
   podLabels: {}
+  # Resource settings for the CeleryBeat pods - these settings overwrite might existing values from the global resources object defined above.
+  resources: {}
+    # limits:
+    #  cpu: 100m
+    #  memory: 128Mi
+    # requests:
+    #  cpu: 100m
+    #  memory: 128Mi
 ##
 ## Init job configuration
 init:

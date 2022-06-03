@@ -28,7 +28,6 @@ import {
   getControlValuesCompatibleWithDatasource,
 } from 'src/explore/controlUtils';
 import * as actions from 'src/explore/actions/exploreActions';
-import { LocalStorageKeys, setItem } from 'src/utils/localStorageHelpers';
 
 export default function exploreReducer(state = {}, action) {
   const actionHandlers = {
@@ -263,52 +262,6 @@ export default function exploreReducer(state = {}, action) {
           owners: action.slice.owners ?? null,
         },
         sliceName: action.slice.slice_name ?? state.sliceName,
-      };
-    },
-    [actions.SET_ORIGINAL_FORMATTED_TIME_COLUMN]() {
-      const { datasourceId, columnName } = action;
-      const newOriginalFormattedColumns = {
-        ...state.originalFormattedTimeColumns,
-      };
-      const newOriginalFormattedColumnsForDatasource = ensureIsArray(
-        newOriginalFormattedColumns[datasourceId],
-      ).slice();
-
-      newOriginalFormattedColumnsForDatasource.push(columnName);
-      newOriginalFormattedColumns[datasourceId] =
-        newOriginalFormattedColumnsForDatasource;
-      setItem(
-        LocalStorageKeys.explore__data_table_original_formatted_time_columns,
-        newOriginalFormattedColumns,
-      );
-      return {
-        ...state,
-        originalFormattedTimeColumns: newOriginalFormattedColumns,
-      };
-    },
-    [actions.UNSET_ORIGINAL_FORMATTED_TIME_COLUMN]() {
-      const { datasourceId, columnIndex } = action;
-      const newOriginalFormattedColumns = {
-        ...state.originalFormattedTimeColumns,
-      };
-      const newOriginalFormattedColumnsForDatasource = ensureIsArray(
-        newOriginalFormattedColumns[datasourceId],
-      ).slice();
-
-      newOriginalFormattedColumnsForDatasource.splice(columnIndex, 1);
-      newOriginalFormattedColumns[datasourceId] =
-        newOriginalFormattedColumnsForDatasource;
-
-      if (newOriginalFormattedColumnsForDatasource.length === 0) {
-        delete newOriginalFormattedColumns[datasourceId];
-      }
-      setItem(
-        LocalStorageKeys.explore__data_table_original_formatted_time_columns,
-        newOriginalFormattedColumns,
-      );
-      return {
-        ...state,
-        originalFormattedTimeColumns: newOriginalFormattedColumns,
       };
     },
     [actions.SET_FORCE_QUERY]() {

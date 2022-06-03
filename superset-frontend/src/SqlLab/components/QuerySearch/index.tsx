@@ -27,7 +27,7 @@ import {
   epochTimeXHoursAgo,
   epochTimeXDaysAgo,
   epochTimeXYearsAgo,
-} from 'src/modules/dates';
+} from 'src/utils/dates';
 import AsyncSelect from 'src/components/AsyncSelect';
 import { Query } from 'src/SqlLab/types';
 import { STATUS_OPTIONS, TIME_OPTIONS } from 'src/SqlLab/constants';
@@ -37,7 +37,7 @@ interface QuerySearchProps {
   actions: {
     addDangerToast: (msg: string) => void;
     setDatabases: (data: Record<string, any>) => Record<string, any>;
-    queryEditorSetSql: Function;
+    queryEditorSetAndSaveSql: Function;
     cloneQueryToNewTab: Function;
     fetchQueryResults: Function;
     clearQueryResults: Function;
