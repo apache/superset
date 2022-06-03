@@ -577,7 +577,24 @@ class HiveTemplateProcessor(PrestoTemplateProcessor):
     engine = "hive"
 
 
-DEFAULT_PROCESSORS = {"presto": PrestoTemplateProcessor, "hive": HiveTemplateProcessor}
+class TrinoTemplateProcessor(PrestoTemplateProcessor):
+    engine = "trino"
+
+    def process_template(self, sql: str, **kwargs: Any) -> str:
+        template = self._env.from_string(sql)
+        kwargs.update(self._context)
+
+        # Backwards compatibility if migrating from Presto.
+        context = validate_template_context(self.engine, kwargs)
+        context["presto"] = context["trino"]
+        return template.render(context)
+
+
+DEFAULT_PROCESSORS = {
+    "presto": PrestoTemplateProcessor,
+    "hive": HiveTemplateProcessor,
+    "trino": TrinoTemplateProcessor,
+}
 
 
 @memoized
