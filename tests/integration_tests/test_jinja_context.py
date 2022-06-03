@@ -121,6 +121,23 @@ def test_template_hive(app_context: AppContext, mocker: MockFixture) -> None:
     assert tp.process_template(template) == "the_latest"
 
 
+def test_template_trino(app_context: AppContext, mocker: MockFixture) -> None:
+    lp_mock = mocker.patch(
+        "superset.jinja_context.TrinoTemplateProcessor.latest_partition"
+    )
+    lp_mock.return_value = "the_latest"
+    db = mock.Mock()
+    db.backend = "trino"
+    template = "{{ trino.latest_partition('my_table') }}"
+    tp = get_template_processor(database=db)
+    assert tp.process_template(template) == "the_latest"
+
+    # Backwards compatibility if migrating from Presto.
+    template = "{{ presto.latest_partition('my_table') }}"
+    tp = get_template_processor(database=db)
+    assert tp.process_template(template) == "the_latest"
+
+
 def test_template_context_addons(app_context: AppContext, mocker: MockFixture) -> None:
     addons_mock = mocker.patch("superset.jinja_context.context_addons")
     addons_mock.return_value = {"datetime": datetime}
