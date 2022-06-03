@@ -16,14 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Datasource, JsonObject, QueryFormData } from '@superset-ui/core';
+import {
+  Datasource,
+  GenericDataType,
+  JsonObject,
+  QueryFormData,
+} from '@superset-ui/core';
 import { ExploreActions } from 'src/explore/actions/exploreActions';
+import { ChartStatus } from 'src/explore/types';
 
 export interface DataTablesPaneProps {
   queryFormData: QueryFormData;
   datasource: Datasource;
   queryForce: boolean;
   ownState?: JsonObject;
+  chartStatus: ChartStatus;
   onCollapseChange: (isOpen: boolean) => void;
   errorMessage?: JSX.Element;
   actions: ExploreActions;
@@ -45,4 +52,14 @@ export interface SamplesPaneProps {
   queryForce: boolean;
   actions?: ExploreActions;
   dataSize?: number;
+}
+
+export interface TableControlsProps {
+  data: Record<string, any>[];
+  // {datasource.id}__{datasource.type}, eg: 1__table
+  datasourceId: string;
+  onInputChange: (input: string) => void;
+  columnNames: string[];
+  columnTypes: GenericDataType[];
+  isLoading: boolean;
 }

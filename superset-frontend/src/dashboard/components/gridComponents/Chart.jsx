@@ -273,6 +273,7 @@ export default class Chart extends React.Component {
         : undefined;
       const key = await postFormData(
         this.props.datasource.id,
+        this.props.datasource.type,
         this.props.formData,
         this.props.slice.slice_id,
         nextTabId,
@@ -300,6 +301,7 @@ export default class Chart extends React.Component {
       resultType: 'full',
       resultFormat: 'csv',
       force: true,
+      ownState: this.props.ownState,
     });
   }
 

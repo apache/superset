@@ -16,28 +16,34 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint camelcase: 0 */
+import { ensureIsArray } from '@superset-ui/core';
+import {
+  LocalStorageKeys,
+  setItem,
+  getItem,
+} from 'src/utils/localStorageHelpers';
 
-export function formatSelectOptions(options) {
-  return options.map(opt => [opt, opt.toString()]);
-}
-
-export function getDatasourceParameter(datasourceId, datasourceType) {
-  return `${datasourceId}__${datasourceType}`;
-}
-
-export function mainMetric(savedMetrics) {
-  // Using 'count' as default metric if it exists, otherwise using whatever one shows up first
-  let metric;
-  if (savedMetrics && savedMetrics.length > 0) {
-    savedMetrics.forEach(m => {
-      if (m.metric_name === 'count') {
-        metric = 'count';
-      }
-    });
-    if (!metric) {
-      metric = savedMetrics[0].metric_name;
-    }
+export const getTimeColumns = (datasourceId?: string): string[] => {
+  const colsMap = getItem(
+    LocalStorageKeys.explore__data_table_original_formatted_time_columns,
+    {},
+  );
+  if (datasourceId === undefined) {
+    return [];
   }
-  return metric;
-}
+  return ensureIsArray(colsMap[datasourceId]);
+};
+
+export const setTimeColumns = (datasourceId: string, columns: string[]) => {
+  const colsMap = getItem(
+    LocalStorageKeys.explore__data_table_original_formatted_time_columns,
+    {},
+  );
+  setItem(
+    LocalStorageKeys.explore__data_table_original_formatted_time_columns,
+    {
+      ...colsMap,
+      [datasourceId]: columns,
+    },
+  );
+};

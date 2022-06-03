@@ -25,7 +25,6 @@ import {
   useFilteredTableData,
   useTableColumns,
 } from 'src/explore/components/DataTableControl';
-import { useOriginalFormattedTimeColumns } from 'src/explore/components/useOriginalFormattedTimeColumns';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { TableControls } from './DataTableControls';
@@ -50,7 +49,7 @@ export const ResultsPane = ({
   const [data, setData] = useState<Record<string, any>[][]>([]);
   const [colnames, setColnames] = useState<string[]>([]);
   const [coltypes, setColtypes] = useState<GenericDataType[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [responseError, setResponseError] = useState<string>('');
 
   useEffect(() => {
@@ -105,9 +104,12 @@ export const ResultsPane = ({
     }
   }, [queryFormData, isRequest]);
 
-  const originalFormattedTimeColumns = useOriginalFormattedTimeColumns(
-    queryFormData.datasource,
-  );
+  useEffect(() => {
+    if (errorMessage) {
+      setIsLoading(false);
+    }
+  }, [errorMessage]);
+
   // this is to preserve the order of the columns, even if there are integer values,
   // while also only grabbing the first column's keys
   const columns = useTableColumns(
@@ -115,17 +117,17 @@ export const ResultsPane = ({
     coltypes,
     data,
     queryFormData.datasource,
-    originalFormattedTimeColumns,
+    isRequest,
   );
   const filteredData = useFilteredTableData(filterText, data);
+
+  if (isLoading) {
+    return <Loading />;
+  }
 
   if (errorMessage) {
     const title = t('Run a query to display results');
     return <EmptyStateMedium image="document.svg" title={title} />;
-  }
-
-  if (isLoading) {
-    return <Loading />;
   }
 
   if (responseError) {
@@ -134,6 +136,7 @@ export const ResultsPane = ({
         <TableControls
           data={filteredData}
           columnNames={colnames}
+          columnTypes={coltypes}
           datasourceId={queryFormData?.datasource}
           onInputChange={input => setFilterText(input)}
           isLoading={isLoading}
@@ -153,6 +156,7 @@ export const ResultsPane = ({
       <TableControls
         data={filteredData}
         columnNames={colnames}
+        columnTypes={coltypes}
         datasourceId={queryFormData?.datasource}
         onInputChange={input => setFilterText(input)}
         isLoading={isLoading}

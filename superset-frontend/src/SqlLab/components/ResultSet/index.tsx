@@ -127,11 +127,8 @@ const MonospaceDiv = styled.div`
 const ReturnedRows = styled.div`
   font-size: 13px;
   line-height: 24px;
-  .limitMessage {
-    color: ${({ theme }) => theme.colors.secondary.light1};
-    margin-left: ${({ theme }) => theme.gridUnit * 2}px;
-  }
 `;
+
 const ResultSetControls = styled.div`
   display: flex;
   justify-content: space-between;
@@ -146,6 +143,19 @@ const ResultSetButtons = styled.div`
 
 const ResultSetErrorMessage = styled.div`
   padding-top: ${({ theme }) => 4 * theme.gridUnit}px;
+`;
+
+const ResultSetRowsReturned = styled.span`
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  width: 100%;
+  overflow: hidden;
+  display: inline-block;
+`;
+
+const LimitMessage = styled.span`
+  color: ${({ theme }) => theme.colors.secondary.light1};
+  margin-left: ${({ theme }) => theme.gridUnit * 2}px;
 `;
 
 const updateDataset = async (
@@ -608,42 +618,38 @@ export default class ResultSet extends React.PureComponent<
       limitingFactor === LIMITING_FACTOR.DROPDOWN;
 
     if (limitingFactor === LIMITING_FACTOR.QUERY && this.props.csv) {
-      limitMessage = (
-        <span className="limitMessage">
-          {t(
-            'The number of rows displayed is limited to %(rows)d by the query',
-            { rows },
-          )}
-        </span>
+      limitMessage = t(
+        'The number of rows displayed is limited to %(rows)d by the query',
+        { rows },
       );
     } else if (
       limitingFactor === LIMITING_FACTOR.DROPDOWN &&
       !shouldUseDefaultDropdownAlert
     ) {
-      limitMessage = (
-        <span className="limitMessage">
-          {t(
-            'The number of rows displayed is limited to %(rows)d by the limit dropdown.',
-            { rows },
-          )}
-        </span>
+      limitMessage = t(
+        'The number of rows displayed is limited to %(rows)d by the limit dropdown.',
+        { rows },
       );
     } else if (limitingFactor === LIMITING_FACTOR.QUERY_AND_DROPDOWN) {
-      limitMessage = (
-        <span className="limitMessage">
-          {t(
-            'The number of rows displayed is limited to %(rows)d by the query and limit dropdown.',
-            { rows },
-          )}
-        </span>
+      limitMessage = t(
+        'The number of rows displayed is limited to %(rows)d by the query and limit dropdown.',
+        { rows },
       );
     }
+
+    const rowsReturnedMessage = t('%(rows)d rows returned', {
+      rows,
+    });
+
+    const tooltipText = `${rowsReturnedMessage}. ${limitMessage}`;
+
     return (
       <ReturnedRows>
         {!limitReached && !shouldUseDefaultDropdownAlert && (
-          <span>
-            {t('%(rows)d rows returned', { rows })} {limitMessage}
-          </span>
+          <ResultSetRowsReturned title={tooltipText}>
+            {rowsReturnedMessage}
+            <LimitMessage>{limitMessage}</LimitMessage>
+          </ResultSetRowsReturned>
         )}
         {!limitReached && shouldUseDefaultDropdownAlert && (
           <div ref={this.calculateAlertRefHeight}>
@@ -678,6 +684,7 @@ export default class ResultSet extends React.PureComponent<
 
   render() {
     const { query } = this.props;
+    const limitReached = query?.results?.displayLimitReached;
     let sql;
     let exploreDBId = query.dbId;
     if (this.props.database && this.props.database.explore_database_id) {
@@ -747,9 +754,17 @@ export default class ResultSet extends React.PureComponent<
     }
     if (query.state === 'success' && query.results) {
       const { results } = query;
+      // Accounts for offset needed for height of ResultSetRowsReturned component if !limitReached
+      const rowMessageHeight = !limitReached ? 32 : 0;
+      // Accounts for offset needed for height of Alert if this.state.alertIsOpen
+      const alertContainerHeight = 70;
+      // We need to calculate the height of this.renderRowsReturned()
+      // if we want results panel to be propper height because the
+      // FilterTable component nedds an explcit height to render
+      // react-virtualized Table component
       const height = this.state.alertIsOpen
-        ? this.props.height - 70
-        : this.props.height;
+        ? this.props.height - alertContainerHeight
+        : this.props.height - rowMessageHeight;
       let data;
       if (this.props.cache && query.cached) {
         ({ data } = this.state);

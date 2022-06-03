@@ -27,6 +27,7 @@ import {
   getChartMetadataRegistry,
   validateNonEmpty,
   isValidExpression,
+  styled,
   withTheme,
 } from '@superset-ui/core';
 
@@ -43,6 +44,7 @@ import {
 } from 'src/modules/AnnotationTypes';
 import PopoverSection from 'src/components/PopoverSection';
 import ControlHeader from 'src/explore/components/ControlHeader';
+import { EmptyStateSmall } from 'src/components/EmptyState';
 
 const AUTOMATIC_COLOR = '';
 
@@ -97,6 +99,35 @@ const defaultProps = {
   removeAnnotationLayer: () => {},
   close: () => {},
 };
+
+const NotFoundContentWrapper = styled.div`
+  && > div:first-child {
+    padding-left: 0;
+    padding-right: 0;
+  }
+`;
+
+const NotFoundContent = () => (
+  <NotFoundContentWrapper>
+    <EmptyStateSmall
+      title={t('No annotation layers')}
+      description={
+        <span>
+          {t('Add an annotation layer')}{' '}
+          <a
+            href="/annotationlayermodelview/list"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {t('here')}
+          </a>
+          .
+        </span>
+      }
+      image="empty.svg"
+    />
+  </NotFoundContentWrapper>
+);
 
 class AnnotationLayer extends React.PureComponent {
   constructor(props) {
@@ -416,6 +447,7 @@ class AnnotationLayer extends React.PureComponent {
           onChange={this.handleValue}
           validationErrors={!value ? ['Mandatory'] : []}
           optionRenderer={this.renderOption}
+          notFoundContent={<NotFoundContent />}
         />
       );
     }
@@ -760,9 +792,10 @@ class AnnotationLayer extends React.PureComponent {
                   ariaLabel={t('Annotation source type')}
                   hovered
                   description={t('Choose the source of your annotations')}
-                  label={t('Annotation Source')}
+                  label={t('Annotation source')}
                   name="annotation-source-type"
                   options={supportedSourceTypes}
+                  notFoundContent={<NotFoundContent />}
                   value={sourceType}
                   onChange={this.handleAnnotationSourceType}
                   validationErrors={!sourceType ? [t('Mandatory')] : []}

@@ -85,6 +85,7 @@ export const DataTablesPane = ({
   datasource,
   queryForce,
   onCollapseChange,
+  chartStatus,
   ownState,
   errorMessage,
   actions,
@@ -92,7 +93,7 @@ export const DataTablesPane = ({
   const theme = useTheme();
   const [activeTabKey, setActiveTabKey] = useState<string>(ResultTypes.Results);
   const [isRequest, setIsRequest] = useState<Record<ResultTypes, boolean>>({
-    results: getItem(LocalStorageKeys.is_datapanel_open, false),
+    results: false,
     samples: false,
   });
   const [panelOpen, setPanelOpen] = useState(
@@ -111,7 +112,11 @@ export const DataTablesPane = ({
       });
     }
 
-    if (panelOpen && activeTabKey === ResultTypes.Results) {
+    if (
+      panelOpen &&
+      activeTabKey === ResultTypes.Results &&
+      chartStatus === 'rendered'
+    ) {
       setIsRequest({
         results: true,
         samples: false,
@@ -124,7 +129,7 @@ export const DataTablesPane = ({
         samples: true,
       });
     }
-  }, [panelOpen, activeTabKey]);
+  }, [panelOpen, activeTabKey, chartStatus]);
 
   const handleCollapseChange = useCallback(
     (isOpen: boolean) => {
