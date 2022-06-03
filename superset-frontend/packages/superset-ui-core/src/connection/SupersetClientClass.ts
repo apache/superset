@@ -136,7 +136,7 @@ export default class SupersetClientClass {
     if (this.guestToken) {
       payloadWithToken.guest_token = this.guestToken;
     }
-    debugger;
+
     Object.entries(payloadWithToken).forEach(([key, value]) => {
       const data = document.createElement('input');
       data.type = 'hidden';

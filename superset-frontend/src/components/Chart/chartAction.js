@@ -27,7 +27,6 @@ import {
   getExploreUrl,
   getLegacyEndpointType,
   buildV1ChartDataPayload,
-  postForm,
   shouldUseLegacyApi,
   getChartDataUri,
 } from 'src/explore/exploreUtils';
