@@ -13,6 +13,7 @@ describe('CccsGrid tranformProps', () => {
     headerText: 'my text',
     emitFilter: false,
     include_search: false,
+    page_length: 0,
     viz_type: 'my_chart',
   };
   const chartProps = new CccsGridChartProps({
