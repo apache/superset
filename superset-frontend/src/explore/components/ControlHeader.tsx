@@ -110,8 +110,8 @@ const ControlHeader: FC<ControlHeaderProps> = ({
   const renderOptionalActionIcons = () => (
     <span
       css={() => css`
-            padding-left: ${gridUnit}px;
-          `}    
+        padding-left: ${gridUnit}px;
+      `}
     >
       {canSelectAll && (
         <span>
