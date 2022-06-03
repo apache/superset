@@ -66,7 +66,6 @@ from superset import app, is_feature_enabled, security_manager
 from superset.advanced_data_type.types import AdvancedDataTypeResponse
 from superset.common.db_query_status import QueryStatus
 from superset.constants import EMPTY_STRING, NULL_STRING
-from superset.db_engine_specs.base import TimestampExpression
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     AdvancedDataTypeResponseError,
@@ -91,6 +90,7 @@ from superset.utils.core import get_user_id
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlMetric, TableColumn
     from superset.db_engine_specs import BaseEngineSpec
+    from superset.db_engine_specs.base import TimestampExpression
     from superset.models.core import Database
 
 
@@ -1298,7 +1298,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         time_grain: Optional[str],
         label: Optional[str] = None,
         template_processor: Optional[BaseTemplateProcessor] = None,
-    ) -> Union[TimestampExpression, Label]:
+    ) -> Union["TimestampExpression", Label]:
         """
         Return a SQLAlchemy Core element representation of self to be used in a query.
 

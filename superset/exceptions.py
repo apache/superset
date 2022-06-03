@@ -266,3 +266,19 @@ class InvalidPayloadSchemaError(SupersetErrorException):
 
 class SupersetCancelQueryException(SupersetException):
     status = 422
+
+
+class OAuth2RedirectError(SupersetErrorException):
+    """
+    Exception used to start user-level OAuth2.
+    """
+
+    def __init__(self, url: str):
+        super().__init__(
+            SupersetError(
+                message="You don't have permission to access the table.",
+                error_type=SupersetErrorType.OAUTH2_REDIRECT,
+                level=ErrorLevel.WARNING,
+                extra={"url": url},
+            )
+        )

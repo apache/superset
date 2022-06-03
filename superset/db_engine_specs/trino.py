@@ -97,7 +97,11 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
 
     @classmethod
     def get_url_for_impersonation(
-        cls, url: URL, impersonate_user: bool, username: Optional[str]
+        cls,
+        url: URL,
+        impersonate_user: bool,
+        username: Optional[str],
+        access_token: Optional[str] = None,
     ) -> URL:
         """
         Return a modified URL with the username set.

@@ -18,10 +18,13 @@ import json
 import re
 from contextlib import closing
 from typing import Any, Dict, List, Optional, Pattern, Tuple, TYPE_CHECKING
+from urllib.parse import urlencode
 
+import jwt
+import urllib3
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
-from flask import g
+from flask import current_app, g, url_for
 from flask_babel import gettext as __
 from marshmallow import fields, Schema
 from marshmallow.exceptions import ValidationError
@@ -32,8 +35,17 @@ from typing_extensions import TypedDict
 from superset import security_manager
 from superset.constants import PASSWORD_MASK
 from superset.databases.schemas import encrypted_field_properties, EncryptedString
+from superset.db_engine_specs.base import OAuth2State, OAuth2TokenResponse
 from superset.db_engine_specs.sqlite import SqliteEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.exceptions import OAuth2RedirectError
+
+try:
+    from shillelagh.adapters.api.gsheets.lib import SCOPES
+    from shillelagh.exceptions import UnauthenticatedError
+except ModuleNotFoundError:
+    SCOPES = []
+    UnauthenticatedError = OAuth2RedirectError
 
 if TYPE_CHECKING:
     from superset.models.core import Database
@@ -42,6 +54,7 @@ if TYPE_CHECKING:
 SYNTAX_ERROR_REGEX = re.compile('SQLError: near "(?P<server_error>.*?)": syntax error')
 
 ma_plugin = MarshmallowPlugin()
+http = urllib3.PoolManager()
 
 
 class GSheetsParametersSchema(Schema):
@@ -94,13 +107,23 @@ class GSheetsEngineSpec(SqliteEngineSpec):
         url: URL,
         impersonate_user: bool,
         username: Optional[str],
+        access_token: Optional[str] = None,
     ) -> URL:
-        if impersonate_user and username is not None:
+        if not impersonate_user:
+            return url
+
+        if username is not None:
             user = security_manager.find_user(username=username)
             if user and user.email:
                 url = url.update_query_dict({"subject": user.email})
 
+        if access_token:
+            url = url.update_query_dict({"access_token": access_token})
+
         return url
+
+    # exception raised by shillelagh that should trigger OAuth2
+    oauth2_exception = UnauthenticatedError
 
     @classmethod
     def extra_table_metadata(
@@ -121,6 +144,101 @@ class GSheetsEngineSpec(SqliteEngineSpec):
             metadata = {}
 
         return {"metadata": metadata["extra"]}
+
+    @staticmethod
+    def is_oauth2_enabled() -> bool:
+        """
+        Return if OAuth2 is enabled for GSheets.
+        """
+        return (
+            "GSHEETS_OAUTH2_CLIENT_ID" in current_app.config
+            and "GSHEETS_OAUTH2_CLIENT_SECRET" in current_app.config
+        )
+
+    @staticmethod
+    def get_oauth2_authorization_uri(database_id: int) -> str:
+        """
+        Return URI for initial OAuth2 request.
+
+        https://developers.google.com/identity/protocols/oauth2/web-server#creatingclient
+        """
+        default_redirect_uri = url_for("DatabaseRestApi.oauth2", _external=True)
+        redirect_uri = current_app.config.get(
+            "GSHEETS_OAUTH2_REDIRECT_URI",
+            default_redirect_uri,
+        )
+
+        # state to be passed back to Superset after authenticating so it can store the
+        # OAuth2 token
+        payload: OAuth2State = {
+            "database_id": database_id,
+            "user_id": g.user.id,
+            # if the config has a custom redirect URI (eg, because Superset is behind a
+            # proxy) we need the original redirect URI so that the request can be
+            # forwarded
+            "default_redirect_uri": default_redirect_uri,
+        }
+
+        # sign payload to prevent spoofing
+        state = jwt.encode(
+            payload=payload,
+            key=current_app.config["SECRET_KEY"],
+            algorithm="HS256",
+        )
+        # periods in the state break Google OAuth2 for some reason
+        state = state.replace(".", "%2E")
+
+        params = {
+            "scope": " ".join(SCOPES),
+            "access_type": "offline",
+            "include_granted_scopes": "false",
+            "response_type": "code",
+            "state": state,
+            "redirect_uri": redirect_uri,
+            "client_id": current_app.config["GSHEETS_OAUTH2_CLIENT_ID"],
+            "prompt": "consent",
+        }
+        return "https://accounts.google.com/o/oauth2/v2/auth?" + urlencode(params)
+
+    @staticmethod
+    def get_oauth2_token(code: str) -> OAuth2TokenResponse:
+        """
+        Exchange authorization code for refresh/access tokens.
+        """
+        redirect_uri = current_app.config.get(
+            "GSHEETS_OAUTH2_REDIRECT_URI",
+            url_for("DatabaseRestApi.oauth2", _external=True),
+        )
+
+        response = http.request(  # type: ignore
+            "POST",
+            "https://oauth2.googleapis.com/token",
+            fields={
+                "code": code,
+                "client_id": current_app.config["GSHEETS_OAUTH2_CLIENT_ID"],
+                "client_secret": current_app.config["GSHEETS_OAUTH2_CLIENT_SECRET"],
+                "redirect_uri": redirect_uri,
+                "grant_type": "authorization_code",
+            },
+        )
+        return json.loads(response.data.decode("utf-8"))
+
+    @staticmethod
+    def get_oauth2_fresh_token(refresh_token: str) -> OAuth2TokenResponse:
+        """
+        Refresh an access token that has expired.
+        """
+        response = http.request(  # type: ignore
+            "POST",
+            "https://oauth2.googleapis.com/token",
+            fields={
+                "client_id": current_app.config["GSHEETS_OAUTH2_CLIENT_ID"],
+                "client_secret": current_app.config["GSHEETS_OAUTH2_CLIENT_SECRET"],
+                "refresh_token": refresh_token,
+                "grant_type": "refresh_token",
+            },
+        )
+        return json.loads(response.data.decode("utf-8"))
 
     @classmethod
     def build_sqlalchemy_uri(

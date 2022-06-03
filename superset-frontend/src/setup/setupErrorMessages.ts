@@ -22,6 +22,7 @@ import TimeoutErrorMessage from 'src/components/ErrorMessage/TimeoutErrorMessage
 import DatabaseErrorMessage from 'src/components/ErrorMessage/DatabaseErrorMessage';
 import ParameterErrorMessage from 'src/components/ErrorMessage/ParameterErrorMessage';
 import DatasetNotFoundErrorMessage from 'src/components/ErrorMessage/DatasetNotFoundErrorMessage';
+import OAuth2RedirectMessage from 'src/components/ErrorMessage/OAuth2RedirectMessage';
 
 import setupErrorMessagesExtra from './setupErrorMessagesExtra';
 
@@ -143,6 +144,10 @@ export default function setupErrorMessages() {
   errorMessageComponentRegistry.registerValue(
     ErrorTypeEnum.FAILED_FETCHING_DATASOURCE_INFO_ERROR,
     DatasetNotFoundErrorMessage,
+  );
+  errorMessageComponentRegistry.registerValue(
+    ErrorTypeEnum.OAUTH2_REDIRECT,
+    OAuth2RedirectMessage,
   );
   setupErrorMessagesExtra();
 }

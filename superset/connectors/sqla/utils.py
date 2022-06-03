@@ -142,7 +142,7 @@ def get_virtual_table_metadata(dataset: SqlaTable) -> List[ResultSetColumnType]:
             with closing(engine.raw_connection()) as conn:
                 cursor = conn.cursor()
                 query = dataset.database.apply_limit_to_sql(statements[0], limit=1)
-                db_engine_spec.execute(cursor, query)
+                db_engine_spec.execute(cursor, query, dataset.database.id)
                 result = db_engine_spec.fetch_data(cursor, limit=1)
                 result_set = SupersetResultSet(
                     result, cursor.description, db_engine_spec
@@ -164,7 +164,7 @@ def get_columns_description(
                 cursor = conn.cursor()
                 query = database.apply_limit_to_sql(query, limit=1)
                 cursor.execute(query)
-                db_engine_spec.execute(cursor, query)
+                db_engine_spec.execute(cursor, query, database.id)
                 result = db_engine_spec.fetch_data(cursor, limit=1)
                 result_set = SupersetResultSet(
                     result, cursor.description, db_engine_spec

@@ -333,6 +333,12 @@ AUTH_TYPE = AUTH_DB
 #    { 'name': 'Yahoo', 'url': 'https://open.login.yahoo.com/' },
 #    { 'name': 'Flickr', 'url': 'https://www.flickr.com/<username>' },
 
+# Settings to enable OAuth2 in the Google Sheets DB engine spec.
+# GSHEETS_OAUTH2_CLIENT_ID = "XXX"
+# GSHEETS_OAUTH2_CLIENT_SECRET = "YYY"
+# GSHEETS_OAUTH2_REDIRECT_URI = "http://localhost:8088/api/v1/database/oauth2/"
+
+
 # ---------------------------------------------------
 # Roles config
 # ---------------------------------------------------

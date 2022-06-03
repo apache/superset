@@ -17,18 +17,27 @@
 # pylint: disable=too-many-lines
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from io import BytesIO
 from typing import Any, cast, Dict, List, Optional
 from zipfile import is_zipfile, ZipFile
 
-from flask import request, Response, send_file
+import jwt
+from flask import (
+    current_app,
+    g,
+    make_response,
+    render_template,
+    request,
+    Response,
+    send_file,
+)
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import ValidationError
 from sqlalchemy.exc import NoSuchTableError, OperationalError, SQLAlchemyError
 
-from superset import app, event_logger
+from superset import app, db, event_logger
 from superset.commands.importers.exceptions import (
     IncorrectFormatError,
     NoValidFilesFoundError,
@@ -77,7 +86,7 @@ from superset.db_engine_specs import get_available_engine_specs
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetErrorsException, SupersetException
 from superset.extensions import security_manager
-from superset.models.core import Database
+from superset.models.core import Database, DatabaseUserOAuth2Tokens
 from superset.superset_typing import FlaskResponse
 from superset.utils.core import error_msg_from_exception, parse_js_uri_path_item
 from superset.views.base import json_errors_response
@@ -107,6 +116,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "available",
         "validate_parameters",
         "validate_sql",
+        "oauth2",
     }
     resource_name = "database"
     class_permission_name = "Database"
@@ -854,6 +864,69 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             return self.response(200, result=validator_errors)
         except DatabaseNotFoundError:
             return self.response_404()
+
+    @expose("/oauth2/", methods=["GET"])
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.oauth",
+        log_to_statsd=True,
+    )
+    def oauth2(self) -> FlaskResponse:
+        """
+        ---
+        get:
+          summary: >-
+            Receive user-level authentication tokens from OAuth
+          description: ->
+            Receive and store user-level authentication tokens from OAuth
+          parameters:
+          - in: query
+            name: state
+          - in: query
+            name: code
+          - in: query
+            name: scope
+          - in: query
+            name: error
+          responses:
+            200:
+              description: A dummy self-closing HTML page
+              content:
+                text/html:
+                  schema:
+                    type: string
+            400:
+              $ref: '#/components/responses/400'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        parameters = request.args.to_dict()
+        if "error" in parameters:
+            raise Exception(parameters["error"])  # XXX: raise custom SIP-40 exception
+
+        payload = jwt.decode(
+            parameters["state"].replace("%2E", "."),
+            current_app.config["SECRET_KEY"],
+            algorithms=["HS256"],
+        )
+
+        # exchange code for access/refresh tokens
+        database = db.session.query(Database).filter_by(id=payload["database_id"]).one()
+        token_response = database.db_engine_spec.get_oauth2_token(parameters["code"])
+
+        # store tokens
+        token = DatabaseUserOAuth2Tokens(
+            user_id=payload["user_id"],
+            database_id=database.id,
+            access_token=token_response["access_token"],
+            access_token_expiration=datetime.now()
+            + timedelta(seconds=token_response["expires_in"]),
+            refresh_token=token_response.get("refresh_token"),
+        )
+        db.session.add(token)
+        db.session.commit()
+
+        # return blank page that closes itself
+        return make_response(render_template("superset/close.html"), 200)
 
     @expose("/export/", methods=["GET"])
     @protect()

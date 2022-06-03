@@ -43,4 +43,4 @@ def test_execute_connection_error() -> None:
         "Dummypool", "Exception with sensitive data"
     )
     with pytest.raises(SupersetDBAPIDatabaseError) as ex:
-        ClickHouseEngineSpec.execute(cursor, "SELECT col1 from table1")
+        ClickHouseEngineSpec.execute(cursor, "SELECT col1 from table1", 1)

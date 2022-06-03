@@ -984,7 +984,10 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
 
     @classmethod
     def get_create_view(
-        cls, database: Database, schema: Optional[str], table: str
+        cls,
+        database: Database,
+        schema: Optional[str],
+        table: str,
     ) -> Optional[str]:
         """
         Return a CREATE VIEW statement, or `None` if not a view.
@@ -1001,7 +1004,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
                 cursor = conn.cursor()
                 sql = f"SHOW CREATE VIEW {schema}.{table}"
                 try:
-                    cls.execute(cursor, sql)
+                    cls.execute(cursor, sql, database.id)
 
                 except DatabaseError:  # not a VIEW
                     return None
