@@ -103,7 +103,7 @@ describe('VizType control', () => {
 
     cy.get('button').contains('Evolution').click(); // change categories
     cy.get('[role="button"]').contains('Line Chart').click({ force: true });
-    cy.get('button').contains('Select').click();
+    cy.get('button').contains('Select').click({ force: true });
 
     cy.get('button[data-test="run-query-button"]').click();
     cy.verifySliceSuccess({
