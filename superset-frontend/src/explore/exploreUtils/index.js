@@ -25,6 +25,7 @@ import {
   ensureIsArray,
   getChartBuildQueryRegistry,
   getChartMetadataRegistry,
+  SupersetClient,
 } from '@superset-ui/core';
 import { omit } from 'lodash';
 import { availableDomains } from 'src/utils/hostNamesConfig';
@@ -242,31 +243,6 @@ export const buildV1ChartDataPayload = ({
 export const getLegacyEndpointType = ({ resultType, resultFormat }) =>
   resultFormat === 'csv' ? resultFormat : resultType;
 
-export function postForm(url, payload, target = '_blank') {
-  if (!url) {
-    return;
-  }
-
-  const hiddenForm = document.createElement('form');
-  hiddenForm.action = url;
-  hiddenForm.method = 'POST';
-  hiddenForm.target = target;
-  const token = document.createElement('input');
-  token.type = 'hidden';
-  token.name = 'csrf_token';
-  token.value = (document.getElementById('csrf_token') || {}).value;
-  hiddenForm.appendChild(token);
-  const data = document.createElement('input');
-  data.type = 'hidden';
-  data.name = 'form_data';
-  data.value = safeStringify(payload);
-  hiddenForm.appendChild(data);
-
-  document.body.appendChild(hiddenForm);
-  hiddenForm.submit();
-  document.body.removeChild(hiddenForm);
-}
-
 export const exportChart = ({
   formData,
   resultFormat = 'json',
@@ -294,7 +270,8 @@ export const exportChart = ({
       ownState,
     });
   }
-  postForm(url, payload);
+
+  SupersetClient.postForm(url, { form_data: safeStringify(payload) });
 };
 
 export const exploreChart = formData => {
@@ -303,7 +280,7 @@ export const exploreChart = formData => {
     endpointType: 'base',
     allowDomainSharding: false,
   });
-  postForm(url, formData);
+  SupersetClient.postForm(url, { form_data: safeStringify(formData) });
 };
 
 export const useDebouncedEffect = (effect, delay, deps) => {
