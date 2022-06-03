@@ -57,12 +57,9 @@ import {
   D3_TIME_FORMAT_DOCS,
   DEFAULT_TIME_FORMAT,
   DEFAULT_NUMBER_FORMAT,
+  savedMetricsTypeCheck,
 } from '../utils';
-import {
-  TIME_FILTER_LABELS,
-  DATASET_TIME_COLUMN_OPTION,
-  DEFAULT_METRICS,
-} from '../constants';
+import { TIME_FILTER_LABELS, DATASET_TIME_COLUMN_OPTION } from '../constants';
 import {
   Metric,
   SharedControlConfig,
@@ -158,9 +155,7 @@ const metrics: SharedControlConfig<'MetricsControl'> = {
   validators: [validateNonEmpty],
   mapStateToProps: ({ datasource }) => ({
     columns: datasource?.columns || [],
-    savedMetrics: datasource?.hasOwnProperty('metrics')
-      ? (datasource as Dataset)?.metrics || []
-      : DEFAULT_METRICS,
+    savedMetrics: savedMetricsTypeCheck(datasource),
     datasource,
     datasourceType: datasource?.type,
   }),
@@ -417,9 +412,7 @@ const sort_by: SharedControlConfig<'MetricsControl'> = {
   ),
   mapStateToProps: ({ datasource }) => ({
     columns: datasource?.columns || [],
-    savedMetrics: datasource?.hasOwnProperty('metrics')
-      ? (datasource as Dataset)?.metrics || []
-      : DEFAULT_METRICS,
+    savedMetrics: savedMetricsTypeCheck(datasource),
     datasource,
     datasourceType: datasource?.type,
   }),
@@ -514,9 +507,7 @@ const adhoc_filters: SharedControlConfig<'AdhocFilterControl'> = {
     columns: datasource?.columns[0]?.hasOwnProperty('filterable')
       ? (datasource as Dataset)?.columns.filter(c => c.filterable)
       : datasource?.columns || [],
-    savedMetrics: datasource?.hasOwnProperty('metrics')
-      ? (datasource as Dataset)?.metrics || []
-      : DEFAULT_METRICS,
+    savedMetrics: savedMetricsTypeCheck(datasource),
     // current active adhoc metrics
     selectedMetrics:
       form_data.metrics || (form_data.metric ? [form_data.metric] : []),

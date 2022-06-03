@@ -26,17 +26,8 @@ import {
   validateNonEmpty,
 } from '@superset-ui/core';
 import { ExtraControlProps, SharedControlConfig, Dataset } from '../types';
-import {
-  DATASET_TIME_COLUMN_OPTION,
-  TIME_FILTER_LABELS,
-  DEFAULT_METRICS,
-} from '../constants';
-import { QUERY_TIME_COLUMN_OPTION } from '..';
-
-const savedMetricsTypeCheck = (datasource: Dataset | QueryResponse | null) =>
-  datasource?.hasOwnProperty('metrics')
-    ? (datasource as Dataset)?.metrics || []
-    : DEFAULT_METRICS;
+import { DATASET_TIME_COLUMN_OPTION, TIME_FILTER_LABELS } from '../constants';
+import { QUERY_TIME_COLUMN_OPTION, savedMetricsTypeCheck } from '..';
 
 export const dndGroupByControl: SharedControlConfig<'DndColumnSelect'> = {
   type: 'DndColumnSelect',

@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -16,10 +17,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export * from './selectOptions';
-export * from './D3Formatting';
-export * from './expandControlConfig';
-export * from './getColorFormatters';
-export { default as mainMetric } from './mainMetric';
-export { default as columnChoices } from './columnChoices';
-export * from './savedMetricsTypeCheck';
+
+import { QueryResponse } from '@superset-ui/core';
+import { Dataset } from '../types';
+import { DEFAULT_METRICS } from '..';
+
+export const savedMetricsTypeCheck = (
+  datasource: Dataset | QueryResponse | null,
+) =>
+  datasource?.hasOwnProperty('metrics')
+    ? (datasource as Dataset)?.metrics || []
+    : DEFAULT_METRICS;
