@@ -168,8 +168,7 @@ export const useExploreAdditionalActionsMenu = (
       if (!latestQueryFormData) {
         throw new Error();
       }
-      const url = await getChartPermalink(latestQueryFormData);
-      await copyTextToClipboard(url);
+      await copyTextToClipboard(() => getChartPermalink(latestQueryFormData));
       addSuccessToast(t('Copied to clipboard!'));
     } catch (error) {
       addDangerToast(t('Sorry, something went wrong. Try again later.'));
