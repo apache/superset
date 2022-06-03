@@ -60,7 +60,7 @@ import {
 } from '../utils';
 import {
   TIME_FILTER_LABELS,
-  TIME_COLUMN_OPTION,
+  DATASET_TIME_COLUMN_OPTION,
   DEFAULT_METRICS,
 } from '../constants';
 import {
@@ -142,7 +142,7 @@ const groupByControl: SharedControlConfig<'SelectControl', ColumnMeta> = {
     if (datasource?.columns[0]?.hasOwnProperty('groupby')) {
       const options = (datasource as Dataset).columns.filter(c => c.groupby);
       if (includeTime) {
-        options.unshift(TIME_COLUMN_OPTION);
+        options.unshift(DATASET_TIME_COLUMN_OPTION);
       }
       newState.options = options;
     } else newState.options = datasource?.columns;
