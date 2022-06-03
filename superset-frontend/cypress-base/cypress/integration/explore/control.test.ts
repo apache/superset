@@ -99,7 +99,7 @@ describe('VizType control', () => {
     cy.visitChartByName('Daily Totals');
     cy.verifySliceSuccess({ waitAlias: '@tableChartData' });
 
-    cy.get('[data-test="visualization-type"]').contains('Table').click();
+    cy.contains('View all charts').click();
 
     cy.get('button').contains('Evolution').click(); // change categories
     cy.get('[role="button"]').contains('Line Chart').click();
