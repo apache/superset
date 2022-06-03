@@ -16,6 +16,7 @@
 # under the License.
 """Views used by the SqlAlchemy connector"""
 import logging
+import os
 import re
 from typing import Any, cast
 
@@ -492,7 +493,90 @@ class TableModelView(  # pylint: disable=too-many-ancestors
         resp = super().edit(pk)
         if isinstance(resp, str):
             return resp
-        return redirect("/superset/explore/table/{}/".format(pk))
+        return redirect({os.environ["APP_PREFIX"]}+"/superset/explore/table/{}/".format(pk))
+
+    @action(
+        "refresh", __("Refresh Metadata"), __("Refresh column metadata"), "fa-refresh"
+    )
+    def refresh(  # pylint: disable=no-self-use,
+        self, tables: Union["TableModelView", List["TableModelView"]]
+    ) -> FlaskResponse:
+        logger.warning(
+            "This endpoint is deprecated and will be removed in version 2.0.0"
+        )
+        if not isinstance(tables, list):
+            tables = [tables]
+
+        @dataclass
+        class RefreshResults:
+            successes: List[TableModelView] = field(default_factory=list)
+            failures: List[TableModelView] = field(default_factory=list)
+            added: Dict[str, List[str]] = field(default_factory=dict)
+            removed: Dict[str, List[str]] = field(default_factory=dict)
+            modified: Dict[str, List[str]] = field(default_factory=dict)
+
+        results = RefreshResults()
+
+        for table_ in tables:
+            try:
+                metadata_results = table_.fetch_metadata()
+                if metadata_results.added:
+                    results.added[table_.table_name] = metadata_results.added
+                if metadata_results.removed:
+                    results.removed[table_.table_name] = metadata_results.removed
+                if metadata_results.modified:
+                    results.modified[table_.table_name] = metadata_results.modified
+                results.successes.append(table_)
+            except Exception:  # pylint: disable=broad-except
+                results.failures.append(table_)
+
+        if len(results.successes) > 0:
+            success_msg = _(
+                "Metadata refreshed for the following table(s): %(tables)s",
+                tables=", ".join([t.table_name for t in results.successes]),
+            )
+            flash(success_msg, "info")
+        if results.added:
+            added_tables = []
+            for table, cols in results.added.items():
+                added_tables.append(f"{table} ({', '.join(cols)})")
+            flash(
+                _(
+                    "The following tables added new columns: %(tables)s",
+                    tables=", ".join(added_tables),
+                ),
+                "info",
+            )
+        if results.removed:
+            removed_tables = []
+            for table, cols in results.removed.items():
+                removed_tables.append(f"{table} ({', '.join(cols)})")
+            flash(
+                _(
+                    "The following tables removed columns: %(tables)s",
+                    tables=", ".join(removed_tables),
+                ),
+                "info",
+            )
+        if results.modified:
+            modified_tables = []
+            for table, cols in results.modified.items():
+                modified_tables.append(f"{table} ({', '.join(cols)})")
+            flash(
+                _(
+                    "The following tables update column metadata: %(tables)s",
+                    tables=", ".join(modified_tables),
+                ),
+                "info",
+            )
+        if len(results.failures) > 0:
+            failure_msg = _(
+                "Unable to refresh metadata for the following table(s): %(tables)s",
+                tables=", ".join([t.table_name for t in results.failures]),
+            )
+            flash(failure_msg, "danger")
+
+        return redirect({os.environ["APP_PREFIX"]}+"/tablemodelview/list/")
 
     @expose("/list/")
     @has_access

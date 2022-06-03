@@ -19,16 +19,15 @@
 import enum
 import json
 import logging
+import numpy
+import os
+import pandas as pd
+import sqlalchemy as sqla
 import textwrap
 from ast import literal_eval
 from contextlib import closing
 from copy import deepcopy
 from datetime import datetime
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Type
-
-import numpy
-import pandas as pd
-import sqlalchemy as sqla
 from flask import g, request
 from flask_appbuilder import Model
 from sqlalchemy import (
@@ -52,6 +51,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.pool import NullPool
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import expression, Select
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Type
 
 from superset import app, db_engine_specs, is_feature_enabled
 from superset.databases.utils import make_url_safe
@@ -384,11 +384,11 @@ class Database(
 
         if DB_CONNECTION_MUTATOR:
             if not source and request and request.referrer:
-                if "/analytics/superset/dashboard/" in request.referrer:
+                if os.environ["APP_PREFIX"]+"/superset/dashboard/" in request.referrer:
                     source = utils.QuerySource.DASHBOARD
-                elif "/analytics/superset/explore/" in request.referrer:
+                elif os.environ["APP_PREFIX"]+"/superset/explore/" in request.referrer:
                     source = utils.QuerySource.CHART
-                elif "/analytics/superset/sqllab/" in request.referrer:
+                elif os.environ["APP_PREFIX"]+"/superset/sqllab/" in request.referrer:
                     source = utils.QuerySource.SQL_LAB
 
             sqlalchemy_url, params = DB_CONNECTION_MUTATOR(
@@ -743,7 +743,8 @@ class Database(
 
     @property
     def sql_url(self) -> str:
-        return f"/analytics/superset/sql/{self.id}/"
+        prefix = os.environ["APP_PREFIX"]
+        return f"{prefix}/superset/sql/{self.id}/"
 
     @hybrid_property
     def perm(self) -> str:
