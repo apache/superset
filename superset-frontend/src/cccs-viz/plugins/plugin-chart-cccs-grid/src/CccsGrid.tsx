@@ -19,7 +19,12 @@
 import React, { ChangeEvent, useCallback, useEffect, useState } from 'react';
 // import { styled } from '@superset-ui/core';
 import { AgGridReact } from '@ag-grid-community/react';
-import { AllModules, LicenseManager } from '@ag-grid-enterprise/all-modules';
+import {
+  AllModules,
+  LicenseManager,
+  MenuItemDef,
+  GetContextMenuItemsParams,
+} from '@ag-grid-enterprise/all-modules';
 import { NULL_STRING } from 'src/utils/common';
 import { ensureIsArray } from '@superset-ui/core';
 import { CccsGridTransformedProps } from './types';
@@ -64,7 +69,7 @@ export default function CccsGrid({
 }: CccsGridTransformedProps) {
   LicenseManager.setLicenseKey(agGridLicenseKey);
 
-  const [, setFilters] = useState(initialFilters);
+  const [filters, setFilters] = useState(initialFilters);
 
   const [prevRow, setPrevRow] = useState(-1);
   const [prevColumn, setPrevColumn] = useState('');
@@ -105,25 +110,30 @@ export default function CccsGrid({
     [emitFilter, setDataMask],
   ); // only take relevant page size options
 
-  // getContextMenuItems = (params) => {
-  //   var result = [
-  //     {
-  //       name: 'GWWK of IP: 23.56.24.67',
-  //       action: function () {
-  //         window.open('http://10.162.232.22:8000/gwwk.html', '_self');
-  //       },
-  //       cssClasses: ['redFont', 'bold'],
-  //     },
-  //     {
-  //       name: 'Launch GWWK for domain: subsurface.com',
-  //       action: function () {
-  //         window.open('http://10.162.232.22:8000/gwwk.html', '_blank');
-  //       },
-  //       cssClasses: ['redFont', 'bold'],
-  //     },
-  //   ];
-  //   return result;
-  // };
+  const getContextMenuItems = useCallback(
+    (params: GetContextMenuItemsParams): (string | MenuItemDef)[] => {
+      let result: (string | MenuItemDef)[] = [];
+      if (!emitFilter) {
+        result = ['copy', 'copyWithHeaders', 'paste', 'separator', 'export'];
+      } else {
+        result = [
+          'copy',
+          'copyWithHeaders',
+          'paste',
+          'separator',
+          {
+            name: 'Emit Filter(s)',
+            action: () => handleChange(filters),
+            icon: '<img src="./images/emit_filters.png" />',
+          },
+          'separator',
+          'export',
+        ];
+      }
+      return result;
+    },
+    [emitFilter, filters, handleChange],
+  );
 
   const frameworkComponents = {
     countryValueRenderer: CountryValueRenderer,
@@ -217,7 +227,6 @@ export default function CccsGrid({
     });
 
     setFilters(updatedFilters);
-    handleChange(updatedFilters);
   };
 
   function getEmitTarget(col: string) {
@@ -281,7 +290,7 @@ export default function CccsGrid({
         allowContextMenuWithControlKey
         gridOptions={gridOptions}
         onGridColumnsChanged={autoSizeFirst100Columns}
-        // getContextMenuItems={getContextMenuItems}
+        getContextMenuItems={getContextMenuItems}
         onGridReady={onGridReady}
         onRangeSelectionChanged={onRangeSelectionChanged}
         onSelectionChanged={onSelectionChanged}
