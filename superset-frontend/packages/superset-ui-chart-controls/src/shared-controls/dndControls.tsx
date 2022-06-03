@@ -20,16 +20,18 @@
 import {
   FeatureFlag,
   isFeatureEnabled,
+  QueryColumn,
   QueryResponse,
   t,
   validateNonEmpty,
 } from '@superset-ui/core';
 import { ExtraControlProps, SharedControlConfig, Dataset } from '../types';
 import {
-  TIME_COLUMN_OPTION,
+  DATASET_TIME_COLUMN_OPTION,
   TIME_FILTER_LABELS,
   DEFAULT_METRICS,
 } from '../constants';
+import { QUERY_TIME_COLUMN_OPTION } from '..';
 
 export const dndGroupByControl: SharedControlConfig<'DndColumnSelect'> = {
   type: 'DndColumnSelect',
@@ -45,13 +47,22 @@ export const dndGroupByControl: SharedControlConfig<'DndColumnSelect'> = {
     if (datasource?.columns[0]?.hasOwnProperty('groupby')) {
       const options = (datasource as Dataset).columns.filter(c => c.groupby);
       if (includeTime) {
-        options.unshift(TIME_COLUMN_OPTION);
+        options.unshift(DATASET_TIME_COLUMN_OPTION);
       }
       newState.options = Object.fromEntries(
         options.map(option => [option.column_name, option]),
       );
       newState.savedMetrics = (datasource as Dataset).metrics || [];
-    } else newState.options = datasource?.columns;
+    } else {
+      const options = datasource?.columns;
+      if (includeTime) {
+        (options as QueryColumn[])?.unshift(QUERY_TIME_COLUMN_OPTION);
+      }
+      newState.options = Object.fromEntries(
+        (options as QueryColumn[])?.map(option => [option.name, option]),
+      );
+      newState.options = datasource?.columns;
+    }
     return newState;
   },
 };
