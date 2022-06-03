@@ -16,31 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { rgb } from 'd3-color';
 
-export default function transformProps(chartProps) {
-  const { width, height, formData, queriesData } = chartProps;
-  const {
-    maxBubbleSize,
-    showBubbles,
-    linearColorScheme,
-    colorPicker,
-    colorBy,
-    colorScheme,
-    sliceId,
-  } = formData;
-  const { r, g, b } = colorPicker;
-
-  return {
-    data: queriesData[0].data,
-    width,
-    height,
-    maxBubbleSize: parseInt(maxBubbleSize, 10),
-    showBubbles,
-    linearColorScheme,
-    color: rgb(r, g, b).hex(),
-    colorBy,
-    colorScheme,
-    sliceId,
-  };
+export enum ColorBy {
+  metric = 'metric',
+  country = 'country',
 }

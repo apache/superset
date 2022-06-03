@@ -53,8 +53,12 @@ export default function RadioButtonControl({
         '.btn:focus': {
           outline: 'none',
         },
+        '.control-label': {
+          color: theme.colors.grayscale.base,
+          marginBottom: theme.gridUnit,
+        },
         '.control-label + .btn-group': {
-          marginTop: 1,
+          marginTop: '1px',
         },
         '.btn-group .btn-default': {
           color: theme.colors.grayscale.dark1,
