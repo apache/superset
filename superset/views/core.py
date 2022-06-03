@@ -113,7 +113,7 @@ from superset.sqllab.exceptions import (
     QueryIsForbiddenToAccessException,
     SqlLabException,
 )
-from superset.sqllab.execution_context_convertor import ExecutionContextConvertorImpl
+from superset.sqllab.execution_context_convertor import ExecutionContextConvertor
 from superset.sqllab.limiting_factor import LimitingFactor
 from superset.sqllab.query_render import SqlQueryRenderImpl
 from superset.sqllab.sql_json_executer import (
@@ -891,6 +891,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         if datasource:
             datasource_data["owners"] = datasource.owners_data
+            if isinstance(datasource, Query):
+                datasource_data["columns"] = datasource.columns
 
         bootstrap_data = {
             "can_add": slice_add_perm,
@@ -1331,8 +1333,13 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access_api
     @event_logger.log_this
     @expose("/testconn", methods=["POST", "GET"])
-    def testconn(self) -> FlaskResponse:  # pylint: disable=no-self-use
+    def testconn(self) -> FlaskResponse:
         """Tests a sqla connection"""
+        logger.warning(
+            "%s.testconn "
+            "This API endpoint is deprecated and will be removed in version 3.0.0",
+            self.__class__.__name__,
+        )
         db_name = request.json.get("name")
         uri = request.json.get("uri")
         try:
@@ -1362,11 +1369,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             )
             database.set_sqlalchemy_uri(uri)
             database.db_engine_spec.mutate_db_for_connection_test(database)
-
-            username = (
-                g.user.username if g.user and hasattr(g.user, "username") else None
-            )
-            engine = database.get_sqla_engine(user_name=username)
+            engine = database.get_sqla_engine()
 
             with closing(engine.raw_connection()) as conn:
                 if engine.dialect.do_ping(conn):
@@ -2096,7 +2099,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access
     @expose("/extra_table_metadata/<int:database_id>/<table_name>/<schema>/")
     @event_logger.log_this
-    def extra_table_metadata(  # pylint: disable=no-self-use
+    def extra_table_metadata(
         self, database_id: int, table_name: str, schema: str
     ) -> FlaskResponse:
         logger.warning(
@@ -2293,7 +2296,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             )
             return self.json_response("OK")
 
-        if not sql_lab.cancel_query(query, g.user.username if g.user else None):
+        if not sql_lab.cancel_query(query):
             raise SupersetCancelQueryException("Could not cancel query")
 
         query.status = QueryStatus.STOPPED
@@ -2305,12 +2308,18 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @event_logger.log_this
     @expose("/validate_sql_json/", methods=["POST", "GET"])
     def validate_sql_json(
-        # pylint: disable=too-many-locals,no-self-use
+        # pylint: disable=too-many-locals
         self,
     ) -> FlaskResponse:
         """Validates that arbitrary sql is acceptable for the given database.
         Returns a list of error/warning annotations as json.
         """
+        logger.warning(
+            "%s.validate_sql_json "
+            "This API endpoint is deprecated and will be removed in version 3.0.0",
+            self.__class__.__name__,
+        )
+
         sql = request.form["sql"]
         database_id = request.form["database_id"]
         schema = request.form.get("schema") or None
@@ -2399,7 +2408,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         sql_json_executor = Superset._create_sql_json_executor(
             execution_context, query_dao
         )
-        execution_context_convertor = ExecutionContextConvertorImpl()
+        execution_context_convertor = ExecutionContextConvertor()
         execution_context_convertor.set_max_row_in_display(
             int(config.get("DISPLAY_MAX_ROW"))  # type: ignore
         )

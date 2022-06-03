@@ -42,9 +42,15 @@ export function extractSeries(
     fillNeighborValue?: number;
     xAxis?: string;
     removeNulls?: boolean;
+    isHorizontal?: boolean;
   } = {},
 ): SeriesOption[] {
-  const { fillNeighborValue, xAxis = DTTM_ALIAS, removeNulls = false } = opts;
+  const {
+    fillNeighborValue,
+    xAxis = DTTM_ALIAS,
+    removeNulls = false,
+    isHorizontal = false,
+  } = opts;
   if (data.length === 0) return [];
   const rows: DataRecord[] = data.map(datum => ({
     ...datum,
@@ -69,7 +75,8 @@ export function extractSeries(
               : row[key],
           ];
         })
-        .filter(obs => !removeNulls || (obs[0] !== null && obs[1] !== null)),
+        .filter(obs => !removeNulls || (obs[0] !== null && obs[1] !== null))
+        .map(obs => (isHorizontal ? [obs[1], obs[0]] : obs)),
     }));
 }
 
@@ -232,3 +239,15 @@ export const currentSeries = {
   name: '',
   legend: '',
 };
+
+export function getAxisType(
+  dataType?: GenericDataType,
+): 'time' | 'value' | 'category' {
+  if (dataType === GenericDataType.TEMPORAL) {
+    return 'time';
+  }
+  if (dataType === GenericDataType.NUMERIC) {
+    return 'value';
+  }
+  return 'category';
+}

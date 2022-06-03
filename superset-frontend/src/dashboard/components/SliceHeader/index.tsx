@@ -111,9 +111,18 @@ const SliceHeader: FC<SliceHeaderProps> = ({
     [crossFilterValue],
   );
 
+  const handleClickTitle =
+    !editMode && supersetCanExplore ? onExploreChart : undefined;
+
   useEffect(() => {
     const headerElement = headerRef.current;
-    if (
+    if (handleClickTitle) {
+      setHeaderTooltip(
+        sliceName
+          ? t('Click to edit %s in a new tab', sliceName)
+          : t('Click to edit chart in a new tab'),
+      );
+    } else if (
       headerElement &&
       (headerElement.scrollWidth > headerElement.offsetWidth ||
         headerElement.scrollHeight > headerElement.offsetHeight)
@@ -122,7 +131,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
     } else {
       setHeaderTooltip(null);
     }
-  }, [sliceName, width, height]);
+  }, [sliceName, width, height, handleClickTitle]);
 
   return (
     <div className="chart-header" data-test="slice-header" ref={innerRef}>
@@ -139,6 +148,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
             emptyText=""
             onSaveTitle={updateSliceName}
             showTooltip={false}
+            onClickTitle={handleClickTitle}
           />
         </Tooltip>
         {!!Object.values(annotationQuery).length && (
@@ -212,6 +222,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
                 addDangerToast={addDangerToast}
                 handleToggleFullSize={handleToggleFullSize}
                 isFullSize={isFullSize}
+                isDescriptionExpanded={isExpanded}
                 chartStatus={chartStatus}
                 formData={formData}
               />

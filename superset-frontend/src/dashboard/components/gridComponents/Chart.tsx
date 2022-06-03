@@ -254,6 +254,7 @@ function Chart(props: Props) {
         : undefined;
       const key = await postFormData(
         props.datasource.id,
+        props.datasource.type,
         props.formData,
         props.slice.slice_id,
         nextTabId,
@@ -281,6 +282,7 @@ function Chart(props: Props) {
       resultType: 'full',
       resultFormat: 'csv',
       force: true,
+      ownState: props.ownState,
     });
   };
 
@@ -341,7 +343,7 @@ function Chart(props: Props) {
       <SliceHeader
         innerRef={headerRef}
         slice={slice}
-        isExpanded={!!isExpanded}
+        isExpanded={isExpanded}
         isCached={isCached}
         cachedDttm={cachedDttm}
         updatedDttm={chartUpdateEndTime}

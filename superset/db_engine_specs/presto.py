@@ -761,7 +761,7 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
             utils.TemporalType.TIMESTAMP,
             utils.TemporalType.TIMESTAMP_WITH_TIME_ZONE,
         ):
-            return f"""TIMESTAMP '{dttm.isoformat(timespec="microseconds")}'"""
+            return f"""TIMESTAMP '{dttm.isoformat(timespec="microseconds", sep=" ")}'"""
         return None
 
     @classmethod

@@ -145,7 +145,9 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
     certification_details = Column(Text)
     json_metadata = Column(Text)
     slug = Column(String(255), unique=True)
-    slices = relationship(Slice, secondary=dashboard_slices, backref="dashboards")
+    slices: List[Slice] = relationship(
+        Slice, secondary=dashboard_slices, backref="dashboards"
+    )
     owners = relationship(security_manager.user_model, secondary=dashboard_user)
     published = Column(Boolean, default=False)
     is_managed_externally = Column(Boolean, nullable=False, default=False)
@@ -218,7 +220,7 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
         }
 
     @property
-    def charts(self) -> List[BaseDatasource]:
+    def charts(self) -> List[str]:
         return [slc.chart for slc in self.slices]
 
     @property

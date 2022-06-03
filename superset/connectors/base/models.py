@@ -449,7 +449,7 @@ class BaseDatasource(
     def get_query_str(self, query_obj: QueryObjectDict) -> str:
         """Returns a query as a string
 
-        This is used to be displayed to the user so that she/he can
+        This is used to be displayed to the user so that they can
         understand what is taking place behind the scene"""
         raise NotImplementedError()
 
@@ -599,6 +599,7 @@ class BaseColumn(AuditMixinNullable, ImportExportMixin):
     verbose_name = Column(String(1024))
     is_active = Column(Boolean, default=True)
     type = Column(Text)
+    advanced_data_type = Column(String(255))
     groupby = Column(Boolean, default=True)
     filterable = Column(Boolean, default=True)
     description = Column(MediumText())
@@ -674,6 +675,7 @@ class BaseColumn(AuditMixinNullable, ImportExportMixin):
             "groupby",
             "is_dttm",
             "type",
+            "advanced_data_type",
         )
         return {s: getattr(self, s) for s in attrs if hasattr(self, s)}
 

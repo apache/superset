@@ -32,6 +32,7 @@ import threading
 import traceback
 import uuid
 import zlib
+from contextlib import contextmanager
 from datetime import date, datetime, time, timedelta
 from distutils.util import strtobool
 from email.mime.application import MIMEApplication
@@ -174,8 +175,17 @@ class GenericDataType(IntEnum):
     # ROW = 7
 
 
+class DatasourceType(str, Enum):
+    SLTABLE = "sl_table"
+    TABLE = "table"
+    DATASET = "dataset"
+    QUERY = "query"
+    SAVEDQUERY = "saved_query"
+    VIEW = "view"
+
+
 class DatasourceDict(TypedDict):
-    type: str
+    type: str  # todo(hugh): update this to be DatasourceType
     id: int
 
 
@@ -232,6 +242,25 @@ class FilterOperator(str, Enum):
     REGEX = "REGEX"
     IS_TRUE = "IS TRUE"
     IS_FALSE = "IS FALSE"
+
+
+class FilterStringOperators(str, Enum):
+    EQUALS = ("EQUALS",)
+    NOT_EQUALS = ("NOT_EQUALS",)
+    LESS_THAN = ("LESS_THAN",)
+    GREATER_THAN = ("GREATER_THAN",)
+    LESS_THAN_OR_EQUAL = ("LESS_THAN_OR_EQUAL",)
+    GREATER_THAN_OR_EQUAL = ("GREATER_THAN_OR_EQUAL",)
+    IN = ("IN",)
+    NOT_IN = ("NOT_IN",)
+    ILIKE = ("ILIKE",)
+    LIKE = ("LIKE",)
+    REGEX = ("REGEX",)
+    IS_NOT_NULL = ("IS_NOT_NULL",)
+    IS_NULL = ("IS_NULL",)
+    LATEST_PARTITION = ("LATEST_PARTITION",)
+    IS_TRUE = ("IS_TRUE",)
+    IS_FALSE = ("IS_FALSE",)
 
 
 class PostProcessingBoxplotWhiskerType(str, Enum):
@@ -1398,6 +1427,30 @@ def get_username() -> Optional[str]:
         return g.user.username
     except Exception:  # pylint: disable=broad-except
         return None
+
+
+@contextmanager
+def override_user(user: Optional[User]) -> Iterator[Any]:
+    """
+    Temporarily override the current user (if defined) per `flask.g`.
+
+    Sometimes, often in the context of async Celery tasks, it is useful to switch the
+    current user (which may be undefined) to different one, execute some SQLAlchemy
+    tasks and then revert back to the original one.
+
+    :param user: The override user
+    """
+
+    # pylint: disable=assigning-non-slot
+    if hasattr(g, "user"):
+        current = g.user
+        g.user = user
+        yield
+        g.user = current
+    else:
+        g.user = user
+        yield
+        delattr(g, "user")
 
 
 def parse_ssl_cert(certificate: str) -> _Certificate:

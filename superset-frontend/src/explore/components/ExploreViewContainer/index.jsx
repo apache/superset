@@ -86,26 +86,6 @@ const ExploreContainer = styled.div`
   height: 100%;
 `;
 
-const ExploreHeaderContainer = styled.div`
-  ${({ theme }) => css`
-    background-color: ${theme.colors.grayscale.light5};
-    height: ${theme.gridUnit * 16}px;
-    padding: 0 ${theme.gridUnit * 4}px;
-
-    .editable-title {
-      overflow: hidden;
-
-      & > input[type='button'],
-      & > span {
-        overflow: hidden;
-        text-overflow: ellipsis;
-        max-width: 100%;
-        white-space: nowrap;
-      }
-    }
-  `}
-`;
-
 const ExplorePanelContainer = styled.div`
   ${({ theme }) => css`
     background: ${theme.colors.grayscale.light5};
@@ -172,14 +152,24 @@ const ExplorePanelContainer = styled.div`
 `;
 
 const updateHistory = debounce(
-  async (formData, datasetId, isReplace, standalone, force, title, tabId) => {
+  async (
+    formData,
+    datasourceId,
+    datasourceType,
+    isReplace,
+    standalone,
+    force,
+    title,
+    tabId,
+  ) => {
     const payload = { ...formData };
     const chartId = formData.slice_id;
     const additionalParam = {};
     if (chartId) {
       additionalParam[URL_PARAMS.sliceId.name] = chartId;
     } else {
-      additionalParam[URL_PARAMS.datasetId.name] = datasetId;
+      additionalParam[URL_PARAMS.datasourceId.name] = datasourceId;
+      additionalParam[URL_PARAMS.datasourceType.name] = datasourceType;
     }
 
     const urlParams = payload?.url_params || {};
@@ -193,11 +183,24 @@ const updateHistory = debounce(
       let key;
       let stateModifier;
       if (isReplace) {
-        key = await postFormData(datasetId, formData, chartId, tabId);
+        key = await postFormData(
+          datasourceId,
+          datasourceType,
+          formData,
+          chartId,
+          tabId,
+        );
         stateModifier = 'replaceState';
       } else {
         key = getUrlParam(URL_PARAMS.formDataKey);
-        await putFormData(datasetId, key, formData, chartId, tabId);
+        await putFormData(
+          datasourceId,
+          datasourceType,
+          key,
+          formData,
+          chartId,
+          tabId,
+        );
         stateModifier = 'pushState';
       }
       const url = mountExploreUrl(
@@ -249,11 +252,12 @@ function ExploreViewContainer(props) {
             dashboardId: props.dashboardId,
           }
         : props.form_data;
-      const datasetId = props.datasource.id;
+      const { id: datasourceId, type: datasourceType } = props.datasource;
 
       updateHistory(
         formData,
-        datasetId,
+        datasourceId,
+        datasourceType,
         isReplace,
         props.standalone,
         props.force,
@@ -265,6 +269,7 @@ function ExploreViewContainer(props) {
       props.dashboardId,
       props.form_data,
       props.datasource.id,
+      props.datasource.type,
       props.standalone,
       props.force,
       tabId,
@@ -530,26 +535,23 @@ function ExploreViewContainer(props) {
 
   return (
     <ExploreContainer>
-      <ExploreHeaderContainer>
-        <ConnectedExploreChartHeader
-          ownState={props.ownState}
-          actions={props.actions}
-          canOverwrite={props.can_overwrite}
-          canDownload={props.can_download}
-          dashboardId={props.dashboardId}
-          isStarred={props.isStarred}
-          slice={props.slice}
-          sliceName={props.sliceName}
-          table_name={props.table_name}
-          formData={props.form_data}
-          timeout={props.timeout}
-          chart={props.chart}
-          user={props.user}
-          reports={props.reports}
-          onSaveChart={toggleModal}
-          saveDisabled={errorMessage || props.chart.chartStatus === 'loading'}
-        />
-      </ExploreHeaderContainer>
+      <ConnectedExploreChartHeader
+        actions={props.actions}
+        canOverwrite={props.can_overwrite}
+        canDownload={props.can_download}
+        dashboardId={props.dashboardId}
+        isStarred={props.isStarred}
+        slice={props.slice}
+        sliceName={props.sliceName}
+        table_name={props.table_name}
+        formData={props.form_data}
+        chart={props.chart}
+        ownState={props.ownState}
+        user={props.user}
+        reports={props.reports}
+        onSaveChart={toggleModal}
+        saveDisabled={errorMessage || props.chart.chartStatus === 'loading'}
+      />
       <ExplorePanelContainer id="explore-container">
         <Global
           styles={css`
@@ -701,12 +703,17 @@ function mapStateToProps(state) {
   const chartKey = Object.keys(charts)[0];
   const chart = charts[chartKey];
 
+  let dashboardId = Number(explore.form_data?.dashboardId);
+  if (Number.isNaN(dashboardId)) {
+    dashboardId = undefined;
+  }
+
   return {
     isDatasourceMetaLoading: explore.isDatasourceMetaLoading,
     datasource: explore.datasource,
     datasource_type: explore.datasource.type,
     datasourceId: explore.datasource_id,
-    dashboardId: explore.form_data ? explore.form_data.dashboardId : undefined,
+    dashboardId,
     controls: explore.controls,
     can_overwrite: !!explore.can_overwrite,
     can_add: !!explore.can_add,

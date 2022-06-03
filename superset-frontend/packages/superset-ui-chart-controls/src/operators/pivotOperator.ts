@@ -31,11 +31,13 @@ export const pivotOperator: PostProcessingFactory<PostProcessingPivot> = (
 ) => {
   const metricLabels = ensureIsArray(queryObject.metrics).map(getMetricLabel);
   const { x_axis: xAxis } = formData;
+
   if ((xAxis || queryObject.is_timeseries) && metricLabels.length) {
+    const index = [getColumnLabel(xAxis || DTTM_ALIAS)];
     return {
       operation: 'pivot',
       options: {
-        index: [xAxis || DTTM_ALIAS],
+        index,
         columns: ensureIsArray(queryObject.columns).map(getColumnLabel),
         // Create 'dummy' mean aggregates to assign cell values in pivot table
         // use the 'mean' aggregates to avoid drop NaN. PR: https://github.com/apache-superset/superset-ui/pull/1231

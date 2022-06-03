@@ -38,6 +38,7 @@ from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.types import String
 from typing_extensions import TypedDict
 
+from superset.datasets.commands.exceptions import DatasetNotFoundError
 from superset.exceptions import SupersetTemplateException
 from superset.extensions import feature_flag_manager
 from superset.utils.core import convert_legacy_filters_into_adhoc, merge_extra_filters
@@ -490,6 +491,7 @@ class JinjaTemplateProcessor(BaseTemplateProcessor):
                 "cache_key_wrapper": partial(safe_proxy, extra_cache.cache_key_wrapper),
                 "filter_values": partial(safe_proxy, extra_cache.filter_values),
                 "get_filters": partial(safe_proxy, extra_cache.get_filters),
+                "dataset": partial(safe_proxy, dataset_macro),
             }
         )
 
@@ -602,3 +604,34 @@ def get_template_processor(
     else:
         template_processor = NoOpTemplateProcessor
     return template_processor(database=database, table=table, query=query, **kwargs)
+
+
+def dataset_macro(
+    dataset_id: int,
+    include_metrics: bool = False,
+    columns: Optional[List[str]] = None,
+) -> str:
+    """
+    Given a dataset ID, return the SQL that represents it.
+
+    The generated SQL includes all columns (including computed) by default. Optionally
+    the user can also request metrics to be included, and columns to group by.
+    """
+    # pylint: disable=import-outside-toplevel
+    from superset.datasets.dao import DatasetDAO
+
+    dataset = DatasetDAO.find_by_id(dataset_id)
+    if not dataset:
+        raise DatasetNotFoundError(f"Dataset {dataset_id} not found!")
+
+    columns = columns or [column.column_name for column in dataset.columns]
+    metrics = [metric.metric_name for metric in dataset.metrics]
+    query_obj = {
+        "is_timeseries": False,
+        "filter": [],
+        "metrics": metrics if include_metrics else None,
+        "columns": columns,
+    }
+    sqla_query = dataset.get_query_str_extended(query_obj)
+    sql = sqla_query.sql
+    return f"({sql}) AS dataset_{dataset_id}"

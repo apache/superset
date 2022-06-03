@@ -28,7 +28,6 @@ import {
   getControlValuesCompatibleWithDatasource,
 } from 'src/explore/controlUtils';
 import * as actions from 'src/explore/actions/exploreActions';
-import { LocalStorageKeys, setItem } from 'src/utils/localStorageHelpers';
 
 export default function exploreReducer(state = {}, action) {
   const actionHandlers = {
@@ -131,10 +130,29 @@ export default function exploreReducer(state = {}, action) {
     },
     [actions.SET_FIELD_VALUE]() {
       const new_form_data = state.form_data;
+      const old_metrics_data = state.form_data.metrics;
+      const new_column_config = state.form_data.column_config;
       const { controlName, value, validationErrors } = action;
       new_form_data[controlName] = value;
 
       const vizType = new_form_data.viz_type;
+
+      // if the controlName is metrics, and the metric column name is updated,
+      // need to update column config as well to keep the previou config.
+      if (controlName === 'metrics' && old_metrics_data && new_column_config) {
+        value.forEach((item, index) => {
+          if (
+            item.label !== old_metrics_data[index].label &&
+            !!new_column_config[old_metrics_data[index].label]
+          ) {
+            new_column_config[item.label] =
+              new_column_config[old_metrics_data[index].label];
+
+            delete new_column_config[old_metrics_data[index].label];
+          }
+        });
+        new_form_data.column_config = new_column_config;
+      }
 
       // Use the processed control config (with overrides and everything)
       // if `controlName` does not existing in current controls,
@@ -148,9 +166,18 @@ export default function exploreReducer(state = {}, action) {
         ...getControlStateFromControlConfig(controlConfig, state, action.value),
       };
 
+      const column_config = {
+        ...state.controls.column_config,
+        ...(new_column_config && { value: new_column_config }),
+      };
+
       const newState = {
         ...state,
-        controls: { ...state.controls, [action.controlName]: control },
+        controls: {
+          ...state.controls,
+          [controlName]: control,
+          ...(controlName === 'metrics' && { column_config }),
+        },
       };
 
       const rerenderedControls = {};
@@ -236,42 +263,6 @@ export default function exploreReducer(state = {}, action) {
         },
         sliceName: action.slice.slice_name ?? state.sliceName,
       };
-    },
-    [actions.SET_TIME_FORMATTED_COLUMN]() {
-      const { datasourceId, columnName } = action;
-      const newTimeFormattedColumns = { ...state.timeFormattedColumns };
-      const newTimeFormattedColumnsForDatasource = ensureIsArray(
-        newTimeFormattedColumns[datasourceId],
-      ).slice();
-
-      newTimeFormattedColumnsForDatasource.push(columnName);
-      newTimeFormattedColumns[datasourceId] =
-        newTimeFormattedColumnsForDatasource;
-      setItem(
-        LocalStorageKeys.explore__data_table_time_formatted_columns,
-        newTimeFormattedColumns,
-      );
-      return { ...state, timeFormattedColumns: newTimeFormattedColumns };
-    },
-    [actions.UNSET_TIME_FORMATTED_COLUMN]() {
-      const { datasourceId, columnIndex } = action;
-      const newTimeFormattedColumns = { ...state.timeFormattedColumns };
-      const newTimeFormattedColumnsForDatasource = ensureIsArray(
-        newTimeFormattedColumns[datasourceId],
-      ).slice();
-
-      newTimeFormattedColumnsForDatasource.splice(columnIndex, 1);
-      newTimeFormattedColumns[datasourceId] =
-        newTimeFormattedColumnsForDatasource;
-
-      if (newTimeFormattedColumnsForDatasource.length === 0) {
-        delete newTimeFormattedColumns[datasourceId];
-      }
-      setItem(
-        LocalStorageKeys.explore__data_table_time_formatted_columns,
-        newTimeFormattedColumns,
-      );
-      return { ...state, timeFormattedColumns: newTimeFormattedColumns };
     },
     [actions.SET_FORCE_QUERY]() {
       return {
