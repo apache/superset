@@ -23,9 +23,20 @@ import React, {
   useCallback,
   useState,
 } from 'react';
-import { t } from '@superset-ui/core';
+import { t, styled } from '@superset-ui/core';
 import { Input } from 'src/components/Input';
 import { Tooltip } from 'src/components/Tooltip';
+
+const TitleLabel = styled.span`
+  display: inline-block;
+  padding: 2px 0;
+`;
+
+const StyledInput = styled(Input)`
+  border-radius: ${({ theme }) => theme.borderRadius};
+  height: 26px;
+  padding-left: ${({ theme }) => theme.gridUnit * 2.5}px;
+`;
 
 export interface AdhocMetricEditPopoverTitleProps {
   title?: {
@@ -77,8 +88,7 @@ const AdhocMetricEditPopoverTitle: React.FC<AdhocMetricEditPopoverTitleProps> =
 
     if (isEditMode) {
       return (
-        <Input
-          className="metric-edit-popover-label-input"
+        <StyledInput
           type="text"
           placeholder={title?.label}
           value={title?.hasCustomLabel ? title.label : ''}
@@ -103,9 +113,7 @@ const AdhocMetricEditPopoverTitle: React.FC<AdhocMetricEditPopoverTitleProps> =
           role="button"
           tabIndex={0}
         >
-          <span className="metric-edit-popover-label">
-            {title?.label || defaultLabel}
-          </span>
+          <TitleLabel>{title?.label || defaultLabel}</TitleLabel>
           &nbsp;
           <i
             className="fa fa-pencil"
