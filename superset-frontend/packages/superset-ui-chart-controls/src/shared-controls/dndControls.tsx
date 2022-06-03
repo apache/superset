@@ -33,6 +33,11 @@ import {
 } from '../constants';
 import { QUERY_TIME_COLUMN_OPTION } from '..';
 
+const savedMetricsTypeCheck = (datasource: Dataset | QueryResponse | null) =>
+  datasource?.hasOwnProperty('metrics')
+    ? (datasource as Dataset)?.metrics || []
+    : DEFAULT_METRICS;
+
 export const dndGroupByControl: SharedControlConfig<'DndColumnSelect'> = {
   type: 'DndColumnSelect',
   label: t('Dimensions'),
@@ -103,9 +108,7 @@ export const dnd_adhoc_filters: SharedControlConfig<'DndFilterSelect'> = {
     columns: datasource?.columns[0]?.hasOwnProperty('filterable')
       ? (datasource as Dataset)?.columns.filter(c => c.filterable)
       : datasource?.columns || [],
-    savedMetrics: datasource?.hasOwnProperty('metrics')
-      ? (datasource as Dataset)?.metrics || []
-      : DEFAULT_METRICS,
+    savedMetrics: savedMetricsTypeCheck(datasource),
     // current active adhoc metrics
     selectedMetrics:
       form_data.metrics || (form_data.metric ? [form_data.metric] : []),
@@ -121,9 +124,7 @@ export const dnd_adhoc_metrics: SharedControlConfig<'DndMetricSelect'> = {
   validators: [validateNonEmpty],
   mapStateToProps: ({ datasource }) => ({
     columns: datasource?.columns || [],
-    savedMetrics: datasource?.hasOwnProperty('metrics')
-      ? (datasource as Dataset)?.metrics || []
-      : DEFAULT_METRICS,
+    savedMetrics: savedMetricsTypeCheck(datasource),
     datasource,
     datasourceType: datasource?.type,
   }),
@@ -153,9 +154,7 @@ export const dnd_sort_by: SharedControlConfig<'DndMetricSelect'> = {
   ),
   mapStateToProps: ({ datasource }) => ({
     columns: datasource?.columns || [],
-    savedMetrics: datasource?.hasOwnProperty('metrics')
-      ? (datasource as Dataset)?.metrics || []
-      : DEFAULT_METRICS,
+    savedMetrics: savedMetricsTypeCheck(datasource),
     datasource,
     datasourceType: datasource?.type,
   }),
