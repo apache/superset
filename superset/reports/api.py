@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 
 from flask import g, request, Response
 from flask_appbuilder.api import expose, permission_name, protect, rison, safe
@@ -289,8 +289,11 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.post",
         log_to_statsd=False,
+        allow_extra_payload=True,
     )
-    def post(self) -> Response:
+    def post(
+        self, add_extra_log_payload: Callable[..., None] = lambda **kwargs: None
+    ) -> Response:
         """Creates a new Report Schedule
         ---
         post:
@@ -328,6 +331,12 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         """
         try:
             item = self.add_model_schema.load(request.json)
+            add_extra_log_payload(
+                dashboard_id=request.json.get("dashboard", None),
+                active=request.json.get("active", None),
+                report_format=request.json.get("report_format", None),
+                chart_id=request.json.get("chart", None),
+            )
         # This validates custom Schema with custom validations
         except ValidationError as error:
             return self.response_400(message=error.messages)
