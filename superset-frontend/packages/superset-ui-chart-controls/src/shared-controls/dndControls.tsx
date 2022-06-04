@@ -195,7 +195,7 @@ export const dnd_granularity_sqla: typeof dndGroupByControl = {
   mapStateToProps: ({ datasource }) => {
     if (datasource?.columns[0]?.hasOwnProperty('column_name')) {
       const temporalColumns =
-        (datasource as Dataset)?.columns.filter(c => c.is_dttm) ?? [];
+        (datasource as Dataset)?.columns?.filter(c => c.is_dttm) ?? [];
       const options = Object.fromEntries(
         temporalColumns.map(option => [option.column_name, option]),
       );
@@ -209,14 +209,19 @@ export const dnd_granularity_sqla: typeof dndGroupByControl = {
       };
     }
 
-    const temporalColumns =
-      (datasource as QueryResponse)?.columns.filter(c => c.is_dttm) ?? [];
+    const sortedQueryColumns = (datasource as QueryResponse)?.columns?.sort(
+      query => {
+        if (query?.is_dttm) return -1;
+        if (!query?.is_dttm) return 1;
+        return 0;
+      },
+    );
     const options = Object.fromEntries(
-      temporalColumns.map(option => [option.name, option]),
+      sortedQueryColumns.map(option => [option.name, option]),
     );
     return {
       options,
-      default: temporalColumns[0]?.name || null,
+      default: sortedQueryColumns[0]?.name || null,
       isTemporal: true,
     };
   },
