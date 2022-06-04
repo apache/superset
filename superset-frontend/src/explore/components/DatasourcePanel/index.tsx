@@ -307,7 +307,7 @@ export default function DataSourcePanel({
     return true;
   };
 
-  const datasourceTypeCheck =
+  const isValidDatasourceType =
     datasource.type === DatasourceType.Dataset ||
     datasource.type === DatasourceType.SlTable ||
     datasource.type === DatasourceType.SavedQuery ||
@@ -327,7 +327,7 @@ export default function DataSourcePanel({
           placeholder={t('Search Metrics & Columns')}
         />
         <div className="field-selections">
-          {datasourceTypeCheck && showInfoboxCheck() && (
+          {isValidDatasourceType && showInfoboxCheck() && (
             <StyledInfoboxWrapper>
               <Alert
                 closable
