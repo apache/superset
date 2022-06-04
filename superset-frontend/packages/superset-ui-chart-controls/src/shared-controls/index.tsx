@@ -57,7 +57,7 @@ import {
   D3_TIME_FORMAT_DOCS,
   DEFAULT_TIME_FORMAT,
   DEFAULT_NUMBER_FORMAT,
-  savedMetricsTypeCheck,
+  defineSavedMetrics,
 } from '../utils';
 import { TIME_FILTER_LABELS, DATASET_TIME_COLUMN_OPTION } from '../constants';
 import {
@@ -155,7 +155,7 @@ const metrics: SharedControlConfig<'MetricsControl'> = {
   validators: [validateNonEmpty],
   mapStateToProps: ({ datasource }) => ({
     columns: datasource?.columns || [],
-    savedMetrics: savedMetricsTypeCheck(datasource),
+    savedMetrics: defineSavedMetrics(datasource),
     datasource,
     datasourceType: datasource?.type,
   }),
@@ -412,7 +412,7 @@ const sort_by: SharedControlConfig<'MetricsControl'> = {
   ),
   mapStateToProps: ({ datasource }) => ({
     columns: datasource?.columns || [],
-    savedMetrics: savedMetricsTypeCheck(datasource),
+    savedMetrics: defineSavedMetrics(datasource),
     datasource,
     datasourceType: datasource?.type,
   }),
@@ -507,7 +507,7 @@ const adhoc_filters: SharedControlConfig<'AdhocFilterControl'> = {
     columns: datasource?.columns[0]?.hasOwnProperty('filterable')
       ? (datasource as Dataset)?.columns.filter(c => c.filterable)
       : datasource?.columns || [],
-    savedMetrics: savedMetricsTypeCheck(datasource),
+    savedMetrics: defineSavedMetrics(datasource),
     // current active adhoc metrics
     selectedMetrics:
       form_data.metrics || (form_data.metric ? [form_data.metric] : []),

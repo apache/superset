@@ -27,7 +27,7 @@ import {
 } from '@superset-ui/core';
 import { ExtraControlProps, SharedControlConfig, Dataset } from '../types';
 import { DATASET_TIME_COLUMN_OPTION, TIME_FILTER_LABELS } from '../constants';
-import { QUERY_TIME_COLUMN_OPTION, savedMetricsTypeCheck } from '..';
+import { QUERY_TIME_COLUMN_OPTION, defineSavedMetrics } from '..';
 
 export const dndGroupByControl: SharedControlConfig<'DndColumnSelect'> = {
   type: 'DndColumnSelect',
@@ -99,7 +99,7 @@ export const dnd_adhoc_filters: SharedControlConfig<'DndFilterSelect'> = {
     columns: datasource?.columns[0]?.hasOwnProperty('filterable')
       ? (datasource as Dataset)?.columns.filter(c => c.filterable)
       : datasource?.columns || [],
-    savedMetrics: savedMetricsTypeCheck(datasource),
+    savedMetrics: defineSavedMetrics(datasource),
     // current active adhoc metrics
     selectedMetrics:
       form_data.metrics || (form_data.metric ? [form_data.metric] : []),
@@ -115,7 +115,7 @@ export const dnd_adhoc_metrics: SharedControlConfig<'DndMetricSelect'> = {
   validators: [validateNonEmpty],
   mapStateToProps: ({ datasource }) => ({
     columns: datasource?.columns || [],
-    savedMetrics: savedMetricsTypeCheck(datasource),
+    savedMetrics: defineSavedMetrics(datasource),
     datasource,
     datasourceType: datasource?.type,
   }),
@@ -145,7 +145,7 @@ export const dnd_sort_by: SharedControlConfig<'DndMetricSelect'> = {
   ),
   mapStateToProps: ({ datasource }) => ({
     columns: datasource?.columns || [],
-    savedMetrics: savedMetricsTypeCheck(datasource),
+    savedMetrics: defineSavedMetrics(datasource),
     datasource,
     datasourceType: datasource?.type,
   }),

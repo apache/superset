@@ -46,7 +46,7 @@ import {
   emitFilterControl,
   Dataset,
   ColumnMeta,
-  savedMetricsTypeCheck,
+  defineSavedMetrics,
 } from '@superset-ui/chart-controls';
 
 import i18n from './i18n';
@@ -158,7 +158,7 @@ const percent_metrics: typeof sharedControls.metrics = {
   resetOnHide: false,
   mapStateToProps: ({ datasource, controls }, controlState) => ({
     columns: datasource?.columns || [],
-    savedMetrics: savedMetricsTypeCheck(datasource),
+    savedMetrics: defineSavedMetrics(datasource),
     datasource,
     datasourceType: datasource?.type,
     queryMode: getQueryMode(controls),
@@ -237,7 +237,7 @@ const config: ControlPanelConfig = {
                       (c: ColumnMeta) => c.filterable,
                     )
                   : datasource?.columns,
-                savedMetrics: savedMetricsTypeCheck(datasource),
+                savedMetrics: defineSavedMetrics(datasource),
                 // current active adhoc metrics
                 selectedMetrics:
                   form_data.metrics ||

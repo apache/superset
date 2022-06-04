@@ -22,4 +22,4 @@ export * from './expandControlConfig';
 export * from './getColorFormatters';
 export { default as mainMetric } from './mainMetric';
 export { default as columnChoices } from './columnChoices';
-export * from './savedMetricsTypeCheck';
+export * from './defineSavedMetrics';
