@@ -86,6 +86,7 @@ import {
   dndSeries,
   dnd_adhoc_metric_2,
 } from './dndControls';
+import { QUERY_TIME_COLUMN_OPTION } from '..';
 
 const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
 const sequentialSchemeRegistry = getSequentialSchemeRegistry();
@@ -138,11 +139,13 @@ const groupByControl: SharedControlConfig<'SelectControl', ColumnMeta> = {
     const { datasource } = state;
     if (datasource?.columns[0]?.hasOwnProperty('groupby')) {
       const options = (datasource as Dataset).columns.filter(c => c.groupby);
-      if (includeTime) {
-        options.unshift(DATASET_TIME_COLUMN_OPTION);
-      }
+      if (includeTime) options.unshift(DATASET_TIME_COLUMN_OPTION);
       newState.options = options;
-    } else newState.options = datasource?.columns;
+    } else {
+      const options = (datasource as QueryResponse).columns;
+      if (includeTime) options.unshift(QUERY_TIME_COLUMN_OPTION);
+      newState.options = options;
+    }
     return newState;
   },
   commaChoosesOption: false,
