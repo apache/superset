@@ -36,7 +36,7 @@ def get_table(
     schema: Optional[str] = None,
 ):
     schema = schema or get_example_default_schema()
-    table_source = DatasourceDAO.sources[DatasourceType.SQLATABLE]
+    table_source = DatasourceDAO.sources[DatasourceType.TABLE]
     return (
         db.session.query(table_source)
         .filter_by(database_id=database.id, schema=schema, table_name=table_name)
@@ -55,7 +55,7 @@ def create_table_metadata(
 
     table = get_table(table_name, database, schema)
     if not table:
-        table_source = DatasourceDAO.sources[DatasourceType.SQLATABLE]
+        table_source = DatasourceDAO.sources[DatasourceType.TABLE]
         table = table_source(schema=schema, table_name=table_name)
     if fetch_values_predicate:
         table.fetch_values_predicate = fetch_values_predicate
@@ -73,7 +73,7 @@ def create_slice(
     return Slice(
         slice_name=title,
         viz_type=viz_type,
-        datasource_type="table",
+        datasource_type=DatasourceType.TABLE,
         datasource_id=table.id,
         params=json.dumps(slices_dict, indent=4, sort_keys=True),
     )

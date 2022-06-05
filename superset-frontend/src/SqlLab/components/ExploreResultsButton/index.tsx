@@ -45,7 +45,7 @@ const ExploreResultsButton = ({
         placement="top"
         label="explore"
       />{' '}
-      {t('Explore')}
+      {t('Create Chart')}
     </Button>
   );
 };

@@ -176,11 +176,12 @@ class GenericDataType(IntEnum):
 
 
 class DatasourceType(Enum):
-    SQLATABLE = "table"
-    TABLE = "sl_table"
+    SLTABLE = "sl_table"
+    TABLE = "table"
     DATASET = "dataset"
     QUERY = "query"
     SAVEDQUERY = "saved_query"
+    VIEW = "view"
 
 
 class DatasourceDict(TypedDict):

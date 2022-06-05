@@ -15,9 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import smtplib
-import ssl
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from click.core import Context
 
@@ -30,9 +28,7 @@ try:
 except ModuleNotFoundError:
     exit("Click is a required dependency for this script")
 
-
-SMTP_PORT = 587
-SMTP_SERVER = "mail-relay.apache.org"
+RECEIVER_EMAIL = "dev@superset.apache.org"
 PROJECT_NAME = "Superset"
 PROJECT_MODULE = "superset"
 PROJECT_DESCRIPTION = "Apache Superset is a modern, enterprise-ready business intelligence web application"
@@ -42,25 +38,6 @@ def string_comma_to_list(message: str) -> List[str]:
     if not message:
         return []
     return [element.strip() for element in message.split(",")]
-
-
-def send_email(
-    smtp_server: str,
-    smpt_port: int,
-    username: str,
-    password: str,
-    sender_email: str,
-    receiver_email: str,
-    message: str,
-) -> None:
-    """
-    Send a simple text email (SMTP)
-    """
-    context = ssl.create_default_context()
-    with smtplib.SMTP(smtp_server, smpt_port) as server:
-        server.starttls(context=context)
-        server.login(username, password)
-        server.sendmail(sender_email, receiver_email, message)
 
 
 def render_template(template_file: str, **kwargs: Any) -> str:
@@ -75,122 +52,49 @@ def render_template(template_file: str, **kwargs: Any) -> str:
     return template.render(kwargs)
 
 
-def inter_send_email(
-    username: str, password: str, sender_email: str, receiver_email: str, message: str
-) -> None:
-    print("--------------------------")
-    print("SMTP Message")
-    print("--------------------------")
-    print(message)
-    print("--------------------------")
-    confirm = input("Is the Email message ok? (yes/no): ")
-    if confirm not in ("Yes", "yes", "y"):
-        exit("Exit by user request")
-
-    try:
-        send_email(
-            SMTP_SERVER,
-            SMTP_PORT,
-            username,
-            password,
-            sender_email,
-            receiver_email,
-            message,
-        )
-        print("Email sent successfully")
-    except smtplib.SMTPAuthenticationError:
-        exit("SMTP User authentication error, Email not sent!")
-    except Exception as e:
-        exit(f"SMTP exception {e}")
-
-
 class BaseParameters(object):
     def __init__(
         self,
-        email: str,
-        username: str,
-        password: str,
         version: str,
         version_rc: str,
     ) -> None:
-        self.email = email
-        self.username = username
-        self.password = password
         self.version = version
         self.version_rc = version_rc
         self.template_arguments: Dict[str, Any] = {}
 
     def __repr__(self) -> str:
-        return f"Apache Credentials: {self.email}/{self.username}/{self.version}/{self.version_rc}"
+        return f"Apache Credentials: {self.version}/{self.version_rc}"
 
 
 @click.group()
 @click.pass_context
-@click.option(
-    "--apache_email",
-    prompt="Apache Email",
-    help="Your Apache email this will be used for SMTP From",
-)
-@click.option(
-    "--apache_username", prompt="Apache username", help="Your LDAP Apache username"
-)
-@click.option(
-    "--apache_password",
-    prompt="Apache password",
-    hide_input=True,
-    help="Your LDAP Apache password",
-)
 @click.option("--version", envvar="SUPERSET_VERSION")
 @click.option("--version_rc", envvar="SUPERSET_VERSION_RC")
 def cli(
     ctx: Context,
-    apache_email: str,
-    apache_username: str,
-    apache_password: str,
     version: str,
     version_rc: str,
 ) -> None:
     """Welcome to releasing send email CLI interface!"""
-    base_parameters = BaseParameters(
-        apache_email, apache_username, apache_password, version, version_rc
-    )
+    base_parameters = BaseParameters(version, version_rc)
+    base_parameters.template_arguments["receiver_email"] = RECEIVER_EMAIL
     base_parameters.template_arguments["project_name"] = PROJECT_NAME
     base_parameters.template_arguments["project_module"] = PROJECT_MODULE
     base_parameters.template_arguments["project_description"] = PROJECT_DESCRIPTION
     base_parameters.template_arguments["version"] = base_parameters.version
     base_parameters.template_arguments["version_rc"] = base_parameters.version_rc
-    base_parameters.template_arguments["sender_email"] = base_parameters.email
     ctx.obj = base_parameters
 
 
 @cli.command("vote_pmc")
-@click.option(
-    "--receiver_email",
-    default="dev@superset.apache.org",
-    type=str,
-    prompt="The receiver email (To:)",
-)
 @click.pass_obj
-def vote_pmc(base_parameters: BaseParameters, receiver_email: str) -> None:
+def vote_pmc(base_parameters: BaseParameters) -> None:
     template_file = "email_templates/vote_pmc.j2"
-    base_parameters.template_arguments["receiver_email"] = receiver_email
     message = render_template(template_file, **base_parameters.template_arguments)
-    inter_send_email(
-        base_parameters.username,
-        base_parameters.password,
-        base_parameters.template_arguments["sender_email"],
-        base_parameters.template_arguments["receiver_email"],
-        message,
-    )
+    print(message)
 
 
 @cli.command("result_pmc")
-@click.option(
-    "--receiver_email",
-    default="dev@superset.apache.org",
-    type=str,
-    prompt="The receiver email (To:)",
-)
 @click.option(
     "--vote_bindings",
     default="",
@@ -219,14 +123,12 @@ def vote_pmc(base_parameters: BaseParameters, receiver_email: str) -> None:
 @click.pass_obj
 def result_pmc(
     base_parameters: BaseParameters,
-    receiver_email: str,
     vote_bindings: str,
     vote_nonbindings: str,
     vote_negatives: str,
     vote_thread: str,
 ) -> None:
     template_file = "email_templates/result_pmc.j2"
-    base_parameters.template_arguments["receiver_email"] = receiver_email
     base_parameters.template_arguments["vote_bindings"] = string_comma_to_list(
         vote_bindings
     )
@@ -238,34 +140,15 @@ def result_pmc(
     )
     base_parameters.template_arguments["vote_thread"] = vote_thread
     message = render_template(template_file, **base_parameters.template_arguments)
-    inter_send_email(
-        base_parameters.username,
-        base_parameters.password,
-        base_parameters.template_arguments["sender_email"],
-        base_parameters.template_arguments["receiver_email"],
-        message,
-    )
+    print(message)
 
 
 @cli.command("announce")
-@click.option(
-    "--receiver_email",
-    default="dev@superset.apache.org",
-    type=str,
-    prompt="The receiver email (To:)",
-)
 @click.pass_obj
-def announce(base_parameters: BaseParameters, receiver_email: str) -> None:
+def announce(base_parameters: BaseParameters) -> None:
     template_file = "email_templates/announce.j2"
-    base_parameters.template_arguments["receiver_email"] = receiver_email
     message = render_template(template_file, **base_parameters.template_arguments)
-    inter_send_email(
-        base_parameters.username,
-        base_parameters.password,
-        base_parameters.template_arguments["sender_email"],
-        base_parameters.template_arguments["receiver_email"],
-        message,
-    )
+    print(message)
 
 
 cli()

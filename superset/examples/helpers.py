@@ -33,7 +33,7 @@ misc_dash_slices: Set[str] = set()  # slices assembled in a 'Misc Chart' dashboa
 
 
 def get_table_connector_registry() -> Any:
-    return DatasourceDAO.sources[DatasourceType.SQLATABLE]
+    return DatasourceDAO.sources[DatasourceType.TABLE]
 
 
 def get_examples_folder() -> str:

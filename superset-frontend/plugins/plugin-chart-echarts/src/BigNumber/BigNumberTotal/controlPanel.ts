@@ -96,4 +96,8 @@ export default {
       label: t('Number format'),
     },
   },
+  denormalizeFormData: formData => ({
+    ...formData,
+    metric: formData.standardizedFormData.standardizedState.metrics[0],
+  }),
 } as ControlPanelConfig;

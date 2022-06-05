@@ -409,7 +409,7 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
                     if id_ is None:
                         continue
                     datasource = DatasourceDAO.get_datasource(
-                        session, utils.DatasourceType.SQLATABLE, id_
+                        session, utils.DatasourceType.TABLE, id_
                     )
                     datasource_ids.add((datasource.id, datasource.type))
 

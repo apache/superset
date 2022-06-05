@@ -259,7 +259,7 @@ class TestDatasource(SupersetTestCase):
         pytest.raises(
             SupersetGenericDBErrorException,
             lambda: DatasourceDAO.get_datasource(
-                db.session, DatasourceType.SQLATABLE, tbl.id
+                db.session, DatasourceType.TABLE, tbl.id
             ).external_metadata(),
         )
 
@@ -388,7 +388,7 @@ class TestDatasource(SupersetTestCase):
         self.login(username="admin")
         tbl = self.get_table(name="birth_names")
         datasource = DatasourceDAO.get_datasource(
-            db.session, DatasourceType.SQLATABLE, tbl.id
+            db.session, DatasourceType.TABLE, tbl.id
         )
         assert datasource.health_check_message == "Warning message!"
         app.config["DATASET_HEALTH_CHECK"] = None
@@ -397,7 +397,7 @@ class TestDatasource(SupersetTestCase):
         pytest.raises(
             DatasourceNotFound,
             lambda: DatasourceDAO.get_datasource(
-                db.session, DatasourceType.SQLATABLE, 9999999
+                db.session, DatasourceType.TABLE, 9999999
             ),
         )
 

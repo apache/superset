@@ -107,7 +107,7 @@ test('useTableColumns with no options', () => {
           name: 'DataTableTemporalHeaderCell',
         }),
         props: expect.objectContaining({
-          originalFormattedTimeColumnIndex: -1,
+          onTimeColumnChange: expect.any(Function),
         }),
       }),
       accessor: expect.any(Function),
@@ -135,7 +135,7 @@ test('useTableColumns with no options', () => {
 
 test('useTableColumns with options', () => {
   const hook = renderHook(() =>
-    useTableColumns(colnames, coltypes, data, undefined, [], {
+    useTableColumns(colnames, coltypes, data, undefined, true, {
       col01: { Header: 'Header' },
     }),
   );
@@ -171,7 +171,7 @@ test('useTableColumns with options', () => {
           name: 'DataTableTemporalHeaderCell',
         }),
         props: expect.objectContaining({
-          originalFormattedTimeColumnIndex: -1,
+          onTimeColumnChange: expect.any(Function),
         }),
       }),
       accessor: expect.any(Function),
