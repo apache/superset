@@ -17,7 +17,7 @@
  * under the License.
  */
 import { QueryObject, SqlaFormData } from '@superset-ui/core';
-import { pivotOperator } from '../../../src';
+import { pivotOperator } from '@superset-ui/chart-controls';
 
 const formData: SqlaFormData = {
   metrics: [

@@ -17,7 +17,25 @@
  * specific language governing permissions and limitationsxw
  * under the License.
  */
-export { getMetricOffsetsMap } from './getMetricOffsetsMap';
-export { isTimeComparison } from './isTimeComparison';
-export { isDerivedSeries } from './isDerivedSeries';
-export { TIME_COMPARISON_SEPARATOR } from './constants';
+import {
+  ensureIsArray,
+  JsonObject,
+  QueryFormData,
+  ComparisionType,
+} from '@superset-ui/core';
+import { isString } from 'lodash';
+
+export const isDerivedSeries = (
+  series: JsonObject,
+  formData: QueryFormData,
+): boolean => {
+  const comparisonType = formData.comparison_type;
+  if (comparisonType !== ComparisionType.Values) {
+    return false;
+  }
+
+  const timeCompare: string[] = ensureIsArray(formData?.time_compare);
+  return isString(series.name)
+    ? !!timeCompare.find(timeOffset => series.name.endsWith(timeOffset))
+    : false;
+};
