@@ -335,7 +335,7 @@ class SliceHeaderControls extends React.PureComponent<
             <ModalTrigger
               triggerNode={
                 <span data-test="view-query-menu-item">
-                  {t('View results')}
+                  {t('Drill to detail')}
                 </span>
               }
               modalTitle={t('Chart Data: %s', slice.slice_name)}
@@ -348,15 +348,13 @@ class SliceHeaderControls extends React.PureComponent<
                 />
               }
               modalFooter={
-                <>
-                  <Button
-                    buttonStyle="secondary"
-                    buttonSize="small"
-                    onClick={this.props.onExploreChart}
-                  >
-                    {t('Edit chart')}
-                  </Button>
-                </>
+                <Button
+                  buttonStyle="secondary"
+                  buttonSize="small"
+                  onClick={this.props.onExploreChart}
+                >
+                  {t('Edit chart')}
+                </Button>
               }
               draggable
               resizable
