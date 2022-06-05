@@ -97,7 +97,7 @@ def _create_energy_table():
 
 def _create_and_commit_energy_slice(
     table: SqlaTable, title: str, viz_type: str, param: Dict[str, str]
-):   
+):
     slice = create_slice(title, viz_type, table, param)
     existing_slice = (
         db.session.query(Slice).filter_by(slice_name=slice.slice_name).first()

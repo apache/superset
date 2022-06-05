@@ -175,7 +175,7 @@ class GenericDataType(IntEnum):
     # ROW = 7
 
 
-class DatasourceType(Enum):
+class DatasourceType(str, Enum):
     SLTABLE = "sl_table"
     TABLE = "table"
     DATASET = "dataset"
