@@ -23,9 +23,9 @@ import { DEFAULT_TIME_RANGE } from 'src/explore/constants';
 import { getControlsState } from 'src/explore/store';
 import {
   getControlConfig,
-  getFormDataFromControls,
   getControlStateFromControlConfig,
   getControlValuesCompatibleWithDatasource,
+  StandardizedFormData,
 } from 'src/explore/controlUtils';
 import * as actions from 'src/explore/actions/exploreActions';
 
@@ -129,11 +129,10 @@ export default function exploreReducer(state = {}, action) {
       };
     },
     [actions.SET_FIELD_VALUE]() {
-      const new_form_data = state.form_data;
+      const { controlName, value, validationErrors } = action;
+      let new_form_data = { ...state.form_data, [controlName]: value };
       const old_metrics_data = state.form_data.metrics;
       const new_column_config = state.form_data.column_config;
-      const { controlName, value, validationErrors } = action;
-      new_form_data[controlName] = value;
 
       const vizType = new_form_data.viz_type;
 
@@ -204,18 +203,17 @@ export default function exploreReducer(state = {}, action) {
       });
       const hasErrors = errors && errors.length > 0;
 
-      const currentControlsState =
+      const isVizSwitch =
         action.controlName === 'viz_type' &&
-        action.value !== state.controls.viz_type.value
-          ? // rebuild the full control state if switching viz type
-            getControlsState(
-              state,
-              getFormDataFromControls({
-                ...state.controls,
-                viz_type: control,
-              }),
-            )
-          : state.controls;
+        action.value !== state.controls.viz_type.value;
+      let currentControlsState = state.controls;
+      if (isVizSwitch) {
+        // get StandardizedFormData from source form_data
+        const sfd = new StandardizedFormData(state.form_data);
+        const transformed = sfd.transform(action.value, state);
+        new_form_data = transformed.formData;
+        currentControlsState = transformed.controlsState;
+      }
 
       return {
         ...state,
