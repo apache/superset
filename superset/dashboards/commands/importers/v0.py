@@ -28,11 +28,9 @@ from superset import db
 from superset.commands.base import BaseCommand
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.datasets.commands.importers.v0 import import_dataset
-from superset.datasource.dao import DatasourceDAO
 from superset.exceptions import DashboardImportException
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from superset.utils.core import DatasourceType
 from superset.utils.dashboard_filter_scopes_converter import (
     convert_filter_scopes,
     copy_filter_scopes,

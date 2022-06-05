@@ -82,7 +82,6 @@ def _create_energy_table():
         table.metrics.append(
             SqlMetric(metric_name="sum__value", expression=f"SUM({col})")
         )
-
     db.session.merge(table)
     db.session.commit()
     table.fetch_metadata()
@@ -98,7 +97,7 @@ def _create_energy_table():
 
 def _create_and_commit_energy_slice(
     table: SqlaTable, title: str, viz_type: str, param: Dict[str, str]
-):
+):   
     slice = create_slice(title, viz_type, table, param)
     existing_slice = (
         db.session.query(Slice).filter_by(slice_name=slice.slice_name).first()

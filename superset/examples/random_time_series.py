@@ -90,7 +90,7 @@ def load_random_time_series_data(
     slc = Slice(
         slice_name="Calendar Heatmap",
         viz_type="cal_heatmap",
-        datasource_type=DatasourceType.TABLE,
+        datasource_type=DatasourceType.TABLE.value,
         datasource_id=tbl.id,
         params=get_slice_json(slice_data),
     )

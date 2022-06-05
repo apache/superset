@@ -206,14 +206,14 @@ def create_slices(tbl: SqlaTable, admin_owner: bool) -> Tuple[List[Slice], List[
     if admin_owner:
         slice_props = dict(
             datasource_id=tbl.id,
-            datasource_type=DatasourceType.TABLE,
+            datasource_type=DatasourceType.TABLE.value,
             owners=[admin],
             created_by=admin,
         )
     else:
         slice_props = dict(
             datasource_id=tbl.id,
-            datasource_type=DatasourceType.TABLE,
+            datasource_type=DatasourceType.TABLE.value,
             owners=[],
             created_by=admin,
         )

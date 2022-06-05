@@ -73,7 +73,7 @@ def create_slice(
     return Slice(
         slice_name=title,
         viz_type=viz_type,
-        datasource_type=DatasourceType.TABLE,
+        datasource_type=DatasourceType.TABLE.value,
         datasource_id=table.id,
         params=json.dumps(slices_dict, indent=4, sort_keys=True),
     )

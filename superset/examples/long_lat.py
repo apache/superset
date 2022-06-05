@@ -114,7 +114,7 @@ def load_long_lat_data(only_metadata: bool = False, force: bool = False) -> None
     slc = Slice(
         slice_name="Mapbox Long/Lat",
         viz_type="mapbox",
-        datasource_type=DatasourceType.TABLE,
+        datasource_type=DatasourceType.TABLE.value,
         datasource_id=tbl.id,
         params=get_slice_json(slice_data),
     )

@@ -2018,8 +2018,8 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         return (
             session.query(cls)
             .options(
-                sa.subqueryload(cls.columns),
-                sa.subqueryload(cls.metrics),
+                sa.orm.subqueryload(cls.columns),
+                sa.orm.subqueryload(cls.metrics),
             )
             .filter_by(id=datasource_id)
             .one()

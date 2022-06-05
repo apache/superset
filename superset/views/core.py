@@ -641,7 +641,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             datasource_id, datasource_type = get_datasource_info(
                 datasource_id, datasource_type, form_data
             )
-
             force = request.args.get("force") == "true"
 
             # TODO: support CSV, SQL query and other non-JSON types
