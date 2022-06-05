@@ -29,6 +29,7 @@ from sqlalchemy.orm.exc import NoResultFound
 
 from superset import db, event_logger
 from superset.commands.utils import populate_owners
+from superset.connectors.sqla.models import SqlaTable
 from superset.connectors.sqla.utils import get_physical_table_metadata
 from superset.datasets.commands.exceptions import (
     DatasetForbiddenError,
@@ -156,9 +157,8 @@ class Datasource(BaseSupersetView):
         except ValidationError as err:
             return json_error_response(str(err), status=400)
 
-        datasource = DatasourceDAO.get_datasource_by_name(
+        datasource = SqlaTable.get_datasource_by_name(
             session=db.session,
-            datasource_type=DatasourceType(params["datasource_type"]),
             database_name=params["database_name"],
             schema=params["schema_name"],
             datasource_name=params["table_name"],

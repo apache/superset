@@ -49,7 +49,7 @@ from sqlalchemy.sql.elements import BinaryExpression
 from superset import app, db, is_feature_enabled, security_manager
 from superset.common.request_contexed_based import is_user_admin
 from superset.connectors.base.models import BaseDatasource
-from superset.connectors.sqla.models import SqlMetric, TableColumn
+from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.datasource.dao import DatasourceDAO
 from superset.extensions import cache_manager
 from superset.models.filter_set import FilterSet
@@ -418,7 +418,7 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
 
         eager_datasources = []
         for datasource_id, _ in datasource_ids:
-            eager_datasource = DatasourceDAO.get_eager_sqlatable_datasource(
+            eager_datasource = SqlaTable.get_eager_sqlatable_datasource(
                 db.session, datasource_id
             )
             copied_datasource = eager_datasource.copy()

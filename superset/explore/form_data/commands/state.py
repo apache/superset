@@ -18,7 +18,7 @@ from typing import Optional
 
 from typing_extensions import TypedDict
 
-from superset.core.utils import DatasourceType
+from superset.utils.core import DatasourceType
 
 
 class TemporaryExploreState(TypedDict):

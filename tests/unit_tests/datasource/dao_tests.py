@@ -181,7 +181,7 @@ def test_get_datasource_sl_dataset(
 def test_get_all_sqlatables_datasources(
     app_context: None, session_with_data: Session
 ) -> None:
-    from superset.datasource.dao import DatasourceDAO
+    from superset.connectors.sqla.models import SqlaTable
 
-    result = DatasourceDAO.get_all_sqlatables_datasources(session=session_with_data)
+    result = SqlaTable.get_all_sqlatables_datasources(session=session_with_data)
     assert len(result) == 1

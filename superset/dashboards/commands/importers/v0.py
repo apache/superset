@@ -65,12 +65,11 @@ def import_chart(
     slc_to_import = slc_to_import.copy()
     slc_to_import.reset_ownership()
     params = slc_to_import.params_dict
-    datasource = DatasourceDAO.get_datasource_by_name(
-        session,
-        DatasourceType(slc_to_import.datasource_type),
-        params["datasource_name"],
-        params["database_name"],
-        params["schema"],
+    datasource = SqlaTable.get_datasource_by_name(
+        session=session,
+        datasource_name=params["datasource_name"],
+        database_name=params["database_name"],
+        schema=params["schema"],
     )
     slc_to_import.datasource_id = datasource.id  # type: ignore
     if slc_to_override:
