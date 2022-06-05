@@ -44,8 +44,10 @@ from superset.db_engine_specs.hana import HanaEngineSpec
 from superset.errors import SupersetError
 from superset.models.core import Database, ConfigurationMethod
 from superset.models.reports import ReportSchedule, ReportScheduleType
+from superset.models.sql_lab import Query
 from superset.utils.database import get_example_database, get_main_database
 from tests.integration_tests.base_tests import SupersetTestCase
+from tests.integration_tests.conftest import CTAS_SCHEMA_NAME
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
     load_birth_names_data,
@@ -891,9 +893,21 @@ class TestDatabaseApi(SupersetTestCase):
         """
         Database API: Test get select star with datasource access
         """
+        examples_db = get_example_database()
+        db_backend = examples_db.backend
+        if db_backend == "sqlite":
+            # sqlite doesn't support database creation
+            return
+
         session = db.session
+
+        examples_db.get_sqla_engine().execute(
+            f"CREATE TABLE IF NOT EXISTS {CTAS_SCHEMA_NAME}.test_table AS SELECT 1 as c1, 2 as c2"
+        )
         table = SqlaTable(
-            schema="main", table_name="ab_permission", database=get_main_database()
+            schema=CTAS_SCHEMA_NAME,
+            table_name="test_table",
+            database=examples_db,
         )
         session.add(table)
         session.commit()
@@ -905,15 +919,17 @@ class TestDatabaseApi(SupersetTestCase):
         security_manager.add_permission_role(gamma_role, tmp_table_perm)
 
         self.login(username="gamma")
-        main_db = get_main_database()
-        uri = f"api/v1/database/{main_db.id}/select_star/ab_permission/"
+        uri = f"api/v1/database/{get_example_database().id}/select_star/test_table/{CTAS_SCHEMA_NAME}/"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 200)
 
         # rollback changes
         security_manager.del_permission_role(gamma_role, tmp_table_perm)
+        db.session.query(Query).delete()
+        get_example_database().get_sqla_engine().execute(
+            f"DROP TABLE IF EXISTS {CTAS_SCHEMA_NAME}.test_table"
+        )
         db.session.delete(table)
-        db.session.delete(main_db)
         db.session.commit()
 
     def test_get_select_star_not_found_database(self):

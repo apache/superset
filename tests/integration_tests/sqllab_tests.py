@@ -277,6 +277,12 @@ class TestSqlLab(SupersetTestCase):
             f"CREATE TABLE IF NOT EXISTS {CTAS_SCHEMA_NAME}.test_table AS SELECT 1 as c1, 2 as c2"
         )
 
+        table = SqlaTable(
+            schema=CTAS_SCHEMA_NAME, table_name="test_table", database=examples_db
+        )
+        db.session.add(table)
+        db.session.commit()
+
         data = self.run_sql(
             f"SELECT * FROM {CTAS_SCHEMA_NAME}.test_table", "3", username="SchemaUser"
         )
@@ -304,6 +310,7 @@ class TestSqlLab(SupersetTestCase):
         get_example_database().get_sqla_engine().execute(
             f"DROP TABLE IF EXISTS {CTAS_SCHEMA_NAME}.test_table"
         )
+        db.session.delete(table)
         db.session.commit()
 
     def test_queries_endpoint(self):

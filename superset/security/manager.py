@@ -1068,7 +1068,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 self.on_permission_view_after_insert(mapper, connection, permission)
 
     def raise_for_access(
-        # pylint: disable=too-many-arguments,too-many-locals
+        # pylint: disable=too-many-arguments,too-many-locals,disable=too-many-branches
         self,
         database: Optional["Database"] = None,
         datasource: Optional["BaseDatasource"] = None,
@@ -1114,21 +1114,24 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             denied = set()
 
             for table_ in tables:
-                schema_perm = self.get_schema_perm(database, schema=table_.schema)
+                datasources = SqlaTable.query_datasources_by_name(
+                    self.get_session, database, table_.table
+                )
 
-                if not (schema_perm and self.can_access("schema_access", schema_perm)):
-                    datasources = SqlaTable.query_datasources_by_name(
-                        self.get_session, database, table_.table, schema=table_.schema
+                # Access to any datasource is suffice.
+                for datasource_ in datasources:
+                    if datasource_.schema != table_.schema:
+                        continue
+
+                    schema_perm = self.get_schema_perm(
+                        database, schema=datasource_.schema
                     )
-
-                    # Access to any datasource is suffice.
-                    for datasource_ in datasources:
-                        if self.can_access(
-                            "datasource_access", datasource_.perm
-                        ) or self.is_owner(datasource_):
-                            break
-                    else:
-                        denied.add(table_)
+                    if schema_perm and self.can_access("schema_access", schema_perm):
+                        break
+                    if self.can_access("datasource_access", datasource_.perm) or self.is_owner(datasource_):
+                        break
+                else:
+                    denied.add(table_)
 
             if denied:
                 raise SupersetSecurityException(
