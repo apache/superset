@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -13,31 +14,28 @@
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
  * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
+ * specific language governing permissions and limitationsxw
  * under the License.
  */
-/* eslint camelcase: 0 */
+import {
+  ensureIsArray,
+  JsonObject,
+  QueryFormData,
+  ComparisionType,
+} from '@superset-ui/core';
+import { isString } from 'lodash';
 
-export function formatSelectOptions(options) {
-  return options.map(opt => [opt, opt.toString()]);
-}
-
-export function getDatasourceParameter(datasourceId, datasourceType) {
-  return `${datasourceId}__${datasourceType}`;
-}
-
-export function mainMetric(savedMetrics) {
-  // Using 'count' as default metric if it exists, otherwise using whatever one shows up first
-  let metric;
-  if (savedMetrics && savedMetrics.length > 0) {
-    savedMetrics.forEach(m => {
-      if (m.metric_name === 'count') {
-        metric = 'count';
-      }
-    });
-    if (!metric) {
-      metric = savedMetrics[0].metric_name;
-    }
+export const isDerivedSeries = (
+  series: JsonObject,
+  formData: QueryFormData,
+): boolean => {
+  const comparisonType = formData.comparison_type;
+  if (comparisonType !== ComparisionType.Values) {
+    return false;
   }
-  return metric;
-}
+
+  const timeCompare: string[] = ensureIsArray(formData?.time_compare);
+  return isString(series.name)
+    ? !!timeCompare.find(timeOffset => series.name.endsWith(timeOffset))
+    : false;
+};

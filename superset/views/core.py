@@ -889,11 +889,10 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         except (SupersetException, SQLAlchemyError):
             datasource_data = dummy_datasource_data
 
-        columns: List[Dict[str, Any]] = []
         if datasource:
             datasource_data["owners"] = datasource.owners_data
             if isinstance(datasource, Query):
-                columns = datasource.extra.get("columns", [])
+                datasource_data["columns"] = datasource.columns
 
         bootstrap_data = {
             "can_add": slice_add_perm,
@@ -908,7 +907,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             "user": bootstrap_user_data(g.user, include_perms=True),
             "forced_height": request.args.get("height"),
             "common": common_bootstrap_payload(),
-            "columns": columns,
         }
         if slc:
             title = slc.slice_name

@@ -175,12 +175,13 @@ class GenericDataType(IntEnum):
     # ROW = 7
 
 
-class DatasourceType(Enum):
-    SQLATABLE = "sqlatable"
+class DatasourceType(str, Enum):
+    SLTABLE = "sl_table"
     TABLE = "table"
     DATASET = "dataset"
     QUERY = "query"
     SAVEDQUERY = "saved_query"
+    VIEW = "view"
 
 
 class DatasourceDict(TypedDict):

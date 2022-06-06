@@ -17,6 +17,7 @@
 import io
 
 import pandas as pd
+import pyarrow as pa
 import pytest
 
 from superset.utils import csv
@@ -77,3 +78,6 @@ def test_df_to_escaped_csv():
         ["a", "'=b"],  # pandas seems to be removing the leading ""
         ["' =a", "b"],
     ]
+
+    df = pa.array([1, None]).to_pandas(integer_object_nulls=True).to_frame()
+    assert csv.df_to_escaped_csv(df, encoding="utf8", index=False) == '0\n1\n""\n'

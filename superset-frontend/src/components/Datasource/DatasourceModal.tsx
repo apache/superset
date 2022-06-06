@@ -49,10 +49,6 @@ const StyledDatasourceModal = styled(Modal)`
   .modal-footer {
     flex: 0 1 auto;
   }
-
-  .ant-modal-body {
-    overflow: visible;
-  }
 `;
 
 interface DatasourceModalProps {

@@ -16,12 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useSelector } from 'react-redux';
-import { ExplorePageState } from '../reducers/getInitialState';
 
-export const useOriginalFormattedTimeColumns = (datasourceId?: string) =>
-  useSelector<ExplorePageState, string[]>(state =>
-    datasourceId
-      ? state?.explore?.originalFormattedTimeColumns?.[datasourceId] ?? []
-      : [],
-  );
+export enum ColorBy {
+  metric = 'metric',
+  country = 'country',
+}

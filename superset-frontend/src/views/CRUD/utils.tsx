@@ -246,7 +246,7 @@ export function handleChartDelete(
   addDangerToast: (arg0: string) => void,
   refreshData: (arg0?: FetchDataConfig | null) => void,
   chartFilter?: string,
-  userId?: number,
+  userId?: string | number,
 ) {
   const filters = {
     pageIndex: 0,
