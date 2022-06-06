@@ -18,7 +18,8 @@
  */
 import React, { Fragment, useState, useEffect } from 'react';
 import rison from 'rison';
-import { MainNav as Menu } from 'src/components/Menu';
+import { useSelector } from 'react-redux';
+import { Link } from 'react-router-dom';
 import {
   t,
   styled,
@@ -26,12 +27,12 @@ import {
   SupersetTheme,
   SupersetClient,
 } from '@superset-ui/core';
+import { MainNav as Menu } from 'src/components/Menu';
 import { Tooltip } from 'src/components/Tooltip';
-import { Link } from 'react-router-dom';
 import Icons from 'src/components/Icons';
 import findPermission, { isUserAdmin } from 'src/dashboard/util/findPermission';
-import { useSelector } from 'react-redux';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import { RootState } from 'src/dashboard/types';
 import LanguagePicker from './LanguagePicker';
 import DatabaseModal from '../CRUD/data/database/DatabaseModal';
 import { uploadUserPerms } from '../CRUD/utils';
@@ -88,6 +89,9 @@ const RightMenu = ({
 }: RightMenuProps) => {
   const user = useSelector<any, UserWithPermissionsAndRoles>(
     state => state.user,
+  );
+  const dashboardId = useSelector<RootState, number | undefined>(
+    state => state.dashboardInfo?.id,
   );
 
   const { roles } = user;
@@ -162,7 +166,9 @@ const RightMenu = ({
     },
     {
       label: t('Chart'),
-      url: '/chart/add',
+      url: Number.isInteger(dashboardId)
+        ? `/chart/add?dashboard_id=${dashboardId}`
+        : '/chart/add',
       icon: 'fa-fw fa-bar-chart',
       perm: 'can_write',
       view: 'Chart',

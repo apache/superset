@@ -27,7 +27,9 @@ import pytest
 import yaml
 from sqlalchemy.sql import func
 
+from superset.common.utils.query_cache_manager import QueryCacheManager
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+from superset.constants import CacheRegion
 from superset.dao.exceptions import (
     DAOCreateFailedError,
     DAODeleteFailedError,
@@ -128,6 +130,7 @@ class TestDatasetApi(SupersetTestCase):
             main_db = get_main_database()
             for tables_name in self.fixture_tables_names:
                 datasets.append(self.insert_dataset(tables_name, [admin.id], main_db))
+
             yield datasets
 
             # rollback changes
@@ -212,6 +215,27 @@ class TestDatasetApi(SupersetTestCase):
         assert rv.status_code == 200
         response = json.loads(rv.data.decode("utf-8"))
         assert response["result"] == []
+
+    def test_get_dataset_list_gamma_owned(self):
+        """
+        Dataset API: Test get dataset list owned by gamma
+        """
+        main_db = get_main_database()
+        owned_dataset = self.insert_dataset(
+            "ab_user", [self.get_user("gamma").id], main_db
+        )
+
+        self.login(username="gamma")
+        uri = "api/v1/dataset/"
+        rv = self.get_assert_metric(uri, "get_list")
+        assert rv.status_code == 200
+        response = json.loads(rv.data.decode("utf-8"))
+
+        assert response["count"] == 1
+        assert response["result"][0]["table_name"] == "ab_user"
+
+        db.session.delete(owned_dataset)
+        db.session.commit()
 
     def test_get_dataset_related_database_gamma(self):
         """
@@ -660,6 +684,7 @@ class TestDatasetApi(SupersetTestCase):
             "description": "description",
             "expression": "expression",
             "type": "INTEGER",
+            "advanced_data_type": "ADVANCED_DATA_TYPE",
             "verbose_name": "New Col",
         }
         dataset_data = {
@@ -676,6 +701,9 @@ class TestDatasetApi(SupersetTestCase):
         assert new_col_dict["description"] in [col.description for col in columns]
         assert new_col_dict["expression"] in [col.expression for col in columns]
         assert new_col_dict["type"] in [col.type for col in columns]
+        assert new_col_dict["advanced_data_type"] in [
+            col.advanced_data_type for col in columns
+        ]
 
         db.session.delete(dataset)
         db.session.commit()
@@ -693,6 +721,7 @@ class TestDatasetApi(SupersetTestCase):
             "expression": "expression",
             "extra": '{"abc":123}',
             "type": "INTEGER",
+            "advanced_data_type": "ADVANCED_DATA_TYPE",
             "verbose_name": "New Col",
             "uuid": "c626b60a-3fb2-4e99-9f01-53aca0b17166",
         }
@@ -749,6 +778,7 @@ class TestDatasetApi(SupersetTestCase):
         assert columns[2].description == new_column_data["description"]
         assert columns[2].expression == new_column_data["expression"]
         assert columns[2].type == new_column_data["type"]
+        assert columns[2].advanced_data_type == new_column_data["advanced_data_type"]
         assert columns[2].extra == new_column_data["extra"]
         assert columns[2].verbose_name == new_column_data["verbose_name"]
         assert str(columns[2].uuid) == new_column_data["uuid"]
@@ -785,6 +815,7 @@ class TestDatasetApi(SupersetTestCase):
             "description": "description",
             "expression": "expression",
             "type": "INTEGER",
+            "advanced_data_type": "ADVANCED_DATA_TYPE",
             "verbose_name": "New Col",
         }
         uri = f"api/v1/dataset/{dataset.id}"
@@ -1804,3 +1835,123 @@ class TestDatasetApi(SupersetTestCase):
                 }
             ]
         }
+
+    @pytest.mark.usefixtures("create_datasets")
+    def test_get_datasets_is_certified_filter(self):
+        """
+        Dataset API: Test custom dataset_is_certified filter
+        """
+        table_w_certification = SqlaTable(
+            table_name="foo",
+            schema=None,
+            owners=[],
+            database=get_main_database(),
+            sql=None,
+            extra='{"certification": 1}',
+        )
+        db.session.add(table_w_certification)
+        db.session.commit()
+
+        arguments = {
+            "filters": [{"col": "id", "opr": "dataset_is_certified", "value": True}]
+        }
+        self.login(username="admin")
+        uri = f"api/v1/dataset/?q={prison.dumps(arguments)}"
+        rv = self.client.get(uri)
+
+        assert rv.status_code == 200
+        response = json.loads(rv.data.decode("utf-8"))
+        assert response.get("count") == 1
+
+        db.session.delete(table_w_certification)
+        db.session.commit()
+
+    @pytest.mark.usefixtures("create_datasets")
+    def test_get_dataset_samples(self):
+        """
+        Dataset API: Test get dataset samples
+        """
+        dataset = self.get_fixture_datasets()[0]
+
+        self.login(username="admin")
+        uri = f"api/v1/dataset/{dataset.id}/samples"
+
+        # 1. should cache data
+        # feeds data
+        self.client.get(uri)
+        # get from cache
+        rv = self.client.get(uri)
+        rv_data = json.loads(rv.data)
+        assert rv.status_code == 200
+        assert "result" in rv_data
+        assert rv_data["result"]["cached_dttm"] is not None
+        cache_key1 = rv_data["result"]["cache_key"]
+        assert QueryCacheManager.has(cache_key1, region=CacheRegion.DATA)
+
+        # 2. should through cache
+        uri2 = f"api/v1/dataset/{dataset.id}/samples?force=true"
+        # feeds data
+        self.client.get(uri2)
+        # force query
+        rv2 = self.client.get(uri2)
+        rv_data2 = json.loads(rv2.data)
+        assert rv_data2["result"]["cached_dttm"] is None
+        cache_key2 = rv_data2["result"]["cache_key"]
+        assert QueryCacheManager.has(cache_key2, region=CacheRegion.DATA)
+
+        # 3. data precision
+        assert "colnames" in rv_data2["result"]
+        assert "coltypes" in rv_data2["result"]
+        assert "data" in rv_data2["result"]
+
+        eager_samples = dataset.database.get_df(
+            f"select * from {dataset.table_name}"
+            f' limit {self.app.config["SAMPLES_ROW_LIMIT"]}'
+        ).to_dict(orient="records")
+        assert eager_samples == rv_data2["result"]["data"]
+
+    @pytest.mark.usefixtures("create_datasets")
+    def test_get_dataset_samples_with_failed_cc(self):
+        dataset = self.get_fixture_datasets()[0]
+
+        self.login(username="admin")
+        failed_column = TableColumn(
+            column_name="DUMMY CC",
+            type="VARCHAR(255)",
+            table=dataset,
+            expression="INCORRECT SQL",
+        )
+        uri = f"api/v1/dataset/{dataset.id}/samples"
+        dataset.columns.append(failed_column)
+        rv = self.client.get(uri)
+        assert rv.status_code == 400
+        rv_data = json.loads(rv.data)
+        assert "message" in rv_data
+        if dataset.database.db_engine_spec.engine_name == "PostgreSQL":
+            assert "INCORRECT SQL" in rv_data.get("message")
+
+    def test_get_dataset_samples_on_virtual_dataset(self):
+        virtual_dataset = SqlaTable(
+            table_name="virtual_dataset",
+            sql=("SELECT 'foo' as foo, 'bar' as bar"),
+            database=get_example_database(),
+        )
+        TableColumn(column_name="foo", type="VARCHAR(255)", table=virtual_dataset)
+        TableColumn(column_name="bar", type="VARCHAR(255)", table=virtual_dataset)
+        SqlMetric(metric_name="count", expression="count(*)", table=virtual_dataset)
+
+        self.login(username="admin")
+        uri = f"api/v1/dataset/{virtual_dataset.id}/samples"
+        rv = self.client.get(uri)
+        assert rv.status_code == 200
+        rv_data = json.loads(rv.data)
+        cache_key = rv_data["result"]["cache_key"]
+        assert QueryCacheManager.has(cache_key, region=CacheRegion.DATA)
+
+        # remove original column in dataset
+        virtual_dataset.sql = "SELECT 'foo' as foo"
+        rv = self.client.get(uri)
+        assert rv.status_code == 400
+
+        db.session.delete(virtual_dataset)
+        db.session.commit()

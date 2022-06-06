@@ -71,7 +71,7 @@ export function formatLabel({
 export default function transformProps(
   chartProps: EchartsRadarChartProps,
 ): RadarChartTransformedProps {
-  const { formData, height, hooks, filterState, queriesData, width } =
+  const { formData, height, hooks, filterState, queriesData, width, theme } =
     chartProps;
   const { data = [] } = queriesData[0];
   const coltypeMapping = getColtypesMapping(queriesData[0]);
@@ -210,7 +210,7 @@ export default function transformProps(
         label: {
           show: true,
           fontWeight: 'bold',
-          backgroundColor: 'white',
+          backgroundColor: theme.colors.grayscale.light5,
         },
       },
       data: transformedData,

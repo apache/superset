@@ -21,11 +21,14 @@ import { t, SupersetClient } from '@superset-ui/core';
 import rison from 'rison';
 
 import { addDangerToast } from 'src/components/MessageToasts/actions';
-import { getDatasourceParameter } from 'src/modules/utils';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 
 export const SET_ALL_SLICES = 'SET_ALL_SLICES';
 const FETCH_SLICES_PAGE_SIZE = 200;
+
+export function getDatasourceParameter(datasourceId, datasourceType) {
+  return `${datasourceId}__${datasourceType}`;
+}
 
 export function setAllSlices(slices) {
   return { type: SET_ALL_SLICES, payload: { slices } };

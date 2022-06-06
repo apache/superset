@@ -24,7 +24,7 @@ const NOOP = () => {};
 const mockedProps = {
   queries: [],
   actions: {
-    queryEditorSetSql: NOOP,
+    queryEditorSetAndSaveSql: NOOP,
     cloneQueryToNewTab: NOOP,
     fetchQueryResults: NOOP,
     clearQueryResults: NOOP,

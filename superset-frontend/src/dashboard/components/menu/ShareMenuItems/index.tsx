@@ -64,8 +64,7 @@ const ShareMenuItems = (props: ShareMenuItemProps) => {
 
   async function onCopyLink() {
     try {
-      const url = await generateUrl();
-      await copyTextToClipboard(url);
+      await copyTextToClipboard(generateUrl);
       addSuccessToast(t('Copied to clipboard!'));
     } catch (error) {
       logging.error(error);
@@ -87,7 +86,7 @@ const ShareMenuItems = (props: ShareMenuItemProps) => {
   }
 
   return (
-    <>
+    <Menu selectable={false}>
       <Menu.Item key="copy-url" {...rest}>
         <div onClick={onCopyLink} role="button" tabIndex={0}>
           {copyMenuItemTitle}
@@ -98,7 +97,7 @@ const ShareMenuItems = (props: ShareMenuItemProps) => {
           {emailMenuItemTitle}
         </div>
       </Menu.Item>
-    </>
+    </Menu>
   );
 };
 

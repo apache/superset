@@ -14,11 +14,13 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from typing import cast
+
 from flask import session
 
-from superset.dashboards.dao import DashboardDAO
+from superset.dashboards.filter_state.commands.utils import check_access
 from superset.extensions import cache_manager
-from superset.key_value.utils import random_key
+from superset.key_value.utils import get_owner, random_key
 from superset.temporary_cache.commands.create import CreateTemporaryCacheCommand
 from superset.temporary_cache.commands.entry import Entry
 from superset.temporary_cache.commands.parameters import CommandParameters
@@ -34,10 +36,9 @@ class CreateFilterStateCommand(CreateTemporaryCacheCommand):
         key = cache_manager.filter_state_cache.get(contextual_key)
         if not key or not tab_id:
             key = random_key()
-        value = cmd_params.value
-        dashboard = DashboardDAO.get_by_id_or_slug(str(resource_id))
-        if dashboard and value:
-            entry: Entry = {"owner": actor.get_user_id(), "value": value}
-            cache_manager.filter_state_cache.set(cache_key(resource_id, key), entry)
-            cache_manager.filter_state_cache.set(contextual_key, key)
+        value = cast(str, cmd_params.value)  # schema ensures that value is not optional
+        check_access(resource_id)
+        entry: Entry = {"owner": get_owner(actor), "value": value}
+        cache_manager.filter_state_cache.set(cache_key(resource_id, key), entry)
+        cache_manager.filter_state_cache.set(contextual_key, key)
         return key

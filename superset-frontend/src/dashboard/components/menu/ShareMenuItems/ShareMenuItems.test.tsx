@@ -102,9 +102,10 @@ test('Click on "Copy dashboard URL" and succeed', async () => {
 
   userEvent.click(screen.getByRole('button', { name: 'Copy dashboard URL' }));
 
-  await waitFor(() => {
+  await waitFor(async () => {
     expect(spy).toBeCalledTimes(1);
-    expect(spy).toBeCalledWith('http://localhost/superset/dashboard/p/123/');
+    const value = await spy.mock.calls[0][0]();
+    expect(value).toBe('http://localhost/superset/dashboard/p/123/');
     expect(props.addSuccessToast).toBeCalledTimes(1);
     expect(props.addSuccessToast).toBeCalledWith('Copied to clipboard!');
     expect(props.addDangerToast).toBeCalledTimes(0);
@@ -128,9 +129,10 @@ test('Click on "Copy dashboard URL" and fail', async () => {
 
   userEvent.click(screen.getByRole('button', { name: 'Copy dashboard URL' }));
 
-  await waitFor(() => {
+  await waitFor(async () => {
     expect(spy).toBeCalledTimes(1);
-    expect(spy).toBeCalledWith('http://localhost/superset/dashboard/p/123/');
+    const value = await spy.mock.calls[0][0]();
+    expect(value).toBe('http://localhost/superset/dashboard/p/123/');
     expect(props.addSuccessToast).toBeCalledTimes(0);
     expect(props.addDangerToast).toBeCalledTimes(1);
     expect(props.addDangerToast).toBeCalledWith(

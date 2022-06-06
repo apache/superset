@@ -273,3 +273,27 @@ Here's a concrete example:
     superiors
     order by lineage, level
 ```
+
+**Datasets**
+
+It's possible to query physical and virtual datasets using the `dataset` macro. This is useful if you've defined computed columns and metrics on your datasets, and want to reuse the definition in adhoc SQL Lab queries.
+
+To use the macro, first you need to find the ID of the dataset. This can be done by going to the view showing all the datasets, hovering over the dataset you're interested in, and looking at its URL. For example, if the URL for a dataset is https://superset.example.org/superset/explore/table/42/ its ID is 42.
+
+Once you have the ID you can query it as if it were a table:
+
+```
+SELECT * FROM {{ dataset(42) }} LIMIT 10
+```
+
+If you want to select the metric definitions as well, in addition to the columns, you need to pass an additional keyword argument:
+
+```
+SELECT * FROM {{ dataset(42, include_metrics=True) }} LIMIT 10
+```
+
+Since metrics are aggregations, the resulting SQL expression will be grouped by all non-metric columns. You can specify a subset of columns to group by instead:
+
+```
+SELECT * FROM {{ dataset(42, include_metrics=True, columns=["ds", "category"]) }} LIMIT 10
+```

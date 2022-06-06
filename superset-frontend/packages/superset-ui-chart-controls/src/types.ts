@@ -25,6 +25,8 @@ import type {
   JsonValue,
   Metric,
   QueryFormData,
+  QueryFormMetric,
+  QueryFormColumn,
 } from '@superset-ui/core';
 import { sharedControls } from './shared-controls';
 import sharedControlComponents from './shared-controls/components';
@@ -340,11 +342,26 @@ export interface ControlPanelSectionConfig {
   controlSetRows: ControlSetRow[];
 }
 
+export interface StandardizedState {
+  metrics: QueryFormMetric[];
+  columns: QueryFormColumn[];
+}
+
+export interface StandardizedFormDataInterface {
+  standardizedState: StandardizedState;
+  memorizedFormData: Map<string, QueryFormData>;
+}
+
 export interface ControlPanelConfig {
-  controlPanelSections: ControlPanelSectionConfig[];
+  controlPanelSections: (ControlPanelSectionConfig | null)[];
   controlOverrides?: ControlOverrides;
   sectionOverrides?: SectionOverrides;
   onInit?: (state: ControlStateMapping) => void;
+  denormalizeFormData?: (
+    formData: QueryFormData & {
+      standardizedFormData: StandardizedFormDataInterface;
+    },
+  ) => QueryFormData;
 }
 
 export type ControlOverrides = {
@@ -412,4 +429,10 @@ export function isAdhocColumn(
   column: AdhocColumn | ColumnMeta,
 ): column is AdhocColumn {
   return 'label' in column && 'sqlExpression' in column;
+}
+
+export function isControlPanelSectionConfig(
+  section: ControlPanelSectionConfig | null,
+): section is ControlPanelSectionConfig {
+  return section !== null;
 }
