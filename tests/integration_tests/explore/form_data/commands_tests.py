@@ -64,7 +64,7 @@ class TestCreateFormDataCommand(SupersetTestCase):
             )
             slice = Slice(
                 datasource_id=dataset.id,
-                datasource_type=DatasourceType.TABLE.value,
+                datasource_type=DatasourceType.TABLE,
                 datasource_name="tmp_perm_table",
                 slice_name="slice_name",
             )

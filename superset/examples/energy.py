@@ -82,7 +82,7 @@ def load_energy(
     slc = Slice(
         slice_name="Energy Sankey",
         viz_type="sankey",
-        datasource_type=DatasourceType.TABLE.value,
+        datasource_type=DatasourceType.TABLE,
         datasource_id=tbl.id,
         params=textwrap.dedent(
             """\
@@ -106,7 +106,7 @@ def load_energy(
     slc = Slice(
         slice_name="Energy Force Layout",
         viz_type="graph_chart",
-        datasource_type=DatasourceType.TABLE.value,
+        datasource_type=DatasourceType.TABLE,
         datasource_id=tbl.id,
         params=textwrap.dedent(
             """\
@@ -130,7 +130,7 @@ def load_energy(
     slc = Slice(
         slice_name="Heatmap",
         viz_type="heatmap",
-        datasource_type=DatasourceType.TABLE.value,
+        datasource_type=DatasourceType.TABLE,
         datasource_id=tbl.id,
         params=textwrap.dedent(
             """\

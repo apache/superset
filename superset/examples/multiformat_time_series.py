@@ -121,7 +121,7 @@ def load_multiformat_time_series(  # pylint: disable=too-many-locals
         slc = Slice(
             slice_name=f"Calendar Heatmap multiformat {i}",
             viz_type="cal_heatmap",
-            datasource_type=DatasourceType.TABLE.value,
+            datasource_type=DatasourceType.TABLE,
             datasource_id=tbl.id,
             params=get_slice_json(slice_data),
         )
