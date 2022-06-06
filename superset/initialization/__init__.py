@@ -28,7 +28,6 @@ from flask_babel import gettext as __, lazy_gettext as _
 from flask_compress import Compress
 from werkzeug.middleware.proxy_fix import ProxyFix
 
-from superset.connectors.connector_registry import ConnectorRegistry
 from superset.constants import CHANGE_ME_SECRET_KEY
 from superset.extensions import (
     _event_logger,
@@ -473,7 +472,11 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         # Registering sources
         module_datasource_map = self.config["DEFAULT_MODULE_DS_MAP"]
         module_datasource_map.update(self.config["ADDITIONAL_MODULE_DS_MAP"])
-        ConnectorRegistry.register_sources(module_datasource_map)
+
+        # todo(hughhhh): fully remove the datasource config register
+        for module_name, class_names in module_datasource_map.items():
+            class_names = [str(s) for s in class_names]
+            __import__(module_name, fromlist=class_names)
 
     def configure_cache(self) -> None:
         cache_manager.init_app(self.superset_app)
