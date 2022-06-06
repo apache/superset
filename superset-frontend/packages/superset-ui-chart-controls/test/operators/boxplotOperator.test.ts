@@ -17,7 +17,7 @@
  * under the License.
  */
 import { QueryObject, SqlaFormData } from '@superset-ui/core';
-import { boxplotOperator } from '../../../src';
+import { boxplotOperator } from '@superset-ui/chart-controls';
 
 const formData: SqlaFormData = {
   metrics: [
