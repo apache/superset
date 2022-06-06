@@ -638,11 +638,7 @@ class ExploreMixin:
 
     @property
     def column_names(self):
-        return ["ethnic_minority", "gender"]
-
-    @property
-    def columns(self):
-        return ["<col_name>"]
+        return [col.get('column_name') for col in self.columns]
 
     @property
     def offset(self):
@@ -728,6 +724,10 @@ class ExploreMixin:
         # todo(hugh): apply filters for extended query
         query_str_ext = self.get_query_str_extended(qry)
         sql = query_str_ext.sql
+
+        print('*****' * 5)
+
+        # sql = "select count(*) from flights"
         status = QueryStatus.SUCCESS
         errors = None
         error_message = None
@@ -922,12 +922,11 @@ class ExploreMixin:
         if granularity not in self.dttm_cols and granularity is not None:
             granularity = self.main_dttm_col
 
-        # columns_by_name: Dict[str, sa.Table] = {
-        #     col.column_name: col for col in self.columns
-        # }
         # todo(hugh): fix this
-        columns_by_name = {}
-
+        columns_by_name = {
+            col.get('column_name'): col for col in self.columns
+        }
+        
         # todo(hugh): how are we handling metrics
         # metrics_by_name: Dict[str, Column] = {  # todo column vs metric?
         #     m.metric_name: m for m in self.metrics
@@ -1023,26 +1022,27 @@ class ExploreMixin:
                             # template_processor=template_processor,
                         )
                     # if groupby field equals a selected column
-                    elif selected in columns_by_name:
-                        outer = columns_by_name[selected].get_sqla_col()
-                    else:
-                        outer = literal_column(f"({selected})")
-                        outer = self.make_sqla_column_compatible(outer, selected)
+                    # elif selected in columns_by_name:
+                    #     outer = columns_by_name[selected].get_sqla_col()
+                    # else:
+                    #     outer = literal_column(f"({selected})")
+                    #     outer = self.make_sqla_column_compatible(outer, selected)
                 else:
                     outer = self.adhoc_column_to_sqla(
                         col=selected,  # template_processor=template_processor
                     )
-                groupby_all_columns[outer.name] = outer
-                if not series_column_names or outer.name in series_column_names:
-                    groupby_series_columns[outer.name] = outer
-                select_exprs.append(outer)
+                # groupby_all_columns[outer.name] = outer
+                # if not series_column_names or outer.name in series_column_names:
+                #     groupby_series_columns[outer.name] = outer
+                # select_exprs.append(outer)
         elif columns:
             for selected in columns:
-                select_exprs.append(
-                    columns_by_name[selected].get_sqla_col()
-                    if selected in columns_by_name
-                    else self.make_sqla_column_compatible(literal_column(selected))
-                )
+                # select_exprs.append(
+                #     columns_by_name[selected].get_sqla_col()
+                #     if selected in columns_by_name
+                #     else self.make_sqla_column_compatible(literal_column(selected))
+                # )
+                select_exprs.append(selected)
             metrics_exprs = []
 
         # todo(hugh): fix this
@@ -1093,7 +1093,7 @@ class ExploreMixin:
         if not db_engine_spec.allows_hidden_ordeby_agg:
             select_exprs = utils.remove_duplicates(select_exprs + orderby_exprs)
 
-        qry = sa.select(select_exprs)
+        qry = sa.select([sa.column("YEAR")])
 
         # todo(hugh) fix templating
         # tbl, cte = self.get_from_clause(template_processor)

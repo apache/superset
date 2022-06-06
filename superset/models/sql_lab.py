@@ -17,7 +17,7 @@
 """A collection of ORM sqlalchemy models for SQL Lab"""
 import re
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Type
 
 import simplejson as json
 import sqlalchemy as sqla
@@ -42,6 +42,7 @@ from sqlalchemy.orm import backref, relationship
 from superset import security_manager
 from superset.models.helpers import (
     AuditMixinNullable,
+    ExploreMixin,
     ExtraJSONMixin,
     ImportExportMixin,
 )
@@ -50,14 +51,16 @@ from superset.sql_parse import CtasMethod, ParsedQuery, Table
 from superset.sqllab.limiting_factor import LimitingFactor
 from superset.utils.core import QueryStatus, user_label
 
+from superset.superset_typing import ResultSetColumnType
 
-class Query(Model, ExtraJSONMixin):
+class Query(Model, ExtraJSONMixin, ExploreMixin):
     """ORM model for SQL query
 
     Now that SQL Lab support multi-statement execution, an entry in this
     table may represent multiple SQL statements executed sequentially"""
 
     __tablename__ = "query"
+    type = "query"
     id = Column(Integer, primary_key=True)
     client_id = Column(String(11), unique=True, nullable=False)
 
@@ -167,8 +170,42 @@ class Query(Model, ExtraJSONMixin):
         return list(ParsedQuery(self.sql).tables)
 
     @property
-    def columns(self) -> List[Table]:
-        return self.extra.get("columns", [])
+    def columns(self) -> List[ResultSetColumnType]:
+        # todo(hughhh): move this logic into a base class
+        from superset.utils.core import GenericDataType
+        bool_types = ("BOOL",)
+        num_types = (
+            "DOUBLE",
+            "FLOAT",
+            "INT",
+            "BIGINT",
+            "NUMBER",
+            "LONG",
+            "REAL",
+            "NUMERIC",
+            "DECIMAL",
+            "MONEY",
+        )
+        date_types = ("DATE", "TIME")
+        str_types = ("VARCHAR", "STRING", "CHAR")
+        columns = [] 
+        for col in self.extra.get("columns", []):
+            computed_column = {**col}
+            col_type = col.get('type')
+
+            if col_type and any(map(lambda t: t in col_type.upper(), str_types)):
+                computed_column["type_generic"] = GenericDataType.STRING
+            if col_type and any(map(lambda t: t in col_type.upper(), bool_types)):
+                computed_column["type_generic"] = GenericDataType.BOOLEAN
+            if col_type and any(map(lambda t: t in col_type.upper(), num_types)):
+                computed_column["type_generic"] = GenericDataType.NUMERIC
+            if col_type and any(map(lambda t: t in col_type.upper(), date_types)):
+                computed_column["type_generic"] = GenericDataType.TEMPORAL
+
+            computed_column["column_name"] = col.get('name')
+            computed_column["groupby"] = True
+            columns.append(computed_column)
+        return columns
 
     def raise_for_access(self) -> None:
         """
@@ -178,6 +215,10 @@ class Query(Model, ExtraJSONMixin):
         """
 
         security_manager.raise_for_access(query=self)
+
+    @property
+    def db_engine_spec(self) -> Type["BaseEngineSpec"]:
+        return self.database.db_engine_spec
 
 
 class SavedQuery(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):

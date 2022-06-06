@@ -22,6 +22,7 @@ import { Metric } from './Metric';
 export enum DatasourceType {
   Table = 'table',
   Druid = 'druid',
+  Query = 'query',
 }
 
 /**
