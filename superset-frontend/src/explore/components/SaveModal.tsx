@@ -30,6 +30,7 @@ import { Select } from 'src/components';
 import { SelectValue } from 'antd/lib/select';
 import { connect } from 'react-redux';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
+import { LocalStorageKeys, setItem } from 'src/utils/localStorageHelpers';
 import { exploreChart } from '../exploreUtils';
 
 // Session storage key for recent dashboard
@@ -207,6 +208,7 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
           all_columns: selectedColumns.map(c => c.name),
           row_limit: 1000,
         });
+        setItem(LocalStorageKeys.datasetname_set_successful, true);
       });
     }
     this.props.onHide();
@@ -220,7 +222,6 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
   }
 
   render() {
-    console.log('this.props.datasource', this.props.datasource);
     const dashboardSelectValue =
       this.state.saveToDashboardId || this.state.newDashboardName;
     return (
