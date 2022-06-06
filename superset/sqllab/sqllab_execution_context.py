@@ -24,7 +24,7 @@ from typing import Any, cast, Dict, Optional, TYPE_CHECKING
 from flask import g
 from sqlalchemy.orm.exc import DetachedInstanceError
 
-from superset import is_feature_enabled
+from superset import is_feature_enabled, sql_parse
 from superset.models.sql_lab import Query
 from superset.sql_parse import CtasMethod
 from superset.utils import core as utils
@@ -76,7 +76,7 @@ class SqlJsonExecutionContext:  # pylint: disable=too-many-instance-attributes
         self.sql = cast(str, query_params.get("sql"))
         self.template_params = self._get_template_params(query_params)
         self.async_flag = cast(bool, query_params.get("runAsync"))
-        self.limit = self._get_limit_param(query_params)
+        self.limit = self._get_limit_param(self.sql, query_params)
         self.status = cast(str, query_params.get("status"))
         if cast(bool, query_params.get("select_as_cta")):
             self.create_table_as_select = CreateTableAsSelect.create_from(query_params)
@@ -102,14 +102,16 @@ class SqlJsonExecutionContext:  # pylint: disable=too-many-instance-attributes
         return template_params
 
     @staticmethod
-    def _get_limit_param(query_params: Dict[str, Any]) -> int:
+    def _get_limit_param(sql: str, query_params: Dict[str, Any]) -> int:
+        parsed_query = sql_parse.ParsedQuery(sql)
+        sql_limit = parsed_query.limit
         limit = apply_max_row_limit(query_params.get("queryLimit") or 0)
         if limit < 0:
             logger.warning(
                 "Invalid limit of %i specified. Defaulting to max limit.", limit
             )
             limit = 0
-        return limit
+        return min(limit, sql_limit) if sql_limit else limit
 
     def _get_user_id(self) -> Optional[int]:  # pylint: disable=no-self-use
         try:

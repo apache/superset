@@ -568,7 +568,9 @@ class TestSqlLab(SupersetTestCase):
             query_limit=test_limit + 1,
         )
         self.assertEqual(len(data["data"]), test_limit)
-        self.assertEqual(data["query"]["limitingFactor"], LimitingFactor.QUERY)
+        self.assertEqual(
+            data["query"]["limitingFactor"], LimitingFactor.QUERY_AND_DROPDOWN
+        )
 
         data = self.run_sql(
             "SELECT * FROM birth_names LIMIT {}".format(test_limit + 1),
