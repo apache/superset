@@ -31,7 +31,9 @@ import {
   isTimeseriesAnnotationLayer,
   TimeseriesChartDataResponseResult,
 } from '@superset-ui/core';
+import { isDerivedSeries } from '@superset-ui/chart-controls';
 import { EChartsCoreOption, SeriesOption } from 'echarts';
+import { ZRLineType } from 'echarts/types/src/util/types';
 import {
   DEFAULT_FORM_DATA,
   EchartsTimeseriesChartProps,
@@ -181,6 +183,9 @@ export default function transformProps(
   }
 
   rawSeries.forEach(entry => {
+    const lineStyle = isDerivedSeries(entry, chartProps.rawFormData)
+      ? { type: 'dashed' as ZRLineType }
+      : {};
     const transformedSeries = transformSeries(entry, colorScale, {
       area,
       filterState,
@@ -199,6 +204,7 @@ export default function transformProps(
       richTooltip,
       sliceId,
       isHorizontal,
+      lineStyle,
     });
     if (transformedSeries) series.push(transformedSeries);
   });

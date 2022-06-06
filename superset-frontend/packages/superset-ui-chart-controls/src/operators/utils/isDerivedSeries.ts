@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -13,15 +14,28 @@
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
  * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
+ * specific language governing permissions and limitationsxw
  * under the License.
  */
-import { useSelector } from 'react-redux';
-import { ExplorePageState } from '../reducers/getInitialState';
+import {
+  ensureIsArray,
+  JsonObject,
+  QueryFormData,
+  ComparisionType,
+} from '@superset-ui/core';
+import { isString } from 'lodash';
 
-export const useOriginalFormattedTimeColumns = (datasourceId?: string) =>
-  useSelector<ExplorePageState, string[]>(state =>
-    datasourceId
-      ? state?.explore?.originalFormattedTimeColumns?.[datasourceId] ?? []
-      : [],
-  );
+export const isDerivedSeries = (
+  series: JsonObject,
+  formData: QueryFormData,
+): boolean => {
+  const comparisonType = formData.comparison_type;
+  if (comparisonType !== ComparisionType.Values) {
+    return false;
+  }
+
+  const timeCompare: string[] = ensureIsArray(formData?.time_compare);
+  return isString(series.name)
+    ? !!timeCompare.find(timeOffset => series.name.endsWith(timeOffset))
+    : false;
+};

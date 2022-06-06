@@ -140,32 +140,6 @@ export function sliceUpdated(slice: Slice) {
   return { type: SLICE_UPDATED, slice };
 }
 
-export const SET_ORIGINAL_FORMATTED_TIME_COLUMN =
-  'SET_ORIGINAL_FORMATTED_TIME_COLUMN';
-export function setOriginalFormattedTimeColumn(
-  datasourceId: string,
-  columnName: string,
-) {
-  return {
-    type: SET_ORIGINAL_FORMATTED_TIME_COLUMN,
-    datasourceId,
-    columnName,
-  };
-}
-
-export const UNSET_ORIGINAL_FORMATTED_TIME_COLUMN =
-  'UNSET_ORIGINAL_FORMATTED_TIME_COLUMN';
-export function unsetOriginalFormattedTimeColumn(
-  datasourceId: string,
-  columnIndex: number,
-) {
-  return {
-    type: UNSET_ORIGINAL_FORMATTED_TIME_COLUMN,
-    datasourceId,
-    columnIndex,
-  };
-}
-
 export const SET_FORCE_QUERY = 'SET_FORCE_QUERY';
 export function setForceQuery(force: boolean) {
   return {
@@ -189,8 +163,6 @@ export const exploreActions = {
   updateChartTitle,
   createNewSlice,
   sliceUpdated,
-  setOriginalFormattedTimeColumn,
-  unsetOriginalFormattedTimeColumn,
   setForceQuery,
 };
 

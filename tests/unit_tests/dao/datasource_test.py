@@ -106,7 +106,7 @@ def test_get_datasource_sqlatable(
     from superset.dao.datasource.dao import DatasourceDAO
 
     result = DatasourceDAO.get_datasource(
-        datasource_type=DatasourceType.SQLATABLE,
+        datasource_type=DatasourceType.TABLE,
         datasource_id=1,
         session=session_with_data,
     )
@@ -151,7 +151,9 @@ def test_get_datasource_sl_table(app_context: None, session_with_data: Session) 
     # todo(hugh): This will break once we remove the dual write
     # update the datsource_id=1 and this will pass again
     result = DatasourceDAO.get_datasource(
-        datasource_type=DatasourceType.TABLE, datasource_id=2, session=session_with_data
+        datasource_type=DatasourceType.SLTABLE,
+        datasource_id=2,
+        session=session_with_data,
     )
 
     assert result.id == 2
