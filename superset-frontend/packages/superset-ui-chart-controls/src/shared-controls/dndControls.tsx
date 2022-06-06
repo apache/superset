@@ -210,11 +210,7 @@ export const dnd_granularity_sqla: typeof dndGroupByControl = {
     }
 
     const sortedQueryColumns = (datasource as QueryResponse)?.columns?.sort(
-      query => {
-        if (query?.is_dttm) return -1;
-        if (!query?.is_dttm) return 1;
-        return 0;
-      },
+      query => (query?.is_dttm ? -1 : 1),
     );
     const options = Object.fromEntries(
       sortedQueryColumns.map(option => [option.name, option]),
