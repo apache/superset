@@ -200,7 +200,8 @@ class DatasourceControl extends React.PureComponent {
     const { user } = this.props;
     const allowEdit =
       datasource.owners.map(o => o.id).includes(user.userId) ||
-      isUserAdmin(user);
+      datasource.owners.map(o => o.value).includes(user.userId);
+    isUserAdmin(user);
 
     const editText = t('Edit dataset');
 
