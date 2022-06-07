@@ -103,26 +103,27 @@ const VizTypeControl = ({
     <>
       <div
         css={(theme: SupersetTheme) => css`
-          max-width: ${theme.gridUnit * 72}px;
+          min-width: ${theme.gridUnit * 72}px;
+          max-width: fit-content;
         `}
       >
         <FastVizSwitcher onChange={onChange} currentSelection={initialValue} />
         {initialValue && <VizSupportValidation vizType={initialValue} />}
-        <div
-          css={(theme: SupersetTheme) =>
-            css`
-              display: flex;
-              justify-content: flex-end;
-              margin-top: ${theme.gridUnit * 3}px;
-              color: ${theme.colors.grayscale.base};
-              text-decoration: underline;
-            `
-          }
-        >
-          <span role="button" tabIndex={0} onClick={openModal}>
-            {t('View all charts')}
-          </span>
-        </div>
+      </div>
+      <div
+        css={(theme: SupersetTheme) =>
+          css`
+            display: flex;
+            justify-content: flex-end;
+            margin-top: ${theme.gridUnit * 3}px;
+            color: ${theme.colors.grayscale.base};
+            text-decoration: underline;
+          `
+        }
+      >
+        <span role="button" tabIndex={0} onClick={openModal}>
+          {t('View all charts')}
+        </span>
       </div>
       <UnpaddedModal
         show={showModal}
