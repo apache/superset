@@ -23,7 +23,7 @@ export enum DatasourceType {
   Table = 'table',
   Druid = 'druid',
   Query = 'query',
-  Dataset = 'sl_dataset',
+  Dataset = 'dataset',
   SlTable = 'sl_table',
   SavedQuery = 'saved_query',
 }
