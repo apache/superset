@@ -19,19 +19,9 @@
 import React, { CSSProperties } from 'react';
 import ButtonGroup from 'src/components/ButtonGroup';
 import Alert from 'src/components/Alert';
-import moment from 'moment';
-import { RadioChangeEvent } from 'src/components';
 import Button from 'src/components/Button';
 import shortid from 'shortid';
-import rison from 'rison';
-import {
-  styled,
-  t,
-  makeApi,
-  SupersetClient,
-  JsonResponse,
-} from '@superset-ui/core';
-import { debounce } from 'lodash';
+import { styled, t, QueryResponse } from '@superset-ui/core';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
@@ -42,25 +32,11 @@ import FilterableTable, {
 } from 'src/components/FilterableTable';
 import CopyToClipboard from 'src/components/CopyToClipboard';
 import { prepareCopyToClipboardTabularData } from 'src/utils/common';
-import { exploreChart } from 'src/explore/exploreUtils';
 import { CtasEnum } from 'src/SqlLab/actions/sqlLab';
-import { Query } from 'src/SqlLab/types';
 import ExploreCtasResultsButton from '../ExploreCtasResultsButton';
 import ExploreResultsButton from '../ExploreResultsButton';
 import HighlightedSql from '../HighlightedSql';
 import QueryStateLabel from '../QueryStateLabel';
-
-enum DatasetRadioState {
-  SAVE_NEW = 1,
-  OVERWRITE_DATASET = 2,
-}
-
-const EXPLORE_CHART_DEFAULT = {
-  metrics: [],
-  groupby: [],
-  time_range: 'No filter',
-  viz_type: 'table',
-};
 
 enum LIMITING_FACTOR {
   QUERY = 'QUERY',
@@ -71,19 +47,6 @@ enum LIMITING_FACTOR {
 
 const LOADING_STYLES: CSSProperties = { position: 'relative', minHeight: 100 };
 
-interface DatasetOwner {
-  first_name: string;
-  id: number;
-  last_name: string;
-  username: string;
-}
-
-interface DatasetOptionAutocomplete {
-  value: string;
-  datasetId: number;
-  owners: [DatasetOwner];
-}
-
 interface ResultSetProps {
   showControls?: boolean;
   actions: Record<string, any>;
@@ -92,7 +55,7 @@ interface ResultSetProps {
   database?: Record<string, any>;
   displayLimit: number;
   height: number;
-  query: Query;
+  query: QueryResponse;
   search?: boolean;
   showSql?: boolean;
   visualize?: boolean;
@@ -105,12 +68,6 @@ interface ResultSetState {
   showExploreResultsButton: boolean;
   data: Record<string, any>[];
   showSaveDatasetModal: boolean;
-  newSaveDatasetName: string;
-  saveDatasetRadioBtnState: number;
-  shouldOverwriteDataSet: boolean;
-  datasetToOverwrite: Record<string, any>;
-  saveModalAutocompleteValue: string;
-  userDatasetOptions: DatasetOptionAutocomplete[];
   alertIsOpen: boolean;
 }
 
@@ -145,44 +102,6 @@ const ResultSetErrorMessage = styled.div`
   padding-top: ${({ theme }) => 4 * theme.gridUnit}px;
 `;
 
-const ResultSetRowsReturned = styled.span`
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  width: 100%;
-  overflow: hidden;
-  display: inline-block;
-`;
-
-const LimitMessage = styled.span`
-  color: ${({ theme }) => theme.colors.secondary.light1};
-  margin-left: ${({ theme }) => theme.gridUnit * 2}px;
-`;
-
-const updateDataset = async (
-  dbId: number,
-  datasetId: number,
-  sql: string,
-  columns: Array<Record<string, any>>,
-  owners: [number],
-  overrideColumns: boolean,
-) => {
-  const endpoint = `api/v1/dataset/${datasetId}?override_columns=${overrideColumns}`;
-  const headers = { 'Content-Type': 'application/json' };
-  const body = JSON.stringify({
-    sql,
-    columns,
-    owners,
-    database_id: dbId,
-  });
-
-  const data: JsonResponse = await SupersetClient.put({
-    endpoint,
-    headers,
-    body,
-  });
-  return data.json.result;
-};
-
 export default class ResultSet extends React.PureComponent<
   ResultSetProps,
   ResultSetState
@@ -203,12 +122,6 @@ export default class ResultSet extends React.PureComponent<
       showExploreResultsButton: false,
       data: [],
       showSaveDatasetModal: false,
-      newSaveDatasetName: this.getDefaultDatasetName(),
-      saveDatasetRadioBtnState: DatasetRadioState.SAVE_NEW,
-      shouldOverwriteDataSet: false,
-      datasetToOverwrite: {},
-      saveModalAutocompleteValue: '',
-      userDatasetOptions: [],
       alertIsOpen: false,
     };
     this.changeSearch = this.changeSearch.bind(this);
@@ -217,31 +130,11 @@ export default class ResultSet extends React.PureComponent<
     this.reFetchQueryResults = this.reFetchQueryResults.bind(this);
     this.toggleExploreResultsButton =
       this.toggleExploreResultsButton.bind(this);
-    this.handleSaveInDataset = this.handleSaveInDataset.bind(this);
-    this.handleHideSaveModal = this.handleHideSaveModal.bind(this);
-    this.handleDatasetNameChange = this.handleDatasetNameChange.bind(this);
-    this.handleSaveDatasetRadioBtnState =
-      this.handleSaveDatasetRadioBtnState.bind(this);
-    this.handleOverwriteCancel = this.handleOverwriteCancel.bind(this);
-    this.handleOverwriteDataset = this.handleOverwriteDataset.bind(this);
-    this.handleOverwriteDatasetOption =
-      this.handleOverwriteDatasetOption.bind(this);
-    this.handleSaveDatasetModalSearch = debounce(
-      this.handleSaveDatasetModalSearch.bind(this),
-      1000,
-    );
-    this.handleFilterAutocompleteOption =
-      this.handleFilterAutocompleteOption.bind(this);
-    this.handleOnChangeAutoComplete =
-      this.handleOnChangeAutoComplete.bind(this);
-    this.handleExploreBtnClick = this.handleExploreBtnClick.bind(this);
   }
 
   async componentDidMount() {
     // only do this the first time the component is rendered/mounted
     this.reRunQueryIfSessionTimeoutErrorOnMount();
-    const userDatasetsOwned = await this.getUserDatasets();
-    this.setState({ userDatasetOptions: userDatasetsOwned });
   }
 
   UNSAFE_componentWillReceiveProps(nextProps: ResultSetProps) {
@@ -273,186 +166,7 @@ export default class ResultSet extends React.PureComponent<
     }
   };
 
-  getDefaultDatasetName = () =>
-    `${this.props.query.tab} ${moment().format('MM/DD/YYYY HH:mm:ss')}`;
-
-  handleOnChangeAutoComplete = () => {
-    this.setState({ datasetToOverwrite: {} });
-  };
-
-  handleOverwriteDataset = async () => {
-    const { sql, results, dbId } = this.props.query;
-    const { datasetToOverwrite } = this.state;
-
-    await updateDataset(
-      dbId,
-      datasetToOverwrite.datasetId,
-      sql,
-      results.selected_columns.map(d => ({
-        column_name: d.name,
-        type: d.type,
-        is_dttm: d.is_dttm,
-      })),
-      datasetToOverwrite.owners.map((o: DatasetOwner) => o.id),
-      true,
-    );
-
-    this.setState({
-      showSaveDatasetModal: false,
-      shouldOverwriteDataSet: false,
-      datasetToOverwrite: {},
-      newSaveDatasetName: this.getDefaultDatasetName(),
-    });
-
-    exploreChart({
-      ...EXPLORE_CHART_DEFAULT,
-      datasource: `${datasetToOverwrite.datasetId}__table`,
-      all_columns: results.selected_columns.map(d => d.name),
-    });
-  };
-
-  handleSaveInDataset = () => {
-    // if user wants to overwrite a dataset we need to prompt them
-    if (
-      this.state.saveDatasetRadioBtnState ===
-      DatasetRadioState.OVERWRITE_DATASET
-    ) {
-      this.setState({ shouldOverwriteDataSet: true });
-      return;
-    }
-
-    const { schema, sql, dbId } = this.props.query;
-    let { templateParams } = this.props.query;
-    const selectedColumns = this.props.query?.results?.selected_columns || [];
-
-    // The filters param is only used to test jinja templates.
-    // Remove the special filters entry from the templateParams
-    // before saving the dataset.
-    if (templateParams) {
-      const p = JSON.parse(templateParams);
-      /* eslint-disable-next-line no-underscore-dangle */
-      if (p._filters) {
-        /* eslint-disable-next-line no-underscore-dangle */
-        delete p._filters;
-        templateParams = JSON.stringify(p);
-      }
-    }
-
-    this.props.actions
-      .createDatasource({
-        schema,
-        sql,
-        dbId,
-        templateParams,
-        datasourceName: this.state.newSaveDatasetName,
-        columns: selectedColumns,
-      })
-      .then((data: { table_id: number }) => {
-        exploreChart({
-          datasource: `${data.table_id}__table`,
-          metrics: [],
-          groupby: [],
-          time_range: 'No filter',
-          viz_type: 'table',
-          all_columns: selectedColumns.map(c => c.name),
-          row_limit: 1000,
-        });
-      })
-      .catch(() => {
-        this.props.actions.addDangerToast(
-          t('An error occurred saving dataset'),
-        );
-      });
-
-    this.setState({
-      showSaveDatasetModal: false,
-      newSaveDatasetName: this.getDefaultDatasetName(),
-    });
-  };
-
-  handleOverwriteDatasetOption = (
-    _data: string,
-    option: Record<string, any>,
-  ) => {
-    this.setState({ datasetToOverwrite: option });
-  };
-
-  handleDatasetNameChange = (e: React.FormEvent<HTMLInputElement>) => {
-    // @ts-expect-error
-    this.setState({ newSaveDatasetName: e.target.value });
-  };
-
-  handleHideSaveModal = () => {
-    this.setState({
-      showSaveDatasetModal: false,
-      shouldOverwriteDataSet: false,
-    });
-  };
-
-  handleSaveDatasetRadioBtnState = (e: RadioChangeEvent) => {
-    this.setState({ saveDatasetRadioBtnState: Number(e.target.value) });
-  };
-
-  handleOverwriteCancel = () => {
-    this.setState({ shouldOverwriteDataSet: false, datasetToOverwrite: {} });
-  };
-
-  handleExploreBtnClick = () => {
-    this.setState({
-      showSaveDatasetModal: true,
-    });
-  };
-
-  getUserDatasets = async (searchText = '') => {
-    // Making sure that autocomplete input has a value before rendering the dropdown
-    // Transforming the userDatasetsOwned data for SaveModalComponent)
-    const { userId } = this.props.user;
-    if (userId) {
-      const queryParams = rison.encode({
-        filters: [
-          {
-            col: 'table_name',
-            opr: 'ct',
-            value: searchText,
-          },
-          {
-            col: 'owners',
-            opr: 'rel_m_m',
-            value: userId,
-          },
-        ],
-        order_column: 'changed_on_delta_humanized',
-        order_direction: 'desc',
-      });
-
-      const response = await makeApi({
-        method: 'GET',
-        endpoint: '/api/v1/dataset',
-      })(`q=${queryParams}`);
-
-      return response.result.map(
-        (r: { table_name: string; id: number; owners: [DatasetOwner] }) => ({
-          value: r.table_name,
-          datasetId: r.id,
-          owners: r.owners,
-        }),
-      );
-    }
-
-    return null;
-  };
-
-  handleSaveDatasetModalSearch = async (searchText: string) => {
-    const userDatasetsOwned = await this.getUserDatasets(searchText);
-    this.setState({ userDatasetOptions: userDatasetsOwned });
-  };
-
-  handleFilterAutocompleteOption = (
-    inputValue: string,
-    option: { value: string; datasetId: number },
-  ) => option.value.toLowerCase().includes(inputValue.toLowerCase());
-
-  clearQueryResults(query: Query) {
+  clearQueryResults(query: QueryResponse) {
     this.props.actions.clearQueryResults(query);
   }
 
@@ -477,11 +191,11 @@ export default class ResultSet extends React.PureComponent<
     this.setState({ searchText: event.target.value });
   }
 
-  fetchResults(query: Query) {
+  fetchResults(query: QueryResponse) {
     this.props.actions.fetchQueryResults(query, this.props.displayLimit);
   }
 
-  reFetchQueryResults(query: Query) {
+  reFetchQueryResults(query: QueryResponse) {
     this.props.actions.reFetchQueryResults(query);
   }
 
@@ -503,55 +217,31 @@ export default class ResultSet extends React.PureComponent<
       }
       const { columns } = this.props.query.results;
       // Added compute logic to stop user from being able to Save & Explore
-      const {
-        saveDatasetRadioBtnState,
-        newSaveDatasetName,
-        datasetToOverwrite,
-        saveModalAutocompleteValue,
-        shouldOverwriteDataSet,
-        userDatasetOptions,
-        showSaveDatasetModal,
-      } = this.state;
-      const disableSaveAndExploreBtn =
-        (saveDatasetRadioBtnState === DatasetRadioState.SAVE_NEW &&
-          newSaveDatasetName.length === 0) ||
-        (saveDatasetRadioBtnState === DatasetRadioState.OVERWRITE_DATASET &&
-          Object.keys(datasetToOverwrite).length === 0 &&
-          saveModalAutocompleteValue.length === 0);
+      const { showSaveDatasetModal } = this.state;
+      const { query } = this.props;
 
       return (
         <ResultSetControls>
           <SaveDatasetModal
             visible={showSaveDatasetModal}
-            onOk={this.handleSaveInDataset}
-            saveDatasetRadioBtnState={saveDatasetRadioBtnState}
-            shouldOverwriteDataset={shouldOverwriteDataSet}
-            defaultCreateDatasetValue={newSaveDatasetName}
-            userDatasetOptions={userDatasetOptions}
-            disableSaveAndExploreBtn={disableSaveAndExploreBtn}
-            onHide={this.handleHideSaveModal}
-            handleDatasetNameChange={this.handleDatasetNameChange}
-            handleSaveDatasetRadioBtnState={this.handleSaveDatasetRadioBtnState}
-            handleOverwriteCancel={this.handleOverwriteCancel}
-            handleOverwriteDataset={this.handleOverwriteDataset}
-            handleOverwriteDatasetOption={this.handleOverwriteDatasetOption}
-            handleSaveDatasetModalSearch={this.handleSaveDatasetModalSearch}
-            filterAutocompleteOption={this.handleFilterAutocompleteOption}
-            onChangeAutoComplete={this.handleOnChangeAutoComplete}
+            onHide={() => this.setState({ showSaveDatasetModal: false })}
+            buttonTextOnSave={t('Save & Explore')}
+            buttonTextOnOverwrite={t('Overwrite & Explore')}
+            modalDescription={t(
+              'Save this query as a virtual dataset to continue exploring',
+            )}
+            datasource={query}
           />
           <ResultSetButtons>
             {this.props.visualize &&
               this.props.database?.allows_virtual_table_explore && (
                 <ExploreResultsButton
                   database={this.props.database}
-                  onClick={this.handleExploreBtnClick}
+                  onClick={() => this.setState({ showSaveDatasetModal: true })}
                 />
               )}
             {this.props.csv && (
-              <Button
-                buttonSize="small"
-                href={`/superset/csv/${this.props.query.id}`}
-              >
+              <Button buttonSize="small" href={`/superset/csv/${query.id}`}>
                 <i className="fa fa-file-text-o" /> {t('Download to CSV')}
               </Button>
             )}
@@ -586,10 +276,6 @@ export default class ResultSet extends React.PureComponent<
     }
     return <div />;
   }
-
-  onAlertClose = () => {
-    this.setState({ alertIsOpen: false });
-  };
 
   renderRowsReturned() {
     const { results, rows, queryLimit, limitingFactor } = this.props.query;
@@ -646,17 +332,17 @@ export default class ResultSet extends React.PureComponent<
     return (
       <ReturnedRows>
         {!limitReached && !shouldUseDefaultDropdownAlert && (
-          <ResultSetRowsReturned title={tooltipText}>
+          <span title={tooltipText}>
             {rowsReturnedMessage}
-            <LimitMessage>{limitMessage}</LimitMessage>
-          </ResultSetRowsReturned>
+            <span>{limitMessage}</span>
+          </span>
         )}
         {!limitReached && shouldUseDefaultDropdownAlert && (
           <div ref={this.calculateAlertRefHeight}>
             <Alert
               type="warning"
               message={t('%(rows)d rows returned', { rows })}
-              onClose={this.onAlertClose}
+              onClose={() => this.setState({ alertIsOpen: false })}
               description={t(
                 'The number of rows displayed is limited to %s by the dropdown.',
                 rows,
@@ -668,7 +354,7 @@ export default class ResultSet extends React.PureComponent<
           <div ref={this.calculateAlertRefHeight}>
             <Alert
               type="warning"
-              onClose={this.onAlertClose}
+              onClose={() => this.setState({ alertIsOpen: false })}
               message={t('%(rows)d rows returned', { rows: rowsCount })}
               description={
                 isAdmin
@@ -691,9 +377,7 @@ export default class ResultSet extends React.PureComponent<
       exploreDBId = this.props.database.explore_database_id;
     }
 
-    if (this.props.showSql) {
-      sql = <HighlightedSql sql={query.sql} />;
-    }
+    if (this.props.showSql) sql = <HighlightedSql sql={query.sql} />;
 
     if (query.state === 'stopped') {
       return <Alert type="warning" message={t('Query was stopped')} />;
