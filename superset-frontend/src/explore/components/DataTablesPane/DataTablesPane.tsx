@@ -193,6 +193,7 @@ export const DataTablesPane = ({
     ownState,
     isRequest: isRequest.results,
     actions,
+    isVisible: ResultTypes.Results === activeTabKey,
   }).map((pane, idx) => {
     if (idx === 0) {
       return (
@@ -229,6 +230,7 @@ export const DataTablesPane = ({
             queryForce={queryForce}
             isRequest={isRequest.samples}
             actions={actions}
+            isVisible={ResultTypes.Samples === activeTabKey}
           />
         </Tabs.TabPane>
       </Tabs>

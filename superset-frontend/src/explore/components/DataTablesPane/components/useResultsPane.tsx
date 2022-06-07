@@ -23,6 +23,7 @@ import { EmptyStateMedium } from 'src/components/EmptyState';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { ResultsPaneProps, QueryResultInterface } from '../types';
+import { getQueryCount } from '../utils';
 import { SingleQueryResultPane } from './SingleQueryResultPane';
 
 const Error = styled.pre`
@@ -31,17 +32,6 @@ const Error = styled.pre`
 
 const cache = new WeakSet();
 
-const queryCountMap = {
-  mixed_timeseries: 2,
-};
-
-const getQueryCount = (vizType: string): number => {
-  if (vizType in queryCountMap) {
-    return queryCountMap[vizType];
-  }
-  return 1;
-};
-
 export const useResultsPane = ({
   isRequest,
   queryFormData,
@@ -49,6 +39,7 @@ export const useResultsPane = ({
   ownState,
   errorMessage,
   actions,
+  isVisible,
   dataSize = 50,
 }: ResultsPaneProps): React.ReactElement[] => {
   const [resultResp, setResultResp] = useState<QueryResultInterface[]>([]);
@@ -123,6 +114,7 @@ export const useResultsPane = ({
       dataSize={dataSize}
       datasourceId={queryFormData.datasource}
       key={idx}
+      isVisible={isVisible}
     />
   ));
 };

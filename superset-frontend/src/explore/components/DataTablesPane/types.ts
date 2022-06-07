@@ -49,6 +49,8 @@ export interface ResultsPaneProps {
   errorMessage?: React.ReactElement;
   actions?: ExploreActions;
   dataSize?: number;
+  // reload OriginalFormattedTimeColumns from localStorage when isVisible is true
+  isVisible: boolean;
 }
 
 export interface SamplesPaneProps {
@@ -57,6 +59,8 @@ export interface SamplesPaneProps {
   queryForce: boolean;
   actions?: ExploreActions;
   dataSize?: number;
+  // reload OriginalFormattedTimeColumns from localStorage when isVisible is true
+  isVisible: boolean;
 }
 
 export interface TableControlsProps {
@@ -79,4 +83,6 @@ export interface SingleQueryResultPaneProp extends QueryResultInterface {
   // {datasource.id}__{datasource.type}, eg: 1__table
   datasourceId: string;
   dataSize?: number;
+  // reload OriginalFormattedTimeColumns from localStorage when isVisible is true
+  isVisible: boolean;
 }

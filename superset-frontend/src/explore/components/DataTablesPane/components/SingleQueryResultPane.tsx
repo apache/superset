@@ -32,12 +32,19 @@ export const SingleQueryResultPane = ({
   coltypes,
   datasourceId,
   dataSize = 50,
+  isVisible,
 }: SingleQueryResultPaneProp) => {
   const [filterText, setFilterText] = useState('');
 
   // this is to preserve the order of the columns, even if there are integer values,
   // while also only grabbing the first column's keys
-  const columns = useTableColumns(colnames, coltypes, data, datasourceId);
+  const columns = useTableColumns(
+    colnames,
+    coltypes,
+    data,
+    datasourceId,
+    isVisible,
+  );
   const filteredData = useFilteredTableData(filterText, data);
 
   return (
