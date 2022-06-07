@@ -17,10 +17,9 @@
  * under the License.
  */
 import React from 'react';
-import { QueryResponse } from '@superset-ui/core';
+import { QueryResponse, testQuery } from '@superset-ui/core';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { render, screen } from 'spec/helpers/testing-library';
-import { testQuery } from 'src/SqlLab/fixtures';
 
 const mockedProps = {
   visible: true,
