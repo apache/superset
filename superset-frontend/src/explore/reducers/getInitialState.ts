@@ -18,10 +18,7 @@
  */
 import shortid from 'shortid';
 import { DatasourceType, JsonObject, QueryFormData } from '@superset-ui/core';
-import {
-  ControlStateMapping,
-  DatasourceMeta,
-} from '@superset-ui/chart-controls';
+import { ControlStateMapping, Dataset } from '@superset-ui/chart-controls';
 import {
   CommonBootstrapData,
   UserWithPermissionsAndRoles,
@@ -41,7 +38,7 @@ export interface ExplorePageBootstrapData extends JsonObject {
   can_download: boolean;
   can_overwrite: boolean;
   common: CommonBootstrapData;
-  datasource: DatasourceMeta;
+  datasource: Dataset;
   datasource_id: number;
   datasource_type: DatasourceType;
   forced_height: string | null;
