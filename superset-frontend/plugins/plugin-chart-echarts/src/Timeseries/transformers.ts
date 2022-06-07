@@ -87,6 +87,7 @@ export function transformSeries(
     seriesKey?: OptionName;
     sliceId?: number;
     isHorizontal?: boolean;
+    lineStyle?: LineStyleOption;
   },
 ): SeriesOption | undefined {
   const { name } = series;
@@ -183,8 +184,8 @@ export function transformSeries(
     }
   }
   const lineStyle = isConfidenceBand
-    ? { opacity: OpacityEnum.Transparent }
-    : { opacity };
+    ? { ...opts.lineStyle, opacity: OpacityEnum.Transparent }
+    : { ...opts.lineStyle, opacity };
   return {
     ...series,
     yAxisIndex,

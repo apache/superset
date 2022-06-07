@@ -19,7 +19,7 @@
 import React from 'react';
 import { t } from '@superset-ui/core';
 import { ControlPanelSectionConfig } from '@superset-ui/chart-controls';
-import { formatSelectOptions } from 'src/modules/utils';
+import { formatSelectOptions } from 'src/explore/exploreUtils';
 
 export const druidTimeSeries: ControlPanelSectionConfig = {
   label: t('Time'),

@@ -21,7 +21,7 @@ import ButtonGroup from 'src/components/ButtonGroup';
 import Alert from 'src/components/Alert';
 import Button from 'src/components/Button';
 import shortid from 'shortid';
-import { styled, t, Query } from '@superset-ui/core';
+import { styled, t, QueryResponse } from '@superset-ui/core';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
@@ -55,7 +55,7 @@ interface ResultSetProps {
   database?: Record<string, any>;
   displayLimit: number;
   height: number;
-  query: Query;
+  query: QueryResponse;
   search?: boolean;
   showSql?: boolean;
   visualize?: boolean;
@@ -84,11 +84,8 @@ const MonospaceDiv = styled.div`
 const ReturnedRows = styled.div`
   font-size: 13px;
   line-height: 24px;
-  .limitMessage {
-    color: ${({ theme }) => theme.colors.secondary.light1};
-    margin-left: ${({ theme }) => theme.gridUnit * 2}px;
-  }
 `;
+
 const ResultSetControls = styled.div`
   display: flex;
   justify-content: space-between;
@@ -169,7 +166,7 @@ export default class ResultSet extends React.PureComponent<
     }
   };
 
-  clearQueryResults(query: Query) {
+  clearQueryResults(query: QueryResponse) {
     this.props.actions.clearQueryResults(query);
   }
 
@@ -194,11 +191,11 @@ export default class ResultSet extends React.PureComponent<
     this.setState({ searchText: event.target.value });
   }
 
-  fetchResults(query: Query) {
+  fetchResults(query: QueryResponse) {
     this.props.actions.fetchQueryResults(query, this.props.displayLimit);
   }
 
-  reFetchQueryResults(query: Query) {
+  reFetchQueryResults(query: QueryResponse) {
     this.props.actions.reFetchQueryResults(query);
   }
 
@@ -307,41 +304,37 @@ export default class ResultSet extends React.PureComponent<
       limitingFactor === LIMITING_FACTOR.DROPDOWN;
 
     if (limitingFactor === LIMITING_FACTOR.QUERY && this.props.csv) {
-      limitMessage = (
-        <span className="limitMessage">
-          {t(
-            'The number of rows displayed is limited to %(rows)d by the query',
-            { rows },
-          )}
-        </span>
+      limitMessage = t(
+        'The number of rows displayed is limited to %(rows)d by the query',
+        { rows },
       );
     } else if (
       limitingFactor === LIMITING_FACTOR.DROPDOWN &&
       !shouldUseDefaultDropdownAlert
     ) {
-      limitMessage = (
-        <span className="limitMessage">
-          {t(
-            'The number of rows displayed is limited to %(rows)d by the limit dropdown.',
-            { rows },
-          )}
-        </span>
+      limitMessage = t(
+        'The number of rows displayed is limited to %(rows)d by the limit dropdown.',
+        { rows },
       );
     } else if (limitingFactor === LIMITING_FACTOR.QUERY_AND_DROPDOWN) {
-      limitMessage = (
-        <span className="limitMessage">
-          {t(
-            'The number of rows displayed is limited to %(rows)d by the query and limit dropdown.',
-            { rows },
-          )}
-        </span>
+      limitMessage = t(
+        'The number of rows displayed is limited to %(rows)d by the query and limit dropdown.',
+        { rows },
       );
     }
+
+    const rowsReturnedMessage = t('%(rows)d rows returned', {
+      rows,
+    });
+
+    const tooltipText = `${rowsReturnedMessage}. ${limitMessage}`;
+
     return (
       <ReturnedRows>
         {!limitReached && !shouldUseDefaultDropdownAlert && (
-          <span>
-            {t('%(rows)d rows returned', { rows })} {limitMessage}
+          <span title={tooltipText}>
+            {rowsReturnedMessage}
+            <span>{limitMessage}</span>
           </span>
         )}
         {!limitReached && shouldUseDefaultDropdownAlert && (
@@ -377,6 +370,7 @@ export default class ResultSet extends React.PureComponent<
 
   render() {
     const { query } = this.props;
+    const limitReached = query?.results?.displayLimitReached;
     let sql;
     let exploreDBId = query.dbId;
     if (this.props.database && this.props.database.explore_database_id) {
@@ -444,9 +438,17 @@ export default class ResultSet extends React.PureComponent<
     }
     if (query.state === 'success' && query.results) {
       const { results } = query;
+      // Accounts for offset needed for height of ResultSetRowsReturned component if !limitReached
+      const rowMessageHeight = !limitReached ? 32 : 0;
+      // Accounts for offset needed for height of Alert if this.state.alertIsOpen
+      const alertContainerHeight = 70;
+      // We need to calculate the height of this.renderRowsReturned()
+      // if we want results panel to be propper height because the
+      // FilterTable component nedds an explcit height to render
+      // react-virtualized Table component
       const height = this.state.alertIsOpen
-        ? this.props.height - 70
-        : this.props.height;
+        ? this.props.height - alertContainerHeight
+        : this.props.height - rowMessageHeight;
       let data;
       if (this.props.cache && query.cached) {
         ({ data } = this.state);

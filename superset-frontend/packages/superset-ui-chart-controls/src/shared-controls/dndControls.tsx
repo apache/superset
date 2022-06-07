@@ -20,11 +20,14 @@
 import {
   FeatureFlag,
   isFeatureEnabled,
+  QueryColumn,
+  QueryResponse,
   t,
   validateNonEmpty,
 } from '@superset-ui/core';
 import { ExtraControlProps, SharedControlConfig, Dataset } from '../types';
-import { TIME_COLUMN_OPTION, TIME_FILTER_LABELS } from '../constants';
+import { DATASET_TIME_COLUMN_OPTION, TIME_FILTER_LABELS } from '../constants';
+import { QUERY_TIME_COLUMN_OPTION, defineSavedMetrics } from '..';
 
 export const dndGroupByControl: SharedControlConfig<'DndColumnSelect'> = {
   type: 'DndColumnSelect',
@@ -36,16 +39,25 @@ export const dndGroupByControl: SharedControlConfig<'DndColumnSelect'> = {
   ),
   mapStateToProps(state, { includeTime }) {
     const newState: ExtraControlProps = {};
-    const dataset = state.datasource as Dataset;
-    if (state.datasource) {
-      const options = dataset.columns.filter(c => c.groupby);
+    const { datasource } = state;
+    if (datasource?.columns[0]?.hasOwnProperty('groupby')) {
+      const options = (datasource as Dataset).columns.filter(c => c.groupby);
       if (includeTime) {
-        options.unshift(TIME_COLUMN_OPTION);
+        options.unshift(DATASET_TIME_COLUMN_OPTION);
       }
       newState.options = Object.fromEntries(
         options.map(option => [option.column_name, option]),
       );
-      newState.savedMetrics = dataset.metrics || [];
+      newState.savedMetrics = (datasource as Dataset).metrics || [];
+    } else {
+      const options = datasource?.columns;
+      if (includeTime) {
+        (options as QueryColumn[])?.unshift(QUERY_TIME_COLUMN_OPTION);
+      }
+      newState.options = Object.fromEntries(
+        (options as QueryColumn[])?.map(option => [option.name, option]),
+      );
+      newState.options = datasource?.columns;
     }
     return newState;
   },
@@ -83,18 +95,16 @@ export const dnd_adhoc_filters: SharedControlConfig<'DndFilterSelect'> = {
   label: t('Filters'),
   default: [],
   description: '',
-  mapStateToProps: ({ datasource, form_data }) => {
-    const dataset = datasource as Dataset;
-
-    return {
-      columns: dataset?.columns.filter(c => c.filterable) || [],
-      savedMetrics: dataset?.metrics || [],
-      // current active adhoc metrics
-      selectedMetrics:
-        form_data.metrics || (form_data.metric ? [form_data.metric] : []),
-      datasource,
-    };
-  },
+  mapStateToProps: ({ datasource, form_data }) => ({
+    columns: datasource?.columns[0]?.hasOwnProperty('filterable')
+      ? (datasource as Dataset)?.columns.filter(c => c.filterable)
+      : datasource?.columns || [],
+    savedMetrics: defineSavedMetrics(datasource),
+    // current active adhoc metrics
+    selectedMetrics:
+      form_data.metrics || (form_data.metric ? [form_data.metric] : []),
+    datasource,
+  }),
   provideFormDataToProps: true,
 };
 
@@ -103,16 +113,12 @@ export const dnd_adhoc_metrics: SharedControlConfig<'DndMetricSelect'> = {
   multi: true,
   label: t('Metrics'),
   validators: [validateNonEmpty],
-  mapStateToProps: ({ datasource }) => {
-    const dataset = datasource as Dataset;
-
-    return {
-      columns: dataset?.columns || [],
-      savedMetrics: dataset?.metrics || [],
-      datasource,
-      datasourceType: dataset?.type,
-    };
-  },
+  mapStateToProps: ({ datasource }) => ({
+    columns: datasource?.columns || [],
+    savedMetrics: defineSavedMetrics(datasource),
+    datasource,
+    datasourceType: datasource?.type,
+  }),
   description: t('One or many metrics to display'),
 };
 
@@ -137,16 +143,12 @@ export const dnd_sort_by: SharedControlConfig<'DndMetricSelect'> = {
     'Metric used to define how the top series are sorted if a series or row limit is present. ' +
       'If undefined reverts to the first metric (where appropriate).',
   ),
-  mapStateToProps: ({ datasource }) => {
-    const dataset = datasource as Dataset;
-
-    return {
-      columns: dataset?.columns || [],
-      savedMetrics: dataset?.metrics || [],
-      datasource,
-      datasourceType: dataset?.type,
-    };
-  },
+  mapStateToProps: ({ datasource }) => ({
+    columns: datasource?.columns || [],
+    savedMetrics: defineSavedMetrics(datasource),
+    datasource,
+    datasourceType: datasource?.type,
+  }),
 };
 
 export const dnd_size: SharedControlConfig<'DndMetricSelect'> = {
@@ -191,15 +193,31 @@ export const dnd_granularity_sqla: typeof dndGroupByControl = {
       : 'Drop temporal column here',
   ),
   mapStateToProps: ({ datasource }) => {
-    const dataset = datasource as Dataset;
-    const temporalColumns = dataset?.columns.filter(c => c.is_dttm) ?? [];
+    if (datasource?.columns[0]?.hasOwnProperty('column_name')) {
+      const temporalColumns =
+        (datasource as Dataset)?.columns?.filter(c => c.is_dttm) ?? [];
+      const options = Object.fromEntries(
+        temporalColumns.map(option => [option.column_name, option]),
+      );
+      return {
+        options,
+        default:
+          (datasource as Dataset)?.main_dttm_col ||
+          temporalColumns[0]?.column_name ||
+          null,
+        isTemporal: true,
+      };
+    }
+
+    const sortedQueryColumns = (datasource as QueryResponse)?.columns?.sort(
+      query => (query?.is_dttm ? -1 : 1),
+    );
     const options = Object.fromEntries(
-      temporalColumns.map(option => [option.column_name, option]),
+      sortedQueryColumns.map(option => [option.name, option]),
     );
     return {
       options,
-      default:
-        dataset?.main_dttm_col || temporalColumns[0]?.column_name || null,
+      default: sortedQueryColumns[0]?.name || null,
       isTemporal: true,
     };
   },

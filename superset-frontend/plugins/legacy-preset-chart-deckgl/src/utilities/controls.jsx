@@ -17,7 +17,7 @@
  * under the License.
  */
 export function columnChoices(datasource) {
-  if (datasource && datasource.columns) {
+  if (datasource?.columns) {
     return datasource.columns
       .map(col => [col.column_name, col.verbose_name || col.column_name])
       .sort((opt1, opt2) =>

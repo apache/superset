@@ -45,6 +45,8 @@ import {
   ControlState,
   emitFilterControl,
   Dataset,
+  ColumnMeta,
+  defineSavedMetrics,
 } from '@superset-ui/chart-controls';
 
 import i18n from './i18n';
@@ -128,12 +130,12 @@ const dnd_all_columns: typeof sharedControls.groupby = {
   default: [],
   mapStateToProps({ datasource, controls }, controlState) {
     const newState: ExtraControlProps = {};
-    if (datasource) {
+    if (datasource?.columns[0]?.hasOwnProperty('column_name')) {
       const options = (datasource as Dataset).columns;
       newState.options = Object.fromEntries(
-        options.map(option => [option.column_name, option]),
+        options.map((option: ColumnMeta) => [option.column_name, option]),
       );
-    }
+    } else newState.options = datasource?.columns;
     newState.queryMode = getQueryMode(controls);
     newState.externalValidationErrors =
       isRawMode({ controls }) && ensureIsArray(controlState.value).length === 0
@@ -155,8 +157,8 @@ const percent_metrics: typeof sharedControls.metrics = {
   visibility: isAggMode,
   resetOnHide: false,
   mapStateToProps: ({ datasource, controls }, controlState) => ({
-    columns: (datasource as Dataset)?.columns || [],
-    savedMetrics: (datasource as Dataset)?.metrics || [],
+    columns: datasource?.columns || [],
+    savedMetrics: defineSavedMetrics(datasource),
     datasource,
     datasourceType: (datasource as Dataset)?.type,
     queryMode: getQueryMode(controls),
@@ -230,10 +232,12 @@ const config: ControlPanelConfig = {
                 { controls, datasource, form_data }: ControlPanelState,
                 controlState: ControlState,
               ) => ({
-                columns:
-                  (datasource as Dataset)?.columns.filter(c => c.filterable) ||
-                  [],
-                savedMetrics: (datasource as Dataset)?.metrics || [],
+                columns: datasource?.columns[0]?.hasOwnProperty('filterable')
+                  ? (datasource as Dataset)?.columns?.filter(
+                      (c: ColumnMeta) => c.filterable,
+                    )
+                  : datasource?.columns,
+                savedMetrics: defineSavedMetrics(datasource),
                 // current active adhoc metrics
                 selectedMetrics:
                   form_data.metrics ||
@@ -283,7 +287,9 @@ const config: ControlPanelConfig = {
               multi: true,
               default: [],
               mapStateToProps: ({ datasource }) => ({
-                choices: (datasource as Dataset)?.order_by_choices || [],
+                choices: datasource?.hasOwnProperty('order_by_choices')
+                  ? (datasource as Dataset)?.order_by_choices
+                  : datasource?.columns || [],
               }),
               visibility: isRawMode,
               resetOnHide: false,
@@ -460,6 +466,20 @@ const config: ControlPanelConfig = {
         ],
         [
           {
+            name: 'allow_rearrange_columns',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Allow columns to be rearranged'),
+              renderTrigger: true,
+              default: false,
+              description: t(
+                "Allow end user to drag-and-drop column headers to rearrange them. Note their changes won't persist for the next time they open the chart.",
+              ),
+            },
+          },
+        ],
+        [
+          {
             name: 'column_config',
             config: {
               type: 'ColumnConfigControl',
@@ -494,8 +514,11 @@ const config: ControlPanelConfig = {
                 return true;
               },
               mapStateToProps(explore, _, chart) {
-                const verboseMap =
-                  (explore?.datasource as Dataset)?.verbose_map ?? {};
+                const verboseMap = explore?.datasource?.hasOwnProperty(
+                  'verbose_map',
+                )
+                  ? (explore?.datasource as Dataset)?.verbose_map
+                  : explore?.datasource?.columns ?? {};
                 const { colnames, coltypes } =
                   chart?.queriesResponse?.[0] ?? {};
                 const numericColumns =
@@ -521,6 +544,11 @@ const config: ControlPanelConfig = {
       ],
     },
   ],
+  denormalizeFormData: formData => ({
+    ...formData,
+    metrics: formData.standardizedFormData.standardizedState.metrics,
+    groupby: formData.standardizedFormData.standardizedState.columns,
+  }),
 };
 
 export default config;

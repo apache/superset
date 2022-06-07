@@ -39,11 +39,11 @@ Datasource = Union[Dataset, SqlaTable, Table, Query, SavedQuery]
 class DatasourceDAO(BaseDAO):
 
     sources: Dict[DatasourceType, Type[Datasource]] = {
-        DatasourceType.SQLATABLE: SqlaTable,
+        DatasourceType.TABLE: SqlaTable,
         DatasourceType.QUERY: Query,
         DatasourceType.SAVEDQUERY: SavedQuery,
         DatasourceType.DATASET: Dataset,
-        DatasourceType.TABLE: Table,
+        DatasourceType.SLTABLE: Table,
     }
 
     @classmethod
@@ -66,7 +66,7 @@ class DatasourceDAO(BaseDAO):
 
     @classmethod
     def get_all_sqlatables_datasources(cls, session: Session) -> List[Datasource]:
-        source_class = DatasourceDAO.sources[DatasourceType.SQLATABLE]
+        source_class = DatasourceDAO.sources[DatasourceType.TABLE]
         qry = session.query(source_class)
         qry = source_class.default_query(qry)
         return qry.all()

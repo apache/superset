@@ -278,14 +278,6 @@ export type Query = {
   isDataPreview: boolean;
   link?: string;
   progress: number;
-  results: {
-    displayLimitReached: boolean;
-    columns: QueryColumn[];
-    data: Record<string, unknown>[];
-    expanded_columns: QueryColumn[];
-    selected_columns: QueryColumn[];
-    query: { limit: number };
-  };
   resultsKey: string | null;
   schema?: string;
   sql: string;
@@ -313,6 +305,74 @@ export type Query = {
   output: string | Record<string, any>;
   actions: Record<string, any>;
   type: DatasourceType.Query;
+  columns: QueryColumn[];
+};
+
+export type QueryResults = {
+  results: {
+    displayLimitReached: boolean;
+    columns: QueryColumn[];
+    data: Record<string, unknown>[];
+    expanded_columns: QueryColumn[];
+    selected_columns: QueryColumn[];
+    query: { limit: number };
+  };
+};
+
+export type QueryResponse = Query & QueryResults;
+
+export const testQuery: Query = {
+  id: 'clientId2353',
+  dbId: 1,
+  sql: 'SELECT * FROM something',
+  sqlEditorId: 'dfsadfs',
+  tab: 'unimportant',
+  tempTable: '',
+  ctas: false,
+  cached: false,
+  errorMessage: null,
+  extra: { progress: null },
+  isDataPreview: false,
+  progress: 0,
+  resultsKey: null,
+  state: 'success',
+  tempSchema: null,
+  trackingUrl: null,
+  templateParams: null,
+  rows: 42,
+  queryLimit: 100,
+  limitingFactor: '',
+  endDttm: 1476910579693,
+  duration: '',
+  startDttm: 1476910566092.96,
+  time: {},
+  user: {},
+  userId: 1,
+  db: {},
+  started: '',
+  querylink: {},
+  queryId: 1,
+  executedSql: '',
+  output: '',
+  actions: {},
+  type: DatasourceType.Query,
+  columns: [
+    {
+      name: 'Column 1',
+      type: DatasourceType.Query,
+      is_dttm: false,
+    },
+    {
+      name: 'Column 2',
+      type: DatasourceType.Query,
+      is_dttm: true,
+    },
+    {
+      name: 'Column 3',
+      type: DatasourceType.Query,
+      is_dttm: false,
+    },
+  ],
 };
 
 export default {};

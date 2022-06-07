@@ -17,17 +17,16 @@
  * under the License.
  */
 import React from 'react';
-import { Query } from '@superset-ui/core';
+import { QueryResponse, testQuery } from '@superset-ui/core';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { render, screen } from 'spec/helpers/testing-library';
-import { testQuery } from 'src/SqlLab/fixtures';
 
 const mockedProps = {
   visible: true,
   onHide: () => {},
   buttonTextOnSave: 'Save',
   buttonTextOnOverwrite: 'Overwrite',
-  datasource: testQuery as Query,
+  datasource: testQuery as QueryResponse,
 };
 
 describe('SaveDatasetModal RTL', () => {

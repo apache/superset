@@ -18,6 +18,7 @@
  */
 import React from 'react';
 import {
+  ensureIsArray,
   QueryFormMetric,
   smartDateFormatter,
   t,
@@ -350,8 +351,11 @@ const config: ControlPanelConfig = {
                 const values =
                   (explore?.controls?.metrics?.value as QueryFormMetric[]) ??
                   [];
-                const verboseMap =
-                  (explore?.datasource as Dataset)?.verbose_map ?? {};
+                const verboseMap = explore?.datasource?.hasOwnProperty(
+                  'verbose_map',
+                )
+                  ? (explore?.datasource as Dataset)?.verbose_map
+                  : explore?.datasource?.columns ?? {};
                 const metricColumn = values.map(value => {
                   if (typeof value === 'string') {
                     return { value, label: verboseMap[value] ?? value };
@@ -369,6 +373,17 @@ const config: ControlPanelConfig = {
       ],
     },
   ],
+  denormalizeFormData: formData => {
+    const groupbyColumns =
+      formData.standardizedFormData.standardizedState.columns.filter(
+        col => !ensureIsArray(formData.groupbyRows).includes(col),
+      );
+    return {
+      ...formData,
+      metrics: formData.standardizedFormData.standardizedState.metrics,
+      groupbyColumns,
+    };
+  },
 };
 
 export default config;

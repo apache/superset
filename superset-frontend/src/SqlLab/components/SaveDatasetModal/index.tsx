@@ -30,7 +30,7 @@ import {
   makeApi,
   JsonResponse,
   JsonObject,
-  Query,
+  QueryResponse,
 } from '@superset-ui/core';
 import { useSelector, useDispatch } from 'react-redux';
 import moment from 'moment';
@@ -45,11 +45,9 @@ import {
   DatasetOptionAutocomplete,
   SqlLabExploreRootState,
   getInitialState,
+  ExploreDatasource,
 } from 'src/SqlLab/types';
-import { Dataset } from '@superset-ui/chart-controls';
 import { exploreChart } from 'src/explore/exploreUtils';
-
-type ExploreDatasource = Dataset | Query;
 
 interface SaveDatasetModalProps {
   visible: boolean;
@@ -117,7 +115,7 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
   modalDescription,
   datasource,
 }) => {
-  const query = datasource as Query;
+  const query = datasource as QueryResponse;
   const getDefaultDatasetName = () =>
     `${query.tab} ${moment().format('MM/DD/YYYY HH:mm:ss')}`;
   const [datasetName, setDatasetName] = useState(getDefaultDatasetName());

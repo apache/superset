@@ -23,7 +23,7 @@ export enum DatasourceType {
   Table = 'table',
   Druid = 'druid',
   Query = 'query',
-  Dataset = 'sl_dataset',
+  Dataset = 'dataset',
   SlTable = 'sl_table',
   SavedQuery = 'saved_query',
 }
@@ -46,5 +46,12 @@ export interface Datasource {
     [key: string]: string;
   };
 }
+
+export const DEFAULT_METRICS = [
+  {
+    metric_name: 'COUNT(*)',
+    expression: 'COUNT(*)',
+  },
+];
 
 export default {};

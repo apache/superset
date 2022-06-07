@@ -25,7 +25,9 @@ import type {
   JsonValue,
   Metric,
   QueryFormData,
-  Query,
+  QueryResponse,
+  QueryFormMetric,
+  QueryFormColumn,
 } from '@superset-ui/core';
 import { sharedControls } from './shared-controls';
 import sharedControlComponents from './shared-controls/components';
@@ -70,7 +72,7 @@ export interface Dataset {
 
 export interface ControlPanelState {
   form_data: QueryFormData;
-  datasource: Dataset | Query | null;
+  datasource: Dataset | QueryResponse | null;
   controls: ControlStateMapping;
 }
 
@@ -341,11 +343,26 @@ export interface ControlPanelSectionConfig {
   controlSetRows: ControlSetRow[];
 }
 
+export interface StandardizedState {
+  metrics: QueryFormMetric[];
+  columns: QueryFormColumn[];
+}
+
+export interface StandardizedFormDataInterface {
+  standardizedState: StandardizedState;
+  memorizedFormData: Map<string, QueryFormData>;
+}
+
 export interface ControlPanelConfig {
   controlPanelSections: (ControlPanelSectionConfig | null)[];
   controlOverrides?: ControlOverrides;
   sectionOverrides?: SectionOverrides;
   onInit?: (state: ControlStateMapping) => void;
+  denormalizeFormData?: (
+    formData: QueryFormData & {
+      standardizedFormData: StandardizedFormDataInterface;
+    },
+  ) => QueryFormData;
 }
 
 export type ControlOverrides = {

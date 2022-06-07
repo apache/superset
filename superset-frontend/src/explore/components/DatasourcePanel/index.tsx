@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { css, styled, t, DatasourceType, Query } from '@superset-ui/core';
+import { css, styled, t, DatasourceType } from '@superset-ui/core';
 import {
   ControlConfig,
   Dataset,
@@ -33,12 +33,13 @@ import { FAST_DEBOUNCE } from 'src/constants';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { ExploreActions } from 'src/explore/actions/exploreActions';
 import Control from 'src/explore/components/Control';
+import { ExploreDatasource } from 'src/SqlLab/types';
 import DatasourcePanelDragOption from './DatasourcePanelDragOption';
 import { DndItemType } from '../DndItemType';
 import { StyledColumnOption, StyledMetricOption } from '../optionRenderers';
 
 interface DatasourceControl extends ControlConfig {
-  datasource?: Dataset | Query;
+  datasource?: ExploreDatasource;
 }
 
 export interface Props {
@@ -306,7 +307,7 @@ export default function DataSourcePanel({
     return true;
   };
 
-  const datasourceTypeCheck =
+  const isValidDatasourceType =
     datasource.type === DatasourceType.Dataset ||
     datasource.type === DatasourceType.SlTable ||
     datasource.type === DatasourceType.SavedQuery ||
@@ -326,7 +327,7 @@ export default function DataSourcePanel({
           placeholder={t('Search Metrics & Columns')}
         />
         <div className="field-selections">
-          {datasourceTypeCheck && showInfoboxCheck() && (
+          {isValidDatasourceType && showInfoboxCheck() && (
             <StyledInfoboxWrapper>
               <Alert
                 closable

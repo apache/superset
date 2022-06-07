@@ -29,7 +29,9 @@ export const orderByControlSetItem: ControlSetItem = {
     multi: true,
     default: [],
     mapStateToProps: ({ datasource }) => ({
-      choices: (datasource as Dataset)?.order_by_choices || [],
+      choices: datasource?.hasOwnProperty('order_by_choices')
+        ? (datasource as Dataset)?.order_by_choices
+        : datasource?.columns || [],
     }),
     visibility: isRawMode,
     resetOnHide: false,

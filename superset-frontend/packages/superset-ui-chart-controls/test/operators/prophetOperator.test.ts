@@ -17,7 +17,7 @@
  * under the License.
  */
 import { DTTM_ALIAS, QueryObject, SqlaFormData } from '@superset-ui/core';
-import { prophetOperator } from '../../../src';
+import { prophetOperator } from '@superset-ui/chart-controls';
 
 const formData: SqlaFormData = {
   metrics: [

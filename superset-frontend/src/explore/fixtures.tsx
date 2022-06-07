@@ -27,47 +27,49 @@ import {
   Dataset,
 } from '@superset-ui/chart-controls';
 
-export const controlPanelSectionsChartOptions: ControlPanelSectionConfig[] = [
-  {
-    label: t('Chart Options'),
-    expanded: true,
-    controlSetRows: [
-      [
-        'color_scheme',
-        {
-          name: 'rose_area_proportion',
-          config: {
-            type: 'CheckboxControl',
-            label: t('Use Area Proportions'),
-            description: t(
-              'Check if the Rose Chart should use segment area instead of ' +
-                'segment radius for proportioning',
-            ),
-            default: false,
-            renderTrigger: true,
+export const controlPanelSectionsChartOptions: (ControlPanelSectionConfig | null)[] =
+  [
+    null,
+    {
+      label: t('Chart Options'),
+      expanded: true,
+      controlSetRows: [
+        [
+          'color_scheme',
+          {
+            name: 'rose_area_proportion',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Use Area Proportions'),
+              description: t(
+                'Check if the Rose Chart should use segment area instead of ' +
+                  'segment radius for proportioning',
+              ),
+              default: false,
+              renderTrigger: true,
+            },
           },
-        },
-      ],
-      [
-        {
-          name: 'stacked_style',
-          config: {
-            type: 'SelectControl',
-            label: t('Stacked Style'),
-            renderTrigger: true,
-            choices: [
-              ['stack', 'stack'],
-              ['stream', 'stream'],
-              ['expand', 'expand'],
-            ],
-            default: 'stack',
-            description: '',
+        ],
+        [
+          {
+            name: 'stacked_style',
+            config: {
+              type: 'SelectControl',
+              label: t('Stacked Style'),
+              renderTrigger: true,
+              choices: [
+                ['stack', 'stack'],
+                ['stream', 'stream'],
+                ['expand', 'expand'],
+              ],
+              default: 'stack',
+              description: '',
+            },
           },
-        },
+        ],
       ],
-    ],
-  },
-];
+    },
+  ];
 
 export const controlPanelSectionsChartOptionsOnlyColorScheme: ControlPanelSectionConfig[] =
   [
@@ -98,7 +100,7 @@ export const controlPanelSectionsChartOptionsTable: ControlPanelSectionConfig[] 
               optionRenderer: c => <ColumnOption column={c} showType />,
               valueKey: 'column_name',
               mapStateToProps: stateRef => ({
-                options: (stateRef.datasource as Dataset)?.columns || [],
+                options: stateRef.datasource?.columns || [],
               }),
               freeForm: true,
             } as ControlConfig<'SelectControl', ColumnMeta>,
