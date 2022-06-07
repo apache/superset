@@ -15,11 +15,13 @@
 # specific language governing permissions and limitations
 # under the License.
 import json
+from importlib import import_module
 
-from superset.migrations.versions.fb13d49b72f9_better_filters import (
-    Slice,
-    upgrade_slice,
+better_filters = import_module(
+    "superset.migrations.versions." "2018-12-11_22-03_fb13d49b72f9_better_filters",
 )
+Slice = better_filters.Slice
+upgrade_slice = better_filters.upgrade_slice
 
 
 def test_upgrade_slice():
