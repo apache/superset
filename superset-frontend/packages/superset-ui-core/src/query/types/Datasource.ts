@@ -47,4 +47,11 @@ export interface Datasource {
   };
 }
 
+export const DEFAULT_METRICS = [
+  {
+    metric_name: 'COUNT(*)',
+    expression: 'COUNT(*)',
+  },
+];
+
 export default {};

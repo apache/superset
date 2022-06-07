@@ -18,9 +18,8 @@
  * under the License.
  */
 
-import { QueryResponse } from '@superset-ui/core';
+import { QueryResponse, DEFAULT_METRICS } from '@superset-ui/core';
 import { Dataset } from '../types';
-import { DEFAULT_METRICS } from '..';
 
 export const defineSavedMetrics = (
   datasource: Dataset | QueryResponse | null,

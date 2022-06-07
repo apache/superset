@@ -58,10 +58,3 @@ export const QueryModeLabel = {
   [QueryMode.aggregate]: t('Aggregate'),
   [QueryMode.raw]: t('Raw records'),
 };
-
-export const DEFAULT_METRICS = [
-  {
-    metric_name: 'COUNT(*)',
-    expression: 'COUNT(*)',
-  },
-];
