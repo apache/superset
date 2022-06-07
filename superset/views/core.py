@@ -254,7 +254,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                     )
                     db_ds_names.add(fullname)
 
-        existing_datasources = SqlaTable.get_all_sqlatables_datasources(db.session)
+        existing_datasources = SqlaTable.get_all_datasources(db.session)
         datasources = [d for d in existing_datasources if d.full_name in db_ds_names]
         role = security_manager.find_role(role_name)
         # remove all permissions

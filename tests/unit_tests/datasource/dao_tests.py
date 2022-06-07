@@ -178,10 +178,10 @@ def test_get_datasource_sl_dataset(
     assert isinstance(result, Dataset)
 
 
-def test_get_all_sqlatables_datasources(
+def test_get_all_datasources(
     app_context: None, session_with_data: Session
 ) -> None:
     from superset.connectors.sqla.models import SqlaTable
 
-    result = SqlaTable.get_all_sqlatables_datasources(session=session_with_data)
+    result = SqlaTable.get_all_datasources(session=session_with_data)
     assert len(result) == 1
