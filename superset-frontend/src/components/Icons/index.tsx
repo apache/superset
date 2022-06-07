@@ -59,6 +59,7 @@ const IconFileNames = [
   'cog',
   'collapse',
   'color_palette',
+  'current-rendered-tile',
   'components',
   'copy',
   'cursor_target',

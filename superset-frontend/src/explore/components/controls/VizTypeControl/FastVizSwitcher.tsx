@@ -28,6 +28,8 @@ import { css, SupersetTheme, t, useTheme } from '@superset-ui/core';
 import { usePluginContext } from 'src/components/DynamicPlugins';
 import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
+import { useSelector } from 'react-redux';
+import { ExplorePageState } from '../../../reducers/getInitialState';
 
 export interface VizMeta {
   icon: ReactElement;
@@ -36,11 +38,12 @@ export interface VizMeta {
 
 export interface FastVizSwitcherProps {
   onChange: (vizName: string) => void;
-  currentViz: string | null;
+  currentSelection: string | null;
 }
 interface VizTileProps {
   vizMeta: VizMeta;
   isActive: boolean;
+  isRendered: boolean;
   onTileClick: (vizType: string) => void;
 }
 
@@ -62,7 +65,12 @@ const FEATURED_CHARTS: VizMeta[] = [
   { name: 'echarts_area', icon: <Icons.AreaChartTile /> },
 ];
 
-const VizTile = ({ isActive, vizMeta, onTileClick }: VizTileProps) => {
+const VizTile = ({
+  isActive,
+  isRendered,
+  vizMeta,
+  onTileClick,
+}: VizTileProps) => {
   const { mountedPluginMetadata } = usePluginContext();
   const chartNameRef = useRef<HTMLSpanElement>(null);
   const theme = useTheme();
@@ -106,9 +114,15 @@ const VizTile = ({ isActive, vizMeta, onTileClick }: VizTileProps) => {
     [handleTileClick, isActive],
   );
 
+  let tooltipTitle: string | null = null;
+  if (showTooltip) {
+    tooltipTitle = isRendered
+      ? t('Currently rendered: %s', chartName)
+      : chartName;
+  }
   return (
     <Tooltip
-      title={showTooltip ? chartName : null}
+      title={tooltipTitle}
       onVisibleChange={visible => setTooltipVisible(visible)}
       visible={tooltipVisible && !isTransitioning}
       placement="top"
@@ -171,18 +185,23 @@ const VizTile = ({ isActive, vizMeta, onTileClick }: VizTileProps) => {
 };
 
 export const FastVizSwitcher = React.memo(
-  ({ currentViz, onChange }: FastVizSwitcherProps) => {
+  ({ currentSelection, onChange }: FastVizSwitcherProps) => {
+    const currentViz = useSelector<ExplorePageState, string | undefined>(
+      state =>
+        state.charts &&
+        Object.values(state.charts)[0]?.latestQueryFormData?.viz_type,
+    );
     const vizTiles = useMemo(() => {
+      const vizTiles = [...FEATURED_CHARTS];
       if (
-        FEATURED_CHARTS.find(
-          featuredVizMeta => featuredVizMeta.name === currentViz,
-        )
+        currentSelection &&
+        FEATURED_CHARTS.every(
+          featuredVizMeta => featuredVizMeta.name !== currentSelection,
+        ) &&
+        currentSelection !== currentViz
       ) {
-        return FEATURED_CHARTS;
-      }
-      return [
-        {
-          name: currentViz,
+        vizTiles.unshift({
+          name: currentSelection,
           icon: (
             <Icons.MonitorOutlined
               iconSize="l"
@@ -194,10 +213,21 @@ export const FastVizSwitcher = React.memo(
               `}
             />
           ),
-        } as VizMeta,
-        ...FEATURED_CHARTS,
-      ];
-    }, [currentViz]);
+        });
+      }
+      if (
+        currentViz &&
+        FEATURED_CHARTS.every(
+          featuredVizMeta => featuredVizMeta.name !== currentViz,
+        )
+      ) {
+        vizTiles.unshift({
+          name: currentViz,
+          icon: <Icons.CurrentRenderedTile />,
+        });
+      }
+      return vizTiles;
+    }, [currentSelection, currentViz]);
 
     return (
       <div
@@ -211,7 +241,8 @@ export const FastVizSwitcher = React.memo(
         {vizTiles.map(vizMeta => (
           <VizTile
             vizMeta={vizMeta}
-            isActive={currentViz === vizMeta.name}
+            isActive={currentSelection === vizMeta.name}
+            isRendered={currentViz === vizMeta.name}
             onTileClick={onChange}
             key={vizMeta.name}
           />

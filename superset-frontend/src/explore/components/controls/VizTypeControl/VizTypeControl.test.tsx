@@ -18,12 +18,7 @@
  */
 import { Preset } from '@superset-ui/core';
 import { render, cleanup, screen, within } from 'spec/helpers/testing-library';
-import { Provider } from 'react-redux';
-import {
-  getMockStore,
-  mockStore,
-  stateWithoutNativeFilters,
-} from 'spec/fixtures/mockStore';
+import { stateWithoutNativeFilters } from 'spec/fixtures/mockStore';
 import React from 'react';
 import userEvent from '@testing-library/user-event';
 import { DynamicPluginProvider } from 'src/components/DynamicPlugins';
@@ -100,13 +95,10 @@ describe('VizTypeControl', () => {
     state: object = stateWithoutNativeFilters,
   ) => {
     render(
-      <Provider
-        store={state ? getMockStore(stateWithoutNativeFilters) : mockStore}
-      >
-        <DynamicPluginProvider>
-          <VizTypeControl {...props} />
-        </DynamicPluginProvider>
-      </Provider>,
+      <DynamicPluginProvider>
+        <VizTypeControl {...props} />
+      </DynamicPluginProvider>,
+      { useRedux: true, initialState: state },
     );
   };
 
@@ -129,6 +121,9 @@ describe('VizTypeControl', () => {
     expect(screen.getByLabelText('bar-chart-tile')).toBeVisible();
     expect(screen.getByLabelText('area-chart-tile')).toBeVisible();
     expect(screen.queryByLabelText('monitor')).not.toBeInTheDocument();
+    expect(
+      screen.queryByLabelText('current-rendered-tile'),
+    ).not.toBeInTheDocument();
 
     expect(
       within(screen.getByTestId('fast-viz-switcher')).getByText(
@@ -159,7 +154,7 @@ describe('VizTypeControl', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('Render viz tiles with non-featured chart', () => {
+  it('Render viz tiles when non-featured chart is selected', () => {
     const props = {
       ...defaultProps,
       value: 'line',
@@ -170,7 +165,29 @@ describe('VizTypeControl', () => {
     expect(screen.getByLabelText('monitor')).toBeVisible();
     expect(
       within(screen.getByTestId('fast-viz-switcher')).getByText('Line Chart'),
-    ).toBeInTheDocument();
+    ).toBeVisible();
+  });
+
+  it('Render viz tiles when non-featured is rendered', () => {
+    const props = {
+      ...defaultProps,
+      value: 'line',
+      isModalOpenInit: false,
+    };
+    const state = {
+      charts: {
+        1: {
+          latestQueryFormData: {
+            viz_type: 'line',
+          },
+        },
+      },
+    };
+    renderWrapper(props, state);
+    expect(screen.getByLabelText('current-rendered-tile')).toBeVisible();
+    expect(
+      within(screen.getByTestId('fast-viz-switcher')).getByText('Line Chart'),
+    ).toBeVisible();
   });
 
   it('Change viz type on click', () => {

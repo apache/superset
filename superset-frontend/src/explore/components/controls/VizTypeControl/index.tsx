@@ -106,7 +106,7 @@ const VizTypeControl = ({
           max-width: ${theme.gridUnit * 72}px;
         `}
       >
-        <FastVizSwitcher onChange={onChange} currentViz={initialValue} />
+        <FastVizSwitcher onChange={onChange} currentSelection={initialValue} />
         {initialValue && <VizSupportValidation vizType={initialValue} />}
         <div
           css={(theme: SupersetTheme) =>
