@@ -111,7 +111,10 @@ export class DeckGLContainer extends React.Component {
 
     return (
       <>
-        <div style={{ position: 'relative', width, height: adjustedHeight }}>
+        <div
+          style={{ position: 'relative', width, height: adjustedHeight }}
+          onContextMenu={evt => evt.preventDefault()}
+        >
           <DeckGL
             initWebGLParameters
             controller

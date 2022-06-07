@@ -30,6 +30,7 @@ import {
   withTheme,
   seed,
   CategoricalColorScale,
+  HandlerFunction,
 } from '@superset-ui/core';
 
 const seedRandom = seed('superset-ui');
@@ -65,6 +66,7 @@ export interface WordCloudProps extends WordCloudVisualProps {
   height: number;
   width: number;
   sliceId: number;
+  onContextMenu?: HandlerFunction;
 }
 
 export interface WordCloudState {
@@ -217,7 +219,7 @@ class WordCloud extends React.PureComponent<
 
   render() {
     const { scaleFactor } = this.state;
-    const { width, height, encoding, sliceId } = this.props;
+    const { width, height, encoding, sliceId, onContextMenu } = this.props;
     const { words } = this.state;
 
     const encoder = this.createEncoder(encoding);
@@ -247,6 +249,12 @@ class WordCloud extends React.PureComponent<
               fill={colorFn(getValueFromDatum(w) as string, sliceId)}
               textAnchor="middle"
               transform={`translate(${w.x}, ${w.y}) rotate(${w.rotate})`}
+              onContextMenu={e => {
+                if (onContextMenu) {
+                  e.preventDefault();
+                  onContextMenu(w, e.screenX, e.screenY);
+                }
+              }}
             >
               {w.text}
             </text>

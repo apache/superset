@@ -34,6 +34,7 @@ export default function EchartsMixedTimeseries({
   selectedValues,
   formData,
   seriesBreakdown,
+  onContextMenu,
 }: EchartsMixedTimeseriesChartTransformedProps) {
   const isFirstQuery = useCallback(
     (seriesIndex: number) => seriesIndex < seriesBreakdown,
@@ -104,6 +105,13 @@ export default function EchartsMixedTimeseries({
     },
     mouseover: params => {
       currentSeries.name = params.seriesName;
+    },
+    contextmenu: eventParams => {
+      if (onContextMenu) {
+        eventParams.event.stop();
+        const pointerEvent = eventParams.event.event;
+        onContextMenu(eventParams, pointerEvent.screenX, pointerEvent.screenY);
+      }
     },
   };
 

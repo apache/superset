@@ -26,6 +26,7 @@ import {
   NumberFormatter,
   QueryFormMetric,
   QueryFormColumn,
+  HandlerFunction,
 } from '@superset-ui/core';
 import { ColorFormatters } from '@superset-ui/chart-controls';
 
@@ -72,6 +73,7 @@ interface PivotTableCustomizeProps {
   dateFormatters: Record<string, DateFormatter | undefined>;
   legacy_order_by: QueryFormMetric[] | QueryFormMetric | null;
   order_desc: boolean;
+  onContextMenu: HandlerFunction;
 }
 
 export type PivotTableQueryFormData = QueryFormData &

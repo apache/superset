@@ -26,6 +26,7 @@ import {
   ChartProps,
   ChartDataResponseResult,
   QueryFormColumn,
+  HandlerFunction,
 } from '@superset-ui/core';
 import {
   DEFAULT_LEGEND_FORM_DATA,
@@ -151,4 +152,5 @@ export type EchartsMixedTimeseriesChartTransformedProps = {
   labelMapB: Record<string, DataRecordValue[]>;
   selectedValues: Record<number, string>;
   seriesBreakdown: number;
+  onContextMenu?: HandlerFunction;
 };

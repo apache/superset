@@ -30,6 +30,7 @@ export default function EchartsPie({
   groupby,
   selectedValues,
   formData,
+  onContextMenu,
 }: PieChartTransformedProps) {
   const handleChange = useCallback(
     (values: string[]) => {
@@ -75,6 +76,13 @@ export default function EchartsPie({
         handleChange(values.filter(v => v !== name));
       } else {
         handleChange([name]);
+      }
+    },
+    contextmenu: eventParams => {
+      if (onContextMenu) {
+        eventParams.event.stop();
+        const pointerEvent = eventParams.event.event;
+        onContextMenu(eventParams, pointerEvent.screenX, pointerEvent.screenY);
       }
     },
   };

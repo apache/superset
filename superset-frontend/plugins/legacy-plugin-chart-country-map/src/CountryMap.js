@@ -54,6 +54,7 @@ function CountryMap(element, props) {
     numberFormat,
     colorScheme,
     sliceId,
+    onContextMenu,
   } = props;
 
   const container = element;
@@ -225,7 +226,13 @@ function CountryMap(element, props) {
       .style('fill', colorFn)
       .on('mouseenter', mouseenter)
       .on('mouseout', mouseout)
-      .on('click', clicked);
+      .on('click', clicked)
+      .on('contextmenu', d => {
+        if (onContextMenu !== null) {
+          d3.event.preventDefault();
+          onContextMenu(d, d3.event.clientX, d3.event.clientY);
+        }
+      });
   }
 
   const map = maps[country];

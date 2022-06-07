@@ -433,6 +433,13 @@ export class TableRenderer extends React.Component {
               attrIdx,
               this.props.tableOptions.clickColumnHeaderCallback,
             )}
+            onContextMenu={this.clickHeaderHandler(
+              pivotData,
+              colKey,
+              this.props.cols,
+              attrIdx,
+              this.props.tableOptions.onContextMenuCallback,
+            )}
           >
             {displayHeaderCell(
               needToggle,
@@ -461,6 +468,14 @@ export class TableRenderer extends React.Component {
               this.props.tableOptions.clickColumnHeaderCallback,
               true,
             )}
+            onContextMenu={this.clickHeaderHandler(
+              pivotData,
+              colKey,
+              this.props.cols,
+              attrIdx,
+              this.props.tableOptions.onContextMenuCallback,
+              true,
+            )}
           >
             Subtotal
           </th>,
@@ -482,6 +497,15 @@ export class TableRenderer extends React.Component {
             this.props.cols,
             attrIdx,
             this.props.tableOptions.clickColumnHeaderCallback,
+            false,
+            true,
+          )}
+          onContextMenu={this.clickHeaderHandler(
+            pivotData,
+            [],
+            this.props.cols,
+            attrIdx,
+            this.props.tableOptions.onContextMenuCallback,
             false,
             true,
           )}
@@ -544,6 +568,15 @@ export class TableRenderer extends React.Component {
             this.props.rows,
             0,
             this.props.tableOptions.clickRowHeaderCallback,
+            false,
+            true,
+          )}
+          onContextMenu={this.clickHeaderHandler(
+            pivotData,
+            [],
+            this.props.rows,
+            0,
+            this.props.tableOptions.onContextMenuCallback,
             false,
             true,
           )}
@@ -626,6 +659,13 @@ export class TableRenderer extends React.Component {
               i,
               this.props.tableOptions.clickRowHeaderCallback,
             )}
+            onContextMenu={this.clickHeaderHandler(
+              pivotData,
+              rowKey,
+              this.props.rows,
+              i,
+              this.props.tableOptions.onContextMenuCallback,
+            )}
           >
             {displayHeaderCell(
               needRowToggle,
@@ -655,6 +695,14 @@ export class TableRenderer extends React.Component {
             this.props.rows,
             rowKey.length,
             this.props.tableOptions.clickRowHeaderCallback,
+            true,
+          )}
+          onContextMenu={this.clickHeaderHandler(
+            pivotData,
+            rowKey,
+            this.props.rows,
+            rowKey.length,
+            this.props.tableOptions.onContextMenuCallback,
             true,
           )}
         >
@@ -757,6 +805,15 @@ export class TableRenderer extends React.Component {
           this.props.rows,
           0,
           this.props.tableOptions.clickRowHeaderCallback,
+          false,
+          true,
+        )}
+        onContextMenu={this.clickHeaderHandler(
+          pivotData,
+          [],
+          this.props.rows,
+          0,
+          this.props.tableOptions.onContextMenuCallback,
           false,
           true,
         )}

@@ -279,6 +279,9 @@ var CalHeatMap = function () {
     // Callback when clicking on a time block
     onClick: null,
 
+    // Callback when right-clicking on a time block
+    onContextMenu: null,
+
     // Callback after painting the empty calendar
     // Can be used to trigger an API call, once the calendar is ready to be filled
     afterLoad: null,
@@ -1044,6 +1047,12 @@ var CalHeatMap = function () {
       .on('click', function (d) {
         if (options.onClick !== null) {
           return self.onClick(new Date(d.t), d.v);
+        }
+      })
+      .on('contextmenu', d => {
+        if (options.onContextMenu !== null) {
+          d3.event.preventDefault();
+          options.onContextMenu(d, d3.event.clientX, d3.event.clientY);
         }
       })
       .call(function (selection) {

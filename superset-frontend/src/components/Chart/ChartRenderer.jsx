@@ -83,6 +83,7 @@ class ChartRenderer extends React.Component {
     this.hooks = {
       onAddFilter: this.handleAddFilter,
       onError: this.handleRenderFailure,
+      onContextMenu: (value, x, y) => console.log(value, x, y),
       setControlValue: this.handleSetControlValue,
       onFilterMenuOpen: this.props.onFilterMenuOpen,
       onFilterMenuClose: this.props.onFilterMenuClose,

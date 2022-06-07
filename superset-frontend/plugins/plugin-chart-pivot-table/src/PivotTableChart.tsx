@@ -142,6 +142,7 @@ export default function PivotTableChart(props: PivotTableProps) {
     metricsLayout,
     metricColorFormatters,
     dateFormatters,
+    onContextMenu,
   } = props;
 
   const theme = useTheme();
@@ -327,10 +328,30 @@ export default function PivotTableChart(props: PivotTableProps) {
     [emitFilter, selectedFilters, handleChange],
   );
 
+  const onContextMenuCallback = useCallback(
+    (
+      e: MouseEvent,
+      value: string,
+      filters: FilterType,
+      pivotData: Record<string, any>,
+      isSubtotal: boolean,
+      isGrandTotal: boolean,
+    ) => {
+      e.preventDefault();
+      onContextMenu(
+        { e, value, filters, pivotData, isSubtotal, isGrandTotal },
+        e.screenX,
+        e.screenY,
+      );
+    },
+    [onContextMenu],
+  );
+
   const tableOptions = useMemo(
     () => ({
       clickRowHeaderCallback: toggleFilter,
       clickColumnHeaderCallback: toggleFilter,
+      onContextMenuCallback,
       colTotals,
       rowTotals,
       highlightHeaderCellsOnHover: emitFilter,
@@ -344,6 +365,7 @@ export default function PivotTableChart(props: PivotTableProps) {
       dateFormatters,
       emitFilter,
       metricColorFormatters,
+      onContextMenuCallback,
       rowTotals,
       selectedFilters,
       toggleFilter,

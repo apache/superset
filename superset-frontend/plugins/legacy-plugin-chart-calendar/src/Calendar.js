@@ -43,6 +43,7 @@ const propTypes = {
   // eslint-disable-next-line react/sort-prop-types
   cellSize: PropTypes.number,
   linearColorScheme: PropTypes.string,
+  onContextMenu: PropTypes.func,
   showLegend: PropTypes.bool,
   showMetricName: PropTypes.bool,
   showValues: PropTypes.bool,
@@ -62,6 +63,7 @@ function Calendar(element, props) {
     cellSize = 10,
     domainGranularity,
     linearColorScheme,
+    onContextMenu,
     showLegend,
     showMetricName,
     showValues,
@@ -129,6 +131,7 @@ function Calendar(element, props) {
       valueFormatter,
       timeFormatter,
       subDomainTextFormat,
+      onContextMenu,
     });
   });
 }

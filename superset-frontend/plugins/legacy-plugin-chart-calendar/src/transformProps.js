@@ -21,7 +21,13 @@ import { getNumberFormatter } from '@superset-ui/core';
 import { getFormattedUTCTime } from './utils';
 
 export default function transformProps(chartProps) {
-  const { height, formData, queriesData, datasource } = chartProps;
+  const {
+    height,
+    formData,
+    queriesData,
+    datasource,
+    hooks: { onContextMenu },
+  } = chartProps;
   const {
     cellPadding,
     cellRadius,
@@ -49,6 +55,7 @@ export default function transformProps(chartProps) {
     cellSize,
     domainGranularity,
     linearColorScheme,
+    onContextMenu,
     showLegend,
     showMetricName,
     showValues,

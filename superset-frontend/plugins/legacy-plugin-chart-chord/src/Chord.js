@@ -36,7 +36,15 @@ const propTypes = {
 };
 
 function Chord(element, props) {
-  const { data, width, height, numberFormat, colorScheme, sliceId } = props;
+  const {
+    data,
+    width,
+    height,
+    numberFormat,
+    colorScheme,
+    sliceId,
+    onContextMenu,
+  } = props;
 
   element.innerHTML = '';
 
@@ -120,6 +128,12 @@ function Chord(element, props) {
     .attr('class', 'chord')
     .on('mouseover', d => {
       chord.classed('fade', p => p !== d);
+    })
+    .on('contextmenu', d => {
+      if (onContextMenu !== null) {
+        d3.event.preventDefault();
+        onContextMenu(d, d3.event.clientX, d3.event.clientY);
+      }
     })
     .style('fill', d => colorFn(nodes[d.source.index], sliceId))
     .attr('d', path);

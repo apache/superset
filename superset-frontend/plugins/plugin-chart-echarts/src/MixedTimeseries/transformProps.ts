@@ -310,7 +310,7 @@ export default function transformProps(
     };
   }, {}) as Record<string, DataRecordValue[]>;
 
-  const { setDataMask = () => {} } = hooks;
+  const { setDataMask = () => {}, onContextMenu } = hooks;
   const alignTicks = yAxisIndex !== yAxisIndexB;
 
   const echartOptions: EChartsCoreOption = {
@@ -450,5 +450,6 @@ export default function transformProps(
     groupbyB,
     seriesBreakdown: rawSeriesA.length,
     selectedValues: filterState.selectedValues || [],
+    onContextMenu,
   };
 }

@@ -55,7 +55,7 @@ export function commonLayerProps(
   }
 
   return {
-    onClick,
+    onClick: e => console.log(e),
     onHover,
     pickable: Boolean(onHover),
   };

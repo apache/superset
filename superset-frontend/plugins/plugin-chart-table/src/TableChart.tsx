@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { CSSProperties, useCallback, useMemo, useState } from 'react';
+import React, {
+  CSSProperties,
+  useCallback,
+  useMemo,
+  useState,
+  MouseEvent,
+} from 'react';
 import {
   ColumnInstance,
   ColumnWithLooseAccessor,
@@ -193,6 +199,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     sticky = true, // whether to use sticky header
     columnColorFormatters,
     allowRearrangeColumns = false,
+    onContextMenu,
   } = props;
   const timestampFormatter = useCallback(
     value => getTimeFormatterForGranularity(timeGrain)(value),
@@ -403,6 +410,12 @@ export default function TableChart<D extends DataRecord = DataRecord>(
               emitFilter && !valueRange
                 ? () => toggleFilter(key, value)
                 : undefined,
+            onContextMenu: (e: MouseEvent<HTMLElement>) => {
+              if (onContextMenu) {
+                e.preventDefault();
+                onContextMenu(value, e.screenX, e.screenY);
+              }
+            },
             className: [
               className,
               value == null ? 'dt-is-null' : '',

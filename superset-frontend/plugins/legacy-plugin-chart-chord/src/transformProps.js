@@ -17,7 +17,13 @@
  * under the License.
  */
 export default function transformProps(chartProps) {
-  const { width, height, formData, queriesData } = chartProps;
+  const {
+    width,
+    height,
+    formData,
+    queriesData,
+    hooks: { onContextMenu },
+  } = chartProps;
   const { yAxisFormat, colorScheme, sliceId } = formData;
 
   return {
@@ -27,5 +33,6 @@ export default function transformProps(chartProps) {
     numberFormat: yAxisFormat,
     width,
     sliceId,
+    onContextMenu,
   };
 }

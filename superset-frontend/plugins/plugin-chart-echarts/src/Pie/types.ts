@@ -21,6 +21,7 @@ import {
   ChartDataResponseResult,
   ChartProps,
   DataRecordValue,
+  HandlerFunction,
   QueryFormColumn,
   QueryFormData,
   SetDataMaskHook,
@@ -95,4 +96,5 @@ export interface PieChartTransformedProps {
   labelMap: Record<string, DataRecordValue[]>;
   groupby: QueryFormColumn[];
   selectedValues: Record<number, string>;
+  onContextMenu?: HandlerFunction;
 }

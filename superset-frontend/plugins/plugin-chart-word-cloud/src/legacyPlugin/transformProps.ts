@@ -35,7 +35,13 @@ function getMetricLabel(
 }
 
 export default function transformProps(chartProps: ChartProps): WordCloudProps {
-  const { width, height, formData, queriesData } = chartProps;
+  const {
+    width,
+    height,
+    formData,
+    queriesData,
+    hooks: { onContextMenu },
+  } = chartProps;
   const {
     colorScheme,
     metric,
@@ -79,5 +85,6 @@ export default function transformProps(chartProps: ChartProps): WordCloudProps {
     rotation,
     width,
     sliceId,
+    onContextMenu,
   };
 }

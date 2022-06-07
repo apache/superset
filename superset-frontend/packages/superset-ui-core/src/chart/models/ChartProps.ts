@@ -52,6 +52,8 @@ type Hooks = {
   onAddFilter?: (newFilters: DataRecordFilters, merge?: boolean) => void;
   /** handle errors */
   onError?: HandlerFunction;
+  /** handle right click */
+  onContextMenu?: HandlerFunction;
   /** use the vis as control to update state */
   setControlValue?: HandlerFunction;
   /** handle external filters */

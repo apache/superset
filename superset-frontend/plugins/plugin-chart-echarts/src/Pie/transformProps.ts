@@ -194,7 +194,7 @@ export default function transformProps(
     {},
   );
 
-  const { setDataMask = () => {} } = hooks;
+  const { setDataMask = () => {}, onContextMenu } = hooks;
 
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
   const numberFormatter = getNumberFormatter(numberFormat);
@@ -336,5 +336,6 @@ export default function transformProps(
     labelMap,
     groupby,
     selectedValues,
+    onContextMenu,
   };
 }
