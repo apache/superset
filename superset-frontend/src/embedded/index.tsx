@@ -29,10 +29,7 @@ import ErrorBoundary from 'src/components/ErrorBoundary';
 import Loading from 'src/components/Loading';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import ToastContainer from 'src/components/MessageToasts/ToastContainer';
-import {
-  EmbeddedDashboard,
-  UserWithPermissionsAndRoles,
-} from 'src/types/bootstrapTypes';
+import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 
 const debugMode = process.env.WEBPACK_MODE === 'development';
 
@@ -157,37 +154,13 @@ function setupGuestClient(guestToken: string) {
 }
 
 function validateMessageEvent(event: MessageEvent) {
+  // if (!ALLOW_ORIGINS.includes(event.origin)) {
+  //   throw new Error('Message origin is not in the allowed list');
+  // }
+
   if (typeof event.data !== 'object' || event.data.type !== MESSAGE_TYPE) {
     throw new Error(`Message type does not match type used for embedded comms`);
   }
-}
-
-function validateAllowedDomains() {
-  const uuid = window.location.pathname.replace('/embedded/', '');
-  const getDashaboardConfig = makeApi<void, { result: EmbeddedDashboard }>({
-    method: 'GET',
-    endpoint: `/api/v1/embedded_dashboard/${uuid}`,
-  });
-  return getDashaboardConfig().then(
-    ({ result }) => {
-      const parentOrigin = new URL(document.referrer).origin;
-      if (
-        result.allowed_domains.length > 0 &&
-        !result.allowed_domains.includes(parentOrigin)
-      ) {
-        showFailureMessage(
-          `iframe parent ${parentOrigin} is not in the list of allowed domains`,
-        );
-      }
-    },
-    err => {
-      // something is most likely wrong with the guest token
-      logging.error(err);
-      showFailureMessage(
-        'Something went wrong with embedded authentication. Check the dev console for details.',
-      );
-    },
-  );
 }
 
 window.addEventListener('message', function embeddedPageInitializer(event) {
@@ -214,7 +187,6 @@ window.addEventListener('message', function embeddedPageInitializer(event) {
       setupGuestClient(guestToken);
       if (!started) {
         start();
-        validateAllowedDomains();
         started = true;
       }
     });
