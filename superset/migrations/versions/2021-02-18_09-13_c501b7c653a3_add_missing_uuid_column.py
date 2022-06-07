@@ -27,21 +27,24 @@ revision = "c501b7c653a3"
 down_revision = "070c043f2fdb"
 
 import logging
+from importlib import import_module
 from uuid import uuid4
 
 import sqlalchemy as sa
 from alembic import op
-from sqlalchemy.dialects import mysql
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.orm import load_only
 from sqlalchemy_utils import UUIDType
 
 from superset import db
-from superset.migrations.versions.b56500de1855_add_uuid_column_to_import_mixin import (
-    assign_uuids,
-    models,
-    update_dashboards,
+
+add_uuid_column_to_import_mixin = import_module(
+    "superset.migrations.versions."
+    "2020-09-28_17-57_b56500de1855_add_uuid_column_to_import_mixin",
 )
+assign_uuids = add_uuid_column_to_import_mixin.assign_uuids
+models = add_uuid_column_to_import_mixin.models
+update_dashboards = add_uuid_column_to_import_mixin.update_dashboards
 
 
 def has_uuid_column(table_name, bind):
