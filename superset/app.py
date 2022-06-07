@@ -29,14 +29,15 @@ def create_app() -> Flask:
     app = SupersetApp(__name__)
 
     try:
-        # Allow user to override our config completely
-        config_module = os.environ.get("SUPERSET_CONFIG", "superset.config")
-        app.config.from_object(config_module)
+        with app.app_context():
+                # Allow user to override our config completely
+                config_module = os.environ.get("SUPERSET_CONFIG", "superset.config")
+                app.config.from_object(config_module)
 
-        app_initializer = app.config.get("APP_INITIALIZER", SupersetAppInitializer)(app)
-        app_initializer.init_app()
+                app_initializer = app.config.get("APP_INITIALIZER", SupersetAppInitializer)(app)
+                app_initializer.init_app()
 
-        return app
+                return app
 
     # Make sure that bootstrap errors ALWAYS get logged
     except Exception as ex:
