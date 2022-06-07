@@ -117,9 +117,9 @@ type Dataset = {
 };
 
 interface VirtualDataset extends Dataset {
-  extra: any,
-  sql: string
-} 
+  extra: any;
+  sql: string;
+}
 
 interface DatasetListProps {
   addDangerToast: (msg: string) => void;
@@ -159,7 +159,8 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   const [datasetCurrentlyEditing, setDatasetCurrentlyEditing] =
     useState<Dataset | null>(null);
 
-  const [datasetCurrentlyDuplicating, setDatasetCurrentlyDuplicating] = useState<VirtualDataset | null>(null); 
+  const [datasetCurrentlyDuplicating, setDatasetCurrentlyDuplicating] =
+    useState<VirtualDataset | null>(null);
 
   const [importingDataset, showImportModal] = useState<boolean>(false);
   const [passwordFields, setPasswordFields] = useState<string[]>([]);
@@ -238,10 +239,10 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           ),
         ),
       );
-  
+
   const openDatasetDuplicateModal = (dataset: VirtualDataset) => {
     setDatasetCurrentlyDuplicating(dataset);
-  }
+  };
 
   const columns = useMemo(
     () => [
@@ -614,7 +615,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
 
   const closeDatasetDuplicateModal = () => {
     setDatasetCurrentlyDuplicating(null);
-  }
+  };
 
   const handleDatasetDelete = ({ id, table_name: tableName }: Dataset) => {
     SupersetClient.delete({
@@ -677,30 +678,39 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           templateParams: '',
           datasourceName: newDatasetName,
           // This is done because the api expects 'name' instead of 'column_name'
-          columns: json.result.columns.map((e: Record<string, any>) => {
-            return { name: e.column_name, ...e }
-          }),
-        }
+          columns: json.result.columns.map((e: Record<string, any>) => ({
+            name: e.column_name,
+            ...e,
+          })),
+        };
         SupersetClient.post({
           endpoint: '/superset/sqllab_viz/',
           postPayload: { data },
-        }).then(() => {
-          setDatasetCurrentlyDuplicating(null);
-          refreshData();
-        },
-        createErrorHandler(errMsg =>
-          addDangerToast(
-            t('There was an issue duplicating the selected datasets during POST: %s', errMsg),
+        }).then(
+          () => {
+            setDatasetCurrentlyDuplicating(null);
+            refreshData();
+          },
+          createErrorHandler(errMsg =>
+            addDangerToast(
+              t(
+                'There was an issue duplicating the selected datasets during POST: %s',
+                errMsg,
+              ),
+            ),
           ),
-        ));
+        );
       },
       createErrorHandler(errMsg =>
         addDangerToast(
-          t('There was an issue duplicating the selected datasets during GET: %s', errMsg),
+          t(
+            'There was an issue duplicating the selected datasets during GET: %s',
+            errMsg,
+          ),
         ),
       ),
     );
-  }
+  };
 
   return (
     <>

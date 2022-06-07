@@ -1,14 +1,14 @@
-import { t } from "@superset-ui/core";
-import { FunctionComponent, useEffect, useState } from "react";
-import { FormLabel } from "src/components/Form";
-import { Input } from "src/components/Input";
-import Modal from "src/components/Modal";
-import Dataset from "src/types/Dataset";
+import { t } from '@superset-ui/core';
+import React, { FunctionComponent, useEffect, useState } from 'react';
+import { FormLabel } from 'src/components/Form';
+import { Input } from 'src/components/Input';
+import Modal from 'src/components/Modal';
+import Dataset from 'src/types/Dataset';
 
 interface DuplicateDatasetModalProps {
-  dataset: Dataset | null,
-  onHide: () => void,
-  onDuplicate: (newDatasetName: string) => void
+  dataset: Dataset | null;
+  onHide: () => void;
+  onDuplicate: (newDatasetName: string) => void;
 }
 
 const DuplicateDatasetModal: FunctionComponent<DuplicateDatasetModalProps> = ({
@@ -16,10 +16,10 @@ const DuplicateDatasetModal: FunctionComponent<DuplicateDatasetModalProps> = ({
   onHide,
   onDuplicate,
 }) => {
-
   const [show, setShow] = useState<boolean>(false);
   const [disableSave, setDisableSave] = useState<boolean>(false);
-  const [newDuplicateDatasetName, setNewDuplicateDatasetName] = useState<string>("");
+  const [newDuplicateDatasetName, setNewDuplicateDatasetName] =
+    useState<string>('');
 
   const onChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const targetValue = event.target.value ?? '';
@@ -29,10 +29,10 @@ const DuplicateDatasetModal: FunctionComponent<DuplicateDatasetModalProps> = ({
 
   const duplicateDataset = () => {
     onDuplicate(newDuplicateDatasetName);
-  }
+  };
 
   useEffect(() => {
-    setNewDuplicateDatasetName("");
+    setNewDuplicateDatasetName('');
     setShow(dataset !== null);
   }, [dataset]);
 
@@ -44,9 +44,7 @@ const DuplicateDatasetModal: FunctionComponent<DuplicateDatasetModalProps> = ({
       disablePrimaryButton={disableSave}
       onHandledPrimaryAction={duplicateDataset}
     >
-      <FormLabel htmlFor="duplicate">
-          {t('New dataset name')}
-      </FormLabel>
+      <FormLabel htmlFor="duplicate">{t('New dataset name')}</FormLabel>
       <Input
         data-test="duplicate-modal-input"
         type="text"
@@ -58,6 +56,6 @@ const DuplicateDatasetModal: FunctionComponent<DuplicateDatasetModalProps> = ({
       />
     </Modal>
   );
-}
+};
 
 export default DuplicateDatasetModal;
