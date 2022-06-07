@@ -605,4 +605,105 @@ describe('SupersetClientClass', () => {
       }
     });
   });
+
+  describe('.postForm()', () => {
+    const protocol = 'https:';
+    const host = 'host';
+    const mockPostFormEndpoint = '/post_form/url';
+    const mockPostFormUrl = `${protocol}//${host}${mockPostFormEndpoint}`;
+    const guestToken = 'test-guest-token';
+    const postFormPayload = { number: 123, array: [1, 2, 3] };
+
+    it('makes postForm request', async () => {
+      const client = new SupersetClientClass({ protocol, host });
+      await client.init();
+
+      const createElement = jest.fn(() => ({
+        appendChild: jest.fn(),
+        submit: jest.fn(),
+      }));
+
+      document.createElement = createElement as any;
+      const appendChild = jest.fn();
+      const removeChild = jest.fn();
+      document.body.appendChild = appendChild;
+      document.body.removeChild = removeChild;
+
+      await client.postForm(mockPostFormUrl, {});
+
+      const hiddenForm = createElement.mock.results[0].value;
+      const csrfTokenInput = createElement.mock.results[1].value;
+
+      expect(createElement.mock.calls).toHaveLength(2);
+
+      expect(hiddenForm.action).toBe(mockPostFormUrl);
+      expect(hiddenForm.method).toBe('POST');
+      expect(hiddenForm.target).toBe('_blank');
+
+      expect(csrfTokenInput.type).toBe('hidden');
+      expect(csrfTokenInput.name).toBe('csrf_token');
+      expect(csrfTokenInput.value).toBe('');
+
+      expect(appendChild.mock.calls).toHaveLength(1);
+      expect(removeChild.mock.calls).toHaveLength(1);
+    });
+
+    it('makes postForm request with guesr token', async () => {
+      const client = new SupersetClientClass({ protocol, host, guestToken });
+      await client.init();
+
+      const createElement = jest.fn(() => ({
+        appendChild: jest.fn(),
+        submit: jest.fn(),
+      }));
+
+      document.createElement = createElement as any;
+      const appendChild = jest.fn();
+      const removeChild = jest.fn();
+      document.body.appendChild = appendChild;
+      document.body.removeChild = removeChild;
+
+      await client.postForm(mockPostFormUrl, {});
+
+      const guestTokenInput = createElement.mock.results[2].value;
+
+      expect(createElement.mock.calls).toHaveLength(3);
+
+      expect(guestTokenInput.type).toBe('hidden');
+      expect(guestTokenInput.name).toBe('guest_token');
+      expect(guestTokenInput.value).toBe(guestToken);
+
+      expect(appendChild.mock.calls).toHaveLength(1);
+      expect(removeChild.mock.calls).toHaveLength(1);
+    });
+
+    it('makes postForm request with payload', async () => {
+      const client = new SupersetClientClass({ protocol, host });
+      await client.init();
+
+      const createElement = jest.fn(() => ({
+        appendChild: jest.fn(),
+        submit: jest.fn(),
+      }));
+
+      document.createElement = createElement as any;
+      const appendChild = jest.fn();
+      const removeChild = jest.fn();
+      document.body.appendChild = appendChild;
+      document.body.removeChild = removeChild;
+
+      await client.postForm(mockPostFormUrl, { form_data: postFormPayload });
+
+      const postFormPayloadInput = createElement.mock.results[1].value;
+
+      expect(createElement.mock.calls).toHaveLength(3);
+
+      expect(postFormPayloadInput.type).toBe('hidden');
+      expect(postFormPayloadInput.name).toBe('form_data');
+      expect(postFormPayloadInput.value).toBe(postFormPayload);
+
+      expect(appendChild.mock.calls).toHaveLength(1);
+      expect(removeChild.mock.calls).toHaveLength(1);
+    });
+  });
 });
