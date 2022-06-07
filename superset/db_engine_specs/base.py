@@ -60,7 +60,6 @@ from typing_extensions import TypedDict
 from superset import security_manager, sql_parse
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.models.sql_lab import Query
-from superset.models.sql_types.base import literal_dttm_type_factory
 from superset.sql_parse import ParsedQuery, Table
 from superset.superset_typing import ResultSetColumnType
 from superset.utils import core as utils
@@ -268,7 +267,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         ),
         (
             re.compile(r"^date", re.IGNORECASE),
-            types.DateTime(),
+            types.Date(),
             GenericDataType.TEMPORAL,
         ),
         (
@@ -1476,12 +1475,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         )
         if col_types:
             column_type, generic_type = col_types
-            # wrap temporal types in custom type that supports literal binding
-            # using datetimes
-            if generic_type == GenericDataType.TEMPORAL:
-                column_type = literal_dttm_type_factory(
-                    column_type, cls, native_type or "", db_extra=db_extra or {}
-                )
             is_dttm = generic_type == GenericDataType.TEMPORAL
             return ColumnSpec(
                 sqla_type=column_type, generic_type=generic_type, is_dttm=is_dttm

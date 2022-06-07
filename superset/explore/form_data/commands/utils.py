@@ -18,44 +18,25 @@ from typing import Optional
 
 from flask_appbuilder.security.sqla.models import User
 
-from superset import security_manager
 from superset.charts.commands.exceptions import (
     ChartAccessDeniedError,
     ChartNotFoundError,
 )
-from superset.charts.dao import ChartDAO
 from superset.datasets.commands.exceptions import (
     DatasetAccessDeniedError,
     DatasetNotFoundError,
 )
-from superset.datasets.dao import DatasetDAO
-from superset.views.base import is_user_admin
-from superset.views.utils import is_owner
-
-
-def check_dataset_access(dataset_id: int) -> Optional[bool]:
-    if dataset_id:
-        dataset = DatasetDAO.find_by_id(dataset_id)
-        if dataset:
-            can_access_datasource = security_manager.can_access_datasource(dataset)
-            if can_access_datasource:
-                return True
-            raise DatasetAccessDeniedError()
-    raise DatasetNotFoundError()
+from superset.explore.utils import check_access as explore_check_access
+from superset.temporary_cache.commands.exceptions import (
+    TemporaryCacheAccessDeniedError,
+    TemporaryCacheResourceNotFoundError,
+)
 
 
 def check_access(dataset_id: int, chart_id: Optional[int], actor: User) -> None:
-    check_dataset_access(dataset_id)
-    if not chart_id:
-        return
-    chart = ChartDAO.find_by_id(chart_id)
-    if chart:
-        can_access_chart = (
-            is_user_admin()
-            or is_owner(chart, actor)
-            or security_manager.can_access("can_read", "Chart")
-        )
-        if can_access_chart:
-            return
-        raise ChartAccessDeniedError()
-    raise ChartNotFoundError()
+    try:
+        explore_check_access(dataset_id, chart_id, actor)
+    except (ChartNotFoundError, DatasetNotFoundError) as ex:
+        raise TemporaryCacheResourceNotFoundError from ex
+    except (ChartAccessDeniedError, DatasetAccessDeniedError) as ex:
+        raise TemporaryCacheAccessDeniedError from ex

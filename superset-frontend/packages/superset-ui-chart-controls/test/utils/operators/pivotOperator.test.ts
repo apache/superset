@@ -136,3 +136,35 @@ test('pivot by x_axis with groupby', () => {
     },
   });
 });
+
+test('pivot by adhoc x_axis', () => {
+  expect(
+    pivotOperator(
+      {
+        ...formData,
+        x_axis: {
+          label: 'my_case_expr',
+          expressionType: 'SQL',
+          expression: 'case when a = 1 then 1 else 0 end',
+        },
+      },
+      {
+        ...queryObject,
+        columns: ['foo', 'bar'],
+      },
+    ),
+  ).toEqual({
+    operation: 'pivot',
+    options: {
+      index: ['my_case_expr'],
+      columns: ['foo', 'bar'],
+      aggregates: {
+        'count(*)': { operator: 'mean' },
+        'sum(val)': { operator: 'mean' },
+      },
+      drop_missing_columns: false,
+      flatten_columns: false,
+      reset_index: false,
+    },
+  });
+});

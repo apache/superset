@@ -1201,3 +1201,8 @@ class TestUtils(SupersetTestCase):
         # test numeric epoch_ms format
         df = pd.DataFrame([{"__timestamp": ts.timestamp() * 1000, "a": 1}])
         assert normalize_col(df, "epoch_ms", 0, None)[DTTM_ALIAS][0] == ts
+
+        # test that out of bounds timestamps are coerced to None instead of
+        # erroring out
+        df = pd.DataFrame([{"__timestamp": "1677-09-21 00:00:00", "a": 1}])
+        assert pd.isnull(normalize_col(df, None, 0, None)[DTTM_ALIAS][0])
