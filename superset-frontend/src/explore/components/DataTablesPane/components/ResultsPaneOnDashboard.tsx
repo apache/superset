@@ -29,6 +29,7 @@ export const ResultsPaneOnDashboard = ({
   ownState,
   errorMessage,
   actions,
+  isVisible,
   dataSize = 50,
 }: ResultsPaneProps) => {
   const resultsPanes = useResultsPane({
@@ -39,6 +40,7 @@ export const ResultsPaneOnDashboard = ({
     isRequest,
     actions,
     dataSize,
+    isVisible,
   });
   if (resultsPanes.length === 1) {
     return resultsPanes[0];

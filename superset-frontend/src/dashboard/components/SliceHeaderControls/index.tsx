@@ -345,6 +345,7 @@ class SliceHeaderControls extends React.PureComponent<
                   queryForce={false}
                   dataSize={20}
                   isRequest
+                  isVisible
                 />
               }
               modalFooter={
