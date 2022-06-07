@@ -46,7 +46,9 @@ export const useResultsPane = ({
   const [resultResp, setResultResp] = useState<QueryResultInterface[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [responseError, setResponseError] = useState<string>('');
-  const queryCount = getQueryCount(queryFormData.viz_type);
+  const queryCount = getQueryCount(
+    queryFormData?.viz_type || queryFormData?.vizType,
+  );
 
   useEffect(() => {
     // it's an invalid formData when gets a errorMessage
