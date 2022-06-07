@@ -25,6 +25,7 @@ import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { ResultsPaneProps, QueryResultInterface } from '../types';
 import { getQueryCount } from '../utils';
 import { SingleQueryResultPane } from './SingleQueryResultPane';
+import { TableControls } from './DataTableControls';
 
 const Error = styled.pre`
   margin-top: ${({ theme }) => `${theme.gridUnit * 4}px`};
@@ -96,7 +97,20 @@ export const useResultsPane = ({
   }
 
   if (responseError) {
-    return Array(queryCount).fill(<Error>{responseError}</Error>);
+    const err = (
+      <>
+        <TableControls
+          data={[]}
+          columnNames={[]}
+          columnTypes={[]}
+          datasourceId={queryFormData.datasource}
+          onInputChange={() => {}}
+          isLoading={false}
+        />
+        <Error>{responseError}</Error>
+      </>
+    );
+    return Array(queryCount).fill(err);
   }
 
   if (resultResp.length === 0) {

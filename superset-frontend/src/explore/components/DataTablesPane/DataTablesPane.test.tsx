@@ -63,10 +63,12 @@ const createProps = () => ({
   queriesResponse: [
     {
       colnames: [],
+      coltypes: [],
+      data: [],
     },
   ],
   datasource: {
-    id: 0,
+    id: 34,
     name: '',
     type: DatasourceType.Table,
     columns: [],
@@ -121,7 +123,6 @@ describe('DataTablesPane', () => {
     expect(await screen.findByLabelText('Collapse data panel')).toBeVisible();
     localStorage.clear();
   });
-
   test('Should show tabs: View samples', async () => {
     const props = createProps();
     render(<DataTablesPane {...props} />, {
