@@ -25,6 +25,7 @@ import superset.utils.database as database_utils
 from superset import db
 from superset.connectors.sqla.models import SqlMetric
 from superset.models.slice import Slice
+from superset.utils.core import DatasourceType
 
 from .helpers import (
     get_example_data,
@@ -81,7 +82,7 @@ def load_energy(
     slc = Slice(
         slice_name="Energy Sankey",
         viz_type="sankey",
-        datasource_type="table",
+        datasource_type=DatasourceType.TABLE,
         datasource_id=tbl.id,
         params=textwrap.dedent(
             """\
@@ -105,7 +106,7 @@ def load_energy(
     slc = Slice(
         slice_name="Energy Force Layout",
         viz_type="graph_chart",
-        datasource_type="table",
+        datasource_type=DatasourceType.TABLE,
         datasource_id=tbl.id,
         params=textwrap.dedent(
             """\
@@ -129,7 +130,7 @@ def load_energy(
     slc = Slice(
         slice_name="Heatmap",
         viz_type="heatmap",
-        datasource_type="table",
+        datasource_type=DatasourceType.TABLE,
         datasource_id=tbl.id,
         params=textwrap.dedent(
             """\

@@ -21,6 +21,7 @@ from typing_extensions import TypedDict
 
 class TemporaryExploreState(TypedDict):
     owner: Optional[int]
-    dataset_id: int
+    datasource_id: int
+    datasource_type: str
     chart_id: Optional[int]
     form_data: str

@@ -34,7 +34,9 @@ import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import CrossFilterScopingModal from 'src/dashboard/components/CrossFilterScopingModal/CrossFilterScopingModal';
 import Icons from 'src/components/Icons';
 import ModalTrigger from 'src/components/ModalTrigger';
+import Button from 'src/components/Button';
 import ViewQueryModal from 'src/explore/components/controls/ViewQueryModal';
+import { ResultsPane } from 'src/explore/components/DataTablesPane';
 
 const MENU_KEYS = {
   CROSS_FILTER_SCOPING: 'cross_filter_scoping',
@@ -46,6 +48,7 @@ const MENU_KEYS = {
   FULLSCREEN: 'fullscreen',
   TOGGLE_CHART_DESCRIPTION: 'toggle_chart_description',
   VIEW_QUERY: 'view_query',
+  VIEW_RESULTS: 'view_results',
 };
 
 const VerticalDotsContainer = styled.div`
@@ -102,7 +105,7 @@ export interface SliceHeaderControlsProps {
   updatedDttm: number | null;
   isFullSize?: boolean;
   isDescriptionExpanded?: boolean;
-  formData: Pick<QueryFormData, 'slice_id' | 'datasource'>;
+  formData: QueryFormData;
   onExploreChart: () => void;
 
   forceRefresh: (sliceId: number, dashboardId: number) => void;
@@ -319,6 +322,39 @@ class SliceHeaderControls extends React.PureComponent<
               modalTitle={t('View query')}
               modalBody={
                 <ViewQueryModal latestQueryFormData={this.props.formData} />
+              }
+              draggable
+              resizable
+              responsive
+            />
+          </Menu.Item>
+        )}
+
+        {this.props.supersetCanExplore && (
+          <Menu.Item key={MENU_KEYS.VIEW_RESULTS}>
+            <ModalTrigger
+              triggerNode={
+                <span data-test="view-query-menu-item">
+                  {t('Drill to detail')}
+                </span>
+              }
+              modalTitle={t('Chart Data: %s', slice.slice_name)}
+              modalBody={
+                <ResultsPane
+                  queryFormData={this.props.formData}
+                  queryForce={false}
+                  dataSize={20}
+                  isRequest
+                />
+              }
+              modalFooter={
+                <Button
+                  buttonStyle="secondary"
+                  buttonSize="small"
+                  onClick={this.props.onExploreChart}
+                >
+                  {t('Edit chart')}
+                </Button>
               }
               draggable
               resizable
