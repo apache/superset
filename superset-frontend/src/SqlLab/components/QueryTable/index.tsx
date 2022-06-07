@@ -21,14 +21,14 @@ import moment from 'moment';
 import Card from 'src/components/Card';
 import ProgressBar from 'src/components/ProgressBar';
 import Label from 'src/components/Label';
-import { t, useTheme } from '@superset-ui/core';
+import { t, useTheme, QueryResponse } from '@superset-ui/core';
 import { useSelector } from 'react-redux';
 import TableView from 'src/components/TableView';
 import Button from 'src/components/Button';
 import { fDuration } from 'src/utils/dates';
 import Icons from 'src/components/Icons';
 import { Tooltip } from 'src/components/Tooltip';
-import { Query, RootState } from 'src/SqlLab/types';
+import { SqlLabRootState } from 'src/SqlLab/types';
 import ModalTrigger from 'src/components/ModalTrigger';
 import { UserWithPermissionsAndRoles as User } from 'src/types/bootstrapTypes';
 import ResultSet from '../ResultSet';
@@ -36,7 +36,7 @@ import HighlightedSql from '../HighlightedSql';
 import { StaticPosition, verticalAlign, StyledTooltip } from './styles';
 
 interface QueryTableQuery
-  extends Omit<Query, 'state' | 'sql' | 'progress' | 'results'> {
+  extends Omit<QueryResponse, 'state' | 'sql' | 'progress' | 'results'> {
   state?: Record<string, any>;
   sql?: Record<string, any>;
   progress?: Record<string, any>;
@@ -52,7 +52,7 @@ interface QueryTableProps {
     clearQueryResults: Function;
     removeQuery: Function;
   };
-  queries?: Query[];
+  queries?: QueryResponse[];
   onUserClicked?: Function;
   onDbClicked?: Function;
   displayLimit: number;
@@ -91,7 +91,7 @@ const QueryTable = ({
     [columns],
   );
 
-  const user = useSelector<RootState, User>(state => state.sqlLab.user);
+  const user = useSelector<SqlLabRootState, User>(state => state.sqlLab.user);
 
   const {
     queryEditorSetAndSaveSql,
@@ -102,15 +102,15 @@ const QueryTable = ({
   } = actions;
 
   const data = useMemo(() => {
-    const restoreSql = (query: Query) => {
+    const restoreSql = (query: QueryResponse) => {
       queryEditorSetAndSaveSql({ id: query.sqlEditorId }, query.sql);
     };
 
-    const openQueryInNewTab = (query: Query) => {
+    const openQueryInNewTab = (query: QueryResponse) => {
       cloneQueryToNewTab(query, true);
     };
 
-    const openAsyncResults = (query: Query, displayLimit: number) => {
+    const openAsyncResults = (query: QueryResponse, displayLimit: number) => {
       fetchQueryResults(query, displayLimit);
     };
 

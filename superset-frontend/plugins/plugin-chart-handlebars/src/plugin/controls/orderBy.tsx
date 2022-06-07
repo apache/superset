@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ControlSetItem } from '@superset-ui/chart-controls';
+import { ControlSetItem, Dataset } from '@superset-ui/chart-controls';
 import { t } from '@superset-ui/core';
 import { isAggMode, isRawMode } from './shared';
 
@@ -29,7 +29,9 @@ export const orderByControlSetItem: ControlSetItem = {
     multi: true,
     default: [],
     mapStateToProps: ({ datasource }) => ({
-      choices: datasource?.order_by_choices || [],
+      choices: datasource?.hasOwnProperty('order_by_choices')
+        ? (datasource as Dataset)?.order_by_choices
+        : datasource?.columns || [],
     }),
     visibility: isRawMode,
     resetOnHide: false,

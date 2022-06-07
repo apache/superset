@@ -17,32 +17,33 @@
  * under the License.
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { css, styled, t } from '@superset-ui/core';
+import { css, styled, t, DatasourceType } from '@superset-ui/core';
 import {
   ControlConfig,
-  DatasourceMeta,
+  Dataset,
   ColumnMeta,
 } from '@superset-ui/chart-controls';
 import { debounce } from 'lodash';
 import { matchSorter, rankings } from 'match-sorter';
 import Collapse from 'src/components/Collapse';
+import Alert from 'src/components/Alert';
+import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { Input } from 'src/components/Input';
 import { FAST_DEBOUNCE } from 'src/constants';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { ExploreActions } from 'src/explore/actions/exploreActions';
 import Control from 'src/explore/components/Control';
-import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import { ExploreDatasource } from 'src/SqlLab/types';
 import DatasourcePanelDragOption from './DatasourcePanelDragOption';
 import { DndItemType } from '../DndItemType';
 import { StyledColumnOption, StyledMetricOption } from '../optionRenderers';
 
 interface DatasourceControl extends ControlConfig {
-  datasource?: DatasourceMeta;
-  user: UserWithPermissionsAndRoles;
+  datasource?: ExploreDatasource;
 }
 
 export interface Props {
-  datasource: DatasourceMeta;
+  datasource: Dataset;
   controls: {
     datasource: DatasourceControl;
   };
@@ -154,6 +155,16 @@ const SectionHeader = styled.span`
   `}
 `;
 
+const StyledInfoboxWrapper = styled.div`
+  ${({ theme }) => css`
+    margin: 0 ${theme.gridUnit * 2.5}px;
+
+    span {
+      text-decoration: underline;
+    }
+  `}
+`;
+
 const LabelContainer = (props: {
   children: React.ReactElement;
   className: string;
@@ -192,6 +203,7 @@ export default function DataSourcePanel({
     [_columns],
   );
 
+  const [showSaveDatasetModal, setShowSaveDatasetModal] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const [lists, setList] = useState({
     columns,
@@ -279,6 +291,7 @@ export default function DataSourcePanel({
         : lists.metrics.slice(0, DEFAULT_MAX_METRICS_LENGTH),
     [lists.metrics, showAllMetrics],
   );
+
   const columnSlice = useMemo(
     () =>
       showAllColumns
@@ -288,6 +301,17 @@ export default function DataSourcePanel({
           ),
     [lists.columns, showAllColumns],
   );
+
+  const showInfoboxCheck = () => {
+    if (sessionStorage.getItem('showInfobox') === 'false') return false;
+    return true;
+  };
+
+  const isValidDatasourceType =
+    datasource.type === DatasourceType.Dataset ||
+    datasource.type === DatasourceType.SlTable ||
+    datasource.type === DatasourceType.SavedQuery ||
+    datasource.type === DatasourceType.Query;
 
   const mainBody = useMemo(
     () => (
@@ -303,6 +327,29 @@ export default function DataSourcePanel({
           placeholder={t('Search Metrics & Columns')}
         />
         <div className="field-selections">
+          {isValidDatasourceType && showInfoboxCheck() && (
+            <StyledInfoboxWrapper>
+              <Alert
+                closable
+                onClose={() => sessionStorage.setItem('showInfobox', 'false')}
+                type="info"
+                message=""
+                description={
+                  <>
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => setShowSaveDatasetModal(true)}
+                      className="add-dataset-alert-description"
+                    >
+                      {t('Create a dataset')}
+                    </span>
+                    {t(' to edit or add columns and metrics.')}
+                  </>
+                }
+              />
+            </StyledInfoboxWrapper>
+          )}
           <Collapse
             defaultActiveKey={['metrics', 'column']}
             expandIconPosition="right"
@@ -399,6 +446,13 @@ export default function DataSourcePanel({
 
   return (
     <DatasourceContainer>
+      <SaveDatasetModal
+        visible={showSaveDatasetModal}
+        onHide={() => setShowSaveDatasetModal(false)}
+        buttonTextOnSave={t('Save')}
+        buttonTextOnOverwrite={t('Overwrite')}
+        datasource={datasource}
+      />
       <Control {...datasourceControl} name="datasource" actions={actions} />
       {datasource.id != null && mainBody}
     </DatasourceContainer>
