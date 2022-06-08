@@ -108,7 +108,7 @@ export const legendSection: ControlSetRow[] = [
   [legendMarginControl],
 ];
 
-const showValueControl: ControlSetItem = {
+export const showValueControl: ControlSetItem = {
   name: 'show_value',
   config: {
     type: 'CheckboxControl',
@@ -119,7 +119,7 @@ const showValueControl: ControlSetItem = {
   },
 };
 
-const stackControl: ControlSetItem = {
+export const stackControl: ControlSetItem = {
   name: 'stack',
   config: {
     type: 'CheckboxControl',
@@ -130,7 +130,7 @@ const stackControl: ControlSetItem = {
   },
 };
 
-const onlyTotalControl: ControlSetItem = {
+export const onlyTotalControl: ControlSetItem = {
   name: 'only_total',
   config: {
     type: 'CheckboxControl',

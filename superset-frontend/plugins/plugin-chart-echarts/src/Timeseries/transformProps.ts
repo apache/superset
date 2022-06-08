@@ -30,6 +30,7 @@ import {
   isIntervalAnnotationLayer,
   isTimeseriesAnnotationLayer,
   TimeseriesChartDataResponseResult,
+  t,
 } from '@superset-ui/core';
 import { isDerivedSeries } from '@superset-ui/chart-controls';
 import { EChartsCoreOption, SeriesOption } from 'echarts';
@@ -51,6 +52,8 @@ import {
   getAxisType,
   getColtypesMapping,
   getLegendProps,
+  extractDataTotalValues,
+  extractShowValueIndexes,
 } from '../utils/series';
 import { extractAnnotationLabels } from '../utils/annotation';
 import {
@@ -72,7 +75,11 @@ import {
   transformSeries,
   transformTimeseriesAnnotation,
 } from './transformers';
-import { TIMESERIES_CONSTANTS, TIMEGRAIN_TO_TIMESTAMP } from '../constants';
+import {
+  AreaChartExtraControlsValue,
+  TIMESERIES_CONSTANTS,
+  TIMEGRAIN_TO_TIMESTAMP,
+} from '../constants';
 
 export default function transformProps(
   chartProps: EchartsTimeseriesChartProps,
@@ -140,46 +147,35 @@ export default function transformProps(
   const xAxisCol =
     verboseMap[xAxisOrig] || getColumnLabel(xAxisOrig || DTTM_ALIAS);
   const isHorizontal = orientation === OrientationType.horizontal;
+  const { totalStackedValues, thresholdValues } = extractDataTotalValues(
+    rebasedData,
+    {
+      stack,
+      percentageThreshold,
+      xAxisCol,
+    },
+  );
   const rawSeries = extractSeries(rebasedData, {
     fillNeighborValue: stack && !forecastEnabled ? 0 : undefined,
     xAxis: xAxisCol,
     removeNulls: seriesType === EchartsTimeseriesSeriesType.Scatter,
+    stack,
+    totalStackedValues,
     isHorizontal,
+  });
+  const showValueIndexes = extractShowValueIndexes(rawSeries, {
+    stack,
   });
   const seriesContexts = extractForecastSeriesContexts(
     Object.values(rawSeries).map(series => series.name as string),
   );
+  const isAreaExpand = stack === AreaChartExtraControlsValue.Expand;
   const xAxisDataType = dataTypes?.[xAxisCol];
   const xAxisType = getAxisType(xAxisDataType);
   const series: SeriesOption[] = [];
-  const formatter = getNumberFormatter(contributionMode ? ',.0%' : yAxisFormat);
-
-  const totalStackedValues: number[] = [];
-  const showValueIndexes: number[] = [];
-  const thresholdValues: number[] = [];
-
-  rebasedData.forEach(data => {
-    const values = Object.keys(data).reduce((prev, curr) => {
-      if (curr === xAxisCol) {
-        return prev;
-      }
-      const value = data[curr] || 0;
-      return prev + (value as number);
-    }, 0);
-    totalStackedValues.push(values);
-    thresholdValues.push(((percentageThreshold || 0) / 100) * values);
-  });
-
-  if (stack) {
-    rawSeries.forEach((entry, seriesIndex) => {
-      const { data = [] } = entry;
-      (data as [Date, number][]).forEach((datum, dataIndex) => {
-        if (datum[1] !== null) {
-          showValueIndexes[dataIndex] = seriesIndex;
-        }
-      });
-    });
-  }
+  const formatter = getNumberFormatter(
+    contributionMode || isAreaExpand ? ',.0%' : yAxisFormat,
+  );
 
   rawSeries.forEach(entry => {
     const lineStyle = isDerivedSeries(entry, chartProps.rawFormData)
@@ -266,7 +262,7 @@ export default function transformProps(
   let [min, max] = (yAxisBounds || []).map(parseYAxisBound);
 
   // default to 0-100% range when doing row-level contribution chart
-  if (contributionMode === 'row' && stack) {
+  if ((contributionMode === 'row' || isAreaExpand) && stack) {
     if (min === undefined) min = 0;
     if (max === undefined) max = 1;
   }
@@ -291,7 +287,10 @@ export default function transformProps(
     {},
   );
 
-  const { setDataMask = () => {} } = hooks;
+  const {
+    setDataMask = () => {},
+    setControlValue = (...args: unknown[]) => {},
+  } = hooks;
 
   const addYAxisLabelOffset = !!yAxisTitle;
   const addXAxisLabelOffset = !!xAxisTitle;
@@ -406,8 +405,8 @@ export default function transformProps(
         dataZoom: {
           yAxisIndex: false,
           title: {
-            zoom: 'zoom area',
-            back: 'restore zoom',
+            zoom: t('zoom area'),
+            back: t('restore zoom'),
           },
         },
       },
@@ -433,6 +432,7 @@ export default function transformProps(
     labelMap,
     selectedValues,
     setDataMask,
+    setControlValue,
     width,
     legendData,
   };
