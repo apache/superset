@@ -211,11 +211,12 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
       return;
     }
 
-    const selectedColumns = query.results.selected_columns || [];
+    const selectedColumns = query?.results?.selected_columns ?? [];
 
     // The filters param is only used to test jinja templates.
     // Remove the special filters entry from the templateParams
     // before saving the dataset.
+    let templateParams;
     if (query.templateParams) {
       const p = JSON.parse(query.templateParams);
       /* eslint-disable-next-line no-underscore-dangle */
@@ -223,7 +224,7 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
         /* eslint-disable-next-line no-underscore-dangle */
         delete p._filters;
         // eslint-disable-next-line no-param-reassign
-        query.templateParams = JSON.stringify(p);
+        templateParams = JSON.stringify(p);
       }
     }
 
@@ -232,7 +233,7 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
         schema: query.schema,
         sql: query.sql,
         dbId: query.dbId,
-        templateParams: query.templateParams,
+        templateParams,
         datasourceName: datasetName,
         columns: selectedColumns,
       }),

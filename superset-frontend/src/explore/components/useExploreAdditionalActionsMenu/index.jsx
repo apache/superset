@@ -31,6 +31,7 @@ import copyTextToClipboard from 'src/utils/copy';
 import HeaderReportDropDown from 'src/components/ReportModal/HeaderReportDropdown';
 import ViewQueryModal from '../controls/ViewQueryModal';
 import EmbedCodeContent from '../EmbedCodeContent';
+import ViewQueryModalFooter from '../controls/ViewQueryModalFooter';
 
 const MENU_KEYS = {
   EDIT_PROPERTIES: 'edit_properties',
