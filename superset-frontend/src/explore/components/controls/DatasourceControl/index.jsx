@@ -244,7 +244,7 @@ class DatasourceControl extends React.PureComponent {
     return (
       <Styles data-test="datasource-control" className="DatasourceControl">
         <div className="data-container">
-          {isValidDatasourceType ? (
+          {!isValidDatasourceType ? (
             <Icons.ConsoleSqlOutlined className="datasource-svg" />
           ) : (
             <Icons.DatasetPhysical className="datasource-svg" />
