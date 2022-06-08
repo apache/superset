@@ -155,6 +155,6 @@ describe('ResultsPaneOnDashboard', () => {
       useRedux: true,
     });
     expect(await findByText('Results')).toBeVisible();
-    expect(await findByText('Results 1')).toBeVisible();
+    expect(await findByText('Results 2')).toBeVisible();
   });
 });

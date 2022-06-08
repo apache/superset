@@ -57,8 +57,8 @@ export const ResultsPaneOnDashboard = ({
 
     return (
       <Tabs.TabPane
-        tab={t('Results %s', idx)}
-        key={`${ResultTypes.Results} ${idx}`}
+        tab={t('Results %s', idx + 1)}
+        key={`${ResultTypes.Results} ${idx + 1}`}
       >
         {pane}
       </Tabs.TabPane>
