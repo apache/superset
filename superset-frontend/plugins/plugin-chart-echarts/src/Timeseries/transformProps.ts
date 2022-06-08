@@ -86,13 +86,12 @@ export default function transformProps(
     queriesData,
     datasource,
     theme,
+    annotationData = {},
   } = chartProps;
   const { verboseMap = {} } = datasource;
   const [queryData] = queriesData;
-  const { annotation_data: annotationData_, data = [] } =
-    queryData as TimeseriesChartDataResponseResult;
+  const { data = [] } = queryData as TimeseriesChartDataResponseResult;
   const dataTypes = getColtypesMapping(queryData);
-  const annotationData = annotationData_ || {};
 
   const {
     area,
