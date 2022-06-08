@@ -1210,14 +1210,15 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
     def get_dttm_time_filter(
         self, col: ColumnClause, start_dttm: DateTime, end_dttm: DateTime
     ) -> ColumnElement:
-        range = []
+        l = []
         if start_dttm:
-            range.append(col >= self.text(self.default_dttm_sql_literal(start_dttm)))
+            l.append(col >= self.text(self.default_dttm_sql_literal(start_dttm)))
         if end_dttm:
-            range.append(col < self.text(self.default_dttm_sql_literal(end_dttm)))
-        return and_(*range)
+            l.append(col < self.text(self.default_dttm_sql_literal(end_dttm)))
+        return and_(*l)
 
-    def default_dttm_sql_literal(self, dttm: DateTime) -> str:
+    @staticmethod
+    def default_dttm_sql_literal(dttm: DateTime) -> str:
         # TODO(john-bodley): SIP-15 will explicitly require a type conversion.
         return f"""'{dttm.strftime("%Y-%m-%d %H:%M:%S.%f")}'"""
 
