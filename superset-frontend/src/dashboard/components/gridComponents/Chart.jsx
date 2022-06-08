@@ -224,9 +224,13 @@ export default class Chart extends React.Component {
   }
 
   getHeaderHeight() {
-    return (
-      (this.headerRef && this.headerRef.offsetHeight) || DEFAULT_HEADER_HEIGHT
-    );
+    return this.headerRef
+      ? this.headerRef.offsetHeight +
+          parseInt(
+            getComputedStyle(this.headerRef).getPropertyValue('margin-bottom'),
+            10,
+          )
+      : DEFAULT_HEADER_HEIGHT;
   }
 
   setDescriptionRef(ref) {
