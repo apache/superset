@@ -224,14 +224,14 @@ export default class Chart extends React.Component {
   }
 
   getHeaderHeight() {
-    const marginBottom = parseInt(
-      getComputedStyle(this.headerRef).getPropertyValue('margin-bottom'),
-    );
-    return this.headerRef
-      ? this.headerRef.offsetHeight + Number.isNaN(marginBottom)
-        ? 0
-        : marginBottom
-      : DEFAULT_HEADER_HEIGHT;
+    if (this.headerRef) {
+      const computedStyle = getComputedStyle(this.headerRef).getPropertyValue(
+        'margin-bottom',
+      );
+      const marginBottom = parseInt(computedStyle, 10) || 0;
+      return this.headerRef.offsetHeight + marginBottom;
+    }
+    return DEFAULT_HEADER_HEIGHT;
   }
 
   setDescriptionRef(ref) {
