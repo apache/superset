@@ -24,15 +24,15 @@ import { ParentSize } from '@vx/responsive';
 
 import { t, styled } from '@superset-ui/core';
 
-import NewColumn from './gridComponents/new/NewColumn';
-import NewDivider from './gridComponents/new/NewDivider';
-import NewHeader from './gridComponents/new/NewHeader';
-import NewRow from './gridComponents/new/NewRow';
-import NewTabs from './gridComponents/new/NewTabs';
-import NewMarkdown from './gridComponents/new/NewMarkdown';
-import SliceAdder from '../containers/SliceAdder';
-import dashboardComponents from '../../visualizations/presets/dashboardComponents';
-import NewDynamicComponent from './gridComponents/new/NewDynamicComponent';
+import SliceAdder from 'src/dashboard/containers/SliceAdder';
+import dashboardComponents from 'src/visualizations/presets/dashboardComponents';
+import NewColumn from '../gridComponents/new/NewColumn';
+import NewDivider from '../gridComponents/new/NewDivider';
+import NewHeader from '../gridComponents/new/NewHeader';
+import NewRow from '../gridComponents/new/NewRow';
+import NewTabs from '../gridComponents/new/NewTabs';
+import NewMarkdown from '../gridComponents/new/NewMarkdown';
+import NewDynamicComponent from '../gridComponents/new/NewDynamicComponent';
 
 export interface BCPProps {
   isStandalone: boolean;
