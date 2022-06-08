@@ -44,6 +44,9 @@ import {
   ExtraControlProps,
   ControlState,
   emitFilterControl,
+  Dataset,
+  ColumnMeta,
+  defineSavedMetrics,
 } from '@superset-ui/chart-controls';
 
 import i18n from './i18n';
@@ -127,12 +130,12 @@ const dnd_all_columns: typeof sharedControls.groupby = {
   default: [],
   mapStateToProps({ datasource, controls }, controlState) {
     const newState: ExtraControlProps = {};
-    if (datasource) {
-      const options = datasource.columns;
+    if (datasource?.columns[0]?.hasOwnProperty('column_name')) {
+      const options = (datasource as Dataset).columns;
       newState.options = Object.fromEntries(
-        options.map(option => [option.column_name, option]),
+        options.map((option: ColumnMeta) => [option.column_name, option]),
       );
-    }
+    } else newState.options = datasource?.columns;
     newState.queryMode = getQueryMode(controls);
     newState.externalValidationErrors =
       isRawMode({ controls }) && ensureIsArray(controlState.value).length === 0
@@ -155,7 +158,7 @@ const percent_metrics: typeof sharedControls.metrics = {
   resetOnHide: false,
   mapStateToProps: ({ datasource, controls }, controlState) => ({
     columns: datasource?.columns || [],
-    savedMetrics: datasource?.metrics || [],
+    savedMetrics: defineSavedMetrics(datasource),
     datasource,
     datasourceType: datasource?.type,
     queryMode: getQueryMode(controls),
@@ -229,8 +232,12 @@ const config: ControlPanelConfig = {
                 { controls, datasource, form_data }: ControlPanelState,
                 controlState: ControlState,
               ) => ({
-                columns: datasource?.columns.filter(c => c.filterable) || [],
-                savedMetrics: datasource?.metrics || [],
+                columns: datasource?.columns[0]?.hasOwnProperty('filterable')
+                  ? (datasource as Dataset)?.columns?.filter(
+                      (c: ColumnMeta) => c.filterable,
+                    )
+                  : datasource?.columns,
+                savedMetrics: defineSavedMetrics(datasource),
                 // current active adhoc metrics
                 selectedMetrics:
                   form_data.metrics ||
@@ -280,7 +287,9 @@ const config: ControlPanelConfig = {
               multi: true,
               default: [],
               mapStateToProps: ({ datasource }) => ({
-                choices: datasource?.order_by_choices || [],
+                choices: datasource?.hasOwnProperty('order_by_choices')
+                  ? (datasource as Dataset)?.order_by_choices
+                  : datasource?.columns || [],
               }),
               visibility: isRawMode,
               resetOnHide: false,
@@ -505,7 +514,11 @@ const config: ControlPanelConfig = {
                 return true;
               },
               mapStateToProps(explore, _, chart) {
-                const verboseMap = explore?.datasource?.verbose_map ?? {};
+                const verboseMap = explore?.datasource?.hasOwnProperty(
+                  'verbose_map',
+                )
+                  ? (explore?.datasource as Dataset)?.verbose_map
+                  : explore?.datasource?.columns ?? {};
                 const { colnames, coltypes } =
                   chart?.queriesResponse?.[0] ?? {};
                 const numericColumns =

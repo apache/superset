@@ -25,6 +25,7 @@ import type {
   JsonValue,
   Metric,
   QueryFormData,
+  QueryResponse,
   QueryFormMetric,
   QueryFormColumn,
 } from '@superset-ui/core';
@@ -53,7 +54,7 @@ export type ColumnMeta = Omit<Column, 'id'> & {
   id?: number;
 } & AnyDict;
 
-export interface DatasourceMeta {
+export interface Dataset {
   id: number;
   type: DatasourceType;
   columns: ColumnMeta[];
@@ -71,7 +72,7 @@ export interface DatasourceMeta {
 
 export interface ControlPanelState {
   form_data: QueryFormData;
-  datasource: DatasourceMeta | null;
+  datasource: Dataset | QueryResponse | null;
   controls: ControlStateMapping;
 }
 
@@ -90,7 +91,7 @@ export interface ActionDispatcher<
  * Mapping of action dispatchers
  */
 export interface ControlPanelActionDispatchers {
-  setDatasource: ActionDispatcher<[DatasourceMeta]>;
+  setDatasource: ActionDispatcher<[Dataset]>;
 }
 
 /**

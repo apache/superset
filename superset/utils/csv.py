@@ -85,8 +85,8 @@ def get_chart_csv_data(
         opener.addheaders.append(("Cookie", cookie_str))
         response = opener.open(chart_url)
         content = response.read()
-    if response.getcode() != 200:
-        raise URLError(response.getcode())
+        if response.getcode() != 200:
+            raise URLError(response.getcode())
     if content:
         return content
     return None
