@@ -642,7 +642,7 @@ describe('SupersetClientClass', () => {
 
       expect(csrfTokenInput.type).toBe('hidden');
       expect(csrfTokenInput.name).toBe('csrf_token');
-      expect(csrfTokenInput.value).toBe('');
+      expect(csrfTokenInput.value).toBe(1234);
 
       expect(appendChild.mock.calls).toHaveLength(1);
       expect(removeChild.mock.calls).toHaveLength(1);
@@ -680,10 +680,11 @@ describe('SupersetClientClass', () => {
     it('makes postForm request with payload', async () => {
       const client = new SupersetClientClass({ protocol, host });
       await client.init();
+      const submit = jest.fn();
 
       const createElement = jest.fn(() => ({
         appendChild: jest.fn(),
-        submit: jest.fn(),
+        submit,
       }));
 
       document.createElement = createElement as any;
@@ -704,6 +705,7 @@ describe('SupersetClientClass', () => {
 
       expect(appendChild.mock.calls).toHaveLength(1);
       expect(removeChild.mock.calls).toHaveLength(1);
+      expect(submit.mock.calls).toHaveLength(1);
     });
   });
 });
