@@ -24,12 +24,12 @@ import React, {
   useRef,
   useState,
 } from 'react';
+import { useSelector } from 'react-redux';
 import { css, SupersetTheme, t, useTheme } from '@superset-ui/core';
 import { usePluginContext } from 'src/components/DynamicPlugins';
 import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
-import { useSelector } from 'react-redux';
-import { ExplorePageState } from '../../../reducers/getInitialState';
+import { ExplorePageState } from 'src/explore/reducers/getInitialState';
 
 export interface VizMeta {
   icon: ReactElement;
