@@ -84,8 +84,8 @@ const formDataMixedChartWithAA = {
 };
 
 test('should compile query object A', () => {
-  const query_a = buildQuery(formDataMixedChart).queries[0];
-  expect(query_a).toEqual({
+  const query = buildQuery(formDataMixedChart).queries[0];
+  expect(query).toEqual({
     time_range: '1980 : 2000',
     since: undefined,
     until: undefined,
@@ -103,7 +103,7 @@ test('should compile query object A', () => {
     annotation_layers: [],
     row_limit: 10,
     row_offset: undefined,
-    series_columns: undefined,
+    series_columns: ['foo'],
     series_limit: undefined,
     series_limit_metric: undefined,
     timeseries_limit: 5,
@@ -128,9 +128,6 @@ test('should compile query object A', () => {
           reset_index: false,
         },
       },
-      undefined,
-      undefined,
-      undefined,
       {
         operation: 'rename',
         options: {
@@ -150,8 +147,8 @@ test('should compile query object A', () => {
 });
 
 test('should compile query object B', () => {
-  const query_a = buildQuery(formDataMixedChart).queries[1];
-  expect(query_a).toEqual({
+  const query = buildQuery(formDataMixedChart).queries[1];
+  expect(query).toEqual({
     time_range: '1980 : 2000',
     since: undefined,
     until: undefined,
@@ -169,7 +166,7 @@ test('should compile query object B', () => {
     annotation_layers: [],
     row_limit: 100,
     row_offset: undefined,
-    series_columns: undefined,
+    series_columns: [],
     series_limit: undefined,
     series_limit_metric: undefined,
     timeseries_limit: 0,
@@ -194,10 +191,6 @@ test('should compile query object B', () => {
           reset_index: false,
         },
       },
-      undefined,
-      undefined,
-      undefined,
-      undefined,
       {
         operation: 'flatten',
       },
@@ -207,14 +200,14 @@ test('should compile query object B', () => {
 });
 
 test('should compile AA in query A', () => {
-  const query_a = buildQuery(formDataMixedChartWithAA).queries[0];
+  const query = buildQuery(formDataMixedChartWithAA).queries[0];
   // time comparison
-  expect(query_a?.time_offsets).toEqual(['1 years ago']);
+  expect(query.time_offsets).toEqual(['1 years ago']);
 
   // cumsum
   expect(
     // prettier-ignore
-    query_a
+    query
       .post_processing
       ?.find(operator => operator?.operation === 'cum')
       ?.operation,
@@ -223,7 +216,7 @@ test('should compile AA in query A', () => {
   // resample
   expect(
     // prettier-ignore
-    query_a
+    query
       .post_processing
       ?.find(operator => operator?.operation === 'resample'),
   ).toEqual({
@@ -237,14 +230,14 @@ test('should compile AA in query A', () => {
 });
 
 test('should compile AA in query B', () => {
-  const query_b = buildQuery(formDataMixedChartWithAA).queries[1];
+  const query = buildQuery(formDataMixedChartWithAA).queries[1];
   // time comparison
-  expect(query_b?.time_offsets).toEqual(['3 years ago']);
+  expect(query.time_offsets).toEqual(['3 years ago']);
 
   // rolling total
   expect(
     // prettier-ignore
-    query_b
+    query
       .post_processing
       ?.find(operator => operator?.operation === 'rolling'),
   ).toEqual({
@@ -263,7 +256,7 @@ test('should compile AA in query B', () => {
   // resample
   expect(
     // prettier-ignore
-    query_b
+    query
       .post_processing
       ?.find(operator => operator?.operation === 'resample'),
   ).toEqual({
@@ -274,4 +267,100 @@ test('should compile AA in query B', () => {
       fill_value: null,
     },
   });
+});
+
+test('should compile query objects with x-axis', () => {
+  const { queries } = buildQuery({
+    ...formDataMixedChart,
+    x_axis: 'my_index',
+  });
+  expect(queries[0]).toEqual({
+    time_range: '1980 : 2000',
+    since: undefined,
+    until: undefined,
+    granularity: 'ds',
+    filters: [],
+    extras: {
+      having: '',
+      having_druid: [],
+      time_grain_sqla: 'P1W',
+      where: "(foo in ('a', 'b'))",
+    },
+    applied_time_extras: {},
+    columns: ['my_index', 'foo'],
+    metrics: ['sum(sales)'],
+    annotation_layers: [],
+    row_limit: 10,
+    row_offset: undefined,
+    series_columns: ['foo'],
+    series_limit: undefined,
+    series_limit_metric: undefined,
+    timeseries_limit: 5,
+    url_params: {},
+    custom_params: {},
+    custom_form_data: {},
+    is_timeseries: false,
+    time_offsets: [],
+    post_processing: [
+      {
+        operation: 'pivot',
+        options: {
+          aggregates: {
+            'sum(sales)': {
+              operator: 'mean',
+            },
+          },
+          columns: ['foo'],
+          drop_missing_columns: false,
+          flatten_columns: false,
+          index: ['my_index'],
+          reset_index: false,
+        },
+      },
+      {
+        operation: 'rename',
+        options: {
+          columns: {
+            'sum(sales)': null,
+          },
+          inplace: true,
+          level: 0,
+        },
+      },
+      {
+        operation: 'flatten',
+      },
+    ],
+    orderby: [['count', false]],
+  });
+
+  // check the main props on the second query
+  expect(queries[1]).toEqual(
+    expect.objectContaining({
+      is_timeseries: false,
+      columns: ['my_index'],
+      series_columns: [],
+      metrics: ['count'],
+      post_processing: [
+        {
+          operation: 'pivot',
+          options: {
+            aggregates: {
+              count: {
+                operator: 'mean',
+              },
+            },
+            columns: [],
+            drop_missing_columns: false,
+            flatten_columns: false,
+            index: ['my_index'],
+            reset_index: false,
+          },
+        },
+        {
+          operation: 'flatten',
+        },
+      ],
+    }),
+  );
 });

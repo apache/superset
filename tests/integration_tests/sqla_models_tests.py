@@ -52,11 +52,10 @@ from tests.integration_tests.test_app import app
 
 from .base_tests import SupersetTestCase
 
-
 VIRTUAL_TABLE_INT_TYPES: Dict[str, Pattern[str]] = {
     "hive": re.compile(r"^INT_TYPE$"),
     "mysql": re.compile("^LONGLONG$"),
-    "postgresql": re.compile(r"^INT$"),
+    "postgresql": re.compile(r"^INTEGER$"),
     "presto": re.compile(r"^INTEGER$"),
     "sqlite": re.compile(r"^INT$"),
 }

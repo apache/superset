@@ -34,6 +34,7 @@ export interface ModalProps {
   className?: string;
   children: React.ReactNode;
   disablePrimaryButton?: boolean;
+  primaryButtonLoading?: boolean;
   onHide: () => void;
   onHandledPrimaryAction?: () => void;
   primaryButtonName?: string;
@@ -88,9 +89,20 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
       max-width: ${maxWidth ?? '900px'};
       padding-left: ${theme.gridUnit * 3}px;
       padding-right: ${theme.gridUnit * 3}px;
+      padding-bottom: 0;
+      top: 0;
     `}
 
+  .ant-modal-content {
+    display: flex;
+    flex-direction: column;
+    max-height: ${({ theme }) => `calc(100vh - ${theme.gridUnit * 8}px)`};
+    margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
+    margin-top: ${({ theme }) => theme.gridUnit * 4}px;
+  }
+
   .ant-modal-header {
+    flex: 0 0 auto;
     background-color: ${({ theme }) => theme.colors.grayscale.light4};
     border-radius: ${({ theme }) => theme.borderRadius}px
       ${({ theme }) => theme.borderRadius}px 0 0;
@@ -118,11 +130,13 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
   }
 
   .ant-modal-body {
+    flex: 0 1 auto;
     padding: ${({ theme }) => theme.gridUnit * 4}px;
     overflow: auto;
     ${({ resizable, height }) => !resizable && height && `height: ${height};`}
   }
   .ant-modal-footer {
+    flex: 0 0 1;
     border-top: ${({ theme }) => theme.gridUnit / 4}px solid
       ${({ theme }) => theme.colors.grayscale.light2};
     padding: ${({ theme }) => theme.gridUnit * 4}px;
@@ -190,6 +204,7 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
 const CustomModal = ({
   children,
   disablePrimaryButton = false,
+  primaryButtonLoading = false,
   onHide,
   onHandledPrimaryAction,
   primaryButtonName = t('OK'),
@@ -240,6 +255,7 @@ const CustomModal = ({
           key="submit"
           buttonStyle={primaryButtonType}
           disabled={disablePrimaryButton}
+          loading={primaryButtonLoading}
           onClick={onHandledPrimaryAction}
           cta
           data-test="modal-confirm-button"
@@ -322,7 +338,7 @@ const CustomModal = ({
       mask={shouldShowMask}
       draggable={draggable}
       resizable={resizable}
-      destroyOnClose={destroyOnClose || resizable || draggable}
+      destroyOnClose={destroyOnClose}
       {...rest}
     >
       {children}

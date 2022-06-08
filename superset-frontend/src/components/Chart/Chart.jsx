@@ -105,6 +105,10 @@ const Styles = styled.div`
 
   .slice_container {
     height: ${p => p.height}px;
+
+    .pivot_table tbody tr {
+      font-feature-settings: 'tnum' 1;
+    }
   }
 `;
 

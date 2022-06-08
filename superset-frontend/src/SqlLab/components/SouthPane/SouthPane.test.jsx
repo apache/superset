@@ -80,7 +80,7 @@ const mockedEmptyProps = {
   latestQueryId: '',
   dataPreviewQueries: [],
   actions: {
-    queryEditorSetSql: NOOP,
+    queryEditorSetAndSaveSql: NOOP,
     cloneQueryToNewTab: NOOP,
     fetchQueryResults: NOOP,
     clearQueryResults: NOOP,

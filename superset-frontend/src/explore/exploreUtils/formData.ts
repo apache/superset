@@ -20,7 +20,8 @@ import { omit } from 'lodash';
 import { SupersetClient, JsonObject } from '@superset-ui/core';
 
 type Payload = {
-  dataset_id: number;
+  datasource_id: number;
+  datasource_type: string;
   form_data: string;
   chart_id?: number;
 };
@@ -42,12 +43,14 @@ const assembleEndpoint = (key?: string, tabId?: string) => {
 };
 
 const assemblePayload = (
-  datasetId: number,
+  datasourceId: number,
+  datasourceType: string,
   formData: JsonObject,
   chartId?: number,
 ) => {
   const payload: Payload = {
-    dataset_id: datasetId,
+    datasource_id: datasourceId,
+    datasource_type: datasourceType,
     form_data: JSON.stringify(sanitizeFormData(formData)),
   };
   if (chartId) {
@@ -57,18 +60,25 @@ const assemblePayload = (
 };
 
 export const postFormData = (
-  datasetId: number,
+  datasourceId: number,
+  datasourceType: string,
   formData: JsonObject,
   chartId?: number,
   tabId?: string,
 ): Promise<string> =>
   SupersetClient.post({
     endpoint: assembleEndpoint(undefined, tabId),
-    jsonPayload: assemblePayload(datasetId, formData, chartId),
+    jsonPayload: assemblePayload(
+      datasourceId,
+      datasourceType,
+      formData,
+      chartId,
+    ),
   }).then(r => r.json.key);
 
 export const putFormData = (
-  datasetId: number,
+  datasourceId: number,
+  datasourceType: string,
   key: string,
   formData: JsonObject,
   chartId?: number,
@@ -76,5 +86,10 @@ export const putFormData = (
 ): Promise<string> =>
   SupersetClient.put({
     endpoint: assembleEndpoint(key, tabId),
-    jsonPayload: assemblePayload(datasetId, formData, chartId),
+    jsonPayload: assemblePayload(
+      datasourceId,
+      datasourceType,
+      formData,
+      chartId,
+    ),
   }).then(r => r.json.message);
