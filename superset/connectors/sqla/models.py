@@ -1253,7 +1253,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
     ) -> SqlaQuery:
         """Querying any sqla table from this common interface"""
         # For backward compatibility
-        if granularity not in self.dttm_cols and type(granularity) is str:
+        if granularity not in self.dttm_cols and isinstance(granularity, str):
             granularity = self.main_dttm_col
 
         extras = extras or {}
@@ -1384,10 +1384,10 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         columns = [col for col in columns if col != utils.DTTM_ALIAS]
 
         dttm_col = (
-            columns_by_name.get(granularity) if type(granularity) is str else None
+            columns_by_name.get(granularity) if isinstance(granularity, str) else None
         )
         dttm_expr = None
-        if type(granularity) is dict and granularity.get("sqlExpression"):
+        if isinstance(granularity, dict) and granularity.get("sqlExpression"):
             expression = _process_sql_expression(
                 expression=granularity.get("sqlExpression"),
                 database_id=self.database_id,
@@ -1443,7 +1443,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             metrics_exprs = []
 
         if granularity:
-            if type(granularity) is str and (
+            if isinstance(granularity, str) and (
                 granularity not in columns_by_name or not dttm_col
             ):
                 raise QueryObjectValidationError(
