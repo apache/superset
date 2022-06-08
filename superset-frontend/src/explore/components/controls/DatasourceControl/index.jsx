@@ -19,7 +19,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { t, styled, withTheme } from '@superset-ui/core';
+import { t, styled, withTheme, DatasourceType } from '@superset-ui/core';
 import { getUrlParam } from 'src/utils/urlUtils';
 
 import { AntdDropdown } from 'src/components';
@@ -244,7 +244,13 @@ class DatasourceControl extends React.PureComponent {
     return (
       <Styles data-test="datasource-control" className="DatasourceControl">
         <div className="data-container">
-          <Icons.DatasetPhysical className="dataset-svg" />
+          {/* todo(hughhh): move this into a function */}
+          {datasource.type === DatasourceType.Table && (
+            <Icons.DatasetPhysical className="dataset-svg" />
+          )}
+          {datasource.type === DatasourceType.Query && (
+            <Icons.Sql className="dataset-svg" />
+          )}
           {/* Add a tooltip only for long dataset names */}
           {!isMissingDatasource && datasource.name.length > 25 ? (
             <Tooltip title={datasource.name}>

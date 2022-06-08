@@ -773,24 +773,29 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             initial_form_data = json.loads(value) if value else {}
 
         from superset.dao.datasource.dao import DatasourceDAO
-        from superset.utils.core import DatasourceType
         from superset.models.helpers import ExploreMixin
+        from superset.utils.core import DatasourceType
 
         # Handle SIP-68 Models or explore view
         # API will always use /explore/<datasource_type>/<int:datasource_id>/ to query
         # new models to power any viz in explore
-        if datasource_id and datasource_type:        
+        datasource_id = request.args.get('datasource_id', datasource_id)
+        datasource_type = request.args.get('datasource_type', datasource_type)
+
+        if datasource_id and datasource_type:
             # 1. Query datasource object by type and id
             datasource = DatasourceDAO.get_datasource(
                 session=db.session,
                 datasource_type=DatasourceType(datasource_type),
                 datasource_id=datasource_id,
             )
-            
+
             # 2. Verify that it's an ExploreMixin
             if isinstance(datasource, ExploreMixin):
                 # Handle Query object bootstrap
-                datasource_name = datasource.name if datasource else _("[Missing Dataset]")
+                datasource_name = (
+                    datasource.name if datasource else _("[Missing Dataset]")
+                )
                 form_data, slc = get_form_data(
                     use_slice_data=True, initial_form_data=initial_form_data
                 )
@@ -823,13 +828,17 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
                 if action == "overwrite" and not slice_overwrite_perm:
                     return json_error_response(
-                        _("You don't have the rights to ") + _("alter this ") + _("chart"),
+                        _("You don't have the rights to ")
+                        + _("alter this ")
+                        + _("chart"),
                         status=403,
                     )
 
                 if action == "saveas" and not slice_add_perm:
                     return json_error_response(
-                        _("You don't have the rights to ") + _("create a ") + _("chart"),
+                        _("You don't have the rights to ")
+                        + _("create a ")
+                        + _("chart"),
                         status=403,
                     )
 
@@ -871,6 +880,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                         datasource_data["metrics"] = datasource.extra.get("metrics", [])
                         datasource_data["id"] = datasource_id
                         datasource_data["type"] = datasource_type
+                        datasource_data["name"] = datasource.sql
 
                 bootstrap_data = {
                     "can_add": slice_add_perm,

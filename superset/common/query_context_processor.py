@@ -116,7 +116,7 @@ class QueryContextProcessor:
                         and col != DTTM_ALIAS
                     )
                 ]
-                breakpoint()
+
                 if invalid_columns:
                     raise QueryObjectValidationError(
                         _(
