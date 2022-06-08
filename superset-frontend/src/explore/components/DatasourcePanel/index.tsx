@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { css, styled, t, isValidDatasourceType } from '@superset-ui/core';
+import { css, styled, t, DatasourceType } from '@superset-ui/core';
 import {
   ControlConfig,
   Dataset,
@@ -321,7 +321,7 @@ export default function DataSourcePanel({
           placeholder={t('Search Metrics & Columns')}
         />
         <div className="field-selections">
-          {isValidDatasourceType(datasource.type) && showInfoboxCheck() && (
+          {datasource.type === DatasourceType.Query && showInfoboxCheck() && (
             <StyledInfoboxWrapper>
               <Alert
                 closable
