@@ -52,7 +52,7 @@ import {
 import { MarkLine1DDataItemOption } from 'echarts/types/src/component/marker/MarkLineModel';
 
 import { extractForecastSeriesContext } from '../utils/forecast';
-import { ForecastSeriesEnum, LegendOrientation } from '../types';
+import { ForecastSeriesEnum, LegendOrientation, StackType } from '../types';
 import { EchartsTimeseriesSeriesType } from './types';
 
 import {
@@ -62,7 +62,11 @@ import {
   parseAnnotationOpacity,
 } from '../utils/annotation';
 import { currentSeries, getChartPadding } from '../utils/series';
-import { OpacityEnum, TIMESERIES_CONSTANTS } from '../constants';
+import {
+  AreaChartExtraControlsValue,
+  OpacityEnum,
+  TIMESERIES_CONSTANTS,
+} from '../constants';
 
 export function transformSeries(
   series: SeriesOption,
@@ -75,7 +79,7 @@ export function transformSeries(
     markerSize?: number;
     areaOpacity?: number;
     seriesType?: EchartsTimeseriesSeriesType;
-    stack?: boolean;
+    stack?: StackType;
     yAxisIndex?: number;
     showValue?: boolean;
     onlyTotal?: boolean;
@@ -225,6 +229,7 @@ export function transformSeries(
         const { value, dataIndex, seriesIndex, seriesName } = params;
         const numericValue = isHorizontal ? value[0] : value[1];
         const isSelectedLegend = currentSeries.legend === seriesName;
+        const isAreaExpand = stack === AreaChartExtraControlsValue.Expand;
         if (!formatter) return numericValue;
         if (!stack || isSelectedLegend) return formatter(numericValue);
         if (!onlyTotal) {
@@ -234,7 +239,7 @@ export function transformSeries(
           return '';
         }
         if (seriesIndex === showValueIndexes[dataIndex]) {
-          return formatter(totalStackedValues[dataIndex]);
+          return formatter(isAreaExpand ? 1 : totalStackedValues[dataIndex]);
         }
         return '';
       },
