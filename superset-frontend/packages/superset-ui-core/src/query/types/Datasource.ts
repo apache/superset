@@ -54,10 +54,4 @@ export const DEFAULT_METRICS = [
   },
 ];
 
-export const isValidDatasourceType = (datasource: DatasourceType) =>
-  datasource === DatasourceType.Dataset ||
-  datasource === DatasourceType.SlTable ||
-  datasource === DatasourceType.SavedQuery ||
-  datasource === DatasourceType.Query;
-
 export default {};

@@ -19,7 +19,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { t, styled, withTheme, isValidDatasourceType } from '@superset-ui/core';
+import { t, styled, withTheme, DatasourceType } from '@superset-ui/core';
 import { getUrlParam } from 'src/utils/urlUtils';
 
 import { AntdDropdown } from 'src/components';
@@ -303,7 +303,7 @@ class DatasourceControl extends React.PureComponent {
           )}
           <AntdDropdown
             overlay={
-              isValidDatasourceType(datasource.type)
+              datasource.type === DatasourceType.Query
                 ? queryDatasourceMenu
                 : defaultDatasourceMenu
             }
