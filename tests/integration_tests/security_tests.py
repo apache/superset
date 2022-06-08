@@ -1114,7 +1114,7 @@ class TestGuestTokens(SupersetTestCase):
     def test_get_guest_user_with_request_form(self):
         token = self.create_guest_token()
         fake_request = FakeRequest()
-        fake_request.form['guest_token'] = token
+        fake_request.form["guest_token"] = token
 
         guest_user = security_manager.get_guest_user_from_request(fake_request)
 
