@@ -1111,6 +1111,16 @@ class TestGuestTokens(SupersetTestCase):
         self.assertIsNotNone(guest_user)
         self.assertEqual("test_guest", guest_user.username)
 
+    def test_get_guest_user_with_request_form(self):
+        token = self.create_guest_token()
+        fake_request = FakeRequest()
+        fake_request.form['guest_token'] = token
+
+        guest_user = security_manager.get_guest_user_from_request(fake_request)
+
+        self.assertIsNotNone(guest_user)
+        self.assertEqual("test_guest", guest_user.username)
+
     @patch("superset.security.SupersetSecurityManager._get_current_epoch_time")
     def test_get_guest_user_expired_token(self, get_time_mock):
         # make a just-expired token
