@@ -716,8 +716,16 @@ describe('SupersetClientClass', () => {
         appendChild: jest.fn(),
         submit: jest.fn(),
       }));
-      await client.postForm('', { form_data: postFormPayload });
+      document.createElement = createElement as any;
+      const appendChild = jest.fn();
+      const removeChild = jest.fn();
+      document.body.appendChild = appendChild;
+      document.body.removeChild = removeChild;
+
+      await client.postForm('', {});
       expect(createElement.mock.calls).toHaveLength(0);
+      expect(appendChild.mock.calls).toHaveLength(0);
+      expect(removeChild.mock.calls).toHaveLength(0);
     });
   });
 });
