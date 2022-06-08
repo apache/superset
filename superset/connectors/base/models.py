@@ -21,6 +21,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, Hashable, List, Optional, Set, Type, TYPE_CHECKING, Union
 
+from flask import g
 from flask_appbuilder.security.sqla.models import User
 from sqlalchemy import and_, Boolean, Column, Integer, String, Text
 from sqlalchemy.ext.declarative import declared_attr
@@ -554,7 +555,7 @@ class BaseDatasource(
             else []
         )
 
-    def get_extra_cache_keys(  # pylint: disable=no-self-use
+    def get_extra_cache_keys(
         self, query_obj: QueryObjectDict  # pylint: disable=unused-argument
     ) -> List[Hashable]:
         """If a datasource needs to provide additional keys for calculation of
@@ -563,7 +564,11 @@ class BaseDatasource(
         :param query_obj: The dict representation of a query object
         :return: list of keys
         """
-        return []
+        # If a database has user impersonation set the exact same query might return
+        # different results, so we should cache results at the user grain.
+        user_id = g.user.id if hasattr(g, "user") else None
+        # pylint: disable=no-member
+        return [user_id] if user_id and self.database.impersonate_user else []
 
     def __hash__(self) -> int:
         return hash(self.uid)
