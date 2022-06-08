@@ -1064,6 +1064,7 @@ class TestDatasources(SupersetTestCase):
 
 class FakeRequest:
     headers: Any = {}
+    form: Any = {}
 
 
 class TestGuestTokens(SupersetTestCase):
