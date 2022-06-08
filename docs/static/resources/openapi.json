@@ -1223,14 +1223,14 @@
             "type": "array"
           },
           "granularity": {
-            "description": "Name of temporal column used for time filtering. For legacy Druid datasources this defines the time grain.",
+            "description": "Name of temporal column or SQL expression used for time filtering. For legacy Druid datasources this defines the time grain.",
             "nullable": true,
-            "type": "string"
+            "type": ["string", "object"]
           },
           "granularity_sqla": {
-            "description": "Name of temporal column used for time filtering for SQL datasources. This field is deprecated, use `granularity` instead.",
+            "description": "Name of temporal column or SQL expression used for time filtering for SQL datasources. This field is deprecated, use `granularity` instead.",
             "nullable": true,
-            "type": "string"
+            "type": ["string", "object"]
           },
           "groupby": {
             "description": "Columns by which to group the query. This field is deprecated, use `columns` instead.",

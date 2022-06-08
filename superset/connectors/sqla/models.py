@@ -405,8 +405,7 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
                 return str(seconds_since_epoch * 1000)
             return f"'{dttm.strftime(tf)}'"
 
-        # TODO(john-bodley): SIP-15 will explicitly require a type conversion.
-        return f"""'{dttm.strftime("%Y-%m-%d %H:%M:%S.%f")}'"""
+        return self.table.default_dttm_sql_literal(dttm)
 
     @property
     def data(self) -> Dict[str, Any]:
@@ -1208,6 +1207,20 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                 )
             ) from ex
 
+    def get_dttm_time_filter(
+        self, col: ColumnClause, start_dttm: DateTime, end_dttm: DateTime
+    ) -> ColumnElement:
+        range = []
+        if start_dttm:
+            range.append(col >= self.text(self.default_dttm_sql_literal(start_dttm)))
+        if end_dttm:
+            range.append(col < self.text(self.default_dttm_sql_literal(end_dttm)))
+        return and_(*range)
+
+    def default_dttm_sql_literal(self, dttm: DateTime) -> str:
+        # TODO(john-bodley): SIP-15 will explicitly require a type conversion.
+        return f"""'{dttm.strftime("%Y-%m-%d %H:%M:%S.%f")}'"""
+
     def text(self, clause: str) -> TextClause:
         return self.db_engine_spec.get_text_clause(clause)
 
@@ -1220,7 +1233,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             List[QueryObjectFilterClause]
         ] = None,
         from_dttm: Optional[datetime] = None,
-        granularity: Optional[str] = None,
+        granularity: Optional[Union[str, Dict[str, Any]]] = None,
         groupby: Optional[List[Column]] = None,
         inner_from_dttm: Optional[datetime] = None,
         inner_to_dttm: Optional[datetime] = None,
@@ -1239,7 +1252,8 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         timeseries_limit_metric: Optional[Metric] = None,
     ) -> SqlaQuery:
         """Querying any sqla table from this common interface"""
-        if granularity not in self.dttm_cols and granularity is not None:
+        # For backward compatibility
+        if granularity not in self.dttm_cols and type(granularity) is str:
             granularity = self.main_dttm_col
 
         extras = extras or {}
@@ -1278,10 +1292,6 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         orderby = orderby or []
         need_groupby = bool(metrics is not None or groupby)
         metrics = metrics or []
-
-        # For backward compatibility
-        if granularity not in self.dttm_cols and granularity is not None:
-            granularity = self.main_dttm_col
 
         columns_by_name: Dict[str, TableColumn] = {
             col.column_name: col for col in self.columns
@@ -1372,7 +1382,19 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
 
         # filter out the pseudo column  __timestamp from columns
         columns = [col for col in columns if col != utils.DTTM_ALIAS]
-        dttm_col = columns_by_name.get(granularity) if granularity else None
+
+        dttm_col = (
+            columns_by_name.get(granularity) if type(granularity) is str else None
+        )
+        dttm_expr = None
+        if type(granularity) is dict and granularity.get("sqlExpression"):
+            expression = _process_sql_expression(
+                expression=granularity.get("sqlExpression"),
+                database_id=self.database_id,
+                schema=self.schema,
+                template_processor=template_processor,
+            )
+            dttm_expr = literal_column(expression)
 
         if need_groupby:
             # dedup columns while preserving order
@@ -1421,7 +1443,9 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             metrics_exprs = []
 
         if granularity:
-            if granularity not in columns_by_name or not dttm_col:
+            if type(granularity) is str and (
+                granularity not in columns_by_name or not dttm_col
+            ):
                 raise QueryObjectValidationError(
                     _(
                         'Time column "%(col)s" does not exist in dataset',
@@ -1430,7 +1454,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                 )
             time_filters = []
 
-            if is_timeseries:
+            if dttm_col and is_timeseries:
                 timestamp = dttm_col.get_timestamp_expression(
                     time_grain=time_grain, template_processor=template_processor
                 )
@@ -1441,6 +1465,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             # Use main dttm column to support index with secondary dttm columns.
             if (
                 db_engine_spec.time_secondary_columns
+                and dttm_col
                 and self.main_dttm_col in self.dttm_cols
                 and self.main_dttm_col != dttm_col.column_name
             ):
@@ -1450,7 +1475,12 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                         to_dttm,
                     )
                 )
-            time_filters.append(dttm_col.get_time_filter(from_dttm, to_dttm))
+            if dttm_col:
+                time_filters.append(dttm_col.get_time_filter(from_dttm, to_dttm))
+            else:
+                time_filters.append(
+                    self.get_dttm_time_filter(dttm_expr, from_dttm, to_dttm)
+                )
 
         # Always remove duplicates by column name, as sometimes `metrics_exprs`
         # can have the same name as a groupby column (e.g. when users use
@@ -1688,13 +1718,22 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                 subq = select(inner_select_exprs).select_from(tbl)
                 inner_time_filter = []
 
-                if dttm_col and not db_engine_spec.time_groupby_inline:
-                    inner_time_filter = [
-                        dttm_col.get_time_filter(
-                            inner_from_dttm or from_dttm,
-                            inner_to_dttm or to_dttm,
-                        )
-                    ]
+                if not db_engine_spec.time_groupby_inline:
+                    if dttm_col:
+                        inner_time_filter = [
+                            dttm_col.get_time_filter(
+                                inner_from_dttm or from_dttm,
+                                inner_to_dttm or to_dttm,
+                            )
+                        ]
+                    if dttm_expr is not None:
+                        inner_time_filter = [
+                            self.get_dttm_time_filter(
+                                dttm_expr,
+                                inner_from_dttm or from_dttm,
+                                inner_to_dttm or to_dttm,
+                            )
+                        ]
                 subq = subq.where(and_(*(where_clause_and + inner_time_filter)))
                 subq = subq.group_by(*inner_groupby_exprs)
 

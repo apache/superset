@@ -1002,12 +1002,12 @@ class ChartDataQueryObjectSchema(Schema):
         allow_none=True,
     )
     filters = fields.List(fields.Nested(ChartDataFilterSchema), allow_none=True)
-    granularity = fields.String(
+    granularity = fields.Raw(
         description="Name of temporal column used for time filtering. For legacy Druid "
         "datasources this defines the time grain.",
         allow_none=True,
     )
-    granularity_sqla = fields.String(
+    granularity_sqla = fields.Raw(
         description="Name of temporal column used for time filtering for SQL "
         "datasources. This field is deprecated, use `granularity` "
         "instead.",
