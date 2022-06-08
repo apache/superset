@@ -183,8 +183,8 @@ def api(f: Callable[..., FlaskResponse]) -> Callable[..., FlaskResponse]:
     def wraps(self: "BaseSupersetView", *args: Any, **kwargs: Any) -> FlaskResponse:
         try:
             return f(self, *args, **kwargs)
-        except NoAuthorizationError as ex:
-            logger.warning(ex)
+        except NoAuthorizationError:
+            logger.warning("Api failed- no authorization", exc_info=True)
             return json_error_response(get_error_msg(), status=401)
         except Exception as ex:  # pylint: disable=broad-except
             logger.exception(ex)
@@ -206,7 +206,7 @@ def handle_api_exception(
         try:
             return f(self, *args, **kwargs)
         except SupersetSecurityException as ex:
-            logger.warning(ex)
+            logger.warning("SupersetSecurityException", exc_info=True)
             return json_errors_response(
                 errors=[ex.error], status=ex.status, payload=ex.payload
             )
@@ -214,7 +214,7 @@ def handle_api_exception(
             logger.warning(ex, exc_info=True)
             return json_errors_response(errors=ex.errors, status=ex.status)
         except SupersetErrorException as ex:
-            logger.warning(ex)
+            logger.warning("SupersetErrorException", exc_info=True)
             return json_errors_response(errors=[ex.error], status=ex.status)
         except SupersetException as ex:
             if ex.status >= 500:
@@ -397,20 +397,20 @@ def get_error_level_from_status_code(  # pylint: disable=invalid-name
 # SupersetErrorException or SupersetErrorsException
 @superset_app.errorhandler(SupersetErrorException)
 def show_superset_error(ex: SupersetErrorException) -> FlaskResponse:
-    logger.warning(ex)
+    logger.warning("SupersetErrorException", exc_info=True)
     return json_errors_response(errors=[ex.error], status=ex.status)
 
 
 @superset_app.errorhandler(SupersetErrorsException)
 def show_superset_errors(ex: SupersetErrorsException) -> FlaskResponse:
-    logger.warning(ex)
+    logger.warning("SupersetErrorsException", exc_info=True)
     return json_errors_response(errors=ex.errors, status=ex.status)
 
 
 # Redirect to login if the CSRF token is expired
 @superset_app.errorhandler(CSRFError)
 def refresh_csrf_token(ex: CSRFError) -> FlaskResponse:
-    logger.warning(ex)
+    logger.warning("Refresh CSRF token error", exc_info=True)
 
     if request.is_json:
         return show_http_exception(ex)
@@ -420,7 +420,7 @@ def refresh_csrf_token(ex: CSRFError) -> FlaskResponse:
 
 @superset_app.errorhandler(HTTPException)
 def show_http_exception(ex: HTTPException) -> FlaskResponse:
-    logger.warning(ex)
+    logger.warning("HTTPException", exc_info=True)
     if (
         "text/html" in request.accept_mimetypes
         and not config["DEBUG"]
@@ -446,7 +446,7 @@ def show_http_exception(ex: HTTPException) -> FlaskResponse:
 # or SupersetErrorsException, with a specific status code and error type
 @superset_app.errorhandler(CommandException)
 def show_command_errors(ex: CommandException) -> FlaskResponse:
-    logger.warning(ex)
+    logger.warning("CommandException", exc_info=True)
     if "text/html" in request.accept_mimetypes and not config["DEBUG"]:
         path = resource_filename("superset", "static/assets/500.html")
         return send_file(path, cache_timeout=0), 500

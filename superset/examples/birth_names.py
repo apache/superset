@@ -29,6 +29,7 @@ from superset.exceptions import NoDataException
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
+from superset.utils.core import DatasourceType
 
 from ..utils.database import get_example_database
 from .helpers import (
@@ -205,13 +206,16 @@ def create_slices(tbl: SqlaTable, admin_owner: bool) -> Tuple[List[Slice], List[
     if admin_owner:
         slice_props = dict(
             datasource_id=tbl.id,
-            datasource_type="table",
+            datasource_type=DatasourceType.TABLE,
             owners=[admin],
             created_by=admin,
         )
     else:
         slice_props = dict(
-            datasource_id=tbl.id, datasource_type="table", owners=[], created_by=admin
+            datasource_id=tbl.id,
+            datasource_type=DatasourceType.TABLE,
+            owners=[],
+            created_by=admin,
         )
 
     print("Creating some slices")

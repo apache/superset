@@ -16,6 +16,7 @@
 # under the License.
 import logging
 from abc import ABC
+from typing import Optional
 
 from flask import session
 from sqlalchemy.exc import SQLAlchemyError
@@ -31,6 +32,7 @@ from superset.temporary_cache.commands.exceptions import (
     TemporaryCacheDeleteFailedError,
 )
 from superset.temporary_cache.utils import cache_key
+from superset.utils.core import DatasourceType
 
 logger = logging.getLogger(__name__)
 
@@ -47,14 +49,15 @@ class DeleteFormDataCommand(BaseCommand, ABC):
                 key
             )
             if state:
-                dataset_id = state["dataset_id"]
-                chart_id = state["chart_id"]
-                check_access(dataset_id, chart_id, actor)
+                datasource_id: int = state["datasource_id"]
+                chart_id: Optional[int] = state["chart_id"]
+                datasource_type = DatasourceType(state["datasource_type"])
+                check_access(datasource_id, chart_id, actor, datasource_type)
                 if state["owner"] != get_owner(actor):
                     raise TemporaryCacheAccessDeniedError()
                 tab_id = self._cmd_params.tab_id
                 contextual_key = cache_key(
-                    session.get("_id"), tab_id, dataset_id, chart_id
+                    session.get("_id"), tab_id, datasource_id, chart_id, datasource_type
                 )
                 cache_manager.explore_form_data_cache.delete(contextual_key)
                 return cache_manager.explore_form_data_cache.delete(key)

@@ -24,6 +24,7 @@ import {
 } from 'antd';
 import styled from '@emotion/styled';
 import { supersetTheme } from '@superset-ui/style';
+import '../styles/main.less';
 import {
   DeploymentUnitOutlined,
   FireOutlined,
@@ -31,7 +32,6 @@ import {
   DatabaseOutlined,
 } from '@ant-design/icons';
 import GitHubButton from 'react-github-btn';
-import 'antd/dist/antd.css';
 import { mq } from '../utils';
 import { Databases } from '../resources/data';
 
@@ -125,7 +125,7 @@ const StyledFeatures = styled('div')`
   background: #fff;
   padding: 5vw 0;
   margin-top: 0px;
-  margin-bottom: 30px;
+  margin-bottom: 10px;
   .featureList {
     padding: 40px;
     width: 100%;
@@ -135,7 +135,7 @@ const StyledFeatures = styled('div')`
     .feature {
       padding: 20px;
       text-align: center;
-      margin-bottom: 40px;
+      margin-bottom: 20px;
       .imagePlaceHolder {
         svg {
           width: 70px;
@@ -240,7 +240,7 @@ const CarouselSection = styled('div')`
     .imageContainer {
       img {
         margin: 0 auto;
-        width: 80%;
+        max-width: 800px;
         box-shadow: 0 0 3px #aaa;
         margin-top: 5px;
         margin-bottom: 5px;

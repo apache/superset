@@ -19,6 +19,7 @@ import urllib.request
 from typing import Any, Dict, Optional
 from urllib.error import URLError
 
+import numpy as np
 import pandas as pd
 import simplejson
 
@@ -64,8 +65,12 @@ def df_to_escaped_csv(df: pd.DataFrame, **kwargs: Any) -> Any:
     # Escape csv headers
     df = df.rename(columns=escape_values)
 
-    # Escape csv rows
-    df = df.applymap(escape_values)
+    # Escape csv values
+    for name, column in df.items():
+        if column.dtype == np.dtype(object):
+            for idx, value in enumerate(column.values):
+                if isinstance(value, str):
+                    df.at[idx, name] = escape_value(value)
 
     return df.to_csv(**kwargs)
 

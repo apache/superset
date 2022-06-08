@@ -39,20 +39,24 @@ class CreateFormDataCommand(BaseCommand):
     def run(self) -> str:
         self.validate()
         try:
-            dataset_id = self._cmd_params.dataset_id
+            datasource_id = self._cmd_params.datasource_id
+            datasource_type = self._cmd_params.datasource_type
             chart_id = self._cmd_params.chart_id
             tab_id = self._cmd_params.tab_id
             actor = self._cmd_params.actor
             form_data = self._cmd_params.form_data
-            check_access(dataset_id, chart_id, actor)
-            contextual_key = cache_key(session.get("_id"), tab_id, dataset_id, chart_id)
+            check_access(datasource_id, chart_id, actor, datasource_type)
+            contextual_key = cache_key(
+                session.get("_id"), tab_id, datasource_id, chart_id, datasource_type
+            )
             key = cache_manager.explore_form_data_cache.get(contextual_key)
             if not key or not tab_id:
                 key = random_key()
             if form_data:
                 state: TemporaryExploreState = {
                     "owner": get_owner(actor),
-                    "dataset_id": dataset_id,
+                    "datasource_id": datasource_id,
+                    "datasource_type": datasource_type,
                     "chart_id": chart_id,
                     "form_data": form_data,
                 }

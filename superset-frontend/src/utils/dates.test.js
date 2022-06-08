@@ -22,7 +22,7 @@ import {
   epochTimeXHoursAgo,
   epochTimeXDaysAgo,
   epochTimeXYearsAgo,
-} from 'src/modules/dates';
+} from 'src/utils/dates';
 
 describe('fDuration', () => {
   it('is a function', () => {

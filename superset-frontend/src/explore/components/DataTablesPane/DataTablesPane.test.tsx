@@ -28,6 +28,7 @@ import {
 } from 'spec/helpers/testing-library';
 import { DatasourceType } from '@superset-ui/core';
 import { exploreActions } from 'src/explore/actions/exploreActions';
+import { ChartStatus } from 'src/explore/types';
 import { DataTablesPane } from '.';
 
 const createProps = () => ({
@@ -57,7 +58,7 @@ const createProps = () => ({
     extra_form_data: {},
   },
   queryForce: false,
-  chartStatus: 'rendered',
+  chartStatus: 'rendered' as ChartStatus,
   onCollapseChange: jest.fn(),
   queriesResponse: [
     {
@@ -150,7 +151,7 @@ describe('DataTablesPane', () => {
       <DataTablesPane
         {...{
           ...props,
-          chartStatus: 'success',
+          chartStatus: 'rendered',
           queriesResponse: [
             {
               colnames: ['__timestamp', 'genre'],
@@ -174,9 +175,9 @@ describe('DataTablesPane', () => {
     expect(await screen.findByText('1 row')).toBeVisible();
 
     userEvent.click(screen.getByLabelText('Copy'));
-    expect(copyToClipboardSpy).toHaveBeenCalledWith(
-      '2009-01-01 00:00:00\tAction\n',
-    );
+    expect(copyToClipboardSpy).toHaveBeenCalledTimes(1);
+    const value = await copyToClipboardSpy.mock.calls[0][0]();
+    expect(value).toBe('2009-01-01 00:00:00\tAction\n');
     copyToClipboardSpy.mockRestore();
     fetchMock.restore();
   });
@@ -202,7 +203,7 @@ describe('DataTablesPane', () => {
       <DataTablesPane
         {...{
           ...props,
-          chartStatus: 'success',
+          chartStatus: 'rendered',
           queriesResponse: [
             {
               colnames: ['__timestamp', 'genre'],
