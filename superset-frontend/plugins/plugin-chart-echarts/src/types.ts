@@ -18,12 +18,14 @@
  */
 import {
   DataRecordValue,
+  HandlerFunction,
   QueryFormColumn,
   SetDataMaskHook,
 } from '@superset-ui/core';
 import { EChartsCoreOption, ECharts } from 'echarts';
 import { TooltipMarker } from 'echarts/types/src/util/format';
 import { OptionName } from 'echarts/types/src/util/types';
+import { AreaChartExtraControlsValue } from './constants';
 
 export type EchartsStylesProps = {
   height: number;
@@ -115,6 +117,7 @@ export interface EChartTransformedProps<F> {
   echartOptions: EChartsCoreOption;
   emitFilter: boolean;
   setDataMask: SetDataMaskHook;
+  setControlValue?: HandlerFunction;
   labelMap: Record<string, DataRecordValue[]>;
   groupby: QueryFormColumn[];
   selectedValues: Record<number, string>;
@@ -136,5 +139,7 @@ export const DEFAULT_TITLE_FORM_DATA: EchartsTitleFormData = {
   yAxisTitleMargin: 0,
   yAxisTitlePosition: 'Top',
 };
+
+export type StackType = boolean | null | Partial<AreaChartExtraControlsValue>;
 
 export * from './Timeseries/types';

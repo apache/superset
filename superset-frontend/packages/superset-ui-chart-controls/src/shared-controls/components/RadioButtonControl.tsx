@@ -31,7 +31,7 @@ export interface RadioButtonControlProps {
   description?: string;
   options: RadioButtonOption[];
   hovered?: boolean;
-  value?: string;
+  value?: JsonValue;
   onChange: (opt: RadioButtonOption[0]) => void;
 }
 

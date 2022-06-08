@@ -31,6 +31,7 @@ import {
   EChartTransformedProps,
   EchartsTitleFormData,
   DEFAULT_TITLE_FORM_DATA,
+  StackType,
 } from '../types';
 
 export enum EchartsTimeseriesContributionType {
@@ -72,7 +73,7 @@ export type EchartsTimeseriesFormData = QueryFormData & {
   orderDesc: boolean;
   rowLimit: number;
   seriesType: EchartsTimeseriesSeriesType;
-  stack: boolean;
+  stack: StackType;
   tooltipTimeFormat?: string;
   truncateYAxis: boolean;
   yAxisFormat?: string;
@@ -86,6 +87,7 @@ export type EchartsTimeseriesFormData = QueryFormData & {
   groupby: QueryFormColumn[];
   showValue: boolean;
   onlyTotal: boolean;
+  showExtraControls: boolean;
   percentageThreshold: number;
   orientation?: OrientationType;
 } & EchartsLegendFormData &
