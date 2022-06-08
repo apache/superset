@@ -19,7 +19,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { t, styled, withTheme } from '@superset-ui/core';
+import { t, styled, withTheme, isValidDatasourceType } from '@superset-ui/core';
 import { getUrlParam } from 'src/utils/urlUtils';
 
 import { AntdDropdown } from 'src/components';
@@ -97,7 +97,7 @@ const Styles = styled.div`
     white-space: nowrap;
     overflow: hidden;
   }
-  .dataset-svg {
+  .datasource-svg {
     margin-right: ${({ theme }) => 2 * theme.gridUnit}px;
     flex: none;
   }
@@ -244,9 +244,23 @@ class DatasourceControl extends React.PureComponent {
     return (
       <Styles data-test="datasource-control" className="DatasourceControl">
         <div className="data-container">
-          <Icons.DatasetPhysical className="dataset-svg" />
-          {/* Add a tooltip only for long dataset names */}
-          {!isMissingDatasource && datasource.name.length > 25 ? (
+          {isValidDatasourceType ? (
+            <Icons.ConsoleSqlOutlined className="datasource-svg" />
+          ) : (
+            <Icons.DatasetPhysical className="datasource-svg" />
+          )}
+          {isValidDatasourceType ? (
+            /* Add a tooltip only for long dataset names */
+            !isMissingDatasource && datasource.sql.length > 25 ? (
+              <Tooltip title={datasource.sql}>
+                <span className="title-select">{datasource.sql}</span>
+              </Tooltip>
+            ) : (
+              <span title={datasource.sql} className="title-select">
+                {datasource.sql}
+              </span>
+            )
+          ) : !isMissingDatasource && datasource.name.length > 25 ? (
             <Tooltip title={datasource.name}>
               <span className="title-select">{datasource.name}</span>
             </Tooltip>
@@ -268,12 +282,10 @@ class DatasourceControl extends React.PureComponent {
             trigger={['click']}
             data-test="datasource-menu"
           >
-            <Tooltip title={t('More dataset related options')}>
-              <Icons.MoreVert
-                className="datasource-modal-trigger"
-                data-test="datasource-menu-trigger"
-              />
-            </Tooltip>
+            <Icons.MoreVert
+              className="datasource-modal-trigger"
+              data-test="datasource-menu-trigger"
+            />
           </AntdDropdown>
         </div>
         {/* missing dataset */}
