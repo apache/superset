@@ -769,7 +769,11 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         sync_metrics = request.form.get("sync_metrics") == "true"
 
         command = ImportDatasetsCommand(
-            contents, passwords=passwords, overwrite=overwrite, sync_columns=sync_columns, sync_metrics=sync_metrics
+            contents,
+            passwords=passwords,
+            overwrite=overwrite,
+            sync_columns=sync_columns,
+            sync_metrics=sync_metrics,
         )
         command.run()
         return self.response(200, message="OK")
