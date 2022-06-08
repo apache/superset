@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { css, styled, t, DatasourceType } from '@superset-ui/core';
+import { css, styled, t, isValidDatasourceType } from '@superset-ui/core';
 import {
   ControlConfig,
   Dataset,
@@ -307,12 +307,6 @@ export default function DataSourcePanel({
     return true;
   };
 
-  const isValidDatasourceType =
-    datasource.type === DatasourceType.Dataset ||
-    datasource.type === DatasourceType.SlTable ||
-    datasource.type === DatasourceType.SavedQuery ||
-    datasource.type === DatasourceType.Query;
-
   const mainBody = useMemo(
     () => (
       <>
@@ -327,7 +321,7 @@ export default function DataSourcePanel({
           placeholder={t('Search Metrics & Columns')}
         />
         <div className="field-selections">
-          {isValidDatasourceType && showInfoboxCheck() && (
+          {isValidDatasourceType(datasource.type) && showInfoboxCheck() && (
             <StyledInfoboxWrapper>
               <Alert
                 closable

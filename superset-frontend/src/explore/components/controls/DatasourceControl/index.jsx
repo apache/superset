@@ -19,7 +19,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { t, styled, withTheme, DatasourceType } from '@superset-ui/core';
+import { t, styled, withTheme, isValidDatasourceType } from '@superset-ui/core';
 import { getUrlParam } from 'src/utils/urlUtils';
 
 import { AntdDropdown } from 'src/components';
@@ -270,12 +270,6 @@ class DatasourceControl extends React.PureComponent {
       </Menu>
     );
 
-    const datasourceTypeCheck =
-      datasource.type === DatasourceType.Dataset ||
-      datasource.type === DatasourceType.SlTable ||
-      datasource.type === DatasourceType.SavedQuery ||
-      datasource.type === DatasourceType.Query;
-
     const { health_check_message: healthCheckMessage } = datasource;
 
     let extra = {};
@@ -309,7 +303,9 @@ class DatasourceControl extends React.PureComponent {
           )}
           <AntdDropdown
             overlay={
-              datasourceTypeCheck ? defaultDatasourceMenu : queryDatasourceMenu
+              isValidDatasourceType(datasource.type)
+                ? queryDatasourceMenu
+                : defaultDatasourceMenu
             }
             trigger={['click']}
             data-test="datasource-menu"
