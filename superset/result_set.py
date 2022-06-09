@@ -101,10 +101,9 @@ class SupersetResultSet:
 
         if cursor_description:
             # get deduped list of column names
-            column_names = dedup([col[0] for col in cursor_description])
-
-            # ensure colum names are strings (see #20137)
-            column_names = [convert_to_string(name) for name in column_names]
+            column_names = dedup(
+                [convert_to_string(col[0]) for col in cursor_description]
+            )
 
             # fix cursor descriptor with the deduped names
             deduped_cursor_desc = [
