@@ -16,22 +16,32 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import {
+  isNativeFilter,
+  isFilterDivider,
+  Filter,
+  NativeFilterType,
+} from '@superset-ui/core';
 
-export * from './models';
-export * from './utils';
-export * from './types';
-export * from './translation';
-export * from './connection';
-export * from './dynamic-plugins';
-export * from './query';
-export * from './number-format';
-export * from './time-format';
-export * from './dimension';
-export * from './color';
-export * from './style';
-export * from './validator';
-export * from './chart';
-export * from './chart-composition';
-export * from './components';
-export * from './math-expression';
-export * from './ui-overrides';
+test('should do native filter type guard', () => {
+  const dummyFilter: Filter = {
+    cascadeParentIds: [],
+    defaultDataMask: {},
+    id: 'dummyID',
+    name: 'dummyName',
+    scope: { rootPath: [], excluded: [] },
+    filterType: 'dummyType',
+    targets: [{}],
+    controlValues: {},
+    type: NativeFilterType.NATIVE_FILTER,
+    description: 'dummyDesc',
+  };
+  expect(isNativeFilter(dummyFilter)).toBeTruthy();
+  expect(
+    isFilterDivider({
+      ...dummyFilter,
+      type: NativeFilterType.DIVIDER,
+      title: 'dummyTitle',
+    }),
+  ).toBeTruthy();
+});
