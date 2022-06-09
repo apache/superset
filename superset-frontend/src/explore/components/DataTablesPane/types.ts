@@ -25,6 +25,11 @@ import {
 import { ExploreActions } from 'src/explore/actions/exploreActions';
 import { ChartStatus } from 'src/explore/types';
 
+export enum ResultTypes {
+  Results = 'results',
+  Samples = 'samples',
+}
+
 export interface DataTablesPaneProps {
   queryFormData: QueryFormData;
   datasource: Datasource;
@@ -44,6 +49,8 @@ export interface ResultsPaneProps {
   errorMessage?: React.ReactElement;
   actions?: ExploreActions;
   dataSize?: number;
+  // reload OriginalFormattedTimeColumns from localStorage when isVisible is true
+  isVisible: boolean;
 }
 
 export interface SamplesPaneProps {
@@ -52,6 +59,8 @@ export interface SamplesPaneProps {
   queryForce: boolean;
   actions?: ExploreActions;
   dataSize?: number;
+  // reload OriginalFormattedTimeColumns from localStorage when isVisible is true
+  isVisible: boolean;
 }
 
 export interface TableControlsProps {
@@ -62,4 +71,18 @@ export interface TableControlsProps {
   columnNames: string[];
   columnTypes: GenericDataType[];
   isLoading: boolean;
+}
+
+export interface QueryResultInterface {
+  colnames: string[];
+  coltypes: GenericDataType[];
+  data: Record<string, any>[][];
+}
+
+export interface SingleQueryResultPaneProp extends QueryResultInterface {
+  // {datasource.id}__{datasource.type}, eg: 1__table
+  datasourceId: string;
+  dataSize?: number;
+  // reload OriginalFormattedTimeColumns from localStorage when isVisible is true
+  isVisible: boolean;
 }
