@@ -708,24 +708,11 @@ describe('SupersetClientClass', () => {
       expect(submit.mock.calls).toHaveLength(1);
     });
 
-    it('makes postForm request without url', async () => {
+    it('should do nothing when url is empty string', async () => {
       const client = new SupersetClientClass({ protocol, host });
       await client.init();
-
-      const createElement = jest.fn(() => ({
-        appendChild: jest.fn(),
-        submit: jest.fn(),
-      }));
-      document.createElement = createElement as any;
-      const appendChild = jest.fn();
-      const removeChild = jest.fn();
-      document.body.appendChild = appendChild;
-      document.body.removeChild = removeChild;
-
-      await client.postForm('', {});
-      expect(createElement.mock.calls).toHaveLength(0);
-      expect(appendChild.mock.calls).toHaveLength(0);
-      expect(removeChild.mock.calls).toHaveLength(0);
+      const result = await client.postForm('', {});
+      expect(result).toBeUndefined()
     });
   });
 });
