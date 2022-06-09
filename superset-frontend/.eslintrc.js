@@ -217,7 +217,7 @@ module.exports = {
         'plugins/**/controlPanel.js',
       ],
       rules: {
-        'control-panel/ensure-sections-order': 'error',
+        'control-panel/ensure-sections-order': 'warn',
       },
     },
   ],
