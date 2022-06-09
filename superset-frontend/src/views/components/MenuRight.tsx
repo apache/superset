@@ -16,16 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { Fragment, useState, useEffect } from 'react';
+import React, { Fragment, useEffect, useState } from 'react';
 import rison from 'rison';
 import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import {
-  t,
-  styled,
   css,
-  SupersetTheme,
+  styled,
   SupersetClient,
+  SupersetTheme,
+  t,
 } from '@superset-ui/core';
 import { MainNav as Menu } from 'src/components/Menu';
 import { Tooltip } from 'src/components/Tooltip';
@@ -42,7 +42,6 @@ import {
   RightMenuProps,
 } from './types';
 import { MenuObjectProps } from './Menu';
- //import { APP_PREFIX }from '../../constants';
 
 const versionInfoStyles = (theme: SupersetTheme) => css`
   padding: ${theme.gridUnit * 1.5}px ${theme.gridUnit * 4}px

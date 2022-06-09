@@ -16,12 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SupersetClient, t, styled } from '@superset-ui/core';
-import React, { useState, useMemo, useEffect } from 'react';
+import { styled, SupersetClient, t } from '@superset-ui/core';
+import React, { useEffect, useMemo, useState } from 'react';
 import rison from 'rison';
 import { useSelector } from 'react-redux';
 import Loading from 'src/components/Loading';
-import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
+import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import { createErrorHandler, uploadUserPerms } from 'src/views/CRUD/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
@@ -38,7 +38,6 @@ import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import DatabaseModal from './DatabaseModal';
 
 import { DatabaseObject } from './types';
- //import { APP_PREFIX }from '../../../../constants';
 
 const PAGE_SIZE = 25;
 

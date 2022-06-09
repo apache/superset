@@ -18,10 +18,9 @@
  */
 
 import React, { ReactNode, SyntheticEvent } from 'react';
-import { styled, css, SupersetTheme } from '@superset-ui/core';
+import { css, styled, SupersetTheme } from '@superset-ui/core';
 import { Empty } from 'src/components';
 import Button from 'src/components/Button';
- //import { APP_PREFIX }from 'src/constants';
 
 export enum EmptyStateSize {
   Small,

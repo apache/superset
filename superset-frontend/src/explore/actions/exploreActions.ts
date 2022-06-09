@@ -19,10 +19,10 @@
 /* eslint camelcase: 0 */
 import { DatasourceMeta } from '@superset-ui/chart-controls';
 import {
-  t,
-  SupersetClient,
   DatasourceType,
   QueryFormData,
+  SupersetClient,
+  t,
 } from '@superset-ui/core';
 import { Dispatch } from 'redux';
 import {
@@ -30,7 +30,6 @@ import {
   toastActions,
 } from 'src/components/MessageToasts/actions';
 import { Slice } from 'src/types/Chart';
- //import { APP_PREFIX }from '../../constants';
 
 const FAVESTAR_BASE_URL = `${process.env.APP_PREFIX}/superset/favstar/slice`;
 

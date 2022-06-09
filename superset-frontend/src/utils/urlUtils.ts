@@ -21,7 +21,6 @@ import rison from 'rison';
 import { isEmpty } from 'lodash';
 import { getClientErrorObject } from './getClientErrorObject';
 import {
-  APP_PREFIX,
   RESERVED_CHART_URL_PARAMS,
   RESERVED_DASHBOARD_URL_PARAMS,
   URL_PARAMS,

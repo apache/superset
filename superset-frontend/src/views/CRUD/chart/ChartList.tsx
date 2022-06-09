@@ -22,7 +22,7 @@ import {
   SupersetClient,
   t,
 } from '@superset-ui/core';
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import rison from 'rison';
 import { uniqBy } from 'lodash';
 import moment from 'moment';
@@ -61,7 +61,6 @@ import setupPlugins from 'src/setup/setupPlugins';
 import InfoTooltip from 'src/components/InfoTooltip';
 import CertifiedBadge from 'src/components/CertifiedBadge';
 import ChartCard from './ChartCard';
- //import { APP_PREFIX }from '../../../constants';
 
 const FlexRowContainer = styled.div`
   align-items: center;
