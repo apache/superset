@@ -222,14 +222,8 @@ export const DndFilterSelect = (props: DndFilterSelectProps) => {
       // via datasource saved metric
       if (filterOptions.saved_metric_name) {
         return new AdhocFilter({
-          expressionType:
-            datasource.type === 'druid'
-              ? EXPRESSION_TYPES.SIMPLE
-              : EXPRESSION_TYPES.SQL,
-          subject:
-            datasource.type === 'druid'
-              ? filterOptions.saved_metric_name
-              : getMetricExpression(filterOptions.saved_metric_name),
+          expressionType: EXPRESSION_TYPES.SQL,
+          subject: getMetricExpression(filterOptions.saved_metric_name),
           operator:
             OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.GREATER_THAN].operation,
           operatorId: Operators.GREATER_THAN,
@@ -240,14 +234,8 @@ export const DndFilterSelect = (props: DndFilterSelectProps) => {
       // has a custom label, meaning it's custom column
       if (filterOptions.label) {
         return new AdhocFilter({
-          expressionType:
-            datasource.type === 'druid'
-              ? EXPRESSION_TYPES.SIMPLE
-              : EXPRESSION_TYPES.SQL,
-          subject:
-            datasource.type === 'druid'
-              ? filterOptions.label
-              : new AdhocMetric(option).translateToSql(),
+          expressionType: EXPRESSION_TYPES.SQL,
+          subject: new AdhocMetric(option).translateToSql(),
           operator:
             OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.GREATER_THAN].operation,
           operatorId: Operators.GREATER_THAN,

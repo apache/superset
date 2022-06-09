@@ -589,9 +589,6 @@ class DatasourceEditor extends React.PureComponent {
         }),
       },
       errors: [],
-      isDruid:
-        props.datasource.type === 'druid' ||
-        props.datasource.datasource_type === 'druid',
       isSqla:
         props.datasource.datasource_type === 'table' ||
         props.datasource.type === 'table',
@@ -1088,20 +1085,6 @@ class DatasourceEditor extends React.PureComponent {
                     }
                   />
                 </>
-              )}
-              {this.state.isDruid && (
-                <Field
-                  fieldKey="json"
-                  label={t('JSON')}
-                  description={
-                    <div>
-                      {t('The JSON metric or post aggregation definition.')}
-                    </div>
-                  }
-                  control={
-                    <TextAreaControl language="json" offerEditInModal={false} />
-                  }
-                />
               )}
             </div>
           )}

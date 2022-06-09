@@ -239,13 +239,6 @@ describe('AdhocFilterEditPopoverSimpleTabContent', () => {
     expect(isOperatorRelevant(Operators.LIKE, 'value')).toBe(true);
   });
 
-  it('will filter operators for druid datasources', () => {
-    const { props } = setup({ datasource: { type: 'druid' } });
-    const { isOperatorRelevant } = useSimpleTabFilterProps(props);
-    expect(isOperatorRelevant(Operators.REGEX, 'value')).toBe(true);
-    expect(isOperatorRelevant(Operators.LIKE, 'value')).toBe(false);
-  });
-
   it('will show LATEST PARTITION operator', () => {
     const { props } = setup({
       datasource: {

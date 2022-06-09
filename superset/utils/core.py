@@ -1764,6 +1764,8 @@ def get_time_filter_status(
             )
 
     if ExtraFiltersTimeColumnType.TIME_ORIGIN in applied_time_extras:
+        # This seems like it is to do with the druid time series, which I think we
+        # are still keeping mentions of.
         if datasource.type == "druid":
             applied.append({"column": ExtraFiltersTimeColumnType.TIME_ORIGIN})
         else:
@@ -1775,6 +1777,7 @@ def get_time_filter_status(
             )
 
     if ExtraFiltersTimeColumnType.GRANULARITY in applied_time_extras:
+        # Same here
         if datasource.type == "druid":
             applied.append({"column": ExtraFiltersTimeColumnType.GRANULARITY})
         else:
