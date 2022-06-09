@@ -19,9 +19,9 @@
 import React from 'react';
 import { action } from '@storybook/addon-actions';
 import {
-  SuperChart,
-  getChartTransformPropsRegistry,
   GenericDataType,
+  getChartTransformPropsRegistry,
+  SuperChart,
 } from '@superset-ui/core';
 import RangeFilterPlugin from './index';
 import transformProps from './transformProps';

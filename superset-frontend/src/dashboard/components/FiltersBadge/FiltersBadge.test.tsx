@@ -18,10 +18,10 @@
  */
 import React from 'react';
 import { shallow } from 'enzyme';
+import * as SupersetUI from '@superset-ui/core';
 import { supersetTheme } from '@superset-ui/core';
 import { Provider } from 'react-redux';
 import { Store } from 'redux';
-import * as SupersetUI from '@superset-ui/core';
 import { styledMount as mount } from 'spec/helpers/theming';
 import {
   CHART_RENDERING_SUCCEEDED,
@@ -40,6 +40,7 @@ import Icons from 'src/components/Icons';
 import { FeatureFlag } from 'src/featureFlags';
 
 const defaultStore = getMockStoreWithFilters();
+
 function setup(store: Store = defaultStore) {
   return mount(
     <Provider store={store}>

@@ -19,7 +19,7 @@
 import React from 'react';
 import { action } from '@storybook/addon-actions';
 import { boolean, withKnobs } from '@storybook/addon-knobs';
-import { SuperChart, getChartTransformPropsRegistry } from '@superset-ui/core';
+import { getChartTransformPropsRegistry, SuperChart } from '@superset-ui/core';
 import { mockQueryDataForCountries } from 'spec/fixtures/mockNativeFilters';
 import SelectFilterPlugin from './index';
 import transformProps from './transformProps';

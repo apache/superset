@@ -28,9 +28,9 @@ import {
 
 import {
   NumberParam,
+  QueryParamConfig,
   StringParam,
   useQueryParams,
-  QueryParamConfig,
 } from 'use-query-params';
 
 import rison from 'rison';

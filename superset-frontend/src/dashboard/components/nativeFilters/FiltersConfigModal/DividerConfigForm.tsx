@@ -28,6 +28,7 @@ interface Props {
     description: string;
   };
 }
+
 const Container = styled.div`
   ${({ theme }) => `
     padding: ${theme.gridUnit * 4}px;

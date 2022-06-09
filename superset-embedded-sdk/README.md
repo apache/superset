@@ -80,12 +80,12 @@ Example `POST /security/guest_token` payload:
     "first_name": "Stan",
     "last_name": "Lee"
   },
-  "resources": [{
-    "type": "dashboard",
-    "id": "abc123"
-  }],
-  "rls": [
-    { "clause": "publisher = 'Nintendo'" }
-  ]
+  "resources": [
+    {
+      "type": "dashboard",
+      "id": "abc123"
+    }
+  ],
+  "rls": [{ "clause": "publisher = 'Nintendo'" }]
 }
 ```

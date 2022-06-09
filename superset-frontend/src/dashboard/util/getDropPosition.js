@@ -34,6 +34,7 @@ const NON_SHALLOW_DROP_THRESHOLD = 20;
 // of drag-and-drop. we do not have access to it during drop because react-dnd's
 // monitor.getClientOffset() returns null at this point
 let CACHED_CLIENT_OFFSET = {};
+
 export function clearDropCache() {
   CACHED_CLIENT_OFFSET = {};
 }

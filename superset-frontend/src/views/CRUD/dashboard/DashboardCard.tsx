@@ -19,8 +19,8 @@
 import React from 'react';
 import { Link, useHistory } from 'react-router-dom';
 import { t, useTheme } from '@superset-ui/core';
-import { handleDashboardDelete, CardStyles } from 'src/views/CRUD/utils';
-import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
+import { CardStyles, handleDashboardDelete } from 'src/views/CRUD/utils';
+import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { AntdDropdown } from 'src/components';
 import { Menu } from 'src/components/Menu';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
@@ -161,7 +161,7 @@ function DashboardCard({
         url={bulkSelectEnabled ? undefined : dashboard.url}
         linkComponent={Link}
         imgURL={dashboard.thumbnail_url}
-        imgFallbackURL="/static/assets/images/dashboard-card-fallback.svg"
+        imgFallbackURL={`${process.env.APP_PREFIX}/static/assets/images/dashboard-card-fallback.svg`}
         description={t('Modified %s', dashboard.changed_on_delta_humanized)}
         coverLeft={<FacePile users={dashboard.owners || []} />}
         actions={

@@ -1064,6 +1064,7 @@ LANGUAGES = {
 ```
 
 This script will
+
 1. update the template file `superset/translations/messages.pot` with current application strings.
 2. update language files with the new extracted strings.
 

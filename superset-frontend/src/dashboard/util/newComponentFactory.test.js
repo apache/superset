@@ -28,8 +28,8 @@ import {
   MARKDOWN_TYPE,
   NEW_COMPONENT_SOURCE_TYPE,
   ROW_TYPE,
-  TABS_TYPE,
   TAB_TYPE,
+  TABS_TYPE,
 } from 'src/dashboard/util/componentTypes';
 
 const types = [

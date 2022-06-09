@@ -20,10 +20,10 @@
 import React from 'react';
 import { styled } from '@superset-ui/core';
 import {
-  MetricOption,
   ColumnOption,
-  MetricOptionProps,
   ColumnOptionProps,
+  MetricOption,
+  MetricOptionProps,
 } from '@superset-ui/chart-controls';
 
 const OptionContainer = styled.div`

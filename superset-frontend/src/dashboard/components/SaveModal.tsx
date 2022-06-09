@@ -22,13 +22,13 @@ import { Radio } from 'src/components/Radio';
 import { RadioChangeEvent } from 'src/components';
 import { Input } from 'src/components/Input';
 import Button from 'src/components/Button';
-import { t, JsonResponse } from '@superset-ui/core';
+import { JsonResponse, t } from '@superset-ui/core';
 
 import ModalTrigger from 'src/components/ModalTrigger';
 import Checkbox from 'src/components/Checkbox';
 import {
-  SAVE_TYPE_OVERWRITE,
   SAVE_TYPE_NEWDASHBOARD,
+  SAVE_TYPE_OVERWRITE,
 } from 'src/dashboard/util/constants';
 
 type SaveType = typeof SAVE_TYPE_OVERWRITE | typeof SAVE_TYPE_NEWDASHBOARD;
@@ -163,7 +163,7 @@ class SaveModal extends React.PureComponent<SaveModalProps, SaveModalState> {
           resp.json &&
           resp.json.id
         ) {
-          window.location.href = `/superset/dashboard/${resp.json.id}/`;
+          window.location.href = `${process.env.APP_PREFIX}/superset/dashboard/${resp.json.id}/`;
         }
       });
       this.modal?.close();

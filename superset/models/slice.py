@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from typing import Any, Dict, Optional, Type, TYPE_CHECKING
 from urllib import parse
 
@@ -243,7 +244,8 @@ class Slice(  # pylint: disable=too-many-public-methods
         Returns a thumbnail URL with a HEX digest. We want to avoid browser cache
         if the dashboard has changed
         """
-        return f"/api/v1/chart/{self.id}/thumbnail/{self.digest}/"
+        prefix = os.environ["APP_PREFIX"]
+        return f"{prefix}/api/v1/chart/{self.id}/thumbnail/{self.digest}/"
 
     @property
     def json_data(self) -> str:
@@ -283,7 +285,7 @@ class Slice(  # pylint: disable=too-many-public-methods
 
     def get_explore_url(
         self,
-        base_url: str = "/superset/explore",
+        base_url: str = os.environ["APP_PREFIX"]+"/superset/explore",
         overrides: Optional[Dict[str, Any]] = None,
     ) -> str:
         overrides = overrides or {}
@@ -300,7 +302,7 @@ class Slice(  # pylint: disable=too-many-public-methods
     @property
     def explore_json_url(self) -> str:
         """Defines the url to access the slice"""
-        return self.get_explore_url("/superset/explore_json")
+        return self.get_explore_url(os.environ["APP_PREFIX"]+"/superset/explore_json")
 
     @property
     def edit_url(self) -> str:
@@ -317,7 +319,8 @@ class Slice(  # pylint: disable=too-many-public-methods
 
     @property
     def changed_by_url(self) -> str:
-        return f"/superset/profile/{self.changed_by.username}"  # type: ignore
+        prefix = os.environ["APP_PREFIX"]
+        return f"{prefix}/superset/profile/{self.changed_by.username}"  # type: ignore
 
     @property
     def icons(self) -> str:
@@ -332,7 +335,8 @@ class Slice(  # pylint: disable=too-many-public-methods
 
     @property
     def url(self) -> str:
-        return f"/superset/explore/?form_data=%7B%22slice_id%22%3A%20{self.id}%7D"
+        prefix = os.environ["APP_PREFIX"]
+        return f"{prefix}/superset/explore/?form_data=%7B%22slice_id%22%3A%20{self.id}%7D"
 
     def get_query_context_factory(self) -> QueryContextFactory:
         if self.query_context_factory is None:

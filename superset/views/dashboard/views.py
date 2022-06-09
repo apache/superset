@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import json
+import os
 import re
 from typing import Callable, List, Union
 
@@ -76,6 +77,7 @@ class DashboardModelView(
     @has_access
     @expose("/export_dashboards_form")
     def download_dashboards(self) -> FlaskResponse:
+        prefix = os.environ["APP_PREFIX"]
         if request.args.get("action") == "go":
             ids = request.args.getlist("id")
             return Response(
@@ -84,7 +86,7 @@ class DashboardModelView(
                 mimetype="application/text",
             )
         return self.render_template(
-            "superset/export_dashboards.html", dashboards_url="/dashboard/list"
+            "superset/export_dashboards.html", dashboards_url=f"{prefix}/dashboard/list"
         )
 
     def pre_add(self, item: "DashboardModelView") -> None:
@@ -130,7 +132,8 @@ class Dashboard(BaseSupersetView):
         )
         db.session.add(new_dashboard)
         db.session.commit()
-        return redirect(f"/superset/dashboard/{new_dashboard.id}/?edit=true")
+        prefix = os.environ["APP_PREFIX"]
+        return redirect(f"{prefix}/superset/dashboard/{new_dashboard.id}/?edit=true")
 
     @expose("/<dashboard_id_or_slug>/embedded")
     @event_logger.log_this_with_extra_payload

@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 
 class DashboardFilterStateRestApi(TemporaryCacheRestApi):
     class_permission_name = "DashboardFilterStateRestApi"
-    resource_name = "dashboard"
+    resource_name = "data/dashboard"
     openapi_spec_tag = "Dashboard Filter State"
 
     def get_create_command(self) -> Type[CreateFilterStateCommand]:

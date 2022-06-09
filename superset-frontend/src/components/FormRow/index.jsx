@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Row, Col } from 'src/components';
+import { Col, Row } from 'src/components';
 
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 

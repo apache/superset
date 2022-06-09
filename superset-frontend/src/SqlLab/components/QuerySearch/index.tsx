@@ -32,6 +32,7 @@ import AsyncSelect from 'src/components/AsyncSelect';
 import { Query } from 'src/SqlLab/types';
 import { STATUS_OPTIONS, TIME_OPTIONS } from 'src/SqlLab/constants';
 import QueryTable from '../QueryTable';
+ //import { APP_PREFIX }from '../../../constants';
 
 interface QuerySearchProps {
   actions: {
@@ -129,7 +130,10 @@ function QuerySearch({ actions, displayLimit }: QuerySearchProps) {
 
     try {
       const response = await SupersetClient.get({
-        endpoint: insertParams('/superset/search_queries', params),
+        endpoint: insertParams(
+          `${process.env.APP_PREFIX}/superset/search_queries`,
+          params,
+        ),
       });
       const queries = Object.values(response.json);
       setQueriesArray(queries);
@@ -203,7 +207,7 @@ function QuerySearch({ actions, displayLimit }: QuerySearchProps) {
         <div className="col-sm-2">
           <AsyncSelect
             onChange={(db: any) => setDatabaseId(db?.value)}
-            dataEndpoint="/api/v1/database/?q=(filters:!((col:expose_in_sqllab,opr:eq,value:!t)))"
+            dataEndpoint="${process.env.APP_PREFIX}/api/v1/database/?q=(filters:!((col:expose_in_sqllab,opr:eq,value:!t)))"
             value={databaseId}
             mutator={dbMutator}
             placeholder={t('Filter by database')}

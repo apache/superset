@@ -18,12 +18,12 @@
  */
 import rison from 'rison';
 import {
-  isNeedsPassword,
-  isAlreadyExists,
-  getPasswordsNeeded,
-  getAlreadyExists,
-  hasTerminalValidation,
   checkUploadExtensions,
+  getAlreadyExists,
+  getPasswordsNeeded,
+  hasTerminalValidation,
+  isAlreadyExists,
+  isNeedsPassword,
 } from 'src/views/CRUD/utils';
 
 const terminalErrors = {

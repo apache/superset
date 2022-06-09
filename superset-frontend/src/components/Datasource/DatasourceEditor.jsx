@@ -25,7 +25,7 @@ import Alert from 'src/components/Alert';
 import Badge from 'src/components/Badge';
 import shortid from 'shortid';
 import { styled, SupersetClient, t, withTheme } from '@superset-ui/core';
-import { Select, Row, Col } from 'src/components';
+import { Col, Row, Select } from 'src/components';
 import { FormLabel } from 'src/components/Form';
 import Button from 'src/components/Button';
 import Tabs from 'src/components/Tabs';
@@ -466,6 +466,7 @@ function ColumnCollectionTable({
     />
   );
 }
+
 ColumnCollectionTable.propTypes = {
   columns: PropTypes.array.isRequired,
   datasource: PropTypes.object.isRequired,
@@ -528,7 +529,7 @@ function OwnersSelector({ datasource, onChange }) {
   const loadOptions = useCallback((search = '', page, pageSize) => {
     const query = rison.encode({ filter: search, page, page_size: pageSize });
     return SupersetClient.get({
-      endpoint: `/api/v1/dataset/related/owners?q=${query}`,
+      endpoint: `${process.env.APP_PREFIX}/api/v1/dataset/related/owners?q=${query}`,
     }).then(response => ({
       data: response.json.result.map(item => ({
         value: item.value,

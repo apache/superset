@@ -49,14 +49,13 @@ Superset 1.4 focuses heavily on continuing to polish the core Superset experienc
 
 - Databricks: Superset now supports the new [SQL Endpoints in Databricks](https://docs.databricks.com/sql/admin/sql-endpoints.html). ([#16862](https://github.com/apache/superset/pull/16862))
 
-- Apache Druid: Superset Explore now can take advantage of support for JOIN's in Druid (note: the `DRUID_JOINS` feature flag needs to be 	enabled). ([#16770](https://github.com/apache/superset/pull/16770))
+- Apache Druid: Superset Explore now can take advantage of support for JOIN's in Druid (note: the `DRUID_JOINS` feature flag needs to be enabled). ([#16770](https://github.com/apache/superset/pull/16770))
 
 - AWS Aurora: Superset now has a separate db_engine_spec for Amazon Aurora. ([#16535](https://github.com/apache/superset/pull/16535))
 
 - Clickhouse: Superset now includes function names in the auto-complete for SQL Lab. ([#16234](https://github.com/apache/superset/pull/16234))
 
 - Google Sheets: Better support for private Google Sheets was added. ([#16228](https://github.com/apache/superset/pull/16628))
-
 
 ## Developer Experience
 

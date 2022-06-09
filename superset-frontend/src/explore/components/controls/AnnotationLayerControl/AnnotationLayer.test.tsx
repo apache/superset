@@ -19,7 +19,7 @@
 import React from 'react';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
-import { getChartMetadataRegistry, ChartMetadata } from '@superset-ui/core';
+import { ChartMetadata, getChartMetadataRegistry } from '@superset-ui/core';
 import fetchMock from 'fetch-mock';
 import setupColors from 'src/setup/setupColors';
 import { ANNOTATION_TYPES_METADATA } from 'src/modules/AnnotationTypes';

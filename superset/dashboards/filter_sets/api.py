@@ -75,7 +75,7 @@ class FilterSetRestApi(BaseSupersetModelRestApi):
     # pylint: disable=arguments-differ
     include_route_methods = {"get_list", "put", "post", "delete"}
     datamodel = SQLAInterface(FilterSet)
-    resource_name = "dashboard"
+    resource_name = "data/dashboard"
     class_permission_name = FILTER_SET_API_PERMISSIONS_NAME
     allow_browser_login = True
     csrf_exempt = False

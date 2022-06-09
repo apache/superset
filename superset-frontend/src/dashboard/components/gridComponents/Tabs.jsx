@@ -33,9 +33,9 @@ import findTabIndexByComponentId from '../../util/findTabIndexByComponentId';
 import getDirectPathToTabIndex from '../../util/getDirectPathToTabIndex';
 import getLeafComponentIdFromPath from '../../util/getLeafComponentIdFromPath';
 import { componentShape } from '../../util/propShapes';
-import { NEW_TAB_ID, DASHBOARD_ROOT_ID } from '../../util/constants';
+import { DASHBOARD_ROOT_ID, NEW_TAB_ID } from '../../util/constants';
 import { RENDER_TAB, RENDER_TAB_CONTENT } from './Tab';
-import { TABS_TYPE, TAB_TYPE } from '../../util/componentTypes';
+import { TAB_TYPE, TABS_TYPE } from '../../util/componentTypes';
 
 const propTypes = {
   id: PropTypes.string.isRequired,
@@ -412,4 +412,5 @@ function mapStateToProps(state) {
     filterboxMigrationState: state.dashboardState.filterboxMigrationState,
   };
 }
+
 export default connect(mapStateToProps)(Tabs);

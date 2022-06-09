@@ -16,6 +16,7 @@
 # under the License.
 """Views used by the SqlAlchemy connector"""
 import logging
+import os
 import re
 from typing import Any, cast
 
@@ -177,6 +178,27 @@ class TableColumnInlineView(CompactCRUDMixin, SupersetModelView):
     }
 
     edit_form_extra_fields = add_form_extra_fields
+
+    def pre_add(self, item: "models.SqlMetric") -> None:
+        logger.warning(
+            "This endpoint is deprecated and will be removed in version 2.0.0"
+        )
+        if app.config["OLD_API_CHECK_DATASET_OWNERSHIP"]:
+            check_ownership(item.table)
+
+    def pre_update(self, item: "models.SqlMetric") -> None:
+        logger.warning(
+            "This endpoint is deprecated and will be removed in version 2.0.0"
+        )
+        if app.config["OLD_API_CHECK_DATASET_OWNERSHIP"]:
+            check_ownership(item.table)
+
+    def pre_delete(self, item: "models.SqlMetric") -> None:
+        logger.warning(
+            "This endpoint is deprecated and will be removed in version 2.0.0"
+        )
+        if app.config["OLD_API_CHECK_DATASET_OWNERSHIP"]:
+            check_ownership(item.table)
 
 
 class SqlMetricInlineView(CompactCRUDMixin, SupersetModelView):
@@ -492,7 +514,7 @@ class TableModelView(  # pylint: disable=too-many-ancestors
         resp = super().edit(pk)
         if isinstance(resp, str):
             return resp
-        return redirect("/superset/explore/table/{}/".format(pk))
+        return redirect({os.environ["APP_PREFIX"]}+"/superset/explore/table/{}/".format(pk))
 
     @expose("/list/")
     @has_access

@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 """A collection of ORM sqlalchemy models for SQL Lab"""
+import os
 import re
 from datetime import datetime
 from typing import Any, Dict, List
@@ -222,9 +223,10 @@ class SavedQuery(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
 
     @property
     def pop_tab_link(self) -> Markup:
+        prefix = os.environ["APP_PREFIX"]
         return Markup(
             f"""
-            <a href="/superset/sqllab?savedQueryId={self.id}">
+            <a href="{prefix}/superset/sqllab?savedQueryId={self.id}">
                 <i class="fa fa-link"></i>
             </a>
         """
@@ -239,7 +241,7 @@ class SavedQuery(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
         return self.database.sqlalchemy_uri
 
     def url(self) -> str:
-        return "/superset/sqllab?savedQueryId={0}".format(self.id)
+        return os.environ["APP_PREFIX"]+"/superset/sqllab?savedQueryId={0}".format(self.id)
 
     @property
     def sql_tables(self) -> List[Table]:

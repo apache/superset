@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SupersetClient, logging, ClientConfig } from '@superset-ui/core';
+import { ClientConfig, logging, SupersetClient } from '@superset-ui/core';
 import parseCookie from 'src/utils/parseCookie';
 
 function getDefaultConfiguration(): ClientConfig {

@@ -5,7 +5,7 @@ sidebar_position: 2
 version: 1
 ---
 
-import useBaseUrl from "@docusaurus/useBaseUrl";
+import useBaseUrl from '@docusaurus/useBaseUrl';
 
 ## Exploring Data in Superset
 
@@ -30,12 +30,12 @@ explains how to enable this functionality for the examples database.
 In the top menu, select **Data ‣ Databases**. Find the **examples** database in the list and
 select the **Edit** button.
 
-<img src={useBaseUrl("/img/tutorial/edit-record.png" )} />
+<img src={useBaseUrl('/img/tutorial/edit-record.png')} />
 
 In the resulting modal window, switch to the **Extra** tab and
 tick the checkbox for **Allow Data Upload**. End by clicking the **Save** button.
 
-<img src={useBaseUrl("/img/tutorial/add-data-upload.png" )} />
+<img src={useBaseUrl('/img/tutorial/add-data-upload.png')} />
 
 ### Loading CSV Data
 
@@ -43,15 +43,15 @@ Download the CSV dataset to your computer from
 [GitHub](https://raw.githubusercontent.com/apache-superset/examples-data/master/tutorial_flights.csv).
 In the Superset menu, select **Data ‣ Upload a CSV**.
 
-<img src={useBaseUrl("/img/tutorial/upload_a_csv.png" )} />
+<img src={useBaseUrl('/img/tutorial/upload_a_csv.png')} />
 
 Then, enter the **Table Name** as _tutorial_flights_ and select the CSV file from your computer.
 
-<img src={useBaseUrl("/img/tutorial/csv_to_database_configuration.png" )} />
+<img src={useBaseUrl('/img/tutorial/csv_to_database_configuration.png')} />
 
 Next enter the text _Travel Date_ into the **Parse Dates** field.
 
-<img src={useBaseUrl("/img/tutorial/parse_dates_column.png" )} />
+<img src={useBaseUrl('/img/tutorial/parse_dates_column.png')} />
 
 Leaving all the other options in their default settings, select **Save** at the bottom of the page.
 
@@ -67,7 +67,7 @@ By default, Apache Superset only shows the last week of data. In our example, we
 of the data in the dataset. Click the **Time ‣ Time Range** section and change
 the **Range Type** to **No Filter**.
 
-<img src={useBaseUrl("/img/tutorial/no_filter_on_time_filter.png" )} />
+<img src={useBaseUrl('/img/tutorial/no_filter_on_time_filter.png')} />
 
 Click **Apply** to save.
 
@@ -77,24 +77,24 @@ example, we want to understand different Travel Classes, we select **Travel Clas
 Next, we can specify the metrics we would like to see in our table with the **Metrics** option.
 
 - `COUNT(*)`, which represents the number of rows in the table
-(in this case, quantity of flights in each Travel Class)
+  (in this case, quantity of flights in each Travel Class)
 - `SUM(Cost)`, which represents the total cost spent by each Travel Class
 
-<img src={useBaseUrl("/img/tutorial/sum_cost_column.png" )} />
+<img src={useBaseUrl('/img/tutorial/sum_cost_column.png')} />
 
 Finally, select **Run Query** to see the results of the table.
 
-<img src={useBaseUrl("/img/tutorial/tutorial_table.png" )} />
+<img src={useBaseUrl('/img/tutorial/tutorial_table.png')} />
 
 To save the visualization, click on **Save** in the top left of the screen. In the following modal,
 
 - Select the **Save as**
-option and enter the chart name as Tutorial Table (you will be able to find it again through the
-**Charts** screen, accessible in the top menu).
+  option and enter the chart name as Tutorial Table (you will be able to find it again through the
+  **Charts** screen, accessible in the top menu).
 - Select **Add To Dashboard** and enter
-Tutorial Dashboard. Finally, select **Save & Go To Dashboard**.
+  Tutorial Dashboard. Finally, select **Save & Go To Dashboard**.
 
-<img src={useBaseUrl("/img/tutorial/save_tutorial_table.png" )} />
+<img src={useBaseUrl('/img/tutorial/save_tutorial_table.png')} />
 
 ### Dashboard Basics
 
@@ -106,7 +106,7 @@ On this dashboard you should see the table you created in the previous section. 
 dashboard** and then hover over the table. By selecting the bottom right hand corner of the table
 (the cursor will change too), you can resize it by dragging and dropping.
 
-<img src={useBaseUrl("/img/tutorial/resize_tutorial_table_on_dashboard.png" )} />
+<img src={useBaseUrl('/img/tutorial/resize_tutorial_table_on_dashboard.png')} />
 
 Finally, save your changes by selecting Save changes in the top right.
 
@@ -121,7 +121,7 @@ tutorial_flights again as a datasource, then click on the visualization type to 
 visualization menu. Select the **Pivot Table** visualization (you can filter by entering text in the
 search box) and then **Create New Chart**.
 
-<img src={useBaseUrl("/img/tutorial/create_pivot.png" )} />
+<img src={useBaseUrl('/img/tutorial/create_pivot.png')} />
 
 In the **Time** section, keep the Time Column as Travel Date (this is selected automatically as we
 only have one time column in our dataset). Then select Time Grain to be month as having daily data
@@ -131,7 +131,7 @@ January 2011 and 30th June 2011 respectively by either entering directly the dat
 calendar widget (by selecting the month name and then the year, you can move more quickly to far
 away dates).
 
-<img src={useBaseUrl("/img/tutorial/select_dates_pivot_table.png" )} />
+<img src={useBaseUrl('/img/tutorial/select_dates_pivot_table.png')} />
 
 Next, within the **Query** section, remove the default COUNT(\*) and add Cost, keeping the default
 SUM aggregate. Note that Apache Superset will indicate the type of the metric by the symbol on the
@@ -143,7 +143,7 @@ selections we defined in the Time section.
 Within **Columns**, select first Department and then Travel Class. All set – let’s **Run Query** to
 see some data!
 
-<img src={useBaseUrl("/img/tutorial/tutorial_pivot_table.png" )} />
+<img src={useBaseUrl('/img/tutorial/tutorial_pivot_table.png')} />
 
 You should see months in the rows and Department and Travel Class in the columns. Publish this chart
 to your existing Tutorial Dashboard you created earlier.
@@ -158,7 +158,7 @@ time for the Time range select No filter as we want to look at entire dataset.
 
 Within Metrics, remove the default `COUNT(*)` metric and instead add `AVG(Cost)`, to show the mean value.
 
-<img src={useBaseUrl("/img/tutorial/average_aggregate_for_cost.png" )} />
+<img src={useBaseUrl('/img/tutorial/average_aggregate_for_cost.png')} />
 
 Next, select **Run Query** to show the data on the chart.
 
@@ -175,7 +175,7 @@ tab on the left hand pane. Within this pane, try changing the Color Scheme, remo
 filter by selecting No in the Show Range Filter drop down and adding some labels using X Axis Label
 and Y Axis Label.
 
-<img src={useBaseUrl("/img/tutorial/tutorial_line_chart.png" )} />
+<img src={useBaseUrl('/img/tutorial/tutorial_line_chart.png')} />
 
 Once you’re done, publish the chart in your Tutorial Dashboard.
 
@@ -188,14 +188,14 @@ dashboards. Got into edit mode by selecting **Edit dashboard**.
 Within the Insert components pane, drag and drop a Markdown box on the dashboard. Look for the blue
 lines which indicate the anchor where the box will go.
 
-<img src={useBaseUrl("/img/tutorial/blue_bar_insert_component.png" )} />
+<img src={useBaseUrl('/img/tutorial/blue_bar_insert_component.png')} />
 
 Now, to edit the text, select the box. You can enter text, in markdown format (see
 [this Markdown Cheatsheet](https://github.com/adam-p/markdown-here/wiki/Markdown-Cheatsheet) for
 more information about this format). You can toggle between Edit and Preview using the menu on the
 top of the box.
 
-<img src={useBaseUrl("/img/tutorial/markdown.png" )} />
+<img src={useBaseUrl('/img/tutorial/markdown.png')} />
 
 To exit, select any other part of the dashboard. Finally, don’t forget to keep your changes using
 **Save changes**.
@@ -220,7 +220,7 @@ Query**. This gives us a preview of our filter.
 
 Next, remove the date filter by unchecking the Date Filter checkbox.
 
-<img src={useBaseUrl("/img/tutorial/filter_on_origin_country.png" )} />
+<img src={useBaseUrl('/img/tutorial/filter_on_origin_country.png')} />
 
 Finally, select **Save**, name the chart as Tutorial Filter, add the chart to our existing Tutorial
 Dashboard and then Save & go to dashboard. Once on the Dashboard, try using the filter to show only
@@ -237,7 +237,7 @@ If you would like to make your dashboard available to other users, simply select
 title of your dashboard on the top left to change your dashboard to be in Published state. You can
 also favorite this dashboard by selecting the star.
 
-<img src={useBaseUrl("/img/tutorial/publish_dashboard.png" )} />
+<img src={useBaseUrl('/img/tutorial/publish_dashboard.png')} />
 
 ### Annotations
 
@@ -254,7 +254,7 @@ Next, add an annotation by navigating to Manage ‣ Annotations and then create 
 selecting the green plus sign. Then, select the Volcanic Eruptions layer, add a short description
 Grímsvötn and the eruption dates (23-25 May 2011) before finally saving.
 
-<img src={useBaseUrl("/img/tutorial/edit_annotation.png" )} />
+<img src={useBaseUrl('/img/tutorial/edit_annotation.png')} />
 
 Then, navigate to the line chart by going to Charts then selecting Tutorial Line Chart from the
 list. Next, go to the Annotations and Layers section and select Add Annotation Layer. Within this
@@ -265,11 +265,11 @@ dialogue:
 - Set the Annotation Source as Superset annotation
 - Specify the Annotation Layer as Volcanic Eruptions
 
-<img src={useBaseUrl("/img/tutorial/annotation_settings.png" )} />
+<img src={useBaseUrl('/img/tutorial/annotation_settings.png')} />
 
 Select **Apply** to see your annotation shown on the chart.
 
-<img src={useBaseUrl("/img/tutorial/annotation.png" )} />
+<img src={useBaseUrl('/img/tutorial/annotation.png')} />
 
 If you wish, you can change how your annotation looks by changing the settings in the Display
 configuration section. Otherwise, select **OK** and finally **Save** to save your chart. If you keep
@@ -291,7 +291,7 @@ datasource and the **Line Chart** visualization type. Within the Time section, s
 Next, in the query section, change the Metrics to the sum of Cost. Select **Run Query** to show the
 chart. You should see the total cost per day for each month in October 2011.
 
-<img src={useBaseUrl("/img/tutorial/advanced_analytics_base.png" )} />
+<img src={useBaseUrl('/img/tutorial/advanced_analytics_base.png')} />
 
 Finally, save the visualization as Tutorial Advanced Analytics Base, adding it to the Tutorial
 Dashboard.
@@ -310,7 +310,7 @@ on 7 days and we avoid any ramp up period.
 After displaying the chart by selecting **Run Query** you will see that the data is less variable
 and that the series starts later as the ramp up period is excluded.
 
-<img src={useBaseUrl("/img/tutorial/rolling_mean.png" )} />
+<img src={useBaseUrl('/img/tutorial/rolling_mean.png')} />
 
 Save the chart as Tutorial Rolling Mean and add it to the Tutorial Dashboard.
 
@@ -325,13 +325,15 @@ Next, in the Time Comparison subsection of **Advanced Analytics**, enter the Tim
 “minus 1 week” (note this box accepts input in natural language). Run Query to see the new chart,
 which has an additional series with the same values, shifted a week back in time.
 
-<img src={useBaseUrl("/img/tutorial/time_comparison_two_series.png" )} />
+<img src={useBaseUrl('/img/tutorial/time_comparison_two_series.png')} />
 
 Then, change the **Calculation type** to Absolute difference and select **Run Query**. We can now
 see only one series again, this time showing the difference between the two series we saw
 previously.
 
-<img src={useBaseUrl("/img/tutorial/time_comparison_absolute_difference.png" )} />
+<img
+  src={useBaseUrl('/img/tutorial/time_comparison_absolute_difference.png')}
+/>
 
 Save the chart as Tutorial Time Comparison and add it to the Tutorial Dashboard.
 
@@ -343,7 +345,7 @@ As in the previous section, reopen the Tutorial Advanced Analytics Base chart.
 Next, in the Python Functions subsection of **Advanced Analytics**, enter 7D, corresponding to seven
 days, in the Rule and median as the Method and show the chart by selecting **Run Query**.
 
-<img src={useBaseUrl("/img/tutorial/resample.png" )} />
+<img src={useBaseUrl('/img/tutorial/resample.png')} />
 
 Note that now we have a single data point every 7 days. In our case, the value showed corresponds to
 the median value within the seven daily data points. For more information on the meaning of the

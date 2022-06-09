@@ -20,12 +20,12 @@ import { FormInstance } from 'src/components';
 import shortid from 'shortid';
 import { getInitialDataMask } from 'src/dataMask/reducer';
 import {
+  Divider,
   Filter,
   FilterConfiguration,
-  NativeFilterType,
-  Divider,
-  NativeFilterTarget,
   logging,
+  NativeFilterTarget,
+  NativeFilterType,
 } from '@superset-ui/core';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
 import { FilterRemoval, NativeFiltersForm } from './types';

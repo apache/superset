@@ -69,7 +69,7 @@ const StyledMain = styled('main')`
     margin: 0 auto;
     padding: 60px 0 0 0;
     font-size: 17px;
-    &:first-of-type{
+    &:first-of-type {
       padding: 40px;
       background-image: linear-gradient(120deg, #d6f2f8, #52c6e3);
       border-radius: 0 0 10px;
@@ -101,11 +101,7 @@ const Community = () => {
               dataSource={links}
               renderItem={([href, link, post]) => (
                 <List.Item>
-                  <a href={href}>{link}</a>
-                  {' '}
-                  -
-                  {' '}
-                  {post}
+                  <a href={href}>{link}</a> - {post}
                 </List.Item>
               )}
             />

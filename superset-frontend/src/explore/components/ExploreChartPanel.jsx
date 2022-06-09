@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
 import Split from 'react-split';
 import {
@@ -32,8 +32,8 @@ import { chartPropShape } from 'src/dashboard/util/propShapes';
 import ChartContainer from 'src/components/Chart/ChartContainer';
 import {
   getItem,
-  setItem,
   LocalStorageKeys,
+  setItem,
 } from 'src/utils/localStorageHelpers';
 import { DataTablesPane } from './DataTablesPane';
 import { buildV1ChartDataPayload } from '../exploreUtils';
@@ -164,7 +164,7 @@ const ExploreChartPanel = ({
         });
 
         await SupersetClient.put({
-          endpoint: `/api/v1/chart/${slice.slice_id}`,
+          endpoint: `${process.env.APP_PREFIX}/api/v1/chart/${slice.slice_id}`,
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             query_context: JSON.stringify(queryContext),

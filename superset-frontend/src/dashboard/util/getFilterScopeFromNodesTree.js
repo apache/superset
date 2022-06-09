@@ -39,6 +39,7 @@ function getImmuneChartIdsFromTabsNotInScope({ tabs = [], tabsInScope = [] }) {
   // return chartId only
   return chartsNotInScope.map(({ value }) => value);
 }
+
 function getTabChildrenScope({
   tabScopes,
   parentNodeValue,

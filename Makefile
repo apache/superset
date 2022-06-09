@@ -24,13 +24,13 @@ install: superset pre-commit
 
 superset:
 	# Install external dependencies
-	pip install -r requirements/local.txt
+	python3 -m pip install -r requirements/local.txt
 
 	# Install Superset in editable (development) mode
-	pip install -e .
+	python3 -m pip install -e .
 
 	# Create an admin user in your metadata database
-	superset fab create-admin \
+	python3 -m superset fab create-admin \
                     --username admin \
                     --firstname "Admin I."\
                     --lastname Strator \
@@ -38,13 +38,13 @@ superset:
                     --password general
 
 	# Initialize the database
-	superset db upgrade
+	python3 -m superset db upgrade
 
 	# Create default roles and permissions
-	superset init
+	python3 -m superset init
 
 	# Load some data to play with
-	superset load-examples
+	python3 -m superset load-examples
 
 	# Install node packages
 	cd superset-frontend; npm install

@@ -26,8 +26,8 @@ import {
 } from 'src/views/CRUD/hooks';
 import {
   getItem,
-  setItem,
   LocalStorageKeys,
+  setItem,
 } from 'src/utils/localStorageHelpers';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { useHistory } from 'react-router-dom';
@@ -213,7 +213,7 @@ function ChartTable({
             ),
             buttonStyle: 'tertiary',
             onClick: () => {
-              window.location.assign('/chart/add');
+              window.location.assign(`${process.env.APP_PREFIX}/chart/add`);
             },
           },
           {
@@ -222,10 +222,12 @@ function ChartTable({
             onClick: () => {
               const target =
                 chartFilter === 'Favorite'
-                  ? `/chart/list/?filters=(favorite:(label:${t(
+                  ? `${
+                      process.env.APP_PREFIX
+                    }/chart/list/?filters=(favorite:(label:${t(
                       'Yes',
                     )},value:!t))`
-                  : '/chart/list/';
+                  : `${process.env.APP_PREFIX}/chart/list/`;
               history.push(target);
             },
           },

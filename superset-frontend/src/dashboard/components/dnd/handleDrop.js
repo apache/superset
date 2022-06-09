@@ -18,10 +18,10 @@
  */
 import getDropPosition, {
   clearDropCache,
-  DROP_TOP,
-  DROP_RIGHT,
   DROP_BOTTOM,
   DROP_LEFT,
+  DROP_RIGHT,
+  DROP_TOP,
 } from '../../util/getDropPosition';
 
 export default function handleDrop(props, monitor, Component) {

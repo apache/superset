@@ -17,13 +17,13 @@
  * under the License.
  */
 import {
+  BuildQuery,
   buildQueryContext,
   GenericDataType,
   getColumnLabel,
   isPhysicalColumn,
   QueryObject,
   QueryObjectFilterClause,
-  BuildQuery,
 } from '@superset-ui/core';
 import { DEFAULT_FORM_DATA, PluginFilterSelectQueryFormData } from './types';
 

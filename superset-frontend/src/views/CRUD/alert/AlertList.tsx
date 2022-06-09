@@ -17,9 +17,9 @@
  * under the License.
  */
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useHistory } from 'react-router-dom';
-import { t, SupersetClient, makeApi, styled } from '@superset-ui/core';
+import { makeApi, styled, SupersetClient, t } from '@superset-ui/core';
 import moment from 'moment';
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
 import FacePile from 'src/components/FacePile';
@@ -67,10 +67,11 @@ interface AlertListProps {
     lastName: string;
   };
 }
+
 const deleteAlerts = makeApi<number[], { message: string }>({
   requestType: 'rison',
   method: 'DELETE',
-  endpoint: '/api/v1/report/',
+  endpoint: `${process.env.APP_PREFIX}/api/v1/report/`,
 });
 
 const RefreshContainer = styled.div`
@@ -153,7 +154,7 @@ function AlertList({
 
   const handleAlertDelete = ({ id, name }: AlertObject) => {
     SupersetClient.delete({
-      endpoint: `/api/v1/report/${id}`,
+      endpoint: `${process.env.APP_PREFIX}/api/v1/report/${id}`,
     }).then(
       () => {
         refreshData();

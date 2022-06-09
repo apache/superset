@@ -38,12 +38,12 @@ import {
   DASHBOARD_GRID_TYPE,
   DASHBOARD_ROOT_TYPE,
   DIVIDER_TYPE,
+  DYNAMIC_TYPE,
   HEADER_TYPE,
   MARKDOWN_TYPE,
   ROW_TYPE,
-  TABS_TYPE,
   TAB_TYPE,
-  DYNAMIC_TYPE,
+  TABS_TYPE,
 } from './componentTypes';
 
 import { DASHBOARD_ROOT_DEPTH as rootDepth } from './constants';

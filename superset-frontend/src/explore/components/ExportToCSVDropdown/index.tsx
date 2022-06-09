@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { ReactChild, useCallback } from 'react';
-import { t, styled } from '@superset-ui/core';
+import { styled, t } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import { AntdDropdown } from 'src/components';
 import { Menu } from 'src/components/Menu';

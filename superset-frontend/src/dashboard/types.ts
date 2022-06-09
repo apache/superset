@@ -41,6 +41,7 @@ export interface ChartQueryPayload extends Partial<ChartReducerInitialState> {
   id: number;
   formData: ChartProps['formData'];
   form_data?: ChartProps['rawFormData'];
+
   [key: string]: unknown;
 }
 

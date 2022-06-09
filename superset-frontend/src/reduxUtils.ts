@@ -19,7 +19,7 @@
 import shortid from 'shortid';
 import { compose } from 'redux';
 import persistState, { StorageAdapter } from 'redux-localstorage';
-import { isEqual, omitBy, isUndefined, isNull } from 'lodash';
+import { isEqual, isNull, isUndefined, omitBy } from 'lodash';
 
 export function addToObject(
   state: Record<string, any>,

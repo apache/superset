@@ -51,7 +51,6 @@ Dashboard providers in an organization with many subgroups need the ability mana
 
 In 1.1, some key steps were taken towards the vision laid out in SIP-51. **Note that this functionality is still hidden behind feature flags and is an active area of development.** You can view a list of relevant PR's in [PR Highlights](#pr-highlights)
 
-
 # Database Connectivity
 
 Superset is only as good as the databases it can query. This release saw the expanded support of existing databases and foundational support for new databases.

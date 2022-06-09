@@ -19,10 +19,10 @@
 import { ReactNode } from 'react';
 import { ensureIsArray } from '@superset-ui/core';
 import {
+  GroupedOptionsType,
+  OptionsType,
   OptionTypeBase,
   ValueType,
-  OptionsType,
-  GroupedOptionsType,
 } from 'react-select';
 import { LabeledValue as AntdLabeledValue } from 'antd/lib/select';
 

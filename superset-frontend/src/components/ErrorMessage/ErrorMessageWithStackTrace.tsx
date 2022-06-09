@@ -20,7 +20,7 @@ import React from 'react';
 import { t } from '@superset-ui/core';
 
 import getErrorMessageComponentRegistry from './getErrorMessageComponentRegistry';
-import { SupersetError, ErrorSource } from './types';
+import { ErrorSource, SupersetError } from './types';
 import ErrorAlert from './ErrorAlert';
 
 const DEFAULT_TITLE = t('Unexpected error');

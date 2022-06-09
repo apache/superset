@@ -18,7 +18,7 @@
  */
 
 import componentTypes from 'src/dashboard/util/componentTypes';
-import { NativeFilterScope, JsonObject } from '@superset-ui/core';
+import { JsonObject, NativeFilterScope } from '@superset-ui/core';
 
 export enum Scoping {
   All = 'All',

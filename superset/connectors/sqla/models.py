@@ -16,6 +16,7 @@
 # under the License.
 # pylint: disable=too-many-lines, redefined-outer-name
 import dataclasses
+import dateutil.parser
 import json
 import logging
 import re
@@ -39,9 +40,14 @@ from uuid import uuid4
 
 import dateutil.parser
 import numpy as np
+import os
 import pandas as pd
+import re
 import sqlalchemy as sa
 import sqlparse
+from collections import defaultdict
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta
 from flask import escape, Markup
 from flask_appbuilder import Model
 from flask_babel import lazy_gettext as _
@@ -72,6 +78,18 @@ from sqlalchemy.sql import column, ColumnElement, literal_column, table
 from sqlalchemy.sql.elements import ColumnClause, TextClause
 from sqlalchemy.sql.expression import Label, Select, TextAsFrom
 from sqlalchemy.sql.selectable import Alias, TableClause
+from typing import (
+    Any,
+    cast,
+    Dict,
+    Hashable,
+    List,
+    NamedTuple,
+    Optional,
+    Tuple,
+    Type,
+    Union,
+)
 
 from superset import app, db, is_feature_enabled, security_manager
 from superset.advanced_data_type.types import AdvancedDataTypeResponse
@@ -729,9 +747,10 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
 
     @property
     def changed_by_url(self) -> str:
+        prefix = os.environ["APP_PREFIX"]
         if not self.changed_by:
             return ""
-        return f"/superset/profile/{self.changed_by.username}"
+        return f"{prefix}/superset/profile/{self.changed_by.username}"
 
     @property
     def connection(self) -> str:

@@ -18,10 +18,10 @@
  */
 import React, {
   FunctionComponent,
-  useState,
   ReactNode,
-  useMemo,
   useEffect,
+  useMemo,
+  useState,
 } from 'react';
 import { SelectValue } from 'antd/lib/select';
 
@@ -211,7 +211,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
       const forceRefresh = refresh !== previousRefresh;
       // TODO: Would be nice to add pagination in a follow-up. Needs endpoint changes.
       const endpoint = encodeURI(
-        `/superset/tables/${currentDatabase.id}/${encodedSchema}/undefined/${forceRefresh}/`,
+        `${process.env.APP_PREFIX}/superset/tables/${currentDatabase.id}/${encodedSchema}/undefined/${forceRefresh}/`,
       );
 
       if (previousRefresh !== refresh) {

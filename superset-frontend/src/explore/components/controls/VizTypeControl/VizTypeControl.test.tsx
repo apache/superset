@@ -17,7 +17,7 @@
  * under the License.
  */
 import { Preset } from '@superset-ui/core';
-import { render, cleanup, screen, waitFor } from 'spec/helpers/testing-library';
+import { cleanup, render, screen, waitFor } from 'spec/helpers/testing-library';
 import { Provider } from 'react-redux';
 import {
   getMockStore,

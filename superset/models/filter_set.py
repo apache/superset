@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from typing import Any, Dict
 
 from flask_appbuilder import Model
@@ -50,7 +51,8 @@ class FilterSet(Model, AuditMixinNullable):
 
     @property
     def url(self) -> str:
-        return f"/api/filtersets/{self.id}/"
+        prefix = os.environ["APP_PREFIX"]
+        return f"{prefix}/api/filtersets/{self.id}/"
 
     @property
     def sqla_metadata(self) -> None:
@@ -66,9 +68,10 @@ class FilterSet(Model, AuditMixinNullable):
 
     @property
     def changed_by_url(self) -> str:
+        prefix = os.environ["APP_PREFIX"]
         if not self.changed_by:
             return ""
-        return f"/superset/profile/{self.changed_by.username}"
+        return f"{prefix}/superset/profile/{self.changed_by.username}"
 
     def to_dict(self) -> Dict[str, Any]:
         return {

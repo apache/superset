@@ -26,8 +26,8 @@ import {
   HEADER_TYPE,
   MARKDOWN_TYPE,
   ROW_TYPE,
-  TABS_TYPE,
   TAB_TYPE,
+  TABS_TYPE,
 } from 'src/dashboard/util/componentTypes';
 
 const notResizable = [

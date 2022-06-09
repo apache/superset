@@ -67,6 +67,7 @@ describe('FiltersConfigModal', () => {
     onCancel: jest.fn(),
     onSave: jest.fn(),
   };
+
   function setup(overridesProps?: any) {
     return mount(
       <Provider store={mockStore}>

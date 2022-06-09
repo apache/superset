@@ -19,9 +19,9 @@
 import { useSelector } from 'react-redux';
 import { useMemo } from 'react';
 import {
+  Divider,
   Filter,
   FilterConfiguration,
-  Divider,
   isFilterDivider,
 } from '@superset-ui/core';
 import { ActiveTabs, DashboardLayout, RootState } from '../../types';

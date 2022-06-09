@@ -135,12 +135,12 @@ export const Databases = [
   },
   {
     title: 'Teradata',
-    href: "www.teradata.com",
-    imgName: 'teradata.png'
+    href: 'www.teradata.com',
+    imgName: 'teradata.png',
   },
   {
     title: 'YugabyteDB',
-    href: "www.yugabyte.com",
-    imgName: 'yugabyte.png'
-  }
+    href: 'www.yugabyte.com',
+    imgName: 'yugabyte.png',
+  },
 ];

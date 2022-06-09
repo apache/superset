@@ -19,9 +19,9 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { css, styled, t } from '@superset-ui/core';
 import {
+  ColumnMeta,
   ControlConfig,
   DatasourceMeta,
-  ColumnMeta,
 } from '@superset-ui/chart-controls';
 import { debounce } from 'lodash';
 import { matchSorter, rankings } from 'match-sorter';

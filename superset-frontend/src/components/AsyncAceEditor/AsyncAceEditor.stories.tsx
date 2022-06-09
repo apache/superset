@@ -18,14 +18,14 @@
  */
 import React from 'react';
 import {
-  SQLEditor,
-  FullSQLEditor,
-  MarkdownEditor,
-  TextAreaEditor,
-  CssEditor,
-  JsonEditor,
-  ConfigEditor,
   AsyncAceEditorOptions,
+  ConfigEditor,
+  CssEditor,
+  FullSQLEditor,
+  JsonEditor,
+  MarkdownEditor,
+  SQLEditor,
+  TextAreaEditor,
 } from '.';
 
 type EditorType =

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { isFeatureEnabled, Preset, FeatureFlag } from '@superset-ui/core';
+import { FeatureFlag, isFeatureEnabled, Preset } from '@superset-ui/core';
 import CalendarChartPlugin from '@superset-ui/legacy-plugin-chart-calendar';
 import ChordChartPlugin from '@superset-ui/legacy-plugin-chart-chord';
 import CountryMapChartPlugin from '@superset-ui/legacy-plugin-chart-country-map';
@@ -52,30 +52,30 @@ import { DeckGLChartPreset } from '@superset-ui/legacy-preset-chart-deckgl';
 import {
   BigNumberChartPlugin,
   BigNumberTotalChartPlugin,
-  EchartsPieChartPlugin,
-  EchartsBoxPlotChartPlugin,
   EchartsAreaChartPlugin,
-  EchartsTimeseriesChartPlugin,
+  EchartsBoxPlotChartPlugin,
+  EchartsFunnelChartPlugin,
+  EchartsGaugeChartPlugin,
+  EchartsGraphChartPlugin,
+  EchartsMixedTimeseriesChartPlugin,
+  EchartsPieChartPlugin,
+  EchartsRadarChartPlugin,
   EchartsTimeseriesBarChartPlugin,
+  EchartsTimeseriesChartPlugin,
   EchartsTimeseriesLineChartPlugin,
   EchartsTimeseriesScatterChartPlugin,
   EchartsTimeseriesSmoothLineChartPlugin,
   EchartsTimeseriesStepChartPlugin,
-  EchartsGraphChartPlugin,
-  EchartsGaugeChartPlugin,
-  EchartsRadarChartPlugin,
-  EchartsFunnelChartPlugin,
-  EchartsTreemapChartPlugin,
-  EchartsMixedTimeseriesChartPlugin,
   EchartsTreeChartPlugin,
+  EchartsTreemapChartPlugin,
 } from '@superset-ui/plugin-chart-echarts';
 import {
-  SelectFilterPlugin,
-  RangeFilterPlugin,
-  TimeFilterPlugin,
-  TimeColumnFilterPlugin,
-  TimeGrainFilterPlugin,
   GroupByFilterPlugin,
+  RangeFilterPlugin,
+  SelectFilterPlugin,
+  TimeColumnFilterPlugin,
+  TimeFilterPlugin,
+  TimeGrainFilterPlugin,
 } from 'src/filters/components/';
 import { PivotTableChartPlugin as PivotTableChartPluginV2 } from '@superset-ui/plugin-chart-pivot-table';
 import { HandlebarsChartPlugin } from '@superset-ui/plugin-chart-handlebars';

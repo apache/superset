@@ -17,16 +17,16 @@
  * under the License.
  */
 
-const { execSync } = require('child_process');
-const axios = require('axios');
-const { name, version } = require('./package.json');
+const { execSync } = require("child_process");
+const axios = require("axios");
+const { name, version } = require("./package.json");
 
 function log(...args) {
-  console.log('[embedded-sdk-release]', ...args);
+  console.log("[embedded-sdk-release]", ...args);
 }
 
 function logError(...args) {
-  console.error('[embedded-sdk-release]', ...args);
+  console.error("[embedded-sdk-release]", ...args);
 }
 
 (async () => {
@@ -37,21 +37,21 @@ function logError(...args) {
   // and require sending semi-validated strings to the command line,
   // so let's just use good old http.
   const { status } = await axios.get(packageUrl, {
-    validateStatus: (status) => true // we literally just want the status so any status is valid
+    validateStatus: (status) => true, // we literally just want the status so any status is valid
   });
 
   if (status === 200) {
-    log('version already exists on npm, exiting');
+    log("version already exists on npm, exiting");
   } else if (status === 404) {
-    log('release required, building');
+    log("release required, building");
     try {
-      execSync('npm run build', { stdio: 'pipe' });
-      log('build successful, publishing')
-      execSync('npm publish --access public', { stdio: 'pipe' });
+      execSync("npm run build", { stdio: "pipe" });
+      log("build successful, publishing");
+      execSync("npm publish --access public", { stdio: "pipe" });
       log(`published ${version} to npm`);
     } catch (err) {
       console.error(String(err.stdout));
-      logError('Encountered an error, details should be above');
+      logError("Encountered an error, details should be above");
       process.exitCode = 1;
     }
   } else {

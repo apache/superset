@@ -22,13 +22,13 @@ import sinon from 'sinon';
 import { shallow } from 'enzyme';
 
 import AdhocFilter, {
-  EXPRESSION_TYPES,
   CLAUSES,
+  EXPRESSION_TYPES,
 } from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import {
   AGGREGATES,
-  Operators,
   OPERATOR_ENUM_TO_OPERATOR_TYPE,
+  Operators,
 } from 'src/explore/constants';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
 import { render, screen, act, waitFor } from '@testing-library/react';

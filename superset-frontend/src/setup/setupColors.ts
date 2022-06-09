@@ -17,23 +17,23 @@
  * under the License.
  */
 import {
-  CategoricalScheme,
-  ColorScheme,
-  ColorSchemeConfig,
-  getCategoricalSchemeRegistry,
-  getSequentialSchemeRegistry,
-  SequentialScheme,
-  SequentialSchemeConfig,
   CategoricalAirbnb,
   CategoricalD3,
   CategoricalEcharts,
   CategoricalGoogle,
   CategoricalLyft,
   CategoricalPreset,
+  CategoricalScheme,
   CategoricalSuperset,
+  ColorScheme,
+  ColorSchemeConfig,
+  ColorSchemeRegistry,
+  getCategoricalSchemeRegistry,
+  getSequentialSchemeRegistry,
   SequentialCommon,
   SequentialD3,
-  ColorSchemeRegistry,
+  SequentialScheme,
+  SequentialSchemeConfig,
 } from '@superset-ui/core';
 
 function registerColorSchemes<T extends ColorScheme>(

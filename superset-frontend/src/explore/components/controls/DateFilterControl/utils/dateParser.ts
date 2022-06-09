@@ -24,7 +24,7 @@ import {
   DateTimeModeType,
 } from 'src/explore/components/controls/DateFilterControl/types';
 import { SEPARATOR } from './dateFilterUtils';
-import { SEVEN_DAYS_AGO, MIDNIGHT, MOMENT_FORMAT } from './constants';
+import { MIDNIGHT, MOMENT_FORMAT, SEVEN_DAYS_AGO } from './constants';
 
 /**
  * RegExp to test a string for a full ISO 8601 Date

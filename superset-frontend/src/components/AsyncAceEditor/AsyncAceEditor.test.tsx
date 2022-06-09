@@ -19,15 +19,15 @@
 import React from 'react';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import AsyncAceEditor, {
-  SQLEditor,
-  FullSQLEditor,
-  MarkdownEditor,
-  TextAreaEditor,
-  CssEditor,
-  JsonEditor,
-  ConfigEditor,
   AceModule,
   AsyncAceEditorOptions,
+  ConfigEditor,
+  CssEditor,
+  FullSQLEditor,
+  JsonEditor,
+  MarkdownEditor,
+  SQLEditor,
+  TextAreaEditor,
 } from 'src/components/AsyncAceEditor';
 
 const selector = '[id="ace-editor"]';

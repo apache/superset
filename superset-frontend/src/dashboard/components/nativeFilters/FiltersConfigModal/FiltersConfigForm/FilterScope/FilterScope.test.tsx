@@ -19,9 +19,9 @@
 import React from 'react';
 import { Provider } from 'react-redux';
 import {
+  fireEvent,
   render,
   screen,
-  fireEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
 import { mockStoreWithChartsInTabsAndRoot } from 'spec/fixtures/mockStore';

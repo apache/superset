@@ -18,7 +18,7 @@
  */
 
 import React from 'react';
-import { render, screen, act } from 'spec/helpers/testing-library';
+import { act, render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { SupersetClient } from '@superset-ui/core';
 import * as Utils from 'src/explore/exploreUtils';

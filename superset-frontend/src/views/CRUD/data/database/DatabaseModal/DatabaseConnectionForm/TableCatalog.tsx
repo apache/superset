@@ -22,7 +22,7 @@ import ValidatedInput from 'src/components/Form/LabeledErrorBoundInput';
 import FormLabel from 'src/components/Form/FormLabel';
 import { CloseOutlined } from '@ant-design/icons';
 import { FieldPropTypes } from '.';
-import { StyledFooterButton, StyledCatalogTable } from '../styles';
+import { StyledCatalogTable, StyledFooterButton } from '../styles';
 import { CatalogObject } from '../../types';
 
 export const TableCatalog = ({

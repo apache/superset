@@ -40,6 +40,7 @@ export type TableChartProps = ChartProps & {
 interface ColumnData {
   timeLag?: string | number;
 }
+
 export default function transformProps(chartProps: TableChartProps) {
   const { height, datasource, formData, queriesData } = chartProps;
   const { columnCollection = [], groupby, metrics, url } = formData;

@@ -21,18 +21,18 @@ import shortid from 'shortid';
 import Alert from 'src/components/Alert';
 import Tabs from 'src/components/Tabs';
 import { EmptyStateMedium } from 'src/components/EmptyState';
-import { t, styled } from '@superset-ui/core';
+import { styled, t } from '@superset-ui/core';
 
-import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
+import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 
 import Label from 'src/components/Label';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import QueryHistory from '../QueryHistory';
 import ResultSet from '../ResultSet';
 import {
-  STATUS_OPTIONS,
-  STATE_TYPE_MAP,
   LOCALSTORAGE_MAX_QUERY_AGE_MS,
+  STATE_TYPE_MAP,
+  STATUS_OPTIONS,
 } from '../../constants';
 
 const TAB_HEIGHT = 140;

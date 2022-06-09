@@ -18,7 +18,7 @@
  */
 import React, { ReactNode } from 'react';
 import shortid from 'shortid';
-import { t, styled } from '@superset-ui/core';
+import { styled, t } from '@superset-ui/core';
 import Button from 'src/components/Button';
 import Icons from 'src/components/Icons';
 import Fieldset from './Fieldset';

@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import TableView, { TableViewProps, EmptyWrapperType } from '.';
+import TableView, { EmptyWrapperType, TableViewProps } from '.';
 
 export default {
   title: 'TableView',

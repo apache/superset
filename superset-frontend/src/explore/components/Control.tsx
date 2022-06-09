@@ -19,8 +19,8 @@
 import React, { ReactNode, useCallback, useState, useEffect } from 'react';
 import { isEqual } from 'lodash';
 import {
-  ControlType,
   ControlComponentProps as BaseControlComponentProps,
+  ControlType,
 } from '@superset-ui/chart-controls';
 import { styled, JsonValue, QueryFormData } from '@superset-ui/core';
 import { usePrevious } from 'src/hooks/usePrevious';

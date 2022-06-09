@@ -24,7 +24,7 @@ under the License.
 
 This plugin provides Echarts viz plugins for Superset:
 
-- Timeseries Chart (combined line, area bar with support for predictive analytics)
+- Timeseries Chart (combined line, area bar with support for predictive Analytics)
 - Pie Chart
 
 ### Usage

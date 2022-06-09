@@ -19,14 +19,14 @@
 import {
   AnyFilterAction,
   SET_FILTER_CONFIG_COMPLETE,
-  SET_IN_SCOPE_STATUS_OF_FILTERS,
   SET_FILTER_SETS_COMPLETE,
   SET_FOCUSED_NATIVE_FILTER,
+  SET_IN_SCOPE_STATUS_OF_FILTERS,
   UNSET_FOCUSED_NATIVE_FILTER,
 } from 'src/dashboard/actions/nativeFilters';
 import {
-  FilterSet,
   FilterConfiguration,
+  FilterSet,
   NativeFiltersState,
 } from '@superset-ui/core';
 import { HYDRATE_DASHBOARD } from '../actions/hydrate';

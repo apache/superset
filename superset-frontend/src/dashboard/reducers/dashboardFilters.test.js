@@ -19,8 +19,8 @@
 /* eslint-disable camelcase */
 import {
   ADD_FILTER,
-  REMOVE_FILTER,
   CHANGE_FILTER,
+  REMOVE_FILTER,
   UPDATE_DASHBOARD_FILTERS_SCOPE,
 } from 'src/dashboard/actions/dashboardFilters';
 import dashboardFiltersReducer, {
@@ -28,13 +28,13 @@ import dashboardFiltersReducer, {
 } from 'src/dashboard/reducers/dashboardFilters';
 import * as activeDashboardFilters from 'src/dashboard/util/activeDashboardFilters';
 import {
-  emptyFilters,
   dashboardFilters,
+  emptyFilters,
 } from 'spec/fixtures/mockDashboardFilters';
 import {
-  sliceEntitiesForDashboard,
-  filterId,
   column,
+  filterId,
+  sliceEntitiesForDashboard,
 } from 'spec/fixtures/mockSliceEntities';
 import { filterComponent } from 'spec/fixtures/mockDashboardLayout';
 

@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import os
 from typing import Optional, Type, TYPE_CHECKING
 
 from flask import Markup
@@ -69,11 +70,12 @@ class DatasourceAccessRequest(Model, AuditMixinNullable):
         action_list = ""
         perm = self.datasource.perm  # pylint: disable=no-member
         pv = security_manager.find_permission_view_menu("datasource_access", perm)
+        prefix = os.environ["APP_PREFIX"]
         for role in pv.role:
             if role.name in self.ROLES_DENYLIST:
                 continue
             href = (
-                f"/superset/approve?datasource_type={self.datasource_type}&"
+                f"{prefix}/superset/approve?datasource_type={self.datasource_type}&"
                 f"datasource_id={self.datasource_id}&"
                 f"created_by={self.created_by.username}&role_to_grant={role.name}"
             )
@@ -84,9 +86,10 @@ class DatasourceAccessRequest(Model, AuditMixinNullable):
     @property
     def user_roles(self) -> str:
         action_list = ""
+        prefix = os.environ["APP_PREFIX"]
         for role in self.created_by.roles:
             href = (
-                f"/superset/approve?datasource_type={self.datasource_type}&"
+                f"{prefix}/superset/approve?datasource_type={self.datasource_type}&"
                 f"datasource_id={self.datasource_id}&"
                 f"created_by={self.created_by.username}&role_to_extend={role.name}"
             )

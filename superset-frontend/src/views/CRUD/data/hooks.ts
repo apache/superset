@@ -16,11 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 type BaseQueryObject = {
   id: number;
 };
+
 export function useQueryPreviewState<D extends BaseQueryObject = any>({
   queries,
   fetchData,

@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { render, fireEvent, screen } from 'spec/helpers/testing-library';
+import { fireEvent, render, screen } from 'spec/helpers/testing-library';
 import LabeledErrorBoundInput from 'src/components/Form/LabeledErrorBoundInput';
 
 const defaultProps = {

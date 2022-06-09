@@ -18,10 +18,10 @@
  */
 import React, { FC } from 'react';
 import {
+  AppSection,
   Behavior,
   SetDataMaskHook,
   SuperChart,
-  AppSection,
   t,
 } from '@superset-ui/core';
 import { FormInstance } from 'src/components';

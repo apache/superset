@@ -19,11 +19,11 @@
 import { ActionCreators as UndoActionCreators } from 'redux-undo';
 import { t } from '@superset-ui/core';
 import { addWarningToast } from 'src/components/MessageToasts/actions';
-import { TABS_TYPE, ROW_TYPE } from 'src/dashboard/util/componentTypes';
+import { ROW_TYPE, TABS_TYPE } from 'src/dashboard/util/componentTypes';
 import {
+  DASHBOARD_HEADER_ID,
   DASHBOARD_ROOT_ID,
   NEW_COMPONENTS_SOURCE_ID,
-  DASHBOARD_HEADER_ID,
 } from 'src/dashboard/util/constants';
 import dropOverflowsParent from 'src/dashboard/util/dropOverflowsParent';
 import findParentId from 'src/dashboard/util/findParentId';
@@ -134,6 +134,7 @@ export const deleteTopLevelTabs = setUnsavedChangesAfterAction(() => ({
 
 // Resize ---------------------------------------------------------------------
 export const RESIZE_COMPONENT = 'RESIZE_COMPONENT';
+
 export function resizeComponent({ id, width, height }) {
   return (dispatch, getState) => {
     const { dashboardLayout: undoableLayout } = getState();
@@ -169,6 +170,7 @@ const moveComponent = setUnsavedChangesAfterAction(dropResult => ({
 }));
 
 export const HANDLE_COMPONENT_DROP = 'HANDLE_COMPONENT_DROP';
+
 export function handleComponentDrop(dropResult) {
   return (dispatch, getState) => {
     const overflowsParent = dropOverflowsParent(

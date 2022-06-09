@@ -20,8 +20,8 @@ import { ColumnMeta, isColumnMeta } from '@superset-ui/chart-controls';
 import {
   AdhocColumn,
   ensureIsArray,
-  QueryFormColumn,
   isPhysicalColumn,
+  QueryFormColumn,
 } from '@superset-ui/core';
 
 const getColumnNameOrAdhocColumn = (

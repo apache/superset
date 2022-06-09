@@ -17,9 +17,9 @@
  * under the License.
  */
 
-import React, { useMemo, useState, useEffect, useCallback } from 'react';
-import { useParams, Link, useHistory } from 'react-router-dom';
-import { css, t, styled, SupersetClient } from '@superset-ui/core';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link, useHistory, useParams } from 'react-router-dom';
+import { css, styled, SupersetClient, t } from '@superset-ui/core';
 import moment from 'moment';
 import rison from 'rison';
 
@@ -95,7 +95,7 @@ function AnnotationList({
     async function fetchAnnotationLayer() {
       try {
         const response = await SupersetClient.get({
-          endpoint: `/api/v1/annotation_layer/${annotationLayerId}`,
+          endpoint: `${process.env.APP_PREFIX}/api/v1/annotation_layer/${annotationLayerId}`,
         });
         setAnnotationLayerName(response.json.result.name);
       } catch (response) {
@@ -109,7 +109,7 @@ function AnnotationList({
 
   const handleAnnotationDelete = ({ id, short_descr }: AnnotationObject) => {
     SupersetClient.delete({
-      endpoint: `/api/v1/annotation_layer/${annotationLayerId}/annotation/${id}`,
+      endpoint: `${process.env.APP_PREFIX}/api/v1/annotation_layer/${annotationLayerId}/annotation/${id}`,
     }).then(
       () => {
         refreshData();
@@ -128,7 +128,9 @@ function AnnotationList({
     annotationsToDelete: AnnotationObject[],
   ) => {
     SupersetClient.delete({
-      endpoint: `/api/v1/annotation_layer/${annotationLayerId}/annotation/?q=${rison.encode(
+      endpoint: `${
+        process.env.APP_PREFIX
+      }/api/v1/annotation_layer/${annotationLayerId}/annotation/?q=${rison.encode(
         annotationsToDelete.map(({ id }) => id),
       )}`,
     }).then(

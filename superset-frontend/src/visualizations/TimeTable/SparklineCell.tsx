@@ -19,14 +19,14 @@
  */
 import React from 'react';
 import {
-  Sparkline,
+  HorizontalReferenceLine,
   LineSeries,
   PointSeries,
-  HorizontalReferenceLine,
+  Sparkline,
   VerticalReferenceLine,
   WithTooltip,
 } from '@data-ui/sparkline';
-import { getTextDimension, formatNumber } from '@superset-ui/core';
+import { formatNumber, getTextDimension } from '@superset-ui/core';
 
 interface Props {
   ariaLabel: string;

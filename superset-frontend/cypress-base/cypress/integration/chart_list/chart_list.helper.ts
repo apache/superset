@@ -16,4 +16,5 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export const CHART_LIST = '/chart/list/';
+
+export const CHART_LIST = `${process.env.APP_PREFIX}/chart/list/`;

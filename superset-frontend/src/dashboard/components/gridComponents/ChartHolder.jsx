@@ -20,7 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import cx from 'classnames';
 import { useTheme } from '@superset-ui/core';
-import { useSelector, connect } from 'react-redux';
+import { connect, useSelector } from 'react-redux';
 
 import { getChartIdsInFilterBoxScope } from 'src/dashboard/util/activeDashboardFilters';
 import Chart from 'src/dashboard/containers/Chart';
@@ -404,4 +404,5 @@ function mapStateToProps(state) {
     directPathLastUpdated: state.dashboardState.directPathLastUpdated,
   };
 }
+
 export default connect(mapStateToProps)(ChartHolder);

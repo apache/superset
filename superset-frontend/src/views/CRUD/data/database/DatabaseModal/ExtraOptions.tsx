@@ -18,16 +18,16 @@
  */
 import React, { ChangeEvent, EventHandler } from 'react';
 import cx from 'classnames';
-import { t, SupersetTheme } from '@superset-ui/core';
+import { SupersetTheme, t } from '@superset-ui/core';
 import InfoTooltip from 'src/components/InfoTooltip';
 import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
 import Collapse from 'src/components/Collapse';
 import {
-  StyledInputContainer,
-  StyledJsonEditor,
-  StyledExpandableForm,
   antdCollapseStyles,
   no_margin_bottom,
+  StyledExpandableForm,
+  StyledInputContainer,
+  StyledJsonEditor,
 } from './styles';
 import { DatabaseObject } from '../types';
 

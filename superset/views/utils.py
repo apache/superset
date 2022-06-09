@@ -450,7 +450,7 @@ def check_explore_cache_perms(_self: Any, cache_key: str) -> None:
     Loads async explore_json request data from cache and performs access check
 
     :param _self: the Superset view instance
-    :param cache_key: the cache key passed into /explore_json/data/
+    :param cache_key: the cache key passed into /explore_json/analytics/
     :raises SupersetSecurityException: If the user cannot access the resource
     """
     cached = cache_manager.cache.get(cache_key)

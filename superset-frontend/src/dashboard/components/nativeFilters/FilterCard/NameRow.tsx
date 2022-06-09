@@ -19,7 +19,7 @@
 import React, { useRef } from 'react';
 import { css, SupersetTheme } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
-import { Row, FilterName } from './Styles';
+import { FilterName, Row } from './Styles';
 import { FilterCardRowProps } from './types';
 import { useTruncation } from './useTruncation';
 import { TooltipWithTruncation } from './TooltipWithTruncation';

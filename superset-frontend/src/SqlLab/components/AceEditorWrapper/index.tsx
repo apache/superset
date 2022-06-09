@@ -20,14 +20,14 @@ import React from 'react';
 import { areArraysShallowEqual } from 'src/reduxUtils';
 import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
 import {
-  SCHEMA_AUTOCOMPLETE_SCORE,
-  TABLE_AUTOCOMPLETE_SCORE,
   COLUMN_AUTOCOMPLETE_SCORE,
+  SCHEMA_AUTOCOMPLETE_SCORE,
   SQL_FUNCTIONS_AUTOCOMPLETE_SCORE,
+  TABLE_AUTOCOMPLETE_SCORE,
 } from 'src/SqlLab/constants';
 import {
-  Editor,
   AceCompleterKeyword,
+  Editor,
   FullSQLEditor as AceEditor,
 } from 'src/components/AsyncAceEditor';
 import { QueryEditor } from 'src/SqlLab/types';

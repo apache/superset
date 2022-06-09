@@ -21,8 +21,8 @@ import {
   AdhocColumn,
   FeatureFlag,
   isFeatureEnabled,
-  tn,
   QueryFormColumn,
+  tn,
 } from '@superset-ui/core';
 import { ColumnMeta, isColumnMeta } from '@superset-ui/chart-controls';
 import { isEmpty } from 'lodash';

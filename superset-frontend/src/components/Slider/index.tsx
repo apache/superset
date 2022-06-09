@@ -18,8 +18,8 @@
  */
 import React from 'react';
 import AntdSlider, {
-  SliderSingleProps,
   SliderRangeProps,
+  SliderSingleProps,
 } from 'antd/lib/slider';
 
 export type { SliderSingleProps, SliderRangeProps };

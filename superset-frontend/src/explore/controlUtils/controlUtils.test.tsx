@@ -27,10 +27,10 @@ import {
   CustomControlItem,
 } from '@superset-ui/chart-controls';
 import {
-  getControlConfig,
-  getControlState,
   applyMapStateToPropsToControl,
   findControlItem,
+  getControlConfig,
+  getControlState,
 } from 'src/explore/controlUtils';
 import {
   controlPanelSectionsChartOptions,

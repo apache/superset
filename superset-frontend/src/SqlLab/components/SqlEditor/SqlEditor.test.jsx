@@ -35,8 +35,8 @@ import SqlEditorLeftBar from 'src/SqlLab/components/SqlEditorLeftBar';
 import { AntdDropdown } from 'src/components';
 import {
   queryEditorSetFunctionNames,
-  queryEditorSetSelectedText,
   queryEditorSetSchemaOptions,
+  queryEditorSetSelectedText,
 } from 'src/SqlLab/actions/sqlLab';
 import { EmptyStateBig } from 'src/components/EmptyState';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';

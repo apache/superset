@@ -21,8 +21,8 @@ import {
   CHART_TYPE,
   DASHBOARD_GRID_TYPE,
   ROW_TYPE,
-  TABS_TYPE,
   TAB_TYPE,
+  TABS_TYPE,
 } from 'src/dashboard/util/componentTypes';
 
 describe('newEntitiesFromDrop', () => {

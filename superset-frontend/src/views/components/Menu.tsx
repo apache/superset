@@ -16,12 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useEffect } from 'react';
-import { styled, css, useTheme, SupersetTheme } from '@superset-ui/core';
+import React, { useEffect, useState } from 'react';
+import { css, styled, SupersetTheme, useTheme } from '@superset-ui/core';
 import { debounce } from 'lodash';
 import { Global } from '@emotion/react';
 import { getUrlParam } from 'src/utils/urlUtils';
-import { Row, Col, Grid } from 'src/components';
+import { Col, Grid, Row } from 'src/components';
 import { MainNav as DropdownMenu, MenuMode } from 'src/components/Menu';
 import { Tooltip } from 'src/components/Tooltip';
 import { Link } from 'react-router-dom';
@@ -213,6 +213,7 @@ export function Menu({
         setMenu('inline');
       } else setMenu('horizontal');
     }
+
     handleResize();
     const windowResize = debounce(() => handleResize(), 10);
     window.addEventListener('resize', windowResize);

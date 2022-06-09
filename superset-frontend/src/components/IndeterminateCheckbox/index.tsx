@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { forwardRef, useRef, useEffect } from 'react';
+import React, { forwardRef, useEffect, useRef } from 'react';
 import { styled } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 

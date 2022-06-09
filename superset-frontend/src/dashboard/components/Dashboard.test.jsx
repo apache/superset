@@ -29,11 +29,11 @@ import newComponentFactory from 'src/dashboard/util/newComponentFactory';
 import chartQueries from 'spec/fixtures/mockChartQueries';
 import datasources from 'spec/fixtures/mockDatasource';
 import {
-  extraFormData,
-  NATIVE_FILTER_ID,
-  layoutForSingleNativeFilter,
-  singleNativeFiltersState,
   dataMaskWith1Filter,
+  extraFormData,
+  layoutForSingleNativeFilter,
+  NATIVE_FILTER_ID,
+  singleNativeFiltersState,
 } from 'spec/fixtures/mockNativeFilters';
 import dashboardInfo from 'spec/fixtures/mockDashboardInfo';
 import { dashboardLayout } from 'spec/fixtures/mockDashboardLayout';

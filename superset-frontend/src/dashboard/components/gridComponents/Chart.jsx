@@ -19,7 +19,7 @@
 import cx from 'classnames';
 import React from 'react';
 import PropTypes from 'prop-types';
-import { styled, t, logging } from '@superset-ui/core';
+import { logging, styled, t } from '@superset-ui/core';
 import { isEqual } from 'lodash';
 
 import { exportChart, mountExploreUrl } from 'src/explore/exploreUtils';
@@ -37,7 +37,7 @@ import { URL_PARAMS } from 'src/constants';
 
 import SliceHeader from '../SliceHeader';
 import MissingChart from '../MissingChart';
-import { slicePropShape, chartPropShape } from '../../util/propShapes';
+import { chartPropShape, slicePropShape } from '../../util/propShapes';
 
 import { isFilterBox } from '../../util/activeDashboardFilters';
 import getFilterValuesByFilterId from '../../util/getFilterValuesByFilterId';

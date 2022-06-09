@@ -39,8 +39,8 @@ import {
 import { mockStoreWithTabs, storeWithState } from 'spec/fixtures/mockStore';
 import mockState from 'spec/fixtures/mockState';
 import {
-  DASHBOARD_ROOT_ID,
   DASHBOARD_GRID_ID,
+  DASHBOARD_ROOT_ID,
 } from 'src/dashboard/util/constants';
 
 fetchMock.get('glob:*/csstemplateasyncmodelview/api/read', {});

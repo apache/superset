@@ -33,13 +33,13 @@ import {
 } from 'src/dashboard/reducers/dashboardFilters';
 import {
   DASHBOARD_HEADER_ID,
-  GRID_DEFAULT_CHART_WIDTH,
-  GRID_COLUMN_COUNT,
   DASHBOARD_ROOT_ID,
+  GRID_COLUMN_COUNT,
+  GRID_DEFAULT_CHART_WIDTH,
 } from 'src/dashboard/util/constants';
 import {
-  DASHBOARD_HEADER_TYPE,
   CHART_TYPE,
+  DASHBOARD_HEADER_TYPE,
   ROW_TYPE,
 } from 'src/dashboard/util/componentTypes';
 import findFirstParentContainerId from 'src/dashboard/util/findFirstParentContainer';

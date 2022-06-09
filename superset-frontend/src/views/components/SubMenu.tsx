@@ -16,14 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ReactNode, useState, useEffect } from 'react';
+import React, { ReactNode, useEffect, useState } from 'react';
 import { Link, useHistory } from 'react-router-dom';
 import { styled, SupersetTheme, css, t } from '@superset-ui/core';
 import cx from 'classnames';
 import { Tooltip } from 'src/components/Tooltip';
 import { debounce } from 'lodash';
 import { Row } from 'src/components';
-import { Menu, MenuMode, MainNav as DropdownMenu } from 'src/components/Menu';
+import { MainNav as DropdownMenu, Menu, MenuMode } from 'src/components/Menu';
 import Button, { OnClickHandler } from 'src/components/Button';
 import Icons from 'src/components/Icons';
 import { MenuObjectProps } from './Menu';
@@ -238,6 +238,7 @@ const SubMenuComponent: React.FunctionComponent<SubMenuProps> = props => {
         setNavRightStyle('nav-right-collapse');
       }
     }
+
     handleResize();
     const resize = debounce(handleResize, 10);
     window.addEventListener('resize', resize);

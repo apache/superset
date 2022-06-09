@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import Loading, { Props, PositionOption } from './index';
+import Loading, { PositionOption, Props } from './index';
 
 export default {
   title: 'Loading',

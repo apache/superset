@@ -16,12 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled, css, SupersetTheme } from '@superset-ui/core';
+import { css, styled, SupersetTheme } from '@superset-ui/core';
 import cx from 'classnames';
 import Interweave from 'interweave';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Icons from 'src/components/Icons';
-import { ToastType, ToastMeta } from './types';
+import { ToastMeta, ToastType } from './types';
 
 const ToastContainer = styled.div`
   display: flex;

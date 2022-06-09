@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import Button from 'src/components/Button';
-import ConfirmStatusChange, { ConfirmStatusChangeProps, Callback } from '.';
+import ConfirmStatusChange, { Callback, ConfirmStatusChangeProps } from '.';
 
 export default {
   title: 'ConfirmStatusChange',

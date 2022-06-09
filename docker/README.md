@@ -47,8 +47,8 @@ Steps:
 1. Create `./docker/requirements-local.txt`
 2. Add your new packages
 3. Rebuild docker-compose
-    1. `docker-compose down -v`
-    2. `docker-compose up`
+   1. `docker-compose down -v`
+   2. `docker-compose up`
 
 ## Initializing Database
 

@@ -23,8 +23,8 @@ import { DragLayer } from 'react-dnd';
 import AddSliceCard from '../AddSliceCard';
 import { slicePropShape } from '../../util/propShapes';
 import {
-  NEW_COMPONENT_SOURCE_TYPE,
   CHART_TYPE,
+  NEW_COMPONENT_SOURCE_TYPE,
 } from '../../util/componentTypes';
 
 const staticCardStyles = {

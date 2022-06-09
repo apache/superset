@@ -22,8 +22,8 @@ import Icons from 'src/components/Icons';
 import {
   CaretContainer,
   CloseContainer,
-  OptionControlContainer,
   Label,
+  OptionControlContainer,
 } from 'src/explore/components/controls/OptionControls';
 import { OptionProps } from 'src/explore/components/controls/DndColumnSelectControl/types';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';

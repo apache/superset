@@ -25,7 +25,7 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import URI from 'urijs';
 import { styled, t } from '@superset-ui/core';
-import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
+import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { areArraysShallowEqual } from 'src/reduxUtils';
 import { Tooltip } from 'src/components/Tooltip';
 import { detectOS } from 'src/utils/common';
@@ -79,7 +79,7 @@ const userOS = detectOS();
 class TabbedSqlEditors extends React.PureComponent {
   constructor(props) {
     super(props);
-    const sqlLabUrl = '/superset/sqllab';
+    const sqlLabUrl = `${process.env.APP_PREFIX}/superset/sqllab`;
     this.state = {
       sqlLabUrl,
       queriesArray: [],
@@ -469,6 +469,7 @@ class TabbedSqlEditors extends React.PureComponent {
     );
   }
 }
+
 TabbedSqlEditors.propTypes = propTypes;
 TabbedSqlEditors.defaultProps = defaultProps;
 
@@ -489,6 +490,7 @@ function mapStateToProps({ sqlLab, common, requestedQuery }) {
     requestedQuery,
   };
 }
+
 function mapDispatchToProps(dispatch) {
   return {
     actions: bindActionCreators(Actions, dispatch),

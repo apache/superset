@@ -18,9 +18,9 @@
  */
 import {
   ensureIsArray,
+  logging,
   makeApi,
   SupersetClient,
-  logging,
 } from '@superset-ui/core';
 import { SupersetError } from 'src/components/ErrorMessage/types';
 import { FeatureFlag, isFeatureEnabled } from '../featureFlags';
@@ -55,7 +55,7 @@ const JOB_STATUS = {
   DONE: 'done',
 };
 const LOCALSTORAGE_KEY = 'last_async_event_id';
-const POLLING_URL = '/api/v1/async_event/';
+const POLLING_URL = `${process.env.APP_PREFIX}/api/v1/async_event/`;
 const MAX_RETRIES = 6;
 const RETRY_DELAY = 100;
 

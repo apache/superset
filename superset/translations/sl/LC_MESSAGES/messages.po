@@ -2699,7 +2699,7 @@ msgstr "Grafikona ni mogoče posodobiti."
 msgid "Chart does not exist"
 msgstr "Grafikon ne obstaja"
 
-#: superset/charts/data/api.py:125
+#: superset/charts/analytics/api.py:125
 msgid "Chart has no query context saved. Please save the chart again."
 msgstr "Grafikon nima shranjenega konteksta poizvedbe. Ponovno shranite grafikon."
 
@@ -9795,13 +9795,13 @@ msgstr "Odbojna sila med vozlišči"
 msgid "Request Permissions"
 msgstr "Zahtevaj dovoljenja"
 
-#: superset/charts/data/api.py:145 superset/charts/data/api.py:233
-#: superset/charts/data/api.py:297
+#: superset/charts/analytics/api.py:145 superset/charts/analytics/api.py:233
+#: superset/charts/analytics/api.py:297
 #, python-format
 msgid "Request is incorrect: %(error)s"
 msgstr "Zahtevek je napačen: %(error)s"
 
-#: superset/charts/data/api.py:222
+#: superset/charts/analytics/api.py:222
 msgid "Request is not JSON"
 msgstr "Zahtevek ni JSON"
 

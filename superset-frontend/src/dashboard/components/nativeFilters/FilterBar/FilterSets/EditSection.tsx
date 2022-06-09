@@ -18,13 +18,13 @@
  */
 import React, { FC, useMemo, useState } from 'react';
 import { DataMaskState, HandlerFunction, styled, t } from '@superset-ui/core';
-import { Typography, AntdTooltip } from 'src/components';
+import { AntdTooltip, Typography } from 'src/components';
 import { useDispatch } from 'react-redux';
 import Button from 'src/components/Button';
 import { updateFilterSet } from 'src/dashboard/actions/nativeFilters';
 import { WarningOutlined } from '@ant-design/icons';
 import { ActionButtons } from './Footer';
-import { useNativeFiltersDataMask, useFilters, useFilterSets } from '../state';
+import { useFilters, useFilterSets, useNativeFiltersDataMask } from '../state';
 import { APPLY_FILTERS_HINT, findExistingFilterSet } from './utils';
 import { useFilterSetNameDuplicated } from './state';
 import { getFilterBarTestId } from '../index';

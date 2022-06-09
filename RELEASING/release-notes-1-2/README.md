@@ -54,7 +54,6 @@ The dashboard native filter feature, [while still behind a feature flag in this 
 
 Last but not least, the alerts and reports feature and its dependencies have been added to the [docker-compose](https://superset.apache.org/docs/installation/installing-superset-using-docker-compose) setup, making it easier to use outside of well-supported enterprise deployments.
 
-
 # Dashboard Level Security
 
 Superset has so far relied on a role-based access system implemented at the dataset level. While this provides granular security options that satisfy many use cases, some organizations need more options. [SIP-51](https://github.com/apache/superset/issues/10408) lays out a vision for dashboard-level role-based access control as a fully backwards compatible extension to Superset's security options.
@@ -64,10 +63,11 @@ The 1.1 release saw steps taken in the direction of this vision, and 1.2 builds 
 ![dashboard rbac](media/dashboard_rbac.png)
 
 # Database Connectivity
+
 The 1.2 release adds support for [Crate DB](https://github.com/apache/superset/pull/13152) and the [Databricks DB](https://github.com/apache/superset/pull/13682) engine spec.
 
-
 # Developer Experience
+
 Expanding the API has been an ongoing effort, and 1.2 introduces several new API routes to allow developers to get available databases, get a given dashboard's charts, and import saved queries, among other things.
 
 # PR Highlights
@@ -105,7 +105,6 @@ Expanding the API has been an ongoing effort, and 1.2 introduces several new API
 - [13992](https://github.com/apache/superset/pull/13992) feat(dashboard_rbac): provide data access based on dashboard access (#13992) (@Amit Miran)
 - [#12865](https://github.com/apache/superset/pull/12865) feat(dashboard_rbac): dashboards API support for roles create/update + roles validation (@amitmiran137)
 
-
 **Improvements to Developer Experience**
 
 - [14208](https://github.com/apache/superset/pull/14208) feat: add endpoint to fetch available DBs (#14208) (@Beto Dealmeida)
@@ -114,7 +113,6 @@ Expanding the API has been an ongoing effort, and 1.2 introduces several new API
 - [13960](https://github.com/apache/superset/pull/13960) feat: initial work to make v1 API compatible with SIP-40 and SIP-41 (#13960) (@Beto Dealmeida)
 - [13444](https://github.com/apache/superset/pull/13444) fix: API to allow importing old exports (JSON/YAML) (#13444) (@Beto Dealmeida)
 - [13893](https://github.com/apache/superset/pull/13893) feat: create backend routes and API for importing saved queries (#13893) (@AAfghahi)
-
 
 ## Breaking Changes and Full Changelog
 

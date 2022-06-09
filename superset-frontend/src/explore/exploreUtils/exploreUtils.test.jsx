@@ -22,8 +22,8 @@ import URI from 'urijs';
 import {
   buildV1ChartDataPayload,
   getExploreUrl,
-  shouldUseLegacyApi,
   getSimpleSQLExpression,
+  shouldUseLegacyApi,
 } from 'src/explore/exploreUtils';
 import { DashboardStandaloneMode } from 'src/dashboard/util/constants';
 import * as hostNamesConfig from 'src/utils/hostNamesConfig';
@@ -34,6 +34,7 @@ describe('exploreUtils', () => {
   const formData = {
     datasource: '1__table',
   };
+
   function compareURI(uri1, uri2) {
     expect(uri1.toString()).toBe(uri2.toString());
   }

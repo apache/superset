@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import Button, { ButtonProps } from 'src/components/Button';
-import { STYLES, SIZES } from 'src/components/Button/Button.stories';
+import { SIZES, STYLES } from 'src/components/Button/Button.stories';
 import ButtonGroup from './index';
 
 export default {

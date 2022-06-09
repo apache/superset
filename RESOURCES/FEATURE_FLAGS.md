@@ -16,10 +16,13 @@ KIND, either express or implied.  See the License for the
 specific language governing permissions and limitations
 under the License.
 -->
+
 # Superset Feature Flags
+
 This is a list of the current Superset optional features. See config.py for default values. These features can be turned on/off by setting your preferred values in superset_config.py to True/False respectively
 
 ## In Development
+
 These features are considered **unfinished** and should only be used on development environments.
 
 - CLIENT_CACHE
@@ -35,6 +38,7 @@ These features are considered **unfinished** and should only be used on developm
 - ENABLE_TEMPLATE_REMOVE_FILTERS
 
 ## In Testing
+
 These features are **finished** but currently being tested. They are usable, but may still contain some bugs.
 
 - ALERT_REPORTS: [(docs)](https://superset.apache.org/docs/installation/alerts-reports)
@@ -45,6 +49,7 @@ These features are **finished** but currently being tested. They are usable, but
 - ENABLE_JAVASCRIPT_CONTROLS
 
 ## Stable
+
 These features flags are **safe for production** and have been tested.
 
 - DASHBOARD_CROSS_FILTERS
@@ -58,6 +63,7 @@ These features flags are **safe for production** and have been tested.
 - THUMBNAILS [(docs)](https://superset.apache.org/docs/installation/cache)
 
 ## Deprecated Flags
+
 These features flags currently default to True and **will be removed in a future major release**. For this current release you can turn them off by setting your config to False, but it is advised to remove or set these flags in your local configuration to **True** so that you do not experience any unexpected changes in a future release.
 
 - ALLOW_DASHBOARD_DOMAIN_SHARDING

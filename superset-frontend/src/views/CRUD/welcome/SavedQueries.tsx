@@ -145,7 +145,7 @@ const SavedQueries = ({
 
   const handleQueryDelete = ({ id, label }: Query) => {
     SupersetClient.delete({
-      endpoint: `/api/v1/saved_query/${id}`,
+      endpoint: `${process.env.APP_PREFIX}/api/v1/saved_query/${id}`,
     }).then(
       () => {
         const queryParams = {
@@ -214,7 +214,7 @@ const SavedQueries = ({
       {canEdit && (
         <Menu.Item
           onClick={() => {
-            window.location.href = `/superset/sqllab?savedQueryId=${query.id}`;
+            window.location.href = `${process.env.APP_PREFIX}/superset/sqllab?savedQueryId=${query.id}`;
           }}
         >
           {t('Edit')}
@@ -290,7 +290,7 @@ const SavedQueries = ({
             ),
             buttonStyle: 'tertiary',
             onClick: () => {
-              window.location.href = '/superset/sqllab?new=true';
+              window.location.href = `${process.env.APP_PREFIX}/superset/sqllab?new=true`;
             },
           },
           {
@@ -307,7 +307,7 @@ const SavedQueries = ({
           {queries.map(q => (
             <CardStyles
               onClick={() => {
-                window.location.href = `/superset/sqllab?savedQueryId=${q.id}`;
+                window.location.href = `${process.env.APP_PREFIX}/superset/sqllab?savedQueryId=${q.id}`;
               }}
               key={q.id}
             >
@@ -315,7 +315,7 @@ const SavedQueries = ({
                 imgURL=""
                 url={`/superset/sqllab?savedQueryId=${q.id}`}
                 title={q.label}
-                imgFallbackURL="/static/assets/images/empty-query.svg"
+                imgFallbackURL={`${process.env.APP_PREFIX}/static/assets/images/empty-query.svg`}
                 description={t('Ran %s', q.changed_on_delta_humanized)}
                 cover={
                   q?.sql?.length && showThumbnails && featureFlag ? (

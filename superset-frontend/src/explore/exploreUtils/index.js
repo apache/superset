@@ -43,6 +43,7 @@ export function getChartKey(explore) {
 }
 
 let requestCounter = 0;
+
 export function getHostName(allowDomainSharding = false) {
   let currentIndex = 0;
   if (allowDomainSharding) {
@@ -84,9 +85,9 @@ export function getURIDirectory(endpointType = 'base') {
       endpointType,
     )
   ) {
-    return '/superset/explore_json/';
+    return `${process.env.APP_PREFIX}/superset/explore_json/`;
   }
-  return '/superset/explore/';
+  return `${process.env.APP_PREFIX}/superset/explore/`;
 }
 
 export function mountExploreUrl(endpointType, extraSearch = {}, force = false) {
@@ -285,7 +286,7 @@ export const exportChart = ({
     });
     payload = formData;
   } else {
-    url = '/api/v1/chart/data';
+    url = `${process.env.APP_PREFIX}/api/v1/chart/data`;
     payload = buildV1ChartDataPayload({
       formData,
       force,

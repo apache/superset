@@ -16,17 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { SyntheticEvent, MutableRefObject, ComponentType } from 'react';
+import React, { ComponentType, MutableRefObject, SyntheticEvent } from 'react';
 import { merge } from 'lodash';
 import BasicSelect, {
-  OptionTypeBase,
-  MultiValueProps,
-  FormatOptionLabelMeta,
-  ValueType,
-  SelectComponentsConfig,
   components as defaultComponents,
   createFilter,
+  FormatOptionLabelMeta,
+  MultiValueProps,
+  OptionTypeBase,
   Props as SelectProps,
+  SelectComponentsConfig,
+  ValueType,
 } from 'react-select';
 import Async from 'react-select/async';
 import Creatable from 'react-select/creatable';
@@ -35,29 +35,29 @@ import AsyncCreatable from 'react-select/async-creatable';
 import type { SelectComponents } from 'react-select/src/components';
 import {
   SortableContainer,
-  SortableElement,
   SortableContainerProps,
+  SortableElement,
 } from 'react-sortable-hoc';
 import arrayMove from 'array-move';
 import { useTheme } from '@superset-ui/core';
 import {
+  WindowedAsyncCreatableSelect,
+  WindowedCreatableSelect,
+  WindowedSelect,
   WindowedSelectComponentType,
   WindowedSelectProps,
-  WindowedSelect,
-  WindowedCreatableSelect,
-  WindowedAsyncCreatableSelect,
 } from './WindowedSelect';
 import {
   DEFAULT_CLASS_NAME,
   DEFAULT_CLASS_NAME_PREFIX,
-  DEFAULT_STYLES,
   DEFAULT_COMPONENTS,
-  VALUE_LABELED_STYLES,
-  PartialThemeConfig,
-  PartialStylesConfig,
-  SelectComponentsType,
-  InputProps,
+  DEFAULT_STYLES,
   defaultTheme,
+  InputProps,
+  PartialStylesConfig,
+  PartialThemeConfig,
+  SelectComponentsType,
+  VALUE_LABELED_STYLES,
 } from './styles';
 import { findValue } from './utils';
 

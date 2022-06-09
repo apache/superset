@@ -23,8 +23,8 @@ import { isEqual } from 'lodash';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import Icons from 'src/components/Icons';
 import {
-  AddIconButton,
   AddControlLabel,
+  AddIconButton,
   HeaderContainer,
   LabelsContainer,
 } from 'src/explore/components/controls/OptionControls';

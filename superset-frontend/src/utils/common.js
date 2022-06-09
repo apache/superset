@@ -17,10 +17,10 @@
  * under the License.
  */
 import {
-  SupersetClient,
-  getTimeFormatter,
-  TimeFormats,
   ensureIsArray,
+  getTimeFormatter,
+  SupersetClient,
+  TimeFormats,
 } from '@superset-ui/core';
 
 // ATTENTION: If you change any constants, make sure to also change constants.py

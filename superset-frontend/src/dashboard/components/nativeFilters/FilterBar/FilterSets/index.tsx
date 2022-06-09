@@ -37,7 +37,7 @@ import {
 } from 'src/dashboard/actions/nativeFilters';
 import { areObjectsEqual } from 'src/reduxUtils';
 import { findExistingFilterSet } from './utils';
-import { useFilters, useNativeFiltersDataMask, useFilterSets } from '../state';
+import { useFilters, useFilterSets, useNativeFiltersDataMask } from '../state';
 import Footer from './Footer';
 import FilterSetUnit from './FilterSetUnit';
 import { getFilterBarTestId } from '..';

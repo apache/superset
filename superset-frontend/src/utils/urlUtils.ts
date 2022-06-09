@@ -21,6 +21,7 @@ import rison from 'rison';
 import { isEmpty } from 'lodash';
 import { getClientErrorObject } from './getClientErrorObject';
 import {
+  APP_PREFIX,
   RESERVED_CHART_URL_PARAMS,
   RESERVED_DASHBOARD_URL_PARAMS,
   URL_PARAMS,
@@ -148,7 +149,7 @@ export function getChartPermalink(
   formData: Pick<QueryFormData, 'datasource'>,
   excludedUrlParams?: string[],
 ) {
-  return getPermalink('/api/v1/explore/permalink', {
+  return getPermalink(`${process.env.APP_PREFIX}/api/v1/explore/permalink`, {
     formData,
     urlParams: getChartUrlParams(excludedUrlParams),
   });
@@ -164,9 +165,12 @@ export function getDashboardPermalink({
   hash?: string;
 }) {
   // only encode filter box state if non-empty
-  return getPermalink(`/api/v1/dashboard/${dashboardId}/permalink`, {
-    filterState,
-    urlParams: getDashboardUrlParams(),
-    hash,
-  });
+  return getPermalink(
+    `${process.env.APP_PREFIX}/api/v1/dashboard/${dashboardId}/permalink`,
+    {
+      filterState,
+      urlParams: getDashboardUrlParams(),
+      hash,
+    },
+  );
 }

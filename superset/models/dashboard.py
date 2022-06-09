@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from collections import defaultdict
 from functools import partial
 from typing import Any, Callable, Dict, List, Set, Tuple, Type, Union
@@ -176,7 +177,8 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
 
     @property
     def url(self) -> str:
-        return f"/superset/dashboard/{self.slug or self.id}/"
+        prefix = os.environ["APP_PREFIX"]
+        return f"{prefix}/superset/dashboard/{self.slug or self.id}/"
 
     @property
     def datasources(self) -> Set[BaseDatasource]:
@@ -254,7 +256,8 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
         Returns a thumbnail URL with a HEX digest. We want to avoid browser cache
         if the dashboard has changed
         """
-        return f"/api/v1/dashboard/{self.id}/thumbnail/{self.digest}/"
+        prefix = os.environ["APP_PREFIX"]
+        return f"{prefix}/api/v1/dashboard/{self.id}/thumbnail/{self.digest}/"
 
     @property
     def changed_by_name(self) -> str:
@@ -266,7 +269,8 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
     def changed_by_url(self) -> str:
         if not self.changed_by:
             return ""
-        return f"/superset/profile/{self.changed_by.username}"
+        prefix = os.environ["APP_PREFIX"]
+        return f"{prefix}/superset/profile/{self.changed_by.username}"
 
     @property
     def data(self) -> Dict[str, Any]:

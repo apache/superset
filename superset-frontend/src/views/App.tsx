@@ -20,8 +20,8 @@ import React, { Suspense, useEffect } from 'react';
 import { hot } from 'react-hot-loader/root';
 import {
   BrowserRouter as Router,
-  Switch,
   Route,
+  Switch,
   useLocation,
 } from 'react-router-dom';
 import { GlobalStyles } from 'src/GlobalStyles';
@@ -32,7 +32,7 @@ import Menu from 'src/views/components/Menu';
 import { bootstrapData } from 'src/preamble';
 import ToastContainer from 'src/components/MessageToasts/ToastContainer';
 import setupApp from 'src/setup/setupApp';
-import { routes, isFrontendRoute } from 'src/views/routes';
+import { isFrontendRoute, routes } from 'src/views/routes';
 import { Logger } from 'src/logger/LogUtils';
 import { RootContextProviders } from './RootContextProviders';
 

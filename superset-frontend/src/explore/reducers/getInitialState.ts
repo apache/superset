@@ -32,8 +32,8 @@ import { ChartState, Slice } from 'src/explore/types';
 import { getChartKey } from 'src/explore/exploreUtils';
 import { getControlsState } from 'src/explore/store';
 import {
-  getFormDataFromControls,
   applyMapStateToPropsToControl,
+  getFormDataFromControls,
 } from 'src/explore/controlUtils';
 
 export interface ExplorePageBootstrapData extends JsonObject {

@@ -16,10 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useEffect } from 'react';
-import { Row, Col } from 'src/components';
+import React, { useEffect, useState } from 'react';
+import { Col, Row } from 'src/components';
 import { Input, TextArea } from 'src/components/Input';
-import { t, styled } from '@superset-ui/core';
+import { styled, t } from '@superset-ui/core';
 import Button from 'src/components/Button';
 import { Form, FormItem } from 'src/components/Form';
 import Modal from 'src/components/Modal';

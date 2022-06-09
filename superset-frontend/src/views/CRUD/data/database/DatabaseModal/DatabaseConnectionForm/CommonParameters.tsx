@@ -22,7 +22,7 @@ import { AntdSwitch } from 'src/components';
 import InfoTooltip from 'src/components/InfoTooltip';
 import ValidatedInput from 'src/components/Form/LabeledErrorBoundInput';
 import { FieldPropTypes } from '.';
-import { toggleStyle, infoTooltip } from '../styles';
+import { infoTooltip, toggleStyle } from '../styles';
 
 export const hostField = ({
   required,
@@ -105,7 +105,7 @@ export const usernameField = ({
     value={db?.parameters?.username}
     validationMethods={{ onBlur: getValidation }}
     errorMessage={validationErrors?.username}
-    placeholder={t('e.g. Analytics')}
+    placeholder={t(`e.g. analytics`)}
     label={t('Username')}
     onChange={changeMethods.onParametersChange}
   />

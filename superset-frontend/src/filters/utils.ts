@@ -18,11 +18,11 @@
  */
 import {
   DataRecordValue,
+  ExtraFormData,
   GenericDataType,
   NumberFormatter,
   QueryObjectFilterClause,
   TimeFormatter,
-  ExtraFormData,
 } from '@superset-ui/core';
 import { FALSE_STRING, NULL_STRING, TRUE_STRING } from 'src/utils/common';
 

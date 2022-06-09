@@ -36,8 +36,8 @@ class R(BaseSupersetView):  # pylint: disable=invalid-name
     @staticmethod
     def _validate_url(url: Optional[str] = None) -> bool:
         if url and (
-            url.startswith("//superset/dashboard/")
-            or url.startswith("//superset/explore/")
+            url.startswith("//analytics/superset/dashboard/")
+            or url.startswith("//analytics/superset/explore/")
         ):
             return True
         return False
@@ -47,7 +47,7 @@ class R(BaseSupersetView):  # pylint: disable=invalid-name
     def index(self, url_id: int) -> FlaskResponse:
         url = db.session.query(models.Url).get(url_id)
         if url and url.url:
-            explore_url = "//superset/explore/?"
+            explore_url = "///datasuperset/explore/?"
             if url.url.startswith(explore_url):
                 explore_url += f"r={url_id}"
                 return redirect(explore_url[1:])

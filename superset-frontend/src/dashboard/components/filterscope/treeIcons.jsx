@@ -22,8 +22,8 @@ import 'react-checkbox-tree/lib/react-checkbox-tree.css';
 
 import {
   CheckboxChecked,
-  CheckboxUnchecked,
   CheckboxHalfChecked,
+  CheckboxUnchecked,
 } from 'src/components/Checkbox/CheckboxIcons';
 
 const treeIcons = {

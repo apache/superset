@@ -18,9 +18,9 @@
  */
 import {
   applyFormattingToTabularData,
+  NULL_STRING,
   optionFromValue,
   prepareCopyToClipboardTabularData,
-  NULL_STRING,
 } from 'src/utils/common';
 
 describe('utils/common', () => {

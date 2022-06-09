@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useRef, useState, RefObject } from 'react';
+import { RefObject, useEffect, useRef, useState } from 'react';
 
 export function useElementOnScreen<T extends Element>(
   options: IntersectionObserverInit,

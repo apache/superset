@@ -23,14 +23,14 @@ import { shallow } from 'enzyme';
 import { supersetTheme } from '@superset-ui/core';
 
 import AdhocFilter, {
-  EXPRESSION_TYPES,
   CLAUSES,
+  EXPRESSION_TYPES,
 } from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import { LabelsContainer } from 'src/explore/components/controls/OptionControls';
 import {
   AGGREGATES,
-  Operators,
   OPERATOR_ENUM_TO_OPERATOR_TYPE,
+  Operators,
 } from 'src/explore/constants';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
 import AdhocFilterControl from '.';

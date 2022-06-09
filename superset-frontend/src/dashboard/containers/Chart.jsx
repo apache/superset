@@ -19,15 +19,15 @@
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import {
-  toggleExpandSlice,
   setFocusedFilterField,
+  toggleExpandSlice,
   unsetFocusedFilterField,
 } from 'src/dashboard/actions/dashboardState';
 import { updateComponents } from 'src/dashboard/actions/dashboardLayout';
 import { changeFilter } from 'src/dashboard/actions/dashboardFilters';
 import {
-  addSuccessToast,
   addDangerToast,
+  addSuccessToast,
 } from 'src/components/MessageToasts/actions';
 import { refreshChart } from 'src/components/Chart/chartAction';
 import { logEvent } from 'src/logger/actions';

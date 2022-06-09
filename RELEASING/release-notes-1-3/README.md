@@ -26,6 +26,7 @@ Superset 1.3 focuses on hardening and polishing the superset user experience, wi
 - [**Breaking Changes and Full Changelog**](#breaking-changes-and-full-changelog)
 
 # User Experience
+
 One major goal of this release is to improve and harden dashboard-native filters. These filters live at the dashboard level instead of within a chart and affect all charts under their scope within a dashboard. Improvements in this release include clearer visual indicators of what charts are within the scope of a selected filter.
 
 ![dashboard native filter scoping](media/dashboard_native_filters_1.jpg)
@@ -51,9 +52,11 @@ Continuing on the theme of making more things accessible directly from the dashb
 ![view query dashboard](media/view_query_dashboard.png)
 
 # Developer Experience
+
 The API has received a new endpoint to allow the developer to pass DB-specific parameters instead of the full SQLAlchemy URI.
 
 # Database Connectivity
+
 We have improved support for Ascend.io's engine spec and fixed a long list of bugs.
 
 Also in the works is a new database connection UI, which should make connecting to a database easier without having to put together a SQLAlchemy URI. It's behind a feature flag for now, but it can be turned on in config.py with `FORCE_DATABASE_CONNECTIONS_SSL = True`.
@@ -64,8 +67,6 @@ Also in the works is a new database connection UI, which should make connecting 
 - [14420](https://github.com/apache/superset/pull/14420) feat: API endpoint to validate databases using separate parameters (#14420) (@Beto Dealmeida)
 - [14934](https://github.com/apache/superset/pull/14934) feat: Adding FORCE_SSL as feature flag in config.py (#14934) (@AAfghahi)
 - [14480](https://github.com/apache/superset/pull/14480) feat(viz): add funnel chart (#14480) (@Ville Brofeldt)
-
-
 
 ## Breaking Changes and Full Changelog
 

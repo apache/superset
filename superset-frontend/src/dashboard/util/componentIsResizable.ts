@@ -17,10 +17,10 @@
  * under the License.
  */
 import {
-  COLUMN_TYPE,
   CHART_TYPE,
-  MARKDOWN_TYPE,
+  COLUMN_TYPE,
   DYNAMIC_TYPE,
+  MARKDOWN_TYPE,
 } from './componentTypes';
 
 export default function componentIsResizable(entity: { type: string }) {

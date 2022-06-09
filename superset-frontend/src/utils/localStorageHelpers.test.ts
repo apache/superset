@@ -18,8 +18,8 @@
  */
 import {
   getItem,
-  setItem,
   LocalStorageKeys,
+  setItem,
 } from 'src/utils/localStorageHelpers';
 
 describe('localStorageHelpers', () => {

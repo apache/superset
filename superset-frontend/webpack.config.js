@@ -34,6 +34,7 @@ const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
 const parsedArgs = require('yargs').argv;
 const getProxyConfig = require('./webpack.proxy-config');
 const packageConfig = require('./package');
+// const {APP_PREFIX} = require("./src/constants");
 
 // input dir
 const APP_DIR = path.resolve(__dirname, './');
@@ -55,7 +56,7 @@ const ASSET_BASE_URL = process.env.ASSET_BASE_URL || '';
 
 const output = {
   path: BUILD_DIR,
-  publicPath: `${ASSET_BASE_URL}/static/assets/`,
+  publicPath: `${ASSET_BASE_URL}${process.env.APP_PREFIX}/static/assets/`,
 };
 if (isDevMode) {
   output.filename = '[name].[contenthash:8].entry.js';
@@ -114,7 +115,10 @@ const plugins = [
 
   // expose mode variable to other modules
   new webpack.DefinePlugin({
-    'process.env.WEBPACK_MODE': JSON.stringify(mode),
+    'process.env': {
+      WEBPACK_MODE: JSON.stringify(mode),
+      APP_PREFIX: JSON.stringify(process.env.APP_PREFIX),
+    },
   }),
 
   new CopyPlugin({

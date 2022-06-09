@@ -18,8 +18,8 @@
  */
 import { JsonObject, SupersetClientResponse, t } from '@superset-ui/core';
 import {
-  SupersetError,
   ErrorTypeEnum,
+  SupersetError,
 } from 'src/components/ErrorMessage/types';
 import COMMON_ERR_MESSAGES from './errorMessages';
 

@@ -17,14 +17,14 @@
  * under the License.
  */
 
-import { SupersetClient, t, styled } from '@superset-ui/core';
-import React, { useState, useMemo, useCallback } from 'react';
+import { styled, SupersetClient, t } from '@superset-ui/core';
+import React, { useCallback, useMemo, useState } from 'react';
 import rison from 'rison';
 import moment from 'moment';
 import {
-  createFetchRelated,
-  createFetchDistinct,
   createErrorHandler,
+  createFetchDistinct,
+  createFetchRelated,
 } from 'src/views/CRUD/utils';
 import Popover from 'src/components/Popover';
 import withToasts from 'src/components/MessageToasts/withToasts';
@@ -32,13 +32,13 @@ import { useListViewResource } from 'src/views/CRUD/hooks';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import handleResourceExport from 'src/utils/export';
 import SubMenu, {
-  SubMenuProps,
   ButtonProps,
+  SubMenuProps,
 } from 'src/views/components/SubMenu';
 import ListView, {
-  ListViewProps,
-  Filters,
   FilterOperator,
+  Filters,
+  ListViewProps,
 } from 'src/components/ListView';
 import Loading from 'src/components/Loading';
 import DeleteModal from 'src/components/DeleteModal';
@@ -47,7 +47,7 @@ import { Tooltip } from 'src/components/Tooltip';
 import { commonMenuData } from 'src/views/CRUD/data/common';
 import { SavedQueryObject } from 'src/views/CRUD/types';
 import copyTextToClipboard from 'src/utils/copy';
-import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
+import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import ImportModelsModal from 'src/components/ImportModal/index';
 import Icons from 'src/components/Icons';
 import SavedQueryPreviewModal from './SavedQueryPreviewModal';
@@ -137,13 +137,15 @@ function SavedQueryList({
     hasPerm('can_export') && isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT);
 
   const openNewQuery = () => {
-    window.open(`${window.location.origin}/superset/sqllab?new=true`);
+    window.open(
+      `${window.location.origin}${process.env.APP_PREFIX}/superset/sqllab?new=true`,
+    );
   };
 
   const handleSavedQueryPreview = useCallback(
     (id: number) => {
       SupersetClient.get({
-        endpoint: `/api/v1/saved_query/${id}`,
+        endpoint: `${process.env.APP_PREFIX}/api/v1/saved_query/${id}`,
       }).then(
         ({ json = {} }) => {
           setSavedQueryCurrentlyPreviewing({ ...json.result });
@@ -205,13 +207,15 @@ function SavedQueryList({
 
   // Action methods
   const openInSqlLab = (id: number) => {
-    window.open(`${window.location.origin}/superset/sqllab?savedQueryId=${id}`);
+    window.open(
+      `${window.location.origin}${process.env.APP_PREFIX}/superset/sqllab?savedQueryId=${id}`,
+    );
   };
 
   const copyQueryLink = useCallback(
     (id: number) => {
       copyTextToClipboard(
-        `${window.location.origin}/superset/sqllab?savedQueryId=${id}`,
+        `${window.location.origin}${process.env.APP_PREFIX}/superset/sqllab?savedQueryId=${id}`,
       )
         .then(() => {
           addSuccessToast(t('Link Copied!'));
@@ -225,7 +229,7 @@ function SavedQueryList({
 
   const handleQueryDelete = ({ id, label }: SavedQueryObject) => {
     SupersetClient.delete({
-      endpoint: `/api/v1/saved_query/${id}`,
+      endpoint: `${process.env.APP_PREFIX}/api/v1/saved_query/${id}`,
     }).then(
       () => {
         refreshData();
@@ -250,7 +254,7 @@ function SavedQueryList({
 
   const handleBulkQueryDelete = (queriesToDelete: SavedQueryObject[]) => {
     SupersetClient.delete({
-      endpoint: `/api/v1/saved_query/?q=${rison.encode(
+      endpoint: `${process.env.APP_PREFIX}/api/v1/saved_query/?q=${rison.encode(
         queriesToDelete.map(({ id }) => id),
       )}`,
     }).then(

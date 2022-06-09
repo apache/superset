@@ -33,7 +33,7 @@ import ModalTrigger from 'src/components/ModalTrigger';
 import { UserWithPermissionsAndRoles as User } from 'src/types/bootstrapTypes';
 import ResultSet from '../ResultSet';
 import HighlightedSql from '../HighlightedSql';
-import { StaticPosition, verticalAlign, StyledTooltip } from './styles';
+import { StaticPosition, StyledTooltip, verticalAlign } from './styles';
 
 interface QueryTableQuery
   extends Omit<Query, 'state' | 'sql' | 'progress' | 'results'> {
@@ -60,7 +60,7 @@ interface QueryTableProps {
 }
 
 const openQuery = (id: number) => {
-  const url = `/superset/sqllab?queryId=${id}`;
+  const url = `${process.env.APP_PREFIX}/superset/sqllab?queryId=${id}`;
   window.open(url);
 };
 

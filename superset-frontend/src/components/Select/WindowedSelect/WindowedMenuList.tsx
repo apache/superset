@@ -17,21 +17,21 @@
  * under the License.
  */
 import React, {
-  useRef,
-  useEffect,
   Component,
   FunctionComponent,
   ReactElement,
   RefObject,
+  useEffect,
+  useRef,
 } from 'react';
 import {
-  ListChildComponentProps,
   FixedSizeList as WindowedList,
+  ListChildComponentProps,
 } from 'react-window';
 import {
-  OptionTypeBase,
-  OptionProps,
   MenuListComponentProps,
+  OptionProps,
+  OptionTypeBase,
 } from 'react-select';
 import { ThemeConfig } from '../styles';
 

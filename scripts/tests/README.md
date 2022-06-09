@@ -29,6 +29,7 @@ This script will not install any dependencies for you, so you must be on an alre
 ## Use:
 
 To show all supported switches:
+
 ```$bash
 scripts/tests/run.sh --help
 ```
@@ -36,16 +37,19 @@ scripts/tests/run.sh --help
 From the superset repo root directory:
 
 - Example run all tests:
+
 ```$bash
 scripts/tests/run.sh
 ```
 
 - Example run a single test module:
+
 ```$bash
 scripts/tests/run.sh --module tests/charts/api_tests.py
 ```
 
 - Example run a single test:
+
 ```$bash
 scripts/tests/run.sh --module tests/charts/api_tests.py::TestChartApi::test_get_charts
 ```
@@ -53,21 +57,25 @@ scripts/tests/run.sh --module tests/charts/api_tests.py::TestChartApi::test_get_
 - Example run a single test, without any init procedures. Init procedures include:
   resetting test database, db upgrade, superset init, loading example data. If your tests
   are idempotent, after the first run, subsequent runs are really fast
+
 ```$bash
 scripts/tests/run.sh --module tests/charts/api_tests.py::TestChartApi::test_get_charts --no-init
 ```
 
 - Example for not recreating the test DB (will still run all the tests init procedures)
+
 ```$bash
 scripts/tests/run.sh --module tests/charts/api_tests.py::TestChartApi::test_get_charts --no-reset-db
 ```
 
 - Example for not running tests just initialize the test DB (drop/create, upgrade and load examples)
+
 ```$bash
 scripts/tests/run.sh --no-tests
 ```
 
 - Example for just resetting the tests DB
+
 ```$bash
 scripts/tests/run.sh --reset-db --no-tests
 ```

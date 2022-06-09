@@ -18,25 +18,25 @@
  */
 import React from 'react';
 import {
+  fireEvent,
   render,
   screen,
-  fireEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import {
-  OptionControlLabel,
-  DragContainer,
-  OptionControlContainer,
-  Label,
-  CaretContainer,
-  CloseContainer,
-  HeaderContainer,
-  LabelsContainer,
-  DndLabelsContainer,
   AddControlLabel,
   AddIconButton,
+  CaretContainer,
+  CloseContainer,
+  DndLabelsContainer,
+  DragContainer,
+  HeaderContainer,
+  Label,
+  LabelsContainer,
+  OptionControlContainer,
+  OptionControlLabel,
 } from 'src/explore/components/controls/OptionControls';
 
 const defaultProps = {

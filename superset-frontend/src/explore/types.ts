@@ -17,10 +17,10 @@
  * under the License.
  */
 import {
+  AdhocMetric,
+  AnnotationData,
   QueryData,
   QueryFormData,
-  AnnotationData,
-  AdhocMetric,
 } from '@superset-ui/core';
 import { ColumnMeta, DatasourceMeta } from '@superset-ui/chart-controls';
 import { DatabaseObject } from 'src/views/CRUD/types';
