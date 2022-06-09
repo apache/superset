@@ -16,19 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import Button from 'src/components/Button';
 import Select from 'src/components/Select';
-import { styled, t, SupersetClient, QueryResponse } from '@superset-ui/core';
+import { styled, SupersetClient, t } from '@superset-ui/core';
 import { debounce } from 'lodash';
 import Loading from 'src/components/Loading';
 import {
-  now,
-  epochTimeXHoursAgo,
   epochTimeXDaysAgo,
+  epochTimeXHoursAgo,
   epochTimeXYearsAgo,
+  now,
 } from 'src/utils/dates';
 import AsyncSelect from 'src/components/AsyncSelect';
+import { Query } from 'src/SqlLab/types';
 import { STATUS_OPTIONS, TIME_OPTIONS } from 'src/SqlLab/constants';
 import QueryTable from '../QueryTable';
 
@@ -84,7 +85,7 @@ function QuerySearch({ actions, displayLimit }: QuerySearchProps) {
   const [from, setFrom] = useState<string>('28 days ago');
   const [to, setTo] = useState<string>('now');
   const [status, setStatus] = useState<string>('success');
-  const [queriesArray, setQueriesArray] = useState<QueryResponse[]>([]);
+  const [queriesArray, setQueriesArray] = useState<Query[]>([]);
   const [queriesLoading, setQueriesLoading] = useState<boolean>(true);
 
   const getTimeFromSelection = (selection: string) => {
@@ -128,7 +129,10 @@ function QuerySearch({ actions, displayLimit }: QuerySearchProps) {
 
     try {
       const response = await SupersetClient.get({
-        endpoint: insertParams('/superset/search_queries', params),
+        endpoint: insertParams(
+          `${process.env.APP_PREFIX}/superset/search_queries`,
+          params,
+        ),
       });
       const queries = Object.values(response.json);
       setQueriesArray(queries);
@@ -202,7 +206,7 @@ function QuerySearch({ actions, displayLimit }: QuerySearchProps) {
         <div className="col-sm-2">
           <AsyncSelect
             onChange={(db: any) => setDatabaseId(db?.value)}
-            dataEndpoint="/api/v1/database/?q=(filters:!((col:expose_in_sqllab,opr:eq,value:!t)))"
+            dataEndpoint={`${process.env.APP_PREFIX}/api/v1/database/?q=(filters:!((col:expose_in_sqllab,opr:eq,value:!t)))`}
             value={databaseId}
             mutator={dbMutator}
             placeholder={t('Filter by database')}

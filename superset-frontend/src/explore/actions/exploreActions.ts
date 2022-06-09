@@ -19,10 +19,10 @@
 /* eslint camelcase: 0 */
 import { Dataset } from '@superset-ui/chart-controls';
 import {
-  t,
-  SupersetClient,
   DatasourceType,
   QueryFormData,
+  SupersetClient,
+  t,
 } from '@superset-ui/core';
 import { Dispatch } from 'redux';
 import {

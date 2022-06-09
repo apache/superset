@@ -25,8 +25,8 @@ import throttle from 'lodash/throttle';
 import ToastContainer from 'src/components/MessageToasts/ToastContainer';
 import {
   LOCALSTORAGE_MAX_USAGE_KB,
-  LOCALSTORAGE_WARNING_THRESHOLD,
   LOCALSTORAGE_WARNING_MESSAGE_THROTTLE_MS,
+  LOCALSTORAGE_WARNING_THRESHOLD,
 } from 'src/SqlLab/constants';
 import * as Actions from 'src/SqlLab/actions/sqlLab';
 import TabbedSqlEditors from '../TabbedSqlEditors';
@@ -95,7 +95,9 @@ class App extends React.PureComponent {
 
   render() {
     if (this.state.hash && this.state.hash === '#search') {
-      return window.location.replace('/superset/sqllab/history/');
+      return window.location.replace(
+        `${process.env.APP_PREFIX}/superset/sqllab/history/`,
+      );
     }
     return (
       <div className="App SqlLab">

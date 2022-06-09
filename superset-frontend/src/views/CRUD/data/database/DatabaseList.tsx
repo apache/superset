@@ -16,14 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SupersetClient, t, styled } from '@superset-ui/core';
-import React, { useState, useMemo, useEffect } from 'react';
+import { styled, SupersetClient, t } from '@superset-ui/core';
+import React, { useEffect, useMemo, useState } from 'react';
 import rison from 'rison';
 import { useSelector } from 'react-redux';
-import { useQueryParams, BooleanParam } from 'use-query-params';
-
 import Loading from 'src/components/Loading';
-import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
+import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import { createErrorHandler, uploadUserPerms } from 'src/views/CRUD/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
@@ -93,10 +91,6 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
     state => state.user,
   );
 
-  const [query, setQuery] = useQueryParams({
-    databaseAdded: BooleanParam,
-  });
-
   const [databaseModalOpen, setDatabaseModalOpen] = useState<boolean>(false);
   const [databaseCurrentlyDeleting, setDatabaseCurrentlyDeleting] =
     useState<DatabaseDeleteObject | null>(null);
@@ -116,16 +110,9 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
     ALLOWED_EXTENSIONS,
   } = useSelector<any, ExtentionConfigs>(state => state.common.conf);
 
-  useEffect(() => {
-    if (query?.databaseAdded) {
-      setQuery({ databaseAdded: undefined });
-      refreshData();
-    }
-  }, [query, setQuery, refreshData]);
-
   const openDatabaseDeleteModal = (database: DatabaseObject) =>
     SupersetClient.get({
-      endpoint: `/api/v1/database/${database.id}/related_objects/`,
+      endpoint: `${process.env.APP_PREFIX}/api/v1/database/${database.id}/related_objects/`,
     })
       .then(({ json = {} }) => {
         setDatabaseCurrentlyDeleting({
@@ -146,7 +133,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
 
   function handleDatabaseDelete({ id, database_name: dbName }: DatabaseObject) {
     SupersetClient.delete({
-      endpoint: `/api/v1/database/${id}`,
+      endpoint: `${process.env.APP_PREFIX}/api/v1/database/${id}`,
     }).then(
       () => {
         refreshData();

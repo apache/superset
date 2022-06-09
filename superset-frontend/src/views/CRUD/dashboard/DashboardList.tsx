@@ -17,25 +17,25 @@
  * under the License.
  */
 import { styled, SupersetClient, t } from '@superset-ui/core';
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import rison from 'rison';
-import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
+import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import {
-  createFetchRelated,
   createErrorHandler,
+  createFetchRelated,
   handleDashboardDelete,
 } from 'src/views/CRUD/utils';
-import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
+import { useFavoriteStatus, useListViewResource } from 'src/views/CRUD/hooks';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import handleResourceExport from 'src/utils/export';
 import Loading from 'src/components/Loading';
 import SubMenu, { SubMenuProps } from 'src/views/components/SubMenu';
 import ListView, {
-  ListViewProps,
   Filter,
-  Filters,
   FilterOperator,
+  Filters,
+  ListViewProps,
 } from 'src/components/ListView';
 import { dangerouslyGetItemDoNotUse } from 'src/utils/localStorageHelpers';
 import Owner from 'src/types/Owner';
@@ -153,8 +153,7 @@ function DashboardList(props: DashboardListProps) {
   const canCreate = hasPerm('can_write');
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
-  const canExport =
-    hasPerm('can_export') && isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT);
+  const canExport = hasPerm('can_export');
 
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
 
@@ -164,7 +163,7 @@ function DashboardList(props: DashboardListProps) {
 
   function handleDashboardEdit(edits: Dashboard) {
     return SupersetClient.get({
-      endpoint: `/api/v1/dashboard/${edits.id}`,
+      endpoint: `${process.env.APP_PREFIX}/api/v1/dashboard/${edits.id}`,
     }).then(
       ({ json = {} }) => {
         setDashboards(
@@ -218,7 +217,7 @@ function DashboardList(props: DashboardListProps) {
 
   function handleBulkDashboardDelete(dashboardsToDelete: Dashboard[]) {
     return SupersetClient.delete({
-      endpoint: `/api/v1/dashboard/?q=${rison.encode(
+      endpoint: `${process.env.APP_PREFIX}/api/v1/dashboard/?q=${rison.encode(
         dashboardsToDelete.map(({ id }) => id),
       )}`,
     }).then(
@@ -605,7 +604,7 @@ function DashboardList(props: DashboardListProps) {
       ),
       buttonStyle: 'primary',
       onClick: () => {
-        window.location.assign('/dashboard/new');
+        window.location.assign(`${process.env.APP_PREFIX}/dashboard/new`);
       },
     });
 
