@@ -15,10 +15,11 @@
 # specific language governing permissions and limitations
 # under the License.
 import os
+from typing import Optional, Type, TYPE_CHECKING
+
 from flask import Markup
 from flask_appbuilder import Model
 from sqlalchemy import Column, Integer, String
-from typing import Optional, Type, TYPE_CHECKING
 
 from superset import app, db, security_manager
 from superset.connectors.connector_registry import ConnectorRegistry

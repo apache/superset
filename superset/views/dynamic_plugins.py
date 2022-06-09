@@ -15,12 +15,13 @@
 # specific language governing permissions and limitations
 # under the License.
 import os
+from typing import Optional
+
 from flask import make_response, Response
 from flask_appbuilder import ModelView
 from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import lazy_gettext as _
-from typing import Optional
 
 from superset import is_feature_enabled
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP

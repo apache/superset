@@ -15,29 +15,30 @@
 # specific language governing permissions and limitations
 # under the License.
 """a collection of model-related helper classes and functions"""
-import humanize
 import json
 import logging
 import os
+import re
+import uuid
+from datetime import datetime, timedelta
+from json.decoder import JSONDecodeError
+from typing import Any, Dict, List, Optional, Set, Union
+
+import humanize
 import pandas as pd
 import pytz
-import re
 import sqlalchemy as sa
-import uuid
 import yaml
-from datetime import datetime, timedelta
 from flask import escape, g, Markup
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
 from flask_appbuilder.models.mixins import AuditMixin
 from flask_appbuilder.security.sqla.models import User
-from json.decoder import JSONDecodeError
 from sqlalchemy import and_, or_, UniqueConstraint
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import Mapper, Session
 from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy_utils import UUIDType
-from typing import Any, Dict, List, Optional, Set, Union
 
 from superset.common.db_query_status import QueryStatus
 
@@ -420,10 +421,6 @@ class AuditMixinNullable(AuditMixin):
     def changed_on_delta_humanized(self) -> str:
         return self.changed_on_humanized
 
-    @renders("created_on")
-    def created_on_delta_humanized(self) -> str:
-        return self.created_on_humanized
-
     @renders("changed_on")
     def changed_on_utc(self) -> str:
         # Convert naive datetime to UTC
@@ -432,10 +429,6 @@ class AuditMixinNullable(AuditMixin):
     @property
     def changed_on_humanized(self) -> str:
         return humanize.naturaltime(datetime.now() - self.changed_on)
-
-    @property
-    def created_on_humanized(self) -> str:
-        return humanize.naturaltime(datetime.now() - self.created_on)
 
     @renders("changed_on")
     def modified(self) -> Markup:
@@ -477,7 +470,7 @@ class ExtraJSONMixin:
     @property
     def extra(self) -> Dict[str, Any]:
         try:
-            return json.loads(self.extra_json) if self.extra_json else {}
+            return json.loads(self.extra_json)
         except (TypeError, JSONDecodeError) as exc:
             logger.error(
                 "Unable to load an extra json: %r. Leaving empty.", exc, exc_info=True
@@ -522,23 +515,18 @@ class CertificationMixin:
 
 
 def clone_model(
-    target: Model,
-    ignore: Optional[List[str]] = None,
-    keep_relations: Optional[List[str]] = None,
-    **kwargs: Any,
+    target: Model, ignore: Optional[List[str]] = None, **kwargs: Any
 ) -> Model:
     """
-    Clone a SQLAlchemy model. By default will only clone naive column attributes.
-    To include relationship attributes, use `keep_relations`.
+    Clone a SQLAlchemy model.
     """
     ignore = ignore or []
 
     table = target.__table__
-    primary_keys = table.primary_key.columns.keys()
     data = {
         attr: getattr(target, attr)
-        for attr in list(table.columns.keys()) + (keep_relations or [])
-        if attr not in primary_keys and attr not in ignore
+        for attr in table.columns.keys()
+        if attr not in table.primary_key.columns.keys() and attr not in ignore
     }
     data.update(kwargs)
 

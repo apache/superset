@@ -18,12 +18,13 @@ from __future__ import annotations
 
 import json
 import logging
+from typing import Any, Dict, Optional, TYPE_CHECKING
+
 import simplejson
 from flask import current_app, g, make_response, request, Response
 from flask_appbuilder.api import expose, protect
 from flask_babel import gettext as _
 from marshmallow import ValidationError
-from typing import Any, Dict, Optional, TYPE_CHECKING
 
 from superset import is_feature_enabled, security_manager
 from superset.charts.api import ChartRestApi

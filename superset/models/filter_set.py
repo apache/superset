@@ -19,11 +19,12 @@ from __future__ import annotations
 import json
 import logging
 import os
+from typing import Any, Dict
+
 from flask_appbuilder import Model
 from sqlalchemy import Column, ForeignKey, Integer, MetaData, String, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy_utils import generic_relationship
-from typing import Any, Dict
 
 from superset import app, db
 from superset.models.helpers import AuditMixinNullable

@@ -17,12 +17,7 @@
  * under the License.
  */
 {
-  "plugins": [
-    "jest",
-    "jest-dom",
-    "no-only-tests",
-    "testing-library"
-  ],
+  "plugins": ["jest", "jest-dom", "no-only-tests", "testing-library"],
   "env": {
     "jest/globals": true
   },
