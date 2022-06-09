@@ -32,6 +32,7 @@ export type CccsGridQueryFormData = QueryFormData & {
   emitFilter: boolean;
   include_search: boolean;
   page_length: number;
+  enable_grouping: boolean;
 };
 
 export interface CccsGridStylesProps {
@@ -75,6 +76,7 @@ export interface CccsGridTransformedProps extends CccsGridStylesProps {
   filters: any;
   include_search: boolean;
   page_length: number;
+  enable_grouping: boolean;
   // add typing here for the props you pass in from transformProps.ts!
   agGridLicenseKey: string;
 }
