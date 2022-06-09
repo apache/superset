@@ -313,10 +313,7 @@ class TestTableViz(SupersetTestCase):
         self.assertEqual(
             [{"col": "value2", "val": "100", "op": ">"}], query_obj["filter"]
         )
-        self.assertEqual(
-            [{"op": "<", "val": "10", "col": "SUM(value1)"}],
-            query_obj["extras"]["having_druid"],
-        )
+        self.assertEqual([{"op": "<", "val": "10", "col": "SUM(value1)"}])
         self.assertEqual("(value3 in ('North America'))", query_obj["extras"]["where"])
         self.assertEqual("(SUM(value1) > 5)", query_obj["extras"]["having"])
 
@@ -352,7 +349,6 @@ class TestTableViz(SupersetTestCase):
         self.assertEqual(
             [{"col": "value2", "val": "100", "op": ">"}], query_obj["filter"]
         )
-        self.assertEqual([], query_obj["extras"]["having_druid"])
         self.assertEqual("(value3 in ('North America'))", query_obj["extras"]["where"])
         self.assertEqual("", query_obj["extras"]["having"])
 

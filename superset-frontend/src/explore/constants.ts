@@ -85,7 +85,6 @@ export const OPERATOR_ENUM_TO_OPERATOR_TYPE: {
 export const OPERATORS_OPTIONS = Object.values(Operators) as Operators[];
 
 export const TABLE_ONLY_OPERATORS = [Operators.LIKE, Operators.ILIKE];
-export const DRUID_ONLY_OPERATORS = [Operators.REGEX];
 export const HAVING_OPERATORS = [
   Operators.EQUALS,
   Operators.NOT_EQUALS,

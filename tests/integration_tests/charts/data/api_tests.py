@@ -798,7 +798,6 @@ class TestGetChartDataApi(BaseTestChartDataApi):
                         "filters": [],
                         "extras": {
                             "having": "",
-                            "having_druid": [],
                             "where": "",
                         },
                         "applied_time_extras": {},

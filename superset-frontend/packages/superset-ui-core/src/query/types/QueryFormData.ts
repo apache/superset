@@ -199,15 +199,6 @@ export interface SqlaFormData extends BaseFormData {
   having?: string;
 }
 
-/**
- * Form data for Druid datasources.
- */
-export interface DruidFormData extends BaseFormData {
-  granularity?: string;
-  having_druid?: string;
-  druid_time_origin?: string;
-}
-
 export type QueryFormData = DruidFormData | SqlaFormData;
 
 //---------------------------------------------------

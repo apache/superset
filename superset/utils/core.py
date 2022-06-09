@@ -1775,19 +1775,6 @@ def get_time_filter_status(
                     "column": ExtraFiltersTimeColumnType.TIME_ORIGIN,
                 }
             )
-
-    if ExtraFiltersTimeColumnType.GRANULARITY in applied_time_extras:
-        # Same here
-        if datasource.type == "druid":
-            applied.append({"column": ExtraFiltersTimeColumnType.GRANULARITY})
-        else:
-            rejected.append(
-                {
-                    "reason": ExtraFiltersReasonType.NOT_DRUID_DATASOURCE,
-                    "column": ExtraFiltersTimeColumnType.GRANULARITY,
-                }
-            )
-
     return applied, rejected
 
 

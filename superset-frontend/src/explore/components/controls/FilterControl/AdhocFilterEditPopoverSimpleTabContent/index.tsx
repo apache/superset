@@ -23,7 +23,6 @@ import { t, SupersetClient, SupersetTheme, styled } from '@superset-ui/core';
 import {
   Operators,
   OPERATORS_OPTIONS,
-  DRUID_ONLY_OPERATORS,
   HAVING_OPERATORS,
   MULTI_OPERATORS,
   CUSTOM_OPERATORS,
@@ -140,10 +139,8 @@ export const useSimpleTabFilterProps = (props: Props) => {
       );
     }
     return !(
-      (props.datasource.type === 'table' &&
-        DRUID_ONLY_OPERATORS.indexOf(operator) >= 0) ||
-      (props.adhocFilter.clause === CLAUSES.HAVING &&
-        HAVING_OPERATORS.indexOf(operator) === -1)
+      props.adhocFilter.clause === CLAUSES.HAVING &&
+      HAVING_OPERATORS.indexOf(operator) === -1
     );
   };
   const onSubjectChange = (id: string) => {
