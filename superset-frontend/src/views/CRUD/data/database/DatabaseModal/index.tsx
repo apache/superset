@@ -115,7 +115,9 @@ const TabsStyled = styled(Tabs)`
 `;
 
 const ErrorAlertContainer = styled.div`
-  margin: 32px 16px;
+  ${({ theme }) => `
+    margin: ${theme.gridUnit * 8}px ${theme.gridUnit * 4}px;
+  `};
 `;
 
 interface DatabaseModalProps {
@@ -470,7 +472,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     )?.parameters !== undefined;
   const showDBError = validationErrors || dbErrors;
   const isEmpty = (data?: Object | null) =>
-    data && Object.keys(data).length === 0;
+    !data || data && Object.keys(data).length === 0;
 
   const dbModel: DatabaseForm =
     availableDbs?.databases?.find(
@@ -1090,7 +1092,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   // eslint-disable-next-line consistent-return
   const errorAlert = () => {
     let alertErrors: string[] = [];
-    if (isEmpty(dbErrors)) {
+    if (!isEmpty(dbErrors)) {
       alertErrors = typeof dbErrors === 'object' ? Object.values(dbErrors) : [];
     } else if (!isEmpty(validationErrors)) {
       alertErrors =
