@@ -220,6 +220,7 @@ const ExploreChartPanel = ({
         css={css`
           min-height: 0;
           flex: 1;
+          overflow: auto;
         `}
         ref={chartPanelRef}
       >
@@ -392,6 +393,7 @@ const ExploreChartPanel = ({
             datasource={datasource}
             queryForce={force}
             onCollapseChange={onCollapseChange}
+            chartStatus={chart.chartStatus}
             errorMessage={errorMessage}
             actions={actions}
           />

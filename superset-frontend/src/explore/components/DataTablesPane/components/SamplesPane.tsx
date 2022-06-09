@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { useState, useEffect, useMemo } from 'react';
-import { GenericDataType, styled, t } from '@superset-ui/core';
+import { ensureIsArray, GenericDataType, styled, t } from '@superset-ui/core';
 import Loading from 'src/components/Loading';
 import { EmptyStateMedium } from 'src/components/EmptyState';
 import TableView, { EmptyWrapperType } from 'src/components/TableView';
@@ -25,7 +25,6 @@ import {
   useFilteredTableData,
   useTableColumns,
 } from 'src/explore/components/DataTableControl';
-import { useOriginalFormattedTimeColumns } from 'src/explore/components/useOriginalFormattedTimeColumns';
 import { getDatasetSamples } from 'src/components/Chart/chartAction';
 import { TableControls } from './DataTableControls';
 import { SamplesPaneProps } from '../types';
@@ -42,6 +41,7 @@ export const SamplesPane = ({
   queryForce,
   actions,
   dataSize = 50,
+  isVisible,
 }: SamplesPaneProps) => {
   const [filterText, setFilterText] = useState('');
   const [data, setData] = useState<Record<string, any>[][]>([]);
@@ -63,9 +63,9 @@ export const SamplesPane = ({
       setIsLoading(true);
       getDatasetSamples(datasource.id, queryForce)
         .then(response => {
-          setData(response.data);
-          setColnames(response.colnames);
-          setColtypes(response.coltypes);
+          setData(ensureIsArray(response.data));
+          setColnames(ensureIsArray(response.colnames));
+          setColtypes(ensureIsArray(response.coltypes));
           setResponseError('');
           cache.add(datasource);
           if (queryForce && actions) {
@@ -73,6 +73,9 @@ export const SamplesPane = ({
           }
         })
         .catch(error => {
+          setData([]);
+          setColnames([]);
+          setColtypes([]);
           setResponseError(`${error.name}: ${error.message}`);
         })
         .finally(() => {
@@ -81,8 +84,6 @@ export const SamplesPane = ({
     }
   }, [datasource, isRequest, queryForce]);
 
-  const originalFormattedTimeColumns =
-    useOriginalFormattedTimeColumns(datasourceId);
   // this is to preserve the order of the columns, even if there are integer values,
   // while also only grabbing the first column's keys
   const columns = useTableColumns(
@@ -90,7 +91,7 @@ export const SamplesPane = ({
     coltypes,
     data,
     datasourceId,
-    originalFormattedTimeColumns,
+    isVisible,
   );
   const filteredData = useFilteredTableData(filterText, data);
 
@@ -104,6 +105,7 @@ export const SamplesPane = ({
         <TableControls
           data={filteredData}
           columnNames={colnames}
+          columnTypes={coltypes}
           datasourceId={datasourceId}
           onInputChange={input => setFilterText(input)}
           isLoading={isLoading}
@@ -123,6 +125,7 @@ export const SamplesPane = ({
       <TableControls
         data={filteredData}
         columnNames={colnames}
+        columnTypes={coltypes}
         datasourceId={datasourceId}
         onInputChange={input => setFilterText(input)}
         isLoading={isLoading}

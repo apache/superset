@@ -17,7 +17,7 @@
   under the License.
 -#}
 To: {{ receiver_email }}
-From: {{ sender_email }}
+
 Subject: [VOTE] Release Apache {{ project_name }} {{ version }} based on Superset {{ version_rc }}
 
 Hello {{ project_name }} Community,
@@ -36,8 +36,7 @@ https://github.com/apache/{{ project_module }}/blob/{{ version_rc }}/CHANGELOG.m
 The Updating instructions for the release:
 https://github.com/apache/{{ project_module }}/blob/{{ version_rc }}/UPDATING.md
 
-public keys are available at:
-
+Public keys are available at:
 https://www.apache.org/dist/{{ project_module }}/KEYS
 
 The vote will be open for at least 72 hours or until the necessary number

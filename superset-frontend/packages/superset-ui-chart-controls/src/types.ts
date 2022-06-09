@@ -25,6 +25,9 @@ import type {
   JsonValue,
   Metric,
   QueryFormData,
+  QueryResponse,
+  QueryFormMetric,
+  QueryFormColumn,
 } from '@superset-ui/core';
 import { sharedControls } from './shared-controls';
 import sharedControlComponents from './shared-controls/components';
@@ -51,7 +54,7 @@ export type ColumnMeta = Omit<Column, 'id'> & {
   id?: number;
 } & AnyDict;
 
-export interface DatasourceMeta {
+export interface Dataset {
   id: number;
   type: DatasourceType;
   columns: ColumnMeta[];
@@ -69,7 +72,7 @@ export interface DatasourceMeta {
 
 export interface ControlPanelState {
   form_data: QueryFormData;
-  datasource: DatasourceMeta | null;
+  datasource: Dataset | QueryResponse | null;
   controls: ControlStateMapping;
 }
 
@@ -88,7 +91,7 @@ export interface ActionDispatcher<
  * Mapping of action dispatchers
  */
 export interface ControlPanelActionDispatchers {
-  setDatasource: ActionDispatcher<[DatasourceMeta]>;
+  setDatasource: ActionDispatcher<[Dataset]>;
 }
 
 /**
@@ -340,11 +343,26 @@ export interface ControlPanelSectionConfig {
   controlSetRows: ControlSetRow[];
 }
 
+export interface StandardizedState {
+  metrics: QueryFormMetric[];
+  columns: QueryFormColumn[];
+}
+
+export interface StandardizedFormDataInterface {
+  standardizedState: StandardizedState;
+  memorizedFormData: Map<string, QueryFormData>;
+}
+
 export interface ControlPanelConfig {
   controlPanelSections: (ControlPanelSectionConfig | null)[];
   controlOverrides?: ControlOverrides;
   sectionOverrides?: SectionOverrides;
   onInit?: (state: ControlStateMapping) => void;
+  denormalizeFormData?: (
+    formData: QueryFormData & {
+      standardizedFormData: StandardizedFormDataInterface;
+    },
+  ) => QueryFormData;
 }
 
 export type ControlOverrides = {

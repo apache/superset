@@ -189,18 +189,19 @@ class DatasourceControl extends React.PureComponent {
     const isMissingDatasource = datasource.id == null;
     let isMissingParams = false;
     if (isMissingDatasource) {
-      const datasetId = getUrlParam(URL_PARAMS.datasetId);
+      const datasourceId = getUrlParam(URL_PARAMS.datasourceId);
       const sliceId = getUrlParam(URL_PARAMS.sliceId);
-      if (!datasetId && !sliceId) {
+      if (!datasourceId && !sliceId) {
         isMissingParams = true;
       }
     }
 
     const isSqlSupported = datasource.type === 'table';
     const { user } = this.props;
-    const allowEdit =
-      datasource.owners.map(o => o.id).includes(user.userId) ||
-      isUserAdmin(user);
+    const allowEdit = datasource.owners
+      .map(o => o.id || o.value)
+      .includes(user.userId);
+    isUserAdmin(user);
 
     const editText = t('Edit dataset');
 

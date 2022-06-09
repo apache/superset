@@ -16,14 +16,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Datasource, JsonObject, QueryFormData } from '@superset-ui/core';
+import {
+  Datasource,
+  GenericDataType,
+  JsonObject,
+  QueryFormData,
+} from '@superset-ui/core';
 import { ExploreActions } from 'src/explore/actions/exploreActions';
+import { ChartStatus } from 'src/explore/types';
+
+export enum ResultTypes {
+  Results = 'results',
+  Samples = 'samples',
+}
 
 export interface DataTablesPaneProps {
   queryFormData: QueryFormData;
   datasource: Datasource;
   queryForce: boolean;
   ownState?: JsonObject;
+  chartStatus: ChartStatus;
   onCollapseChange: (isOpen: boolean) => void;
   errorMessage?: JSX.Element;
   actions: ExploreActions;
@@ -37,6 +49,8 @@ export interface ResultsPaneProps {
   errorMessage?: React.ReactElement;
   actions?: ExploreActions;
   dataSize?: number;
+  // reload OriginalFormattedTimeColumns from localStorage when isVisible is true
+  isVisible: boolean;
 }
 
 export interface SamplesPaneProps {
@@ -45,4 +59,30 @@ export interface SamplesPaneProps {
   queryForce: boolean;
   actions?: ExploreActions;
   dataSize?: number;
+  // reload OriginalFormattedTimeColumns from localStorage when isVisible is true
+  isVisible: boolean;
+}
+
+export interface TableControlsProps {
+  data: Record<string, any>[];
+  // {datasource.id}__{datasource.type}, eg: 1__table
+  datasourceId: string;
+  onInputChange: (input: string) => void;
+  columnNames: string[];
+  columnTypes: GenericDataType[];
+  isLoading: boolean;
+}
+
+export interface QueryResultInterface {
+  colnames: string[];
+  coltypes: GenericDataType[];
+  data: Record<string, any>[][];
+}
+
+export interface SingleQueryResultPaneProp extends QueryResultInterface {
+  // {datasource.id}__{datasource.type}, eg: 1__table
+  datasourceId: string;
+  dataSize?: number;
+  // reload OriginalFormattedTimeColumns from localStorage when isVisible is true
+  isVisible: boolean;
 }

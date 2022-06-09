@@ -17,7 +17,10 @@
  * under the License.
  */
 import { QueryObject, SqlaFormData } from '@superset-ui/core';
-import { timeCompareOperator, timeComparePivotOperator } from '../../../src';
+import {
+  timeCompareOperator,
+  timeComparePivotOperator,
+} from '@superset-ui/chart-controls';
 
 const formData: SqlaFormData = {
   metrics: [

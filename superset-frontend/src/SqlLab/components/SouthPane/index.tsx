@@ -62,9 +62,13 @@ interface SouthPanePropTypes {
   defaultQueryLimit: number;
 }
 
-const StyledPane = styled.div`
-  width: 100%;
+type StyledPaneProps = {
+  height: number;
+};
 
+const StyledPane = styled.div<StyledPaneProps>`
+  width: 100%;
+  height: ${props => props.height}px;
   .ant-tabs .ant-tabs-content-holder {
     overflow: visible;
   }
@@ -207,7 +211,7 @@ export default function SouthPane({
   return offline ? (
     renderOfflineStatus()
   ) : (
-    <StyledPane className="SouthPane" ref={southPaneRef}>
+    <StyledPane className="SouthPane" height={height} ref={southPaneRef}>
       <Tabs
         activeKey={activeSouthPaneTab}
         className="SouthPaneTabs"
