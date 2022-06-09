@@ -120,3 +120,19 @@ class ClickHouseEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
 
         # otherwise, return no function names to prevent errors
         return []
+
+    FORMAT_SUFFIX = "FORMAT TabSeparatedWithNamesAndTypes"
+
+    @classmethod
+    def execute(  # pylint: disable=unused-argument
+        cls,
+        cursor: Any,
+        query: str,
+        **kwargs: Any,
+    ) -> None:
+
+        raw_sql_big = query.upper()
+        if "FORMAT" in raw_sql_big and "INSERT" not in raw_sql_big:
+            query = f"{query} {cls.FORMAT_SUFFIX}"
+
+        super().execute(cursor, query, **kwargs)
