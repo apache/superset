@@ -1,0 +1,17 @@
+{
+  "name": "eslint-plugin-control-panel",
+  "version": "1.0.0",
+  "description": "Warns about incorrect order of sections in control panel",
+  "main": "index.js",
+  "keywords": [],
+  "license": "Apache-2.0",
+  "author": "Apache",
+  "dependencies": {},
+  "peerDependencies": {
+    "eslint": ">=0.8.0"
+  },
+  "engines": {
+    "node": "^16.9.1",
+    "npm": "^7.5.4"
+  }
+}

@@ -73,6 +73,7 @@ module.exports = {
     'file-progress',
     'theme-colors',
     'translation-vars',
+    'control-panel',
   ],
   overrides: [
     {
@@ -206,6 +207,17 @@ module.exports = {
         'theme-colors/no-literal-colors': 0,
         'translation-vars/no-template-vars': 0,
         'no-restricted-imports': 0,
+      },
+    },
+    {
+      files: [
+        'plugins/**/controlPanel.tsx',
+        'plugins/**/controlPanel.jsx',
+        'plugins/**/controlPanel.ts',
+        'plugins/**/controlPanel.js',
+      ],
+      rules: {
+        'control-panel/ensure-sections-order': 'error',
       },
     },
   ],
