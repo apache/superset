@@ -63,6 +63,7 @@ import {
   PASSWORDS_NEEDED_MESSAGE,
   CONFIRM_OVERWRITE_MESSAGE,
 } from './constants';
+import DuplicateDatasetModal from './DuplicateDatasetModal';
 
 const FlexRowContainer = styled.div`
   align-items: center;
@@ -93,6 +94,11 @@ type Dataset = {
   schema: string;
   table_name: string;
 };
+
+interface VirtualDataset extends Dataset {
+  extra: any;
+  sql: string;
+}
 
 interface DatasetListProps {
   addDangerToast: (msg: string) => void;
@@ -132,6 +138,9 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   const [datasetCurrentlyEditing, setDatasetCurrentlyEditing] =
     useState<Dataset | null>(null);
 
+  const [datasetCurrentlyDuplicating, setDatasetCurrentlyDuplicating] =
+    useState<VirtualDataset | null>(null);
+
   const [importingDataset, showImportModal] = useState<boolean>(false);
   const [passwordFields, setPasswordFields] = useState<string[]>([]);
   const [preparingExport, setPreparingExport] = useState<boolean>(false);
@@ -154,6 +163,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   const canDelete = hasPerm('can_write');
   const canCreate = hasPerm('can_write');
   const canExport = hasPerm('can_export');
+  const canDuplicate = hasPerm('can_read');
 
   const initialSort = SORT_BY;
 
@@ -208,6 +218,10 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           ),
         ),
       );
+
+  const openDatasetDuplicateModal = (dataset: VirtualDataset) => {
+    setDatasetCurrentlyDuplicating(dataset);
+  };
 
   const columns = useMemo(
     () => [
@@ -347,6 +361,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           const handleEdit = () => openDatasetEditModal(original);
           const handleDelete = () => openDatasetDeleteModal(original);
           const handleExport = () => handleBulkDatasetExport([original]);
+          const handleDuplicate = () => openDatasetDuplicateModal(original);
           if (!canEdit && !canDelete && !canExport) {
             return null;
           }
@@ -400,16 +415,32 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                   </span>
                 </Tooltip>
               )}
+              {canDuplicate && original.kind === 'virtual' && (
+                <Tooltip
+                  id="duplicate-action-tooltop"
+                  title={t('Duplicate')}
+                  placement="bottom"
+                >
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    className="action-button"
+                    onClick={handleDuplicate}
+                  >
+                    <Icons.Copy />
+                  </span>
+                </Tooltip>
+              )}
             </Actions>
           );
         },
         Header: t('Actions'),
         id: 'actions',
-        hidden: !canEdit && !canDelete,
+        hidden: !canEdit && !canDelete && !canDuplicate,
         disableSortBy: true,
       },
     ],
-    [canEdit, canDelete, canExport, openDatasetEditModal],
+    [canEdit, canDelete, canExport, openDatasetEditModal, canDuplicate],
   );
 
   const filterTypes: Filters = useMemo(
@@ -537,6 +568,10 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     setDatasetCurrentlyEditing(null);
   };
 
+  const closeDatasetDuplicateModal = () => {
+    setDatasetCurrentlyDuplicating(null);
+  };
+
   const handleDatasetDelete = ({ id, table_name: tableName }: Dataset) => {
     SupersetClient.delete({
       endpoint: `/api/v1/dataset/${id}`,
@@ -580,6 +615,58 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     setPreparingExport(true);
   };
 
+  const handleDatasetDuplicate = (newDatasetName: string) => {
+    if (datasetCurrentlyDuplicating === null) {
+      addDangerToast(t('There was an issue duplicating the dataset.'));
+    }
+
+    const { id, schema, sql } = datasetCurrentlyDuplicating as VirtualDataset;
+
+    SupersetClient.get({
+      endpoint: `/api/v1/dataset/${id}`,
+    }).then(
+      ({ json = {} }) => {
+        const data = {
+          schema,
+          sql,
+          dbId: datasetCurrentlyDuplicating?.database.id,
+          templateParams: '',
+          datasourceName: newDatasetName,
+          // This is done because the api expects 'name' instead of 'column_name'
+          columns: json.result.columns.map((e: Record<string, any>) => ({
+            name: e.column_name,
+            ...e,
+          })),
+        };
+        SupersetClient.post({
+          endpoint: '/superset/sqllab_viz/',
+          postPayload: { data },
+        }).then(
+          () => {
+            setDatasetCurrentlyDuplicating(null);
+            refreshData();
+          },
+          createErrorHandler(errMsg =>
+            addDangerToast(
+              t(
+                'There was an issue duplicating the selected datasets during POST: %s',
+                errMsg,
+              ),
+            ),
+          ),
+        );
+      },
+      createErrorHandler(errMsg =>
+        addDangerToast(
+          t(
+            'There was an issue duplicating the selected datasets during GET: %s',
+            errMsg,
+          ),
+        ),
+      ),
+    );
+  };
+
   return (
     <>
       <SubMenu {...menuData} />
@@ -614,6 +701,11 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           show
         />
       )}
+      <DuplicateDatasetModal
+        dataset={datasetCurrentlyDuplicating}
+        onHide={closeDatasetDuplicateModal}
+        onDuplicate={handleDatasetDuplicate}
+      />
       <ConfirmStatusChange
         title={t('Please confirm')}
         description={t(

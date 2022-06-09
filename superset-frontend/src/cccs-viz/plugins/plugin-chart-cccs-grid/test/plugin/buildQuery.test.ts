@@ -8,6 +8,7 @@ describe('CccsGrid buildQuery', () => {
     series: 'foo',
     emitFilter: false,
     include_search: false,
+    page_length: 0,
     viz_type: 'my_chart',
   };
 

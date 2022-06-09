@@ -25,6 +25,7 @@ import {
   QueryFormColumn,
   ensureIsArray,
   validateNonEmpty,
+  legacyValidateInteger,
 } from '@superset-ui/core';
 import {
   ControlConfig,
@@ -36,10 +37,20 @@ import {
   sharedControls,
   ControlPanelState,
   ControlState,
+  formatSelectOptions,
 } from '@superset-ui/chart-controls';
 import { StyledColumnOption } from 'src/explore/components/optionRenderers';
 
 // import cidrRegex from 'cidr-regex';
+
+const PAGE_SIZE_OPTIONS = formatSelectOptions<number>([
+  [0, t('page_size.all')],
+  10,
+  20,
+  50,
+  100,
+  200,
+]);
 
 function getQueryMode(controls: ControlStateMapping): QueryMode {
   const mode = controls?.query_mode?.value;
@@ -73,7 +84,7 @@ const queryMode: ControlConfig<'RadioButtonControl'> = {
     [QueryMode.raw, QueryModeLabel[QueryMode.raw]],
   ],
   mapStateToProps: ({ controls }) => ({ value: getQueryMode(controls) }),
-  rerender: ['columns', 'groupby', 'metrics'],
+  rerender: ['columns', 'groupby', 'metrics', 'percent_metrics'],
 };
 
 const validateAggControlValues = (
@@ -225,6 +236,7 @@ const config: ControlPanelConfig = {
               default: [],
               valueKey: 'column_name',
               includeTime: false,
+              canSelectAll: true,
               optionRenderer: c => <StyledColumnOption showType column={c} />,
               valueRenderer: c => <StyledColumnOption column={c} />,
               visibility: isAggMode,
@@ -312,14 +324,6 @@ const config: ControlPanelConfig = {
         ],
         [
           {
-            name: 'timeseries_limit_metric',
-            override: {
-              visibility: isAggMode,
-            },
-          },
-        ],
-        [
-          {
             name: 'columns',
             config: {
               type: 'SelectControl',
@@ -329,6 +333,7 @@ const config: ControlPanelConfig = {
               freeForm: true,
               allowAll: true,
               default: [],
+              canSelectAll: true,
               optionRenderer: c => <StyledColumnOption showType column={c} />,
               valueRenderer: c => <StyledColumnOption column={c} />,
               valueKey: 'column_name',
@@ -376,12 +381,19 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-
         [
           {
             name: 'adhoc_filters',
             override: {
               // validators: [adhocFilterValidator],
+            },
+          },
+        ],
+        [
+          {
+            name: 'timeseries_limit_metric',
+            override: {
+              visibility: isAggMode,
             },
           },
         ],
@@ -411,7 +423,7 @@ const config: ControlPanelConfig = {
                 name: 'emitFilter',
                 config: {
                   type: 'CheckboxControl',
-                  label: t('Enable emitting filters'),
+                  label: t('Emit dashboard cross filters'),
                   default: false,
                   renderTrigger: true,
                   description: t(
@@ -513,28 +525,38 @@ const config: ControlPanelConfig = {
   },
 };
 
-// CLDN-941: Only show the CUSTOMIZE tab if DASHBOARD_CROSS_FILTERS are enabled in the system.
-// When more customization is added in the future this code can be removed and the code above
-// can be re-enabled.
-if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
-  config.controlPanelSections.push({
-    label: t('CCCS Grid Options'),
-    expanded: true,
-    controlSetRows: [
-      [
-        {
-          name: 'include_search',
-          config: {
-            type: 'CheckboxControl',
-            label: t('Search box'),
-            renderTrigger: true,
-            default: false,
-            description: t('Whether to include a client-side search box'),
-          },
+config.controlPanelSections.push({
+  label: t('CCCS Grid Options'),
+  expanded: true,
+  controlSetRows: [
+    [
+      {
+        name: 'include_search',
+        config: {
+          type: 'CheckboxControl',
+          label: t('Search box'),
+          renderTrigger: true,
+          default: false,
+          description: t('Whether to include a client-side search box'),
         },
-      ],
+      },
     ],
-  });
-}
+    [
+      {
+        name: 'page_length',
+        config: {
+          type: 'SelectControl',
+          freeForm: true,
+          renderTrigger: true,
+          label: t('Page length'),
+          default: 100,
+          choices: PAGE_SIZE_OPTIONS,
+          description: t('Rows per page, 0 means no pagination'),
+          validators: [legacyValidateInteger],
+        },
+      },
+    ],
+  ],
+});
 
 export default config;
