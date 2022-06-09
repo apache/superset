@@ -23,17 +23,13 @@ import BuilderComponentPane from '.';
 
 jest.mock('src/dashboard/containers/SliceAdder');
 
-describe('BuilderComponentPane', () => {
-  const props = { isStandalone: false, topOffset: 115 };
-  render(<BuilderComponentPane {...props} />);
-
-  test('BuilderComponentPane has correct tabs in correct order', () => {
-    const tabs = screen.getAllByRole('tab');
-    expect(tabs).toHaveLength(2);
-    expect(tabs[0]).toHaveTextContent('Charts');
-    expect(tabs[1]).toHaveTextContent('Layout Elements');
-    expect(screen.getByRole('tab', { selected: true })).toHaveTextContent(
-      'Charts',
-    );
-  });
+test('BuilderComponentPane has correct tabs in correct order', () => {
+  render(<BuilderComponentPane isStandalone={false} topOffset={115} />);
+  const tabs = screen.getAllByRole('tab');
+  expect(tabs).toHaveLength(2);
+  expect(tabs[0]).toHaveTextContent('Charts');
+  expect(tabs[1]).toHaveTextContent('Layout elements');
+  expect(screen.getByRole('tab', { selected: true })).toHaveTextContent(
+    'Charts',
+  );
 });

@@ -112,7 +112,7 @@ const BuilderComponentPane: React.FC<BCPProps> = ({
                         }
                       />
                     </Tabs.TabPane>
-                    <Tabs.TabPane key={2} tab={t('Layout Elements')}>
+                    <Tabs.TabPane key={2} tab={t('Layout elements')}>
                       <NewTabs />
                       <NewRow />
                       <NewColumn />
