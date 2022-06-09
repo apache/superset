@@ -43,7 +43,7 @@ import { StyledColumnOption } from 'src/explore/components/optionRenderers';
 
 //import cidrRegex from 'cidr-regex';
 
-const PAGE_SIZE_OPTIONS = formatSelectOptions<number>([
+export const PAGE_SIZE_OPTIONS = formatSelectOptions<number>([
   [0, t('page_size.all')],
   10,
   20,
@@ -526,7 +526,7 @@ const config: ControlPanelConfig = {
 };
 
 config.controlPanelSections.push({
-  label: t('CCCS Grid Options'),
+  label: t('Options'),
   expanded: true,
   controlSetRows: [
     [
