@@ -9,6 +9,7 @@ describe('CccsGrid buildQuery', () => {
     emitFilter: false,
     include_search: false,
     page_length: 0,
+    enable_grouping: false,
     viz_type: 'my_chart',
   };
 

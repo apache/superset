@@ -531,20 +531,6 @@ config.controlPanelSections.push({
   controlSetRows: [
     [
       {
-        name: 'table_filter',
-        config: {
-          type: 'CheckboxControl',
-          label: t('Enable emitting filters'),
-          default: false,
-          renderTrigger: true,
-          description: t(
-            'Whether to apply filter to dashboards when grid cells are clicked.',
-          ),
-        },
-      },
-    ],
-    [
-      {
         name: 'include_search',
         config: {
           type: 'CheckboxControl',
@@ -552,6 +538,18 @@ config.controlPanelSections.push({
           renderTrigger: true,
           default: false,
           description: t('Whether to include a client-side search box'),
+        },
+      },
+    ],
+    [
+      {
+        name: 'enable_grouping',
+        config: {
+          type: 'CheckboxControl',
+          label: t('Row grouping'),
+          renderTrigger: true,
+          default: false,
+          description: t('Whether to enable row grouping'),
         },
       },
     ],
