@@ -45,6 +45,7 @@ import { chartPropShape } from 'src/dashboard/util/propShapes';
 import { mergeExtraFormData } from 'src/dashboard/components/nativeFilters/utils';
 import { postFormData, putFormData } from 'src/explore/exploreUtils/formData';
 import { useTabId } from 'src/hooks/useTabId';
+import withToasts from 'src/components/MessageToasts/withToasts';
 import ExploreChartPanel from '../ExploreChartPanel';
 import ConnectedControlPanelsContainer from '../ControlPanelsContainer';
 import SaveModal from '../SaveModal';
@@ -59,7 +60,6 @@ import {
   LOG_ACTIONS_MOUNT_EXPLORER,
   LOG_ACTIONS_CHANGE_EXPLORE_CONTROLS,
 } from '../../../logger/LogUtils';
-import withToasts from 'src/components/MessageToasts/withToasts';
 import ConnectedExploreChartHeader from '../ExploreChartHeader';
 
 const propTypes = {
@@ -387,9 +387,9 @@ function ExploreViewContainer(props) {
       props.actions.triggerQuery(true, props.chart.id);
     }
 
-    let toShowToast = getItem(LocalStorageKeys.datasetname_set_successful)
-    if(toShowToast) {
-      props.addSuccessToast('Chart saved')
+    const toShowToast = getItem(LocalStorageKeys.datasetname_set_successful);
+    if (toShowToast) {
+      props.addSuccessToast('Chart saved');
       setItem(LocalStorageKeys.datasetname_set_successful, false);
     }
   }, []);
