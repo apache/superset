@@ -16,7 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export { ResultsPaneOnDashboard } from './ResultsPaneOnDashboard';
-export { SamplesPane } from './SamplesPane';
-export { TableControls, TableControlsWrapper } from './DataTableControls';
-export { useResultsPane } from './useResultsPane';
+const queryObjectCount = {
+  mixed_timeseries: 2,
+};
+
+export const getQueryCount = (vizType: string): number =>
+  queryObjectCount?.[vizType] || 1;
