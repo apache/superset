@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { QueryFormData } from '@superset-ui/core';
 import Collapse from 'src/components/Collapse';
 import { AgGridReact } from '@ag-grid-community/react';
-import { LicenseManager } from '@ag-grid-enterprise/all-modules';
+import { LicenseManager, AllModules } from '@ag-grid-enterprise/all-modules';
 import styles from './styles';
 
 // eslint-disable-next-line import/no-extraneous-dependencies
@@ -17,6 +17,7 @@ type AtAGlanceUserIDProps = QueryFormData & {
 const generateClientIpLinksList = (columnDefs: any, rowData: any) => (
   <div className="ag-theme-balham">
     <AgGridReact
+      modules={AllModules}
       rowData={rowData}
       columnDefs={columnDefs}
       domLayout="autoHeight"
@@ -126,10 +127,8 @@ function AtAGlanceUserIDCore(props: AtAGlanceUserIDProps) {
 
   const [canadianIpsListData, setCanadianIpsListData] = useState([{}]);
   const [nonCanadianIpsListData, setNonCanadianIpsListData] = useState([{}]);
-  const [
-    unsuccessfulCanadianIpsListData,
-    setUnsuccessfulCanadianIpsListData,
-  ] = useState([{}]);
+  const [unsuccessfulCanadianIpsListData, setUnsuccessfulCanadianIpsListData] =
+    useState([{}]);
   const [
     unsuccessfulNonCanadianIpsListData,
     setUnsuccessfulNonCanadianIpsListData,
