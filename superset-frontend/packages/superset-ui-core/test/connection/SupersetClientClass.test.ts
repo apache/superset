@@ -712,7 +712,7 @@ describe('SupersetClientClass', () => {
       const client = new SupersetClientClass({ protocol, host });
       await client.init();
       const result = await client.postForm('', {});
-      expect(result).toBeUndefined()
+      expect(result).toBeUndefined();
     });
   });
 });
