@@ -311,12 +311,18 @@ def menu_data() -> Dict[str, Any]:
     if callable(brand_text):
         brand_text = brand_text()
     build_number = appbuilder.app.config["BUILD_NUMBER"]
-    environment_tag = (
-        appbuilder.app.config["ENVIRONMENT_TAG_CONFIG"]["values"][
-            os.environ.get(appbuilder.app.config["ENVIRONMENT_TAG_CONFIG"]["variable"])
-        ]
-        or {}
-    )
+    try:
+        environment_tag = (
+            appbuilder.app.config["ENVIRONMENT_TAG_CONFIG"]["values"][
+                os.environ.get(
+                    appbuilder.app.config["ENVIRONMENT_TAG_CONFIG"]["variable"]
+                )
+            ]
+            or {}
+        )
+    except KeyError:
+        environment_tag = {}
+
     return {
         "menu": menu,
         "brand": {
