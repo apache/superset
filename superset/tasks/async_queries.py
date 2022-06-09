@@ -19,10 +19,11 @@ from __future__ import annotations
 import copy
 import logging
 import os
+from typing import Any, cast, Dict, Optional, TYPE_CHECKING
+
 from celery.exceptions import SoftTimeLimitExceeded
 from flask import current_app, g
 from marshmallow import ValidationError
-from typing import Any, cast, Dict, Optional, TYPE_CHECKING
 
 from superset.charts.schemas import ChartDataQueryContextSchema
 from superset.exceptions import SupersetVizException
@@ -47,15 +48,12 @@ query_timeout = current_app.config[
 def ensure_user_is_set(user_id: Optional[int]) -> None:
     user_is_not_set = not (hasattr(g, "user") and g.user is not None)
     if user_is_not_set and user_id is not None:
-        # pylint: disable=assigning-non-slot
         g.user = security_manager.get_user_by_id(user_id)
     elif user_is_not_set:
-        # pylint: disable=assigning-non-slot
         g.user = security_manager.get_anonymous_user()
 
 
 def set_form_data(form_data: Dict[str, Any]) -> None:
-    # pylint: disable=assigning-non-slot
     g.form_data = form_data
 
 
@@ -70,8 +68,7 @@ def _create_query_context_from_form(form_data: Dict[str, Any]) -> QueryContext:
 
 @celery_app.task(name="load_chart_data_into_cache", soft_time_limit=query_timeout)
 def load_chart_data_into_cache(
-    job_metadata: Dict[str, Any],
-    form_data: Dict[str, Any],
+    job_metadata: Dict[str, Any], form_data: Dict[str, Any],
 ) -> None:
     # pylint: disable=import-outside-toplevel
     from superset.charts.data.commands.get_data_command import ChartDataCommand
@@ -86,9 +83,7 @@ def load_chart_data_into_cache(
         prefix = os.environ["APP_PREFIX"]
         result_url = f"{prefix}/api/v1/chart/analytics/{cache_key}"
         async_query_manager.update_job(
-            job_metadata,
-            async_query_manager.STATUS_DONE,
-            result_url=result_url,
+            job_metadata, async_query_manager.STATUS_DONE, result_url=result_url,
         )
     except SoftTimeLimitExceeded as ex:
         logger.warning("A timeout occurred while loading chart data, error: %s", ex)
@@ -144,9 +139,7 @@ def load_explore_json_into_cache(  # pylint: disable=too-many-locals
         prefix = os.environ["APP_PREFIX"]
         result_url = f"{prefix}/superset/explore_json/analytics/{cache_key}"
         async_query_manager.update_job(
-            job_metadata,
-            async_query_manager.STATUS_DONE,
-            result_url=result_url,
+            job_metadata, async_query_manager.STATUS_DONE, result_url=result_url,
         )
     except SoftTimeLimitExceeded as ex:
         logger.warning("A timeout occurred while loading explore json, error: %s", ex)

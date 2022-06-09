@@ -19,13 +19,15 @@ from __future__ import annotations
 import json
 import logging
 import os
-import sqlalchemy as sqla
 from collections import defaultdict
+from functools import partial
+from typing import Any, Callable, Dict, List, Set, Tuple, Type, Union
+
+import sqlalchemy as sqla
 from flask import g
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
 from flask_appbuilder.security.sqla.models import User
-from functools import partial
 from markupsafe import escape, Markup
 from sqlalchemy import (
     Boolean,
@@ -44,11 +46,11 @@ from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.orm.session import object_session
 from sqlalchemy.sql import join, select
 from sqlalchemy.sql.elements import BinaryExpression
-from typing import Any, Callable, Dict, List, Set, Tuple, Type, Union
 
 from superset import app, ConnectorRegistry, db, is_feature_enabled, security_manager
 from superset.common.request_contexed_based import is_user_admin
 from superset.connectors.base.models import BaseDatasource
+from superset.connectors.druid.models import DruidColumn, DruidMetric
 from superset.connectors.sqla.models import SqlMetric, TableColumn
 from superset.extensions import cache_manager
 from superset.models.filter_set import FilterSet
@@ -145,19 +147,12 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
     certification_details = Column(Text)
     json_metadata = Column(Text)
     slug = Column(String(255), unique=True)
-    slices: List[Slice] = relationship(
-        Slice, secondary=dashboard_slices, backref="dashboards"
-    )
+    slices = relationship(Slice, secondary=dashboard_slices, backref="dashboards")
     owners = relationship(security_manager.user_model, secondary=dashboard_user)
     published = Column(Boolean, default=False)
     is_managed_externally = Column(Boolean, nullable=False, default=False)
     external_url = Column(Text, nullable=True)
     roles = relationship(security_manager.role_model, secondary=DashboardRoles)
-    embedded = relationship(
-        "EmbeddedDashboard",
-        back_populates="dashboard",
-        cascade="all, delete-orphan",
-    )
     _filter_sets = relationship(
         "FilterSet", back_populates="dashboard", cascade="all, delete"
     )
@@ -169,7 +164,6 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
         "css",
         "slug",
     ]
-    extra_import_fields = ["is_managed_externally", "external_url"]
 
     def __repr__(self) -> str:
         return f"Dashboard<{self.id or self.slug}>"
@@ -221,7 +215,7 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
         }
 
     @property
-    def charts(self) -> List[str]:
+    def charts(self) -> List[BaseDatasource]:
         return [slc.chart for slc in self.slices]
 
     @property
@@ -288,7 +282,6 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
             "slices": [slc.data for slc in self.slices],
             "position_json": positions,
             "last_modified_time": self.changed_on.replace(microsecond=0).timestamp(),
-            "is_managed_externally": self.is_managed_externally,
         }
 
     @cache_manager.cache.memoize(
@@ -353,8 +346,7 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
     @debounce(0.1)
     def clear_cache_for_datasource(cls, datasource_id: int) -> None:
         filter_query = select(
-            [dashboard_slices.c.dashboard_id],
-            distinct=True,
+            [dashboard_slices.c.dashboard_id], distinct=True,
         ).select_from(
             join(
                 dashboard_slices,
@@ -489,6 +481,8 @@ if is_feature_enabled("DASHBOARD_CACHE"):
             Dashboard.clear_cache_for_datasource(datasource_id=obj.id)
         elif isinstance(obj, (SqlMetric, TableColumn)):
             Dashboard.clear_cache_for_datasource(datasource_id=obj.table_id)
+        elif isinstance(obj, (DruidMetric, DruidColumn)):
+            Dashboard.clear_cache_for_datasource(datasource_id=obj.datasource_id)
 
     sqla.event.listen(Dashboard, "after_update", clear_dashboard_cache)
     sqla.event.listen(
@@ -503,3 +497,5 @@ if is_feature_enabled("DASHBOARD_CACHE"):
     # trigger update events for BaseDatasource.
     sqla.event.listen(SqlMetric, "after_update", clear_dashboard_cache)
     sqla.event.listen(TableColumn, "after_update", clear_dashboard_cache)
+    sqla.event.listen(DruidMetric, "after_update", clear_dashboard_cache)
+    sqla.event.listen(DruidColumn, "after_update", clear_dashboard_cache)

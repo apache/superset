@@ -19,6 +19,9 @@ from __future__ import annotations
 import json
 import logging
 import os
+from typing import Any, Dict, Optional, Type, TYPE_CHECKING
+from urllib import parse
+
 import sqlalchemy as sqla
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
@@ -36,8 +39,6 @@ from sqlalchemy import (
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm.mapper import Mapper
-from typing import Any, Dict, Optional, Type, TYPE_CHECKING
-from urllib import parse
 
 from superset import ConnectorRegistry, db, is_feature_enabled, security_manager
 from superset.legacy import update_time_range
@@ -119,7 +120,6 @@ class Slice(  # pylint: disable=too-many-public-methods
         "cache_timeout",
     ]
     export_parent = "table"
-    extra_import_fields = ["is_managed_externally", "external_url"]
 
     def __repr__(self) -> str:
         return self.slice_name or str(self.id)
@@ -227,7 +227,6 @@ class Slice(  # pylint: disable=too-many-public-methods
             "slice_url": self.slice_url,
             "certified_by": self.certified_by,
             "certification_details": self.certification_details,
-            "is_managed_externally": self.is_managed_externally,
         }
 
     @property

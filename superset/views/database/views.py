@@ -16,15 +16,16 @@
 # under the License.
 import io
 import os
-import pandas as pd
 import tempfile
 import zipfile
+from typing import TYPE_CHECKING
+
+import pandas as pd
 from flask import flash, g, redirect
 from flask_appbuilder import expose, SimpleFormView
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access
 from flask_babel import lazy_gettext as _
-from typing import TYPE_CHECKING
 from werkzeug.wrappers import Response
 from wtforms.fields import StringField
 from wtforms.validators import ValidationError
@@ -39,6 +40,7 @@ from superset.sql_parse import Table
 from superset.superset_typing import FlaskResponse
 from superset.utils import core as utils
 from superset.views.base import DeleteMixin, SupersetModelView, YamlExportMixin
+
 from .forms import ColumnarToDatabaseForm, CsvToDatabaseForm, ExcelToDatabaseForm
 from .mixins import DatabaseMixin
 from .validators import schema_allows_file_upload, sqlalchemy_uri_validator
@@ -273,13 +275,11 @@ class ExcelToDatabaseView(SimpleFormView):
             flash(message, "danger")
             return redirect("/exceltodatabaseview/form")
 
-        uploaded_tmp_file_path = (
-            tempfile.NamedTemporaryFile(  # pylint: disable=consider-using-with
-                dir=app.config["UPLOAD_FOLDER"],
-                suffix=os.path.splitext(form.excel_file.data.filename)[1].lower(),
-                delete=False,
-            ).name
-        )
+        uploaded_tmp_file_path = tempfile.NamedTemporaryFile(  # pylint: disable=consider-using-with
+            dir=app.config["UPLOAD_FOLDER"],
+            suffix=os.path.splitext(form.excel_file.data.filename)[1].lower(),
+            delete=False,
+        ).name
 
         try:
             utils.ensure_path_exists(config["UPLOAD_FOLDER"])
