@@ -21,7 +21,7 @@ import React from 'react';
 import { Input } from 'src/components/Input';
 import { Form, FormItem } from 'src/components/Form';
 import Alert from 'src/components/Alert';
-import { JsonObject, t, styled, SupersetClient } from '@superset-ui/core';
+import { JsonObject, t, styled, SupersetClient, Query } from '@superset-ui/core';
 import ReactMarkdown from 'react-markdown';
 import Modal from 'src/components/Modal';
 import { Radio } from 'src/components/Radio';
@@ -198,9 +198,9 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
             columns: selectedColumns,
           },
         },
-      }).then((data: { table_id: number }) => {
+      }).then(data => {
         exploreChart({
-          datasource: `${data.table_id}__table`,
+          datasource: `${data.table_id as number}__table`,
           metrics: [],
           groupby: [],
           time_range: 'No filter',
@@ -365,43 +365,7 @@ function mapStateToProps({
   saveModal,
 }: Record<string, any>): Partial<SaveModalProps> {
   return {
-    datasource: {
-      id: 'clientId2353',
-      dbId: 1,
-      sql: 'SELECT * FROM something',
-      sqlEditorId: 3,
-      tab: 'unimportant',
-      tempTable: '',
-      ctas: false,
-      cached: false,
-      errorMessage: null,
-      extra: { progress: null },
-      isDataPreview: false,
-      progress: 0,
-      resultsKey: null,
-      state: 'success',
-      tempSchema: null,
-      trackingUrl: null,
-      templateParams: null,
-      rows: 42,
-      queryLimit: 100,
-      limitingFactor: '',
-      endDttm: 1476910579693,
-      duration: '',
-      startDttm: 1476910566092.96,
-      time: {},
-      user: {},
-      userId: 1,
-      db: {},
-      started: '',
-      querylink: {},
-      queryId: 1,
-      executedSql: '',
-      output: '',
-      actions: {},
-      type: 'query',
-      columns: [],
-    }, /// explore.datasource,
+    datasource: explore.datasource,
     slice: explore.slice,
     userId: explore.user?.userId,
     dashboards: saveModal.dashboards,
