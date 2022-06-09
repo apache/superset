@@ -147,7 +147,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "owners.username",
         "owners.first_name",
         "owners.last_name",
-        "columns.business_type"
+        "columns.business_type",
         "columns.changed_on",
         "columns.column_name",
         "columns.created_on",
