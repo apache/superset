@@ -137,6 +137,11 @@ const config: ControlPanelConfig = {
       ],
     },
   ],
+  denormalizeFormData: formData => ({
+    ...formData,
+    metric: formData.standardizedFormData.standardizedState.metrics[0],
+    groupby: formData.standardizedFormData.standardizedState.columns,
+  }),
 };
 
 export default config;
