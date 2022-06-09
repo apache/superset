@@ -363,14 +363,14 @@ export const testQuery: Query = {
       is_dttm: false,
     },
     {
-      name: 'Column 2',
-      type: DatasourceType.Query,
-      is_dttm: true,
-    },
-    {
       name: 'Column 3',
       type: DatasourceType.Query,
       is_dttm: false,
+    },
+    {
+      name: 'Column 2',
+      type: DatasourceType.Query,
+      is_dttm: true,
     },
   ],
 };
