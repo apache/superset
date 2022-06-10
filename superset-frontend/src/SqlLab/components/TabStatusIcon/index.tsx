@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { QueryState } from 'src/SqlLab/types';
+import { QueryState } from '@superset-ui/core';
 
 interface TabStatusIconProps {
   tabState: QueryState;

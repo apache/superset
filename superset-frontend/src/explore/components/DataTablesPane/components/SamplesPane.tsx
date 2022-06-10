@@ -25,7 +25,6 @@ import {
   useFilteredTableData,
   useTableColumns,
 } from 'src/explore/components/DataTableControl';
-import { useOriginalFormattedTimeColumns } from 'src/explore/components/useOriginalFormattedTimeColumns';
 import { getDatasetSamples } from 'src/components/Chart/chartAction';
 import { TableControls } from './DataTableControls';
 import { SamplesPaneProps } from '../types';
@@ -42,6 +41,7 @@ export const SamplesPane = ({
   queryForce,
   actions,
   dataSize = 50,
+  isVisible,
 }: SamplesPaneProps) => {
   const [filterText, setFilterText] = useState('');
   const [data, setData] = useState<Record<string, any>[][]>([]);
@@ -84,8 +84,6 @@ export const SamplesPane = ({
     }
   }, [datasource, isRequest, queryForce]);
 
-  const originalFormattedTimeColumns =
-    useOriginalFormattedTimeColumns(datasourceId);
   // this is to preserve the order of the columns, even if there are integer values,
   // while also only grabbing the first column's keys
   const columns = useTableColumns(
@@ -93,7 +91,7 @@ export const SamplesPane = ({
     coltypes,
     data,
     datasourceId,
-    originalFormattedTimeColumns,
+    isVisible,
   );
   const filteredData = useFilteredTableData(filterText, data);
 
@@ -107,6 +105,7 @@ export const SamplesPane = ({
         <TableControls
           data={filteredData}
           columnNames={colnames}
+          columnTypes={coltypes}
           datasourceId={datasourceId}
           onInputChange={input => setFilterText(input)}
           isLoading={isLoading}
@@ -126,6 +125,7 @@ export const SamplesPane = ({
       <TableControls
         data={filteredData}
         columnNames={colnames}
+        columnTypes={coltypes}
         datasourceId={datasourceId}
         onInputChange={input => setFilterText(input)}
         isLoading={isLoading}

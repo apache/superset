@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
+import { ensureIsArray, t } from '@superset-ui/core';
 import {
   D3_FORMAT_DOCS,
   D3_FORMAT_OPTIONS,
@@ -135,6 +135,17 @@ const config: ControlPanelConfig = {
         'Columns to calculate distribution across. Defaults to temporal column if left empty.',
       ),
     },
+  },
+  denormalizeFormData: formData => {
+    const groupby =
+      formData.standardizedFormData.standardizedState.columns.filter(
+        col => !ensureIsArray(formData.columns).includes(col),
+      );
+    return {
+      ...formData,
+      metrics: formData.standardizedFormData.standardizedState.metrics,
+      groupby,
+    };
   },
 };
 export default config;

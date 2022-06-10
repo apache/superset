@@ -26,7 +26,6 @@ import {
   getChartBuildQueryRegistry,
   getChartMetadataRegistry,
 } from '@superset-ui/core';
-import { omit } from 'lodash';
 import { availableDomains } from 'src/utils/hostNamesConfig';
 import { safeStringify } from 'src/utils/safeStringify';
 import { URL_PARAMS } from 'src/constants';
@@ -216,7 +215,7 @@ export const buildV1ChartDataPayload = ({
           ...baseQueryObject,
         },
       ]));
-  const payload = buildQuery(
+  return buildQuery(
     {
       ...formData,
       force,
@@ -230,13 +229,6 @@ export const buildV1ChartDataPayload = ({
       },
     },
   );
-  if (resultType === 'samples') {
-    // remove row limit and offset to fall back to defaults
-    payload.queries = payload.queries.map(query =>
-      omit(query, ['row_limit', 'row_offset']),
-    );
-  }
-  return payload;
 };
 
 export const getLegacyEndpointType = ({ resultType, resultFormat }) =>

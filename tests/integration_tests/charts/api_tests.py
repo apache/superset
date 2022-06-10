@@ -520,7 +520,13 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         response = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(
             response,
-            {"message": {"datasource_type": ["Must be one of: druid, table, view."]}},
+            {
+                "message": {
+                    "datasource_type": [
+                        "Must be one of: sl_table, table, dataset, query, saved_query, view."
+                    ]
+                }
+            },
         )
         chart_data = {
             "slice_name": "title1",
@@ -531,7 +537,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         self.assertEqual(rv.status_code, 422)
         response = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(
-            response, {"message": {"datasource_id": ["Dataset does not exist"]}}
+            response, {"message": {"datasource_id": ["Datasource does not exist"]}}
         )
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
@@ -686,7 +692,13 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         response = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(
             response,
-            {"message": {"datasource_type": ["Must be one of: druid, table, view."]}},
+            {
+                "message": {
+                    "datasource_type": [
+                        "Must be one of: sl_table, table, dataset, query, saved_query, view."
+                    ]
+                }
+            },
         )
 
         chart_data = {"datasource_id": 0, "datasource_type": "table"}
@@ -694,7 +706,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         self.assertEqual(rv.status_code, 422)
         response = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(
-            response, {"message": {"datasource_id": ["Dataset does not exist"]}}
+            response, {"message": {"datasource_id": ["Datasource does not exist"]}}
         )
 
         db.session.delete(chart)

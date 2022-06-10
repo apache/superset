@@ -40,7 +40,7 @@ import {
   ControlPanelSectionConfig,
   ControlState,
   CustomControlItem,
-  DatasourceMeta,
+  Dataset,
   ExpandedControlItem,
   InfoTooltipWithTrigger,
   sections,
@@ -174,13 +174,13 @@ const isTimeSection = (section: ControlPanelSectionConfig): boolean =>
   (sections.legacyRegularTime.label === section.label ||
     sections.legacyTimeseriesTime.label === section.label);
 
-const hasTimeColumn = (datasource: DatasourceMeta): boolean =>
+const hasTimeColumn = (datasource: Dataset): boolean =>
   datasource?.columns?.some(c => c.is_dttm) ||
   datasource.type === DatasourceType.Druid;
 
 const sectionsToExpand = (
   sections: ControlPanelSectionConfig[],
-  datasource: DatasourceMeta,
+  datasource: Dataset,
 ): string[] =>
   // avoid expanding time section if datasource doesn't include time column
   sections.reduce(
@@ -193,7 +193,7 @@ const sectionsToExpand = (
 
 function getState(
   vizType: string,
-  datasource: DatasourceMeta,
+  datasource: Dataset,
   datasourceType: DatasourceType,
 ) {
   const querySections: ControlPanelSectionConfig[] = [];
