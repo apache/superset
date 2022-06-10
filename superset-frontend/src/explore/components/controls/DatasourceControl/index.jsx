@@ -19,7 +19,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { t, styled, withTheme } from '@superset-ui/core';
+import { t, styled, withTheme, DatasourceType } from '@superset-ui/core';
 import { getUrlParam } from 'src/utils/urlUtils';
 
 import { AntdDropdown } from 'src/components';
@@ -30,6 +30,7 @@ import {
   ChangeDatasourceModal,
   DatasourceModal,
 } from 'src/components/Datasource';
+import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { postForm } from 'src/explore/exploreUtils';
 import Button from 'src/components/Button';
 import ErrorAlert from 'src/components/ErrorMessage/ErrorAlert';
@@ -112,6 +113,8 @@ const Styles = styled.div`
 const CHANGE_DATASET = 'change_dataset';
 const VIEW_IN_SQL_LAB = 'view_in_sql_lab';
 const EDIT_DATASET = 'edit_dataset';
+const QUERY_PREVIEW = 'query_preview';
+const SAVE_AS_DATASET = 'save_as_dataset';
 
 class DatasourceControl extends React.PureComponent {
   constructor(props) {
@@ -126,6 +129,7 @@ class DatasourceControl extends React.PureComponent {
     this.toggleEditDatasourceModal = this.toggleEditDatasourceModal.bind(this);
     this.toggleShowDatasource = this.toggleShowDatasource.bind(this);
     this.handleMenuItemClick = this.handleMenuItemClick.bind(this);
+    this.toggleSaveDatasetModal = this.toggleSaveDatasetModal.bind(this);
   }
 
   onDatasourceSave(datasource) {
@@ -166,25 +170,51 @@ class DatasourceControl extends React.PureComponent {
     }));
   }
 
+  toggleSaveDatasetModal() {
+    this.setState(({ showSaveDatasetModal }) => ({
+      showSaveDatasetModal: !showSaveDatasetModal,
+    }));
+  }
+
   handleMenuItemClick({ key }) {
-    if (key === CHANGE_DATASET) {
-      this.toggleChangeDatasourceModal();
-    }
-    if (key === EDIT_DATASET) {
-      this.toggleEditDatasourceModal();
-    }
-    if (key === VIEW_IN_SQL_LAB) {
-      const { datasource } = this.props;
-      const payload = {
-        datasourceKey: `${datasource.id}__${datasource.type}`,
-        sql: datasource.sql,
-      };
-      postForm('/superset/sqllab/', payload);
+    switch (key) {
+      case CHANGE_DATASET:
+        this.toggleChangeDatasourceModal();
+        break;
+
+      case EDIT_DATASET:
+        this.toggleEditDatasourceModal();
+        break;
+
+      case VIEW_IN_SQL_LAB:
+        {
+          const { datasource } = this.props;
+          const payload = {
+            datasourceKey: `${datasource.id}__${datasource.type}`,
+            sql: datasource.sql,
+          };
+          postForm('/superset/sqllab/', payload);
+        }
+        break;
+
+      case QUERY_PREVIEW:
+        break;
+
+      case SAVE_AS_DATASET:
+        this.toggleSaveDatasetModal();
+        break;
+
+      default:
+        break;
     }
   }
 
   render() {
-    const { showChangeDatasourceModal, showEditDatasourceModal } = this.state;
+    const {
+      showChangeDatasourceModal,
+      showEditDatasourceModal,
+      showSaveDatasetModal,
+    } = this.state;
     const { datasource, onChange, theme } = this.props;
     const isMissingDatasource = datasource.id == null;
     let isMissingParams = false;
@@ -205,7 +235,7 @@ class DatasourceControl extends React.PureComponent {
 
     const editText = t('Edit dataset');
 
-    const datasourceMenu = (
+    const defaultDatasourceMenu = (
       <Menu onClick={this.handleMenuItemClick}>
         {this.props.isEditable && (
           <Menu.Item
@@ -230,6 +260,14 @@ class DatasourceControl extends React.PureComponent {
         {isSqlSupported && (
           <Menu.Item key={VIEW_IN_SQL_LAB}>{t('View in SQL Lab')}</Menu.Item>
         )}
+      </Menu>
+    );
+
+    const queryDatasourceMenu = (
+      <Menu onClick={this.handleMenuItemClick}>
+        <Menu.Item key={QUERY_PREVIEW}>{t('Query preview')}</Menu.Item>
+        <Menu.Item key={VIEW_IN_SQL_LAB}>{t('View in SQL Lab')}</Menu.Item>
+        <Menu.Item key={SAVE_AS_DATASET}>{t('Save as dataset')}</Menu.Item>
       </Menu>
     );
 
@@ -265,7 +303,11 @@ class DatasourceControl extends React.PureComponent {
             <WarningIconWithTooltip warningMarkdown={extra.warning_markdown} />
           )}
           <AntdDropdown
-            overlay={datasourceMenu}
+            overlay={
+              datasource.type === DatasourceType.Query
+                ? queryDatasourceMenu
+                : defaultDatasourceMenu
+            }
             trigger={['click']}
             data-test="datasource-menu"
           >
@@ -338,6 +380,18 @@ class DatasourceControl extends React.PureComponent {
             onHide={this.toggleChangeDatasourceModal}
             show={showChangeDatasourceModal}
             onChange={onChange}
+          />
+        )}
+        {showSaveDatasetModal && (
+          <SaveDatasetModal
+            visible={showSaveDatasetModal}
+            onHide={this.toggleSaveDatasetModal}
+            buttonTextOnSave={t('Save & Explore')}
+            buttonTextOnOverwrite={t('Overwrite & Explore')}
+            modalDescription={t(
+              'Save this query as a virtual dataset to continue exploring',
+            )}
+            datasource={datasource}
           />
         )}
       </Styles>
