@@ -17,7 +17,12 @@
  * under the License.
  */
 import React from 'react';
-import { FeatureFlag, isFeatureEnabled, t } from '@superset-ui/core';
+import {
+  ensureIsArray,
+  FeatureFlag,
+  isFeatureEnabled,
+  t,
+} from '@superset-ui/core';
 import { cloneDeep } from 'lodash';
 import {
   ControlPanelConfig,
@@ -35,7 +40,6 @@ import { legendSection, richTooltipSection, xAxisControl } from '../controls';
 
 const {
   area,
-  annotationLayers,
   logAxis,
   markerEnabled,
   markerSize,
@@ -289,23 +293,7 @@ const config: ControlPanelConfig = {
     createAdvancedAnalyticsSection(t('Advanced analytics Query A'), ''),
     createQuerySection(t('Query B'), '_b'),
     createAdvancedAnalyticsSection(t('Advanced analytics Query B'), '_b'),
-    {
-      label: t('Annotations and Layers'),
-      expanded: false,
-      controlSetRows: [
-        [
-          {
-            name: 'annotation_layers',
-            config: {
-              type: 'AnnotationLayerControl',
-              label: '',
-              default: annotationLayers,
-              description: t('Annotation Layers'),
-            },
-          },
-        ],
-      ],
-    },
+    sections.annotationsAndLayersControls,
     sections.titleControls,
     {
       label: t('Chart Options'),
@@ -452,6 +440,21 @@ const config: ControlPanelConfig = {
       ],
     },
   ],
+  denormalizeFormData: formData => {
+    const groupby =
+      formData.standardizedFormData.standardizedState.columns.filter(
+        col => !ensureIsArray(formData.groupby_b).includes(col),
+      );
+    const metrics =
+      formData.standardizedFormData.standardizedState.metrics.filter(
+        metric => !ensureIsArray(formData.metrics_b).includes(metric),
+      );
+    return {
+      ...formData,
+      metrics,
+      groupby,
+    };
+  },
 };
 
 export default config;

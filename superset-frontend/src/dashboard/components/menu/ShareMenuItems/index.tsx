@@ -64,8 +64,7 @@ const ShareMenuItems = (props: ShareMenuItemProps) => {
 
   async function onCopyLink() {
     try {
-      const url = await generateUrl();
-      await copyTextToClipboard(url);
+      await copyTextToClipboard(generateUrl);
       addSuccessToast(t('Copied to clipboard!'));
     } catch (error) {
       logging.error(error);

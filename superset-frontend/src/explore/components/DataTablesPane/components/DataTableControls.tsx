@@ -17,14 +17,16 @@
  * under the License.
  */
 import React, { useMemo } from 'react';
-import { css, styled } from '@superset-ui/core';
+import { zip } from 'lodash';
+import { css, GenericDataType, styled } from '@superset-ui/core';
 import {
   CopyToClipboardButton,
   FilterInput,
   RowCount,
 } from 'src/explore/components/DataTableControl';
 import { applyFormattingToTabularData } from 'src/utils/common';
-import { useOriginalFormattedTimeColumns } from 'src/explore/components/useOriginalFormattedTimeColumns';
+import { getTimeColumns } from 'src/explore/components/DataTableControl/utils';
+import { TableControlsProps } from '../types';
 
 export const TableControlsWrapper = styled.div`
   ${({ theme }) => `
@@ -44,19 +46,24 @@ export const TableControls = ({
   datasourceId,
   onInputChange,
   columnNames,
+  columnTypes,
   isLoading,
-}: {
-  data: Record<string, any>[];
-  datasourceId?: string;
-  onInputChange: (input: string) => void;
-  columnNames: string[];
-  isLoading: boolean;
-}) => {
-  const originalFormattedTimeColumns =
-    useOriginalFormattedTimeColumns(datasourceId);
+}: TableControlsProps) => {
+  const originalTimeColumns = getTimeColumns(datasourceId);
+  const formattedTimeColumns = zip<string, GenericDataType>(
+    columnNames,
+    columnTypes,
+  )
+    .filter(
+      ([name, type]) =>
+        type === GenericDataType.TEMPORAL &&
+        name &&
+        !originalTimeColumns.includes(name),
+    )
+    .map(([colname]) => colname);
   const formattedData = useMemo(
-    () => applyFormattingToTabularData(data, originalFormattedTimeColumns),
-    [data, originalFormattedTimeColumns],
+    () => applyFormattingToTabularData(data, formattedTimeColumns),
+    [data, formattedTimeColumns],
   );
   return (
     <TableControlsWrapper>

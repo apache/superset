@@ -256,8 +256,7 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
               checked={this.state.action === 'saveas'}
               onChange={() => this.changeAction('saveas')}
             >
-              {' '}
-              {t('Save as ...')} &nbsp;
+              {t('Save as...')}
             </Radio>
           </FormItem>
           <hr />

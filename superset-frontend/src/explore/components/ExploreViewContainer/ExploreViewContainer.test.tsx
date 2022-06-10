@@ -92,7 +92,7 @@ test('generates a new form_data param when none is available', async () => {
   expect(replaceState).toHaveBeenCalledWith(
     expect.anything(),
     undefined,
-    expect.stringMatching('dataset_id'),
+    expect.stringMatching('datasource_id'),
   );
   replaceState.mockRestore();
 });
@@ -109,7 +109,7 @@ test('generates a different form_data param when one is provided and is mounting
   expect(replaceState).toHaveBeenCalledWith(
     expect.anything(),
     undefined,
-    expect.stringMatching('dataset_id'),
+    expect.stringMatching('datasource_id'),
   );
   replaceState.mockRestore();
 });

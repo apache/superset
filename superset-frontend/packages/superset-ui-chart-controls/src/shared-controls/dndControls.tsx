@@ -20,11 +20,14 @@
 import {
   FeatureFlag,
   isFeatureEnabled,
+  QueryColumn,
+  QueryResponse,
   t,
   validateNonEmpty,
 } from '@superset-ui/core';
-import { ExtraControlProps, SharedControlConfig } from '../types';
-import { TIME_COLUMN_OPTION, TIME_FILTER_LABELS } from '../constants';
+import { ExtraControlProps, SharedControlConfig, Dataset } from '../types';
+import { DATASET_TIME_COLUMN_OPTION, TIME_FILTER_LABELS } from '../constants';
+import { QUERY_TIME_COLUMN_OPTION, defineSavedMetrics } from '..';
 
 export const dndGroupByControl: SharedControlConfig<'DndColumnSelect'> = {
   type: 'DndColumnSelect',
@@ -36,15 +39,25 @@ export const dndGroupByControl: SharedControlConfig<'DndColumnSelect'> = {
   ),
   mapStateToProps(state, { includeTime }) {
     const newState: ExtraControlProps = {};
-    if (state.datasource) {
-      const options = state.datasource.columns.filter(c => c.groupby);
+    const { datasource } = state;
+    if (datasource?.columns[0]?.hasOwnProperty('groupby')) {
+      const options = (datasource as Dataset).columns.filter(c => c.groupby);
       if (includeTime) {
-        options.unshift(TIME_COLUMN_OPTION);
+        options.unshift(DATASET_TIME_COLUMN_OPTION);
       }
       newState.options = Object.fromEntries(
         options.map(option => [option.column_name, option]),
       );
-      newState.savedMetrics = state.datasource.metrics || [];
+      newState.savedMetrics = (datasource as Dataset).metrics || [];
+    } else {
+      const options = datasource?.columns;
+      if (includeTime) {
+        (options as QueryColumn[])?.unshift(QUERY_TIME_COLUMN_OPTION);
+      }
+      newState.options = Object.fromEntries(
+        (options as QueryColumn[])?.map(option => [option.name, option]),
+      );
+      newState.options = datasource?.columns;
     }
     return newState;
   },
@@ -83,8 +96,10 @@ export const dnd_adhoc_filters: SharedControlConfig<'DndFilterSelect'> = {
   default: [],
   description: '',
   mapStateToProps: ({ datasource, form_data }) => ({
-    columns: datasource?.columns.filter(c => c.filterable) || [],
-    savedMetrics: datasource?.metrics || [],
+    columns: datasource?.columns[0]?.hasOwnProperty('filterable')
+      ? (datasource as Dataset)?.columns.filter(c => c.filterable)
+      : datasource?.columns || [],
+    savedMetrics: defineSavedMetrics(datasource),
     // current active adhoc metrics
     selectedMetrics:
       form_data.metrics || (form_data.metric ? [form_data.metric] : []),
@@ -99,8 +114,8 @@ export const dnd_adhoc_metrics: SharedControlConfig<'DndMetricSelect'> = {
   label: t('Metrics'),
   validators: [validateNonEmpty],
   mapStateToProps: ({ datasource }) => ({
-    columns: datasource ? datasource.columns : [],
-    savedMetrics: datasource ? datasource.metrics : [],
+    columns: datasource?.columns || [],
+    savedMetrics: defineSavedMetrics(datasource),
     datasource,
     datasourceType: datasource?.type,
   }),
@@ -130,7 +145,7 @@ export const dnd_sort_by: SharedControlConfig<'DndMetricSelect'> = {
   ),
   mapStateToProps: ({ datasource }) => ({
     columns: datasource?.columns || [],
-    savedMetrics: datasource?.metrics || [],
+    savedMetrics: defineSavedMetrics(datasource),
     datasource,
     datasourceType: datasource?.type,
   }),
@@ -178,14 +193,31 @@ export const dnd_granularity_sqla: typeof dndGroupByControl = {
       : 'Drop temporal column here',
   ),
   mapStateToProps: ({ datasource }) => {
-    const temporalColumns = datasource?.columns.filter(c => c.is_dttm) ?? [];
+    if (datasource?.columns[0]?.hasOwnProperty('column_name')) {
+      const temporalColumns =
+        (datasource as Dataset)?.columns?.filter(c => c.is_dttm) ?? [];
+      const options = Object.fromEntries(
+        temporalColumns.map(option => [option.column_name, option]),
+      );
+      return {
+        options,
+        default:
+          (datasource as Dataset)?.main_dttm_col ||
+          temporalColumns[0]?.column_name ||
+          null,
+        isTemporal: true,
+      };
+    }
+
+    const sortedQueryColumns = (datasource as QueryResponse)?.columns?.sort(
+      query => (query?.is_dttm ? -1 : 1),
+    );
     const options = Object.fromEntries(
-      temporalColumns.map(option => [option.column_name, option]),
+      sortedQueryColumns.map(option => [option.name, option]),
     );
     return {
       options,
-      default:
-        datasource?.main_dttm_col || temporalColumns[0]?.column_name || null,
+      default: sortedQueryColumns[0]?.name || null,
       isTemporal: true,
     };
   },

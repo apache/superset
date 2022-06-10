@@ -31,13 +31,12 @@ import {
   setItem,
   LocalStorageKeys,
 } from 'src/utils/localStorageHelpers';
-import { ResultsPane, SamplesPane, TableControlsWrapper } from './components';
-import { DataTablesPaneProps } from './types';
-
-enum ResultTypes {
-  Results = 'results',
-  Samples = 'samples',
-}
+import {
+  SamplesPane,
+  TableControlsWrapper,
+  useResultsPane,
+} from './components';
+import { DataTablesPaneProps, ResultTypes } from './types';
 
 const SouthPane = styled.div`
   ${({ theme }) => `
@@ -85,6 +84,7 @@ export const DataTablesPane = ({
   datasource,
   queryForce,
   onCollapseChange,
+  chartStatus,
   ownState,
   errorMessage,
   actions,
@@ -92,7 +92,7 @@ export const DataTablesPane = ({
   const theme = useTheme();
   const [activeTabKey, setActiveTabKey] = useState<string>(ResultTypes.Results);
   const [isRequest, setIsRequest] = useState<Record<ResultTypes, boolean>>({
-    results: getItem(LocalStorageKeys.is_datapanel_open, false),
+    results: false,
     samples: false,
   });
   const [panelOpen, setPanelOpen] = useState(
@@ -111,7 +111,11 @@ export const DataTablesPane = ({
       });
     }
 
-    if (panelOpen && activeTabKey === ResultTypes.Results) {
+    if (
+      panelOpen &&
+      activeTabKey.startsWith(ResultTypes.Results) &&
+      chartStatus === 'rendered'
+    ) {
       setIsRequest({
         results: true,
         samples: false,
@@ -124,7 +128,7 @@ export const DataTablesPane = ({
         samples: true,
       });
     }
-  }, [panelOpen, activeTabKey]);
+  }, [panelOpen, activeTabKey, chartStatus]);
 
   const handleCollapseChange = useCallback(
     (isOpen: boolean) => {
@@ -182,6 +186,35 @@ export const DataTablesPane = ({
     );
   }, [handleCollapseChange, panelOpen, theme.colors.grayscale.base]);
 
+  const queryResultsPanes = useResultsPane({
+    errorMessage,
+    queryFormData,
+    queryForce,
+    ownState,
+    isRequest: isRequest.results,
+    actions,
+    isVisible: ResultTypes.Results === activeTabKey,
+  }).map((pane, idx) => {
+    if (idx === 0) {
+      return (
+        <Tabs.TabPane tab={t('Results')} key={ResultTypes.Results}>
+          {pane}
+        </Tabs.TabPane>
+      );
+    }
+    if (idx > 0) {
+      return (
+        <Tabs.TabPane
+          tab={t('Results %s', idx + 1)}
+          key={`${ResultTypes.Results} ${idx + 1}`}
+        >
+          {pane}
+        </Tabs.TabPane>
+      );
+    }
+    return null;
+  });
+
   return (
     <SouthPane data-test="some-purposeful-instance">
       <Tabs
@@ -190,22 +223,14 @@ export const DataTablesPane = ({
         activeKey={panelOpen ? activeTabKey : ''}
         onTabClick={handleTabClick}
       >
-        <Tabs.TabPane tab={t('Results')} key={ResultTypes.Results}>
-          <ResultsPane
-            errorMessage={errorMessage}
-            queryFormData={queryFormData}
-            queryForce={queryForce}
-            ownState={ownState}
-            isRequest={isRequest.results}
-            actions={actions}
-          />
-        </Tabs.TabPane>
+        {queryResultsPanes}
         <Tabs.TabPane tab={t('Samples')} key={ResultTypes.Samples}>
           <SamplesPane
             datasource={datasource}
             queryForce={queryForce}
             isRequest={isRequest.samples}
             actions={actions}
+            isVisible={ResultTypes.Samples === activeTabKey}
           />
         </Tabs.TabPane>
       </Tabs>
