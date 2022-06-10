@@ -114,10 +114,6 @@ const StyledHeader = styled.div`
       &.active {
         background: ${({ theme }) => theme.colors.secondary.light4};
       }
-
-      &.active a {
-        text-decoration: underline;
-      }
     }
 
     li.active > a,
