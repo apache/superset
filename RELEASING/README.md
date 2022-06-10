@@ -425,7 +425,7 @@ with the changes on `CHANGELOG.md` and `UPDATING.md`.
 Extract the release to the `/tmp` folder to build the PiPY release. Files in the `/tmp` folder will be automatically deleted by the OS.
 
 ```bash
-cd /tmp
+mkdir -p /tmp/superset && cd /tmp/superset
 tar xfvz ~/svn/superset/${SUPERSET_VERSION}/${SUPERSET_RELEASE_TARBALL}
 ```
 
@@ -433,7 +433,7 @@ Create a virtual environment and install the dependencies
 
 ```bash
 cd ${SUPERSET_RELEASE_RC}
-virtualenv venv
+python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements/base.txt
 pip install twine
