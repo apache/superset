@@ -553,7 +553,6 @@ def get_rls_for_table(
     candidate: Token,
     database_id: int,
     default_schema: Optional[str],
-    username: Optional[str] = None,
 ) -> Optional[TokenList]:
     """
     Given a table name, return any associated RLS predicates.
@@ -586,7 +585,7 @@ def get_rls_for_table(
     template_processor = dataset.get_template_processor()
     predicate = " AND ".join(
         str(filter_)
-        for filter_ in dataset.get_sqla_row_level_filters(template_processor, username)
+        for filter_ in dataset.get_sqla_row_level_filters(template_processor)
     )
     if not predicate:
         return None
@@ -601,7 +600,6 @@ def insert_rls(
     token_list: TokenList,
     database_id: int,
     default_schema: Optional[str],
-    username: Optional[str] = None,
 ) -> TokenList:
     """
     Update a statement inplace applying any associated RLS predicates.
@@ -623,7 +621,7 @@ def insert_rls(
         elif state == InsertRLSState.SEEN_SOURCE and (
             isinstance(token, Identifier) or token.ttype == Keyword
         ):
-            rls = get_rls_for_table(token, database_id, default_schema, username)
+            rls = get_rls_for_table(token, database_id, default_schema)
             if rls:
                 state = InsertRLSState.FOUND_TABLE
 
