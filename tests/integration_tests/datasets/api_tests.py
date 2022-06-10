@@ -276,6 +276,7 @@ class TestDatasetApi(SupersetTestCase):
             "fetch_values_predicate": None,
             "filter_select_enabled": False,
             "is_sqllab_view": False,
+            "kind": "physical",
             "main_dttm_col": None,
             "offset": 0,
             "owners": [],
