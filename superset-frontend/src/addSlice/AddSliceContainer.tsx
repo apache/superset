@@ -297,16 +297,23 @@ export default class AddSliceContainer extends React.PureComponent<
                   value={this.state.datasource}
                 />
                 <span>
-                  {t(
-                    'Instructions to add a dataset are available in the Superset tutorial.',
-                  )}{' '}
+                  <a
+                    href="/tablemodelview/list"
+                    rel="noopener noreferrer"
+                    target="_blank"
+                  >
+                    {t('Add a dataset')}
+                  </a>
+                  {t(' or ')}
                   <a
                     href="https://superset.apache.org/docs/creating-charts-dashboards/creating-your-first-dashboard/#registering-a-new-table"
                     rel="noopener noreferrer"
                     target="_blank"
                   >
+                    {t('view instructions ')}
                     <i className="fa fa-external-link" />
                   </a>
+                  .
                 </span>
               </div>
             }
