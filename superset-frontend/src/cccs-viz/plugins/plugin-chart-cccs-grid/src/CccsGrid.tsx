@@ -272,7 +272,7 @@ export default function CccsGrid({
   }, [include_search]);
 
   useEffect(() => {
-    keyRefresh.current += 1
+    keyRefresh.current += 1;
   }, [enable_grouping]);
 
   const gridOptions = {
@@ -288,29 +288,33 @@ export default function CccsGrid({
       <div className="form-inline" style={{ paddingBottom: '0.5em' }}>
         <div className="row">
           <div className="col-sm-6">
-            <span className="dt-select-page-size form-inline">
-              Show{' '}
-              <select
-                className="form-control input-sm"
-                value={pageSize}
-                onBlur={() => {}}
-                onChange={e => {
-                  updatePageSize(Number((e.target as HTMLSelectElement).value));
-                }}
-              >
-                {PAGE_SIZE_OPTIONS.map(option => {
-                  const [size, text] = Array.isArray(option)
-                    ? option
-                    : [option, option];
-                  return (
-                    <option key={size} value={size}>
-                      {text}
-                    </option>
-                  );
-                })}
-              </select>{' '}
-              entries
-            </span>
+            {pageSize > 0 && (
+              <span className="dt-select-page-size form-inline">
+                Show{' '}
+                <select
+                  className="form-control input-sm"
+                  value={pageSize}
+                  onBlur={() => {}}
+                  onChange={e => {
+                    updatePageSize(
+                      Number((e.target as HTMLSelectElement).value),
+                    );
+                  }}
+                >
+                  {PAGE_SIZE_OPTIONS.map(option => {
+                    const [size, text] = Array.isArray(option)
+                      ? option
+                      : [option, option];
+                    return (
+                      <option key={size} value={size}>
+                        {text}
+                      </option>
+                    );
+                  })}
+                </select>{' '}
+                entries
+              </span>
+            )}
           </div>
           <div className="col-sm-6">
             {include_search ? (
@@ -347,7 +351,7 @@ export default function CccsGrid({
         pagination={pageSize > 0}
         cacheQuickFilter={true}
         quickFilterText={searchValue}
-        rowGroupPanelShow={enable_grouping ? "always" : "never"}
+        rowGroupPanelShow={enable_grouping ? 'always' : 'never'}
       />
     </div>
   );

@@ -561,7 +561,7 @@ config.controlPanelSections.push({
           freeForm: true,
           renderTrigger: true,
           label: t('Page length'),
-          default: 100,
+          default: 0,
           choices: PAGE_SIZE_OPTIONS,
           description: t('Rows per page, 0 means no pagination'),
           validators: [legacyValidateInteger],
