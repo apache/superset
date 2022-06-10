@@ -288,7 +288,7 @@ export default function CccsGrid({
       <div className="form-inline" style={{ paddingBottom: '0.5em' }}>
         <div className="row">
           <div className="col-sm-6">
-            {pageSize > 0 && (
+            {page_length > 0 && (
               <span className="dt-select-page-size form-inline">
                 Show{' '}
                 <select
