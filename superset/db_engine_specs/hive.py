@@ -585,3 +585,9 @@ class HiveEngineSpec(PrestoEngineSpec):
 class SparkEngineSpec(HiveEngineSpec):
 
     engine_name = "Apache Spark SQL"
+
+
+class Spark3EngineSpec(HiveEngineSpec):
+
+    engine_name = "Apache Spark3 SQL"
+    

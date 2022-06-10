@@ -40,7 +40,7 @@ time_grain_expressions = {
 }
 
 
-class DatabricksHiveEngineSpec(HiveEngineSpec):
+class DatabricksHiveEngineSpec(SparkEngineSpec):
     engine = "databricks"
     engine_name = "Databricks Interactive Cluster"
     driver = "pyhive"
