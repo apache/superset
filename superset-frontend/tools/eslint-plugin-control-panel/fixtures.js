@@ -152,6 +152,64 @@ const fullControlPanelWithTableSection = {
   };`,
 };
 
+const controlPanelWithConfigAsVariable = {
+  code: `
+  const config = {
+    controlPanelSections: [
+      {
+        label: t('Chart'),
+        controlSetRows: [['metric']],
+      },
+      {
+        label: t('Time'),
+        controlSetRows: [['granularity']],
+      },
+      {
+        label: 'Some other section 1',
+        controlSetRows: [['control']],
+      },
+      {
+        label: 'Some other section 2',
+        controlSetRows: [['control']],
+      },
+      {
+        label: 'Some other section 3',
+        controlSetRows: [['control']],
+      },
+    ],
+  };
+  export default config;`,
+};
+
+const controlPanelWithExportAsDefault = {
+  code: `
+  const config = {
+    controlPanelSections: [
+      {
+        label: t('Chart'),
+        controlSetRows: [['metric']],
+      },
+      {
+        label: t('Time'),
+        controlSetRows: [['granularity']],
+      },
+      {
+        label: 'Some other section 1',
+        controlSetRows: [['control']],
+      },
+      {
+        label: 'Some other section 2',
+        controlSetRows: [['control']],
+      },
+      {
+        label: 'Some other section 3',
+        controlSetRows: [['control']],
+      },
+    ],
+  };
+  export { config as default };`,
+};
+
 // ----------------------
 // INVALID CONTROL PANELS
 // ----------------------
@@ -268,6 +326,8 @@ module.exports = {
   controlPanelWithNoTimeSection,
   controlPanelWithNoFilterAndSettingsSection,
   fullControlPanelWithTableSection,
+  controlPanelWithConfigAsVariable,
+  controlPanelWithExportAsDefault,
   controlPanelWithNoChartSection,
   controlPanelWithFilterBeforeTime,
   controlPanelWithSettingsFirst,

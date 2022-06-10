@@ -29,6 +29,8 @@ const {
   controlPanelWithNoTimeSection,
   controlPanelWithNoFilterAndSettingsSection,
   fullControlPanelWithTableSection,
+  controlPanelWithConfigAsVariable,
+  controlPanelWithExportAsDefault,
   controlPanelWithNoChartSection,
   controlPanelWithFilterBeforeTime,
   controlPanelWithSettingsFirst,
@@ -55,6 +57,8 @@ ruleTester.run('ensure-sections-order', rule, {
     controlPanelWithNoTimeSection,
     controlPanelWithNoFilterAndSettingsSection,
     fullControlPanelWithTableSection,
+    controlPanelWithConfigAsVariable,
+    controlPanelWithExportAsDefault,
   ],
   invalid: [
     controlPanelWithNoChartSection,
