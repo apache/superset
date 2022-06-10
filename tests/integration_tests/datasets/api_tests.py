@@ -35,6 +35,7 @@ from superset.dao.exceptions import (
     DAODeleteFailedError,
     DAOUpdateFailedError,
 )
+from superset.datasets.models import Dataset
 from superset.extensions import db, security_manager
 from superset.models.core import Database
 from superset.utils.core import backend, get_example_default_schema
@@ -1635,16 +1636,21 @@ class TestDatasetApi(SupersetTestCase):
         database = (
             db.session.query(Database).filter_by(uuid=database_config["uuid"]).one()
         )
+        shadow_dataset = (
+            db.session.query(Dataset).filter_by(uuid=dataset_config["uuid"]).one()
+        )
         assert database.database_name == "imported_database"
 
         assert len(database.tables) == 1
         dataset = database.tables[0]
         assert dataset.table_name == "imported_dataset"
         assert str(dataset.uuid) == dataset_config["uuid"]
+        assert str(shadow_dataset.uuid) == dataset_config["uuid"]
 
         dataset.owners = []
         database.owners = []
         db.session.delete(dataset)
+        db.session.delete(shadow_dataset)
         db.session.delete(database)
         db.session.commit()
 
