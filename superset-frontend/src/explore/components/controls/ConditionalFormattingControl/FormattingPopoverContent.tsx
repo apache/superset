@@ -129,7 +129,7 @@ const shouldFormItemUpdate = (
     isOperatorNone(currentValues.operator) ||
   isOperatorMultiValue(prevValues.operator) !==
     isOperatorMultiValue(currentValues.operator) ||
-  prevValues.inverseScale != currentValues.inverseScale;
+  prevValues.inverseScale !== currentValues.inverseScale;
 
 const operatorField = (
   <FormItem
