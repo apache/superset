@@ -16,13 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { useState } from 'react';
 import { rgb } from 'd3-color';
 import { styled, SupersetTheme, t, useTheme } from '@superset-ui/core';
 import { Form, FormItem, FormProps } from 'src/components/Form';
 import Select from 'src/components/Select/Select';
 import { Col, Row } from 'src/components';
 import { InputNumber } from 'src/components/Input';
+import Checkbox from 'src/components/Checkbox';
 import Button from 'src/components/Button';
 import {
   COMPARATOR,
@@ -127,7 +128,8 @@ const shouldFormItemUpdate = (
   isOperatorNone(prevValues.operator) !==
     isOperatorNone(currentValues.operator) ||
   isOperatorMultiValue(prevValues.operator) !==
-    isOperatorMultiValue(currentValues.operator);
+    isOperatorMultiValue(currentValues.operator) ||
+  prevValues.inverseScale != currentValues.inverseScale;
 
 const operatorField = (
   <FormItem
@@ -140,54 +142,6 @@ const operatorField = (
   </FormItem>
 );
 
-const renderOperatorFields = ({ getFieldValue }: GetFieldValue) =>
-  isOperatorNone(getFieldValue('operator')) ? (
-    <Row gutter={12}>
-      <Col span={6}>{operatorField}</Col>
-    </Row>
-  ) : isOperatorMultiValue(getFieldValue('operator')) ? (
-    <Row gutter={12}>
-      <Col span={9}>
-        <FormItem
-          name="targetValueLeft"
-          label={t('Left value')}
-          rules={rulesTargetValueLeft}
-          dependencies={targetValueLeftDeps}
-          validateTrigger="onBlur"
-          trigger="onBlur"
-        >
-          <FullWidthInputNumber />
-        </FormItem>
-      </Col>
-      <Col span={6}>{operatorField}</Col>
-      <Col span={9}>
-        <FormItem
-          name="targetValueRight"
-          label={t('Right value')}
-          rules={rulesTargetValueRight}
-          dependencies={targetValueRightDeps}
-          validateTrigger="onBlur"
-          trigger="onBlur"
-        >
-          <FullWidthInputNumber />
-        </FormItem>
-      </Col>
-    </Row>
-  ) : (
-    <Row gutter={12}>
-      <Col span={6}>{operatorField}</Col>
-      <Col span={18}>
-        <FormItem
-          name="targetValue"
-          label={t('Target value')}
-          rules={rulesRequired}
-        >
-          <FullWidthInputNumber />
-        </FormItem>
-      </Col>
-    </Row>
-  );
-
 export const FormattingPopoverContent = ({
   config,
   onChange,
@@ -199,6 +153,68 @@ export const FormattingPopoverContent = ({
 }) => {
   const theme = useTheme();
   const colorScheme = colorSchemeOptions(theme);
+  const [inverseScale, setInverseScale] = useState(
+    config?.inverseScale || false,
+  );
+
+  const changeInverseScale = () => {
+    setInverseScale(!inverseScale);
+  };
+
+  const renderOperatorFields = ({ getFieldValue }: GetFieldValue) => (
+    <>
+      {isOperatorNone(getFieldValue('operator')) ? (
+        <Row gutter={12}>
+          <Col span={6}>{operatorField}</Col>
+        </Row>
+      ) : isOperatorMultiValue(getFieldValue('operator')) ? (
+        <Row gutter={12}>
+          <Col span={9}>
+            <FormItem
+              name="targetValueLeft"
+              label={t('Left value')}
+              rules={rulesTargetValueLeft}
+              dependencies={targetValueLeftDeps}
+              validateTrigger="onBlur"
+              trigger="onBlur"
+            >
+              <FullWidthInputNumber />
+            </FormItem>
+          </Col>
+          <Col span={6}>{operatorField}</Col>
+          <Col span={9}>
+            <FormItem
+              name="targetValueRight"
+              label={t('Right value')}
+              rules={rulesTargetValueRight}
+              dependencies={targetValueRightDeps}
+              validateTrigger="onBlur"
+              trigger="onBlur"
+            >
+              <FullWidthInputNumber />
+            </FormItem>
+          </Col>
+        </Row>
+      ) : (
+        <Row gutter={12}>
+          <Col span={6}>{operatorField}</Col>
+          <Col span={18}>
+            <FormItem
+              name="targetValue"
+              label={t('Target value')}
+              rules={rulesRequired}
+            >
+              <FullWidthInputNumber />
+            </FormItem>
+          </Col>
+        </Row>
+      )}
+      <FormItem name="inverseScale" label={t('Inverse Scale')}>
+        <Checkbox checked={inverseScale} onChange={changeInverseScale} />
+      </FormItem>
+    </>
+  );
+
   return (
     <Form
       onFinish={onChange}
