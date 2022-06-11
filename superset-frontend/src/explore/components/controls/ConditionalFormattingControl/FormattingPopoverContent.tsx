@@ -17,6 +17,7 @@
  * under the License.
  */
 import React from 'react';
+import { rgb } from 'd3-color';
 import { styled, SupersetTheme, t, useTheme } from '@superset-ui/core';
 import { Form, FormItem, FormProps } from 'src/components/Form';
 import Select from 'src/components/Select/Select';
@@ -38,10 +39,18 @@ const JustifyEnd = styled.div`
   justify-content: flex-end;
 `;
 
+const hexToRGBString = (hex: string) => {
+  if (!hex) {
+    return 'rgb(0,0,0)';
+  }
+  const { r, g, b } = rgb(hex);
+  return `rgb(${r},${g},${b})`;
+};
+
 const colorSchemeOptions = (theme: SupersetTheme) => [
-  { value: theme.colors.success.light1, label: t('green') },
-  { value: theme.colors.alert.light1, label: t('yellow') },
-  { value: theme.colors.error.light1, label: t('red') },
+  { value: hexToRGBString(theme.colors.success.light1), label: t('green') },
+  { value: hexToRGBString(theme.colors.alert.light1), label: t('yellow') },
+  { value: hexToRGBString(theme.colors.error.light1), label: t('red') },
 ];
 
 const operatorOptions = [
