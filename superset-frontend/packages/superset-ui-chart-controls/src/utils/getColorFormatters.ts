@@ -182,7 +182,10 @@ export const getColorFunction = (
       minOpacity,
       maxOpacity,
     );
-    return rgbToRgba(colorScheme, inverseScale ? 1 - opacity : opacity);
+    return rgbToRgba(
+      colorScheme,
+      inverseScale ? 1 - opacity + minOpacity : opacity,
+    );
   };
 };
 
