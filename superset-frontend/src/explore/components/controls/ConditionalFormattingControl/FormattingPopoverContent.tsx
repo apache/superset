@@ -40,7 +40,7 @@ const JustifyEnd = styled.div`
   justify-content: flex-end;
 `;
 
-const hexToRGBString = (hex: string) => {
+export const hexToRGBString = (hex: string) => {
   if (!hex) {
     return 'rgb(0,0,0)';
   }
