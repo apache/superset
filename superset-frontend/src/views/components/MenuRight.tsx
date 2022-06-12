@@ -20,6 +20,8 @@ import React, { Fragment, useState, useEffect } from 'react';
 import rison from 'rison';
 import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
+import { useQueryParams, BooleanParam } from 'use-query-params';
+
 import {
   t,
   styled,
@@ -93,6 +95,10 @@ const RightMenu = ({
   const dashboardId = useSelector<RootState, number | undefined>(
     state => state.dashboardInfo?.id,
   );
+
+  const [, setQuery] = useQueryParams({
+    databaseAdded: BooleanParam,
+  });
 
   const { roles } = user;
   const {
@@ -250,6 +256,8 @@ const RightMenu = ({
     return null;
   };
 
+  const handleDatabaseAdd = () => setQuery({ databaseAdded: true });
+
   return (
     <StyledDiv align={align}>
       {canDatabase && (
@@ -257,6 +265,7 @@ const RightMenu = ({
           onHide={handleOnHideModal}
           show={showModal}
           dbEngine={engine}
+          onDatabaseAdd={handleDatabaseAdd}
         />
       )}
       <Menu
