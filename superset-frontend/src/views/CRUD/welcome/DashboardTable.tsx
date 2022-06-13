@@ -96,6 +96,43 @@ function DashboardTable({
   const [preparingExport, setPreparingExport] = useState<boolean>(false);
   const [loaded, setLoaded] = useState<boolean>(false);
 
+  const getFilters = (filterName: string) => {
+    const filters = [];
+    if (filterName === 'Mine') {
+      filters.push({
+        id: 'owners',
+        operator: 'rel_m_m',
+        value: `${user?.userId}`,
+      });
+    } else if (filterName === 'Favorite') {
+      filters.push({
+        id: 'id',
+        operator: 'dashboard_is_favorite',
+        value: true,
+      });
+    } else if (filterName === 'Examples') {
+      filters.push({
+        id: 'created_by',
+        operator: 'rel_o_m',
+        value: 0,
+      });
+    }
+    return filters;
+  };
+
+  const getData = (filter: string) =>
+    fetchData({
+      pageIndex: 0,
+      pageSize: PAGE_SIZE,
+      sortBy: [
+        {
+          id: 'changed_on_delta_humanized',
+          desc: true,
+        },
+      ],
+      filters: getFilters(filter),
+    });
+
   useEffect(() => {
     if (loaded || dashboardFilter === 'Favorite') {
       getData(dashboardFilter);
@@ -132,30 +169,6 @@ function DashboardTable({
       ),
     );
 
-  const getFilters = (filterName: string) => {
-    const filters = [];
-    if (filterName === 'Mine') {
-      filters.push({
-        id: 'owners',
-        operator: 'rel_m_m',
-        value: `${user?.userId}`,
-      });
-    } else if (filterName === 'Favorite') {
-      filters.push({
-        id: 'id',
-        operator: 'dashboard_is_favorite',
-        value: true,
-      });
-    } else if (filterName === 'Examples') {
-      filters.push({
-        id: 'created_by',
-        operator: 'rel_o_m',
-        value: 0,
-      });
-    }
-    return filters;
-  };
-
   const menuTabs = [
     {
       name: 'Favorite',
@@ -191,19 +204,6 @@ function DashboardTable({
       },
     });
   }
-
-  const getData = (filter: string) =>
-    fetchData({
-      pageIndex: 0,
-      pageSize: PAGE_SIZE,
-      sortBy: [
-        {
-          id: 'changed_on_delta_humanized',
-          desc: true,
-        },
-      ],
-      filters: getFilters(filter),
-    });
 
   if (loading) return <LoadingCards cover={showThumbnails} />;
   return (

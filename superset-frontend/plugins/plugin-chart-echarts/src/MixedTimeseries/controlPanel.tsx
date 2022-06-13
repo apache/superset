@@ -17,7 +17,12 @@
  * under the License.
  */
 import React from 'react';
-import { FeatureFlag, isFeatureEnabled, t } from '@superset-ui/core';
+import {
+  ensureIsArray,
+  FeatureFlag,
+  isFeatureEnabled,
+  t,
+} from '@superset-ui/core';
 import { cloneDeep } from 'lodash';
 import {
   ControlPanelConfig,
@@ -435,6 +440,21 @@ const config: ControlPanelConfig = {
       ],
     },
   ],
+  denormalizeFormData: formData => {
+    const groupby =
+      formData.standardizedFormData.standardizedState.columns.filter(
+        col => !ensureIsArray(formData.groupby_b).includes(col),
+      );
+    const metrics =
+      formData.standardizedFormData.standardizedState.metrics.filter(
+        metric => !ensureIsArray(formData.metrics_b).includes(metric),
+      );
+    return {
+      ...formData,
+      metrics,
+      groupby,
+    };
+  },
 };
 
 export default config;

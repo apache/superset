@@ -20,7 +20,7 @@
 import React from 'react';
 import { render, screen, act } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
-import { SupersetClient } from '@superset-ui/core';
+import { SupersetClient, DatasourceType } from '@superset-ui/core';
 import * as Utils from 'src/explore/exploreUtils';
 import DatasourceControl from '.';
 
@@ -157,4 +157,53 @@ test('Click on View in SQL Lab', async () => {
   });
 
   expect(postFormSpy).toBeCalledTimes(1);
+});
+
+test('Should open a different menu when datasource=query', () => {
+  const props = createProps();
+  const queryProps = {
+    ...props,
+    datasource: {
+      ...props.datasource,
+      type: DatasourceType.Query,
+    },
+  };
+  render(<DatasourceControl {...queryProps} />);
+
+  expect(screen.queryByText('Query preview')).not.toBeInTheDocument();
+  expect(screen.queryByText('View in SQL Lab')).not.toBeInTheDocument();
+  expect(screen.queryByText('Save as dataset')).not.toBeInTheDocument();
+
+  userEvent.click(screen.getByTestId('datasource-menu-trigger'));
+
+  expect(screen.getByText('Query preview')).toBeInTheDocument();
+  expect(screen.getByText('View in SQL Lab')).toBeInTheDocument();
+  expect(screen.getByText('Save as dataset')).toBeInTheDocument();
+});
+
+test('Click on Save as dataset', () => {
+  const props = createProps();
+  const queryProps = {
+    ...props,
+    datasource: {
+      ...props.datasource,
+      type: DatasourceType.Query,
+    },
+  };
+
+  render(<DatasourceControl {...queryProps} />, { useRedux: true });
+  userEvent.click(screen.getByTestId('datasource-menu-trigger'));
+  userEvent.click(screen.getByText('Save as dataset'));
+
+  // Renders a save dataset modal
+  const saveRadioBtn = screen.getByRole('radio', {
+    name: /save as new undefined/i,
+  });
+  const overwriteRadioBtn = screen.getByRole('radio', {
+    name: /overwrite existing select or type dataset name/i,
+  });
+  expect(saveRadioBtn).toBeVisible();
+  expect(overwriteRadioBtn).toBeVisible();
+  expect(screen.getByRole('button', { name: /save/i })).toBeVisible();
+  expect(screen.getByRole('button', { name: /close/i })).toBeVisible();
 });
