@@ -984,21 +984,21 @@ msgid "Alert query returned a non-number value."
 msgstr "Запрос для оповещения вернул не число."
 
 #: superset/reports/commands/exceptions.py:186
-msgid "Alert query returned more then one column."
+msgid "Alert query returned more than one column."
 msgstr "Запрос для оповещения вернул больше одного столбца."
 
 #: superset/reports/commands/alert.py:105
 #, python-format
-msgid "Alert query returned more then one column. %s columns returned"
+msgid "Alert query returned more than one column. %s columns returned"
 msgstr "Запрос от оповещения вернул больше одного столбца. %s столбцов возвращено"
 
 #: superset/reports/commands/exceptions.py:177
-msgid "Alert query returned more then one row."
+msgid "Alert query returned more than one row."
 msgstr "Запрос для оповещения вернул больше одной строки."
 
 #: superset/reports/commands/alert.py:96
 #, python-format
-msgid "Alert query returned more then one row. %s rows returned"
+msgid "Alert query returned more than one row. %s rows returned"
 msgstr "Запрос от оповещения вернул больше одной строки. %s строк возвращено"
 
 #: superset-frontend/src/views/CRUD/alert/components/AlertStatusIcon.tsx:75
