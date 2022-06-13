@@ -62,7 +62,7 @@ export default function SetupGuide() {
 
   const hasCreatedChart = () => {
     const payload = {
-      filters: [{ col: 'created_by', opr: 'rel_m_m', value: `${user.userId}` }],
+      filters: [{ col: 'created_by', opr: 'rel_o_m', value: `${user.userId}` }],
     };
     SupersetClient.get({
       endpoint: `/api/v1/chart/?q=${rison.encode(payload)}`,
@@ -73,7 +73,7 @@ export default function SetupGuide() {
 
   const hasCreatedDashboard = () => {
     const payload = {
-      filters: [{ col: 'created_by', opr: 'rel_m_m', value: `${user.userId}` }],
+      filters: [{ col: 'created_by', opr: 'rel_o_m', value: `${user.userId}` }],
     };
     SupersetClient.get({
       endpoint: `/api/v1/dashboard/?q=${rison.encode(payload)}`,
