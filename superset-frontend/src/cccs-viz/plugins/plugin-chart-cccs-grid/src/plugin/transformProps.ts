@@ -94,7 +94,7 @@ export default function transformProps(chartProps: CccsGridChartProps) {
     // @ts-ignore
     const name = column.column_name;
     // @ts-ignore
-    columnMap[name] = (column.business_type as string ?? "").toUpperCase();
+    columnMap[name] = ((column.business_type as string) ?? '').toUpperCase();
     return columnMap;
   }, columnAdvancedTypeMap);
 
@@ -158,8 +158,10 @@ export default function transformProps(chartProps: CccsGridChartProps) {
   };
 
   const percentMetricValueFormatter = function (params: ValueFormatterParams) {
-    return getNumberFormatter(NumberFormats.PERCENT_3_POINT).format(params.value);
-  }
+    return getNumberFormatter(NumberFormats.PERCENT_3_POINT).format(
+      params.value,
+    );
+  };
 
   let columnDefs: Column[] = [];
 
@@ -178,7 +180,9 @@ export default function transformProps(chartProps: CccsGridChartProps) {
       const sortIndex =
         column in sortingColumnMap ? sortingColumnMap[column].sortIndex : null;
       const cellRenderer =
-        columnAdvancedType in rendererMap ? rendererMap[columnAdvancedType] : undefined;
+        columnAdvancedType in rendererMap
+          ? rendererMap[columnAdvancedType]
+          : undefined;
       const isSortable = true;
       const enableRowGroup = true;
       return {
@@ -199,7 +203,9 @@ export default function transformProps(chartProps: CccsGridChartProps) {
           ? columnVerboseNameMap[column]
           : column;
         const cellRenderer =
-          columnAdvancedType in rendererMap ? rendererMap[columnAdvancedType] : undefined;
+          columnAdvancedType in rendererMap
+            ? rendererMap[columnAdvancedType]
+            : undefined;
         const isSortable = true;
         const enableRowGroup = true;
         return {
@@ -217,16 +223,16 @@ export default function transformProps(chartProps: CccsGridChartProps) {
       const metricsColumnDefs = formData.metrics
         .map(getMetricLabel)
         .map((metric: any) => {
-        const metricHeader = metricVerboseNameMap[metric]
-          ? metricVerboseNameMap[metric]
-          : metric;
-        return {
-          field: metric,
-          headerName: metricHeader,
-          sortable: true,
-          enableRowGroup: true,
-        };
-      });
+          const metricHeader = metricVerboseNameMap[metric]
+            ? metricVerboseNameMap[metric]
+            : metric;
+          return {
+            field: metric,
+            headerName: metricHeader,
+            sortable: true,
+            enableRowGroup: true,
+          };
+        });
       columnDefs = columnDefs.concat(metricsColumnDefs);
     }
 
