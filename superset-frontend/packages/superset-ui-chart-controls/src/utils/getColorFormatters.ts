@@ -63,7 +63,7 @@ export const getColorFunction = (
   columnValues: number[],
 ) => {
   let minOpacity = MIN_OPACITY_BOUNDED;
-  const maxOpacity = MAX_OPACITY;
+  const maxOpacity = colorScheme?.a || MAX_OPACITY;
 
   let comparatorFunction: (
     value: number,
@@ -182,10 +182,9 @@ export const getColorFunction = (
       minOpacity,
       maxOpacity,
     );
-    return rgbToRgba(
-      colorScheme,
-      inverseScale ? 1 - opacity + minOpacity : opacity,
-    );
+    return `rgb(${colorScheme.r}, ${colorScheme.g}, ${colorScheme.b}, ${
+      inverseScale ? maxOpacity - opacity + minOpacity : opacity
+    })`;
   };
 };
 

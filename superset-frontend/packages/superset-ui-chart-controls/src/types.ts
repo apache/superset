@@ -402,7 +402,7 @@ export type ConditionalFormattingConfig = {
   targetValueLeft?: number;
   targetValueRight?: number;
   column?: string;
-  colorScheme?: string;
+  colorScheme?: { r: number; g: number; b: number; a?: number };
   inverseScale?: boolean;
 };
 

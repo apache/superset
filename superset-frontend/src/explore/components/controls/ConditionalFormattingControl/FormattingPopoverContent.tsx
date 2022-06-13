@@ -24,6 +24,7 @@ import { Col, Row } from 'src/components';
 import { InputNumber } from 'src/components/Input';
 import Checkbox from 'src/components/Checkbox';
 import Button from 'src/components/Button';
+import ColorPickerControl from 'src/explore/components/controls/ColorPickerControl';
 import { hexToRgb } from 'src/utils/colorUtils';
 import {
   COMPARATOR,
@@ -121,7 +122,7 @@ const rulesTargetValueRight = [
 ];
 
 const rulesInverseScale = [
-  { required: false, message: t('Optional') },
+  { required: true, message: '' },
   ({ getFieldValue }: GetFieldValue) => ({
     validator: inverseScaleValidator(getFieldValue('operator')),
   }),
@@ -150,6 +151,54 @@ const operatorField = (
   </FormItem>
 );
 
+const renderOperatorFields = ({ getFieldValue }: GetFieldValue) =>
+  isOperatorNone(getFieldValue('operator')) ? (
+    <Row gutter={12}>
+      <Col span={6}>{operatorField}</Col>
+    </Row>
+  ) : isOperatorMultiValue(getFieldValue('operator')) ? (
+    <Row gutter={12}>
+      <Col span={9}>
+        <FormItem
+          name="targetValueLeft"
+          label={t('Left value')}
+          rules={rulesTargetValueLeft}
+          dependencies={targetValueLeftDeps}
+          validateTrigger="onBlur"
+          trigger="onBlur"
+        >
+          <FullWidthInputNumber />
+        </FormItem>
+      </Col>
+      <Col span={6}>{operatorField}</Col>
+      <Col span={9}>
+        <FormItem
+          name="targetValueRight"
+          label={t('Right value')}
+          rules={rulesTargetValueRight}
+          dependencies={targetValueRightDeps}
+          validateTrigger="onBlur"
+          trigger="onBlur"
+        >
+          <FullWidthInputNumber />
+        </FormItem>
+      </Col>
+    </Row>
+  ) : (
+    <Row gutter={12}>
+      <Col span={6}>{operatorField}</Col>
+      <Col span={18}>
+        <FormItem
+          name="targetValue"
+          label={t('Target value')}
+          rules={rulesRequired}
+        >
+          <FullWidthInputNumber />
+        </FormItem>
+      </Col>
+    </Row>
+  );
+
 export const FormattingPopoverContent = ({
   config,
   onChange,
@@ -169,75 +218,6 @@ export const FormattingPopoverContent = ({
     setInverseScale(!inverseScale);
   };
 
-  const renderOperatorFields = ({ getFieldValue }: GetFieldValue) => (
-    <>
-      {isOperatorNone(getFieldValue('operator')) ? (
-        <Row gutter={12}>
-          <Col span={6}>{operatorField}</Col>
-        </Row>
-      ) : isOperatorMultiValue(getFieldValue('operator')) ? (
-        <Row gutter={12}>
-          <Col span={9}>
-            <FormItem
-              name="targetValueLeft"
-              label={t('Left value')}
-              rules={rulesTargetValueLeft}
-              dependencies={targetValueLeftDeps}
-              validateTrigger="onBlur"
-              trigger="onBlur"
-            >
-              <FullWidthInputNumber />
-            </FormItem>
-          </Col>
-          <Col span={6}>{operatorField}</Col>
-          <Col span={9}>
-            <FormItem
-              name="targetValueRight"
-              label={t('Right value')}
-              rules={rulesTargetValueRight}
-              dependencies={targetValueRightDeps}
-              validateTrigger="onBlur"
-              trigger="onBlur"
-            >
-              <FullWidthInputNumber />
-            </FormItem>
-          </Col>
-        </Row>
-      ) : (
-        <Row gutter={12}>
-          <Col span={6}>{operatorField}</Col>
-          <Col span={18}>
-            <FormItem
-              name="targetValue"
-              label={t('Target value')}
-              rules={rulesRequired}
-            >
-              <FullWidthInputNumber />
-            </FormItem>
-          </Col>
-        </Row>
-      )}
-      <Row gutter={12}>
-        <Col>
-          <FormItem
-            name="inverseScale"
-            label={t('Inverse Scale')}
-            rules={rulesInverseScale}
-            validateTrigger="onChange"
-            trigger="onChange"
-            tooltip="Invert the color alpha scale. Not valid with the equals operator."
-          >
-            <Checkbox
-              checked={inverseScale}
-              onChange={changeInverseScale}
-              disabled
-            />
-          </FormItem>
-        </Col>
-      </Row>
-    </>
-  );
-
   return (
     <Form
       onFinish={onChange}
@@ -256,14 +236,26 @@ export const FormattingPopoverContent = ({
             <Select ariaLabel={t('Select column')} options={columns} />
           </FormItem>
         </Col>
-        <Col span={12}>
+        <Col span={5}>
           <FormItem
             name="colorScheme"
-            label={t('Color scheme')}
+            label={t('Base Color')}
             rules={rulesRequired}
             initialValue={colorScheme[0].value}
           >
-            <Select ariaLabel={t('Color scheme')} options={colorScheme} />
+            <ColorPickerControl />
+          </FormItem>
+        </Col>
+        <Col span={7}>
+          <FormItem
+            name="inverseScale"
+            label={t('Inverse Scale')}
+            rules={rulesInverseScale}
+            validateTrigger="onChange"
+            trigger="onChange"
+            tooltip="Invert the color alpha scale. Not valid with the equals operator."
+          >
+            <Checkbox checked={inverseScale} onChange={changeInverseScale} />
           </FormItem>
         </Col>
       </Row>
