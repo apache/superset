@@ -88,20 +88,20 @@ class AlertCommand(BaseCommand):
 
     @staticmethod
     def _validate_result(rows: np.recarray) -> None:
-        # check if query return more then one row
+        # check if query return more than one row
         if len(rows) > 1:
             raise AlertQueryMultipleRowsError(
                 message=_(
-                    "Alert query returned more then one row. %s rows returned"
+                    "Alert query returned more than one row. %s rows returned"
                     % len(rows),
                 )
             )
-        # check if query returned more then one column
+        # check if query returned more than one column
         if len(rows[0]) > 2:
             raise AlertQueryMultipleColumnsError(
                 # len is subtracted by 1 to discard pandas index column
                 _(
-                    "Alert query returned more then one column. %s columns returned"
+                    "Alert query returned more than one column. %s columns returned"
                     % (len(rows[0]) - 1)
                 )
             )
