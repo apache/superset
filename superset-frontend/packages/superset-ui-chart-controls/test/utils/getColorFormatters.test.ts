@@ -66,7 +66,7 @@ describe('getColorFunction()', () => {
       {
         operator: COMPARATOR.GREATER_THAN,
         targetValue: 50,
-        colorScheme: 'rgb(255,0,0)',
+        colorScheme: { r: 255, g: 0, b: 0 },
         column: 'count',
       },
       countValues,
@@ -80,7 +80,7 @@ describe('getColorFunction()', () => {
       {
         operator: COMPARATOR.GREATER_THAN,
         targetValue: 50,
-        colorScheme: 'rgb(255,0,0)',
+        colorScheme: { r: 255, g: 0, b: 0 },
         column: 'count',
         inverseScale: true,
       },
@@ -95,7 +95,7 @@ describe('getColorFunction()', () => {
       {
         operator: COMPARATOR.LESS_THAN,
         targetValue: 100,
-        colorScheme: 'rgb(255,0,0)',
+        colorScheme: { r: 255, g: 0, b: 0 },
         column: 'count',
       },
       countValues,
@@ -109,7 +109,7 @@ describe('getColorFunction()', () => {
       {
         operator: COMPARATOR.LESS_THAN,
         targetValue: 100,
-        colorScheme: 'rgb(255,0,0)',
+        colorScheme: { r: 255, g: 0, b: 0 },
         column: 'count',
         inverseScale: true,
       },
@@ -124,7 +124,7 @@ describe('getColorFunction()', () => {
       {
         operator: COMPARATOR.GREATER_OR_EQUAL,
         targetValue: 50,
-        colorScheme: 'rgb(255,0,0)',
+        colorScheme: { r: 255, g: 0, b: 0 },
         column: 'count',
       },
       countValues,
@@ -134,18 +134,49 @@ describe('getColorFunction()', () => {
     expect(colorFunction(0)).toBeUndefined();
   });
 
+  it('getColorFunction GREATER_OR_EQUAL alpha', () => {
+    const colorFunction = getColorFunction(
+      {
+        operator: COMPARATOR.GREATER_OR_EQUAL,
+        targetValue: 50,
+        colorScheme: { r: 255, g: 0, b: 0, a: 0.5 },
+        column: 'count',
+      },
+      countValues,
+    );
+    expect(colorFunction(50)).toEqual('rgba(255,0,0,0.05)');
+    expect(colorFunction(100)).toEqual('rgba(255,0,0,0.5)');
+    expect(colorFunction(0)).toBeUndefined();
+  });
+
   it('getColorFunction GREATER_OR_EQUAL inverse', () => {
     const colorFunction = getColorFunction(
       {
         operator: COMPARATOR.GREATER_OR_EQUAL,
         targetValue: 50,
-        colorScheme: 'rgb(255,0,0)',
+        colorScheme: { r: 255, g: 0, b: 0 },
         column: 'count',
         inverseScale: true,
       },
       countValues,
     );
     expect(colorFunction(50)).toEqual('rgba(255,0,0,1)');
+    expect(colorFunction(100)).toEqual('rgba(255,0,0,0.05)');
+    expect(colorFunction(0)).toBeUndefined();
+  });
+
+  it('getColorFunction GREATER_OR_EQUAL alpha inverse', () => {
+    const colorFunction = getColorFunction(
+      {
+        operator: COMPARATOR.GREATER_OR_EQUAL,
+        targetValue: 50,
+        colorScheme: { r: 255, g: 0, b: 0, a: 0.5 },
+        column: 'count',
+        inverseScale: true,
+      },
+      countValues,
+    );
+    expect(colorFunction(50)).toEqual('rgba(255,0,0,0.5)');
     expect(colorFunction(100)).toEqual('rgba(255,0,0,0.05)');
     expect(colorFunction(0)).toBeUndefined();
   });
@@ -155,7 +186,7 @@ describe('getColorFunction()', () => {
       {
         operator: COMPARATOR.LESS_OR_EQUAL,
         targetValue: 100,
-        colorScheme: 'rgb(255,0,0)',
+        colorScheme: { r: 255, g: 0, b: 0 },
         column: 'count',
       },
       countValues,
@@ -165,12 +196,27 @@ describe('getColorFunction()', () => {
     expect(colorFunction(150)).toBeUndefined();
   });
 
+  it('getColorFunction LESS_OR_EQUAL alpha', () => {
+    const colorFunction = getColorFunction(
+      {
+        operator: COMPARATOR.LESS_OR_EQUAL,
+        targetValue: 100,
+        colorScheme: { r: 255, g: 0, b: 0, a: 0.5 },
+        column: 'count',
+      },
+      countValues,
+    );
+    expect(colorFunction(50)).toEqual('rgba(255,0,0,0.5)');
+    expect(colorFunction(100)).toEqual('rgba(255,0,0,0.05)');
+    expect(colorFunction(150)).toBeUndefined();
+  });
+
   it('getColorFunction LESS_OR_EQUAL inverse', () => {
     const colorFunction = getColorFunction(
       {
         operator: COMPARATOR.LESS_OR_EQUAL,
         targetValue: 100,
-        colorScheme: 'rgb(255,0,0)',
+        colorScheme: { r: 255, g: 0, b: 0 },
         column: 'count',
         inverseScale: true,
       },
@@ -181,12 +227,28 @@ describe('getColorFunction()', () => {
     expect(colorFunction(150)).toBeUndefined();
   });
 
+  it('getColorFunction LESS_OR_EQUAL alpha inverse', () => {
+    const colorFunction = getColorFunction(
+      {
+        operator: COMPARATOR.LESS_OR_EQUAL,
+        targetValue: 100,
+        colorScheme: { r: 255, g: 0, b: 0, a: 0.5 },
+        column: 'count',
+        inverseScale: true,
+      },
+      countValues,
+    );
+    expect(colorFunction(50)).toEqual('rgba(255,0,0,0.05)');
+    expect(colorFunction(100)).toEqual('rgba(255,0,0,0.5)');
+    expect(colorFunction(150)).toBeUndefined();
+  });
+
   it('getColorFunction EQUAL', () => {
     const colorFunction = getColorFunction(
       {
         operator: COMPARATOR.EQUAL,
         targetValue: 100,
-        colorScheme: 'rgb(255,0,0)',
+        colorScheme: { r: 255, g: 0, b: 0 },
         column: 'count',
       },
       countValues,
@@ -195,27 +257,12 @@ describe('getColorFunction()', () => {
     expect(colorFunction(100)).toEqual('rgba(255,0,0,1)');
   });
 
-  // it('getColorFunction EQUAL inverse', () => {
-  //   const colorFunction = getColorFunction(
-  //     {
-  //       operator: COMPARATOR.EQUAL,
-  //       targetValue: 100,
-  //       colorScheme: 'rgb(255,0,0)',
-  //       column: 'count',
-  //       inverseScale: true,
-  //     },
-  //     countValues,
-  //   );
-  //   expect(colorFunction(50)).toBeUndefined();
-  //   expect(colorFunction(100)).toEqual('rgba(255,0,0,1)');
-  // });
-
   it('getColorFunction NOT_EQUAL', () => {
     let colorFunction = getColorFunction(
       {
         operator: COMPARATOR.NOT_EQUAL,
         targetValue: 60,
-        colorScheme: 'rgb(255,0,0)',
+        colorScheme: { r: 255, g: 0, b: 0 },
         column: 'count',
       },
       countValues,
@@ -228,7 +275,7 @@ describe('getColorFunction()', () => {
       {
         operator: COMPARATOR.NOT_EQUAL,
         targetValue: 90,
-        colorScheme: 'rgb(255,0,0)',
+        colorScheme: { r: 255, g: 0, b: 0 },
         column: 'count',
       },
       countValues,
@@ -238,12 +285,40 @@ describe('getColorFunction()', () => {
     expect(colorFunction(50)).toEqual('rgba(255,0,0,1)');
   });
 
+  it('getColorFunction NOT_EQUAL alpha', () => {
+    let colorFunction = getColorFunction(
+      {
+        operator: COMPARATOR.NOT_EQUAL,
+        targetValue: 60,
+        colorScheme: { r: 255, g: 0, b: 0, a: 0.5 },
+        column: 'count',
+      },
+      countValues,
+    );
+    expect(colorFunction(60)).toBeUndefined();
+    expect(colorFunction(100)).toEqual('rgba(255,0,0,0.5)');
+    expect(colorFunction(50)).toEqual('rgba(255,0,0,0.16)');
+
+    colorFunction = getColorFunction(
+      {
+        operator: COMPARATOR.NOT_EQUAL,
+        targetValue: 90,
+        colorScheme: { r: 255, g: 0, b: 0, a: 0.5 },
+        column: 'count',
+      },
+      countValues,
+    );
+    expect(colorFunction(90)).toBeUndefined();
+    expect(colorFunction(100)).toEqual('rgba(255,0,0,0.16)');
+    expect(colorFunction(50)).toEqual('rgba(255,0,0,0.5)');
+  });
+
   it('getColorFunction NOT_EQUAL inverse', () => {
     let colorFunction = getColorFunction(
       {
         operator: COMPARATOR.NOT_EQUAL,
         targetValue: 60,
-        colorScheme: 'rgb(255,0,0)',
+        colorScheme: { r: 255, g: 0, b: 0 },
         column: 'count',
         inverseScale: true,
       },
@@ -257,7 +332,7 @@ describe('getColorFunction()', () => {
       {
         operator: COMPARATOR.NOT_EQUAL,
         targetValue: 90,
-        colorScheme: 'rgb(255,0,0)',
+        colorScheme: { r: 255, g: 0, b: 0 },
         column: 'count',
         inverseScale: true,
       },
@@ -268,13 +343,43 @@ describe('getColorFunction()', () => {
     expect(colorFunction(50)).toEqual('rgba(255,0,0,0.05)');
   });
 
+  it('getColorFunction NOT_EQUAL alpha inverse', () => {
+    let colorFunction = getColorFunction(
+      {
+        operator: COMPARATOR.NOT_EQUAL,
+        targetValue: 60,
+        colorScheme: { r: 255, g: 0, b: 0, a: 0.5 },
+        column: 'count',
+        inverseScale: true,
+      },
+      countValues,
+    );
+    expect(colorFunction(60)).toBeUndefined();
+    expect(colorFunction(100)).toEqual('rgba(255,0,0,0.05)');
+    expect(colorFunction(50)).toEqual('rgba(255,0,0,0.39)');
+
+    colorFunction = getColorFunction(
+      {
+        operator: COMPARATOR.NOT_EQUAL,
+        targetValue: 90,
+        colorScheme: { r: 255, g: 0, b: 0, a: 0.5 },
+        column: 'count',
+        inverseScale: true,
+      },
+      countValues,
+    );
+    expect(colorFunction(90)).toBeUndefined();
+    expect(colorFunction(100)).toEqual('rgba(255,0,0,0.39)');
+    expect(colorFunction(50)).toEqual('rgba(255,0,0,0.05)');
+  });
+
   it('getColorFunction BETWEEN', () => {
     const colorFunction = getColorFunction(
       {
         operator: COMPARATOR.BETWEEN,
         targetValueLeft: 75,
         targetValueRight: 125,
-        colorScheme: 'rgb(255,0,0)',
+        colorScheme: { r: 255, g: 0, b: 0 },
         column: 'count',
       },
       countValues,
@@ -289,14 +394,14 @@ describe('getColorFunction()', () => {
         operator: COMPARATOR.BETWEEN,
         targetValueLeft: 75,
         targetValueRight: 125,
-        colorScheme: 'rgb(255,0,0)',
+        colorScheme: { r: 255, g: 0, b: 0 },
         column: 'count',
         inverseScale: true,
       },
       countValues,
     );
     expect(colorFunction(50)).toBeUndefined();
-    expect(colorFunction(100)).toEqual('rgba(255,0,0,0.52)');
+    expect(colorFunction(100)).toEqual('rgba(255,0,0,0.53)');
   });
 
   it('getColorFunction BETWEEN_OR_EQUAL', () => {
@@ -305,7 +410,7 @@ describe('getColorFunction()', () => {
         operator: COMPARATOR.BETWEEN_OR_EQUAL,
         targetValueLeft: 50,
         targetValueRight: 100,
-        colorScheme: 'rgb(255,0,0)',
+        colorScheme: { r: 255, g: 0, b: 0 },
         column: 'count',
       },
       countValues,
@@ -321,7 +426,7 @@ describe('getColorFunction()', () => {
         operator: COMPARATOR.BETWEEN_OR_EQUAL,
         targetValueLeft: 50,
         targetValueRight: 100,
-        colorScheme: 'rgb(255,0,0)',
+        colorScheme: { r: 255, g: 0, b: 0 },
         column: 'count',
         inverseScale: true,
       },
@@ -338,7 +443,7 @@ describe('getColorFunction()', () => {
         operator: COMPARATOR.BETWEEN_OR_LEFT_EQUAL,
         targetValueLeft: 50,
         targetValueRight: 100,
-        colorScheme: 'rgb(255,0,0)',
+        colorScheme: { r: 255, g: 0, b: 0 },
         column: 'count',
       },
       countValues,
@@ -353,7 +458,7 @@ describe('getColorFunction()', () => {
         operator: COMPARATOR.BETWEEN_OR_LEFT_EQUAL,
         targetValueLeft: 50,
         targetValueRight: 100,
-        colorScheme: 'rgb(255,0,0)',
+        colorScheme: { r: 255, g: 0, b: 0 },
         column: 'count',
         inverseScale: true,
       },
@@ -369,7 +474,7 @@ describe('getColorFunction()', () => {
         operator: COMPARATOR.BETWEEN_OR_RIGHT_EQUAL,
         targetValueLeft: 50,
         targetValueRight: 100,
-        colorScheme: 'rgb(255,0,0)',
+        colorScheme: { r: 255, g: 0, b: 0 },
         column: 'count',
       },
       countValues,
@@ -384,7 +489,7 @@ describe('getColorFunction()', () => {
         operator: COMPARATOR.BETWEEN_OR_RIGHT_EQUAL,
         targetValueLeft: 50,
         targetValueRight: 100,
-        colorScheme: 'rgb(255,0,0)',
+        colorScheme: { r: 255, g: 0, b: 0 },
         column: 'count',
         inverseScale: true,
       },
@@ -399,7 +504,7 @@ describe('getColorFunction()', () => {
       {
         operator: COMPARATOR.GREATER_THAN,
         targetValue: undefined,
-        colorScheme: 'rgb(255,0,0)',
+        colorScheme: { r: 255, g: 0, b: 0 },
         column: 'count',
       },
       countValues,
@@ -414,7 +519,7 @@ describe('getColorFunction()', () => {
         operator: COMPARATOR.BETWEEN,
         targetValueLeft: undefined,
         targetValueRight: 100,
-        colorScheme: 'rgb(255,0,0)',
+        colorScheme: { r: 255, g: 0, b: 0 },
         column: 'count',
       },
       countValues,
@@ -429,7 +534,7 @@ describe('getColorFunction()', () => {
         operator: COMPARATOR.BETWEEN,
         targetValueLeft: 50,
         targetValueRight: undefined,
-        colorScheme: 'rgb(255,0,0)',
+        colorScheme: { r: 255, g: 0, b: 0 },
         column: 'count',
       },
       countValues,
@@ -444,7 +549,7 @@ describe('getColorFunction()', () => {
         // @ts-ignore
         operator: 'unsupported operator',
         targetValue: 50,
-        colorScheme: 'rgb(255,0,0)',
+        colorScheme: { r: 255, g: 0, b: 0 },
         column: 'count',
       },
       countValues,
@@ -457,7 +562,7 @@ describe('getColorFunction()', () => {
     const colorFunction = getColorFunction(
       {
         operator: COMPARATOR.NONE,
-        colorScheme: 'rgb(255,0,0)',
+        colorScheme: { r: 255, g: 0, b: 0 },
         column: 'count',
       },
       countValues,
@@ -473,7 +578,7 @@ describe('getColorFunction()', () => {
     const colorFunction = getColorFunction(
       {
         operator: COMPARATOR.NONE,
-        colorScheme: 'rgb(255,0,0)',
+        colorScheme: { r: 255, g: 0, b: 0 },
         column: 'count',
         inverseScale: true,
       },
@@ -491,7 +596,7 @@ describe('getColorFunction()', () => {
       {
         operator: undefined,
         targetValue: 150,
-        colorScheme: 'rgb(255,0,0)',
+        colorScheme: { r: 255, g: 0, b: 0 },
         column: 'count',
       },
       countValues,
@@ -521,26 +626,26 @@ describe('getColorFormatters()', () => {
       {
         operator: COMPARATOR.GREATER_THAN,
         targetValue: 50,
-        colorScheme: 'rgb(255,0,0)',
+        colorScheme: { r: 255, g: 0, b: 0 },
         column: 'count',
       },
       {
         operator: COMPARATOR.LESS_THAN,
         targetValue: 300,
-        colorScheme: 'rgb(255,0,0)',
+        colorScheme: { r: 255, g: 0, b: 0 },
         column: 'sum',
       },
       {
         operator: COMPARATOR.BETWEEN,
         targetValueLeft: 75,
         targetValueRight: 125,
-        colorScheme: 'rgb(255,0,0)',
+        colorScheme: { r: 255, g: 0, b: 0 },
         column: 'count',
       },
       {
         operator: COMPARATOR.GREATER_THAN,
         targetValue: 150,
-        colorScheme: 'rgb(255,0,0)',
+        colorScheme: { r: 255, g: 0, b: 0 },
         column: undefined,
       },
     ];

@@ -40,16 +40,17 @@ export const getOpacity = (
   extremeValue: number,
   minOpacity = MIN_OPACITY_BOUNDED,
   maxOpacity = MAX_OPACITY,
-) =>
-  extremeValue === cutoffPoint
-    ? maxOpacity
-    : round(
-        Math.abs(
+  inverseScale = false,
+) => {
+  const opacity =
+    extremeValue === cutoffPoint
+      ? maxOpacity
+      : Math.abs(
           ((maxOpacity - minOpacity) / (extremeValue - cutoffPoint)) *
             (value - cutoffPoint),
-        ) + minOpacity,
-        2,
-      );
+        ) + minOpacity;
+  return round(inverseScale ? maxOpacity - opacity + minOpacity : opacity, 2);
+};
 
 export const getColorFunction = (
   {
@@ -181,10 +182,9 @@ export const getColorFunction = (
       extremeValue,
       minOpacity,
       maxOpacity,
+      inverseScale,
     );
-    return `rgb(${colorScheme.r}, ${colorScheme.g}, ${colorScheme.b}, ${
-      inverseScale ? maxOpacity - opacity + minOpacity : opacity
-    })`;
+    return `rgba(${colorScheme.r},${colorScheme.g},${colorScheme.b},${opacity})`;
   };
 };
 
