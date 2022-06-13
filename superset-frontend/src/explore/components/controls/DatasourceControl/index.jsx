@@ -19,9 +19,9 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { t, styled, withTheme, isValidDatasourceType } from '@superset-ui/core';
-import { getUrlParam } from 'src/utils/urlUtils';
+import { t, styled, withTheme, DatasourceType } from '@superset-ui/core';
 
+import { getUrlParam } from 'src/utils/urlUtils';
 import { AntdDropdown } from 'src/components';
 import { Menu } from 'src/components/Menu';
 import { Tooltip } from 'src/components/Tooltip';
@@ -102,7 +102,7 @@ const Styles = styled.div`
     white-space: nowrap;
     overflow: hidden;
   }
-  .dataset-svg {
+  .datasource-svg {
     margin-right: ${({ theme }) => 2 * theme.gridUnit}px;
     flex: none;
   }
@@ -119,6 +119,47 @@ const VIEW_IN_SQL_LAB = 'view_in_sql_lab';
 const EDIT_DATASET = 'edit_dataset';
 const QUERY_PREVIEW = 'query_preview';
 const SAVE_AS_DATASET = 'save_as_dataset';
+
+// If the string is longer than this value's number characters we add
+// a tooltip for user can see the full name by hovering over the visually truncated string in UI
+const VISIBLE_TITLE_LENGTH = 25;
+
+
+// Assign icon for each DatasourceType.  If no icon assingment is found in the lookup, no icon will render
+export const datasourceIconLookup = {
+    [DatasourceType.Query]: <Icons.ConsoleSqlOutlined className="datasource-svg" />,
+    [DatasourceType.Table]: <Icons.DatasetPhysical className="datasource-svg" />,
+  }
+
+// Render title for datasource with tooltip only if text is longer than VISIBLE_TITLE_LENGTH
+export const renderDatasourceTitle = displayString =>
+    displayString.length > VISIBLE_TITLE_LENGTH ? (
+      // Add a tooltip only for long names that will be visually truncated
+      <Tooltip title={displayString}>
+        <span className="title-select">{displayString}</span>
+      </Tooltip>
+    ) : (
+      <span title={displayString} className="title-select">
+        {displayString}
+      </span>
+    );
+
+// Different data source types use different attributes for the display title
+export const getDatasourceTitle = datasource => {
+    let text = '';
+    const dataSourceType = datasource?.type;
+    if (dataSourceType) {
+      switch (dataSourceType) {
+        case DatasourceType.Query:
+          text = datasource?.sql ?? '';
+          break;
+        default:
+          text = datasource?.name ?? '';
+          break;
+      }
+    }
+    return text;
+  };
 
 class DatasourceControl extends React.PureComponent {
   constructor(props) {
@@ -180,20 +221,33 @@ class DatasourceControl extends React.PureComponent {
     }));
   }
 
-  handleMenuItemClick = ({ key }) => {
-    if (key === CHANGE_DATASET) {
-      this.toggleChangeDatasourceModal();
-    }
-    if (key === EDIT_DATASET) {
-      this.toggleEditDatasourceModal();
-    }
-    if (key === VIEW_IN_SQL_LAB) {
-      const { datasource } = this.props;
-      const payload = {
-        datasourceKey: `${datasource.id}__${datasource.type}`,
-        sql: datasource.sql,
-      };
-      postForm('/superset/sqllab/', payload);
+  handleMenuItemClick({ key }) {
+    switch (key) {
+      case CHANGE_DATASET:
+        this.toggleChangeDatasourceModal();
+        break;
+
+      case EDIT_DATASET:
+        this.toggleEditDatasourceModal();
+        break;
+
+      case VIEW_IN_SQL_LAB:
+        {
+          const { datasource } = this.props;
+          const payload = {
+            datasourceKey: `${datasource.id}__${datasource.type}`,
+            sql: datasource.sql,
+          };
+          postForm('/superset/sqllab/', payload);
+        }
+        break;
+
+      case SAVE_AS_DATASET:
+        this.toggleSaveDatasetModal();
+        break;
+
+      default:
+        break;
     }
   }
 
@@ -204,7 +258,7 @@ class DatasourceControl extends React.PureComponent {
       showSaveDatasetModal,
     } = this.state;
     const { datasource, onChange, theme, form_data } = this.props;
-    const isMissingDatasource = datasource.id == null;
+    const isMissingDatasource = datasource?.id?.length > 0 ? false : true;
     let isMissingParams = false;
     if (isMissingDatasource) {
       const datasourceId = getUrlParam(URL_PARAMS.datasourceId);
@@ -216,9 +270,10 @@ class DatasourceControl extends React.PureComponent {
 
     const isSqlSupported = datasource.type === 'table';
     const { user } = this.props;
-    const allowEdit =
-      datasource.owners.map(o => o.id).includes(user.userId) ||
-      isUserAdmin(user);
+    const allowEdit = datasource.owners
+      .map(o => o.id || o.value)
+      .includes(user.userId);
+    isUserAdmin(user);
 
     const editText = t('Edit dataset');
 
@@ -281,20 +336,13 @@ class DatasourceControl extends React.PureComponent {
       } catch {} // eslint-disable-line no-empty
     }
 
+    const titleText = getDatasourceTitle(datasource) ;
+
     return (
       <Styles data-test="datasource-control" className="DatasourceControl">
         <div className="data-container">
-          <Icons.DatasetPhysical className="dataset-svg" />
-          {/* Add a tooltip only for long dataset names */}
-          {!isMissingDatasource && datasource.name.length > 25 ? (
-            <Tooltip title={datasource.name}>
-              <span className="title-select">{datasource.name}</span>
-            </Tooltip>
-          ) : (
-            <span title={datasource.name} className="title-select">
-              {datasource.name}
-            </span>
-          )}
+          {datasourceIconLookup[datasource?.type]}
+          {renderDatasourceTitle(titleText)}
           {healthCheckMessage && (
             <Tooltip title={healthCheckMessage}>
               <Icons.AlertSolid iconColor={theme.colors.warning.base} />
@@ -305,19 +353,17 @@ class DatasourceControl extends React.PureComponent {
           )}
           <AntdDropdown
             overlay={
-              isValidDatasourceType(datasource.type)
+              datasource.type === DatasourceType.Query
                 ? queryDatasourceMenu
-                : queryDatasourceMenu //defaultDatasourceMenu
+                : defaultDatasourceMenu
             }
             trigger={['click']}
             data-test="datasource-menu"
           >
-            <Tooltip title={t('More dataset related options')}>
-              <Icons.MoreVert
-                className="datasource-modal-trigger"
-                data-test="datasource-menu-trigger"
-              />
-            </Tooltip>
+            <Icons.MoreVert
+              className="datasource-modal-trigger"
+              data-test="datasource-menu-trigger"
+            />
           </AntdDropdown>
         </div>
         {/* missing dataset */}

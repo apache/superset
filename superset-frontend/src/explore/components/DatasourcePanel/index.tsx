@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { css, styled, t, isValidDatasourceType } from '@superset-ui/core';
+import { css, styled, t, DatasourceType } from '@superset-ui/core';
 import {
   ControlConfig,
   Dataset,
@@ -307,6 +307,8 @@ export default function DataSourcePanel({
     return true;
   };
 
+  const dataSourceIsQuery = datasource?.type === DatasourceType.Query;
+
   const mainBody = useMemo(
     () => (
       <>
@@ -321,7 +323,7 @@ export default function DataSourcePanel({
           placeholder={t('Search Metrics & Columns')}
         />
         <div className="field-selections">
-          {isValidDatasourceType(datasource.type) && showInfoboxCheck() && (
+          {dataSourceIsQuery && showInfoboxCheck() && (
             <StyledInfoboxWrapper>
               <Alert
                 closable
@@ -434,19 +436,22 @@ export default function DataSourcePanel({
       search,
       showAllColumns,
       showAllMetrics,
+      dataSourceIsQuery,
       shouldForceUpdate,
     ],
   );
 
   return (
     <DatasourceContainer>
-      <SaveDatasetModal
-        visible={showSaveDatasetModal}
-        onHide={() => setShowSaveDatasetModal(false)}
-        buttonTextOnSave={t('Save')}
-        buttonTextOnOverwrite={t('Overwrite')}
-        datasource={datasource}
-      />
+      {dataSourceIsQuery && (
+        <SaveDatasetModal
+          visible={showSaveDatasetModal}
+          onHide={() => setShowSaveDatasetModal(false)}
+          buttonTextOnSave={t('Save')}
+          buttonTextOnOverwrite={t('Overwrite')}
+          datasource={datasource}
+        />
+      )}
       <Control {...datasourceControl} name="datasource" actions={actions} />
       {datasource.id != null && mainBody}
     </DatasourceContainer>
