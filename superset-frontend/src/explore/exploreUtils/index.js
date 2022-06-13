@@ -66,7 +66,7 @@ export function getAnnotationJsonUrl(slice_id, form_data, isNative, force) {
   const uri = URI(window.location.search);
   const endpoint = isNative ? 'annotation_json' : 'slice_json';
   return uri
-    .pathname(`/superset/${endpoint}/${slice_id}`)
+    .pathname(`/analytics/superset/${endpoint}/${slice_id}`)
     .search({
       form_data: safeStringify(form_data, (key, value) =>
         value === null ? undefined : value,
