@@ -90,7 +90,7 @@ const config: ControlPanelConfig = {
         ],
         ...legendSection,
         // eslint-disable-next-line react/jsx-key
-        [<h1 className="section-header">{t('Labels')}</h1>],
+        [<div className="section-header">{t('Labels')}</div>],
         [
           {
             name: 'label_type',
@@ -183,8 +183,20 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        [
+          {
+            name: 'show_total',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Show Total'),
+              default: false,
+              renderTrigger: true,
+              description: t('Whether to display the aggregate count'),
+            },
+          },
+        ],
         // eslint-disable-next-line react/jsx-key
-        [<h1 className="section-header">{t('Pie shape')}</h1>],
+        [<div className="section-header">{t('Pie shape')}</div>],
         [
           {
             name: 'outerRadius',
@@ -241,6 +253,11 @@ const config: ControlPanelConfig = {
       default: 100,
     },
   },
+  denormalizeFormData: formData => ({
+    ...formData,
+    metric: formData.standardizedFormData.standardizedState.metrics[0],
+    groupby: formData.standardizedFormData.standardizedState.columns,
+  }),
 };
 
 export default config;

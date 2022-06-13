@@ -67,7 +67,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         self.config = app.config
         self.manifest: Dict[Any, Any] = {}
 
-    @deprecated(details="use self.superset_app instead of self.flask_app")  # type: ignore   # pylint: disable=line-too-long,useless-suppression
+    @deprecated(details="use self.superset_app instead of self.flask_app")  # type: ignore
     @property
     def flask_app(self) -> SupersetApp:
         return self.superset_app
@@ -113,19 +113,13 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         # the global Flask app
         #
         # pylint: disable=import-outside-toplevel,too-many-locals,too-many-statements
+        from superset.advanced_data_type.api import AdvancedDataTypeRestApi
         from superset.annotation_layers.annotations.api import AnnotationRestApi
         from superset.annotation_layers.api import AnnotationLayerRestApi
         from superset.async_events.api import AsyncEventsRestApi
         from superset.cachekeys.api import CacheRestApi
         from superset.charts.api import ChartRestApi
         from superset.charts.data.api import ChartDataRestApi
-        from superset.connectors.druid.views import (
-            Druid,
-            DruidClusterModelView,
-            DruidColumnInlineView,
-            DruidDatasourceModelView,
-            DruidMetricInlineView,
-        )
         from superset.connectors.sqla.views import (
             RowLevelSecurityFiltersModelView,
             SqlMetricInlineView,
@@ -141,21 +135,18 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.datasets.api import DatasetRestApi
         from superset.datasets.columns.api import DatasetColumnsRestApi
         from superset.datasets.metrics.api import DatasetMetricRestApi
+        from superset.embedded.api import EmbeddedDashboardRestApi
+        from superset.embedded.view import EmbeddedView
         from superset.explore.form_data.api import ExploreFormDataRestApi
         from superset.explore.permalink.api import ExplorePermalinkRestApi
+        from superset.importexport.api import ImportExportRestApi
         from superset.queries.api import QueryRestApi
         from superset.queries.saved_queries.api import SavedQueryRestApi
         from superset.reports.api import ReportScheduleRestApi
         from superset.reports.logs.api import ReportExecutionLogRestApi
         from superset.security.api import SecurityRestApi
         from superset.views.access_requests import AccessRequestsModelView
-        from superset.views.alerts import (
-            AlertLogModelView,
-            AlertModelView,
-            AlertObservationModelView,
-            AlertView,
-            ReportView,
-        )
+        from superset.views.alerts import AlertView, ReportView
         from superset.views.annotations import (
             AnnotationLayerModelView,
             AnnotationModelView,
@@ -184,10 +175,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.views.log.api import LogRestApi
         from superset.views.log.views import LogModelView
         from superset.views.redirects import R
-        from superset.views.schedules import (
-            DashboardEmailScheduleView,
-            SliceEmailScheduleView,
-        )
         from superset.views.sql_lab import (
             SavedQueryView,
             SavedQueryViewApi,
@@ -204,6 +191,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(AnnotationRestApi)
         appbuilder.add_api(AnnotationLayerRestApi)
         appbuilder.add_api(AsyncEventsRestApi)
+        appbuilder.add_api(AdvancedDataTypeRestApi)
         appbuilder.add_api(CacheRestApi)
         appbuilder.add_api(ChartRestApi)
         appbuilder.add_api(ChartDataRestApi)
@@ -216,9 +204,11 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(DatasetRestApi)
         appbuilder.add_api(DatasetColumnsRestApi)
         appbuilder.add_api(DatasetMetricRestApi)
+        appbuilder.add_api(EmbeddedDashboardRestApi)
         appbuilder.add_api(ExploreFormDataRestApi)
         appbuilder.add_api(ExplorePermalinkRestApi)
         appbuilder.add_api(FilterSetRestApi)
+        appbuilder.add_api(ImportExportRestApi)
         appbuilder.add_api(QueryRestApi)
         appbuilder.add_api(ReportScheduleRestApi)
         appbuilder.add_api(ReportExecutionLogRestApi)
@@ -284,9 +274,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category="Security",
             category_label=__("Security"),
             icon="fa-lock",
-            menu_cond=lambda: feature_flag_manager.is_feature_enabled(
-                "ROW_LEVEL_SECURITY"
-            ),
         )
 
         #
@@ -300,6 +287,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view_no_menu(Dashboard)
         appbuilder.add_view_no_menu(DashboardModelViewAsync)
         appbuilder.add_view_no_menu(Datasource)
+        appbuilder.add_view_no_menu(EmbeddedView)
         appbuilder.add_view_no_menu(KV)
         appbuilder.add_view_no_menu(R)
         appbuilder.add_view_no_menu(SavedQueryView)
@@ -314,6 +302,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view_no_menu(TableSchemaView)
         appbuilder.add_view_no_menu(TabStateView)
         appbuilder.add_view_no_menu(TagView)
+        appbuilder.add_view_no_menu(ReportView)
 
         #
         # Add links
@@ -391,50 +380,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         #
         # Conditionally setup email views
         #
-        if self.config["ENABLE_SCHEDULED_EMAIL_REPORTS"]:
-            logging.warning(
-                "ENABLE_SCHEDULED_EMAIL_REPORTS "
-                "is deprecated and will be removed in version 2.0.0"
-            )
-
-        appbuilder.add_separator(
-            "Manage", cond=lambda: self.config["ENABLE_SCHEDULED_EMAIL_REPORTS"]
-        )
-        appbuilder.add_view(
-            DashboardEmailScheduleView,
-            "Dashboard Email Schedules",
-            label=__("Dashboard Emails"),
-            category="Manage",
-            category_label=__("Manage"),
-            icon="fa-search",
-            menu_cond=lambda: self.config["ENABLE_SCHEDULED_EMAIL_REPORTS"],
-        )
-        appbuilder.add_view(
-            SliceEmailScheduleView,
-            "Chart Emails",
-            label=__("Chart Email Schedules"),
-            category="Manage",
-            category_label=__("Manage"),
-            icon="fa-search",
-            menu_cond=lambda: self.config["ENABLE_SCHEDULED_EMAIL_REPORTS"],
-        )
-
-        if self.config["ENABLE_ALERTS"]:
-            logging.warning(
-                "ENABLE_ALERTS is deprecated and will be removed in version 2.0.0"
-            )
-
-        appbuilder.add_view(
-            AlertModelView,
-            "Alerts",
-            label=__("Alerts"),
-            category="Manage",
-            category_label=__("Manage"),
-            icon="fa-exclamation-triangle",
-            menu_cond=lambda: bool(self.config["ENABLE_ALERTS"]),
-        )
-        appbuilder.add_view_no_menu(AlertLogModelView)
-        appbuilder.add_view_no_menu(AlertObservationModelView)
 
         appbuilder.add_view(
             AlertView,
@@ -445,7 +390,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             icon="fa-exclamation-triangle",
             menu_cond=lambda: feature_flag_manager.is_feature_enabled("ALERT_REPORTS"),
         )
-        appbuilder.add_view_no_menu(ReportView)
 
         appbuilder.add_view(
             AccessRequestsModelView,
@@ -455,65 +399,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category_label=__("Security"),
             icon="fa-table",
             menu_cond=lambda: bool(self.config["ENABLE_ACCESS_REQUEST"]),
-        )
-
-        #
-        # Druid Views
-        #
-        appbuilder.add_separator(
-            "Data", cond=lambda: bool(self.config["DRUID_IS_ACTIVE"])
-        )
-        appbuilder.add_view(
-            DruidDatasourceModelView,
-            "Druid Datasources",
-            label=__("Druid Datasources"),
-            category="Data",
-            category_label=__("Data"),
-            icon="fa-cube",
-            menu_cond=lambda: bool(self.config["DRUID_IS_ACTIVE"]),
-        )
-        appbuilder.add_view(
-            DruidClusterModelView,
-            name="Druid Clusters",
-            label=__("Druid Clusters"),
-            icon="fa-cubes",
-            category="Data",
-            category_label=__("Data"),
-            category_icon="fa-database",
-            menu_cond=lambda: bool(self.config["DRUID_IS_ACTIVE"]),
-        )
-        appbuilder.add_view_no_menu(DruidMetricInlineView)
-        appbuilder.add_view_no_menu(DruidColumnInlineView)
-        appbuilder.add_view_no_menu(Druid)
-
-        appbuilder.add_link(
-            "Scan New Datasources",
-            label=__("Scan New Datasources"),
-            href="/druid/scan_new_datasources/",
-            category="Data",
-            category_label=__("Data"),
-            category_icon="fa-database",
-            icon="fa-refresh",
-            cond=lambda: bool(
-                self.config["DRUID_IS_ACTIVE"]
-                and self.config["DRUID_METADATA_LINKS_ENABLED"]
-            ),
-        )
-        appbuilder.add_link(
-            "Refresh Druid Metadata",
-            label=__("Refresh Druid Metadata"),
-            href="/druid/refresh_datasources/",
-            category="Data",
-            category_label=__("Data"),
-            category_icon="fa-database",
-            icon="fa-cog",
-            cond=lambda: bool(
-                self.config["DRUID_IS_ACTIVE"]
-                and self.config["DRUID_METADATA_LINKS_ENABLED"]
-            ),
-        )
-        appbuilder.add_separator(
-            "Data", cond=lambda: bool(self.config["DRUID_IS_ACTIVE"])
         )
 
     def init_app_in_ctx(self) -> None:

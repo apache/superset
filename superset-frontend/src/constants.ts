@@ -55,6 +55,10 @@ export const URL_PARAMS = {
     name: 'show_filters',
     type: 'boolean',
   },
+  expandFilters: {
+    name: 'expand_filters',
+    type: 'boolean',
+  },
   formDataKey: {
     name: 'form_data_key',
     type: 'string',
@@ -63,8 +67,20 @@ export const URL_PARAMS = {
     name: 'slice_id',
     type: 'string',
   },
+  datasourceId: {
+    name: 'datasource_id',
+    type: 'string',
+  },
   datasetId: {
     name: 'dataset_id',
+    type: 'string',
+  },
+  datasourceType: {
+    name: 'datasource_type',
+    type: 'string',
+  },
+  dashboardId: {
+    name: 'dashboard_id',
     type: 'string',
   },
   force: {
@@ -80,6 +96,8 @@ export const URL_PARAMS = {
 export const RESERVED_CHART_URL_PARAMS: string[] = [
   URL_PARAMS.formDataKey.name,
   URL_PARAMS.sliceId.name,
+  URL_PARAMS.datasourceId.name,
+  URL_PARAMS.datasourceType.name,
   URL_PARAMS.datasetId.name,
 ];
 export const RESERVED_DASHBOARD_URL_PARAMS: string[] = [
@@ -98,3 +116,8 @@ export const FAST_DEBOUNCE = 250;
  * Slower debounce delay for inputs with expensive API calls.
  */
 export const SLOW_DEBOUNCE = 500;
+
+/**
+ * Display null as `N/A`
+ */
+export const NULL_DISPLAY = 'N/A';

@@ -19,7 +19,12 @@
 
 /* eslint-disable max-classes-per-file */
 import React from 'react';
-import { QueryFormData, ChartMetadata, ChartPlugin } from '@superset-ui/core';
+import {
+  QueryFormData,
+  ChartMetadata,
+  ChartPlugin,
+  useTheme,
+} from '@superset-ui/core';
 
 const DIMENSION_STYLE = {
   fontSize: 36,
@@ -39,31 +44,36 @@ export const TestComponent = ({
   message?: string;
   width?: number;
   height?: number;
-}) => (
-  <div
-    className="test-component"
-    style={{
-      width,
-      height,
-      backgroundColor: '#00d1c1',
-      color: '#fff',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      borderRadius: 8,
-    }}
-  >
-    <div className="message" style={{ padding: 10 }}>
-      {message ?? 'custom component'}
+}) => {
+  const theme = useTheme();
+  return (
+    <div
+      className="test-component"
+      style={{
+        width,
+        height,
+        backgroundColor: theme.colors.primary.base,
+        color: theme.colors.grayscale.light5,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        borderRadius: 8,
+      }}
+    >
+      <div className="message" style={{ padding: 10 }}>
+        {message ?? 'custom component'}
+      </div>
+      <div className="dimension" style={DIMENSION_STYLE}>
+        {[width, height].join('x')}
+      </div>
+      <div className="formData" style={{ padding: 10 }}>
+        <code style={{ color: theme.colors.primary.light2 }}>
+          {JSON.stringify(formData)}
+        </code>
+      </div>
     </div>
-    <div className="dimension" style={DIMENSION_STYLE}>
-      {[width, height].join('x')}
-    </div>
-    <div className="formData" style={{ padding: 10 }}>
-      <code style={{ color: '#D3F9F7' }}>{JSON.stringify(formData)}</code>
-    </div>
-  </div>
-);
+  );
+};
 
 export const ChartKeys = {
   DILIGENT: 'diligent-chart',

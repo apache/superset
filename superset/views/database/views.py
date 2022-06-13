@@ -31,7 +31,7 @@ from wtforms.fields import StringField
 from wtforms.validators import ValidationError
 
 import superset.models.core as models
-from superset import app, db, is_feature_enabled
+from superset import app, db
 from superset.connectors.sqla.models import SqlaTable
 from superset.constants import MODEL_VIEW_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.exceptions import CertificateException
@@ -106,9 +106,6 @@ class DatabaseView(
     @expose("/list/")
     @has_access
     def list(self) -> FlaskResponse:
-        if not is_feature_enabled("ENABLE_REACT_CRUD_VIEWS"):
-            return super().list()
-
         return super().render_app_template()
 
 
@@ -278,11 +275,13 @@ class ExcelToDatabaseView(SimpleFormView):
             flash(message, "danger")
             return redirect("/exceltodatabaseview/form")
 
-        uploaded_tmp_file_path = tempfile.NamedTemporaryFile(  # pylint: disable=consider-using-with
-            dir=app.config["UPLOAD_FOLDER"],
-            suffix=os.path.splitext(form.excel_file.data.filename)[1].lower(),
-            delete=False,
-        ).name
+        uploaded_tmp_file_path = (
+            tempfile.NamedTemporaryFile(  # pylint: disable=consider-using-with
+                dir=app.config["UPLOAD_FOLDER"],
+                suffix=os.path.splitext(form.excel_file.data.filename)[1].lower(),
+                delete=False,
+            ).name
+        )
 
         try:
             utils.ensure_path_exists(config["UPLOAD_FOLDER"])

@@ -26,7 +26,7 @@ from click.core import Context
 try:
     from github import BadCredentialsException, Github, PullRequest, Repository
 except ModuleNotFoundError:
-    print("PyGithub is a required package for this script")
+    print("PyGitHub is a required package for this script")
     exit(1)
 
 SUPERSET_REPO = "apache/superset"
@@ -164,10 +164,19 @@ class GitChangeLog:
         return False
 
     def _get_changelog_version_head(self) -> str:
+        if not len(self._logs):
+            print(
+                f"No changes found between revisions. "
+                f"Make sure your branch is up to date."
+            )
+            sys.exit(1)
         return f"### {self._version} ({self._logs[0].time})"
 
     def _parse_change_log(
-        self, changelog: Dict[str, str], pr_info: Dict[str, str], github_login: str,
+        self,
+        changelog: Dict[str, str],
+        pr_info: Dict[str, str],
+        github_login: str,
     ) -> None:
         formatted_pr = (
             f"- [#{pr_info.get('id')}]"
@@ -355,7 +364,8 @@ def compare(base_parameters: BaseParameters) -> None:
 
 @cli.command("changelog")
 @click.option(
-    "--csv", help="The csv filename to export the changelog to",
+    "--csv",
+    help="The csv filename to export the changelog to",
 )
 @click.option(
     "--access_token",

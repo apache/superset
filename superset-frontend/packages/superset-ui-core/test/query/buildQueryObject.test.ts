@@ -227,6 +227,7 @@ describe('buildQueryObject', () => {
         name: 'My Formula',
         opacity: AnnotationOpacity.Low,
         show: true,
+        showLabel: false,
         style: AnnotationStyle.Solid,
         value: '10*sin(x)',
         width: 1,
@@ -235,6 +236,7 @@ describe('buildQueryObject', () => {
         annotationType: AnnotationType.Interval,
         color: null,
         show: false,
+        showLabel: false,
         name: 'My Interval',
         sourceType: AnnotationSourceType.Native,
         style: AnnotationStyle.Dashed,
@@ -253,6 +255,7 @@ describe('buildQueryObject', () => {
         },
         sourceType: AnnotationSourceType.Table,
         show: false,
+        showLabel: false,
         timeColumn: 'ds',
         style: AnnotationStyle.Dashed,
         value: 1,
@@ -282,7 +285,8 @@ describe('buildQueryObject', () => {
         datasource: '5__table',
         granularity_sqla: 'ds',
         viz_type: 'table',
-        url_params: null as unknown as undefined,
+        // @ts-expect-error
+        url_params: null,
       }).url_params,
     ).toBeUndefined();
   });

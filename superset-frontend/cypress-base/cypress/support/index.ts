@@ -17,8 +17,12 @@
  * under the License.
  */
 import '@cypress/code-coverage/support';
+import '@applitools/eyes-cypress/commands';
 
 const BASE_EXPLORE_URL = '/superset/explore/?form_data=';
+const TokenName = Cypress.env('TOKEN_NAME');
+
+require('cy-verify-downloads').addCustomCommand();
 
 /* eslint-disable consistent-return */
 Cypress.on('uncaught:exception', err => {
@@ -101,4 +105,89 @@ Cypress.Commands.add(
     });
     return cy;
   },
+);
+
+Cypress.Commands.add('deleteDashboardByName', (name: string) =>
+  cy.getDashboards().then((dashboards: any) => {
+    dashboards?.forEach((element: any) => {
+      if (element.dashboard_title === name) {
+        const elementId = element.id;
+        cy.deleteDashboard(elementId);
+      }
+    });
+  }),
+);
+
+Cypress.Commands.add('deleteDashboard', (id: number) =>
+  cy
+    .request({
+      method: 'DELETE',
+      url: `api/v1/dashboard/${id}`,
+      headers: {
+        Cookie: `csrf_access_token=${window.localStorage.getItem(
+          'access_token',
+        )}`,
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${TokenName}`,
+        'X-CSRFToken': `${window.localStorage.getItem('access_token')}`,
+        Referer: `${Cypress.config().baseUrl}/`,
+      },
+    })
+    .then(resp => resp),
+);
+
+Cypress.Commands.add('getDashboards', () =>
+  cy
+    .request({
+      method: 'GET',
+      url: `api/v1/dashboard/`,
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${TokenName}`,
+      },
+    })
+    .then(resp => resp.body.result),
+);
+
+Cypress.Commands.add('deleteChart', (id: number) =>
+  cy
+    .request({
+      method: 'DELETE',
+      url: `api/v1/chart/${id}`,
+      headers: {
+        Cookie: `csrf_access_token=${window.localStorage.getItem(
+          'access_token',
+        )}`,
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${TokenName}`,
+        'X-CSRFToken': `${window.localStorage.getItem('access_token')}`,
+        Referer: `${Cypress.config().baseUrl}/`,
+      },
+      failOnStatusCode: false,
+    })
+    .then(resp => resp),
+);
+
+Cypress.Commands.add('getCharts', () =>
+  cy
+    .request({
+      method: 'GET',
+      url: `api/v1/chart/`,
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${TokenName}`,
+      },
+    })
+    .then(resp => resp.body.result),
+);
+
+Cypress.Commands.add('deleteChartByName', (name: string) =>
+  cy.getCharts().then((slices: any) => {
+    slices?.forEach((element: any) => {
+      if (element.slice_name === name) {
+        const elementId = element.id;
+        cy.deleteChart(elementId);
+      }
+    });
+  }),
 );

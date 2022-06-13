@@ -107,7 +107,7 @@ const controlPanel: ControlPanelConfig = {
       label: t('Chart options'),
       expanded: true,
       controlSetRows: [
-        [<h1 className="section-header">{t('Layout')}</h1>],
+        [<div className="section-header">{t('Layout')}</div>],
         [
           {
             name: 'layout',
@@ -285,6 +285,10 @@ const controlPanel: ControlPanelConfig = {
       ],
     },
   ],
+  denormalizeFormData: formData => ({
+    ...formData,
+    metric: formData.standardizedFormData.standardizedState.metrics[0],
+  }),
 };
 
 export default controlPanel;

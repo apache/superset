@@ -23,6 +23,14 @@ import { QueryObjectFilterClause } from './types/Query';
 import { isSimpleAdhocFilter } from './types/Filter';
 import convertFilter from './convertFilter';
 
+function sanitizeClause(clause: string): string {
+  let sanitizedClause = clause;
+  if (clause.includes('--')) {
+    sanitizedClause = `${clause}\n`;
+  }
+  return `(${sanitizedClause})`;
+}
+
 /** Logic formerly in viz.py's process_query_filters */
 export default function processFilters(
   formData: Partial<QueryFormData>,
@@ -60,9 +68,9 @@ export default function processFilters(
   });
 
   // some filter-related fields need to go in `extras`
-  extras.having = freeformHaving.map(exp => `(${exp})`).join(' AND ');
+  extras.having = freeformHaving.map(sanitizeClause).join(' AND ');
   extras.having_druid = simpleHaving;
-  extras.where = freeformWhere.map(exp => `(${exp})`).join(' AND ');
+  extras.where = freeformWhere.map(sanitizeClause).join(' AND ');
 
   return {
     filters: simpleWhere,

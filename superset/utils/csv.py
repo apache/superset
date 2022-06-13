@@ -19,6 +19,7 @@ import urllib.request
 from typing import Any, Dict, Optional
 from urllib.error import URLError
 
+import numpy as np
 import pandas as pd
 import simplejson
 
@@ -64,8 +65,12 @@ def df_to_escaped_csv(df: pd.DataFrame, **kwargs: Any) -> Any:
     # Escape csv headers
     df = df.rename(columns=escape_values)
 
-    # Escape csv rows
-    df = df.applymap(escape_values)
+    # Escape csv values
+    for name, column in df.items():
+        if column.dtype == np.dtype(object):
+            for idx, value in enumerate(column.values):
+                if isinstance(value, str):
+                    df.at[idx, name] = escape_value(value)
 
     return df.to_csv(**kwargs)
 
@@ -80,8 +85,8 @@ def get_chart_csv_data(
         opener.addheaders.append(("Cookie", cookie_str))
         response = opener.open(chart_url)
         content = response.read()
-    if response.getcode() != 200:
-        raise URLError(response.getcode())
+        if response.getcode() != 200:
+            raise URLError(response.getcode())
     if content:
         return content
     return None
@@ -90,11 +95,16 @@ def get_chart_csv_data(
 def get_chart_dataframe(
     chart_url: str, auth_cookies: Optional[Dict[str, str]] = None
 ) -> Optional[pd.DataFrame]:
+    # Disable all the unnecessary-lambda violations in this function
+    # pylint: disable=unnecessary-lambda
     content = get_chart_csv_data(chart_url, auth_cookies)
     if content is None:
         return None
 
     result = simplejson.loads(content.decode("utf-8"))
+
+    # need to convert float value to string to show full long number
+    pd.set_option("display.float_format", lambda x: str(x))
     df = pd.DataFrame.from_dict(result["result"][0]["data"])
 
     # rebuild hierarchical columns and index

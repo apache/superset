@@ -21,6 +21,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Pattern, Tuple, TYPE_CHECKING
 
 from flask_babel import gettext as __
+from psycopg2.extensions import binary_types, string_types
 from sqlalchemy.dialects.postgresql import ARRAY, DOUBLE_PRECISION, ENUM, JSON
 from sqlalchemy.dialects.postgresql.base import PGInspector
 from sqlalchemy.types import String
@@ -188,8 +189,16 @@ class PostgresEngineSpec(PostgresBaseEngineSpec, BasicParametersMixin):
             lambda match: ARRAY(int(match[2])) if match[2] else String(),
             GenericDataType.STRING,
         ),
-        (re.compile(r"^json.*", re.IGNORECASE), JSON(), GenericDataType.STRING,),
-        (re.compile(r"^enum.*", re.IGNORECASE), ENUM(), GenericDataType.STRING,),
+        (
+            re.compile(r"^json.*", re.IGNORECASE),
+            JSON(),
+            GenericDataType.STRING,
+        ),
+        (
+            re.compile(r"^enum.*", re.IGNORECASE),
+            ENUM(),
+            GenericDataType.STRING,
+        ),
     )
 
     @classmethod
@@ -278,6 +287,14 @@ class PostgresEngineSpec(PostgresBaseEngineSpec, BasicParametersMixin):
         return super().get_column_spec(
             native_type, column_type_mappings=column_type_mappings
         )
+
+    @classmethod
+    def get_datatype(cls, type_code: Any) -> Optional[str]:
+        types = binary_types.copy()
+        types.update(string_types)
+        if type_code in types:
+            return types[type_code].name
+        return None
 
     @classmethod
     def get_cancel_query_id(cls, cursor: Any, query: Query) -> Optional[str]:

@@ -24,7 +24,7 @@ from marshmallow_enum import EnumField
 from pytz import all_timezones
 
 from superset.models.reports import (
-    ReportCreationMethodType,
+    ReportCreationMethod,
     ReportDataFormat,
     ReportRecipientType,
     ReportScheduleType,
@@ -164,7 +164,7 @@ class ReportSchedulePostSchema(Schema):
     )
     chart = fields.Integer(required=False, allow_none=True)
     creation_method = EnumField(
-        ReportCreationMethodType,
+        ReportCreationMethod,
         by_value=True,
         required=False,
         description=creation_method_description,
@@ -203,7 +203,9 @@ class ReportSchedulePostSchema(Schema):
         default=ReportDataFormat.VISUALIZATION,
         validate=validate.OneOf(choices=tuple(key.value for key in ReportDataFormat)),
     )
-    extra = fields.Dict(default=None,)
+    extra = fields.Dict(
+        default=None,
+    )
     force_screenshot = fields.Boolean(default=False)
 
     @validates_schema
@@ -254,7 +256,7 @@ class ReportSchedulePutSchema(Schema):
     )
     chart = fields.Integer(required=False, allow_none=True)
     creation_method = EnumField(
-        ReportCreationMethodType,
+        ReportCreationMethod,
         by_value=True,
         allow_none=True,
         description=creation_method_description,

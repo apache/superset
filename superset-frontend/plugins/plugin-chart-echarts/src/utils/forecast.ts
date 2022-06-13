@@ -17,7 +17,7 @@
  * under the License.
  */
 import { DataRecord, DTTM_ALIAS, NumberFormatter } from '@superset-ui/core';
-import { CallbackDataParams, OptionName } from 'echarts/types/src/util/types';
+import { OptionName } from 'echarts/types/src/util/types';
 import { TooltipMarker } from 'echarts/types/src/util/format';
 import {
   ForecastSeriesContext,
@@ -52,13 +52,14 @@ export const extractForecastSeriesContexts = (
   }, {} as { [key: string]: ForecastSeriesEnum[] });
 
 export const extractForecastValuesFromTooltipParams = (
-  params: (CallbackDataParams & { seriesId: string })[],
+  params: any[],
+  isHorizontal = false,
 ): Record<string, ForecastValue> => {
   const values: Record<string, ForecastValue> = {};
   params.forEach(param => {
     const { marker, seriesId, value } = param;
     const context = extractForecastSeriesContext(seriesId);
-    const numericValue = (value as [Date, number])[1];
+    const numericValue = isHorizontal ? value[0] : value[1];
     if (numericValue) {
       if (!(context.name in values))
         values[context.name] = {

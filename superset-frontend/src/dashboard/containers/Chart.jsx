@@ -55,13 +55,14 @@ function mapStateToProps(
   },
   ownProps,
 ) {
-  const { id } = ownProps;
+  const { id, extraControls, setControlValue } = ownProps;
   const chart = chartQueries[id] || EMPTY_OBJECT;
   const datasource =
     (chart && chart.form_data && datasources[chart.form_data.datasource]) ||
     PLACEHOLDER_DATASOURCE;
-  const { colorScheme, colorNamespace } = dashboardState;
+  const { colorScheme, colorNamespace, datasetsStatus } = dashboardState;
   const labelColors = dashboardInfo?.metadata?.label_colors || {};
+  const sharedLabelColors = dashboardInfo?.metadata?.shared_label_colors || {};
   // note: this method caches filters if possible to prevent render cascades
   const formData = getFormDataWithExtraFilters({
     layout: dashboardLayout.present,
@@ -75,7 +76,9 @@ function mapStateToProps(
     sliceId: id,
     nativeFilters,
     dataMask,
+    extraControls,
     labelColors,
+    sharedLabelColors,
   });
 
   formData.dashboardId = dashboardInfo.id;
@@ -84,6 +87,7 @@ function mapStateToProps(
     chart,
     datasource,
     labelColors,
+    sharedLabelColors,
     slice: sliceEntities.slices[id],
     timeout: dashboardInfo.common.conf.SUPERSET_WEBSERVER_TIMEOUT,
     filters: getActiveFilters() || EMPTY_OBJECT,
@@ -97,7 +101,9 @@ function mapStateToProps(
     ownState: dataMask[id]?.ownState,
     filterState: dataMask[id]?.filterState,
     maxRows: common.conf.SQL_MAX_ROW,
+    setControlValue,
     filterboxMigrationState: dashboardState.filterboxMigrationState,
+    datasetsStatus,
   };
 }
 

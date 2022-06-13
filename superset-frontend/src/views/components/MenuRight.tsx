@@ -16,17 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState } from 'react';
-import { MainNav as Menu } from 'src/components/Menu';
-import { t, styled, css, SupersetTheme } from '@superset-ui/core';
-import { Link } from 'react-router-dom';
-import Icons from 'src/components/Icons';
-import findPermission from 'src/dashboard/util/findPermission';
+import React, { Fragment, useState, useEffect } from 'react';
+import rison from 'rison';
 import { useSelector } from 'react-redux';
+import { Link } from 'react-router-dom';
+import { useQueryParams, BooleanParam } from 'use-query-params';
+
+import {
+  t,
+  styled,
+  css,
+  SupersetTheme,
+  SupersetClient,
+} from '@superset-ui/core';
+import { MainNav as Menu } from 'src/components/Menu';
+import { Tooltip } from 'src/components/Tooltip';
+import Icons from 'src/components/Icons';
+import findPermission, { isUserAdmin } from 'src/dashboard/util/findPermission';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import { RootState } from 'src/dashboard/types';
 import LanguagePicker from './LanguagePicker';
 import DatabaseModal from '../CRUD/data/database/DatabaseModal';
-import { checkUploadExtensions } from '../CRUD/utils';
+import { uploadUserPerms } from '../CRUD/utils';
 import {
   ExtentionConfigs,
   GlobalMenuDataOptions,
@@ -43,6 +54,15 @@ const versionInfoStyles = (theme: SupersetTheme) => css`
 `;
 const StyledI = styled.div`
   color: ${({ theme }) => theme.colors.primary.dark1};
+`;
+
+const styledDisabled = (theme: SupersetTheme) => css`
+  color: ${theme.colors.grayscale.base};
+  backgroundColor: ${theme.colors.grayscale.light2}};
+  .ant-menu-item:hover {
+    color: ${theme.colors.grayscale.base};
+    cursor: default;
+  }
 `;
 
 const StyledDiv = styled.div<{ align: string }>`
@@ -69,9 +89,18 @@ const RightMenu = ({
   navbarRight,
   isFrontendRoute,
 }: RightMenuProps) => {
-  const { roles } = useSelector<any, UserWithPermissionsAndRoles>(
+  const user = useSelector<any, UserWithPermissionsAndRoles>(
     state => state.user,
   );
+  const dashboardId = useSelector<RootState, number | undefined>(
+    state => state.dashboardInfo?.id,
+  );
+
+  const [, setQuery] = useQueryParams({
+    databaseAdded: BooleanParam,
+  });
+
+  const { roles } = user;
   const {
     CSV_EXTENSIONS,
     COLUMNAR_EXTENSIONS,
@@ -86,24 +115,19 @@ const RightMenu = ({
   const canChart = findPermission('can_write', 'Chart', roles);
   const canDatabase = findPermission('can_write', 'Database', roles);
 
-  const canUploadCSV = findPermission(
-    'can_this_form_get',
-    'CsvToDatabaseView',
-    roles,
-  );
-  const canUploadColumnar = findPermission(
-    'can_this_form_get',
-    'ColumnarToDatabaseView',
-    roles,
-  );
-  const canUploadExcel = findPermission(
-    'can_this_form_get',
-    'ExcelToDatabaseView',
-    roles,
-  );
+  const { canUploadData, canUploadCSV, canUploadColumnar, canUploadExcel } =
+    uploadUserPerms(
+      roles,
+      CSV_EXTENSIONS,
+      COLUMNAR_EXTENSIONS,
+      EXCEL_EXTENSIONS,
+      ALLOWED_EXTENSIONS,
+    );
 
-  const canUpload = canUploadCSV || canUploadColumnar || canUploadExcel;
   const showActionDropdown = canSql || canChart || canDashboard;
+  const [allowUploads, setAllowUploads] = useState<boolean>(false);
+  const isAdmin = isUserAdmin(user);
+  const showUploads = allowUploads || isAdmin;
   const dropdownItems: MenuObjectProps[] = [
     {
       label: t('Data'),
@@ -123,25 +147,19 @@ const RightMenu = ({
           label: t('Upload CSV to database'),
           name: 'Upload a CSV',
           url: '/csvtodatabaseview/form',
-          perm:
-            checkUploadExtensions(CSV_EXTENSIONS, ALLOWED_EXTENSIONS) &&
-            canUploadCSV,
+          perm: canUploadCSV && showUploads,
         },
         {
           label: t('Upload columnar file to database'),
           name: 'Upload a Columnar file',
           url: '/columnartodatabaseview/form',
-          perm:
-            checkUploadExtensions(COLUMNAR_EXTENSIONS, ALLOWED_EXTENSIONS) &&
-            canUploadColumnar,
+          perm: canUploadColumnar && showUploads,
         },
         {
           label: t('Upload Excel file to database'),
           name: 'Upload Excel',
           url: '/exceltodatabaseview/form',
-          perm:
-            checkUploadExtensions(EXCEL_EXTENSIONS, ALLOWED_EXTENSIONS) &&
-            canUploadExcel,
+          perm: canUploadExcel && showUploads,
         },
       ],
     },
@@ -154,7 +172,9 @@ const RightMenu = ({
     },
     {
       label: t('Chart'),
-      url: '/chart/add',
+      url: Number.isInteger(dashboardId)
+        ? `/chart/add?dashboard_id=${dashboardId}`
+        : '/chart/add',
       icon: 'fa-fw fa-bar-chart',
       perm: 'can_write',
       view: 'Chart',
@@ -167,6 +187,25 @@ const RightMenu = ({
       view: 'Dashboard',
     },
   ];
+
+  const checkAllowUploads = () => {
+    const payload = {
+      filters: [
+        { col: 'allow_file_upload', opr: 'upload_is_enabled', value: true },
+      ],
+    };
+    SupersetClient.get({
+      endpoint: `/api/v1/database/?q=${rison.encode(payload)}`,
+    }).then(({ json }: Record<string, any>) => {
+      setAllowUploads(json.count >= 1);
+    });
+  };
+
+  useEffect(() => {
+    if (canUploadData) {
+      checkAllowUploads();
+    }
+  }, [canUploadData]);
 
   const menuIconAndLabel = (menu: MenuObjectProps) => (
     <>
@@ -189,14 +228,52 @@ const RightMenu = ({
     setShowModal(false);
   };
 
+  const isDisabled = isAdmin && !allowUploads;
+
+  const tooltipText = t(
+    "Enable 'Allow data upload' in any database's settings",
+  );
+
+  const buildMenuItem = (item: Record<string, any>) => {
+    const disabledText = isDisabled && item.url;
+    return disabledText ? (
+      <Menu.Item key={item.name} css={styledDisabled}>
+        <Tooltip placement="top" title={tooltipText}>
+          {item.label}
+        </Tooltip>
+      </Menu.Item>
+    ) : (
+      <Menu.Item key={item.name}>
+        {item.url ? <a href={item.url}> {item.label} </a> : item.label}
+      </Menu.Item>
+    );
+  };
+
+  const onMenuOpen = (openKeys: string[]) => {
+    if (openKeys.length && canUploadData) {
+      return checkAllowUploads();
+    }
+    return null;
+  };
+
+  const handleDatabaseAdd = () => setQuery({ databaseAdded: true });
+
   return (
     <StyledDiv align={align}>
-      <DatabaseModal
-        onHide={handleOnHideModal}
-        show={showModal}
-        dbEngine={engine}
-      />
-      <Menu selectable={false} mode="horizontal" onClick={handleMenuSelection}>
+      {canDatabase && (
+        <DatabaseModal
+          onHide={handleOnHideModal}
+          show={showModal}
+          dbEngine={engine}
+          onDatabaseAdd={handleDatabaseAdd}
+        />
+      )}
+      <Menu
+        selectable={false}
+        mode="horizontal"
+        onClick={handleMenuSelection}
+        onOpenChange={onMenuOpen}
+      >
         {!navbarRight.user_is_anonymous && showActionDropdown && (
           <SubMenu
             data-test="new-dropdown"
@@ -206,29 +283,31 @@ const RightMenu = ({
             icon={<Icons.TriangleDown />}
           >
             {dropdownItems.map(menu => {
+              const canShowChild = menu.childs?.some(
+                item => typeof item === 'object' && !!item.perm,
+              );
               if (menu.childs) {
-                return canDatabase || canUpload ? (
-                  <SubMenu
-                    key="sub2"
-                    className="data-menu"
-                    title={menuIconAndLabel(menu)}
-                  >
-                    {menu.childs.map((item, idx) =>
-                      typeof item !== 'string' && item.name && item.perm ? (
-                        <>
-                          {idx === 2 && <Menu.Divider />}
-                          <Menu.Item key={item.name}>
-                            {item.url ? (
-                              <a href={item.url}> {item.label} </a>
-                            ) : (
-                              item.label
-                            )}
-                          </Menu.Item>
-                        </>
-                      ) : null,
-                    )}
-                  </SubMenu>
-                ) : null;
+                if (canShowChild) {
+                  return (
+                    <SubMenu
+                      key={`sub2_${menu.label}`}
+                      className="data-menu"
+                      title={menuIconAndLabel(menu)}
+                    >
+                      {menu.childs.map((item, idx) =>
+                        typeof item !== 'string' && item.name && item.perm ? (
+                          <Fragment key={item.name}>
+                            {idx === 2 && <Menu.Divider />}
+                            {buildMenuItem(item)}
+                          </Fragment>
+                        ) : null,
+                      )}
+                    </SubMenu>
+                  );
+                }
+                if (!menu.url) {
+                  return null;
+                }
               }
               return (
                 findPermission(
@@ -271,7 +350,9 @@ const RightMenu = ({
                 return null;
               })}
             </Menu.ItemGroup>,
-            index < settings.length - 1 && <Menu.Divider />,
+            index < settings.length - 1 && (
+              <Menu.Divider key={`divider_${index}`} />
+            ),
           ])}
 
           {!navbarRight.user_is_anonymous && [

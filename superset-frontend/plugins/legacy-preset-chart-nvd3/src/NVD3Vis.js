@@ -313,6 +313,7 @@ function nvd3Vis(element, props) {
     yAxis2ShowMinMax = false,
     yField,
     yIsLogScale,
+    sliceId,
   } = props;
 
   const isExplore = document.querySelector('#explorer-container') !== null;
@@ -433,7 +434,11 @@ function nvd3Vis(element, props) {
         chart.stacked(isBarStacked);
         if (orderBars) {
           data.forEach(d => {
-            d.values.sort((a, b) => (tryNumify(a.x) < tryNumify(b.x) ? -1 : 1));
+            const newValues = [...d.values]; // need to copy values to avoid redux store changed.
+            // eslint-disable-next-line no-param-reassign
+            d.values = newValues.sort((a, b) =>
+              tryNumify(a.x) < tryNumify(b.x) ? -1 : 1,
+            );
           });
         }
         if (!reduceXTicks) {
@@ -670,7 +675,9 @@ function nvd3Vis(element, props) {
       );
     } else if (vizType !== 'bullet') {
       const colorFn = getScale(colorScheme);
-      chart.color(d => d.color || colorFn(cleanColorInput(d[colorKey])));
+      chart.color(
+        d => d.color || colorFn(cleanColorInput(d[colorKey]), sliceId),
+      );
     }
 
     if (isVizTypes(['line', 'area', 'bar', 'dist_bar']) && useRichTooltip) {

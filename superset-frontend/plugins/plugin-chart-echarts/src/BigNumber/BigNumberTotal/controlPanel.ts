@@ -34,7 +34,7 @@ export default {
       controlSetRows: [['metric'], ['adhoc_filters']],
     },
     {
-      label: t('Options'),
+      label: t('Display settings'),
       expanded: true,
       tabOverride: 'data',
       controlSetRows: [
@@ -96,4 +96,8 @@ export default {
       label: t('Number format'),
     },
   },
+  denormalizeFormData: formData => ({
+    ...formData,
+    metric: formData.standardizedFormData.standardizedState.metrics[0],
+  }),
 } as ControlPanelConfig;

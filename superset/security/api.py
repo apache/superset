@@ -25,6 +25,9 @@ from flask_wtf.csrf import generate_csrf
 from marshmallow import EXCLUDE, fields, post_load, Schema, ValidationError
 from marshmallow_enum import EnumField
 
+from superset.embedded_dashboard.commands.exceptions import (
+    EmbeddedDashboardNotFoundError,
+)
 from superset.extensions import event_logger
 from superset.security.guest_token import GuestTokenResourceType
 
@@ -137,18 +140,23 @@ class SecurityRestApi(BaseApi):
                           type: string
             401:
               $ref: '#/components/responses/401'
+            400:
+              $ref: '#/components/responses/400'
             500:
               $ref: '#/components/responses/500'
         """
         try:
             body = guest_token_create_schema.load(request.json)
+            self.appbuilder.sm.validate_guest_token_resources(body["resources"])
+
             # todo validate stuff:
-            # make sure the resource ids are valid
             # make sure username doesn't reference an existing user
             # check rls rules for validity?
             token = self.appbuilder.sm.create_guest_access_token(
                 body["user"], body["resources"], body["rls"]
             )
             return self.response(200, token=token)
+        except EmbeddedDashboardNotFoundError as error:
+            return self.response_400(message=error.message)
         except ValidationError as error:
             return self.response_400(message=error.messages)

@@ -32,6 +32,7 @@ import threading
 import traceback
 import uuid
 import zlib
+from contextlib import contextmanager
 from datetime import date, datetime, time, timedelta
 from distutils.util import strtobool
 from email.mime.application import MIMEApplication
@@ -98,6 +99,7 @@ from superset.exceptions import (
     SupersetException,
     SupersetTimeoutException,
 )
+from superset.sql_parse import sanitize_clause
 from superset.superset_typing import (
     AdhocColumn,
     AdhocMetric,
@@ -127,7 +129,7 @@ DTTM_ALIAS = "__timestamp"
 
 NO_TIME_RANGE = "No filter"
 
-TIME_COMPARISION = "__"
+TIME_COMPARISON = "__"
 
 JS_MAX_INTEGER = 9007199254740991  # Largest int Java Script can handle 2^53-1
 
@@ -173,8 +175,17 @@ class GenericDataType(IntEnum):
     # ROW = 7
 
 
+class DatasourceType(str, Enum):
+    SLTABLE = "sl_table"
+    TABLE = "table"
+    DATASET = "dataset"
+    QUERY = "query"
+    SAVEDQUERY = "saved_query"
+    VIEW = "view"
+
+
 class DatasourceDict(TypedDict):
-    type: str
+    type: str  # todo(hugh): update this to be DatasourceType
     id: int
 
 
@@ -231,6 +242,25 @@ class FilterOperator(str, Enum):
     REGEX = "REGEX"
     IS_TRUE = "IS TRUE"
     IS_FALSE = "IS FALSE"
+
+
+class FilterStringOperators(str, Enum):
+    EQUALS = ("EQUALS",)
+    NOT_EQUALS = ("NOT_EQUALS",)
+    LESS_THAN = ("LESS_THAN",)
+    GREATER_THAN = ("GREATER_THAN",)
+    LESS_THAN_OR_EQUAL = ("LESS_THAN_OR_EQUAL",)
+    GREATER_THAN_OR_EQUAL = ("GREATER_THAN_OR_EQUAL",)
+    IN = ("IN",)
+    NOT_IN = ("NOT_IN",)
+    ILIKE = ("ILIKE",)
+    LIKE = ("LIKE",)
+    REGEX = ("REGEX",)
+    IS_NOT_NULL = ("IS_NOT_NULL",)
+    IS_NULL = ("IS_NULL",)
+    LATEST_PARTITION = ("LATEST_PARTITION",)
+    IS_TRUE = ("IS_TRUE",)
+    IS_FALSE = ("IS_FALSE",)
 
 
 class PostProcessingBoxplotWhiskerType(str, Enum):
@@ -324,7 +354,9 @@ class TemporalType(str, Enum):
     SMALLDATETIME = "SMALLDATETIME"
     TEXT = "TEXT"
     TIME = "TIME"
+    TIME_WITH_TIME_ZONE = "TIME WITH TIME ZONE"
     TIMESTAMP = "TIMESTAMP"
+    TIMESTAMP_WITH_TIME_ZONE = "TIMESTAMP WITH TIME ZONE"
 
 
 class ColumnTypeSource(Enum):
@@ -353,7 +385,6 @@ try:
                     "value": args["value"],
                 }
             }
-
 
 except NameError:
     pass
@@ -510,7 +541,9 @@ def format_timedelta(time_delta: timedelta) -> str:
     return str(time_delta)
 
 
-def base_json_conv(obj: Any,) -> Any:  # pylint: disable=inconsistent-return-statements
+def base_json_conv(  # pylint: disable=inconsistent-return-statements
+    obj: Any,
+) -> Any:
     if isinstance(obj, memoryview):
         obj = obj.tobytes()
     if isinstance(obj, np.int64):
@@ -924,7 +957,9 @@ def send_email_smtp(  # pylint: disable=invalid-name,too-many-arguments,too-many
     # Attach any inline images, which may be required for display in
     # HTML content (inline)
     for msgid, imgdata in (images or {}).items():
-        image = MIMEImage(imgdata)
+        formatted_time = formatdate(localtime=True)
+        file_name = f"{subject} {formatted_time}"
+        image = MIMEImage(imgdata, name=file_name)
         image.add_header("Content-ID", "<%s>" % msgid)
         image.add_header("Content-Disposition", "inline")
         msg.attach(image)
@@ -1011,7 +1046,8 @@ def zlib_decompress(blob: bytes, decode: Optional[bool] = True) -> Union[bytes, 
 
 
 def simple_filter_to_adhoc(
-    filter_clause: QueryObjectFilterClause, clause: str = "where",
+    filter_clause: QueryObjectFilterClause,
+    clause: str = "where",
 ) -> AdhocFilterClause:
     result: AdhocFilterClause = {
         "clause": clause.upper(),
@@ -1274,7 +1310,8 @@ def get_metric_name(
 
 
 def get_column_names(
-    columns: Optional[Sequence[Column]], verbose_map: Optional[Dict[str, Any]] = None,
+    columns: Optional[Sequence[Column]],
+    verbose_map: Optional[Dict[str, Any]] = None,
 ) -> List[str]:
     return [
         column
@@ -1284,7 +1321,8 @@ def get_column_names(
 
 
 def get_metric_names(
-    metrics: Optional[Sequence[Metric]], verbose_map: Optional[Dict[str, Any]] = None,
+    metrics: Optional[Sequence[Metric]],
+    verbose_map: Optional[Dict[str, Any]] = None,
 ) -> List[str]:
     return [
         metric
@@ -1294,7 +1332,8 @@ def get_metric_names(
 
 
 def get_first_metric_name(
-    metrics: Optional[Sequence[Metric]], verbose_map: Optional[Dict[str, Any]] = None,
+    metrics: Optional[Sequence[Metric]],
+    verbose_map: Optional[Dict[str, Any]] = None,
 ) -> Optional[str]:
     metric_labels = get_metric_names(metrics, verbose_map)
     return metric_labels[0] if metric_labels else None
@@ -1366,10 +1405,12 @@ def split_adhoc_filters_into_base_filters(  # pylint: disable=invalid-name
                         }
                     )
             elif expression_type == "SQL":
+                sql_expression = adhoc_filter.get("sqlExpression")
+                sql_expression = sanitize_clause(sql_expression)
                 if clause == "WHERE":
-                    sql_where_filters.append(adhoc_filter.get("sqlExpression"))
+                    sql_where_filters.append(sql_expression)
                 elif clause == "HAVING":
-                    sql_having_filters.append(adhoc_filter.get("sqlExpression"))
+                    sql_having_filters.append(sql_expression)
         form_data["where"] = " AND ".join(
             ["({})".format(sql) for sql in sql_where_filters]
         )
@@ -1386,6 +1427,30 @@ def get_username() -> Optional[str]:
         return g.user.username
     except Exception:  # pylint: disable=broad-except
         return None
+
+
+@contextmanager
+def override_user(user: Optional[User]) -> Iterator[Any]:
+    """
+    Temporarily override the current user (if defined) per `flask.g`.
+
+    Sometimes, often in the context of async Celery tasks, it is useful to switch the
+    current user (which may be undefined) to different one, execute some SQLAlchemy
+    tasks and then revert back to the original one.
+
+    :param user: The override user
+    """
+
+    # pylint: disable=assigning-non-slot
+    if hasattr(g, "user"):
+        current = g.user
+        g.user = user
+        yield
+        g.user = current
+    else:
+        g.user = user
+        yield
+        delattr(g, "user")
 
 
 def parse_ssl_cert(certificate: str) -> _Certificate:
@@ -1566,7 +1631,8 @@ def get_column_names_from_metrics(metrics: List[Metric]) -> List[str]:
 
 
 def extract_dataframe_dtypes(
-    df: pd.DataFrame, datasource: Optional["BaseDatasource"] = None,
+    df: pd.DataFrame,
+    datasource: Optional["BaseDatasource"] = None,
 ) -> List[GenericDataType]:
     """Serialize pandas/numpy dtypes to generic types"""
 
@@ -1627,7 +1693,8 @@ def is_test() -> bool:
 
 
 def get_time_filter_status(
-    datasource: "BaseDatasource", applied_time_extras: Dict[str, str],
+    datasource: "BaseDatasource",
+    applied_time_extras: Dict[str, str],
 ) -> Tuple[List[Dict[str, str]], List[Dict[str, str]]]:
     temporal_columns = {col.column_name for col in datasource.columns if col.is_dttm}
     applied: List[Dict[str, str]] = []
@@ -1734,14 +1801,14 @@ def normalize_dttm_col(
             # Column is formatted as a numeric value
             unit = timestamp_format.replace("epoch_", "")
             df[DTTM_ALIAS] = pd.to_datetime(
-                dttm_col, utc=False, unit=unit, origin="unix"
+                dttm_col, utc=False, unit=unit, origin="unix", errors="coerce"
             )
         else:
             # Column has already been formatted as a timestamp.
             df[DTTM_ALIAS] = dttm_col.apply(pd.Timestamp)
     else:
         df[DTTM_ALIAS] = pd.to_datetime(
-            df[DTTM_ALIAS], utc=False, format=timestamp_format
+            df[DTTM_ALIAS], utc=False, format=timestamp_format, errors="coerce"
         )
     if offset:
         df[DTTM_ALIAS] += timedelta(hours=offset)
@@ -1781,7 +1848,10 @@ def parse_boolean_string(bool_str: Optional[str]) -> bool:
         return False
 
 
-def apply_max_row_limit(limit: int, max_limit: Optional[int] = None,) -> int:
+def apply_max_row_limit(
+    limit: int,
+    max_limit: Optional[int] = None,
+) -> int:
     """
     Override row limit if max global limit is defined
 

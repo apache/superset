@@ -54,8 +54,7 @@ def load_examples_run(
     if load_test_data:
         print("Loading [Tabbed dashboard]")
         examples.load_tabbed_dashboard(only_metadata)
-
-    if not load_test_data:
+    else:
         print("Loading [Random long/lat data]")
         examples.load_long_lat_data(only_metadata, force)
 
@@ -93,14 +92,20 @@ def load_examples_run(
 @click.option("--load-test-data", "-t", is_flag=True, help="Load additional test data")
 @click.option("--load-big-data", "-b", is_flag=True, help="Load additional big data")
 @click.option(
-    "--only-metadata", "-m", is_flag=True, help="Only load metadata, skip actual data",
+    "--only-metadata",
+    "-m",
+    is_flag=True,
+    help="Only load metadata, skip actual data",
 )
 @click.option(
-    "--force", "-f", is_flag=True, help="Force load data even if table already exists",
+    "--force",
+    "-f",
+    is_flag=True,
+    help="Force load data even if table already exists",
 )
 def load_examples(
-    load_test_data: bool,
-    load_big_data: bool,
+    load_test_data: bool = False,
+    load_big_data: bool = False,
     only_metadata: bool = False,
     force: bool = False,
 ) -> None:

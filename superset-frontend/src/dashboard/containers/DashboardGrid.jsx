@@ -24,11 +24,13 @@ import {
   handleComponentDrop,
   resizeComponent,
 } from '../actions/dashboardLayout';
-import { setDirectPathToChild } from '../actions/dashboardState';
+import { setDirectPathToChild, setEditMode } from '../actions/dashboardState';
 
-function mapStateToProps({ dashboardState }) {
+function mapStateToProps({ dashboardState, dashboardInfo }) {
   return {
     editMode: dashboardState.editMode,
+    canEdit: dashboardInfo.dash_edit_perm,
+    dashboardId: dashboardInfo.id,
   };
 }
 
@@ -38,6 +40,7 @@ function mapDispatchToProps(dispatch) {
       handleComponentDrop,
       resizeComponent,
       setDirectPathToChild,
+      setEditMode,
     },
     dispatch,
   );

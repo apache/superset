@@ -23,7 +23,7 @@ from superset.exceptions import SupersetException
 
 
 class CommandException(SupersetException):
-    """ Common base class for Command exceptions. """
+    """Common base class for Command exceptions."""
 
     def __repr__(self) -> str:
         if self._exception:
@@ -52,7 +52,7 @@ class ObjectNotFoundError(CommandException):
 
 
 class CommandInvalidError(CommandException):
-    """ Common base class for Command Invalid errors. """
+    """Common base class for Command Invalid errors."""
 
     status = 422
 
@@ -115,8 +115,24 @@ class RolesNotFoundValidationError(ValidationError):
         super().__init__([_("Some roles do not exist")], field_name="roles")
 
 
+class DatasourceTypeInvalidError(ValidationError):
+    status = 422
+
+    def __init__(self) -> None:
+        super().__init__(
+            [_("Datasource type is invalid")], field_name="datasource_type"
+        )
+
+
 class DatasourceNotFoundValidationError(ValidationError):
     status = 404
 
     def __init__(self) -> None:
-        super().__init__([_("Dataset does not exist")], field_name="datasource_id")
+        super().__init__([_("Datasource does not exist")], field_name="datasource_id")
+
+
+class QueryNotFoundValidationError(ValidationError):
+    status = 404
+
+    def __init__(self) -> None:
+        super().__init__([_("Query does not exist")], field_name="datasource_id")

@@ -34,7 +34,7 @@ from superset.connectors.sqla.models import SqlaTable, TableColumn, SqlMetric
 from superset.constants import EMPTY_STRING, NULL_STRING
 from superset.db_engine_specs.bigquery import BigQueryEngineSpec
 from superset.db_engine_specs.druid import DruidEngineSpec
-from superset.exceptions import QueryObjectValidationError
+from superset.exceptions import QueryObjectValidationError, SupersetSecurityException
 from superset.models.core import Database
 from superset.utils.core import (
     AdhocMetricExpressionType,
@@ -52,11 +52,10 @@ from tests.integration_tests.test_app import app
 
 from .base_tests import SupersetTestCase
 
-
 VIRTUAL_TABLE_INT_TYPES: Dict[str, Pattern[str]] = {
     "hive": re.compile(r"^INT_TYPE$"),
     "mysql": re.compile("^LONGLONG$"),
-    "postgresql": re.compile(r"^INT$"),
+    "postgresql": re.compile(r"^INTEGER$"),
     "presto": re.compile(r"^INTEGER$"),
     "sqlite": re.compile(r"^INT$"),
 }
@@ -235,6 +234,35 @@ class TestDatabaseModel(SupersetTestCase):
         assert "case when 'abc' = 'abc' then 'yes' else 'no' end" in query
         # assert metric
         assert "SUM(case when user = 'abc' then 1 else 0 end)" in query
+        # Cleanup
+        db.session.delete(table)
+        db.session.commit()
+
+    def test_adhoc_metrics_and_calc_columns(self):
+        base_query_obj = {
+            "granularity": None,
+            "from_dttm": None,
+            "to_dttm": None,
+            "groupby": ["user", "expr"],
+            "metrics": [
+                {
+                    "expressionType": AdhocMetricExpressionType.SQL,
+                    "sqlExpression": "(SELECT (SELECT * from birth_names) "
+                    "from test_validate_adhoc_sql)",
+                    "label": "adhoc_metrics",
+                }
+            ],
+            "is_timeseries": False,
+            "filter": [],
+        }
+
+        table = SqlaTable(
+            table_name="test_validate_adhoc_sql", database=get_example_database()
+        )
+        db.session.commit()
+
+        with pytest.raises(SupersetSecurityException):
+            table.get_sqla_query(**base_query_obj)
         # Cleanup
         db.session.delete(table)
         db.session.commit()
@@ -426,7 +454,8 @@ class TestDatabaseModel(SupersetTestCase):
 
         # make sure the columns have been mapped properly
         assert len(table.columns) == 4
-        table.fetch_metadata()
+        table.fetch_metadata(commit=False)
+
         # assert that the removed column has been dropped and
         # the physical and calculated columns are present
         assert {col.column_name for col in table.columns} == {
@@ -443,6 +472,8 @@ class TestDatabaseModel(SupersetTestCase):
         assert cols["mycase"].expression == ""
         assert VIRTUAL_TABLE_STRING_TYPES[backend].match(cols["mycase"].type)
         assert cols["expr"].expression == "case when 1 then 1 else 0 end"
+
+        db.session.delete(table)
 
     @patch("superset.models.core.Database.db_engine_spec", BigQueryEngineSpec)
     def test_labels_expected_on_mutated_query(self):
@@ -569,7 +600,13 @@ def test_filter_on_text_column(text_column_table):
     result_object = table.query(
         {
             "metrics": ["count"],
-            "filter": [{"col": "foo", "val": ['"text in double quotes"'], "op": "IN",}],
+            "filter": [
+                {
+                    "col": "foo",
+                    "val": ['"text in double quotes"'],
+                    "op": "IN",
+                }
+            ],
             "is_timeseries": False,
         }
     )
@@ -579,7 +616,13 @@ def test_filter_on_text_column(text_column_table):
     result_object = table.query(
         {
             "metrics": ["count"],
-            "filter": [{"col": "foo", "val": ["'text in single quotes'"], "op": "IN",}],
+            "filter": [
+                {
+                    "col": "foo",
+                    "val": ["'text in single quotes'"],
+                    "op": "IN",
+                }
+            ],
             "is_timeseries": False,
         }
     )
@@ -589,7 +632,13 @@ def test_filter_on_text_column(text_column_table):
     result_object = table.query(
         {
             "metrics": ["count"],
-            "filter": [{"col": "foo", "val": ['double quotes " in text'], "op": "IN",}],
+            "filter": [
+                {
+                    "col": "foo",
+                    "val": ['double quotes " in text'],
+                    "op": "IN",
+                }
+            ],
             "is_timeseries": False,
         }
     )
@@ -599,7 +648,13 @@ def test_filter_on_text_column(text_column_table):
     result_object = table.query(
         {
             "metrics": ["count"],
-            "filter": [{"col": "foo", "val": ["single quotes ' in text"], "op": "IN",}],
+            "filter": [
+                {
+                    "col": "foo",
+                    "val": ["single quotes ' in text"],
+                    "op": "IN",
+                }
+            ],
             "is_timeseries": False,
         }
     )
@@ -623,7 +678,10 @@ def test_should_generate_closed_and_open_time_filter_range():
             database=get_example_database(),
         )
         TableColumn(
-            column_name="datetime_col", type="TIMESTAMP", table=table, is_dttm=True,
+            column_name="datetime_col",
+            type="TIMESTAMP",
+            table=table,
+            is_dttm=True,
         )
         SqlMetric(metric_name="count", expression="count(*)", table=table)
         result_object = table.query(
@@ -690,26 +748,48 @@ def test__normalize_prequery_result_type(
 
     columns_by_name = {
         "foo": TableColumn(
-            column_name="foo", is_dttm=False, table=table, type="STRING",
+            column_name="foo",
+            is_dttm=False,
+            table=table,
+            type="STRING",
         ),
         "bar": TableColumn(
-            column_name="bar", is_dttm=False, table=table, type="BOOLEAN",
+            column_name="bar",
+            is_dttm=False,
+            table=table,
+            type="BOOLEAN",
         ),
         "baz": TableColumn(
-            column_name="baz", is_dttm=False, table=table, type="INTEGER",
+            column_name="baz",
+            is_dttm=False,
+            table=table,
+            type="INTEGER",
         ),
         "qux": TableColumn(
-            column_name="qux", is_dttm=False, table=table, type="FLOAT",
+            column_name="qux",
+            is_dttm=False,
+            table=table,
+            type="FLOAT",
         ),
         "quux": TableColumn(
-            column_name="quuz", is_dttm=True, table=table, type="STRING",
+            column_name="quuz",
+            is_dttm=True,
+            table=table,
+            type="STRING",
         ),
         "quuz": TableColumn(
-            column_name="quux", is_dttm=True, table=table, type="TIMESTAMP",
+            column_name="quux",
+            is_dttm=True,
+            table=table,
+            type="TIMESTAMP",
         ),
     }
 
-    normalized = table._normalize_prequery_result_type(row, dimension, columns_by_name,)
+    normalized = table._normalize_prequery_result_type(
+        row,
+        dimension,
+        columns_by_name,
+    )
 
     assert type(normalized) == type(result)
 

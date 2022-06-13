@@ -34,10 +34,12 @@ import {
 } from '../types';
 import {
   legendSection,
+  onlyTotalControl,
+  showValueControl,
   richTooltipSection,
-  showValueSection,
   xAxisControl,
 } from '../../controls';
+import { AreaChartExtraControlsOptions } from '../../constants';
 
 const {
   contributionMode,
@@ -83,19 +85,7 @@ const config: ControlPanelConfig = {
         emitFilterControl,
         ['limit'],
         ['timeseries_limit_metric'],
-        [
-          {
-            name: 'order_desc',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Sort Descending'),
-              default: true,
-              description: t('Whether to sort descending or ascending'),
-              visibility: ({ controls }) =>
-                Boolean(controls?.timeseries_limit_metric.value),
-            },
-          },
-        ],
+        ['order_desc'],
         ['row_limit'],
       ],
     },
@@ -144,7 +134,37 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        ...showValueSection,
+        [showValueControl],
+        [
+          {
+            name: 'stack',
+            config: {
+              type: 'SelectControl',
+              label: t('Stacked Style'),
+              renderTrigger: true,
+              choices: AreaChartExtraControlsOptions,
+              default: null,
+              description: t('Stack series on top of each other'),
+            },
+          },
+        ],
+        [onlyTotalControl],
+        [
+          {
+            name: 'show_extra_controls',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Extra Controls'),
+              renderTrigger: true,
+              default: false,
+              description: t(
+                'Whether to show extra controls or not. Extra controls ' +
+                  'include things like making mulitBar charts stacked ' +
+                  'or side by side.',
+              ),
+            },
+          },
+        ],
         [
           {
             name: 'markerEnabled',
@@ -190,7 +210,7 @@ const config: ControlPanelConfig = {
           },
         ],
         ...legendSection,
-        [<h1 className="section-header">{t('X Axis')}</h1>],
+        [<div className="section-header">{t('X Axis')}</div>],
         [
           {
             name: 'x_axis_time_format',
@@ -225,7 +245,7 @@ const config: ControlPanelConfig = {
         ],
         ...richTooltipSection,
         // eslint-disable-next-line react/jsx-key
-        [<h1 className="section-header">{t('Y Axis')}</h1>],
+        [<div className="section-header">{t('Y Axis')}</div>],
         ['y_axis_format'],
         [
           {
@@ -292,6 +312,11 @@ const config: ControlPanelConfig = {
       default: rowLimit,
     },
   },
+  denormalizeFormData: formData => ({
+    ...formData,
+    metrics: formData.standardizedFormData.standardizedState.metrics,
+    groupby: formData.standardizedFormData.standardizedState.columns,
+  }),
 };
 
 export default config;

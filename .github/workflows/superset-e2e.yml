@@ -24,7 +24,6 @@ jobs:
         browser: ["chrome"]
     env:
       FLASK_ENV: development
-      ENABLE_REACT_CRUD_VIEWS: true
       SUPERSET_CONFIG: tests.integration_tests.superset_test_config
       SUPERSET__SQLALCHEMY_DATABASE_URI: postgresql+psycopg2://superset:superset@127.0.0.1:15432/superset
       PYTHONPATH: ${{ github.workspace }}
@@ -32,7 +31,7 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     services:
       postgres:
-        image: postgres:10-alpine
+        image: postgres:14-alpine
         env:
           POSTGRES_USER: superset
           POSTGRES_PASSWORD: superset
@@ -93,7 +92,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v2
         with:
-          node-version:  '16'
+          node-version: "16"
       - name: Install npm dependencies
         if: steps.check.outcome == 'failure'
         uses: ./.github/actions/cached-dependencies

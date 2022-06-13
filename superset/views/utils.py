@@ -72,6 +72,14 @@ def bootstrap_user_data(user: User, include_perms: bool = False) -> Dict[str, An
     if user.is_anonymous:
         payload = {}
         user.roles = (security_manager.find_role("Public"),)
+    elif security_manager.is_guest_user(user):
+        payload = {
+            "username": user.username,
+            "firstName": user.first_name,
+            "lastName": user.last_name,
+            "isActive": user.is_active,
+            "isAnonymous": user.is_anonymous,
+        }
     else:
         payload = {
             "username": user.username,
@@ -279,6 +287,7 @@ def apply_display_max_row_limit(
     metadata.
 
     :param sql_results: The results of a sql query from sql_lab.get_sql_results
+    :param rows: The number of rows to apply a limit to
     :returns: The mutated sql_results structure
     """
 
@@ -417,7 +426,9 @@ def is_owner(obj: Union[Dashboard, Slice], user: User) -> bool:
     return obj and user in obj.owners
 
 
-def check_resource_permissions(check_perms: Callable[..., Any],) -> Callable[..., Any]:
+def check_resource_permissions(
+    check_perms: Callable[..., Any],
+) -> Callable[..., Any]:
     """
     A decorator for checking permissions on a request using the passed-in function.
     """

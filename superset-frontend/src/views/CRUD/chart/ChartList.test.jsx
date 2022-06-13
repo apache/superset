@@ -17,6 +17,7 @@
  * under the License.
  */
 import React from 'react';
+import { MemoryRouter } from 'react-router-dom';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 import { Provider } from 'react-redux';
@@ -34,12 +35,15 @@ import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import ListView from 'src/components/ListView';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
 import ListViewCard from 'src/components/ListViewCard';
+import FaveStar from 'src/components/FaveStar';
+import TableCollection from 'src/components/TableCollection';
+import CardCollection from 'src/components/ListView/CardCollection';
 // store needed for withToasts(ChartTable)
 const mockStore = configureStore([thunk]);
 const store = mockStore({});
 
 const chartsInfoEndpoint = 'glob:*/api/v1/chart/_info*';
-const chartssOwnersEndpoint = 'glob:*/api/v1/chart/related/owners*';
+const chartsOwnersEndpoint = 'glob:*/api/v1/chart/related/owners*';
 const chartsCreatedByEndpoint = 'glob:*/api/v1/chart/related/created_by*';
 const chartsEndpoint = 'glob:*/api/v1/chart/*';
 const chartsVizTypesEndpoint = 'glob:*/api/v1/chart/viz_types';
@@ -66,7 +70,7 @@ fetchMock.get(chartsInfoEndpoint, {
   permissions: ['can_read', 'can_write'],
 });
 
-fetchMock.get(chartssOwnersEndpoint, {
+fetchMock.get(chartsOwnersEndpoint, {
   result: [],
 });
 fetchMock.get(chartsCreatedByEndpoint, {
@@ -105,13 +109,17 @@ describe('ChartList', () => {
   });
   const mockedProps = {};
 
-  const wrapper = mount(
-    <Provider store={store}>
-      <ChartList {...mockedProps} user={mockUser} />
-    </Provider>,
-  );
+  let wrapper;
 
   beforeAll(async () => {
+    wrapper = mount(
+      <MemoryRouter>
+        <Provider store={store}>
+          <ChartList {...mockedProps} user={mockUser} />
+        </Provider>
+      </MemoryRouter>,
+    );
+
     await waitForComponentToPaint(wrapper);
   });
 
@@ -159,6 +167,18 @@ describe('ChartList', () => {
     await waitForComponentToPaint(wrapper);
     expect(wrapper.find(ConfirmStatusChange)).toExist();
   });
+
+  it('renders the Favorite Star column in list view for logged in user', async () => {
+    wrapper.find('[aria-label="list-view"]').first().simulate('click');
+    await waitForComponentToPaint(wrapper);
+    expect(wrapper.find(TableCollection).find(FaveStar)).toExist();
+  });
+
+  it('renders the Favorite Star in card view for logged in user', async () => {
+    wrapper.find('[aria-label="card-view"]').first().simulate('click');
+    await waitForComponentToPaint(wrapper);
+    expect(wrapper.find(CardCollection).find(FaveStar)).toExist();
+  });
 });
 
 describe('RTL', () => {
@@ -199,5 +219,41 @@ describe('RTL', () => {
     });
 
     expect(importTooltip).toBeInTheDocument();
+  });
+});
+
+describe('ChartList - anonymous view', () => {
+  const mockedProps = {};
+  const mockUserLoggedOut = {};
+  let wrapper;
+
+  beforeAll(async () => {
+    fetchMock.resetHistory();
+    wrapper = mount(
+      <MemoryRouter>
+        <Provider store={store}>
+          <ChartList {...mockedProps} user={mockUserLoggedOut} />
+        </Provider>
+      </MemoryRouter>,
+    );
+
+    await waitForComponentToPaint(wrapper);
+  });
+
+  afterAll(() => {
+    cleanup();
+    fetch.resetMocks();
+  });
+
+  it('does not render the Favorite Star column in list view for anonymous user', async () => {
+    wrapper.find('[aria-label="list-view"]').first().simulate('click');
+    await waitForComponentToPaint(wrapper);
+    expect(wrapper.find(TableCollection).find(FaveStar)).not.toExist();
+  });
+
+  it('does not render the Favorite Star in card view for anonymous user', async () => {
+    wrapper.find('[aria-label="card-view"]').first().simulate('click');
+    await waitForComponentToPaint(wrapper);
+    expect(wrapper.find(CardCollection).find(FaveStar)).not.toExist();
   });
 });

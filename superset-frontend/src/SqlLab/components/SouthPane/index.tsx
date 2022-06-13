@@ -46,7 +46,7 @@ interface SouthPanePropTypes {
   latestQueryId?: string;
   dataPreviewQueries: any[];
   actions: {
-    queryEditorSetSql: Function;
+    queryEditorSetAndSaveSql: Function;
     cloneQueryToNewTab: Function;
     fetchQueryResults: Function;
     clearQueryResults: Function;
@@ -62,9 +62,13 @@ interface SouthPanePropTypes {
   defaultQueryLimit: number;
 }
 
-const StyledPane = styled.div`
-  width: 100%;
+type StyledPaneProps = {
+  height: number;
+};
 
+const StyledPane = styled.div<StyledPaneProps>`
+  width: 100%;
+  height: ${props => props.height}px;
   .ant-tabs .ant-tabs-content-holder {
     overflow: visible;
   }
@@ -94,6 +98,7 @@ const StyledPane = styled.div`
   }
 `;
 
+const EXTRA_HEIGHT_RESULTS = 24; // we need extra height in RESULTS tab. because the height from props was calculated based on PREVIEW tab.
 const StyledEmptyStateWrapper = styled.div`
   height: 100%;
   .ant-empty-image img {
@@ -164,7 +169,7 @@ export default function SouthPane({
             query={latestQuery}
             actions={actions}
             user={user}
-            height={innerTabContentHeight}
+            height={innerTabContentHeight + EXTRA_HEIGHT_RESULTS}
             database={databases[latestQuery.dbId]}
             displayLimit={displayLimit}
             defaultQueryLimit={defaultQueryLimit}
@@ -206,7 +211,7 @@ export default function SouthPane({
   return offline ? (
     renderOfflineStatus()
   ) : (
-    <StyledPane className="SouthPane" ref={southPaneRef}>
+    <StyledPane className="SouthPane" height={height} ref={southPaneRef}>
       <Tabs
         activeKey={activeSouthPaneTab}
         className="SouthPaneTabs"
@@ -223,6 +228,7 @@ export default function SouthPane({
             queries={editorQueries}
             actions={actions}
             displayLimit={displayLimit}
+            latestQueryId={latestQueryId}
           />
         </Tabs.TabPane>
         {renderDataPreviewTabs()}

@@ -24,7 +24,7 @@ from superset.dashboards.permalink.commands.base import BaseDashboardPermalinkCo
 from superset.dashboards.permalink.exceptions import DashboardPermalinkCreateFailedError
 from superset.dashboards.permalink.types import DashboardPermalinkState
 from superset.key_value.commands.create import CreateKeyValueCommand
-from superset.key_value.types import KeyType
+from superset.key_value.utils import encode_permalink_key
 
 logger = logging.getLogger(__name__)
 
@@ -35,12 +35,10 @@ class CreateDashboardPermalinkCommand(BaseDashboardPermalinkCommand):
         actor: User,
         dashboard_id: str,
         state: DashboardPermalinkState,
-        key_type: KeyType,
     ):
         self.actor = actor
         self.dashboard_id = dashboard_id
         self.state = state
-        self.key_type = key_type
 
     def run(self) -> str:
         self.validate()
@@ -50,9 +48,14 @@ class CreateDashboardPermalinkCommand(BaseDashboardPermalinkCommand):
                 "dashboardId": self.dashboard_id,
                 "state": self.state,
             }
-            return CreateKeyValueCommand(
-                self.actor, self.resource, value, self.key_type
+            key = CreateKeyValueCommand(
+                actor=self.actor,
+                resource=self.resource,
+                value=value,
             ).run()
+            if key.id is None:
+                raise DashboardPermalinkCreateFailedError("Unexpected missing key id")
+            return encode_permalink_key(key=key.id, salt=self.salt)
         except SQLAlchemyError as ex:
             logger.exception("Error running create command")
             raise DashboardPermalinkCreateFailedError() from ex

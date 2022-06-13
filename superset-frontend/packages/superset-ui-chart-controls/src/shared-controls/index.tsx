@@ -34,6 +34,7 @@
  * control interface.
  */
 import React from 'react';
+import { isEmpty } from 'lodash';
 import {
   FeatureFlag,
   t,
@@ -43,6 +44,9 @@ import {
   SequentialScheme,
   legacyValidateInteger,
   validateNonEmpty,
+  ComparisionType,
+  QueryResponse,
+  QueryColumn,
 } from '@superset-ui/core';
 
 import {
@@ -53,14 +57,16 @@ import {
   D3_TIME_FORMAT_DOCS,
   DEFAULT_TIME_FORMAT,
   DEFAULT_NUMBER_FORMAT,
+  defineSavedMetrics,
 } from '../utils';
-import { TIME_FILTER_LABELS, TIME_COLUMN_OPTION } from '../constants';
+import { TIME_FILTER_LABELS, DATASET_TIME_COLUMN_OPTION } from '../constants';
 import {
   Metric,
   SharedControlConfig,
   ColumnMeta,
   ExtraControlProps,
   SelectControlConfig,
+  Dataset,
 } from '../types';
 import { ColumnOption } from '../components/ColumnOption';
 
@@ -80,6 +86,7 @@ import {
   dndSeries,
   dnd_adhoc_metric_2,
 } from './dndControls';
+import { QUERY_TIME_COLUMN_OPTION } from '..';
 
 const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
 const sequentialSchemeRegistry = getSequentialSchemeRegistry();
@@ -88,6 +95,11 @@ export const PRIMARY_COLOR = { r: 0, g: 122, b: 135, a: 1 };
 
 const ROW_LIMIT_OPTIONS = [10, 50, 100, 250, 500, 1000, 5000, 10000, 50000];
 const SERIES_LIMITS = [5, 10, 25, 50, 100, 500];
+
+const appContainer = document.getElementById('app');
+const { user } = JSON.parse(
+  appContainer?.getAttribute('data-bootstrap') || '{}',
+);
 
 type Control = {
   savedMetrics?: Metric[] | null;
@@ -101,7 +113,7 @@ type SelectDefaultOption = {
 
 const groupByControl: SharedControlConfig<'SelectControl', ColumnMeta> = {
   type: 'SelectControl',
-  label: t('Group by'),
+  label: t('Dimensions'),
   multi: true,
   freeForm: true,
   clearable: true,
@@ -124,11 +136,14 @@ const groupByControl: SharedControlConfig<'SelectControl', ColumnMeta> = {
   promptTextCreator: (label: unknown) => label,
   mapStateToProps(state, { includeTime }) {
     const newState: ExtraControlProps = {};
-    if (state.datasource) {
-      const options = state.datasource.columns.filter(c => c.groupby);
-      if (includeTime) {
-        options.unshift(TIME_COLUMN_OPTION);
-      }
+    const { datasource } = state;
+    if (datasource?.columns[0]?.hasOwnProperty('groupby')) {
+      const options = (datasource as Dataset).columns.filter(c => c.groupby);
+      if (includeTime) options.unshift(DATASET_TIME_COLUMN_OPTION);
+      newState.options = options;
+    } else {
+      const options = (datasource as QueryResponse).columns;
+      if (includeTime) options.unshift(QUERY_TIME_COLUMN_OPTION);
       newState.options = options;
     }
     return newState;
@@ -142,8 +157,8 @@ const metrics: SharedControlConfig<'MetricsControl'> = {
   label: t('Metrics'),
   validators: [validateNonEmpty],
   mapStateToProps: ({ datasource }) => ({
-    columns: datasource ? datasource.columns : [],
-    savedMetrics: datasource ? datasource.metrics : [],
+    columns: datasource?.columns || [],
+    savedMetrics: defineSavedMetrics(datasource),
     datasource,
     datasourceType: datasource?.type,
   }),
@@ -165,6 +180,7 @@ const datasourceControl: SharedControlConfig<'DatasourceControl'> = {
   mapStateToProps: ({ datasource, form_data }) => ({
     datasource,
     form_data,
+    user,
   }),
 };
 
@@ -204,6 +220,9 @@ const linear_color_scheme: SharedControlConfig<'ColorSchemeControl'> = {
   renderTrigger: true,
   schemes: () => sequentialSchemeRegistry.getMap(),
   isLinear: true,
+  mapStateToProps: state => ({
+    dashboardId: state?.form_data?.dashboardId,
+  }),
 };
 
 const secondary_metric: SharedControlConfig<'MetricsControl'> = {
@@ -281,15 +300,23 @@ const granularity_sqla: SharedControlConfig<'SelectControl', ColumnMeta> = {
   valueRenderer: c => <ColumnOption column={c} />,
   valueKey: 'column_name',
   mapStateToProps: state => {
-    const props: Partial<SelectControlConfig<ColumnMeta>> = {};
-    if (state.datasource) {
-      props.options = state.datasource.columns.filter(c => c.is_dttm);
+    const props: Partial<SelectControlConfig<ColumnMeta | QueryColumn>> = {};
+    const { datasource } = state;
+    if (datasource?.columns[0]?.hasOwnProperty('main_dttm_col')) {
+      const dataset = datasource as Dataset;
+      props.options = dataset.columns.filter((c: ColumnMeta) => c.is_dttm);
       props.default = null;
-      if (state.datasource.main_dttm_col) {
-        props.default = state.datasource.main_dttm_col;
-      } else if (props.options && props.options.length > 0) {
-        props.default = props.options[0].column_name;
+      if (dataset.main_dttm_col) {
+        props.default = dataset.main_dttm_col;
+      } else if (props?.options) {
+        props.default = (props.options[0] as ColumnMeta).column_name;
       }
+    } else {
+      const sortedQueryColumns = (datasource as QueryResponse)?.columns?.sort(
+        query => (query?.is_dttm ? -1 : 1),
+      );
+      props.options = sortedQueryColumns;
+      if (props?.options) props.default = props.options[0]?.name;
     }
     return props;
   },
@@ -307,7 +334,7 @@ const time_grain_sqla: SharedControlConfig<'SelectControl'> = {
       'engine basis in the Superset source code.',
   ),
   mapStateToProps: ({ datasource }) => ({
-    choices: datasource?.time_grain_sqla || null,
+    choices: (datasource as Dataset)?.time_grain_sqla || null,
   }),
 };
 
@@ -324,7 +351,7 @@ const time_range: SharedControlConfig<'DateFilterControl'> = {
       "using the engine's local timezone. Note one can explicitly set the timezone " +
       'per the ISO 8601 format if specifying either the start and/or end time.',
   ),
-  mapStateToProps: ({ datasource, form_data }) => ({
+  mapStateToProps: ({ datasource }) => ({
     datasource,
   }),
 };
@@ -345,7 +372,10 @@ const order_desc: SharedControlConfig<'CheckboxControl'> = {
   default: true,
   description: t('Whether to sort descending or ascending'),
   visibility: ({ controls }) =>
-    Boolean(controls?.timeseries_limit_metric.value),
+    Boolean(
+      controls?.timeseries_limit_metric.value &&
+        !isEmpty(controls?.timeseries_limit_metric.value),
+    ),
 };
 
 const limit: SharedControlConfig<'SelectControl'> = {
@@ -387,7 +417,7 @@ const sort_by: SharedControlConfig<'MetricsControl'> = {
   ),
   mapStateToProps: ({ datasource }) => ({
     columns: datasource?.columns || [],
-    savedMetrics: datasource?.metrics || [],
+    savedMetrics: defineSavedMetrics(datasource),
     datasource,
     datasourceType: datasource?.type,
   }),
@@ -395,7 +425,7 @@ const sort_by: SharedControlConfig<'MetricsControl'> = {
 
 const series: typeof groupByControl = {
   ...groupByControl,
-  label: t('Series'),
+  label: t('Dimensions'),
   multi: false,
   default: null,
   description: t(
@@ -444,19 +474,16 @@ const y_axis_format: SharedControlConfig<'SelectControl', SelectDefaultOption> =
     default: DEFAULT_NUMBER_FORMAT,
     choices: D3_FORMAT_OPTIONS,
     description: D3_FORMAT_DOCS,
+    tokenSeparators: ['\n', '\t', ';'],
     filterOption: ({ data: option }, search) =>
       option.label.includes(search) || option.value.includes(search),
     mapStateToProps: state => {
-      const showWarning =
-        state.controls?.comparison_type?.value === 'percentage';
+      const isPercentage =
+        state.controls?.comparison_type?.value === ComparisionType.Percentage;
       return {
-        warning: showWarning
-          ? t(
-              'When `Calculation type` is set to "Percentage change", the Y ' +
-                'Axis Format is forced to `.1%`',
-            )
-          : null,
-        disabled: showWarning,
+        choices: isPercentage
+          ? D3_FORMAT_OPTIONS.filter(option => option[0].includes('%'))
+          : D3_FORMAT_OPTIONS,
       };
     },
   };
@@ -482,8 +509,10 @@ const adhoc_filters: SharedControlConfig<'AdhocFilterControl'> = {
   default: [],
   description: '',
   mapStateToProps: ({ datasource, form_data }) => ({
-    columns: datasource?.columns.filter(c => c.filterable) || [],
-    savedMetrics: datasource?.metrics || [],
+    columns: datasource?.columns[0]?.hasOwnProperty('filterable')
+      ? (datasource as Dataset)?.columns.filter(c => c.filterable)
+      : datasource?.columns || [],
+    savedMetrics: defineSavedMetrics(datasource),
     // current active adhoc metrics
     selectedMetrics:
       form_data.metrics || (form_data.metric ? [form_data.metric] : []),

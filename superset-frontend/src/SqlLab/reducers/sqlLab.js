@@ -20,7 +20,7 @@ import { t } from '@superset-ui/core';
 
 import getInitialState from './getInitialState';
 import * as actions from '../actions/sqlLab';
-import { now } from '../../modules/dates';
+import { now } from '../../utils/dates';
 import {
   addToObject,
   alterInObject,
@@ -134,7 +134,7 @@ export default function sqlLabReducer(state = {}, action) {
       }
       // for new table, associate Id of query for data preview
       at.dataPreviewQueryId = null;
-      let newState = addToArr(state, 'tables', at);
+      let newState = addToArr(state, 'tables', at, Boolean(action.prepend));
       if (action.query) {
         newState = alterInArr(newState, 'tables', at, {
           dataPreviewQueryId: action.query.id,
@@ -340,6 +340,12 @@ export default function sqlLabReducer(state = {}, action) {
         errorMessage: null,
         cached: false,
       };
+
+      const resultsKey = action?.results?.query?.resultsKey;
+      if (resultsKey) {
+        alts.resultsKey = resultsKey;
+      }
+
       return alterInObject(state, 'queries', action.query, alts);
     },
     [actions.QUERY_FAILED]() {

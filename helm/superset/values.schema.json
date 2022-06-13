@@ -275,6 +275,9 @@
                 },
                 "podLabels": {
                     "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta/properties/labels"
+                },
+                "resources": {
+                    "type": "object"
                 }
             },
             "required": [
@@ -305,6 +308,9 @@
                 },
                 "podLabels": {
                     "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta/properties/labels"
+                },
+                "resources": {
+                    "type": "object"
                 }
             },
             "required": [
@@ -336,6 +342,9 @@
                 },
                 "podLabels": {
                     "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta/properties/labels"
+                },
+                "resources": {
+                    "type": "object"
                 }
             },
             "required": [
@@ -413,73 +422,63 @@
         },
         "postgresql": {
             "type": "object",
-            "additionalProperties": true,
             "properties": {
+                "auth": {
+                    "type": "object",
+                    "properties": {
+                        "database": {
+                            "type": "string"
+                        },
+                        "existingSecret": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                        },
+                        "password": {
+                            "type": "string"
+                        },
+                        "username": {
+                            "type": "string"
+                        }
+                    }
+                },
                 "enabled": {
                     "type": "boolean"
                 },
-                "existingSecret": {
-                    "type": [
-                        "string",
-                        "null"
-                    ]
-                },
-                "existingSecretKey": {
-                    "type": [
-                        "string",
-                        "null"
-                    ]
-                },
-                "service": {
+                "primary": {
                     "type": "object",
-                    "additionalProperties": true,
                     "properties": {
-                        "port": {
-                            "type": "integer"
-                        }
-                    },
-                    "required": [
-                        "port"
-                    ]
-                },
-                "postgresqlUsername": {
-                    "type": "string"
-                },
-                "postgresqlPassword": {
-                    "type": "string"
-                },
-                "postgresqlDatabase": {
-                    "type": "string"
-                },
-                "persistence": {
-                    "type": "object",
-                    "additionalProperties": true,
-                    "properties": {
-                        "enabled": {
-                            "type": "boolean"
-                        },
-                        "accessModes": {
-                            "type": "array",
-                            "items": [
-                                {
-                                    "type": "string"
+                        "persistence": {
+                            "type": "object",
+                            "properties": {
+                                "accessModes": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string"
+                                    }
+                                },
+                                "enabled": {
+                                    "type": "boolean"
                                 }
-                            ]
+                            }
+                        },
+                        "service": {
+                            "type": "object",
+                            "properties": {
+                                "ports": {
+                                    "type": "object",
+                                    "properties": {
+                                        "postgresql": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            }
                         }
-                    },
-                    "required": [
-                        "enabled",
-                        "accessModes"
-                    ]
+                    }
                 }
-            },
-            "required": [
-                "enabled",
-                "service",
-                "postgresqlUsername",
-                "postgresqlDatabase",
-                "persistence"
-            ]
+            }
         },
         "redis": {
             "type": "object",

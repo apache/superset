@@ -25,7 +25,7 @@ import pandas as pd
 from celery.exceptions import SoftTimeLimitExceeded
 from flask_babel import lazy_gettext as _
 
-from superset import app, jinja_context
+from superset import app, jinja_context, security_manager
 from superset.commands.base import BaseCommand
 from superset.models.reports import ReportSchedule, ReportScheduleValidatorType
 from superset.reports.commands.exceptions import (
@@ -36,6 +36,7 @@ from superset.reports.commands.exceptions import (
     AlertQueryTimeout,
     AlertValidatorConfigError,
 )
+from superset.utils.core import override_user
 
 logger = logging.getLogger(__name__)
 
@@ -145,18 +146,21 @@ class AlertCommand(BaseCommand):
             limited_rendered_sql = self._report_schedule.database.apply_limit_to_sql(
                 rendered_sql, ALERT_SQL_LIMIT
             )
-            query_username = app.config["THUMBNAIL_SELENIUM_USER"]
-            start = default_timer()
-            df = self._report_schedule.database.get_df(
-                sql=limited_rendered_sql, username=query_username
-            )
-            stop = default_timer()
-            logger.info(
-                "Query for %s took %.2f ms",
-                self._report_schedule.name,
-                (stop - start) * 1000.0,
-            )
-            return df
+
+            with override_user(
+                security_manager.find_user(
+                    username=app.config["THUMBNAIL_SELENIUM_USER"]
+                )
+            ):
+                start = default_timer()
+                df = self._report_schedule.database.get_df(sql=limited_rendered_sql)
+                stop = default_timer()
+                logger.info(
+                    "Query for %s took %.2f ms",
+                    self._report_schedule.name,
+                    (stop - start) * 1000.0,
+                )
+                return df
         except SoftTimeLimitExceeded as ex:
             logger.warning("A timeout occurred while executing the alert query: %s", ex)
             raise AlertQueryTimeout() from ex

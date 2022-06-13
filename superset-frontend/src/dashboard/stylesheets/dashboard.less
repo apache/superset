@@ -19,6 +19,7 @@
 /* header has mysterious extra margin */
 header.top {
   margin-bottom: 2px;
+  z-index: 10;
 }
 
 body {
@@ -63,12 +64,20 @@ body {
   display: flex;
   max-width: 100%;
   align-items: flex-start;
+  min-height: 0;
 
   & > .header-title {
     overflow: hidden;
     text-overflow: ellipsis;
     max-width: 100%;
     flex-grow: 1;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+
+    & > span.ant-tooltip-open {
+      display: inline;
+    }
   }
 
   & > .header-controls {
@@ -140,27 +149,6 @@ body {
 
 .dashboard .title {
   margin: 0 20px;
-}
-
-.dashboard-header .dashboard-component-header {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-
-  .editable-title {
-    margin-right: 8px;
-  }
-
-  .favstar {
-    font-size: @font-size-xl;
-    position: relative;
-    margin-left: 8px;
-  }
-
-  .publish {
-    position: relative;
-    margin-left: 8px;
-  }
 }
 
 .slice_container .alert {

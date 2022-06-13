@@ -26,11 +26,13 @@ from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from superset.utils.core import get_example_default_schema
+from superset.utils.core import DatasourceType, get_example_default_schema
 
 
 def get_table(
-    table_name: str, database: Database, schema: Optional[str] = None,
+    table_name: str,
+    database: Database,
+    schema: Optional[str] = None,
 ):
     schema = schema or get_example_default_schema()
     table_source = ConnectorRegistry.sources["table"]
@@ -70,7 +72,7 @@ def create_slice(
     return Slice(
         slice_name=title,
         viz_type=viz_type,
-        datasource_type="table",
+        datasource_type=DatasourceType.TABLE,
         datasource_id=table.id,
         params=json.dumps(slices_dict, indent=4, sort_keys=True),
     )

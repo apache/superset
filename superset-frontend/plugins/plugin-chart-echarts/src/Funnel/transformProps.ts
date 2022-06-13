@@ -83,7 +83,7 @@ export function formatFunnelLabel({
 export default function transformProps(
   chartProps: EchartsFunnelChartProps,
 ): FunnelChartTransformedProps {
-  const { formData, height, hooks, filterState, queriesData, width } =
+  const { formData, height, hooks, filterState, queriesData, width, theme } =
     chartProps;
   const data: DataRecord[] = queriesData[0].data || [];
 
@@ -103,6 +103,7 @@ export default function transformProps(
     showLabels,
     showLegend,
     emitFilter,
+    sliceId,
   }: EchartsFunnelFormData = {
     ...DEFAULT_LEGEND_FORM_DATA,
     ...DEFAULT_FUNNEL_FORM_DATA,
@@ -145,7 +146,7 @@ export default function transformProps(
       value: datum[metricLabel],
       name,
       itemStyle: {
-        color: colorFn(name),
+        color: colorFn(name, sliceId),
         opacity: isFiltered
           ? OpacityEnum.SemiTransparent
           : OpacityEnum.NonTransparent,
@@ -172,7 +173,7 @@ export default function transformProps(
   const defaultLabel = {
     formatter,
     show: showLabels,
-    color: '#000000',
+    color: theme.colors.grayscale.dark2,
   };
 
   const series: FunnelSeriesOption[] = [

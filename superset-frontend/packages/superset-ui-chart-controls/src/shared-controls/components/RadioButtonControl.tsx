@@ -31,7 +31,7 @@ export interface RadioButtonControlProps {
   description?: string;
   options: RadioButtonOption[];
   hovered?: boolean;
-  value?: string;
+  value?: JsonValue;
   onChange: (opt: RadioButtonOption[0]) => void;
 }
 
@@ -53,11 +53,18 @@ export default function RadioButtonControl({
         '.btn:focus': {
           outline: 'none',
         },
+        '.control-label': {
+          color: theme.colors.grayscale.base,
+          marginBottom: theme.gridUnit,
+        },
         '.control-label + .btn-group': {
-          marginTop: 1,
+          marginTop: '1px',
+        },
+        '.btn-group .btn-default': {
+          color: theme.colors.grayscale.dark1,
         },
         '.btn-group .btn.active': {
-          background: theme.colors.secondary.light5,
+          background: theme.colors.grayscale.light4,
           fontWeight: theme.typography.weights.bold,
           boxShadow: 'none',
         },

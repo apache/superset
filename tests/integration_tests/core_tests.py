@@ -294,7 +294,6 @@ class TestCore(SupersetTestCase):
         def assert_admin_permission_in(role_name, assert_func):
             role = security_manager.find_role(role_name)
             permissions = [p.permission.name for p in role.permissions]
-            assert_func("can_sync_druid_source", permissions)
             assert_func("can_approve", permissions)
 
         assert_admin_permission_in("Admin", self.assertIn)
@@ -427,17 +426,6 @@ class TestCore(SupersetTestCase):
             print(f"[{name}]/[{method}]: {url}")
             resp = self.client.get(url)
             self.assertEqual(resp.status_code, 200)
-
-    def test_tablemodelview_list(self):
-        self.login(username="admin")
-
-        url = "/tablemodelview/list/"
-        resp = self.get_resp(url)
-
-        # assert that a table is listed
-        table = db.session.query(SqlaTable).first()
-        assert table.name in resp
-        assert "/superset/explore/table/{}".format(table.id) in resp
 
     def test_add_slice(self):
         self.login(username="admin")
@@ -985,7 +973,8 @@ class TestCore(SupersetTestCase):
         }
         self.login(username="admin")
         rv = self.client.post(
-            "/superset/explore_json/", data={"form_data": json.dumps(form_data)},
+            "/superset/explore_json/",
+            data={"form_data": json.dumps(form_data)},
         )
         data = json.loads(rv.data.decode("utf-8"))
 
@@ -1060,7 +1049,8 @@ class TestCore(SupersetTestCase):
 
         self.login(username="admin")
         rv = self.client.post(
-            "/superset/explore_json/", data={"form_data": json.dumps(form_data)},
+            "/superset/explore_json/",
+            data={"form_data": json.dumps(form_data)},
         )
         data = json.loads(rv.data.decode("utf-8"))
 
@@ -1074,7 +1064,7 @@ class TestCore(SupersetTestCase):
             LIMIT 10;
             """,
             client_id="client_id_1",
-            user_name="admin",
+            username="admin",
         )
         count_ds = []
         count_name = []
@@ -1107,7 +1097,8 @@ class TestCore(SupersetTestCase):
         async_query_manager.init_app(app)
         self.login(username="admin")
         rv = self.client.post(
-            "/superset/explore_json/", data={"form_data": json.dumps(form_data)},
+            "/superset/explore_json/",
+            data={"form_data": json.dumps(form_data)},
         )
         data = json.loads(rv.data.decode("utf-8"))
         keys = list(data.keys())
@@ -1248,25 +1239,11 @@ class TestCore(SupersetTestCase):
         assert data == ["this_schema_is_allowed_too"]
         self.delete_fake_db()
 
-    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    def test_select_star(self):
-        self.login(username="admin")
-        examples_db = superset.utils.database.get_example_database()
-        resp = self.get_resp(f"/superset/select_star/{examples_db.id}/birth_names")
-        self.assertIn("gender", resp)
-
-    def test_get_select_star_not_allowed(self):
-        """
-        Database API: Test get select star not allowed
-        """
-        self.login(username="gamma")
-        example_db = superset.utils.database.get_example_database()
-        resp = self.client.get(f"/superset/select_star/{example_db.id}/birth_names")
-        self.assertEqual(resp.status_code, 403)
-
     @mock.patch("superset.views.core.results_backend_use_msgpack", False)
-    @mock.patch("superset.views.core.results_backend")
-    def test_display_limit(self, mock_results_backend):
+    def test_display_limit(self):
+        from superset.views import core
+
+        core.results_backend = mock.Mock()
         self.login()
 
         data = [{"col_0": i} for i in range(100)]
@@ -1295,7 +1272,7 @@ class TestCore(SupersetTestCase):
         app.config["RESULTS_BACKEND_USE_MSGPACK"] = False
         serialized_payload = sql_lab._serialize_payload(payload, False)
         compressed = utils.zlib_compress(serialized_payload)
-        mock_results_backend.get.return_value = compressed
+        core.results_backend.get.return_value = compressed
 
         with mock.patch("superset.views.core.db") as mock_superset_db:
             mock_superset_db.session.query().filter_by().one_or_none.return_value = (
@@ -1477,7 +1454,7 @@ class TestCore(SupersetTestCase):
         self.run_sql(
             "SELECT name FROM birth_names",
             "client_id_1",
-            user_name=username,
+            username=username,
             raise_on_error=True,
             sql_editor_id=str(tab_state_id),
         )
@@ -1485,7 +1462,7 @@ class TestCore(SupersetTestCase):
         self.run_sql(
             "SELECT name FROM birth_names",
             "client_id_2",
-            user_name=username,
+            username=username,
             raise_on_error=True,
         )
 
@@ -1643,7 +1620,8 @@ class TestCore(SupersetTestCase):
         mock_superset_db_session.query().filter_by().one().return_value = query_mock
         mock_sql_lab_cancel_query.return_value = False
         rv = self.client.post(
-            "/superset/stop_query/", data={"form_data": json.dumps(form_data)},
+            "/superset/stop_query/",
+            data={"form_data": json.dumps(form_data)},
         )
 
         assert rv.status_code == 422

@@ -120,18 +120,20 @@ Join our growing community!
 
 ### Education
 - [Brilliant.org](https://brilliant.org/)
+- [Sunbird](https://www.sunbird.org/) [@eksteporg]
+- [The GRAPH Network](https://thegraphnetwork.org/)[@fccoelho]
 - [Udemy](https://www.udemy.com/) [@sungjuly]
 - [VIPKID](https://www.vipkid.com.cn/) [@illpanda]
-- [Sunbird](https://www.sunbird.org/) [@eksteporg]
 
 ### Energy
 - [Airboxlab](https://foobot.io) [@antoine-galataud]
-- [DouroECI](http://douroeci.com/en/) [@nunohelibeires]
+- [DouroECI](https://www.douroeci.com/) [@nunohelibeires]
 - [Safaricom](https://www.safaricom.co.ke/) [@mmutiso]
 - [Scoot](https://scoot.co/) [@haaspt]
 
 ### Healthcare
 - [Amino](https://amino.com) [@shkr]
+- [Beans](https://www.beans.fi) [@kakoni]
 - [Care](https://www.getcare.io/)[@alandao2021]
 - [Living Goods](https://www.livinggoods.org) [@chelule]
 - [Maieutical Labs](https://maieuticallabs.it) [@xrmx]
@@ -143,10 +145,10 @@ Join our growing community!
 - [Symmetrics](https://www.symmetrics.fyi)
 
 ### Others
- - [Dropbox](https://www.dropbox.com/) [@bkyryliuk]
- - [Grassroot](https://www.grassrootinstitute.org/)
- - [komoot](https://www.komoot.com/) [@christophlingg]
- - [Let's Roam](https://www.letsroam.com/)
- - [Twitter](https://twitter.com/)
- - [VLMedia](https://www.vlmedia.com.tr/) [@ibotheperfect]
- - [Yahoo!](https://yahoo.com/)
+- [Dropbox](https://www.dropbox.com/) [@bkyryliuk]
+- [Grassroot](https://www.grassrootinstitute.org/)
+- [komoot](https://www.komoot.com/) [@christophlingg]
+- [Let's Roam](https://www.letsroam.com/)
+- [Twitter](https://twitter.com/)
+- [VLMedia](https://www.vlmedia.com.tr/) [@ibotheperfect]
+- [Yahoo!](https://yahoo.com/)

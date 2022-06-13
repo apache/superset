@@ -30,7 +30,9 @@ const propTypes = {
   datasource: PropTypes.object,
   initialValues: PropTypes.object,
   formData: PropTypes.object.isRequired,
+  latestQueryFormData: PropTypes.object,
   labelColors: PropTypes.object,
+  sharedLabelColors: PropTypes.object,
   height: PropTypes.number,
   width: PropTypes.number,
   setControlValue: PropTypes.func,
@@ -41,13 +43,14 @@ const propTypes = {
   chartStatus: PropTypes.string,
   queriesResponse: PropTypes.arrayOf(PropTypes.object),
   triggerQuery: PropTypes.bool,
-  refreshOverlayVisible: PropTypes.bool,
+  chartIsStale: PropTypes.bool,
   // dashboard callbacks
   addFilter: PropTypes.func,
   setDataMask: PropTypes.func,
   onFilterMenuOpen: PropTypes.func,
   onFilterMenuClose: PropTypes.func,
   ownState: PropTypes.object,
+  postTransformProps: PropTypes.func,
   source: PropTypes.oneOf(['dashboard', 'explore']),
 };
 
@@ -55,6 +58,8 @@ const BLANK = {};
 
 const BIG_NO_RESULT_MIN_WIDTH = 300;
 const BIG_NO_RESULT_MIN_HEIGHT = 220;
+
+const behaviors = [Behavior.INTERACTIVE_CHART];
 
 const defaultProps = {
   addFilter: () => BLANK,
@@ -91,8 +96,7 @@ class ChartRenderer extends React.Component {
     const resultsReady =
       nextProps.queriesResponse &&
       ['success', 'rendered'].indexOf(nextProps.chartStatus) > -1 &&
-      !nextProps.queriesResponse?.[0]?.error &&
-      !nextProps.refreshOverlayVisible;
+      !nextProps.queriesResponse?.[0]?.error;
 
     if (resultsReady) {
       this.hasQueryResponseChange =
@@ -107,7 +111,9 @@ class ChartRenderer extends React.Component {
         nextProps.width !== this.props.width ||
         nextProps.triggerRender ||
         nextProps.labelColors !== this.props.labelColors ||
+        nextProps.sharedLabelColors !== this.props.sharedLabelColors ||
         nextProps.formData.color_scheme !== this.props.formData.color_scheme ||
+        nextProps.formData.stack !== this.props.formData.stack ||
         nextProps.cacheBusterProp !== this.props.cacheBusterProp
       );
     }
@@ -167,16 +173,10 @@ class ChartRenderer extends React.Component {
   }
 
   render() {
-    const { chartAlert, chartStatus, vizType, chartId, refreshOverlayVisible } =
-      this.props;
+    const { chartAlert, chartStatus, chartId } = this.props;
 
     // Skip chart rendering
-    if (
-      refreshOverlayVisible ||
-      chartStatus === 'loading' ||
-      !!chartAlert ||
-      chartStatus === null
-    ) {
+    if (chartStatus === 'loading' || !!chartAlert || chartStatus === null) {
       return null;
     }
 
@@ -190,9 +190,16 @@ class ChartRenderer extends React.Component {
       initialValues,
       ownState,
       filterState,
+      chartIsStale,
       formData,
+      latestQueryFormData,
       queriesResponse,
+      postTransformProps,
     } = this.props;
+
+    const currentFormData =
+      chartIsStale && latestQueryFormData ? latestQueryFormData : formData;
+    const vizType = currentFormData.viz_type || this.props.vizType;
 
     // It's bad practice to use unprefixed `vizType` as classnames for chart
     // container. It may cause css conflicts as in the case of legacy table chart.
@@ -251,15 +258,16 @@ class ChartRenderer extends React.Component {
         annotationData={annotationData}
         datasource={datasource}
         initialValues={initialValues}
-        formData={formData}
+        formData={currentFormData}
         ownState={ownState}
         filterState={filterState}
         hooks={this.hooks}
-        behaviors={[Behavior.INTERACTIVE_CHART]}
+        behaviors={behaviors}
         queriesData={queriesResponse}
         onRenderSuccess={this.handleRenderSuccess}
         onRenderFailure={this.handleRenderFailure}
         noResults={noResultsComponent}
+        postTransformProps={postTransformProps}
       />
     );
   }

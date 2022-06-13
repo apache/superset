@@ -15,13 +15,38 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-import math
+from typing import Any, Optional, Union
 
 from flask import Flask
-from flask_babel import gettext as _
 from flask_caching import Cache
+from markupsafe import Markup
+
+from superset.utils.core import DatasourceType
 
 logger = logging.getLogger(__name__)
+
+CACHE_IMPORT_PATH = "superset.extensions.metastore_cache.SupersetMetastoreCache"
+
+
+class ExploreFormDataCache(Cache):
+    def get(self, *args: Any, **kwargs: Any) -> Optional[Union[str, Markup]]:
+        cache = self.cache.get(*args, **kwargs)
+
+        if not cache:
+            return None
+
+        # rename data keys for existing cache based on new TemporaryExploreState model
+        if isinstance(cache, dict):
+            cache = {
+                ("datasource_id" if key == "dataset_id" else key): value
+                for (key, value) in cache.items()
+            }
+            # add default datasource_type if it doesn't exist
+            # temporarily defaulting to table until sqlatables are deprecated
+            if "datasource_type" not in cache:
+                cache["datasource_type"] = DatasourceType.TABLE
+
+        return cache
 
 
 class CacheManager:
@@ -32,7 +57,7 @@ class CacheManager:
         self._data_cache = Cache()
         self._thumbnail_cache = Cache()
         self._filter_state_cache = Cache()
-        self._explore_form_data_cache = Cache()
+        self._explore_form_data_cache = ExploreFormDataCache()
 
     @staticmethod
     def _init_cache(
@@ -40,27 +65,25 @@ class CacheManager:
     ) -> None:
         cache_config = app.config[cache_config_key]
         cache_type = cache_config.get("CACHE_TYPE")
-        if app.debug and cache_type is None:
-            cache_threshold = cache_config.get("CACHE_THRESHOLD", math.inf)
+        if (required and cache_type is None) or cache_type == "SupersetMetastoreCache":
+            if cache_type is None and not app.debug:
+                logger.warning(
+                    "Falling back to the built-in cache, that stores data in the "
+                    "metadata database, for the following cache: `%s`. "
+                    "It is recommended to use `RedisCache`, `MemcachedCache` or "
+                    "another dedicated caching backend for production deployments",
+                    cache_config_key,
+                )
+            cache_type = CACHE_IMPORT_PATH
+            cache_key_prefix = cache_config.get("CACHE_KEY_PREFIX", cache_config_key)
             cache_config.update(
-                {"CACHE_TYPE": "SimpleCache", "CACHE_THRESHOLD": cache_threshold,}
+                {"CACHE_TYPE": cache_type, "CACHE_KEY_PREFIX": cache_key_prefix}
             )
 
-        if "CACHE_DEFAULT_TIMEOUT" not in cache_config:
+        if cache_type is not None and "CACHE_DEFAULT_TIMEOUT" not in cache_config:
             default_timeout = app.config.get("CACHE_DEFAULT_TIMEOUT")
             cache_config["CACHE_DEFAULT_TIMEOUT"] = default_timeout
 
-        if required and cache_type in ("null", "NullCache"):
-            raise Exception(
-                _(
-                    "The CACHE_TYPE `%(cache_type)s` for `%(cache_config_key)s` is not "
-                    "supported. It is recommended to use `RedisCache`, "
-                    "`MemcachedCache` or another dedicated caching backend for "
-                    "production deployments",
-                    cache_type=cache_config["CACHE_TYPE"],
-                    cache_config_key=cache_config_key,
-                ),
-            )
         cache.init_app(app, cache_config)
 
     def init_app(self, app: Flask) -> None:

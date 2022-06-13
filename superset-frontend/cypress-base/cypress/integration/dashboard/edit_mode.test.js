@@ -22,8 +22,8 @@ describe('Dashboard edit mode', () => {
   beforeEach(() => {
     cy.login();
     cy.visit(WORLD_HEALTH_DASHBOARD);
-    cy.get('[data-test="dashboard-header"]')
-      .find('[aria-label=edit-alt]')
+    cy.get('.header-with-actions')
+      .find('[aria-label="Edit dashboard"]')
       .click();
   });
 
@@ -44,11 +44,6 @@ describe('Dashboard edit mode', () => {
           .find('.box_plot')
           .should('not.exist');
       });
-
-    cy.get('[data-test="dashboard-builder-component-pane-tabs-navigation"]')
-      .find('.ant-tabs-tab')
-      .last()
-      .click();
 
     // find box plot is available from list
     cy.get('[data-test="dashboard-charts-filter-search-input"]').type(
@@ -94,9 +89,9 @@ describe('Dashboard edit mode', () => {
       .find('[data-test="discard-changes-button"]')
       .should('be.visible')
       .click();
-    cy.get('[data-test="dashboard-header"]').within(() => {
+    cy.get('.header-with-actions').within(() => {
       cy.get('[data-test="dashboard-edit-actions"]').should('not.be.visible');
-      cy.get('[aria-label="edit-alt"]').should('be.visible');
+      cy.get('[aria-label="Edit dashboard"]').should('be.visible');
     });
   });
 });
