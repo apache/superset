@@ -24,7 +24,6 @@ import { URL_PARAMS } from 'src/constants';
 import { isNullish } from 'src/utils/common';
 import Button from 'src/components/Button';
 import { Select, Steps } from 'src/components';
-import { FormLabel } from 'src/components/Form';
 import { Tooltip } from 'src/components/Tooltip';
 
 import VizTypeGallery, {
@@ -73,7 +72,6 @@ const StyledContainer = styled.div`
       display: flex;
       flex-direction: row;
       align-items: center;
-      margin-bottom: ${theme.gridUnit * 2}px;
 
       & > div {
         min-width: 200px;
@@ -180,6 +178,24 @@ const StyledLabel = styled.span`
   `}
 `;
 
+const StyledStepTitle = styled.span`
+  ${({
+    theme: {
+      typography: { sizes, weights },
+    },
+  }) => `
+      font-size: ${sizes.m}px;
+      font-weight: ${weights.bold};
+    `}
+`;
+
+const StyledStepDescription = styled.div`
+  ${({ theme: { gridUnit } }) => `
+    margin-top: ${gridUnit * 4}px;
+    margin-bottom: ${gridUnit * 3}px;
+  `}
+`;
+
 export default class AddSliceContainer extends React.PureComponent<
   AddSliceContainerProps,
   AddSliceContainerState
@@ -281,10 +297,10 @@ export default class AddSliceContainer extends React.PureComponent<
         <h3>{t('Create a new chart')}</h3>
         <Steps direction="vertical" size="small">
           <Steps.Step
-            title={<FormLabel>{t('Choose a dataset')}</FormLabel>}
+            title={<StyledStepTitle>{t('Choose a dataset')}</StyledStepTitle>}
             status={this.state.datasource?.value ? 'finish' : 'process'}
             description={
-              <div className="dataset">
+              <StyledStepDescription className="dataset">
                 <Select
                   autoFocus
                   ariaLabel={t('Dataset')}
@@ -315,18 +331,20 @@ export default class AddSliceContainer extends React.PureComponent<
                   </a>
                   .
                 </span>
-              </div>
+              </StyledStepDescription>
             }
           />
           <Steps.Step
-            title={<FormLabel>{t('Choose chart type')}</FormLabel>}
+            title={<StyledStepTitle>{t('Choose chart type')}</StyledStepTitle>}
             status={this.state.visType ? 'finish' : 'process'}
             description={
-              <VizTypeGallery
-                className="viz-gallery"
-                onChange={this.changeVisType}
-                selectedViz={this.state.visType}
-              />
+              <StyledStepDescription>
+                <VizTypeGallery
+                  className="viz-gallery"
+                  onChange={this.changeVisType}
+                  selectedViz={this.state.visType}
+                />
+              </StyledStepDescription>
             }
           />
         </Steps>
