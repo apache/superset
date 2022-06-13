@@ -29,6 +29,7 @@ import findPermission, { isUserAdmin } from 'src/dashboard/util/findPermission';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import Icons from 'src/components/Icons';
 import rison from 'rison';
+import ProgressBar from 'src/components/ProgressBar';
 
 const StyledIcon = (theme: SupersetTheme) => css`
   min-width: ${theme.gridUnit * 5}px;
@@ -94,7 +95,7 @@ export default function SetupGuide() {
     }
   }, [canDatabase, canChart, canDashboard]);
 
-  const steps = [
+  const tasks = [
     { name: t('Create your workspace'), completed: true, show: isAdmin },
     {
       name: t('Create your data'),
@@ -113,9 +114,16 @@ export default function SetupGuide() {
     },
     { name: t('Invite teammates'), completed: true, show: isAdmin },
   ];
+  const percentCompleted =
+    tasks.filter(task => task.completed && task.show).length /
+    tasks.filter(task => task.show).length;
   return (
     <div>
-      {steps.map(task => (
+      <ProgressBar
+        percent={parseInt(percentCompleted.toFixed(0), 10)}
+        striped
+      />
+      {tasks.map(task => (
         <div>
           {task.name}{' '}
           {task.completed ? (
