@@ -88,17 +88,16 @@ const RightMenu = ({
   settings,
   navbarRight,
   isFrontendRoute,
-}: RightMenuProps) => {
+  setQuery,
+}: RightMenuProps & {
+  setQuery: ({ databaseAdded }: { databaseAdded: boolean }) => void;
+}) => {
   const user = useSelector<any, UserWithPermissionsAndRoles>(
     state => state.user,
   );
   const dashboardId = useSelector<RootState, number | undefined>(
     state => state.dashboardInfo?.id,
   );
-
-  const [, setQuery] = useQueryParams({
-    databaseAdded: BooleanParam,
-  });
 
   const { roles } = user;
   const {
@@ -439,4 +438,38 @@ const RightMenu = ({
   );
 };
 
-export default RightMenu;
+const RightMenuWithQueryWrapper: React.FC<RightMenuProps> = props => {
+  const [, setQuery] = useQueryParams({
+    databaseAdded: BooleanParam,
+  });
+
+  return <RightMenu setQuery={setQuery} {...props} />;
+};
+
+class RightMenuErrorWrapper extends React.PureComponent<RightMenuProps> {
+  state = {
+    hasError: false,
+  };
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  noop = () => {};
+
+  render() {
+    if (this.state.hasError) {
+      return <RightMenu setQuery={this.noop} {...this.props} />;
+    }
+
+    return this.props.children;
+  }
+}
+
+const RightMenuWrapper: React.FC<RightMenuProps> = props => (
+  <RightMenuErrorWrapper {...props}>
+    <RightMenuWithQueryWrapper {...props} />
+  </RightMenuErrorWrapper>
+);
+
+export default RightMenuWrapper;
