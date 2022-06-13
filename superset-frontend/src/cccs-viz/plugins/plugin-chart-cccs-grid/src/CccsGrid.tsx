@@ -88,7 +88,6 @@ export default function CccsGrid({
 
   const [filters, setFilters] = useState(initialFilters);
 
-
   const [prevRow, setPrevRow] = useState(-1);
   const [prevColumn, setPrevColumn] = useState('');
   const [searchValue, setSearchValue] = useState('');
@@ -298,7 +297,7 @@ export default function CccsGrid({
       setSearchValue('');
     }
   }, [include_search]);
-  
+
   useEffect(() => {
     keyRefresh.current += 1;
   }, [enable_grouping]);
