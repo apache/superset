@@ -1648,21 +1648,34 @@ def extract_dataframe_dtypes(
         "date": GenericDataType.TEMPORAL,
     }
 
-    columns_by_name = (
-        {column.column_name: column for column in datasource.columns}
-        if datasource
-        else {}
-    )
+    # todo(hughhhh): can we make the column_object a Union 
+    if datasource and datasource.type == "query":
+        columns_by_name = {column.get('column_name'): column for column in datasource.columns}
+    else:
+        columns_by_name = (
+            {column.column_name: column for column in datasource.columns}
+            if datasource
+            else {}
+        )
+    
     generic_types: List[GenericDataType] = []
     for column in df.columns:
         column_object = columns_by_name.get(column)
         series = df[column]
         inferred_type = infer_dtype(series)
-        generic_type = (
-            GenericDataType.TEMPORAL
-            if column_object and column_object.is_dttm
-            else inferred_type_map.get(inferred_type, GenericDataType.STRING)
-        )
+        # todo(hughhhh): can we make the column_object a Union 
+        if datasource.type == "query":
+            generic_type = (
+                GenericDataType.TEMPORAL
+                if column_object and column_object.get('is_dttm')
+                else inferred_type_map.get(inferred_type, GenericDataType.STRING)
+            )
+        else:
+            generic_type = (
+                GenericDataType.TEMPORAL
+                if column_object and column_object.is_dttm
+                else inferred_type_map.get(inferred_type, GenericDataType.STRING)
+            )
         generic_types.append(generic_type)
 
     return generic_types
@@ -1696,7 +1709,10 @@ def get_time_filter_status(
     datasource: "BaseDatasource",
     applied_time_extras: Dict[str, str],
 ) -> Tuple[List[Dict[str, str]], List[Dict[str, str]]]:
-    temporal_columns = {col.column_name for col in datasource.columns if col.is_dttm}
+
+    # todo(hugh): fix this
+    # temporal_columns = {col.column_name for col in datasource.columns if col.is_dttm}
+    temporal_columns = {}
     applied: List[Dict[str, str]] = []
     rejected: List[Dict[str, str]] = []
     time_column = applied_time_extras.get(ExtraFiltersTimeColumnType.TIME_COL)

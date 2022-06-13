@@ -36,7 +36,7 @@ import Icons from 'src/components/Icons';
 import ModalTrigger from 'src/components/ModalTrigger';
 import Button from 'src/components/Button';
 import ViewQueryModal from 'src/explore/components/controls/ViewQueryModal';
-import { ResultsPane } from 'src/explore/components/DataTablesPane';
+import { ResultsPaneOnDashboard } from 'src/explore/components/DataTablesPane';
 
 const MENU_KEYS = {
   CROSS_FILTER_SCOPING: 'cross_filter_scoping',
@@ -340,11 +340,12 @@ class SliceHeaderControls extends React.PureComponent<
               }
               modalTitle={t('Chart Data: %s', slice.slice_name)}
               modalBody={
-                <ResultsPane
+                <ResultsPaneOnDashboard
                   queryFormData={this.props.formData}
                   queryForce={false}
                   dataSize={20}
                   isRequest
+                  isVisible
                 />
               }
               modalFooter={

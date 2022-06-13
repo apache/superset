@@ -749,7 +749,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         key: Optional[str] = None,
     ) -> FlaskResponse:
         initial_form_data = {}
-
         form_data_key = request.args.get("form_data_key")
         if key is not None:
             command = GetExplorePermalinkCommand(g.user, key)
@@ -772,6 +771,142 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             parameters = CommandParameters(actor=g.user, key=form_data_key)
             value = GetFormDataCommand(parameters).run()
             initial_form_data = json.loads(value) if value else {}
+
+        from superset.dao.datasource.dao import DatasourceDAO
+        from superset.models.helpers import ExploreMixin
+        from superset.utils.core import DatasourceType
+
+        # Handle SIP-68 Models or explore view
+        # API will always use /explore/<datasource_type>/<int:datasource_id>/ to query
+        # new models to power any viz in explore
+        datasource_id = request.args.get('datasource_id', datasource_id)
+        datasource_type = request.args.get('datasource_type', datasource_type)
+
+        if datasource_id and datasource_type:
+            # 1. Query datasource object by type and id
+            datasource = DatasourceDAO.get_datasource(
+                session=db.session,
+                datasource_type=DatasourceType(datasource_type),
+                datasource_id=datasource_id,
+            )
+
+            # 2. Verify that it's an ExploreMixin
+            if isinstance(datasource, ExploreMixin):
+                # Handle Query object bootstrap
+                datasource_name = (
+                    datasource.name if datasource else _("[Missing Dataset]")
+                )
+                form_data, slc = get_form_data(
+                    use_slice_data=True, initial_form_data=initial_form_data
+                )
+
+                query_context = request.form.get("query_context")
+
+                viz_type = form_data.get("viz_type", "table")
+                if not viz_type and datasource and datasource.default_endpoint:
+                    return redirect(datasource.default_endpoint)
+
+                # slc perms
+                slice_add_perm = security_manager.can_access("can_write", "Chart")
+                slice_overwrite_perm = is_owner(slc, g.user) if slc else False
+                slice_download_perm = security_manager.can_access("can_csv", "Superset")
+
+                form_data["datasource"] = (
+                    str(datasource_id) + "__" + cast(str, datasource_type)
+                )
+
+                # On explore, merge legacy and extra filters into the form data
+                utils.convert_legacy_filters_into_adhoc(form_data)
+                utils.merge_extra_filters(form_data)
+
+                # merge request url params
+                if request.method == "GET":
+                    utils.merge_request_params(form_data, request.args)
+
+                # handle save or overwrite
+                action = request.args.get("action")
+
+                if action == "overwrite" and not slice_overwrite_perm:
+                    return json_error_response(
+                        _("You don't have the rights to ")
+                        + _("alter this ")
+                        + _("chart"),
+                        status=403,
+                    )
+
+                if action == "saveas" and not slice_add_perm:
+                    return json_error_response(
+                        _("You don't have the rights to ")
+                        + _("create a ")
+                        + _("chart"),
+                        status=403,
+                    )
+
+                if action in ("saveas", "overwrite") and datasource:
+                    return self.save_or_overwrite_slice(
+                        slc,
+                        slice_add_perm,
+                        slice_overwrite_perm,
+                        slice_download_perm,
+                        datasource.id,
+                        datasource.type,
+                        datasource.name,
+                        query_context,
+                    )
+                standalone_mode = ReservedUrlParameters.is_standalone_mode()
+                force = request.args.get("force") in {"force", "1", "true"}
+                dummy_datasource_data: Dict[str, Any] = {
+                    "type": datasource_type,
+                    "name": datasource_name,
+                    "columns": [],
+                    "metrics": [],
+                    "database": {"id": 0, "backend": ""},
+                }
+                try:
+                    datasource_data = (
+                        datasource.data if datasource else dummy_datasource_data
+                    )
+                except (SupersetException, SQLAlchemyError):
+                    datasource_data = dummy_datasource_data
+
+                columns: List[Dict[str, Any]] = []
+                if datasource:
+                    datasource_data["owners"] = datasource.owners_data
+                    if isinstance(datasource, Query):
+                        # todo(hughhh): set is_dttm + name -> column_name
+                        # datasource_data["data"] = datasource.data
+                        # move all this logic into the class for the property data
+                        datasource_data["columns"] = datasource.columns
+                        datasource_data["metrics"] = datasource.extra.get("metrics", [])
+                        datasource_data["id"] = datasource_id
+                        datasource_data["type"] = datasource_type
+                        datasource_data["name"] = datasource.sql
+
+                bootstrap_data = {
+                    "can_add": slice_add_perm,
+                    "can_download": slice_download_perm,
+                    "datasource": sanitize_datasource_data(datasource_data),
+                    "form_data": form_data,
+                    "datasource_id": datasource_id,
+                    "datasource_type": datasource_type,
+                    "slice": slc.data if slc else None,
+                    "standalone": standalone_mode,
+                    "force": force,
+                    "user": bootstrap_user_data(g.user, include_perms=True),
+                    "forced_height": request.args.get("height"),
+                    "common": common_bootstrap_payload(),
+                }
+
+                title = _("Explore - %(name)s", name=datasource.name)
+                return self.render_template(
+                    "superset/basic.html",
+                    bootstrap_data=json.dumps(
+                        bootstrap_data, default=utils.pessimistic_json_iso_dttm_ser
+                    ),
+                    entry="explore",
+                    title=title.__str__(),
+                    standalone_mode=standalone_mode,
+                )
 
         if not initial_form_data:
             slice_id = request.args.get("slice_id")

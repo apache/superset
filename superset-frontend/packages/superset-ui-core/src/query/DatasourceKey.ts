@@ -29,6 +29,7 @@ export default class DatasourceKey {
     this.id = parseInt(idStr, 10);
     this.type =
       typeStr === 'table' ? DatasourceType.Table : DatasourceType.Druid;
+    this.type = typeStr === 'query' ? DatasourceType.Query : this.type;
   }
 
   public toString() {

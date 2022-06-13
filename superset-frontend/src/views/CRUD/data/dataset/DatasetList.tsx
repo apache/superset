@@ -230,6 +230,14 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         ),
       );
 
+  const handleBulkDatasetExport = (datasetsToExport: Dataset[]) => {
+    const ids = datasetsToExport.map(({ id }) => id);
+    handleResourceExport('dataset', ids, () => {
+      setPreparingExport(false);
+    });
+    setPreparingExport(true);
+  };
+
   const columns = useMemo(
     () => [
       {
@@ -615,14 +623,6 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         ),
       ),
     );
-  };
-
-  const handleBulkDatasetExport = (datasetsToExport: Dataset[]) => {
-    const ids = datasetsToExport.map(({ id }) => id);
-    handleResourceExport('dataset', ids, () => {
-      setPreparingExport(false);
-    });
-    setPreparingExport(true);
   };
 
   return (

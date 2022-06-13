@@ -16,5 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { getUiOverrideRegistry } from '@superset-ui/core';
 
-export * from './types/Base';
+test('should get instance of getUiOverrideRegistry', () => {
+  expect(getUiOverrideRegistry().name).toBe('UiOverrideRegistry');
+});
