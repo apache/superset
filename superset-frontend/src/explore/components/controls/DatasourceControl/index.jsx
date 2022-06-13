@@ -113,6 +113,47 @@ const CHANGE_DATASET = 'change_dataset';
 const VIEW_IN_SQL_LAB = 'view_in_sql_lab';
 const EDIT_DATASET = 'edit_dataset';
 
+// If the string is longer than this value's number characters we add
+// a tooltip for user can see the full name by hovering over the visually truncated string in UI
+const VISIBLE_TITLE_LENGTH = 25;
+
+
+// Assign icon for each DatasourceType.  If no icon assingment is found in the lookup, no icon will render
+export const datasourceIconLookup = {
+    [DatasourceType.Query]: <Icons.ConsoleSqlOutlined className="datasource-svg" />,
+    [DatasourceType.Table]: <Icons.DatasetPhysical className="datasource-svg" />,
+  }
+
+// Render title for datasource with tooltip only if text is longer than VISIBLE_TITLE_LENGTH
+export const renderDatasourceTitle = displayString =>
+    displayString.length > VISIBLE_TITLE_LENGTH ? (
+      // Add a tooltip only for long names that will be visually truncated
+      <Tooltip title={displayString}>
+        <span className="title-select">{displayString}</span>
+      </Tooltip>
+    ) : (
+      <span title={displayString} className="title-select">
+        {displayString}
+      </span>
+    );
+
+// Different data source types use different attributes for the display title
+export const getDatasourceTitle = datasource => {
+    let text = '';
+    const dataSourceType = datasource?.type;
+    if (dataSourceType) {
+      switch (dataSourceType) {
+        case DatasourceType.Query:
+          text = datasource?.sql ?? '';
+          break;
+        default:
+          text = datasource?.name ?? '';
+          break;
+      }
+    }
+    return text;
+  };
+
 class DatasourceControl extends React.PureComponent {
   constructor(props) {
     super(props);
@@ -186,7 +227,7 @@ class DatasourceControl extends React.PureComponent {
   render() {
     const { showChangeDatasourceModal, showEditDatasourceModal } = this.state;
     const { datasource, onChange, theme } = this.props;
-    const isMissingDatasource = datasource.id == null;
+    const isMissingDatasource = datasource?.id?.length > 0 ? false : true;
     let isMissingParams = false;
     if (isMissingDatasource) {
       const datasourceId = getUrlParam(URL_PARAMS.datasourceId);
@@ -241,34 +282,13 @@ class DatasourceControl extends React.PureComponent {
       } catch {} // eslint-disable-line no-empty
     }
 
+    const titleText = getDatasourceTitle(datasource) ;
+
     return (
       <Styles data-test="datasource-control" className="DatasourceControl">
         <div className="data-container">
-          {datasource.type === DatasourceType.Query ? (
-            <Icons.ConsoleSqlOutlined className="datasource-svg" />
-          ) : (
-            <Icons.DatasetPhysical className="datasource-svg" />
-          )}
-          {datasource.type === DatasourceType.Query ? (
-            /* Add a tooltip only for long dataset names */
-            !isMissingDatasource && datasource.sql.length > 25 ? (
-              <Tooltip title={datasource.sql}>
-                <span className="title-select">{datasource.sql}</span>
-              </Tooltip>
-            ) : (
-              <span title={datasource.sql} className="title-select">
-                {datasource.sql}
-              </span>
-            )
-          ) : !isMissingDatasource && datasource.name.length > 25 ? (
-            <Tooltip title={datasource.name}>
-              <span className="title-select">{datasource.name}</span>
-            </Tooltip>
-          ) : (
-            <span title={datasource.name} className="title-select">
-              {datasource.name}
-            </span>
-          )}
+          {datasourceIconLookup[datasource?.type]}
+          {renderDatasourceTitle(titleText)}
           {healthCheckMessage && (
             <Tooltip title={healthCheckMessage}>
               <Icons.AlertSolid iconColor={theme.colors.warning.base} />
