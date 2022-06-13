@@ -17,7 +17,6 @@
  * under the License.
  */
 import React, { useState } from 'react';
-import { rgb } from 'd3-color';
 import { styled, SupersetTheme, t, useTheme } from '@superset-ui/core';
 import { Form, FormItem, FormProps } from 'src/components/Form';
 import Select from 'src/components/Select/Select';
@@ -25,6 +24,7 @@ import { Col, Row } from 'src/components';
 import { InputNumber } from 'src/components/Input';
 import Checkbox from 'src/components/Checkbox';
 import Button from 'src/components/Button';
+import { hexToRgb } from 'src/utils/colorUtils';
 import {
   COMPARATOR,
   ConditionalFormattingConfig,
@@ -40,18 +40,10 @@ const JustifyEnd = styled.div`
   justify-content: flex-end;
 `;
 
-export const hexToRGBString = (hex: string) => {
-  if (!hex) {
-    return 'rgb(0,0,0)';
-  }
-  const { r, g, b } = rgb(hex);
-  return `rgb(${r},${g},${b})`;
-};
-
 const colorSchemeOptions = (theme: SupersetTheme) => [
-  { value: hexToRGBString(theme.colors.success.light1), label: t('green') },
-  { value: hexToRGBString(theme.colors.alert.light1), label: t('yellow') },
-  { value: hexToRGBString(theme.colors.error.light1), label: t('red') },
+  { value: hexToRgb(theme.colors.success.light1), label: t('green') },
+  { value: hexToRgb(theme.colors.alert.light1), label: t('yellow') },
+  { value: hexToRgb(theme.colors.error.light1), label: t('red') },
 ];
 
 const operatorOptions = [
@@ -225,13 +217,24 @@ export const FormattingPopoverContent = ({
           </Col>
         </Row>
       )}
-      <FormItem
-        name="inverseScale"
-        label={t('Inverse Scale')}
-        rules={rulesInverseScale}
-      >
-        <Checkbox checked={inverseScale} onChange={changeInverseScale} />
-      </FormItem>
+      <Row gutter={12}>
+        <Col>
+          <FormItem
+            name="inverseScale"
+            label={t('Inverse Scale')}
+            rules={rulesInverseScale}
+            validateTrigger="onChange"
+            trigger="onChange"
+            tooltip="Invert the color alpha scale. Not valid with the equals operator."
+          >
+            <Checkbox
+              checked={inverseScale}
+              onChange={changeInverseScale}
+              disabled
+            />
+          </FormItem>
+        </Col>
+      </Row>
     </>
   );
 
