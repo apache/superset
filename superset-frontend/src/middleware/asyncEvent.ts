@@ -67,46 +67,6 @@ let listenersByJobId: Record<string, ListenerFn>;
 let retriesByJobId: Record<string, number>;
 let lastReceivedEventId: string | null | undefined;
 
-export const init = (appConfig?: AppConfig) => {
-  if (!isFeatureEnabled(FeatureFlag.GLOBAL_ASYNC_QUERIES)) return;
-  if (pollingTimeoutId) clearTimeout(pollingTimeoutId);
-
-  listenersByJobId = {};
-  retriesByJobId = {};
-  lastReceivedEventId = null;
-
-  if (appConfig) {
-    config = appConfig;
-  } else {
-    // load bootstrap data from DOM
-    const appContainer = document.getElementById('app');
-    if (appContainer) {
-      const bootstrapData = JSON.parse(
-        appContainer?.getAttribute('data-bootstrap') || '{}',
-      );
-      config = bootstrapData?.common?.conf;
-    } else {
-      config = {};
-      logging.warn('asyncEvent: app config data not found');
-    }
-  }
-  transport = config.GLOBAL_ASYNC_QUERIES_TRANSPORT || TRANSPORT_POLLING;
-  pollingDelayMs = config.GLOBAL_ASYNC_QUERIES_POLLING_DELAY || 500;
-
-  try {
-    lastReceivedEventId = localStorage.getItem(LOCALSTORAGE_KEY);
-  } catch (err) {
-    logging.warn('Failed to fetch last event Id from localStorage');
-  }
-
-  if (transport === TRANSPORT_POLLING) {
-    loadEventsFromApi();
-  }
-  if (transport === TRANSPORT_WS) {
-    wsConnect();
-  }
-};
-
 const addListener = (id: string, fn: any) => {
   listenersByJobId[id] = fn;
 };
@@ -114,6 +74,24 @@ const addListener = (id: string, fn: any) => {
 const removeListener = (id: string) => {
   if (!listenersByJobId[id]) return;
   delete listenersByJobId[id];
+};
+
+const fetchCachedData = async (
+  asyncEvent: AsyncEvent,
+): Promise<CachedDataResponse> => {
+  let status = 'success';
+  let data;
+  try {
+    const { json } = await SupersetClient.get({
+      endpoint: String(asyncEvent.result_url),
+    });
+    data = 'result' in json ? json.result : json;
+  } catch (response) {
+    status = 'error';
+    data = await getClientErrorObject(response);
+  }
+
+  return { status, data };
 };
 
 export const waitForAsyncData = async (asyncResponse: AsyncEvent) =>
@@ -153,46 +131,12 @@ const fetchEvents = makeApi<
   endpoint: POLLING_URL,
 });
 
-const fetchCachedData = async (
-  asyncEvent: AsyncEvent,
-): Promise<CachedDataResponse> => {
-  let status = 'success';
-  let data;
-  try {
-    const { json } = await SupersetClient.get({
-      endpoint: String(asyncEvent.result_url),
-    });
-    data = 'result' in json ? json.result : json;
-  } catch (response) {
-    status = 'error';
-    data = await getClientErrorObject(response);
-  }
-
-  return { status, data };
-};
-
 const setLastId = (asyncEvent: AsyncEvent) => {
   lastReceivedEventId = asyncEvent.id;
   try {
     localStorage.setItem(LOCALSTORAGE_KEY, lastReceivedEventId as string);
   } catch (err) {
     logging.warn('Error saving event Id to localStorage', err);
-  }
-};
-
-const loadEventsFromApi = async () => {
-  const eventArgs = lastReceivedEventId ? { last_id: lastReceivedEventId } : {};
-  if (Object.keys(listenersByJobId).length) {
-    try {
-      const { result: events } = await fetchEvents(eventArgs);
-      if (events && events.length) await processEvents(events);
-    } catch (err) {
-      logging.warn(err);
-    }
-  }
-
-  if (transport === TRANSPORT_POLLING) {
-    pollingTimeoutId = window.setTimeout(loadEventsFromApi, pollingDelayMs);
   }
 };
 
@@ -220,6 +164,22 @@ export const processEvents = async (events: AsyncEvent[]) => {
     }
     setLastId(asyncEvent);
   });
+};
+
+const loadEventsFromApi = async () => {
+  const eventArgs = lastReceivedEventId ? { last_id: lastReceivedEventId } : {};
+  if (Object.keys(listenersByJobId).length) {
+    try {
+      const { result: events } = await fetchEvents(eventArgs);
+      if (events && events.length) await processEvents(events);
+    } catch (err) {
+      logging.warn(err);
+    }
+  }
+
+  if (transport === TRANSPORT_POLLING) {
+    pollingTimeoutId = window.setTimeout(loadEventsFromApi, pollingDelayMs);
+  }
 };
 
 const wsConnectMaxRetries = 6;
@@ -265,6 +225,46 @@ const wsConnect = (): void => {
       logging.warn(err);
     }
   });
+};
+
+export const init = (appConfig?: AppConfig) => {
+  if (!isFeatureEnabled(FeatureFlag.GLOBAL_ASYNC_QUERIES)) return;
+  if (pollingTimeoutId) clearTimeout(pollingTimeoutId);
+
+  listenersByJobId = {};
+  retriesByJobId = {};
+  lastReceivedEventId = null;
+
+  if (appConfig) {
+    config = appConfig;
+  } else {
+    // load bootstrap data from DOM
+    const appContainer = document.getElementById('app');
+    if (appContainer) {
+      const bootstrapData = JSON.parse(
+        appContainer?.getAttribute('data-bootstrap') || '{}',
+      );
+      config = bootstrapData?.common?.conf;
+    } else {
+      config = {};
+      logging.warn('asyncEvent: app config data not found');
+    }
+  }
+  transport = config.GLOBAL_ASYNC_QUERIES_TRANSPORT || TRANSPORT_POLLING;
+  pollingDelayMs = config.GLOBAL_ASYNC_QUERIES_POLLING_DELAY || 500;
+
+  try {
+    lastReceivedEventId = localStorage.getItem(LOCALSTORAGE_KEY);
+  } catch (err) {
+    logging.warn('Failed to fetch last event Id from localStorage');
+  }
+
+  if (transport === TRANSPORT_POLLING) {
+    loadEventsFromApi();
+  }
+  if (transport === TRANSPORT_WS) {
+    wsConnect();
+  }
 };
 
 init();
