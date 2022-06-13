@@ -291,6 +291,10 @@ export default function CccsGrid({
     }
   }, [include_search]);
 
+  useEffect(() => {
+    keyRefresh.current += 1;
+  }, [enable_grouping]);
+
   const gridOptions = {
     suppressColumnVirtualisation: true,
     animateRows: true,
