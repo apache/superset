@@ -23,33 +23,18 @@ import html
 import io
 import json
 import logging
-from typing import Dict, List
-from urllib.parse import quote
-
-import superset.utils.database
-from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,
-    load_birth_names_data,
-)
-
+import pandas as pd
 import pytest
 import pytz
 import random
-import re
-import unittest
-from unittest import mock
-
-import pandas as pd
 import sqlalchemy as sqla
+import unittest
 from sqlalchemy.exc import SQLAlchemyError
-from superset.models.cache import CacheKey
-from superset.utils.database import get_example_database
-from tests.integration_tests.conftest import with_feature_flags
-from tests.integration_tests.fixtures.energy_dashboard import (
-    load_energy_table_with_slice,
-    load_energy_table_data,
-)
-from tests.integration_tests.test_app import app
+from typing import Dict, List
+from unittest import mock
+from urllib.parse import quote
+
+import superset.utils.database
 import superset.views.utils
 from superset import (
     dataframe,
@@ -65,20 +50,19 @@ from superset.exceptions import SupersetException
 from superset.extensions import async_query_manager
 from superset.models import core as models
 from superset.models.annotations import Annotation, AnnotationLayer
+from superset.models.cache import CacheKey
 from superset.models.dashboard import Dashboard
 from superset.models.datasource_access_request import DatasourceAccessRequest
 from superset.models.slice import Slice
 from superset.models.sql_lab import Query
 from superset.result_set import SupersetResultSet
 from superset.utils import core as utils
+from superset.utils.database import get_example_database
 from superset.views import core as views
 from superset.views.database.views import DatabaseView
-
+from tests.integration_tests.conftest import with_feature_flags
+from tests.integration_tests.test_app import app
 from .base_tests import SupersetTestCase
-from tests.integration_tests.fixtures.world_bank_dashboard import (
-    load_world_bank_dashboard_with_slices,
-    load_world_bank_data,
-)
 
 logger = logging.getLogger(__name__)
 
@@ -720,7 +704,7 @@ class TestCore(SupersetTestCase):
 
     def test_gamma(self):
         self.login(username="gamma")
-        assert "Charts" in self.get_resp("/analytics/chart/list/")
+        assert "Charts" in self.get_resp("/chart/list/")
         assert "Dashboards" in self.get_resp("/dashboard/list/")
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")

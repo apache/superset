@@ -21,13 +21,13 @@ import PropTypes from 'prop-types';
 import { CompactPicker } from 'react-color';
 import Button from 'src/components/Button';
 import {
-  t,
-  SupersetClient,
   getCategoricalSchemeRegistry,
   getChartMetadataRegistry,
-  validateNonEmpty,
   isValidExpression,
   styled,
+  SupersetClient,
+  t,
+  validateNonEmpty,
   withTheme,
 } from '@superset-ui/core';
 
@@ -36,11 +36,11 @@ import TextControl from 'src/explore/components/controls/TextControl';
 import CheckboxControl from 'src/explore/components/controls/CheckboxControl';
 import {
   ANNOTATION_SOURCE_TYPES,
+  ANNOTATION_SOURCE_TYPES_METADATA,
   ANNOTATION_TYPES,
   ANNOTATION_TYPES_METADATA,
   DEFAULT_ANNOTATION_TYPE,
   requiresQuery,
-  ANNOTATION_SOURCE_TYPES_METADATA,
 } from 'src/modules/AnnotationTypes';
 import PopoverSection from 'src/components/PopoverSection';
 import ControlHeader from 'src/explore/components/ControlHeader';
@@ -315,7 +315,7 @@ class AnnotationLayer extends React.PureComponent {
         });
       } else if (requiresQuery(sourceType)) {
         SupersetClient.get({
-          endpoint: '/analytics/superset/user_slices',
+          endpoint: `${process.env.APP_PREFIX}/superset/user_slices`,
         }).then(({ json }) => {
           const registry = getChartMetadataRegistry();
           this.setState({

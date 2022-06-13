@@ -15,10 +15,9 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Optional
-
 from flask import flash
 from flask_appbuilder import expose
+from typing import Optional
 from werkzeug.utils import redirect
 
 from superset import db, event_logger
@@ -36,8 +35,8 @@ class R(BaseSupersetView):  # pylint: disable=invalid-name
     @staticmethod
     def _validate_url(url: Optional[str] = None) -> bool:
         if url and (
-            url.startswith("//analytics/superset/dashboard/")
-            or url.startswith("//analytics/superset/explore/")
+            url.startswith("/superset/dashboard/")
+            or url.startswith("/superset/explore/")
         ):
             return True
         return False

@@ -26,10 +26,17 @@ import importlib.util
 import json
 import logging
 import os
+import pkg_resources
 import re
 import sys
+from cachelib.base import BaseCache
+from celery.schedules import crontab
 from collections import OrderedDict
 from datetime import timedelta
+from dateutil import tz
+from flask import Blueprint
+from flask_appbuilder.security.manager import AUTH_DB
+from pandas._libs.parsers import STR_NA_VALUES  # pylint: disable=no-name-in-module
 from typing import (
     Any,
     Callable,
@@ -41,14 +48,6 @@ from typing import (
     TYPE_CHECKING,
     Union,
 )
-
-import pkg_resources
-from cachelib.base import BaseCache
-from celery.schedules import crontab
-from dateutil import tz
-from flask import Blueprint
-from flask_appbuilder.security.manager import AUTH_DB
-from pandas._libs.parsers import STR_NA_VALUES  # pylint: disable=no-name-in-module
 
 from superset.advanced_data_type.plugins.internet_address import internet_address
 from superset.advanced_data_type.plugins.internet_port import internet_port
@@ -234,7 +233,7 @@ SHOW_STACKTRACE = True
 
 # Use all X-Forwarded headers when ENABLE_PROXY_FIX is True.
 # When proxying to a different port, set "x_port" to 0 to avoid downstream issues.
-ENABLE_PROXY_FIX = true
+ENABLE_PROXY_FIX = True
 PROXY_FIX_CONFIG = {"x_for": 1, "x_proto": 1, "x_host": 1, "x_port": 1, "x_prefix": 1}
 
 # ------------------------------
@@ -1194,7 +1193,7 @@ SQLALCHEMY_EXAMPLES_URI = None
 
 # Optional prefix to be added to all static asset paths when rendering the UI.
 # This is useful for hosting assets in an external CDN, for example
-STATIC_ASSETS_PREFIX = "/analytics"
+STATIC_ASSETS_PREFIX = "analytics"
 
 # Some sqlalchemy connection strings can open Superset to security risks.
 # Typically these should not be allowed.
