@@ -182,8 +182,8 @@ def load_dataset_with_columns() -> Generator[SqlaTable, None, None]:
             "students",
             meta,
             Column("id", Integer, primary_key=True),
-            Column("name", String),
-            Column("lastname", String),
+            Column("name", String(255)),
+            Column("lastname", String(255)),
             Column("ds", Date),
         )
         meta.create_all(engine)
@@ -203,6 +203,8 @@ def load_dataset_with_columns() -> Generator[SqlaTable, None, None]:
         students_table = meta.tables.get("students")
         if students_table is not None:
             base = declarative_base()
+            # needed for sqlite
+            session.commit()
             base.metadata.drop_all(engine, [students_table], checkfirst=True)
         session.delete(dataset)
         session.delete(column)
