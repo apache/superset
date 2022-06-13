@@ -43,7 +43,7 @@ import { StyledColumnOption } from 'src/explore/components/optionRenderers';
 
 // import cidrRegex from 'cidr-regex';
 
-const PAGE_SIZE_OPTIONS = formatSelectOptions<number>([
+export const PAGE_SIZE_OPTIONS = formatSelectOptions<number>([
   [0, t('page_size.all')],
   10,
   20,
@@ -526,7 +526,7 @@ const config: ControlPanelConfig = {
 };
 
 config.controlPanelSections.push({
-  label: t('CCCS Grid Options'),
+  label: t('Options'),
   expanded: true,
   controlSetRows: [
     [
@@ -543,13 +543,25 @@ config.controlPanelSections.push({
     ],
     [
       {
+        name: 'enable_grouping',
+        config: {
+          type: 'CheckboxControl',
+          label: t('Row grouping'),
+          renderTrigger: true,
+          default: false,
+          description: t('Whether to enable row grouping'),
+        },
+      },
+    ],
+    [
+      {
         name: 'page_length',
         config: {
           type: 'SelectControl',
           freeForm: true,
           renderTrigger: true,
           label: t('Page length'),
-          default: 100,
+          default: 0,
           choices: PAGE_SIZE_OPTIONS,
           description: t('Rows per page, 0 means no pagination'),
           validators: [legacyValidateInteger],

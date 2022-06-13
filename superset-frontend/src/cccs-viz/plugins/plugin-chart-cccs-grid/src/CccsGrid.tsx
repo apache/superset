@@ -53,6 +53,8 @@ import '@ag-grid-community/all-modules/dist/styles/ag-grid.css';
 import '@ag-grid-community/core/dist/styles/ag-grid.css';
 import '@ag-grid-community/core/dist/styles/ag-theme-balham.css';
 
+import { PAGE_SIZE_OPTIONS } from './plugin/controlPanel';
+
 const DEFAULT_COLUMN_DEF = {
   editable: false,
   filter: true,
@@ -75,6 +77,7 @@ export default function CccsGrid({
   emitFilter,
   include_search,
   page_length = 0,
+  enable_grouping = false,
   filters: initialFilters = {},
 }: CccsGridTransformedProps) {
   LicenseManager.setLicenseKey(agGridLicenseKey);
@@ -85,13 +88,14 @@ export default function CccsGrid({
 
   const [filters, setFilters] = useState(initialFilters);
 
+
   const [prevRow, setPrevRow] = useState(-1);
   const [prevColumn, setPrevColumn] = useState('');
   const [searchValue, setSearchValue] = useState('');
+  const [pageSize, setPageSize] = useState<number>(page_length);
 
   const gridRef = useRef<AgGridReact>(null);
   const keyRefresh = useRef<number>(0);
-  const pageSize = useRef<number>(page_length);
 
   const handleChange = useCallback(
     filters => {
@@ -273,10 +277,14 @@ export default function CccsGrid({
     params.columnApi.autoSizeColumns(allColumnIds.slice(0, 100), false);
   }
 
-  useEffect(() => {
-    pageSize.current = page_length <= 0 ? 0 : page_length;
-    gridRef.current?.props.api?.paginationSetPageSize(pageSize.current);
+  const updatePageSize = (newSize: number) => {
+    gridRef.current?.props.api?.paginationSetPageSize(pageSize);
+    setPageSize(newSize <= 0 ? 0 : newSize);
     keyRefresh.current += 1;
+  };
+
+  useEffect(() => {
+    updatePageSize(page_length);
   }, [page_length]);
 
   function setSearch(e: ChangeEvent<HTMLInputElement>) {
@@ -290,6 +298,10 @@ export default function CccsGrid({
       setSearchValue('');
     }
   }, [include_search]);
+  
+  useEffect(() => {
+    keyRefresh.current += 1;
+  }, [enable_grouping]);
 
   const gridOptions = {
     suppressColumnVirtualisation: true,
@@ -301,11 +313,39 @@ export default function CccsGrid({
 
   return (
     <div style={{ width, height }} className="ag-theme-balham">
-      {include_search ? (
-        <div className="form-inline" style={{ paddingBottom: '0.5em' }}>
-          <div className="row">
-            <div className="col-sm-6" />
-            <div className="col-sm-6">
+      <div className="form-inline" style={{ paddingBottom: '0.5em' }}>
+        <div className="row">
+          <div className="col-sm-6">
+            {page_length > 0 && (
+              <span className="dt-select-page-size form-inline">
+                Show{' '}
+                <select
+                  className="form-control input-sm"
+                  value={pageSize}
+                  onBlur={() => {}}
+                  onChange={e => {
+                    updatePageSize(
+                      Number((e.target as HTMLSelectElement).value),
+                    );
+                  }}
+                >
+                  {PAGE_SIZE_OPTIONS.map(option => {
+                    const [size, text] = Array.isArray(option)
+                      ? option
+                      : [option, option];
+                    return (
+                      <option key={size} value={size}>
+                        {text}
+                      </option>
+                    );
+                  })}
+                </select>{' '}
+                entries
+              </span>
+            )}
+          </div>
+          <div className="col-sm-6">
+            {include_search ? (
               <span className="float-right">
                 Search{' '}
                 <input
@@ -315,10 +355,10 @@ export default function CccsGrid({
                   onChange={setSearch}
                 />
               </span>
-            </div>
+            ) : null}
           </div>
         </div>
-      ) : null}
+      </div>
       <AgGridReact
         key={keyRefresh.current}
         ref={gridRef}
@@ -335,11 +375,11 @@ export default function CccsGrid({
         onRangeSelectionChanged={onRangeSelectionChanged}
         onSelectionChanged={onSelectionChanged}
         rowData={rowData}
-        paginationPageSize={pageSize.current}
-        pagination={pageSize.current !== 0}
+        paginationPageSize={pageSize}
+        pagination={pageSize > 0}
         cacheQuickFilter={true}
         quickFilterText={searchValue}
-        rowGroupPanelShow="always"
+        rowGroupPanelShow={enable_grouping ? 'always' : 'never'}
       />
     </div>
   );
