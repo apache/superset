@@ -204,7 +204,6 @@ describe('should collect control values and create SFD', () => {
     );
 
     const sfd = new StandardizedFormData(sourceMockFormData);
-    console.log('this is sourceMockStore', sourceMockStore);
     const { formData } = sfd.transform('target_viz', sourceMockStore);
     Object.entries(publicControlsFormData).forEach(([key, value]) => {
       expect(formData).toHaveProperty(key);

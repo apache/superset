@@ -45,7 +45,7 @@ export function getControlsState(state, inputFormData) {
     formData.viz_type || state.common?.conf.DEFAULT_VIZ_TYPE || 'table';
 
   handleDeprecatedControls(formData);
-
+  console.log('this is state in get Controls state', state);
   const controlsState = getAllControlsState(
     vizType,
     state.datasource.type,
@@ -53,6 +53,7 @@ export function getControlsState(state, inputFormData) {
     formData,
   );
 
+  console.log('this is after form data', controlsState);
   const controlPanelConfig = getChartControlPanelRegistry().get(vizType) || {};
   if (controlPanelConfig.onInit) {
     return controlPanelConfig.onInit(controlsState);

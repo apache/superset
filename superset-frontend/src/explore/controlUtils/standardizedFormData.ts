@@ -194,7 +194,6 @@ export class StandardizedFormData {
         publicFormData[key] = exploreState.form_data[key];
       }
     });
-    console.log('this is latestFormData', latestFormData);
     const targetControlsState = getControlsState(exploreState, {
       ...latestFormData,
       ...publicFormData,
