@@ -559,10 +559,10 @@
       "Saved queries could not be deleted.": ["保存的查询无法被删除"],
       "Saved query not found.": ["保存的查询未找到"],
       "Deleted %(num)d report schedule": ["已经删除了 %(num)d 个报告时间表"],
-      "Alert query returned more then one row. %s rows returned": [
+      "Alert query returned more than one row. %s rows returned": [
         "警报查询返回了多行。%s 行被返回"
       ],
-      "Alert query returned more then one column. %s columns returned": [
+      "Alert query returned more than one column. %s columns returned": [
         "警报查询返回多个列。%s 列被返回"
       ],
       "Dashboard does not exist": ["看板不存在"],
@@ -589,9 +589,9 @@
         "报表计划仍在运行，拒绝重新计算。"
       ],
       "Report Schedule reached a working timeout.": ["报表计划已超时。"],
-      "Alert query returned more then one row.": ["警报查询返回了多行。"],
+      "Alert query returned more than one row.": ["警报查询返回了多行。"],
       "Alert validator config error.": ["错误的经纬度配置。"],
-      "Alert query returned more then one column.": ["警报查询返回多个列。"],
+      "Alert query returned more than one column.": ["警报查询返回多个列。"],
       "Alert query returned a non-number value.": ["警报查询返回非数字值。"],
       "Alert found an error while executing a query.": [
         "警报在执行查询时发现错误。"
