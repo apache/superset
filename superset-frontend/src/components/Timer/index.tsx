@@ -31,7 +31,6 @@ export interface TimerProps {
 
 const TimerLabel = styled(Label)`
   text-align: left;
-  width: 91px;
 `;
 
 export default function Timer({
