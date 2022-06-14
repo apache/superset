@@ -164,4 +164,3 @@
  };
  
  export default config;
- 
