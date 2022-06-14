@@ -90,16 +90,6 @@ const targetValueRightValidator = targetValueValidator(
   t('This value should be greater than the left target value'),
 );
 
-const inverseScaleValidator =
-  (operator: COMPARATOR) => (_: any, checked: boolean) => {
-    if (operator === COMPARATOR.EQUAL && checked) {
-      return Promise.reject(
-        new Error(t('Inverse Scale does not work with Equals operator')),
-      );
-    }
-    return Promise.resolve();
-  };
-
 const isOperatorMultiValue = (operator?: COMPARATOR) =>
   operator && MULTIPLE_VALUE_COMPARATORS.includes(operator);
 
@@ -120,13 +110,6 @@ const rulesTargetValueRight = [
   { required: true, message: t('Required') },
   ({ getFieldValue }: GetFieldValue) => ({
     validator: targetValueRightValidator(getFieldValue('targetValueLeft')),
-  }),
-];
-
-const rulesInverseScale = [
-  { required: true, message: '' },
-  ({ getFieldValue }: GetFieldValue) => ({
-    validator: inverseScaleValidator(getFieldValue('operator')),
   }),
 ];
 
@@ -252,10 +235,8 @@ export const FormattingPopoverContent = ({
           <FormItem
             name="inverseScale"
             label={t('Inverse Scale')}
-            rules={rulesInverseScale}
-            validateTrigger="onChange"
-            trigger="onChange"
-            tooltip="Invert the color alpha scale. Not valid with the equals operator."
+            rules={[{ required: true, message: '' }]}
+            tooltip={t('Ignored when "=" operator is selected.')}
           >
             <Checkbox checked={inverseScale} onChange={changeInverseScale} />
           </FormItem>

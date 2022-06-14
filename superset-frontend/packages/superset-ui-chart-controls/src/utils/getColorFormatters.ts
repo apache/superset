@@ -182,7 +182,7 @@ export const getColorFunction = (
       extremeValue,
       minOpacity,
       maxOpacity,
-      inverseScale,
+      inverseScale && operator !== COMPARATOR.EQUAL,
     );
     return `rgba(${colorScheme.r},${colorScheme.g},${colorScheme.b},${opacity})`;
   };
