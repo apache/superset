@@ -19,6 +19,7 @@ jobs:
       PYTHONPATH: ${{ github.workspace }}
       SUPERSET_CONFIG: tests.integration_tests.superset_test_config
       REDIS_PORT: 16379
+      APP_PREFIX: ""
       SUPERSET__SQLALCHEMY_DATABASE_URI: |
         mysql+mysqldb://superset:superset@127.0.0.1:13306/superset?charset=utf8mb4&binary_prefix=true
     services:

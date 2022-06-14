@@ -29,6 +29,7 @@ jobs:
       PYTHONPATH: ${{ github.workspace }}
       REDIS_PORT: 16379
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      APP_PREFIX: ""
     services:
       postgres:
         image: postgres:14-alpine
