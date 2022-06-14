@@ -271,7 +271,7 @@ def test_query_has_access(mocker: MockFixture, app_context: AppContext) -> None:
     )
 
 
-def test_query_no_access(mocker: MockFixture, app_context: AppContext) -> None:
+def test_query_no_access(mocker: MockFixture, client, app_context: AppContext) -> None:
     from superset.connectors.sqla.models import SqlaTable
     from superset.explore.utils import check_datasource_access
     from superset.models.core import Database
@@ -282,7 +282,9 @@ def test_query_no_access(mocker: MockFixture, app_context: AppContext) -> None:
             query_find_by_id,
             return_value=Query(database=Database(), sql="select * from foo"),
         )
-        mocker.patch(query_datasources_by_name, return_value=[SqlaTable()])
+        table = SqlaTable()
+        table.owners = []
+        mocker.patch(query_datasources_by_name, return_value=[table])
         mocker.patch(is_user_admin, return_value=False)
         mocker.patch(is_owner, return_value=False)
         mocker.patch(can_access, return_value=False)
