@@ -25,7 +25,7 @@ import { InputNumber } from 'src/components/Input';
 import Checkbox from 'src/components/Checkbox';
 import Button from 'src/components/Button';
 import ColorPickerControl from 'src/explore/components/controls/ColorPickerControl';
-import { hexToRgb } from 'src/utils/colorUtils';
+import { hexToRgb, rgbStringToRgbaObject } from 'src/utils/colorUtils';
 import {
   COMPARATOR,
   ConditionalFormattingConfig,
@@ -41,10 +41,12 @@ const JustifyEnd = styled.div`
   justify-content: flex-end;
 `;
 
+// not sure if we need this still. Using green for the default color in picker.
 const colorSchemeOptions = (theme: SupersetTheme) => [
-  { value: hexToRgb(theme.colors.success.light1), label: t('green') },
-  { value: hexToRgb(theme.colors.alert.light1), label: t('yellow') },
-  { value: hexToRgb(theme.colors.error.light1), label: t('red') },
+  {
+    value: rgbStringToRgbaObject(hexToRgb(theme.colors.success.light1)),
+    label: t('green'),
+  },
 ];
 
 const operatorOptions = [

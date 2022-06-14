@@ -48,3 +48,11 @@ export function rgbToHex(red: number, green: number, blue: number) {
 
   return `#${r}${g}${b}`;
 }
+
+// convert string `rgba(r,g,b,a)` or `rgb(r,g,b)` to an object {r, g, b, a}
+export function rgbStringToRgbaObject(rgb: string) {
+  const matches = rgb.match(/rgba?\((\d+),\ ?(\d+),\ ?(\d+),?\ ?([\.\d]+)?\)/);
+  const [, r, g, b, a] = (matches || ['', 0, 0, 0, 1]).map(Number);
+
+  return { r, g, b, a: a || 1 };
+}
