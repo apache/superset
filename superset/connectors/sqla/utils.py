@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import logging
 from contextlib import closing
 from typing import (
     Any,
@@ -35,6 +36,7 @@ from sqlalchemy.engine.url import URL as SqlaURL
 from sqlalchemy.exc import NoSuchTableError
 from sqlalchemy.ext.declarative import DeclarativeMeta
 from sqlalchemy.orm import Session
+from sqlalchemy.orm.exc import ObjectDeletedError
 from sqlalchemy.sql.type_api import TypeEngine
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -191,6 +193,7 @@ def get_identifier_quoter(drivername: str) -> Dict[str, Callable[[str], str]]:
 
 
 DeclarativeModel = TypeVar("DeclarativeModel", bound=DeclarativeMeta)
+logger = logging.getLogger(__name__)
 
 
 def find_cached_objects_in_session(
@@ -209,9 +212,15 @@ def find_cached_objects_in_session(
     if not ids and not uuids:
         return iter([])
     uuids = uuids or []
+    try:
+        items = set(session)
+    except ObjectDeletedError:
+        logger.warning("ObjectDeletedError", exc_info=True)
+        return iter(())
+
     return (
         item
         # `session` is an iterator of all known items
-        for item in set(session)
+        for item in items
         if isinstance(item, cls) and (item.id in ids if ids else item.uuid in uuids)
     )
