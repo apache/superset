@@ -1070,7 +1070,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     for datasource_ in datasources:
                         if self.can_access(
                             "datasource_access", datasource_.perm
-                        ) or is_owner(datasource, getattr(g, "user", None)):
+                        ) or is_owner(datasource_, getattr(g, "user", None)):
                             break
                     else:
                         denied.add(table_)

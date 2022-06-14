@@ -46,6 +46,7 @@ from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import Query
+from superset.superset.connectors.sqla.models import SqlaTable
 from superset.superset_typing import FormData
 from superset.utils.core import DatasourceType
 from superset.utils.decorators import stats_timing
@@ -426,7 +427,7 @@ def is_slice_in_container(
     return False
 
 
-def is_owner(obj: Union[Dashboard, Slice], user: User) -> bool:
+def is_owner(obj: Union[Dashboard, Slice, SqlaTable], user: User) -> bool:
     """Check if user is owner of the slice"""
     return obj and user in obj.owners
 
