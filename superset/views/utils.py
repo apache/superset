@@ -32,7 +32,9 @@ from sqlalchemy.orm.exc import NoResultFound
 import superset.models.core as models
 from superset import app, dataframe, db, result_set, viz
 from superset.common.db_query_status import QueryStatus
+
 from superset.datasource.dao import DatasourceDAO
+from superset.connectors.sqla.models import SqlaTable
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     CacheLoadError,
@@ -46,7 +48,6 @@ from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import Query
-from superset.superset.connectors.sqla.models import SqlaTable
 from superset.superset_typing import FormData
 from superset.utils.core import DatasourceType
 from superset.utils.decorators import stats_timing
