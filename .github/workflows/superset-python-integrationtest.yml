@@ -156,6 +156,7 @@ jobs:
       REDIS_PORT: 16379
       SUPERSET__SQLALCHEMY_DATABASE_URI: |
         sqlite:///${{ github.workspace }}/.temp/unittest.db
+      APP_PREFIX: ""
     services:
       redis:
         image: redis:5-alpine
