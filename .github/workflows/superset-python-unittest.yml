@@ -17,6 +17,7 @@ jobs:
         python-version: [3.8, 3.9]
     env:
       PYTHONPATH: ${{ github.workspace }}
+      APP_PREFIX: ""
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@v2
