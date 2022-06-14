@@ -23,6 +23,7 @@ jobs:
       APPLITOOLS_API_KEY: ${{ secrets.APPLITOOLS_API_KEY }}
       APPLITOOLS_BATCH_ID: ${{ github.sha }}
       APPLITOOLS_BATCH_NAME: Superset Cypress
+      APP_PREFIX: ""
     services:
       postgres:
         image: postgres:14-alpine

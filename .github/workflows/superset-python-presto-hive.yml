@@ -21,6 +21,7 @@ jobs:
       REDIS_PORT: 16379
       SUPERSET__SQLALCHEMY_DATABASE_URI: postgresql+psycopg2://superset:superset@127.0.0.1:15432/superset
       SUPERSET__SQLALCHEMY_EXAMPLES_URI: presto://localhost:15433/memory/default
+      APP_PREFIX: ""
     services:
       postgres:
         image: postgres:14-alpine
