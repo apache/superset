@@ -18,7 +18,7 @@ from typing import Any
 
 class PrefixMiddleware(object):
 
-    def __init__(self, app, prefix='') -> Any:
+    def __init__(self, app, prefix=''):
         self.app = app
         self.prefix = prefix
 
