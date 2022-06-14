@@ -1,0 +1,28 @@
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+-->
+<svg width="25" height="24" viewBox="0 0 25 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <g clip-path="url(#clip0_1714_70879)">
+        <path d="M18.952 12.1055H12.5591V5.7126C12.5591 5.63402 12.4948 5.56974 12.4162 5.56974H11.952C11.0139 5.5682 10.0848 5.75216 9.21816 6.11103C8.35148 6.4699 7.56431 6.99659 6.90195 7.66081C6.24965 8.3111 5.7299 9.08193 5.37159 9.93045C4.99875 10.8105 4.80742 11.7568 4.80909 12.7126C4.80756 13.6506 4.99151 14.5797 5.35038 15.4464C5.70925 16.3131 6.23595 17.1002 6.90016 17.7626C7.55552 18.418 8.31981 18.934 9.16981 19.293C10.0499 19.6658 10.9962 19.8571 11.952 19.8555C12.89 19.857 13.8191 19.673 14.6857 19.3142C15.5524 18.9553 16.3396 18.4286 17.002 17.7644C17.6573 17.109 18.1734 16.3447 18.5323 15.4947C18.9052 14.6147 19.0965 13.6684 19.0948 12.7126V12.2483C19.0948 12.1697 19.0305 12.1055 18.952 12.1055ZM16.1252 16.9233C15.5722 17.472 14.9164 17.9061 14.1954 18.2009C13.4744 18.4957 12.7023 18.6453 11.9234 18.6412C10.3502 18.634 8.87159 18.018 7.75909 16.9055C6.63945 15.7858 6.02338 14.2965 6.02338 12.7126C6.02338 11.1287 6.63945 9.63938 7.75909 8.51974C8.73409 7.54474 9.98945 6.9501 11.3448 6.81438V13.3197H17.8502C17.7127 14.6822 17.1127 15.9447 16.1252 16.9233ZM20.5234 11.1126L20.477 10.609C20.3252 8.96438 19.5948 7.4126 18.4198 6.24117C17.244 5.06759 15.6954 4.34128 14.0412 4.1876L13.5359 4.14117C13.452 4.13402 13.3805 4.19831 13.3805 4.28224V11.1412C13.3805 11.2197 13.4448 11.284 13.5234 11.284L20.3805 11.2662C20.4645 11.2662 20.5305 11.1947 20.5234 11.1126ZM14.5912 10.0733V5.49117C15.7161 5.72661 16.7484 6.2837 17.5627 7.09474C18.3787 7.90902 18.9377 8.94474 19.1698 10.0608L14.5912 10.0733Z" fill="#666666"/>
+    </g>
+    <defs>
+        <clipPath id="clip0_1714_70879">
+            <rect width="16" height="16" fill="white" transform="translate(4.6665 4)"/>
+        </clipPath>
+    </defs>
+</svg>
