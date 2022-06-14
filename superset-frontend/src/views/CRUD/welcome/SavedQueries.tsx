@@ -313,7 +313,7 @@ const SavedQueries = ({
             >
               <ListViewCard
                 imgURL=""
-                url={`/superset/sqllab?savedQueryId=${q.id}`}
+                url={`/analytics/superset/sqllab?savedQueryId=${q.id}`}
                 title={q.label}
                 imgFallbackURL="/analytics/static/assets/images/empty-query.svg"
                 description={t('Ran %s', q.changed_on_delta_humanized)}
