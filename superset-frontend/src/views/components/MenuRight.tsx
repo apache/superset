@@ -446,6 +446,11 @@ const RightMenuWithQueryWrapper: React.FC<RightMenuProps> = props => {
   return <RightMenu setQuery={setQuery} {...props} />;
 };
 
+// Query param manipulation requires that, during the setup, the
+// QueryParamProvider is present and configured.
+// Superset still has multiple entry points, and not all of them have
+// the same setup, and critically, not all of them have the QueryParamProvider.
+// This wrapper ensures the RightMenu renders regardless of the provider being present.
 class RightMenuErrorWrapper extends React.PureComponent<RightMenuProps> {
   state = {
     hasError: false,
