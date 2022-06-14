@@ -18,11 +18,9 @@
  */
 import { useState } from 'react';
 import { isObject } from 'lodash';
-import { SupersetClient } from '@superset-ui/core';
+import { SupersetClient, Query, runningQueryStateList } from '@superset-ui/core';
 import {
-  Query,
   QueryDictionary,
-  runningQueryStateList,
 } from 'src/SqlLab/types';
 import useInterval from 'src/SqlLab/utils/useInterval';
 
