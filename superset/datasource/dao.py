@@ -32,7 +32,7 @@ Datasource = Union[Dataset, SqlaTable, Table, Query, SavedQuery]
 
 class DatasourceDAO(BaseDAO):
 
-    sources: Dict[DatasourceType, Type[Datasource]] = {
+    sources: Dict[Union[DatasourceType, str], Type[Datasource]] = {
         DatasourceType.TABLE: SqlaTable,
         DatasourceType.QUERY: Query,
         DatasourceType.SAVEDQUERY: SavedQuery,
@@ -42,7 +42,10 @@ class DatasourceDAO(BaseDAO):
 
     @classmethod
     def get_datasource(
-        cls, session: Session, datasource_type: DatasourceType, datasource_id: int
+        cls,
+        session: Session,
+        datasource_type: Union[DatasourceType, str],
+        datasource_id: int,
     ) -> Datasource:
         if datasource_type not in cls.sources:
             raise DatasourceTypeNotSupportedError()

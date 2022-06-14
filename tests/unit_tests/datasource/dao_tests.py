@@ -178,6 +178,33 @@ def test_get_datasource_sl_dataset(
     assert isinstance(result, Dataset)
 
 
+def test_get_datasource_w_str_param(
+    app_context: None, session_with_data: Session
+) -> None:
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.datasets.models import Dataset
+    from superset.datasource.dao import DatasourceDAO
+    from superset.tables.models import Table
+
+    assert isinstance(
+        DatasourceDAO.get_datasource(
+            datasource_type="table",
+            datasource_id=1,
+            session=session_with_data,
+        ),
+        SqlaTable,
+    )
+
+    assert isinstance(
+        DatasourceDAO.get_datasource(
+            datasource_type="sl_table",
+            datasource_id=1,
+            session=session_with_data,
+        ),
+        Table,
+    )
+
+
 def test_get_all_datasources(app_context: None, session_with_data: Session) -> None:
     from superset.connectors.sqla.models import SqlaTable
 
