@@ -366,18 +366,17 @@ function dbReducer(
           configuration_method: action.payload.configuration_method,
           extra_json: deserializeExtraJSON,
           catalog: engineParamsCatalog,
-          parameters: action.payload.parameters,
+          parameters: action.payload.parameters || trimmedState.parameters,
           query_input,
         };
       }
-
       return {
         ...action.payload,
         encrypted_extra: action.payload.encrypted_extra || '',
         engine: action.payload.backend || trimmedState.engine,
         configuration_method: action.payload.configuration_method,
         extra_json: deserializeExtraJSON,
-        parameters: action.payload.parameters,
+        parameters: action.payload.parameters || trimmedState.parameters,
         query_input,
       };
 

@@ -1788,12 +1788,12 @@ msgstr[1] ""
 
 #: superset/reports/commands/alert.py:74
 #, python-format
-msgid "Alert query returned more then one row. %s rows returned"
+msgid "Alert query returned more than one row. %s rows returned"
 msgstr ""
 
 #: superset/reports/commands/alert.py:83
 #, python-format
-msgid "Alert query returned more then one column. %s columns returned"
+msgid "Alert query returned more than one column. %s columns returned"
 msgstr ""
 
 #: superset/reports/commands/exceptions.py:44
@@ -1861,7 +1861,7 @@ msgid "Report Schedule reached a working timeout."
 msgstr ""
 
 #: superset/reports/commands/exceptions.py:138
-msgid "Alert query returned more then one row."
+msgid "Alert query returned more than one row."
 msgstr ""
 
 #: superset/reports/commands/exceptions.py:143
@@ -1869,7 +1869,7 @@ msgid "Alert validator config error."
 msgstr ""
 
 #: superset/reports/commands/exceptions.py:147
-msgid "Alert query returned more then one column."
+msgid "Alert query returned more than one column."
 msgstr ""
 
 #: superset/reports/commands/exceptions.py:151

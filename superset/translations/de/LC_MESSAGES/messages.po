@@ -1028,23 +1028,23 @@ msgid "Alert query returned a non-number value."
 msgstr "Die Alarm-Abfrage hat einen nicht-numerischen Wert zurückgegeben."
 
 #: superset/reports/commands/exceptions.py:186
-msgid "Alert query returned more then one column."
+msgid "Alert query returned more than one column."
 msgstr "Die Alarm-Abfrage hat mehr als eine Spalte zurückgegeben."
 
 #: superset/reports/commands/alert.py:105
 #, python-format
-msgid "Alert query returned more then one column. %s columns returned"
+msgid "Alert query returned more than one column. %s columns returned"
 msgstr ""
 "Die Alarmabfrage hat mehr als eine Spalte zurückgegeben. %s Spalten "
 "zurückgegegeben"
 
 #: superset/reports/commands/exceptions.py:177
-msgid "Alert query returned more then one row."
+msgid "Alert query returned more than one row."
 msgstr "Die Alarm-Abfrage hat mehr als eine Zeile zurückgegeben."
 
 #: superset/reports/commands/alert.py:96
 #, python-format
-msgid "Alert query returned more then one row. %s rows returned"
+msgid "Alert query returned more than one row. %s rows returned"
 msgstr ""
 "Die Alarmabfrage hat mehr als eine Zeile zurückgegeben. %s zurückgegebene"
 " Zeilen"
