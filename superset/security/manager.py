@@ -1067,7 +1067,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
                     # Access to any datasource is suffice.
                     for datasource_ in datasources:
-                        if self.can_access("datasource_access", datasource_.perm):
+                        if (
+                            self.can_access("datasource_access", datasource_.perm)
+                            or g.user in datasource_.owners
+                        ):
                             break
                     else:
                         denied.add(table_)
@@ -1093,6 +1096,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             if not (
                 self.can_access_schema(datasource)
                 or self.can_access("datasource_access", datasource.perm or "")
+                or g.user in datasource.owners
                 or (
                     should_check_dashboard_access
                     and self.can_access_based_on_dashboard(datasource)
