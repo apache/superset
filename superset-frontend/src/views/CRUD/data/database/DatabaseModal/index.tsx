@@ -203,7 +203,6 @@ function dbReducer(
   let deserializeExtraJSON = { allows_virtual_table_explore: true };
   let extra_json: DatabaseObject['extra_json'];
 
-  console.log('action.type', action.type)
   switch (action.type) {
     case ActionType.extraEditorChange:
       return {
