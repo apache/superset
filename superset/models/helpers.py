@@ -64,13 +64,12 @@ from superset.jinja_context import (
     get_template_processor,
 )
 from superset.sql_parse import (
-    has_table_query,
     extract_table_references,
+    has_table_query,
     ParsedQuery,
     sanitize_clause,
     Table as TableName,
 )
-
 from superset.utils import core as utils
 
 VIRTUAL_TABLE_ALIAS = "virtual_table"
@@ -587,9 +586,15 @@ from sqlalchemy import Column
 from sqlalchemy.sql.elements import ColumnElement, Label, literal_column
 
 from superset.exceptions import QueryObjectValidationError
-from superset.superset_typing import AdhocMetric, Metric, OrderBy, QueryObjectDict
+from superset.superset_typing import (
+    AdhocMetric,
+    FilterValue,
+    FilterValues,
+    Metric,
+    OrderBy,
+    QueryObjectDict,
+)
 from superset.utils import core as utils
-from superset.superset_typing import FilterValue, FilterValues, QueryObjectDict
 
 
 # todo(hugh): centralize where this code lives
@@ -625,10 +630,6 @@ class ExploreMixin:
     }
 
     @property
-    def data(self):
-        return {"foo": "bar"}
-
-    @property
     def owners_data(self):
         return []
 
@@ -650,7 +651,7 @@ class ExploreMixin:
 
     @property
     def column_names(self):
-        return [col.get('column_name') for col in self.columns]
+        return [col.get("column_name") for col in self.columns]
 
     @property
     def offset(self):
@@ -688,7 +689,7 @@ class ExploreMixin:
             sqla_col = sqla_col.label(label)
         sqla_col.key = label_expected
         return sqla_col
-    
+
     def mutate_query_from_config(self, sql: str) -> str:
         """Apply config's SQL_QUERY_MUTATOR
 
@@ -802,7 +803,7 @@ class ExploreMixin:
         query_str_ext = self.get_query_str_extended(qry)
         sql = query_str_ext.sql
 
-        print('*****' * 5)
+        print("*****" * 5)
 
         # sql = "select count(*) from flights"
         status = QueryStatus.SUCCESS
@@ -973,7 +974,9 @@ class ExploreMixin:
         target_generic_type: utils.GenericDataType,
         target_native_type: Optional[str] = None,
         is_list_target: bool = False,
-        db_engine_spec: Optional[Type["BaseEngineSpec"]] = None, # fix(hughhh): Optional[Type[BaseEngineSpec]]
+        db_engine_spec: Optional[
+            Type["BaseEngineSpec"]
+        ] = None,  # fix(hughhh): Optional[Type[BaseEngineSpec]]
         db_extra: Optional[Dict[str, Any]] = None,
     ) -> Optional[FilterValues]:
         if values is None:
@@ -1061,7 +1064,9 @@ class ExploreMixin:
             "time_column": granularity,
             "time_grain": time_grain,
             "to_dttm": to_dttm.isoformat() if to_dttm else None,
-            "table_columns": [col.get('column_name') for col in self.columns], # [col.column_name for col in self.columns],
+            "table_columns": [
+                col.get("column_name") for col in self.columns
+            ],  # [col.column_name for col in self.columns],
             "filter": filter,
         }
         columns = columns or []
@@ -1078,7 +1083,7 @@ class ExploreMixin:
         applied_template_filters: List[str] = []
         template_kwargs["removed_filters"] = removed_filters
         template_kwargs["applied_filters"] = applied_template_filters
-        template_processor = None # self.get_template_processor(**template_kwargs)
+        template_processor = None  # self.get_template_processor(**template_kwargs)
         db_engine_spec = self.db_engine_spec
         prequeries: List[str] = []
         orderby = orderby or []
@@ -1090,7 +1095,8 @@ class ExploreMixin:
             granularity = self.main_dttm_col
 
         columns_by_name: Dict[str, TableColumn] = {
-            col.get('column_name'): col for col in self.columns # col.column_name: col for col in self.columns
+            col.get("column_name"): col
+            for col in self.columns  # col.column_name: col for col in self.columns
         }
 
         metrics_by_name: Dict[str, SqlMetric] = {m.metric_name: m for m in self.metrics}
@@ -1184,7 +1190,7 @@ class ExploreMixin:
             # dedup columns while preserving order
             columns = groupby or columns
             for selected in columns:
-                if isinstance(selected, str): 
+                if isinstance(selected, str):
                     # if groupby field/expr equals granularity field/expr
                     if selected == granularity:
                         table_col = columns_by_name[selected]
@@ -1224,9 +1230,7 @@ class ExploreMixin:
                     self.schema,
                 )
                 if isinstance(columns_by_name[selected], dict):
-                    select_exprs.append(
-                        literal_column(f"({selected})")
-                    )
+                    select_exprs.append(literal_column(f"({selected})"))
                 else:
                     select_exprs.append(
                         columns_by_name[selected].get_sqla_col()
@@ -1258,7 +1262,7 @@ class ExploreMixin:
                 db_engine_spec.time_secondary_columns
                 and self.main_dttm_col in self.dttm_cols
                 and self.main_dttm_col != dttm_col.column_name
-            ):  
+            ):
                 pass
                 # todo(hughhh): fix time filter
                 # time_filters.append(
@@ -1323,12 +1327,12 @@ class ExploreMixin:
                         time_grain=filter_grain, template_processor=template_processor
                     )
                 elif col_obj and isinstance(col_obj, dict):
-                    sqla_col = sa.column(col_obj.get('column_name'))
+                    sqla_col = sa.column(col_obj.get("column_name"))
                 elif col_obj:
                     sqla_col = col_obj.get_sqla_col()
-                
+
                 if col_obj and isinstance(col_obj, dict):
-                    col_type = col_obj.get('type')
+                    col_type = col_obj.get("type")
                 else:
                     col_type = col_obj.type if col_obj else None
                 col_spec = db_engine_spec.get_column_spec(
@@ -1343,7 +1347,9 @@ class ExploreMixin:
                 if col_obj and isinstance(col_obj, dict):
                     col_advanced_data_type = ""
                 else:
-                    col_advanced_data_type = col_obj.advanced_data_type if col_obj else ""
+                    col_advanced_data_type = (
+                        col_obj.advanced_data_type if col_obj else ""
+                    )
 
                 if col_spec and not col_advanced_data_type:
                     target_generic_type = col_spec.generic_type
@@ -1438,7 +1444,7 @@ class ExploreMixin:
                         raise QueryObjectValidationError(
                             _("Invalid filter operation type: %(op)s", op=op)
                         )
-        # todo(hugh): fix this 
+        # todo(hugh): fix this
         # where_clause_and += self.get_sqla_row_level_filters(template_processor)
         if extras:
             where = extras.get("where")

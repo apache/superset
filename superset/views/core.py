@@ -779,8 +779,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         # Handle SIP-68 Models or explore view
         # API will always use /explore/<datasource_type>/<int:datasource_id>/ to query
         # new models to power any viz in explore
-        datasource_id = request.args.get('datasource_id', datasource_id)
-        datasource_type = request.args.get('datasource_type', datasource_type)
+        datasource_id = request.args.get("datasource_id", datasource_id)
+        datasource_type = request.args.get("datasource_type", datasource_type)
 
         if datasource_id and datasource_type:
             # 1. Query datasource object by type and id
@@ -868,19 +868,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                     )
                 except (SupersetException, SQLAlchemyError):
                     datasource_data = dummy_datasource_data
-
-                columns: List[Dict[str, Any]] = []
-                if datasource:
-                    datasource_data["owners"] = datasource.owners_data
-                    if isinstance(datasource, Query):
-                        # todo(hughhh): set is_dttm + name -> column_name
-                        # datasource_data["data"] = datasource.data
-                        # move all this logic into the class for the property data
-                        datasource_data["columns"] = datasource.columns
-                        datasource_data["metrics"] = datasource.extra.get("metrics", [])
-                        datasource_data["id"] = datasource_id
-                        datasource_data["type"] = datasource_type
-                        datasource_data["name"] = datasource.sql
 
                 bootstrap_data = {
                     "can_add": slice_add_perm,

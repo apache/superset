@@ -49,9 +49,9 @@ from superset.models.helpers import (
 from superset.models.tags import QueryUpdater
 from superset.sql_parse import CtasMethod, ParsedQuery, Table
 from superset.sqllab.limiting_factor import LimitingFactor
+from superset.superset_typing import ResultSetColumnType
 from superset.utils.core import QueryStatus, user_label
 
-from superset.superset_typing import ResultSetColumnType
 
 class Query(Model, ExtraJSONMixin, ExploreMixin):
     """ORM model for SQL query
@@ -173,6 +173,7 @@ class Query(Model, ExtraJSONMixin, ExploreMixin):
     def columns(self) -> List[ResultSetColumnType]:
         # todo(hughhh): move this logic into a base class
         from superset.utils.core import GenericDataType
+
         bool_types = ("BOOL",)
         num_types = (
             "DOUBLE",
@@ -188,10 +189,10 @@ class Query(Model, ExtraJSONMixin, ExploreMixin):
         )
         date_types = ("DATE", "TIME")
         str_types = ("VARCHAR", "STRING", "CHAR")
-        columns = [] 
+        columns = []
         for col in self.extra.get("columns", []):
             computed_column = {**col}
-            col_type = col.get('type')
+            col_type = col.get("type")
 
             if col_type and any(map(lambda t: t in col_type.upper(), str_types)):
                 computed_column["type_generic"] = GenericDataType.STRING
@@ -202,10 +203,22 @@ class Query(Model, ExtraJSONMixin, ExploreMixin):
             if col_type and any(map(lambda t: t in col_type.upper(), date_types)):
                 computed_column["type_generic"] = GenericDataType.TEMPORAL
 
-            computed_column["column_name"] = col.get('name')
+            computed_column["column_name"] = col.get("name")
             computed_column["groupby"] = True
             columns.append(computed_column)
         return columns
+
+    @property
+    def data(self) -> Dict[str, Any]:
+        return {
+            "columns": self.columns,
+            "metrics": [],
+            "id": self.id,
+            "type": self.type,
+            "name": self.sql,
+            "owners": self.owners_data,
+            "database": {"id": self.database_id, "backend": self.database.backend},
+        }
 
     def raise_for_access(self) -> None:
         """
