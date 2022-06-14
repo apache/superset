@@ -938,21 +938,21 @@ msgid "Alert query returned a non-number value."
 msgstr "アラートクエリが数値以外の値を返しました。"
 
 #: superset/reports/commands/exceptions.py:186
-msgid "Alert query returned more then one column."
+msgid "Alert query returned more than one column."
 msgstr "アラートクエリが複数の列を返しました。"
 
 #: superset/reports/commands/alert.py:105
 #, python-format
-msgid "Alert query returned more then one column. %s columns returned"
+msgid "Alert query returned more than one column. %s columns returned"
 msgstr "アラートクエリが複数の列を返しました。%s 列が返されました"
 
 #: superset/reports/commands/exceptions.py:177
-msgid "Alert query returned more then one row."
+msgid "Alert query returned more than one row."
 msgstr "アラートクエリが複数の行を返しました。"
 
 #: superset/reports/commands/alert.py:96
 #, python-format
-msgid "Alert query returned more then one row. %s rows returned"
+msgid "Alert query returned more than one row. %s rows returned"
 msgstr "アラートクエリが複数の行を返しました。 %s 行が返されました"
 
 #: superset-frontend/src/views/CRUD/alert/components/AlertStatusIcon.tsx:75

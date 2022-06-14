@@ -238,11 +238,14 @@ function AlertList({
         size: 'xl',
         Cell: ({
           row: {
-            original: { crontab_humanized = '' },
+            original: { crontab_humanized = '', timezone },
           },
         }: any) => (
-          <Tooltip title={crontab_humanized} placement="topLeft">
-            <span>{crontab_humanized}</span>
+          <Tooltip
+            title={`${crontab_humanized} (${timezone})`}
+            placement="topLeft"
+          >
+            <span>{`${crontab_humanized} (${timezone})`}</span>
           </Tooltip>
         ),
       },
@@ -281,6 +284,16 @@ function AlertList({
         Header: t('Owners'),
         id: 'owners',
         disableSortBy: true,
+        size: 'xl',
+      },
+      {
+        Cell: ({
+          row: {
+            original: { changed_on_delta_humanized: changedOn },
+          },
+        }: any) => <span className="no-wrap">{changedOn}</span>,
+        Header: t('Modified'),
+        accessor: 'changed_on_delta_humanized',
         size: 'xl',
       },
       {

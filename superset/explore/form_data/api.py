@@ -104,7 +104,8 @@ class ExploreFormDataRestApi(BaseApi, ABC):
             tab_id = request.args.get("tab_id")
             args = CommandParameters(
                 actor=g.user,
-                dataset_id=item["dataset_id"],
+                datasource_id=item["datasource_id"],
+                datasource_type=item["datasource_type"],
                 chart_id=item.get("chart_id"),
                 tab_id=tab_id,
                 form_data=item["form_data"],
@@ -123,7 +124,7 @@ class ExploreFormDataRestApi(BaseApi, ABC):
     @safe
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.put",
-        log_to_statsd=False,
+        log_to_statsd=True,
     )
     @requires_json
     def put(self, key: str) -> Response:
@@ -174,7 +175,8 @@ class ExploreFormDataRestApi(BaseApi, ABC):
             tab_id = request.args.get("tab_id")
             args = CommandParameters(
                 actor=g.user,
-                dataset_id=item["dataset_id"],
+                datasource_id=item["datasource_id"],
+                datasource_type=item["datasource_type"],
                 chart_id=item.get("chart_id"),
                 tab_id=tab_id,
                 key=key,
@@ -196,7 +198,7 @@ class ExploreFormDataRestApi(BaseApi, ABC):
     @safe
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get",
-        log_to_statsd=False,
+        log_to_statsd=True,
     )
     def get(self, key: str) -> Response:
         """Retrives a form_data.
@@ -247,7 +249,7 @@ class ExploreFormDataRestApi(BaseApi, ABC):
     @safe
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.delete",
-        log_to_statsd=False,
+        log_to_statsd=True,
     )
     def delete(self, key: str) -> Response:
         """Deletes a form_data.

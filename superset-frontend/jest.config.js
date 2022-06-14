@@ -47,7 +47,7 @@ module.exports = {
     'tmp/',
     'dist/',
   ],
-  coverageReporters: ['lcov', 'json-summary', 'html'],
+  coverageReporters: ['lcov', 'json-summary', 'html', 'text'],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
   snapshotSerializers: ['@emotion/jest/enzyme-serializer'],
   globals: {

@@ -166,6 +166,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "datasource_type",
         "url",
         "extra",
+        "kind",
     ]
     show_columns = show_select_columns + [
         "columns.type_generic",
@@ -825,10 +826,4 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         except DatasetForbiddenError:
             return self.response_403()
         except DatasetSamplesFailedError as ex:
-            logger.error(
-                "Error get dataset samples %s: %s",
-                self.__class__.__name__,
-                str(ex),
-                exc_info=True,
-            )
-            return self.response_422(message=str(ex))
+            return self.response_400(message=str(ex))
