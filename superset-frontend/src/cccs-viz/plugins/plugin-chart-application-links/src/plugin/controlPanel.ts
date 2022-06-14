@@ -16,132 +16,152 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ensureIsArray, t, validateNonEmpty } from '@superset-ui/core';
-import {
-  ControlPanelConfig,
-  ControlPanelState,
-  ControlState,
-  sharedControls,
-} from '@superset-ui/chart-controls';
-
-const config: ControlPanelConfig = {
-  /**
-  * The control panel is split into two tabs: "Query" and
-  * "Chart Options". The controls that define the inputs to
-  * the chart data request, such as columns and metrics, usually
-  * reside within "Query", while controls that affect the visual
-  * appearance or functionality of the chart are under the
-  * "Chart Options" section.
-  *
-  * There are several predefined controls that can be used.
-  * Some examples:
-  * - groupby: columns to group by (tranlated to GROUP BY statement)
-  * - series: same as groupby, but single selection.
-  * - metrics: multiple metrics (translated to aggregate expression)
-  * - metric: sane as metrics, but single selection
-  * - adhoc_filters: filters (translated to WHERE or HAVING
-  *   depending on filter type)
-  * - row_limit: maximum number of rows (translated to LIMIT statement)
-  *
-  * If a control panel has both a `series` and `groupby` control, and
-  * the user has chosen `col1` as the value for the `series` control,
-  * and `col2` and `col3` as values for the `groupby` control,
-  * the resulting query will contain three `groupby` columns. This is because
-  * we considered `series` control a `groupby` query field and its value
-  * will automatically append the `groupby` field when the query is generated.
-  *
-  * It is also possible to define custom controls by importing the
-  * necessary dependencies and overriding the default parameters, which
-  * can then be placed in the `controlSetRows` section
-  * of the `Query` section instead of a predefined control.
-  *
-  * import { validateNonEmpty } from '@superset-ui/core';
-  * import {
-  *   sharedControls,
-  *   ControlConfig,
-  *   ControlPanelConfig,
-  * } from '@superset-ui/chart-controls';
-  *
-  * const myControl: ControlConfig<'SelectControl'> = {
-  *   name: 'secondary_entity',
-  *   config: {
-  *     ...sharedControls.entity,
-  *     type: 'SelectControl',
-  *     label: t('Secondary Entity'),
-  *     mapStateToProps: state => ({
-  *       sharedControls.columnChoices(state.datasource)
-  *       .columns.filter(c => c.groupby)
-  *     })
-  *     validators: [validateNonEmpty],
-  *   },
-  * }
-  *
-  * In addition to the basic drop down control, there are several predefined
-  * control types (can be set via the `type` property) that can be used. Some
-  * commonly used examples:
-  * - SelectControl: Dropdown to select single or multiple values,
-      usually columns
-  * - MetricsControl: Dropdown to select metrics, triggering a modal
-      to define Metric details
-  * - AdhocFilterControl: Control to choose filters
-  * - CheckboxControl: A checkbox for choosing true/false values
-  * - SliderControl: A slider with min/max values
-  * - TextControl: Control for text data
-  *
-  * For more control input types, check out the `incubator-superset` repo
-  * and open this file: superset-frontend/src/explore/components/controls/index.js
-  *
-  * To ensure all controls have been filled out correctly, the following
-  * validators are provided
-  * by the `@superset-ui/core/lib/validator`:
-  * - validateNonEmpty: must have at least one value
-  * - validateInteger: must be an integer value
-  * - validateNumber: must be an intger or decimal value
-  */
-
-  // For control input types, see: superset-frontend/src/explore/components/controls/index.js
-  controlPanelSections: [
-    {
-      label: t('Query'),
-      expanded: true,
-      controlSetRows: [
-        ['adhoc_filters'],
-        [
-          {
-            name: 'columns',
-            override: {
-              mapStateToProps: (
-                state: ControlPanelState,
-                controlState: ControlState,
-              ) => {
-                const originalMapStateToProps =
-                  sharedControls?.columns?.mapStateToProps;
-                const newState =
-                  originalMapStateToProps?.(state, controlState) ?? {};
-                // @ts-ignore
-                newState.externalValidationErrors =
-                  // isRawMode({ controls }) &&
-                  ensureIsArray(controlState.value).length === 0
-                    ? [t('This control must have a value.')]
-                    : [];
-                return newState;
-              },
-            },
-          },
-        ],
-      ],
-    },
-  ],
-
-  controlOverrides: {
-    series: {
-      validators: [validateNonEmpty],
-      clearable: false,
-    },
-    row_limit: {
-      default: 100,
-    },
-  },
-};
-
-export default config;
+ import { ensureIsArray, t, validateNonEmpty } from '@superset-ui/core';
+ import {
+   ControlPanelConfig,
+   ControlPanelState,
+   ControlState,
+   ControlStateMapping,
+   sharedControls,
+ } from '@superset-ui/chart-controls';
+ 
+ const validateAggControlValues = (
+   controls: ControlStateMapping,
+   values: any[],
+ ) => {
+   const areControlsEmpty = values.every(val => ensureIsArray(val).length === 0);
+   // @ts-ignore
+   return areControlsEmpty ? [t('Metrics must have a value')] : [];
+ };
+ 
+ const config: ControlPanelConfig = {
+   /**
+   * The control panel is split into two tabs: "Query" and
+   * "Chart Options". The controls that define the inputs to
+   * the chart data request, such as columns and metrics, usually
+   * reside within "Query", while controls that affect the visual
+   * appearance or functionality of the chart are under the
+   * "Chart Options" section.
+   *
+   * There are several predefined controls that can be used.
+   * Some examples:
+   * - groupby: columns to group by (tranlated to GROUP BY statement)
+   * - series: same as groupby, but single selection.
+   * - metrics: multiple metrics (translated to aggregate expression)
+   * - metric: sane as metrics, but single selection
+   * - adhoc_filters: filters (translated to WHERE or HAVING
+   *   depending on filter type)
+   * - row_limit: maximum number of rows (translated to LIMIT statement)
+   *
+   * If a control panel has both a `series` and `groupby` control, and
+   * the user has chosen `col1` as the value for the `series` control,
+   * and `col2` and `col3` as values for the `groupby` control,
+   * the resulting query will contain three `groupby` columns. This is because
+   * we considered `series` control a `groupby` query field and its value
+   * will automatically append the `groupby` field when the query is generated.
+   *
+   * It is also possible to define custom controls by importing the
+   * necessary dependencies and overriding the default parameters, which
+   * can then be placed in the `controlSetRows` section
+   * of the `Query` section instead of a predefined control.
+   *
+   * import { validateNonEmpty } from '@superset-ui/core';
+   * import {
+   *   sharedControls,
+   *   ControlConfig,
+   *   ControlPanelConfig,
+   * } from '@superset-ui/chart-controls';
+   *
+   * const myControl: ControlConfig<'SelectControl'> = {
+   *   name: 'secondary_entity',
+   *   config: {
+   *     ...sharedControls.entity,
+   *     type: 'SelectControl',
+   *     label: t('Secondary Entity'),
+   *     mapStateToProps: state => ({
+   *       sharedControls.columnChoices(state.datasource)
+   *       .columns.filter(c => c.groupby)
+   *     })
+   *     validators: [validateNonEmpty],
+   *   },
+   * }
+   *
+   * In addition to the basic drop down control, there are several predefined
+   * control types (can be set via the `type` property) that can be used. Some
+   * commonly used examples:
+   * - SelectControl: Dropdown to select single or multiple values,
+       usually columns
+   * - MetricsControl: Dropdown to select metrics, triggering a modal
+       to define Metric details
+   * - AdhocFilterControl: Control to choose filters
+   * - CheckboxControl: A checkbox for choosing true/false values
+   * - SliderControl: A slider with min/max values
+   * - TextControl: Control for text data
+   *
+   * For more control input types, check out the `incubator-superset` repo
+   * and open this file: superset-frontend/src/explore/components/controls/index.js
+   *
+   * To ensure all controls have been filled out correctly, the following
+   * validators are provided
+   * by the `@superset-ui/core/lib/validator`:
+   * - validateNonEmpty: must have at least one value
+   * - validateInteger: must be an integer value
+   * - validateNumber: must be an intger or decimal value
+   */
+ 
+   // For control input types, see: superset-frontend/src/explore/components/controls/index.js
+   controlPanelSections: [
+     {
+       label: t('Query'),
+       expanded: true,
+       controlSetRows: [
+         ['adhoc_filters'],
+         [
+           {
+             name: 'metrics',
+             override: {
+               // visibility: () => true,
+               validators: [],
+               mapStateToProps: (
+                 state: ControlPanelState,
+                 controlState: ControlState,
+               ) => {
+                 const { controls } = state;
+                 const originalMapStateToProps =
+                   sharedControls?.metrics?.mapStateToProps;
+                 const newState =
+                   originalMapStateToProps?.(state, controlState) ?? {};
+                 newState.externalValidationErrors = validateAggControlValues(
+                   controls,
+                   [controlState.value],
+                 );
+                 return newState;
+               },
+             },
+           },
+         ],
+         [
+           {
+             name: 'row_limit',
+             override: {
+               default: 1,
+             },
+           },
+         ],
+       ],
+     },
+   ],
+ 
+   controlOverrides: {
+     series: {
+       validators: [validateNonEmpty],
+       clearable: false,
+     },
+     row_limit: {
+       default: 1,
+     },
+   },
+ };
+ 
+ export default config;
+ 
