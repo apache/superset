@@ -37,7 +37,9 @@ jobs:
         if: steps.check.outcome == 'failure'
         uses: ./.github/actions/cached-dependencies
         with:
-          run: npm-install
+          run: |
+            npm-install
+            npm i --save-dev @types/node
       - name: lint
         if: steps.check.outcome == 'failure'
         working-directory: ./superset-frontend

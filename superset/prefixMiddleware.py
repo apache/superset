@@ -14,14 +14,15 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from typing import Any
 
 class PrefixMiddleware(object):
 
-    def __init__(self, app, prefix=''):
+    def __init__(self, app, prefix='') -> Any:
         self.app = app
         self.prefix = prefix
 
-    def __call__(self, environ, start_response):
+    def __call__(self, environ, start_response) -> Any:
 
         if environ['PATH_INFO'].startswith(self.prefix):
             environ['PATH_INFO'] = environ['PATH_INFO'][len(self.prefix):]
