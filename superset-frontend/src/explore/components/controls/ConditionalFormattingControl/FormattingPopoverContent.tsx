@@ -245,7 +245,7 @@ export const FormattingPopoverContent = ({
             rules={rulesRequired}
             initialValue={colorScheme[0].value}
           >
-            <ColorPickerControl />
+            <ColorPickerControl sketchPickerWidth={250} />
           </FormItem>
         </Col>
         <Col span={7}>
