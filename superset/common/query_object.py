@@ -73,7 +73,6 @@ DEPRECATED_FIELDS = (
 DEPRECATED_EXTRAS_FIELDS = (
     DeprecatedField(old_name="where", new_name="where"),
     DeprecatedField(old_name="having", new_name="having"),
-    DeprecatedField(old_name="having_filters", new_name="having_druid"),
 )
 
 

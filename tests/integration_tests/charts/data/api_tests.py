@@ -181,7 +181,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         "superset.utils.core.current_app.config",
         {**app.config, "SQL_MAX_ROW": 5},
     )
-    def test_as_samples_with_row_limit_bigger_then_sql_max_row__rowcount_as_sql_max_row(
+    def test_as_samples_with_row_limit_bigger_then_sql_max_row_rowcount_as_sql_max_row(
         self,
     ):
         expected_row_count = app.config["SQL_MAX_ROW"]
