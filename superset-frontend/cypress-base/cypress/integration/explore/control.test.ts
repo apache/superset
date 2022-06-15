@@ -99,11 +99,13 @@ describe('VizType control', () => {
     cy.visitChartByName('Daily Totals');
     cy.verifySliceSuccess({ waitAlias: '@tableChartData' });
 
-    cy.get('[data-test="visualization-type"]').contains('Table').click();
+    cy.contains('View all charts').click();
 
-    cy.get('button').contains('Evolution').click(); // change categories
-    cy.get('[role="button"]').contains('Line Chart').click();
-    cy.get('button').contains('Select').click();
+    cy.get('.ant-modal-content').within(() => {
+      cy.get('button').contains('Evolution').click(); // change categories
+      cy.get('[role="button"]').contains('Line Chart').click();
+      cy.get('button').contains('Select').click();
+    });
 
     cy.get('button[data-test="run-query-button"]').click();
     cy.verifySliceSuccess({

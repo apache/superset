@@ -33,6 +33,26 @@ For example, to add a time range to a virtual dataset, you can write the followi
 SELECT * from tbl where dttm_col > '{{ from_dttm }}' and dttm_col < '{{ to_dttm }}'
 ```
 
+You can also use [Jinja's logic](https://jinja.palletsprojects.com/en/2.11.x/templates/#tests)
+to make your query robust to clearing the timerange filter:
+
+```sql
+SELECT *
+FROM tbl
+WHERE (
+    {% if from_dttm is not none %}
+        dttm_col > '{{ from_dttm }}' AND
+    {% endif %}
+    {% if to_dttm is not none %}
+        dttm_col < '{{ to_dttm }}' AND
+    {% endif %}
+    true
+)
+```
+
+Note how the Jinja parameters are called within double brackets in the query, and without in the
+logic blocks.
+
 To add custom functionality to the Jinja context, you need to overload the default Jinja
 context in your environment by defining the `JINJA_CONTEXT_ADDONS` in your superset configuration
 (`superset_config.py`). Objects referenced in this dictionary are made available for users to use

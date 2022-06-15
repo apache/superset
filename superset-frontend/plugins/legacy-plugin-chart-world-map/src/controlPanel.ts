@@ -152,6 +152,10 @@ const config: ControlPanelConfig = {
         Boolean(controls?.color_by.value === ColorBy.country),
     },
   },
+  denormalizeFormData: formData => ({
+    ...formData,
+    metrics: formData.standardizedFormData.standardizedState.metrics,
+  }),
 };
 
 export default config;
