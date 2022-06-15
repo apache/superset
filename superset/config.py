@@ -1298,8 +1298,8 @@ ENVIRONMENT_TAG_CONFIG = {
             "text": "Development",
         },
         "production": {
-            "color": "#039dfc",
-            "text": "Production",
+            "color": "",
+            "text": "",
         },
     },
 }
