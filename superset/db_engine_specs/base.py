@@ -20,7 +20,6 @@ import logging
 import re
 from contextlib import closing
 from datetime import datetime
-from tokenize import String
 from typing import (
     Any,
     Callable,
@@ -65,7 +64,7 @@ from superset.models.sql_lab import Query
 from superset.sql_parse import ParsedQuery, Table
 from superset.superset_typing import ResultSetColumnType
 from superset.utils import core as utils
-from superset.utils.core import ColumnSpec, GenericDataType, get_username, split
+from superset.utils.core import ColumnSpec, GenericDataType, get_username
 from superset.utils.hashing import md5_sha_from_str
 from superset.utils.network import is_hostname_valid, is_port_open
 
@@ -906,7 +905,10 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     def _reformat_error_message(cls, message: str) -> Tuple[str, str]:
         """Reformat error message for user experience"""
         splitted_message = re.split("\n+", message, 1)
-        return splitted_message[0], splitted_message[1]
+        if len(splitted_message) > 1:
+            return splitted_message[0], splitted_message[1]
+
+        return splitted_message[0], ""
 
     @classmethod
     def extract_errors(

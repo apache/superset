@@ -16,7 +16,6 @@
 # under the License.
 from dataclasses import dataclass
 from enum import Enum
-from optparse import Option
 from typing import Any, Dict, Optional
 
 from flask_babel import gettext as _
