@@ -18,25 +18,38 @@
  */
 import React, { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
+import rison from 'rison';
 import {
-  css,
-  styled,
   SupersetClient,
   SupersetTheme,
+  css,
+  getUiOverrideRegistry,
   t,
+  useTheme,
 } from '@superset-ui/core';
 import findPermission, { isUserAdmin } from 'src/dashboard/util/findPermission';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import Card from 'src/components/Card';
 import Icons from 'src/components/Icons';
-import rison from 'rison';
 import ProgressBar from 'src/components/ProgressBar';
 
-const StyledIcon = (theme: SupersetTheme) => css`
-  min-width: ${theme.gridUnit * 5}px;
-  color: ${theme.colors.grayscale.base};
+const uiOverrideRegistry = getUiOverrideRegistry();
+
+const docsDescription = uiOverrideRegistry.get(
+  'embedded.documentation.description',
+);
+const docsUrl =
+  uiOverrideRegistry.get('embedded.documentation.url') ??
+  'https://www.npmjs.com/package/@superset-ui/embedded-sdk';
+
+const StyledIcon = () => css`
+  float: right;
+  margin-left: auto;
 `;
 
 export default function SetupGuide() {
+  const theme = useTheme();
+  const [hideTaskCard, setHideTaskCard] = useState<boolean>(false);
   const [completedDatabase, setCompletedDatabase] = useState<boolean>(false);
   const [completedChart, setCompletedChart] = useState<boolean>(false);
   const [completedDashboard, setCompletedDashboard] = useState<boolean>(false);
@@ -96,43 +109,158 @@ export default function SetupGuide() {
   }, [canDatabase, canChart, canDashboard]);
 
   const tasks = [
-    { name: t('Create your workspace'), completed: true, show: isAdmin },
     {
-      name: t('Create your data'),
+      completed: true,
+      name: t('Create your workspace'),
+      path: '/dashboard/new/',
+      show: isAdmin,
+    },
+    {
       completed: completedDatabase,
+      name: t('Create your data'),
+      path: '/databaseview/list/',
       show: canDatabase,
     },
     {
-      name: t('Create a chart'),
       completed: completedChart,
+      name: t('Create a chart'),
+      path: '/chart/add',
       show: canChart,
     },
     {
-      name: t('Create a dashboard'),
       completed: completedDashboard,
+      name: t('Create a dashboard'),
+      path: '/dashboard/new/',
       show: canDashboard,
     },
-    { name: t('Invite teammates'), completed: true, show: isAdmin },
+    {
+      completed: true,
+      name: t('Invite teammates'),
+      path: '/dashboard/new/',
+      show: isAdmin,
+    },
   ];
+  const allTasks = tasks.filter(task => task.show);
   const percentCompleted =
-    tasks.filter(task => task.completed && task.show).length /
-    tasks.filter(task => task.show).length;
+    (tasks.filter(task => task.completed && task.show).length * 100) /
+    allTasks.length;
+
+  const openTaskUrl = (path: string) => {
+    window.open(`${window.location.origin}${path}`);
+  };
+
   return (
-    <div>
-      <ProgressBar
-        percent={parseInt(percentCompleted.toFixed(0), 10)}
-        striped
-      />
-      {tasks.map(task => (
-        <div>
-          {task.name}{' '}
-          {task.completed ? (
-            <Icons.CircleCheckSolid css={theme => StyledIcon(theme)} />
-          ) : (
-            <Icons.CircleCheck css={theme => StyledIcon(theme)} />
-          )}
-        </div>
-      ))}
+    <div
+      css={(theme: SupersetTheme) =>
+        css`
+          background: url('../../static/assets/images/icons/lines.svg')
+            no-repeat left bottom ${theme.colors.primary.base};
+          background-size: cover;
+          border-radius: ${theme.gridUnit}px;
+          color: ${theme.colors.grayscale.light4};
+          margin: ${theme.gridUnit * 6}px ${theme.gridUnit * 4}px;
+          padding: ${theme.gridUnit * 4}px;
+        `
+      }
+    >
+      <div
+        css={(theme: SupersetTheme) =>
+          css`
+            align-items: center;
+            display: flex;
+            font-size: ${theme.typography.sizes.s}px;
+            font-weight: ${theme.typography.weights.bold};
+          `
+        }
+      >
+        <h4>Workspace setup guide</h4>
+        <ProgressBar
+          css={(theme: SupersetTheme) =>
+            css`
+              margin-left: ${theme.gridUnit * 4}px;
+              max-width: 350px;
+              .ant-progress-bg {
+                background: ${theme.colors.primary.dark3};
+              }
+              .ant-progress-text {
+                color: ${theme.colors.grayscale.light4};
+              }
+            `
+          }
+          percent={parseInt(percentCompleted.toFixed(0), 10)}
+        />
+        complete
+        <Icons.CaretUp
+          css={() => StyledIcon()}
+          onClick={() => setHideTaskCard(!hideTaskCard)}
+        />
+      </div>
+      <div
+        css={() =>
+          css`
+            display: ${hideTaskCard ? 'none' : 'block'};
+          `
+        }
+      >
+        Not sure where to start? Check out our suggestions for getting your
+        first dashboard up and running.
+      </div>
+      <div
+        css={(theme: SupersetTheme) =>
+          css`
+            display: ${hideTaskCard ? 'none' : 'flex'};
+            gap: ${theme.gridUnit * 4}px;
+            margin-top: ${theme.gridUnit * 4}px;
+          `
+        }
+      >
+        {allTasks.map((task, index) => (
+          <Card
+            css={(theme: SupersetTheme) =>
+              css`
+                border-radius: ${theme.gridUnit}px;
+                flex: 1 1 0px;
+                overflow: hidden;
+
+                .ant-card-body {
+                  align-items: center;
+                  background: ${theme.colors.grayscale.light5};
+                  display: flex;
+                  padding: ${theme.gridUnit * 2}px ${theme.gridUnit * 3}px;
+                }
+              `
+            }
+            size="small"
+            onClick={() => openTaskUrl(task.path)}
+          >
+            <p
+              css={(theme: SupersetTheme) =>
+                css`
+                  align-items: center;
+                  color: ${theme.colors.primary.dark2};
+                  display: flex;
+                  font-size: ${theme.typography.sizes.s}px;
+                  font-weight: ${theme.typography.weights.bold};
+                  margin: 0;
+                `
+              }
+            >
+              {index + 1}. {task.name} <Icons.CaretRight />
+            </p>
+            {task.completed ? (
+              <Icons.CircleCheckSolid
+                iconColor={theme.colors.primary.base}
+                css={() => StyledIcon()}
+              />
+            ) : (
+              <Icons.CircleCheckSolid
+                iconColor={theme.colors.grayscale.light2}
+                css={() => StyledIcon()}
+              />
+            )}
+          </Card>
+        ))}
+      </div>
     </div>
   );
 }
