@@ -32,16 +32,12 @@ import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import Card from 'src/components/Card';
 import Icons from 'src/components/Icons';
 import ProgressBar from 'src/components/ProgressBar';
-import { mq } from 'src/views/CRUD/utils';
+import { getUserOwnedObjects, mq } from 'src/views/CRUD/utils';
 
 const uiOverrideRegistry = getUiOverrideRegistry();
 
-const docsDescription = uiOverrideRegistry.get(
-  'embedded.documentation.description',
-);
-const docsUrl =
-  uiOverrideRegistry.get('embedded.documentation.url') ??
-  'https://www.npmjs.com/package/@superset-ui/embedded-sdk';
+const workspaceUrl = uiOverrideRegistry.get('setup.workspace.url');
+const inviteUrl = uiOverrideRegistry.get('setup.invites.url');
 
 const StyledIcon = () => css`
   float: right;
@@ -75,46 +71,35 @@ export default function SetupGuide() {
     });
   };
 
-  const hasCreatedChart = () => {
-    const payload = {
-      filters: [{ col: 'created_by', opr: 'rel_o_m', value: `${user.userId}` }],
-    };
-    SupersetClient.get({
-      endpoint: `/api/v1/chart/?q=${rison.encode(payload)}`,
-    }).then(({ json }: Record<string, any>) => {
-      setCompletedChart(json.count >= 1);
-    });
-  };
-
-  const hasCreatedDashboard = () => {
-    const payload = {
-      filters: [{ col: 'created_by', opr: 'rel_o_m', value: `${user.userId}` }],
-    };
-    SupersetClient.get({
-      endpoint: `/api/v1/dashboard/?q=${rison.encode(payload)}`,
-    }).then(({ json }: Record<string, any>) => {
-      setCompletedDashboard(json.count >= 1);
-    });
-  };
-
   useEffect(() => {
     if (canDatabase) {
       hasCreatedDatabase();
     }
-    if (canChart) {
-      hasCreatedChart();
+
+    if (user.userId) {
+      if (canChart) {
+        getUserOwnedObjects(user.userId, 'chart').then(
+          (result: Record<string, any>) => {
+            setCompletedChart(result.length >= 1);
+          },
+        );
+      }
+      if (canDashboard) {
+        getUserOwnedObjects(user.userId, 'dashboard').then(
+          (result: Record<string, any>) => {
+            setCompletedDashboard(result.length >= 1);
+          },
+        );
+      }
     }
-    if (canDashboard) {
-      hasCreatedDashboard();
-    }
-  }, [canDatabase, canChart, canDashboard]);
+  }, [canDatabase, canChart, canDashboard, user.userId]);
 
   const tasks = [
     {
       completed: true,
       name: t('Create your workspace'),
-      path: '/dashboard/new/',
-      show: isAdmin,
+      path: workspaceUrl,
+      show: isAdmin && workspaceUrl,
     },
     {
       completed: completedDatabase,
@@ -137,18 +122,23 @@ export default function SetupGuide() {
     {
       completed: true,
       name: t('Invite teammates'),
-      path: '/dashboard/new/',
-      show: isAdmin,
+      path: inviteUrl,
+      show: isAdmin && inviteUrl,
     },
   ];
   const allTasks = tasks.filter(task => task.show);
-  const percentCompleted =
+  const percentCompleted = (
     (tasks.filter(task => task.completed && task.show).length * 100) /
-    allTasks.length;
+    allTasks.length
+  ).toFixed(0);
 
   const openTaskUrl = (path: string) => {
-    window.open(`${window.location.origin}${path}`);
+    window.open(path);
   };
+
+  if (!user.userId || allTasks.length < 1) {
+    return <></>;
+  }
 
   return (
     <div
@@ -196,15 +186,16 @@ export default function SetupGuide() {
             css={(theme: SupersetTheme) =>
               css`
                 max-width: 350px;
-                .ant-progress-bg {
-                  background: ${theme.colors.primary.dark3};
+                .ant-progress-outer {
+                  display: inline-block;
                 }
                 .ant-progress-text {
                   color: ${theme.colors.grayscale.light4};
                 }
               `
             }
-            percent={parseInt(percentCompleted.toFixed(0), 10)}
+            percent={parseInt(percentCompleted, 10)}
+            strokeColor={theme.colors.primary.dark3}
             format={percent => `${percent}% complete`}
           />
         </div>
@@ -254,7 +245,7 @@ export default function SetupGuide() {
               `
             }
             size="small"
-            onClick={() => openTaskUrl(task.path)}
+            onClick={() => task.path && openTaskUrl(task.path)}
           >
             <p
               css={(theme: SupersetTheme) =>

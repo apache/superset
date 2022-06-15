@@ -29,7 +29,6 @@ import { initFeatureFlags } from 'src/featureFlags';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import Loading from 'src/components/Loading';
 import Menu from 'src/views/components/Menu';
-import SetupGuide from 'src/views/components/SetupGuide';
 import { bootstrapData } from 'src/preamble';
 import ToastContainer from 'src/components/MessageToasts/ToastContainer';
 import setupApp from 'src/setup/setupApp';
