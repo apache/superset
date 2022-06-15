@@ -20,22 +20,23 @@
 import { PostProcessingResample } from '@superset-ui/core';
 import { PostProcessingFactory } from './types';
 
-export const resampleOperator: PostProcessingFactory<PostProcessingResample> =
-  formData => {
-    const resampleZeroFill = formData.resample_method === 'zerofill';
-    const resampleMethod = resampleZeroFill
-      ? 'asfreq'
-      : formData.resample_method;
-    const resampleRule = formData.resample_rule;
-    if (resampleMethod && resampleRule) {
-      return {
-        operation: 'resample',
-        options: {
-          method: resampleMethod,
-          rule: resampleRule,
-          fill_value: resampleZeroFill ? 0 : null,
-        },
-      };
-    }
-    return undefined;
-  };
+/* eslint-disable @typescript-eslint/no-unused-vars */
+export const resampleOperator: PostProcessingFactory<PostProcessingResample> = (
+  formData,
+  queryObject,
+) => {
+  const resampleZeroFill = formData.resample_method === 'zerofill';
+  const resampleMethod = resampleZeroFill ? 'asfreq' : formData.resample_method;
+  const resampleRule = formData.resample_rule;
+  if (resampleMethod && resampleRule) {
+    return {
+      operation: 'resample',
+      options: {
+        method: resampleMethod,
+        rule: resampleRule,
+        fill_value: resampleZeroFill ? 0 : null,
+      },
+    };
+  }
+  return undefined;
+};
