@@ -130,6 +130,11 @@ const CrudButtonWrapper = styled.div`
   ${({ theme }) => `margin-bottom: ${theme.gridUnit * 2}px`}
 `;
 
+const StyledButtonWrapper = styled.span`
+  margin-top: 10px;
+  margin-left: 10px;
+`;
+
 export default class CRUDCollection extends React.PureComponent<
   CRUDCollectionProps,
   CRUDCollectionState
@@ -424,7 +429,7 @@ export default class CRUDCollection extends React.PureComponent<
       <>
         <CrudButtonWrapper>
           {this.props.allowAddItem && (
-            <span className="m-t-10 m-r-10">
+            <StyledButtonWrapper>
               <Button
                 buttonSize="small"
                 buttonStyle="tertiary"
@@ -434,7 +439,7 @@ export default class CRUDCollection extends React.PureComponent<
                 <i data-test="crud-add-table-item" className="fa fa-plus" />{' '}
                 {t('Add item')}
               </Button>
-            </span>
+            </StyledButtonWrapper>
           )}
         </CrudButtonWrapper>
         <CrudTableWrapper
