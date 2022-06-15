@@ -164,12 +164,9 @@ export default function transformProps(chartProps: CccsGridChartProps) {
     IPV6: 'ipv6ValueRenderer',
     DOMAIN: 'domainValueRenderer',
     COUNTRY: 'countryValueRenderer',
-  };
-
-  const fallbackRendererMap = {
     JSON: 'jsonValueRenderer',
   };
-
+  
   const percentMetricValueFormatter = function (params: ValueFormatterParams) {
     return getNumberFormatter(NumberFormats.PERCENT_3_POINT).format(
       params.value,
@@ -196,8 +193,8 @@ export default function transformProps(chartProps: CccsGridChartProps) {
       const cellRenderer =
         columnAdvancedType in rendererMap
           ? rendererMap[columnAdvancedType]
-          : columnType in fallbackRendererMap
-          ? fallbackRendererMap[columnType]
+          : columnType in rendererMap
+          ? rendererMap[columnType]
           : undefined;
       const isSortable = true;
       const enableRowGroup = true;
@@ -222,8 +219,8 @@ export default function transformProps(chartProps: CccsGridChartProps) {
         const cellRenderer =
           columnAdvancedType in rendererMap
             ? rendererMap[columnAdvancedType]
-            : columnType in fallbackRendererMap
-            ? fallbackRendererMap[columnType]
+            : columnType in rendererMap
+            ? rendererMap[columnType]
             : undefined;
         const isSortable = true;
         const enableRowGroup = true;
