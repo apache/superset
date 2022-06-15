@@ -32,6 +32,7 @@ import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import Card from 'src/components/Card';
 import Icons from 'src/components/Icons';
 import ProgressBar from 'src/components/ProgressBar';
+import { mq } from 'src/views/CRUD/utils';
 
 const uiOverrideRegistry = getUiOverrideRegistry();
 
@@ -168,28 +169,45 @@ export default function SetupGuide() {
           css`
             align-items: center;
             display: flex;
+            gap: ${theme.gridUnit * 4}px;
             font-size: ${theme.typography.sizes.s}px;
             font-weight: ${theme.typography.weights.bold};
+            ${mq[0]} {
+              align-items: flex-start;
+            }
           `
         }
       >
-        <h4>Workspace setup guide</h4>
-        <ProgressBar
+        <div
           css={(theme: SupersetTheme) =>
             css`
-              margin-left: ${theme.gridUnit * 4}px;
-              max-width: 350px;
-              .ant-progress-bg {
-                background: ${theme.colors.primary.dark3};
-              }
-              .ant-progress-text {
-                color: ${theme.colors.grayscale.light4};
+              align-items: center;
+              display: flex;
+              gap: ${theme.gridUnit * 4}px;
+              width: 85%;
+              ${mq[0]} {
+                display: block;
               }
             `
           }
-          percent={parseInt(percentCompleted.toFixed(0), 10)}
-        />
-        complete
+        >
+          <h4>Workspace setup guide</h4>
+          <ProgressBar
+            css={(theme: SupersetTheme) =>
+              css`
+                max-width: 350px;
+                .ant-progress-bg {
+                  background: ${theme.colors.primary.dark3};
+                }
+                .ant-progress-text {
+                  color: ${theme.colors.grayscale.light4};
+                }
+              `
+            }
+            percent={parseInt(percentCompleted.toFixed(0), 10)}
+            format={percent => `${percent}% complete`}
+          />
+        </div>
         <Icons.CaretUp
           css={() => StyledIcon()}
           onClick={() => setHideTaskCard(!hideTaskCard)}
@@ -211,6 +229,9 @@ export default function SetupGuide() {
             display: ${hideTaskCard ? 'none' : 'flex'};
             gap: ${theme.gridUnit * 4}px;
             margin-top: ${theme.gridUnit * 4}px;
+            ${mq[1]} {
+              display: ${hideTaskCard ? 'none' : 'block'};
+            }
           `
         }
       >
@@ -221,12 +242,14 @@ export default function SetupGuide() {
                 border-radius: ${theme.gridUnit}px;
                 flex: 1 1 0px;
                 overflow: hidden;
-
+                padding: ${theme.gridUnit * 2}px ${theme.gridUnit * 3}px;
+                background: ${theme.colors.grayscale.light5};
+                ${mq[1]} {
+                  margin-bottom: ${theme.gridUnit * 2}px;
+                }
                 .ant-card-body {
                   align-items: center;
-                  background: ${theme.colors.grayscale.light5};
                   display: flex;
-                  padding: ${theme.gridUnit * 2}px ${theme.gridUnit * 3}px;
                 }
               `
             }
