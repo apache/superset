@@ -47,9 +47,11 @@ class BaseScreenshot:
         self.url = url
         self.screenshot: Optional[bytes] = None
 
-    def driver(self, window_size: Optional[WindowSize] = None) -> WebDriverProxy:
+    def driver(
+        self, window_size: Optional[WindowSize] = None, user: "User" = None
+    ) -> WebDriverProxy:
         window_size = window_size or self.window_size
-        return WebDriverProxy(self.driver_type, window_size)
+        return WebDriverProxy(self.driver_type, window_size, user)
 
     def cache_key(
         self,
@@ -70,8 +72,8 @@ class BaseScreenshot:
     def get_screenshot(
         self, user: "User", window_size: Optional[WindowSize] = None
     ) -> Optional[bytes]:
-        driver = self.driver(window_size)
-        self.screenshot = driver.get_screenshot(self.url, self.element, user)
+        driver = self.driver(window_size, user)
+        self.screenshot = driver.get_screenshot(self.url, self.element)
         return self.screenshot
 
     def get(

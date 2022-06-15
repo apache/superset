@@ -46,6 +46,8 @@ Superset has a Celery task that will periodically warm up the cache based on dif
 To use it, add the following to the `CELERYBEAT_SCHEDULE` section in `config.py`:
 
 ```python
+SUPERSET_CACHE_WARMUP_USER = "user_with_permission_to_dashboards"
+
 CELERYBEAT_SCHEDULE = {
     'cache-warmup-hourly': {
         'task': 'cache-warmup',

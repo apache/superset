@@ -50,13 +50,29 @@ class DashboardStandaloneMode(Enum):
 
 
 class WebDriverProxy:
-    def __init__(self, driver_type: str, window: Optional[WindowSize] = None):
+    def __init__(
+        self, driver_type: str, window: Optional[WindowSize] = None, user: "User" = None
+    ):
         self._driver_type = driver_type
         self._window: WindowSize = window or (800, 600)
         self._screenshot_locate_wait = current_app.config["SCREENSHOT_LOCATE_WAIT"]
         self._screenshot_load_wait = current_app.config["SCREENSHOT_LOAD_WAIT"]
+        self._user = user
+        self._driver = None
 
-    def create(self) -> WebDriver:
+    def __del__(self) -> None:
+        self._destroy()
+
+    @property
+    def driver(self) -> WebDriver:
+        if not self._driver:
+            self._driver = self._create()
+            self._driver.set_window_size(*self._window)  # type: ignore
+            if self._user:
+                self._auth(self._user)
+        return self._driver
+
+    def _create(self) -> WebDriver:
         pixel_density = current_app.config["WEBDRIVER_WINDOW"].get("pixel_density", 1)
         if self._driver_type == "firefox":
             driver_class = firefox.webdriver.WebDriver
@@ -83,32 +99,36 @@ class WebDriverProxy:
 
         return driver_class(**kwargs)
 
-    def auth(self, user: "User") -> WebDriver:
-        driver = self.create()
+    def _auth(self, user: "User") -> WebDriver:
         return machine_auth_provider_factory.instance.authenticate_webdriver(
-            driver, user
+            self.driver, user
         )
 
-    @staticmethod
-    def destroy(driver: WebDriver, tries: int = 2) -> None:
+    def _destroy(self) -> None:
         """Destroy a driver"""
+
+        if not self._driver:
+            return
+
         # This is some very flaky code in selenium. Hence the retries
         # and catch-all exceptions
+
         try:
-            retry_call(driver.close, max_tries=tries)
+            retry_call(
+                self._driver.close,
+                max_tries=current_app.config["SCREENSHOT_SELENIUM_RETRIES"],
+            )
         except Exception:  # pylint: disable=broad-except
             pass
         try:
-            driver.quit()
+            self._driver.quit()
         except Exception:  # pylint: disable=broad-except
             pass
 
-    def get_screenshot(
-        self, url: str, element_name: str, user: "User"
-    ) -> Optional[bytes]:
-        driver = self.auth(user)
-        driver.set_window_size(*self._window)
-        driver.get(url)
+        self._driver = None
+
+    def get_screenshot(self, url: str, element_name: str) -> Optional[bytes]:
+        self.driver.get(url)
         img: Optional[bytes] = None
         selenium_headstart = current_app.config["SCREENSHOT_SELENIUM_HEADSTART"]
         logger.debug("Sleeping for %i seconds", selenium_headstart)
@@ -116,15 +136,15 @@ class WebDriverProxy:
 
         try:
             logger.debug("Wait for the presence of %s", element_name)
-            element = WebDriverWait(driver, self._screenshot_locate_wait).until(
+            element = WebDriverWait(self.driver, self._screenshot_locate_wait).until(
                 EC.presence_of_element_located((By.CLASS_NAME, element_name))
             )
             logger.debug("Wait for .loading to be done")
-            WebDriverWait(driver, self._screenshot_load_wait).until_not(
+            WebDriverWait(self.driver, self._screenshot_load_wait).until_not(
                 EC.presence_of_all_elements_located((By.CLASS_NAME, "loading"))
             )
             logger.debug("Wait for chart to have content")
-            WebDriverWait(driver, self._screenshot_locate_wait).until(
+            WebDriverWait(self.driver, self._screenshot_locate_wait).until(
                 EC.visibility_of_all_elements_located(
                     (By.CLASS_NAME, "slice_container")
                 )
@@ -147,6 +167,4 @@ class WebDriverProxy:
             )
         except WebDriverException as ex:
             logger.error(ex, exc_info=True)
-        finally:
-            self.destroy(driver, current_app.config["SCREENSHOT_SELENIUM_RETRIES"])
         return img

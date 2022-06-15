@@ -14,65 +14,26 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
 import logging
 from typing import Any, Dict, List, Optional, Union
-from urllib import request
 from urllib.error import URLError
 
 from celery.utils.log import get_task_logger
 from sqlalchemy import and_, func
 
-from superset import app, db
+from superset import app, db, security_manager
 from superset.extensions import celery_app
 from superset.models.core import Log
 from superset.models.dashboard import Dashboard
-from superset.models.slice import Slice
 from superset.models.tags import Tag, TaggedObject
 from superset.utils.date_parser import parse_human_datetime
-from superset.views.utils import build_extra_filters
+from superset.utils.webdriver import WebDriverProxy
 
 logger = get_task_logger(__name__)
 logger.setLevel(logging.INFO)
 
 
-def get_form_data(
-    chart_id: int, dashboard: Optional[Dashboard] = None
-) -> Dict[str, Any]:
-    """
-    Build `form_data` for chart GET request from dashboard's `default_filters`.
-
-    When a dashboard has `default_filters` they need to be added  as extra
-    filters in the GET request for charts.
-
-    """
-    form_data: Dict[str, Any] = {"slice_id": chart_id}
-
-    if dashboard is None or not dashboard.json_metadata:
-        return form_data
-
-    json_metadata = json.loads(dashboard.json_metadata)
-    default_filters = json.loads(json_metadata.get("default_filters", "null"))
-    if not default_filters:
-        return form_data
-
-    filter_scopes = json_metadata.get("filter_scopes", {})
-    layout = json.loads(dashboard.position_json or "{}")
-    if (
-        isinstance(layout, dict)
-        and isinstance(filter_scopes, dict)
-        and isinstance(default_filters, dict)
-    ):
-        extra_filters = build_extra_filters(
-            layout, filter_scopes, default_filters, chart_id
-        )
-        if extra_filters:
-            form_data["extra_filters"] = extra_filters
-
-    return form_data
-
-
-def get_url(chart: Slice, extra_filters: Optional[Dict[str, Any]] = None) -> str:
+def get_dash_url(dashboard: Dashboard) -> str:
     """Return external URL for warming up a given chart/table cache."""
     with app.test_request_context():
         baseurl = (
@@ -80,7 +41,7 @@ def get_url(chart: Slice, extra_filters: Optional[Dict[str, Any]] = None) -> str
             "{SUPERSET_WEBSERVER_ADDRESS}:"
             "{SUPERSET_WEBSERVER_PORT}".format(**app.config)
         )
-        return f"{baseurl}{chart.get_explore_url(overrides=extra_filters)}"
+        return f"{baseurl}{dashboard.url}"
 
 
 class Strategy:  # pylint: disable=too-few-public-methods
@@ -133,9 +94,11 @@ class DummyStrategy(Strategy):  # pylint: disable=too-few-public-methods
 
     def get_urls(self) -> List[str]:
         session = db.create_scoped_session()
-        charts = session.query(Slice).all()
+        dashboards = (
+            session.query(Dashboard).filter(Dashboard.published.is_(True)).all()
+        )
 
-        return [get_url(chart) for chart in charts]
+        return [get_dash_url(dashboard) for dashboard in dashboards if dashboard.slices]
 
 
 class TopNDashboardsStrategy(Strategy):  # pylint: disable=too-few-public-methods
@@ -164,7 +127,6 @@ class TopNDashboardsStrategy(Strategy):  # pylint: disable=too-few-public-method
         self.since = parse_human_datetime(since) if since else None
 
     def get_urls(self) -> List[str]:
-        urls = []
         session = db.create_scoped_session()
 
         records = (
@@ -177,12 +139,8 @@ class TopNDashboardsStrategy(Strategy):  # pylint: disable=too-few-public-method
         )
         dash_ids = [record.dashboard_id for record in records]
         dashboards = session.query(Dashboard).filter(Dashboard.id.in_(dash_ids)).all()
-        for dashboard in dashboards:
-            for chart in dashboard.slices:
-                form_data_with_filters = get_form_data(chart.id, dashboard)
-                urls.append(get_url(chart, form_data_with_filters))
 
-        return urls
+        return [get_dash_url(dashboard) for dashboard in dashboards]
 
 
 class DashboardTagsStrategy(Strategy):  # pylint: disable=too-few-public-methods
@@ -228,24 +186,7 @@ class DashboardTagsStrategy(Strategy):  # pylint: disable=too-few-public-methods
         dash_ids = [tagged_object.object_id for tagged_object in tagged_objects]
         tagged_dashboards = session.query(Dashboard).filter(Dashboard.id.in_(dash_ids))
         for dashboard in tagged_dashboards:
-            for chart in dashboard.slices:
-                urls.append(get_url(chart))
-
-        # add charts that are tagged
-        tagged_objects = (
-            session.query(TaggedObject)
-            .filter(
-                and_(
-                    TaggedObject.object_type == "chart",
-                    TaggedObject.tag_id.in_(tag_ids),
-                )
-            )
-            .all()
-        )
-        chart_ids = [tagged_object.object_id for tagged_object in tagged_objects]
-        tagged_charts = session.query(Slice).filter(Slice.id.in_(chart_ids))
-        for chart in tagged_charts:
-            urls.append(get_url(chart))
+            urls.append(get_dash_url(dashboard))
 
         return urls
 
@@ -283,10 +224,14 @@ def cache_warmup(
         return message
 
     results: Dict[str, List[str]] = {"success": [], "errors": []}
+
+    user = security_manager.find_user(username=app.config["SUPERSET_CACHE_WARMUP_USER"])
+    wd = WebDriverProxy(app.config["WEBDRIVER_TYPE"], user=user)
+
     for url in strategy.get_urls():
         try:
             logger.info("Fetching %s", url)
-            request.urlopen(url)  # pylint: disable=consider-using-with
+            wd.get_screenshot(url, "grid-container")
             results["success"].append(url)
         except URLError:
             logger.exception("Error warming up cache!")
