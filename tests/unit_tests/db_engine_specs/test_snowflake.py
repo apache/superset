@@ -62,6 +62,7 @@ def test_extract_errors(app_context: AppContext) -> None:
     assert result == [
         SupersetError(
             message="dumbBrick does not exist in this database.",
+            more_message="",
             error_type=SupersetErrorType.OBJECT_DOES_NOT_EXIST_ERROR,
             level=ErrorLevel.ERROR,
             extra={

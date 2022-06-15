@@ -296,6 +296,7 @@ Unable to connect: Adaptive Server is unavailable or does not exist (locahost)
         SupersetError(
             error_type=SupersetErrorType.CONNECTION_INVALID_HOSTNAME_ERROR,
             message='The hostname "locahost" cannot be resolved.',
+            more_message="",
             level=ErrorLevel.ERROR,
             extra={
                 "engine_name": "Microsoft SQL Server",

@@ -163,6 +163,7 @@ def test_import_assets_no_form_data(mocker: MockFixture, client: Any) -> None:
                 "message": "Request MIME type is not 'multipart/form-data'",
                 "error_type": "INVALID_PAYLOAD_FORMAT_ERROR",
                 "level": "error",
+                "more_message": "",
                 "extra": {
                     "issue_codes": [
                         {
@@ -236,6 +237,7 @@ def test_import_assets_no_contents(mocker: MockFixture, client: Any) -> None:
         "errors": [
             {
                 "message": "No valid import files were found",
+                "more_message": "",
                 "error_type": "GENERIC_COMMAND_ERROR",
                 "level": "warning",
                 "extra": {
