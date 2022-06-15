@@ -34,25 +34,8 @@ from tests.integration_tests.fixtures.world_bank_dashboard import (
 )
 from tests.integration_tests.test_app import app
 
-PERMALINK_KEY = "permalink_key"
 FORM_DATA_KEY = "form_data_key"
 FORM_DATA = {"test": "initial value"}
-RESULT = {
-    "dataset": {
-        "columns": [],
-        "database": {"backend": "", "id": 0, "parameters": {}},
-        "metrics": [],
-        "name": "[Missing Dataset]",
-        "type": "table",
-    },
-    "form_data": {
-        "adhoc_filters": [],
-        "applied_time_extras": {},
-        "datasource": "None__table",
-    },
-    "message": None,
-    "slice": None,
-}
 
 
 @pytest.fixture
@@ -115,7 +98,7 @@ def test_get_from_cache(client, dataset):
     assert resp.status_code == 200
     data = json.loads(resp.data.decode("utf-8"))
     result = data.get("result")
-    assert result["dataset"]["name"] == "wb_health_population"
+    assert result["dataset"]["datasource_name"] == "wb_health_population"
     assert result["form_data"]["datasource"] == "1__table"
     assert result["form_data"]["test"] == "initial value"
     assert result["message"] == None
@@ -131,7 +114,7 @@ def test_get_from_cache_unknown_key_chart_id(client, chart_id):
     assert resp.status_code == 200
     data = json.loads(resp.data.decode("utf-8"))
     result = data.get("result")
-    assert result["dataset"]["name"] == "wb_health_population"
+    assert result["dataset"]["datasource_name"] == "wb_health_population"
     assert result["form_data"]["datasource"] == "1__table"
     assert (
         result["message"]
@@ -150,7 +133,7 @@ def test_get_from_cache_unknown_key_dataset(client, dataset):
     assert resp.status_code == 200
     data = json.loads(resp.data.decode("utf-8"))
     result = data.get("result")
-    assert result["dataset"]["name"] == "wb_health_population"
+    assert result["dataset"]["datasource_name"] == "wb_health_population"
     assert result["form_data"]["datasource"] == "1__table"
     assert (
         result["message"]
@@ -186,7 +169,7 @@ def test_get_from_permalink(client, chart_id, dataset):
     assert resp.status_code == 200
     data = json.loads(resp.data.decode("utf-8"))
     result = data.get("result")
-    assert result["dataset"]["name"] == "wb_health_population"
+    assert result["dataset"]["datasource_name"] == "wb_health_population"
     assert result["form_data"]["datasource"] == "1__table"
     assert result["form_data"]["test"] == "initial value"
     assert result["message"] == None
