@@ -14,22 +14,17 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from dataclasses import dataclass
 from typing import Optional
 
-from superset.commands.exceptions import CommandException, ForbiddenError
+from flask_appbuilder.security.sqla.models import User
 
 
-class DatasetAccessDeniedError(ForbiddenError):
-    def __init__(
-        self, message: str, dataset_id: Optional[int], dataset_type: Optional[str]
-    ) -> None:
-        self.message = message
-        self.dataset_id = dataset_id
-        self.dataset_type = dataset_type
-        super().__init__(self.message)
-
-
-class WrongEndpointError(CommandException):
-    def __init__(self, redirect: str) -> None:
-        self.redirect = redirect
-        super().__init__()
+@dataclass
+class CommandParameters:
+    actor: User
+    permalink_key: Optional[str]
+    form_data_key: Optional[str]
+    dataset_id: Optional[int]
+    dataset_type: Optional[str]
+    slice_id: Optional[int]

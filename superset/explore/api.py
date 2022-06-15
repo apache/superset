@@ -19,12 +19,11 @@ from abc import ABC
 
 from flask import g, request, Response
 from flask_appbuilder.api import BaseApi, expose, protect, safe
-from flask_babel import lazy_gettext as _
 
 from superset.charts.commands.exceptions import ChartNotFoundError
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
-from superset.datasets.schemas import DatasetSchema
 from superset.explore.commands.get import GetExploreCommand
+from superset.explore.commands.parameters import CommandParameters
 from superset.explore.exceptions import DatasetAccessDeniedError, WrongEndpointError
 from superset.explore.permalink.exceptions import ExplorePermalinkGetFailedError
 from superset.explore.schemas import ExploreContextSchema
@@ -99,21 +98,15 @@ class ExploreRestApi(BaseApi, ABC):
               $ref: '#/components/responses/500'
         """
         try:
-            permalink_key = request.args.get("permalink_key")
-            form_data_key = request.args.get("form_data_key")
-            dataset_id = request.args.get("dataset_id")
-            dataset_type = request.args.get("dataset_type")
-            slice_id = request.args.get("slice_id")
-
-            result = GetExploreCommand(
+            params = CommandParameters(
                 actor=g.user,
-                permalink_key=permalink_key,
-                form_data_key=form_data_key,
-                dataset_id=dataset_id,
-                dataset_type=dataset_type,
-                slice_id=slice_id,
-            ).run()
-
+                permalink_key=request.args.get("permalink_key"),
+                form_data_key=request.args.get("form_data_key"),
+                dataset_id=request.args.get("dataset_id"),
+                dataset_type=request.args.get("dataset_type"),
+                slice_id=request.args.get("slice_id"),
+            )
+            result = GetExploreCommand(params).run()
             if not result:
                 return self.response_404()
             return self.response(200, result=result)

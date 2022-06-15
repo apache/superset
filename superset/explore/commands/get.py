@@ -20,7 +20,6 @@ from typing import Any, cast, Dict, Optional
 
 import simplejson as json
 from flask import current_app as app
-from flask_appbuilder.security.sqla.models import User
 from flask_babel import gettext as __, lazy_gettext as _
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -31,9 +30,12 @@ from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.sqla.models import SqlaTable
 from superset.datasets.commands.exceptions import DatasetNotFoundError
 from superset.exceptions import SupersetException
+from superset.explore.commands.parameters import CommandParameters
 from superset.explore.exceptions import DatasetAccessDeniedError, WrongEndpointError
 from superset.explore.form_data.commands.get import GetFormDataCommand
-from superset.explore.form_data.commands.parameters import CommandParameters
+from superset.explore.form_data.commands.parameters import (
+    CommandParameters as FormDataCommandParameters,
+)
 from superset.explore.permalink.commands.get import GetExplorePermalinkCommand
 from superset.explore.permalink.exceptions import ExplorePermalinkGetFailedError
 from superset.models.sql_lab import Query
@@ -50,20 +52,16 @@ logger = logging.getLogger(__name__)
 class GetExploreCommand(BaseCommand, ABC):
     def __init__(
         self,
-        actor: User,
-        permalink_key: Optional[str],
-        form_data_key: Optional[str],
-        dataset_id: Optional[int],
-        dataset_type: Optional[str],
-        slice_id: Optional[int],
+        params: CommandParameters,
     ) -> None:
-        self._actor = actor
-        self._permalink_key = permalink_key
-        self._form_data_key = form_data_key
-        self._dataset_id = dataset_id
-        self._dataset_type = dataset_type
-        self._slice_id = slice_id
+        self._actor = params.actor
+        self._permalink_key = params.permalink_key
+        self._form_data_key = params.form_data_key
+        self._dataset_id = params.dataset_id
+        self._dataset_type = params.dataset_type
+        self._slice_id = params.slice_id
 
+    # pylint: disable=too-many-locals,too-many-branches,too-many-statements
     def run(self) -> Optional[Dict[str, Any]]:
         initial_form_data = {}
 
@@ -79,7 +77,9 @@ class GetExploreCommand(BaseCommand, ABC):
             else:
                 raise ExplorePermalinkGetFailedError()
         elif self._form_data_key:
-            parameters = CommandParameters(actor=self._actor, key=self._form_data_key)
+            parameters = FormDataCommandParameters(
+                actor=self._actor, key=self._form_data_key
+            )
             value = GetFormDataCommand(parameters).run()
             initial_form_data = json.loads(value) if value else {}
 
