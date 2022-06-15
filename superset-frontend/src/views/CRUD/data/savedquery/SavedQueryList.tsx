@@ -90,7 +90,6 @@ const StyledPopoverItem = styled.div`
 function SavedQueryList({
   addDangerToast,
   addSuccessToast,
-  user,
 }: SavedQueryListProps) {
   const {
     state: {
