@@ -20,7 +20,6 @@ import { configure } from '@superset-ui/core';
 import {
   COMPARATOR,
   getOpacity,
-  rgbToRgba,
   round,
   getColorFormatters,
   getColorFunction,
@@ -51,12 +50,6 @@ describe('getOpacity', () => {
     expect(getOpacity(100, 100, 50)).toEqual(0.05);
     expect(getOpacity(100, 100, 100, 0, 0.8)).toEqual(0.8);
     expect(getOpacity(100, 100, 50, 0, 1)).toEqual(0);
-  });
-});
-
-describe('rgba', () => {
-  it('returns correct rgba value', () => {
-    expect(rgbToRgba('rgb(255,0,0)', 0.5)).toEqual('rgba(255,0,0,0.5)');
   });
 });
 
