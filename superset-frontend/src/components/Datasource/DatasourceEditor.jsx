@@ -518,10 +518,12 @@ const propTypes = {
   onChange: PropTypes.func,
   addSuccessToast: PropTypes.func.isRequired,
   addDangerToast: PropTypes.func.isRequired,
+  setIsEditing: PropTypes.func,
 };
 
 const defaultProps = {
   onChange: () => {},
+  setIsEditing: () => {},
 };
 
 function OwnersSelector({ datasource, onChange }) {
@@ -629,6 +631,7 @@ class DatasourceEditor extends React.PureComponent {
   }
 
   onChangeEditMode() {
+    this.props.setIsEditing(!this.state.isEditMode);
     this.setState(prevState => ({ isEditMode: !prevState.isEditMode }));
   }
 
