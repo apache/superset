@@ -533,6 +533,13 @@ const color_scheme: SharedControlConfig<'ColorSchemeControl'> = {
   }),
 };
 
+const truncate_metric: SharedControlConfig<'CheckboxControl'> = {
+  type: 'CheckboxControl',
+  label: t('Truncate Metric'),
+  default: true,
+  description: t('Whether to truncate metrics'),
+};
+
 const enableExploreDnd = isFeatureEnabled(
   FeatureFlag.ENABLE_EXPLORE_DRAG_AND_DROP,
 );
@@ -571,6 +578,7 @@ const sharedControls = {
   series_limit,
   series_limit_metric: enableExploreDnd ? dnd_sort_by : sort_by,
   legacy_order_by: enableExploreDnd ? dnd_sort_by : sort_by,
+  truncate_metric,
 };
 
 export { sharedControls, dndEntity, dndColumnsControl };
