@@ -86,6 +86,7 @@ const config: ControlPanelConfig = {
         ['timeseries_limit_metric'],
         ['order_desc'],
         ['row_limit'],
+        ['truncate_metric'],
       ],
     },
     sections.advancedAnalyticsControls,

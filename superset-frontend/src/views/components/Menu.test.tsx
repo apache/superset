@@ -476,3 +476,9 @@ test('should hide create button without proper roles', () => {
   render(<Menu {...mockedProps} />, { useRedux: true, useQueryParams: true });
   expect(screen.queryByTestId('new-dropdown')).not.toBeInTheDocument();
 });
+
+test('should render without QueryParamProvider', () => {
+  useSelectorMock.mockReturnValue({ roles: [] });
+  render(<Menu {...mockedProps} />, { useRedux: true });
+  expect(screen.queryByTestId('new-dropdown')).not.toBeInTheDocument();
+});

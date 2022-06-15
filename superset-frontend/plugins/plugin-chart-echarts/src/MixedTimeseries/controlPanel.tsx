@@ -123,6 +123,15 @@ function createQuerySection(
           },
         },
       ],
+      [
+        {
+          name: `truncate_metric${controlSuffix}`,
+          config: {
+            ...sharedControls.truncate_metric,
+            default: sharedControls.truncate_metric.default,
+          },
+        },
+      ],
     ],
   };
 }
