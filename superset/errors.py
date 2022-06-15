@@ -16,6 +16,7 @@
 # under the License.
 from dataclasses import dataclass
 from enum import Enum
+from optparse import Option
 from typing import Any, Dict, Optional
 
 from flask_babel import gettext as _
@@ -201,6 +202,7 @@ class SupersetError:
     message: str
     error_type: SupersetErrorType
     level: ErrorLevel
+    more_message: Optional[str] = None
     extra: Optional[Dict[str, Any]] = None
 
     def __post_init__(self) -> None:

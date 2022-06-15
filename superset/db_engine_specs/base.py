@@ -20,6 +20,7 @@ import logging
 import re
 from contextlib import closing
 from datetime import datetime
+from tokenize import String
 from typing import (
     Any,
     Callable,
@@ -64,7 +65,7 @@ from superset.models.sql_lab import Query
 from superset.sql_parse import ParsedQuery, Table
 from superset.superset_typing import ResultSetColumnType
 from superset.utils import core as utils
-from superset.utils.core import ColumnSpec, GenericDataType, get_username
+from superset.utils.core import ColumnSpec, GenericDataType, get_username, split
 from superset.utils.hashing import md5_sha_from_str
 from superset.utils.network import is_hostname_valid, is_port_open
 
@@ -902,6 +903,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return utils.error_msg_from_exception(ex)
 
     @classmethod
+    def _reformat_error_message(cls, message: str) -> Tuple[str, str]:
+        """Reformat error message for user experience"""
+        splitted_message = re.split("\n+", message, 1)
+        return splitted_message[0], splitted_message[1]
+
+    @classmethod
     def extract_errors(
         cls, ex: Exception, context: Optional[Dict[str, Any]] = None
     ) -> List[SupersetError]:
@@ -913,19 +920,24 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             if match:
                 params = {**context, **match.groupdict()}
                 extra["engine_name"] = cls.engine_name
+                message, more_message = cls._reformat_error_message(message % params)
                 return [
                     SupersetError(
                         error_type=error_type,
-                        message=message % params,
+                        message=message,
+                        more_message=more_message,
                         level=ErrorLevel.ERROR,
                         extra=extra,
                     )
                 ]
 
+        message, more_message = cls._reformat_error_message(raw_message)
+
         return [
             SupersetError(
                 error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
-                message=cls._extract_error_message(ex),
+                message=message,
+                more_message=more_message,
                 level=ErrorLevel.ERROR,
                 extra={"engine_name": cls.engine_name},
             )
