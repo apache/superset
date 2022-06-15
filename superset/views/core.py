@@ -2088,7 +2088,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 groupby=True,
                 is_dttm=config_.get("is_dttm", False),
                 type=config_.get("type", False),
-                business_type=config_.get("business_type")
             )
             cols.append(col)
 
