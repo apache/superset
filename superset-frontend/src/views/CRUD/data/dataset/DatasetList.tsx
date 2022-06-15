@@ -22,8 +22,10 @@ import React, {
   useState,
   useMemo,
   useCallback,
+  useEffect,
 } from 'react';
 import rison from 'rison';
+import { useHistory, useLocation } from 'react-router-dom';
 import {
   createFetchRelated,
   createFetchDistinct,
@@ -625,6 +627,15 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       ),
     );
   };
+
+  const location = useLocation();
+  const history = useHistory();
+  useEffect(() => {
+    if (location.hash === '#create' && canCreate) {
+      history.replace(`${location.pathname}${location.search}`);
+      setDatasetAddModalOpen(true);
+    }
+  }, [canCreate, history, location]);
 
   return (
     <>

@@ -314,7 +314,7 @@ export default class AddSliceContainer extends React.PureComponent<
                 />
                 <span>
                   <a
-                    href="/tablemodelview/list"
+                    href="/tablemodelview/list/#create"
                     rel="noopener noreferrer"
                     target="_blank"
                   >
