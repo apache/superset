@@ -30,21 +30,28 @@ down_revision = 'e786798587de'
 from alembic import op
 
 
+OLD_NAME = 'rows'
+NEW_NAME = 'row_count'
+TABLES = ['query', 'saved_query']
+
+
 def upgrade():
-    with op.batch_alter_table("saved_query") as batch_op:
-        try:
-            batch_op.alter_column(
-                'rows', new_column_name='row_count'
-            )
-        except TypeError:
-            pass
+    for t in TABLES:
+        with op.batch_alter_table(t) as batch_op:
+            try:
+                batch_op.alter_column(
+                    OLD_NAME, new_column_name=NEW_NAME
+                )
+            except TypeError as e:
+                print(e.args)
 
 
 def downgrade():
-    with op.batch_alter_table("saved_query") as batch_op:
-        try:
-            batch_op.alter_column(
-                'row_count', new_column_name='rows'
-            )
-        except TypeError:
-            pass
+    for t in TABLES:
+        with op.batch_alter_table(t) as batch_op:
+            try:
+                batch_op.alter_column(
+                    NEW_NAME, new_column_name=OLD_NAME
+                )
+            except TypeError as e:
+                print(e.args)

@@ -127,7 +127,7 @@ class Query(Model, ExtraJSONMixin):
             "limit": self.limit,
             "limitingFactor": self.limiting_factor,
             "progress": self.progress,
-            "rows": self.row_count,
+            "row_count": self.row_count,
             "schema": self.schema,
             "ctas": self.select_as_cta,
             "serverId": self.id,
