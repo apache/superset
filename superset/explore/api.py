@@ -1,0 +1,134 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+import logging
+from abc import ABC
+
+from flask import g, request, Response
+from flask_appbuilder.api import BaseApi, expose, protect, safe
+from flask_babel import lazy_gettext as _
+
+from superset.charts.commands.exceptions import ChartNotFoundError
+from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
+from superset.datasets.schemas import DatasetSchema
+from superset.explore.commands.get import GetExploreCommand
+from superset.explore.exceptions import DatasetAccessDeniedError, WrongEndpointError
+from superset.explore.permalink.exceptions import ExplorePermalinkGetFailedError
+from superset.explore.schemas import ExploreContextSchema
+from superset.extensions import event_logger
+from superset.temporary_cache.commands.exceptions import (
+    TemporaryCacheAccessDeniedError,
+    TemporaryCacheResourceNotFoundError,
+)
+
+logger = logging.getLogger(__name__)
+
+
+class ExploreRestApi(BaseApi, ABC):
+    method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
+    include_route_methods = {RouteMethod.GET}
+    allow_browser_login = True
+    class_permission_name = "ExploreRestApi"
+    resource_name = "explore"
+    openapi_spec_tag = "Explore"
+    openapi_spec_component_schemas = (ExploreContextSchema,)
+
+    @expose("/", methods=["GET"])
+    @protect()
+    @safe
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get",
+        log_to_statsd=True,
+    )
+    def get(self) -> Response:
+        """Retrives Explore initial context.
+        ---
+        get:
+          description: >-
+            Retrives Explore initial context.
+          parameters:
+          - in: query
+            schema:
+              type: string
+            name: form_data_key
+          - in: query
+            schema:
+              type: string
+            name: permalink_key
+          - in: query
+            schema:
+              type: integer
+            name: slice_id
+          - in: query
+            schema:
+              type: integer
+            name: dataset_id
+          - in: query
+            schema:
+              type: string
+            name: dataset_type
+          responses:
+            200:
+              description: Returns the initial context.
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/ExploreContextSchema'
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            permalink_key = request.args.get("permalink_key")
+            form_data_key = request.args.get("form_data_key")
+            dataset_id = request.args.get("dataset_id")
+            dataset_type = request.args.get("dataset_type")
+            slice_id = request.args.get("slice_id")
+
+            result = GetExploreCommand(
+                actor=g.user,
+                permalink_key=permalink_key,
+                form_data_key=form_data_key,
+                dataset_id=dataset_id,
+                dataset_type=dataset_type,
+                slice_id=slice_id,
+            ).run()
+
+            if not result:
+                return self.response_404()
+            return self.response(200, result=result)
+        except DatasetAccessDeniedError as ex:
+            return self.response(
+                403,
+                message=ex.message,
+                dataset_id=ex.dataset_id,
+                dataset_type=ex.dataset_type,
+            )
+        except (ChartNotFoundError, ExplorePermalinkGetFailedError) as ex:
+            return self.response(404, message=str(ex))
+        except WrongEndpointError as ex:
+            return self.response(302, redirect=ex.redirect)
+        except TemporaryCacheAccessDeniedError as ex:
+            return self.response(403, message=str(ex))
+        except TemporaryCacheResourceNotFoundError as ex:
+            return self.response(404, message=str(ex))
