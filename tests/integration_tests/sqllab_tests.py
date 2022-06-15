@@ -170,7 +170,7 @@ class TestSqlLab(SupersetTestCase):
                 )
                 .one_or_none()
             )
-            assert saved_query_.rows is not None
+            assert saved_query_.row_count is not None
             assert saved_query_.last_run == datetime.now()
         # Rollback changes
         db.session.delete(saved_query_)

@@ -298,7 +298,7 @@ def test_run_async_cta_query(setup_sqllab, ctas_method):
 
     assert f"CREATE {ctas_method} {table_name} AS \n{QUERY}" == query.executed_sql
     assert QUERY == query.sql
-    assert query.rows == (1 if backend() == "presto" else 0)
+    assert query.row_count == (1 if backend() == "presto" else 0)
     assert query.select_as_cta
     assert query.select_as_cta_used
 
@@ -329,7 +329,7 @@ def test_run_async_cta_query_with_lower_limit(setup_sqllab, ctas_method):
     assert f"CREATE {ctas_method} {tmp_table} AS \n{QUERY}" == query.executed_sql
     assert QUERY == query.sql
 
-    assert query.rows == (1 if backend() == "presto" else 0)
+    assert query.row_count == (1 if backend() == "presto" else 0)
     assert query.limit == 10000
     assert query.select_as_cta
     assert query.select_as_cta_used

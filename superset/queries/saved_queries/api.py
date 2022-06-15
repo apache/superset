@@ -108,7 +108,7 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
         "schema",
         "sql",
         "sql_tables",
-        "rows",
+        "row_count",
         "last_run_delta_humanized",
         "extra",
     ]
@@ -119,7 +119,7 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
         "label",
         "description",
         "sql",
-        "rows",
+        "row_count",
         "created_by.first_name",
         "database.database_name",
         "created_on",

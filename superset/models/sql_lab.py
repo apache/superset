@@ -87,7 +87,7 @@ class Query(Model, ExtraJSONMixin):
 
     progress = Column(Integer, default=0)  # 1..100
     # # of rows in the result set or rows modified.
-    rows = Column(Integer)
+    row_count = Column(Integer)
     error_message = Column(Text)
     # key used to store the results in the results backend
     results_key = Column(String(64), index=True)
@@ -127,7 +127,7 @@ class Query(Model, ExtraJSONMixin):
             "limit": self.limit,
             "limitingFactor": self.limiting_factor,
             "progress": self.progress,
-            "rows": self.rows,
+            "rows": self.row_count,
             "schema": self.schema,
             "ctas": self.select_as_cta,
             "serverId": self.id,
@@ -201,7 +201,7 @@ class SavedQuery(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
         foreign_keys=[db_id],
         backref=backref("saved_queries", cascade="all, delete-orphan"),
     )
-    rows = Column(Integer, nullable=True)
+    row_count = Column(Integer, nullable=True)
     last_run = Column(DateTime, nullable=True)
 
     export_parent = "database"

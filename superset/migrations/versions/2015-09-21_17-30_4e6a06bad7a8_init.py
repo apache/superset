@@ -167,7 +167,6 @@ def upgrade():
         ),
         sa.Column("json", sa.Text(), nullable=True),
         sa.Column("description", sa.Text(), nullable=True),
-        sa.ForeignKeyConstraint(["datasource_name"], ["datasources.datasource_name"]),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_table(

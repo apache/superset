@@ -46,7 +46,7 @@ class QueryDAO(BaseDAO):
         ).all()
         if related_saved_queries:
             for saved_query in related_saved_queries:
-                saved_query.rows = query.rows
+                saved_query.row_count = query.row_count
                 saved_query.last_run = datetime.now()
             db.session.commit()
 

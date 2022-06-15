@@ -515,7 +515,7 @@ def execute_sql_statements(  # pylint: disable=too-many-arguments, too-many-loca
         conn.commit()
 
     # Success, updating the query entry in database
-    query.rows = result_set.size
+    query.row_count = result_set.size
     query.progress = 100
     query.set_extra_json_key("progress", None)
     if query.select_as_cta:
