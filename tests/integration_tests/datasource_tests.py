@@ -26,7 +26,6 @@ from superset import app, db
 from superset.connectors.sqla.models import SqlaTable
 from superset.dao.exceptions import DatasourceNotFound, DatasourceTypeNotSupportedError
 from superset.datasets.commands.exceptions import DatasetNotFoundError
-from superset.datasource.dao import DatasourceDAO
 from superset.exceptions import SupersetGenericDBErrorException
 from superset.models.core import Database
 from superset.utils.core import DatasourceType, get_example_default_schema
@@ -258,9 +257,10 @@ class TestDatasource(SupersetTestCase):
 
         pytest.raises(
             SupersetGenericDBErrorException,
-            lambda: DatasourceDAO.get_datasource(
-                db.session, DatasourceType.TABLE, tbl.id
-            ).external_metadata(),
+            lambda: db.session.query(SqlaTable)
+            .filter_by(id=tbl.id)
+            .one_or_none()
+            .external_metadata(),
         )
 
         resp = self.client.get(url)
@@ -387,27 +387,6 @@ class TestDatasource(SupersetTestCase):
         app.config["DATASET_HEALTH_CHECK"] = my_check
         self.login(username="admin")
         tbl = self.get_table(name="birth_names")
-        datasource = DatasourceDAO.get_datasource(
-            db.session, DatasourceType.TABLE, tbl.id
-        )
+        datasource = db.session.query(SqlaTable).filter_by(id=tbl.id).one_or_none()
         assert datasource.health_check_message == "Warning message!"
         app.config["DATASET_HEALTH_CHECK"] = None
-
-    def test_get_datasource_failed(self):
-        pytest.raises(
-            DatasourceNotFound,
-            lambda: DatasourceDAO.get_datasource(
-                db.session, DatasourceType.TABLE, 9999999
-            ),
-        )
-
-        self.login(username="admin")
-        resp = self.get_json_resp("/datasource/get/druid/500000/", raise_on_error=False)
-        self.assertEqual(resp.get("error"), "'druid' is not a valid DatasourceType")
-
-        resp = self.get_json_resp(
-            "/datasource/get/invalid-datasource-type/500000/", raise_on_error=False
-        )
-        self.assertEqual(
-            resp.get("error"), "'invalid-datasource-type' is not a valid DatasourceType"
-        )
