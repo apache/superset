@@ -89,6 +89,15 @@ export default function transformProps(chartProps: CccsGridChartProps) {
   const columns = datasource?.columns as Column[];
   const metrics = datasource?.metrics as Metric[];
 
+  const columnTypeMap = new Map<string, string>();
+  columns.reduce(function (columnMap, column: Column) {
+    // @ts-ignore
+    const name = column.column_name;
+    // @ts-ignore
+    columnMap[name] = column.type;
+    return columnMap;
+  }, columnTypeMap);
+
   // Map of column advanced types, key is column name, value is column type
   const columnAdvancedTypeMap = new Map<string, string>();
   columns.reduce(function (columnMap, column: Column) {
@@ -149,12 +158,15 @@ export default function transformProps(chartProps: CccsGridChartProps) {
   },
   sortingColumnMap);
 
-  // Key is column type, value is renderer name
+  // Key is column advanced type, value is renderer name
   const rendererMap = {
     IPV4: 'ipv4ValueRenderer',
     IPV6: 'ipv6ValueRenderer',
     DOMAIN: 'domainValueRenderer',
     COUNTRY: 'countryValueRenderer',
+  };
+
+  const fallbackRendererMap = {
     JSON: 'jsonValueRenderer',
   };
 
@@ -168,6 +180,7 @@ export default function transformProps(chartProps: CccsGridChartProps) {
 
   if (query_mode === QueryMode.raw) {
     columnDefs = formData.columns.map((column: any) => {
+      const columnType = columnTypeMap[column];
       const columnAdvancedType = columnAdvancedTypeMap[column];
       const columnHeader = columnVerboseNameMap[column]
         ? columnVerboseNameMap[column]
@@ -183,6 +196,8 @@ export default function transformProps(chartProps: CccsGridChartProps) {
       const cellRenderer =
         columnAdvancedType in rendererMap
           ? rendererMap[columnAdvancedType]
+          : columnType in fallbackRendererMap
+          ? fallbackRendererMap[columnType]
           : undefined;
       const isSortable = true;
       const enableRowGroup = true;
@@ -199,6 +214,7 @@ export default function transformProps(chartProps: CccsGridChartProps) {
   } else {
     if (formData.groupby) {
       const groupByColumnDefs = formData.groupby.map((column: any) => {
+        const columnType = columnTypeMap[column];
         const columnAdvancedType = columnAdvancedTypeMap[column];
         const columnHeader = columnVerboseNameMap[column]
           ? columnVerboseNameMap[column]
@@ -206,6 +222,8 @@ export default function transformProps(chartProps: CccsGridChartProps) {
         const cellRenderer =
           columnAdvancedType in rendererMap
             ? rendererMap[columnAdvancedType]
+            : columnType in fallbackRendererMap
+            ? fallbackRendererMap[columnType]
             : undefined;
         const isSortable = true;
         const enableRowGroup = true;
