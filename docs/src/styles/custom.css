@@ -24,6 +24,8 @@
  */
 
 /* You can override the default Infima variables here. */
+@import url('https://fonts.googleapis.com/css2?family=Inter&display=swap');
+
 :root {
   --ifm-color-primary: #20a7c9;
   --ifm-color-primary-dark: #1985a0;
@@ -36,6 +38,19 @@
   --ifm-menu-link-padding-vertical: 12px;
   --doc-sidebar-width: 350px !important;
   --ifm-navbar-height: none;
+  --ifm-font-family-base: Inter;
+}
+body {
+  font-family: Inter !important;
+}
+.DocSearch-Button .DocSearch-Button-Key {
+  display: none;
+}
+.github-logo-container {
+  background-image: url('/img/github.png');
+  background-size: contain;
+  width: 30px;
+  height: 30px;
 }
 
 .theme-doc-toc-desktop {
@@ -92,4 +107,7 @@ html[data-theme='dark'] .docusaurus-highlight-code-line {
   .navbar {
     padding-left: 0;
   }
+}
+a > span > svg {
+  display: none;
 }

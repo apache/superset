@@ -17,7 +17,7 @@
  * under the License.
  */
 import { SyntheticEvent } from 'react';
-import domToImage, { Options } from 'dom-to-image';
+import domToImage from 'dom-to-image';
 import kebabCase from 'lodash/kebabCase';
 import { t } from '@superset-ui/core';
 import { addWarningToast } from 'src/components/MessageToasts/actions';
@@ -50,7 +50,6 @@ const generateFileStem = (description: string, date = new Date()) =>
 export default function downloadAsImage(
   selector: string,
   description: string,
-  domToImageOptions: Options = {},
   isExactSelector = false,
 ) {
   return (event: SyntheticEvent) => {

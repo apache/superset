@@ -24,15 +24,15 @@ import { ParentSize } from '@vx/responsive';
 
 import { t, styled } from '@superset-ui/core';
 
-import NewColumn from './gridComponents/new/NewColumn';
-import NewDivider from './gridComponents/new/NewDivider';
-import NewHeader from './gridComponents/new/NewHeader';
-import NewRow from './gridComponents/new/NewRow';
-import NewTabs from './gridComponents/new/NewTabs';
-import NewMarkdown from './gridComponents/new/NewMarkdown';
-import SliceAdder from '../containers/SliceAdder';
-import dashboardComponents from '../../visualizations/presets/dashboardComponents';
-import NewDynamicComponent from './gridComponents/new/NewDynamicComponent';
+import SliceAdder from 'src/dashboard/containers/SliceAdder';
+import dashboardComponents from 'src/visualizations/presets/dashboardComponents';
+import NewColumn from '../gridComponents/new/NewColumn';
+import NewDivider from '../gridComponents/new/NewDivider';
+import NewHeader from '../gridComponents/new/NewHeader';
+import NewRow from '../gridComponents/new/NewRow';
+import NewTabs from '../gridComponents/new/NewTabs';
+import NewMarkdown from '../gridComponents/new/NewMarkdown';
+import NewDynamicComponent from '../gridComponents/new/NewDynamicComponent';
 
 export interface BCPProps {
   isStandalone: boolean;
@@ -101,7 +101,18 @@ const BuilderComponentPane: React.FC<BCPProps> = ({
                     className="tabs-components"
                     data-test="dashboard-builder-component-pane-tabs-navigation"
                   >
-                    <Tabs.TabPane key={1} tab={t('Components')}>
+                    <Tabs.TabPane
+                      key={1}
+                      tab={t('Charts')}
+                      className="tab-charts"
+                    >
+                      <SliceAdder
+                        height={
+                          height + (isSticky ? SUPERSET_HEADER_HEIGHT : 0)
+                        }
+                      />
+                    </Tabs.TabPane>
+                    <Tabs.TabPane key={2} tab={t('Layout elements')}>
                       <NewTabs />
                       <NewRow />
                       <NewColumn />
@@ -116,17 +127,6 @@ const BuilderComponentPane: React.FC<BCPProps> = ({
                             componentKey={componentKey}
                           />
                         ))}
-                    </Tabs.TabPane>
-                    <Tabs.TabPane
-                      key={2}
-                      tab={t('Charts')}
-                      className="tab-charts"
-                    >
-                      <SliceAdder
-                        height={
-                          height + (isSticky ? SUPERSET_HEADER_HEIGHT : 0)
-                        }
-                      />
                     </Tabs.TabPane>
                   </BuilderComponentPaneTabs>
                 </div>

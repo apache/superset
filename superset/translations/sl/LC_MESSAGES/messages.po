@@ -1002,23 +1002,23 @@ msgid "Alert query returned a non-number value."
 msgstr "Opozorilna poizvedba je vrnila neštevilsko vrednost."
 
 #: superset/reports/commands/exceptions.py:186
-msgid "Alert query returned more then one column."
+msgid "Alert query returned more than one column."
 msgstr "Opozorilna poizvedba je vrnila več kot en stolpec."
 
 #: superset/reports/commands/alert.py:105
 #, python-format
-msgid "Alert query returned more then one column. %s columns returned"
+msgid "Alert query returned more than one column. %s columns returned"
 msgstr ""
 "Opozorilna poizvedba je vrnila več kot en stolpec. Število vrnjenih "
 "stolpcev: %s"
 
 #: superset/reports/commands/exceptions.py:177
-msgid "Alert query returned more then one row."
+msgid "Alert query returned more than one row."
 msgstr "Opozorilna poizvedba je vrnila več kot eno vrstico."
 
 #: superset/reports/commands/alert.py:96
 #, python-format
-msgid "Alert query returned more then one row. %s rows returned"
+msgid "Alert query returned more than one row. %s rows returned"
 msgstr ""
 "Opozorilna poizvedba je vrnila več kot eno vrstico. Število vrnjenih "
 "vrstic: %s"

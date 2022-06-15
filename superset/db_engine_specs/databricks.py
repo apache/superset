@@ -65,3 +65,9 @@ class DatabricksODBCEngineSpec(BaseEngineSpec):
     @classmethod
     def epoch_to_dttm(cls) -> str:
         return HiveEngineSpec.epoch_to_dttm()
+
+
+class DatabricksNativeEngineSpec(DatabricksODBCEngineSpec):
+    engine = "databricks"
+    engine_name = "Databricks Native Connector"
+    driver = "connector"

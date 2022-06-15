@@ -86,6 +86,7 @@ const config: ControlPanelConfig = {
         ['timeseries_limit_metric'],
         ['order_desc'],
         ['row_limit'],
+        ['truncate_metric'],
       ],
     },
     sections.advancedAnalyticsControls,
@@ -299,6 +300,11 @@ const config: ControlPanelConfig = {
       default: rowLimit,
     },
   },
+  denormalizeFormData: formData => ({
+    ...formData,
+    metrics: formData.standardizedFormData.standardizedState.metrics,
+    groupby: formData.standardizedFormData.standardizedState.columns,
+  }),
 };
 
 export default config;

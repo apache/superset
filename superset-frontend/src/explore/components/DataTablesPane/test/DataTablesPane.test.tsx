@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 import React from 'react';
 import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
@@ -26,56 +25,8 @@ import {
   screen,
   waitForElementToBeRemoved,
 } from 'spec/helpers/testing-library';
-import { DatasourceType } from '@superset-ui/core';
-import { exploreActions } from 'src/explore/actions/exploreActions';
-import { ChartStatus } from 'src/explore/types';
-import { DataTablesPane } from '.';
-
-const createProps = () => ({
-  queryFormData: {
-    viz_type: 'heatmap',
-    datasource: '34__table',
-    slice_id: 456,
-    url_params: {},
-    time_range: 'Last week',
-    all_columns_x: 'source',
-    all_columns_y: 'target',
-    metric: 'sum__value',
-    adhoc_filters: [],
-    row_limit: 10000,
-    linear_color_scheme: 'blue_white_yellow',
-    xscale_interval: null,
-    yscale_interval: null,
-    canvas_image_rendering: 'pixelated',
-    normalize_across: 'heatmap',
-    left_margin: 'auto',
-    bottom_margin: 'auto',
-    y_axis_bounds: [null, null],
-    y_axis_format: 'SMART_NUMBER',
-    show_perc: true,
-    sort_x_axis: 'alpha_asc',
-    sort_y_axis: 'alpha_asc',
-    extra_form_data: {},
-  },
-  queryForce: false,
-  chartStatus: 'rendered' as ChartStatus,
-  onCollapseChange: jest.fn(),
-  queriesResponse: [
-    {
-      colnames: [],
-    },
-  ],
-  datasource: {
-    id: 0,
-    name: '',
-    type: DatasourceType.Table,
-    columns: [],
-    metrics: [],
-    columnFormats: {},
-    verboseMap: {},
-  },
-  actions: exploreActions,
-});
+import { DataTablesPane } from '..';
+import { createDataTablesPaneProps } from './fixture';
 
 describe('DataTablesPane', () => {
   // Collapsed/expanded state depends on local storage
@@ -89,7 +40,7 @@ describe('DataTablesPane', () => {
   });
 
   test('Rendering DataTablesPane correctly', () => {
-    const props = createProps();
+    const props = createDataTablesPaneProps(0);
     render(<DataTablesPane {...props} />, { useRedux: true });
     expect(screen.getByText('Results')).toBeVisible();
     expect(screen.getByText('Samples')).toBeVisible();
@@ -97,7 +48,7 @@ describe('DataTablesPane', () => {
   });
 
   test('Collapse/Expand buttons', async () => {
-    const props = createProps();
+    const props = createDataTablesPaneProps(0);
     render(<DataTablesPane {...props} />, {
       useRedux: true,
     });
@@ -112,7 +63,7 @@ describe('DataTablesPane', () => {
   });
 
   test('Should show tabs: View results', async () => {
-    const props = createProps();
+    const props = createDataTablesPaneProps(0);
     render(<DataTablesPane {...props} />, {
       useRedux: true,
     });
@@ -121,9 +72,8 @@ describe('DataTablesPane', () => {
     expect(await screen.findByLabelText('Collapse data panel')).toBeVisible();
     localStorage.clear();
   });
-
   test('Should show tabs: View samples', async () => {
-    const props = createProps();
+    const props = createDataTablesPaneProps(0);
     render(<DataTablesPane {...props} />, {
       useRedux: true,
     });
@@ -146,31 +96,10 @@ describe('DataTablesPane', () => {
       },
     );
     const copyToClipboardSpy = jest.spyOn(copyUtils, 'default');
-    const props = createProps();
-    render(
-      <DataTablesPane
-        {...{
-          ...props,
-          chartStatus: 'rendered',
-          queriesResponse: [
-            {
-              colnames: ['__timestamp', 'genre'],
-              coltypes: [2, 1],
-            },
-          ],
-        }}
-      />,
-      {
-        useRedux: true,
-        initialState: {
-          explore: {
-            originalFormattedTimeColumns: {
-              '34__table': ['__timestamp'],
-            },
-          },
-        },
-      },
-    );
+    const props = createDataTablesPaneProps(456);
+    render(<DataTablesPane {...props} />, {
+      useRedux: true,
+    });
     userEvent.click(screen.getByText('Results'));
     expect(await screen.findByText('1 row')).toBeVisible();
 
@@ -184,7 +113,7 @@ describe('DataTablesPane', () => {
 
   test('Search table', async () => {
     fetchMock.post(
-      'glob:*/api/v1/chart/data?form_data=%7B%22slice_id%22%3A456%7D',
+      'glob:*/api/v1/chart/data?form_data=%7B%22slice_id%22%3A789%7D',
       {
         result: [
           {
@@ -198,31 +127,10 @@ describe('DataTablesPane', () => {
         ],
       },
     );
-    const props = createProps();
-    render(
-      <DataTablesPane
-        {...{
-          ...props,
-          chartStatus: 'rendered',
-          queriesResponse: [
-            {
-              colnames: ['__timestamp', 'genre'],
-              coltypes: [2, 1],
-            },
-          ],
-        }}
-      />,
-      {
-        useRedux: true,
-        initialState: {
-          explore: {
-            originalFormattedTimeColumns: {
-              '34__table': ['__timestamp'],
-            },
-          },
-        },
-      },
-    );
+    const props = createDataTablesPaneProps(789);
+    render(<DataTablesPane {...props} />, {
+      useRedux: true,
+    });
     userEvent.click(screen.getByText('Results'));
     expect(await screen.findByText('2 rows')).toBeVisible();
     expect(screen.getByText('Action')).toBeVisible();
