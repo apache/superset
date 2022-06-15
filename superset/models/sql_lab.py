@@ -215,7 +215,7 @@ class Query(Model, ExtraJSONMixin, ExploreMixin):
             "metrics": [],
             "id": self.id,
             "type": self.type,
-            "name": self.sql,
+            "sql": self.sql,
             "owners": self.owners_data,
             "database": {"id": self.database_id, "backend": self.database.backend},
         }
