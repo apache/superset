@@ -58,7 +58,7 @@ def session_with_data(session: Session) -> Iterator[Session]:
         executed_sql="select * from bar",
         limit=100,
         select_as_cta=False,
-        rows=100,
+        row_count=100,
         error_message="none",
         results_key="abc",
     )
