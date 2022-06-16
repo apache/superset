@@ -42,7 +42,6 @@ from superset.utils.core import (
     find_duplicates,
     get_column_names,
     get_metric_names,
-    get_username,
     is_adhoc_metric,
     json_int_dttm_ser,
     QueryObjectFilterClause,
