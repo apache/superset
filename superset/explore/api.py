@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from abc import ABC
 
 from flask import g, request, Response
 from flask_appbuilder.api import BaseApi, expose, protect, safe
@@ -36,7 +35,7 @@ from superset.temporary_cache.commands.exceptions import (
 logger = logging.getLogger(__name__)
 
 
-class ExploreRestApi(BaseApi, ABC):
+class ExploreRestApi(BaseApi):
     method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
     include_route_methods = {RouteMethod.GET}
     allow_browser_login = True

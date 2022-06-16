@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from abc import ABC
 
 from flask import g, request, Response
 from flask_appbuilder.api import BaseApi, expose, protect, safe
@@ -38,7 +37,7 @@ from superset.views.base_api import requires_json
 logger = logging.getLogger(__name__)
 
 
-class ExploreFormDataRestApi(BaseApi, ABC):
+class ExploreFormDataRestApi(BaseApi):
     add_model_schema = FormDataPostSchema()
     edit_model_schema = FormDataPutSchema()
     method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
