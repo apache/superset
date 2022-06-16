@@ -392,16 +392,25 @@ class TestDatasource(SupersetTestCase):
         app.config["DATASET_HEALTH_CHECK"] = None
 
     def test_get_datasource_failed(self):
+        from superset.datasource.dao import DatasourceDAO
+
         pytest.raises(
             DatasourceNotFound,
-            lambda: DatasourceDAO.get_datasource("table", 9999999, db.session),
+            lambda: DatasourceDAO.get_datasource(db.session, "table", 9999999),
+        )
+
+        self.login(username="admin")
+        resp = self.get_json_resp("/datasource/get/table/500000/", raise_on_error=False)
+        self.assertEqual(resp.get("error"), "Datasource does not exist")
+
+    def test_get_datasource_invalid_datasource_failed(self):
+        from superset.datasource.dao import DatasourceDAO
+
+        pytest.raises(
+            DatasourceTypeNotSupportedError,
+            lambda: DatasourceDAO.get_datasource(db.session, "druid", 9999999),
         )
 
         self.login(username="admin")
         resp = self.get_json_resp("/datasource/get/druid/500000/", raise_on_error=False)
-        self.assertEqual(resp.get("error"), "Dataset does not exist")
-
-        resp = self.get_json_resp(
-            "/datasource/get/invalid-datasource-type/500000/", raise_on_error=False
-        )
-        self.assertEqual(resp.get("error"), "Dataset does not exist")
+        self.assertEqual(resp.get("error"), "'druid' is not a valid DatasourceType")
