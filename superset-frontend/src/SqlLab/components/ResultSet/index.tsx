@@ -237,7 +237,17 @@ export default class ResultSet extends React.PureComponent<
               this.props.database?.allows_virtual_table_explore && (
                 <ExploreResultsButton
                   database={this.props.database}
-                  onClick={() => this.setState({ showSaveDatasetModal: true })}
+                  onClick={() => {
+                    // There is currently redux / state issue where sometimes a query will have serverId
+                    // and other times it will not.  We need this attribute consistently for this to work
+                    const qid = this.props?.query?.serverId;
+                    if (qid) {
+                      // This will open expolore using the query as datasource
+                      window.location.href = `/superset/explore/query/${qid}`;
+                    } else {
+                      this.setState({ showSaveDatasetModal: true });
+                    }
+                  }}
                 />
               )}
             {this.props.csv && (

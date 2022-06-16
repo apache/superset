@@ -124,42 +124,43 @@ const SAVE_AS_DATASET = 'save_as_dataset';
 // a tooltip for user can see the full name by hovering over the visually truncated string in UI
 const VISIBLE_TITLE_LENGTH = 25;
 
-
 // Assign icon for each DatasourceType.  If no icon assingment is found in the lookup, no icon will render
 export const datasourceIconLookup = {
-    [DatasourceType.Query]: <Icons.ConsoleSqlOutlined className="datasource-svg" />,
-    [DatasourceType.Table]: <Icons.DatasetPhysical className="datasource-svg" />,
-  }
+  [DatasourceType.Query]: (
+    <Icons.ConsoleSqlOutlined className="datasource-svg" />
+  ),
+  [DatasourceType.Table]: <Icons.DatasetPhysical className="datasource-svg" />,
+};
 
 // Render title for datasource with tooltip only if text is longer than VISIBLE_TITLE_LENGTH
 export const renderDatasourceTitle = displayString =>
-    displayString.length > VISIBLE_TITLE_LENGTH ? (
-      // Add a tooltip only for long names that will be visually truncated
-      <Tooltip title={displayString}>
-        <span className="title-select">{displayString}</span>
-      </Tooltip>
-    ) : (
-      <span title={displayString} className="title-select">
-        {displayString}
-      </span>
-    );
+  displayString.length > VISIBLE_TITLE_LENGTH ? (
+    // Add a tooltip only for long names that will be visually truncated
+    <Tooltip title={displayString}>
+      <span className="title-select">{displayString}</span>
+    </Tooltip>
+  ) : (
+    <span title={displayString} className="title-select">
+      {displayString}
+    </span>
+  );
 
 // Different data source types use different attributes for the display title
 export const getDatasourceTitle = datasource => {
-    let text = '';
-    const dataSourceType = datasource?.type;
-    if (dataSourceType) {
-      switch (dataSourceType) {
-        case DatasourceType.Query:
-          text = datasource?.sql ?? '';
-          break;
-        default:
-          text = datasource?.name ?? '';
-          break;
-      }
+  let text = '';
+  const dataSourceType = datasource?.type;
+  if (dataSourceType) {
+    switch (dataSourceType) {
+      case DatasourceType.Query:
+        text = datasource?.sql ?? '';
+        break;
+      default:
+        text = datasource?.name ?? '';
+        break;
     }
-    return text;
-  };
+  }
+  return text;
+};
 
 class DatasourceControl extends React.PureComponent {
   constructor(props) {
@@ -171,7 +172,7 @@ class DatasourceControl extends React.PureComponent {
     };
   }
 
-  onDatasourceSave  = (datasource) => {
+  onDatasourceSave = datasource => {
     this.props.actions.setDatasource(datasource);
     const timeCol = this.props.form_data?.granularity_sqla;
     const { columns } = this.props.datasource;
@@ -189,39 +190,39 @@ class DatasourceControl extends React.PureComponent {
     if (this.props.onDatasourceSave) {
       this.props.onDatasourceSave(datasource);
     }
-  }
+  };
 
   toggleShowDatasource = () => {
     this.setState(({ showDatasource }) => ({
       showDatasource: !showDatasource,
     }));
-  }
+  };
 
   toggleChangeDatasourceModal = () => {
     this.setState(({ showChangeDatasourceModal }) => ({
       showChangeDatasourceModal: !showChangeDatasourceModal,
     }));
-  }
+  };
 
   toggleEditDatasourceModal = () => {
     this.setState(({ showEditDatasourceModal }) => ({
       showEditDatasourceModal: !showEditDatasourceModal,
     }));
-  }
+  };
 
   toggleSaveDatasetModal = () => {
     this.setState(({ showSaveDatasetModal }) => ({
       showSaveDatasetModal: !showSaveDatasetModal,
     }));
-  }
+  };
 
   toggleQueryPreviewModal = () => {
     this.setState(({ QueryPreviewModal }) => ({
       QueryPreviewModal: !QueryPreviewModal,
     }));
-  }
+  };
 
-  handleMenuItemClick({ key }) {
+  handleMenuItemClick = ({ key }) => {
     switch (key) {
       case CHANGE_DATASET:
         this.toggleChangeDatasourceModal();
@@ -249,7 +250,7 @@ class DatasourceControl extends React.PureComponent {
       default:
         break;
     }
-  }
+  };
 
   render() {
     const {
@@ -258,7 +259,7 @@ class DatasourceControl extends React.PureComponent {
       showSaveDatasetModal,
     } = this.state;
     const { datasource, onChange, theme, form_data } = this.props;
-    const isMissingDatasource = datasource?.id?.length > 0 ? false : true;
+    const isMissingDatasource = datasource?.id == null;
     let isMissingParams = false;
     if (isMissingDatasource) {
       const datasourceId = getUrlParam(URL_PARAMS.datasourceId);
@@ -314,9 +315,16 @@ class DatasourceControl extends React.PureComponent {
             }
             modalTitle={t('Query preview')}
             modalBody={
-              <ViewQuery sql={datasource?.sql || datasource?.select_star || ''} />
+              <ViewQuery
+                sql={datasource?.sql || datasource?.select_star || ''}
+              />
             }
-            modalFooter={<ViewQueryModalFooter changeDatasource={this.toggleSaveDatasetModal} datasource={datasource} />}
+            modalFooter={
+              <ViewQueryModalFooter
+                changeDatasource={this.toggleSaveDatasetModal}
+                datasource={datasource}
+              />
+            }
             draggable={false}
             resizable={false}
             responsive={true}
@@ -336,7 +344,7 @@ class DatasourceControl extends React.PureComponent {
       } catch {} // eslint-disable-line no-empty
     }
 
-    const titleText = getDatasourceTitle(datasource) ;
+    const titleText = getDatasourceTitle(datasource);
 
     return (
       <Styles data-test="datasource-control" className="DatasourceControl">
