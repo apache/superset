@@ -41,10 +41,12 @@ describe('Translator', () => {
     spy.mockImplementation((info: any) => {
       throw new Error(info);
     });
+    process.env.NODE_ENV = 'production';
   });
 
   afterAll(() => {
     spy.mockRestore();
+    process.env.NODE_ENV = 'test';
   });
 
   describe('new Translator(config)', () => {
