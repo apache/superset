@@ -3071,7 +3071,7 @@ msgstr "字段作为数据文件的行标签使用。如果没有索引字段，
 #: superset/views/database/forms.py:385
 #, fuzzy
 msgid "Columnar File"
-msgstr "列"
+msgstr "列式存储文件"
 
 #: superset/views/database/views.py:550
 #, fuzzy, python-format
@@ -3079,13 +3079,13 @@ msgid ""
 "Columnar file \"%(columnar_filename)s\" uploaded to table "
 "\"%(table_name)s\" in database \"%(db_name)s\""
 msgstr ""
-"Excel 文件 \"%(excel_filename)s\" 上传到数据库 \"%(db_name)s\" 中的表 "
+"Excel 文件 \"%(columnar_filename)s\" 上传到数据库 \"%(db_name)s\" 中的表 "
 "\"%(table_name)s\""
 
 #: superset/views/database/views.py:414
 #, fuzzy
 msgid "Columnar to Database configuration"
-msgstr "Excel 到数据库配置"
+msgstr "列式存储文件到数据库配置"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/dndControls.tsx:55
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/index.tsx:214
@@ -10315,12 +10315,12 @@ msgstr "搜索指标和列"
 #: superset-frontend/src/explore/components/controls/VizTypeControl/VizTypeGallery.tsx:703
 #, fuzzy
 msgid "Search all charts"
-msgstr "所有图表"
+msgstr "搜索所有图表"
 
 #: superset-frontend/src/components/OmniContainer/index.tsx:102
 #, fuzzy
 msgid "Search all dashboards"
-msgstr "刷新看板"
+msgstr "搜索所有看板"
 
 #: superset-frontend/src/explore/components/controls/FilterBoxItemControl/index.jsx:232
 #: superset-frontend/src/filters/components/Select/controlPanel.ts:137
@@ -11522,7 +11522,7 @@ msgstr "报告计划意外错误。"
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal/index.tsx:670
 #, fuzzy
 msgid "Supported databases"
-msgstr "删除数据库"
+msgstr "已支持数据库"
 
 #: superset-frontend/plugins/legacy-plugin-chart-sankey/src/index.js:34
 msgid "Survey Responses"
@@ -12324,14 +12324,14 @@ msgstr "详细提示显示了该时间点的所有序列的列表。"
 msgid ""
 "The schema \"%(schema)s\" does not exist. A valid schema must be used to "
 "run this query."
-msgstr "表 \"%(table_name)s\" 不存在。必须使用有效的表来运行此查询。"
+msgstr "表 \"%(schema)s\" 不存在。必须使用有效的表来运行此查询。"
 
 #: superset/db_engine_specs/presto.py:187
 #, fuzzy, python-format
 msgid ""
 "The schema \"%(schema_name)s\" does not exist. A valid schema must be "
 "used to run this query."
-msgstr "表 \"%(table_name)s\" 不存在。必须使用有效的表来运行此查询。"
+msgstr "表 \"%(schema_name)s\" 不存在。必须使用有效的表来运行此查询。"
 
 #: superset/errors.py:111
 #, fuzzy
@@ -12355,7 +12355,7 @@ msgstr ""
 msgid ""
 "The table \"%(table)s\" does not exist. A valid table must be used to run"
 " this query."
-msgstr "表 \"%(table_name)s\" 不存在。必须使用有效的表来运行此查询。"
+msgstr "表 \"%(table)s\" 不存在。必须使用有效的表来运行此查询。"
 
 #: superset/db_engine_specs/presto.py:179
 #, python-format
@@ -13641,10 +13641,10 @@ msgstr "上传"
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal/DatabaseConnectionForm/EncryptedField.tsx:134
 #, fuzzy
 msgid "Upload Credentials"
-msgstr "上传Excel"
+msgstr "上传验证文件"
 
 #: superset/initialization/__init__.py:400
-msgid "Upload Excel"
+msgid "Upload Excel file to database"
 msgstr "上传Excel"
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal/DatabaseConnectionForm/EncryptedField.tsx:102
@@ -13652,12 +13652,12 @@ msgid "Upload JSON file"
 msgstr ""
 
 #: superset/initialization/__init__.py:369
-msgid "Upload a CSV"
+msgid "Upload CSV to database"
 msgstr "上传CSV文件"
 
 #: superset/initialization/__init__.py:383
 msgid "Upload a Columnar File"
-msgstr ""
+msgstr "上传列式存储文件"
 
 #: superset-frontend/plugins/legacy-plugin-chart-rose/src/controlPanel.tsx:112
 #, fuzzy
@@ -14765,7 +14765,7 @@ msgid ""
 "\"%(columnar_table.table)s\" and in the schema field: "
 "\"%(columnar_table.schema)s\". Please remove one"
 msgstr ""
-"不能同时在表名 \"%(excel_table.table)s\" 和schema字段 \"%(excel_table.schema)s\" "
+"不能同时在表名 \"%(columnar_table.table)s\" 和schema字段 \"%(columnar_table.schema)s\" "
 "中指定命名空间。请删除一个。"
 
 #: superset/views/database/views.py:146
@@ -15572,4 +15572,4 @@ msgstr "年"
 
 #: superset-frontend/src/explore/components/controls/ConditionalFormattingControl/FormattingPopoverContent.tsx:42
 msgid "yellow"
-msgstr ""
+msgstr "黄色"
