@@ -397,6 +397,7 @@ class DatabasePostSchema(Schema, DatabaseParametersSchemaMixin):
     )
     is_managed_externally = fields.Boolean(allow_none=True, default=False)
     external_url = fields.String(allow_none=True)
+    uuid = fields.String(required=False)
 
 
 class DatabasePutSchema(Schema, DatabaseParametersSchemaMixin):
