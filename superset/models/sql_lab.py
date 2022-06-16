@@ -63,7 +63,7 @@ class Query(Model, ExtraJSONMixin, ExploreMixin):
     type = "query"
     id = Column(Integer, primary_key=True)
     client_id = Column(String(11), unique=True, nullable=False)
-
+    query_language = "sql"
     database_id = Column(Integer, ForeignKey("dbs.id"), nullable=False)
 
     # Store the tmp table into the DB only if the user asks for it.
