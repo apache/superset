@@ -106,7 +106,7 @@ export async function embedDashboard({
       iframe.sandbox.add("allow-presentation"); // for fullscreen charts
       iframe.sandbox.add("allow-downloads"); // for downloading charts as image
       iframe.sandbox.add("allow-forms"); // for forms to submit
-      iframe.sandbox.add("allow-popups"); // for exporting charts as csv 
+      iframe.sandbox.add("allow-popups"); // for exporting charts as csv
       // add these ones if it turns out we need them:
       // iframe.sandbox.add("allow-top-navigation");
 
