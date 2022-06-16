@@ -43,7 +43,7 @@ def test_post_with_uuid(
         "/api/v1/database/",
         json={
             "database_name": "my_db",
-            "sqlalchemy_uri": "gsheets://",
+            "sqlalchemy_uri": "sqlite://",
             "uuid": "7c1b7880-a59d-47cd-8bf1-f1eb8d2863cb",
         },
     )
