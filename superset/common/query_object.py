@@ -23,6 +23,7 @@ from datetime import datetime, timedelta
 from pprint import pformat
 from typing import Any, Dict, List, NamedTuple, Optional, TYPE_CHECKING
 
+from flask import g
 from flask_babel import gettext as _
 from pandas import DataFrame
 
@@ -407,7 +408,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         ):
 
             if key := self.datasource.database.db_engine_spec.get_impersonation_key(
-                get_username()
+                getattr(g, "user", None)
             ):
 
                 logger.debug(
