@@ -68,14 +68,13 @@ class GetExploreCommand(BaseCommand, ABC):
         if self._permalink_key is not None:
             command = GetExplorePermalinkCommand(self._actor, self._permalink_key)
             permalink_value = command.run()
-            if permalink_value:
-                state = permalink_value["state"]
-                initial_form_data = state["formData"]
-                url_params = state.get("urlParams")
-                if url_params:
-                    initial_form_data["url_params"] = dict(url_params)
-            else:
+            if not permalink_value:
                 raise ExplorePermalinkGetFailedError()
+            state = permalink_value["state"]
+            initial_form_data = state["formData"]
+            url_params = state.get("urlParams")
+            if url_params:
+                initial_form_data["url_params"] = dict(url_params)
         elif self._form_data_key:
             parameters = FormDataCommandParameters(
                 actor=self._actor, key=self._form_data_key
