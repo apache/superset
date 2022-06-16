@@ -21,7 +21,7 @@ export default function ApplicationLinks(props: ApplicationsProps) {
       callback_url = 'ip_string';
     }
   }
-  
+
   useEffect(() => {
     fetch(
       // eslint-disable-next-line no-restricted-globals
