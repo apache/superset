@@ -193,6 +193,7 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
       const selectedColumns =
         this.props.datasource?.results?.selected_columns || [];
       SupersetClient.post({
+        // datasource post 
         endpoint: '/superset/sqllab_viz/',
         postPayload: {
           data: {
