@@ -35,6 +35,7 @@ import Button from 'src/components/Button';
 import ErrorAlert from 'src/components/ErrorMessage/ErrorAlert';
 import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
 import { URL_PARAMS } from 'src/constants';
+import { isUserAdmin } from 'src/dashboard/util/findPermission';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -195,12 +196,32 @@ class DatasourceControl extends React.PureComponent {
     }
 
     const isSqlSupported = datasource.type === 'table';
+    const { user } = this.props;
+    const allowEdit =
+      datasource.owners.map(o => o.id).includes(user.userId) ||
+      isUserAdmin(user);
+
+    const editText = t('Edit dataset');
 
     const datasourceMenu = (
       <Menu onClick={this.handleMenuItemClick}>
         {this.props.isEditable && (
-          <Menu.Item key={EDIT_DATASET} data-test="edit-dataset">
-            {t('Edit dataset')}
+          <Menu.Item
+            key={EDIT_DATASET}
+            data-test="edit-dataset"
+            disabled={!allowEdit}
+          >
+            {!allowEdit ? (
+              <Tooltip
+                title={t(
+                  'You must be a dataset owner in order to edit. Please reach out to a dataset owner to request modifications or edit access.',
+                )}
+              >
+                {editText}
+              </Tooltip>
+            ) : (
+              editText
+            )}
           </Menu.Item>
         )}
         <Menu.Item key={CHANGE_DATASET}>{t('Change dataset')}</Menu.Item>
