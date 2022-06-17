@@ -152,7 +152,7 @@ export const countryOptions = Object.keys(countries).map(x => {
     return [x, x.toUpperCase()];
   }
   if (x === 'italy_regions') {
-    return [x, 'Italy (regions)'];
+    return [x, 'Italy (bolge)'];
   }
   return [x, x[0].toUpperCase() + x.slice(1)];
 });
