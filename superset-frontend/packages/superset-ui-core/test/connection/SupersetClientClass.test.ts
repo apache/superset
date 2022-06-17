@@ -648,7 +648,7 @@ describe('SupersetClientClass', () => {
       expect(removeChild.mock.calls).toHaveLength(1);
     });
 
-    it('makes postForm request with guesr token', async () => {
+    it('makes postForm request with guest token', async () => {
       const client = new SupersetClientClass({ protocol, host, guestToken });
       await client.init();
 
