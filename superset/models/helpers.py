@@ -658,16 +658,15 @@ class ExploreMixin:
         return 0
 
     @property
-    def main_dttm_col(self) -> str:  # todo - this should be a real column
-        return "ds"
+    def main_dttm_col(self) -> str:
+        for col in self.columns:
+            if col.get('is_dttm'):
+                return col.get('column_name')
+        return None
 
     @property
     def dttm_cols(self) -> List[str]:
-        return []
-        # l = [c.column_name for c in self.columns if c.is_dttm]
-        # if self.main_dttm_col and self.main_dttm_col not in l:
-        #     l.append(self.main_dttm_col)
-        # return l
+        return [col.get('column_name') for col in self.columns if col.get('is_dttm')]
 
     @staticmethod
     def get_extra_cache_keys(query_obj):
@@ -799,13 +798,8 @@ class ExploreMixin:
 
     def exc_query(self, qry: Any) -> QueryResult:
         qry_start_dttm = datetime.now()
-        # todo(hugh): apply filters for extended query
         query_str_ext = self.get_query_str_extended(qry)
         sql = query_str_ext.sql
-
-        print("*****" * 5)
-
-        # sql = "select count(*) from flights"
         status = QueryStatus.SUCCESS
         errors = None
         error_message = None
