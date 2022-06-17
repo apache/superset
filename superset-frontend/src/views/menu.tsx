@@ -28,8 +28,11 @@ import Menu from 'src/views/components/Menu';
 import { theme } from 'src/preamble';
 
 import { Provider } from 'react-redux';
-import { store } from './store';
+import { setupStore } from './store';
 
+// Disable connecting to redux debugger so that the React app injected
+// Below the menu like SqlLab or Explore can conect its redux store to the debugger
+const store = setupStore(true);
 const container = document.getElementById('app');
 const bootstrapJson = container?.getAttribute('data-bootstrap') ?? '{}';
 const bootstrap = JSON.parse(bootstrapJson);
