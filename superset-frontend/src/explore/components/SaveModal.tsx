@@ -188,18 +188,17 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
       });
 
     if (this.props.datasource?.type === 'query') {
-      const { schema, sql, dbId } = this.props.datasource as Query;
-      const { templateParams } = this.props.datasource as Query;
+      const { schema, sql, database } = this.props.datasource;
+      const { templateParams } = this.props.datasource;
       const selectedColumns =
         this.props.datasource?.results?.selected_columns || [];
       SupersetClient.post({
-        // datasource post 
         endpoint: '/superset/sqllab_viz/',
         postPayload: {
           data: {
             schema,
             sql,
-            dbId,
+            dbId: database?.id,
             templateParams,
             datasourceName: this.state.datasetName,
             columns: selectedColumns,
