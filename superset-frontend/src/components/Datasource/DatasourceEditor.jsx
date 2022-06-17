@@ -124,8 +124,10 @@ const StyledColumnsTabWrapper = styled.div`
 `;
 
 const StyledButtonWrapper = styled.span`
-  margin-top: 10px;
-  margin-left: 10px;
+  ${({ theme }) => `
+    margin-top: ${theme.gridUnit * 3}px;
+    margin-left: ${theme.gridUnit * 3}px;
+  `}
 `;
 
 const checkboxGenerator = (d, onChange) => (
