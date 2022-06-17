@@ -13284,14 +13284,16 @@ msgstr "Serie Temporal - Pivote de periodo"
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/Scatter/index.ts:69
 #, fuzzy
 msgid "Time-series Scatter Plot"
-msgstr "Tabla de serie temporal"
+msgstr "Gráfico de Dispersión de Puntos (Series de Tiempo)"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/Scatter/index.ts:59
 msgid ""
 "Time-series Scatter Plot has time on the horizontal axis in linear units,"
 " and the points are connected in order. It shows a statistical "
 "relationship between two variables."
-msgstr ""
+msgstr "Gráfico de Dispersión de Puntos (en Series de tiempo), muestra en el eje "
+"horizontal el tiempo en unidades lineales, conectando los puntos en orden. Muestra"
+" una relación estadística entre dos variables-"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/SmoothLine/index.ts:69
 #, fuzzy
@@ -13316,7 +13318,7 @@ msgid ""
 "points. A step chart can be useful when you want to show the changes that"
 " occur at irregular intervals."
 msgstr ""
-"Gráfico de Series por tiempo en Pasos (también llamada Tabla de Pasos) "
+"Gráfico de Series por tiempo en Pasos (conocida como Tabla de Pasos) "
 "es una variación del gráfico de Linea, en la cual la linea que forma la serie "
 "de tiempo forma una serie de 'pasos' entre los puntos de intervalos de datos. "
 "Una tabla de paso es útil cuando se quieren mostrar los cambios ocurridos en "
