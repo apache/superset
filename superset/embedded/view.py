@@ -17,9 +17,10 @@
 import json
 from typing import Callable
 
-from flask import abort
+from flask import abort, request
 from flask_appbuilder import expose
 from flask_login import AnonymousUserMixin, LoginManager
+from flask_wtf.csrf import same_origin
 
 from superset import event_logger, is_feature_enabled, security_manager
 from superset.embedded.dao import EmbeddedDAO
@@ -50,8 +51,19 @@ class EmbeddedView(BaseSupersetView):
             abort(404)
 
         embedded = EmbeddedDAO.find_by_id(uuid)
+
         if not embedded:
             abort(404)
+
+        # validate request referrer in allowed domains
+        is_referrer_allowed = not embedded.allowed_domains
+        for domain in embedded.allowed_domains:
+            if same_origin(request.referrer, domain):
+                is_referrer_allowed = True
+                break
+
+        if not is_referrer_allowed:
+            abort(403)
 
         # Log in as an anonymous user, just for this view.
         # This view needs to be visible to all users,
