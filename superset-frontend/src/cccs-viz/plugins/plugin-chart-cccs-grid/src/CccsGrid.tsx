@@ -311,8 +311,14 @@ export default function CccsGrid({
   };
 
   return (
-    <div style={{ width, height }} className="ag-theme-balham">
-      <div className="form-inline" style={{ paddingBottom: '0.5em' }}>
+    <div
+      style={{ width, height, display: 'flex', flexFlow: 'column' }}
+      className="ag-theme-balham"
+    >
+      <div
+        className="form-inline"
+        style={{ flex: '0 1 auto', paddingBottom: '0.5em' }}
+      >
         <div className="row">
           <div className="col-sm-6">
             {page_length > 0 && (
@@ -358,28 +364,30 @@ export default function CccsGrid({
           </div>
         </div>
       </div>
-      <AgGridReact
-        key={keyRefresh.current}
-        ref={gridRef}
-        modules={AllModules}
-        columnDefs={columnDefs}
-        defaultColDef={DEFAULT_COLUMN_DEF}
-        frameworkComponents={frameworkComponents}
-        enableRangeSelection
-        allowContextMenuWithControlKey
-        gridOptions={gridOptions}
-        onGridColumnsChanged={autoSizeFirst100Columns}
-        getContextMenuItems={getContextMenuItems}
-        onGridReady={onGridReady}
-        onRangeSelectionChanged={onRangeSelectionChanged}
-        onSelectionChanged={onSelectionChanged}
-        rowData={rowData}
-        paginationPageSize={pageSize}
-        pagination={pageSize > 0}
-        cacheQuickFilter={true}
-        quickFilterText={searchValue}
-        rowGroupPanelShow={enable_grouping ? 'always' : 'never'}
-      />
+      <div style={{ flex: '1 1 auto' }}>
+        <AgGridReact
+          key={keyRefresh.current}
+          ref={gridRef}
+          modules={AllModules}
+          columnDefs={columnDefs}
+          defaultColDef={DEFAULT_COLUMN_DEF}
+          frameworkComponents={frameworkComponents}
+          enableRangeSelection={true}
+          allowContextMenuWithControlKey={true}
+          gridOptions={gridOptions}
+          onGridColumnsChanged={autoSizeFirst100Columns}
+          //getContextMenuItems={getContextMenuItems}
+          onGridReady={onGridReady}
+          onRangeSelectionChanged={onRangeSelectionChanged}
+          onSelectionChanged={onSelectionChanged}
+          rowData={rowData}
+          paginationPageSize={pageSize}
+          pagination={pageSize > 0}
+          cacheQuickFilter={true}
+          quickFilterText={searchValue}
+          rowGroupPanelShow={enable_grouping ? 'always' : 'never'}
+        />
+      </div>
     </div>
   );
 }
