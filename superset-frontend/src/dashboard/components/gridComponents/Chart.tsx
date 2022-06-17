@@ -86,7 +86,7 @@ interface Props {
 
   // from redux
   chart: chartProps;
-  formData: Pick<QueryFormData, 'slice_id' | 'datasource'>;
+  formData: QueryFormData & object;
   labelColors: Object;
   sharedLabelColors: Object;
   datasource: Record<string, any>;
@@ -118,6 +118,7 @@ interface Props {
   postTransformProps?: any;
   datasetsStatus?: 'loading' | 'error' | 'complete';
   cacheBusterProp: any;
+  setControlValue?: () => {};
 }
 
 const SHOULD_UPDATE_ON_PROP_CHANGES = [
@@ -195,6 +196,7 @@ function Chart(props: Props) {
     filterState,
     handleToggleFullSize,
     isFullSize,
+    setControlValue,
     filterboxMigrationState,
     postTransformProps,
     datasetsStatus,
@@ -215,8 +217,16 @@ function Chart(props: Props) {
       ? descriptionRef.current?.offsetHeight || 0
       : 0;
 
-  const getHeaderHeight = (): number =>
-    (headerRef && headerRef.current?.offsetHeight) || DEFAULT_HEADER_HEIGHT;
+  const getHeaderHeight = (): number => {
+    if (headerRef && headerRef.current) {
+      const computedStyle = getComputedStyle(
+        headerRef.current,
+      ).getPropertyValue('margin-bottom');
+      const marginBottom = parseInt(computedStyle, 10) || 0;
+      return headerRef.current.offsetHeight + marginBottom;
+    }
+    return DEFAULT_HEADER_HEIGHT;
+  };
 
   const getChartHeight = (): number => {
     const headerHeight = getHeaderHeight();
@@ -427,6 +437,7 @@ function Chart(props: Props) {
           timeout={timeout}
           triggerQuery={chart.triggerQuery}
           vizType={slice.viz_type}
+          setControlValue={setControlValue}
           isDeactivatedViz={isDeactivatedViz}
           filterboxMigrationState={filterboxMigrationState}
           postTransformProps={postTransformProps}

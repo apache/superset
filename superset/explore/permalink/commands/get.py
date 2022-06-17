@@ -48,8 +48,13 @@ class GetExplorePermalinkCommand(BaseExplorePermalinkCommand):
             ).run()
             if value:
                 chart_id: Optional[int] = value.get("chartId")
-                datasource_id: int = value["datasourceId"]
-                datasource_type = DatasourceType(value["datasourceType"])
+                # keep this backward compatible for old permalinks
+                datasource_id: int = (
+                    value.get("datasourceId") or value.get("datasetId") or 0
+                )
+                datasource_type = DatasourceType(
+                    value.get("datasourceType", DatasourceType.TABLE)
+                )
                 check_chart_access(datasource_id, chart_id, self.actor, datasource_type)
                 return value
             return None
