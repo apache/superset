@@ -27,6 +27,7 @@ import { t, SupersetClient, styled } from '@superset-ui/core';
 import Chart, { Slice } from 'src/types/Chart';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import withToasts from 'src/components/MessageToasts/withToasts';
+import AsyncSelect from 'src/components/Select/AsyncSelect';
 
 export type PropertiesModalProps = {
   slice: Slice;
@@ -298,7 +299,7 @@ function PropertiesModal({
             </FormItem>
             <h3 style={{ marginTop: '1em' }}>{t('Access')}</h3>
             <FormItem label={ownersLabel}>
-              <Select
+              <AsyncSelect
                 ariaLabel={ownersLabel}
                 mode="multiple"
                 name="owners"

@@ -58,6 +58,7 @@ import {
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import { AlertReportCronScheduler } from './components/AlertReportCronScheduler';
 import { NotificationMethod } from './components/NotificationMethod';
+import AsyncSelect from 'src/components/Select/AsyncSelect';
 
 const TIMEOUT_MIN = 1;
 const TEXT_BASED_VISUALIZATION_TYPES = [
@@ -1098,7 +1099,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               <span className="required">*</span>
             </div>
             <div data-test="owners-select" className="input-container">
-              <Select
+              <AsyncSelect
                 ariaLabel={t('Owners')}
                 allowClear
                 name="owners"
@@ -1146,7 +1147,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   <span className="required">*</span>
                 </div>
                 <div className="input-container">
-                  <Select
+                  <AsyncSelect
                     ariaLabel={t('Database')}
                     name="source"
                     value={
@@ -1319,7 +1320,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               <StyledRadio value="dashboard">{t('Dashboard')}</StyledRadio>
               <StyledRadio value="chart">{t('Chart')}</StyledRadio>
             </Radio.Group>
-            <Select
+            <AsyncSelect
               ariaLabel={t('Chart')}
               css={{
                 display: contentType === 'chart' ? 'inline' : 'none',
@@ -1336,7 +1337,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               options={loadChartOptions}
               onChange={onChartChange}
             />
-            <Select
+            <AsyncSelect
               ariaLabel={t('Dashboard')}
               css={{
                 display: contentType === 'dashboard' ? 'inline' : 'none',

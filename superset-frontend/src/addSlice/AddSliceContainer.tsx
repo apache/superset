@@ -27,6 +27,7 @@ import { Tooltip } from 'src/components/Tooltip';
 import VizTypeGallery, {
   MAX_ADVISABLE_VIZ_GALLERY_WIDTH,
 } from 'src/explore/components/controls/VizTypeControl/VizTypeGallery';
+import AsyncSelect from 'src/components/Select/AsyncSelect';
 
 type Dataset = {
   id: number;
@@ -280,7 +281,7 @@ export default class AddSliceContainer extends React.PureComponent<
             status={this.state.datasource?.value ? 'finish' : 'process'}
             description={
               <div className="dataset">
-                <Select
+                <AsyncSelect
                   autoFocus
                   ariaLabel={t('Dataset')}
                   name="select-datasource"

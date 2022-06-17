@@ -24,6 +24,7 @@ import Label from 'src/components/Label';
 import { FormLabel } from 'src/components/Form';
 import RefreshLabel from 'src/components/RefreshLabel';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
+import AsyncSelect from '../Select/AsyncSelect';
 
 const DatabaseSelectorWrapper = styled.div`
   ${({ theme }) => `
@@ -272,7 +273,7 @@ export default function DatabaseSelector({
 
   function renderDatabaseSelect() {
     return renderSelectRow(
-      <Select
+      <AsyncSelect
         ariaLabel={t('Select database or type database name')}
         optionFilterProps={['database_name', 'value']}
         data-test="select-database"

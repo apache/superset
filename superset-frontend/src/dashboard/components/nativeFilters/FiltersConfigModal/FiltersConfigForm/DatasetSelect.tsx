@@ -26,6 +26,7 @@ import {
   getClientErrorObject,
 } from 'src/utils/getClientErrorObject';
 import { datasetToSelectOption } from './utils';
+import AsyncSelect from 'src/components/Select/AsyncSelect';
 
 const localCache = new Map<string, any>();
 
@@ -85,7 +86,7 @@ const DatasetSelect = ({ onChange, value }: DatasetSelectProps) => {
   };
 
   return (
-    <Select
+    <AsyncSelect
       ariaLabel={t('Dataset')}
       value={value}
       options={loadDatasetOptions}

@@ -39,6 +39,7 @@ import ColorSchemeControlWrapper from 'src/dashboard/components/ColorSchemeContr
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
+import AsyncSelect from 'src/components/Select/AsyncSelect';
 
 const StyledFormItem = styled(FormItem)`
   margin-bottom: 0;
@@ -370,7 +371,7 @@ const PropertiesModal = ({
         <Col xs={24} md={12}>
           <h3 style={{ marginTop: '1em' }}>{t('Access')}</h3>
           <StyledFormItem label={t('Owners')}>
-            <Select
+            <AsyncSelect
               allowClear
               ariaLabel={t('Owners')}
               disabled={isLoading}
@@ -417,7 +418,7 @@ const PropertiesModal = ({
         <Row gutter={16}>
           <Col xs={24} md={12}>
             <StyledFormItem label={t('Owners')}>
-              <Select
+              <AsyncSelect
                 allowClear
                 ariaLabel={t('Owners')}
                 disabled={isLoading}
@@ -437,7 +438,7 @@ const PropertiesModal = ({
           </Col>
           <Col xs={24} md={12}>
             <StyledFormItem label={t('Roles')}>
-              <Select
+              <AsyncSelect
                 allowClear
                 ariaLabel={t('Roles')}
                 disabled={isLoading}
