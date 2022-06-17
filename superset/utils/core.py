@@ -1762,14 +1762,14 @@ def normalize_dttm_col(
             # Column is formatted as a numeric value
             unit = timestamp_format.replace("epoch_", "")
             df[DTTM_ALIAS] = pd.to_datetime(
-                dttm_col, utc=False, unit=unit, origin="unix"
+                dttm_col, utc=False, unit=unit, origin="unix", errors="coerce"
             )
         else:
             # Column has already been formatted as a timestamp.
             df[DTTM_ALIAS] = dttm_col.apply(pd.Timestamp)
     else:
         df[DTTM_ALIAS] = pd.to_datetime(
-            df[DTTM_ALIAS], utc=False, format=timestamp_format
+            df[DTTM_ALIAS], utc=False, format=timestamp_format, errors="coerce"
         )
     if offset:
         df[DTTM_ALIAS] += timedelta(hours=offset)

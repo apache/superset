@@ -174,7 +174,10 @@ class SupersetResultSet:
 
     @staticmethod
     def convert_table_to_df(table: pa.Table) -> pd.DataFrame:
-        return table.to_pandas(integer_object_nulls=True)
+        try:
+            return table.to_pandas(integer_object_nulls=True)
+        except pa.lib.ArrowInvalid:
+            return table.to_pandas(integer_object_nulls=True, timestamp_as_object=True)
 
     @staticmethod
     def first_nonempty(items: List[Any]) -> Any:

@@ -37,7 +37,6 @@ from superset.db_engine_specs.postgres import PostgresEngineSpec
 from superset.common.db_query_status import QueryStatus
 from superset.models.core import Database
 from superset.models.slice import Slice
-from superset.models.sql_types.base import literal_dttm_type_factory
 from superset.utils.database import get_example_database
 
 from .base_tests import SupersetTestCase
@@ -376,30 +375,22 @@ class TestDatabaseModel(SupersetTestCase):
 class TestSqlaTableModel(SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_get_timestamp_expression(self):
-        col_type = (
-            "VARCHAR"
-            if get_example_database().backend == "presto"
-            else "TemporalWrapperType"
-        )
         tbl = self.get_table(name="birth_names")
         ds_col = tbl.get_column("ds")
         sqla_literal = ds_col.get_timestamp_expression(None)
-        self.assertEqual(str(sqla_literal.compile()), "ds")
-        assert type(sqla_literal.type).__name__ == col_type
+        assert str(sqla_literal.compile()) == "ds"
 
         sqla_literal = ds_col.get_timestamp_expression("P1D")
-        assert type(sqla_literal.type).__name__ == col_type
         compiled = "{}".format(sqla_literal.compile())
         if tbl.database.backend == "mysql":
-            self.assertEqual(compiled, "DATE(ds)")
+            assert compiled == "DATE(ds)"
 
         prev_ds_expr = ds_col.expression
         ds_col.expression = "DATE_ADD(ds, 1)"
         sqla_literal = ds_col.get_timestamp_expression("P1D")
-        assert type(sqla_literal.type).__name__ == col_type
         compiled = "{}".format(sqla_literal.compile())
         if tbl.database.backend == "mysql":
-            self.assertEqual(compiled, "DATE(DATE_ADD(ds, 1))")
+            assert compiled == "DATE(DATE_ADD(ds, 1))"
         ds_col.expression = prev_ds_expr
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
@@ -615,12 +606,3 @@ class TestSqlaTableModel(SupersetTestCase):
 
         # clean up and auto commit
         metadata_db.session.delete(slc)
-
-
-def test_literal_dttm_type_factory():
-    orig_type = DateTime()
-    new_type = literal_dttm_type_factory(
-        orig_type, PostgresEngineSpec, "TIMESTAMP", db_extra={}
-    )
-    assert type(new_type).__name__ == "TemporalWrapperType"
-    assert str(new_type) == str(orig_type)
