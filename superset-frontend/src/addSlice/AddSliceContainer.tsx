@@ -29,6 +29,8 @@ import { Tooltip } from 'src/components/Tooltip';
 import VizTypeGallery, {
   MAX_ADVISABLE_VIZ_GALLERY_WIDTH,
 } from 'src/explore/components/controls/VizTypeControl/VizTypeGallery';
+import findPermission from 'src/dashboard/util/findPermission';
+import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 
 type Dataset = {
   id: number;
@@ -37,11 +39,14 @@ type Dataset = {
   datasource_type: string;
 };
 
-export type AddSliceContainerProps = {};
+export type AddSliceContainerProps = {
+  user: UserWithPermissionsAndRoles;
+};
 
 export type AddSliceContainerState = {
   datasource?: { label: string; value: string };
   visType: string | null;
+  canCreateDataset: boolean;
 };
 
 const ESTIMATED_NAV_HEIGHT = 56;
@@ -204,6 +209,11 @@ export default class AddSliceContainer extends React.PureComponent<
     super(props);
     this.state = {
       visType: null,
+      canCreateDataset: findPermission(
+        'can_write',
+        'Dataset',
+        props.user.roles,
+      ),
     };
 
     this.changeDatasource = this.changeDatasource.bind(this);
@@ -292,6 +302,40 @@ export default class AddSliceContainer extends React.PureComponent<
 
   render() {
     const isButtonDisabled = this.isBtnDisabled();
+    const datasetHelpText = this.state.canCreateDataset ? (
+      <span data-test="dataset-write">
+        <a
+          href="/tablemodelview/list/#create"
+          rel="noopener noreferrer"
+          target="_blank"
+        >
+          {t('Add a dataset')}
+        </a>
+        {` ${t('or')} `}
+        <a
+          href="https://superset.apache.org/docs/creating-charts-dashboards/creating-your-first-dashboard/#registering-a-new-table"
+          rel="noopener noreferrer"
+          target="_blank"
+        >
+          {`${t('view instructions')} `}
+          <i className="fa fa-external-link" />
+        </a>
+        .
+      </span>
+    ) : (
+      <span data-test="no-dataset-write">
+        <a
+          href="https://superset.apache.org/docs/creating-charts-dashboards/creating-your-first-dashboard/#registering-a-new-table"
+          rel="noopener noreferrer"
+          target="_blank"
+        >
+          {`${t('View instructions')} `}
+          <i className="fa fa-external-link" />
+        </a>
+        .
+      </span>
+    );
+
     return (
       <StyledContainer>
         <h3>{t('Create a new chart')}</h3>
@@ -312,25 +356,7 @@ export default class AddSliceContainer extends React.PureComponent<
                   showSearch
                   value={this.state.datasource}
                 />
-                <span>
-                  <a
-                    href="/tablemodelview/list/#create"
-                    rel="noopener noreferrer"
-                    target="_blank"
-                  >
-                    {t('Add a dataset')}
-                  </a>
-                  {t(' or ')}
-                  <a
-                    href="https://superset.apache.org/docs/creating-charts-dashboards/creating-your-first-dashboard/#registering-a-new-table"
-                    rel="noopener noreferrer"
-                    target="_blank"
-                  >
-                    {t('view instructions ')}
-                    <i className="fa fa-external-link" />
-                  </a>
-                  .
-                </span>
+                {datasetHelpText}
               </StyledStepDescription>
             }
           />
