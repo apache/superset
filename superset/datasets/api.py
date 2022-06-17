@@ -162,7 +162,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "datasource_type",
         "url",
         "extra",
-        "kind"
+        "kind",
     ]
     show_columns = show_select_columns + [
         "columns.type_generic",
