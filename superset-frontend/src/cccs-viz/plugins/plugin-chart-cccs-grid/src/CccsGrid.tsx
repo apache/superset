@@ -349,7 +349,7 @@ export default function CccsGrid({
           allowContextMenuWithControlKey={true}
           gridOptions={gridOptions}
           onGridColumnsChanged={autoSizeFirst100Columns}
-          //getContextMenuItems={getContextMenuItems}
+          getContextMenuItems={getContextMenuItems}
           onGridReady={onGridReady}
           onRangeSelectionChanged={onRangeSelectionChanged}
           onSelectionChanged={onSelectionChanged}
