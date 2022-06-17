@@ -84,6 +84,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
   const [currentDatasource, setCurrentDatasource] = useState(datasource);
   const [errors, setErrors] = useState<any[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+  const [isEditing, setIsEditing] = useState<boolean>(false);
   const dialog = useRef<any>(null);
   const [modal, contextHolder] = Modal.useModal();
 
@@ -193,6 +194,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
           <strong>{currentDatasource.table_name}</strong>
         </span>
       }
+      maskClosable={!isEditing}
       footer={
         <>
           {showLegacyDatasourceEditor && (
@@ -246,6 +248,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
         height={500}
         datasource={currentDatasource}
         onChange={onDatasourceChange}
+        setIsEditing={setIsEditing}
       />
       {contextHolder}
     </StyledDatasourceModal>
