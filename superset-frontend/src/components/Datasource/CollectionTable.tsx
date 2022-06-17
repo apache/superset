@@ -131,8 +131,10 @@ const CrudButtonWrapper = styled.div`
 `;
 
 const StyledButtonWrapper = styled.span`
-  margin-top: 10px;
-  margin-left: 10px;
+  ${({ theme }) => `
+    margin-top: ${theme.gridUnit * 3}px;
+    margin-left: ${theme.gridUnit * 3}px;
+  `}
 `;
 
 export default class CRUDCollection extends React.PureComponent<
