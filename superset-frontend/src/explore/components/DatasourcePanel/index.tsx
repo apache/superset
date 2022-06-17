@@ -17,7 +17,15 @@
  * under the License.
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { css, styled, t, DatasourceType } from '@superset-ui/core';
+import {
+  css,
+  styled,
+  t,
+  DatasourceType,
+  QueryResponse,
+  Metric,
+  DEFAULT_METRICS,
+} from '@superset-ui/core';
 import {
   ControlConfig,
   Dataset,
@@ -43,7 +51,7 @@ interface DatasourceControl extends ControlConfig {
 }
 
 export interface Props {
-  datasource: Dataset;
+  datasource: Dataset & QueryResponse;
   controls: {
     datasource: DatasourceControl;
   };
@@ -186,8 +194,11 @@ export default function DataSourcePanel({
   actions,
   shouldForceUpdate,
 }: Props) {
-  const { columns: _columns, metrics } = datasource;
-
+  const { columns: _columns } = datasource;
+  let metrics = DEFAULT_METRICS;
+  if (datasource.metrics.length) {
+    metrics = datasource.metrics;
+  }
   // display temporal column first
   const columns = useMemo(
     () =>
@@ -235,7 +246,7 @@ export default function DataSourcePanel({
               },
               {
                 key: item =>
-                  [item.description, item.expression].map(
+                  [item?.description ?? '', item?.expression ?? ''].map(
                     x => x?.replace(/[_\n\s]+/g, ' ') || '',
                   ),
                 threshold: rankings.CONTAINS,
@@ -256,7 +267,7 @@ export default function DataSourcePanel({
               },
               {
                 key: item =>
-                  [item.description, item.expression].map(
+                  [item?.description ?? '', item?.expression ?? ''].map(
                     x => x?.replace(/[_\n\s]+/g, ' ') || '',
                   ),
                 threshold: rankings.CONTAINS,
@@ -265,8 +276,9 @@ export default function DataSourcePanel({
             ],
             keepDiacritics: true,
             baseSort: (a, b) =>
-              Number(b.item.is_certified) - Number(a.item.is_certified) ||
-              String(a.rankedValue).localeCompare(b.rankedValue),
+              Number(b?.item?.is_certified ?? 0) -
+                Number(a?.item?.is_certified ?? 0) ||
+              String(a?.rankedValue ?? '').localeCompare(b?.rankedValue ?? ''),
           }),
         });
       }, FAST_DEBOUNCE),
@@ -282,22 +294,22 @@ export default function DataSourcePanel({
   }, [columns, datasource, metrics]);
 
   const sortCertifiedFirst = (slice: ColumnMeta[]) =>
-    slice.sort((a, b) => b.is_certified - a.is_certified);
+    slice.sort((a, b) => b?.is_certified - a?.is_certified);
 
   const metricSlice = useMemo(
     () =>
       showAllMetrics
-        ? lists.metrics
-        : lists.metrics.slice(0, DEFAULT_MAX_METRICS_LENGTH),
-    [lists.metrics, showAllMetrics],
+        ? lists?.metrics
+        : lists?.metrics?.slice?.(0, DEFAULT_MAX_METRICS_LENGTH),
+    [lists?.metrics, showAllMetrics],
   );
 
   const columnSlice = useMemo(
     () =>
       showAllColumns
-        ? sortCertifiedFirst(lists.columns)
+        ? sortCertifiedFirst(lists?.columns)
         : sortCertifiedFirst(
-            lists.columns.slice(0, DEFAULT_MAX_COLUMNS_LENGTH),
+            lists?.columns?.slice?.(0, DEFAULT_MAX_COLUMNS_LENGTH),
           ),
     [lists.columns, showAllColumns],
   );
@@ -362,7 +374,7 @@ export default function DataSourcePanel({
                   lists.metrics.length,
                 )}
               </div>
-              {metricSlice.map(m => (
+              {metricSlice?.map?.((m: Metric) => (
                 <LabelContainer
                   key={m.metric_name + String(shouldForceUpdate)}
                   className="column"
