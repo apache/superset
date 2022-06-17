@@ -17,7 +17,8 @@
  * under the License.
  */
 
-import { TimeGranularity } from '@superset-ui/core';
+import { JsonValue, t, TimeGranularity } from '@superset-ui/core';
+import { ReactNode } from 'react';
 import { LabelPositionEnum } from './types';
 
 // eslint-disable-next-line import/prefer-default-export
@@ -37,6 +38,7 @@ export const TIMESERIES_CONSTANTS = {
   dataZoomStart: 0,
   dataZoomEnd: 100,
   yAxisLabelTopOffset: 20,
+  extraControlsOffset: 22,
 };
 
 export const LABEL_POSITION: [LabelPositionEnum, string][] = [
@@ -60,6 +62,20 @@ export enum OpacityEnum {
   SemiTransparent = 0.3,
   NonTransparent = 1,
 }
+
+export enum AreaChartExtraControlsValue {
+  Stack = 'Stack',
+  Expand = 'Expand',
+}
+
+export const AreaChartExtraControlsOptions: [
+  JsonValue,
+  Exclude<ReactNode, null | undefined | boolean>,
+][] = [
+  [null, t('None')],
+  [AreaChartExtraControlsValue.Stack, t('Stack')],
+  [AreaChartExtraControlsValue.Expand, t('Expand')],
+];
 
 export const TIMEGRAIN_TO_TIMESTAMP = {
   [TimeGranularity.HOUR]: 3600 * 1000,

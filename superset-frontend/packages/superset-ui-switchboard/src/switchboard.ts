@@ -23,6 +23,63 @@ export type Params = {
   debug?: boolean;
 };
 
+// Each message we send on the channel specifies an action we want the other side to cooperate with.
+enum Actions {
+  GET = 'get',
+  REPLY = 'reply',
+  EMIT = 'emit',
+  ERROR = 'error',
+}
+
+type Method<A extends {}, R> = (args: A) => R | Promise<R>;
+
+// helper types/functions for making sure wires don't get crossed
+
+interface Message {
+  switchboardAction: Actions;
+}
+
+interface GetMessage<T = any> extends Message {
+  switchboardAction: Actions.GET;
+  method: string;
+  messageId: string;
+  args: T;
+}
+
+function isGet(message: Message): message is GetMessage {
+  return message.switchboardAction === Actions.GET;
+}
+
+interface ReplyMessage<T = any> extends Message {
+  switchboardAction: Actions.REPLY;
+  messageId: string;
+  result: T;
+}
+
+function isReply(message: Message): message is ReplyMessage {
+  return message.switchboardAction === Actions.REPLY;
+}
+
+interface EmitMessage<T = any> extends Message {
+  switchboardAction: Actions.EMIT;
+  method: string;
+  args: T;
+}
+
+function isEmit(message: Message): message is EmitMessage {
+  return message.switchboardAction === Actions.EMIT;
+}
+
+interface ErrorMessage extends Message {
+  switchboardAction: Actions.ERROR;
+  messageId: string;
+  error: string;
+}
+
+function isError(message: Message): message is ErrorMessage {
+  return message.switchboardAction === Actions.ERROR;
+}
+
 /**
  * A utility for communications between an iframe and its parent, used by the Superset embedded SDK.
  * This builds useful patterns on top of the basic functionality offered by MessageChannel.
@@ -184,61 +241,4 @@ export class Switchboard {
     // eslint-disable-next-line no-plusplus
     return `m_${this.name}_${this.incrementor++}`;
   }
-}
-
-type Method<A extends {}, R> = (args: A) => R | Promise<R>;
-
-// Each message we send on the channel specifies an action we want the other side to cooperate with.
-enum Actions {
-  GET = 'get',
-  REPLY = 'reply',
-  EMIT = 'emit',
-  ERROR = 'error',
-}
-
-// helper types/functions for making sure wires don't get crossed
-
-interface Message {
-  switchboardAction: Actions;
-}
-
-interface GetMessage<T = any> extends Message {
-  switchboardAction: Actions.GET;
-  method: string;
-  messageId: string;
-  args: T;
-}
-
-function isGet(message: Message): message is GetMessage {
-  return message.switchboardAction === Actions.GET;
-}
-
-interface ReplyMessage<T = any> extends Message {
-  switchboardAction: Actions.REPLY;
-  messageId: string;
-  result: T;
-}
-
-function isReply(message: Message): message is ReplyMessage {
-  return message.switchboardAction === Actions.REPLY;
-}
-
-interface EmitMessage<T = any> extends Message {
-  switchboardAction: Actions.EMIT;
-  method: string;
-  args: T;
-}
-
-function isEmit(message: Message): message is EmitMessage {
-  return message.switchboardAction === Actions.EMIT;
-}
-
-interface ErrorMessage extends Message {
-  switchboardAction: Actions.ERROR;
-  messageId: string;
-  error: string;
-}
-
-function isError(message: Message): message is ErrorMessage {
-  return message.switchboardAction === Actions.ERROR;
 }

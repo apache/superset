@@ -21,8 +21,9 @@ from io import BytesIO
 from typing import Any
 from zipfile import is_zipfile, ZipFile
 
+import simplejson
 import yaml
-from flask import g, request, Response, send_file
+from flask import g, make_response, request, Response, send_file
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
@@ -62,7 +63,7 @@ from superset.datasets.schemas import (
     get_delete_ids_schema,
     get_export_ids_schema,
 )
-from superset.utils.core import parse_boolean_string
+from superset.utils.core import json_int_dttm_ser, parse_boolean_string
 from superset.views.base import DatasourceFilter, generate_download_headers
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
@@ -165,6 +166,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "datasource_type",
         "url",
         "extra",
+        "kind",
     ]
     show_columns = show_select_columns + [
         "columns.type_generic",
@@ -811,16 +813,17 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         try:
             force = parse_boolean_string(request.args.get("force"))
             rv = SamplesDatasetCommand(g.user, pk, force).run()
-            return self.response(200, result=rv)
+            response_data = simplejson.dumps(
+                {"result": rv},
+                default=json_int_dttm_ser,
+                ignore_nan=True,
+            )
+            resp = make_response(response_data, 200)
+            resp.headers["Content-Type"] = "application/json; charset=utf-8"
+            return resp
         except DatasetNotFoundError:
             return self.response_404()
         except DatasetForbiddenError:
             return self.response_403()
         except DatasetSamplesFailedError as ex:
-            logger.error(
-                "Error get dataset samples %s: %s",
-                self.__class__.__name__,
-                str(ex),
-                exc_info=True,
-            )
-            return self.response_422(message=str(ex))
+            return self.response_400(message=str(ex))

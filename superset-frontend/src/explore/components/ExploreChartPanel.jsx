@@ -198,6 +198,7 @@ const ExploreChartPanel = ({
       undefined,
       ownState,
     );
+    actions.updateQueryFormData(formData, chart.id);
   }, [actions, chart.id, formData, ownState, timeout]);
 
   const onCollapseChange = useCallback(isOpen => {
@@ -219,6 +220,7 @@ const ExploreChartPanel = ({
         css={css`
           min-height: 0;
           flex: 1;
+          overflow: auto;
         `}
         ref={chartPanelRef}
       >
@@ -388,11 +390,12 @@ const ExploreChartPanel = ({
           <DataTablesPane
             ownState={ownState}
             queryFormData={queryFormData}
+            datasource={datasource}
             queryForce={force}
             onCollapseChange={onCollapseChange}
             chartStatus={chart.chartStatus}
             errorMessage={errorMessage}
-            queriesResponse={chart.queriesResponse}
+            actions={actions}
           />
         </Split>
       )}

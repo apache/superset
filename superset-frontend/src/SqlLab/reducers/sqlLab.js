@@ -20,7 +20,7 @@ import { t } from '@superset-ui/core';
 
 import getInitialState from './getInitialState';
 import * as actions from '../actions/sqlLab';
-import { now } from '../../modules/dates';
+import { now } from '../../utils/dates';
 import {
   addToObject,
   alterInObject,
@@ -340,6 +340,12 @@ export default function sqlLabReducer(state = {}, action) {
         errorMessage: null,
         cached: false,
       };
+
+      const resultsKey = action?.results?.query?.resultsKey;
+      if (resultsKey) {
+        alts.resultsKey = resultsKey;
+      }
+
       return alterInObject(state, 'queries', action.query, alts);
     },
     [actions.QUERY_FAILED]() {

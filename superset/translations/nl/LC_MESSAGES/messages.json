@@ -909,10 +909,10 @@
         "Verwijderde %(num)d rapport schema’s"
       ],
       "Value must be greater than 0": ["Waarde moet groter zijn dan 0"],
-      "Alert query returned more then one row. %s rows returned": [
+      "Alert query returned more than one row. %s rows returned": [
         "Alert query heeft meer dan één rij geretourneerd. %s rijen geretourneerd"
       ],
-      "Alert query returned more then one column. %s columns returned": [
+      "Alert query returned more than one column. %s columns returned": [
         "Alert query retourneerde meer dan één kolom. %s kolommen geretourneerd"
       ],
       "Dashboard does not exist": ["Het dashboard bestaat niet"],
@@ -965,13 +965,13 @@
       "Report Schedule reached a working timeout.": [
         "Rapportage planning heeft een werk time-out bereikt."
       ],
-      "Alert query returned more then one row.": [
+      "Alert query returned more than one row.": [
         "Alert query retourneerde meer dan één rij."
       ],
       "Alert validator config error.": [
         "Waarschuwing validator configuratiefout."
       ],
-      "Alert query returned more then one column.": [
+      "Alert query returned more than one column.": [
         "Alert query heeft meer dan één kolom geretourneerd."
       ],
       "Alert query returned a non-number value.": [

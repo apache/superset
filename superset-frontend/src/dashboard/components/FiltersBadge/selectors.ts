@@ -42,8 +42,8 @@ export enum IndicatorStatus {
 
 const TIME_GRANULARITY_FIELDS = new Set(Object.values(TIME_FILTER_MAP));
 
-// As of 2020-09-28, the DatasourceMeta type in superset-ui is incorrect.
-// Should patch it here until the DatasourceMeta type is updated.
+// As of 2020-09-28, the Dataset type in superset-ui is incorrect.
+// Should patch it here until the Dataset type is updated.
 type Datasource = {
   time_grain_sqla?: [string, string][];
   granularity?: [string, string][];

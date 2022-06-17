@@ -366,18 +366,17 @@ function dbReducer(
           configuration_method: action.payload.configuration_method,
           extra_json: deserializeExtraJSON,
           catalog: engineParamsCatalog,
-          parameters: action.payload.parameters,
+          parameters: action.payload.parameters || trimmedState.parameters,
           query_input,
         };
       }
-
       return {
         ...action.payload,
         encrypted_extra: action.payload.encrypted_extra || '',
         engine: action.payload.backend || trimmedState.engine,
         configuration_method: action.payload.configuration_method,
         extra_json: deserializeExtraJSON,
-        parameters: action.payload.parameters,
+        parameters: action.payload.parameters || trimmedState.parameters,
         query_input,
       };
 
@@ -519,7 +518,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     setImportingModal(false);
     setPasswords({});
     setConfirmedOverwrite(false);
-    if (onDatabaseAdd) onDatabaseAdd();
     onHide();
   };
 
@@ -652,6 +650,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         confirmedOverwrite,
       );
       if (dbId) {
+        if (onDatabaseAdd) onDatabaseAdd();
         onClose();
         addSuccessToast(t('Database connected'));
       }
@@ -1276,7 +1275,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 }
                 conf={conf}
                 testConnection={testConnection}
-                isEditMode={isEditMode}
                 testInProgress={testInProgress}
               />
               {isDynamic(db?.backend || db?.engine) && !isEditMode && (

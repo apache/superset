@@ -17,18 +17,18 @@
   under the License.
 -#}
 To: {{ receiver_email }}
-From: {{ sender_email }}
+
 Subject: [RESULT] [VOTE] Release Apache {{ project_name }} {{ version }} based on Superset {{ version_rc }}
 
 Thanks to everyone that participated. The vote to release
 Apache {{ project_name }} version {{ version }} based on {{ version_rc }} is now closed.
 
 {% if vote_negatives|length > 0 -%}
-The vote did NOT PASS with {{vote_bindings|length}} binding +1, {{ vote_nonbindings|length}} non binding +1 and {{vote_negatives|length}} -1 votes:
+The vote did NOT PASS with {{vote_bindings|length}} binding +1, {{ vote_nonbindings|length}} non-binding +1, and {{vote_negatives|length}} -1 votes:
 {% elif vote_bindings|length > 2 -%}
-The vote PASSED with {{vote_bindings|length}} binding +1, {{ vote_nonbindings|length}} non binding +1 and {{vote_negatives|length}} -1 votes:
+The vote PASSED with {{vote_bindings|length}} binding +1, {{ vote_nonbindings|length}} non-binding +1, and {{vote_negatives|length}} -1 votes:
 {% else -%}
-The vote is non conclusive with {{vote_bindings|length}} binding +1, {{ vote_nonbindings|length}} non binding -1 and {{vote_negatives|length}} -1 votes:
+The vote is non conclusive with {{vote_bindings|length}} binding +1, {{ vote_nonbindings|length}} non-binding -1, and {{vote_negatives|length}} -1 votes:
 {%- endif %}
 
 {% if vote_bindings|length > 0 -%}
@@ -39,7 +39,7 @@ Binding votes:
 {%- endif %}
 
 {% if vote_nonbindings|length > 0 -%}
-Non binding votes:
+Non-binding votes:
 {% for voter in vote_nonbindings -%}
 - {{ voter }}
 {% endfor -%}

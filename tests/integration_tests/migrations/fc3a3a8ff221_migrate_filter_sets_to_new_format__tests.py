@@ -15,12 +15,15 @@
 # specific language governing permissions and limitations
 # under the License.
 from copy import deepcopy
+from importlib import import_module
 
-from superset.migrations.versions.fc3a3a8ff221_migrate_filter_sets_to_new_format import (
-    downgrade_filter_set,
-    upgrade_filter_set,
-    upgrade_select_filters,
+migrate_filter_sets_to_new_format = import_module(
+    "superset.migrations.versions."
+    "2021-04-12_12-38_fc3a3a8ff221_migrate_filter_sets_to_new_format",
 )
+downgrade_filter_set = migrate_filter_sets_to_new_format.downgrade_filter_set
+upgrade_filter_set = migrate_filter_sets_to_new_format.upgrade_filter_set
+upgrade_select_filters = migrate_filter_sets_to_new_format.upgrade_select_filters
 
 native_filters_v1 = [
     {

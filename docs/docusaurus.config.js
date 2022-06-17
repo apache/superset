@@ -38,6 +38,14 @@ const config = {
   themes: ['@saucelabs/theme-github-codeblock'],
   plugins: [
     [
+      'docusaurus-plugin-less',
+      {
+        lessOptions: {
+          javascriptEnabled: true,
+        },
+      },
+    ],
+    [
       '@docusaurus/plugin-client-redirects',
       {
         fromExtensions: ['html', 'htm'],
@@ -140,7 +148,7 @@ const config = {
             'https://github.com/facebook/docusaurus/edit/main/website/blog/',
         },
         theme: {
-          customCss: require.resolve('./src/css/custom.css'),
+          customCss: require.resolve('./src/styles/custom.css'),
         },
         googleAnalytics: {
           trackingID: 'G-133LHD3B3N',
@@ -174,37 +182,32 @@ const config = {
         },
         items: [
           {
-            type: 'doc',
-            docId: 'intro',
-            position: 'left',
             label: 'Documentation',
-          },
-          { to: '/community', label: 'Community', position: 'left' },
-          {
-            href: 'https://github.com/apache/superset',
-            label: 'GitHub',
-            position: 'right',
-          },
-        ],
-      },
-      footer: {
-        style: 'dark',
-        links: [
-          {
-            title: 'Docs',
             items: [
+              {
+                label: 'Getting Started',
+                to: '/docs/intro',
+              },
               {
                 label: 'Tutorial',
                 to: '/docs/intro',
               },
+              {
+                label: 'FAQ',
+                to: '/docs/frequently-asked-questions',
+              },
             ],
           },
           {
-            title: 'Community',
+            label: 'Community',
             items: [
               {
-                label: 'Stack Overflow',
-                href: 'https://stackoverflow.com/questions/tagged/superset+apache-superset',
+                label: 'Resources',
+                href: '/community',
+              },
+              {
+                label: 'GitHub',
+                href: 'https://github.com/apache/superset',
               },
               {
                 label: 'Slack',
@@ -214,18 +217,22 @@ const config = {
                 label: 'Mailing List',
                 href: 'https://lists.apache.org/list.html?dev@superset.apache.org',
               },
-            ],
-          },
-          {
-            title: 'More',
-            items: [
               {
-                label: 'GitHub',
-                href: 'https://github.com/apache/superset',
+                label: 'Stack Overflow',
+                href: 'https://stackoverflow.com/questions/tagged/superset+apache-superset',
               },
             ],
           },
+          {
+            href: 'https://github.com/apache/superset',
+            position: 'right',
+            class: 'github-logo-container',
+          },
         ],
+      },
+      footer: {
+        style: 'dark',
+        links: [],
         copyright: `Copyright © ${new Date().getFullYear()},
         The <a href="https://www.apache.org/" target="_blank" rel="noreferrer">Apache Software Foundation</a>,
         Licensed under the Apache <a href="https://apache.org/licenses/LICENSE-2.0" target="_blank" rel="noreferrer">License</a>. <br/>
@@ -244,6 +251,7 @@ const config = {
         darkTheme: darkCodeTheme,
       },
     }),
+  scripts: ['/script/matomo.js'],
 };
 
 module.exports = config;

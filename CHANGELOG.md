@@ -16,7 +16,24 @@ KIND, either express or implied.  See the License for the
 specific language governing permissions and limitations
 under the License.
 -->
+
 ## Change Log
+
+### 1.5.1 (Thu May 26 14:45:20 2022 +0300)
+
+**Fixes**
+
+- [#19685](https://github.com/apache/superset/pull/19685) fix: login button does not render (@villebro)
+- [#20181](https://github.com/apache/superset/pull/20181) fix(temporary-cache): when user is anonymous (@villebro)
+- [#20091](https://github.com/apache/superset/pull/20091) fix: "Week Staring Monday" time grain for BigQuery (@ramunas-omnisend)
+- [#20135](https://github.com/apache/superset/pull/20135) fix: Allow dataset owners to see their datasets (@cccs-tom)
+- [#20123](https://github.com/apache/superset/pull/20123) fix(presto,trino): use correct literal dttm separator (@villebro)
+- [#20077](https://github.com/apache/superset/pull/20077) fix(generic-axes): apply contribution before flatten (@villebro)
+- [#19970](https://github.com/apache/superset/pull/19970) fix: Athena timestamp literal format (@thinhnd2104)
+- [#20055](https://github.com/apache/superset/pull/20055) fix(plugin-chart-echarts): support adhoc x-axis (@villebro)
+- [#18873](https://github.com/apache/superset/pull/18873) fix(sqllab/charts): casting from timestamp[us] to timestamp[ns] would result in out of bounds timestamp (@yeachan153)
+- [#19917](https://github.com/apache/superset/pull/19917) fix(sqla): replace custom dttm type with literal_column (@villebro)
+- [#19854](https://github.com/apache/superset/pull/19854) fix: Alpha should not be able to edit datasets that they don't own (@hughhhh)
 
 ### 1.5.0 (Fri Apr 22 17:23:30 2022 -0400)
 
@@ -37,7 +54,7 @@ under the License.
 - [#17928](https://github.com/apache/superset/pull/17928) fix: force_screenshot migration (@betodealmeida)
 - [#17853](https://github.com/apache/superset/pull/17853) feat: add force option to report screenshots (@betodealmeida)
 - [#17803](https://github.com/apache/superset/pull/17803) feat(plugin-chart-pivot-table): support series limit (@kgabryje)
-- [#17587](https://github.com/apache/superset/pull/17587) chore(explore): Migrate BigNumber to v1 api [ID-28][ID-55] (@kgabryje)
+- [#17587](https://github.com/apache/superset/pull/17587) chore(explore): Migrate BigNumber to v1 api [ID-28][id-55] (@kgabryje)
 - [#17360](https://github.com/apache/superset/pull/17360) fix: Change datatype of column type in BaseColumn to allow larger datatype names for complexed columns (@cccs-joel)
 - [#17728](https://github.com/apache/superset/pull/17728) fix: migration out-of-scope bind (@betodealmeida)
 - [#17604](https://github.com/apache/superset/pull/17604) feat(alerts): Column for select tabs to send (@m-ajay)
@@ -46,6 +63,7 @@ under the License.
 - [#16756](https://github.com/apache/superset/pull/16756) refactor: Repeated boilerplate code between upload to database forms (@exemplary-citizen)
 
 **Features**
+
 - [#19776](https://github.com/apache/superset/pull/19776) feat: add renameOperator (@zhaoyongjie)
 - [#19328](https://github.com/apache/superset/pull/19328) feat(sql lab): enable ACE editor search in SQL editors (@diegomedina248)
 - [#19454](https://github.com/apache/superset/pull/19454) feat: improve adhoc SQL validation (@betodealmeida)
@@ -97,7 +115,7 @@ under the License.
 - [#18679](https://github.com/apache/superset/pull/18679) feat(explore): Implement data table empty states (@kgabryje)
 - [#18652](https://github.com/apache/superset/pull/18652) feat: Introduce a library for embedded iframe <-> host communication (@suddjian)
 - [#18676](https://github.com/apache/superset/pull/18676) feat: Implement EmptyState components (@kgabryje)
-- [#18653](https://github.com/apache/superset/pull/18653) feat: add prop to `setDBEngine` in DatabaseModal  (@hughhhh)
+- [#18653](https://github.com/apache/superset/pull/18653) feat: add prop to `setDBEngine` in DatabaseModal (@hughhhh)
 - [#18642](https://github.com/apache/superset/pull/18642) feat(Helm): Redis with password supported in helm charts and redis chart version updated (@wiktor2200)
 - [#18649](https://github.com/apache/superset/pull/18649) feat(helm): allow to customize init image (@avakarev)
 - [#18626](https://github.com/apache/superset/pull/18626) feat: editable title xl certified badge (@opus-42)
@@ -175,6 +193,7 @@ under the License.
 - [#17001](https://github.com/apache/superset/pull/17001) feat(linting): restrict direct use of supersetTheme in favor of ThemeProvider (@rusackas)
 
 **Fixes**
+
 - [#19448](https://github.com/apache/superset/pull/19448) fix(sql lab): when editing a saved query, the status is lost when switching tabs (@diegomedina248)
 - [#19806](https://github.com/apache/superset/pull/19806) fix(plugin-chart-table): Fix display of column config in table chart (@kgabryje)
 - [#19802](https://github.com/apache/superset/pull/19802) fix: lost renameOperator in mixed timeseries chart (@zhaoyongjie)
@@ -248,7 +267,7 @@ under the License.
 - [#19121](https://github.com/apache/superset/pull/19121) fix(dashboard): scrolling table viz overlaps next chart (@diegomedina248)
 - [#19023](https://github.com/apache/superset/pull/19023) fix: Add perm for showing DBC-UI in Global Nav (@hughhhh)
 - [#19080](https://github.com/apache/superset/pull/19080) fix(dashboard-edge-cutting): make to be not cut without Filter (@prosdev0107)
-- [#19110](https://github.com/apache/superset/pull/19110) fix: cache key with guest token rls  (@lilykuang)
+- [#19110](https://github.com/apache/superset/pull/19110) fix: cache key with guest token rls (@lilykuang)
 - [#19095](https://github.com/apache/superset/pull/19095) fix(dashboard): Empty states overflowing small chart containers (@kgabryje)
 - [#18947](https://github.com/apache/superset/pull/18947) fix(plugin-chart-echarts): make to allow the custome of x & y axis title margin i… (@prosdev0107)
 - [#19088](https://github.com/apache/superset/pull/19088) fix(dashboard): import handle missing excluded charts (@villebro)
@@ -336,7 +355,7 @@ under the License.
 - [#18575](https://github.com/apache/superset/pull/18575) fix: superset-doc.yaml workflow to not be immutable on deploy (@hughhhh)
 - [#18182](https://github.com/apache/superset/pull/18182) fix: new alert should have force_screenshot be true (@graceguo-supercat)
 - [#18252](https://github.com/apache/superset/pull/18252) fix(plugin-chart-echarts): fix forecasts on verbose metrics (@villebro)
-- [#18240](https://github.com/apache/superset/pull/18240) fix(teradata): LIMIT syntax  (@dmcnulla)
+- [#18240](https://github.com/apache/superset/pull/18240) fix(teradata): LIMIT syntax (@dmcnulla)
 - [#18224](https://github.com/apache/superset/pull/18224) fix(alert): remove extra < character in email report (@graceguo-supercat)
 - [#18201](https://github.com/apache/superset/pull/18201) fix: Build scripts (@geido)
 - [#18219](https://github.com/apache/superset/pull/18219) fix: Add mexico back to country map (@etr2460)
@@ -373,7 +392,7 @@ under the License.
 - [#17388](https://github.com/apache/superset/pull/17388) fix(sqla): Adhere to series limit ordering for pre-query (@john-bodley)
 - [#17999](https://github.com/apache/superset/pull/17999) fix(helm): pin correct psycopg2 version (@villebro)
 - [#17988](https://github.com/apache/superset/pull/17988) fix: Keep Report modal open when there's an error (@lyndsiWilliams)
-- [#17985](https://github.com/apache/superset/pull/17985) fix:  dashboard full screen layout (@pkdotson)
+- [#17985](https://github.com/apache/superset/pull/17985) fix: dashboard full screen layout (@pkdotson)
 - [#17931](https://github.com/apache/superset/pull/17931) fix(sqllab): Dancing Tooltip in SQL editor dropdown (@lyndsiWilliams)
 - [#17974](https://github.com/apache/superset/pull/17974) fix: null dates in table chart (@etr2460)
 - [#17878](https://github.com/apache/superset/pull/17878) fix: Returns 404 instead of 500 for unknown dashboard filter state keys (@michael-s-molina)
@@ -385,7 +404,7 @@ under the License.
 - [#17918](https://github.com/apache/superset/pull/17918) fix(cypress): flake cypress test case (@zhaoyongjie)
 - [#17920](https://github.com/apache/superset/pull/17920) fix(helm): service account apiVersion indentation (@wiktor2200)
 - [#17877](https://github.com/apache/superset/pull/17877) fix(translation): include babel-compile in Dockerfile (#17876) (@hbruch)
-- [#17872](https://github.com/apache/superset/pull/17872) fix(explore): simple tab content input problem in the filter control  (@stephenLYZ)
+- [#17872](https://github.com/apache/superset/pull/17872) fix(explore): simple tab content input problem in the filter control (@stephenLYZ)
 - [#17887](https://github.com/apache/superset/pull/17887) fix: Removes duplicated import in dashboard filter state tests (@michael-s-molina)
 - [#17885](https://github.com/apache/superset/pull/17885) fix: tests can failed on different order executions (@ofekisr)
 - [#17886](https://github.com/apache/superset/pull/17886) fix: failed mypy in master branch (@ofekisr)
@@ -409,12 +428,12 @@ under the License.
 - [#17768](https://github.com/apache/superset/pull/17768) fix: change 401 response to a 403 for Security Exceptions (@rusackas)
 - [#17760](https://github.com/apache/superset/pull/17760) fix: miss-spelling on CONTRIBUTING.md line 1351 (@MayUWish)
 - [#17765](https://github.com/apache/superset/pull/17765) fix(plugin-chart-table): sort alphanumeric columns case insensitive (@kgabryje)
-- [#17730](https://github.com/apache/superset/pull/17730) fix: add __init__.py to key_value (@bkyryliuk)
+- [#17730](https://github.com/apache/superset/pull/17730) fix: add **init**.py to key_value (@bkyryliuk)
 - [#17727](https://github.com/apache/superset/pull/17727) fix: local warning in the frontend development (@stephenLYZ)
 - [#17738](https://github.com/apache/superset/pull/17738) fix: column extra in import/export (@betodealmeida)
 - [#17748](https://github.com/apache/superset/pull/17748) fix: import DB errors (@betodealmeida)
 - [#17741](https://github.com/apache/superset/pull/17741) fix: import dashboard stale filter_scopes (@betodealmeida)
-- [#17649](https://github.com/apache/superset/pull/17649) fix(Mixed Timeseries Chart): Custom Metric Label  (@Yahyakiani)
+- [#17649](https://github.com/apache/superset/pull/17649) fix(Mixed Timeseries Chart): Custom Metric Label (@Yahyakiani)
 - [#17732](https://github.com/apache/superset/pull/17732) fix: import dash with missing immune ID (@betodealmeida)
 - [#17713](https://github.com/apache/superset/pull/17713) fix(postgres): remove redundant tz factory (@villebro)
 - [#17711](https://github.com/apache/superset/pull/17711) fix(explore): don't apply time range filter to Samples table (@kgabryje)
@@ -437,7 +456,7 @@ under the License.
 - [#17600](https://github.com/apache/superset/pull/17600) fix: Ch31968query context (@AAfghahi)
 - [#17547](https://github.com/apache/superset/pull/17547) fix: fix text overflow in toast (@pkdotson)
 - [#17542](https://github.com/apache/superset/pull/17542) fix: Visualizations don't load when using keyboard shortcuts (@michael-s-molina)
-- [#17539](https://github.com/apache/superset/pull/17539) fix(superset.cli): superset cli group doesn't support superset extension app  (@ofekisr)
+- [#17539](https://github.com/apache/superset/pull/17539) fix(superset.cli): superset cli group doesn't support superset extension app (@ofekisr)
 - [#14512](https://github.com/apache/superset/pull/14512) fix: update kubernetes.mdx (@shicholas)
 - [#17527](https://github.com/apache/superset/pull/17527) fix: RBAC for `can_export` for any resource (@hughhhh)
 - [#17555](https://github.com/apache/superset/pull/17555) fix(lint): remove redis xadd type ignore (@villebro)
@@ -447,7 +466,7 @@ under the License.
 - [#15182](https://github.com/apache/superset/pull/15182) fix: hiding HiddenControl inputs for real, so they don't add height (@rusackas)
 - [#17511](https://github.com/apache/superset/pull/17511) fix: Dashboard access when DASHBOARD_RBAC is disabled (@michael-s-molina)
 - [#16799](https://github.com/apache/superset/pull/16799) fix: Bulk update Spanish translations (@dreglad)
-- [#14302](https://github.com/apache/superset/pull/14302) fix(hive): Update _latest_partition_from_df in HiveEngineSpec to work on tables with multiple indexes (@codenamelxl)
+- [#14302](https://github.com/apache/superset/pull/14302) fix(hive): Update \_latest_partition_from_df in HiveEngineSpec to work on tables with multiple indexes (@codenamelxl)
 - [#17458](https://github.com/apache/superset/pull/17458) fix: Always use temporal type for dttm columns [ID-2] (@kgabryje)
 - [#17470](https://github.com/apache/superset/pull/17470) fix(presto): expand data with null item (@ganczarek)
 - [#15254](https://github.com/apache/superset/pull/15254) fix: feature flags typing (@dpgaspar)
@@ -513,6 +532,7 @@ under the License.
 - [#16838](https://github.com/apache/superset/pull/16838) fix: remove duplicate line in docstring (@exemplary-citizen)
 
 **Others**
+
 - [#19732](https://github.com/apache/superset/pull/19732) chore: Clean redundant dependency from useMemo dep array (@kgabryje)
 - [#19636](https://github.com/apache/superset/pull/19636) chore: skip SIP-68 shadow writing for LTS (@ktmud)
 - [#19530](https://github.com/apache/superset/pull/19530) docs: release notes for 1.5 (@villebro)
@@ -652,7 +672,7 @@ under the License.
 - [#18559](https://github.com/apache/superset/pull/18559) chore: Update Docusaurus dependencies (@geido)
 - [#18229](https://github.com/apache/superset/pull/18229) chore: Reference Github code in Docusaurus (@geido)
 - [#18251](https://github.com/apache/superset/pull/18251) chore(tests): migrate mssql tests to pytest (@villebro)
-- [#18188](https://github.com/apache/superset/pull/18188) refactor: upgrade ControlHeader to TSX & FC and add storybook  (@ad-m)
+- [#18188](https://github.com/apache/superset/pull/18188) refactor: upgrade ControlHeader to TSX & FC and add storybook (@ad-m)
 - [#18230](https://github.com/apache/superset/pull/18230) chore: Docusaurus throw on broken links (@geido)
 - [#18170](https://github.com/apache/superset/pull/18170) refactor: extract json_required view decorator (@ad-m)
 - [#17926](https://github.com/apache/superset/pull/17926) refactor: sqleditorleftbar to typescript (@JosueLugaro)
@@ -679,7 +699,7 @@ under the License.
 - [#17569](https://github.com/apache/superset/pull/17569) chore: column_type_mappings (@dungdm93)
 - [#18003](https://github.com/apache/superset/pull/18003) chore(DatasourceEditor): Create Datasource Legacy Editor Feature Flag (@AAfghahi)
 - [#17996](https://github.com/apache/superset/pull/17996) refactor: remove unused ts-jest (@zhaoyongjie)
-- [#17893](https://github.com/apache/superset/pull/17893) refactor: examples data loading for tests  (@ofekisr)
+- [#17893](https://github.com/apache/superset/pull/17893) refactor: examples data loading for tests (@ofekisr)
 - [#17967](https://github.com/apache/superset/pull/17967) chore: use new FAB functionality for component schemas update OAS (@dpgaspar)
 - [#17979](https://github.com/apache/superset/pull/17979) chore: reenable lint for test files (@zhaoyongjie)
 - [#17965](https://github.com/apache/superset/pull/17965) refactor: move superset-ui dependencies to peerDependencies (@zhaoyongjie)
@@ -763,7 +783,7 @@ under the License.
 - [#17326](https://github.com/apache/superset/pull/17326) chore: migrate DragHandle component from jsx to tsx (@Damans227)
 - [#17521](https://github.com/apache/superset/pull/17521) chore: bump major on Pillow, optional dependency (@dpgaspar)
 - [#17452](https://github.com/apache/superset/pull/17452) chore(deps-dev): bump @types/jquery from 3.3.32 to 3.5.8 in /superset-frontend (@dependabot[bot])
-- [#14783](https://github.com/apache/superset/pull/14783) chore: Slovak translation, enabling language and adding first translations  (@minho95)
+- [#14783](https://github.com/apache/superset/pull/14783) chore: Slovak translation, enabling language and adding first translations (@minho95)
 - [#17453](https://github.com/apache/superset/pull/17453) chore(deps-dev): bump eslint-import-resolver-webpack from 0.13.1 to 0.13.2 in /superset-frontend (@dependabot[bot])
 - [#17502](https://github.com/apache/superset/pull/17502) docs(exploring-data): Add upload excel notes (@aniaan)
 - [#17522](https://github.com/apache/superset/pull/17522) chore: remove deprecated selects and deps (@villebro)
@@ -783,11 +803,11 @@ under the License.
 - [#17482](https://github.com/apache/superset/pull/17482) chore(deps): bump cachelib from 0.1.1 to 0.4.1 (@villebro)
 - [#17464](https://github.com/apache/superset/pull/17464) chore(sql_lab): Added Unit Test for stop query exception (@AAfghahi)
 - [#17454](https://github.com/apache/superset/pull/17454) chore(deps-dev): bump @types/react-loadable from 5.5.4 to 5.5.6 in /superset-frontend (@dependabot[bot])
-- [#17479](https://github.com/apache/superset/pull/17479) refactor(QueryObject):  decouple from superset (@ofekisr)
+- [#17479](https://github.com/apache/superset/pull/17479) refactor(QueryObject): decouple from superset (@ofekisr)
 - [#17466](https://github.com/apache/superset/pull/17466) refactor(QueryObject): add QueryObjectFactory to meet SRP (@ofekisr)
 - [#17465](https://github.com/apache/superset/pull/17465) refactor(QueryObject): decouple from queryContext and clean code (@ofekisr)
 - [#16868](https://github.com/apache/superset/pull/16868) chore(fr-translation): update whole French translation (based on 1.3.0 release) (@audour)
-- [#17461](https://github.com/apache/superset/pull/17461) refactor(ChartDataCommand): remove create queryContext command's responsibly  (@ofekisr)
+- [#17461](https://github.com/apache/superset/pull/17461) refactor(ChartDataCommand): remove create queryContext command's responsibly (@ofekisr)
 - [#17427](https://github.com/apache/superset/pull/17427) refactor(monorepo): stage 1 (@zhaoyongjie)
 - [#17451](https://github.com/apache/superset/pull/17451) chore: Ignore docs directory for dependabot (@hughhhh)
 - [#17398](https://github.com/apache/superset/pull/17398) test: add native filter default value e2e (@jinghua-qa)
@@ -796,7 +816,7 @@ under the License.
 - [#14576](https://github.com/apache/superset/pull/14576) chore(deps): bump hosted-git-info from 2.8.8 to 2.8.9 in /docs (@dependabot[bot])
 - [#17438](https://github.com/apache/superset/pull/17438) chore: bump superset-ui 0.18.25 (@zhaoyongjie)
 - [#17425](https://github.com/apache/superset/pull/17425) refactor(ChartDataCommand): into two separate commands (@ofekisr)
-- [#17407](https://github.com/apache/superset/pull/17407) refactor(TestChartApi):  move chart data api tests into TestChartDataApi (@ofekisr)
+- [#17407](https://github.com/apache/superset/pull/17407) refactor(TestChartApi): move chart data api tests into TestChartDataApi (@ofekisr)
 - [#17405](https://github.com/apache/superset/pull/17405) refactor(ChartDataCommand): separate loading query_context form cache into different module (@ofekisr)
 - [#17403](https://github.com/apache/superset/pull/17403) chore: add dependencies for monorepo (@zhaoyongjie)
 - [#17400](https://github.com/apache/superset/pull/17400) refactor(ChartData): move chart_data_apis from ChartRestApi ChartDataRestApi (@ofekisr)
@@ -856,27 +876,32 @@ under the License.
 - [#16689](https://github.com/apache/superset/pull/16689) chore: refactor header menu to show in header grid component (@pkdotson)
 
 ### 1.4.2 (Sat Mar 19 00:08:06 2022 +0200)
+
 **Features**
+
 - [#19248](https://github.com/apache/superset/pull/19248) feat: add support for comments in adhoc clauses (@villebro)
 - [#18214](https://github.com/apache/superset/pull/18214) feat(docker-compose): add TAG option (@villebro)
 
 **Fixes**
+
 - [#17641](https://github.com/apache/superset/pull/17641) fix(sqla): make text clause escaping optional (@villebro)
 - [#18566](https://github.com/apache/superset/pull/18566) fix(plugin-chart-echarts): area chart opacity bug (@villebro)
 
 ### 1.4.1
+
 **Database Migrations**
 
 **Features**
 
 **Fixes**
+
 - [#17980](https://github.com/apache/superset/pull/17980) fix: css template API response, less data (@dpgaspar)
 - [#17984](https://github.com/apache/superset/pull/17984) fix: Change default SECRET_KEY, improve docs and banner warning on de… (@dpgaspar)
 - [#17981](https://github.com/apache/superset/pull/17981) fix: API logger output (@dpgaspar)
 - [#18006](https://github.com/apache/superset/pull/18006) fix: SQL Lab sorting of non-numbers (@etr2460)
 - [#17573](https://github.com/apache/superset/pull/17573) fix(sqllab): Floating numbers not sorting correctly in result column (@lyndsiWilliams)
 - [#17961](https://github.com/apache/superset/pull/17961) fix: update slug name (@pkdotson)
-- [#17992](https://github.com/apache/superset/pull/17992) fix:  dashboard reload crash (@pkdotson)
+- [#17992](https://github.com/apache/superset/pull/17992) fix: dashboard reload crash (@pkdotson)
 - [#18048](https://github.com/apache/superset/pull/18048) fix(dashboard): scope status of native filter not update (@stephenLYZ)
 - [#16869](https://github.com/apache/superset/pull/16869) fix: handle TIME column serialization (@frafra)
 

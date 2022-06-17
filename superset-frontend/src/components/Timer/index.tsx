@@ -20,7 +20,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { styled } from '@superset-ui/core';
 import Label, { Type } from 'src/components/Label';
 
-import { now, fDuration } from 'src/modules/dates';
+import { now, fDuration } from 'src/utils/dates';
 
 export interface TimerProps {
   endTime?: number;
@@ -31,7 +31,6 @@ export interface TimerProps {
 
 const TimerLabel = styled(Label)`
   text-align: left;
-  width: 91px;
 `;
 
 export default function Timer({
