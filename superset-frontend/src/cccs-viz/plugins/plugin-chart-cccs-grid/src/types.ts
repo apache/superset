@@ -44,7 +44,6 @@ export interface CccsGridStylesProps {
 
 // @ts-ignore
 export const DEFAULT_FORM_DATA: CccsGridQueryFormData = {
-  emitFilter: false,
   result_type: 'post_processed',
   viz_type: 'cccs_grid',
 };

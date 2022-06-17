@@ -41,7 +41,7 @@ import {
 } from '@superset-ui/chart-controls';
 import { StyledColumnOption } from 'src/explore/components/optionRenderers';
 
-//import cidrRegex from 'cidr-regex';
+// import cidrRegex from 'cidr-regex';
 
 export const PAGE_SIZE_OPTIONS = formatSelectOptions<number>([
   [0, t('page_size.all')],
@@ -420,7 +420,7 @@ const config: ControlPanelConfig = {
         [
           isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)
             ? {
-                name: 'table_filter',
+                name: 'emitFilter',
                 config: {
                   type: 'CheckboxControl',
                   label: t('Emit dashboard cross filters'),
