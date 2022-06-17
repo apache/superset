@@ -614,21 +614,33 @@ describe('SupersetClientClass', () => {
     const guestToken = 'test-guest-token';
     const postFormPayload = { number: 123, array: [1, 2, 3] };
 
-    it('makes postForm request', async () => {
-      const client = new SupersetClientClass({ protocol, host });
-      await client.init();
+    let client: SupersetClientClass;
+    let appendChild: any;
+    let removeChild: any;
+    let submit: any;
+    let createElement: any;
 
-      const createElement = jest.fn(() => ({
+    beforeEach(async () => {
+      client = new SupersetClientClass({ protocol, host });
+      await client.init();
+      appendChild = jest.fn();
+      removeChild = jest.fn();
+      submit = jest.fn();
+      createElement = jest.fn(() => ({
         appendChild: jest.fn(),
-        submit: jest.fn(),
+        submit,
       }));
 
       document.createElement = createElement as any;
-      const appendChild = jest.fn();
-      const removeChild = jest.fn();
       document.body.appendChild = appendChild;
       document.body.removeChild = removeChild;
+    });
 
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    it('makes postForm request', async () => {
       await client.postForm(mockPostFormUrl, {});
 
       const hiddenForm = createElement.mock.results[0].value;
@@ -649,19 +661,8 @@ describe('SupersetClientClass', () => {
     });
 
     it('makes postForm request with guest token', async () => {
-      const client = new SupersetClientClass({ protocol, host, guestToken });
+      client = new SupersetClientClass({ protocol, host, guestToken });
       await client.init();
-
-      const createElement = jest.fn(() => ({
-        appendChild: jest.fn(),
-        submit: jest.fn(),
-      }));
-
-      document.createElement = createElement as any;
-      const appendChild = jest.fn();
-      const removeChild = jest.fn();
-      document.body.appendChild = appendChild;
-      document.body.removeChild = removeChild;
 
       await client.postForm(mockPostFormUrl, {});
 
@@ -678,21 +679,6 @@ describe('SupersetClientClass', () => {
     });
 
     it('makes postForm request with payload', async () => {
-      const client = new SupersetClientClass({ protocol, host });
-      await client.init();
-      const submit = jest.fn();
-
-      const createElement = jest.fn(() => ({
-        appendChild: jest.fn(),
-        submit,
-      }));
-
-      document.createElement = createElement as any;
-      const appendChild = jest.fn();
-      const removeChild = jest.fn();
-      document.body.appendChild = appendChild;
-      document.body.removeChild = removeChild;
-
       await client.postForm(mockPostFormUrl, { form_data: postFormPayload });
 
       const postFormPayloadInput = createElement.mock.results[1].value;
@@ -709,7 +695,6 @@ describe('SupersetClientClass', () => {
     });
 
     it('should do nothing when url is empty string', async () => {
-      const client = new SupersetClientClass({ protocol, host });
       await client.init();
       const result = await client.postForm('', {});
       expect(result).toBeUndefined();
