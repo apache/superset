@@ -44,6 +44,7 @@ const JustifyEnd = styled.div`
 // not sure if we need this still. Using green for the default color in picker.
 const colorSchemeOptions = (theme: SupersetTheme) => [
   {
+    // color picker still needs {r, g, b, a} for now
     value: rgbStringToRgbaObject(hexToRgb(theme.colors.success.light1)),
     label: t('green'),
   },
@@ -207,7 +208,7 @@ export const FormattingPopoverContent = ({
     <Form
       onFinish={onChange}
       initialValues={config}
-      requiredMark="optional"
+      requiredMark={undefined}
       layout="vertical"
     >
       <Row gutter={12}>
@@ -235,7 +236,7 @@ export const FormattingPopoverContent = ({
           <FormItem
             name="inverseScale"
             label={t('Inverse Scale')}
-            rules={[{ required: true, message: '' }]}
+            rules={[{ required: false, message: '' }]}
             tooltip={t('Ignored when "=" operator is selected.')}
           >
             <Checkbox checked={inverseScale} onChange={changeInverseScale} />

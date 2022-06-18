@@ -17,7 +17,13 @@
  * under the License.
  */
 
-import { getContrastingColor, addAlpha } from '@superset-ui/core';
+import {
+  getContrastingColor,
+  addAlpha,
+  isValidHexColor,
+  splitRgbAlpha,
+  toRgbaHex,
+} from '@superset-ui/core';
 
 describe('color utils', () => {
   describe('getContrastingColor', () => {
@@ -80,6 +86,131 @@ describe('color utils', () => {
       expect(() => {
         addAlpha('#000000', -1);
       }).toThrow();
+    });
+  });
+  describe('isValidHexColor', () => {
+    it('6-digit with leading hash', () => {
+      expect(isValidHexColor('#000000')).toBe(true);
+    });
+    it('8-digit with leading hash', () => {
+      expect(isValidHexColor('#000000FF')).toBe(true);
+    });
+    it('3-digit with leading hash', () => {
+      expect(isValidHexColor('#000')).toBe(true);
+    });
+    it('4-digit with leading hash', () => {
+      expect(isValidHexColor('#0000')).toBe(true);
+    });
+    it('6-digit without leading hash', () => {
+      expect(isValidHexColor('000000')).toBe(true);
+    });
+    it('8-digit without leading hash', () => {
+      expect(isValidHexColor('000000FF')).toBe(true);
+    });
+    it('3-digit without leading hash', () => {
+      expect(isValidHexColor('000')).toBe(true);
+    });
+    it('4-digit without leading hash', () => {
+      expect(isValidHexColor('0000')).toBe(true);
+    });
+    it('bad string', () => {
+      expect(isValidHexColor('foobar')).toBe(false);
+    });
+    it('undefined', () => {
+      expect(isValidHexColor(undefined)).toBe(false);
+    });
+  });
+  describe('toRgbaHex', () => {
+    it('6-digit with leading hash', () => {
+      expect(toRgbaHex('#000000')).toBe('#000000');
+    });
+    it('8-digit with leading hash', () => {
+      expect(toRgbaHex('#000000FF')).toBe('#000000FF');
+    });
+    it('3-digit with leading hash', () => {
+      expect(toRgbaHex('#000')).toBe('#000');
+    });
+    it('4-digit with leading hash', () => {
+      expect(toRgbaHex('#0000')).toBe('#0000');
+    });
+    it('6-digit without leading hash', () => {
+      expect(toRgbaHex('000000')).toBe('000000');
+    });
+    it('8-digit without leading hash', () => {
+      expect(toRgbaHex('000000FF')).toBe('000000FF');
+    });
+    it('3-digit without leading hash', () => {
+      expect(toRgbaHex('000')).toBe('000');
+    });
+    it('4-digit without leading hash', () => {
+      expect(toRgbaHex('0000')).toBe('0000');
+    });
+    it('RGB object', () => {
+      expect(toRgbaHex({ r: 255, g: 255, b: 0 })).toBe('#FFFF00FF');
+    });
+    it('RGBA object', () => {
+      expect(toRgbaHex({ r: 255, g: 255, b: 0, a: 0.5 })).toBe('#FFFF0080');
+    });
+    it('bad string', () => {
+      expect(toRgbaHex('foobar')).toBe('#000000FF');
+    });
+    it('undefined', () => {
+      expect(toRgbaHex(undefined)).toBe('#000000FF');
+    });
+  });
+  describe('splitRgbAlpha', () => {
+    it('6-digit with leading hash', () => {
+      expect(splitRgbAlpha('#000000')).toEqual({
+        rgb: '#000000',
+        alpha: undefined,
+      });
+    });
+    it('8-digit with leading hash', () => {
+      expect(splitRgbAlpha('#000000FF')).toEqual({
+        rgb: '#000000',
+        alpha: 1,
+      });
+    });
+    it('3-digit with leading hash', () => {
+      expect(splitRgbAlpha('#000')).toEqual({
+        rgb: '#000',
+        alpha: undefined,
+      });
+    });
+    it('4-digit with leading hash', () => {
+      expect(splitRgbAlpha('#0000')).toEqual({
+        rgb: '#000',
+        alpha: 0,
+      });
+    });
+    it('6-digit without leading hash', () => {
+      expect(splitRgbAlpha('000000')).toEqual({
+        rgb: '000000',
+        alpha: undefined,
+      });
+    });
+    it('8-digit without leading hash', () => {
+      expect(splitRgbAlpha('000000FF')).toEqual({
+        rgb: '000000',
+        alpha: 1,
+      });
+    });
+    it('3-digit without leading hash', () => {
+      expect(splitRgbAlpha('000')).toEqual({
+        rgb: '000',
+        alpha: undefined,
+      });
+    });
+    it('4-digit without leading hash', () => {
+      expect(splitRgbAlpha('0000')).toEqual({
+        rgb: '000',
+        alpha: 0,
+      });
+    });
+    it('color should be a valid color string', () => {
+      expect(splitRgbAlpha('foobar')).toBe(undefined);
+      expect(splitRgbAlpha('#fubar')).toBe(undefined);
+      expect(splitRgbAlpha(undefined)).toBe(undefined);
     });
   });
 });

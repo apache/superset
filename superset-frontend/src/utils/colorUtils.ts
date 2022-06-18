@@ -16,6 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
+import { RGBA } from '@superset-ui/core';
+
 export function hexToRgb(h: string) {
   let r = '0';
   let g = '0';
@@ -46,11 +49,11 @@ export function rgbToHex(red: number, green: number, blue: number) {
   if (g.length === 1) g = `0${g}`;
   if (b.length === 1) b = `0${b}`;
 
-  return `#${r}${g}${b}`;
+  return `#${r}${g}${b}`.toUpperCase();
 }
 
 // convert string `rgba(r,g,b,a)` or `rgb(r,g,b)` to an object {r, g, b, a}
-export function rgbStringToRgbaObject(rgb: string) {
+export function rgbStringToRgbaObject(rgb: string): RGBA {
   const matches = rgb.match(/rgba?\((\d+), ?(\d+), ?(\d+),? ?(0?\.\d+)?\)/);
   const [, r, g, b, a] = (matches || ['', 0, 0, 0, 1]).map(Number);
 

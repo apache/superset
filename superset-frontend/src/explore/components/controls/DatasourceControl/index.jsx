@@ -19,7 +19,13 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { t, styled, withTheme, DatasourceType } from '@superset-ui/core';
+import {
+  DatasourceType,
+  SupersetClient,
+  styled,
+  t,
+  withTheme,
+} from '@superset-ui/core';
 import { getUrlParam } from 'src/utils/urlUtils';
 
 import { AntdDropdown } from 'src/components';
@@ -30,13 +36,13 @@ import {
   ChangeDatasourceModal,
   DatasourceModal,
 } from 'src/components/Datasource';
-import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
-import { postForm } from 'src/explore/exploreUtils';
 import Button from 'src/components/Button';
 import ErrorAlert from 'src/components/ErrorMessage/ErrorAlert';
 import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
 import { URL_PARAMS } from 'src/constants';
 import { isUserAdmin } from 'src/dashboard/util/findPermission';
+import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
+import { safeStringify } from 'src/utils/safeStringify';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -193,7 +199,9 @@ class DatasourceControl extends React.PureComponent {
             datasourceKey: `${datasource.id}__${datasource.type}`,
             sql: datasource.sql,
           };
-          postForm('/superset/sqllab/', payload);
+          SupersetClient.postForm('/superset/sqllab/', {
+            form_data: safeStringify(payload),
+          });
         }
         break;
 

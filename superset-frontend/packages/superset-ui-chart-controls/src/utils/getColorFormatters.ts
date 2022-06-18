@@ -17,7 +17,12 @@
  * under the License.
  */
 import memoizeOne from 'memoize-one';
-import { DataRecord } from '@superset-ui/core';
+import {
+  addAlpha,
+  DataRecord,
+  splitRgbAlpha,
+  toRgbaHex,
+} from '@superset-ui/core';
 import {
   ColorFormatters,
   COMPARATOR,
@@ -27,9 +32,6 @@ import {
 
 export const round = (num: number, precision = 0) =>
   Number(`${Math.round(Number(`${num}e+${precision}`))}e-${precision}`);
-
-export const rgbToRgba = (rgb: string, alpha: number) =>
-  rgb.replace(/rgb/i, 'rgba').replace(/\)/i, `,${alpha})`);
 
 const MIN_OPACITY_BOUNDED = 0.05;
 const MIN_OPACITY_UNBOUNDED = 0;
@@ -64,13 +66,15 @@ export const getColorFunction = (
   columnValues: number[],
 ) => {
   let minOpacity = MIN_OPACITY_BOUNDED;
-  const maxOpacity = colorScheme?.a || MAX_OPACITY;
-
+  // get a max opacity if supplied, can result in slight rounding errors though
+  // also, force to RGbA hex string, color picker still returns {r, g, b, a}
+  const { rgb, alpha: maxOpacity = MAX_OPACITY } =
+    splitRgbAlpha(toRgbaHex(colorScheme)) || {};
   let comparatorFunction: (
     value: number,
     allValues: number[],
   ) => false | { cutoffValue: number; extremeValue: number };
-  if (operator === undefined || colorScheme === undefined) {
+  if (operator === undefined || rgb === undefined) {
     return () => undefined;
   }
   if (
@@ -176,15 +180,17 @@ export const getColorFunction = (
     const compareResult = comparatorFunction(value, columnValues);
     if (compareResult === false) return undefined;
     const { cutoffValue, extremeValue } = compareResult;
-    const opacity = getOpacity(
-      value,
-      cutoffValue,
-      extremeValue,
-      minOpacity,
-      maxOpacity,
-      inverseScale && operator !== COMPARATOR.EQUAL,
+    return addAlpha(
+      rgb,
+      getOpacity(
+        value,
+        cutoffValue,
+        extremeValue,
+        minOpacity,
+        maxOpacity,
+        inverseScale && operator !== COMPARATOR.EQUAL,
+      ),
     );
-    return `rgba(${colorScheme.r},${colorScheme.g},${colorScheme.b},${opacity})`;
   };
 };
 

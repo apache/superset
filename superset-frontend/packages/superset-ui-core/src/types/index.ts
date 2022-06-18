@@ -17,5 +17,6 @@
  * under the License.
  */
 export * from '../query/types';
+export * from '../color/types';
 
 export type Maybe<T> = T | null;

@@ -29,7 +29,7 @@ export const druidTimeSeries: ControlPanelSectionConfig = {
 };
 
 export const datasourceAndVizType: ControlPanelSectionConfig = {
-  label: t('Chart type'),
+  label: t('Visualization type'),
   expanded: true,
   controlSetRows: [
     ['datasource'],

@@ -20,3 +20,10 @@
 export interface ColorsLookup {
   [key: string]: string;
 }
+
+export type RGBA = {
+  r: number;
+  g: number;
+  b: number;
+  a?: number;
+};
