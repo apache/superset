@@ -91,7 +91,7 @@ export function addAlpha(color: string, opacity: number): string {
   return `${color}${alpha}`;
 }
 
-export function isValidHexColor(color: string | undefined): boolean {
+export function isValidHexColor(color: string | undefined | any): boolean {
   // matches with or without leading hash, short or long, with or without alpha
   if (typeof color !== 'string') {
     return false;
@@ -119,21 +119,21 @@ export function rgbToHex(red: number, green: number, blue: number) {
 
 export function toRgbaHex(color: string | RGBA | undefined): string {
   if (isValidHexColor(color)) {
-    return color;
+    return <string>color;
   }
   // else assume it's RGBA?
-  const { r = 0, g = 0, b = 0, a = 1 } = color || {};
+  const { r = 0, g = 0, b = 0, a = 1 }: RGBA = <RGBA>(color || {});
   return addAlpha(rgbToHex(r, g, b), a);
 }
 
 export function splitRgbAlpha(color: string | undefined):
   | {
       rgb: string;
-      alpha: number;
+      alpha: number | undefined;
     }
   | undefined {
   if (isValidHexColor(color)) {
-    let hex = color;
+    let hex = <string>color;
     let prefix = '';
     if (hex.startsWith('#')) {
       hex = hex.substring(1);
