@@ -146,6 +146,7 @@ export interface SupersetClientInterface
     | 'delete'
     | 'get'
     | 'post'
+    | 'postForm'
     | 'put'
     | 'request'
     | 'init'
