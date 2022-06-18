@@ -120,32 +120,33 @@ export default class SupersetClientClass {
   }
 
   async postForm(url: string, payload: Record<string, any>, target = '_blank') {
-    if (!url) return;
-    await this.ensureAuth();
-    const hiddenForm = document.createElement('form');
-    hiddenForm.action = url;
-    hiddenForm.method = 'POST';
-    hiddenForm.target = target;
-    const payloadWithToken: Record<string, any> = {
-      ...payload,
-      csrf_token: this.csrfToken!,
-    };
+    if (url) {
+      await this.ensureAuth();
+      const hiddenForm = document.createElement('form');
+      hiddenForm.action = url;
+      hiddenForm.method = 'POST';
+      hiddenForm.target = target;
+      const payloadWithToken: Record<string, any> = {
+        ...payload,
+        csrf_token: this.csrfToken!,
+      };
 
-    if (this.guestToken) {
-      payloadWithToken.guest_token = this.guestToken;
+      if (this.guestToken) {
+        payloadWithToken.guest_token = this.guestToken;
+      }
+
+      Object.entries(payloadWithToken).forEach(([key, value]) => {
+        const data = document.createElement('input');
+        data.type = 'hidden';
+        data.name = key;
+        data.value = value;
+        hiddenForm.appendChild(data);
+      });
+
+      document.body.appendChild(hiddenForm);
+      hiddenForm.submit();
+      document.body.removeChild(hiddenForm);
     }
-
-    Object.entries(payloadWithToken).forEach(([key, value]) => {
-      const data = document.createElement('input');
-      data.type = 'hidden';
-      data.name = key;
-      data.value = value;
-      hiddenForm.appendChild(data);
-    });
-
-    document.body.appendChild(hiddenForm);
-    hiddenForm.submit();
-    document.body.removeChild(hiddenForm);
   }
 
   async reAuthenticate() {

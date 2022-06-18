@@ -614,6 +614,7 @@ describe('SupersetClientClass', () => {
     const guestToken = 'test-guest-token';
     const postFormPayload = { number: 123, array: [1, 2, 3] };
 
+    let authSpy: jest.SpyInstance;
     let client: SupersetClientClass;
     let appendChild: any;
     let removeChild: any;
@@ -622,6 +623,7 @@ describe('SupersetClientClass', () => {
 
     beforeEach(async () => {
       client = new SupersetClientClass({ protocol, host });
+      authSpy = jest.spyOn(SupersetClientClass.prototype, 'ensureAuth');
       await client.init();
       appendChild = jest.fn();
       removeChild = jest.fn();
@@ -658,6 +660,7 @@ describe('SupersetClientClass', () => {
 
       expect(appendChild.mock.calls).toHaveLength(1);
       expect(removeChild.mock.calls).toHaveLength(1);
+      expect(authSpy).toHaveBeenCalledTimes(1);
     });
 
     it('makes postForm request with guest token', async () => {
@@ -676,6 +679,7 @@ describe('SupersetClientClass', () => {
 
       expect(appendChild.mock.calls).toHaveLength(1);
       expect(removeChild.mock.calls).toHaveLength(1);
+      expect(authSpy).toHaveBeenCalledTimes(1);
     });
 
     it('makes postForm request with payload', async () => {
@@ -692,6 +696,7 @@ describe('SupersetClientClass', () => {
       expect(appendChild.mock.calls).toHaveLength(1);
       expect(removeChild.mock.calls).toHaveLength(1);
       expect(submit.mock.calls).toHaveLength(1);
+      expect(authSpy).toHaveBeenCalledTimes(1);
     });
 
     it('should do nothing when url is empty string', async () => {
@@ -700,6 +705,7 @@ describe('SupersetClientClass', () => {
       expect(createElement.mock.calls).toHaveLength(0);
       expect(appendChild.mock.calls).toHaveLength(0);
       expect(removeChild.mock.calls).toHaveLength(0);
+      expect(authSpy).toHaveBeenCalledTimes(0);
     });
   });
 });
