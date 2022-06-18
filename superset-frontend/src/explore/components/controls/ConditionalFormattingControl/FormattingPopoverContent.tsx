@@ -208,7 +208,7 @@ export const FormattingPopoverContent = ({
     <Form
       onFinish={onChange}
       initialValues={config}
-      requiredMark={undefined}
+      requiredMark="optional"
       layout="vertical"
     >
       <Row gutter={12}>
@@ -236,7 +236,7 @@ export const FormattingPopoverContent = ({
           <FormItem
             name="inverseScale"
             label={t('Inverse Scale')}
-            rules={[{ required: false, message: '' }]}
+            rules={[{ required: true, message: '' }]}
             tooltip={t('Ignored when "=" operator is selected.')}
           >
             <Checkbox checked={inverseScale} onChange={changeInverseScale} />
