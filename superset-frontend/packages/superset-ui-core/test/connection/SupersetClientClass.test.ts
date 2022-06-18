@@ -698,6 +698,8 @@ describe('SupersetClientClass', () => {
       await client.init();
       const result = await client.postForm('', {});
       expect(result).toBeUndefined();
+      expect(appendChild.mock.calls).toHaveLength(0);
+      expect(removeChild.mock.calls).toHaveLength(0);
     });
   });
 });
