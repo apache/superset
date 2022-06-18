@@ -693,5 +693,11 @@ describe('SupersetClientClass', () => {
       expect(removeChild.mock.calls).toHaveLength(1);
       expect(submit.mock.calls).toHaveLength(1);
     });
+
+    it('should do nothing when url is empty string', async () => {
+      await client.init();
+      const result = await client.postForm('', {});
+      expect(result).toBeUndefined();
+    });
   });
 });
