@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2022-01-30 00:48+0300\n"
+"POT-Creation-Date: 2022-06-18 22:09+0300\n"
 "PO-Revision-Date: 2018-11-03 00:11+0100\n"
 "Last-Translator: Ruben Sastre <ruben.sastre@decathlon.com>\n"
 "Language: es\n"
@@ -28,6 +28,16 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.9.1\n"
 
+#: superset/tasks/schedules.py:185
+#, python-format
+msgid ""
+"\n"
+"                <b><a href=\"%(url)s\">Explore in Superset</a></b><p></p>"
+"\n"
+"                <img src=\"cid:%(msgid)s\">\n"
+"                "
+msgstr ""
+
 #: superset-frontend/src/explore/components/controls/DndColumnSelectControl/Option.tsx:68
 #: superset-frontend/src/explore/components/controls/OptionControls/index.tsx:323
 msgid ""
@@ -37,12 +47,23 @@ msgid ""
 "              "
 msgstr ""
 
-#: superset/tasks/schedules.py:184
+#: superset/tasks/schedules.py:160
 #, python-format
 msgid ""
 "\n"
-"            <b><a href=\"%(url)s\">Explore in Superset</a></b><p></p>\n"
-"            <img src=\"cid:%(msgid)s\">\n"
+"            *%(name)s*\n"
+"\n"
+"            <%(url)s|Explore in Superset>\n"
+"            "
+msgstr ""
+
+#: superset/tasks/schedules.py:374
+#, python-format
+msgid ""
+"\n"
+"            *%(slice_name)s*\n"
+"\n"
+"            <%(slice_url_user_friendly)s|Explore in Superset>\n"
 "            "
 msgstr ""
 
@@ -52,26 +73,6 @@ msgid ""
 "\n"
 "            Error: %(text)s\n"
 "            "
-msgstr ""
-
-#: superset/tasks/schedules.py:159
-#, python-format
-msgid ""
-"\n"
-"        *%(name)s*\n"
-"\n"
-"        <%(url)s|Explore in Superset>\n"
-"        "
-msgstr ""
-
-#: superset/tasks/schedules.py:372
-#, python-format
-msgid ""
-"\n"
-"        *%(slice_name)s*\n"
-"\n"
-"        <%(slice_url_user_friendly)s|Explore in Superset>\n"
-"        "
 msgstr ""
 
 #: superset-frontend/src/filters/components/Select/SelectFilterPlugin.tsx:122
@@ -137,7 +138,7 @@ msgid ""
 "%(issues)s"
 msgstr ""
 
-#: superset/reports/notifications/email.py:122 superset/tasks/schedules.py:364
+#: superset/reports/notifications/email.py:122 superset/tasks/schedules.py:366
 #, python-format
 msgid "%(name)s.csv"
 msgstr ""
@@ -147,8 +148,8 @@ msgstr ""
 msgid "%(object)s does not exist in this database."
 msgstr ""
 
-#: superset/reports/notifications/email.py:126 superset/tasks/schedules.py:296
-#: superset/tasks/schedules.py:465
+#: superset/reports/notifications/email.py:126 superset/tasks/schedules.py:297
+#: superset/tasks/schedules.py:467
 #, python-format
 msgid "%(prefix)s %(title)s"
 msgstr ""
@@ -437,7 +438,7 @@ msgstr ""
 msgid "<= (Smaller or equal)"
 msgstr ""
 
-#: superset/tasks/schedules.py:171 superset/tasks/schedules.py:365
+#: superset/tasks/schedules.py:172 superset/tasks/schedules.py:367
 #, python-format
 msgid "<b><a href=\"%(url)s\">Explore in Superset</a></b><p></p>"
 msgstr ""
@@ -801,7 +802,7 @@ msgstr ""
 msgid "Additional padding for legend."
 msgstr ""
 
-#: superset/db_engine_specs/base.py:1398
+#: superset/db_engine_specs/base.py:1399
 msgid "Additional parameters"
 msgstr ""
 
@@ -2177,7 +2178,7 @@ msgstr ""
 msgid "Cache timeout"
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:247
+#: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:248
 #, python-format
 msgid "Cached %s"
 msgstr ""
@@ -2586,7 +2587,7 @@ msgstr ""
 msgid "Chart does not exist"
 msgstr ""
 
-#: superset/charts/data/api.py:125
+#: superset/charts/data/api.py:127
 msgid "Chart has no query context saved. Please save the chart again."
 msgstr ""
 
@@ -2642,7 +2643,7 @@ msgstr ""
 msgid "Check out this chart in dashboard:"
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:325
+#: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:326
 msgid "Check out this chart: "
 msgstr ""
 
@@ -3353,7 +3354,7 @@ msgstr ""
 msgid "Copy and paste the entire service account .json file here"
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:322
+#: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:323
 msgid "Copy chart URL"
 msgstr ""
 
@@ -3541,7 +3542,7 @@ msgstr ""
 msgid "Cross Filter Scoping"
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:360
+#: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:363
 msgid "Cross-filter scoping"
 msgstr ""
 
@@ -3870,7 +3871,7 @@ msgid "Database is required for alerts"
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal/DatabaseConnectionForm/CommonParameters.tsx:89
-#: superset/db_engine_specs/base.py:1396
+#: superset/db_engine_specs/base.py:1397
 msgid "Database name"
 msgstr ""
 
@@ -3886,7 +3887,7 @@ msgstr ""
 msgid "Database parameters are invalid."
 msgstr ""
 
-#: superset/db_engine_specs/base.py:1393
+#: superset/db_engine_specs/base.py:1394
 msgid "Database port"
 msgstr ""
 
@@ -4602,7 +4603,7 @@ msgid "Donut"
 msgstr ""
 
 #: superset-frontend/src/dashboard/components/Header/HeaderActionsDropdown/index.jsx:318
-#: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:334
+#: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:335
 #: superset-frontend/src/explore/components/ExploreAdditionalActionsMenu/index.jsx:105
 msgid "Download as image"
 msgstr ""
@@ -5459,11 +5460,11 @@ msgstr ""
 msgid "Export"
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:339
+#: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:340
 msgid "Export CSV"
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:344
+#: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:346
 msgid "Export XLSX"
 msgstr ""
 
@@ -5471,7 +5472,7 @@ msgstr ""
 msgid "Export dashboards?"
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:352
+#: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:355
 msgid "Export full CSV"
 msgstr ""
 
@@ -5636,7 +5637,7 @@ msgstr ""
 msgid "Fetch data preview"
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:250
+#: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:251
 #, python-format
 msgid "Fetched %s"
 msgstr ""
@@ -5899,7 +5900,7 @@ msgstr ""
 msgid "Force date format"
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:276
+#: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:277
 msgid "Force refresh"
 msgstr ""
 
@@ -6128,7 +6129,7 @@ msgstr ""
 msgid "Host"
 msgstr ""
 
-#: superset/db_engine_specs/base.py:1390
+#: superset/db_engine_specs/base.py:1391
 msgid "Hostname or IP address"
 msgstr ""
 
@@ -7261,7 +7262,7 @@ msgstr ""
 msgid "Max Events"
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:263
+#: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:264
 msgid "Maximize chart"
 msgstr ""
 
@@ -7507,7 +7508,7 @@ msgstr ""
 msgid "Mine"
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:263
+#: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:264
 msgid "Minimize chart"
 msgstr ""
 
@@ -8585,7 +8586,7 @@ msgid ""
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal/DatabaseConnectionForm/CommonParameters.tsx:130
-#: superset/db_engine_specs/base.py:1389
+#: superset/db_engine_specs/base.py:1390
 msgid "Password"
 msgstr ""
 
@@ -9240,7 +9241,7 @@ msgstr ""
 msgid "Query"
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:259
+#: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:260
 #, python-format
 msgid "Query %s: %s"
 msgstr ""
@@ -9700,13 +9701,13 @@ msgstr ""
 msgid "Request Permissions"
 msgstr ""
 
-#: superset/charts/data/api.py:145 superset/charts/data/api.py:233
-#: superset/charts/data/api.py:297
+#: superset/charts/data/api.py:147 superset/charts/data/api.py:235
+#: superset/charts/data/api.py:299
 #, python-format
 msgid "Request is incorrect: %(error)s"
 msgstr ""
 
-#: superset/charts/data/api.py:222
+#: superset/charts/data/api.py:224
 msgid "Request is not JSON"
 msgstr ""
 
@@ -10643,7 +10644,7 @@ msgstr ""
 msgid "Share"
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:323
+#: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:324
 #: superset-frontend/src/explore/components/ExploreActionButtons.tsx:175
 msgid "Share chart by email"
 msgstr ""
@@ -11459,7 +11460,7 @@ msgid "Superset Chart"
 msgstr ""
 
 #: superset-frontend/src/components/AnchorLink/index.jsx:84
-#: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:324
+#: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:325
 msgid "Superset chart"
 msgstr ""
 
@@ -11745,7 +11746,7 @@ msgid ""
 "associated with more than one category, only the first will be used."
 msgstr ""
 
-#: superset/common/query_context_processor.py:457
+#: superset/common/query_context_processor.py:462
 msgid "The chart does not exist"
 msgstr ""
 
@@ -13143,7 +13144,7 @@ msgstr ""
 msgid "To get a readable URL for your dashboard"
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:286
+#: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:287
 msgid "Toggle chart description"
 msgstr ""
 
@@ -13577,7 +13578,7 @@ msgstr ""
 msgid "Use a log scale for the Y-axis"
 msgstr ""
 
-#: superset/db_engine_specs/base.py:1401
+#: superset/db_engine_specs/base.py:1402
 msgid "Use an encrypted connection to the database"
 msgstr ""
 
@@ -13679,7 +13680,7 @@ msgid "User query"
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal/DatabaseConnectionForm/CommonParameters.tsx:109
-#: superset/db_engine_specs/base.py:1388
+#: superset/db_engine_specs/base.py:1389
 msgid "Username"
 msgstr ""
 
@@ -13766,7 +13767,7 @@ msgstr ""
 msgid "View All »"
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:293
+#: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:294
 msgid "View chart in Explore"
 msgstr ""
 
@@ -13779,8 +13780,8 @@ msgstr ""
 msgid "View keys & indexes (%s)"
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:302
-#: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:304
+#: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:303
+#: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:305
 #: superset-frontend/src/explore/components/ExploreAdditionalActionsMenu/index.jsx:86
 #: superset-frontend/src/explore/components/ExploreAdditionalActionsMenu/index.jsx:88
 msgid "View query"
@@ -14795,7 +14796,7 @@ msgstr ""
 msgid "[ untitled dashboard ]"
 msgstr ""
 
-#: superset/tasks/schedules.py:658
+#: superset/tasks/schedules.py:660
 #, python-format
 msgid "[Alert] %(label)s"
 msgstr ""
