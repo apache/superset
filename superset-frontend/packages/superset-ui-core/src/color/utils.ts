@@ -17,7 +17,6 @@
  * under the License.
  */
 import tinycolor from 'tinycolor2';
-import { rgbToHex } from 'src/utils/colorUtils';
 import { RGBA } from './types';
 
 export const round = (num: number, precision = 0) =>
@@ -104,6 +103,18 @@ export function isValidHexColor(color: string | undefined): boolean {
         /^#?[0-9A-F]{6}$|^#?[0-9A-F]{8}$|^#?[0-9A-F]{3}$|^#?[0-9A-F]{4}$/,
       ) !== null
   );
+}
+
+export function rgbToHex(red: number, green: number, blue: number) {
+  let r = red.toString(16);
+  let g = green.toString(16);
+  let b = blue.toString(16);
+
+  if (r.length === 1) r = `0${r}`;
+  if (g.length === 1) g = `0${g}`;
+  if (b.length === 1) b = `0${b}`;
+
+  return `#${r}${g}${b}`.toUpperCase();
 }
 
 export function toRgbaHex(color: string | RGBA | undefined): string {

@@ -49,7 +49,7 @@ export function rgbToHex(red: number, green: number, blue: number) {
   if (g.length === 1) g = `0${g}`;
   if (b.length === 1) b = `0${b}`;
 
-  return `#${r}${g}${b}`.toUpperCase();
+  return `#${r}${g}${b}`;
 }
 
 // convert string `rgba(r,g,b,a)` or `rgb(r,g,b)` to an object {r, g, b, a}
