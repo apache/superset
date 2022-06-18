@@ -695,9 +695,9 @@ describe('SupersetClientClass', () => {
     });
 
     it('should do nothing when url is empty string', async () => {
-      await client.init();
       const result = await client.postForm('', {});
       expect(result).toBeUndefined();
+      expect(createElement.mock.calls).toHaveLength(0);
       expect(appendChild.mock.calls).toHaveLength(0);
       expect(removeChild.mock.calls).toHaveLength(0);
     });

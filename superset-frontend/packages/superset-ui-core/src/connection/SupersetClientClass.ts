@@ -120,7 +120,7 @@ export default class SupersetClientClass {
   }
 
   async postForm(url: string, payload: Record<string, any>, target = '_blank') {
-    if (!url) {
+    if (url === '') {
       return;
     }
     await this.ensureAuth();
