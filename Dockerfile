@@ -143,6 +143,10 @@ RUN wget https://download-installer.cdn.mozilla.net/pub/firefox/releases/${FIREF
     tar xvf /opt/firefox.tar.bz2 -C /opt && \
     ln -s /opt/firefox/firefox /usr/local/bin/firefox
 
+COPY ./docker/requirements-*.txt /app/requirements/   
+RUN cd /app \
+    && pip install --no-cache -r requirements/requirements-local.txt || true
+
 ######################################################################
 # Dev image...
 ######################################################################
