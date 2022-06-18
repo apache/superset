@@ -45,8 +45,6 @@ import {
 const {
   contributionMode,
   logAxis,
-  markerEnabled,
-  markerSize,
   minorSplitLine,
   rowLimit,
   truncateYAxis,
@@ -341,38 +339,6 @@ const config: ControlPanelConfig = {
       controlSetRows: [
         ['color_scheme'],
         ...showValueSection,
-        [
-          {
-            name: 'markerEnabled',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Marker'),
-              renderTrigger: true,
-              default: markerEnabled,
-              description: t(
-                'Draw a marker on data points. Only applicable for line types.',
-              ),
-            },
-          },
-        ],
-        [
-          {
-            name: 'markerSize',
-            config: {
-              type: 'SliderControl',
-              label: t('Marker Size'),
-              renderTrigger: true,
-              min: 0,
-              max: 20,
-              default: markerSize,
-              description: t(
-                'Size of marker. Also applies to forecast observations.',
-              ),
-              visibility: ({ controls }: ControlPanelsContainerProps) =>
-                Boolean(controls?.markerEnabled?.value),
-            },
-          },
-        ],
         [
           {
             name: 'zoomable',
