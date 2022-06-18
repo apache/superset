@@ -498,7 +498,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         time_grain_expressions.update(grain_addon_expressions.get(cls.engine, {}))
         denylist: List[str] = current_app.config["TIME_GRAIN_DENYLIST"]
         for key in denylist:
-            time_grain_expressions.pop(key)
+            if key in time_grain_expressions:
+                time_grain_expressions.pop(key)
 
         return dict(
             sorted(
