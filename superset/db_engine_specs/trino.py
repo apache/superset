@@ -96,6 +96,28 @@ class TrinoEngineSpec(PrestoEngineSpec):
 
         return extra
 
+    @classmethod
+    def get_table_names(
+        cls,
+        database: "Database",
+        inspector: Inspector,
+        schema: Optional[str],
+    ) -> List[str]:
+        return BaseEngineSpec.get_table_names(database, inspector, schema)
+
+    @classmethod
+    def get_view_names(
+        cls,
+        database: "Database",
+        inspector: Inspector,
+        schema: Optional[str],
+    ) -> List[str]:
+        return BaseEngineSpec.get_view_names(database, inspector, schema)
+
+    @classmethod
+    def handle_cursor(cls, cursor: Any, query: Query, session: Session) -> None:
+        BaseEngineSpec.handle_cursor(cursor, query, session)
+
     @staticmethod
     def update_encrypted_extra_params(
         database: "Database", params: Dict[str, Any]
