@@ -47,7 +47,7 @@ from superset.views.base import (
 logger = logging.getLogger(__name__)
 
 
-class SelectDataRequired(DataRequired):
+class SelectDataRequired(DataRequired):  # pylint: disable=too-few-public-methods
     """
     Select required flag on the input field will not work well on Chrome
     Console error:

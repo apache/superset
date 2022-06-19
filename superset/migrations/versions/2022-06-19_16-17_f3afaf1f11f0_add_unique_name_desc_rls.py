@@ -64,7 +64,11 @@ def upgrade():
         existing_type=sa.String(255),
         nullable=False,
     )
-    op.create_unique_constraint("uq_rls_name", "row_level_security_filters", ["name"])
+
+    # add uniqueness constraint
+    with op.batch_alter_table("row_level_security_filters") as batch_op:
+        # batch mode is required for sqlite
+        batch_op.create_unique_constraint("uq_rls_name", ["name"])
     # ### end Alembic commands ###
 
 

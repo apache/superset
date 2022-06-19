@@ -149,23 +149,38 @@ class TestRowLevelSecurity(SupersetTestCase):
         session.delete(self.get_user("NoRlsRoleUser"))
         session.commit()
 
-    def _get_birth_names_dataset(self):
-        return (
-            db.session.query(SqlaTable)
-            .filter(SqlaTable.table_name == "birth_names")
-            .one_or_none()
-        )
+    @pytest.fixture()
+    def create_dataset(self):
+        with self.create_app().app_context():
 
+            dataset = SqlaTable(database_id=1, schema=None, table_name="table1")
+            db.session.add(dataset)
+            db.session.flush()
+            db.session.commit()
+
+            yield dataset
+
+            # rollback changes (assuming cascade delete)
+            db.session.delete(dataset)
+            db.session.commit()
+
+    def _get_test_dataset(self):
+        return (
+            db.session.query(SqlaTable).filter(SqlaTable.table_name == "table1")
+        ).one_or_none()
+
+    @pytest.mark.usefixtures("create_dataset")
     def test_model_view_rls_add_success(self):
         self.login(username="admin")
+        test_dataset = self._get_test_dataset()
         rv = self.client.post(
             "/rowlevelsecurityfiltersmodelview/add",
             data=dict(
                 name="rls1",
                 description="Some description",
                 filter_type="Regular",
-                tables=[self._get_birth_names_dataset()],
-                roles=[security_manager.find_role("Alpha")],
+                tables=[test_dataset.id],
+                roles=[security_manager.find_role("Alpha").id],
                 group_key="group_key_1",
                 clause="client_id=1",
             ),
@@ -173,13 +188,54 @@ class TestRowLevelSecurity(SupersetTestCase):
         )
         self.assertEqual(rv.status_code, 200)
         rls1 = (
-            db.session.query(RowLevelSecurityFilter).filter_by(name="rls").one_or_none()
-        )
+            db.session.query(RowLevelSecurityFilter).filter_by(name="rls1")
+        ).one_or_none()
         assert rls1 is not None
 
         # Revert data changes
         db.session.delete(rls1)
         db.session.commit()
+
+    @pytest.mark.usefixtures("create_dataset")
+    def test_model_view_rls_add_name_unique(self):
+        self.login(username="admin")
+        test_dataset = self._get_test_dataset()
+        rv = self.client.post(
+            "/rowlevelsecurityfiltersmodelview/add",
+            data=dict(
+                name="rls_entry1",
+                description="Some description",
+                filter_type="Regular",
+                tables=[test_dataset.id],
+                roles=[security_manager.find_role("Alpha").id],
+                group_key="group_key_1",
+                clause="client_id=1",
+            ),
+            follow_redirects=True,
+        )
+        self.assertEqual(rv.status_code, 200)
+        data = rv.data.decode("utf-8")
+        assert "Already exists." in data
+
+    @pytest.mark.usefixtures("create_dataset")
+    def test_model_view_rls_add_tables_required(self):
+        self.login(username="admin")
+        rv = self.client.post(
+            "/rowlevelsecurityfiltersmodelview/add",
+            data=dict(
+                name="rls1",
+                description="Some description",
+                filter_type="Regular",
+                tables=[],
+                roles=[security_manager.find_role("Alpha").id],
+                group_key="group_key_1",
+                clause="client_id=1",
+            ),
+            follow_redirects=True,
+        )
+        self.assertEqual(rv.status_code, 200)
+        data = rv.data.decode("utf-8")
+        assert "This field is required." in data
 
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_rls_filter_alters_energy_query(self):
