@@ -358,7 +358,7 @@ class RowLevelSecurityFiltersModelView(SupersetModelView, DeleteMixin):
         "creator": _("Creator"),
         "modified": _("Modified"),
     }
-    # validators_columns = {"tables": [SelectDataRequired()]}
+    validators_columns = {"tables": [SelectDataRequired()]}
 
     if app.config["RLS_FORM_QUERY_REL_FIELDS"]:
         add_form_query_rel_fields = app.config["RLS_FORM_QUERY_REL_FIELDS"]
