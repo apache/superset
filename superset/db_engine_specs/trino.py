@@ -15,15 +15,18 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any, Dict, Optional, TYPE_CHECKING
+from typing import Any, Dict, List, Optional, TYPE_CHECKING
 
 import simplejson as json
 from flask import current_app
+from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
+from sqlalchemy.orm import Session
 
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.presto import PrestoEngineSpec
+from superset.models.sql_lab import Query
 from superset.utils import core as utils
 
 if TYPE_CHECKING:
@@ -76,6 +79,37 @@ class TrinoEngineSpec(PrestoEngineSpec):
     @classmethod
     def get_allow_cost_estimate(cls, extra: Dict[str, Any]) -> bool:
         return True
+
+    @classmethod
+    def get_table_names(
+        cls,
+        database: "Database",
+        inspector: Inspector,
+        schema: Optional[str],
+    ) -> List[str]:
+        return BaseEngineSpec.get_table_names(
+            database=database,
+            inspector=inspector,
+            schema=schema,
+        )
+
+    @classmethod
+    def get_view_names(
+        cls,
+        database: "Database",
+        inspector: Inspector,
+        schema: Optional[str],
+    ) -> List[str]:
+        return BaseEngineSpec.get_view_names(
+            database=database,
+            inspector=inspector,
+            schema=schema,
+        )
+
+    @classmethod
+    def handle_cursor(cls, cursor: Any, query: Query, session: Session) -> None:
+        """Updates progress information"""
+        BaseEngineSpec.handle_cursor(cursor=cursor, query=query, session=session)
 
     @staticmethod
     def get_extra_params(database: "Database") -> Dict[str, Any]:
