@@ -15,15 +15,20 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any, Dict, Optional, TYPE_CHECKING
+import time
+from typing import Any, Dict, List, Optional, TYPE_CHECKING
 
 import simplejson as json
 from flask import current_app
+from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
+from sqlalchemy.orm import Session
 
+from superset.common.db_query_status import QueryStatus
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.presto import PrestoEngineSpec
+from superset.models.sql_lab import Query
 from superset.utils import core as utils
 
 if TYPE_CHECKING:
@@ -76,6 +81,80 @@ class TrinoEngineSpec(PrestoEngineSpec):
     @classmethod
     def get_allow_cost_estimate(cls, extra: Dict[str, Any]) -> bool:
         return True
+
+    @classmethod
+    def get_table_names(
+        cls,
+        database: "Database",
+        inspector: Inspector,
+        schema: Optional[str],
+    ) -> List[str]:
+        return BaseEngineSpec.get_table_names(
+            database=database,
+            inspector=inspector,
+            schema=schema,
+        )
+
+    @classmethod
+    def get_view_names(
+        cls,
+        database: "Database",
+        inspector: Inspector,
+        schema: Optional[str],
+    ) -> List[str]:
+        return BaseEngineSpec.get_view_names(
+            database=database,
+            inspector=inspector,
+            schema=schema,
+        )
+
+    @classmethod
+    def handle_cursor(cls, cursor: Any, query: Query, session: Session) -> None:
+        """Updates progress information"""
+        query_id = query.id
+        sleep_interval = query.database.connect_args.get(
+            "sleep_interval", current_app.config["PRESTO_POLL_INTERVAL"]
+        )
+
+        logger.info("Query %i: Validating the cursor for progress", query_id)
+
+        while True:
+            stats = cursor.stats
+            query = session.query(type(query)).filter_by(id=query_id).one()
+
+            if query.status in [QueryStatus.STOPPED, QueryStatus.TIMED_OUT]:
+                cursor.cancel()
+                logger.info("Query %i: cancelled", query_id)
+                break
+
+            if stats:
+                state = stats.get("state")
+
+                if state == "FINISHED":
+                    logger.info("Query %i: Finished", query_id)
+                    break
+
+                completed_splits = float(stats.get("completedSplits"))
+                total_splits = float(stats.get("totalSplits"))
+
+                if total_splits and completed_splits:
+                    progress = 100 * (completed_splits / total_splits)
+
+                    logger.info(
+                        "Query %s progress: %s / %s",
+                        query_id,
+                        completed_splits,
+                        total_splits,
+                    )
+
+                    if progress > query.progress:
+                        query.progress = progress
+
+                    session.commit()
+
+                time.sleep(sleep_interval)
+
+                logger.info("Query %i: Validating the cursor for progress", query_id)
 
     @staticmethod
     def get_extra_params(database: "Database") -> Dict[str, Any]:
