@@ -111,50 +111,7 @@ class TrinoEngineSpec(PrestoEngineSpec):
     @classmethod
     def handle_cursor(cls, cursor: Any, query: Query, session: Session) -> None:
         """Updates progress information"""
-        query_id = query.id
-        sleep_interval = query.database.connect_args.get(
-            "sleep_interval", current_app.config["PRESTO_POLL_INTERVAL"]
-        )
-
-        logger.info("Query %i: Validating the cursor for progress", query_id)
-
-        while True:
-            stats = cursor.stats
-            query = session.query(type(query)).filter_by(id=query_id).one()
-
-            if query.status in [QueryStatus.STOPPED, QueryStatus.TIMED_OUT]:
-                cursor.cancel()
-                logger.info("Query %i: cancelled", query_id)
-                break
-
-            if stats:
-                state = stats.get("state")
-
-                if state == "FINISHED":
-                    logger.info("Query %i: Finished", query_id)
-                    break
-
-                completed_splits = float(stats.get("completedSplits"))
-                total_splits = float(stats.get("totalSplits"))
-
-                if total_splits and completed_splits:
-                    progress = 100 * (completed_splits / total_splits)
-
-                    logger.info(
-                        "Query %s progress: %s / %s",
-                        query_id,
-                        completed_splits,
-                        total_splits,
-                    )
-
-                    if progress > query.progress:
-                        query.progress = progress
-
-                    session.commit()
-
-                time.sleep(sleep_interval)
-
-                logger.info("Query %i: Validating the cursor for progress", query_id)
+        BaseEngineSpec.handle_cursor(cursor=cursor, query=query, session=session)
 
     @staticmethod
     def get_extra_params(database: "Database") -> Dict[str, Any]:
