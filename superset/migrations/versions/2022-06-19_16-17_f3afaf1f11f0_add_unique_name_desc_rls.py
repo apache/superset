@@ -57,17 +57,16 @@ def upgrade():
     for rls in all_rls:
         rls.name = f"rls{rls.id}"
     session.commit()
-    # Now it's safe so set non-null and unique
-    op.alter_column(
-        "row_level_security_filters",
-        "name",
-        existing_type=sa.String(255),
-        nullable=False,
-    )
 
-    # add uniqueness constraint
+    # Now it's safe so set non-null and unique
+    # add unique constraint
     with op.batch_alter_table("row_level_security_filters") as batch_op:
         # batch mode is required for sqlite
+        batch_op.alter_column(
+            "name",
+            existing_type=sa.String(255),
+            nullable=False,
+        )
         batch_op.create_unique_constraint("uq_rls_name", ["name"])
     # ### end Alembic commands ###
 
