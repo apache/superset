@@ -25,7 +25,6 @@ from flask import g
 from superset import db, security_manager
 from superset.connectors.sqla.models import RowLevelSecurityFilter, SqlaTable
 from superset.security.guest_token import (
-    GuestTokenRlsRule,
     GuestTokenResourceType,
     GuestUser,
 )
@@ -82,6 +81,7 @@ class TestRowLevelSecurity(SupersetTestCase):
 
         # Create regular RowLevelSecurityFilter (energy_usage, unicode_test)
         self.rls_entry1 = RowLevelSecurityFilter()
+        self.rls_entry1.name = "rls_entry1"
         self.rls_entry1.tables.extend(
             session.query(SqlaTable)
             .filter(SqlaTable.table_name.in_(["energy_usage", "unicode_test"]))
@@ -96,6 +96,7 @@ class TestRowLevelSecurity(SupersetTestCase):
 
         # Create regular RowLevelSecurityFilter (birth_names name starts with A or B)
         self.rls_entry2 = RowLevelSecurityFilter()
+        self.rls_entry2.name = "rls_entry2"
         self.rls_entry2.tables.extend(
             session.query(SqlaTable)
             .filter(SqlaTable.table_name.in_(["birth_names"]))
@@ -109,6 +110,7 @@ class TestRowLevelSecurity(SupersetTestCase):
 
         # Create Regular RowLevelSecurityFilter (birth_names name starts with Q)
         self.rls_entry3 = RowLevelSecurityFilter()
+        self.rls_entry3.name = "rls_entry3"
         self.rls_entry3.tables.extend(
             session.query(SqlaTable)
             .filter(SqlaTable.table_name.in_(["birth_names"]))
@@ -122,6 +124,7 @@ class TestRowLevelSecurity(SupersetTestCase):
 
         # Create Base RowLevelSecurityFilter (birth_names boys)
         self.rls_entry4 = RowLevelSecurityFilter()
+        self.rls_entry4.name = "rls_entry4"
         self.rls_entry4.tables.extend(
             session.query(SqlaTable)
             .filter(SqlaTable.table_name.in_(["birth_names"]))
@@ -145,6 +148,38 @@ class TestRowLevelSecurity(SupersetTestCase):
         session.delete(security_manager.find_role("NameQ"))
         session.delete(self.get_user("NoRlsRoleUser"))
         session.commit()
+
+    def _get_birth_names_dataset(self):
+        return (
+            db.session.query(SqlaTable)
+            .filter(SqlaTable.table_name == "birth_names")
+            .one_or_none()
+        )
+
+    def test_model_view_rls_add_success(self):
+        self.login(username="admin")
+        rv = self.client.post(
+            "/rowlevelsecurityfiltersmodelview/add",
+            data=dict(
+                name="rls1",
+                description="Some description",
+                filter_type="Regular",
+                tables=[self._get_birth_names_dataset()],
+                roles=[security_manager.find_role("Alpha")],
+                group_key="group_key_1",
+                clause="client_id=1",
+            ),
+            follow_redirects=True,
+        )
+        self.assertEqual(rv.status_code, 200)
+        rls1 = (
+            db.session.query(RowLevelSecurityFilter).filter_by(name="rls").one_or_none()
+        )
+        assert rls1 is not None
+
+        # Revert data changes
+        db.session.delete(rls1)
+        db.session.commit()
 
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_rls_filter_alters_energy_query(self):
