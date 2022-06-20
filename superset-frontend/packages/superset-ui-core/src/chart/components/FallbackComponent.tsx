@@ -17,7 +17,6 @@
  * under the License.
  */
 
-
 import React from 'react';
 import { SupersetTheme } from '../../style';
 import { FallbackPropsWithDimension } from './SuperChart';
