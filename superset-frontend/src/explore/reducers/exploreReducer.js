@@ -49,17 +49,18 @@ export default function exploreReducer(state = {}, action) {
         isDatasourceMetaLoading: true,
       };
     },
-    [actions.SET_DATASOURCE]() {
+    [actions.UPDATE_FORM_DATA_BY_DATASOURCE]() {
       const newFormData = { ...state.form_data };
-      if (action.datasource.type !== state.datasource.type) {
-        if (action.datasource.type === 'table') {
-          newFormData.granularity_sqla = action.datasource.granularity_sqla;
-          newFormData.time_grain_sqla = action.datasource.time_grain_sqla;
+      if (action.prevDatasource.type !== action.newDatasource.type) {
+        if (action.newDatasource.type === 'table') {
+          newFormData.granularity_sqla = action.newDatasource.granularity_sqla;
+          newFormData.time_grain_sqla = action.newDatasource.time_grain_sqla;
           delete newFormData.druid_time_origin;
           delete newFormData.granularity;
         } else {
-          newFormData.druid_time_origin = action.datasource.druid_time_origin;
-          newFormData.granularity = action.datasource.granularity;
+          newFormData.druid_time_origin =
+            action.newDatasource.druid_time_origin;
+          newFormData.granularity = action.newDatasource.granularity;
           delete newFormData.granularity_sqla;
           delete newFormData.time_grain_sqla;
         }
@@ -68,8 +69,8 @@ export default function exploreReducer(state = {}, action) {
       const controls = { ...state.controls };
       const controlsTransferred = [];
       if (
-        action.datasource.id !== state.datasource.id ||
-        action.datasource.type !== state.datasource.type
+        action.prevDatasource.id !== action.newDatasource.id ||
+        action.prevDatasource.type !== action.newDatasource.type
       ) {
         // reset time range filter to default
         newFormData.time_range = DEFAULT_TIME_RANGE;
@@ -88,7 +89,7 @@ export default function exploreReducer(state = {}, action) {
               ...controlState,
             };
             newFormData[controlName] = getControlValuesCompatibleWithDatasource(
-              action.datasource,
+              action.newDatasource,
               controlState,
               controlState.value,
             );
@@ -105,9 +106,7 @@ export default function exploreReducer(state = {}, action) {
       const newState = {
         ...state,
         controls,
-        datasource: action.datasource,
-        datasource_id: action.datasource.id,
-        datasource_type: action.datasource.type,
+        datasource: action.newDatasource,
       };
       return {
         ...newState,

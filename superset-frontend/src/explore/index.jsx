@@ -33,6 +33,7 @@ const bootstrapData = JSON.parse(
 );
 initFeatureFlags(bootstrapData.common.feature_flags);
 const initState = getInitialState(bootstrapData);
+console.log({ initState });
 const store = createStore(
   rootReducer,
   initState,

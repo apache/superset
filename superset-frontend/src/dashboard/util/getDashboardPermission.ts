@@ -16,24 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import memoizeOne from 'memoize-one';
 import {
-  UserRoles,
   isUserWithPermissionsAndRoles,
   UndefinedUser,
   UserWithPermissionsAndRoles,
 } from 'src/types/bootstrapTypes';
 import Dashboard from 'src/types/Dashboard';
-
-const findPermission = memoizeOne(
-  (perm: string, view: string, roles?: UserRoles | null) =>
-    !!roles &&
-    Object.values(roles).some(permissions =>
-      permissions.some(([perm_, view_]) => perm_ === perm && view_ === view),
-    ),
-);
-
-export default findPermission;
+import { findPermission } from 'src/utils/findPermission';
 
 // this should really be a config value,
 // but is hardcoded in backend logic already, so...

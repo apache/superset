@@ -60,6 +60,7 @@ import {
   LOG_ACTIONS_CHANGE_EXPLORE_CONTROLS,
 } from '../../../logger/LogUtils';
 import ConnectedExploreChartHeader from '../ExploreChartHeader';
+import { datasourcesActions } from '../../actions/datasourcesActions';
 
 const propTypes = {
   ...ExploreChartPanel.propTypes,
@@ -693,53 +694,61 @@ function ExploreViewContainer(props) {
 ExploreViewContainer.propTypes = propTypes;
 
 function mapStateToProps(state) {
-  const { explore, charts, impressionId, dataMask, reports } = state;
-  const form_data = getFormDataFromControls(explore.controls);
+  const {
+    explore,
+    charts,
+    common,
+    impressionId,
+    dataMask,
+    reports,
+    datasources,
+    user,
+  } = state;
+  const { controls, slice } = explore;
+  const form_data = getFormDataFromControls(controls);
   form_data.extra_form_data = mergeExtraFormData(
     { ...form_data.extra_form_data },
     {
-      ...dataMask[form_data.slice_id ?? 0]?.ownState, // 0 - unsaved chart
+      ...dataMask[slice.slice_id ?? 0]?.ownState, // 0 - unsaved chart
     },
   );
-  const chartKey = Object.keys(charts)[0];
-  const chart = charts[chartKey];
+  const chart = charts[slice.slice_id];
 
   let dashboardId = Number(explore.form_data?.dashboardId);
   if (Number.isNaN(dashboardId)) {
     dashboardId = undefined;
   }
 
+  const datasource = datasources[form_data.datasource];
+
   return {
     isDatasourceMetaLoading: explore.isDatasourceMetaLoading,
-    datasource: explore.datasource,
-    datasource_type: explore.datasource.type,
-    datasourceId: explore.datasource_id,
+    datasource,
+    datasource_type: datasource.type,
+    datasourceId: datasource.datasource_id,
     dashboardId,
     controls: explore.controls,
-    can_overwrite: !!explore.can_overwrite,
     can_add: !!explore.can_add,
     can_download: !!explore.can_download,
-    column_formats: explore.datasource
-      ? explore.datasource.column_formats
-      : null,
-    containerId: explore.slice
-      ? `slice-container-${explore.slice.slice_id}`
+    can_overwrite: !!explore.can_overwrite,
+    column_formats: datasource?.column_formats ?? null,
+    containerId: slice
+      ? `slice-container-${slice.slice_id}`
       : 'slice-container',
     isStarred: explore.isStarred,
-    slice: explore.slice,
-    sliceName: explore.sliceName,
+    slice,
+    sliceName: explore.sliceName ?? slice.slice_name ?? null,
     triggerRender: explore.triggerRender,
     form_data,
-    table_name: form_data.datasource_name,
+    table_name: datasource.table_name,
     vizType: form_data.viz_type,
     standalone: explore.standalone,
     force: explore.force,
-    forcedHeight: explore.forced_height,
     chart,
-    timeout: explore.common.conf.SUPERSET_WEBSERVER_TIMEOUT,
+    timeout: common.conf.SUPERSET_WEBSERVER_TIMEOUT,
     ownState: dataMask[form_data.slice_id ?? 0]?.ownState, // 0 - unsaved chart
     impressionId,
-    user: explore.user,
+    user,
     exploreState: explore,
     reports,
   };
@@ -748,6 +757,7 @@ function mapStateToProps(state) {
 function mapDispatchToProps(dispatch) {
   const actions = {
     ...exploreActions,
+    ...datasourcesActions,
     ...saveModalActions,
     ...chartActions,
     ...logActions,
