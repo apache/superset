@@ -19,15 +19,13 @@ from __future__ import annotations
 import json
 import logging
 import os
-from collections import defaultdict
-from functools import partial
-from typing import Any, Callable, Dict, List, Set, Tuple, Type, Union
-
 import sqlalchemy as sqla
+from collections import defaultdict
 from flask import g
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
 from flask_appbuilder.security.sqla.models import User
+from functools import partial
 from markupsafe import escape, Markup
 from sqlalchemy import (
     Boolean,
@@ -46,11 +44,11 @@ from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.orm.session import object_session
 from sqlalchemy.sql import join, select
 from sqlalchemy.sql.elements import BinaryExpression
+from typing import Any, Callable, Dict, List, Set, Tuple, Type, Union
 
 from superset import app, ConnectorRegistry, db, is_feature_enabled, security_manager
 from superset.common.request_contexed_based import is_user_admin
 from superset.connectors.base.models import BaseDatasource
-from superset.connectors.druid.models import DruidColumn, DruidMetric
 from superset.connectors.sqla.models import SqlMetric, TableColumn
 from superset.extensions import cache_manager
 from superset.models.filter_set import FilterSet

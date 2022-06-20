@@ -29,7 +29,6 @@ import {
   now,
 } from 'src/utils/dates';
 import AsyncSelect from 'src/components/AsyncSelect';
-import { Query } from 'src/SqlLab/types';
 import { STATUS_OPTIONS, TIME_OPTIONS } from 'src/SqlLab/constants';
 import QueryTable from '../QueryTable';
 
