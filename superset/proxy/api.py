@@ -104,6 +104,9 @@ class ProxyRestAPI(BaseSupersetModelRestApi):
         current logged in user, and will then send a request to Alfred to see
         if the passed in user_id is in any reports/incidents
         """
+        if (self.ALFRED_SCOPE is None or self.ALFRED_URL is None):
+            return self.error_obtaining_response("Alfred", "No Alfred Scope and/or No Alfred URL")
+
         try:
             alfred_token = security_manager.get_on_behalf_of_access_token_with_cache(current_user.username,
                                                                                     self.ALFRED_SCOPE,
@@ -149,6 +152,9 @@ class ProxyRestAPI(BaseSupersetModelRestApi):
         current logged in user, and will then send a request to Alfred to see
         if the passed in ip_string is in any reports/incidents
         """
+        if (self.ALFRED_SCOPE is None or self.ALFRED_URL is None):
+            return self.error_obtaining_response("Alfred", "No Alfred Scope and/or No Alfred URL")
+
         try:
             alfred_token = security_manager.get_on_behalf_of_access_token_with_cache(current_user.username,
                                                                                     self.ALFRED_SCOPE,
