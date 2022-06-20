@@ -55,7 +55,7 @@ def upgrade():
     # Set initial default names make sure we can have unique non null values
     all_rls = session.query(RowLevelSecurityFilter).all()
     for rls in all_rls:
-        rls.name = f"rls{rls.id}"
+        rls.name = f"rls-{rls.id}"
     session.commit()
 
     # Now it's safe so set non-null and unique
