@@ -13764,7 +13764,7 @@ msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-table/src/TableChart.tsx:439
 msgid "Totals"
-msgstr ""
+msgstr "Totaux"
 
 #: superset-frontend/src/SqlLab/components/ResultSet/index.tsx:820
 msgid "Track job"
