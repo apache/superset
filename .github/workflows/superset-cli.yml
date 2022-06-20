@@ -19,6 +19,7 @@ jobs:
       SUPERSET_CONFIG: tests.integration_tests.superset_test_config
       REDIS_PORT: 16379
       SUPERSET__SQLALCHEMY_DATABASE_URI: postgresql+psycopg2://superset:superset@127.0.0.1:15432/superset
+      APP_PREFIX: ""
     services:
       postgres:
         image: postgres:14-alpine
@@ -65,6 +66,8 @@ jobs:
             setup-postgres
       - name: superset init
         if: steps.check.outcome == 'failure'
+        env:
+          APP_PREFIX: ""
         run: |
           pip install -e .
           superset db upgrade
