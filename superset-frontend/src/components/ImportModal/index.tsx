@@ -300,7 +300,12 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
           <Button loading={importingModel}>Select file</Button>
         </Upload>
       </StyledInputContainer>
-      {errorMessage && <ErrorAlert errorMessage={errorMessage} />}
+      {errorMessage && (
+        <ErrorAlert
+          errorMessage={errorMessage}
+          dbInstall={passwordFields.length > 0}
+        />
+      )}
       {renderPasswordFields()}
       {renderOverwriteConfirmation()}
     </Modal>
