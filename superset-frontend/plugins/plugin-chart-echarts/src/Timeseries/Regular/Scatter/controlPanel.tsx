@@ -27,7 +27,7 @@ import {
   sharedControls,
 } from '@superset-ui/chart-controls';
 
-import { DEFAULT_FORM_DATA } from '../../types';
+import { DEFAULT_FORM_DATA } from '@superset-ui/plugin-chart-echarts';
 import {
   legendSection,
   richTooltipSection,

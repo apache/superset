@@ -31,7 +31,7 @@ import {
   DEFAULT_FORM_DATA,
   EchartsTimeseriesContributionType,
   EchartsTimeseriesSeriesType,
-} from '../types';
+} from '@superset-ui/plugin-chart-echarts';
 import {
   legendSection,
   onlyTotalControl,

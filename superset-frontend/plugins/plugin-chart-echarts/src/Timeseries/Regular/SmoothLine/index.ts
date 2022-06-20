@@ -26,14 +26,14 @@ import {
   t,
 } from '@superset-ui/core';
 import buildQuery from '../../buildQuery';
-import controlPanel from '../controlPanel';
+import controlPanel from './controlPanel';
 import transformProps from '../../transformProps';
 import thumbnail from './images/thumbnail.png';
 import {
   EchartsTimeseriesChartProps,
   EchartsTimeseriesFormData,
   EchartsTimeseriesSeriesType,
-} from '../../types';
+} from '@superset-ui/plugin-chart-echarts';
 import example1 from './images/SmoothLine1.png';
 
 const smoothTransformProps = (chartProps: EchartsTimeseriesChartProps) =>

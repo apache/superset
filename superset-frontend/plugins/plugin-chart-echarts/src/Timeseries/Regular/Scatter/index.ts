@@ -33,7 +33,7 @@ import {
   EchartsTimeseriesChartProps,
   EchartsTimeseriesFormData,
   EchartsTimeseriesSeriesType,
-} from '../../types';
+} from '@superset-ui/plugin-chart-echarts';
 import example1 from './images/Scatter1.png';
 
 const scatterTransformProps = (chartProps: EchartsTimeseriesChartProps) =>

@@ -33,7 +33,7 @@ import {
   EchartsTimeseriesChartProps,
   EchartsTimeseriesFormData,
   EchartsTimeseriesSeriesType,
-} from '../../types';
+} from '@superset-ui/plugin-chart-echarts';
 import example1 from './images/Bar1.png';
 import example2 from './images/Bar2.png';
 import example3 from './images/Bar3.png';

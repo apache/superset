@@ -34,7 +34,7 @@ import {
   DEFAULT_FORM_DATA,
   EchartsTimeseriesContributionType,
   OrientationType,
-} from '../../types';
+} from '@superset-ui/plugin-chart-echarts';
 import {
   legendSection,
   richTooltipSection,

@@ -32,7 +32,7 @@ import thumbnail from './images/thumbnail.png';
 import {
   EchartsTimeseriesChartProps,
   EchartsTimeseriesFormData,
-} from '../types';
+} from '@superset-ui/plugin-chart-echarts';
 import example1 from './images/Step1.png';
 import example2 from './images/Step2.png';
 
