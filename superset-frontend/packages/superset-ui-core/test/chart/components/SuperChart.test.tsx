@@ -121,7 +121,7 @@ describe('SuperChart', () => {
       );
       await new Promise(resolve => setImmediate(resolve));
       wrapper.update();
-      expect(wrapper.text()).toContain('Oops! An error occured!');
+      expect(wrapper.text()).toContain('Oops! An error occurred!');
     });
     it('renders custom FallbackComponent', () => {
       expectedErrors = 1;
