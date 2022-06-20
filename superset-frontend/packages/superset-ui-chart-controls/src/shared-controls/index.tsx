@@ -67,6 +67,8 @@ import {
   ExtraControlProps,
   SelectControlConfig,
   Dataset,
+  ControlState,
+  ControlPanelState,
 } from '../types';
 import { ColumnOption } from '../components/ColumnOption';
 
@@ -544,6 +546,30 @@ const enableExploreDnd = isFeatureEnabled(
   FeatureFlag.ENABLE_EXPLORE_DRAG_AND_DROP,
 );
 
+const x_axis: SharedControlConfig = {
+  ...(enableExploreDnd ? dndGroupByControl : groupByControl),
+  label: t('X-axis'),
+  default: (
+    control: ControlState,
+    controlPanel: Partial<ControlPanelState>,
+  ) => {
+    // default to the chosen time column if x-axis is unset and the
+    // GENERIC_CHART_AXES feature flag is enabled
+    const { value } = control;
+    if (value) {
+      return value;
+    }
+    const timeColumn = controlPanel?.form_data?.granularity_sqla;
+    if (isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES) && timeColumn) {
+      return timeColumn;
+    }
+    return null;
+  },
+  multi: false,
+  description: t('Dimension to use on x-axis.'),
+  validators: [validateNonEmpty],
+};
+
 const sharedControls = {
   metrics: enableExploreDnd ? dnd_adhoc_metrics : metrics,
   metric: enableExploreDnd ? dnd_adhoc_metric : metric,
@@ -579,6 +605,7 @@ const sharedControls = {
   series_limit_metric: enableExploreDnd ? dnd_sort_by : sort_by,
   legacy_order_by: enableExploreDnd ? dnd_sort_by : sort_by,
   truncate_metric,
+  x_axis,
 };
 
 export { sharedControls, dndEntity, dndColumnsControl };
