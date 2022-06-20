@@ -20,6 +20,8 @@ import { SupersetClient, t, styled } from '@superset-ui/core';
 import React, { useState, useMemo, useEffect } from 'react';
 import rison from 'rison';
 import { useSelector } from 'react-redux';
+import { useQueryParams, BooleanParam } from 'use-query-params';
+
 import Loading from 'src/components/Loading';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import { useListViewResource } from 'src/views/CRUD/hooks';
@@ -91,6 +93,10 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
     state => state.user,
   );
 
+  const [query, setQuery] = useQueryParams({
+    databaseAdded: BooleanParam,
+  });
+
   const [databaseModalOpen, setDatabaseModalOpen] = useState<boolean>(false);
   const [databaseCurrentlyDeleting, setDatabaseCurrentlyDeleting] =
     useState<DatabaseDeleteObject | null>(null);
@@ -109,6 +115,13 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
     EXCEL_EXTENSIONS,
     ALLOWED_EXTENSIONS,
   } = useSelector<any, ExtentionConfigs>(state => state.common.conf);
+
+  useEffect(() => {
+    if (query?.databaseAdded) {
+      setQuery({ databaseAdded: undefined });
+      refreshData();
+    }
+  }, [query, setQuery, refreshData]);
 
   const openDatabaseDeleteModal = (database: DatabaseObject) =>
     SupersetClient.get({

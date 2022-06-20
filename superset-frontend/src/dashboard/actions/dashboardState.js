@@ -325,7 +325,7 @@ export function saveDashboardRequest(data, id, saveType) {
 
     const onError = async response => {
       const { error, message } = await getClientErrorObject(response);
-      let errorText = t('Sorry, an unknown error occured');
+      let errorText = t('Sorry, an unknown error occurred');
 
       if (error) {
         errorText = t(

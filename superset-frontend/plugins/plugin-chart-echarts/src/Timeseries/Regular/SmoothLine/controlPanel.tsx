@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { FeatureFlag, isFeatureEnabled, t } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
 import {
   ControlPanelConfig,
   ControlPanelsContainerProps,
@@ -27,13 +27,14 @@ import {
   sharedControls,
 } from '@superset-ui/chart-controls';
 
-import { DEFAULT_FORM_DATA, EchartsTimeseriesContributionType } from '../types';
+import { EchartsTimeseriesContributionType } from '../../types';
+import { DEFAULT_FORM_DATA } from '../../constants';
 import {
   legendSection,
   richTooltipSection,
   showValueSectionWithoutStack,
   xAxisControl,
-} from '../../controls';
+} from '../../../controls';
 
 const {
   contributionMode,
@@ -54,7 +55,7 @@ const config: ControlPanelConfig = {
       label: t('Query'),
       expanded: true,
       controlSetRows: [
-        isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES) ? [xAxisControl] : [],
+        [xAxisControl],
         ['metrics'],
         ['groupby'],
         [
@@ -79,6 +80,7 @@ const config: ControlPanelConfig = {
         ['timeseries_limit_metric'],
         ['order_desc'],
         ['row_limit'],
+        ['truncate_metric'],
       ],
     },
     sections.advancedAnalyticsControls,

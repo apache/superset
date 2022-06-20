@@ -25,14 +25,14 @@ import {
   isFeatureEnabled,
   t,
 } from '@superset-ui/core';
+import {
+  EchartsTimeseriesChartProps,
+  EchartsTimeseriesFormData,
+} from '@superset-ui/plugin-chart-echarts';
 import buildQuery from '../buildQuery';
 import controlPanel from './controlPanel';
 import transformProps from '../transformProps';
 import thumbnail from './images/thumbnail.png';
-import {
-  EchartsTimeseriesChartProps,
-  EchartsTimeseriesFormData,
-} from '../types';
 import example1 from './images/Step1.png';
 import example2 from './images/Step2.png';
 

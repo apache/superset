@@ -36,13 +36,13 @@ import { isDerivedSeries } from '@superset-ui/chart-controls';
 import { EChartsCoreOption, SeriesOption } from 'echarts';
 import { ZRLineType } from 'echarts/types/src/util/types';
 import {
-  DEFAULT_FORM_DATA,
   EchartsTimeseriesChartProps,
   EchartsTimeseriesFormData,
   EchartsTimeseriesSeriesType,
   TimeseriesChartTransformedProps,
   OrientationType,
 } from './types';
+import { DEFAULT_FORM_DATA } from './constants';
 import { ForecastSeriesEnum, ForecastValue } from '../types';
 import { parseYAxisBound } from '../utils/controls';
 import {
