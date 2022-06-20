@@ -17,13 +17,10 @@
  * under the License.
  */
 import React from 'react';
-import { shallow } from 'enzyme';
-import sinon from 'sinon';
+import userEvent from '@testing-library/user-event';
+import { render, screen } from 'spec/helpers/testing-library';
 
 import Chart from 'src/dashboard/components/gridComponents/Chart';
-import SliceHeader from 'src/dashboard/components/SliceHeader';
-import ChartContainer from 'src/components/Chart/ChartContainer';
-import * as exploreUtils from 'src/explore/exploreUtils';
 import { sliceEntitiesForChart as sliceEntities } from 'spec/fixtures/mockSliceEntities';
 import mockDatasource from 'spec/fixtures/mockDatasource';
 import chartQueries, {
@@ -31,7 +28,7 @@ import chartQueries, {
 } from 'spec/fixtures/mockChartQueries';
 
 describe('Chart', () => {
-  const props = {
+  const defaultProps = {
     id: queryId,
     width: 100,
     height: 100,
@@ -69,75 +66,45 @@ describe('Chart', () => {
     supersetCanExplore: false,
     supersetCanCSV: false,
     sliceCanEdit: false,
+    isComponentVisible: true,
   };
 
+  const props = { ...defaultProps };
+
   function setup(overrideProps) {
-    const wrapper = shallow(<Chart {...props} {...overrideProps} />);
-    return wrapper;
+    render(<Chart {...props} {...overrideProps} />, { useRedux: true });
   }
 
-  it('should render a SliceHeader', () => {
-    const wrapper = setup();
-    expect(wrapper.find(SliceHeader)).toExist();
+  it('should render a SliceHeader', async () => {
+    setup();
+    expect(await screen.findByTestId('slice-header')).toBeInTheDocument();
   });
 
-  it('should render a ChartContainer', () => {
-    const wrapper = setup();
-    expect(wrapper.find(ChartContainer)).toExist();
+  it('should render a ChartContainer', async () => {
+    setup();
+    expect(await screen.findByTestId('chart-container')).toBeInTheDocument();
   });
 
-  it('should render a description if it has one and isExpanded=true', () => {
-    const wrapper = setup();
-    expect(wrapper.find('.slice_description')).not.toExist();
-    wrapper.setProps({ ...props, isExpanded: true });
-    expect(wrapper.find('.slice_description')).toExist();
+  it('should render a description if it has one and isExpanded=true', async () => {
+    setup();
+    expect(screen.queryByTestId('slice-description')).not.toBeInTheDocument();
+    setup({ ...props, isExpanded: true });
+    expect(await screen.findByTestId('slice-description')).toBeInTheDocument();
   });
 
-  it('should calculate the description height if it has one and isExpanded=true', () => {
-    const spy = jest.spyOn(Chart.prototype, 'getDescriptionHeight');
-    const wrapper = setup({ isExpanded: true });
+  it('should call refreshChart when SliceHeader calls forceRefresh', async () => {
+    const mockRefreshChart = jest.fn();
+    mockRefreshChart.mockImplementation(props.refreshChart);
 
-    expect(wrapper.find('.slice_description')).toExist();
-    expect(spy).toHaveBeenCalled();
-  });
-
-  it('should call refreshChart when SliceHeader calls forceRefresh', () => {
-    const refreshChart = sinon.spy();
-    const wrapper = setup({ refreshChart });
-    wrapper.instance().forceRefresh();
-    expect(refreshChart.callCount).toBe(1);
-  });
-
-  it('should call changeFilter when ChartContainer calls changeFilter', () => {
-    const changeFilter = sinon.spy();
-    const wrapper = setup({ changeFilter });
-    wrapper.instance().changeFilter();
-    expect(changeFilter.callCount).toBe(1);
-  });
-  it('should call exportChart when exportCSV is clicked', () => {
-    const stubbedExportCSV = sinon
-      .stub(exploreUtils, 'exportChart')
-      .returns(() => {});
-    const wrapper = setup();
-    wrapper.instance().exportCSV(props.slice.sliceId);
-    expect(stubbedExportCSV.calledOnce).toBe(true);
-    expect(stubbedExportCSV.lastCall.args[0]).toEqual(
-      expect.objectContaining({
-        formData: expect.anything(),
-        resultType: 'full',
-        resultFormat: 'csv',
-      }),
+    setup({ ...props, refreshChart: mockRefreshChart });
+    const menuControls = await screen.findByTestId(`slice_${queryId}-controls`);
+    expect(menuControls).toBeInTheDocument();
+    userEvent.click(menuControls);
+    const forceRefreshBtn = await screen.findByTestId(
+      'refresh-chart-menu-item',
     );
-    exploreUtils.exportChart.restore();
-  });
-  it('should call exportChart with row_limit props.maxRows when exportFullCSV is clicked', () => {
-    const stubbedExportCSV = sinon
-      .stub(exploreUtils, 'exportChart')
-      .returns(() => {});
-    const wrapper = setup();
-    wrapper.instance().exportFullCSV(props.slice.sliceId);
-    expect(stubbedExportCSV.calledOnce).toBe(true);
-    expect(stubbedExportCSV.lastCall.args[0].formData.row_limit).toEqual(666);
-    exploreUtils.exportChart.restore();
+    expect(forceRefreshBtn).toBeInTheDocument();
+    userEvent.click(forceRefreshBtn);
+    expect(mockRefreshChart).toHaveBeenCalled();
   });
 });

@@ -447,6 +447,7 @@ class SliceHeaderControls extends React.PureComponent<
         >
           <span
             id={`slice_${slice.slice_id}-controls`}
+            data-test={`slice_${slice.slice_id}-controls`}
             role="button"
             aria-label="More Options"
           >

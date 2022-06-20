@@ -148,6 +148,8 @@ const SHOULD_UPDATE_ON_PROP_CHANGES = [
   'filterState',
   'postTransformProps',
   'datasetsStatus',
+  'refreshChart',
+  'changeFilter',
 ];
 
 const ChartOverlay = styled.div`
@@ -234,6 +236,7 @@ function Chart(props: Props) {
   };
 
   const changeFilter = (newSelectedValues = {}): void => {
+    console.log('changeFilter', newSelectedValues);
     props.logEvent(LOG_ACTIONS_CHANGE_DASHBOARD_FILTER, {
       id: props.chart.id,
       columns: Object.keys(newSelectedValues),
@@ -394,6 +397,7 @@ function Chart(props: Props) {
       {isExpanded && slice.description_markeddown && (
         <div
           className="slice_description bs-callout bs-callout-default"
+          data-test="slice-description"
           ref={descriptionRef}
           // eslint-disable-next-line react/no-danger
           dangerouslySetInnerHTML={{ __html: slice.description_markeddown }}
