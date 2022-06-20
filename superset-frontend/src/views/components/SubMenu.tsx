@@ -112,7 +112,7 @@ const StyledHeader = styled.div`
           ${({ theme }) => theme.gridUnit * 4}px;
       }
 
-      &.active {
+      &.active a {
         background: ${({ theme }) => theme.colors.secondary.light4};
         border-radius: ${({ theme }) => theme.borderRadius}px;
       }
