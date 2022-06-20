@@ -41,16 +41,13 @@ class ProxyRestAPI(BaseSupersetModelRestApi):
         super().__init__()
 
         self.ALFRED_SCOPE = os.environ.get("ALFRED_SCOPE")
-        if self.ALFRED_SCOPE is None:
-            self.ALFRED_SCOPE = "api://alfred.pb/Alfred.ALL"
 
         self.ALFRED_URL = os.environ.get("ALFRED_URL")
-        if self.ALFRED_URL is None:
-            self.ALFRED_URL = "https://alfred-stg-pb.chimera.cyber.gc.ca"
 
-        self.SSL_CERT = os.environ.get("REQUESTS_CA_BUNDLE")
-        if self.SSL_CERT is None:
+        if os.environ.get("FLASK_APP") == 'development':
             self.SSL_CERT = os.environ.get("REQUESTS_CA_BUNDLE_DEV")
+        else:
+            self.SSL_CERT = os.environ.get("REQUESTS_CA_BUNDLE")
 
     def attach_url(
         self, response_code: int, app_url: str, err: bool, payload

@@ -6,7 +6,7 @@ export default function ApplicationLinks(props: ApplicationsProps) {
   const { application, appVal, appType } = props;
   const [alfredCount, setAlfredCount] = useState(-1);
   const [alfredURL, setAlfredURL] = useState(
-    'https://alfred-stg-pb.chimera.cyber.gc.ca',
+    'https://alfred-pb.chimera.cyber.gc.ca',
   );
 
   let infoType = '';
