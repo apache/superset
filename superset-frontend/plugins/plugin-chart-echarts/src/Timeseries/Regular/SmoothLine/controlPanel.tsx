@@ -27,10 +27,8 @@ import {
   sharedControls,
 } from '@superset-ui/chart-controls';
 
-import {
-  DEFAULT_FORM_DATA,
-  EchartsTimeseriesContributionType,
-} from '@superset-ui/plugin-chart-echarts';
+import { EchartsTimeseriesContributionType } from '../../types';
+import { DEFAULT_FORM_DATA } from '../../constants';
 import {
   legendSection,
   richTooltipSection,

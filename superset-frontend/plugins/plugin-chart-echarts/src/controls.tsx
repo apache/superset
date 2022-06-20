@@ -24,8 +24,8 @@ import {
   ControlSetRow,
   sharedControls,
 } from '@superset-ui/chart-controls';
-import { DEFAULT_LEGEND_FORM_DATA } from './types';
-import { DEFAULT_FORM_DATA } from './Timeseries/types';
+import { DEFAULT_LEGEND_FORM_DATA } from './constants';
+import { DEFAULT_FORM_DATA } from './Timeseries/constants';
 
 const { legendMargin, legendOrientation, legendType, showLegend } =
   DEFAULT_LEGEND_FORM_DATA;

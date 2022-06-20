@@ -28,10 +28,10 @@ import {
 } from '@superset-ui/chart-controls';
 
 import {
-  DEFAULT_FORM_DATA,
   EchartsTimeseriesContributionType,
   EchartsTimeseriesSeriesType,
-} from '@superset-ui/plugin-chart-echarts';
+} from '../types';
+import { DEFAULT_FORM_DATA } from '../constants';
 import {
   legendSection,
   onlyTotalControl,
