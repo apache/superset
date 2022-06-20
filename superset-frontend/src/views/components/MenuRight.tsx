@@ -18,7 +18,7 @@
  */
 import React, { Fragment, useState } from 'react';
 import { MainNav as Menu } from 'src/components/Menu';
-import { t, styled, css, SupersetTheme } from '@superset-ui/core';
+import { css, styled, SupersetTheme, t } from '@superset-ui/core';
 import { Link } from 'react-router-dom';
 import Icons from 'src/components/Icons';
 import findPermission from 'src/dashboard/util/findPermission';
@@ -140,7 +140,7 @@ const RightMenu = ({
     },
     {
       label: t('Chart'),
-      url: '/chart/add',
+      url: '/analytics/chart/add',
       icon: 'fa-fw fa-bar-chart',
       perm: 'can_write',
       view: 'Chart',

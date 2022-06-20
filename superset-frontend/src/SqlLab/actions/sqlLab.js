@@ -18,10 +18,10 @@
  */
 import shortid from 'shortid';
 import JSONbig from 'json-bigint';
-import { t, SupersetClient } from '@superset-ui/core';
+import { SupersetClient, t } from '@superset-ui/core';
 import invert from 'lodash/invert';
 import mapKeys from 'lodash/mapKeys';
-import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
+import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 
 import { now } from 'src/modules/dates';
 import {
@@ -149,7 +149,7 @@ export function updateQueryEditor(alterations) {
 export function scheduleQuery(query) {
   return dispatch =>
     SupersetClient.post({
-      endpoint: '/savedqueryviewapi/api/create',
+      endpoint: '/analytics/savedqueryviewapi/api/create',
       postPayload: query,
       stringify: false,
     })
@@ -420,7 +420,7 @@ export function setDatabases(databases) {
 
 function migrateTable(table, queryEditorId, dispatch) {
   return SupersetClient.post({
-    endpoint: encodeURI('/tableschemaview/'),
+    endpoint: encodeURI('/analytics/tableschemaview/'),
     postPayload: { table: { ...table, queryEditorId } },
   })
     .then(({ json }) => {
@@ -873,7 +873,7 @@ export function queryEditorSetTitle(queryEditor, title) {
 export function saveQuery(query) {
   return dispatch =>
     SupersetClient.post({
-      endpoint: '/savedqueryviewapi/api/create',
+      endpoint: '/analytics/savedqueryviewapi/api/create',
       postPayload: convertQueryToServer(query),
       stringify: false,
     })
@@ -913,7 +913,7 @@ export const addSavedQueryToTabState =
 export function updateSavedQuery(query) {
   return dispatch =>
     SupersetClient.put({
-      endpoint: `/savedqueryviewapi/api/update/${query.remoteId}`,
+      endpoint: `/analytics/savedqueryviewapi/api/update/${query.remoteId}`,
       postPayload: convertQueryToServer(query),
       stringify: false,
     })
@@ -1100,7 +1100,7 @@ export function addTable(query, database, tableName, schemaName) {
     ]).then(([newTable, json]) => {
       const sync = isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)
         ? SupersetClient.post({
-            endpoint: encodeURI('/tableschemaview/'),
+            endpoint: encodeURI('/analytics/tableschemaview/'),
             postPayload: { table: { ...newTable, ...json } },
           })
         : Promise.resolve({ json: { id: shortid.generate() } });
@@ -1176,7 +1176,9 @@ export function expandTable(table) {
   return function (dispatch) {
     const sync = isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)
       ? SupersetClient.post({
-          endpoint: encodeURI(`/tableschemaview/${table.id}/expanded`),
+          endpoint: encodeURI(
+            `/analytics/tableschemaview/${table.id}/expanded`,
+          ),
           postPayload: { expanded: true },
         })
       : Promise.resolve();
@@ -1200,7 +1202,9 @@ export function collapseTable(table) {
   return function (dispatch) {
     const sync = isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)
       ? SupersetClient.post({
-          endpoint: encodeURI(`/tableschemaview/${table.id}/expanded`),
+          endpoint: encodeURI(
+            `/analytics/tableschemaview/${table.id}/expanded`,
+          ),
           postPayload: { expanded: false },
         })
       : Promise.resolve();
@@ -1224,7 +1228,7 @@ export function removeTable(table) {
   return function (dispatch) {
     const sync = isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)
       ? SupersetClient.delete({
-          endpoint: encodeURI(`/tableschemaview/${table.id}`),
+          endpoint: encodeURI(`/analytics/tableschemaview/${table.id}`),
         })
       : Promise.resolve();
 
@@ -1262,7 +1266,7 @@ export function persistEditorHeight(queryEditor, northPercent, southPercent) {
 
 export function popStoredQuery(urlId) {
   return function (dispatch) {
-    return SupersetClient.get({ endpoint: `/kv/${urlId}` })
+    return SupersetClient.get({ endpoint: `/analytics/kv/${urlId}` })
       .then(({ json }) =>
         dispatch(
           addQueryEditor({
@@ -1280,7 +1284,7 @@ export function popStoredQuery(urlId) {
 export function popSavedQuery(saveQueryId) {
   return function (dispatch) {
     return SupersetClient.get({
-      endpoint: `/savedqueryviewapi/api/get/${saveQueryId}`,
+      endpoint: `/analytics/savedqueryviewapi/api/get/${saveQueryId}`,
     })
       .then(({ json }) => {
         const queryEditorProps = {

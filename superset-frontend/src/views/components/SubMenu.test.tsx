@@ -27,19 +27,19 @@ const mockedProps = {
     {
       name: 'Page1',
       label: 'Page1',
-      url: '/page1',
+      url: '/analytics/page1',
       usesRouter: true,
     },
     {
       name: 'Page2',
       label: 'Page2',
-      url: '/page2',
+      url: '/analytics/page2',
       usesRouter: true,
     },
     {
       name: 'Page3',
       label: 'Page3',
-      url: '/page3',
+      url: '/analytics/page3',
       usesRouter: false,
     },
   ],
@@ -50,7 +50,7 @@ const mockedProps = {
         {
           label: 'Upload Test',
           name: 'Upload Test',
-          url: '/test/form',
+          url: '/analytics/test/form',
           perm: true,
         },
       ],

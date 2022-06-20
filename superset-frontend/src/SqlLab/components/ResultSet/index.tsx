@@ -25,11 +25,11 @@ import Button from 'src/components/Button';
 import shortid from 'shortid';
 import rison from 'rison';
 import {
-  styled,
-  t,
-  makeApi,
-  SupersetClient,
   JsonResponse,
+  makeApi,
+  styled,
+  SupersetClient,
+  t,
 } from '@superset-ui/core';
 import { debounce } from 'lodash';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
@@ -156,7 +156,7 @@ const updateDataset = async (
   owners: [number],
   overrideColumns: boolean,
 ) => {
-  const endpoint = `api/v1/dataset/${datasetId}?override_columns=${overrideColumns}`;
+  const endpoint = `/analytics/api/v1/dataset/${datasetId}?override_columns=${overrideColumns}`;
   const headers = { 'Content-Type': 'application/json' };
   const body = JSON.stringify({
     sql,

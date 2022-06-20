@@ -17,7 +17,7 @@
  * under the License.
  */
 import { omit } from 'lodash';
-import { SupersetClient, JsonObject } from '@superset-ui/core';
+import { JsonObject, SupersetClient } from '@superset-ui/core';
 
 type Payload = {
   dataset_id: number;
@@ -33,7 +33,7 @@ export const sanitizeFormData = (formData: JsonObject): JsonObject =>
 const assembleEndpoint = (key?: string, tabId?: string) => {
   let endpoint = 'analytics/api/v1/explore/form_data';
   if (key) {
-    endpoint = endpoint.concat(`/${key}`);
+    endpoint = endpoint.concat(`/analytics/${key}`);
   }
   if (tabId) {
     endpoint = endpoint.concat(`?tab_id=${tabId}`);

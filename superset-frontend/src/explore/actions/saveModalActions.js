@@ -32,7 +32,7 @@ export function fetchDashboardsFailed(userId) {
 export function fetchDashboards(userId) {
   return function fetchDashboardsThunk(dispatch) {
     return SupersetClient.get({
-      endpoint: `/dashboardasync/api/read?_flt_0_owners=${userId}`,
+      endpoint: `/analytics/dashboardasync/api/read?_flt_0_owners=${userId}`,
     })
       .then(({ json }) => {
         const choices = json.pks.map((id, index) => ({
