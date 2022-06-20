@@ -2482,6 +2482,8 @@ class RowLevelSecurityFilter(Model, AuditMixinNullable):
 
     __tablename__ = "row_level_security_filters"
     id = Column(Integer, primary_key=True)
+    name = Column(String(255), unique=True, nullable=False)
+    description = Column(Text)
     filter_type = Column(
         Enum(*[filter_type.value for filter_type in utils.RowLevelSecurityFilterType])
     )
@@ -2494,5 +2496,4 @@ class RowLevelSecurityFilter(Model, AuditMixinNullable):
     tables = relationship(
         SqlaTable, secondary=RLSFilterTables, backref="row_level_security_filters"
     )
-
     clause = Column(Text, nullable=False)
