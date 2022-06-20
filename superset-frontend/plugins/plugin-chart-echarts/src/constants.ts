@@ -19,7 +19,13 @@
 
 import { JsonValue, t, TimeGranularity } from '@superset-ui/core';
 import { ReactNode } from 'react';
-import { LabelPositionEnum } from './types';
+import {
+  EchartsLegendFormData,
+  EchartsTitleFormData,
+  LabelPositionEnum,
+  LegendOrientation,
+  LegendType,
+} from './types';
 
 // eslint-disable-next-line import/prefer-default-export
 export const NULL_STRING = '<NULL>';
@@ -84,3 +90,20 @@ export const TIMEGRAIN_TO_TIMESTAMP = {
   [TimeGranularity.QUARTER]: 3600 * 1000 * 24 * 31 * 3,
   [TimeGranularity.YEAR]: 3600 * 1000 * 24 * 31 * 12,
 };
+
+export const DEFAULT_LEGEND_FORM_DATA: EchartsLegendFormData = {
+  legendMargin: null,
+  legendOrientation: LegendOrientation.Top,
+  legendType: LegendType.Scroll,
+  showLegend: true,
+};
+
+export const DEFAULT_TITLE_FORM_DATA: EchartsTitleFormData = {
+  xAxisTitle: '',
+  xAxisTitleMargin: 0,
+  yAxisTitle: '',
+  yAxisTitleMargin: 0,
+  yAxisTitlePosition: 'Top',
+};
+
+export { DEFAULT_FORM_DATA } from './Timeseries/constants';

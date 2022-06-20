@@ -17,38 +17,32 @@
  * under the License.
  */
 import React from 'react';
-import { FeatureFlag, isFeatureEnabled, t } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
 import {
   ControlPanelConfig,
   ControlPanelsContainerProps,
   D3_TIME_FORMAT_DOCS,
+  emitFilterControl,
   sections,
   sharedControls,
-  emitFilterControl,
 } from '@superset-ui/chart-controls';
 
-import {
-  DEFAULT_FORM_DATA,
-  EchartsTimeseriesContributionType,
-  EchartsTimeseriesSeriesType,
-} from './types';
+import { EchartsTimeseriesContributionType } from '../../types';
+import { DEFAULT_FORM_DATA } from '../../constants';
 import {
   legendSection,
   richTooltipSection,
-  showValueSection,
+  showValueSectionWithoutStack,
   xAxisControl,
-} from '../controls';
+} from '../../../controls';
 
 const {
-  area,
   contributionMode,
   logAxis,
   markerEnabled,
   markerSize,
   minorSplitLine,
-  opacity,
   rowLimit,
-  seriesType,
   truncateYAxis,
   yAxisBounds,
   zoomable,
@@ -61,7 +55,7 @@ const config: ControlPanelConfig = {
       label: t('Query'),
       expanded: true,
       controlSetRows: [
-        isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES) ? [xAxisControl] : [],
+        [xAxisControl],
         ['metrics'],
         ['groupby'],
         [
@@ -98,61 +92,7 @@ const config: ControlPanelConfig = {
       expanded: true,
       controlSetRows: [
         ['color_scheme'],
-        [
-          {
-            name: 'seriesType',
-            config: {
-              type: 'SelectControl',
-              label: t('Series Style'),
-              renderTrigger: true,
-              default: seriesType,
-              choices: [
-                [EchartsTimeseriesSeriesType.Line, 'Line'],
-                [EchartsTimeseriesSeriesType.Scatter, 'Scatter'],
-                [EchartsTimeseriesSeriesType.Smooth, 'Smooth Line'],
-                [EchartsTimeseriesSeriesType.Bar, 'Bar'],
-                [EchartsTimeseriesSeriesType.Start, 'Step - start'],
-                [EchartsTimeseriesSeriesType.Middle, 'Step - middle'],
-                [EchartsTimeseriesSeriesType.End, 'Step - end'],
-              ],
-              description: t('Series chart type (line, bar etc)'),
-            },
-          },
-        ],
-        ...showValueSection,
-        [
-          {
-            name: 'area',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Area Chart'),
-              renderTrigger: true,
-              default: area,
-              description: t(
-                'Draw area under curves. Only applicable for line types.',
-              ),
-            },
-          },
-        ],
-        [
-          {
-            name: 'opacity',
-            config: {
-              type: 'SliderControl',
-              label: t('Area chart opacity'),
-              renderTrigger: true,
-              min: 0,
-              max: 1,
-              step: 0.1,
-              default: opacity,
-              description: t(
-                'Opacity of Area Chart. Also applies to confidence band.',
-              ),
-              visibility: ({ controls }: ControlPanelsContainerProps) =>
-                Boolean(controls?.area?.value),
-            },
-          },
-        ],
+        ...showValueSectionWithoutStack,
         [
           {
             name: 'markerEnabled',
@@ -231,9 +171,11 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        // eslint-disable-next-line react/jsx-key
         ...richTooltipSection,
         // eslint-disable-next-line react/jsx-key
         [<div className="section-header">{t('Y Axis')}</div>],
+
         ['y_axis_format'],
         [
           {

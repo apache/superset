@@ -28,17 +28,17 @@ import {
   QueryFormColumn,
 } from '@superset-ui/core';
 import {
-  DEFAULT_LEGEND_FORM_DATA,
   EchartsLegendFormData,
   EchartsTitleFormData,
-  DEFAULT_TITLE_FORM_DATA,
   StackType,
-} from '../types';
-import {
-  DEFAULT_FORM_DATA as TIMESERIES_DEFAULTS,
   EchartsTimeseriesContributionType,
   EchartsTimeseriesSeriesType,
-} from '../Timeseries/types';
+} from '../types';
+import {
+  DEFAULT_LEGEND_FORM_DATA,
+  DEFAULT_TITLE_FORM_DATA,
+  DEFAULT_FORM_DATA as TIMESERIES_DEFAULTS,
+} from '../constants';
 
 export type EchartsMixedTimeseriesFormData = QueryFormData & {
   annotationLayers: AnnotationLayer[];

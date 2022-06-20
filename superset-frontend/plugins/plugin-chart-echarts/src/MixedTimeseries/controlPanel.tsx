@@ -36,7 +36,7 @@ import {
 
 import { DEFAULT_FORM_DATA } from './types';
 import { EchartsTimeseriesSeriesType } from '../Timeseries/types';
-import { legendSection, richTooltipSection, xAxisControl } from '../controls';
+import { legendSection, richTooltipSection } from '../controls';
 
 const {
   area,
@@ -295,7 +295,7 @@ const config: ControlPanelConfig = {
       ? {
           label: t('Shared query fields'),
           expanded: true,
-          controlSetRows: [[xAxisControl]],
+          controlSetRows: [['x_axis']],
         }
       : null,
     createQuerySection(t('Query A'), ''),

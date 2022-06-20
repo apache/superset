@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { FeatureFlag, isFeatureEnabled, t } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
 import {
   ControlPanelConfig,
   ControlPanelsContainerProps,
@@ -27,7 +27,7 @@ import {
   sharedControls,
 } from '@superset-ui/chart-controls';
 
-import { DEFAULT_FORM_DATA } from '../../types';
+import { DEFAULT_FORM_DATA } from '../../constants';
 import {
   legendSection,
   richTooltipSection,
@@ -53,7 +53,7 @@ const config: ControlPanelConfig = {
       label: t('Query'),
       expanded: true,
       controlSetRows: [
-        isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES) ? [xAxisControl] : [],
+        [xAxisControl],
         ['metrics'],
         ['groupby'],
         ['adhoc_filters'],

@@ -27,12 +27,12 @@ import {
   SetDataMaskHook,
 } from '@superset-ui/core';
 import {
-  DEFAULT_LEGEND_FORM_DATA,
   EchartsLegendFormData,
   LabelPositionEnum,
   LegendOrientation,
   LegendType,
 } from '../types';
+import { DEFAULT_LEGEND_FORM_DATA } from '../constants';
 
 type RadarColumnConfig = Record<string, { radarMetricMaxValue?: number }>;
 
