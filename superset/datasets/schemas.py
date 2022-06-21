@@ -107,6 +107,11 @@ class DatasetPutSchema(Schema):
     external_url = fields.String(allow_none=True)
 
 
+class DatasetDuplicateSchema(Schema):
+    base_model_id = fields.Integer(required=True)
+    table_name = fields.String(required=True, allow_none=False, validate=Length(1, 250))
+
+
 class DatasetRelatedChart(Schema):
     id = fields.Integer()
     slice_name = fields.String()

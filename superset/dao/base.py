@@ -121,6 +121,7 @@ class BaseDAO:
             raise DAOConfigError()
         model = cls.model_cls()  # pylint: disable=not-callable
         for key, value in properties.items():
+            print(key, value)
             setattr(model, key, value)
         try:
             db.session.add(model)
