@@ -29,7 +29,8 @@
     "types": [
       "@emotion/react/types/css-prop",
       "jest",
-      "@testing-library/jest-dom"
+      "@testing-library/jest-dom",
+      "@types/node"
     ],
 
     /* Emit */
