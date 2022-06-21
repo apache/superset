@@ -24,7 +24,6 @@ import {
   DatasourceType,
   QueryResponse,
   Metric,
-  DEFAULT_METRICS,
 } from '@superset-ui/core';
 import {
   ControlConfig,
@@ -195,8 +194,8 @@ export default function DataSourcePanel({
   shouldForceUpdate,
 }: Props) {
   const { columns: _columns } = datasource;
-  let metrics = DEFAULT_METRICS;
-  if (datasource.metrics.length) {
+  let metrics: Metric[];
+  if (datasource?.metrics?.length) {
     metrics = datasource.metrics;
   }
   // display temporal column first
@@ -363,42 +362,44 @@ export default function DataSourcePanel({
             expandIconPosition="right"
             ghost
           >
-            <Collapse.Panel
-              header={<SectionHeader>{t('Metrics')}</SectionHeader>}
-              key="metrics"
-            >
-              <div className="field-length">
-                {t(
-                  `Showing %s of %s`,
-                  metricSlice.length,
-                  lists.metrics.length,
-                )}
-              </div>
-              {metricSlice?.map?.((m: Metric) => (
-                <LabelContainer
-                  key={m.metric_name + String(shouldForceUpdate)}
-                  className="column"
-                >
-                  {enableExploreDnd ? (
-                    <DatasourcePanelDragOption
-                      value={m}
-                      type={DndItemType.Metric}
-                    />
-                  ) : (
-                    <StyledMetricOption metric={m} showType />
+            {metrics?.length && (
+              <Collapse.Panel
+                header={<SectionHeader>{t('Metrics')}</SectionHeader>}
+                key="metrics"
+              >
+                <div className="field-length">
+                  {t(
+                    `Showing %s of %s`,
+                    metricSlice?.length,
+                    lists?.metrics.length,
                   )}
-                </LabelContainer>
-              ))}
-              {lists.metrics.length > DEFAULT_MAX_METRICS_LENGTH ? (
-                <ButtonContainer>
-                  <Button onClick={() => setShowAllMetrics(!showAllMetrics)}>
-                    {showAllMetrics ? t('Show less...') : t('Show all...')}
-                  </Button>
-                </ButtonContainer>
-              ) : (
-                <></>
-              )}
-            </Collapse.Panel>
+                </div>
+                {metricSlice?.map?.((m: Metric) => (
+                  <LabelContainer
+                    key={m.metric_name + String(shouldForceUpdate)}
+                    className="column"
+                  >
+                    {enableExploreDnd ? (
+                      <DatasourcePanelDragOption
+                        value={m}
+                        type={DndItemType.Metric}
+                      />
+                    ) : (
+                      <StyledMetricOption metric={m} showType />
+                    )}
+                  </LabelContainer>
+                ))}
+                {lists?.metrics?.length > DEFAULT_MAX_METRICS_LENGTH ? (
+                  <ButtonContainer>
+                    <Button onClick={() => setShowAllMetrics(!showAllMetrics)}>
+                      {showAllMetrics ? t('Show less...') : t('Show all...')}
+                    </Button>
+                  </ButtonContainer>
+                ) : (
+                  <></>
+                )}
+              </Collapse.Panel>
+            )}
             <Collapse.Panel
               header={<SectionHeader>{t('Columns')}</SectionHeader>}
               key="column"
@@ -443,7 +444,7 @@ export default function DataSourcePanel({
       columnSlice,
       inputValue,
       lists.columns.length,
-      lists.metrics.length,
+      lists?.metrics?.length,
       metricSlice,
       search,
       showAllColumns,
