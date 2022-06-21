@@ -665,48 +665,20 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       addDangerToast(t('There was an issue duplicating the dataset.'));
     }
 
-    const { id, schema, sql } = datasetCurrentlyDuplicating as VirtualDataset;
-
-    SupersetClient.get({
-      endpoint: `/api/v1/dataset/${id}`,
+    SupersetClient.post({
+      endpoint: `/api/v1/dataset/duplicate`,
+      postPayload: {
+        base_model_id: datasetCurrentlyDuplicating?.id,
+        table_name: newDatasetName,
+      },
     }).then(
-      ({ json = {} }) => {
-        const data = {
-          schema,
-          sql,
-          dbId: datasetCurrentlyDuplicating?.database.id,
-          templateParams: '',
-          datasourceName: newDatasetName,
-          // This is done because the api expects 'name' instead of 'column_name'
-          columns: json.result.columns.map((e: Record<string, any>) => ({
-            name: e.column_name,
-            ...e,
-          })),
-        };
-        SupersetClient.post({
-          endpoint: '/superset/sqllab_viz/',
-          postPayload: { data },
-        }).then(
-          () => {
-            setDatasetCurrentlyDuplicating(null);
-            refreshData();
-          },
-          createErrorHandler(errMsg =>
-            addDangerToast(
-              t(
-                'There was an issue duplicating the selected datasets during POST: %s',
-                errMsg,
-              ),
-            ),
-          ),
-        );
+      () => {
+        setDatasetCurrentlyDuplicating(null);
+        refreshData();
       },
       createErrorHandler(errMsg =>
         addDangerToast(
-          t(
-            'There was an issue duplicating the selected datasets during GET: %s',
-            errMsg,
-          ),
+          t('There was an issue duplicating the selected datasets: %s', errMsg),
         ),
       ),
     );
