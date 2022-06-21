@@ -43,6 +43,7 @@ These features are **finished** but currently being tested. They are usable, but
 - GLOBAL_ASYNC_QUERIES [(docs)](https://github.com/apache/superset/blob/master/CONTRIBUTING.md#async-chart-queries)
 - VERSIONED_EXPORT
 - ENABLE_JAVASCRIPT_CONTROLS
+- GENERIC_CHART_AXES
 
 ## Stable
 These features flags are **safe for production** and have been tested.
@@ -56,7 +57,6 @@ These features flags are **safe for production** and have been tested.
 - SQL_VALIDATORS_BY_ENGINE [(docs)](https://superset.apache.org/docs/installation/sql-templating)
 - SQLLAB_BACKEND_PERSISTENCE
 - THUMBNAILS [(docs)](https://superset.apache.org/docs/installation/cache)
-- GENERIC_CHART_AXES
 
 ## Deprecated Flags
 These features flags currently default to True and **will be removed in a future major release**. For this current release you can turn them off by setting your config to False, but it is advised to remove or set these flags in your local configuration to **True** so that you do not experience any unexpected changes in a future release.
