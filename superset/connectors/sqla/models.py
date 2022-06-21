@@ -31,6 +31,7 @@ from typing import (
     List,
     NamedTuple,
     Optional,
+    Set,
     Tuple,
     Type,
     Union,
@@ -1989,6 +1990,48 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         if schema:
             query = query.filter_by(schema=schema)
         return query.all()
+
+    @classmethod
+    def query_datasources_by_permissions(  # pylint: disable=invalid-name
+        cls,
+        session: Session,
+        database: Database,
+        permissions: Set[str],
+        schema_perms: Set[str],
+    ) -> List["SqlaTable"]:
+        # TODO(hughhhh): add unit test
+        return (
+            session.query(cls)
+            .filter_by(database_id=database.id)
+            .filter(
+                or_(
+                    SqlaTable.perm.in_(permissions),
+                    SqlaTable.schema_perm.in_(schema_perms),
+                )
+            )
+            .all()
+        )
+
+    @classmethod
+    def get_eager_sqlatable_datasource(
+        cls, session: Session, datasource_id: int
+    ) -> "SqlaTable":
+        """Returns SqlaTable with columns and metrics."""
+        return (
+            session.query(cls)
+            .options(
+                sa.orm.subqueryload(cls.columns),
+                sa.orm.subqueryload(cls.metrics),
+            )
+            .filter_by(id=datasource_id)
+            .one()
+        )
+
+    @classmethod
+    def get_all_datasources(cls, session: Session) -> List["SqlaTable"]:
+        qry = session.query(cls)
+        qry = cls.default_query(qry)
+        return qry.all()
 
     @staticmethod
     def default_query(qry: Query) -> Query:

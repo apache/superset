@@ -39,7 +39,6 @@ from tests.integration_tests.fixtures.energy_dashboard import (
 )
 from tests.integration_tests.test_app import app  # isort:skip
 from superset import db, security_manager
-from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.sqla.models import SqlaTable
 from superset.models import core as models
 from superset.models.datasource_access_request import DatasourceAccessRequest
@@ -90,12 +89,12 @@ SCHEMA_ACCESS_ROLE = "schema_access_role"
 
 
 def create_access_request(session, ds_type, ds_name, role_name, username):
-    ds_class = ConnectorRegistry.sources[ds_type]
     # TODO: generalize datasource names
     if ds_type == "table":
-        ds = session.query(ds_class).filter(ds_class.table_name == ds_name).first()
+        ds = session.query(SqlaTable).filter(SqlaTable.table_name == ds_name).first()
     else:
-        ds = session.query(ds_class).filter(ds_class.datasource_name == ds_name).first()
+        # This function will only work for ds_type == "table"
+        raise NotImplementedError()
     ds_perm_view = security_manager.find_permission_view_menu(
         "datasource_access", ds.perm
     )
@@ -448,49 +447,6 @@ class TestRequestAccess(SupersetTestCase):
             )
             TEST_ROLE = security_manager.find_role(TEST_ROLE_NAME)
             self.assertIn(perm_view, TEST_ROLE.permissions)
-
-            # Case 3. Grant new role to the user to access the druid datasource.
-
-            security_manager.add_role("druid_role")
-            access_request3 = create_access_request(
-                session, "druid", "druid_ds_1", "druid_role", "gamma"
-            )
-            self.get_resp(
-                GRANT_ROLE_REQUEST.format(
-                    "druid", access_request3.datasource_id, "gamma", "druid_role"
-                )
-            )
-
-            # user was granted table_role
-            user_roles = [r.name for r in security_manager.find_user("gamma").roles]
-            self.assertIn("druid_role", user_roles)
-
-            # Case 4. Extend the role to have access to the druid datasource
-
-            access_request4 = create_access_request(
-                session, "druid", "druid_ds_2", "druid_role", "gamma"
-            )
-            druid_ds_2_perm = access_request4.datasource.perm
-
-            self.client.get(
-                EXTEND_ROLE_REQUEST.format(
-                    "druid", access_request4.datasource_id, "gamma", "druid_role"
-                )
-            )
-            # druid_role was extended to grant access to the druid_access_ds_2
-            druid_role = security_manager.find_role("druid_role")
-            perm_view = security_manager.find_permission_view_menu(
-                "datasource_access", druid_ds_2_perm
-            )
-            self.assertIn(perm_view, druid_role.permissions)
-
-            # cleanup
-            gamma_user = security_manager.find_user(username="gamma")
-            gamma_user.roles.remove(security_manager.find_role("druid_role"))
-            gamma_user.roles.remove(security_manager.find_role(TEST_ROLE_NAME))
-            session.delete(security_manager.find_role("druid_role"))
-            session.delete(security_manager.find_role(TEST_ROLE_NAME))
-            session.commit()
 
     def test_request_access(self):
         if app.config["ENABLE_ACCESS_REQUEST"]:
