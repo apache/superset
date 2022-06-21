@@ -165,6 +165,7 @@ setup(
         "snowflake": [
             "snowflake-sqlalchemy==1.2.4"
         ],  # PINNED! 1.2.5 introduced breaking changes requiring sqlalchemy>=1.4.0
+        "spark": ["pyhive[hive]>=0.6.5", "tableschema", "thrift>=0.11.0, <1.0.0"],
         "teradata": ["teradatasql>=16.20.0.23"],
         "thumbnails": ["Pillow>=9.0.1, <10.0.0"],
         "vertica": ["sqlalchemy-vertica-python>=0.5.9, < 0.6"],
