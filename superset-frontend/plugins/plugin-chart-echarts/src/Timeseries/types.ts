@@ -23,6 +23,7 @@ import {
   QueryFormColumn,
   QueryFormData,
   TimeGranularity,
+  ContributionType,
 } from '@superset-ui/core';
 import {
   EchartsLegendFormData,
@@ -30,11 +31,6 @@ import {
   EchartsTitleFormData,
   StackType,
 } from '../types';
-
-export enum EchartsTimeseriesContributionType {
-  Row = 'row',
-  Column = 'column',
-}
 
 export enum OrientationType {
   vertical = 'vertical',
@@ -55,7 +51,7 @@ export type EchartsTimeseriesFormData = QueryFormData & {
   annotationLayers: AnnotationLayer[];
   area: boolean;
   colorScheme?: string;
-  contributionMode?: EchartsTimeseriesContributionType;
+  contributionMode?: ContributionType;
   forecastEnabled: boolean;
   forecastPeriods: number;
   forecastInterval: number;

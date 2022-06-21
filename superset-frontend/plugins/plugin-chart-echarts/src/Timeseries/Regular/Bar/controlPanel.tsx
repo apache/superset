@@ -24,26 +24,20 @@ import {
   ControlSetRow,
   ControlStateMapping,
   D3_TIME_FORMAT_DOCS,
-  emitFilterControl,
   formatSelectOptions,
   sections,
   sharedControls,
 } from '@superset-ui/chart-controls';
 
-import {
-  EchartsTimeseriesContributionType,
-  OrientationType,
-} from '../../types';
+import { OrientationType } from '../../types';
 import { DEFAULT_FORM_DATA } from '../../constants';
 import {
   legendSection,
   richTooltipSection,
   showValueSection,
-  xAxisControl,
 } from '../../../controls';
 
 const {
-  contributionMode,
   logAxis,
   minorSplitLine,
   rowLimit,
@@ -265,38 +259,7 @@ function createAxisControl(axis: 'x' | 'y'): ControlSetRow[] {
 const config: ControlPanelConfig = {
   controlPanelSections: [
     sections.legacyTimeseriesTime,
-    {
-      label: t('Query'),
-      expanded: true,
-      controlSetRows: [
-        [xAxisControl],
-        ['metrics'],
-        ['groupby'],
-        [
-          {
-            name: 'contributionMode',
-            config: {
-              type: 'SelectControl',
-              label: t('Contribution Mode'),
-              default: contributionMode,
-              choices: [
-                [null, 'None'],
-                [EchartsTimeseriesContributionType.Row, 'Row'],
-                [EchartsTimeseriesContributionType.Column, 'Series'],
-              ],
-              description: t('Calculate contribution per series or row'),
-            },
-          },
-        ],
-        ['adhoc_filters'],
-        emitFilterControl,
-        ['limit'],
-        ['timeseries_limit_metric'],
-        ['order_desc'],
-        ['row_limit'],
-        ['truncate_metric'],
-      ],
-    },
+    sections.echartsTimeSeriesQuery,
     sections.advancedAnalyticsControls,
     sections.annotationsAndLayersControls,
     sections.forecastIntervalControls,

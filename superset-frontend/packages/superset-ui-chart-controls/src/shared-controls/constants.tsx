@@ -16,10 +16,33 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import {
+  FeatureFlag,
+  isFeatureEnabled,
+  t,
+  validateNonEmpty,
+} from '@superset-ui/core';
+import { ControlPanelState, ControlState } from '../types';
 
-export * from './sections';
-export * from './advancedAnalytics';
-export * from './annotationsAndLayers';
-export * from './forecastInterval';
-export * from './chartTitle';
-export * from './echartsTimeSeriesQuery';
+export const xAxisControlConfig = {
+  label: t('X-axis'),
+  default: (
+    control: ControlState,
+    controlPanel: Partial<ControlPanelState>,
+  ) => {
+    // default to the chosen time column if x-axis is unset and the
+    // GENERIC_CHART_AXES feature flag is enabled
+    const { value } = control;
+    if (value) {
+      return value;
+    }
+    const timeColumn = controlPanel?.form_data?.granularity_sqla;
+    if (isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES) && timeColumn) {
+      return timeColumn;
+    }
+    return null;
+  },
+  multi: false,
+  description: t('Dimension to use on x-axis.'),
+  validators: [validateNonEmpty],
+};

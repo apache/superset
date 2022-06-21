@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { FeatureFlag, isFeatureEnabled, t } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
 import {
   ControlPanelsContainerProps,
   ControlSetItem,
@@ -137,10 +137,6 @@ export const onlyTotalControl: ControlSetItem = {
       Boolean(controls?.show_value?.value) && Boolean(controls?.stack?.value),
   },
 };
-
-export const xAxisControl = isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES)
-  ? 'x_axis'
-  : null;
 
 const percentageThresholdControl: ControlSetItem = {
   name: 'percentage_threshold',
