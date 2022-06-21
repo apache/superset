@@ -449,7 +449,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
               data-column-name={col.id}
               css={{
                 display: 'inline-flex',
-                alignItems: 'center',
+                alignItems: 'flex-end',
               }}
             >
               <span data-column-name={col.id}>{label}</span>
