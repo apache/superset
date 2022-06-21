@@ -40,7 +40,6 @@ from sqlalchemy.engine.url import URL
 from sqlalchemy.orm import backref, relationship
 
 from superset import security_manager
-from superset.db_engine_specs import BaseEngineSpec
 from superset.models.helpers import (
     AuditMixinNullable,
     ExploreMixin,

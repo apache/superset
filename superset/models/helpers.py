@@ -58,16 +58,15 @@ from sqlalchemy_utils import UUIDType
 
 from superset import app, db, is_feature_enabled, security_manager
 from superset.common.db_query_status import QueryStatus
-from superset.connectors.sqla import SqlMetric
-from superset.db_engine_specs import BaseEngineSpec
-from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import SupersetSecurityException
+# from superset.connectors.sqla import SqlMetric
+# from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+# from superset.exceptions import SupersetSecurityException
 from superset.jinja_context import (
     BaseTemplateProcessor,
     ExtraCache,
     get_template_processor,
 )
-from superset.models.core import Database
+# from superset.models.core import Database
 from superset.sql_parse import (
     extract_table_references,
     has_table_query,
@@ -1040,8 +1039,8 @@ class ExploreMixin:
     def _get_series_orderby(
         self,
         series_limit_metric: Metric,
-        metrics_by_name: Dict[str, SqlMetric],
-        columns_by_name: Dict[str, TableColumn],
+        metrics_by_name: Dict[str, "SqlMetric"],
+        columns_by_name: Dict[str, "TableColumn"],
     ) -> Column:
         if utils.is_adhoc_metric(series_limit_metric):
             assert isinstance(series_limit_metric, dict)
