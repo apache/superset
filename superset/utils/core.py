@@ -87,6 +87,7 @@ from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.sql.type_api import Variant
 from sqlalchemy.types import TEXT, TypeDecorator, TypeEngine
 from typing_extensions import TypedDict, TypeGuard
+import psycopg2
 
 from superset.constants import (
     EXTRA_FORM_DATA_APPEND_KEYS,
@@ -580,6 +581,10 @@ def json_iso_dttm_ser(obj: Any, pessimistic: bool = False) -> str:
         return val
     if isinstance(obj, (datetime, date, pd.Timestamp)):
         obj = obj.isoformat()
+    elif isinstance(obj, psycopg2._range.DateTimeTZRange):
+        obj_lower = obj.lower.isoformat() if obj.lower is not None else None
+        obj_upper = obj.upper.isoformat() if obj.upper is not None else None
+        obj = "{}|{}".format(obj_lower, obj_upper)
     else:
         if pessimistic:
             return "Unserializable [{}]".format(type(obj))
