@@ -1143,15 +1143,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             ]
         return []
 
-    def get_rls_filters(
-        self,
-        table: "BaseDatasource",
-    ) -> List[SqlaQuery]:
+    def get_rls_filters(self, table: "BaseDatasource") -> List[SqlaQuery]:
         """
         Retrieves the appropriate row level security filters for the current user and
         the passed table.
 
-        :param BaseDatasource table: The table to check against.
+        :param table: The table to check against
         :returns: A list of filters
         """
         if hasattr(g, "user"):
