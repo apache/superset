@@ -1,10 +1,10 @@
+import { QueryObject } from './types';
 import {
   ExtraFormDataAppend,
   ExtraFormDataOverrideExtras,
   ExtraFormDataOverrideRegular,
   ExtraFormDataOverride,
-  QueryObject,
-} from './types';
+} from './types/QueryFormData';
 
 /**
  * Licensed to the Apache Software Foundation (ASF) under one

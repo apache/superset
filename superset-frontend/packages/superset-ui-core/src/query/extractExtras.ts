@@ -18,14 +18,13 @@
  */
 
 /* eslint-disable camelcase */
+import { TimeGranularity, QueryFormData } from '@superset-ui/core';
 import {
   AppliedTimeExtras,
-  QueryFormData,
   QueryObjectExtras,
   QueryObjectFilterClause,
   TimeColumnConfigKey,
 } from './types';
-import { TimeGranularity } from '../time-format/types';
 
 type ExtraFilterQueryField = {
   time_range?: string;

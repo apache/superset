@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { TimeGranularity } from '@superset-ui/core';
 import extractExtras from '../../src/query/extractExtras';
-import { TimeGranularity } from '../../src/time-format/types';
 
 describe('extractExtras', () => {
   const baseQueryFormData = {

@@ -17,7 +17,8 @@
  * under the License.
  */
 
-import { isPhysicalColumn, QueryFormColumn } from './types';
+import { isPhysicalColumn } from './types';
+import { QueryFormColumn } from './types/QueryFormData';
 
 export default function getColumnLabel(column: QueryFormColumn): string {
   if (isPhysicalColumn(column)) {

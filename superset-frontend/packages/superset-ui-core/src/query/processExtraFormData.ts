@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ExtraFormDataOverride, QueryObject } from './types';
+import { QueryObject } from './types';
+import { ExtraFormDataOverride } from './types/QueryFormData';
 import {
   EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS,
   EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS,
