@@ -40,6 +40,7 @@ from sqlalchemy.engine.url import URL
 from sqlalchemy.orm import backref, relationship
 
 from superset import security_manager
+from superset.db_engine_specs import BaseEngineSpec
 from superset.models.helpers import (
     AuditMixinNullable,
     ExploreMixin,
@@ -232,6 +233,49 @@ class Query(Model, ExtraJSONMixin, ExploreMixin):
     @property
     def db_engine_spec(self) -> Type["BaseEngineSpec"]:
         return self.database.db_engine_spec
+
+    @property
+    def owners_data(self):
+        return []
+
+    @property
+    def metrics(self):
+        return []
+
+    @property
+    def uid(self):
+        return "foo"
+
+    @property
+    def is_rls_supported(self):
+        return False
+
+    @property
+    def cache_timeout(self):
+        return None
+
+    @property
+    def column_names(self):
+        return [col.get("column_name") for col in self.columns]
+
+    @property
+    def offset(self):
+        return 0
+
+    @property
+    def main_dttm_col(self) -> str:
+        for col in self.columns:
+            if col.get("is_dttm"):
+                return col.get("column_name")
+        return None
+
+    @property
+    def dttm_cols(self) -> List[Any]:
+        return [col.get("column_name") for col in self.columns if col.get("is_dttm")]
+
+    @staticmethod
+    def get_extra_cache_keys(query_obj: Dict[str, Any]) -> List[str]:
+        return []
 
 
 class SavedQuery(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):

@@ -58,14 +58,20 @@ from sqlalchemy_utils import UUIDType
 
 from superset import app, db, is_feature_enabled, security_manager
 from superset.common.db_query_status import QueryStatus
+from superset.connectors.sqla import SqlMetric
+from superset.db_engine_specs import BaseEngineSpec
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.exceptions import SupersetSecurityException
 from superset.jinja_context import (
     BaseTemplateProcessor,
     ExtraCache,
     get_template_processor,
 )
+from superset.models.core import Database
 from superset.sql_parse import (
     extract_table_references,
     has_table_query,
+    insert_rls,
     ParsedQuery,
     sanitize_clause,
     Table as TableName,
@@ -630,47 +636,64 @@ class ExploreMixin:
     }
 
     @property
-    def owners_data(self):
-        return []
+    def owners_data(self) -> List[Any]:
+        raise NotImplementedError()
 
     @property
-    def metrics(self):
-        return []
+    def metrics(self) -> List[Any]:
+        raise NotImplementedError()
 
     @property
-    def uid(self):
-        return "foo"
+    def uid(self) -> str:
+        raise NotImplementedError()
 
     @property
-    def is_rls_supported(self):
-        return False
+    def is_rls_supported(self) -> bool:
+        raise NotImplementedError()
 
     @property
-    def cache_timeout(self):
-        return None
+    def cache_timeout(self) -> int:
+        raise NotImplementedError()
 
     @property
-    def column_names(self):
-        return [col.get("column_name") for col in self.columns]
+    def column_names(self) -> List[str]:
+        raise NotImplementedError()
 
     @property
-    def offset(self):
-        return 0
+    def offset(self) -> int:
+        raise NotImplementedError()
 
     @property
     def main_dttm_col(self) -> str:
-        for col in self.columns:
-            if col.get('is_dttm'):
-                return col.get('column_name')
-        return None
+        raise NotImplementedError()
 
     @property
     def dttm_cols(self) -> List[str]:
-        return [col.get('column_name') for col in self.columns if col.get('is_dttm')]
+        raise NotImplementedError()
+
+    @property
+    def db_engine_spec(self) -> Type["BaseEngineSpec"]:
+        raise NotImplementedError()
+
+    @property
+    def database(self) -> Type["Database"]:
+        raise NotImplementedError()
+
+    @property
+    def schema(self) -> str:
+        raise NotImplementedError()
+
+    @property
+    def sql(self) -> str:
+        raise NotImplementedError()
+
+    @property
+    def columns(self) -> List[Any]:
+        raise NotImplementedError()
 
     @staticmethod
-    def get_extra_cache_keys(query_obj):
-        return []
+    def get_extra_cache_keys(query_obj: Dict[str, Any]) -> List[str]:
+        raise NotImplementedError()
 
     def make_sqla_column_compatible(
         self, sqla_col: ColumnElement, label: Optional[str] = None
@@ -1013,6 +1036,26 @@ class ExploreMixin:
         elif not is_list_target and isinstance(values, (tuple, list)):
             values = values[0] if values else None
         return values
+
+    def _get_series_orderby(
+        self,
+        series_limit_metric: Metric,
+        metrics_by_name: Dict[str, SqlMetric],
+        columns_by_name: Dict[str, TableColumn],
+    ) -> Column:
+        if utils.is_adhoc_metric(series_limit_metric):
+            assert isinstance(series_limit_metric, dict)
+            ob = self.adhoc_metric_to_sqla(series_limit_metric, columns_by_name)
+        elif (
+            isinstance(series_limit_metric, str)
+            and series_limit_metric in metrics_by_name
+        ):
+            ob = metrics_by_name[series_limit_metric].get_sqla_col()
+        else:
+            raise QueryObjectValidationError(
+                _("Metric '%(metric)s' does not exist", metric=series_limit_metric)
+            )
+        return ob
 
     def get_sqla_query(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branches,too-many-statements
         self,
@@ -1506,13 +1549,13 @@ class ExploreMixin:
                 inner_groupby_exprs = []
                 inner_select_exprs = []
                 for gby_name, gby_obj in groupby_series_columns.items():
-                    label = get_column_name(gby_name)
+                    label = utils.get_column_name(gby_name)
                     inner = self.make_sqla_column_compatible(gby_obj, gby_name + "__")
                     inner_groupby_exprs.append(inner)
                     inner_select_exprs.append(inner)
 
                 inner_select_exprs += [inner_main_metric_expr]
-                subq = select(inner_select_exprs).select_from(tbl)
+                subq = sa.select(inner_select_exprs).select_from(tbl)
                 inner_time_filter = []
 
                 if dttm_col and not db_engine_spec.time_groupby_inline:
@@ -1540,7 +1583,7 @@ class ExploreMixin:
                     # conditionally mutated, as it refers to the column alias in
                     # the inner query
                     col_name = db_engine_spec.make_label_compatible(gby_name + "__")
-                    on_clause.append(gby_obj == column(col_name))
+                    on_clause.append(gby_obj == sa.column(col_name))
 
                 tbl = tbl.join(subq.alias(), and_(*on_clause))
             else:

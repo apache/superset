@@ -124,7 +124,7 @@ class QueryContextProcessor:
                             invalid_columns=invalid_columns,
                         )
                     )
-                
+
                 query_result = self.get_query_result(query_obj)
                 annotation_data = self.get_annotation_data(query_obj)
                 cache.set_query_result(

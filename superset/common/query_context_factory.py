@@ -82,7 +82,7 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
 
     # pylint: disable=no-self-use
     def _convert_to_model(self, datasource: DatasourceDict) -> BaseDatasource:
-        from superset.dao.datasource.dao import DatasourceDAO
+        from superset.datasource.dao import DatasourceDAO
         from superset.utils.core import DatasourceType
 
         return DatasourceDAO.get_datasource(

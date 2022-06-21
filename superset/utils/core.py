@@ -1648,26 +1648,27 @@ def extract_dataframe_dtypes(
         "date": GenericDataType.TEMPORAL,
     }
 
-    # todo(hughhhh): can we make the column_object a Union 
+    # todo(hughhhh): can we make the column_object a Union
     if datasource and datasource.type == "query":
-        columns_by_name = {column.get('column_name'): column for column in datasource.columns}
+        columns_by_name = {
+            column.get("column_name"): column for column in datasource.columns
+        }
     else:
         columns_by_name = (
             {column.column_name: column for column in datasource.columns}
             if datasource
             else {}
         )
-    
+
     generic_types: List[GenericDataType] = []
     for column in df.columns:
         column_object = columns_by_name.get(column)
         series = df[column]
         inferred_type = infer_dtype(series)
-        # todo(hughhhh): can we make the column_object a Union 
-        if datasource.type == "query":
+        if datasource and datasource.type == "query":  # type: ignore
             generic_type = (
                 GenericDataType.TEMPORAL
-                if column_object and column_object.get('is_dttm')
+                if column_object and column_object.get("is_dttm")
                 else inferred_type_map.get(inferred_type, GenericDataType.STRING)
             )
         else:

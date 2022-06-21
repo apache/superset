@@ -773,15 +773,23 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             value = GetFormDataCommand(parameters).run()
             initial_form_data = json.loads(value) if value else {}
 
-        from superset.dao.datasource.dao import DatasourceDAO
+        from superset.datasource.dao import DatasourceDAO
         from superset.models.helpers import ExploreMixin
         from superset.utils.core import DatasourceType
 
         # Handle SIP-68 Models or explore view
         # API will always use /explore/<datasource_type>/<int:datasource_id>/ to query
         # new models to power any viz in explore
+        datasource: Optional[BaseDatasource] = None
         datasource_id = request.args.get("datasource_id", datasource_id)
         datasource_type = request.args.get("datasource_type", datasource_type)
+        dummy_datasource_data: Dict[str, Any] = {
+            "type": datasource_type,
+            "name": "[Missing Dataset]",
+            "columns": [],
+            "metrics": [],
+            "database": {"id": 0, "backend": ""},
+        }
 
         if datasource_id and datasource_type:
             # 1. Query datasource object by type and id
@@ -856,13 +864,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                     )
                 standalone_mode = ReservedUrlParameters.is_standalone_mode()
                 force = request.args.get("force") in {"force", "1", "true"}
-                dummy_datasource_data: Dict[str, Any] = {
-                    "type": datasource_type,
-                    "name": datasource_name,
-                    "columns": [],
-                    "metrics": [],
-                    "database": {"id": 0, "backend": ""},
-                }
                 try:
                     datasource_data = (
                         datasource.data if datasource else dummy_datasource_data
@@ -929,7 +930,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             # fallback unkonw datasource to table type
             datasource_type = SqlaTable.type
 
-        datasource: Optional[BaseDatasource] = None
         if datasource_id is not None:
             try:
                 datasource = DatasourceDAO.get_datasource(
@@ -1002,13 +1002,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             )
         standalone_mode = ReservedUrlParameters.is_standalone_mode()
         force = request.args.get("force") in {"force", "1", "true"}
-        dummy_datasource_data: Dict[str, Any] = {
-            "type": datasource_type,
-            "name": datasource_name,
-            "columns": [],
-            "metrics": [],
-            "database": {"id": 0, "backend": ""},
-        }
         try:
             datasource_data = datasource.data if datasource else dummy_datasource_data
         except (SupersetException, SQLAlchemyError):
