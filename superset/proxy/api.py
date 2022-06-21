@@ -44,7 +44,7 @@ class ProxyRestAPI(BaseSupersetModelRestApi):
 
         self.ALFRED_URL = os.environ.get("ALFRED_URL")
 
-        if os.environ.get("FLASK_APP") == 'development':
+        if os.environ.get("FLASK_ENV") == "development":
             self.SSL_CERT = os.environ.get("REQUESTS_CA_BUNDLE_DEV")
         else:
             self.SSL_CERT = os.environ.get("REQUESTS_CA_BUNDLE")
