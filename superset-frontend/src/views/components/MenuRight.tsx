@@ -35,6 +35,7 @@ import Icons from 'src/components/Icons';
 import Label from 'src/components/Label';
 import findPermission, { isUserAdmin } from 'src/dashboard/util/findPermission';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import { RootState } from 'src/dashboard/types';
 import LanguagePicker from './LanguagePicker';
 import DatabaseModal from '../CRUD/data/database/DatabaseModal';
 import { uploadUserPerms } from '../CRUD/utils';
@@ -44,7 +45,6 @@ import {
   RightMenuProps,
 } from './types';
 import { MenuObjectProps } from './Menu';
-import { RootState } from 'src/dashboard/types';
 
 const versionInfoStyles = (theme: SupersetTheme) => css`
   padding: ${theme.gridUnit * 1.5}px ${theme.gridUnit * 4}px
