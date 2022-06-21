@@ -38,8 +38,8 @@ import { DashboardStandaloneMode } from 'src/dashboard/util/constants';
 import { optionLabel } from '../../utils/common';
 
 export function getChartKey(explore) {
-  const { slice } = explore;
-  return slice ? slice.slice_id : 0;
+  const { slice, form_data } = explore;
+  return slice?.slice_id ?? form_data?.slice_id ?? 0;
 }
 
 let requestCounter = 0;

@@ -706,12 +706,11 @@ function mapStateToProps(state) {
   } = state;
   const { controls, slice } = explore;
   const form_data = getFormDataFromControls(controls);
-  const slice_id = form_data.slice_id;
-  console.log(form_data, slice_id);
+  const slice_id = form_data.slice_id ?? slice?.slice_id ?? 0; // 0 - unsaved chart
   form_data.extra_form_data = mergeExtraFormData(
     { ...form_data.extra_form_data },
     {
-      ...dataMask[slice_id ?? 0]?.ownState, // 0 - unsaved chart
+      ...dataMask[slice_id]?.ownState,
     },
   );
   const chart = charts[slice_id];
@@ -744,11 +743,11 @@ function mapStateToProps(state) {
     form_data,
     table_name: datasource.table_name,
     vizType: form_data.viz_type,
-    standalone: explore.standalone,
-    force: explore.force,
+    standalone: !!explore.standalone,
+    force: !!explore.force,
     chart,
     timeout: common.conf.SUPERSET_WEBSERVER_TIMEOUT,
-    ownState: dataMask[slice_id ?? 0]?.ownState, // 0 - unsaved chart
+    ownState: dataMask[slice_id]?.ownState,
     impressionId,
     user,
     exploreState: explore,

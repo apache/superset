@@ -37,6 +37,9 @@ const reduxState = {
       metrics: [{ id: 1, metric_name: 'count' }],
     },
     isStarred: false,
+    slice: {
+      slice_id: 1,
+    },
   },
   charts: {
     1: {
@@ -75,6 +78,7 @@ jest.mock('lodash/debounce', () => ({
 fetchMock.post('glob:*/api/v1/explore/form_data*', { key });
 fetchMock.put('glob:*/api/v1/explore/form_data*', { key });
 fetchMock.get('glob:*/api/v1/explore/form_data*', {});
+fetchMock.get('glob:*/favstar/slice*', { count: 0 });
 
 const renderWithRouter = (withKey?: boolean) => {
   const path = '/superset/explore/';
