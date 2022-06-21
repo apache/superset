@@ -63,7 +63,7 @@ class SliceModelView(
     def add(self) -> FlaskResponse:
         payload = {
             "common": common_bootstrap_payload(),
-            "user": bootstrap_user_data(g.user),
+            "user": bootstrap_user_data(g.user, include_perms=True),
         }
         return self.render_template(
             "superset/add_slice.html", bootstrap_data=json.dumps(payload)
