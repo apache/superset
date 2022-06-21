@@ -22,7 +22,6 @@ import {
   ControlPanelConfig,
   ControlPanelsContainerProps,
   D3_TIME_FORMAT_DOCS,
-  emitFilterControl,
   sections,
   sharedControls,
 } from '@superset-ui/chart-controls';
@@ -32,7 +31,6 @@ import {
   legendSection,
   richTooltipSection,
   showValueSection,
-  xAxisControl,
 } from '../../../controls';
 
 const {
@@ -49,22 +47,7 @@ const {
 const config: ControlPanelConfig = {
   controlPanelSections: [
     sections.legacyTimeseriesTime,
-    {
-      label: t('Query'),
-      expanded: true,
-      controlSetRows: [
-        [xAxisControl],
-        ['metrics'],
-        ['groupby'],
-        ['adhoc_filters'],
-        emitFilterControl,
-        ['limit'],
-        ['timeseries_limit_metric'],
-        ['order_desc'],
-        ['row_limit'],
-        ['truncate_metric'],
-      ],
-    },
+    sections.echartsTimeSeriesQuery,
     sections.advancedAnalyticsControls,
     sections.annotationsAndLayersControls,
     sections.forecastIntervalControls,
