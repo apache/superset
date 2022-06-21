@@ -89,3 +89,4 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
             session=db.session,
             datasource_type=DatasourceType(datasource["type"]),
             datasource_id=int(datasource["id"]),
+        )

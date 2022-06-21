@@ -27,8 +27,6 @@ import {
   withTheme,
 } from '@superset-ui/core';
 import { getUrlParam } from 'src/utils/urlUtils';
-
-import { getUrlParam } from 'src/utils/urlUtils';
 import { AntdDropdown } from 'src/components';
 import { Menu } from 'src/components/Menu';
 import { Tooltip } from 'src/components/Tooltip';
