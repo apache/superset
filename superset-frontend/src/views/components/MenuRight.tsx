@@ -32,10 +32,9 @@ import {
 import { MainNav as Menu } from 'src/components/Menu';
 import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
+import Label from 'src/components/Label';
 import findPermission, { isUserAdmin } from 'src/dashboard/util/findPermission';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
-import { RootState } from 'src/dashboard/types';
-import { Tag } from 'antd';
 import LanguagePicker from './LanguagePicker';
 import DatabaseModal from '../CRUD/data/database/DatabaseModal';
 import { uploadUserPerms } from '../CRUD/utils';
@@ -45,6 +44,7 @@ import {
   RightMenuProps,
 } from './types';
 import { MenuObjectProps } from './Menu';
+import { RootState } from 'src/dashboard/types';
 
 const versionInfoStyles = (theme: SupersetTheme) => css`
   padding: ${theme.gridUnit * 1.5}px ${theme.gridUnit * 4}px
@@ -80,6 +80,10 @@ const StyledDiv = styled.div<{ align: string }>`
 const StyledAnchor = styled.a`
   padding-right: ${({ theme }) => theme.gridUnit}px;
   padding-left: ${({ theme }) => theme.gridUnit}px;
+`;
+
+const tagStyles = (theme: SupersetTheme) => css`
+  color: ${theme.colors.grayscale.light5};
 `;
 
 const { SubMenu } = Menu;
@@ -270,9 +274,9 @@ const RightMenu = ({
         />
       )}
       {environmentTag.text && (
-        <Tag css={{ borderRadius: '500px' }} color={environmentTag.color}>
-          {environmentTag.text}
-        </Tag>
+        <Label css={{ borderRadius: '500px' }} color={environmentTag.color}>
+          <span css={tagStyles}>{environmentTag.text}</span>
+        </Label>
       )}
       <Menu
         selectable={false}
