@@ -16,11 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SET_DATASOURCE } from '../actions/datasourcesActions';
-import { getDatasourceUid } from '../../utils/getDatasourceUid';
+import { Dataset } from '@superset-ui/chart-controls';
+import { getDatasourceUid } from 'src/utils/getDatasourceUid';
+import {
+  AnyDatasourcesAction,
+  SET_DATASOURCE,
+} from '../actions/datasourcesActions';
 
-export default function datasourcesReducer(datasources, action) {
-  console.log('REDUCER', datasources, action);
+export default function datasourcesReducer(
+  datasources: { [key: string]: Dataset },
+  action: AnyDatasourcesAction,
+) {
   if (action.type === SET_DATASOURCE) {
     return {
       ...datasources,

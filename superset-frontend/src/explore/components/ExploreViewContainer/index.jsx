@@ -706,13 +706,15 @@ function mapStateToProps(state) {
   } = state;
   const { controls, slice } = explore;
   const form_data = getFormDataFromControls(controls);
+  const slice_id = form_data.slice_id;
+  console.log(form_data, slice_id);
   form_data.extra_form_data = mergeExtraFormData(
     { ...form_data.extra_form_data },
     {
-      ...dataMask[slice.slice_id ?? 0]?.ownState, // 0 - unsaved chart
+      ...dataMask[slice_id ?? 0]?.ownState, // 0 - unsaved chart
     },
   );
-  const chart = charts[slice.slice_id];
+  const chart = charts[slice_id];
 
   let dashboardId = Number(explore.form_data?.dashboardId);
   if (Number.isNaN(dashboardId)) {
@@ -737,7 +739,7 @@ function mapStateToProps(state) {
       : 'slice-container',
     isStarred: explore.isStarred,
     slice,
-    sliceName: explore.sliceName ?? slice.slice_name ?? null,
+    sliceName: explore.sliceName ?? slice?.slice_name ?? null,
     triggerRender: explore.triggerRender,
     form_data,
     table_name: datasource.table_name,
@@ -746,7 +748,7 @@ function mapStateToProps(state) {
     force: explore.force,
     chart,
     timeout: common.conf.SUPERSET_WEBSERVER_TIMEOUT,
-    ownState: dataMask[form_data.slice_id ?? 0]?.ownState, // 0 - unsaved chart
+    ownState: dataMask[slice_id ?? 0]?.ownState, // 0 - unsaved chart
     impressionId,
     user,
     exploreState: explore,

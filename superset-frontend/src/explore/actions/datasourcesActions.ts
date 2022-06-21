@@ -1,7 +1,3 @@
-import { Dataset } from '@superset-ui/chart-controls';
-import { Dispatch } from 'redux';
-import { updateFormDataByDatasource } from './exploreActions';
-
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -21,7 +17,15 @@ import { updateFormDataByDatasource } from './exploreActions';
  * under the License.
  */
 
+import { Dispatch } from 'redux';
+import { Dataset } from '@superset-ui/chart-controls';
+import { updateFormDataByDatasource } from './exploreActions';
+
 export const SET_DATASOURCE = 'SET_DATASOURCE';
+export interface SetDatasource {
+  type: typeof SET_DATASOURCE;
+  datasource: Dataset;
+}
 export function setDatasource(datasource: Dataset) {
   return { type: SET_DATASOURCE, datasource };
 }
@@ -38,3 +42,5 @@ export const datasourcesActions = {
   setDatasource,
   changeDatasource,
 };
+
+export type AnyDatasourcesAction = SetDatasource;

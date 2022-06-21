@@ -26,7 +26,6 @@ import ExploreViewContainer from '.';
 
 const reduxState = {
   explore: {
-    common: { conf: { SUPERSET_WEBSERVER_TIMEOUT: 60 } },
     controls: {
       datasource: { value: '1__table' },
       viz_type: { value: 'table' },
@@ -37,9 +36,6 @@ const reduxState = {
       columns: [{ is_dttm: false }],
       metrics: [{ id: 1, metric_name: 'count' }],
     },
-    user: {
-      userId: 1,
-    },
     isStarred: false,
   },
   charts: {
@@ -48,6 +44,18 @@ const reduxState = {
       latestQueryFormData: {
         datasource: '1__table',
       },
+    },
+  },
+  user: {
+    userId: 1,
+  },
+  common: { conf: { SUPERSET_WEBSERVER_TIMEOUT: 60 } },
+  datasources: {
+    '1__table': {
+      id: 1,
+      type: 'table',
+      columns: [{ is_dttm: false }],
+      metrics: [{ id: 1, metric_name: 'count' }],
     },
   },
 };
