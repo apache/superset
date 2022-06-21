@@ -85,8 +85,10 @@ import {
   dndGroupByControl,
   dndSeries,
   dnd_adhoc_metric_2,
+  dnd_x_axis,
 } from './dndControls';
 import { QUERY_TIME_COLUMN_OPTION } from '..';
+import { xAxisControlConfig } from './constants';
 
 const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
 const sequentialSchemeRegistry = getSequentialSchemeRegistry();
@@ -540,6 +542,11 @@ const truncate_metric: SharedControlConfig<'CheckboxControl'> = {
   description: t('Whether to truncate metrics'),
 };
 
+const x_axis: SharedControlConfig<'SelectControl', ColumnMeta> = {
+  ...groupByControl,
+  ...xAxisControlConfig,
+};
+
 const enableExploreDnd = isFeatureEnabled(
   FeatureFlag.ENABLE_EXPLORE_DRAG_AND_DROP,
 );
@@ -579,6 +586,7 @@ const sharedControls = {
   series_limit_metric: enableExploreDnd ? dnd_sort_by : sort_by,
   legacy_order_by: enableExploreDnd ? dnd_sort_by : sort_by,
   truncate_metric,
+  x_axis: enableExploreDnd ? dnd_x_axis : x_axis,
 };
 
 export { sharedControls, dndEntity, dndColumnsControl };

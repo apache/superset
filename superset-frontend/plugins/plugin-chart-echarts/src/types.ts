@@ -85,13 +85,6 @@ export type EchartsLegendFormData = {
   showLegend: boolean;
 };
 
-export const DEFAULT_LEGEND_FORM_DATA: EchartsLegendFormData = {
-  legendMargin: null,
-  legendOrientation: LegendOrientation.Top,
-  legendType: LegendType.Scroll,
-  showLegend: true,
-};
-
 export type EventHandlers = Record<string, { (props: any): void }>;
 
 export enum LabelPositionEnum {
@@ -131,14 +124,6 @@ export interface EchartsTitleFormData {
   yAxisTitleMargin: number;
   yAxisTitlePosition: string;
 }
-
-export const DEFAULT_TITLE_FORM_DATA: EchartsTitleFormData = {
-  xAxisTitle: '',
-  xAxisTitleMargin: 0,
-  yAxisTitle: '',
-  yAxisTitleMargin: 0,
-  yAxisTitlePosition: 'Top',
-};
 
 export type StackType = boolean | null | Partial<AreaChartExtraControlsValue>;
 

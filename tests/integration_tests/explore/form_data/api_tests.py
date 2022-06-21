@@ -26,6 +26,7 @@ from superset.datasets.commands.exceptions import DatasetAccessDeniedError
 from superset.explore.form_data.commands.state import TemporaryExploreState
 from superset.extensions import cache_manager
 from superset.models.slice import Slice
+from superset.utils.core import DatasourceType
 from tests.integration_tests.base_tests import login
 from tests.integration_tests.fixtures.client import client
 from tests.integration_tests.fixtures.world_bank_dashboard import (
@@ -392,7 +393,7 @@ def test_delete_not_owner(client, chart_id: int, datasource: SqlaTable, admin_id
     entry: TemporaryExploreState = {
         "owner": another_owner,
         "datasource_id": datasource.id,
-        "datasource_type": datasource.type,
+        "datasource_type": DatasourceType(datasource.type),
         "chart_id": chart_id,
         "form_data": INITIAL_FORM_DATA,
     }
