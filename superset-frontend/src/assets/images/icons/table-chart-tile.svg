@@ -1,0 +1,28 @@
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+-->
+<svg width="25" height="24" viewBox="0 0 25 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g clip-path="url(#clip0_1714_70889)">
+<path d="M19.7621 5.71094H4.90492C4.58885 5.71094 4.3335 5.96629 4.3335 6.28237V17.7109C4.3335 18.027 4.58885 18.2824 4.90492 18.2824H19.7621C20.0781 18.2824 20.3335 18.027 20.3335 17.7109V6.28237C20.3335 5.96629 20.0781 5.71094 19.7621 5.71094ZM19.0478 9.42522H15.2621V6.99665H19.0478V9.42522ZM19.0478 13.4252H15.2621V10.5681H19.0478V13.4252ZM10.5478 10.5681H14.1192V13.4252H10.5478V10.5681ZM14.1192 9.42522H10.5478V6.99665H14.1192V9.42522ZM5.61921 10.5681H9.40492V13.4252H5.61921V10.5681ZM5.61921 6.99665H9.40492V9.42522H5.61921V6.99665ZM5.61921 14.5681H9.40492V16.9967H5.61921V14.5681ZM10.5478 14.5681H14.1192V16.9967H10.5478V14.5681ZM19.0478 16.9967H15.2621V14.5681H19.0478V16.9967Z" fill="#666666"/>
+</g>
+<defs>
+<clipPath id="clip0_1714_70889">
+<rect width="16" height="16" fill="white" transform="translate(4.3335 4)"/>
+</clipPath>
+</defs>
+</svg>

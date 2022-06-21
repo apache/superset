@@ -67,6 +67,7 @@ describe('VizTypeControl', () => {
       <DynamicPluginProvider>
         <VizTypeControl {...defaultProps} />
       </DynamicPluginProvider>,
+      { useRedux: true },
     );
     await waitForEffects();
   });

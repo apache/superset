@@ -106,7 +106,6 @@ const config: ControlPanelConfig = {
   ],
   controlOverrides: {
     groupby: {
-      label: t('Dimensions'),
       validators: [validateNonEmpty],
       mapStateToProps: (state, controlState) => {
         const groupbyProps =
@@ -133,6 +132,17 @@ const config: ControlPanelConfig = {
       },
       rerender: ['groupby'],
     },
+  },
+  denormalizeFormData: formData => {
+    const columns =
+      formData.standardizedFormData.standardizedState.columns.filter(
+        col => !ensureIsArray(formData.groupby).includes(col),
+      );
+    return {
+      ...formData,
+      metrics: formData.standardizedFormData.standardizedState.metrics,
+      columns,
+    };
   },
 };
 

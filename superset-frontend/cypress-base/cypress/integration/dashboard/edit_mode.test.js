@@ -45,11 +45,6 @@ describe('Dashboard edit mode', () => {
           .should('not.exist');
       });
 
-    cy.get('[data-test="dashboard-builder-component-pane-tabs-navigation"]')
-      .find('.ant-tabs-tab')
-      .last()
-      .click();
-
     // find box plot is available from list
     cy.get('[data-test="dashboard-charts-filter-search-input"]').type(
       'Box plot',

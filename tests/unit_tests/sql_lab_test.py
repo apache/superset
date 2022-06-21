@@ -186,6 +186,7 @@ def test_sql_lab_insert_rls(
 
     # now with RLS
     rls = RowLevelSecurityFilter(
+        name="sqllab_rls1",
         filter_type=RowLevelSecurityFilterType.REGULAR,
         tables=[SqlaTable(database_id=1, schema=None, table_name="t")],
         roles=[admin.roles[0]],

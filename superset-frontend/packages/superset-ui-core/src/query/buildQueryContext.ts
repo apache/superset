@@ -24,19 +24,7 @@ import { QueryContext, QueryObject } from './types/Query';
 import { SetDataMaskHook } from '../chart';
 import { JsonObject } from '../connection';
 
-const WRAP_IN_ARRAY = (
-  baseQueryObject: QueryObject,
-  options?: {
-    extras?: {
-      cachedChanges?: any;
-    };
-    ownState?: JsonObject;
-    hooks?: {
-      setDataMask: SetDataMaskHook;
-      setCachedChanges: (newChanges: any) => void;
-    };
-  },
-) => [baseQueryObject];
+const WRAP_IN_ARRAY = (baseQueryObject: QueryObject) => [baseQueryObject];
 
 export type BuildFinalQueryObjects = (
   baseQueryObject: QueryObject,
@@ -53,23 +41,11 @@ export default function buildQueryContext(
       }
     | BuildFinalQueryObjects,
 ): QueryContext {
-  const {
-    queryFields,
-    buildQuery = WRAP_IN_ARRAY,
-    hooks = {},
-    ownState = {},
-  } = typeof options === 'function'
-    ? { buildQuery: options, queryFields: {} }
-    : options || {};
-  const queries = buildQuery(buildQueryObject(formData, queryFields), {
-    extras: {},
-    ownState,
-    hooks: {
-      setDataMask: () => {},
-      setCachedChanges: () => {},
-      ...hooks,
-    },
-  });
+  const { queryFields, buildQuery = WRAP_IN_ARRAY } =
+    typeof options === 'function'
+      ? { buildQuery: options, queryFields: {} }
+      : options || {};
+  const queries = buildQuery(buildQueryObject(formData, queryFields));
   queries.forEach(query => {
     if (Array.isArray(query.post_processing)) {
       // eslint-disable-next-line no-param-reassign
