@@ -70,37 +70,37 @@ async function getWrapper(user = mockUser) {
   return wrapper;
 }
 
-it('renders a select and a VizTypeControl', async () => {
+test('renders a select and a VizTypeControl', async () => {
   const wrapper = await getWrapper();
   expect(wrapper.find(Select)).toExist();
   expect(wrapper.find(VizTypeGallery)).toExist();
 });
 
-it('renders dataset help text when user lacks dataset write permissions', async () => {
+test('renders dataset help text when user lacks dataset write permissions', async () => {
   const wrapper = await getWrapper();
   expect(wrapper.find('[data-test="dataset-write"]')).not.toExist();
   expect(wrapper.find('[data-test="no-dataset-write"]')).toExist();
 });
 
-it('renders dataset help text when user has dataset write permissions', async () => {
+test('renders dataset help text when user has dataset write permissions', async () => {
   const wrapper = await getWrapper(mockUserWithDatasetWrite);
   expect(wrapper.find('[data-test="dataset-write"]')).toExist();
   expect(wrapper.find('[data-test="no-dataset-write"]')).not.toExist();
 });
 
-it('renders a button', async () => {
+test('renders a button', async () => {
   const wrapper = await getWrapper();
   expect(wrapper.find(Button)).toExist();
 });
 
-it('renders a disabled button if no datasource is selected', async () => {
+test('renders a disabled button if no datasource is selected', async () => {
   const wrapper = await getWrapper();
   expect(
     wrapper.find(Button).find({ disabled: true }).hostNodes(),
   ).toHaveLength(1);
 });
 
-it('renders an enabled button if datasource and viz type is selected', async () => {
+test('renders an enabled button if datasource and viz type are selected', async () => {
   const wrapper = await getWrapper();
   wrapper.setState({
     datasource,
@@ -111,7 +111,7 @@ it('renders an enabled button if datasource and viz type is selected', async () 
   ).toHaveLength(0);
 });
 
-it('formats explore url', async () => {
+test('formats Explore url', async () => {
   const wrapper = await getWrapper();
   wrapper.setState({
     datasource,
