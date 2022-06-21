@@ -103,7 +103,7 @@ def test_get_datasource_sqlatable(
     app_context: None, session_with_data: Session
 ) -> None:
     from superset.connectors.sqla.models import SqlaTable
-    from superset.dao.datasource.dao import DatasourceDAO
+    from superset.datasource.dao import DatasourceDAO
 
     result = DatasourceDAO.get_datasource(
         datasource_type=DatasourceType.TABLE,
@@ -117,7 +117,7 @@ def test_get_datasource_sqlatable(
 
 
 def test_get_datasource_query(app_context: None, session_with_data: Session) -> None:
-    from superset.dao.datasource.dao import DatasourceDAO
+    from superset.datasource.dao import DatasourceDAO
     from superset.models.sql_lab import Query
 
     result = DatasourceDAO.get_datasource(
@@ -131,7 +131,7 @@ def test_get_datasource_query(app_context: None, session_with_data: Session) -> 
 def test_get_datasource_saved_query(
     app_context: None, session_with_data: Session
 ) -> None:
-    from superset.dao.datasource.dao import DatasourceDAO
+    from superset.datasource.dao import DatasourceDAO
     from superset.models.sql_lab import SavedQuery
 
     result = DatasourceDAO.get_datasource(
@@ -145,7 +145,7 @@ def test_get_datasource_saved_query(
 
 
 def test_get_datasource_sl_table(app_context: None, session_with_data: Session) -> None:
-    from superset.dao.datasource.dao import DatasourceDAO
+    from superset.datasource.dao import DatasourceDAO
     from superset.tables.models import Table
 
     # todo(hugh): This will break once we remove the dual write
@@ -163,8 +163,8 @@ def test_get_datasource_sl_table(app_context: None, session_with_data: Session) 
 def test_get_datasource_sl_dataset(
     app_context: None, session_with_data: Session
 ) -> None:
-    from superset.dao.datasource.dao import DatasourceDAO
     from superset.datasets.models import Dataset
+    from superset.datasource.dao import DatasourceDAO
 
     # todo(hugh): This will break once we remove the dual write
     # update the datsource_id=1 and this will pass again
@@ -178,10 +178,35 @@ def test_get_datasource_sl_dataset(
     assert isinstance(result, Dataset)
 
 
-def test_get_all_sqlatables_datasources(
+def test_get_datasource_w_str_param(
     app_context: None, session_with_data: Session
 ) -> None:
-    from superset.dao.datasource.dao import DatasourceDAO
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.datasets.models import Dataset
+    from superset.datasource.dao import DatasourceDAO
+    from superset.tables.models import Table
 
-    result = DatasourceDAO.get_all_sqlatables_datasources(session=session_with_data)
+    assert isinstance(
+        DatasourceDAO.get_datasource(
+            datasource_type="table",
+            datasource_id=1,
+            session=session_with_data,
+        ),
+        SqlaTable,
+    )
+
+    assert isinstance(
+        DatasourceDAO.get_datasource(
+            datasource_type="sl_table",
+            datasource_id=1,
+            session=session_with_data,
+        ),
+        Table,
+    )
+
+
+def test_get_all_datasources(app_context: None, session_with_data: Session) -> None:
+    from superset.connectors.sqla.models import SqlaTable
+
+    result = SqlaTable.get_all_datasources(session=session_with_data)
     assert len(result) == 1
