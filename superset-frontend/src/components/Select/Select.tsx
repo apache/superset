@@ -27,6 +27,7 @@ import React, {
   useState,
   useRef,
   useCallback,
+  useImperativeHandle,
 } from 'react';
 import { ensureIsArray, styled, t } from '@superset-ui/core';
 import AntdSelect, {
@@ -80,6 +81,8 @@ export type OptionsPagePromise = (
   page: number,
   pageSize: number,
 ) => Promise<OptionsTypePage>;
+
+export type SelectRef = HTMLInputElement & { clearCache: () => void };
 
 export interface SelectProps extends PickedSelectProps {
   /**
@@ -315,7 +318,7 @@ const Select = (
     value,
     ...props
   }: SelectProps,
-  ref: RefObject<HTMLInputElement>,
+  ref: RefObject<SelectRef>,
 ) => {
   const isAsync = typeof options === 'function';
   const isSingleMode = mode === 'single';
@@ -677,6 +680,17 @@ const Select = (
       setIsLoading(loading);
     }
   }, [isLoading, loading]);
+
+  const clearCache = () => fetchedQueries.current.clear();
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      ...(ref.current as HTMLInputElement),
+      clearCache,
+    }),
+    [ref],
+  );
 
   return (
     <StyledContainer>
