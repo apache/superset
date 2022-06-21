@@ -322,6 +322,16 @@ class QueryContextProcessor:
                 #  multi-dimensional charts
                 granularity = query_object.granularity
                 index = granularity if granularity in df.columns else DTTM_ALIAS
+                if not pd.api.types.is_datetime64_any_dtype(
+                    offset_metrics_df.get(index)
+                ):
+                    raise QueryObjectValidationError(
+                        _(
+                            "A time column must be specified "
+                            "when using a Time Comparison."
+                        )
+                    )
+
                 offset_metrics_df[index] = offset_metrics_df[index] - DateOffset(
                     **normalize_time_delta(offset)
                 )
