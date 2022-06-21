@@ -41,6 +41,7 @@ import sqlparse
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
 from flask import current_app
+from flask_appbuilder.security.sqla.models import User
 from flask_babel import gettext as __, lazy_gettext as _
 from marshmallow import fields, Schema
 from marshmallow.validate import Range
@@ -1536,6 +1537,17 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     @classmethod
     def parse_sql(cls, sql: str) -> List[str]:
         return [str(s).strip(" ;") for s in sqlparse.parse(sql)]
+
+    @classmethod
+    def get_impersonation_key(cls, user: Optional[User]) -> Any:
+        """
+        Construct an impersonation key, by default it's the given username.
+
+        :param user: logged in user
+
+        :returns: username if given user is not null
+        """
+        return user.username if user else None
 
 
 # schema for adding a database by providing parameters instead of the
