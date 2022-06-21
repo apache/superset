@@ -71,6 +71,19 @@ def destringify(obj: str) -> Any:
     return json.loads(obj)
 
 
+def convert_to_string(value: Any) -> str:
+    """
+    Used to ensure column names from the cursor description are strings.
+    """
+    if isinstance(value, str):
+        return value
+
+    if isinstance(value, bytes):
+        return value.decode("utf-8")
+
+    return str(value)
+
+
 class SupersetResultSet:
     def __init__(  # pylint: disable=too-many-locals
         self,
@@ -88,7 +101,9 @@ class SupersetResultSet:
 
         if cursor_description:
             # get deduped list of column names
-            column_names = dedup([col[0] for col in cursor_description])
+            column_names = dedup(
+                [convert_to_string(col[0]) for col in cursor_description]
+            )
 
             # fix cursor descriptor with the deduped names
             deduped_cursor_desc = [
