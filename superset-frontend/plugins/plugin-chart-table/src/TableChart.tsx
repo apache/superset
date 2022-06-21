@@ -394,6 +394,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                   colorPositiveNegative,
                 })
               : undefined)};
+            white-space: ${value instanceof Date ? 'nowrap' : undefined};
           `;
 
           const cellProps = {
