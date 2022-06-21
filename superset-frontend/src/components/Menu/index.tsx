@@ -25,8 +25,8 @@ const MenuItem = styled(AntdMenu.Item)`
   }
 
   &.ant-menu-item {
-    height: ${({ theme }) => theme.gridUnit * 7}px;
-    line-height: ${({ theme }) => theme.gridUnit * 7}px;
+    height: ${({ theme }) => theme.gridUnit * 8}px;
+    line-height: ${({ theme }) => theme.gridUnit * 8}px;
     a {
       border-bottom: none;
       transition: background-color ${({ theme }) => theme.transitionTiming}s;
