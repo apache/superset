@@ -26,12 +26,12 @@ import {
   ChartProps,
   ChartDataResponseResult,
   QueryFormColumn,
+  ContributionType,
 } from '@superset-ui/core';
 import {
   EchartsLegendFormData,
   EchartsTitleFormData,
   StackType,
-  EchartsTimeseriesContributionType,
   EchartsTimeseriesSeriesType,
 } from '../types';
 import {
@@ -63,8 +63,8 @@ export type EchartsMixedTimeseriesFormData = QueryFormData & {
   // types specific to Query A and Query B
   area: boolean;
   areaB: boolean;
-  contributionMode?: EchartsTimeseriesContributionType;
-  contributionModeB?: EchartsTimeseriesContributionType;
+  contributionMode?: ContributionType;
+  contributionModeB?: ContributionType;
   markerEnabled: boolean;
   markerEnabledB: boolean;
   markerSize: number;
