@@ -28,10 +28,11 @@ import prison
 import pytest
 
 from flask import current_app
+from superset.datasource.dao import DatasourceDAO
 
 from superset.models.dashboard import Dashboard
 
-from superset import app, appbuilder, db, security_manager, viz, ConnectorRegistry
+from superset import app, appbuilder, db, security_manager, viz
 from superset.connectors.sqla.models import SqlaTable
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
@@ -990,7 +991,7 @@ class TestDatasources(SupersetTestCase):
         mock_get_session.query.return_value.filter.return_value.all.return_value = []
 
         with mock.patch.object(
-            ConnectorRegistry, "get_all_datasources"
+            SqlaTable, "get_all_datasources"
         ) as mock_get_all_datasources:
             mock_get_all_datasources.return_value = [
                 Datasource("database1", "schema1", "table1"),
@@ -1018,7 +1019,7 @@ class TestDatasources(SupersetTestCase):
         mock_get_session.query.return_value.filter.return_value.all.return_value = []
 
         with mock.patch.object(
-            ConnectorRegistry, "get_all_datasources"
+            SqlaTable, "get_all_datasources"
         ) as mock_get_all_datasources:
             mock_get_all_datasources.return_value = [
                 Datasource("database1", "schema1", "table1"),
@@ -1046,7 +1047,7 @@ class TestDatasources(SupersetTestCase):
         ]
 
         with mock.patch.object(
-            ConnectorRegistry, "get_all_datasources"
+            SqlaTable, "get_all_datasources"
         ) as mock_get_all_datasources:
             mock_get_all_datasources.return_value = [
                 Datasource("database1", "schema1", "table1"),

@@ -61,7 +61,6 @@ from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.orm.query import Query as SqlaQuery
 
 from superset import sql_parse
-from superset.connectors.connector_registry import ConnectorRegistry
 from superset.constants import RouteMethod
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
@@ -471,23 +470,25 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         user_perms = self.user_view_menu_names("datasource_access")
         schema_perms = self.user_view_menu_names("schema_access")
         user_datasources = set()
-        for datasource_class in ConnectorRegistry.sources.values():
-            user_datasources.update(
-                self.get_session.query(datasource_class)
-                .filter(
-                    or_(
-                        datasource_class.perm.in_(user_perms),
-                        datasource_class.schema_perm.in_(schema_perms),
-                    )
+
+        # pylint: disable=import-outside-toplevel
+        from superset.connectors.sqla.models import SqlaTable
+
+        user_datasources.update(
+            self.get_session.query(SqlaTable)
+            .filter(
+                or_(
+                    SqlaTable.perm.in_(user_perms),
+                    SqlaTable.schema_perm.in_(schema_perms),
                 )
-                .all()
             )
+            .all()
+        )
 
         # group all datasources by database
-        all_datasources = ConnectorRegistry.get_all_datasources(self.get_session)
-        datasources_by_database: Dict["Database", Set["BaseDatasource"]] = defaultdict(
-            set
-        )
+        session = self.get_session
+        all_datasources = SqlaTable.get_all_datasources(session)
+        datasources_by_database: Dict["Database", Set["SqlaTable"]] = defaultdict(set)
         for datasource in all_datasources:
             datasources_by_database[datasource.database].add(datasource)
 
@@ -599,6 +600,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :param schema: The fallback SQL schema if not present in the table name
         :returns: The list of accessible SQL tables w/ schema
         """
+        # pylint: disable=import-outside-toplevel
+        from superset.connectors.sqla.models import SqlaTable
 
         if self.can_access_database(database):
             return datasource_names
@@ -610,7 +613,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         user_perms = self.user_view_menu_names("datasource_access")
         schema_perms = self.user_view_menu_names("schema_access")
-        user_datasources = ConnectorRegistry.query_datasources_by_permissions(
+        user_datasources = SqlaTable.query_datasources_by_permissions(
             self.get_session, database, user_perms, schema_perms
         )
         if schema:
@@ -660,6 +663,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """
 
         # pylint: disable=import-outside-toplevel
+        from superset.connectors.sqla.models import SqlaTable
         from superset.models import core as models
 
         logger.info("Fetching a set of all perms to lookup which ones are missing")
@@ -668,13 +672,13 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             if pv.permission and pv.view_menu:
                 all_pvs.add((pv.permission.name, pv.view_menu.name))
 
-        def merge_pv(view_menu: str, perm: str) -> None:
+        def merge_pv(view_menu: str, perm: Optional[str]) -> None:
             """Create permission view menu only if it doesn't exist"""
             if view_menu and perm and (view_menu, perm) not in all_pvs:
                 self.add_permission_view_menu(view_menu, perm)
 
         logger.info("Creating missing datasource permissions.")
-        datasources = ConnectorRegistry.get_all_datasources(self.get_session)
+        datasources = SqlaTable.get_all_datasources(self.get_session)
         for datasource in datasources:
             merge_pv("datasource_access", datasource.get_perm())
             merge_pv("schema_access", datasource.get_schema_perm())

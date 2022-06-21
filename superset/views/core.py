@@ -61,7 +61,6 @@ from superset.charts.dao import ChartDAO
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.db_query_status import QueryStatus
 from superset.connectors.base.models import BaseDatasource
-from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.sqla.models import (
     AnnotationDatasource,
     SqlaTable,
@@ -77,6 +76,7 @@ from superset.databases.dao import DatabaseDAO
 from superset.databases.filters import DatabaseFilter
 from superset.databases.utils import make_url_safe
 from superset.datasets.commands.exceptions import DatasetNotFoundError
+from superset.datasource.dao import DatasourceDAO
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     CacheLoadError,
@@ -129,7 +129,11 @@ from superset.tasks.async_queries import load_explore_json_into_cache
 from superset.utils import core as utils, csv
 from superset.utils.async_query_manager import AsyncQueryTokenException
 from superset.utils.cache import etag_cache
-from superset.utils.core import apply_max_row_limit, ReservedUrlParameters
+from superset.utils.core import (
+    apply_max_row_limit,
+    DatasourceType,
+    ReservedUrlParameters,
+)
 from superset.utils.dates import now_as_float
 from superset.utils.decorators import check_dashboard_access
 from superset.views.base import (
@@ -250,7 +254,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                     )
                     db_ds_names.add(fullname)
 
-        existing_datasources = ConnectorRegistry.get_all_datasources(db.session)
+        existing_datasources = SqlaTable.get_all_datasources(db.session)
         datasources = [d for d in existing_datasources if d.full_name in db_ds_names]
         role = security_manager.find_role(role_name)
         # remove all permissions
@@ -282,7 +286,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         datasource_id = request.args.get("datasource_id")
         datasource_type = request.args.get("datasource_type")
         if datasource_id and datasource_type:
-            ds_class = ConnectorRegistry.sources.get(datasource_type)
+            ds_class = DatasourceDAO.sources.get(datasource_type)
             datasource = (
                 db.session.query(ds_class).filter_by(id=int(datasource_id)).one()
             )
@@ -319,10 +323,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     def approve(self) -> FlaskResponse:  # pylint: disable=too-many-locals,no-self-use
         def clean_fulfilled_requests(session: Session) -> None:
             for dar in session.query(DAR).all():
-                datasource = ConnectorRegistry.get_datasource(
-                    dar.datasource_type,
-                    dar.datasource_id,
-                    session,
+                datasource = DatasourceDAO.get_datasource(
+                    session, DatasourceType(dar.datasource_type), dar.datasource_id
                 )
                 if not datasource or security_manager.can_access_datasource(datasource):
                     # Dataset does not exist anymore
@@ -336,8 +338,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         role_to_extend = request.args.get("role_to_extend")
 
         session = db.session
-        datasource = ConnectorRegistry.get_datasource(
-            datasource_type, datasource_id, session
+        datasource = DatasourceDAO.get_datasource(
+            session, DatasourceType(datasource_type), int(datasource_id)
         )
 
         if not datasource:
@@ -639,7 +641,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             datasource_id, datasource_type = get_datasource_info(
                 datasource_id, datasource_type, form_data
             )
-
             force = request.args.get("force") == "true"
 
             # TODO: support CSV, SQL query and other non-JSON types
@@ -809,8 +810,10 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         datasource: Optional[BaseDatasource] = None
         if datasource_id is not None:
             try:
-                datasource = ConnectorRegistry.get_datasource(
-                    cast(str, datasource_type), datasource_id, db.session
+                datasource = DatasourceDAO.get_datasource(
+                    db.session,
+                    DatasourceType(cast(str, datasource_type)),
+                    datasource_id,
                 )
             except DatasetNotFoundError:
                 pass
@@ -948,10 +951,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         :raises SupersetSecurityException: If the user cannot access the resource
         """
         # TODO: Cache endpoint by user, datasource and column
-        datasource = ConnectorRegistry.get_datasource(
-            datasource_type,
-            datasource_id,
-            db.session,
+        datasource = DatasourceDAO.get_datasource(
+            db.session, DatasourceType(datasource_type), datasource_id
         )
         if not datasource:
             return json_error_response(DATASOURCE_MISSING_ERR)
@@ -1920,8 +1921,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         if config["ENABLE_ACCESS_REQUEST"]:
             for datasource in dashboard.datasources:
-                datasource = ConnectorRegistry.get_datasource(
-                    datasource_type=datasource.type,
+                datasource = DatasourceDAO.get_datasource(
+                    datasource_type=DatasourceType(datasource.type),
                     datasource_id=datasource.id,
                     session=db.session(),
                 )
@@ -2537,10 +2538,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         """
 
         datasource_id, datasource_type = request.args["datasourceKey"].split("__")
-        datasource = ConnectorRegistry.get_datasource(
-            datasource_type,
-            datasource_id,
-            db.session,
+        datasource = DatasourceDAO.get_datasource(
+            db.session, DatasourceType(datasource_type), int(datasource_id)
         )
         # Check if datasource exists
         if not datasource:
