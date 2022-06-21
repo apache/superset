@@ -16,10 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { RefObject } from 'react';
 import { render, screen, waitFor, within } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { Select } from 'src/components';
+import { SelectRef } from './Select';
 
 const ARIA_LABEL = 'Test';
 const NEW_OPTION = 'Kyle';
@@ -810,6 +811,21 @@ test('async - fires a new request if all values have not been fetched', async ()
 
   // `Igor` is on the second paged API request
   expect(await findSelectOption('Igor')).toBeInTheDocument();
+  expect(mock).toHaveBeenCalledTimes(2);
+});
+
+test('async - requests the options again after clearing the cache', async () => {
+  const ref: RefObject<SelectRef> = { current: null };
+  const mock = jest.fn(loadOptions);
+  const pageSize = OPTIONS.length;
+  render(
+    <Select {...defaultProps} options={mock} pageSize={pageSize} ref={ref} />,
+  );
+  await open();
+  expect(mock).toHaveBeenCalledTimes(1);
+  ref.current?.clearCache();
+  await type('{esc}');
+  await open();
   expect(mock).toHaveBeenCalledTimes(2);
 });
 
