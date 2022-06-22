@@ -47,11 +47,17 @@ export interface Datasource {
   };
 }
 
-export const DEFAULT_METRICS = [
+export const DEFAULT_METRICS: Metric[] = [
   {
     metric_name: 'COUNT(*)',
     expression: 'COUNT(*)',
   },
 ];
+
+export const isValidDatasourceType = (datasource: DatasourceType) =>
+  datasource === DatasourceType.Dataset ||
+  datasource === DatasourceType.SlTable ||
+  datasource === DatasourceType.SavedQuery ||
+  datasource === DatasourceType.Query;
 
 export default {};

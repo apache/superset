@@ -17,7 +17,14 @@
  * under the License.
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { css, styled, t, DatasourceType } from '@superset-ui/core';
+import {
+  css,
+  styled,
+  t,
+  DatasourceType,
+  QueryResponse,
+  Metric,
+} from '@superset-ui/core';
 import {
   ControlConfig,
   Dataset,
@@ -43,7 +50,7 @@ interface DatasourceControl extends ControlConfig {
 }
 
 export interface Props {
-  datasource: Dataset;
+  datasource: Dataset & QueryResponse;
   controls: {
     datasource: DatasourceControl;
   };
@@ -186,8 +193,11 @@ export default function DataSourcePanel({
   actions,
   shouldForceUpdate,
 }: Props) {
-  const { columns: _columns, metrics } = datasource;
-
+  const { columns: _columns } = datasource;
+  let metrics: Metric[];
+  if (datasource?.metrics?.length) {
+    metrics = datasource.metrics;
+  }
   // display temporal column first
   const columns = useMemo(
     () =>
@@ -235,7 +245,7 @@ export default function DataSourcePanel({
               },
               {
                 key: item =>
-                  [item.description, item.expression].map(
+                  [item?.description ?? '', item?.expression ?? ''].map(
                     x => x?.replace(/[_\n\s]+/g, ' ') || '',
                   ),
                 threshold: rankings.CONTAINS,
@@ -256,7 +266,7 @@ export default function DataSourcePanel({
               },
               {
                 key: item =>
-                  [item.description, item.expression].map(
+                  [item?.description ?? '', item?.expression ?? ''].map(
                     x => x?.replace(/[_\n\s]+/g, ' ') || '',
                   ),
                 threshold: rankings.CONTAINS,
@@ -265,8 +275,9 @@ export default function DataSourcePanel({
             ],
             keepDiacritics: true,
             baseSort: (a, b) =>
-              Number(b.item.is_certified) - Number(a.item.is_certified) ||
-              String(a.rankedValue).localeCompare(b.rankedValue),
+              Number(b?.item?.is_certified ?? 0) -
+                Number(a?.item?.is_certified ?? 0) ||
+              String(a?.rankedValue ?? '').localeCompare(b?.rankedValue ?? ''),
           }),
         });
       }, FAST_DEBOUNCE),
@@ -282,22 +293,22 @@ export default function DataSourcePanel({
   }, [columns, datasource, metrics]);
 
   const sortCertifiedFirst = (slice: ColumnMeta[]) =>
-    slice.sort((a, b) => b.is_certified - a.is_certified);
+    slice.sort((a, b) => b?.is_certified - a?.is_certified);
 
   const metricSlice = useMemo(
     () =>
       showAllMetrics
-        ? lists.metrics
-        : lists.metrics.slice(0, DEFAULT_MAX_METRICS_LENGTH),
-    [lists.metrics, showAllMetrics],
+        ? lists?.metrics
+        : lists?.metrics?.slice?.(0, DEFAULT_MAX_METRICS_LENGTH),
+    [lists?.metrics, showAllMetrics],
   );
 
   const columnSlice = useMemo(
     () =>
       showAllColumns
-        ? sortCertifiedFirst(lists.columns)
+        ? sortCertifiedFirst(lists?.columns)
         : sortCertifiedFirst(
-            lists.columns.slice(0, DEFAULT_MAX_COLUMNS_LENGTH),
+            lists?.columns?.slice?.(0, DEFAULT_MAX_COLUMNS_LENGTH),
           ),
     [lists.columns, showAllColumns],
   );
@@ -307,11 +318,7 @@ export default function DataSourcePanel({
     return true;
   };
 
-  const isValidDatasourceType =
-    datasource.type === DatasourceType.Dataset ||
-    datasource.type === DatasourceType.SlTable ||
-    datasource.type === DatasourceType.SavedQuery ||
-    datasource.type === DatasourceType.Query;
+  const dataSourceIsQuery = datasource?.type === DatasourceType.Query;
 
   const mainBody = useMemo(
     () => (
@@ -327,7 +334,7 @@ export default function DataSourcePanel({
           placeholder={t('Search Metrics & Columns')}
         />
         <div className="field-selections">
-          {isValidDatasourceType && showInfoboxCheck() && (
+          {dataSourceIsQuery && showInfoboxCheck() && (
             <StyledInfoboxWrapper>
               <Alert
                 closable
@@ -355,42 +362,44 @@ export default function DataSourcePanel({
             expandIconPosition="right"
             ghost
           >
-            <Collapse.Panel
-              header={<SectionHeader>{t('Metrics')}</SectionHeader>}
-              key="metrics"
-            >
-              <div className="field-length">
-                {t(
-                  `Showing %s of %s`,
-                  metricSlice.length,
-                  lists.metrics.length,
-                )}
-              </div>
-              {metricSlice.map(m => (
-                <LabelContainer
-                  key={m.metric_name + String(shouldForceUpdate)}
-                  className="column"
-                >
-                  {enableExploreDnd ? (
-                    <DatasourcePanelDragOption
-                      value={m}
-                      type={DndItemType.Metric}
-                    />
-                  ) : (
-                    <StyledMetricOption metric={m} showType />
+            {metrics?.length && (
+              <Collapse.Panel
+                header={<SectionHeader>{t('Metrics')}</SectionHeader>}
+                key="metrics"
+              >
+                <div className="field-length">
+                  {t(
+                    `Showing %s of %s`,
+                    metricSlice?.length,
+                    lists?.metrics.length,
                   )}
-                </LabelContainer>
-              ))}
-              {lists.metrics.length > DEFAULT_MAX_METRICS_LENGTH ? (
-                <ButtonContainer>
-                  <Button onClick={() => setShowAllMetrics(!showAllMetrics)}>
-                    {showAllMetrics ? t('Show less...') : t('Show all...')}
-                  </Button>
-                </ButtonContainer>
-              ) : (
-                <></>
-              )}
-            </Collapse.Panel>
+                </div>
+                {metricSlice?.map?.((m: Metric) => (
+                  <LabelContainer
+                    key={m.metric_name + String(shouldForceUpdate)}
+                    className="column"
+                  >
+                    {enableExploreDnd ? (
+                      <DatasourcePanelDragOption
+                        value={m}
+                        type={DndItemType.Metric}
+                      />
+                    ) : (
+                      <StyledMetricOption metric={m} showType />
+                    )}
+                  </LabelContainer>
+                ))}
+                {lists?.metrics?.length > DEFAULT_MAX_METRICS_LENGTH ? (
+                  <ButtonContainer>
+                    <Button onClick={() => setShowAllMetrics(!showAllMetrics)}>
+                      {showAllMetrics ? t('Show less...') : t('Show all...')}
+                    </Button>
+                  </ButtonContainer>
+                ) : (
+                  <></>
+                )}
+              </Collapse.Panel>
+            )}
             <Collapse.Panel
               header={<SectionHeader>{t('Columns')}</SectionHeader>}
               key="column"
@@ -435,24 +444,27 @@ export default function DataSourcePanel({
       columnSlice,
       inputValue,
       lists.columns.length,
-      lists.metrics.length,
+      lists?.metrics?.length,
       metricSlice,
       search,
       showAllColumns,
       showAllMetrics,
+      dataSourceIsQuery,
       shouldForceUpdate,
     ],
   );
 
   return (
     <DatasourceContainer>
-      <SaveDatasetModal
-        visible={showSaveDatasetModal}
-        onHide={() => setShowSaveDatasetModal(false)}
-        buttonTextOnSave={t('Save')}
-        buttonTextOnOverwrite={t('Overwrite')}
-        datasource={datasource}
-      />
+      {dataSourceIsQuery && (
+        <SaveDatasetModal
+          visible={showSaveDatasetModal}
+          onHide={() => setShowSaveDatasetModal(false)}
+          buttonTextOnSave={t('Save')}
+          buttonTextOnOverwrite={t('Overwrite')}
+          datasource={datasource}
+        />
+      )}
       <Control {...datasourceControl} name="datasource" actions={actions} />
       {datasource.id != null && mainBody}
     </DatasourceContainer>

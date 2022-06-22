@@ -963,10 +963,10 @@
         "Izbrisanih %(num)d urnikov poročanja"
       ],
       "Value must be greater than 0": ["Vrednost mora biti večja od 0"],
-      "Alert query returned more then one row. %s rows returned": [
+      "Alert query returned more than one row. %s rows returned": [
         "Opozorilna poizvedba je vrnila več kot eno vrstico. Število vrnjenih vrstic: %s"
       ],
-      "Alert query returned more then one column. %s columns returned": [
+      "Alert query returned more than one column. %s columns returned": [
         "Opozorilna poizvedba je vrnila več kot en stolpec. Število vrnjenih stolpcev: %s"
       ],
       "Dashboard does not exist": ["Nadzorna plošča ne obstaja"],
@@ -1019,13 +1019,13 @@
       "Report Schedule reached a working timeout.": [
         "Urnik poročanja je dosegel mejo časa izvedbe."
       ],
-      "Alert query returned more then one row.": [
+      "Alert query returned more than one row.": [
         "Opozorilna poizvedba je vrnila več kot eno vrstico."
       ],
       "Alert validator config error.": [
         "Napaka nastavitev potrjevalnika opozoril."
       ],
-      "Alert query returned more then one column.": [
+      "Alert query returned more than one column.": [
         "Opozorilna poizvedba je vrnila več kot en stolpec."
       ],
       "Alert query returned a non-number value.": [

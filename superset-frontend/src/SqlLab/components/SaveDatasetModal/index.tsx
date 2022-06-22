@@ -48,14 +48,20 @@ import {
   ExploreDatasource,
 } from 'src/SqlLab/types';
 import { exploreChart } from 'src/explore/exploreUtils';
+interface QueryDatabase {
+  id?: number;
+}
 
+type ExploreQuery = QueryResponse & {
+  database?: QueryDatabase | null | undefined;
+};
 interface SaveDatasetModalProps {
   visible: boolean;
   onHide: () => void;
   buttonTextOnSave: string;
   buttonTextOnOverwrite: string;
   modalDescription?: string;
-  datasource: ExploreDatasource;
+  datasource: ExploreQuery;
 }
 
 const Styles = styled.div`
@@ -106,6 +112,8 @@ const updateDataset = async (
   return data.json.result;
 };
 
+const UNTITLED = t('Untitled Dataset');
+
 // eslint-disable-next-line no-empty-pattern
 export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
   visible,
@@ -115,9 +123,9 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
   modalDescription,
   datasource,
 }) => {
-  const query = datasource as QueryResponse;
+  const query = datasource as ExploreQuery;
   const getDefaultDatasetName = () =>
-    `${query.tab} ${moment().format('MM/DD/YYYY HH:mm:ss')}`;
+    `${query?.tab || UNTITLED} ${moment().format('MM/DD/YYYY HH:mm:ss')}`;
   const [datasetName, setDatasetName] = useState(getDefaultDatasetName());
   const [newOrOverwrite, setNewOrOverwrite] = useState(
     DatasetRadioState.SAVE_NEW,
@@ -138,7 +146,7 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
 
   const handleOverwriteDataset = async () => {
     await updateDataset(
-      query.dbId,
+      query?.dbId ?? query?.database?.id,
       datasetToOverwrite.datasetId,
       query.sql,
       query.results.selected_columns.map(
@@ -211,11 +219,13 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
       return;
     }
 
-    const selectedColumns = query.results.selected_columns || [];
+    const selectedColumns =
+      query?.results?.selected_columns ?? query.columns ?? [];
 
     // The filters param is only used to test jinja templates.
     // Remove the special filters entry from the templateParams
     // before saving the dataset.
+    let templateParams;
     if (query.templateParams) {
       const p = JSON.parse(query.templateParams);
       /* eslint-disable-next-line no-underscore-dangle */
@@ -223,7 +233,7 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
         /* eslint-disable-next-line no-underscore-dangle */
         delete p._filters;
         // eslint-disable-next-line no-param-reassign
-        query.templateParams = JSON.stringify(p);
+        templateParams = JSON.stringify(p);
       }
     }
 
@@ -231,8 +241,8 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
       createDatasource({
         schema: query.schema,
         sql: query.sql,
-        dbId: query.dbId,
-        templateParams: query.templateParams,
+        dbId: query?.dbId ?? query?.database?.id,
+        templateParams,
         datasourceName: datasetName,
         columns: selectedColumns,
       }),

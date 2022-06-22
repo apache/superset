@@ -25,15 +25,15 @@ import {
   isFeatureEnabled,
   t,
 } from '@superset-ui/core';
-import buildQuery from '../../buildQuery';
-import controlPanel from '../controlPanel';
-import transformProps from '../../transformProps';
-import thumbnail from './images/thumbnail.png';
 import {
   EchartsTimeseriesChartProps,
   EchartsTimeseriesFormData,
   EchartsTimeseriesSeriesType,
 } from '../../types';
+import buildQuery from '../../buildQuery';
+import controlPanel from './controlPanel';
+import transformProps from '../../transformProps';
+import thumbnail from './images/thumbnail.png';
 import example1 from './images/Line1.png';
 import example2 from './images/Line2.png';
 
