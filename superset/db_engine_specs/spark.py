@@ -18,22 +18,23 @@
 from superset.db_engine_specs.hive import HiveEngineSpec
 
 time_grain_expressions = {
-        None: "{col}",
-        "PT1S": "date_trunc('second', {col})",
-        "PT1M": "date_trunc('minute', {col})",
-        "PT1H": "date_trunc('hour', {col})",
-        "P1D": "date_trunc('day', {col})",
-        "P1W": "date_trunc('week', {col})",
-        "P1M": "date_trunc('month', {col})",
-        "P3M": "date_trunc('quarter', {col})",
-        "P1Y": "date_trunc('year', {col})",
-        "P1W/1970-01-03T00:00:00Z": (
+    None: "{col}",
+    "PT1S": "date_trunc('second', {col})",
+    "PT1M": "date_trunc('minute', {col})",
+    "PT1H": "date_trunc('hour', {col})",
+    "P1D": "date_trunc('day', {col})",
+    "P1W": "date_trunc('week', {col})",
+    "P1M": "date_trunc('month', {col})",
+    "P3M": "date_trunc('quarter', {col})",
+    "P1Y": "date_trunc('year', {col})",
+    "P1W/1970-01-03T00:00:00Z": (
             "date_trunc('week', {col} + interval '1 day') + interval '5 days'"
-        ),
-        "1969-12-28T00:00:00Z/P1W": (
-            "date_trunc('week', {col} + interval '1 day') - interval '1 day'"
-        ),
-    }
+    ),
+    "1969-12-28T00:00:00Z/P1W": (
+        "date_trunc('week', {col} + interval '1 day') - interval '1 day'"
+    ),
+}
+
 
 class SparkEngineSpec(HiveEngineSpec):
     _time_grain_expressions = time_grain_expressions
