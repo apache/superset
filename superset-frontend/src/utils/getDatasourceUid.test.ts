@@ -38,10 +38,12 @@ const TEST_DATASOURCE_WITH_UID = {
   uid: 'dataset_uid',
 };
 
-test('creates uid from id and type when dataset doesnt have uid field', () => {
+test('creates uid from id and type when dataset does not have uid field', () => {
   expect(getDatasourceUid(TEST_DATASOURCE)).toEqual('2__table');
 });
 
 test('returns uid when dataset has uid field', () => {
-  expect(getDatasourceUid(TEST_DATASOURCE_WITH_UID)).toEqual('dataset_uid');
+  expect(getDatasourceUid(TEST_DATASOURCE_WITH_UID)).toEqual(
+    TEST_DATASOURCE_WITH_UID.uid,
+  );
 });

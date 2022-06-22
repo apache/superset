@@ -37,17 +37,17 @@ import {
   getFormDataFromControls,
   applyMapStateToPropsToControl,
 } from 'src/explore/controlUtils';
-import { findPermission } from '../../utils/findPermission';
-import { getDatasourceUid } from '../../utils/getDatasourceUid';
-import { getUrlParam } from '../../utils/urlUtils';
-import { URL_PARAMS } from '../../constants';
+import { findPermission } from 'src/utils/findPermission';
+import { getDatasourceUid } from 'src/utils/getDatasourceUid';
+import { getUrlParam } from 'src/utils/urlUtils';
+import { URL_PARAMS } from 'src/constants';
 
 export interface ExplorePageBootstrapData extends JsonObject {
   can_add: boolean;
   can_download: boolean;
   can_overwrite: boolean;
   common: CommonBootstrapData;
-  datasource: Dataset & { uid?: string };
+  datasource: Dataset;
   datasource_id: number;
   datasource_type: DatasourceType;
   forced_height: string | null;

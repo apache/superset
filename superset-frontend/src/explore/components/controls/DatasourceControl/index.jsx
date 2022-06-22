@@ -40,7 +40,7 @@ import Button from 'src/components/Button';
 import ErrorAlert from 'src/components/ErrorMessage/ErrorAlert';
 import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
 import { URL_PARAMS } from 'src/constants';
-import { isUserAdmin } from 'src/dashboard/util/getDashboardPermission';
+import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { safeStringify } from 'src/utils/safeStringify';
 

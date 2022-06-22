@@ -17,7 +17,7 @@
  * under the License.
  */
 import { DatasourceType } from '@superset-ui/core';
-import * as actions from 'src/explore/actions/datasourcesActions';
+import { setDatasource } from 'src/explore/actions/datasourcesActions';
 import datasourcesReducer from '../reducers/datasourcesReducer';
 
 const defaultState = {
@@ -36,24 +36,22 @@ const defaultState = {
   },
 };
 
-describe('reducers', () => {
-  it('sets new datasource', () => {
-    const NEW_DATASOURCE = {
-      id: 2,
-      type: DatasourceType.Table,
-      columns: [],
-      metrics: [],
-      column_format: {},
-      verbose_map: {},
-      main_dttm_col: '__timestamp',
-      // eg. ['["ds", true]', 'ds [asc]']
-      datasource_name: 'test datasource',
-      description: null,
-    };
-    const newState = datasourcesReducer(
-      defaultState,
-      actions.setDatasource(NEW_DATASOURCE),
-    );
-    expect(newState).toEqual({ ...defaultState, '2__table': NEW_DATASOURCE });
-  });
+test('sets new datasource', () => {
+  const NEW_DATASOURCE = {
+    id: 2,
+    type: DatasourceType.Table,
+    columns: [],
+    metrics: [],
+    column_format: {},
+    verbose_map: {},
+    main_dttm_col: '__timestamp',
+    // eg. ['["ds", true]', 'ds [asc]']
+    datasource_name: 'test datasource',
+    description: null,
+  };
+  const newState = datasourcesReducer(
+    defaultState,
+    setDatasource(NEW_DATASOURCE),
+  );
+  expect(newState).toEqual({ ...defaultState, '2__table': NEW_DATASOURCE });
 });

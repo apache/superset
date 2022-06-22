@@ -25,7 +25,7 @@ import { getInitialState as getInitialNativeFilterState } from 'src/dashboard/re
 import { applyDefaultFormData } from 'src/explore/store';
 import { buildActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 import { findPermission } from 'src/utils/findPermission';
-import { canUserEditDashboard } from 'src/dashboard/util/getDashboardPermission';
+import { canUserEditDashboard } from 'src/dashboard/util/permissionUtils';
 import {
   DASHBOARD_FILTER_SCOPE_GLOBAL,
   dashboardFilter,

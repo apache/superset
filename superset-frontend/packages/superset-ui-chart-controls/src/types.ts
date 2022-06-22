@@ -68,6 +68,7 @@ export interface Dataset {
   granularity_sqla?: string;
   datasource_name: string | null;
   description: string | null;
+  uid?: string;
 }
 
 export interface ControlPanelState {

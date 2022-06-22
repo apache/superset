@@ -51,16 +51,16 @@ export default function exploreReducer(state = {}, action) {
     },
     [actions.UPDATE_FORM_DATA_BY_DATASOURCE]() {
       const newFormData = { ...state.form_data };
-      if (action.prevDatasource.type !== action.newDatasource.type) {
-        if (action.newDatasource.type === 'table') {
-          newFormData.granularity_sqla = action.newDatasource.granularity_sqla;
-          newFormData.time_grain_sqla = action.newDatasource.time_grain_sqla;
+      const { prevDatasource, newDatasource } = action;
+      if (prevDatasource.type !== newDatasource.type) {
+        if (newDatasource.type === 'table') {
+          newFormData.granularity_sqla = newDatasource.granularity_sqla;
+          newFormData.time_grain_sqla = newDatasource.time_grain_sqla;
           delete newFormData.druid_time_origin;
           delete newFormData.granularity;
         } else {
-          newFormData.druid_time_origin =
-            action.newDatasource.druid_time_origin;
-          newFormData.granularity = action.newDatasource.granularity;
+          newFormData.druid_time_origin = newDatasource.druid_time_origin;
+          newFormData.granularity = newDatasource.granularity;
           delete newFormData.granularity_sqla;
           delete newFormData.time_grain_sqla;
         }
@@ -69,8 +69,8 @@ export default function exploreReducer(state = {}, action) {
       const controls = { ...state.controls };
       const controlsTransferred = [];
       if (
-        action.prevDatasource.id !== action.newDatasource.id ||
-        action.prevDatasource.type !== action.newDatasource.type
+        prevDatasource.id !== newDatasource.id ||
+        prevDatasource.type !== newDatasource.type
       ) {
         // reset time range filter to default
         newFormData.time_range = DEFAULT_TIME_RANGE;
@@ -89,7 +89,7 @@ export default function exploreReducer(state = {}, action) {
               ...controlState,
             };
             newFormData[controlName] = getControlValuesCompatibleWithDatasource(
-              action.newDatasource,
+              newDatasource,
               controlState,
               controlState.value,
             );

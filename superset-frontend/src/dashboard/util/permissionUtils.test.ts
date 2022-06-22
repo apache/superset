@@ -22,7 +22,7 @@ import {
 } from 'src/types/bootstrapTypes';
 import Dashboard from 'src/types/Dashboard';
 import Owner from 'src/types/Owner';
-import { canUserEditDashboard, isUserAdmin } from './getDashboardPermission';
+import { canUserEditDashboard, isUserAdmin } from './permissionUtils';
 
 const ownerUser: UserWithPermissionsAndRoles = {
   createdOn: '2021-05-12T16:56:22.116839',

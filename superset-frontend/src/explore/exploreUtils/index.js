@@ -29,13 +29,13 @@ import {
 } from '@superset-ui/core';
 import { availableDomains } from 'src/utils/hostNamesConfig';
 import { safeStringify } from 'src/utils/safeStringify';
+import { optionLabel } from 'src/utils/common';
 import { URL_PARAMS } from 'src/constants';
 import {
   MULTI_OPERATORS,
   OPERATOR_ENUM_TO_OPERATOR_TYPE,
 } from 'src/explore/constants';
 import { DashboardStandaloneMode } from 'src/dashboard/util/constants';
-import { optionLabel } from '../../utils/common';
 
 export function getChartKey(explore) {
   const { slice, form_data } = explore;

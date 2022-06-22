@@ -37,6 +37,12 @@ import {
   LocalStorageKeys,
 } from 'src/utils/localStorageHelpers';
 import { RESERVED_CHART_URL_PARAMS, URL_PARAMS } from 'src/constants';
+import { areObjectsEqual } from 'src/reduxUtils';
+import * as logActions from 'src/logger/actions';
+import {
+  LOG_ACTIONS_MOUNT_EXPLORER,
+  LOG_ACTIONS_CHANGE_EXPLORE_CONTROLS,
+} from 'src/logger/LogUtils';
 import { getUrlParam } from 'src/utils/urlUtils';
 import cx from 'classnames';
 import * as chartActions from 'src/components/Chart/chartAction';
@@ -44,23 +50,17 @@ import { fetchDatasourceMetadata } from 'src/dashboard/actions/datasources';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
 import { mergeExtraFormData } from 'src/dashboard/components/nativeFilters/utils';
 import { postFormData, putFormData } from 'src/explore/exploreUtils/formData';
+import { datasourcesActions } from 'src/explore/actions/datasourcesActions';
+import { mountExploreUrl } from 'src/explore/exploreUtils';
+import { getFormDataFromControls } from 'src/explore/controlUtils';
+import * as exploreActions from 'src/explore/actions/exploreActions';
+import * as saveModalActions from 'src/explore/actions/saveModalActions';
 import { useTabId } from 'src/hooks/useTabId';
 import ExploreChartPanel from '../ExploreChartPanel';
 import ConnectedControlPanelsContainer from '../ControlPanelsContainer';
 import SaveModal from '../SaveModal';
 import DataSourcePanel from '../DatasourcePanel';
-import { mountExploreUrl } from '../../exploreUtils';
-import { areObjectsEqual } from '../../../reduxUtils';
-import { getFormDataFromControls } from '../../controlUtils';
-import * as exploreActions from '../../actions/exploreActions';
-import * as saveModalActions from '../../actions/saveModalActions';
-import * as logActions from '../../../logger/actions';
-import {
-  LOG_ACTIONS_MOUNT_EXPLORER,
-  LOG_ACTIONS_CHANGE_EXPLORE_CONTROLS,
-} from '../../../logger/LogUtils';
 import ConnectedExploreChartHeader from '../ExploreChartHeader';
-import { datasourcesActions } from '../../actions/datasourcesActions';
 
 const propTypes = {
   ...ExploreChartPanel.propTypes,

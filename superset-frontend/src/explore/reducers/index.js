@@ -29,7 +29,7 @@ import saveModal from './saveModalReducer';
 import explore from './exploreReducer';
 
 // noopReducer, userReducer temporarily copied from src/views/store.ts
-// when SPA work is done, we'll be able to reuse those instead of copying
+// TODO: when SPA work is done, we'll be able to reuse those instead of copying
 
 const noopReducer =
   initialState =>
