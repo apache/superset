@@ -580,4 +580,3 @@ class HiveEngineSpec(PrestoEngineSpec):
         """
 
         return True
-    
