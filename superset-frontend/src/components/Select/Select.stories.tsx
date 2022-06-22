@@ -16,9 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ReactNode, useState, useCallback } from 'react';
+import React, { ReactNode, useState, useCallback, useRef } from 'react';
+import Button from 'src/components/Button';
 import ControlHeader from 'src/explore/components/ControlHeader';
-import Select, { SelectProps, OptionsTypePage, OptionsType } from './Select';
+import Select, {
+  SelectProps,
+  OptionsTypePage,
+  OptionsType,
+  SelectRef,
+} from './Select';
 
 export default {
   title: 'Select',
@@ -387,6 +393,7 @@ export const AsyncSelect = ({
   responseTime: number;
 }) => {
   const [requests, setRequests] = useState<ReactNode[]>([]);
+  const ref = useRef<SelectRef>(null);
 
   const getResults = (username?: string) => {
     let results: { label: string; value: string }[] = [];
@@ -458,6 +465,7 @@ export const AsyncSelect = ({
       >
         <Select
           {...rest}
+          ref={ref}
           fetchOnlyOnSearch={fetchOnlyOnSearch}
           options={withError ? fetchUserListError : fetchUserListPage}
           placeholder={fetchOnlyOnSearch ? 'Type anything' : 'Select...'}
@@ -484,6 +492,19 @@ export const AsyncSelect = ({
           <p key={`request-${index}`}>{request}</p>
         ))}
       </div>
+      <Button
+        style={{
+          position: 'absolute',
+          top: 452,
+          left: DEFAULT_WIDTH + 580,
+        }}
+        onClick={() => {
+          ref.current?.clearCache();
+          setRequests([]);
+        }}
+      >
+        Clear cache
+      </Button>
     </>
   );
 };

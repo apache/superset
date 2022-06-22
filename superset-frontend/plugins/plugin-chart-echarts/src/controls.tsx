@@ -17,22 +17,15 @@
  * under the License.
  */
 import React from 'react';
-import {
-  FeatureFlag,
-  isFeatureEnabled,
-  t,
-  validateNonEmpty,
-} from '@superset-ui/core';
+import { t } from '@superset-ui/core';
 import {
   ControlPanelsContainerProps,
-  ControlPanelState,
   ControlSetItem,
   ControlSetRow,
-  ControlState,
   sharedControls,
 } from '@superset-ui/chart-controls';
-import { DEFAULT_LEGEND_FORM_DATA } from './types';
-import { DEFAULT_FORM_DATA } from './Timeseries/types';
+import { DEFAULT_LEGEND_FORM_DATA } from './constants';
+import { DEFAULT_FORM_DATA } from './Timeseries/constants';
 
 const { legendMargin, legendOrientation, legendType, showLegend } =
   DEFAULT_LEGEND_FORM_DATA;
@@ -108,7 +101,7 @@ export const legendSection: ControlSetRow[] = [
   [legendMarginControl],
 ];
 
-const showValueControl: ControlSetItem = {
+export const showValueControl: ControlSetItem = {
   name: 'show_value',
   config: {
     type: 'CheckboxControl',
@@ -119,7 +112,7 @@ const showValueControl: ControlSetItem = {
   },
 };
 
-const stackControl: ControlSetItem = {
+export const stackControl: ControlSetItem = {
   name: 'stack',
   config: {
     type: 'CheckboxControl',
@@ -130,7 +123,7 @@ const stackControl: ControlSetItem = {
   },
 };
 
-const onlyTotalControl: ControlSetItem = {
+export const onlyTotalControl: ControlSetItem = {
   name: 'only_total',
   config: {
     type: 'CheckboxControl',
@@ -142,33 +135,6 @@ const onlyTotalControl: ControlSetItem = {
     ),
     visibility: ({ controls }: ControlPanelsContainerProps) =>
       Boolean(controls?.show_value?.value) && Boolean(controls?.stack?.value),
-  },
-};
-
-export const xAxisControl: ControlSetItem = {
-  name: 'x_axis',
-  config: {
-    ...sharedControls.groupby,
-    label: t('X-axis'),
-    default: (
-      control: ControlState,
-      controlPanel: Partial<ControlPanelState>,
-    ) => {
-      // default to the chosen time column if x-axis is unset and the
-      // GENERIC_CHART_AXES feature flag is enabled
-      const { value } = control;
-      if (value) {
-        return value;
-      }
-      const timeColumn = controlPanel?.form_data?.granularity_sqla;
-      if (isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES) && timeColumn) {
-        return timeColumn;
-      }
-      return null;
-    },
-    multi: false,
-    description: t('Dimension to use on x-axis.'),
-    validators: [validateNonEmpty],
   },
 };
 

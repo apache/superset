@@ -106,21 +106,6 @@ function ChartTable({
   const [preparingExport, setPreparingExport] = useState<boolean>(false);
   const [loaded, setLoaded] = useState<boolean>(false);
 
-  useEffect(() => {
-    if (loaded || chartFilter === 'Favorite') {
-      getData(chartFilter);
-    }
-    setLoaded(true);
-  }, [chartFilter]);
-
-  const handleBulkChartExport = (chartsToExport: Chart[]) => {
-    const ids = chartsToExport.map(({ id }) => id);
-    handleResourceExport('chart', ids, () => {
-      setPreparingExport(false);
-    });
-    setPreparingExport(true);
-  };
-
   const getFilters = (filterName: string) => {
     const filters = [];
 
@@ -158,6 +143,21 @@ function ChartTable({
       ],
       filters: getFilters(filter),
     });
+
+  useEffect(() => {
+    if (loaded || chartFilter === 'Favorite') {
+      getData(chartFilter);
+    }
+    setLoaded(true);
+  }, [chartFilter]);
+
+  const handleBulkChartExport = (chartsToExport: Chart[]) => {
+    const ids = chartsToExport.map(({ id }) => id);
+    handleResourceExport('chart', ids, () => {
+      setPreparingExport(false);
+    });
+    setPreparingExport(true);
+  };
 
   const menuTabs = [
     {

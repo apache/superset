@@ -27,61 +27,97 @@ import AddSliceContainer, {
 import VizTypeGallery from 'src/explore/components/controls/VizTypeControl/VizTypeGallery';
 import { styledMount as mount } from 'spec/helpers/theming';
 import { act } from 'spec/helpers/testing-library';
+import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 
 const datasource = {
   value: '1',
   label: 'table',
 };
 
-describe('AddSliceContainer', () => {
-  let wrapper: ReactWrapper<
+const mockUser: UserWithPermissionsAndRoles = {
+  createdOn: '2021-04-27T18:12:38.952304',
+  email: 'admin',
+  firstName: 'admin',
+  isActive: true,
+  lastName: 'admin',
+  permissions: {},
+  roles: { Admin: Array(173) },
+  userId: 1,
+  username: 'admin',
+  isAnonymous: false,
+};
+
+const mockUserWithDatasetWrite: UserWithPermissionsAndRoles = {
+  createdOn: '2021-04-27T18:12:38.952304',
+  email: 'admin',
+  firstName: 'admin',
+  isActive: true,
+  lastName: 'admin',
+  permissions: {},
+  roles: { Admin: [['can_write', 'Dataset']] },
+  userId: 1,
+  username: 'admin',
+  isAnonymous: false,
+};
+
+async function getWrapper(user = mockUser) {
+  const wrapper = mount(<AddSliceContainer user={user} />) as ReactWrapper<
     AddSliceContainerProps,
     AddSliceContainerState,
     AddSliceContainer
   >;
+  await act(() => new Promise(resolve => setTimeout(resolve, 0)));
+  return wrapper;
+}
 
-  beforeEach(async () => {
-    wrapper = mount(<AddSliceContainer />) as ReactWrapper<
-      AddSliceContainerProps,
-      AddSliceContainerState,
-      AddSliceContainer
-    >;
-    // suppress a warning caused by some unusual async behavior in Icon
-    await act(() => new Promise(resolve => setTimeout(resolve, 0)));
-  });
+test('renders a select and a VizTypeControl', async () => {
+  const wrapper = await getWrapper();
+  expect(wrapper.find(Select)).toExist();
+  expect(wrapper.find(VizTypeGallery)).toExist();
+});
 
-  it('renders a select and a VizTypeControl', () => {
-    expect(wrapper.find(Select)).toExist();
-    expect(wrapper.find(VizTypeGallery)).toExist();
-  });
+test('renders dataset help text when user lacks dataset write permissions', async () => {
+  const wrapper = await getWrapper();
+  expect(wrapper.find('[data-test="dataset-write"]')).not.toExist();
+  expect(wrapper.find('[data-test="no-dataset-write"]')).toExist();
+});
 
-  it('renders a button', () => {
-    expect(wrapper.find(Button)).toExist();
-  });
+test('renders dataset help text when user has dataset write permissions', async () => {
+  const wrapper = await getWrapper(mockUserWithDatasetWrite);
+  expect(wrapper.find('[data-test="dataset-write"]')).toExist();
+  expect(wrapper.find('[data-test="no-dataset-write"]')).not.toExist();
+});
 
-  it('renders a disabled button if no datasource is selected', () => {
-    expect(
-      wrapper.find(Button).find({ disabled: true }).hostNodes(),
-    ).toHaveLength(1);
-  });
+test('renders a button', async () => {
+  const wrapper = await getWrapper();
+  expect(wrapper.find(Button)).toExist();
+});
 
-  it('renders an enabled button if datasource and viz type is selected', () => {
-    wrapper.setState({
-      datasource,
-      visType: 'table',
-    });
-    expect(
-      wrapper.find(Button).find({ disabled: true }).hostNodes(),
-    ).toHaveLength(0);
-  });
+test('renders a disabled button if no datasource is selected', async () => {
+  const wrapper = await getWrapper();
+  expect(
+    wrapper.find(Button).find({ disabled: true }).hostNodes(),
+  ).toHaveLength(1);
+});
 
-  it('formats explore url', () => {
-    wrapper.setState({
-      datasource,
-      visType: 'table',
-    });
-    const formattedUrl =
-      '/superset/explore/?form_data=%7B%22viz_type%22%3A%22table%22%2C%22datasource%22%3A%221%22%7D';
-    expect(wrapper.instance().exploreUrl()).toBe(formattedUrl);
+test('renders an enabled button if datasource and viz type are selected', async () => {
+  const wrapper = await getWrapper();
+  wrapper.setState({
+    datasource,
+    visType: 'table',
   });
+  expect(
+    wrapper.find(Button).find({ disabled: true }).hostNodes(),
+  ).toHaveLength(0);
+});
+
+test('formats Explore url', async () => {
+  const wrapper = await getWrapper();
+  wrapper.setState({
+    datasource,
+    visType: 'table',
+  });
+  const formattedUrl =
+    '/superset/explore/?form_data=%7B%22viz_type%22%3A%22table%22%2C%22datasource%22%3A%221%22%7D';
+  expect(wrapper.instance().exploreUrl()).toBe(formattedUrl);
 });

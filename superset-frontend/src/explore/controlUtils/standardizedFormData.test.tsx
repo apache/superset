@@ -25,7 +25,6 @@ import {
   sharedControls,
   publicControls,
 } from './standardizedFormData';
-import { xAxisControl } from '../../../plugins/plugin-chart-echarts/src/controls';
 
 describe('should collect control values and create SFD', () => {
   const sharedControlsFormData = {};
@@ -66,7 +65,7 @@ describe('should collect control values and create SFD', () => {
         },
         {
           label: 'axis column',
-          controlSetRows: [[xAxisControl]],
+          controlSetRows: [['x_axis']],
         },
       ],
     });
@@ -79,7 +78,7 @@ describe('should collect control values and create SFD', () => {
         },
         {
           label: 'axis column',
-          controlSetRows: [[xAxisControl]],
+          controlSetRows: [['x_axis']],
         },
       ],
       denormalizeFormData: (formData: QueryFormData) => ({

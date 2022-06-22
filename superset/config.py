@@ -142,7 +142,7 @@ VERSION_SHA = _try_json_readsha(VERSION_INFO_FILE, VERSION_SHA_LENGTH)
 # can be replaced at build time to expose build information.
 BUILD_NUMBER = None
 
-# default viz used in chart explorer
+# default viz used in chart explorer & SQL Lab explore
 DEFAULT_VIZ_TYPE = "table"
 
 # default row limit when requesting chart data
@@ -429,6 +429,9 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     # Apply RLS rules to SQL Lab queries. This requires parsing and manipulating the
     # query, and might break queries and/or allow users to bypass RLS. Use with care!
     "RLS_IN_SQLLAB": False,
+    # Enable caching per impersonation key (e.g username) in a datasource where user
+    # impersonation is enabled
+    "CACHE_IMPERSONATION": False,
 }
 
 # Feature flags may also be set via 'SUPERSET_FEATURE_' prefixed environment vars.

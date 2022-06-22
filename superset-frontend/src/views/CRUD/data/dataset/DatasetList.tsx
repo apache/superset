@@ -22,8 +22,10 @@ import React, {
   useState,
   useMemo,
   useCallback,
+  useEffect,
 } from 'react';
 import rison from 'rison';
+import { useHistory, useLocation } from 'react-router-dom';
 import {
   createFetchRelated,
   createFetchDistinct,
@@ -183,8 +185,9 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
   const canCreate = hasPerm('can_write');
-  const canExport = hasPerm('can_export');
   const canDuplicate = hasPerm('can_duplicate');
+  const canExport =
+    hasPerm('can_export') && isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT);
 
   const initialSort = SORT_BY;
 
@@ -242,6 +245,14 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
 
   const openDatasetDuplicateModal = (dataset: VirtualDataset) => {
     setDatasetCurrentlyDuplicating(dataset);
+  };
+  
+  const handleBulkDatasetExport = (datasetsToExport: Dataset[]) => {
+    const ids = datasetsToExport.map(({ id }) => id);
+    handleResourceExport('dataset', ids, () => {
+      setPreparingExport(false);
+    });
+    setPreparingExport(true);
   };
 
   const columns = useMemo(
@@ -575,6 +586,26 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     });
   }
 
+  const CREATE_HASH = '#create';
+  const location = useLocation();
+  const history = useHistory();
+
+  //  Sync Dataset Add modal with #create hash
+  useEffect(() => {
+    const modalOpen = location.hash === CREATE_HASH && canCreate;
+    setDatasetAddModalOpen(modalOpen);
+  }, [canCreate, location.hash]);
+
+  //  Add #create hash
+  const openDatasetAddModal = useCallback(() => {
+    history.replace(`${location.pathname}${location.search}${CREATE_HASH}`);
+  }, [history, location.pathname, location.search]);
+
+  //  Remove #create hash
+  const closeDatasetAddModal = useCallback(() => {
+    history.replace(`${location.pathname}${location.search}`);
+  }, [history, location.pathname, location.search]);
+
   if (canCreate) {
     buttonArr.push({
       name: (
@@ -582,7 +613,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           <i className="fa fa-plus" /> {t('Dataset')}{' '}
         </>
       ),
-      onClick: () => setDatasetAddModalOpen(true),
+      onClick: openDatasetAddModal,
       buttonStyle: 'primary',
     });
 
@@ -652,14 +683,6 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     );
   };
 
-  const handleBulkDatasetExport = (datasetsToExport: Dataset[]) => {
-    const ids = datasetsToExport.map(({ id }) => id);
-    handleResourceExport('dataset', ids, () => {
-      setPreparingExport(false);
-    });
-    setPreparingExport(true);
-  };
-
   const handleDatasetDuplicate = (newDatasetName: string) => {
     if (datasetCurrentlyDuplicating === null) {
       addDangerToast(t('There was an issue duplicating the dataset.'));
@@ -689,7 +712,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       <SubMenu {...menuData} />
       <AddDatasetModal
         show={datasetAddModalOpen}
-        onHide={() => setDatasetAddModalOpen(false)}
+        onHide={closeDatasetAddModal}
         onDatasetAdd={refreshData}
       />
       {datasetCurrentlyDeleting && (

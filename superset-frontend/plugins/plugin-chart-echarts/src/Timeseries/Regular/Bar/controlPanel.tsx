@@ -17,36 +17,28 @@
  * under the License.
  */
 import React from 'react';
-import { FeatureFlag, isFeatureEnabled, t } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
 import {
   ControlPanelConfig,
   ControlPanelsContainerProps,
   ControlSetRow,
   ControlStateMapping,
   D3_TIME_FORMAT_DOCS,
-  emitFilterControl,
   formatSelectOptions,
   sections,
   sharedControls,
 } from '@superset-ui/chart-controls';
 
-import {
-  DEFAULT_FORM_DATA,
-  EchartsTimeseriesContributionType,
-  OrientationType,
-} from '../../types';
+import { OrientationType } from '../../types';
+import { DEFAULT_FORM_DATA } from '../../constants';
 import {
   legendSection,
   richTooltipSection,
   showValueSection,
-  xAxisControl,
 } from '../../../controls';
 
 const {
-  contributionMode,
   logAxis,
-  markerEnabled,
-  markerSize,
   minorSplitLine,
   rowLimit,
   truncateYAxis,
@@ -267,37 +259,7 @@ function createAxisControl(axis: 'x' | 'y'): ControlSetRow[] {
 const config: ControlPanelConfig = {
   controlPanelSections: [
     sections.legacyTimeseriesTime,
-    {
-      label: t('Query'),
-      expanded: true,
-      controlSetRows: [
-        isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES) ? [xAxisControl] : [],
-        ['metrics'],
-        ['groupby'],
-        [
-          {
-            name: 'contributionMode',
-            config: {
-              type: 'SelectControl',
-              label: t('Contribution Mode'),
-              default: contributionMode,
-              choices: [
-                [null, 'None'],
-                [EchartsTimeseriesContributionType.Row, 'Row'],
-                [EchartsTimeseriesContributionType.Column, 'Series'],
-              ],
-              description: t('Calculate contribution per series or row'),
-            },
-          },
-        ],
-        ['adhoc_filters'],
-        emitFilterControl,
-        ['limit'],
-        ['timeseries_limit_metric'],
-        ['order_desc'],
-        ['row_limit'],
-      ],
-    },
+    sections.echartsTimeSeriesQuery,
     sections.advancedAnalyticsControls,
     sections.annotationsAndLayersControls,
     sections.forecastIntervalControls,
@@ -342,38 +304,6 @@ const config: ControlPanelConfig = {
         ...showValueSection,
         [
           {
-            name: 'markerEnabled',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Marker'),
-              renderTrigger: true,
-              default: markerEnabled,
-              description: t(
-                'Draw a marker on data points. Only applicable for line types.',
-              ),
-            },
-          },
-        ],
-        [
-          {
-            name: 'markerSize',
-            config: {
-              type: 'SliderControl',
-              label: t('Marker Size'),
-              renderTrigger: true,
-              min: 0,
-              max: 20,
-              default: markerSize,
-              description: t(
-                'Size of marker. Also applies to forecast observations.',
-              ),
-              visibility: ({ controls }: ControlPanelsContainerProps) =>
-                Boolean(controls?.markerEnabled?.value),
-            },
-          },
-        ],
-        [
-          {
             name: 'zoomable',
             config: {
               type: 'CheckboxControl',
@@ -398,6 +328,11 @@ const config: ControlPanelConfig = {
       default: rowLimit,
     },
   },
+  denormalizeFormData: formData => ({
+    ...formData,
+    metrics: formData.standardizedFormData.standardizedState.metrics,
+    groupby: formData.standardizedFormData.standardizedState.columns,
+  }),
 };
 
 export default config;
