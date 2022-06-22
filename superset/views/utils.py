@@ -103,7 +103,7 @@ def bootstrap_user_data(user: User, include_perms: bool = False) -> Dict[str, An
 
 def get_permissions(
     user: User,
-) -> Tuple[Dict[str, List[List[str]]], DefaultDict[str, Set[str]]]:
+) -> Tuple[Dict[str, List[List[str]]], DefaultDict[str, List[str]]]:
     if not user.roles:
         raise AttributeError("User object does not have roles")
 
@@ -117,6 +117,8 @@ def get_permissions(
                 permissions[permission[0]].add(permission[1])
             roles[role.name].append([permission[0], permission[1]])
 
+    for perm in permissions:
+        permissions[perm] = list(permissions[perm])
     return roles, permissions
 
 
