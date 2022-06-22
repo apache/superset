@@ -91,7 +91,6 @@ export const EXPLORE_CHART_DEFAULT = {
   metrics: [],
   groupby: [],
   time_range: 'No filter',
-  viz_type: 'table',
 };
 
 export interface DatasetOwner {
