@@ -246,7 +246,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   const openDatasetDuplicateModal = (dataset: VirtualDataset) => {
     setDatasetCurrentlyDuplicating(dataset);
   };
-  
+
   const handleBulkDatasetExport = (datasetsToExport: Dataset[]) => {
     const ids = datasetsToExport.map(({ id }) => id);
     handleResourceExport('dataset', ids, () => {

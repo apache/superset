@@ -25,7 +25,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from superset.commands.base import BaseCommand, CreateMixin
 from superset.commands.exceptions import DatasourceTypeInvalidError
-from superset.connectors.sqla.models import SqlMetric, SqlaTable, TableColumn
+from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.dao.exceptions import DAOCreateFailedError
 from superset.datasets.commands.exceptions import (
     DatasetDuplicateFailedError,
@@ -36,7 +36,7 @@ from superset.datasets.commands.exceptions import (
 from superset.datasets.dao import DatasetDAO
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetErrorException
-from superset.extensions import db, security_manager
+from superset.extensions import db
 from superset.models.core import Database
 from superset.sql_parse import ParsedQuery
 
@@ -46,6 +46,7 @@ logger = logging.getLogger(__name__)
 class DuplicateDatasetCommand(CreateMixin, BaseCommand):
     def __init__(self, user: User, data: Dict[str, Any]):
         self._actor = user
+        self._base_model: SqlaTable = SqlaTable()
         self._properties = data.copy()
 
     def run(self) -> Model:
@@ -108,9 +109,11 @@ class DuplicateDatasetCommand(CreateMixin, BaseCommand):
         base_model_id = self._properties["base_model_id"]
         duplicate_name = self._properties["table_name"]
 
-        self._base_model = DatasetDAO.find_by_id(base_model_id)
-        if not self._base_model:
+        base_model = DatasetDAO.find_by_id(base_model_id)
+        if not base_model:
             exceptions.append(DatasetNotFoundError())
+        else:
+            self._base_model = base_model
 
         if self._base_model and self._base_model.kind != "virtual":
             exceptions.append(DatasourceTypeInvalidError())

@@ -20,10 +20,8 @@ from datetime import datetime
 from io import BytesIO
 from typing import Any
 from zipfile import is_zipfile, ZipFile
-from numpy import save
 
 import simplejson
-from superset.datasets.commands.duplicate import DuplicateDatasetCommand
 import yaml
 from flask import g, make_response, request, Response, send_file
 from flask_appbuilder.api import expose, protect, rison, safe
@@ -40,6 +38,7 @@ from superset.databases.filters import DatabaseFilter
 from superset.datasets.commands.bulk_delete import BulkDeleteDatasetCommand
 from superset.datasets.commands.create import CreateDatasetCommand
 from superset.datasets.commands.delete import DeleteDatasetCommand
+from superset.datasets.commands.duplicate import DuplicateDatasetCommand
 from superset.datasets.commands.exceptions import (
     DatasetBulkDeleteFailedError,
     DatasetCreateFailedError,
@@ -523,7 +522,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     @requires_json
-    def duplicate(self, **kwargs: Any) -> Response:
+    def duplicate(self) -> Response:
         """Duplicates a Dataset
         ---
         post:
