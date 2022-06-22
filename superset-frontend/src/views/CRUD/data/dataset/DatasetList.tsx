@@ -184,7 +184,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   const canDelete = hasPerm('can_write');
   const canCreate = hasPerm('can_write');
   const canExport = hasPerm('can_export');
-  const canDuplicate = hasPerm('can_read');
+  const canDuplicate = hasPerm('can_duplicate');
 
   const initialSort = SORT_BY;
 
@@ -389,7 +389,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           const handleDelete = () => openDatasetDeleteModal(original);
           const handleExport = () => handleBulkDatasetExport([original]);
           const handleDuplicate = () => openDatasetDuplicateModal(original);
-          if (!canEdit && !canDelete && !canExport) {
+          if (!canEdit && !canDelete && !canExport && !canDuplicate) {
             return null;
           }
           return (
