@@ -96,7 +96,7 @@ class DuplicateDatasetCommand(CreateMixin, BaseCommand):
         if not self._base_model:
             exceptions.append(DatasetNotFoundError())
 
-        if self._base_model.kind != "virtual":
+        if self._base_model and self._base_model.kind != "virtual":
             exceptions.append(DatasourceTypeInvalidError())
 
         if DatasetDAO.find_one_or_none(table_name=duplicate_name):
@@ -111,5 +111,4 @@ class DuplicateDatasetCommand(CreateMixin, BaseCommand):
         if exceptions:
             exception = DatasetInvalidError()
             exception.add_list(exceptions)
-            print(exception)
             raise exception

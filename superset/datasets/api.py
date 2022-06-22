@@ -568,7 +568,11 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             new_model = DuplicateDatasetCommand(g.user, item).run()
             return self.response(201, id=new_model.id, result=item)
         except DatasetInvalidError as ex:
-            return self.response_422(message=ex.normalized_messages())
+            return self.response_422(
+                message=ex.normalized_messages()
+                if isinstance(ex, ValidationError)
+                else str(ex)
+            )
         except DatasetCreateFailedError as ex:
             logger.error(
                 "Error creating model %s: %s",
