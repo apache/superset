@@ -39,7 +39,7 @@ class ExploreRestApi(BaseApi):
     method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
     include_route_methods = {RouteMethod.GET}
     allow_browser_login = True
-    class_permission_name = "ExploreRestApi"
+    class_permission_name = "Explore"
     resource_name = "explore"
     openapi_spec_tag = "Explore"
     openapi_spec_component_schemas = (ExploreContextSchema,)
@@ -52,11 +52,20 @@ class ExploreRestApi(BaseApi):
         log_to_statsd=True,
     )
     def get(self) -> Response:
-        """Retrives Explore initial context.
+        """Assembles Explore related information (form_data, slice, dataset)
+         in a single endpoint.
         ---
         get:
+          summary: >-
+            Assembles Explore related information (form_data, slice, dataset)
+             in a single endpoint.
           description: >-
-            Retrives Explore initial context.
+            Assembles Explore related information (form_data, slice, dataset)
+             in a single endpoint.<br/><br/>
+            The information can be assembled from:<br/>
+            - The cache using a form_data_key<br/>
+            - The metadata database using a permalink_key<br/>
+            - Build from scratch using dataset or slice identifiers.
           parameters:
           - in: query
             schema:
@@ -99,16 +108,18 @@ class ExploreRestApi(BaseApi):
         try:
             params = CommandParameters(
                 actor=g.user,
-                permalink_key=request.args.get("permalink_key"),
-                form_data_key=request.args.get("form_data_key"),
-                dataset_id=request.args.get("dataset_id"),
-                dataset_type=request.args.get("dataset_type"),
-                slice_id=request.args.get("slice_id"),
+                permalink_key=request.args.get("permalink_key", type=str),
+                form_data_key=request.args.get("form_data_key", type=str),
+                dataset_id=request.args.get("dataset_id", type=int),
+                dataset_type=request.args.get("dataset_type", type=str),
+                slice_id=request.args.get("slice_id", type=int),
             )
             result = GetExploreCommand(params).run()
             if not result:
                 return self.response_404()
             return self.response(200, result=result)
+        except ValueError as ex:
+            return self.response(400, message=str(ex))
         except DatasetAccessDeniedError as ex:
             return self.response(
                 403,
