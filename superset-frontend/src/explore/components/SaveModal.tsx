@@ -170,23 +170,6 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
     sliceParams.new_dashboard_name = this.state.newDashboardName;
     const { url_params, ...formData } = this.props.form_data || {};
 
-    this.props.actions
-      .saveSlice(formData, sliceParams)
-      .then((data: JsonObject) => {
-        if (data.dashboard_id === null) {
-          sessionStorage.removeItem(SK_DASHBOARD_ID);
-        } else {
-          sessionStorage.setItem(SK_DASHBOARD_ID, data.dashboard_id);
-        }
-        // Go to new slice url or dashboard url
-        let url = gotodash ? data.dashboard_url : data.slice.slice_url;
-        if (url_params) {
-          const prefix = url.includes('?') ? '&' : '?';
-          url = `${url}${prefix}${new URLSearchParams(url_params).toString()}`;
-        }
-        window.location.assign(url);
-      });
-
     if (this.props.datasource?.type === 'query') {
       const { schema, sql, database } = this.props.datasource;
       const { templateParams } = this.props.datasource;
@@ -219,6 +202,24 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
           setItem(LocalStorageKeys.datasetname_set_successful, true);
         });
     }
+
+    this.props.actions
+      .saveSlice(formData, sliceParams)
+      .then((data: JsonObject) => {
+        if (data.dashboard_id === null) {
+          sessionStorage.removeItem(SK_DASHBOARD_ID);
+        } else {
+          sessionStorage.setItem(SK_DASHBOARD_ID, data.dashboard_id);
+        }
+        // Go to new slice url or dashboard url
+        let url = gotodash ? data.dashboard_url : data.slice.slice_url;
+        if (url_params) {
+          const prefix = url.includes('?') ? '&' : '?';
+          url = `${url}${prefix}${new URLSearchParams(url_params).toString()}`;
+        }
+        window.location.assign(url);
+      });
+
     this.props.onHide();
   }
 
@@ -373,43 +374,7 @@ function mapStateToProps({
   saveModal,
 }: Record<string, any>): Partial<SaveModalProps> {
   return {
-    datasource: {
-      id: 'clientId2353',
-      dbId: 1,
-      sql: 'SELECT * FROM something',
-      sqlEditorId: 3,
-      tab: 'unimportant',
-      tempTable: '',
-      ctas: false,
-      cached: false,
-      errorMessage: null,
-      extra: { progress: null },
-      isDataPreview: false,
-      progress: 0,
-      resultsKey: null,
-      state: 'success',
-      tempSchema: null,
-      trackingUrl: null,
-      templateParams: null,
-      rows: 42,
-      queryLimit: 100,
-      limitingFactor: '',
-      endDttm: 1476910579693,
-      duration: '',
-      startDttm: 1476910566092.96,
-      time: {},
-      user: {},
-      userId: 1,
-      db: {},
-      started: '',
-      querylink: {},
-      queryId: 1,
-      executedSql: '',
-      output: '',
-      actions: {},
-      type: 'query',
-      columns: [],
-    }, /// explore.datasource,
+    datasource: explore.datasource,
     slice: explore.slice,
     userId: explore.user?.userId,
     dashboards: saveModal.dashboards,
