@@ -116,9 +116,10 @@ def get_permissions(
             if permission[0] in ("datasource_access", "database_access"):
                 permissions[permission[0]].add(permission[1])
             roles[role.name].append([permission[0], permission[1]])
+    transformed_permissions = defaultdict(list)
     for perm in permissions:
-        permissions[perm] = list(permissions[perm])
-    return roles, permissions
+        transformed_permissions[perm] = list(permissions[perm])
+    return roles, transformed_permissions
 
 
 def get_viz(
