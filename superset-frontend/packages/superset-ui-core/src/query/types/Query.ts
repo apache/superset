@@ -395,4 +395,9 @@ export const testQuery: Query = {
   ],
 };
 
+export enum ContributionType {
+  Row = 'row',
+  Column = 'column',
+}
+
 export default {};

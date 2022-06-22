@@ -19,12 +19,8 @@
 import { QueryFormData } from '@superset-ui/core';
 import { GraphNodeItemOption } from 'echarts/types/src/chart/graph/GraphSeries';
 import { SeriesTooltipOption } from 'echarts/types/src/util/types';
-import {
-  DEFAULT_LEGEND_FORM_DATA,
-  EchartsLegendFormData,
-  LegendOrientation,
-  LegendType,
-} from '../types';
+import { EchartsLegendFormData, LegendOrientation, LegendType } from '../types';
+import { DEFAULT_LEGEND_FORM_DATA } from '../constants';
 
 export type EdgeSymbol = 'none' | 'circle' | 'arrow';
 

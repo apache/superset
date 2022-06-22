@@ -23,9 +23,11 @@ from datetime import datetime, timedelta
 from pprint import pformat
 from typing import Any, Dict, List, NamedTuple, Optional, TYPE_CHECKING
 
+from flask import g
 from flask_babel import gettext as _
 from pandas import DataFrame
 
+from superset import feature_flag_manager
 from superset.common.chart_data import ChartDataResultType
 from superset.exceptions import (
     InvalidPostProcessingError,
@@ -395,6 +397,24 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         # only add to key if there are annotations present that affect the payload
         if annotation_layers:
             cache_dict["annotation_layers"] = annotation_layers
+
+        # Add an impersonation key to cache if impersonation is enabled on the db
+        if (
+            feature_flag_manager.is_feature_enabled("CACHE_IMPERSONATION")
+            and self.datasource
+            and hasattr(self.datasource, "database")
+            and self.datasource.database.impersonate_user
+        ):
+
+            if key := self.datasource.database.db_engine_spec.get_impersonation_key(
+                getattr(g, "user", None)
+            ):
+
+                logger.debug(
+                    "Adding impersonation key to QueryObject cache dict: %s", key
+                )
+
+                cache_dict["impersonation_key"] = key
 
         return md5_sha_from_dict(cache_dict, default=json_int_dttm_ser, ignore_nan=True)
 
