@@ -113,6 +113,7 @@ class ChartRenderer extends React.Component {
         nextProps.labelColors !== this.props.labelColors ||
         nextProps.sharedLabelColors !== this.props.sharedLabelColors ||
         nextProps.formData.color_scheme !== this.props.formData.color_scheme ||
+        nextProps.formData.stack !== this.props.formData.stack ||
         nextProps.cacheBusterProp !== this.props.cacheBusterProp
       );
     }

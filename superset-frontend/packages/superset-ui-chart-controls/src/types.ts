@@ -17,17 +17,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ReactNode, ReactText, ReactElement } from 'react';
+import React, { ReactElement, ReactNode, ReactText } from 'react';
 import type {
   AdhocColumn,
   Column,
   DatasourceType,
   JsonValue,
   Metric,
-  QueryFormData,
-  QueryResponse,
-  QueryFormMetric,
   QueryFormColumn,
+  QueryFormData,
+  QueryFormMetric,
+  QueryResponse,
 } from '@superset-ui/core';
 import { sharedControls } from './shared-controls';
 import sharedControlComponents from './shared-controls/components';
@@ -436,4 +436,20 @@ export function isControlPanelSectionConfig(
   section: ControlPanelSectionConfig | null,
 ): section is ControlPanelSectionConfig {
   return section !== null;
+}
+
+export function isDataset(
+  datasource: Dataset | QueryResponse | null | undefined,
+): datasource is Dataset {
+  return !!datasource && 'columns' in datasource;
+}
+
+export function isQueryResponse(
+  datasource: Dataset | QueryResponse | null | undefined,
+): datasource is QueryResponse {
+  return (
+    !!datasource &&
+    ('results' in datasource ||
+      datasource?.type === ('query' as DatasourceType.Query))
+  );
 }

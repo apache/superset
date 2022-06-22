@@ -141,8 +141,8 @@ export default function exploreReducer(state = {}, action) {
       if (controlName === 'metrics' && old_metrics_data && new_column_config) {
         value.forEach((item, index) => {
           if (
-            item.label !== old_metrics_data[index].label &&
-            !!new_column_config[old_metrics_data[index].label]
+            item?.label !== old_metrics_data[index]?.label &&
+            !!new_column_config[old_metrics_data[index]?.label]
           ) {
             new_column_config[item.label] =
               new_column_config[old_metrics_data[index].label];

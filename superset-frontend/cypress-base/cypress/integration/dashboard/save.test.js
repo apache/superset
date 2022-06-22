@@ -36,7 +36,7 @@ describe('Dashboard save action', () => {
   beforeEach(() => {
     cy.login();
     cy.visit(WORLD_HEALTH_DASHBOARD);
-    cy.get('#app').then(data => {
+    cy.get('#app').then(() => {
       cy.get('.dashboard-header-container').then(headerContainerElement => {
         const dashboardId = headerContainerElement.attr('data-test-id');
 
@@ -57,7 +57,7 @@ describe('Dashboard save action', () => {
 
   // change to what the title should be
   it('should save as new dashboard', () => {
-    cy.wait('@copyRequest').then(xhr => {
+    cy.wait('@copyRequest').then(() => {
       cy.get('[data-test="editable-title"]').then(element => {
         const dashboardTitle = element.attr('title');
         expect(dashboardTitle).to.not.equal(`World Bank's Data`);

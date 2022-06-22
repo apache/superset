@@ -26,7 +26,7 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access
 from flask_babel import lazy_gettext as _
 from wtforms.ext.sqlalchemy.fields import QuerySelectField
-from wtforms.validators import Regexp
+from wtforms.validators import DataRequired, Regexp
 
 from superset import app, db
 from superset.connectors.base.views import DatasourceModelView
@@ -45,6 +45,19 @@ from superset.views.base import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+class SelectDataRequired(DataRequired):  # pylint: disable=too-few-public-methods
+    """
+    Select required flag on the input field will not work well on Chrome
+    Console error:
+        An invalid form control with name='tables' is not focusable.
+
+    This makes a simple override to the DataRequired to be used specifically with
+    select fields
+    """
+
+    field_flags = ()
 
 
 class TableColumnInlineView(CompactCRUDMixin, SupersetModelView):
@@ -272,21 +285,39 @@ class RowLevelSecurityFiltersModelView(SupersetModelView, DeleteMixin):
     edit_title = _("Edit Row level security filter")
 
     list_columns = [
+        "name",
+        "filter_type",
+        "tables",
+        "roles",
+        "clause",
+        "creator",
+        "modified",
+    ]
+    order_columns = ["name", "filter_type", "clause", "modified"]
+    edit_columns = [
+        "name",
+        "description",
         "filter_type",
         "tables",
         "roles",
         "group_key",
         "clause",
-        "creator",
-        "modified",
     ]
-    order_columns = ["filter_type", "group_key", "clause", "modified"]
-    edit_columns = ["filter_type", "tables", "roles", "group_key", "clause"]
     show_columns = edit_columns
-    search_columns = ("filter_type", "tables", "roles", "group_key", "clause")
+    search_columns = (
+        "name",
+        "description",
+        "filter_type",
+        "tables",
+        "roles",
+        "group_key",
+        "clause",
+    )
     add_columns = edit_columns
     base_order = ("changed_on", "desc")
     description_columns = {
+        "name": _("Choose a unique name"),
+        "description": _("Optionally add a detailed description"),
         "filter_type": _(
             "Regular filters add where clauses to queries if a user belongs to a "
             "role referenced in the filter. Base filters apply filters to all queries "
@@ -319,12 +350,16 @@ class RowLevelSecurityFiltersModelView(SupersetModelView, DeleteMixin):
         ),
     }
     label_columns = {
+        "name": _("Name"),
+        "description": _("Description"),
         "tables": _("Tables"),
         "roles": _("Roles"),
         "clause": _("Clause"),
         "creator": _("Creator"),
         "modified": _("Modified"),
     }
+    validators_columns = {"tables": [SelectDataRequired()]}
+
     if app.config["RLS_FORM_QUERY_REL_FIELDS"]:
         add_form_query_rel_fields = app.config["RLS_FORM_QUERY_REL_FIELDS"]
         edit_form_query_rel_fields = add_form_query_rel_fields
