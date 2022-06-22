@@ -19,7 +19,7 @@
 import sinon from 'sinon';
 import * as actions from 'src/SqlLab/actions/sqlLab';
 import { ColumnKeyTypeType } from 'src/SqlLab/components/ColumnElement';
-import { Query, QueryState } from './types';
+import { Query, QueryState } from '@superset-ui/core';
 
 export const mockedActions = sinon.stub({ ...actions });
 
