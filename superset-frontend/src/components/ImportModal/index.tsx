@@ -303,7 +303,7 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
       {errorMessage && (
         <ErrorAlert
           errorMessage={errorMessage}
-          dbInstall={passwordFields.length > 0}
+          showDbInstallInstructions={passwordFields.length > 0}
         />
       )}
       {renderPasswordFields()}

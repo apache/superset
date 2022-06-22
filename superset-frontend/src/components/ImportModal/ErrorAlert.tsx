@@ -31,10 +31,13 @@ export const DOCUMENTATION_LINK = supersetTextDocs
 
 export interface IProps {
   errorMessage: string;
-  dbInstall: boolean;
+  showDbInstallInstructions: boolean;
 }
 
-const ErrorAlert: FunctionComponent<IProps> = ({ errorMessage, dbInstall }) => (
+const ErrorAlert: FunctionComponent<IProps> = ({
+  errorMessage,
+  showDbInstallInstructions,
+}) => (
   <Alert
     closable={false}
     css={(theme: SupersetTheme) => antdWarningAlertStyles(theme)}
@@ -42,7 +45,7 @@ const ErrorAlert: FunctionComponent<IProps> = ({ errorMessage, dbInstall }) => (
     showIcon
     message={errorMessage}
     description={
-      dbInstall ? (
+      showDbInstallInstructions ? (
         <>
           <br />
           {t(
