@@ -17,7 +17,7 @@
 import logging
 from collections import defaultdict
 from functools import wraps
-from typing import Any, Callable, DefaultDict, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Callable, DefaultDict, Dict, List, Optional, Tuple, Union
 from urllib import parse
 
 import msgpack
@@ -103,7 +103,7 @@ def bootstrap_user_data(user: User, include_perms: bool = False) -> Dict[str, An
 
 def get_permissions(
     user: User,
-) -> Tuple[Dict[str, List[List[str]]], DefaultDict[str, Set[str]]]:
+) -> Tuple[Dict[str, List[List[str]]], DefaultDict[str, List[str]]]:
     if not user.roles:
         raise AttributeError("User object does not have roles")
 
@@ -116,8 +116,10 @@ def get_permissions(
             if permission[0] in ("datasource_access", "database_access"):
                 permissions[permission[0]].add(permission[1])
             roles[role.name].append([permission[0], permission[1]])
-
-    return roles, permissions
+    transformed_permissions = defaultdict(list)
+    for perm in permissions:
+        transformed_permissions[perm] = list(permissions[perm])
+    return roles, transformed_permissions
 
 
 def get_viz(
