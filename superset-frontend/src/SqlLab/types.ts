@@ -27,7 +27,7 @@ export type ExploreDatasource = Dataset | QueryResponse;
 
 // Object as Dictionary (associative array) with Query id as the key and type Query as the value
 export type QueryDictionary = {
-  [id: string]: Query;
+  [id: string]: QueryResponse;
 };
 
 export interface QueryEditor {

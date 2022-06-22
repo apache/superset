@@ -324,7 +324,7 @@ export type Query = {
   executedSql: string;
   output: string | Record<string, any>;
   actions: Record<string, any>;
-  type: DatasourceType.Query;
+  type: DatasourceType;
   columns: QueryColumn[];
 };
 
@@ -355,7 +355,7 @@ export const testQuery: Query = {
   isDataPreview: false,
   progress: 0,
   resultsKey: null,
-  state: 'success',
+  state: QueryState.SUCCESS,
   tempSchema: null,
   trackingUrl: null,
   templateParams: null,

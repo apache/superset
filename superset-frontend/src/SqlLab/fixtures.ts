@@ -19,7 +19,7 @@
 import sinon from 'sinon';
 import * as actions from 'src/SqlLab/actions/sqlLab';
 import { ColumnKeyTypeType } from 'src/SqlLab/components/ColumnElement';
-import { Query, QueryState } from '@superset-ui/core';
+import { DatasourceType, QueryResponse, QueryState } from '@superset-ui/core';
 
 export const mockedActions = sinon.stub({ ...actions });
 
@@ -190,6 +190,7 @@ export const defaultQueryEditor = {
     },
   ],
 };
+
 export const queries = [
   {
     dbId: 1,
@@ -345,6 +346,7 @@ export const queryWithNoQueryLimit = {
     },
   },
 };
+
 export const queryWithBadColumns = {
   ...queries[0],
   results: {
@@ -408,6 +410,7 @@ export const queryWithBadColumns = {
     ],
   },
 };
+
 export const databases = {
   result: [
     {
@@ -430,6 +433,7 @@ export const databases = {
     },
   ],
 };
+
 export const tables = {
   options: [
     {
@@ -513,7 +517,7 @@ export const failedQueryWithErrors = {
   tempTable: '',
 };
 
-const baseQuery: Query = {
+const baseQuery: QueryResponse = {
   queryId: 567,
   dbId: 1,
   sql: 'SELECT * FROM superset.slices',
@@ -550,6 +554,8 @@ const baseQuery: Query = {
   extra: {
     progress: null,
   },
+  columns: [],
+  type: DatasourceType.Query,
   results: {
     displayLimitReached: false,
     query: { limit: 6 },
@@ -591,7 +597,7 @@ const baseQuery: Query = {
   },
 };
 
-export const runningQuery: Query = {
+export const runningQuery: QueryResponse = {
   ...baseQuery,
   dbId: 1,
   cached: false,
@@ -602,7 +608,7 @@ export const runningQuery: Query = {
   startDttm: Date.now() - 500,
 };
 
-export const successfulQuery: Query = {
+export const successfulQuery: QueryResponse = {
   ...baseQuery,
   dbId: 1,
   cached: false,
