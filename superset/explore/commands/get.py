@@ -26,9 +26,9 @@ from sqlalchemy.exc import SQLAlchemyError
 from superset import db, security_manager
 from superset.commands.base import BaseCommand
 from superset.connectors.base.models import BaseDatasource
-from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.sqla.models import SqlaTable
 from superset.datasets.commands.exceptions import DatasetNotFoundError
+from superset.datasource.dao import DatasourceDAO
 from superset.exceptions import SupersetException
 from superset.explore.commands.parameters import CommandParameters
 from superset.explore.exceptions import DatasetAccessDeniedError, WrongEndpointError
@@ -113,8 +113,8 @@ class GetExploreCommand(BaseCommand, ABC):
         dataset: Optional[BaseDatasource] = None
         if self._dataset_id is not None:
             try:
-                dataset = ConnectorRegistry.get_datasource(
-                    cast(str, self._dataset_type), self._dataset_id, db.session
+                dataset = DatasourceDAO.get_datasource(
+                    db.session, cast(str, self._dataset_type), self._dataset_id
                 )
             except DatasetNotFoundError:
                 pass

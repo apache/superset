@@ -198,7 +198,7 @@ def test_get_dataset_access_denied(mock_can_access_datasource, client, dataset):
     assert data["message"] == message
 
 
-@patch("superset.connectors.connector_registry.ConnectorRegistry.get_datasource")
+@patch("superset.datasource.dao.DatasourceDAO.get_datasource")
 def test_wrong_endpoint(mock_get_datasource, client, dataset):
     dataset.default_endpoint = "another_endpoint"
     mock_get_datasource.return_value = dataset
