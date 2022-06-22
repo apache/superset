@@ -103,7 +103,7 @@ def bootstrap_user_data(user: User, include_perms: bool = False) -> Dict[str, An
 
 def get_permissions(
     user: User,
-) -> Tuple[Dict[str, List[List[str]]], DefaultDict[str, Set[str]]]:
+) -> Tuple[Dict[str, List[List[str]]], DefaultDict[str, List[str]]]:
     if not user.roles:
         raise AttributeError("User object does not have roles")
 
@@ -116,7 +116,8 @@ def get_permissions(
             if permission[0] in ("datasource_access", "database_access"):
                 permissions[permission[0]].add(permission[1])
             roles[role.name].append([permission[0], permission[1]])
-
+    for perm in permissions:
+        permissions[perm] = list(permissions[perm])
     return roles, permissions
 
 
@@ -467,7 +468,7 @@ def check_datasource_perms(
     _self: Any,
     datasource_type: Optional[str] = None,
     datasource_id: Optional[int] = None,
-    **kwargs: Any
+    **kwargs: Any,
 ) -> None:
     """
     Check if user can access a cached response from explore_json.
