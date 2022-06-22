@@ -34,7 +34,6 @@ describe('QueryAutoRefresh', () => {
   const successfulQueries: QueryDictionary = {};
   successfulQueries[successfulQuery.id] = successfulQuery;
 
-  const setUserOffline = jest.fn();
   const refreshQueries = jest.fn();
 
   const queriesLastUpdate = Date.now();
@@ -96,14 +95,12 @@ describe('QueryAutoRefresh', () => {
     render(
       <QueryAutoRefresh
         queries={runningQueries}
-        setUserOffline={setUserOffline}
         refreshQueries={refreshQueries}
         queriesLastUpdate={queriesLastUpdate}
       />,
     );
     setTimeout(() => {
       expect(refreshQueries).toHaveBeenCalled();
-      expect(setUserOffline).not.toHaveBeenCalled();
     }, 1000);
   });
 
@@ -112,14 +109,12 @@ describe('QueryAutoRefresh', () => {
       <QueryAutoRefresh
         // @ts-ignore
         queries={{ ...runningQueries, g324t: null }}
-        setUserOffline={setUserOffline}
         refreshQueries={refreshQueries}
         queriesLastUpdate={queriesLastUpdate}
       />,
     );
     setTimeout(() => {
       expect(refreshQueries).toHaveBeenCalled();
-      expect(setUserOffline).not.toHaveBeenCalled();
     }, 1000);
   });
 
@@ -127,14 +122,12 @@ describe('QueryAutoRefresh', () => {
     render(
       <QueryAutoRefresh
         queries={successfulQueries}
-        setUserOffline={setUserOffline}
         refreshQueries={refreshQueries}
         queriesLastUpdate={queriesLastUpdate}
       />,
     );
     setTimeout(() => {
       expect(refreshQueries).not.toHaveBeenCalled();
-      expect(setUserOffline).not.toHaveBeenCalled();
     }, 1000);
   });
 });

@@ -103,7 +103,6 @@ class App extends React.PureComponent {
         <QueryAutoRefresh
           queries={queries}
           refreshQueries={actions?.refreshQueries}
-          setUserOffline={actions?.setUserOffline}
           queriesLastUpdate={queriesLastUpdate}
         />
         <TabbedSqlEditors />

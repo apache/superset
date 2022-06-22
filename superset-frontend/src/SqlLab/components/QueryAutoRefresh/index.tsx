@@ -18,10 +18,12 @@
  */
 import { useState } from 'react';
 import { isObject } from 'lodash';
-import { SupersetClient, Query, runningQueryStateList } from '@superset-ui/core';
 import {
-  QueryDictionary,
-} from 'src/SqlLab/types';
+  SupersetClient,
+  Query,
+  runningQueryStateList,
+} from '@superset-ui/core';
+import { QueryDictionary } from 'src/SqlLab/types';
 import useInterval from 'src/SqlLab/utils/useInterval';
 
 const QUERY_UPDATE_FREQ = 2000;
@@ -29,17 +31,12 @@ const QUERY_UPDATE_BUFFER_MS = 5000;
 const MAX_QUERY_AGE_TO_POLL = 21600000;
 const QUERY_TIMEOUT_LIMIT = 10000;
 
-interface UserOfflineFunc {
-  (offline: boolean): boolean;
-}
-
 interface RefreshQueriesFunc {
   (alteredQueries: any): any;
 }
 
 export interface QueryAutoRefreshProps {
   queries: QueryDictionary;
-  setUserOffline: UserOfflineFunc;
   refreshQueries: RefreshQueriesFunc;
   queriesLastUpdate: number;
 }
@@ -63,7 +60,6 @@ export const shouldCheckForQueries = (queryList: QueryDictionary): boolean => {
 function QueryAutoRefresh({
   queries,
   refreshQueries,
-  setUserOffline,
   queriesLastUpdate,
 }: QueryAutoRefreshProps) {
   // We do not want to spam requests in the case of slow connections and potentially recieve responses out of order
@@ -83,11 +79,8 @@ function QueryAutoRefresh({
           if (json) {
             refreshQueries?.(json);
           }
-          setUserOffline(false);
         })
-        .catch(() => {
-          setUserOffline?.(true);
-        })
+        .catch(() => {})
         .finally(() => {
           setPendingRequest(false);
         });
