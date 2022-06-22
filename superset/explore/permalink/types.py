@@ -24,6 +24,11 @@ class ExplorePermalinkState(TypedDict, total=False):
 
 class ExplorePermalinkValue(TypedDict):
     chartId: Optional[int]
-    datasetId: int
+    # either datasetId or datasourceId is required
+    # TODO: deprecated - datasetId is deprecated
+    # and should be removed in next major release
+    datasetId: Optional[int]
+    datasourceId: Optional[int]
+    datasourceType: str
     datasource: str
     state: ExplorePermalinkState

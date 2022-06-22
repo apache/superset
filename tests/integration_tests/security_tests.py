@@ -28,10 +28,11 @@ import prison
 import pytest
 
 from flask import current_app
+from superset.datasource.dao import DatasourceDAO
 
 from superset.models.dashboard import Dashboard
 
-from superset import app, appbuilder, db, security_manager, viz, ConnectorRegistry
+from superset import app, appbuilder, db, security_manager, viz
 from superset.connectors.sqla.models import SqlaTable
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
@@ -39,6 +40,7 @@ from superset.models.core import Database
 from superset.models.slice import Slice
 from superset.sql_parse import Table
 from superset.utils.core import (
+    DatasourceType,
     backend,
     get_example_default_schema,
 )
@@ -120,7 +122,7 @@ class TestRolePermission(SupersetTestCase):
 
         ds_slices = (
             session.query(Slice)
-            .filter_by(datasource_type="table")
+            .filter_by(datasource_type=DatasourceType.TABLE)
             .filter_by(datasource_id=ds.id)
             .all()
         )
@@ -143,7 +145,7 @@ class TestRolePermission(SupersetTestCase):
         ds.schema_perm = None
         ds_slices = (
             session.query(Slice)
-            .filter_by(datasource_type="table")
+            .filter_by(datasource_type=DatasourceType.TABLE)
             .filter_by(datasource_id=ds.id)
             .all()
         )
@@ -272,6 +274,35 @@ class TestRolePermission(SupersetTestCase):
         session.delete(stored_table)
         session.commit()
 
+    def test_set_perm_sqla_table_none(self):
+        session = db.session
+        table = SqlaTable(
+            schema="tmp_schema",
+            table_name="tmp_perm_table",
+            # Setting database_id instead of database will skip permission creation
+            database_id=get_example_database().id,
+        )
+        session.add(table)
+        session.commit()
+
+        stored_table = (
+            session.query(SqlaTable).filter_by(table_name="tmp_perm_table").one()
+        )
+        # Assert no permission is created
+        self.assertIsNone(
+            security_manager.find_permission_view_menu(
+                "datasource_access", stored_table.perm
+            )
+        )
+        # Assert no bogus permission is created
+        self.assertIsNone(
+            security_manager.find_permission_view_menu(
+                "datasource_access", f"[None].[tmp_perm_table](id:{stored_table.id})"
+            )
+        )
+        session.delete(table)
+        session.commit()
+
     def test_set_perm_database(self):
         session = db.session
         database = Database(database_name="tmp_database", sqlalchemy_uri="sqlite://")
@@ -336,7 +367,7 @@ class TestRolePermission(SupersetTestCase):
         # no schema permission
         slice = Slice(
             datasource_id=table.id,
-            datasource_type="table",
+            datasource_type=DatasourceType.TABLE,
             datasource_name="tmp_perm_table",
             slice_name="slice_name",
         )
@@ -960,7 +991,7 @@ class TestDatasources(SupersetTestCase):
         mock_get_session.query.return_value.filter.return_value.all.return_value = []
 
         with mock.patch.object(
-            ConnectorRegistry, "get_all_datasources"
+            SqlaTable, "get_all_datasources"
         ) as mock_get_all_datasources:
             mock_get_all_datasources.return_value = [
                 Datasource("database1", "schema1", "table1"),
@@ -988,7 +1019,7 @@ class TestDatasources(SupersetTestCase):
         mock_get_session.query.return_value.filter.return_value.all.return_value = []
 
         with mock.patch.object(
-            ConnectorRegistry, "get_all_datasources"
+            SqlaTable, "get_all_datasources"
         ) as mock_get_all_datasources:
             mock_get_all_datasources.return_value = [
                 Datasource("database1", "schema1", "table1"),
@@ -1016,7 +1047,7 @@ class TestDatasources(SupersetTestCase):
         ]
 
         with mock.patch.object(
-            ConnectorRegistry, "get_all_datasources"
+            SqlaTable, "get_all_datasources"
         ) as mock_get_all_datasources:
             mock_get_all_datasources.return_value = [
                 Datasource("database1", "schema1", "table1"),
@@ -1034,6 +1065,7 @@ class TestDatasources(SupersetTestCase):
 
 class FakeRequest:
     headers: Any = {}
+    form: Any = {}
 
 
 class TestGuestTokens(SupersetTestCase):
@@ -1075,6 +1107,17 @@ class TestGuestTokens(SupersetTestCase):
         token = self.create_guest_token()
         fake_request = FakeRequest()
         fake_request.headers[current_app.config["GUEST_TOKEN_HEADER_NAME"]] = token
+
+        guest_user = security_manager.get_guest_user_from_request(fake_request)
+
+        self.assertIsNotNone(guest_user)
+        self.assertEqual("test_guest", guest_user.username)
+
+    def test_get_guest_user_with_request_form(self):
+        token = self.create_guest_token()
+        fake_request = FakeRequest()
+        fake_request.headers[current_app.config["GUEST_TOKEN_HEADER_NAME"]] = None
+        fake_request.form["guest_token"] = token
 
         guest_user = security_manager.get_guest_user_from_request(fake_request)
 

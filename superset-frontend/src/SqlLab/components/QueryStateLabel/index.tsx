@@ -19,7 +19,7 @@
 import React from 'react';
 import Label from 'src/components/Label';
 import { STATE_TYPE_MAP } from 'src/SqlLab/constants';
-import { Query } from 'src/SqlLab/types';
+import { Query } from '@superset-ui/core';
 
 interface QueryStateLabelProps {
   query: Query;

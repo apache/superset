@@ -22,6 +22,7 @@ from unittest.mock import Mock, patch
 from uuid import uuid4
 
 import pytest
+from flask import current_app
 from flask_sqlalchemy import BaseQuery
 from freezegun import freeze_time
 from sqlalchemy.sql import func
@@ -121,6 +122,11 @@ def assert_log(state: str, error_message: Optional[str] = None):
     assert ReportState.WORKING in log_states
     assert state in log_states
     assert error_message in [log.error_message for log in logs]
+
+    for log in logs:
+        if log.state == ReportState.WORKING:
+            assert log.value is None
+            assert log.value_row_json is None
 
 
 def create_report_notification(
@@ -370,11 +376,15 @@ def create_report_slack_chart_working():
         )
         report_schedule.last_state = ReportState.WORKING
         report_schedule.last_eval_dttm = datetime(2020, 1, 1, 0, 0)
+        report_schedule.last_value = None
+        report_schedule.last_value_row_json = None
         db.session.commit()
         log = ReportExecutionLog(
             scheduled_dttm=report_schedule.last_eval_dttm,
             start_dttm=report_schedule.last_eval_dttm,
             end_dttm=report_schedule.last_eval_dttm,
+            value=report_schedule.last_value,
+            value_row_json=report_schedule.last_value_row_json,
             state=ReportState.WORKING,
             report_schedule=report_schedule,
             uuid=uuid4(),
@@ -1017,20 +1027,23 @@ def test_email_dashboard_report_schedule(
     screenshot_mock.return_value = SCREENSHOT_FILE
 
     with freeze_time("2020-01-01T00:00:00Z"):
-        AsyncExecuteReportScheduleCommand(
-            TEST_ID, create_report_email_dashboard.id, datetime.utcnow()
-        ).run()
+        with patch.object(current_app.config["STATS_LOGGER"], "gauge") as statsd_mock:
 
-        notification_targets = get_target_from_report_schedule(
-            create_report_email_dashboard
-        )
-        # Assert the email smtp address
-        assert email_mock.call_args[0][0] == notification_targets[0]
-        # Assert the email inline screenshot
-        smtp_images = email_mock.call_args[1]["images"]
-        assert smtp_images[list(smtp_images.keys())[0]] == SCREENSHOT_FILE
-        # Assert logs are correct
-        assert_log(ReportState.SUCCESS)
+            AsyncExecuteReportScheduleCommand(
+                TEST_ID, create_report_email_dashboard.id, datetime.utcnow()
+            ).run()
+
+            notification_targets = get_target_from_report_schedule(
+                create_report_email_dashboard
+            )
+            # Assert the email smtp address
+            assert email_mock.call_args[0][0] == notification_targets[0]
+            # Assert the email inline screenshot
+            smtp_images = email_mock.call_args[1]["images"]
+            assert smtp_images[list(smtp_images.keys())[0]] == SCREENSHOT_FILE
+            # Assert logs are correct
+            assert_log(ReportState.SUCCESS)
+            statsd_mock.assert_called_once_with("reports.email.send.ok", 1)
 
 
 @pytest.mark.usefixtures(
@@ -1085,19 +1098,22 @@ def test_slack_chart_report_schedule(
     screenshot_mock.return_value = SCREENSHOT_FILE
 
     with freeze_time("2020-01-01T00:00:00Z"):
-        AsyncExecuteReportScheduleCommand(
-            TEST_ID, create_report_slack_chart.id, datetime.utcnow()
-        ).run()
+        with patch.object(current_app.config["STATS_LOGGER"], "gauge") as statsd_mock:
 
-        notification_targets = get_target_from_report_schedule(
-            create_report_slack_chart
-        )
+            AsyncExecuteReportScheduleCommand(
+                TEST_ID, create_report_slack_chart.id, datetime.utcnow()
+            ).run()
 
-        assert file_upload_mock.call_args[1]["channels"] == notification_targets[0]
-        assert file_upload_mock.call_args[1]["file"] == SCREENSHOT_FILE
+            notification_targets = get_target_from_report_schedule(
+                create_report_slack_chart
+            )
 
-        # Assert logs are correct
-        assert_log(ReportState.SUCCESS)
+            assert file_upload_mock.call_args[1]["channels"] == notification_targets[0]
+            assert file_upload_mock.call_args[1]["file"] == SCREENSHOT_FILE
+
+            # Assert logs are correct
+            assert_log(ReportState.SUCCESS)
+            statsd_mock.assert_called_once_with("reports.slack.send.ok", 1)
 
 
 @pytest.mark.usefixtures(

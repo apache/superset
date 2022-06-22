@@ -22,8 +22,10 @@ import React, {
   useState,
   useMemo,
   useCallback,
+  useEffect,
 } from 'react';
 import rison from 'rison';
+import { useHistory, useLocation } from 'react-router-dom';
 import {
   createFetchRelated,
   createFetchDistinct,
@@ -174,7 +176,8 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
   const canCreate = hasPerm('can_write');
-  const canExport = hasPerm('can_export');
+  const canExport =
+    hasPerm('can_export') && isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT);
 
   const initialSort = SORT_BY;
 
@@ -230,6 +233,14 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         ),
       );
 
+  const handleBulkDatasetExport = (datasetsToExport: Dataset[]) => {
+    const ids = datasetsToExport.map(({ id }) => id);
+    handleResourceExport('dataset', ids, () => {
+      setPreparingExport(false);
+    });
+    setPreparingExport(true);
+  };
+
   const columns = useMemo(
     () => [
       {
@@ -258,6 +269,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         accessor: 'kind_icon',
         disableSortBy: true,
         size: 'xs',
+        id: 'id',
       },
       {
         Cell: ({
@@ -507,6 +519,18 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         ],
       },
       {
+        Header: t('Certified'),
+        id: 'id',
+        urlDisplay: 'certified',
+        input: 'select',
+        operator: FilterOperator.datasetIsCertified,
+        unfilteredLabel: t('Any'),
+        selects: [
+          { label: t('Yes'), value: true },
+          { label: t('No'), value: false },
+        ],
+      },
+      {
         Header: t('Search'),
         id: 'table_name',
         input: 'search',
@@ -531,6 +555,26 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     });
   }
 
+  const CREATE_HASH = '#create';
+  const location = useLocation();
+  const history = useHistory();
+
+  //  Sync Dataset Add modal with #create hash
+  useEffect(() => {
+    const modalOpen = location.hash === CREATE_HASH && canCreate;
+    setDatasetAddModalOpen(modalOpen);
+  }, [canCreate, location.hash]);
+
+  //  Add #create hash
+  const openDatasetAddModal = useCallback(() => {
+    history.replace(`${location.pathname}${location.search}${CREATE_HASH}`);
+  }, [history, location.pathname, location.search]);
+
+  //  Remove #create hash
+  const closeDatasetAddModal = useCallback(() => {
+    history.replace(`${location.pathname}${location.search}`);
+  }, [history, location.pathname, location.search]);
+
   if (canCreate) {
     buttonArr.push({
       name: (
@@ -538,7 +582,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           <i className="fa fa-plus" /> {t('Dataset')}{' '}
         </>
       ),
-      onClick: () => setDatasetAddModalOpen(true),
+      onClick: openDatasetAddModal,
       buttonStyle: 'primary',
     });
 
@@ -604,20 +648,12 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     );
   };
 
-  const handleBulkDatasetExport = (datasetsToExport: Dataset[]) => {
-    const ids = datasetsToExport.map(({ id }) => id);
-    handleResourceExport('dataset', ids, () => {
-      setPreparingExport(false);
-    });
-    setPreparingExport(true);
-  };
-
   return (
     <>
       <SubMenu {...menuData} />
       <AddDatasetModal
         show={datasetAddModalOpen}
-        onHide={() => setDatasetAddModalOpen(false)}
+        onHide={closeDatasetAddModal}
         onDatasetAdd={refreshData}
       />
       {datasetCurrentlyDeleting && (

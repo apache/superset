@@ -3205,6 +3205,12 @@
           "owners": {
             "$ref": "#/components/schemas/DashboardRestApi.get_list.User2"
           },
+          "advanced_data_type": {
+            "maxLength": 255,
+            "minLength": 1,
+            "nullable": true,
+            "type": "string"
+          },
           "position_json": {
             "nullable": true,
             "type": "string"
@@ -4245,6 +4251,12 @@
             "nullable": true,
             "type": "string"
           },
+          "advanced_data_type": {
+            "maxLength": 255,
+            "minLength": 1,
+            "nullable": true,
+            "type": "string"
+          },
           "uuid": {
             "format": "uuid",
             "nullable": true,
@@ -4386,6 +4398,9 @@
           "is_sqllab_view": {
             "nullable": true,
             "type": "boolean"
+          },
+          "kind": {
+            "readOnly": true
           },
           "main_dttm_col": {
             "maxLength": 250,

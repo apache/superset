@@ -18,6 +18,7 @@ import json
 
 from superset import db
 from superset.models.slice import Slice
+from superset.utils.core import DatasourceType
 
 from .birth_names import load_birth_names
 from .helpers import merge_slice, misc_dash_slices
@@ -35,7 +36,7 @@ def load_multi_line(only_metadata: bool = False) -> None:
     ]
 
     slc = Slice(
-        datasource_type="table",  # not true, but needed
+        datasource_type=DatasourceType.TABLE,  # not true, but needed
         datasource_id=1,  # cannot be empty
         slice_name="Multi Line",
         viz_type="line_multi",

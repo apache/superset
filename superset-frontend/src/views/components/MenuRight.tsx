@@ -18,7 +18,10 @@
  */
 import React, { Fragment, useState, useEffect } from 'react';
 import rison from 'rison';
-import { MainNav as Menu } from 'src/components/Menu';
+import { useSelector } from 'react-redux';
+import { Link } from 'react-router-dom';
+import { useQueryParams, BooleanParam } from 'use-query-params';
+
 import {
   t,
   styled,
@@ -26,12 +29,12 @@ import {
   SupersetTheme,
   SupersetClient,
 } from '@superset-ui/core';
+import { MainNav as Menu } from 'src/components/Menu';
 import { Tooltip } from 'src/components/Tooltip';
-import { Link } from 'react-router-dom';
 import Icons from 'src/components/Icons';
 import findPermission, { isUserAdmin } from 'src/dashboard/util/findPermission';
-import { useSelector } from 'react-redux';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import { RootState } from 'src/dashboard/types';
 import LanguagePicker from './LanguagePicker';
 import DatabaseModal from '../CRUD/data/database/DatabaseModal';
 import { uploadUserPerms } from '../CRUD/utils';
@@ -85,9 +88,15 @@ const RightMenu = ({
   settings,
   navbarRight,
   isFrontendRoute,
-}: RightMenuProps) => {
+  setQuery,
+}: RightMenuProps & {
+  setQuery: ({ databaseAdded }: { databaseAdded: boolean }) => void;
+}) => {
   const user = useSelector<any, UserWithPermissionsAndRoles>(
     state => state.user,
+  );
+  const dashboardId = useSelector<RootState, number | undefined>(
+    state => state.dashboardInfo?.id,
   );
 
   const { roles } = user;
@@ -162,7 +171,9 @@ const RightMenu = ({
     },
     {
       label: t('Chart'),
-      url: '/chart/add',
+      url: Number.isInteger(dashboardId)
+        ? `/chart/add?dashboard_id=${dashboardId}`
+        : '/chart/add',
       icon: 'fa-fw fa-bar-chart',
       perm: 'can_write',
       view: 'Chart',
@@ -244,6 +255,8 @@ const RightMenu = ({
     return null;
   };
 
+  const handleDatabaseAdd = () => setQuery({ databaseAdded: true });
+
   return (
     <StyledDiv align={align}>
       {canDatabase && (
@@ -251,6 +264,7 @@ const RightMenu = ({
           onHide={handleOnHideModal}
           show={showModal}
           dbEngine={engine}
+          onDatabaseAdd={handleDatabaseAdd}
         />
       )}
       <Menu
@@ -424,4 +438,43 @@ const RightMenu = ({
   );
 };
 
-export default RightMenu;
+const RightMenuWithQueryWrapper: React.FC<RightMenuProps> = props => {
+  const [, setQuery] = useQueryParams({
+    databaseAdded: BooleanParam,
+  });
+
+  return <RightMenu setQuery={setQuery} {...props} />;
+};
+
+// Query param manipulation requires that, during the setup, the
+// QueryParamProvider is present and configured.
+// Superset still has multiple entry points, and not all of them have
+// the same setup, and critically, not all of them have the QueryParamProvider.
+// This wrapper ensures the RightMenu renders regardless of the provider being present.
+class RightMenuErrorWrapper extends React.PureComponent<RightMenuProps> {
+  state = {
+    hasError: false,
+  };
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  noop = () => {};
+
+  render() {
+    if (this.state.hasError) {
+      return <RightMenu setQuery={this.noop} {...this.props} />;
+    }
+
+    return this.props.children;
+  }
+}
+
+const RightMenuWrapper: React.FC<RightMenuProps> = props => (
+  <RightMenuErrorWrapper {...props}>
+    <RightMenuWithQueryWrapper {...props} />
+  </RightMenuErrorWrapper>
+);
+
+export default RightMenuWrapper;

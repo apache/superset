@@ -489,7 +489,7 @@ function Sunburst(element, props) {
     // For efficiency, filter nodes to keep only those large enough to see.
     const nodes = partition.nodes(root).filter(d => d.dx > 0.005); // 0.005 radians = 0.29 degrees
 
-    if (metrics[0] !== metrics[1] && metrics[1] && !colorScheme) {
+    if (metrics[0] !== metrics[1] && metrics[1]) {
       colorByCategory = false;
       const ext = d3.extent(nodes, d => d.m2 / d.m1);
       linearColorScale = getSequentialSchemeRegistry()

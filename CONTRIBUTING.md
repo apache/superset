@@ -55,6 +55,7 @@ little bit helps, and credit will always be given.
       - [Images](#images)
     - [Flask server](#flask-server)
       - [OS Dependencies](#os-dependencies)
+      - [Dependencies](#dependencies)
       - [Logging to the browser console](#logging-to-the-browser-console)
     - [Frontend](#frontend)
       - [Prerequisite](#prerequisite)
@@ -68,11 +69,13 @@ little bit helps, and credit will always be given.
       - [Feature flags](#feature-flags)
   - [Git Hooks](#git-hooks)
   - [Linting](#linting)
+    - [Python](#python)
+    - [TypeScript](#typescript)
   - [Conventions](#conventions)
-    - [Python](#python-conventions)
+    - [Python Conventions](#python-conventions)
   - [Typing](#typing)
-    - [Python](#python-typing)
-    - [TypeScript](#typeScript-typing)
+    - [Python Typing](#python-typing)
+    - [TypeScript Typing](#typescript-typing)
   - [Testing](#testing)
     - [Python Testing](#python-testing)
     - [Frontend Testing](#frontend-testing)
@@ -92,7 +95,7 @@ little bit helps, and credit will always be given.
     - [SQL Lab Async](#sql-lab-async)
     - [Async Chart Queries](#async-chart-queries)
   - [Chart Parameters](#chart-parameters)
-    - [Datasource & Chart Type](#datasource--chart-type)
+    - [Datasource \& Chart Type](#datasource--chart-type)
     - [Time](#time)
     - [GROUP BY](#group-by)
     - [NOT GROUPED BY](#not-grouped-by)
@@ -157,7 +160,7 @@ Look through the GitHub issues. Issues tagged with
 
 Superset could always use better documentation,
 whether as part of the official Superset docs,
-in docstrings, `docs/*.rst` or even on the web as blog posts or
+in docstrings, or even on the web as blog posts or
 articles. See [Documentation](#documentation) for more details.
 
 ### Add Translations
@@ -385,23 +388,30 @@ cd superset
 
 The latest documentation and tutorial are available at https://superset.apache.org/.
 
-The site is written using the Gatsby framework and docz for the
-documentation subsection. Find out more about it in `docs/README.md`
+The documentation site is built using [Docusaurus 2](https://docusaurus.io/), a modern static website generator, the source for which resides in `./docs`.
 
-#### Images
+#### Local Development
 
-If you're adding new images to the documentation, you'll notice that the images
-referenced in the rst, e.g.
+To set up a local development environment with hot reloading for the documentation site:
 
-    .. image:: _static/images/tutorial/tutorial_01_sources_database.png
+```shell
+cd docs
+yarn install  # Installs NPM dependencies
+yarn start  # Starts development server at http://localhost:3000
+```
 
-aren't actually stored in that directory. Instead, you should add and commit
-images (and any other static assets) to the `superset-frontend/src/assets/images` directory.
-When the docs are deployed to https://superset.apache.org/, images
-are copied from there to the `_static/images` directory, just like they're referenced
-in the docs.
+#### Build
 
-For example, the image referenced above actually lives in `superset-frontend/src/assets/images/tutorial`. Since the image is moved during the documentation build process, the docs reference the image in `_static/images/tutorial` instead.
+To create and serve a production build of the documentation site:
+
+```shell
+yarn build
+yarn serve
+```
+
+#### Deployment
+
+Commits to `master` trigger a rebuild and redeploy of the documentation site. Submit pull requests that modify the documention with the `docs:` prefix.
 
 ### Flask server
 
@@ -568,7 +578,22 @@ There are three types of assets you can build:
 
 #### Webpack dev server
 
-The dev server by default starts at `http://localhost:9000` and proxies the backend requests to `http://localhost:8088`. It's possible to change these settings:
+The dev server by default starts at `http://localhost:9000` and proxies the backend requests to `http://localhost:8088`.
+
+So a typical development workflow is the following:
+
+1. [run Superset locally](#flask-server) using Flask, on port `8088` — but don't access it directly,<br/>
+   ```bash
+   # Install Superset and dependencies, plus load your virtual environment first, as detailed above.
+   FLASK_ENV=development superset run -p 8088 --with-threads --reload --debugger
+   ```
+2. in parallel, run the Webpack dev server locally on port `9000`,<br/>
+   ```bash
+   npm run dev-server
+   ```
+3. access `http://localhost:9000` (the Webpack server, _not_ Flask) in your web browser. This will use the hot-reloading front-end assets from the Webpack development server while redirecting back-end queries to Flask/Superset: your changes on Superset codebase — either front or back-end — will then be reflected live in the browser.
+
+It's possible to change the Webpack server settings:
 
 ```bash
 # Start the dev server at http://localhost:9000
@@ -1046,6 +1071,7 @@ LANGUAGES = {
 ```
 
 This script will
+
 1. update the template file `superset/translations/messages.pot` with current application strings.
 2. update language files with the new extracted strings.
 
@@ -1314,14 +1340,14 @@ Note not all fields are correctly categorized. The fields vary based on visualiz
 
 ### Datasource & Chart Type
 
-| Field             | Type     | Notes                               |
-| ----------------- | -------- | ----------------------------------- |
-| `database_name`   | _string_ | _Deprecated?_                       |
+| Field             | Type     | Notes                                |
+| ----------------- | -------- | ------------------------------------ |
+| `database_name`   | _string_ | _Deprecated?_                        |
 | `datasource`      | _string_ | `<datasource_id>__<datasource_type>` |
-| `datasource_id`   | _string_ | _Deprecated?_ See `datasource`      |
-| `datasource_name` | _string_ | _Deprecated?_                       |
-| `datasource_type` | _string_ | _Deprecated?_ See `datasource`      |
-| `viz_type`        | _string_ | The **Visualization Type** widget   |
+| `datasource_id`   | _string_ | _Deprecated?_ See `datasource`       |
+| `datasource_name` | _string_ | _Deprecated?_                        |
+| `datasource_type` | _string_ | _Deprecated?_ See `datasource`       |
+| `viz_type`        | _string_ | The **Visualization Type** widget    |
 
 ### Time
 
@@ -1364,17 +1390,17 @@ Note not all fields are correctly categorized. The fields vary based on visualiz
 
 ### Query
 
-| Field                                                                                                  | Type                                              | Notes                                             |
-| ------------------------------------------------------------------------------------------------------ | ------------------------------------------------- | ------------------------------------------------- |
-| `adhoc_filters`                                                                                        | _array(object)_                                   | The **Filters** widget                            |
-| `extra_filters`                                                                                        | _array(object)_                                   | Another pathway to the **Filters** widget.<br/>It is generally used to pass dashboard filter parameters to a chart.<br/>It can be used for appending additional filters to a chart that has been saved with its own filters on an ad-hoc basis if the chart is being used as a standalone widget.<br/><br/>For implementation examples see : [utils test.py](https://github.com/apache/superset/blob/66a4c94a1ed542e69fe6399bab4c01d4540486cf/tests/utils_tests.py#L181)<br/>For insight into how superset processes the contents of this parameter see: [exploreUtils/index.js](https://github.com/apache/superset/blob/93c7f5bb446ec6895d7702835f3157426955d5a9/superset-frontend/src/explore/exploreUtils/index.js#L159)                         |
-| `columns`                                                                                              | _array(string)_                                   | The **Breakdowns** widget                         |
-| `groupby`                                                                                              | _array(string)_                                   | The **Group by** or **Series** widget             |
-| `limit`                                                                                                | _number_                                          | The **Series Limit** widget                       |
-| `metric`<br>`metric_2`<br>`metrics`<br>`percent_metrics`<br>`secondary_metric`<br>`size`<br>`x`<br>`y` | _string_,_object_,_array(string)_,_array(object)_ | The metric(s) depending on the visualization type |
-| `order_asc`                                                                                            | _boolean_                                         | The **Sort Descending** widget                    |
-| `row_limit`                                                                                            | _number_                                          | The **Row limit** widget                          |
-| `timeseries_limit_metric`                                                                              | _object_                                          | The **Sort By** widget                            |
+| Field                                                                                                  | Type                                              | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| ------------------------------------------------------------------------------------------------------ | ------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `adhoc_filters`                                                                                        | _array(object)_                                   | The **Filters** widget                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| `extra_filters`                                                                                        | _array(object)_                                   | Another pathway to the **Filters** widget.<br/>It is generally used to pass dashboard filter parameters to a chart.<br/>It can be used for appending additional filters to a chart that has been saved with its own filters on an ad-hoc basis if the chart is being used as a standalone widget.<br/><br/>For implementation examples see : [utils test.py](https://github.com/apache/superset/blob/66a4c94a1ed542e69fe6399bab4c01d4540486cf/tests/utils_tests.py#L181)<br/>For insight into how superset processes the contents of this parameter see: [exploreUtils/index.js](https://github.com/apache/superset/blob/93c7f5bb446ec6895d7702835f3157426955d5a9/superset-frontend/src/explore/exploreUtils/index.js#L159) |
+| `columns`                                                                                              | _array(string)_                                   | The **Breakdowns** widget                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `groupby`                                                                                              | _array(string)_                                   | The **Group by** or **Series** widget                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| `limit`                                                                                                | _number_                                          | The **Series Limit** widget                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| `metric`<br>`metric_2`<br>`metrics`<br>`percent_metrics`<br>`secondary_metric`<br>`size`<br>`x`<br>`y` | _string_,_object_,_array(string)_,_array(object)_ | The metric(s) depending on the visualization type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| `order_asc`                                                                                            | _boolean_                                         | The **Sort Descending** widget                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| `row_limit`                                                                                            | _number_                                          | The **Row limit** widget                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `timeseries_limit_metric`                                                                              | _object_                                          | The **Sort By** widget                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 
 The `metric` (or equivalent) and `timeseries_limit_metric` fields are all composed of either metric names or the JSON representation of the `AdhocMetric` TypeScript type. The `adhoc_filters` is composed of the JSON represent of the `AdhocFilter` TypeScript type (which can comprise of columns or metrics depending on whether it is a WHERE or HAVING clause). The `all_columns`, `all_columns_x`, `columns`, `groupby`, and `order_by_cols` fields all represent column names.
 

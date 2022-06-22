@@ -611,8 +611,10 @@ export const copyQueryLink = (
   addDangerToast: (arg0: string) => void,
   addSuccessToast: (arg0: string) => void,
 ) => {
-  copyTextToClipboard(
-    `${window.location.origin}/superset/sqllab?savedQueryId=${id}`,
+  copyTextToClipboard(() =>
+    Promise.resolve(
+      `${window.location.origin}/superset/sqllab?savedQueryId=${id}`,
+    ),
   )
     .then(() => {
       addSuccessToast(t('Link Copied!'));
@@ -788,3 +790,14 @@ export function useDatabaseValidation() {
 
   return [validationErrors, getValidation, setValidationErrors] as const;
 }
+
+export const reportSelector = (
+  state: Record<string, any>,
+  resourceType: string,
+  resourceId?: number,
+) => {
+  if (resourceId) {
+    return state.reports[resourceType]?.[resourceId];
+  }
+  return {};
+};

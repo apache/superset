@@ -25,8 +25,8 @@ import {
   ensureIsArray,
   getChartBuildQueryRegistry,
   getChartMetadataRegistry,
+  SupersetClient,
 } from '@superset-ui/core';
-import { omit } from 'lodash';
 import { availableDomains } from 'src/utils/hostNamesConfig';
 import { safeStringify } from 'src/utils/safeStringify';
 import { URL_PARAMS } from 'src/constants';
@@ -216,7 +216,7 @@ export const buildV1ChartDataPayload = ({
           ...baseQueryObject,
         },
       ]));
-  const payload = buildQuery(
+  return buildQuery(
     {
       ...formData,
       force,
@@ -230,42 +230,10 @@ export const buildV1ChartDataPayload = ({
       },
     },
   );
-  if (resultType === 'samples') {
-    // remove row limit and offset to fall back to defaults
-    payload.queries = payload.queries.map(query =>
-      omit(query, ['row_limit', 'row_offset']),
-    );
-  }
-  return payload;
 };
 
 export const getLegacyEndpointType = ({ resultType, resultFormat }) =>
   resultFormat === 'csv' ? resultFormat : resultType;
-
-export function postForm(url, payload, target = '_blank') {
-  if (!url) {
-    return;
-  }
-
-  const hiddenForm = document.createElement('form');
-  hiddenForm.action = url;
-  hiddenForm.method = 'POST';
-  hiddenForm.target = target;
-  const token = document.createElement('input');
-  token.type = 'hidden';
-  token.name = 'csrf_token';
-  token.value = (document.getElementById('csrf_token') || {}).value;
-  hiddenForm.appendChild(token);
-  const data = document.createElement('input');
-  data.type = 'hidden';
-  data.name = 'form_data';
-  data.value = safeStringify(payload);
-  hiddenForm.appendChild(data);
-
-  document.body.appendChild(hiddenForm);
-  hiddenForm.submit();
-  document.body.removeChild(hiddenForm);
-}
 
 export const exportChart = ({
   formData,
@@ -294,7 +262,8 @@ export const exportChart = ({
       ownState,
     });
   }
-  postForm(url, payload);
+
+  SupersetClient.postForm(url, { form_data: safeStringify(payload) });
 };
 
 export const exploreChart = formData => {
@@ -303,7 +272,7 @@ export const exploreChart = formData => {
     endpointType: 'base',
     allowDomainSharding: false,
   });
-  postForm(url, formData);
+  SupersetClient.postForm(url, { form_data: safeStringify(formData) });
 };
 
 export const useDebouncedEffect = (effect, delay, deps) => {
@@ -348,3 +317,7 @@ export const getSimpleSQLExpression = (subject, operator, comparator) => {
   }
   return expression;
 };
+
+export function formatSelectOptions(options) {
+  return options.map(opt => [opt, opt.toString()]);
+}
