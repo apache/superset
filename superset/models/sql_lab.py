@@ -17,7 +17,7 @@
 """A collection of ORM sqlalchemy models for SQL Lab"""
 import re
 from datetime import datetime
-from typing import Any, Dict, List, Type
+from typing import Any, Dict, List, Optional, Type, TYPE_CHECKING
 
 import simplejson as json
 import sqlalchemy as sqla
@@ -51,6 +51,9 @@ from superset.sql_parse import CtasMethod, ParsedQuery, Table
 from superset.sqllab.limiting_factor import LimitingFactor
 from superset.superset_typing import ResultSetColumnType
 from superset.utils.core import QueryStatus, user_label
+
+if TYPE_CHECKING:
+    from superset.db_engine_specs import BaseEngineSpec
 
 
 class Query(Model, ExtraJSONMixin, ExploreMixin):
@@ -234,35 +237,35 @@ class Query(Model, ExtraJSONMixin, ExploreMixin):
         return self.database.db_engine_spec
 
     @property
-    def owners_data(self):
+    def owners_data(self) -> List[Dict[str, Any]]:
         return []
 
     @property
-    def metrics(self):
+    def metrics(self) -> List[Any]:
         return []
 
     @property
-    def uid(self):
+    def uid(self) -> str:
         return "foo"
 
     @property
-    def is_rls_supported(self):
+    def is_rls_supported(self) -> bool:
         return False
 
     @property
-    def cache_timeout(self):
-        return None
-
-    @property
-    def column_names(self):
-        return [col.get("column_name") for col in self.columns]
-
-    @property
-    def offset(self):
+    def cache_timeout(self) -> int:
         return 0
 
     @property
-    def main_dttm_col(self) -> str:
+    def column_names(self) -> List[Any]:
+        return [col.get("column_name") for col in self.columns]
+
+    @property
+    def offset(self) -> int:
+        return 0
+
+    @property
+    def main_dttm_col(self) -> Optional[str]:
         for col in self.columns:
             if col.get("is_dttm"):
                 return col.get("column_name")

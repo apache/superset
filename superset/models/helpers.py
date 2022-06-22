@@ -33,6 +33,7 @@ from typing import (
     Set,
     Tuple,
     Type,
+    TYPE_CHECKING,
     Union,
 )
 
@@ -47,6 +48,7 @@ from flask_appbuilder.models.decorators import renders
 from flask_appbuilder.models.mixins import AuditMixin
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import lazy_gettext as _
+from jinja2.exceptions import TemplateError
 from sqlalchemy import and_, or_, UniqueConstraint
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import Mapper, Session
@@ -58,15 +60,15 @@ from sqlalchemy_utils import UUIDType
 
 from superset import app, db, is_feature_enabled, security_manager
 from superset.common.db_query_status import QueryStatus
-# from superset.connectors.sqla import SqlMetric
-# from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-# from superset.exceptions import SupersetSecurityException
+from superset.constants import EMPTY_STRING, NULL_STRING
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.exceptions import SupersetSecurityException
+from superset.extensions import feature_flag_manager
 from superset.jinja_context import (
     BaseTemplateProcessor,
     ExtraCache,
     get_template_processor,
 )
-# from superset.models.core import Database
 from superset.sql_parse import (
     extract_table_references,
     has_table_query,
@@ -75,12 +77,20 @@ from superset.sql_parse import (
     sanitize_clause,
     Table as TableName,
 )
+from superset.superset_typing import AdhocColumn
 from superset.utils import core as utils
 
-VIRTUAL_TABLE_ALIAS = "virtual_table"
+if TYPE_CHECKING:
+    from superset.connectors.sqla.models import SqlMetric, TableColumn
+    from superset.db_engine_specs import BaseEngineSpec
+    from superset.models.core import Database
 
 config = app.config
 logger = logging.getLogger(__name__)
+
+CTE_ALIAS = "__cte"
+VIRTUAL_TABLE_ALIAS = "virtual_table"
+ADVANCED_DATA_TYPES = config["ADVANCED_DATA_TYPES"]
 
 
 def json_to_dict(json_str: str) -> Dict[Any, Any]:
@@ -635,6 +645,14 @@ class ExploreMixin:
     }
 
     @property
+    def query(self) -> str:
+        raise NotImplementedError()
+
+    @property
+    def database_id(self) -> int:
+        raise NotImplementedError()
+
+    @property
     def owners_data(self) -> List[Any]:
         raise NotImplementedError()
 
@@ -688,6 +706,10 @@ class ExploreMixin:
 
     @property
     def columns(self) -> List[Any]:
+        raise NotImplementedError()
+
+    @property
+    def get_fetch_values_predicate(self) -> List[Any]:
         raise NotImplementedError()
 
     @staticmethod
@@ -931,7 +953,7 @@ class ExploreMixin:
 
         cte = self.db_engine_spec.get_cte_query(from_sql)
         from_clause = (
-            table(CTE_ALIAS)
+            sa.table(CTE_ALIAS)
             if cte
             else TextAsFrom(self.text(from_sql), []).alias(VIRTUAL_TABLE_ALIAS)
         )
@@ -941,7 +963,7 @@ class ExploreMixin:
     def adhoc_metric_to_sqla(
         self,
         metric: AdhocMetric,
-        columns_by_name: Dict[str, Dict],
+        columns_by_name: Dict[str, Dict[str, Any]],
         template_processor: Optional[BaseTemplateProcessor] = None,
     ) -> ColumnElement:
         """
@@ -1055,6 +1077,51 @@ class ExploreMixin:
                 _("Metric '%(metric)s' does not exist", metric=series_limit_metric)
             )
         return ob
+
+    def adhoc_column_to_sqla(
+        self,
+        col: Type["AdhocColumn"],
+        template_processor: Optional[BaseTemplateProcessor] = None,
+    ) -> ColumnElement:
+        """
+        Turn an adhoc column into a sqlalchemy column.
+
+        :param col: Adhoc column definition
+        :param template_processor: template_processor instance
+        :returns: The metric defined as a sqlalchemy column
+        :rtype: sqlalchemy.sql.column
+        """
+        label = utils.get_column_name(col)
+        expression = _process_sql_expression(
+            expression=col["sqlExpression"],
+            database_id=self.database_id,
+            schema=self.schema,
+            template_processor=template_processor,
+        )
+        sqla_column = literal_column(expression)
+        return self.make_sqla_column_compatible(sqla_column, label)
+
+    def _get_top_groups(
+        self,
+        df: pd.DataFrame,
+        dimensions: List[str],
+        groupby_exprs: Dict[str, Any],
+        columns_by_name: Dict[str, "TableColumn"],
+    ) -> ColumnElement:
+        groups = []
+        for _unused, row in df.iterrows():
+            group = []
+            for dimension in dimensions:
+                value = self._normalize_prequery_result_type(
+                    row,
+                    dimension,
+                    columns_by_name,
+                )
+
+                group.append(groupby_exprs[dimension] == value)
+            groups.append(and_(*group))
+
+        return or_(*groups)
 
     def get_sqla_query(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branches,too-many-statements
         self,
@@ -1283,7 +1350,7 @@ class ExploreMixin:
                         col=granularity,
                     )
                 )
-            time_filters = []
+            time_filters: List[Any] = []
 
             if is_timeseries:
                 timestamp = dttm_col.get_timestamp_expression(
@@ -1351,7 +1418,7 @@ class ExploreMixin:
             filter_grain = flt.get("grain")
 
             if is_feature_enabled("ENABLE_TEMPLATE_REMOVE_FILTERS"):
-                if get_column_name(flt_col) in removed_filters:
+                if utils.get_column_name(flt_col) in removed_filters:
                     # Skip generating SQLA filter when the jinja template handles it.
                     continue
 
@@ -1614,7 +1681,7 @@ class ExploreMixin:
                     "order_desc": True,
                 }
 
-                result = self.query(prequery_obj)
+                result = self.query(prequery_obj)  # ignore: typing
                 prequeries.append(result.query)
                 dimensions = [
                     c
