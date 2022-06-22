@@ -468,7 +468,7 @@ def check_datasource_perms(
     _self: Any,
     datasource_type: Optional[str] = None,
     datasource_id: Optional[int] = None,
-    **kwargs: Any,
+    **kwargs: Any
 ) -> None:
     """
     Check if user can access a cached response from explore_json.
