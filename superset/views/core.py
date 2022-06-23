@@ -749,6 +749,11 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         datasource_id: Optional[int] = None,
         key: Optional[str] = None,
     ) -> FlaskResponse:
+        logger.warning(
+            "%s.explore "
+            "This API endpoint is deprecated and will be removed in version 3.0.0",
+            self.__class__.__name__,
+        )
         initial_form_data = {}
 
         form_data_key = request.args.get("form_data_key")

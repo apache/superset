@@ -78,14 +78,39 @@ def cache(chart_id, admin_id, dataset):
     cache_manager.explore_form_data_cache.set(FORM_DATA_KEY, entry)
 
 
+# partially match the dataset using the most important attributes
+def assert_dataset(result):
+    dataset = result["dataset"]
+    assert dataset["id"] == 1
+    assert dataset["datasource_name"] == "wb_health_population"
+    assert dataset["is_sqllab_view"] == False
+    assert dataset["main_dttm_col"] == "year"
+    assert dataset["schema"] == "public"
+    assert dataset["sql"] == None
+    assert dataset["table_name"] == "wb_health_population"
+    assert dataset["type"] == "table"
+    assert dataset["uid"] == "1__table"
+
+
+# partially match the slice using the most important attributes
+def assert_slice(result, chart_id):
+    slice = result["slice"]
+    assert slice["edit_url"] == f"/chart/edit/{chart_id}"
+    assert slice["is_managed_externally"] == False
+    assert slice["slice_id"] == chart_id
+    assert slice["slice_name"] == "World's Population"
+    assert slice["form_data"]["datasource"] == "1__table"
+    assert slice["form_data"]["viz_type"] == "big_number"
+
+
 def test_no_params_provided(client):
     login(client, "admin")
     resp = client.get(f"api/v1/explore/")
     assert resp.status_code == 200
     data = json.loads(resp.data.decode("utf-8"))
     result = data.get("result")
-    assert result["dataset"] != None
-    assert result["form_data"] != None
+    assert result["dataset"]["name"] == "[Missing Dataset]"
+    assert result["form_data"]["datasource"] == "None__table"
     assert result["message"] == None
     assert result["slice"] == None
 
@@ -98,7 +123,8 @@ def test_get_from_cache(client, dataset):
     assert resp.status_code == 200
     data = json.loads(resp.data.decode("utf-8"))
     result = data.get("result")
-    assert result["dataset"] != None
+    assert_dataset(result)
+    assert result["form_data"]["datasource"] == "1__table"
     assert result["form_data"]["test"] == "test value"
     assert result["message"] == None
     assert result["slice"] == None
@@ -113,14 +139,13 @@ def test_get_from_cache_unknown_key_chart_id(client, chart_id):
     assert resp.status_code == 200
     data = json.loads(resp.data.decode("utf-8"))
     result = data.get("result")
-    assert result["dataset"] != None
-    assert result["form_data"] != None
+    assert_dataset(result)
+    assert_slice(result, chart_id)
+    assert result["form_data"]["datasource"] == "1__table"
     assert (
         result["message"]
         == "Form data not found in cache, reverting to chart metadata."
     )
-    assert result["slice"] != None
-    assert result["slice"] != None
 
 
 def test_get_from_cache_unknown_key_dataset(client, dataset):
@@ -132,8 +157,8 @@ def test_get_from_cache_unknown_key_dataset(client, dataset):
     assert resp.status_code == 200
     data = json.loads(resp.data.decode("utf-8"))
     result = data.get("result")
-    assert result["dataset"] != None
-    assert result["form_data"] != None
+    assert_dataset(result)
+    assert result["form_data"]["datasource"] == "1__table"
     assert (
         result["message"]
         == "Form data not found in cache, reverting to dataset metadata."
@@ -148,8 +173,8 @@ def test_get_from_cache_unknown_key_no_extra_parameters(client):
     assert resp.status_code == 200
     data = json.loads(resp.data.decode("utf-8"))
     result = data.get("result")
-    assert result["dataset"] != None
-    assert result["form_data"] != None
+    assert result["dataset"]["name"] == "[Missing Dataset]"
+    assert result["form_data"]["datasource"] == "None__table"
     assert result["message"] == None
     assert result["slice"] == None
 
@@ -168,7 +193,8 @@ def test_get_from_permalink(client, chart_id, dataset):
     assert resp.status_code == 200
     data = json.loads(resp.data.decode("utf-8"))
     result = data.get("result")
-    assert result["dataset"] != None
+    assert_dataset(result)
+    assert result["form_data"]["datasource"] == "1__table"
     assert result["form_data"]["test"] == "test value"
     assert result["message"] == None
     assert result["slice"] == None
