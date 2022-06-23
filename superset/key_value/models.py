@@ -28,7 +28,7 @@ class KeyValueEntry(Model, AuditMixinNullable, ImportExportMixin):
     __tablename__ = "key_value"
     id = Column(Integer, primary_key=True)
     resource = Column(String(32), nullable=False)
-    value = Column(LargeBinary(), nullable=False)
+    value = Column(LargeBinary(length=2**24 - 1), nullable=False)
     created_on = Column(DateTime, nullable=True)
     created_by_fk = Column(Integer, ForeignKey("ab_user.id"), nullable=True)
     changed_on = Column(DateTime, nullable=True)
