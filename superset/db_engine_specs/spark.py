@@ -28,7 +28,7 @@ time_grain_expressions = {
     "P3M": "date_trunc('quarter', {col})",
     "P1Y": "date_trunc('year', {col})",
     "P1W/1970-01-03T00:00:00Z": (
-            "date_trunc('week', {col} + interval '1 day') + interval '5 days'"
+        "date_trunc('week', {col} + interval '1 day') + interval '5 days'"
     ),
     "1969-12-28T00:00:00Z/P1W": (
         "date_trunc('week', {col} + interval '1 day') - interval '1 day'"
