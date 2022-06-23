@@ -191,6 +191,10 @@ const config: ControlPanelConfig = {
       label: t('Number Format'),
     },
   },
+  denormalizeFormData: formData => ({
+    ...formData,
+    metrics: formData.standardizedFormData.standardizedState.metrics,
+  }),
 };
 
 export default config;
