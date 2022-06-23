@@ -16,31 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/**
- * <div class="react-tags">
- *   <div class="react-tags__selected">
- *     <button class="react-tags__selected-tag">
- *       <span class="react-tags__selected-tag-name" />
- *     </button>
- *   </div>
- *   <div class="react-tags__search">
- *     <div class="react-tags__search-input">
- *       <input />
- *       <div />
- *     </div>
- *     <div class="react-tags__suggestions">
- *       <ul>
- *         <li class="is-active">
- *           <mark />
- *         </li>
- *         <li class="is-disabled">
- *           <mark />
- *         </li>
- *       </ul>
- *     </div>
- *   </div>
- */
-.ant-tag {
+ .ant-tag {
   color: black;
 }
 
@@ -58,17 +34,6 @@
 
   /* clicking anywhere will focus the input */
   cursor: text;
-}
-
-.react-tags-rw {
-  display: inline-block;
-  margin: 0 10px;
-  font-size: 12px;
-  line-height: 1.2;
-}
-
-.react-tags.is-focused {
-  border-color: #F0F0F0;
 }
 
 .react-tags__selected {
@@ -89,26 +54,23 @@
   line-height: inherit;
 }
 
-.react-tags__selected-tag:after {
-  content: '\2715';
-  color: #AAA;
-  margin-left: 8px;
-}
-
-.react-tags__selected-tag:hover,
-.react-tags__selected-tag:focus {
-  border-color: #B1B1B1;
-}
-
 .react-tags__search {
   display: inline-block;
 
+  /* new tag border layout */
+  border: 1px dashed #d9d9d9;
+
   /* match tag layout */
-  padding: 7px 2px;
+  line-height: 20px;
   margin-bottom: 0;
+  padding: 0 7px;
 
   /* prevent autoresize overflowing the container */
   max-width: 100%;
+}
+
+.react-tags__search:focus-within {
+  border: 1px solid #000000;
 }
 
 @media screen and (min-width: 30em) {
@@ -121,12 +83,11 @@
 }
 
 .react-tags__search input {
-  /* prevent autoresize overflowing the container */
-  max-width: 100%;
+  max-width: 150%;
 
   /* remove styles and layout from this element */
   margin: 0;
-  margin-left: 8px;
+  margin-left: 0;
   padding: 0;
   border: 0;
   outline: none;
@@ -189,23 +150,4 @@
 .react-tags__suggestions li.is-disabled {
   opacity: 0.5;
   cursor: auto;
-}
-
-.react-tags span.label {
-  margin-left: 5px;
-  padding: 0.3em 0.6em 0.3em;
-}
-
-.react-tags a.deco-none {
-  color: inherit;
-  text-decoration:none;
-}
-
-.react-tags-rw span.label {
-  margin-left: 5px;
-}
-
-.react-tags-rw a.deco-none {
-  color: inherit;
-  text-decoration:none;
 }

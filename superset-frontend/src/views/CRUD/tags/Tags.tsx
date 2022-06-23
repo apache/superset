@@ -23,10 +23,7 @@ import { StringParam, useQueryParam } from 'use-query-params';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import SelectControl from 'src/explore/components/controls/SelectControl';
 import { fetchSuggestions } from 'src/tags';
-// import { STANDARD_TAGS } from 'src/dashboard/util/constants';
 import TagsTable from './TagsTable';
-
-// const OWNED_BY_ME = 'owner:{{ current_user_id() }}';
 
 const TagsContainer = styled.div`
   background-color: ${({ theme }) => theme.colors.grayscale.light4};

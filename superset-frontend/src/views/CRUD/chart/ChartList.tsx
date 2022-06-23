@@ -374,11 +374,13 @@ function ChartList(props: ChartListProps) {
             original: { tags = [] },
           },
         }: any) => (
+          // Only show custom type tags
           <TagsList tags={tags.filter((tag: Tag) => tag.type === 1)} />
         ),
         Header: t('Tags'),
         accessor: 'tags',
         disableSortBy: true,
+        hidden: !isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM),
       },
       {
         Cell: ({ row: { original } }: any) => {

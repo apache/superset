@@ -56,6 +56,7 @@ export const ObjectTags = ({
   deleteTag,
   addTag,
   editable,
+  onChange,
 }: ObjectTagsProps) => {
   const [tags, setTags] = useState<Tag[]>([]);
   const [tagSuggestions, setTagSuggestions] = useState<Tag[]>([]);
@@ -88,7 +89,7 @@ export const ObjectTags = ({
     deleteTag(tags[tagIndex].name, () =>
       setTags(tags.filter((_, i) => i !== tagIndex)),
     );
-    // onChange(tags);
+    onChange?.(tags);
   };
 
   const onAddition = (tag: Tag) => {
@@ -96,7 +97,7 @@ export const ObjectTags = ({
       return;
     }
     addTag(tag.name, () => setTags([...tags, tag]));
-    // onChange(tags);
+    onChange?.(tags);
   };
 
   if (editable) {

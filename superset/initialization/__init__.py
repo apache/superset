@@ -373,6 +373,9 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             icon="",
             category="",
             category_icon="",
+            menu_cond=lambda: feature_flag_manager.is_feature_enabled(
+                "TAGGING_SYSTEM"
+            ),
         )
         appbuilder.add_api(LogRestApi)
         appbuilder.add_view(
