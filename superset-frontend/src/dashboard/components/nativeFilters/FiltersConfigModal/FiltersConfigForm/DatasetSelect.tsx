@@ -19,14 +19,13 @@
 import React, { useCallback, useMemo } from 'react';
 import rison from 'rison';
 import { t, SupersetClient } from '@superset-ui/core';
-import { Select } from 'src/components';
+import { AsyncSelect } from 'src/components';
 import { cacheWrapper } from 'src/utils/cacheWrapper';
 import {
   ClientErrorObject,
   getClientErrorObject,
 } from 'src/utils/getClientErrorObject';
 import { datasetToSelectOption } from './utils';
-import AsyncSelect from 'src/components/Select/AsyncSelect';
 
 const localCache = new Map<string, any>();
 

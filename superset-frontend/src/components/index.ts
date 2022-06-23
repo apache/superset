@@ -23,6 +23,7 @@
  * E.g. import { Select } from 'src/components'
  */
 export { default as Select } from './Select/Select';
+export { default as AsyncSelect } from './Select/AsyncSelect';
 
 /*
  * Components that don't conflict with the ones in src/components.

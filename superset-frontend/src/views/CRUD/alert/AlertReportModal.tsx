@@ -58,7 +58,7 @@ import {
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import { AlertReportCronScheduler } from './components/AlertReportCronScheduler';
 import { NotificationMethod } from './components/NotificationMethod';
-import AsyncSelect from 'src/components/Select/AsyncSelect';
+import { AsyncSelect } from 'src/components';
 
 const TIMEOUT_MIN = 1;
 const TEXT_BASED_VISUALIZATION_TYPES = [

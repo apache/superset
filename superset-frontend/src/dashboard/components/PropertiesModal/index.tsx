@@ -21,7 +21,7 @@ import { Input } from 'src/components/Input';
 import { FormItem } from 'src/components/Form';
 import jsonStringify from 'json-stringify-pretty-compact';
 import Button from 'src/components/Button';
-import { Select, Row, Col, AntdForm } from 'src/components';
+import { AsyncSelect, Row, Col, AntdForm } from 'src/components';
 import rison from 'rison';
 import {
   styled,
@@ -39,7 +39,6 @@ import ColorSchemeControlWrapper from 'src/dashboard/components/ColorSchemeContr
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
-import AsyncSelect from 'src/components/Select/AsyncSelect';
 
 const StyledFormItem = styled(FormItem)`
   margin-bottom: 0;

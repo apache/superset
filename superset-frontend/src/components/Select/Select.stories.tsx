@@ -19,6 +19,7 @@
 import React, { ReactNode, useState, useCallback, useRef } from 'react';
 import Button from 'src/components/Button';
 import ControlHeader from 'src/explore/components/ControlHeader';
+import AsyncSelect, { AsyncSelectProps, AsyncSelectRef } from './AsyncSelect';
 import Select, {
   SelectProps,
   OptionsTypePage,
@@ -381,19 +382,19 @@ const USERS = [
   'Ilenia',
 ].sort();
 
-export const AsyncSelect = ({
+export const AsynchronousSelect = ({
   fetchOnlyOnSearch,
   withError,
   withInitialValue,
   responseTime,
   ...rest
-}: SelectProps & {
+}: AsyncSelectProps & {
   withError: boolean;
   withInitialValue: boolean;
   responseTime: number;
 }) => {
   const [requests, setRequests] = useState<ReactNode[]>([]);
-  const ref = useRef<SelectRef>(null);
+  const ref = useRef<AsyncSelectRef>(null);
 
   const getResults = (username?: string) => {
     let results: { label: string; value: string }[] = [];
@@ -463,12 +464,12 @@ export const AsyncSelect = ({
           width: DEFAULT_WIDTH,
         }}
       >
-        <Select
+        <AsyncSelect
           {...rest}
           ref={ref}
           fetchOnlyOnSearch={fetchOnlyOnSearch}
           options={withError ? fetchUserListError : fetchUserListPage}
-          placeholder={fetchOnlyOnSearch ? 'Type anything' : 'Select...'}
+          placeholder={fetchOnlyOnSearch ? 'Type anything' : 'AsyncSelect...'}
           value={
             withInitialValue
               ? { label: 'Valentina', value: 'Valentina' }
@@ -509,7 +510,7 @@ export const AsyncSelect = ({
   );
 };
 
-AsyncSelect.args = {
+AsynchronousSelect.args = {
   allowClear: false,
   allowNewOptions: false,
   fetchOnlyOnSearch: false,
@@ -519,7 +520,7 @@ AsyncSelect.args = {
   tokenSeparators: ['\n', '\t', ';'],
 };
 
-AsyncSelect.argTypes = {
+AsynchronousSelect.argTypes = {
   ...ARG_TYPES,
   header: {
     table: {
@@ -552,7 +553,7 @@ AsyncSelect.argTypes = {
   },
 };
 
-AsyncSelect.story = {
+AsynchronousSelect.story = {
   parameters: {
     knobs: {
       disable: true,

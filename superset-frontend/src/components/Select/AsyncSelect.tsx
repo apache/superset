@@ -81,6 +81,9 @@ export type OptionsPagePromise = (
   pageSize: number,
 ) => Promise<OptionsTypePage>;
 
+export type AsyncSelectRef = HTMLInputElement & { clearCache: () => void };
+
+
 export interface AsyncSelectProps extends PickedSelectProps {
   /**
    * It enables the user to create new options.
@@ -315,7 +318,7 @@ const AsyncSelect = (
     value,
     ...props
   }: AsyncSelectProps,
-  ref: RefObject<HTMLInputElement>,
+  ref: RefObject<AsyncSelectRef>,
 ) => {
   const isAsync = typeof options === 'function';
   const isSingleMode = mode === 'single';

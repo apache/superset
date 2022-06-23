@@ -412,12 +412,12 @@ test('adds the null option when selected in multiple mode', async () => {
   expect(values[1]).toHaveTextContent(NULL_OPTION.label);
 });
 
-test('async - renders the select with default props', () => {
+test('renders the select with default props', () => {
   render(<Select {...defaultProps} options={loadOptions} />);
   expect(getSelect()).toBeInTheDocument();
 });
 
-test('async - opens the select without any data', async () => {
+test('opens the select without any data', async () => {
   render(
     <Select
       {...defaultProps}
@@ -428,7 +428,7 @@ test('async - opens the select without any data', async () => {
   expect(await screen.findByText(/no data/i)).toBeInTheDocument();
 });
 
-test('async - displays the loading indicator when opening', async () => {
+test('displays the loading indicator when opening', async () => {
   render(<Select {...defaultProps} options={loadOptions} />);
   await waitFor(() => {
     userEvent.click(getSelect());
@@ -437,7 +437,7 @@ test('async - displays the loading indicator when opening', async () => {
   expect(screen.queryByText(LOADING)).not.toBeInTheDocument();
 });
 
-test('async - makes a selection in single mode', async () => {
+test('makes a selection in single mode', async () => {
   render(<Select {...defaultProps} options={loadOptions} />);
   const optionText = 'Emma';
   await open();
@@ -445,7 +445,7 @@ test('async - makes a selection in single mode', async () => {
   expect(await findSelectValue()).toHaveTextContent(optionText);
 });
 
-test('async - multiple selections in multiple mode', async () => {
+test('multiple selections in multiple mode', async () => {
   render(<Select {...defaultProps} options={loadOptions} mode="multiple" />);
   await open();
   const [firstOption, secondOption] = OPTIONS;
@@ -456,7 +456,7 @@ test('async - multiple selections in multiple mode', async () => {
   expect(values[1]).toHaveTextContent(secondOption.label);
 });
 
-test('async - changes the selected item in single mode', async () => {
+test('changes the selected item in single mode', async () => {
   const onChange = jest.fn();
   render(
     <Select {...defaultProps} options={loadOptions} onChange={onChange} />,
@@ -483,7 +483,7 @@ test('async - changes the selected item in single mode', async () => {
   expect(await findSelectValue()).toHaveTextContent(secondOption.label);
 });
 
-test('async - deselects an item in multiple mode', async () => {
+test('deselects an item in multiple mode', async () => {
   render(<Select {...defaultProps} options={loadOptions} mode="multiple" />);
   await open();
   const option3 = OPTIONS[2];
@@ -517,14 +517,14 @@ test('async - deselects an item in multiple mode', async () => {
   expect(values[0]).toHaveTextContent(option8.label);
 });
 
-test('async - adds a new option if none is available and allowNewOptions is true', async () => {
+test('adds a new option if none is available and allowNewOptions is true', async () => {
   render(<Select {...defaultProps} options={loadOptions} allowNewOptions />);
   await open();
   await type(NEW_OPTION);
   expect(await findSelectOption(NEW_OPTION)).toBeInTheDocument();
 });
 
-test('async - does not add a new option if the option already exists', async () => {
+test('does not add a new option if the option already exists', async () => {
   render(<Select {...defaultProps} options={loadOptions} allowNewOptions />);
   const option = OPTIONS[0].label;
   await open();
@@ -537,7 +537,7 @@ test('async - does not add a new option if the option already exists', async () 
   });
 });
 
-test('async - shows "No data" when allowNewOptions is false and a new option is entered', async () => {
+test('shows "No data" when allowNewOptions is false and a new option is entered', async () => {
   render(
     <Select
       {...defaultProps}
@@ -551,19 +551,19 @@ test('async - shows "No data" when allowNewOptions is false and a new option is 
   expect(await screen.findByText(NO_DATA)).toBeInTheDocument();
 });
 
-test('async - does not show "No data" when allowNewOptions is true and a new option is entered', async () => {
+test('does not show "No data" when allowNewOptions is true and a new option is entered', async () => {
   render(<Select {...defaultProps} options={loadOptions} allowNewOptions />);
   await open();
   await type(NEW_OPTION);
   expect(screen.queryByText(NO_DATA)).not.toBeInTheDocument();
 });
 
-test('async - sets a initial value in single mode', async () => {
+test('sets a initial value in single mode', async () => {
   render(<Select {...defaultProps} options={loadOptions} value={OPTIONS[0]} />);
   expect(await findSelectValue()).toHaveTextContent(OPTIONS[0].label);
 });
 
-test('async - sets a initial value in multiple mode', async () => {
+test('sets a initial value in multiple mode', async () => {
   render(
     <Select
       {...defaultProps}
@@ -577,7 +577,7 @@ test('async - sets a initial value in multiple mode', async () => {
   expect(values[1]).toHaveTextContent(OPTIONS[1].label);
 });
 
-test('async - searches for matches in both loaded and unloaded pages', async () => {
+test('searches for matches in both loaded and unloaded pages', async () => {
   render(<Select {...defaultProps} options={loadOptions} />);
   await open();
   await type('and');
@@ -593,7 +593,7 @@ test('async - searches for matches in both loaded and unloaded pages', async () 
   expect(options[1]).toHaveTextContent('Sandro');
 });
 
-test('async - searches for an item in a page not loaded', async () => {
+test('searches for an item in a page not loaded', async () => {
   const mock = jest.fn(loadOptions);
   render(<Select {...defaultProps} options={mock} />);
   const search = 'Sandro';
@@ -605,20 +605,20 @@ test('async - searches for an item in a page not loaded', async () => {
   expect(options[0]).toHaveTextContent(search);
 });
 
-test('async - does not fetches data when rendering', async () => {
+test('does not fetches data when rendering', async () => {
   const loadOptions = jest.fn(async () => ({ data: [], totalCount: 0 }));
   render(<Select {...defaultProps} options={loadOptions} />);
   expect(loadOptions).not.toHaveBeenCalled();
 });
 
-test('async - fetches data when opening', async () => {
+test('fetches data when opening', async () => {
   const loadOptions = jest.fn(async () => ({ data: [], totalCount: 0 }));
   render(<Select {...defaultProps} options={loadOptions} />);
   await open();
   expect(loadOptions).toHaveBeenCalled();
 });
 
-test('async - fetches data only after a search input is entered if fetchOnlyOnSearch is true', async () => {
+test('fetches data only after a search input is entered if fetchOnlyOnSearch is true', async () => {
   const loadOptions = jest.fn(async () => ({ data: [], totalCount: 0 }));
   render(<Select {...defaultProps} options={loadOptions} fetchOnlyOnSearch />);
   await open();
@@ -627,7 +627,7 @@ test('async - fetches data only after a search input is entered if fetchOnlyOnSe
   await waitFor(() => expect(loadOptions).toHaveBeenCalled());
 });
 
-test('async - displays an error message when an exception is thrown while fetching', async () => {
+test('displays an error message when an exception is thrown while fetching', async () => {
   const error = 'Fetch error';
   const loadOptions = async () => {
     throw new Error(error);
@@ -637,7 +637,7 @@ test('async - displays an error message when an exception is thrown while fetchi
   expect(screen.getByText(error)).toBeInTheDocument();
 });
 
-test('async - does not fire a new request for the same search input', async () => {
+test('does not fire a new request for the same search input', async () => {
   const loadOptions = jest.fn(async () => ({ data: [], totalCount: 0 }));
   render(<Select {...defaultProps} options={loadOptions} fetchOnlyOnSearch />);
   await type('search');
@@ -649,7 +649,7 @@ test('async - does not fire a new request for the same search input', async () =
   expect(loadOptions).toHaveBeenCalledTimes(1);
 });
 
-test('async - does not fire a new request if all values have been fetched', async () => {
+test('does not fire a new request if all values have been fetched', async () => {
   const mock = jest.fn(loadOptions);
   const search = 'George';
   const pageSize = OPTIONS.length;
@@ -661,7 +661,7 @@ test('async - does not fire a new request if all values have been fetched', asyn
   expect(mock).toHaveBeenCalledTimes(1);
 });
 
-test('async - fires a new request if all values have not been fetched', async () => {
+test('fires a new request if all values have not been fetched', async () => {
   const mock = jest.fn(loadOptions);
   const pageSize = OPTIONS.length / 2;
   render(<Select {...defaultProps} options={mock} pageSize={pageSize} />);

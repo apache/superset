@@ -19,12 +19,11 @@
 import React, { ReactNode, useState, useMemo, useEffect } from 'react';
 import { styled, SupersetClient, t } from '@superset-ui/core';
 import rison from 'rison';
-import { Select } from 'src/components';
+import { AsyncSelect, Select } from 'src/components';
 import Label from 'src/components/Label';
 import { FormLabel } from 'src/components/Form';
 import RefreshLabel from 'src/components/RefreshLabel';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
-import AsyncSelect from '../Select/AsyncSelect';
 
 const DatabaseSelectorWrapper = styled.div`
   ${({ theme }) => `

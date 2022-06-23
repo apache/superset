@@ -20,14 +20,13 @@ import React, { useMemo, useState, useCallback, useEffect } from 'react';
 import Modal from 'src/components/Modal';
 import { Input, TextArea } from 'src/components/Input';
 import Button from 'src/components/Button';
-import { Select, Row, Col, AntdForm } from 'src/components';
+import { AsyncSelect, Row, Col, AntdForm } from 'src/components';
 import { SelectValue } from 'antd/lib/select';
 import rison from 'rison';
 import { t, SupersetClient, styled } from '@superset-ui/core';
 import Chart, { Slice } from 'src/types/Chart';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import AsyncSelect from 'src/components/Select/AsyncSelect';
 
 export type PropertiesModalProps = {
   slice: Slice;
