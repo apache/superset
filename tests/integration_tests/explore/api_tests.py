@@ -91,13 +91,13 @@ def assert_dataset(result, dataset_id):
 
 
 # partially match the slice using the most important attributes
-def assert_slice(result, chart_id):
+def assert_slice(result, chart_id, dataset_id):
     slice = result["slice"]
     assert slice["edit_url"] == f"/chart/edit/{chart_id}"
     assert slice["is_managed_externally"] == False
     assert slice["slice_id"] == chart_id
     assert slice["slice_name"] == "World's Population"
-    assert slice["form_data"]["datasource"] == f"{chart_id}__table"
+    assert slice["form_data"]["datasource"] == f"{dataset_id}__table"
     assert slice["form_data"]["viz_type"] == "big_number"
 
 
@@ -138,7 +138,7 @@ def test_get_from_cache_unknown_key_chart_id(client, chart_id, dataset):
     data = json.loads(resp.data.decode("utf-8"))
     result = data.get("result")
     assert_dataset(result, dataset.id)
-    assert_slice(result, chart_id)
+    assert_slice(result, chart_id, dataset.id)
     assert result["form_data"]["datasource"] == f"{dataset.id}__table"
     assert (
         result["message"]
