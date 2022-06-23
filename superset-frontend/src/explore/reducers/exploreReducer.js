@@ -52,20 +52,6 @@ export default function exploreReducer(state = {}, action) {
     [actions.UPDATE_FORM_DATA_BY_DATASOURCE]() {
       const newFormData = { ...state.form_data };
       const { prevDatasource, newDatasource } = action;
-      if (prevDatasource.type !== newDatasource.type) {
-        if (newDatasource.type === 'table') {
-          newFormData.granularity_sqla = newDatasource.granularity_sqla;
-          newFormData.time_grain_sqla = newDatasource.time_grain_sqla;
-          delete newFormData.druid_time_origin;
-          delete newFormData.granularity;
-        } else {
-          newFormData.druid_time_origin = newDatasource.druid_time_origin;
-          newFormData.granularity = newDatasource.granularity;
-          delete newFormData.granularity_sqla;
-          delete newFormData.time_grain_sqla;
-        }
-      }
-
       const controls = { ...state.controls };
       const controlsTransferred = [];
       if (
@@ -119,12 +105,6 @@ export default function exploreReducer(state = {}, action) {
       return {
         ...state,
         isDatasourcesLoading: true,
-      };
-    },
-    [actions.SET_DATASOURCES]() {
-      return {
-        ...state,
-        datasources: action.datasources,
       };
     },
     [actions.SET_FIELD_VALUE]() {

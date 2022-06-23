@@ -20,6 +20,7 @@
 import { Dispatch } from 'redux';
 import { Dataset } from '@superset-ui/chart-controls';
 import { updateFormDataByDatasource } from './exploreActions';
+import { ExplorePageState } from '../reducers/getInitialState';
 
 export const SET_DATASOURCE = 'SET_DATASOURCE';
 export interface SetDatasource {
@@ -31,8 +32,10 @@ export function setDatasource(datasource: Dataset) {
 }
 
 export function changeDatasource(newDatasource: Dataset) {
-  return function (dispatch: Dispatch, getState: () => any) {
-    const prevDatasource = getState();
+  return function (dispatch: Dispatch, getState: () => ExplorePageState) {
+    const {
+      explore: { datasource: prevDatasource },
+    } = getState();
     dispatch(setDatasource(newDatasource));
     dispatch(updateFormDataByDatasource(prevDatasource, newDatasource));
   };
