@@ -44,7 +44,7 @@ all of the required dependencies. Docker Desktop [recently added support for Win
 following command:
 
 ```bash
-$ git clone https://github.com/apache/superset.git
+git clone https://github.com/apache/superset.git
 ```
 
 Once that command completes successfully, you should see a new `superset` folder in your
@@ -55,14 +55,14 @@ current directory.
 Navigate to the folder you created in step 1:
 
 ```bash
-$ cd superset
+cd superset
 ```
 
 When working on master branch, run the following commands:
 
 ```bash
-$ docker-compose -f docker-compose-non-dev.yml pull
-$ docker-compose -f docker-compose-non-dev.yml up
+docker-compose -f docker-compose-non-dev.yml pull
+docker-compose -f docker-compose-non-dev.yml up
 ```
 
 Alternatively, you can also run a specific version of Superset by first checking out
@@ -70,9 +70,9 @@ the branch/tag, and then starting `docker-compose` with the `TAG` variable.
 For example, to run the 1.4.0 version, run the following commands:
 
 ```bash
-% git checkout 1.4.0
-$ TAG=1.4.0 docker-compose -f docker-compose-non-dev.yml pull
-$ TAG=1.4.0 docker-compose -f docker-compose-non-dev.yml up
+git checkout 1.4.0
+TAG=1.4.0 docker-compose -f docker-compose-non-dev.yml pull
+TAG=1.4.0 docker-compose -f docker-compose-non-dev.yml up
 ```
 
 You should see a wall of logging output from the containers being launched on your machine. Once
