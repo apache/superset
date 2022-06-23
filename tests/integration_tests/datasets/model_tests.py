@@ -17,8 +17,10 @@
 from unittest import mock
 
 import pytest
+from sqlalchemy import inspect
 from sqlalchemy.orm.exc import NoResultFound
 
+from superset.columns.models import Column
 from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.extensions import db
 from tests.integration_tests.base_tests import SupersetTestCase
@@ -59,6 +61,10 @@ class SqlaTableModelTest(SupersetTestCase):
         with mock.patch("sqlalchemy.orm.query.Query.one", side_effect=NoResultFound):
             SqlaTable.update_column(None, None, target=column)
 
+        session = inspect(column).session
+
+        session.flush()
+
         # refetch
         dataset = db.session.query(SqlaTable).filter_by(id=dataset.id).one()
         # it should create a new uuid
@@ -67,3 +73,15 @@ class SqlaTableModelTest(SupersetTestCase):
         # reset
         column.uuid = column_uuid
         SqlaTable.update_column(None, None, target=column)
+
+    @pytest.mark.usefixtures("load_dataset_with_columns")
+    def test_to_sl_column_no_known_columns(self) -> None:
+        """
+        Test that the function returns a new column
+        """
+        dataset = db.session.query(SqlaTable).filter_by(table_name="students").first()
+        column = dataset.columns[0]
+        new_column = column.to_sl_column()
+
+        # it should use the same uuid
+        assert column.uuid == new_column.uuid
