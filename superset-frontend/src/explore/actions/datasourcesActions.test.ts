@@ -17,41 +17,69 @@
  * under the License.
  */
 import { DatasourceType } from '@superset-ui/core';
-import { setDatasource } from 'src/explore/actions/datasourcesActions';
+import {
+  setDatasource,
+  changeDatasource,
+} from 'src/explore/actions/datasourcesActions';
 import datasourcesReducer from '../reducers/datasourcesReducer';
+import { updateFormDataByDatasource } from './exploreActions';
 
-const defaultState = {
-  '1__table': {
-    id: 1,
-    uid: '1__table',
-    type: DatasourceType.Table,
-    columns: [],
-    metrics: [],
-    column_format: {},
-    verbose_map: {},
-    main_dttm_col: '__timestamp',
-    // eg. ['["ds", true]', 'ds [asc]']
-    datasource_name: 'test datasource',
-    description: null,
-  },
+const CURRENT_DATASOURCE = {
+  id: 1,
+  uid: '1__table',
+  type: DatasourceType.Table,
+  columns: [],
+  metrics: [],
+  column_format: {},
+  verbose_map: {},
+  main_dttm_col: '__timestamp',
+  // eg. ['["ds", true]', 'ds [asc]']
+  datasource_name: 'test datasource',
+  description: null,
+};
+
+const NEW_DATASOURCE = {
+  id: 2,
+  type: DatasourceType.Table,
+  columns: [],
+  metrics: [],
+  column_format: {},
+  verbose_map: {},
+  main_dttm_col: '__timestamp',
+  // eg. ['["ds", true]', 'ds [asc]']
+  datasource_name: 'test datasource',
+  description: null,
+};
+
+const defaultDatasourcesReducerState = {
+  [CURRENT_DATASOURCE.uid]: CURRENT_DATASOURCE,
 };
 
 test('sets new datasource', () => {
-  const NEW_DATASOURCE = {
-    id: 2,
-    type: DatasourceType.Table,
-    columns: [],
-    metrics: [],
-    column_format: {},
-    verbose_map: {},
-    main_dttm_col: '__timestamp',
-    // eg. ['["ds", true]', 'ds [asc]']
-    datasource_name: 'test datasource',
-    description: null,
-  };
   const newState = datasourcesReducer(
-    defaultState,
+    defaultDatasourcesReducerState,
     setDatasource(NEW_DATASOURCE),
   );
-  expect(newState).toEqual({ ...defaultState, '2__table': NEW_DATASOURCE });
+  expect(newState).toEqual({
+    ...defaultDatasourcesReducerState,
+    '2__table': NEW_DATASOURCE,
+  });
+});
+
+test('change datasource action', () => {
+  const dispatch = jest.fn();
+  const getState = jest.fn(() => ({
+    explore: {
+      datasource: CURRENT_DATASOURCE,
+    },
+  }));
+  // ignore getState type check - we dont need explore.datasource field for this test
+  // @ts-ignore
+  changeDatasource(NEW_DATASOURCE)(dispatch, getState);
+  expect(dispatch).toHaveBeenCalledTimes(2);
+  expect(dispatch).toHaveBeenNthCalledWith(1, setDatasource(NEW_DATASOURCE));
+  expect(dispatch).toHaveBeenNthCalledWith(
+    2,
+    updateFormDataByDatasource(CURRENT_DATASOURCE, NEW_DATASOURCE),
+  );
 });
