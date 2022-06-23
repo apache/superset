@@ -54,7 +54,6 @@ class GetExploreCommand(BaseCommand, ABC):
         self,
         params: CommandParameters,
     ) -> None:
-        self._actor = params.actor
         self._permalink_key = params.permalink_key
         self._form_data_key = params.form_data_key
         self._dataset_id = params.dataset_id
@@ -66,7 +65,7 @@ class GetExploreCommand(BaseCommand, ABC):
         initial_form_data = {}
 
         if self._permalink_key is not None:
-            command = GetExplorePermalinkCommand(self._actor, self._permalink_key)
+            command = GetExplorePermalinkCommand(self._permalink_key)
             permalink_value = command.run()
             if not permalink_value:
                 raise ExplorePermalinkGetFailedError()
@@ -76,9 +75,7 @@ class GetExploreCommand(BaseCommand, ABC):
             if url_params:
                 initial_form_data["url_params"] = dict(url_params)
         elif self._form_data_key:
-            parameters = FormDataCommandParameters(
-                actor=self._actor, key=self._form_data_key
-            )
+            parameters = FormDataCommandParameters(key=self._form_data_key)
             value = GetFormDataCommand(parameters).run()
             initial_form_data = json.loads(value) if value else {}
 

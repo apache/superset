@@ -26,13 +26,13 @@ from superset.explore.form_data.commands.parameters import CommandParameters
 from superset.explore.form_data.commands.state import TemporaryExploreState
 from superset.explore.form_data.commands.utils import check_access
 from superset.extensions import cache_manager
-from superset.key_value.utils import get_owner, random_key
+from superset.key_value.utils import random_key
 from superset.temporary_cache.commands.exceptions import (
     TemporaryCacheAccessDeniedError,
     TemporaryCacheUpdateFailedError,
 )
 from superset.temporary_cache.utils import cache_key
-from superset.utils.core import DatasourceType
+from superset.utils.core import DatasourceType, get_user_id
 from superset.utils.schema import validate_json
 
 logger = logging.getLogger(__name__)
@@ -51,14 +51,13 @@ class UpdateFormDataCommand(BaseCommand, ABC):
             datasource_id = self._cmd_params.datasource_id
             chart_id = self._cmd_params.chart_id
             datasource_type = self._cmd_params.datasource_type
-            actor = self._cmd_params.actor
             key = self._cmd_params.key
             form_data = self._cmd_params.form_data
-            check_access(datasource_id, chart_id, actor, datasource_type)
+            check_access(datasource_id, chart_id, datasource_type)
             state: TemporaryExploreState = cache_manager.explore_form_data_cache.get(
                 key
             )
-            owner = get_owner(actor)
+            owner = get_user_id()
             if state and form_data:
                 if state["owner"] != owner:
                     raise TemporaryCacheAccessDeniedError()

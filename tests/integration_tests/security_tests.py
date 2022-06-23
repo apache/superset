@@ -432,8 +432,8 @@ class TestRolePermission(SupersetTestCase):
 
         # TODO test slice permission
 
-    @patch("superset.security.manager.g")
     @patch("superset.utils.core.g")
+    @patch("superset.security.manager.g")
     def test_schemas_accessible_by_user_admin(self, mock_sm_g, mock_g):
         mock_g.user = mock_sm_g.user = security_manager.find_user("admin")
         with self.client.application.test_request_context():
@@ -443,8 +443,8 @@ class TestRolePermission(SupersetTestCase):
             )
             self.assertEqual(schemas, ["1", "2", "3"])  # no changes
 
-    @patch("superset.security.manager.g")
     @patch("superset.utils.core.g")
+    @patch("superset.security.manager.g")
     def test_schemas_accessible_by_user_schema_access(self, mock_sm_g, mock_g):
         # User has schema access to the schema 1
         create_schema_perm("[examples].[1]")
@@ -458,8 +458,8 @@ class TestRolePermission(SupersetTestCase):
             self.assertEqual(schemas, ["1"])
         delete_schema_perm("[examples].[1]")
 
-    @patch("superset.security.manager.g")
     @patch("superset.utils.core.g")
+    @patch("superset.security.manager.g")
     def test_schemas_accessible_by_user_datasource_access(self, mock_sm_g, mock_g):
         # User has schema access to the datasource temp_schema.wb_health_population in examples DB.
         mock_g.user = mock_sm_g.user = security_manager.find_user("gamma")
@@ -470,8 +470,8 @@ class TestRolePermission(SupersetTestCase):
             )
             self.assertEqual(schemas, ["temp_schema"])
 
-    @patch("superset.security.manager.g")
     @patch("superset.utils.core.g")
+    @patch("superset.security.manager.g")
     def test_schemas_accessible_by_user_datasource_and_schema_access(
         self, mock_sm_g, mock_g
     ):
@@ -904,9 +904,9 @@ class TestSecurityManager(SupersetTestCase):
 
         self.assertFalse(security_manager.can_access_table(database, table))
 
+    @patch("superset.security.SupersetSecurityManager.is_owner")
     @patch("superset.security.SupersetSecurityManager.can_access")
     @patch("superset.security.SupersetSecurityManager.can_access_schema")
-    @patch("superset.views.utils.is_owner")
     def test_raise_for_access_datasource(
         self, mock_can_access_schema, mock_can_access, mock_is_owner
     ):
@@ -922,8 +922,8 @@ class TestSecurityManager(SupersetTestCase):
         with self.assertRaises(SupersetSecurityException):
             security_manager.raise_for_access(datasource=datasource)
 
+    @patch("superset.security.SupersetSecurityManager.is_owner")
     @patch("superset.security.SupersetSecurityManager.can_access")
-    @patch("superset.views.utils.is_owner")
     def test_raise_for_access_query(self, mock_can_access, mock_is_owner):
         query = Mock(
             database=get_example_database(), schema="bar", sql="SELECT * FROM foo"
@@ -938,10 +938,11 @@ class TestSecurityManager(SupersetTestCase):
         with self.assertRaises(SupersetSecurityException):
             security_manager.raise_for_access(query=query)
 
+    @patch("superset.security.SupersetSecurityManager.is_owner")
     @patch("superset.security.SupersetSecurityManager.can_access")
     @patch("superset.security.SupersetSecurityManager.can_access_schema")
     def test_raise_for_access_query_context(
-        self, mock_can_access_schema, mock_can_access
+        self, mock_can_access_schema, mock_can_access, mock_is_owner
     ):
         query_context = Mock(datasource=self.get_datasource_mock())
 
@@ -950,6 +951,7 @@ class TestSecurityManager(SupersetTestCase):
 
         mock_can_access.return_value = False
         mock_can_access_schema.return_value = False
+        mock_is_owner.return_value = False
 
         with self.assertRaises(SupersetSecurityException):
             security_manager.raise_for_access(query_context=query_context)
@@ -967,9 +969,12 @@ class TestSecurityManager(SupersetTestCase):
         with self.assertRaises(SupersetSecurityException):
             security_manager.raise_for_access(database=database, table=table)
 
+    @patch("superset.security.SupersetSecurityManager.is_owner")
     @patch("superset.security.SupersetSecurityManager.can_access")
     @patch("superset.security.SupersetSecurityManager.can_access_schema")
-    def test_raise_for_access_viz(self, mock_can_access_schema, mock_can_access):
+    def test_raise_for_access_viz(
+        self, mock_can_access_schema, mock_can_access, mock_is_owner
+    ):
         test_viz = viz.TableViz(self.get_datasource_mock(), form_data={})
 
         mock_can_access_schema.return_value = True
@@ -977,6 +982,7 @@ class TestSecurityManager(SupersetTestCase):
 
         mock_can_access.return_value = False
         mock_can_access_schema.return_value = False
+        mock_is_owner.return_value = False
 
         with self.assertRaises(SupersetSecurityException):
             security_manager.raise_for_access(viz=test_viz)
