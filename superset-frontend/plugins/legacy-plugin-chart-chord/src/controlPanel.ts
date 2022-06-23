@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, validateNonEmpty } from '@superset-ui/core';
+import { ensureIsArray, t, validateNonEmpty } from '@superset-ui/core';
 import { ControlPanelConfig, sections } from '@superset-ui/chart-controls';
 
 const config: ControlPanelConfig = {
@@ -68,6 +68,17 @@ const config: ControlPanelConfig = {
       validators: [validateNonEmpty],
       description: t('Choose a target'),
     },
+  },
+  denormalizeFormData: formData => {
+    const groupby =
+      formData.standardizedFormData.standardizedState.columns.filter(
+        col => !ensureIsArray(formData.columns).includes(col),
+      );
+    return {
+      ...formData,
+      metric: formData.standardizedFormData.standardizedState.metrics[0],
+      groupby,
+    };
   },
 };
 
