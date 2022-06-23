@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
+import { ensureIsArray, t } from '@superset-ui/core';
 import {
   ControlPanelConfig,
   formatSelectOptions,
@@ -127,6 +127,16 @@ const config: ControlPanelConfig = {
     color_scheme: {
       renderTrigger: false,
     },
+  },
+  denormalizeFormData: formData => {
+    const entity =
+      formData.standardizedFormData.standardizedState.columns.filter(
+        col => !ensureIsArray(formData.series).includes(col),
+      )[0];
+    return {
+      ...formData,
+      entity,
+    };
   },
 };
 
