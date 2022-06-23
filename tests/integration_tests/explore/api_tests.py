@@ -85,9 +85,7 @@ def assert_dataset(result, dataset_id):
     assert dataset["datasource_name"] == "wb_health_population"
     assert dataset["is_sqllab_view"] == False
     assert dataset["main_dttm_col"] == "year"
-    assert dataset["schema"] == "public"
     assert dataset["sql"] == None
-    assert dataset["table_name"] == "wb_health_population"
     assert dataset["type"] == "table"
     assert dataset["uid"] == "1__table"
 
