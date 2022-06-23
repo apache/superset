@@ -79,9 +79,9 @@ def cache(chart_id, admin_id, dataset):
 
 
 # partially match the dataset using the most important attributes
-def assert_dataset(result):
+def assert_dataset(result, dataset_id):
     dataset = result["dataset"]
-    assert dataset["id"] == 1
+    assert dataset["id"] == dataset_id
     assert dataset["datasource_name"] == "wb_health_population"
     assert dataset["is_sqllab_view"] == False
     assert dataset["main_dttm_col"] == "year"
@@ -123,14 +123,14 @@ def test_get_from_cache(client, dataset):
     assert resp.status_code == 200
     data = json.loads(resp.data.decode("utf-8"))
     result = data.get("result")
-    assert_dataset(result)
+    assert_dataset(result, dataset.id)
     assert result["form_data"]["datasource"] == "1__table"
     assert result["form_data"]["test"] == "test value"
     assert result["message"] == None
     assert result["slice"] == None
 
 
-def test_get_from_cache_unknown_key_chart_id(client, chart_id):
+def test_get_from_cache_unknown_key_chart_id(client, chart_id, dataset):
     login(client, "admin")
     unknown_key = "unknown_key"
     resp = client.get(
@@ -139,7 +139,7 @@ def test_get_from_cache_unknown_key_chart_id(client, chart_id):
     assert resp.status_code == 200
     data = json.loads(resp.data.decode("utf-8"))
     result = data.get("result")
-    assert_dataset(result)
+    assert_dataset(result, dataset.id)
     assert_slice(result, chart_id)
     assert result["form_data"]["datasource"] == "1__table"
     assert (
@@ -157,7 +157,7 @@ def test_get_from_cache_unknown_key_dataset(client, dataset):
     assert resp.status_code == 200
     data = json.loads(resp.data.decode("utf-8"))
     result = data.get("result")
-    assert_dataset(result)
+    assert_dataset(result, dataset.id)
     assert result["form_data"]["datasource"] == "1__table"
     assert (
         result["message"]
@@ -193,7 +193,7 @@ def test_get_from_permalink(client, chart_id, dataset):
     assert resp.status_code == 200
     data = json.loads(resp.data.decode("utf-8"))
     result = data.get("result")
-    assert_dataset(result)
+    assert_dataset(result, dataset.id)
     assert result["form_data"]["datasource"] == "1__table"
     assert result["form_data"]["test"] == "test value"
     assert result["message"] == None
