@@ -276,12 +276,22 @@ A current list of feature flags can be found in [RESOURCES/FEATURE_FLAGS.md](htt
 
 ### SECRET_KEY Rotation
 
-If you want to rotate the SECRET_KEY(change the existing secret key), follow the below steps.
-
-Add the new SECRET_KEY and PREVIOUS_SECRET_KEY to `superset_config.py`:
-
+To change the SECRET_KEY, first run the superset, because we need to access the database. After the superset running, create `superset_config.py` on temporary folder, for example `/tmp/superset_config.py` with following content
 ```python
 PREVIOUS_SECRET_KEY = 'CURRENT_SECRET_KEY' # The default SECRET_KEY for deployment is '21thisismyscretkey12eyyh'
 SECRET_KEY = 'YOUR_OWN_RANDOM_GENERATED_SECRET_KEY'
 ```
+`PREVIOUS_SECRET_KEY` this is your current `SECRET_KEY`. If you never changes this value before, the value either `21thisismyscretkey12eyyh` or `CHANGE_ME_TO_A_COMPLEX_RANDOM_SECRET`
+
+`SECRET_KEY` is the new `SECRET_KEY`, which we can generate using openssl
+```bash
+openssl rand -base64 42
+```
+
+Set `SUPERSET_CONFIG_PATH` environment variable, so the superset will use this configuration. For example
+```bash
+export SUPERSET_CONFIG_PATH=/tmp/superset_config.py
+````
 Then run `superset re-encrypt-secrets`
+
+After this changes, update your actual `superset_config.py` with the new `SECRET_KEY` and re-run superset.
