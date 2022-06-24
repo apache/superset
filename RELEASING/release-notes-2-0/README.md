@@ -50,7 +50,7 @@ Time Series Charts now support stacking of both negative and positive values ([#
 
 - Pie charts now defaults to a row limit of 100 to prevent crashes when a high-cardinality column is chosen as the dimension ([#20392](https://github.com/apache/superset/pull/20392))
 
-- World map chart now supports coloring either by metric or by the country column ([#19881](https://github.com/apache/superset/pull/19987))
+- World map chart now supports coloring either by metric or by the country column ([#19881](https://github.com/apache/superset/pull/19881))
 
 - Table visualization now supports drag and drop for columns ([#19381](https://github.com/apache/superset/pull/19381))
 
