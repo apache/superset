@@ -107,7 +107,7 @@ Time Series Charts now support stacking of both negative and positive values ([#
 
 - New Jinja macro enables querying / referencing both physical and virtual datasets in SQL Lab ([#15241](https://github.com/apache/superset/pull/15241))
 
-- New Jinja macro added to improve experience of including multiple items ([#19574](https://github.com/apache/superset/pull/18936))
+- New Jinja macro added to improve experience of including multiple items ([#19574](https://github.com/apache/superset/pull/19574))
 
 **Other**
 
