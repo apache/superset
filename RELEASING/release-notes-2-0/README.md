@@ -23,7 +23,8 @@ Superset 2.0 is a big step forward. This release cleans up many legacy code path
 
 - [**Developer Experience**](#developer-experience)
 - [**Features**](#features)
-- [**Feature flags**](#config-and-feature-flags)
+- [**Config and Feature flags**](#config-and-feature-flags)
+- [**Breaking Changes**](#breaking-changes)
 
 ## Developer Experience
 
