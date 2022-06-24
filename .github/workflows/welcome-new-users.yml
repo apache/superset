@@ -8,7 +8,7 @@ jobs:
   welcome:
     runs-on: ubuntu-latest
     permissions:
-      issues: write
+      pull-requests: write
 
     steps:
       - name: Welcome Message
