@@ -66,7 +66,7 @@ Time Series Charts now support stacking of both negative and positive values ([#
 
 - Add aggregate total for Pie charts ([#19622](https://github.com/apache/superset/pull/19622))
 
-- Legend is now enabled by default for relevant charts ([#19927](https://github.com/apache/superset/pull/19622))
+- Legend is now enabled by default for relevant charts ([#19927](https://github.com/apache/superset/pull/19927))
 
 **View Results Experience**
 
