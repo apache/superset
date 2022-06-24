@@ -88,6 +88,11 @@ const config: ControlPanelConfig = {
       renderTrigger: false,
     },
   },
+  denormalizeFormData: formData => ({
+    ...formData,
+    metric: formData.standardizedFormData.standardizedState.metrics[0],
+    entity: formData.standardizedFormData.standardizedState.columns[0],
+  }),
 };
 
 export default config;
