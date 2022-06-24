@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SupersetClient } from '@superset-ui/core';
+import { SupersetClient, t } from '@superset-ui/core';
+import { addSuccessToast } from 'src/components/MessageToasts/actions';
 import { buildV1ChartDataPayload } from '../exploreUtils';
 
 export const FETCH_DASHBOARDS_SUCCEEDED = 'FETCH_DASHBOARDS_SUCCEEDED';
@@ -83,45 +84,72 @@ const getSlicePayload = (sliceName, formData) => {
   return payload;
 };
 
-//  Update existing slice
-export const updateSlice = (sliceId, sliceName, formData) => async dispatch => {
-  let response;
-  try {
-    response = (
-      await SupersetClient.put({
-        endpoint: `/api/v1/chart/${sliceId}`,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(getSlicePayload(sliceName, formData)),
-      })
-    ).json;
-  } catch (error) {
-    dispatch(saveSliceFailed());
-    throw error;
+const addDashboardSuccessToast = (addedToDashboard, sliceName) => {
+  if (addedToDashboard) {
+    if (addedToDashboard.new) {
+      addSuccessToast(
+        `${t('Chart')} [${sliceName}] ${t('was added to dashboard')} [${
+          addedToDashboard.title
+        }]`,
+      );
+    } else {
+      addSuccessToast(
+        `${t('Dashboard')} ${addedToDashboard.title}] ${t(
+          'just got created and chart',
+        )} [${sliceName}] ${t('was added to it')}`,
+      );
+    }
   }
-
-  dispatch(saveSliceSuccess());
-  return response;
 };
+
+//  Update existing slice
+export const updateSlice =
+  (sliceId, sliceName, formData, addedToDashboard) => async dispatch => {
+    let response;
+    try {
+      response = (
+        await SupersetClient.put({
+          endpoint: `/api/v1/chart/${sliceId}`,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(getSlicePayload(sliceName, formData)),
+        })
+      ).json;
+    } catch (error) {
+      dispatch(saveSliceFailed());
+      throw error;
+    }
+
+    dispatch(saveSliceSuccess());
+    addSuccessToast(
+      `${t('Chart')} [${sliceName}] ${t('has been overwritten')}`,
+    );
+
+    addDashboardSuccessToast(addedToDashboard, sliceName);
+    return response;
+  };
 
 //  Create new slice
-export const createSlice = (sliceName, formData) => async dispatch => {
-  let response;
-  try {
-    response = (
-      await SupersetClient.post({
-        endpoint: `/api/v1/chart/`,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(getSlicePayload(sliceName, formData)),
-      })
-    ).json;
-  } catch (error) {
-    dispatch(saveSliceFailed());
-    throw error;
-  }
+export const createSlice =
+  (sliceName, formData, addedToDashboard) => async dispatch => {
+    let response;
+    try {
+      response = (
+        await SupersetClient.post({
+          endpoint: `/api/v1/chart/`,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(getSlicePayload(sliceName, formData)),
+        })
+      ).json;
+    } catch (error) {
+      dispatch(saveSliceFailed());
+      throw error;
+    }
 
-  dispatch(saveSliceSuccess());
-  return response;
-};
+    dispatch(saveSliceSuccess());
+    addSuccessToast(`${t('Chart')} ${sliceName} ${t('has been saved')}`);
+    addDashboardSuccessToast(addedToDashboard, sliceName);
+    return response;
+  };
 
 //  Create new dashboard
 export const createDashboard = dashboardName => async dispatch => {

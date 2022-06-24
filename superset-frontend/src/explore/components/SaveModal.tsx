@@ -137,7 +137,12 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
     let promise = Promise.resolve();
 
     //  Create or retrieve dashboard
-    type DashboardGetResponse = { id: number; url: string };
+    type DashboardGetResponse = {
+      id: number;
+      url: string;
+      dashboard_title: string;
+    };
+
     let dashboard: DashboardGetResponse | null = null;
     if (this.state.newDashboardName || this.state.saveToDashboardId) {
       let saveToDashboardId = this.state.saveToDashboardId || null;
@@ -168,11 +173,26 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
           this.props.slice?.slice_id,
           this.state.newSliceName,
           formData,
+          dashboard
+            ? {
+                title: dashboard.dashboard_title,
+                new: !this.state.saveToDashboardId,
+              }
+            : null,
         ),
       );
     } else {
       promise = promise.then(() =>
-        this.props.actions.createSlice(this.state.newSliceName, formData),
+        this.props.actions.createSlice(
+          this.state.newSliceName,
+          formData,
+          dashboard
+            ? {
+                title: dashboard.dashboard_title,
+                new: !this.state.saveToDashboardId,
+              }
+            : null,
+        ),
       );
     }
 
