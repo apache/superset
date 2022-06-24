@@ -51,6 +51,7 @@ const propTypes = {
   updateSliceName: PropTypes.func.isRequired,
   isComponentVisible: PropTypes.bool,
   handleToggleFullSize: PropTypes.func.isRequired,
+  setControlValue: PropTypes.func,
 
   // from redux
   chart: chartPropShape.isRequired,
@@ -223,9 +224,14 @@ export default class Chart extends React.Component {
   }
 
   getHeaderHeight() {
-    return (
-      (this.headerRef && this.headerRef.offsetHeight) || DEFAULT_HEADER_HEIGHT
-    );
+    if (this.headerRef) {
+      const computedStyle = getComputedStyle(this.headerRef).getPropertyValue(
+        'margin-bottom',
+      );
+      const marginBottom = parseInt(computedStyle, 10) || 0;
+      return this.headerRef.offsetHeight + marginBottom;
+    }
+    return DEFAULT_HEADER_HEIGHT;
   }
 
   setDescriptionRef(ref) {
@@ -348,6 +354,7 @@ export default class Chart extends React.Component {
       filterState,
       handleToggleFullSize,
       isFullSize,
+      setControlValue,
       filterboxMigrationState,
       postTransformProps,
       datasetsStatus,
@@ -475,6 +482,7 @@ export default class Chart extends React.Component {
             timeout={timeout}
             triggerQuery={chart.triggerQuery}
             vizType={slice.viz_type}
+            setControlValue={setControlValue}
             isDeactivatedViz={isDeactivatedViz}
             filterboxMigrationState={filterboxMigrationState}
             postTransformProps={postTransformProps}

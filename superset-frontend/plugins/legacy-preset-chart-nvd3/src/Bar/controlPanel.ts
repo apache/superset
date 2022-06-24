@@ -122,6 +122,11 @@ const config: ControlPanelConfig = {
     timeSeriesSection[1],
     sections.annotations,
   ],
+  denormalizeFormData: formData => ({
+    ...formData,
+    metrics: formData.standardizedFormData.standardizedState.metrics,
+    groupby: formData.standardizedFormData.standardizedState.columns,
+  }),
 };
 
 export default config;

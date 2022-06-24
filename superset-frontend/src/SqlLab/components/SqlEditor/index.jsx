@@ -686,9 +686,6 @@ class SqlEditor extends React.PureComponent {
             this.props.database.allows_cost_estimate && (
               <span>
                 <EstimateQueryCostButton
-                  dbId={qe.dbId}
-                  schema={qe.schema}
-                  sql={qe.sql}
                   getEstimate={this.getQueryCostEstimate}
                   queryCostEstimate={qe.queryCostEstimate}
                   selectedText={qe.selectedText}

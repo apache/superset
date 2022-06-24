@@ -178,7 +178,7 @@ class ReportScheduleCreationMethodUniquenessValidationError(CommandException):
 
 class AlertQueryMultipleRowsError(CommandException):
 
-    message = _("Alert query returned more then one row.")
+    message = _("Alert query returned more than one row.")
 
 
 class AlertValidatorConfigError(CommandException):
@@ -187,7 +187,7 @@ class AlertValidatorConfigError(CommandException):
 
 
 class AlertQueryMultipleColumnsError(CommandException):
-    message = _("Alert query returned more then one column.")
+    message = _("Alert query returned more than one column.")
 
 
 class AlertQueryInvalidTypeError(CommandException):

@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { t, validateNonEmpty } from '@superset-ui/core';
+import { ensureIsInt, t, validateNonEmpty } from '@superset-ui/core';
 import {
   ControlPanelConfig,
   ControlPanelsContainerProps,
@@ -257,6 +257,8 @@ const config: ControlPanelConfig = {
     ...formData,
     metric: formData.standardizedFormData.standardizedState.metrics[0],
     groupby: formData.standardizedFormData.standardizedState.columns,
+    row_limit:
+      ensureIsInt(formData.row_limit, 100) >= 100 ? 100 : formData.row_limit,
   }),
 };
 

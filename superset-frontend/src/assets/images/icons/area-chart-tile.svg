@@ -1,0 +1,21 @@
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+-->
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M18.7145 17.0006H6.42878V5.8577C6.42878 5.77913 6.3645 5.71484 6.28592 5.71484H5.28592C5.20735 5.71484 5.14307 5.77913 5.14307 5.8577V18.1434C5.14307 18.222 5.20735 18.2863 5.28592 18.2863H18.7145C18.7931 18.2863 18.8574 18.222 18.8574 18.1434V17.1434C18.8574 17.0648 18.7931 17.0006 18.7145 17.0006ZM7.7145 15.8577H17.2859C17.3645 15.8577 17.4288 15.7934 17.4288 15.7148V7.92913C17.4288 7.80056 17.2734 7.73806 17.1841 7.82734L13.4288 11.5827L11.1895 9.36842C11.1626 9.34183 11.1264 9.32692 11.0886 9.32692C11.0508 9.32692 11.0146 9.34183 10.9877 9.36842L7.61271 12.7541C7.5996 12.7673 7.58922 12.7829 7.58217 12.8C7.57512 12.8172 7.57154 12.8356 7.57164 12.8541V15.7148C7.57164 15.7934 7.63592 15.8577 7.7145 15.8577Z" fill="#666666"/>
+</svg>

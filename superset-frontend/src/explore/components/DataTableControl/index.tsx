@@ -163,6 +163,7 @@ const DataTableTemporalHeaderCell = ({
   columnName,
   onTimeColumnChange,
   datasourceId,
+  isOriginalTimeColumn,
 }: {
   columnName: string;
   onTimeColumnChange: (
@@ -170,15 +171,12 @@ const DataTableTemporalHeaderCell = ({
     columnType: FormatPickerValue,
   ) => void;
   datasourceId?: string;
+  isOriginalTimeColumn: boolean;
 }) => {
   const theme = useTheme();
-  const [isOriginalTimeColumn, setIsOriginalTimeColumn] = useState<boolean>(
-    getTimeColumns(datasourceId).includes(columnName),
-  );
 
   const onChange = (e: any) => {
     onTimeColumnChange(columnName, e.target.value);
-    setIsOriginalTimeColumn(getTimeColumns(datasourceId).includes(columnName));
   };
 
   const overlayContent = useMemo(
@@ -313,6 +311,8 @@ export const useTableColumns = (
                 colType === GenericDataType.TEMPORAL
                   ? originalFormattedTimeColumns.indexOf(key)
                   : -1;
+              const isOriginalTimeColumn =
+                originalFormattedTimeColumns.includes(key);
               return {
                 id: key,
                 accessor: row => row[key],
@@ -324,6 +324,7 @@ export const useTableColumns = (
                       columnName={key}
                       datasourceId={datasourceId}
                       onTimeColumnChange={onTimeColumnChange}
+                      isOriginalTimeColumn={isOriginalTimeColumn}
                     />
                   ) : (
                     key

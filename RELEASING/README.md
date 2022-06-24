@@ -422,12 +422,46 @@ with the changes on `CHANGELOG.md` and `UPDATING.md`.
 
 ### Publishing a Convenience Release to PyPI
 
-Using the final release tarball, unpack it and run `./pypi_push.sh`.
-This script will build the JavaScript bundle and echo the twine command
-allowing you to publish to PyPI. You may need to ask a fellow committer to grant
+Extract the release to the `/tmp` folder to build the PiPY release. Files in the `/tmp` folder will be automatically deleted by the OS.
+
+```bash
+mkdir -p /tmp/superset && cd /tmp/superset
+tar xfvz ~/svn/superset/${SUPERSET_VERSION}/${SUPERSET_RELEASE_TARBALL}
+```
+
+Create a virtual environment and install the dependencies
+
+```bash
+cd ${SUPERSET_RELEASE_RC}
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements/base.txt
+pip install twine
+```
+
+Create the distribution
+
+```bash
+cd superset-frontend/
+npm ci && npm run build
+cd ../
+flask fab babel-compile --target superset/translations
+python setup.py sdist
+```
+
+Publish to PyPI
+
+You may need to ask a fellow committer to grant
 you access to it if you don't have access already. Make sure to create
 an account first if you don't have one, and reference your username
 while requesting access to push packages.
+
+```bash
+twine upload dist/apache-superset-${SUPERSET_VERSION}.tar.gz
+
+# Set your username to token
+# Set your password to the token value, including the pypi- prefix
+```
 
 ### Announcing
 

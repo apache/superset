@@ -146,36 +146,6 @@ const FilterTitleContainer = forwardRef<HTMLDivElement, Props>(
         </FilterTitle>
       );
     };
-    const recursivelyRender = (
-      elementId: string,
-      nodeList: Array<{ id: string; parentId: string | null }>,
-      rendered: Array<string>,
-    ): React.ReactNode => {
-      const didAlreadyRender = rendered.indexOf(elementId) >= 0;
-      if (didAlreadyRender) {
-        return null;
-      }
-      let parent = null;
-      const element = nodeList.filter(el => el.id === elementId)[0];
-      if (!element) {
-        return null;
-      }
-
-      rendered.push(elementId);
-      if (element.parentId) {
-        parent = recursivelyRender(element.parentId, nodeList, rendered);
-      }
-      const children = nodeList
-        .filter(item => item.parentId === elementId)
-        .map(item => recursivelyRender(item.id, nodeList, rendered));
-      return (
-        <>
-          {parent}
-          {renderComponent(elementId)}
-          {children}
-        </>
-      );
-    };
 
     const renderFilterGroups = () => {
       const items: React.ReactNode[] = [];

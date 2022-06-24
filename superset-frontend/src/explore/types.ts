@@ -22,8 +22,10 @@ import {
   AnnotationData,
   AdhocMetric,
 } from '@superset-ui/core';
-import { ColumnMeta, DatasourceMeta } from '@superset-ui/chart-controls';
+import { ColumnMeta, Dataset } from '@superset-ui/chart-controls';
 import { DatabaseObject } from 'src/views/CRUD/types';
+import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import { toastState } from 'src/SqlLab/types';
 
 export { Slice, Chart } from 'src/types/Chart';
 
@@ -56,9 +58,35 @@ export type OptionSortType = Partial<
   ColumnMeta & AdhocMetric & { saved_metric_name: string }
 >;
 
-export type Datasource = DatasourceMeta & {
+export type Datasource = Dataset & {
   database?: DatabaseObject;
   datasource?: string;
   schema?: string;
   is_sqllab_view?: boolean;
+};
+
+export type ExploreRootState = {
+  explore: {
+    can_add: boolean;
+    can_download: boolean;
+    common: object;
+    controls: object;
+    controlsTransferred: object;
+    datasource: object;
+    datasource_id: number;
+    datasource_type: string;
+    force: boolean;
+    forced_height: object;
+    form_data: object;
+    isDatasourceMetaLoading: boolean;
+    isStarred: boolean;
+    slice: object;
+    sliceName: string;
+    standalone: boolean;
+    timeFormattedColumns: object;
+    user: UserWithPermissionsAndRoles;
+  };
+  localStorageUsageInKilobytes: number;
+  messageToasts: toastState[];
+  common: {};
 };

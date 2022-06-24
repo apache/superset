@@ -18,12 +18,11 @@
  */
 import React from 'react';
 import { EmptyStateMedium } from 'src/components/EmptyState';
-import { t, styled } from '@superset-ui/core';
-import { Query } from 'src/SqlLab/types';
+import { t, styled, QueryResponse } from '@superset-ui/core';
 import QueryTable from 'src/SqlLab/components/QueryTable';
 
 interface QueryHistoryProps {
-  queries: Query[];
+  queries: QueryResponse[];
   actions: {
     queryEditorSetAndSaveSql: Function;
     cloneQueryToNewTab: Function;

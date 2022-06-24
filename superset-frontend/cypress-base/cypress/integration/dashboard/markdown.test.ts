@@ -29,6 +29,11 @@ describe('Dashboard edit markdown', () => {
       .find('[aria-label="Edit dashboard"]')
       .click();
 
+    cy.get('[data-test="dashboard-builder-component-pane-tabs-navigation"]')
+      .find('.ant-tabs-tab')
+      .last()
+      .click();
+
     // lazy load - need to open dropdown for the scripts to load
     cy.get('.header-with-actions').find('[aria-label="more-horiz"]').click();
     cy.get('[data-test="grid-row-background--transparent"]')

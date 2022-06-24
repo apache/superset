@@ -127,3 +127,5 @@ export type DashboardComponentMetadata = {
   nativeFilters: NativeFiltersState;
   dataMask: DataMaskStateWithId;
 };
+
+export default {};

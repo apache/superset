@@ -86,10 +86,10 @@ PROPHET_TIME_GRAIN_MAP = {
     "P1M": "M",
     "P3M": "Q",
     "P1Y": "A",
-    "1969-12-28T00:00:00Z/P1W": "W",
-    "1969-12-29T00:00:00Z/P1W": "W",
-    "P1W/1970-01-03T00:00:00Z": "W",
-    "P1W/1970-01-04T00:00:00Z": "W",
+    "1969-12-28T00:00:00Z/P1W": "W-SUN",
+    "1969-12-29T00:00:00Z/P1W": "W-MON",
+    "P1W/1970-01-03T00:00:00Z": "W-SAT",
+    "P1W/1970-01-04T00:00:00Z": "W-SUN",
 }
 
 RESAMPLE_METHOD = ("asfreq", "bfill", "ffill", "linear", "median", "mean", "sum")

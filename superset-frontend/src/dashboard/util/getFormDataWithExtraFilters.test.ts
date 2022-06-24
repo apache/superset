@@ -71,6 +71,9 @@ describe('getFormDataWithExtraFilters', () => {
       },
     },
     layout: {},
+    extraControls: {
+      stack: 'Stacked',
+    },
   };
 
   it('should include filters from the passed filters', () => {
@@ -86,5 +89,10 @@ describe('getFormDataWithExtraFilters', () => {
       op: 'IN',
       val: ['pink', 'purple'],
     });
+  });
+
+  it('should compose extra control', () => {
+    const result = getFormDataWithExtraFilters(mockArgs);
+    expect(result.stack).toEqual('Stacked');
   });
 });

@@ -28,12 +28,69 @@ import {
   TimeFormatter,
 } from '@superset-ui/core';
 import { format, LegendComponentOption, SeriesOption } from 'echarts';
-import { NULL_STRING, TIMESERIES_CONSTANTS } from '../constants';
-import { LegendOrientation, LegendType } from '../types';
+import {
+  AreaChartExtraControlsValue,
+  NULL_STRING,
+  TIMESERIES_CONSTANTS,
+} from '../constants';
+import { LegendOrientation, LegendType, StackType } from '../types';
 import { defaultLegendPadding } from '../defaults';
 
 function isDefined<T>(value: T | undefined | null): boolean {
   return value !== undefined && value !== null;
+}
+
+export function extractDataTotalValues(
+  data: DataRecord[],
+  opts: {
+    stack: StackType;
+    percentageThreshold: number;
+    xAxisCol: string;
+  },
+): {
+  totalStackedValues: number[];
+  thresholdValues: number[];
+} {
+  const totalStackedValues: number[] = [];
+  const thresholdValues: number[] = [];
+  const { stack, percentageThreshold, xAxisCol } = opts;
+  if (stack) {
+    data.forEach(datum => {
+      const values = Object.keys(datum).reduce((prev, curr) => {
+        if (curr === xAxisCol) {
+          return prev;
+        }
+        const value = datum[curr] || 0;
+        return prev + (value as number);
+      }, 0);
+      totalStackedValues.push(values);
+      thresholdValues.push(((percentageThreshold || 0) / 100) * values);
+    });
+  }
+  return {
+    totalStackedValues,
+    thresholdValues,
+  };
+}
+
+export function extractShowValueIndexes(
+  series: SeriesOption[],
+  opts: {
+    stack: StackType;
+  },
+): number[] {
+  const showValueIndexes: number[] = [];
+  if (opts.stack) {
+    series.forEach((entry, seriesIndex) => {
+      const { data = [] } = entry;
+      (data as [any, number][]).forEach((datum, dataIndex) => {
+        if (datum[1] !== null) {
+          showValueIndexes[dataIndex] = seriesIndex;
+        }
+      });
+    });
+  }
+  return showValueIndexes;
 }
 
 export function extractSeries(
@@ -42,6 +99,8 @@ export function extractSeries(
     fillNeighborValue?: number;
     xAxis?: string;
     removeNulls?: boolean;
+    stack?: StackType;
+    totalStackedValues?: number[];
     isHorizontal?: boolean;
   } = {},
 ): SeriesOption[] {
@@ -49,6 +108,8 @@ export function extractSeries(
     fillNeighborValue,
     xAxis = DTTM_ALIAS,
     removeNulls = false,
+    stack = false,
+    totalStackedValues = [],
     isHorizontal = false,
   } = opts;
   if (data.length === 0) return [];
@@ -66,14 +127,20 @@ export function extractSeries(
         .map((row, idx) => {
           const isNextToDefinedValue =
             isDefined(rows[idx - 1]?.[key]) || isDefined(rows[idx + 1]?.[key]);
-          return [
-            row[xAxis],
+          const isFillNeighborValue =
             !isDefined(row[key]) &&
             isNextToDefinedValue &&
-            fillNeighborValue !== undefined
-              ? fillNeighborValue
-              : row[key],
-          ];
+            fillNeighborValue !== undefined;
+          let value: DataRecordValue | undefined = row[key];
+          if (isFillNeighborValue) {
+            value = fillNeighborValue;
+          } else if (
+            stack === AreaChartExtraControlsValue.Expand &&
+            totalStackedValues.length > 0
+          ) {
+            value = ((value || 0) as number) / totalStackedValues[idx];
+          }
+          return [row[xAxis], value];
         })
         .filter(obs => !removeNulls || (obs[0] !== null && obs[1] !== null))
         .map(obs => (isHorizontal ? [obs[1], obs[0]] : obs)),

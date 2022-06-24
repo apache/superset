@@ -99,7 +99,7 @@ export const controlPanelSectionsChartOptionsTable: ControlPanelSectionConfig[] 
               optionRenderer: c => <ColumnOption column={c} showType />,
               valueKey: 'column_name',
               mapStateToProps: stateRef => ({
-                options: stateRef.datasource ? stateRef.datasource.columns : [],
+                options: stateRef.datasource?.columns || [],
               }),
               freeForm: true,
             } as ControlConfig<'SelectControl', ColumnMeta>,

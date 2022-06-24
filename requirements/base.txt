@@ -174,8 +174,9 @@ multidict==5.1.0
     # via
     #   aiohttp
     #   yarl
-numpy==1.21.1
+numpy==1.22.1
     # via
+    #   apache-superset
     #   pandas
     #   pyarrow
 packaging==21.3
@@ -198,7 +199,7 @@ pyarrow==5.0.0
     # via apache-superset
 pycparser==2.20
     # via cffi
-pyjwt==2.2.0
+pyjwt==2.4.0
     # via
     #   apache-superset
     #   flask-appbuilder

@@ -20,6 +20,8 @@ import React, { Fragment, useState, useEffect } from 'react';
 import rison from 'rison';
 import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
+import { useQueryParams, BooleanParam } from 'use-query-params';
+
 import {
   t,
   styled,
@@ -86,7 +88,10 @@ const RightMenu = ({
   settings,
   navbarRight,
   isFrontendRoute,
-}: RightMenuProps) => {
+  setQuery,
+}: RightMenuProps & {
+  setQuery: ({ databaseAdded }: { databaseAdded: boolean }) => void;
+}) => {
   const user = useSelector<any, UserWithPermissionsAndRoles>(
     state => state.user,
   );
@@ -250,6 +255,8 @@ const RightMenu = ({
     return null;
   };
 
+  const handleDatabaseAdd = () => setQuery({ databaseAdded: true });
+
   return (
     <StyledDiv align={align}>
       {canDatabase && (
@@ -257,6 +264,7 @@ const RightMenu = ({
           onHide={handleOnHideModal}
           show={showModal}
           dbEngine={engine}
+          onDatabaseAdd={handleDatabaseAdd}
         />
       )}
       <Menu
@@ -430,4 +438,43 @@ const RightMenu = ({
   );
 };
 
-export default RightMenu;
+const RightMenuWithQueryWrapper: React.FC<RightMenuProps> = props => {
+  const [, setQuery] = useQueryParams({
+    databaseAdded: BooleanParam,
+  });
+
+  return <RightMenu setQuery={setQuery} {...props} />;
+};
+
+// Query param manipulation requires that, during the setup, the
+// QueryParamProvider is present and configured.
+// Superset still has multiple entry points, and not all of them have
+// the same setup, and critically, not all of them have the QueryParamProvider.
+// This wrapper ensures the RightMenu renders regardless of the provider being present.
+class RightMenuErrorWrapper extends React.PureComponent<RightMenuProps> {
+  state = {
+    hasError: false,
+  };
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  noop = () => {};
+
+  render() {
+    if (this.state.hasError) {
+      return <RightMenu setQuery={this.noop} {...this.props} />;
+    }
+
+    return this.props.children;
+  }
+}
+
+const RightMenuWrapper: React.FC<RightMenuProps> = props => (
+  <RightMenuErrorWrapper {...props}>
+    <RightMenuWithQueryWrapper {...props} />
+  </RightMenuErrorWrapper>
+);
+
+export default RightMenuWrapper;

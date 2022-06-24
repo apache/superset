@@ -1006,21 +1006,21 @@ msgid "Alert query returned a non-number value."
 msgstr "La requête a retourné une valeur non numérique."
 
 #: superset/reports/commands/exceptions.py:186
-msgid "Alert query returned more then one column."
+msgid "Alert query returned more than one column."
 msgstr "La requête a retourné plus d'une colonne."
 
 #: superset/reports/commands/alert.py:105
 #, python-format
-msgid "Alert query returned more then one column. %s columns returned"
+msgid "Alert query returned more than one column. %s columns returned"
 msgstr "La requête a retourné plus d'une colonne. %s colonnes retournées"
 
 #: superset/reports/commands/exceptions.py:177
-msgid "Alert query returned more then one row."
+msgid "Alert query returned more than one row."
 msgstr "La requête a retourné plus d'une ligne."
 
 #: superset/reports/commands/alert.py:96
 #, python-format
-msgid "Alert query returned more then one row. %s rows returned"
+msgid "Alert query returned more than one row. %s rows returned"
 msgstr "La requête a retourné plus d'une ligne. %s lignes retournées"
 
 #: superset-frontend/src/views/CRUD/alert/components/AlertStatusIcon.tsx:75

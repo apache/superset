@@ -1383,7 +1383,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         :return: A guest user object
         """
-        raw_token = req.headers.get(current_app.config["GUEST_TOKEN_HEADER_NAME"])
+        raw_token = req.headers.get(
+            current_app.config["GUEST_TOKEN_HEADER_NAME"]
+        ) or req.form.get("guest_token")
         if raw_token is None:
             return None
 

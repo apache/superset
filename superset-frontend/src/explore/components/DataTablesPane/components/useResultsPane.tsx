@@ -17,18 +17,15 @@
  * under the License.
  */
 import React, { useState, useEffect } from 'react';
-import { ensureIsArray, GenericDataType, styled, t } from '@superset-ui/core';
+import { ensureIsArray, styled, t } from '@superset-ui/core';
 import Loading from 'src/components/Loading';
 import { EmptyStateMedium } from 'src/components/EmptyState';
-import TableView, { EmptyWrapperType } from 'src/components/TableView';
-import {
-  useFilteredTableData,
-  useTableColumns,
-} from 'src/explore/components/DataTableControl';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
+import { ResultsPaneProps, QueryResultInterface } from '../types';
+import { getQueryCount } from '../utils';
+import { SingleQueryResultPane } from './SingleQueryResultPane';
 import { TableControls } from './DataTableControls';
-import { ResultsPaneProps } from '../types';
 
 const Error = styled.pre`
   margin-top: ${({ theme }) => `${theme.gridUnit * 4}px`};
@@ -36,21 +33,22 @@ const Error = styled.pre`
 
 const cache = new WeakSet();
 
-export const ResultsPane = ({
+export const useResultsPane = ({
   isRequest,
   queryFormData,
   queryForce,
   ownState,
   errorMessage,
   actions,
+  isVisible,
   dataSize = 50,
-}: ResultsPaneProps) => {
-  const [filterText, setFilterText] = useState('');
-  const [data, setData] = useState<Record<string, any>[][]>([]);
-  const [colnames, setColnames] = useState<string[]>([]);
-  const [coltypes, setColtypes] = useState<GenericDataType[]>([]);
+}: ResultsPaneProps): React.ReactElement[] => {
+  const [resultResp, setResultResp] = useState<QueryResultInterface[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [responseError, setResponseError] = useState<string>('');
+  const queryCount = getQueryCount(
+    queryFormData?.viz_type || queryFormData?.vizType,
+  );
 
   useEffect(() => {
     // it's an invalid formData when gets a errorMessage
@@ -65,28 +63,7 @@ export const ResultsPane = ({
         ownState,
       })
         .then(({ json }) => {
-          const { colnames, coltypes } = json.result[0];
-          // Only displaying the first query is currently supported
-          if (json.result.length > 1) {
-            // todo: move these code to the backend, shouldn't loop by row in FE
-            const data: any[] = [];
-            json.result.forEach((item: { data: any[] }) => {
-              item.data.forEach((row, i) => {
-                if (data[i] !== undefined) {
-                  data[i] = { ...data[i], ...row };
-                } else {
-                  data[i] = row;
-                }
-              });
-            });
-            setData(data);
-            setColnames(colnames);
-            setColtypes(coltypes);
-          } else {
-            setData(ensureIsArray(json.result[0].data));
-            setColnames(colnames);
-            setColtypes(coltypes);
-          }
+          setResultResp(ensureIsArray(json.result));
           setResponseError('');
           cache.add(queryFormData);
           if (queryForce && actions) {
@@ -110,68 +87,50 @@ export const ResultsPane = ({
     }
   }, [errorMessage]);
 
-  // this is to preserve the order of the columns, even if there are integer values,
-  // while also only grabbing the first column's keys
-  const columns = useTableColumns(
-    colnames,
-    coltypes,
-    data,
-    queryFormData.datasource,
-    isRequest,
-  );
-  const filteredData = useFilteredTableData(filterText, data);
-
   if (isLoading) {
-    return <Loading />;
+    return Array(queryCount).fill(<Loading />);
   }
 
   if (errorMessage) {
     const title = t('Run a query to display results');
-    return <EmptyStateMedium image="document.svg" title={title} />;
+    return Array(queryCount).fill(
+      <EmptyStateMedium image="document.svg" title={title} />,
+    );
   }
 
   if (responseError) {
-    return (
+    const err = (
       <>
         <TableControls
-          data={filteredData}
-          columnNames={colnames}
-          columnTypes={coltypes}
-          datasourceId={queryFormData?.datasource}
-          onInputChange={input => setFilterText(input)}
-          isLoading={isLoading}
+          data={[]}
+          columnNames={[]}
+          columnTypes={[]}
+          datasourceId={queryFormData.datasource}
+          onInputChange={() => {}}
+          isLoading={false}
         />
         <Error>{responseError}</Error>
       </>
     );
+    return Array(queryCount).fill(err);
   }
 
-  if (data.length === 0) {
+  if (resultResp.length === 0) {
     const title = t('No results were returned for this query');
-    return <EmptyStateMedium image="document.svg" title={title} />;
+    return Array(queryCount).fill(
+      <EmptyStateMedium image="document.svg" title={title} />,
+    );
   }
 
-  return (
-    <>
-      <TableControls
-        data={filteredData}
-        columnNames={colnames}
-        columnTypes={coltypes}
-        datasourceId={queryFormData?.datasource}
-        onInputChange={input => setFilterText(input)}
-        isLoading={isLoading}
-      />
-      <TableView
-        columns={columns}
-        data={filteredData}
-        pageSize={dataSize}
-        noDataText={t('No results')}
-        emptyWrapperType={EmptyWrapperType.Small}
-        className="table-condensed"
-        isPaginationSticky
-        showRowCount={false}
-        small
-      />
-    </>
-  );
+  return resultResp.map((result, idx) => (
+    <SingleQueryResultPane
+      data={result.data}
+      colnames={result.colnames}
+      coltypes={result.coltypes}
+      dataSize={dataSize}
+      datasourceId={queryFormData.datasource}
+      key={idx}
+      isVisible={isVisible}
+    />
+  ));
 };

@@ -967,21 +967,21 @@ msgid "Alert query returned a non-number value."
 msgstr "La consulta de alerta devolvió un valor no numérico."
 
 #: superset/reports/commands/exceptions.py:186
-msgid "Alert query returned more then one column."
+msgid "Alert query returned more than one column."
 msgstr "La consulta de alerta devolvió más de una columna."
 
 #: superset/reports/commands/alert.py:105
 #, python-format
-msgid "Alert query returned more then one column. %s columns returned"
+msgid "Alert query returned more than one column. %s columns returned"
 msgstr "La consulta de alerta devolvió más de una columna. %s columnas devueltas"
 
 #: superset/reports/commands/exceptions.py:177
-msgid "Alert query returned more then one row."
+msgid "Alert query returned more than one row."
 msgstr "La consulta de alerta devolvió más de una fila."
 
 #: superset/reports/commands/alert.py:96
 #, python-format
-msgid "Alert query returned more then one row. %s rows returned"
+msgid "Alert query returned more than one row. %s rows returned"
 msgstr "La consulta de alerta devolvió más de una fila. %s filas devueltas"
 
 #: superset-frontend/src/views/CRUD/alert/components/AlertStatusIcon.tsx:75

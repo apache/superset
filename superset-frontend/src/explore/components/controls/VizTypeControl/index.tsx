@@ -17,25 +17,20 @@
  * under the License.
  */
 import React, { useCallback, useState } from 'react';
-import PropTypes from 'prop-types';
-import { t, getChartMetadataRegistry, styled } from '@superset-ui/core';
+import {
+  css,
+  t,
+  getChartMetadataRegistry,
+  styled,
+  SupersetTheme,
+} from '@superset-ui/core';
 import { usePluginContext } from 'src/components/DynamicPlugins';
 import Modal from 'src/components/Modal';
-import { Tooltip } from 'src/components/Tooltip';
-import Label, { Type } from 'src/components/Label';
-import ControlHeader from 'src/explore/components/ControlHeader';
+import { noOp } from 'src/utils/common';
 import VizTypeGallery, {
   MAX_ADVISABLE_VIZ_GALLERY_WIDTH,
 } from './VizTypeGallery';
-
-const propTypes = {
-  description: PropTypes.string,
-  label: PropTypes.string,
-  name: PropTypes.string.isRequired,
-  onChange: PropTypes.func,
-  value: PropTypes.string.isRequired,
-  labelType: PropTypes.string,
-};
+import { FastVizSwitcher } from './FastVizSwitcher';
 
 interface VizTypeControlProps {
   description?: string;
@@ -43,14 +38,8 @@ interface VizTypeControlProps {
   name: string;
   onChange: (vizType: string | null) => void;
   value: string | null;
-  labelType?: Type;
   isModalOpenInit?: boolean;
 }
-
-const defaultProps = {
-  onChange: () => {},
-  labelType: 'default',
-};
 
 const metadataRegistry = getChartMetadataRegistry();
 
@@ -62,7 +51,14 @@ function VizSupportValidation({ vizType }: { vizType: string }) {
     return null;
   }
   return (
-    <div className="text-danger">
+    <div
+      className="text-danger"
+      css={(theme: SupersetTheme) =>
+        css`
+          margin-top: ${theme.gridUnit}px;
+        `
+      }
+    >
       <i className="fa fa-exclamation-circle text-danger" />{' '}
       <small>{t('This visualization type is not supported.')}</small>
     </div>
@@ -76,9 +72,11 @@ const UnpaddedModal = styled(Modal)`
 `;
 
 /** Manages the viz type and the viz picker modal */
-const VizTypeControl = (props: VizTypeControlProps) => {
-  const { value: initialValue, onChange, isModalOpenInit, labelType } = props;
-  const { mountedPluginMetadata } = usePluginContext();
+const VizTypeControl = ({
+  value: initialValue,
+  onChange = noOp,
+  isModalOpenInit,
+}: VizTypeControlProps) => {
   const [showModal, setShowModal] = useState(!!isModalOpenInit);
   // a trick to force re-initialization of the gallery each time the modal opens,
   // ensuring that the modal always opens to the correct category.
@@ -101,30 +99,32 @@ const VizTypeControl = (props: VizTypeControlProps) => {
     setSelectedViz(initialValue);
   }, [initialValue]);
 
-  const labelContent = initialValue
-    ? mountedPluginMetadata[initialValue]?.name || `${initialValue}`
-    : t('Select Viz Type');
-
   return (
-    <div>
-      <ControlHeader {...props} />
-      <Tooltip
-        id="error-tooltip"
-        placement="right"
-        title={t('Click to change visualization type')}
+    <>
+      <div
+        css={(theme: SupersetTheme) => css`
+          min-width: ${theme.gridUnit * 72}px;
+          max-width: fit-content;
+        `}
       >
-        <>
-          <Label
-            onClick={openModal}
-            type={labelType}
-            data-test="visualization-type"
-          >
-            {labelContent}
-          </Label>
-          {initialValue && <VizSupportValidation vizType={initialValue} />}
-        </>
-      </Tooltip>
-
+        <FastVizSwitcher onChange={onChange} currentSelection={initialValue} />
+        {initialValue && <VizSupportValidation vizType={initialValue} />}
+      </div>
+      <div
+        css={(theme: SupersetTheme) =>
+          css`
+            display: flex;
+            justify-content: flex-end;
+            margin-top: ${theme.gridUnit * 3}px;
+            color: ${theme.colors.grayscale.base};
+            text-decoration: underline;
+          `
+        }
+      >
+        <span role="button" tabIndex={0} onClick={openModal}>
+          {t('View all charts')}
+        </span>
+      </div>
       <UnpaddedModal
         show={showModal}
         onHide={onCancel}
@@ -142,11 +142,8 @@ const VizTypeControl = (props: VizTypeControlProps) => {
           onChange={setSelectedViz}
         />
       </UnpaddedModal>
-    </div>
+    </>
   );
 };
-
-VizTypeControl.propTypes = propTypes;
-VizTypeControl.defaultProps = defaultProps;
 
 export default VizTypeControl;

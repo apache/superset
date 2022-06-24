@@ -41,6 +41,7 @@ export const SamplesPane = ({
   queryForce,
   actions,
   dataSize = 50,
+  isVisible,
 }: SamplesPaneProps) => {
   const [filterText, setFilterText] = useState('');
   const [data, setData] = useState<Record<string, any>[][]>([]);
@@ -90,7 +91,7 @@ export const SamplesPane = ({
     coltypes,
     data,
     datasourceId,
-    isRequest,
+    isVisible,
   );
   const filteredData = useFilteredTableData(filterText, data);
 

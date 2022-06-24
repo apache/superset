@@ -81,9 +81,8 @@ export default function transformProps(
     filterState,
     datasource,
     theme,
+    annotationData = {},
   } = chartProps;
-  const { annotation_data: annotationData_ } = queriesData[0];
-  const annotationData = annotationData_ || {};
   const { verboseMap = {} } = datasource;
   const data1 = (queriesData[0].data || []) as TimeseriesDataRecord[];
   const data2 = (queriesData[1].data || []) as TimeseriesDataRecord[];
@@ -191,7 +190,7 @@ export default function transformProps(
       areaOpacity: opacity,
       seriesType,
       showValue,
-      stack,
+      stack: Boolean(stack),
       yAxisIndex,
       filterState,
       seriesKey: entry.name,
@@ -208,7 +207,7 @@ export default function transformProps(
       areaOpacity: opacityB,
       seriesType: seriesTypeB,
       showValue: showValueB,
-      stack: stackB,
+      stack: Boolean(stackB),
       yAxisIndex: yAxisIndexB,
       filterState,
       seriesKey: primarySeries.has(entry.name as string)

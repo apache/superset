@@ -160,7 +160,7 @@ Look through the GitHub issues. Issues tagged with
 
 Superset could always use better documentation,
 whether as part of the official Superset docs,
-in docstrings, `docs/*.rst` or even on the web as blog posts or
+in docstrings, or even on the web as blog posts or
 articles. See [Documentation](#documentation) for more details.
 
 ### Add Translations
@@ -388,23 +388,30 @@ cd superset
 
 The latest documentation and tutorial are available at https://superset.apache.org/.
 
-The site is written using the Gatsby framework and docz for the
-documentation subsection. Find out more about it in `docs/README.md`
+The documentation site is built using [Docusaurus 2](https://docusaurus.io/), a modern static website generator, the source for which resides in `./docs`.
 
-#### Images
+#### Local Development
 
-If you're adding new images to the documentation, you'll notice that the images
-referenced in the rst, e.g.
+To set up a local development environment with hot reloading for the documentation site:
 
-    .. image:: _static/images/tutorial/tutorial_01_sources_database.png
+```shell
+cd docs
+yarn install  # Installs NPM dependencies
+yarn start  # Starts development server at http://localhost:3000
+```
 
-aren't actually stored in that directory. Instead, you should add and commit
-images (and any other static assets) to the `superset-frontend/src/assets/images` directory.
-When the docs are deployed to https://superset.apache.org/, images
-are copied from there to the `_static/images` directory, just like they're referenced
-in the docs.
+#### Build
 
-For example, the image referenced above actually lives in `superset-frontend/src/assets/images/tutorial`. Since the image is moved during the documentation build process, the docs reference the image in `_static/images/tutorial` instead.
+To create and serve a production build of the documentation site:
+
+```shell
+yarn build
+yarn serve
+```
+
+#### Deployment
+
+Commits to `master` trigger a rebuild and redeploy of the documentation site. Submit pull requests that modify the documention with the `docs:` prefix.
 
 ### Flask server
 
@@ -1064,6 +1071,7 @@ LANGUAGES = {
 ```
 
 This script will
+
 1. update the template file `superset/translations/messages.pot` with current application strings.
 2. update language files with the new extracted strings.
 
