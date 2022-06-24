@@ -95,7 +95,7 @@ Time Series Charts now support stacking of both negative and positive values ([#
 
 - Native database driver for Databricks ([#20320](https://github.com/apache/superset/pull/20320))
 
-- Time grains for SQLite are now simplified ([#19745](https://github.com/apache/superset/pull/19745/files))
+- Time grains for SQLite are now simplified ([#19745](https://github.com/apache/superset/pull/19745))
 
 - Multiple upgrades to the Trino database engine ([#20152](https://github.com/apache/superset/pull/20152))
 
