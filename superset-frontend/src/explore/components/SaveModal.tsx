@@ -29,7 +29,6 @@ import Button from 'src/components/Button';
 import { Select } from 'src/components';
 import { SelectValue } from 'antd/lib/select';
 import { connect } from 'react-redux';
-import { getExploreUrl } from '../exploreUtils';
 
 // Session storage key for recent dashboard
 const SK_DASHBOARD_ID = 'save_chart_recent_dashboard';
@@ -132,6 +131,7 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
   saveOrOverwrite(gotodash: boolean) {
     this.setState({ alert: null });
     this.props.actions.removeSaveModalAlert();
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { url_params, ...formData } = this.props.form_data || {};
 
     let promise = Promise.resolve();
@@ -176,7 +176,7 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
       );
     }
 
-    promise.then(() => {
+    promise.then((slice => {
       //  Update recent dashboard
       if (dashboard) {
         sessionStorage.setItem(SK_DASHBOARD_ID, `${dashboard.id}`);
@@ -185,14 +185,13 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
       }
 
       // Go to new slice url or dashboard url
-      let url = gotodash ? dashboard?.url : getExploreUrl({ formData });
-      if (url_params) {
-        const prefix = url.includes('?') ? '&' : '?';
-        url = `${url}${prefix}${new URLSearchParams(url_params).toString()}`;
-      }
+      const url =
+        gotodash && dashboard
+          ? dashboard.url
+          : `${window.location.pathname}?form_data={"slice_id": ${slice.id}}`;
 
       window.location.assign(url);
-    });
+    }) as (slice: any) => void);
 
     this.props.onHide();
   }

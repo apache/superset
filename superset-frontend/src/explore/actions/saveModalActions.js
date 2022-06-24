@@ -107,11 +107,13 @@ export const updateSlice = (sliceId, sliceName, formData) => async dispatch => {
 export const createSlice = (sliceName, formData) => async dispatch => {
   let response;
   try {
-    response = await SupersetClient.post({
-      endpoint: `/api/v1/chart/`,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(getSlicePayload(sliceName, formData)),
-    });
+    response = (
+      await SupersetClient.post({
+        endpoint: `/api/v1/chart/`,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(getSlicePayload(sliceName, formData)),
+      })
+    ).json;
   } catch (error) {
     dispatch(saveSliceFailed());
     throw error;
