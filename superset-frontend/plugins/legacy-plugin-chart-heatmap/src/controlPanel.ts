@@ -329,6 +329,10 @@ const config: ControlPanelConfig = {
       label: t('Value Format'),
     },
   },
+  denormalizeFormData: formData => ({
+    ...formData,
+    metric: formData.standardizedFormData.standardizedState.metrics[0],
+  }),
 };
 
 export default config;
