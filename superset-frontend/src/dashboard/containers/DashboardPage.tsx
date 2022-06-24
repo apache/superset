@@ -53,7 +53,7 @@ import {
 } from 'src/explore/constants';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
-import { canUserEditDashboard } from 'src/dashboard/util/findPermission';
+import { canUserEditDashboard } from 'src/dashboard/util/permissionUtils';
 import { getFilterSets } from '../actions/nativeFilters';
 import { setDatasetsStatus } from '../actions/dashboardState';
 import {

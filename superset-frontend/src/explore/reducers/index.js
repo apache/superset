@@ -17,22 +17,41 @@
  * under the License.
  */
 import { combineReducers } from 'redux';
+import shortid from 'shortid';
 
+import { bootstrapData } from 'src/preamble';
 import reports from 'src/reports/reducers/reports';
 import charts from 'src/components/Chart/chartReducer';
 import dataMask from 'src/dataMask/reducer';
 import messageToasts from 'src/components/MessageToasts/reducers';
+import datasources from './datasourcesReducer';
 import saveModal from './saveModalReducer';
 import explore from './exploreReducer';
 
-const impressionId = (state = '') => state;
+// noopReducer, userReducer temporarily copied from src/views/store.ts
+// TODO: when SPA work is done, we'll be able to reuse those instead of copying
+
+const noopReducer =
+  initialState =>
+  (state = initialState) =>
+    state;
+
+const userReducer = (user = bootstrapData.user || {}, action) => {
+  if (action.type === 'USER_LOADED') {
+    return action.user;
+  }
+  return user;
+};
 
 export default combineReducers({
   charts,
   saveModal,
   dataMask,
+  datasources,
   explore,
-  impressionId,
   messageToasts,
   reports,
+  impressionId: noopReducer(shortid.generate()),
+  user: userReducer,
+  common: noopReducer(bootstrapData.common || {}),
 });

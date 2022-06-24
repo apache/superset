@@ -182,6 +182,11 @@ describe('VizTypeControl', () => {
           },
         },
       },
+      explore: {
+        slice: {
+          slice_id: 1,
+        },
+      },
     };
     renderWrapper(props, state);
     expect(screen.getByLabelText('current-rendered-tile')).toBeVisible();
