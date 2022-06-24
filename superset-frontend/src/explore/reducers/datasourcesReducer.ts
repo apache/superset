@@ -24,6 +24,7 @@ import {
 } from '../actions/datasourcesActions';
 
 export default function datasourcesReducer(
+  // TODO: change type to include other datasource types
   datasources: { [key: string]: Dataset },
   action: AnyDatasourcesAction,
 ) {
