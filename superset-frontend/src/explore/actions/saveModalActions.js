@@ -17,7 +17,7 @@
  * under the License.
  */
 import { SupersetClient } from '@superset-ui/core';
-import { buildV1ChartDataPayload, getExploreUrl } from '../exploreUtils';
+import { buildV1ChartDataPayload } from '../exploreUtils';
 
 export const FETCH_DASHBOARDS_SUCCEEDED = 'FETCH_DASHBOARDS_SUCCEEDED';
 export function fetchDashboardsSucceeded(choices) {
@@ -60,36 +60,99 @@ export function removeSaveModalAlert() {
   return { type: REMOVE_SAVE_MODAL_ALERT };
 }
 
-export function saveSlice(formData, requestParams) {
-  return dispatch => {
-    let url = getExploreUrl({
-      formData,
-      endpointType: 'base',
-      force: false,
-      curUrl: null,
-      requestParams,
-    });
-
-    // TODO: This will be removed in the next PR that will change the logic to save a slice
-    url = url.replace('/explore', '/superset/explore');
-
-    // Save the query context so we can re-generate the data from Python
-    // for alerts and reports
-    const queryContext = buildV1ChartDataPayload({
-      formData,
-      force: false,
-      resultFormat: 'json',
-      resultType: 'full',
-    });
-
-    return SupersetClient.post({
-      url,
-      postPayload: { form_data: formData, query_context: queryContext },
-    })
-      .then(response => {
-        dispatch(saveSliceSuccess(response.json));
-        return response.json;
-      })
-      .catch(() => dispatch(saveSliceFailed()));
+const getSlicePayload = (sliceName, formData) => {
+  const [datasourceId, datasourceType] = formData.datasource.split('__');
+  const payload = {
+    params: JSON.stringify(formData),
+    slice_name: sliceName,
+    viz_type: formData.viz_type,
+    datasource_id: +datasourceId,
+    datasource_type: datasourceType,
+    dashboards: formData.dashboards,
+    query_context: JSON.stringify(
+      buildV1ChartDataPayload({
+        formData,
+        force: false,
+        resultFormat: 'json',
+        resultType: 'full',
+        setDataMask: null,
+        ownState: null,
+      }),
+    ),
   };
-}
+  return payload;
+};
+
+//  Update existing slice
+export const updateSlice = (sliceId, sliceName, formData) => async dispatch => {
+  let response;
+  try {
+    response = (
+      await SupersetClient.put({
+        endpoint: `/api/v1/chart/${sliceId}`,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(getSlicePayload(sliceName, formData)),
+      })
+    ).json;
+  } catch (error) {
+    dispatch(saveSliceFailed());
+    throw error;
+  }
+
+  dispatch(saveSliceSuccess());
+  return response;
+};
+
+//  Create new slice
+export const createSlice = (sliceName, formData) => async dispatch => {
+  let response;
+  try {
+    response = await SupersetClient.post({
+      endpoint: `/api/v1/chart/`,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(getSlicePayload(sliceName, formData)),
+    });
+  } catch (error) {
+    dispatch(saveSliceFailed());
+    throw error;
+  }
+
+  dispatch(saveSliceSuccess());
+  return response;
+};
+
+//  Create new dashboard
+export const createDashboard = dashboardName => async dispatch => {
+  let response;
+  try {
+    response = (
+      await SupersetClient.post({
+        endpoint: `/api/v1/dashboard/`,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dashboard_title: dashboardName }),
+      })
+    ).json;
+  } catch (error) {
+    dispatch(saveSliceFailed());
+    throw error;
+  }
+
+  return response;
+};
+
+//  Get existing dashboard from ID
+export const getDashboard = dashboardId => async dispatch => {
+  let response;
+  try {
+    response = (
+      await SupersetClient.get({
+        endpoint: `/api/v1/dashboard/${dashboardId}`,
+      })
+    ).json;
+  } catch (error) {
+    dispatch(saveSliceFailed());
+    throw error;
+  }
+
+  return response;
+};
