@@ -34,12 +34,13 @@ import { URL_PARAMS } from 'src/constants';
 import {
   MULTI_OPERATORS,
   OPERATOR_ENUM_TO_OPERATOR_TYPE,
+  UNSAVED_CHART_ID,
 } from 'src/explore/constants';
 import { DashboardStandaloneMode } from 'src/dashboard/util/constants';
 
 export function getChartKey(explore) {
   const { slice, form_data } = explore;
-  return slice?.slice_id ?? form_data?.slice_id ?? 0;
+  return slice?.slice_id ?? form_data?.slice_id ?? UNSAVED_CHART_ID;
 }
 
 let requestCounter = 0;
