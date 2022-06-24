@@ -31,7 +31,7 @@ import SubMenu, { SubMenuProps } from 'src/views/components/SubMenu';
 import DeleteModal from 'src/components/DeleteModal';
 import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
-import { isUserAdmin } from 'src/dashboard/util/findPermission';
+import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import ListView, { FilterOperator, Filters } from 'src/components/ListView';
 import { commonMenuData } from 'src/views/CRUD/data/common';
 import handleResourceExport from 'src/utils/export';

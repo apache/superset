@@ -18,12 +18,7 @@
  */
 /* eslint camelcase: 0 */
 import { Dataset } from '@superset-ui/chart-controls';
-import {
-  t,
-  SupersetClient,
-  DatasourceType,
-  QueryFormData,
-} from '@superset-ui/core';
+import { t, SupersetClient, QueryFormData } from '@superset-ui/core';
 import { Dispatch } from 'redux';
 import {
   addDangerToast,
@@ -33,19 +28,16 @@ import { Slice } from 'src/types/Chart';
 
 const FAVESTAR_BASE_URL = '/superset/favstar/slice';
 
-export const SET_DATASOURCE_TYPE = 'SET_DATASOURCE_TYPE';
-export function setDatasourceType(datasourceType: DatasourceType) {
-  return { type: SET_DATASOURCE_TYPE, datasourceType };
-}
-
-export const SET_DATASOURCE = 'SET_DATASOURCE';
-export function setDatasource(datasource: Dataset) {
-  return { type: SET_DATASOURCE, datasource };
-}
-
-export const SET_DATASOURCES = 'SET_DATASOURCES';
-export function setDatasources(datasources: Dataset[]) {
-  return { type: SET_DATASOURCES, datasources };
+export const UPDATE_FORM_DATA_BY_DATASOURCE = 'UPDATE_FORM_DATA_BY_DATASOURCE';
+export function updateFormDataByDatasource(
+  prevDatasource: Dataset,
+  newDatasource: Dataset,
+) {
+  return {
+    type: UPDATE_FORM_DATA_BY_DATASOURCE,
+    prevDatasource,
+    newDatasource,
+  };
 }
 
 export const POST_DATASOURCE_STARTED = 'POST_DATASOURCE_STARTED';
@@ -150,9 +142,6 @@ export function setForceQuery(force: boolean) {
 
 export const exploreActions = {
   ...toastActions,
-  setDatasourceType,
-  setDatasource,
-  setDatasources,
   fetchDatasourcesStarted,
   fetchDatasourcesSucceeded,
   toggleFaveStar,
