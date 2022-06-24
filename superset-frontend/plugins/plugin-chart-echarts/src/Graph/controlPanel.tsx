@@ -325,7 +325,7 @@ const controlPanel: ControlPanelConfig = {
     metric: formData.standardizedFormData.standardizedState.metrics[0],
   }),
   updateStandardizedState: (prevState, currState) => ({
-    ...prevState,
+    ...currState,
     metrics: [currState.metrics[0], ...prevState.metrics.slice(1)],
   }),
 };

@@ -143,7 +143,7 @@ const config: ControlPanelConfig = {
     groupby: formData.standardizedFormData.standardizedState.columns,
   }),
   updateStandardizedState: (prevState, currState) => ({
-    ...prevState,
+    ...currState,
     metrics: [currState.metrics[0], ...prevState.metrics.slice(1)],
   }),
 };
