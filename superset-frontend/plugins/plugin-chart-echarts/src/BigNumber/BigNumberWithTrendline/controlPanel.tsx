@@ -274,6 +274,10 @@ const config: ControlPanelConfig = {
     ...formData,
     metric: formData.standardizedFormData.standardizedState.metrics[0],
   }),
+  updateStandardizedState: (prevState, currState) => ({
+    ...prevState,
+    metrics: [currState.metrics[0], ...prevState.metrics.slice(1)],
+  }),
 };
 
 export default config;
