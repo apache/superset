@@ -24,9 +24,8 @@ import { initSliceEntities } from 'src/dashboard/reducers/sliceEntities';
 import { getInitialState as getInitialNativeFilterState } from 'src/dashboard/reducers/nativeFilters';
 import { applyDefaultFormData } from 'src/explore/store';
 import { buildActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
-import findPermission, {
-  canUserEditDashboard,
-} from 'src/dashboard/util/findPermission';
+import { findPermission } from 'src/utils/findPermission';
+import { canUserEditDashboard } from 'src/dashboard/util/permissionUtils';
 import {
   DASHBOARD_FILTER_SCOPE_GLOBAL,
   dashboardFilter,

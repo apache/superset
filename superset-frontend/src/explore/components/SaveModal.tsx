@@ -299,11 +299,12 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
 function mapStateToProps({
   explore,
   saveModal,
+  user,
 }: Record<string, any>): Partial<SaveModalProps> {
   return {
     datasource: explore.datasource,
     slice: explore.slice,
-    userId: explore.user?.userId,
+    userId: user?.userId,
     dashboards: saveModal.dashboards,
     alert: saveModal.saveModalAlert,
   };
