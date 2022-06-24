@@ -29,7 +29,7 @@ import { Tooltip } from 'src/components/Tooltip';
 import VizTypeGallery, {
   MAX_ADVISABLE_VIZ_GALLERY_WIDTH,
 } from 'src/explore/components/controls/VizTypeControl/VizTypeGallery';
-import findPermission from 'src/dashboard/util/findPermission';
+import { findPermission } from 'src/utils/findPermission';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 
 type Dataset = {

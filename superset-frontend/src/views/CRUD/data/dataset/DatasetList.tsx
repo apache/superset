@@ -58,7 +58,7 @@ import InfoTooltip from 'src/components/InfoTooltip';
 import ImportModelsModal from 'src/components/ImportModal/index';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
-import { isUserAdmin } from 'src/dashboard/util/findPermission';
+import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import AddDatasetModal from './AddDatasetModal';
 
 import {
