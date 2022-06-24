@@ -26,7 +26,7 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access
 from flask_babel import lazy_gettext as _
 from wtforms.ext.sqlalchemy.fields import QuerySelectField
-from wtforms.validators import Regexp
+from wtforms.validators import DataRequired, Regexp
 
 from superset import app, db
 from superset.connectors.base.views import DatasourceModelView
@@ -47,7 +47,22 @@ from superset.views.base import (
 logger = logging.getLogger(__name__)
 
 
-class TableColumnInlineView(CompactCRUDMixin, SupersetModelView):
+class SelectDataRequired(DataRequired):  # pylint: disable=too-few-public-methods
+    """
+    Select required flag on the input field will not work well on Chrome
+    Console error:
+        An invalid form control with name='tables' is not focusable.
+
+    This makes a simple override to the DataRequired to be used specifically with
+    select fields
+    """
+
+    field_flags = ()
+
+
+class TableColumnInlineView(
+    CompactCRUDMixin, SupersetModelView
+):  # pylint: disable=too-many-ancestors
     datamodel = SQLAInterface(models.TableColumn)
     # TODO TODO, review need for this on related_views
     class_permission_name = "Dataset"
@@ -179,7 +194,9 @@ class TableColumnInlineView(CompactCRUDMixin, SupersetModelView):
     edit_form_extra_fields = add_form_extra_fields
 
 
-class SqlMetricInlineView(CompactCRUDMixin, SupersetModelView):
+class SqlMetricInlineView(
+    CompactCRUDMixin, SupersetModelView
+):  # pylint: disable=too-many-ancestors
     datamodel = SQLAInterface(models.SqlMetric)
     class_permission_name = "Dataset"
     method_permission_name = MODEL_VIEW_RW_METHOD_PERMISSION_MAP
@@ -261,7 +278,9 @@ class RowLevelSecurityListWidget(
         super().__init__(**kwargs)
 
 
-class RowLevelSecurityFiltersModelView(SupersetModelView, DeleteMixin):
+class RowLevelSecurityFiltersModelView(
+    SupersetModelView, DeleteMixin
+):  # pylint: disable=too-many-ancestors
     datamodel = SQLAInterface(models.RowLevelSecurityFilter)
 
     list_widget = cast(SupersetListWidget, RowLevelSecurityListWidget)
