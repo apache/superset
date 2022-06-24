@@ -18,11 +18,12 @@
 """Unit tests for Superset"""
 import json
 import unittest
+from typing import Optional
 from unittest import mock
 
 import pytest
-from flask import g
 from flask.ctx import AppContext
+from pytest_mock import MockFixture
 from sqlalchemy import inspect
 
 from tests.integration_tests.fixtures.birth_names_dashboard import (
@@ -42,7 +43,7 @@ from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.models import core as models
 from superset.models.datasource_access_request import DatasourceAccessRequest
-from superset.utils.core import get_username, override_user
+from superset.utils.core import get_user_id, get_username, override_user
 from superset.utils.database import get_example_database
 
 from .base_tests import SupersetTestCase
@@ -525,17 +526,39 @@ class TestRequestAccess(SupersetTestCase):
 
 
 @pytest.mark.parametrize(
+    "username,user_id",
+    [
+        (None, None),
+        ("alpha", 5),
+        ("gamma", 2),
+    ],
+)
+def test_get_user_id(
+    app_context: AppContext,
+    mocker: MockFixture,
+    username: Optional[str],
+    user_id: Optional[int],
+) -> None:
+    mock_g = mocker.patch("superset.utils.core.g", spec={})
+    mock_g.user = security_manager.find_user(username)
+    assert get_user_id() == user_id
+
+
+@pytest.mark.parametrize(
     "username",
     [
         None,
+        "alpha",
         "gamma",
     ],
 )
-def test_get_username(app_context: AppContext, username: str) -> None:
-    assert not hasattr(g, "user")
-    assert get_username() is None
-
-    g.user = security_manager.find_user(username)
+def test_get_username(
+    app_context: AppContext,
+    mocker: MockFixture,
+    username: Optional[str],
+) -> None:
+    mock_g = mocker.patch("superset.utils.core.g", spec={})
+    mock_g.user = security_manager.find_user(username)
     assert get_username() == username
 
 
@@ -543,26 +566,32 @@ def test_get_username(app_context: AppContext, username: str) -> None:
     "username",
     [
         None,
+        "alpha",
         "gamma",
     ],
 )
-def test_override_user(app_context: AppContext, username: str) -> None:
+def test_override_user(
+    app_context: AppContext,
+    mocker: MockFixture,
+    username: str,
+) -> None:
+    mock_g = mocker.patch("superset.utils.core.g", spec={})
     admin = security_manager.find_user(username="admin")
     user = security_manager.find_user(username)
 
-    assert not hasattr(g, "user")
+    assert not hasattr(mock_g, "user")
 
     with override_user(user):
-        assert g.user == user
+        assert mock_g.user == user
 
-    assert not hasattr(g, "user")
+    assert not hasattr(mock_g, "user")
 
-    g.user = admin
+    mock_g.user = admin
 
     with override_user(user):
-        assert g.user == user
+        assert mock_g.user == user
 
-    assert g.user == admin
+    assert mock_g.user == admin
 
 
 if __name__ == "__main__":
