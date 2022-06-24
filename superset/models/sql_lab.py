@@ -209,7 +209,7 @@ class Query(Model, ExtraJSONMixin, ExploreMixin):
             computed_column["column_name"] = col.get("name")
             computed_column["groupby"] = True
             columns.append(computed_column)
-        return columns
+        return columns  # type: ignore
 
     @property
     def data(self) -> Dict[str, Any]:
@@ -268,7 +268,7 @@ class Query(Model, ExtraJSONMixin, ExploreMixin):
     def main_dttm_col(self) -> Optional[str]:
         for col in self.columns:
             if col.get("is_dttm"):
-                return col.get("column_name")
+                return col.get("column_name")  # type: ignore
         return None
 
     @property

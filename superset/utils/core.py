@@ -1713,7 +1713,7 @@ def get_time_filter_status(
 
     # todo(hugh): fix this
     # temporal_columns = {col.column_name for col in datasource.columns if col.is_dttm}
-    temporal_columns = {}
+    temporal_columns: Dict[str, Any] = {}
     applied: List[Dict[str, str]] = []
     rejected: List[Dict[str, str]] = []
     time_column = applied_time_extras.get(ExtraFiltersTimeColumnType.TIME_COL)
