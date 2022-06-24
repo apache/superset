@@ -17,9 +17,11 @@
  * under the License.
  */
 
-export default interface TaggedObject {
+export interface TaggedObject {
   id: string | number;
   tag_id: number;
   object_id: number;
   object_type: number;
 }
+
+export default TaggedObject;

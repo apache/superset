@@ -17,8 +17,10 @@
  * under the License.
  */
 
-export default interface Tag {
+export interface Tag {
   id: string | number;
   type?: string | number;
   name: string;
 }
+
+export default Tag;
