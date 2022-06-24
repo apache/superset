@@ -160,5 +160,9 @@ const config: ControlPanelConfig = {
       ],
     },
   ],
+  denormalizeFormData: formData => ({
+    ...formData,
+    groupby: formData.standardizedFormData.standardizedState.columns,
+  }),
 };
 export default config;
