@@ -363,6 +363,10 @@ export interface ControlPanelConfig {
       standardizedFormData: StandardizedFormDataInterface;
     },
   ) => QueryFormData;
+  updateStandardizedState?: (
+    prevState: StandardizedState,
+    currState: StandardizedState,
+  ) => StandardizedState;
 }
 
 export type ControlOverrides = {
