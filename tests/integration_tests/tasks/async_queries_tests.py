@@ -32,6 +32,7 @@ from superset.tasks.async_queries import (
     load_chart_data_into_cache,
     load_explore_json_into_cache,
 )
+from superset.utils.core import get_user_id
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
@@ -218,7 +219,7 @@ class TestAsyncQueries(SupersetTestCase):
         ensure_user_is_set(1)
         self.assertTrue(hasattr(g, "user"))
         self.assertFalse(g.user.is_anonymous)
-        self.assertEqual("1", g.user.get_id())
+        self.assertEqual(1, get_user_id())
 
         del g.user
 
@@ -226,22 +227,22 @@ class TestAsyncQueries(SupersetTestCase):
         ensure_user_is_set(None)
         self.assertTrue(hasattr(g, "user"))
         self.assertTrue(g.user.is_anonymous)
-        self.assertEqual(None, g.user.get_id())
+        self.assertEqual(None, get_user_id())
 
         del g.user
 
         g.user = security_manager.get_user_by_id(2)
-        self.assertEqual("2", g.user.get_id())
+        self.assertEqual(2, get_user_id())
 
         ensure_user_is_set(1)
         self.assertTrue(hasattr(g, "user"))
         self.assertFalse(g.user.is_anonymous)
-        self.assertEqual("2", g.user.get_id())
+        self.assertEqual(2, get_user_id())
 
         ensure_user_is_set(None)
         self.assertTrue(hasattr(g, "user"))
         self.assertFalse(g.user.is_anonymous)
-        self.assertEqual("2", g.user.get_id())
+        self.assertEqual(2, get_user_id())
 
         if g_user_is_set:
             g.user = original_g_user
