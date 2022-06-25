@@ -25,6 +25,7 @@ from superset.dao.base import BaseDAO
 from superset.extensions import db
 from superset.models.core import FavStar, FavStarClassName
 from superset.models.slice import Slice
+from superset.utils.core import get_user_id
 
 if TYPE_CHECKING:
     from superset.connectors.base.models import BaseDatasource
@@ -70,7 +71,7 @@ class ChartDAO(BaseDAO):
             db.session.commit()
 
     @staticmethod
-    def favorited_ids(charts: List[Slice], current_user_id: int) -> List[FavStar]:
+    def favorited_ids(charts: List[Slice]) -> List[FavStar]:
         ids = [chart.id for chart in charts]
         return [
             star.obj_id
@@ -78,7 +79,7 @@ class ChartDAO(BaseDAO):
             .filter(
                 FavStar.class_name == FavStarClassName.CHART,
                 FavStar.obj_id.in_(ids),
-                FavStar.user_id == current_user_id,
+                FavStar.user_id == get_user_id(),
             )
             .all()
         ]

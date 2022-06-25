@@ -76,6 +76,7 @@ from superset.models.reports import ReportRecipientType
 from superset.superset_typing import FlaskResponse
 from superset.translations.utils import get_language_pack
 from superset.utils import core as utils
+from superset.utils.core import get_user_id
 
 from .utils import bootstrap_user_data
 
@@ -623,10 +624,7 @@ class DatasourceFilter(BaseFilter):  # pylint: disable=too-few-public-methods
         owner_ids_query = (
             db.session.query(models.SqlaTable.id)
             .join(models.SqlaTable.owners)
-            .filter(
-                security_manager.user_model.id
-                == security_manager.user_model.get_user_id()
-            )
+            .filter(security_manager.user_model.id == get_user_id())
         )
         return query.filter(
             or_(
