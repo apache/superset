@@ -1151,9 +1151,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :param table: The table to check against
         :returns: A list of filters
         """
-        if hasattr(g, "user"):
-            user = g.user
-        else:
+        
+        if not (hasattr(g, "user") and g.user is not None):      
             return []
 
         # pylint: disable=import-outside-toplevel
@@ -1163,7 +1162,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             RowLevelSecurityFilter,
         )
 
-        user_roles = [role.id for role in self.get_user_roles(user)]
+        user_roles = [role.id for role in self.get_user_roles(g.user)]
         regular_filter_roles = (
             self.get_session()
             .query(RLSFilterRoles.c.rls_filter_id)
