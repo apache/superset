@@ -16,7 +16,6 @@
 # under the License.
 import logging
 import re
-import logging
 from typing import Any, Dict, Pattern, Tuple, Optional
 
 from flask_babel import gettext as __
