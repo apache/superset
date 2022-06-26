@@ -41,7 +41,11 @@ from typing_extensions import TypedDict
 from superset.datasets.commands.exceptions import DatasetNotFoundError
 from superset.exceptions import SupersetTemplateException
 from superset.extensions import feature_flag_manager
-from superset.utils.core import convert_legacy_filters_into_adhoc, merge_extra_filters
+from superset.utils.core import (
+    convert_legacy_filters_into_adhoc,
+    get_user_id,
+    merge_extra_filters,
+)
 from superset.utils.memoized import memoized
 
 if TYPE_CHECKING:
@@ -115,9 +119,10 @@ class ExtraCache:
         """
 
         if hasattr(g, "user") and g.user:
+            id_ = get_user_id()
             if add_to_cache_keys:
-                self.cache_key_wrapper(g.user.get_id())
-            return g.user.get_id()
+                self.cache_key_wrapper(id_)
+            return id_
         return None
 
     def current_username(self, add_to_cache_keys: bool = True) -> Optional[str]:

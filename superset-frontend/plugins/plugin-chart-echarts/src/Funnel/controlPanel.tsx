@@ -148,6 +148,10 @@ const config: ControlPanelConfig = {
     metric: formData.standardizedFormData.standardizedState.metrics[0],
     groupby: formData.standardizedFormData.standardizedState.columns,
   }),
+  updateStandardizedState: (prevState, currState) => ({
+    ...currState,
+    metrics: [currState.metrics[0], ...prevState.metrics.slice(1)],
+  }),
 };
 
 export default config;

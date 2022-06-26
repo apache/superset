@@ -30,6 +30,7 @@ import { usePluginContext } from 'src/components/DynamicPlugins';
 import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
 import { ExplorePageState } from 'src/explore/reducers/getInitialState';
+import { getChartKey } from 'src/explore/exploreUtils';
 
 export interface VizMeta {
   icon: ReactElement;
@@ -188,8 +189,8 @@ export const FastVizSwitcher = React.memo(
   ({ currentSelection, onChange }: FastVizSwitcherProps) => {
     const currentViz = useSelector<ExplorePageState, string | undefined>(
       state =>
-        state.charts &&
-        Object.values(state.charts)[0]?.latestQueryFormData?.viz_type,
+        state.charts?.[getChartKey(state.explore)]?.latestQueryFormData
+          ?.viz_type,
     );
     const vizTiles = useMemo(() => {
       const vizTiles = [...FEATURED_CHARTS];
