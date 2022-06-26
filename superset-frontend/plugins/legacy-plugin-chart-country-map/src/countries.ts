@@ -80,6 +80,7 @@ import uruguay from './countries/uruguay.geojson';
 import usa from './countries/usa.geojson';
 import zambia from './countries/zambia.geojson';
 import vietnam from './countries/vietnam.geojson';
+import turkey from './countries/turkey.geojson';
 
 export const countries = {
   austria,
@@ -145,6 +146,7 @@ export const countries = {
   usa,
   zambia,
   vietnam,
+  turkey,
 };
 
 export const countryOptions = Object.keys(countries).map(x => {
@@ -152,7 +154,7 @@ export const countryOptions = Object.keys(countries).map(x => {
     return [x, x.toUpperCase()];
   }
   if (x === 'italy_regions') {
-    return [x, 'Italy (regions)'];
+    return [x, 'Italy (bolge)'];
   }
   return [x, x[0].toUpperCase() + x.slice(1)];
 });
