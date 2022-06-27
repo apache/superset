@@ -54,8 +54,7 @@ import Loading from 'src/components/Loading';
 import { usePrevious } from 'src/hooks/usePrevious';
 import { getSectionsToRender } from 'src/explore/controlUtils';
 import { ExploreActions } from 'src/explore/actions/exploreActions';
-import { ExplorePageState } from 'src/explore/reducers/getInitialState';
-import { ChartState } from 'src/explore/types';
+import { ChartState, ExplorePageState } from 'src/explore/types';
 import { Tooltip } from 'src/components/Tooltip';
 
 import { rgba } from 'emotion-rgba';

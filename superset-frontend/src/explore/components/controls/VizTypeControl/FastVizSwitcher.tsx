@@ -29,8 +29,8 @@ import { css, SupersetTheme, t, useTheme } from '@superset-ui/core';
 import { usePluginContext } from 'src/components/DynamicPlugins';
 import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
-import { ExplorePageState } from 'src/explore/reducers/getInitialState';
 import { getChartKey } from 'src/explore/exploreUtils';
+import { ExplorePageState } from 'src/explore/types';
 
 export interface VizMeta {
   icon: ReactElement;

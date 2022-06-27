@@ -20,10 +20,11 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import { createStore, applyMiddleware, compose } from 'redux';
 import thunk from 'redux-thunk';
-import logger from '../middleware/loggerMiddleware';
-import { initFeatureFlags } from '../featureFlags';
-import { initEnhancer } from '../reduxUtils';
-import getInitialState from './reducers/getInitialState';
+import shortid from 'shortid';
+import getToastsFromPyFlashMessages from 'src/components/MessageToasts/getToastsFromPyFlashMessages';
+import logger from 'src/middleware/loggerMiddleware';
+import { initFeatureFlags } from 'src/featureFlags';
+import { initEnhancer } from 'src/reduxUtils';
 import rootReducer from './reducers/index';
 import App from './App';
 
@@ -31,11 +32,18 @@ const exploreViewContainer = document.getElementById('app');
 const bootstrapData = JSON.parse(
   exploreViewContainer.getAttribute('data-bootstrap'),
 );
-initFeatureFlags(bootstrapData.common.feature_flags);
-const initState = getInitialState(bootstrapData);
+
+const user = { ...bootstrapData.user };
+const common = { ...bootstrapData.common };
+initFeatureFlags(common.feature_flags);
 const store = createStore(
   rootReducer,
-  initState,
+  {
+    user,
+    common,
+    impressionId: shortid.generate(),
+    messageToasts: getToastsFromPyFlashMessages(common?.flash_messages || []),
+  },
   compose(applyMiddleware(thunk, logger), initEnhancer(false)),
 );
 

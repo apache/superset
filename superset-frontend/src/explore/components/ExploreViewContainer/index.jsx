@@ -21,7 +21,14 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { styled, t, css, useTheme, logging } from '@superset-ui/core';
+import {
+  styled,
+  t,
+  css,
+  useTheme,
+  logging,
+  ensureIsArray,
+} from '@superset-ui/core';
 import { debounce, pick } from 'lodash';
 import { Resizable } from 're-resizable';
 import { useChangeEffect } from 'src/hooks/useChangeEffect';
@@ -56,6 +63,7 @@ import { getFormDataFromControls } from 'src/explore/controlUtils';
 import * as exploreActions from 'src/explore/actions/exploreActions';
 import * as saveModalActions from 'src/explore/actions/saveModalActions';
 import { useTabId } from 'src/hooks/useTabId';
+import { findPermission } from 'src/utils/findPermission';
 import ExploreChartPanel from '../ExploreChartPanel';
 import ConnectedControlPanelsContainer from '../ControlPanelsContainer';
 import SaveModal from '../SaveModal';
@@ -729,9 +737,9 @@ function mapStateToProps(state) {
     datasourceId: datasource.datasource_id,
     dashboardId,
     controls: explore.controls,
-    can_add: !!explore.can_add,
-    can_download: !!explore.can_download,
-    can_overwrite: !!explore.can_overwrite,
+    can_add: findPermission('can_write', 'Chart', user?.roles),
+    can_download: findPermission('can_csv', 'Superset', user?.roles),
+    can_overwrite: ensureIsArray(slice?.owners).includes(user?.userId),
     column_formats: datasource?.column_formats ?? null,
     containerId: slice
       ? `slice-container-${slice.slice_id}`
