@@ -21,7 +21,6 @@ import React from 'react';
 import { render, screen, act } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { SupersetClient, DatasourceType } from '@superset-ui/core';
-import * as Utils from 'src/explore/exploreUtils';
 import DatasourceControl from '.';
 
 const SupersetClientGet = jest.spyOn(SupersetClient, 'get');
@@ -142,7 +141,7 @@ test('Click on Edit dataset', async () => {
 
 test('Click on View in SQL Lab', async () => {
   const props = createProps();
-  const postFormSpy = jest.spyOn(Utils, 'postForm');
+  const postFormSpy = jest.spyOn(SupersetClient, 'postForm');
   postFormSpy.mockImplementation(jest.fn());
 
   render(<DatasourceControl {...props} />, {

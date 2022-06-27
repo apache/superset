@@ -159,9 +159,7 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
     exploreChart({
       ...EXPLORE_CHART_DEFAULT,
       datasource: `${datasetToOverwrite.datasetId}__table`,
-      all_columns: query.results.selected_columns.map(
-        (d: { name: string; type: string; is_dttm: boolean }) => d.name,
-      ),
+      selected_columns: query.results.selected_columns,
     });
   };
 
@@ -243,8 +241,7 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
           metrics: [],
           groupby: [],
           time_range: 'No filter',
-          viz_type: 'table',
-          all_columns: selectedColumns.map(c => c.name),
+          selectedColumns,
           row_limit: 1000,
         });
       })

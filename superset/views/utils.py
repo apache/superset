@@ -17,7 +17,7 @@
 import logging
 from collections import defaultdict
 from functools import wraps
-from typing import Any, Callable, DefaultDict, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Callable, DefaultDict, Dict, List, Optional, Tuple, Union
 from urllib import parse
 
 import msgpack
@@ -32,7 +32,7 @@ from sqlalchemy.orm.exc import NoResultFound
 import superset.models.core as models
 from superset import app, dataframe, db, result_set, viz
 from superset.common.db_query_status import QueryStatus
-from superset.connectors.connector_registry import ConnectorRegistry
+from superset.datasource.dao import DatasourceDAO
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     CacheLoadError,
@@ -47,6 +47,7 @@ from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import Query
 from superset.superset_typing import FormData
+from superset.utils.core import DatasourceType
 from superset.utils.decorators import stats_timing
 from superset.viz import BaseViz
 
@@ -102,7 +103,7 @@ def bootstrap_user_data(user: User, include_perms: bool = False) -> Dict[str, An
 
 def get_permissions(
     user: User,
-) -> Tuple[Dict[str, List[List[str]]], DefaultDict[str, Set[str]]]:
+) -> Tuple[Dict[str, List[List[str]]], DefaultDict[str, List[str]]]:
     if not user.roles:
         raise AttributeError("User object does not have roles")
 
@@ -115,8 +116,10 @@ def get_permissions(
             if permission[0] in ("datasource_access", "database_access"):
                 permissions[permission[0]].add(permission[1])
             roles[role.name].append([permission[0], permission[1]])
-
-    return roles, permissions
+    transformed_permissions = defaultdict(list)
+    for perm in permissions:
+        transformed_permissions[perm] = list(permissions[perm])
+    return roles, transformed_permissions
 
 
 def get_viz(
@@ -127,8 +130,10 @@ def get_viz(
     force_cached: bool = False,
 ) -> BaseViz:
     viz_type = form_data.get("viz_type", "table")
-    datasource = ConnectorRegistry.get_datasource(
-        datasource_type, datasource_id, db.session
+    datasource = DatasourceDAO.get_datasource(
+        db.session,
+        DatasourceType(datasource_type),
+        datasource_id,
     )
     viz_obj = viz.viz_types[viz_type](
         datasource, form_data=form_data, force=force, force_cached=force_cached

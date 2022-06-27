@@ -24,9 +24,8 @@ import { initSliceEntities } from 'src/dashboard/reducers/sliceEntities';
 import { getInitialState as getInitialNativeFilterState } from 'src/dashboard/reducers/nativeFilters';
 import { applyDefaultFormData } from 'src/explore/store';
 import { buildActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
-import findPermission, {
-  canUserEditDashboard,
-} from 'src/dashboard/util/findPermission';
+import { findPermission } from 'src/utils/findPermission';
+import { canUserEditDashboard } from 'src/dashboard/util/permissionUtils';
 import {
   DASHBOARD_FILTER_SCOPE_GLOBAL,
   dashboardFilter,
@@ -127,6 +126,8 @@ export const hydrateDashboard =
     const dashboardFilters = {};
     const slices = {};
     const sliceIds = new Set();
+    const slicesFromExploreCount = new Map();
+
     chartData.forEach(slice => {
       const key = slice.slice_id;
       const form_data = {
@@ -181,6 +182,10 @@ export const hydrateDashboard =
           },
           (newSlicesContainer.parents || []).slice(),
         );
+
+        const count = (slicesFromExploreCount.get(slice.slice_id) ?? 0) + 1;
+        chartHolder.id = `${CHART_TYPE}-explore-${slice.slice_id}-${count}`;
+        slicesFromExploreCount.set(slice.slice_id, count);
 
         layout[chartHolder.id] = chartHolder;
         newSlicesContainer.children.push(chartHolder.id);
