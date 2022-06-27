@@ -25,11 +25,12 @@ from flask_babel import gettext as __
 from superset.commands.base import BaseCommand
 from superset.common.db_query_status import QueryStatus
 from superset.dao.exceptions import DAOCreateFailedError
-from superset.errors import SupersetErrorType
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     SupersetErrorsException,
     SupersetException,
     SupersetGenericErrorException,
+    SupersetSyntaxErrorException,
 )
 from superset.models.core import Database
 from superset.models.sql_lab import Query
@@ -116,11 +117,19 @@ class ExecuteSqlCommand(BaseCommand):
             }
         except SupersetErrorsException as ex:
             if all(ex.error_type == SupersetErrorType.SYNTAX_ERROR for ex in ex.errors):
-                ex.status = 422
+                raise SupersetSyntaxErrorException(ex.errors) from ex
             raise ex
         except SupersetException as ex:
             if ex.error_type == SupersetErrorType.SYNTAX_ERROR:
-                ex.status = 422
+                raise SupersetSyntaxErrorException(
+                    [
+                        SupersetError(
+                            message=ex.message,
+                            error_type=ex.error_type,
+                            level=ErrorLevel.ERROR,
+                        )
+                    ]
+                ) from ex
             raise ex
         except Exception as ex:
             raise SqlLabException(self._execution_context, exception=ex) from ex
