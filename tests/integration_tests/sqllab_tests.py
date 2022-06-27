@@ -136,6 +136,7 @@ class TestSqlLab(SupersetTestCase):
                     "message": "Only SELECT statements are allowed against this database.",
                     "error_type": SupersetErrorType.DML_NOT_ALLOWED_ERROR,
                     "level": ErrorLevel.ERROR,
+                    "description": None,
                     "extra": {
                         "issue_codes": [
                             {
