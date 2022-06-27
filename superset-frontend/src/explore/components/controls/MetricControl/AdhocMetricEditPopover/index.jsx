@@ -99,12 +99,14 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
     this.onTabChange = this.onTabChange.bind(this);
     this.handleAceEditorRef = this.handleAceEditorRef.bind(this);
     this.refreshAceEditor = this.refreshAceEditor.bind(this);
+    this.handleDatasetModal = this.handleDatasetModal.bind(this);
 
     this.state = {
       adhocMetric: this.props.adhocMetric,
       savedMetric: this.props.savedMetric,
       width: POPOVER_INITIAL_WIDTH,
       height: POPOVER_INITIAL_HEIGHT,
+      showSaveDatasetModal: false,
     };
 
     document.addEventListener('mouseup', this.onMouseUp);
@@ -243,6 +245,10 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
     this.props.getCurrentTab(tab);
   }
 
+  handleDatasetModal(bool)  {
+    this.setState({ showSaveDatasetModal: bool})
+  }
+
   handleAceEditorRef(ref) {
     if (ref) {
       this.aceEditorRef = ref;
@@ -359,7 +365,7 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
         {showSaveDatasetModal && (  
           <SaveDatasetModal
             visible={showSaveDatasetModal}
-            onHide={this.toggleSaveDatasetModal}
+            onHide={this.handleDatasetModal}
             buttonTextOnSave={t('Save & Explore')}
             buttonTextOnOverwrite={t('Overwrite & Explore')}
             modalDescription={t(
@@ -407,8 +413,8 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
                 title={t('No saved metrics found')}
                 description={
                   <>
-                    <a href>Create a dataset {' '}</a>
-                    to add some metrics
+                    <a onClick={() => this.handleDatasetModal(true)}>{t('Create a dataset')} {' '}</a>
+                     {t('to add some metrics')}
                   </>
                 }
               />
