@@ -199,7 +199,7 @@ test('Click on Save as dataset', () => {
     name: /save as new undefined/i,
   });
   const overwriteRadioBtn = screen.getByRole('radio', {
-    name: /overwrite existing select or type dataset name/i,
+    name: /overwrite existing/i,
   });
   expect(saveRadioBtn).toBeVisible();
   expect(overwriteRadioBtn).toBeVisible();
