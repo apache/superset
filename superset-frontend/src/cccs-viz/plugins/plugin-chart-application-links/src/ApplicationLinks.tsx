@@ -53,7 +53,7 @@ export default function ApplicationLinks(props: ApplicationsProps) {
         console.log(e);
         setAlfredCount(0);
         // This will be caught by supersets default error handling that wraps
-        // and will display this message the the user
+        // and will display this message to the user
         throw new Error('Failed to fetch results from Alfred');
       });
   }, [appVal, appType, callback_url]);
