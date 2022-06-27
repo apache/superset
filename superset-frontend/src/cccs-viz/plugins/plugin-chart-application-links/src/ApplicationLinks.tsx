@@ -5,27 +5,25 @@ import styles from './styles';
 export default function ApplicationLinks(props: ApplicationsProps) {
   const { application, appVal, appType } = props;
   const [alfredCount, setAlfredCount] = useState(-1);
-  const [alfredURL, setAlfredURL] = useState(
-    'https://alfred-pb.chimera.cyber.gc.ca',
-  );
+  const [alfredURL, setAlfredURL] = useState('default-alfred-url');
 
   let infoType = '';
-  let callback_url = '';
+  let callback_identifier = '';
 
   if (application === 'ALFRED') {
     if (appType === 'USER_ID') {
       infoType = 'user id';
-      callback_url = 'user_id';
+      callback_identifier = 'user_id';
     } else if (appType === 'IP') {
       infoType = 'IP';
-      callback_url = 'ip_string';
+      callback_identifier = 'ip_string';
     }
   }
 
   useEffect(() => {
     fetch(
       // eslint-disable-next-line no-restricted-globals
-      `//${location.host}/api/v1/proxy/alfred/${callback_url}/${appVal}`,
+      `//${location.host}/api/v1/proxy/alfred/${callback_identifier}/${appVal}`,
     )
       .then(res => res.json())
       .then(response => {
@@ -56,7 +54,7 @@ export default function ApplicationLinks(props: ApplicationsProps) {
         // and will display this message to the user
         throw new Error('Failed to fetch results from Alfred');
       });
-  }, [appVal, appType, callback_url]);
+  }, [appVal, appType, callback_identifier]);
 
   return (
     <div>
