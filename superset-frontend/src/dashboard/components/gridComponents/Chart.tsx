@@ -236,7 +236,6 @@ function Chart(props: Props) {
   };
 
   const changeFilter = (newSelectedValues = {}): void => {
-    console.log('changeFilter', newSelectedValues);
     props.logEvent(LOG_ACTIONS_CHANGE_DASHBOARD_FILTER, {
       id: props.chart.id,
       columns: Object.keys(newSelectedValues),

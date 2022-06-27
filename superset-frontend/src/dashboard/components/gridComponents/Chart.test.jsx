@@ -92,19 +92,35 @@ describe('Chart', () => {
     expect(await screen.findByTestId('slice-description')).toBeInTheDocument();
   });
 
-  it('should call refreshChart when SliceHeader calls forceRefresh', async () => {
+  it('should calculate the description height if it has one and isExpanded=true', async () => {
+    jest.spyOn(React, 'useEffect').mockImplementation(f => f());
+    jest.spyOn(React, 'useRef').mockReturnValue({
+      current: { offsetHeight: 100 },
+    });
+
+    setup({ isExpanded: true });
+    expect(await screen.findByTestId('slice-description')).toBeInTheDocument();
+  });
+
+  it('should call refreshChart when SliceHeader calls forceRefresh', () => {
     const mockRefreshChart = jest.fn();
     mockRefreshChart.mockImplementation(props.refreshChart);
 
-    setup({ ...props, refreshChart: mockRefreshChart });
-    const menuControls = await screen.findByTestId(`slice_${queryId}-controls`);
+    setup({ refreshChart: mockRefreshChart });
+
+    const menuControls = screen.getByTestId(`slice_${queryId}-controls`);
     expect(menuControls).toBeInTheDocument();
     userEvent.click(menuControls);
-    const forceRefreshBtn = await screen.findByTestId(
-      'refresh-chart-menu-item',
-    );
+
+    const forceRefreshBtn = screen.getByTestId('refresh-chart-menu-item');
     expect(forceRefreshBtn).toBeInTheDocument();
     userEvent.click(forceRefreshBtn);
     expect(mockRefreshChart).toHaveBeenCalled();
   });
+
+  it('should call changeFilter when ChartContainer calls changeFilter', () => {});
+
+  it('should call exportChart when exportCSV is clicked', () => {});
+
+  it('should call exportChart with row_limit props.maxRows when exportFullCSV is clicked', () => {});
 });
