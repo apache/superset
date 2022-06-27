@@ -24,6 +24,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
+import { useSelector } from 'react-redux';
 import { AdhocColumn, t, styled, css } from '@superset-ui/core';
 import {
   ColumnMeta,
@@ -91,6 +92,8 @@ const ColumnSelectPopover = ({
   label,
   isTemporal,
 }: ColumnSelectPopoverProps) => {
+  // @ts-ignore
+  const datasource = useSelector(state => state.explore.datasource.type);
   const [initialLabel] = useState(label);
   const [initialAdhocColumn, initialCalculatedColumn, initialSimpleColumn] =
     getInitialColumnValues(editedColumn);
@@ -265,7 +268,7 @@ const ColumnSelectPopover = ({
                 }))}
               />
             </FormItem>
-          ) : (
+          ) : datasource === 'dataset' ? (
             <EmptyStateSmall
               image="empty.svg"
               title={
@@ -278,6 +281,22 @@ const ColumnSelectPopover = ({
                   ? t(
                       'Add calculated temporal columns to dataset in "Edit datasource" modal',
                     )
+                  : t(
+                      'Add calculated columns to dataset in "Edit datasource" modal',
+                    )
+              }
+            />
+          ) : (
+            <EmptyStateSmall
+              image="empty.svg"
+              title={
+                isTemporal
+                  ? t('No temporal columns found')
+                  : t('No saved expressions found')
+              }
+              description={
+                isTemporal
+                  ? t('Create a dataset to mark a column as a time column')
                   : t(
                       'Add calculated columns to dataset in "Edit datasource" modal',
                     )
