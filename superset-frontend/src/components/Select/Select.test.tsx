@@ -16,11 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { RefObject } from 'react';
+import React from 'react';
 import { render, screen, waitFor, within } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { Select } from 'src/components';
-import { SelectRef } from './Select';
 
 const ARIA_LABEL = 'Test';
 const NEW_OPTION = 'Kyle';
@@ -54,21 +53,6 @@ const OPTIONS = [
 const NULL_OPTION = { label: '<NULL>', value: null } as unknown as {
   label: string;
   value: number;
-};
-
-const loadOptions = async (search: string, page: number, pageSize: number) => {
-  const totalCount = OPTIONS.length;
-  const start = page * pageSize;
-  const deleteCount =
-    start + pageSize < totalCount ? pageSize : totalCount - start;
-  const data = OPTIONS.filter(option => option.label.match(search)).splice(
-    start,
-    deleteCount,
-  );
-  return {
-    data,
-    totalCount: OPTIONS.length,
-  };
 };
 
 const defaultProps = {
@@ -173,7 +157,7 @@ test('sort the options using a custom sort comparator', async () => {
   render(
     <Select
       {...defaultProps}
-      options={loadOptions}
+      options={OPTIONS}
       sortComparator={sortComparator}
     />,
   );
@@ -383,7 +367,7 @@ test('clear all the values', async () => {
 });
 
 test('does not add a new option if allowNewOptions is false', async () => {
-  render(<Select {...defaultProps} options={loadOptions} />);
+  render(<Select {...defaultProps} options={OPTIONS} />);
   await open();
   await type(NEW_OPTION);
   expect(await screen.findByText(NO_DATA)).toBeInTheDocument();

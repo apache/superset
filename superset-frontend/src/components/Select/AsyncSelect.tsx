@@ -83,7 +83,6 @@ export type OptionsPagePromise = (
 
 export type AsyncSelectRef = HTMLInputElement & { clearCache: () => void };
 
-
 export interface AsyncSelectProps extends PickedSelectProps {
   /**
    * It enables the user to create new options.

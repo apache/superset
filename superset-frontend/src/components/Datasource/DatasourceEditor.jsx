@@ -47,7 +47,6 @@ import Icons from 'src/components/Icons';
 import CollectionTable from './CollectionTable';
 import Fieldset from './Fieldset';
 import Field from './Field';
-import AsyncSelect from '../AsyncSelect';
 
 const DatasourceContainer = styled.div`
   .change-warning {

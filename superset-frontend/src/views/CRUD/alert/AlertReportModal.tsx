@@ -42,7 +42,7 @@ import Select, { propertyComparator } from 'src/components/Select/Select';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import Owner from 'src/types/Owner';
-import { AntdCheckbox } from 'src/components';
+import { AntdCheckbox, AsyncSelect } from 'src/components';
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
 import { useCommonConf } from 'src/views/CRUD/data/database/state';
 import {
@@ -58,7 +58,6 @@ import {
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import { AlertReportCronScheduler } from './components/AlertReportCronScheduler';
 import { NotificationMethod } from './components/NotificationMethod';
-import { AsyncSelect } from 'src/components';
 
 const TIMEOUT_MIN = 1;
 const TEXT_BASED_VISUALIZATION_TYPES = [

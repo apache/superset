@@ -24,7 +24,6 @@ import Select, {
   SelectProps,
   OptionsTypePage,
   OptionsType,
-  SelectRef,
 } from './Select';
 
 export default {
