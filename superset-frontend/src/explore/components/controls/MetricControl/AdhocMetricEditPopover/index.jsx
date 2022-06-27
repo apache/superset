@@ -281,6 +281,7 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
       datasource,
       ...popoverProps
     } = this.props;
+    console.log('datasource', datasource)
     const { adhocMetric, savedMetric } = this.state;
     const keywords = sqlKeywords.concat(
       columns.map(column => ({
@@ -355,6 +356,18 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
         data-test="metrics-edit-popover"
         {...popoverProps}
       >
+        {showSaveDatasetModal && (  
+          <SaveDatasetModal
+            visible={showSaveDatasetModal}
+            onHide={this.toggleSaveDatasetModal}
+            buttonTextOnSave={t('Save & Explore')}
+            buttonTextOnOverwrite={t('Overwrite & Explore')}
+            modalDescription={t(
+              'Save this query as a virtual dataset to continue exploring',
+            )}
+            datasource={datasource}
+          />
+        )}
         <Tabs
           id="adhoc-metric-edit-tabs"
           data-test="adhoc-metric-edit-tabs"
@@ -379,7 +392,8 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
                   {...savedSelectProps}
                 />
               </FormItem>
-            ) : (
+            ) : 
+            datasource.type === 'dataset' ? 
               <EmptyStateSmall
                 image="empty.svg"
                 title={t('No saved metrics found')}
@@ -387,7 +401,18 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
                   'Add metrics to dataset in "Edit datasource" modal',
                 )}
               />
-            )}
+                :
+              <EmptyStateSmall
+                image="empty.svg"
+                title={t('No saved metrics found')}
+                description={
+                  <>
+                    <a href>Create a dataset {' '}</a>
+                    to add some metrics
+                  </>
+                }
+              />
+            }
           </Tabs.TabPane>
           <Tabs.TabPane
             key={EXPRESSION_TYPES.SIMPLE}
