@@ -201,7 +201,7 @@ class SupersetError:
     message: str
     error_type: SupersetErrorType
     level: ErrorLevel
-    more_message: Optional[str] = None
+    description: Optional[str] = None
     extra: Optional[Dict[str, Any]] = None
 
     def __post_init__(self) -> None:

@@ -35,7 +35,7 @@ from superset.databases.schemas import encrypted_field_properties, EncryptedStri
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.exceptions import SupersetDBAPIDisconnectionError
-from superset.errors import SupersetError, SupersetErrorType
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.sql_parse import Table
 from superset.utils import core as utils
 from superset.utils.hashing import md5_sha_from_str
@@ -76,6 +76,11 @@ class BigQueryParametersSchema(Schema):
         description="Contents of BigQuery JSON credentials.",
     )
     query = fields.Dict(required=False)
+
+
+class ErrorMessageType(TypedDict):
+    short_message: str
+    description: str
 
 
 class BigQueryParametersType(TypedDict):
@@ -212,6 +217,52 @@ class BigQueryEngineSpec(BaseEngineSpec):
         if data and type(data[0]).__name__ == "Row":
             data = [r.values() for r in data]  # type: ignore
         return data
+
+    @classmethod
+    def _reformat_error_message(cls, message: str) -> ErrorMessageType:
+        """Reformat error message for user experience"""
+        splitted_message = re.split("\n+", message, 1)
+        if len(splitted_message) > 1:
+            return ErrorMessageType(
+                short_message=splitted_message[0], description=splitted_message[1]
+            )
+
+        return ErrorMessageType(short_message=splitted_message[0], description="")
+
+    @classmethod
+    def extract_errors(
+        cls, ex: Exception, context: Optional[Dict[str, Any]] = None
+    ) -> List[SupersetError]:
+        raw_message = cls._extract_error_message(ex)
+
+        context = context or {}
+        for regex, (message, error_type, extra) in cls.custom_errors.items():
+            match = regex.search(raw_message)
+            if match:
+                params = {**context, **match.groupdict()}
+                extra["engine_name"] = cls.engine_name
+                errorMessage = cls._reformat_error_message(message % params)
+                return [
+                    SupersetError(
+                        error_type=error_type,
+                        message=errorMessage.get("short_message", ""),
+                        description=errorMessage.get("description"),
+                        level=ErrorLevel.ERROR,
+                        extra=extra,
+                    )
+                ]
+
+        errorMessage = cls._reformat_error_message(raw_message)
+
+        return [
+            SupersetError(
+                error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+                message=errorMessage.get("short_message", ""),
+                description=errorMessage.get("description"),
+                level=ErrorLevel.ERROR,
+                extra={"engine_name": cls.engine_name},
+            )
+        ]
 
     @staticmethod
     def _mutate_label(label: str) -> str:

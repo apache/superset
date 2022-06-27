@@ -902,15 +902,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return utils.error_msg_from_exception(ex)
 
     @classmethod
-    def _reformat_error_message(cls, message: str) -> Tuple[str, str]:
-        """Reformat error message for user experience"""
-        splitted_message = re.split("\n+", message, 1)
-        if len(splitted_message) > 1:
-            return splitted_message[0], splitted_message[1]
-
-        return splitted_message[0], ""
-
-    @classmethod
     def extract_errors(
         cls, ex: Exception, context: Optional[Dict[str, Any]] = None
     ) -> List[SupersetError]:
@@ -922,24 +913,19 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             if match:
                 params = {**context, **match.groupdict()}
                 extra["engine_name"] = cls.engine_name
-                message, more_message = cls._reformat_error_message(message % params)
                 return [
                     SupersetError(
                         error_type=error_type,
-                        message=message,
-                        more_message=more_message,
+                        message=message % params,
                         level=ErrorLevel.ERROR,
                         extra=extra,
                     )
                 ]
 
-        message, more_message = cls._reformat_error_message(raw_message)
-
         return [
             SupersetError(
                 error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
-                message=message,
-                more_message=more_message,
+                message=cls._extract_error_message(ex),
                 level=ErrorLevel.ERROR,
                 extra={"engine_name": cls.engine_name},
             )
