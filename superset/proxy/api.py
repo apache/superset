@@ -118,9 +118,7 @@ class ProxyRestAPI(BaseSupersetModelRestApi):
                                                                                     cache_result=True)
             if not alfred_token:
                 raise Exception("Unable to fetch Alfred token")
-        except requests.exceptions.HTTPError as err:
-            return self.error_obtaining_token("Alfred", err)
-        except Exception as err:
+        except (requests.exceptions.HTTPError, Exception) as err:
             return self.error_obtaining_token("Alfred", err)
         else:
             headers = CaseInsensitiveDict()
@@ -169,9 +167,7 @@ class ProxyRestAPI(BaseSupersetModelRestApi):
                                                                                     cache_result=True)
             if not alfred_token:
                 raise Exception("Unable to fetch Alfred token")
-        except requests.exceptions.HTTPError as err:
-            return self.error_obtaining_token("Alfred", err)
-        except Exception as err:
+        except (requests.exceptions.HTTPError, Exception) as err:
             return self.error_obtaining_token("Alfred", err)
         else:
             headers = CaseInsensitiveDict()
