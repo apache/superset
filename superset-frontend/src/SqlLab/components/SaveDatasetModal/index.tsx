@@ -186,45 +186,36 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
   const loadDatasetOverwriteOptions = useCallback(
     async (input = '') => {
       const { userId } = user;
-      if (userId) {
-        const queryParams = rison.encode({
-          filters: [
-            {
-              col: 'table_name',
-              opr: 'ct',
-              value: input,
-            },
-            {
-              col: 'owners',
-              opr: 'rel_m_m',
-              value: userId,
-            },
-          ],
-          order_column: 'changed_on_delta_humanized',
-          order_direction: 'desc',
-        });
-
-        return SupersetClient.get({
-          endpoint: `/api/v1/dataset?q=${queryParams}`,
-        }).then(response => ({
-          data: response.json.result.map(
-            (r: {
-              table_name: string;
-              id: number;
-              owners: [DatasetOwner];
-            }) => ({
-              value: r.table_name,
-              label: r.table_name,
-              datasetid: r.id,
-              owners: r.owners,
-            }),
-          ),
-          totalCount: response.json.count,
-        }));
-      }
-      return new Promise<OptionsTypePage>(resolve => {
-        resolve({ data: [], totalCount: 0 });
+      const queryParams = rison.encode({
+        filters: [
+          {
+            col: 'table_name',
+            opr: 'ct',
+            value: input,
+          },
+          {
+            col: 'owners',
+            opr: 'rel_m_m',
+            value: userId,
+          },
+        ],
+        order_column: 'changed_on_delta_humanized',
+        order_direction: 'desc',
       });
+
+      return SupersetClient.get({
+        endpoint: `/api/v1/dataset?q=${queryParams}`,
+      }).then(response => ({
+        data: response.json.result.map(
+          (r: { table_name: string; id: number; owners: [DatasetOwner] }) => ({
+            value: r.table_name,
+            label: r.table_name,
+            datasetid: r.id,
+            owners: r.owners,
+          }),
+        ),
+        totalCount: response.json.count,
+      }));
     },
     [user],
   );
