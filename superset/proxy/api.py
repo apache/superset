@@ -142,7 +142,6 @@ class ProxyRestAPI(BaseSupersetModelRestApi):
             refresh_resp_json = json.loads(
                 alfred_resp.content.decode("utf8", "replace")
             )
-            print(refresh_resp_json)
             return self.attach_url(200, self.ALFRED_URL, False, refresh_resp_json)
 
     @expose("/alfred/ip_string/<string:ip_string>", methods=["GET"])
@@ -194,5 +193,4 @@ class ProxyRestAPI(BaseSupersetModelRestApi):
             refresh_resp_json = json.loads(
                 alfred_resp.content.decode("utf8", "replace")
             )
-            print(refresh_resp_json)
             return self.attach_url(200, self.ALFRED_URL, False, refresh_resp_json)
