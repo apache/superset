@@ -281,8 +281,6 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
       datasource,
       ...popoverProps
     } = this.props;
-    console.log('datasource', datasource)
-    console.log('showsavedatesetmodal------->', this.state.showSaveDatasetModal)
     const { adhocMetric, savedMetric } = this.state;
     const keywords = sqlKeywords.concat(
       columns.map(column => ({
@@ -397,10 +395,13 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
                 title={t('No saved metrics found')}
                 description={
                   <>
-                    <a onClick={() => { 
+                    <span 
+                      tabIndex={0}
+                      role="button"
+                      onClick={() => { 
                       this.props.handleDatasetModal(true); 
                       this.props.onClose();
-                    }}>{t('Create a dataset')} {' '}</a>
+                    }}>{t('Create a dataset')} {' '}</span>
                      {t('to add some metrics')}
                   </>
                 }
