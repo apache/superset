@@ -381,7 +381,14 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
     );
     const PanelHeader = () => (
       <span data-test="collapsible-control-panel-header">
-        <span>{label}</span>{' '}
+        <span
+          css={(theme: SupersetTheme) => css`
+            font-size: ${theme.typography.sizes.m}px;
+            line-height: 1.3;
+          `}
+        >
+          {label}
+        </span>{' '}
         {description && (
           // label is only used in tooltip id (should probably call this prop `id`)
           <InfoTooltipWithTrigger label={sectionId} tooltip={description} />
