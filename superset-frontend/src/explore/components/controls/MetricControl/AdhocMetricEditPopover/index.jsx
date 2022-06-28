@@ -355,7 +355,6 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
         data-test="metrics-edit-popover"
         {...popoverProps}
       >
-       
         <Tabs
           id="adhoc-metric-edit-tabs"
           data-test="adhoc-metric-edit-tabs"
@@ -380,8 +379,7 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
                   {...savedSelectProps}
                 />
               </FormItem>
-            ) : 
-            datasource.type === 'dataset' ? 
+            ) : datasource.type === 'dataset' ? (
               <EmptyStateSmall
                 image="empty.svg"
                 title={t('No saved metrics found')}
@@ -389,24 +387,27 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
                   'Add metrics to dataset in "Edit datasource" modal',
                 )}
               />
-                :
+            ) : (
               <EmptyStateSmall
                 image="empty.svg"
                 title={t('No saved metrics found')}
                 description={
                   <>
-                    <span 
+                    <span
                       tabIndex={0}
                       role="button"
-                      onClick={() => { 
-                      this.props.handleDatasetModal(true); 
-                      this.props.onClose();
-                    }}>{t('Create a dataset')} {' '}</span>
-                     {t('to add some metrics')}
+                      onClick={() => {
+                        this.props.handleDatasetModal(true);
+                        this.props.onClose();
+                      }}
+                    >
+                      {t('Create a dataset')}{' '}
+                    </span>
+                    {t('to add some metrics')}
                   </>
                 }
               />
-            }
+            )}
           </Tabs.TabPane>
           <Tabs.TabPane
             key={EXPRESSION_TYPES.SIMPLE}

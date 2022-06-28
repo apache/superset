@@ -298,7 +298,7 @@ const ColumnSelectPopover = ({
               description={
                 isTemporal ? (
                   <>
-                   <span
+                    <span
                       role="button"
                       tabIndex={0}
                       onClick={() => {

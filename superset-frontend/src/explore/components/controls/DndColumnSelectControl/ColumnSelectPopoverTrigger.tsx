@@ -25,10 +25,10 @@ import {
   isColumnMeta,
 } from '@superset-ui/chart-controls';
 import { ExplorePopoverContent } from 'src/explore/components/ExploreContentPopover';
+import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import ColumnSelectPopover from './ColumnSelectPopover';
 import { DndColumnSelectPopoverTitle } from './DndColumnSelectPopoverTitle';
 import ControlPopover from '../ControlPopover/ControlPopover';
-import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 
 interface ColumnSelectPopoverTriggerProps {
   columns: ColumnMeta[];
