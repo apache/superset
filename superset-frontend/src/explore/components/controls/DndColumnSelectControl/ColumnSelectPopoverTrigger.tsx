@@ -17,6 +17,7 @@
  * under the License.
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useSelector } from 'react-redux';
 import { AdhocColumn, t } from '@superset-ui/core';
 import {
   ColumnMeta,
@@ -27,6 +28,7 @@ import { ExplorePopoverContent } from 'src/explore/components/ExploreContentPopo
 import ColumnSelectPopover from './ColumnSelectPopover';
 import { DndColumnSelectPopoverTitle } from './DndColumnSelectPopoverTitle';
 import ControlPopover from '../ControlPopover/ControlPopover';
+import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 
 interface ColumnSelectPopoverTriggerProps {
   columns: ColumnMeta[];
@@ -52,10 +54,13 @@ const ColumnSelectPopoverTrigger = ({
   isTemporal,
   ...props
 }: ColumnSelectPopoverTriggerProps) => {
+  // @ts-ignore
+  const datasource = useSelector(state => state.explore.datasource);
   const [popoverLabel, setPopoverLabel] = useState(defaultPopoverLabel);
   const [popoverVisible, setPopoverVisible] = useState(false);
   const [isTitleEditDisabled, setIsTitleEditDisabled] = useState(true);
   const [hasCustomLabel, setHasCustomLabel] = useState(false);
+  const [showDatasetModal, setDatasetModal] = useState(false);
 
   let initialPopoverLabel = defaultPopoverLabel;
   if (editedColumn && isColumnMeta(editedColumn)) {
@@ -99,6 +104,7 @@ const ColumnSelectPopoverTrigger = ({
         <ColumnSelectPopover
           editedColumn={editedColumn}
           columns={columns}
+          setDatasetModal={setDatasetModal}
           onClose={handleClosePopover}
           onChange={onColumnEdit}
           label={popoverLabel}
@@ -137,17 +143,31 @@ const ColumnSelectPopoverTrigger = ({
   );
 
   return (
-    <ControlPopover
-      trigger="click"
-      content={overlayContent}
-      defaultVisible={visible}
-      visible={visible}
-      onVisibleChange={handleTogglePopover}
-      title={popoverTitle}
-      destroyTooltipOnHide
-    >
-      {children}
-    </ControlPopover>
+    <>
+      {showDatasetModal && (
+        <SaveDatasetModal
+          visible={showDatasetModal}
+          onHide={() => setDatasetModal(false)}
+          buttonTextOnSave={t('Save & Explore')}
+          buttonTextOnOverwrite={t('Overwrite & Explore')}
+          modalDescription={t(
+            'Save this query as a virtual dataset to continue exploring',
+          )}
+          datasource={datasource}
+        />
+      )}
+      <ControlPopover
+        trigger="click"
+        content={overlayContent}
+        defaultVisible={visible}
+        visible={visible}
+        onVisibleChange={handleTogglePopover}
+        title={popoverTitle}
+        destroyTooltipOnHide
+      >
+        {children}
+      </ControlPopover>
+    </>
   );
 };
 

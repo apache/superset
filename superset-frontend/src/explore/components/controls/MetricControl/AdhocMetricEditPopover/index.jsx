@@ -99,14 +99,12 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
     this.onTabChange = this.onTabChange.bind(this);
     this.handleAceEditorRef = this.handleAceEditorRef.bind(this);
     this.refreshAceEditor = this.refreshAceEditor.bind(this);
-    this.handleDatasetModal = this.handleDatasetModal.bind(this);
 
     this.state = {
       adhocMetric: this.props.adhocMetric,
       savedMetric: this.props.savedMetric,
       width: POPOVER_INITIAL_WIDTH,
       height: POPOVER_INITIAL_HEIGHT,
-      showSaveDatasetModal: false,
     };
 
     document.addEventListener('mouseup', this.onMouseUp);
@@ -245,10 +243,6 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
     this.props.getCurrentTab(tab);
   }
 
-  handleDatasetModal(bool)  {
-    this.setState({ showSaveDatasetModal: bool})
-  }
-
   handleAceEditorRef(ref) {
     if (ref) {
       this.aceEditorRef = ref;
@@ -288,6 +282,7 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
       ...popoverProps
     } = this.props;
     console.log('datasource', datasource)
+    console.log('showsavedatesetmodal------->', this.state.showSaveDatasetModal)
     const { adhocMetric, savedMetric } = this.state;
     const keywords = sqlKeywords.concat(
       columns.map(column => ({
@@ -362,18 +357,7 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
         data-test="metrics-edit-popover"
         {...popoverProps}
       >
-        {showSaveDatasetModal && (  
-          <SaveDatasetModal
-            visible={showSaveDatasetModal}
-            onHide={this.handleDatasetModal}
-            buttonTextOnSave={t('Save & Explore')}
-            buttonTextOnOverwrite={t('Overwrite & Explore')}
-            modalDescription={t(
-              'Save this query as a virtual dataset to continue exploring',
-            )}
-            datasource={datasource}
-          />
-        )}
+       
         <Tabs
           id="adhoc-metric-edit-tabs"
           data-test="adhoc-metric-edit-tabs"
@@ -413,7 +397,10 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
                 title={t('No saved metrics found')}
                 description={
                   <>
-                    <a onClick={() => this.handleDatasetModal(true)}>{t('Create a dataset')} {' '}</a>
+                    <a onClick={() => { 
+                      this.props.handleDatasetModal(true); 
+                      this.props.onClose();
+                    }}>{t('Create a dataset')} {' '}</a>
                      {t('to add some metrics')}
                   </>
                 }

@@ -87,6 +87,7 @@ const ColumnSelectPopover = ({
   editedColumn,
   onChange,
   onClose,
+  setDatasetModal,
   setLabel,
   getCurrentTab,
   label,
@@ -295,11 +296,35 @@ const ColumnSelectPopover = ({
                   : t('No saved expressions found')
               }
               description={
-                isTemporal
-                  ? t('Create a dataset to mark a column as a time column')
-                  : t(
-                      'Add calculated columns to dataset in "Edit datasource" modal',
-                    )
+                isTemporal ? (
+                  <>
+                   <span
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => {
+                        setDatasetModal(true);
+                        onClose();
+                      }}
+                    >
+                      {t('Create a dataset')}
+                    </span>{' '}
+                    {t(' to mark a column as a time column')}
+                  </>
+                ) : (
+                  <>
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => {
+                        setDatasetModal(true);
+                        onClose();
+                      }}
+                    >
+                      {t('Create a dataset')}
+                    </span>{' '}
+                    {t(' to mark a column as a calculated column')}
+                  </>
+                )
               }
             />
           )}
@@ -309,9 +334,25 @@ const ColumnSelectPopover = ({
             <EmptyStateSmall
               image="empty.svg"
               title={t('No temporal columns found')}
-              description={t(
-                'Mark a column as temporal in "Edit datasource" modal',
-              )}
+              description={
+                datasource.type === 'dataset' ? (
+                  t('Mark a column as temporal in "Edit datasource" modal')
+                ) : (
+                  <>
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => {
+                        setDatasetModal(true);
+                        onClose();
+                      }}
+                    >
+                      {t('Create a dataset')}
+                    </span>{' '}
+                    {t(' to mark a column as a time column')}
+                  </>
+                )
+              }
             />
           ) : (
             <FormItem label={simpleColumnsLabel}>

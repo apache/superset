@@ -17,9 +17,10 @@
  * under the License.
  */
 import React, { ReactNode } from 'react';
-import { Datasource, Metric } from '@superset-ui/core';
+import { Datasource, Metric, t } from '@superset-ui/core';
 import AdhocMetricEditPopoverTitle from 'src/explore/components/controls/MetricControl/AdhocMetricEditPopoverTitle';
 import { ExplorePopoverContent } from 'src/explore/components/ExploreContentPopover';
+import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import AdhocMetricEditPopover, {
   SAVED_TAB_KEY,
 } from './AdhocMetricEditPopover';
@@ -63,6 +64,7 @@ class AdhocMetricPopoverTrigger extends React.PureComponent<
     this.getCurrentTab = this.getCurrentTab.bind(this);
     this.getCurrentLabel = this.getCurrentLabel.bind(this);
     this.onChange = this.onChange.bind(this);
+    this.handleDatasetModal = this.handleDatasetModal.bind(this);
 
     this.state = {
       adhocMetric: props.adhocMetric,
@@ -74,6 +76,7 @@ class AdhocMetricPopoverTrigger extends React.PureComponent<
       currentLabel: '',
       labelModified: false,
       isTitleEditDisabled: false,
+      showSaveDatasetModal: false,
     };
   }
 
@@ -117,6 +120,10 @@ class AdhocMetricPopoverTrigger extends React.PureComponent<
 
   onPopoverResize() {
     this.forceUpdate();
+  }
+
+  handleDatasetModal(bool) {
+    this.setState({ showSaveDatasetModal: bool });
   }
 
   closePopover() {
@@ -205,6 +212,7 @@ class AdhocMetricPopoverTrigger extends React.PureComponent<
           savedMetricsOptions={savedMetricsOptions}
           savedMetric={savedMetric}
           datasource={datasource}
+          handleDatasetModal={this.handleDatasetModal}
           onResize={this.onPopoverResize}
           onClose={closePopover}
           onChange={this.onChange}
@@ -223,18 +231,32 @@ class AdhocMetricPopoverTrigger extends React.PureComponent<
     );
 
     return (
-      <ControlPopover
-        placement="right"
-        trigger="click"
-        content={overlayContent}
-        defaultVisible={visible}
-        visible={visible}
-        onVisibleChange={togglePopover}
-        title={popoverTitle}
-        destroyTooltipOnHide
-      >
-        {this.props.children}
-      </ControlPopover>
+      <>
+        {this.state.showSaveDatasetModal && (
+          <SaveDatasetModal
+            visible={this.state.showSaveDatasetModal}
+            onHide={() => this.handleDatasetModal(false)}
+            buttonTextOnSave={t('Save & Explore')}
+            buttonTextOnOverwrite={t('Overwrite & Explore')}
+            modalDescription={t(
+              'Save this query as a virtual dataset to continue exploring',
+            )}
+            datasource={datasource}
+          />
+        )}
+        <ControlPopover
+          placement="right"
+          trigger="click"
+          content={overlayContent}
+          defaultVisible={visible}
+          visible={visible}
+          onVisibleChange={togglePopover}
+          title={popoverTitle}
+          destroyTooltipOnHide
+        >
+          {this.props.children}
+        </ControlPopover>
+      </>
     );
   }
 }
