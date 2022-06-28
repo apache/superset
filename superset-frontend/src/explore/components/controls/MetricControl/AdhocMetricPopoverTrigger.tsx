@@ -21,6 +21,7 @@ import { Datasource, Metric, t } from '@superset-ui/core';
 import AdhocMetricEditPopoverTitle from 'src/explore/components/controls/MetricControl/AdhocMetricEditPopoverTitle';
 import { ExplorePopoverContent } from 'src/explore/components/ExploreContentPopover';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
+import { ExploreDatasource } from 'src/SqlLab/types';
 import AdhocMetricEditPopover, {
   SAVED_TAB_KEY,
 } from './AdhocMetricEditPopover';
@@ -34,7 +35,7 @@ export type AdhocMetricPopoverTriggerProps = {
   columns: { column_name: string; type: string }[];
   savedMetricsOptions: savedMetricType[];
   savedMetric: savedMetricType;
-  datasource: Datasource;
+  datasource: ExploreDatasource;
   children: ReactNode;
   isControlledComponent?: boolean;
   visible?: boolean;
