@@ -49,7 +49,7 @@ export function fetchSlices(
   excludeFilterBox,
   dispatch,
   filter_value,
-  sortColumn = 'changed_on_delta_humanized',
+  sortColumn = 'changed_on',
   slices = {},
 ) {
   const additional_filters = filter_value
