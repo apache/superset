@@ -165,6 +165,11 @@ export interface SelectProps extends PickedSelectProps {
    * Will not apply to predefined `options` array when users are not searching.
    */
   sortComparator?: typeof DEFAULT_SORT_COMPARATOR;
+  /**
+   * Customize who the container node is.
+   * Parent node by default.
+   */
+  getPopupContainer?: (triggerNode?: any) => any;
 }
 
 const StyledContainer = styled.div`
@@ -316,6 +321,7 @@ const Select = (
     sortComparator = DEFAULT_SORT_COMPARATOR,
     tokenSeparators,
     value,
+    getPopupContainer,
     ...props
   }: SelectProps,
   ref: RefObject<SelectRef>,
@@ -701,7 +707,9 @@ const Select = (
         dropdownRender={dropdownRender}
         filterOption={handleFilterOption}
         filterSort={sortComparatorWithSearch}
-        getPopupContainer={triggerNode => triggerNode.parentNode}
+        getPopupContainer={
+          getPopupContainer || (triggerNode => triggerNode.parentNode)
+        }
         labelInValue={isAsync || labelInValue}
         maxTagCount={MAX_TAG_COUNT}
         mode={mappedMode}

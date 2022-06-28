@@ -51,7 +51,6 @@ import { postFormData } from 'src/explore/exploreUtils/formData';
 import { URL_PARAMS } from 'src/constants';
 import { SelectValue } from 'antd/lib/select';
 import { isEmpty } from 'lodash';
-import { OptionsTypePage } from 'src/components/Select/Select';
 
 interface SaveDatasetModalProps {
   visible: boolean;
@@ -370,7 +369,6 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
                     value={selectedDatasetToOverwrite}
                     filterOption={filterAutocompleteOption}
                     disabled={newOrOverwrite !== 2}
-                    // @ts-ignore
                     getPopupContainer={() => document.body}
                   />
                 </div>
