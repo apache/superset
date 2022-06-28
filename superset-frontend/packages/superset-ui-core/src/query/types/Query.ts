@@ -304,7 +304,7 @@ export type Query = {
   executedSql: string;
   output: string | Record<string, any>;
   actions: Record<string, any>;
-  type: DatasourceType.Query;
+  type: DatasourceType;
   columns: QueryColumn[];
 };
 
