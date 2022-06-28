@@ -209,7 +209,7 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
       return;
     }
 
-    const selectedColumns = query.results.selected_columns || [];
+    const selectedColumns = query?.results?.selected_columns || [];
 
     // The filters param is only used to test jinja templates.
     // Remove the special filters entry from the templateParams

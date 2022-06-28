@@ -19,23 +19,13 @@
 import React, { useState, useEffect } from 'react';
 import { Row, Col } from 'src/components';
 import { Input, TextArea } from 'src/components/Input';
-import { t, styled } from '@superset-ui/core';
+import { t, styled, useTheme } from '@superset-ui/core';
 import Button from 'src/components/Button';
+import { Menu } from 'src/components/Menu';
 import { Form, FormItem } from 'src/components/Form';
 import Modal from 'src/components/Modal';
-import Icons from 'src/components/Icons';
-
-const Styles = styled.span`
-  span[role='img'] {
-    display: flex;
-    margin: 0;
-    color: ${({ theme }) => theme.colors.grayscale.base};
-    svg {
-      vertical-align: -${({ theme }) => theme.gridUnit * 1.25}px;
-      margin: 0;
-    }
-  }
-`;
+import SaveDatasetActionButton from 'src/SqlLab/components/SaveDatasetActionButton';
+import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 
 interface SaveQueryProps {
   query: any;
@@ -43,6 +33,7 @@ interface SaveQueryProps {
   onSave: (arg0: QueryPayload) => void;
   onUpdate: (arg0: QueryPayload) => void;
   saveQueryWarning: string | null;
+  database: Record<string, any>;
 }
 
 type QueryPayload = {
@@ -77,13 +68,37 @@ export default function SaveQuery({
   onSave = () => {},
   onUpdate,
   saveQueryWarning = null,
+  database,
 }: SaveQueryProps) {
   const [description, setDescription] = useState<string>(
     query.description || '',
   );
   const [label, setLabel] = useState<string>(defaultLabel);
   const [showSave, setShowSave] = useState<boolean>(false);
+  const [showSaveDatasetModal, setShowSaveDatasetModal] = useState(false);
   const isSaved = !!query.remoteId;
+  const theme = useTheme();
+  const canExploreDatabase = !!database?.allows_virtual_table_explore;
+
+  const Styles = styled.span`
+    span[role='img'] {
+      display: flex;
+      margin: 0;
+      color: ${theme.colors.grayscale.base};
+      svg {
+        vertical-align: -${theme.gridUnit * 1.25}px;
+        margin: 0;
+      }
+    }
+  `;
+
+  const overlayMenu = (
+    <Menu>
+      <Menu.Item onClick={() => setShowSaveDatasetModal(true)}>
+        {t('Save dataset')}
+      </Menu.Item>
+    </Menu>
+  );
 
   const queryPayload = () => ({
     ...query,
@@ -96,6 +111,7 @@ export default function SaveQuery({
       setLabel(defaultLabel);
     }
   }, [defaultLabel]);
+
   const close = () => {
     setShowSave(false);
   };
@@ -161,10 +177,17 @@ export default function SaveQuery({
 
   return (
     <Styles className="SaveQuery">
-      <Button buttonSize="small" onClick={toggleSave}>
-        <Icons.Save iconSize="xl" />
-        {isSaved ? t('Save') : t('Save as')}
-      </Button>
+      <SaveDatasetActionButton
+        toggleSave={toggleSave}
+        overlayMenu={canExploreDatabase ? overlayMenu : null}
+      />
+      <SaveDatasetModal
+        visible={showSaveDatasetModal}
+        onHide={() => setShowSaveDatasetModal(false)}
+        buttonTextOnSave={t('Save')}
+        buttonTextOnOverwrite={t('Overwrite')}
+        datasource={query}
+      />
       <Modal
         className="save-query-modal"
         onHandledPrimaryAction={onSaveWrapper}
