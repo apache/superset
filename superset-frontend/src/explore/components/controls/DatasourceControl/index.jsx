@@ -39,7 +39,7 @@ import Button from 'src/components/Button';
 import ErrorAlert from 'src/components/ErrorMessage/ErrorAlert';
 import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
 import { URL_PARAMS } from 'src/constants';
-import { isUserAdmin } from 'src/dashboard/util/findPermission';
+import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import ModalTrigger from 'src/components/ModalTrigger';
 import ViewQueryModalFooter from 'src/explore/components/controls/ViewQueryModalFooter';
 import ViewQuery from 'src/explore/components/controls/ViewQuery';
@@ -454,7 +454,7 @@ class DatasourceControl extends React.PureComponent {
             onChange={onChange}
           />
         )}
-        {showSaveDatasetModal && showSaveDatasetModal && (
+        {showSaveDatasetModal && (
           <SaveDatasetModal
             visible={showSaveDatasetModal}
             onHide={this.toggleSaveDatasetModal}
