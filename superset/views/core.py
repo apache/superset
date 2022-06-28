@@ -2734,6 +2734,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 k: v for k, v in database.to_json().items() if k in DATABASE_KEYS
             }
             databases[database.id]["backend"] = database.backend
+            databases[database.id]["has_catalogs"] = database.has_catalogs
+
         queries: Dict[str, Any] = {}
 
         # These are unnecessary if sqllab backend persistence is disabled
