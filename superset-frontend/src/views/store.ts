@@ -106,7 +106,7 @@ export const store: Store = createStore(
  * setupStore with disableDebugger true enables the menu.tsx component to avoid connecting
  * to redux debugger so the application can connect to redux debugger
  */
-export function setupStore(disableDegugger: boolean = false): Store {
+export function setupStore(disableDegugger = false): Store {
   return createStore(
     rootReducer,
     {},

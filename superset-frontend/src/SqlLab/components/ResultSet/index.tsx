@@ -23,7 +23,11 @@ import Button from 'src/components/Button';
 import shortid from 'shortid';
 import { styled, t, QueryResponse } from '@superset-ui/core';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
-import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
+import {
+  ISaveableDataset,
+  ISimpleColumn,
+  SaveDatasetModal,
+} from 'src/SqlLab/components/SaveDatasetModal';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import ProgressBar from 'src/components/ProgressBar';
 import Loading from 'src/components/Loading';
@@ -220,6 +224,15 @@ export default class ResultSet extends React.PureComponent<
       const { showSaveDatasetModal } = this.state;
       const { query } = this.props;
 
+      const dataset: ISaveableDataset = {
+        columns: query.columns as ISimpleColumn[],
+        name: query?.tab || 'Untitled',
+        dbId: 1,
+        sql: query.sql,
+        templateParams: query.templateParams,
+        schema: query.schema,
+      };
+
       return (
         <ResultSetControls>
           <SaveDatasetModal
@@ -230,7 +243,7 @@ export default class ResultSet extends React.PureComponent<
             modalDescription={t(
               'Save this query as a virtual dataset to continue exploring',
             )}
-            datasource={query}
+            datasource={dataset}
           />
           <ResultSetButtons>
             {this.props.visualize &&

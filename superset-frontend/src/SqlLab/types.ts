@@ -19,11 +19,8 @@
 import { SupersetError } from 'src/components/ErrorMessage/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { ToastType } from 'src/components/MessageToasts/types';
-import { Dataset } from '@superset-ui/chart-controls';
-import { Query, QueryResponse } from '@superset-ui/core';
 import { ExploreRootState } from 'src/explore/types';
-
-export type ExploreDatasource = Dataset | QueryResponse;
+import { Query } from '@superset-ui/core';
 
 export interface QueryEditor {
   dbId?: number;

@@ -154,13 +154,13 @@ describe('DatasourceControl', () => {
     const sql = 'This is the sql';
     const name = 'this is a name';
     const emptyResult = '';
-    const queryDatasource1 = { type: DatasourceType.Query, sql: sql };
+    const queryDatasource1 = { type: DatasourceType.Query, sql };
     let displayText = getDatasourceTitle(queryDatasource1);
     expect(displayText).toBe(sql);
     const queryDatasource2 = { type: DatasourceType.Query, sql: null };
     displayText = getDatasourceTitle(queryDatasource2);
     expect(displayText).toBe(emptyResult);
-    const queryDatasource3 = { type: 'random type', name: name };
+    const queryDatasource3 = { type: 'random type', name };
     displayText = getDatasourceTitle(queryDatasource3);
     expect(displayText).toBe(name);
     const queryDatasource4 = { type: 'random type' };

@@ -17,16 +17,50 @@
  * under the License.
  */
 import React from 'react';
-import { QueryResponse, testQuery } from '@superset-ui/core';
-import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
+import {
+  ISaveableDataset,
+  SaveDatasetModal,
+} from 'src/SqlLab/components/SaveDatasetModal';
 import { render, screen } from 'spec/helpers/testing-library';
+import { DatasourceType } from '@superset-ui/core';
+/*
+columns: ISimpleColumn[];
+  name: string;
+  dbId: number;
+  sql: string;
+  templateParams?: string | object | null;
+  schema?: string | null;
+*/
+
+const testQuery: ISaveableDataset = {
+  name: 'Named Set',
+  dbId: 1,
+  sql: 'SELECT *',
+  columns: [
+    {
+      name: 'Column 1',
+      type: DatasourceType.Query,
+      is_dttm: false,
+    },
+    {
+      name: 'Column 3',
+      type: DatasourceType.Query,
+      is_dttm: false,
+    },
+    {
+      name: 'Column 2',
+      type: DatasourceType.Query,
+      is_dttm: true,
+    },
+  ],
+};
 
 const mockedProps = {
   visible: true,
   onHide: () => {},
   buttonTextOnSave: 'Save',
   buttonTextOnOverwrite: 'Overwrite',
-  datasource: testQuery as QueryResponse,
+  datasource: testQuery,
 };
 
 describe('SaveDatasetModal RTL', () => {

@@ -43,7 +43,6 @@ import { isUserAdmin } from 'src/dashboard/util/findPermission';
 import ModalTrigger from 'src/components/ModalTrigger';
 import ViewQueryModalFooter from 'src/explore/components/controls/ViewQueryModalFooter';
 import ViewQuery from 'src/explore/components/controls/ViewQuery';
-import Modal from 'src/components/Modal';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { safeStringify } from 'src/utils/safeStringify';
 
@@ -173,9 +172,20 @@ class DatasourceControl extends React.PureComponent {
     this.state = {
       showEditDatasourceModal: false,
       showChangeDatasourceModal: false,
-      showSaveDatasourceModal: false,
+      showSaveDatasetModal: false,
     };
   }
+
+  getDatasourceAsSaveableDataset = source => {
+    const dataset = {
+      columns: source?.columns || [],
+      name: source?.datasource_name || t('Untitled'),
+      dbId: source.database.id,
+      sql: source?.sql || '',
+      schema: source?.schema,
+    };
+    return dataset;
+  };
 
   onDatasourceSave = datasource => {
     this.props.actions.setDatasource(datasource);
@@ -265,7 +275,7 @@ class DatasourceControl extends React.PureComponent {
       showEditDatasourceModal,
       showSaveDatasetModal,
     } = this.state;
-    const { datasource, onChange, theme, form_data } = this.props;
+    const { datasource, onChange, theme } = this.props;
     const isMissingDatasource = datasource?.id == null;
     let isMissingParams = false;
     if (isMissingDatasource) {
@@ -334,7 +344,7 @@ class DatasourceControl extends React.PureComponent {
             }
             draggable={false}
             resizable={false}
-            responsive={true}
+            responsive
           />
         </Menu.Item>
         <Menu.Item key={VIEW_IN_SQL_LAB}>{t('View in SQL Lab')}</Menu.Item>
@@ -444,7 +454,7 @@ class DatasourceControl extends React.PureComponent {
             onChange={onChange}
           />
         )}
-        {showSaveDatasetModal && (
+        {showSaveDatasetModal && showSaveDatasetModal && (
           <SaveDatasetModal
             visible={showSaveDatasetModal}
             onHide={this.toggleSaveDatasetModal}
@@ -453,7 +463,7 @@ class DatasourceControl extends React.PureComponent {
             modalDescription={t(
               'Save this query as a virtual dataset to continue exploring',
             )}
-            datasource={datasource}
+            datasource={this.getDatasourceAsSaveableDataset(datasource)}
           />
         )}
       </Styles>

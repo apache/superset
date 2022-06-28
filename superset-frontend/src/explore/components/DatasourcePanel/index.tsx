@@ -17,40 +17,58 @@
  * under the License.
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import {
-  css,
-  styled,
-  t,
-  DatasourceType,
-  QueryResponse,
-  Metric,
-} from '@superset-ui/core';
-import {
-  ControlConfig,
-  Dataset,
-  ColumnMeta,
-} from '@superset-ui/chart-controls';
-import { debounce } from 'lodash';
+import { css, styled, t, DatasourceType, Metric } from '@superset-ui/core';
+
+import { ControlConfig, ColumnMeta } from '@superset-ui/chart-controls';
+
+import { debounce, isArray } from 'lodash';
 import { matchSorter, rankings } from 'match-sorter';
 import Collapse from 'src/components/Collapse';
 import Alert from 'src/components/Alert';
-import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
+import {
+  ISaveableDataset,
+  ISimpleColumn,
+  SaveDatasetModal,
+} from 'src/SqlLab/components/SaveDatasetModal';
+
 import { Input } from 'src/components/Input';
 import { FAST_DEBOUNCE } from 'src/constants';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { ExploreActions } from 'src/explore/actions/exploreActions';
 import Control from 'src/explore/components/Control';
-import { ExploreDatasource } from 'src/SqlLab/types';
 import DatasourcePanelDragOption from './DatasourcePanelDragOption';
 import { DndItemType } from '../DndItemType';
 import { StyledColumnOption, StyledMetricOption } from '../optionRenderers';
+import { DndItemValue } from './types';
 
 interface DatasourceControl extends ControlConfig {
-  datasource?: ExploreDatasource;
+  datasource?: IDatasource;
+}
+
+export interface DataSourcePanelColumn {
+  is_dttm?: boolean | null;
+  description?: string | null;
+  expression?: string | null;
+  is_certified?: number | null;
+  column_name?: string | null;
+  name?: string | null;
+  type?: string;
+}
+export interface IDatasource {
+  metrics: Metric[];
+  columns: DataSourcePanelColumn[];
+  id: number;
+  type: DatasourceType;
+  database: {
+    id: number;
+  };
+  sql?: string | null;
+  datasource_name?: string | null;
+  schema?: string | null;
 }
 
 export interface Props {
-  datasource: Dataset & QueryResponse;
+  datasource: IDatasource;
   controls: {
     datasource: DatasourceControl;
   };
@@ -193,25 +211,33 @@ export default function DataSourcePanel({
   actions,
   shouldForceUpdate,
 }: Props) {
-  const { columns: _columns } = datasource;
-  let metrics: Metric[];
-  if (datasource?.metrics?.length) {
-    metrics = datasource.metrics;
-  }
+  const { columns: _columns, metrics } = datasource;
+
   // display temporal column first
   const columns = useMemo(
     () =>
-      [..._columns].sort((col1, col2) => {
-        if (col1.is_dttm && !col2.is_dttm) {
+      [...(isArray(_columns) ? _columns : [])].sort((col1, col2) => {
+        if (col1?.is_dttm && !col2?.is_dttm) {
           return -1;
         }
-        if (col2.is_dttm && !col1.is_dttm) {
+        if (col2?.is_dttm && !col1?.is_dttm) {
           return 1;
         }
         return 0;
       }),
     [_columns],
   );
+
+  const getDatasourceAsSaveableDataset = (source: IDatasource) => {
+    const dataset: ISaveableDataset = {
+      columns: source.columns as ISimpleColumn[],
+      name: source?.datasource_name || 'Untitled',
+      dbId: source.database.id,
+      sql: source?.sql || '',
+      schema: source?.schema,
+    };
+    return dataset;
+  };
 
   const [showSaveDatasetModal, setShowSaveDatasetModal] = useState(false);
   const [inputValue, setInputValue] = useState('');
@@ -292,8 +318,8 @@ export default function DataSourcePanel({
     setInputValue('');
   }, [columns, datasource, metrics]);
 
-  const sortCertifiedFirst = (slice: ColumnMeta[]) =>
-    slice.sort((a, b) => b?.is_certified - a?.is_certified);
+  const sortCertifiedFirst = (slice: DataSourcePanelColumn[]) =>
+    slice.sort((a, b) => (b?.is_certified ?? 0) - (a?.is_certified ?? 0));
 
   const metricSlice = useMemo(
     () =>
@@ -418,11 +444,11 @@ export default function DataSourcePanel({
                 >
                   {enableExploreDnd ? (
                     <DatasourcePanelDragOption
-                      value={col}
+                      value={col as DndItemValue}
                       type={DndItemType.Column}
                     />
                   ) : (
-                    <StyledColumnOption column={col} showType />
+                    <StyledColumnOption column={col as ColumnMeta} showType />
                   )}
                 </LabelContainer>
               ))}
@@ -440,6 +466,7 @@ export default function DataSourcePanel({
         </div>
       </>
     ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       columnSlice,
       inputValue,
@@ -456,13 +483,13 @@ export default function DataSourcePanel({
 
   return (
     <DatasourceContainer>
-      {dataSourceIsQuery && (
+      {dataSourceIsQuery && showSaveDatasetModal && (
         <SaveDatasetModal
           visible={showSaveDatasetModal}
           onHide={() => setShowSaveDatasetModal(false)}
           buttonTextOnSave={t('Save')}
           buttonTextOnOverwrite={t('Overwrite')}
-          datasource={datasource}
+          datasource={getDatasourceAsSaveableDataset(datasource)}
         />
       )}
       <Control {...datasourceControl} name="datasource" actions={actions} />
