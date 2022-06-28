@@ -334,7 +334,7 @@ class SliceHeaderControls extends React.PureComponent<
             <ModalTrigger
               triggerNode={
                 <span data-test="view-query-menu-item">
-                  {t('Drill to detail')}
+                  {t('View as table')}
                 </span>
               }
               modalTitle={t('Chart Data: %s', slice.slice_name)}
