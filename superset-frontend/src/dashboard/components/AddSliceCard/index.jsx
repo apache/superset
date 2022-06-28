@@ -121,6 +121,9 @@ const Styled = styled.div`
   `}
 `;
 
+export const FALLBACK_THUMBNAIL_URL =
+  '/static/assets/images/chart-card-fallback.svg';
+
 function AddSliceCard({
   datasourceUrl,
   datasourceName,
@@ -144,11 +147,11 @@ function AddSliceCard({
         data-test="chart-card"
       >
         {showThumbnails ? (
-          <div className="card-thumbnail-wrapper">
+          <div className="card-thumbnail-wrapper" data-test="thumbnail">
             <div className="card-thumbnail">
               <ImageLoader
                 src={thumbnailUrl || ''}
-                fallback="/static/assets/images/chart-card-fallback.svg"
+                fallback={FALLBACK_THUMBNAIL_URL}
                 position="top"
               />
             </div>
