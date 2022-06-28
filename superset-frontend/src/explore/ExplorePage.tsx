@@ -20,9 +20,11 @@ import React, { useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { makeApi } from '@superset-ui/core';
 import Loading from 'src/components/Loading';
+import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { getParsedExploreURLParams } from './exploreUtils/getParsedExploreURLParams';
 import { hydrateExplore } from './actions/hydrateExplore';
 import ExploreViewContainer from './components/ExploreViewContainer';
+import { ExploreResponsePayload } from './types';
 
 export const ExplorePage = () => {
   const [isLoaded, setIsLoaded] = useState(false);
@@ -31,15 +33,18 @@ export const ExplorePage = () => {
   useEffect(() => {
     const exploreUrlParams = getParsedExploreURLParams();
     const fetchExploreData = async () => {
-      const response = await makeApi({
+      const { result } = await makeApi<{}, ExploreResponsePayload>({
         method: 'GET',
         endpoint: 'api/v1/explore/',
       })(exploreUrlParams);
-      dispatch(hydrateExplore(response.result));
+      dispatch(hydrateExplore(result));
       setIsLoaded(true);
+      if (result.message) {
+        dispatch(addDangerToast(result.message));
+      }
     };
     fetchExploreData();
-  }, []);
+  }, [dispatch]);
 
   if (!isLoaded) {
     return <Loading />;

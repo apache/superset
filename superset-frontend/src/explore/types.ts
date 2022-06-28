@@ -101,6 +101,10 @@ export interface ExplorePageInitialData {
   slice: Slice | null;
 }
 
+export interface ExploreResponsePayload {
+  result: ExplorePageInitialData & { message: string };
+}
+
 export interface ExplorePageState {
   user: UserWithPermissionsAndRoles;
   common: {
