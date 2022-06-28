@@ -78,6 +78,15 @@ Cypress.Commands.add(
         datasource_type,
         form_data: JSON.stringify(formData),
       },
+      headers: {
+        Cookie: `csrf_access_token=${window.localStorage.getItem(
+          'access_token',
+        )}`,
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${TokenName}`,
+        'X-CSRFToken': `${window.localStorage.getItem('access_token')}`,
+        Referer: `${Cypress.config().baseUrl}/`,
+      },
     }).then(response => {
       const formDataKey = response.body.key;
       const url = `/superset/explore/?form_data_key=${formDataKey}`;
