@@ -33,6 +33,7 @@ import {
   sharedControls,
   emitFilterControl,
   ControlFormItemSpec,
+  getStandardizedControls,
 } from '@superset-ui/chart-controls';
 import { DEFAULT_FORM_DATA } from './types';
 import { LABEL_POSITION } from '../constants';
@@ -210,10 +211,10 @@ const config: ControlPanelConfig = {
       ],
     },
   ],
-  denormalizeFormData: formData => ({
+  formDataOverrides: formData => ({
     ...formData,
-    metrics: formData.standardizedFormData.standardizedState.metrics,
-    groupby: formData.standardizedFormData.standardizedState.columns,
+    metrics: getStandardizedControls().popAllMetrics(),
+    groupby: getStandardizedControls().popAllColumns(),
   }),
 };
 

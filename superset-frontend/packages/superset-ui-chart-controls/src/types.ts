@@ -344,30 +344,36 @@ export interface ControlPanelSectionConfig {
   controlSetRows: ControlSetRow[];
 }
 
-export interface StandardizedState {
+export interface StandardizedControls {
   metrics: QueryFormMetric[];
   columns: QueryFormColumn[];
 }
 
 export interface StandardizedFormDataInterface {
-  standardizedState: StandardizedState;
+  // Controls not used in the current viz
+  controls: StandardizedControls;
+  // Transformation history
   memorizedFormData: Map<string, QueryFormData>;
 }
+
+export type QueryStandardizedFormData = QueryFormData & {
+  standardizedFormData: StandardizedFormDataInterface;
+};
+
+export const isStandardizedFormData = (
+  formData: QueryFormData,
+): formData is QueryStandardizedFormData =>
+  formData?.standardizedFormData?.controls &&
+  formData?.standardizedFormData?.memorizedFormData &&
+  Array.isArray(formData.standardizedFormData.controls.metrics) &&
+  Array.isArray(formData.standardizedFormData.controls.columns);
 
 export interface ControlPanelConfig {
   controlPanelSections: (ControlPanelSectionConfig | null)[];
   controlOverrides?: ControlOverrides;
   sectionOverrides?: SectionOverrides;
   onInit?: (state: ControlStateMapping) => void;
-  denormalizeFormData?: (
-    formData: QueryFormData & {
-      standardizedFormData: StandardizedFormDataInterface;
-    },
-  ) => QueryFormData;
-  updateStandardizedState?: (
-    prevState: StandardizedState,
-    currState: StandardizedState,
-  ) => StandardizedState;
+  formDataOverrides?: (formData: QueryFormData) => QueryFormData;
 }
 
 export type ControlOverrides = {
