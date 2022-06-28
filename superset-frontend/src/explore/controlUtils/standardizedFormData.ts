@@ -37,12 +37,15 @@ export const sharedMetricsKey = [
   'metric', // via sharedControls, scalar
   'metrics', // via sharedControls, array
   'metric_2', // via sharedControls, scalar
+  'size', // via sharedControls, scalar
 ];
 export const sharedColumnsKey = [
   'groupby', // via sharedControls, array
   'columns', // via sharedControls, array
   'groupbyColumns', // via pivot table v2, array
   'groupbyRows', // via pivot table v2, array
+  'entity', // via sharedControls, scalar
+  'series', // via sharedControls, scalar
 ];
 
 export const publicControls = [
