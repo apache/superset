@@ -116,11 +116,6 @@ export class StandardizedFormData {
       metrics: [],
       columns: [],
     };
-    if (isStandardizedFormData(formData)) {
-      const { metrics, columns } = formData.standardizedFormData.controls;
-      controls.metrics = metrics;
-      controls.columns = columns;
-    }
 
     // 2. collect current sharedControls
     Object.entries(formData).forEach(([key, value]) => {
@@ -131,6 +126,13 @@ export class StandardizedFormData {
         controls.columns.push(...ensureIsArray<QueryFormColumn>(value));
       }
     });
+
+    // 3. append inherit sharedControls
+    if (isStandardizedFormData(formData)) {
+      const { metrics, columns } = formData.standardizedFormData.controls;
+      controls.metrics.push(...metrics);
+      controls.columns.push(...columns);
+    }
 
     return controls;
   }

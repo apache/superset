@@ -350,7 +350,9 @@ export interface StandardizedControls {
 }
 
 export interface StandardizedFormDataInterface {
+  // Controls not used in the current viz
   controls: StandardizedControls;
+  // Transformation history
   memorizedFormData: Map<string, QueryFormData>;
 }
 

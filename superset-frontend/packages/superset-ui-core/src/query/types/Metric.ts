@@ -74,19 +74,15 @@ export interface Metric {
 
 export default {};
 
-export function isSavedMetric(metric: QueryFormMetric): metric is SavedMetric {
+export function isSavedMetric(metric: any): metric is SavedMetric {
   return typeof metric === 'string';
 }
 
-export function isAdhocMetricSimple(
-  metric: QueryFormMetric,
-): metric is AdhocMetricSimple {
+export function isAdhocMetricSimple(metric: any): metric is AdhocMetricSimple {
   return typeof metric !== 'string' && metric?.expressionType === 'SIMPLE';
 }
 
-export function isAdhocMetricSQL(
-  metric: QueryFormMetric,
-): metric is AdhocMetricSQL {
+export function isAdhocMetricSQL(metric: any): metric is AdhocMetricSQL {
   return typeof metric !== 'string' && metric?.expressionType === 'SQL';
 }
 

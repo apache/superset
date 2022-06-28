@@ -54,13 +54,11 @@ export interface Column {
 
 export default {};
 
-export function isPhysicalColumn(
-  column?: QueryFormColumn,
-): column is PhysicalColumn {
+export function isPhysicalColumn(column?: any): column is PhysicalColumn {
   return typeof column === 'string';
 }
 
-export function isAdhocColumn(column?: QueryFormColumn): column is AdhocColumn {
+export function isAdhocColumn(column?: any): column is AdhocColumn {
   return (
     typeof column !== 'string' &&
     column?.sqlExpression !== undefined &&

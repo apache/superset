@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { getChartControlPanelRegistry, QueryFormData } from '@superset-ui/core';
+import {
+  AdhocColumn,
+  AdhocMetricSimple,
+  AdhocMetricSQL,
+  getChartControlPanelRegistry,
+  QueryFormData,
+} from '@superset-ui/core';
 import TableChartPlugin from '@superset-ui/plugin-chart-table';
 import { BigNumberTotalChartPlugin } from '@superset-ui/plugin-chart-echarts';
 import { sections } from '@superset-ui/chart-controls';
@@ -26,6 +32,33 @@ import {
   sharedColumnsKey,
   publicControls,
 } from './standardizedFormData';
+
+const adhocColumn: AdhocColumn = {
+  expressionType: 'SQL',
+  label: 'country',
+  optionName: 'country',
+  sqlExpression: 'country',
+};
+
+const adhocMetricSQL: AdhocMetricSQL = {
+  expressionType: 'SQL',
+  label: 'count',
+  optionName: 'count',
+  sqlExpression: 'count(*)',
+};
+
+const adhocMetricSimple: AdhocMetricSimple = {
+  expressionType: 'SIMPLE',
+  column: {
+    id: 1,
+    column_name: 'sales',
+    columnName: 'sales',
+    verbose_name: 'sales',
+  },
+  aggregate: 'SUM',
+  label: 'count',
+  optionName: 'count',
+};
 
 describe('should collect control values and create SFD', () => {
   const sharedKey = [...sharedMetricsKey, ...sharedColumnsKey];
@@ -213,8 +246,8 @@ describe('should transform form_data between table and bigNumberTotal', () => {
     time_grain_sqla: 'P1D',
     time_range: 'No filter',
     query_mode: 'aggregate',
-    groupby: ['name'],
-    metrics: ['count'],
+    groupby: ['name', 'gender', adhocColumn],
+    metrics: ['count', 'avg(sales)', adhocMetricSimple, adhocMetricSQL],
     all_columns: [],
     percent_metrics: [],
     adhoc_filters: [],
@@ -262,10 +295,10 @@ describe('should transform form_data between table and bigNumberTotal', () => {
         value: 'aggregate',
       },
       groupby: {
-        value: ['name'],
+        value: ['name', 'gender', adhocColumn],
       },
       metrics: {
-        value: ['count'],
+        value: ['count', 'avg(sales)', adhocMetricSimple, adhocMetricSQL],
       },
       all_columns: {
         value: [],
@@ -352,7 +385,7 @@ describe('should transform form_data between table and bigNumberTotal', () => {
     expect(bntFormData.viz_type).toBe('big_number_total');
     expect(bntFormData.metric).toBe('count');
 
-    // change control values
+    // change control values on bigNumber
     bntFormData.metric = 'sum(sales)';
     bntFormData.time_range = '2021 : 2022';
     bntControlsState.metric.value = 'sum(sales)';
@@ -370,8 +403,13 @@ describe('should transform form_data between table and bigNumberTotal', () => {
       [...Object.keys(tblControlsState), 'standardizedFormData'].sort(),
     );
     expect(tblFormData.viz_type).toBe('table');
-    expect(tblFormData.metrics).toEqual(['sum(sales)']);
-    expect(tblFormData.groupby).toEqual(['name']);
+    expect(tblFormData.metrics).toEqual([
+      'sum(sales)',
+      'avg(sales)',
+      adhocMetricSimple,
+      adhocMetricSQL,
+    ]);
+    expect(tblFormData.groupby).toEqual(['name', 'gender', adhocColumn]);
     expect(tblFormData.time_range).toBe('2021 : 2022');
   });
 });
