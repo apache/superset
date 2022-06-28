@@ -20,7 +20,6 @@ import React, { useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { makeApi } from '@superset-ui/core';
 import Loading from 'src/components/Loading';
-import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { getParsedExploreURLParams } from './exploreUtils/getParsedExploreURLParams';
 import { hydrateExplore } from './actions/hydrateExplore';
 import ExploreViewContainer from './components/ExploreViewContainer';
@@ -39,9 +38,6 @@ export const ExplorePage = () => {
       })(exploreUrlParams);
       dispatch(hydrateExplore(result));
       setIsLoaded(true);
-      if (result.message) {
-        dispatch(addDangerToast(result.message));
-      }
     };
     fetchExploreData();
   }, [dispatch]);
