@@ -91,7 +91,6 @@ test('should render', () => {
 
 test('should display items in controls', () => {
   render(setup(props), { useRedux: true });
-  expect(screen.getByText('birth_names')).toBeInTheDocument();
   expect(screen.getByText('Metrics')).toBeInTheDocument();
   expect(screen.getByText('Columns')).toBeInTheDocument();
 });

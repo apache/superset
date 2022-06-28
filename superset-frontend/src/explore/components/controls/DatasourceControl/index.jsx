@@ -17,6 +17,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 import React from 'react';
 import PropTypes from 'prop-types';
 import {
@@ -45,6 +46,7 @@ import ViewQueryModalFooter from 'src/explore/components/controls/ViewQueryModal
 import ViewQuery from 'src/explore/components/controls/ViewQuery';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { safeStringify } from 'src/utils/safeStringify';
+import { isString } from 'lodash';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -231,12 +233,6 @@ class DatasourceControl extends React.PureComponent {
     }));
   };
 
-  toggleQueryPreviewModal = () => {
-    this.setState(({ QueryPreviewModal }) => ({
-      QueryPreviewModal: !QueryPreviewModal,
-    }));
-  };
-
   handleMenuItemClick = ({ key }) => {
     switch (key) {
       case CHANGE_DATASET:
@@ -356,9 +352,13 @@ class DatasourceControl extends React.PureComponent {
 
     let extra = {};
     if (datasource?.extra) {
-      try {
-        extra = JSON.parse(datasource?.extra);
-      } catch {} // eslint-disable-line no-empty
+      if (isString(datasource.extra)) {
+        try {
+          extra = JSON.parse(datasource?.extra);
+        } catch {} // eslint-disable-line no-empty
+      } else {
+        extra = datasource.extra;
+      }
     }
 
     const titleText = getDatasourceTitle(datasource);
