@@ -17,20 +17,25 @@
  * under the License.
  */
 
-const EXPLORE_URL_PARAMS = [
-  'form_data',
-  'slice_id',
-  'dataset_id',
-  'dataset_type',
-  'form_data_key',
-  'permalink_key',
-];
+// mapping { url_param: v1_explore_request_param }
+const EXPLORE_URL_SEARCH_PARAMS = {
+  form_data: 'form_data',
+  slice_id: 'slice_id',
+  dataset_id: 'dataset_id',
+  dataset_type: 'dataset_type',
+  form_data_key: 'form_data_key',
+  permalink_key: 'permalink_key',
+};
+
+const EXPLORE_URL_PATH_PARAMS = {
+  p: 'permalink_key', // permalink
+};
 
 // search params can be placed in form_data object
-// we need to "flatten" the search params to use them with /v1/exploer endpoint
-export const getParsedExploreURLParams = () => {
+// we need to "flatten" the search params to use them with /v1/explore endpoint
+const getParsedExploreURLSearchParams = () => {
   const urlSearchParams = new URLSearchParams(window.location.search);
-  const exploreUrlParams = EXPLORE_URL_PARAMS.reduce((acc, currentParam) => {
+  return Object.keys(EXPLORE_URL_SEARCH_PARAMS).reduce((acc, currentParam) => {
     const paramValue = urlSearchParams.get(currentParam);
     if (paramValue === null) {
       return acc;
@@ -44,9 +49,29 @@ export const getParsedExploreURLParams = () => {
     if (typeof parsedParamValue === 'object') {
       return { ...acc, ...parsedParamValue };
     }
-    return { ...acc, [currentParam]: parsedParamValue };
+    return {
+      ...acc,
+      [EXPLORE_URL_SEARCH_PARAMS[currentParam]]: parsedParamValue,
+    };
   }, {});
-  return Object.entries(exploreUrlParams)
+};
+
+// path params need to be transformed to search params to use them with /v1/explore endpoint
+const getParsedExploreURLPathParams = () =>
+  Object.keys(EXPLORE_URL_PATH_PARAMS).reduce((acc, currentParam) => {
+    const re = new RegExp(`/(${currentParam})/(\\w+)`);
+    const pathGroups = window.location.pathname.match(re);
+    if (pathGroups && pathGroups[2]) {
+      return { ...acc, [EXPLORE_URL_PATH_PARAMS[currentParam]]: pathGroups[2] };
+    }
+    return acc;
+  }, {});
+
+export const getParsedExploreURLParams = () => {
+  return Object.entries({
+    ...getParsedExploreURLSearchParams(),
+    ...getParsedExploreURLPathParams(),
+  })
     .map(entry => entry.join('='))
     .join('&');
 };
