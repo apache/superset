@@ -42,7 +42,7 @@ describe('Visualization > Time TableViz', () => {
       url: '',
     };
 
-    cy.visitChartByParams(JSON.stringify(formData));
+    cy.visitChartByParams(formData);
     cy.verifySliceSuccess({
       waitAlias: '@getJson',
       querySubstring: NUM_METRIC.label,
@@ -70,7 +70,7 @@ describe('Visualization > Time TableViz', () => {
       url: '',
     };
 
-    cy.visitChartByParams(JSON.stringify(formData));
+    cy.visitChartByParams(formData);
     cy.verifySliceSuccess({
       waitAlias: '@getJson',
       querySubstring: NUM_METRIC.label,
@@ -107,7 +107,7 @@ describe('Visualization > Time TableViz', () => {
       url: '',
     };
 
-    cy.visitChartByParams(JSON.stringify(formData));
+    cy.visitChartByParams(formData);
     cy.verifySliceSuccess({
       waitAlias: '@getJson',
       querySubstring: NUM_METRIC.label,

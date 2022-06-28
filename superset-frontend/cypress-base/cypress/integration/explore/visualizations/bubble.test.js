@@ -47,7 +47,7 @@ describe('Visualization > Bubble', () => {
   };
 
   function verify(formData) {
-    cy.visitChartByParams(JSON.stringify(formData));
+    cy.visitChartByParams(formData);
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
   }
 
@@ -60,7 +60,7 @@ describe('Visualization > Bubble', () => {
   // Since main functionality is already covered in filter test below,
   // skip this test until we find a solution.
   it.skip('should work', () => {
-    cy.visitChartByParams(JSON.stringify(BUBBLE_FORM_DATA)).then(() => {
+    cy.visitChartByParams(BUBBLE_FORM_DATA).then(() => {
       cy.wait('@getJson').then(xhr => {
         let expectedBubblesNumber = 0;
         xhr.responseBody.data.forEach(element => {
