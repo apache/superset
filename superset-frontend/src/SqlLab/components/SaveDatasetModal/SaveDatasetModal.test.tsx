@@ -23,17 +23,9 @@ import {
 } from 'src/SqlLab/components/SaveDatasetModal';
 import { render, screen } from 'spec/helpers/testing-library';
 import { DatasourceType } from '@superset-ui/core';
-/*
-columns: ISimpleColumn[];
-  name: string;
-  dbId: number;
-  sql: string;
-  templateParams?: string | object | null;
-  schema?: string | null;
-*/
 
 const testQuery: ISaveableDataset = {
-  name: 'Named Set',
+  name: 'unimportant',
   dbId: 1,
   sql: 'SELECT *',
   columns: [
@@ -70,6 +62,7 @@ describe('SaveDatasetModal RTL', () => {
     const saveRadioBtn = screen.getByRole('radio', {
       name: /save as new unimportant/i,
     });
+
     const fieldLabel = screen.getByText(/save as new/i);
     const inputField = screen.getByRole('textbox');
     const inputFieldText = screen.getByDisplayValue(/unimportant/i);
