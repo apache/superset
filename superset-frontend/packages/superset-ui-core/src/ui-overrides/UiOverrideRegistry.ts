@@ -34,6 +34,7 @@ type UiGeneratorText<P = void> = (props: P) => string | React.ReactElement;
 export type UiOverrides = Partial<{
   'embedded.documentation.description': UiGeneratorText;
   'embedded.documentation.url': string;
+  'navbar.right': React.ComponentType;
 }>;
 
 /**
