@@ -357,7 +357,7 @@ class DatasourceControl extends React.PureComponent {
           extra = JSON.parse(datasource?.extra);
         } catch {} // eslint-disable-line no-empty
       } else {
-        extra = datasource.extra;
+        extra = datasource.extra; // eslint-disable-line prefer-destructuring
       }
     }
 
