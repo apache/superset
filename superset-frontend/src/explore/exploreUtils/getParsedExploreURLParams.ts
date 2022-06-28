@@ -67,11 +67,10 @@ const getParsedExploreURLPathParams = () =>
     return acc;
   }, {});
 
-export const getParsedExploreURLParams = () => {
-  return Object.entries({
+export const getParsedExploreURLParams = () =>
+  Object.entries({
     ...getParsedExploreURLSearchParams(),
     ...getParsedExploreURLPathParams(),
   })
     .map(entry => entry.join('='))
     .join('&');
-};

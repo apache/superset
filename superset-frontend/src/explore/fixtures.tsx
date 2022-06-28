@@ -125,7 +125,7 @@ export const exploreInitialData: ExplorePageInitialData = {
     slice_name: 'Age distribution of respondents',
     is_managed_externally: false,
     form_data: {
-      datasource: '58__table',
+      datasource: '8__table',
       metric: 'count',
       slice_id: 371,
       time_range: 'No filter',

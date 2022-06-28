@@ -119,7 +119,7 @@ export interface ExplorePageState {
     // duplicate datasource in exploreState - it's needed by getControlsState
     datasource: Dataset;
     controls: ControlStateMapping;
-    form_data: JsonObject;
+    form_data: QueryFormData;
     slice: Slice;
     controlsTransferred: string[];
     standalone: boolean;
