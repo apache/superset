@@ -34,7 +34,7 @@ export type AdhocMetricPopoverTriggerProps = {
   columns: { column_name: string; type: string }[];
   savedMetricsOptions: savedMetricType[];
   savedMetric: savedMetricType;
-  datasource?: Datasource;
+  datasource: Datasource;
   children: ReactNode;
   isControlledComponent?: boolean;
   visible?: boolean;
@@ -49,6 +49,7 @@ export type AdhocMetricPopoverTriggerState = {
   currentLabel: string;
   labelModified: boolean;
   isTitleEditDisabled: boolean;
+  showSaveDatasetModal: boolean;
 };
 
 class AdhocMetricPopoverTrigger extends React.PureComponent<
@@ -122,7 +123,7 @@ class AdhocMetricPopoverTrigger extends React.PureComponent<
     this.forceUpdate();
   }
 
-  handleDatasetModal(bool) {
+  handleDatasetModal(bool: boolean) {
     this.setState({ showSaveDatasetModal: bool });
   }
 

@@ -18,6 +18,8 @@
  */
 /* eslint-disable camelcase */
 import React, {
+  Dispatch,
+  SetStateAction,
   useCallback,
   useEffect,
   useMemo,
@@ -43,6 +45,7 @@ import {
   POPOVER_INITIAL_HEIGHT,
   UNRESIZABLE_POPOVER_WIDTH,
 } from 'src/explore/constants';
+import { SetState } from 'immer/dist/internal';
 
 const StyledSelect = styled(Select)`
   .metric-option {
@@ -65,6 +68,7 @@ interface ColumnSelectPopoverProps {
   getCurrentTab: (tab: string) => void;
   label: string;
   isTemporal?: boolean;
+  setDatasetModal?: Dispatch<SetStateAction<boolean>>;
 }
 
 const getInitialColumnValues = (
@@ -302,7 +306,7 @@ const ColumnSelectPopover = ({
                       role="button"
                       tabIndex={0}
                       onClick={() => {
-                        setDatasetModal(true);
+                        if (setDatasetModal) setDatasetModal(true);
                         onClose();
                       }}
                     >
@@ -316,7 +320,7 @@ const ColumnSelectPopover = ({
                       role="button"
                       tabIndex={0}
                       onClick={() => {
-                        setDatasetModal(true);
+                        if (setDatasetModal) setDatasetModal(true);
                         onClose();
                       }}
                     >
@@ -343,7 +347,7 @@ const ColumnSelectPopover = ({
                       role="button"
                       tabIndex={0}
                       onClick={() => {
-                        setDatasetModal(true);
+                        if (setDatasetModal) setDatasetModal(true);
                         onClose();
                       }}
                     >
