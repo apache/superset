@@ -16,27 +16,65 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { getChartControlPanelRegistry, QueryFormData } from '@superset-ui/core';
+import {
+  AdhocColumn,
+  AdhocMetricSimple,
+  AdhocMetricSQL,
+  getChartControlPanelRegistry,
+  QueryFormData,
+} from '@superset-ui/core';
 import TableChartPlugin from '@superset-ui/plugin-chart-table';
 import { BigNumberTotalChartPlugin } from '@superset-ui/plugin-chart-echarts';
 import { sections } from '@superset-ui/chart-controls';
 import {
   StandardizedFormData,
-  sharedControls,
+  sharedMetricsKey,
+  sharedColumnsKey,
   publicControls,
 } from './standardizedFormData';
 
+const adhocColumn: AdhocColumn = {
+  expressionType: 'SQL',
+  label: 'country',
+  optionName: 'country',
+  sqlExpression: 'country',
+};
+
+const adhocMetricSQL: AdhocMetricSQL = {
+  expressionType: 'SQL',
+  label: 'count',
+  optionName: 'count',
+  sqlExpression: 'count(*)',
+};
+
+const adhocMetricSimple: AdhocMetricSimple = {
+  expressionType: 'SIMPLE',
+  column: {
+    id: 1,
+    column_name: 'sales',
+    columnName: 'sales',
+    verbose_name: 'sales',
+  },
+  aggregate: 'SUM',
+  label: 'count',
+  optionName: 'count',
+};
+
 describe('should collect control values and create SFD', () => {
+  const sharedKey = [...sharedMetricsKey, ...sharedColumnsKey];
   const sharedControlsFormData = {
     // metrics
     metric: 'm1',
     metrics: ['m2'],
     metric_2: 'm3',
+    size: 'm4',
     // columns
     groupby: ['c1'],
     columns: ['c2'],
     groupbyColumns: ['c3'],
     groupbyRows: ['c4'],
+    series: 'c5',
+    entity: 'c6',
   };
   const publicControlsFormData = {
     // time section
@@ -112,16 +150,16 @@ describe('should collect control values and create SFD', () => {
           controlSetRows: [['x_axis']],
         },
       ],
-      denormalizeFormData: (formData: QueryFormData) => ({
+      formDataOverrides: (formData: QueryFormData) => ({
         ...formData,
-        columns: formData.standardizedFormData.standardizedState.columns,
-        metrics: formData.standardizedFormData.standardizedState.metrics,
+        columns: formData.standardizedFormData.controls.columns,
+        metrics: formData.standardizedFormData.controls.metrics,
       }),
     });
   });
 
   test('should avoid to overlap', () => {
-    const sharedControlsSet = new Set(Object.keys(sharedControls));
+    const sharedControlsSet = new Set(Object.keys(sharedKey));
     const publicControlsSet = new Set(publicControls);
     expect(
       [...sharedControlsSet].filter((x: string) => publicControlsSet.has(x)),
@@ -130,19 +168,17 @@ describe('should collect control values and create SFD', () => {
 
   test('should collect all sharedControls', () => {
     expect(Object.entries(sharedControlsFormData).length).toBe(
-      Object.entries(sharedControls).length,
+      Object.entries(sharedKey).length,
     );
     const sfd = new StandardizedFormData(sourceMockFormData);
-    expect(sfd.serialize().standardizedState.metrics).toEqual([
-      'm1',
-      'm2',
-      'm3',
-    ]);
-    expect(sfd.serialize().standardizedState.columns).toEqual([
+    expect(sfd.serialize().controls.metrics).toEqual(['m1', 'm2', 'm3', 'm4']);
+    expect(sfd.serialize().controls.columns).toEqual([
       'c1',
       'c2',
       'c3',
       'c4',
+      'c5',
+      'c6',
     ]);
   });
 
@@ -157,8 +193,8 @@ describe('should collect control values and create SFD', () => {
       expect(formData).toHaveProperty(key);
       expect(value).toEqual(publicControlsFormData[key]);
     });
-    expect(formData.columns).toEqual(['c1', 'c2', 'c3', 'c4']);
-    expect(formData.metrics).toEqual(['m1', 'm2', 'm3']);
+    expect(formData.columns).toEqual(['c1', 'c2', 'c3', 'c4', 'c5', 'c6']);
+    expect(formData.metrics).toEqual(['m1', 'm2', 'm3', 'm4']);
   });
 
   test('should inherit standardizedFormData and memorizedFormData is LIFO', () => {
@@ -210,8 +246,8 @@ describe('should transform form_data between table and bigNumberTotal', () => {
     time_grain_sqla: 'P1D',
     time_range: 'No filter',
     query_mode: 'aggregate',
-    groupby: ['name'],
-    metrics: ['count'],
+    groupby: ['name', 'gender', adhocColumn],
+    metrics: ['count', 'avg(sales)', adhocMetricSimple, adhocMetricSQL],
     all_columns: [],
     percent_metrics: [],
     adhoc_filters: [],
@@ -259,10 +295,10 @@ describe('should transform form_data between table and bigNumberTotal', () => {
         value: 'aggregate',
       },
       groupby: {
-        value: ['name'],
+        value: ['name', 'gender', adhocColumn],
       },
       metrics: {
-        value: ['count'],
+        value: ['count', 'avg(sales)', adhocMetricSimple, adhocMetricSQL],
       },
       all_columns: {
         value: [],
@@ -349,7 +385,7 @@ describe('should transform form_data between table and bigNumberTotal', () => {
     expect(bntFormData.viz_type).toBe('big_number_total');
     expect(bntFormData.metric).toBe('count');
 
-    // change control values
+    // change control values on bigNumber
     bntFormData.metric = 'sum(sales)';
     bntFormData.time_range = '2021 : 2022';
     bntControlsState.metric.value = 'sum(sales)';
@@ -367,8 +403,13 @@ describe('should transform form_data between table and bigNumberTotal', () => {
       [...Object.keys(tblControlsState), 'standardizedFormData'].sort(),
     );
     expect(tblFormData.viz_type).toBe('table');
-    expect(tblFormData.metrics).toEqual(['sum(sales)']);
-    expect(tblFormData.groupby).toEqual(['name']);
+    expect(tblFormData.metrics).toEqual([
+      'sum(sales)',
+      'avg(sales)',
+      adhocMetricSimple,
+      adhocMetricSQL,
+    ]);
+    expect(tblFormData.groupby).toEqual(['name', 'gender', adhocColumn]);
     expect(tblFormData.time_range).toBe('2021 : 2022');
   });
 });
