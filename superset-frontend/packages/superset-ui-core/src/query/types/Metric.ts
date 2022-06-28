@@ -17,7 +17,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Maybe } from '../../types';
+import { Maybe, QueryFormMetric } from '../../types';
 import { Column } from './Column';
 
 export type Aggregate =
@@ -74,8 +74,26 @@ export interface Metric {
 
 export default {};
 
+export function isSavedMetric(metric: QueryFormMetric): metric is SavedMetric {
+  return typeof metric === 'string';
+}
+
 export function isAdhocMetricSimple(
-  metric: AdhocMetric,
+  metric: QueryFormMetric,
 ): metric is AdhocMetricSimple {
-  return metric.expressionType === 'SIMPLE';
+  return typeof metric !== 'string' && metric?.expressionType === 'SIMPLE';
+}
+
+export function isAdhocMetricSQL(
+  metric: QueryFormMetric,
+): metric is AdhocMetricSQL {
+  return typeof metric !== 'string' && metric?.expressionType === 'SQL';
+}
+
+export function isQueryFormMetric(metric: any): metric is QueryFormMetric {
+  return (
+    isSavedMetric(metric) ||
+    isAdhocMetricSimple(metric) ||
+    isAdhocMetricSQL(metric)
+  );
 }

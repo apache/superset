@@ -22,11 +22,13 @@ import { BigNumberTotalChartPlugin } from '@superset-ui/plugin-chart-echarts';
 import { sections } from '@superset-ui/chart-controls';
 import {
   StandardizedFormData,
-  sharedControls,
+  sharedMetricsKey,
+  sharedColumnsKey,
   publicControls,
 } from './standardizedFormData';
 
 describe('should collect control values and create SFD', () => {
+  const sharedKey = [...sharedMetricsKey, ...sharedColumnsKey];
   const sharedControlsFormData = {
     // metrics
     metric: 'm1',
@@ -112,16 +114,16 @@ describe('should collect control values and create SFD', () => {
           controlSetRows: [['x_axis']],
         },
       ],
-      denormalizeFormData: (formData: QueryFormData) => ({
+      formDataOverrides: (formData: QueryFormData) => ({
         ...formData,
-        columns: formData.standardizedFormData.standardizedState.columns,
-        metrics: formData.standardizedFormData.standardizedState.metrics,
+        columns: formData.standardizedFormData.controls.columns,
+        metrics: formData.standardizedFormData.controls.metrics,
       }),
     });
   });
 
   test('should avoid to overlap', () => {
-    const sharedControlsSet = new Set(Object.keys(sharedControls));
+    const sharedControlsSet = new Set(Object.keys(sharedKey));
     const publicControlsSet = new Set(publicControls);
     expect(
       [...sharedControlsSet].filter((x: string) => publicControlsSet.has(x)),
@@ -130,20 +132,11 @@ describe('should collect control values and create SFD', () => {
 
   test('should collect all sharedControls', () => {
     expect(Object.entries(sharedControlsFormData).length).toBe(
-      Object.entries(sharedControls).length,
+      Object.entries(sharedKey).length,
     );
     const sfd = new StandardizedFormData(sourceMockFormData);
-    expect(sfd.serialize().standardizedState.metrics).toEqual([
-      'm1',
-      'm2',
-      'm3',
-    ]);
-    expect(sfd.serialize().standardizedState.columns).toEqual([
-      'c1',
-      'c2',
-      'c3',
-      'c4',
-    ]);
+    expect(sfd.serialize().controls.metrics).toEqual(['m1', 'm2', 'm3']);
+    expect(sfd.serialize().controls.columns).toEqual(['c1', 'c2', 'c3', 'c4']);
   });
 
   test('should transform all publicControls and sharedControls', () => {

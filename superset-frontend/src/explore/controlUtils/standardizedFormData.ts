@@ -16,38 +16,35 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { isEmpty, intersection } from 'lodash';
 import {
   ensureIsArray,
   getChartControlPanelRegistry,
+  QueryFormColumn,
   QueryFormData,
+  QueryFormMetric,
 } from '@superset-ui/core';
 import {
   ControlStateMapping,
-  StandardizedState,
+  getStandardizedControls,
+  isStandardizedFormData,
+  StandardizedControls,
   StandardizedFormDataInterface,
 } from '@superset-ui/chart-controls';
 import { getControlsState } from 'src/explore/store';
 import { getFormDataFromControls } from './getFormDataFromControls';
 
-export const sharedControls: Record<string, keyof StandardizedState> = {
-  // metrics
-  metric: 'metrics', // via sharedControls, scalar
-  metrics: 'metrics', // via sharedControls, array
-  metric_2: 'metrics', // via sharedControls, scalar
-  // columns
-  groupby: 'columns', // via sharedControls, array
-  columns: 'columns', // via sharedControls, array
-  groupbyColumns: 'columns', // via pivot table v2, array
-  groupbyRows: 'columns', // via pivot table v2, array
-};
-const sharedControlsMap: Record<keyof StandardizedState, string[]> = {
-  metrics: [],
-  columns: [],
-};
-Object.entries(sharedControls).forEach(([key, value]) =>
-  sharedControlsMap[value].push(key),
-);
+export const sharedMetricsKey = [
+  'metric', // via sharedControls, scalar
+  'metrics', // via sharedControls, array
+  'metric_2', // via sharedControls, scalar
+];
+export const sharedColumnsKey = [
+  'groupby', // via sharedControls, array
+  'columns', // via sharedControls, array
+  'groupbyColumns', // via pivot table v2, array
+  'groupbyRows', // via pivot table v2, array
+];
+
 export const publicControls = [
   // time section
   'granularity_sqla', // via sharedControls
@@ -100,65 +97,39 @@ export class StandardizedFormData {
     memorizedFormData.set(vizType, formData);
 
     // calculate sharedControls
-    const standardizedState =
-      StandardizedFormData.getStandardizedState(formData);
+    const controls = StandardizedFormData.getStandardizedControls(formData);
 
     this.sfd = {
-      standardizedState,
+      controls,
       memorizedFormData,
     };
   }
 
-  static getStandardizedState(formData: QueryFormData): StandardizedState {
-    // 1. collect current sharedControls
-    let currState: StandardizedState = {
+  static getStandardizedControls(
+    formData: QueryFormData,
+  ): StandardizedControls {
+    // 1. initial StandardizedControls
+    const controls: StandardizedControls = {
       metrics: [],
       columns: [],
     };
+    if (isStandardizedFormData(formData)) {
+      const { metrics, columns } = formData.standardizedFormData.controls;
+      controls.metrics = metrics;
+      controls.columns = columns;
+    }
+
+    // 2. collect current sharedControls
     Object.entries(formData).forEach(([key, value]) => {
-      if (key in sharedControls) {
-        currState[sharedControls[key]].push(...ensureIsArray(value));
+      if (sharedMetricsKey.includes(key)) {
+        controls.metrics.push(...ensureIsArray<QueryFormMetric>(value));
+      }
+      if (sharedColumnsKey.includes(key)) {
+        controls.columns.push(...ensureIsArray<QueryFormColumn>(value));
       }
     });
 
-    // 2. get previous StandardizedState
-    let prevState: StandardizedState = {
-      metrics: [],
-      columns: [],
-    };
-    if (
-      formData?.standardizedFormData?.standardizedState &&
-      Array.isArray(formData.standardizedFormData.standardizedState.metrics) &&
-      Array.isArray(formData.standardizedFormData.standardizedState.columns)
-    ) {
-      prevState = formData.standardizedFormData.standardizedState;
-    }
-    // the initial prevState should equal to currentState
-    if (isEmpty(prevState.metrics) && isEmpty(prevState.columns)) {
-      prevState = currState;
-    }
-
-    // 3. inherit SS from previous state if current viz hasn't columns-like controls or metrics-like controls
-    Object.keys(sharedControlsMap).forEach(key => {
-      if (
-        isEmpty(intersection(Object.keys(formData), sharedControlsMap[key]))
-      ) {
-        currState[key] = prevState[key];
-      }
-    });
-
-    // 4. update hook
-    const controlPanel = getChartControlPanelRegistry().get(formData.viz_type);
-    if (controlPanel?.updateStandardizedState) {
-      currState = controlPanel.updateStandardizedState(prevState, currState);
-    }
-
-    // 5. clear up
-    Object.entries(currState).forEach(([key, value]) => {
-      currState[key] = value.filter(Boolean);
-    });
-
-    return currState;
+    return controls;
   }
 
   private getLatestFormData(vizType: string): QueryFormData {
@@ -169,8 +140,8 @@ export class StandardizedFormData {
     return this.memorizedFormData.slice(-1)[0][1];
   }
 
-  private get standardizedState() {
-    return this.sfd.standardizedState;
+  private get standardizedControls() {
+    return this.sfd.controls;
   }
 
   private get memorizedFormData() {
@@ -179,7 +150,7 @@ export class StandardizedFormData {
 
   serialize() {
     return {
-      standardizedState: this.standardizedState,
+      controls: this.standardizedControls,
       memorizedFormData: this.memorizedFormData,
     };
   }
@@ -205,7 +176,7 @@ export class StandardizedFormData {
      * 2. collect public control values
      * 3. generate initial targetControlsState
      * 4. attach `standardizedFormData` to the initial form_data
-     * 5. call denormalizeFormData to transform initial form_data if the plugin was defined
+     * 5. call formDataOverrides to transform initial form_data if the plugin was defined
      * 6. use final form_data to generate controlsState
      * */
     const latestFormData = this.getLatestFormData(targetVizType);
@@ -226,8 +197,17 @@ export class StandardizedFormData {
     };
 
     const controlPanel = getChartControlPanelRegistry().get(targetVizType);
-    if (controlPanel?.denormalizeFormData) {
-      const transformed = controlPanel.denormalizeFormData(targetFormData);
+    if (controlPanel?.formDataOverrides) {
+      getStandardizedControls().setStandardizedControls(targetFormData);
+      const transformed = {
+        ...controlPanel.formDataOverrides(targetFormData),
+        standardizedFormData: {
+          controls: { ...getStandardizedControls().controls },
+          memorizedFormData: this.memorizedFormData,
+        },
+      };
+      getStandardizedControls().clear();
+
       return {
         formData: transformed,
         controlsState: getControlsState(exploreState, transformed),
