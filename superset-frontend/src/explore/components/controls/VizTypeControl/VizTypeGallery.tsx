@@ -47,6 +47,7 @@ import scrollIntoView from 'scroll-into-view-if-needed';
 
 interface VizTypeGalleryProps {
   onChange: (vizType: string | null) => void;
+  onDoubleClick: () => void;
   selectedViz: string | null;
   className?: string;
 }
@@ -380,12 +381,14 @@ interface ThumbnailProps {
   entry: VizEntry;
   selectedViz: string | null;
   setSelectedViz: (viz: string) => void;
+  onDoubleClick: () => void;
 }
 
 const Thumbnail: React.FC<ThumbnailProps> = ({
   entry,
   selectedViz,
   setSelectedViz,
+  onDoubleClick,
 }) => {
   const theme = useTheme();
   const { key, value: type } = entry;
@@ -400,6 +403,7 @@ const Thumbnail: React.FC<ThumbnailProps> = ({
       tabIndex={0}
       className={isSelected ? 'selected' : ''}
       onClick={() => setSelectedViz(key)}
+      onDoubleClick={onDoubleClick}
       data-test="viztype-selector-container"
     >
       <img
@@ -429,6 +433,7 @@ interface ThumbnailGalleryProps {
   vizEntries: VizEntry[];
   selectedViz: string | null;
   setSelectedViz: (viz: string) => void;
+  onDoubleClick: () => void;
 }
 
 /** A list of viz thumbnails, used within the viz picker modal */
@@ -487,7 +492,7 @@ const doesVizMatchSelector = (viz: ChartMetadata, selector: string) =>
   (viz.tags || []).indexOf(selector) > -1;
 
 export default function VizTypeGallery(props: VizTypeGalleryProps) {
-  const { selectedViz, onChange, className } = props;
+  const { selectedViz, onChange, onDoubleClick, className } = props;
   const { mountedPluginMetadata } = usePluginContext();
   const searchInputRef = useRef<HTMLInputElement>();
   const [searchInputValue, setSearchInputValue] = useState('');
@@ -793,6 +798,7 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
           vizEntries={getVizEntriesToDisplay()}
           selectedViz={selectedViz}
           setSelectedViz={onChange}
+          onDoubleClick={onDoubleClick}
         />
       </RightPane>
 
