@@ -681,7 +681,10 @@ const Select = (
     }
   }, [isLoading, loading]);
 
-  const clearCache = () => fetchedQueries.current.clear();
+  const clearCache = useCallback(() => {
+    fetchedQueries.current.clear();
+    setSelectOptions(initialOptions);
+  }, [initialOptions]);
 
   useImperativeHandle(
     ref,
@@ -689,7 +692,7 @@ const Select = (
       ...(ref.current as HTMLInputElement),
       clearCache,
     }),
-    [ref],
+    [ref, clearCache],
   );
 
   return (

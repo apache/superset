@@ -249,6 +249,30 @@ class TestCore(SupersetTestCase):
         }
         self.assertEqual(response, expected_response)
 
+    def test_get_superset_tables_with_pagination(self):
+        example_db = superset.utils.database.get_example_database()
+        schema_name = self.default_schema_backend_map[example_db.backend]
+        self.login(username="admin")
+        uri = f"superset/tables/{example_db.id}/{schema_name}/undefined/false/false/1/3"
+        rv = self.client.get(uri)
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(rv.status_code, 200)
+
+        expected_response = {
+            "options": [
+                {
+                    "label": "ab_role",
+                    "schema": schema_name,
+                    "title": "ab_role",
+                    "type": "table",
+                    "value": "ab_role",
+                    "extra": None,
+                }
+            ],
+            "tableLength": 3,
+        }
+        self.assertEqual(response, expected_response)
+
     def test_get_superset_tables_not_found(self):
         self.login(username="admin")
         uri = f"superset/tables/invalid/public/undefined/"

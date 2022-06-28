@@ -90,7 +90,7 @@ query_context_description = (
 )
 query_context_generation_description = (
     "The query context generation represents whether the query_context"
-    "is user generated or not so that it does not update user modfied"
+    "is user generated or not so that it does not update user modified"
     "state."
 )
 cache_timeout_description = (
@@ -100,12 +100,12 @@ cache_timeout_description = (
 )
 datasource_id_description = (
     "The id of the dataset/datasource this new chart will use. "
-    "A complete datasource identification needs `datasouce_id` "
+    "A complete datasource identification needs `datasource_id` "
     "and `datasource_type`."
 )
 datasource_uid_description = (
     "The uid of the dataset/datasource this new chart will use. "
-    "A complete datasource identification needs `datasouce_uid` "
+    "A complete datasource identification needs `datasource_uid` "
 )
 datasource_type_description = (
     "The type of dataset/datasource identified on `datasource_id`."
@@ -117,7 +117,7 @@ slice_url_description = "The URL of the chart."
 form_data_description = (
     "Form data from the Explore controls used to form the chart's data query."
 )
-description_markeddown_description = "Sanitized HTML version of the chart description."
+description_markdown_description = "Sanitized HTML version of the chart description."
 owners_name_description = "Name of an owner of the chart."
 certified_by_description = "Person or group that has certified this chart"
 certification_details_description = "Details of the certification"
@@ -158,9 +158,7 @@ class ChartEntityResponseSchema(Schema):
     cache_timeout = fields.Integer(description=cache_timeout_description)
     changed_on = fields.String(description=changed_on_description)
     description = fields.String(description=description_description)
-    description_markeddown = fields.String(
-        description=description_markeddown_description
-    )
+    description_markeddown = fields.String(description=description_markdown_description)
     form_data = fields.Dict(description=form_data_description)
     slice_url = fields.String(description=slice_url_description)
     certified_by = fields.String(description=certified_by_description)
@@ -911,7 +909,7 @@ class AnnotationLayerSchema(Schema):
     )
     overrides = fields.Dict(
         keys=fields.String(
-            desciption="Name of property to be overridden",
+            description="Name of property to be overridden",
             validate=validate.OneOf(
                 choices=("granularity", "time_grain_sqla", "time_range", "time_shift"),
             ),
@@ -1291,7 +1289,7 @@ class ChartDataResponseResult(Schema):
         allow_none=False,
     )
     stacktrace = fields.String(
-        desciption="Stacktrace if there was an error",
+        description="Stacktrace if there was an error",
         allow_none=True,
     )
     rowcount = fields.Integer(
@@ -1310,10 +1308,10 @@ class ChartDataResponseResult(Schema):
         fields.Dict(), description="A list with rejected filters"
     )
     from_dttm = fields.Integer(
-        desciption="Start timestamp of time range", required=False, allow_none=True
+        description="Start timestamp of time range", required=False, allow_none=True
     )
     to_dttm = fields.Integer(
-        desciption="End timestamp of time range", required=False, allow_none=True
+        description="End timestamp of time range", required=False, allow_none=True
     )
 
 

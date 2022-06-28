@@ -20,8 +20,9 @@ import React, {
   FunctionComponent,
   useState,
   ReactNode,
-  useMemo,
   useEffect,
+  useCallback,
+  useRef,
 } from 'react';
 import { SelectValue } from 'antd/lib/select';
 
@@ -36,6 +37,7 @@ import RefreshLabel from 'src/components/RefreshLabel';
 import CertifiedBadge from 'src/components/CertifiedBadge';
 import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
+import { SelectRef } from '../Select/Select';
 
 const TableSelectorWrapper = styled.div`
   ${({ theme }) => `
@@ -178,8 +180,8 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   >(undefined);
   const [refresh, setRefresh] = useState(0);
   const [previousRefresh, setPreviousRefresh] = useState(0);
-  const [loadingTables, setLoadingTables] = useState(false);
   const { addSuccessToast } = useToasts();
+  const tableSelectRef = useRef<SelectRef>(null);
 
   useEffect(() => {
     // reset selections
@@ -204,22 +206,30 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
     }
   }, [tableOptions, tableValue, tableSelectMode]);
 
-  useEffect(() => {
-    if (currentDatabase && currentSchema) {
-      setLoadingTables(true);
-      const encodedSchema = encodeURIComponent(currentSchema);
-      const forceRefresh = refresh !== previousRefresh;
-      // TODO: Would be nice to add pagination in a follow-up. Needs endpoint changes.
-      const endpoint = encodeURI(
-        `/superset/tables/${currentDatabase.id}/${encodedSchema}/undefined/${forceRefresh}/`,
-      );
+  const fetchTables = useCallback(
+    async (search: string, page: number, pageSize: number) => {
+      if (currentDatabase && currentSchema) {
+        const encodedSchema = encodeURIComponent(currentSchema);
+        const forceRefresh = refresh !== previousRefresh;
 
-      if (previousRefresh !== refresh) {
-        setPreviousRefresh(refresh);
-      }
+        let endpoint = encodeURI(
+          `/superset/tables/${currentDatabase.id}/${encodedSchema}/undefined/`,
+        );
 
-      SupersetClient.get({ endpoint })
-        .then(({ json }) => {
+        if (tableSelectMode === 'single') {
+          endpoint = encodeURI(
+            `/superset/tables/${currentDatabase.id}/${encodedSchema}/${
+              search || 'undefined'
+            }/${forceRefresh}/false/${page}/${pageSize}`,
+          );
+        }
+
+        if (forceRefresh) {
+          setPreviousRefresh(refresh);
+        }
+
+        try {
+          const { json } = await SupersetClient.get({ endpoint });
           const options: TableOption[] = json.options.map((table: Table) => {
             const option: TableOption = {
               value: table.value,
@@ -232,18 +242,30 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
 
           onTablesLoad?.(json.options);
           setTableOptions(options);
-          setLoadingTables(false);
-          if (forceRefresh) addSuccessToast('List updated');
-        })
-        .catch(() => {
-          setLoadingTables(false);
+
+          if (forceRefresh) {
+            addSuccessToast('List updated');
+          }
+
+          return {
+            data: options,
+            totalCount: json.tableLength,
+          };
+        } catch {
           handleError(t('There was an error loading the tables'));
-        });
-    }
+        }
+      }
+
+      return {
+        data: [],
+        totalCount: 0,
+      };
+    },
     // We are using the refresh state to re-trigger the query
     // previousRefresh should be out of dependencies array
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentDatabase, currentSchema, onTablesLoad, setTableOptions, refresh]);
+    [currentDatabase, currentSchema, onTablesLoad, setTableOptions, refresh],
+  );
 
   function renderSelectRow(select: ReactNode, refreshBtn: ReactNode) {
     return (
@@ -269,7 +291,13 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
     }
   };
 
+  const clearTableSelection = () => {
+    tableSelectRef?.current?.clearCache();
+    internalTableChange(tableSelectMode === 'multiple' ? [] : undefined);
+  };
+
   const internalDbChange = (db: DatabaseObject) => {
+    clearTableSelection();
     setCurrentDatabase(db);
     if (onDbChange) {
       onDbChange(db);
@@ -277,6 +305,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   };
 
   const internalSchemaChange = (schema?: string) => {
+    clearTableSelection();
     setCurrentSchema(schema);
     if (onSchemaChange) {
       onSchemaChange(schema);
@@ -306,15 +335,6 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
     );
   }
 
-  const handleFilterOption = useMemo(
-    () => (search: string, option: TableOption) => {
-      const searchValue = search.trim().toLowerCase();
-      const { text } = option;
-      return text.toLowerCase().includes(searchValue);
-    },
-    [],
-  );
-
   function renderTableSelect() {
     const disabled =
       (currentSchema && !formMode && readOnly) ||
@@ -328,18 +348,17 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
 
     const select = (
       <Select
+        ref={tableSelectRef}
         ariaLabel={t('Select table or type table name')}
         disabled={disabled}
-        filterOption={handleFilterOption}
         header={header}
         labelInValue
         lazyLoading={false}
-        loading={loadingTables}
         name="select-table"
         onChange={(options: TableOption | TableOption[]) =>
           internalTableChange(options)
         }
-        options={tableOptions}
+        options={fetchTables}
         placeholder={t('Select table or type table name')}
         showSearch
         mode={tableSelectMode}

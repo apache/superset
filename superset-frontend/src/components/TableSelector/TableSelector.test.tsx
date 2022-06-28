@@ -58,6 +58,7 @@ const getTableMockFunction = async () =>
         { label: 'table_c', value: 'table_c' },
         { label: 'table_d', value: 'table_d' },
       ],
+      tableLength: 4,
     },
   } as any);
 

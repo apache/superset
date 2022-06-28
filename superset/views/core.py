@@ -1112,7 +1112,10 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @event_logger.log_this
     @expose("/tables/<int:db_id>/<schema>/<substr>/")
     @expose("/tables/<int:db_id>/<schema>/<substr>/<force_refresh>/")
-    @expose("/tables/<int:db_id>/<schema>/<substr>/<force_refresh>/<exact_match>")
+    @expose("/tables/<int:db_id>/<schema>/<substr>/<force_refresh>/<exact_match>/")
+    @expose(
+        "/tables/<int:db_id>/<schema>/<substr>/<force_refresh>/<exact_match>/<int:page>/<int:page_size>"
+    )
     def tables(  # pylint: disable=too-many-locals,no-self-use,too-many-arguments
         self,
         db_id: int,
@@ -1120,6 +1123,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         substr: str,
         force_refresh: str = "false",
         exact_match: str = "false",
+        page: Optional[int] = None,
+        page_size: Optional[int] = None,
     ) -> FlaskResponse:
         """Endpoint to fetch the list of tables for given database"""
         # Guarantees database filtering by security access
@@ -1234,8 +1239,12 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 for vn in views[:max_views]
             ]
         )
+
         table_options.sort(key=lambda value: value["label"])
-        payload = {"tableLength": len(tables) + len(views), "options": table_options}
+        if page and page_size:
+            table_options = table_options[(page_size * (page - 1)) : (page_size * page)]
+
+        payload = {"tableLength": len(table_options), "options": table_options}
         return json_success(json.dumps(payload))
 
     @api
