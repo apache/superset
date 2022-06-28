@@ -372,7 +372,6 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
                     disabled={newOrOverwrite !== 2}
                     // @ts-ignore
                     getPopupContainer={() => document.body}
-                    // @ts-ignore
                   />
                 </div>
               </div>
