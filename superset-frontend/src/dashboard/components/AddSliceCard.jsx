@@ -17,9 +17,10 @@
  * under the License.
  */
 import cx from 'classnames';
-import React from 'react';
+import React, { useMemo } from 'react';
 import PropTypes from 'prop-types';
-import { t, styled } from '@superset-ui/core';
+import { t, styled, isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
+import ImageLoader from 'src/components/ListViewCard/ImageLoader';
 
 const propTypes = {
   datasourceUrl: PropTypes.string,
@@ -29,6 +30,7 @@ const propTypes = {
   lastModified: PropTypes.string,
   sliceName: PropTypes.string.isRequired,
   style: PropTypes.object,
+  thumbnailUrl: PropTypes.string,
   visType: PropTypes.string.isRequired,
 };
 
@@ -38,6 +40,7 @@ const defaultProps = {
   innerRef: null,
   isSelected: false,
   style: null,
+  thumbnailUrl: null,
   lastModified: null,
 };
 
@@ -64,6 +67,21 @@ const Styled = styled.div`
     .chart-card.is-selected {
       cursor: not-allowed;
       opacity: 0.4;
+    }
+
+    .card-thumbnail-wrapper {
+      height: 0;
+      padding-bottom: 56.25%;  /* 450/800 thumbnail size */
+      position: relative;
+      margin-bottom: ${theme.gridUnit * 2}px;
+
+      .card-thumbnail {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+      }
     }
 
     .card-title {
@@ -111,14 +129,31 @@ function AddSliceCard({
   lastModified,
   sliceName,
   style,
+  thumbnailUrl,
   visType,
 }) {
+  const showThumbnails = useMemo(
+    () => isFeatureEnabled(FeatureFlag.THUMBNAILS),
+    [],
+  );
+
   return (
     <Styled ref={innerRef} style={style}>
       <div
         className={cx('chart-card', isSelected && 'is-selected')}
         data-test="chart-card"
       >
+        {showThumbnails ? (
+          <div className="card-thumbnail-wrapper">
+            <div className="card-thumbnail">
+              <ImageLoader
+                src={thumbnailUrl || ''}
+                fallback="/static/assets/images/chart-card-fallback.svg"
+                position="top"
+              />
+            </div>
+          </div>
+        ) : null}
         <div className="card-title" data-test="card-title">
           {sliceName}
         </div>
