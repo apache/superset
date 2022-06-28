@@ -788,6 +788,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             onClick={() => setDatabaseModel(database.name)}
             buttonText={database.name}
             icon={dbImages?.[database.engine]}
+            key={`${database.name}`}
           />
         ))}
     </div>
@@ -973,11 +974,12 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     ]);
 
     if (!(info.file.originFileObj instanceof File)) return;
-    await importResource(
+    const dbId = await importResource(
       info.file.originFileObj,
       passwords,
       confirmedOverwrite,
     );
+    if (dbId) onDatabaseAdd?.();
   };
 
   const passwordNeededField = () => {
