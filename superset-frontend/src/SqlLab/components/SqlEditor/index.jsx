@@ -726,6 +726,7 @@ class SqlEditor extends React.PureComponent {
               onSave={this.saveQuery}
               onUpdate={this.props.actions.updateSavedQuery}
               saveQueryWarning={this.props.saveQueryWarning}
+              database={this.props.database}
             />
           </span>
           <span>
