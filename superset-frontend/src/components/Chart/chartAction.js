@@ -66,6 +66,7 @@ export function chartUpdateStopped(key) {
 
 export const CHART_UPDATE_FAILED = 'CHART_UPDATE_FAILED';
 export function chartUpdateFailed(queriesResponse, key) {
+  console.log(queriesResponse);
   return { type: CHART_UPDATE_FAILED, queriesResponse, key };
 }
 

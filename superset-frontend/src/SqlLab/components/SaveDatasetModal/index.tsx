@@ -123,6 +123,7 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
   modalDescription,
   datasource,
 }) => {
+  console.log('this is visible', visible);
   const query = datasource as ExploreQuery;
   const getDefaultDatasetName = () =>
     `${query?.tab || UNTITLED} ${moment().format('MM/DD/YYYY HH:mm:ss')}`;
