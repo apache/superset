@@ -266,4 +266,22 @@ describe('VizTypeControl', () => {
       within(visualizations).queryByText('Pie Chart'),
     ).not.toBeInTheDocument();
   });
+
+  it('Submit on viz type double-click', () => {
+    renderWrapper();
+    userEvent.click(screen.getByRole('button', { name: 'ballot All charts' }));
+    const visualizations = screen.getByTestId(getTestId('viz-row'));
+    userEvent.click(
+      within(visualizations).getByText('Time-series Bar Chart v2'),
+    );
+
+    expect(defaultProps.onChange).not.toBeCalled();
+    userEvent.dblClick(
+      within(visualizations).getByText('Time-series Line Chart'),
+    );
+
+    expect(defaultProps.onChange).toHaveBeenCalledWith(
+      'echarts_timeseries_line',
+    );
+  });
 });
