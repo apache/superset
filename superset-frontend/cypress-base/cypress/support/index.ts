@@ -70,6 +70,7 @@ Cypress.Commands.add(
     } else {
       [datasource_id, datasource_type] = formData.datasource?.split('__') || [];
     }
+    const accessToken = window.localStorage.getItem('access_token');
     cy.request({
       method: 'POST',
       url: 'api/v1/explore/form_data',
@@ -79,12 +80,12 @@ Cypress.Commands.add(
         form_data: JSON.stringify(formData),
       },
       headers: {
-        Cookie: `csrf_access_token=${window.localStorage.getItem(
-          'access_token',
-        )}`,
+        ...(accessToken && {
+          Cookie: `csrf_access_token=${accessToken}`,
+          'X-CSRFToken': accessToken,
+        }),
+        ...(TokenName && { Authorization: `Bearer ${TokenName}` }),
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${TokenName}`,
-        'X-CSRFToken': `${window.localStorage.getItem('access_token')}`,
         Referer: `${Cypress.config().baseUrl}/`,
       },
     }).then(response => {
