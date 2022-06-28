@@ -56,6 +56,12 @@ class ProxyRestAPI(BaseSupersetModelRestApi):
         This is a function that will attach the app URL with the response that is
         being sent to the front-end (this will allow us to avoid hard coded URL's in
         both the back-end and the front-end)
+
+        :param response_code: Numerical value representing the response code to be sent
+        :param app_url: String value representing the Alfred URL
+        :param err: Boolean value representing if an error occured
+        :param payload: String value representing the message to be sent to the front-end
+        :returns: A response that is sent to the front-end
         """
         prep_payload = {"data": payload, "url": app_url, "err": err}
 
@@ -67,6 +73,10 @@ class ProxyRestAPI(BaseSupersetModelRestApi):
         """
         This is a function that returns an http response based on a passed in application name
         and exception that was caught when trying to get an OBO token for an application
+
+        :param token_name: String value representing which app we are linking to
+        :param raised_exception: Exception value representing the error that occured
+        :returns: Response generated from passing values to the attach_url function
         """
         logger.error(
             "Error obtaining on-behalf-of %s token: %s", token_name, raised_exception
@@ -84,6 +94,10 @@ class ProxyRestAPI(BaseSupersetModelRestApi):
         """
         This is a function that returns an http response based on a passed in application name
         and exception that was caught when trying to get a response from an application
+
+        :param token_name: String value representing which app we are linking to
+        :param raised_exception: Exception value representing the error that occured 
+        :returns: Response generated from passing values to the attach_url function
         """
         logger.error("Error obtaining %s response: %s", token_name, raised_exception)
         return self.attach_url(
@@ -93,10 +107,13 @@ class ProxyRestAPI(BaseSupersetModelRestApi):
             f"Error obtaining {token_name} response: {raised_exception}",
         )
 
-    def alfred_connection(self, url: str) -> Response:
+    def make_alfred_connection(self, url: str) -> Response:
         """
         This is a function that will be called by both the get_userid and get_ipstring functions
         in order to minimize code duplication
+
+        :param url: String value representing the URL we will send an API call to
+        :returns: Response generated from passing values to the attach_url function
         """
         if (self.ALFRED_SCOPE is None and self.ALFRED_URL is None):
             return self.error_obtaining_response("Alfred", "No Alfred Scope and No Alfred URL")
@@ -140,6 +157,10 @@ class ProxyRestAPI(BaseSupersetModelRestApi):
         This is a function which will obtain an Alfred OBO token based on the
         current logged in user, and will then send a request to Alfred to see
         if the passed in user_id is in any reports/incidents
+
+        :param user_id: String value representing the user id passed in from the front-end
+        :param _kwargs: Array representing any other arguments passed to the function
+        :returns: Response generated from passing values to the make_alfred_connection function
         """
         url = (
                 self.ALFRED_URL
@@ -148,7 +169,7 @@ class ProxyRestAPI(BaseSupersetModelRestApi):
                 + "%22%5D%20RETURN%20email.value%2C%20email.maliciousness%2C%20email.uri"
             )
 
-        return self.alfred_connection(url)
+        return self.make_alfred_connection(url)
 
     @expose("/alfred/ip_string/<string:ip_string>", methods=["GET"])
     @event_logger.log_this_with_context(
@@ -160,6 +181,10 @@ class ProxyRestAPI(BaseSupersetModelRestApi):
         This is a function which will obtain an Alfred OBO token based on the
         current logged in user, and will then send a request to Alfred to see
         if the passed in ip_string is in any reports/incidents
+
+        :param ip_string: String value representing the ip passed in from the front-end
+        :param _kwargs: Array representing any other arguments passed to the function
+        :returns: Response generated from passing values to the make_alfred_connection function
         """
         url = (
             self.ALFRED_URL
@@ -168,4 +193,4 @@ class ProxyRestAPI(BaseSupersetModelRestApi):
             + "%22%5D%20RETURN%20ip.value%2C%20ip.maliciousness%2C%20ip.creation_date%2C%20ip.created_by%2C%20ip.uri%2C%20ip.report_uri"
         )
 
-        return self.alfred_connection(url)
+        return self.make_alfred_connection(url)
