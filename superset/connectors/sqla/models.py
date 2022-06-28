@@ -2361,9 +2361,7 @@ class RowLevelSecurityFilter(Model, AuditMixinNullable):
 
     __tablename__ = "row_level_security_filters"
     id = Column(Integer, primary_key=True)
-    filter_type = Column(
-        Enum(*[filter_type.value for filter_type in utils.RowLevelSecurityFilterType])
-    )
+    filter_type = Column(String(255), nullable=True)
     group_key = Column(String(255), nullable=True)
     roles = relationship(
         security_manager.role_model,
