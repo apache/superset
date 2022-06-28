@@ -221,6 +221,7 @@ export default class AddSliceContainer extends React.PureComponent<
     this.gotoSlice = this.gotoSlice.bind(this);
     this.newLabel = this.newLabel.bind(this);
     this.loadDatasources = this.loadDatasources.bind(this);
+    this.onVizTypeDoubleClick = this.onVizTypeDoubleClick.bind(this);
   }
 
   exploreUrl() {
@@ -249,6 +250,12 @@ export default class AddSliceContainer extends React.PureComponent<
 
   isBtnDisabled() {
     return !(this.state.datasource?.value && this.state.visType);
+  }
+
+  onVizTypeDoubleClick() {
+    if (!this.isBtnDisabled()) {
+      this.gotoSlice();
+    }
   }
 
   newLabel(item: Dataset) {
@@ -368,6 +375,7 @@ export default class AddSliceContainer extends React.PureComponent<
                 <VizTypeGallery
                   className="viz-gallery"
                   onChange={this.changeVisType}
+                  onDoubleClick={this.onVizTypeDoubleClick}
                   selectedViz={this.state.visType}
                 />
               </StyledStepDescription>

@@ -111,6 +111,27 @@ test('renders an enabled button if datasource and viz type are selected', async 
   ).toHaveLength(0);
 });
 
+test('double-click viz type does nothing if no datasource is selected', async () => {
+  const wrapper = await getWrapper();
+  wrapper.instance().gotoSlice = jest.fn();
+  wrapper.update();
+  wrapper.instance().onVizTypeDoubleClick();
+  expect(wrapper.instance().gotoSlice).not.toBeCalled();
+});
+
+test('double-click viz type submits if datasource is selected', async () => {
+  const wrapper = await getWrapper();
+  wrapper.instance().gotoSlice = jest.fn();
+  wrapper.update();
+  wrapper.setState({
+    datasource,
+    visType: 'table',
+  });
+
+  wrapper.instance().onVizTypeDoubleClick();
+  expect(wrapper.instance().gotoSlice).toBeCalled();
+});
+
 test('formats Explore url', async () => {
   const wrapper = await getWrapper();
   wrapper.setState({

@@ -15,10 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from datetime import datetime
-from typing import Any, Dict, Optional
-
-from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.hive import HiveEngineSpec
 
 time_grain_expressions = {
@@ -40,34 +36,6 @@ time_grain_expressions = {
 }
 
 
-class DatabricksHiveEngineSpec(HiveEngineSpec):
-    engine = "databricks"
-    engine_name = "Databricks Interactive Cluster"
-    driver = "pyhive"
-    _show_functions_column = "function"
-
+class SparkEngineSpec(HiveEngineSpec):
     _time_grain_expressions = time_grain_expressions
-
-
-class DatabricksODBCEngineSpec(BaseEngineSpec):
-    engine = "databricks"
-    engine_name = "Databricks SQL Endpoint"
-    driver = "pyodbc"
-
-    _time_grain_expressions = time_grain_expressions
-
-    @classmethod
-    def convert_dttm(
-        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
-    ) -> Optional[str]:
-        return HiveEngineSpec.convert_dttm(target_type, dttm, db_extra=db_extra)
-
-    @classmethod
-    def epoch_to_dttm(cls) -> str:
-        return HiveEngineSpec.epoch_to_dttm()
-
-
-class DatabricksNativeEngineSpec(DatabricksODBCEngineSpec):
-    engine = "databricks"
-    engine_name = "Databricks Native Connector"
-    driver = "connector"
+    engine_name = "Apache Spark SQL"
