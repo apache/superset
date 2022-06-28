@@ -24,7 +24,7 @@ import { Menu } from 'src/components/Menu';
 import ModalTrigger from 'src/components/ModalTrigger';
 import Button from 'src/components/Button';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
-import { exportChart } from 'src/explore/exploreUtils';
+import { exportChart, getChartKey } from 'src/explore/exploreUtils';
 import downloadAsImage from 'src/utils/downloadAsImage';
 import { getChartPermalink } from 'src/utils/urlUtils';
 import copyTextToClipboard from 'src/utils/copy';
@@ -102,17 +102,9 @@ export const useExploreAdditionalActionsMenu = (
   const [showReportSubMenu, setShowReportSubMenu] = useState(null);
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
   const [openSubmenus, setOpenSubmenus] = useState([]);
-  const charts = useSelector(state => state.charts);
-  const chart = useMemo(() => {
-    if (!charts) {
-      return undefined;
-    }
-    const chartsValues = Object.values(charts);
-    if (chartsValues.length > 0) {
-      return chartsValues[0];
-    }
-    return undefined;
-  }, [charts]);
+  const chart = useSelector(
+    state => state.charts?.[getChartKey(state.explore)],
+  );
 
   const { datasource } = latestQueryFormData;
   const sqlSupported = datasource && datasource.split('__')[1] === 'table';

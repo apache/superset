@@ -88,6 +88,7 @@ from superset.sql_parse import (
 )
 from superset.superset_typing import AdhocColumn
 from superset.utils import core as utils
+from superset.utils.core import get_user_id
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlMetric, TableColumn
@@ -477,7 +478,7 @@ class AuditMixinNullable(AuditMixin):
         return sa.Column(
             sa.Integer,
             sa.ForeignKey("ab_user.id"),
-            default=self.get_user_id,
+            default=get_user_id,
             nullable=True,
         )
 
@@ -486,8 +487,8 @@ class AuditMixinNullable(AuditMixin):
         return sa.Column(
             sa.Integer,
             sa.ForeignKey("ab_user.id"),
-            default=self.get_user_id,
-            onupdate=self.get_user_id,
+            default=get_user_id,
+            onupdate=get_user_id,
             nullable=True,
         )
 

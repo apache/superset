@@ -29,17 +29,18 @@ import {
 } from '@superset-ui/core';
 import { availableDomains } from 'src/utils/hostNamesConfig';
 import { safeStringify } from 'src/utils/safeStringify';
+import { optionLabel } from 'src/utils/common';
 import { URL_PARAMS } from 'src/constants';
 import {
   MULTI_OPERATORS,
   OPERATOR_ENUM_TO_OPERATOR_TYPE,
+  UNSAVED_CHART_ID,
 } from 'src/explore/constants';
 import { DashboardStandaloneMode } from 'src/dashboard/util/constants';
-import { optionLabel } from '../../utils/common';
 
 export function getChartKey(explore) {
-  const { slice } = explore;
-  return slice ? slice.slice_id : 0;
+  const { slice, form_data } = explore;
+  return slice?.slice_id ?? form_data?.slice_id ?? UNSAVED_CHART_ID;
 }
 
 let requestCounter = 0;

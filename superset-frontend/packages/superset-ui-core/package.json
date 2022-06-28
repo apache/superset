@@ -40,6 +40,7 @@
     "@types/d3-time-format": "^2.1.0",
     "@types/lodash": "^4.14.149",
     "@types/math-expression-evaluator": "^1.2.1",
+    "@types/node": "^18.0.0",
     "@types/rison": "0.0.6",
     "@types/seedrandom": "^2.4.28",
     "@types/fetch-mock": "^7.3.3",
