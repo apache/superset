@@ -17,7 +17,11 @@
  * under the License.
  */
 import { t } from '@superset-ui/core';
-import { ControlPanelConfig, sections } from '@superset-ui/chart-controls';
+import {
+  ControlPanelConfig,
+  getStandardizedControls,
+  sections,
+} from '@superset-ui/chart-controls';
 import {
   xAxisLabel,
   yAxisLabel,
@@ -62,10 +66,10 @@ const config: ControlPanelConfig = {
     timeSeriesSection[1],
     sections.annotations,
   ],
-  denormalizeFormData: formData => ({
+  formDataOverrides: formData => ({
     ...formData,
-    metrics: formData.standardizedFormData.standardizedState.metrics,
-    groupby: formData.standardizedFormData.standardizedState.columns,
+    groupby: getStandardizedControls().popAllColumns(),
+    metrics: getStandardizedControls().popAllMetrics(),
   }),
 };
 

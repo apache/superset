@@ -22,6 +22,7 @@ import {
   D3_FORMAT_OPTIONS,
   D3_FORMAT_DOCS,
   sections,
+  getStandardizedControls,
 } from '@superset-ui/chart-controls';
 import { countryOptions } from './countries';
 
@@ -88,10 +89,10 @@ const config: ControlPanelConfig = {
       renderTrigger: false,
     },
   },
-  denormalizeFormData: formData => ({
+  formDataOverrides: formData => ({
     ...formData,
-    metric: formData.standardizedFormData.standardizedState.metrics[0],
-    entity: formData.standardizedFormData.standardizedState.columns[0],
+    entity: getStandardizedControls().shiftColumn(),
+    metric: getStandardizedControls().shiftMetric(),
   }),
 };
 

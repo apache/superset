@@ -16,12 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ensureIsArray, t } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
 import {
   ControlPanelConfig,
   formatSelectOptions,
   D3_FORMAT_OPTIONS,
   sections,
+  getStandardizedControls,
 } from '@superset-ui/chart-controls';
 import {
   showLegend,
@@ -128,16 +129,11 @@ const config: ControlPanelConfig = {
       renderTrigger: false,
     },
   },
-  denormalizeFormData: formData => {
-    const entity =
-      formData.standardizedFormData.standardizedState.columns.filter(
-        col => !ensureIsArray(formData.series).includes(col),
-      )[0];
-    return {
-      ...formData,
-      entity,
-    };
-  },
+  formDataOverrides: formData => ({
+    ...formData,
+    series: getStandardizedControls().shiftColumn(),
+    entity: getStandardizedControls().shiftColumn(),
+  }),
 };
 
 export default config;

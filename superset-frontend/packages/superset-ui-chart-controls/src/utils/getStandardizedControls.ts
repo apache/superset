@@ -43,6 +43,10 @@ class StandardizedControlsManager {
     return this.controls.metrics.shift();
   }
 
+  shiftColumn() {
+    return this.controls.columns.shift();
+  }
+
   popAllMetrics() {
     return this.controls.metrics.splice(0, this.controls.metrics.length);
   }
