@@ -979,9 +979,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       passwords,
       confirmedOverwrite,
     );
-    if (dbId) {
-      if (onDatabaseAdd) onDatabaseAdd();
-    }
+    if (dbId) onDatabaseAdd?.();
   };
 
   const passwordNeededField = () => {
