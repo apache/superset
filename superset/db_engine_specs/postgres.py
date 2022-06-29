@@ -21,7 +21,6 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Pattern, Tuple, TYPE_CHECKING
 
 from flask_babel import gettext as __
-from psycopg2.extensions import binary_types, string_types
 from sqlalchemy.dialects.postgresql import ARRAY, DOUBLE_PRECISION, ENUM, JSON
 from sqlalchemy.dialects.postgresql.base import PGInspector
 from sqlalchemy.types import String
@@ -290,6 +289,9 @@ class PostgresEngineSpec(PostgresBaseEngineSpec, BasicParametersMixin):
 
     @classmethod
     def get_datatype(cls, type_code: Any) -> Optional[str]:
+        # pylint: disable=import-outside-toplevel
+        from psycopg2.extensions import binary_types, string_types
+
         types = binary_types.copy()
         types.update(string_types)
         if type_code in types:

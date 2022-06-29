@@ -25,6 +25,7 @@ import {
   D3_TIME_FORMAT_OPTIONS,
   sections,
   emitFilterControl,
+  getStandardizedControls,
 } from '@superset-ui/chart-controls';
 import { DEFAULT_FORM_DATA } from './types';
 
@@ -137,10 +138,10 @@ const config: ControlPanelConfig = {
       ],
     },
   ],
-  denormalizeFormData: formData => ({
+  formDataOverrides: formData => ({
     ...formData,
-    metric: formData.standardizedFormData.standardizedState.metrics[0],
-    groupby: formData.standardizedFormData.standardizedState.columns,
+    metric: getStandardizedControls().shiftMetric(),
+    groupby: getStandardizedControls().popAllColumns(),
   }),
 };
 

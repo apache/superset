@@ -49,9 +49,9 @@ describe('SaveModal', () => {
         owners: [1],
       },
       alert: null,
-      user: {
-        userId: 1,
-      },
+    },
+    user: {
+      userId: 1,
     },
   };
   const store = mockStore(initialState);

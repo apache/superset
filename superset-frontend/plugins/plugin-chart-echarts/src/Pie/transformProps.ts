@@ -36,7 +36,7 @@ import {
   EchartsPieLabelType,
   PieChartTransformedProps,
 } from './types';
-import { DEFAULT_LEGEND_FORM_DATA } from '../types';
+import { DEFAULT_LEGEND_FORM_DATA, OpacityEnum } from '../constants';
 import {
   extractGroupbyLabel,
   getChartPadding,
@@ -45,7 +45,6 @@ import {
   sanitizeHtml,
 } from '../utils/series';
 import { defaultGrid, defaultTooltip } from '../defaults';
-import { OpacityEnum } from '../constants';
 import { convertInteger } from '../utils/convertInteger';
 
 const percentFormatter = getNumberFormatter(NumberFormats.PERCENT_2_POINT);

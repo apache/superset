@@ -18,8 +18,9 @@ from typing import Any, Dict, List, Optional, Tuple, TypedDict
 
 
 class DashboardPermalinkState(TypedDict):
-    filterState: Optional[Dict[str, Any]]
-    hash: Optional[str]
+    dataMask: Optional[Dict[str, Any]]
+    activeTabs: Optional[List[str]]
+    anchor: Optional[str]
     urlParams: Optional[List[Tuple[str, str]]]
 
 

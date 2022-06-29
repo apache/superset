@@ -19,7 +19,6 @@ from flask import current_app, Flask
 from werkzeug.local import LocalProxy
 
 from superset.app import create_app
-from superset.connectors.connector_registry import ConnectorRegistry
 from superset.extensions import (
     appbuilder,
     cache_manager,

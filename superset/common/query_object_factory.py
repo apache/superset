@@ -21,29 +21,29 @@ from typing import Any, Dict, Optional, Tuple, TYPE_CHECKING
 
 from superset.common.chart_data import ChartDataResultType
 from superset.common.query_object import QueryObject
-from superset.utils.core import apply_max_row_limit, DatasourceDict
+from superset.utils.core import apply_max_row_limit, DatasourceDict, DatasourceType
 from superset.utils.date_parser import get_since_until
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import sessionmaker
 
-    from superset import ConnectorRegistry
     from superset.connectors.base.models import BaseDatasource
+    from superset.datasource.dao import DatasourceDAO
 
 
 class QueryObjectFactory:  # pylint: disable=too-few-public-methods
     _config: Dict[str, Any]
-    _connector_registry: ConnectorRegistry
+    _datasource_dao: DatasourceDAO
     _session_maker: sessionmaker
 
     def __init__(
         self,
         app_configurations: Dict[str, Any],
-        connector_registry: ConnectorRegistry,
+        _datasource_dao: DatasourceDAO,
         session_maker: sessionmaker,
     ):
         self._config = app_configurations
-        self._connector_registry = connector_registry
+        self._datasource_dao = _datasource_dao
         self._session_maker = session_maker
 
     def create(  # pylint: disable=too-many-arguments
@@ -75,8 +75,10 @@ class QueryObjectFactory:  # pylint: disable=too-few-public-methods
         )
 
     def _convert_to_model(self, datasource: DatasourceDict) -> BaseDatasource:
-        return self._connector_registry.get_datasource(
-            str(datasource["type"]), int(datasource["id"]), self._session_maker()
+        return self._datasource_dao.get_datasource(
+            datasource_type=DatasourceType(datasource["type"]),
+            datasource_id=int(datasource["id"]),
+            session=self._session_maker(),
         )
 
     def _process_extras(  # pylint: disable=no-self-use

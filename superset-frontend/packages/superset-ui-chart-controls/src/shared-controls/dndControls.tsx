@@ -28,6 +28,7 @@ import {
 import { ExtraControlProps, SharedControlConfig, Dataset } from '../types';
 import { DATASET_TIME_COLUMN_OPTION, TIME_FILTER_LABELS } from '../constants';
 import { QUERY_TIME_COLUMN_OPTION, defineSavedMetrics } from '..';
+import { xAxisControlConfig } from './constants';
 
 export const dndGroupByControl: SharedControlConfig<'DndColumnSelect'> = {
   type: 'DndColumnSelect',
@@ -71,7 +72,7 @@ export const dndColumnsControl: typeof dndGroupByControl = {
 
 export const dndSeries: typeof dndGroupByControl = {
   ...dndGroupByControl,
-  label: t('Dimensions'),
+  label: t('Dimension'),
   multi: false,
   default: null,
   description: t(
@@ -221,4 +222,9 @@ export const dnd_granularity_sqla: typeof dndGroupByControl = {
       isTemporal: true,
     };
   },
+};
+
+export const dnd_x_axis: SharedControlConfig<'DndColumnSelect'> = {
+  ...dndGroupByControl,
+  ...xAxisControlConfig,
 };

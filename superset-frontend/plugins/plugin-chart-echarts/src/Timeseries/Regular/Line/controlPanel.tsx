@@ -17,31 +17,33 @@
  * under the License.
  */
 import React from 'react';
-import { FeatureFlag, isFeatureEnabled, t } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
 import {
   ControlPanelConfig,
   ControlPanelsContainerProps,
   D3_TIME_FORMAT_DOCS,
-  emitFilterControl,
+  getStandardizedControls,
   sections,
   sharedControls,
 } from '@superset-ui/chart-controls';
 
-import { DEFAULT_FORM_DATA, EchartsTimeseriesContributionType } from '../types';
+import { EchartsTimeseriesSeriesType } from '../../types';
+import { DEFAULT_FORM_DATA } from '../../constants';
 import {
   legendSection,
   richTooltipSection,
-  showValueSectionWithoutStack,
-  xAxisControl,
-} from '../../controls';
+  showValueSection,
+} from '../../../controls';
 
 const {
-  contributionMode,
+  area,
   logAxis,
   markerEnabled,
   markerSize,
   minorSplitLine,
+  opacity,
   rowLimit,
+  seriesType,
   truncateYAxis,
   yAxisBounds,
   zoomable,
@@ -50,38 +52,7 @@ const {
 const config: ControlPanelConfig = {
   controlPanelSections: [
     sections.legacyTimeseriesTime,
-    {
-      label: t('Query'),
-      expanded: true,
-      controlSetRows: [
-        isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES) ? [xAxisControl] : [],
-        ['metrics'],
-        ['groupby'],
-        [
-          {
-            name: 'contributionMode',
-            config: {
-              type: 'SelectControl',
-              label: t('Contribution Mode'),
-              default: contributionMode,
-              choices: [
-                [null, 'None'],
-                [EchartsTimeseriesContributionType.Row, 'Row'],
-                [EchartsTimeseriesContributionType.Column, 'Series'],
-              ],
-              description: t('Calculate contribution per series or row'),
-            },
-          },
-        ],
-        ['adhoc_filters'],
-        emitFilterControl,
-        ['limit'],
-        ['timeseries_limit_metric'],
-        ['order_desc'],
-        ['row_limit'],
-        ['truncate_metric'],
-      ],
-    },
+    sections.echartsTimeSeriesQuery,
     sections.advancedAnalyticsControls,
     sections.annotationsAndLayersControls,
     sections.forecastIntervalControls,
@@ -91,7 +62,61 @@ const config: ControlPanelConfig = {
       expanded: true,
       controlSetRows: [
         ['color_scheme'],
-        ...showValueSectionWithoutStack,
+        [
+          {
+            name: 'seriesType',
+            config: {
+              type: 'SelectControl',
+              label: t('Series Style'),
+              renderTrigger: true,
+              default: seriesType,
+              choices: [
+                [EchartsTimeseriesSeriesType.Line, 'Line'],
+                [EchartsTimeseriesSeriesType.Scatter, 'Scatter'],
+                [EchartsTimeseriesSeriesType.Smooth, 'Smooth Line'],
+                [EchartsTimeseriesSeriesType.Bar, 'Bar'],
+                [EchartsTimeseriesSeriesType.Start, 'Step - start'],
+                [EchartsTimeseriesSeriesType.Middle, 'Step - middle'],
+                [EchartsTimeseriesSeriesType.End, 'Step - end'],
+              ],
+              description: t('Series chart type (line, bar etc)'),
+            },
+          },
+        ],
+        ...showValueSection,
+        [
+          {
+            name: 'area',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Area Chart'),
+              renderTrigger: true,
+              default: area,
+              description: t(
+                'Draw area under curves. Only applicable for line types.',
+              ),
+            },
+          },
+        ],
+        [
+          {
+            name: 'opacity',
+            config: {
+              type: 'SliderControl',
+              label: t('Area chart opacity'),
+              renderTrigger: true,
+              min: 0,
+              max: 1,
+              step: 0.1,
+              default: opacity,
+              description: t(
+                'Opacity of Area Chart. Also applies to confidence band.',
+              ),
+              visibility: ({ controls }: ControlPanelsContainerProps) =>
+                Boolean(controls?.area?.value),
+            },
+          },
+        ],
         [
           {
             name: 'markerEnabled',
@@ -170,11 +195,9 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        // eslint-disable-next-line react/jsx-key
         ...richTooltipSection,
         // eslint-disable-next-line react/jsx-key
         [<div className="section-header">{t('Y Axis')}</div>],
-
         ['y_axis_format'],
         [
           {
@@ -241,10 +264,10 @@ const config: ControlPanelConfig = {
       default: rowLimit,
     },
   },
-  denormalizeFormData: formData => ({
+  formDataOverrides: formData => ({
     ...formData,
-    metrics: formData.standardizedFormData.standardizedState.metrics,
-    groupby: formData.standardizedFormData.standardizedState.columns,
+    metrics: getStandardizedControls().popAllMetrics(),
+    groupby: getStandardizedControls().popAllColumns(),
   }),
 };
 
