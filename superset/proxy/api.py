@@ -59,7 +59,7 @@ class ProxyRestAPI(BaseSupersetModelRestApi):
 
         :param response_code: Numerical value representing the response code to be sent
         :param app_url: String value representing the Alfred URL
-        :param err: Boolean value representing if an error occured
+        :param err: Boolean value representing if an error occurred
         :param payload: String value representing the message to be sent to the front-end
         :returns: A response that is sent to the front-end
         """
@@ -75,7 +75,7 @@ class ProxyRestAPI(BaseSupersetModelRestApi):
         and exception that was caught when trying to get an OBO token for an application
 
         :param token_name: String value representing which app we are linking to
-        :param raised_exception: Exception value representing the error that occured
+        :param raised_exception: Exception value representing the error that occurred
         :returns: Response generated from passing values to the attach_url function
         """
         logger.error(
@@ -96,7 +96,7 @@ class ProxyRestAPI(BaseSupersetModelRestApi):
         and exception that was caught when trying to get a response from an application
 
         :param token_name: String value representing which app we are linking to
-        :param raised_exception: Exception value representing the error that occured 
+        :param raised_exception: Exception value representing the error that occurred 
         :returns: Response generated from passing values to the attach_url function
         """
         logger.error("Error obtaining %s response: %s", token_name, raised_exception)
