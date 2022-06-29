@@ -133,6 +133,9 @@ const config: ControlPanelConfig = {
     ...formData,
     series: getStandardizedControls().shiftColumn(),
     entity: getStandardizedControls().shiftColumn(),
+    x: getStandardizedControls().shiftMetric(),
+    y: getStandardizedControls().shiftMetric(),
+    size: getStandardizedControls().shiftMetric(),
   }),
 };
 
