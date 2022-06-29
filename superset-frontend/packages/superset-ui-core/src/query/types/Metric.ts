@@ -72,8 +72,6 @@ export interface Metric {
   warning_text?: Maybe<string>;
 }
 
-export default {};
-
 export function isSavedMetric(metric: any): metric is SavedMetric {
   return typeof metric === 'string';
 }
@@ -93,3 +91,5 @@ export function isQueryFormMetric(metric: any): metric is QueryFormMetric {
     isAdhocMetricSQL(metric)
   );
 }
+
+export default {};
