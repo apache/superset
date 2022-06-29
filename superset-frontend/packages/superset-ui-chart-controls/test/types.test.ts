@@ -20,7 +20,6 @@ import { AdhocColumn } from '@superset-ui/core';
 import {
   ColumnMeta,
   ControlPanelSectionConfig,
-  isAdhocColumn,
   isColumnMeta,
   isControlPanelSectionConfig,
   isSavedExpression,
@@ -51,14 +50,6 @@ test('isColumnMeta returns false for AdhocColumn', () => {
 
 test('isColumnMeta returns true for ColumnMeta', () => {
   expect(isColumnMeta(COLUMN_META)).toEqual(true);
-});
-
-test('isAdhocColumn returns true for AdhocColumn', () => {
-  expect(isAdhocColumn(ADHOC_COLUMN)).toEqual(true);
-});
-
-test('isAdhocColumn returns false for ColumnMeta', () => {
-  expect(isAdhocColumn(COLUMN_META)).toEqual(false);
 });
 
 test('isSavedExpression returns false for AdhocColumn', () => {

@@ -24,12 +24,8 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { AdhocColumn, t, styled, css } from '@superset-ui/core';
-import {
-  ColumnMeta,
-  isAdhocColumn,
-  isSavedExpression,
-} from '@superset-ui/chart-controls';
+import { AdhocColumn, isAdhocColumn, t, styled, css } from '@superset-ui/core';
+import { ColumnMeta, isSavedExpression } from '@superset-ui/chart-controls';
 import Tabs from 'src/components/Tabs';
 import Button from 'src/components/Button';
 import { Select } from 'src/components';

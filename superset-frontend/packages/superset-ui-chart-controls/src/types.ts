@@ -437,12 +437,6 @@ export function isSavedExpression(
   );
 }
 
-export function isAdhocColumn(
-  column: AdhocColumn | ColumnMeta,
-): column is AdhocColumn {
-  return 'label' in column && 'sqlExpression' in column;
-}
-
 export function isControlPanelSectionConfig(
   section: ControlPanelSectionConfig | null,
 ): section is ControlPanelSectionConfig {
