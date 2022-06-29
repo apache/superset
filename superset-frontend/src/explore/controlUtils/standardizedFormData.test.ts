@@ -68,6 +68,9 @@ describe('should collect control values and create SFD', () => {
     metrics: ['m2'],
     metric_2: 'm3',
     size: 'm4',
+    x: 'm5',
+    y: 'm6',
+    secondary_metric: 'm7',
     // columns
     groupby: ['c1'],
     columns: ['c2'],
@@ -75,6 +78,7 @@ describe('should collect control values and create SFD', () => {
     groupbyRows: ['c4'],
     series: 'c5',
     entity: 'c6',
+    series_columns: ['c7'],
   };
   const publicControlsFormData = {
     // time section
@@ -171,7 +175,15 @@ describe('should collect control values and create SFD', () => {
       Object.entries(sharedKey).length,
     );
     const sfd = new StandardizedFormData(sourceMockFormData);
-    expect(sfd.serialize().controls.metrics).toEqual(['m1', 'm2', 'm3', 'm4']);
+    expect(sfd.serialize().controls.metrics).toEqual([
+      'm1',
+      'm2',
+      'm3',
+      'm4',
+      'm5',
+      'm6',
+      'm7',
+    ]);
     expect(sfd.serialize().controls.columns).toEqual([
       'c1',
       'c2',
@@ -179,6 +191,7 @@ describe('should collect control values and create SFD', () => {
       'c4',
       'c5',
       'c6',
+      'c7',
     ]);
   });
 
@@ -193,8 +206,24 @@ describe('should collect control values and create SFD', () => {
       expect(formData).toHaveProperty(key);
       expect(value).toEqual(publicControlsFormData[key]);
     });
-    expect(formData.columns).toEqual(['c1', 'c2', 'c3', 'c4', 'c5', 'c6']);
-    expect(formData.metrics).toEqual(['m1', 'm2', 'm3', 'm4']);
+    expect(formData.columns).toEqual([
+      'c1',
+      'c2',
+      'c3',
+      'c4',
+      'c5',
+      'c6',
+      'c7',
+    ]);
+    expect(formData.metrics).toEqual([
+      'm1',
+      'm2',
+      'm3',
+      'm4',
+      'm5',
+      'm6',
+      'm7',
+    ]);
   });
 
   test('should inherit standardizedFormData and memorizedFormData is LIFO', () => {

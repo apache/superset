@@ -155,7 +155,8 @@ const config: ControlPanelConfig = {
   },
   formDataOverrides: formData => ({
     ...formData,
-    metrics: getStandardizedControls().popAllMetrics(),
+    entity: getStandardizedControls().shiftColumn(),
+    metric: getStandardizedControls().shiftMetric(),
   }),
 };
 
