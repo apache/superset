@@ -21,7 +21,7 @@ import { t, styled, useTheme } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import { DropdownButton } from 'src/components/DropdownButton';
 import Button from 'src/components/Button';
-import { QueryButtonProps } from 'src/SqlLab/types';
+import { DropdownButtonProps } from 'antd/lib/dropdown';
 
 interface Props {
   toggleSave: () => void;
@@ -34,10 +34,12 @@ export default function SaveDatasetActionButton({
 }: Props) {
   const theme = useTheme();
 
-  const ButtonComponentStyles = styled.div`
-    .ant-btn-group button.ant-btn {
+  const ButtonComponentStyles = styled(
+    DropdownButton as React.FC<DropdownButtonProps>,
+  )`
+    button.ant-btn.ant-btn-default {
       &:first-of-type {
-        width: 64px;
+        width: ${theme.gridUnit * 16}px;
       }
       background-color: ${theme.colors.primary.light4};
       color: ${theme.colors.primary.dark1};
@@ -54,29 +56,27 @@ export default function SaveDatasetActionButton({
     }
   `;
 
-  const ButtonComponent: React.FC<QueryButtonProps> = overlayMenu
-    ? (DropdownButton as React.FC)
-    : Button;
-
-  return (
-    <ButtonComponentStyles>
-      <ButtonComponent
-        onClick={toggleSave}
-        {...(overlayMenu
-          ? {
-              overlay: overlayMenu,
-              icon: (
-                <Icons.CaretDown
-                  iconColor={theme.colors.grayscale.light5}
-                  name="caret-down"
-                />
-              ),
-              trigger: 'click',
-            }
-          : { buttonStyle: 'primary', css: { width: theme.gridUnit * 25 } })}
-      >
-        {t('Save')}
-      </ButtonComponent>
+  return overlayMenu ? (
+    <ButtonComponentStyles
+      onClick={toggleSave}
+      overlay={overlayMenu}
+      icon={
+        <Icons.CaretDown
+          iconColor={theme.colors.grayscale.light5}
+          name="caret-down"
+        />
+      }
+      trigger={['click']}
+    >
+      {t('Save')}
     </ButtonComponentStyles>
+  ) : (
+    <Button
+      onClick={toggleSave}
+      buttonStyle="primary"
+      css={{ width: theme.gridUnit * 25 }}
+    >
+      {t('Save')}
+    </Button>
   );
 }
