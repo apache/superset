@@ -17,7 +17,7 @@
  * under the License.
  */
 import cx from 'classnames';
-import React, { useMemo } from 'react';
+import React from 'react';
 import PropTypes from 'prop-types';
 import { t, styled, isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import ImageLoader from 'src/components/ListViewCard/ImageLoader';
@@ -121,8 +121,7 @@ const Styled = styled.div`
   `}
 `;
 
-export const FALLBACK_THUMBNAIL_URL =
-  '/static/assets/images/chart-card-fallback.svg';
+const FALLBACK_THUMBNAIL_URL = '/static/assets/images/chart-card-fallback.svg';
 
 function AddSliceCard({
   datasourceUrl,
@@ -135,11 +134,7 @@ function AddSliceCard({
   thumbnailUrl,
   visType,
 }) {
-  const showThumbnails = useMemo(
-    () => isFeatureEnabled(FeatureFlag.THUMBNAILS),
-    [],
-  );
-
+  const showThumbnails = isFeatureEnabled(FeatureFlag.THUMBNAILS);
   return (
     <Styled ref={innerRef} style={style}>
       <div
