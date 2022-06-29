@@ -973,8 +973,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             if permission and view_menu:
                 pv = (
                     self.get_session.query(self.permissionview_model)
-                        .filter_by(permission=permission, view_menu=view_menu)
-                        .first()
+                    .filter_by(permission=permission, view_menu=view_menu)
+                    .first()
                 )
 
             if not permission:
