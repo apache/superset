@@ -59,23 +59,23 @@ import { updateColorSchema } from './dashboardInfo';
 export const HYDRATE_DASHBOARD = 'HYDRATE_DASHBOARD';
 
 export const hydrateDashboard =
-  (
-    dashboardData,
-    chartData,
+  ({
+    dashboard,
+    charts,
     filterboxMigrationState = FILTER_BOX_MIGRATION_STATES.NOOP,
-    dataMaskApplied,
-  ) =>
+    dataMask,
+    activeTabs,
+  }) =>
   (dispatch, getState) => {
     const { user, common, dashboardState } = getState();
-
-    const { metadata } = dashboardData;
+    const { metadata, position_data: positionData } = dashboard;
     const regularUrlParams = extractUrlParams('regular');
     const reservedUrlParams = extractUrlParams('reserved');
     const editMode = reservedUrlParams.edit === 'true';
 
     let preselectFilters = {};
 
-    chartData.forEach(chart => {
+    charts.forEach(chart => {
       // eslint-disable-next-line no-param-reassign
       chart.slice_id = chart.form_data.slice_id;
     });
@@ -98,12 +98,10 @@ export const hydrateDashboard =
       updateColorSchema(metadata, metadata?.label_colors);
     }
 
-    // dashboard layout
-    const { position_data } = dashboardData;
     // new dash: position_json could be {} or null
     const layout =
-      position_data && Object.keys(position_data).length > 0
-        ? position_data
+      positionData && Object.keys(positionData).length > 0
+        ? positionData
         : getEmptyLayout();
 
     // create a lookup to sync layout names with slice names
@@ -128,7 +126,7 @@ export const hydrateDashboard =
     const sliceIds = new Set();
     const slicesFromExploreCount = new Map();
 
-    chartData.forEach(slice => {
+    charts.forEach(slice => {
       const key = slice.slice_id;
       const form_data = {
         ...slice.form_data,
@@ -269,7 +267,7 @@ export const hydrateDashboard =
       id: DASHBOARD_HEADER_ID,
       type: DASHBOARD_HEADER_TYPE,
       meta: {
-        text: dashboardData.dashboard_title,
+        text: dashboard.dashboard_title,
       },
     };
 
@@ -291,7 +289,7 @@ export const hydrateDashboard =
     let filterConfig = metadata?.native_filter_configuration || [];
     if (filterboxMigrationState === FILTER_BOX_MIGRATION_STATES.REVIEWING) {
       filterConfig = getNativeFilterConfig(
-        chartData,
+        charts,
         filterScopes,
         preselectFilters,
       );
@@ -302,7 +300,7 @@ export const hydrateDashboard =
       filterConfig,
     });
     metadata.show_native_filters =
-      dashboardData?.metadata?.show_native_filters ??
+      dashboard?.metadata?.show_native_filters ??
       (isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) &&
         [
           FILTER_BOX_MIGRATION_STATES.CONVERTED,
@@ -343,7 +341,7 @@ export const hydrateDashboard =
     }
 
     const { roles } = user;
-    const canEdit = canUserEditDashboard(dashboardData, user);
+    const canEdit = canUserEditDashboard(dashboard, user);
 
     return dispatch({
       type: HYDRATE_DASHBOARD,
@@ -352,7 +350,7 @@ export const hydrateDashboard =
         charts: chartQueries,
         // read-only data
         dashboardInfo: {
-          ...dashboardData,
+          ...dashboard,
           metadata,
           userId: user.userId ? String(user.userId) : null, // legacy, please use state.user instead
           dash_edit_perm: canEdit,
@@ -380,7 +378,7 @@ export const hydrateDashboard =
             conf: common?.conf,
           },
         },
-        dataMask: dataMaskApplied,
+        dataMask,
         dashboardFilters,
         nativeFilters,
         dashboardState: {
@@ -394,17 +392,17 @@ export const hydrateDashboard =
           // dashboard viewers can set refresh frequency for the current visit,
           // only persistent refreshFrequency will be saved to backend
           shouldPersistRefreshFrequency: false,
-          css: dashboardData.css || '',
+          css: dashboard.css || '',
           colorNamespace: metadata?.color_namespace || null,
           colorScheme: metadata?.color_scheme || null,
           editMode: canEdit && editMode,
-          isPublished: dashboardData.published,
+          isPublished: dashboard.published,
           hasUnsavedChanges: false,
           maxUndoHistoryExceeded: false,
-          lastModifiedTime: dashboardData.changed_on,
+          lastModifiedTime: dashboard.changed_on,
           isRefreshing: false,
           isFiltersRefreshing: false,
-          activeTabs: dashboardState?.activeTabs || [],
+          activeTabs: activeTabs || dashboardState?.activeTabs || [],
           filterboxMigrationState,
           datasetsStatus: ResourceStatus.LOADING,
         },

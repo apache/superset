@@ -19,7 +19,6 @@
 import { JsonObject, QueryFormData, SupersetClient } from '@superset-ui/core';
 import rison from 'rison';
 import { isEmpty } from 'lodash';
-import { getClientErrorObject } from './getClientErrorObject';
 import {
   RESERVED_CHART_URL_PARAMS,
   RESERVED_DASHBOARD_URL_PARAMS,
@@ -96,7 +95,7 @@ function getUrlParams(excludedParams: string[]): URLSearchParams {
   return urlParams;
 }
 
-type UrlParamEntries = [string, string][];
+export type UrlParamEntries = [string, string][];
 
 function getUrlParamEntries(urlParams: URLSearchParams): UrlParamEntries {
   const urlEntries: [string, string][] = [];
@@ -134,14 +133,7 @@ function getPermalink(endpoint: string, jsonPayload: JsonObject) {
   return SupersetClient.post({
     endpoint,
     jsonPayload,
-  })
-    .then(result => result.json.url as string)
-    .catch(response =>
-      // @ts-ignore
-      getClientErrorObject(response).then(({ error, statusText }) =>
-        Promise.reject(error || statusText),
-      ),
-    );
+  }).then(result => result.json.url as string);
 }
 
 export function getChartPermalink(
@@ -156,17 +148,30 @@ export function getChartPermalink(
 
 export function getDashboardPermalink({
   dashboardId,
-  filterState,
-  hash, // the anchor part of the link which corresponds to the tab/chart id
+  dataMask,
+  activeTabs,
+  anchor, // the anchor part of the link which corresponds to the tab/chart id
 }: {
   dashboardId: string | number;
-  filterState: JsonObject;
-  hash?: string;
+  /**
+   * Current applied data masks (for native filters).
+   */
+  dataMask: JsonObject;
+  /**
+   * Current active tabs in the dashboard.
+   */
+  activeTabs: string[];
+  /**
+   * The "anchor" component for the permalink. It will be scrolled into view
+   * and highlighted upon page load.
+   */
+  anchor?: string;
 }) {
   // only encode filter box state if non-empty
   return getPermalink(`/api/v1/dashboard/${dashboardId}/permalink`, {
-    filterState,
     urlParams: getDashboardUrlParams(),
-    hash,
+    dataMask,
+    activeTabs,
+    anchor,
   });
 }

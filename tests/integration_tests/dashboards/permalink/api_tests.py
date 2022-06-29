@@ -38,8 +38,8 @@ from tests.integration_tests.fixtures.world_bank_dashboard import (
 from tests.integration_tests.test_app import app
 
 STATE = {
-    "filterState": {"FILTER_1": "foo"},
-    "hash": "my-anchor",
+    "dataMask": {"FILTER_1": "foo"},
+    "activeTabs": ["my-anchor"],
 }
 
 
