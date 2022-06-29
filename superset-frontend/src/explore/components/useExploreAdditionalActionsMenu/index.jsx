@@ -195,7 +195,6 @@ export const useExploreAdditionalActionsMenu = (
             '.panel-body .chart-container',
             // eslint-disable-next-line camelcase
             slice?.slice_name ?? t('New chart'),
-            {},
             true,
           )(domEvent);
           setIsDropdownVisible(false);
