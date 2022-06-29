@@ -62,10 +62,12 @@ test('getStandardizedControls', () => {
     metrics: [],
     columns: ['gender', 'gender'],
   });
-  expect(getStandardizedControls().popAllColumns()).toEqual([
-    'gender',
-    'gender',
-  ]);
+  expect(getStandardizedControls().shiftColumn()).toEqual('gender');
+  expect(getStandardizedControls().controls).toEqual({
+    metrics: [],
+    columns: ['gender'],
+  });
+  expect(getStandardizedControls().popAllColumns()).toEqual(['gender']);
   expect(getStandardizedControls().controls).toEqual({
     metrics: [],
     columns: [],
