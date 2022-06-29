@@ -289,6 +289,7 @@ class PostgresEngineSpec(PostgresBaseEngineSpec, BasicParametersMixin):
 
     @classmethod
     def get_datatype(cls, type_code: Any) -> Optional[str]:
+        # pylint: disable=import-outside-toplevel
         from psycopg2.extensions import binary_types, string_types
 
         types = binary_types.copy()
