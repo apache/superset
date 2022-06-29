@@ -52,8 +52,6 @@ export interface Column {
   python_date_format?: string | null;
 }
 
-export default {};
-
 export function isPhysicalColumn(column?: any): column is PhysicalColumn {
   return typeof column === 'string';
 }
@@ -62,6 +60,7 @@ export function isAdhocColumn(column?: any): column is AdhocColumn {
   return (
     typeof column !== 'string' &&
     column?.sqlExpression !== undefined &&
+    column?.label !== undefined &&
     column?.expressionType === 'SQL'
   );
 }
@@ -69,3 +68,5 @@ export function isAdhocColumn(column?: any): column is AdhocColumn {
 export function isQueryFormColumn(column: any): column is QueryFormColumn {
   return isPhysicalColumn(column) || isAdhocColumn(column);
 }
+
+export default {};
