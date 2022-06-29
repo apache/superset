@@ -45,7 +45,7 @@ export const hydrateExplore =
     const sliceId = getUrlParam(URL_PARAMS.sliceId);
     const fallbackSlice = sliceId ? sliceEntities?.slices?.[sliceId] : null;
     const initialSlice = slice ?? fallbackSlice;
-    const initialFormData = initialSlice?.form_data ?? form_data;
+    const initialFormData = form_data ?? initialSlice?.form_data;
     const initialDatasource =
       datasources?.[initialFormData.datasource] ?? dataset;
 
