@@ -17,7 +17,7 @@
 import json
 import logging
 from datetime import datetime, timedelta
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Union
 from uuid import UUID
 
 import pandas as pd
@@ -29,16 +29,10 @@ from superset import app, security_manager
 from superset.commands.base import BaseCommand
 from superset.commands.exceptions import CommandException
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
-from superset.extensions import feature_flag_manager, machine_auth_provider_factory
-from superset.models.reports import (
-    ReportDataFormat,
-    ReportExecutionLog,
-    ReportRecipients,
-    ReportRecipientType,
-    ReportSchedule,
-    ReportScheduleType,
-    ReportState,
+from superset.dashboards.permalink.commands.create import (
+    CreateDashboardPermalinkCommand,
 )
+from superset.extensions import feature_flag_manager, machine_auth_provider_factory
 from superset.reports.commands.alert import AlertCommand
 from superset.reports.commands.exceptions import (
     ReportScheduleAlertGracePeriodError,
@@ -61,16 +55,21 @@ from superset.reports.dao import (
     REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER,
     ReportScheduleDAO,
 )
+from superset.reports.models import (
+    ReportDataFormat,
+    ReportExecutionLog,
+    ReportRecipients,
+    ReportRecipientType,
+    ReportSchedule,
+    ReportScheduleType,
+    ReportState,
+)
 from superset.reports.notifications import create_notification
 from superset.reports.notifications.base import NotificationContent
 from superset.reports.notifications.exceptions import NotificationError
 from superset.utils.celery import session_scope
 from superset.utils.csv import get_chart_csv_data, get_chart_dataframe
-from superset.utils.screenshots import (
-    BaseScreenshot,
-    ChartScreenshot,
-    DashboardScreenshot,
-)
+from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot
 from superset.utils.urls import get_url_path
 from superset.utils.webdriver import DashboardStandaloneMode
 
@@ -174,6 +173,16 @@ class BaseReportState:
                 force=force,
                 **kwargs,
             )
+
+        # If we need to render dashboard in a specific sate, use stateful permalink
+        dashboard_state = self._report_schedule.extra.get("dashboard")
+        if dashboard_state:
+            permalink_key = CreateDashboardPermalinkCommand(
+                dashboard_id=self._report_schedule.dashboard_id,
+                state=dashboard_state,
+            ).run()
+            return get_url_path("Superset.dashboard_permalink", key=permalink_key)
+
         return get_url_path(
             "Superset.dashboard",
             user_friendly=user_friendly,
@@ -198,49 +207,33 @@ class BaseReportState:
         :raises: ReportScheduleScreenshotFailedError
         """
         image_data = []
-        screenshots: List[BaseScreenshot] = []
-        if self._report_schedule.chart:
-            url = self._get_url()
-            logger.info("Screenshotting chart at %s", url)
-            screenshots = [
-                ChartScreenshot(
-                    url,
-                    self._report_schedule.chart.digest,
-                    window_size=app.config["WEBDRIVER_WINDOW"]["slice"],
-                    thumb_size=app.config["WEBDRIVER_WINDOW"]["slice"],
-                )
-            ]
-        else:
-            tabs: Optional[List[str]] = json.loads(self._report_schedule.extra).get(
-                "dashboard_tab_ids", None
-            )
-            dashboard_base_url = self._get_url()
-            if tabs is None:
-                urls = [dashboard_base_url]
-            else:
-                urls = [f"{dashboard_base_url}#{tab_id}" for tab_id in tabs]
-            screenshots = [
-                DashboardScreenshot(
-                    url,
-                    self._report_schedule.dashboard.digest,
-                    window_size=app.config["WEBDRIVER_WINDOW"]["dashboard"],
-                    thumb_size=app.config["WEBDRIVER_WINDOW"]["dashboard"],
-                )
-                for url in urls
-            ]
+        url = self._get_url()
         user = self._get_user()
-        for screenshot in screenshots:
-            try:
-                image = screenshot.get_screenshot(user=user)
-            except SoftTimeLimitExceeded as ex:
-                logger.warning("A timeout occurred while taking a screenshot.")
-                raise ReportScheduleScreenshotTimeout() from ex
-            except Exception as ex:
-                raise ReportScheduleScreenshotFailedError(
-                    f"Failed taking a screenshot {str(ex)}"
-                ) from ex
-            if image is not None:
-                image_data.append(image)
+        if self._report_schedule.chart:
+            screenshot: Union[ChartScreenshot, DashboardScreenshot] = ChartScreenshot(
+                url,
+                self._report_schedule.chart.digest,
+                window_size=app.config["WEBDRIVER_WINDOW"]["slice"],
+                thumb_size=app.config["WEBDRIVER_WINDOW"]["slice"],
+            )
+        else:
+            screenshot = DashboardScreenshot(
+                url,
+                self._report_schedule.dashboard.digest,
+                window_size=app.config["WEBDRIVER_WINDOW"]["dashboard"],
+                thumb_size=app.config["WEBDRIVER_WINDOW"]["dashboard"],
+            )
+        try:
+            image = screenshot.get_screenshot(user=user)
+        except SoftTimeLimitExceeded as ex:
+            logger.warning("A timeout occurred while taking a screenshot.")
+            raise ReportScheduleScreenshotTimeout() from ex
+        except Exception as ex:
+            raise ReportScheduleScreenshotFailedError(
+                f"Failed taking a screenshot {str(ex)}"
+            ) from ex
+        if image is not None:
+            image_data.append(image)
         if not image_data:
             raise ReportScheduleScreenshotFailedError()
         return image_data
@@ -640,11 +633,13 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
     - On Alerts uses related Command AlertCommand and sends configured notifications
     """
 
-    def __init__(self, task_id: str, model_id: int, scheduled_dttm: datetime):
+    def __init__(
+        self, task_id: Union[UUID, str], model_id: int, scheduled_dttm: datetime
+    ):
         self._model_id = model_id
         self._model: Optional[ReportSchedule] = None
         self._scheduled_dttm = scheduled_dttm
-        self._execution_id = UUID(task_id)
+        self._execution_id = task_id if isinstance(task_id, UUID) else UUID(task_id)
 
     def run(self) -> None:
         with session_scope(nullpool=True) as session:

@@ -71,7 +71,7 @@ from superset.exceptions import (
     SupersetSecurityException,
 )
 from superset.models.helpers import ImportExportMixin
-from superset.models.reports import ReportRecipientType
+from superset.reports.models import ReportRecipientType
 from superset.superset_typing import FlaskResponse
 from superset.translations.utils import get_language_pack
 from superset.utils import core as utils

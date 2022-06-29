@@ -22,7 +22,6 @@ from marshmallow import ValidationError
 from superset.charts.dao import ChartDAO
 from superset.commands.base import BaseCommand
 from superset.dashboards.dao import DashboardDAO
-from superset.models.reports import ReportCreationMethod
 from superset.reports.commands.exceptions import (
     ChartNotFoundValidationError,
     ChartNotSavedValidationError,
@@ -30,6 +29,7 @@ from superset.reports.commands.exceptions import (
     DashboardNotSavedValidationError,
     ReportScheduleChartOrDashboardValidationError,
 )
+from superset.reports.models import ReportCreationMethod
 
 logger = logging.getLogger(__name__)
 
@@ -63,6 +63,7 @@ class BaseReportScheduleCommand(BaseCommand):
 
         if chart_id and dashboard_id:
             exceptions.append(ReportScheduleChartOrDashboardValidationError())
+
         if chart_id:
             chart = ChartDAO.find_by_id(chart_id)
             if not chart:

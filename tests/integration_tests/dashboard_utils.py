@@ -17,9 +17,7 @@
 """Utils to provide dashboards for tests"""
 
 import json
-from typing import Any, Dict, List, Optional
-
-from pandas import DataFrame
+from typing import Dict, List, Optional
 
 from superset import db
 from superset.connectors.sqla.models import SqlaTable

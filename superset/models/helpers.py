@@ -485,7 +485,8 @@ class ExtraJSONMixin:
             )
             return {}
 
-    def set_extra_json(self, extras: Dict[str, Any]) -> None:
+    @extra.setter
+    def extra(self, extras: Dict[str, Any]) -> None:
         self.extra_json = json.dumps(extras)
 
     def set_extra_json_key(self, key: str, value: Any) -> None:

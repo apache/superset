@@ -24,7 +24,7 @@ from superset.commands.exceptions import (
     ForbiddenError,
     ValidationError,
 )
-from superset.models.reports import ReportScheduleType
+from superset.reports.models import ReportScheduleType
 
 
 class DatabaseNotFoundValidationError(ValidationError):

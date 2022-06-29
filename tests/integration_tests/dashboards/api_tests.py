@@ -34,7 +34,7 @@ from sqlalchemy import and_
 from superset import db, security_manager
 from superset.models.dashboard import Dashboard
 from superset.models.core import FavStar, FavStarClassName
-from superset.models.reports import ReportSchedule, ReportScheduleType
+from superset.reports.models import ReportSchedule, ReportScheduleType
 from superset.models.slice import Slice
 from superset.utils.core import backend
 from superset.views.base import generate_download_headers
