@@ -25,6 +25,7 @@ import { PLACEHOLDER_DATASOURCE } from 'src/dashboard/constants';
 import Loading from 'src/components/Loading';
 import { EmptyStateBig } from 'src/components/EmptyState';
 import ErrorBoundary from 'src/components/ErrorBoundary';
+import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
@@ -122,8 +123,10 @@ const MonospaceDiv = styled.div`
 class Chart extends React.PureComponent {
   constructor(props) {
     super(props);
+    this.state = { showSaveDatasetModal: false };
     this.handleRenderContainerFailure =
       this.handleRenderContainerFailure.bind(this);
+    this.toggleSaveDatasetModal = this.toggleSaveDatasetModal.bind(this);
   }
 
   componentDidMount() {
@@ -134,6 +137,12 @@ class Chart extends React.PureComponent {
     ) {
       this.runQuery();
     }
+  }
+
+  toggleSaveDatasetModal() {
+    return this.setState(({ showSaveDatasetModal }) => ({
+      showSaveDatasetModal: !showSaveDatasetModal,
+    }));
   }
 
   componentDidUpdate() {
@@ -193,6 +202,17 @@ class Chart extends React.PureComponent {
     });
   }
 
+  getDatasourceAsSaveableDataset = source => {
+    const dataset = {
+      columns: source.columns,
+      name: source?.datasource_name || 'Untitled',
+      dbId: source.database.id,
+      sql: source?.sql || '',
+      schema: source?.schema,
+    };
+    return dataset;
+  };
+
   renderErrorMessage(queryResponse) {
     const {
       chartId,
@@ -203,7 +223,7 @@ class Chart extends React.PureComponent {
       height,
       datasetsStatus,
     } = this.props;
-
+    const { showSaveDatasetModal } = this.state;
     const error = queryResponse?.errors?.[0];
     const message = chartAlert || queryResponse?.message;
 
@@ -228,16 +248,28 @@ class Chart extends React.PureComponent {
     }
 
     return (
-      <ChartErrorMessage
-        key={chartId}
-        chartId={chartId}
-        error={error}
-        subtitle={<MonospaceDiv>{message}</MonospaceDiv>}
-        copyText={message}
-        link={queryResponse ? queryResponse.link : null}
-        source={dashboardId ? 'dashboard' : 'explore'}
-        stackTrace={chartStackTrace}
-      />
+      <>
+        <ChartErrorMessage
+          key={chartId}
+          chartId={chartId}
+          error={error}
+          subtitle={<MonospaceDiv>{message}</MonospaceDiv>}
+          copyText={message}
+          link={queryResponse ? queryResponse.link : null}
+          source={dashboardId ? 'dashboard' : 'explore'}
+          stackTrace={chartStackTrace}
+          errorMitigationFunction={this.toggleSaveDatasetModal}
+        />
+        {showSaveDatasetModal && (
+          <SaveDatasetModal
+            visible={showSaveDatasetModal}
+            onHide={this.toggleSaveDatasetModal}
+            buttonTextOnSave={t('Save')}
+            buttonTextOnOverwrite={t('Overwrite')}
+            datasource={this.getDatasourceAsSaveableDataset(datasource)}
+          />
+        )}
+      </>
     );
   }
 

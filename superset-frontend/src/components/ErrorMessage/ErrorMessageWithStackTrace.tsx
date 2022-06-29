@@ -18,9 +18,8 @@
  */
 import React from 'react';
 import { t } from '@superset-ui/core';
-
 import getErrorMessageComponentRegistry from './getErrorMessageComponentRegistry';
-import { SupersetError, ErrorSource } from './types';
+import { SupersetError, ErrorSource, CUSTOM_ERROR_ALERT_MAP } from './types';
 import ErrorAlert from './ErrorAlert';
 
 const DEFAULT_TITLE = t('Unexpected error');
@@ -33,6 +32,7 @@ type Props = {
   copyText?: string;
   stackTrace?: string;
   source?: ErrorSource;
+  errorMitigationFunction?: () => void;
 };
 
 export default function ErrorMessageWithStackTrace({
@@ -43,6 +43,7 @@ export default function ErrorMessageWithStackTrace({
   link,
   stackTrace,
   source,
+  errorMitigationFunction,
 }: Props) {
   // Check if a custom error message component was registered for this message
   if (error) {
@@ -58,6 +59,12 @@ export default function ErrorMessageWithStackTrace({
         />
       );
     }
+  }
+  // this is in case an error needs a specific error alert
+  if (error && CUSTOM_ERROR_ALERT_MAP[error.error_type]) {
+    return CUSTOM_ERROR_ALERT_MAP[error.error_type]({
+      onClickFunction: errorMitigationFunction,
+    });
   }
 
   return (

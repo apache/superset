@@ -90,6 +90,9 @@ class SupersetErrorType(str, Enum):
     INVALID_PAYLOAD_FORMAT_ERROR = "INVALID_PAYLOAD_FORMAT_ERROR"
     INVALID_PAYLOAD_SCHEMA_ERROR = "INVALID_PAYLOAD_SCHEMA_ERROR"
 
+    # Dataset/Datasource Errors
+    VIZ_TYPE_REQUIRES_DATASET_ERROR = "VIZ_TYPE_REQUIRES_DATASET_ERROR"
+
 
 ISSUE_CODES = {
     1000: _("The datasource is too large to query."),
@@ -140,6 +143,9 @@ ISSUE_CODES = {
     1035: _("Failed to start remote query on a worker."),
     1036: _("The database was deleted."),
     1037: _("Custom SQL fields cannot contain sub-queries."),
+    1038: _(
+        "This chart type is not supported when using an unsaved query as a chart source."
+    ),
 }
 
 
@@ -177,6 +183,7 @@ ERROR_TYPES_TO_ISSUE_CODES_MAPPING = {
     SupersetErrorType.ASYNC_WORKERS_ERROR: [1035],
     SupersetErrorType.DATABASE_NOT_FOUND_ERROR: [1011, 1036],
     SupersetErrorType.CONNECTION_DATABASE_TIMEOUT: [1001, 1009],
+    SupersetErrorType.VIZ_TYPE_REQUIRES_DATASET_ERROR: [1038],
 }
 
 

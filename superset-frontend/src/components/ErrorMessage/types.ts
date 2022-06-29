@@ -17,6 +17,8 @@
  * under the License.
  */
 
+import vizTypeErrorAlert from './vizTypeErrorAlert';
+
 // Keep in sync with superset/views/errors.py
 export const ErrorTypeEnum = {
   // Frontend errors
@@ -48,6 +50,7 @@ export const ErrorTypeEnum = {
   UNKNOWN_DATASOURCE_TYPE_ERROR: 'UNKNOWN_DATASOURCE_TYPE_ERROR',
   FAILED_FETCHING_DATASOURCE_INFO_ERROR:
     'FAILED_FETCHING_DATASOURCE_INFO_ERROR',
+  VIZ_TYPE_REQUIRES_DATASET_ERROR: 'VIZ_TYPE_REQUIRES_DATASET_ERROR',
 
   // Security access errors
   TABLE_SECURITY_ACCESS_ERROR: 'TABLE_SECURITY_ACCESS_ERROR',
@@ -105,3 +108,9 @@ export type ErrorMessageComponentProps<ExtraType = Record<string, any> | null> =
 
 export type ErrorMessageComponent =
   React.ComponentType<ErrorMessageComponentProps>;
+
+// created in case a component needs a specific error. This maps to
+// the specific error component.
+export const CUSTOM_ERROR_ALERT_MAP = {
+  VIZ_TYPE_REQUIRES_DATASET_ERROR: vizTypeErrorAlert,
+};
