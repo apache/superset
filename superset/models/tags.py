@@ -32,6 +32,7 @@ if TYPE_CHECKING:
     from superset.models.dashboard import Dashboard
     from superset.models.slice import Slice
     from superset.models.sql_lab import Query
+    from superset.connectors.sqla.models import SqlaTable
 
 Session = sessionmaker(autoflush=False)
 
@@ -64,6 +65,7 @@ class ObjectTypes(enum.Enum):
     query = 1
     chart = 2
     dashboard = 3
+    dataset = 4
 
 
 class Tag(Model, AuditMixinNullable):
@@ -225,6 +227,13 @@ class QueryUpdater(ObjectUpdater):
     @classmethod
     def get_owners_ids(cls, target: "Query") -> List[int]:
         return [target.user_id]
+
+class DatasetUpdater(ObjectUpdater):
+    object_type = "dataset"
+
+    @classmethod
+    def get_owners_ids(cls, target: "SqlaTable") -> List[int]:
+        return [owner.id for owner in target.owners]
 
 
 class FavStarUpdater:
