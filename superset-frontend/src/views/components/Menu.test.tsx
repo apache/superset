@@ -20,10 +20,10 @@ import React from 'react';
 import * as reactRedux from 'react-redux';
 import fetchMock from 'fetch-mock';
 import { render, screen } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
-import { Menu } from './Menu';
-import { getUiOverrideRegistry } from '@superset-ui/core';
 import setupExtensions from 'src/setup/setupExtensions';
+import userEvent from '@testing-library/user-event';
+import { getUiOverrideRegistry } from '@superset-ui/core';
+import { Menu } from './Menu';
 
 const dropdownItems = [
   {
