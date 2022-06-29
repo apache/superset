@@ -134,6 +134,7 @@ under the License.
 
 **Fixes**
 
+- [#20543](https://github.com/apache/superset/pull/20543) fix: Removes psycopg2 as a required dependency
 - [#20442](https://github.com/apache/superset/pull/20442) fix(db): Show the only db install guide when the db is already installed and error is existed while importing file. (@prosdev0107)
 - [#20483](https://github.com/apache/superset/pull/20483) fix: bump FAB to 4.1.2 (@dpgaspar)
 - [#20493](https://github.com/apache/superset/pull/20493) fix: correction from mmsql to mssql in setup.py (@mdeshmu)
