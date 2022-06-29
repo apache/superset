@@ -20,9 +20,9 @@ import React from 'react';
 import copyTextToClipboard from 'src/utils/copy';
 import { t, logging } from '@superset-ui/core';
 import { Menu } from 'src/components/Menu';
-import { getDashboardPermalink, getUrlParam } from 'src/utils/urlUtils';
-import { URL_PARAMS } from 'src/constants';
-import { getFilterValue } from 'src/dashboard/components/nativeFilters/FilterBar/keyValue';
+import { getDashboardPermalink } from 'src/utils/urlUtils';
+import { RootState } from 'src/dashboard/types';
+import { useSelector } from 'react-redux';
 
 interface ShareMenuItemProps {
   url?: string;
@@ -48,17 +48,17 @@ const ShareMenuItems = (props: ShareMenuItemProps) => {
     dashboardComponentId,
     ...rest
   } = props;
+  const { dataMask, activeTabs } = useSelector((state: RootState) => ({
+    dataMask: state.dataMask,
+    activeTabs: state.dashboardState.activeTabs,
+  }));
 
   async function generateUrl() {
-    const nativeFiltersKey = getUrlParam(URL_PARAMS.nativeFiltersKey);
-    let filterState = {};
-    if (nativeFiltersKey && dashboardId) {
-      filterState = await getFilterValue(dashboardId, nativeFiltersKey);
-    }
     return getDashboardPermalink({
       dashboardId,
-      filterState,
-      hash: dashboardComponentId,
+      dataMask,
+      activeTabs,
+      anchor: dashboardComponentId,
     });
   }
 
