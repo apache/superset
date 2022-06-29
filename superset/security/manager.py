@@ -946,25 +946,15 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         except DatasetInvalidPermissionEvaluationException:
             logger.warning("Dataset has no database refusing to set permission")
             return
-        link_table = target.__table__
         if target.perm != target_get_perm:
-            connection.execute(
-                link_table.update()
-                .where(link_table.c.id == target.id)
-                .values(perm=target_get_perm)
-            )
             target.perm = target_get_perm
-
+            self.get_session.merge(target)
         if (
             hasattr(target, "schema_perm")
             and target.schema_perm != target.get_schema_perm()
         ):
-            connection.execute(
-                link_table.update()
-                .where(link_table.c.id == target.id)
-                .values(schema_perm=target.get_schema_perm())
-            )
             target.schema_perm = target.get_schema_perm()
+            self.get_session.merge(target)
 
         pvm_names = []
         if target.__tablename__ in {"dbs", "clusters"}:
@@ -980,36 +970,25 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             view_menu = self.find_view_menu(view_menu_name)
             pv = None
 
-            if not permission:
-                permission_table = (
-                    self.permission_model.__table__  # pylint: disable=no-member
-                )
-                connection.execute(
-                    permission_table.insert().values(name=permission_name)
-                )
-                permission = self.find_permission(permission_name)
-            if not view_menu:
-                view_menu_table = (
-                    self.viewmenu_model.__table__  # pylint: disable=no-member
-                )
-                connection.execute(view_menu_table.insert().values(name=view_menu_name))
-                view_menu = self.find_view_menu(view_menu_name)
-
             if permission and view_menu:
                 pv = (
                     self.get_session.query(self.permissionview_model)
-                    .filter_by(permission=permission, view_menu=view_menu)
-                    .first()
+                        .filter_by(permission=permission, view_menu=view_menu)
+                        .first()
                 )
+
+            if not permission:
+                permission = self.permission_model(name=permission_name)
+                self.get_session.add(permission)
+            if not view_menu:
+                view_menu = self.viewmenu_model(name=view_menu_name)
+                self.get_session.add(view_menu)
+
             if not pv and permission and view_menu:
-                permission_view_table = (
-                    self.permissionview_model.__table__  # pylint: disable=no-member
+                pv = self.permissionview_model(
+                    permission=permission, view_menu=view_menu
                 )
-                connection.execute(
-                    permission_view_table.insert().values(
-                        permission_id=permission.id, view_menu_id=view_menu.id
-                    )
-                )
+                self.get_session.add(pv)
 
     def raise_for_access(
         # pylint: disable=too-many-arguments,too-many-locals
