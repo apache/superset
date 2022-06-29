@@ -332,7 +332,6 @@ class TestPostChartDataApi(BaseTestChartDataApi):
                 {"column": "gender"},
                 {"column": "num"},
                 {"column": "name"},
-                {"column": "__time_range"},
             ],
         )
         self.assertEqual(
