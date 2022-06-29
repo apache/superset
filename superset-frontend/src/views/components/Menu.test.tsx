@@ -22,6 +22,8 @@ import fetchMock from 'fetch-mock';
 import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { Menu } from './Menu';
+import { getUiOverrideRegistry } from '@superset-ui/core';
+import setupExtensions from 'src/setup/setupExtensions';
 
 const dropdownItems = [
   {
@@ -481,4 +483,20 @@ test('should render without QueryParamProvider', () => {
   useSelectorMock.mockReturnValue({ roles: [] });
   render(<Menu {...mockedProps} />, { useRedux: true });
   expect(screen.queryByTestId('new-dropdown')).not.toBeInTheDocument();
+});
+
+test('should render an extension component if one is supplied', () => {
+  const uiOverrideRegistry = getUiOverrideRegistry();
+
+  uiOverrideRegistry.set('navbar.right', () => (
+    <>navbar.right extension component</>
+  ));
+
+  setupExtensions();
+
+  render(<Menu {...mockedProps} />);
+
+  expect(
+    screen.getByText('navbar.right extension component'),
+  ).toBeInTheDocument();
 });
