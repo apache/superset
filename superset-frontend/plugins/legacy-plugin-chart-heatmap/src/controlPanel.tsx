@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import React from 'react';
 import {
   FeatureFlag,
   isFeatureEnabled,
@@ -163,17 +164,34 @@ const config: ControlPanelConfig = {
             name: 'normalize_across',
             config: {
               type: 'SelectControl',
-              label: t('Normalize Across'),
+              label: t('COLOR BASED ON'),
               choices: [
                 ['heatmap', 'heatmap'],
                 ['x', 'x'],
                 ['y', 'y'],
               ],
               default: 'heatmap',
-              description: t(
-                'Color will be rendered based on a ratio ' +
-                  'of the cell against the sum of across this ' +
-                  'criteria',
+              description: (
+                <>
+                  <div>
+                    {t(
+                      'Color will be rendered based on a ratio of the cell against the sum of across this criteria: ',
+                    )}
+                  </div>
+                  <ul>
+                    <li>
+                      {t('x: percentage of the highest value in that column')}
+                    </li>
+                    <li>
+                      {t('y: percentage of the highest value in that row')}
+                    </li>
+                    <li>
+                      {t(
+                        'heatmap: percentage of the highest value in the whole heatmap',
+                      )}
+                    </li>
+                  </ul>
+                </>
               ),
             },
           },
