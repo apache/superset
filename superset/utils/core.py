@@ -1422,9 +1422,32 @@ def split_adhoc_filters_into_base_filters(  # pylint: disable=invalid-name
 
 
 def get_username() -> Optional[str]:
-    """Get username if within the flask context, otherwise return noffin'"""
+    """
+    Get username (if defined) associated with the current user.
+
+    :returns: The username
+    """
+
     try:
         return g.user.username
+    except Exception:  # pylint: disable=broad-except
+        return None
+
+
+def get_user_id() -> Optional[int]:
+    """
+    Get the user identifier (if defined) associated with the current user.
+
+    Though the Flask-AppBuilder `User` and Flask-Login  `AnonymousUserMixin` and
+    `UserMixin` models provide a convenience `get_id` method, for generality, the
+    identifier is encoded as a `str` whereas in Superset all identifiers are encoded as
+    an `int`.
+
+    returns: The user identifier
+    """
+
+    try:
+        return g.user.id
     except Exception:  # pylint: disable=broad-except
         return None
 
@@ -1713,7 +1736,7 @@ def get_time_filter_status(
 
     # todo(hugh): fix this
     # temporal_columns = {col.column_name for col in datasource.columns if col.is_dttm}
-    temporal_columns = {}
+    temporal_columns: Dict[str, Any] = {}
     applied: List[Dict[str, str]] = []
     rejected: List[Dict[str, str]] = []
     time_column = applied_time_extras.get(ExtraFiltersTimeColumnType.TIME_COL)

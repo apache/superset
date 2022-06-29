@@ -139,11 +139,11 @@ class Chart extends React.PureComponent {
     }
   }
 
-  toggleSaveDatasetModal = () => {
-    this.setState(({ showSaveDatasetModal }) => ({
+  toggleSaveDatasetModal() {
+    return this.setState(({ showSaveDatasetModal }) => ({
       showSaveDatasetModal: !showSaveDatasetModal,
     }));
-  };
+  }
 
   componentDidUpdate() {
     // during migration, hold chart queries before user choose review or cancel
@@ -202,6 +202,17 @@ class Chart extends React.PureComponent {
     });
   }
 
+  getDatasourceAsSaveableDataset = source => {
+    const dataset = {
+      columns: source.columns,
+      name: source?.datasource_name || 'Untitled',
+      dbId: source.database.id,
+      sql: source?.sql || '',
+      schema: source?.schema,
+    };
+    return dataset;
+  };
+
   renderErrorMessage(queryResponse) {
     const {
       chartId,
@@ -212,6 +223,7 @@ class Chart extends React.PureComponent {
       height,
       datasetsStatus,
     } = this.props;
+    const { showSaveDatasetModal } = this.state;
     const error = queryResponse?.errors?.[0];
     const message = chartAlert || queryResponse?.message;
 
@@ -236,17 +248,28 @@ class Chart extends React.PureComponent {
     }
 
     return (
-      <ChartErrorMessage
-        key={chartId}
-        chartId={chartId}
-        error={error}
-        subtitle={<MonospaceDiv>{message}</MonospaceDiv>}
-        copyText={message}
-        link={queryResponse ? queryResponse.link : null}
-        source={dashboardId ? 'dashboard' : 'explore'}
-        stackTrace={chartStackTrace}
-        optionalFunction={this.toggleSaveDatasetModal}
-      />
+      <>
+        <ChartErrorMessage
+          key={chartId}
+          chartId={chartId}
+          error={error}
+          subtitle={<MonospaceDiv>{message}</MonospaceDiv>}
+          copyText={message}
+          link={queryResponse ? queryResponse.link : null}
+          source={dashboardId ? 'dashboard' : 'explore'}
+          stackTrace={chartStackTrace}
+          errorMitigationFunction={this.toggleSaveDatasetModal}
+        />
+        {showSaveDatasetModal && (
+          <SaveDatasetModal
+            visible={showSaveDatasetModal}
+            onHide={this.toggleSaveDatasetModal}
+            buttonTextOnSave={t('Save')}
+            buttonTextOnOverwrite={t('Overwrite')}
+            datasource={this.getDatasourceAsSaveableDataset(datasource)}
+          />
+        )}
+      </>
     );
   }
 
@@ -262,8 +285,6 @@ class Chart extends React.PureComponent {
       width,
     } = this.props;
 
-    const { showSaveDatasetModal } = this.state;
-    console.log(showSaveDatasetModal);
     const isLoading = chartStatus === 'loading';
     this.renderContainerStartTime = Logger.getTimestamp();
     if (chartStatus === 'failed') {
@@ -307,39 +328,27 @@ class Chart extends React.PureComponent {
     }
 
     return (
-      <>
-        <ErrorBoundary
-          onError={this.handleRenderContainerFailure}
-          showMessage={false}
+      <ErrorBoundary
+        onError={this.handleRenderContainerFailure}
+        showMessage={false}
+      >
+        <Styles
+          data-ui-anchor="chart"
+          className="chart-container"
+          data-test="chart-container"
+          height={height}
+          width={width}
         >
-          <Styles
-            data-ui-anchor="chart"
-            className="chart-container"
-            data-test="chart-container"
-            height={height}
-            width={width}
-          >
-            <div className="slice_container" data-test="slice-container">
-              <ChartRenderer
-                {...this.props}
-                source={this.props.dashboardId ? 'dashboard' : 'explore'}
-                data-test={this.props.vizType}
-              />
-            </div>
-            {isLoading && !isDeactivatedViz && <Loading />}
-          </Styles>
-        </ErrorBoundary>
-        {showSaveDatasetModal && (
-          <SaveDatasetModal
-            key={Math.random()}
-            visible={showSaveDatasetModal}
-            onHide={this.toggleSaveDatasetModal}
-            buttonTextOnSave={t('Save')}
-            buttonTextOnOverwrite={t('Overwrite')}
-            datasource={this.props.datasource}
-          />
-        )}
-      </>
+          <div className="slice_container" data-test="slice-container">
+            <ChartRenderer
+              {...this.props}
+              source={this.props.dashboardId ? 'dashboard' : 'explore'}
+              data-test={this.props.vizType}
+            />
+          </div>
+          {isLoading && !isDeactivatedViz && <Loading />}
+        </Styles>
+      </ErrorBoundary>
     );
   }
 }

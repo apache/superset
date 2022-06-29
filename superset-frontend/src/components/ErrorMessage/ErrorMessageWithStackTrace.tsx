@@ -32,7 +32,7 @@ type Props = {
   copyText?: string;
   stackTrace?: string;
   source?: ErrorSource;
-  optionalFunction?: () => void;
+  errorMitigationFunction?: () => void;
 };
 
 export default function ErrorMessageWithStackTrace({
@@ -43,7 +43,7 @@ export default function ErrorMessageWithStackTrace({
   link,
   stackTrace,
   source,
-  optionalFunction,
+  errorMitigationFunction,
 }: Props) {
   // Check if a custom error message component was registered for this message
   if (error) {
@@ -63,7 +63,7 @@ export default function ErrorMessageWithStackTrace({
   // this is in case an error needs a specific error alert
   if (error && CUSTOM_ERROR_ALERT_MAP[error.error_type]) {
     return CUSTOM_ERROR_ALERT_MAP[error.error_type]({
-      onClickFunction: optionalFunction,
+      onClickFunction: errorMitigationFunction,
     });
   }
 

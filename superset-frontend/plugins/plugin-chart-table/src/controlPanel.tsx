@@ -47,6 +47,7 @@ import {
   Dataset,
   ColumnMeta,
   defineSavedMetrics,
+  getStandardizedControls,
 } from '@superset-ui/chart-controls';
 
 import i18n from './i18n';
@@ -544,10 +545,10 @@ const config: ControlPanelConfig = {
       ],
     },
   ],
-  denormalizeFormData: formData => ({
+  formDataOverrides: formData => ({
     ...formData,
-    metrics: formData.standardizedFormData.standardizedState.metrics,
-    groupby: formData.standardizedFormData.standardizedState.columns,
+    metrics: getStandardizedControls().popAllMetrics(),
+    groupby: getStandardizedControls().popAllColumns(),
   }),
 };
 

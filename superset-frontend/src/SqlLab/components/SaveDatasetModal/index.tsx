@@ -45,23 +45,41 @@ import {
   DatasetOptionAutocomplete,
   SqlLabExploreRootState,
   getInitialState,
-  ExploreDatasource,
 } from 'src/SqlLab/types';
+
 import { exploreChart } from 'src/explore/exploreUtils';
+import { isString } from 'lodash';
+
 interface QueryDatabase {
   id?: number;
 }
 
-type ExploreQuery = QueryResponse & {
+export type ExploreQuery = QueryResponse & {
   database?: QueryDatabase | null | undefined;
 };
+
+export interface ISimpleColumn {
+  name?: string | null;
+  type?: string | null;
+  is_dttm?: boolean | null;
+}
+
+export interface ISaveableDataset {
+  columns: ISimpleColumn[];
+  name: string;
+  dbId: number;
+  sql: string;
+  templateParams?: string | object | null;
+  schema?: string | null;
+}
+
 interface SaveDatasetModalProps {
   visible: boolean;
   onHide: () => void;
   buttonTextOnSave: string;
   buttonTextOnOverwrite: string;
   modalDescription?: string;
-  datasource: ExploreQuery;
+  datasource: ISaveableDataset;
 }
 
 const Styles = styled.div`
@@ -123,10 +141,8 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
   modalDescription,
   datasource,
 }) => {
-  console.log('this is visible', visible);
-  const query = datasource as ExploreQuery;
   const getDefaultDatasetName = () =>
-    `${query?.tab || UNTITLED} ${moment().format('MM/DD/YYYY HH:mm:ss')}`;
+    `${datasource?.name || UNTITLED} ${moment().format('MM/DD/YYYY HH:mm:ss')}`;
   const [datasetName, setDatasetName] = useState(getDefaultDatasetName());
   const [newOrOverwrite, setNewOrOverwrite] = useState(
     DatasetRadioState.SAVE_NEW,
@@ -147,10 +163,10 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
 
   const handleOverwriteDataset = async () => {
     await updateDataset(
-      query?.dbId ?? query?.database?.id,
+      datasource.dbId,
       datasetToOverwrite.datasetId,
-      query.sql,
-      query.results.selected_columns.map(
+      datasource.sql,
+      datasource?.columns?.map(
         (d: { name: string; type: string; is_dttm: boolean }) => ({
           column_name: d.name,
           type: d.type,
@@ -168,9 +184,8 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
     exploreChart({
       ...EXPLORE_CHART_DEFAULT,
       datasource: `${datasetToOverwrite.datasetId}__table`,
-      all_columns: query.results.selected_columns.map(
-        (d: { name: string; type: string; is_dttm: boolean }) => d.name,
-      ),
+      all_columns: datasource?.columns?.map?.((d: ISimpleColumn) => d.name),
+      selected_columns: datasource?.columns,
     });
   };
 
@@ -220,15 +235,14 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
       return;
     }
 
-    const selectedColumns =
-      query?.results?.selected_columns ?? query.columns ?? [];
+    const selectedColumns = datasource?.columns ?? [];
 
     // The filters param is only used to test jinja templates.
     // Remove the special filters entry from the templateParams
     // before saving the dataset.
     let templateParams;
-    if (query.templateParams) {
-      const p = JSON.parse(query.templateParams);
+    if (isString(datasource.templateParams)) {
+      const p = JSON.parse(datasource.templateParams);
       /* eslint-disable-next-line no-underscore-dangle */
       if (p._filters) {
         /* eslint-disable-next-line no-underscore-dangle */
@@ -240,9 +254,9 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
 
     dispatch(
       createDatasource({
-        schema: query.schema,
-        sql: query.sql,
-        dbId: query?.dbId ?? query?.database?.id,
+        schema: datasource.schema,
+        sql: datasource.sql,
+        dbId: datasource.dbId,
         templateParams,
         datasourceName: datasetName,
         columns: selectedColumns,
@@ -254,8 +268,7 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
           metrics: [],
           groupby: [],
           time_range: 'No filter',
-          viz_type: 'table',
-          all_columns: selectedColumns.map(c => c.name),
+          selectedColumns,
           row_limit: 1000,
         });
       })

@@ -42,5 +42,6 @@ export const ChartErrorMessage: React.FC<Props> = ({
     ...error,
     extra: { ...error.extra, owners },
   };
+
   return <ErrorMessageWithStackTrace {...props} error={ownedError} />;
 };

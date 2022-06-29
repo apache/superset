@@ -32,7 +32,8 @@ import {
 import { MainNav as Menu } from 'src/components/Menu';
 import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
-import findPermission, { isUserAdmin } from 'src/dashboard/util/findPermission';
+import { findPermission } from 'src/utils/findPermission';
+import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { RootState } from 'src/dashboard/types';
 import LanguagePicker from './LanguagePicker';

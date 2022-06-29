@@ -17,7 +17,12 @@
  * under the License.
  */
 import shortid from 'shortid';
-import { DatasourceType, JsonObject, QueryFormData } from '@superset-ui/core';
+import {
+  DatasourceType,
+  ensureIsArray,
+  JsonObject,
+  QueryFormData,
+} from '@superset-ui/core';
 import { ControlStateMapping, Dataset } from '@superset-ui/chart-controls';
 import {
   CommonBootstrapData,
@@ -32,6 +37,10 @@ import {
   getFormDataFromControls,
   applyMapStateToPropsToControl,
 } from 'src/explore/controlUtils';
+import { findPermission } from 'src/utils/findPermission';
+import { getDatasourceUid } from 'src/utils/getDatasourceUid';
+import { getUrlParam } from 'src/utils/urlUtils';
+import { URL_PARAMS } from 'src/constants';
 
 export interface ExplorePageBootstrapData extends JsonObject {
   can_add: boolean;
@@ -52,40 +61,49 @@ export interface ExplorePageBootstrapData extends JsonObject {
 export default function getInitialState(
   bootstrapData: ExplorePageBootstrapData,
 ) {
-  const { form_data: initialFormData } = bootstrapData;
-  const { slice } = bootstrapData;
-  const sliceName = slice ? slice.slice_name : null;
+  const {
+    form_data: initialFormData,
+    common,
+    user,
+    datasource,
+    slice,
+  } = bootstrapData;
 
   const exploreState = {
     // note this will add `form_data` to state,
     // which will be manipulatable by future reducers.
-    ...bootstrapData,
-    sliceName,
-    common: {
-      flash_messages: bootstrapData.common.flash_messages,
-      conf: bootstrapData.common.conf,
-    },
+    can_add: findPermission('can_write', 'Chart', user?.roles),
+    can_download: findPermission('can_csv', 'Superset', user?.roles),
+    can_overwrite: ensureIsArray(slice?.owners).includes(
+      user?.userId as number,
+    ),
     isDatasourceMetaLoading: false,
     isStarred: false,
+    triggerRender: false,
+    // duplicate datasource in exploreState - it's needed by getControlsState
+    datasource,
     // Initial control state will skip `control.mapStateToProps`
     // because `bootstrapData.controls` is undefined.
     controls: getControlsState(
       bootstrapData,
       initialFormData,
     ) as ControlStateMapping,
+    form_data: initialFormData,
+    slice,
     controlsTransferred: [],
+    standalone: getUrlParam(URL_PARAMS.standalone),
+    force: getUrlParam(URL_PARAMS.force),
   };
 
   // apply initial mapStateToProps for all controls, must execute AFTER
   // bootstrapState has initialized `controls`. Order of execution is not
-  // guaranteed, so controls shouldn't rely on the each other's mapped state.
+  // guaranteed, so controls shouldn't rely on each other's mapped state.
   Object.entries(exploreState.controls).forEach(([key, controlState]) => {
     exploreState.controls[key] = applyMapStateToPropsToControl(
       controlState,
       exploreState,
     );
   });
-
   const sliceFormData = slice
     ? getFormDataFromControls(getControlsState(bootstrapData, slice.form_data))
     : null;
@@ -107,9 +125,12 @@ export default function getInitialState(
   };
 
   return {
+    common: common || {},
+    user: user || {},
     charts: {
       [chartKey]: chart,
     },
+    datasources: { [getDatasourceUid(datasource)]: datasource },
     saveModal: {
       dashboards: [],
       saveModalAlert: null,

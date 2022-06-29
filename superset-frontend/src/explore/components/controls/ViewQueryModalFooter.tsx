@@ -16,12 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState } from 'react';
-import Button from 'src/components/Button';
-import { t } from '@superset-ui/core';
-
-import { postForm } from 'src/explore/exploreUtils';
+import React from 'react';
 import { isObject } from 'lodash';
+import { t, SupersetClient } from '@superset-ui/core';
+import Button from 'src/components/Button';
 
 interface SimpleDataSource {
   id: string;
@@ -49,7 +47,7 @@ const ViewQueryModalFooter: React.FC<ViewQueryModalFooterProps> = (props: {
       datasourceKey: `${id}__${type}`,
       sql,
     };
-    postForm('/superset/sqllab/', payload);
+    SupersetClient.postForm('/superset/sqllab/', payload);
   };
 
   const openSQL = () => {

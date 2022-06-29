@@ -196,7 +196,7 @@ test('Click on Save as dataset', () => {
 
   // Renders a save dataset modal
   const saveRadioBtn = screen.getByRole('radio', {
-    name: /save as new undefined/i,
+    name: /save as new untitled/i,
   });
   const overwriteRadioBtn = screen.getByRole('radio', {
     name: /overwrite existing select or type dataset name/i,

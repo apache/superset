@@ -22,6 +22,7 @@ import {
   D3_FORMAT_DOCS,
   D3_TIME_FORMAT_OPTIONS,
   formatSelectOptions,
+  getStandardizedControls,
   sections,
 } from '@superset-ui/chart-controls';
 import React from 'react';
@@ -270,9 +271,9 @@ const config: ControlPanelConfig = {
       label: t('Number format'),
     },
   },
-  denormalizeFormData: formData => ({
+  formDataOverrides: formData => ({
     ...formData,
-    metric: formData.standardizedFormData.standardizedState.metrics[0],
+    metric: getStandardizedControls().shiftMetric(),
   }),
 };
 

@@ -19,6 +19,7 @@
  */
 
 import { GenericDataType } from './QueryResponse';
+import { QueryFormColumn } from './QueryFormData';
 
 export interface AdhocColumn {
   hasCustomLabel?: boolean;
@@ -37,7 +38,7 @@ export type PhysicalColumn = string;
  * Column information defined in datasource.
  */
 export interface Column {
-  id: number;
+  id?: number;
   type?: string;
   type_generic?: GenericDataType;
   column_name: string;
@@ -53,12 +54,18 @@ export interface Column {
 
 export default {};
 
-export function isPhysicalColumn(
-  column?: AdhocColumn | PhysicalColumn,
-): column is PhysicalColumn {
+export function isPhysicalColumn(column?: any): column is PhysicalColumn {
   return typeof column === 'string';
 }
 
-export function isAdhocColumn(column?: AdhocColumn | PhysicalColumn) {
-  return (column as AdhocColumn)?.sqlExpression !== undefined;
+export function isAdhocColumn(column?: any): column is AdhocColumn {
+  return (
+    typeof column !== 'string' &&
+    column?.sqlExpression !== undefined &&
+    column?.expressionType === 'SQL'
+  );
+}
+
+export function isQueryFormColumn(column: any): column is QueryFormColumn {
+  return isPhysicalColumn(column) || isAdhocColumn(column);
 }
