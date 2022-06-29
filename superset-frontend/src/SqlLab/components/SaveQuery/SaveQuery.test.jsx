@@ -17,60 +17,87 @@
  * under the License.
  */
 import React from 'react';
-import { shallow } from 'enzyme';
-import * as sinon from 'sinon';
+import { render, screen } from 'spec/helpers/testing-library';
+import userEvent from '@testing-library/user-event';
 import SaveQuery from 'src/SqlLab/components/SaveQuery';
-import Modal from 'src/components/Modal';
-import Button from 'src/components/Button';
-import { FormItem } from 'src/components/Form';
+import { databases } from 'src/SqlLab/fixtures';
+
+const mockedProps = {
+  query: {
+    dbId: 1,
+    schema: 'main',
+    sql: 'SELECT * FROM t',
+  },
+  defaultLabel: 'untitled',
+  animation: false,
+  database: databases.result[0],
+  onUpdate: () => {},
+  onSave: () => {},
+};
+
+const splitSaveBtnProps = {
+  ...mockedProps,
+  database: {
+    ...mockedProps.database,
+    allows_virtual_table_explore: true,
+  },
+};
 
 describe('SavedQuery', () => {
-  const mockedProps = {
-    query: {
-      dbId: 1,
-      schema: 'main',
-      sql: 'SELECT * FROM t',
-    },
-    defaultLabel: 'untitled',
-    animation: false,
-  };
-  it('is valid', () => {
-    expect(React.isValidElement(<SaveQuery />)).toBe(true);
-  });
-  it('is valid with props', () => {
-    expect(React.isValidElement(<SaveQuery {...mockedProps} />)).toBe(true);
-  });
-  it('has a Modal', () => {
-    const wrapper = shallow(<SaveQuery {...mockedProps} />);
-    expect(wrapper.find(Modal)).toExist();
-  });
-  // TODO: eschutho convert test to RTL
-  // eslint-disable-next-line jest/no-disabled-tests
-  it.skip('has a cancel button', () => {
-    const wrapper = shallow(<SaveQuery {...mockedProps} />);
-    const modal = wrapper.find(Modal);
+  it('renders a non-split save button when allows_virtual_table_explore is not enabled', () => {
+    render(<SaveQuery {...mockedProps} />, { useRedux: true });
 
-    expect(modal.find('[data-test="cancel-query"]')).toHaveLength(1);
-  });
-  it('has 2 FormItem', () => {
-    const wrapper = shallow(<SaveQuery {...mockedProps} />);
-    const modal = wrapper.find(Modal);
+    const saveBtn = screen.getByRole('button', { name: /save/i });
 
-    expect(modal.find(FormItem)).toHaveLength(2);
+    expect(saveBtn).toBeVisible();
   });
-  // eslint-disable-next-line jest/no-disabled-tests
-  it.skip('has a save button if this is a new query', () => {
-    const saveSpy = sinon.spy();
-    const wrapper = shallow(<SaveQuery {...mockedProps} onSave={saveSpy} />);
-    const modal = wrapper.find(Modal);
 
-    expect(modal.find(Button)).toHaveLength(2);
-    modal.find(Button).at(0).simulate('click');
-    expect(saveSpy.calledOnce).toBe(true);
+  it('renders a save query modal when user clicks save button', () => {
+    render(<SaveQuery {...mockedProps} />, { useRedux: true });
+
+    const saveBtn = screen.getByRole('button', { name: /save/i });
+    userEvent.click(saveBtn);
+
+    const saveQueryModalHeader = screen.getByRole('heading', {
+      name: /save query/i,
+    });
+
+    expect(saveQueryModalHeader).toBeVisible();
   });
-  // eslint-disable-next-line jest/no-disabled-tests
-  it.skip('has an update button if this is an existing query', () => {
-    const updateSpy = sinon.spy();
+
+  it('renders the save query modal UI', () => {
+    render(<SaveQuery {...mockedProps} />, { useRedux: true });
+
+    const saveBtn = screen.getByRole('button', { name: /save/i });
+    userEvent.click(saveBtn);
+
+    const closeBtn = screen.getByRole('button', { name: /close/i });
+    const saveQueryModalHeader = screen.getByRole('heading', {
+      name: /save query/i,
+    });
+    const nameLabel = screen.getByText(/name/i);
+    const descriptionLabel = screen.getByText(/description/i);
+    const textBoxes = screen.getAllByRole('textbox');
+    const nameTextbox = textBoxes[0];
+    const descriptionTextbox = textBoxes[1];
+    // There are now two save buttons, the initial save button and the modal save button
+    const saveBtns = screen.getAllByRole('button', { name: /save/i });
+    const cancelBtn = screen.getByRole('button', { name: /cancel/i });
+
+    expect(closeBtn).toBeVisible();
+    expect(saveQueryModalHeader).toBeVisible();
+    expect(nameLabel).toBeVisible();
+    expect(descriptionLabel).toBeVisible();
+    expect(textBoxes.length).toBe(2);
+    expect(nameTextbox).toBeVisible();
+    expect(descriptionTextbox).toBeVisible();
+    expect(saveBtns.length).toBe(2);
+    expect(saveBtns[0]).toBeVisible();
+    expect(saveBtns[1]).toBeVisible();
+    expect(cancelBtn).toBeVisible();
+  });
+
+  it('renders a "save as new" and "update" button if query already exists', () => {
     const props = {
       ...mockedProps,
       query: {
@@ -78,11 +105,75 @@ describe('SavedQuery', () => {
         remoteId: '42',
       },
     };
-    const wrapper = shallow(<SaveQuery {...props} onUpdate={updateSpy} />);
-    const modal = wrapper.find(Modal);
+    render(<SaveQuery {...props} />, { useRedux: true });
 
-    expect(modal.find(Button)).toHaveLength(3);
-    modal.find(Button).at(0).simulate('click');
-    expect(updateSpy.calledOnce).toBe(true);
+    const saveBtn = screen.getByRole('button', { name: /save/i });
+    userEvent.click(saveBtn);
+
+    const saveAsNewBtn = screen.getByRole('button', { name: /save as new/i });
+    const updateBtn = screen.getByRole('button', { name: /update/i });
+
+    expect(saveAsNewBtn).toBeVisible();
+    expect(updateBtn).toBeVisible();
+  });
+
+  it('renders a split save button when allows_virtual_table_explore is enabled', () => {
+    render(<SaveQuery {...splitSaveBtnProps} />, { useRedux: true });
+
+    const saveBtn = screen.getByRole('button', { name: /save/i });
+    const caretBtn = screen.getByRole('button', { name: /caret-down/i });
+
+    expect(saveBtn).toBeVisible();
+    expect(caretBtn).toBeVisible();
+  });
+
+  it('renders a save dataset modal when user clicks "save dataset" menu item', () => {
+    render(<SaveQuery {...splitSaveBtnProps} />, { useRedux: true });
+
+    const caretBtn = screen.getByRole('button', { name: /caret-down/i });
+    userEvent.click(caretBtn);
+
+    const saveDatasetMenuItem = screen.getByText(/save dataset/i);
+    userEvent.click(saveDatasetMenuItem);
+
+    const saveDatasetHeader = screen.getByText(/save or overwrite dataset/i);
+
+    expect(saveDatasetHeader).toBeVisible();
+  });
+
+  it('renders the save dataset modal UI', () => {
+    render(<SaveQuery {...splitSaveBtnProps} />, { useRedux: true });
+
+    const caretBtn = screen.getByRole('button', { name: /caret-down/i });
+    userEvent.click(caretBtn);
+
+    const saveDatasetMenuItem = screen.getByText(/save dataset/i);
+    userEvent.click(saveDatasetMenuItem);
+
+    const closeBtn = screen.getByRole('button', { name: /close/i });
+    const saveDatasetHeader = screen.getByText(/save or overwrite dataset/i);
+    const saveRadio = screen.getByRole('radio', {
+      name: /save as new undefined/i,
+    });
+    const saveLabel = screen.getByText(/save as new/i);
+    const saveTextbox = screen.getByRole('textbox');
+    const overwriteRadio = screen.getByRole('radio', {
+      name: /overwrite existing select or type dataset name/i,
+    });
+    const overwriteLabel = screen.getByText(/overwrite existing/i);
+    const overwriteCombobox = screen.getByRole('combobox');
+    const overwritePlaceholderText = screen.getByText(
+      /select or type dataset name/i,
+    );
+
+    expect(saveDatasetHeader).toBeVisible();
+    expect(closeBtn).toBeVisible();
+    expect(saveRadio).toBeVisible();
+    expect(saveLabel).toBeVisible();
+    expect(saveTextbox).toBeVisible();
+    expect(overwriteRadio).toBeVisible();
+    expect(overwriteLabel).toBeVisible();
+    expect(overwriteCombobox).toBeVisible();
+    expect(overwritePlaceholderText).toBeVisible();
   });
 });
