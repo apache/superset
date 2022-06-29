@@ -129,4 +129,5 @@ export interface ExplorePageState {
     standalone: boolean;
     force: boolean;
   };
+  sliceEntities?: JsonObject; // propagated from Dashboard view
 }

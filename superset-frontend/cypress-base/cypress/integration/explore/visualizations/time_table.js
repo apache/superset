@@ -33,7 +33,7 @@ describe('Visualization > Time TableViz', () => {
       column_collection: [
         {
           key: '9g4K-B-YL',
-          label: 'Last+Year',
+          label: 'Last Year',
           colType: 'time',
           timeLag: '1',
           comparisonType: 'value',
@@ -61,7 +61,7 @@ describe('Visualization > Time TableViz', () => {
       column_collection: [
         {
           key: '9g4K-B-YL',
-          label: 'Last+Year',
+          label: 'Last Year',
           colType: 'time',
           timeLag: '1',
           comparisonType: 'value',

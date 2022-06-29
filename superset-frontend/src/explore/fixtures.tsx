@@ -144,3 +144,24 @@ export const exploreInitialData: ExplorePageInitialData = {
     description: null,
   },
 };
+
+export const fallbackExploreInitialData: ExplorePageInitialData = {
+  form_data: {
+    datasource: '0__table',
+    viz_type: 'table',
+  },
+  dataset: {
+    id: 0,
+    type: DatasourceType.Table,
+    columns: [],
+    metrics: [],
+    column_format: {},
+    verbose_map: {},
+    main_dttm_col: '',
+    owners: [],
+    datasource_name: 'missing_datasource',
+    name: 'missing_datasource',
+    description: null,
+  },
+  slice: null,
+};

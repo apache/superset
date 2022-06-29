@@ -147,7 +147,7 @@ describe('Visualization > Line', () => {
     const formData = {
       ...LINE_CHART_DEFAULTS,
       metrics,
-      time_compare: ['1+year'],
+      time_compare: ['1 year'],
       comparison_type: 'values',
       groupby: ['gender'],
     };
@@ -190,7 +190,7 @@ describe('Visualization > Line', () => {
     const formData = {
       ...LINE_CHART_DEFAULTS,
       metrics,
-      time_compare: ['1+year'],
+      time_compare: ['1 year'],
       comparison_type: 'ratio',
     };
     cy.visitChartByParams(formData);
@@ -202,7 +202,7 @@ describe('Visualization > Line', () => {
     const formData = {
       ...LINE_CHART_DEFAULTS,
       metrics,
-      time_compare: ['1+year'],
+      time_compare: ['1 year'],
       comparison_type: 'percentage',
     };
     cy.visitChartByParams(formData);
@@ -225,7 +225,7 @@ describe('Visualization > Line', () => {
       metrics: ['count'],
       annotation_layers: [
         {
-          name: 'Goal+line',
+          name: 'Goal line',
           annotationType: 'FORMULA',
           sourceType: '',
           value: 'y=140000',

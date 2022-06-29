@@ -38,11 +38,26 @@ import { findPermission } from 'src/utils/findPermission';
 
 export const HYDRATE_EXPLORE = 'HYDRATE_EXPLORE';
 export const hydrateExplore =
-  ({ form_data, slice, dataset: datasource }: ExplorePageInitialData) =>
+  ({ form_data, slice, dataset }: ExplorePageInitialData) =>
   (dispatch: Dispatch, getState: () => ExplorePageState) => {
-    const initialFormData = form_data;
-    const initialData = { form_data, slice, datasource };
-    const { user, datasources, charts } = getState();
+    const { user, datasources, charts, sliceEntities } = getState();
+
+    const sliceId = getUrlParam(URL_PARAMS.sliceId);
+    const fallbackSlice = sliceId ? sliceEntities?.slices?.[sliceId] : null;
+    const initialSlice = slice ?? fallbackSlice;
+    const initialFormData = initialSlice?.form_data ?? form_data;
+    const initialDatasource =
+      datasources?.[initialFormData.datasource] ?? dataset;
+
+    const initialData = {
+      form_data: initialFormData,
+      slice: initialSlice,
+      datasource: initialDatasource,
+    };
+    const initialControls = getControlsState(
+      initialData,
+      initialFormData,
+    ) as ControlStateMapping;
 
     const exploreState = {
       // note this will add `form_data` to state,
@@ -56,15 +71,12 @@ export const hydrateExplore =
       isStarred: false,
       triggerRender: false,
       // duplicate datasource in exploreState - it's needed by getControlsState
-      datasource,
+      datasource: initialDatasource,
       // Initial control state will skip `control.mapStateToProps`
       // because `bootstrapData.controls` is undefined.
-      controls: getControlsState(
-        initialData,
-        initialFormData,
-      ) as ControlStateMapping,
+      controls: initialControls,
       form_data: initialFormData,
-      slice,
+      slice: initialSlice,
       controlsTransferred: [],
       standalone: getUrlParam(URL_PARAMS.standalone),
       force: getUrlParam(URL_PARAMS.force),
@@ -79,8 +91,8 @@ export const hydrateExplore =
         exploreState,
       );
     });
-    const sliceFormData = slice
-      ? getFormDataFromControls(getControlsState(initialData, slice.form_data))
+    const sliceFormData = initialSlice
+      ? getFormDataFromControls(initialControls)
       : null;
 
     const chartKey: number = getChartKey(initialData);
@@ -108,7 +120,7 @@ export const hydrateExplore =
         },
         datasources: {
           ...datasources,
-          [getDatasourceUid(datasource)]: datasource,
+          [getDatasourceUid(initialDatasource)]: initialDatasource,
         },
         saveModal: {
           dashboards: [],

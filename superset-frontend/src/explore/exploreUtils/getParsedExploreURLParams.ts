@@ -19,12 +19,42 @@
 
 // mapping { url_param: v1_explore_request_param }
 const EXPLORE_URL_SEARCH_PARAMS = {
-  form_data: 'form_data',
-  slice_id: 'slice_id',
-  dataset_id: 'dataset_id',
-  dataset_type: 'dataset_type',
-  form_data_key: 'form_data_key',
-  permalink_key: 'permalink_key',
+  form_data: {
+    name: 'form_data',
+    parser: (formData: string) => {
+      const formDataObject = JSON.parse(formData);
+      if (formDataObject.datasource) {
+        const [dataset_id, dataset_type] =
+          formDataObject.datasource.split('__');
+        formDataObject.dataset_id = dataset_id;
+        formDataObject.dataset_type = dataset_type;
+        delete formDataObject.datasource;
+      }
+      return formDataObject;
+    },
+  },
+  slice_id: {
+    name: 'slice_id',
+  },
+  dataset_id: {
+    name: 'dataset_id',
+  },
+  dataset_type: {
+    name: 'dataset_type',
+  },
+  datasource: {
+    name: 'datasource',
+    parser: (datasource: string) => {
+      const [dataset_id, dataset_type] = datasource.split('__');
+      return { dataset_id, dataset_type };
+    },
+  },
+  form_data_key: {
+    name: 'form_data_key',
+  },
+  permalink_key: {
+    name: 'permalink_key',
+  },
 };
 
 const EXPLORE_URL_PATH_PARAMS = {
@@ -42,7 +72,9 @@ const getParsedExploreURLSearchParams = () => {
     }
     let parsedParamValue;
     try {
-      parsedParamValue = JSON.parse(paramValue);
+      parsedParamValue =
+        EXPLORE_URL_SEARCH_PARAMS[currentParam].parser?.(paramValue) ??
+        paramValue;
     } catch {
       parsedParamValue = paramValue;
     }
@@ -51,7 +83,7 @@ const getParsedExploreURLSearchParams = () => {
     }
     return {
       ...acc,
-      [EXPLORE_URL_SEARCH_PARAMS[currentParam]]: parsedParamValue,
+      [EXPLORE_URL_SEARCH_PARAMS[currentParam].name]: parsedParamValue,
     };
   }, {});
 };
@@ -68,9 +100,11 @@ const getParsedExploreURLPathParams = () =>
   }, {});
 
 export const getParsedExploreURLParams = () =>
-  Object.entries({
-    ...getParsedExploreURLSearchParams(),
-    ...getParsedExploreURLPathParams(),
-  })
-    .map(entry => entry.join('='))
-    .join('&');
+  new URLSearchParams(
+    Object.entries({
+      ...getParsedExploreURLSearchParams(),
+      ...getParsedExploreURLPathParams(),
+    })
+      .map(entry => entry.join('='))
+      .join('&'),
+  );
