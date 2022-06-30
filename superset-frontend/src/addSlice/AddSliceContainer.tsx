@@ -242,7 +242,7 @@ export default class AddSliceContainer extends React.PureComponent<
   }
 
   changeVizType(vizType: string | null) {
-    this.setState({ vizType: vizType });
+    this.setState({ vizType });
   }
 
   isBtnDisabled() {
