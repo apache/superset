@@ -45,7 +45,6 @@ import {
   POPOVER_INITIAL_HEIGHT,
   UNRESIZABLE_POPOVER_WIDTH,
 } from 'src/explore/constants';
-import { SetState } from 'immer/dist/internal';
 
 const StyledSelect = styled(Select)`
   .metric-option {
