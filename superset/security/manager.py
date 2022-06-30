@@ -946,15 +946,25 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         except DatasetInvalidPermissionEvaluationException:
             logger.warning("Dataset has no database refusing to set permission")
             return
+        link_table = target.__table__
         if target.perm != target_get_perm:
+            connection.execute(
+                link_table.update()
+                .where(link_table.c.id == target.id)
+                .values(perm=target_get_perm)
+            )
             target.perm = target_get_perm
-            self.get_session.merge(target)
+
         if (
             hasattr(target, "schema_perm")
             and target.schema_perm != target.get_schema_perm()
         ):
+            connection.execute(
+                link_table.update()
+                .where(link_table.c.id == target.id)
+                .values(schema_perm=target.get_schema_perm())
+            )
             target.schema_perm = target.get_schema_perm()
-            self.get_session.merge(target)
 
         pvm_names = []
         if target.__tablename__ in {"dbs", "clusters"}:
