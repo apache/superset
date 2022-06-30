@@ -28,6 +28,7 @@ import {
   StandardizedFormData,
 } from 'src/explore/controlUtils';
 import * as actions from 'src/explore/actions/exploreActions';
+import { HYDRATE_EXPLORE } from '../actions/hydrateExplore';
 
 export default function exploreReducer(state = {}, action) {
   const actionHandlers = {
@@ -247,8 +248,12 @@ export default function exploreReducer(state = {}, action) {
         force: action.force,
       };
     },
+    [HYDRATE_EXPLORE]() {
+      return {
+        ...action.data.explore,
+      };
+    },
   };
-
   if (action.type in actionHandlers) {
     return actionHandlers[action.type]();
   }

@@ -27,10 +27,10 @@ import { DynamicPluginProvider } from 'src/components/DynamicPlugins';
 import ToastContainer from 'src/components/MessageToasts/ToastContainer';
 import setupApp from 'src/setup/setupApp';
 import setupPlugins from 'src/setup/setupPlugins';
+import { theme } from 'src/preamble';
+import { ExplorePage } from './ExplorePage';
 import './main.less';
 import '../assets/stylesheets/reactable-pagination.less';
-import { theme } from 'src/preamble';
-import ExploreViewContainer from './components/ExploreViewContainer';
 
 setupApp();
 setupPlugins();
@@ -41,7 +41,7 @@ const App = ({ store }) => (
       <ThemeProvider theme={theme}>
         <GlobalStyles />
         <DynamicPluginProvider>
-          <ExploreViewContainer />
+          <ExplorePage />
           <ToastContainer />
         </DynamicPluginProvider>
       </ThemeProvider>

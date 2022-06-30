@@ -20,7 +20,7 @@
 import { Dispatch } from 'redux';
 import { Dataset } from '@superset-ui/chart-controls';
 import { updateFormDataByDatasource } from './exploreActions';
-import { ExplorePageState } from '../reducers/getInitialState';
+import { ExplorePageState } from '../types';
 
 export const SET_DATASOURCE = 'SET_DATASOURCE';
 export interface SetDatasource {

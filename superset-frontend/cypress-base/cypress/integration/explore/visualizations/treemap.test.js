@@ -38,7 +38,7 @@ describe('Visualization > Treemap', () => {
   const level2 = '.chart-container rect[style="fill: rgb(0, 122, 135);"]';
 
   function verify(formData) {
-    cy.visitChartByParams(JSON.stringify(formData));
+    cy.visitChartByParams(formData);
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
   }
 
