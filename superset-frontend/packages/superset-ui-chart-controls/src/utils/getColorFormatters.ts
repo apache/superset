@@ -17,7 +17,12 @@
  * under the License.
  */
 import memoizeOne from 'memoize-one';
-import { addAlpha, DataRecord } from '@superset-ui/core';
+import {
+  addAlpha,
+  DataRecord,
+  splitRgbAlpha,
+  toRgbaHex,
+} from '@superset-ui/core';
 import {
   ColorFormatters,
   COMPARATOR,
@@ -37,16 +42,17 @@ export const getOpacity = (
   extremeValue: number,
   minOpacity = MIN_OPACITY_BOUNDED,
   maxOpacity = MAX_OPACITY,
-) =>
-  extremeValue === cutoffPoint
-    ? maxOpacity
-    : round(
-        Math.abs(
+  inverseScale = false,
+) => {
+  const opacity =
+    extremeValue === cutoffPoint
+      ? maxOpacity
+      : Math.abs(
           ((maxOpacity - minOpacity) / (extremeValue - cutoffPoint)) *
             (value - cutoffPoint),
-        ) + minOpacity,
-        2,
-      );
+        ) + minOpacity;
+  return round(inverseScale ? maxOpacity - opacity + minOpacity : opacity, 2);
+};
 
 export const getColorFunction = (
   {
@@ -55,17 +61,20 @@ export const getColorFunction = (
     targetValueLeft,
     targetValueRight,
     colorScheme,
+    inverseScale,
   }: ConditionalFormattingConfig,
   columnValues: number[],
 ) => {
   let minOpacity = MIN_OPACITY_BOUNDED;
-  const maxOpacity = MAX_OPACITY;
-
+  // get a max opacity if supplied, can result in slight rounding errors though
+  // also, force to RGbA hex string, color picker still returns {r, g, b, a}
+  const { rgb, alpha: maxOpacity = MAX_OPACITY } =
+    splitRgbAlpha(toRgbaHex(colorScheme)) || {};
   let comparatorFunction: (
     value: number,
     allValues: number[],
   ) => false | { cutoffValue: number; extremeValue: number };
-  if (operator === undefined || colorScheme === undefined) {
+  if (operator === undefined || rgb === undefined) {
     return () => undefined;
   }
   if (
@@ -172,8 +181,15 @@ export const getColorFunction = (
     if (compareResult === false) return undefined;
     const { cutoffValue, extremeValue } = compareResult;
     return addAlpha(
-      colorScheme,
-      getOpacity(value, cutoffValue, extremeValue, minOpacity, maxOpacity),
+      rgb,
+      getOpacity(
+        value,
+        cutoffValue,
+        extremeValue,
+        minOpacity,
+        maxOpacity,
+        inverseScale && operator !== COMPARATOR.EQUAL,
+      ),
     );
   };
 };

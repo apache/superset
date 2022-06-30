@@ -17,6 +17,10 @@
  * under the License.
  */
 import tinycolor from 'tinycolor2';
+import { RGBA } from './types';
+
+export const round = (num: number, precision = 0) =>
+  Number(`${Math.round(Number(`${num}e+${precision}`))}e-${precision}`);
 
 const rgbRegex = /^rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)$/;
 export function getContrastingColor(color: string, thresholds = 186) {
@@ -85,4 +89,74 @@ export function addAlpha(color: string, opacity: number): string {
     .toUpperCase()}`.slice(-2);
 
   return `${color}${alpha}`;
+}
+
+export function isValidHexColor(color: string | undefined | any): boolean {
+  // matches with or without leading hash, short or long, with or without alpha
+  if (typeof color !== 'string') {
+    return false;
+  }
+  return (
+    (color || '')
+      .toUpperCase()
+      .match(
+        /^#?[0-9A-F]{6}$|^#?[0-9A-F]{8}$|^#?[0-9A-F]{3}$|^#?[0-9A-F]{4}$/,
+      ) !== null
+  );
+}
+
+export function rgbToHex(red: number, green: number, blue: number) {
+  let r = red.toString(16);
+  let g = green.toString(16);
+  let b = blue.toString(16);
+
+  if (r.length === 1) r = `0${r}`;
+  if (g.length === 1) g = `0${g}`;
+  if (b.length === 1) b = `0${b}`;
+
+  return `#${r}${g}${b}`.toUpperCase();
+}
+
+export function toRgbaHex(color: string | RGBA | undefined): string {
+  if (isValidHexColor(color)) {
+    return <string>color;
+  }
+  // else assume it's RGBA?
+  const { r = 0, g = 0, b = 0, a = 1 }: RGBA = <RGBA>(color || {});
+  return addAlpha(rgbToHex(r, g, b), a);
+}
+
+export function splitRgbAlpha(color: string | undefined):
+  | {
+      rgb: string;
+      alpha: number | undefined;
+    }
+  | undefined {
+  if (isValidHexColor(color)) {
+    let hex = <string>color;
+    let prefix = '';
+    if (hex.startsWith('#')) {
+      hex = hex.substring(1);
+      prefix = '#';
+    }
+    if (hex.length === 8) {
+      return {
+        rgb: `${prefix}${hex.slice(0, -2)}`,
+        alpha: round(parseInt(hex.slice(-2), 16) / 255, 2),
+      };
+    }
+    if (hex.length === 4) {
+      return {
+        rgb: `${prefix}${hex.slice(0, -1)}`,
+        alpha: round(parseInt(hex.slice(-1) + hex.slice(-1), 16) / 255, 2),
+      };
+    }
+    if (hex.length === 3 || hex.length === 6) {
+      return {
+        rgb: `${prefix}${hex}`,
+        alpha: undefined,
+      };
+    }
+  }
+  return undefined;
 }

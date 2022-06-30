@@ -68,6 +68,21 @@ describe('getColorFunction()', () => {
     expect(colorFunction(100)).toEqual('#FF0000FF');
   });
 
+  it('getColorFunction GREATER_THAN inverse', () => {
+    const colorFunction = getColorFunction(
+      {
+        operator: COMPARATOR.GREATER_THAN,
+        targetValue: 50,
+        colorScheme: '#FF0000',
+        column: 'count',
+        inverseScale: true,
+      },
+      countValues,
+    );
+    expect(colorFunction(50)).toBeUndefined();
+    expect(colorFunction(100)).toEqual('#FF00000D');
+  });
+
   it('getColorFunction LESS_THAN', () => {
     const colorFunction = getColorFunction(
       {
@@ -80,6 +95,21 @@ describe('getColorFunction()', () => {
     );
     expect(colorFunction(100)).toBeUndefined();
     expect(colorFunction(50)).toEqual('#FF0000FF');
+  });
+
+  it('getColorFunction LESS_THAN inverse', () => {
+    const colorFunction = getColorFunction(
+      {
+        operator: COMPARATOR.LESS_THAN,
+        targetValue: 100,
+        colorScheme: '#FF0000',
+        column: 'count',
+        inverseScale: true,
+      },
+      countValues,
+    );
+    expect(colorFunction(100)).toBeUndefined();
+    expect(colorFunction(50)).toEqual('#FF00000D');
   });
 
   it('getColorFunction GREATER_OR_EQUAL', () => {
@@ -97,6 +127,54 @@ describe('getColorFunction()', () => {
     expect(colorFunction(0)).toBeUndefined();
   });
 
+  it('getColorFunction GREATER_OR_EQUAL alpha', () => {
+    const colorFunction = getColorFunction(
+      {
+        operator: COMPARATOR.GREATER_OR_EQUAL,
+        targetValue: 50,
+        colorScheme: '#FF000077',
+        column: 'count',
+      },
+      countValues,
+    );
+    expect(colorFunction(50)).toEqual('#FF00000D');
+    // when rounding the hex to two places in decimal, we get rounding errors
+    expect(colorFunction(100)).toEqual('#FF000078');
+    expect(colorFunction(0)).toBeUndefined();
+  });
+
+  it('getColorFunction GREATER_OR_EQUAL inverse', () => {
+    const colorFunction = getColorFunction(
+      {
+        operator: COMPARATOR.GREATER_OR_EQUAL,
+        targetValue: 50,
+        colorScheme: '#FF0000',
+        column: 'count',
+        inverseScale: true,
+      },
+      countValues,
+    );
+    expect(colorFunction(50)).toEqual('#FF0000FF');
+    expect(colorFunction(100)).toEqual('#FF00000D');
+    expect(colorFunction(0)).toBeUndefined();
+  });
+
+  it('getColorFunction GREATER_OR_EQUAL alpha inverse', () => {
+    const colorFunction = getColorFunction(
+      {
+        operator: COMPARATOR.GREATER_OR_EQUAL,
+        targetValue: 50,
+        colorScheme: '#FF000077',
+        column: 'count',
+        inverseScale: true,
+      },
+      countValues,
+    );
+    expect(colorFunction(50)).toEqual('#FF000078');
+    expect(colorFunction(100)).toEqual('#FF00000D');
+    expect(colorFunction(0)).toBeUndefined();
+  });
+
   it('getColorFunction LESS_OR_EQUAL', () => {
     const colorFunction = getColorFunction(
       {
@@ -109,6 +187,53 @@ describe('getColorFunction()', () => {
     );
     expect(colorFunction(50)).toEqual('#FF0000FF');
     expect(colorFunction(100)).toEqual('#FF00000D');
+    expect(colorFunction(150)).toBeUndefined();
+  });
+
+  it('getColorFunction LESS_OR_EQUAL alpha', () => {
+    const colorFunction = getColorFunction(
+      {
+        operator: COMPARATOR.LESS_OR_EQUAL,
+        targetValue: 100,
+        colorScheme: '#FF000077',
+        column: 'count',
+      },
+      countValues,
+    );
+    expect(colorFunction(50)).toEqual('#FF000078');
+    expect(colorFunction(100)).toEqual('#FF00000D');
+    expect(colorFunction(150)).toBeUndefined();
+  });
+
+  it('getColorFunction LESS_OR_EQUAL inverse', () => {
+    const colorFunction = getColorFunction(
+      {
+        operator: COMPARATOR.LESS_OR_EQUAL,
+        targetValue: 100,
+        colorScheme: '#FF0000',
+        column: 'count',
+        inverseScale: true,
+      },
+      countValues,
+    );
+    expect(colorFunction(50)).toEqual('#FF00000D');
+    expect(colorFunction(100)).toEqual('#FF0000FF');
+    expect(colorFunction(150)).toBeUndefined();
+  });
+
+  it('getColorFunction LESS_OR_EQUAL alpha inverse', () => {
+    const colorFunction = getColorFunction(
+      {
+        operator: COMPARATOR.LESS_OR_EQUAL,
+        targetValue: 100,
+        colorScheme: '#FF000077',
+        column: 'count',
+        inverseScale: true,
+      },
+      countValues,
+    );
+    expect(colorFunction(50)).toEqual('#FF00000D');
+    expect(colorFunction(100)).toEqual('#FF000078');
     expect(colorFunction(150)).toBeUndefined();
   });
 
@@ -154,6 +279,94 @@ describe('getColorFunction()', () => {
     expect(colorFunction(50)).toEqual('#FF0000FF');
   });
 
+  it('getColorFunction NOT_EQUAL alpha', () => {
+    let colorFunction = getColorFunction(
+      {
+        operator: COMPARATOR.NOT_EQUAL,
+        targetValue: 60,
+        colorScheme: '#FF000077',
+        column: 'count',
+      },
+      countValues,
+    );
+    expect(colorFunction(60)).toBeUndefined();
+    expect(colorFunction(100)).toEqual('#FF000078');
+    expect(colorFunction(50)).toEqual('#FF000026');
+
+    colorFunction = getColorFunction(
+      {
+        operator: COMPARATOR.NOT_EQUAL,
+        targetValue: 90,
+        colorScheme: '#FF000077',
+        column: 'count',
+      },
+      countValues,
+    );
+    expect(colorFunction(90)).toBeUndefined();
+    expect(colorFunction(100)).toEqual('#FF000026');
+    expect(colorFunction(50)).toEqual('#FF000078');
+  });
+
+  it('getColorFunction NOT_EQUAL inverse', () => {
+    let colorFunction = getColorFunction(
+      {
+        operator: COMPARATOR.NOT_EQUAL,
+        targetValue: 60,
+        colorScheme: '#FF0000',
+        column: 'count',
+        inverseScale: true,
+      },
+      countValues,
+    );
+    expect(colorFunction(60)).toBeUndefined();
+    expect(colorFunction(100)).toEqual('#FF00000D');
+    expect(colorFunction(50)).toEqual('#FF0000C2');
+
+    colorFunction = getColorFunction(
+      {
+        operator: COMPARATOR.NOT_EQUAL,
+        targetValue: 90,
+        colorScheme: '#FF0000',
+        column: 'count',
+        inverseScale: true,
+      },
+      countValues,
+    );
+    expect(colorFunction(90)).toBeUndefined();
+    expect(colorFunction(100)).toEqual('#FF0000C2');
+    expect(colorFunction(50)).toEqual('#FF00000D');
+  });
+
+  it('getColorFunction NOT_EQUAL alpha inverse', () => {
+    let colorFunction = getColorFunction(
+      {
+        operator: COMPARATOR.NOT_EQUAL,
+        targetValue: 60,
+        colorScheme: '#FF00007F',
+        column: 'count',
+        inverseScale: true,
+      },
+      countValues,
+    );
+    expect(colorFunction(60)).toBeUndefined();
+    expect(colorFunction(100)).toEqual('#FF00000D');
+    expect(colorFunction(50)).toEqual('#FF000063');
+
+    colorFunction = getColorFunction(
+      {
+        operator: COMPARATOR.NOT_EQUAL,
+        targetValue: 90,
+        colorScheme: '#FF00007F',
+        column: 'count',
+        inverseScale: true,
+      },
+      countValues,
+    );
+    expect(colorFunction(90)).toBeUndefined();
+    expect(colorFunction(100)).toEqual('#FF000063');
+    expect(colorFunction(50)).toEqual('#FF00000D');
+  });
+
   it('getColorFunction BETWEEN', () => {
     const colorFunction = getColorFunction(
       {
@@ -162,6 +375,22 @@ describe('getColorFunction()', () => {
         targetValueRight: 125,
         colorScheme: '#FF0000',
         column: 'count',
+      },
+      countValues,
+    );
+    expect(colorFunction(50)).toBeUndefined();
+    expect(colorFunction(100)).toEqual('#FF000087');
+  });
+
+  it('getColorFunction BETWEEN inverse', () => {
+    const colorFunction = getColorFunction(
+      {
+        operator: COMPARATOR.BETWEEN,
+        targetValueLeft: 75,
+        targetValueRight: 125,
+        colorScheme: '#FF0000',
+        column: 'count',
+        inverseScale: true,
       },
       countValues,
     );
@@ -185,6 +414,23 @@ describe('getColorFunction()', () => {
     expect(colorFunction(150)).toBeUndefined();
   });
 
+  it('getColorFunction BETWEEN_OR_EQUAL inverse', () => {
+    const colorFunction = getColorFunction(
+      {
+        operator: COMPARATOR.BETWEEN_OR_EQUAL,
+        targetValueLeft: 50,
+        targetValueRight: 100,
+        colorScheme: '#FF0000',
+        column: 'count',
+        inverseScale: true,
+      },
+      countValues,
+    );
+    expect(colorFunction(50)).toEqual('#FF0000FF');
+    expect(colorFunction(100)).toEqual('#FF00000D');
+    expect(colorFunction(150)).toBeUndefined();
+  });
+
   it('getColorFunction BETWEEN_OR_LEFT_EQUAL', () => {
     const colorFunction = getColorFunction(
       {
@@ -197,6 +443,22 @@ describe('getColorFunction()', () => {
       countValues,
     );
     expect(colorFunction(50)).toEqual('#FF00000D');
+    expect(colorFunction(100)).toBeUndefined();
+  });
+
+  it('getColorFunction BETWEEN_OR_LEFT_EQUAL inverse', () => {
+    const colorFunction = getColorFunction(
+      {
+        operator: COMPARATOR.BETWEEN_OR_LEFT_EQUAL,
+        targetValueLeft: 50,
+        targetValueRight: 100,
+        colorScheme: '#FF0000',
+        column: 'count',
+        inverseScale: true,
+      },
+      countValues,
+    );
+    expect(colorFunction(50)).toEqual('#FF0000FF');
     expect(colorFunction(100)).toBeUndefined();
   });
 
@@ -213,6 +475,22 @@ describe('getColorFunction()', () => {
     );
     expect(colorFunction(50)).toBeUndefined();
     expect(colorFunction(100)).toEqual('#FF0000FF');
+  });
+
+  it('getColorFunction BETWEEN_OR_RIGHT_EQUAL inverse', () => {
+    const colorFunction = getColorFunction(
+      {
+        operator: COMPARATOR.BETWEEN_OR_RIGHT_EQUAL,
+        targetValueLeft: 50,
+        targetValueRight: 100,
+        colorScheme: '#FF0000',
+        column: 'count',
+        inverseScale: true,
+      },
+      countValues,
+    );
+    expect(colorFunction(50)).toBeUndefined();
+    expect(colorFunction(100)).toEqual('#FF00000D');
   });
 
   it('getColorFunction GREATER_THAN with target value undefined', () => {
@@ -287,6 +565,24 @@ describe('getColorFunction()', () => {
     expect(colorFunction(50)).toEqual('#FF000000');
     expect(colorFunction(75)).toEqual('#FF000080');
     expect(colorFunction(100)).toEqual('#FF0000FF');
+    expect(colorFunction(120)).toEqual(undefined);
+  });
+
+  it('getColorFunction with operator None inverse', () => {
+    const colorFunction = getColorFunction(
+      {
+        operator: COMPARATOR.NONE,
+        colorScheme: '#FF0000',
+        column: 'count',
+        inverseScale: true,
+      },
+      countValues,
+    );
+    expect(colorFunction(20)).toEqual(undefined);
+    expect(colorFunction(50)).toEqual('#FF0000FF');
+    expect(colorFunction(75)).toEqual('#FF000080');
+    // with NONE comparator, unbounded min opacity is 0
+    expect(colorFunction(100)).toEqual('#FF000000');
     expect(colorFunction(120)).toEqual(undefined);
   });
 

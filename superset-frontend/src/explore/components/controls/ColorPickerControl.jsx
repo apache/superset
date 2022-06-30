@@ -26,10 +26,12 @@ import ControlHeader from '../ControlHeader';
 const propTypes = {
   onChange: PropTypes.func,
   value: PropTypes.object,
+  sketchPickerWidth: PropTypes.number,
 };
 
 const defaultProps = {
   onChange: () => {},
+  sketchPickerWidth: 200,
 };
 
 const swatchCommon = {
@@ -85,6 +87,7 @@ export default class ColorPickerControl extends React.Component {
           color={this.props.value}
           onChange={this.onChange}
           presetColors={presetColors}
+          width={this.props.sketchPickerWidth}
         />
       </div>
     );
