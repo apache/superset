@@ -152,21 +152,8 @@ export const renderDatasourceTitle = displayString =>
   );
 
 // Different data source types use different attributes for the display title
-export const getDatasourceTitle = datasource => {
-  let text = '';
-  const dataSourceType = datasource?.type;
-  if (dataSourceType) {
-    switch (dataSourceType) {
-      case DatasourceType.Query:
-        text = datasource?.sql ?? '';
-        break;
-      default:
-        text = datasource?.name ?? '';
-        break;
-    }
-  }
-  return text;
-};
+export const getDatasourceTitle = datasource =>
+  datasource?.name ?? datasource?.sql ?? '';
 
 class DatasourceControl extends React.PureComponent {
   constructor(props) {
@@ -284,8 +271,8 @@ class DatasourceControl extends React.PureComponent {
 
     const isSqlSupported = datasource.type === 'table';
     const { user } = this.props;
-    const allowEdit = datasource.owners
-      .map(o => o.id || o.value)
+    const allowEdit = datasource?.owners
+      ?.map(o => o.id || o.value)
       .includes(user.userId);
     isUserAdmin(user);
 
@@ -350,7 +337,7 @@ class DatasourceControl extends React.PureComponent {
 
     const { health_check_message: healthCheckMessage } = datasource;
 
-    let extra = {};
+    let extra;
     if (datasource?.extra) {
       if (isString(datasource.extra)) {
         try {
