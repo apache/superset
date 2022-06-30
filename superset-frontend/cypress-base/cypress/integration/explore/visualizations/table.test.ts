@@ -174,7 +174,7 @@ describe('Visualization > Table', () => {
       groupby: ['name'],
       row_limit: limit,
     };
-    cy.visitChartByParams(JSON.stringify(formData));
+    cy.visitChartByParams(formData);
     cy.wait('@chartData').then(({ response }) => {
       cy.verifySliceContainer('table');
       expect(response?.body.result[0].data.length).to.eq(limit);
@@ -219,7 +219,7 @@ describe('Visualization > Table', () => {
       order_by_cols: ['["num", false]'],
     };
 
-    cy.visitChartByParams(JSON.stringify(formData));
+    cy.visitChartByParams(formData);
     cy.wait('@chartData').then(({ response }) => {
       cy.verifySliceContainer('table');
       const records = response?.body.result[0].data;
@@ -233,7 +233,7 @@ describe('Visualization > Table', () => {
 
     const formData = { ...VIZ_DEFAULTS, metrics, adhoc_filters: filters };
 
-    cy.visitChartByParams(JSON.stringify(formData));
+    cy.visitChartByParams(formData);
     cy.verifySliceSuccess({ waitAlias: '@chartData', chartSelector: 'table' });
   });
 
@@ -244,7 +244,7 @@ describe('Visualization > Table', () => {
       groupby: ['state'],
     };
 
-    cy.visitChartByParams(JSON.stringify(formData));
+    cy.visitChartByParams(formData);
     cy.verifySliceSuccess({
       waitAlias: '@chartData',
       querySubstring: /group by.*state/i,

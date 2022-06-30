@@ -50,6 +50,14 @@ export type SharedControlComponents = typeof sharedControlComponents;
 /** ----------------------------------------------
  * Input data/props while rendering
  * ---------------------------------------------*/
+export interface Owner {
+  first_name: string;
+  id: number;
+  last_name: string;
+  username: string;
+  email?: string;
+}
+
 export type ColumnMeta = Omit<Column, 'id'> & {
   id?: number;
 } & AnyDict;
@@ -67,8 +75,10 @@ export interface Dataset {
   time_grain_sqla?: string;
   granularity_sqla?: string;
   datasource_name: string | null;
+  name?: string;
   description: string | null;
   uid?: string;
+  owners?: Owner[];
 }
 
 export interface ControlPanelState {
