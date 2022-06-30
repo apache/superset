@@ -367,6 +367,14 @@ const config: ControlPanelConfig = {
         ],
         [
           {
+            name: 'adhoc_filters',
+            override: {
+              // validators: [adhocFilterValidator],
+            },
+          },
+        ],
+        [
+          {
             name: 'order_by_cols',
             config: {
               type: 'SelectControl',
@@ -378,14 +386,6 @@ const config: ControlPanelConfig = {
                 choices: datasource?.order_by_choices || [],
               }),
               visibility: isRawMode,
-            },
-          },
-        ],
-        [
-          {
-            name: 'adhoc_filters',
-            override: {
-              // validators: [adhocFilterValidator],
             },
           },
         ],
@@ -426,9 +426,7 @@ const config: ControlPanelConfig = {
                   label: t('Emit dashboard cross filters'),
                   default: false,
                   renderTrigger: true,
-                  description: t(
-                    'Whether to apply filter to dashboards when grid cells are clicked.',
-                  ),
+                  description: t('Emit dashboard cross filters.'),
                 },
               }
             : null,
