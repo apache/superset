@@ -127,10 +127,16 @@ describe('Test datatable', () => {
     cy.get('[data-test="row-count-label"]').contains('26 rows');
     cy.get('.ant-empty-description').should('not.exist');
   });
-  it.skip('Datapane loads view samples', () => {
-    cy.contains('Samples').click();
-    cy.get('[data-test="row-count-label"]').contains('1k rows');
-    cy.get('.ant-empty-description').should('not.exist');
+  it('Datapane loads view samples', () => {
+    cy.intercept('/api/v1/dataset/*/samples?force=false').as('Samples');
+    cy.contains('Samples')
+      .click()
+      .then(() => {
+        cy.wait('@Samples');
+        cy.get('.ant-tabs-tab-active').contains('Samples');
+        cy.get('[data-test="row-count-label"]').contains('1k rows');
+        cy.get('.ant-empty-description').should('not.exist');
+      });
   });
 });
 
