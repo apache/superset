@@ -26,7 +26,7 @@ import {
 import { getChartKey } from 'src/explore/exploreUtils';
 import { getControlsState } from 'src/explore/store';
 import { Dispatch } from 'redux';
-import { ensureIsArray } from '@superset-ui/core';
+import { ensureIsArray, getCategoricalSchemeRegistry, getSequentialSchemeRegistry } from '@superset-ui/core';
 import {
   getFormDataFromControls,
   applyMapStateToPropsToControl,
@@ -48,7 +48,6 @@ export const hydrateExplore =
     const initialFormData = form_data ?? initialSlice?.form_data;
     const initialDatasource =
       datasources?.[initialFormData.datasource] ?? dataset;
-
     const initialData = {
       form_data: initialFormData,
       slice: initialSlice,
@@ -58,6 +57,23 @@ export const hydrateExplore =
       initialData,
       initialFormData,
     ) as ControlStateMapping;
+    const colorSchemeKey = initialControls['color_scheme'] && 'color_scheme';
+    const linearColorSchemeKey = initialControls['linear_color_scheme'] && 'linear_color_scheme';
+    // verifies whether the current color scheme exists in the registry
+    // if not fallbacks to the default
+    const verifyColorScheme = (type: 'CATEGORICAL' | 'SEQUENTIAL') => {
+      const schemes = type === 'CATEGORICAL' ? getCategoricalSchemeRegistry() : getSequentialSchemeRegistry();
+      const key = type === 'CATEGORICAL' ? colorSchemeKey : linearColorSchemeKey;
+      if (!schemes.items[initialFormData[key]]) {
+        Object.assign(initialFormData, {
+          color_scheme: schemes.defaultKey,
+        })
+        initialControls[key].value = schemes.defaultKey
+      }
+    }
+
+    if (colorSchemeKey) verifyColorScheme('CATEGORICAL');
+    if (linearColorSchemeKey) verifyColorScheme('SEQUENTIAL');
 
     const exploreState = {
       // note this will add `form_data` to state,
@@ -95,6 +111,8 @@ export const hydrateExplore =
       ? getFormDataFromControls(initialControls)
       : null;
 
+    const latestQueryFormData = getFormDataFromControls(exploreState.controls);
+
     const chartKey: number = getChartKey(initialData);
     const chart: ChartState = {
       id: chartKey,
@@ -103,7 +121,7 @@ export const hydrateExplore =
       chartStackTrace: null,
       chartUpdateEndTime: null,
       chartUpdateStartTime: 0,
-      latestQueryFormData: getFormDataFromControls(exploreState.controls),
+      latestQueryFormData,
       sliceFormData,
       queryController: null,
       queriesResponse: null,
@@ -126,7 +144,20 @@ export const hydrateExplore =
           dashboards: [],
           saveModalAlert: null,
         },
-        explore: exploreState,
+        explore: {
+          ...exploreState,
+          form_data: {
+            ...exploreState.form_data,
+            color_scheme: 'bnbColors',
+          },
+          slice: {
+            ...exploreState.slice,
+            form_data: {
+              ...exploreState.slice.form_data,
+              color_scheme: 'bnbColors',
+            }
+          }
+        },
       },
     });
   };
