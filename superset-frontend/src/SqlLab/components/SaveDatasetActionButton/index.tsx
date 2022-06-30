@@ -37,7 +37,7 @@ export default function SaveDatasetActionButton({
   const ButtonComponentStyles = styled(
     DropdownButton as React.FC<DropdownButtonProps>,
   )`
-    button.ant-btn.ant-btn-default {
+    &.ant-dropdown-button button.ant-btn.ant-btn-default {
       &:first-of-type {
         width: ${theme.gridUnit * 16}px;
       }
