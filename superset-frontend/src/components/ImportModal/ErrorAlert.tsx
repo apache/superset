@@ -51,6 +51,7 @@ const ErrorAlert: FunctionComponent<IProps> = ({
           {t(
             'Database driver for importing maybe not installed. Visit the Superset documentation page for installation instructions:',
           )}
+          &nbsp;&nbsp;
           <a
             href={DOCUMENTATION_LINK}
             target="_blank"
