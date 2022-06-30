@@ -61,6 +61,7 @@ const DuplicateDatasetModal: FunctionComponent<DuplicateDatasetModalProps> = ({
       title={t('Duplicate dataset')}
       disablePrimaryButton={disableSave}
       onHandledPrimaryAction={duplicateDataset}
+      primaryButtonName={t('Duplicate')}
     >
       <FormLabel htmlFor="duplicate">{t('New dataset name')}</FormLabel>
       <Input
