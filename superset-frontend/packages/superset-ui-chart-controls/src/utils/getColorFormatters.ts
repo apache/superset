@@ -41,13 +41,16 @@ export const getOpacity = (
   if (extremeValue === cutoffPoint) {
     return maxOpacity;
   }
-  else return Math.min(maxOpacity, round(
-    Math.abs(
-      ((maxOpacity - minOpacity) / (extremeValue - cutoffPoint)) *
-        (value - cutoffPoint),
-    ) + minOpacity,
-    2,
-  ));
+  return Math.min(
+    maxOpacity,
+    round(
+      Math.abs(
+        ((maxOpacity - minOpacity) / (extremeValue - cutoffPoint)) *
+          (value - cutoffPoint),
+      ) + minOpacity,
+      2,
+    ),
+  );
 };
 
 export const getColorFunction = (
