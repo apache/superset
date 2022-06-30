@@ -51,7 +51,7 @@ describe('exploreUtils', () => {
         force: false,
         curUrl: 'http://superset.com',
       });
-      compareURI(URI(url), URI('/superset/explore/'));
+      compareURI(URI(url), URI('/explore/'));
     });
     it('generates proper json url', () => {
       const url = getExploreUrl({
@@ -95,7 +95,7 @@ describe('exploreUtils', () => {
       });
       compareURI(
         URI(url),
-        URI('/superset/explore/').search({
+        URI('/explore/').search({
           standalone: DashboardStandaloneMode.HIDE_NAV,
         }),
       );
