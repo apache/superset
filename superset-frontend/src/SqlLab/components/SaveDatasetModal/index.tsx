@@ -46,8 +46,11 @@ import {
   SqlLabExploreRootState,
   getInitialState,
   ExploreDatasource,
+  SqlLabRootState,
 } from 'src/SqlLab/types';
-import { exploreChart } from 'src/explore/exploreUtils';
+import { mountExploreUrl } from 'src/explore/exploreUtils';
+import { postFormData } from 'src/explore/exploreUtils/formData';
+import { URL_PARAMS } from 'src/constants';
 
 interface SaveDatasetModalProps {
   visible: boolean;
@@ -115,6 +118,9 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
   modalDescription,
   datasource,
 }) => {
+  const defaultVizType = useSelector<SqlLabRootState, string>(
+    state => state.common?.conf?.DEFAULT_VIZ_TYPE || 'table',
+  );
   const query = datasource as QueryResponse;
   const getDefaultDatasetName = () =>
     `${query.tab} ${moment().format('MM/DD/YYYY HH:mm:ss')}`;
@@ -137,30 +143,40 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
   const dispatch = useDispatch<(dispatch: any) => Promise<JsonObject>>();
 
   const handleOverwriteDataset = async () => {
-    await updateDataset(
-      query.dbId,
-      datasetToOverwrite.datasetId,
-      query.sql,
-      query.results.selected_columns.map(
-        (d: { name: string; type: string; is_dttm: boolean }) => ({
-          column_name: d.name,
-          type: d.type,
-          is_dttm: d.is_dttm,
-        }),
+    const [, key] = await Promise.all([
+      updateDataset(
+        query.dbId,
+        datasetToOverwrite.datasetId,
+        query.sql,
+        query.results.selected_columns.map(
+          (d: { name: string; type: string; is_dttm: boolean }) => ({
+            column_name: d.name,
+            type: d.type,
+            is_dttm: d.is_dttm,
+          }),
+        ),
+        datasetToOverwrite.owners.map((o: DatasetOwner) => o.id),
+        true,
       ),
-      datasetToOverwrite.owners.map((o: DatasetOwner) => o.id),
-      true,
-    );
+      postFormData(datasetToOverwrite.datasetId, 'table', {
+        ...EXPLORE_CHART_DEFAULT,
+        datasource: `${datasetToOverwrite.datasetId}__table`,
+        ...(defaultVizType === 'table' && {
+          all_columns: query.results.selected_columns.map(
+            column => column.name,
+          ),
+        }),
+      }),
+    ]);
+
+    const url = mountExploreUrl(null, {
+      [URL_PARAMS.formDataKey.name]: key,
+    });
+    window.open(url, '_blank', 'noreferrer');
 
     setShouldOverwriteDataset(false);
     setDatasetToOverwrite({});
     setDatasetName(getDefaultDatasetName());
-
-    exploreChart({
-      ...EXPLORE_CHART_DEFAULT,
-      datasource: `${datasetToOverwrite.datasetId}__table`,
-      selected_columns: query.results.selected_columns,
-    });
   };
 
   const getUserDatasets = async (searchText = '') => {
@@ -235,15 +251,20 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
         columns: selectedColumns,
       }),
     )
-      .then((data: { table_id: number }) => {
-        exploreChart({
+      .then((data: { table_id: number }) =>
+        postFormData(data.table_id, 'table', {
+          ...EXPLORE_CHART_DEFAULT,
           datasource: `${data.table_id}__table`,
-          metrics: [],
-          groupby: [],
-          time_range: 'No filter',
-          selectedColumns,
-          row_limit: 1000,
+          ...(defaultVizType === 'table' && {
+            all_columns: selectedColumns.map(column => column.name),
+          }),
+        }),
+      )
+      .then((key: string) => {
+        const url = mountExploreUrl(null, {
+          [URL_PARAMS.formDataKey.name]: key,
         });
+        window.open(url, '_blank', 'noreferrer');
       })
       .catch(() => {
         addDangerToast(t('An error occurred saving dataset'));
