@@ -204,7 +204,6 @@ export function transformSeries(
       ? seriesType
       : undefined,
     stack: stackId,
-    stackStrategy: 'all',
     lineStyle,
     areaStyle:
       area || forecastSeries.type === ForecastSeriesEnum.ForecastUpper
