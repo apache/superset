@@ -40,22 +40,31 @@ export const HYDRATE_EXPLORE = 'HYDRATE_EXPLORE';
 export const hydrateExplore =
   ({ form_data, slice, dataset }: ExplorePageInitialData) =>
   (dispatch: Dispatch, getState: () => ExplorePageState) => {
-    const { user, datasources, charts, sliceEntities } = getState();
+    const { user, datasources, charts, sliceEntities, common } = getState();
 
     const sliceId = getUrlParam(URL_PARAMS.sliceId);
+    const dashboardId = getUrlParam(URL_PARAMS.dashboardId);
     const fallbackSlice = sliceId ? sliceEntities?.slices?.[sliceId] : null;
     const initialSlice = slice ?? fallbackSlice;
     const initialFormData = form_data ?? initialSlice?.form_data;
+    if (!initialFormData.viz_type) {
+      const defaultVizType = common?.conf.DEFAULT_VIZ_TYPE || 'table';
+      initialFormData.viz_type =
+        getUrlParam(URL_PARAMS.vizType) || defaultVizType;
+    }
+    if (dashboardId) {
+      initialFormData.dashboardId = dashboardId;
+    }
     const initialDatasource =
       datasources?.[initialFormData.datasource] ?? dataset;
 
-    const initialData = {
+    const initialExploreState = {
       form_data: initialFormData,
       slice: initialSlice,
       datasource: initialDatasource,
     };
     const initialControls = getControlsState(
-      initialData,
+      initialExploreState,
       initialFormData,
     ) as ControlStateMapping;
 
@@ -95,7 +104,7 @@ export const hydrateExplore =
       ? getFormDataFromControls(initialControls)
       : null;
 
-    const chartKey: number = getChartKey(initialData);
+    const chartKey: number = getChartKey(initialExploreState);
     const chart: ChartState = {
       id: chartKey,
       chartAlert: null,

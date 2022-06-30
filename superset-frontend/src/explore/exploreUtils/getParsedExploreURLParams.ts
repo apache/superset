@@ -55,6 +55,12 @@ const EXPLORE_URL_SEARCH_PARAMS = {
   permalink_key: {
     name: 'permalink_key',
   },
+  viz_type: {
+    name: 'viz_type',
+  },
+  dashboard_id: {
+    name: 'dashboard_id',
+  },
 };
 
 const EXPLORE_URL_PATH_PARAMS = {

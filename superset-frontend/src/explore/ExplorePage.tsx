@@ -17,56 +17,48 @@
  * under the License.
  */
 import React, { useEffect, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch } from 'react-redux';
 import { makeApi, t } from '@superset-ui/core';
 import Loading from 'src/components/Loading';
 import { getParsedExploreURLParams } from './exploreUtils/getParsedExploreURLParams';
 import { hydrateExplore } from './actions/hydrateExplore';
 import ExploreViewContainer from './components/ExploreViewContainer';
-import { ExplorePageState, ExploreResponsePayload } from './types';
+import { ExploreResponsePayload } from './types';
 import { fallbackExploreInitialData } from './fixtures';
 import { addDangerToast } from '../components/MessageToasts/actions';
 import { isNullish } from '../utils/common';
 
 const loadErrorMessage = t('Failed to load chart data.');
 
+const fetchExploreData = () => {
+  const exploreUrlParams = getParsedExploreURLParams();
+  return makeApi<{}, ExploreResponsePayload>({
+    method: 'GET',
+    endpoint: 'api/v1/explore/',
+  })(exploreUrlParams);
+};
+
 export const ExplorePage = () => {
   const [isLoaded, setIsLoaded] = useState(false);
-  const defaultVizType = useSelector<ExplorePageState, string>(
-    state => state.common?.conf.DEFAULT_VIZ_TYPE || 'table',
-  );
   const dispatch = useDispatch();
 
   useEffect(() => {
-    const exploreUrlParams = getParsedExploreURLParams();
-    const fetchExploreData = async () => {
-      makeApi<{}, ExploreResponsePayload>({
-        method: 'GET',
-        endpoint: 'api/v1/explore/',
-      })(exploreUrlParams)
-        .then(({ result }) => {
-          if (!result.form_data.viz_type) {
-            Object.assign(result.form_data, {
-              viz_type: exploreUrlParams.get('viz_type') || defaultVizType,
-            });
-          }
-          if (isNullish(result.dataset?.id) && isNullish(result.dataset?.uid)) {
-            dispatch(hydrateExplore(fallbackExploreInitialData));
-            dispatch(addDangerToast(loadErrorMessage));
-          } else {
-            dispatch(hydrateExplore(result));
-          }
-        })
-        .catch(() => {
+    fetchExploreData()
+      .then(({ result }) => {
+        if (isNullish(result.dataset?.id) && isNullish(result.dataset?.uid)) {
           dispatch(hydrateExplore(fallbackExploreInitialData));
           dispatch(addDangerToast(loadErrorMessage));
-        })
-        .finally(() => {
-          setIsLoaded(true);
-        });
-    };
-    fetchExploreData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        } else {
+          dispatch(hydrateExplore(result));
+        }
+      })
+      .catch(() => {
+        dispatch(hydrateExplore(fallbackExploreInitialData));
+        dispatch(addDangerToast(loadErrorMessage));
+      })
+      .finally(() => {
+        setIsLoaded(true);
+      });
   }, [dispatch]);
 
   if (!isLoaded) {
