@@ -734,7 +734,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         ---
         get:
           description: >-
-            Exports multiple Dashboards and downloads them as YAML files.
+            Exports multiple Dashboards and downloads them as JSON files.
           parameters:
           - in: query
             name: q
