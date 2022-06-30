@@ -55,3 +55,8 @@ test('get permalink key from path params', () => {
     'permalink_key=kpOqweaMY9R',
   );
 });
+
+test('get dataset id from path params', () => {
+  setupLocation(`${EXPLORE_BASE_URL}table/42/`);
+  expect(getParsedExploreURLParams().toString()).toEqual('dataset_id=42');
+});

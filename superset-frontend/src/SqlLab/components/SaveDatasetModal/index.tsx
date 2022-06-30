@@ -143,28 +143,32 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
   const dispatch = useDispatch<(dispatch: any) => Promise<JsonObject>>();
 
   const handleOverwriteDataset = async () => {
-    await updateDataset(
-      query.dbId,
-      datasetToOverwrite.datasetId,
-      query.sql,
-      query.results.selected_columns.map(
-        (d: { name: string; type: string; is_dttm: boolean }) => ({
-          column_name: d.name,
-          type: d.type,
-          is_dttm: d.is_dttm,
-        }),
+    const [, key] = await Promise.all([
+      updateDataset(
+        query.dbId,
+        datasetToOverwrite.datasetId,
+        query.sql,
+        query.results.selected_columns.map(
+          (d: { name: string; type: string; is_dttm: boolean }) => ({
+            column_name: d.name,
+            type: d.type,
+            is_dttm: d.is_dttm,
+          }),
+        ),
+        datasetToOverwrite.owners.map((o: DatasetOwner) => o.id),
+        true,
       ),
-      datasetToOverwrite.owners.map((o: DatasetOwner) => o.id),
-      true,
-    );
-
-    const key = await postFormData(datasetToOverwrite.datasetId, 'table', {
-      ...EXPLORE_CHART_DEFAULT,
-      datasource: `${datasetToOverwrite.datasetId}__table`,
-      ...(defaultVizType === 'table' && {
-        all_columns: query.results.selected_columns.map(column => column.name),
+      postFormData(datasetToOverwrite.datasetId, 'table', {
+        ...EXPLORE_CHART_DEFAULT,
+        datasource: `${datasetToOverwrite.datasetId}__table`,
+        ...(defaultVizType === 'table' && {
+          all_columns: query.results.selected_columns.map(
+            column => column.name,
+          ),
+        }),
       }),
-    });
+    ]);
+
     const url = mountExploreUrl(null, {
       [URL_PARAMS.formDataKey.name]: key,
     });
