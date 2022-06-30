@@ -18,14 +18,14 @@
 
 Revision ID: c747c78868b6
 Revises: e786798587de
-Create Date: 2022-06-09 22:04:17.686635
+Create Date: 2022-06-30 22:04:17.686635
 
 """
 
 # revision identifiers, used by Alembic.
 
 revision = "c747c78868b6"
-down_revision = "e786798587de"
+down_revision = "7fb8bca906d2"
 
 from alembic import op
 from sqlalchemy import and_, Column, Integer, String, Text
