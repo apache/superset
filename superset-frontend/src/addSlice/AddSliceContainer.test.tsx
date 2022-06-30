@@ -138,7 +138,6 @@ test('formats Explore url', async () => {
     datasource,
     vizType: 'table',
   });
-  const formattedUrl =
-    '/superset/explore/?form_data=%7B%22viz_type%22%3A%22table%22%2C%22datasource%22%3A%221%22%7D';
+  const formattedUrl = '/superset/explore/?viz_type=table&datasource=1';
   expect(wrapper.instance().exploreUrl()).toBe(formattedUrl);
 });
