@@ -49,10 +49,6 @@ export const getOpacity = (
     2,
   );
 
-  if (result < minOpacity) {
-    return minOpacity;
-  }
-
   return result > maxOpacity ? maxOpacity : result;
 };
 
