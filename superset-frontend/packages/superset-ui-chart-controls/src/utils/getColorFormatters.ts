@@ -49,7 +49,8 @@ export const getOpacity = (
     2,
   );
 
-  return result > maxOpacity ? maxOpacity : result;
+  if (result > maxOpacity) return maxOpacity;
+  return result;
 };
 
 export const getColorFunction = (
