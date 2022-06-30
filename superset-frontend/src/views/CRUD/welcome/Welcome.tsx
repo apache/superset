@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { useEffect, useState } from 'react';
-import { styled, t } from '@superset-ui/core';
+import { styled, t, getUiOverrideRegistry } from '@superset-ui/core';
 import Collapse from 'src/components/Collapse';
 import { User } from 'src/types/bootstrapTypes';
 import { reject } from 'lodash';
@@ -41,11 +41,12 @@ import {
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { AntdSwitch } from 'src/components';
 
-import SetupGuide from 'src/views/components/SetupGuide';
 import ActivityTable from './ActivityTable';
 import ChartTable from './ChartTable';
 import SavedQueries from './SavedQueries';
 import DashboardTable from './DashboardTable';
+
+const uiOverrideRegistry = getUiOverrideRegistry();
 
 interface WelcomeProps {
   user: User;
@@ -178,6 +179,8 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
     setItem(LocalStorageKeys.homepage_collapse_state, state);
   };
 
+  const WelcomeTopExtension = uiOverrideRegistry.get('welcome.top');
+
   useEffect(() => {
     const activeTab = getItem(LocalStorageKeys.homepage_activity_filter, null);
     setActiveState(collapseState.length > 0 ? collapseState : DEFAULT_TAB_ARR);
@@ -279,7 +282,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
     !activityData?.Examples && !activityData?.Viewed;
   return (
     <WelcomeContainer>
-      <SetupGuide />
+      {WelcomeTopExtension && <WelcomeTopExtension />}
       <WelcomeNav>
         <h1 className="welcome-header">Home</h1>
         {isFeatureEnabled(FeatureFlag.THUMBNAILS) ? (
