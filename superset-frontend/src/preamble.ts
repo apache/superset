@@ -24,6 +24,7 @@ import { configure, makeApi, supersetTheme } from '@superset-ui/core';
 import { merge } from 'lodash';
 import setupClient from './setup/setupClient';
 import setupColors from './setup/setupColors';
+import setupExtensions from './setup/setupExtensions';
 import setupFormatters from './setup/setupFormatters';
 import setupDashboardComponents from './setup/setupDasboardComponents';
 import { BootstrapUser, User } from './types/bootstrapTypes';
@@ -31,6 +32,8 @@ import { BootstrapUser, User } from './types/bootstrapTypes';
 if (process.env.WEBPACK_MODE === 'development') {
   setHotLoaderConfig({ logLevel: 'debug', trackTailUpdates: false });
 }
+
+setupExtensions();
 
 // eslint-disable-next-line import/no-mutable-exports
 export let bootstrapData: {
