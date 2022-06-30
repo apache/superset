@@ -946,12 +946,24 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         except DatasetInvalidPermissionEvaluationException:
             logger.warning("Dataset has no database refusing to set permission")
             return
+        permission_table = self.permission_model.__table__  # pylint: disable=no-member
+        view_menu_table = self.viewmenu_model.__table__  # pylint: disable=no-member
         link_table = target.__table__
         if target.perm != target_get_perm:
             connection.execute(
                 link_table.update()
                 .where(link_table.c.id == target.id)
                 .values(perm=target_get_perm)
+            )
+            connection.execute(
+                permission_table.update()
+                .where(permission_table.c.name == target.perm)
+                .values(name=target_get_perm)
+            )
+            connection.execute(
+                view_menu_table.update()
+                .where(view_menu_table.c.name == target.perm)
+                .values(name=target_get_perm)
             )
             target.perm = target_get_perm
 
@@ -981,17 +993,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             pv = None
 
             if not permission:
-                permission_table = (
-                    self.permission_model.__table__  # pylint: disable=no-member
-                )
                 connection.execute(
                     permission_table.insert().values(name=permission_name)
                 )
                 permission = self.find_permission(permission_name)
             if not view_menu:
-                view_menu_table = (
-                    self.viewmenu_model.__table__  # pylint: disable=no-member
-                )
                 connection.execute(view_menu_table.insert().values(name=view_menu_name))
                 view_menu = self.find_view_menu(view_menu_name)
 
