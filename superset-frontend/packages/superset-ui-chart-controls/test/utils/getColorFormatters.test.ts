@@ -51,7 +51,7 @@ describe('getOpacity', () => {
     expect(getOpacity(100, 100, 100, 0, 0.8)).toEqual(0.8);
     expect(getOpacity(100, 100, 50, 0, 1)).toEqual(0);
     expect(getOpacity(999, 100, 50, 0, 1)).toEqual(1);
-    expect(getOpacity(-999, 100, 50, 0, 1)).toEqual(0.05);
+    expect(getOpacity(100, 100, 50, 0.99, 1)).toEqual(0.99);
   });
 });
 
