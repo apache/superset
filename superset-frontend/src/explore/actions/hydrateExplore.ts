@@ -70,14 +70,12 @@ export const hydrateExplore =
     const colorSchemeKey = initialControls['color_scheme'] && 'color_scheme';
     const linearColorSchemeKey = initialControls['linear_color_scheme'] && 'linear_color_scheme';
     // verifies whether the current color scheme exists in the registry
-    // if not fallbacks to the default
+    // if not fallbacks to the default color scheme key
     const verifyColorScheme = (type: 'CATEGORICAL' | 'SEQUENTIAL') => {
       const schemes = type === 'CATEGORICAL' ? getCategoricalSchemeRegistry() : getSequentialSchemeRegistry();
       const key = type === 'CATEGORICAL' ? colorSchemeKey : linearColorSchemeKey;
-      if (!schemes.items[initialFormData[key]]) {
-        Object.assign(initialFormData, {
-          color_scheme: schemes.defaultKey,
-        })
+      const currentScheme = initialFormData[key];
+      if (currentScheme && !schemes.items[currentScheme]) {
         initialControls[key].value = schemes.defaultKey
       }
     }
@@ -153,20 +151,7 @@ export const hydrateExplore =
           dashboards: [],
           saveModalAlert: null,
         },
-        explore: {
-          ...exploreState,
-          form_data: {
-            ...exploreState.form_data,
-            color_scheme: 'bnbColors',
-          },
-          slice: {
-            ...exploreState.slice,
-            form_data: {
-              ...exploreState.slice.form_data,
-              color_scheme: 'bnbColors',
-            }
-          }
-        },
+        explore: exploreState,
       },
     });
   };
