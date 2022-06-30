@@ -22,11 +22,15 @@ import {
   JsonObject,
   NativeFiltersState,
 } from '@superset-ui/core';
-import { ChartQueryPayload, Charts, LayoutItem } from 'src/dashboard/types';
+import {
+  Chart,
+  ChartsState,
+  LayoutItem,
+  ChartConfiguration,
+} from 'src/dashboard/types';
 import { getExtraFormData } from 'src/dashboard/components/nativeFilters/utils';
 import { areObjectsEqual } from 'src/reduxUtils';
 import getEffectiveExtraFilters from './getEffectiveExtraFilters';
-import { ChartConfiguration } from '../../reducers/types';
 import { getAllActiveFilters } from '../activeAllDashboardFilters';
 
 // We cache formData objects so that our connected container components don't always trigger
@@ -36,8 +40,8 @@ const cachedFormdataByChart = {};
 
 export interface GetFormDataWithExtraFiltersArguments {
   chartConfiguration: ChartConfiguration;
-  chart: ChartQueryPayload;
-  charts: Charts;
+  chart: Chart;
+  charts: ChartsState;
   filters: DataRecordFilters;
   layout: { [key: string]: LayoutItem };
   colorScheme?: string;

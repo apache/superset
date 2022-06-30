@@ -29,8 +29,7 @@ import {
 import { NO_TIME_RANGE, TIME_FILTER_MAP } from 'src/explore/constants';
 import { getChartIdsInFilterBoxScope } from 'src/dashboard/util/activeDashboardFilters';
 import { CHART_TYPE } from 'src/dashboard/util/componentTypes';
-import { ChartConfiguration } from 'src/dashboard/reducers/types';
-import { Layout } from 'src/dashboard/types';
+import { ChartConfiguration, DashboardLayout } from 'src/dashboard/types';
 import { areObjectsEqual } from 'src/reduxUtils';
 
 export enum IndicatorStatus {
@@ -222,7 +221,7 @@ export const selectNativeIndicatorsForChart = (
   dataMask: DataMaskStateWithId,
   chartId: number,
   chart: any,
-  dashboardLayout: Layout,
+  dashboardLayout: DashboardLayout,
   chartConfiguration: ChartConfiguration = defaultChartConfig,
 ): Indicator[] => {
   const appliedColumns = getAppliedColumns(chart);

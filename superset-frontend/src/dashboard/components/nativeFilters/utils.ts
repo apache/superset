@@ -28,7 +28,7 @@ import {
   getChartMetadataRegistry,
   QueryFormData,
 } from '@superset-ui/core';
-import { Charts, DashboardLayout } from 'src/dashboard/types';
+import { ChartsState, DashboardLayout } from 'src/dashboard/types';
 import extractUrlParams from 'src/dashboard/util/extractUrlParams';
 import { isFeatureEnabled } from 'src/featureFlags';
 import { CHART_TYPE, TAB_TYPE } from '../../util/componentTypes';
@@ -50,7 +50,7 @@ export const getFormData = ({
   datasetId?: number;
   dependencies?: object;
   groupby?: string;
-  adhoc_filters?: AdhocFilter[];
+  adhoc_filters?: AdhocFilter[] | null;
   time_range?: string;
 }): Partial<QueryFormData> => {
   const otherProps: {
@@ -122,7 +122,7 @@ export function isCrossFilter(vizType: string) {
 
 export function getExtraFormData(
   dataMask: DataMaskStateWithId,
-  charts: Charts,
+  charts: ChartsState,
   filterIdsAppliedOnChart: string[],
 ): ExtraFormData {
   let extraFormData: ExtraFormData = {};

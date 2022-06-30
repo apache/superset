@@ -20,7 +20,7 @@ import { Filter, t } from '@superset-ui/core';
 import { useSelector } from 'react-redux';
 import {
   ChartsState,
-  Layout,
+  DashboardLayout,
   LayoutItem,
   RootState,
 } from 'src/dashboard/types';
@@ -39,7 +39,7 @@ const useCharts = () => {
 };
 
 export const useFilterScope = (filter: Filter) => {
-  const layout = useSelector<RootState, Layout>(
+  const layout = useSelector<RootState, DashboardLayout>(
     state => state.dashboardLayout.present,
   );
   const charts = useCharts();

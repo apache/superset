@@ -18,12 +18,12 @@
  */
 import { NativeFilterScope } from '@superset-ui/core';
 import { CHART_TYPE } from './componentTypes';
-import { ChartsState, Layout } from '../types';
+import { ChartsState, DashboardLayout } from '../types';
 
 export function getChartIdsInFilterScope(
   filterScope: NativeFilterScope,
   charts: ChartsState,
-  layout: Layout,
+  layout: DashboardLayout,
 ) {
   const layoutItems = Object.values(layout);
   return Object.values(charts)

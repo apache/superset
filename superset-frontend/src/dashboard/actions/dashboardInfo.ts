@@ -19,7 +19,7 @@
 import { Dispatch } from 'redux';
 import { makeApi, CategoricalColorNamespace } from '@superset-ui/core';
 import { isString } from 'lodash';
-import { ChartConfiguration, DashboardInfo } from '../reducers/types';
+import { ChartConfiguration, DashboardInfo } from '../types';
 
 export const DASHBOARD_INFO_UPDATED = 'DASHBOARD_INFO_UPDATED';
 

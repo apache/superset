@@ -17,14 +17,19 @@
  * under the License.
  */
 
+import { QueryFormData } from '@superset-ui/core';
 import { Dashboard, Datasource, EmbeddedDashboard } from 'src/dashboard/types';
-import { Chart } from 'src/types/Chart';
 import { useApiV1Resource, useTransformedResource } from './apiResources';
+
+export type TransformedDashboard = Dashboard & {
+  metadata: Record<string, any>;
+  position_data: Record<string, any>;
+};
 
 export const useDashboard = (idOrSlug: string | number) =>
   useTransformedResource(
     useApiV1Resource<Dashboard>(`/api/v1/dashboard/${idOrSlug}`),
-    dashboard => ({
+    (dashboard): TransformedDashboard => ({
       ...dashboard,
       // TODO: load these at the API level
       metadata:
@@ -34,9 +39,23 @@ export const useDashboard = (idOrSlug: string | number) =>
     }),
   );
 
+export type DashboardChart = {
+  cache_timeout: number;
+  certification_details: string;
+  certified_by: string;
+  changed_on: string;
+  description: string;
+  description_markeddown: string;
+  form_data: QueryFormData;
+  modified: string;
+  slice_id: 0;
+  slice_name: string;
+  slice_url: string;
+};
+
 // gets the chart definitions for a dashboard
 export const useDashboardCharts = (idOrSlug: string | number) =>
-  useApiV1Resource<Chart[]>(`/api/v1/dashboard/${idOrSlug}/charts`);
+  useApiV1Resource<DashboardChart[]>(`/api/v1/dashboard/${idOrSlug}/charts`);
 
 // gets the datasets for a dashboard
 // important: this endpoint only returns the fields in the dataset

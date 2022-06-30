@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Charts, Layout, LayoutItem } from 'src/dashboard/types';
+import { ChartsState, DashboardLayout, LayoutItem } from 'src/dashboard/types';
 import {
   CHART_TYPE,
   DASHBOARD_ROOT_TYPE,
@@ -26,15 +26,18 @@ import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
 import { NativeFilterScope, t } from '@superset-ui/core';
 import { BuildTreeLeafTitle, TreeItem } from './types';
 
-export const isShowTypeInTree = ({ type, meta }: LayoutItem, charts?: Charts) =>
+export const isShowTypeInTree = (
+  { type, meta }: LayoutItem,
+  charts?: ChartsState,
+) =>
   (type === TAB_TYPE || type === CHART_TYPE || type === DASHBOARD_ROOT_TYPE) &&
   (!charts || charts[meta?.chartId]?.form_data?.viz_type !== 'filter_box');
 
 export const buildTree = (
   node: LayoutItem,
   treeItem: TreeItem,
-  layout: Layout,
-  charts: Charts,
+  layout: DashboardLayout,
+  charts: ChartsState,
   validNodes: string[],
   initiallyExcludedCharts: number[],
   buildTreeLeafTitle: BuildTreeLeafTitle,
@@ -78,7 +81,7 @@ export const buildTree = (
   );
 };
 
-const addInvisibleParents = (layout: Layout, item: string) => [
+const addInvisibleParents = (layout: DashboardLayout, item: string) => [
   ...(layout[item]?.children || []),
   ...Object.values(layout)
     .filter(
@@ -93,7 +96,7 @@ const addInvisibleParents = (layout: Layout, item: string) => [
 // Generate checked options for Ant tree from redux scope
 const checkTreeItem = (
   checkedItems: string[],
-  layout: Layout,
+  layout: DashboardLayout,
   items: string[],
   excluded: number[],
 ) => {
@@ -115,7 +118,7 @@ const checkTreeItem = (
 
 export const getTreeCheckedItems = (
   scope: NativeFilterScope,
-  layout: Layout,
+  layout: DashboardLayout,
 ) => {
   const checkedItems: string[] = [];
   checkTreeItem(checkedItems, layout, [...scope.rootPath], [...scope.excluded]);
@@ -125,7 +128,7 @@ export const getTreeCheckedItems = (
 // Looking for first common parent for selected charts/tabs/tab
 export const findFilterScope = (
   checkedKeys: string[],
-  layout: Layout,
+  layout: DashboardLayout,
 ): NativeFilterScope => {
   if (!checkedKeys.length) {
     return {

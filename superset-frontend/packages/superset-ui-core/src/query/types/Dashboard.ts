@@ -79,7 +79,7 @@ export type Filter = {
     [key: string]: any;
   };
   sortMetric?: string | null;
-  adhoc_filters?: AdhocFilter[];
+  adhoc_filters?: AdhocFilter[] | null;
   granularity_sqla?: string;
   granularity?: string;
   druid_time_origin?: string;

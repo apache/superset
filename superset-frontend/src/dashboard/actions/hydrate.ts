@@ -17,7 +17,15 @@
  * under the License.
  */
 /* eslint-disable camelcase */
-import { Behavior, getChartMetadataRegistry } from '@superset-ui/core';
+import { AnyAction } from 'redux';
+import { ThunkAction } from 'redux-thunk';
+
+import {
+  Behavior,
+  getChartMetadataRegistry,
+  JsonObject,
+  QueryFormData,
+} from '@superset-ui/core';
 
 import { chart } from 'src/components/Chart/chartReducer';
 import { initSliceEntities } from 'src/dashboard/reducers/sliceEntities';
@@ -51,10 +59,12 @@ import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { FILTER_BOX_MIGRATION_STATES } from 'src/explore/constants';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
+import { DashboardChart, TransformedDashboard } from 'src/hooks/apiResources';
 import { FeatureFlag, isFeatureEnabled } from '../../featureFlags';
 import extractUrlParams from '../util/extractUrlParams';
 import getNativeFilterConfig from '../util/filterboxMigrationHelper';
 import { updateColorSchema } from './dashboardInfo';
+import { Chart, RootState } from '../types';
 
 export const HYDRATE_DASHBOARD = 'HYDRATE_DASHBOARD';
 
@@ -65,7 +75,13 @@ export const hydrateDashboard =
     filterboxMigrationState = FILTER_BOX_MIGRATION_STATES.NOOP,
     dataMask,
     activeTabs,
-  }) =>
+  }: {
+    dashboard: TransformedDashboard;
+    charts: DashboardChart[];
+    filterboxMigrationState: FILTER_BOX_MIGRATION_STATES;
+    dataMask: string | {};
+    activeTabs: string[];
+  }): ThunkAction<void, RootState, unknown, AnyAction> =>
   (dispatch, getState) => {
     const { user, common, dashboardState } = getState();
     const { metadata, position_data: positionData } = dashboard;
@@ -75,10 +91,6 @@ export const hydrateDashboard =
 
     let preselectFilters = {};
 
-    charts.forEach(chart => {
-      // eslint-disable-next-line no-param-reassign
-      chart.slice_id = chart.form_data.slice_id;
-    });
     try {
       // allow request parameter overwrite dashboard metadata
       preselectFilters =
@@ -115,19 +127,26 @@ export const hydrateDashboard =
     // find root level chart container node for newly-added slices
     const parentId = findFirstParentContainerId(layout);
     const parent = layout[parentId];
-    let newSlicesContainer;
+    let newSlicesContainer: {
+      type: typeof ROW_TYPE;
+      id: string;
+      children: any[];
+      parents: any[];
+      meta: Record<string, any>;
+    };
+
     let newSlicesContainerWidth = 0;
 
     const filterScopes = metadata?.filter_scopes || {};
 
-    const chartQueries = {};
+    const chartQueries: Record<string, Chart> = {};
     const dashboardFilters = {};
     const slices = {};
     const sliceIds = new Set();
     const slicesFromExploreCount = new Map();
 
     charts.forEach(slice => {
-      const key = slice.slice_id;
+      const key = slice.form_data.slice_id;
       const form_data = {
         ...slice.form_data,
         url_params: {
@@ -138,7 +157,9 @@ export const hydrateDashboard =
       chartQueries[key] = {
         ...chart,
         id: key,
-        form_data: applyDefaultFormData(form_data),
+        form_data: applyDefaultFormData(form_data) as QueryFormData & {
+          url_params: JsonObject;
+        },
       };
 
       slices[key] = {
@@ -150,7 +171,6 @@ export const hydrateDashboard =
         datasource: slice.form_data.datasource,
         description: slice.description,
         description_markeddown: slice.description_markeddown,
-        owners: slice.owners,
         modified: slice.modified,
         changed_on: new Date(slice.changed_on).getTime(),
       };
@@ -175,14 +195,15 @@ export const hydrateDashboard =
         const chartHolder = newComponentFactory(
           CHART_TYPE,
           {
-            chartId: slice.slice_id,
+            chartId: slice.form_data.slice_id,
           },
           (newSlicesContainer.parents || []).slice(),
         );
 
-        const count = (slicesFromExploreCount.get(slice.slice_id) ?? 0) + 1;
-        chartHolder.id = `${CHART_TYPE}-explore-${slice.slice_id}-${count}`;
-        slicesFromExploreCount.set(slice.slice_id, count);
+        const count =
+          (slicesFromExploreCount.get(slice.form_data.slice_id) ?? 0) + 1;
+        chartHolder.id = `${CHART_TYPE}-explore-${slice.form_data.slice_id}-${count}`;
+        slicesFromExploreCount.set(slice.form_data.slice_id, count);
 
         layout[chartHolder.id] = chartHolder;
         newSlicesContainer.children.push(chartHolder.id);
@@ -213,7 +234,7 @@ export const hydrateDashboard =
           const { scope, immune } = {
             ...DASHBOARD_FILTER_SCOPE_GLOBAL,
             ...scopeSettings[column],
-          };
+          } as { scope: string[]; immune: string[] };
 
           return {
             ...map,

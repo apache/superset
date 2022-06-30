@@ -23,8 +23,12 @@ import {
   NativeFilterScope,
 } from '@superset-ui/core';
 import { CHART_TYPE } from './componentTypes';
-import { ActiveFilters, Layout, LayoutItem } from '../types';
-import { ChartConfiguration } from '../reducers/types';
+import {
+  ActiveFilters,
+  DashboardLayout,
+  LayoutItem,
+  ChartConfiguration,
+} from '../types';
 import { DASHBOARD_ROOT_ID } from './constants';
 
 // Looking for affected chart scopes and values
@@ -94,7 +98,7 @@ export const getAllActiveFilters = ({
   chartConfiguration: ChartConfiguration;
   dataMask: DataMaskStateWithId;
   nativeFilters: Filters;
-  layout: Layout;
+  layout: DashboardLayout;
 }): ActiveFilters => {
   const activeFilters = {};
 

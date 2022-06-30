@@ -31,8 +31,7 @@ import {
 } from 'src/dataMask/actions';
 import { HYDRATE_DASHBOARD } from './hydrate';
 import { dashboardInfoChanged } from './dashboardInfo';
-import { FilterSetFullData } from '../reducers/types';
-import { DashboardInfo, RootState } from '../types';
+import { DashboardInfo, RootState, FilterSetFullData } from '../types';
 
 export const SET_FILTER_CONFIG_BEGIN = 'SET_FILTER_CONFIG_BEGIN';
 export interface SetFilterConfigBegin {

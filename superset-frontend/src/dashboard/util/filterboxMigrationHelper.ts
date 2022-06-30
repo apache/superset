@@ -25,7 +25,12 @@ import {
   TIME_FILTER_MAP,
 } from 'src/explore/constants';
 import { DASHBOARD_FILTER_SCOPE_GLOBAL } from 'src/dashboard/reducers/dashboardFilters';
-import { Filter, NativeFilterType, TimeGranularity } from '@superset-ui/core';
+import {
+  AdhocFilter,
+  Filter,
+  NativeFilterType,
+  TimeGranularity,
+} from '@superset-ui/core';
 import { getChartIdsInFilterBoxScope } from './activeDashboardFilters';
 import getFilterConfigsFromFormdata from './getFilterConfigsFromFormdata';
 
@@ -43,7 +48,7 @@ interface FilterConfig {
 interface SliceData {
   slice_id: number;
   form_data: {
-    adhoc_filters?: [];
+    adhoc_filters?: AdhocFilter[] | null;
     datasource: string;
     date_filter?: boolean;
     filter_configs?: FilterConfig[];

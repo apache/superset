@@ -31,6 +31,8 @@ import { useToasts } from 'src/components/MessageToasts/withToasts';
 import Loading from 'src/components/Loading';
 import FilterBoxMigrationModal from 'src/dashboard/components/FilterBoxMigrationModal';
 import {
+  DashboardChart,
+  TransformedDashboard,
   useDashboard,
   useDashboardCharts,
   useDashboardDatasets,
@@ -209,8 +211,8 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
         }
         dispatch(
           hydrateDashboard({
-            dashboard,
-            charts,
+            dashboard: dashboard as TransformedDashboard,
+            charts: charts as DashboardChart[],
             activeTabs,
             filterboxMigrationState,
             dataMask,

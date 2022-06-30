@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { Layout } from 'src/dashboard/types';
+import { DashboardLayout } from 'src/dashboard/types';
 import { ChartState } from 'src/explore/types';
 
 interface DashboardInfo {
@@ -43,7 +43,7 @@ export interface HeaderDropdownProps {
   forceRefreshAllCharts: () => void;
   hasUnsavedChanges: boolean;
   isLoading: boolean;
-  layout: Layout;
+  layout: DashboardLayout;
   onChange: () => void;
   onSave: () => void;
   refreshFrequency: number;

@@ -23,7 +23,7 @@ import { StyledModal } from 'src/components/Modal';
 import Button from 'src/components/Button';
 import { AntdForm } from 'src/components';
 import { setChartConfiguration } from 'src/dashboard/actions/dashboardInfo';
-import { ChartConfiguration } from 'src/dashboard/reducers/types';
+import { ChartConfiguration } from 'src/dashboard/types';
 import CrossFilterScopingForm from './CrossFilterScopingForm';
 import { CrossFilterScopingFormType } from './types';
 import { StyledForm } from '../nativeFilters/FiltersConfigModal/FiltersConfigModal';

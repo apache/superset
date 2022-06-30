@@ -19,7 +19,7 @@
 import { useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import { t } from '@superset-ui/core';
-import { Charts, Layout, RootState } from 'src/dashboard/types';
+import { ChartsState, DashboardLayout, RootState } from 'src/dashboard/types';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
 import {
   CHART_TYPE,
@@ -35,13 +35,13 @@ export function useFilterScopeTree(
   buildTreeLeafTitle: BuildTreeLeafTitle = label => label,
 ): {
   treeData: [TreeItem];
-  layout: Layout;
+  layout: DashboardLayout;
 } {
-  const layout = useSelector<RootState, Layout>(
+  const layout = useSelector<RootState, DashboardLayout>(
     ({ dashboardLayout: { present } }) => present,
   );
 
-  const charts = useSelector<RootState, Charts>(({ charts }) => charts);
+  const charts = useSelector<RootState, ChartsState>(({ charts }) => charts);
   const tree = {
     children: [],
     key: DASHBOARD_ROOT_ID,
