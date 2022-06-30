@@ -637,7 +637,7 @@
       },
       "properties": {
         "NAME_1": "Adana",
-        "number": 1
+        "ISO":  "TR-01"
       },
       "type": "Feature"
     },
@@ -823,7 +823,7 @@
       },
       "properties": {
         "NAME_1": "Adıyaman",
-        "number": 2
+        "ISO":  "TR-02"
       },
       "type": "Feature"
     },
@@ -1061,7 +1061,7 @@
       },
       "properties": {
         "NAME_1": "Afyon",
-        "number": 3
+        "ISO":  "TR-03"
       },
       "type": "Feature"
     },
@@ -1331,7 +1331,7 @@
       },
       "properties": {
         "NAME_1": "Ağrı",
-        "number": 4
+        "ISO":  "TR-04"
       },
       "type": "Feature"
     },
@@ -1481,7 +1481,7 @@
       },
       "properties": {
         "NAME_1": "Aksaray",
-        "number": 68
+        "ISO":  "TR-68"
       },
       "type": "Feature"
     },
@@ -1663,7 +1663,7 @@
       },
       "properties": {
         "NAME_1": "Amasya",
-        "number": 5
+        "ISO":  "TR-05"
       },
       "type": "Feature"
     },
@@ -2013,7 +2013,7 @@
       },
       "properties": {
         "NAME_1": "Ankara",
-        "number": 6
+        "ISO":  "TR-06"
       },
       "type": "Feature"
     },
@@ -3201,7 +3201,7 @@
       },
       "properties": {
         "NAME_1": "Antalya",
-        "number": 7
+        "ISO":  "TR-07"
       },
       "type": "Feature"
     },
@@ -3407,7 +3407,7 @@
       },
       "properties": {
         "NAME_1": "Ardahan",
-        "number": 75
+        "ISO":  "TR-75"
       },
       "type": "Feature"
     },
@@ -3625,7 +3625,7 @@
       },
       "properties": {
         "NAME_1": "Artvin",
-        "number": 8
+        "ISO":  "TR-08"
       },
       "type": "Feature"
     },
@@ -4109,7 +4109,7 @@
       },
       "properties": {
         "NAME_1": "Aydın",
-        "number": 9
+        "ISO":  "TR-09"
       },
       "type": "Feature"
     },
@@ -5345,7 +5345,7 @@
       },
       "properties": {
         "NAME_1": "Balıkesir",
-        "number": 10
+        "ISO":  "TR-10"
       },
       "type": "Feature"
     },
@@ -5501,7 +5501,7 @@
       },
       "properties": {
         "NAME_1": "Bartın",
-        "number": 74
+        "ISO":  "TR-74"
       },
       "type": "Feature"
     },
@@ -5683,7 +5683,7 @@
       },
       "properties": {
         "NAME_1": "Batman",
-        "number": 72
+        "ISO":  "TR-72"
       },
       "type": "Feature"
     },
@@ -5805,7 +5805,7 @@
       },
       "properties": {
         "NAME_1": "Bayburt",
-        "number": 69
+        "ISO":  "TR-69"
       },
       "type": "Feature"
     },
@@ -5959,7 +5959,7 @@
       },
       "properties": {
         "NAME_1": "Bilecik",
-        "number": 11
+        "ISO":  "TR-11"
       },
       "type": "Feature"
     },
@@ -6153,7 +6153,7 @@
       },
       "properties": {
         "NAME_1": "Bingöl",
-        "number": 12
+        "ISO":  "TR-12"
       },
       "type": "Feature"
     },
@@ -6367,7 +6367,7 @@
       },
       "properties": {
         "NAME_1": "Bitlis",
-        "number": 13
+        "ISO":  "TR-13"
       },
       "type": "Feature"
     },
@@ -6565,7 +6565,7 @@
       },
       "properties": {
         "NAME_1": "Bolu",
-        "number": 14
+        "ISO":  "TR-14"
       },
       "type": "Feature"
     },
@@ -6743,7 +6743,7 @@
       },
       "properties": {
         "NAME_1": "Burdur",
-        "number": 15
+        "ISO":  "TR-15"
       },
       "type": "Feature"
     },
@@ -7023,7 +7023,7 @@
       },
       "properties": {
         "NAME_1": "Bursa",
-        "number": 16
+        "ISO":  "TR-16"
       },
       "type": "Feature"
     },
@@ -7627,7 +7627,7 @@
       },
       "properties": {
         "NAME_1": "Çanakkale",
-        "number": 17
+        "ISO":  "TR-17"
       },
       "type": "Feature"
     },
@@ -7781,7 +7781,7 @@
       },
       "properties": {
         "NAME_1": "Çankırı",
-        "number": 18
+        "ISO":  "TR-18"
       },
       "type": "Feature"
     },
@@ -7995,7 +7995,7 @@
       },
       "properties": {
         "NAME_1": "Çorum",
-        "number": 19
+        "ISO":  "TR-19"
       },
       "type": "Feature"
     },
@@ -8221,7 +8221,7 @@
       },
       "properties": {
         "NAME_1": "Denizli",
-        "number": 20
+        "ISO":  "TR-20"
       },
       "type": "Feature"
     },
@@ -8475,7 +8475,7 @@
       },
       "properties": {
         "NAME_1": "Diyarbakır",
-        "number": 21
+        "ISO":  "TR-21"
       },
       "type": "Feature"
     },
@@ -8589,7 +8589,7 @@
       },
       "properties": {
         "NAME_1": "Düzce",
-        "number": 81
+        "ISO":  "TR-81"
       },
       "type": "Feature"
     },
@@ -9009,7 +9009,7 @@
       },
       "properties": {
         "NAME_1": "Edirne",
-        "number": 22
+        "ISO":  "TR-22"
       },
       "type": "Feature"
     },
@@ -9231,7 +9231,7 @@
       },
       "properties": {
         "NAME_1": "Elazığ",
-        "number": 23
+        "ISO":  "TR-23"
       },
       "type": "Feature"
     },
@@ -9509,7 +9509,7 @@
       },
       "properties": {
         "NAME_1": "Erzincan",
-        "number": 24
+        "ISO":  "TR-24"
       },
       "type": "Feature"
     },
@@ -9843,7 +9843,7 @@
       },
       "properties": {
         "NAME_1": "Erzurum",
-        "number": 25
+        "ISO":  "TR-25"
       },
       "type": "Feature"
     },
@@ -10061,7 +10061,7 @@
       },
       "properties": {
         "NAME_1": "Eskişehir",
-        "number": 26
+        "ISO":  "TR-26"
       },
       "type": "Feature"
     },
@@ -10243,7 +10243,7 @@
       },
       "properties": {
         "NAME_1": "Gaziantep",
-        "number": 27
+        "ISO":  "TR-27"
       },
       "type": "Feature"
     },
@@ -10455,7 +10455,7 @@
       },
       "properties": {
         "NAME_1": "Giresun",
-        "number": 28
+        "ISO":  "TR-28"
       },
       "type": "Feature"
     },
@@ -10661,7 +10661,7 @@
       },
       "properties": {
         "NAME_1": "Gümüşhane",
-        "number": 29
+        "ISO":  "TR-29"
       },
       "type": "Feature"
     },
@@ -10895,7 +10895,7 @@
       },
       "properties": {
         "NAME_1": "Hakkari",
-        "number": 30
+        "ISO":  "TR-30"
       },
       "type": "Feature"
     },
@@ -11227,7 +11227,7 @@
       },
       "properties": {
         "NAME_1": "Hatay",
-        "number": 31
+        "ISO":  "TR-31"
       },
       "type": "Feature"
     },
@@ -11421,7 +11421,7 @@
       },
       "properties": {
         "NAME_1": "Iğdır",
-        "number": 76
+        "ISO":  "TR-76"
       },
       "type": "Feature"
     },
@@ -11611,7 +11611,7 @@
       },
       "properties": {
         "NAME_1": "Isparta",
-        "number": 32
+        "ISO":  "TR-32"
       },
       "type": "Feature"
     },
@@ -12143,7 +12143,7 @@
       },
       "properties": {
         "NAME_1": "İstanbul",
-        "number": 34
+        "ISO":  "TR-34"
       },
       "type": "Feature"
     },
@@ -14231,7 +14231,7 @@
       },
       "properties": {
         "NAME_1": "İzmir",
-        "number": 35
+        "ISO":  "TR-35"
       },
       "type": "Feature"
     },
@@ -14425,7 +14425,7 @@
       },
       "properties": {
         "NAME_1": "Kahramanmaraş",
-        "number": 46
+        "ISO":  "TR-46"
       },
       "type": "Feature"
     },
@@ -14555,7 +14555,7 @@
       },
       "properties": {
         "NAME_1": "Karabük",
-        "number": 78
+        "ISO":  "TR-78"
       },
       "type": "Feature"
     },
@@ -14777,7 +14777,7 @@
       },
       "properties": {
         "NAME_1": "Karaman",
-        "number": 70
+        "ISO":  "TR-70"
       },
       "type": "Feature"
     },
@@ -15027,7 +15027,7 @@
       },
       "properties": {
         "NAME_1": "Kars",
-        "number": 36
+        "ISO":  "TR-36"
       },
       "type": "Feature"
     },
@@ -15229,7 +15229,7 @@
       },
       "properties": {
         "NAME_1": "Kastamonu",
-        "number": 37
+        "ISO":  "TR-37"
       },
       "type": "Feature"
     },
@@ -15447,7 +15447,7 @@
       },
       "properties": {
         "NAME_1": "Kayseri",
-        "number": 38
+        "ISO":  "TR-38"
       },
       "type": "Feature"
     },
@@ -15537,7 +15537,7 @@
       },
       "properties": {
         "NAME_1": "Kilis",
-        "number": 79
+        "ISO":  "TR-79"
       },
       "type": "Feature"
     },
@@ -15671,7 +15671,7 @@
       },
       "properties": {
         "NAME_1": "Kırıkkale",
-        "number": 71
+        "ISO":  "TR-71"
       },
       "type": "Feature"
     },
@@ -15925,7 +15925,7 @@
       },
       "properties": {
         "NAME_1": "Kırklareli",
-        "number": 39
+        "ISO":  "TR-39"
       },
       "type": "Feature"
     },
@@ -16111,7 +16111,7 @@
       },
       "properties": {
         "NAME_1": "Kırşehir",
-        "number": 40
+        "ISO":  "TR-40"
       },
       "type": "Feature"
     },
@@ -16387,7 +16387,7 @@
       },
       "properties": {
         "NAME_1": "Kocaeli",
-        "number": 41
+        "ISO":  "TR-41"
       },
       "type": "Feature"
     },
@@ -16813,7 +16813,7 @@
       },
       "properties": {
         "NAME_1": "Konya",
-        "number": 42
+        "ISO":  "TR-42"
       },
       "type": "Feature"
     },
@@ -17031,7 +17031,7 @@
       },
       "properties": {
         "NAME_1": "Kütahya",
-        "number": 43
+        "ISO":  "TR-43"
       },
       "type": "Feature"
     },
@@ -17281,7 +17281,7 @@
       },
       "properties": {
         "NAME_1": "Malatya",
-        "number": 44
+        "ISO":  "TR-44"
       },
       "type": "Feature"
     },
@@ -17539,7 +17539,7 @@
       },
       "properties": {
         "NAME_1": "Manisa",
-        "number": 45
+        "ISO":  "TR-45"
       },
       "type": "Feature"
     },
@@ -17761,7 +17761,7 @@
       },
       "properties": {
         "NAME_1": "Mardin",
-        "number": 47
+        "ISO":  "TR-47"
       },
       "type": "Feature"
     },
@@ -18229,7 +18229,7 @@
       },
       "properties": {
         "NAME_1": "Mersin",
-        "number": 33
+        "ISO":  "TR-33"
       },
       "type": "Feature"
     },
@@ -21641,7 +21641,7 @@
       },
       "properties": {
         "NAME_1": "Muğla",
-        "number": 48
+        "ISO":  "TR-48"
       },
       "type": "Feature"
     },
@@ -21851,7 +21851,7 @@
       },
       "properties": {
         "NAME_1": "Muş",
-        "number": 49
+        "ISO":  "TR-49"
       },
       "type": "Feature"
     },
@@ -22049,7 +22049,7 @@
       },
       "properties": {
         "NAME_1": "Nevşehir",
-        "number": 50
+        "ISO":  "TR-50"
       },
       "type": "Feature"
     },
@@ -22251,7 +22251,7 @@
       },
       "properties": {
         "NAME_1": "Niğde",
-        "number": 51
+        "ISO":  "TR-51"
       },
       "type": "Feature"
     },
@@ -22425,7 +22425,7 @@
       },
       "properties": {
         "NAME_1": "Ordu",
-        "number": 52
+        "ISO":  "TR-52"
       },
       "type": "Feature"
     },
@@ -22531,7 +22531,7 @@
       },
       "properties": {
         "NAME_1": "Osmaniye",
-        "number": 80
+        "ISO":  "TR-80"
       },
       "type": "Feature"
     },
@@ -22657,7 +22657,7 @@
       },
       "properties": {
         "NAME_1": "Rize",
-        "number": 53
+        "ISO":  "TR-53"
       },
       "type": "Feature"
     },
@@ -22825,7 +22825,7 @@
       },
       "properties": {
         "NAME_1": "Sakarya",
-        "number": 54
+        "ISO":  "TR-54"
       },
       "type": "Feature"
     },
@@ -23165,7 +23165,7 @@
       },
       "properties": {
         "NAME_1": "Samsun",
-        "number": 55
+        "ISO":  "TR-55"
       },
       "type": "Feature"
     },
@@ -23335,7 +23335,7 @@
       },
       "properties": {
         "NAME_1": "Şanlıurfa",
-        "number": 63
+        "ISO":  "TR-63"
       },
       "type": "Feature"
     },
@@ -23505,7 +23505,7 @@
       },
       "properties": {
         "NAME_1": "Siirt",
-        "number": 56
+        "ISO":  "TR-56"
       },
       "type": "Feature"
     },
@@ -23703,7 +23703,7 @@
       },
       "properties": {
         "NAME_1": "Sinop",
-        "number": 57
+        "ISO":  "TR-57"
       },
       "type": "Feature"
     },
@@ -23917,7 +23917,7 @@
       },
       "properties": {
         "NAME_1": "Şırnak",
-        "number": 73
+        "ISO":  "TR-73"
       },
       "type": "Feature"
     },
@@ -24283,7 +24283,7 @@
       },
       "properties": {
         "NAME_1": "Sivas",
-        "number": 58
+        "ISO":  "TR-58"
       },
       "type": "Feature"
     },
@@ -24525,7 +24525,7 @@
       },
       "properties": {
         "NAME_1": "Tekirdağ",
-        "number": 59
+        "ISO":  "TR-59"
       },
       "type": "Feature"
     },
@@ -24747,7 +24747,7 @@
       },
       "properties": {
         "NAME_1": "Tokat",
-        "number": 60
+        "ISO":  "TR-60"
       },
       "type": "Feature"
     },
@@ -24929,7 +24929,7 @@
       },
       "properties": {
         "NAME_1": "Trabzon",
-        "number": 61
+        "ISO":  "TR-61"
       },
       "type": "Feature"
     },
@@ -25127,7 +25127,7 @@
       },
       "properties": {
         "NAME_1": "Tunceli",
-        "number": 62
+        "ISO":  "TR-62"
       },
       "type": "Feature"
     },
@@ -25245,7 +25245,7 @@
       },
       "properties": {
         "NAME_1": "Uşak",
-        "number": 64
+        "ISO":  "TR-64"
       },
       "type": "Feature"
     },
@@ -25687,7 +25687,7 @@
       },
       "properties": {
         "NAME_1": "Van",
-        "number": 65
+        "ISO":  "TR-65"
       },
       "type": "Feature"
     },
@@ -25769,7 +25769,7 @@
       },
       "properties": {
         "NAME_1": "Yalova",
-        "number": 77
+        "ISO":  "TR-77"
       },
       "type": "Feature"
     },
@@ -25999,7 +25999,7 @@
       },
       "properties": {
         "NAME_1": "Yozgat",
-        "number": 66
+        "ISO":  "TR-66"
       },
       "type": "Feature"
     },
@@ -26101,7 +26101,7 @@
       },
       "properties": {
         "NAME_1": "Zonguldak",
-        "number": 67
+        "ISO":  "TR-67"
       },
       "type": "Feature"
     }
