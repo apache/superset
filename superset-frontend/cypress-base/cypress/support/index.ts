@@ -55,12 +55,46 @@ Cypress.Commands.add('visitChartById', chartId =>
   cy.visit(`${BASE_EXPLORE_URL}{"slice_id": ${chartId}}`),
 );
 
-Cypress.Commands.add('visitChartByParams', params => {
-  const queryString =
-    typeof params === 'string' ? params : JSON.stringify(params);
-  const url = `${BASE_EXPLORE_URL}${queryString}`;
-  return cy.visit(url);
-});
+Cypress.Commands.add(
+  'visitChartByParams',
+  (formData: {
+    datasource?: string;
+    datasource_id?: number;
+    datasource_type?: string;
+    [key: string]: unknown;
+  }) => {
+    let datasource_id;
+    let datasource_type;
+    if (formData.datasource_id && formData.datasource_type) {
+      ({ datasource_id, datasource_type } = formData);
+    } else {
+      [datasource_id, datasource_type] = formData.datasource?.split('__') || [];
+    }
+    const accessToken = window.localStorage.getItem('access_token');
+    cy.request({
+      method: 'POST',
+      url: 'api/v1/explore/form_data',
+      body: {
+        datasource_id,
+        datasource_type,
+        form_data: JSON.stringify(formData),
+      },
+      headers: {
+        ...(accessToken && {
+          Cookie: `csrf_access_token=${accessToken}`,
+          'X-CSRFToken': accessToken,
+        }),
+        ...(TokenName && { Authorization: `Bearer ${TokenName}` }),
+        'Content-Type': 'application/json',
+        Referer: `${Cypress.config().baseUrl}/`,
+      },
+    }).then(response => {
+      const formDataKey = response.body.key;
+      const url = `/superset/explore/?form_data_key=${formDataKey}`;
+      cy.visit(url);
+    });
+  },
+);
 
 Cypress.Commands.add('verifySliceContainer', chartSelector => {
   // After a wait response check for valid slice container
