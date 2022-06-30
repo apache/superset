@@ -27,6 +27,7 @@ import {
 import { Dataset } from '@superset-ui/chart-controls';
 import { chart } from 'src/components/Chart/chartReducer';
 import componentTypes from 'src/dashboard/util/componentTypes';
+import { UrlParamEntries } from 'src/utils/urlUtils';
 
 import { User } from 'src/types/bootstrapTypes';
 import { ChartState } from '../explore/types';
@@ -39,14 +40,13 @@ export type ChartReducerInitialState = typeof chart;
 // Ref: https://github.com/apache/superset/blob/dcac860f3e5528ecbc39e58f045c7388adb5c3d0/superset-frontend/src/dashboard/reducers/getInitialState.js#L120
 export interface ChartQueryPayload extends Partial<ChartReducerInitialState> {
   id: number;
-  formData: ChartProps['formData'];
   form_data?: ChartProps['rawFormData'];
   [key: string]: unknown;
 }
 
 /** Chart state of redux */
 export type Chart = ChartState & {
-  formData: {
+  form_data: {
     viz_type: string;
     datasource: string;
   };
@@ -145,13 +145,17 @@ export type ActiveFilters = {
   [key: string]: ActiveFilter;
 };
 
-export type DashboardPermalinkValue = {
+export interface DashboardPermalinkState {
+  dataMask: DataMaskStateWithId;
+  activeTabs: string[];
+  anchor: string;
+  urlParams?: UrlParamEntries;
+}
+
+export interface DashboardPermalinkValue {
   dashboardId: string;
-  state: {
-    filterState: DataMaskStateWithId;
-    hash: string;
-  };
-};
+  state: DashboardPermalinkState;
+}
 
 export type EmbeddedDashboard = {
   uuid: string;

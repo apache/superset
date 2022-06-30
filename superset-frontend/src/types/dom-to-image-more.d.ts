@@ -16,24 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import findNonTabChildCharIds from './findNonTabChildChartIds';
 
-export default function childChartsDidLoad({ chartQueries, layout, id }) {
-  const chartIds = findNonTabChildCharIds({ id, layout });
+declare module 'dom-to-image-more' {
+  export interface Options {
+    filter?: ((node: Node) => boolean) | undefined;
+    bgcolor?: string | undefined;
+    width?: number | undefined;
+    height?: number | undefined;
+    style?: {} | undefined;
+    quality?: number | undefined;
+    imagePlaceholder?: string | undefined;
+    cacheBust?: boolean | undefined;
+  }
 
-  let minQueryStartTime = Infinity;
-  const didLoad = chartIds.every(chartId => {
-    const query = chartQueries[chartId] || {};
+  class DomToImageMore {
+    static toJpeg(node: Node, options?: Options): Promise<string>;
+  }
 
-    // filterbox's don't re-render, don't use stale update time
-    if (query.form_data && query.form_data.viz_type !== 'filter_box') {
-      minQueryStartTime = Math.min(
-        query.chartUpdateStartTime,
-        minQueryStartTime,
-      );
-    }
-    return ['stopped', 'failed', 'rendered'].indexOf(query.chartStatus) > -1;
-  });
-
-  return { didLoad, minQueryStartTime };
+  export default DomToImageMore;
 }
