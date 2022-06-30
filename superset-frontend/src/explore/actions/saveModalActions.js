@@ -61,7 +61,7 @@ export function removeSaveModalAlert() {
   return { type: REMOVE_SAVE_MODAL_ALERT };
 }
 
-const getSlicePayload = (sliceName, formData) => {
+export const getSlicePayload = (sliceName, formData) => {
   const [datasourceId, datasourceType] = formData.datasource.split('__');
   const payload = {
     params: JSON.stringify(formData),
@@ -88,15 +88,15 @@ const addDashboardSuccessToast = (addedToDashboard, sliceName) => {
   if (addedToDashboard) {
     if (addedToDashboard.new) {
       addSuccessToast(
-        `${t('Chart')} [${sliceName}] ${t('was added to dashboard')} [${
-          addedToDashboard.title
-        }]`,
+        `${t('Dashboard')} [${addedToDashboard.title}] ${t(
+          'just got created and chart',
+        )} [${sliceName}] ${t('was added to it')}`,
       );
     } else {
       addSuccessToast(
-        `${t('Dashboard')} ${addedToDashboard.title}] ${t(
-          'just got created and chart',
-        )} [${sliceName}] ${t('was added to it')}`,
+        `${t('Chart')} [${sliceName}] ${t('was added to dashboard')} [${
+          addedToDashboard.title
+        }]`,
       );
     }
   }
@@ -136,7 +136,7 @@ export const createSlice =
       });
 
       dispatch(saveSliceSuccess());
-      addSuccessToast(`${t('Chart')} ${sliceName} ${t('has been saved')}`);
+      addSuccessToast(`${t('Chart')} [${sliceName}] ${t('has been saved')}`);
       addDashboardSuccessToast(addedToDashboard, sliceName);
       return response.json;
     } catch (error) {
