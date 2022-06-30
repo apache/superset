@@ -536,15 +536,17 @@ class DatasetRestApi(BaseSupersetModelRestApi):
                 schema:
                   $ref: '#/components/schemas/DatasetDuplicateSchema'
           responses:
-            200:
-              description: Dataset duplicate
+            201:
+              description: Dataset duplicated
               content:
                 application/json:
                   schema:
                     type: object
                     properties:
-                      message:
-                        type: string
+                      id:
+                        type: number
+                      result:
+                        $ref: '#/components/schemas/DatasetDuplicateSchema'
             400:
               $ref: '#/components/responses/400'
             401:
