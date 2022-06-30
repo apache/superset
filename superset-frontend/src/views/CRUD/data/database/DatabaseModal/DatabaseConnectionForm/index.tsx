@@ -19,6 +19,7 @@
 import React, { FormEvent } from 'react';
 import { SupersetTheme, JsonObject } from '@superset-ui/core';
 import { InputProps } from 'antd/lib/input';
+import { Form } from 'src/components/Form';
 import {
   hostField,
   portField,
@@ -130,7 +131,7 @@ const DatabaseConnectionForm = ({
   validationErrors: JsonObject | null;
   getValidation: () => void;
 }) => (
-  <>
+  <Form>
     <div
       // @ts-ignore
       css={(theme: SupersetTheme) => [
@@ -165,7 +166,7 @@ const DatabaseConnectionForm = ({
           }),
         )}
     </div>
-  </>
+  </Form>
 );
 export const FormFieldMap = FORM_FIELD_MAP;
 
