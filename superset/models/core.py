@@ -760,11 +760,11 @@ class Database(
 
     def has_table(self, table: Table) -> bool:
         engine = self.get_sqla_engine()
-        return engine.has_table(table.table_name, table.schema or None)
+        return engine.has_table(table.table_name, table.schema or None) or table.table_name in engine.table_names()
 
     def has_table_by_name(self, table_name: str, schema: Optional[str] = None) -> bool:
         engine = self.get_sqla_engine()
-        return engine.has_table(table_name, schema)
+        return engine.has_table(table_name, schema) or table_name in engine.table_names()
 
     @classmethod
     def _has_view(
