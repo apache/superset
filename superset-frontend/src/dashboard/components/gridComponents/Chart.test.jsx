@@ -40,7 +40,7 @@ describe('Chart', () => {
     // from redux
     maxRows: 666,
     chart: chartQueries[queryId],
-    formData: chartQueries[queryId].formData,
+    formData: chartQueries[queryId].form_data,
     datasource: mockDatasource[sliceEntities.slices[queryId].datasource],
     slice: {
       ...sliceEntities.slices[queryId],

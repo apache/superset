@@ -116,7 +116,7 @@ export default function getFormDataWithExtraFilters({
   }
 
   const formData = {
-    ...chart.formData,
+    ...chart.form_data,
     label_colors: labelColors,
     shared_label_colors: sharedLabelColors,
     ...(colorScheme && { color_scheme: colorScheme }),
