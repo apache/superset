@@ -468,8 +468,8 @@ export function useImportResource(
                   resourceLabel,
                   [
                     ...error.errors.map(payload => payload.message),
-                    t('Please re-export your file and try importing again'),
-                  ].join('\n'),
+                    t('Please re-export your file and try importing again.'),
+                  ].join('.\n'),
                 ),
               );
             } else {
