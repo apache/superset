@@ -240,6 +240,7 @@ export function saveDashboardRequest(data, id, saveType) {
         ...data.metadata,
         color_namespace: data.metadata?.color_namespace || undefined,
         color_scheme: data.metadata?.color_scheme || '',
+        color_scheme_domain: data.metadata?.color_scheme_domain || [],
         expanded_slices: data.metadata?.expanded_slices || {},
         label_colors: data.metadata?.label_colors || {},
         shared_label_colors: data.metadata?.shared_label_colors || {},

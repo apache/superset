@@ -267,7 +267,7 @@ class DashboardDAO(BaseDAO):
         md["color_scheme"] = data.get("color_scheme", "")
         md["label_colors"] = data.get("label_colors", {})
         md["shared_label_colors"] = data.get("shared_label_colors", {})
-
+        md["color_scheme_domain"] = data.get("color_scheme_domain", [])
         dashboard.json_metadata = json.dumps(md)
 
         if commit:

@@ -24,7 +24,10 @@ import {
   FeatureFlag,
   Filter,
   Filters,
+  getCategoricalSchemeRegistry,
+  getSharedLabelColor,
   isFeatureEnabled,
+  SupersetClient,
 } from '@superset-ui/core';
 import { ParentSize } from '@vx/responsive';
 import pick from 'lodash/pick';
@@ -32,6 +35,7 @@ import Tabs from 'src/components/Tabs';
 import DashboardGrid from 'src/dashboard/containers/DashboardGrid';
 import {
   ChartsState,
+  DashboardInfo,
   DashboardLayout,
   LayoutItem,
   RootState,
@@ -46,6 +50,9 @@ import { setInScopeStatusOfFilters } from 'src/dashboard/actions/nativeFilters';
 import { getRootLevelTabIndex, getRootLevelTabsComponent } from './utils';
 import { findTabsWithChartsInScope } from '../nativeFilters/utils';
 import { NATIVE_FILTER_DIVIDER_PREFIX } from '../nativeFilters/FiltersConfigModal/utils';
+import { dashboardInfoChanged } from 'src/dashboard/actions/dashboardInfo';
+import { setColorScheme } from 'src/dashboard/actions/dashboardState';
+import jsonStringify from 'json-stringify-pretty-compact';
 
 type DashboardContainerProps = {
   topLevelTabs?: LayoutItem;
@@ -72,6 +79,9 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
 
   const dashboardLayout = useSelector<RootState, DashboardLayout>(
     state => state.dashboardLayout.present,
+  );
+  const dashboardInfo = useSelector<RootState, DashboardInfo>(
+    state => state.dashboardInfo,
   );
   const directPathToChild = useSelector<RootState, string[]>(
     state => state.dashboardState.directPathToChild,
@@ -122,6 +132,65 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
     dispatch(setInScopeStatusOfFilters(scopes));
   }, [nativeFilterScopes, dashboardLayout, dispatch]);
 
+  useEffect(() => {
+    const currentMetadata = 
+      dashboardInfo.json_metadata?.length && JSON.parse(dashboardInfo.json_metadata);
+      if (currentMetadata?.color_scheme) {
+        const metadata = {...currentMetadata};
+        const colorScheme = metadata?.color_scheme;
+        const colorSchemeDomain = metadata?.color_scheme_domain || [];
+        const colorNamespace = metadata?.color_namespace || '';
+        const categoricalSchemes = getCategoricalSchemeRegistry();
+        const registryColorSchemeDomain = categoricalSchemes.get(colorScheme)?.colors || [];
+        const defaultColorScheme = categoricalSchemes.defaultKey;
+        const isColorSchemeExisting = !!categoricalSchemes.get(colorScheme);
+        const updateDashboard = () => {
+          SupersetClient.put({
+            endpoint: `/api/v1/dashboard/${dashboardInfo.id}`,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              json_metadata: jsonStringify(metadata),
+            }),
+          }).then(() => {
+            dispatch(dashboardInfoChanged({
+              metadata,
+            }));
+            dispatch(setColorScheme(defaultColorScheme))
+          })
+        }
+        const genColorMap = (scheme: string, update = false) => {
+          // TODO: to check why colorMap is always empty
+          const colorMap = getSharedLabelColor().getColorMap(
+            colorNamespace,
+            scheme,
+            update,
+          );
+          return colorMap;
+        }
+
+        // color scheme does not exist anymore
+        // must fallback to the available default one
+        if (colorScheme && !isColorSchemeExisting) {
+          const updatedScheme = defaultColorScheme?.toString() || 'supersetColors';
+          metadata.color_scheme = updatedScheme;
+          metadata.shared_label_colors = genColorMap(updatedScheme, true);
+          metadata.color_scheme_domain = categoricalSchemes.get(defaultColorScheme)?.colors;
+          updateDashboard();
+          return;
+        }
+
+        // if this dashboard does not have a color_scheme_domain saved must create one
+        // if the color_scheme_domain does not correspond to the registry must update
+        if (
+          colorScheme && 
+          ((!colorSchemeDomain.length) || (registryColorSchemeDomain.toString() !== colorSchemeDomain.toString()))) {
+          metadata.color_scheme_domain = registryColorSchemeDomain;
+          metadata.shared_label_colors = genColorMap(colorScheme, true);
+          updateDashboard();
+        }
+      }
+  }, [dashboardInfo.json_metadata, dispatch])
+
   const childIds: string[] = topLevelTabs
     ? topLevelTabs.children
     : [DASHBOARD_GRID_ID];
@@ -171,3 +240,4 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
 };
 
 export default DashboardContainer;
+

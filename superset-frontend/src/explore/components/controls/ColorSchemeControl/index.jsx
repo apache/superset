@@ -192,7 +192,7 @@ export default class ColorSchemeControl extends React.PureComponent {
       onChange: this.onChange,
       options,
       placeholder: t('Select scheme'),
-      value: currentScheme,
+      value: currentScheme && currentScheme.toString(),
     };
 
     return (

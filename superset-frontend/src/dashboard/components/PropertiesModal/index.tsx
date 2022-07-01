@@ -173,9 +173,13 @@ const PropertiesModal = ({
       if (metadata?.positions) {
         delete metadata.positions;
       }
-      const metaDataCopy = { ...metadata };
+      const metaDataCopy = { ...metadata }; 
+      
       if (metaDataCopy?.shared_label_colors) {
         delete metaDataCopy.shared_label_colors;
+      }
+      if (metaDataCopy?.color_scheme_domain) {
+        delete metaDataCopy.color_scheme_domain;
       }
       setJsonMetadata(metaDataCopy ? jsonStringify(metaDataCopy) : '');
     },
@@ -262,7 +266,8 @@ const PropertiesModal = ({
     { updateMetadata = true } = {},
   ) => {
     // check that color_scheme is valid
-    const colorChoices = getCategoricalSchemeRegistry().keys();
+    const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
+    const colorChoices = categoricalSchemeRegistry.keys();
     const jsonMetadataObj = getJsonMetadata();
 
     // only fire if the color_scheme is present and invalid
@@ -279,6 +284,8 @@ const PropertiesModal = ({
     if (updateMetadata) {
       jsonMetadataObj.color_scheme = colorScheme;
       jsonMetadataObj.label_colors = jsonMetadataObj.label_colors || {};
+      jsonMetadataObj.color_scheme_domain = 
+        categoricalSchemeRegistry.get(colorScheme)?.colors || [];
 
       setJsonMetadata(jsonStringify(jsonMetadataObj));
     }
@@ -301,6 +308,9 @@ const PropertiesModal = ({
       // filter shared_label_color from user input
       if (metadata?.shared_label_colors) {
         delete metadata.shared_label_colors;
+      }
+      if (metadata?.color_scheme_domain) {
+        delete metadata.color_scheme_domain;
       }
       const colorMap = getSharedLabelColor().getColorMap(
         colorNamespace,
