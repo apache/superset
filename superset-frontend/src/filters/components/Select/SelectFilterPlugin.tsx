@@ -307,8 +307,9 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
           disabled={isDisabled}
           getPopupContainer={
             showOverflow
-              ? () => parentRef?.current
-              : (trigger: HTMLElement) => trigger?.parentNode
+              ? () => (parentRef?.current as HTMLElement) || document.body
+              : (trigger: HTMLElement) =>
+                  (trigger?.parentNode as HTMLElement) || document.body
           }
           showSearch={showSearch}
           mode={multiSelect ? 'multiple' : 'single'}
