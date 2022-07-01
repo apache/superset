@@ -16,7 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ControlPanelConfig, sections } from '@superset-ui/chart-controls';
+import {
+  ControlPanelConfig,
+  getStandardizedControls,
+  sections,
+} from '@superset-ui/chart-controls';
 import { t, validateNonEmpty } from '@superset-ui/core';
 import timeGrainSqlaAnimationOverrides from '../../utilities/controls';
 import {
@@ -76,6 +80,10 @@ const config: ControlPanelConfig = {
     },
     time_grain_sqla: timeGrainSqlaAnimationOverrides,
   },
+  formDataOverrides: formData => ({
+    ...formData,
+    size: getStandardizedControls().shiftMetric(),
+  }),
 };
 
 export default config;

@@ -16,7 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ControlPanelConfig, sections } from '@superset-ui/chart-controls';
+import {
+  ControlPanelConfig,
+  getStandardizedControls,
+  sections,
+} from '@superset-ui/chart-controls';
 import { t, validateNonEmpty } from '@superset-ui/core';
 import {
   filterNulls,
@@ -71,6 +75,10 @@ const config: ControlPanelConfig = {
       validators: [validateNonEmpty],
     },
   },
+  formDataOverrides: formData => ({
+    ...formData,
+    size: getStandardizedControls().shiftMetric(),
+  }),
 };
 
 export default config;
