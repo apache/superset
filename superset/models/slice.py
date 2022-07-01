@@ -293,7 +293,7 @@ class Slice(  # pylint: disable=too-many-public-methods
         form_data = {"slice_id": self.id}
         form_data.update(overrides)
         params = parse.quote(json.dumps(form_data))
-        return f"{base_url}/?form_data={params}"
+        return f"{base_url}/?slice_id={self.id}&form_data={params}"
 
     @property
     def slice_url(self) -> str:

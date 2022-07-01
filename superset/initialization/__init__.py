@@ -171,7 +171,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         )
         from superset.views.datasource.views import Datasource
         from superset.views.dynamic_plugins import DynamicPluginsView
-        from superset.views.explore import ExploreView, ExplorePermalinkView
+        from superset.views.explore import ExplorePermalinkView, ExploreView
         from superset.views.key_value import KV
         from superset.views.log.api import LogRestApi
         from superset.views.log.views import LogModelView

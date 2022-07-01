@@ -18,6 +18,7 @@ from flask_appbuilder import permission_name
 from flask_appbuilder.api import expose
 from flask_appbuilder.security.decorators import has_access
 
+from superset import event_logger
 from superset.superset_typing import FlaskResponse
 
 from .base import BaseSupersetView
@@ -30,6 +31,7 @@ class ExploreView(BaseSupersetView):
     @expose("/")
     @has_access
     @permission_name("read")
+    @event_logger.log_this
     def root(self) -> FlaskResponse:
         return super().render_app_template()
 
@@ -38,8 +40,10 @@ class ExplorePermalinkView(BaseSupersetView):
     route_base = "/superset"
     class_permission_name = "Explore"
 
-    @expose("/explore/p/")
+    @expose("/explore/p/<key>/")
     @has_access
     @permission_name("read")
-    def root(self) -> FlaskResponse:
+    @event_logger.log_this
+    # pylint: disable=unused-argument
+    def permalink(self, key: str) -> FlaskResponse:
         return super().render_app_template()
