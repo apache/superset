@@ -62,7 +62,6 @@ const defaultTheme = {
       base: '#20A7C9',
       dark1: '#1A85A0',
       dark2: '#156378',
-      dark3: '#0C4250',
       light1: '#79CADE',
       light2: '#A5DAE9',
       light3: '#D2EDF4',

@@ -179,7 +179,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
     setItem(LocalStorageKeys.homepage_collapse_state, state);
   };
 
-  const WelcomeTopExtension = uiOverrideRegistry.get('welcome.top');
+  const WelcomeTopExtension = uiOverrideRegistry.get('welcome.banner');
 
   useEffect(() => {
     const activeTab = getItem(LocalStorageKeys.homepage_activity_filter, null);

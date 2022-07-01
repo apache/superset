@@ -186,8 +186,8 @@ describe('Welcome page with toggle switch', () => {
 test('should render an extension component if one is supplied', () => {
   const uiOverrideRegistry = getUiOverrideRegistry();
 
-  uiOverrideRegistry.set('welcome.top', () => (
-    <>welcome.top extension component</>
+  uiOverrideRegistry.set('welcome.banner', () => (
+    <>welcome.banner extension component</>
   ));
 
   setupExtensions();
@@ -199,6 +199,6 @@ test('should render an extension component if one is supplied', () => {
   );
 
   expect(
-    screen.getByText('welcome.top extension component'),
+    screen.getByText('welcome.banner extension component'),
   ).toBeInTheDocument();
 });
