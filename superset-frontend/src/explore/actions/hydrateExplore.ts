@@ -119,7 +119,6 @@ export const hydrateExplore =
       ? getFormDataFromControls(initialControls)
       : null;
 
-    const latestQueryFormData = getFormDataFromControls(exploreState.controls);
     const chartKey: number = getChartKey(initialExploreState);
     const chart: ChartState = {
       id: chartKey,
@@ -128,7 +127,7 @@ export const hydrateExplore =
       chartStackTrace: null,
       chartUpdateEndTime: null,
       chartUpdateStartTime: 0,
-      latestQueryFormData,
+      latestQueryFormData: getFormDataFromControls(exploreState.controls),
       sliceFormData,
       queryController: null,
       queriesResponse: null,

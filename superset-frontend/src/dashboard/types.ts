@@ -40,14 +40,13 @@ export type ChartReducerInitialState = typeof chart;
 // Ref: https://github.com/apache/superset/blob/dcac860f3e5528ecbc39e58f045c7388adb5c3d0/superset-frontend/src/dashboard/reducers/getInitialState.js#L120
 export interface ChartQueryPayload extends Partial<ChartReducerInitialState> {
   id: number;
-  formData: ChartProps['formData'];
   form_data?: ChartProps['rawFormData'];
   [key: string]: unknown;
 }
 
 /** Chart state of redux */
 export type Chart = ChartState & {
-  formData: {
+  form_data: {
     viz_type: string;
     datasource: string;
   };
