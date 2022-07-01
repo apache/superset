@@ -25,7 +25,6 @@ import {
   useLocation,
 } from 'react-router-dom';
 import { GlobalStyles } from 'src/GlobalStyles';
-import { initFeatureFlags } from 'src/featureFlags';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import Loading from 'src/components/Loading';
 import Menu from 'src/views/components/Menu';
