@@ -45,7 +45,6 @@ const menu = {
   ...bootstrapData.common.menu_data,
 };
 let lastLocationPathname: string;
-initFeatureFlags(bootstrapData.common.feature_flags);
 
 const LocationPathnameLogger = () => {
   const location = useLocation();
