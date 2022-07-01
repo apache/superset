@@ -29,12 +29,13 @@ import Button from 'src/components/Button';
 import { Select } from 'src/components';
 import { SelectValue } from 'antd/lib/select';
 import { connect } from 'react-redux';
+import { withRouter, RouteComponentProps } from 'react-router-dom';
 
 // Session storage key for recent dashboard
 const SK_DASHBOARD_ID = 'save_chart_recent_dashboard';
 const SELECT_PLACEHOLDER = t('**Select** a dashboard OR **create** a new one');
 
-type SaveModalProps = {
+interface SaveModalProps extends RouteComponentProps {
   onHide: () => void;
   actions: Record<string, any>;
   form_data?: Record<string, any>;
@@ -45,7 +46,7 @@ type SaveModalProps = {
   slice?: Record<string, any>;
   datasource?: Record<string, any>;
   dashboardId: '' | number | null;
-};
+}
 
 type ActionType = 'overwrite' | 'saveas';
 
@@ -170,7 +171,7 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
     if (this.state.action === 'overwrite') {
       promise = promise.then(() =>
         this.props.actions.updateSlice(
-          this.props.slice?.slice_id,
+          this.props.slice,
           this.state.newSliceName,
           formData,
           dashboard
@@ -196,7 +197,7 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
       );
     }
 
-    promise.then((slice => {
+    promise.then(((value: { id: number }) => {
       //  Update recent dashboard
       if (dashboard) {
         sessionStorage.setItem(SK_DASHBOARD_ID, `${dashboard.id}`);
@@ -204,14 +205,13 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
         sessionStorage.removeItem(SK_DASHBOARD_ID);
       }
 
-      // Go to new slice url or dashboard url
-      const url =
-        gotodash && dashboard
-          ? dashboard.url
-          : `${window.location.pathname}?form_data={"slice_id": ${slice.id}}`;
-
-      window.location.assign(url);
-    }) as (slice: any) => void);
+      // Go to new dashboard url
+      if (gotodash && dashboard) {
+        this.props.history.push(dashboard.url);
+      } else {
+        window.location.assign(`/explore/?slice_id=${value.id}`);
+      }
+    }) as (value: any) => void);
 
     this.props.onHide();
   }
@@ -345,11 +345,19 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
   }
 }
 
+interface StateProps {
+  datasource: any;
+  slice: any;
+  userId: any;
+  dashboards: any;
+  alert: any;
+}
+
 function mapStateToProps({
   explore,
   saveModal,
   user,
-}: Record<string, any>): Partial<SaveModalProps> {
+}: Record<string, any>): StateProps {
   return {
     datasource: explore.datasource,
     slice: explore.slice,
@@ -359,4 +367,4 @@ function mapStateToProps({
   };
 }
 
-export default connect(mapStateToProps, () => ({}))(SaveModal);
+export default withRouter(connect(mapStateToProps, () => ({}))(SaveModal));

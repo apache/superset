@@ -100,7 +100,12 @@ test('updateSlice handles success', async () => {
   fetchMock.reset();
   fetchMock.put(updateSliceEndpoint, sliceResponsePayload);
   const dispatch = sinon.spy();
-  const slice = await updateSlice(sliceId, sliceName, formData)(dispatch);
+  const slice = await updateSlice(
+    { slice_id: sliceId },
+    sliceName,
+    formData,
+  )(dispatch);
+
   expect(fetchMock.calls(updateSliceEndpoint)).toHaveLength(1);
   expect(dispatch.callCount).toBe(1);
   expect(dispatch.getCall(0).args[0].type).toBe(SAVE_SLICE_SUCCESS);
@@ -119,7 +124,7 @@ test('updateSlice handles failure', async () => {
   const dispatch = sinon.spy();
   let caughtError;
   try {
-    await updateSlice(sliceId, sliceName, formData)(dispatch);
+    await updateSlice({ slice_id: sliceId }, sliceName, formData)(dispatch);
   } catch (error) {
     caughtError = error;
   }
@@ -255,7 +260,7 @@ test('updateSlice with add to new dashboard handles success', async () => {
   fetchMock.reset();
   fetchMock.put(updateSliceEndpoint, sliceResponsePayload);
   const dispatch = sinon.spy();
-  const slice = await updateSlice(sliceId, sliceName, formData, {
+  const slice = await updateSlice({ slice_id: sliceId }, sliceName, formData, {
     new: true,
     title: dashboardName,
   })(dispatch);
@@ -281,7 +286,7 @@ test('updateSlice with add to existing dashboard handles success', async () => {
   fetchMock.reset();
   fetchMock.put(updateSliceEndpoint, sliceResponsePayload);
   const dispatch = sinon.spy();
-  const slice = await updateSlice(sliceId, sliceName, formData, {
+  const slice = await updateSlice({ slice_id: sliceId }, sliceName, formData, {
     new: false,
     title: dashboardName,
   })(dispatch);

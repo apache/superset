@@ -31,6 +31,7 @@ import fetchMock from 'fetch-mock';
 
 import * as saveModalActions from 'src/explore/actions/saveModalActions';
 import SaveModal, { StyledModal } from 'src/explore/components/SaveModal';
+import { BrowserRouter } from 'react-router-dom';
 
 const middlewares = [thunk];
 const mockStore = configureStore(middlewares);
@@ -85,7 +86,16 @@ beforeAll(() => fetchMock.get(fetchDashboardsEndpoint, mockDashboardData));
 afterAll(() => fetchMock.restore());
 
 const getWrapper = () =>
-  shallow(<SaveModal {...defaultProps} store={store} />)
+  shallow(
+    <BrowserRouter>
+      <SaveModal {...defaultProps} store={store} />
+    </BrowserRouter>,
+  )
+    .dive()
+    .dive()
+    .dive()
+    .dive()
+    .dive()
     .dive()
     .dive();
 

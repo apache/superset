@@ -61,7 +61,7 @@ export function removeSaveModalAlert() {
   return { type: REMOVE_SAVE_MODAL_ALERT };
 }
 
-export const getSlicePayload = (sliceName, formData) => {
+export const getSlicePayload = (sliceName, formData, owners) => {
   const [datasourceId, datasourceType] = formData.datasource.split('__');
   const payload = {
     params: JSON.stringify(formData),
@@ -70,6 +70,7 @@ export const getSlicePayload = (sliceName, formData) => {
     datasource_id: parseInt(datasourceId, 10),
     datasource_type: datasourceType,
     dashboards: formData.dashboards,
+    owners,
     query_context: JSON.stringify(
       buildV1ChartDataPayload({
         formData,
@@ -104,12 +105,13 @@ const addDashboardSuccessToast = (addedToDashboard, sliceName) => {
 
 //  Update existing slice
 export const updateSlice =
-  (sliceId, sliceName, formData, addedToDashboard) => async dispatch => {
+  ({ slice_id: sliceId, owners }, sliceName, formData, addedToDashboard) =>
+  async dispatch => {
     try {
       const response = await SupersetClient.put({
         endpoint: `/api/v1/chart/${sliceId}`,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(getSlicePayload(sliceName, formData)),
+        body: JSON.stringify(getSlicePayload(sliceName, formData, owners)),
       });
 
       dispatch(saveSliceSuccess());
