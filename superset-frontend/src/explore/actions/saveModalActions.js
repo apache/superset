@@ -85,22 +85,41 @@ export const getSlicePayload = (sliceName, formData, owners) => {
   return payload;
 };
 
-const addDashboardSuccessToast = (addedToDashboard, sliceName) => {
+const addToasts = (isNewSlice, sliceName, addedToDashboard) => {
+  const toasts = [];
+  if (isNewSlice) {
+    toasts.push(
+      addSuccessToast(`${t('Chart')} [${sliceName}] ${t('has been saved')}`),
+    );
+  } else {
+    toasts.push(
+      addSuccessToast(
+        `${t('Chart')} [${sliceName}] ${t('has been overwritten')}`,
+      ),
+    );
+  }
+
   if (addedToDashboard) {
     if (addedToDashboard.new) {
-      addSuccessToast(
-        `${t('Dashboard')} [${addedToDashboard.title}] ${t(
-          'just got created and chart',
-        )} [${sliceName}] ${t('was added to it')}`,
+      toasts.push(
+        addSuccessToast(
+          `${t('Dashboard')} [${addedToDashboard.title}] ${t(
+            'just got created and chart',
+          )} [${sliceName}] ${t('was added to it')}`,
+        ),
       );
     } else {
-      addSuccessToast(
-        `${t('Chart')} [${sliceName}] ${t('was added to dashboard')} [${
-          addedToDashboard.title
-        }]`,
+      toasts.push(
+        addSuccessToast(
+          `${t('Chart')} [${sliceName}] ${t('was added to dashboard')} [${
+            addedToDashboard.title
+          }]`,
+        ),
       );
     }
   }
+
+  return toasts;
 };
 
 //  Update existing slice
@@ -115,11 +134,7 @@ export const updateSlice =
       });
 
       dispatch(saveSliceSuccess());
-      addSuccessToast(
-        `${t('Chart')} [${sliceName}] ${t('has been overwritten')}`,
-      );
-
-      addDashboardSuccessToast(addedToDashboard, sliceName);
+      addToasts(false, sliceName, addedToDashboard).map(dispatch);
       return response.json;
     } catch (error) {
       dispatch(saveSliceFailed());
@@ -138,8 +153,7 @@ export const createSlice =
       });
 
       dispatch(saveSliceSuccess());
-      addSuccessToast(`${t('Chart')} [${sliceName}] ${t('has been saved')}`);
-      addDashboardSuccessToast(addedToDashboard, sliceName);
+      addToasts(true, sliceName, addedToDashboard).map(dispatch);
       return response.json;
     } catch (error) {
       dispatch(saveSliceFailed());

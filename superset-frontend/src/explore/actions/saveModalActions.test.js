@@ -19,7 +19,7 @@
 
 import sinon from 'sinon';
 import fetchMock from 'fetch-mock';
-import { addSuccessToast } from 'src/components/MessageToasts/actions';
+import { ADD_TOAST } from 'src/components/MessageToasts/actions';
 import {
   createDashboard,
   createSlice,
@@ -86,17 +86,12 @@ jest.mock('../exploreUtils', () => ({
   buildV1ChartDataPayload: jest.fn(() => queryContext),
 }));
 
-jest.mock('src/components/MessageToasts/actions', () => ({
-  addSuccessToast: jest.fn(),
-}));
-
 /**
  * Tests updateSlice action
  */
 
 const updateSliceEndpoint = `glob:*/api/v1/chart/${sliceId}`;
 test('updateSlice handles success', async () => {
-  addSuccessToast.mockClear();
   fetchMock.reset();
   fetchMock.put(updateSliceEndpoint, sliceResponsePayload);
   const dispatch = sinon.spy();
@@ -107,10 +102,11 @@ test('updateSlice handles success', async () => {
   )(dispatch);
 
   expect(fetchMock.calls(updateSliceEndpoint)).toHaveLength(1);
-  expect(dispatch.callCount).toBe(1);
+  expect(dispatch.callCount).toBe(2);
   expect(dispatch.getCall(0).args[0].type).toBe(SAVE_SLICE_SUCCESS);
-  expect(addSuccessToast).toHaveBeenNthCalledWith(
-    1,
+  expect(dispatch.getCall(1).args[0].type).toBe(ADD_TOAST);
+  expect(dispatch.getCall(1).args[0].payload.toastType).toBe('SUCCESS_TOAST');
+  expect(dispatch.getCall(1).args[0].payload.text).toBe(
     'Chart [New chart] has been overwritten',
   );
 
@@ -118,7 +114,6 @@ test('updateSlice handles success', async () => {
 });
 
 test('updateSlice handles failure', async () => {
-  addSuccessToast.mockClear();
   fetchMock.reset();
   fetchMock.put(updateSliceEndpoint, { throws: sampleError });
   const dispatch = sinon.spy();
@@ -133,7 +128,6 @@ test('updateSlice handles failure', async () => {
   expect(fetchMock.calls(updateSliceEndpoint)).toHaveLength(4);
   expect(dispatch.callCount).toBe(1);
   expect(dispatch.getCall(0).args[0].type).toBe(SAVE_SLICE_FAILED);
-  expect(addSuccessToast).not.toHaveBeenCalled();
 });
 
 /**
@@ -142,16 +136,16 @@ test('updateSlice handles failure', async () => {
 
 const createSliceEndpoint = `glob:*/api/v1/chart/`;
 test('createSlice handles success', async () => {
-  addSuccessToast.mockClear();
   fetchMock.reset();
   fetchMock.post(createSliceEndpoint, sliceResponsePayload);
   const dispatch = sinon.spy();
   const slice = await createSlice(sliceName, formData)(dispatch);
   expect(fetchMock.calls(createSliceEndpoint)).toHaveLength(1);
-  expect(dispatch.callCount).toBe(1);
+  expect(dispatch.callCount).toBe(2);
   expect(dispatch.getCall(0).args[0].type).toBe(SAVE_SLICE_SUCCESS);
-  expect(addSuccessToast).toHaveBeenNthCalledWith(
-    1,
+  expect(dispatch.getCall(1).args[0].type).toBe(ADD_TOAST);
+  expect(dispatch.getCall(1).args[0].payload.toastType).toBe('SUCCESS_TOAST');
+  expect(dispatch.getCall(1).args[0].payload.text).toBe(
     'Chart [New chart] has been saved',
   );
 
@@ -159,7 +153,6 @@ test('createSlice handles success', async () => {
 });
 
 test('createSlice handles failure', async () => {
-  addSuccessToast.mockClear();
   fetchMock.reset();
   fetchMock.post(createSliceEndpoint, { throws: sampleError });
   const dispatch = sinon.spy();
@@ -174,7 +167,6 @@ test('createSlice handles failure', async () => {
   expect(fetchMock.calls(createSliceEndpoint)).toHaveLength(4);
   expect(dispatch.callCount).toBe(1);
   expect(dispatch.getCall(0).args[0].type).toBe(SAVE_SLICE_FAILED);
-  expect(addSuccessToast).not.toHaveBeenCalled();
 });
 
 const dashboardId = 14;
@@ -189,19 +181,16 @@ const dashboardResponsePayload = {
 
 const createDashboardEndpoint = `glob:*/api/v1/dashboard/`;
 test('createDashboard handles success', async () => {
-  addSuccessToast.mockClear();
   fetchMock.reset();
   fetchMock.post(createDashboardEndpoint, dashboardResponsePayload);
   const dispatch = sinon.spy();
   const dashboard = await createDashboard(dashboardName)(dispatch);
   expect(fetchMock.calls(createDashboardEndpoint)).toHaveLength(1);
   expect(dispatch.callCount).toBe(0);
-  expect(addSuccessToast).not.toHaveBeenCalled();
   expect(dashboard).toEqual(dashboardResponsePayload);
 });
 
 test('createDashboard handles failure', async () => {
-  addSuccessToast.mockClear();
   fetchMock.reset();
   fetchMock.post(createDashboardEndpoint, { throws: sampleError });
   const dispatch = sinon.spy();
@@ -216,7 +205,6 @@ test('createDashboard handles failure', async () => {
   expect(fetchMock.calls(createDashboardEndpoint)).toHaveLength(4);
   expect(dispatch.callCount).toBe(1);
   expect(dispatch.getCall(0).args[0].type).toBe(SAVE_SLICE_FAILED);
-  expect(addSuccessToast).not.toHaveBeenCalled();
 });
 
 /**
@@ -225,19 +213,16 @@ test('createDashboard handles failure', async () => {
 
 const getDashboardEndpoint = `glob:*/api/v1/dashboard/${dashboardId}`;
 test('getDashboard handles success', async () => {
-  addSuccessToast.mockClear();
   fetchMock.reset();
   fetchMock.get(getDashboardEndpoint, dashboardResponsePayload);
   const dispatch = sinon.spy();
   const dashboard = await getDashboard(dashboardId)(dispatch);
   expect(fetchMock.calls(getDashboardEndpoint)).toHaveLength(1);
   expect(dispatch.callCount).toBe(0);
-  expect(addSuccessToast).not.toHaveBeenCalled();
   expect(dashboard).toEqual(dashboardResponsePayload);
 });
 
 test('getDashboard handles failure', async () => {
-  addSuccessToast.mockClear();
   fetchMock.reset();
   fetchMock.get(getDashboardEndpoint, { throws: sampleError });
   const dispatch = sinon.spy();
@@ -252,11 +237,9 @@ test('getDashboard handles failure', async () => {
   expect(fetchMock.calls(getDashboardEndpoint)).toHaveLength(4);
   expect(dispatch.callCount).toBe(1);
   expect(dispatch.getCall(0).args[0].type).toBe(SAVE_SLICE_FAILED);
-  expect(addSuccessToast).not.toHaveBeenCalled();
 });
 
 test('updateSlice with add to new dashboard handles success', async () => {
-  addSuccessToast.mockClear();
   fetchMock.reset();
   fetchMock.put(updateSliceEndpoint, sliceResponsePayload);
   const dispatch = sinon.spy();
@@ -266,15 +249,16 @@ test('updateSlice with add to new dashboard handles success', async () => {
   })(dispatch);
 
   expect(fetchMock.calls(updateSliceEndpoint)).toHaveLength(1);
-  expect(dispatch.callCount).toBe(1);
+  expect(dispatch.callCount).toBe(3);
   expect(dispatch.getCall(0).args[0].type).toBe(SAVE_SLICE_SUCCESS);
-  expect(addSuccessToast).toHaveBeenNthCalledWith(
-    1,
+  expect(dispatch.getCall(1).args[0].type).toBe(ADD_TOAST);
+  expect(dispatch.getCall(1).args[0].payload.toastType).toBe('SUCCESS_TOAST');
+  expect(dispatch.getCall(1).args[0].payload.text).toBe(
     'Chart [New chart] has been overwritten',
   );
-
-  expect(addSuccessToast).toHaveBeenNthCalledWith(
-    2,
+  expect(dispatch.getCall(2).args[0].type).toBe(ADD_TOAST);
+  expect(dispatch.getCall(2).args[0].payload.toastType).toBe('SUCCESS_TOAST');
+  expect(dispatch.getCall(2).args[0].payload.text).toBe(
     'Dashboard [New dashboard] just got created and chart [New chart] was added to it',
   );
 
@@ -282,7 +266,6 @@ test('updateSlice with add to new dashboard handles success', async () => {
 });
 
 test('updateSlice with add to existing dashboard handles success', async () => {
-  addSuccessToast.mockClear();
   fetchMock.reset();
   fetchMock.put(updateSliceEndpoint, sliceResponsePayload);
   const dispatch = sinon.spy();
@@ -292,15 +275,16 @@ test('updateSlice with add to existing dashboard handles success', async () => {
   })(dispatch);
 
   expect(fetchMock.calls(updateSliceEndpoint)).toHaveLength(1);
-  expect(dispatch.callCount).toBe(1);
+  expect(dispatch.callCount).toBe(3);
   expect(dispatch.getCall(0).args[0].type).toBe(SAVE_SLICE_SUCCESS);
-  expect(addSuccessToast).toHaveBeenNthCalledWith(
-    1,
+  expect(dispatch.getCall(1).args[0].type).toBe(ADD_TOAST);
+  expect(dispatch.getCall(1).args[0].payload.toastType).toBe('SUCCESS_TOAST');
+  expect(dispatch.getCall(1).args[0].payload.text).toBe(
     'Chart [New chart] has been overwritten',
   );
-
-  expect(addSuccessToast).toHaveBeenNthCalledWith(
-    2,
+  expect(dispatch.getCall(2).args[0].type).toBe(ADD_TOAST);
+  expect(dispatch.getCall(2).args[0].payload.toastType).toBe('SUCCESS_TOAST');
+  expect(dispatch.getCall(2).args[0].payload.text).toBe(
     'Chart [New chart] was added to dashboard [New dashboard]',
   );
 
