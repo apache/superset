@@ -830,7 +830,7 @@ test('async - requests the options again after clearing the cache', async () => 
 });
 
 test('async - triggers getPopupContainer if passed', async () => {
-  const getPopupContainer = jest.fn(() => null);
+  const getPopupContainer = jest.fn();
   render(
     <div>
       <Select
@@ -845,7 +845,7 @@ test('async - triggers getPopupContainer if passed', async () => {
 });
 
 test('static - triggers getPopupContainer if passed', async () => {
-  const getPopupContainer = jest.fn(() => null);
+  const getPopupContainer = jest.fn();
   render(<Select {...defaultProps} getPopupContainer={getPopupContainer} />);
   await open();
   expect(getPopupContainer).toHaveBeenCalled();
