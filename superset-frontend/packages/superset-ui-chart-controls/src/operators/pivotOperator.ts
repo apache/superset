@@ -45,8 +45,6 @@ export const pivotOperator: PostProcessingFactory<PostProcessingPivot> = (
           metricLabels.map(metric => [metric, { operator: 'mean' }]),
         ),
         drop_missing_columns: false,
-        flatten_columns: false,
-        reset_index: false,
       },
     };
   }

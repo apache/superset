@@ -51,8 +51,6 @@ const queryObject: QueryObject = {
           },
         },
         drop_missing_columns: false,
-        flatten_columns: false,
-        reset_index: false,
       },
     },
     {
