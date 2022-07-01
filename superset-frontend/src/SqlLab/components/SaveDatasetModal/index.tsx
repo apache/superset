@@ -161,9 +161,9 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
         datasetToOverwrite.owners.map((o: DatasetOwner) => o.id),
         true,
       ),
-      postFormData(datasetToOverwrite.datasetId, 'table', {
+      postFormData(datasetToOverwrite.datasetid, 'table', {
         ...EXPLORE_CHART_DEFAULT,
-        datasource: `${datasetToOverwrite.datasetId}__table`,
+        datasource: `${datasetToOverwrite.datasetid}__table`,
         ...(defaultVizType === 'table' && {
           all_columns: query.results.selected_columns.map(
             column => column.name,
