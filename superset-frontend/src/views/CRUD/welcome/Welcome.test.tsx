@@ -27,6 +27,9 @@ import * as featureFlags from 'src/featureFlags';
 import Welcome from 'src/views/CRUD/welcome/Welcome';
 import { ReactWrapper } from 'enzyme';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
+import { render, screen } from 'spec/helpers/testing-library';
+import { getUiOverrideRegistry } from '@superset-ui/core';
+import setupExtensions from 'src/setup/setupExtensions';
 
 const mockStore = configureStore([thunk]);
 const store = mockStore({});
@@ -178,4 +181,24 @@ describe('Welcome page with toggle switch', () => {
     await waitForComponentToPaint(wrapper);
     expect(wrapper.find('ImageLoader')).not.toExist();
   });
+});
+
+test('should render an extension component if one is supplied', () => {
+  const uiOverrideRegistry = getUiOverrideRegistry();
+
+  uiOverrideRegistry.set('welcome.banner', () => (
+    <>welcome.banner extension component</>
+  ));
+
+  setupExtensions();
+
+  render(
+    <Provider store={store}>
+      <Welcome {...mockedProps} />
+    </Provider>,
+  );
+
+  expect(
+    screen.getByText('welcome.banner extension component'),
+  ).toBeInTheDocument();
 });
