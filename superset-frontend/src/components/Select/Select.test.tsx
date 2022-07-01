@@ -829,6 +829,28 @@ test('async - requests the options again after clearing the cache', async () => 
   expect(mock).toHaveBeenCalledTimes(2);
 });
 
+test('async - triggers getPopupContainer if passed', async () => {
+  const getPopupContainer = jest.fn();
+  render(
+    <div>
+      <Select
+        {...defaultProps}
+        options={loadOptions}
+        getPopupContainer={getPopupContainer}
+      />
+    </div>,
+  );
+  await open();
+  expect(getPopupContainer).toHaveBeenCalled();
+});
+
+test('static - triggers getPopupContainer if passed', async () => {
+  const getPopupContainer = jest.fn();
+  render(<Select {...defaultProps} getPopupContainer={getPopupContainer} />);
+  await open();
+  expect(getPopupContainer).toHaveBeenCalled();
+});
+
 /*
  TODO: Add tests that require scroll interaction. Needs further investigation.
  - Fetches more data when scrolling and more data is available
