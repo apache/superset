@@ -15,12 +15,12 @@
 # specific language governing permissions and limitations
 # under the License.
 from functools import partial
-from typing import Any, Callable, Dict, Tuple, Union
+from typing import Any, Callable, Dict
 
 import numpy as np
 import pandas as pd
 from flask_babel import gettext as _
-from pandas import DataFrame, NamedAgg, Timestamp
+from pandas import DataFrame, NamedAgg
 
 from superset.exceptions import InvalidPostProcessingError
 
@@ -95,30 +95,6 @@ PROPHET_TIME_GRAIN_MAP = {
 RESAMPLE_METHOD = ("asfreq", "bfill", "ffill", "linear", "median", "mean", "sum")
 
 FLAT_COLUMN_SEPARATOR = ", "
-
-
-def _flatten_column_after_pivot(
-    column: Union[float, Timestamp, str, Tuple[str, ...]],
-    aggregates: Dict[str, Dict[str, Any]],
-) -> str:
-    """
-    Function for flattening column names into a single string. This step is necessary
-    to be able to properly serialize a DataFrame. If the column is a string, return
-    element unchanged. For multi-element columns, join column elements with a comma,
-    with the exception of pivots made with a single aggregate, in which case the
-    aggregate column name is omitted.
-
-    :param column: single element from `DataFrame.columns`
-    :param aggregates: aggregates
-    :return:
-    """
-    if not isinstance(column, tuple):
-        column = (column,)
-    if len(aggregates) == 1 and len(column) > 1:
-        # drop aggregate for single aggregate pivots with multiple groupings
-        # from column name (aggregates always come first in column name)
-        column = column[1:]
-    return FLAT_COLUMN_SEPARATOR.join([str(col) for col in column])
 
 
 def _is_multi_index_on_columns(df: DataFrame) -> bool:
