@@ -106,7 +106,6 @@ const IconFileNames = [
   'layers',
   'lightbulb',
   'line-chart-tile',
-  'lines',
   'link',
   'list',
   'list_view',
