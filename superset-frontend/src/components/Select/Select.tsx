@@ -67,6 +67,7 @@ type PickedSelectProps = Pick<
   | 'showSearch'
   | 'tokenSeparators'
   | 'value'
+  | 'getPopupContainer'
 >;
 
 export type OptionsType = Exclude<AntdSelectAllProps['options'], undefined>;
@@ -165,11 +166,6 @@ export interface SelectProps extends PickedSelectProps {
    * Will not apply to predefined `options` array when users are not searching.
    */
   sortComparator?: typeof DEFAULT_SORT_COMPARATOR;
-  /**
-   * Customize who the container node is.
-   * Parent node by default.
-   */
-  getPopupContainer?: (triggerNode?: any) => any;
 }
 
 const StyledContainer = styled.div`
