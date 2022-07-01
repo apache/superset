@@ -53,11 +53,7 @@ export function fetchSlices(
   slices = {},
 ) {
   const additional_filters = filter_value
-    ? [
-        { col: 'slice_name', opr: 'sw', value: filter_value },
-        { col: 'viz_type', opr: 'sw', value: filter_value },
-        { col: 'datasource_name', opr: 'sw', value: filter_value },
-      ]
+    ? [{ col: 'slice_name', opr: 'chart_all_text', value: filter_value }]
     : [];
 
   const cloneSlices = { ...slices };
