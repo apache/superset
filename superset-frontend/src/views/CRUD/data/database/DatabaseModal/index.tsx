@@ -190,9 +190,8 @@ type DBReducerActionType =
     };
 
 const StyledBtns = styled.div`
-  display: flex;
-  justify-content: space-evenly;
-  padding: ${({ theme }) => theme.gridUnit * 4}px;
+  margin-bottom: ${({ theme }) => theme.gridUnit * 3}px;
+  margin-left: ${({ theme }) => theme.gridUnit * 3}px;
 `;
 
 function dbReducer(
@@ -1133,7 +1132,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           window.location.href = `/superset/sqllab/?db=true`;
         }}
       >
-        {t('GO TO SQL LAB')}{' '}
+        {t('QUERY DATA IN SQL LAB')}{' '}
       </Button>
     </StyledBtns>
   );
