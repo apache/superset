@@ -125,9 +125,7 @@ test('should compile query object A', () => {
           },
           columns: ['foo'],
           drop_missing_columns: false,
-          flatten_columns: false,
           index: ['__timestamp'],
-          reset_index: false,
         },
       },
       {
@@ -188,9 +186,7 @@ test('should compile query object B', () => {
           },
           columns: [],
           drop_missing_columns: false,
-          flatten_columns: false,
           index: ['__timestamp'],
-          reset_index: false,
         },
       },
       {
@@ -314,9 +310,7 @@ test('should compile query objects with x-axis', () => {
           },
           columns: ['foo'],
           drop_missing_columns: false,
-          flatten_columns: false,
           index: ['my_index'],
-          reset_index: false,
         },
       },
       {
@@ -354,9 +348,7 @@ test('should compile query objects with x-axis', () => {
             },
             columns: [],
             drop_missing_columns: false,
-            flatten_columns: false,
             index: ['my_index'],
-            reset_index: false,
           },
         },
         {
