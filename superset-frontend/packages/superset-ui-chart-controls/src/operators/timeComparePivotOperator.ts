@@ -47,8 +47,6 @@ export const timeComparePivotOperator: PostProcessingFactory<PostProcessingPivot
           index,
           columns: ensureIsArray(queryObject.columns).map(getColumnLabel),
           drop_missing_columns: false,
-          flatten_columns: false,
-          reset_index: false,
           aggregates,
         },
       };
