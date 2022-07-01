@@ -193,10 +193,10 @@ export type TabOverride = 'data' | 'customize' | boolean;
  *    show a warning based on the value of another component. It's also possible to bind
  *    arbitrary data from the redux store to the component this way.
  * - tabOverride: set to 'data' if you want to force a renderTrigger to show up on the `Data`
-     tab, or 'customize' if you want it to show up on that tam. Otherwise sections with ALL
-     `renderTrigger: true` components will show up on the `Customize` tab.
+      tab, or 'customize' if you want it to show up on that tam. Otherwise sections with ALL
+      `renderTrigger: true` components will show up on the `Customize` tab.
  * - visibility: a function that uses control panel props to check whether a control should
- *    be visibile.
+ *    be visible. Return undefined if the result of the function call should not be used.
  */
 export interface BaseControlConfig<
   T extends ControlType = ControlType,
@@ -230,7 +230,7 @@ export interface BaseControlConfig<
   visibility?: (
     props: ControlPanelsContainerProps,
     controlData: AnyDict,
-  ) => boolean;
+  ) => boolean | undefined;
 }
 
 export interface ControlValueValidator<

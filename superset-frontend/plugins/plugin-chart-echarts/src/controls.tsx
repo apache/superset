@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { t } from '@superset-ui/core';
+import { DTTM_ALIAS, getColumnLabel, t } from '@superset-ui/core';
 import {
   ControlPanelsContainerProps,
   ControlSetItem,
@@ -26,6 +26,7 @@ import {
 } from '@superset-ui/chart-controls';
 import { DEFAULT_LEGEND_FORM_DATA } from './constants';
 import { DEFAULT_FORM_DATA } from './Timeseries/constants';
+import { getAxisType, getColtypesMapping } from './utils/series';
 
 const { legendMargin, legendOrientation, legendType, showLegend } =
   DEFAULT_LEGEND_FORM_DATA;
@@ -120,6 +121,29 @@ export const stackControl: ControlSetItem = {
     renderTrigger: true,
     default: false,
     description: t('Stack series on top of each other'),
+    visibility: (props: ControlPanelsContainerProps) => {
+      // Bar stacking is not supported if the x-axis is value type
+      // Source: https://github.com/apache/echarts/issues/15102
+      const vizType = props?.form_data?.viz_type;
+      if (vizType !== 'echarts_timeseries_bar') {
+        return undefined;
+      }
+
+      const data = props?.chart?.queriesResponse?.[0];
+      const verboseMap = props?.exploreState?.datasource?.verbose_map ?? {};
+      const xAxis = props?.form_data?.x_axis;
+
+      if (!data || !xAxis) {
+        return undefined;
+      }
+
+      const dataTypes = getColtypesMapping(data);
+      const xAxisCol = verboseMap[xAxis] || getColumnLabel(xAxis || DTTM_ALIAS);
+      const xAxisDataType = dataTypes?.[xAxisCol];
+      const xAxisType = getAxisType(xAxisDataType);
+
+      return xAxisType === 'category';
+    },
   },
 };
 
