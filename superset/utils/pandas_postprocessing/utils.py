@@ -15,12 +15,12 @@
 # specific language governing permissions and limitations
 # under the License.
 from functools import partial
-from typing import Any, Callable, Dict, Tuple, Union
+from typing import Any, Callable, Dict
 
 import numpy as np
 import pandas as pd
 from flask_babel import gettext as _
-from pandas import DataFrame, NamedAgg, Timestamp
+from pandas import DataFrame, NamedAgg
 
 from superset.exceptions import InvalidPostProcessingError
 
