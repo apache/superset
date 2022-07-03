@@ -158,7 +158,7 @@ describe('SavedQuery', () => {
     const saveLabel = screen.getByText(/save as new/i);
     const saveTextbox = screen.getByRole('textbox');
     const overwriteRadio = screen.getByRole('radio', {
-      name: /overwrite existing select or type dataset name/i,
+      name: /overwrite existing/i,
     });
     const overwriteLabel = screen.getByText(/overwrite existing/i);
     const overwriteCombobox = screen.getByRole('combobox');
