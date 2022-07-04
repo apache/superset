@@ -92,21 +92,22 @@ export type ThemeConfig = {
 
 export type PartialThemeConfig = RecursivePartial<ThemeConfig>;
 
-export const defaultTheme: (theme: SupersetTheme) => PartialThemeConfig =
-  theme => ({
-    borderRadius: theme.borderRadius,
-    zIndex: 11,
-    colors: colors(theme),
-    spacing: {
-      baseUnit: 3,
-      menuGutter: 0,
-      controlHeight: 34,
-      lineHeight: 19,
-      fontSize: 14,
-      minWidth: '6.5em',
-    },
-    weights: theme.typography.weights,
-  });
+export const defaultTheme: (
+  theme: SupersetTheme,
+) => PartialThemeConfig = theme => ({
+  borderRadius: theme.borderRadius,
+  zIndex: 11,
+  colors: colors(theme),
+  spacing: {
+    baseUnit: 3,
+    menuGutter: 0,
+    controlHeight: 34,
+    lineHeight: 19,
+    fontSize: 14,
+    minWidth: '6.5em',
+  },
+  weights: theme.typography.weights,
+});
 
 // let styles accept serialized CSS, too
 type CSSStyles = CSSProperties | SerializedStyles;

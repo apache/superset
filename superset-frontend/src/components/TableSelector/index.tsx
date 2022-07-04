@@ -367,7 +367,8 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   );
 };
 
-export const TableSelectorMultiple: FunctionComponent<TableSelectorProps> =
-  props => <TableSelector tableSelectMode="multiple" {...props} />;
+export const TableSelectorMultiple: FunctionComponent<
+  TableSelectorProps
+> = props => <TableSelector tableSelectMode="multiple" {...props} />;
 
 export default TableSelector;
