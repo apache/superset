@@ -117,21 +117,21 @@ spec:
           livenessProbe:
             httpGet:
               path: /health
-              port: {{ .Values.service.port }}
-            initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds | default 15 }}
-            timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds | default 1 }}
-            failureThreshold: {{ .Values.livenessProbe.failureThreshold | default 3 }}
-            periodSeconds: {{ .Values.livenessProbe.periodSeconds | default 5 }}
-            successThreshold: {{ .Values.livenessProbe.successThreshold | default 1 }}
+              port: http
+            initialDelaySeconds: {{ .Values.supersetNode.livenessProbe.initialDelaySeconds | default 15 }}
+            timeoutSeconds: {{ .Values.supersetNode.livenessProbe.timeoutSeconds | default 1 }}
+            failureThreshold: {{ .Values.supersetNode.livenessProbe.failureThreshold | default 3 }}
+            periodSeconds: {{ .Values.supersetNode.livenessProbe.periodSeconds | default 5 }}
+            successThreshold: {{ .Values.supersetNode.livenessProbe.successThreshold | default 1 }}
           readinessProbe:
             httpGet:
               path: /health
-              port: {{ .Values.service.port }}
-            initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds | default 15 }}
-            timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds | default 1 }}
-            failureThreshold: {{ .Values.readinessProbe.failureThreshold | default 3 }}
-            periodSeconds: {{ .Values.readinessProbe.periodSeconds | default 5 }}
-            successThreshold: {{ .Values.readinessProbe.successThreshold | default 1 }}
+              port: http
+            initialDelaySeconds: {{ .supersetNode.Values.readinessProbe.initialDelaySeconds | default 15 }}
+            timeoutSeconds: {{ .Values.supersetNode.readinessProbe.timeoutSeconds | default 1 }}
+            failureThreshold: {{ .Values.supersetNode.readinessProbe.failureThreshold | default 3 }}
+            periodSeconds: {{ .Values.supersetNode.readinessProbe.periodSeconds | default 5 }}
+            successThreshold: {{ .Values.supersetNode.readinessProbe.successThreshold | default 1 }}
           resources:
           {{- if .Values.supersetNode.resources }}
 {{ toYaml .Values.supersetNode.resources | indent 12 }}
