@@ -476,6 +476,12 @@ function SavedQueryList({
         paginate: true,
       },
       {
+        Header: t('Tags'),
+        id: 'tags',
+        input: 'search',
+        operator: FilterOperator.savedQueryTags,
+      },
+      {
         Header: t('Search'),
         id: 'label',
         input: 'search',

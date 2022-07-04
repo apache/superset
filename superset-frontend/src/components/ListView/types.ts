@@ -114,4 +114,8 @@ export enum FilterOperator {
   chartIsCertified = 'chart_is_certified',
   dashboardIsCertified = 'dashboard_is_certified',
   datasetIsCertified = 'dataset_is_certified',
+  dashboardTags = 'dashboard_tags',
+  chartTags = 'chart_tags',
+  savedQueryTags = 'saved_query_tags',
+  datasetTags = 'dataset_tags',
 }

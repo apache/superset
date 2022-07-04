@@ -538,6 +538,12 @@ function DashboardList(props: DashboardListProps) {
         ],
       },
       {
+        Header: t('Tags'),
+        id: 'tags',
+        input: 'search',
+        operator: FilterOperator.dashboardTags,
+      },
+      {
         Header: t('Search'),
         id: 'dashboard_title',
         input: 'search',

@@ -46,6 +46,7 @@ from superset.queries.saved_queries.commands.importers.dispatcher import (
 from superset.queries.saved_queries.filters import (
     SavedQueryAllTextFilter,
     SavedQueryFavoriteFilter,
+    SavedQueryTagFilter,
     SavedQueryFilter,
 )
 from superset.queries.saved_queries.schemas import (
@@ -131,10 +132,11 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
         "last_run_delta_humanized",
     ]
 
-    search_columns = ["id", "database", "label", "schema", "created_by"]
+    search_columns = ["id", "database", "label", "schema", "created_by", "tags"]
     search_filters = {
         "id": [SavedQueryFavoriteFilter],
         "label": [SavedQueryAllTextFilter],
+        "tags": [SavedQueryTagFilter]
     }
 
     apispec_parameter_schemas = {

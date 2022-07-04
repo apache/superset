@@ -51,6 +51,7 @@ from superset.charts.filters import (
     ChartAllTextFilter,
     ChartCertifiedFilter,
     ChartFavoriteFilter,
+    ChartTagFilter,
     ChartFilter,
 )
 from superset.charts.schemas import (
@@ -197,6 +198,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "id",
         "owners",
         "slice_name",
+        "tags",
         "viz_type",
     ]
     base_order = ("changed_on", "desc")
@@ -204,6 +206,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
     search_filters = {
         "id": [ChartFavoriteFilter, ChartCertifiedFilter],
         "slice_name": [ChartAllTextFilter],
+        "tags": [ChartTagFilter],
     }
 
     # Will just affect _info endpoint

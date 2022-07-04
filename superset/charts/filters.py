@@ -25,7 +25,7 @@ from superset.connectors.sqla import models
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.slice import Slice
 from superset.views.base import BaseFilter
-from superset.views.base_api import BaseFavoriteFilter
+from superset.views.base_api import BaseFavoriteFilter, BaseTagFilter
 
 
 class ChartAllTextFilter(BaseFilter):  # pylint: disable=too-few-public-methods
@@ -52,6 +52,18 @@ class ChartFavoriteFilter(BaseFavoriteFilter):  # pylint: disable=too-few-public
     """
 
     arg_name = "chart_is_favorite"
+    class_name = "slice"
+    model = Slice
+
+
+class ChartTagFilter(  # pylint: disable=too-few-public-methods
+    BaseTagFilter
+):
+    """
+    Custom filter for the GET list that filters all dashboards that a user has favored
+    """
+
+    arg_name = "chart_tags"
     class_name = "slice"
     model = Slice
 

@@ -591,6 +591,12 @@ function ChartList(props: ChartListProps) {
         ],
       },
       {
+        Header: t('Tags'),
+        id: 'tags',
+        input: 'search',
+        operator: FilterOperator.chartTags,
+      },
+      {
         Header: t('Search'),
         id: 'slice_name',
         input: 'search',
