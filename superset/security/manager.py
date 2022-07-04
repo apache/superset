@@ -934,7 +934,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         return pvm.permission.name in {"can_override_role_permissions", "can_approve"}
 
     def on_permission_after_insert(
-        self, mapper: Mapper, connection: Connection, target: "Permission"
+        self, mapper: Mapper, connection: Connection, target: Permission
     ) -> None:
         """
         Hook that allows for further custom operations when a new permission
@@ -948,10 +948,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :param connection: The DB-API connection
         :param target: The mapped instance being persisted
         """
-        pass
 
     def on_view_menu_after_insert(
-        self, mapper: Mapper, connection: Connection, target: "ViewMenu"
+        self, mapper: Mapper, connection: Connection, target: ViewMenu
     ) -> None:
         """
         Hook that allows for further custom operations when a new ViewMenu
@@ -965,10 +964,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :param connection: The DB-API connection
         :param target: The mapped instance being persisted
         """
-        pass
 
     def on_permission_view_after_insert(
-        self, mapper: Mapper, connection: Connection, target: "PermissionView"
+        self, mapper: Mapper, connection: Connection, target: PermissionView
     ) -> None:
         """
         Hook that allows for further custom operations when a new PermissionView
@@ -982,9 +980,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :param connection: The DB-API connection
         :param target: The mapped instance being persisted
         """
-        pass
 
-    def set_perm(  # pylint: disable=unused-argument
+    def set_perm(
         self, mapper: Mapper, connection: Connection, target: "BaseDatasource"
     ) -> None:
         """
