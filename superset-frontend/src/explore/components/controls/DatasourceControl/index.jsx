@@ -19,7 +19,13 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { t, styled, withTheme, DatasourceType } from '@superset-ui/core';
+import {
+  DatasourceType,
+  SupersetClient,
+  styled,
+  t,
+  withTheme,
+} from '@superset-ui/core';
 import { getUrlParam } from 'src/utils/urlUtils';
 
 import { AntdDropdown } from 'src/components';
@@ -30,13 +36,13 @@ import {
   ChangeDatasourceModal,
   DatasourceModal,
 } from 'src/components/Datasource';
-import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
-import { postForm } from 'src/explore/exploreUtils';
 import Button from 'src/components/Button';
 import ErrorAlert from 'src/components/ErrorMessage/ErrorAlert';
 import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
 import { URL_PARAMS } from 'src/constants';
-import { isUserAdmin } from 'src/dashboard/util/findPermission';
+import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
+import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
+import { safeStringify } from 'src/utils/safeStringify';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -133,7 +139,7 @@ class DatasourceControl extends React.PureComponent {
   }
 
   onDatasourceSave(datasource) {
-    this.props.actions.setDatasource(datasource);
+    this.props.actions.changeDatasource(datasource);
     const timeCol = this.props.form_data?.granularity_sqla;
     const { columns } = this.props.datasource;
     const firstDttmCol = columns.find(column => column.is_dttm);
@@ -193,7 +199,9 @@ class DatasourceControl extends React.PureComponent {
             datasourceKey: `${datasource.id}__${datasource.type}`,
             sql: datasource.sql,
           };
-          postForm('/superset/sqllab/', payload);
+          SupersetClient.postForm('/superset/sqllab/', {
+            form_data: safeStringify(payload),
+          });
         }
         break;
 
@@ -229,7 +237,7 @@ class DatasourceControl extends React.PureComponent {
     const isSqlSupported = datasource.type === 'table';
     const { user } = this.props;
     const allowEdit = datasource.owners
-      .map(o => o.id || o.value)
+      ?.map(o => o.id || o.value)
       .includes(user.userId);
     isUserAdmin(user);
 

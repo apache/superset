@@ -29,6 +29,7 @@ import {
   formatSelectOptions,
   sections,
   dndColumnsControl,
+  getStandardizedControls,
 } from '@superset-ui/chart-controls';
 
 const allColumns = {
@@ -160,5 +161,9 @@ const config: ControlPanelConfig = {
       ],
     },
   ],
+  formDataOverrides: formData => ({
+    ...formData,
+    groupby: getStandardizedControls().popAllColumns(),
+  }),
 };
 export default config;

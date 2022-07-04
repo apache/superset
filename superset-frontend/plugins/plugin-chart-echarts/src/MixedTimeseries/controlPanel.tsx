@@ -30,13 +30,14 @@ import {
   ControlSetRow,
   CustomControlItem,
   emitFilterControl,
+  getStandardizedControls,
   sections,
   sharedControls,
 } from '@superset-ui/chart-controls';
 
 import { DEFAULT_FORM_DATA } from './types';
 import { EchartsTimeseriesSeriesType } from '../Timeseries/types';
-import { legendSection, richTooltipSection, xAxisControl } from '../controls';
+import { legendSection, richTooltipSection } from '../controls';
 
 const {
   area,
@@ -120,6 +121,15 @@ function createQuerySection(
           config: {
             ...sharedControls.row_limit,
             default: rowLimit,
+          },
+        },
+      ],
+      [
+        {
+          name: `truncate_metric${controlSuffix}`,
+          config: {
+            ...sharedControls.truncate_metric,
+            default: sharedControls.truncate_metric.default,
           },
         },
       ],
@@ -286,7 +296,7 @@ const config: ControlPanelConfig = {
       ? {
           label: t('Shared query fields'),
           expanded: true,
-          controlSetRows: [[xAxisControl]],
+          controlSetRows: [['x_axis']],
         }
       : null,
     createQuerySection(t('Query A'), ''),
@@ -440,15 +450,23 @@ const config: ControlPanelConfig = {
       ],
     },
   ],
-  denormalizeFormData: formData => {
-    const groupby =
-      formData.standardizedFormData.standardizedState.columns.filter(
-        col => !ensureIsArray(formData.groupby_b).includes(col),
+  formDataOverrides: formData => {
+    const groupby = getStandardizedControls().controls.columns.filter(
+      col => !ensureIsArray(formData.groupby_b).includes(col),
+    );
+    getStandardizedControls().controls.columns =
+      getStandardizedControls().controls.columns.filter(
+        col => !groupby.includes(col),
       );
-    const metrics =
-      formData.standardizedFormData.standardizedState.metrics.filter(
-        metric => !ensureIsArray(formData.metrics_b).includes(metric),
+
+    const metrics = getStandardizedControls().controls.metrics.filter(
+      metric => !ensureIsArray(formData.metrics_b).includes(metric),
+    );
+    getStandardizedControls().controls.metrics =
+      getStandardizedControls().controls.metrics.filter(
+        col => !metrics.includes(col),
       );
+
     return {
       ...formData,
       metrics,

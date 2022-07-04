@@ -85,8 +85,10 @@ import {
   dndGroupByControl,
   dndSeries,
   dnd_adhoc_metric_2,
+  dnd_x_axis,
 } from './dndControls';
 import { QUERY_TIME_COLUMN_OPTION } from '..';
+import { xAxisControlConfig } from './constants';
 
 const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
 const sequentialSchemeRegistry = getSequentialSchemeRegistry();
@@ -533,6 +535,25 @@ const color_scheme: SharedControlConfig<'ColorSchemeControl'> = {
   }),
 };
 
+const truncate_metric: SharedControlConfig<'CheckboxControl'> = {
+  type: 'CheckboxControl',
+  label: t('Truncate Metric'),
+  default: true,
+  description: t('Whether to truncate metrics'),
+};
+
+const drop_missing_columns: SharedControlConfig<'CheckboxControl'> = {
+  type: 'CheckboxControl',
+  label: t('Drop Missing Columns'),
+  default: false,
+  description: t('Drop a column if all values are null'),
+};
+
+const x_axis: SharedControlConfig<'SelectControl', ColumnMeta> = {
+  ...groupByControl,
+  ...xAxisControlConfig,
+};
+
 const enableExploreDnd = isFeatureEnabled(
   FeatureFlag.ENABLE_EXPLORE_DRAG_AND_DROP,
 );
@@ -571,6 +592,9 @@ const sharedControls = {
   series_limit,
   series_limit_metric: enableExploreDnd ? dnd_sort_by : sort_by,
   legacy_order_by: enableExploreDnd ? dnd_sort_by : sort_by,
+  truncate_metric,
+  x_axis: enableExploreDnd ? dnd_x_axis : x_axis,
+  drop_missing_columns,
 };
 
 export { sharedControls, dndEntity, dndColumnsControl };

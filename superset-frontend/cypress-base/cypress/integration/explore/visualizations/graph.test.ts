@@ -46,7 +46,7 @@ describe('Visualization > Graph', () => {
   function verify(formData: {
     [name: string]: string | boolean | number | Array<adhocFilter>;
   }): void {
-    cy.visitChartByParams(JSON.stringify(formData));
+    cy.visitChartByParams(formData);
     cy.verifySliceSuccess({ waitAlias: '@getJson' });
   }
 

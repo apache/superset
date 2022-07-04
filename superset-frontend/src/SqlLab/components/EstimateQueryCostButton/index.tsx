@@ -26,9 +26,6 @@ import ModalTrigger from 'src/components/ModalTrigger';
 import { EmptyWrapperType } from 'src/components/TableView/TableView';
 
 interface EstimateQueryCostButtonProps {
-  dbId: number;
-  schema: string;
-  sql: string;
   getEstimate: Function;
   queryCostEstimate: Record<string, any>;
   selectedText?: string;
@@ -37,9 +34,6 @@ interface EstimateQueryCostButtonProps {
 }
 
 const EstimateQueryCostButton = ({
-  dbId,
-  schema,
-  sql,
   getEstimate,
   queryCostEstimate = {},
   selectedText,

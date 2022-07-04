@@ -37,11 +37,14 @@ const config = {
   projectName: 'superset', // Usually your repo name.
   themes: ['@saucelabs/theme-github-codeblock'],
   plugins: [
-    ["docusaurus-plugin-less", {
-      lessOptions: {
-        javascriptEnabled: true,
-      }
-    }],
+    [
+      'docusaurus-plugin-less',
+      {
+        lessOptions: {
+          javascriptEnabled: true,
+        },
+      },
+    ],
     [
       '@docusaurus/plugin-client-redirects',
       {
@@ -229,8 +232,7 @@ const config = {
       },
       footer: {
         style: 'dark',
-        links: [
-        ],
+        links: [],
         copyright: `Copyright © ${new Date().getFullYear()},
         The <a href="https://www.apache.org/" target="_blank" rel="noreferrer">Apache Software Foundation</a>,
         Licensed under the Apache <a href="https://apache.org/licenses/LICENSE-2.0" target="_blank" rel="noreferrer">License</a>. <br/>
@@ -249,6 +251,7 @@ const config = {
         darkTheme: darkCodeTheme,
       },
     }),
+  scripts: ['/script/matomo.js'],
 };
 
 module.exports = config;

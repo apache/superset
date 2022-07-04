@@ -366,18 +366,17 @@ function dbReducer(
           configuration_method: action.payload.configuration_method,
           extra_json: deserializeExtraJSON,
           catalog: engineParamsCatalog,
-          parameters: action.payload.parameters,
+          parameters: action.payload.parameters || trimmedState.parameters,
           query_input,
         };
       }
-
       return {
         ...action.payload,
         encrypted_extra: action.payload.encrypted_extra || '',
         engine: action.payload.backend || trimmedState.engine,
         configuration_method: action.payload.configuration_method,
         extra_json: deserializeExtraJSON,
-        parameters: action.payload.parameters,
+        parameters: action.payload.parameters || trimmedState.parameters,
         query_input,
       };
 
@@ -789,6 +788,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             onClick={() => setDatabaseModel(database.name)}
             buttonText={database.name}
             icon={dbImages?.[database.engine]}
+            key={`${database.name}`}
           />
         ))}
     </div>
@@ -974,11 +974,12 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     ]);
 
     if (!(info.file.originFileObj instanceof File)) return;
-    await importResource(
+    const dbId = await importResource(
       info.file.originFileObj,
       passwords,
       confirmedOverwrite,
     );
+    if (dbId) onDatabaseAdd?.();
   };
 
   const passwordNeededField = () => {
@@ -1276,7 +1277,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 }
                 conf={conf}
                 testConnection={testConnection}
-                isEditMode={isEditMode}
                 testInProgress={testInProgress}
               />
               {isDynamic(db?.backend || db?.engine) && !isEditMode && (

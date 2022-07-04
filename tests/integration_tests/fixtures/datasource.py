@@ -15,10 +15,20 @@
 # specific language governing permissions and limitations
 # under the License.
 """Fixtures for test_datasource.py"""
-from typing import Any, Dict
+from typing import Any, Dict, Generator
 
+import pytest
+from sqlalchemy import Column, create_engine, Date, Integer, MetaData, String, Table
+from sqlalchemy.ext.declarative.api import declarative_base
+
+from superset.columns.models import Column as Sl_Column
+from superset.connectors.sqla.models import SqlaTable, TableColumn
+from superset.extensions import db
+from superset.models.core import Database
+from superset.tables.models import Table as Sl_Table
 from superset.utils.core import get_example_default_schema
 from superset.utils.database import get_example_database
+from tests.integration_tests.test_app import app
 
 
 def get_datasource_post() -> Dict[str, Any]:
@@ -159,3 +169,43 @@ def get_datasource_post() -> Dict[str, Any]:
             },
         ],
     }
+
+
+@pytest.fixture()
+def load_dataset_with_columns() -> Generator[SqlaTable, None, None]:
+    with app.app_context():
+        engine = create_engine(app.config["SQLALCHEMY_DATABASE_URI"], echo=True)
+        meta = MetaData()
+        session = db.session
+
+        students = Table(
+            "students",
+            meta,
+            Column("id", Integer, primary_key=True),
+            Column("name", String(255)),
+            Column("lastname", String(255)),
+            Column("ds", Date),
+        )
+        meta.create_all(engine)
+
+        students.insert().values(name="George", ds="2021-01-01")
+
+        dataset = SqlaTable(
+            database_id=db.session.query(Database).first().id, table_name="students"
+        )
+        column = TableColumn(table_id=dataset.id, column_name="name")
+        dataset.columns = [column]
+        session.add(dataset)
+        session.commit()
+        yield dataset
+
+        # cleanup
+        students_table = meta.tables.get("students")
+        if students_table is not None:
+            base = declarative_base()
+            # needed for sqlite
+            session.commit()
+            base.metadata.drop_all(engine, [students_table], checkfirst=True)
+        session.delete(dataset)
+        session.delete(column)
+        session.commit()

@@ -47,6 +47,7 @@ const formDataMixedChart = {
   timeseries_limit_metric: 'count',
   order_desc: true,
   emit_filter: true,
+  truncate_metric: true,
   //   -- query b
   groupby_b: [],
   metrics_b: ['count'],
@@ -62,6 +63,7 @@ const formDataMixedChart = {
   timeseries_limit_metric_b: undefined,
   order_desc_b: false,
   emit_filter_b: undefined,
+  truncate_metric_b: true,
   // chart configs
   show_value: false,
   show_valueB: undefined,
@@ -123,9 +125,7 @@ test('should compile query object A', () => {
           },
           columns: ['foo'],
           drop_missing_columns: false,
-          flatten_columns: false,
           index: ['__timestamp'],
-          reset_index: false,
         },
       },
       {
@@ -186,9 +186,7 @@ test('should compile query object B', () => {
           },
           columns: [],
           drop_missing_columns: false,
-          flatten_columns: false,
           index: ['__timestamp'],
-          reset_index: false,
         },
       },
       {
@@ -312,9 +310,7 @@ test('should compile query objects with x-axis', () => {
           },
           columns: ['foo'],
           drop_missing_columns: false,
-          flatten_columns: false,
           index: ['my_index'],
-          reset_index: false,
         },
       },
       {
@@ -352,9 +348,7 @@ test('should compile query objects with x-axis', () => {
             },
             columns: [],
             drop_missing_columns: false,
-            flatten_columns: false,
             index: ['my_index'],
-            reset_index: false,
           },
         },
         {

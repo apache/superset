@@ -67,4 +67,4 @@ def get_uuid_namespace(seed: str) -> UUID:
 
 
 def get_owner(user: User) -> Optional[int]:
-    return user.get_user_id() if not user.is_anonymous else None
+    return user.id if not user.is_anonymous else None

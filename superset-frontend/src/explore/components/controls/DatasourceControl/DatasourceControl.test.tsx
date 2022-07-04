@@ -21,7 +21,6 @@ import React from 'react';
 import { render, screen, act } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { SupersetClient, DatasourceType } from '@superset-ui/core';
-import * as Utils from 'src/explore/exploreUtils';
 import DatasourceControl from '.';
 
 const SupersetClientGet = jest.spyOn(SupersetClient, 'get');
@@ -142,7 +141,7 @@ test('Click on Edit dataset', async () => {
 
 test('Click on View in SQL Lab', async () => {
   const props = createProps();
-  const postFormSpy = jest.spyOn(Utils, 'postForm');
+  const postFormSpy = jest.spyOn(SupersetClient, 'postForm');
   postFormSpy.mockImplementation(jest.fn());
 
   render(<DatasourceControl {...props} />, {
@@ -200,10 +199,12 @@ test('Click on Save as dataset', () => {
     name: /save as new undefined/i,
   });
   const overwriteRadioBtn = screen.getByRole('radio', {
-    name: /overwrite existing select or type dataset name/i,
+    name: /overwrite existing/i,
   });
+  const dropdownField = screen.getByText(/select or type dataset name/i);
   expect(saveRadioBtn).toBeVisible();
   expect(overwriteRadioBtn).toBeVisible();
   expect(screen.getByRole('button', { name: /save/i })).toBeVisible();
   expect(screen.getByRole('button', { name: /close/i })).toBeVisible();
+  expect(dropdownField).toBeVisible();
 });

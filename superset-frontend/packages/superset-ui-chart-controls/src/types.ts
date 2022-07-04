@@ -50,6 +50,14 @@ export type SharedControlComponents = typeof sharedControlComponents;
 /** ----------------------------------------------
  * Input data/props while rendering
  * ---------------------------------------------*/
+export interface Owner {
+  first_name: string;
+  id: number;
+  last_name: string;
+  username: string;
+  email?: string;
+}
+
 export type ColumnMeta = Omit<Column, 'id'> & {
   id?: number;
 } & AnyDict;
@@ -67,7 +75,10 @@ export interface Dataset {
   time_grain_sqla?: string;
   granularity_sqla?: string;
   datasource_name: string | null;
+  name?: string;
   description: string | null;
+  uid?: string;
+  owners?: Owner[];
 }
 
 export interface ControlPanelState {
@@ -343,26 +354,36 @@ export interface ControlPanelSectionConfig {
   controlSetRows: ControlSetRow[];
 }
 
-export interface StandardizedState {
+export interface StandardizedControls {
   metrics: QueryFormMetric[];
   columns: QueryFormColumn[];
 }
 
 export interface StandardizedFormDataInterface {
-  standardizedState: StandardizedState;
+  // Controls not used in the current viz
+  controls: StandardizedControls;
+  // Transformation history
   memorizedFormData: Map<string, QueryFormData>;
 }
+
+export type QueryStandardizedFormData = QueryFormData & {
+  standardizedFormData: StandardizedFormDataInterface;
+};
+
+export const isStandardizedFormData = (
+  formData: QueryFormData,
+): formData is QueryStandardizedFormData =>
+  formData?.standardizedFormData?.controls &&
+  formData?.standardizedFormData?.memorizedFormData &&
+  Array.isArray(formData.standardizedFormData.controls.metrics) &&
+  Array.isArray(formData.standardizedFormData.controls.columns);
 
 export interface ControlPanelConfig {
   controlPanelSections: (ControlPanelSectionConfig | null)[];
   controlOverrides?: ControlOverrides;
   sectionOverrides?: SectionOverrides;
   onInit?: (state: ControlStateMapping) => void;
-  denormalizeFormData?: (
-    formData: QueryFormData & {
-      standardizedFormData: StandardizedFormDataInterface;
-    },
-  ) => QueryFormData;
+  formDataOverrides?: (formData: QueryFormData) => QueryFormData;
 }
 
 export type ControlOverrides = {
@@ -424,12 +445,6 @@ export function isSavedExpression(
   return (
     'column_name' in column && 'expression' in column && !!column.expression
   );
-}
-
-export function isAdhocColumn(
-  column: AdhocColumn | ColumnMeta,
-): column is AdhocColumn {
-  return 'label' in column && 'sqlExpression' in column;
 }
 
 export function isControlPanelSectionConfig(

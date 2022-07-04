@@ -32,6 +32,7 @@ import {
   sharedControls,
   emitFilterControl,
   Dataset,
+  getStandardizedControls,
 } from '@superset-ui/chart-controls';
 import { MetricsLayoutEnum } from '../types';
 
@@ -373,14 +374,17 @@ const config: ControlPanelConfig = {
       ],
     },
   ],
-  denormalizeFormData: formData => {
-    const groupbyColumns =
-      formData.standardizedFormData.standardizedState.columns.filter(
-        col => !ensureIsArray(formData.groupbyRows).includes(col),
+  formDataOverrides: formData => {
+    const groupbyColumns = getStandardizedControls().controls.columns.filter(
+      col => !ensureIsArray(formData.groupbyRows).includes(col),
+    );
+    getStandardizedControls().controls.columns =
+      getStandardizedControls().controls.columns.filter(
+        col => !groupbyColumns.includes(col),
       );
     return {
       ...formData,
-      metrics: formData.standardizedFormData.standardizedState.metrics,
+      metrics: getStandardizedControls().popAllMetrics(),
       groupbyColumns,
     };
   },

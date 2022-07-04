@@ -27,6 +27,7 @@ import React, {
   useState,
   useRef,
   useCallback,
+  useImperativeHandle,
 } from 'react';
 import { ensureIsArray, styled, t } from '@superset-ui/core';
 import AntdSelect, {
@@ -66,6 +67,7 @@ type PickedSelectProps = Pick<
   | 'showSearch'
   | 'tokenSeparators'
   | 'value'
+  | 'getPopupContainer'
 >;
 
 export type OptionsType = Exclude<AntdSelectAllProps['options'], undefined>;
@@ -80,6 +82,8 @@ export type OptionsPagePromise = (
   page: number,
   pageSize: number,
 ) => Promise<OptionsTypePage>;
+
+export type SelectRef = HTMLInputElement & { clearCache: () => void };
 
 export interface SelectProps extends PickedSelectProps {
   /**
@@ -313,9 +317,10 @@ const Select = (
     sortComparator = DEFAULT_SORT_COMPARATOR,
     tokenSeparators,
     value,
+    getPopupContainer,
     ...props
   }: SelectProps,
-  ref: RefObject<HTMLInputElement>,
+  ref: RefObject<SelectRef>,
 ) => {
   const isAsync = typeof options === 'function';
   const isSingleMode = mode === 'single';
@@ -678,6 +683,17 @@ const Select = (
     }
   }, [isLoading, loading]);
 
+  const clearCache = () => fetchedQueries.current.clear();
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      ...(ref.current as HTMLInputElement),
+      clearCache,
+    }),
+    [ref],
+  );
+
   return (
     <StyledContainer>
       {header}
@@ -687,7 +703,9 @@ const Select = (
         dropdownRender={dropdownRender}
         filterOption={handleFilterOption}
         filterSort={sortComparatorWithSearch}
-        getPopupContainer={triggerNode => triggerNode.parentNode}
+        getPopupContainer={
+          getPopupContainer || (triggerNode => triggerNode.parentNode)
+        }
         labelInValue={isAsync || labelInValue}
         maxTagCount={MAX_TAG_COUNT}
         mode={mappedMode}

@@ -28,11 +28,13 @@ import {
   css,
   SupersetTheme,
   SupersetClient,
+  getUiOverrideRegistry,
 } from '@superset-ui/core';
 import { MainNav as Menu } from 'src/components/Menu';
 import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
-import findPermission, { isUserAdmin } from 'src/dashboard/util/findPermission';
+import { findPermission } from 'src/utils/findPermission';
+import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { RootState } from 'src/dashboard/types';
 import LanguagePicker from './LanguagePicker';
@@ -44,6 +46,8 @@ import {
   RightMenuProps,
 } from './types';
 import { MenuObjectProps } from './Menu';
+
+const uiOverrideRegistry = getUiOverrideRegistry();
 
 const versionInfoStyles = (theme: SupersetTheme) => css`
   padding: ${theme.gridUnit * 1.5}px ${theme.gridUnit * 4}px
@@ -88,17 +92,16 @@ const RightMenu = ({
   settings,
   navbarRight,
   isFrontendRoute,
-}: RightMenuProps) => {
+  setQuery,
+}: RightMenuProps & {
+  setQuery: ({ databaseAdded }: { databaseAdded: boolean }) => void;
+}) => {
   const user = useSelector<any, UserWithPermissionsAndRoles>(
     state => state.user,
   );
   const dashboardId = useSelector<RootState, number | undefined>(
     state => state.dashboardInfo?.id,
   );
-
-  const [, setQuery] = useQueryParams({
-    databaseAdded: BooleanParam,
-  });
 
   const { roles } = user;
   const {
@@ -255,6 +258,7 @@ const RightMenu = ({
     }
     return null;
   };
+  const RightMenuExtension = uiOverrideRegistry.get('navbar.right');
 
   const handleDatabaseAdd = () => setQuery({ databaseAdded: true });
 
@@ -274,6 +278,7 @@ const RightMenu = ({
         onClick={handleMenuSelection}
         onOpenChange={onMenuOpen}
       >
+        {RightMenuExtension && <RightMenuExtension />}
         {!navbarRight.user_is_anonymous && showActionDropdown && (
           <SubMenu
             data-test="new-dropdown"
@@ -439,4 +444,43 @@ const RightMenu = ({
   );
 };
 
-export default RightMenu;
+const RightMenuWithQueryWrapper: React.FC<RightMenuProps> = props => {
+  const [, setQuery] = useQueryParams({
+    databaseAdded: BooleanParam,
+  });
+
+  return <RightMenu setQuery={setQuery} {...props} />;
+};
+
+// Query param manipulation requires that, during the setup, the
+// QueryParamProvider is present and configured.
+// Superset still has multiple entry points, and not all of them have
+// the same setup, and critically, not all of them have the QueryParamProvider.
+// This wrapper ensures the RightMenu renders regardless of the provider being present.
+class RightMenuErrorWrapper extends React.PureComponent<RightMenuProps> {
+  state = {
+    hasError: false,
+  };
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  noop = () => {};
+
+  render() {
+    if (this.state.hasError) {
+      return <RightMenu setQuery={this.noop} {...this.props} />;
+    }
+
+    return this.props.children;
+  }
+}
+
+const RightMenuWrapper: React.FC<RightMenuProps> = props => (
+  <RightMenuErrorWrapper {...props}>
+    <RightMenuWithQueryWrapper {...props} />
+  </RightMenuErrorWrapper>
+);
+
+export default RightMenuWrapper;
