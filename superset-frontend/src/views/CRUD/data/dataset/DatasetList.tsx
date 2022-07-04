@@ -554,6 +554,12 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         ],
       },
       {
+        Header: t('Tags'),
+        id: 'tags',
+        input: 'search',
+        operator: FilterOperator.datasetTags,
+      },
+      {
         Header: t('Search'),
         id: 'table_name',
         input: 'search',

@@ -55,7 +55,7 @@ from superset.datasets.commands.refresh import RefreshDatasetCommand
 from superset.datasets.commands.samples import SamplesDatasetCommand
 from superset.datasets.commands.update import UpdateDatasetCommand
 from superset.datasets.dao import DatasetDAO
-from superset.datasets.filters import DatasetCertifiedFilter, DatasetIsNullOrEmptyFilter
+from superset.datasets.filters import DatasetCertifiedFilter, DatasetIsNullOrEmptyFilter, DatasetTagFilter
 from superset.datasets.schemas import (
     DatasetPostSchema,
     DatasetPutSchema,
@@ -206,6 +206,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     search_filters = {
         "sql": [DatasetIsNullOrEmptyFilter],
         "id": [DatasetCertifiedFilter],
+        "tags": [DatasetTagFilter],
     }
     search_columns = ["id", "database", "owners", "sql", "table_name"]
     filter_rel_fields = {"database": [["id", DatabaseFilter, lambda: []]]}
