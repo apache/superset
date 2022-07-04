@@ -55,5 +55,6 @@ export const echartsTimeSeriesQuery: ControlPanelSectionConfig = {
     ['order_desc'],
     ['row_limit'],
     ['truncate_metric'],
+    ['drop_missing_columns'],
   ],
 };

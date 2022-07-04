@@ -44,7 +44,7 @@ export const pivotOperator: PostProcessingFactory<PostProcessingPivot> = (
         aggregates: Object.fromEntries(
           metricLabels.map(metric => [metric, { operator: 'mean' }]),
         ),
-        drop_missing_columns: false,
+        drop_missing_columns: !!formData?.drop_missing_columns,
       },
     };
   }
