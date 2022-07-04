@@ -54,8 +54,7 @@ import Loading from 'src/components/Loading';
 import { usePrevious } from 'src/hooks/usePrevious';
 import { getSectionsToRender } from 'src/explore/controlUtils';
 import { ExploreActions } from 'src/explore/actions/exploreActions';
-import { ExplorePageState } from 'src/explore/reducers/getInitialState';
-import { ChartState } from 'src/explore/types';
+import { ChartState, ExplorePageState } from 'src/explore/types';
 import { Tooltip } from 'src/components/Tooltip';
 
 import { rgba } from 'emotion-rgba';
@@ -381,7 +380,14 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
     );
     const PanelHeader = () => (
       <span data-test="collapsible-control-panel-header">
-        <span>{label}</span>{' '}
+        <span
+          css={(theme: SupersetTheme) => css`
+            font-size: ${theme.typography.sizes.m}px;
+            line-height: 1.3;
+          `}
+        >
+          {label}
+        </span>{' '}
         {description && (
           // label is only used in tooltip id (should probably call this prop `id`)
           <InfoTooltipWithTrigger label={sectionId} tooltip={description} />

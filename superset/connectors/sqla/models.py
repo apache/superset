@@ -31,6 +31,7 @@ from typing import (
     List,
     NamedTuple,
     Optional,
+    Set,
     Tuple,
     Type,
     Union,
@@ -438,6 +439,7 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
         self, known_columns: Optional[Dict[str, NewColumn]] = None
     ) -> NewColumn:
         """Convert a TableColumn to NewColumn"""
+        session: Session = inspect(self).session
         column = known_columns.get(self.uuid) if known_columns else None
         if not column:
             column = NewColumn()
@@ -450,6 +452,21 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
             value = getattr(self, attr)
             if value:
                 extra_json[attr] = value
+
+        if not column.id:
+            with session.no_autoflush:
+                saved_column = (
+                    session.query(NewColumn).filter_by(uuid=self.uuid).one_or_none()
+                )
+                if saved_column:
+                    logger.warning(
+                        "sl_column already exists. Assigning existing id %s", self
+                    )
+
+                    # uuid isn't a primary key, so add the id of the existing column to
+                    # ensure that the column is modified instead of created
+                    # in order to avoid a uuid collision
+                    column.id = saved_column.id
 
         column.uuid = self.uuid
         column.created_on = self.created_on
@@ -554,6 +571,7 @@ class SqlMetric(Model, BaseMetric, CertificationMixin):
     ) -> NewColumn:
         """Convert a SqlMetric to NewColumn. Find and update existing or
         create a new one."""
+        session: Session = inspect(self).session
         column = known_columns.get(self.uuid) if known_columns else None
         if not column:
             column = NewColumn()
@@ -566,6 +584,20 @@ class SqlMetric(Model, BaseMetric, CertificationMixin):
         is_additive = (
             self.metric_type and self.metric_type.lower() in ADDITIVE_METRIC_TYPES_LOWER
         )
+
+        if not column.id:
+            with session.no_autoflush:
+                saved_column = (
+                    session.query(NewColumn).filter_by(uuid=self.uuid).one_or_none()
+                )
+                if saved_column:
+                    logger.warning(
+                        "sl_column already exists. Assigning existing id %s", self
+                    )
+                    # uuid isn't a primary key, so add the id of the existing column to
+                    # ensure that the column is modified instead of created
+                    # in order to avoid a uuid collision
+                    column.id = saved_column.id
 
         column.uuid = self.uuid
         column.name = self.metric_name
@@ -1990,6 +2022,48 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             query = query.filter_by(schema=schema)
         return query.all()
 
+    @classmethod
+    def query_datasources_by_permissions(  # pylint: disable=invalid-name
+        cls,
+        session: Session,
+        database: Database,
+        permissions: Set[str],
+        schema_perms: Set[str],
+    ) -> List["SqlaTable"]:
+        # TODO(hughhhh): add unit test
+        return (
+            session.query(cls)
+            .filter_by(database_id=database.id)
+            .filter(
+                or_(
+                    SqlaTable.perm.in_(permissions),
+                    SqlaTable.schema_perm.in_(schema_perms),
+                )
+            )
+            .all()
+        )
+
+    @classmethod
+    def get_eager_sqlatable_datasource(
+        cls, session: Session, datasource_id: int
+    ) -> "SqlaTable":
+        """Returns SqlaTable with columns and metrics."""
+        return (
+            session.query(cls)
+            .options(
+                sa.orm.subqueryload(cls.columns),
+                sa.orm.subqueryload(cls.metrics),
+            )
+            .filter_by(id=datasource_id)
+            .one()
+        )
+
+    @classmethod
+    def get_all_datasources(cls, session: Session) -> List["SqlaTable"]:
+        qry = session.query(cls)
+        qry = cls.default_query(qry)
+        return qry.all()
+
     @staticmethod
     def default_query(qry: Query) -> Query:
         return qry.filter_by(is_sqllab_view=False)
@@ -2106,10 +2180,11 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             uuids.remove(column.uuid)
 
         if uuids:
-            # load those not found from db
-            existing_columns |= set(
-                session.query(NewColumn).filter(NewColumn.uuid.in_(uuids))
-            )
+            with session.no_autoflush:
+                # load those not found from db
+                existing_columns |= set(
+                    session.query(NewColumn).filter(NewColumn.uuid.in_(uuids))
+                )
 
         known_columns = {column.uuid: column for column in existing_columns}
         return [
@@ -2149,9 +2224,10 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             # update changed_on timestamp
             session.execute(update(NewDataset).where(NewDataset.id == dataset.id))
             try:
-                column = session.query(NewColumn).filter_by(uuid=target.uuid).one()
-                # update `Column` model as well
-                session.merge(target.to_sl_column({target.uuid: column}))
+                with session.no_autoflush:
+                    column = session.query(NewColumn).filter_by(uuid=target.uuid).one()
+                    # update `Column` model as well
+                    session.merge(target.to_sl_column({target.uuid: column}))
             except NoResultFound:
                 logger.warning("No column was found for %s", target)
                 # see if the column is in cache
@@ -2161,14 +2237,15 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                     ),
                     None,
                 )
+                if column:
+                    logger.warning("New column was found in cache: %s", column)
 
-                if not column:
+                else:
                     # to be safe, use a different uuid and create a new column
                     uuid = uuid4()
                     target.uuid = uuid
-                    column = NewColumn(uuid=uuid)
 
-                session.add(target.to_sl_column({column.uuid: column}))
+                session.add(target.to_sl_column())
 
     @staticmethod
     def after_insert(

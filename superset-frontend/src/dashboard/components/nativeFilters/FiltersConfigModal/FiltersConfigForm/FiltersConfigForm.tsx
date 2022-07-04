@@ -688,7 +688,7 @@ const FiltersConfigForm = (
     }
 
     Object.values(charts).forEach((chart: Chart) => {
-      const chartDatasetUid = chart.formData?.datasource;
+      const chartDatasetUid = chart.form_data?.datasource;
       if (chartDatasetUid === undefined) {
         return;
       }

@@ -140,6 +140,9 @@ class ExecuteSqlCommand(BaseCommand):
             self._execution_context.set_query(query)
             rendered_query = self._sql_query_render.render(self._execution_context)
             self._set_query_limit_if_required(rendered_query)
+            self._query_dao.update(
+                query, {"limit": self._execution_context.query.limit}
+            )
             return self._sql_json_executor.execute(
                 self._execution_context, rendered_query, self._log_params
             )

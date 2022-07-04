@@ -27,7 +27,7 @@
   },
   "dependencies": {
     "d3-array": "^1.2.0",
-    "echarts": "^5.3.3",
+    "echarts": "^5.3.2",
     "lodash": "^4.17.15",
     "moment": "^2.26.0"
   },

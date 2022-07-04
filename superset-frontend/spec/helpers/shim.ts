@@ -81,3 +81,5 @@ setupSupersetClient();
 jest.mock('src/hooks/useTabId', () => ({
   useTabId: () => 1,
 }));
+
+process.env.WEBPACK_MODE = 'test';

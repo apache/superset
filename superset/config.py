@@ -142,7 +142,7 @@ VERSION_SHA = _try_json_readsha(VERSION_INFO_FILE, VERSION_SHA_LENGTH)
 # can be replaced at build time to expose build information.
 BUILD_NUMBER = None
 
-# default viz used in chart explorer
+# default viz used in chart explorer & SQL Lab explore
 DEFAULT_VIZ_TYPE = "table"
 
 # default row limit when requesting chart data

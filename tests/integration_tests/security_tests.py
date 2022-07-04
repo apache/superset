@@ -28,10 +28,11 @@ import prison
 import pytest
 
 from flask import current_app
+from superset.datasource.dao import DatasourceDAO
 
 from superset.models.dashboard import Dashboard
 
-from superset import app, appbuilder, db, security_manager, viz, ConnectorRegistry
+from superset import app, appbuilder, db, security_manager, viz
 from superset.connectors.sqla.models import SqlaTable
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
@@ -411,8 +412,9 @@ class TestRolePermission(SupersetTestCase):
         # TODO test slice permission
 
     @patch("superset.security.manager.g")
-    def test_schemas_accessible_by_user_admin(self, mock_g):
-        mock_g.user = security_manager.find_user("admin")
+    @patch("superset.utils.core.g")
+    def test_schemas_accessible_by_user_admin(self, mock_sm_g, mock_g):
+        mock_g.user = mock_sm_g.user = security_manager.find_user("admin")
         with self.client.application.test_request_context():
             database = get_example_database()
             schemas = security_manager.get_schemas_accessible_by_user(
@@ -421,10 +423,11 @@ class TestRolePermission(SupersetTestCase):
             self.assertEqual(schemas, ["1", "2", "3"])  # no changes
 
     @patch("superset.security.manager.g")
-    def test_schemas_accessible_by_user_schema_access(self, mock_g):
+    @patch("superset.utils.core.g")
+    def test_schemas_accessible_by_user_schema_access(self, mock_sm_g, mock_g):
         # User has schema access to the schema 1
         create_schema_perm("[examples].[1]")
-        mock_g.user = security_manager.find_user("gamma")
+        mock_g.user = mock_sm_g.user = security_manager.find_user("gamma")
         with self.client.application.test_request_context():
             database = get_example_database()
             schemas = security_manager.get_schemas_accessible_by_user(
@@ -435,9 +438,10 @@ class TestRolePermission(SupersetTestCase):
         delete_schema_perm("[examples].[1]")
 
     @patch("superset.security.manager.g")
-    def test_schemas_accessible_by_user_datasource_access(self, mock_g):
+    @patch("superset.utils.core.g")
+    def test_schemas_accessible_by_user_datasource_access(self, mock_sm_g, mock_g):
         # User has schema access to the datasource temp_schema.wb_health_population in examples DB.
-        mock_g.user = security_manager.find_user("gamma")
+        mock_g.user = mock_sm_g.user = security_manager.find_user("gamma")
         with self.client.application.test_request_context():
             database = get_example_database()
             schemas = security_manager.get_schemas_accessible_by_user(
@@ -446,10 +450,13 @@ class TestRolePermission(SupersetTestCase):
             self.assertEqual(schemas, ["temp_schema"])
 
     @patch("superset.security.manager.g")
-    def test_schemas_accessible_by_user_datasource_and_schema_access(self, mock_g):
+    @patch("superset.utils.core.g")
+    def test_schemas_accessible_by_user_datasource_and_schema_access(
+        self, mock_sm_g, mock_g
+    ):
         # User has schema access to the datasource temp_schema.wb_health_population in examples DB.
         create_schema_perm("[examples].[2]")
-        mock_g.user = security_manager.find_user("gamma")
+        mock_g.user = mock_sm_g.user = security_manager.find_user("gamma")
         with self.client.application.test_request_context():
             database = get_example_database()
             schemas = security_manager.get_schemas_accessible_by_user(
@@ -990,7 +997,7 @@ class TestDatasources(SupersetTestCase):
         mock_get_session.query.return_value.filter.return_value.all.return_value = []
 
         with mock.patch.object(
-            ConnectorRegistry, "get_all_datasources"
+            SqlaTable, "get_all_datasources"
         ) as mock_get_all_datasources:
             mock_get_all_datasources.return_value = [
                 Datasource("database1", "schema1", "table1"),
@@ -1018,7 +1025,7 @@ class TestDatasources(SupersetTestCase):
         mock_get_session.query.return_value.filter.return_value.all.return_value = []
 
         with mock.patch.object(
-            ConnectorRegistry, "get_all_datasources"
+            SqlaTable, "get_all_datasources"
         ) as mock_get_all_datasources:
             mock_get_all_datasources.return_value = [
                 Datasource("database1", "schema1", "table1"),
@@ -1046,7 +1053,7 @@ class TestDatasources(SupersetTestCase):
         ]
 
         with mock.patch.object(
-            ConnectorRegistry, "get_all_datasources"
+            SqlaTable, "get_all_datasources"
         ) as mock_get_all_datasources:
             mock_get_all_datasources.return_value = [
                 Datasource("database1", "schema1", "table1"),

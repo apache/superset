@@ -8,7 +8,7 @@ jobs:
   welcome:
     runs-on: ubuntu-latest
     permissions:
-      issues: write
+      pull-requests: write
 
     steps:
       - name: Welcome Message
@@ -18,8 +18,3 @@ jobs:
           pr-message: |-
             Congrats on making your first PR and thank you for contributing to Superset! :tada: :heart:
             We hope to see you in our [Slack](https://apache-superset.slack.com/) community too!
-      - name: First Time Label
-        uses: andymckay/labeler@master
-        with:
-          add-labels: "new:contributor"
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
