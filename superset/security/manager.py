@@ -990,17 +990,17 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             if not permission:
                 permission = self.permission_model(name=permission_name)
                 self.get_session.add(permission)
-                self.get_session.commit()
+                self.get_session.merge(permission)
             if not view_menu:
                 view_menu = self.viewmenu_model(name=view_menu_name)
                 self.get_session.add(view_menu)
-                self.get_session.commit()
+                self.get_session.merge(view_menu)
             if not pv and permission and view_menu:
                 pv = self.permissionview_model(
                     permission=permission, view_menu=view_menu
                 )
                 self.get_session.add(pv)
-                self.get_session.commit()
+                self.get_session.merge(pv)
 
     def raise_for_access(
         # pylint: disable=too-many-arguments,too-many-locals
