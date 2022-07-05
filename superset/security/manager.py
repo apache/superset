@@ -1151,7 +1151,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :param table: The table to check against
         :returns: A list of filters
         """
-        
+
         if not (hasattr(g, "user") and g.user is not None):
             return []
 
