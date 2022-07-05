@@ -24,7 +24,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { styled, t } from '@superset-ui/core';
+import { FeatureFlag, isFeatureEnabled, styled, t } from '@superset-ui/core';
 import { useUiConfig } from 'src/components/UiConfigContext';
 import { Tooltip } from 'src/components/Tooltip';
 import { useDispatch, useSelector } from 'react-redux';
@@ -63,6 +63,11 @@ const CrossFilterIcon = styled(Icons.CursorTarget)`
 `;
 
 export const getSliceHeaderTooltip = (sliceName: string | undefined) => {
+  if (!isFeatureEnabled(FeatureFlag.DASHBOARD_TO_EXPLORE_SPA)) {
+    return sliceName
+      ? t('Click to edit %s in ', sliceName)
+      : t('Click to edit chart.');
+  }
   const isMac = detectOS() === 'MacOS';
   const firstLine = sliceName
     ? t('Click to edit %s.', sliceName)
