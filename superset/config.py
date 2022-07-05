@@ -237,6 +237,9 @@ SHOW_STACKTRACE = True
 ENABLE_PROXY_FIX = False
 PROXY_FIX_CONFIG = {"x_for": 1, "x_proto": 1, "x_host": 1, "x_port": 1, "x_prefix": 1}
 
+# Configuration for scheduling queries from SQL Lab.
+SCHEDULED_QUERIES: Dict[str, Any] = {}
+
 # ------------------------------
 # GLOBALS FOR APP Builder
 # ------------------------------
