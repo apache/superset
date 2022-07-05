@@ -83,12 +83,11 @@ export const hydrateExplore =
           : getSequentialSchemeRegistry();
       const key =
         type === 'CATEGORICAL' ? colorSchemeKey : linearColorSchemeKey;
-      const defaultScheme = 
-        schemes.defaultKey ? 
-        schemes.defaultKey : 
-          type === 'CATEGORICAL' 
-          ? 'supersetColors' 
-          : 'superset_seq_1';
+      const defaultScheme = schemes.defaultKey
+        ? schemes.defaultKey
+        : type === 'CATEGORICAL'
+        ? 'supersetColors'
+        : 'superset_seq_1';
       const currentScheme = initialFormData[key];
       if (currentScheme && !schemes.get(currentScheme)) {
         initialControls[key].value = defaultScheme;
