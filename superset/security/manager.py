@@ -1152,7 +1152,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :returns: A list of filters
         """
         
-        if not (hasattr(g, "user") and g.user is not None):      
+        if not (hasattr(g, "user") and g.user is not None):
             return []
 
         # pylint: disable=import-outside-toplevel
