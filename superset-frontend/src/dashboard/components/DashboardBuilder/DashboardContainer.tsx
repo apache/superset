@@ -18,14 +18,13 @@
  */
 // ParentSize uses resize observer so the dashboard will update size
 // when its container size changes, due to e.g., builder side panel opening
-import React, { FC, useEffect, useMemo } from 'react';
+import React, { FC, useCallback, useEffect, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   FeatureFlag,
   Filter,
   Filters,
   getCategoricalSchemeRegistry,
-  getSharedLabelColor,
   isFeatureEnabled,
   SupersetClient,
 } from '@superset-ui/core';
@@ -47,12 +46,13 @@ import {
 import { getChartIdsInFilterScope } from 'src/dashboard/util/getChartIdsInFilterScope';
 import findTabIndexByComponentId from 'src/dashboard/util/findTabIndexByComponentId';
 import { setInScopeStatusOfFilters } from 'src/dashboard/actions/nativeFilters';
-import { getRootLevelTabIndex, getRootLevelTabsComponent } from './utils';
-import { findTabsWithChartsInScope } from '../nativeFilters/utils';
-import { NATIVE_FILTER_DIVIDER_PREFIX } from '../nativeFilters/FiltersConfigModal/utils';
 import { dashboardInfoChanged } from 'src/dashboard/actions/dashboardInfo';
 import { setColorScheme } from 'src/dashboard/actions/dashboardState';
+import { useComponentDidUpdate } from 'src/hooks/useComponentDidUpdate/useComponentDidUpdate';
 import jsonStringify from 'json-stringify-pretty-compact';
+import { NATIVE_FILTER_DIVIDER_PREFIX } from '../nativeFilters/FiltersConfigModal/utils';
+import { findTabsWithChartsInScope } from '../nativeFilters/utils';
+import { getRootLevelTabIndex, getRootLevelTabsComponent } from './utils';
 
 type DashboardContainerProps = {
   topLevelTabs?: LayoutItem;
@@ -132,69 +132,86 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
     dispatch(setInScopeStatusOfFilters(scopes));
   }, [nativeFilterScopes, dashboardLayout, dispatch]);
 
-  useEffect(() => {
-    const currentMetadata = 
-      dashboardInfo.json_metadata?.length && JSON.parse(dashboardInfo.json_metadata);
-      if (currentMetadata?.color_scheme) {
-        const metadata = {...currentMetadata};
-        const colorScheme = metadata?.color_scheme;
-        const colorSchemeDomain = metadata?.color_scheme_domain || [];
-        const colorNamespace = metadata?.color_namespace || '';
-        const categoricalSchemes = getCategoricalSchemeRegistry();
-        const registryColorSchemeDomain = categoricalSchemes.get(colorScheme)?.colors || [];
-        const defaultColorScheme = categoricalSchemes.defaultKey;
-        const isColorSchemeExisting = !!categoricalSchemes.get(colorScheme);
-        const updateDashboard = () => {
-          SupersetClient.put({
-            endpoint: `/api/v1/dashboard/${dashboardInfo.id}`,
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              json_metadata: jsonStringify(metadata),
-            }),
-          }).then(() => {
-            dispatch(dashboardInfoChanged({
-              metadata,
-            }));
-            dispatch(setColorScheme(defaultColorScheme))
-          })
-        }
-        const genColorMap = (scheme: string, update = false) => {
-          // TODO: to check why colorMap is always empty
-          const colorMap = getSharedLabelColor().getColorMap(
-            colorNamespace,
-            scheme,
-            update,
-          );
-          return colorMap;
-        }
+  const verifyUpdateColorScheme = useCallback(() => {
+    const currentMetadata = dashboardInfo.metadata;
+    if (currentMetadata?.color_scheme) {
+      const metadata = { ...currentMetadata };
+      const colorScheme = metadata?.color_scheme;
+      const colorSchemeDomain = metadata?.color_scheme_domain || [];
+      const categoricalSchemes = getCategoricalSchemeRegistry();
+      const registryColorSchemeDomain =
+        categoricalSchemes.get(colorScheme)?.colors || [];
+      const defaultColorScheme = categoricalSchemes.defaultKey;
+      const isColorSchemeExisting = !!categoricalSchemes.get(colorScheme);
+      const updateDashboard = () => {
+        SupersetClient.put({
+          endpoint: `/api/v1/dashboard/${dashboardInfo.id}`,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            json_metadata: jsonStringify(metadata),
+          }),
+        }).catch(e => console.log(e));
+      };
+      const updateColorScheme = (scheme: string) => {
+        dispatch(setColorScheme(scheme));
+      };
+      const updateMetadata = () => {
+        dispatch(
+          dashboardInfoChanged({
+            metadata,
+          }),
+        );
+        updateDashboard();
+      };
+      // color scheme does not exist anymore
+      // must fallback to the available default one
+      if (colorScheme && !isColorSchemeExisting) {
+        const updatedScheme =
+          defaultColorScheme?.toString() || 'supersetColors';
+        metadata.color_scheme = updatedScheme;
+        metadata.color_scheme_domain =
+          categoricalSchemes.get(defaultColorScheme)?.colors || [];
 
-        // color scheme does not exist anymore
-        // must fallback to the available default one
-        if (colorScheme && !isColorSchemeExisting) {
-          const updatedScheme = defaultColorScheme?.toString() || 'supersetColors';
-          metadata.color_scheme = updatedScheme;
-          metadata.shared_label_colors = genColorMap(updatedScheme, true);
-          metadata.color_scheme_domain = categoricalSchemes.get(defaultColorScheme)?.colors;
-          updateDashboard();
-          return;
-        }
+        // reset shared_label_colors
+        // TODO: Requires regenerating the shared_label_colors after
+        // fixing a bug which affects their generation on dashboards with tabs
+        metadata.shared_label_colors = {};
 
-        // if this dashboard does not have a color_scheme_domain saved must create one
-        // if the color_scheme_domain does not correspond to the registry must update
-        if (
-          colorScheme && 
-          ((!colorSchemeDomain.length) || (registryColorSchemeDomain.toString() !== colorSchemeDomain.toString()))) {
+        updateColorScheme(updatedScheme);
+        updateMetadata();
+      } else {
+        // if this dashboard does not have a color_scheme_domain saved
+        // must create one and store it for the first time
+        if (colorScheme && !colorSchemeDomain.length) {
           metadata.color_scheme_domain = registryColorSchemeDomain;
-          metadata.shared_label_colors = genColorMap(colorScheme, true);
-          updateDashboard();
+          updateMetadata();
+        }
+        // if the color_scheme_domain is not the same as the registry domain
+        // must update the existing color_scheme_domain
+        if (
+          colorScheme &&
+          colorSchemeDomain.length &&
+          registryColorSchemeDomain.toString() !== colorSchemeDomain.toString()
+        ) {
+          metadata.color_scheme_domain = registryColorSchemeDomain;
+
+          // reset shared_label_colors
+          // TODO: Requires regenerating the shared_label_colors after
+          // fixing a bug which affects their generation on dashboards with tabs
+          metadata.shared_label_colors = {};
+
+          updateColorScheme(colorScheme);
+          updateMetadata();
         }
       }
-  }, [dashboardInfo.json_metadata, dispatch])
+    }
+  }, [charts]);
+
+  useComponentDidUpdate(verifyUpdateColorScheme);
 
   const childIds: string[] = topLevelTabs
     ? topLevelTabs.children
     : [DASHBOARD_GRID_ID];
-
   const min = Math.min(tabIndex, childIds.length - 1);
   const activeKey = min === 0 ? DASHBOARD_GRID_ID : min.toString();
 
@@ -240,4 +257,3 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
 };
 
 export default DashboardContainer;
-

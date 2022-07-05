@@ -173,8 +173,8 @@ const PropertiesModal = ({
       if (metadata?.positions) {
         delete metadata.positions;
       }
-      const metaDataCopy = { ...metadata }; 
-      
+      const metaDataCopy = { ...metadata };
+
       if (metaDataCopy?.shared_label_colors) {
         delete metaDataCopy.shared_label_colors;
       }
@@ -284,8 +284,6 @@ const PropertiesModal = ({
     if (updateMetadata) {
       jsonMetadataObj.color_scheme = colorScheme;
       jsonMetadataObj.label_colors = jsonMetadataObj.label_colors || {};
-      jsonMetadataObj.color_scheme_domain = 
-        categoricalSchemeRegistry.get(colorScheme)?.colors || [];
 
       setJsonMetadata(jsonStringify(jsonMetadataObj));
     }
@@ -295,6 +293,7 @@ const PropertiesModal = ({
   const onFinish = () => {
     const { title, slug, certifiedBy, certificationDetails } =
       form.getFieldsValue();
+    const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
     let currentColorScheme = colorScheme;
     let colorNamespace = '';
     let currentJsonMetadata = jsonMetadata;
@@ -318,6 +317,8 @@ const PropertiesModal = ({
         true,
       );
       metadata.shared_label_colors = colorMap;
+      metadata.color_scheme_domain =
+        categoricalSchemeRegistry.get(colorScheme)?.colors || [];
       currentJsonMetadata = jsonStringify(metadata);
     }
 

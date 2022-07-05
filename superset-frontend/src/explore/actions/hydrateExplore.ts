@@ -26,7 +26,11 @@ import {
 import { getChartKey } from 'src/explore/exploreUtils';
 import { getControlsState } from 'src/explore/store';
 import { Dispatch } from 'redux';
-import { ensureIsArray, getCategoricalSchemeRegistry, getSequentialSchemeRegistry } from '@superset-ui/core';
+import {
+  ensureIsArray,
+  getCategoricalSchemeRegistry,
+  getSequentialSchemeRegistry,
+} from '@superset-ui/core';
 import {
   getFormDataFromControls,
   applyMapStateToPropsToControl,
@@ -67,18 +71,23 @@ export const hydrateExplore =
       initialExploreState,
       initialFormData,
     ) as ControlStateMapping;
-    const colorSchemeKey = initialControls['color_scheme'] && 'color_scheme';
-    const linearColorSchemeKey = initialControls['linear_color_scheme'] && 'linear_color_scheme';
+    const colorSchemeKey = initialControls.color_scheme && 'color_scheme';
+    const linearColorSchemeKey =
+      initialControls.linear_color_scheme && 'linear_color_scheme';
     // if the color scheme does not exist anymore
     // fallbacks to the available default key
     const verifyColorScheme = (type: 'CATEGORICAL' | 'SEQUENTIAL') => {
-      const schemes = type === 'CATEGORICAL' ? getCategoricalSchemeRegistry() : getSequentialSchemeRegistry();
-      const key = type === 'CATEGORICAL' ? colorSchemeKey : linearColorSchemeKey;
+      const schemes =
+        type === 'CATEGORICAL'
+          ? getCategoricalSchemeRegistry()
+          : getSequentialSchemeRegistry();
+      const key =
+        type === 'CATEGORICAL' ? colorSchemeKey : linearColorSchemeKey;
       const currentScheme = initialFormData[key];
       if (currentScheme && !schemes.get[currentScheme]) {
-        initialControls[key].value = schemes.defaultKey
+        initialControls[key].value = schemes.defaultKey;
       }
-    }
+    };
 
     if (colorSchemeKey) verifyColorScheme('CATEGORICAL');
     if (linearColorSchemeKey) verifyColorScheme('SEQUENTIAL');
