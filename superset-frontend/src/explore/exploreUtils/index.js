@@ -267,11 +267,12 @@ export const exportChart = ({
   SupersetClient.postForm(url, { form_data: safeStringify(payload) });
 };
 
-export const exploreChart = formData => {
+export const exploreChart = (formData, requestParams) => {
   const url = getExploreUrl({
     formData,
     endpointType: 'base',
     allowDomainSharding: false,
+    requestParams,
   });
   SupersetClient.postForm(url, { form_data: safeStringify(formData) });
 };

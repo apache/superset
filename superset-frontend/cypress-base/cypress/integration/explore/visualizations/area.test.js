@@ -51,7 +51,7 @@ describe('Visualization > Area', () => {
   };
 
   function verify(formData) {
-    cy.visitChartByParams(JSON.stringify(formData));
+    cy.visitChartByParams(formData);
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
   }
 
@@ -75,23 +75,21 @@ describe('Visualization > Area', () => {
   });
 
   it('should work with groupby and filter', () => {
-    cy.visitChartByParams(
-      JSON.stringify({
-        ...AREA_FORM_DATA,
-        groupby: ['region'],
-        adhoc_filters: [
-          {
-            expressionType: 'SIMPLE',
-            subject: 'region',
-            operator: 'IN',
-            comparator: ['South Asia', 'North America'],
-            clause: 'WHERE',
-            sqlExpression: null,
-            filterOptionName: 'filter_txje2ikiv6_wxmn0qwd1xo',
-          },
-        ],
-      }),
-    );
+    cy.visitChartByParams({
+      ...AREA_FORM_DATA,
+      groupby: ['region'],
+      adhoc_filters: [
+        {
+          expressionType: 'SIMPLE',
+          subject: 'region',
+          operator: 'IN',
+          comparator: ['South Asia', 'North America'],
+          clause: 'WHERE',
+          sqlExpression: null,
+          filterOptionName: 'filter_txje2ikiv6_wxmn0qwd1xo',
+        },
+      ],
+    });
 
     cy.wait('@getJson').then(async ({ response }) => {
       const responseBody = response?.body;

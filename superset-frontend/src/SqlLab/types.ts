@@ -16,6 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { Dataset } from '@superset-ui/chart-controls';
+import { JsonObject, Query, QueryResponse } from '@superset-ui/core';
 import { SupersetError } from 'src/components/ErrorMessage/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { ToastType } from 'src/components/MessageToasts/types';
@@ -65,7 +67,10 @@ export type SqlLabRootState = {
   };
   localStorageUsageInKilobytes: number;
   messageToasts: toastState[];
-  common: {};
+  common: {
+    flash_messages: string[];
+    conf: JsonObject;
+  };
 };
 
 export type SqlLabExploreRootState = SqlLabRootState | ExploreRootState;
@@ -93,6 +98,7 @@ export const EXPLORE_CHART_DEFAULT = {
   metrics: [],
   groupby: [],
   time_range: 'No filter',
+  row_limit: 1000,
 };
 
 export interface DatasetOwner {

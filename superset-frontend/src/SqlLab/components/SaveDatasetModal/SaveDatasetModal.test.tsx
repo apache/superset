@@ -77,7 +77,7 @@ describe('SaveDatasetModal RTL', () => {
     render(<SaveDatasetModal {...mockedProps} />, { useRedux: true });
 
     const overwriteRadioBtn = screen.getByRole('radio', {
-      name: /overwrite existing select or type dataset name/i,
+      name: /overwrite existing/i,
     });
     const fieldLabel = screen.getByText(/overwrite existing/i);
     const inputField = screen.getByRole('combobox');
