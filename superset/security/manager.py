@@ -1147,25 +1147,16 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             ]
         return []
 
-    def get_rls_filters(
-        self,
-        table: "BaseDatasource",
-        username: Optional[str] = None,
-    ) -> List[SqlaQuery]:
+    def get_rls_filters(self, table: "BaseDatasource") -> List[SqlaQuery]:
         """
         Retrieves the appropriate row level security filters for the current user and
         the passed table.
 
-        :param BaseDatasource table: The table to check against.
-        :param Optional[str] username: Optional username if there's no user in the Flask
-        global namespace.
+        :param table: The table to check against
         :returns: A list of filters
         """
-        if hasattr(g, "user"):
-            user = g.user
-        elif username:
-            user = self.find_user(username=username)
-        else:
+
+        if not (hasattr(g, "user") and g.user is not None):
             return []
 
         # pylint: disable=import-outside-toplevel
@@ -1175,7 +1166,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             RowLevelSecurityFilter,
         )
 
-        user_roles = [role.id for role in self.get_user_roles(user)]
+        user_roles = [role.id for role in self.get_user_roles(g.user)]
         regular_filter_roles = (
             self.get_session()
             .query(RLSFilterRoles.c.rls_filter_id)
