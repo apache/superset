@@ -48,6 +48,7 @@ const formDataMixedChart = {
   order_desc: true,
   emit_filter: true,
   truncate_metric: true,
+  show_empty_columns: true,
   //   -- query b
   groupby_b: [],
   metrics_b: ['count'],
@@ -64,6 +65,7 @@ const formDataMixedChart = {
   order_desc_b: false,
   emit_filter_b: undefined,
   truncate_metric_b: true,
+  show_empty_columns_b: true,
   // chart configs
   show_value: false,
   show_valueB: undefined,
