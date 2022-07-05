@@ -22,13 +22,13 @@ import { TypedRegistry } from '../models';
 import { makeSingleton } from '../utils';
 
 /**
- * A function (or component) which returns text (or marked-up text)
- * This != React.ComponentType. Use that when you want a react component.
+ * A function which returns text (or marked-up text)
+ * If what you want is a react component, don't use this. Use React.ComponentType instead.
  */
 type ReturningDisplayable<P = void> = (props: P) => string | React.ReactElement;
 
 /**
- * This type defines all the UI override options which replace elements of Superset's default UI.
+ * This type defines all available extensions of Superset's default UI.
  * Namespace the keys here to follow the form of 'some_domain.functonality.item'.
  * Take care to name your keys well, as the name describes what this extension point's role is in Superset.
  *
@@ -53,5 +53,5 @@ class ExtensionsRegistry extends TypedRegistry<Extensions> {
 export const getExtensionsRegistry = makeSingleton(ExtensionsRegistry, {});
 
 // Exporting this under the old name for backwards compatibility.
-// After the SIP-87 vote passes it should be safe to remove this.
+// After downstream folks have migrated to `getExtensionsRegistry`, we should remove this.
 export const getUiOverrideRegistry = getExtensionsRegistry;
