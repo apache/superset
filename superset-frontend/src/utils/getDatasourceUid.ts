@@ -19,4 +19,4 @@
 import { Dataset } from '@superset-ui/chart-controls';
 
 export const getDatasourceUid = (datasource: Dataset) =>
-  datasource.uid ?? `${datasource.id}__${datasource.type}`;
+  datasource.uid ?? `${datasource.id ?? 'None'}__${datasource.type}`;

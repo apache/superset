@@ -25,25 +25,25 @@ import {
   useLocation,
 } from 'react-router-dom';
 import { GlobalStyles } from 'src/GlobalStyles';
-import { initFeatureFlags } from 'src/featureFlags';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import Loading from 'src/components/Loading';
 import Menu from 'src/views/components/Menu';
 import { bootstrapData } from 'src/preamble';
 import ToastContainer from 'src/components/MessageToasts/ToastContainer';
 import setupApp from 'src/setup/setupApp';
+import setupPlugins from 'src/setup/setupPlugins';
 import { routes, isFrontendRoute } from 'src/views/routes';
 import { Logger } from 'src/logger/LogUtils';
 import { RootContextProviders } from './RootContextProviders';
 
 setupApp();
+setupPlugins();
 
 const user = { ...bootstrapData.user };
 const menu = {
   ...bootstrapData.common.menu_data,
 };
 let lastLocationPathname: string;
-initFeatureFlags(bootstrapData.common.feature_flags);
 
 const LocationPathnameLogger = () => {
   const location = useLocation();
