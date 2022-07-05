@@ -1729,14 +1729,20 @@ def is_test() -> bool:
     return strtobool(os.environ.get("SUPERSET_TESTENV", "false"))
 
 
-def get_time_filter_status(
+def get_time_filter_status(  # pylint: disable=too-many-branches
     datasource: "BaseDatasource",
     applied_time_extras: Dict[str, str],
 ) -> Tuple[List[Dict[str, str]], List[Dict[str, str]]]:
 
-    # todo(hugh): fix this
-    # temporal_columns = {col.column_name for col in datasource.columns if col.is_dttm}
-    temporal_columns: Dict[str, Any] = {}
+    temporal_columns: Set[Any]
+    if datasource.type == "query":
+        temporal_columns = {
+            col.get("column_name") for col in datasource.columns if col.get("is_dttm")
+        }
+    else:
+        temporal_columns = {
+            col.column_name for col in datasource.columns if col.is_dttm
+        }
     applied: List[Dict[str, str]] = []
     rejected: List[Dict[str, str]] = []
     time_column = applied_time_extras.get(ExtraFiltersTimeColumnType.TIME_COL)
