@@ -28,6 +28,7 @@ import {
   css,
   SupersetTheme,
   SupersetClient,
+  getUiOverrideRegistry,
 } from '@superset-ui/core';
 import { MainNav as Menu } from 'src/components/Menu';
 import { Tooltip } from 'src/components/Tooltip';
@@ -46,6 +47,8 @@ import {
   RightMenuProps,
 } from './types';
 import { MenuObjectProps } from './Menu';
+
+const uiOverrideRegistry = getUiOverrideRegistry();
 
 const versionInfoStyles = (theme: SupersetTheme) => css`
   padding: ${theme.gridUnit * 1.5}px ${theme.gridUnit * 4}px
@@ -261,6 +264,7 @@ const RightMenu = ({
     }
     return null;
   };
+  const RightMenuExtension = uiOverrideRegistry.get('navbar.right');
 
   const handleDatabaseAdd = () => setQuery({ databaseAdded: true });
 
@@ -285,6 +289,7 @@ const RightMenu = ({
         onClick={handleMenuSelection}
         onOpenChange={onMenuOpen}
       >
+        {RightMenuExtension && <RightMenuExtension />}
         {!navbarRight.user_is_anonymous && showActionDropdown && (
           <SubMenu
             data-test="new-dropdown"

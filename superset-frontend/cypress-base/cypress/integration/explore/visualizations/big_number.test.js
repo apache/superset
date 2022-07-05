@@ -25,11 +25,11 @@ describe('Visualization > Big Number with Trendline', () => {
     slice_id: 42,
     granularity_sqla: 'year',
     time_grain_sqla: 'P1D',
-    time_range: '2000+:+2014-01-02',
+    time_range: '2000 : 2014-01-02',
     metric: 'sum__SP_POP_TOTL',
     adhoc_filters: [],
     compare_lag: '10',
-    compare_suffix: 'over+10Y',
+    compare_suffix: 'over 10Y',
     y_axis_format: '.3s',
     show_trend_line: true,
     start_y_axis_at_zero: true,
@@ -42,7 +42,7 @@ describe('Visualization > Big Number with Trendline', () => {
   };
 
   function verify(formData) {
-    cy.visitChartByParams(JSON.stringify(formData));
+    cy.visitChartByParams(formData);
     cy.verifySliceSuccess({
       waitAlias: '@chartData',
       chartSelector: '.superset-legacy-chart-big-number',
