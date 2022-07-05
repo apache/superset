@@ -16,13 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Dataset } from '@superset-ui/chart-controls';
 import { JsonObject, Query, QueryResponse } from '@superset-ui/core';
 import { SupersetError } from 'src/components/ErrorMessage/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { ToastType } from 'src/components/MessageToasts/types';
 import { ExploreRootState } from 'src/explore/types';
-import { Query, QueryResponse } from '@superset-ui/core';
 
 // Object as Dictionary (associative array) with Query id as the key and type Query as the value
 export type QueryDictionary = {
