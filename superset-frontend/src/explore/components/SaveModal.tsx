@@ -46,6 +46,7 @@ interface SaveModalProps extends RouteComponentProps {
   slice?: Record<string, any>;
   datasource?: Record<string, any>;
   dashboardId: '' | number | null;
+  sliceDashboards: number[];
 }
 
 type ActionType = 'overwrite' | 'saveas';
@@ -161,7 +162,7 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
         .then(() => this.props.actions.getDashboard(saveToDashboardId))
         .then((response: { result: DashboardGetResponse }) => {
           dashboard = response.result;
-          const dashboards = new Set<number>(formData.dashboards);
+          const dashboards = new Set<number>(this.props.sliceDashboards);
           dashboards.add(dashboard.id);
           formData.dashboards = Array.from(dashboards);
         });
