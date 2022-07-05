@@ -1078,6 +1078,9 @@ ALERT_REPORTS_WORKING_SOFT_TIME_OUT_LAG = int(timedelta(seconds=1).total_seconds
 # If set to true no notification is sent, the worker will just log a message.
 # Useful for debugging
 ALERT_REPORTS_NOTIFICATION_DRY_RUN = False
+# Max tries to run queries to prevent false errors caused by transient errors
+# being returned to users. Set to a value >1 to enable retries.
+ALERT_REPORTS_QUERY_EXECUTION_MAX_TRIES = 1
 
 # A custom prefix to use on all Alerts & Reports emails
 EMAIL_REPORTS_SUBJECT_PREFIX = "[Report] "
