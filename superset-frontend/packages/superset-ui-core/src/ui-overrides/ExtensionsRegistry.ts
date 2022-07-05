@@ -47,7 +47,7 @@ export type Extensions = Partial<{
  * See SIP-87: 
  */
 class ExtensionsRegistry extends TypedRegistry<Extensions> {
-  name = 'UiOverrideRegistry';
+  name = 'ExtensionsRegistry';
 }
 
 export const getExtensionsRegistry = makeSingleton(ExtensionsRegistry, {});
