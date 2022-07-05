@@ -185,6 +185,7 @@ class QueryContextProcessor:
         # support multiple queries from different data sources.
 
         # The datasource here can be different backend but the interface is common
+        # pylint: disable=import-outside-toplevel
         from superset.models.sql_lab import Query
 
         query = ""

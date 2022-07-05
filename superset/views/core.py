@@ -649,7 +649,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                     errors=[
                         SupersetError(
                             message=__(
-                                "This chart type is not supported when using an unsaved query as a chart source. Create a dataset to visualize your data."
+                                "This chart type is not supported when using an unsaved"
+                                " query as a chart source. Create a dataset to visualize"
+                                " your data."
                             ),
                             error_type=SupersetErrorType.VIZ_TYPE_REQUIRES_DATASET_ERROR,
                             level=ErrorLevel.ERROR,
@@ -755,7 +757,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @expose("/explore/<datasource_type>/<int:datasource_id>/", methods=["GET", "POST"])
     @expose("/explore/", methods=["GET", "POST"])
     @expose("/explore/p/<key>/", methods=["GET"])
-    # pylint: disable=too-many-locals,too-many-branches,too-many-statements
+    # pylint: disable=too-many-locals,too-many-branches,too-many-statements, too-many-return-statements
     def explore(
         self,
         datasource_type: Optional[str] = None,
@@ -791,9 +793,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             value = GetFormDataCommand(parameters).run()
             initial_form_data = json.loads(value) if value else {}
 
-        from superset.datasource.dao import DatasourceDAO
+        # pylint: disable=import-outside-toplevel
         from superset.models.helpers import ExploreMixin
-        from superset.utils.core import DatasourceType
 
         # Handle SIP-68 Models or explore view
         # API will always use /explore/<datasource_type>/<int:datasource_id>/ to query
@@ -896,6 +897,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                     "form_data": form_data,
                     "datasource_id": datasource_id,
                     "datasource_type": datasource_type,
+                    "datasource_name": datasource_name,
                     "slice": slc.data if slc else None,
                     "standalone": standalone_mode,
                     "force": force,

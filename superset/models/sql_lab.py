@@ -56,7 +56,7 @@ if TYPE_CHECKING:
     from superset.db_engine_specs import BaseEngineSpec
 
 
-class Query(Model, ExtraJSONMixin, ExploreMixin):
+class Query(Model, ExtraJSONMixin, ExploreMixin):  # pylint: disable=abstract-method
     """ORM model for SQL query
 
     Now that SQL Lab support multi-statement execution, an entry in this
@@ -175,6 +175,7 @@ class Query(Model, ExtraJSONMixin, ExploreMixin):
     @property
     def columns(self) -> List[ResultSetColumnType]:
         # todo(hughhh): move this logic into a base class
+        # pylint: disable=import-outside-toplevel
         from superset.utils.core import GenericDataType
 
         bool_types = ("BOOL",)
@@ -193,6 +194,7 @@ class Query(Model, ExtraJSONMixin, ExploreMixin):
         date_types = ("DATE", "TIME")
         str_types = ("VARCHAR", "STRING", "CHAR")
         columns = []
+        col_type = ""
         for col in self.extra.get("columns", []):
             computed_column = {**col}
             col_type = col.get("type")
