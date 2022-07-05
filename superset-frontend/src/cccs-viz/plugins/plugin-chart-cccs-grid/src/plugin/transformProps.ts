@@ -80,11 +80,12 @@ export default function transformProps(chartProps: CccsGridChartProps) {
     query_mode,
     include_search,
     enable_grouping,
+    column_state,
   }: CccsGridQueryFormData = { ...DEFAULT_FORM_DATA, ...formData };
   const data = queriesData[0].data as TimeseriesDataRecord[];
   const agGridLicenseKey = queriesData[0].agGridLicenseKey as String;
 
-  const { setDataMask = () => {} } = hooks;
+  const { setDataMask = () => {}, setControlValue } = hooks;
 
   const columns = datasource?.columns as Column[];
   const metrics = datasource?.metrics as Metric[];
@@ -273,6 +274,7 @@ export default function transformProps(chartProps: CccsGridChartProps) {
   return {
     formData,
     setDataMask,
+    setControlValue,
     width,
     height,
     columnDefs,
@@ -285,6 +287,7 @@ export default function transformProps(chartProps: CccsGridChartProps) {
     include_search,
     page_length,
     enable_grouping,
+    column_state,
     agGridLicenseKey,
   };
 }

@@ -16,9 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { ColumnState } from '@ag-grid-enterprise/all-modules';
 import {
   ChartDataResponseResult,
   ChartProps,
+  HandlerFunction,
   QueryFormData,
   SetDataMaskHook,
   supersetTheme,
@@ -33,6 +35,7 @@ export type CccsGridQueryFormData = QueryFormData & {
   include_search: boolean;
   page_length: number;
   enable_grouping: boolean;
+  column_state: ColumnState[];
 };
 
 export interface CccsGridStylesProps {
@@ -62,6 +65,7 @@ export class CccsGridChartProps extends ChartProps {
 export interface CccsGridTransformedProps extends CccsGridStylesProps {
   formData: CccsGridQueryFormData;
   setDataMask: SetDataMaskHook;
+  setControlValue: HandlerFunction;
   selectedValues: Record<number, string>;
   emitFilter: boolean;
   data: TimeseriesDataRecord[];
@@ -76,6 +80,7 @@ export interface CccsGridTransformedProps extends CccsGridStylesProps {
   include_search: boolean;
   page_length: number;
   enable_grouping: boolean;
+  column_state: ColumnState[];
   // add typing here for the props you pass in from transformProps.ts!
   agGridLicenseKey: string;
 }

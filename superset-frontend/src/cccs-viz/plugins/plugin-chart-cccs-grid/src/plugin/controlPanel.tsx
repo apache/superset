@@ -431,6 +431,18 @@ const config: ControlPanelConfig = {
               }
             : null,
         ],
+        [
+          {
+            name: 'column_state',
+            config: {
+              type: 'HiddenControl',
+              hidden: true,
+              label: t('Column state'),
+              description: t('State of AG Grid columns'),
+              dontRefreshOnChange: true,
+            },
+          },
+        ],
       ],
     },
     // For CLDN-941: hiding away options that are not hooked up to the ag-grid, moving all to a block that
