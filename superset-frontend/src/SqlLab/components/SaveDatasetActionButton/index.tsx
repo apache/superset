@@ -41,6 +41,7 @@ export default function SaveDatasetActionButton({
       '&:first-of-type': {
         width: `${theme.gridUnit * 16}px`,
       },
+      fontWeight: 600,
       backgroundColor: theme.colors.primary.light4,
       color: theme.colors.primary.dark1,
       '&:nth-child(2)': {
