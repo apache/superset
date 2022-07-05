@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { t, useTheme } from '@superset-ui/core';
+import { t, useTheme, styled } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import { DropdownButton } from 'src/components/DropdownButton';
 import Button from 'src/components/Button';
@@ -34,27 +34,27 @@ export default function SaveDatasetActionButton({
 }: Props) {
   const theme = useTheme();
 
-  const FCdropdownButton = DropdownButton as React.FC<DropdownButtonProps>;
-
-  const buttonStyles = {
-    '&.ant-dropdown-button button.ant-btn.ant-btn-default': {
-      '&:first-of-type': {
-        width: `${theme.gridUnit * 16}px`,
-      },
-      fontWeight: 600,
-      backgroundColor: theme.colors.primary.light4,
-      color: theme.colors.primary.dark1,
-      '&:nth-child(2)': {
-        '&:before, &:hover:before': {
-          borderLeft: `1px solid ${theme.colors.primary.dark2}`,
-        },
-      },
-    },
-    'span[name="caret-down"]': {
-      marginLeft: `${theme.gridUnit * 1}px`,
-      color: `${theme.colors.primary.dark2}`,
-    },
-  };
+  const StyledDropdownButton = styled(
+    DropdownButton as React.FC<DropdownButtonProps>,
+  )`
+    &.ant-dropdown-button button.ant-btn.ant-btn-default {
+      &:first-of-type {
+        width: ${theme.gridUnit * 16}px;
+      }
+      background-color: ${theme.colors.primary.light4};
+      color: ${theme.colors.primary.dark1};
+      &:nth-child(2) {
+        &:before,
+        &:hover:before {
+          border-left: 1px solid ${theme.colors.primary.dark2};
+        }
+      }
+    }
+    span[name='caret-down'] {
+      margin-left: ${theme.gridUnit * 1}px;
+      color: ${theme.colors.primary.dark2};
+    }
+  `;
 
   return !overlayMenu ? (
     <Button
@@ -65,7 +65,7 @@ export default function SaveDatasetActionButton({
       {t('Save')}
     </Button>
   ) : (
-    <FCdropdownButton
+    <StyledDropdownButton
       onClick={toggleSave}
       overlay={overlayMenu}
       icon={
@@ -75,9 +75,8 @@ export default function SaveDatasetActionButton({
         />
       }
       trigger={['click']}
-      css={buttonStyles}
     >
       {t('Save')}
-    </FCdropdownButton>
+    </StyledDropdownButton>
   );
 }
