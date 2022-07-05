@@ -37,6 +37,7 @@ from superset.reports.commands.exceptions import (
     AlertValidatorConfigError,
 )
 from superset.utils.core import override_user
+from superset.utils.retries import retry_call
 
 logger = logging.getLogger(__name__)
 
@@ -171,7 +172,13 @@ class AlertCommand(BaseCommand):
         """
         Validate the query result as a Pandas DataFrame
         """
-        df = self._execute_query()
+        # When there are transient errors when executing queries, users will get
+        # notified with the error stacktrace which can be avoided by retrying
+        df = retry_call(
+            self._execute_query,
+            exception=AlertQueryError,
+            max_tries=app.config["ALERT_REPORTS_QUERY_EXECUTION_MAX_TRIES"],
+        )
 
         if df.empty and self._is_validator_not_null:
             self._result = None
