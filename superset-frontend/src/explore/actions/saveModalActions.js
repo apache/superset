@@ -88,14 +88,10 @@ export const getSlicePayload = (sliceName, formData, owners) => {
 const addToasts = (isNewSlice, sliceName, addedToDashboard) => {
   const toasts = [];
   if (isNewSlice) {
-    toasts.push(
-      addSuccessToast(`${t('Chart')} [${sliceName}] ${t('has been saved')}`),
-    );
+    toasts.push(addSuccessToast(t('Chart [%s] has been saved', sliceName)));
   } else {
     toasts.push(
-      addSuccessToast(
-        `${t('Chart')} [${sliceName}] ${t('has been overwritten')}`,
-      ),
+      addSuccessToast(t('Chart [%s] has been overwritten', sliceName)),
     );
   }
 
@@ -103,17 +99,21 @@ const addToasts = (isNewSlice, sliceName, addedToDashboard) => {
     if (addedToDashboard.new) {
       toasts.push(
         addSuccessToast(
-          `${t('Dashboard')} [${addedToDashboard.title}] ${t(
-            'just got created and chart',
-          )} [${sliceName}] ${t('was added to it')}`,
+          t(
+            'Dashboard [%s] just got created and chart [%s] was added to it',
+            addedToDashboard.title,
+            sliceName,
+          ),
         ),
       );
     } else {
       toasts.push(
         addSuccessToast(
-          `${t('Chart')} [${sliceName}] ${t('was added to dashboard')} [${
-            addedToDashboard.title
-          }]`,
+          t(
+            'Chart [%s] was added to dashboard [%s]',
+            sliceName,
+            addedToDashboard.title,
+          ),
         ),
       );
     }
