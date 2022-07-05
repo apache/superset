@@ -138,6 +138,6 @@ test('formats Explore url', async () => {
     datasource,
     vizType: 'table',
   });
-  const formattedUrl = '/superset/explore/?viz_type=table&datasource=1';
+  const formattedUrl = '/explore/?viz_type=table&datasource=1';
   expect(wrapper.instance().exploreUrl()).toBe(formattedUrl);
 });
