@@ -46,7 +46,7 @@ export const timeComparePivotOperator: PostProcessingFactory<PostProcessingPivot
         options: {
           index,
           columns: ensureIsArray(queryObject.columns).map(getColumnLabel),
-          drop_missing_columns: !!formData?.drop_missing_columns,
+          drop_missing_columns: !formData?.show_empty_columns,
           aggregates,
         },
       };
