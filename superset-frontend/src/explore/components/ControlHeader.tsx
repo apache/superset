@@ -22,6 +22,10 @@ import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import { Tooltip } from 'src/components/Tooltip';
 import { FormLabel } from 'src/components/Form';
 import Icons from 'src/components/Icons';
+import {
+  ExclamationCircleOutlined,
+  InfoCircleOutlined,
+} from '@ant-design/icons';
 
 type ValidationError = string;
 
@@ -78,12 +82,13 @@ const ControlHeader: FC<ControlHeaderProps> = ({
       >
         {description && (
           <span>
-            <InfoTooltipWithTrigger
-              label={t('description')}
-              tooltip={description}
+            <Tooltip
+              id={`${t('description')}-tooltip`}
+              title={description}
               placement="top"
-              onClick={tooltipOnClick}
-            />{' '}
+            >
+              <InfoCircleOutlined onClick={tooltipOnClick} />
+            </Tooltip>{' '}
           </span>
         )}
         {renderTrigger && (
@@ -100,7 +105,7 @@ const ControlHeader: FC<ControlHeaderProps> = ({
     );
   };
 
-  const labelClass = validationErrors?.length > 0 ? 'text-danger' : '';
+  const labelClass = validationErrors?.length > 0 ? 'text-info' : '';
 
   return (
     <div className="ControlHeader" data-test={`${name}-header`}>
@@ -144,7 +149,9 @@ const ControlHeader: FC<ControlHeaderProps> = ({
                 placement="top"
                 title={validationErrors?.join(' ')}
               >
-                <Icons.ErrorSolid iconColor={colors.error.base} iconSize="s" />
+                <ExclamationCircleOutlined
+                  style={{ color: colors.info.base }}
+                />
               </Tooltip>{' '}
             </span>
           )}

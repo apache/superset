@@ -35,6 +35,7 @@ import {
   DatasourceType,
   css,
   SupersetTheme,
+  useTheme,
 } from '@superset-ui/core';
 import {
   ControlPanelSectionConfig,
@@ -42,7 +43,6 @@ import {
   CustomControlItem,
   Dataset,
   ExpandedControlItem,
-  InfoTooltipWithTrigger,
   sections,
 } from '@superset-ui/chart-controls';
 
@@ -58,6 +58,11 @@ import { ChartState, ExplorePageState } from 'src/explore/types';
 import { Tooltip } from 'src/components/Tooltip';
 
 import { rgba } from 'emotion-rgba';
+import { kebabCase } from 'lodash';
+import {
+  ExclamationCircleOutlined,
+  InfoCircleOutlined,
+} from '@ant-design/icons';
 import ControlRow from './ControlRow';
 import Control from './Control';
 import { ExploreAlert } from './ExploreAlert';
@@ -236,6 +241,7 @@ function getState(
 }
 
 export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
+  const { colors } = useTheme();
   const pluginContext = useContext(PluginContext);
 
   const prevState = usePrevious(props.exploreState);
@@ -405,15 +411,17 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
           {label}
         </span>{' '}
         {description && (
-          // label is only used in tooltip id (should probably call this prop `id`)
-          <InfoTooltipWithTrigger label={sectionId} tooltip={description} />
+          <Tooltip id={sectionId} title={description}>
+            <InfoCircleOutlined />
+          </Tooltip>
         )}
         {hasErrors && (
-          <InfoTooltipWithTrigger
-            label="validation-errors"
-            bsStyle="danger"
-            tooltip="This section contains validation errors"
-          />
+          <Tooltip
+            id={`${kebabCase('validation-errors')}-tooltip`}
+            title="This section contains validation errors"
+          >
+            <InfoCircleOutlined style={{ color: colors.info.base }} />
+          </Tooltip>
         )}
       </span>
     );
@@ -521,7 +529,6 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
         {props.errorMessage && (
           <span
             css={(theme: SupersetTheme) => css`
-              font-size: ${theme.typography.sizes.xs}px;
               margin-left: ${theme.gridUnit * 2}px;
             `}
           >
@@ -531,13 +538,13 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
               placement="right"
               title={props.errorMessage}
             >
-              <i className="fa fa-exclamation-circle text-danger fa-lg" />
+              <ExclamationCircleOutlined style={{ color: colors.info.base }} />
             </Tooltip>
           </span>
         )}
       </>
     ),
-    [props.errorMessage],
+    [colors.info.base, props.errorMessage],
   );
 
   const controlPanelRegistry = getChartControlPanelRegistry();
