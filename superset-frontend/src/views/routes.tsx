@@ -81,6 +81,9 @@ const ExecutionLog = lazy(
       /* webpackChunkName: "ExecutionLog" */ 'src/views/CRUD/alert/ExecutionLog'
     ),
 );
+const ExplorePage = lazy(
+  () => import(/* webpackChunkName: "ExplorePage" */ 'src/explore/ExplorePage'),
+);
 const QueryList = lazy(
   () =>
     import(
@@ -167,6 +170,14 @@ export const routes: Routes = [
     props: {
       isReportEnabled: true,
     },
+  },
+  {
+    path: '/explore/',
+    Component: ExplorePage,
+  },
+  {
+    path: '/superset/explore/p',
+    Component: ExplorePage,
   },
 ];
 

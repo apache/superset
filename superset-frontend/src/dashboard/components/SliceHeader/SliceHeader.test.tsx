@@ -115,7 +115,7 @@ const createProps = (overrides: any = {}) => ({
   sliceCanEdit: false,
   slice: {
     slice_id: 312,
-    slice_url: '/superset/explore/?form_data=%7B%22slice_id%22%3A%20312%7D',
+    slice_url: '/explore/?form_data=%7B%22slice_id%22%3A%20312%7D',
     slice_name: 'Vaccine Candidates per Phase',
     form_data: {
       adhoc_filters: [],
