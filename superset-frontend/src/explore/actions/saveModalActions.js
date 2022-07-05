@@ -61,7 +61,18 @@ export function removeSaveModalAlert() {
   return { type: REMOVE_SAVE_MODAL_ALERT };
 }
 
-export const getSlicePayload = (sliceName, formData, owners) => {
+export const getSlicePayload = (
+  sliceName,
+  formDataWithNativeFilters,
+  owners,
+) => {
+  const formData = {
+    ...formDataWithNativeFilters,
+    adhoc_filters: formDataWithNativeFilters.adhoc_filters?.filter(
+      f => !f.isExtra,
+    ),
+  };
+
   const [datasourceId, datasourceType] = formData.datasource.split('__');
   const payload = {
     params: JSON.stringify(formData),
