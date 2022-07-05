@@ -289,13 +289,6 @@ class TestTableViz(SupersetTestCase):
                     "comparator": "100",
                 },
                 {
-                    "expressionType": "SIMPLE",
-                    "clause": "HAVING",
-                    "subject": "SUM(value1)",
-                    "operator": "<",
-                    "comparator": "10",
-                },
-                {
                     "expressionType": "SQL",
                     "clause": "HAVING",
                     "sqlExpression": "SUM(value1) > 5",
@@ -313,7 +306,6 @@ class TestTableViz(SupersetTestCase):
         self.assertEqual(
             [{"col": "value2", "val": "100", "op": ">"}], query_obj["filter"]
         )
-        self.assertEqual([{"op": "<", "val": "10", "col": "SUM(value1)"}])
         self.assertEqual("(value3 in ('North America'))", query_obj["extras"]["where"])
         self.assertEqual("(SUM(value1) > 5)", query_obj["extras"]["having"])
 

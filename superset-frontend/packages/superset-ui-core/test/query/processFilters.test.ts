@@ -28,7 +28,7 @@ describe('processFilters', () => {
       }),
     ).toEqual(
       expect.objectContaining({
-        extras: { having: '', having_druid: [], where: '' },
+        extras: { having: '', where: '' },
         filters: [],
       }),
     );

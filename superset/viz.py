@@ -397,7 +397,6 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         # extras are used to query elements specific to a datasource type
         # for instance the extra where clause that applies only to Tables
         extras = {
-            "druid_time_origin": self.form_data.get("druid_time_origin", ""),
             "having": self.form_data.get("having", ""),
             "time_grain_sqla": self.form_data.get("time_grain_sqla"),
             "where": self.form_data.get("where", ""),

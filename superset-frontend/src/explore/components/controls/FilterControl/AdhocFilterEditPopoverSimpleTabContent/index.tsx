@@ -138,9 +138,9 @@ export const useSimpleTabFilterProps = (props: Props) => {
         operator === Operators.IS_NULL || operator === Operators.IS_NOT_NULL
       );
     }
-    return !(
-      props.adhocFilter.clause === CLAUSES.HAVING &&
-      HAVING_OPERATORS.indexOf(operator) === -1
+    return (
+      props.adhocFilter.clause !== CLAUSES.HAVING ||
+      HAVING_OPERATORS.indexOf(operator) !== -1
     );
   };
   const onSubjectChange = (id: string) => {

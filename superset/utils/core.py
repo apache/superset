@@ -219,7 +219,6 @@ class ExtraFiltersTimeColumnType(str, Enum):
 class ExtraFiltersReasonType(str, Enum):
     NO_TEMPORAL_COLUMN = "no_temporal_column"
     COL_NOT_IN_DATASOURCE = "not_in_datasource"
-    NOT_DRUID_DATASOURCE = "not_druid_datasource"
 
 
 class FilterOperator(str, Enum):
@@ -1145,7 +1144,6 @@ def merge_extra_filters(form_data: Dict[str, Any]) -> None:
             "__time_range": "time_range",
             "__time_col": "granularity_sqla",
             "__time_grain": "time_grain_sqla",
-            "__time_origin": "druid_time_origin",
             "__granularity": "granularity",
         }
         # Grab list of existing filters 'keyed' on the column and operator
@@ -1763,18 +1761,6 @@ def get_time_filter_status(
                 }
             )
 
-    if ExtraFiltersTimeColumnType.TIME_ORIGIN in applied_time_extras:
-        # This seems like it is to do with the druid time series, which I think we
-        # are still keeping mentions of.
-        if datasource.type == "druid":
-            applied.append({"column": ExtraFiltersTimeColumnType.TIME_ORIGIN})
-        else:
-            rejected.append(
-                {
-                    "reason": ExtraFiltersReasonType.NOT_DRUID_DATASOURCE,
-                    "column": ExtraFiltersTimeColumnType.TIME_ORIGIN,
-                }
-            )
     return applied, rejected
 
 

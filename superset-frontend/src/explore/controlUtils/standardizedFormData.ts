@@ -145,7 +145,6 @@ export class StandardizedFormData {
     if (this.has(vizType)) {
       return this.get(vizType);
     }
-
     return this.memorizedFormData.slice(-1)[0][1];
   }
 
@@ -195,6 +194,7 @@ export class StandardizedFormData {
         publicFormData[key] = exploreState.form_data[key];
       }
     });
+    console.log('this is latestFormData', latestFormData);
     const targetControlsState = getControlsState(exploreState, {
       ...latestFormData,
       ...publicFormData,
@@ -204,7 +204,6 @@ export class StandardizedFormData {
       ...getFormDataFromControls(targetControlsState),
       standardizedFormData: this.serialize(),
     };
-
     const controlPanel = getChartControlPanelRegistry().get(targetVizType);
     if (controlPanel?.formDataOverrides) {
       getStandardizedControls().setStandardizedControls(targetFormData);

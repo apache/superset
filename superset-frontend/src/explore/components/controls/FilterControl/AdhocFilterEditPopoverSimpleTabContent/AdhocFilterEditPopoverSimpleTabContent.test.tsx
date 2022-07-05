@@ -235,7 +235,6 @@ describe('AdhocFilterEditPopoverSimpleTabContent', () => {
   it('will filter operators for table datasources', () => {
     const { props } = setup({ datasource: { type: 'table' } });
     const { isOperatorRelevant } = useSimpleTabFilterProps(props);
-    expect(isOperatorRelevant(Operators.REGEX, 'value')).toBe(false);
     expect(isOperatorRelevant(Operators.LIKE, 'value')).toBe(true);
   });
 

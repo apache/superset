@@ -335,12 +335,6 @@ class TestPostChartDataApi(BaseTestChartDataApi):
                 {"column": "__time_range"},
             ],
         )
-        self.assertEqual(
-            data["result"][0]["rejected_filters"],
-            [
-                {"column": "__time_origin", "reason": "not_druid_datasource"},
-            ],
-        )
         expected_row_count = self.get_expected_row_count("client_id_2")
         self.assertEqual(data["result"][0]["rowcount"], expected_row_count)
 

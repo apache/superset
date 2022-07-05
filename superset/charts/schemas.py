@@ -874,6 +874,7 @@ class ChartDataExtrasSchema(Schema):
         description="Starting point for time grain counting on legacy Druid "
         "datasources. Used to change e.g. Monday/Sunday first-day-of-week.",
         allow_none=True,
+        deprecated=True,
     )
 
 
@@ -1176,6 +1177,7 @@ class ChartDataQueryObjectSchema(Schema):
         "This field is deprecated and should be passed to `extras` "
         "as `druid_time_origin`.",
         allow_none=True,
+        deprecated=True,
     )
     url_params = fields.Dict(
         description="Optional query parameters passed to a dashboard or Explore view",
