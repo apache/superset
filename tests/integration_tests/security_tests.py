@@ -20,7 +20,7 @@ import time
 import unittest
 from collections import namedtuple
 from unittest import mock
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, patch, call, ANY
 from typing import Any
 
 import jwt
@@ -157,6 +157,9 @@ class TestRolePermission(SupersetTestCase):
         session.commit()
 
     def test_set_perm_sqla_table(self):
+        security_manager.on_view_menu_after_insert = Mock()
+        security_manager.on_permission_view_after_insert = Mock()
+
         session = db.session
         table = SqlaTable(
             schema="tmp_schema",
@@ -172,16 +175,34 @@ class TestRolePermission(SupersetTestCase):
         self.assertEqual(
             stored_table.perm, f"[examples].[tmp_perm_table](id:{stored_table.id})"
         )
-        self.assertIsNotNone(
-            security_manager.find_permission_view_menu(
-                "datasource_access", stored_table.perm
-            )
+
+        pvm_dataset = security_manager.find_permission_view_menu(
+            "datasource_access", stored_table.perm
         )
+        pvm_schema = security_manager.find_permission_view_menu(
+            "schema_access", stored_table.schema_perm
+        )
+
+        self.assertIsNotNone(pvm_dataset)
         self.assertEqual(stored_table.schema_perm, "[examples].[tmp_schema]")
-        self.assertIsNotNone(
-            security_manager.find_permission_view_menu(
-                "schema_access", stored_table.schema_perm
-            )
+        self.assertIsNotNone(pvm_schema)
+
+        # assert on permission hooks
+        view_menu_dataset = security_manager.find_view_menu(
+            f"[examples].[tmp_perm_table](id:{stored_table.id})"
+        )
+        view_menu_schema = security_manager.find_view_menu(f"[examples].[tmp_schema]")
+        security_manager.on_view_menu_after_insert.assert_has_calls(
+            [
+                call(ANY, ANY, view_menu_dataset),
+                call(ANY, ANY, view_menu_schema),
+            ]
+        )
+        security_manager.on_permission_view_after_insert.assert_has_calls(
+            [
+                call(ANY, ANY, pvm_dataset),
+                call(ANY, ANY, pvm_schema),
+            ]
         )
 
         # table name change
