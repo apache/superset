@@ -139,6 +139,27 @@ test('Click on Edit dataset', async () => {
   ).toBeInTheDocument();
 });
 
+test('Edit dataset should be disabled when user is not admin', async () => {
+  const props = createProps();
+  // @ts-expect-error
+  props.user.roles = {};
+  props.datasource.owners = [];
+  SupersetClientGet.mockImplementation(
+    async () => ({ json: { result: [] } } as any),
+  );
+
+  render(<DatasourceControl {...props} />, {
+    useRedux: true,
+  });
+
+  userEvent.click(screen.getByTestId('datasource-menu-trigger'));
+
+  expect(screen.getByTestId('edit-dataset')).toHaveAttribute(
+    'aria-disabled',
+    'true',
+  );
+});
+
 test('Click on View in SQL Lab', async () => {
   const props = createProps();
   const postFormSpy = jest.spyOn(SupersetClient, 'postForm');
