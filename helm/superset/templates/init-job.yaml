@@ -36,6 +36,9 @@ spec:
       {{- end }}
       securityContext:
         runAsUser: {{ .Values.runAsUser }}
+      {{- if .Values.init.securityContext }}
+        {{ toYaml .Values.init.securityContext | nindent 8 }}
+      {{- end }}
       {{- if .Values.init.initContainers }}
       initContainers:
       {{-  tpl (toYaml .Values.init.initContainers) . | nindent 6 }}

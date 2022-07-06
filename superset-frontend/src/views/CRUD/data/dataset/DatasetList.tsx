@@ -31,6 +31,7 @@ import {
   createFetchDistinct,
   createErrorHandler,
 } from 'src/views/CRUD/utils';
+import { getItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import { ColumnObject } from 'src/views/CRUD/data/dataset/types';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
@@ -180,6 +181,12 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     hasPerm('can_export') && isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT);
 
   const initialSort = SORT_BY;
+  useEffect(() => {
+    const db = getItem(LocalStorageKeys.db, null);
+    if (!loading && db) {
+      setDatasetAddModalOpen(true);
+    }
+  }, [loading]);
 
   const openDatasetEditModal = useCallback(
     ({ id }: Dataset) => {

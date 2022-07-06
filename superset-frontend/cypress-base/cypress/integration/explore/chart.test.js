@@ -41,7 +41,7 @@ describe('No Results', () => {
       ],
     };
 
-    cy.visitChartByParams(JSON.stringify(formData));
+    cy.visitChartByParams(formData);
     cy.wait('@getJson').its('response.statusCode').should('eq', 200);
     cy.get('div.chart-container').contains(
       'No results were returned for this query',

@@ -33,7 +33,7 @@ describe('Download Chart > Distribution bar chart', () => {
       groupby: ['state'],
     };
 
-    cy.visitChartByParams(JSON.stringify(formData));
+    cy.visitChartByParams(formData);
     cy.get('.header-with-actions .ant-dropdown-trigger').click();
     cy.get(':nth-child(1) > .ant-dropdown-menu-submenu-title').click();
     cy.get(
