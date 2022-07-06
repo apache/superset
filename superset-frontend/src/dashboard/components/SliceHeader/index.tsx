@@ -24,7 +24,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { FeatureFlag, isFeatureEnabled, styled, t } from '@superset-ui/core';
+import { styled, t } from '@superset-ui/core';
 import { useUiConfig } from 'src/components/UiConfigContext';
 import { Tooltip } from 'src/components/Tooltip';
 import { useDispatch, useSelector } from 'react-redux';
@@ -36,8 +36,8 @@ import FiltersBadge from 'src/dashboard/components/FiltersBadge';
 import Icons from 'src/components/Icons';
 import { RootState } from 'src/dashboard/types';
 import FilterIndicator from 'src/dashboard/components/FiltersBadge/FilterIndicator';
+import { getSliceHeaderTooltip } from 'src/dashboard/util/getSliceHeaderTooltip';
 import { clearDataMask } from 'src/dataMask/actions';
-import { detectOS } from 'src/utils/common';
 
 type SliceHeaderProps = SliceHeaderControlsProps & {
   innerRef?: string;
@@ -61,28 +61,6 @@ const CrossFilterIcon = styled(Icons.CursorTarget)`
   height: 22px;
   width: 22px;
 `;
-
-export const getSliceHeaderTooltip = (sliceName: string | undefined) => {
-  if (isFeatureEnabled(FeatureFlag.DASHBOARD_EDIT_CHART_IN_NEW_TAB)) {
-    return sliceName
-      ? t('Click to edit %s in a new tab', sliceName)
-      : t('Click to edit chart.');
-  }
-  const isMac = detectOS() === 'MacOS';
-  const firstLine = sliceName
-    ? t('Click to edit %s.', sliceName)
-    : t('Click to edit chart.');
-  const secondLine = t(
-    'Use %s to open in a new tab.',
-    isMac ? '⌘ + click' : 'ctrl + click',
-  );
-  return (
-    <>
-      <div>{firstLine}</div>
-      <div>{secondLine}</div>
-    </>
-  );
-};
 
 const SliceHeader: FC<SliceHeaderProps> = ({
   innerRef = null,

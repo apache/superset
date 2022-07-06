@@ -32,6 +32,8 @@ import ShareMenuItems from 'src/dashboard/components/menu/ShareMenuItems';
 import downloadAsImage from 'src/utils/downloadAsImage';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import CrossFilterScopingModal from 'src/dashboard/components/CrossFilterScopingModal/CrossFilterScopingModal';
+import { getSliceHeaderTooltip } from 'src/dashboard/util/getSliceHeaderTooltip';
+import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
 import ModalTrigger from 'src/components/ModalTrigger';
 import Button from 'src/components/Button';
@@ -308,7 +310,9 @@ class SliceHeaderControls extends React.PureComponent<
             key={MENU_KEYS.EXPLORE_CHART}
             onClick={({ domEvent }) => this.props.onExploreChart(domEvent)}
           >
-            {t('Edit chart')}
+            <Tooltip title={getSliceHeaderTooltip(this.props.slice.slice_name)}>
+              {t('Edit chart')}
+            </Tooltip>
           </Menu.Item>
         )}
 
