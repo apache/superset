@@ -1453,23 +1453,27 @@ def get_user_id() -> Optional[int]:
 
 
 @contextmanager
-def override_user(user: Optional[User]) -> Iterator[Any]:
+def override_user(user: Optional[User], force: bool = True) -> Iterator[Any]:
     """
-    Temporarily override the current user (if defined) per `flask.g`.
+    Temporarily override the current user per `flask.g` with the specified user.
 
     Sometimes, often in the context of async Celery tasks, it is useful to switch the
     current user (which may be undefined) to different one, execute some SQLAlchemy
-    tasks and then revert back to the original one.
+    tasks et al. and then revert back to the original one.
 
     :param user: The override user
+    :param force: Whether to override the current user if set
     """
 
     # pylint: disable=assigning-non-slot
     if hasattr(g, "user"):
-        current = g.user
-        g.user = user
-        yield
-        g.user = current
+        if force or g.user is None:
+            current = g.user
+            g.user = user
+            yield
+            g.user = current
+        else:
+            yield
     else:
         g.user = user
         yield
