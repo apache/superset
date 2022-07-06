@@ -44,7 +44,7 @@ export type Extensions = Partial<{
 
 /**
  * A registry containing extensions which can alter Superset's UI at specific points defined by Superset.
- * See SIP-87: 
+ * See SIP-87: https://github.com/apache/superset/issues/20615
  */
 class ExtensionsRegistry extends TypedRegistry<Extensions> {
   name = 'ExtensionsRegistry';
