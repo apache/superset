@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
+ import React, {
   forwardRef,
   ReactElement,
   ReactNode,
@@ -27,6 +27,7 @@ import React, {
   useState,
   useRef,
   useCallback,
+  useImperativeHandle,
 } from 'react';
 import { ensureIsArray, styled, t } from '@superset-ui/core';
 import AntdSelect, {
@@ -679,6 +680,17 @@ const AsyncSelect = (
       setIsLoading(loading);
     }
   }, [isLoading, loading]);
+
+  const clearCache = () => fetchedQueries.current.clear();
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      ...(ref.current as HTMLInputElement),
+      clearCache,
+    }),
+    [ref],
+  );
 
   return (
     <StyledContainer>
