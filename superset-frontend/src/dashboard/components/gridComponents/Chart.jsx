@@ -297,7 +297,7 @@ class Chart extends React.Component {
         [URL_PARAMS.sliceId.name]: this.props.slice.slice_id,
       });
       if (
-        !isFeatureEnabled(FeatureFlag.DASHBOARD_TO_EXPLORE_SPA) ||
+        !isFeatureEnabled(FeatureFlag.DASHBOARD_EDIT_CHART_IN_TAB) ||
         isOpenInNewTab
       ) {
         window.open(url, '_blank', 'noreferrer');

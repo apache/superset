@@ -63,9 +63,9 @@ const CrossFilterIcon = styled(Icons.CursorTarget)`
 `;
 
 export const getSliceHeaderTooltip = (sliceName: string | undefined) => {
-  if (!isFeatureEnabled(FeatureFlag.DASHBOARD_TO_EXPLORE_SPA)) {
+  if (!isFeatureEnabled(FeatureFlag.DASHBOARD_EDIT_CHART_IN_TAB)) {
     return sliceName
-      ? t('Click to edit %s in ', sliceName)
+      ? t('Click to edit %s in a new tab', sliceName)
       : t('Click to edit chart.');
   }
   const isMac = detectOS() === 'MacOS';
@@ -73,7 +73,7 @@ export const getSliceHeaderTooltip = (sliceName: string | undefined) => {
     ? t('Click to edit %s.', sliceName)
     : t('Click to edit chart.');
   const secondLine = t(
-    'Use %s to open in new tab.',
+    'Use %s to open in a new tab.',
     isMac ? '⌘ + click' : 'ctrl + click',
   );
   return (
