@@ -20,6 +20,7 @@ import React from 'react';
 import { render, screen, waitFor, within } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { Select } from 'src/components';
+import { loadOptions } from '@babel/core';
 
 const ARIA_LABEL = 'Test';
 const NEW_OPTION = 'Kyle';
@@ -147,27 +148,6 @@ test('sort the options by label if no sort comparator is provided', async () => 
   options.forEach((option, key) =>
     expect(option).toHaveTextContent(OPTIONS[key].label),
   );
-});
-
-test('sort the options using a custom sort comparator', async () => {
-  const sortComparator = (
-    option1: typeof OPTIONS[0],
-    option2: typeof OPTIONS[0],
-  ) => option1.gender.localeCompare(option2.gender);
-  render(
-    <Select
-      {...defaultProps}
-      options={OPTIONS}
-      sortComparator={sortComparator}
-    />,
-  );
-  await open();
-  const options = await findAllSelectOptions();
-  const optionsPage = OPTIONS.slice(0, defaultProps.pageSize);
-  const sortedOptions = optionsPage.sort(sortComparator);
-  options.forEach((option, key) => {
-    expect(option).toHaveTextContent(sortedOptions[key].label);
-  });
 });
 
 test('should sort selected to top when in single mode', async () => {
