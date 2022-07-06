@@ -20,7 +20,6 @@ import { JsonObject, Query, QueryResponse } from '@superset-ui/core';
 import { SupersetError } from 'src/components/ErrorMessage/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { ToastType } from 'src/components/MessageToasts/types';
-import { ExploreRootState } from 'src/explore/types';
 import { RootState } from 'src/dashboard/types';
 
 // Object as Dictionary (associative array) with Query id as the key and type Query as the value
@@ -83,7 +82,7 @@ export const getInitialState = (state: SqlLabExploreRootState) => {
   }
 
   const { user } = state as RootState;
-  return user;
+  return user as UserWithPermissionsAndRoles;
 };
 
 export enum DatasetRadioState {
