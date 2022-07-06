@@ -134,6 +134,14 @@ under the License.
 
 **Fixes**
 
+- [#20382](https://github.com/apache/superset/pull/20382) fix: Allow dataset owners to explore their datasets (@reesercollins)
+- [#20419](https://github.com/apache/superset/pull/20419) fix(embedded): Retry when executing alert queries to avoid sending transient errors to users as alert failure notifications (@zhaorui2022)
+- [#20555](https://github.com/apache/superset/pull/20555) fix: Respecting max/min opacities, and adding tests. (@rusackas)
+- [#20571](https://github.com/apache/superset/pull/20571) fix: Revert #20408 (stacking negative values in echarts bar chart) (@rusackas)
+- [#20487](https://github.com/apache/superset/pull/20487) fix(database-modal): form in database model effects results of the database list (@stephenLYZ)
+- [#20488](https://github.com/apache/superset/pull/20488) fix(big-number): big number gets cut off on a Dashboard (@stephenLYZ)
+- [#16326](https://github.com/apache/superset/pull/16326) fix: SQL Lab cancel query in Redshift database connection does not wo… (@yourssvk)
+- [#20362](https://github.com/apache/superset/pull/20362) fix: Unable to download the Dashboard as image in case there's an image added through Markdown (@diegomedina248)
 - [#20543](https://github.com/apache/superset/pull/20543) fix: Removes psycopg2 as a required dependency
 - [#20442](https://github.com/apache/superset/pull/20442) fix(db): Show the only db install guide when the db is already installed and error is existed while importing file. (@prosdev0107)
 - [#20483](https://github.com/apache/superset/pull/20483) fix: bump FAB to 4.1.2 (@dpgaspar)
@@ -326,6 +334,9 @@ under the License.
 
 **Others**
 
+- [#20620](https://github.com/apache/superset/pull/20620) docs: fix link for Apache Superset source code (@dpgaspar)
+- [#20621](https://github.com/apache/superset/pull/20621) chore: bump FAB to 4.1.3 (@dpgaspar)
+- [#20486](https://github.com/apache/superset/pull/20486) chore: Updated copy in chart drop down to "View as table" (@lauderbaugh)
 - [#20116](https://github.com/apache/superset/pull/20116) style(typo): occured -> occurred (@sfirke)
 - [#20401](https://github.com/apache/superset/pull/20401) chore: add action to welcome new users (@eschutho)
 - [#20269](https://github.com/apache/superset/pull/20269) chore(docs): Remove cache warming documentation (@ajwhite)
