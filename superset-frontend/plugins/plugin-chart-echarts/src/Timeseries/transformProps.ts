@@ -35,12 +35,14 @@ import {
 import { isDerivedSeries } from '@superset-ui/chart-controls';
 import { EChartsCoreOption, SeriesOption } from 'echarts';
 import { ZRLineType } from 'echarts/types/src/util/types';
+import { merge } from 'lodash';
 import {
   EchartsTimeseriesChartProps,
   EchartsTimeseriesFormData,
   EchartsTimeseriesSeriesType,
   TimeseriesChartTransformedProps,
   OrientationType,
+  AxisType,
 } from './types';
 import { DEFAULT_FORM_DATA } from './constants';
 import { ForecastSeriesEnum, ForecastValue } from '../types';
@@ -329,13 +331,23 @@ export default function transformProps(
       rotate: xAxisLabelRotation,
     },
     minInterval:
-      xAxisType === 'time' && timeGrainSqla
+      xAxisType === AxisType.time && timeGrainSqla
         ? TIMEGRAIN_TO_TIMESTAMP[timeGrainSqla]
         : 0,
   };
+
+  if (xAxisType === AxisType.time) {
+    /**
+     * Overriding default behavior (false) for time axis regardless of the granilarity.
+     * Not including this in the initial declaration above so if echarts changes the default
+     * behavior for other axist types we won't unintentionally override it
+     */
+    xAxis = merge(xAxis, { axisLabel: { showMaxLabel: null } });
+  }
+
   let yAxis: any = {
     ...defaultYAxis,
-    type: logAxis ? 'log' : 'value',
+    type: logAxis ? AxisType.log : AxisType.value,
     min,
     max,
     minorTick: { show: true },
