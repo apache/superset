@@ -25,6 +25,8 @@ import { DatePicker } from 'src/components/DatePicker';
 import { Radio } from 'src/components/Radio';
 import Select, { propertyComparator } from 'src/components/Select/Select';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
+import { ConfigProvider } from 'antd';
+import locale from 'antd/lib/locale/ru_RU';
 import {
   SINCE_GRAIN_OPTIONS,
   SINCE_MODE_OPTIONS,
@@ -127,14 +129,16 @@ export function CustomFrame(props: FrameComponentProps) {
           />
           {sinceMode === 'specific' && (
             <Row>
-              <DatePicker
-                showTime
-                defaultValue={dttmToMoment(sinceDatetime)}
-                onChange={(datetime: Moment) =>
-                  onChange('sinceDatetime', datetime.format(MOMENT_FORMAT))
-                }
-                allowClear={false}
-              />
+              <ConfigProvider locale={locale}>
+                <DatePicker
+                  showTime
+                  defaultValue={dttmToMoment(sinceDatetime)}
+                  onChange={(datetime: Moment) =>
+                    onChange('sinceDatetime', datetime.format(MOMENT_FORMAT))
+                  }
+                  allowClear={false}
+                />
+              </ConfigProvider>
             </Row>
           )}
           {sinceMode === 'relative' && (
