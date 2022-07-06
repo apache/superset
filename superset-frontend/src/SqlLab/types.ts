@@ -21,6 +21,7 @@ import { SupersetError } from 'src/components/ErrorMessage/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { ToastType } from 'src/components/MessageToasts/types';
 import { ExploreRootState } from 'src/explore/types';
+import { RootState } from 'src/dashboard/types';
 
 // Object as Dictionary (associative array) with Query id as the key and type Query as the value
 export type QueryDictionary = {
@@ -71,7 +72,7 @@ export type SqlLabRootState = {
   };
 };
 
-export type SqlLabExploreRootState = SqlLabRootState | ExploreRootState;
+export type SqlLabExploreRootState = SqlLabRootState | RootState;
 
 export const getInitialState = (state: SqlLabExploreRootState) => {
   if (state.hasOwnProperty('sqlLab')) {
@@ -81,9 +82,7 @@ export const getInitialState = (state: SqlLabExploreRootState) => {
     return user;
   }
 
-  const {
-    explore: { user },
-  } = state as ExploreRootState;
+  const { user } = state as RootState;
   return user;
 };
 
