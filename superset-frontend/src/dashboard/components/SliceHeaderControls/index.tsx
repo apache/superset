@@ -106,7 +106,7 @@ export interface SliceHeaderControlsProps {
   isFullSize?: boolean;
   isDescriptionExpanded?: boolean;
   formData: QueryFormData;
-  onExploreChart: () => void;
+  onExploreChart: (event: React.MouseEvent) => void;
 
   forceRefresh: (sliceId: number, dashboardId: number) => void;
   logExploreChart?: (sliceId: number) => void;
@@ -306,7 +306,7 @@ class SliceHeaderControls extends React.PureComponent<
         {this.props.supersetCanExplore && (
           <Menu.Item
             key={MENU_KEYS.EXPLORE_CHART}
-            onClick={this.props.onExploreChart}
+            onClick={({ domEvent }) => this.props.onExploreChart(domEvent)}
           >
             {t('Edit chart')}
           </Menu.Item>
