@@ -277,6 +277,10 @@ class Query(Model, ExtraJSONMixin, ExploreMixin):  # pylint: disable=abstract-me
     def dttm_cols(self) -> List[Any]:
         return [col.get("column_name") for col in self.columns if col.get("is_dttm")]
 
+    @property
+    def default_endpoint(self) -> str:
+        return ""
+
     @staticmethod
     def get_extra_cache_keys(query_obj: Dict[str, Any]) -> List[str]:
         return []
