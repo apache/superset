@@ -1049,10 +1049,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if expression_type == utils.AdhocMetricExpressionType.SIMPLE:
             metric_column = metric.get("column") or {}
             column_name = cast(str, metric_column.get("column_name"))
-            table_column: Optional["TableColumn"] = columns_by_name.get(column_name)
             sqla_column = sa.column(column_name)
-            if table_column:
-                sqla_column = table_column.get_sqla_col()
             sqla_metric = self.sqla_aggregations[metric["aggregate"]](sqla_column)
         elif expression_type == utils.AdhocMetricExpressionType.SQL:
             expression = self._process_sql_expression(  # type: ignore
