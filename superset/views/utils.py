@@ -33,6 +33,7 @@ import superset.models.core as models
 from superset import app, dataframe, db, result_set, viz
 from superset.common.db_query_status import QueryStatus
 from superset.connectors.connector_registry import ConnectorRegistry
+from superset.connectors.sqla.models import SqlaTable
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     CacheLoadError,
@@ -423,7 +424,7 @@ def is_slice_in_container(
     return False
 
 
-def is_owner(obj: Union[Dashboard, Slice], user: User) -> bool:
+def is_owner(obj: Union[Dashboard, Slice, SqlaTable], user: User) -> bool:
     """Check if user is owner of the slice"""
     return obj and user in obj.owners
 

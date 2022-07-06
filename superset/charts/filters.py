@@ -20,7 +20,8 @@ from flask_babel import lazy_gettext as _
 from sqlalchemy import and_, or_
 from sqlalchemy.orm.query import Query
 
-from superset import security_manager
+from superset import db, security_manager
+from superset.connectors.sqla import models
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.slice import Slice
 from superset.views.base import BaseFilter
@@ -77,6 +78,18 @@ class ChartFilter(BaseFilter):  # pylint: disable=too-few-public-methods
             return query
         perms = security_manager.user_view_menu_names("datasource_access")
         schema_perms = security_manager.user_view_menu_names("schema_access")
+        owner_ids_query = (
+            db.session.query(models.SqlaTable.id)
+            .join(models.SqlaTable.owners)
+            .filter(
+                security_manager.user_model.id
+                == security_manager.user_model.get_user_id()
+            )
+        )
         return query.filter(
-            or_(self.model.perm.in_(perms), self.model.schema_perm.in_(schema_perms))
+            or_(
+                self.model.perm.in_(perms),
+                self.model.schema_perm.in_(schema_perms),
+                models.SqlaTable.id.in_(owner_ids_query),
+            )
         )
