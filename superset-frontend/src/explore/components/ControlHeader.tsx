@@ -152,7 +152,7 @@ const ControlHeader: FC<ControlHeaderProps> = ({
             </span>
           )}
           {validationErrors?.length > 0 && (
-            <span>
+            <span data-test="error-tooltip">
               <Tooltip
                 id="error-tooltip"
                 placement="top"
