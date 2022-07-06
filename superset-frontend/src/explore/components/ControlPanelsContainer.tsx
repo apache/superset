@@ -240,6 +240,17 @@ function getState(
   };
 }
 
+function useResetOnChangeRef(initialValue: () => any, resetOnChangeValue: any) {
+  const value = useRef(initialValue());
+  const prevResetOnChangeValue = useRef(resetOnChangeValue);
+  if (prevResetOnChangeValue.current !== resetOnChangeValue) {
+    value.current = initialValue();
+    prevResetOnChangeValue.current = resetOnChangeValue;
+  }
+
+  return value;
+}
+
 export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
   const { colors } = useTheme();
   const pluginContext = useContext(PluginContext);
@@ -373,6 +384,11 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
     );
   };
 
+  const sectionHasHadNoErrors = useResetOnChangeRef(
+    () => ({}),
+    props.form_data.viz_type,
+  );
+
   const renderControlPanelSection = (
     section: ExpandedControlPanelSectionConfig,
   ) => {
@@ -400,6 +416,15 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
         );
       }),
     );
+
+    if (!hasErrors) {
+      sectionHasHadNoErrors.current[sectionId] = true;
+    }
+
+    const errorColor = sectionHasHadNoErrors.current[sectionId]
+      ? colors.error.base
+      : colors.info.dark1;
+
     const PanelHeader = () => (
       <span data-test="collapsible-control-panel-header">
         <span
@@ -420,7 +445,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
             id={`${kebabCase('validation-errors')}-tooltip`}
             title="This section contains validation errors"
           >
-            <InfoCircleOutlined style={{ color: colors.info.base }} />
+            <InfoCircleOutlined style={{ color: errorColor }} />
           </Tooltip>
         )}
       </span>
@@ -522,8 +547,21 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
     [handleClearFormClick, handleContinueClick, hasControlsTransferred],
   );
 
-  const dataTabTitle = useMemo(
-    () => (
+  const dataTabHasHadNoErrors = useResetOnChangeRef(
+    () => false,
+    props.form_data.viz_type,
+  );
+
+  const dataTabTitle = useMemo(() => {
+    if (!props.errorMessage) {
+      dataTabHasHadNoErrors.current = true;
+    }
+
+    const errorColor = dataTabHasHadNoErrors.current
+      ? colors.error.base
+      : colors.info.dark1;
+
+    return (
       <>
         <span>{t('Data')}</span>
         {props.errorMessage && (
@@ -538,14 +576,18 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
               placement="right"
               title={props.errorMessage}
             >
-              <ExclamationCircleOutlined style={{ color: colors.info.base }} />
+              <ExclamationCircleOutlined style={{ color: errorColor }} />
             </Tooltip>
           </span>
         )}
       </>
-    ),
-    [colors.info.base, props.errorMessage],
-  );
+    );
+  }, [
+    colors.error.base,
+    colors.info.dark1,
+    dataTabHasHadNoErrors,
+    props.errorMessage,
+  ]);
 
   const controlPanelRegistry = getChartControlPanelRegistry();
   if (

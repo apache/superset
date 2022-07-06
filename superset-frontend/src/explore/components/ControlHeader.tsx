@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { FC, ReactNode } from 'react';
+import React, { FC, ReactNode, useMemo, useRef } from 'react';
 import { t, css, useTheme, SupersetTheme } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import { Tooltip } from 'src/components/Tooltip';
@@ -59,6 +59,18 @@ const ControlHeader: FC<ControlHeaderProps> = ({
   danger,
 }) => {
   const { gridUnit, colors } = useTheme();
+  const hasHadNoErrors = useRef(false);
+  const labelColor = useMemo(() => {
+    if (!validationErrors.length) {
+      hasHadNoErrors.current = true;
+    }
+
+    return hasHadNoErrors.current
+      ? validationErrors.length
+        ? colors.error.base
+        : 'unset'
+      : colors.info.dark1;
+  }, [colors.error.base, colors.info.dark1, validationErrors.length]);
 
   if (!label) {
     return null;
@@ -105,8 +117,6 @@ const ControlHeader: FC<ControlHeaderProps> = ({
     );
   };
 
-  const labelClass = validationErrors?.length > 0 ? 'text-info' : '';
-
   return (
     <div className="ControlHeader" data-test={`${name}-header`}>
       <div className="pull-left">
@@ -123,8 +133,7 @@ const ControlHeader: FC<ControlHeaderProps> = ({
             role="button"
             tabIndex={0}
             onClick={onClick}
-            className={labelClass}
-            style={{ cursor: onClick ? 'pointer' : '' }}
+            style={{ cursor: onClick ? 'pointer' : '', color: labelColor }}
           >
             {label}
           </span>{' '}
@@ -149,9 +158,7 @@ const ControlHeader: FC<ControlHeaderProps> = ({
                 placement="top"
                 title={validationErrors?.join(' ')}
               >
-                <ExclamationCircleOutlined
-                  style={{ color: colors.info.base }}
-                />
+                <ExclamationCircleOutlined style={{ color: labelColor }} />
               </Tooltip>{' '}
             </span>
           )}
