@@ -63,7 +63,7 @@ class UpsertKeyValueCommand(BaseCommand):
         self.value = value
         self.expires_on = expires_on
 
-    def run(self) -> Optional[Key]:
+    def run(self) -> Key:
         try:
             return self.upsert()
         except SQLAlchemyError as ex:
@@ -74,7 +74,7 @@ class UpsertKeyValueCommand(BaseCommand):
     def validate(self) -> None:
         pass
 
-    def upsert(self) -> Optional[Key]:
+    def upsert(self) -> Key:
         filter_ = get_filter(self.resource, self.key)
         entry: KeyValueEntry = (
             db.session.query(KeyValueEntry)
