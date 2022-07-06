@@ -63,7 +63,7 @@ const CrossFilterIcon = styled(Icons.CursorTarget)`
 `;
 
 export const getSliceHeaderTooltip = (sliceName: string | undefined) => {
-  if (!isFeatureEnabled(FeatureFlag.DASHBOARD_EDIT_CHART_IN_TAB)) {
+  if (isFeatureEnabled(FeatureFlag.DASHBOARD_EDIT_CHART_IN_NEW_TAB)) {
     return sliceName
       ? t('Click to edit %s in a new tab', sliceName)
       : t('Click to edit chart.');
