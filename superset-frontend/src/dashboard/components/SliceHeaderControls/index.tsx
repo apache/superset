@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { MouseEvent, Key } from 'react';
 import moment from 'moment';
 import {
   Behavior,
@@ -106,7 +106,7 @@ export interface SliceHeaderControlsProps {
   isFullSize?: boolean;
   isDescriptionExpanded?: boolean;
   formData: QueryFormData;
-  onExploreChart: (event: React.MouseEvent) => void;
+  onExploreChart: (event: MouseEvent) => void;
 
   forceRefresh: (sliceId: number, dashboardId: number) => void;
   logExploreChart?: (sliceId: number) => void;
@@ -170,8 +170,8 @@ class SliceHeaderControls extends React.PureComponent<
     key,
     domEvent,
   }: {
-    key: React.Key;
-    domEvent: React.MouseEvent<HTMLElement>;
+    key: Key;
+    domEvent: MouseEvent<HTMLElement>;
   }) {
     switch (key) {
       case MENU_KEYS.FORCE_REFRESH:
