@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { getUiOverrideRegistry } from '@superset-ui/core';
+import { getExtensionsRegistry } from '@superset-ui/core';
 
-test('should get instance of getUiOverrideRegistry', () => {
-  expect(getUiOverrideRegistry().name).toBe('UiOverrideRegistry');
+test('should get instance of getExtensionsRegistry', () => {
+  expect(getExtensionsRegistry().name).toBe('ExtensionsRegistry');
 });
