@@ -39,15 +39,14 @@ export const timeComparePivotOperator: PostProcessingFactory<PostProcessingPivot
           { operator: 'mean' as NumpyFunction },
         ]),
       );
+      const index = [getColumnLabel(formData.x_axis || DTTM_ALIAS)];
 
       return {
         operation: 'pivot',
         options: {
-          index: [formData.x_axis || DTTM_ALIAS],
+          index,
           columns: ensureIsArray(queryObject.columns).map(getColumnLabel),
-          drop_missing_columns: false,
-          flatten_columns: false,
-          reset_index: false,
+          drop_missing_columns: !formData?.show_empty_columns,
           aggregates,
         },
       };

@@ -635,7 +635,7 @@ describe('async actions', () => {
       });
     });
 
-    describe('queryEditorSetSql', () => {
+    describe('queryEditorSetAndSaveSql', () => {
       const sql = 'SELECT * ';
       const expectedActions = [
         {
@@ -651,7 +651,7 @@ describe('async actions', () => {
           const store = mockStore({});
 
           return store
-            .dispatch(actions.queryEditorSetSql(queryEditor, sql))
+            .dispatch(actions.queryEditorSetAndSaveSql(queryEditor, sql))
             .then(() => {
               expect(store.getActions()).toEqual(expectedActions);
               expect(fetchMock.calls(updateTabStateEndpoint)).toHaveLength(1);
@@ -668,7 +668,7 @@ describe('async actions', () => {
 
           const store = mockStore({});
 
-          store.dispatch(actions.queryEditorSetSql(queryEditor, sql));
+          store.dispatch(actions.queryEditorSetAndSaveSql(queryEditor, sql));
 
           expect(store.getActions()).toEqual(expectedActions);
           expect(fetchMock.calls(updateTabStateEndpoint)).toHaveLength(0);

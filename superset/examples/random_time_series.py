@@ -21,6 +21,7 @@ from sqlalchemy import DateTime, inspect, String
 import superset.utils.database as database_utils
 from superset import app, db
 from superset.models.slice import Slice
+from superset.utils.core import DatasourceType
 
 from .helpers import (
     get_example_data,
@@ -89,7 +90,7 @@ def load_random_time_series_data(
     slc = Slice(
         slice_name="Calendar Heatmap",
         viz_type="cal_heatmap",
-        datasource_type="table",
+        datasource_type=DatasourceType.TABLE,
         datasource_id=tbl.id,
         params=get_slice_json(slice_data),
     )

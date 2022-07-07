@@ -605,4 +605,107 @@ describe('SupersetClientClass', () => {
       }
     });
   });
+
+  describe('.postForm()', () => {
+    const protocol = 'https:';
+    const host = 'host';
+    const mockPostFormEndpoint = '/post_form/url';
+    const mockPostFormUrl = `${protocol}//${host}${mockPostFormEndpoint}`;
+    const guestToken = 'test-guest-token';
+    const postFormPayload = { number: 123, array: [1, 2, 3] };
+
+    let authSpy: jest.SpyInstance;
+    let client: SupersetClientClass;
+    let appendChild: any;
+    let removeChild: any;
+    let submit: any;
+    let createElement: any;
+
+    beforeEach(async () => {
+      client = new SupersetClientClass({ protocol, host });
+      authSpy = jest.spyOn(SupersetClientClass.prototype, 'ensureAuth');
+      await client.init();
+      appendChild = jest.fn();
+      removeChild = jest.fn();
+      submit = jest.fn();
+      createElement = jest.fn(() => ({
+        appendChild: jest.fn(),
+        submit,
+      }));
+
+      document.createElement = createElement as any;
+      document.body.appendChild = appendChild;
+      document.body.removeChild = removeChild;
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    it('makes postForm request', async () => {
+      await client.postForm(mockPostFormUrl, {});
+
+      const hiddenForm = createElement.mock.results[0].value;
+      const csrfTokenInput = createElement.mock.results[1].value;
+
+      expect(createElement.mock.calls).toHaveLength(2);
+
+      expect(hiddenForm.action).toBe(mockPostFormUrl);
+      expect(hiddenForm.method).toBe('POST');
+      expect(hiddenForm.target).toBe('_blank');
+
+      expect(csrfTokenInput.type).toBe('hidden');
+      expect(csrfTokenInput.name).toBe('csrf_token');
+      expect(csrfTokenInput.value).toBe(1234);
+
+      expect(appendChild.mock.calls).toHaveLength(1);
+      expect(removeChild.mock.calls).toHaveLength(1);
+      expect(authSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('makes postForm request with guest token', async () => {
+      client = new SupersetClientClass({ protocol, host, guestToken });
+      await client.init();
+
+      await client.postForm(mockPostFormUrl, {});
+
+      const guestTokenInput = createElement.mock.results[2].value;
+
+      expect(createElement.mock.calls).toHaveLength(3);
+
+      expect(guestTokenInput.type).toBe('hidden');
+      expect(guestTokenInput.name).toBe('guest_token');
+      expect(guestTokenInput.value).toBe(guestToken);
+
+      expect(appendChild.mock.calls).toHaveLength(1);
+      expect(removeChild.mock.calls).toHaveLength(1);
+      expect(authSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('makes postForm request with payload', async () => {
+      await client.postForm(mockPostFormUrl, { form_data: postFormPayload });
+
+      const postFormPayloadInput = createElement.mock.results[1].value;
+
+      expect(createElement.mock.calls).toHaveLength(3);
+
+      expect(postFormPayloadInput.type).toBe('hidden');
+      expect(postFormPayloadInput.name).toBe('form_data');
+      expect(postFormPayloadInput.value).toBe(postFormPayload);
+
+      expect(appendChild.mock.calls).toHaveLength(1);
+      expect(removeChild.mock.calls).toHaveLength(1);
+      expect(submit.mock.calls).toHaveLength(1);
+      expect(authSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('should do nothing when url is empty string', async () => {
+      const result = await client.postForm('', {});
+      expect(result).toBeUndefined();
+      expect(createElement.mock.calls).toHaveLength(0);
+      expect(appendChild.mock.calls).toHaveLength(0);
+      expect(removeChild.mock.calls).toHaveLength(0);
+      expect(authSpy).toHaveBeenCalledTimes(0);
+    });
+  });
 });

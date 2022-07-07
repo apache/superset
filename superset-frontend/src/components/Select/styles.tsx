@@ -16,6 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
+// Deprecated component
+/* eslint-disable theme-colors/no-literal-colors */
+
 import React, { CSSProperties, ComponentType, ReactNode } from 'react';
 import { SerializedStyles } from '@emotion/react';
 import { SupersetTheme, css } from '@superset-ui/core';

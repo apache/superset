@@ -236,7 +236,7 @@ const StyledTabs = styled(Tabs)`
   .ant-tabs-nav {
     position: sticky;
     top: 0;
-    background: white;
+    background: ${({ theme }) => theme.colors.grayscale.light5};
     z-index: 1;
   }
 
@@ -688,7 +688,7 @@ const FiltersConfigForm = (
     }
 
     Object.values(charts).forEach((chart: Chart) => {
-      const chartDatasetUid = chart.formData?.datasource;
+      const chartDatasetUid = chart.form_data?.datasource;
       if (chartDatasetUid === undefined) {
         return;
       }

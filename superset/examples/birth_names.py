@@ -29,6 +29,7 @@ from superset.exceptions import NoDataException
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
+from superset.utils.core import DatasourceType
 
 from ..utils.database import get_example_database
 from .helpers import (
@@ -205,13 +206,16 @@ def create_slices(tbl: SqlaTable, admin_owner: bool) -> Tuple[List[Slice], List[
     if admin_owner:
         slice_props = dict(
             datasource_id=tbl.id,
-            datasource_type="table",
+            datasource_type=DatasourceType.TABLE,
             owners=[admin],
             created_by=admin,
         )
     else:
         slice_props = dict(
-            datasource_id=tbl.id, datasource_type="table", owners=[], created_by=admin
+            datasource_id=tbl.id,
+            datasource_type=DatasourceType.TABLE,
+            owners=[],
+            created_by=admin,
         )
 
     print("Creating some slices")
@@ -847,7 +851,7 @@ def create_dashboard(slices: List[Slice]) -> Dashboard:
     # pylint: enable=line-too-long
     # dashboard v2 doesn't allow add markup slice
     dash.slices = [slc for slc in slices if slc.viz_type != "markup"]
-    update_slice_ids(pos, dash.slices)
+    update_slice_ids(pos)
     dash.dashboard_title = "USA Births Names"
     dash.position_json = json.dumps(pos, indent=4)
     dash.slug = "births"

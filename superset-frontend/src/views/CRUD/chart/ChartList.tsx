@@ -22,7 +22,7 @@ import {
   SupersetClient,
   t,
 } from '@superset-ui/core';
-import React, { useMemo, useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import rison from 'rison';
 import { uniqBy } from 'lodash';
 import moment from 'moment';
@@ -41,6 +41,7 @@ import handleResourceExport from 'src/utils/export';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import SubMenu, { SubMenuProps } from 'src/views/components/SubMenu';
 import FaveStar from 'src/components/FaveStar';
+import { Link } from 'react-router-dom';
 import ListView, {
   Filter,
   FilterOperator,
@@ -146,7 +147,11 @@ const Actions = styled.div`
 `;
 
 function ChartList(props: ChartListProps) {
-  const { addDangerToast, addSuccessToast } = props;
+  const {
+    addDangerToast,
+    addSuccessToast,
+    user: { userId },
+  } = props;
 
   const {
     state: {
@@ -180,7 +185,6 @@ function ChartList(props: ChartListProps) {
   const [passwordFields, setPasswordFields] = useState<string[]>([]);
   const [preparingExport, setPreparingExport] = useState<boolean>(false);
 
-  const { userId } = props.user;
   // TODO: Fix usage of localStorage keying on the user id
   const userSettings = dangerouslyGetItemDoNotUse(userId?.toString(), null) as {
     thumbnails: boolean;
@@ -235,27 +239,25 @@ function ChartList(props: ChartListProps) {
 
   const columns = useMemo(
     () => [
-      ...(props.user.userId
-        ? [
-            {
-              Cell: ({
-                row: {
-                  original: { id },
-                },
-              }: any) => (
-                <FaveStar
-                  itemId={id}
-                  saveFaveStar={saveFavoriteStatus}
-                  isStarred={favoriteStatus[id]}
-                />
-              ),
-              Header: '',
-              id: 'id',
-              disableSortBy: true,
-              size: 'sm',
-            },
-          ]
-        : []),
+      {
+        Cell: ({
+          row: {
+            original: { id },
+          },
+        }: any) =>
+          userId && (
+            <FaveStar
+              itemId={id}
+              saveFaveStar={saveFavoriteStatus}
+              isStarred={favoriteStatus[id]}
+            />
+          ),
+        Header: '',
+        id: 'id',
+        disableSortBy: true,
+        size: 'xs',
+        hidden: !userId,
+      },
       {
         Cell: ({
           row: {
@@ -269,7 +271,7 @@ function ChartList(props: ChartListProps) {
           },
         }: any) => (
           <FlexRowContainer>
-            <a href={url} data-test={`${sliceName}-list-chart-title`}>
+            <Link to={url} data-test={`${sliceName}-list-chart-title`}>
               {certifiedBy && (
                 <>
                   <CertifiedBadge
@@ -279,7 +281,7 @@ function ChartList(props: ChartListProps) {
                 </>
               )}
               {sliceName}
-            </a>
+            </Link>
             {description && (
               <InfoTooltip tooltip={description} viewBox="0 -1 24 24" />
             )}
@@ -451,10 +453,15 @@ function ChartList(props: ChartListProps) {
       },
     ],
     [
+      userId,
       canEdit,
       canDelete,
       canExport,
-      ...(props.user.userId ? [favoriteStatus] : []),
+      saveFavoriteStatus,
+      favoriteStatus,
+      refreshData,
+      addSuccessToast,
+      addDangerToast,
     ],
   );
 
@@ -552,7 +559,7 @@ function ChartList(props: ChartListProps) {
         fetchSelects: createFetchDatasets,
         paginate: true,
       },
-      ...(props.user.userId ? [favoritesFilter] : []),
+      ...(userId ? [favoritesFilter] : []),
       {
         Header: t('Certified'),
         id: 'id',
@@ -596,8 +603,8 @@ function ChartList(props: ChartListProps) {
     },
   ];
 
-  function renderCard(chart: Chart) {
-    return (
+  const renderCard = useCallback(
+    (chart: Chart) => (
       <ChartCard
         chart={chart}
         showThumbnails={
@@ -611,13 +618,23 @@ function ChartList(props: ChartListProps) {
         addDangerToast={addDangerToast}
         addSuccessToast={addSuccessToast}
         refreshData={refreshData}
+        userId={userId}
         loading={loading}
         favoriteStatus={favoriteStatus[chart.id]}
         saveFavoriteStatus={saveFavoriteStatus}
         handleBulkChartExport={handleBulkChartExport}
       />
-    );
-  }
+    ),
+    [
+      addDangerToast,
+      addSuccessToast,
+      bulkSelectEnabled,
+      favoriteStatus,
+      hasPerm,
+      loading,
+    ],
+  );
+
   const subMenuButtons: SubMenuProps['buttons'] = [];
   if (canDelete || canExport) {
     subMenuButtons.push({

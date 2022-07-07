@@ -32,7 +32,7 @@ import rison from 'rison';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { FetchDataConfig } from 'src/components/ListView';
 import SupersetText from 'src/utils/textUtils';
-import findPermission from 'src/dashboard/util/findPermission';
+import { findPermission } from 'src/utils/findPermission';
 import { Dashboard, Filters } from './types';
 
 // Modifies the rison encoding slightly to match the backend's rison encoding/decoding. Applies globally.
@@ -246,7 +246,7 @@ export function handleChartDelete(
   addDangerToast: (arg0: string) => void,
   refreshData: (arg0?: FetchDataConfig | null) => void,
   chartFilter?: string,
-  userId?: number,
+  userId?: string | number,
 ) {
   const filters = {
     pageIndex: 0,

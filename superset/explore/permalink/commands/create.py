@@ -22,9 +22,10 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from superset.explore.permalink.commands.base import BaseExplorePermalinkCommand
 from superset.explore.permalink.exceptions import ExplorePermalinkCreateFailedError
-from superset.explore.utils import check_access
+from superset.explore.utils import check_access as check_chart_access
 from superset.key_value.commands.create import CreateKeyValueCommand
 from superset.key_value.utils import encode_permalink_key
+from superset.utils.core import DatasourceType
 
 logger = logging.getLogger(__name__)
 
@@ -39,11 +40,16 @@ class CreateExplorePermalinkCommand(BaseExplorePermalinkCommand):
     def run(self) -> str:
         self.validate()
         try:
-            dataset_id = int(self.datasource.split("__")[0])
-            check_access(dataset_id, self.chart_id, self.actor)
+            d_id, d_type = self.datasource.split("__")
+            datasource_id = int(d_id)
+            datasource_type = DatasourceType(d_type)
+            check_chart_access(
+                datasource_id, self.chart_id, self.actor, datasource_type
+            )
             value = {
                 "chartId": self.chart_id,
-                "datasetId": dataset_id,
+                "datasourceId": datasource_id,
+                "datasourceType": datasource_type,
                 "datasource": self.datasource,
                 "state": self.state,
             }

@@ -21,10 +21,18 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { List } from 'react-virtualized';
 import { createFilter } from 'react-search-input';
-import { t, styled, isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
+import {
+  t,
+  styled,
+  isFeatureEnabled,
+  FeatureFlag,
+  css,
+} from '@superset-ui/core';
 import { Input } from 'src/components/Input';
 import { Select } from 'src/components';
 import Loading from 'src/components/Loading';
+import Button from 'src/components/Button';
+import Icons from 'src/components/Icons';
 import {
   CHART_TYPE,
   NEW_COMPONENT_SOURCE_TYPE,
@@ -50,6 +58,7 @@ const propTypes = {
   editMode: PropTypes.bool,
   height: PropTypes.number,
   filterboxMigrationState: FILTER_BOX_MIGRATION_STATES,
+  dashboardId: PropTypes.number,
 };
 
 const defaultProps = {
@@ -79,11 +88,34 @@ const Controls = styled.div`
   display: flex;
   flex-direction: row;
   padding: ${({ theme }) => theme.gridUnit * 3}px;
+  padding-top: ${({ theme }) => theme.gridUnit * 4}px;
 `;
 
 const StyledSelect = styled(Select)`
   margin-left: ${({ theme }) => theme.gridUnit * 2}px;
   min-width: 150px;
+`;
+
+const NewChartButtonContainer = styled.div`
+  ${({ theme }) => css`
+    display: flex;
+    justify-content: flex-end;
+    padding-right: ${theme.gridUnit * 2}px;
+  `}
+`;
+
+const NewChartButton = styled(Button)`
+  ${({ theme }) => css`
+    height: auto;
+    & > .anticon + span {
+      margin-left: 0;
+    }
+    & > [role='img']:first-of-type {
+      margin-right: ${theme.gridUnit}px;
+      padding-bottom: 1px;
+      line-height: 0;
+    }
+  `}
 `;
 
 class SliceAdder extends React.Component {
@@ -240,6 +272,22 @@ class SliceAdder extends React.Component {
       MARGIN_BOTTOM;
     return (
       <div className="slice-adder-container">
+        <NewChartButtonContainer>
+          <NewChartButton
+            buttonStyle="link"
+            buttonSize="xsmall"
+            onClick={() =>
+              window.open(
+                `/chart/add?dashboard_id=${this.props.dashboardId}`,
+                '_blank',
+                'noopener noreferrer',
+              )
+            }
+          >
+            <Icons.PlusSmall />
+            {t('Create new chart')}
+          </NewChartButton>
+        </NewChartButtonContainer>
         <Controls>
           <Input
             placeholder={t('Filter your charts')}

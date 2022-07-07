@@ -28,10 +28,11 @@ import {
 import {
   SupersetThemeProps,
   withTheme,
-  seedRandom,
+  seed,
   CategoricalColorScale,
 } from '@superset-ui/core';
 
+const seedRandom = seed('superset-ui');
 export const ROTATION = {
   flat: () => 0,
   // this calculates a random rotation between -90 and 90 degrees.
@@ -105,7 +106,7 @@ class WordCloud extends React.PureComponent<
       text: 'Text',
     },
     defaultEncoding: {
-      color: { value: 'black' },
+      color: { value: this.props.theme.colors.grayscale.dark2 },
       fontFamily: { value: this.props.theme.typography.families.sansSerif },
       fontSize: { value: 20 },
       fontWeight: { value: 'bold' },

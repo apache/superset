@@ -18,7 +18,7 @@
  */
 import React, { useEffect, useState, useRef } from 'react';
 import cx from 'classnames';
-import { styled, t } from '@superset-ui/core';
+import { css, styled, t } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
 import CertifiedBadge from '../CertifiedBadge';
 
@@ -37,6 +37,7 @@ export interface EditableTitleProps {
   placeholder?: string;
   certifiedBy?: string;
   certificationDetails?: string;
+  onClickTitle?: () => void;
 }
 
 const StyledCertifiedBadge = styled(CertifiedBadge)`
@@ -57,6 +58,7 @@ export default function EditableTitle({
   placeholder = '',
   certifiedBy,
   certificationDetails,
+  onClickTitle,
   // rest is related to title tooltip
   ...rest
 }: EditableTitleProps) {
@@ -216,7 +218,23 @@ export default function EditableTitle({
   }
   if (!canEdit) {
     // don't actually want an input in this case
-    titleComponent = <span data-test="editable-title-input">{value}</span>;
+    titleComponent = onClickTitle ? (
+      <span
+        role="button"
+        onClick={onClickTitle}
+        tabIndex={0}
+        data-test="editable-title-input"
+        css={css`
+          :hover {
+            text-decoration: underline;
+          }
+        `}
+      >
+        {value}
+      </span>
+    ) : (
+      <span data-test="editable-title-input">{value}</span>
+    );
   }
   return (
     <span

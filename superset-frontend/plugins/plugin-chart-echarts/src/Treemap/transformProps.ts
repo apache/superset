@@ -109,7 +109,7 @@ export function formatTooltip({
 export default function transformProps(
   chartProps: EchartsTreemapChartProps,
 ): TreemapTransformedProps {
-  const { formData, height, queriesData, width, hooks, filterState } =
+  const { formData, height, queriesData, width, hooks, filterState, theme } =
     chartProps;
   const { data = [] } = queriesData[0];
   const { setDataMask = () => {} } = hooks;
@@ -260,7 +260,7 @@ export default function transformProps(
         show: false,
       },
       itemStyle: {
-        color: '#1FA8C9',
+        color: theme.colors.primary.base,
       },
     },
   ];
@@ -286,7 +286,7 @@ export default function transformProps(
         show: showLabels,
         position: labelPosition,
         formatter,
-        color: '#000',
+        color: theme.colors.grayscale.dark2,
         fontSize: LABEL_FONTSIZE,
       },
       upperLabel: {

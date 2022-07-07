@@ -108,4 +108,29 @@ describe('buildQueryContext', () => {
       ]),
     );
   });
+  it('should remove undefined value in post_processing', () => {
+    const queryContext = buildQueryContext(
+      {
+        datasource: '5__table',
+        viz_type: 'table',
+      },
+      () => [
+        {
+          post_processing: [
+            undefined,
+            undefined,
+            {
+              operation: 'flatten',
+            },
+            undefined,
+          ],
+        },
+      ],
+    );
+    expect(queryContext.queries[0].post_processing).toEqual([
+      {
+        operation: 'flatten',
+      },
+    ]);
+  });
 });

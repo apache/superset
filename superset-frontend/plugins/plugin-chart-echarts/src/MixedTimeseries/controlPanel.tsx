@@ -17,7 +17,12 @@
  * under the License.
  */
 import React from 'react';
-import { t } from '@superset-ui/core';
+import {
+  ensureIsArray,
+  FeatureFlag,
+  isFeatureEnabled,
+  t,
+} from '@superset-ui/core';
 import { cloneDeep } from 'lodash';
 import {
   ControlPanelConfig,
@@ -25,6 +30,7 @@ import {
   ControlSetRow,
   CustomControlItem,
   emitFilterControl,
+  getStandardizedControls,
   sections,
   sharedControls,
 } from '@superset-ui/chart-controls';
@@ -35,7 +41,6 @@ import { legendSection, richTooltipSection } from '../controls';
 
 const {
   area,
-  annotationLayers,
   logAxis,
   markerEnabled,
   markerSize,
@@ -116,6 +121,15 @@ function createQuerySection(
           config: {
             ...sharedControls.row_limit,
             default: rowLimit,
+          },
+        },
+      ],
+      [
+        {
+          name: `truncate_metric${controlSuffix}`,
+          config: {
+            ...sharedControls.truncate_metric,
+            default: sharedControls.truncate_metric.default,
           },
         },
       ],
@@ -278,27 +292,18 @@ function createAdvancedAnalyticsSection(
 const config: ControlPanelConfig = {
   controlPanelSections: [
     sections.legacyTimeseriesTime,
+    isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES)
+      ? {
+          label: t('Shared query fields'),
+          expanded: true,
+          controlSetRows: [['x_axis']],
+        }
+      : null,
     createQuerySection(t('Query A'), ''),
     createAdvancedAnalyticsSection(t('Advanced analytics Query A'), ''),
     createQuerySection(t('Query B'), '_b'),
     createAdvancedAnalyticsSection(t('Advanced analytics Query B'), '_b'),
-    {
-      label: t('Annotations and Layers'),
-      expanded: false,
-      controlSetRows: [
-        [
-          {
-            name: 'annotation_layers',
-            config: {
-              type: 'AnnotationLayerControl',
-              label: '',
-              default: annotationLayers,
-              description: t('Annotation Layers'),
-            },
-          },
-        ],
-      ],
-    },
+    sections.annotationsAndLayersControls,
     sections.titleControls,
     {
       label: t('Chart Options'),
@@ -445,6 +450,29 @@ const config: ControlPanelConfig = {
       ],
     },
   ],
+  formDataOverrides: formData => {
+    const groupby = getStandardizedControls().controls.columns.filter(
+      col => !ensureIsArray(formData.groupby_b).includes(col),
+    );
+    getStandardizedControls().controls.columns =
+      getStandardizedControls().controls.columns.filter(
+        col => !groupby.includes(col),
+      );
+
+    const metrics = getStandardizedControls().controls.metrics.filter(
+      metric => !ensureIsArray(formData.metrics_b).includes(metric),
+    );
+    getStandardizedControls().controls.metrics =
+      getStandardizedControls().controls.metrics.filter(
+        col => !metrics.includes(col),
+      );
+
+    return {
+      ...formData,
+      metrics,
+      groupby,
+    };
+  },
 };
 
 export default config;

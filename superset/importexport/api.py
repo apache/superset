@@ -122,7 +122,7 @@ class ImportExportRestApi(BaseApi):
                       type: string
           responses:
             200:
-              description: Dashboard import result
+              description: Assets import result
               content:
                 application/json:
                   schema:

@@ -23,6 +23,7 @@ from flask import current_app as app
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import gettext as _
 from func_timeout import func_timeout, FunctionTimedOut
+from sqlalchemy.engine import Engine
 from sqlalchemy.exc import DBAPIError, NoSuchModuleError
 
 from superset.commands.base import BaseCommand
@@ -38,6 +39,7 @@ from superset.errors import ErrorLevel, SupersetErrorType
 from superset.exceptions import SupersetSecurityException, SupersetTimeoutException
 from superset.extensions import event_logger
 from superset.models.core import Database
+from superset.utils.core import override_user
 
 logger = logging.getLogger(__name__)
 
@@ -74,13 +76,18 @@ class TestConnectionDatabaseCommand(BaseCommand):
 
             database.set_sqlalchemy_uri(uri)
             database.db_engine_spec.mutate_db_for_connection_test(database)
-            username = self._actor.username if self._actor is not None else None
-            engine = database.get_sqla_engine(user_name=username)
-            event_logger.log_with_context(
-                action="test_connection_attempt",
-                engine=database.db_engine_spec.__name__,
-            )
-            with closing(engine.raw_connection()) as conn:
+
+            with override_user(self._actor):
+                engine = database.get_sqla_engine()
+                event_logger.log_with_context(
+                    action="test_connection_attempt",
+                    engine=database.db_engine_spec.__name__,
+                )
+
+                def ping(engine: Engine) -> bool:
+                    with closing(engine.raw_connection()) as conn:
+                        return engine.dialect.do_ping(conn)
+
                 try:
                     alive = func_timeout(
                         int(
@@ -88,13 +95,14 @@ class TestConnectionDatabaseCommand(BaseCommand):
                                 "TEST_DATABASE_CONNECTION_TIMEOUT"
                             ].total_seconds()
                         ),
-                        engine.dialect.do_ping,
-                        args=(conn,),
+                        ping,
+                        args=(engine,),
                     )
+
                 except (sqlite3.ProgrammingError, RuntimeError):
                     # SQLite can't run on a separate thread, so ``func_timeout`` fails
                     # RuntimeError catches the equivalent error from duckdb.
-                    alive = engine.dialect.do_ping(conn)
+                    alive = engine.dialect.do_ping(engine)
                 except FunctionTimedOut as ex:
                     raise SupersetTimeoutException(
                         error_type=SupersetErrorType.CONNECTION_DATABASE_TIMEOUT,
@@ -142,6 +150,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
             )
             raise DatabaseSecurityUnsafeError(message=str(ex)) from ex
         except SupersetTimeoutException as ex:
+
             event_logger.log_with_context(
                 action=f"test_connection_error.{ex.__class__.__name__}",
                 engine=database.db_engine_spec.__name__,

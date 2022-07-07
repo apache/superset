@@ -22,7 +22,7 @@ import { t } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import Button from 'src/components/Button';
 import { exploreChart } from 'src/explore/exploreUtils';
-import { RootState } from 'src/SqlLab/types';
+import { SqlLabRootState } from 'src/SqlLab/types';
 
 interface ExploreCtasResultsButtonProps {
   actions: {
@@ -45,7 +45,7 @@ const ExploreCtasResultsButton = ({
 }: ExploreCtasResultsButtonProps) => {
   const { createCtasDatasource, addInfoToast, addDangerToast } = actions;
   const errorMessage = useSelector(
-    (state: RootState) => state.sqlLab.errorMessage,
+    (state: SqlLabRootState) => state.sqlLab.errorMessage,
   );
 
   const buildVizOptions = {

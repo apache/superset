@@ -24,20 +24,11 @@ from flask import g, request, Response
 from flask_appbuilder.api import BaseApi
 from marshmallow import ValidationError
 
-from superset.charts.commands.exceptions import (
-    ChartAccessDeniedError,
-    ChartNotFoundError,
-)
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
-from superset.dashboards.commands.exceptions import (
-    DashboardAccessDeniedError,
-    DashboardNotFoundError,
+from superset.temporary_cache.commands.exceptions import (
+    TemporaryCacheAccessDeniedError,
+    TemporaryCacheResourceNotFoundError,
 )
-from superset.datasets.commands.exceptions import (
-    DatasetAccessDeniedError,
-    DatasetNotFoundError,
-)
-from superset.temporary_cache.commands.exceptions import TemporaryCacheAccessDeniedError
 from superset.temporary_cache.commands.parameters import CommandParameters
 from superset.temporary_cache.schemas import (
     TemporaryCachePostSchema,
@@ -86,14 +77,9 @@ class TemporaryCacheRestApi(BaseApi, ABC):
             return self.response(201, key=key)
         except ValidationError as ex:
             return self.response(400, message=ex.messages)
-        except (
-            ChartAccessDeniedError,
-            DashboardAccessDeniedError,
-            DatasetAccessDeniedError,
-            TemporaryCacheAccessDeniedError,
-        ) as ex:
+        except TemporaryCacheAccessDeniedError as ex:
             return self.response(403, message=str(ex))
-        except (ChartNotFoundError, DashboardNotFoundError, DatasetNotFoundError) as ex:
+        except TemporaryCacheResourceNotFoundError as ex:
             return self.response(404, message=str(ex))
 
     @requires_json
@@ -112,14 +98,9 @@ class TemporaryCacheRestApi(BaseApi, ABC):
             return self.response(200, key=key)
         except ValidationError as ex:
             return self.response(400, message=ex.messages)
-        except (
-            ChartAccessDeniedError,
-            DashboardAccessDeniedError,
-            DatasetAccessDeniedError,
-            TemporaryCacheAccessDeniedError,
-        ) as ex:
+        except TemporaryCacheAccessDeniedError as ex:
             return self.response(403, message=str(ex))
-        except (ChartNotFoundError, DashboardNotFoundError, DatasetNotFoundError) as ex:
+        except TemporaryCacheResourceNotFoundError as ex:
             return self.response(404, message=str(ex))
 
     def get(self, pk: int, key: str) -> Response:
@@ -129,14 +110,9 @@ class TemporaryCacheRestApi(BaseApi, ABC):
             if not value:
                 return self.response_404()
             return self.response(200, value=value)
-        except (
-            ChartAccessDeniedError,
-            DashboardAccessDeniedError,
-            DatasetAccessDeniedError,
-            TemporaryCacheAccessDeniedError,
-        ) as ex:
+        except TemporaryCacheAccessDeniedError as ex:
             return self.response(403, message=str(ex))
-        except (ChartNotFoundError, DashboardNotFoundError, DatasetNotFoundError) as ex:
+        except TemporaryCacheResourceNotFoundError as ex:
             return self.response(404, message=str(ex))
 
     def delete(self, pk: int, key: str) -> Response:
@@ -146,14 +122,9 @@ class TemporaryCacheRestApi(BaseApi, ABC):
             if not result:
                 return self.response_404()
             return self.response(200, message="Deleted successfully")
-        except (
-            ChartAccessDeniedError,
-            DashboardAccessDeniedError,
-            DatasetAccessDeniedError,
-            TemporaryCacheAccessDeniedError,
-        ) as ex:
+        except TemporaryCacheAccessDeniedError as ex:
             return self.response(403, message=str(ex))
-        except (ChartNotFoundError, DashboardNotFoundError, DatasetNotFoundError) as ex:
+        except TemporaryCacheResourceNotFoundError as ex:
             return self.response(404, message=str(ex))
 
     @abstractmethod

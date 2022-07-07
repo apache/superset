@@ -210,7 +210,7 @@ module.exports = {
     },
   ],
   rules: {
-    'theme-colors/no-literal-colors': 1,
+    'theme-colors/no-literal-colors': 'error',
     'translation-vars/no-template-vars': ['error', true],
     camelcase: [
       'error',

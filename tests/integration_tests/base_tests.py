@@ -21,7 +21,7 @@ import imp
 import json
 from contextlib import contextmanager
 from typing import Any, Dict, Union, List, Optional
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, patch, MagicMock
 
 import pandas as pd
 import pytest
@@ -252,7 +252,7 @@ class SupersetTestCase(TestCase):
 
     @staticmethod
     def get_datasource_mock() -> BaseDatasource:
-        datasource = Mock()
+        datasource = MagicMock()
         results = Mock()
         results.query = Mock()
         results.status = Mock()
@@ -266,6 +266,7 @@ class SupersetTestCase(TestCase):
         datasource.database = Mock()
         datasource.database.db_engine_spec = Mock()
         datasource.database.db_engine_spec.mutate_expression_label = lambda x: x
+        datasource.owners = MagicMock()
         return datasource
 
     def get_resp(
@@ -329,7 +330,7 @@ class SupersetTestCase(TestCase):
         self,
         sql,
         client_id=None,
-        user_name=None,
+        username=None,
         raise_on_error=False,
         query_limit=None,
         database_name="examples",
@@ -340,9 +341,9 @@ class SupersetTestCase(TestCase):
         ctas_method=CtasMethod.TABLE,
         template_params="{}",
     ):
-        if user_name:
+        if username:
             self.logout()
-            self.login(username=(user_name or "admin"))
+            self.login(username=username)
         dbid = SupersetTestCase.get_database_by_name(database_name).id
         json_payload = {
             "database_id": dbid,
@@ -427,14 +428,14 @@ class SupersetTestCase(TestCase):
         self,
         sql,
         client_id=None,
-        user_name=None,
+        username=None,
         raise_on_error=False,
         database_name="examples",
         template_params=None,
     ):
-        if user_name:
+        if username:
             self.logout()
-            self.login(username=(user_name if user_name else "admin"))
+            self.login(username=username)
         dbid = SupersetTestCase.get_database_by_name(database_name).id
         resp = self.get_json_resp(
             "/superset/validate_sql_json/",

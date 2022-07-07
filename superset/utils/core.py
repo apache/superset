@@ -32,6 +32,7 @@ import threading
 import traceback
 import uuid
 import zlib
+from contextlib import contextmanager
 from datetime import date, datetime, time, timedelta
 from distutils.util import strtobool
 from email.mime.application import MIMEApplication
@@ -174,8 +175,17 @@ class GenericDataType(IntEnum):
     # ROW = 7
 
 
+class DatasourceType(str, Enum):
+    SLTABLE = "sl_table"
+    TABLE = "table"
+    DATASET = "dataset"
+    QUERY = "query"
+    SAVEDQUERY = "saved_query"
+    VIEW = "view"
+
+
 class DatasourceDict(TypedDict):
-    type: str
+    type: str  # todo(hugh): update this to be DatasourceType
     id: int
 
 
@@ -232,6 +242,25 @@ class FilterOperator(str, Enum):
     REGEX = "REGEX"
     IS_TRUE = "IS TRUE"
     IS_FALSE = "IS FALSE"
+
+
+class FilterStringOperators(str, Enum):
+    EQUALS = ("EQUALS",)
+    NOT_EQUALS = ("NOT_EQUALS",)
+    LESS_THAN = ("LESS_THAN",)
+    GREATER_THAN = ("GREATER_THAN",)
+    LESS_THAN_OR_EQUAL = ("LESS_THAN_OR_EQUAL",)
+    GREATER_THAN_OR_EQUAL = ("GREATER_THAN_OR_EQUAL",)
+    IN = ("IN",)
+    NOT_IN = ("NOT_IN",)
+    ILIKE = ("ILIKE",)
+    LIKE = ("LIKE",)
+    REGEX = ("REGEX",)
+    IS_NOT_NULL = ("IS_NOT_NULL",)
+    IS_NULL = ("IS_NULL",)
+    LATEST_PARTITION = ("LATEST_PARTITION",)
+    IS_TRUE = ("IS_TRUE",)
+    IS_FALSE = ("IS_FALSE",)
 
 
 class PostProcessingBoxplotWhiskerType(str, Enum):
@@ -928,7 +957,9 @@ def send_email_smtp(  # pylint: disable=invalid-name,too-many-arguments,too-many
     # Attach any inline images, which may be required for display in
     # HTML content (inline)
     for msgid, imgdata in (images or {}).items():
-        image = MIMEImage(imgdata)
+        formatted_time = formatdate(localtime=True)
+        file_name = f"{subject} {formatted_time}"
+        image = MIMEImage(imgdata, name=file_name)
         image.add_header("Content-ID", "<%s>" % msgid)
         image.add_header("Content-Disposition", "inline")
         msg.attach(image)
@@ -1391,11 +1422,62 @@ def split_adhoc_filters_into_base_filters(  # pylint: disable=invalid-name
 
 
 def get_username() -> Optional[str]:
-    """Get username if within the flask context, otherwise return noffin'"""
+    """
+    Get username (if defined) associated with the current user.
+
+    :returns: The username
+    """
+
     try:
         return g.user.username
     except Exception:  # pylint: disable=broad-except
         return None
+
+
+def get_user_id() -> Optional[int]:
+    """
+    Get the user identifier (if defined) associated with the current user.
+
+    Though the Flask-AppBuilder `User` and Flask-Login  `AnonymousUserMixin` and
+    `UserMixin` models provide a convenience `get_id` method, for generality, the
+    identifier is encoded as a `str` whereas in Superset all identifiers are encoded as
+    an `int`.
+
+    returns: The user identifier
+    """
+
+    try:
+        return g.user.id
+    except Exception:  # pylint: disable=broad-except
+        return None
+
+
+@contextmanager
+def override_user(user: Optional[User], force: bool = True) -> Iterator[Any]:
+    """
+    Temporarily override the current user per `flask.g` with the specified user.
+
+    Sometimes, often in the context of async Celery tasks, it is useful to switch the
+    current user (which may be undefined) to different one, execute some SQLAlchemy
+    tasks et al. and then revert back to the original one.
+
+    :param user: The override user
+    :param force: Whether to override the current user if set
+    """
+
+    # pylint: disable=assigning-non-slot
+    if hasattr(g, "user"):
+        if force or g.user is None:
+            current = g.user
+            g.user = user
+            yield
+            g.user = current
+        else:
+            yield
+    else:
+        g.user = user
+        yield
+        delattr(g, "user")
 
 
 def parse_ssl_cert(certificate: str) -> _Certificate:

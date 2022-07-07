@@ -19,10 +19,18 @@
 
 import {
   CategoricalScheme,
+  FeatureFlag,
   getCategoricalSchemeRegistry,
   getSharedLabelColor,
   SharedLabelColor,
 } from '@superset-ui/core';
+import { getAnalogousColors } from '../../src/color/utils';
+
+jest.mock('../../src/color/utils', () => ({
+  getAnalogousColors: jest
+    .fn()
+    .mockImplementation(() => ['red', 'green', 'blue']),
+}));
 
 describe('SharedLabelColor', () => {
   beforeAll(() => {
@@ -60,7 +68,7 @@ describe('SharedLabelColor', () => {
       });
     });
 
-    it('do nothing when sliceId is undefined', () => {
+    it('should do nothing when sliceId is undefined', () => {
       const sharedLabelColor = getSharedLabelColor();
       sharedLabelColor.addSlice('a', 'red');
       expect(sharedLabelColor.sliceLabelColorMap).toEqual({});
@@ -77,13 +85,13 @@ describe('SharedLabelColor', () => {
   });
 
   describe('.getColorMap(namespace, scheme, updateColorScheme)', () => {
-    it('return undefined when scheme is undefined', () => {
+    it('should be undefined when scheme is undefined', () => {
       const sharedLabelColor = getSharedLabelColor();
       const colorMap = sharedLabelColor.getColorMap();
       expect(colorMap).toBeUndefined();
     });
 
-    it('return undefined value if pass updateColorScheme', () => {
+    it('should update color value if passing updateColorScheme', () => {
       const sharedLabelColor = getSharedLabelColor();
       sharedLabelColor.addSlice('a', 'red', 1);
       sharedLabelColor.addSlice('b', 'blue', 2);
@@ -91,7 +99,7 @@ describe('SharedLabelColor', () => {
       expect(colorMap).toEqual({ a: 'yellow', b: 'yellow' });
     });
 
-    it('return color value if not pass updateColorScheme', () => {
+    it('should get origin color value if not pass updateColorScheme', () => {
       const sharedLabelColor = getSharedLabelColor();
       sharedLabelColor.addSlice('a', 'red', 1);
       sharedLabelColor.addSlice('b', 'blue', 2);
@@ -99,12 +107,28 @@ describe('SharedLabelColor', () => {
       expect(colorMap).toEqual({ a: 'red', b: 'blue' });
     });
 
-    it('return color value if shared label exit', () => {
+    it('should use recycle colors if shared label exit', () => {
+      window.featureFlags = {
+        [FeatureFlag.USE_ANALAGOUS_COLORS]: false,
+      };
       const sharedLabelColor = getSharedLabelColor();
       sharedLabelColor.addSlice('a', 'red', 1);
       sharedLabelColor.addSlice('a', 'blue', 2);
       const colorMap = sharedLabelColor.getColorMap('', 'testColors');
       expect(colorMap).not.toEqual({});
+      expect(getAnalogousColors).not.toBeCalled();
+    });
+
+    it('should use analagous colors if shared label exit', () => {
+      window.featureFlags = {
+        [FeatureFlag.USE_ANALAGOUS_COLORS]: true,
+      };
+      const sharedLabelColor = getSharedLabelColor();
+      sharedLabelColor.addSlice('a', 'red', 1);
+      sharedLabelColor.addSlice('a', 'blue', 2);
+      const colorMap = sharedLabelColor.getColorMap('', 'testColors');
+      expect(colorMap).not.toEqual({});
+      expect(getAnalogousColors).toBeCalled();
     });
   });
 });

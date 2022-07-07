@@ -13,7 +13,7 @@
 # "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
-# under the License.o
+# under the License.
 
 from datetime import datetime
 from typing import Any, Dict, Optional
@@ -65,3 +65,9 @@ class DatabricksODBCEngineSpec(BaseEngineSpec):
     @classmethod
     def epoch_to_dttm(cls) -> str:
         return HiveEngineSpec.epoch_to_dttm()
+
+
+class DatabricksNativeEngineSpec(DatabricksODBCEngineSpec):
+    engine = "databricks"
+    engine_name = "Databricks Native Connector"
+    driver = "connector"

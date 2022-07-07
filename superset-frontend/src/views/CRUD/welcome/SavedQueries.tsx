@@ -324,7 +324,7 @@ const SavedQueries = ({
                         language="sql"
                         lineProps={{
                           style: {
-                            color: 'black',
+                            color: theme.colors.grayscale.dark2,
                             wordBreak: 'break-all',
                             whiteSpace: 'pre-wrap',
                           },

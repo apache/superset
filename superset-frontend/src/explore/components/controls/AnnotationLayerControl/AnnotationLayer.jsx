@@ -27,6 +27,8 @@ import {
   getChartMetadataRegistry,
   validateNonEmpty,
   isValidExpression,
+  styled,
+  withTheme,
 } from '@superset-ui/core';
 
 import SelectControl from 'src/explore/components/controls/SelectControl';
@@ -42,6 +44,7 @@ import {
 } from 'src/modules/AnnotationTypes';
 import PopoverSection from 'src/components/PopoverSection';
 import ControlHeader from 'src/explore/components/ControlHeader';
+import { EmptyStateSmall } from 'src/components/EmptyState';
 
 const AUTOMATIC_COLOR = '';
 
@@ -97,7 +100,36 @@ const defaultProps = {
   close: () => {},
 };
 
-export default class AnnotationLayer extends React.PureComponent {
+const NotFoundContentWrapper = styled.div`
+  && > div:first-child {
+    padding-left: 0;
+    padding-right: 0;
+  }
+`;
+
+const NotFoundContent = () => (
+  <NotFoundContentWrapper>
+    <EmptyStateSmall
+      title={t('No annotation layers')}
+      description={
+        <span>
+          {t('Add an annotation layer')}{' '}
+          <a
+            href="/annotationlayermodelview/list"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {t('here')}
+          </a>
+          .
+        </span>
+      }
+      image="empty.svg"
+    />
+  </NotFoundContentWrapper>
+);
+
+class AnnotationLayer extends React.PureComponent {
   constructor(props) {
     super(props);
     const {
@@ -415,6 +447,7 @@ export default class AnnotationLayer extends React.PureComponent {
           onChange={this.handleValue}
           validationErrors={!value ? ['Mandatory'] : []}
           optionRenderer={this.renderOption}
+          notFoundContent={<NotFoundContent />}
         />
       );
     }
@@ -710,7 +743,9 @@ export default class AnnotationLayer extends React.PureComponent {
     return (
       <>
         {this.props.error && (
-          <span style={{ color: 'red' }}>ERROR: {this.props.error}</span>
+          <span style={{ color: this.props.theme.colors.error.base }}>
+            ERROR: {this.props.error}
+          </span>
         )}
         <div style={{ display: 'flex', flexDirection: 'row' }}>
           <div style={{ marginRight: '2rem' }}>
@@ -757,9 +792,10 @@ export default class AnnotationLayer extends React.PureComponent {
                   ariaLabel={t('Annotation source type')}
                   hovered
                   description={t('Choose the source of your annotations')}
-                  label={t('Annotation Source')}
+                  label={t('Annotation source')}
                   name="annotation-source-type"
                   options={supportedSourceTypes}
+                  notFoundContent={<NotFoundContent />}
                   value={sourceType}
                   onChange={this.handleAnnotationSourceType}
                   validationErrors={!sourceType ? [t('Mandatory')] : []}
@@ -807,3 +843,5 @@ export default class AnnotationLayer extends React.PureComponent {
 
 AnnotationLayer.propTypes = propTypes;
 AnnotationLayer.defaultProps = defaultProps;
+
+export default withTheme(AnnotationLayer);

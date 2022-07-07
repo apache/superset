@@ -24,11 +24,18 @@ from superset.charts.commands.exceptions import (
     ChartNotFoundError,
 )
 from superset.charts.dao import ChartDAO
+from superset.commands.exceptions import (
+    DatasourceNotFoundValidationError,
+    DatasourceTypeInvalidError,
+    QueryNotFoundValidationError,
+)
 from superset.datasets.commands.exceptions import (
     DatasetAccessDeniedError,
     DatasetNotFoundError,
 )
 from superset.datasets.dao import DatasetDAO
+from superset.queries.dao import QueryDAO
+from superset.utils.core import DatasourceType
 from superset.views.base import is_user_admin
 from superset.views.utils import is_owner
 
@@ -44,10 +51,39 @@ def check_dataset_access(dataset_id: int) -> Optional[bool]:
     raise DatasetNotFoundError()
 
 
-def check_access(
-    dataset_id: int, chart_id: Optional[int], actor: User
+def check_query_access(query_id: int) -> Optional[bool]:
+    if query_id:
+        query = QueryDAO.find_by_id(query_id)
+        if query:
+            security_manager.raise_for_access(query=query)
+            return True
+    raise QueryNotFoundValidationError()
+
+
+ACCESS_FUNCTION_MAP = {
+    DatasourceType.TABLE: check_dataset_access,
+    DatasourceType.QUERY: check_query_access,
+}
+
+
+def check_datasource_access(
+    datasource_id: int, datasource_type: DatasourceType
 ) -> Optional[bool]:
-    check_dataset_access(dataset_id)
+    if datasource_id:
+        try:
+            return ACCESS_FUNCTION_MAP[datasource_type](datasource_id)
+        except KeyError as ex:
+            raise DatasourceTypeInvalidError() from ex
+    raise DatasourceNotFoundValidationError()
+
+
+def check_access(
+    datasource_id: int,
+    chart_id: Optional[int],
+    actor: User,
+    datasource_type: DatasourceType,
+) -> Optional[bool]:
+    check_datasource_access(datasource_id, datasource_type)
     if not chart_id:
         return True
     chart = ChartDAO.find_by_id(chart_id)

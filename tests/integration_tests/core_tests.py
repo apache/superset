@@ -879,7 +879,7 @@ class TestCore(SupersetTestCase):
         self.login("admin")
         slc = db.session.query(Slice).filter_by(slice_name="Girls").one()
         qry = db.session.query(models.Log).filter_by(slice_id=slc.id)
-        self.get_resp(slc.slice_url, {"form_data": json.dumps(slc.form_data)})
+        self.get_resp(slc.slice_url)
         self.assertEqual(1, qry.count())
 
     def create_sample_csvfile(self, filename: str, content: List[str]) -> None:
@@ -1064,7 +1064,7 @@ class TestCore(SupersetTestCase):
             LIMIT 10;
             """,
             client_id="client_id_1",
-            user_name="admin",
+            username="admin",
         )
         count_ds = []
         count_name = []
@@ -1454,7 +1454,7 @@ class TestCore(SupersetTestCase):
         self.run_sql(
             "SELECT name FROM birth_names",
             "client_id_1",
-            user_name=username,
+            username=username,
             raise_on_error=True,
             sql_editor_id=str(tab_state_id),
         )
@@ -1462,7 +1462,7 @@ class TestCore(SupersetTestCase):
         self.run_sql(
             "SELECT name FROM birth_names",
             "client_id_2",
-            user_name=username,
+            username=username,
             raise_on_error=True,
         )
 

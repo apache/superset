@@ -61,7 +61,6 @@ from superset.charts.dao import ChartDAO
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.db_query_status import QueryStatus
 from superset.connectors.base.models import BaseDatasource
-from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.sqla.models import (
     AnnotationDatasource,
     SqlaTable,
@@ -77,6 +76,7 @@ from superset.databases.dao import DatabaseDAO
 from superset.databases.filters import DatabaseFilter
 from superset.databases.utils import make_url_safe
 from superset.datasets.commands.exceptions import DatasetNotFoundError
+from superset.datasource.dao import DatasourceDAO
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     CacheLoadError,
@@ -113,7 +113,7 @@ from superset.sqllab.exceptions import (
     QueryIsForbiddenToAccessException,
     SqlLabException,
 )
-from superset.sqllab.execution_context_convertor import ExecutionContextConvertorImpl
+from superset.sqllab.execution_context_convertor import ExecutionContextConvertor
 from superset.sqllab.limiting_factor import LimitingFactor
 from superset.sqllab.query_render import SqlQueryRenderImpl
 from superset.sqllab.sql_json_executer import (
@@ -129,7 +129,12 @@ from superset.tasks.async_queries import load_explore_json_into_cache
 from superset.utils import core as utils, csv
 from superset.utils.async_query_manager import AsyncQueryTokenException
 from superset.utils.cache import etag_cache
-from superset.utils.core import apply_max_row_limit, ReservedUrlParameters
+from superset.utils.core import (
+    apply_max_row_limit,
+    DatasourceType,
+    get_user_id,
+    ReservedUrlParameters,
+)
 from superset.utils.dates import now_as_float
 from superset.utils.decorators import check_dashboard_access
 from superset.views.base import (
@@ -250,7 +255,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                     )
                     db_ds_names.add(fullname)
 
-        existing_datasources = ConnectorRegistry.get_all_datasources(db.session)
+        existing_datasources = SqlaTable.get_all_datasources(db.session)
         datasources = [d for d in existing_datasources if d.full_name in db_ds_names]
         role = security_manager.find_role(role_name)
         # remove all permissions
@@ -282,7 +287,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         datasource_id = request.args.get("datasource_id")
         datasource_type = request.args.get("datasource_type")
         if datasource_id and datasource_type:
-            ds_class = ConnectorRegistry.sources.get(datasource_type)
+            ds_class = DatasourceDAO.sources.get(datasource_type)
             datasource = (
                 db.session.query(ds_class).filter_by(id=int(datasource_id)).one()
             )
@@ -319,10 +324,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     def approve(self) -> FlaskResponse:  # pylint: disable=too-many-locals,no-self-use
         def clean_fulfilled_requests(session: Session) -> None:
             for dar in session.query(DAR).all():
-                datasource = ConnectorRegistry.get_datasource(
-                    dar.datasource_type,
-                    dar.datasource_id,
-                    session,
+                datasource = DatasourceDAO.get_datasource(
+                    session, DatasourceType(dar.datasource_type), dar.datasource_id
                 )
                 if not datasource or security_manager.can_access_datasource(datasource):
                     # Dataset does not exist anymore
@@ -336,8 +339,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         role_to_extend = request.args.get("role_to_extend")
 
         session = db.session
-        datasource = ConnectorRegistry.get_datasource(
-            datasource_type, datasource_id, session
+        datasource = DatasourceDAO.get_datasource(
+            session, DatasourceType(datasource_type), int(datasource_id)
         )
 
         if not datasource:
@@ -639,7 +642,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             datasource_id, datasource_type = get_datasource_info(
                 datasource_id, datasource_type, form_data
             )
-
             force = request.args.get("force") == "true"
 
             # TODO: support CSV, SQL query and other non-JSON types
@@ -672,7 +674,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                         request
                     )["channel"]
                     job_metadata = async_query_manager.init_job(
-                        async_channel_id, g.user.get_id()
+                        async_channel_id, get_user_id()
                     )
                     load_explore_json_into_cache.delay(
                         job_metadata, form_data, response_type, force
@@ -740,7 +742,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @event_logger.log_this
     @expose("/explore/<datasource_type>/<int:datasource_id>/", methods=["GET", "POST"])
     @expose("/explore/", methods=["GET", "POST"])
-    @expose("/explore/p/<key>/", methods=["GET"])
     # pylint: disable=too-many-locals,too-many-branches,too-many-statements
     def explore(
         self,
@@ -748,6 +749,11 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         datasource_id: Optional[int] = None,
         key: Optional[str] = None,
     ) -> FlaskResponse:
+        logger.warning(
+            "%s.explore "
+            "This API endpoint is deprecated and will be removed in version 3.0.0",
+            self.__class__.__name__,
+        )
         initial_form_data = {}
 
         form_data_key = request.args.get("form_data_key")
@@ -809,8 +815,10 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         datasource: Optional[BaseDatasource] = None
         if datasource_id is not None:
             try:
-                datasource = ConnectorRegistry.get_datasource(
-                    cast(str, datasource_type), datasource_id, db.session
+                datasource = DatasourceDAO.get_datasource(
+                    db.session,
+                    DatasourceType(cast(str, datasource_type)),
+                    datasource_id,
                 )
             except DatasetNotFoundError:
                 pass
@@ -833,6 +841,19 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         viz_type = form_data.get("viz_type")
         if not viz_type and datasource and datasource.default_endpoint:
             return redirect(datasource.default_endpoint)
+
+        selectedColumns = []
+
+        if "selectedColumns" in form_data:
+            selectedColumns = form_data.pop("selectedColumns")
+
+        if "viz_type" not in form_data:
+            form_data["viz_type"] = app.config["DEFAULT_VIZ_TYPE"]
+            if app.config["DEFAULT_VIZ_TYPE"] == "table":
+                all_columns = []
+                for x in selectedColumns:
+                    all_columns.append(x["name"])
+                form_data["all_columns"] = all_columns
 
         # slc perms
         slice_add_perm = security_manager.can_access("can_write", "Chart")
@@ -891,6 +912,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         if datasource:
             datasource_data["owners"] = datasource.owners_data
+            if isinstance(datasource, Query):
+                datasource_data["columns"] = datasource.columns
 
         bootstrap_data = {
             "can_add": slice_add_perm,
@@ -946,10 +969,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         :raises SupersetSecurityException: If the user cannot access the resource
         """
         # TODO: Cache endpoint by user, datasource and column
-        datasource = ConnectorRegistry.get_datasource(
-            datasource_type,
-            datasource_id,
-            db.session,
+        datasource = DatasourceDAO.get_datasource(
+            db.session, DatasourceType(datasource_type), datasource_id
         )
         if not datasource:
             return json_error_response(DATASOURCE_MISSING_ERR)
@@ -1331,8 +1352,13 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access_api
     @event_logger.log_this
     @expose("/testconn", methods=["POST", "GET"])
-    def testconn(self) -> FlaskResponse:  # pylint: disable=no-self-use
+    def testconn(self) -> FlaskResponse:
         """Tests a sqla connection"""
+        logger.warning(
+            "%s.testconn "
+            "This API endpoint is deprecated and will be removed in version 3.0.0",
+            self.__class__.__name__,
+        )
         db_name = request.json.get("name")
         uri = request.json.get("uri")
         try:
@@ -1362,11 +1388,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             )
             database.set_sqlalchemy_uri(uri)
             database.db_engine_spec.mutate_db_for_connection_test(database)
-
-            username = (
-                g.user.username if g.user and hasattr(g.user, "username") else None
-            )
-            engine = database.get_sqla_engine(user_name=username)
+            engine = database.get_sqla_engine()
 
             with closing(engine.raw_connection()) as conn:
                 if engine.dialect.do_ping(conn):
@@ -1863,13 +1885,13 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         self, class_name: str, obj_id: int, action: str
     ) -> FlaskResponse:
         """Toggle favorite stars on Slices and Dashboard"""
-        if not g.user.get_id():
+        if not get_user_id():
             return json_error_response("ERROR: Favstar toggling denied", status=403)
         session = db.session()
         count = 0
         favs = (
             session.query(FavStar)
-            .filter_by(class_name=class_name, obj_id=obj_id, user_id=g.user.get_id())
+            .filter_by(class_name=class_name, obj_id=obj_id, user_id=get_user_id())
             .all()
         )
         if action == "select":
@@ -1878,7 +1900,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                     FavStar(
                         class_name=class_name,
                         obj_id=obj_id,
-                        user_id=g.user.get_id(),
+                        user_id=get_user_id(),
                         dttm=datetime.now(),
                     )
                 )
@@ -1917,8 +1939,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         if config["ENABLE_ACCESS_REQUEST"]:
             for datasource in dashboard.datasources:
-                datasource = ConnectorRegistry.get_datasource(
-                    datasource_type=datasource.type,
+                datasource = DatasourceDAO.get_datasource(
+                    datasource_type=DatasourceType(datasource.type),
                     datasource_id=datasource.id,
                     session=db.session(),
                 )
@@ -1978,13 +2000,13 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             return redirect("/dashboard/list/")
         if not value:
             return json_error_response(_("permalink state not found"), status=404)
-        dashboard_id = value["dashboardId"]
+        dashboard_id, state = value["dashboardId"], value.get("state", {})
         url = f"/superset/dashboard/{dashboard_id}?permalink_key={key}"
-        url_params = value["state"].get("urlParams")
+        url_params = state.get("urlParams")
         if url_params:
             params = parse.urlencode(url_params)
             url = f"{url}&{params}"
-        hash_ = value["state"].get("hash")
+        hash_ = state.get("anchor", state.get("hash"))
         if hash_:
             url = f"{url}#{hash_}"
         return redirect(url)
@@ -2096,7 +2118,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access
     @expose("/extra_table_metadata/<int:database_id>/<table_name>/<schema>/")
     @event_logger.log_this
-    def extra_table_metadata(  # pylint: disable=no-self-use
+    def extra_table_metadata(
         self, database_id: int, table_name: str, schema: str
     ) -> FlaskResponse:
         logger.warning(
@@ -2293,7 +2315,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             )
             return self.json_response("OK")
 
-        if not sql_lab.cancel_query(query, g.user.username if g.user else None):
+        if not sql_lab.cancel_query(query):
             raise SupersetCancelQueryException("Could not cancel query")
 
         query.status = QueryStatus.STOPPED
@@ -2305,12 +2327,18 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @event_logger.log_this
     @expose("/validate_sql_json/", methods=["POST", "GET"])
     def validate_sql_json(
-        # pylint: disable=too-many-locals,no-self-use
+        # pylint: disable=too-many-locals
         self,
     ) -> FlaskResponse:
         """Validates that arbitrary sql is acceptable for the given database.
         Returns a list of error/warning annotations as json.
         """
+        logger.warning(
+            "%s.validate_sql_json "
+            "This API endpoint is deprecated and will be removed in version 3.0.0",
+            self.__class__.__name__,
+        )
+
         sql = request.form["sql"]
         database_id = request.form["database_id"]
         schema = request.form.get("schema") or None
@@ -2399,7 +2427,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         sql_json_executor = Superset._create_sql_json_executor(
             execution_context, query_dao
         )
-        execution_context_convertor = ExecutionContextConvertorImpl()
+        execution_context_convertor = ExecutionContextConvertor()
         execution_context_convertor.set_max_row_in_display(
             int(config.get("DISPLAY_MAX_ROW"))  # type: ignore
         )
@@ -2528,10 +2556,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         """
 
         datasource_id, datasource_type = request.args["datasourceKey"].split("__")
-        datasource = ConnectorRegistry.get_datasource(
-            datasource_type,
-            datasource_id,
-            db.session,
+        datasource = DatasourceDAO.get_datasource(
+            db.session, DatasourceType(datasource_type), int(datasource_id)
         )
         # Check if datasource exists
         if not datasource:
@@ -2556,7 +2582,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @staticmethod
     def queries_exec(last_updated_ms: Union[float, int]) -> FlaskResponse:
         stats_logger.incr("queries")
-        if not g.user.get_id():
+        if not get_user_id():
             return json_error_response(
                 "Please login to access the queries.", status=403
             )
@@ -2566,9 +2592,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         sql_queries = (
             db.session.query(Query)
-            .filter(
-                Query.user_id == g.user.get_id(), Query.changed_on >= last_updated_dt
-            )
+            .filter(Query.user_id == get_user_id(), Query.changed_on >= last_updated_dt)
             .all()
         )
         dict_queries = {q.client_id: q.to_dict() for q in sql_queries}
@@ -2594,10 +2618,10 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 search_user_id = int(cast(int, request.args.get("user_id")))
             except ValueError:
                 return Response(status=400, mimetype="application/json")
-            if search_user_id != g.user.get_user_id():
+            if search_user_id != get_user_id():
                 return Response(status=403, mimetype="application/json")
         else:
-            search_user_id = g.user.get_user_id()
+            search_user_id = get_user_id()
         database_id = request.args.get("database_id")
         search_text = request.args.get("search_text")
         status = request.args.get("status")
@@ -2650,14 +2674,14 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @expose("/welcome/")
     def welcome(self) -> FlaskResponse:
         """Personalized welcome page"""
-        if not g.user or not g.user.get_id():
+        if not g.user or not get_user_id():
             if conf["PUBLIC_ROLE_LIKE"]:
                 return self.render_template("superset/public_welcome.html")
             return redirect(appbuilder.get_url_for_login)
 
         welcome_dashboard_id = (
             db.session.query(UserAttribute.welcome_dashboard_id)
-            .filter_by(user_id=g.user.get_id())
+            .filter_by(user_id=get_user_id())
             .scalar()
         )
         if welcome_dashboard_id:
@@ -2702,7 +2726,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         )
 
     @staticmethod
-    def _get_sqllab_tabs(user_id: int) -> Dict[str, Any]:
+    def _get_sqllab_tabs(user_id: Optional[int]) -> Dict[str, Any]:
         # send list of tab state ids
         tabs_state = (
             db.session.query(TabState.id, TabState.label)
@@ -2754,7 +2778,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         payload = {
             "defaultDbId": config["SQLLAB_DEFAULT_DBID"],
             "common": common_bootstrap_payload(),
-            **self._get_sqllab_tabs(g.user.get_id()),
+            **self._get_sqllab_tabs(get_user_id()),
         }
 
         form_data = request.form.get("form_data")

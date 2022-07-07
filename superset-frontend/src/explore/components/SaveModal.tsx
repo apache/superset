@@ -256,8 +256,7 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
               checked={this.state.action === 'saveas'}
               onChange={() => this.changeAction('saveas')}
             >
-              {' '}
-              {t('Save as ...')} &nbsp;
+              {t('Save as...')}
             </Radio>
           </FormItem>
           <hr />
@@ -300,11 +299,12 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
 function mapStateToProps({
   explore,
   saveModal,
+  user,
 }: Record<string, any>): Partial<SaveModalProps> {
   return {
     datasource: explore.datasource,
     slice: explore.slice,
-    userId: explore.user?.userId,
+    userId: user?.userId,
     dashboards: saveModal.dashboards,
     alert: saveModal.saveModalAlert,
   };

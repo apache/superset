@@ -137,6 +137,31 @@ class DatabaseTestConnectionUnexpectedError(SupersetErrorsException):
     message = _("Unexpected error occurred, please check your logs for details")
 
 
+class NoValidatorConfigFoundError(SupersetErrorException):
+    status = 422
+    message = _("no SQL validator is configured")
+
+
+class NoValidatorFoundError(SupersetErrorException):
+    status = 422
+    message = _("No validator found (configured for the engine)")
+
+
+class ValidatorSQLError(SupersetErrorException):
+    status = 422
+    message = _("Was unable to check your query")
+
+
+class ValidatorSQLUnexpectedError(CommandException):
+    status = 422
+    message = _("An unexpected error occurred")
+
+
+class ValidatorSQL400Error(SupersetErrorException):
+    status = 400
+    message = _("Was unable to check your query")
+
+
 class DatabaseImportError(ImportFailedError):
     message = _("Import database failed for an unknown reason")
 

@@ -20,8 +20,15 @@ import { rgb } from 'd3-color';
 
 export default function transformProps(chartProps) {
   const { width, height, formData, queriesData } = chartProps;
-  const { maxBubbleSize, showBubbles, linearColorScheme, colorPicker } =
-    formData;
+  const {
+    maxBubbleSize,
+    showBubbles,
+    linearColorScheme,
+    colorPicker,
+    colorBy,
+    colorScheme,
+    sliceId,
+  } = formData;
   const { r, g, b } = colorPicker;
 
   return {
@@ -32,5 +39,8 @@ export default function transformProps(chartProps) {
     showBubbles,
     linearColorScheme,
     color: rgb(r, g, b).hex(),
+    colorBy,
+    colorScheme,
+    sliceId,
   };
 }

@@ -19,7 +19,7 @@
 import React, { lazy, Suspense } from 'react';
 import ReactDOM from 'react-dom';
 import { BrowserRouter as Router, Route } from 'react-router-dom';
-import { makeApi, t } from '@superset-ui/core';
+import { makeApi, t, logging } from '@superset-ui/core';
 import { Switchboard } from '@superset-ui/switchboard';
 import { bootstrapData } from 'src/preamble';
 import setupClient from 'src/setup/setupClient';
@@ -35,7 +35,7 @@ const debugMode = process.env.WEBPACK_MODE === 'development';
 
 function log(...info: unknown[]) {
   if (debugMode) {
-    console.debug(`[superset]`, ...info);
+    logging.debug(`[superset]`, ...info);
   }
 }
 
@@ -69,14 +69,14 @@ const appMountPoint = document.getElementById('app')!;
 
 const MESSAGE_TYPE = '__embedded_comms__';
 
+function showFailureMessage(message: string) {
+  appMountPoint.innerHTML = message;
+}
+
 if (!window.parent || window.parent === window) {
   showFailureMessage(
     'This page is intended to be embedded in an iframe, but it looks like that is not the case.',
   );
-}
-
-function showFailureMessage(message: string) {
-  appMountPoint.innerHTML = message;
 }
 
 // if the page is embedded in an origin that hasn't
@@ -134,7 +134,7 @@ function start() {
     },
     err => {
       // something is most likely wrong with the guest token
-      console.error(err);
+      logging.error(err);
       showFailureMessage(
         'Something went wrong with embedded authentication. Check the dev console for details.',
       );
