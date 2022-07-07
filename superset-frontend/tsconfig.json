@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     /* Type Checking */
-    "noImplicitAny": true,
+    "noImplicitAny": false,
     "noImplicitReturns": true,
     "noImplicitThis": true,
     "noUnusedLocals": true,
