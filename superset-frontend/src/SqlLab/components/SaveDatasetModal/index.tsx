@@ -30,6 +30,7 @@ import {
   JsonResponse,
   JsonObject,
   QueryResponse,
+  QueryFormData,
 } from '@superset-ui/core';
 import { useSelector, useDispatch } from 'react-redux';
 import moment from 'moment';
@@ -81,6 +82,8 @@ interface SaveDatasetModalProps {
   buttonTextOnOverwrite: string;
   modalDescription?: string;
   datasource: ISaveableDataset;
+  openWindow?: boolean;
+  formData?: Omit<QueryFormData, 'datasource'>;
 }
 
 const Styles = styled.div`
@@ -145,6 +148,8 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
   buttonTextOnOverwrite,
   modalDescription,
   datasource,
+  openWindow = true,
+  formData = {},
 }) => {
   const defaultVizType = useSelector<SqlLabRootState, string>(
     state => state.common?.conf?.DEFAULT_VIZ_TYPE || 'table',
@@ -169,6 +174,14 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
   );
   const dispatch = useDispatch<(dispatch: any) => Promise<JsonObject>>();
 
+  const createWindow = (url: string) => {
+    if (openWindow) {
+      window.open(url, '_blank', 'noreferrer');
+    } else {
+      window.location.href = url;
+    }
+  };
+  const mergeFormData = { ...EXPLORE_CHART_DEFAULT, ...(formData || {}) };
   const handleOverwriteDataset = async () => {
     const [, key] = await Promise.all([
       updateDataset(
@@ -186,7 +199,7 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
         true,
       ),
       postFormData(datasetToOverwrite.datasetid, 'table', {
-        ...EXPLORE_CHART_DEFAULT,
+        ...mergeFormData,
         datasource: `${datasetToOverwrite.datasetid}__table`,
         ...(defaultVizType === 'table' && {
           all_columns: datasource?.columns?.map(column => column.name),
@@ -197,7 +210,7 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
     const url = mountExploreUrl(null, {
       [URL_PARAMS.formDataKey.name]: key,
     });
-    window.open(url, '_blank', 'noreferrer');
+    createWindow(url);
 
     setShouldOverwriteDataset(false);
     setDatasetToOverwrite({});
@@ -285,7 +298,7 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
     )
       .then((data: { table_id: number }) =>
         postFormData(data.table_id, 'table', {
-          ...EXPLORE_CHART_DEFAULT,
+          ...mergeFormData,
           datasource: `${data.table_id}__table`,
           ...(defaultVizType === 'table' && {
             all_columns: selectedColumns.map(column => column.name),
@@ -296,7 +309,7 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
         const url = mountExploreUrl(null, {
           [URL_PARAMS.formDataKey.name]: key,
         });
-        window.open(url, '_blank', 'noreferrer');
+        createWindow(url);
       })
       .catch(() => {
         addDangerToast(t('An error occurred saving dataset'));

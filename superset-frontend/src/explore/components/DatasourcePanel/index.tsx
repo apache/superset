@@ -213,7 +213,7 @@ export default function DataSourcePanel({
   shouldForceUpdate,
 }: Props) {
   const { columns: _columns, metrics } = datasource;
-
+  const { formData } = datasourceControl;
   // display temporal column first
   const columns = useMemo(
     () =>
@@ -491,6 +491,8 @@ export default function DataSourcePanel({
           buttonTextOnSave={t('Save')}
           buttonTextOnOverwrite={t('Overwrite')}
           datasource={getDatasourceAsSaveableDataset(datasource)}
+          openWindow={false}
+          formData={formData}
         />
       )}
       <Control {...datasourceControl} name="datasource" actions={actions} />

@@ -451,6 +451,8 @@ class DatasourceControl extends React.PureComponent {
               'Save this query as a virtual dataset to continue exploring',
             )}
             datasource={this.getDatasourceAsSaveableDataset(datasource)}
+            openWindow={false}
+            formData={this.props.form_data}
           />
         )}
       </Styles>

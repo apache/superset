@@ -644,20 +644,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             )
             force = request.args.get("force") == "true"
 
-            if datasource_type == "query":
-                return json_errors_response(
-                    errors=[
-                        SupersetError(
-                            message=__(
-                                "This chart type is not supported when using an unsaved"
-                                " query as a chart source. Create a dataset to visualize"
-                                " your data."
-                            ),
-                            error_type=SupersetErrorType.VIZ_TYPE_REQUIRES_DATASET_ERROR,
-                            level=ErrorLevel.ERROR,
-                        )
-                    ]
-                )
             # TODO: support CSV, SQL query and other non-JSON types
             if (
                 is_feature_enabled("GLOBAL_ASYNC_QUERIES")
