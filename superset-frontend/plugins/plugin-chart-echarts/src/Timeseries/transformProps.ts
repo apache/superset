@@ -35,7 +35,6 @@ import {
 import { isDerivedSeries } from '@superset-ui/chart-controls';
 import { EChartsCoreOption, SeriesOption } from 'echarts';
 import { ZRLineType } from 'echarts/types/src/util/types';
-import { merge } from 'lodash';
 import {
   EchartsTimeseriesChartProps,
   EchartsTimeseriesFormData,
@@ -342,7 +341,7 @@ export default function transformProps(
      * Not including this in the initial declaration above so if echarts changes the default
      * behavior for other axist types we won't unintentionally override it
      */
-    xAxis = merge(xAxis, { axisLabel: { showMaxLabel: null } });
+    xAxis.axisLabel.showLabel = null;
   }
 
   let yAxis: any = {
