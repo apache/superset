@@ -1120,6 +1120,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             values = values[0] if values else None
         return values
 
+    def get_query_str(self, query_obj: QueryObjectDict) -> str:
+        query_str_ext = self.get_query_str_extended(query_obj)
+        all_queries = query_str_ext.prequeries + [query_str_ext.sql]
+        return ";\n\n".join(all_queries) + ";"
+
     def _get_series_orderby(
         self,
         series_limit_metric: Metric,
