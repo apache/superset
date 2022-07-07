@@ -509,7 +509,7 @@ export const CredentialInfoForm = styled.div`
 
   .input-container {
     .input-upload {
-      display: none;
+      display: none !important;
     }
     .input-upload-current {
       display: flex;
