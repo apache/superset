@@ -17,14 +17,11 @@
 from dataclasses import dataclass
 from typing import Optional
 
-from flask_appbuilder.security.sqla.models import User
-
 from superset.utils.core import DatasourceType
 
 
 @dataclass
 class CommandParameters:
-    actor: User
     datasource_type: DatasourceType = DatasourceType.TABLE
     datasource_id: int = 0
     chart_id: int = 0

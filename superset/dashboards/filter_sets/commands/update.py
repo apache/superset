@@ -18,7 +18,6 @@ import logging
 from typing import Any, Dict
 
 from flask_appbuilder.models.sqla import Model
-from flask_appbuilder.security.sqla.models import User
 
 from superset.dao.exceptions import DAOUpdateFailedError
 from superset.dashboards.filter_sets.commands.base import BaseFilterSetCommand
@@ -32,10 +31,8 @@ logger = logging.getLogger(__name__)
 
 
 class UpdateFilterSetCommand(BaseFilterSetCommand):
-    def __init__(
-        self, user: User, dashboard_id: int, filter_set_id: int, data: Dict[str, Any]
-    ):
-        super().__init__(user, dashboard_id)
+    def __init__(self, dashboard_id: int, filter_set_id: int, data: Dict[str, Any]):
+        super().__init__(dashboard_id)
         self._filter_set_id = filter_set_id
         self._properties = data.copy()
 

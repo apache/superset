@@ -33,6 +33,7 @@ from superset.models.reports import (
     ReportScheduleType,
     ReportState,
 )
+from superset.utils.core import get_user_id
 
 logger = logging.getLogger(__name__)
 
@@ -116,14 +117,14 @@ class ReportScheduleDAO(BaseDAO):
 
     @staticmethod
     def validate_unique_creation_method(
-        user_id: int, dashboard_id: Optional[int] = None, chart_id: Optional[int] = None
+        dashboard_id: Optional[int] = None, chart_id: Optional[int] = None
     ) -> bool:
         """
         Validate if the user already has a chart or dashboard
         with a report attached form the self subscribe reports
         """
 
-        query = db.session.query(ReportSchedule).filter_by(created_by_fk=user_id)
+        query = db.session.query(ReportSchedule).filter_by(created_by_fk=get_user_id())
         if dashboard_id is not None:
             query = query.filter(ReportSchedule.dashboard_id == dashboard_id)
 
