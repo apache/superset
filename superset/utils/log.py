@@ -327,6 +327,8 @@ class DBEventLogger(AbstractEventLogger):
         # pylint: disable=import-outside-toplevel
         from superset.models.core import Log
 
+        day_purge = current_app.config["EVENT_LOGGER_PURGE"]
+        expiration = datetime.now() - timedelta(days=day_purge)
         records = kwargs.get("records", [])
         logs = []
         for record in records:
@@ -348,7 +350,9 @@ class DBEventLogger(AbstractEventLogger):
         try:
             sesh = current_app.appbuilder.get_session
             sesh.bulk_save_objects(logs)
+            sesh.query(Log).filter(Log.dttm < expiration).delete(synchronize_session=False)
             sesh.commit()
+            sesh.flush()
         except SQLAlchemyError as ex:
             logging.error("DBEventLogger failed to log event(s)")
             logging.exception(ex)

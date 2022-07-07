@@ -73,6 +73,7 @@ if TYPE_CHECKING:
 # Realtime stats logger, a StatsD implementation exists
 STATS_LOGGER = DummyStatsLogger()
 EVENT_LOGGER = DBEventLogger()
+EVENT_LOGGER_PURGE = 365
 
 SUPERSET_LOG_VIEW = True
 
