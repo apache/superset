@@ -175,7 +175,7 @@ const config: ControlPanelConfig = {
                 <>
                   <div>
                     {t(
-                      'Color will be rendered based on a ratio of the cell against the sum of across this criteria: ',
+                      'Color will be shaded based the normalized (0% to 100%) value of a given cell against the other cells in the selected range: ',
                     )}
                   </div>
                   <ul>
