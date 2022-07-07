@@ -300,7 +300,9 @@ test('ignores special keys when searching', async () => {
 });
 
 test('searches for custom fields', async () => {
-  render(<AsyncSelect {...defaultProps} optionFilterProps={['label', 'gender']} />);
+  render(
+    <AsyncSelect {...defaultProps} optionFilterProps={['label', 'gender']} />,
+  );
   await type('Liam');
   let options = await findAllSelectOptions();
   expect(options.length).toBe(1);
@@ -446,7 +448,9 @@ test('makes a selection in single mode', async () => {
 });
 
 test('multiple selections in multiple mode', async () => {
-  render(<AsyncSelect {...defaultProps} options={loadOptions} mode="multiple" />);
+  render(
+    <AsyncSelect {...defaultProps} options={loadOptions} mode="multiple" />,
+  );
   await open();
   const [firstOption, secondOption] = OPTIONS;
   userEvent.click(await findSelectOption(firstOption.label));
@@ -484,7 +488,9 @@ test('changes the selected item in single mode', async () => {
 });
 
 test('deselects an item in multiple mode', async () => {
-  render(<AsyncSelect {...defaultProps} options={loadOptions} mode="multiple" />);
+  render(
+    <AsyncSelect {...defaultProps} options={loadOptions} mode="multiple" />,
+  );
   await open();
   const option3 = OPTIONS[2];
   const option8 = OPTIONS[7];
@@ -518,14 +524,18 @@ test('deselects an item in multiple mode', async () => {
 });
 
 test('adds a new option if none is available and allowNewOptions is true', async () => {
-  render(<AsyncSelect {...defaultProps} options={loadOptions} allowNewOptions />);
+  render(
+    <AsyncSelect {...defaultProps} options={loadOptions} allowNewOptions />,
+  );
   await open();
   await type(NEW_OPTION);
   expect(await findSelectOption(NEW_OPTION)).toBeInTheDocument();
 });
 
 test('does not add a new option if the option already exists', async () => {
-  render(<AsyncSelect {...defaultProps} options={loadOptions} allowNewOptions />);
+  render(
+    <AsyncSelect {...defaultProps} options={loadOptions} allowNewOptions />,
+  );
   const option = OPTIONS[0].label;
   await open();
   await type(option);
@@ -552,14 +562,18 @@ test('shows "No data" when allowNewOptions is false and a new option is entered'
 });
 
 test('does not show "No data" when allowNewOptions is true and a new option is entered', async () => {
-  render(<AsyncSelect {...defaultProps} options={loadOptions} allowNewOptions />);
+  render(
+    <AsyncSelect {...defaultProps} options={loadOptions} allowNewOptions />,
+  );
   await open();
   await type(NEW_OPTION);
   expect(screen.queryByText(NO_DATA)).not.toBeInTheDocument();
 });
 
 test('sets a initial value in single mode', async () => {
-  render(<AsyncSelect {...defaultProps} options={loadOptions} value={OPTIONS[0]} />);
+  render(
+    <AsyncSelect {...defaultProps} options={loadOptions} value={OPTIONS[0]} />,
+  );
   expect(await findSelectValue()).toHaveTextContent(OPTIONS[0].label);
 });
 
@@ -620,7 +634,9 @@ test('fetches data when opening', async () => {
 
 test('fetches data only after a search input is entered if fetchOnlyOnSearch is true', async () => {
   const loadOptions = jest.fn(async () => ({ data: [], totalCount: 0 }));
-  render(<AsyncSelect {...defaultProps} options={loadOptions} fetchOnlyOnSearch />);
+  render(
+    <AsyncSelect {...defaultProps} options={loadOptions} fetchOnlyOnSearch />,
+  );
   await open();
   await waitFor(() => expect(loadOptions).not.toHaveBeenCalled());
   await type('search');
@@ -639,7 +655,9 @@ test('displays an error message when an exception is thrown while fetching', asy
 
 test('does not fire a new request for the same search input', async () => {
   const loadOptions = jest.fn(async () => ({ data: [], totalCount: 0 }));
-  render(<AsyncSelect {...defaultProps} options={loadOptions} fetchOnlyOnSearch />);
+  render(
+    <AsyncSelect {...defaultProps} options={loadOptions} fetchOnlyOnSearch />,
+  );
   await type('search');
   expect(await screen.findByText(NO_DATA)).toBeInTheDocument();
   expect(loadOptions).toHaveBeenCalledTimes(1);
