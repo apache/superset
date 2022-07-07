@@ -38,7 +38,7 @@ const fetchExploreData = () => {
   })(exploreUrlParams);
 };
 
-export const ExplorePage = () => {
+const ExplorePage = () => {
   const [isLoaded, setIsLoaded] = useState(false);
   const dispatch = useDispatch();
 
@@ -66,3 +66,5 @@ export const ExplorePage = () => {
   }
   return <ExploreViewContainer />;
 };
+
+export default ExplorePage;

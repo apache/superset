@@ -186,6 +186,7 @@ export class StandardizedFormData {
      * 4. attach `standardizedFormData` to the initial form_data
      * 5. call formDataOverrides to transform initial form_data if the plugin was defined
      * 6. use final form_data to generate controlsState
+     * 7. to refresh validator message
      * */
     const latestFormData = this.getLatestFormData(targetVizType);
     const publicFormData = {};
@@ -203,6 +204,12 @@ export class StandardizedFormData {
       ...getFormDataFromControls(targetControlsState),
       standardizedFormData: this.serialize(),
     };
+
+    let rv = {
+      formData: targetFormData,
+      controlsState: targetControlsState,
+    };
+
     const controlPanel = getChartControlPanelRegistry().get(targetVizType);
     if (controlPanel?.formDataOverrides) {
       getStandardizedControls().setStandardizedControls(targetFormData);
@@ -214,16 +221,17 @@ export class StandardizedFormData {
         },
       };
       getStandardizedControls().clear();
-
-      return {
+      rv = {
         formData: transformed,
         controlsState: getControlsState(exploreState, transformed),
       };
     }
 
-    return {
-      formData: targetFormData,
-      controlsState: targetControlsState,
-    };
+    // refresh validator message
+    rv.controlsState = getControlsState(
+      { ...exploreState, controls: rv.controlsState },
+      rv.formData,
+    );
+    return rv;
   }
 }
