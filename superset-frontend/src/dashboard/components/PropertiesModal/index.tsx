@@ -178,9 +178,9 @@ const PropertiesModal = ({
       if (metaDataCopy?.shared_label_colors) {
         delete metaDataCopy.shared_label_colors;
       }
-      if (metaDataCopy?.color_scheme_domain) {
-        delete metaDataCopy.color_scheme_domain;
-      }
+
+      delete metaDataCopy.color_scheme_domain;
+
       setJsonMetadata(metaDataCopy ? jsonStringify(metaDataCopy) : '');
     },
     [form],
