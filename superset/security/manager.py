@@ -1093,7 +1093,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         from superset.connectors.sqla.models import SqlaTable
         from superset.extensions import feature_flag_manager
         from superset.sql_parse import Table
-        from superset.views.utils import is_owner
 
         if database and table or query:
             if query:
@@ -1126,7 +1125,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     for datasource_ in datasources:
                         if self.can_access(
                             "datasource_access", datasource_.perm
-                        ) or is_owner(datasource_, getattr(g, "user", None)):
+                        ) or self.is_owner(datasource_):
                             break
                     else:
                         denied.add(table_)
@@ -1152,7 +1151,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             if not (
                 self.can_access_schema(datasource)
                 or self.can_access("datasource_access", datasource.perm or "")
-                or is_owner(datasource, getattr(g, "user", None))
+                or self.is_owner(datasource)
                 or (
                     should_check_dashboard_access
                     and self.can_access_based_on_dashboard(datasource)
@@ -1327,8 +1326,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         # pylint: disable=import-outside-toplevel
         from superset import is_feature_enabled
         from superset.dashboards.commands.exceptions import DashboardAccessDeniedError
-        from superset.views.base import is_user_admin
-        from superset.views.utils import is_owner
 
         def has_rbac_access() -> bool:
             return (not is_feature_enabled("DASHBOARD_RBAC")) or any(
@@ -1341,8 +1338,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             can_access = self.has_guest_access(dashboard)
         else:
             can_access = (
-                is_user_admin()
-                or is_owner(dashboard, g.user)
+                self.is_admin()
+                or self.is_owner(dashboard)
                 or (dashboard.published and has_rbac_access())
                 or (not dashboard.published and not dashboard.roles)
             )
@@ -1520,3 +1517,69 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             if str(resource["id"]) == str(dashboard.embedded[0].uuid):
                 return True
         return False
+
+    def raise_for_ownership(self, resource: Model) -> None:
+        """
+        Raise an exception if the user does not own the resource.
+
+        Note admins are deemed owners of all resources.
+
+        :param resource: The dashboard, dataste, chart, etc. resource
+        :raises SupersetSecurityException: If the current user is not an owner
+        """
+
+        # pylint: disable=import-outside-toplevel
+        from superset import db
+
+        if self.is_admin():
+            return
+
+        # Set of wners that works across ORM models.
+        owners: List[User] = []
+
+        orig_resource = db.session.query(resource.__class__).get(resource.id)
+
+        if orig_resource:
+            if hasattr(resource, "owners"):
+                owners += orig_resource.owners
+
+            if hasattr(resource, "owner"):
+                owners.append(orig_resource.owner)
+
+            if hasattr(resource, "created_by"):
+                owners.append(orig_resource.created_by)
+
+        if g.user.is_anonymous or g.user not in owners:
+            raise SupersetSecurityException(
+                SupersetError(
+                    error_type=SupersetErrorType.MISSING_OWNERSHIP_ERROR,
+                    message=f"You don't have the rights to alter [{resource}]",
+                    level=ErrorLevel.ERROR,
+                )
+            )
+
+    def is_owner(self, resource: Model) -> bool:
+        """
+        Returns True if the current user is an owner of the resource, False otherwise.
+
+        :param resource: The dashboard, dataste, chart, etc. resource
+        :returns: Whethe the current user is an owner of the resource
+        """
+
+        try:
+            self.raise_for_ownership(resource)
+        except SupersetSecurityException:
+            return False
+
+        return True
+
+    def is_admin(self) -> bool:
+        """
+        Returns True if the current user is an admin user, False otherwise.
+
+        :returns: Whehther the current user is an admin user
+        """
+
+        return current_app.config["AUTH_ROLE_ADMIN"] in [
+            role.name for role in self.get_user_roles()
+        ]

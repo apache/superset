@@ -20,7 +20,7 @@ from typing import Any
 
 from apispec import APISpec
 from apispec.exceptions import DuplicateComponentNameError
-from flask import g, request, Response
+from flask import request, Response
 from flask_appbuilder.api import BaseApi
 from marshmallow import ValidationError
 
@@ -70,9 +70,7 @@ class TemporaryCacheRestApi(BaseApi, ABC):
         try:
             item = self.add_model_schema.load(request.json)
             tab_id = request.args.get("tab_id")
-            args = CommandParameters(
-                actor=g.user, resource_id=pk, value=item["value"], tab_id=tab_id
-            )
+            args = CommandParameters(resource_id=pk, value=item["value"], tab_id=tab_id)
             key = self.get_create_command()(args).run()
             return self.response(201, key=key)
         except ValidationError as ex:
@@ -88,7 +86,6 @@ class TemporaryCacheRestApi(BaseApi, ABC):
             item = self.edit_model_schema.load(request.json)
             tab_id = request.args.get("tab_id")
             args = CommandParameters(
-                actor=g.user,
                 resource_id=pk,
                 key=key,
                 value=item["value"],
@@ -105,7 +102,7 @@ class TemporaryCacheRestApi(BaseApi, ABC):
 
     def get(self, pk: int, key: str) -> Response:
         try:
-            args = CommandParameters(actor=g.user, resource_id=pk, key=key)
+            args = CommandParameters(resource_id=pk, key=key)
             value = self.get_get_command()(args).run()
             if not value:
                 return self.response_404()
@@ -117,7 +114,7 @@ class TemporaryCacheRestApi(BaseApi, ABC):
 
     def delete(self, pk: int, key: str) -> Response:
         try:
-            args = CommandParameters(actor=g.user, resource_id=pk, key=key)
+            args = CommandParameters(resource_id=pk, key=key)
             result = self.get_delete_command()(args).run()
             if not result:
                 return self.response_404()

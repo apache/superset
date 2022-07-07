@@ -192,7 +192,7 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
         """
         item_ids = kwargs["rison"]
         try:
-            BulkDeleteSavedQueryCommand(g.user, item_ids).run()
+            BulkDeleteSavedQueryCommand(item_ids).run()
             return self.response(
                 200,
                 message=ngettext(
