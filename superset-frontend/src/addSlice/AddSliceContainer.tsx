@@ -226,7 +226,7 @@ export default class AddSliceContainer extends React.PureComponent<
 
   exploreUrl() {
     const dashboardId = getUrlParam(URL_PARAMS.dashboardId);
-    let url = `/superset/explore/?viz_type=${this.state.vizType}&datasource=${this.state.datasource?.value}`;
+    let url = `/explore/?viz_type=${this.state.vizType}&datasource=${this.state.datasource?.value}`;
     if (!isNullish(dashboardId)) {
       url += `&dashboard_id=${dashboardId}`;
     }

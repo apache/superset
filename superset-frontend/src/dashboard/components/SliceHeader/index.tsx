@@ -16,7 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { FC, useEffect, useMemo, useRef, useState } from 'react';
+import React, {
+  FC,
+  ReactNode,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { styled, t } from '@superset-ui/core';
 import { useUiConfig } from 'src/components/UiConfigContext';
 import { Tooltip } from 'src/components/Tooltip';
@@ -29,6 +36,7 @@ import FiltersBadge from 'src/dashboard/components/FiltersBadge';
 import Icons from 'src/components/Icons';
 import { RootState } from 'src/dashboard/types';
 import FilterIndicator from 'src/dashboard/components/FiltersBadge/FilterIndicator';
+import { getSliceHeaderTooltip } from 'src/dashboard/util/getSliceHeaderTooltip';
 import { clearDataMask } from 'src/dataMask/actions';
 
 type SliceHeaderProps = SliceHeaderControlsProps & {
@@ -89,7 +97,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
 }) => {
   const dispatch = useDispatch();
   const uiConfig = useUiConfig();
-  const [headerTooltip, setHeaderTooltip] = useState<string | null>(null);
+  const [headerTooltip, setHeaderTooltip] = useState<ReactNode | null>(null);
   const headerRef = useRef<HTMLDivElement>(null);
   // TODO: change to indicator field after it will be implemented
   const crossFilterValue = useSelector<RootState, any>(
@@ -110,11 +118,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
   useEffect(() => {
     const headerElement = headerRef.current;
     if (handleClickTitle) {
-      setHeaderTooltip(
-        sliceName
-          ? t('Click to edit %s in a new tab', sliceName)
-          : t('Click to edit chart in a new tab'),
-      );
+      setHeaderTooltip(getSliceHeaderTooltip(sliceName));
     } else if (
       headerElement &&
       (headerElement.scrollWidth > headerElement.offsetWidth ||

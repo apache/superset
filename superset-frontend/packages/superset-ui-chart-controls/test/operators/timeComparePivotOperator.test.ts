@@ -31,6 +31,7 @@ const formData: SqlaFormData = {
   granularity: 'month',
   datasource: 'foo',
   viz_type: 'table',
+  show_empty_columns: true,
 };
 const queryObject: QueryObject = {
   metrics: [

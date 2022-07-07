@@ -64,6 +64,9 @@ spec:
       {{- end }}
       securityContext:
         runAsUser: {{ .Values.runAsUser }}
+      {{- if .Values.supersetCeleryBeat.securityContext }}
+        {{ toYaml .Values.supersetCeleryBeat.securityContext | nindent 8 }}
+      {{- end }}
       {{- if .Values.supersetCeleryBeat.initContainers }}
       initContainers:
       {{-  tpl (toYaml .Values.supersetCeleryBeat.initContainers) . | nindent 6 }}

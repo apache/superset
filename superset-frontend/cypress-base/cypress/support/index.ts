@@ -19,7 +19,7 @@
 import '@cypress/code-coverage/support';
 import '@applitools/eyes-cypress/commands';
 
-const BASE_EXPLORE_URL = '/superset/explore/?form_data=';
+const BASE_EXPLORE_URL = '/explore/?form_data=';
 const TokenName = Cypress.env('TOKEN_NAME');
 
 require('cy-verify-downloads').addCustomCommand();
@@ -90,7 +90,7 @@ Cypress.Commands.add(
       },
     }).then(response => {
       const formDataKey = response.body.key;
-      const url = `/superset/explore/?form_data_key=${formDataKey}`;
+      const url = `/explore/?form_data_key=${formDataKey}`;
       cy.visit(url);
     });
   },

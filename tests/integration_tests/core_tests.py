@@ -879,7 +879,7 @@ class TestCore(SupersetTestCase):
         self.login("admin")
         slc = db.session.query(Slice).filter_by(slice_name="Girls").one()
         qry = db.session.query(models.Log).filter_by(slice_id=slc.id)
-        self.get_resp(slc.slice_url, {"form_data": json.dumps(slc.form_data)})
+        self.get_resp(slc.slice_url)
         self.assertEqual(1, qry.count())
 
     def create_sample_csvfile(self, filename: str, content: List[str]) -> None:

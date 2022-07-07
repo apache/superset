@@ -542,11 +542,11 @@ const truncate_metric: SharedControlConfig<'CheckboxControl'> = {
   description: t('Whether to truncate metrics'),
 };
 
-const drop_missing_columns: SharedControlConfig<'CheckboxControl'> = {
+const show_empty_columns: SharedControlConfig<'CheckboxControl'> = {
   type: 'CheckboxControl',
-  label: t('Drop Missing Columns'),
-  default: false,
-  description: t('Drop a column if all values are null'),
+  label: t('Show empty columns'),
+  default: true,
+  description: t('Show empty columns'),
 };
 
 const x_axis: SharedControlConfig<'SelectControl', ColumnMeta> = {
@@ -594,7 +594,7 @@ const sharedControls = {
   legacy_order_by: enableExploreDnd ? dnd_sort_by : sort_by,
   truncate_metric,
   x_axis: enableExploreDnd ? dnd_x_axis : x_axis,
-  drop_missing_columns,
+  show_empty_columns,
 };
 
 export { sharedControls, dndEntity, dndColumnsControl };

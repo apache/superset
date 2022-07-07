@@ -62,6 +62,9 @@ spec:
       {{- end }}
       securityContext:
         runAsUser: {{ .Values.runAsUser }}
+      {{- if .Values.supersetWorker.securityContext }}
+        {{ toYaml .Values.supersetWorker.securityContext | nindent 8 }}
+      {{- end }}
       {{- if .Values.supersetWorker.initContainers }}
       initContainers:
       {{-  tpl (toYaml .Values.supersetWorker.initContainers) . | nindent 6 }}

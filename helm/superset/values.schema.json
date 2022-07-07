@@ -278,6 +278,9 @@
                 },
                 "resources": {
                     "type": "object"
+                },
+                "securityContext": {
+                    "type": "object"
                 }
             },
             "required": [
@@ -310,6 +313,9 @@
                     "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta/properties/labels"
                 },
                 "resources": {
+                    "type": "object"
+                },
+                "securityContext": {
                     "type": "object"
                 }
             },
@@ -344,6 +350,9 @@
                     "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta/properties/labels"
                 },
                 "resources": {
+                    "type": "object"
+                },
+                "securityContext": {
                     "type": "object"
                 }
             },
@@ -408,6 +417,9 @@
                 },
                 "podAnnotations": {
                     "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta/properties/annotations"
+                },
+                "securityContext": {
+                    "type": "object"
                 }
             },
             "required": [
