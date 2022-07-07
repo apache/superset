@@ -642,20 +642,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             )
             force = request.args.get("force") == "true"
 
-            if datasource_type == "query":
-                return json_errors_response(
-                    errors=[
-                        SupersetError(
-                            message=__(
-                                "This chart type is not supported when using an unsaved"
-                                " query as a chart source. Create a dataset to visualize"
-                                " your data."
-                            ),
-                            error_type=SupersetErrorType.VIZ_TYPE_REQUIRES_DATASET_ERROR,
-                            level=ErrorLevel.ERROR,
-                        )
-                    ]
-                )
             # TODO: support CSV, SQL query and other non-JSON types
             if (
                 is_feature_enabled("GLOBAL_ASYNC_QUERIES")
@@ -754,8 +740,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @event_logger.log_this
     @expose("/explore/<datasource_type>/<int:datasource_id>/", methods=["GET", "POST"])
     @expose("/explore/", methods=["GET", "POST"])
-    @expose("/explore/p/<key>/", methods=["GET"])
-    # pylint: disable=too-many-locals,too-many-branches,too-many-statements, too-many-return-statements
+    # pylint: disable=too-many-locals,too-many-branches,too-many-statements
     def explore(
         self,
         datasource_type: Optional[str] = None,
@@ -768,6 +753,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             self.__class__.__name__,
         )
         initial_form_data = {}
+
         form_data_key = request.args.get("form_data_key")
         if key is not None:
             command = GetExplorePermalinkCommand(key)
@@ -790,130 +776,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             parameters = CommandParameters(key=form_data_key)
             value = GetFormDataCommand(parameters).run()
             initial_form_data = json.loads(value) if value else {}
-
-        # pylint: disable=import-outside-toplevel
-        from superset.models.helpers import ExploreMixin
-
-        # Handle SIP-68 Models or explore view
-        # API will always use /explore/<datasource_type>/<int:datasource_id>/ to query
-        # new models to power any viz in explore
-        datasource: Optional[BaseDatasource] = None
-        datasource_id = request.args.get("datasource_id", datasource_id)
-        datasource_type = request.args.get("datasource_type", datasource_type)
-        dummy_datasource_data: Dict[str, Any] = {
-            "type": datasource_type,
-            "name": "[Missing Dataset]",
-            "columns": [],
-            "metrics": [],
-            "database": {"id": 0, "backend": ""},
-        }
-
-        if datasource_id and datasource_type:
-            # 1. Query datasource object by type and id
-            datasource = DatasourceDAO.get_datasource(
-                session=db.session,
-                datasource_type=DatasourceType(datasource_type),
-                datasource_id=datasource_id,
-            )
-
-            # 2. Verify that it's an ExploreMixin
-            if isinstance(datasource, ExploreMixin):
-                # Handle Query object bootstrap
-                datasource_name = (
-                    datasource.name if datasource else _("[Missing Dataset]")
-                )
-                form_data, slc = get_form_data(
-                    use_slice_data=True, initial_form_data=initial_form_data
-                )
-
-                query_context = request.form.get("query_context")
-
-                viz_type = form_data.get("viz_type", "table")
-                if not viz_type and datasource and datasource.default_endpoint:
-                    return redirect(datasource.default_endpoint)
-
-                # slc perms
-                slice_add_perm = security_manager.can_access("can_write", "Chart")
-                slice_overwrite_perm = is_owner(slc, g.user) if slc else False
-                slice_download_perm = security_manager.can_access("can_csv", "Superset")
-
-                form_data["datasource"] = (
-                    str(datasource_id) + "__" + cast(str, datasource_type)
-                )
-
-                # On explore, merge legacy and extra filters into the form data
-                utils.convert_legacy_filters_into_adhoc(form_data)
-                utils.merge_extra_filters(form_data)
-
-                # merge request url params
-                if request.method == "GET":
-                    utils.merge_request_params(form_data, request.args)
-
-                # handle save or overwrite
-                action = request.args.get("action")
-
-                if action == "overwrite" and not slice_overwrite_perm:
-                    return json_error_response(
-                        _("You don't have the rights to ")
-                        + _("alter this ")
-                        + _("chart"),
-                        status=403,
-                    )
-
-                if action == "saveas" and not slice_add_perm:
-                    return json_error_response(
-                        _("You don't have the rights to ")
-                        + _("create a ")
-                        + _("chart"),
-                        status=403,
-                    )
-
-                if action in ("saveas", "overwrite") and datasource:
-                    return self.save_or_overwrite_slice(
-                        slc,
-                        slice_add_perm,
-                        slice_overwrite_perm,
-                        slice_download_perm,
-                        datasource.id,
-                        datasource.type,
-                        datasource.name,
-                        query_context,
-                    )
-                standalone_mode = ReservedUrlParameters.is_standalone_mode()
-                force = request.args.get("force") in {"force", "1", "true"}
-                try:
-                    datasource_data = (
-                        datasource.data if datasource else dummy_datasource_data
-                    )
-                except (SupersetException, SQLAlchemyError):
-                    datasource_data = dummy_datasource_data
-
-                bootstrap_data = {
-                    "can_add": slice_add_perm,
-                    "can_download": slice_download_perm,
-                    "datasource": sanitize_datasource_data(datasource_data),
-                    "form_data": form_data,
-                    "datasource_id": datasource_id,
-                    "datasource_type": datasource_type,
-                    "datasource_name": datasource_name,
-                    "slice": slc.data if slc else None,
-                    "standalone": standalone_mode,
-                    "force": force,
-                    "user": bootstrap_user_data(g.user, include_perms=True),
-                    "forced_height": request.args.get("height"),
-                    "common": common_bootstrap_payload(),
-                }
-
-                title = _("Explore - %(name)s", name=datasource.name)
-                return self.render_template(
-                    "superset/basic.html",
-                    bootstrap_data=json.dumps(
-                        bootstrap_data, default=utils.pessimistic_json_iso_dttm_ser
-                    ),
-                    entry="explore",
-                    title=title.__str__(),
-                    standalone_mode=standalone_mode,
-                )
 
         if not initial_form_data:
             slice_id = request.args.get("slice_id")
@@ -948,6 +810,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             # fallback unkonw datasource to table type
             datasource_type = SqlaTable.type
 
+        datasource: Optional[BaseDatasource] = None
         if datasource_id is not None:
             try:
                 datasource = DatasourceDAO.get_datasource(
@@ -1033,6 +896,13 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             )
         standalone_mode = ReservedUrlParameters.is_standalone_mode()
         force = request.args.get("force") in {"force", "1", "true"}
+        dummy_datasource_data: Dict[str, Any] = {
+            "type": datasource_type,
+            "name": datasource_name,
+            "columns": [],
+            "metrics": [],
+            "database": {"id": 0, "backend": ""},
+        }
         try:
             datasource_data = datasource.data if datasource else dummy_datasource_data
         except (SupersetException, SQLAlchemyError):
