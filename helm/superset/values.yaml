@@ -255,20 +255,18 @@ supersetNode:
   podAnnotations: {}
   ## Labels to be added to supersetNode pods
   podLabels: {}
-  ## these settings overwrite default existing values in template for livenessProbe
-  livenessProbe: {}
-  #  initialDelaySeconds: 15
-  #  timeoutSeconds: 1
-  #  failureThreshold: 3
-  #  periodSeconds: 15
-  #  successThreshold: 1
-  ## these settings overwrite default existing values in template for readinessProbe
-  readinessProbe: {}
-  #  initialDelaySeconds: 15
-  #  timeoutSeconds: 1
-  #  failureThreshold: 3
-  #  periodSeconds: 15
-  #  successThreshold: 1
+  livenessProbe:
+    initialDelaySeconds: 15
+    timeoutSeconds: 1
+    failureThreshold: 3
+    periodSeconds: 15
+    successThreshold: 1
+  readinessProbe:
+    initialDelaySeconds: 15
+    timeoutSeconds: 1
+    failureThreshold: 3
+    periodSeconds: 15
+    successThreshold: 1
   # Resource settings for the supersetNode pods - these settings overwrite might existing values from the global resources object defined above.
   resources: {}
     # limits:
