@@ -140,7 +140,6 @@ from superset.utils.decorators import check_dashboard_access
 from superset.views.base import (
     api,
     BaseSupersetView,
-    check_ownership,
     common_bootstrap_payload,
     create_table_permissions,
     CsvResponse,
@@ -164,7 +163,6 @@ from superset.views.utils import (
     get_datasource_info,
     get_form_data,
     get_viz,
-    is_owner,
     sanitize_datasource_data,
 )
 from superset.viz import BaseViz
@@ -368,8 +366,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             return json_error_response(err)
 
         # check if you can approve
-        if security_manager.can_access_all_datasources() or check_ownership(
-            datasource, raise_if_false=False
+        if security_manager.can_access_all_datasources() or security_manager.is_owner(
+            datasource
         ):
             # can by done by admin only
             if role_to_grant:
@@ -758,7 +756,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         form_data_key = request.args.get("form_data_key")
         if key is not None:
-            command = GetExplorePermalinkCommand(g.user, key)
+            command = GetExplorePermalinkCommand(key)
             try:
                 permalink_value = command.run()
                 if permalink_value:
@@ -775,7 +773,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 flash(__("Error: %(msg)s", msg=ex.message), "danger")
                 return redirect("/chart/list/")
         elif form_data_key:
-            parameters = CommandParameters(actor=g.user, key=form_data_key)
+            parameters = CommandParameters(key=form_data_key)
             value = GetFormDataCommand(parameters).run()
             initial_form_data = json.loads(value) if value else {}
 
@@ -857,7 +855,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         # slc perms
         slice_add_perm = security_manager.can_access("can_write", "Chart")
-        slice_overwrite_perm = is_owner(slc, g.user) if slc else False
+        slice_overwrite_perm = security_manager.is_owner(slc) if slc else False
         slice_download_perm = security_manager.can_access("can_csv", "Superset")
 
         form_data["datasource"] = str(datasource_id) + "__" + cast(str, datasource_type)
@@ -1050,7 +1048,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 .one(),
             )
             # check edit dashboard permissions
-            dash_overwrite_perm = check_ownership(dash, raise_if_false=False)
+            dash_overwrite_perm = security_manager.is_owner(dash)
             if not dash_overwrite_perm:
                 return json_error_response(
                     _("You don't have the rights to ")
@@ -1297,7 +1295,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         """Save a dashboard's metadata"""
         session = db.session()
         dash = session.query(Dashboard).get(dashboard_id)
-        check_ownership(dash, raise_if_false=True)
+        security_manager.raise_for_ownership(dash)
         data = json.loads(request.form["data"])
         # client-side send back last_modified_time which was set when
         # the dashboard was open. it was use to avoid mid-air collision.
@@ -1340,7 +1338,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         data = json.loads(request.form["data"])
         session = db.session()
         dash = session.query(Dashboard).get(dashboard_id)
-        check_ownership(dash, raise_if_false=True)
+        security_manager.raise_for_ownership(dash)
         new_slices = session.query(Slice).filter(Slice.id.in_(data["slice_ids"]))
         dash.slices += new_slices
         session.merge(dash)
@@ -1664,7 +1662,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     def user_slices(self, user_id: Optional[int] = None) -> FlaskResponse:
         """List of slices a user owns, created, modified or faved"""
         if not user_id:
-            user_id = cast(int, g.user.id)
+            user_id = cast(int, get_user_id())
         error_obj = self.get_user_activity_access_error(user_id)
         if error_obj:
             return error_obj
@@ -1717,7 +1715,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     def created_slices(self, user_id: Optional[int] = None) -> FlaskResponse:
         """List of slices created by this user"""
         if not user_id:
-            user_id = cast(int, g.user.id)
+            user_id = cast(int, get_user_id())
         error_obj = self.get_user_activity_access_error(user_id)
         if error_obj:
             return error_obj
@@ -1748,7 +1746,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     def fave_slices(self, user_id: Optional[int] = None) -> FlaskResponse:
         """Favorite slices for a user"""
         if user_id is None:
-            user_id = g.user.id
+            user_id = cast(int, get_user_id())
         error_obj = self.get_user_activity_access_error(user_id)
         if error_obj:
             return error_obj
@@ -1957,8 +1955,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                         f"/superset/request_access/?dashboard_id={dashboard.id}"
                     )
 
-        dash_edit_perm = check_ownership(
-            dashboard, raise_if_false=False
+        dash_edit_perm = security_manager.is_owner(
+            dashboard
         ) and security_manager.can_access("can_save_dash", "Superset")
         edit_mode = (
             request.args.get(utils.ReservedUrlParameters.EDIT_MODE.value) == "true"
@@ -1994,7 +1992,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         key: str,
     ) -> FlaskResponse:
         try:
-            value = GetDashboardPermalinkCommand(g.user, key).run()
+            value = GetDashboardPermalinkCommand(key).run()
         except DashboardPermalinkGetFailedError as ex:
             flash(__("Error: %(msg)s", msg=ex.message), "danger")
             return redirect("/dashboard/list/")

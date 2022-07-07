@@ -20,23 +20,23 @@ from flask import session
 
 from superset.dashboards.filter_state.commands.utils import check_access
 from superset.extensions import cache_manager
-from superset.key_value.utils import get_owner, random_key
+from superset.key_value.utils import random_key
 from superset.temporary_cache.commands.entry import Entry
 from superset.temporary_cache.commands.exceptions import TemporaryCacheAccessDeniedError
 from superset.temporary_cache.commands.parameters import CommandParameters
 from superset.temporary_cache.commands.update import UpdateTemporaryCacheCommand
 from superset.temporary_cache.utils import cache_key
+from superset.utils.core import get_user_id
 
 
 class UpdateFilterStateCommand(UpdateTemporaryCacheCommand):
     def update(self, cmd_params: CommandParameters) -> Optional[str]:
         resource_id = cmd_params.resource_id
-        actor = cmd_params.actor
         key = cmd_params.key
         value = cast(str, cmd_params.value)  # schema ensures that value is not optional
         check_access(resource_id)
         entry: Entry = cache_manager.filter_state_cache.get(cache_key(resource_id, key))
-        owner = get_owner(actor)
+        owner = get_user_id()
         if entry:
             if entry["owner"] != owner:
                 raise TemporaryCacheAccessDeniedError()

@@ -36,9 +36,10 @@ from .base import BaseSupersetView, DeleteMixin, json_success, SupersetModelView
 logger = logging.getLogger(__name__)
 
 
-class SavedQueryView(
-    SupersetModelView, DeleteMixin
-):  # pylint: disable=too-many-ancestors
+class SavedQueryView(  # pylint: disable=too-many-ancestors
+    SupersetModelView,
+    DeleteMixin,
+):
     datamodel = SQLAInterface(SavedQuery)
     include_route_methods = RouteMethod.CRUD_SET
 

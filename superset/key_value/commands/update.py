@@ -21,7 +21,6 @@ from datetime import datetime
 from typing import Any, Optional, Union
 from uuid import UUID
 
-from flask_appbuilder.security.sqla.models import User
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset import db
@@ -30,24 +29,22 @@ from superset.key_value.exceptions import KeyValueUpdateFailedError
 from superset.key_value.models import KeyValueEntry
 from superset.key_value.types import Key, KeyValueResource
 from superset.key_value.utils import get_filter
+from superset.utils.core import get_user_id
 
 logger = logging.getLogger(__name__)
 
 
 class UpdateKeyValueCommand(BaseCommand):
-    actor: Optional[User]
     resource: KeyValueResource
     value: Any
     key: Union[int, UUID]
     expires_on: Optional[datetime]
 
-    # pylint: disable=too-many-argumentsåå
     def __init__(
         self,
         resource: KeyValueResource,
         key: Union[int, UUID],
         value: Any,
-        actor: Optional[User] = None,
         expires_on: Optional[datetime] = None,
     ):
         """
@@ -56,11 +53,9 @@ class UpdateKeyValueCommand(BaseCommand):
         :param resource: the resource (dashboard, chart etc)
         :param key: the key to update
         :param value: the value to persist in the key-value store
-        :param actor: the user performing the command
         :param expires_on: entry expiration time
         :return: the key associated with the updated value
         """
-        self.actor = actor
         self.resource = resource
         self.key = key
         self.value = value
@@ -89,9 +84,7 @@ class UpdateKeyValueCommand(BaseCommand):
             entry.value = pickle.dumps(self.value)
             entry.expires_on = self.expires_on
             entry.changed_on = datetime.now()
-            entry.changed_by_fk = (
-                None if self.actor is None or self.actor.is_anonymous else self.actor.id
-            )
+            entry.changed_by_fk = get_user_id()
             db.session.merge(entry)
             db.session.commit()
             return Key(id=entry.id, uuid=entry.uuid)
