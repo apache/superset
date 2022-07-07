@@ -23,7 +23,7 @@ from zipfile import is_zipfile, ZipFile
 
 import simplejson
 import yaml
-from flask import g, make_response, request, Response, send_file
+from flask import make_response, request, Response, send_file
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
@@ -264,7 +264,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             return self.response_400(message=error.messages)
 
         try:
-            new_model = CreateDatasetCommand(g.user, item).run()
+            new_model = CreateDatasetCommand(item).run()
             return self.response(201, id=new_model.id, result=item)
         except DatasetInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())
@@ -344,11 +344,9 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         except ValidationError as error:
             return self.response_400(message=error.messages)
         try:
-            changed_model = UpdateDatasetCommand(
-                g.user, pk, item, override_columns
-            ).run()
+            changed_model = UpdateDatasetCommand(pk, item, override_columns).run()
             if override_columns:
-                RefreshDatasetCommand(g.user, pk).run()
+                RefreshDatasetCommand(pk).run()
             response = self.response(200, id=changed_model.id, result=item)
         except DatasetNotFoundError:
             response = self.response_404()
@@ -407,7 +405,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         try:
-            DeleteDatasetCommand(g.user, pk).run()
+            DeleteDatasetCommand(pk).run()
             return self.response(200, message="OK")
         except DatasetNotFoundError:
             return self.response_404()
@@ -547,7 +545,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         try:
-            RefreshDatasetCommand(g.user, pk).run()
+            RefreshDatasetCommand(pk).run()
             return self.response(200, message="OK")
         except DatasetNotFoundError:
             return self.response_404()
@@ -671,7 +669,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         """
         item_ids = kwargs["rison"]
         try:
-            BulkDeleteDatasetCommand(g.user, item_ids).run()
+            BulkDeleteDatasetCommand(item_ids).run()
             return self.response(
                 200,
                 message=ngettext(
@@ -812,7 +810,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         """
         try:
             force = parse_boolean_string(request.args.get("force"))
-            rv = SamplesDatasetCommand(g.user, pk, force).run()
+            rv = SamplesDatasetCommand(pk, force).run()
             response_data = simplejson.dumps(
                 {"result": rv},
                 default=json_int_dttm_ser,

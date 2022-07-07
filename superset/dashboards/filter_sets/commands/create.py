@@ -17,9 +17,7 @@
 import logging
 from typing import Any, Dict
 
-from flask import g
 from flask_appbuilder.models.sqla import Model
-from flask_appbuilder.security.sqla.models import User
 
 from superset import security_manager
 from superset.dashboards.filter_sets.commands.base import BaseFilterSetCommand
@@ -35,14 +33,15 @@ from superset.dashboards.filter_sets.consts import (
     OWNER_TYPE_FIELD,
 )
 from superset.dashboards.filter_sets.dao import FilterSetDAO
+from superset.utils.core import get_user_id
 
 logger = logging.getLogger(__name__)
 
 
 class CreateFilterSetCommand(BaseFilterSetCommand):
     # pylint: disable=C0103
-    def __init__(self, user: User, dashboard_id: int, data: Dict[str, Any]):
-        super().__init__(user, dashboard_id)
+    def __init__(self, dashboard_id: int, data: Dict[str, Any]):
+        super().__init__(dashboard_id)
         self._properties = data.copy()
 
     def run(self) -> Model:
@@ -61,13 +60,13 @@ class CreateFilterSetCommand(BaseFilterSetCommand):
 
     def _validate_owner_id_exists(self) -> None:
         owner_id = self._properties[OWNER_ID_FIELD]
-        if not (g.user.id == owner_id or security_manager.get_user_by_id(owner_id)):
+        if not (get_user_id() == owner_id or security_manager.get_user_by_id(owner_id)):
             raise FilterSetCreateFailedError(
                 str(self._dashboard_id), "owner_id does not exists"
             )
 
     def _validate_user_is_the_dashboard_owner(self) -> None:
-        if not self.is_user_dashboard_owner():
+        if not security_manager.is_owner(self._dashboard):
             raise UserIsNotDashboardOwnerError(str(self._dashboard_id))
 
     def _validate_owner_id_is_dashboard_id(self) -> None:

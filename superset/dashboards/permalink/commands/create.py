@@ -16,7 +16,6 @@
 # under the License.
 import logging
 
-from flask_appbuilder.security.sqla.models import User
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset.dashboards.dao import DashboardDAO
@@ -32,11 +31,9 @@ logger = logging.getLogger(__name__)
 class CreateDashboardPermalinkCommand(BaseDashboardPermalinkCommand):
     def __init__(
         self,
-        actor: User,
         dashboard_id: str,
         state: DashboardPermalinkState,
     ):
-        self.actor = actor
         self.dashboard_id = dashboard_id
         self.state = state
 
@@ -49,7 +46,6 @@ class CreateDashboardPermalinkCommand(BaseDashboardPermalinkCommand):
                 "state": self.state,
             }
             key = CreateKeyValueCommand(
-                actor=self.actor,
                 resource=self.resource,
                 value=value,
             ).run()

@@ -28,7 +28,7 @@ import {
   css,
   SupersetTheme,
   SupersetClient,
-  getUiOverrideRegistry,
+  getExtensionsRegistry,
 } from '@superset-ui/core';
 import { MainNav as Menu } from 'src/components/Menu';
 import { Tooltip } from 'src/components/Tooltip';
@@ -47,7 +47,7 @@ import {
 } from './types';
 import { MenuObjectProps } from './Menu';
 
-const uiOverrideRegistry = getUiOverrideRegistry();
+const extensionsRegistry = getExtensionsRegistry();
 
 const versionInfoStyles = (theme: SupersetTheme) => css`
   padding: ${theme.gridUnit * 1.5}px ${theme.gridUnit * 4}px
@@ -258,7 +258,7 @@ const RightMenu = ({
     }
     return null;
   };
-  const RightMenuExtension = uiOverrideRegistry.get('navbar.right');
+  const RightMenuExtension = extensionsRegistry.get('navbar.right');
 
   const handleDatabaseAdd = () => setQuery({ databaseAdded: true });
 
