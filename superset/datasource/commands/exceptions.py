@@ -14,30 +14,13 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Optional
 
-from superset.commands.exceptions import CommandException, ForbiddenError
-
-
-class DatasetAccessDeniedError(ForbiddenError):
-    def __init__(
-        self, message: str, dataset_id: Optional[int], dataset_type: Optional[str]
-    ) -> None:
-        self.message = message
-        self.dataset_id = dataset_id
-        self.dataset_type = dataset_type
-        super().__init__(self.message)
+from superset.exceptions import SupersetException
 
 
-class WrongEndpointError(CommandException):
-    def __init__(self, redirect: str) -> None:
-        self.redirect = redirect
-        super().__init__()
-
-
-class DatasourceForbiddenError(CommandException):
+class DatasourceForbiddenError(SupersetException):
     message = "Datasource does not exist"
 
 
-class DatasourceSamplesFailedError(CommandException):
+class DatasourceSamplesFailedError(SupersetException):
     message = "Datasource Failed to fetch samples"

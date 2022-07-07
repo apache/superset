@@ -150,7 +150,8 @@ def _get_samples(
     query_obj.orderby = []
     query_obj.metrics = None
     query_obj.post_processing = []
-    query_obj.columns = [o.column_name for o in datasource.columns]
+    # query_obj.columns = [o.column_name for o in datasource.columns]
+    query_obj.columns = [o.get("column_name") for o in datasource.columns]
     query_obj.from_dttm = None
     query_obj.to_dttm = None
     return _get_full(query_context, query_obj, force_cached)
