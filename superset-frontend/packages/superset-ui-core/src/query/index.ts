@@ -35,7 +35,6 @@ export * from './types/Column';
 export * from './types/Datasource';
 export * from './types/Metric';
 export * from './types/Query';
-export { isSavedMetric } from './types/QueryFormData';
 
 export * from './api/v1/types';
 export { default as makeApi } from './api/v1/makeApi';

@@ -19,7 +19,7 @@
 
 /* eslint sort-keys: 'off' */
 /** The form data defined here is based on default visualizations packaged with Apache Superset */
-import { TimeGranularity } from '../../../src/time-format/types';
+import { TimeGranularity } from '@superset-ui/core';
 
 export const bigNumberFormData = {
   datasource: '3__table',

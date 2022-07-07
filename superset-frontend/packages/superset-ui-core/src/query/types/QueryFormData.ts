@@ -206,8 +206,4 @@ export type QueryFormData = SqlaFormData;
 // Type guards
 //---------------------------------------------------
 
-export function isSavedMetric(metric: QueryFormMetric): metric is SavedMetric {
-  return typeof metric === 'string';
-}
-
 export default {};

@@ -17,8 +17,7 @@
  * under the License.
  */
 
-import { isSavedMetric, QueryFormMetric } from './types/QueryFormData';
-import { isAdhocMetricSimple } from './types/Metric';
+import { QueryFormMetric, isSavedMetric, isAdhocMetricSimple } from './types';
 
 export default function getMetricLabel(metric: QueryFormMetric): string {
   if (isSavedMetric(metric)) {

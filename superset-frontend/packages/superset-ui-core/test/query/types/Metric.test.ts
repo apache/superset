@@ -21,7 +21,6 @@ import {
   isAdhocMetricSimple,
   isAdhocMetricSQL,
   isQueryFormMetric,
-  QueryFormMetric,
 } from '@superset-ui/core';
 
 const adhocMetricSimple = {
@@ -49,9 +48,9 @@ test('isSavedMetric returns true', () => {
 });
 
 test('isSavedMetric returns false', () => {
-  expect(isSavedMetric(adhocMetricSQL as QueryFormMetric)).toEqual(false);
-  expect(isSavedMetric(null as unknown as QueryFormMetric)).toEqual(false);
-  expect(isSavedMetric(undefined as unknown as QueryFormMetric)).toEqual(false);
+  expect(isSavedMetric(adhocMetricSQL)).toEqual(false);
+  expect(isSavedMetric(null)).toEqual(false);
+  expect(isSavedMetric(undefined)).toEqual(false);
 });
 
 test('isAdhocMetricSimple returns true', () => {

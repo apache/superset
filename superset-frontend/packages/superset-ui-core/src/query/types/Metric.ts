@@ -17,8 +17,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Maybe } from '../../types';
-import { QueryFormMetric } from './QueryFormData';
+import { Maybe, QueryFormMetric } from '../../types';
 import { Column } from './Column';
 
 export type Aggregate =
