@@ -180,7 +180,7 @@ const config: ControlPanelConfig = {
                   </div>
                   <ul>
                     <li>
-                      {t('x: percentage of the highest value in that column')}
+                      {t('x: values are normalized within each column')}
                     </li>
                     <li>
                       {t('y: values are normalized within each row')}
