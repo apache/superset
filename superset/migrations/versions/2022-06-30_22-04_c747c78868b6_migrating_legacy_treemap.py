@@ -58,20 +58,19 @@ def upgrade():
     )
     total = slices.count()
     idx = 0
-    for slc in slices.yield_per(100):
+    for slc in slices.yield_per(1000):
         try:
             idx += 1
             print(f"Upgrading ({idx}/{total}): {slc.slice_name}#{slc.id}")
             new_viz = treemap_processor.upgrade(slc)
             session.merge(new_viz)
-            session.commit()
         except Exception as exc:
             print(
                 "Error while processing migration: '{}'\nError: {}\n".format(
                     slc.slice_name, str(exc)
                 )
             )
-
+    session.commit()
     session.close()
 
 
@@ -87,18 +86,17 @@ def downgrade():
     )
     total = slices.count()
     idx = 0
-    for slc in slices.yield_per(100):
+    for slc in slices.yield_per(1000):
         try:
             idx += 1
             print(f"Downgrading ({idx}/{total}): {slc.slice_name}#{slc.id}")
             new_viz = treemap_processor.downgrade(slc)
             session.merge(new_viz)
-            session.commit()
         except Exception as exc:
             print(
                 "Error while processing migration: '{}'\nError: {}\n".format(
                     slc.slice_name, str(exc)
                 )
             )
-
+    session.commit()
     session.close()

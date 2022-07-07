@@ -32,11 +32,8 @@ class MigrateVizEnum(str, Enum):
 
 class MigrateViz:
     remove_keys: Set[str] = set()
-
     mapping_keys: Dict[str, str] = {}
-
     source_viz_type: str
-
     target_viz_type: str
 
     def __init__(self, form_data: str) -> None:
@@ -53,7 +50,7 @@ class MigrateViz:
             self.data["viz_type"] = self.target_viz_type
 
         rv_data = {}
-        for (key, value) in self.data.items():
+        for key, value in self.data.items():
             if key in self.mapping_keys and self.mapping_keys[key] in rv_data:
                 raise ValueError("Duplicate key in target viz")
 
