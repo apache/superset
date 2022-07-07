@@ -187,7 +187,7 @@ const config: ControlPanelConfig = {
                     </li>
                     <li>
                       {t(
-                        'heatmap: percentage of the highest value in the whole heatmap',
+                        'heatmap: values are normalized across the entire heatmap',
                       )}
                     </li>
                   </ul>
