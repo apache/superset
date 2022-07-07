@@ -88,9 +88,7 @@ export const datasetToSelectOption = (
 
 // TODO: add column_types field to Dataset
 // We return true if column_types is undefined or empty as a precaution against backend failing to return column_types
-export const hasTemporalColumns = (
-  dataset: Dataset & { column_types: GenericDataType[] },
-) => {
+export const hasTemporalColumns = (dataset: Dataset) => {
   const columnTypes = ensureIsArray(dataset?.column_types);
   return (
     columnTypes.length === 0 || columnTypes.includes(GenericDataType.TEMPORAL)
