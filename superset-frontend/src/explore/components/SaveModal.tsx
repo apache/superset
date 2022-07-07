@@ -209,9 +209,16 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
       // Go to new dashboard url
       if (gotodash && dashboard) {
         this.props.history.push(dashboard.url);
-      } else {
-        window.location.assign(`/explore/?slice_id=${value.id}`);
+        return;
       }
+
+      const searchParams = new URLSearchParams(this.props.location.search);
+      searchParams.set('save_action', this.state.action);
+      searchParams.delete('form_data_key');
+      if (this.state.action === 'saveas') {
+        searchParams.set('slice_id', value.id.toString());
+      }
+      this.props.history.replace(`/explore/?${searchParams.toString()}`);
     }) as (value: any) => void);
 
     this.props.onHide();
