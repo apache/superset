@@ -25,7 +25,7 @@ import Alert from 'src/components/Alert';
 import Badge from 'src/components/Badge';
 import shortid from 'shortid';
 import { styled, SupersetClient, t, withTheme } from '@superset-ui/core';
-import { Select, Row, Col } from 'src/components';
+import { Select, AsyncSelect, Row, Col } from 'src/components';
 import { FormLabel } from 'src/components/Form';
 import Button from 'src/components/Button';
 import Tabs from 'src/components/Tabs';
@@ -548,7 +548,7 @@ function OwnersSelector({ datasource, onChange }) {
   }, []);
 
   return (
-    <Select
+    <AsyncSelect
       ariaLabel={t('Select owners')}
       mode="multiple"
       name="owners"
