@@ -42,6 +42,7 @@ import IconButton from 'src/components/IconButton';
 import InfoTooltip from 'src/components/InfoTooltip';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import ValidatedInput from 'src/components/Form/LabeledErrorBoundInput';
+import ErrorAlert from 'src/components/ImportModal/ErrorAlert';
 import {
   testDatabaseConnection,
   useSingleViewResource,
@@ -452,6 +453,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const [confirmedOverwrite, setConfirmedOverwrite] = useState<boolean>(false);
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [importingModal, setImportingModal] = useState<boolean>(false);
+  const [importingErrorMessage, setImportingErrorMessage] = useState<string>();
+  const [passwordFields, setPasswordFields] = useState<string[]>([]);
 
   const conf = useCommonConf();
   const dbImages = getDatabaseImages();
@@ -522,6 +525,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     setEditNewDb(false);
     setFileList([]);
     setImportingModal(false);
+    setImportingErrorMessage('');
+    setPasswordFields([]);
     setPasswords({});
     setConfirmedOverwrite(false);
     onHide();
@@ -537,8 +542,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     },
     importResource,
   } = useImportResource('database', t('database'), msg => {
-    addDangerToast(msg);
-    onClose();
+    setImportingErrorMessage(msg);
   });
 
   const onChange = (type: any, payload: any) => {
@@ -810,6 +814,12 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const handleBackButtonOnConnect = () => {
     if (editNewDb) setHasConnectedDb(false);
     if (importingModal) setImportingModal(false);
+    if (importErrored) {
+      setImportingModal(false);
+      setImportingErrorMessage('');
+      setPasswordFields([]);
+      setPasswords({});
+    }
     setDB({ type: ActionType.reset });
     setFileList([]);
   };
@@ -970,7 +980,14 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     }
   }, [importingModal]);
 
+  useEffect(() => {
+    setPasswordFields([...passwordsNeeded]);
+  }, [passwordsNeeded]);
+
   const onDbImport = async (info: UploadChangeParam) => {
+    setImportingErrorMessage('');
+    setPasswordFields([]);
+    setPasswords({});
     setImportingModal(true);
     setFileList([
       {
@@ -989,9 +1006,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   };
 
   const passwordNeededField = () => {
-    if (!passwordsNeeded.length) return null;
+    if (!passwordFields.length) return null;
 
-    return passwordsNeeded.map(database => (
+    return passwordFields.map(database => (
       <>
         <StyledAlertMargin>
           <Alert
@@ -1020,6 +1037,19 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         />
       </>
     ));
+  };
+
+  const importingErrorAlert = () => {
+    if (!importingErrorMessage) return null;
+
+    return (
+      <StyledAlertMargin>
+        <ErrorAlert
+          errorMessage={importingErrorMessage}
+          showDbInstallInstructions={passwordFields.length > 0}
+        />
+      </StyledAlertMargin>
+    );
   };
 
   const confirmOverwrite = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -1225,7 +1255,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     );
   };
 
-  if (fileList.length > 0 && (alreadyExists.length || passwordsNeeded.length)) {
+  if (fileList.length > 0 && (alreadyExists.length || passwordFields.length)) {
     return (
       <Modal
         css={(theme: SupersetTheme) => [
@@ -1256,6 +1286,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         />
         {passwordNeededField()}
         {confirmOverwriteField()}
+        {importingErrorAlert()}
       </Modal>
     );
   }
@@ -1519,6 +1550,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                     </Button>
                   </Upload>
                 </StyledUploadWrapper>
+                {importingErrorAlert()}
               </SelectDatabaseStyles>
             ) : (
               <>

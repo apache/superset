@@ -16,7 +16,7 @@
 # under the License.
 import logging
 
-from flask import g, request, Response
+from flask import request, Response
 from flask_appbuilder.api import BaseApi, expose, protect, safe
 from marshmallow import ValidationError
 
@@ -102,7 +102,6 @@ class ExploreFormDataRestApi(BaseApi):
             item = self.add_model_schema.load(request.json)
             tab_id = request.args.get("tab_id")
             args = CommandParameters(
-                actor=g.user,
                 datasource_id=item["datasource_id"],
                 datasource_type=item["datasource_type"],
                 chart_id=item.get("chart_id"),
@@ -173,7 +172,6 @@ class ExploreFormDataRestApi(BaseApi):
             item = self.edit_model_schema.load(request.json)
             tab_id = request.args.get("tab_id")
             args = CommandParameters(
-                actor=g.user,
                 datasource_id=item["datasource_id"],
                 datasource_type=item["datasource_type"],
                 chart_id=item.get("chart_id"),
@@ -233,7 +231,7 @@ class ExploreFormDataRestApi(BaseApi):
               $ref: '#/components/responses/500'
         """
         try:
-            args = CommandParameters(actor=g.user, key=key)
+            args = CommandParameters(key=key)
             form_data = GetFormDataCommand(args).run()
             if not form_data:
                 return self.response_404()
@@ -285,7 +283,7 @@ class ExploreFormDataRestApi(BaseApi):
               $ref: '#/components/responses/500'
         """
         try:
-            args = CommandParameters(actor=g.user, key=key)
+            args = CommandParameters(key=key)
             result = DeleteFormDataCommand(args).run()
             if not result:
                 return self.response_404()

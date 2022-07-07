@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { useEffect, useState } from 'react';
-import { styled, t, getUiOverrideRegistry } from '@superset-ui/core';
+import { styled, t, getExtensionsRegistry } from '@superset-ui/core';
 import Collapse from 'src/components/Collapse';
 import { User } from 'src/types/bootstrapTypes';
 import { reject } from 'lodash';
@@ -46,7 +46,7 @@ import ChartTable from './ChartTable';
 import SavedQueries from './SavedQueries';
 import DashboardTable from './DashboardTable';
 
-const uiOverrideRegistry = getUiOverrideRegistry();
+const extensionsRegistry = getExtensionsRegistry();
 
 interface WelcomeProps {
   user: User;
@@ -179,7 +179,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
     setItem(LocalStorageKeys.homepage_collapse_state, state);
   };
 
-  const WelcomeTopExtension = uiOverrideRegistry.get('welcome.banner');
+  const WelcomeTopExtension = extensionsRegistry.get('welcome.banner');
 
   useEffect(() => {
     const activeTab = getItem(LocalStorageKeys.homepage_activity_filter, null);

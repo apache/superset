@@ -18,15 +18,12 @@
  */
 
 import React from 'react';
+import mockState from 'spec/fixtures/mockState';
 import { sliceId as chartId } from 'spec/fixtures/mockChartQueries';
+import { screen, render } from 'spec/helpers/testing-library';
 import { nativeFiltersInfo } from 'src/dashboard/fixtures/mockNativeFilters';
 import newComponentFactory from 'src/dashboard/util/newComponentFactory';
-import { getMockStore } from 'spec/fixtures/mockStore';
 import { initialState } from 'src/SqlLab/fixtures';
-import { DndProvider } from 'react-dnd';
-import { HTML5Backend } from 'react-dnd-html5-backend';
-import { Provider } from 'react-redux';
-import { screen, render } from 'spec/helpers/testing-library';
 import { CHART_TYPE, ROW_TYPE } from '../../util/componentTypes';
 import { ChartHolder } from './index';
 
@@ -67,17 +64,14 @@ describe('ChartHolder', () => {
     fullSizeChartId: chartId,
     setFullSizeChartId: () => {},
   };
-  const mockStore = getMockStore({
-    ...initialState,
-  });
+
   const renderWrapper = () =>
-    render(
-      <Provider store={mockStore}>
-        <DndProvider backend={HTML5Backend}>
-          <ChartHolder {...defaultProps} />{' '}
-        </DndProvider>
-      </Provider>,
-    );
+    render(<ChartHolder {...defaultProps} />, {
+      useRouter: true,
+      useDnd: true,
+      useRedux: true,
+      initialState: { ...mockState, ...initialState },
+    });
 
   it('should render empty state', async () => {
     renderWrapper();
