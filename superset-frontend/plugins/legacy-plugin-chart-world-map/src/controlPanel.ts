@@ -20,6 +20,7 @@ import { t } from '@superset-ui/core';
 import {
   ControlPanelConfig,
   formatSelectOptions,
+  getStandardizedControls,
   sections,
 } from '@superset-ui/chart-controls';
 import { ColorBy } from './utils';
@@ -152,9 +153,10 @@ const config: ControlPanelConfig = {
         Boolean(controls?.color_by.value === ColorBy.country),
     },
   },
-  denormalizeFormData: formData => ({
+  formDataOverrides: formData => ({
     ...formData,
-    metrics: formData.standardizedFormData.standardizedState.metrics,
+    entity: getStandardizedControls().shiftColumn(),
+    metric: getStandardizedControls().shiftMetric(),
   }),
 };
 

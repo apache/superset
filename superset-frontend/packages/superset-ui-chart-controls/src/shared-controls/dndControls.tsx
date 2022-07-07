@@ -72,7 +72,7 @@ export const dndColumnsControl: typeof dndGroupByControl = {
 
 export const dndSeries: typeof dndGroupByControl = {
   ...dndGroupByControl,
-  label: t('Dimensions'),
+  label: t('Dimension'),
   multi: false,
   default: null,
   description: t(

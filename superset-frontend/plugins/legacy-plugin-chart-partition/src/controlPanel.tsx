@@ -25,6 +25,7 @@ import {
   D3_FORMAT_OPTIONS,
   D3_TIME_FORMAT_OPTIONS,
   formatSelectOptions,
+  getStandardizedControls,
   sections,
 } from '@superset-ui/chart-controls';
 import OptionDescription from './OptionDescription';
@@ -39,7 +40,8 @@ const config: ControlPanelConfig = {
         ['metrics'],
         ['adhoc_filters'],
         ['groupby'],
-        ['limit', 'timeseries_limit_metric'],
+        ['limit'],
+        ['timeseries_limit_metric'],
         ['order_desc'],
         [
           {
@@ -52,7 +54,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        ['row_limit', null],
+        ['row_limit'],
       ],
     },
     {
@@ -383,6 +385,11 @@ const config: ControlPanelConfig = {
       ],
     },
   ],
+  formDataOverrides: formData => ({
+    ...formData,
+    groupby: getStandardizedControls().popAllColumns(),
+    metrics: getStandardizedControls().popAllMetrics(),
+  }),
 };
 
 export default config;

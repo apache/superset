@@ -511,6 +511,14 @@ test('searches for an item', async () => {
   expect(options[0]).toHaveTextContent('Oliver');
   expect(options[1]).toHaveTextContent('Olivia');
 });
+
+test('triggers getPopupContainer if passed', async () => {
+  const getPopupContainer = jest.fn();
+  render(<Select {...defaultProps} getPopupContainer={getPopupContainer} />);
+  await open();
+  expect(getPopupContainer).toHaveBeenCalled();
+});
+
 /*
  TODO: Add tests that require scroll interaction. Needs further investigation.
  - Fetches more data when scrolling and more data is available

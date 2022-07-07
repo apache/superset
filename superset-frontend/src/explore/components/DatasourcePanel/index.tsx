@@ -150,8 +150,9 @@ const LabelWrapper = styled.div`
 `;
 
 const SectionHeader = styled.span`
-  ${({ theme }) => css`
-    font-size: ${theme.typography.sizes.s}px;
+  ${({ theme }) => `
+    font-size: ${theme.typography.sizes.m}px;
+    line-height: 1.3;
   `}
 `;
 

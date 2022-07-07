@@ -132,6 +132,7 @@ from superset.utils.cache import etag_cache
 from superset.utils.core import (
     apply_max_row_limit,
     DatasourceType,
+    get_user_id,
     ReservedUrlParameters,
 )
 from superset.utils.dates import now_as_float
@@ -673,7 +674,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                         request
                     )["channel"]
                     job_metadata = async_query_manager.init_job(
-                        async_channel_id, g.user.get_id()
+                        async_channel_id, get_user_id()
                     )
                     load_explore_json_into_cache.delay(
                         job_metadata, form_data, response_type, force
@@ -741,7 +742,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @event_logger.log_this
     @expose("/explore/<datasource_type>/<int:datasource_id>/", methods=["GET", "POST"])
     @expose("/explore/", methods=["GET", "POST"])
-    @expose("/explore/p/<key>/", methods=["GET"])
     # pylint: disable=too-many-locals,too-many-branches,too-many-statements
     def explore(
         self,
@@ -749,6 +749,11 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         datasource_id: Optional[int] = None,
         key: Optional[str] = None,
     ) -> FlaskResponse:
+        logger.warning(
+            "%s.explore "
+            "This API endpoint is deprecated and will be removed in version 3.0.0",
+            self.__class__.__name__,
+        )
         initial_form_data = {}
 
         form_data_key = request.args.get("form_data_key")
@@ -1880,13 +1885,13 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         self, class_name: str, obj_id: int, action: str
     ) -> FlaskResponse:
         """Toggle favorite stars on Slices and Dashboard"""
-        if not g.user.get_id():
+        if not get_user_id():
             return json_error_response("ERROR: Favstar toggling denied", status=403)
         session = db.session()
         count = 0
         favs = (
             session.query(FavStar)
-            .filter_by(class_name=class_name, obj_id=obj_id, user_id=g.user.get_id())
+            .filter_by(class_name=class_name, obj_id=obj_id, user_id=get_user_id())
             .all()
         )
         if action == "select":
@@ -1895,7 +1900,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                     FavStar(
                         class_name=class_name,
                         obj_id=obj_id,
-                        user_id=g.user.get_id(),
+                        user_id=get_user_id(),
                         dttm=datetime.now(),
                     )
                 )
@@ -1995,13 +2000,13 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             return redirect("/dashboard/list/")
         if not value:
             return json_error_response(_("permalink state not found"), status=404)
-        dashboard_id = value["dashboardId"]
+        dashboard_id, state = value["dashboardId"], value.get("state", {})
         url = f"/superset/dashboard/{dashboard_id}?permalink_key={key}"
-        url_params = value["state"].get("urlParams")
+        url_params = state.get("urlParams")
         if url_params:
             params = parse.urlencode(url_params)
             url = f"{url}&{params}"
-        hash_ = value["state"].get("hash")
+        hash_ = state.get("anchor", state.get("hash"))
         if hash_:
             url = f"{url}#{hash_}"
         return redirect(url)
@@ -2577,7 +2582,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @staticmethod
     def queries_exec(last_updated_ms: Union[float, int]) -> FlaskResponse:
         stats_logger.incr("queries")
-        if not g.user.get_id():
+        if not get_user_id():
             return json_error_response(
                 "Please login to access the queries.", status=403
             )
@@ -2587,9 +2592,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         sql_queries = (
             db.session.query(Query)
-            .filter(
-                Query.user_id == g.user.get_id(), Query.changed_on >= last_updated_dt
-            )
+            .filter(Query.user_id == get_user_id(), Query.changed_on >= last_updated_dt)
             .all()
         )
         dict_queries = {q.client_id: q.to_dict() for q in sql_queries}
@@ -2615,10 +2618,10 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 search_user_id = int(cast(int, request.args.get("user_id")))
             except ValueError:
                 return Response(status=400, mimetype="application/json")
-            if search_user_id != g.user.get_user_id():
+            if search_user_id != get_user_id():
                 return Response(status=403, mimetype="application/json")
         else:
-            search_user_id = g.user.get_user_id()
+            search_user_id = get_user_id()
         database_id = request.args.get("database_id")
         search_text = request.args.get("search_text")
         status = request.args.get("status")
@@ -2671,14 +2674,14 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @expose("/welcome/")
     def welcome(self) -> FlaskResponse:
         """Personalized welcome page"""
-        if not g.user or not g.user.get_id():
+        if not g.user or not get_user_id():
             if conf["PUBLIC_ROLE_LIKE"]:
                 return self.render_template("superset/public_welcome.html")
             return redirect(appbuilder.get_url_for_login)
 
         welcome_dashboard_id = (
             db.session.query(UserAttribute.welcome_dashboard_id)
-            .filter_by(user_id=g.user.get_id())
+            .filter_by(user_id=get_user_id())
             .scalar()
         )
         if welcome_dashboard_id:
@@ -2723,7 +2726,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         )
 
     @staticmethod
-    def _get_sqllab_tabs(user_id: int) -> Dict[str, Any]:
+    def _get_sqllab_tabs(user_id: Optional[int]) -> Dict[str, Any]:
         # send list of tab state ids
         tabs_state = (
             db.session.query(TabState.id, TabState.label)
@@ -2775,7 +2778,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         payload = {
             "defaultDbId": config["SQLLAB_DEFAULT_DBID"],
             "common": common_bootstrap_payload(),
-            **self._get_sqllab_tabs(g.user.get_id()),
+            **self._get_sqllab_tabs(get_user_id()),
         }
 
         form_data = request.form.get("form_data")

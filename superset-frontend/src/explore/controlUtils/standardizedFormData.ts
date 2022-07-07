@@ -19,48 +19,67 @@
 import {
   ensureIsArray,
   getChartControlPanelRegistry,
+  QueryFormColumn,
   QueryFormData,
+  QueryFormMetric,
 } from '@superset-ui/core';
 import {
   ControlStateMapping,
-  StandardizedState,
+  getStandardizedControls,
+  isStandardizedFormData,
+  StandardizedControls,
   StandardizedFormDataInterface,
 } from '@superset-ui/chart-controls';
 import { getControlsState } from 'src/explore/store';
 import { getFormDataFromControls } from './getFormDataFromControls';
 
-export const sharedControls: Record<keyof StandardizedState, string[]> = {
-  metrics: ['metric', 'metrics', 'metric_2'],
-  columns: ['groupby', 'columns', 'groupbyColumns', 'groupbyRows'],
-};
+export const sharedMetricsKey = [
+  'metric', // via sharedControls, scalar
+  'metrics', // via sharedControls, array
+  'metric_2', // via sharedControls, scalar
+  'size', // via sharedControls, scalar
+  'x', // via sharedControls, scalar
+  'y', // via sharedControls, scalar
+  'secondary_metric', // via sharedControls, scalar
+];
+export const sharedColumnsKey = [
+  'groupby', // via sharedControls, array
+  'columns', // via sharedControls, array
+  'groupbyColumns', // via pivot table v2, array
+  'groupbyRows', // via pivot table v2, array
+  'entity', // via sharedControls, scalar
+  'series', // via sharedControls, scalar
+  'series_columns', // via sharedControls, array
+];
+
 export const publicControls = [
   // time section
-  'granularity_sqla',
-  'time_grain_sqla',
-  'time_range',
+  'granularity_sqla', // via sharedControls
+  'time_grain_sqla', // via sharedControls
+  'time_range', // via sharedControls
   // filters
-  'adhoc_filters',
+  'adhoc_filters', // via sharedControls
   // subquery limit(series limit)
-  'limit',
+  'limit', // via sharedControls
   // order by clause
-  'timeseries_limit_metric',
-  'series_limit_metric',
+  'timeseries_limit_metric', // via sharedControls
+  'series_limit_metric', // via sharedControls
   // desc or asc in order by clause
-  'order_desc',
+  'order_desc', // via sharedControls
   // outer query limit
-  'row_limit',
+  'row_limit', // via sharedControls
   // x asxs column
-  'x_axis',
+  'x_axis', // via sharedControls
   // advanced analytics - rolling window
-  'rolling_type',
-  'rolling_periods',
-  'min_periods',
+  'rolling_type', // via sections.advancedAnalytics
+  'rolling_periods', // via sections.advancedAnalytics
+  'min_periods', // via sections.advancedAnalytics
   // advanced analytics - time comparison
-  'time_compare',
-  'comparison_type',
+  'time_compare', // via sections.advancedAnalytics
+  'comparison_type', // via sections.advancedAnalytics
   // advanced analytics - resample
-  'resample_rule',
-  'resample_method',
+  'resample_rule', // via sections.advancedAnalytics
+  'resample_method', // via sections.advancedAnalytics
 ];
 
 export class StandardizedFormData {
@@ -70,20 +89,10 @@ export class StandardizedFormData {
     /*
      * Support form_data for smooth switching between different viz
      * */
-    const standardizedState = {
-      metrics: [],
-      columns: [],
-    };
     const formData = Object.freeze(sourceFormData);
-    const reversedMap = StandardizedFormData.getReversedMap();
 
-    Object.entries(formData).forEach(([key, value]) => {
-      if (reversedMap.has(key)) {
-        standardizedState[reversedMap.get(key)].push(...ensureIsArray(value));
-      }
-    });
-
-    const memorizedFormData = Array.isArray(
+    // generates an ordered map, the key is viz_type and the value is form_data. the last item is current viz
+    const memorizedFormData: Map<string, QueryFormData> = Array.isArray(
       formData?.standardizedFormData?.memorizedFormData,
     )
       ? new Map(formData.standardizedFormData.memorizedFormData)
@@ -93,43 +102,74 @@ export class StandardizedFormData {
       memorizedFormData.delete(vizType);
     }
     memorizedFormData.set(vizType, formData);
+
+    // calculate sharedControls
+    const controls = StandardizedFormData.getStandardizedControls(formData);
+
     this.sfd = {
-      standardizedState,
+      controls,
       memorizedFormData,
     };
   }
 
-  static getReversedMap() {
-    const reversedMap = new Map();
-    Object.entries(sharedControls).forEach(([key, names]) => {
-      names.forEach(name => {
-        reversedMap.set(name, key);
-      });
+  static getStandardizedControls(
+    formData: QueryFormData,
+  ): StandardizedControls {
+    // 1. initial StandardizedControls
+    const controls: StandardizedControls = {
+      metrics: [],
+      columns: [],
+    };
+
+    // 2. collect current sharedControls
+    Object.entries(formData).forEach(([key, value]) => {
+      if (sharedMetricsKey.includes(key)) {
+        controls.metrics.push(...ensureIsArray<QueryFormMetric>(value));
+      }
+      if (sharedColumnsKey.includes(key)) {
+        controls.columns.push(...ensureIsArray<QueryFormColumn>(value));
+      }
     });
-    return reversedMap;
+
+    // 3. append inherit sharedControls
+    if (isStandardizedFormData(formData)) {
+      const { metrics, columns } = formData.standardizedFormData.controls;
+      controls.metrics.push(...metrics);
+      controls.columns.push(...columns);
+    }
+
+    return controls;
   }
 
   private getLatestFormData(vizType: string): QueryFormData {
-    if (this.sfd.memorizedFormData.has(vizType)) {
-      return this.sfd.memorizedFormData.get(vizType) as QueryFormData;
+    if (this.has(vizType)) {
+      return this.get(vizType);
     }
 
     return this.memorizedFormData.slice(-1)[0][1];
   }
 
-  private get standardizedState() {
-    return this.sfd.standardizedState;
+  private get standardizedControls() {
+    return this.sfd.controls;
   }
 
   private get memorizedFormData() {
     return Array.from(this.sfd.memorizedFormData.entries());
   }
 
-  dumpSFD() {
+  serialize() {
     return {
-      standardizedState: this.standardizedState,
+      controls: this.standardizedControls,
       memorizedFormData: this.memorizedFormData,
     };
+  }
+
+  has(vizType: string): boolean {
+    return this.sfd.memorizedFormData.has(vizType);
+  }
+
+  get(vizType: string): QueryFormData {
+    return this.sfd.memorizedFormData.get(vizType) as QueryFormData;
   }
 
   transform(
@@ -145,8 +185,9 @@ export class StandardizedFormData {
      * 2. collect public control values
      * 3. generate initial targetControlsState
      * 4. attach `standardizedFormData` to the initial form_data
-     * 5. call denormalizeFormData to transform initial form_data if the plugin was defined
+     * 5. call formDataOverrides to transform initial form_data if the plugin was defined
      * 6. use final form_data to generate controlsState
+     * 7. to refresh validator message
      * */
     const latestFormData = this.getLatestFormData(targetVizType);
     const publicFormData = {};
@@ -162,21 +203,35 @@ export class StandardizedFormData {
     });
     const targetFormData = {
       ...getFormDataFromControls(targetControlsState),
-      standardizedFormData: this.dumpSFD(),
+      standardizedFormData: this.serialize(),
+    };
+    let rv = {
+      formData: targetFormData,
+      controlsState: targetControlsState,
     };
 
     const controlPanel = getChartControlPanelRegistry().get(targetVizType);
-    if (controlPanel?.denormalizeFormData) {
-      const transformed = controlPanel.denormalizeFormData(targetFormData);
-      return {
+    if (controlPanel?.formDataOverrides) {
+      getStandardizedControls().setStandardizedControls(targetFormData);
+      const transformed = {
+        ...controlPanel.formDataOverrides(targetFormData),
+        standardizedFormData: {
+          controls: { ...getStandardizedControls().controls },
+          memorizedFormData: this.memorizedFormData,
+        },
+      };
+      getStandardizedControls().clear();
+      rv = {
         formData: transformed,
         controlsState: getControlsState(exploreState, transformed),
       };
     }
 
-    return {
-      formData: targetFormData,
-      controlsState: targetControlsState,
-    };
+    // refresh validator message
+    rv.controlsState = getControlsState(
+      { ...exploreState, controls: rv.controlsState },
+      rv.formData,
+    );
+    return rv;
   }
 }

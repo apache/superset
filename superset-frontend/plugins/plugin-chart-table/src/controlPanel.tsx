@@ -47,6 +47,7 @@ import {
   Dataset,
   ColumnMeta,
   defineSavedMetrics,
+  getStandardizedControls,
 } from '@superset-ui/chart-controls';
 
 import i18n from './i18n';
@@ -316,6 +317,7 @@ const config: ControlPanelConfig = {
           {
             name: 'row_limit',
             override: {
+              default: 1000,
               visibility: ({ controls }: ControlPanelsContainerProps) =>
                 !controls?.server_pagination?.value,
             },
@@ -544,10 +546,10 @@ const config: ControlPanelConfig = {
       ],
     },
   ],
-  denormalizeFormData: formData => ({
+  formDataOverrides: formData => ({
     ...formData,
-    metrics: formData.standardizedFormData.standardizedState.metrics,
-    groupby: formData.standardizedFormData.standardizedState.columns,
+    metrics: getStandardizedControls().popAllMetrics(),
+    groupby: getStandardizedControls().popAllColumns(),
   }),
 };
 

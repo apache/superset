@@ -74,7 +74,7 @@ describe('Test explore links', () => {
     };
     const newChartName = `Test chart [${shortid.generate()}]`;
 
-    cy.visitChartByParams(JSON.stringify(formData));
+    cy.visitChartByParams(formData);
     cy.verifySliceSuccess({ waitAlias: '@tableChartData' });
     cy.url().then(() => {
       cy.get('[data-test="query-save-button"]').click();

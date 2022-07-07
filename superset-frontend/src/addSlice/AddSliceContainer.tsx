@@ -29,7 +29,7 @@ import { Tooltip } from 'src/components/Tooltip';
 import VizTypeGallery, {
   MAX_ADVISABLE_VIZ_GALLERY_WIDTH,
 } from 'src/explore/components/controls/VizTypeControl/VizTypeGallery';
-import findPermission from 'src/dashboard/util/findPermission';
+import { findPermission } from 'src/utils/findPermission';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 
 type Dataset = {
@@ -45,7 +45,7 @@ export type AddSliceContainerProps = {
 
 export type AddSliceContainerState = {
   datasource?: { label: string; value: string };
-  visType: string | null;
+  vizType: string | null;
   canCreateDataset: boolean;
 };
 
@@ -208,7 +208,7 @@ export default class AddSliceContainer extends React.PureComponent<
   constructor(props: AddSliceContainerProps) {
     super(props);
     this.state = {
-      visType: null,
+      vizType: null,
       canCreateDataset: findPermission(
         'can_write',
         'Dataset',
@@ -217,22 +217,20 @@ export default class AddSliceContainer extends React.PureComponent<
     };
 
     this.changeDatasource = this.changeDatasource.bind(this);
-    this.changeVisType = this.changeVisType.bind(this);
+    this.changeVizType = this.changeVizType.bind(this);
     this.gotoSlice = this.gotoSlice.bind(this);
     this.newLabel = this.newLabel.bind(this);
     this.loadDatasources = this.loadDatasources.bind(this);
+    this.onVizTypeDoubleClick = this.onVizTypeDoubleClick.bind(this);
   }
 
   exploreUrl() {
     const dashboardId = getUrlParam(URL_PARAMS.dashboardId);
-    const formData = encodeURIComponent(
-      JSON.stringify({
-        viz_type: this.state.visType,
-        datasource: this.state.datasource?.value,
-        ...(!isNullish(dashboardId) && { dashboardId }),
-      }),
-    );
-    return `/superset/explore/?form_data=${formData}`;
+    let url = `/explore/?viz_type=${this.state.vizType}&datasource=${this.state.datasource?.value}`;
+    if (!isNullish(dashboardId)) {
+      url += `&dashboard_id=${dashboardId}`;
+    }
+    return url;
   }
 
   gotoSlice() {
@@ -243,12 +241,18 @@ export default class AddSliceContainer extends React.PureComponent<
     this.setState({ datasource });
   }
 
-  changeVisType(visType: string | null) {
-    this.setState({ visType });
+  changeVizType(vizType: string | null) {
+    this.setState({ vizType });
   }
 
   isBtnDisabled() {
-    return !(this.state.datasource?.value && this.state.visType);
+    return !(this.state.datasource?.value && this.state.vizType);
+  }
+
+  onVizTypeDoubleClick() {
+    if (!this.isBtnDisabled()) {
+      this.gotoSlice();
+    }
   }
 
   newLabel(item: Dataset) {
@@ -362,13 +366,14 @@ export default class AddSliceContainer extends React.PureComponent<
           />
           <Steps.Step
             title={<StyledStepTitle>{t('Choose chart type')}</StyledStepTitle>}
-            status={this.state.visType ? 'finish' : 'process'}
+            status={this.state.vizType ? 'finish' : 'process'}
             description={
               <StyledStepDescription>
                 <VizTypeGallery
                   className="viz-gallery"
-                  onChange={this.changeVisType}
-                  selectedViz={this.state.visType}
+                  onChange={this.changeVizType}
+                  onDoubleClick={this.onVizTypeDoubleClick}
+                  selectedViz={this.state.vizType}
                 />
               </StyledStepDescription>
             }

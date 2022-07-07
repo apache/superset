@@ -17,14 +17,14 @@
 """add_unique_name_desc_rls
 
 Revision ID: f3afaf1f11f0
-Revises: e786798587de
+Revises: e09b4ae78457
 Create Date: 2022-06-19 16:17:23.318618
 
 """
 
 # revision identifiers, used by Alembic.
 revision = "f3afaf1f11f0"
-down_revision = "e786798587de"
+down_revision = "e09b4ae78457"
 
 import sqlalchemy as sa
 from alembic import op

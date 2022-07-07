@@ -16,26 +16,99 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { getChartControlPanelRegistry, QueryFormData } from '@superset-ui/core';
+import {
+  AdhocColumn,
+  AdhocMetricSimple,
+  AdhocMetricSQL,
+  getChartControlPanelRegistry,
+  QueryFormData,
+} from '@superset-ui/core';
 import TableChartPlugin from '@superset-ui/plugin-chart-table';
 import { BigNumberTotalChartPlugin } from '@superset-ui/plugin-chart-echarts';
 import { sections } from '@superset-ui/chart-controls';
 import {
   StandardizedFormData,
-  sharedControls,
+  sharedMetricsKey,
+  sharedColumnsKey,
   publicControls,
 } from './standardizedFormData';
 
+const adhocColumn: AdhocColumn = {
+  expressionType: 'SQL',
+  label: 'country',
+  optionName: 'country',
+  sqlExpression: 'country',
+};
+
+const adhocMetricSQL: AdhocMetricSQL = {
+  expressionType: 'SQL',
+  label: 'count',
+  optionName: 'count',
+  sqlExpression: 'count(*)',
+};
+
+const adhocMetricSimple: AdhocMetricSimple = {
+  expressionType: 'SIMPLE',
+  column: {
+    id: 1,
+    column_name: 'sales',
+    columnName: 'sales',
+    verbose_name: 'sales',
+  },
+  aggregate: 'SUM',
+  label: 'count',
+  optionName: 'count',
+};
+
 describe('should collect control values and create SFD', () => {
-  const sharedControlsFormData = {};
-  Object.entries(sharedControls).forEach(([, names]) => {
-    names.forEach(name => {
-      sharedControlsFormData[name] = name;
-    });
-  });
-  const publicControlsFormData = Object.fromEntries(
-    publicControls.map((name, idx) => [[name], idx]),
-  );
+  const sharedKey = [...sharedMetricsKey, ...sharedColumnsKey];
+  const sharedControlsFormData = {
+    // metrics
+    metric: 'm1',
+    metrics: ['m2'],
+    metric_2: 'm3',
+    size: 'm4',
+    x: 'm5',
+    y: 'm6',
+    secondary_metric: 'm7',
+    // columns
+    groupby: ['c1'],
+    columns: ['c2'],
+    groupbyColumns: ['c3'],
+    groupbyRows: ['c4'],
+    series: 'c5',
+    entity: 'c6',
+    series_columns: ['c7'],
+  };
+  const publicControlsFormData = {
+    // time section
+    granularity_sqla: 'time_column',
+    time_grain_sqla: 'P1D',
+    time_range: '2000 : today',
+    // filters
+    adhoc_filters: [],
+    // subquery limit(series limit)
+    limit: 5,
+    // order by clause
+    timeseries_limit_metric: 'orderby_metric',
+    series_limit_metric: 'orderby_metric',
+    // desc or asc in order by clause
+    order_desc: true,
+    // outer query limit
+    row_limit: 100,
+    // x asxs column
+    x_axis: 'x_axis_column',
+    // advanced analytics - rolling window
+    rolling_type: 'sum',
+    rolling_periods: 1,
+    min_periods: 0,
+    // advanced analytics - time comparison
+    time_compare: '1 year ago',
+    comparison_type: 'values',
+    // advanced analytics - resample
+    resample_rule: '1D',
+    resample_method: 'zerofill',
+  };
   const sourceMockFormData: QueryFormData = {
     ...sharedControlsFormData,
     ...publicControlsFormData,
@@ -81,34 +154,76 @@ describe('should collect control values and create SFD', () => {
           controlSetRows: [['x_axis']],
         },
       ],
-      denormalizeFormData: (formData: QueryFormData) => ({
+      formDataOverrides: (formData: QueryFormData) => ({
         ...formData,
-        columns: formData.standardizedFormData.standardizedState.columns,
-        metrics: formData.standardizedFormData.standardizedState.metrics,
+        columns: formData.standardizedFormData.controls.columns,
+        metrics: formData.standardizedFormData.controls.metrics,
       }),
     });
   });
 
-  test('collect sharedControls', () => {
-    const sfd = new StandardizedFormData(sourceMockFormData);
-
-    expect(sfd.dumpSFD().standardizedState.metrics).toEqual(
-      sharedControls.metrics.map(controlName => controlName),
-    );
-    expect(sfd.dumpSFD().standardizedState.columns).toEqual(
-      sharedControls.columns.map(controlName => controlName),
-    );
+  test('should avoid to overlap', () => {
+    const sharedControlsSet = new Set(Object.keys(sharedKey));
+    const publicControlsSet = new Set(publicControls);
+    expect(
+      [...sharedControlsSet].filter((x: string) => publicControlsSet.has(x)),
+    ).toEqual([]);
   });
 
-  test('should transform all publicControls', () => {
+  test('should collect all sharedControls', () => {
+    expect(Object.entries(sharedControlsFormData).length).toBe(
+      Object.entries(sharedKey).length,
+    );
+    const sfd = new StandardizedFormData(sourceMockFormData);
+    expect(sfd.serialize().controls.metrics).toEqual([
+      'm1',
+      'm2',
+      'm3',
+      'm4',
+      'm5',
+      'm6',
+      'm7',
+    ]);
+    expect(sfd.serialize().controls.columns).toEqual([
+      'c1',
+      'c2',
+      'c3',
+      'c4',
+      'c5',
+      'c6',
+      'c7',
+    ]);
+  });
+
+  test('should transform all publicControls and sharedControls', () => {
+    expect(Object.entries(publicControlsFormData).length).toBe(
+      publicControls.length,
+    );
+
     const sfd = new StandardizedFormData(sourceMockFormData);
     const { formData } = sfd.transform('target_viz', sourceMockStore);
-    Object.entries(publicControlsFormData).forEach(([key]) => {
+    Object.entries(publicControlsFormData).forEach(([key, value]) => {
       expect(formData).toHaveProperty(key);
+      expect(value).toEqual(publicControlsFormData[key]);
     });
-    Object.entries(sharedControls).forEach(([key, value]) => {
-      expect(formData[key]).toEqual(value);
-    });
+    expect(formData.columns).toEqual([
+      'c1',
+      'c2',
+      'c3',
+      'c4',
+      'c5',
+      'c6',
+      'c7',
+    ]);
+    expect(formData.metrics).toEqual([
+      'm1',
+      'm2',
+      'm3',
+      'm4',
+      'm5',
+      'm6',
+      'm7',
+    ]);
   });
 
   test('should inherit standardizedFormData and memorizedFormData is LIFO', () => {
@@ -156,11 +271,12 @@ describe('should transform form_data between table and bigNumberTotal', () => {
   const tableVizFormData = {
     datasource: '30__table',
     viz_type: 'table',
+    granularity_sqla: 'ds',
     time_grain_sqla: 'P1D',
     time_range: 'No filter',
     query_mode: 'aggregate',
-    groupby: ['name'],
-    metrics: ['count'],
+    groupby: ['name', 'gender', adhocColumn],
+    metrics: ['count', 'avg(sales)', adhocMetricSimple, adhocMetricSQL],
     all_columns: [],
     percent_metrics: [],
     adhoc_filters: [],
@@ -171,7 +287,6 @@ describe('should transform form_data between table and bigNumberTotal', () => {
     table_timestamp_format: 'smart_date',
     show_cell_bars: true,
     color_pn: true,
-    applied_time_extras: {},
     url_params: {
       form_data_key:
         'p3No_sqDW7k-kMTzlBPAPd9vwp1IXTf6stbyzjlrPPa0ninvdYUUiMC6F1iKit3Y',
@@ -196,7 +311,9 @@ describe('should transform form_data between table and bigNumberTotal', () => {
           dataset_id: '30',
         },
       },
-      granularity_sqla: {},
+      granularity_sqla: {
+        value: 'ds',
+      },
       time_grain_sqla: {
         value: 'P1D',
       },
@@ -207,10 +324,10 @@ describe('should transform form_data between table and bigNumberTotal', () => {
         value: 'aggregate',
       },
       groupby: {
-        value: ['name'],
+        value: ['name', 'gender', adhocColumn],
       },
       metrics: {
-        value: ['count'],
+        value: ['count', 'avg(sales)', adhocMetricSimple, adhocMetricSQL],
       },
       all_columns: {
         value: [],
@@ -270,6 +387,22 @@ describe('should transform form_data between table and bigNumberTotal', () => {
     );
   });
 
+  test('get and has', () => {
+    // table -> bigNumberTotal
+    const sfd = new StandardizedFormData(tableVizFormData);
+    const { formData: bntFormData } = sfd.transform(
+      'big_number_total',
+      tableVizStore,
+    );
+
+    // bigNumberTotal -> table
+    const sfd2 = new StandardizedFormData(bntFormData);
+    expect(sfd2.has('big_number_total')).toBeTruthy();
+    expect(sfd2.has('table')).toBeTruthy();
+    expect(sfd2.get('big_number_total').viz_type).toBe('big_number_total');
+    expect(sfd2.get('table').viz_type).toBe('table');
+  });
+
   test('transform', () => {
     // table -> bigNumberTotal
     const sfd = new StandardizedFormData(tableVizFormData);
@@ -281,7 +414,7 @@ describe('should transform form_data between table and bigNumberTotal', () => {
     expect(bntFormData.viz_type).toBe('big_number_total');
     expect(bntFormData.metric).toBe('count');
 
-    // change control values
+    // change control values on bigNumber
     bntFormData.metric = 'sum(sales)';
     bntFormData.time_range = '2021 : 2022';
     bntControlsState.metric.value = 'sum(sales)';
@@ -299,8 +432,13 @@ describe('should transform form_data between table and bigNumberTotal', () => {
       [...Object.keys(tblControlsState), 'standardizedFormData'].sort(),
     );
     expect(tblFormData.viz_type).toBe('table');
-    expect(tblFormData.metrics).toEqual(['sum(sales)']);
-    expect(tblFormData.groupby).toEqual([]);
+    expect(tblFormData.metrics).toEqual([
+      'sum(sales)',
+      'avg(sales)',
+      adhocMetricSimple,
+      adhocMetricSQL,
+    ]);
+    expect(tblFormData.groupby).toEqual(['name', 'gender', adhocColumn]);
     expect(tblFormData.time_range).toBe('2021 : 2022');
   });
 });
