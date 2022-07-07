@@ -20,7 +20,6 @@ import React from 'react';
 import { render, screen, waitFor, within } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { Select } from 'src/components';
-import { loadOptions } from '@babel/core';
 
 const ARIA_LABEL = 'Test';
 const NEW_OPTION = 'Kyle';
