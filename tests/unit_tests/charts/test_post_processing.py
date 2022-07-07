@@ -1586,7 +1586,7 @@ COUNT(is_software_dev)
     }
 
 
-def test_apply_post_process_csv_format_no_data():
+def test_apply_post_process_csv_format_empty_string():
     """
     It should be able to process csv results with no data
     """
@@ -1657,7 +1657,170 @@ def test_apply_post_process_csv_format_no_data():
     }
 
 
-def test_apply_post_process_json_format_no_data():
+def test_apply_post_process_csv_format_no_data():
+    """
+    It should be able to process csv results with no data
+    """
+
+    result = {"queries": [{"result_format": ChartDataResultFormat.CSV, "data": None}]}
+    form_data = {
+        "datasource": "19__table",
+        "viz_type": "pivot_table_v2",
+        "slice_id": 69,
+        "url_params": {},
+        "granularity_sqla": "time_start",
+        "time_grain_sqla": "P1D",
+        "time_range": "No filter",
+        "groupbyColumns": [],
+        "groupbyRows": [],
+        "metrics": [
+            {
+                "aggregate": "COUNT",
+                "column": {
+                    "column_name": "is_software_dev",
+                    "description": None,
+                    "expression": None,
+                    "filterable": True,
+                    "groupby": True,
+                    "id": 1463,
+                    "is_dttm": False,
+                    "python_date_format": None,
+                    "type": "DOUBLE PRECISION",
+                    "verbose_name": None,
+                },
+                "expressionType": "SIMPLE",
+                "hasCustomLabel": False,
+                "isNew": False,
+                "label": "COUNT(is_software_dev)",
+                "optionName": "metric_9i1kctig9yr_sizo6ihd2o",
+                "sqlExpression": None,
+            }
+        ],
+        "metricsLayout": "COLUMNS",
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "comparator": "Currently A Developer",
+                "expressionType": "SIMPLE",
+                "filterOptionName": "filter_fvi0jg9aii_2lekqrhy7qk",
+                "isExtra": False,
+                "isNew": False,
+                "operator": "==",
+                "sqlExpression": None,
+                "subject": "developer_type",
+            }
+        ],
+        "row_limit": 10000,
+        "order_desc": True,
+        "aggregateFunction": "Sum",
+        "valueFormat": "SMART_NUMBER",
+        "date_format": "smart_date",
+        "rowOrder": "key_a_to_z",
+        "colOrder": "key_a_to_z",
+        "extra_form_data": {},
+        "force": False,
+        "result_format": "json",
+        "result_type": "results",
+    }
+
+    assert apply_post_process(result, form_data) == {
+        "queries": [{"result_format": ChartDataResultFormat.CSV, "data": None}]
+    }
+
+
+def test_apply_post_process_csv_format_no_data_multiple_queries():
+    """
+    It should be able to process csv results multiple queries if one query has no data
+    """
+
+    result = {
+        "queries": [
+            {"result_format": ChartDataResultFormat.CSV, "data": ""},
+            {
+                "result_format": ChartDataResultFormat.CSV,
+                "data": """
+COUNT(is_software_dev)
+4725
+""",
+            },
+        ]
+    }
+    form_data = {
+        "datasource": "19__table",
+        "viz_type": "pivot_table_v2",
+        "slice_id": 69,
+        "url_params": {},
+        "granularity_sqla": "time_start",
+        "time_grain_sqla": "P1D",
+        "time_range": "No filter",
+        "groupbyColumns": [],
+        "groupbyRows": [],
+        "metrics": [
+            {
+                "aggregate": "COUNT",
+                "column": {
+                    "column_name": "is_software_dev",
+                    "description": None,
+                    "expression": None,
+                    "filterable": True,
+                    "groupby": True,
+                    "id": 1463,
+                    "is_dttm": False,
+                    "python_date_format": None,
+                    "type": "DOUBLE PRECISION",
+                    "verbose_name": None,
+                },
+                "expressionType": "SIMPLE",
+                "hasCustomLabel": False,
+                "isNew": False,
+                "label": "COUNT(is_software_dev)",
+                "optionName": "metric_9i1kctig9yr_sizo6ihd2o",
+                "sqlExpression": None,
+            }
+        ],
+        "metricsLayout": "COLUMNS",
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "comparator": "Currently A Developer",
+                "expressionType": "SIMPLE",
+                "filterOptionName": "filter_fvi0jg9aii_2lekqrhy7qk",
+                "isExtra": False,
+                "isNew": False,
+                "operator": "==",
+                "sqlExpression": None,
+                "subject": "developer_type",
+            }
+        ],
+        "row_limit": 10000,
+        "order_desc": True,
+        "aggregateFunction": "Sum",
+        "valueFormat": "SMART_NUMBER",
+        "date_format": "smart_date",
+        "rowOrder": "key_a_to_z",
+        "colOrder": "key_a_to_z",
+        "extra_form_data": {},
+        "force": False,
+        "result_format": "json",
+        "result_type": "results",
+    }
+
+    assert apply_post_process(result, form_data) == {
+        "queries": [
+            {"result_format": ChartDataResultFormat.CSV, "data": ""},
+            {
+                "result_format": ChartDataResultFormat.CSV,
+                "data": ",COUNT(is_software_dev)\nTotal (Sum),4725\n",
+                "colnames": [("COUNT(is_software_dev)",)],
+                "indexnames": [("Total (Sum)",)],
+                "coltypes": [GenericDataType.NUMERIC],
+                "rowcount": 1,
+            },
+        ]
+    }
+
+
+def test_apply_post_process_json_format_empty_string():
     """
     It should be able to process json results with no data
     """
@@ -1725,4 +1888,75 @@ def test_apply_post_process_json_format_no_data():
 
     assert apply_post_process(result, form_data) == {
         "queries": [{"result_format": ChartDataResultFormat.JSON, "data": ""}]
+    }
+
+
+def test_apply_post_process_json_format_data_is_none():
+    """
+    It should be able to process json results with no data
+    """
+
+    result = {"queries": [{"result_format": ChartDataResultFormat.JSON, "data": None}]}
+    form_data = {
+        "datasource": "19__table",
+        "viz_type": "pivot_table_v2",
+        "slice_id": 69,
+        "url_params": {},
+        "granularity_sqla": "time_start",
+        "time_grain_sqla": "P1D",
+        "time_range": "No filter",
+        "groupbyColumns": [],
+        "groupbyRows": [],
+        "metrics": [
+            {
+                "aggregate": "COUNT",
+                "column": {
+                    "column_name": "is_software_dev",
+                    "description": None,
+                    "expression": None,
+                    "filterable": True,
+                    "groupby": True,
+                    "id": 1463,
+                    "is_dttm": False,
+                    "python_date_format": None,
+                    "type": "DOUBLE PRECISION",
+                    "verbose_name": None,
+                },
+                "expressionType": "SIMPLE",
+                "hasCustomLabel": False,
+                "isNew": False,
+                "label": "COUNT(is_software_dev)",
+                "optionName": "metric_9i1kctig9yr_sizo6ihd2o",
+                "sqlExpression": None,
+            }
+        ],
+        "metricsLayout": "COLUMNS",
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "comparator": "Currently A Developer",
+                "expressionType": "SIMPLE",
+                "filterOptionName": "filter_fvi0jg9aii_2lekqrhy7qk",
+                "isExtra": False,
+                "isNew": False,
+                "operator": "==",
+                "sqlExpression": None,
+                "subject": "developer_type",
+            }
+        ],
+        "row_limit": 10000,
+        "order_desc": True,
+        "aggregateFunction": "Sum",
+        "valueFormat": "SMART_NUMBER",
+        "date_format": "smart_date",
+        "rowOrder": "key_a_to_z",
+        "colOrder": "key_a_to_z",
+        "extra_form_data": {},
+        "force": False,
+        "result_format": "json",
+        "result_type": "results",
+    }
+
+    assert apply_post_process(result, form_data) == {
+        "queries": [{"result_format": ChartDataResultFormat.JSON, "data": None}]
     }
