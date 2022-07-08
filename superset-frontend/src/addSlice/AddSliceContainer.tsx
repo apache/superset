@@ -26,6 +26,7 @@ import { isNullish } from 'src/utils/common';
 import Button from 'src/components/Button';
 import { Select, Steps } from 'src/components';
 import { Tooltip } from 'src/components/Tooltip';
+import withToasts from 'src/components/MessageToasts/withToasts';
 
 import VizTypeGallery, {
   MAX_ADVISABLE_VIZ_GALLERY_WIDTH,
@@ -43,6 +44,7 @@ type Dataset = {
 
 export type AddSliceContainerProps = {
   user: UserWithPermissionsAndRoles;
+  addSuccessToast: (arg: string) => void;
 };
 
 export type AddSliceContainerState = {
@@ -204,7 +206,7 @@ const StyledStepDescription = styled.div`
   `}
 `;
 
-export default class AddSliceContainer extends React.PureComponent<
+class AddSliceContainer extends React.PureComponent<
   AddSliceContainerProps,
   AddSliceContainerState
 > {
@@ -232,8 +234,13 @@ export default class AddSliceContainer extends React.PureComponent<
     if (params) {
       this.loadDatasources(params, 0, 1).then(r => {
         const datasource = r.data[0];
+        // override here to force styling of option label
+        // which expects a reactnode instead of string
+        // @ts-expect-error
+        datasource.label = datasource.customLabel;
         this.setState({ datasource });
       });
+      this.props.addSuccessToast(t('The dataset has been saved'));
     }
   }
 
@@ -410,3 +417,5 @@ export default class AddSliceContainer extends React.PureComponent<
     );
   }
 }
+
+export default withToasts(AddSliceContainer);

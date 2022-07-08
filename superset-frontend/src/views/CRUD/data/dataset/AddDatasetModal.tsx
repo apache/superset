@@ -50,7 +50,6 @@ const TableSelectorContainer = styled.div`
 
 const DatasetModal: FunctionComponent<DatasetModalProps> = ({
   addDangerToast,
-  addSuccessToast,
   onDatasetAdd,
   onHide,
   show,
@@ -123,7 +122,6 @@ const DatasetModal: FunctionComponent<DatasetModalProps> = ({
       if (onDatasetAdd) {
         onDatasetAdd({ id: response.id, ...response });
       }
-      addSuccessToast(t('The dataset has been saved'));
       window.location.href = `/chart/add?dataset=${currentTableName}`;
       hide();
     });
