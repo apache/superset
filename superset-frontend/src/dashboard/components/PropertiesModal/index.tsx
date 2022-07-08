@@ -21,7 +21,7 @@ import { Input } from 'src/components/Input';
 import { FormItem } from 'src/components/Form';
 import jsonStringify from 'json-stringify-pretty-compact';
 import Button from 'src/components/Button';
-import { Select, Row, Col, AntdForm } from 'src/components';
+import { AsyncSelect, Row, Col, AntdForm } from 'src/components';
 import rison from 'rison';
 import {
   styled,
@@ -381,7 +381,7 @@ const PropertiesModal = ({
         <Col xs={24} md={12}>
           <h3 style={{ marginTop: '1em' }}>{t('Access')}</h3>
           <StyledFormItem label={t('Owners')}>
-            <Select
+            <AsyncSelect
               allowClear
               ariaLabel={t('Owners')}
               disabled={isLoading}
@@ -428,7 +428,7 @@ const PropertiesModal = ({
         <Row gutter={16}>
           <Col xs={24} md={12}>
             <StyledFormItem label={t('Owners')}>
-              <Select
+              <AsyncSelect
                 allowClear
                 ariaLabel={t('Owners')}
                 disabled={isLoading}
@@ -448,7 +448,7 @@ const PropertiesModal = ({
           </Col>
           <Col xs={24} md={12}>
             <StyledFormItem label={t('Roles')}>
-              <Select
+              <AsyncSelect
                 allowClear
                 ariaLabel={t('Roles')}
                 disabled={isLoading}

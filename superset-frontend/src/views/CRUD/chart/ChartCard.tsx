@@ -18,6 +18,7 @@
  */
 import React from 'react';
 import { t, useTheme } from '@superset-ui/core';
+import { Link, useHistory } from 'react-router-dom';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import Icons from 'src/components/Icons';
@@ -64,6 +65,7 @@ export default function ChartCard({
   userId,
   handleBulkChartExport,
 }: ChartCardProps) {
+  const history = useHistory();
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
   const canExport =
@@ -136,7 +138,7 @@ export default function ChartCard({
     <CardStyles
       onClick={() => {
         if (!bulkSelectEnabled && chart.url) {
-          window.location.href = chart.url;
+          history.push(chart.url);
         }
       }}
     >
@@ -158,6 +160,7 @@ export default function ChartCard({
         coverRight={
           <Label type="secondary">{chart.datasource_name_text}</Label>
         }
+        linkComponent={Link}
         actions={
           <ListViewCard.Actions
             onClick={e => {

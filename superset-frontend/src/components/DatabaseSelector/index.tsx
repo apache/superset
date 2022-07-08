@@ -19,7 +19,7 @@
 import React, { ReactNode, useState, useMemo, useEffect } from 'react';
 import { styled, SupersetClient, t } from '@superset-ui/core';
 import rison from 'rison';
-import { Select } from 'src/components';
+import { AsyncSelect, Select } from 'src/components';
 import Label from 'src/components/Label';
 import { FormLabel } from 'src/components/Form';
 import RefreshLabel from 'src/components/RefreshLabel';
@@ -87,7 +87,7 @@ export type DatabaseObject = {
 type SchemaValue = { label: string; value: string };
 
 export interface DatabaseSelectorProps {
-  db?: DatabaseObject;
+  db?: DatabaseObject | null;
   emptyState?: ReactNode;
   formMode?: boolean;
   getDbList?: (arg0: any) => {};
@@ -272,7 +272,7 @@ export default function DatabaseSelector({
 
   function renderDatabaseSelect() {
     return renderSelectRow(
-      <Select
+      <AsyncSelect
         ariaLabel={t('Select database or type database name')}
         optionFilterProps={['database_name', 'value']}
         data-test="select-database"
