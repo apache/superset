@@ -25,10 +25,7 @@ import {
   useFilteredTableData,
   useTableColumns,
 } from 'src/explore/components/DataTableControl';
-import {
-  getDatasetSamples,
-  getDatasourceSamples,
-} from 'src/components/Chart/chartAction';
+import { getDatasourceSamples } from 'src/components/Chart/chartAction';
 import { TableControls } from './DataTableControls';
 import { SamplesPaneProps } from '../types';
 
