@@ -19,7 +19,7 @@ from typing import Any, Dict, Optional
 
 from flask_appbuilder.security.sqla.models import User
 
-from superset import db
+from superset import db, security_manager
 from superset.commands.base import BaseCommand
 from superset.common.chart_data import ChartDataResultType
 from superset.common.query_context_factory import QueryContextFactory
@@ -90,7 +90,7 @@ class SamplesDatasourceCommand(BaseCommand):
             )
 
         # Check ownership
-        # try:
-        #     check_ownership(self._model)
-        # except SupersetSecurityException as ex:
-        #     raise DatasetForbiddenError() from ex
+        try:
+            security_manager.raise_for_ownership(self._model)
+        except SupersetSecurityException as ex:
+            raise DatasetForbiddenError() from ex
