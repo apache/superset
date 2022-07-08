@@ -28,6 +28,7 @@ import type {
   QueryFormData,
   QueryFormMetric,
   QueryResponse,
+  GenericDataType,
 } from '@superset-ui/core';
 import { sharedControls } from './shared-controls';
 import sharedControlComponents from './shared-controls/components';
@@ -66,6 +67,7 @@ export interface Dataset {
   id: number;
   type: DatasourceType;
   columns: ColumnMeta[];
+  column_types?: GenericDataType[];
   metrics: Metric[];
   column_format: Record<string, string>;
   verbose_map: Record<string, string>;

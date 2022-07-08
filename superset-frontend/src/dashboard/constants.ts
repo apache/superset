@@ -26,6 +26,7 @@ export const PLACEHOLDER_DATASOURCE: Dataset = {
   datasource_name: '',
   table_name: '',
   columns: [],
+  column_types: [],
   metrics: [],
   column_format: {},
   verbose_map: {},
