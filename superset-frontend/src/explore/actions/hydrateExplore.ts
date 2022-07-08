@@ -121,12 +121,12 @@ export const hydrateExplore =
       lastRendered: 0,
     };
 
-    const allDatasources = {
-      ...datasources,
-      [getDatasourceUid(initialDatasource)]: initialDatasource,
-    };
-
-    dispatch(initDatasources(allDatasources));
+    dispatch(
+      initDatasources({
+        ...datasources,
+        [getDatasourceUid(initialDatasource)]: initialDatasource,
+      }),
+    );
 
     return dispatch({
       type: HYDRATE_EXPLORE,
@@ -135,7 +135,6 @@ export const hydrateExplore =
           ...charts,
           [chartKey]: chart,
         },
-        datasources: allDatasources,
         saveModal: {
           dashboards: [],
           saveModalAlert: null,
