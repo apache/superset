@@ -81,8 +81,6 @@ const propTypes = {
   showDateFilter: PropTypes.bool,
   showSqlaTimeGrain: PropTypes.bool,
   showSqlaTimeColumn: PropTypes.bool,
-  showDruidTimeGrain: PropTypes.bool,
-  showDruidTimeOrigin: PropTypes.bool,
 };
 const defaultProps = {
   origSelectedValues: {},
@@ -92,8 +90,6 @@ const defaultProps = {
   showDateFilter: false,
   showSqlaTimeGrain: false,
   showSqlaTimeColumn: false,
-  showDruidTimeGrain: false,
-  showDruidTimeOrigin: false,
   instantFiltering: false,
 };
 
@@ -319,19 +315,12 @@ class FilterBox extends React.PureComponent {
   }
 
   renderDatasourceFilters() {
-    const {
-      showSqlaTimeGrain,
-      showSqlaTimeColumn,
-      showDruidTimeGrain,
-      showDruidTimeOrigin,
-    } = this.props;
+    const { showSqlaTimeGrain, showSqlaTimeColumn } = this.props;
     const datasourceFilters = [];
     const sqlaFilters = [];
     const druidFilters = [];
     if (showSqlaTimeGrain) sqlaFilters.push('time_grain_sqla');
     if (showSqlaTimeColumn) sqlaFilters.push('granularity_sqla');
-    if (showDruidTimeGrain) druidFilters.push('granularity');
-    if (showDruidTimeOrigin) druidFilters.push('druid_time_origin');
     if (sqlaFilters.length) {
       datasourceFilters.push(
         <ControlRow

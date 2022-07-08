@@ -23,8 +23,6 @@ import { t, SupersetClient, SupersetTheme, styled } from '@superset-ui/core';
 import {
   Operators,
   OPERATORS_OPTIONS,
-  TABLE_ONLY_OPERATORS,
-  DRUID_ONLY_OPERATORS,
   HAVING_OPERATORS,
   MULTI_OPERATORS,
   CUSTOM_OPERATORS,
@@ -140,13 +138,9 @@ export const useSimpleTabFilterProps = (props: Props) => {
         operator === Operators.IS_NULL || operator === Operators.IS_NOT_NULL
       );
     }
-    return !(
-      (props.datasource.type === 'druid' &&
-        TABLE_ONLY_OPERATORS.indexOf(operator) >= 0) ||
-      (props.datasource.type === 'table' &&
-        DRUID_ONLY_OPERATORS.indexOf(operator) >= 0) ||
-      (props.adhocFilter.clause === CLAUSES.HAVING &&
-        HAVING_OPERATORS.indexOf(operator) === -1)
+    return (
+      props.adhocFilter.clause !== CLAUSES.HAVING ||
+      HAVING_OPERATORS.indexOf(operator) !== -1
     );
   };
   const onSubjectChange = (id: string) => {
@@ -316,23 +310,13 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
     placeholder: '',
   };
 
-  if (props.datasource.type === 'druid') {
-    subjectSelectProps.placeholder = t(
-      '%s column(s) and metric(s)',
-      columns.length,
-    );
-  } else {
-    // we cannot support simple ad-hoc filters for metrics because we don't know what type
-    // the value should be cast to (without knowing the output type of the aggregate, which
-    // becomes a rather complicated problem)
-    subjectSelectProps.placeholder =
-      props.adhocFilter.clause === CLAUSES.WHERE
-        ? t('%s column(s)', columns.length)
-        : t('To filter on a metric, use Custom SQL tab.');
-    columns = props.options.filter(
-      option => 'column_name' in option && option.column_name,
-    );
-  }
+  subjectSelectProps.placeholder =
+    props.adhocFilter.clause === CLAUSES.WHERE
+      ? t('%s column(s)', columns.length)
+      : t('To filter on a metric, use Custom SQL tab.');
+  columns = props.options.filter(
+    option => 'column_name' in option && option.column_name,
+  );
 
   const operatorSelectProps = {
     placeholder: t(
