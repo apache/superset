@@ -313,14 +313,14 @@ def create_slices(tbl: BaseDatasource) -> List[Slice]:
         ),
         Slice(
             slice_name="World's Pop Growth",
-            viz_type="area",
+            viz_type="echarts_area",
             datasource_type=DatasourceType.TABLE,
             datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
                 since="1960-01-01",
                 until="now",
-                viz_type="area",
+                viz_type="echarts_area",
                 groupby=["region"],
                 metrics=metrics,
             ),
@@ -343,14 +343,14 @@ def create_slices(tbl: BaseDatasource) -> List[Slice]:
         ),
         Slice(
             slice_name="Treemap",
-            viz_type="treemap",
+            viz_type="treemap_v2",
             datasource_type=DatasourceType.TABLE,
             datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
                 since="1960-01-01",
                 until="now",
-                viz_type="treemap",
+                viz_type="treemap_v2",
                 metrics=["sum__SP_POP_TOTL"],
                 groupby=["region", "country_code"],
             ),

@@ -352,7 +352,7 @@ def create_slices(tbl: SqlaTable, admin_owner: bool) -> Tuple[List[Slice], List[
         Slice(
             **slice_props,
             slice_name="Top 10 Girl Name Share",
-            viz_type="area",
+            viz_type="echarts_area",
             params=get_slice_json(
                 defaults,
                 adhoc_filters=[gen_filter("gender", "girl")],
@@ -361,7 +361,7 @@ def create_slices(tbl: SqlaTable, admin_owner: bool) -> Tuple[List[Slice], List[
                 limit=10,
                 stacked_style="expand",
                 time_grain_sqla="P1D",
-                viz_type="area",
+                viz_type="echarts_area",
                 x_axis_forma="smart_date",
                 metrics=metrics,
             ),
@@ -369,7 +369,7 @@ def create_slices(tbl: SqlaTable, admin_owner: bool) -> Tuple[List[Slice], List[
         Slice(
             **slice_props,
             slice_name="Top 10 Boy Name Share",
-            viz_type="area",
+            viz_type="echarts_area",
             params=get_slice_json(
                 defaults,
                 adhoc_filters=[gen_filter("gender", "boy")],
@@ -378,7 +378,7 @@ def create_slices(tbl: SqlaTable, admin_owner: bool) -> Tuple[List[Slice], List[
                 limit=10,
                 stacked_style="expand",
                 time_grain_sqla="P1D",
-                viz_type="area",
+                viz_type="echarts_area",
                 x_axis_forma="smart_date",
                 metrics=metrics,
             ),
