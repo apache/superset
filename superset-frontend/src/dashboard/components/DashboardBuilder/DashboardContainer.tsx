@@ -142,7 +142,7 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
       const registryColorSchemeDomain =
         categoricalSchemes.get(colorScheme)?.colors || [];
       const defaultColorScheme = categoricalSchemes.defaultKey;
-      const isColorSchemeExisting = !!categoricalSchemes.get(colorScheme);
+      const colorSchemeExists = !!categoricalSchemes.get(colorScheme);
       const updateDashboard = () => {
         SupersetClient.put({
           endpoint: `/api/v1/dashboard/${dashboardInfo.id}`,
@@ -165,7 +165,7 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
       };
       // color scheme does not exist anymore
       // must fallback to the available default one
-      if (colorScheme && !isColorSchemeExisting) {
+      if (colorScheme && !colorSchemeExists) {
         const updatedScheme =
           defaultColorScheme?.toString() || 'supersetColors';
         metadata.color_scheme = updatedScheme;
