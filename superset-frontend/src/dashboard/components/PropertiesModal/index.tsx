@@ -98,6 +98,7 @@ const PropertiesModal = ({
   const [owners, setOwners] = useState<Owners>([]);
   const [roles, setRoles] = useState<Roles>([]);
   const saveLabel = onlyApply ? t('Apply') : t('Save');
+  const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
 
   const handleErrorResponse = async (response: Response) => {
     const { error, statusText, message } = await getClientErrorObject(response);
@@ -266,7 +267,6 @@ const PropertiesModal = ({
     { updateMetadata = true } = {},
   ) => {
     // check that color_scheme is valid
-    const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
     const colorChoices = categoricalSchemeRegistry.keys();
     const jsonMetadataObj = getJsonMetadata();
 
@@ -293,7 +293,6 @@ const PropertiesModal = ({
   const onFinish = () => {
     const { title, slug, certifiedBy, certificationDetails } =
       form.getFieldsValue();
-    const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
     let currentColorScheme = colorScheme;
     let colorNamespace = '';
     let currentJsonMetadata = jsonMetadata;

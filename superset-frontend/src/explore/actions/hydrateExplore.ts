@@ -40,6 +40,11 @@ import { getUrlParam } from 'src/utils/urlUtils';
 import { URL_PARAMS } from 'src/constants';
 import { findPermission } from 'src/utils/findPermission';
 
+enum ColorSchemeType {
+  CATEGORICAL = 'CATEGORICAL',
+  SEQUENTIAL = 'SEQUENTIAL'
+}
+
 export const HYDRATE_EXPLORE = 'HYDRATE_EXPLORE';
 export const hydrateExplore =
   ({ form_data, slice, dataset }: ExplorePageInitialData) =>
@@ -76,7 +81,7 @@ export const hydrateExplore =
       initialControls.linear_color_scheme && 'linear_color_scheme';
     // if the color scheme does not exist anymore
     // fallbacks to the available default key
-    const verifyColorScheme = (type: 'CATEGORICAL' | 'SEQUENTIAL') => {
+    const verifyColorScheme = (type: ColorSchemeType) => {
       const schemes =
         type === 'CATEGORICAL'
           ? getCategoricalSchemeRegistry()
@@ -92,8 +97,8 @@ export const hydrateExplore =
       }
     };
 
-    if (colorSchemeKey) verifyColorScheme('CATEGORICAL');
-    if (linearColorSchemeKey) verifyColorScheme('SEQUENTIAL');
+    if (colorSchemeKey) verifyColorScheme(ColorSchemeType.CATEGORICAL);
+    if (linearColorSchemeKey) verifyColorScheme(ColorSchemeType.SEQUENTIAL);
 
     const exploreState = {
       // note this will add `form_data` to state,
