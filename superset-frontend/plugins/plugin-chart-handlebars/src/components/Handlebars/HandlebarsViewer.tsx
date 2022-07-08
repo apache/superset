@@ -21,6 +21,7 @@ import Handlebars from 'handlebars';
 import moment from 'moment';
 import React, { useMemo, useState } from 'react';
 import { isPlainObject } from 'lodash';
+import Helpers from 'just-handlebars-helpers';
 
 export interface HandlebarsViewerProps {
   templateSource: string;
@@ -73,3 +74,5 @@ Handlebars.registerHelper('stringify', (obj: any, obj2: any) => {
     throw Error('Please call with an object. Example: `stringify myObj`');
   return isPlainObject(obj) ? JSON.stringify(obj) : String(obj);
 });
+
+Helpers.registerHelpers(Handlebars);
