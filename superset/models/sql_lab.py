@@ -216,6 +216,7 @@ class Query(Model, ExtraJSONMixin, ExploreMixin):  # pylint: disable=abstract-me
     @property
     def data(self) -> Dict[str, Any]:
         return {
+            "name": self.tab_name,
             "columns": self.columns,
             "metrics": [],
             "id": self.id,
