@@ -16,11 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import cx from 'classnames';
-import React from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
-import { t, styled, isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
+import { t, isFeatureEnabled, FeatureFlag, css } from '@superset-ui/core';
 import ImageLoader from 'src/components/ListViewCard/ImageLoader';
+import { usePluginContext } from 'src/components/DynamicPlugins';
+import { Tooltip } from 'src/components/Tooltip';
 
 const propTypes = {
   datasourceUrl: PropTypes.string,
@@ -44,84 +45,112 @@ const defaultProps = {
   lastModified: null,
 };
 
-const Styled = styled.div`
-  ${({ theme }) => `
-    .chart-card {
-      border: 1px solid ${theme.colors.grayscale.light2};
-      border-radius: ${theme.gridUnit}px;
-      background: ${theme.colors.grayscale.light5};
-      padding: ${theme.gridUnit * 2}px;
-      margin: 0 ${theme.gridUnit * 3}px
-        ${theme.gridUnit * 3}px
-        ${theme.gridUnit * 3}px;
-      position: relative;
-      cursor: move;
-      white-space: nowrap;
-      overflow: hidden;
-
-      &:hover {
-        background: ${theme.colors.grayscale.light4};
-      }
-    }
-
-    .chart-card.is-selected {
-      cursor: not-allowed;
-      opacity: 0.4;
-    }
-
-    .card-thumbnail-wrapper {
-      height: 0;
-      padding-bottom: 56.25%;  /* 450/800 thumbnail size */
-      position: relative;
-      margin-bottom: ${theme.gridUnit * 2}px;
-
-      .card-thumbnail {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-      }
-    }
-
-    .card-title {
-      margin-right: 60px;
-      margin-bottom: ${theme.gridUnit * 2}px;
-      font-weight: ${theme.typography.weights.bold};
-    }
-
-    .card-body {
-      display: flex;
-      flex-direction: column;
-
-      .item {
-        span {
-          word-break: break-all;
-
-          &:first-child {
-            font-weight: ${theme.typography.weights.normal};
-          }
-        }
-      }
-    }
-
-    .is-added-label {
-      background: ${theme.colors.grayscale.base};
-      border-radius: ${theme.gridUnit}px;
-      color: ${theme.colors.grayscale.light5};
-      font-size: ${theme.typography.sizes.s}px;
-      text-transform: uppercase;
-      position: absolute;
-      padding: ${theme.gridUnit}px
-        ${theme.gridUnit * 2}px;
-      top: ${theme.gridUnit * 8}px;
-      right: ${theme.gridUnit * 8}px;
-      pointer-events: none;
-    }
-  `}
-`;
-
 const FALLBACK_THUMBNAIL_URL = '/static/assets/images/chart-card-fallback.svg';
+
+const TruncatedTextWithTooltip = ({ children, ...props }) => {
+  const [isTruncated, setIsTruncated] = useState();
+  const ref = useRef();
+  useEffect(() => {
+    setIsTruncated(ref.current.offsetWidth < ref.current.scrollWidth);
+  }, [children]);
+
+  const div = (
+    <div
+      {...props}
+      ref={ref}
+      css={css`
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      `}
+    >
+      {children}
+    </div>
+  );
+
+  return isTruncated ? <Tooltip title={children}>{div}</Tooltip> : div;
+};
+
+const MetadataItem = ({ label, value }) => (
+  <div
+    css={theme => css`
+      font-size: ${theme.typography.sizes.s}px;
+      display: flex;
+      justify-content: space-between;
+
+      &:not(:last-child) {
+        margin-bottom: ${theme.gridUnit}px;
+      }
+    `}
+  >
+    <span
+      css={theme => css`
+        margin-right: ${theme.gridUnit * 4}px;
+        color: ${theme.colors.grayscale.base};
+      `}
+    >
+      {label}
+    </span>
+    <span
+      css={css`
+        min-width: 0;
+      `}
+    >
+      <TruncatedTextWithTooltip>{value}</TruncatedTextWithTooltip>
+    </span>
+  </div>
+);
+
+const SliceAddedBadgePlaceholder = ({ showThumbnails, placeholderRef }) => (
+  <div
+    ref={placeholderRef}
+    css={theme => css`
+      /* Display styles */
+      border: 1px solid ${theme.colors.primary.dark1};
+      border-radius: ${theme.gridUnit}px;
+      color: ${theme.colors.primary.dark1};
+      font-size: ${theme.typography.sizes.xs}px;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+      padding: ${theme.gridUnit / 2}px ${theme.gridUnit * 2}px;
+      margin-left: ${theme.gridUnit * 4}px;
+      pointer-events: none;
+
+      /* Position styles */
+      visibility: hidden;
+      position: ${showThumbnails ? 'absolute' : 'unset'};
+      top: ${showThumbnails ? '72px' : 'unset'};
+      left: ${showThumbnails ? '84px' : 'unset'};
+    `}
+  >
+    {t('Added')}
+  </div>
+);
+
+const SliceAddedBadge = ({ placeholder }) => (
+  <div
+    css={theme => css`
+      /* Display styles */
+      border: 1px solid ${theme.colors.primary.dark1};
+      border-radius: ${theme.gridUnit}px;
+      color: ${theme.colors.primary.dark1};
+      font-size: ${theme.typography.sizes.xs}px;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+      padding: ${theme.gridUnit / 2}px ${theme.gridUnit * 2}px;
+      margin-left: ${theme.gridUnit * 4}px;
+      pointer-events: none;
+
+      /* Position styles */
+      display: ${placeholder ? 'unset' : 'none'};
+      position: absolute;
+      top: ${placeholder ? `${placeholder.offsetTop}px` : 'unset'};
+      left: ${placeholder ? `${placeholder.offsetLeft - 2}px` : 'unset'};
+    `}
+  >
+    {t('Added')}
+  </div>
+);
 
 function AddSliceCard({
   datasourceUrl,
@@ -135,43 +164,108 @@ function AddSliceCard({
   visType,
 }) {
   const showThumbnails = isFeatureEnabled(FeatureFlag.THUMBNAILS);
+  const [sliceAddedBadge, setSliceAddedBadge] = useState();
+  const { mountedPluginMetadata } = usePluginContext();
+  const vizName = useMemo(
+    () => mountedPluginMetadata[visType].name,
+    [mountedPluginMetadata, visType],
+  );
+
   return (
-    <Styled ref={innerRef} style={style}>
+    <div ref={innerRef} style={style}>
       <div
-        className={cx('chart-card', isSelected && 'is-selected')}
         data-test="chart-card"
+        css={theme => css`
+          border: 1px solid ${theme.colors.grayscale.light2};
+          border-radius: ${theme.gridUnit}px;
+          background: ${theme.colors.grayscale.light5};
+          padding: ${theme.gridUnit * 4}px;
+          margin: 0 ${theme.gridUnit * 3}px
+            ${theme.gridUnit * 3}px
+            ${theme.gridUnit * 3}px;
+          position: relative;
+          cursor: ${isSelected ? 'not-allowed' : 'move'};
+          white-space: nowrap;
+          overflow: hidden;
+          line-height: 1.3;
+          color: ${theme.colors.grayscale.dark1}
+
+          &:hover {
+            background: ${theme.colors.grayscale.light4};
+          }
+
+          opacity: ${isSelected ? 0.4 : 'unset'};
+        `}
       >
-        {showThumbnails ? (
-          <div className="card-thumbnail-wrapper" data-test="thumbnail">
-            <div className="card-thumbnail">
+        <div
+          css={css`
+            display: flex;
+          `}
+        >
+          {showThumbnails ? (
+            <div
+              data-test="thumbnail"
+              css={css`
+                width: 146px;
+                height: 82px;
+                flex-shrink: 0;
+                margin-right: 16px;
+              `}
+            >
               <ImageLoader
                 src={thumbnailUrl || ''}
                 fallback={FALLBACK_THUMBNAIL_URL}
                 position="top"
               />
+              {isSelected && showThumbnails ? (
+                <SliceAddedBadgePlaceholder
+                  placeholderRef={setSliceAddedBadge}
+                  showThumbnails={showThumbnails}
+                />
+              ) : null}
             </div>
-          </div>
-        ) : null}
-        <div className="card-title" data-test="card-title">
-          {sliceName}
-        </div>
-        <div className="card-body">
-          <div className="item">
-            <span>{t('Modified')} </span>
-            <span>{lastModified}</span>
-          </div>
-          <div className="item">
-            <span>{t('Visualization')} </span>
-            <span>{visType}</span>
-          </div>
-          <div className="item">
-            <span>{t('Data source')} </span>
-            <a href={datasourceUrl}>{datasourceName}</a>
+          ) : null}
+          <div
+            css={css`
+              flex-grow: 1;
+              min-width: 0;
+            `}
+          >
+            <div
+              data-test="card-title"
+              css={theme => css`
+                margin-bottom: ${theme.gridUnit * 2}px;
+                font-weight: ${theme.typography.weights.bold};
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+              `}
+            >
+              <TruncatedTextWithTooltip>{sliceName}</TruncatedTextWithTooltip>
+              {isSelected && !showThumbnails ? (
+                <SliceAddedBadgePlaceholder
+                  placeholderRef={setSliceAddedBadge}
+                />
+              ) : null}
+            </div>
+            <div
+              css={css`
+                display: flex;
+                flex-direction: column;
+              `}
+            >
+              <MetadataItem label={t('Viz type')} value={vizName} />
+              <MetadataItem
+                label={t('Dataset')}
+                value={<a href={datasourceUrl}>{datasourceName}</a>}
+              />
+              <MetadataItem label={t('Modified')} value={lastModified} />
+            </div>
           </div>
         </div>
       </div>
-      {isSelected && <div className="is-added-label">{t('Added')}</div>}
-    </Styled>
+      <SliceAddedBadge placeholder={sliceAddedBadge} />
+    </div>
   );
 }
 

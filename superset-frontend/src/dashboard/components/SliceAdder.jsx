@@ -83,9 +83,7 @@ const DEFAULT_SORT_KEY = 'changed_on';
 const MARGIN_BOTTOM = 16;
 const SIDEPANE_HEADER_HEIGHT = 30;
 const SLICE_ADDER_CONTROL_HEIGHT = 64;
-const DEFAULT_CELL_HEIGHT = isFeatureEnabled(FeatureFlag.THUMBNAILS)
-  ? 308
-  : 112;
+const DEFAULT_CELL_HEIGHT = 128;
 
 const Controls = styled.div`
   display: flex;
