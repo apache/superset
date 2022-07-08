@@ -24,17 +24,14 @@ from superset.commands.base import BaseCommand
 from superset.common.chart_data import ChartDataResultType
 from superset.common.query_context_factory import QueryContextFactory
 from superset.common.utils.query_cache_manager import QueryCacheManager
-from superset.connectors.sqla.models import SqlaTable
 from superset.constants import CacheRegion
 from superset.dao.exceptions import DatasourceNotFound
-from superset.datasets.commands.exceptions import (
-    DatasetForbiddenError,
-    DatasetNotFoundError,
-    DatasetSamplesFailedError,
-)
-from superset.datasets.dao import DatasetDAO
 from superset.datasource.dao import Datasource, DatasourceDAO
 from superset.exceptions import SupersetSecurityException
+from superset.explore.exceptions import (
+    DatasourceForbiddenError,
+    DatasourceSamplesFailedError,
+)
 from superset.utils.core import DatasourceType, QueryStatus
 
 logger = logging.getLogger(__name__)
@@ -75,10 +72,10 @@ class SamplesDatasourceCommand(BaseCommand):
             if sample_data.get("status") == QueryStatus.FAILED and error_msg:
                 cache_key = sample_data.get("cache_key")
                 QueryCacheManager.delete(cache_key, region=CacheRegion.DATA)
-                raise DatasetSamplesFailedError(error_msg)
+                raise DatasourceSamplesFailedError(error_msg)
             return sample_data
         except (IndexError, KeyError) as exc:
-            raise DatasetSamplesFailedError from exc
+            raise DatasourceSamplesFailedError from exc
 
     def validate(self) -> None:
         # Validate/populate model exists
@@ -93,4 +90,4 @@ class SamplesDatasourceCommand(BaseCommand):
         try:
             security_manager.raise_for_ownership(self._model)
         except SupersetSecurityException as ex:
-            raise DatasetForbiddenError() from ex
+            raise DatasourceForbiddenError() from ex
