@@ -241,14 +241,8 @@ class AdhocFilterControl extends React.Component {
     // via datasource saved metric
     if (option.saved_metric_name) {
       return new AdhocFilter({
-        expressionType:
-          this.props.datasource.type === 'druid'
-            ? EXPRESSION_TYPES.SIMPLE
-            : EXPRESSION_TYPES.SQL,
-        subject:
-          this.props.datasource.type === 'druid'
-            ? option.saved_metric_name
-            : this.getMetricExpression(option.saved_metric_name),
+        expressionType: EXPRESSION_TYPES.SQL,
+        subject: this.getMetricExpression(option.saved_metric_name),
         operator:
           OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.GREATER_THAN].operation,
         comparator: 0,
@@ -258,14 +252,8 @@ class AdhocFilterControl extends React.Component {
     // has a custom label, meaning it's custom column
     if (option.label) {
       return new AdhocFilter({
-        expressionType:
-          this.props.datasource.type === 'druid'
-            ? EXPRESSION_TYPES.SIMPLE
-            : EXPRESSION_TYPES.SQL,
-        subject:
-          this.props.datasource.type === 'druid'
-            ? option.label
-            : new AdhocMetric(option).translateToSql(),
+        expressionType: EXPRESSION_TYPES.SQL,
+        subject: new AdhocMetric(option).translateToSql(),
         operator:
           OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.GREATER_THAN].operation,
         comparator: 0,

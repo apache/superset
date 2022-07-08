@@ -147,7 +147,6 @@ EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS = {
     "time_column": "time_column",
     "time_grain": "time_grain",
     "time_range": "time_range",
-    "druid_time_origin": "druid_time_origin",
     "time_grain_sqla": "time_grain_sqla",
 }
 

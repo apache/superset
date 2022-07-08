@@ -241,21 +241,6 @@ const columnsControl: typeof groupByControl = {
   description: t('One or many columns to pivot as columns'),
 };
 
-const druid_time_origin: SharedControlConfig<'SelectControl'> = {
-  type: 'SelectControl',
-  freeForm: true,
-  label: TIME_FILTER_LABELS.druid_time_origin,
-  choices: [
-    ['', 'default'],
-    ['now', 'now'],
-  ],
-  default: null,
-  description: t(
-    'Defines the origin where time buckets start, ' +
-      'accepts natural dates as in `now`, `sunday` or `1970-01-01`',
-  ),
-};
-
 const granularity: SharedControlConfig<'SelectControl'> = {
   type: 'SelectControl',
   freeForm: true,
@@ -569,7 +554,6 @@ const sharedControls = {
   secondary_metric: enableExploreDnd ? dnd_secondary_metric : secondary_metric,
   groupby: enableExploreDnd ? dndGroupByControl : groupByControl,
   columns: enableExploreDnd ? dndColumnsControl : columnsControl,
-  druid_time_origin,
   granularity,
   granularity_sqla: enableExploreDnd ? dnd_granularity_sqla : granularity_sqla,
   time_grain_sqla,

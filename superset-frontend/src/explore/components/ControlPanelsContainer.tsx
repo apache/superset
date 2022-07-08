@@ -174,9 +174,7 @@ const isTimeSection = (section: ControlPanelSectionConfig): boolean =>
     sections.legacyTimeseriesTime.label === section.label);
 
 const hasTimeColumn = (datasource: Dataset): boolean =>
-  datasource?.columns?.some(c => c.is_dttm) ||
-  datasource.type === DatasourceType.Druid;
-
+  datasource?.columns?.some(c => c.is_dttm);
 const sectionsToExpand = (
   sections: ControlPanelSectionConfig[],
   datasource: Dataset,

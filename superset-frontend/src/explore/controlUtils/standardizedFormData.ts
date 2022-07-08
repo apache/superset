@@ -145,7 +145,6 @@ export class StandardizedFormData {
     if (this.has(vizType)) {
       return this.get(vizType);
     }
-
     return this.memorizedFormData.slice(-1)[0][1];
   }
 
@@ -205,6 +204,7 @@ export class StandardizedFormData {
       ...getFormDataFromControls(targetControlsState),
       standardizedFormData: this.serialize(),
     };
+
     let rv = {
       formData: targetFormData,
       controlsState: targetControlsState,
