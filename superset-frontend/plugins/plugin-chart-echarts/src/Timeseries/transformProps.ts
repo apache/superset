@@ -17,6 +17,7 @@
  * under the License.
  */
 /* eslint-disable camelcase */
+import { isEmpty } from 'lodash';
 import {
   AnnotationLayer,
   CategoricalColorNamespace,
@@ -31,6 +32,7 @@ import {
   isTimeseriesAnnotationLayer,
   TimeseriesChartDataResponseResult,
   t,
+  AnnotationData,
 } from '@superset-ui/core';
 import { isDerivedSeries } from '@superset-ui/chart-controls';
 import { EChartsCoreOption, SeriesOption } from 'echarts';
@@ -81,6 +83,16 @@ import {
   TIMEGRAIN_TO_TIMESTAMP,
 } from '../constants';
 
+function getAnnotationData(
+  chartProps: EchartsTimeseriesChartProps,
+): AnnotationData {
+  const data = chartProps?.queriesData[0]?.annotation_data as AnnotationData;
+  if (!isEmpty(data)) {
+    return data;
+  }
+  return {};
+}
+
 export default function transformProps(
   chartProps: EchartsTimeseriesChartProps,
 ): TimeseriesChartTransformedProps {
@@ -93,12 +105,12 @@ export default function transformProps(
     queriesData,
     datasource,
     theme,
-    annotationData = {},
   } = chartProps;
   const { verboseMap = {} } = datasource;
   const [queryData] = queriesData;
   const { data = [] } = queryData as TimeseriesChartDataResponseResult;
   const dataTypes = getColtypesMapping(queryData);
+  const annotationData = getAnnotationData(chartProps);
 
   const {
     area,
