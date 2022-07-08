@@ -42,7 +42,7 @@ import { findPermission } from 'src/utils/findPermission';
 
 enum ColorSchemeType {
   CATEGORICAL = 'CATEGORICAL',
-  SEQUENTIAL = 'SEQUENTIAL'
+  SEQUENTIAL = 'SEQUENTIAL',
 }
 
 export const HYDRATE_EXPLORE = 'HYDRATE_EXPLORE';
