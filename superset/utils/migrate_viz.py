@@ -121,11 +121,11 @@ class MigrateArea(MigrateViz):
             self.data["contributionMode"] = "row"
 
         stacked = self.data.get("stacked_style")
-        stacked_map = {
-            "expand": "Expand",
-            "stack": "Stack",
-        }
         if stacked:
+            stacked_map = {
+                "expand": "Expand",
+                "stack": "Stack",
+            }
             self.data["show_extra_controls"] = True
             self.data["stack"] = stacked_map.get(stacked)
 
