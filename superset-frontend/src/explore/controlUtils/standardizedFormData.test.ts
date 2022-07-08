@@ -22,6 +22,7 @@ import {
   AdhocMetricSQL,
   getChartControlPanelRegistry,
   QueryFormData,
+  TimeGranularity,
 } from '@superset-ui/core';
 import TableChartPlugin from '@superset-ui/plugin-chart-table';
 import { BigNumberTotalChartPlugin } from '@superset-ui/plugin-chart-echarts';
@@ -83,7 +84,7 @@ describe('should collect control values and create SFD', () => {
   const publicControlsFormData = {
     // time section
     granularity_sqla: 'time_column',
-    time_grain_sqla: 'P1D',
+    time_grain_sqla: TimeGranularity.DAY,
     time_range: '2000 : today',
     // filters
     adhoc_filters: [],
@@ -115,6 +116,7 @@ describe('should collect control values and create SFD', () => {
     datasource: '100__table',
     viz_type: 'source_viz',
   };
+
   const sourceMockStore = {
     form_data: sourceMockFormData,
     controls: Object.fromEntries(
@@ -128,6 +130,7 @@ describe('should collect control values and create SFD', () => {
       columns: [],
     },
   };
+
   beforeAll(() => {
     getChartControlPanelRegistry().registerValue('source_viz', {
       controlPanelSections: [
@@ -272,7 +275,7 @@ describe('should transform form_data between table and bigNumberTotal', () => {
     datasource: '30__table',
     viz_type: 'table',
     granularity_sqla: 'ds',
-    time_grain_sqla: 'P1D',
+    time_grain_sqla: TimeGranularity.DAY,
     time_range: 'No filter',
     query_mode: 'aggregate',
     groupby: ['name', 'gender', adhocColumn],

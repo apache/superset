@@ -122,7 +122,7 @@ export type PostProcessingPivot = _PostProcessingPivot | DefaultPostProcessing;
 interface _PostProcessingProphet {
   operation: 'prophet';
   options: {
-    time_grain: TimeGranularity;
+    time_grain: TimeGranularity | undefined;
     periods: number;
     confidence_interval: number;
     yearly_seasonality?: boolean | number;
