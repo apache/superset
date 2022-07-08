@@ -1,0 +1,28 @@
+{{- if .Values.supersetWorker.autoscaling.enabled }}
+apiVersion: autoscaling/v2beta1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "superset.fullname" . }}-worker
+  labels:
+    {{- include "superset.labels" . | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "superset.fullname" . }}-worker
+  minReplicas: {{ .Values.supersetWorker.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.supersetWorker.autoscaling.maxReplicas }}
+  metrics:
+    {{- if .Values.supersetWorker.autoscaling.targetCPUUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: cpu
+        targetAverageUtilization: {{ .Values.supersetWorker.autoscaling.targetCPUUtilizationPercentage }}
+    {{- end }}
+    {{- if .Values.supersetWorker.autoscaling.targetMemoryUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: memory
+        targetAverageUtilization: {{ .Values.supersetWorker.autoscaling.targetMemoryUtilizationPercentage }}
+    {{- end }}
+{{- end }}

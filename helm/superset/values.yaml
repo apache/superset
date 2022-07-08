@@ -266,6 +266,12 @@ supersetNode:
 ##
 ## Superset worker configuration
 supersetWorker:
+  replicas: 1
+  autoscaling:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
   command:
     - "/bin/sh"
     - "-c"
