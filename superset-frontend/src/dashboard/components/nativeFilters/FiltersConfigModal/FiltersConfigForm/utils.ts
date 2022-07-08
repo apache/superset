@@ -86,14 +86,10 @@ export const datasetToSelectOption = (
   label: item.table_name,
 });
 
-// TODO: add column_types field to Dataset
-// We return true if column_types is undefined or empty as a precaution against backend failing to return column_types
-export const hasTemporalColumns = (dataset: Dataset) => {
-  const columnTypes = ensureIsArray(dataset?.column_types);
-  return (
-    columnTypes.length === 0 || columnTypes.includes(GenericDataType.TEMPORAL)
+export const hasTemporalColumns = (dataset: Dataset) =>
+  ensureIsArray(dataset.columns).some(
+    column => column.type_generic === GenericDataType.TEMPORAL,
   );
-};
 
 export const doesColumnMatchFilterType = (filterType: string, column: Column) =>
   !column.type_generic ||
