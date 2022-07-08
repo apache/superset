@@ -140,8 +140,7 @@ export const updateSlice =
     try {
       const response = await SupersetClient.put({
         endpoint: `/api/v1/chart/${sliceId}`,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(getSlicePayload(sliceName, formData, owners)),
+        jsonPayload: getSlicePayload(sliceName, formData, owners),
       });
 
       dispatch(saveSliceSuccess());
@@ -159,8 +158,7 @@ export const createSlice =
     try {
       const response = await SupersetClient.post({
         endpoint: `/api/v1/chart/`,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(getSlicePayload(sliceName, formData)),
+        jsonPayload: getSlicePayload(sliceName, formData),
       });
 
       dispatch(saveSliceSuccess());
@@ -177,8 +175,7 @@ export const createDashboard = dashboardName => async dispatch => {
   try {
     const response = await SupersetClient.post({
       endpoint: `/api/v1/dashboard/`,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ dashboard_title: dashboardName }),
+      jsonPayload: { dashboard_title: dashboardName },
     });
 
     return response.json;
