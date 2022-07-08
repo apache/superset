@@ -149,11 +149,10 @@ const ExploreChartPanel = ({
   );
 
   const [showDatasetModal, setShowDatasetModal] = useState(false);
-  console.log(showDatasetModal);
 
   const metaDataRegistry = getChartMetadataRegistry();
   const { useLegacyApi } = metaDataRegistry.get(vizType);
-  const vizTypeNeedsDataset = useLegacyApi && datasource.type === 'query';
+  const vizTypeNeedsDataset = useLegacyApi && datasource.type !== 'dataset';
 
   // added boolean column to below show boolean so that the errors aren't overlapping
   const showAlertBanner =

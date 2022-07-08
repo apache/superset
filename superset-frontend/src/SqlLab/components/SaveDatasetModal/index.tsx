@@ -181,7 +181,10 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
       window.location.href = url;
     }
   };
-  const mergeFormData = { ...EXPLORE_CHART_DEFAULT, ...(formData || {}) };
+  const formDataWithDefaults = {
+    ...EXPLORE_CHART_DEFAULT,
+    ...(formData || {}),
+  };
   const handleOverwriteDataset = async () => {
     const [, key] = await Promise.all([
       updateDataset(
@@ -199,7 +202,7 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
         true,
       ),
       postFormData(datasetToOverwrite.datasetid, 'table', {
-        ...mergeFormData,
+        ...formDataWithDefaults,
         datasource: `${datasetToOverwrite.datasetid}__table`,
         ...(defaultVizType === 'table' && {
           all_columns: datasource?.columns?.map(column => column.name),
@@ -298,7 +301,7 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
     )
       .then((data: { table_id: number }) =>
         postFormData(data.table_id, 'table', {
-          ...mergeFormData,
+          ...formDataWithDefaults,
           datasource: `${data.table_id}__table`,
           ...(defaultVizType === 'table' && {
             all_columns: selectedColumns.map(column => column.name),
