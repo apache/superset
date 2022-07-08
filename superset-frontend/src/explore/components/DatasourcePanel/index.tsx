@@ -64,6 +64,7 @@ export interface IDatasource {
   };
   sql?: string | null;
   datasource_name?: string | null;
+  name?: string | null;
   schema?: string | null;
 }
 
@@ -231,9 +232,9 @@ export default function DataSourcePanel({
 
   const getDatasourceAsSaveableDataset = (source: IDatasource) => {
     const dataset: ISaveableDataset = {
-      columns: source.columns as ISimpleColumn[],
-      name: source?.datasource_name || 'Untitled',
-      dbId: source.database.id,
+      columns: (source?.columns as ISimpleColumn[]) || [],
+      name: source?.datasource_name || source?.name || t('Untitled'),
+      dbId: source?.database.id,
       sql: source?.sql || '',
       schema: source?.schema,
     };
