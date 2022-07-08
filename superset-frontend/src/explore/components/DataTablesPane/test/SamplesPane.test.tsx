@@ -29,26 +29,35 @@ import { SamplesPane } from '../components';
 import { createSamplesPaneProps } from './fixture';
 
 describe('SamplesPane', () => {
-  fetchMock.get('end:/api/v1/dataset/34/samples?force=false', {
-    result: {
-      data: [],
-      colnames: [],
-      coltypes: [],
+  fetchMock.get(
+    'end:/api/v1/explore/samples?force=false&datasource_type=table&datasource_id=34',
+    {
+      result: {
+        data: [],
+        colnames: [],
+        coltypes: [],
+      },
     },
-  });
+  );
 
-  fetchMock.get('end:/api/v1/dataset/35/samples?force=true', {
-    result: {
-      data: [
-        { __timestamp: 1230768000000, genre: 'Action' },
-        { __timestamp: 1230768000010, genre: 'Horror' },
-      ],
-      colnames: ['__timestamp', 'genre'],
-      coltypes: [2, 1],
+  fetchMock.get(
+    'end:/api/v1/explore/samples?force=true&datasource_type=table&datasource_id=35',
+    {
+      result: {
+        data: [
+          { __timestamp: 1230768000000, genre: 'Action' },
+          { __timestamp: 1230768000010, genre: 'Horror' },
+        ],
+        colnames: ['__timestamp', 'genre'],
+        coltypes: [2, 1],
+      },
     },
-  });
+  );
 
-  fetchMock.get('end:/api/v1/dataset/36/samples?force=false', 400);
+  fetchMock.get(
+    'end:/api/v1/explore/samples?force=false&datasource_type=table&datasource_id=36',
+    400,
+  );
 
   const setForceQuery = jest.spyOn(exploreActions, 'setForceQuery');
 
