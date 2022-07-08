@@ -25,7 +25,10 @@ import {
   useFilteredTableData,
   useTableColumns,
 } from 'src/explore/components/DataTableControl';
-import { getDatasetSamples } from 'src/components/Chart/chartAction';
+import {
+  getDatasetSamples,
+  getDatasourceSamples,
+} from 'src/components/Chart/chartAction';
 import { TableControls } from './DataTableControls';
 import { SamplesPaneProps } from '../types';
 
@@ -61,7 +64,7 @@ export const SamplesPane = ({
 
     if (isRequest && !cache.has(datasource)) {
       setIsLoading(true);
-      getDatasetSamples(datasource.id, queryForce)
+      getDatasourceSamples(datasource.type, datasource.id, queryForce)
         .then(response => {
           setData(ensureIsArray(response.data));
           setColnames(ensureIsArray(response.colnames));
