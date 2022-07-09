@@ -28,9 +28,11 @@ from typing import List
 
 import sqlalchemy as sa
 from flask_appbuilder import Model
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import backref, relationship
 
+from superset import security_manager
 from superset.columns.models import Column
+from superset.models.core import Database
 from superset.models.helpers import (
     AuditMixinNullable,
     ExtraJSONMixin,
@@ -38,18 +40,33 @@ from superset.models.helpers import (
 )
 from superset.tables.models import Table
 
-column_association_table = sa.Table(
+dataset_column_association_table = sa.Table(
     "sl_dataset_columns",
     Model.metadata,  # pylint: disable=no-member
-    sa.Column("dataset_id", sa.ForeignKey("sl_datasets.id")),
-    sa.Column("column_id", sa.ForeignKey("sl_columns.id")),
+    sa.Column(
+        "dataset_id",
+        sa.ForeignKey("sl_datasets.id"),
+        primary_key=True,
+    ),
+    sa.Column(
+        "column_id",
+        sa.ForeignKey("sl_columns.id"),
+        primary_key=True,
+    ),
 )
 
-table_association_table = sa.Table(
+dataset_table_association_table = sa.Table(
     "sl_dataset_tables",
     Model.metadata,  # pylint: disable=no-member
-    sa.Column("dataset_id", sa.ForeignKey("sl_datasets.id")),
-    sa.Column("table_id", sa.ForeignKey("sl_tables.id")),
+    sa.Column("dataset_id", sa.ForeignKey("sl_datasets.id"), primary_key=True),
+    sa.Column("table_id", sa.ForeignKey("sl_tables.id"), primary_key=True),
+)
+
+dataset_user_association_table = sa.Table(
+    "sl_dataset_users",
+    Model.metadata,  # pylint: disable=no-member
+    sa.Column("dataset_id", sa.ForeignKey("sl_datasets.id"), primary_key=True),
+    sa.Column("user_id", sa.ForeignKey("ab_user.id"), primary_key=True),
 )
 
 
@@ -61,27 +78,27 @@ class Dataset(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
     __tablename__ = "sl_datasets"
 
     id = sa.Column(sa.Integer, primary_key=True)
-
-    # A temporary column, used for shadow writing to the new model. Once the ``SqlaTable``
-    # model has been deleted this column can be removed.
-    sqlatable_id = sa.Column(sa.Integer, nullable=True, unique=True)
-
-    # We use ``sa.Text`` for these attributes because (1) in modern databases the
-    # performance is the same as ``VARCHAR``[1] and (2) because some table names can be
-    # **really** long (eg, Google Sheets URLs).
-    #
-    # [1] https://www.postgresql.org/docs/9.1/datatype-character.html
-    name = sa.Column(sa.Text)
-
-    expression = sa.Column(sa.Text)
-
-    # n:n relationship
-    tables: List[Table] = relationship("Table", secondary=table_association_table)
-
-    # The relationship between datasets and columns is 1:n, but we use a many-to-many
-    # association to differentiate between the relationship between tables and columns.
+    database_id = sa.Column(sa.Integer, sa.ForeignKey("dbs.id"), nullable=False)
+    database: Database = relationship(
+        "Database",
+        backref=backref("datasets", cascade="all, delete-orphan"),
+        foreign_keys=[database_id],
+    )
+    # The relationship between datasets and columns is 1:n, but we use a
+    # many-to-many association table to avoid adding two mutually exclusive
+    # columns(dataset_id and table_id) to Column
     columns: List[Column] = relationship(
-        "Column", secondary=column_association_table, cascade="all, delete"
+        "Column",
+        secondary=dataset_column_association_table,
+        cascade="all, delete-orphan",
+        single_parent=True,
+        backref="datasets",
+    )
+    owners = relationship(
+        security_manager.user_model, secondary=dataset_user_association_table
+    )
+    tables: List[Table] = relationship(
+        "Table", secondary=dataset_table_association_table, backref="datasets"
     )
 
     # Does the dataset point directly to a ``Table``?
@@ -89,4 +106,15 @@ class Dataset(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
 
     # Column is managed externally and should be read-only inside Superset
     is_managed_externally = sa.Column(sa.Boolean, nullable=False, default=False)
+
+    # We use ``sa.Text`` for these attributes because (1) in modern databases the
+    # performance is the same as ``VARCHAR``[1] and (2) because some table names can be
+    # **really** long (eg, Google Sheets URLs).
+    #
+    # [1] https://www.postgresql.org/docs/9.1/datatype-character.html
+    name = sa.Column(sa.Text)
+    expression = sa.Column(sa.Text)
     external_url = sa.Column(sa.Text, nullable=True)
+
+    def __repr__(self) -> str:
+        return f"<Dataset id={self.id} database_id={self.database_id} {self.name}>"

@@ -36,7 +36,17 @@ services:
       - "6379:6379"
     volumes:
       - redis:/data
-
+# merged
+  db:
+    env_file: docker/.env
+    image: postgres:14
+    container_name: superset_db
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - db_home:/var/lib/postgresql/data
+#end
 
   superset:
     env_file: docker/.env
@@ -109,9 +119,7 @@ services:
     depends_on: *superset-depends-on
     user: *superset-user
     volumes: *superset-volumes
-    environment:
-      test: 16
-    # Bump memory limit if processing selenium / thumbails on superset-worker
+    # Bump memory limit if processing selenium / thumbnails on superset-worker
     # mem_limit: 2038m
     # mem_reservation: 128M
 

@@ -37,8 +37,8 @@ describe('SqlLab query panel', () => {
     const sampleResponse = {
       status: 'success',
       data: [{ '?column?': 1 }],
-      columns: [{ name: '?column?', type: 'INT', is_date: false }],
-      selected_columns: [{ name: '?column?', type: 'INT', is_date: false }],
+      columns: [{ name: '?column?', type: 'INT', is_dttm: false }],
+      selected_columns: [{ name: '?column?', type: 'INT', is_dttm: false }],
       expanded_columns: [],
     };
 
@@ -114,7 +114,7 @@ describe('SqlLab query panel', () => {
 
     cy.wait('@sqlLabQuery');
 
-    // Save results to check agains below
+    // Save results to check against below
     selectResultsTab().then(resultsA => {
       initialResultsTable = resultsA[0];
     });

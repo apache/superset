@@ -17,7 +17,7 @@
 import logging
 from typing import Any
 
-from flask import g, request, Response
+from flask import request, Response
 from flask_appbuilder.api import expose, permission_name, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
@@ -151,7 +151,7 @@ class AnnotationLayerRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         try:
-            DeleteAnnotationLayerCommand(g.user, pk).run()
+            DeleteAnnotationLayerCommand(pk).run()
             return self.response(200, message="OK")
         except AnnotationLayerNotFoundError:
             return self.response_404()
@@ -216,7 +216,7 @@ class AnnotationLayerRestApi(BaseSupersetModelRestApi):
         except ValidationError as error:
             return self.response_400(message=error.messages)
         try:
-            new_model = CreateAnnotationLayerCommand(g.user, item).run()
+            new_model = CreateAnnotationLayerCommand(item).run()
             return self.response(201, id=new_model.id, result=item)
         except AnnotationLayerNotFoundError as ex:
             return self.response_400(message=str(ex))
@@ -288,7 +288,7 @@ class AnnotationLayerRestApi(BaseSupersetModelRestApi):
         except ValidationError as error:
             return self.response_400(message=error.messages)
         try:
-            new_model = UpdateAnnotationLayerCommand(g.user, pk, item).run()
+            new_model = UpdateAnnotationLayerCommand(pk, item).run()
             return self.response(200, id=new_model.id, result=item)
         except AnnotationLayerNotFoundError:
             return self.response_404()
@@ -346,7 +346,7 @@ class AnnotationLayerRestApi(BaseSupersetModelRestApi):
         """
         item_ids = kwargs["rison"]
         try:
-            BulkDeleteAnnotationLayerCommand(g.user, item_ids).run()
+            BulkDeleteAnnotationLayerCommand(item_ids).run()
             return self.response(
                 200,
                 message=ngettext(

@@ -26,9 +26,39 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import Mousetrap from 'mousetrap';
-import { t } from '@superset-ui/core';
+import { t, styled } from '@superset-ui/core';
 import BootrapSliderWrapper from './BootstrapSliderWrapper';
-import './PlaySlider.css';
+
+const StyledSlider = styled.div`
+  ${({ theme }) => `
+    display: flex;
+    height: 40px;
+    width: 100%;
+    margin: 0;
+
+    .play-slider-controls {
+      flex: 0 0 80px;
+      text-align: middle;
+    }
+
+    .play-slider-scrobbler {
+      flex: 1;
+    }
+
+    .slider.slider-horizontal {
+      width: 100% !important;
+    }
+
+    .slider-button {
+      color: ${theme.colors.grayscale.light1};
+      margin-right: ${theme.gridUnit}px;
+    }
+
+    div.slider > div.tooltip.tooltip-main.top.in {
+      margin-left: 0 !important;
+    }
+  `}
+`;
 
 const propTypes = {
   start: PropTypes.number.isRequired,
@@ -167,7 +197,7 @@ export default class PlaySlider extends React.PureComponent {
       this.props;
 
     return (
-      <div className="play-slider">
+      <StyledSlider>
         <div className="play-slider-controls padded">
           <i
             className="fa fa-step-backward fa-lg slider-button "
@@ -193,7 +223,7 @@ export default class PlaySlider extends React.PureComponent {
             disabled={disabled ? 'disabled' : 'enabled'}
           />
         </div>
-      </div>
+      </StyledSlider>
     );
   }
 }

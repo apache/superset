@@ -25,12 +25,8 @@ import {
   QueryFormData,
   SetDataMaskHook,
 } from '@superset-ui/core';
-import {
-  DEFAULT_LEGEND_FORM_DATA,
-  EchartsLegendFormData,
-  LegendOrientation,
-  LegendType,
-} from '../types';
+import { EchartsLegendFormData, LegendOrientation, LegendType } from '../types';
+import { DEFAULT_LEGEND_FORM_DATA } from '../constants';
 
 export type EchartsFunnelFormData = QueryFormData &
   EchartsLegendFormData & {
@@ -56,7 +52,8 @@ export enum EchartsFunnelLabelTypeType {
   KeyValuePercent,
 }
 
-export interface EchartsFunnelChartProps extends ChartProps {
+export interface EchartsFunnelChartProps
+  extends ChartProps<EchartsFunnelFormData> {
   formData: EchartsFunnelFormData;
   queriesData: ChartDataResponseResult[];
 }

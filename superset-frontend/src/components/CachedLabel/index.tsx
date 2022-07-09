@@ -48,7 +48,7 @@ const CacheLabel: React.FC<CacheLabelProps> = ({
         onMouseOver={() => setHovered(true)}
         onMouseOut={() => setHovered(false)}
       >
-        {t('cached')} <i className="fa fa-refresh" />
+        {t('Cached')} <i className="fa fa-refresh" />
       </Label>
     </Tooltip>
   );

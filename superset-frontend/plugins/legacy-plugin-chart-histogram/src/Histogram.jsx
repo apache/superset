@@ -71,13 +71,14 @@ class CustomHistogram extends React.PureComponent {
       xAxisLabel,
       yAxisLabel,
       showLegend,
+      sliceId,
     } = this.props;
 
     const colorFn = CategoricalColorNamespace.getScale(colorScheme);
     const keys = data.map(d => d.key);
     const colorScale = scaleOrdinal({
       domain: keys,
-      range: keys.map(x => colorFn(x)),
+      range: keys.map(x => colorFn(x, sliceId)),
     });
 
     return (

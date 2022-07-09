@@ -17,8 +17,8 @@
  * under the License.
  */
 import React from 'react';
-import { shallow } from 'enzyme';
-
+import { mount } from 'enzyme';
+import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import RunQueryActionButton from 'src/SqlLab/components/RunQueryActionButton';
 import Button from 'src/components/Button';
 
@@ -35,7 +35,10 @@ describe('RunQueryActionButton', () => {
   };
 
   beforeEach(() => {
-    wrapper = shallow(<RunQueryActionButton {...defaultProps} />);
+    wrapper = mount(<RunQueryActionButton {...defaultProps} />, {
+      wrappingComponent: ThemeProvider,
+      wrappingComponentProps: { theme: supersetTheme },
+    });
   });
 
   it('is a valid react element', () => {

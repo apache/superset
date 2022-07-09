@@ -33,7 +33,6 @@ from typing import (
     Union,
 )
 
-import jwt
 from flask import current_app, Flask, g, Request
 from flask_appbuilder import Model
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -41,9 +40,11 @@ from flask_appbuilder.security.sqla.manager import SecurityManager
 from flask_appbuilder.security.sqla.models import (
     assoc_permissionview_role,
     assoc_user_role,
+    Permission,
     PermissionView,
     Role,
     User,
+    ViewMenu,
 )
 from flask_appbuilder.security.views import (
     PermissionModelView,
@@ -54,6 +55,7 @@ from flask_appbuilder.security.views import (
 )
 from flask_appbuilder.widgets import ListWidget
 from flask_login import AnonymousUserMixin, LoginManager
+from jwt.api_jwt import _jwt_global_obj
 from sqlalchemy import and_, or_
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import Session
@@ -61,10 +63,12 @@ from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.orm.query import Query as SqlaQuery
 
 from superset import sql_parse
-from superset.connectors.connector_registry import ConnectorRegistry
 from superset.constants import RouteMethod
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import SupersetSecurityException
+from superset.exceptions import (
+    DatasetInvalidPermissionEvaluationException,
+    SupersetSecurityException,
+)
 from superset.security.guest_token import (
     GuestToken,
     GuestTokenResources,
@@ -73,13 +77,12 @@ from superset.security.guest_token import (
     GuestTokenUser,
     GuestUser,
 )
-from superset.utils.core import DatasourceName, RowLevelSecurityFilterType
+from superset.utils.core import DatasourceName, get_user_id, RowLevelSecurityFilterType
 from superset.utils.urls import get_url_host
 
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
     from superset.connectors.base.models import BaseDatasource
-    from superset.connectors.druid.models import DruidCluster
     from superset.models.core import Database
     from superset.models.dashboard import Dashboard
     from superset.models.sql_lab import Query
@@ -153,9 +156,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
     GAMMA_READ_ONLY_MODEL_VIEWS = {
         "Dataset",
-        "DruidColumnInlineView",
-        "DruidDatasourceModelView",
-        "DruidMetricInlineView",
         "Datasource",
     } | READ_ONLY_MODEL_VIEWS
 
@@ -189,6 +189,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "can_update_role",
         "all_query_access",
         "can_grant_guest_token",
+        "can_set_embedded",
     }
 
     READ_ONLY_PERMISSION = {
@@ -238,6 +239,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     )
 
     guest_user_cls = GuestUser
+    pyjwt_for_guest_token = _jwt_global_obj
 
     def create_login_manager(self, app: Flask) -> LoginManager:
         lm = super().create_login_manager(app)
@@ -323,7 +325,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         return self.can_access("all_database_access", "all_database_access")
 
-    def can_access_database(self, database: Union["Database", "DruidCluster"]) -> bool:
+    def can_access_database(self, database: "Database") -> bool:
         """
         Return True if the user can fully access the Superset database, False otherwise.
 
@@ -470,23 +472,25 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         user_perms = self.user_view_menu_names("datasource_access")
         schema_perms = self.user_view_menu_names("schema_access")
         user_datasources = set()
-        for datasource_class in ConnectorRegistry.sources.values():
-            user_datasources.update(
-                self.get_session.query(datasource_class)
-                .filter(
-                    or_(
-                        datasource_class.perm.in_(user_perms),
-                        datasource_class.schema_perm.in_(schema_perms),
-                    )
+
+        # pylint: disable=import-outside-toplevel
+        from superset.connectors.sqla.models import SqlaTable
+
+        user_datasources.update(
+            self.get_session.query(SqlaTable)
+            .filter(
+                or_(
+                    SqlaTable.perm.in_(user_perms),
+                    SqlaTable.schema_perm.in_(schema_perms),
                 )
-                .all()
             )
+            .all()
+        )
 
         # group all datasources by database
-        all_datasources = ConnectorRegistry.get_all_datasources(self.get_session)
-        datasources_by_database: Dict["Database", Set["BaseDatasource"]] = defaultdict(
-            set
-        )
+        session = self.get_session
+        all_datasources = SqlaTable.get_all_datasources(session)
+        datasources_by_database: Dict["Database", Set["SqlaTable"]] = defaultdict(set)
         for datasource in all_datasources:
             datasources_by_database[datasource.database].add(datasource)
 
@@ -527,7 +531,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             view_menu_names = (
                 base_query.join(assoc_user_role)
                 .join(self.user_model)
-                .filter(self.user_model.id == g.user.get_id())
+                .filter(self.user_model.id == get_user_id())
                 .filter(self.permission_model.name == permission_name)
             ).all()
             return {s.name for s in view_menu_names}
@@ -598,6 +602,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :param schema: The fallback SQL schema if not present in the table name
         :returns: The list of accessible SQL tables w/ schema
         """
+        # pylint: disable=import-outside-toplevel
+        from superset.connectors.sqla.models import SqlaTable
 
         if self.can_access_database(database):
             return datasource_names
@@ -609,7 +615,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         user_perms = self.user_view_menu_names("datasource_access")
         schema_perms = self.user_view_menu_names("schema_access")
-        user_datasources = ConnectorRegistry.query_datasources_by_permissions(
+        user_datasources = SqlaTable.query_datasources_by_permissions(
             self.get_session, database, user_perms, schema_perms
         )
         if schema:
@@ -659,6 +665,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """
 
         # pylint: disable=import-outside-toplevel
+        from superset.connectors.sqla.models import SqlaTable
         from superset.models import core as models
 
         logger.info("Fetching a set of all perms to lookup which ones are missing")
@@ -667,13 +674,13 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             if pv.permission and pv.view_menu:
                 all_pvs.add((pv.permission.name, pv.view_menu.name))
 
-        def merge_pv(view_menu: str, perm: str) -> None:
+        def merge_pv(view_menu: str, perm: Optional[str]) -> None:
             """Create permission view menu only if it doesn't exist"""
             if view_menu and perm and (view_menu, perm) not in all_pvs:
                 self.add_permission_view_menu(view_menu, perm)
 
         logger.info("Creating missing datasource permissions.")
-        datasources = ConnectorRegistry.get_all_datasources(self.get_session)
+        datasources = SqlaTable.get_all_datasources(self.get_session)
         for datasource in datasources:
             merge_pv("datasource_access", datasource.get_perm())
             merge_pv("schema_access", datasource.get_schema_perm())
@@ -726,12 +733,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 self.auth_role_public,
                 merge=True,
             )
-        if current_app.config.get("PUBLIC_ROLE_LIKE_GAMMA", False):
-            logger.warning(
-                "The config `PUBLIC_ROLE_LIKE_GAMMA` is deprecated and will be removed "
-                "in Superset 1.0. Please use `PUBLIC_ROLE_LIKE` instead."
-            )
-            self.copy_role("Gamma", self.auth_role_public, merge=True)
 
         self.create_missing_perms()
 
@@ -932,7 +933,55 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         return pvm.permission.name in {"can_override_role_permissions", "can_approve"}
 
-    def set_perm(  # pylint: disable=unused-argument
+    def on_permission_after_insert(
+        self, mapper: Mapper, connection: Connection, target: Permission
+    ) -> None:
+        """
+        Hook that allows for further custom operations when a new permission
+        is created by set_perm.
+
+        Since set_perm is executed by SQLAlchemy after_insert events, we cannot
+        create new permissions using a session, so any SQLAlchemy events hooked to
+        `Permission` will not trigger an after_insert.
+
+        :param mapper: The table mapper
+        :param connection: The DB-API connection
+        :param target: The mapped instance being persisted
+        """
+
+    def on_view_menu_after_insert(
+        self, mapper: Mapper, connection: Connection, target: ViewMenu
+    ) -> None:
+        """
+        Hook that allows for further custom operations when a new ViewMenu
+        is created by set_perm.
+
+        Since set_perm is executed by SQLAlchemy after_insert events, we cannot
+        create new view_menu's using a session, so any SQLAlchemy events hooked to
+        `ViewMenu` will not trigger an after_insert.
+
+        :param mapper: The table mapper
+        :param connection: The DB-API connection
+        :param target: The mapped instance being persisted
+        """
+
+    def on_permission_view_after_insert(
+        self, mapper: Mapper, connection: Connection, target: PermissionView
+    ) -> None:
+        """
+        Hook that allows for further custom operations when a new PermissionView
+        is created by set_perm.
+
+        Since set_perm is executed by SQLAlchemy after_insert events, we cannot
+        create new pvms using a session, so any SQLAlchemy events hooked to
+        `PermissionView` will not trigger an after_insert.
+
+        :param mapper: The table mapper
+        :param connection: The DB-API connection
+        :param target: The mapped instance being persisted
+        """
+
+    def set_perm(
         self, mapper: Mapper, connection: Connection, target: "BaseDatasource"
     ) -> None:
         """
@@ -942,14 +991,19 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :param connection: The DB-API connection
         :param target: The mapped instance being persisted
         """
+        try:
+            target_get_perm = target.get_perm()
+        except DatasetInvalidPermissionEvaluationException:
+            logger.warning("Dataset has no database refusing to set permission")
+            return
         link_table = target.__table__
-        if target.perm != target.get_perm():
+        if target.perm != target_get_perm:
             connection.execute(
                 link_table.update()
                 .where(link_table.c.id == target.id)
-                .values(perm=target.get_perm())
+                .values(perm=target_get_perm)
             )
-            target.perm = target.get_perm()
+            target.perm = target_get_perm
 
         if (
             hasattr(target, "schema_perm")
@@ -964,9 +1018,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         pvm_names = []
         if target.__tablename__ in {"dbs", "clusters"}:
-            pvm_names.append(("database_access", target.get_perm()))
+            pvm_names.append(("database_access", target_get_perm))
         else:
-            pvm_names.append(("datasource_access", target.get_perm()))
+            pvm_names.append(("datasource_access", target_get_perm))
             if target.schema:
                 pvm_names.append(("schema_access", target.get_schema_perm()))
 
@@ -984,12 +1038,14 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     permission_table.insert().values(name=permission_name)
                 )
                 permission = self.find_permission(permission_name)
+                self.on_permission_after_insert(mapper, connection, permission)
             if not view_menu:
                 view_menu_table = (
                     self.viewmenu_model.__table__  # pylint: disable=no-member
                 )
                 connection.execute(view_menu_table.insert().values(name=view_menu_name))
                 view_menu = self.find_view_menu(view_menu_name)
+                self.on_view_menu_after_insert(mapper, connection, view_menu)
 
             if permission and view_menu:
                 pv = (
@@ -1006,6 +1062,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                         permission_id=permission.id, view_menu_id=view_menu.id
                     )
                 )
+                permission = self.find_permission_view_menu(
+                    permission_name, view_menu_name
+                )
+                self.on_permission_view_after_insert(mapper, connection, permission)
 
     def raise_for_access(
         # pylint: disable=too-many-arguments,too-many-locals
@@ -1063,7 +1123,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
                     # Access to any datasource is suffice.
                     for datasource_ in datasources:
-                        if self.can_access("datasource_access", datasource_.perm):
+                        if self.can_access(
+                            "datasource_access", datasource_.perm
+                        ) or self.is_owner(datasource_):
                             break
                     else:
                         denied.add(table_)
@@ -1089,6 +1151,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             if not (
                 self.can_access_schema(datasource)
                 or self.can_access("datasource_access", datasource.perm or "")
+                or self.is_owner(datasource)
                 or (
                     should_check_dashboard_access
                     and self.can_access_based_on_dashboard(datasource)
@@ -1151,64 +1214,68 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :param table: The table to check against
         :returns: A list of filters
         """
-        if hasattr(g, "user"):
-            # pylint: disable=import-outside-toplevel
-            from superset.connectors.sqla.models import (
-                RLSFilterRoles,
-                RLSFilterTables,
-                RowLevelSecurityFilter,
-            )
 
-            user_roles = [role.id for role in self.get_user_roles()]
-            regular_filter_roles = (
-                self.get_session.query(RLSFilterRoles.c.rls_filter_id)
-                .join(RowLevelSecurityFilter)
-                .filter(
-                    RowLevelSecurityFilter.filter_type
-                    == RowLevelSecurityFilterType.REGULAR
-                )
-                .filter(RLSFilterRoles.c.role_id.in_(user_roles))
-                .subquery()
+        if not (hasattr(g, "user") and g.user is not None):
+            return []
+
+        # pylint: disable=import-outside-toplevel
+        from superset.connectors.sqla.models import (
+            RLSFilterRoles,
+            RLSFilterTables,
+            RowLevelSecurityFilter,
+        )
+
+        user_roles = [role.id for role in self.get_user_roles(g.user)]
+        regular_filter_roles = (
+            self.get_session()
+            .query(RLSFilterRoles.c.rls_filter_id)
+            .join(RowLevelSecurityFilter)
+            .filter(
+                RowLevelSecurityFilter.filter_type == RowLevelSecurityFilterType.REGULAR
             )
-            base_filter_roles = (
-                self.get_session.query(RLSFilterRoles.c.rls_filter_id)
-                .join(RowLevelSecurityFilter)
-                .filter(
-                    RowLevelSecurityFilter.filter_type
-                    == RowLevelSecurityFilterType.BASE
-                )
-                .filter(RLSFilterRoles.c.role_id.in_(user_roles))
-                .subquery()
+            .filter(RLSFilterRoles.c.role_id.in_(user_roles))
+            .subquery()
+        )
+        base_filter_roles = (
+            self.get_session()
+            .query(RLSFilterRoles.c.rls_filter_id)
+            .join(RowLevelSecurityFilter)
+            .filter(
+                RowLevelSecurityFilter.filter_type == RowLevelSecurityFilterType.BASE
             )
-            filter_tables = (
-                self.get_session.query(RLSFilterTables.c.rls_filter_id)
-                .filter(RLSFilterTables.c.table_id == table.id)
-                .subquery()
+            .filter(RLSFilterRoles.c.role_id.in_(user_roles))
+            .subquery()
+        )
+        filter_tables = (
+            self.get_session()
+            .query(RLSFilterTables.c.rls_filter_id)
+            .filter(RLSFilterTables.c.table_id == table.id)
+            .subquery()
+        )
+        query = (
+            self.get_session()
+            .query(
+                RowLevelSecurityFilter.id,
+                RowLevelSecurityFilter.group_key,
+                RowLevelSecurityFilter.clause,
             )
-            query = (
-                self.get_session.query(
-                    RowLevelSecurityFilter.id,
-                    RowLevelSecurityFilter.group_key,
-                    RowLevelSecurityFilter.clause,
-                )
-                .filter(RowLevelSecurityFilter.id.in_(filter_tables))
-                .filter(
-                    or_(
-                        and_(
-                            RowLevelSecurityFilter.filter_type
-                            == RowLevelSecurityFilterType.REGULAR,
-                            RowLevelSecurityFilter.id.in_(regular_filter_roles),
-                        ),
-                        and_(
-                            RowLevelSecurityFilter.filter_type
-                            == RowLevelSecurityFilterType.BASE,
-                            RowLevelSecurityFilter.id.notin_(base_filter_roles),
-                        ),
-                    )
+            .filter(RowLevelSecurityFilter.id.in_(filter_tables))
+            .filter(
+                or_(
+                    and_(
+                        RowLevelSecurityFilter.filter_type
+                        == RowLevelSecurityFilterType.REGULAR,
+                        RowLevelSecurityFilter.id.in_(regular_filter_roles),
+                    ),
+                    and_(
+                        RowLevelSecurityFilter.filter_type
+                        == RowLevelSecurityFilterType.BASE,
+                        RowLevelSecurityFilter.id.notin_(base_filter_roles),
+                    ),
                 )
             )
-            return query.all()
-        return []
+        )
+        return query.all()
 
     def get_rls_ids(self, table: "BaseDatasource") -> List[int]:
         """
@@ -1226,11 +1293,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         return [f.get("clause", "") for f in self.get_guest_rls_filters(table)]
 
     def get_rls_cache_key(self, datasource: "BaseDatasource") -> List[str]:
-        # pylint: disable=import-outside-toplevel
-        from superset import is_feature_enabled
-
         rls_ids = []
-        if is_feature_enabled("ROW_LEVEL_SECURITY") and datasource.is_rls_supported:
+        if datasource.is_rls_supported:
             rls_ids = self.get_rls_ids(datasource)
         rls_str = [str(rls_id) for rls_id in rls_ids]
         guest_rls = self.get_guest_rls_filters_str(datasource)
@@ -1238,10 +1302,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
     @staticmethod
     def raise_for_user_activity_access(user_id: int) -> None:
-        user = g.user if g.user and g.user.get_id() else None
-        if not user or (
+        if not get_user_id() or (
             not current_app.config["ENABLE_BROAD_ACTIVITY_ACCESS"]
-            and user_id != user.id
+            and user_id != get_user_id()
         ):
             raise SupersetSecurityException(
                 SupersetError(
@@ -1263,8 +1326,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         # pylint: disable=import-outside-toplevel
         from superset import is_feature_enabled
         from superset.dashboards.commands.exceptions import DashboardAccessDeniedError
-        from superset.views.base import is_user_admin
-        from superset.views.utils import is_owner
 
         def has_rbac_access() -> bool:
             return (not is_feature_enabled("DASHBOARD_RBAC")) or any(
@@ -1273,14 +1334,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 for dashboard_role in dashboard.roles
             )
 
-        if self.is_guest_user():
-            can_access = self.has_guest_access(
-                GuestTokenResourceType.DASHBOARD, dashboard.id
-            )
+        if self.is_guest_user() and dashboard.embedded:
+            can_access = self.has_guest_access(dashboard)
         else:
             can_access = (
-                is_user_admin()
-                or is_owner(dashboard, g.user)
+                self.is_admin()
+                or self.is_owner(dashboard)
                 or (dashboard.published and has_rbac_access())
                 or (not dashboard.published and not dashboard.roles)
             )
@@ -1312,7 +1371,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
     @staticmethod
     def _get_current_epoch_time() -> float:
-        """ This is used so the tests can mock time """
+        """This is used so the tests can mock time"""
         return time.time()
 
     @staticmethod
@@ -1321,6 +1380,24 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         if callable(audience):
             audience = audience()
         return audience
+
+    @staticmethod
+    def validate_guest_token_resources(resources: GuestTokenResources) -> None:
+        # pylint: disable=import-outside-toplevel
+        from superset.embedded.dao import EmbeddedDAO
+        from superset.embedded_dashboard.commands.exceptions import (
+            EmbeddedDashboardNotFoundError,
+        )
+        from superset.models.dashboard import Dashboard
+
+        for resource in resources:
+            if resource["type"] == GuestTokenResourceType.DASHBOARD.value:
+                # TODO (embedded): remove this check once uuids are rolled out
+                dashboard = Dashboard.get(str(resource["id"]))
+                if not dashboard:
+                    embedded = EmbeddedDAO.find_by_id(str(resource["id"]))
+                    if not embedded:
+                        raise EmbeddedDashboardNotFoundError()
 
     def create_guest_access_token(
         self,
@@ -1345,7 +1422,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             "aud": audience,
             "type": "guest",
         }
-        token = jwt.encode(claims, secret, algorithm=algo)
+        token = self.pyjwt_for_guest_token.encode(claims, secret, algorithm=algo)
         return token
 
     def get_guest_user_from_request(self, req: Request) -> Optional[GuestUser]:
@@ -1357,7 +1434,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         :return: A guest user object
         """
-        raw_token = req.headers.get(current_app.config["GUEST_TOKEN_HEADER_NAME"])
+        raw_token = req.headers.get(
+            current_app.config["GUEST_TOKEN_HEADER_NAME"]
+        ) or req.form.get("guest_token")
         if raw_token is None:
             return None
 
@@ -1381,7 +1460,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
     def get_guest_user_from_token(self, token: GuestToken) -> GuestUser:
         return self.guest_user_cls(
-            token=token, roles=[self.find_role(current_app.config["GUEST_ROLE_NAME"])],
+            token=token,
+            roles=[self.find_role(current_app.config["GUEST_ROLE_NAME"])],
         )
 
     def parse_jwt_guest_token(self, raw_token: str) -> Dict[str, Any]:
@@ -1393,7 +1473,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         secret = current_app.config["GUEST_TOKEN_JWT_SECRET"]
         algo = current_app.config["GUEST_TOKEN_JWT_ALGO"]
         audience = self._get_guest_token_jwt_audience()
-        return jwt.decode(raw_token, secret, algorithms=[algo], audience=audience)
+        return self.pyjwt_for_guest_token.decode(
+            raw_token, secret, algorithms=[algo], audience=audience
+        )
 
     @staticmethod
     def is_guest_user(user: Optional[Any] = None) -> bool:
@@ -1412,15 +1494,92 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             return g.user
         return None
 
-    def has_guest_access(
-        self, resource_type: GuestTokenResourceType, resource_id: Union[str, int]
-    ) -> bool:
+    def has_guest_access(self, dashboard: "Dashboard") -> bool:
         user = self.get_current_guest_user_if_guest()
         if not user:
             return False
 
-        strid = str(resource_id)
-        for resource in user.resources:
-            if resource["type"] == resource_type.value and str(resource["id"]) == strid:
+        dashboards = [
+            r
+            for r in user.resources
+            if r["type"] == GuestTokenResourceType.DASHBOARD.value
+        ]
+
+        # TODO (embedded): remove this check once uuids are rolled out
+        for resource in dashboards:
+            if str(resource["id"]) == str(dashboard.id):
+                return True
+
+        if not dashboard.embedded:
+            return False
+
+        for resource in dashboards:
+            if str(resource["id"]) == str(dashboard.embedded[0].uuid):
                 return True
         return False
+
+    def raise_for_ownership(self, resource: Model) -> None:
+        """
+        Raise an exception if the user does not own the resource.
+
+        Note admins are deemed owners of all resources.
+
+        :param resource: The dashboard, dataste, chart, etc. resource
+        :raises SupersetSecurityException: If the current user is not an owner
+        """
+
+        # pylint: disable=import-outside-toplevel
+        from superset import db
+
+        if self.is_admin():
+            return
+
+        # Set of wners that works across ORM models.
+        owners: List[User] = []
+
+        orig_resource = db.session.query(resource.__class__).get(resource.id)
+
+        if orig_resource:
+            if hasattr(resource, "owners"):
+                owners += orig_resource.owners
+
+            if hasattr(resource, "owner"):
+                owners.append(orig_resource.owner)
+
+            if hasattr(resource, "created_by"):
+                owners.append(orig_resource.created_by)
+
+        if g.user.is_anonymous or g.user not in owners:
+            raise SupersetSecurityException(
+                SupersetError(
+                    error_type=SupersetErrorType.MISSING_OWNERSHIP_ERROR,
+                    message=f"You don't have the rights to alter [{resource}]",
+                    level=ErrorLevel.ERROR,
+                )
+            )
+
+    def is_owner(self, resource: Model) -> bool:
+        """
+        Returns True if the current user is an owner of the resource, False otherwise.
+
+        :param resource: The dashboard, dataste, chart, etc. resource
+        :returns: Whethe the current user is an owner of the resource
+        """
+
+        try:
+            self.raise_for_ownership(resource)
+        except SupersetSecurityException:
+            return False
+
+        return True
+
+    def is_admin(self) -> bool:
+        """
+        Returns True if the current user is an admin user, False otherwise.
+
+        :returns: Whehther the current user is an admin user
+        """
+
+        return current_app.config["AUTH_ROLE_ADMIN"] in [
+            role.name for role in self.get_user_roles()
+        ]

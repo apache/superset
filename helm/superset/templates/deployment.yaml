@@ -65,6 +65,9 @@ spec:
       {{- end }}
       securityContext:
         runAsUser: {{ .Values.runAsUser }}
+      {{- if .Values.supersetNode.securityContext }}
+        {{ toYaml .Values.supersetNode.securityContext | nindent 8 }}
+      {{- end }}
       {{- if .Values.supersetNode.initContainers }}
       initContainers:
       {{-  tpl (toYaml .Values.supersetNode.initContainers) . | nindent 6 }}
@@ -115,7 +118,11 @@ spec:
               containerPort: {{ .Values.service.port }}
               protocol: TCP
           resources:
+          {{- if .Values.supersetNode.resources }}
+{{ toYaml .Values.supersetNode.resources | indent 12 }}
+          {{- else }}
 {{ toYaml .Values.resources | indent 12 }}
+          {{- end }}
     {{- with .Values.nodeSelector }}
       nodeSelector:
 {{ toYaml . | indent 8 }}

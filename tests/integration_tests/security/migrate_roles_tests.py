@@ -102,7 +102,12 @@ def create_old_role(pvm_map: PvmMigrationMapType, external_pvms):
         ),
         (
             "Many to one with multiple permissions",
-            {"NewDummy": ("can_read", "can_write",)},
+            {
+                "NewDummy": (
+                    "can_read",
+                    "can_write",
+                )
+            },
             {
                 Pvm("DummyView", "can_list"): (Pvm("NewDummy", "can_read"),),
                 Pvm("DummyView", "can_show"): (Pvm("NewDummy", "can_read"),),
@@ -115,7 +120,12 @@ def create_old_role(pvm_map: PvmMigrationMapType, external_pvms):
         ),
         (
             "Many to one with multiple views",
-            {"NewDummy": ("can_read", "can_write",)},
+            {
+                "NewDummy": (
+                    "can_read",
+                    "can_write",
+                )
+            },
             {
                 Pvm("DummyView", "can_list"): (Pvm("NewDummy", "can_read"),),
                 Pvm("DummyView", "can_show"): (Pvm("NewDummy", "can_read"),),
@@ -132,7 +142,12 @@ def create_old_role(pvm_map: PvmMigrationMapType, external_pvms):
         ),
         (
             "Many to one with existing permission-view (pvm)",
-            {"NewDummy": ("can_read", "can_write",)},
+            {
+                "NewDummy": (
+                    "can_read",
+                    "can_write",
+                )
+            },
             {
                 Pvm("DummyView", "can_list"): (Pvm("NewDummy", "can_read"),),
                 Pvm("DummyView", "can_add"): (Pvm("NewDummy", "can_write"),),
@@ -143,20 +158,33 @@ def create_old_role(pvm_map: PvmMigrationMapType, external_pvms):
         ),
         (
             "Many to one with existing multiple permission-view (pvm)",
-            {"NewDummy": ("can_read", "can_write",)},
+            {
+                "NewDummy": (
+                    "can_read",
+                    "can_write",
+                )
+            },
             {
                 Pvm("DummyView", "can_list"): (Pvm("NewDummy", "can_read"),),
                 Pvm("DummyView", "can_add"): (Pvm("NewDummy", "can_write"),),
                 Pvm("DummySecondView", "can_list"): (Pvm("NewDummy", "can_read"),),
                 Pvm("DummySecondView", "can_add"): (Pvm("NewDummy", "can_write"),),
             },
-            (Pvm("UserDBModelView", "can_list"), Pvm("UserDBModelView", "can_add"),),
+            (
+                Pvm("UserDBModelView", "can_list"),
+                Pvm("UserDBModelView", "can_add"),
+            ),
             ("DummyView",),
             (),
         ),
         (
             "Many to one with with old permission that gets deleted",
-            {"NewDummy": ("can_read", "can_write",)},
+            {
+                "NewDummy": (
+                    "can_read",
+                    "can_write",
+                )
+            },
             {
                 Pvm("DummyView", "can_new_perm"): (Pvm("NewDummy", "can_read"),),
                 Pvm("DummyView", "can_add"): (Pvm("NewDummy", "can_write"),),
@@ -167,7 +195,13 @@ def create_old_role(pvm_map: PvmMigrationMapType, external_pvms):
         ),
         (
             "Many to Many (normally should be a downgrade)",
-            {"DummyView": ("can_list", "can_show", "can_add",)},
+            {
+                "DummyView": (
+                    "can_list",
+                    "can_show",
+                    "can_add",
+                )
+            },
             {
                 Pvm("NewDummy", "can_read"): (
                     Pvm("DummyView", "can_list"),
@@ -181,13 +215,22 @@ def create_old_role(pvm_map: PvmMigrationMapType, external_pvms):
         ),
         (
             "Many to Many delete old permissions",
-            {"DummyView": ("can_list", "can_show", "can_add",)},
+            {
+                "DummyView": (
+                    "can_list",
+                    "can_show",
+                    "can_add",
+                )
+            },
             {
                 Pvm("NewDummy", "can_new_perm1"): (
                     Pvm("DummyView", "can_list"),
                     Pvm("DummyView", "can_show"),
                 ),
-                Pvm("NewDummy", "can_new_perm2",): (Pvm("DummyView", "can_add"),),
+                Pvm(
+                    "NewDummy",
+                    "can_new_perm2",
+                ): (Pvm("DummyView", "can_add"),),
             },
             (),
             ("NewDummy",),

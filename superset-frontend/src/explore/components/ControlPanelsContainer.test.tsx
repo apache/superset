@@ -30,7 +30,7 @@ import {
   ControlPanelsContainerProps,
 } from 'src/explore/components/ControlPanelsContainer';
 
-describe('ControlPanelsContainer2', () => {
+describe('ControlPanelsContainer', () => {
   beforeAll(() => {
     getChartControlPanelRegistry().registerValue('table', {
       controlPanelSections: [
@@ -90,6 +90,10 @@ describe('ControlPanelsContainer2', () => {
       form_data: getFormDataFromControls(controls),
       isDatasourceMetaLoading: false,
       exploreState: {},
+      chart: {
+        queriesResponse: null,
+        chartStatus: 'success',
+      },
     } as ControlPanelsContainerProps;
   }
 

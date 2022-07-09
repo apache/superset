@@ -59,8 +59,14 @@ spec:
         {{ toYaml .Values.supersetCeleryBeat.podLabels | nindent 8 }}
       {{- end }}
     spec:
+      {{- if or (.Values.serviceAccount.create) (.Values.serviceAccountName) }}
+      serviceAccountName: {{ template "superset.serviceAccountName" . }}
+      {{- end }}
       securityContext:
         runAsUser: {{ .Values.runAsUser }}
+      {{- if .Values.supersetCeleryBeat.securityContext }}
+        {{ toYaml .Values.supersetCeleryBeat.securityContext | nindent 8 }}
+      {{- end }}
       {{- if .Values.supersetCeleryBeat.initContainers }}
       initContainers:
       {{-  tpl (toYaml .Values.supersetCeleryBeat.initContainers) . | nindent 6 }}
@@ -98,7 +104,11 @@ spec:
           {{- tpl (toYaml .) $ | nindent 12 -}}
           {{- end }}
           resources:
+          {{- if .Values.supersetCeleryBeat.resources }}
+{{ toYaml .Values.supersetCeleryBeat.resources | indent 12 }}
+          {{- else }}
 {{ toYaml .Values.resources | indent 12 }}
+          {{- end }}
     {{- with .Values.nodeSelector }}
       nodeSelector:
 {{ toYaml . | indent 8 }}

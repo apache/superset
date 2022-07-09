@@ -23,7 +23,6 @@ import Button from 'src/components/Button';
 import Icons from 'src/components/Icons';
 import Fieldset from './Fieldset';
 import { recurseReactClone } from './utils';
-import './crud.less';
 
 interface CRUDCollectionProps {
   allowAddItem?: boolean;
@@ -102,14 +101,40 @@ const CrudTableWrapper = styled.div<{ stickyHeader?: boolean }>`
         min
       }
     `}
-  th span {
-    vertical-align: ${({ theme }) => theme.gridUnit * -2}px;
-  }
+  ${({ theme }) => `
+    th span {
+      vertical-align: ${theme.gridUnit * -2}px;
+    }
+    .text-right {
+      text-align: right;
+    }
+    .empty-collection {
+      padding: ${theme.gridUnit * 2 + 2}px;
+    }
+    .tiny-cell {
+      width: ${theme.gridUnit + 1}px;
+    }
+    i.fa-caret-down,
+    i.fa-caret-up {
+      width: ${theme.gridUnit + 1}px;
+    }
+    td.expanded {
+      border-top: 0;
+      padding: 0;
+    }
+  `}
 `;
 
 const CrudButtonWrapper = styled.div`
   text-align: right;
   ${({ theme }) => `margin-bottom: ${theme.gridUnit * 2}px`}
+`;
+
+const StyledButtonWrapper = styled.span`
+  ${({ theme }) => `
+    margin-top: ${theme.gridUnit * 3}px;
+    margin-left: ${theme.gridUnit * 3}px;
+  `}
 `;
 
 export default class CRUDCollection extends React.PureComponent<
@@ -406,7 +431,7 @@ export default class CRUDCollection extends React.PureComponent<
       <>
         <CrudButtonWrapper>
           {this.props.allowAddItem && (
-            <span className="m-t-10 m-r-10">
+            <StyledButtonWrapper>
               <Button
                 buttonSize="small"
                 buttonStyle="tertiary"
@@ -416,7 +441,7 @@ export default class CRUDCollection extends React.PureComponent<
                 <i data-test="crud-add-table-item" className="fa fa-plus" />{' '}
                 {t('Add item')}
               </Button>
-            </span>
+            </StyledButtonWrapper>
           )}
         </CrudButtonWrapper>
         <CrudTableWrapper

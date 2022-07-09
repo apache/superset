@@ -38,6 +38,7 @@ import {
   queryEditorSetSelectedText,
   queryEditorSetSchemaOptions,
 } from 'src/SqlLab/actions/sqlLab';
+import { EmptyStateBig } from 'src/components/EmptyState';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import { initialState, queries, table } from 'src/SqlLab/fixtures';
 
@@ -57,7 +58,19 @@ describe('SqlEditor', () => {
       queryEditorSetSchemaOptions,
       addDangerToast: jest.fn(),
     },
-    database: {},
+    database: {
+      allow_ctas: false,
+      allow_cvas: false,
+      allow_dml: false,
+      allow_file_upload: false,
+      allow_multi_schema_metadata_fetch: false,
+      allow_run_async: false,
+      backend: 'postgresql',
+      database_name: 'examples',
+      expose_in_sqllab: true,
+      force_ctas_schema: null,
+      id: 1,
+    },
     queryEditorId: initialState.sqlLab.queryEditors[0].id,
     latestQuery: queries[0],
     tables: [table],
@@ -80,6 +93,12 @@ describe('SqlEditor', () => {
       },
     );
 
+  it('does not render SqlEditor if no db selected', () => {
+    const database = {};
+    const updatedProps = { ...mockedProps, database };
+    const wrapper = buildWrapper(updatedProps);
+    expect(wrapper.find(EmptyStateBig)).toExist();
+  });
   it('render a SqlEditorLeftBar', async () => {
     const wrapper = buildWrapper();
     await waitForComponentToPaint(wrapper);

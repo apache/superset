@@ -29,7 +29,11 @@ def test_column_model(app_context: None, session: Session) -> None:
     engine = session.get_bind()
     Column.metadata.create_all(engine)  # pylint: disable=no-member
 
-    column = Column(name="ds", type="TIMESTAMP", expression="ds",)
+    column = Column(
+        name="ds",
+        type="TIMESTAMP",
+        expression="ds",
+    )
 
     session.add(column)
     session.flush()

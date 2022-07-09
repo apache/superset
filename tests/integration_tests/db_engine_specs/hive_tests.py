@@ -166,7 +166,10 @@ def test_convert_dttm():
 def test_df_to_csv() -> None:
     with pytest.raises(SupersetException):
         HiveEngineSpec.df_to_sql(
-            mock.MagicMock(), Table("foobar"), pd.DataFrame(), {"if_exists": "append"},
+            mock.MagicMock(),
+            Table("foobar"),
+            pd.DataFrame(),
+            {"if_exists": "append"},
         )
 
 

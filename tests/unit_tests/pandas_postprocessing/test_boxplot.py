@@ -16,7 +16,7 @@
 # under the License.
 import pytest
 
-from superset.exceptions import QueryObjectValidationError
+from superset.exceptions import InvalidPostProcessingError
 from superset.utils.core import PostProcessingBoxplotWhiskerType
 from superset.utils.pandas_postprocessing import boxplot
 from tests.unit_tests.fixtures.dataframes import names_df
@@ -90,7 +90,7 @@ def test_boxplot_percentile():
 
 
 def test_boxplot_percentile_incorrect_params():
-    with pytest.raises(QueryObjectValidationError):
+    with pytest.raises(InvalidPostProcessingError):
         boxplot(
             df=names_df,
             groupby=["region"],
@@ -98,7 +98,7 @@ def test_boxplot_percentile_incorrect_params():
             metrics=["cars"],
         )
 
-    with pytest.raises(QueryObjectValidationError):
+    with pytest.raises(InvalidPostProcessingError):
         boxplot(
             df=names_df,
             groupby=["region"],
@@ -107,7 +107,7 @@ def test_boxplot_percentile_incorrect_params():
             percentiles=[10],
         )
 
-    with pytest.raises(QueryObjectValidationError):
+    with pytest.raises(InvalidPostProcessingError):
         boxplot(
             df=names_df,
             groupby=["region"],
@@ -116,7 +116,7 @@ def test_boxplot_percentile_incorrect_params():
             percentiles=[90, 10],
         )
 
-    with pytest.raises(QueryObjectValidationError):
+    with pytest.raises(InvalidPostProcessingError):
         boxplot(
             df=names_df,
             groupby=["region"],
@@ -124,3 +124,28 @@ def test_boxplot_percentile_incorrect_params():
             metrics=["cars"],
             percentiles=[10, 90, 10],
         )
+
+
+def test_boxplot_type_coercion():
+    df = names_df
+    df["cars"] = df["cars"].astype(str)
+    df = boxplot(
+        df=df,
+        groupby=["region"],
+        whisker_type=PostProcessingBoxplotWhiskerType.TUKEY,
+        metrics=["cars"],
+    )
+
+    columns = {column for column in df.columns}
+    assert columns == {
+        "cars__mean",
+        "cars__median",
+        "cars__q1",
+        "cars__q3",
+        "cars__max",
+        "cars__min",
+        "cars__count",
+        "cars__outliers",
+        "region",
+    }
+    assert len(df) == 4

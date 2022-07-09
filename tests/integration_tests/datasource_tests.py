@@ -22,12 +22,13 @@ from unittest import mock
 import prison
 import pytest
 
-from superset import app, ConnectorRegistry, db
+from superset import app, db
 from superset.connectors.sqla.models import SqlaTable
+from superset.dao.exceptions import DatasourceNotFound, DatasourceTypeNotSupportedError
 from superset.datasets.commands.exceptions import DatasetNotFoundError
 from superset.exceptions import SupersetGenericDBErrorException
 from superset.models.core import Database
-from superset.utils.core import get_example_default_schema
+from superset.utils.core import DatasourceType, get_example_default_schema
 from superset.utils.database import get_example_database
 from tests.integration_tests.base_tests import db_insert_temp_object, SupersetTestCase
 from tests.integration_tests.fixtures.birth_names_dashboard import (
@@ -158,7 +159,11 @@ class TestDatasource(SupersetTestCase):
 
         # No databases found
         params = prison.dumps(
-            {"datasource_type": "table", "database_name": "foo", "table_name": "bar",}
+            {
+                "datasource_type": "table",
+                "database_name": "foo",
+                "table_name": "bar",
+            }
         )
         url = f"/datasource/external_metadata_by_name/?q={params}"
         resp = self.client.get(url)
@@ -185,7 +190,11 @@ class TestDatasource(SupersetTestCase):
         )
 
         # invalid query params
-        params = prison.dumps({"datasource_type": "table",})
+        params = prison.dumps(
+            {
+                "datasource_type": "table",
+            }
+        )
         url = f"/datasource/external_metadata_by_name/?q={params}"
         resp = self.get_json_resp(url)
         self.assertIn("error", resp)
@@ -248,9 +257,10 @@ class TestDatasource(SupersetTestCase):
 
         pytest.raises(
             SupersetGenericDBErrorException,
-            lambda: ConnectorRegistry.get_datasource(
-                "table", tbl.id, db.session
-            ).external_metadata(),
+            lambda: db.session.query(SqlaTable)
+            .filter_by(id=tbl.id)
+            .one_or_none()
+            .external_metadata(),
         )
 
         resp = self.client.get(url)
@@ -270,6 +280,7 @@ class TestDatasource(SupersetTestCase):
 
         datasource_post = get_datasource_post()
         datasource_post["id"] = tbl_id
+        datasource_post["owners"] = [1]
         data = dict(data=json.dumps(datasource_post))
         resp = self.get_json_resp("/datasource/save/", data)
         for k in datasource_post:
@@ -291,11 +302,14 @@ class TestDatasource(SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_change_database(self):
         self.login(username="admin")
+        admin_user = self.get_user("admin")
+
         tbl = self.get_table(name="birth_names")
         tbl_id = tbl.id
         db_id = tbl.database_id
         datasource_post = get_datasource_post()
         datasource_post["id"] = tbl_id
+        datasource_post["owners"] = [admin_user.id]
 
         new_db = self.create_fake_db()
         datasource_post["database"]["id"] = new_db.id
@@ -310,10 +324,12 @@ class TestDatasource(SupersetTestCase):
 
     def test_save_duplicate_key(self):
         self.login(username="admin")
+        admin_user = self.get_user("admin")
         tbl_id = self.get_table(name="birth_names").id
 
         datasource_post = get_datasource_post()
         datasource_post["id"] = tbl_id
+        datasource_post["owners"] = [admin_user.id]
         datasource_post["columns"].extend(
             [
                 {
@@ -338,10 +354,12 @@ class TestDatasource(SupersetTestCase):
 
     def test_get_datasource(self):
         self.login(username="admin")
+        admin_user = self.get_user("admin")
         tbl = self.get_table(name="birth_names")
 
         datasource_post = get_datasource_post()
         datasource_post["id"] = tbl.id
+        datasource_post["owners"] = [admin_user.id]
         data = dict(data=json.dumps(datasource_post))
         self.get_json_resp("/datasource/save/", data)
         url = f"/datasource/get/{tbl.type}/{tbl.id}/"
@@ -369,21 +387,30 @@ class TestDatasource(SupersetTestCase):
         app.config["DATASET_HEALTH_CHECK"] = my_check
         self.login(username="admin")
         tbl = self.get_table(name="birth_names")
-        datasource = ConnectorRegistry.get_datasource("table", tbl.id, db.session)
+        datasource = db.session.query(SqlaTable).filter_by(id=tbl.id).one_or_none()
         assert datasource.health_check_message == "Warning message!"
         app.config["DATASET_HEALTH_CHECK"] = None
 
     def test_get_datasource_failed(self):
+        from superset.datasource.dao import DatasourceDAO
+
         pytest.raises(
-            DatasetNotFoundError,
-            lambda: ConnectorRegistry.get_datasource("table", 9999999, db.session),
+            DatasourceNotFound,
+            lambda: DatasourceDAO.get_datasource(db.session, "table", 9999999),
+        )
+
+        self.login(username="admin")
+        resp = self.get_json_resp("/datasource/get/table/500000/", raise_on_error=False)
+        self.assertEqual(resp.get("error"), "Datasource does not exist")
+
+    def test_get_datasource_invalid_datasource_failed(self):
+        from superset.datasource.dao import DatasourceDAO
+
+        pytest.raises(
+            DatasourceTypeNotSupportedError,
+            lambda: DatasourceDAO.get_datasource(db.session, "druid", 9999999),
         )
 
         self.login(username="admin")
         resp = self.get_json_resp("/datasource/get/druid/500000/", raise_on_error=False)
-        self.assertEqual(resp.get("error"), "Dataset does not exist")
-
-        resp = self.get_json_resp(
-            "/datasource/get/invalid-datasource-type/500000/", raise_on_error=False
-        )
-        self.assertEqual(resp.get("error"), "Dataset does not exist")
+        self.assertEqual(resp.get("error"), "'druid' is not a valid DatasourceType")

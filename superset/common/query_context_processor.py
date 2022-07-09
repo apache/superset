@@ -32,11 +32,15 @@ from superset.charts.dao import ChartDAO
 from superset.common.chart_data import ChartDataResultFormat
 from superset.common.db_query_status import QueryStatus
 from superset.common.query_actions import get_query_results
-from superset.common.utils import dataframe_utils as df_utils
+from superset.common.utils import dataframe_utils
 from superset.common.utils.query_cache_manager import QueryCacheManager
 from superset.connectors.base.models import BaseDatasource
 from superset.constants import CacheRegion
-from superset.exceptions import QueryObjectValidationError, SupersetException
+from superset.exceptions import (
+    InvalidPostProcessingError,
+    QueryObjectValidationError,
+    SupersetException,
+)
 from superset.extensions import cache_manager, security_manager
 from superset.models.helpers import QueryResult
 from superset.utils import csv
@@ -48,7 +52,7 @@ from superset.utils.core import (
     get_column_names_from_metrics,
     get_metric_names,
     normalize_dttm_col,
-    TIME_COMPARISION,
+    TIME_COMPARISON,
 )
 from superset.utils.date_parser import get_past_or_future, normalize_time_delta
 from superset.views.utils import get_viz
@@ -95,7 +99,10 @@ class QueryContextProcessor:
         """Handles caching around the df payload retrieval"""
         cache_key = self.query_cache_key(query_obj)
         cache = QueryCacheManager.get(
-            cache_key, CacheRegion.DATA, self._query_context.force, force_cached,
+            cache_key,
+            CacheRegion.DATA,
+            self._query_context.force,
+            force_cached,
         )
 
         if query_obj and cache_key and not cache.is_loaded:
@@ -196,7 +203,11 @@ class QueryContextProcessor:
                 query += ";\n\n".join(queries)
                 query += ";\n\n"
 
-            df = query_object.exec_post_processing(df)
+            # Re-raising QueryObjectValidationError
+            try:
+                df = query_object.exec_post_processing(df)
+            except InvalidPostProcessingError as ex:
+                raise QueryObjectValidationError from ex
 
         result.df = df
         result.query = query
@@ -220,14 +231,16 @@ class QueryContextProcessor:
         )
 
         if self.enforce_numerical_metrics:
-            df_utils.df_metrics_to_num(df, query_object)
+            dataframe_utils.df_metrics_to_num(df, query_object)
 
         df.replace([np.inf, -np.inf], np.nan, inplace=True)
 
         return df
 
     def processing_time_offsets(  # pylint: disable=too-many-locals
-        self, df: pd.DataFrame, query_object: QueryObject,
+        self,
+        df: pd.DataFrame,
+        query_object: QueryObject,
     ) -> CachedTimeOffset:
         query_context = self._query_context
         # ensure query_object is immutable
@@ -242,7 +255,8 @@ class QueryContextProcessor:
         for offset in time_offsets:
             try:
                 query_object_clone.from_dttm = get_past_or_future(
-                    offset, outer_from_dttm,
+                    offset,
+                    outer_from_dttm,
                 )
                 query_object_clone.to_dttm = get_past_or_future(offset, outer_to_dttm)
             except ValueError as ex:
@@ -275,7 +289,7 @@ class QueryContextProcessor:
             query_object_clone_dct = query_object_clone.to_dict()
             # rename metrics: SUM(value) => SUM(value) 1 year ago
             metrics_mapping = {
-                metric: TIME_COMPARISION.join([metric, offset])
+                metric: TIME_COMPARISON.join([metric, offset])
                 for metric in get_metric_names(
                     query_object_clone_dct.get("metrics", [])
                 )
@@ -308,13 +322,23 @@ class QueryContextProcessor:
                 #  multi-dimensional charts
                 granularity = query_object.granularity
                 index = granularity if granularity in df.columns else DTTM_ALIAS
+                if not dataframe_utils.is_datetime_series(offset_metrics_df.get(index)):
+                    raise QueryObjectValidationError(
+                        _(
+                            "A time column must be specified "
+                            "when using a Time Comparison."
+                        )
+                    )
+
                 offset_metrics_df[index] = offset_metrics_df[index] - DateOffset(
                     **normalize_time_delta(offset)
                 )
 
             # df left join `offset_metrics_df`
-            offset_df = df_utils.left_join_df(
-                left_df=df, right_df=offset_metrics_df, join_keys=join_keys,
+            offset_df = dataframe_utils.left_join_df(
+                left_df=df,
+                right_df=offset_metrics_df,
+                join_keys=join_keys,
             )
             offset_slice = offset_df[metrics_mapping.values()]
 
@@ -350,7 +374,9 @@ class QueryContextProcessor:
         return df.to_dict(orient="records")
 
     def get_payload(
-        self, cache_query_context: Optional[bool] = False, force_cached: bool = False,
+        self,
+        cache_query_context: Optional[bool] = False,
+        force_cached: bool = False,
     ) -> Dict[str, Any]:
         """Returns the query results with both metadata and data"""
 
@@ -453,9 +479,9 @@ class QueryContextProcessor:
         annotation_layer: Dict[str, Any], force: bool
     ) -> Dict[str, Any]:
         chart = ChartDAO.find_by_id(annotation_layer["value"])
-        form_data = chart.form_data.copy()
         if not chart:
             raise QueryObjectValidationError(_("The chart does not exist"))
+        form_data = chart.form_data.copy()
         try:
             viz_obj = get_viz(
                 datasource_type=chart.datasource.type,

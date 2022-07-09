@@ -20,7 +20,7 @@ import { getLabelFontSize } from './utils';
 
 export default function transformProps(chartProps) {
   const { width, height, formData, queriesData } = chartProps;
-  const { colorScheme } = formData;
+  const { colorScheme, sliceId } = formData;
 
   return {
     width,
@@ -28,5 +28,6 @@ export default function transformProps(chartProps) {
     data: queriesData[0].data,
     colorScheme,
     fontSize: getLabelFontSize(width),
+    sliceId,
   };
 }

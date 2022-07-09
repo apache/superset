@@ -25,8 +25,14 @@ import {
   DeriveEncoding,
   Encoder,
 } from 'encodable';
-import { SupersetThemeProps, withTheme, seedRandom } from '@superset-ui/core';
+import {
+  SupersetThemeProps,
+  withTheme,
+  seed,
+  CategoricalColorScale,
+} from '@superset-ui/core';
 
+const seedRandom = seed('superset-ui');
 export const ROTATION = {
   flat: () => 0,
   // this calculates a random rotation between -90 and 90 degrees.
@@ -58,6 +64,7 @@ export interface WordCloudProps extends WordCloudVisualProps {
   data: PlainObject[];
   height: number;
   width: number;
+  sliceId: number;
 }
 
 export interface WordCloudState {
@@ -99,7 +106,7 @@ class WordCloud extends React.PureComponent<
       text: 'Text',
     },
     defaultEncoding: {
-      color: { value: 'black' },
+      color: { value: this.props.theme.colors.grayscale.dark2 },
       fontFamily: { value: this.props.theme.typography.families.sansSerif },
       fontSize: { value: 20 },
       fontWeight: { value: 'bold' },
@@ -210,11 +217,14 @@ class WordCloud extends React.PureComponent<
 
   render() {
     const { scaleFactor } = this.state;
-    const { width, height, encoding } = this.props;
+    const { width, height, encoding, sliceId } = this.props;
     const { words } = this.state;
 
     const encoder = this.createEncoder(encoding);
     encoder.channels.color.setDomainFromDataset(words);
+
+    const { getValueFromDatum } = encoder.channels.color;
+    const colorFn = encoder.channels.color.scale as CategoricalColorScale;
 
     const viewBoxWidth = width * scaleFactor;
     const viewBoxHeight = height * scaleFactor;
@@ -234,7 +244,7 @@ class WordCloud extends React.PureComponent<
               fontSize={`${w.size}px`}
               fontWeight={w.weight}
               fontFamily={w.font}
-              fill={encoder.channels.color.encodeDatum(w, '')}
+              fill={colorFn(getValueFromDatum(w) as string, sliceId)}
               textAnchor="middle"
               transform={`translate(${w.x}, ${w.y}) rotate(${w.rotate})`}
             >

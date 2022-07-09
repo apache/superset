@@ -30,8 +30,10 @@ from superset.models.reports import (
     ReportExecutionLog,
     ReportRecipients,
     ReportSchedule,
+    ReportScheduleType,
     ReportState,
 )
+from superset.utils.core import get_user_id
 
 logger = logging.getLogger(__name__)
 
@@ -115,14 +117,14 @@ class ReportScheduleDAO(BaseDAO):
 
     @staticmethod
     def validate_unique_creation_method(
-        user_id: int, dashboard_id: Optional[int] = None, chart_id: Optional[int] = None
+        dashboard_id: Optional[int] = None, chart_id: Optional[int] = None
     ) -> bool:
         """
         Validate if the user already has a chart or dashboard
         with a report attached form the self subscribe reports
         """
 
-        query = db.session.query(ReportSchedule).filter_by(created_by_fk=user_id)
+        query = db.session.query(ReportSchedule).filter_by(created_by_fk=get_user_id())
         if dashboard_id is not None:
             query = query.filter(ReportSchedule.dashboard_id == dashboard_id)
 
@@ -133,23 +135,24 @@ class ReportScheduleDAO(BaseDAO):
 
     @staticmethod
     def validate_update_uniqueness(
-        name: str, report_type: str, report_schedule_id: Optional[int] = None
+        name: str, report_type: ReportScheduleType, expect_id: Optional[int] = None
     ) -> bool:
         """
         Validate if this name and type is unique.
 
         :param name: The report schedule name
         :param report_type: The report schedule type
-        :param report_schedule_id: The report schedule current id
-        (only for validating on updates)
+        :param expect_id: The id of the expected report schedule with the
+          name + type combination. Useful for validating existing report schedule.
         :return: bool
         """
-        query = db.session.query(ReportSchedule).filter(
-            ReportSchedule.name == name, ReportSchedule.type == report_type
+        found_id = (
+            db.session.query(ReportSchedule.id)
+            .filter(ReportSchedule.name == name, ReportSchedule.type == report_type)
+            .limit(1)
+            .scalar()
         )
-        if report_schedule_id:
-            query = query.filter(ReportSchedule.id != report_schedule_id)
-        return not db.session.query(query.exists()).scalar()
+        return found_id is None or found_id == expect_id
 
     @classmethod
     def create(cls, properties: Dict[str, Any], commit: bool = True) -> Model:
@@ -227,7 +230,8 @@ class ReportScheduleDAO(BaseDAO):
 
     @staticmethod
     def find_last_success_log(
-        report_schedule: ReportSchedule, session: Optional[Session] = None,
+        report_schedule: ReportSchedule,
+        session: Optional[Session] = None,
     ) -> Optional[ReportExecutionLog]:
         """
         Finds last success execution log for a given report
@@ -245,7 +249,8 @@ class ReportScheduleDAO(BaseDAO):
 
     @staticmethod
     def find_last_entered_working_log(
-        report_schedule: ReportSchedule, session: Optional[Session] = None,
+        report_schedule: ReportSchedule,
+        session: Optional[Session] = None,
     ) -> Optional[ReportExecutionLog]:
         """
         Finds last success execution log for a given report
@@ -264,7 +269,8 @@ class ReportScheduleDAO(BaseDAO):
 
     @staticmethod
     def find_last_error_notification(
-        report_schedule: ReportSchedule, session: Optional[Session] = None,
+        report_schedule: ReportSchedule,
+        session: Optional[Session] = None,
     ) -> Optional[ReportExecutionLog]:
         """
         Finds last error email sent

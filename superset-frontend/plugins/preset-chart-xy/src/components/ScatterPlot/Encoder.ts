@@ -34,7 +34,7 @@ export type ScatterPlotEncodingConfig = {
   tooltip: ['Text', string, 'multiple'];
 };
 
-export const scatterPlotEncoderFactory =
+export const scatterPlotEncoderFactory = (darkGray: string) =>
   createEncoderFactory<ScatterPlotEncodingConfig>({
     channelTypes: {
       x: 'X',
@@ -48,7 +48,7 @@ export const scatterPlotEncoderFactory =
     defaultEncoding: {
       x: { field: 'x', type: 'quantitative' },
       y: { field: 'y', type: 'quantitative' },
-      fill: { value: '#222' },
+      fill: { value: darkGray },
       group: [],
       size: { value: 5 },
       stroke: { value: 'none' },

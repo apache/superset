@@ -25,6 +25,7 @@ import {
   getTimeFormatter,
   NumberFormats,
   NumberFormatter,
+  t,
 } from '@superset-ui/core';
 import { CallbackDataParams } from 'echarts/types/src/util/types';
 import { EChartsCoreOption, PieSeriesOption } from 'echarts';
@@ -35,7 +36,7 @@ import {
   EchartsPieLabelType,
   PieChartTransformedProps,
 } from './types';
-import { DEFAULT_LEGEND_FORM_DATA } from '../types';
+import { DEFAULT_LEGEND_FORM_DATA, OpacityEnum } from '../constants';
 import {
   extractGroupbyLabel,
   getChartPadding,
@@ -44,7 +45,7 @@ import {
   sanitizeHtml,
 } from '../utils/series';
 import { defaultGrid, defaultTooltip } from '../defaults';
-import { OpacityEnum } from '../constants';
+import { convertInteger } from '../utils/convertInteger';
 
 const percentFormatter = getNumberFormatter(NumberFormats.PERCENT_2_POINT);
 
@@ -82,10 +83,58 @@ export function formatPieLabel({
   }
 }
 
+function getTotalValuePadding({
+  chartPadding,
+  donut,
+  width,
+  height,
+}: {
+  chartPadding: {
+    bottom: number;
+    left: number;
+    right: number;
+    top: number;
+  };
+  donut: boolean;
+  width: number;
+  height: number;
+}) {
+  const padding: {
+    left?: string;
+    top?: string;
+  } = {
+    top: donut ? 'middle' : '0',
+    left: 'center',
+  };
+  const LEGEND_HEIGHT = 15;
+  const LEGEND_WIDTH = 215;
+  if (chartPadding.top) {
+    padding.top = donut
+      ? `${50 + ((chartPadding.top - LEGEND_HEIGHT) / height / 2) * 100}%`
+      : `${((chartPadding.top + LEGEND_HEIGHT) / height) * 100}%`;
+  }
+  if (chartPadding.bottom) {
+    padding.top = donut
+      ? `${50 - ((chartPadding.bottom + LEGEND_HEIGHT) / height / 2) * 100}%`
+      : '0';
+  }
+  if (chartPadding.left) {
+    padding.left = `${
+      50 + ((chartPadding.left - LEGEND_WIDTH) / width / 2) * 100
+    }%`;
+  }
+  if (chartPadding.right) {
+    padding.left = `${
+      50 - ((chartPadding.right + LEGEND_WIDTH) / width / 2) * 100
+    }%`;
+  }
+  return padding;
+}
+
 export default function transformProps(
   chartProps: EchartsPieChartProps,
 ): PieChartTransformedProps {
-  const { formData, height, hooks, filterState, queriesData, width } =
+  const { formData, height, hooks, filterState, queriesData, width, theme } =
     chartProps;
   const { data = [] } = queriesData[0];
   const coltypeMapping = getColtypesMapping(queriesData[0]);
@@ -109,6 +158,8 @@ export default function transformProps(
     showLegend,
     showLabelsThreshold,
     emitFilter,
+    sliceId,
+    showTotal,
   }: EchartsPieFormData = {
     ...DEFAULT_LEGEND_FORM_DATA,
     ...DEFAULT_PIE_FORM_DATA,
@@ -146,6 +197,7 @@ export default function transformProps(
 
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
   const numberFormatter = getNumberFormatter(numberFormat);
+  let totalValue = 0;
 
   const transformedData: PieSeriesOption[] = data.map(datum => {
     const name = extractGroupbyLabel({
@@ -157,12 +209,17 @@ export default function transformProps(
 
     const isFiltered =
       filterState.selectedValues && !filterState.selectedValues.includes(name);
+    const value = datum[metricLabel];
+
+    if (typeof value === 'number' || typeof value === 'string') {
+      totalValue += convertInteger(value);
+    }
 
     return {
-      value: datum[metricLabel],
+      value,
       name,
       itemStyle: {
-        color: colorFn(name),
+        color: colorFn(name, sliceId),
         opacity: isFiltered
           ? OpacityEnum.SemiTransparent
           : OpacityEnum.NonTransparent,
@@ -193,13 +250,19 @@ export default function transformProps(
   const defaultLabel = {
     formatter,
     show: showLabels,
-    color: '#000000',
+    color: theme.colors.grayscale.dark2,
   };
+
+  const chartPadding = getChartPadding(
+    showLegend,
+    legendOrientation,
+    legendMargin,
+  );
 
   const series: PieSeriesOption[] = [
     {
       type: 'pie',
-      ...getChartPadding(showLegend, legendOrientation, legendMargin),
+      ...chartPadding,
       animation: false,
       radius: [`${donut ? innerRadius : 0}%`, `${outerRadius}%`],
       center: ['50%', '50%'],
@@ -221,7 +284,7 @@ export default function transformProps(
         label: {
           show: true,
           fontWeight: 'bold',
-          backgroundColor: 'white',
+          backgroundColor: theme.colors.grayscale.light5,
         },
       },
       data: transformedData,
@@ -247,6 +310,18 @@ export default function transformProps(
       ...getLegendProps(legendType, legendOrientation, showLegend),
       data: keys,
     },
+    graphic: showTotal
+      ? {
+          type: 'text',
+          ...getTotalValuePadding({ chartPadding, donut, width, height }),
+          style: {
+            text: t('Total: %s', numberFormatter(totalValue)),
+            fontSize: 16,
+            fontWeight: 'bold',
+          },
+          z: 10,
+        }
+      : null,
     series,
   };
 

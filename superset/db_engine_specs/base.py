@@ -40,7 +40,8 @@ import pandas as pd
 import sqlparse
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
-from flask import current_app, g
+from flask import current_app
+from flask_appbuilder.security.sqla.models import User
 from flask_babel import gettext as __, lazy_gettext as _
 from marshmallow import fields, Schema
 from marshmallow.validate import Range
@@ -48,7 +49,7 @@ from sqlalchemy import column, select, types
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.interfaces import Compiled, Dialect
 from sqlalchemy.engine.reflection import Inspector
-from sqlalchemy.engine.url import make_url, URL
+from sqlalchemy.engine.url import URL
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import quoted_name, text
@@ -58,12 +59,13 @@ from sqlparse.tokens import CTE
 from typing_extensions import TypedDict
 
 from superset import security_manager, sql_parse
+from superset.databases.utils import make_url_safe
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.models.sql_lab import Query
-from superset.models.sql_types.base import literal_dttm_type_factory
 from superset.sql_parse import ParsedQuery, Table
+from superset.superset_typing import ResultSetColumnType
 from superset.utils import core as utils
-from superset.utils.core import ColumnSpec, GenericDataType
+from superset.utils.core import ColumnSpec, GenericDataType, get_username
 from superset.utils.hashing import md5_sha_from_str
 from superset.utils.network import is_hostname_valid, is_port_open
 
@@ -205,7 +207,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             types.BigInteger(),
             GenericDataType.NUMERIC,
         ),
-        (re.compile(r"^long", re.IGNORECASE), types.Float(), GenericDataType.NUMERIC,),
+        (
+            re.compile(r"^long", re.IGNORECASE),
+            types.Float(),
+            GenericDataType.NUMERIC,
+        ),
         (
             re.compile(r"^decimal", re.IGNORECASE),
             types.Numeric(),
@@ -216,13 +222,21 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             types.Numeric(),
             GenericDataType.NUMERIC,
         ),
-        (re.compile(r"^float", re.IGNORECASE), types.Float(), GenericDataType.NUMERIC,),
+        (
+            re.compile(r"^float", re.IGNORECASE),
+            types.Float(),
+            GenericDataType.NUMERIC,
+        ),
         (
             re.compile(r"^double", re.IGNORECASE),
             types.Float(),
             GenericDataType.NUMERIC,
         ),
-        (re.compile(r"^real", re.IGNORECASE), types.REAL, GenericDataType.NUMERIC,),
+        (
+            re.compile(r"^real", re.IGNORECASE),
+            types.REAL,
+            GenericDataType.NUMERIC,
+        ),
         (
             re.compile(r"^smallserial", re.IGNORECASE),
             types.SmallInteger(),
@@ -255,10 +269,14 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         ),
         (
             re.compile(r"^date", re.IGNORECASE),
-            types.DateTime(),
+            types.Date(),
             GenericDataType.TEMPORAL,
         ),
-        (re.compile(r"^time", re.IGNORECASE), types.Time(), GenericDataType.TEMPORAL,),
+        (
+            re.compile(r"^time", re.IGNORECASE),
+            types.Time(),
+            GenericDataType.TEMPORAL,
+        ),
         (
             re.compile(r"^interval", re.IGNORECASE),
             types.Interval(),
@@ -351,7 +369,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     @classmethod
     def get_allow_cost_estimate(  # pylint: disable=unused-argument
-        cls, extra: Dict[str, Any],
+        cls,
+        extra: Dict[str, Any],
     ) -> bool:
         return False
 
@@ -374,10 +393,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         schema: Optional[str] = None,
         source: Optional[str] = None,
     ) -> Engine:
-        user_name = utils.get_username()
-        return database.get_sqla_engine(
-            schema=schema, nullpool=True, user_name=user_name, source=source
-        )
+        return database.get_sqla_engine(schema=schema, source=source)
 
     @classmethod
     def get_timestamp_expr(
@@ -549,8 +565,10 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     @classmethod
     def expand_data(
-        cls, columns: List[Dict[Any, Any]], data: List[Dict[Any, Any]]
-    ) -> Tuple[List[Dict[Any, Any]], List[Dict[Any, Any]], List[Dict[Any, Any]]]:
+        cls, columns: List[ResultSetColumnType], data: List[Dict[Any, Any]]
+    ) -> Tuple[
+        List[ResultSetColumnType], List[Dict[Any, Any]], List[ResultSetColumnType]
+    ]:
         """
         Some engines support expanding nested fields. See implementation in Presto
         spec for details.
@@ -618,7 +636,10 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     @classmethod
     def extra_table_metadata(  # pylint: disable=unused-argument
-        cls, database: "Database", table_name: str, schema_name: str,
+        cls,
+        database: "Database",
+        table_name: str,
+        schema_name: Optional[str],
     ) -> Dict[str, Any]:
         """
         Returns engine-specific table metadata
@@ -812,7 +833,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
     ) -> Optional[str]:
         """
-        Convert Python datetime object to a SQL expression
+        Convert a Python `datetime` object to a SQL expression.
 
         :param target_type: The target type of expression
         :param dttm: The datetime object
@@ -840,18 +861,24 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         all_datasources: List[utils.DatasourceName] = []
         for schema in schemas:
             if datasource_type == "table":
-                all_datasources += database.get_all_table_names_in_schema(
-                    schema=schema,
-                    force=True,
-                    cache=database.table_cache_enabled,
-                    cache_timeout=database.table_cache_timeout,
+                all_datasources.extend(
+                    utils.DatasourceName(*datasource_name)
+                    for datasource_name in database.get_all_table_names_in_schema(
+                        schema=schema,
+                        force=True,
+                        cache=database.table_cache_enabled,
+                        cache_timeout=database.table_cache_timeout,
+                    )
                 )
             elif datasource_type == "view":
-                all_datasources += database.get_all_view_names_in_schema(
-                    schema=schema,
-                    force=True,
-                    cache=database.table_cache_enabled,
-                    cache_timeout=database.table_cache_timeout,
+                all_datasources.extend(
+                    utils.DatasourceName(*datasource_name)
+                    for datasource_name in database.get_all_view_names_in_schema(
+                        schema=schema,
+                        force=True,
+                        cache=database.table_cache_enabled,
+                        cache_timeout=database.table_cache_timeout,
+                    )
                 )
             else:
                 raise Exception(f"Unsupported datasource_type: {datasource_type}")
@@ -944,7 +971,10 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     @classmethod
     def get_table_names(  # pylint: disable=unused-argument
-        cls, database: "Database", inspector: Inspector, schema: Optional[str],
+        cls,
+        database: "Database",
+        inspector: Inspector,
+        schema: Optional[str],
     ) -> List[str]:
         """
         Get all tables from schema
@@ -961,7 +991,10 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     @classmethod
     def get_view_names(  # pylint: disable=unused-argument
-        cls, database: "Database", inspector: Inspector, schema: Optional[str],
+        cls,
+        database: "Database",
+        inspector: Inspector,
+        schema: Optional[str],
     ) -> List[str]:
         """
         Get all views from schema
@@ -1123,22 +1156,24 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         raise Exception("Database does not support cost estimation")
 
     @classmethod
-    def process_statement(
-        cls, statement: str, database: "Database", user_name: str
-    ) -> str:
+    def process_statement(cls, statement: str, database: "Database") -> str:
         """
         Process a SQL statement by stripping and mutating it.
 
         :param statement: A single SQL statement
         :param database: Database instance
-        :param user_name: Effective username
         :return: Dictionary with different costs
         """
         parsed_query = ParsedQuery(statement)
         sql = parsed_query.stripped()
         sql_query_mutator = current_app.config["SQL_QUERY_MUTATOR"]
         if sql_query_mutator:
-            sql = sql_query_mutator(sql, user_name, security_manager, database)
+            sql = sql_query_mutator(
+                sql,
+                user_name=get_username(),  # TODO(john-bodley): Deprecate in 3.0.
+                security_manager=security_manager,
+                database=database,
+            )
 
         return sql
 
@@ -1158,7 +1193,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         if not cls.get_allow_cost_estimate(extra):
             raise Exception("Database does not support cost estimation")
 
-        user_name = g.user.username if g.user and hasattr(g.user, "username") else None
         parsed_query = sql_parse.ParsedQuery(sql)
         statements = parsed_query.get_statements()
 
@@ -1167,9 +1201,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         with closing(engine.raw_connection()) as conn:
             cursor = conn.cursor()
             for statement in statements:
-                processed_statement = cls.process_statement(
-                    statement, database, user_name
-                )
+                processed_statement = cls.process_statement(statement, database)
                 costs.append(cls.estimate_statement_cost(processed_statement, cursor))
         return costs
 
@@ -1188,7 +1220,10 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     @classmethod
     def update_impersonation_config(
-        cls, connect_args: Dict[str, Any], uri: str, username: Optional[str],
+        cls,
+        connect_args: Dict[str, Any],
+        uri: str,
+        username: Optional[str],
     ) -> None:
         """
         Update a configuration dictionary
@@ -1202,7 +1237,10 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     @classmethod
     def execute(  # pylint: disable=unused-argument
-        cls, cursor: Any, query: str, **kwargs: Any,
+        cls,
+        cursor: Any,
+        query: str,
+        **kwargs: Any,
     ) -> None:
         """
         Execute a SQL query
@@ -1328,7 +1366,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     @classmethod
     def get_function_names(  # pylint: disable=unused-argument
-        cls, database: "Database",
+        cls,
+        database: "Database",
     ) -> List[str]:
         """
         Get a list of function names that are able to be called on the database.
@@ -1440,12 +1479,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         )
         if col_types:
             column_type, generic_type = col_types
-            # wrap temporal types in custom type that supports literal binding
-            # using datetimes
-            if generic_type == GenericDataType.TEMPORAL:
-                column_type = literal_dttm_type_factory(
-                    column_type, cls, native_type or "", db_extra=db_extra or {}
-                )
             is_dttm = generic_type == GenericDataType.TEMPORAL
             return ColumnSpec(
                 sqla_type=column_type, generic_type=generic_type, is_dttm=is_dttm
@@ -1466,7 +1499,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     @classmethod
     def get_cancel_query_id(  # pylint: disable=unused-argument
-        cls, cursor: Any, query: Query,
+        cls,
+        cursor: Any,
+        query: Query,
     ) -> Optional[str]:
         """
         Select identifiers from the database engine that uniquely identifies the
@@ -1482,7 +1517,10 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     @classmethod
     def cancel_query(  # pylint: disable=unused-argument
-        cls, cursor: Any, query: Query, cancel_query_id: str,
+        cls,
+        cursor: Any,
+        query: Query,
+        cancel_query_id: str,
     ) -> bool:
         """
         Cancel query in the underlying database.
@@ -1500,6 +1538,17 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     def parse_sql(cls, sql: str) -> List[str]:
         return [str(s).strip(" ;") for s in sqlparse.parse(sql)]
 
+    @classmethod
+    def get_impersonation_key(cls, user: Optional[User]) -> Any:
+        """
+        Construct an impersonation key, by default it's the given username.
+
+        :param user: logged in user
+
+        :returns: username if given user is not null
+        """
+        return user.username if user else None
+
 
 # schema for adding a database by providing parameters instead of the
 # full SQLAlchemy URI
@@ -1510,7 +1559,7 @@ class BasicParametersSchema(Schema):
     port = fields.Integer(
         required=True,
         description=__("Database port"),
-        validate=Range(min=0, max=2 ** 16, max_inclusive=False),
+        validate=Range(min=0, max=2**16, max_inclusive=False),
     )
     database = fields.String(required=True, description=__("Database name"))
     query = fields.Dict(
@@ -1587,7 +1636,7 @@ class BasicParametersMixin:
     def get_parameters_from_uri(  # pylint: disable=unused-argument
         cls, uri: str, encrypted_extra: Optional[Dict[str, Any]] = None
     ) -> BasicParametersType:
-        url = make_url(uri)
+        url = make_url_safe(uri)
         query = {
             key: value
             for (key, value) in url.query.items()
@@ -1660,7 +1709,7 @@ class BasicParametersMixin:
                     extra={"invalid": ["port"]},
                 ),
             )
-        if not (isinstance(port, int) and 0 <= port < 2 ** 16):
+        if not (isinstance(port, int) and 0 <= port < 2**16):
             errors.append(
                 SupersetError(
                     message=(

@@ -43,10 +43,11 @@ export interface ChartMetadataConfig {
   exampleGallery?: ExampleImage[];
   tags?: string[];
   category?: string | null;
-  label?: {
-    name?: ChartLabel;
-    description?: string;
-  } | null;
+  // deprecated: true hides a chart from all viz picker interactions.
+  deprecated?: boolean;
+  // label: ChartLabel.DEPRECATED which will display a "deprecated" label on the chart.
+  label?: ChartLabel | null;
+  labelExplanation?: string | null;
 }
 
 export default class ChartMetadata {
@@ -80,10 +81,11 @@ export default class ChartMetadata {
 
   category: string | null;
 
-  label?: {
-    name?: ChartLabel;
-    description?: string;
-  } | null;
+  deprecated?: boolean;
+
+  label?: ChartLabel | null;
+
+  labelExplanation?: string | null;
 
   constructor(config: ChartMetadataConfig) {
     const {
@@ -101,7 +103,9 @@ export default class ChartMetadata {
       exampleGallery = [],
       tags = [],
       category = null,
+      deprecated = false,
       label = null,
+      labelExplanation = null,
     } = config;
 
     this.name = name;
@@ -127,7 +131,9 @@ export default class ChartMetadata {
     this.exampleGallery = exampleGallery;
     this.tags = tags;
     this.category = category;
+    this.deprecated = deprecated;
     this.label = label;
+    this.labelExplanation = labelExplanation;
   }
 
   canBeAnnotationType(type: string): boolean {

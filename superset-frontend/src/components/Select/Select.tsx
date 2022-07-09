@@ -27,6 +27,7 @@ import React, {
   useState,
   useRef,
   useCallback,
+  useImperativeHandle,
 } from 'react';
 import { ensureIsArray, styled, t } from '@superset-ui/core';
 import AntdSelect, {
@@ -35,14 +36,14 @@ import AntdSelect, {
   LabeledValue as AntdLabeledValue,
 } from 'antd/lib/select';
 import { DownOutlined, SearchOutlined } from '@ant-design/icons';
+import { Spin } from 'antd';
 import debounce from 'lodash/debounce';
 import { isEqual } from 'lodash';
-import { Spin } from 'antd';
 import Icons from 'src/components/Icons';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { SLOW_DEBOUNCE } from 'src/constants';
 import { rankedSearchCompare } from 'src/utils/rankedSearchCompare';
-import { getValue, hasOption } from './utils';
+import { getValue, hasOption, isLabeledValue } from './utils';
 
 const { Option } = AntdSelect;
 
@@ -64,7 +65,9 @@ type PickedSelectProps = Pick<
   | 'onDropdownVisibleChange'
   | 'placeholder'
   | 'showSearch'
+  | 'tokenSeparators'
   | 'value'
+  | 'getPopupContainer'
 >;
 
 export type OptionsType = Exclude<AntdSelectAllProps['options'], undefined>;
@@ -79,6 +82,8 @@ export type OptionsPagePromise = (
   page: number,
   pageSize: number,
 ) => Promise<OptionsTypePage>;
+
+export type SelectRef = HTMLInputElement & { clearCache: () => void };
 
 export interface SelectProps extends PickedSelectProps {
   /**
@@ -310,10 +315,12 @@ const Select = (
     placeholder = t('Select ...'),
     showSearch = true,
     sortComparator = DEFAULT_SORT_COMPARATOR,
+    tokenSeparators,
     value,
+    getPopupContainer,
     ...props
   }: SelectProps,
-  ref: RefObject<HTMLInputElement>,
+  ref: RefObject<SelectRef>,
 ) => {
   const isAsync = typeof options === 'function';
   const isSingleMode = mode === 'single';
@@ -374,7 +381,7 @@ const Select = (
     const missingValues: OptionsType = ensureIsArray(selectValue)
       .filter(opt => !hasOption(getValue(opt), selectOptions))
       .map(opt =>
-        typeof opt === 'object' ? opt : { value: opt, label: String(opt) },
+        isLabeledValue(opt) ? opt : { value: opt, label: String(opt) },
       );
     return missingValues.length > 0
       ? missingValues.concat(selectOptions)
@@ -384,42 +391,37 @@ const Select = (
   const hasCustomLabels = fullSelectOptions.some(opt => !!opt?.customLabel);
 
   const handleOnSelect = (
-    selectedValue: string | number | AntdLabeledValue,
+    selectedItem: string | number | AntdLabeledValue | undefined,
   ) => {
     if (isSingleMode) {
-      setSelectValue(selectedValue);
+      setSelectValue(selectedItem);
     } else {
-      const currentSelected = selectValue
-        ? Array.isArray(selectValue)
-          ? selectValue
-          : [selectValue]
-        : [];
-      if (
-        typeof selectedValue === 'number' ||
-        typeof selectedValue === 'string'
-      ) {
-        setSelectValue([
-          ...(currentSelected as (string | number)[]),
-          selectedValue as string | number,
-        ]);
-      } else {
-        setSelectValue([
-          ...(currentSelected as AntdLabeledValue[]),
-          selectedValue as AntdLabeledValue,
-        ]);
-      }
+      setSelectValue(previousState => {
+        const array = ensureIsArray(previousState);
+        const value = getValue(selectedItem);
+        // Tokenized values can contain duplicated values
+        if (!hasOption(value, array)) {
+          const result = [...array, selectedItem];
+          return isLabeledValue(selectedItem)
+            ? (result as AntdLabeledValue[])
+            : (result as (string | number)[]);
+        }
+        return previousState;
+      });
     }
     setInputValue('');
   };
 
-  const handleOnDeselect = (value: string | number | AntdLabeledValue) => {
+  const handleOnDeselect = (
+    value: string | number | AntdLabeledValue | undefined,
+  ) => {
     if (Array.isArray(selectValue)) {
-      if (typeof value === 'number' || typeof value === 'string') {
-        const array = selectValue as (string | number)[];
-        setSelectValue(array.filter(element => element !== value));
-      } else {
+      if (isLabeledValue(value)) {
         const array = selectValue as AntdLabeledValue[];
         setSelectValue(array.filter(element => element.value !== value.value));
+      } else {
+        const array = selectValue as (string | number)[];
+        setSelectValue(array.filter(element => element !== value));
       }
     }
     setInputValue('');
@@ -681,6 +683,17 @@ const Select = (
     }
   }, [isLoading, loading]);
 
+  const clearCache = () => fetchedQueries.current.clear();
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      ...(ref.current as HTMLInputElement),
+      clearCache,
+    }),
+    [ref],
+  );
+
   return (
     <StyledContainer>
       {header}
@@ -690,7 +703,9 @@ const Select = (
         dropdownRender={dropdownRender}
         filterOption={handleFilterOption}
         filterSort={sortComparatorWithSearch}
-        getPopupContainer={triggerNode => triggerNode.parentNode}
+        getPopupContainer={
+          getPopupContainer || (triggerNode => triggerNode.parentNode)
+        }
         labelInValue={isAsync || labelInValue}
         maxTagCount={MAX_TAG_COUNT}
         mode={mappedMode}
@@ -706,7 +721,7 @@ const Select = (
         placeholder={placeholder}
         showSearch={shouldShowSearch}
         showArrow
-        tokenSeparators={TOKEN_SEPARATORS}
+        tokenSeparators={tokenSeparators || TOKEN_SEPARATORS}
         value={selectValue}
         suffixIcon={getSuffixIcon()}
         menuItemSelectedIcon={

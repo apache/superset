@@ -14,25 +14,29 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-
-# pylint: disable=invalid-name, too-many-lines
+# pylint: disable=invalid-name, redefined-outer-name, unused-argument, protected-access, too-many-lines
 
 import unittest
-from typing import Set
+from typing import Optional, Set
 
 import pytest
 import sqlparse
+from pytest_mock import MockerFixture
+from sqlalchemy import text
+from sqlparse.sql import Identifier, Token, TokenList
+from sqlparse.tokens import Name
 
 from superset.exceptions import QueryClauseValidationException
 from superset.sql_parse import (
     add_table_name,
+    extract_table_references,
+    get_rls_for_table,
     has_table_query,
     insert_rls,
-    matches_table_name,
     ParsedQuery,
+    sanitize_clause,
     strip_comments_from_sql,
     Table,
-    validate_filter_clause,
 )
 
 
@@ -1142,52 +1146,46 @@ def test_strip_comments_from_sql() -> None:
     )
 
 
-def test_validate_filter_clause_valid():
+def test_sanitize_clause_valid():
     # regular clauses
-    assert validate_filter_clause("col = 1") is None
-    assert validate_filter_clause("1=\t\n1") is None
-    assert validate_filter_clause("(col = 1)") is None
-    assert validate_filter_clause("(col1 = 1) AND (col2 = 2)") is None
+    assert sanitize_clause("col = 1") == "col = 1"
+    assert sanitize_clause("1=\t\n1") == "1=\t\n1"
+    assert sanitize_clause("(col = 1)") == "(col = 1)"
+    assert sanitize_clause("(col1 = 1) AND (col2 = 2)") == "(col1 = 1) AND (col2 = 2)"
+    assert sanitize_clause("col = 'abc' -- comment") == "col = 'abc' -- comment\n"
 
-    # Valid literal values that appear to be invalid
-    assert validate_filter_clause("col = 'col1 = 1) AND (col2 = 2'") is None
-    assert validate_filter_clause("col = 'select 1; select 2'") is None
-    assert validate_filter_clause("col = 'abc -- comment'") is None
+    # Valid literal values that at could be flagged as invalid by a naive query parser
+    assert (
+        sanitize_clause("col = 'col1 = 1) AND (col2 = 2'")
+        == "col = 'col1 = 1) AND (col2 = 2'"
+    )
+    assert sanitize_clause("col = 'select 1; select 2'") == "col = 'select 1; select 2'"
+    assert sanitize_clause("col = 'abc -- comment'") == "col = 'abc -- comment'"
 
 
-def test_validate_filter_clause_closing_unclosed():
+def test_sanitize_clause_closing_unclosed():
     with pytest.raises(QueryClauseValidationException):
-        validate_filter_clause("col1 = 1) AND (col2 = 2)")
+        sanitize_clause("col1 = 1) AND (col2 = 2)")
 
 
-def test_validate_filter_clause_unclosed():
+def test_sanitize_clause_unclosed():
     with pytest.raises(QueryClauseValidationException):
-        validate_filter_clause("(col1 = 1) AND (col2 = 2")
+        sanitize_clause("(col1 = 1) AND (col2 = 2")
 
 
-def test_validate_filter_clause_closing_and_unclosed():
+def test_sanitize_clause_closing_and_unclosed():
     with pytest.raises(QueryClauseValidationException):
-        validate_filter_clause("col1 = 1) AND (col2 = 2")
+        sanitize_clause("col1 = 1) AND (col2 = 2")
 
 
-def test_validate_filter_clause_closing_and_unclosed_nested():
+def test_sanitize_clause_closing_and_unclosed_nested():
     with pytest.raises(QueryClauseValidationException):
-        validate_filter_clause("(col1 = 1)) AND ((col2 = 2)")
+        sanitize_clause("(col1 = 1)) AND ((col2 = 2)")
 
 
-def test_validate_filter_clause_multiple():
+def test_sanitize_clause_multiple():
     with pytest.raises(QueryClauseValidationException):
-        validate_filter_clause("TRUE; SELECT 1")
-
-
-def test_validate_filter_clause_comment():
-    with pytest.raises(QueryClauseValidationException):
-        validate_filter_clause("1 = 1 -- comment")
-
-
-def test_validate_filter_clause_subquery_comment():
-    with pytest.raises(QueryClauseValidationException):
-        validate_filter_clause("(1 = 1 -- comment\n)")
+        sanitize_clause("TRUE; SELECT 1")
 
 
 def test_sqlparse_issue_652():
@@ -1208,6 +1206,8 @@ def test_sqlparse_issue_652():
         ("SELECT * FROM (SELECT 1 AS foo, 2 AS bar) ORDER BY foo ASC, bar", False),
         ("SELECT * FROM other_table", True),
         ("extract(HOUR from from_unixtime(hour_ts)", False),
+        ("(SELECT * FROM table)", True),
+        ("(SELECT COUNT(DISTINCT name) from birth_names)", True),
     ],
 )
 def test_has_table_query(sql: str, expected: bool) -> None:
@@ -1395,13 +1395,39 @@ def test_has_table_query(sql: str, expected: bool) -> None:
         ),
     ],
 )
-def test_insert_rls(sql: str, table: str, rls: str, expected: str) -> None:
+def test_insert_rls(
+    mocker: MockerFixture, sql: str, table: str, rls: str, expected: str
+) -> None:
     """
     Insert into a statement a given RLS condition associated with a table.
     """
-    statement = sqlparse.parse(sql)[0]
     condition = sqlparse.parse(rls)[0]
-    assert str(insert_rls(statement, table, condition)).strip() == expected.strip()
+    add_table_name(condition, table)
+
+    # pylint: disable=unused-argument
+    def get_rls_for_table(
+        candidate: Token,
+        database_id: int,
+        default_schema: str,
+    ) -> Optional[TokenList]:
+        """
+        Return the RLS ``condition`` if ``candidate`` matches ``table``.
+        """
+        # compare ignoring schema
+        for left, right in zip(str(candidate).split(".")[::-1], table.split(".")[::-1]):
+            if left != right:
+                return None
+        return condition
+
+    mocker.patch("superset.sql_parse.get_rls_for_table", new=get_rls_for_table)
+
+    statement = sqlparse.parse(sql)[0]
+    assert (
+        str(
+            insert_rls(token_list=statement, database_id=1, default_schema="my_schema")
+        ).strip()
+        == expected.strip()
+    )
 
 
 @pytest.mark.parametrize(
@@ -1419,16 +1445,77 @@ def test_add_table_name(rls: str, table: str, expected: str) -> None:
     assert str(condition) == expected
 
 
-@pytest.mark.parametrize(
-    "candidate,table,expected",
-    [
-        ("table", "table", True),
-        ("schema.table", "table", True),
-        ("table", "schema.table", True),
-        ('schema."my table"', '"my table"', True),
-        ('schema."my.table"', '"my.table"', True),
-    ],
-)
-def test_matches_table_name(candidate: str, table: str, expected: bool) -> None:
-    token = sqlparse.parse(candidate)[0].tokens[0]
-    assert matches_table_name(token, table) == expected
+def test_get_rls_for_table(mocker: MockerFixture, app_context: None) -> None:
+    """
+    Tests for ``get_rls_for_table``.
+    """
+    candidate = Identifier([Token(Name, "some_table")])
+    db = mocker.patch("superset.db")
+    dataset = db.session.query().filter().one_or_none()
+    dataset.__str__.return_value = "some_table"
+
+    dataset.get_sqla_row_level_filters.return_value = [text("organization_id = 1")]
+    assert (
+        str(get_rls_for_table(candidate, 1, "public"))
+        == "some_table.organization_id = 1"
+    )
+
+    dataset.get_sqla_row_level_filters.return_value = [
+        text("organization_id = 1"),
+        text("foo = 'bar'"),
+    ]
+    assert (
+        str(get_rls_for_table(candidate, 1, "public"))
+        == "some_table.organization_id = 1 AND some_table.foo = 'bar'"
+    )
+
+    dataset.get_sqla_row_level_filters.return_value = []
+    assert get_rls_for_table(candidate, 1, "public") is None
+
+
+def test_extract_table_references(mocker: MockerFixture) -> None:
+    """
+    Test the ``extract_table_references`` helper function.
+    """
+    assert extract_table_references("SELECT 1", "trino") == set()
+    assert extract_table_references("SELECT 1 FROM some_table", "trino") == {
+        Table(table="some_table", schema=None, catalog=None)
+    }
+    assert extract_table_references("SELECT {{ jinja }} FROM some_table", "trino") == {
+        Table(table="some_table", schema=None, catalog=None)
+    }
+    assert extract_table_references(
+        "SELECT 1 FROM some_catalog.some_schema.some_table", "trino"
+    ) == {Table(table="some_table", schema="some_schema", catalog="some_catalog")}
+
+    # with identifier quotes
+    assert extract_table_references(
+        "SELECT 1 FROM `some_catalog`.`some_schema`.`some_table`", "mysql"
+    ) == {Table(table="some_table", schema="some_schema", catalog="some_catalog")}
+    assert extract_table_references(
+        'SELECT 1 FROM "some_catalog".some_schema."some_table"', "trino"
+    ) == {Table(table="some_table", schema="some_schema", catalog="some_catalog")}
+
+    assert extract_table_references(
+        "SELECT * FROM some_table JOIN other_table ON some_table.id = other_table.id",
+        "trino",
+    ) == {
+        Table(table="some_table", schema=None, catalog=None),
+        Table(table="other_table", schema=None, catalog=None),
+    }
+
+    # test falling back to sqlparse
+    logger = mocker.patch("superset.sql_parse.logger")
+    sql = "SELECT * FROM table UNION ALL SELECT * FROM other_table"
+    assert extract_table_references(
+        sql,
+        "trino",
+    ) == {Table(table="other_table", schema=None, catalog=None)}
+    logger.warning.assert_called_once()
+
+    logger = mocker.patch("superset.migrations.shared.utils.logger")
+    sql = "SELECT * FROM table UNION ALL SELECT * FROM other_table"
+    assert extract_table_references(sql, "trino", show_warning=False) == {
+        Table(table="other_table", schema=None, catalog=None)
+    }
+    logger.warning.assert_not_called()

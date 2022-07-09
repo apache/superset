@@ -23,8 +23,10 @@ import { extent as d3Extent } from 'd3-array';
 import {
   getNumberFormatter,
   getSequentialSchemeRegistry,
+  CategoricalColorNamespace,
 } from '@superset-ui/core';
 import Datamap from 'datamaps/dist/datamaps.world.min';
+import { ColorBy } from './utils';
 
 const propTypes = {
   data: PropTypes.arrayOf(
@@ -55,6 +57,10 @@ function WorldMap(element, props) {
     showBubbles,
     linearColorScheme,
     color,
+    colorBy,
+    colorScheme,
+    sliceId,
+    theme,
   } = props;
   const div = d3.select(element);
   div.classed('superset-legacy-chart-world-map', true);
@@ -69,15 +75,27 @@ function WorldMap(element, props) {
     .domain([extRadius[0], extRadius[1]])
     .range([1, maxBubbleSize]);
 
-  const colorScale = getSequentialSchemeRegistry()
-    .get(linearColorScheme)
-    .createLinearScale(d3Extent(filteredData, d => d.m1));
+  let processedData;
+  let colorScale;
+  if (colorBy === ColorBy.country) {
+    colorScale = CategoricalColorNamespace.getScale(colorScheme);
 
-  const processedData = filteredData.map(d => ({
-    ...d,
-    radius: radiusScale(Math.sqrt(d.m2)),
-    fillColor: colorScale(d.m1),
-  }));
+    processedData = filteredData.map(d => ({
+      ...d,
+      radius: radiusScale(Math.sqrt(d.m2)),
+      fillColor: colorScale(d.name, sliceId),
+    }));
+  } else {
+    colorScale = getSequentialSchemeRegistry()
+      .get(linearColorScheme)
+      .createLinearScale(d3Extent(filteredData, d => d.m1));
+
+    processedData = filteredData.map(d => ({
+      ...d,
+      radius: radiusScale(Math.sqrt(d.m2)),
+      fillColor: colorScale(d.m1),
+    }));
+  }
 
   const mapData = {};
   processedData.forEach(d => {
@@ -90,14 +108,14 @@ function WorldMap(element, props) {
     height,
     data: processedData,
     fills: {
-      defaultFill: '#eee',
+      defaultFill: theme.colors.grayscale.light2,
     },
     geographyConfig: {
       popupOnHover: true,
       highlightOnHover: true,
       borderWidth: 1,
-      borderColor: '#feffff',
-      highlightBorderColor: '#feffff',
+      borderColor: theme.colors.grayscale.light5,
+      highlightBorderColor: theme.colors.grayscale.light5,
       highlightFillColor: color,
       highlightBorderWidth: 1,
       popupTemplate: (geo, d) =>
@@ -119,7 +137,7 @@ function WorldMap(element, props) {
       animate: true,
       highlightOnHover: true,
       highlightFillColor: color,
-      highlightBorderColor: 'black',
+      highlightBorderColor: theme.colors.grayscale.dark2,
       highlightBorderWidth: 2,
       highlightBorderOpacity: 1,
       highlightFillOpacity: 0.85,

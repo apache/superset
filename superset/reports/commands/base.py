@@ -22,7 +22,7 @@ from marshmallow import ValidationError
 from superset.charts.dao import ChartDAO
 from superset.commands.base import BaseCommand
 from superset.dashboards.dao import DashboardDAO
-from superset.models.reports import ReportCreationMethodType
+from superset.models.reports import ReportCreationMethod
 from superset.reports.commands.exceptions import (
     ChartNotFoundValidationError,
     ChartNotSavedValidationError,
@@ -47,17 +47,17 @@ class BaseReportScheduleCommand(BaseCommand):
     def validate_chart_dashboard(
         self, exceptions: List[ValidationError], update: bool = False
     ) -> None:
-        """ Validate chart or dashboard relation """
+        """Validate chart or dashboard relation"""
         chart_id = self._properties.get("chart")
         dashboard_id = self._properties.get("dashboard")
         creation_method = self._properties.get("creation_method")
 
-        if creation_method == ReportCreationMethodType.CHARTS and not chart_id:
+        if creation_method == ReportCreationMethod.CHARTS and not chart_id:
             # User has not saved chart yet in Explore view
             exceptions.append(ChartNotSavedValidationError())
             return
 
-        if creation_method == ReportCreationMethodType.DASHBOARDS and not dashboard_id:
+        if creation_method == ReportCreationMethod.DASHBOARDS and not dashboard_id:
             exceptions.append(DashboardNotSavedValidationError())
             return
 

@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 # isort:skip_file
-import unittest
 import uuid
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal
@@ -24,6 +23,8 @@ import os
 import re
 from typing import Any, Tuple, List, Optional
 from unittest.mock import Mock, patch
+
+from superset.databases.commands.exceptions import DatabaseInvalidError
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
     load_birth_names_data,
@@ -227,7 +228,6 @@ class TestUtils(SupersetTestCase):
                 {"col": "__time_col", "op": "in", "val": "birth_year"},
                 {"col": "__time_grain", "op": "in", "val": "years"},
                 {"col": "A", "op": "like", "val": "hello"},
-                {"col": "__time_origin", "op": "in", "val": "now"},
                 {"col": "__granularity", "op": "in", "val": "90 seconds"},
             ]
         }
@@ -247,12 +247,10 @@ class TestUtils(SupersetTestCase):
             "granularity_sqla": "birth_year",
             "time_grain_sqla": "years",
             "granularity": "90 seconds",
-            "druid_time_origin": "now",
             "applied_time_extras": {
                 "__time_range": "1 year ago :",
                 "__time_col": "birth_year",
                 "__time_grain": "years",
-                "__time_origin": "now",
                 "__granularity": "90 seconds",
             },
         }
@@ -736,7 +734,7 @@ class TestUtils(SupersetTestCase):
         db.session.commit()
 
     def test_get_or_create_db_invalid_uri(self):
-        with self.assertRaises(ArgumentError):
+        with self.assertRaises(DatabaseInvalidError):
             get_or_create_db("test_db", "yoursql:superset.db/()")
 
     def test_get_iterable(self):
@@ -794,7 +792,11 @@ class TestUtils(SupersetTestCase):
         }
         merge_extra_form_data(form_data)
         self.assertEqual(
-            form_data, {"time_range": "Last 10 days", "adhoc_filters": [],},
+            form_data,
+            {
+                "time_range": "Last 10 days",
+                "adhoc_filters": [],
+            },
         )
 
     def test_merge_extra_filters_with_unset_legacy_time_range(self):
@@ -826,7 +828,9 @@ class TestUtils(SupersetTestCase):
         form_data = {
             "time_range": "Last 10 days",
             "extra_filters": [{"col": "__time_range", "op": "==", "val": "Last week"}],
-            "extra_form_data": {"time_range": "Last year",},
+            "extra_form_data": {
+                "time_range": "Last year",
+            },
         }
         merge_extra_filters(form_data)
         self.assertEqual(
@@ -1086,3 +1090,8 @@ class TestUtils(SupersetTestCase):
         # test numeric epoch_ms format
         df = pd.DataFrame([{"__timestamp": ts.timestamp() * 1000, "a": 1}])
         assert normalize_col(df, "epoch_ms", 0, None)[DTTM_ALIAS][0] == ts
+
+        # test that out of bounds timestamps are coerced to None instead of
+        # erroring out
+        df = pd.DataFrame([{"__timestamp": "1677-09-21 00:00:00", "a": 1}])
+        assert pd.isnull(normalize_col(df, None, 0, None)[DTTM_ALIAS][0])

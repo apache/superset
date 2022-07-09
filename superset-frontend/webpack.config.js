@@ -95,10 +95,10 @@ const plugins = [
         entryFiles[entry] = {
           css: chunks
             .filter(x => x.endsWith('.css'))
-            .map(x => path.join(output.publicPath, x)),
+            .map(x => `${output.publicPath}${x}`),
           js: chunks
             .filter(x => x.endsWith('.js'))
-            .map(x => path.join(output.publicPath, x)),
+            .map(x => `${output.publicPath}${x}`),
         };
       });
 
@@ -210,7 +210,6 @@ const config = {
     spa: addPreamble('/src/views/index.tsx'),
     embedded: addPreamble('/src/embedded/index.tsx'),
     addSlice: addPreamble('/src/addSlice/index.tsx'),
-    explore: addPreamble('/src/explore/index.jsx'),
     sqllab: addPreamble('/src/SqlLab/index.tsx'),
     profile: addPreamble('/src/profile/index.tsx'),
     showSavedQuery: [path.join(APP_DIR, '/src/showSavedQuery/index.jsx')],
@@ -363,7 +362,7 @@ const config = {
           {
             loader: 'css-loader',
             options: {
-              sourceMap: isDevMode,
+              sourceMap: true,
             },
           },
         ],
@@ -376,14 +375,16 @@ const config = {
           {
             loader: 'css-loader',
             options: {
-              sourceMap: isDevMode,
+              sourceMap: true,
             },
           },
           {
             loader: 'less-loader',
             options: {
-              sourceMap: isDevMode,
-              javascriptEnabled: true,
+              sourceMap: true,
+              lessOptions: {
+                javascriptEnabled: true,
+              },
             },
           },
         ],
@@ -414,6 +415,7 @@ const config = {
               svgoConfig: {
                 plugins: {
                   removeViewBox: false,
+                  icon: true,
                 },
               },
             },
@@ -449,7 +451,7 @@ const config = {
     'react/lib/ReactContext': true,
   },
   plugins,
-  devtool: false,
+  devtool: 'source-map',
 };
 
 // find all the symlinked plugins and use their source code for imports

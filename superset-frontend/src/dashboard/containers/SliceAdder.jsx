@@ -19,7 +19,11 @@
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 
-import { fetchAllSlices } from '../actions/sliceEntities';
+import {
+  fetchAllSlices,
+  fetchSortedSlices,
+  fetchFilteredSlices,
+} from '../actions/sliceEntities';
 import SliceAdder from '../components/SliceAdder';
 
 function mapStateToProps(
@@ -29,6 +33,7 @@ function mapStateToProps(
   return {
     height: ownProps.height,
     userId: dashboardInfo.userId,
+    dashboardId: dashboardInfo.id,
     selectedSliceIds: dashboardState.sliceIds,
     slices: sliceEntities.slices,
     isLoading: sliceEntities.isLoading,
@@ -43,6 +48,8 @@ function mapDispatchToProps(dispatch) {
   return bindActionCreators(
     {
       fetchAllSlices,
+      fetchSortedSlices,
+      fetchFilteredSlices,
     },
     dispatch,
   );

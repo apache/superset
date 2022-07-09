@@ -23,7 +23,7 @@ describe('Visualization > Bubble', () => {
     slice_id: 46,
     granularity_sqla: 'year',
     time_grain_sqla: 'P1D',
-    time_range: '2011-01-01+:+2011-01-02',
+    time_range: '2011-01-01 : 2011-01-02',
     series: 'region',
     entity: 'country_name',
     x: 'sum__SP_RUR_TOTL_ZS',
@@ -47,7 +47,7 @@ describe('Visualization > Bubble', () => {
   };
 
   function verify(formData) {
-    cy.visitChartByParams(JSON.stringify(formData));
+    cy.visitChartByParams(formData);
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
   }
 
@@ -57,10 +57,10 @@ describe('Visualization > Bubble', () => {
   });
 
   // Number of circles are pretty unstable when there are a lot of circles
-  // Since main functionality is already covered in fitler test below,
-  // skip this test untill we find a solution.
+  // Since main functionality is already covered in filter test below,
+  // skip this test until we find a solution.
   it.skip('should work', () => {
-    cy.visitChartByParams(JSON.stringify(BUBBLE_FORM_DATA)).then(() => {
+    cy.visitChartByParams(BUBBLE_FORM_DATA).then(() => {
       cy.wait('@getJson').then(xhr => {
         let expectedBubblesNumber = 0;
         xhr.responseBody.data.forEach(element => {
@@ -86,7 +86,7 @@ describe('Visualization > Bubble', () => {
           expressionType: 'SIMPLE',
           subject: 'region',
           operator: '==',
-          comparator: 'South+Asia',
+          comparator: 'South Asia',
           clause: 'WHERE',
           sqlExpression: null,
           filterOptionName: 'filter_b2tfg1rs8y_8kmrcyxvsqd',

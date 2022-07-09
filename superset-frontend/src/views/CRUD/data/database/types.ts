@@ -79,7 +79,7 @@ export type DatabaseObject = {
   // Extra
   extra_json?: {
     engine_params?: {
-      catalog: Record<any, any> | string;
+      catalog?: Record<any, any> | string;
     };
     metadata_params?: {} | string;
     metadata_cache_timeout?: {
@@ -92,7 +92,11 @@ export type DatabaseObject = {
 
     version?: string;
     cost_estimate_enabled?: boolean; // in SQL Lab
+    disable_data_preview?: boolean; // in SQL Lab
   };
+
+  // External management
+  is_managed_externally: boolean;
 
   // Temporary storage
   catalog?: Array<CatalogObject>;

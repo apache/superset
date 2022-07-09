@@ -33,6 +33,10 @@ class PinotEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     _time_grain_expressions: Dict[Optional[str], str] = {
         "PT1S": "1:SECONDS",
         "PT1M": "1:MINUTES",
+        "PT5M": "5:MINUTES",
+        "PT10M": "10:MINUTES",
+        "PT15M": "15:MINUTES",
+        "PT30M": "30:MINUTES",
         "PT1H": "1:HOURS",
         "P1D": "1:DAYS",
         "P1W": "week",
@@ -53,6 +57,10 @@ class PinotEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     _use_date_trunc_function: Dict[str, bool] = {
         "PT1S": False,
         "PT1M": False,
+        "PT5M": False,
+        "PT10M": False,
+        "PT15M": False,
+        "PT30M": False,
         "PT1H": False,
         "P1D": False,
         "P1W": True,

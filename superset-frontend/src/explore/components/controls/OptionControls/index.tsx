@@ -56,7 +56,6 @@ export const Label = styled.div`
     padding-left: ${theme.gridUnit}px;
     svg {
       margin-right: ${theme.gridUnit}px;
-      margin-left: ${theme.gridUnit}px;
     }
     .type-label {
       margin-right: ${theme.gridUnit * 2}px;
@@ -280,7 +279,13 @@ export const OptionControlLabel = ({
         labelRef.current.scrollWidth > labelRef.current.clientWidth);
 
     if (savedMetric && hasMetricName) {
-      return <StyledMetricOption metric={savedMetric} labelRef={labelRef} />;
+      return (
+        <StyledMetricOption
+          metric={savedMetric}
+          labelRef={labelRef}
+          shouldShowTooltip={!isDragging}
+        />
+      );
     }
     if (!shouldShowTooltip) {
       return <LabelText ref={labelRef}>{label}</LabelText>;
@@ -306,7 +311,7 @@ export const OptionControlLabel = ({
         <Icons.XSmall iconColor={theme.colors.grayscale.light1} />
       </CloseContainer>
       <Label data-test="control-label">
-        {isFunction && <Icons.FunctionX viewBox="0 0 16 11" iconSize="l" />}
+        {isFunction && <Icons.FieldDerived />}
         {getLabelContent()}
       </Label>
       {isExtra && (

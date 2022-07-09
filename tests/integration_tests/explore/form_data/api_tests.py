@@ -26,22 +26,18 @@ from superset.datasets.commands.exceptions import DatasetAccessDeniedError
 from superset.explore.form_data.commands.state import TemporaryExploreState
 from superset.extensions import cache_manager
 from superset.models.slice import Slice
+from superset.utils.core import DatasourceType
 from tests.integration_tests.base_tests import login
+from tests.integration_tests.fixtures.client import client
 from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices,
     load_world_bank_data,
 )
 from tests.integration_tests.test_app import app
 
-key = "test-key"
-form_data = "test"
-
-
-@pytest.fixture
-def client():
-    with app.test_client() as client:
-        with app.app_context():
-            yield client
+KEY = "test-key"
+INITIAL_FORM_DATA = json.dumps({"test": "initial value"})
+UPDATED_FORM_DATA = json.dumps({"test": "updated value"})
 
 
 @pytest.fixture
@@ -61,7 +57,7 @@ def admin_id() -> int:
 
 
 @pytest.fixture
-def dataset_id() -> int:
+def datasource() -> int:
     with app.app_context() as ctx:
         session: Session = ctx.app.appbuilder.get_session
         dataset = (
@@ -69,35 +65,38 @@ def dataset_id() -> int:
             .filter_by(table_name="wb_health_population")
             .first()
         )
-        return dataset.id
+        return dataset
 
 
 @pytest.fixture(autouse=True)
-def cache(chart_id, admin_id, dataset_id):
+def cache(chart_id, admin_id, datasource):
     entry: TemporaryExploreState = {
         "owner": admin_id,
-        "dataset_id": dataset_id,
+        "datasource_id": datasource.id,
+        "datasource_type": datasource.type,
         "chart_id": chart_id,
-        "form_data": form_data,
+        "form_data": INITIAL_FORM_DATA,
     }
-    cache_manager.explore_form_data_cache.set(key, entry)
+    cache_manager.explore_form_data_cache.set(KEY, entry)
 
 
-def test_post(client, chart_id: int, dataset_id: int):
+def test_post(client, chart_id: int, datasource: SqlaTable):
     login(client, "admin")
     payload = {
-        "dataset_id": dataset_id,
+        "datasource_id": datasource.id,
+        "datasource_type": datasource.type,
         "chart_id": chart_id,
-        "form_data": form_data,
+        "form_data": INITIAL_FORM_DATA,
     }
     resp = client.post("api/v1/explore/form_data", json=payload)
     assert resp.status_code == 201
 
 
-def test_post_bad_request(client, chart_id: int, dataset_id: int):
+def test_post_bad_request_non_string(client, chart_id: int, datasource: SqlaTable):
     login(client, "admin")
     payload = {
-        "dataset_id": dataset_id,
+        "datasource_id": datasource.id,
+        "datasource_type": datasource.type,
         "chart_id": chart_id,
         "form_data": 1234,
     }
@@ -105,23 +104,37 @@ def test_post_bad_request(client, chart_id: int, dataset_id: int):
     assert resp.status_code == 400
 
 
-def test_post_access_denied(client, chart_id: int, dataset_id: int):
+def test_post_bad_request_non_json_string(client, chart_id: int, datasource: SqlaTable):
+    login(client, "admin")
+    payload = {
+        "datasource_id": datasource.id,
+        "datasource_type": datasource.type,
+        "chart_id": chart_id,
+        "form_data": "foo",
+    }
+    resp = client.post("api/v1/explore/form_data", json=payload)
+    assert resp.status_code == 400
+
+
+def test_post_access_denied(client, chart_id: int, datasource: SqlaTable):
     login(client, "gamma")
     payload = {
-        "dataset_id": dataset_id,
+        "datasource_id": datasource.id,
+        "datasource_type": datasource.type,
         "chart_id": chart_id,
-        "form_data": form_data,
+        "form_data": INITIAL_FORM_DATA,
     }
     resp = client.post("api/v1/explore/form_data", json=payload)
     assert resp.status_code == 404
 
 
-def test_post_same_key_for_same_context(client, chart_id: int, dataset_id: int):
+def test_post_same_key_for_same_context(client, chart_id: int, datasource: SqlaTable):
     login(client, "admin")
     payload = {
-        "dataset_id": dataset_id,
+        "datasource_id": datasource.id,
+        "datasource_type": datasource.type,
         "chart_id": chart_id,
-        "form_data": "new form_data",
+        "form_data": UPDATED_FORM_DATA,
     }
     resp = client.post("api/v1/explore/form_data?tab_id=1", json=payload)
     data = json.loads(resp.data.decode("utf-8"))
@@ -133,20 +146,22 @@ def test_post_same_key_for_same_context(client, chart_id: int, dataset_id: int):
 
 
 def test_post_different_key_for_different_context(
-    client, chart_id: int, dataset_id: int
+    client, chart_id: int, datasource: SqlaTable
 ):
     login(client, "admin")
     payload = {
-        "dataset_id": dataset_id,
+        "datasource_id": datasource.id,
+        "datasource_type": datasource.type,
         "chart_id": chart_id,
-        "form_data": "new form_data",
+        "form_data": UPDATED_FORM_DATA,
     }
     resp = client.post("api/v1/explore/form_data?tab_id=1", json=payload)
     data = json.loads(resp.data.decode("utf-8"))
     first_key = data.get("key")
     payload = {
-        "dataset_id": dataset_id,
-        "form_data": "new form_data",
+        "datasource_id": datasource.id,
+        "datasource_type": datasource.type,
+        "form_data": json.dumps({"test": "initial value"}),
     }
     resp = client.post("api/v1/explore/form_data?tab_id=1", json=payload)
     data = json.loads(resp.data.decode("utf-8"))
@@ -154,12 +169,13 @@ def test_post_different_key_for_different_context(
     assert first_key != second_key
 
 
-def test_post_same_key_for_same_tab_id(client, chart_id: int, dataset_id: int):
+def test_post_same_key_for_same_tab_id(client, chart_id: int, datasource: SqlaTable):
     login(client, "admin")
     payload = {
-        "dataset_id": dataset_id,
+        "datasource_id": datasource.id,
+        "datasource_type": datasource.type,
         "chart_id": chart_id,
-        "form_data": "new form_data",
+        "form_data": json.dumps({"test": "initial value"}),
     }
     resp = client.post("api/v1/explore/form_data?tab_id=1", json=payload)
     data = json.loads(resp.data.decode("utf-8"))
@@ -171,13 +187,14 @@ def test_post_same_key_for_same_tab_id(client, chart_id: int, dataset_id: int):
 
 
 def test_post_different_key_for_different_tab_id(
-    client, chart_id: int, dataset_id: int
+    client, chart_id: int, datasource: SqlaTable
 ):
     login(client, "admin")
     payload = {
-        "dataset_id": dataset_id,
+        "datasource_id": datasource.id,
+        "datasource_type": datasource.type,
         "chart_id": chart_id,
-        "form_data": "new form_data",
+        "form_data": json.dumps({"test": "initial value"}),
     }
     resp = client.post("api/v1/explore/form_data?tab_id=1", json=payload)
     data = json.loads(resp.data.decode("utf-8"))
@@ -188,12 +205,13 @@ def test_post_different_key_for_different_tab_id(
     assert first_key != second_key
 
 
-def test_post_different_key_for_no_tab_id(client, chart_id: int, dataset_id: int):
+def test_post_different_key_for_no_tab_id(client, chart_id: int, datasource: SqlaTable):
     login(client, "admin")
     payload = {
-        "dataset_id": dataset_id,
+        "datasource_id": datasource.id,
+        "datasource_type": datasource.type,
         "chart_id": chart_id,
-        "form_data": "new form_data",
+        "form_data": INITIAL_FORM_DATA,
     }
     resp = client.post("api/v1/explore/form_data", json=payload)
     data = json.loads(resp.data.decode("utf-8"))
@@ -204,95 +222,128 @@ def test_post_different_key_for_no_tab_id(client, chart_id: int, dataset_id: int
     assert first_key != second_key
 
 
-def test_put(client, chart_id: int, dataset_id: int):
+def test_put(client, chart_id: int, datasource: SqlaTable):
     login(client, "admin")
     payload = {
-        "dataset_id": dataset_id,
+        "datasource_id": datasource.id,
+        "datasource_type": datasource.type,
         "chart_id": chart_id,
-        "form_data": "new form_data",
+        "form_data": UPDATED_FORM_DATA,
     }
-    resp = client.put(f"api/v1/explore/form_data/{key}", json=payload)
+    resp = client.put(f"api/v1/explore/form_data/{KEY}", json=payload)
     assert resp.status_code == 200
 
 
-def test_put_same_key_for_same_tab_id(client, chart_id: int, dataset_id: int):
+def test_put_same_key_for_same_tab_id(client, chart_id: int, datasource: SqlaTable):
     login(client, "admin")
     payload = {
-        "dataset_id": dataset_id,
+        "datasource_id": datasource.id,
+        "datasource_type": datasource.type,
         "chart_id": chart_id,
-        "form_data": "new form_data",
+        "form_data": UPDATED_FORM_DATA,
     }
-    resp = client.put(f"api/v1/explore/form_data/{key}?tab_id=1", json=payload)
+    resp = client.put(f"api/v1/explore/form_data/{KEY}?tab_id=1", json=payload)
     data = json.loads(resp.data.decode("utf-8"))
     first_key = data.get("key")
-    resp = client.put(f"api/v1/explore/form_data/{key}?tab_id=1", json=payload)
+    resp = client.put(f"api/v1/explore/form_data/{KEY}?tab_id=1", json=payload)
     data = json.loads(resp.data.decode("utf-8"))
     second_key = data.get("key")
     assert first_key == second_key
 
 
-def test_put_different_key_for_different_tab_id(client, chart_id: int, dataset_id: int):
+def test_put_different_key_for_different_tab_id(
+    client, chart_id: int, datasource: SqlaTable
+):
     login(client, "admin")
     payload = {
-        "dataset_id": dataset_id,
+        "datasource_id": datasource.id,
+        "datasource_type": datasource.type,
         "chart_id": chart_id,
-        "form_data": "new form_data",
+        "form_data": UPDATED_FORM_DATA,
     }
-    resp = client.put(f"api/v1/explore/form_data/{key}?tab_id=1", json=payload)
+    resp = client.put(f"api/v1/explore/form_data/{KEY}?tab_id=1", json=payload)
     data = json.loads(resp.data.decode("utf-8"))
     first_key = data.get("key")
-    resp = client.put(f"api/v1/explore/form_data/{key}?tab_id=2", json=payload)
+    resp = client.put(f"api/v1/explore/form_data/{KEY}?tab_id=2", json=payload)
     data = json.loads(resp.data.decode("utf-8"))
     second_key = data.get("key")
     assert first_key != second_key
 
 
-def test_put_different_key_for_no_tab_id(client, chart_id: int, dataset_id: int):
+def test_put_different_key_for_no_tab_id(client, chart_id: int, datasource: SqlaTable):
     login(client, "admin")
     payload = {
-        "dataset_id": dataset_id,
+        "datasource_id": datasource.id,
+        "datasource_type": datasource.type,
         "chart_id": chart_id,
-        "form_data": "new form_data",
+        "form_data": UPDATED_FORM_DATA,
     }
-    resp = client.put(f"api/v1/explore/form_data/{key}", json=payload)
+    resp = client.put(f"api/v1/explore/form_data/{KEY}", json=payload)
     data = json.loads(resp.data.decode("utf-8"))
     first_key = data.get("key")
-    resp = client.put(f"api/v1/explore/form_data/{key}", json=payload)
+    resp = client.put(f"api/v1/explore/form_data/{KEY}", json=payload)
     data = json.loads(resp.data.decode("utf-8"))
     second_key = data.get("key")
     assert first_key != second_key
 
 
-def test_put_bad_request(client, chart_id: int, dataset_id: int):
+def test_put_bad_request(client, chart_id: int, datasource: SqlaTable):
     login(client, "admin")
     payload = {
-        "dataset_id": dataset_id,
+        "datasource_id": datasource.id,
+        "datasource_type": datasource.type,
         "chart_id": chart_id,
         "form_data": 1234,
     }
-    resp = client.put(f"api/v1/explore/form_data/{key}", json=payload)
+    resp = client.put(f"api/v1/explore/form_data/{KEY}", json=payload)
     assert resp.status_code == 400
 
 
-def test_put_access_denied(client, chart_id: int, dataset_id: int):
+def test_put_bad_request_non_string(client, chart_id: int, datasource: SqlaTable):
+    login(client, "admin")
+    payload = {
+        "datasource_id": datasource.id,
+        "datasource_type": datasource.type,
+        "chart_id": chart_id,
+        "form_data": 1234,
+    }
+    resp = client.put(f"api/v1/explore/form_data/{KEY}", json=payload)
+    assert resp.status_code == 400
+
+
+def test_put_bad_request_non_json_string(client, chart_id: int, datasource: SqlaTable):
+    login(client, "admin")
+    payload = {
+        "datasource_id": datasource.id,
+        "datasource_type": datasource.type,
+        "chart_id": chart_id,
+        "form_data": "foo",
+    }
+    resp = client.put(f"api/v1/explore/form_data/{KEY}", json=payload)
+    assert resp.status_code == 400
+
+
+def test_put_access_denied(client, chart_id: int, datasource: SqlaTable):
     login(client, "gamma")
     payload = {
-        "dataset_id": dataset_id,
+        "datasource_id": datasource.id,
+        "datasource_type": datasource.type,
         "chart_id": chart_id,
-        "form_data": "new form_data",
+        "form_data": UPDATED_FORM_DATA,
     }
-    resp = client.put(f"api/v1/explore/form_data/{key}", json=payload)
+    resp = client.put(f"api/v1/explore/form_data/{KEY}", json=payload)
     assert resp.status_code == 404
 
 
-def test_put_not_owner(client, chart_id: int, dataset_id: int):
+def test_put_not_owner(client, chart_id: int, datasource: SqlaTable):
     login(client, "gamma")
     payload = {
-        "dataset_id": dataset_id,
+        "datasource_id": datasource.id,
+        "datasource_type": datasource.type,
         "chart_id": chart_id,
-        "form_data": "new form_data",
+        "form_data": UPDATED_FORM_DATA,
     }
-    resp = client.put(f"api/v1/explore/form_data/{key}", json=payload)
+    resp = client.put(f"api/v1/explore/form_data/{KEY}", json=payload)
     assert resp.status_code == 404
 
 
@@ -304,15 +355,15 @@ def test_get_key_not_found(client):
 
 def test_get(client):
     login(client, "admin")
-    resp = client.get(f"api/v1/explore/form_data/{key}")
+    resp = client.get(f"api/v1/explore/form_data/{KEY}")
     assert resp.status_code == 200
     data = json.loads(resp.data.decode("utf-8"))
-    assert form_data == data.get("form_data")
+    assert INITIAL_FORM_DATA == data.get("form_data")
 
 
 def test_get_access_denied(client):
     login(client, "gamma")
-    resp = client.get(f"api/v1/explore/form_data/{key}")
+    resp = client.get(f"api/v1/explore/form_data/{KEY}")
     assert resp.status_code == 404
 
 
@@ -320,30 +371,31 @@ def test_get_access_denied(client):
 def test_get_dataset_access_denied(mock_can_access_datasource, client):
     mock_can_access_datasource.side_effect = DatasetAccessDeniedError()
     login(client, "admin")
-    resp = client.get(f"api/v1/explore/form_data/{key}")
+    resp = client.get(f"api/v1/explore/form_data/{KEY}")
     assert resp.status_code == 403
 
 
 def test_delete(client):
     login(client, "admin")
-    resp = client.delete(f"api/v1/explore/form_data/{key}")
+    resp = client.delete(f"api/v1/explore/form_data/{KEY}")
     assert resp.status_code == 200
 
 
 def test_delete_access_denied(client):
     login(client, "gamma")
-    resp = client.delete(f"api/v1/explore/form_data/{key}")
+    resp = client.delete(f"api/v1/explore/form_data/{KEY}")
     assert resp.status_code == 404
 
 
-def test_delete_not_owner(client, chart_id: int, dataset_id: int, admin_id: int):
+def test_delete_not_owner(client, chart_id: int, datasource: SqlaTable, admin_id: int):
     another_key = "another_key"
     another_owner = admin_id + 1
     entry: TemporaryExploreState = {
         "owner": another_owner,
-        "dataset_id": dataset_id,
+        "datasource_id": datasource.id,
+        "datasource_type": DatasourceType(datasource.type),
         "chart_id": chart_id,
-        "form_data": form_data,
+        "form_data": INITIAL_FORM_DATA,
     }
     cache_manager.explore_form_data_cache.set(another_key, entry)
     login(client, "admin")

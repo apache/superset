@@ -289,13 +289,6 @@ class TestTableViz(SupersetTestCase):
                     "comparator": "100",
                 },
                 {
-                    "expressionType": "SIMPLE",
-                    "clause": "HAVING",
-                    "subject": "SUM(value1)",
-                    "operator": "<",
-                    "comparator": "10",
-                },
-                {
                     "expressionType": "SQL",
                     "clause": "HAVING",
                     "sqlExpression": "SUM(value1) > 5",
@@ -312,10 +305,6 @@ class TestTableViz(SupersetTestCase):
         query_obj = test_viz.query_obj()
         self.assertEqual(
             [{"col": "value2", "val": "100", "op": ">"}], query_obj["filter"]
-        )
-        self.assertEqual(
-            [{"op": "<", "val": "10", "col": "SUM(value1)"}],
-            query_obj["extras"]["having_druid"],
         )
         self.assertEqual("(value3 in ('North America'))", query_obj["extras"]["where"])
         self.assertEqual("(SUM(value1) > 5)", query_obj["extras"]["having"])
@@ -352,7 +341,6 @@ class TestTableViz(SupersetTestCase):
         self.assertEqual(
             [{"col": "value2", "val": "100", "op": ">"}], query_obj["filter"]
         )
-        self.assertEqual([], query_obj["extras"]["having_druid"])
         self.assertEqual("(value3 in ('North America'))", query_obj["extras"]["where"])
         self.assertEqual("", query_obj["extras"]["having"])
 
@@ -417,7 +405,9 @@ class TestTableViz(SupersetTestCase):
                 "label": "adhoc_metric",
                 "expressionType": "SIMPLE",
                 "aggregate": "SUM",
-                "column": {"column_name": "sort_column",},
+                "column": {
+                    "column_name": "sort_column",
+                },
             }
         )
 
@@ -1505,13 +1495,29 @@ class TestFilterBoxViz(SupersetTestCase):
         test_viz = viz.FilterBoxViz(datasource, form_data)
         test_viz.dataframes = {
             "value1": pd.DataFrame(
-                data=[{"value1": "v1", "metric1": 1}, {"value1": "v2", "metric1": 2},]
+                data=[
+                    {"value1": "v1", "metric1": 1},
+                    {"value1": "v2", "metric1": 2},
+                ]
             ),
             "value2": pd.DataFrame(
-                data=[{"value2": "v3", "metric2": 3}, {"value2": "v4", "metric2": 4},]
+                data=[
+                    {"value2": "v3", "metric2": 3},
+                    {"value2": "v4", "metric2": 4},
+                ]
             ),
-            "value3": pd.DataFrame(data=[{"value3": "v5"}, {"value3": "v6"},]),
-            "value4": pd.DataFrame(data=[{"value4": "v7"}, {"value4": "v8"},]),
+            "value3": pd.DataFrame(
+                data=[
+                    {"value3": "v5"},
+                    {"value3": "v6"},
+                ]
+            ),
+            "value4": pd.DataFrame(
+                data=[
+                    {"value4": "v7"},
+                    {"value4": "v8"},
+                ]
+            ),
             "value5": pd.DataFrame(),
         }
 
@@ -1526,8 +1532,14 @@ class TestFilterBoxViz(SupersetTestCase):
                 {"id": "v3", "text": "v3", "metric": 3},
                 {"id": "v4", "text": "v4", "metric": 4},
             ],
-            "value3": [{"id": "v6", "text": "v6"}, {"id": "v5", "text": "v5"},],
-            "value4": [{"id": "v7", "text": "v7"}, {"id": "v8", "text": "v8"},],
+            "value3": [
+                {"id": "v6", "text": "v6"},
+                {"id": "v5", "text": "v5"},
+            ],
+            "value4": [
+                {"id": "v7", "text": "v7"},
+                {"id": "v8", "text": "v8"},
+            ],
             "value5": [],
             "value6": [],
         }

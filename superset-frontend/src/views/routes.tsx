@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import React, { lazy } from 'react';
 
 // not lazy loaded since this is the home page.
@@ -58,10 +57,10 @@ const DashboardList = lazy(
       /* webpackChunkName: "DashboardList" */ 'src/views/CRUD/dashboard/DashboardList'
     ),
 );
-const DashboardPage = lazy(
+const DashboardRoute = lazy(
   () =>
     import(
-      /* webpackChunkName: "DashboardPage" */ 'src/dashboard/containers/DashboardPage'
+      /* webpackChunkName: "DashboardRoute" */ 'src/dashboard/containers/DashboardRoute'
     ),
 );
 const DatabaseList = lazy(
@@ -81,6 +80,9 @@ const ExecutionLog = lazy(
     import(
       /* webpackChunkName: "ExecutionLog" */ 'src/views/CRUD/alert/ExecutionLog'
     ),
+);
+const ExplorePage = lazy(
+  () => import(/* webpackChunkName: "ExplorePage" */ 'src/explore/ExplorePage'),
 );
 const QueryList = lazy(
   () =>
@@ -113,7 +115,7 @@ export const routes: Routes = [
   },
   {
     path: '/superset/dashboard/:idOrSlug/',
-    Component: DashboardPage,
+    Component: DashboardRoute,
   },
   {
     path: '/chart/list/',
@@ -169,6 +171,14 @@ export const routes: Routes = [
       isReportEnabled: true,
     },
   },
+  {
+    path: '/explore/',
+    Component: ExplorePage,
+  },
+  {
+    path: '/superset/explore/p',
+    Component: ExplorePage,
+  },
 ];
 
 const frontEndRoutes = routes
@@ -182,7 +192,6 @@ const frontEndRoutes = routes
   );
 
 export function isFrontendRoute(path?: string) {
-  if (!isFeatureEnabled(FeatureFlag.ENABLE_REACT_CRUD_VIEWS)) return false;
   if (path) {
     const basePath = path.split(/[?#]/)[0]; // strip out query params and link bookmarks
     return !!frontEndRoutes[basePath];

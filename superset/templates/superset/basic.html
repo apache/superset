@@ -40,11 +40,11 @@
           rel="{{favicon.rel if favicon.rel else "icon"}}"
           type="{{favicon.type if favicon.type else "image/png"}}"
           {% if favicon.sizes %}sizes={{favicon.sizes}}{% endif %}
-          href="{{favicon.href}}"
+          href="{{ assets_prefix }}{{favicon.href}}"
         >
       {% endfor %}
-      <link rel="stylesheet" type="text/css" href="/static/appbuilder/css/flags/flags16.css" />
-      <link rel="stylesheet" type="text/css" href="/static/appbuilder/css/font-awesome.min.css">
+      <link rel="stylesheet" type="text/css" href="{{ assets_prefix }}/static/appbuilder/css/flags/flags16.css" />
+      <link rel="stylesheet" type="text/css" href="{{ assets_prefix }}/static/appbuilder/css/font-awesome.min.css">
 
       {{ css_bundle("theme") }}
 
@@ -73,7 +73,7 @@
 
     {% block body %}
       <div id="app" data-bootstrap="{{ bootstrap_data }}">
-        <img src="/static/assets/images/loading.gif" style="width: 50px; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%)">
+        <img src="{{ assets_prefix }}/static/assets/images/loading.gif" style="width: 50px; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%)">
       </div>
     {% endblock %}
 

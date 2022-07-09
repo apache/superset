@@ -25,12 +25,8 @@ import {
   QueryFormData,
   SetDataMaskHook,
 } from '@superset-ui/core';
-import {
-  DEFAULT_LEGEND_FORM_DATA,
-  EchartsLegendFormData,
-  LegendOrientation,
-  LegendType,
-} from '../types';
+import { EchartsLegendFormData, LegendOrientation, LegendType } from '../types';
+import { DEFAULT_LEGEND_FORM_DATA } from '../constants';
 
 export type EchartsPieFormData = QueryFormData &
   EchartsLegendFormData & {
@@ -61,7 +57,7 @@ export enum EchartsPieLabelType {
   KeyValuePercent = 'key_value_percent',
 }
 
-export interface EchartsPieChartProps extends ChartProps {
+export interface EchartsPieChartProps extends ChartProps<EchartsPieFormData> {
   formData: EchartsPieFormData;
   queriesData: ChartDataResponseResult[];
 }

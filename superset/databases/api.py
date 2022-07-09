@@ -22,7 +22,7 @@ from io import BytesIO
 from typing import Any, Dict, List, Optional
 from zipfile import ZipFile
 
-from flask import g, request, Response, send_file
+from flask import request, Response, send_file
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import ValidationError
@@ -49,9 +49,10 @@ from superset.databases.commands.importers.dispatcher import ImportDatabasesComm
 from superset.databases.commands.test_connection import TestConnectionDatabaseCommand
 from superset.databases.commands.update import UpdateDatabaseCommand
 from superset.databases.commands.validate import ValidateDatabaseParametersCommand
+from superset.databases.commands.validate_sql import ValidateSQLCommand
 from superset.databases.dao import DatabaseDAO
 from superset.databases.decorators import check_datasource_access
-from superset.databases.filters import DatabaseFilter
+from superset.databases.filters import DatabaseFilter, DatabaseUploadEnabledFilter
 from superset.databases.schemas import (
     database_schemas_query_schema,
     DatabaseFunctionNamesResponse,
@@ -63,15 +64,18 @@ from superset.databases.schemas import (
     get_export_ids_schema,
     SchemasResponseSchema,
     SelectStarResponseSchema,
+    TableExtraMetadataResponseSchema,
     TableMetadataResponseSchema,
+    ValidateSQLRequest,
+    ValidateSQLResponse,
 )
 from superset.databases.utils import get_table_metadata
 from superset.db_engine_specs import get_available_engine_specs
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.extensions import security_manager
 from superset.models.core import Database
-from superset.typing import FlaskResponse
-from superset.utils.core import error_msg_from_exception
+from superset.superset_typing import FlaskResponse
+from superset.utils.core import error_msg_from_exception, parse_js_uri_path_item
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
     requires_form_data,
@@ -89,6 +93,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         RouteMethod.EXPORT,
         RouteMethod.IMPORT,
         "table_metadata",
+        "table_extra_metadata",
         "select_star",
         "schemas",
         "test_connection",
@@ -96,6 +101,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "function_names",
         "available",
         "validate_parameters",
+        "validate_sql",
     }
     resource_name = "database"
     class_permission_name = "Database"
@@ -123,6 +129,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "parameters_schema",
         "server_cert",
         "sqlalchemy_uri",
+        "is_managed_externally",
     ]
     list_columns = [
         "allow_file_upload",
@@ -145,6 +152,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "extra",
         "force_ctas_schema",
         "id",
+        "disable_data_preview",
     ]
     add_columns = [
         "database_name",
@@ -164,7 +172,10 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "encrypted_extra",
         "server_cert",
     ]
+
     edit_columns = add_columns
+
+    search_filters = {"allow_file_upload": [DatabaseUploadEnabledFilter]}
 
     list_select_columns = list_columns + ["extra", "sqlalchemy_uri", "password"]
     order_columns = [
@@ -186,15 +197,19 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "database_schemas_query_schema": database_schemas_query_schema,
         "get_export_ids_schema": get_export_ids_schema,
     }
+
     openapi_spec_tag = "Database"
     openapi_spec_component_schemas = (
         DatabaseFunctionNamesResponse,
         DatabaseRelatedObjectsResponse,
         DatabaseTestConnectionSchema,
         DatabaseValidateParametersSchema,
+        TableExtraMetadataResponseSchema,
         TableMetadataResponseSchema,
         SelectStarResponseSchema,
         SchemasResponseSchema,
+        ValidateSQLRequest,
+        ValidateSQLResponse,
     )
 
     @expose("/", methods=["POST"])
@@ -231,8 +246,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                         type: number
                       result:
                         $ref: '#/components/schemas/{{self.__class__.__name__}}.post'
-            302:
-              description: Redirects to the current digest
             400:
               $ref: '#/components/responses/400'
             401:
@@ -248,7 +261,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         except ValidationError as error:
             return self.response_400(message=error.messages)
         try:
-            new_model = CreateDatabaseCommand(g.user, item).run()
+            new_model = CreateDatabaseCommand(item).run()
             # Return censored version for sqlalchemy URI
             item["sqlalchemy_uri"] = new_model.sqlalchemy_uri
             item["expose_in_sqllab"] = new_model.expose_in_sqllab
@@ -329,7 +342,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         except ValidationError as error:
             return self.response_400(message=error.messages)
         try:
-            changed_model = UpdateDatabaseCommand(g.user, pk, item).run()
+            changed_model = UpdateDatabaseCommand(pk, item).run()
             # Return censored version for sqlalchemy URI
             item["sqlalchemy_uri"] = changed_model.sqlalchemy_uri
             if changed_model.parameters:
@@ -391,7 +404,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         try:
-            DeleteDatabaseCommand(g.user, pk).run()
+            DeleteDatabaseCommand(pk).run()
             return self.response(200, message="OK")
         except DatabaseNotFoundError:
             return self.response_404()
@@ -524,6 +537,69 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         self.incr_stats("success", self.table_metadata.__name__)
         return self.response(200, **table_info)
 
+    @expose("/<int:pk>/table_extra/<table_name>/<schema_name>/", methods=["GET"])
+    @protect()
+    @check_datasource_access
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
+        f".table_extra_metadata",
+        log_to_statsd=False,
+    )
+    def table_extra_metadata(
+        self, database: Database, table_name: str, schema_name: str
+    ) -> FlaskResponse:
+        """Table schema info
+        ---
+        get:
+          summary: >-
+            Get table extra metadata
+          description: >-
+            Response depends on each DB engine spec normally focused on partitions
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+            description: The database id
+          - in: path
+            schema:
+              type: string
+            name: table_name
+            description: Table name
+          - in: path
+            schema:
+              type: string
+            name: schema_name
+            description: Table schema
+          responses:
+            200:
+              description: Table extra metadata information
+              content:
+                application/json:
+                  schema:
+                    $ref: "#/components/schemas/TableExtraMetadataResponseSchema"
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        self.incr_stats("init", self.table_metadata.__name__)
+
+        parsed_schema = parse_js_uri_path_item(schema_name, eval_undefined=True)
+        table_name = parse_js_uri_path_item(table_name)  # type: ignore
+        payload = database.db_engine_spec.extra_table_metadata(
+            database, table_name, parsed_schema
+        )
+        return self.response(200, **payload)
+
     @expose("/<int:pk>/select_star/<table_name>/", methods=["GET"])
     @expose("/<int:pk>/select_star/<table_name>/<schema_name>/", methods=["GET"])
     @protect()
@@ -630,7 +706,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         # This validates custom Schema with custom validations
         except ValidationError as error:
             return self.response_400(message=error.messages)
-        TestConnectionDatabaseCommand(g.user, item).run()
+        TestConnectionDatabaseCommand(item).run()
         return self.response(200, message="OK")
 
     @expose("/<int:pk>/related_objects/", methods=["GET"])
@@ -654,7 +730,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             schema:
               type: integer
           responses:
-            200:
             200:
               description: Query result
               content:
@@ -702,6 +777,66 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 "result": sqllab_tab_states,
             },
         )
+
+    @expose("/<int:pk>/validate_sql", methods=["POST"])
+    @protect()
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.validate_sql",
+        log_to_statsd=False,
+    )
+    def validate_sql(self, pk: int) -> FlaskResponse:
+        """
+        ---
+        post:
+          summary: >-
+            Validates that arbitrary sql is acceptable for the given database
+          description: >-
+            Validates arbitrary SQL.
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+          requestBody:
+            description: Validate SQL request
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/ValidateSQLRequest'
+          responses:
+            200:
+              description: Validation result
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        description: >-
+                          A List of SQL errors found on the statement
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/ValidateSQLResponse'
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            sql_request = ValidateSQLRequest().load(request.json)
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
+        try:
+            validator_errors = ValidateSQLCommand(pk, sql_request).run()
+            return self.response(200, result=validator_errors)
+        except DatabaseNotFoundError:
+            return self.response_404()
 
     @expose("/export/", methods=["GET"])
     @protect()
@@ -879,7 +1014,10 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         database = DatabaseDAO.find_by_id(pk)
         if not database:
             return self.response_404()
-        return self.response(200, function_names=database.function_names,)
+        return self.response(
+            200,
+            function_names=database.function_names,
+        )
 
     @expose("/available/", methods=["GET"])
     @protect()
@@ -1036,6 +1174,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             ]
             raise InvalidParametersError(errors) from ex
 
-        command = ValidateDatabaseParametersCommand(g.user, payload)
+        command = ValidateDatabaseParametersCommand(payload)
         command.run()
         return self.response(200, message="OK")

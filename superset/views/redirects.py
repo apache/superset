@@ -17,14 +17,13 @@
 import logging
 from typing import Optional
 
-from flask import flash, request, Response
+from flask import flash
 from flask_appbuilder import expose
-from flask_appbuilder.security.decorators import has_access_api
 from werkzeug.utils import redirect
 
 from superset import db, event_logger
 from superset.models import core as models
-from superset.typing import FlaskResponse
+from superset.superset_typing import FlaskResponse
 from superset.views.base import BaseSupersetView
 
 logger = logging.getLogger(__name__)
@@ -58,21 +57,3 @@ class R(BaseSupersetView):  # pylint: disable=invalid-name
 
         flash("URL to nowhere...", "danger")
         return redirect("/")
-
-    @event_logger.log_this
-    @has_access_api
-    @expose("/shortner/", methods=["POST"])
-    def shortner(self) -> FlaskResponse:
-        url = request.form.get("data")
-        if not self._validate_url(url):
-            logger.warning("Invalid URL")
-            return Response("Invalid URL", 400)
-        obj = models.Url(url=url)
-        db.session.add(obj)
-        db.session.commit()
-        return Response(
-            "{scheme}://{request.headers[Host]}/r/{obj.id}".format(
-                scheme=request.scheme, request=request, obj=obj
-            ),
-            mimetype="text/plain",
-        )

@@ -43,6 +43,19 @@ const mockedProps = {
       usesRouter: false,
     },
   ],
+  dropDownLinks: [
+    {
+      label: 'test a upload',
+      childs: [
+        {
+          label: 'Upload Test',
+          name: 'Upload Test',
+          url: '/test/form',
+          perm: true,
+        },
+      ],
+    },
+  ],
 };
 
 test('should render', () => {
@@ -74,6 +87,13 @@ test('should render all the tabs links', () => {
   });
 });
 
+test('should render dropdownlinks', async () => {
+  render(<SubMenu {...mockedProps} />);
+  userEvent.hover(screen.getByText('test a upload'));
+  const label = await screen.findByText('test a upload');
+  expect(label).toBeInTheDocument();
+});
+
 test('should render the buttons', () => {
   const mockFunc = jest.fn();
   const buttons = [
@@ -94,7 +114,7 @@ test('should render the buttons', () => {
   };
   render(<SubMenu {...buttonsProps} />);
   const testButton = screen.getByText(buttons[0].name);
-  expect(screen.getAllByRole('button')).toHaveLength(2);
+  expect(screen.getAllByRole('button')).toHaveLength(3);
   userEvent.click(testButton);
   expect(mockFunc).toHaveBeenCalled();
 });

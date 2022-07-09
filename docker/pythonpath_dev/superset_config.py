@@ -91,29 +91,43 @@ REDIS_RESULTS_DB = get_env_variable("REDIS_RESULTS_DB", "1")
 
 #'CACHE_MEMCACHED_SERVERS': ['redis'],
 
-
 #        }
-GUEST_TOKEN_JWT_EXP_SECONDS = 16018400 # 6 months
-CACHE_CONFIG = {
-    "CACHE_TYPE": "redis",
-    "CACHE_DEFAULT_TIMEOUT": 60 * 60 * 24, # 1 day default (in secs)
-    "CACHE_KEY_PREFIX": "superset_results",
-    "CACHE_REDIS_URL": f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_RESULTS_DB}",
-}
+GUEST_TOKEN_JWT_EXP_SECONDS = 16018400 # 6 months       
 
-#RESULTS_BACKEND = FileSystemCache("/app/superset_home/sqllab")
-RESULTS_BACKEND = redis.Redis(
-    host=REDIS_HOST, port=REDIS_PORT)
 
-class CeleryConfig:
-    BROKER_URL = 'redis://%s:%s/0' % (REDIS_HOST, REDIS_PORT)
-    CELERY_IMPORTS = ('superset.sql_lab', "superset.tasks", "superset.tasks.thumbnails", )
-    CELERY_RESULT_BACKEND = 'redis://%s:%s/0' % (REDIS_HOST, REDIS_PORT)
-    CELERYD_PREFETCH_MULTIPLIER = 10
-    CELERY_ACKS_LATE = True
-    CELERY_ANNOTATIONS = {
-        'sql_lab.get_sql_results': {
-            'rate_limit': '100/s',
+# merged part
+# CACHE_CONFIG = {
+#     "CACHE_TYPE": "redis",
+#     "CACHE_DEFAULT_TIMEOUT": 60 * 60 * 24, # 1 day default (in secs)
+#     "CACHE_KEY_PREFIX": "superset_results",
+#     "CACHE_REDIS_URL": f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_RESULTS_DB}",
+# }
+
+# #RESULTS_BACKEND = FileSystemCache("/app/superset_home/sqllab")
+# RESULTS_BACKEND = redis.Redis(
+#     host=REDIS_HOST, port=REDIS_PORT)
+
+# class CeleryConfig:
+#     BROKER_URL = 'redis://%s:%s/0' % (REDIS_HOST, REDIS_PORT)
+#     CELERY_IMPORTS = ('superset.sql_lab', "superset.tasks", "superset.tasks.thumbnails", )
+#     CELERY_RESULT_BACKEND = 'redis://%s:%s/0' % (REDIS_HOST, REDIS_PORT)
+#     CELERYD_PREFETCH_MULTIPLIER = 10
+#     CELERY_ACKS_LATE = True
+#     CELERY_ANNOTATIONS = {
+#         'sql_lab.get_sql_results': {
+#             'rate_limit': '100/s',
+
+class CeleryConfig(object):
+    BROKER_URL = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_CELERY_DB}"
+    CELERY_IMPORTS = ("superset.sql_lab",)
+    CELERY_RESULT_BACKEND = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_RESULTS_DB}"
+    CELERYD_LOG_LEVEL = "DEBUG"
+    CELERYD_PREFETCH_MULTIPLIER = 1
+    CELERY_ACKS_LATE = False
+    CELERYBEAT_SCHEDULE = {
+        "reports.scheduler": {
+            "task": "reports.scheduler",
+            "schedule": crontab(minute="*", hour="*"),
         },
         'email_reports.send': {
             'rate_limit': '1/s',

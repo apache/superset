@@ -30,6 +30,7 @@ import {
   formatSelectOptionsForRange,
   sections,
   dndEntity,
+  getStandardizedControls,
 } from '@superset-ui/chart-controls';
 
 const sortAxisChoices = [
@@ -274,7 +275,7 @@ const config: ControlPanelConfig = {
               type: 'CheckboxControl',
               label: t('Legend'),
               renderTrigger: true,
-              default: false,
+              default: true,
               description: t('Whether to display the legend (toggles)'),
             },
           },
@@ -329,6 +330,10 @@ const config: ControlPanelConfig = {
       label: t('Value Format'),
     },
   },
+  formDataOverrides: formData => ({
+    ...formData,
+    metric: getStandardizedControls().shiftMetric(),
+  }),
 };
 
 export default config;

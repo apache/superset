@@ -25,7 +25,8 @@ import {
   SetDataMaskHook,
 } from '@superset-ui/core';
 import { EChartsCoreOption } from 'echarts';
-import { EchartsTitleFormData, DEFAULT_TITLE_FORM_DATA } from '../types';
+import { EchartsTitleFormData } from '../types';
+import { DEFAULT_TITLE_FORM_DATA } from '../constants';
 
 export type BoxPlotQueryFormData = QueryFormData & {
   numberFormat?: string;
@@ -53,7 +54,8 @@ export const DEFAULT_FORM_DATA: BoxPlotQueryFormData = {
   ...DEFAULT_TITLE_FORM_DATA,
 };
 
-export interface EchartsBoxPlotChartProps extends ChartProps {
+export interface EchartsBoxPlotChartProps
+  extends ChartProps<BoxPlotQueryFormData> {
   formData: BoxPlotQueryFormData;
   queriesData: ChartDataResponseResult[];
 }

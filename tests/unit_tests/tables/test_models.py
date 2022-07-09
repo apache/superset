@@ -36,7 +36,13 @@ def test_table_model(app_context: None, session: Session) -> None:
         schema="my_schema",
         catalog="my_catalog",
         database=Database(database_name="my_database", sqlalchemy_uri="test://"),
-        columns=[Column(name="ds", type="TIMESTAMP", expression="ds",)],
+        columns=[
+            Column(
+                name="ds",
+                type="TIMESTAMP",
+                expression="ds",
+            )
+        ],
     )
     session.add(table)
     session.flush()

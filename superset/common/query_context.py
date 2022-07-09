@@ -69,7 +69,7 @@ class QueryContext:
         result_format: ChartDataResultFormat,
         force: bool = False,
         custom_cache_timeout: Optional[int] = None,
-        cache_values: Dict[str, Any]
+        cache_values: Dict[str, Any],
     ) -> None:
         self.datasource = datasource
         self.result_type = result_type
@@ -81,11 +81,16 @@ class QueryContext:
         self.cache_values = cache_values
         self._processor = QueryContextProcessor(self)
 
-    def get_data(self, df: pd.DataFrame,) -> Union[str, List[Dict[str, Any]]]:
+    def get_data(
+        self,
+        df: pd.DataFrame,
+    ) -> Union[str, List[Dict[str, Any]]]:
         return self._processor.get_data(df)
 
     def get_payload(
-        self, cache_query_context: Optional[bool] = False, force_cached: bool = False,
+        self,
+        cache_query_context: Optional[bool] = False,
+        force_cached: bool = False,
     ) -> Dict[str, Any]:
         """Returns the query results with both metadata and data"""
         return self._processor.get_payload(cache_query_context, force_cached)
@@ -103,7 +108,9 @@ class QueryContext:
         return self._processor.query_cache_key(query_obj, **kwargs)
 
     def get_df_payload(
-        self, query_obj: QueryObject, force_cached: Optional[bool] = False,
+        self,
+        query_obj: QueryObject,
+        force_cached: Optional[bool] = False,
     ) -> Dict[str, Any]:
         return self._processor.get_df_payload(query_obj, force_cached)
 
@@ -111,7 +118,9 @@ class QueryContext:
         return self._processor.get_query_result(query_object)
 
     def processing_time_offsets(
-        self, df: pd.DataFrame, query_object: QueryObject,
+        self,
+        df: pd.DataFrame,
+        query_object: QueryObject,
     ) -> CachedTimeOffset:
         return self._processor.processing_time_offsets(df, query_object)
 

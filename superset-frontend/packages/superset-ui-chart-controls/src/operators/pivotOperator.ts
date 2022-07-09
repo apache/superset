@@ -24,30 +24,27 @@ import {
   PostProcessingPivot,
 } from '@superset-ui/core';
 import { PostProcessingFactory } from './types';
-import { isValidTimeCompare } from './utils';
-import { timeComparePivotOperator } from './timeComparePivotOperator';
 
-export const pivotOperator: PostProcessingFactory<
-  PostProcessingPivot | undefined
-> = (formData, queryObject) => {
+export const pivotOperator: PostProcessingFactory<PostProcessingPivot> = (
+  formData,
+  queryObject,
+) => {
   const metricLabels = ensureIsArray(queryObject.metrics).map(getMetricLabel);
   const { x_axis: xAxis } = formData;
-  if ((xAxis || queryObject.is_timeseries) && metricLabels.length) {
-    if (isValidTimeCompare(formData, queryObject)) {
-      return timeComparePivotOperator(formData, queryObject);
-    }
 
+  if ((xAxis || queryObject.is_timeseries) && metricLabels.length) {
+    const index = [getColumnLabel(xAxis || DTTM_ALIAS)];
     return {
       operation: 'pivot',
       options: {
-        index: [xAxis || DTTM_ALIAS],
+        index,
         columns: ensureIsArray(queryObject.columns).map(getColumnLabel),
         // Create 'dummy' mean aggregates to assign cell values in pivot table
         // use the 'mean' aggregates to avoid drop NaN. PR: https://github.com/apache-superset/superset-ui/pull/1231
         aggregates: Object.fromEntries(
           metricLabels.map(metric => [metric, { operator: 'mean' }]),
         ),
-        drop_missing_columns: false,
+        drop_missing_columns: !formData?.show_empty_columns,
       },
     };
   }

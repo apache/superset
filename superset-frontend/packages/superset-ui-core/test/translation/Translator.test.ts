@@ -41,10 +41,12 @@ describe('Translator', () => {
     spy.mockImplementation((info: any) => {
       throw new Error(info);
     });
+    process.env.WEBPACK_MODE = 'production';
   });
 
   afterAll(() => {
     spy.mockRestore();
+    process.env.WEBPACK_MODE = 'test';
   });
 
   describe('new Translator(config)', () => {
@@ -156,7 +158,7 @@ describe('Translator', () => {
     it('throw warning on duplicates', () => {
       expect(() => {
         addTranslations({
-          haha: ['this is duplciate'],
+          haha: ['this is duplicate'],
         });
       }).toThrow('Duplicate translation key "haha"');
       expect(t('haha')).toEqual('Hahaha');

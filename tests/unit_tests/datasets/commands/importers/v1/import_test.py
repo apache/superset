@@ -16,6 +16,7 @@
 # under the License.
 # pylint: disable=import-outside-toplevel, unused-argument, unused-import, invalid-name
 
+import copy
 import json
 import uuid
 from typing import Any, Dict
@@ -54,7 +55,9 @@ def test_import_dataset(app_context: None, session: Session) -> None:
             "database_name": "examples",
             "import_time": 1606677834,
         },
-        "template_params": {"answer": "42",},
+        "template_params": {
+            "answer": "42",
+        },
         "filter_select_enabled": True,
         "fetch_values_predicate": "foo IN (1, 2)",
         "extra": {"warning_markdown": "*WARNING*"},
@@ -83,7 +86,9 @@ def test_import_dataset(app_context: None, session: Session) -> None:
                 "expression": "revenue-expenses",
                 "description": None,
                 "python_date_format": None,
-                "extra": {"certified_by": "User",},
+                "extra": {
+                    "certified_by": "User",
+                },
             }
         ],
         "database_uuid": database.uuid,
@@ -164,7 +169,9 @@ def test_import_column_extra_is_string(app_context: None, session: Session) -> N
             "database_name": "examples",
             "import_time": 1606677834,
         },
-        "template_params": {"answer": "42",},
+        "template_params": {
+            "answer": "42",
+        },
         "filter_select_enabled": True,
         "fetch_values_predicate": "foo IN (1, 2)",
         "extra": '{"warning_markdown": "*WARNING*"}',
@@ -199,6 +206,7 @@ def test_import_column_extra_is_string(app_context: None, session: Session) -> N
         "database_uuid": database.uuid,
     }
 
+    # the Marshmallow schema should convert strings to objects
     schema = ImportV1DatasetSchema()
     dataset_config = schema.load(yaml_config)
     dataset_config["database_id"] = database.id
@@ -207,3 +215,31 @@ def test_import_column_extra_is_string(app_context: None, session: Session) -> N
     assert sqla_table.metrics[0].extra == '{"warning_markdown": null}'
     assert sqla_table.columns[0].extra == '{"certified_by": "User"}'
     assert sqla_table.extra == '{"warning_markdown": "*WARNING*"}'
+
+
+def test_import_dataset_managed_externally(app_context: None, session: Session) -> None:
+    """
+    Test importing a dataset that is managed externally.
+    """
+    from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+    from superset.datasets.commands.importers.v1.utils import import_dataset
+    from superset.datasets.schemas import ImportV1DatasetSchema
+    from superset.models.core import Database
+    from tests.integration_tests.fixtures.importexport import dataset_config
+
+    engine = session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    session.add(database)
+    session.flush()
+
+    dataset_uuid = uuid.uuid4()
+    config = copy.deepcopy(dataset_config)
+    config["is_managed_externally"] = True
+    config["external_url"] = "https://example.org/my_table"
+    config["database_id"] = database.id
+
+    sqla_table = import_dataset(session, config)
+    assert sqla_table.is_managed_externally is True
+    assert sqla_table.external_url == "https://example.org/my_table"

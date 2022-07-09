@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { t, validateNonEmpty } from '@superset-ui/core';
+import { ensureIsInt, t, validateNonEmpty } from '@superset-ui/core';
 import {
   ControlPanelConfig,
   ControlPanelsContainerProps,
@@ -26,6 +26,7 @@ import {
   D3_TIME_FORMAT_OPTIONS,
   sections,
   emitFilterControl,
+  getStandardizedControls,
 } from '@superset-ui/chart-controls';
 import { DEFAULT_FORM_DATA } from './types';
 import { legendSection } from '../controls';
@@ -90,7 +91,7 @@ const config: ControlPanelConfig = {
         ],
         ...legendSection,
         // eslint-disable-next-line react/jsx-key
-        [<h1 className="section-header">{t('Labels')}</h1>],
+        [<div className="section-header">{t('Labels')}</div>],
         [
           {
             name: 'label_type',
@@ -183,8 +184,20 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        [
+          {
+            name: 'show_total',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Show Total'),
+              default: false,
+              renderTrigger: true,
+              description: t('Whether to display the aggregate count'),
+            },
+          },
+        ],
         // eslint-disable-next-line react/jsx-key
-        [<h1 className="section-header">{t('Pie shape')}</h1>],
+        [<div className="section-header">{t('Pie shape')}</div>],
         [
           {
             name: 'outerRadius',
@@ -241,6 +254,13 @@ const config: ControlPanelConfig = {
       default: 100,
     },
   },
+  formDataOverrides: formData => ({
+    ...formData,
+    metric: getStandardizedControls().shiftMetric(),
+    groupby: getStandardizedControls().popAllColumns(),
+    row_limit:
+      ensureIsInt(formData.row_limit, 100) >= 100 ? 100 : formData.row_limit,
+  }),
 };
 
 export default config;

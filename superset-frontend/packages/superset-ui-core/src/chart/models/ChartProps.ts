@@ -32,6 +32,7 @@ import {
 } from '../..';
 import { HandlerFunction, PlainObject, SetDataMaskHook } from '../types/Base';
 import { QueryData, DataRecordFilters } from '..';
+import { SupersetTheme } from '../../style';
 
 // TODO: more specific typing for these fields of ChartProps
 type AnnotationData = PlainObject;
@@ -93,6 +94,8 @@ export interface ChartPropsConfig {
   isRefreshing?: boolean;
   /** chart ref */
   inputRef?: RefObject<any>;
+  /** Theme object */
+  theme: SupersetTheme;
 }
 
 const DEFAULT_WIDTH = 800;
@@ -133,6 +136,8 @@ export default class ChartProps<FormData extends RawFormData = RawFormData> {
 
   inputRef?: RefObject<any>;
 
+  theme: SupersetTheme;
+
   constructor(config: ChartPropsConfig & { formData?: FormData } = {}) {
     const {
       annotationData = {},
@@ -149,6 +154,7 @@ export default class ChartProps<FormData extends RawFormData = RawFormData> {
       appSection,
       isRefreshing,
       inputRef,
+      theme,
     } = config;
     this.width = width;
     this.height = height;
@@ -166,6 +172,7 @@ export default class ChartProps<FormData extends RawFormData = RawFormData> {
     this.appSection = appSection;
     this.isRefreshing = isRefreshing;
     this.inputRef = inputRef;
+    this.theme = theme;
   }
 }
 
@@ -186,6 +193,7 @@ ChartProps.createSelector = function create(): ChartPropsSelector {
     input => input.appSection,
     input => input.isRefreshing,
     input => input.inputRef,
+    input => input.theme,
     (
       annotationData,
       datasource,
@@ -201,6 +209,7 @@ ChartProps.createSelector = function create(): ChartPropsSelector {
       appSection,
       isRefreshing,
       inputRef,
+      theme,
     ) =>
       new ChartProps({
         annotationData,
@@ -217,6 +226,7 @@ ChartProps.createSelector = function create(): ChartPropsSelector {
         appSection,
         isRefreshing,
         inputRef,
+        theme,
       }),
   );
 };

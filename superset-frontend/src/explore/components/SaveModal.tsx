@@ -76,10 +76,18 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
     this.onSliceNameChange = this.onSliceNameChange.bind(this);
     this.changeAction = this.changeAction.bind(this);
     this.saveOrOverwrite = this.saveOrOverwrite.bind(this);
+    this.isNewDashboard = this.isNewDashboard.bind(this);
+  }
+
+  isNewDashboard(): boolean {
+    return !!(!this.state.saveToDashboardId && this.state.newDashboardName);
   }
 
   canOverwriteSlice(): boolean {
-    return this.props.slice?.owners?.includes(this.props.userId);
+    return (
+      this.props.slice?.owners?.includes(this.props.userId) &&
+      !this.props.slice?.is_managed_externally
+    );
   }
 
   componentDidMount() {
@@ -192,7 +200,9 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
               }
               onClick={() => this.saveOrOverwrite(true)}
             >
-              {t('Save & go to dashboard')}
+              {this.isNewDashboard()
+                ? t('Save & go to new dashboard')
+                : t('Save & go to dashboard')}
             </Button>
             <Button
               id="btn_modal_save"
@@ -204,6 +214,8 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
             >
               {!this.canOverwriteSlice() && this.props.slice
                 ? t('Save as new chart')
+                : this.isNewDashboard()
+                ? t('Save to new dashboard')
                 : t('Save')}
             </Button>
           </div>
@@ -244,8 +256,7 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
               checked={this.state.action === 'saveas'}
               onChange={() => this.changeAction('saveas')}
             >
-              {' '}
-              {t('Save as ...')} &nbsp;
+              {t('Save as...')}
             </Radio>
           </FormItem>
           <hr />
@@ -288,11 +299,12 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
 function mapStateToProps({
   explore,
   saveModal,
+  user,
 }: Record<string, any>): Partial<SaveModalProps> {
   return {
     datasource: explore.datasource,
     slice: explore.slice,
-    userId: explore.user?.userId,
+    userId: user?.userId,
     dashboards: saveModal.dashboards,
     alert: saveModal.saveModalAlert,
   };

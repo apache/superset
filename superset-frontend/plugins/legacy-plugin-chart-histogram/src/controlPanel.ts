@@ -29,6 +29,7 @@ import {
   formatSelectOptions,
   sections,
   dndColumnsControl,
+  getStandardizedControls,
 } from '@superset-ui/chart-controls';
 
 const allColumns = {
@@ -128,7 +129,7 @@ const config: ControlPanelConfig = {
               type: 'CheckboxControl',
               label: t('Legend'),
               renderTrigger: true,
-              default: false,
+              default: true,
               description: t('Whether to display the legend (toggles)'),
             },
           },
@@ -160,5 +161,9 @@ const config: ControlPanelConfig = {
       ],
     },
   ],
+  formDataOverrides: formData => ({
+    ...formData,
+    groupby: getStandardizedControls().popAllColumns(),
+  }),
 };
 export default config;

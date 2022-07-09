@@ -33,8 +33,8 @@ import {
   ChartMetadata,
   SupersetTheme,
   useTheme,
-  ChartLabel,
-  ChartLabelWeight,
+  chartLabelWeight,
+  chartLabelExplanations,
 } from '@superset-ui/core';
 import { AntdCollapse } from 'src/components';
 import { Tooltip } from 'src/components/Tooltip';
@@ -47,6 +47,7 @@ import scrollIntoView from 'scroll-into-view-if-needed';
 
 interface VizTypeGalleryProps {
   onChange: (vizType: string | null) => void;
+  onDoubleClick: () => void;
   selectedViz: string | null;
   className?: string;
 }
@@ -380,12 +381,14 @@ interface ThumbnailProps {
   entry: VizEntry;
   selectedViz: string | null;
   setSelectedViz: (viz: string) => void;
+  onDoubleClick: () => void;
 }
 
 const Thumbnail: React.FC<ThumbnailProps> = ({
   entry,
   selectedViz,
   setSelectedViz,
+  onDoubleClick,
 }) => {
   const theme = useTheme();
   const { key, value: type } = entry;
@@ -400,6 +403,7 @@ const Thumbnail: React.FC<ThumbnailProps> = ({
       tabIndex={0}
       className={isSelected ? 'selected' : ''}
       onClick={() => setSelectedViz(key)}
+      onDoubleClick={onDoubleClick}
       data-test="viztype-selector-container"
     >
       <img
@@ -414,10 +418,10 @@ const Thumbnail: React.FC<ThumbnailProps> = ({
       >
         {type.name}
       </div>
-      {type.label?.name && (
+      {type.label && (
         <ThumbnailLabelWrapper>
           <HighlightLabel>
-            <div>{t(type.label?.name)}</div>
+            <div>{t(type.label)}</div>
           </HighlightLabel>
         </ThumbnailLabelWrapper>
       )}
@@ -429,6 +433,7 @@ interface ThumbnailGalleryProps {
   vizEntries: VizEntry[];
   selectedViz: string | null;
   setSelectedViz: (viz: string) => void;
+  onDoubleClick: () => void;
 }
 
 /** A list of viz thumbnails, used within the viz picker modal */
@@ -487,7 +492,7 @@ const doesVizMatchSelector = (viz: ChartMetadata, selector: string) =>
   (viz.tags || []).indexOf(selector) > -1;
 
 export default function VizTypeGallery(props: VizTypeGalleryProps) {
-  const { selectedViz, onChange, className } = props;
+  const { selectedViz, onChange, onDoubleClick, className } = props;
   const { mountedPluginMetadata } = usePluginContext();
   const searchInputRef = useRef<HTMLInputElement>();
   const [searchInputValue, setSearchInputValue] = useState('');
@@ -503,8 +508,7 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
       .map(([key, value]) => ({ key, value }))
       .filter(
         ({ value }) =>
-          nativeFilterGate(value.behaviors || []) &&
-          value.label?.name !== ChartLabel.DEPRECATED,
+          nativeFilterGate(value.behaviors || []) && !value.deprecated,
       );
     result.sort((a, b) => vizSortFactor(a) - vizSortFactor(b));
     return result;
@@ -580,7 +584,17 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
       new Fuse(chartMetadata, {
         ignoreLocation: true,
         threshold: 0.3,
-        keys: ['value.name', 'value.tags', 'value.description'],
+        keys: [
+          {
+            name: 'value.name',
+            weight: 4,
+          },
+          {
+            name: 'value.tags',
+            weight: 2,
+          },
+          'value.description',
+        ],
       }),
     [chartMetadata],
   );
@@ -593,12 +607,16 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
       .search(searchInputValue)
       .map(result => result.item)
       .sort((a, b) => {
-        const aName = a.value?.label?.name;
-        const bName = b.value?.label?.name;
+        const aLabel = a.value?.label;
+        const bLabel = b.value?.label;
         const aOrder =
-          aName && ChartLabelWeight[aName] ? ChartLabelWeight[aName].weight : 0;
+          aLabel && chartLabelWeight[aLabel]
+            ? chartLabelWeight[aLabel].weight
+            : 0;
         const bOrder =
-          bName && ChartLabelWeight[bName] ? ChartLabelWeight[bName].weight : 0;
+          bLabel && chartLabelWeight[bLabel]
+            ? chartLabelWeight[bLabel].weight
+            : 0;
         return bOrder - aOrder;
       });
   }, [searchInputValue, fuse]);
@@ -780,6 +798,7 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
           vizEntries={getVizEntriesToDisplay()}
           selectedViz={selectedViz}
           setSelectedViz={onChange}
+          onDoubleClick={onDoubleClick}
         />
       </RightPane>
 
@@ -798,15 +817,18 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
               `}
             >
               {selectedVizMetadata?.name}
-              {selectedVizMetadata?.label?.name && (
+              {selectedVizMetadata?.label && (
                 <Tooltip
                   id="viz-badge-tooltip"
                   placement="top"
-                  title={selectedVizMetadata.label?.description}
+                  title={
+                    selectedVizMetadata.labelExplanation ??
+                    chartLabelExplanations[selectedVizMetadata.label]
+                  }
                 >
                   <TitleLabelWrapper>
                     <HighlightLabel>
-                      <div>{t(selectedVizMetadata.label?.name)}</div>
+                      <div>{t(selectedVizMetadata.label)}</div>
                     </HighlightLabel>
                   </TitleLabelWrapper>
                 </Tooltip>

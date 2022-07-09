@@ -45,7 +45,9 @@ export interface GetFormDataWithExtraFiltersArguments {
   sliceId: number;
   dataMask: DataMaskStateWithId;
   nativeFilters: NativeFiltersState;
+  extraControls: Record<string, string | boolean | null>;
   labelColors?: Record<string, string>;
+  sharedLabelColors?: Record<string, string>;
 }
 
 // this function merge chart's formData with dashboard filters value,
@@ -62,7 +64,9 @@ export default function getFormDataWithExtraFilters({
   sliceId,
   layout,
   dataMask,
+  extraControls,
   labelColors,
+  sharedLabelColors,
 }: GetFormDataWithExtraFiltersArguments) {
   // if dashboard metadata + filters have not changed, use cache if possible
   const cachedFormData = cachedFormdataByChart[sliceId];
@@ -77,8 +81,14 @@ export default function getFormDataWithExtraFilters({
     areObjectsEqual(cachedFormData?.label_colors, labelColors, {
       ignoreUndefined: true,
     }) &&
+    areObjectsEqual(cachedFormData?.shared_label_colors, sharedLabelColors, {
+      ignoreUndefined: true,
+    }) &&
     !!cachedFormData &&
     areObjectsEqual(cachedFormData?.dataMask, dataMask, {
+      ignoreUndefined: true,
+    }) &&
+    areObjectsEqual(cachedFormData?.extraControls, extraControls, {
       ignoreUndefined: true,
     })
   ) {
@@ -106,15 +116,17 @@ export default function getFormDataWithExtraFilters({
   }
 
   const formData = {
-    ...chart.formData,
+    ...chart.form_data,
     label_colors: labelColors,
+    shared_label_colors: sharedLabelColors,
     ...(colorScheme && { color_scheme: colorScheme }),
     extra_filters: getEffectiveExtraFilters(filters),
     ...extraData,
+    ...extraControls,
   };
 
   cachedFiltersByChart[sliceId] = filters;
-  cachedFormdataByChart[sliceId] = { ...formData, dataMask };
+  cachedFormdataByChart[sliceId] = { ...formData, dataMask, extraControls };
 
   return formData;
 }

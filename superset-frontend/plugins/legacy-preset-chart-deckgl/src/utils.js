@@ -48,10 +48,12 @@ export function getBreakPoints(
     const precision =
       delta === 0 ? 0 : Math.max(0, Math.ceil(Math.log10(1 / delta)));
     const extraBucket = maxValue > maxValue.toFixed(precision) ? 1 : 0;
+    const startValue =
+      minValue < minValue.toFixed(precision) ? minValue - 1 : minValue;
 
     return new Array(numBuckets + 1 + extraBucket)
       .fill()
-      .map((_, i) => (minValue + i * delta).toFixed(precision));
+      .map((_, i) => (startValue + i * delta).toFixed(precision));
   }
 
   return formDataBreakPoints.sort((a, b) => parseFloat(a) - parseFloat(b));

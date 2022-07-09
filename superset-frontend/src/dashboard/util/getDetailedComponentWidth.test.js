@@ -59,7 +59,7 @@ describe('getDetailedComponentWidth', () => {
       ).toEqual(empty);
     });
 
-    it('should match component meta width for resizeable components', () => {
+    it('should match component meta width for resizable components', () => {
       expect(
         getDetailedComponentWidth({
           component: { id: '', type: types.CHART_TYPE, meta: { width: 1 } },
@@ -76,7 +76,7 @@ describe('getDetailedComponentWidth', () => {
         getDetailedComponentWidth({
           component: { id: '', type: types.COLUMN_TYPE, meta: { width: 3 } },
         }),
-        // note: occupiedWidth is zero for colunns/see test below
+        // note: occupiedWidth is zero for columns/see test below
       ).toEqual({ width: 3, occupiedWidth: 0, minimumWidth: 1 });
     });
 
@@ -217,7 +217,7 @@ describe('getDetailedComponentWidth', () => {
             },
           },
         }),
-        // occupiedWidth is zero for colunns/see test below
+        // occupiedWidth is zero for columns/see test below
       ).toEqual({ width: 12, occupiedWidth: 0, minimumWidth: 7 });
     });
 

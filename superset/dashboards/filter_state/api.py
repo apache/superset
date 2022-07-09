@@ -25,12 +25,12 @@ from superset.dashboards.filter_state.commands.delete import DeleteFilterStateCo
 from superset.dashboards.filter_state.commands.get import GetFilterStateCommand
 from superset.dashboards.filter_state.commands.update import UpdateFilterStateCommand
 from superset.extensions import event_logger
-from superset.key_value.api import KeyValueRestApi
+from superset.temporary_cache.api import TemporaryCacheRestApi
 
 logger = logging.getLogger(__name__)
 
 
-class DashboardFilterStateRestApi(KeyValueRestApi):
+class DashboardFilterStateRestApi(TemporaryCacheRestApi):
     class_permission_name = "DashboardFilterStateRestApi"
     resource_name = "dashboard"
     openapi_spec_tag = "Dashboard Filter State"
@@ -74,7 +74,7 @@ class DashboardFilterStateRestApi(KeyValueRestApi):
             content:
               application/json:
                 schema:
-                  $ref: '#/components/schemas/KeyValuePostSchema'
+                  $ref: '#/components/schemas/TemporaryCachePostSchema'
           responses:
             201:
               description: The value was stored successfully.
@@ -128,7 +128,7 @@ class DashboardFilterStateRestApi(KeyValueRestApi):
             content:
               application/json:
                 schema:
-                  $ref: '#/components/schemas/KeyValuePutSchema'
+                  $ref: '#/components/schemas/TemporaryCachePutSchema'
           responses:
             200:
               description: The value was stored successfully.

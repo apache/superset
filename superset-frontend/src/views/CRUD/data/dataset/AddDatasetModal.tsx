@@ -23,6 +23,11 @@ import Modal from 'src/components/Modal';
 import TableSelector from 'src/components/TableSelector';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { DatabaseObject } from 'src/components/DatabaseSelector';
+import {
+  getItem,
+  LocalStorageKeys,
+  setItem,
+} from 'src/utils/localStorageHelpers';
 
 type DatasetAddObject = {
   id: number;
@@ -56,7 +61,10 @@ const DatasetModal: FunctionComponent<DatasetModalProps> = ({
   const [currentSchema, setSchema] = useState<string | undefined>('');
   const [currentTableName, setTableName] = useState('');
   const [disableSave, setDisableSave] = useState(true);
-  const { createResource } = useSingleViewResource<Partial<DatasetAddObject>>(
+  const {
+    createResource,
+    state: { loading },
+  } = useSingleViewResource<Partial<DatasetAddObject>>(
     'dataset',
     t('dataset'),
     addDangerToast,
@@ -65,6 +73,14 @@ const DatasetModal: FunctionComponent<DatasetModalProps> = ({
   useEffect(() => {
     setDisableSave(currentDatabase === undefined || currentTableName === '');
   }, [currentTableName, currentDatabase]);
+
+  useEffect(() => {
+    const currentUserSelectedDb = getItem(
+      LocalStorageKeys.db,
+      null,
+    ) as DatabaseObject;
+    if (currentUserSelectedDb) setCurrentDatabase(currentUserSelectedDb);
+  }, []);
 
   const onDbChange = (db: DatabaseObject) => {
     setCurrentDatabase(db);
@@ -86,6 +102,7 @@ const DatasetModal: FunctionComponent<DatasetModalProps> = ({
   };
 
   const hide = () => {
+    setItem(LocalStorageKeys.db, null);
     clearModal();
     onHide();
   };
@@ -114,6 +131,7 @@ const DatasetModal: FunctionComponent<DatasetModalProps> = ({
   return (
     <Modal
       disablePrimaryButton={disableSave}
+      primaryButtonLoading={loading}
       onHandledPrimaryAction={onSave}
       onHide={hide}
       primaryButtonName={t('Add')}
@@ -126,10 +144,10 @@ const DatasetModal: FunctionComponent<DatasetModalProps> = ({
           formMode
           database={currentDatabase}
           schema={currentSchema}
-          tableName={currentTableName}
+          tableValue={currentTableName}
           onDbChange={onDbChange}
           onSchemaChange={onSchemaChange}
-          onTableChange={onTableChange}
+          onTableSelectChange={onTableChange}
           handleError={addDangerToast}
         />
       </TableSelectorContainer>

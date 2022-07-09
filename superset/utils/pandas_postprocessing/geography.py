@@ -21,7 +21,7 @@ from flask_babel import gettext as _
 from geopy.point import Point
 from pandas import DataFrame
 
-from superset.exceptions import QueryObjectValidationError
+from superset.exceptions import InvalidPostProcessingError
 from superset.utils.pandas_postprocessing.utils import _append_columns
 
 
@@ -46,11 +46,14 @@ def geohash_decode(
             df, lonlat_df, {"latitude": latitude, "longitude": longitude}
         )
     except ValueError as ex:
-        raise QueryObjectValidationError(_("Invalid geohash string")) from ex
+        raise InvalidPostProcessingError(_("Invalid geohash string")) from ex
 
 
 def geohash_encode(
-    df: DataFrame, geohash: str, longitude: str, latitude: str,
+    df: DataFrame,
+    geohash: str,
+    longitude: str,
+    latitude: str,
 ) -> DataFrame:
     """
     Encode longitude and latitude into geohash
@@ -65,11 +68,12 @@ def geohash_encode(
         encode_df = df[[latitude, longitude]]
         encode_df.columns = ["latitude", "longitude"]
         encode_df["geohash"] = encode_df.apply(
-            lambda row: geohash_lib.encode(row["latitude"], row["longitude"]), axis=1,
+            lambda row: geohash_lib.encode(row["latitude"], row["longitude"]),
+            axis=1,
         )
         return _append_columns(df, encode_df, {"geohash": geohash})
     except ValueError as ex:
-        raise QueryObjectValidationError(_("Invalid longitude/latitude")) from ex
+        raise InvalidPostProcessingError(_("Invalid longitude/latitude")) from ex
 
 
 def geodetic_parse(
@@ -111,4 +115,4 @@ def geodetic_parse(
             columns["altitude"] = altitude
         return _append_columns(df, geodetic_df, columns)
     except ValueError as ex:
-        raise QueryObjectValidationError(_("Invalid geodetic string")) from ex
+        raise InvalidPostProcessingError(_("Invalid geodetic string")) from ex

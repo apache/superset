@@ -41,7 +41,7 @@ export const useUiConfig = () => useContext(UiConfigContext);
 
 export const EmbeddedUiConfigProvider: React.FC<EmbeddedUiConfigProviderProps> =
   ({ children }) => {
-    const config = getUrlParam(URL_PARAMS.uiConfig);
+    const config = getUrlParam(URL_PARAMS.uiConfig) || 0;
     const [embeddedConfig] = useState({
       hideTitle: (config & 1) !== 0,
       hideTab: (config & 2) !== 0,

@@ -18,18 +18,23 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { styled } from '@superset-ui/core';
+import { bindActionCreators } from 'redux';
+import { connect } from 'react-redux';
+import { styled, t } from '@superset-ui/core';
 
-import DashboardComponent from '../../containers/DashboardComponent';
-import DragDroppable from '../dnd/DragDroppable';
-import EditableTitle from '../../../components/EditableTitle';
-import AnchorLink from '../../../components/AnchorLink';
-import { componentShape } from '../../util/propShapes';
+import { EmptyStateMedium } from 'src/components/EmptyState';
+import EditableTitle from 'src/components/EditableTitle';
+import { setEditMode } from 'src/dashboard/actions/dashboardState';
+import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
+import AnchorLink from 'src/dashboard/components/AnchorLink';
+import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
+import { componentShape } from 'src/dashboard/util/propShapes';
 
 export const RENDER_TAB = 'RENDER_TAB';
 export const RENDER_TAB_CONTENT = 'RENDER_TAB_CONTENT';
 
 const propTypes = {
+  dashboardId: PropTypes.number.isRequired,
   id: PropTypes.string.isRequired,
   parentId: PropTypes.string.isRequired,
   component: componentShape.isRequired,
@@ -39,7 +44,7 @@ const propTypes = {
   renderType: PropTypes.oneOf([RENDER_TAB, RENDER_TAB_CONTENT]).isRequired,
   onDropOnTab: PropTypes.func,
   editMode: PropTypes.bool.isRequired,
-  filters: PropTypes.object.isRequired,
+  canEdit: PropTypes.bool.isRequired,
 
   // grid related
   availableColumnCount: PropTypes.number,
@@ -52,6 +57,7 @@ const propTypes = {
   handleComponentDrop: PropTypes.func.isRequired,
   updateComponents: PropTypes.func.isRequired,
   setDirectPathToChild: PropTypes.func.isRequired,
+  setEditMode: PropTypes.func.isRequired,
 };
 
 const defaultProps = {
@@ -84,7 +90,7 @@ const renderDraggableContentTop = dropProps =>
     <div className="drop-indicator drop-indicator--top" />
   );
 
-export default class Tab extends React.PureComponent {
+class Tab extends React.PureComponent {
   constructor(props) {
     super(props);
     this.handleChangeText = this.handleChangeText.bind(this);
@@ -142,8 +148,12 @@ export default class Tab extends React.PureComponent {
       onResizeStop,
       editMode,
       isComponentVisible,
+      canEdit,
+      setEditMode,
+      dashboardId,
     } = this.props;
 
+    const shouldDisplayEmptyState = tabComponent.children.length === 0;
     return (
       <div className="dashboard-component-tabs-content">
         {/* Make top of tab droppable */}
@@ -160,6 +170,43 @@ export default class Tab extends React.PureComponent {
           >
             {renderDraggableContentTop}
           </DragDroppable>
+        )}
+        {shouldDisplayEmptyState && (
+          <EmptyStateMedium
+            title={
+              editMode
+                ? t('Drag and drop components to this tab')
+                : t('There are no components added to this tab')
+            }
+            description={
+              canEdit &&
+              (editMode ? (
+                <span>
+                  {t('You can')}{' '}
+                  <a
+                    href={`/chart/add?dashboard_id=${dashboardId}`}
+                    rel="noopener noreferrer"
+                    target="_blank"
+                  >
+                    {t('create a new chart')}
+                  </a>{' '}
+                  {t('or use existing ones from the panel on the right')}
+                </span>
+              ) : (
+                <span>
+                  {t('You can add the components in the')}{' '}
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setEditMode(true)}
+                  >
+                    {t('edit mode')}
+                  </span>
+                </span>
+              ))
+            }
+            image="chart.svg"
+          />
         )}
         {tabComponent.children.map((componentId, componentIndex) => (
           <DashboardComponent
@@ -204,7 +251,6 @@ export default class Tab extends React.PureComponent {
       index,
       depth,
       editMode,
-      filters,
       isFocused,
       isHighlighted,
     } = this.props;
@@ -236,9 +282,8 @@ export default class Tab extends React.PureComponent {
             />
             {!editMode && (
               <AnchorLink
-                anchorLinkId={component.id}
-                filters={filters}
-                showShortLinkButton
+                id={component.id}
+                dashboardId={this.props.dashboardId}
                 placement={index >= 5 ? 'left' : 'right'}
               />
             )}
@@ -260,3 +305,20 @@ export default class Tab extends React.PureComponent {
 
 Tab.propTypes = propTypes;
 Tab.defaultProps = defaultProps;
+
+function mapStateToProps(state) {
+  return {
+    canEdit: state.dashboardInfo.dash_edit_perm,
+  };
+}
+
+function mapDispatchToProps(dispatch) {
+  return bindActionCreators(
+    {
+      setEditMode,
+    },
+    dispatch,
+  );
+}
+
+export default connect(mapStateToProps, mapDispatchToProps)(Tab);

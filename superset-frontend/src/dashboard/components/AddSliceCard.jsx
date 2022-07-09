@@ -47,7 +47,6 @@ const Styled = styled.div`
       border: 1px solid ${theme.colors.grayscale.light2};
       border-radius: ${theme.gridUnit}px;
       background: ${theme.colors.grayscale.light5};
-      font-weight: ${theme.typography.weights.light};
       padding: ${theme.gridUnit * 2}px;
       margin: 0 ${theme.gridUnit * 3}px
         ${theme.gridUnit * 3}px

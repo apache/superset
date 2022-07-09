@@ -25,7 +25,7 @@ export type BoxPlotEncodingConfig = {
   color: ['Color', string];
 };
 
-export const boxPlotEncoderFactory =
+export const boxPlotEncoderFactory = (darkGray: string) =>
   createEncoderFactory<BoxPlotEncodingConfig>({
     channelTypes: {
       x: 'XBand',
@@ -35,7 +35,7 @@ export const boxPlotEncoderFactory =
     defaultEncoding: {
       x: { field: 'x', type: 'nominal' },
       y: { field: 'y', type: 'quantitative' },
-      color: { value: '#222' },
+      color: { value: darkGray },
     },
   });
 

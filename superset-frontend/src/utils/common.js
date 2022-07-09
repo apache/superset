@@ -94,7 +94,7 @@ export function prepareCopyToClipboardTabularData(data, columns) {
   for (let i = 0; i < data.length; i += 1) {
     const row = {};
     for (let j = 0; j < columns.length; j += 1) {
-      // JavaScript does not mantain the order of a mixed set of keys (i.e integers and strings)
+      // JavaScript does not maintain the order of a mixed set of keys (i.e integers and strings)
       // the below function orders the keys based on the column names.
       const key = columns[j].name || columns[j];
       if (data[i][key]) {
@@ -143,6 +143,12 @@ export const detectOS = () => {
   if (appVersion.includes('Linux')) return 'Linux';
 
   return 'Unknown OS';
+};
+
+export const isSafari = () => {
+  const { userAgent } = navigator;
+
+  return userAgent && /^((?!chrome|android).)*safari/i.test(userAgent);
 };
 
 export const isNullish = value => value === null || value === undefined;

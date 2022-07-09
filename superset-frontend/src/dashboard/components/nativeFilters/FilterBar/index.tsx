@@ -165,6 +165,11 @@ export interface FiltersBarProps {
   offset: number;
 }
 
+const EXCLUDED_URL_PARAMS: string[] = [
+  URL_PARAMS.nativeFilters.name,
+  URL_PARAMS.permalinkKey.name,
+];
+
 const publishDataMask = debounce(
   async (
     history,
@@ -177,9 +182,9 @@ const publishDataMask = debounce(
     const { search } = location;
     const previousParams = new URLSearchParams(search);
     const newParams = new URLSearchParams();
-    let dataMaskKey: string;
+    let dataMaskKey: string | null;
     previousParams.forEach((value, key) => {
-      if (key !== URL_PARAMS.nativeFilters.name) {
+      if (!EXCLUDED_URL_PARAMS.includes(key)) {
         newParams.append(key, value);
       }
     });
@@ -200,7 +205,9 @@ const publishDataMask = debounce(
     } else {
       dataMaskKey = await createFilterKey(dashboardId, dataMask, tabId);
     }
-    newParams.set(URL_PARAMS.nativeFiltersKey.name, dataMaskKey);
+    if (dataMaskKey) {
+      newParams.set(URL_PARAMS.nativeFiltersKey.name, dataMaskKey);
+    }
 
     // pathname could be updated somewhere else through window.history
     // keep react router history in sync with window history

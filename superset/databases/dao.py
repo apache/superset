@@ -24,6 +24,7 @@ from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import TabState
+from superset.utils.core import DatasourceType
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +43,8 @@ class DatabaseDAO(BaseDAO):
     @staticmethod
     def validate_update_uniqueness(database_id: int, database_name: str) -> bool:
         database_query = db.session.query(Database).filter(
-            Database.database_name == database_name, Database.id != database_id,
+            Database.database_name == database_name,
+            Database.id != database_id,
         )
         return not db.session.query(database_query.exists()).scalar()
 
@@ -67,13 +69,15 @@ class DatabaseDAO(BaseDAO):
 
     @classmethod
     def get_related_objects(cls, database_id: int) -> Dict[str, Any]:
-        datasets = cls.find_by_id(database_id).tables
+        database: Any = cls.find_by_id(database_id)
+        datasets = database.tables
         dataset_ids = [dataset.id for dataset in datasets]
 
         charts = (
             db.session.query(Slice)
             .filter(
-                Slice.datasource_id.in_(dataset_ids), Slice.datasource_type == "table"
+                Slice.datasource_id.in_(dataset_ids),
+                Slice.datasource_type == DatasourceType.TABLE,
             )
             .all()
         )

@@ -29,6 +29,7 @@ from superset.extensions import db
 from superset.models.core import FavStar, FavStarClassName
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
+from superset.utils.core import get_user_id
 from superset.utils.dashboard_filter_scopes_converter import copy_filter_scopes
 
 logger = logging.getLogger(__name__)
@@ -265,6 +266,7 @@ class DashboardDAO(BaseDAO):
         md["refresh_frequency"] = data.get("refresh_frequency", 0)
         md["color_scheme"] = data.get("color_scheme", "")
         md["label_colors"] = data.get("label_colors", {})
+        md["shared_label_colors"] = data.get("shared_label_colors", {})
 
         dashboard.json_metadata = json.dumps(md)
 
@@ -273,9 +275,7 @@ class DashboardDAO(BaseDAO):
         return dashboard
 
     @staticmethod
-    def favorited_ids(
-        dashboards: List[Dashboard], current_user_id: int
-    ) -> List[FavStar]:
+    def favorited_ids(dashboards: List[Dashboard]) -> List[FavStar]:
         ids = [dash.id for dash in dashboards]
         return [
             star.obj_id
@@ -283,7 +283,7 @@ class DashboardDAO(BaseDAO):
             .filter(
                 FavStar.class_name == FavStarClassName.DASHBOARD,
                 FavStar.obj_id.in_(ids),
-                FavStar.user_id == current_user_id,
+                FavStar.user_id == get_user_id(),
             )
             .all()
         ]

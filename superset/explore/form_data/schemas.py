@@ -14,12 +14,20 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from marshmallow import fields, Schema
+from marshmallow import fields, Schema, validate
+
+from superset.utils.core import DatasourceType
 
 
 class FormDataPostSchema(Schema):
-    dataset_id = fields.Integer(
-        required=True, allow_none=False, description="The dataset ID"
+    datasource_id = fields.Integer(
+        required=True, allow_none=False, description="The datasource ID"
+    )
+    datasource_type = fields.String(
+        required=True,
+        allow_none=False,
+        description="The datasource type",
+        validate=validate.OneOf(choices=[ds.value for ds in DatasourceType]),
     )
     chart_id = fields.Integer(required=False, description="The chart ID")
     form_data = fields.String(
@@ -28,8 +36,14 @@ class FormDataPostSchema(Schema):
 
 
 class FormDataPutSchema(Schema):
-    dataset_id = fields.Integer(
-        required=True, allow_none=False, description="The dataset ID"
+    datasource_id = fields.Integer(
+        required=True, allow_none=False, description="The datasource ID"
+    )
+    datasource_type = fields.String(
+        required=True,
+        allow_none=False,
+        description="The datasource type",
+        validate=validate.OneOf(choices=[ds.value for ds in DatasourceType]),
     )
     chart_id = fields.Integer(required=False, description="The chart ID")
     form_data = fields.String(

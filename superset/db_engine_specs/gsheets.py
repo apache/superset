@@ -82,7 +82,10 @@ class GSheetsEngineSpec(SqliteEngineSpec):
 
     @classmethod
     def modify_url_for_impersonation(
-        cls, url: URL, impersonate_user: bool, username: Optional[str],
+        cls,
+        url: URL,
+        impersonate_user: bool,
+        username: Optional[str],
     ) -> None:
         if impersonate_user and username is not None:
             user = security_manager.find_user(username=username)
@@ -91,7 +94,10 @@ class GSheetsEngineSpec(SqliteEngineSpec):
 
     @classmethod
     def extra_table_metadata(
-        cls, database: "Database", table_name: str, schema_name: str,
+        cls,
+        database: "Database",
+        table_name: str,
+        schema_name: Optional[str],
     ) -> Dict[str, Any]:
         engine = cls.get_engine(database, schema=schema_name)
         with closing(engine.raw_connection()) as conn:
@@ -150,7 +156,8 @@ class GSheetsEngineSpec(SqliteEngineSpec):
 
     @classmethod
     def validate_parameters(
-        cls, parameters: GSheetsParametersType,
+        cls,
+        parameters: GSheetsParametersType,
     ) -> List[SupersetError]:
         errors: List[SupersetError] = []
         encrypted_credentials = parameters.get("service_account_info") or "{}"
@@ -164,6 +171,14 @@ class GSheetsEngineSpec(SqliteEngineSpec):
 
         if not table_catalog:
             # Allowing users to submit empty catalogs
+            errors.append(
+                SupersetError(
+                    message="Sheet name is required",
+                    error_type=SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR,
+                    level=ErrorLevel.WARNING,
+                    extra={"catalog": {"idx": 0, "name": True}},
+                ),
+            )
             return errors
 
         # We need a subject in case domain wide delegation is set, otherwise the
@@ -173,7 +188,9 @@ class GSheetsEngineSpec(SqliteEngineSpec):
         subject = g.user.email if g.user else None
 
         engine = create_engine(
-            "gsheets://", service_account_info=encrypted_credentials, subject=subject,
+            "gsheets://",
+            service_account_info=encrypted_credentials,
+            subject=subject,
         )
         conn = engine.connect()
         idx = 0
@@ -207,7 +224,11 @@ class GSheetsEngineSpec(SqliteEngineSpec):
             except Exception:  # pylint: disable=broad-except
                 errors.append(
                     SupersetError(
-                        message="URL could not be identified",
+                        message=(
+                            "The URL could not be identified. Please check for typos "
+                            "and make sure that ‘Type of Google Sheets allowed’ "
+                            "selection matches the input."
+                        ),
                         error_type=SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR,
                         level=ErrorLevel.WARNING,
                         extra={"catalog": {"idx": idx, "url": True}},
