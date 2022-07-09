@@ -19,12 +19,12 @@
 describe('Visualization > Treemap', () => {
   const TREEMAP_FORM_DATA = {
     datasource: '2__table',
-    viz_type: 'treemap',
+    viz_type: 'treemap_v2',
     slice_id: 10,
     granularity_sqla: 'year',
     time_grain_sqla: 'P1D',
     time_range: 'No filter',
-    metrics: ['sum__SP_POP_TOTL'],
+    metric: 'sum__SP_POP_TOTL',
     adhoc_filters: [],
     groupby: ['country_code'],
     row_limit: 50000,
