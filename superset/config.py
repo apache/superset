@@ -259,14 +259,14 @@ FAB_API_SWAGGER_UI = True
 # [TimeZone List]
 # See: https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
 # other tz can be overridden by providing a local_config
-DRUID_TZ = tz.tzutc()
+DRUID_TZ = tz.gettz('Asia/Shanghai')
 DRUID_ANALYSIS_TYPES = ["cardinality"]
 
 # Legacy Druid NoSQL (native) connector
 # Druid supports a SQL interface in its newer versions.
 # Setting this flag to True enables the deprecated, API-based Druid
 # connector. This feature may be removed at a future date.
-DRUID_IS_ACTIVE = False
+DRUID_IS_ACTIVE = True
 
 # If Druid is active whether to include the links to scan/refresh Druid datasources.
 # This should be disabled if you are trying to wean yourself off of the Druid NoSQL
@@ -495,19 +495,19 @@ COMMON_BOOTSTRAP_OVERRIDES_FUNC: Callable[
 
 # EXTRA_CATEGORICAL_COLOR_SCHEMES is used for adding custom categorical color schemes
 # example code for "My custom warm to hot" color scheme
-# EXTRA_CATEGORICAL_COLOR_SCHEMES = [
-#     {
-#         "id": 'myVisualizationColors',
-#         "description": '',
-#         "label": 'My Visualization Colors',
-#         "isDefault": True,
-#         "colors":
-#          ['#006699', '#009DD9', '#5AAA46', '#44AAAA', '#DDAA77', '#7799BB', '#88AA77',
-#          '#552288', '#5AAA46', '#CC7788', '#EEDD55', '#9977BB', '#BBAA44', '#DDCCDD']
-#     }]
+EXTRA_CATEGORICAL_COLOR_SCHEMES = [
+    {
+        "id": 'enigmaVisualizationColors',
+        "description": '',
+        "label": 'Enigma Visualization Colors',
+        "isDefault": True,
+        "colors":
+         ['#635BFF', '#00FFFF', '#7A73FF', '#00FFC8', '#007BFF', '#FF185A']
+    }]
+
 
 # This is merely a default
-EXTRA_CATEGORICAL_COLOR_SCHEMES: List[Dict[str, Any]] = []
+# EXTRA_CATEGORICAL_COLOR_SCHEMES: List[Dict[str, Any]] = []
 
 # THEME_OVERRIDES is used for adding custom theme to superset
 # example code for "My theme" custom scheme
@@ -1010,7 +1010,7 @@ TRACKING_URL_TRANSFORMER = lambda x: x
 HIVE_POLL_INTERVAL = int(timedelta(seconds=5).total_seconds())
 
 # Interval between consecutive polls when using Presto Engine
-# See here: https://github.com/dropbox/PyHive/blob/8eb0aeab8ca300f3024655419b93dad926c1a351/pyhive/presto.py#L93  # pylint: disable=line-too-long,useless-suppression
+# See here: https://github.com/dropbox/PyHive/blob/8eb0aeab8ca300f3024655419b93dad926c1a351/pyhive/presto.py#L93  # pylint:
 PRESTO_POLL_INTERVAL = int(timedelta(seconds=1).total_seconds())
 
 # Allow list of custom authentications for each DB engine.

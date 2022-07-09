@@ -31,8 +31,6 @@ from superset.constants import MODEL_VIEW_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.models.dashboard import Dashboard as DashboardModel
 from superset.typing import FlaskResponse
 from superset.utils import core as utils
-from ..utils import bootstrap_user_data
-
 from superset.views.base import (
     BaseSupersetView,
     check_ownership,
@@ -164,7 +162,6 @@ class Dashboard(BaseSupersetView):
         )
 
         bootstrap_data = {
-            "user": bootstrap_user_data(g.user, include_perms=True),
             "common": common_bootstrap_payload(),
         }
 

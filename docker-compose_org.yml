@@ -17,6 +17,7 @@
 x-superset-image: &superset-image apache/superset:${TAG:-latest-dev}
 x-superset-user: &superset-user root
 x-superset-depends-on: &superset-depends-on
+  - db
   - redis
 x-superset-volumes: &superset-volumes
   # /app/pythonpath_docker will be appended to the PYTHONPATH in the final container
@@ -33,10 +34,19 @@ services:
     container_name: superset_cache
     restart: unless-stopped
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
     volumes:
       - redis:/data
 
+  db:
+    env_file: docker/.env
+    image: postgres:10
+    container_name: superset_db
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - db_home:/var/lib/postgresql/data
 
   superset:
     env_file: docker/.env
@@ -90,7 +100,6 @@ services:
     volumes: *superset-volumes
     environment:
       CYPRESS_CONFIG: "${CYPRESS_CONFIG}"
-      test: 1
 
   superset-node:
     image: node:16
@@ -109,8 +118,6 @@ services:
     depends_on: *superset-depends-on
     user: *superset-user
     volumes: *superset-volumes
-    environment:
-      test: 16
     # Bump memory limit if processing selenium / thumbails on superset-worker
     # mem_limit: 2038m
     # mem_reservation: 128M
@@ -131,7 +138,7 @@ services:
     command: ["/app/docker/docker-bootstrap.sh", "worker"]
     env_file: docker/.env
     environment:
-      DATABASE_HOST: 172.31.32.250
+      DATABASE_HOST: localhost
       DATABASE_DB: test
       REDIS_CELERY_DB: 2
       REDIS_RESULTS_DB: 3
@@ -145,7 +152,6 @@ volumes:
   superset_home:
     external: false
   db_home:
-    external: true
+    external: false
   redis:
     external: false
-
