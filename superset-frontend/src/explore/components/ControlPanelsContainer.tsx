@@ -329,7 +329,12 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
           undefined),
       name,
     };
-    const { validationErrors, ...restProps } = controlData as ControlState & {
+    const {
+      validationErrors,
+      label: baseLabel,
+      description: baseDescription,
+      ...restProps
+    } = controlData as ControlState & {
       validationErrors?: any[];
     };
 
@@ -337,10 +342,22 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
       ? visibility.call(config, props, controlData)
       : undefined;
 
+    const label =
+      typeof baseLabel === 'function'
+        ? baseLabel(exploreState, controls[name], chart)
+        : baseLabel;
+
+    const description =
+      typeof baseDescription === 'function'
+        ? baseDescription(exploreState, controls[name], chart)
+        : baseDescription;
+
     return (
       <Control
         key={`control-${name}`}
         name={name}
+        label={label}
+        description={description}
         validationErrors={validationErrors}
         actions={props.actions}
         isVisible={isVisible}
