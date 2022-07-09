@@ -36,17 +36,17 @@ services:
       - "6379:6379"
     volumes:
       - redis:/data
-# merged
-  db:
-    env_file: docker/.env
-    image: postgres:14
-    container_name: superset_db
-    restart: unless-stopped
-    ports:
-      - "127.0.0.1:5432:5432"
-    volumes:
-      - db_home:/var/lib/postgresql/data
-#end
+# # merged
+#   db:
+#     env_file: docker/.env
+#     image: postgres:14
+#     container_name: superset_db
+#     restart: unless-stopped
+#     ports:
+#       - "127.0.0.1:5432:5432"
+#     volumes:
+#       - db_home:/var/lib/postgresql/data
+# #end
 
   superset:
     env_file: docker/.env
