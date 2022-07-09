@@ -22,6 +22,12 @@ import { FeatureFlag } from '@superset-ui/core';
 import { act, render, screen } from 'spec/helpers/testing-library';
 import AddSliceCard from '.';
 
+jest.mock('src/components/DynamicPlugins', () => ({
+  usePluginContext: () => ({
+    mountedPluginMetadata: { table: { name: 'Table' } },
+  }),
+}));
+
 const mockedProps = {
   datasourceUrl: null,
   datasourceName: '-',
