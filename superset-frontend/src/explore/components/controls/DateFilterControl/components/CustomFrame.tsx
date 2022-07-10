@@ -185,14 +185,16 @@ export function CustomFrame(props: FrameComponentProps) {
           />
           {untilMode === 'specific' && (
             <Row>
-              <DatePicker
-                showTime
-                defaultValue={dttmToMoment(untilDatetime)}
-                onChange={(datetime: Moment) =>
-                  onChange('untilDatetime', datetime.format(MOMENT_FORMAT))
-                }
-                allowClear={false}
-              />
+              <ConfigProvider locale={locale}>
+                <DatePicker
+                  showTime
+                  defaultValue={dttmToMoment(untilDatetime)}
+                  onChange={(datetime: Moment) =>
+                    onChange('untilDatetime', datetime.format(MOMENT_FORMAT))
+                  }
+                  allowClear={false}
+                />
+              </ConfigProvider>
             </Row>
           )}
           {untilMode === 'relative' && (
