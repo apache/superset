@@ -380,6 +380,10 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
             # remove ids and relations (like owners, created by, slices, ...)
             copied_dashboard = dashboard.copy()
             for slc in dashboard.slices:
+                if slc.datasource is None:
+                    logger.info("Datasource is none")
+                    continue
+
                 datasource_ids.add((slc.datasource_id, slc.datasource_type))
                 copied_slc = slc.copy()
                 # save original id into json
@@ -395,6 +399,10 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
                 # set slices without creating ORM relations
                 slices = copied_dashboard.__dict__.setdefault("slices", [])
                 slices.append(copied_slc)
+
+            if dashboard.json_metadata is None:
+                logger.info("JSON is None")
+                continue
 
             json_metadata = json.loads(dashboard.json_metadata)
             native_filter_configuration: List[Dict[str, Any]] = json_metadata.get(
