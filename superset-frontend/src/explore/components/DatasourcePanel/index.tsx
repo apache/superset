@@ -17,7 +17,14 @@
  * under the License.
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { css, styled, t, DatasourceType, Metric } from '@superset-ui/core';
+import {
+  css,
+  styled,
+  t,
+  DatasourceType,
+  Metric,
+  QueryFormData,
+} from '@superset-ui/core';
 
 import { ControlConfig, ColumnMeta } from '@superset-ui/chart-controls';
 
@@ -75,6 +82,7 @@ export interface Props {
   actions: Partial<ExploreActions> & Pick<ExploreActions, 'setControlValue'>;
   // we use this props control force update when this panel resize
   shouldForceUpdate?: number;
+  formData?: QueryFormData;
 }
 
 const enableExploreDnd = isFeatureEnabled(
@@ -208,12 +216,12 @@ const LabelContainer = (props: {
 
 export default function DataSourcePanel({
   datasource,
+  formData,
   controls: { datasource: datasourceControl },
   actions,
   shouldForceUpdate,
 }: Props) {
   const { columns: _columns, metrics } = datasource;
-  const { formData } = datasourceControl;
   // display temporal column first
   const columns = useMemo(
     () =>
