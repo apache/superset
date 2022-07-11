@@ -34,7 +34,7 @@ export const annotationsAndLayersControls: ControlPanelSectionConfig = {
           label: '',
           default: annotationLayers,
           description: t('Annotation Layers'),
-          renderTrigger: true,
+          renderTrigger: false,
         },
       },
     ],
