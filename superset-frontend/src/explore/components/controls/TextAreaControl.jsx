@@ -65,7 +65,7 @@ const defaultProps = {
   maxLines: 10,
   offerEditInModal: true,
   readOnly: false,
-  resize: false,
+  resize: null,
   textAreaStyles: {},
 };
 

@@ -344,8 +344,7 @@ export default class CRUDCollection extends React.PureComponent<
   }
 
   getCellProps(record: any, col: any) {
-    const cellPropsFn =
-      this.props.itemCellProps && this.props.itemCellProps[col];
+    const cellPropsFn = this.props.itemCellProps?.[col];
     const val = record[col];
     return cellPropsFn ? cellPropsFn(val, this.getLabel(col), record) : {};
   }
