@@ -19,8 +19,15 @@
 import cx from 'classnames';
 import React from 'react';
 import PropTypes from 'prop-types';
-import { styled, t, logging } from '@superset-ui/core';
+import {
+  styled,
+  t,
+  logging,
+  isFeatureEnabled,
+  FeatureFlag,
+} from '@superset-ui/core';
 import { isEqual } from 'lodash';
+import { withRouter } from 'react-router-dom';
 
 import { exportChart, mountExploreUrl } from 'src/explore/exploreUtils';
 import ChartContainer from 'src/components/Chart/ChartContainer';
@@ -120,7 +127,7 @@ const SliceContainer = styled.div`
   max-height: 100%;
 `;
 
-export default class Chart extends React.Component {
+class Chart extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
@@ -270,7 +277,9 @@ export default class Chart extends React.Component {
     });
   };
 
-  onExploreChart = async () => {
+  onExploreChart = async clickEvent => {
+    const isOpenInNewTab =
+      clickEvent.shiftKey || clickEvent.ctrlKey || clickEvent.metaKey;
     try {
       const lastTabId = window.localStorage.getItem('last_tab_id');
       const nextTabId = lastTabId
@@ -287,7 +296,14 @@ export default class Chart extends React.Component {
         [URL_PARAMS.formDataKey.name]: key,
         [URL_PARAMS.sliceId.name]: this.props.slice.slice_id,
       });
-      window.open(url, '_blank', 'noreferrer');
+      if (
+        isFeatureEnabled(FeatureFlag.DASHBOARD_EDIT_CHART_IN_NEW_TAB) ||
+        isOpenInNewTab
+      ) {
+        window.open(url, '_blank', 'noreferrer');
+      } else {
+        this.props.history.push(url);
+      }
     } catch (error) {
       logging.error(error);
       this.props.addDangerToast(t('An error occurred while opening Explore'));
@@ -496,3 +512,5 @@ export default class Chart extends React.Component {
 
 Chart.propTypes = propTypes;
 Chart.defaultProps = defaultProps;
+
+export default withRouter(Chart);

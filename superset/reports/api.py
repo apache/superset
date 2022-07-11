@@ -17,7 +17,7 @@
 import logging
 from typing import Any, Optional
 
-from flask import g, request, Response
+from flask import request, Response
 from flask_appbuilder.api import expose, permission_name, protect, rison, safe
 from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -266,7 +266,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         try:
-            DeleteReportScheduleCommand(g.user, pk).run()
+            DeleteReportScheduleCommand(pk).run()
             return self.response(200, message="OK")
         except ReportScheduleNotFoundError:
             return self.response_404()
@@ -340,7 +340,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         except ValidationError as error:
             return self.response_400(message=error.messages)
         try:
-            new_model = CreateReportScheduleCommand(g.user, item).run()
+            new_model = CreateReportScheduleCommand(item).run()
             return self.response(201, id=new_model.id, result=item)
         except ReportScheduleNotFoundError as ex:
             return self.response_400(message=str(ex))
@@ -421,7 +421,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         except ValidationError as error:
             return self.response_400(message=error.messages)
         try:
-            new_model = UpdateReportScheduleCommand(g.user, pk, item).run()
+            new_model = UpdateReportScheduleCommand(pk, item).run()
             return self.response(200, id=new_model.id, result=item)
         except ReportScheduleNotFoundError:
             return self.response_404()
@@ -483,7 +483,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         """
         item_ids = kwargs["rison"]
         try:
-            BulkDeleteReportScheduleCommand(g.user, item_ids).run()
+            BulkDeleteReportScheduleCommand(item_ids).run()
             return self.response(
                 200,
                 message=ngettext(

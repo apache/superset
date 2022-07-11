@@ -25,7 +25,7 @@ import Alert from 'src/components/Alert';
 import Badge from 'src/components/Badge';
 import shortid from 'shortid';
 import { styled, SupersetClient, t, withTheme } from '@superset-ui/core';
-import { Select, Row, Col } from 'src/components';
+import { Select, AsyncSelect, Row, Col } from 'src/components';
 import { FormLabel } from 'src/components/Form';
 import Button from 'src/components/Button';
 import Tabs from 'src/components/Tabs';
@@ -121,6 +121,13 @@ const StyledColumnsTabWrapper = styled.div`
   .ant-tag {
     margin-top: ${({ theme }) => theme.gridUnit}px;
   }
+`;
+
+const StyledButtonWrapper = styled.span`
+  ${({ theme }) => `
+    margin-top: ${theme.gridUnit * 3}px;
+    margin-left: ${theme.gridUnit * 3}px;
+  `}
 `;
 
 const checkboxGenerator = (d, onChange) => (
@@ -518,10 +525,12 @@ const propTypes = {
   onChange: PropTypes.func,
   addSuccessToast: PropTypes.func.isRequired,
   addDangerToast: PropTypes.func.isRequired,
+  setIsEditing: PropTypes.func,
 };
 
 const defaultProps = {
   onChange: () => {},
+  setIsEditing: () => {},
 };
 
 function OwnersSelector({ datasource, onChange }) {
@@ -539,7 +548,7 @@ function OwnersSelector({ datasource, onChange }) {
   }, []);
 
   return (
-    <Select
+    <AsyncSelect
       ariaLabel={t('Select owners')}
       mode="multiple"
       name="owners"
@@ -580,9 +589,6 @@ class DatasourceEditor extends React.PureComponent {
         }),
       },
       errors: [],
-      isDruid:
-        props.datasource.type === 'druid' ||
-        props.datasource.datasource_type === 'druid',
       isSqla:
         props.datasource.datasource_type === 'table' ||
         props.datasource.type === 'table',
@@ -629,6 +635,7 @@ class DatasourceEditor extends React.PureComponent {
   }
 
   onChangeEditMode() {
+    this.props.setIsEditing(!this.state.isEditMode);
     this.setState(prevState => ({ isEditMode: !prevState.isEditMode }));
   }
 
@@ -1079,20 +1086,6 @@ class DatasourceEditor extends React.PureComponent {
                   />
                 </>
               )}
-              {this.state.isDruid && (
-                <Field
-                  fieldKey="json"
-                  label={t('JSON')}
-                  description={
-                    <div>
-                      {t('The JSON metric or post aggregation definition.')}
-                    </div>
-                  }
-                  control={
-                    <TextAreaControl language="json" offerEditInModal={false} />
-                  }
-                />
-              )}
             </div>
           )}
           {this.state.datasourceType === DATASOURCE_TYPES.physical.key && (
@@ -1358,7 +1351,7 @@ class DatasourceEditor extends React.PureComponent {
           >
             <StyledColumnsTabWrapper>
               <ColumnButtonWrapper>
-                <span className="m-t-10 m-r-10">
+                <StyledButtonWrapper>
                   <Button
                     buttonSize="small"
                     buttonStyle="tertiary"
@@ -1369,7 +1362,7 @@ class DatasourceEditor extends React.PureComponent {
                     <i className="fa fa-database" />{' '}
                     {t('Sync columns from source')}
                   </Button>
-                </span>
+                </StyledButtonWrapper>
               </ColumnButtonWrapper>
               <ColumnCollectionTable
                 className="columns-table"

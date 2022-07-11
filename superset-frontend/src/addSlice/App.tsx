@@ -41,7 +41,7 @@ const App = () => (
   <ThemeProvider theme={theme}>
     <GlobalStyles />
     <DynamicPluginProvider>
-      <AddSliceContainer />
+      <AddSliceContainer user={bootstrapData.user} />
     </DynamicPluginProvider>
   </ThemeProvider>
 );

@@ -18,11 +18,10 @@ from __future__ import annotations
 
 from hashlib import md5
 from secrets import token_urlsafe
-from typing import Optional, Union
+from typing import Union
 from uuid import UUID
 
 import hashids
-from flask_appbuilder.security.sqla.models import User
 from flask_babel import gettext as _
 
 from superset.key_value.exceptions import KeyValueParseKeyError
@@ -64,7 +63,3 @@ def get_uuid_namespace(seed: str) -> UUID:
     md5_obj = md5()
     md5_obj.update(seed.encode("utf-8"))
     return UUID(md5_obj.hexdigest())
-
-
-def get_owner(user: User) -> Optional[int]:
-    return user.get_user_id() if not user.is_anonymous else None

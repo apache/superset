@@ -31,6 +31,7 @@ from typing import (
     List,
     NamedTuple,
     Optional,
+    Set,
     Tuple,
     Type,
     Union,
@@ -66,6 +67,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import backref, Query, relationship, RelationshipProperty, Session
+from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import column, ColumnElement, literal_column, table
@@ -437,6 +439,7 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
         self, known_columns: Optional[Dict[str, NewColumn]] = None
     ) -> NewColumn:
         """Convert a TableColumn to NewColumn"""
+        session: Session = inspect(self).session
         column = known_columns.get(self.uuid) if known_columns else None
         if not column:
             column = NewColumn()
@@ -449,6 +452,21 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
             value = getattr(self, attr)
             if value:
                 extra_json[attr] = value
+
+        if not column.id:
+            with session.no_autoflush:
+                saved_column = (
+                    session.query(NewColumn).filter_by(uuid=self.uuid).one_or_none()
+                )
+                if saved_column:
+                    logger.warning(
+                        "sl_column already exists. Assigning existing id %s", self
+                    )
+
+                    # uuid isn't a primary key, so add the id of the existing column to
+                    # ensure that the column is modified instead of created
+                    # in order to avoid a uuid collision
+                    column.id = saved_column.id
 
         column.uuid = self.uuid
         column.created_on = self.created_on
@@ -553,6 +571,7 @@ class SqlMetric(Model, BaseMetric, CertificationMixin):
     ) -> NewColumn:
         """Convert a SqlMetric to NewColumn. Find and update existing or
         create a new one."""
+        session: Session = inspect(self).session
         column = known_columns.get(self.uuid) if known_columns else None
         if not column:
             column = NewColumn()
@@ -565,6 +584,20 @@ class SqlMetric(Model, BaseMetric, CertificationMixin):
         is_additive = (
             self.metric_type and self.metric_type.lower() in ADDITIVE_METRIC_TYPES_LOWER
         )
+
+        if not column.id:
+            with session.no_autoflush:
+                saved_column = (
+                    session.query(NewColumn).filter_by(uuid=self.uuid).one_or_none()
+                )
+                if saved_column:
+                    logger.warning(
+                        "sl_column already exists. Assigning existing id %s", self
+                    )
+                    # uuid isn't a primary key, so add the id of the existing column to
+                    # ensure that the column is modified instead of created
+                    # in order to avoid a uuid collision
+                    column.id = saved_column.id
 
         column.uuid = self.uuid
         column.name = self.metric_name
@@ -933,7 +966,8 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         if sql_query_mutator:
             sql = sql_query_mutator(
                 sql,
-                user_name=get_username(),  # TODO(john-bodley): Deprecate in 3.0.
+                # TODO(john-bodley): Deprecate in 3.0.
+                user_name=get_username(),
                 security_manager=security_manager,
                 database=self.database,
             )
@@ -1135,7 +1169,6 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
     def get_sqla_row_level_filters(
         self,
         template_processor: BaseTemplateProcessor,
-        username: Optional[str] = None,
     ) -> List[TextClause]:
         """
         Return the appropriate row level security filters for this table and the
@@ -1143,14 +1176,12 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         Flask global namespace.
 
         :param template_processor: The template processor to apply to the filters.
-        :param username: Optional username if there's no user in the Flask global
-        namespace.
         :returns: A list of SQL clauses to be ANDed together.
         """
         all_filters: List[TextClause] = []
         filter_groups: Dict[Union[int, str], List[TextClause]] = defaultdict(list)
         try:
-            for filter_ in security_manager.get_rls_filters(self, username):
+            for filter_ in security_manager.get_rls_filters(self):
                 clause = self.text(
                     f"({template_processor.process_template(filter_.clause)})"
                 )
@@ -1988,6 +2019,48 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             query = query.filter_by(schema=schema)
         return query.all()
 
+    @classmethod
+    def query_datasources_by_permissions(  # pylint: disable=invalid-name
+        cls,
+        session: Session,
+        database: Database,
+        permissions: Set[str],
+        schema_perms: Set[str],
+    ) -> List["SqlaTable"]:
+        # TODO(hughhhh): add unit test
+        return (
+            session.query(cls)
+            .filter_by(database_id=database.id)
+            .filter(
+                or_(
+                    SqlaTable.perm.in_(permissions),
+                    SqlaTable.schema_perm.in_(schema_perms),
+                )
+            )
+            .all()
+        )
+
+    @classmethod
+    def get_eager_sqlatable_datasource(
+        cls, session: Session, datasource_id: int
+    ) -> "SqlaTable":
+        """Returns SqlaTable with columns and metrics."""
+        return (
+            session.query(cls)
+            .options(
+                sa.orm.subqueryload(cls.columns),
+                sa.orm.subqueryload(cls.metrics),
+            )
+            .filter_by(id=datasource_id)
+            .one()
+        )
+
+    @classmethod
+    def get_all_datasources(cls, session: Session) -> List["SqlaTable"]:
+        qry = session.query(cls)
+        qry = cls.default_query(qry)
+        return qry.all()
+
     @staticmethod
     def default_query(qry: Query) -> Query:
         return qry.filter_by(is_sqllab_view=False)
@@ -2104,10 +2177,11 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             uuids.remove(column.uuid)
 
         if uuids:
-            # load those not found from db
-            existing_columns |= set(
-                session.query(NewColumn).filter(NewColumn.uuid.in_(uuids))
-            )
+            with session.no_autoflush:
+                # load those not found from db
+                existing_columns |= set(
+                    session.query(NewColumn).filter(NewColumn.uuid.in_(uuids))
+                )
 
         known_columns = {column.uuid: column for column in existing_columns}
         return [
@@ -2115,7 +2189,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         ]
 
     @staticmethod
-    def update_table(  # pylint: disable=unused-argument
+    def update_column(  # pylint: disable=unused-argument
         mapper: Mapper, connection: Connection, target: Union[SqlMetric, TableColumn]
     ) -> None:
         """
@@ -2130,7 +2204,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         # table is updated. This busts the cache key for all charts that use the table.
         session.execute(update(SqlaTable).where(SqlaTable.id == target.table.id))
 
-        # if table itself has changed, shadow-writing will happen in `after_udpate` anyway
+        # if table itself has changed, shadow-writing will happen in `after_update` anyway
         if target.table not in session.dirty:
             dataset: NewDataset = (
                 session.query(NewDataset)
@@ -2146,17 +2220,29 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
 
             # update changed_on timestamp
             session.execute(update(NewDataset).where(NewDataset.id == dataset.id))
-
-            # update `Column` model as well
-            session.add(
-                target.to_sl_column(
-                    {
-                        target.uuid: session.query(NewColumn)
-                        .filter_by(uuid=target.uuid)
-                        .one_or_none()
-                    }
+            try:
+                with session.no_autoflush:
+                    column = session.query(NewColumn).filter_by(uuid=target.uuid).one()
+                    # update `Column` model as well
+                    session.merge(target.to_sl_column({target.uuid: column}))
+            except NoResultFound:
+                logger.warning("No column was found for %s", target)
+                # see if the column is in cache
+                column = next(
+                    find_cached_objects_in_session(
+                        session, NewColumn, uuids=[target.uuid]
+                    ),
+                    None,
                 )
-            )
+                if column:
+                    logger.warning("New column was found in cache: %s", column)
+
+                else:
+                    # to be safe, use a different uuid and create a new column
+                    uuid = uuid4()
+                    target.uuid = uuid
+
+                session.add(target.to_sl_column())
 
     @staticmethod
     def after_insert(
@@ -2441,9 +2527,9 @@ sa.event.listen(SqlaTable, "before_update", SqlaTable.before_update)
 sa.event.listen(SqlaTable, "after_insert", SqlaTable.after_insert)
 sa.event.listen(SqlaTable, "after_delete", SqlaTable.after_delete)
 sa.event.listen(SqlaTable, "after_update", SqlaTable.after_update)
-sa.event.listen(SqlMetric, "after_update", SqlaTable.update_table)
+sa.event.listen(SqlMetric, "after_update", SqlaTable.update_column)
 sa.event.listen(SqlMetric, "after_delete", SqlMetric.after_delete)
-sa.event.listen(TableColumn, "after_update", SqlaTable.update_table)
+sa.event.listen(TableColumn, "after_update", SqlaTable.update_column)
 sa.event.listen(TableColumn, "after_delete", TableColumn.after_delete)
 
 RLSFilterRoles = Table(
@@ -2470,6 +2556,8 @@ class RowLevelSecurityFilter(Model, AuditMixinNullable):
 
     __tablename__ = "row_level_security_filters"
     id = Column(Integer, primary_key=True)
+    name = Column(String(255), unique=True, nullable=False)
+    description = Column(Text)
     filter_type = Column(
         Enum(*[filter_type.value for filter_type in utils.RowLevelSecurityFilterType])
     )
@@ -2482,5 +2570,4 @@ class RowLevelSecurityFilter(Model, AuditMixinNullable):
     tables = relationship(
         SqlaTable, secondary=RLSFilterTables, backref="row_level_security_filters"
     )
-
     clause = Column(Text, nullable=False)

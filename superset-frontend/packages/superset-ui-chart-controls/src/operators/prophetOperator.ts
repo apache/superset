@@ -23,6 +23,7 @@ import {
 } from '@superset-ui/core';
 import { PostProcessingFactory } from './types';
 
+/* eslint-disable @typescript-eslint/no-unused-vars */
 export const prophetOperator: PostProcessingFactory<PostProcessingProphet> = (
   formData,
   queryObject,

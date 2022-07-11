@@ -70,6 +70,7 @@ test('Should render menu items', () => {
     <Menu onClick={jest.fn()} selectable={false} data-test="main-menu">
       <ShareMenuItems {...props} />
     </Menu>,
+    { useRedux: true },
   );
   expect(
     screen.getByRole('menuitem', { name: 'Copy dashboard URL' }),
@@ -92,6 +93,7 @@ test('Click on "Copy dashboard URL" and succeed', async () => {
     <Menu onClick={jest.fn()} selectable={false} data-test="main-menu">
       <ShareMenuItems {...props} />
     </Menu>,
+    { useRedux: true },
   );
 
   await waitFor(() => {
@@ -119,6 +121,7 @@ test('Click on "Copy dashboard URL" and fail', async () => {
     <Menu onClick={jest.fn()} selectable={false} data-test="main-menu">
       <ShareMenuItems {...props} />
     </Menu>,
+    { useRedux: true },
   );
 
   await waitFor(() => {
@@ -147,6 +150,7 @@ test('Click on "Share dashboard by email" and succeed', async () => {
     <Menu onClick={jest.fn()} selectable={false} data-test="main-menu">
       <ShareMenuItems {...props} />
     </Menu>,
+    { useRedux: true },
   );
 
   await waitFor(() => {
@@ -177,6 +181,7 @@ test('Click on "Share dashboard by email" and fail', async () => {
     <Menu onClick={jest.fn()} selectable={false} data-test="main-menu">
       <ShareMenuItems {...props} />
     </Menu>,
+    { useRedux: true },
   );
 
   await waitFor(() => {

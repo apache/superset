@@ -111,7 +111,7 @@ export const mostUsedDataset = (
   let maxCount = 0;
 
   Object.values(charts).forEach(chart => {
-    const { formData } = chart;
+    const { form_data: formData } = chart;
     if (formData) {
       const { datasource } = formData;
       const count = (map.get(datasource) || 0) + 1;

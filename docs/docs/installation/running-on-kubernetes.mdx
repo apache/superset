@@ -239,7 +239,7 @@ configOverrides:
     # This will make sure the redirect_uri is properly computed, even with SSL offloading
     ENABLE_PROXY_FIX = True
 
-    from flask_appbuilder.security.manager import (AUTH_OAUTH, AUTH_DB)
+    from flask_appbuilder.security.manager import AUTH_OAUTH
     AUTH_TYPE = AUTH_OAUTH
     OAUTH_PROVIDERS = [
         {

@@ -18,13 +18,14 @@
  */
 
 import React from 'react';
-import { t } from '@superset-ui/core';
+import { DatasourceType, t } from '@superset-ui/core';
 import {
   ColumnMeta,
   ColumnOption,
   ControlConfig,
   ControlPanelSectionConfig,
 } from '@superset-ui/chart-controls';
+import { ExplorePageInitialData } from './types';
 
 export const controlPanelSectionsChartOptions: (ControlPanelSectionConfig | null)[] =
   [
@@ -108,3 +109,59 @@ export const controlPanelSectionsChartOptionsTable: ControlPanelSectionConfig[] 
       ],
     },
   ];
+
+export const exploreInitialData: ExplorePageInitialData = {
+  form_data: {
+    datasource: '8__table',
+    metric: 'count',
+    slice_id: 371,
+    time_range: 'No filter',
+    viz_type: 'table',
+  },
+  slice: {
+    cache_timeout: null,
+    description: null,
+    slice_id: 371,
+    slice_name: 'Age distribution of respondents',
+    is_managed_externally: false,
+    form_data: {
+      datasource: '8__table',
+      metric: 'count',
+      slice_id: 371,
+      time_range: 'No filter',
+      viz_type: 'table',
+    },
+  },
+  dataset: {
+    id: 8,
+    type: DatasourceType.Table,
+    columns: [{ column_name: 'a' }],
+    metrics: [{ metric_name: 'first' }, { metric_name: 'second' }],
+    column_format: {},
+    verbose_map: {},
+    main_dttm_col: '',
+    datasource_name: '8__table',
+    description: null,
+  },
+};
+
+export const fallbackExploreInitialData: ExplorePageInitialData = {
+  form_data: {
+    datasource: '0__table',
+    viz_type: 'table',
+  },
+  dataset: {
+    id: 0,
+    type: DatasourceType.Table,
+    columns: [],
+    metrics: [],
+    column_format: {},
+    verbose_map: {},
+    main_dttm_col: '',
+    owners: [],
+    datasource_name: 'missing_datasource',
+    name: 'missing_datasource',
+    description: null,
+  },
+  slice: null,
+};

@@ -29,7 +29,8 @@ from superset.models.dashboard import Dashboard
 from superset.models.embedded_dashboard import EmbeddedDashboard
 from superset.models.slice import Slice
 from superset.security.guest_token import GuestTokenResourceType, GuestUser
-from superset.views.base import BaseFilter, is_user_admin
+from superset.utils.core import get_user_id
+from superset.views.base import BaseFilter
 from superset.views.base_api import BaseFavoriteFilter
 
 
@@ -57,9 +58,9 @@ class DashboardCreatedByMeFilter(BaseFilter):  # pylint: disable=too-few-public-
         return query.filter(
             or_(
                 Dashboard.created_by_fk  # pylint: disable=comparison-with-callable
-                == g.user.get_user_id(),
+                == get_user_id(),
                 Dashboard.changed_by_fk  # pylint: disable=comparison-with-callable
-                == g.user.get_user_id(),
+                == get_user_id(),
             )
         )
 
@@ -97,7 +98,7 @@ class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-metho
     """
 
     def apply(self, query: Query, value: Any) -> Query:
-        if is_user_admin():
+        if security_manager.is_admin():
             return query
 
         datasource_perms = security_manager.user_view_menu_names("datasource_access")
@@ -126,17 +127,14 @@ class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-metho
 
         users_favorite_dash_query = db.session.query(FavStar.obj_id).filter(
             and_(
-                FavStar.user_id == security_manager.user_model.get_user_id(),
+                FavStar.user_id == get_user_id(),
                 FavStar.class_name == "Dashboard",
             )
         )
         owner_ids_query = (
             db.session.query(Dashboard.id)
             .join(Dashboard.owners)
-            .filter(
-                security_manager.user_model.id
-                == security_manager.user_model.get_user_id()
-            )
+            .filter(security_manager.user_model.id == get_user_id())
         )
 
         feature_flagged_filters = []

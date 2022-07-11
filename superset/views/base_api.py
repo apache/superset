@@ -18,7 +18,7 @@ import functools
 import logging
 from typing import Any, Callable, cast, Dict, List, Optional, Set, Tuple, Type, Union
 
-from flask import Blueprint, g, request, Response
+from flask import Blueprint, request, Response
 from flask_appbuilder import AppBuilder, Model, ModelRestApi
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.filters import BaseFilter, Filters
@@ -38,7 +38,7 @@ from superset.schemas import error_payload_content
 from superset.sql_lab import Query as SqllabQuery
 from superset.stats_logger import BaseStatsLogger
 from superset.superset_typing import FlaskResponse
-from superset.utils.core import time_function
+from superset.utils.core import get_user_id, time_function
 from superset.views.base import handle_api_exception
 
 logger = logging.getLogger(__name__)
@@ -145,7 +145,7 @@ class BaseFavoriteFilter(BaseFilter):  # pylint: disable=too-few-public-methods
             return query
         users_favorite_query = db.session.query(FavStar.obj_id).filter(
             and_(
-                FavStar.user_id == g.user.get_id(),
+                FavStar.user_id == get_user_id(),
                 FavStar.class_name == self.class_name,
             )
         )

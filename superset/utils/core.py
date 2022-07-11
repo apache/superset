@@ -219,7 +219,6 @@ class ExtraFiltersTimeColumnType(str, Enum):
 class ExtraFiltersReasonType(str, Enum):
     NO_TEMPORAL_COLUMN = "no_temporal_column"
     COL_NOT_IN_DATASOURCE = "not_in_datasource"
-    NOT_DRUID_DATASOURCE = "not_druid_datasource"
 
 
 class FilterOperator(str, Enum):
@@ -1145,7 +1144,6 @@ def merge_extra_filters(form_data: Dict[str, Any]) -> None:
             "__time_range": "time_range",
             "__time_col": "granularity_sqla",
             "__time_grain": "time_grain_sqla",
-            "__time_origin": "druid_time_origin",
             "__granularity": "granularity",
         }
         # Grab list of existing filters 'keyed' on the column and operator
@@ -1422,31 +1420,58 @@ def split_adhoc_filters_into_base_filters(  # pylint: disable=invalid-name
 
 
 def get_username() -> Optional[str]:
-    """Get username if within the flask context, otherwise return noffin'"""
+    """
+    Get username (if defined) associated with the current user.
+
+    :returns: The username
+    """
+
     try:
         return g.user.username
     except Exception:  # pylint: disable=broad-except
         return None
 
 
-@contextmanager
-def override_user(user: Optional[User]) -> Iterator[Any]:
+def get_user_id() -> Optional[int]:
     """
-    Temporarily override the current user (if defined) per `flask.g`.
+    Get the user identifier (if defined) associated with the current user.
+
+    Though the Flask-AppBuilder `User` and Flask-Login  `AnonymousUserMixin` and
+    `UserMixin` models provide a convenience `get_id` method, for generality, the
+    identifier is encoded as a `str` whereas in Superset all identifiers are encoded as
+    an `int`.
+
+    returns: The user identifier
+    """
+
+    try:
+        return g.user.id
+    except Exception:  # pylint: disable=broad-except
+        return None
+
+
+@contextmanager
+def override_user(user: Optional[User], force: bool = True) -> Iterator[Any]:
+    """
+    Temporarily override the current user per `flask.g` with the specified user.
 
     Sometimes, often in the context of async Celery tasks, it is useful to switch the
     current user (which may be undefined) to different one, execute some SQLAlchemy
-    tasks and then revert back to the original one.
+    tasks et al. and then revert back to the original one.
 
     :param user: The override user
+    :param force: Whether to override the current user if set
     """
 
     # pylint: disable=assigning-non-slot
     if hasattr(g, "user"):
-        current = g.user
-        g.user = user
-        yield
-        g.user = current
+        if force or g.user is None:
+            current = g.user
+            g.user = user
+            yield
+            g.user = current
+        else:
+            yield
     else:
         g.user = user
         yield
@@ -1733,28 +1758,6 @@ def get_time_filter_status(
                 {
                     "reason": ExtraFiltersReasonType.NO_TEMPORAL_COLUMN,
                     "column": ExtraFiltersTimeColumnType.TIME_RANGE,
-                }
-            )
-
-    if ExtraFiltersTimeColumnType.TIME_ORIGIN in applied_time_extras:
-        if datasource.type == "druid":
-            applied.append({"column": ExtraFiltersTimeColumnType.TIME_ORIGIN})
-        else:
-            rejected.append(
-                {
-                    "reason": ExtraFiltersReasonType.NOT_DRUID_DATASOURCE,
-                    "column": ExtraFiltersTimeColumnType.TIME_ORIGIN,
-                }
-            )
-
-    if ExtraFiltersTimeColumnType.GRANULARITY in applied_time_extras:
-        if datasource.type == "druid":
-            applied.append({"column": ExtraFiltersTimeColumnType.GRANULARITY})
-        else:
-            rejected.append(
-                {
-                    "reason": ExtraFiltersReasonType.NOT_DRUID_DATASOURCE,
-                    "column": ExtraFiltersTimeColumnType.GRANULARITY,
                 }
             )
 

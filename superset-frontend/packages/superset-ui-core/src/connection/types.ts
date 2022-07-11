@@ -146,11 +146,13 @@ export interface SupersetClientInterface
     | 'delete'
     | 'get'
     | 'post'
+    | 'postForm'
     | 'put'
     | 'request'
     | 'init'
     | 'isAuthenticated'
     | 'reAuthenticate'
+    | 'getGuestToken'
   > {
   configure: (config?: ClientConfig) => SupersetClientInterface;
   reset: () => void;

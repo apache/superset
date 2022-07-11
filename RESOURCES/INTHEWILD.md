@@ -124,6 +124,7 @@ Join our growing community!
 - [The GRAPH Network](https://thegraphnetwork.org/)[@fccoelho]
 - [Udemy](https://www.udemy.com/) [@sungjuly]
 - [VIPKID](https://www.vipkid.com.cn/) [@illpanda]
+- [WikiMedia Foundation](https://wikimediafoundation.org) [@vg]
 
 ### Energy
 - [Airboxlab](https://foobot.io) [@antoine-galataud]

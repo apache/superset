@@ -30,6 +30,7 @@ import {
   formatSelectOptionsForRange,
   sections,
   dndEntity,
+  getStandardizedControls,
 } from '@superset-ui/chart-controls';
 
 const sortAxisChoices = [
@@ -329,6 +330,10 @@ const config: ControlPanelConfig = {
       label: t('Value Format'),
     },
   },
+  formDataOverrides: formData => ({
+    ...formData,
+    metric: getStandardizedControls().shiftMetric(),
+  }),
 };
 
 export default config;

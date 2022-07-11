@@ -27,6 +27,7 @@ const formData: SqlaFormData = {
   granularity: 'month',
   datasource: 'foo',
   viz_type: 'table',
+  truncate_metric: true,
 };
 const queryObject: QueryObject = {
   is_timeseries: true,
@@ -143,4 +144,25 @@ test('should add renameOperator if exist "actual value" time comparison', () => 
       level: 0,
     },
   });
+});
+
+test('should remove renameOperator', () => {
+  expect(
+    renameOperator(
+      {
+        ...formData,
+        truncate_metric: false,
+      },
+      queryObject,
+    ),
+  ).toEqual(undefined);
+  expect(
+    renameOperator(
+      {
+        ...formData,
+        truncate_metric: undefined,
+      },
+      queryObject,
+    ),
+  ).toEqual(undefined);
 });

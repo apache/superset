@@ -17,7 +17,7 @@
  * under the License.
  */
 import memoizeOne from 'memoize-one';
-import { DataRecord } from '@superset-ui/core';
+import { addAlpha, DataRecord } from '@superset-ui/core';
 import {
   ColorFormatters,
   COMPARATOR,
@@ -28,9 +28,6 @@ import {
 export const round = (num: number, precision = 0) =>
   Number(`${Math.round(Number(`${num}e+${precision}`))}e-${precision}`);
 
-export const rgbToRgba = (rgb: string, alpha: number) =>
-  rgb.replace(/rgb/i, 'rgba').replace(/\)/i, `,${alpha})`);
-
 const MIN_OPACITY_BOUNDED = 0.05;
 const MIN_OPACITY_UNBOUNDED = 0;
 const MAX_OPACITY = 1;
@@ -40,16 +37,21 @@ export const getOpacity = (
   extremeValue: number,
   minOpacity = MIN_OPACITY_BOUNDED,
   maxOpacity = MAX_OPACITY,
-) =>
-  extremeValue === cutoffPoint
-    ? maxOpacity
-    : round(
-        Math.abs(
-          ((maxOpacity - minOpacity) / (extremeValue - cutoffPoint)) *
-            (value - cutoffPoint),
-        ) + minOpacity,
-        2,
-      );
+) => {
+  if (extremeValue === cutoffPoint) {
+    return maxOpacity;
+  }
+  return Math.min(
+    maxOpacity,
+    round(
+      Math.abs(
+        ((maxOpacity - minOpacity) / (extremeValue - cutoffPoint)) *
+          (value - cutoffPoint),
+      ) + minOpacity,
+      2,
+    ),
+  );
+};
 
 export const getColorFunction = (
   {
@@ -174,7 +176,7 @@ export const getColorFunction = (
     const compareResult = comparatorFunction(value, columnValues);
     if (compareResult === false) return undefined;
     const { cutoffValue, extremeValue } = compareResult;
-    return rgbToRgba(
+    return addAlpha(
       colorScheme,
       getOpacity(value, cutoffValue, extremeValue, minOpacity, maxOpacity),
     );

@@ -279,16 +279,16 @@
       "Alert query returned a non-number value.": [
         "Die Alarm-Abfrage hat einen nicht-numerischen Wert zurückgegeben."
       ],
-      "Alert query returned more then one column.": [
+      "Alert query returned more than one column.": [
         "Die Alarm-Abfrage hat mehr als eine Spalte zurückgegeben."
       ],
-      "Alert query returned more then one column. %s columns returned": [
+      "Alert query returned more than one column. %s columns returned": [
         "Die Alarmabfrage hat mehr als eine Spalte zurückgegeben. %s Spalten zurückgegegeben"
       ],
-      "Alert query returned more then one row.": [
+      "Alert query returned more than one row.": [
         "Die Alarm-Abfrage hat mehr als eine Zeile zurückgegeben."
       ],
-      "Alert query returned more then one row. %s rows returned": [
+      "Alert query returned more than one row. %s rows returned": [
         "Die Alarmabfrage hat mehr als eine Zeile zurückgegeben. %s zurückgegebene Zeilen"
       ],
       "Alert running": ["Alarm wird ausgeführt"],

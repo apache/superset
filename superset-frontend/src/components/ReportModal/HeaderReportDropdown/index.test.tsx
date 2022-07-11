@@ -33,35 +33,31 @@ const createProps = () => ({
 });
 
 const stateWithOnlyUser = {
-  explore: {
-    user: {
-      email: 'admin@test.com',
-      firstName: 'admin',
-      isActive: true,
-      lastName: 'admin',
-      permissions: {},
-      createdOn: '2022-01-12T10:17:37.801361',
-      roles: { Admin: [['menu_access', 'Manage']] },
-      userId: 1,
-      username: 'admin',
-    },
+  user: {
+    email: 'admin@test.com',
+    firstName: 'admin',
+    isActive: true,
+    lastName: 'admin',
+    permissions: {},
+    createdOn: '2022-01-12T10:17:37.801361',
+    roles: { Admin: [['menu_access', 'Manage']] },
+    userId: 1,
+    username: 'admin',
   },
   reports: {},
 };
 
 const stateWithUserAndReport = {
-  explore: {
-    user: {
-      email: 'admin@test.com',
-      firstName: 'admin',
-      isActive: true,
-      lastName: 'admin',
-      permissions: {},
-      createdOn: '2022-01-12T10:17:37.801361',
-      roles: { Admin: [['menu_access', 'Manage']] },
-      userId: 1,
-      username: 'admin',
-    },
+  user: {
+    email: 'admin@test.com',
+    firstName: 'admin',
+    isActive: true,
+    lastName: 'admin',
+    permissions: {},
+    createdOn: '2022-01-12T10:17:37.801361',
+    roles: { Admin: [['menu_access', 'Manage']] },
+    userId: 1,
+    username: 'admin',
   },
   reports: {
     dashboards: {

@@ -33,7 +33,7 @@ describe('Visualization > Distribution bar chart', () => {
       groupby: ['state'],
     };
 
-    cy.visitChartByParams(JSON.stringify(formData));
+    cy.visitChartByParams(formData);
     cy.verifySliceSuccess({
       waitAlias: '@getJson',
       querySubstring: NUM_METRIC.label,
@@ -49,7 +49,7 @@ describe('Visualization > Distribution bar chart', () => {
       columns: ['gender'],
     };
 
-    cy.visitChartByParams(JSON.stringify(formData));
+    cy.visitChartByParams(formData);
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
   });
 
@@ -61,7 +61,7 @@ describe('Visualization > Distribution bar chart', () => {
       row_limit: 10,
     };
 
-    cy.visitChartByParams(JSON.stringify(formData));
+    cy.visitChartByParams(formData);
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
   });
 
@@ -74,7 +74,7 @@ describe('Visualization > Distribution bar chart', () => {
       contribution: true,
     };
 
-    cy.visitChartByParams(JSON.stringify(formData));
+    cy.visitChartByParams(formData);
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
   });
 });

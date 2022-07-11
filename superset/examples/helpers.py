@@ -23,7 +23,7 @@ from typing import Any, Dict, List, Set
 from urllib import request
 
 from superset import app, db
-from superset.connectors.connector_registry import ConnectorRegistry
+from superset.connectors.sqla.models import SqlaTable
 from superset.models.slice import Slice
 
 BASE_URL = "https://github.com/apache-superset/examples-data/blob/master/"
@@ -32,7 +32,7 @@ misc_dash_slices: Set[str] = set()  # slices assembled in a 'Misc Chart' dashboa
 
 
 def get_table_connector_registry() -> Any:
-    return ConnectorRegistry.sources["table"]
+    return SqlaTable
 
 
 def get_examples_folder() -> str:

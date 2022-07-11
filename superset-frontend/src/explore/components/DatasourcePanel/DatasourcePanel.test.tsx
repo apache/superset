@@ -47,7 +47,9 @@ const datasource = {
   main_dttm_col: 'None',
   datasource_name: 'table1',
   description: 'desc',
-  owners: [{ username: 'admin', userId: 1 }],
+  owners: [
+    { first_name: 'admin', last_name: 'admin', username: 'admin', id: 1 },
+  ],
 };
 
 const mockUser = {

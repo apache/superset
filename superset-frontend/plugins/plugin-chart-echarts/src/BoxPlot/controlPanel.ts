@@ -25,6 +25,7 @@ import {
   sections,
   emitFilterControl,
   ControlPanelConfig,
+  getStandardizedControls,
 } from '@superset-ui/chart-controls';
 
 const config: ControlPanelConfig = {
@@ -136,14 +137,18 @@ const config: ControlPanelConfig = {
       ),
     },
   },
-  denormalizeFormData: formData => {
-    const groupby =
-      formData.standardizedFormData.standardizedState.columns.filter(
-        col => !ensureIsArray(formData.columns).includes(col),
+  formDataOverrides: formData => {
+    const groupby = getStandardizedControls().controls.columns.filter(
+      col => !ensureIsArray(formData.columns).includes(col),
+    );
+    getStandardizedControls().controls.columns =
+      getStandardizedControls().controls.columns.filter(
+        col => !groupby.includes(col),
       );
+
     return {
       ...formData,
-      metrics: formData.standardizedFormData.standardizedState.metrics,
+      metrics: getStandardizedControls().popAllMetrics(),
       groupby,
     };
   },

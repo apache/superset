@@ -17,6 +17,7 @@
 # pylint: disable=redefined-outer-name, import-outside-toplevel
 
 import importlib
+import os
 from typing import Any, Callable, Iterator
 
 import pytest
@@ -25,6 +26,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.session import Session
 
+from superset import security_manager
 from superset.app import SupersetApp
 from superset.extensions import appbuilder
 from superset.initialization import SupersetAppInitializer
@@ -68,7 +70,11 @@ def app() -> Iterator[SupersetApp]:
     app = SupersetApp(__name__)
 
     app.config.from_object("superset.config")
-    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite://"
+    app.config["SQLALCHEMY_DATABASE_URI"] = (
+        os.environ.get("SUPERSET__SQLALCHEMY_DATABASE_URI") or "sqlite://"
+    )
+    app.config["WTF_CSRF_ENABLED"] = False
+    app.config["PREVENT_UNSAFE_DB_CONNECTIONS"] = False
     app.config["TESTING"] = True
 
     # ``superset.extensions.appbuilder`` is a singleton, and won't rebuild the
@@ -101,3 +107,20 @@ def app_context(app: SupersetApp) -> Iterator[None]:
     """
     with app.app_context():
         yield
+
+
+@pytest.fixture
+def full_api_access(mocker: MockFixture) -> Iterator[None]:
+    """
+    Allow full access to the API.
+
+    TODO (betodealmeida): we should replace this with user-fixtures, eg, ``admin`` or
+    ``gamma``, so that we have granular access to the APIs.
+    """
+    mocker.patch(
+        "flask_appbuilder.security.decorators.verify_jwt_in_request",
+        return_value=True,
+    )
+    mocker.patch.object(security_manager, "has_access", return_value=True)
+
+    yield

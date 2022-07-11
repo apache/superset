@@ -316,11 +316,13 @@ export function useSingleViewResource<D extends object = any>(
   );
 
   const updateResource = useCallback(
-    (resourceID: number, resource: D, hideToast = false) => {
+    (resourceID: number, resource: D, hideToast = false, setLoading = true) => {
       // Set loading state
-      updateState({
-        loading: true,
-      });
+      if (setLoading) {
+        updateState({
+          loading: true,
+        });
+      }
 
       return SupersetClient.put({
         endpoint: `/api/v1/${resourceName}/${resourceID}`,
@@ -354,11 +356,14 @@ export function useSingleViewResource<D extends object = any>(
           }),
         )
         .finally(() => {
-          updateState({ loading: false });
+          if (setLoading) {
+            updateState({ loading: false });
+          }
         });
     },
     [handleErrorMsg, resourceName, resourceLabel],
   );
+
   const clearError = () =>
     updateState({
       error: null,
@@ -463,8 +468,8 @@ export function useImportResource(
                   resourceLabel,
                   [
                     ...error.errors.map(payload => payload.message),
-                    t('Please re-export your file and try importing again'),
-                  ].join('\n'),
+                    t('Please re-export your file and try importing again.'),
+                  ].join('.\n'),
                 ),
               );
             } else {

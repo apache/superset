@@ -32,12 +32,13 @@ export const renameOperator: PostProcessingFactory<PostProcessingRename> = (
 ) => {
   const metrics = ensureIsArray(queryObject.metrics);
   const columns = ensureIsArray(queryObject.columns);
-  const { x_axis: xAxis } = formData;
+  const { x_axis: xAxis, truncate_metric } = formData;
   // remove or rename top level of column name(metric name) in the MultiIndex when
   // 1) only 1 metric
   // 2) exist dimentsion
   // 3) exist xAxis
   // 4) exist time comparison, and comparison type is "actual values"
+  // 5) truncate_metric in form_data and truncate_metric is true
   if (
     metrics.length === 1 &&
     columns.length > 0 &&
@@ -52,7 +53,9 @@ export const renameOperator: PostProcessingFactory<PostProcessingRename> = (
           ComparisionType.Percentage,
         ].includes(formData.comparison_type)
       )
-    )
+    ) &&
+    truncate_metric !== undefined &&
+    !!truncate_metric
   ) {
     const renamePairs: [string, string | null][] = [];
 

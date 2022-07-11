@@ -18,7 +18,6 @@ import json
 from contextlib import closing
 from typing import Any, Dict, Optional
 
-from flask_appbuilder.security.sqla.models import User
 from flask_babel import gettext as __
 
 from superset.commands.base import BaseCommand
@@ -35,14 +34,12 @@ from superset.db_engine_specs.base import BasicParametersMixin
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.extensions import event_logger
 from superset.models.core import Database
-from superset.utils.core import override_user
 
 BYPASS_VALIDATION_ENGINES = {"bigquery"}
 
 
 class ValidateDatabaseParametersCommand(BaseCommand):
-    def __init__(self, user: User, parameters: Dict[str, Any]):
-        self._actor = user
+    def __init__(self, parameters: Dict[str, Any]):
         self._properties = parameters.copy()
         self._model: Optional[Database] = None
 
@@ -117,22 +114,21 @@ class ValidateDatabaseParametersCommand(BaseCommand):
         database.set_sqlalchemy_uri(sqlalchemy_uri)
         database.db_engine_spec.mutate_db_for_connection_test(database)
 
-        with override_user(self._actor):
-            engine = database.get_sqla_engine()
-            try:
-                with closing(engine.raw_connection()) as conn:
-                    alive = engine.dialect.do_ping(conn)
-            except Exception as ex:
-                url = make_url_safe(sqlalchemy_uri)
-                context = {
-                    "hostname": url.host,
-                    "password": url.password,
-                    "port": url.port,
-                    "username": url.username,
-                    "database": url.database,
-                }
-                errors = database.db_engine_spec.extract_errors(ex, context)
-                raise DatabaseTestConnectionFailedError(errors) from ex
+        engine = database.get_sqla_engine()
+        try:
+            with closing(engine.raw_connection()) as conn:
+                alive = engine.dialect.do_ping(conn)
+        except Exception as ex:
+            url = make_url_safe(sqlalchemy_uri)
+            context = {
+                "hostname": url.host,
+                "password": url.password,
+                "port": url.port,
+                "username": url.username,
+                "database": url.database,
+            }
+            errors = database.db_engine_spec.extract_errors(ex, context)
+            raise DatabaseTestConnectionFailedError(errors) from ex
 
         if not alive:
             raise DatabaseOfflineError(
