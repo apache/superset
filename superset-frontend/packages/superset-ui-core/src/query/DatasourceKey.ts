@@ -27,8 +27,7 @@ export default class DatasourceKey {
   constructor(key: string) {
     const [idStr, typeStr] = key.split('__');
     this.id = parseInt(idStr, 10);
-    this.type =
-      typeStr === 'table' ? DatasourceType.Table : DatasourceType.Druid;
+    this.type = DatasourceType.Table; // default to SqlaTable model
     this.type = typeStr === 'query' ? DatasourceType.Query : this.type;
   }
 

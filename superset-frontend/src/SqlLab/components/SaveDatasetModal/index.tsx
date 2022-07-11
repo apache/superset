@@ -202,14 +202,6 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
     setShouldOverwriteDataset(false);
     setDatasetToOverwrite({});
     setDatasetName(getDefaultDatasetName());
-    /*
-    exploreChart({
-      ...EXPLORE_CHART_DEFAULT,
-      datasource: `${datasetToOverwrite.datasetId}__table`,
-      all_columns: datasource?.columns?.map?.((d: ISimpleColumn) => d.name),
-      selected_columns: datasource?.columns,
-    });
-  */
   };
 
   const loadDatasetOverwriteOptions = useCallback(

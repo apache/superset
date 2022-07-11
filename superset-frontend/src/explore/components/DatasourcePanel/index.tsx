@@ -346,7 +346,9 @@ export default function DataSourcePanel({
     return true;
   };
 
-  const dataSourceIsQuery = datasource?.type === DatasourceType.Query;
+  const datasourceIsSaveable = !(
+    datasource?.type in [DatasourceType.Query, DatasourceType.SavedQuery]
+  );
 
   const mainBody = useMemo(
     () => (
@@ -362,7 +364,7 @@ export default function DataSourcePanel({
           placeholder={t('Search Metrics & Columns')}
         />
         <div className="field-selections">
-          {dataSourceIsQuery && showInfoboxCheck() && (
+          {datasourceIsSaveable && showInfoboxCheck() && (
             <StyledInfoboxWrapper>
               <Alert
                 closable
@@ -478,14 +480,14 @@ export default function DataSourcePanel({
       search,
       showAllColumns,
       showAllMetrics,
-      dataSourceIsQuery,
+      datasourceIsSaveable,
       shouldForceUpdate,
     ],
   );
 
   return (
     <DatasourceContainer>
-      {dataSourceIsQuery && showSaveDatasetModal && (
+      {datasourceIsSaveable && showSaveDatasetModal && (
         <SaveDatasetModal
           visible={showSaveDatasetModal}
           onHide={() => setShowSaveDatasetModal(false)}

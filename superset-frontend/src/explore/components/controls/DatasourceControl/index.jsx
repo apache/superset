@@ -27,6 +27,7 @@ import {
   t,
   withTheme,
 } from '@superset-ui/core';
+
 import { getUrlParam } from 'src/utils/urlUtils';
 import { AntdDropdown } from 'src/components';
 import { Menu } from 'src/components/Menu';
@@ -153,10 +154,6 @@ export const renderDatasourceTitle = (displayString, tooltip) =>
 
 // Different data source types use different attributes for the display title
 export const getDatasourceTitle = datasource =>
-  datasource?.sql ?? datasource?.name ?? '';
-
-// When this is a Query with SQL, we wnt the SQL to be the tooltip
-export const getTooltip = datasource =>
   datasource?.sql ?? datasource?.name ?? '';
 
 class DatasourceControl extends React.PureComponent {
@@ -352,7 +349,7 @@ class DatasourceControl extends React.PureComponent {
     }
 
     const titleText = getDatasourceTitle(datasource);
-    const tooltip = getTooltip(datasource);
+    const tooltip = titleText;
 
     return (
       <Styles data-test="datasource-control" className="DatasourceControl">

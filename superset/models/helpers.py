@@ -1266,10 +1266,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             for col in self.columns  # col.column_name: col for col in self.columns
         }
 
-        metrics_by_name: Dict[str, "SqlMetric"] = {
-            m.metric_name: m for m in self.metrics
-        }
-
         if not granularity and is_timeseries:
             raise QueryObjectValidationError(
                 _(
@@ -1291,8 +1287,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         template_processor=template_processor,
                     )
                 )
-            elif isinstance(metric, str) and metric in metrics_by_name:
-                metrics_exprs.append(metrics_by_name[metric].get_sqla_col())
             else:
                 raise QueryObjectValidationError(
                     _("Metric '%(metric)s' does not exist", metric=metric)
@@ -1334,9 +1328,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 col = columns_by_name[col].get_sqla_col()
             elif col in metrics_exprs_by_label:
                 col = metrics_exprs_by_label[col]
-                need_groupby = True
-            elif col in metrics_by_name:
-                col = metrics_by_name[col].get_sqla_col()
                 need_groupby = True
 
             if isinstance(col, ColumnElement):
@@ -1689,10 +1680,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 subq = subq.group_by(*inner_groupby_exprs)
 
                 ob = inner_main_metric_expr
-                if series_limit_metric:
-                    ob = self._get_series_orderby(
-                        series_limit_metric, metrics_by_name, columns_by_name
-                    )
                 direction = sa.desc if order_desc else sa.asc
                 subq = subq.order_by(direction(ob))
                 subq = subq.limit(series_limit)
@@ -1706,18 +1693,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     on_clause.append(gby_obj == sa.column(col_name))
 
                 tbl = tbl.join(subq.alias(), and_(*on_clause))
-            else:
-                if series_limit_metric:
-                    orderby = [
-                        (
-                            self._get_series_orderby(
-                                series_limit_metric,
-                                metrics_by_name,
-                                columns_by_name,
-                            ),
-                            not order_desc,
-                        )
-                    ]
 
                 # run prequery to get top groups
                 prequery_obj = {
