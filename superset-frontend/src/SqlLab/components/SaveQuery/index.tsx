@@ -59,7 +59,7 @@ type QueryPayload = {
     type: string;
     value: string;
   }>;
-  title: string;
+  name: string;
 };
 
 const Styles = styled.span`
@@ -101,7 +101,7 @@ export default function SaveQuery({
 
   const queryPayload = () => ({
     ...query,
-    title: label,
+    name: label,
     description,
   });
 

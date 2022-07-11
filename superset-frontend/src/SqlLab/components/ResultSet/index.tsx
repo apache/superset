@@ -177,7 +177,7 @@ export default class ResultSet extends React.PureComponent<
   popSelectStar(tempSchema: string | null, tempTable: string) {
     const qe = {
       id: shortid.generate(),
-      title: tempTable,
+      name: tempTable,
       autorun: false,
       dbId: this.props.query.dbId,
       sql: `SELECT * FROM ${tempSchema ? `${tempSchema}.` : ''}${tempTable}`,
