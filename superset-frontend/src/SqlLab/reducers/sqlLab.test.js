@@ -96,14 +96,14 @@ describe('sqlLabReducer', () => {
       expect(newState.queryEditors[1].autorun).toBe(true);
     });
     it('should not fail while setting title', () => {
-      const title = 'a new title';
+      const title = 'Untitled Query 1';
       const action = {
         type: actions.QUERY_EDITOR_SET_TITLE,
         queryEditor: qe,
         title,
       };
       newState = sqlLabReducer(newState, action);
-      expect(newState.queryEditors[1].title).toBe(title);
+      expect(newState.queryEditors[0].name).toBe(title);
     });
     it('should not fail while setting Sql', () => {
       const sql = 'SELECT nothing from dev_null';
