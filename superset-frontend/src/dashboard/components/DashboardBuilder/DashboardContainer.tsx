@@ -139,11 +139,14 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
       const colorScheme = metadata?.color_scheme;
       const colorSchemeDomain = metadata?.color_scheme_domain || [];
       const categoricalSchemes = getCategoricalSchemeRegistry();
-      const registryColorSchemeDomain =
-        categoricalSchemes.get(colorScheme)?.colors || [];
+      const registryColorScheme =
+        categoricalSchemes.get(colorScheme, true) || undefined;
+      const registryColorSchemeDomain = registryColorScheme?.colors || [];
       const defaultColorScheme = categoricalSchemes.defaultKey;
-      const colorSchemeExists = !!categoricalSchemes.get(colorScheme);
-      const updateDashboard = () => {
+      const colorSchemeExists = !!registryColorScheme;
+
+      console.log("------------------registryColorScheme-----------------", registryColorScheme)
+      const updateDashboardData = () => {
         SupersetClient.put({
           endpoint: `/api/v1/dashboard/${dashboardInfo.id}`,
           headers: { 'Content-Type': 'application/json' },
@@ -155,17 +158,17 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
       const updateColorScheme = (scheme: string) => {
         dispatch(setColorScheme(scheme));
       };
-      const updateMetadata = () => {
+      const updateDashboard = () => {
         dispatch(
           dashboardInfoChanged({
             metadata,
           }),
         );
-        updateDashboard();
+        updateDashboardData();
       };
-      // color scheme does not exist anymore
+      // selected color scheme does not exist anymore
       // must fallback to the available default one
-      if (colorScheme && !colorSchemeExists) {
+      if (!colorSchemeExists) {
         const updatedScheme =
           defaultColorScheme?.toString() || 'supersetColors';
         metadata.color_scheme = updatedScheme;
@@ -178,18 +181,18 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
         metadata.shared_label_colors = {};
 
         updateColorScheme(updatedScheme);
-        updateMetadata();
+        updateDashboard();
       } else {
         // if this dashboard does not have a color_scheme_domain saved
         // must create one and store it for the first time
-        if (colorScheme && !colorSchemeDomain.length) {
+        if (colorSchemeExists && !colorSchemeDomain.length) {
           metadata.color_scheme_domain = registryColorSchemeDomain;
-          updateMetadata();
+          updateDashboard();
         }
         // if the color_scheme_domain is not the same as the registry domain
         // must update the existing color_scheme_domain
         if (
-          colorScheme &&
+          colorSchemeExists &&
           colorSchemeDomain.length &&
           registryColorSchemeDomain.toString() !== colorSchemeDomain.toString()
         ) {
@@ -201,7 +204,7 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
           metadata.shared_label_colors = {};
 
           updateColorScheme(colorScheme);
-          updateMetadata();
+          updateDashboard();
         }
       }
     }

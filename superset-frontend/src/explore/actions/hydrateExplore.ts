@@ -79,8 +79,8 @@ export const hydrateExplore =
     const colorSchemeKey = initialControls.color_scheme && 'color_scheme';
     const linearColorSchemeKey =
       initialControls.linear_color_scheme && 'linear_color_scheme';
-    // if the color scheme does not exist anymore
-    // fallbacks to the available default key
+    // if the selected color scheme does not exist anymore
+    // fallbacks and selects the available default one
     const verifyColorScheme = (type: ColorSchemeType) => {
       const schemes =
         type === 'CATEGORICAL'
@@ -92,7 +92,9 @@ export const hydrateExplore =
       const defaultScheme =
         type === 'CATEGORICAL' ? 'supersetColors' : 'superset_seq_1';
       const currentScheme = initialFormData[key];
-      if (currentScheme && !schemes.get(currentScheme)) {
+      const colorSchemeExists = !!schemes.get(currentScheme, true);
+
+      if (currentScheme && !colorSchemeExists) {
         initialControls[key].value = registryDefaultScheme || defaultScheme;
       }
     };

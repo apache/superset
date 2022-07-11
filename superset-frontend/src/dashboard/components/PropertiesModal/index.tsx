@@ -310,14 +310,22 @@ const PropertiesModal = ({
       if (metadata?.color_scheme_domain) {
         delete metadata.color_scheme_domain;
       }
+
       const colorMap = getSharedLabelColor().getColorMap(
         colorNamespace,
         currentColorScheme,
         true,
       );
+
       metadata.shared_label_colors = colorMap;
-      metadata.color_scheme_domain =
+
+      if (metadata?.color_scheme) {
+        metadata.color_scheme_domain =
         categoricalSchemeRegistry.get(colorScheme)?.colors || [];
+      } else {
+        metadata.color_scheme_domain = [];
+      }
+
       currentJsonMetadata = jsonStringify(metadata);
     }
 
