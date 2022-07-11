@@ -328,11 +328,6 @@ test('searches for custom fields', async () => {
   expect(options.length).toBe(1);
   expect(options[0]).toHaveTextContent('Liam');
   await type('Female');
-  // expect(await findSelectOption('Ava')).toBeInTheDocument();
-  // expect(await findSelectOption('Charlotte')).toBeInTheDocument();
-  // expect(await findSelectOption('Cher')).toBeInTheDocument();
-  // expect(await findSelectOption('Emma')).toBeInTheDocument();
-  // expect(await findSelectOption('Nikole')).toBeInTheDocument();
   expect(await findSelectOption('Olivia')).toBeInTheDocument();
   options = await findAllSelectOptions();
   expect(options.length).toBe(6);

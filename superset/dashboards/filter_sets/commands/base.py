@@ -18,10 +18,9 @@ import logging
 from typing import cast, Optional
 
 from flask_appbuilder.models.sqla import Model
-from flask_appbuilder.security.sqla.models import User
 
+from superset import security_manager
 from superset.common.not_authrized_object import NotAuthorizedException
-from superset.common.request_contexed_based import is_user_admin
 from superset.dashboards.commands.exceptions import DashboardNotFoundError
 from superset.dashboards.dao import DashboardDAO
 from superset.dashboards.filter_sets.commands.exceptions import (
@@ -31,6 +30,7 @@ from superset.dashboards.filter_sets.commands.exceptions import (
 from superset.dashboards.filter_sets.consts import USER_OWNER_TYPE
 from superset.models.dashboard import Dashboard
 from superset.models.filter_set import FilterSet
+from superset.utils.core import get_user_id
 
 logger = logging.getLogger(__name__)
 
@@ -41,9 +41,7 @@ class BaseFilterSetCommand:
     _filter_set_id: Optional[int]
     _filter_set: Optional[FilterSet]
 
-    def __init__(self, user: User, dashboard_id: int):
-        self._actor = user
-        self._is_actor_admin = is_user_admin()
+    def __init__(self, dashboard_id: int):
         self._dashboard_id = dashboard_id
 
     def run(self) -> Model:
@@ -53,9 +51,6 @@ class BaseFilterSetCommand:
         self._dashboard = DashboardDAO.get_by_id_or_slug(str(self._dashboard_id))
         if not self._dashboard:
             raise DashboardNotFoundError()
-
-    def is_user_dashboard_owner(self) -> bool:
-        return self._is_actor_admin or self._dashboard.is_actor_owner()
 
     def validate_exist_filter_use_cases_set(self) -> None:  # pylint: disable=C0103
         self._validate_filter_set_exists_and_set_when_exists()
@@ -70,15 +65,15 @@ class BaseFilterSetCommand:
 
     def check_ownership(self) -> None:
         try:
-            if not self._is_actor_admin:
+            if not security_manager.is_admin():
                 filter_set: FilterSet = cast(FilterSet, self._filter_set)
                 if filter_set.owner_type == USER_OWNER_TYPE:
-                    if self._actor.id != filter_set.owner_id:
+                    if get_user_id() != filter_set.owner_id:
                         raise FilterSetForbiddenError(
                             str(self._filter_set_id),
                             "The user is not the owner of the filter_set",
                         )
-                elif not self.is_user_dashboard_owner():
+                elif not security_manager.is_owner(self._dashboard):
                     raise FilterSetForbiddenError(
                         str(self._filter_set_id),
                         "The user is not an owner of the filter_set's dashboard",

@@ -17,7 +17,7 @@
 import logging
 from typing import Any, Dict
 
-from flask import g, request, Response
+from flask import request, Response
 from flask_appbuilder.api import expose, permission_name, protect, rison, safe
 from flask_appbuilder.api.schemas import get_item_schema, get_list_schema
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -306,7 +306,7 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
         except ValidationError as error:
             return self.response_400(message=error.messages)
         try:
-            new_model = CreateAnnotationCommand(g.user, item).run()
+            new_model = CreateAnnotationCommand(item).run()
             return self.response(201, id=new_model.id, result=item)
         except AnnotationLayerNotFoundError as ex:
             return self.response_400(message=str(ex))
@@ -381,7 +381,7 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
         except ValidationError as error:
             return self.response_400(message=error.messages)
         try:
-            new_model = UpdateAnnotationCommand(g.user, annotation_id, item).run()
+            new_model = UpdateAnnotationCommand(annotation_id, item).run()
             return self.response(200, id=new_model.id, result=item)
         except (AnnotationNotFoundError, AnnotationLayerNotFoundError):
             return self.response_404()
@@ -438,7 +438,7 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         try:
-            DeleteAnnotationCommand(g.user, annotation_id).run()
+            DeleteAnnotationCommand(annotation_id).run()
             return self.response(200, message="OK")
         except AnnotationNotFoundError:
             return self.response_404()
@@ -495,7 +495,7 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
         """
         item_ids = kwargs["rison"]
         try:
-            BulkDeleteAnnotationCommand(g.user, item_ids).run()
+            BulkDeleteAnnotationCommand(item_ids).run()
             return self.response(
                 200,
                 message=ngettext(
