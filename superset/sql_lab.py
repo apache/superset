@@ -517,6 +517,7 @@ def execute_sql_statements(  # pylint: disable=too-many-arguments, too-many-loca
     query.rows = result_set.size
     query.progress = 100
     query.set_extra_json_key("progress", None)
+    query.set_extra_json_key("columns", result_set.columns)
     if query.select_as_cta:
         query.select_sql = database.select_star(
             query.tmp_table_name,
