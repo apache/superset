@@ -17,7 +17,6 @@
  * under the License.
  */
 /* eslint-disable camelcase */
-import { isEmpty } from 'lodash';
 import {
   AnnotationLayer,
   CategoricalColorNamespace,
@@ -32,7 +31,6 @@ import {
   isTimeseriesAnnotationLayer,
   TimeseriesChartDataResponseResult,
   t,
-  AnnotationData,
 } from '@superset-ui/core';
 import { isDerivedSeries } from '@superset-ui/chart-controls';
 import { EChartsCoreOption, SeriesOption } from 'echarts';
@@ -57,7 +55,10 @@ import {
   extractDataTotalValues,
   extractShowValueIndexes,
 } from '../utils/series';
-import { extractAnnotationLabels } from '../utils/annotation';
+import {
+  extractAnnotationLabels,
+  getAnnotationData,
+} from '../utils/annotation';
 import {
   extractForecastSeriesContext,
   extractForecastSeriesContexts,
@@ -82,16 +83,6 @@ import {
   TIMESERIES_CONSTANTS,
   TIMEGRAIN_TO_TIMESTAMP,
 } from '../constants';
-
-function getAnnotationData(
-  chartProps: EchartsTimeseriesChartProps,
-): AnnotationData {
-  const data = chartProps?.queriesData[0]?.annotation_data as AnnotationData;
-  if (!isEmpty(data)) {
-    return data;
-  }
-  return {};
-}
 
 export default function transformProps(
   chartProps: EchartsTimeseriesChartProps,
