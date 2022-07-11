@@ -139,24 +139,46 @@ test('displays a header', async () => {
   expect(screen.getByText(headerText)).toBeInTheDocument();
 });
 
-test('adds a new option if the value is not in the options', async () => {
-  let loadOptions = jest.fn(async () => ({ data: [OPTIONS[1]], totalCount: 0 }));
-  const { rerender } = render(
+test('adds a new option if the value is not in the options, when options are empty', async () => {
+  const loadOptions = jest.fn(async () => ({ data: [OPTIONS[1]], totalCount: 0 }));
+  render(
     <AsyncSelect {...defaultProps} options={loadOptions} value={OPTIONS[0]} />,
   );
   await open();
   expect(await findSelectOption(OPTIONS[0].label)).toBeInTheDocument();
-  let reloadOptions = jest.fn(async () => ({ data: [], totalCount: 2}));
-  rerender(
-    <AsyncSelect {...defaultProps} options={reloadOptions} value={OPTIONS[0]} />,
-  );
   const options = await findAllSelectOptions();
+  expect(options).toHaveLength(1);
+  options.forEach((option, i) =>
+    expect(option).toHaveTextContent(OPTIONS[i].label),
+  );
+});
+
+test('adds a new option if the value is not in the options, when options have values', async () => {
+  const loadOptions = jest.fn(async () => ({ data: [OPTIONS[1]], totalCount: 1}));
+  render(
+    <AsyncSelect {...defaultProps} options={loadOptions} value={OPTIONS[0]} />,
+  );
+  await open();
+  expect(await findSelectOption(OPTIONS[0].label)).toBeInTheDocument();
   expect(await findSelectOption(OPTIONS[1].label)).toBeInTheDocument();
+  const options = await findAllSelectOptions();
   expect(options).toHaveLength(2);
   options.forEach((option, i) =>
     expect(option).toHaveTextContent(OPTIONS[i].label),
   );
 });
+
+test('does not add a new option if the value is already in the options', async () => {
+  const loadOptions = jest.fn(async () => ({ data: [OPTIONS[0]], totalCount: 1}));
+  render(
+    <AsyncSelect {...defaultProps} options={loadOptions} value={OPTIONS[0]} />,
+  );
+  await open();
+  expect(await findSelectOption(OPTIONS[0].label)).toBeInTheDocument();
+  const options = await findAllSelectOptions();
+  expect(options).toHaveLength(1);
+});
+
 
 test('inverts the selection', async () => {
   render(<AsyncSelect {...defaultProps} invertSelection />);
