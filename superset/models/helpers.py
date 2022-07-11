@@ -1371,7 +1371,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     # if groupby field equals a selected column
                     elif selected in columns_by_name:
                         if isinstance(columns_by_name[selected], dict):
-                            outer = literal_column(f"{selected}")
+                            outer = sa.column(f"{selected}")
                             outer = self.make_sqla_column_compatible(outer, selected)
                         else:
                             outer = columns_by_name[selected].get_sqla_col()
@@ -1381,7 +1381,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             self.database_id,
                             self.schema,
                         )
-                        outer = literal_column(f"({selected})")
+                        outer = sa.column(f"{selected}")
                         outer = self.make_sqla_column_compatible(outer, selected)
                 else:
                     outer = self.adhoc_column_to_sqla(
