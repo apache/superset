@@ -24,12 +24,6 @@ if TYPE_CHECKING:
     from superset.models.slice import Slice
 
 
-# pylint: disable=invalid-name
-class MigrateVizEnum(str, Enum):
-    # the Enum member name is viz_type in database
-    treemap = "treemap"
-
-
 class MigrateViz:
     remove_keys: Set[str] = set()
     mapping_keys: Dict[str, str] = {}
@@ -117,6 +111,38 @@ class MigrateTreeMap(MigrateViz):
             self.data["metric"] = self.data["metrics"][0]
 
 
+class MigrateArea(MigrateViz):
+    source_viz_type = "area"
+    target_viz_type = "echarts_area"
+    remove_keys = {"contribution", "stacked_style", "x_axis_label"}
+
+    def _pre_action(self) -> None:
+        if self.data.get("contribution"):
+            self.data["contributionMode"] = "row"
+
+        stacked = self.data.get("stacked_style")
+        if stacked:
+            stacked_map = {
+                "expand": "Expand",
+                "stack": "Stack",
+            }
+            self.data["show_extra_controls"] = True
+            self.data["stack"] = stacked_map.get(stacked)
+
+        x_axis_label = self.data.get("x_axis_label")
+        if x_axis_label:
+            self.data["x_axis_title"] = x_axis_label
+            self.data["x_axis_title_margin"] = 30
+
+
+# pylint: disable=invalid-name
+class MigrateVizEnum(str, Enum):
+    # the Enum member name is viz_type in database
+    treemap = "treemap"
+    area = "area"
+
+
 get_migrate_class: Dict[MigrateVizEnum, Type[MigrateViz]] = {
     MigrateVizEnum.treemap: MigrateTreeMap,
+    MigrateVizEnum.area: MigrateArea,
 }

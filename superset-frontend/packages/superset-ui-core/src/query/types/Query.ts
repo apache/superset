@@ -52,8 +52,6 @@ export type QueryObjectFilterClause = {
 
 export type QueryObjectExtras = Partial<{
   /** HAVING condition for Druid */
-  having_druid?: string;
-  druid_time_origin?: string;
   /** HAVING condition for SQLAlchemy */
   having?: string;
   relative_start?: string;
