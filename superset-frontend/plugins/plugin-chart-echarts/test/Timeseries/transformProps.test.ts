@@ -174,60 +174,62 @@ describe('EchartsTimeseries transformProps', () => {
       titleColumn: '',
       value: 3,
     };
+    const annotationData = {
+      'My Event': {
+        columns: [
+          'start_dttm',
+          'end_dttm',
+          'short_descr',
+          'long_descr',
+          'json_metadata',
+        ],
+        records: [
+          {
+            start_dttm: 0,
+            end_dttm: 1000,
+            short_descr: '',
+            long_descr: '',
+            json_metadata: null,
+          },
+        ],
+      },
+      'My Interval': {
+        columns: ['start', 'end', 'title'],
+        records: [
+          {
+            start: 2000,
+            end: 3000,
+            title: 'My Title',
+          },
+        ],
+      },
+      'My Timeseries': [
+        {
+          key: 'My Line',
+          values: [
+            {
+              x: 10000,
+              y: 11000,
+            },
+            {
+              x: 20000,
+              y: 21000,
+            },
+          ],
+        },
+      ],
+    };
     const chartProps = new ChartProps({
       ...chartPropsConfig,
       formData: {
         ...formData,
         annotationLayers: [event, interval, timeseries],
       },
-      annotationData: {
-        'My Event': {
-          columns: [
-            'start_dttm',
-            'end_dttm',
-            'short_descr',
-            'long_descr',
-            'json_metadata',
-          ],
-          records: [
-            {
-              start_dttm: 0,
-              end_dttm: 1000,
-              short_descr: '',
-              long_descr: '',
-              json_metadata: null,
-            },
-          ],
-        },
-        'My Interval': {
-          columns: ['start', 'end', 'title'],
-          records: [
-            {
-              start: 2000,
-              end: 3000,
-              title: 'My Title',
-            },
-          ],
-        },
-        'My Timeseries': [
-          {
-            key: 'My Line',
-            values: [
-              {
-                x: 10000,
-                y: 11000,
-              },
-              {
-                x: 20000,
-                y: 21000,
-              },
-            ],
-          },
-        ],
-      },
+      annotationData,
       queriesData: [
         {
           ...queriesData[0],
+          annotation_data: annotationData,
         },
       ],
     });
