@@ -22,7 +22,7 @@ Alerts and reports are disabled by default. To turn them on, you need to do some
 
 ##### In your `superset_config.py`
 
-- `"ALERT_REPORTS"` feature flag must be turned to True.
+- `"ALERT_REPORTS"` [feature flag](https://superset.apache.org/docs/installation/configuring-superset#feature-flags) must be turned to True.
 - `CELERYBEAT_SCHEDULE` in CeleryConfig must contain schedule for `reports.scheduler`.
 - At least one of those must be configured, depending on what you want to use:
   - emails: `SMTP_*` settings
