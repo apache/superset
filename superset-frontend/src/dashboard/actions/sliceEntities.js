@@ -24,6 +24,12 @@ import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 
 export const SET_ALL_SLICES = 'SET_ALL_SLICES';
+const FETCH_SLICES_PAGE_SIZE = 200;
+
+export function getDatasourceParameter(datasourceId, datasourceType) {
+  return `${datasourceId}__${datasourceType}`;
+}
+
 export function setAllSlices(slices) {
   return { type: SET_ALL_SLICES, payload: { slices } };
 }
@@ -38,96 +44,142 @@ export function fetchAllSlicesFailed(error) {
   return { type: FETCH_ALL_SLICES_FAILED, payload: { error } };
 }
 
-export function getDatasourceParameter(datasourceId, datasourceType) {
-  return `${datasourceId}__${datasourceType}`;
+export function fetchSlices(
+  userId,
+  excludeFilterBox,
+  dispatch,
+  filter_value,
+  sortColumn = 'changed_on',
+  slices = {},
+) {
+  const additional_filters = filter_value
+    ? [{ col: 'slice_name', opr: 'chart_all_text', value: filter_value }]
+    : [];
+
+  const cloneSlices = { ...slices };
+
+  return SupersetClient.get({
+    endpoint: `/api/v1/chart/?q=${rison.encode({
+      columns: [
+        'changed_on_delta_humanized',
+        'changed_on_utc',
+        'datasource_id',
+        'datasource_type',
+        'datasource_url',
+        'datasource_name_text',
+        'description_markeddown',
+        'description',
+        'id',
+        'params',
+        'slice_name',
+        'url',
+        'viz_type',
+      ],
+      filters: [
+        { col: 'owners', opr: 'rel_m_m', value: userId },
+        ...additional_filters,
+      ],
+      page_size: FETCH_SLICES_PAGE_SIZE,
+      order_column:
+        sortColumn === 'changed_on' ? 'changed_on_delta_humanized' : sortColumn,
+      order_direction: sortColumn === 'changed_on' ? 'desc' : 'asc',
+    })}`,
+  })
+    .then(({ json }) => {
+      let { result } = json;
+      // disable add filter_box viz to dashboard
+      if (excludeFilterBox) {
+        result = result.filter(slice => slice.viz_type !== 'filter_box');
+      }
+      result.forEach(slice => {
+        let form_data = JSON.parse(slice.params);
+        form_data = {
+          ...form_data,
+          // force using datasource stored in relational table prop
+          datasource:
+            getDatasourceParameter(
+              slice.datasource_id,
+              slice.datasource_type,
+            ) || form_data.datasource,
+        };
+        cloneSlices[slice.id] = {
+          slice_id: slice.id,
+          slice_url: slice.url,
+          slice_name: slice.slice_name,
+          form_data,
+          datasource_name: slice.datasource_name_text,
+          datasource_url: slice.datasource_url,
+          datasource_id: slice.datasource_id,
+          datasource_type: slice.datasource_type,
+          changed_on: new Date(slice.changed_on_utc).getTime(),
+          description: slice.description,
+          description_markdown: slice.description_markeddown,
+          viz_type: slice.viz_type,
+          modified: slice.changed_on_delta_humanized,
+          changed_on_humanized: slice.changed_on_delta_humanized,
+        };
+      });
+
+      return dispatch(setAllSlices(cloneSlices));
+    })
+    .catch(errorResponse =>
+      getClientErrorObject(errorResponse).then(({ error }) => {
+        dispatch(
+          fetchAllSlicesFailed(error || t('Could not fetch all saved charts')),
+        );
+        dispatch(
+          addDangerToast(
+            t('Sorry there was an error fetching saved charts: ') + error,
+          ),
+        );
+      }),
+    );
 }
 
-const FETCH_SLICES_PAGE_SIZE = 200;
 export function fetchAllSlices(userId, excludeFilterBox = false) {
   return (dispatch, getState) => {
     const { sliceEntities } = getState();
     if (sliceEntities.lastUpdated === 0) {
       dispatch(fetchAllSlicesStarted());
-
-      return SupersetClient.get({
-        endpoint: `/api/v1/chart/?q=${rison.encode({
-          columns: [
-            'changed_on_delta_humanized',
-            'changed_on_utc',
-            'datasource_id',
-            'datasource_type',
-            'datasource_url',
-            'datasource_name_text',
-            'description_markeddown',
-            'description',
-            'id',
-            'params',
-            'slice_name',
-            'url',
-            'viz_type',
-          ],
-          filters: [{ col: 'owners', opr: 'rel_m_m', value: userId }],
-          page_size: FETCH_SLICES_PAGE_SIZE,
-          order_column: 'changed_on_delta_humanized',
-          order_direction: 'desc',
-        })}`,
-      })
-        .then(({ json }) => {
-          const slices = {};
-          let { result } = json;
-          // disable add filter_box viz to dashboard
-          if (excludeFilterBox) {
-            result = result.filter(slice => slice.viz_type !== 'filter_box');
-          }
-          result.forEach(slice => {
-            let form_data = JSON.parse(slice.params);
-            form_data = {
-              ...form_data,
-              // force using datasource stored in relational table prop
-              datasource:
-                getDatasourceParameter(
-                  slice.datasource_id,
-                  slice.datasource_type,
-                ) || form_data.datasource,
-            };
-            slices[slice.id] = {
-              slice_id: slice.id,
-              slice_url: slice.url,
-              slice_name: slice.slice_name,
-              form_data,
-              datasource_name: slice.datasource_name_text,
-              datasource_url: slice.datasource_url,
-              datasource_id: slice.datasource_id,
-              datasource_type: slice.datasource_type,
-              changed_on: new Date(slice.changed_on_utc).getTime(),
-              description: slice.description,
-              description_markdown: slice.description_markeddown,
-              viz_type: slice.viz_type,
-              modified: slice.changed_on_delta_humanized,
-              changed_on_humanized: slice.changed_on_delta_humanized,
-            };
-          });
-
-          return dispatch(setAllSlices(slices));
-        })
-        .catch(
-          errorResponse =>
-            console.log(errorResponse) ||
-            getClientErrorObject(errorResponse).then(({ error }) => {
-              dispatch(
-                fetchAllSlicesFailed(
-                  error || t('Could not fetch all saved charts'),
-                ),
-              );
-              dispatch(
-                addDangerToast(
-                  t('Sorry there was an error fetching saved charts: ') + error,
-                ),
-              );
-            }),
-        );
+      return fetchSlices(userId, excludeFilterBox, dispatch, undefined);
     }
 
     return dispatch(setAllSlices(sliceEntities.slices));
+  };
+}
+
+export function fetchSortedSlices(
+  userId,
+  excludeFilterBox = false,
+  order_column,
+) {
+  return dispatch => {
+    dispatch(fetchAllSlicesStarted());
+    return fetchSlices(
+      userId,
+      excludeFilterBox,
+      dispatch,
+      undefined,
+      order_column,
+    );
+  };
+}
+
+export function fetchFilteredSlices(
+  userId,
+  excludeFilterBox = false,
+  filter_value,
+) {
+  return (dispatch, getState) => {
+    dispatch(fetchAllSlicesStarted());
+    const { sliceEntities } = getState();
+    return fetchSlices(
+      userId,
+      excludeFilterBox,
+      dispatch,
+      filter_value,
+      undefined,
+      sliceEntities.slices,
+    );
   };
 }

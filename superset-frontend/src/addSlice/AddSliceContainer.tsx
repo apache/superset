@@ -24,7 +24,7 @@ import { getUrlParam } from 'src/utils/urlUtils';
 import { URL_PARAMS } from 'src/constants';
 import { isNullish } from 'src/utils/common';
 import Button from 'src/components/Button';
-import { Select, Steps } from 'src/components';
+import { AsyncSelect, Steps } from 'src/components';
 import { Tooltip } from 'src/components/Tooltip';
 import withToasts from 'src/components/MessageToasts/withToasts';
 
@@ -369,7 +369,7 @@ export class AddSliceContainer extends React.PureComponent<
             status={this.state.datasource?.value ? 'finish' : 'process'}
             description={
               <StyledStepDescription className="dataset">
-                <Select
+                <AsyncSelect
                   autoFocus
                   ariaLabel={t('Dataset')}
                   name="select-datasource"

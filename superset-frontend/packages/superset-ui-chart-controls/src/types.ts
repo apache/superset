@@ -204,8 +204,22 @@ export interface BaseControlConfig<
   V = JsonValue,
 > extends AnyDict {
   type: T;
-  label?: ReactNode;
-  description?: ReactNode;
+  label?:
+    | ReactNode
+    | ((
+        state: ControlPanelState,
+        controlState: ControlState,
+        // TODO: add strict `chartState` typing (see superset-frontend/src/explore/types)
+        chartState?: AnyDict,
+      ) => ReactNode);
+  description?:
+    | ReactNode
+    | ((
+        state: ControlPanelState,
+        controlState: ControlState,
+        // TODO: add strict `chartState` typing (see superset-frontend/src/explore/types)
+        chartState?: AnyDict,
+      ) => ReactNode);
   default?: V;
   renderTrigger?: boolean;
   validators?: ControlValueValidator<T, O, V>[];

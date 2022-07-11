@@ -18,7 +18,6 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from flask_appbuilder.models.sqla import Model
-from flask_appbuilder.security.sqla.models import User
 from marshmallow import ValidationError
 
 from superset.commands.base import BaseCommand
@@ -38,8 +37,7 @@ logger = logging.getLogger(__name__)
 
 
 class CreateDatabaseCommand(BaseCommand):
-    def __init__(self, user: User, data: Dict[str, Any]):
-        self._actor = user
+    def __init__(self, data: Dict[str, Any]):
         self._properties = data.copy()
 
     def run(self) -> Model:
@@ -47,7 +45,7 @@ class CreateDatabaseCommand(BaseCommand):
 
         try:
             # Test connection before starting create transaction
-            TestConnectionDatabaseCommand(self._actor, self._properties).run()
+            TestConnectionDatabaseCommand(self._properties).run()
         except Exception as ex:
             event_logger.log_with_context(
                 action=f"db_creation_failed.{ex.__class__.__name__}",

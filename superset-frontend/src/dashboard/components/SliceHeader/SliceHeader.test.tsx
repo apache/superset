@@ -164,7 +164,7 @@ const createProps = (overrides: any = {}) => ({
 
 test('Should render', () => {
   const props = createProps();
-  render(<SliceHeader {...props} />, { useRedux: true });
+  render(<SliceHeader {...props} />, { useRedux: true, useRouter: true });
   expect(screen.getByTestId('slice-header')).toBeInTheDocument();
 });
 
@@ -270,13 +270,39 @@ test('Should render click to edit prompt and run onExploreChart on click', async
   render(<SliceHeader {...props} />, { useRedux: true });
   userEvent.hover(screen.getByText('Vaccine Candidates per Phase'));
   expect(
-    await screen.findByText(
-      'Click to edit Vaccine Candidates per Phase in a new tab',
-    ),
+    await screen.findByText('Click to edit Vaccine Candidates per Phase.'),
+  ).toBeInTheDocument();
+  expect(
+    await screen.findByText('Use ctrl + click to open in a new tab.'),
   ).toBeInTheDocument();
 
   userEvent.click(screen.getByText('Vaccine Candidates per Phase'));
   expect(props.onExploreChart).toHaveBeenCalled();
+});
+
+test('Display cmd button in tooltip if running on MacOS', async () => {
+  jest.spyOn(window.navigator, 'appVersion', 'get').mockReturnValue('Mac');
+  const props = createProps();
+  render(<SliceHeader {...props} />, { useRedux: true });
+  userEvent.hover(screen.getByText('Vaccine Candidates per Phase'));
+  expect(
+    await screen.findByText('Click to edit Vaccine Candidates per Phase.'),
+  ).toBeInTheDocument();
+  expect(
+    await screen.findByText('Use ⌘ + click to open in a new tab.'),
+  ).toBeInTheDocument();
+});
+
+test('Display correct tooltip when DASHBOARD_EDIT_CHART_IN_NEW_TAB is enabled', async () => {
+  window.featureFlags.DASHBOARD_EDIT_CHART_IN_NEW_TAB = true;
+  const props = createProps();
+  render(<SliceHeader {...props} />, { useRedux: true });
+  userEvent.hover(screen.getByText('Vaccine Candidates per Phase'));
+  expect(
+    await screen.findByText(
+      'Click to edit Vaccine Candidates per Phase in a new tab',
+    ),
+  ).toBeInTheDocument();
 });
 
 test('Should not render click to edit prompt and run onExploreChart on click if supersetCanExplore=false', () => {
