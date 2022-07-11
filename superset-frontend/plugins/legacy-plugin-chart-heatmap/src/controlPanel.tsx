@@ -164,7 +164,7 @@ const config: ControlPanelConfig = {
             name: 'normalize_across',
             config: {
               type: 'SelectControl',
-              label: t('COLOR BASED ON'),
+              label: t('Normalize Across'),
               choices: [
                 ['heatmap', 'heatmap'],
                 ['x', 'x'],
@@ -179,12 +179,8 @@ const config: ControlPanelConfig = {
                     )}
                   </div>
                   <ul>
-                    <li>
-                      {t('x: values are normalized within each column')}
-                    </li>
-                    <li>
-                      {t('y: values are normalized within each row')}
-                    </li>
+                    <li>{t('x: values are normalized within each column')}</li>
+                    <li>{t('y: values are normalized within each row')}</li>
                     <li>
                       {t(
                         'heatmap: values are normalized across the entire heatmap',
