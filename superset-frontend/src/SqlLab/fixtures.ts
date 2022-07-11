@@ -181,12 +181,12 @@ export const defaultQueryEditor = {
   latestQueryId: null,
   selectedText: null,
   sql: 'SELECT *\nFROM\nWHERE',
-  title: 'Untitled Query 1',
+  name: 'Untitled Query 1',
   schemaOptions: [
     {
       value: 'main',
       label: 'main',
-      title: 'main',
+      name: 'main',
     },
   ],
 };
