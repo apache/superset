@@ -302,7 +302,7 @@ class Chart extends React.Component {
       ) {
         window.open(url, '_blank', 'noreferrer');
       } else {
-        this.props.history.push(url);
+        this.props.history.push(url, { dashboardId: this.props.dashboardId });
       }
     } catch (error) {
       logging.error(error);

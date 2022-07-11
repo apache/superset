@@ -16,10 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useState } from 'react';
-import { useDispatch } from 'react-redux';
-import { makeApi, t } from '@superset-ui/core';
+import React, { useCallback, useEffect, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { isDefined, makeApi, SupersetClient, t } from '@superset-ui/core';
+import { useLocation } from 'react-router-dom';
 import Loading from 'src/components/Loading';
+import pick from 'lodash/pick';
+import { Dataset } from '@superset-ui/chart-controls';
 import { getParsedExploreURLParams } from './exploreUtils/getParsedExploreURLParams';
 import { hydrateExplore } from './actions/hydrateExplore';
 import ExploreViewContainer from './components/ExploreViewContainer';
@@ -27,6 +30,10 @@ import { ExploreResponsePayload } from './types';
 import { fallbackExploreInitialData } from './fixtures';
 import { addDangerToast } from '../components/MessageToasts/actions';
 import { isNullish } from '../utils/common';
+import { getUrlParam } from '../utils/urlUtils';
+import { URL_PARAMS } from '../constants';
+import { RootState } from '../dashboard/types';
+import { Slice } from '../types/Chart';
 
 const loadErrorMessage = t('Failed to load chart data.');
 
@@ -38,12 +45,58 @@ const fetchExploreData = () => {
   })(exploreUrlParams);
 };
 
+const useExploreInitialData = (
+  shouldUseDashboardData: boolean,
+  sliceId: string | null,
+) => {
+  const slice = useSelector<RootState, Slice | null>(({ sliceEntities }) =>
+    isDefined(sliceId) ? sliceEntities?.slices?.[sliceId] : null,
+  );
+  const formData = slice?.form_data;
+  const { id: datasourceId, type: datasourceType } = useSelector<
+    RootState,
+    { id: number | undefined; type: string | undefined }
+  >(({ datasources }) =>
+    formData?.datasource
+      ? pick(datasources[formData.datasource], ['id', 'type'])
+      : { id: undefined, type: undefined },
+  );
+  return useCallback(() => {
+    if (
+      !shouldUseDashboardData ||
+      !isDefined(slice) ||
+      !isDefined(formData) ||
+      !isDefined(datasourceId) ||
+      !isDefined(datasourceType)
+    ) {
+      return fetchExploreData();
+    }
+    return SupersetClient.get({
+      endpoint: `/datasource/get/${datasourceType}/${datasourceId}/`,
+    }).then(({ json }) => ({
+      result: {
+        slice,
+        form_data: formData,
+        dataset: json as Dataset,
+        message: '',
+      },
+    }));
+    /* eslint-disable react-hooks/exhaustive-deps */
+  }, []);
+};
+
 const ExplorePage = () => {
   const [isLoaded, setIsLoaded] = useState(false);
   const dispatch = useDispatch();
+  const location = useLocation<{ dashboardId?: number }>();
+
+  const getExploreInitialData = useExploreInitialData(
+    isDefined(location.state?.dashboardId),
+    getUrlParam(URL_PARAMS.sliceId),
+  );
 
   useEffect(() => {
-    fetchExploreData()
+    getExploreInitialData()
       .then(({ result }) => {
         if (isNullish(result.dataset?.id) && isNullish(result.dataset?.uid)) {
           dispatch(hydrateExplore(fallbackExploreInitialData));
