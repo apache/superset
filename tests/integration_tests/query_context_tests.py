@@ -283,7 +283,6 @@ class TestQueryContext(SupersetTestCase):
         self.assertEqual(query_object.columns, columns)
         self.assertEqual(query_object.series_limit, 99)
         self.assertEqual(query_object.series_limit_metric, "sum__num")
-        self.assertIn("having_druid", query_object.extras)
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_csv_response_format(self):

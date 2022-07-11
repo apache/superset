@@ -14,18 +14,17 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Migrating legacy TreeMap
+"""Migrating legacy Area
 
-Revision ID: c747c78868b6
-Revises: e786798587de
-Create Date: 2022-06-30 22:04:17.686635
+Revision ID: 06e1e70058c7
+Revises: c747c78868b6
+Create Date: 2022-06-13 14:17:51.872706
 
 """
 
 # revision identifiers, used by Alembic.
-
-revision = "c747c78868b6"
-down_revision = "7fb8bca906d2"
+revision = "06e1e70058c7"
+down_revision = "c747c78868b6"
 
 from alembic import op
 from sqlalchemy import and_, Column, Integer, String, Text
@@ -34,7 +33,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from superset import db
 from superset.utils.migrate_viz import get_migrate_class, MigrateVizEnum
 
-treemap_processor = get_migrate_class[MigrateVizEnum.treemap]
+area_processor = get_migrate_class[MigrateVizEnum.area]
 
 Base = declarative_base()
 
@@ -54,7 +53,7 @@ def upgrade():
     session = db.Session(bind=bind)
 
     slices = session.query(Slice).filter(
-        Slice.viz_type == treemap_processor.source_viz_type
+        Slice.viz_type == area_processor.source_viz_type
     )
     total = slices.count()
     idx = 0
@@ -62,7 +61,7 @@ def upgrade():
         try:
             idx += 1
             print(f"Upgrading ({idx}/{total}): {slc.slice_name}#{slc.id}")
-            new_viz = treemap_processor.upgrade(slc)
+            new_viz = area_processor.upgrade(slc)
             session.merge(new_viz)
         except Exception as exc:
             print(
@@ -80,7 +79,7 @@ def downgrade():
 
     slices = session.query(Slice).filter(
         and_(
-            Slice.viz_type == treemap_processor.target_viz_type,
+            Slice.viz_type == area_processor.target_viz_type,
             Slice.params.like("%form_data_bak%"),
         )
     )
@@ -90,7 +89,7 @@ def downgrade():
         try:
             idx += 1
             print(f"Downgrading ({idx}/{total}): {slc.slice_name}#{slc.id}")
-            new_viz = treemap_processor.downgrade(slc)
+            new_viz = area_processor.downgrade(slc)
             session.merge(new_viz)
         except Exception as exc:
             print(
