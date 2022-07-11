@@ -418,5 +418,4 @@ export class AddSliceContainer extends React.PureComponent<
   }
 }
 
-
 export default withToasts(AddSliceContainer);
