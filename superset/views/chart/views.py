@@ -57,13 +57,7 @@ class SliceModelView(
     @expose("/add", methods=["GET", "POST"])
     @has_access
     def add(self) -> FlaskResponse:
-        payload = {
-            "common": common_bootstrap_payload(),
-            "user": bootstrap_user_data(g.user, include_perms=True),
-        }
-        return self.render_template(
-            "superset/add_slice.html", bootstrap_data=json.dumps(payload)
-        )
+        return super().render_app_template()
 
     @expose("/list/")
     @has_access

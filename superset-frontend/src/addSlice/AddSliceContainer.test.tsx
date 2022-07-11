@@ -20,8 +20,7 @@ import React from 'react';
 import { ReactWrapper, mount } from 'enzyme';
 import Button from 'src/components/Button';
 import { AsyncSelect } from 'src/components';
-import {
-  AddSliceContainer,
+import AddSliceContainer, {
   AddSliceContainerProps,
   AddSliceContainerState,
 } from 'src/addSlice/AddSliceContainer';
@@ -62,9 +61,20 @@ const mockUserWithDatasetWrite: UserWithPermissionsAndRoles = {
   isAnonymous: false,
 };
 
+// We don't need the actual implementation for the tests
+const routeProps = {
+  history: {} as any,
+  location: {} as any,
+  match: {} as any,
+};
+
 async function getWrapper(user = mockUser) {
   const wrapper = mount(
-    <AddSliceContainer user={user} addSuccessToast={() => null} />,
+    <AddSliceContainer.WrappedComponent
+      user={user}
+      addSuccessToast={() => null}
+      {...routeProps}
+    />,
     {
       wrappingComponent: ThemeProvider,
       wrappingComponentProps: { theme: supersetTheme },
@@ -72,7 +82,7 @@ async function getWrapper(user = mockUser) {
   ) as unknown as ReactWrapper<
     AddSliceContainerProps,
     AddSliceContainerState,
-    AddSliceContainer
+    any
   >;
   await act(() => new Promise(resolve => setTimeout(resolve, 0)));
   return wrapper;
