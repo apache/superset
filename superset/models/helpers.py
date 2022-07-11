@@ -1399,7 +1399,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     self.schema,
                 )
                 if isinstance(columns_by_name[selected], dict):
-                    select_exprs.append(literal_column(f"({selected})"))
+                    select_exprs.append(sa.column(f"{selected}"))
                 else:
                     select_exprs.append(
                         columns_by_name[selected].get_sqla_col()
