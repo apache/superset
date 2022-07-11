@@ -77,12 +77,6 @@ export type OptionsTypePage = {
   totalCount: number;
 };
 
-export type OptionsPagePromise = (
-  search: string,
-  page: number,
-  pageSize: number,
-) => Promise<OptionsTypePage>;
-
 export type SelectRef = HTMLInputElement & { clearCache: () => void };
 
 export interface SelectProps extends PickedSelectProps {
@@ -133,7 +127,7 @@ export interface SelectProps extends PickedSelectProps {
    * The options can also be async, a promise that returns
    * an array of options.
    */
-  options: OptionsType | OptionsPagePromise;
+  options: OptionsType;
   /**
    * It defines how many results should be included
    * in the query response.
@@ -322,25 +316,19 @@ const Select = (
   }: SelectProps,
   ref: RefObject<SelectRef>,
 ) => {
-  const isAsync = typeof options === 'function';
   const isSingleMode = mode === 'single';
-  const shouldShowSearch = isAsync || allowNewOptions ? true : showSearch;
+  const shouldShowSearch = allowNewOptions ? true : showSearch;
   const [selectValue, setSelectValue] = useState(value);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(loading);
   const [error, setError] = useState('');
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
-  const [page, setPage] = useState(0);
-  const [totalCount, setTotalCount] = useState(0);
-  const [loadingEnabled, setLoadingEnabled] = useState(!lazyLoading);
-  const [allValuesLoaded, setAllValuesLoaded] = useState(false);
   const fetchedQueries = useRef(new Map<string, number>());
   const mappedMode = isSingleMode
     ? undefined
     : allowNewOptions
     ? 'tags'
     : 'multiple';
-  const allowFetch = !fetchOnlyOnSearch || inputValue;
 
   const sortSelectedFirst = useCallback(
     (a: AntdLabeledValue, b: AntdLabeledValue) =>
@@ -357,11 +345,10 @@ const Select = (
   );
   const sortComparatorForNoSearch = useCallback(
     (a: AntdLabeledValue, b: AntdLabeledValue) =>
-      sortSelectedFirst(a, b) ||
-      // Only apply the custom sorter in async mode because we should
-      // preserve the options order as much as possible.
-      (isAsync ? sortComparator(a, b, '') : 0),
-    [isAsync, sortComparator, sortSelectedFirst],
+      sortSelectedFirst(a, b) ||    
+      // we should preserve the options order as much as possible.
+      0,
+    [sortComparator, sortSelectedFirst],
   );
 
   const initialOptions = useMemo(
@@ -439,77 +426,7 @@ const Select = (
       }),
     [onError],
   );
-
-  const mergeData = useCallback(
-    (data: OptionsType) => {
-      let mergedData: OptionsType = [];
-      if (data && Array.isArray(data) && data.length) {
-        // unique option values should always be case sensitive so don't lowercase
-        const dataValues = new Set(data.map(opt => opt.value));
-        // merges with existing and creates unique options
-        setSelectOptions(prevOptions => {
-          mergedData = prevOptions
-            .filter(previousOption => !dataValues.has(previousOption.value))
-            .concat(data)
-            .sort(sortComparatorForNoSearch);
-          return mergedData;
-        });
-      }
-      return mergedData;
-    },
-    [sortComparatorForNoSearch],
-  );
-
-  const fetchPage = useMemo(
-    () => (search: string, page: number) => {
-      setPage(page);
-      if (allValuesLoaded) {
-        setIsLoading(false);
-        return;
-      }
-      const key = getQueryCacheKey(search, page, pageSize);
-      const cachedCount = fetchedQueries.current.get(key);
-      if (cachedCount !== undefined) {
-        setTotalCount(cachedCount);
-        setIsLoading(false);
-        return;
-      }
-      setIsLoading(true);
-      const fetchOptions = options as OptionsPagePromise;
-      fetchOptions(search, page, pageSize)
-        .then(({ data, totalCount }: OptionsTypePage) => {
-          const mergedData = mergeData(data);
-          fetchedQueries.current.set(key, totalCount);
-          setTotalCount(totalCount);
-          if (
-            !fetchOnlyOnSearch &&
-            value === '' &&
-            mergedData.length >= totalCount
-          ) {
-            setAllValuesLoaded(true);
-          }
-        })
-        .catch(internalOnError)
-        .finally(() => {
-          setIsLoading(false);
-        });
-    },
-    [
-      allValuesLoaded,
-      fetchOnlyOnSearch,
-      mergeData,
-      internalOnError,
-      options,
-      pageSize,
-      value,
-    ],
-  );
-
-  const debouncedFetchPage = useMemo(
-    () => debounce(fetchPage, SLOW_DEBOUNCE),
-    [fetchPage],
-  );
-
+  
   const handleOnSearch = (search: string) => {
     const searchValue = search.trim();
     if (allowNewOptions && isSingleMode) {
@@ -527,29 +444,7 @@ const Select = (
         : cleanSelectOptions;
       setSelectOptions(newOptions);
     }
-    if (
-      isAsync &&
-      !allValuesLoaded &&
-      loadingEnabled &&
-      !fetchedQueries.current.has(getQueryCacheKey(searchValue, 0, pageSize))
-    ) {
-      // if fetch only on search but search value is empty, then should not be
-      // in loading state
-      setIsLoading(!(fetchOnlyOnSearch && !searchValue));
-    }
     setInputValue(search);
-  };
-
-  const handlePagination = (e: UIEvent<HTMLElement>) => {
-    const vScroll = e.currentTarget;
-    const thresholdReached =
-      vScroll.scrollTop > (vScroll.scrollHeight - vScroll.offsetHeight) * 0.7;
-    const hasMoreData = page * pageSize + pageSize < totalCount;
-
-    if (!isLoading && isAsync && hasMoreData && thresholdReached) {
-      const newPage = page + 1;
-      fetchPage(inputValue, newPage);
-    }
   };
 
   const handleFilterOption = (search: string, option: AntdLabeledValue) => {
@@ -575,35 +470,13 @@ const Select = (
   const handleOnDropdownVisibleChange = (isDropdownVisible: boolean) => {
     setIsDropdownVisible(isDropdownVisible);
 
-    if (isAsync) {
-      // loading is enabled when dropdown is open,
-      // disabled when dropdown is closed
-      if (loadingEnabled !== isDropdownVisible) {
-        setLoadingEnabled(isDropdownVisible);
-      }
-      // when closing dropdown, always reset loading state
-      if (!isDropdownVisible && isLoading) {
-        // delay is for the animation of closing the dropdown
-        // so the dropdown doesn't flash between "Loading..." and "No data"
-        // before closing.
-        setTimeout(() => {
-          setIsLoading(false);
-        }, 250);
-      }
-    }
     // if no search input value, force sort options because it won't be sorted by
     // `filterSort`.
     if (isDropdownVisible && !inputValue && selectOptions.length > 1) {
-      const sortedOptions = isAsync
-        ? selectOptions.slice().sort(sortComparatorForNoSearch)
-        : // if not in async mode, revert to the original select options
-          // (with selected options still sorted to the top)
-          initialOptionsSorted;
-      if (!isEqual(sortedOptions, selectOptions)) {
-        setSelectOptions(sortedOptions);
+      if (!isEqual(initialOptionsSorted, selectOptions)) {
+        setSelectOptions(initialOptionsSorted);
       }
     }
-
     if (onDropdownVisibleChange) {
       onDropdownVisibleChange(isDropdownVisible);
     }
@@ -640,42 +513,16 @@ const Select = (
     }
   };
 
-  useEffect(() => {
-    // when `options` list is updated from component prop, reset states
-    fetchedQueries.current.clear();
-    setAllValuesLoaded(false);
-    setSelectOptions(initialOptions);
-  }, [initialOptions]);
+  // useEffect(() => {
+  //   // when `options` list is updated from component prop, reset states
+  //   fetchedQueries.current.clear();
+  //   setAllValuesLoaded(false);
+  //   setSelectOptions(initialOptions);
+  // }, [initialOptions]);
 
   useEffect(() => {
     setSelectValue(value);
   }, [value]);
-
-  // Stop the invocation of the debounced function after unmounting
-  useEffect(
-    () => () => {
-      debouncedFetchPage.cancel();
-    },
-    [debouncedFetchPage],
-  );
-
-  useEffect(() => {
-    if (isAsync && loadingEnabled && allowFetch) {
-      // trigger fetch every time inputValue changes
-      if (inputValue) {
-        debouncedFetchPage(inputValue, 0);
-      } else {
-        fetchPage('', 0);
-      }
-    }
-  }, [
-    isAsync,
-    loadingEnabled,
-    fetchPage,
-    allowFetch,
-    inputValue,
-    debouncedFetchPage,
-  ]);
 
   useEffect(() => {
     if (loading !== undefined && loading !== isLoading) {
@@ -706,13 +553,13 @@ const Select = (
         getPopupContainer={
           getPopupContainer || (triggerNode => triggerNode.parentNode)
         }
-        labelInValue={isAsync || labelInValue}
+        labelInValue={labelInValue}
         maxTagCount={MAX_TAG_COUNT}
         mode={mappedMode}
         notFoundContent={isLoading ? t('Loading...') : notFoundContent}
         onDeselect={handleOnDeselect}
         onDropdownVisibleChange={handleOnDropdownVisibleChange}
-        onPopupScroll={isAsync ? handlePagination : undefined}
+        onPopupScroll={undefined}
         onSearch={shouldShowSearch ? handleOnSearch : undefined}
         onSelect={handleOnSelect}
         onClear={handleClear}

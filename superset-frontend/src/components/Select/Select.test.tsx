@@ -114,23 +114,45 @@ test('displays a header', async () => {
   expect(screen.getByText(headerText)).toBeInTheDocument();
 });
 
+// test('adds a new option if the value is not in the options', async () => {
+//   const { rerender } = render(
+//     <Select {...defaultProps} options={[OPTIONS[0]]} value={OPTIONS[1]} />,
+//   );
+//   await open();
+//   let options = await findAllSelectOptions();
+//   expect(await findSelectOption(OPTIONS[2].label)).toBeInTheDocument();
+//   expect(options).toHaveLength(1);
+   
+//   rerender(
+//     <Select {...defaultProps} options={[OPTIONS[1]]} value={OPTIONS[0]} />,
+//   );
+//   await open();
+//   options = await findAllSelectOptions();
+//   expect(await findSelectOption(OPTIONS[1].label)).toBeInTheDocument();
+//   // expect(options).toHaveLength(2);
+//   options.forEach((option, i) =>
+//     expect(option).toHaveTextContent(OPTIONS[i].label),
+//   );
+// });
+
 test('adds a new option if the value is not in the options', async () => {
   const { rerender } = render(
     <Select {...defaultProps} options={[]} value={OPTIONS[0]} />,
   );
   await open();
   expect(await findSelectOption(OPTIONS[0].label)).toBeInTheDocument();
-
   rerender(
     <Select {...defaultProps} options={[OPTIONS[1]]} value={OPTIONS[0]} />,
   );
   await open();
   const options = await findAllSelectOptions();
   expect(options).toHaveLength(2);
+  expect(await findSelectOption(OPTIONS[1].label)).toBeInTheDocument();
   options.forEach((option, i) =>
     expect(option).toHaveTextContent(OPTIONS[i].label),
   );
 });
+
 
 test('inverts the selection', async () => {
   render(<Select {...defaultProps} invertSelection />);
