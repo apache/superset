@@ -145,7 +145,6 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
       const defaultColorScheme = categoricalSchemes.defaultKey;
       const colorSchemeExists = !!registryColorScheme;
 
-      console.log("------------------registryColorScheme-----------------", registryColorScheme)
       const updateDashboardData = () => {
         SupersetClient.put({
           endpoint: `/api/v1/dashboard/${dashboardInfo.id}`,

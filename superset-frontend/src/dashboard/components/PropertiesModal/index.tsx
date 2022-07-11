@@ -321,7 +321,7 @@ const PropertiesModal = ({
 
       if (metadata?.color_scheme) {
         metadata.color_scheme_domain =
-        categoricalSchemeRegistry.get(colorScheme)?.colors || [];
+          categoricalSchemeRegistry.get(colorScheme)?.colors || [];
       } else {
         metadata.color_scheme_domain = [];
       }
