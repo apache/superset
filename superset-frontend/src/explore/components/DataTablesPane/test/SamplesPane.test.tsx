@@ -29,8 +29,8 @@ import { SamplesPane } from '../components';
 import { createSamplesPaneProps } from './fixture';
 
 describe('SamplesPane', () => {
-  fetchMock.get(
-    'end:/api/v1/explore/samples?force=false&datasource_type=table&datasource_id=34',
+  fetchMock.post(
+    '/api/v1/explore/samples?force=false&datasource_type=table&datasource_id=34',
     {
       result: {
         data: [],
@@ -40,7 +40,7 @@ describe('SamplesPane', () => {
     },
   );
 
-  fetchMock.get(
+  fetchMock.post(
     'end:/api/v1/explore/samples?force=true&datasource_type=table&datasource_id=35',
     {
       result: {
@@ -54,7 +54,7 @@ describe('SamplesPane', () => {
     },
   );
 
-  fetchMock.get(
+  fetchMock.post(
     'end:/api/v1/explore/samples?force=false&datasource_type=table&datasource_id=36',
     400,
   );

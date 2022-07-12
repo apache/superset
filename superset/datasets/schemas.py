@@ -23,6 +23,7 @@ from marshmallow import fields, pre_load, Schema, ValidationError
 from marshmallow.validate import Length
 from marshmallow_sqlalchemy import SQLAlchemyAutoSchema
 
+from superset.charts.schemas import ChartDataFilterSchema
 from superset.datasets.models import Dataset
 
 get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
@@ -231,3 +232,14 @@ class DatasetSchema(SQLAlchemyAutoSchema):
         model = Dataset
         load_instance = True
         include_relationships = True
+
+
+class DatasetSamplesQuerySchema(Schema):
+    filters = fields.List(fields.Nested(ChartDataFilterSchema), required=False)
+
+    @pre_load
+    # pylint: disable=no-self-use, unused-argument
+    def handle_none(self, data: Dict[str, Any], **kwargs: Any) -> Dict[str, Any]:
+        if data is None:
+            return {}
+        return data

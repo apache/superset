@@ -60,9 +60,11 @@ from superset.datasets.schemas import (
     DatasetPostSchema,
     DatasetPutSchema,
     DatasetRelatedObjectsResponse,
+    DatasetSamplesQuerySchema,
     get_delete_ids_schema,
     get_export_ids_schema,
 )
+from superset.exceptions import QueryClauseValidationException
 from superset.utils.core import json_int_dttm_ser, parse_boolean_string
 from superset.views.base import DatasourceFilter, generate_download_headers
 from superset.views.base_api import (
@@ -224,7 +226,10 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     apispec_parameter_schemas = {
         "get_export_ids_schema": get_export_ids_schema,
     }
-    openapi_spec_component_schemas = (DatasetRelatedObjectsResponse,)
+    openapi_spec_component_schemas = (
+        DatasetRelatedObjectsResponse,
+        DatasetSamplesQuerySchema,
+    )
 
     @expose("/", methods=["POST"])
     @protect()
@@ -776,7 +781,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         command.run()
         return self.response(200, message="OK")
 
-    @expose("/<pk>/samples")
+    @expose("/<pk>/samples", methods=["POST"])
     @protect()
     @safe
     @statsd_metrics
@@ -787,7 +792,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     def samples(self, pk: int) -> Response:
         """get samples from a Dataset
         ---
-        get:
+        post:
           description: >-
             get samples from a Dataset
           parameters:
@@ -799,6 +804,13 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             schema:
               type: boolean
             name: force
+          requestBody:
+            description: Filter Schema
+            required: false
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/DatasetSamplesQuerySchema'
           responses:
             200:
               description: Dataset samples
@@ -822,7 +834,15 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         """
         try:
             force = parse_boolean_string(request.args.get("force"))
-            rv = SamplesDatasetCommand(pk, force).run()
+            page = request.args.get("page")
+            per_page = request.args.get("per_page")
+            rv = SamplesDatasetCommand(
+                pk,
+                force,
+                payload=request.json,
+                page=page,
+                per_page=per_page,
+            ).run()
             response_data = simplejson.dumps(
                 {"result": rv},
                 default=json_int_dttm_ser,
@@ -836,4 +856,6 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         except DatasetForbiddenError:
             return self.response_403()
         except DatasetSamplesFailedError as ex:
+            return self.response_400(message=str(ex))
+        except ValidationError as ex:
             return self.response_400(message=str(ex))
