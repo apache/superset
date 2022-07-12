@@ -17,7 +17,8 @@
  * under the License.
  */
 import React from 'react';
-import { ReactWrapper, mount } from 'enzyme';
+import { ReactWrapper } from 'enzyme';
+import { styledMount as mount } from 'spec/helpers/theming';
 import Button from 'src/components/Button';
 import { AsyncSelect } from 'src/components';
 import {
@@ -28,8 +29,6 @@ import {
 import VizTypeGallery from 'src/explore/components/controls/VizTypeControl/VizTypeGallery';
 import { act } from 'spec/helpers/testing-library';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
-import { ThemeProvider } from '@emotion/react';
-import { supersetTheme } from '@superset-ui/core';
 
 const datasource = {
   value: '1',
@@ -76,10 +75,6 @@ async function getWrapper(user = mockUser) {
       addSuccessToast={() => null}
       {...routeProps}
     />,
-    {
-      wrappingComponent: ThemeProvider,
-      wrappingComponentProps: { theme: supersetTheme },
-    },
   ) as unknown as ReactWrapper<
     AddSliceContainerProps,
     AddSliceContainerState,
