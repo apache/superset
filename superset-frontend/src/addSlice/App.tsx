@@ -18,8 +18,14 @@
  */
 import React from 'react';
 import { hot } from 'react-hot-loader/root';
+import thunk from 'redux-thunk';
+import { createStore, compose, applyMiddleware, combineReducers } from 'redux';
+import { Provider } from 'react-redux';
 import { ThemeProvider } from '@superset-ui/core';
 import { GlobalStyles } from 'src/GlobalStyles';
+import messageToastReducer from 'src/components/MessageToasts/reducers';
+import { initEnhancer } from 'src/reduxUtils';
+import ToastContainer from 'src/components/MessageToasts/ToastContainer';
 import setupApp from '../setup/setupApp';
 import setupPlugins from '../setup/setupPlugins';
 import { DynamicPluginProvider } from '../components/DynamicPlugins';
@@ -35,15 +41,26 @@ const bootstrapData = JSON.parse(
   addSliceContainer?.getAttribute('data-bootstrap') || '{}',
 );
 
+const store = createStore(
+  combineReducers({
+    messageToasts: messageToastReducer,
+  }),
+  {},
+  compose(applyMiddleware(thunk), initEnhancer(false)),
+);
+
 initFeatureFlags(bootstrapData.common.feature_flags);
 
 const App = () => (
-  <ThemeProvider theme={theme}>
-    <GlobalStyles />
-    <DynamicPluginProvider>
-      <AddSliceContainer user={bootstrapData.user} />
-    </DynamicPluginProvider>
-  </ThemeProvider>
+  <Provider store={store}>
+    <ThemeProvider theme={theme}>
+      <GlobalStyles />
+      <DynamicPluginProvider>
+        <AddSliceContainer user={bootstrapData.user} />
+        <ToastContainer />
+      </DynamicPluginProvider>
+    </ThemeProvider>
+  </Provider>
 );
 
 export default hot(App);

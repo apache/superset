@@ -38,6 +38,7 @@ describe('SupersetClient', () => {
     expect(typeof SupersetClient.postForm).toBe('function');
     expect(typeof SupersetClient.isAuthenticated).toBe('function');
     expect(typeof SupersetClient.reAuthenticate).toBe('function');
+    expect(typeof SupersetClient.getGuestToken).toBe('function');
     expect(typeof SupersetClient.request).toBe('function');
     expect(typeof SupersetClient.reset).toBe('function');
   });
@@ -55,7 +56,7 @@ describe('SupersetClient', () => {
 
   // this also tests that the ^above doesn't throw if configure is called appropriately
   it('calls appropriate SupersetClient methods when configured', async () => {
-    expect.assertions(15);
+    expect.assertions(16);
     const mockGetUrl = '/mock/get/url';
     const mockPostUrl = '/mock/post/url';
     const mockRequestUrl = '/mock/request/url';
@@ -82,6 +83,10 @@ describe('SupersetClient', () => {
     );
     const csrfSpy = jest.spyOn(SupersetClientClass.prototype, 'getCSRFToken');
     const requestSpy = jest.spyOn(SupersetClientClass.prototype, 'request');
+    const getGuestTokenSpy = jest.spyOn(
+      SupersetClientClass.prototype,
+      'getGuestToken',
+    );
 
     SupersetClient.configure({});
     await SupersetClient.init();
@@ -113,6 +118,9 @@ describe('SupersetClient', () => {
 
     SupersetClient.isAuthenticated();
     await SupersetClient.reAuthenticate();
+
+    SupersetClient.getGuestToken();
+    expect(getGuestTokenSpy).toHaveBeenCalledTimes(1);
 
     expect(initSpy).toHaveBeenCalledTimes(2);
     expect(deleteSpy).toHaveBeenCalledTimes(1);
