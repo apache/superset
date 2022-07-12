@@ -608,8 +608,9 @@ def json_int_dttm_ser(obj: Any) -> float:
     return obj
 
 
-def json_dumps_w_dates(payload: Dict[Any, Any]) -> str:
-    return json.dumps(payload, default=json_int_dttm_ser)
+def json_dumps_w_dates(payload: Dict[Any, Any], sort_keys: bool = False) -> str:
+    """Dumps payload to JSON with Datetime objects properly converted"""
+    return json.dumps(payload, default=json_int_dttm_ser, sort_keys=sort_keys)
 
 
 def error_msg_from_exception(ex: Exception) -> str:
