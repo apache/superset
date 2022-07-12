@@ -45,6 +45,7 @@ import {
   POPOVER_INITIAL_HEIGHT,
   UNRESIZABLE_POPOVER_WIDTH,
 } from 'src/explore/constants';
+import { ExplorePageState } from 'src/explore/reducers/getInitialState';
 
 const StyledSelect = styled(Select)`
   .metric-option {
@@ -96,8 +97,9 @@ const ColumnSelectPopover = ({
   label,
   isTemporal,
 }: ColumnSelectPopoverProps) => {
-  // @ts-ignore
-  const datasource = useSelector(state => state.explore.datasource.type);
+  const datasourceType = useSelector<ExplorePageState, string | undefined>(
+    state => state.explore.datasource.type,
+  );
   const [initialLabel] = useState(label);
   const [initialAdhocColumn, initialCalculatedColumn, initialSimpleColumn] =
     getInitialColumnValues(editedColumn);
@@ -225,6 +227,11 @@ const ColumnSelectPopover = ({
     sqlEditorRef.current?.editor.resize();
   }, []);
 
+  const setDatasetAndClose = () => {
+    if (setDatasetModal) setDatasetModal(true);
+    onClose();
+  };
+
   const stateIsValid =
     adhocColumn || selectedCalculatedColumn || selectedSimpleColumn;
   const hasUnsavedChanges =
@@ -272,7 +279,7 @@ const ColumnSelectPopover = ({
                 }))}
               />
             </FormItem>
-          ) : datasource === 'dataset' ? (
+          ) : datasourceType === 'dataset' ? (
             <EmptyStateSmall
               image="empty.svg"
               title={
@@ -304,10 +311,7 @@ const ColumnSelectPopover = ({
                     <span
                       role="button"
                       tabIndex={0}
-                      onClick={() => {
-                        if (setDatasetModal) setDatasetModal(true);
-                        onClose();
-                      }}
+                      onClick={setDatasetAndClose}
                     >
                       {t('Create a dataset')}
                     </span>{' '}
@@ -318,10 +322,7 @@ const ColumnSelectPopover = ({
                     <span
                       role="button"
                       tabIndex={0}
-                      onClick={() => {
-                        if (setDatasetModal) setDatasetModal(true);
-                        onClose();
-                      }}
+                      onClick={setDatasetAndClose}
                     >
                       {t('Create a dataset')}
                     </span>{' '}
@@ -338,17 +339,14 @@ const ColumnSelectPopover = ({
               image="empty.svg"
               title={t('No temporal columns found')}
               description={
-                datasource.type === 'dataset' ? (
+                datasourceType === 'dataset' ? (
                   t('Mark a column as temporal in "Edit datasource" modal')
                 ) : (
                   <>
                     <span
                       role="button"
                       tabIndex={0}
-                      onClick={() => {
-                        if (setDatasetModal) setDatasetModal(true);
-                        onClose();
-                      }}
+                      onClick={setDatasetAndClose}
                     >
                       {t('Create a dataset')}
                     </span>{' '}

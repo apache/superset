@@ -124,8 +124,8 @@ class AdhocMetricPopoverTrigger extends React.PureComponent<
     this.forceUpdate();
   }
 
-  handleDatasetModal(bool: boolean) {
-    this.setState({ showSaveDatasetModal: bool });
+  handleDatasetModal(showModal: boolean) {
+    this.setState({ showSaveDatasetModal: showModal });
   }
 
   closePopover() {
