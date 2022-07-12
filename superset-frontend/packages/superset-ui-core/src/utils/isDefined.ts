@@ -17,6 +17,6 @@
  * under the License.
  */
 
-export default function isDefined<T>(x: T): x is NonNullable<T> {
+export default function isDefined(x: unknown) {
   return x !== null && x !== undefined;
 }

@@ -121,7 +121,6 @@ description_markeddown_description = "Sanitized HTML version of the chart descri
 owners_name_description = "Name of an owner of the chart."
 certified_by_description = "Person or group that has certified this chart"
 certification_details_description = "Details of the certification"
-is_managed_externally_description = "If the chart is managed outside externally"
 
 #
 # OpenAPI method specification overrides
@@ -149,10 +148,6 @@ openapi_spec_methods_override = {
 }
 
 
-class UserSchema(Schema):
-    id = fields.Int()
-
-
 class ChartEntityResponseSchema(Schema):
     """
     Schema for a chart object
@@ -170,11 +165,6 @@ class ChartEntityResponseSchema(Schema):
     slice_url = fields.String(description=slice_url_description)
     certified_by = fields.String(description=certified_by_description)
     certification_details = fields.String(description=certification_details_description)
-    is_managed_externally = fields.Boolean(
-        description=is_managed_externally_description
-    )
-    owners = fields.List(fields.Nested(UserSchema))
-    query_context = fields.String(description=query_context_description)
 
 
 class ChartPostSchema(Schema):
