@@ -14,8 +14,9 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import logging
-from typing import Any, Dict, Optional
+from typing import Any, cast, Dict, Optional
+
+from marshmallow import ValidationError
 
 from superset import security_manager
 from superset.commands.base import BaseCommand
@@ -30,29 +31,37 @@ from superset.datasets.commands.exceptions import (
     DatasetSamplesFailedError,
 )
 from superset.datasets.dao import DatasetDAO
-from superset.exceptions import SupersetSecurityException
+from superset.datasets.schemas import DatasetSamplesQuerySchema
+from superset.exceptions import (
+    QueryClauseValidationException,
+    SupersetSecurityException,
+)
 from superset.utils.core import QueryStatus
-
-logger = logging.getLogger(__name__)
 
 
 class SamplesDatasetCommand(BaseCommand):
-    def __init__(self, model_id: int, force: bool):
+    def __init__(
+        self,
+        model_id: int,
+        force: bool,
+        *,
+        payload: Optional[DatasetSamplesQuerySchema] = None,
+    ):
         self._model_id = model_id
         self._force = force
         self._model: Optional[SqlaTable] = None
+        self._payload = payload
 
     def run(self) -> Dict[str, Any]:
         self.validate()
-        if not self._model:
-            raise DatasetNotFoundError()
+        self._model = cast(SqlaTable, self._model)
 
         qc_instance = QueryContextFactory().create(
             datasource={
                 "type": self._model.type,
                 "id": self._model.id,
             },
-            queries=[{}],
+            queries=[self._payload] if self._payload else [{}],
             result_type=ChartDataResultType.SAMPLES,
             force=self._force,
         )
@@ -78,3 +87,8 @@ class SamplesDatasetCommand(BaseCommand):
             security_manager.raise_for_ownership(self._model)
         except SupersetSecurityException as ex:
             raise DatasetForbiddenError() from ex
+
+        try:
+            self._payload = DatasetSamplesQuerySchema().load(self._payload)
+        except ValidationError as ex:
+            raise QueryClauseValidationException() from ex

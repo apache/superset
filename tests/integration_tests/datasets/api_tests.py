@@ -1885,9 +1885,9 @@ class TestDatasetApi(SupersetTestCase):
 
         # 1. should cache data
         # feeds data
-        self.client.get(uri)
+        self.client.post(uri)
         # get from cache
-        rv = self.client.get(uri)
+        rv = self.client.post(uri)
         rv_data = json.loads(rv.data)
         assert rv.status_code == 200
         assert "result" in rv_data
@@ -1898,9 +1898,9 @@ class TestDatasetApi(SupersetTestCase):
         # 2. should through cache
         uri2 = f"api/v1/dataset/{dataset.id}/samples?force=true"
         # feeds data
-        self.client.get(uri2)
+        self.client.post(uri2)
         # force query
-        rv2 = self.client.get(uri2)
+        rv2 = self.client.post(uri2)
         rv_data2 = json.loads(rv2.data)
         assert rv_data2["result"]["cached_dttm"] is None
         cache_key2 = rv_data2["result"]["cache_key"]
@@ -1930,7 +1930,7 @@ class TestDatasetApi(SupersetTestCase):
         )
         uri = f"api/v1/dataset/{dataset.id}/samples"
         dataset.columns.append(failed_column)
-        rv = self.client.get(uri)
+        rv = self.client.post(uri)
         assert rv.status_code == 400
         rv_data = json.loads(rv.data)
         assert "message" in rv_data
@@ -1949,7 +1949,7 @@ class TestDatasetApi(SupersetTestCase):
 
         self.login(username="admin")
         uri = f"api/v1/dataset/{virtual_dataset.id}/samples"
-        rv = self.client.get(uri)
+        rv = self.client.post(uri)
         assert rv.status_code == 200
         rv_data = json.loads(rv.data)
         cache_key = rv_data["result"]["cache_key"]
@@ -1957,8 +1957,45 @@ class TestDatasetApi(SupersetTestCase):
 
         # remove original column in dataset
         virtual_dataset.sql = "SELECT 'foo' as foo"
-        rv = self.client.get(uri)
+        rv = self.client.post(uri)
         assert rv.status_code == 400
+
+        db.session.delete(virtual_dataset)
+        db.session.commit()
+
+    def test_get_dataset_samples_with_filters(self):
+        virtual_dataset = SqlaTable(
+            table_name="virtual_dataset",
+            sql=("SELECT 'foo' as foo, 'bar' as bar UNION ALL SELECT 'foo2', 'bar2'"),
+            database=get_example_database(),
+        )
+        TableColumn(column_name="foo", type="VARCHAR(255)", table=virtual_dataset)
+        TableColumn(column_name="bar", type="VARCHAR(255)", table=virtual_dataset)
+        SqlMetric(metric_name="count", expression="count(*)", table=virtual_dataset)
+
+        self.login(username="admin")
+        uri = f"api/v1/dataset/{virtual_dataset.id}/samples"
+        rv = self.client.post(uri, json=None)
+        assert rv.status_code == 200
+
+        rv = self.client.post(uri, json={})
+        assert rv.status_code == 200
+
+        rv = self.client.post(uri, json={"foo": "bar"})
+        assert rv.status_code == 400
+
+        rv = self.client.post(
+            uri, json={"filters": [{"col": "foo", "op": "INVALID", "val": "foo2"}]}
+        )
+        assert rv.status_code == 400
+
+        rv = self.client.post(
+            uri, json={"filters": [{"col": "foo", "op": "==", "val": "foo2"}]}
+        )
+        assert rv.status_code == 200
+        rv_data = json.loads(rv.data)
+        assert rv_data["result"]["colnames"] == ["foo", "bar"]
+        assert rv_data["result"]["rowcount"] == 1
 
         db.session.delete(virtual_dataset)
         db.session.commit()

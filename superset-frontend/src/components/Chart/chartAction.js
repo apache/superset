@@ -598,10 +598,10 @@ export function refreshChart(chartKey, force, dashboardId) {
   };
 }
 
-export const getDatasetSamples = async (datasetId, force) => {
+export const getDatasetSamples = async (datasetId, force, jsonPayload) => {
   const endpoint = `/api/v1/dataset/${datasetId}/samples?force=${force}`;
   try {
-    const response = await SupersetClient.get({ endpoint });
+    const response = await SupersetClient.post({ endpoint, jsonPayload });
     return response.json.result;
   } catch (err) {
     const clientError = await getClientErrorObject(err);

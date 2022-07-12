@@ -29,7 +29,7 @@ import { SamplesPane } from '../components';
 import { createSamplesPaneProps } from './fixture';
 
 describe('SamplesPane', () => {
-  fetchMock.get('end:/api/v1/dataset/34/samples?force=false', {
+  fetchMock.post('end:/api/v1/dataset/34/samples?force=false', {
     result: {
       data: [],
       colnames: [],
@@ -37,7 +37,7 @@ describe('SamplesPane', () => {
     },
   });
 
-  fetchMock.get('end:/api/v1/dataset/35/samples?force=true', {
+  fetchMock.post('end:/api/v1/dataset/35/samples?force=true', {
     result: {
       data: [
         { __timestamp: 1230768000000, genre: 'Action' },
@@ -48,7 +48,7 @@ describe('SamplesPane', () => {
     },
   });
 
-  fetchMock.get('end:/api/v1/dataset/36/samples?force=false', 400);
+  fetchMock.post('end:/api/v1/dataset/36/samples?force=false', 400);
 
   const setForceQuery = jest.spyOn(exploreActions, 'setForceQuery');
 
