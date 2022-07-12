@@ -1005,9 +1005,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         or a virtual table with it's own subquery. If the FROM is referencing a
         CTE, the CTE is returned as the second value in the return tuple.
         """
-        # todo(hugh): fix this
-        # if not self.is_virtual:
-        #     return self.get_sqla_table(), None
 
         from_sql = self.get_rendered_sql(template_processor)
         parsed_query = ParsedQuery(from_sql)
@@ -1236,9 +1233,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             "time_column": granularity,
             "time_grain": time_grain,
             "to_dttm": to_dttm.isoformat() if to_dttm else None,
-            "table_columns": [
-                col.get("column_name") for col in self.columns
-            ],  # [col.column_name for col in self.columns],
+            "table_columns": [col.get("column_name") for col in self.columns],
             "filter": filter,
         }
         columns = columns or []
@@ -1271,10 +1266,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             for col in self.columns  # col.column_name: col for col in self.columns
         }
 
-        metrics_by_name: Dict[str, "SqlMetric"] = {
-            m.metric_name: m for m in self.metrics
-        }
-
         if not granularity and is_timeseries:
             raise QueryObjectValidationError(
                 _(
@@ -1296,8 +1287,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         template_processor=template_processor,
                     )
                 )
-            elif isinstance(metric, str) and metric in metrics_by_name:
-                metrics_exprs.append(metrics_by_name[metric].get_sqla_col())
             else:
                 raise QueryObjectValidationError(
                     _("Metric '%(metric)s' does not exist", metric=metric)
@@ -1340,9 +1329,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             elif col in metrics_exprs_by_label:
                 col = metrics_exprs_by_label[col]
                 need_groupby = True
-            elif col in metrics_by_name:
-                col = metrics_by_name[col].get_sqla_col()
-                need_groupby = True
 
             if isinstance(col, ColumnElement):
                 orderby_exprs.append(col)
@@ -1376,7 +1362,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     # if groupby field equals a selected column
                     elif selected in columns_by_name:
                         if isinstance(columns_by_name[selected], dict):
-                            outer = literal_column(f"({selected})")
+                            outer = sa.column(f"{selected}")
                             outer = self.make_sqla_column_compatible(outer, selected)
                         else:
                             outer = columns_by_name[selected].get_sqla_col()
@@ -1386,7 +1372,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             self.database_id,
                             self.schema,
                         )
-                        outer = literal_column(f"({selected})")
+                        outer = sa.column(f"{selected}")
                         outer = self.make_sqla_column_compatible(outer, selected)
                 else:
                     outer = self.adhoc_column_to_sqla(
@@ -1404,7 +1390,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     self.schema,
                 )
                 if isinstance(columns_by_name[selected], dict):
-                    select_exprs.append(literal_column(f"({selected})"))
+                    select_exprs.append(sa.column(f"{selected}"))
                 else:
                     select_exprs.append(
                         columns_by_name[selected].get_sqla_col()
@@ -1430,22 +1416,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 # always put timestamp as the first column
                 select_exprs.insert(0, timestamp)
                 groupby_all_columns[timestamp.name] = timestamp
-
-            # Use main dttm column to support index with secondary dttm columns.
-            if (
-                db_engine_spec.time_secondary_columns
-                and self.main_dttm_col in self.dttm_cols
-                and self.main_dttm_col != dttm_col.column_name
-            ):
-                pass
-                # todo(hughhh): fix time filter
-                # time_filters.append(
-                #     columns_by_name[self.main_dttm_col].get_time_filter(
-                #         from_dttm,
-                #         to_dttm,
-                #     )
-                # )
-            # time_filters.append(dttm_col.get_time_filter(from_dttm, to_dttm))
 
         # Always remove duplicates by column name, as sometimes `metrics_exprs`
         # can have the same name as a groupby column (e.g. when users use
@@ -1618,7 +1588,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         raise QueryObjectValidationError(
                             _("Invalid filter operation type: %(op)s", op=op)
                         )
-        # todo(hugh): fix this
+        # todo(hugh): fix this w/ template_processor
         # where_clause_and += self.get_sqla_row_level_filters(template_processor)
         if extras:
             where = extras.get("where")
@@ -1710,10 +1680,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 subq = subq.group_by(*inner_groupby_exprs)
 
                 ob = inner_main_metric_expr
-                if series_limit_metric:
-                    ob = self._get_series_orderby(
-                        series_limit_metric, metrics_by_name, columns_by_name
-                    )
                 direction = sa.desc if order_desc else sa.asc
                 subq = subq.order_by(direction(ob))
                 subq = subq.limit(series_limit)
@@ -1727,18 +1693,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     on_clause.append(gby_obj == sa.column(col_name))
 
                 tbl = tbl.join(subq.alias(), and_(*on_clause))
-            else:
-                if series_limit_metric:
-                    orderby = [
-                        (
-                            self._get_series_orderby(
-                                series_limit_metric,
-                                metrics_by_name,
-                                columns_by_name,
-                            ),
-                            not order_desc,
-                        )
-                    ]
 
                 # run prequery to get top groups
                 prequery_obj = {

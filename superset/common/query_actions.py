@@ -150,7 +150,13 @@ def _get_samples(
     query_obj.orderby = []
     query_obj.metrics = None
     query_obj.post_processing = []
-    query_obj.columns = [o.column_name for o in datasource.columns]
+    qry_obj_cols = []
+    for o in datasource.columns:
+        if isinstance(o, dict):
+            qry_obj_cols.append(o.get("column_name"))
+        else:
+            qry_obj_cols.append(o.column_name)
+    query_obj.columns = qry_obj_cols
     query_obj.from_dttm = None
     query_obj.to_dttm = None
     return _get_full(query_context, query_obj, force_cached)

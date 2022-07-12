@@ -71,6 +71,7 @@ export interface IDatasource {
   };
   sql?: string | null;
   datasource_name?: string | null;
+  name?: string | null;
   schema?: string | null;
 }
 
@@ -88,6 +89,11 @@ export interface Props {
 const enableExploreDnd = isFeatureEnabled(
   FeatureFlag.ENABLE_EXPLORE_DRAG_AND_DROP,
 );
+
+const saveableDatasets = {
+  query: DatasourceType.Query,
+  saved_query: DatasourceType.SavedQuery,
+};
 
 const Button = styled.button`
   background: none;
@@ -239,9 +245,9 @@ export default function DataSourcePanel({
 
   const getDatasourceAsSaveableDataset = (source: IDatasource) => {
     const dataset: ISaveableDataset = {
-      columns: source.columns as ISimpleColumn[],
-      name: source?.datasource_name || 'Untitled',
-      dbId: source.database.id,
+      columns: (source?.columns as ISimpleColumn[]) || [],
+      name: source?.datasource_name || source?.name || t('Untitled'),
+      dbId: source?.database.id,
       sql: source?.sql || '',
       schema: source?.schema,
     };
@@ -353,7 +359,8 @@ export default function DataSourcePanel({
     return true;
   };
 
-  const dataSourceIsQuery = datasource?.type === DatasourceType.Query;
+  const datasourceIsSaveable =
+    datasource.type && saveableDatasets[datasource.type];
 
   const mainBody = useMemo(
     () => (
@@ -369,7 +376,7 @@ export default function DataSourcePanel({
           placeholder={t('Search Metrics & Columns')}
         />
         <div className="field-selections">
-          {dataSourceIsQuery && showInfoboxCheck() && (
+          {datasourceIsSaveable && showInfoboxCheck() && (
             <StyledInfoboxWrapper>
               <Alert
                 closable
@@ -485,14 +492,14 @@ export default function DataSourcePanel({
       search,
       showAllColumns,
       showAllMetrics,
-      dataSourceIsQuery,
+      datasourceIsSaveable,
       shouldForceUpdate,
     ],
   );
 
   return (
     <DatasourceContainer>
-      {dataSourceIsQuery && showSaveDatasetModal && (
+      {datasourceIsSaveable && showSaveDatasetModal && (
         <SaveDatasetModal
           visible={showSaveDatasetModal}
           onHide={() => setShowSaveDatasetModal(false)}

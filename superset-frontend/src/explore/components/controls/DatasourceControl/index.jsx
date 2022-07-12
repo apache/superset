@@ -27,6 +27,7 @@ import {
   t,
   withTheme,
 } from '@superset-ui/core';
+
 import { getUrlParam } from 'src/utils/urlUtils';
 import { AntdDropdown } from 'src/components';
 import { Menu } from 'src/components/Menu';
@@ -139,21 +140,21 @@ export const datasourceIconLookup = {
 };
 
 // Render title for datasource with tooltip only if text is longer than VISIBLE_TITLE_LENGTH
-export const renderDatasourceTitle = displayString =>
+export const renderDatasourceTitle = (displayString, tooltip) =>
   displayString.length > VISIBLE_TITLE_LENGTH ? (
     // Add a tooltip only for long names that will be visually truncated
-    <Tooltip title={displayString}>
+    <Tooltip title={tooltip}>
       <span className="title-select">{displayString}</span>
     </Tooltip>
   ) : (
-    <span title={displayString} className="title-select">
+    <span title={tooltip} className="title-select">
       {displayString}
     </span>
   );
 
 // Different data source types use different attributes for the display title
 export const getDatasourceTitle = datasource =>
-  datasource?.name ?? datasource?.sql ?? '';
+  datasource?.sql ?? datasource?.name ?? '';
 
 class DatasourceControl extends React.PureComponent {
   constructor(props) {
@@ -168,8 +169,8 @@ class DatasourceControl extends React.PureComponent {
   getDatasourceAsSaveableDataset = source => {
     const dataset = {
       columns: source?.columns || [],
-      name: source?.datasource_name || t('Untitled'),
-      dbId: source.database.id,
+      name: source?.datasource_name || source?.name || t('Untitled'),
+      dbId: source?.database.id,
       sql: source?.sql || '',
       schema: source?.schema,
     };
@@ -271,10 +272,9 @@ class DatasourceControl extends React.PureComponent {
 
     const isSqlSupported = datasource.type === 'table';
     const { user } = this.props;
-    const allowEdit = datasource?.owners
-      ?.map(o => o.id || o.value)
-      .includes(user.userId);
-    isUserAdmin(user);
+    const allowEdit =
+      datasource.owners?.map(o => o.id || o.value).includes(user.userId) ||
+      isUserAdmin(user);
 
     const editText = t('Edit dataset');
 
@@ -349,12 +349,13 @@ class DatasourceControl extends React.PureComponent {
     }
 
     const titleText = getDatasourceTitle(datasource);
+    const tooltip = titleText;
 
     return (
       <Styles data-test="datasource-control" className="DatasourceControl">
         <div className="data-container">
           {datasourceIconLookup[datasource?.type]}
-          {renderDatasourceTitle(titleText)}
+          {renderDatasourceTitle(titleText, tooltip)}
           {healthCheckMessage && (
             <Tooltip title={healthCheckMessage}>
               <Icons.AlertSolid iconColor={theme.colors.warning.base} />

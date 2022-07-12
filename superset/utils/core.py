@@ -219,7 +219,6 @@ class ExtraFiltersTimeColumnType(str, Enum):
 class ExtraFiltersReasonType(str, Enum):
     NO_TEMPORAL_COLUMN = "no_temporal_column"
     COL_NOT_IN_DATASOURCE = "not_in_datasource"
-    NOT_DRUID_DATASOURCE = "not_druid_datasource"
 
 
 class FilterOperator(str, Enum):
@@ -1145,7 +1144,6 @@ def merge_extra_filters(form_data: Dict[str, Any]) -> None:
             "__time_range": "time_range",
             "__time_col": "granularity_sqla",
             "__time_grain": "time_grain_sqla",
-            "__time_origin": "druid_time_origin",
             "__granularity": "granularity",
         }
         # Grab list of existing filters 'keyed' on the column and operator
@@ -1675,24 +1673,20 @@ def extract_dataframe_dtypes(
         "date": GenericDataType.TEMPORAL,
     }
 
-    # todo(hughhhh): can we make the column_object a Union
-    if datasource and datasource.type == "query":
-        columns_by_name = {
-            column.get("column_name"): column for column in datasource.columns
-        }
-    else:
-        columns_by_name = (
-            {column.column_name: column for column in datasource.columns}
-            if datasource
-            else {}
-        )
+    columns_by_name: Dict[str, Any] = {}
+    if datasource:
+        for column in datasource.columns:
+            if isinstance(column, dict):
+                columns_by_name[column.get("column_name")] = column
+            else:
+                columns_by_name[column.column_name] = column
 
     generic_types: List[GenericDataType] = []
     for column in df.columns:
         column_object = columns_by_name.get(column)
         series = df[column]
         inferred_type = infer_dtype(series)
-        if datasource and datasource.type == "query":  # type: ignore
+        if isinstance(column_object, dict):  # type: ignore
             generic_type = (
                 GenericDataType.TEMPORAL
                 if column_object and column_object.get("is_dttm")
@@ -1783,28 +1777,6 @@ def get_time_filter_status(  # pylint: disable=too-many-branches
                 {
                     "reason": ExtraFiltersReasonType.NO_TEMPORAL_COLUMN,
                     "column": ExtraFiltersTimeColumnType.TIME_RANGE,
-                }
-            )
-
-    if ExtraFiltersTimeColumnType.TIME_ORIGIN in applied_time_extras:
-        if datasource.type == "druid":
-            applied.append({"column": ExtraFiltersTimeColumnType.TIME_ORIGIN})
-        else:
-            rejected.append(
-                {
-                    "reason": ExtraFiltersReasonType.NOT_DRUID_DATASOURCE,
-                    "column": ExtraFiltersTimeColumnType.TIME_ORIGIN,
-                }
-            )
-
-    if ExtraFiltersTimeColumnType.GRANULARITY in applied_time_extras:
-        if datasource.type == "druid":
-            applied.append({"column": ExtraFiltersTimeColumnType.GRANULARITY})
-        else:
-            rejected.append(
-                {
-                    "reason": ExtraFiltersReasonType.NOT_DRUID_DATASOURCE,
-                    "column": ExtraFiltersTimeColumnType.GRANULARITY,
                 }
             )
 

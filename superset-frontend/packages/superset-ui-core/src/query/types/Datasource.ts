@@ -21,7 +21,6 @@ import { Metric } from './Metric';
 
 export enum DatasourceType {
   Table = 'table',
-  Druid = 'druid',
   Query = 'query',
   Dataset = 'dataset',
   SlTable = 'sl_table',
@@ -55,9 +54,6 @@ export const DEFAULT_METRICS: Metric[] = [
 ];
 
 export const isValidDatasourceType = (datasource: DatasourceType) =>
-  datasource === DatasourceType.Dataset ||
-  datasource === DatasourceType.SlTable ||
-  datasource === DatasourceType.SavedQuery ||
-  datasource === DatasourceType.Query;
+  Object.values(DatasourceType).includes(datasource);
 
 export default {};

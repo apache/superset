@@ -50,7 +50,7 @@ from superset.models.tags import QueryUpdater
 from superset.sql_parse import CtasMethod, ParsedQuery, Table
 from superset.sqllab.limiting_factor import LimitingFactor
 from superset.superset_typing import ResultSetColumnType
-from superset.utils.core import QueryStatus, user_label
+from superset.utils.core import GenericDataType, QueryStatus, user_label
 
 if TYPE_CHECKING:
     from superset.db_engine_specs import BaseEngineSpec
@@ -174,10 +174,6 @@ class Query(Model, ExtraJSONMixin, ExploreMixin):  # pylint: disable=abstract-me
 
     @property
     def columns(self) -> List[ResultSetColumnType]:
-        # todo(hughhh): move this logic into a base class
-        # pylint: disable=import-outside-toplevel
-        from superset.utils.core import GenericDataType
-
         bool_types = ("BOOL",)
         num_types = (
             "DOUBLE",
@@ -216,6 +212,7 @@ class Query(Model, ExtraJSONMixin, ExploreMixin):  # pylint: disable=abstract-me
     @property
     def data(self) -> Dict[str, Any]:
         return {
+            "name": self.tab_name,
             "columns": self.columns,
             "metrics": [],
             "id": self.id,
@@ -243,12 +240,8 @@ class Query(Model, ExtraJSONMixin, ExploreMixin):  # pylint: disable=abstract-me
         return []
 
     @property
-    def metrics(self) -> List[Any]:
-        return []
-
-    @property
     def uid(self) -> str:
-        return "foo"
+        return f"{self.id}__{self.type}"
 
     @property
     def is_rls_supported(self) -> bool:
