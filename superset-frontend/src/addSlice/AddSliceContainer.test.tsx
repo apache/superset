@@ -17,17 +17,19 @@
  * under the License.
  */
 import React from 'react';
-import { ReactWrapper } from 'enzyme';
+import { ReactWrapper, mount } from 'enzyme';
 import Button from 'src/components/Button';
 import { AsyncSelect } from 'src/components';
-import AddSliceContainer, {
+import {
+  AddSliceContainer,
   AddSliceContainerProps,
   AddSliceContainerState,
 } from 'src/addSlice/AddSliceContainer';
 import VizTypeGallery from 'src/explore/components/controls/VizTypeControl/VizTypeGallery';
-import { styledMount as mount } from 'spec/helpers/theming';
 import { act } from 'spec/helpers/testing-library';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import { ThemeProvider } from '@emotion/react';
+import { supersetTheme } from '@superset-ui/core';
 
 const datasource = {
   value: '1',
@@ -61,7 +63,13 @@ const mockUserWithDatasetWrite: UserWithPermissionsAndRoles = {
 };
 
 async function getWrapper(user = mockUser) {
-  const wrapper = mount(<AddSliceContainer user={user} />) as ReactWrapper<
+  const wrapper = mount(
+    <AddSliceContainer user={user} addSuccessToast={() => null} />,
+    {
+      wrappingComponent: ThemeProvider,
+      wrappingComponentProps: { theme: supersetTheme },
+    },
+  ) as unknown as ReactWrapper<
     AddSliceContainerProps,
     AddSliceContainerState,
     AddSliceContainer
