@@ -22,7 +22,7 @@ import fetchMock from 'fetch-mock';
 import { render, screen } from 'spec/helpers/testing-library';
 import setupExtensions from 'src/setup/setupExtensions';
 import userEvent from '@testing-library/user-event';
-import { getUiOverrideRegistry } from '@superset-ui/core';
+import { getExtensionsRegistry } from '@superset-ui/core';
 import { Menu } from './Menu';
 
 const dropdownItems = [
@@ -486,9 +486,9 @@ test('should render without QueryParamProvider', () => {
 });
 
 test('should render an extension component if one is supplied', () => {
-  const uiOverrideRegistry = getUiOverrideRegistry();
+  const extensionsRegistry = getExtensionsRegistry();
 
-  uiOverrideRegistry.set('navbar.right', () => (
+  extensionsRegistry.set('navbar.right', () => (
     <>navbar.right extension component</>
   ));
 

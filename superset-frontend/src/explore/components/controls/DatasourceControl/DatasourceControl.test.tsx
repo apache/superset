@@ -139,6 +139,27 @@ test('Click on Edit dataset', async () => {
   ).toBeInTheDocument();
 });
 
+test('Edit dataset should be disabled when user is not admin', async () => {
+  const props = createProps();
+  // @ts-expect-error
+  props.user.roles = {};
+  props.datasource.owners = [];
+  SupersetClientGet.mockImplementation(
+    async () => ({ json: { result: [] } } as any),
+  );
+
+  render(<DatasourceControl {...props} />, {
+    useRedux: true,
+  });
+
+  userEvent.click(screen.getByTestId('datasource-menu-trigger'));
+
+  expect(screen.getByTestId('edit-dataset')).toHaveAttribute(
+    'aria-disabled',
+    'true',
+  );
+});
+
 test('Click on View in SQL Lab', async () => {
   const props = createProps();
   const postFormSpy = jest.spyOn(SupersetClient, 'postForm');
@@ -199,10 +220,12 @@ test('Click on Save as dataset', () => {
     name: /save as new undefined/i,
   });
   const overwriteRadioBtn = screen.getByRole('radio', {
-    name: /overwrite existing select or type dataset name/i,
+    name: /overwrite existing/i,
   });
+  const dropdownField = screen.getByText(/select or type dataset name/i);
   expect(saveRadioBtn).toBeVisible();
   expect(overwriteRadioBtn).toBeVisible();
   expect(screen.getByRole('button', { name: /save/i })).toBeVisible();
   expect(screen.getByRole('button', { name: /close/i })).toBeVisible();
+  expect(dropdownField).toBeVisible();
 });

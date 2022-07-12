@@ -23,7 +23,7 @@ import { getUrlParam } from 'src/utils/urlUtils';
 import { URL_PARAMS } from 'src/constants';
 import { isNullish } from 'src/utils/common';
 import Button from 'src/components/Button';
-import { Select, Steps } from 'src/components';
+import { AsyncSelect, Steps } from 'src/components';
 import { Tooltip } from 'src/components/Tooltip';
 
 import VizTypeGallery, {
@@ -226,7 +226,7 @@ export default class AddSliceContainer extends React.PureComponent<
 
   exploreUrl() {
     const dashboardId = getUrlParam(URL_PARAMS.dashboardId);
-    let url = `/superset/explore/?viz_type=${this.state.vizType}&datasource=${this.state.datasource?.value}`;
+    let url = `/explore/?viz_type=${this.state.vizType}&datasource=${this.state.datasource?.value}`;
     if (!isNullish(dashboardId)) {
       url += `&dashboard_id=${dashboardId}`;
     }
@@ -349,7 +349,7 @@ export default class AddSliceContainer extends React.PureComponent<
             status={this.state.datasource?.value ? 'finish' : 'process'}
             description={
               <StyledStepDescription className="dataset">
-                <Select
+                <AsyncSelect
                   autoFocus
                   ariaLabel={t('Dataset')}
                   name="select-datasource"

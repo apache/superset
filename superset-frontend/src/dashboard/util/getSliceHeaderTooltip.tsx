@@ -16,8 +16,29 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { getUiOverrideRegistry } from '@superset-ui/core';
 
-test('should get instance of getUiOverrideRegistry', () => {
-  expect(getUiOverrideRegistry().name).toBe('UiOverrideRegistry');
-});
+import React from 'react';
+import { FeatureFlag, isFeatureEnabled, t } from '@superset-ui/core';
+import { detectOS } from 'src/utils/common';
+
+export const getSliceHeaderTooltip = (sliceName: string | undefined) => {
+  if (isFeatureEnabled(FeatureFlag.DASHBOARD_EDIT_CHART_IN_NEW_TAB)) {
+    return sliceName
+      ? t('Click to edit %s in a new tab', sliceName)
+      : t('Click to edit chart.');
+  }
+  const isMac = detectOS() === 'MacOS';
+  const firstLine = sliceName
+    ? t('Click to edit %s.', sliceName)
+    : t('Click to edit chart.');
+  const secondLine = t(
+    'Use %s to open in a new tab.',
+    isMac ? '⌘ + click' : 'ctrl + click',
+  );
+  return (
+    <>
+      <div>{firstLine}</div>
+      <div>{secondLine}</div>
+    </>
+  );
+};

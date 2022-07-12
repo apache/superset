@@ -19,7 +19,7 @@
 
 import { getParsedExploreURLParams } from './getParsedExploreURLParams';
 
-const EXPLORE_BASE_URL = 'http://localhost:9000/superset/explore/';
+const EXPLORE_BASE_URL = 'http://localhost:9000/explore/';
 const setupLocation = (newUrl: string) => {
   delete (window as any).location;
   // @ts-ignore

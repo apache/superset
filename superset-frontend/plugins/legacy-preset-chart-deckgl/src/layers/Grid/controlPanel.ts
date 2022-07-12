@@ -54,8 +54,10 @@ const config: ControlPanelConfig = {
       label: t('Map'),
       controlSetRows: [
         [mapboxStyle, viewport],
-        ['color_picker', autozoom],
-        [gridSize, extruded],
+        ['color_scheme'],
+        [autozoom],
+        [gridSize],
+        [extruded],
       ],
     },
     {

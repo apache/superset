@@ -24,7 +24,7 @@ import fetchMock from 'fetch-mock';
 import { act } from 'react-dom/test-utils';
 import AlertReportModal from 'src/views/CRUD/alert/AlertReportModal';
 import Modal from 'src/components/Modal';
-import { Select } from 'src/components';
+import { Select, AsyncSelect } from 'src/components';
 import { Switch } from 'src/components/Switch';
 import { Radio } from 'src/components/Radio';
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
@@ -182,7 +182,9 @@ describe('AlertReportModal', () => {
 
   it('renders five select elements when in report mode', () => {
     expect(wrapper.find(Select)).toExist();
-    expect(wrapper.find(Select)).toHaveLength(5);
+    expect(wrapper.find(AsyncSelect)).toExist();
+    expect(wrapper.find(Select)).toHaveLength(2);
+    expect(wrapper.find(AsyncSelect)).toHaveLength(3);
   });
 
   it('renders Switch element', () => {
@@ -220,7 +222,9 @@ describe('AlertReportModal', () => {
 
   it('renders five select element when in report mode', () => {
     expect(wrapper.find(Select)).toExist();
-    expect(wrapper.find(Select)).toHaveLength(5);
+    expect(wrapper.find(AsyncSelect)).toExist();
+    expect(wrapper.find(Select)).toHaveLength(2);
+    expect(wrapper.find(AsyncSelect)).toHaveLength(3);
   });
 
   it('renders seven select elements when in alert mode', async () => {
@@ -232,7 +236,9 @@ describe('AlertReportModal', () => {
     const addWrapper = await mountAndWait(props);
 
     expect(addWrapper.find(Select)).toExist();
-    expect(addWrapper.find(Select)).toHaveLength(7);
+    expect(addWrapper.find(AsyncSelect)).toExist();
+    expect(addWrapper.find(Select)).toHaveLength(3);
+    expect(addWrapper.find(AsyncSelect)).toHaveLength(4);
   });
 
   it('renders value input element when in alert mode', async () => {

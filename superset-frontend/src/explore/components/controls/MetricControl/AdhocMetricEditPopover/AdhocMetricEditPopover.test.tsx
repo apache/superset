@@ -80,18 +80,6 @@ test('Should render correct elements for SQL', () => {
   expect(screen.getByRole('tabpanel', { name: 'Saved' })).toBeVisible();
 });
 
-test('Should render correct elements for native Druid', () => {
-  const props = { ...createProps(), datasource: { type: 'druid' } };
-  render(<AdhocMetricEditPopover {...props} />);
-  expect(screen.getByRole('tab', { name: 'Custom SQL' })).toHaveAttribute(
-    'aria-disabled',
-    'true',
-  );
-  expect(screen.getByRole('tab', { name: 'Simple' })).toBeEnabled();
-  expect(screen.getByRole('tab', { name: 'Saved' })).toBeEnabled();
-  expect(screen.getByRole('tabpanel', { name: 'Saved' })).toBeVisible();
-});
-
 test('Should render correct elements for allow ad-hoc metrics', () => {
   const props = {
     ...createProps(),

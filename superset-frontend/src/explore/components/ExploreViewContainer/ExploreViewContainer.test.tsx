@@ -81,7 +81,7 @@ fetchMock.get('glob:*/api/v1/explore/form_data*', {});
 fetchMock.get('glob:*/favstar/slice*', { count: 0 });
 
 const renderWithRouter = (withKey?: boolean) => {
-  const path = '/superset/explore/';
+  const path = '/explore/';
   const search = withKey ? `?form_data_key=${key}&dataset_id=1` : '';
   return render(
     <MemoryRouter initialEntries={[`${path}${search}`]}>

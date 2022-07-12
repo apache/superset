@@ -17,6 +17,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { isEmpty } from 'lodash';
+
 import {
   Annotation,
   AnnotationData,
@@ -30,6 +32,8 @@ import {
   isTimeseriesAnnotationResult,
   TimeseriesDataRecord,
 } from '@superset-ui/core';
+import { EchartsTimeseriesChartProps } from '../types';
+import { EchartsMixedTimeseriesProps } from '../MixedTimeseries/types';
 
 export function evalFormula(
   formula: FormulaAnnotationLayer,
@@ -129,4 +133,14 @@ export function extractAnnotationLabels(
     });
 
   return formulaAnnotationLabels.concat(timeseriesAnnotationLabels);
+}
+
+export function getAnnotationData(
+  chartProps: EchartsTimeseriesChartProps | EchartsMixedTimeseriesProps,
+): AnnotationData {
+  const data = chartProps?.queriesData[0]?.annotation_data as AnnotationData;
+  if (!isEmpty(data)) {
+    return data;
+  }
+  return {};
 }

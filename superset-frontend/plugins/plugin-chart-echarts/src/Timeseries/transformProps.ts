@@ -55,7 +55,10 @@ import {
   extractDataTotalValues,
   extractShowValueIndexes,
 } from '../utils/series';
-import { extractAnnotationLabels } from '../utils/annotation';
+import {
+  extractAnnotationLabels,
+  getAnnotationData,
+} from '../utils/annotation';
 import {
   extractForecastSeriesContext,
   extractForecastSeriesContexts,
@@ -93,12 +96,12 @@ export default function transformProps(
     queriesData,
     datasource,
     theme,
-    annotationData = {},
   } = chartProps;
   const { verboseMap = {} } = datasource;
   const [queryData] = queriesData;
   const { data = [] } = queryData as TimeseriesChartDataResponseResult;
   const dataTypes = getColtypesMapping(queryData);
+  const annotationData = getAnnotationData(chartProps);
 
   const {
     area,

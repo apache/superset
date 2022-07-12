@@ -38,11 +38,11 @@ import { Switch } from 'src/components/Switch';
 import Modal from 'src/components/Modal';
 import TimezoneSelector from 'src/components/TimezoneSelector';
 import { Radio } from 'src/components/Radio';
-import Select, { propertyComparator } from 'src/components/Select/Select';
+import { propertyComparator } from 'src/components/Select/Select';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import Owner from 'src/types/Owner';
-import { AntdCheckbox } from 'src/components';
+import { AntdCheckbox, AsyncSelect, Select } from 'src/components';
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
 import { useCommonConf } from 'src/views/CRUD/data/database/state';
 import {
@@ -1098,7 +1098,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               <span className="required">*</span>
             </div>
             <div data-test="owners-select" className="input-container">
-              <Select
+              <AsyncSelect
                 ariaLabel={t('Owners')}
                 allowClear
                 name="owners"
@@ -1146,7 +1146,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   <span className="required">*</span>
                 </div>
                 <div className="input-container">
-                  <Select
+                  <AsyncSelect
                     ariaLabel={t('Database')}
                     name="source"
                     value={
@@ -1319,7 +1319,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               <StyledRadio value="dashboard">{t('Dashboard')}</StyledRadio>
               <StyledRadio value="chart">{t('Chart')}</StyledRadio>
             </Radio.Group>
-            <Select
+            <AsyncSelect
               ariaLabel={t('Chart')}
               css={{
                 display: contentType === 'chart' ? 'inline' : 'none',
@@ -1336,7 +1336,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               options={loadChartOptions}
               onChange={onChartChange}
             />
-            <Select
+            <AsyncSelect
               ariaLabel={t('Dashboard')}
               css={{
                 display: contentType === 'dashboard' ? 'inline' : 'none',

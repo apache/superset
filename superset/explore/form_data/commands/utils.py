@@ -16,8 +16,6 @@
 # under the License.
 from typing import Optional
 
-from flask_appbuilder.security.sqla.models import User
-
 from superset.charts.commands.exceptions import (
     ChartAccessDeniedError,
     ChartNotFoundError,
@@ -37,11 +35,10 @@ from superset.utils.core import DatasourceType
 def check_access(
     datasource_id: int,
     chart_id: Optional[int],
-    actor: User,
     datasource_type: DatasourceType,
 ) -> None:
     try:
-        explore_check_access(datasource_id, chart_id, actor, datasource_type)
+        explore_check_access(datasource_id, chart_id, datasource_type)
     except (ChartNotFoundError, DatasetNotFoundError) as ex:
         raise TemporaryCacheResourceNotFoundError from ex
     except (ChartAccessDeniedError, DatasetAccessDeniedError) as ex:

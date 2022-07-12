@@ -152,6 +152,7 @@ export interface SupersetClientInterface
     | 'init'
     | 'isAuthenticated'
     | 'reAuthenticate'
+    | 'getGuestToken'
   > {
   configure: (config?: ClientConfig) => SupersetClientInterface;
   reset: () => void;
