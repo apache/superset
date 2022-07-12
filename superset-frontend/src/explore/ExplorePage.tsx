@@ -64,8 +64,7 @@ const fetchExploreData = async (
     // explore page from Dashboard
     const slice = rootState?.sliceEntities?.slices?.[sliceId];
     const form_data = slice?.form_data;
-    // const dataset = rootState?.datasources?.[form_data?.datasource];
-    let dataset: Dataset;
+    let dataset;
     try {
       const [datasourcePK] = form_data?.datasource?.split('__');
       dataset = await getDatasource(datasourcePK);

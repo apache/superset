@@ -43,7 +43,7 @@ export function changeDatasource(newDatasource: Dataset) {
   };
 }
 
-export const getDatasource = async (datasourceId: number) => {
+export const getDatasource = async (datasourceId: number): Promise<Dataset> => {
   const endpoint = `/api/v1/dataset/${datasourceId}`;
   try {
     const response = await SupersetClient.get({ endpoint });
