@@ -298,7 +298,7 @@ const AsyncSelect = (
     filterOption = true,
     header = null,
     invertSelection = false,
-    labelInValue = false,
+    labelInValue = true,
     lazyLoading = true,
     loading,
     mode = 'single',

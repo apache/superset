@@ -140,7 +140,7 @@ test('displays a header', async () => {
 });
 
 test('adds a new option if the value is not in the options, when options are empty', async () => {
-  const loadOptions = jest.fn(async () => ({ data: [OPTIONS[1]], totalCount: 0 }));
+  const loadOptions = jest.fn(async () => ({ data: [], totalCount: 0 }));
   render(
     <AsyncSelect {...defaultProps} options={loadOptions} value={OPTIONS[0]} />,
   );

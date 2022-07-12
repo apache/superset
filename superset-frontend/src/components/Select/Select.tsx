@@ -513,12 +513,11 @@ const Select = (
     }
   };
 
-  // useEffect(() => {
-  //   // when `options` list is updated from component prop, reset states
-  //   fetchedQueries.current.clear();
-  //   setAllValuesLoaded(false);
-  //   setSelectOptions(initialOptions);
-  // }, [initialOptions]);
+  useEffect(() => {
+    // when `options` list is updated from component prop, reset states
+    fetchedQueries.current.clear();
+    setSelectOptions(initialOptions);
+  }, [initialOptions]);
 
   useEffect(() => {
     setSelectValue(value);
