@@ -223,7 +223,14 @@ export default function transformProps(
     .forEach((layer: AnnotationLayer) => {
       if (isFormulaAnnotationLayer(layer))
         series.push(
-          transformFormulaAnnotation(layer, data, colorScale, sliceId),
+          transformFormulaAnnotation(
+            layer,
+            data,
+            xAxisCol,
+            xAxisType,
+            colorScale,
+            sliceId,
+          ),
         );
       else if (isIntervalAnnotationLayer(layer)) {
         series.push(
