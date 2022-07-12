@@ -150,9 +150,13 @@ export const hydrateDashboard =
         datasource: slice.form_data.datasource,
         description: slice.description,
         description_markeddown: slice.description_markeddown,
-        owners: slice.owners,
+        owners: slice.owners.map(owner => owner.id),
         modified: slice.modified,
         changed_on: new Date(slice.changed_on).getTime(),
+        is_managed_externally: slice.is_managed_externally,
+        query_context: slice.query_context,
+        certified_by: slice.certified_by,
+        certification_details: slice.certification_details,
       };
 
       sliceIds.add(key);
