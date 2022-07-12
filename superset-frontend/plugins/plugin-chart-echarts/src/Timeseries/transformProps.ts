@@ -341,7 +341,7 @@ export default function transformProps(
      * Not including this in the initial declaration above so if echarts changes the default
      * behavior for other axist types we won't unintentionally override it
      */
-    xAxis.axisLabel.showLabel = null;
+    xAxis.axisLabel.showMaxLabel = null;
   }
 
   let yAxis: any = {
