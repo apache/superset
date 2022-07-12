@@ -19,8 +19,10 @@
 
 import { Dispatch } from 'redux';
 import { Dataset } from '@superset-ui/chart-controls';
+import { SupersetClient, t } from '@superset-ui/core';
 import { updateFormDataByDatasource } from './exploreActions';
 import { ExplorePageState } from '../types';
+import { getClientErrorObject } from '../../utils/getClientErrorObject';
 
 export const SET_DATASOURCE = 'SET_DATASOURCE';
 export interface SetDatasource {
@@ -41,9 +43,23 @@ export function changeDatasource(newDatasource: Dataset) {
   };
 }
 
+export const getDatasource = async (datasourceId: number) => {
+  const endpoint = `/api/v1/dataset/${datasourceId}`;
+  try {
+    const response = await SupersetClient.get({ endpoint });
+    return response.json.result;
+  } catch (err) {
+    const clientError = await getClientErrorObject(err);
+    throw new Error(
+      clientError.message || clientError.error || t('Sorry, an error occurred'),
+    );
+  }
+};
+
 export const datasourcesActions = {
   setDatasource,
   changeDatasource,
+  getDatasource,
 };
 
 export type AnyDatasourcesAction = SetDatasource;

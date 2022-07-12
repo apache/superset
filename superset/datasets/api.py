@@ -129,6 +129,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     ]
     show_select_columns = [
         "id",
+        "uid",
         "database.database_name",
         "database.id",
         "table_name",

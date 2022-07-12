@@ -17,40 +17,98 @@
  * under the License.
  */
 import React, { useEffect, useState } from 'react';
-import { useDispatch } from 'react-redux';
-import { makeApi, t } from '@superset-ui/core';
+import { useDispatch, useSelector } from 'react-redux';
+import {
+  makeApi,
+  t,
+  isDefined,
+  JsonObject,
+  QueryFormData,
+} from '@superset-ui/core';
 import Loading from 'src/components/Loading';
+import { Slice } from 'src/types/Chart';
+import { Dataset } from '@superset-ui/chart-controls';
 import { getParsedExploreURLParams } from './exploreUtils/getParsedExploreURLParams';
 import { hydrateExplore } from './actions/hydrateExplore';
+import { getDatasource } from './actions/datasourcesActions';
 import ExploreViewContainer from './components/ExploreViewContainer';
 import { ExploreResponsePayload } from './types';
 import { fallbackExploreInitialData } from './fixtures';
 import { addDangerToast } from '../components/MessageToasts/actions';
-import { isNullish } from '../utils/common';
+import { getUrlParam } from '../utils/urlUtils';
+import { URL_PARAMS } from '../constants';
+import { RootState } from '../dashboard/types';
 
 const loadErrorMessage = t('Failed to load chart data.');
 
-const fetchExploreData = () => {
-  const exploreUrlParams = getParsedExploreURLParams();
-  return makeApi<{}, ExploreResponsePayload>({
-    method: 'GET',
-    endpoint: 'api/v1/explore/',
-  })(exploreUrlParams);
+interface ResultInterface {
+  result: {
+    form_data: QueryFormData;
+    slice: Slice;
+    dataset: Dataset;
+  };
+}
+
+const isResult = (rv: JsonObject): rv is ResultInterface =>
+  rv?.result?.form_data &&
+  rv?.result?.slice &&
+  rv?.result?.dataset &&
+  isDefined(rv?.result?.dataset?.id) &&
+  isDefined(rv?.result?.dataset?.uid);
+
+const fetchExploreData = async (
+  rootState: RootState,
+  sliceId: string | null,
+): Promise<ResultInterface> => {
+  if (sliceId && rootState?.sliceEntities?.slices?.[sliceId]) {
+    // explore page from Dashboard
+    const slice = rootState?.sliceEntities?.slices?.[sliceId];
+    const form_data = slice?.form_data;
+    // const dataset = rootState?.datasources?.[form_data?.datasource];
+    let dataset: Dataset;
+    try {
+      const [datasourcePK] = form_data?.datasource?.split('__');
+      dataset = await getDatasource(datasourcePK);
+    } catch (err) {
+      throw new Error(err);
+    }
+
+    const rv = {
+      result: {
+        form_data,
+        slice,
+        dataset,
+      },
+    };
+    if (isResult(rv)) {
+      return rv;
+    }
+  }
+
+  try {
+    const rv = await makeApi<{}, ExploreResponsePayload>({
+      method: 'GET',
+      endpoint: 'api/v1/explore/',
+    })(getParsedExploreURLParams());
+    if (isResult(rv)) {
+      return rv;
+    }
+    throw loadErrorMessage;
+  } catch (err) {
+    throw new Error(err);
+  }
 };
 
 const ExplorePage = () => {
   const [isLoaded, setIsLoaded] = useState(false);
   const dispatch = useDispatch();
+  const rootState = useSelector(state => state) as RootState;
+  const sliceId = getUrlParam(URL_PARAMS.sliceId);
 
   useEffect(() => {
-    fetchExploreData()
+    fetchExploreData(rootState, sliceId)
       .then(({ result }) => {
-        if (isNullish(result.dataset?.id) && isNullish(result.dataset?.uid)) {
-          dispatch(hydrateExplore(fallbackExploreInitialData));
-          dispatch(addDangerToast(loadErrorMessage));
-        } else {
-          dispatch(hydrateExplore(result));
-        }
+        dispatch(hydrateExplore(result));
       })
       .catch(() => {
         dispatch(hydrateExplore(fallbackExploreInitialData));
