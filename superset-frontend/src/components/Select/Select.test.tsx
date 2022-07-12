@@ -115,9 +115,7 @@ test('displays a header', async () => {
 });
 
 test('adds a new option if the value is not in the options, when options are empty', async () => {
-  render(
-    <Select {...defaultProps} options={[]} value={OPTIONS[0]} />,
-  );
+  render(<Select {...defaultProps} options={[]} value={OPTIONS[0]} />);
   await open();
   expect(await findSelectOption(OPTIONS[0].label)).toBeInTheDocument();
   const options = await findAllSelectOptions();

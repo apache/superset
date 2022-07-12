@@ -62,18 +62,14 @@ const loadOptions = async (search: string, page: number, pageSize: number) => {
     start + pageSize < totalCount ? pageSize : totalCount - start;
   const searchValue = search.trim().toLowerCase();
   const optionFilterProps = ['label', 'value', 'gender'];
-    
-  const data = OPTIONS.filter(option => {
-    return optionFilterProps.some(prop => {
+  const data = OPTIONS.filter(option =>
+    optionFilterProps.some(prop => {
       const optionProp = option?.[prop]
         ? String(option[prop]).trim().toLowerCase()
         : '';
       return optionProp.includes(searchValue);
-    });
-  }).splice(
-    start,
-    deleteCount,
-  );
+    }),
+  ).splice(start, deleteCount);
   return {
     data,
     totalCount: OPTIONS.length,
@@ -154,7 +150,10 @@ test('adds a new option if the value is not in the options, when options are emp
 });
 
 test('adds a new option if the value is not in the options, when options have values', async () => {
-  const loadOptions = jest.fn(async () => ({ data: [OPTIONS[1]], totalCount: 1}));
+  const loadOptions = jest.fn(async () => ({
+    data: [OPTIONS[1]],
+    totalCount: 1,
+  }));
   render(
     <AsyncSelect {...defaultProps} options={loadOptions} value={OPTIONS[0]} />,
   );
@@ -169,7 +168,10 @@ test('adds a new option if the value is not in the options, when options have va
 });
 
 test('does not add a new option if the value is already in the options', async () => {
-  const loadOptions = jest.fn(async () => ({ data: [OPTIONS[0]], totalCount: 1}));
+  const loadOptions = jest.fn(async () => ({
+    data: [OPTIONS[0]],
+    totalCount: 1,
+  }));
   render(
     <AsyncSelect {...defaultProps} options={loadOptions} value={OPTIONS[0]} />,
   );
@@ -179,7 +181,6 @@ test('does not add a new option if the value is already in the options', async (
   expect(options).toHaveLength(1);
 });
 
-
 test('inverts the selection', async () => {
   render(<AsyncSelect {...defaultProps} invertSelection />);
   await open();
@@ -188,7 +189,10 @@ test('inverts the selection', async () => {
 });
 
 test('sort the options by label if no sort comparator is provided', async () => {
-  const loadUnsortedOptions = jest.fn(async () => ({ data: [...OPTIONS].sort(() => Math.random()), totalCount: 2 }));
+  const loadUnsortedOptions = jest.fn(async () => ({
+    data: [...OPTIONS].sort(() => Math.random()),
+    totalCount: 2,
+  }));
   render(<AsyncSelect {...defaultProps} options={loadUnsortedOptions} />);
   await open();
   const options = await findAllSelectOptions();
@@ -309,21 +313,16 @@ test('ignores case when searching', async () => {
 });
 
 test('same case should be ranked to the top', async () => {
-  const loadOptions = jest.fn(async () => (
-    { data: [
-        { value: 'Cac' },
-        { value: 'abac' },
-        { value: 'acbc' },
-        { value: 'CAc' },
-      ], totalCount: 4 
-    }
-  ));
-  render(
-    <AsyncSelect
-      {...defaultProps}
-      options={loadOptions}
-    />,
-  );
+  const loadOptions = jest.fn(async () => ({
+    data: [
+      { value: 'Cac' },
+      { value: 'abac' },
+      { value: 'acbc' },
+      { value: 'CAc' },
+    ],
+    totalCount: 4,
+  }));
+  render(<AsyncSelect {...defaultProps} options={loadOptions} />);
   await type('Ac');
   const options = await findAllSelectOptions();
   expect(options.length).toBe(4);
@@ -377,14 +376,14 @@ test('removes duplicated values', async () => {
 });
 
 test('renders a custom label', async () => {
-  const loadOptions = jest.fn(async () => (
-    { data: [
-        { label: 'John', value: 1, customLabel: <h1>John</h1> },
-        { label: 'Liam', value: 2, customLabel: <h1>Liam</h1> },
-        { label: 'Olivia', value: 3, customLabel: <h1>Olivia</h1> },
-      ], totalCount: 3 
-    }
-  ));
+  const loadOptions = jest.fn(async () => ({
+    data: [
+      { label: 'John', value: 1, customLabel: <h1>John</h1> },
+      { label: 'Liam', value: 2, customLabel: <h1>Liam</h1> },
+      { label: 'Olivia', value: 3, customLabel: <h1>Olivia</h1> },
+    ],
+    totalCount: 3,
+  }));
   render(<AsyncSelect {...defaultProps} options={loadOptions} />);
   await open();
   expect(screen.getByRole('heading', { name: 'John' })).toBeInTheDocument();
@@ -393,14 +392,14 @@ test('renders a custom label', async () => {
 });
 
 test('searches for a word with a custom label', async () => {
-  const loadOptions = jest.fn(async () => (
-    { data: [
-        { label: 'John', value: 1, customLabel: <h1>John</h1> },
-        { label: 'Liam', value: 2, customLabel: <h1>Liam</h1> },
-        { label: 'Olivia', value: 3, customLabel: <h1>Olivia</h1> },
-      ], totalCount: 3 
-    }
-  ));
+  const loadOptions = jest.fn(async () => ({
+    data: [
+      { label: 'John', value: 1, customLabel: <h1>John</h1> },
+      { label: 'Liam', value: 2, customLabel: <h1>Liam</h1> },
+      { label: 'Olivia', value: 3, customLabel: <h1>Olivia</h1> },
+    ],
+    totalCount: 3,
+  }));
   render(<AsyncSelect {...defaultProps} options={loadOptions} />);
   await type('Liam');
   const selectOptions = await findAllSelectOptions();
@@ -442,7 +441,10 @@ test('does not add a new option if allowNewOptions is false', async () => {
 });
 
 test('adds the null option when selected in single mode', async () => {
-  const loadOptions = jest.fn(async () => ({ data: [OPTIONS[0], NULL_OPTION], totalCount: 2 }));
+  const loadOptions = jest.fn(async () => ({
+    data: [OPTIONS[0], NULL_OPTION],
+    totalCount: 2,
+  }));
   render(<AsyncSelect {...defaultProps} options={loadOptions} />);
   await open();
   userEvent.click(await findSelectOption(NULL_OPTION.label));
@@ -451,13 +453,12 @@ test('adds the null option when selected in single mode', async () => {
 });
 
 test('adds the null option when selected in multiple mode', async () => {
-  const loadOptions = jest.fn(async () => ({ data: [OPTIONS[0], NULL_OPTION], totalCount: 2 }));
+  const loadOptions = jest.fn(async () => ({
+    data: [OPTIONS[0], NULL_OPTION],
+    totalCount: 2,
+  }));
   render(
-    <AsyncSelect
-      {...defaultProps}
-      options={loadOptions}
-      mode="multiple"
-    />,
+    <AsyncSelect {...defaultProps} options={loadOptions} mode="multiple" />,
   );
   await open();
   userEvent.click(await findSelectOption(OPTIONS[0].label));

@@ -21,7 +21,6 @@ import React, {
   ReactElement,
   ReactNode,
   RefObject,
-  UIEvent,
   useEffect,
   useMemo,
   useState,
@@ -37,11 +36,9 @@ import AntdSelect, {
 } from 'antd/lib/select';
 import { DownOutlined, SearchOutlined } from '@ant-design/icons';
 import { Spin } from 'antd';
-import debounce from 'lodash/debounce';
 import { isEqual } from 'lodash';
 import Icons from 'src/components/Icons';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
-import { SLOW_DEBOUNCE } from 'src/constants';
 import { rankedSearchCompare } from 'src/utils/rankedSearchCompare';
 import { getValue, hasOption, isLabeledValue } from './utils';
 
@@ -98,13 +95,6 @@ export interface SelectProps extends PickedSelectProps {
    */
   header?: ReactNode;
   /**
-   * It fires a request against the server after
-   * the first interaction and not on render.
-   * Works in async mode only (See the options property).
-   * True by default.
-   */
-  lazyLoading?: boolean;
-  /**
    * It defines whether the Select should allow for the
    * selection of multiple options or single.
    * Single by default.
@@ -129,12 +119,6 @@ export interface SelectProps extends PickedSelectProps {
    */
   options: OptionsType;
   /**
-   * It defines how many results should be included
-   * in the query response.
-   * Works in async mode only (See the options property).
-   */
-  pageSize?: number;
-  /**
    * It shows a stop-outlined icon at the far right of a selected
    * option instead of the default checkmark.
    * Useful to better indicate to the user that by clicking on a selected
@@ -142,13 +126,6 @@ export interface SelectProps extends PickedSelectProps {
    * False by default.
    */
   invertSelection?: boolean;
-  /**
-   * It fires a request against the server only after
-   * searching.
-   * Works in async mode only (See the options property).
-   * Undefined by default.
-   */
-  fetchOnlyOnSearch?: boolean;
   /**
    * It provides a callback function when an error
    * is generated after a request is fired.
@@ -222,7 +199,6 @@ const StyledLoadingText = styled.div`
 
 const MAX_TAG_COUNT = 4;
 const TOKEN_SEPARATORS = [',', '\n', '\t', ';'];
-const DEFAULT_PAGE_SIZE = 100;
 const EMPTY_OPTIONS: OptionsType = [];
 
 const Error = ({ error }: { error: string }) => (
@@ -267,9 +243,6 @@ export const propertyComparator =
     return (a[property] as number) - (b[property] as number);
   };
 
-const getQueryCacheKey = (value: string, page: number, pageSize: number) =>
-  `${value};${page};${pageSize}`;
-
 /**
  * This component is a customized version of the Antdesign 4.X Select component
  * https://ant.design/components/select/.
@@ -289,12 +262,10 @@ const Select = (
     allowClear,
     allowNewOptions = false,
     ariaLabel,
-    fetchOnlyOnSearch,
     filterOption = true,
     header = null,
     invertSelection = false,
     labelInValue = false,
-    lazyLoading = true,
     loading,
     mode = 'single',
     name,
@@ -305,7 +276,6 @@ const Select = (
     onDropdownVisibleChange,
     optionFilterProps = ['label', 'value'],
     options,
-    pageSize = DEFAULT_PAGE_SIZE,
     placeholder = t('Select ...'),
     showSearch = true,
     sortComparator = DEFAULT_SORT_COMPARATOR,
@@ -345,7 +315,7 @@ const Select = (
   );
   const sortComparatorForNoSearch = useCallback(
     (a: AntdLabeledValue, b: AntdLabeledValue) =>
-      sortSelectedFirst(a, b) ||    
+      sortSelectedFirst(a, b) ||
       // we should preserve the options order as much as possible.
       0,
     [sortComparator, sortSelectedFirst],
@@ -426,7 +396,7 @@ const Select = (
       }),
     [onError],
   );
-  
+
   const handleOnSearch = (search: string) => {
     const searchValue = search.trim();
     if (allowNewOptions && isSingleMode) {

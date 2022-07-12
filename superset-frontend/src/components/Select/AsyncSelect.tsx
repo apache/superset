@@ -589,7 +589,9 @@ const AsyncSelect = (
     // if no search input value, force sort options because it won't be sorted by
     // `filterSort`.
     if (isDropdownVisible && !inputValue && selectOptions.length > 1) {
-      const sortedOptions = selectOptions.slice().sort(sortComparatorForNoSearch);
+      const sortedOptions = selectOptions
+        .slice()
+        .sort(sortComparatorForNoSearch);
       if (!isEqual(sortedOptions, selectOptions)) {
         setSelectOptions(sortedOptions);
       }
@@ -659,13 +661,7 @@ const AsyncSelect = (
         fetchPage('', 0);
       }
     }
-  }, [
-    loadingEnabled,
-    fetchPage,
-    allowFetch,
-    inputValue,
-    debouncedFetchPage,
-  ]);
+  }, [loadingEnabled, fetchPage, allowFetch, inputValue, debouncedFetchPage]);
 
   useEffect(() => {
     if (loading !== undefined && loading !== isLoading) {
