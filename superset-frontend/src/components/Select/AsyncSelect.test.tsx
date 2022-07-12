@@ -341,15 +341,17 @@ test('ignores special keys when searching', async () => {
 
 test('searches for custom fields', async () => {
   render(
-    <AsyncSelect {...defaultProps} pageSize={22} optionFilterProps={['label', 'gender']} />,
+    <AsyncSelect {...defaultProps} optionFilterProps={['label', 'gender']} />,
   );
   await open();
   await type('Liam');
+  // Liam is on the second page. need to wait to fetch options
   expect(await findSelectOption('Liam')).toBeInTheDocument();
   let options = await findAllSelectOptions();
   expect(options.length).toBe(1);
   expect(options[0]).toHaveTextContent('Liam');
   await type('Female');
+  // Olivia is on the second page. need to wait to fetch options
   expect(await findSelectOption('Olivia')).toBeInTheDocument();
   options = await findAllSelectOptions();
   expect(options.length).toBe(6);
