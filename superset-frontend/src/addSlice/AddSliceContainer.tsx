@@ -207,7 +207,7 @@ const StyledStepDescription = styled.div`
   `}
 `;
 
-class AddSliceContainer extends React.PureComponent<
+export class AddSliceContainer extends React.PureComponent<
   AddSliceContainerProps,
   AddSliceContainerState
 > {

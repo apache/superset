@@ -20,7 +20,8 @@ import React from 'react';
 import { ReactWrapper, mount } from 'enzyme';
 import Button from 'src/components/Button';
 import { AsyncSelect } from 'src/components';
-import AddSliceContainer, {
+import {
+  AddSliceContainer,
   AddSliceContainerProps,
   AddSliceContainerState,
 } from 'src/addSlice/AddSliceContainer';
@@ -70,7 +71,7 @@ const routeProps = {
 
 async function getWrapper(user = mockUser) {
   const wrapper = mount(
-    <AddSliceContainer.WrappedComponent
+    <AddSliceContainer
       user={user}
       addSuccessToast={() => null}
       {...routeProps}
@@ -82,7 +83,7 @@ async function getWrapper(user = mockUser) {
   ) as unknown as ReactWrapper<
     AddSliceContainerProps,
     AddSliceContainerState,
-    any
+    AddSliceContainer
   >;
   await act(() => new Promise(resolve => setTimeout(resolve, 0)));
   return wrapper;
