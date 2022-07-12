@@ -62,6 +62,7 @@ const TruncatedTextWithTooltip = ({ children, ...props }) => {
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+        display: block;
       `}
     >
       {children}
