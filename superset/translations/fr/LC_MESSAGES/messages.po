@@ -6039,7 +6039,7 @@ msgstr "Configuration et portée des filtres"
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/FilterControls/FilterControls.tsx:159
 #, python-format
 msgid "Filters out of scope (%d)"
-msgstr "Filtres hors du champ d'application (%d)"
+msgstr "Filtres hors du périmètre (%d)"
 
 #: superset/connectors/sqla/views.py:348
 msgid ""
@@ -8138,7 +8138,7 @@ msgstr "Pas de données"
 
 #: superset-frontend/plugins/legacy-preset-chart-big-number/src/BigNumber/BigNumber.tsx:219
 msgid "No data after filtering or data is NULL for the latest time record"
-msgstr ""
+msgstr "Pas de données après filtrage ou données manquantes pour la période sélectionnée"
 
 #: superset/dashboards/commands/importers/v0.py:321
 msgid "No data in file"
@@ -11727,7 +11727,7 @@ msgstr ""
 #: superset-frontend/src/views/CRUD/dashboard/DashboardList.tsx:302
 #: superset-frontend/src/views/CRUD/dashboard/DashboardList.tsx:492
 msgid "Status"
-msgstr "Status"
+msgstr "Statut"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Step/controlPanel.tsx:112
 #, fuzzy
@@ -16352,3 +16352,25 @@ msgstr "Valeurs dépendent de"
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/DependencyList.tsx:197
 msgid "No results were returned for this query"
 msgstr "Aucun résultat avec ces paramètres"
+
+#: superset-frontend/src/dashboard/components/Header/HeaderActionsDropdown/index.jsx:154
+#: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:164
+msgid "Data refreshed"
+msgstr "Données rafraîchies"
+
+#: superset-frontend/plugins/plugin-chart-table/src/TableChart.tsx:415
+msgid "Shift + Click to sort by multiple columns"
+msgstr "Maintenir Shift + Clic pour trier plusieurs colonnes"
+
+#: #: flask_appbuilder/security/views.py:211
+msgid "User info"
+msgstr "Informations utilisateurs"
+
+#: flask_appbuilder/security/views.py:250
+msgid "Reset my password"
+msgstr "Réinitialiser mon mot de passe"
+
+#: superset-frontend/src/dashboard/components/nativeFilters/FilterCard/DependenciesRow.tsx:85
+msgid "Filter only displays values relevant to selections made in other filters."
+msgstr "Le filtre n'affiche que les valeurs pertinentes après les sélections effectuées dans d'autres filtres."
+
