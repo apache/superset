@@ -77,7 +77,7 @@ setup(
         "cryptography>=3.3.2",
         "deprecation>=2.1.0, <2.2.0",
         "flask>=2.0.0, <3.0.0",
-        "flask-appbuilder>=4.0.0, <5.0.0",
+        "flask-appbuilder>=4.1.3, <5.0.0",
         "flask-caching>=1.10.0",
         "flask-compress",
         "flask-talisman",
@@ -149,7 +149,7 @@ setup(
         "impala": ["impyla>0.16.2, <0.17"],
         "kusto": ["sqlalchemy-kusto>=1.0.1, <2"],
         "kylin": ["kylinpy>=2.8.1, <2.9"],
-        "mmsql": ["pymssql>=2.1.4, <2.2"],
+        "mssql": ["pymssql>=2.1.4, <2.2"],
         "mysql": ["mysqlclient>=2.1.0, <3"],
         "oracle": ["cx-Oracle>8.0.0, <8.1"],
         "pinot": ["pinotdb>=0.3.3, <0.4"],
@@ -165,6 +165,7 @@ setup(
         "snowflake": [
             "snowflake-sqlalchemy==1.2.4"
         ],  # PINNED! 1.2.5 introduced breaking changes requiring sqlalchemy>=1.4.0
+        "spark": ["pyhive[hive]>=0.6.5", "tableschema", "thrift>=0.11.0, <1.0.0"],
         "teradata": ["teradatasql>=16.20.0.23"],
         "thumbnails": ["Pillow>=9.0.1, <10.0.0"],
         "vertica": ["sqlalchemy-vertica-python>=0.5.9, < 0.6"],

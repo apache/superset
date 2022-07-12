@@ -25,7 +25,16 @@ import {
 import { ControlPanelState, ControlState } from '../types';
 
 export const xAxisControlConfig = {
-  label: t('X-axis'),
+  label: (state: ControlPanelState) => {
+    if (
+      isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES) &&
+      state?.form_data?.orientation === 'horizontal'
+    ) {
+      return t('Y-axis');
+    }
+
+    return t('X-axis');
+  },
   default: (
     control: ControlState,
     controlPanel: Partial<ControlPanelState>,
@@ -43,6 +52,15 @@ export const xAxisControlConfig = {
     return null;
   },
   multi: false,
-  description: t('Dimension to use on x-axis.'),
+  description: (state: ControlPanelState) => {
+    if (
+      isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES) &&
+      state?.form_data?.orientation === 'horizontal'
+    ) {
+      return t('Dimension to use on y-axis.');
+    }
+
+    return t('Dimension to use on x-axis.');
+  },
   validators: [validateNonEmpty],
 };

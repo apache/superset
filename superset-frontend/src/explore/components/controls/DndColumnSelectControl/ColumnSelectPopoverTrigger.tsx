@@ -18,12 +18,8 @@
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSelector } from 'react-redux';
-import { AdhocColumn, t } from '@superset-ui/core';
-import {
-  ColumnMeta,
-  isAdhocColumn,
-  isColumnMeta,
-} from '@superset-ui/chart-controls';
+import { AdhocColumn, t, isAdhocColumn } from '@superset-ui/core';
+import { ColumnMeta, isColumnMeta } from '@superset-ui/chart-controls';
 import { ExplorePopoverContent } from 'src/explore/components/ExploreContentPopover';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import ColumnSelectPopover from './ColumnSelectPopover';

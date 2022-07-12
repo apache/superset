@@ -17,7 +17,7 @@
 """A collection of ORM sqlalchemy models for SQL Lab"""
 import re
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional, Type, TYPE_CHECKING
 
 import simplejson as json
 import sqlalchemy as sqla
@@ -42,25 +42,31 @@ from sqlalchemy.orm import backref, relationship
 from superset import security_manager
 from superset.models.helpers import (
     AuditMixinNullable,
+    ExploreMixin,
     ExtraJSONMixin,
     ImportExportMixin,
 )
 from superset.models.tags import QueryUpdater
 from superset.sql_parse import CtasMethod, ParsedQuery, Table
 from superset.sqllab.limiting_factor import LimitingFactor
-from superset.utils.core import QueryStatus, user_label
+from superset.superset_typing import ResultSetColumnType
+from superset.utils.core import GenericDataType, QueryStatus, user_label
+
+if TYPE_CHECKING:
+    from superset.db_engine_specs import BaseEngineSpec
 
 
-class Query(Model, ExtraJSONMixin):
+class Query(Model, ExtraJSONMixin, ExploreMixin):  # pylint: disable=abstract-method
     """ORM model for SQL query
 
     Now that SQL Lab support multi-statement execution, an entry in this
     table may represent multiple SQL statements executed sequentially"""
 
     __tablename__ = "query"
+    type = "query"
     id = Column(Integer, primary_key=True)
     client_id = Column(String(11), unique=True, nullable=False)
-
+    query_language = "sql"
     database_id = Column(Integer, ForeignKey("dbs.id"), nullable=False)
 
     # Store the tmp table into the DB only if the user asks for it.
@@ -167,8 +173,54 @@ class Query(Model, ExtraJSONMixin):
         return list(ParsedQuery(self.sql).tables)
 
     @property
-    def columns(self) -> List[Table]:
-        return self.extra.get("columns", [])
+    def columns(self) -> List[ResultSetColumnType]:
+        bool_types = ("BOOL",)
+        num_types = (
+            "DOUBLE",
+            "FLOAT",
+            "INT",
+            "BIGINT",
+            "NUMBER",
+            "LONG",
+            "REAL",
+            "NUMERIC",
+            "DECIMAL",
+            "MONEY",
+        )
+        date_types = ("DATE", "TIME")
+        str_types = ("VARCHAR", "STRING", "CHAR")
+        columns = []
+        col_type = ""
+        for col in self.extra.get("columns", []):
+            computed_column = {**col}
+            col_type = col.get("type")
+
+            if col_type and any(map(lambda t: t in col_type.upper(), str_types)):
+                computed_column["type_generic"] = GenericDataType.STRING
+            if col_type and any(map(lambda t: t in col_type.upper(), bool_types)):
+                computed_column["type_generic"] = GenericDataType.BOOLEAN
+            if col_type and any(map(lambda t: t in col_type.upper(), num_types)):
+                computed_column["type_generic"] = GenericDataType.NUMERIC
+            if col_type and any(map(lambda t: t in col_type.upper(), date_types)):
+                computed_column["type_generic"] = GenericDataType.TEMPORAL
+
+            computed_column["column_name"] = col.get("name")
+            computed_column["groupby"] = True
+            columns.append(computed_column)
+        return columns  # type: ignore
+
+    @property
+    def data(self) -> Dict[str, Any]:
+        return {
+            "name": self.tab_name,
+            "columns": self.columns,
+            "metrics": [],
+            "id": self.id,
+            "type": self.type,
+            "sql": self.sql,
+            "owners": self.owners_data,
+            "database": {"id": self.database_id, "backend": self.database.backend},
+        }
 
     def raise_for_access(self) -> None:
         """
@@ -178,6 +230,53 @@ class Query(Model, ExtraJSONMixin):
         """
 
         security_manager.raise_for_access(query=self)
+
+    @property
+    def db_engine_spec(self) -> Type["BaseEngineSpec"]:
+        return self.database.db_engine_spec
+
+    @property
+    def owners_data(self) -> List[Dict[str, Any]]:
+        return []
+
+    @property
+    def uid(self) -> str:
+        return f"{self.id}__{self.type}"
+
+    @property
+    def is_rls_supported(self) -> bool:
+        return False
+
+    @property
+    def cache_timeout(self) -> int:
+        return 0
+
+    @property
+    def column_names(self) -> List[Any]:
+        return [col.get("column_name") for col in self.columns]
+
+    @property
+    def offset(self) -> int:
+        return 0
+
+    @property
+    def main_dttm_col(self) -> Optional[str]:
+        for col in self.columns:
+            if col.get("is_dttm"):
+                return col.get("column_name")  # type: ignore
+        return None
+
+    @property
+    def dttm_cols(self) -> List[Any]:
+        return [col.get("column_name") for col in self.columns if col.get("is_dttm")]
+
+    @property
+    def default_endpoint(self) -> str:
+        return ""
+
+    @staticmethod
+    def get_extra_cache_keys(query_obj: Dict[str, Any]) -> List[str]:
+        return []
 
 
 class SavedQuery(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):

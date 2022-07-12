@@ -152,7 +152,7 @@ class BigNumberVis extends React.PureComponent<BigNumberVisProps> {
     document.body.append(container);
     const fontSize = computeMaxFontSize({
       text,
-      maxWidth: width,
+      maxWidth: width - 8, // Decrease 8px for more precise font size
       maxHeight,
       className: 'header-line',
       container,

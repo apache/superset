@@ -18,10 +18,11 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
+from flask import g
 from flask_appbuilder.models.sqla import Model
-from flask_appbuilder.security.sqla.models import User
 from marshmallow import ValidationError
 
+from superset import security_manager
 from superset.charts.commands.exceptions import (
     ChartForbiddenError,
     ChartInvalidError,
@@ -37,7 +38,6 @@ from superset.dao.exceptions import DAOUpdateFailedError
 from superset.dashboards.dao import DashboardDAO
 from superset.exceptions import SupersetSecurityException
 from superset.models.slice import Slice
-from superset.views.base import check_ownership
 
 logger = logging.getLogger(__name__)
 
@@ -49,8 +49,7 @@ def is_query_context_update(properties: Dict[str, Any]) -> bool:
 
 
 class UpdateChartCommand(UpdateMixin, BaseCommand):
-    def __init__(self, user: User, model_id: int, data: Dict[str, Any]):
-        self._actor = user
+    def __init__(self, model_id: int, data: Dict[str, Any]):
         self._model_id = model_id
         self._properties = data.copy()
         self._model: Optional[Slice] = None
@@ -60,7 +59,7 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
         try:
             if self._properties.get("query_context_generation") is None:
                 self._properties["last_saved_at"] = datetime.now()
-                self._properties["last_saved_by"] = self._actor
+                self._properties["last_saved_by"] = g.user
             chart = ChartDAO.update(self._model, self._properties)
         except DAOUpdateFailedError as ex:
             logger.exception(ex.exception)
@@ -88,8 +87,8 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
         # ownership so the update can be performed by report workers
         if not is_query_context_update(self._properties):
             try:
-                check_ownership(self._model)
-                owners = self.populate_owners(self._actor, owner_ids)
+                security_manager.raise_for_ownership(self._model)
+                owners = self.populate_owners(owner_ids)
                 self._properties["owners"] = owners
             except SupersetSecurityException as ex:
                 raise ChartForbiddenError() from ex

@@ -23,7 +23,6 @@ from functools import partial
 from typing import Any, Callable, Dict, List, Set, Tuple, Type, Union
 
 import sqlalchemy as sqla
-from flask import g
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
 from flask_appbuilder.security.sqla.models import User
@@ -47,7 +46,6 @@ from sqlalchemy.sql import join, select
 from sqlalchemy.sql.elements import BinaryExpression
 
 from superset import app, db, is_feature_enabled, security_manager
-from superset.common.request_contexed_based import is_user_admin
 from superset.connectors.base.models import BaseDatasource
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.datasource.dao import DatasourceDAO
@@ -59,6 +57,7 @@ from superset.models.tags import DashboardUpdater
 from superset.models.user_attributes import UserAttribute
 from superset.tasks.thumbnails import cache_dashboard_thumbnail
 from superset.utils import core as utils
+from superset.utils.core import get_user_id
 from superset.utils.decorators import debounce
 from superset.utils.hashing import md5_sha_from_str
 from superset.utils.urls import get_url_path
@@ -203,15 +202,14 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
 
     @property
     def filter_sets_lst(self) -> Dict[int, FilterSet]:
-        if is_user_admin():
+        if security_manager.is_admin():
             return self._filter_sets
-        current_user = g.user.id
         filter_sets_by_owner_type: Dict[str, List[Any]] = {"Dashboard": [], "User": []}
         for fs in self._filter_sets:
             filter_sets_by_owner_type[fs.owner_type].append(fs)
         user_filter_sets = list(
             filter(
-                lambda filter_set: filter_set.owner_id == current_user,
+                lambda filter_set: filter_set.owner_id == get_user_id(),
                 filter_sets_by_owner_type["User"],
             )
         )
@@ -444,11 +442,6 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
         session = db.session()
         qry = session.query(Dashboard).filter(id_or_slug_filter(id_or_slug))
         return qry.one_or_none()
-
-    def is_actor_owner(self) -> bool:
-        if g.user is None or g.user.is_anonymous or not g.user.is_authenticated:
-            return False
-        return g.user.id in set(map(lambda user: user.id, self.owners))
 
 
 def id_or_slug_filter(id_or_slug: str) -> BinaryExpression:

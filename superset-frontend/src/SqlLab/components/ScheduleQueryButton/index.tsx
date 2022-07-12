@@ -16,13 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { FunctionComponent, useState } from 'react';
+import React, { FunctionComponent, useState, useRef } from 'react';
 import SchemaForm, { FormProps, FormValidation } from 'react-jsonschema-form';
 import { Row, Col } from 'src/components';
 import { Input, TextArea } from 'src/components/Input';
 import { t, styled } from '@superset-ui/core';
 import * as chrono from 'chrono-node';
-import ModalTrigger from 'src/components/ModalTrigger';
+import ModalTrigger, { ModalTriggerRef } from 'src/components/ModalTrigger';
 import { Form, FormItem } from 'src/components/Form';
 import Button from 'src/components/Button';
 
@@ -143,7 +143,7 @@ const ScheduleQueryButton: FunctionComponent<ScheduleQueryButtonProps> = ({
   const [description, setDescription] = useState('');
   const [label, setLabel] = useState(defaultLabel);
   const [showSchedule, setShowSchedule] = useState(false);
-  let saveModal: ModalTrigger | null;
+  const saveModal: ModalTriggerRef | null = useRef() as ModalTriggerRef;
 
   const onScheduleSubmit = ({
     formData,
@@ -159,7 +159,7 @@ const ScheduleQueryButton: FunctionComponent<ScheduleQueryButtonProps> = ({
       extra_json: JSON.stringify({ schedule_info: formData }),
     };
     onSchedule(query);
-    saveModal?.close();
+    saveModal?.current?.close();
   };
 
   const renderModalBody = () => (
@@ -197,7 +197,7 @@ const ScheduleQueryButton: FunctionComponent<ScheduleQueryButtonProps> = ({
           <StyledJsonSchema>
             <SchemaForm
               schema={getJSONSchema()}
-              uiSchema={getUISchema}
+              uiSchema={getUISchema()}
               onSubmit={onScheduleSubmit}
               validate={getValidator()}
             >
@@ -225,9 +225,7 @@ const ScheduleQueryButton: FunctionComponent<ScheduleQueryButtonProps> = ({
   return (
     <span className="ScheduleQueryButton">
       <ModalTrigger
-        ref={ref => {
-          saveModal = ref;
-        }}
+        ref={saveModal}
         modalTitle={t('Schedule query')}
         modalBody={renderModalBody()}
         triggerNode={

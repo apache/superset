@@ -20,7 +20,7 @@ import React, { useEffect, useState } from 'react';
 import moment from 'moment';
 import { styled, t } from '@superset-ui/core';
 import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
-
+import { Link } from 'react-router-dom';
 import ListViewCard from 'src/components/ListViewCard';
 import SubMenu from 'src/views/components/SubMenu';
 import { ActivityData, LoadingCards } from 'src/views/CRUD/welcome/Welcome';
@@ -189,20 +189,17 @@ export default function ActivityTable({
         const url = getEntityUrl(entity);
         const lastActionOn = getEntityLastActionOn(entity);
         return (
-          <CardStyles
-            onClick={() => {
-              window.location.href = url;
-            }}
-            key={url}
-          >
-            <ListViewCard
-              cover={<></>}
-              url={url}
-              title={getEntityTitle(entity)}
-              description={lastActionOn}
-              avatar={getEntityIcon(entity)}
-              actions={null}
-            />
+          <CardStyles key={url}>
+            <Link to={url}>
+              <ListViewCard
+                cover={<></>}
+                url={url}
+                title={getEntityTitle(entity)}
+                description={lastActionOn}
+                avatar={getEntityIcon(entity)}
+                actions={null}
+              />
+            </Link>
           </CardStyles>
         );
       },

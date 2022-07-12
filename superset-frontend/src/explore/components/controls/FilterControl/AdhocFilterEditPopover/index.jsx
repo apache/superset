@@ -19,7 +19,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import Button from 'src/components/Button';
-import { Tooltip } from 'src/components/Tooltip';
 import { styled, t } from '@superset-ui/core';
 
 import ErrorBoundary from 'src/components/ErrorBoundary';
@@ -227,20 +226,7 @@ export default class AdhocFilterEditPopover extends React.Component {
           <Tabs.TabPane
             className="adhoc-filter-edit-tab"
             key={EXPRESSION_TYPES.SQL}
-            tab={
-              datasource?.type === 'druid' ? (
-                <Tooltip
-                  title={t(
-                    'Custom SQL ad-hoc filters are not available for the native Druid connector',
-                  )}
-                >
-                  {t('Custom SQL')}
-                </Tooltip>
-              ) : (
-                t('Custom SQL')
-              )
-            }
-            disabled={datasource?.type === 'druid'}
+            tab={t('Custom SQL')}
           >
             <ErrorBoundary>
               <AdhocFilterEditPopoverSqlTabContent

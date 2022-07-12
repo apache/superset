@@ -19,7 +19,7 @@
 import React from 'react';
 import { ReactWrapper } from 'enzyme';
 import Button from 'src/components/Button';
-import { Select } from 'src/components';
+import { AsyncSelect } from 'src/components';
 import AddSliceContainer, {
   AddSliceContainerProps,
   AddSliceContainerState,
@@ -72,7 +72,7 @@ async function getWrapper(user = mockUser) {
 
 test('renders a select and a VizTypeControl', async () => {
   const wrapper = await getWrapper();
-  expect(wrapper.find(Select)).toExist();
+  expect(wrapper.find(AsyncSelect)).toExist();
   expect(wrapper.find(VizTypeGallery)).toExist();
 });
 
@@ -104,20 +104,40 @@ test('renders an enabled button if datasource and viz type are selected', async 
   const wrapper = await getWrapper();
   wrapper.setState({
     datasource,
-    visType: 'table',
+    vizType: 'table',
   });
   expect(
     wrapper.find(Button).find({ disabled: true }).hostNodes(),
   ).toHaveLength(0);
 });
 
+test('double-click viz type does nothing if no datasource is selected', async () => {
+  const wrapper = await getWrapper();
+  wrapper.instance().gotoSlice = jest.fn();
+  wrapper.update();
+  wrapper.instance().onVizTypeDoubleClick();
+  expect(wrapper.instance().gotoSlice).not.toBeCalled();
+});
+
+test('double-click viz type submits if datasource is selected', async () => {
+  const wrapper = await getWrapper();
+  wrapper.instance().gotoSlice = jest.fn();
+  wrapper.update();
+  wrapper.setState({
+    datasource,
+    vizType: 'table',
+  });
+
+  wrapper.instance().onVizTypeDoubleClick();
+  expect(wrapper.instance().gotoSlice).toBeCalled();
+});
+
 test('formats Explore url', async () => {
   const wrapper = await getWrapper();
   wrapper.setState({
     datasource,
-    visType: 'table',
+    vizType: 'table',
   });
-  const formattedUrl =
-    '/superset/explore/?form_data=%7B%22viz_type%22%3A%22table%22%2C%22datasource%22%3A%221%22%7D';
+  const formattedUrl = '/explore/?viz_type=table&datasource=1';
   expect(wrapper.instance().exploreUrl()).toBe(formattedUrl);
 });

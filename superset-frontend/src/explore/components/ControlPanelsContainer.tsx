@@ -54,8 +54,7 @@ import Loading from 'src/components/Loading';
 import { usePrevious } from 'src/hooks/usePrevious';
 import { getSectionsToRender } from 'src/explore/controlUtils';
 import { ExploreActions } from 'src/explore/actions/exploreActions';
-import { ExplorePageState } from 'src/explore/reducers/getInitialState';
-import { ChartState } from 'src/explore/types';
+import { ChartState, ExplorePageState } from 'src/explore/types';
 import { Tooltip } from 'src/components/Tooltip';
 
 import { rgba } from 'emotion-rgba';
@@ -175,9 +174,7 @@ const isTimeSection = (section: ControlPanelSectionConfig): boolean =>
     sections.legacyTimeseriesTime.label === section.label);
 
 const hasTimeColumn = (datasource: Dataset): boolean =>
-  datasource?.columns?.some(c => c.is_dttm) ||
-  datasource.type === DatasourceType.Druid;
-
+  datasource?.columns?.some(c => c.is_dttm);
 const sectionsToExpand = (
   sections: ControlPanelSectionConfig[],
   datasource: Dataset,
@@ -332,7 +329,12 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
           undefined),
       name,
     };
-    const { validationErrors, ...restProps } = controlData as ControlState & {
+    const {
+      validationErrors,
+      label: baseLabel,
+      description: baseDescription,
+      ...restProps
+    } = controlData as ControlState & {
       validationErrors?: any[];
     };
 
@@ -340,10 +342,22 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
       ? visibility.call(config, props, controlData)
       : undefined;
 
+    const label =
+      typeof baseLabel === 'function'
+        ? baseLabel(exploreState, controls[name], chart)
+        : baseLabel;
+
+    const description =
+      typeof baseDescription === 'function'
+        ? baseDescription(exploreState, controls[name], chart)
+        : baseDescription;
+
     return (
       <Control
         key={`control-${name}`}
         name={name}
+        label={label}
+        description={description}
         validationErrors={validationErrors}
         actions={props.actions}
         isVisible={isVisible}
@@ -381,7 +395,14 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
     );
     const PanelHeader = () => (
       <span data-test="collapsible-control-panel-header">
-        <span>{label}</span>{' '}
+        <span
+          css={(theme: SupersetTheme) => css`
+            font-size: ${theme.typography.sizes.m}px;
+            line-height: 1.3;
+          `}
+        >
+          {label}
+        </span>{' '}
         {description && (
           // label is only used in tooltip id (should probably call this prop `id`)
           <InfoTooltipWithTrigger label={sectionId} tooltip={description} />

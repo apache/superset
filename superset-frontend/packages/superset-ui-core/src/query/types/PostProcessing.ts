@@ -111,12 +111,10 @@ interface _PostProcessingPivot {
     columns: string[];
     combine_value_with_metric?: boolean;
     drop_missing_columns?: boolean;
-    flatten_columns?: boolean;
     index: string[];
     marginal_distribution_name?: string;
     marginal_distributions?: boolean;
     metric_fill_value?: any;
-    reset_index?: boolean;
   };
 }
 export type PostProcessingPivot = _PostProcessingPivot | DefaultPostProcessing;
@@ -124,7 +122,7 @@ export type PostProcessingPivot = _PostProcessingPivot | DefaultPostProcessing;
 interface _PostProcessingProphet {
   operation: 'prophet';
   options: {
-    time_grain: TimeGranularity;
+    time_grain: TimeGranularity | undefined;
     periods: number;
     confidence_interval: number;
     yearly_seasonality?: boolean | number;

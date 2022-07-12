@@ -22,6 +22,7 @@ import { DndProvider } from 'react-dnd';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import DatasourcePanel, {
+  IDatasource,
   Props as DatasourcePanelProps,
 } from 'src/explore/components/DatasourcePanel';
 import {
@@ -31,23 +32,15 @@ import {
 import { DatasourceType } from '@superset-ui/core';
 import DatasourceControl from 'src/explore/components/controls/DatasourceControl';
 
-const datasource = {
+const datasource: IDatasource = {
   id: 1,
   type: DatasourceType.Table,
-  name: 'birth_names',
   columns,
   metrics,
-  uid: '1__table',
   database: {
-    backend: 'mysql',
-    name: 'main',
+    id: 1,
   },
-  column_format: { ratio: '.2%' },
-  verbose_map: { __timestamp: 'Time' },
-  main_dttm_col: 'None',
   datasource_name: 'table1',
-  description: 'desc',
-  owners: [{ username: 'admin', userId: 1 }],
 };
 
 const mockUser = {
@@ -98,7 +91,6 @@ test('should render', () => {
 
 test('should display items in controls', () => {
   render(setup(props), { useRedux: true });
-  expect(screen.getByText('birth_names')).toBeInTheDocument();
   expect(screen.getByText('Metrics')).toBeInTheDocument();
   expect(screen.getByText('Columns')).toBeInTheDocument();
 });

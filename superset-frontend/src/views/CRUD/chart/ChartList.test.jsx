@@ -189,7 +189,7 @@ describe('RTL', () => {
         <QueryParamProvider>
           <ChartList {...mockedProps} user={mockUser} />
         </QueryParamProvider>,
-        { useRedux: true },
+        { useRedux: true, useRouter: true },
       );
     });
 

@@ -209,7 +209,7 @@ class BaseDatasource(
     def explore_url(self) -> str:
         if self.default_endpoint:
             return self.default_endpoint
-        return f"/superset/explore/{self.type}/{self.id}/"
+        return f"/explore/?dataset_type={self.type}&dataset_id={self.id}"
 
     @property
     def column_formats(self) -> Dict[str, Optional[str]]:

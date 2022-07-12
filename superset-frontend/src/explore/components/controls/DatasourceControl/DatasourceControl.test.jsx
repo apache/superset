@@ -20,13 +20,19 @@ import React from 'react';
 import sinon from 'sinon';
 import configureStore from 'redux-mock-store';
 import { mount, shallow } from 'enzyme';
-import { supersetTheme, ThemeProvider } from '@superset-ui/core';
+import {
+  supersetTheme,
+  ThemeProvider,
+  DatasourceType,
+} from '@superset-ui/core';
 import { Menu } from 'src/components/Menu';
 import {
   DatasourceModal,
   ChangeDatasourceModal,
 } from 'src/components/Datasource';
-import DatasourceControl from 'src/explore/components/controls/DatasourceControl';
+import DatasourceControl, {
+  getDatasourceTitle,
+} from 'src/explore/components/controls/DatasourceControl';
 import Icons from 'src/components/Icons';
 import { Tooltip } from 'src/components/Tooltip';
 
@@ -142,5 +148,31 @@ describe('DatasourceControl', () => {
     expect(tooltip.prop('title')).toBe(
       defaultProps.datasource.health_check_message,
     );
+  });
+
+  it('Gets Datasource Title', () => {
+    const sql = 'This is the sql';
+    const name = 'this is a name';
+    const emptyResult = '';
+    const queryDatasource1 = { type: DatasourceType.Query, sql };
+    let displayText = getDatasourceTitle(queryDatasource1);
+    expect(displayText).toBe(sql);
+    const queryDatasource2 = { type: DatasourceType.Query, sql: null };
+    displayText = getDatasourceTitle(queryDatasource2);
+    expect(displayText).toBe(emptyResult);
+    const queryDatasource3 = { type: 'random type', name };
+    displayText = getDatasourceTitle(queryDatasource3);
+    expect(displayText).toBe(name);
+    const queryDatasource4 = { type: 'random type' };
+    displayText = getDatasourceTitle(queryDatasource4);
+    expect(displayText).toBe(emptyResult);
+    displayText = getDatasourceTitle();
+    expect(displayText).toBe(emptyResult);
+    displayText = getDatasourceTitle(null);
+    expect(displayText).toBe(emptyResult);
+    displayText = getDatasourceTitle('I should not be a string');
+    expect(displayText).toBe(emptyResult);
+    displayText = getDatasourceTitle([]);
+    expect(displayText).toBe(emptyResult);
   });
 });

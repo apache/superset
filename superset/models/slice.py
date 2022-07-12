@@ -286,14 +286,14 @@ class Slice(  # pylint: disable=too-many-public-methods
 
     def get_explore_url(
         self,
-        base_url: str = "/superset/explore",
+        base_url: str = "/explore",
         overrides: Optional[Dict[str, Any]] = None,
     ) -> str:
         overrides = overrides or {}
         form_data = {"slice_id": self.id}
         form_data.update(overrides)
         params = parse.quote(json.dumps(form_data))
-        return f"{base_url}/?form_data={params}"
+        return f"{base_url}/?slice_id={self.id}&form_data={params}"
 
     @property
     def slice_url(self) -> str:
@@ -335,7 +335,8 @@ class Slice(  # pylint: disable=too-many-public-methods
 
     @property
     def url(self) -> str:
-        return f"/superset/explore/?form_data=%7B%22slice_id%22%3A%20{self.id}%7D"
+        form_data = f"%7B%22slice_id%22%3A%20{self.id}%7D"
+        return f"/explore/?slice_id={self.id}&form_data={form_data}"
 
     def get_query_context_factory(self) -> QueryContextFactory:
         if self.query_context_factory is None:

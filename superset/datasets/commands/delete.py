@@ -18,9 +18,9 @@ import logging
 from typing import Optional
 
 from flask_appbuilder.models.sqla import Model
-from flask_appbuilder.security.sqla.models import User
 from sqlalchemy.exc import SQLAlchemyError
 
+from superset import security_manager
 from superset.commands.base import BaseCommand
 from superset.connectors.sqla.models import SqlaTable
 from superset.dao.exceptions import DAODeleteFailedError
@@ -31,15 +31,13 @@ from superset.datasets.commands.exceptions import (
 )
 from superset.datasets.dao import DatasetDAO
 from superset.exceptions import SupersetSecurityException
-from superset.extensions import db, security_manager
-from superset.views.base import check_ownership
+from superset.extensions import db
 
 logger = logging.getLogger(__name__)
 
 
 class DeleteDatasetCommand(BaseCommand):
-    def __init__(self, user: User, model_id: int):
-        self._actor = user
+    def __init__(self, model_id: int):
         self._model_id = model_id
         self._model: Optional[SqlaTable] = None
 
@@ -85,6 +83,6 @@ class DeleteDatasetCommand(BaseCommand):
             raise DatasetNotFoundError()
         # Check ownership
         try:
-            check_ownership(self._model)
+            security_manager.raise_for_ownership(self._model)
         except SupersetSecurityException as ex:
             raise DatasetForbiddenError() from ex

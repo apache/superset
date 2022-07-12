@@ -60,7 +60,10 @@ class SelectDataRequired(DataRequired):  # pylint: disable=too-few-public-method
     field_flags = ()
 
 
-class TableColumnInlineView(CompactCRUDMixin, SupersetModelView):
+class TableColumnInlineView(  # pylint: disable=too-many-ancestors
+    CompactCRUDMixin,
+    SupersetModelView,
+):
     datamodel = SQLAInterface(models.TableColumn)
     # TODO TODO, review need for this on related_views
     class_permission_name = "Dataset"
@@ -192,7 +195,10 @@ class TableColumnInlineView(CompactCRUDMixin, SupersetModelView):
     edit_form_extra_fields = add_form_extra_fields
 
 
-class SqlMetricInlineView(CompactCRUDMixin, SupersetModelView):
+class SqlMetricInlineView(  # pylint: disable=too-many-ancestors
+    CompactCRUDMixin,
+    SupersetModelView,
+):
     datamodel = SQLAInterface(models.SqlMetric)
     class_permission_name = "Dataset"
     method_permission_name = MODEL_VIEW_RW_METHOD_PERMISSION_MAP
@@ -274,7 +280,9 @@ class RowLevelSecurityListWidget(
         super().__init__(**kwargs)
 
 
-class RowLevelSecurityFiltersModelView(SupersetModelView, DeleteMixin):
+class RowLevelSecurityFiltersModelView(  # pylint: disable=too-many-ancestors
+    SupersetModelView, DeleteMixin
+):
     datamodel = SQLAInterface(models.RowLevelSecurityFilter)
 
     list_widget = cast(SupersetListWidget, RowLevelSecurityListWidget)
