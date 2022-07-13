@@ -19,6 +19,7 @@
 
 import { SearchOutlined } from '@ant-design/icons';
 import React, { FC } from 'react';
+import { t } from '@superset-ui/core';
 import { getFilterValueForDisplay } from 'src/dashboard/components/nativeFilters/FilterBar/FilterSets/utils';
 import {
   FilterIndicatorText,
@@ -51,7 +52,7 @@ const FilterIndicator: FC<IndicatorProps> = ({
           {name}
           {resultValue ? ': ' : ''}
         </Title>
-        <FilterValue>{resultValue}</FilterValue>
+        <FilterValue>{t(resultValue)}</FilterValue>
       </Item>
       {text && <FilterIndicatorText>{text}</FilterIndicatorText>}
     </>
