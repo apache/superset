@@ -26,8 +26,6 @@ from superset.explore.exceptions import DatasetAccessDeniedError
 from superset.explore.form_data.commands.state import TemporaryExploreState
 from superset.extensions import cache_manager
 from superset.models.slice import Slice
-from tests.integration_tests.base_tests import login
-from tests.integration_tests.fixtures.client import client
 from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices,
     load_world_bank_data,
@@ -101,9 +99,8 @@ def assert_slice(result, chart_id, dataset_id):
     assert slice["form_data"]["viz_type"] == "big_number"
 
 
-def test_no_params_provided(client):
-    login(client, "admin")
-    resp = client.get(f"api/v1/explore/")
+def test_no_params_provided(test_client, login_as_admin):
+    resp = test_client.get(f"api/v1/explore/")
     assert resp.status_code == 200
     data = json.loads(resp.data.decode("utf-8"))
     result = data.get("result")
@@ -113,9 +110,8 @@ def test_no_params_provided(client):
     assert result["slice"] == None
 
 
-def test_get_from_cache(client, dataset):
-    login(client, "admin")
-    resp = client.get(
+def test_get_from_cache(test_client, login_as_admin, dataset):
+    resp = test_client.get(
         f"api/v1/explore/?form_data_key={FORM_DATA_KEY}&dataset_id={dataset.id}&dataset_type={dataset.type}"
     )
     assert resp.status_code == 200
@@ -128,10 +124,11 @@ def test_get_from_cache(client, dataset):
     assert result["slice"] == None
 
 
-def test_get_from_cache_unknown_key_chart_id(client, chart_id, dataset):
-    login(client, "admin")
+def test_get_from_cache_unknown_key_chart_id(
+    test_client, login_as_admin, chart_id, dataset
+):
     unknown_key = "unknown_key"
-    resp = client.get(
+    resp = test_client.get(
         f"api/v1/explore/?form_data_key={unknown_key}&slice_id={chart_id}"
     )
     assert resp.status_code == 200
@@ -146,10 +143,9 @@ def test_get_from_cache_unknown_key_chart_id(client, chart_id, dataset):
     )
 
 
-def test_get_from_cache_unknown_key_dataset(client, dataset):
-    login(client, "admin")
+def test_get_from_cache_unknown_key_dataset(test_client, login_as_admin, dataset):
     unknown_key = "unknown_key"
-    resp = client.get(
+    resp = test_client.get(
         f"api/v1/explore/?form_data_key={unknown_key}&dataset_id={dataset.id}&dataset_type={dataset.type}"
     )
     assert resp.status_code == 200
@@ -164,10 +160,9 @@ def test_get_from_cache_unknown_key_dataset(client, dataset):
     assert result["slice"] == None
 
 
-def test_get_from_cache_unknown_key_no_extra_parameters(client):
-    login(client, "admin")
+def test_get_from_cache_unknown_key_no_extra_parameters(test_client, login_as_admin):
     unknown_key = "unknown_key"
-    resp = client.get(f"api/v1/explore/?form_data_key={unknown_key}")
+    resp = test_client.get(f"api/v1/explore/?form_data_key={unknown_key}")
     assert resp.status_code == 200
     data = json.loads(resp.data.decode("utf-8"))
     result = data.get("result")
@@ -177,17 +172,16 @@ def test_get_from_cache_unknown_key_no_extra_parameters(client):
     assert result["slice"] == None
 
 
-def test_get_from_permalink(client, chart_id, dataset):
-    login(client, "admin")
+def test_get_from_permalink(test_client, login_as_admin, chart_id, dataset):
     form_data = {
         "chart_id": chart_id,
         "datasource": f"{dataset.id}__{dataset.type}",
         **FORM_DATA,
     }
-    resp = client.post(f"api/v1/explore/permalink", json={"formData": form_data})
+    resp = test_client.post(f"api/v1/explore/permalink", json={"formData": form_data})
     data = json.loads(resp.data.decode("utf-8"))
     permalink_key = data["key"]
-    resp = client.get(f"api/v1/explore/?permalink_key={permalink_key}")
+    resp = test_client.get(f"api/v1/explore/?permalink_key={permalink_key}")
     assert resp.status_code == 200
     data = json.loads(resp.data.decode("utf-8"))
     result = data.get("result")
@@ -198,21 +192,21 @@ def test_get_from_permalink(client, chart_id, dataset):
     assert result["slice"] == None
 
 
-def test_get_from_permalink_unknown_key(client):
-    login(client, "admin")
+def test_get_from_permalink_unknown_key(test_client, login_as_admin):
     unknown_key = "unknown_key"
-    resp = client.get(f"api/v1/explore/?permalink_key={unknown_key}")
+    resp = test_client.get(f"api/v1/explore/?permalink_key={unknown_key}")
     assert resp.status_code == 404
 
 
 @patch("superset.security.SupersetSecurityManager.can_access_datasource")
-def test_get_dataset_access_denied(mock_can_access_datasource, client, dataset):
+def test_get_dataset_access_denied(
+    mock_can_access_datasource, test_client, login_as_admin, dataset
+):
     message = "Dataset access denied"
     mock_can_access_datasource.side_effect = DatasetAccessDeniedError(
         message=message, dataset_id=dataset.id, dataset_type=dataset.type
     )
-    login(client, "admin")
-    resp = client.get(
+    resp = test_client.get(
         f"api/v1/explore/?form_data_key={FORM_DATA_KEY}&dataset_id={dataset.id}&dataset_type={dataset.type}"
     )
     data = json.loads(resp.data.decode("utf-8"))
@@ -223,11 +217,10 @@ def test_get_dataset_access_denied(mock_can_access_datasource, client, dataset):
 
 
 @patch("superset.datasource.dao.DatasourceDAO.get_datasource")
-def test_wrong_endpoint(mock_get_datasource, client, dataset):
+def test_wrong_endpoint(mock_get_datasource, test_client, login_as_admin, dataset):
     dataset.default_endpoint = "another_endpoint"
     mock_get_datasource.return_value = dataset
-    login(client, "admin")
-    resp = client.get(
+    resp = test_client.get(
         f"api/v1/explore/?dataset_id={dataset.id}&dataset_type={dataset.type}"
     )
     data = json.loads(resp.data.decode("utf-8"))

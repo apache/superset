@@ -17,19 +17,22 @@
 from __future__ import annotations
 
 import functools
-from typing import Any, Callable, Generator, Optional, TYPE_CHECKING
+from typing import Any, Callable, Optional, TYPE_CHECKING
 from unittest.mock import patch
 
 import pytest
+from flask.ctx import AppContext
 from sqlalchemy.engine import Engine
 
 from superset import db
 from superset.extensions import feature_flag_manager
 from superset.utils.core import json_dumps_w_dates
 from superset.utils.database import get_example_database, remove_database
-from tests.integration_tests.test_app import app
+from tests.integration_tests.test_app import app, login
 
 if TYPE_CHECKING:
+    from flask.testing import FlaskClient
+
     from superset.connectors.sqla.models import Database
 
 CTAS_SCHEMA_NAME = "sqllab_test_db"
@@ -38,8 +41,31 @@ ADMIN_SCHEMA_NAME = "admin_database"
 
 @pytest.fixture
 def app_context():
-    with app.app_context():
-        yield
+    with app.app_context() as ctx:
+        yield ctx
+
+
+@pytest.fixture
+def test_client(app_context: AppContext):
+    with app.test_client() as client:
+        yield client
+
+
+@pytest.fixture
+def login_as(test_client: "FlaskClient[Any]"):
+    """Fixture with app context and logged in admin user."""
+
+    def _login_as(username: str, password: str = "general"):
+        login(test_client, username=username, password=password)
+
+    yield _login_as
+    # no need to log out as both app_context and test_client are
+    # function level fixtures anyway
+
+
+@pytest.fixture
+def login_as_admin(login_as: Callable[..., None]):
+    yield login_as("admin")
 
 
 @pytest.fixture(autouse=True, scope="session")
