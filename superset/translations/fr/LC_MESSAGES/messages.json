@@ -3717,7 +3717,10 @@
       "Percentages": ["Pourcentages"],
       "Tabular": ["Tabulaire"],
       "Text": ["Zone de texte"],
-      "Trend": ["Tendance"]
+      "Trend": ["Tendance"],
+      "Totals": ["Totaux"],
+      "Subtotal": ["Sous-Total"],
+      "Shift + Click to sort by multiple columns": ["Maintenir Shift + Clic pour trier plusieurs colonnes"]
     }
   }
 }

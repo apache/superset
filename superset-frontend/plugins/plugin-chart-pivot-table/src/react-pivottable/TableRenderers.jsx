@@ -487,7 +487,7 @@ export class TableRenderer extends React.Component {
             true,
           )}
         >
-          {t(`Total (${this.props.aggregatorName})`)}
+          {`Total (${this.props.aggregatorName})`}
         </th>
       ) : null;
 
@@ -550,7 +550,7 @@ export class TableRenderer extends React.Component {
           )}
         >
           {colAttrs.length === 0
-            ? t(`Total (${this.props.aggregatorName})`)
+            ? `Total (${this.props.aggregatorName})`
             : null}
         </th>
       </tr>
@@ -762,7 +762,7 @@ export class TableRenderer extends React.Component {
           true,
         )}
       >
-        {t(`Total (${this.props.aggregatorName})`)}
+        {`Total (${this.props.aggregatorName})`}
       </th>
     );
 
