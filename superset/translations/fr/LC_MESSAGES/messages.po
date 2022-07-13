@@ -16374,3 +16374,11 @@ msgstr "Réinitialiser mon mot de passe"
 msgid "Filter only displays values relevant to selections made in other filters."
 msgstr "Le filtre n'affiche que les valeurs pertinentes après les sélections effectuées dans d'autres filtres."
 
+#: superset-frontend/src/dashboard/components/nativeFilters/FilterCard/TypeRow.tsx:68
+msgid "Scope"
+msgstr "Périmètre"
+
+#: superset-frontend/src/dashboard/components/nativeFilters/FilterCard/DependenciesRow.tsx:86
+msgid "Dependent on"
+msgstr "Dépend de"
+

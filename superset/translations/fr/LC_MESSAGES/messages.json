@@ -3875,7 +3875,8 @@
       "Shift + Click to sort by multiple columns": ["Maintenir Shift + Clic pour trier plusieurs colonnes"],
       "Filter only displays values relevant to selections made in other filters.": ["Le filtre n'affiche que les valeurs pertinentes après les sélections effectuées dans d'autres filtres."],
       "No data after filtering or data is NULL for the latest time record": ["Pas de données après filtrage ou données manquantes pour la période sélectionnée"],
-      "metrics": ["test"]
+      "Scope": ["Périmètre"],
+      "Dependent on": ["Dépend de"]
     }
   }
 }
