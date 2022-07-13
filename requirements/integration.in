@@ -14,8 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-pip-compile-multi!=1.5.9
+pip-compile-multi
 pre-commit
 tox
-py>=1.10.0
-click

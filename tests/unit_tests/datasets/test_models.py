@@ -476,12 +476,31 @@ def test_create_virtual_sqlatable(
             name="ds",
             is_temporal=True,
             type="TIMESTAMP",
+            advanced_data_type=None,
             expression="ds",
             is_physical=True,
         ),
-        dict(name="num_boys", type="INTEGER", expression="num_boys", is_physical=True),
-        dict(name="revenue", type="INTEGER", expression="revenue", is_physical=True),
-        dict(name="expenses", type="INTEGER", expression="expenses", is_physical=True),
+        dict(
+            name="num_boys",
+            type="INTEGER",
+            advanced_data_type=None,
+            expression="num_boys",
+            is_physical=True,
+        ),
+        dict(
+            name="revenue",
+            type="INTEGER",
+            advanced_data_type=None,
+            expression="revenue",
+            is_physical=True,
+        ),
+        dict(
+            name="expenses",
+            type="INTEGER",
+            advanced_data_type=None,
+            expression="expenses",
+            is_physical=True,
+        ),
     ]
     # create a physical ``Table`` that the virtual dataset points to
     database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
@@ -699,6 +718,7 @@ def test_update_physical_sqlatable_columns(
         metrics=[],
         database=Database(database_name="my_database", sqlalchemy_uri="sqlite://"),
     )
+
     session.add(sqla_table)
     session.flush()
 
@@ -716,8 +736,11 @@ def test_update_physical_sqlatable_columns(
     assert session.query(Column).count() == 3
     dataset = session.query(Dataset).one()
     assert len(dataset.columns) == 2
-    for table_column, dataset_column in zip(sqla_table.columns, dataset.columns):
-        assert table_column.uuid == dataset_column.uuid
+
+    # check that both lists have the same uuids
+    assert [col.uuid for col in sqla_table.columns].sort() == [
+        col.uuid for col in dataset.columns
+    ].sort()
 
     # delete the column in the original instance
     sqla_table.columns = sqla_table.columns[1:]

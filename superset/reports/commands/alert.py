@@ -37,6 +37,7 @@ from superset.reports.commands.exceptions import (
     AlertValidatorConfigError,
 )
 from superset.utils.core import override_user
+from superset.utils.retries import retry_call
 
 logger = logging.getLogger(__name__)
 
@@ -88,20 +89,20 @@ class AlertCommand(BaseCommand):
 
     @staticmethod
     def _validate_result(rows: np.recarray) -> None:
-        # check if query return more then one row
+        # check if query return more than one row
         if len(rows) > 1:
             raise AlertQueryMultipleRowsError(
                 message=_(
-                    "Alert query returned more then one row. %s rows returned"
+                    "Alert query returned more than one row. %s rows returned"
                     % len(rows),
                 )
             )
-        # check if query returned more then one column
+        # check if query returned more than one column
         if len(rows[0]) > 2:
             raise AlertQueryMultipleColumnsError(
                 # len is subtracted by 1 to discard pandas index column
                 _(
-                    "Alert query returned more then one column. %s columns returned"
+                    "Alert query returned more than one column. %s columns returned"
                     % (len(rows[0]) - 1)
                 )
             )
@@ -171,7 +172,13 @@ class AlertCommand(BaseCommand):
         """
         Validate the query result as a Pandas DataFrame
         """
-        df = self._execute_query()
+        # When there are transient errors when executing queries, users will get
+        # notified with the error stacktrace which can be avoided by retrying
+        df = retry_call(
+            self._execute_query,
+            exception=AlertQueryError,
+            max_tries=app.config["ALERT_REPORTS_QUERY_EXECUTION_MAX_TRIES"],
+        )
 
         if df.empty and self._is_validator_not_null:
             self._result = None

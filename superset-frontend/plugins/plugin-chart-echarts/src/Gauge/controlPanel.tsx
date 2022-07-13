@@ -24,6 +24,7 @@ import {
   D3_FORMAT_OPTIONS,
   sections,
   emitFilterControl,
+  getStandardizedControls,
 } from '@superset-ui/chart-controls';
 import { DEFAULT_FORM_DATA } from './types';
 
@@ -39,7 +40,6 @@ const config: ControlPanelConfig = {
             name: 'groupby',
             config: {
               ...sharedControls.groupby,
-              label: t('Dimensions'),
               description: t('Columns to group by'),
             },
           },
@@ -309,6 +309,11 @@ const config: ControlPanelConfig = {
       ],
     },
   ],
+  formDataOverrides: formData => ({
+    ...formData,
+    metric: getStandardizedControls().shiftMetric(),
+    groupby: getStandardizedControls().popAllColumns(),
+  }),
 };
 
 export default config;

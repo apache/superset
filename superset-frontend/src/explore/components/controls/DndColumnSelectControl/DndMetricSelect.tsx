@@ -237,9 +237,9 @@ export const DndMetricSelect = (props: any) => {
       const valuesCopy = [...value];
       valuesCopy.splice(index, 1);
       setValue(valuesCopy);
-      onChange(valuesCopy);
+      handleChange(valuesCopy);
     },
-    [onChange, value],
+    [handleChange, value],
   );
 
   const moveLabel = useCallback(

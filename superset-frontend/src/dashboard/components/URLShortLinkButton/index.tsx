@@ -20,10 +20,11 @@ import React, { useState } from 'react';
 import { t } from '@superset-ui/core';
 import Popover, { PopoverProps } from 'src/components/Popover';
 import CopyToClipboard from 'src/components/CopyToClipboard';
-import { getDashboardPermalink, getUrlParam } from 'src/utils/urlUtils';
+import { getDashboardPermalink } from 'src/utils/urlUtils';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
-import { URL_PARAMS } from 'src/constants';
-import { getFilterValue } from 'src/dashboard/components/nativeFilters/FilterBar/keyValue';
+import { useSelector } from 'react-redux';
+import { RootState } from 'src/dashboard/types';
+import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 
 export type URLShortLinkButtonProps = {
   dashboardId: number;
@@ -42,19 +43,27 @@ export default function URLShortLinkButton({
 }: URLShortLinkButtonProps) {
   const [shortUrl, setShortUrl] = useState('');
   const { addDangerToast } = useToasts();
+  const { dataMask, activeTabs } = useSelector((state: RootState) => ({
+    dataMask: state.dataMask,
+    activeTabs: state.dashboardState.activeTabs,
+  }));
 
   const getCopyUrl = async () => {
-    const nativeFiltersKey = getUrlParam(URL_PARAMS.nativeFiltersKey);
     try {
-      const filterState = await getFilterValue(dashboardId, nativeFiltersKey);
       const url = await getDashboardPermalink({
         dashboardId,
-        filterState,
-        hash: anchorLinkId,
+        dataMask,
+        activeTabs,
+        anchor: anchorLinkId,
       });
       setShortUrl(url);
     } catch (error) {
-      addDangerToast(error);
+      if (error) {
+        addDangerToast(
+          (await getClientErrorObject(error)).error ||
+            t('Something went wrong.'),
+        );
+      }
     }
   };
 
@@ -66,7 +75,14 @@ export default function URLShortLinkButton({
       trigger="click"
       placement={placement}
       content={
-        <div id="shorturl-popover" data-test="shorturl-popover">
+        // eslint-disable-next-line jsx-a11y/no-static-element-interactions
+        <div
+          id="shorturl-popover"
+          data-test="shorturl-popover"
+          onClick={e => {
+            e.stopPropagation();
+          }}
+        >
           <CopyToClipboard
             text={shortUrl}
             copyNode={

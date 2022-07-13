@@ -21,6 +21,8 @@ import {
   ControlSetItem,
   ExtraControlProps,
   sharedControls,
+  Dataset,
+  ColumnMeta,
 } from '@superset-ui/chart-controls';
 import {
   ensureIsArray,
@@ -63,10 +65,12 @@ const dndAllColumns: typeof sharedControls.groupby = {
   mapStateToProps({ datasource, controls }, controlState) {
     const newState: ExtraControlProps = {};
     if (datasource) {
-      const options = datasource.columns;
-      newState.options = Object.fromEntries(
-        options.map(option => [option.column_name, option]),
-      );
+      if (datasource?.columns[0]?.hasOwnProperty('filterable')) {
+        const options = (datasource as Dataset).columns;
+        newState.options = Object.fromEntries(
+          options.map((option: ColumnMeta) => [option.column_name, option]),
+        );
+      } else newState.options = datasource.columns;
     }
     newState.queryMode = getQueryMode(controls);
     newState.externalValidationErrors =

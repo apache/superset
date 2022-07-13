@@ -23,12 +23,12 @@ import { DEFAULT_TIME_RANGE } from 'src/explore/constants';
 import { getControlsState } from 'src/explore/store';
 import {
   getControlConfig,
-  getFormDataFromControls,
   getControlStateFromControlConfig,
   getControlValuesCompatibleWithDatasource,
+  StandardizedFormData,
 } from 'src/explore/controlUtils';
 import * as actions from 'src/explore/actions/exploreActions';
-import { LocalStorageKeys, setItem } from 'src/utils/localStorageHelpers';
+import { HYDRATE_EXPLORE } from '../actions/hydrateExplore';
 
 export default function exploreReducer(state = {}, action) {
   const actionHandlers = {
@@ -50,27 +50,14 @@ export default function exploreReducer(state = {}, action) {
         isDatasourceMetaLoading: true,
       };
     },
-    [actions.SET_DATASOURCE]() {
+    [actions.UPDATE_FORM_DATA_BY_DATASOURCE]() {
       const newFormData = { ...state.form_data };
-      if (action.datasource.type !== state.datasource.type) {
-        if (action.datasource.type === 'table') {
-          newFormData.granularity_sqla = action.datasource.granularity_sqla;
-          newFormData.time_grain_sqla = action.datasource.time_grain_sqla;
-          delete newFormData.druid_time_origin;
-          delete newFormData.granularity;
-        } else {
-          newFormData.druid_time_origin = action.datasource.druid_time_origin;
-          newFormData.granularity = action.datasource.granularity;
-          delete newFormData.granularity_sqla;
-          delete newFormData.time_grain_sqla;
-        }
-      }
-
+      const { prevDatasource, newDatasource } = action;
       const controls = { ...state.controls };
       const controlsTransferred = [];
       if (
-        action.datasource.id !== state.datasource.id ||
-        action.datasource.type !== state.datasource.type
+        prevDatasource.id !== newDatasource.id ||
+        prevDatasource.type !== newDatasource.type
       ) {
         // reset time range filter to default
         newFormData.time_range = DEFAULT_TIME_RANGE;
@@ -89,7 +76,7 @@ export default function exploreReducer(state = {}, action) {
               ...controlState,
             };
             newFormData[controlName] = getControlValuesCompatibleWithDatasource(
-              action.datasource,
+              newDatasource,
               controlState,
               controlState.value,
             );
@@ -106,9 +93,7 @@ export default function exploreReducer(state = {}, action) {
       const newState = {
         ...state,
         controls,
-        datasource: action.datasource,
-        datasource_id: action.datasource.id,
-        datasource_type: action.datasource.type,
+        datasource: action.newDatasource,
       };
       return {
         ...newState,
@@ -123,18 +108,11 @@ export default function exploreReducer(state = {}, action) {
         isDatasourcesLoading: true,
       };
     },
-    [actions.SET_DATASOURCES]() {
-      return {
-        ...state,
-        datasources: action.datasources,
-      };
-    },
     [actions.SET_FIELD_VALUE]() {
-      const new_form_data = state.form_data;
+      const { controlName, value, validationErrors } = action;
+      let new_form_data = { ...state.form_data, [controlName]: value };
       const old_metrics_data = state.form_data.metrics;
       const new_column_config = state.form_data.column_config;
-      const { controlName, value, validationErrors } = action;
-      new_form_data[controlName] = value;
 
       const vizType = new_form_data.viz_type;
 
@@ -143,8 +121,8 @@ export default function exploreReducer(state = {}, action) {
       if (controlName === 'metrics' && old_metrics_data && new_column_config) {
         value.forEach((item, index) => {
           if (
-            item.label !== old_metrics_data[index].label &&
-            !!new_column_config[old_metrics_data[index].label]
+            item?.label !== old_metrics_data[index]?.label &&
+            !!new_column_config[old_metrics_data[index]?.label]
           ) {
             new_column_config[item.label] =
               new_column_config[old_metrics_data[index].label];
@@ -205,18 +183,17 @@ export default function exploreReducer(state = {}, action) {
       });
       const hasErrors = errors && errors.length > 0;
 
-      const currentControlsState =
+      const isVizSwitch =
         action.controlName === 'viz_type' &&
-        action.value !== state.controls.viz_type.value
-          ? // rebuild the full control state if switching viz type
-            getControlsState(
-              state,
-              getFormDataFromControls({
-                ...state.controls,
-                viz_type: control,
-              }),
-            )
-          : state.controls;
+        action.value !== state.controls.viz_type.value;
+      let currentControlsState = state.controls;
+      if (isVizSwitch) {
+        // get StandardizedFormData from source form_data
+        const sfd = new StandardizedFormData(state.form_data);
+        const transformed = sfd.transform(action.value, state);
+        new_form_data = transformed.formData;
+        currentControlsState = transformed.controlsState;
+      }
 
       return {
         ...state,
@@ -265,50 +242,18 @@ export default function exploreReducer(state = {}, action) {
         sliceName: action.slice.slice_name ?? state.sliceName,
       };
     },
-    [actions.SET_TIME_FORMATTED_COLUMN]() {
-      const { datasourceId, columnName } = action;
-      const newTimeFormattedColumns = { ...state.timeFormattedColumns };
-      const newTimeFormattedColumnsForDatasource = ensureIsArray(
-        newTimeFormattedColumns[datasourceId],
-      ).slice();
-
-      newTimeFormattedColumnsForDatasource.push(columnName);
-      newTimeFormattedColumns[datasourceId] =
-        newTimeFormattedColumnsForDatasource;
-      setItem(
-        LocalStorageKeys.explore__data_table_time_formatted_columns,
-        newTimeFormattedColumns,
-      );
-      return { ...state, timeFormattedColumns: newTimeFormattedColumns };
-    },
-    [actions.UNSET_TIME_FORMATTED_COLUMN]() {
-      const { datasourceId, columnIndex } = action;
-      const newTimeFormattedColumns = { ...state.timeFormattedColumns };
-      const newTimeFormattedColumnsForDatasource = ensureIsArray(
-        newTimeFormattedColumns[datasourceId],
-      ).slice();
-
-      newTimeFormattedColumnsForDatasource.splice(columnIndex, 1);
-      newTimeFormattedColumns[datasourceId] =
-        newTimeFormattedColumnsForDatasource;
-
-      if (newTimeFormattedColumnsForDatasource.length === 0) {
-        delete newTimeFormattedColumns[datasourceId];
-      }
-      setItem(
-        LocalStorageKeys.explore__data_table_time_formatted_columns,
-        newTimeFormattedColumns,
-      );
-      return { ...state, timeFormattedColumns: newTimeFormattedColumns };
-    },
     [actions.SET_FORCE_QUERY]() {
       return {
         ...state,
         force: action.force,
       };
     },
+    [HYDRATE_EXPLORE]() {
+      return {
+        ...action.data.explore,
+      };
+    },
   };
-
   if (action.type in actionHandlers) {
     return actionHandlers[action.type]();
   }

@@ -31,6 +31,7 @@ from superset.db_engine_specs.base import builtin_time_grains
 from superset.utils import pandas_postprocessing, schema as utils
 from superset.utils.core import (
     AnnotationType,
+    DatasourceType,
     FilterOperator,
     PostProcessingBoxplotWhiskerType,
     PostProcessingContributionOrientation,
@@ -156,7 +157,6 @@ class ChartEntityResponseSchema(Schema):
     slice_name = fields.String(description=slice_name_description)
     cache_timeout = fields.Integer(description=cache_timeout_description)
     changed_on = fields.String(description=changed_on_description)
-    modified = fields.String()
     description = fields.String(description=description_description)
     description_markeddown = fields.String(
         description=description_markeddown_description
@@ -199,7 +199,7 @@ class ChartPostSchema(Schema):
     datasource_id = fields.Integer(description=datasource_id_description, required=True)
     datasource_type = fields.String(
         description=datasource_type_description,
-        validate=validate.OneOf(choices=("druid", "table", "view")),
+        validate=validate.OneOf(choices=[ds.value for ds in DatasourceType]),
         required=True,
     )
     datasource_name = fields.String(
@@ -245,7 +245,7 @@ class ChartPutSchema(Schema):
     )
     datasource_type = fields.String(
         description=datasource_type_description,
-        validate=validate.OneOf(choices=("druid", "table", "view")),
+        validate=validate.OneOf(choices=[ds.value for ds in DatasourceType]),
         allow_none=True,
     )
     dashboards = fields.List(fields.Integer(description=dashboards_description))
@@ -851,10 +851,6 @@ class ChartDataExtrasSchema(Schema):
         description="HAVING clause to be added to aggregate queries using "
         "AND operator.",
     )
-    having_druid = fields.List(
-        fields.Nested(ChartDataFilterSchema),
-        description="HAVING filters to be added to legacy Druid datasource queries.",
-    )
     time_grain_sqla = fields.String(
         description="To what level of granularity should the temporal column be "
         "aggregated. Supports "
@@ -867,11 +863,6 @@ class ChartDataExtrasSchema(Schema):
             ]
         ),
         example="P1D",
-        allow_none=True,
-    )
-    druid_time_origin = fields.String(
-        description="Starting point for time grain counting on legacy Druid "
-        "datasources. Used to change e.g. Monday/Sunday first-day-of-week.",
         allow_none=True,
     )
 
@@ -984,7 +975,7 @@ class ChartDataDatasourceSchema(Schema):
     )
     type = fields.String(
         description="Datasource type",
-        validate=validate.OneOf(choices=("druid", "table")),
+        validate=validate.OneOf(choices=[ds.value for ds in DatasourceType]),
     )
 
 
@@ -1175,6 +1166,7 @@ class ChartDataQueryObjectSchema(Schema):
         "This field is deprecated and should be passed to `extras` "
         "as `druid_time_origin`.",
         allow_none=True,
+        deprecated=True,
     )
     url_params = fields.Dict(
         description="Optional query parameters passed to a dashboard or Explore view",

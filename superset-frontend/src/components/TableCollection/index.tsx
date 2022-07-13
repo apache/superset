@@ -150,6 +150,7 @@ export const Table = styled.table`
       .actions {
         opacity: 0;
         font-size: ${theme.typography.sizes.xl}px;
+        display: flex;
       }
 
       &:hover {
@@ -171,6 +172,7 @@ export const Table = styled.table`
     }
 
     .table-cell {
+      font-feature-settings: 'tnum' 1;
       text-overflow: ellipsis;
       overflow: hidden;
       max-width: 320px;

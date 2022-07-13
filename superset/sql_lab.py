@@ -187,7 +187,7 @@ def get_sql_results(  # pylint: disable=too-many-arguments
                 return handle_query_error(ex, query, session)
 
 
-def execute_sql_statement(  # pylint: disable=too-many-arguments,too-many-locals,too-many-statements
+def execute_sql_statement(  # pylint: disable=too-many-arguments,too-many-statements
     sql_statement: str,
     query: Query,
     session: Session,
@@ -208,7 +208,6 @@ def execute_sql_statement(  # pylint: disable=too-many-arguments,too-many-locals
                     parsed_query._parsed[0],  # pylint: disable=protected-access
                     database.id,
                     query.schema,
-                    username=get_username(),
                 )
             )
         )
@@ -548,6 +547,7 @@ def execute_sql_statements(  # pylint: disable=too-many-arguments, too-many-loca
 
     if store_results and results_backend:
         key = str(uuid.uuid4())
+        payload["query"]["resultsKey"] = key
         logger.info(
             "Query %s: Storing results in results backend, key: %s", str(query_id), key
         )

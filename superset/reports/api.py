@@ -17,7 +17,7 @@
 import logging
 from typing import Any, Optional
 
-from flask import g, request, Response
+from flask import request, Response
 from flask_appbuilder.api import expose, permission_name, protect, rison, safe
 from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -29,6 +29,7 @@ from superset.charts.filters import ChartFilter
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.dashboards.filters import DashboardAccessFilter
 from superset.databases.filters import DatabaseFilter
+from superset.extensions import event_logger
 from superset.models.reports import ReportSchedule
 from superset.reports.commands.bulk_delete import BulkDeleteReportScheduleCommand
 from superset.reports.commands.create import CreateReportScheduleCommand
@@ -227,8 +228,12 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
     @expose("/<int:pk>", methods=["DELETE"])
     @protect()
     @safe
-    @statsd_metrics
     @permission_name("delete")
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.delete",
+        log_to_statsd=False,
+    )
     def delete(self, pk: int) -> Response:
         """Delete a Report Schedule
         ---
@@ -261,7 +266,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         try:
-            DeleteReportScheduleCommand(g.user, pk).run()
+            DeleteReportScheduleCommand(pk).run()
             return self.response(200, message="OK")
         except ReportScheduleNotFoundError:
             return self.response_404()
@@ -281,7 +286,9 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @permission_name("post")
     @requires_json
-    def post(self) -> Response:
+    def post(
+        self,
+    ) -> Response:
         """Creates a new Report Schedule
         ---
         post:
@@ -319,11 +326,21 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         """
         try:
             item = self.add_model_schema.load(request.json)
+            # normally this would be covered by a decorator, however
+            # due to this model being formatted incorrectly the data
+            # needed some manipulation.
+            event_logger.log_with_context(
+                action="ReportScheduleRestApi.post",
+                dashboard_id=request.json.get("dashboard", None),
+                chart_id=request.json.get("chart", None),
+                report_format=request.json.get("report_format", None),
+                active=request.json.get("active", None),
+            )
         # This validates custom Schema with custom validations
         except ValidationError as error:
             return self.response_400(message=error.messages)
         try:
-            new_model = CreateReportScheduleCommand(g.user, item).run()
+            new_model = CreateReportScheduleCommand(item).run()
             return self.response(201, id=new_model.id, result=item)
         except ReportScheduleNotFoundError as ex:
             return self.response_400(message=str(ex))
@@ -390,11 +407,21 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         """
         try:
             item = self.edit_model_schema.load(request.json)
+            # normally this would be covered by a decorator, however
+            # due to this model being formatted incorrectly the data
+            # needed some manipulation.
+            event_logger.log_with_context(
+                action="ReportScheduleRestApi.put",
+                dashboard_id=request.json.get("dashboard", None),
+                chart_id=request.json.get("chart", None),
+                report_format=request.json.get("report_format", None),
+                active=request.json.get("active", None),
+            )
         # This validates custom Schema with custom validations
         except ValidationError as error:
             return self.response_400(message=error.messages)
         try:
-            new_model = UpdateReportScheduleCommand(g.user, pk, item).run()
+            new_model = UpdateReportScheduleCommand(pk, item).run()
             return self.response(200, id=new_model.id, result=item)
         except ReportScheduleNotFoundError:
             return self.response_404()
@@ -416,6 +443,10 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @rison(get_delete_ids_schema)
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.bulk_delete",
+        log_to_statsd=False,
+    )
     def bulk_delete(self, **kwargs: Any) -> Response:
         """Delete bulk Report Schedule layers
         ---
@@ -452,7 +483,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         """
         item_ids = kwargs["rison"]
         try:
-            BulkDeleteReportScheduleCommand(g.user, item_ids).run()
+            BulkDeleteReportScheduleCommand(item_ids).run()
             return self.response(
                 200,
                 message=ngettext(

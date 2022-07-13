@@ -129,6 +129,7 @@ MODEL_API_RW_METHOD_PERMISSION_MAP = {
     "available": "read",
     "validate_sql": "read",
     "get_data": "read",
+    "samples": "read",
 }
 
 EXTRA_FORM_DATA_APPEND_KEYS = {
@@ -146,7 +147,6 @@ EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS = {
     "time_column": "time_column",
     "time_grain": "time_grain",
     "time_range": "time_range",
-    "druid_time_origin": "druid_time_origin",
     "time_grain_sqla": "time_grain_sqla",
 }
 

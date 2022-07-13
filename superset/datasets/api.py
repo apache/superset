@@ -21,8 +21,9 @@ from io import BytesIO
 from typing import Any
 from zipfile import is_zipfile, ZipFile
 
+import simplejson
 import yaml
-from flask import g, request, Response, send_file
+from flask import make_response, request, Response, send_file
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
@@ -45,14 +46,16 @@ from superset.datasets.commands.exceptions import (
     DatasetInvalidError,
     DatasetNotFoundError,
     DatasetRefreshFailedError,
+    DatasetSamplesFailedError,
     DatasetUpdateFailedError,
 )
 from superset.datasets.commands.export import ExportDatasetsCommand
 from superset.datasets.commands.importers.dispatcher import ImportDatasetsCommand
 from superset.datasets.commands.refresh import RefreshDatasetCommand
+from superset.datasets.commands.samples import SamplesDatasetCommand
 from superset.datasets.commands.update import UpdateDatasetCommand
 from superset.datasets.dao import DatasetDAO
-from superset.datasets.filters import DatasetIsNullOrEmptyFilter
+from superset.datasets.filters import DatasetCertifiedFilter, DatasetIsNullOrEmptyFilter
 from superset.datasets.schemas import (
     DatasetPostSchema,
     DatasetPutSchema,
@@ -60,7 +63,7 @@ from superset.datasets.schemas import (
     get_delete_ids_schema,
     get_export_ids_schema,
 )
-from superset.utils.core import parse_boolean_string
+from superset.utils.core import json_int_dttm_ser, parse_boolean_string
 from superset.views.base import DatasourceFilter, generate_download_headers
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
@@ -90,6 +93,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "bulk_delete",
         "refresh",
         "related_objects",
+        "samples",
     }
     list_columns = [
         "id",
@@ -162,10 +166,12 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "datasource_type",
         "url",
         "extra",
+        "kind",
     ]
     show_columns = show_select_columns + [
         "columns.type_generic",
         "database.backend",
+        "columns.advanced_data_type",
         "is_managed_externally",
     ]
     add_model_schema = DatasetPostSchema()
@@ -194,7 +200,11 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "owners": RelatedFieldFilter("first_name", FilterRelatedOwners),
         "database": "database_name",
     }
-    search_filters = {"sql": [DatasetIsNullOrEmptyFilter]}
+    search_filters = {
+        "sql": [DatasetIsNullOrEmptyFilter],
+        "id": [DatasetCertifiedFilter],
+    }
+    search_columns = ["id", "database", "owners", "sql", "table_name"]
     filter_rel_fields = {"database": [["id", DatabaseFilter, lambda: []]]}
     allowed_rel_fields = {"database", "owners"}
     allowed_distinct_fields = {"schema"}
@@ -254,7 +264,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             return self.response_400(message=error.messages)
 
         try:
-            new_model = CreateDatasetCommand(g.user, item).run()
+            new_model = CreateDatasetCommand(item).run()
             return self.response(201, id=new_model.id, result=item)
         except DatasetInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())
@@ -334,11 +344,9 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         except ValidationError as error:
             return self.response_400(message=error.messages)
         try:
-            changed_model = UpdateDatasetCommand(
-                g.user, pk, item, override_columns
-            ).run()
+            changed_model = UpdateDatasetCommand(pk, item, override_columns).run()
             if override_columns:
-                RefreshDatasetCommand(g.user, pk).run()
+                RefreshDatasetCommand(pk).run()
             response = self.response(200, id=changed_model.id, result=item)
         except DatasetNotFoundError:
             response = self.response_404()
@@ -397,7 +405,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         try:
-            DeleteDatasetCommand(g.user, pk).run()
+            DeleteDatasetCommand(pk).run()
             return self.response(200, message="OK")
         except DatasetNotFoundError:
             return self.response_404()
@@ -537,7 +545,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         try:
-            RefreshDatasetCommand(g.user, pk).run()
+            RefreshDatasetCommand(pk).run()
             return self.response(200, message="OK")
         except DatasetNotFoundError:
             return self.response_404()
@@ -661,7 +669,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         """
         item_ids = kwargs["rison"]
         try:
-            BulkDeleteDatasetCommand(g.user, item_ids).run()
+            BulkDeleteDatasetCommand(item_ids).run()
             return self.response(
                 200,
                 message=ngettext(
@@ -755,3 +763,65 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         )
         command.run()
         return self.response(200, message="OK")
+
+    @expose("/<pk>/samples")
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.samples",
+        log_to_statsd=False,
+    )
+    def samples(self, pk: int) -> Response:
+        """get samples from a Dataset
+        ---
+        get:
+          description: >-
+            get samples from a Dataset
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+          - in: query
+            schema:
+              type: boolean
+            name: force
+          responses:
+            200:
+              description: Dataset samples
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        $ref: '#/components/schemas/ChartDataResponseResult'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            force = parse_boolean_string(request.args.get("force"))
+            rv = SamplesDatasetCommand(pk, force).run()
+            response_data = simplejson.dumps(
+                {"result": rv},
+                default=json_int_dttm_ser,
+                ignore_nan=True,
+            )
+            resp = make_response(response_data, 200)
+            resp.headers["Content-Type"] = "application/json; charset=utf-8"
+            return resp
+        except DatasetNotFoundError:
+            return self.response_404()
+        except DatasetForbiddenError:
+            return self.response_403()
+        except DatasetSamplesFailedError as ex:
+            return self.response_400(message=str(ex))

@@ -119,6 +119,36 @@ export default class SupersetClientClass {
     return this.getCSRFToken();
   }
 
+  async postForm(url: string, payload: Record<string, any>, target = '_blank') {
+    if (url) {
+      await this.ensureAuth();
+      const hiddenForm = document.createElement('form');
+      hiddenForm.action = url;
+      hiddenForm.method = 'POST';
+      hiddenForm.target = target;
+      const payloadWithToken: Record<string, any> = {
+        ...payload,
+        csrf_token: this.csrfToken!,
+      };
+
+      if (this.guestToken) {
+        payloadWithToken.guest_token = this.guestToken;
+      }
+
+      Object.entries(payloadWithToken).forEach(([key, value]) => {
+        const data = document.createElement('input');
+        data.type = 'hidden';
+        data.name = key;
+        data.value = value;
+        hiddenForm.appendChild(data);
+      });
+
+      document.body.appendChild(hiddenForm);
+      hiddenForm.submit();
+      document.body.removeChild(hiddenForm);
+    }
+  }
+
   async reAuthenticate() {
     return this.init(true);
   }
@@ -126,6 +156,10 @@ export default class SupersetClientClass {
   isAuthenticated(): boolean {
     // if CSRF protection is disabled in the Superset app, the token may be an empty string
     return this.csrfToken !== null && this.csrfToken !== undefined;
+  }
+
+  getGuestToken() {
+    return this.guestToken;
   }
 
   async get<T extends ParseMethod = 'json'>(

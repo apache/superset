@@ -24,6 +24,7 @@ import { ColorsLookup } from './types';
 import stringifyAndTrim from './stringifyAndTrim';
 import getSharedLabelColor from './SharedLabelColorSingleton';
 import { getAnalogousColors } from './utils';
+import { FeatureFlag, isFeatureEnabled } from '../utils';
 
 // Use type augmentation to correct the fact that
 // an instance of CategoricalScale is also a function
@@ -79,13 +80,15 @@ class CategoricalColorScale extends ExtensibleFunction {
       return forcedColor;
     }
 
-    const multiple = Math.floor(
-      this.domain().length / this.originColors.length,
-    );
-    if (multiple > this.multiple) {
-      this.multiple = multiple;
-      const newRange = getAnalogousColors(this.originColors, multiple);
-      this.range(this.originColors.concat(newRange));
+    if (isFeatureEnabled(FeatureFlag.USE_ANALAGOUS_COLORS)) {
+      const multiple = Math.floor(
+        this.domain().length / this.originColors.length,
+      );
+      if (multiple > this.multiple) {
+        this.multiple = multiple;
+        const newRange = getAnalogousColors(this.originColors, multiple);
+        this.range(this.originColors.concat(newRange));
+      }
     }
 
     const color = this.scale(cleanedValue);

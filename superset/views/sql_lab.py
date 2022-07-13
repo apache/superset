@@ -29,13 +29,17 @@ from superset.constants import MODEL_VIEW_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.models.sql_lab import Query, SavedQuery, TableSchema, TabState
 from superset.superset_typing import FlaskResponse
 from superset.utils import core as utils
+from superset.utils.core import get_user_id
 
 from .base import BaseSupersetView, DeleteMixin, json_success, SupersetModelView
 
 logger = logging.getLogger(__name__)
 
 
-class SavedQueryView(SupersetModelView, DeleteMixin):
+class SavedQueryView(  # pylint: disable=too-many-ancestors
+    SupersetModelView,
+    DeleteMixin,
+):
     datamodel = SQLAInterface(SavedQuery)
     include_route_methods = RouteMethod.CRUD_SET
 
@@ -134,7 +138,7 @@ class TabStateView(BaseSupersetView):
     def post(self) -> FlaskResponse:  # pylint: disable=no-self-use
         query_editor = json.loads(request.form["queryEditor"])
         tab_state = TabState(
-            user_id=g.user.get_id(),
+            user_id=get_user_id(),
             label=query_editor.get("title", "Untitled Query"),
             active=True,
             database_id=query_editor["dbId"],
@@ -145,7 +149,7 @@ class TabStateView(BaseSupersetView):
         )
         (
             db.session.query(TabState)
-            .filter_by(user_id=g.user.get_id())
+            .filter_by(user_id=get_user_id())
             .update({"active": False})
         )
         db.session.add(tab_state)
@@ -155,7 +159,7 @@ class TabStateView(BaseSupersetView):
     @has_access_api
     @expose("/<int:tab_state_id>", methods=["DELETE"])
     def delete(self, tab_state_id: int) -> FlaskResponse:  # pylint: disable=no-self-use
-        if _get_owner_id(tab_state_id) != int(g.user.get_id()):
+        if _get_owner_id(tab_state_id) != get_user_id():
             return Response(status=403)
 
         db.session.query(TabState).filter(TabState.id == tab_state_id).delete(
@@ -170,7 +174,7 @@ class TabStateView(BaseSupersetView):
     @has_access_api
     @expose("/<int:tab_state_id>", methods=["GET"])
     def get(self, tab_state_id: int) -> FlaskResponse:  # pylint: disable=no-self-use
-        if _get_owner_id(tab_state_id) != int(g.user.get_id()):
+        if _get_owner_id(tab_state_id) != get_user_id():
             return Response(status=403)
 
         tab_state = db.session.query(TabState).filter_by(id=tab_state_id).first()
@@ -188,12 +192,12 @@ class TabStateView(BaseSupersetView):
         owner_id = _get_owner_id(tab_state_id)
         if owner_id is None:
             return Response(status=404)
-        if owner_id != int(g.user.get_id()):
+        if owner_id != get_user_id():
             return Response(status=403)
 
         (
             db.session.query(TabState)
-            .filter_by(user_id=g.user.get_id())
+            .filter_by(user_id=get_user_id())
             .update({"active": TabState.id == tab_state_id})
         )
         db.session.commit()
@@ -202,7 +206,7 @@ class TabStateView(BaseSupersetView):
     @has_access_api
     @expose("<int:tab_state_id>", methods=["PUT"])
     def put(self, tab_state_id: int) -> FlaskResponse:  # pylint: disable=no-self-use
-        if _get_owner_id(tab_state_id) != int(g.user.get_id()):
+        if _get_owner_id(tab_state_id) != get_user_id():
             return Response(status=403)
 
         fields = {k: json.loads(v) for k, v in request.form.to_dict().items()}
@@ -215,7 +219,7 @@ class TabStateView(BaseSupersetView):
     def migrate_query(  # pylint: disable=no-self-use
         self, tab_state_id: int
     ) -> FlaskResponse:
-        if _get_owner_id(tab_state_id) != int(g.user.get_id()):
+        if _get_owner_id(tab_state_id) != get_user_id():
             return Response(status=403)
 
         client_id = json.loads(request.form["queryId"])
@@ -242,7 +246,7 @@ class TabStateView(BaseSupersetView):
                 .filter(
                     and_(
                         Query.client_id != client_id,
-                        Query.user_id == g.user.get_id(),
+                        Query.user_id == get_user_id(),
                         Query.sql_editor_id == str(tab_state_id),
                     ),
                 )
@@ -255,7 +259,7 @@ class TabStateView(BaseSupersetView):
 
         db.session.query(Query).filter_by(
             client_id=client_id,
-            user_id=g.user.get_id(),
+            user_id=get_user_id(),
             sql_editor_id=str(tab_state_id),
         ).delete(synchronize_session=False)
         db.session.commit()
@@ -325,4 +329,4 @@ class SqlLab(BaseSupersetView):
         logger.warning(
             "This endpoint is deprecated and will be removed in the next major release"
         )
-        return redirect("/savedqueryview/list/?_flt_0_user={}".format(g.user.get_id()))
+        return redirect(f"/savedqueryview/list/?_flt_0_user={get_user_id()}")

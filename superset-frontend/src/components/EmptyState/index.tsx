@@ -106,6 +106,7 @@ const BigDescription = styled(Description)`
 const SmallDescription = styled(Description)`
   ${({ theme }) => css`
     margin-top: ${theme.gridUnit}px;
+    line-height: 1.2;
   `}
 `;
 

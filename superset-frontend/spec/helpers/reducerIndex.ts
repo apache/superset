@@ -37,6 +37,12 @@ const impressionId = (state = '') => state;
 const container = document.getElementById('app');
 const bootstrap = JSON.parse(container?.getAttribute('data-bootstrap') ?? '{}');
 const common = { ...bootstrap.common };
+const user = { ...bootstrap.user };
+
+const noopReducer =
+  (initialState: unknown) =>
+  (state = initialState) =>
+    state;
 
 export default {
   charts,
@@ -55,5 +61,6 @@ export default {
   sqlLab,
   localStorageUsageInKilobytes,
   reports,
-  common: () => common,
+  common: noopReducer(common),
+  user: noopReducer(user),
 };

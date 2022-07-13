@@ -177,7 +177,7 @@ const getSort = function (sorters, attr) {
   return naturalSort;
 };
 
-// aggregator templates default to US number formatting but this is overrideable
+// aggregator templates default to US number formatting but this is overridable
 const usFmt = numberFormat();
 const usFmtInt = numberFormat({ digitsAfterDecimal: 0 });
 const usFmtPct = numberFormat({
@@ -185,6 +185,8 @@ const usFmtPct = numberFormat({
   scaler: 100,
   suffix: '%',
 });
+
+const fmtNonString = formatter => x => typeof x === 'string' ? x : formatter(x);
 
 const baseAggregatorTemplates = {
   count(formatter = usFmtInt) {
@@ -216,7 +218,7 @@ const baseAggregatorTemplates = {
           value() {
             return fn(this.uniq);
           },
-          format: formatter,
+          format: fmtNonString(formatter),
           numInputs: typeof attr !== 'undefined' ? 0 : 1,
         };
       };
@@ -229,14 +231,16 @@ const baseAggregatorTemplates = {
         return {
           sum: 0,
           push(record) {
-            if (!Number.isNaN(parseFloat(record[attr]))) {
+            if (Number.isNaN(parseFloat(record[attr]))) {
+              this.sum = record[attr];
+            } else {
               this.sum += parseFloat(record[attr]);
             }
           },
           value() {
             return this.sum;
           },
-          format: formatter,
+          format: fmtNonString(formatter),
           numInputs: typeof attr !== 'undefined' ? 0 : 1,
         };
       };
@@ -253,20 +257,28 @@ const baseAggregatorTemplates = {
             attr,
           ),
           push(record) {
-            let x = record[attr];
+            const x = record[attr];
             if (['min', 'max'].includes(mode)) {
-              x = parseFloat(x);
-              if (!Number.isNaN(x)) {
-                this.val = Math[mode](x, this.val !== null ? this.val : x);
+              const coercedValue = parseFloat(x);
+              if (Number.isNaN(coercedValue)) {
+                this.val =
+                  !this.val ||
+                  (mode === 'min' && x < this.val) ||
+                  (mode === 'max' && x > this.val)
+                    ? x
+                    : this.val;
+              } else {
+                this.val = Math[mode](
+                  coercedValue,
+                  this.val !== null ? this.val : coercedValue,
+                );
               }
-            }
-            if (
+            } else if (
               mode === 'first' &&
               this.sorter(x, this.val !== null ? this.val : x) <= 0
             ) {
               this.val = x;
-            }
-            if (
+            } else if (
               mode === 'last' &&
               this.sorter(x, this.val !== null ? this.val : x) >= 0
             ) {
@@ -277,10 +289,10 @@ const baseAggregatorTemplates = {
             return this.val;
           },
           format(x) {
-            if (Number.isNaN(x)) {
-              return x;
+            if (typeof x === 'number') {
+              return formatter(x);
             }
-            return formatter(x);
+            return x;
           },
           numInputs: typeof attr !== 'undefined' ? 0 : 1,
         };
@@ -293,21 +305,40 @@ const baseAggregatorTemplates = {
       return function () {
         return {
           vals: [],
+          strMap: {},
           push(record) {
-            const x = parseFloat(record[attr]);
-            if (!Number.isNaN(x)) {
+            const val = record[attr];
+            const x = parseFloat(val);
+
+            if (Number.isNaN(x)) {
+              this.strMap[val] = (this.strMap[val] || 0) + 1;
+            } else {
               this.vals.push(x);
             }
           },
           value() {
-            if (this.vals.length === 0) {
+            if (
+              this.vals.length === 0 &&
+              Object.keys(this.strMap).length === 0
+            ) {
               return null;
             }
+
+            if (Object.keys(this.strMap).length) {
+              const values = Object.values(this.strMap).sort((a, b) => a - b);
+              const middle = Math.floor(values.length / 2);
+
+              const keys = Object.keys(this.strMap);
+              return keys.length % 2 !== 0
+                ? keys[middle]
+                : (keys[middle - 1] + keys[middle]) / 2;
+            }
+
             this.vals.sort((a, b) => a - b);
             const i = (this.vals.length - 1) * q;
             return (this.vals[Math.floor(i)] + this.vals[Math.ceil(i)]) / 2.0;
           },
-          format: formatter,
+          format: fmtNonString(formatter),
           numInputs: typeof attr !== 'undefined' ? 0 : 1,
         };
       };
@@ -321,9 +352,12 @@ const baseAggregatorTemplates = {
           n: 0.0,
           m: 0.0,
           s: 0.0,
+          strValue: null,
           push(record) {
             const x = parseFloat(record[attr]);
             if (Number.isNaN(x)) {
+              this.strValue =
+                typeof record[attr] === 'string' ? record[attr] : this.strValue;
               return;
             }
             this.n += 1.0;
@@ -335,6 +369,10 @@ const baseAggregatorTemplates = {
             this.m = mNew;
           },
           value() {
+            if (this.strValue) {
+              return this.strValue;
+            }
+
             if (mode === 'mean') {
               if (this.n === 0) {
                 return 0 / 0;
@@ -353,7 +391,7 @@ const baseAggregatorTemplates = {
                 throw new Error('unknown mode for runningStat');
             }
           },
-          format: formatter,
+          format: fmtNonString(formatter),
           numInputs: typeof attr !== 'undefined' ? 0 : 1,
         };
       };
@@ -396,14 +434,17 @@ const baseAggregatorTemplates = {
           push(record) {
             this.inner.push(record);
           },
-          format: formatter,
+          format: fmtNonString(formatter),
           value() {
-            return (
-              this.inner.value() /
-              data
-                .getAggregator(...Array.from(this.selector || []))
-                .inner.value()
-            );
+            const acc = data
+              .getAggregator(...Array.from(this.selector || []))
+              .inner.value();
+
+            if (typeof acc === 'string') {
+              return acc;
+            }
+
+            return this.inner.value() / acc;
           },
           numInputs: wrapped(...Array.from(x || []))().numInputs,
         };

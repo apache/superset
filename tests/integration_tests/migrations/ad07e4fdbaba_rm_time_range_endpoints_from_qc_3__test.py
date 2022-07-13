@@ -15,11 +15,14 @@
 # specific language governing permissions and limitations
 # under the License.
 import json
+from importlib import import_module
 
-from superset.migrations.versions.ad07e4fdbaba_rm_time_range_endpoints_from_qc_3 import (
-    Slice,
-    upgrade_slice,
+rm_time_range_endpoints_from_qc_3 = import_module(
+    "superset.migrations.versions."
+    "2022-04-18_11-20_ad07e4fdbaba_rm_time_range_endpoints_from_qc_3",
 )
+Slice = rm_time_range_endpoints_from_qc_3.Slice
+upgrade_slice = rm_time_range_endpoints_from_qc_3.upgrade_slice
 
 sample_query_context = {
     "datasource": {"id": 27, "type": "table"},

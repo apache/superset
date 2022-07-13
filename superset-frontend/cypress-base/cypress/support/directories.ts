@@ -630,7 +630,8 @@ export const dashboardView = {
     trashIcon: dataTestLocator('dashboard-delete-component-button'),
     refreshChart: dataTestLocator('refresh-chart-menu-item'),
   },
-  threeDotsMenuIcon: '#save-dash-split-button',
+  threeDotsMenuIcon:
+    '.header-with-actions .right-button-panel .ant-dropdown-trigger',
   threeDotsMenuDropdown: dataTestLocator('header-actions-menu'),
   refreshDashboard: dataTestLocator('refresh-dashboard-menu-item'),
   saveAsMenuOption: dataTestLocator('save-as-menu-item'),
@@ -660,7 +661,7 @@ export const dashboardView = {
   },
   sliceThreeDots: '[aria-label="More Options"]',
   sliceThreeDotsDropdown: '[role="menu"]',
-  editDashboardButton: '[aria-label=edit-alt]',
+  editDashboardButton: '[aria-label="Edit dashboard"]',
   starIcon: dataTestLocator('fave-unfave-icon'),
   dashboardHeader: dataTestLocator('dashboard-header'),
   dashboardSectionContainer: dataTestLocator(

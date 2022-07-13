@@ -6,7 +6,7 @@ on:
 
 jobs:
   cypress-applitools:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
       matrix:
@@ -36,7 +36,12 @@ jobs:
         ports:
           - 16379:6379
     steps:
-      - uses: actions/checkout@v3
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+        uses: actions/checkout@v3
+        with:
+          persist-credentials: false
+          submodules: recursive
+          ref: master
       - name: Setup Python
         uses: actions/setup-python@v2
         with:
@@ -59,8 +64,8 @@ jobs:
         uses: ./.github/actions/cached-dependencies
         with:
           run: testdata
-      - name: Set up Node.js
-        uses: actions/setup-node@v3.1.1
+      - name: Setup Node.js
+        uses: actions/setup-node@v2
         with:
           node-version: ${{ matrix.node }}
       - name: Install npm dependencies
@@ -75,7 +80,7 @@ jobs:
         uses: ./.github/actions/cached-dependencies
         with:
           run: cypress-install
-      - name: Run Applitools Cypress
+      - name: Run Cypress
         uses: ./.github/actions/cached-dependencies
         env:
           CYPRESS_BROWSER: ${{ matrix.browser }}

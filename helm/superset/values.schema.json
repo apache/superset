@@ -275,6 +275,15 @@
                 },
                 "podLabels": {
                     "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta/properties/labels"
+                },
+                "resources": {
+                    "type": "object"
+                },
+                "podSecurityContext": {
+                    "type": "object"
+                },
+                "containerSecurityContext": {
+                    "type": "object"
                 }
             },
             "required": [
@@ -305,6 +314,15 @@
                 },
                 "podLabels": {
                     "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta/properties/labels"
+                },
+                "resources": {
+                    "type": "object"
+                },
+                "podSecurityContext": {
+                    "type": "object"
+                },
+                "containerSecurityContext": {
+                    "type": "object"
                 }
             },
             "required": [
@@ -336,6 +354,15 @@
                 },
                 "podLabels": {
                     "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta/properties/labels"
+                },
+                "resources": {
+                    "type": "object"
+                },
+                "podSecurityContext": {
+                    "type": "object"
+                },
+                "containerSecurityContext": {
+                    "type": "object"
                 }
             },
             "required": [
@@ -399,6 +426,12 @@
                 },
                 "podAnnotations": {
                     "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta/properties/annotations"
+                },
+                "podSecurityContext": {
+                    "type": "object"
+                },
+                "containerSecurityContext": {
+                    "type": "object"
                 }
             },
             "required": [

@@ -47,7 +47,9 @@ const datasource = {
   main_dttm_col: 'None',
   datasource_name: 'table1',
   description: 'desc',
-  owners: [{ username: 'admin', userId: 1 }],
+  owners: [
+    { first_name: 'admin', last_name: 'admin', username: 'admin', id: 1 },
+  ],
 };
 
 const mockUser = {
@@ -92,19 +94,19 @@ function search(value: string, input: HTMLElement) {
 }
 
 test('should render', () => {
-  const { container } = render(setup(props));
+  const { container } = render(setup(props), { useRedux: true });
   expect(container).toBeVisible();
 });
 
 test('should display items in controls', () => {
-  render(setup(props));
+  render(setup(props), { useRedux: true });
   expect(screen.getByText('birth_names')).toBeInTheDocument();
   expect(screen.getByText('Metrics')).toBeInTheDocument();
   expect(screen.getByText('Columns')).toBeInTheDocument();
 });
 
 test('should render the metrics', () => {
-  render(setup(props));
+  render(setup(props), { useRedux: true });
   const metricsNum = metrics.length;
   metrics.forEach(metric =>
     expect(screen.getByText(metric.metric_name)).toBeInTheDocument(),
@@ -115,7 +117,7 @@ test('should render the metrics', () => {
 });
 
 test('should render the columns', () => {
-  render(setup(props));
+  render(setup(props), { useRedux: true });
   const columnsNum = columns.length;
   columns.forEach(col =>
     expect(screen.getByText(col.column_name)).toBeInTheDocument(),
@@ -126,7 +128,7 @@ test('should render the columns', () => {
 });
 
 test('should render 0 search results', async () => {
-  render(setup(props));
+  render(setup(props), { useRedux: true });
   const searchInput = screen.getByPlaceholderText('Search Metrics & Columns');
 
   search('nothing', searchInput);
@@ -134,7 +136,7 @@ test('should render 0 search results', async () => {
 });
 
 test('should search and render matching columns', async () => {
-  render(setup(props));
+  render(setup(props), { useRedux: true });
   const searchInput = screen.getByPlaceholderText('Search Metrics & Columns');
 
   search(columns[0].column_name, searchInput);
@@ -146,7 +148,7 @@ test('should search and render matching columns', async () => {
 });
 
 test('should search and render matching metrics', async () => {
-  render(setup(props));
+  render(setup(props), { useRedux: true });
   const searchInput = screen.getByPlaceholderText('Search Metrics & Columns');
 
   search(metrics[0].metric_name, searchInput);
@@ -174,8 +176,68 @@ test('should render a warning', async () => {
         },
       },
     }),
+    { useRedux: true },
   );
   expect(
     await screen.findByRole('img', { name: 'alert-solid' }),
   ).toBeInTheDocument();
+});
+
+test('should render a create dataset infobox', () => {
+  render(
+    setup({
+      ...props,
+      datasource: {
+        ...datasource,
+        type: DatasourceType.Query,
+      },
+    }),
+    { useRedux: true },
+  );
+
+  const createButton = screen.getByRole('button', {
+    name: /create a dataset/i,
+  });
+  const infoboxText = screen.getByText(/to edit or add columns and metrics./i);
+
+  expect(createButton).toBeVisible();
+  expect(infoboxText).toBeVisible();
+});
+
+test('should render a save dataset modal when "Create a dataset" is clicked', () => {
+  render(
+    setup({
+      ...props,
+      datasource: {
+        ...datasource,
+        type: DatasourceType.Query,
+      },
+    }),
+    { useRedux: true },
+  );
+
+  const createButton = screen.getByRole('button', {
+    name: /create a dataset/i,
+  });
+
+  userEvent.click(createButton);
+
+  const saveDatasetModalTitle = screen.getByText(/save or overwrite dataset/i);
+
+  expect(saveDatasetModalTitle).toBeVisible();
+});
+
+test('should not render a save dataset modal when datasource is not query or dataset', () => {
+  render(
+    setup({
+      ...props,
+      datasource: {
+        ...datasource,
+        type: DatasourceType.Table,
+      },
+    }),
+    { useRedux: true },
+  );
+
+  expect(screen.queryByText(/create a dataset/i)).toBe(null);
 });

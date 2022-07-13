@@ -40,7 +40,14 @@ def test_validate_parameters_simple(
         "catalog": {},
     }
     errors = GSheetsEngineSpec.validate_parameters(parameters)
-    assert errors == []
+    assert errors == [
+        SupersetError(
+            message="Sheet name is required",
+            error_type=SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR,
+            level=ErrorLevel.WARNING,
+            extra={"catalog": {"idx": 0, "name": True}},
+        ),
+    ]
 
 
 def test_validate_parameters_catalog(

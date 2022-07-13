@@ -67,8 +67,20 @@ export const URL_PARAMS = {
     name: 'slice_id',
     type: 'string',
   },
+  datasourceId: {
+    name: 'datasource_id',
+    type: 'string',
+  },
   datasetId: {
     name: 'dataset_id',
+    type: 'string',
+  },
+  datasourceType: {
+    name: 'datasource_type',
+    type: 'string',
+  },
+  dashboardId: {
+    name: 'dashboard_id',
     type: 'string',
   },
   force: {
@@ -79,11 +91,25 @@ export const URL_PARAMS = {
     name: 'permalink_key',
     type: 'string',
   },
+  vizType: {
+    name: 'viz_type',
+    type: 'string',
+  },
+  showDatabaseModal: {
+    name: 'show_database_modal',
+    type: 'boolean',
+  },
+  saveAction: {
+    name: 'save_action',
+    type: 'string',
+  },
 } as const;
 
 export const RESERVED_CHART_URL_PARAMS: string[] = [
   URL_PARAMS.formDataKey.name,
   URL_PARAMS.sliceId.name,
+  URL_PARAMS.datasourceId.name,
+  URL_PARAMS.datasourceType.name,
   URL_PARAMS.datasetId.name,
 ];
 export const RESERVED_DASHBOARD_URL_PARAMS: string[] = [

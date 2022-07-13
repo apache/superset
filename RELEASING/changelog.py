@@ -164,6 +164,12 @@ class GitChangeLog:
         return False
 
     def _get_changelog_version_head(self) -> str:
+        if not len(self._logs):
+            print(
+                f"No changes found between revisions. "
+                f"Make sure your branch is up to date."
+            )
+            sys.exit(1)
         return f"### {self._version} ({self._logs[0].time})"
 
     def _parse_change_log(

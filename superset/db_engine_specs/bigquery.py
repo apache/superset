@@ -123,8 +123,12 @@ class BigQueryEngineSpec(BaseEngineSpec):
 
     _time_grain_expressions = {
         None: "{col}",
-        "PT1S": "{func}({col}, SECOND)",
-        "PT1M": "{func}({col}, MINUTE)",
+        "PT1S": "CAST(TIMESTAMP_SECONDS("
+        "UNIX_SECONDS(CAST({col} AS TIMESTAMP))"
+        ") AS {type})",
+        "PT1M": "CAST(TIMESTAMP_SECONDS("
+        "60 * DIV(UNIX_SECONDS(CAST({col} AS TIMESTAMP)), 60)"
+        ") AS {type})",
         "PT5M": "CAST(TIMESTAMP_SECONDS("
         "5*60 * DIV(UNIX_SECONDS(CAST({col} AS TIMESTAMP)), 5*60)"
         ") AS {type})",
@@ -140,6 +144,7 @@ class BigQueryEngineSpec(BaseEngineSpec):
         "PT1H": "{func}({col}, HOUR)",
         "P1D": "{func}({col}, DAY)",
         "P1W": "{func}({col}, WEEK)",
+        "1969-12-29T00:00:00Z/P1W": "{func}({col}, ISOWEEK)",
         "P1M": "{func}({col}, MONTH)",
         "P3M": "{func}({col}, QUARTER)",
         "P1Y": "{func}({col}, YEAR)",

@@ -576,8 +576,8 @@ class Database(
                 database=self, inspector=self.inspector, schema=schema
             )
             return [(table, schema) for table in tables]
-        except Exception as ex:  # pylint: disable=broad-except
-            logger.warning(ex)
+        except Exception:  # pylint: disable=broad-except
+            logger.warning("Get all table names in schema failed", exc_info=True)
             return []
 
     @cache_util.memoized_func(
@@ -607,8 +607,8 @@ class Database(
                 database=self, inspector=self.inspector, schema=schema
             )
             return [(view, schema) for view in views]
-        except Exception as ex:  # pylint: disable=broad-except
-            logger.warning(ex)
+        except Exception:  # pylint: disable=broad-except
+            logger.warning("Get all view names failed", exc_info=True)
             return []
 
     @cache_util.memoized_func(
@@ -777,8 +777,8 @@ class Database(
         view_names: List[str] = []
         try:
             view_names = dialect.get_view_names(connection=conn, schema=schema)
-        except Exception as ex:  # pylint: disable=broad-except
-            logger.warning(ex)
+        except Exception:  # pylint: disable=broad-except
+            logger.warning("Has view failed", exc_info=True)
         return view_name in view_names
 
     def has_view(self, view_name: str, schema: Optional[str] = None) -> bool:

@@ -166,6 +166,10 @@ class Query(Model, ExtraJSONMixin):
     def sql_tables(self) -> List[Table]:
         return list(ParsedQuery(self.sql).tables)
 
+    @property
+    def columns(self) -> List[Table]:
+        return self.extra.get("columns", [])
+
     def raise_for_access(self) -> None:
         """
         Raise an exception if the user cannot access the resource.

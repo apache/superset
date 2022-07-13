@@ -59,13 +59,6 @@ import {
 import { DASHBOARD_LIST } from '../dashboard_list/dashboard_list.helper';
 import { CHART_LIST } from '../chart_list/chart_list.helper';
 
-const getTestTitle = (
-  test: Mocha.Suite = (Cypress as any).mocha.getRunner().suite.ctx.test,
-): string =>
-  test.parent?.title
-    ? `${getTestTitle(test.parent)} -- ${test.title}`
-    : test.title;
-
 // TODO: fix flaky init logic and re-enable
 const milliseconds = new Date().getTime();
 const dashboard = `Test Dashboard${milliseconds}`;

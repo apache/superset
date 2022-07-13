@@ -44,7 +44,7 @@ import {
   deleteActiveReport,
 } from 'src/reports/actions/reports';
 import { reportSelector } from 'src/views/CRUD/hooks';
-import { MenuItemWithCheckboxContainer } from 'src/explore/components/ExploreAdditionalActionsMenu/index';
+import { MenuItemWithCheckboxContainer } from 'src/explore/components/useExploreAdditionalActionsMenu/index';
 
 const deleteColor = (theme: SupersetTheme) => css`
   color: ${theme.colors.error.base};
@@ -104,7 +104,7 @@ export default function HeaderReportDropDown({
   const user: UserWithPermissionsAndRoles = useSelector<
     any,
     UserWithPermissionsAndRoles
-  >(state => state.user || state.explore?.user);
+  >(state => state.user);
   const canAddReports = () => {
     if (!isFeatureEnabled(FeatureFlag.ALERT_REPORTS)) {
       return false;
@@ -243,7 +243,11 @@ export default function HeaderReportDropDown({
             triggerNode.closest('.action-button')
           }
         >
-          <span role="button" className="action-button" tabIndex={0}>
+          <span
+            role="button"
+            className="action-button action-schedule-report"
+            tabIndex={0}
+          >
             <Icons.Calendar />
           </span>
         </NoAnimationDropdown>
@@ -253,7 +257,7 @@ export default function HeaderReportDropDown({
         role="button"
         title={t('Schedule email report')}
         tabIndex={0}
-        className="action-button"
+        className="action-button action-schedule-report"
         onClick={() => setShowModal(true)}
       >
         <Icons.Calendar />

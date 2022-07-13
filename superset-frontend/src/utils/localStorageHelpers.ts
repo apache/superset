@@ -31,6 +31,7 @@ export enum LocalStorageKeys {
    * and therefore should be done in a major release.
    */
   filter_box_transition_snoozed_at = 'filter_box_transition_snoozed_at',
+  db = 'db',
   chart_split_sizes = 'chart_split_sizes',
   controls_width = 'controls_width',
   datasource_width = 'datasource_width',
@@ -49,11 +50,12 @@ export enum LocalStorageKeys {
    * sqllab__is_autocomplete_enabled
    */
   sqllab__is_autocomplete_enabled = 'sqllab__is_autocomplete_enabled',
-  explore__data_table_time_formatted_columns = 'explore__data_table_time_formatted_columns',
+  explore__data_table_original_formatted_time_columns = 'explore__data_table_original_formatted_time_columns',
 }
 
 export type LocalStorageValues = {
   filter_box_transition_snoozed_at: Record<number, number>;
+  db: object | null;
   chart_split_sizes: [number, number];
   controls_width: number;
   datasource_width: number;
@@ -63,22 +65,8 @@ export type LocalStorageValues = {
   homepage_collapse_state: string[];
   homepage_activity_filter: SetTabType | null;
   sqllab__is_autocomplete_enabled: boolean;
-  explore__data_table_time_formatted_columns: Record<string, string[]>;
+  explore__data_table_original_formatted_time_columns: Record<string, string[]>;
 };
-
-export function getItem<K extends LocalStorageKeys>(
-  key: K,
-  defaultValue: LocalStorageValues[K],
-): LocalStorageValues[K] {
-  return dangerouslyGetItemDoNotUse(key, defaultValue);
-}
-
-export function setItem<K extends LocalStorageKeys>(
-  key: K,
-  value: LocalStorageValues[K],
-): void {
-  dangerouslySetItemDoNotUse(key, value);
-}
 
 /*
  * This function should not be used directly, as it doesn't provide any type safety or any
@@ -115,4 +103,18 @@ export function dangerouslySetItemDoNotUse(key: string, value: any): void {
   } catch {
     // Catch in case localStorage is unavailable
   }
+}
+
+export function getItem<K extends LocalStorageKeys>(
+  key: K,
+  defaultValue: LocalStorageValues[K],
+): LocalStorageValues[K] {
+  return dangerouslyGetItemDoNotUse(key, defaultValue);
+}
+
+export function setItem<K extends LocalStorageKeys>(
+  key: K,
+  value: LocalStorageValues[K],
+): void {
+  dangerouslySetItemDoNotUse(key, value);
 }
