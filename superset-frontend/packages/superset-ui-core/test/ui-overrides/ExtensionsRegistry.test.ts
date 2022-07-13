@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import ReactDOM from 'react-dom';
-import App from './App';
+import { getExtensionsRegistry } from '@superset-ui/core';
 
-ReactDOM.render(<App />, document.getElementById('app'));
+test('should get instance of getExtensionsRegistry', () => {
+  expect(getExtensionsRegistry().name).toBe('ExtensionsRegistry');
+});

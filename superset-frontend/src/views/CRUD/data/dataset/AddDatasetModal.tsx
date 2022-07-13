@@ -23,6 +23,11 @@ import Modal from 'src/components/Modal';
 import TableSelector from 'src/components/TableSelector';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { DatabaseObject } from 'src/components/DatabaseSelector';
+import {
+  getItem,
+  LocalStorageKeys,
+  setItem,
+} from 'src/utils/localStorageHelpers';
 
 type DatasetAddObject = {
   id: number;
@@ -45,7 +50,6 @@ const TableSelectorContainer = styled.div`
 
 const DatasetModal: FunctionComponent<DatasetModalProps> = ({
   addDangerToast,
-  addSuccessToast,
   onDatasetAdd,
   onHide,
   show,
@@ -69,6 +73,14 @@ const DatasetModal: FunctionComponent<DatasetModalProps> = ({
     setDisableSave(currentDatabase === undefined || currentTableName === '');
   }, [currentTableName, currentDatabase]);
 
+  useEffect(() => {
+    const currentUserSelectedDb = getItem(
+      LocalStorageKeys.db,
+      null,
+    ) as DatabaseObject;
+    if (currentUserSelectedDb) setCurrentDatabase(currentUserSelectedDb);
+  }, []);
+
   const onDbChange = (db: DatabaseObject) => {
     setCurrentDatabase(db);
   };
@@ -89,6 +101,7 @@ const DatasetModal: FunctionComponent<DatasetModalProps> = ({
   };
 
   const hide = () => {
+    setItem(LocalStorageKeys.db, null);
     clearModal();
     onHide();
   };
@@ -109,7 +122,7 @@ const DatasetModal: FunctionComponent<DatasetModalProps> = ({
       if (onDatasetAdd) {
         onDatasetAdd({ id: response.id, ...response });
       }
-      addSuccessToast(t('The dataset has been saved'));
+      window.location.href = `/chart/add?dataset=${currentTableName}`;
       hide();
     });
   };
@@ -120,7 +133,7 @@ const DatasetModal: FunctionComponent<DatasetModalProps> = ({
       primaryButtonLoading={loading}
       onHandledPrimaryAction={onSave}
       onHide={hide}
-      primaryButtonName={t('Add')}
+      primaryButtonName={t('Add Dataset and Create Chart')}
       show={show}
       title={t('Add dataset')}
     >

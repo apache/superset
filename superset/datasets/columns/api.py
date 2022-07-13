@@ -16,7 +16,7 @@
 # under the License.
 import logging
 
-from flask import g, Response
+from flask import Response
 from flask_appbuilder.api import expose, permission_name, protect, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 
@@ -91,7 +91,7 @@ class DatasetColumnsRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         try:
-            DeleteDatasetColumnCommand(g.user, pk, column_id).run()
+            DeleteDatasetColumnCommand(pk, column_id).run()
             return self.response(200, message="OK")
         except DatasetColumnNotFoundError:
             return self.response_404()

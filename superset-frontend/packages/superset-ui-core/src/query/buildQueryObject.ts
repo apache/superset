@@ -20,14 +20,16 @@
 /* eslint-disable camelcase */
 import {
   AdhocFilter,
-  QueryFieldAliases,
-  QueryFormColumn,
-  QueryFormData,
   QueryObject,
   QueryObjectFilterClause,
   isPhysicalColumn,
   isAdhocColumn,
 } from './types';
+import {
+  QueryFieldAliases,
+  QueryFormColumn,
+  QueryFormData,
+} from './types/QueryFormData';
 import processFilters from './processFilters';
 import extractExtras from './extractExtras';
 import extractQueryFields from './extractQueryFields';

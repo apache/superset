@@ -19,7 +19,6 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from flask_appbuilder.models.sqla import Model
-from flask_appbuilder.security.sqla.models import User
 from marshmallow import ValidationError
 
 from superset.annotation_layers.annotations.commands.exceptions import (
@@ -40,8 +39,7 @@ logger = logging.getLogger(__name__)
 
 
 class UpdateAnnotationCommand(BaseCommand):
-    def __init__(self, user: User, model_id: int, data: Dict[str, Any]):
-        self._actor = user
+    def __init__(self, model_id: int, data: Dict[str, Any]):
         self._model_id = model_id
         self._properties = data.copy()
         self._model: Optional[Annotation] = None

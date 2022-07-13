@@ -174,9 +174,7 @@ const isTimeSection = (section: ControlPanelSectionConfig): boolean =>
     sections.legacyTimeseriesTime.label === section.label);
 
 const hasTimeColumn = (datasource: Dataset): boolean =>
-  datasource?.columns?.some(c => c.is_dttm) ||
-  datasource.type === DatasourceType.Druid;
-
+  datasource?.columns?.some(c => c.is_dttm);
 const sectionsToExpand = (
   sections: ControlPanelSectionConfig[],
   datasource: Dataset,
@@ -331,7 +329,12 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
           undefined),
       name,
     };
-    const { validationErrors, ...restProps } = controlData as ControlState & {
+    const {
+      validationErrors,
+      label: baseLabel,
+      description: baseDescription,
+      ...restProps
+    } = controlData as ControlState & {
       validationErrors?: any[];
     };
 
@@ -339,10 +342,22 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
       ? visibility.call(config, props, controlData)
       : undefined;
 
+    const label =
+      typeof baseLabel === 'function'
+        ? baseLabel(exploreState, controls[name], chart)
+        : baseLabel;
+
+    const description =
+      typeof baseDescription === 'function'
+        ? baseDescription(exploreState, controls[name], chart)
+        : baseDescription;
+
     return (
       <Control
         key={`control-${name}`}
         name={name}
+        label={label}
+        description={description}
         validationErrors={validationErrors}
         actions={props.actions}
         isVisible={isVisible}

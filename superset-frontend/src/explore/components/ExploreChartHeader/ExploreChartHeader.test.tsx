@@ -88,7 +88,7 @@ const createProps = () => ({
     ],
     slice_id: 318,
     slice_name: 'Age distribution of respondents',
-    slice_url: '/superset/explore/?form_data=%7B%22slice_id%22%3A%20318%7D',
+    slice_url: '/explore/?form_data=%7B%22slice_id%22%3A%20318%7D',
   },
   slice_name: 'Age distribution of respondents',
   actions: {

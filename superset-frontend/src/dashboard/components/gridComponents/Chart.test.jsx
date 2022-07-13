@@ -72,7 +72,9 @@ describe('Chart', () => {
   };
 
   function setup(overrideProps) {
-    const wrapper = shallow(<Chart {...props} {...overrideProps} />);
+    const wrapper = shallow(
+      <Chart.WrappedComponent {...props} {...overrideProps} />,
+    );
     return wrapper;
   }
 
@@ -94,7 +96,10 @@ describe('Chart', () => {
   });
 
   it('should calculate the description height if it has one and isExpanded=true', () => {
-    const spy = jest.spyOn(Chart.prototype, 'getDescriptionHeight');
+    const spy = jest.spyOn(
+      Chart.WrappedComponent.prototype,
+      'getDescriptionHeight',
+    );
     const wrapper = setup({ isExpanded: true });
 
     expect(wrapper.find('.slice_description')).toExist();

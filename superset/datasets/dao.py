@@ -17,7 +17,6 @@
 import logging
 from typing import Any, Dict, List, Optional
 
-from flask import current_app
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
@@ -35,14 +34,6 @@ logger = logging.getLogger(__name__)
 class DatasetDAO(BaseDAO):  # pylint: disable=too-many-public-methods
     model_cls = SqlaTable
     base_filter = DatasourceFilter
-
-    @staticmethod
-    def get_owner_by_id(owner_id: int) -> Optional[object]:
-        return (
-            db.session.query(current_app.appbuilder.sm.user_model)
-            .filter_by(id=owner_id)
-            .one_or_none()
-        )
 
     @staticmethod
     def get_database_by_id(database_id: int) -> Optional[Database]:

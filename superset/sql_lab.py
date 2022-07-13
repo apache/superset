@@ -208,7 +208,6 @@ def execute_sql_statement(  # pylint: disable=too-many-arguments,too-many-statem
                     parsed_query._parsed[0],  # pylint: disable=protected-access
                     database.id,
                     query.schema,
-                    username=get_username(),
                 )
             )
         )

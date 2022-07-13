@@ -197,7 +197,7 @@ const ScheduleQueryButton: FunctionComponent<ScheduleQueryButtonProps> = ({
           <StyledJsonSchema>
             <SchemaForm
               schema={getJSONSchema()}
-              uiSchema={getUISchema}
+              uiSchema={getUISchema()}
               onSubmit={onScheduleSubmit}
               validate={getValidator()}
             >

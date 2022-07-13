@@ -85,6 +85,7 @@ const ExploreContainer = styled.div`
   display: flex;
   flex-direction: column;
   height: 100%;
+  min-height: 0;
 `;
 
 const ExplorePanelContainer = styled.div`
@@ -463,6 +464,14 @@ function ExploreViewContainer(props) {
     return false;
   }, [lastQueriedControls, props.controls]);
 
+  const saveAction = getUrlParam(URL_PARAMS.saveAction);
+  useChangeEffect(saveAction, () => {
+    if (['saveas', 'overwrite'].includes(saveAction)) {
+      onQuery();
+      addHistory({ isReplace: true });
+    }
+  });
+
   useEffect(() => {
     if (props.ownState !== undefined) {
       onQuery();
@@ -585,6 +594,7 @@ function ExploreViewContainer(props) {
             form_data={props.form_data}
             sliceName={props.sliceName}
             dashboardId={props.dashboardId}
+            sliceDashboards={props.exploreState.sliceDashboards ?? []}
           />
         )}
         <Resizable

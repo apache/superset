@@ -237,6 +237,9 @@ SHOW_STACKTRACE = True
 ENABLE_PROXY_FIX = False
 PROXY_FIX_CONFIG = {"x_for": 1, "x_proto": 1, "x_host": 1, "x_port": 1, "x_prefix": 1}
 
+# Configuration for scheduling queries from SQL Lab.
+SCHEDULED_QUERIES: Dict[str, Any] = {}
+
 # ------------------------------
 # GLOBALS FOR APP Builder
 # ------------------------------
@@ -426,6 +429,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "GENERIC_CHART_AXES": False,
     "ALLOW_ADHOC_SUBQUERY": False,
     "USE_ANALAGOUS_COLORS": True,
+    "DASHBOARD_EDIT_CHART_IN_NEW_TAB": False,
     # Apply RLS rules to SQL Lab queries. This requires parsing and manipulating the
     # query, and might break queries and/or allow users to bypass RLS. Use with care!
     "RLS_IN_SQLLAB": False,
@@ -1075,6 +1079,9 @@ ALERT_REPORTS_WORKING_SOFT_TIME_OUT_LAG = int(timedelta(seconds=1).total_seconds
 # If set to true no notification is sent, the worker will just log a message.
 # Useful for debugging
 ALERT_REPORTS_NOTIFICATION_DRY_RUN = False
+# Max tries to run queries to prevent false errors caused by transient errors
+# being returned to users. Set to a value >1 to enable retries.
+ALERT_REPORTS_QUERY_EXECUTION_MAX_TRIES = 1
 
 # A custom prefix to use on all Alerts & Reports emails
 EMAIL_REPORTS_SUBJECT_PREFIX = "[Report] "

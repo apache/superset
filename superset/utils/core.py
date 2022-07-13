@@ -219,7 +219,6 @@ class ExtraFiltersTimeColumnType(str, Enum):
 class ExtraFiltersReasonType(str, Enum):
     NO_TEMPORAL_COLUMN = "no_temporal_column"
     COL_NOT_IN_DATASOURCE = "not_in_datasource"
-    NOT_DRUID_DATASOURCE = "not_druid_datasource"
 
 
 class FilterOperator(str, Enum):
@@ -609,8 +608,9 @@ def json_int_dttm_ser(obj: Any) -> float:
     return obj
 
 
-def json_dumps_w_dates(payload: Dict[Any, Any]) -> str:
-    return json.dumps(payload, default=json_int_dttm_ser)
+def json_dumps_w_dates(payload: Dict[Any, Any], sort_keys: bool = False) -> str:
+    """Dumps payload to JSON with Datetime objects properly converted"""
+    return json.dumps(payload, default=json_int_dttm_ser, sort_keys=sort_keys)
 
 
 def error_msg_from_exception(ex: Exception) -> str:
@@ -1145,7 +1145,6 @@ def merge_extra_filters(form_data: Dict[str, Any]) -> None:
             "__time_range": "time_range",
             "__time_col": "granularity_sqla",
             "__time_grain": "time_grain_sqla",
-            "__time_origin": "druid_time_origin",
             "__granularity": "granularity",
         }
         # Grab list of existing filters 'keyed' on the column and operator
@@ -1453,23 +1452,27 @@ def get_user_id() -> Optional[int]:
 
 
 @contextmanager
-def override_user(user: Optional[User]) -> Iterator[Any]:
+def override_user(user: Optional[User], force: bool = True) -> Iterator[Any]:
     """
-    Temporarily override the current user (if defined) per `flask.g`.
+    Temporarily override the current user per `flask.g` with the specified user.
 
     Sometimes, often in the context of async Celery tasks, it is useful to switch the
     current user (which may be undefined) to different one, execute some SQLAlchemy
-    tasks and then revert back to the original one.
+    tasks et al. and then revert back to the original one.
 
     :param user: The override user
+    :param force: Whether to override the current user if set
     """
 
     # pylint: disable=assigning-non-slot
     if hasattr(g, "user"):
-        current = g.user
-        g.user = user
-        yield
-        g.user = current
+        if force or g.user is None:
+            current = g.user
+            g.user = user
+            yield
+            g.user = current
+        else:
+            yield
     else:
         g.user = user
         yield
@@ -1756,28 +1759,6 @@ def get_time_filter_status(
                 {
                     "reason": ExtraFiltersReasonType.NO_TEMPORAL_COLUMN,
                     "column": ExtraFiltersTimeColumnType.TIME_RANGE,
-                }
-            )
-
-    if ExtraFiltersTimeColumnType.TIME_ORIGIN in applied_time_extras:
-        if datasource.type == "druid":
-            applied.append({"column": ExtraFiltersTimeColumnType.TIME_ORIGIN})
-        else:
-            rejected.append(
-                {
-                    "reason": ExtraFiltersReasonType.NOT_DRUID_DATASOURCE,
-                    "column": ExtraFiltersTimeColumnType.TIME_ORIGIN,
-                }
-            )
-
-    if ExtraFiltersTimeColumnType.GRANULARITY in applied_time_extras:
-        if datasource.type == "druid":
-            applied.append({"column": ExtraFiltersTimeColumnType.GRANULARITY})
-        else:
-            rejected.append(
-                {
-                    "reason": ExtraFiltersReasonType.NOT_DRUID_DATASOURCE,
-                    "column": ExtraFiltersTimeColumnType.GRANULARITY,
                 }
             )
 
