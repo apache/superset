@@ -837,7 +837,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
     @property
     def full_name(self) -> str:
         return utils.get_datasource_full_name(
-            self.database.database_name, self.table_name, schema=self.schema
+            self.database, self.table_name, schema=self.schema
         )
 
     @property
