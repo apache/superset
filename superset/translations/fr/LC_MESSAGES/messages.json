@@ -1846,7 +1846,7 @@
       "Query search string": ["Chaîne de recherche"],
       "[From]-": ["[Depuis]-"],
       "[To]-": ["[à]-"],
-      "Filter by status": ["Filtrer par status"],
+      "Filter by status": ["Filtrer par statut"],
       "Success": ["Succès"],
       "Failed": ["Echec"],
       "Running": ["En cours"],
@@ -3308,7 +3308,7 @@
       "There was an issue deleting the selected charts: %s": [
         "Il y a eu un problème lors de la suppression des graphiques sélectionnés : %s"
       ],
-      "Modified by": ["Modifié"],
+      "Modified by": ["Modifié par"],
       "Favorite": ["Favoris"],
       "Any": ["Tous"],
       "Yes": ["Oui"],
