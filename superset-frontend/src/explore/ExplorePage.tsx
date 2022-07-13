@@ -74,7 +74,7 @@ const fetchExploreData = async (exploreUrlParams: URLSearchParams) => {
   }
 };
 
-const ExplorePage = () => {
+export default function ExplorePage() {
   const [isLoaded, setIsLoaded] = useState(false);
   const isExploreInitialized = useRef(false);
   const dispatch = useDispatch();
@@ -103,6 +103,4 @@ const ExplorePage = () => {
     return <Loading />;
   }
   return <ExploreViewContainer />;
-};
-
-export default ExplorePage;
+}
