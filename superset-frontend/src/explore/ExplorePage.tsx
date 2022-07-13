@@ -64,9 +64,9 @@ const fetchExploreData = async (exploreUrlParams: URLSearchParams) => {
     if (isResult(rv)) {
       return rv;
     }
-    throw loadErrorMessage;
+    throw Error(loadErrorMessage);
   } catch (err) {
-    throw new Error(err);
+    throw Error(err);
   }
 };
 
