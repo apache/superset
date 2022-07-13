@@ -52,7 +52,12 @@ import {
 import { MarkLine1DDataItemOption } from 'echarts/types/src/component/marker/MarkLineModel';
 
 import { extractForecastSeriesContext } from '../utils/forecast';
-import { ForecastSeriesEnum, LegendOrientation, StackType } from '../types';
+import {
+  AxisType,
+  ForecastSeriesEnum,
+  LegendOrientation,
+  StackType,
+} from '../types';
 import { EchartsTimeseriesSeriesType } from './types';
 
 import {
@@ -250,6 +255,8 @@ export function transformSeries(
 export function transformFormulaAnnotation(
   layer: FormulaAnnotationLayer,
   data: TimeseriesDataRecord[],
+  xAxisCol: string,
+  xAxisType: AxisType,
   colorScale: CategoricalColorScale,
   sliceId?: number,
 ): SeriesOption {
@@ -267,7 +274,7 @@ export function transformFormulaAnnotation(
     },
     type: 'line',
     smooth: true,
-    data: evalFormula(layer, data),
+    data: evalFormula(layer, data, xAxisCol, xAxisType),
     symbolSize: 0,
   };
 }
