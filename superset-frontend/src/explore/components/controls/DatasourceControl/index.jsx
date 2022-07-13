@@ -154,7 +154,7 @@ export const renderDatasourceTitle = (displayString, tooltip) =>
 
 // Different data source types use different attributes for the display title
 export const getDatasourceTitle = datasource =>
-  datasource?.sql ?? datasource?.name ?? '';
+  datasource?.name ?? datasource?.sql ?? '';
 
 class DatasourceControl extends React.PureComponent {
   constructor(props) {
@@ -300,7 +300,7 @@ class DatasourceControl extends React.PureComponent {
           </Menu.Item>
         )}
         <Menu.Item key={CHANGE_DATASET}>{t('Change dataset')}</Menu.Item>
-        {isSqlSupported && (
+        {datasource && (
           <Menu.Item key={VIEW_IN_SQL_LAB}>{t('View in SQL Lab')}</Menu.Item>
         )}
       </Menu>
