@@ -19,15 +19,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { useLocation } from 'react-router-dom';
-import {
-  makeApi,
-  t,
-  isDefined,
-  JsonObject,
-  QueryFormData,
-} from '@superset-ui/core';
-import { Slice } from 'src/types/Chart';
-import { Dataset } from '@superset-ui/chart-controls';
+import { makeApi, t, isDefined, JsonObject } from '@superset-ui/core';
 import Loading from 'src/components/Loading';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { getUrlParam } from 'src/utils/urlUtils';
@@ -39,17 +31,8 @@ import ExploreViewContainer from './components/ExploreViewContainer';
 import { ExploreResponsePayload } from './types';
 import { fallbackExploreInitialData } from './fixtures';
 
-interface ResultInterface {
-  result: {
-    form_data: QueryFormData;
-    slice: Slice;
-    dataset: Dataset;
-  };
-}
-
-const isResult = (rv: JsonObject): rv is ResultInterface =>
+const isResult = (rv: JsonObject): rv is ExploreResponsePayload =>
   rv?.result?.form_data &&
-  rv?.result?.slice &&
   rv?.result?.dataset &&
   isDefined(rv?.result?.dataset?.id);
 
