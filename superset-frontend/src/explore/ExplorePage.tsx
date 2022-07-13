@@ -32,13 +32,12 @@ import Loading from 'src/components/Loading';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { URL_PARAMS } from 'src/constants';
+import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { getParsedExploreURLParams } from './exploreUtils/getParsedExploreURLParams';
 import { hydrateExplore } from './actions/hydrateExplore';
 import ExploreViewContainer from './components/ExploreViewContainer';
 import { ExploreResponsePayload } from './types';
 import { fallbackExploreInitialData } from './fixtures';
-
-const loadErrorMessage = t('Failed to load chart data.');
 
 interface ResultInterface {
   result: {
@@ -64,9 +63,15 @@ const fetchExploreData = async (exploreUrlParams: URLSearchParams) => {
     if (isResult(rv)) {
       return rv;
     }
-    throw Error(loadErrorMessage);
+    throw new Error(t('Failed to load chart data.'));
   } catch (err) {
-    throw Error(err);
+    // todo: encapsulate the error handler
+    const clientError = await getClientErrorObject(err);
+    throw new Error(
+      clientError.message ||
+        clientError.error ||
+        t('Failed to load chart data.'),
+    );
   }
 };
 
@@ -84,9 +89,9 @@ const ExplorePage = () => {
         .then(({ result }) => {
           dispatch(hydrateExplore(result));
         })
-        .catch(() => {
+        .catch(err => {
           dispatch(hydrateExplore(fallbackExploreInitialData));
-          dispatch(addDangerToast(loadErrorMessage));
+          dispatch(addDangerToast(err.message));
         })
         .finally(() => {
           setIsLoaded(true);
