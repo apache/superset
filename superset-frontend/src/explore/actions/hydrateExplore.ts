@@ -56,8 +56,7 @@ export const hydrateExplore =
     if (dashboardId) {
       initialFormData.dashboardId = dashboardId;
     }
-    const initialDatasource =
-      datasources?.[initialFormData.datasource] ?? dataset;
+    const initialDatasource = dataset;
 
     const initialExploreState = {
       form_data: initialFormData,

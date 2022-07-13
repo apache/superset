@@ -19,10 +19,17 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { useLocation } from 'react-router-dom';
-import { makeApi, t } from '@superset-ui/core';
+import {
+  makeApi,
+  t,
+  isDefined,
+  JsonObject,
+  QueryFormData,
+} from '@superset-ui/core';
+import { Slice } from 'src/types/Chart';
+import { Dataset } from '@superset-ui/chart-controls';
 import Loading from 'src/components/Loading';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
-import { isNullish } from 'src/utils/common';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { URL_PARAMS } from 'src/constants';
 import { getParsedExploreURLParams } from './exploreUtils/getParsedExploreURLParams';
@@ -33,11 +40,35 @@ import { fallbackExploreInitialData } from './fixtures';
 
 const loadErrorMessage = t('Failed to load chart data.');
 
-const fetchExploreData = (exploreUrlParams: URLSearchParams) =>
-  makeApi<{}, ExploreResponsePayload>({
-    method: 'GET',
-    endpoint: 'api/v1/explore/',
-  })(exploreUrlParams);
+interface ResultInterface {
+  result: {
+    form_data: QueryFormData;
+    slice: Slice;
+    dataset: Dataset;
+  };
+}
+
+const isResult = (rv: JsonObject): rv is ResultInterface =>
+  rv?.result?.form_data &&
+  rv?.result?.slice &&
+  rv?.result?.dataset &&
+  isDefined(rv?.result?.dataset?.id) &&
+  isDefined(rv?.result?.dataset?.uid);
+
+const fetchExploreData = async (exploreUrlParams: URLSearchParams) => {
+  try {
+    const rv = await makeApi<{}, ExploreResponsePayload>({
+      method: 'GET',
+      endpoint: 'api/v1/explore/',
+    })(exploreUrlParams);
+    if (isResult(rv)) {
+      return rv;
+    }
+    throw loadErrorMessage;
+  } catch (err) {
+    throw new Error(err);
+  }
+};
 
 const ExplorePage = () => {
   const [isLoaded, setIsLoaded] = useState(false);
@@ -51,12 +82,7 @@ const ExplorePage = () => {
     if (!isExploreInitialized.current || isSaveAction) {
       fetchExploreData(exploreUrlParams)
         .then(({ result }) => {
-          if (isNullish(result.dataset?.id) && isNullish(result.dataset?.uid)) {
-            dispatch(hydrateExplore(fallbackExploreInitialData));
-            dispatch(addDangerToast(loadErrorMessage));
-          } else {
-            dispatch(hydrateExplore(result));
-          }
+          dispatch(hydrateExplore(result));
         })
         .catch(() => {
           dispatch(hydrateExplore(fallbackExploreInitialData));
