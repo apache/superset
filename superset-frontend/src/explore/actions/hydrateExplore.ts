@@ -89,6 +89,7 @@ export const hydrateExplore =
       controlsTransferred: [],
       standalone: getUrlParam(URL_PARAMS.standalone),
       force: getUrlParam(URL_PARAMS.force),
+      sliceDashboards: initialFormData.dashboards,
     };
 
     // apply initial mapStateToProps for all controls, must execute AFTER
