@@ -51,8 +51,7 @@ const isResult = (rv: JsonObject): rv is ResultInterface =>
   rv?.result?.form_data &&
   rv?.result?.slice &&
   rv?.result?.dataset &&
-  isDefined(rv?.result?.dataset?.id) &&
-  isDefined(rv?.result?.dataset?.uid);
+  isDefined(rv?.result?.dataset?.id);
 
 const fetchExploreData = async (exploreUrlParams: URLSearchParams) => {
   try {
