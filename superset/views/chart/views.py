@@ -14,9 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
-
-from flask import g
 from flask_appbuilder import expose, has_access
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import lazy_gettext as _
@@ -26,9 +23,8 @@ from superset.constants import MODEL_VIEW_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.models.slice import Slice
 from superset.superset_typing import FlaskResponse
 from superset.utils import core as utils
-from superset.views.base import common_bootstrap_payload, DeleteMixin, SupersetModelView
+from superset.views.base import DeleteMixin, SupersetModelView
 from superset.views.chart.mixin import SliceMixin
-from superset.views.utils import bootstrap_user_data
 
 
 class SliceModelView(
@@ -57,13 +53,7 @@ class SliceModelView(
     @expose("/add", methods=["GET", "POST"])
     @has_access
     def add(self) -> FlaskResponse:
-        payload = {
-            "common": common_bootstrap_payload(),
-            "user": bootstrap_user_data(g.user, include_perms=True),
-        }
-        return self.render_template(
-            "superset/add_slice.html", bootstrap_data=json.dumps(payload)
-        )
+        return super().render_app_template()
 
     @expose("/list/")
     @has_access
