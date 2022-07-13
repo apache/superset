@@ -21,6 +21,7 @@ import moment from 'moment';
 import {
   Behavior,
   css,
+  Datasource,
   getChartMetadataRegistry,
   QueryFormData,
   styled,
@@ -38,7 +39,10 @@ import Icons from 'src/components/Icons';
 import ModalTrigger from 'src/components/ModalTrigger';
 import Button from 'src/components/Button';
 import ViewQueryModal from 'src/explore/components/controls/ViewQueryModal';
-import { ResultsPaneOnDashboard } from 'src/explore/components/DataTablesPane';
+import {
+  ResultsPaneOnDashboard,
+  SamplesPane,
+} from 'src/explore/components/DataTablesPane';
 
 const MENU_KEYS = {
   CROSS_FILTER_SCOPING: 'cross_filter_scoping',
@@ -51,6 +55,7 @@ const MENU_KEYS = {
   TOGGLE_CHART_DESCRIPTION: 'toggle_chart_description',
   VIEW_QUERY: 'view_query',
   VIEW_RESULTS: 'view_results',
+  DRILL_TO_DETAIL: 'drill_to_detail',
 };
 
 const VerticalDotsContainer = styled.div`
@@ -124,6 +129,8 @@ export interface SliceHeaderControlsProps {
   supersetCanShare?: boolean;
   supersetCanCSV?: boolean;
   sliceCanEdit?: boolean;
+
+  datasource: Datasource;
 }
 interface State {
   showControls: boolean;
@@ -346,6 +353,39 @@ class SliceHeaderControls extends React.PureComponent<
                 <ResultsPaneOnDashboard
                   queryFormData={this.props.formData}
                   queryForce={false}
+                  dataSize={20}
+                  isRequest
+                  isVisible
+                />
+              }
+              modalFooter={
+                <Button
+                  buttonStyle="secondary"
+                  buttonSize="small"
+                  onClick={this.props.onExploreChart}
+                >
+                  {t('Edit chart')}
+                </Button>
+              }
+              draggable
+              resizable
+              responsive
+            />
+          </Menu.Item>
+        )}
+
+        {this.props.supersetCanExplore && (
+          <Menu.Item key={MENU_KEYS.DRILL_TO_DETAIL}>
+            <ModalTrigger
+              triggerNode={
+                <span data-test="view-query-menu-item">
+                  {t('Drill to detail')}
+                </span>
+              }
+              modalTitle={t('Drill to detail: %s', slice.slice_name)}
+              modalBody={
+                <SamplesPane
+                  datasource={this.props.datasource}
                   dataSize={20}
                   isRequest
                   isVisible

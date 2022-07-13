@@ -17,6 +17,7 @@
  * under the License.
  */
 import {
+  DatasourceSamplesQuery,
   Datasource,
   GenericDataType,
   JsonObject,
@@ -56,11 +57,12 @@ export interface ResultsPaneProps {
 export interface SamplesPaneProps {
   isRequest: boolean;
   datasource: Datasource;
-  queryForce: boolean;
+  queryForce?: boolean;
   actions?: ExploreActions;
   dataSize?: number;
   // reload OriginalFormattedTimeColumns from localStorage when isVisible is true
   isVisible: boolean;
+  queryPayload?: DatasourceSamplesQuery;
 }
 
 export interface TableControlsProps {

@@ -38,10 +38,11 @@ const cache = new WeakSet();
 export const SamplesPane = ({
   isRequest,
   datasource,
-  queryForce,
+  queryForce = false,
   actions,
   dataSize = 50,
   isVisible,
+  queryPayload,
 }: SamplesPaneProps) => {
   const [filterText, setFilterText] = useState('');
   const [data, setData] = useState<Record<string, any>[][]>([]);
@@ -61,7 +62,7 @@ export const SamplesPane = ({
 
     if (isRequest && !cache.has(datasource)) {
       setIsLoading(true);
-      getDatasetSamples(datasource.id, queryForce)
+      getDatasetSamples(datasource.id, queryForce, queryPayload)
         .then(response => {
           setData(ensureIsArray(response.data));
           setColnames(ensureIsArray(response.colnames));
