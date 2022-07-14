@@ -33,7 +33,7 @@ import { matchSorter, rankings } from 'match-sorter';
 import Collapse from 'src/components/Collapse';
 import Alert from 'src/components/Alert';
 import {
-  ISaveableDataset,
+  ISaveableDatasource,
   ISimpleColumn,
   SaveDatasetModal,
 } from 'src/SqlLab/components/SaveDatasetModal';
@@ -89,11 +89,6 @@ export interface Props {
 const enableExploreDnd = isFeatureEnabled(
   FeatureFlag.ENABLE_EXPLORE_DRAG_AND_DROP,
 );
-
-const saveableDatasets = {
-  query: DatasourceType.Query,
-  saved_query: DatasourceType.SavedQuery,
-};
 
 const Button = styled.button`
   background: none;
@@ -244,7 +239,7 @@ export default function DataSourcePanel({
   );
 
   const getDatasourceAsSaveableDataset = (source: IDatasource) => {
-    const dataset: ISaveableDataset = {
+    const dataset: ISaveableDatasource = {
       columns: (source?.columns as ISimpleColumn[]) || [],
       name: source?.datasource_name || source?.name || t('Untitled'),
       dbId: source?.database.id,
@@ -357,6 +352,11 @@ export default function DataSourcePanel({
   const showInfoboxCheck = () => {
     if (sessionStorage.getItem('showInfobox') === 'false') return false;
     return true;
+  };
+
+  const saveableDatasets = {
+    query: DatasourceType.Query,
+    saved_query: DatasourceType.SavedQuery,
   };
 
   const datasourceIsSaveable =

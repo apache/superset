@@ -153,8 +153,10 @@ export const renderDatasourceTitle = (displayString, tooltip) =>
   );
 
 // Different data source types use different attributes for the display title
-export const getDatasourceTitle = datasource =>
-  datasource?.sql ?? datasource?.name ?? '';
+export const getDatasourceTitle = datasource => {
+  if (datasource.type == 'query') return datasource?.sql;
+  return datasource?.name;
+};
 
 class DatasourceControl extends React.PureComponent {
   constructor(props) {
@@ -167,16 +169,15 @@ class DatasourceControl extends React.PureComponent {
   }
 
   getDatasourceAsSaveableDataset = source => {
-    const dataset = {
+    return {
       columns: source?.columns || [],
       name: source?.datasource_name || source?.name || t('Untitled'),
       dbId: source?.database.id,
       sql: source?.sql || '',
       schema: source?.schema,
     };
-    return dataset;
   };
-
+  d;
   onDatasourceSave = datasource => {
     this.props.actions.setDatasource(datasource);
     const timeCol = this.props.form_data?.granularity_sqla;
@@ -270,7 +271,6 @@ class DatasourceControl extends React.PureComponent {
       }
     }
 
-    const isSqlSupported = datasource.type === 'table';
     const { user } = this.props;
     const allowEdit =
       datasource.owners?.map(o => o.id || o.value).includes(user.userId) ||
@@ -300,7 +300,7 @@ class DatasourceControl extends React.PureComponent {
           </Menu.Item>
         )}
         <Menu.Item key={CHANGE_DATASET}>{t('Change dataset')}</Menu.Item>
-        {isSqlSupported && (
+        {datasource && (
           <Menu.Item key={VIEW_IN_SQL_LAB}>{t('View in SQL Lab')}</Menu.Item>
         )}
       </Menu>
@@ -341,7 +341,7 @@ class DatasourceControl extends React.PureComponent {
     if (datasource?.extra) {
       if (isString(datasource.extra)) {
         try {
-          extra = JSON.parse(datasource?.extra);
+          extra = JSON.parse(datasource.extra);
         } catch {} // eslint-disable-line no-empty
       } else {
         extra = datasource.extra; // eslint-disable-line prefer-destructuring

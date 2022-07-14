@@ -66,7 +66,7 @@ export interface ISimpleColumn {
   is_dttm?: boolean | null;
 }
 
-export interface ISaveableDataset {
+export interface ISaveableDatasource {
   columns: ISimpleColumn[];
   name: string;
   dbId: number;
