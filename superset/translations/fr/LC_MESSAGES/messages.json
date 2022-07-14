@@ -2416,7 +2416,9 @@
       "Copy dashboard URL": ["Copier l'URL du tableau de bord"],
       "Share dashboard by email": ["Partager le tableau de bord par e-mail"],
       "Refresh dashboard": ["Rafraichir le tableau de bord"],
-      "Set auto-refresh interval": ["Définir l'intervalle de rafraichissement automatique"],
+      "Set auto-refresh interval": [
+        "Définir l'intervalle de rafraichissement automatique"
+      ],
       "Set filter mapping": ["Définir le mappage de filtre"],
       "Edit dashboard properties": [
         "Modifier les propriétés de ce tableau de bord"
@@ -3866,8 +3868,12 @@
         "Cliquez sur le bouton ci-dessus pour ajouter un filtre au tableau de bord"
       ],
       "Totals": ["Totaux"],
-      "Filter only displays values relevant to selections made in other filters.": ["Le filtre n'affiche que les valeurs pertinentes après les sélections effectuées dans d'autres filtres."],
-      "No data after filtering or data is NULL for the latest time record": ["Pas de données après filtrage ou données manquantes pour la période sélectionnée"],
+      "Filter only displays values relevant to selections made in other filters.": [
+        "Le filtre n'affiche que les valeurs pertinentes après les sélections effectuées dans d'autres filtres."
+      ],
+      "No data after filtering or data is NULL for the latest time record": [
+        "Pas de données après filtrage ou données manquantes pour la période sélectionnée"
+      ],
       "Scope": ["Périmètre"],
       "Dependent on": ["Dépend de"]
     }
