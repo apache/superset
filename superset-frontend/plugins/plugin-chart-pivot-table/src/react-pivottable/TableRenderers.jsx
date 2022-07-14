@@ -462,7 +462,7 @@ export class TableRenderer extends React.Component {
               true,
             )}
           >
-            {`Subtotal`}
+            Subtotal
           </th>,
         );
       }
