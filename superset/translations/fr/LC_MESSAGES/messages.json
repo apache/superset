@@ -3717,7 +3717,26 @@
       "Percentages": ["Pourcentages"],
       "Tabular": ["Tabulaire"],
       "Text": ["Zone de texte"],
-      "Trend": ["Tendance"]
+      "Trend": ["Tendance"],
+      "Total (Count)": ["Total (Somme)"],
+      "Total (%s)": ["Total (%s)"],
+      "Total (Count Unique Values)": ["Total (Somme)"],
+      "Total (List Unique Values)": ["Total (Somme)"],
+      "Sum": ["Somme"],
+      "Average": ["Moyenne"],
+      "Median": ["Médian"],
+      "Sample Variance": ["Variance"],
+      "Sample Standard Deviation": ["Somme"],
+      "Minimum": ["Minimum"],
+      "Maximum": ["Maximum"],
+      "First": ["Premier"],
+      "Last": ["Dernier"],
+      "Sum as Fraction of Total": ["Somme"],
+      "Sum as Fraction of Rows": ["Somme"],
+      "Sum as Fraction of Columns": ["Somme"],
+      "Count as Fraction of Total": ["Somme"],
+      "Count as Fraction of Rows": ["Somme"],
+      "Count as Fraction of Columns": ["Somme"]
     }
   }
 }
