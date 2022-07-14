@@ -941,8 +941,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     ) -> None:
         view_menu_table = self.viewmenu_model.__table__  # pylint: disable=no-member
         permission_view_menu_table = (
-            self.permissionview_model.__table__
-        )  # pylint: disable=no-member
+            self.permissionview_model.__table__  # pylint: disable=no-member
+        )
 
         view_menu_name = target.get_perm()
 
