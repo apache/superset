@@ -64,6 +64,19 @@ test('creates hydrate action from initial data', () => {
             lastRendered: 0,
           },
         },
+        datasources: {
+          '8__table': {
+            column_format: {},
+            columns: [{ column_name: 'a' }],
+            datasource_name: '8__table',
+            description: null,
+            id: 8,
+            main_dttm_col: '',
+            metrics: [{ metric_name: 'first' }, { metric_name: 'second' }],
+            type: 'table',
+            verbose_map: {},
+          },
+        },
         saveModal: {
           dashboards: [],
           saveModalAlert: null,
