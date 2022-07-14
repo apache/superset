@@ -333,7 +333,7 @@ LANGUAGES = {
 }
 # Turning off i18n by default as translation in most languages are
 # incomplete and not well maintained.
-
+LANGUAGES = {}
 # ---------------------------------------------------
 # Feature flags
 # ---------------------------------------------------
