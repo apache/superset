@@ -65,7 +65,7 @@ export interface ISimpleColumn {
   is_dttm?: boolean | null;
 }
 
-export interface ISaveableDataset {
+export interface ISaveableDatasource {
   columns: ISimpleColumn[];
   name: string;
   dbId: number;
@@ -80,7 +80,7 @@ interface SaveDatasetModalProps {
   buttonTextOnSave: string;
   buttonTextOnOverwrite: string;
   modalDescription?: string;
-  datasource: ISaveableDataset;
+  datasource: ISaveableDatasource;
 }
 
 const Styles = styled.div`

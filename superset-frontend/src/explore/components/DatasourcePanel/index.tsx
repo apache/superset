@@ -26,7 +26,7 @@ import { matchSorter, rankings } from 'match-sorter';
 import Collapse from 'src/components/Collapse';
 import Alert from 'src/components/Alert';
 import {
-  ISaveableDataset,
+  ISaveableDatasource,
   ISimpleColumn,
   SaveDatasetModal,
 } from 'src/SqlLab/components/SaveDatasetModal';
@@ -231,7 +231,7 @@ export default function DataSourcePanel({
   );
 
   const getDatasourceAsSaveableDataset = (source: IDatasource) => {
-    const dataset: ISaveableDataset = {
+    const dataset: ISaveableDatasource = {
       columns: (source?.columns as ISimpleColumn[]) || [],
       name: source?.datasource_name || source?.name || t('Untitled'),
       dbId: source?.database.id,
@@ -346,9 +346,13 @@ export default function DataSourcePanel({
     return true;
   };
 
-  const datasourceIsSaveable = !(
-    datasource?.type in [DatasourceType.Query, DatasourceType.SavedQuery]
-  );
+  const saveableDatasets = {
+    query: DatasourceType.Query,
+    saved_query: DatasourceType.SavedQuery,
+  };
+
+  const datasourceIsSaveable =
+    datasource.type && saveableDatasets[datasource.type];
 
   const mainBody = useMemo(
     () => (
