@@ -288,6 +288,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
             new_model = CreateChartCommand(item).run()
             return self.response(201, id=new_model.id, result=item)
         except ChartInvalidError as ex:
+            print('chart create error')
             return self.response_422(message=ex.normalized_messages())
         except ChartCreateFailedError as ex:
             logger.error(
