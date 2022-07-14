@@ -289,7 +289,13 @@ const ExploreChartPanel = ({
   );
 
   const getDatasourceAsSaveableDataset = source => {
-    const dataset = {
+return {
+      columns: source.columns,
+      name: source?.datasource_name || 'Untitled',
+      dbId: source.database.id,
+      sql: source?.sql || '',
+      schema: source?.schema,
+}
       columns: source.columns,
       name: source?.datasource_name || 'Untitled',
       dbId: source.database.id,
