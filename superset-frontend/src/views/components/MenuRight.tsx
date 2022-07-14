@@ -35,6 +35,7 @@ import Icons from 'src/components/Icons';
 import findPermission, { isUserAdmin } from 'src/dashboard/util/findPermission';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { RootState } from 'src/dashboard/types';
+import { Tag } from 'antd';
 import LanguagePicker from './LanguagePicker';
 import DatabaseModal from '../CRUD/data/database/DatabaseModal';
 import { uploadUserPerms } from '../CRUD/utils';
@@ -88,6 +89,7 @@ const RightMenu = ({
   settings,
   navbarRight,
   isFrontendRoute,
+  environmentTag,
   setQuery,
 }: RightMenuProps & {
   setQuery: ({ databaseAdded }: { databaseAdded: boolean }) => void;
@@ -266,6 +268,11 @@ const RightMenu = ({
           dbEngine={engine}
           onDatabaseAdd={handleDatabaseAdd}
         />
+      )}
+      {environmentTag.text && (
+        <Tag css={{ borderRadius: '500px' }} color={environmentTag.color}>
+          {environmentTag.text}
+        </Tag>
       )}
       <Menu
         selectable={false}

@@ -1296,6 +1296,21 @@ ADVANCED_DATA_TYPES: Dict[str, AdvancedDataType] = {
 }
 
 
+# Configuration for environment tag shown on the navbar. Setting 'text' to '' will hide the tag.
+ENVIRONMENT_TAG_CONFIG = {
+    "variable": "FLASK_ENV",
+    "values": {
+        "development": {
+            "color": "#c73d2e",
+            "text": "Development",
+        },
+        "production": {
+            "color": "#039dfc",
+            "text": "Production",
+        },
+    },
+}
+
 # -------------------------------------------------------------------
 # *                WARNING:  STOP EDITING  HERE                    *
 # -------------------------------------------------------------------

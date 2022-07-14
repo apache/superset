@@ -176,6 +176,10 @@ const mockedProps = {
       tooltip: '',
       text: '',
     },
+    environment_tag: {
+      text: 'Production',
+      color: '#000',
+    },
     navbar_right: {
       show_watermark: false,
       bug_report_url: '/report/',
@@ -271,6 +275,15 @@ test('should render the brand', () => {
   render(<Menu {...mockedProps} />, { useRedux: true, useQueryParams: true });
   const image = screen.getByAltText(alt);
   expect(image).toHaveAttribute('src', icon);
+});
+
+test('should render the environment tag', () => {
+  useSelectorMock.mockReturnValue({ roles: user.roles });
+  const {
+    data: { environment_tag },
+  } = mockedProps;
+  render(<Menu {...mockedProps} />, { useRedux: true });
+  expect(screen.getByText(environment_tag.text)).toBeInTheDocument();
 });
 
 test('should render all the top navbar menu items', () => {
