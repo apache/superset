@@ -39,6 +39,7 @@ import { getDatasourceUid } from 'src/utils/getDatasourceUid';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { URL_PARAMS } from 'src/constants';
 import { findPermission } from 'src/utils/findPermission';
+import { initDatasources } from 'src/datasource/actions';
 
 enum ColorSchemeType {
   CATEGORICAL = 'CATEGORICAL',
@@ -64,8 +65,7 @@ export const hydrateExplore =
     if (dashboardId) {
       initialFormData.dashboardId = dashboardId;
     }
-    const initialDatasource =
-      datasources?.[initialFormData.datasource] ?? dataset;
+    const initialDatasource = dataset;
 
     const initialExploreState = {
       form_data: initialFormData,
@@ -123,6 +123,7 @@ export const hydrateExplore =
       controlsTransferred: [],
       standalone: getUrlParam(URL_PARAMS.standalone),
       force: getUrlParam(URL_PARAMS.force),
+      sliceDashboards: initialFormData.dashboards,
     };
 
     // apply initial mapStateToProps for all controls, must execute AFTER
@@ -154,16 +155,19 @@ export const hydrateExplore =
       lastRendered: 0,
     };
 
+    dispatch(
+      initDatasources({
+        ...datasources,
+        [getDatasourceUid(initialDatasource)]: initialDatasource,
+      }),
+    );
+
     return dispatch({
       type: HYDRATE_EXPLORE,
       data: {
         charts: {
           ...charts,
           [chartKey]: chart,
-        },
-        datasources: {
-          ...datasources,
-          [getDatasourceUid(initialDatasource)]: initialDatasource,
         },
         saveModal: {
           dashboards: [],

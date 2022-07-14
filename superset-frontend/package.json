@@ -304,7 +304,7 @@
     "jest-environment-enzyme": "^7.1.2",
     "jest-enzyme": "^7.1.2",
     "jest-websocket-mock": "^2.2.0",
-    "jsdom": "^16.4.0",
+    "jsdom": "^20.0.0",
     "lerna": "^4.0.0",
     "less": "^3.12.2",
     "less-loader": "^10.2.0",
