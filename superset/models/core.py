@@ -386,7 +386,7 @@ class Database(
             if not source and request and request.referrer:
                 if "/superset/dashboard/" in request.referrer:
                     source = utils.QuerySource.DASHBOARD
-                elif "/superset/explore/" in request.referrer:
+                elif "/explore/" in request.referrer:
                     source = utils.QuerySource.CHART
                 elif "/superset/sqllab/" in request.referrer:
                     source = utils.QuerySource.SQL_LAB
