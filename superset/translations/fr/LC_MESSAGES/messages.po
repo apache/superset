@@ -5938,7 +5938,7 @@ msgstr "Filtrer par base de données"
 
 #: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:240
 msgid "Filter by status"
-msgstr "Filtrer par status"
+msgstr "Filtrer par statut"
 
 #: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:195
 msgid "Filter by user"
@@ -16020,15 +16020,15 @@ msgstr ""
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:53
 msgid "previous calendar month"
-msgstr "calendrier du mois dernier"
+msgstr "mois calendaire précédent"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:50
 msgid "previous calendar week"
-msgstr "calendrier de la semaine dernière"
+msgstr "semaine calendaire précédente"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:56
 msgid "previous calendar year"
-msgstr "calendrier de l'année dernière"
+msgstr "année calendaire précédente"
 
 #: superset-frontend/src/views/CRUD/dashboard/DashboardCard.tsx:153
 msgid "published"
