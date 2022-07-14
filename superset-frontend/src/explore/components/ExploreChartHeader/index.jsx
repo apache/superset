@@ -37,7 +37,6 @@ import { sliceUpdated } from 'src/explore/actions/exploreActions';
 import { PageHeaderWithActions } from 'src/components/PageHeaderWithActions';
 import { useExploreAdditionalActionsMenu } from '../useExploreAdditionalActionsMenu';
 import CertifiedBadge from 'src/components/CertifiedBadge';
-import ExploreActionButtons from '../ExploreActionButtons';
 import RowCountLabel from '../RowCountLabel';
 import ObjectTags from 'src/components/ObjectTags';
 import {
@@ -79,10 +78,10 @@ const saveButtonStyles = theme => css`
   }
 `;
 
-const StyledButtons = styled.span`
-  display: flex;
-  align-items: center;
-`;
+// const StyledButtons = styled.span`
+//   display: flex;
+//   align-items: center;
+// `;
 
 export const ExploreChartHeader = ({
   dashboardId,
@@ -166,6 +165,32 @@ export const ExploreChartHeader = ({
       ownState,
     );
 
+  const handleFetchTags = () => {
+    return fetchTags({
+      objectType: OBJECT_TYPES.CHART,
+      objectId: chart.id,
+      includeTypes: false,
+    })
+  }
+
+  const handleFetchSuggestions = () => {
+    return fetchSuggestions({includeTypes: false});
+  }
+
+  const handleDeleteTag = () => {
+    return deleteTag({
+      objectType: OBJECT_TYPES.CHART,
+      objectId: chart.id,
+    });
+  }
+  const handleAddTag = () => {
+    return addTag({
+      objectType: OBJECT_TYPES.CHART,
+      objectId: chart.id,
+      includeTypes: false,
+    })
+  }
+
   const oldSliceName = slice?.slice_name;
   return (
     <>
@@ -207,21 +232,10 @@ export const ExploreChartHeader = ({
             ) : null,
             isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM) ? (
               <ObjectTags
-                fetchTags={fetchTags({
-                  objectType: OBJECT_TYPES.DASHBOARD,
-                  objectId: dashboardId,
-                  includeTypes: false,
-                })}
-                fetchSuggestions={fetchSuggestions({includeTypes: false})}
-                deleteTag={deleteTag({
-                  objectType: OBJECT_TYPES.DASHBOARD,
-                  objectId: dashboardId,
-                })}
-                addTag={addTag({
-                  objectType: OBJECT_TYPES.DASHBOARD,
-                  objectId: dashboardId,
-                  includeTypes: false,
-                })}
+                fetchTags={handleFetchTags}
+                fetchSuggestions={handleFetchSuggestions}
+                deleteTag={handleDeleteTag}
+                addTag={handleAddTag}
                 editable={
                   canOverwrite ||
                   (slice?.owners || []).includes(

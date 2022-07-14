@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import React, { lazy } from 'react';
 
 // not lazy loaded since this is the home page.

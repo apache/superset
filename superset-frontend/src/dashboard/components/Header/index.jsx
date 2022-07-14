@@ -198,9 +198,6 @@ class Header extends React.PureComponent {
     this.showPropertiesModal = this.showPropertiesModal.bind(this);
     this.hidePropertiesModal = this.hidePropertiesModal.bind(this);
     this.setIsDropdownVisible = this.setIsDropdownVisible.bind(this);
-    this.showReportModal = this.showReportModal.bind(this);
-    this.hideReportModal = this.hideReportModal.bind(this);
-    this.renderReportModal = this.renderReportModal.bind(this);
     this.fetchTags = fetchTags.bind(this, {
       objectType: OBJECT_TYPES.DASHBOARD,
       objectId: props.dashboardInfo.id,
@@ -540,13 +537,24 @@ class Header extends React.PureComponent {
             showTooltip: true,
           }}
           titlePanelAdditionalItems={
-            <PublishedStatus
-              dashboardId={dashboardInfo.id}
-              isPublished={isPublished}
-              savePublished={this.props.savePublished}
-              canEdit={userCanEdit}
-              canSave={userCanSaveAs}
-            />
+            [
+              <PublishedStatus
+                dashboardId={dashboardInfo.id}
+                isPublished={isPublished}
+                savePublished={this.props.savePublished}
+                canEdit={userCanEdit}
+                canSave={userCanSaveAs}
+              />,
+              isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM) ? (
+                <ObjectTags
+                  fetchTags={this.fetchTags}
+                  fetchSuggestions={this.fetchSuggestions}
+                  deleteTag={this.deleteTag}
+                  addTag={this.addTag}
+                  editable={dashboardInfo.dash_edit_perm}
+                />
+              ) : null
+            ]
           }
           rightPanelAdditionalItems={
             <div className="button-container">
@@ -645,16 +653,7 @@ class Header extends React.PureComponent {
                   )}
                 </div>
               )}
-              { isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM) ? (
-                <ObjectTags
-                  fetchTags={this.fetchTags}
-                  fetchSuggestions={this.fetchSuggestions}
-                  deleteTag={this.deleteTag}
-                  addTag={this.addTag}
-                  editable={dashboardInfo.dash_edit_perm}
-                />
-              ) : null
-              }
+              
             </div>
           }
           menuDropdownProps={{

@@ -208,7 +208,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "id": [DatasetCertifiedFilter],
         "tags": [DatasetTagFilter],
     }
-    search_columns = ["id", "database", "owners", "sql", "table_name"]
+    search_columns = ["id", "database", "owners", "sql", "table_name", "tags"]
     filter_rel_fields = {"database": [["id", DatabaseFilter, lambda: []]]}
     allowed_rel_fields = {"database", "owners"}
     allowed_distinct_fields = {"schema"}

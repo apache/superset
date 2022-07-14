@@ -30,7 +30,7 @@ from superset.models.embedded_dashboard import EmbeddedDashboard
 from superset.models.slice import Slice
 from superset.security.guest_token import GuestTokenResourceType, GuestUser
 from superset.utils.core import get_user_id
-from superset.views.base import BaseFilter, is_user_admin
+from superset.views.base import BaseFilter
 from superset.views.base_api import BaseFavoriteFilter, BaseTagFilter
 
 
