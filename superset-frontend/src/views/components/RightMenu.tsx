@@ -321,13 +321,23 @@ const RightMenu = ({
                   roles,
                 ) && (
                   <Menu.Item key={menu.label}>
-                    <a href={menu.url}>
-                      <i
-                        data-test={`menu-item-${menu.label}`}
-                        className={`fa ${menu.icon}`}
-                      />{' '}
-                      {menu.label}
-                    </a>
+                    {isFrontendRoute(menu.url) ? (
+                      <Link to={menu.url || ''}>
+                        <i
+                          data-test={`menu-item-${menu.label}`}
+                          className={`fa ${menu.icon}`}
+                        />{' '}
+                        {menu.label}
+                      </Link>
+                    ) : (
+                      <a href={menu.url}>
+                        <i
+                          data-test={`menu-item-${menu.label}`}
+                          className={`fa ${menu.icon}`}
+                        />{' '}
+                        {menu.label}
+                      </a>
+                    )}
                   </Menu.Item>
                 )
               );
