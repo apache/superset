@@ -3866,13 +3866,6 @@
         "Cliquez sur le bouton ci-dessus pour ajouter un filtre au tableau de bord"
       ],
       "Totals": ["Totaux"],
-      "Total (Sum)": ["Total (Somme)"],
-      "Subtotal": ["Sous-Total"],
-      "Reset my password": ["Réinitialiser mon mot de passe"],
-      "Data refreshed": ["Données rafraîchies"],
-      "Toggle SortBy": ["Trier de A à Z"],
-      "User info": ["Information utilisateur"],
-      "Shift + Click to sort by multiple columns": ["Maintenir Shift + Clic pour trier plusieurs colonnes"],
       "Filter only displays values relevant to selections made in other filters.": ["Le filtre n'affiche que les valeurs pertinentes après les sélections effectuées dans d'autres filtres."],
       "No data after filtering or data is NULL for the latest time record": ["Pas de données après filtrage ou données manquantes pour la période sélectionnée"],
       "Scope": ["Périmètre"],
