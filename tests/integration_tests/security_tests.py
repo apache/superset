@@ -924,12 +924,18 @@ class TestSecurityManager(SupersetTestCase):
 
     @patch("superset.security.SupersetSecurityManager.is_owner")
     @patch("superset.security.SupersetSecurityManager.can_access")
-    def test_raise_for_access_query(self, mock_can_access, mock_is_owner):
+    @patch("superset.connectors.sqla.models.SqlaTable.query_datasources_by_name")
+    def test_raise_for_access_query(
+        self, mock_query_datasources_by_name, mock_can_access, mock_is_owner
+    ):
+        datasource = self.get_datasource_mock()
+        datasource.schema = "bar"
         query = Mock(
             database=get_example_database(), schema="bar", sql="SELECT * FROM foo"
         )
 
         mock_can_access.return_value = True
+        mock_query_datasources_by_name.return_value = [datasource]
         security_manager.raise_for_access(query=query)
 
         mock_can_access.return_value = False
@@ -957,11 +963,18 @@ class TestSecurityManager(SupersetTestCase):
             security_manager.raise_for_access(query_context=query_context)
 
     @patch("superset.security.SupersetSecurityManager.can_access")
-    def test_raise_for_access_table(self, mock_can_access):
+    @patch("superset.connectors.sqla.models.SqlaTable.query_datasources_by_name")
+    def test_raise_for_access_table(
+        self, mock_query_datasources_by_name, mock_can_access
+    ):
         database = get_example_database()
+        datasource = self.get_datasource_mock()
+        datasource.schema = "bar"
+
         table = Table("bar", "foo")
 
         mock_can_access.return_value = True
+        mock_query_datasources_by_name.return_value = [datasource]
         security_manager.raise_for_access(database=database, table=table)
 
         mock_can_access.return_value = False
@@ -972,12 +985,20 @@ class TestSecurityManager(SupersetTestCase):
     @patch("superset.security.SupersetSecurityManager.is_owner")
     @patch("superset.security.SupersetSecurityManager.can_access")
     @patch("superset.security.SupersetSecurityManager.can_access_schema")
+    @patch("superset.connectors.sqla.models.SqlaTable.query_datasources_by_name")
     def test_raise_for_access_viz(
-        self, mock_can_access_schema, mock_can_access, mock_is_owner
+        self,
+        mock_query_datasources_by_name,
+        mock_can_access_schema,
+        mock_can_access,
+        mock_is_owner,
     ):
-        test_viz = viz.TableViz(self.get_datasource_mock(), form_data={})
+        datasource = self.get_datasource_mock()
+        datasource.schema = "bar"
+        test_viz = viz.TableViz(datasource, form_data={})
 
         mock_can_access_schema.return_value = True
+        mock_query_datasources_by_name.return_value = [datasource]
         security_manager.raise_for_access(viz=test_viz)
 
         mock_can_access.return_value = False

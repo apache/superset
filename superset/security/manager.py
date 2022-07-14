@@ -1118,6 +1118,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     self.get_session, database, table_.table
                 )
 
+                if not datasources:
+                    continue
+
                 # Access to any datasource is suffice.
                 for datasource_ in datasources:
                     if datasource_.schema != table_.schema:
@@ -1128,7 +1131,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     )
                     if schema_perm and self.can_access("schema_access", schema_perm):
                         break
-                    if self.can_access("datasource_access", datasource_.perm) or self.is_owner(datasource_):
+                    if self.can_access(
+                        "datasource_access", datasource_.perm
+                    ) or self.is_owner(datasource_):
                         break
                 else:
                     denied.add(table_)
