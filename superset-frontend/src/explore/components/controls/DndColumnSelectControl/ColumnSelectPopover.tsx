@@ -41,7 +41,7 @@ import {
   POPOVER_INITIAL_HEIGHT,
   UNRESIZABLE_POPOVER_WIDTH,
 } from 'src/explore/constants';
-import { ExplorePageState } from 'src/explore/reducers/getInitialState';
+import { ExplorePageState } from 'src/explore/types';
 
 const StyledSelect = styled(Select)`
   .metric-option {
