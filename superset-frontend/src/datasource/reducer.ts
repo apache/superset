@@ -23,10 +23,14 @@ import {
   DatasourcesActionType,
 } from 'src/datasource/actions';
 import { Dataset } from '@superset-ui/chart-controls';
+import {
+  HydrateExplore,
+  HYDRATE_EXPLORE,
+} from 'src/explore/actions/hydrateExplore';
 
 export default function datasourcesReducer(
   datasources: { [key: string]: Dataset } | undefined,
-  action: DatasourcesAction,
+  action: DatasourcesAction | HydrateExplore,
 ) {
   if (action.type === DatasourcesActionType.INIT_DATASOURCES) {
     return { ...action.datasources };
@@ -42,6 +46,9 @@ export default function datasourcesReducer(
       ...datasources,
       [getDatasourceUid(action.datasource)]: action.datasource,
     };
+  }
+  if (action.type === HYDRATE_EXPLORE) {
+    return { ...(action as HydrateExplore).data.datasources };
   }
   return datasources || {};
 }
