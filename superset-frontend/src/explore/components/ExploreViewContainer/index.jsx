@@ -46,11 +46,10 @@ import {
 import { getUrlParam } from 'src/utils/urlUtils';
 import cx from 'classnames';
 import * as chartActions from 'src/components/Chart/chartAction';
-import { fetchDatasourceMetadata } from 'src/dashboard/actions/datasources';
+import { fetchDatasourceMetadata } from 'src/dashboard/util/fetchDatasourceMetadata';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
 import { mergeExtraFormData } from 'src/dashboard/components/nativeFilters/utils';
 import { postFormData, putFormData } from 'src/explore/exploreUtils/formData';
-import { datasourcesActions } from 'src/explore/actions/datasourcesActions';
 import { mountExploreUrl } from 'src/explore/exploreUtils';
 import { getFormDataFromControls } from 'src/explore/controlUtils';
 import * as exploreActions from 'src/explore/actions/exploreActions';
@@ -758,7 +757,6 @@ function mapStateToProps(state) {
 function mapDispatchToProps(dispatch) {
   const actions = {
     ...exploreActions,
-    ...datasourcesActions,
     ...saveModalActions,
     ...chartActions,
     ...logActions,
