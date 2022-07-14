@@ -289,20 +289,14 @@ const ExploreChartPanel = ({
   );
 
   const getDatasourceAsSaveableDataset = source => {
-return {
-      columns: source.columns,
-      name: source?.datasource_name || 'Untitled',
-      dbId: source.database.id,
-      sql: source?.sql || '',
-      schema: source?.schema,
-}
+    const datasource = {
       columns: source.columns,
       name: source?.datasource_name || 'Untitled',
       dbId: source.database.id,
       sql: source?.sql || '',
       schema: source?.schema,
     };
-    return dataset;
+    return datasource;
   };
 
   const panelBody = useMemo(

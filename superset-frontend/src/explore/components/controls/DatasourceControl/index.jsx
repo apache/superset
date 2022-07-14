@@ -154,7 +154,7 @@ export const renderDatasourceTitle = (displayString, tooltip) =>
 
 // Different data source types use different attributes for the display title
 export const getDatasourceTitle = datasource => {
-  if (datasource.type == 'query') return datasource?.sql;
+  if (datasource.type === 'query') return datasource?.sql;
   return datasource?.name;
 };
 
@@ -169,15 +169,15 @@ class DatasourceControl extends React.PureComponent {
   }
 
   getDatasourceAsSaveableDataset = source => {
-    return {
+    return (datasource = {
       columns: source?.columns || [],
       name: source?.datasource_name || source?.name || t('Untitled'),
       dbId: source?.database.id,
       sql: source?.sql || '',
       schema: source?.schema,
-    };
+    });
   };
-  d;
+
   onDatasourceSave = datasource => {
     this.props.actions.setDatasource(datasource);
     const timeCol = this.props.form_data?.granularity_sqla;
