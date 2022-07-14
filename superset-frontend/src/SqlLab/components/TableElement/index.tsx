@@ -57,7 +57,7 @@ export interface TableElementProps {
   table: Table;
   actions: {
     removeDataPreview: (table: Table) => void;
-    removeTable: (table: Table) => void;
+    removeTables: (tables: Table[]) => void;
   };
 }
 
@@ -85,7 +85,7 @@ const TableElement = ({ table, actions, ...props }: TableElementProps) => {
 
   const removeTable = () => {
     actions.removeDataPreview(table);
-    actions.removeTable(table);
+    actions.removeTables([table]);
   };
 
   const toggleSortColumns = () => {
