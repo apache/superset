@@ -3724,19 +3724,19 @@
       "Total (List Unique Values)": ["Total (Somme)"],
       "Sum": ["Somme"],
       "Average": ["Moyenne"],
-      "Median": ["Médian"],
-      "Sample Variance": ["Variance"],
-      "Sample Standard Deviation": ["Somme"],
+      "Median": ["Médiane"],
+      "Sample Variance": ["Variance échantillon"],
+      "Sample Standard Deviation": ["Écart-type échantillon"],
       "Minimum": ["Minimum"],
       "Maximum": ["Maximum"],
       "First": ["Premier"],
       "Last": ["Dernier"],
-      "Sum as Fraction of Total": ["Somme"],
-      "Sum as Fraction of Rows": ["Somme"],
-      "Sum as Fraction of Columns": ["Somme"],
-      "Count as Fraction of Total": ["Somme"],
-      "Count as Fraction of Rows": ["Somme"],
-      "Count as Fraction of Columns": ["Somme"]
+      "Sum as Fraction of Total": ["Somme comme fraction du total"],
+      "Sum as Fraction of Rows": ["Somme comme fraction des lignes"],
+      "Sum as Fraction of Columns": ["Somme comme fraction des colonnes"],
+      "Count as Fraction of Total": ["Décompte comme fraction du total"],
+      "Count as Fraction of Rows": ["Décompte comme fraction des lignes"],
+      "Count as Fraction of Columns": ["Décompte comme fraction des colonnes"]
     }
   }
 }
