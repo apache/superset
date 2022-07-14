@@ -1215,9 +1215,10 @@ export function collapseTable(table) {
 
 export function removeTables(tables) {
   return function (dispatch) {
+    const tablesToRemove = tables?.filter(Boolean) ?? [];
     const sync = isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)
       ? Promise.all(
-          tables.map(table =>
+          tablesToRemove.map(table =>
             SupersetClient.delete({
               endpoint: encodeURI(`/tableschemaview/${table.id}`),
             }),
@@ -1226,7 +1227,7 @@ export function removeTables(tables) {
       : Promise.resolve();
 
     return sync
-      .then(() => dispatch({ type: REMOVE_TABLES, tables }))
+      .then(() => dispatch({ type: REMOVE_TABLES, tables: tablesToRemove }))
       .catch(() =>
         dispatch(
           addDangerToast(
