@@ -28,16 +28,16 @@ describe('ColorSchemeRegistry', () => {
   });
   it('returns undefined', () => {
     const registry = new ColorSchemeRegistry();
-    expect(registry.get("something")).toBeUndefined();
+    expect(registry.get('something')).toBeUndefined();
   });
   it('returns default', () => {
     const registry = new ColorSchemeRegistry();
-    registry.registerValue("SUPERSET_DEFAULT", schemes[0])
-    expect(registry.get("something")).toBeInstanceOf(CategoricalScheme);
+    registry.registerValue('SUPERSET_DEFAULT', schemes[0]);
+    expect(registry.get('something')).toBeInstanceOf(CategoricalScheme);
   });
   it('returns undefined in strict mode', () => {
     const registry = new ColorSchemeRegistry();
-    registry.registerValue("SUPERSET_DEFAULT", schemes[0])
-    expect(registry.get("something", true)).toBeUndefined();
+    registry.registerValue('SUPERSET_DEFAULT', schemes[0]);
+    expect(registry.get('something', true)).toBeUndefined();
   });
 });
