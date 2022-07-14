@@ -24,9 +24,7 @@ import React, {
   useEffect,
   useMemo,
   useState,
-  useRef,
   useCallback,
-  useImperativeHandle,
 } from 'react';
 import { ensureIsArray, styled, t } from '@superset-ui/core';
 import AntdSelect, {
@@ -38,7 +36,6 @@ import { DownOutlined, SearchOutlined } from '@ant-design/icons';
 import { Spin } from 'antd';
 import { isEqual } from 'lodash';
 import Icons from 'src/components/Icons';
-import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { rankedSearchCompare } from 'src/utils/rankedSearchCompare';
 import { getValue, hasOption, isLabeledValue } from './utils';
 
@@ -68,13 +65,6 @@ type PickedSelectProps = Pick<
 >;
 
 export type OptionsType = Exclude<AntdSelectAllProps['options'], undefined>;
-
-export type OptionsTypePage = {
-  data: OptionsType;
-  totalCount: number;
-};
-
-export type SelectRef = HTMLInputElement & { clearCache: () => void };
 
 export interface SelectProps extends PickedSelectProps {
   /**
@@ -127,12 +117,6 @@ export interface SelectProps extends PickedSelectProps {
    */
   invertSelection?: boolean;
   /**
-   * It provides a callback function when an error
-   * is generated after a request is fired.
-   * Works in async mode only (See the options property).
-   */
-  onError?: (error: string) => void;
-  /**
    * Customize how filtered options are sorted while users search.
    * Will not apply to predefined `options` array when users are not searching.
    */
@@ -166,25 +150,6 @@ const StyledCheckOutlined = styled(Icons.CheckOutlined)`
   vertical-align: 0;
 `;
 
-const StyledError = styled.div`
-  ${({ theme }) => `
-    display: flex;
-    justify-content: center;
-    align-items: flex-start;
-    width: 100%;
-    padding: ${theme.gridUnit * 2}px;
-    color: ${theme.colors.error.base};
-    & svg {
-      margin-right: ${theme.gridUnit * 2}px;
-    }
-  `}
-`;
-
-const StyledErrorMessage = styled.div`
-  overflow: hidden;
-  text-overflow: ellipsis;
-`;
-
 const StyledSpin = styled(Spin)`
   margin-top: ${({ theme }) => -theme.gridUnit}px;
 `;
@@ -200,12 +165,6 @@ const StyledLoadingText = styled.div`
 const MAX_TAG_COUNT = 4;
 const TOKEN_SEPARATORS = [',', '\n', '\t', ';'];
 const EMPTY_OPTIONS: OptionsType = [];
-
-const Error = ({ error }: { error: string }) => (
-  <StyledError>
-    <Icons.ErrorSolid /> <StyledErrorMessage>{error}</StyledErrorMessage>
-  </StyledError>
-);
 
 export const DEFAULT_SORT_COMPARATOR = (
   a: AntdLabeledValue,
@@ -270,7 +229,6 @@ const Select = (
     mode = 'single',
     name,
     notFoundContent,
-    onError,
     onChange,
     onClear,
     onDropdownVisibleChange,
@@ -284,16 +242,14 @@ const Select = (
     getPopupContainer,
     ...props
   }: SelectProps,
-  ref: RefObject<SelectRef>,
+  ref: RefObject<HTMLInputElement>,
 ) => {
   const isSingleMode = mode === 'single';
   const shouldShowSearch = allowNewOptions ? true : showSearch;
   const [selectValue, setSelectValue] = useState(value);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(loading);
-  const [error, setError] = useState('');
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
-  const fetchedQueries = useRef(new Map<string, number>());
   const mappedMode = isSingleMode
     ? undefined
     : allowNewOptions
@@ -313,21 +269,14 @@ const Select = (
       sortSelectedFirst(a, b) || sortComparator(a, b, inputValue),
     [inputValue, sortComparator, sortSelectedFirst],
   );
-  const sortComparatorForNoSearch = useCallback(
-    (a: AntdLabeledValue, b: AntdLabeledValue) =>
-      sortSelectedFirst(a, b) ||
-      // we should preserve the options order as much as possible.
-      0,
-    [sortComparator, sortSelectedFirst],
-  );
 
   const initialOptions = useMemo(
     () => (options && Array.isArray(options) ? options.slice() : EMPTY_OPTIONS),
     [options],
   );
   const initialOptionsSorted = useMemo(
-    () => initialOptions.slice().sort(sortComparatorForNoSearch),
-    [initialOptions, sortComparatorForNoSearch],
+    () => initialOptions.slice().sort(sortSelectedFirst),
+    [initialOptions, sortSelectedFirst],
   );
 
   const [selectOptions, setSelectOptions] =
@@ -383,19 +332,6 @@ const Select = (
     }
     setInputValue('');
   };
-
-  const internalOnError = useCallback(
-    (response: Response) =>
-      getClientErrorObject(response).then(e => {
-        const { error } = e;
-        setError(error);
-
-        if (onError) {
-          onError(error);
-        }
-      }),
-    [onError],
-  );
 
   const handleOnSearch = (search: string) => {
     const searchValue = search.trim();
@@ -461,7 +397,7 @@ const Select = (
     if (isLoading && fullSelectOptions.length === 0) {
       return <StyledLoadingText>{t('Loading...')}</StyledLoadingText>;
     }
-    return error ? <Error error={error} /> : originNode;
+    return originNode;
   };
 
   // use a function instead of component since every rerender of the
@@ -485,7 +421,6 @@ const Select = (
 
   useEffect(() => {
     // when `options` list is updated from component prop, reset states
-    fetchedQueries.current.clear();
     setSelectOptions(initialOptions);
   }, [initialOptions]);
 
@@ -498,17 +433,7 @@ const Select = (
       setIsLoading(loading);
     }
   }, [isLoading, loading]);
-
-  const clearCache = () => fetchedQueries.current.clear();
-
-  useImperativeHandle(
-    ref,
-    () => ({
-      ...(ref.current as HTMLInputElement),
-      clearCache,
-    }),
-    [ref],
-  );
+ 
 
   return (
     <StyledContainer>
