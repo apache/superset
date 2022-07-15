@@ -24,7 +24,7 @@ import {
   addSliceToDashboard,
   removeSliceFromDashboard,
 } from 'src/dashboard/actions/dashboardState';
-import { setDatasources } from 'src/dashboard/actions/datasources';
+import { setDatasources } from 'src/datasource/actions';
 
 import { triggerQuery } from 'src/components/Chart/chartAction';
 import { logEvent } from 'src/logger/actions';

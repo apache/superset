@@ -24,7 +24,7 @@ import shortid from 'shortid';
 import { styled, t, QueryResponse } from '@superset-ui/core';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import {
-  ISaveableDataset,
+  ISaveableDatasource,
   ISimpleColumn,
   SaveDatasetModal,
 } from 'src/SqlLab/components/SaveDatasetModal';
@@ -224,7 +224,7 @@ export default class ResultSet extends React.PureComponent<
       const { showSaveDatasetModal } = this.state;
       const { query } = this.props;
 
-      const dataset: ISaveableDataset = {
+      const datasource: ISaveableDatasource = {
         columns: query.columns as ISimpleColumn[],
         name: query?.tab || 'Untitled',
         dbId: 1,
@@ -243,7 +243,7 @@ export default class ResultSet extends React.PureComponent<
             modalDescription={t(
               'Save this query as a virtual dataset to continue exploring',
             )}
-            datasource={dataset}
+            datasource={datasource}
           />
           <ResultSetButtons>
             {this.props.visualize &&

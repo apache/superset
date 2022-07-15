@@ -18,17 +18,21 @@
  */
 import React, { ReactNode } from 'react';
 import rison from 'rison';
+import querystring from 'query-string';
 import { styled, t, SupersetClient, JsonResponse } from '@superset-ui/core';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { URL_PARAMS } from 'src/constants';
 import { isNullish } from 'src/utils/common';
+import { withRouter, RouteComponentProps } from 'react-router-dom';
 import Button from 'src/components/Button';
 import { AsyncSelect, Steps } from 'src/components';
 import { Tooltip } from 'src/components/Tooltip';
+import withToasts from 'src/components/MessageToasts/withToasts';
 
 import VizTypeGallery, {
   MAX_ADVISABLE_VIZ_GALLERY_WIDTH,
 } from 'src/explore/components/controls/VizTypeControl/VizTypeGallery';
+import _ from 'lodash';
 import { findPermission } from 'src/utils/findPermission';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 
@@ -39,12 +43,14 @@ type Dataset = {
   datasource_type: string;
 };
 
-export type AddSliceContainerProps = {
+export interface AddSliceContainerProps extends RouteComponentProps {
   user: UserWithPermissionsAndRoles;
-};
+  addSuccessToast: (arg: string) => void;
+}
 
 export type AddSliceContainerState = {
   datasource?: { label: string; value: string };
+  datasetName?: string | string[] | null;
   vizType: string | null;
   canCreateDataset: boolean;
 };
@@ -201,7 +207,7 @@ const StyledStepDescription = styled.div`
   `}
 `;
 
-export default class AddSliceContainer extends React.PureComponent<
+export class AddSliceContainer extends React.PureComponent<
   AddSliceContainerProps,
   AddSliceContainerState
 > {
@@ -224,6 +230,21 @@ export default class AddSliceContainer extends React.PureComponent<
     this.onVizTypeDoubleClick = this.onVizTypeDoubleClick.bind(this);
   }
 
+  componentDidMount() {
+    const params = querystring.parse(window.location.search)?.dataset as string;
+    if (params) {
+      this.loadDatasources(params, 0, 1).then(r => {
+        const datasource = r.data[0];
+        // override here to force styling of option label
+        // which expects a reactnode instead of string
+        // @ts-expect-error
+        datasource.label = datasource.customLabel;
+        this.setState({ datasource });
+      });
+      this.props.addSuccessToast(t('The dataset has been saved'));
+    }
+  }
+
   exploreUrl() {
     const dashboardId = getUrlParam(URL_PARAMS.dashboardId);
     let url = `/explore/?viz_type=${this.state.vizType}&datasource=${this.state.datasource?.value}`;
@@ -234,7 +255,7 @@ export default class AddSliceContainer extends React.PureComponent<
   }
 
   gotoSlice() {
-    window.location.href = this.exploreUrl();
+    this.props.history.push(this.exploreUrl());
   }
 
   changeDatasource(datasource: { label: string; value: string }) {
@@ -397,3 +418,5 @@ export default class AddSliceContainer extends React.PureComponent<
     );
   }
 }
+
+export default withRouter(withToasts(AddSliceContainer));

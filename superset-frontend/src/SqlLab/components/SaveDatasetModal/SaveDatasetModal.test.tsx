@@ -18,13 +18,13 @@
  */
 import React from 'react';
 import {
-  ISaveableDataset,
+  ISaveableDatasource,
   SaveDatasetModal,
 } from 'src/SqlLab/components/SaveDatasetModal';
 import { render, screen } from 'spec/helpers/testing-library';
 import { DatasourceType } from '@superset-ui/core';
 
-const testQuery: ISaveableDataset = {
+const testQuery: ISaveableDatasource = {
   name: 'unimportant',
   dbId: 1,
   sql: 'SELECT *',

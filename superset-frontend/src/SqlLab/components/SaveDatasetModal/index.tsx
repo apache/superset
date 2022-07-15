@@ -19,7 +19,7 @@
 
 import React, { FunctionComponent, useCallback, useState } from 'react';
 import { Radio } from 'src/components/Radio';
-import { RadioChangeEvent, Select } from 'src/components';
+import { RadioChangeEvent, AsyncSelect } from 'src/components';
 import { Input } from 'src/components/Input';
 import StyledModal from 'src/components/Modal';
 import Button from 'src/components/Button';
@@ -81,7 +81,7 @@ interface SaveDatasetModalProps {
   buttonTextOnSave: string;
   buttonTextOnOverwrite: string;
   modalDescription?: string;
-  datasource: ISaveableDataset;
+  datasource: ISaveableDatasource;
   openWindow?: boolean;
   formData?: Omit<QueryFormData, 'datasource'>;
 }
@@ -188,9 +188,9 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
   const handleOverwriteDataset = async () => {
     const [, key] = await Promise.all([
       updateDataset(
-        datasource.dbId,
-        datasetToOverwrite.datasetid,
-        datasource.sql,
+        datasource?.dbId,
+        datasetToOverwrite?.datasetid,
+        datasource?.sql,
         datasource?.columns?.map(
           (d: { name: string; type: string; is_dttm: boolean }) => ({
             column_name: d.name,
@@ -198,7 +198,7 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
             is_dttm: d.is_dttm,
           }),
         ),
-        datasetToOverwrite.owners.map((o: DatasetOwner) => o.id),
+        datasetToOverwrite?.owners?.map((o: DatasetOwner) => o.id),
         true,
       ),
       postFormData(datasetToOverwrite.datasetid, 'table', {
@@ -216,7 +216,6 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
     createWindow(url);
 
     setShouldOverwriteDataset(false);
-    setDatasetToOverwrite({});
     setDatasetName(getDefaultDatasetName());
   };
 
@@ -398,7 +397,7 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
                   {t('Overwrite existing')}
                 </Radio>
                 <div className="sdm-autocomplete">
-                  <Select
+                  <AsyncSelect
                     allowClear
                     showSearch
                     placeholder={t('Select or type dataset name')}

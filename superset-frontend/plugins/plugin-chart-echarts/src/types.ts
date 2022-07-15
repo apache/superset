@@ -127,4 +127,6 @@ export interface EchartsTitleFormData {
 
 export type StackType = boolean | null | Partial<AreaChartExtraControlsValue>;
 
+export type AxisType = 'time' | 'value' | 'category';
+
 export * from './Timeseries/types';

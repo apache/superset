@@ -71,11 +71,17 @@ def test_post(client, dashboard_id: int, permalink_salt: str) -> None:
     login(client, "admin")
     resp = client.post(f"api/v1/dashboard/{dashboard_id}/permalink", json=STATE)
     assert resp.status_code == 201
-    data = json.loads(resp.data.decode("utf-8"))
+    data = resp.json
     key = data["key"]
     url = data["url"]
     assert key in url
     id_ = decode_permalink_id(key, permalink_salt)
+
+    assert (
+        data
+        == client.post(f"api/v1/dashboard/{dashboard_id}/permalink", json=STATE).json
+    ), "Should always return the same permalink key for the same payload"
+
     db.session.query(KeyValueEntry).filter_by(id=id_).delete()
     db.session.commit()
 
@@ -98,12 +104,12 @@ def test_post_invalid_schema(client, dashboard_id: int):
 
 def test_get(client, dashboard_id: int, permalink_salt: str):
     login(client, "admin")
-    resp = client.post(f"api/v1/dashboard/{dashboard_id}/permalink", json=STATE)
-    data = json.loads(resp.data.decode("utf-8"))
-    key = data["key"]
+    key = client.post(f"api/v1/dashboard/{dashboard_id}/permalink", json=STATE).json[
+        "key"
+    ]
     resp = client.get(f"api/v1/dashboard/permalink/{key}")
     assert resp.status_code == 200
-    result = json.loads(resp.data.decode("utf-8"))
+    result = resp.json
     assert result["dashboardId"] == str(dashboard_id)
     assert result["state"] == STATE
     id_ = decode_permalink_id(key, permalink_salt)
