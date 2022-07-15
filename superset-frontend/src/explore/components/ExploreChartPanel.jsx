@@ -40,6 +40,7 @@ import Alert from 'src/components/Alert';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { DataTablesPane } from './DataTablesPane';
 import { buildV1ChartDataPayload } from '../exploreUtils';
+import { getDatasourceAsSaveableDataset } from 'src/utils/getDatasourceAsSaveableDataset';
 import { ChartPills } from './ChartPills';
 import { ExploreAlert } from './ExploreAlert';
 import { getChartRequiredFieldsMissingMessage } from '../../utils/getChartRequiredFieldsMissingMessage';
@@ -287,17 +288,6 @@ const ExploreChartPanel = ({
       vizType,
     ],
   );
-
-  const getDatasourceAsSaveableDataset = source => {
-    const datasource = {
-      columns: source.columns,
-      name: source?.datasource_name || 'Untitled',
-      dbId: source.database.id,
-      sql: source?.sql || '',
-      schema: source?.schema,
-    };
-    return datasource;
-  };
 
   const panelBody = useMemo(
     () => (

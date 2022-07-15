@@ -41,6 +41,7 @@ import Button from 'src/components/Button';
 import ErrorAlert from 'src/components/ErrorMessage/ErrorAlert';
 import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
 import { URL_PARAMS } from 'src/constants';
+import { getDatasourceAsSaveableDataset } from 'src/utils/getDatasourceAsSaveableDataset';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import ModalTrigger from 'src/components/ModalTrigger';
 import ViewQueryModalFooter from 'src/explore/components/controls/ViewQueryModalFooter';
@@ -167,17 +168,6 @@ class DatasourceControl extends React.PureComponent {
       showSaveDatasetModal: false,
     };
   }
-
-  getDatasourceAsSaveableDataset = source => {
-    const datasource = {
-      columns: source?.columns || [],
-      name: source?.datasource_name || source?.name || t('Untitled'),
-      dbId: source?.database.id,
-      sql: source?.sql || '',
-      schema: source?.schema,
-    };
-    return datasource;
-  };
 
   onDatasourceSave = datasource => {
     this.props.actions.setDatasource(datasource);
@@ -452,7 +442,7 @@ class DatasourceControl extends React.PureComponent {
             modalDescription={t(
               'Save this query as a virtual dataset to continue exploring',
             )}
-            datasource={this.getDatasourceAsSaveableDataset(datasource)}
+            datasource={getDatasourceAsSaveableDataset(datasource)}
             openWindow={false}
             formData={this.props.form_data}
           />

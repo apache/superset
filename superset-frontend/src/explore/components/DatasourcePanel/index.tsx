@@ -37,7 +37,7 @@ import {
   ISimpleColumn,
   SaveDatasetModal,
 } from 'src/SqlLab/components/SaveDatasetModal';
-
+import { getDatasourceAsSaveableDataset } from 'src/utils/getDatasourceAsSaveableDataset';
 import { Input } from 'src/components/Input';
 import { FAST_DEBOUNCE } from 'src/constants';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
@@ -237,17 +237,6 @@ export default function DataSourcePanel({
       }),
     [_columns],
   );
-
-  const getDatasourceAsSaveableDataset = (source: IDatasource) => {
-    const dataset: ISaveableDatasource = {
-      columns: (source?.columns as ISimpleColumn[]) || [],
-      name: source?.datasource_name || source?.name || t('Untitled'),
-      dbId: source?.database.id,
-      sql: source?.sql || '',
-      schema: source?.schema,
-    };
-    return dataset;
-  };
 
   const [showSaveDatasetModal, setShowSaveDatasetModal] = useState(false);
   const [inputValue, setInputValue] = useState('');
