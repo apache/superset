@@ -32,12 +32,8 @@ import { debounce, isArray } from 'lodash';
 import { matchSorter, rankings } from 'match-sorter';
 import Collapse from 'src/components/Collapse';
 import Alert from 'src/components/Alert';
-import {
-  ISaveableDatasource,
-  ISimpleColumn,
-  SaveDatasetModal,
-} from 'src/SqlLab/components/SaveDatasetModal';
-import { getDatasourceAsSaveableDataset } from 'src/utils/getDatasourceAsSaveableDataset';
+import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
+import { getDatasourceAsSaveableDataset } from 'src/utils/datasourceUtils';
 import { Input } from 'src/components/Input';
 import { FAST_DEBOUNCE } from 'src/constants';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';

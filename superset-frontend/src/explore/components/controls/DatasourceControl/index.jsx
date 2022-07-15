@@ -41,7 +41,7 @@ import Button from 'src/components/Button';
 import ErrorAlert from 'src/components/ErrorMessage/ErrorAlert';
 import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
 import { URL_PARAMS } from 'src/constants';
-import { getDatasourceAsSaveableDataset } from 'src/utils/getDatasourceAsSaveableDataset';
+import { getDatasourceAsSaveableDataset } from 'src/utils/datasourceUtils';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import ModalTrigger from 'src/components/ModalTrigger';
 import ViewQueryModalFooter from 'src/explore/components/controls/ViewQueryModalFooter';

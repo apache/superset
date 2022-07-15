@@ -38,9 +38,9 @@ import {
 } from 'src/utils/localStorageHelpers';
 import Alert from 'src/components/Alert';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
+import { getDatasourceAsSaveableDataset } from 'src/utils/datasourceUtils';
 import { DataTablesPane } from './DataTablesPane';
 import { buildV1ChartDataPayload } from '../exploreUtils';
-import { getDatasourceAsSaveableDataset } from 'src/utils/getDatasourceAsSaveableDataset';
 import { ChartPills } from './ChartPills';
 import { ExploreAlert } from './ExploreAlert';
 import { getChartRequiredFieldsMissingMessage } from '../../utils/getChartRequiredFieldsMissingMessage';

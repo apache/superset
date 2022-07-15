@@ -16,13 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export const getDatasourceAsSaveableDataset = source => {
-  const datasource = {
-    columns: source.columns,
-    name: source?.datasource_name || 'Untitled',
-    dbId: source.database.id,
-    sql: source?.sql || '',
-    schema: source?.schema,
-  };
-  return datasource;
-};
+export const getDatasourceAsSaveableDataset = source => ({
+  columns: source.columns,
+  name: source?.datasource_name || 'Untitled',
+  dbId: source.database.id,
+  sql: source?.sql || '',
+  schema: source?.schema,
+});
