@@ -41,6 +41,7 @@ import Button from 'src/components/Button';
 import ErrorAlert from 'src/components/ErrorMessage/ErrorAlert';
 import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
 import { URL_PARAMS } from 'src/constants';
+import { getDatasourceAsSaveableDataset } from 'src/utils/datasourceUtils';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import ModalTrigger from 'src/components/ModalTrigger';
 import ViewQueryModalFooter from 'src/explore/components/controls/ViewQueryModalFooter';
@@ -141,7 +142,7 @@ export const datasourceIconLookup = {
 
 // Render title for datasource with tooltip only if text is longer than VISIBLE_TITLE_LENGTH
 export const renderDatasourceTitle = (displayString, tooltip) =>
-  displayString.length > VISIBLE_TITLE_LENGTH ? (
+  displayString?.length > VISIBLE_TITLE_LENGTH ? (
     // Add a tooltip only for long names that will be visually truncated
     <Tooltip title={tooltip}>
       <span className="title-select">{displayString}</span>
@@ -154,8 +155,8 @@ export const renderDatasourceTitle = (displayString, tooltip) =>
 
 // Different data source types use different attributes for the display title
 export const getDatasourceTitle = datasource => {
-  if (datasource.type === 'query') return datasource?.sql;
-  return datasource?.name;
+  if (datasource?.type === 'query') return datasource?.sql;
+  return datasource?.name || '';
 };
 
 class DatasourceControl extends React.PureComponent {
@@ -167,14 +168,6 @@ class DatasourceControl extends React.PureComponent {
       showSaveDatasetModal: false,
     };
   }
-
-  getDatasourceAsSaveableDataset = source => ({
-    columns: source?.columns || [],
-    name: source?.datasource_name || source?.name || t('Untitled'),
-    dbId: source?.database.id,
-    sql: source?.sql || '',
-    schema: source?.schema,
-  });
 
   onDatasourceSave = datasource => {
     this.props.actions.setDatasource(datasource);
@@ -449,7 +442,9 @@ class DatasourceControl extends React.PureComponent {
             modalDescription={t(
               'Save this query as a virtual dataset to continue exploring',
             )}
-            datasource={this.getDatasourceAsSaveableDataset(datasource)}
+            datasource={getDatasourceAsSaveableDataset(datasource)}
+            openWindow={false}
+            formData={this.props.form_data}
           />
         )}
       </Styles>

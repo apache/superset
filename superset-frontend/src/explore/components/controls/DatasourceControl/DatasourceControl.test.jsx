@@ -116,29 +116,6 @@ describe('DatasourceControl', () => {
       </div>,
     );
     expect(menuWrapper.find(Menu.Item)).toHaveLength(2);
-
-    wrapper = setup({
-      datasource: {
-        name: 'birth_names',
-        type: 'druid',
-        uid: '1__druid',
-        id: 1,
-        columns: [],
-        metrics: [],
-        owners: [{ username: 'admin', userId: 1 }],
-        database: {
-          backend: 'druid',
-          name: 'main',
-        },
-      },
-    });
-    expect(wrapper.find('[data-test="datasource-menu"]')).toExist();
-    menuWrapper = shallow(
-      <div>
-        {wrapper.find('[data-test="datasource-menu"]').first().prop('overlay')}
-      </div>,
-    );
-    expect(menuWrapper.find(Menu.Item)).toHaveLength(2);
   });
 
   it('should render health check message', () => {
@@ -159,7 +136,7 @@ describe('DatasourceControl', () => {
     expect(displayText).toBe(sql);
     const queryDatasource2 = { type: DatasourceType.Query, sql: null };
     displayText = getDatasourceTitle(queryDatasource2);
-    expect(displayText).toBe(emptyResult);
+    expect(displayText).toBe(null);
     const queryDatasource3 = { type: 'random type', name };
     displayText = getDatasourceTitle(queryDatasource3);
     expect(displayText).toBe(name);

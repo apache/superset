@@ -628,6 +628,7 @@ function ExploreViewContainer(props) {
             </span>
           </div>
           <DataSourcePanel
+            formData={props.form_data}
             datasource={props.datasource}
             controls={props.controls}
             actions={props.actions}

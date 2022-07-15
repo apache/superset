@@ -16,14 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DatasourceKey } from '@superset-ui/core';
-
-describe('DatasourceKey', () => {
-  const tableKey = '5__table';
-
-  it('should handle table data sources', () => {
-    const datasourceKey = new DatasourceKey(tableKey);
-    expect(datasourceKey.toString()).toBe(tableKey);
-    expect(datasourceKey.toObject()).toEqual({ id: 5, type: 'table' });
-  });
+export const getDatasourceAsSaveableDataset = source => ({
+  columns: source.columns,
+  name: source?.datasource_name || 'Untitled',
+  dbId: source.database.id,
+  sql: source?.sql || '',
+  schema: source?.schema,
 });
