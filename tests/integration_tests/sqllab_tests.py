@@ -65,6 +65,7 @@ QUERY_3 = "SELECT * FROM birth_names LIMIT 10"
 class TestSqlLab(SupersetTestCase):
     """Testings for Sql Lab"""
 
+    @pytest.mark.usefixtures("load_birth_names_data")
     def run_some_queries(self):
         db.session.query(Query).delete()
         db.session.commit()
