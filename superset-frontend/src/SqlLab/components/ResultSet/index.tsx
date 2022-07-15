@@ -253,13 +253,14 @@ export default class ResultSet extends React.PureComponent<
                   onClick={() => {
                     // There is currently redux / state issue where sometimes a query will have serverId
                     // and other times it will not.  We need this attribute consistently for this to work
-                    const qid = this.props?.query?.results?.query_id;
-                    if (qid) {
-                      // This will open expolore using the query as datasource
-                      window.location.href = `/explore/?dataset_type=query&dataset_id=${qid}`;
-                    } else {
-                      this.setState({ showSaveDatasetModal: true });
-                    }
+                    // const qid = this.props?.query?.results?.query_id;
+                    // if (qid) {
+                    //   // This will open explore using the query as datasource
+                    //   window.location.href = `/explore/?dataset_type=query&dataset_id=${qid}`;
+                    // } else {
+                    //   this.setState({ showSaveDatasetModal: true });
+                    // }
+                    this.setState({ showSaveDatasetModal: true });
                   }}
                 />
               )}
