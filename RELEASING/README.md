@@ -458,10 +458,13 @@ while requesting access to push packages.
 
 ```bash
 twine upload dist/apache-superset-${SUPERSET_VERSION}.tar.gz
-
-# Set your username to token
-# Set your password to the token value, including the pypi- prefix
 ```
+
+Set your username to `__token__`
+
+Set your password to the token value, including the `pypi-` prefix
+
+More information on https://pypi.org/help/#apitoken
 
 ### Announcing
 
