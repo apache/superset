@@ -63,7 +63,6 @@ class CreateChartCommand(CreateMixin, BaseCommand):
             datasource = get_datasource_by_id(datasource_id, datasource_type)
             self._properties["datasource_name"] = datasource.name
         except ValidationError as ex:
-            print('**** i hit in validationerror create chart command ***')
             exceptions.append(ex)
 
         # Validate/Populate dashboards
