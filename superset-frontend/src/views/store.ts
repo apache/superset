@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { applyMiddleware, combineReducers, compose, createStore } from 'redux';
+import {
+  applyMiddleware,
+  combineReducers,
+  compose,
+  createStore,
+  Store,
+} from 'redux';
 import thunk from 'redux-thunk';
 import messageToastReducer from 'src/components/MessageToasts/reducers';
 import { initEnhancer } from 'src/reduxUtils';
@@ -86,8 +92,26 @@ export const rootReducer = combineReducers({
   explore,
 });
 
-export const store = createStore(
+export const store: Store = createStore(
   rootReducer,
   {},
   compose(applyMiddleware(thunk, logger), initEnhancer(false)),
 );
+
+/* In some cases the jinja template injects two seperate React apps into basic.html
+ * One for the top navigation Menu and one for the application below the Menu
+ * The first app to connect to the Redux debugger wins which is the menu blocking
+ * the application from being able to connect to the redux debugger.
+ * setupStore with disableDebugger true enables the menu.tsx component to avoid connecting
+ * to redux debugger so the application can connect to redux debugger
+ */
+export function setupStore(disableDegugger = false): Store {
+  return createStore(
+    rootReducer,
+    {},
+    compose(
+      applyMiddleware(thunk, logger),
+      initEnhancer(false, undefined, disableDegugger),
+    ),
+  );
+}
