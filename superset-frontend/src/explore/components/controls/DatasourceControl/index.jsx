@@ -142,7 +142,7 @@ export const datasourceIconLookup = {
 
 // Render title for datasource with tooltip only if text is longer than VISIBLE_TITLE_LENGTH
 export const renderDatasourceTitle = (displayString, tooltip) =>
-  displayString.length > VISIBLE_TITLE_LENGTH ? (
+  displayString?.length > VISIBLE_TITLE_LENGTH ? (
     // Add a tooltip only for long names that will be visually truncated
     <Tooltip title={tooltip}>
       <span className="title-select">{displayString}</span>
