@@ -128,7 +128,9 @@ describe('Test datatable', () => {
     cy.get('.ant-empty-description').should('not.exist');
   });
   it('Datapane loads view samples', () => {
-    cy.intercept('/api/v1/dataset/*/samples?force=false').as('Samples');
+    cy.intercept(
+      'api/v1/explore/samples?force=false&datasource_type=table&datasource_id=*',
+    ).as('Samples');
     cy.contains('Samples')
       .click()
       .then(() => {

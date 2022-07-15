@@ -116,6 +116,7 @@ class QueryContextProcessor:
                         and col != DTTM_ALIAS
                     )
                 ]
+
                 if invalid_columns:
                     raise QueryObjectValidationError(
                         _(
@@ -123,6 +124,7 @@ class QueryContextProcessor:
                             invalid_columns=invalid_columns,
                         )
                     )
+
                 query_result = self.get_query_result(query_obj)
                 annotation_data = self.get_annotation_data(query_obj)
                 cache.set_query_result(
@@ -183,8 +185,16 @@ class QueryContextProcessor:
         # support multiple queries from different data sources.
 
         # The datasource here can be different backend but the interface is common
-        result = query_context.datasource.query(query_object.to_dict())
-        query = result.query + ";\n\n"
+        # pylint: disable=import-outside-toplevel
+        from superset.models.sql_lab import Query
+
+        query = ""
+        if isinstance(query_context.datasource, Query):
+            # todo(hugh): add logic to manage all sip68 models here
+            result = query_context.datasource.exc_query(query_object.to_dict())
+        else:
+            result = query_context.datasource.query(query_object.to_dict())
+            query = result.query + ";\n\n"
 
         df = result.df
         # Transform the timestamp we received from database to pandas supported

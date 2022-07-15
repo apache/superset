@@ -26,6 +26,7 @@ import {
   SupersetClient,
   t,
   useTheme,
+  getChartMetadataRegistry,
 } from '@superset-ui/core';
 import { useResizeDetector } from 'react-resize-detector';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
@@ -35,6 +36,9 @@ import {
   setItem,
   LocalStorageKeys,
 } from 'src/utils/localStorageHelpers';
+import Alert from 'src/components/Alert';
+import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
+import { getDatasourceAsSaveableDataset } from 'src/utils/datasourceUtils';
 import { DataTablesPane } from './DataTablesPane';
 import { buildV1ChartDataPayload } from '../exploreUtils';
 import { ChartPills } from './ChartPills';
@@ -145,9 +149,17 @@ const ExploreChartPanel = ({
     getItem(LocalStorageKeys.chart_split_sizes, INITIAL_SIZES),
   );
 
+  const [showDatasetModal, setShowDatasetModal] = useState(false);
+
+  const metaDataRegistry = getChartMetadataRegistry();
+  const { useLegacyApi } = metaDataRegistry.get(vizType);
+  const vizTypeNeedsDataset = useLegacyApi && datasource.type !== 'dataset';
+
+  // added boolean column to below show boolean so that the errors aren't overlapping
   const showAlertBanner =
     !chartAlert &&
     chartIsStale &&
+    !vizTypeNeedsDataset &&
     chart.chartStatus !== 'failed' &&
     ensureIsArray(chart.queriesResponse).length > 0;
 
@@ -286,6 +298,31 @@ const ExploreChartPanel = ({
           flex-direction: column;
         `}
       >
+        {vizTypeNeedsDataset && (
+          <Alert
+            message={t('Chart type requires a dataset')}
+            type="error"
+            css={theme => css`
+              margin: 0 0 ${theme.gridUnit * 4}px 0;
+            `}
+            description={
+              <>
+                {t(
+                  'This chart type is not supported when using an unsaved query as a chart source. ',
+                )}
+                <span
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setShowDatasetModal(true)}
+                  css={{ textDecoration: 'underline' }}
+                >
+                  {t('Create a dataset')}
+                </span>
+                {t(' to visualize your data.')}
+              </>
+            }
+          />
+        )}
         {showAlertBanner && (
           <ExploreAlert
             title={
@@ -398,6 +435,17 @@ const ExploreChartPanel = ({
             actions={actions}
           />
         </Split>
+      )}
+      {showDatasetModal && (
+        <SaveDatasetModal
+          visible={showDatasetModal}
+          onHide={() => setShowDatasetModal(false)}
+          buttonTextOnSave={t('Save')}
+          buttonTextOnOverwrite={t('Overwrite')}
+          datasource={getDatasourceAsSaveableDataset(datasource)}
+          openWindow={false}
+          formData={formData}
+        />
       )}
     </Styles>
   );

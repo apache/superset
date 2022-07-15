@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -16,29 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
-import { DatasourceType } from './types/Datasource';
-
-export default class DatasourceKey {
-  readonly id: number;
-
-  readonly type: DatasourceType;
-
-  constructor(key: string) {
-    const [idStr, typeStr] = key.split('__');
-    this.id = parseInt(idStr, 10);
-    this.type = DatasourceType.Table; // default to SqlaTable model
-    this.type = typeStr === 'query' ? DatasourceType.Query : this.type;
-  }
-
-  public toString() {
-    return `${this.id}__${this.type}`;
-  }
-
-  public toObject() {
-    return {
-      id: this.id,
-      type: this.type,
-    };
-  }
-}
+export const getDatasourceAsSaveableDataset = source => ({
+  columns: source.columns,
+  name: source?.datasource_name || 'Untitled',
+  dbId: source.database.id,
+  sql: source?.sql || '',
+  schema: source?.schema,
+});

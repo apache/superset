@@ -1674,21 +1674,31 @@ def extract_dataframe_dtypes(
         "date": GenericDataType.TEMPORAL,
     }
 
-    columns_by_name = (
-        {column.column_name: column for column in datasource.columns}
-        if datasource
-        else {}
-    )
+    columns_by_name: Dict[str, Any] = {}
+    if datasource:
+        for column in datasource.columns:
+            if isinstance(column, dict):
+                columns_by_name[column.get("column_name")] = column
+            else:
+                columns_by_name[column.column_name] = column
+
     generic_types: List[GenericDataType] = []
     for column in df.columns:
         column_object = columns_by_name.get(column)
         series = df[column]
         inferred_type = infer_dtype(series)
-        generic_type = (
-            GenericDataType.TEMPORAL
-            if column_object and column_object.is_dttm
-            else inferred_type_map.get(inferred_type, GenericDataType.STRING)
-        )
+        if isinstance(column_object, dict):  # type: ignore
+            generic_type = (
+                GenericDataType.TEMPORAL
+                if column_object and column_object.get("is_dttm")
+                else inferred_type_map.get(inferred_type, GenericDataType.STRING)
+            )
+        else:
+            generic_type = (
+                GenericDataType.TEMPORAL
+                if column_object and column_object.is_dttm
+                else inferred_type_map.get(inferred_type, GenericDataType.STRING)
+            )
         generic_types.append(generic_type)
 
     return generic_types
@@ -1718,11 +1728,20 @@ def is_test() -> bool:
     return strtobool(os.environ.get("SUPERSET_TESTENV", "false"))
 
 
-def get_time_filter_status(
+def get_time_filter_status(  # pylint: disable=too-many-branches
     datasource: "BaseDatasource",
     applied_time_extras: Dict[str, str],
 ) -> Tuple[List[Dict[str, str]], List[Dict[str, str]]]:
-    temporal_columns = {col.column_name for col in datasource.columns if col.is_dttm}
+
+    temporal_columns: Set[Any]
+    if datasource.type == "query":
+        temporal_columns = {
+            col.get("column_name") for col in datasource.columns if col.get("is_dttm")
+        }
+    else:
+        temporal_columns = {
+            col.column_name for col in datasource.columns if col.is_dttm
+        }
     applied: List[Dict[str, str]] = []
     rejected: List[Dict[str, str]] = []
     time_column = applied_time_extras.get(ExtraFiltersTimeColumnType.TIME_COL)
