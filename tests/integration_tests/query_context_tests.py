@@ -293,7 +293,7 @@ class TestQueryContext(SupersetTestCase):
         payload = get_query_context("birth_names")
         payload["result_format"] = ChartDataResultFormat.CSV.value
         payload["queries"][0]["row_limit"] = 10
-        query_context = ChartDataQueryContextSchema().load(payload)
+        query_context: QueryContext = ChartDataQueryContextSchema().load(payload)
         responses = query_context.get_payload()
         self.assertEqual(len(responses), 1)
         data = responses["queries"][0]["data"]
