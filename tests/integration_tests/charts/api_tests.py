@@ -933,15 +933,27 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
                 }
             ],
             "keys": ["none"],
-            "columns": ["slice_name"],
+            "columns": ["slice_name", "description", "table.table_name"],
         }
         self.login(username="admin")
 
         uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
         rv = self.get_assert_metric(uri, "get_list")
-        self.assertEqual(rv.status_code, 200)
-        data = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(data["count"], 8)
+        data = rv.json
+        assert rv.status_code == 200
+        assert data["count"] > 0
+        for chart in data["result"]:
+            print(chart)
+            assert (
+                "energy"
+                in " ".join(
+                    [
+                        chart["slice_name"] or "",
+                        chart["description"] or "",
+                        chart["table"]["table_name"] or "",
+                    ]
+                ).lower()
+            )
 
     @pytest.mark.usefixtures("create_certified_charts")
     def test_gets_certified_charts_filter(self):
