@@ -30,6 +30,7 @@ import {
   JsonResponse,
   JsonObject,
   QueryResponse,
+  QueryFormData,
 } from '@superset-ui/core';
 import { useSelector, useDispatch } from 'react-redux';
 import moment from 'moment';
@@ -43,14 +44,36 @@ import {
   DatasetOwner,
   SqlLabExploreRootState,
   getInitialState,
-  ExploreDatasource,
   SqlLabRootState,
 } from 'src/SqlLab/types';
 import { mountExploreUrl } from 'src/explore/exploreUtils';
 import { postFormData } from 'src/explore/exploreUtils/formData';
 import { URL_PARAMS } from 'src/constants';
 import { SelectValue } from 'antd/lib/select';
-import { isEmpty } from 'lodash';
+import { isEmpty, isString } from 'lodash';
+
+interface QueryDatabase {
+  id?: number;
+}
+
+export type ExploreQuery = QueryResponse & {
+  database?: QueryDatabase | null | undefined;
+};
+
+export interface ISimpleColumn {
+  name?: string | null;
+  type?: string | null;
+  is_dttm?: boolean | null;
+}
+
+export interface ISaveableDatasource {
+  columns: ISimpleColumn[];
+  name: string;
+  dbId: number;
+  sql: string;
+  templateParams?: string | object | null;
+  schema?: string | null;
+}
 
 interface SaveDatasetModalProps {
   visible: boolean;
@@ -58,7 +81,9 @@ interface SaveDatasetModalProps {
   buttonTextOnSave: string;
   buttonTextOnOverwrite: string;
   modalDescription?: string;
-  datasource: ExploreDatasource;
+  datasource: ISaveableDatasource;
+  openWindow?: boolean;
+  formData?: Omit<QueryFormData, 'datasource'>;
 }
 
 const Styles = styled.div`
@@ -113,6 +138,8 @@ const updateDataset = async (
   return data.json.result;
 };
 
+const UNTITLED = t('Untitled Dataset');
+
 // eslint-disable-next-line no-empty-pattern
 export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
   visible,
@@ -121,13 +148,15 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
   buttonTextOnOverwrite,
   modalDescription,
   datasource,
+  openWindow = true,
+  formData = {},
 }) => {
   const defaultVizType = useSelector<SqlLabRootState, string>(
     state => state.common?.conf?.DEFAULT_VIZ_TYPE || 'table',
   );
-  const query = datasource as QueryResponse;
+
   const getDefaultDatasetName = () =>
-    `${query.tab} ${moment().format('MM/DD/YYYY HH:mm:ss')}`;
+    `${datasource?.name || UNTITLED} ${moment().format('MM/DD/YYYY HH:mm:ss')}`;
   const [datasetName, setDatasetName] = useState(getDefaultDatasetName());
   const [newOrOverwrite, setNewOrOverwrite] = useState(
     DatasetRadioState.SAVE_NEW,
@@ -145,29 +174,38 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
   );
   const dispatch = useDispatch<(dispatch: any) => Promise<JsonObject>>();
 
+  const createWindow = (url: string) => {
+    if (openWindow) {
+      window.open(url, '_blank', 'noreferrer');
+    } else {
+      window.location.href = url;
+    }
+  };
+  const formDataWithDefaults = {
+    ...EXPLORE_CHART_DEFAULT,
+    ...(formData || {}),
+  };
   const handleOverwriteDataset = async () => {
     const [, key] = await Promise.all([
       updateDataset(
-        query.dbId,
-        datasetToOverwrite.datasetid,
-        query.sql,
-        query.results.selected_columns.map(
+        datasource?.dbId,
+        datasetToOverwrite?.datasetid,
+        datasource?.sql,
+        datasource?.columns?.map(
           (d: { name: string; type: string; is_dttm: boolean }) => ({
             column_name: d.name,
             type: d.type,
             is_dttm: d.is_dttm,
           }),
         ),
-        datasetToOverwrite.owners?.map((o: DatasetOwner) => o.id),
+        datasetToOverwrite?.owners?.map((o: DatasetOwner) => o.id),
         true,
       ),
       postFormData(datasetToOverwrite.datasetid, 'table', {
-        ...EXPLORE_CHART_DEFAULT,
+        ...formDataWithDefaults,
         datasource: `${datasetToOverwrite.datasetid}__table`,
         ...(defaultVizType === 'table' && {
-          all_columns: query.results.selected_columns.map(
-            column => column.name,
-          ),
+          all_columns: datasource?.columns?.map(column => column.name),
         }),
       }),
     ]);
@@ -175,7 +213,7 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
     const url = mountExploreUrl(null, {
       [URL_PARAMS.formDataKey.name]: key,
     });
-    window.open(url, '_blank', 'noreferrer');
+    createWindow(url);
 
     setShouldOverwriteDataset(false);
     setDatasetName(getDefaultDatasetName());
@@ -225,35 +263,36 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
       return;
     }
 
-    const selectedColumns = query.results.selected_columns || [];
+    const selectedColumns = datasource?.columns ?? [];
 
     // The filters param is only used to test jinja templates.
     // Remove the special filters entry from the templateParams
     // before saving the dataset.
-    if (query.templateParams) {
-      const p = JSON.parse(query.templateParams);
+    let templateParams;
+    if (isString(datasource?.templateParams)) {
+      const p = JSON.parse(datasource.templateParams);
       /* eslint-disable-next-line no-underscore-dangle */
       if (p._filters) {
         /* eslint-disable-next-line no-underscore-dangle */
         delete p._filters;
         // eslint-disable-next-line no-param-reassign
-        query.templateParams = JSON.stringify(p);
+        templateParams = JSON.stringify(p);
       }
     }
 
     dispatch(
       createDatasource({
-        schema: query.schema,
-        sql: query.sql,
-        dbId: query.dbId,
-        templateParams: query.templateParams,
+        schema: datasource.schema,
+        sql: datasource.sql,
+        dbId: datasource.dbId,
+        templateParams,
         datasourceName: datasetName,
         columns: selectedColumns,
       }),
     )
       .then((data: { table_id: number }) =>
         postFormData(data.table_id, 'table', {
-          ...EXPLORE_CHART_DEFAULT,
+          ...formDataWithDefaults,
           datasource: `${data.table_id}__table`,
           ...(defaultVizType === 'table' && {
             all_columns: selectedColumns.map(column => column.name),
@@ -264,7 +303,7 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
         const url = mountExploreUrl(null, {
           [URL_PARAMS.formDataKey.name]: key,
         });
-        window.open(url, '_blank', 'noreferrer');
+        createWindow(url);
       })
       .catch(() => {
         addDangerToast(t('An error occurred saving dataset'));

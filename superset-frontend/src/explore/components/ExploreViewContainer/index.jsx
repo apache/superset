@@ -127,10 +127,10 @@ const ExplorePanelContainer = styled.div`
       position: relative;
       display: flex;
       flex-direction: row;
-      padding: 0 ${theme.gridUnit * 4}px;
+      padding: 0 ${theme.gridUnit * 2}px 0 ${theme.gridUnit * 4}px;
       justify-content: space-between;
       .horizontal-text {
-        font-size: ${theme.typography.sizes.s}px;
+        font-size: ${theme.typography.sizes.m}px;
       }
     }
     .no-show {
@@ -146,7 +146,7 @@ const ExplorePanelContainer = styled.div`
       padding: ${theme.gridUnit * 2}px;
       width: ${theme.gridUnit * 8}px;
     }
-    .callpase-icon > svg {
+    .collapse-icon > svg {
       color: ${theme.colors.primary.base};
     }
   `};
@@ -613,7 +613,7 @@ function ExploreViewContainer(props) {
           }
         >
           <div className="title-container">
-            <span className="horizontal-text">{t('Dataset')}</span>
+            <span className="horizontal-text">{t('Chart Source')}</span>
             <span
               role="button"
               tabIndex={0}
@@ -628,6 +628,7 @@ function ExploreViewContainer(props) {
             </span>
           </div>
           <DataSourcePanel
+            formData={props.form_data}
             datasource={props.datasource}
             controls={props.controls}
             actions={props.actions}
@@ -652,11 +653,6 @@ function ExploreViewContainer(props) {
                 />
               </Tooltip>
             </span>
-            <Icons.DatasetPhysical
-              css={{ marginTop: theme.gridUnit * 2 }}
-              iconSize="l"
-              iconColor={theme.colors.grayscale.base}
-            />
           </div>
         ) : null}
         <Resizable
