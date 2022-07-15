@@ -69,8 +69,8 @@ const ControlHeader: FC<ControlHeaderProps> = ({
       ? validationErrors.length
         ? colors.error.base
         : 'unset'
-      : colors.info.dark1;
-  }, [colors.error.base, colors.info.dark1, validationErrors.length]);
+      : colors.alert.base;
+  }, [colors.error.base, colors.alert.base, validationErrors.length]);
 
   if (!label) {
     return null;
@@ -133,7 +133,7 @@ const ControlHeader: FC<ControlHeaderProps> = ({
             role="button"
             tabIndex={0}
             onClick={onClick}
-            style={{ cursor: onClick ? 'pointer' : '', color: labelColor }}
+            style={{ cursor: onClick ? 'pointer' : '' }}
           >
             {label}
           </span>{' '}
