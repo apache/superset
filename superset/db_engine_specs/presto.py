@@ -947,8 +947,6 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
         :param schema: Schema name
         :param table: Table (view) name
         """
-        # pylint: disable=import-outside-toplevel
-        from pyhive.exc import DatabaseError
 
         engine = cls.get_engine(database, schema)
         with closing(engine.raw_connection()) as conn:
@@ -956,11 +954,12 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
             sql = f"SHOW CREATE VIEW {schema}.{table}"
             try:
                 cls.execute(cursor, sql)
+                return cls.fetch_data(cursor, 1)[0][0]
 
-            except DatabaseError:  # not a VIEW
+            # TODO(john-bodley): Replace with sqlalchemy.exc.DBAPIError after 
+            # https://github.com/trinodb/trino-python-client/issues/199 is resolved.
+            except Exception:  # pylint: disable=broad-exception
                 return None
-            rows = cls.fetch_data(cursor, 1)
-        return rows[0][0]
 
     @classmethod
     def get_tracking_url(cls, cursor: "Cursor") -> Optional[str]:
