@@ -913,21 +913,23 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
         indexes = database.get_indexes(table_name, schema_name)
         if indexes:
             cols = indexes[0].get("column_names", [])
-            full_table_name = table_name
-            if schema_name and "." not in table_name:
-                full_table_name = "{}.{}".format(schema_name, table_name)
-            pql = cls._partition_query(full_table_name, database)
-            col_names, latest_parts = cls.latest_partition(
-                table_name, schema_name, database, show_first=True
-            )
+            
+            if cols:
+                full_table_name = table_name
+                if schema_name and "." not in table_name:
+                    full_table_name = "{}.{}".format(schema_name, table_name)
+                pql = cls._partition_query(full_table_name, database)
+                col_names, latest_parts = cls.latest_partition(
+                    table_name, schema_name, database, show_first=True
+                )
 
-            if not latest_parts:
-                latest_parts = tuple([None] * len(col_names))
-            metadata["partitions"] = {
-                "cols": cols,
-                "latest": dict(zip(col_names, latest_parts)),
-                "partitionQuery": pql,
-            }
+                if not latest_parts:
+                    latest_parts = tuple([None] * len(col_names))
+                metadata["partitions"] = {
+                    "cols": cols,
+                    "latest": dict(zip(col_names, latest_parts)),
+                    "partitionQuery": pql,
+                }
 
         # flake8 is not matching `Optional[str]` to `Any` for some reason...
         metadata["view"] = cast(
