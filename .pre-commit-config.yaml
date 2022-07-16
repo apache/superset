@@ -38,6 +38,7 @@ repos:
         exclude: ^helm/superset/templates/
       - id: debug-statements
       - id: end-of-file-fixer
+        exclude: \.(geojson)$
       - id: trailing-whitespace
         args: ["--markdown-linebreak-ext=md"]
   - repo: https://github.com/psf/black

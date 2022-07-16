@@ -98,6 +98,7 @@ function CountryMap(element, props) {
     .append('text')
     .classed('result-text', true)
     .attr('dy', '1em');
+  const attributionText = div.append('div').classed('attribution-text', true);
 
   let centered;
 
@@ -212,6 +213,11 @@ function CountryMap(element, props) {
       width - (newBounds[0][0] + newBounds[1][0]) / 2,
       height - (newBounds[0][1] + newBounds[1][1]) / 2,
     ]);
+
+    // Add attribution text
+    if (mapData.properties && mapData.properties.attribution) {
+      attributionText.html(mapData.properties.attribution);
+    }
 
     // Draw each province as a path
     mapLayer

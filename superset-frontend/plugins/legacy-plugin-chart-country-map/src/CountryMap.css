@@ -59,3 +59,12 @@
   cursor: pointer;
   stroke: #eee;
 }
+
+.superset-legacy-chart-country-map div.attribution-text {
+  font-size: smaller;
+  color: #80808099;
+  text-align: right;
+  position: absolute;
+  bottom: 0;
+  right: 0;
+}
