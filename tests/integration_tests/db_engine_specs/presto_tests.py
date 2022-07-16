@@ -19,9 +19,11 @@ from unittest import mock, skipUnless
 
 import pandas as pd
 from sqlalchemy import types
+from sqlalchemy.exc import DatabaseError
 from sqlalchemy.sql import select
 
 from superset.db_engine_specs.presto import PrestoEngineSpec
+from superset.db_engine_specs.exceptions import SupersetDBAPIDatabaseError
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.sql_parse import ParsedQuery
 from superset.utils.core import DatasourceName, GenericDataType
@@ -895,9 +897,7 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
             PrestoEngineSpec.get_create_view(database, schema=schema, table=table)
 
     def test_get_create_view_database_error(self):
-        from pyhive.exc import DatabaseError
-
-        mock_execute = mock.MagicMock(side_effect=DatabaseError())
+        mock_execute = mock.MagicMock(side_effect=SupersetDBAPIDatabaseError())
         database = mock.MagicMock()
         database.get_sqla_engine.return_value.raw_connection.return_value.cursor.return_value.execute = (
             mock_execute

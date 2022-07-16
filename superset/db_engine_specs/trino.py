@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any, Dict, List, Optional, TYPE_CHECKING
+from typing import Any, Dict, List, Optional, Type, TYPE_CHECKING
 
 import simplejson as json
 from flask import current_app
@@ -25,6 +25,7 @@ from sqlalchemy.orm import Session
 
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import BaseEngineSpec
+from superset.db_engine_specs.exceptions import SupersetDBAPIDatabaseError
 from superset.db_engine_specs.presto import PrestoEngineSpec
 from superset.models.sql_lab import Query
 from superset.utils import core as utils
@@ -44,6 +45,15 @@ class TrinoEngineSpec(PrestoEngineSpec):
     engine = "trino"
     engine_aliases = {"trinonative"}  # Required for backwards compatibility.
     engine_name = "Trino"
+
+    @classmethod
+    def get_dbapi_exception_mapping(cls) -> Dict[Type[Exception], Type[Exception]]:
+        # pylint: disable=import-outside-toplevel,import-error
+        from trino.exceptions import DatabaseError
+
+        return {
+            DatabaseError: SupersetDBAPIDatabaseError,
+        }
 
     @classmethod
     def update_impersonation_config(

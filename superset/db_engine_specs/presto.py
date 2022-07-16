@@ -23,7 +23,18 @@ from collections import defaultdict, deque
 from contextlib import closing
 from datetime import datetime
 from distutils.version import StrictVersion
-from typing import Any, cast, Dict, List, Optional, Pattern, Tuple, TYPE_CHECKING, Union
+from typing import (
+    Any,
+    cast,
+    Dict,
+    List,
+    Optional,
+    Pattern,
+    Tuple,
+    Type,
+    TYPE_CHECKING,
+    Union,
+)
 from urllib import parse
 
 import pandas as pd
@@ -35,6 +46,7 @@ from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.result import Row as ResultRow
 from sqlalchemy.engine.url import URL
+from sqlalchemy.exc import DatabaseError
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.expression import ColumnClause, Select
 
@@ -42,6 +54,8 @@ from superset import cache_manager, is_feature_enabled
 from superset.common.db_query_status import QueryStatus
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import BaseEngineSpec, ColumnTypeMapping
+from superset.db_engine_specs.exceptions import SupersetDBAPIDatabaseError
+
 from superset.errors import SupersetErrorType
 from superset.exceptions import SupersetTemplateException
 from superset.models.sql_lab import Query
@@ -223,6 +237,15 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
             {},
         ),
     }
+
+    @classmethod
+    def get_dbapi_exception_mapping(cls) -> Dict[Type[Exception], Type[Exception]]:
+        # pylint: disable=import-outside-toplevel,import-error
+        from pyhive.exc import DatabaseError
+
+        return {
+            DatabaseError: SupersetDBAPIDatabaseError,
+        }
 
     @classmethod
     def get_allow_cost_estimate(cls, extra: Dict[str, Any]) -> bool:
@@ -957,10 +980,7 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
             try:
                 cls.execute(cursor, sql)
                 return cls.fetch_data(cursor, 1)[0][0]
-
-            # TODO(john-bodley): Replace with sqlalchemy.exc.DBAPIError after
-            # https://github.com/trinodb/trino-python-client/issues/199 is resolved.
-            except Exception:  # pylint: disable=broad-except
+            except SupersetDBAPIDatabaseError:  # not a VIEW
                 return None
 
     @classmethod
