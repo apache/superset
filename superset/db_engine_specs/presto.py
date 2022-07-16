@@ -913,7 +913,7 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
         indexes = database.get_indexes(table_name, schema_name)
         if indexes:
             cols = indexes[0].get("column_names", [])
-            
+
             if cols:
                 full_table_name = table_name
                 if schema_name and "." not in table_name:
@@ -958,9 +958,9 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
                 cls.execute(cursor, sql)
                 return cls.fetch_data(cursor, 1)[0][0]
 
-            # TODO(john-bodley): Replace with sqlalchemy.exc.DBAPIError after 
+            # TODO(john-bodley): Replace with sqlalchemy.exc.DBAPIError after
             # https://github.com/trinodb/trino-python-client/issues/199 is resolved.
-            except Exception:  # pylint: disable=broad-exception
+            except Exception:  # pylint: disable=broad-except
                 return None
 
     @classmethod
