@@ -19,7 +19,6 @@ from unittest import mock, skipUnless
 
 import pandas as pd
 from sqlalchemy import types
-from sqlalchemy.engine.result import RowProxy
 from sqlalchemy.sql import select
 
 from superset.db_engine_specs.presto import PrestoEngineSpec
@@ -83,12 +82,8 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
     def verify_presto_column(self, column, expected_results):
         inspector = mock.Mock()
         inspector.engine.dialect.identifier_preparer.quote_identifier = mock.Mock()
-        keymap = {
-            "Column": (None, None, 0),
-            "Type": (None, None, 1),
-            "Null": (None, None, 2),
-        }
-        row = RowProxy(mock.Mock(), column, [None, None, None, None], keymap)
+        row = mock.Mock()
+        row.Column, row.Type, row.Null = column
         inspector.bind.execute = mock.Mock(return_value=[row])
         results = PrestoEngineSpec.get_columns(inspector, "", "")
         self.assertEqual(len(expected_results), len(results))
