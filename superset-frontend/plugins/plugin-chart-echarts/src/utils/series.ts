@@ -33,7 +33,7 @@ import {
   NULL_STRING,
   TIMESERIES_CONSTANTS,
 } from '../constants';
-import { LegendOrientation, LegendType, StackType } from '../types';
+import { AxisType, LegendOrientation, LegendType, StackType } from '../types';
 import { defaultLegendPadding } from '../defaults';
 
 function isDefined<T>(value: T | undefined | null): boolean {
@@ -307,9 +307,7 @@ export const currentSeries = {
   legend: '',
 };
 
-export function getAxisType(
-  dataType?: GenericDataType,
-): 'time' | 'value' | 'category' {
+export function getAxisType(dataType?: GenericDataType): AxisType {
   if (dataType === GenericDataType.TEMPORAL) {
     return 'time';
   }

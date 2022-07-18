@@ -24,7 +24,7 @@ import shortid from 'shortid';
 import { styled, t, QueryResponse } from '@superset-ui/core';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import {
-  ISaveableDataset,
+  ISaveableDatasource,
   ISimpleColumn,
   SaveDatasetModal,
 } from 'src/SqlLab/components/SaveDatasetModal';
@@ -224,13 +224,13 @@ export default class ResultSet extends React.PureComponent<
       const { showSaveDatasetModal } = this.state;
       const { query } = this.props;
 
-      const dataset: ISaveableDataset = {
-        columns: query.columns as ISimpleColumn[],
+      const datasource: ISaveableDatasource = {
+        columns: query.results.columns as ISimpleColumn[],
         name: query?.tab || 'Untitled',
-        dbId: 1,
-        sql: query.sql,
-        templateParams: query.templateParams,
-        schema: query.schema,
+        dbId: query?.dbId,
+        sql: query?.sql,
+        templateParams: query?.templateParams,
+        schema: query?.schema,
       };
 
       return (
@@ -243,7 +243,7 @@ export default class ResultSet extends React.PureComponent<
             modalDescription={t(
               'Save this query as a virtual dataset to continue exploring',
             )}
-            datasource={dataset}
+            datasource={datasource}
           />
           <ResultSetButtons>
             {this.props.visualize &&
@@ -253,13 +253,14 @@ export default class ResultSet extends React.PureComponent<
                   onClick={() => {
                     // There is currently redux / state issue where sometimes a query will have serverId
                     // and other times it will not.  We need this attribute consistently for this to work
-                    const qid = this.props?.query?.results?.query_id;
-                    if (qid) {
-                      // This will open expolore using the query as datasource
-                      window.location.href = `/explore/?dataset_type=query&dataset_id=${qid}`;
-                    } else {
-                      this.setState({ showSaveDatasetModal: true });
-                    }
+                    // const qid = this.props?.query?.results?.query_id;
+                    // if (qid) {
+                    //   // This will open explore using the query as datasource
+                    //   window.location.href = `/explore/?dataset_type=query&dataset_id=${qid}`;
+                    // } else {
+                    //   this.setState({ showSaveDatasetModal: true });
+                    // }
+                    this.setState({ showSaveDatasetModal: true });
                   }}
                 />
               )}

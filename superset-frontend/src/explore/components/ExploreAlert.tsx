@@ -28,7 +28,7 @@ interface ControlPanelAlertProps {
   secondaryButtonAction?: (e: React.MouseEvent) => void;
   primaryButtonText?: string;
   secondaryButtonText?: string;
-  type: 'info' | 'warning';
+  type: 'info' | 'warning' | 'error';
   className?: string;
 }
 
@@ -85,6 +85,11 @@ const Title = styled.p`
   font-weight: ${({ theme }) => theme.typography.weights.bold};
 `;
 
+const typeChart = {
+  warning: 'warning',
+  danger: 'danger',
+};
+
 export const ExploreAlert = forwardRef(
   (
     {
@@ -114,7 +119,7 @@ export const ExploreAlert = forwardRef(
             </Button>
           )}
           <Button
-            buttonStyle={type === 'warning' ? 'warning' : 'primary'}
+            buttonStyle={type in typeChart ? typeChart[type] : 'primary'}
             buttonSize="small"
             onClick={primaryButtonAction}
           >

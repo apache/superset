@@ -83,11 +83,17 @@ from tests.integration_tests.fixtures.world_bank_dashboard import (
 logger = logging.getLogger(__name__)
 
 
+@pytest.fixture(scope="module")
+def cleanup():
+    db.session.query(Query).delete()
+    db.session.query(DatasourceAccessRequest).delete()
+    db.session.query(models.Log).delete()
+    db.session.commit()
+    yield
+
+
 class TestCore(SupersetTestCase):
     def setUp(self):
-        db.session.query(Query).delete()
-        db.session.query(DatasourceAccessRequest).delete()
-        db.session.query(models.Log).delete()
         self.table_ids = {
             tbl.table_name: tbl.id for tbl in (db.session.query(SqlaTable).all())
         }

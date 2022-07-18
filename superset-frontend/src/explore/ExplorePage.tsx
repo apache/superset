@@ -16,55 +16,74 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useDispatch } from 'react-redux';
-import { makeApi, t } from '@superset-ui/core';
+import { useLocation } from 'react-router-dom';
+import { makeApi, t, isDefined, JsonObject } from '@superset-ui/core';
 import Loading from 'src/components/Loading';
+import { addDangerToast } from 'src/components/MessageToasts/actions';
+import { getUrlParam } from 'src/utils/urlUtils';
+import { URL_PARAMS } from 'src/constants';
+import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { getParsedExploreURLParams } from './exploreUtils/getParsedExploreURLParams';
 import { hydrateExplore } from './actions/hydrateExplore';
 import ExploreViewContainer from './components/ExploreViewContainer';
 import { ExploreResponsePayload } from './types';
 import { fallbackExploreInitialData } from './fixtures';
-import { addDangerToast } from '../components/MessageToasts/actions';
-import { isNullish } from '../utils/common';
 
-const loadErrorMessage = t('Failed to load chart data.');
+const isResult = (rv: JsonObject): rv is ExploreResponsePayload =>
+  rv?.result?.form_data &&
+  rv?.result?.dataset &&
+  isDefined(rv?.result?.dataset?.id);
 
-const fetchExploreData = () => {
-  const exploreUrlParams = getParsedExploreURLParams();
-  return makeApi<{}, ExploreResponsePayload>({
-    method: 'GET',
-    endpoint: 'api/v1/explore/',
-  })(exploreUrlParams);
+const fetchExploreData = async (exploreUrlParams: URLSearchParams) => {
+  try {
+    const rv = await makeApi<{}, ExploreResponsePayload>({
+      method: 'GET',
+      endpoint: 'api/v1/explore/',
+    })(exploreUrlParams);
+    if (isResult(rv)) {
+      return rv;
+    }
+    throw new Error(t('Failed to load chart data.'));
+  } catch (err) {
+    // todo: encapsulate the error handler
+    const clientError = await getClientErrorObject(err);
+    throw new Error(
+      clientError.message ||
+        clientError.error ||
+        t('Failed to load chart data.'),
+    );
+  }
 };
 
-const ExplorePage = () => {
+export default function ExplorePage() {
   const [isLoaded, setIsLoaded] = useState(false);
+  const isExploreInitialized = useRef(false);
   const dispatch = useDispatch();
+  const location = useLocation();
 
   useEffect(() => {
-    fetchExploreData()
-      .then(({ result }) => {
-        if (isNullish(result.dataset?.id) && isNullish(result.dataset?.uid)) {
-          dispatch(hydrateExplore(fallbackExploreInitialData));
-          dispatch(addDangerToast(loadErrorMessage));
-        } else {
+    const exploreUrlParams = getParsedExploreURLParams(location);
+    const isSaveAction = !!getUrlParam(URL_PARAMS.saveAction);
+    if (!isExploreInitialized.current || isSaveAction) {
+      fetchExploreData(exploreUrlParams)
+        .then(({ result }) => {
           dispatch(hydrateExplore(result));
-        }
-      })
-      .catch(() => {
-        dispatch(hydrateExplore(fallbackExploreInitialData));
-        dispatch(addDangerToast(loadErrorMessage));
-      })
-      .finally(() => {
-        setIsLoaded(true);
-      });
-  }, [dispatch]);
+        })
+        .catch(err => {
+          dispatch(hydrateExplore(fallbackExploreInitialData));
+          dispatch(addDangerToast(err.message));
+        })
+        .finally(() => {
+          setIsLoaded(true);
+          isExploreInitialized.current = true;
+        });
+    }
+  }, [dispatch, location]);
 
   if (!isLoaded) {
     return <Loading />;
   }
   return <ExploreViewContainer />;
-};
-
-export default ExplorePage;
+}

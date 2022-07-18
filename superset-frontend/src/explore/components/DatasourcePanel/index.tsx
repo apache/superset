@@ -17,7 +17,14 @@
  * under the License.
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { css, styled, t, DatasourceType, Metric } from '@superset-ui/core';
+import {
+  css,
+  styled,
+  t,
+  DatasourceType,
+  Metric,
+  QueryFormData,
+} from '@superset-ui/core';
 
 import { ControlConfig, ColumnMeta } from '@superset-ui/chart-controls';
 
@@ -25,12 +32,8 @@ import { debounce, isArray } from 'lodash';
 import { matchSorter, rankings } from 'match-sorter';
 import Collapse from 'src/components/Collapse';
 import Alert from 'src/components/Alert';
-import {
-  ISaveableDataset,
-  ISimpleColumn,
-  SaveDatasetModal,
-} from 'src/SqlLab/components/SaveDatasetModal';
-
+import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
+import { getDatasourceAsSaveableDataset } from 'src/utils/datasourceUtils';
 import { Input } from 'src/components/Input';
 import { FAST_DEBOUNCE } from 'src/constants';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
@@ -76,6 +79,7 @@ export interface Props {
   actions: Partial<ExploreActions> & Pick<ExploreActions, 'setControlValue'>;
   // we use this props control force update when this panel resize
   shouldForceUpdate?: number;
+  formData?: QueryFormData;
 }
 
 const enableExploreDnd = isFeatureEnabled(
@@ -209,12 +213,12 @@ const LabelContainer = (props: {
 
 export default function DataSourcePanel({
   datasource,
+  formData,
   controls: { datasource: datasourceControl },
   actions,
   shouldForceUpdate,
 }: Props) {
   const { columns: _columns, metrics } = datasource;
-
   // display temporal column first
   const columns = useMemo(
     () =>
@@ -229,17 +233,6 @@ export default function DataSourcePanel({
       }),
     [_columns],
   );
-
-  const getDatasourceAsSaveableDataset = (source: IDatasource) => {
-    const dataset: ISaveableDataset = {
-      columns: (source?.columns as ISimpleColumn[]) || [],
-      name: source?.datasource_name || source?.name || t('Untitled'),
-      dbId: source?.database.id,
-      sql: source?.sql || '',
-      schema: source?.schema,
-    };
-    return dataset;
-  };
 
   const [showSaveDatasetModal, setShowSaveDatasetModal] = useState(false);
   const [inputValue, setInputValue] = useState('');
@@ -346,9 +339,13 @@ export default function DataSourcePanel({
     return true;
   };
 
-  const datasourceIsSaveable = !(
-    datasource?.type in [DatasourceType.Query, DatasourceType.SavedQuery]
-  );
+  const saveableDatasets = {
+    query: DatasourceType.Query,
+    saved_query: DatasourceType.SavedQuery,
+  };
+
+  const datasourceIsSaveable =
+    datasource.type && saveableDatasets[datasource.type];
 
   const mainBody = useMemo(
     () => (
@@ -494,6 +491,8 @@ export default function DataSourcePanel({
           buttonTextOnSave={t('Save')}
           buttonTextOnOverwrite={t('Overwrite')}
           datasource={getDatasourceAsSaveableDataset(datasource)}
+          openWindow={false}
+          formData={formData}
         />
       )}
       <Control {...datasourceControl} name="datasource" actions={actions} />

@@ -223,7 +223,6 @@ class Chart extends React.PureComponent {
       height,
       datasetsStatus,
     } = this.props;
-    const { showSaveDatasetModal } = this.state;
     const error = queryResponse?.errors?.[0];
     const message = chartAlert || queryResponse?.message;
 
@@ -248,28 +247,17 @@ class Chart extends React.PureComponent {
     }
 
     return (
-      <>
-        <ChartErrorMessage
-          key={chartId}
-          chartId={chartId}
-          error={error}
-          subtitle={<MonospaceDiv>{message}</MonospaceDiv>}
-          copyText={message}
-          link={queryResponse ? queryResponse.link : null}
-          source={dashboardId ? 'dashboard' : 'explore'}
-          stackTrace={chartStackTrace}
-          errorMitigationFunction={this.toggleSaveDatasetModal}
-        />
-        {showSaveDatasetModal && (
-          <SaveDatasetModal
-            visible={showSaveDatasetModal}
-            onHide={this.toggleSaveDatasetModal}
-            buttonTextOnSave={t('Save')}
-            buttonTextOnOverwrite={t('Overwrite')}
-            datasource={this.getDatasourceAsSaveableDataset(datasource)}
-          />
-        )}
-      </>
+      <ChartErrorMessage
+        key={chartId}
+        chartId={chartId}
+        error={error}
+        subtitle={<MonospaceDiv>{message}</MonospaceDiv>}
+        copyText={message}
+        link={queryResponse ? queryResponse.link : null}
+        source={dashboardId ? 'dashboard' : 'explore'}
+        stackTrace={chartStackTrace}
+        errorMitigationFunction={this.toggleSaveDatasetModal}
+      />
     );
   }
 
