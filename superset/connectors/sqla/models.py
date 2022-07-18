@@ -453,20 +453,21 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
             if value:
                 extra_json[attr] = value
 
+        # column id is primary key, so make sure that we check uuid against
+        # the id as well
         if not column.id:
             with session.no_autoflush:
-                saved_column = (
+                saved_column: NewColumn = (
                     session.query(NewColumn).filter_by(uuid=self.uuid).one_or_none()
                 )
-                if saved_column:
+                if saved_column is not None:
                     logger.warning(
-                        "sl_column already exists. Assigning existing id %s", self
+                        "sl_column already exists. Using this row for db update %s",
+                        self,
                     )
 
-                    # uuid isn't a primary key, so add the id of the existing column to
-                    # ensure that the column is modified instead of created
-                    # in order to avoid a uuid collision
-                    column.id = saved_column.id
+                    # overwrite the existing column instead of creating a new one
+                    column = saved_column
 
         column.uuid = self.uuid
         column.created_on = self.created_on
@@ -534,6 +535,9 @@ class SqlMetric(Model, BaseMetric, CertificationMixin):
     update_from_object_fields = list(s for s in export_fields if s != "table_id")
     export_parent = "table"
 
+    def __repr__(self) -> str:
+        return str(self.metric_name)
+
     def get_sqla_col(self, label: Optional[str] = None) -> Column:
         label = label or self.metric_name
         tp = self.table.get_template_processor()
@@ -585,19 +589,22 @@ class SqlMetric(Model, BaseMetric, CertificationMixin):
             self.metric_type and self.metric_type.lower() in ADDITIVE_METRIC_TYPES_LOWER
         )
 
+        # column id is primary key, so make sure that we check uuid against
+        # the id as well
         if not column.id:
             with session.no_autoflush:
-                saved_column = (
+                saved_column: NewColumn = (
                     session.query(NewColumn).filter_by(uuid=self.uuid).one_or_none()
                 )
-                if saved_column:
+
+                if saved_column is not None:
                     logger.warning(
-                        "sl_column already exists. Assigning existing id %s", self
+                        "sl_column already exists. Using this row for db update %s",
+                        self,
                     )
-                    # uuid isn't a primary key, so add the id of the existing column to
-                    # ensure that the column is modified instead of created
-                    # in order to avoid a uuid collision
-                    column.id = saved_column.id
+
+                    # overwrite the existing column instead of creating a new one
+                    column = saved_column
 
         column.uuid = self.uuid
         column.name = self.metric_name

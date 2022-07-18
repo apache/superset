@@ -61,7 +61,6 @@ from typing_extensions import TypedDict
 from superset import security_manager, sql_parse
 from superset.databases.utils import make_url_safe
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.models.sql_lab import Query
 from superset.sql_parse import ParsedQuery, Table
 from superset.superset_typing import ResultSetColumnType
 from superset.utils import core as utils
@@ -73,6 +72,7 @@ if TYPE_CHECKING:
     # prevent circular imports
     from superset.connectors.sqla.models import TableColumn
     from superset.models.core import Database
+    from superset.models.sql_lab import Query
 
 ColumnTypeMapping = Tuple[
     Pattern[str],
@@ -885,7 +885,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return all_datasources
 
     @classmethod
-    def handle_cursor(cls, cursor: Any, query: Query, session: Session) -> None:
+    def handle_cursor(cls, cursor: Any, query: "Query", session: Session) -> None:
         """Handle a live cursor between the execute and fetchall calls
 
         The flow works without this method doing anything, but it allows
@@ -1501,7 +1501,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     def get_cancel_query_id(  # pylint: disable=unused-argument
         cls,
         cursor: Any,
-        query: Query,
+        query: "Query",
     ) -> Optional[str]:
         """
         Select identifiers from the database engine that uniquely identifies the
@@ -1519,7 +1519,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     def cancel_query(  # pylint: disable=unused-argument
         cls,
         cursor: Any,
-        query: Query,
+        query: "Query",
         cancel_query_id: str,
     ) -> bool:
         """
