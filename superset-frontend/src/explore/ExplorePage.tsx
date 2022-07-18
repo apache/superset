@@ -19,7 +19,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { useLocation } from 'react-router-dom';
-import { isDefined, JsonObject, makeApi, t } from '@superset-ui/core';
+import {
+  DataRecordValue,
+  isDefined,
+  JsonObject,
+  makeApi,
+  t,
+} from '@superset-ui/core';
 import Loading from 'src/components/Loading';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { getUrlParam } from 'src/utils/urlUtils';
@@ -82,11 +88,16 @@ const getDashboardContextFormData = () => {
     dashboardContextWithFilters = getFormDataWithExtraFilters({
       chart: { id: sliceId },
       filters: Object.fromEntries(
-        Object.entries(filterBoxFilters)
-          .filter(
-            ([, filter]): [string, { scope: number[]; values: JsonObject }] =>
-              filter.scope.includes(sliceId),
-          )
+        (
+          Object.entries(filterBoxFilters) as [
+            string,
+            {
+              scope: number[];
+              values: DataRecordValue[];
+            },
+          ][]
+        )
+          .filter(([, filter]) => filter.scope.includes(sliceId))
           .map(([key, filter]) => [
             getChartIdAndColumnFromFilterKey(key).column,
             filter.values,
@@ -103,10 +114,7 @@ const getDashboardContextFormData = () => {
       extraControls: {},
     });
     Object.assign(dashboardContextWithFilters, { dashboardId });
-    const dashboardFormData = getFormDataFromDashboardContext(
-      dashboardContextWithFilters,
-    );
-    return dashboardFormData;
+    return getFormDataFromDashboardContext(dashboardContextWithFilters);
   }
   return {};
 };

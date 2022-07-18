@@ -65,10 +65,10 @@ describe('getFormDataWithExtraFilters', () => {
         ownState: {},
       },
     },
-    layout: {},
     extraControls: {
       stack: 'Stacked',
     },
+    allSliceIds: [chartId],
   };
 
   it('should include filters from the passed filters', () => {

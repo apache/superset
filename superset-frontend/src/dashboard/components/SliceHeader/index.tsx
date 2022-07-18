@@ -70,7 +70,6 @@ const SliceHeader: FC<SliceHeaderProps> = ({
   updateSliceName = () => ({}),
   toggleExpandSlice = () => ({}),
   logExploreChart = () => ({}),
-  onExploreChart,
   exportCSV = () => ({}),
   editMode = false,
   annotationQuery = {},
@@ -115,12 +114,11 @@ const SliceHeader: FC<SliceHeaderProps> = ({
     [crossFilterValue],
   );
 
-  const handleClickTitle =
-    !editMode && supersetCanExplore ? onExploreChart : undefined;
+  const canExplore = !editMode && supersetCanExplore;
 
   useEffect(() => {
     const headerElement = headerRef.current;
-    if (handleClickTitle) {
+    if (canExplore) {
       setHeaderTooltip(getSliceHeaderTooltip(sliceName));
     } else if (
       headerElement &&
@@ -131,7 +129,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
     } else {
       setHeaderTooltip(null);
     }
-  }, [sliceName, width, height, handleClickTitle]);
+  }, [sliceName, width, height, canExplore]);
 
   const exploreUrl =
     !editMode && supersetCanExplore
@@ -214,7 +212,6 @@ const SliceHeader: FC<SliceHeaderProps> = ({
                 toggleExpandSlice={toggleExpandSlice}
                 forceRefresh={forceRefresh}
                 logExploreChart={logExploreChart}
-                onExploreChart={onExploreChart}
                 exportCSV={exportCSV}
                 exportFullCSV={exportFullCSV}
                 supersetCanExplore={supersetCanExplore}
