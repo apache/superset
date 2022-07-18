@@ -58,7 +58,6 @@ const CrossFilterScopingModal: FC<CrossFilterScopingModalProps> = ({
       layout,
     );
 
-    console.log(form.getFieldValue('scope'), chartsInScope);
     dispatch(
       setChartConfiguration({
         ...chartConfig,
