@@ -230,7 +230,7 @@ class TestCore(SupersetTestCase):
 
     def test_get_superset_tables_substr(self):
         example_db = superset.utils.database.get_example_database()
-        if example_db.backend in {"presto", "hive"}:
+        if example_db.backend in {"presto", "hive", "sqlite"}:
             # TODO: change table to the real table that is in examples.
             return
         self.login(username="admin")
