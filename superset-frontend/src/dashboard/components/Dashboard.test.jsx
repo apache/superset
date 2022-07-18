@@ -157,7 +157,7 @@ describe('Dashboard', () => {
           ...getAllActiveFilters({
             dataMask: dataMaskWith1Filter,
             nativeFilters: singleNativeFiltersState.filters,
-            layout: layoutForSingleNativeFilter,
+            allSliceIds: [227, 229, 230],
           }),
         },
       });
