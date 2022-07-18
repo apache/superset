@@ -90,6 +90,29 @@ type PageProps = {
   idOrSlug: string;
 };
 
+const getDashboardContextLocalStorage = () => {
+  const dashboardsContexts = getItem(
+    LocalStorageKeys.dashboard__explore_context,
+    {},
+  );
+  return Object.fromEntries(
+    Object.entries(dashboardsContexts).filter(
+      ([, value]) => !value.isRedundant,
+    ),
+  );
+};
+
+const updateDashboardTabLocalStorage = (
+  dashboardTabId: string,
+  payload?: Record<string, any>,
+) => {
+  const dashboardsContexts = getDashboardContextLocalStorage();
+  setItem(LocalStorageKeys.dashboard__explore_context, {
+    ...dashboardsContexts,
+    [dashboardTabId]: payload,
+  });
+};
+
 const useSyncDashboardStateWithLocalStorage = () => {
   const labelColors = useSelector<RootState, JsonObject>(
     state => state.dashboardInfo?.metadata?.label_colors || {},
@@ -118,15 +141,6 @@ const useSyncDashboardStateWithLocalStorage = () => {
   const dashboardTabId = useMemo(() => shortid.generate(), []);
 
   useEffect(() => {
-    const dashboardsContexts = getItem(
-      LocalStorageKeys.dashboard__explore_context,
-      {},
-    );
-    const clearedDashboardsContexts = Object.fromEntries(
-      Object.entries(dashboardsContexts).filter(
-        ([, value]) => !value.isRedundant,
-      ),
-    );
     const payload = {
       labelColors,
       sharedLabelColors,
@@ -137,17 +151,11 @@ const useSyncDashboardStateWithLocalStorage = () => {
       dashboardId,
       filterBoxFilters,
     };
-    setItem(LocalStorageKeys.dashboard__explore_context, {
-      ...clearedDashboardsContexts,
-      [dashboardTabId]: payload,
-    });
+    updateDashboardTabLocalStorage(dashboardTabId, payload);
     return () => {
-      setItem(LocalStorageKeys.dashboard__explore_context, {
-        ...clearedDashboardsContexts,
-        [dashboardTabId]: {
-          ...payload,
-          isRedundant: true,
-        },
+      updateDashboardTabLocalStorage(dashboardTabId, {
+        ...payload,
+        isRedundant: true,
       });
     };
   }, [
@@ -196,16 +204,22 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     migrationStateParam || FILTER_BOX_MIGRATION_STATES.NOOP,
   );
 
-  // useEffect(() => {
-  //   const handleTabClose = () => {
-  //     console.log('dupa');
-  //   };
-  //   window.addEventListener('beforeunload', handleTabClose);
-  //   return () => {
-  //     console.log('DUPAA');
-  //     window.removeEventListener('beforeunload', handleTabClose);
-  //   };
-  // }, []);
+  useEffect(() => {
+    const handleTabClose = () => {
+      const dashboardsContexts = getDashboardContextLocalStorage();
+      setItem(LocalStorageKeys.dashboard__explore_context, {
+        ...dashboardsContexts,
+        [dashboardTabId]: {
+          ...dashboardsContexts[dashboardTabId],
+          isRedundant: true,
+        },
+      });
+    };
+    window.addEventListener('beforeunload', handleTabClose);
+    return () => {
+      window.removeEventListener('beforeunload', handleTabClose);
+    };
+  }, [dashboardTabId]);
 
   useEffect(() => {
     dispatch(setDatasetsStatus(status));
