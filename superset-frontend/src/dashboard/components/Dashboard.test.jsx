@@ -31,7 +31,6 @@ import datasources from 'spec/fixtures/mockDatasource';
 import {
   extraFormData,
   NATIVE_FILTER_ID,
-  layoutForSingleNativeFilter,
   singleNativeFiltersState,
   dataMaskWith1Filter,
 } from 'spec/fixtures/mockNativeFilters';
