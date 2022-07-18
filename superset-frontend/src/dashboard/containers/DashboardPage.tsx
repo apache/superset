@@ -16,12 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { FC, useRef, useEffect, useState } from 'react';
+import React, { FC, useEffect, useMemo, useRef, useState } from 'react';
 import {
   CategoricalColorNamespace,
+  DataMaskStateWithId,
   FeatureFlag,
+  Filters,
   getSharedLabelColor,
   isFeatureEnabled,
+  JsonObject,
   t,
   useTheme,
 } from '@superset-ui/core';
@@ -44,8 +47,8 @@ import { addWarningToast } from 'src/components/MessageToasts/actions';
 
 import {
   getItem,
-  setItem,
   LocalStorageKeys,
+  setItem,
 } from 'src/utils/localStorageHelpers';
 import {
   FILTER_BOX_MIGRATION_STATES,
@@ -61,10 +64,15 @@ import {
   getPermalinkValue,
 } from 'src/dashboard/components/nativeFilters/FilterBar/keyValue';
 import { filterCardPopoverStyle } from 'src/dashboard/styles';
+import shortid from 'shortid';
+import { RootState } from '../types';
+import { getActiveFilters } from '../util/activeDashboardFilters';
 
 export const MigrationContext = React.createContext(
   FILTER_BOX_MIGRATION_STATES.NOOP,
 );
+
+export const DashboardTabIdContext = React.createContext('');
 
 setupPlugins();
 const DashboardContainer = React.lazy(
@@ -82,12 +90,87 @@ type PageProps = {
   idOrSlug: string;
 };
 
+const useSyncDashboardStateWithLocalStorage = () => {
+  const labelColors = useSelector<RootState, JsonObject>(
+    state => state.dashboardInfo?.metadata?.label_colors || {},
+  );
+  const sharedLabelColors = useSelector<RootState, JsonObject>(
+    state => state.dashboardInfo?.metadata?.shared_label_colors || {},
+  );
+  const colorScheme = useSelector<RootState, string>(
+    state => state.dashboardState?.colorScheme,
+  );
+  const chartConfiguration = useSelector<RootState, JsonObject>(
+    state => state.dashboardInfo.metadata?.chart_configuration,
+  );
+  const nativeFilters = useSelector<RootState, Filters>(
+    state => state.nativeFilters.filters,
+  );
+  const dataMask = useSelector<RootState, DataMaskStateWithId>(
+    state => state.dataMask,
+  );
+  const dashboardId = useSelector<RootState, number>(
+    state => state.dashboardInfo.id,
+  );
+  const filterBoxFilters = useSelector<RootState, Record<string, any>>(() =>
+    getActiveFilters(),
+  );
+  const dashboardTabId = useMemo(() => shortid.generate(), []);
+
+  useEffect(() => {
+    const dashboardsContexts = getItem(
+      LocalStorageKeys.dashboard__explore_context,
+      {},
+    );
+    const clearedDashboardsContexts = Object.fromEntries(
+      Object.entries(dashboardsContexts).filter(
+        ([, value]) => !value.isRedundant,
+      ),
+    );
+    const payload = {
+      labelColors,
+      sharedLabelColors,
+      colorScheme,
+      chartConfiguration,
+      nativeFilters,
+      dataMask,
+      dashboardId,
+      filterBoxFilters,
+    };
+    setItem(LocalStorageKeys.dashboard__explore_context, {
+      ...clearedDashboardsContexts,
+      [dashboardTabId]: payload,
+    });
+    return () => {
+      setItem(LocalStorageKeys.dashboard__explore_context, {
+        ...clearedDashboardsContexts,
+        [dashboardTabId]: {
+          ...payload,
+          isRedundant: true,
+        },
+      });
+    };
+  }, [
+    chartConfiguration,
+    colorScheme,
+    dashboardId,
+    dashboardTabId,
+    dataMask,
+    filterBoxFilters,
+    labelColors,
+    nativeFilters,
+    sharedLabelColors,
+  ]);
+  return dashboardTabId;
+};
+
 export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   const dispatch = useDispatch();
   const theme = useTheme();
   const user = useSelector<any, UserWithPermissionsAndRoles>(
     state => state.user,
   );
+  const dashboardTabId = useSyncDashboardStateWithLocalStorage();
   const { addDangerToast } = useToasts();
   const { result: dashboard, error: dashboardApiError } =
     useDashboard(idOrSlug);
@@ -112,6 +195,17 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   const [filterboxMigrationState, setFilterboxMigrationState] = useState(
     migrationStateParam || FILTER_BOX_MIGRATION_STATES.NOOP,
   );
+
+  // useEffect(() => {
+  //   const handleTabClose = () => {
+  //     console.log('dupa');
+  //   };
+  //   window.addEventListener('beforeunload', handleTabClose);
+  //   return () => {
+  //     console.log('DUPAA');
+  //     window.removeEventListener('beforeunload', handleTabClose);
+  //   };
+  // }, []);
 
   useEffect(() => {
     dispatch(setDatasetsStatus(status));
@@ -295,7 +389,9 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
       />
 
       <MigrationContext.Provider value={filterboxMigrationState}>
-        <DashboardContainer />
+        <DashboardTabIdContext.Provider value={dashboardTabId}>
+          <DashboardContainer />
+        </DashboardTabIdContext.Provider>
       </MigrationContext.Provider>
     </>
   );

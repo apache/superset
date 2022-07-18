@@ -19,6 +19,7 @@
 import React, {
   FC,
   ReactNode,
+  useContext,
   useEffect,
   useMemo,
   useRef,
@@ -37,6 +38,7 @@ import Icons from 'src/components/Icons';
 import { RootState } from 'src/dashboard/types';
 import FilterIndicator from 'src/dashboard/components/FiltersBadge/FilterIndicator';
 import { getSliceHeaderTooltip } from 'src/dashboard/util/getSliceHeaderTooltip';
+import { DashboardTabIdContext } from 'src/dashboard/containers/DashboardPage';
 import { clearDataMask } from 'src/dataMask/actions';
 
 type SliceHeaderProps = SliceHeaderControlsProps & {
@@ -97,6 +99,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
 }) => {
   const dispatch = useDispatch();
   const uiConfig = useUiConfig();
+  const dashboardTabId = useContext(DashboardTabIdContext);
   const [headerTooltip, setHeaderTooltip] = useState<ReactNode | null>(null);
   const headerRef = useRef<HTMLDivElement>(null);
   // TODO: change to indicator field after it will be implemented
@@ -130,6 +133,11 @@ const SliceHeader: FC<SliceHeaderProps> = ({
     }
   }, [sliceName, width, height, handleClickTitle]);
 
+  const exploreUrl =
+    !editMode && supersetCanExplore
+      ? `/explore/?dashboard_tab_id=${dashboardTabId}&slice_id=${slice.slice_id}`
+      : undefined;
+
   return (
     <div className="chart-header" data-test="slice-header" ref={innerRef}>
       <div className="header-title" ref={headerRef}>
@@ -145,7 +153,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
             emptyText=""
             onSaveTitle={updateSliceName}
             showTooltip={false}
-            onClickTitle={handleClickTitle}
+            exploreUrl={exploreUrl}
           />
         </Tooltip>
         {!!Object.values(annotationQuery).length && (
@@ -222,6 +230,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
                 isDescriptionExpanded={isExpanded}
                 chartStatus={chartStatus}
                 formData={formData}
+                exploreUrl={exploreUrl}
               />
             )}
           </>

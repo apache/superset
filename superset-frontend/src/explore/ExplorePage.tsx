@@ -19,17 +19,21 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { useLocation } from 'react-router-dom';
-import { makeApi, t, isDefined, JsonObject } from '@superset-ui/core';
+import { isDefined, JsonObject, makeApi, t } from '@superset-ui/core';
 import Loading from 'src/components/Loading';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { URL_PARAMS } from 'src/constants';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
+import getFormDataWithExtraFilters from 'src/dashboard/util/charts/getFormDataWithExtraFilters';
 import { getParsedExploreURLParams } from './exploreUtils/getParsedExploreURLParams';
 import { hydrateExplore } from './actions/hydrateExplore';
 import ExploreViewContainer from './components/ExploreViewContainer';
 import { ExploreResponsePayload } from './types';
 import { fallbackExploreInitialData } from './fixtures';
+import { getItem, LocalStorageKeys } from '../utils/localStorageHelpers';
+import { getChartIdAndColumnFromFilterKey } from '../dashboard/util/getDashboardFilterKey';
+import { getFormDataFromDashboardContext } from './controlUtils/getFormDataWithDashboardContext';
 
 const isResult = (rv: JsonObject): rv is ExploreResponsePayload =>
   rv?.result?.form_data &&
@@ -57,6 +61,56 @@ const fetchExploreData = async (exploreUrlParams: URLSearchParams) => {
   }
 };
 
+const getDashboardContextFormData = () => {
+  const dashboardTabId = getUrlParam(URL_PARAMS.dashboardTabId);
+  const sliceId = getUrlParam(URL_PARAMS.sliceId) || 0;
+  let dashboardContextWithFilters = {};
+  if (dashboardTabId) {
+    const {
+      labelColors,
+      sharedLabelColors,
+      colorScheme,
+      chartConfiguration,
+      nativeFilters,
+      filterBoxFilters,
+      dataMask,
+      dashboardId,
+    } =
+      getItem(LocalStorageKeys.dashboard__explore_context, {})[
+        dashboardTabId
+      ] || {};
+    dashboardContextWithFilters = getFormDataWithExtraFilters({
+      chart: { id: sliceId },
+      filters: Object.fromEntries(
+        Object.entries(filterBoxFilters)
+          .filter(
+            ([, filter]): [string, { scope: number[]; values: JsonObject }] =>
+              filter.scope.includes(sliceId),
+          )
+          .map(([key, filter]) => [
+            getChartIdAndColumnFromFilterKey(key).column,
+            filter.values,
+          ]),
+      ),
+      nativeFilters,
+      chartConfiguration,
+      colorScheme,
+      dataMask,
+      labelColors,
+      sharedLabelColors,
+      sliceId,
+      allSliceIds: [sliceId],
+      extraControls: {},
+    });
+    Object.assign(dashboardContextWithFilters, { dashboardId });
+    const dashboardFormData = getFormDataFromDashboardContext(
+      dashboardContextWithFilters,
+    );
+    return dashboardFormData;
+  }
+  return {};
+};
+
 export default function ExplorePage() {
   const [isLoaded, setIsLoaded] = useState(false);
   const isExploreInitialized = useRef(false);
@@ -66,10 +120,19 @@ export default function ExplorePage() {
   useEffect(() => {
     const exploreUrlParams = getParsedExploreURLParams(location);
     const isSaveAction = !!getUrlParam(URL_PARAMS.saveAction);
+    const dashboardFormData = getDashboardContextFormData();
     if (!isExploreInitialized.current || isSaveAction) {
       fetchExploreData(exploreUrlParams)
         .then(({ result }) => {
-          dispatch(hydrateExplore(result));
+          dispatch(
+            hydrateExplore({
+              ...result,
+              form_data: {
+                ...result.form_data,
+                ...dashboardFormData,
+              },
+            }),
+          );
         })
         .catch(err => {
           dispatch(hydrateExplore(fallbackExploreInitialData));

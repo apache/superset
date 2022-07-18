@@ -17,6 +17,7 @@
  * under the License.
  */
 import React, { MouseEvent, Key } from 'react';
+import { Link } from 'react-router-dom';
 import moment from 'moment';
 import {
   Behavior,
@@ -108,7 +109,7 @@ export interface SliceHeaderControlsProps {
   isFullSize?: boolean;
   isDescriptionExpanded?: boolean;
   formData: QueryFormData;
-  onExploreChart: (event: MouseEvent) => void;
+  exploreUrl?: string;
 
   forceRefresh: (sliceId: number, dashboardId: number) => void;
   logExploreChart?: (sliceId: number) => void;
@@ -306,14 +307,15 @@ class SliceHeaderControls extends React.PureComponent<
         )}
 
         {this.props.supersetCanExplore && (
-          <Menu.Item
-            key={MENU_KEYS.EXPLORE_CHART}
-            onClick={({ domEvent }) => this.props.onExploreChart(domEvent)}
-          >
-            <Tooltip title={getSliceHeaderTooltip(this.props.slice.slice_name)}>
-              {t('Edit chart')}
-            </Tooltip>
-          </Menu.Item>
+          <Link to={this.props.exploreUrl ?? '#'}>
+            <Menu.Item key={MENU_KEYS.EXPLORE_CHART}>
+              <Tooltip
+                title={getSliceHeaderTooltip(this.props.slice.slice_name)}
+              >
+                {t('Edit chart')}
+              </Tooltip>
+            </Menu.Item>
+          </Link>
         )}
 
         {this.props.supersetCanExplore && (
@@ -352,13 +354,11 @@ class SliceHeaderControls extends React.PureComponent<
                 />
               }
               modalFooter={
-                <Button
-                  buttonStyle="secondary"
-                  buttonSize="small"
-                  onClick={this.props.onExploreChart}
-                >
-                  {t('Edit chart')}
-                </Button>
+                <Link to={this.props.exploreUrl ?? '#'}>
+                  <Button buttonStyle="secondary" buttonSize="small">
+                    {t('Edit chart')}
+                  </Button>
+                </Link>
               }
               draggable
               resizable
