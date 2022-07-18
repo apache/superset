@@ -170,7 +170,7 @@ class DatasourceControl extends React.PureComponent {
   }
 
   onDatasourceSave = datasource => {
-    this.props.actions.saveDatasource(datasource);
+    this.props.actions.changeDatasource(datasource);
     const timeCol = this.props.form_data?.granularity_sqla;
     const { columns } = this.props.datasource;
     const firstDttmCol = columns.find(column => column.is_dttm);
