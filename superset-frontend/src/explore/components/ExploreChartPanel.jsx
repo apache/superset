@@ -27,6 +27,7 @@ import {
   t,
   useTheme,
   getChartMetadataRegistry,
+  DatasourceType,
 } from '@superset-ui/core';
 import { useResizeDetector } from 'react-resize-detector';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
@@ -153,8 +154,8 @@ const ExploreChartPanel = ({
 
   const metaDataRegistry = getChartMetadataRegistry();
   const { useLegacyApi } = metaDataRegistry.get(vizType);
-  const vizTypeNeedsDataset = useLegacyApi && datasource.type !== 'dataset';
-
+  const vizTypeNeedsDataset =
+    useLegacyApi && datasource.type !== DatasourceType.Table;
   // added boolean column to below show boolean so that the errors aren't overlapping
   const showAlertBanner =
     !chartAlert &&
