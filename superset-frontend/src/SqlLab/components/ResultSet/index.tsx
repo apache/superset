@@ -225,12 +225,12 @@ export default class ResultSet extends React.PureComponent<
       const { query } = this.props;
 
       const datasource: ISaveableDatasource = {
-        columns: query.columns as ISimpleColumn[],
+        columns: query.results.columns as ISimpleColumn[],
         name: query?.tab || 'Untitled',
-        dbId: 1,
-        sql: query.sql,
-        templateParams: query.templateParams,
-        schema: query.schema,
+        dbId: query?.dbId,
+        sql: query?.sql,
+        templateParams: query?.templateParams,
+        schema: query?.schema,
       };
 
       return (
