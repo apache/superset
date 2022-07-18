@@ -1201,7 +1201,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 cols[col.column_name] = col
 
         target_col = cols[column_name]
-        tp = None  # self.get_template_processor()
+        tp = None  # todo(hughhhh): add back self.get_template_processor()
         tbl, cte = self.get_from_clause(tp)
 
         if isinstance(target_col, dict):
