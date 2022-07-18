@@ -307,15 +307,15 @@ class SliceHeaderControls extends React.PureComponent<
         )}
 
         {this.props.supersetCanExplore && (
-          <Link to={this.props.exploreUrl ?? '#'}>
-            <Menu.Item key={MENU_KEYS.EXPLORE_CHART}>
+          <Menu.Item key={MENU_KEYS.EXPLORE_CHART}>
+            <Link to={this.props.exploreUrl ?? '#'}>
               <Tooltip
                 title={getSliceHeaderTooltip(this.props.slice.slice_name)}
               >
                 {t('Edit chart')}
               </Tooltip>
-            </Menu.Item>
-          </Link>
+            </Link>
+          </Menu.Item>
         )}
 
         {this.props.supersetCanExplore && (
@@ -354,11 +354,11 @@ class SliceHeaderControls extends React.PureComponent<
                 />
               }
               modalFooter={
-                <Link to={this.props.exploreUrl ?? '#'}>
-                  <Button buttonStyle="secondary" buttonSize="small">
+                <Button buttonStyle="secondary" buttonSize="small">
+                  <Link to={this.props.exploreUrl ?? '#'}>
                     {t('Edit chart')}
-                  </Button>
-                </Link>
+                  </Link>
+                </Button>
               }
               draggable
               resizable
