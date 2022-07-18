@@ -20,7 +20,6 @@ from typing import Dict, Type, Union
 
 from sqlalchemy.orm import Session
 
-
 from superset.connectors.sqla.models import SqlaTable
 from superset.dao.base import BaseDAO
 from superset.dao.exceptions import DatasourceNotFound, DatasourceTypeNotSupportedError
@@ -28,7 +27,6 @@ from superset.datasets.models import Dataset
 from superset.models.sql_lab import Query, SavedQuery
 from superset.tables.models import Table
 from superset.utils.core import DatasourceType
-
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +60,9 @@ class DatasourceDAO(BaseDAO):
         )
 
         if not datasource:
-            logger.warning(f"Datasource not found datasource_type = {datasource_type} datasource_id = {datasource_id}")
+            logger.warning(
+                f"Datasource not found datasource_type = {datasource_type} datasource_id = {datasource_id}"
+            )
             raise DatasourceNotFound()
 
         return datasource
