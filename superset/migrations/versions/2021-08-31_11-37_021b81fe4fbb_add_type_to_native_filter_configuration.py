@@ -31,7 +31,7 @@ import logging
 
 import sqlalchemy as sa
 from alembic import op
-from sqlalchemy.ext.declarative.api import declarative_base
+from sqlalchemy.ext.declarative import declarative_base
 
 from superset import db
 

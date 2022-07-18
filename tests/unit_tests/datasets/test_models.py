@@ -259,7 +259,6 @@ def test_dataset_attributes(app_context: None, session: Session) -> None:
         "main_dttm_col",
         "metrics",
         "offset",
-        "owners",
         "params",
         "perm",
         "schema",
