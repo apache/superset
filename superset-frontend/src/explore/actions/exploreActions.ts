@@ -142,6 +142,14 @@ export function setForceQuery(force: boolean) {
   };
 }
 
+export const SAVE_DATASOURCE = 'SAVE_DATASOURCE';
+export function saveDatasource(datasource: Dataset) {
+  return function (dispatch: Dispatch) {
+    dispatch(setDatasource(datasource));
+    dispatch({ type: SAVE_DATASOURCE, datasource });
+  };
+}
+
 export function changeDatasource(newDatasource: Dataset) {
   return function (dispatch: Dispatch, getState: () => ExplorePageState) {
     const {
