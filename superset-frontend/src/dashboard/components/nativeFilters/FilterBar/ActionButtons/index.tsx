@@ -105,7 +105,10 @@ export const ActionButtons = ({
   );
 
   return (
-    <ActionButtonsContainer data-test="filterbar-action-buttons" width={width || OPEN_FILTER_BAR_WIDTH}>
+    <ActionButtonsContainer
+      data-test="filterbar-action-buttons"
+      width={width || OPEN_FILTER_BAR_WIDTH}
+    >
       <Button
         disabled={isApplyDisabled}
         buttonStyle="primary"

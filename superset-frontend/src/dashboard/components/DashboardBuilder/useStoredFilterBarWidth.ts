@@ -22,19 +22,18 @@ import {
   setItem,
   getItem,
 } from 'src/utils/localStorageHelpers';
-import {
-  OPEN_FILTER_BAR_WIDTH,
-} from 'src/dashboard/constants';
+import { OPEN_FILTER_BAR_WIDTH } from 'src/dashboard/constants';
 
 export default function useStoredFilterBarWidth(dashboardId: string) {
   const widthsMapRef = useRef<Record<string, number>>();
-  const [filterBarWidth, setFilterBarWidth] = useState<number>(OPEN_FILTER_BAR_WIDTH);
+  const [filterBarWidth, setFilterBarWidth] = useState<number>(
+    OPEN_FILTER_BAR_WIDTH,
+  );
 
   useEffect(() => {
-    widthsMapRef.current = widthsMapRef.current ?? getItem(
-      LocalStorageKeys.dashboard__custom_filter_bar_widths,
-      {},
-    );
+    widthsMapRef.current =
+      widthsMapRef.current ??
+      getItem(LocalStorageKeys.dashboard__custom_filter_bar_widths, {});
     if (widthsMapRef.current[dashboardId]) {
       setFilterBarWidth(widthsMapRef.current[dashboardId]);
     }
