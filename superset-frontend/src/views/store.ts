@@ -27,26 +27,17 @@ import dashboardInfo from 'src/dashboard/reducers/dashboardInfo';
 import dashboardState from 'src/dashboard/reducers/dashboardState';
 import dashboardFilters from 'src/dashboard/reducers/dashboardFilters';
 import nativeFilters from 'src/dashboard/reducers/nativeFilters';
-import dashboardDatasources from 'src/dashboard/reducers/datasources';
+import datasources from 'src/datasource/reducer';
 import sliceEntities from 'src/dashboard/reducers/sliceEntities';
 import dashboardLayout from 'src/dashboard/reducers/undoableDashboardLayout';
 import logger from 'src/middleware/loggerMiddleware';
 import saveModal from 'src/explore/reducers/saveModalReducer';
 import explore from 'src/explore/reducers/exploreReducer';
-import exploreDatasources from 'src/explore/reducers/datasourcesReducer';
-import { DatasourcesState } from 'src/dashboard/types';
-import {
-  DatasourcesActionPayload,
-  DatasourcesAction,
-} from 'src/dashboard/actions/datasources';
 import shortid from 'shortid';
 import {
   BootstrapUser,
   UserWithPermissionsAndRoles,
 } from 'src/types/bootstrapTypes';
-import { AnyDatasourcesAction } from 'src/explore/actions/datasourcesActions';
-import { HydrateExplore } from 'src/explore/actions/hydrateExplore';
-import { Dataset } from '@superset-ui/chart-controls';
 
 // Some reducers don't do anything, and redux is just used to reference the initial "state".
 // This may change later, as the client application takes on more responsibilities.
@@ -75,26 +66,6 @@ const userReducer = (
   return user;
 };
 
-// TODO: This reducer is a combination of the Dashboard and Explore reducers.
-// The correct way of handling this is to unify the actions and reducers from both
-// modules in shared files. This involves a big refactor to unify the parameter types
-// and move files around. We should tackle this in a specific PR.
-const CombinedDatasourceReducers = (
-  datasources: DatasourcesState | undefined | { [key: string]: Dataset },
-  action: DatasourcesActionPayload | AnyDatasourcesAction | HydrateExplore,
-) => {
-  if (action.type === DatasourcesAction.SET_DATASOURCES) {
-    return dashboardDatasources(
-      datasources as DatasourcesState | undefined,
-      action as DatasourcesActionPayload,
-    );
-  }
-  return exploreDatasources(
-    datasources as { [key: string]: Dataset },
-    action as AnyDatasourcesAction | HydrateExplore,
-  );
-};
-
 // exported for tests
 export const rootReducer = combineReducers({
   messageToasts: messageToastReducer,
@@ -102,7 +73,7 @@ export const rootReducer = combineReducers({
   user: userReducer,
   impressionId: noopReducer(shortid.generate()),
   charts,
-  datasources: CombinedDatasourceReducers,
+  datasources,
   dashboardInfo,
   dashboardFilters,
   dataMask,

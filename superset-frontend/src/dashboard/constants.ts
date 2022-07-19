@@ -1,6 +1,6 @@
 /* eslint-disable import/prefer-default-export */
 import { DatasourceType } from '@superset-ui/core';
-import { Datasource } from 'src/dashboard/types';
+import { Dataset } from '@superset-ui/chart-controls';
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -19,7 +19,7 @@ import { Datasource } from 'src/dashboard/types';
  * specific language governing permissions and limitations
  * under the License.
  */
-export const PLACEHOLDER_DATASOURCE: Datasource = {
+export const PLACEHOLDER_DATASOURCE: Dataset = {
   id: 0,
   type: DatasourceType.Table,
   uid: '_placeholder_',

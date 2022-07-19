@@ -23,6 +23,7 @@ import { styled, t, SupersetClient, JsonResponse } from '@superset-ui/core';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { URL_PARAMS } from 'src/constants';
 import { isNullish } from 'src/utils/common';
+import { withRouter, RouteComponentProps } from 'react-router-dom';
 import Button from 'src/components/Button';
 import { AsyncSelect, Steps } from 'src/components';
 import { Tooltip } from 'src/components/Tooltip';
@@ -42,10 +43,10 @@ type Dataset = {
   datasource_type: string;
 };
 
-export type AddSliceContainerProps = {
+export interface AddSliceContainerProps extends RouteComponentProps {
   user: UserWithPermissionsAndRoles;
   addSuccessToast: (arg: string) => void;
-};
+}
 
 export type AddSliceContainerState = {
   datasource?: { label: string; value: string };
@@ -254,7 +255,7 @@ export class AddSliceContainer extends React.PureComponent<
   }
 
   gotoSlice() {
-    window.location.href = this.exploreUrl();
+    this.props.history.push(this.exploreUrl());
   }
 
   changeDatasource(datasource: { label: string; value: string }) {
@@ -418,4 +419,4 @@ export class AddSliceContainer extends React.PureComponent<
   }
 }
 
-export default withToasts(AddSliceContainer);
+export default withRouter(withToasts(AddSliceContainer));

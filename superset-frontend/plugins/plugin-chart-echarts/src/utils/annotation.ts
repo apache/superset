@@ -25,26 +25,31 @@ import {
   AnnotationLayer,
   AnnotationOpacity,
   AnnotationType,
+  DataRecord,
   evalExpression,
   FormulaAnnotationLayer,
   isRecordAnnotationResult,
   isTableAnnotationLayer,
   isTimeseriesAnnotationResult,
-  TimeseriesDataRecord,
 } from '@superset-ui/core';
-import { EchartsTimeseriesChartProps } from '../types';
+import { AxisType, EchartsTimeseriesChartProps } from '../types';
 import { EchartsMixedTimeseriesProps } from '../MixedTimeseries/types';
 
 export function evalFormula(
   formula: FormulaAnnotationLayer,
-  data: TimeseriesDataRecord[],
-): [number, number][] {
+  data: DataRecord[],
+  xAxis: string,
+  xAxisType: AxisType,
+): [any, number][] {
   const { value: expression } = formula;
 
-  return data.map(row => [
-    Number(row.__timestamp),
-    evalExpression(expression, row.__timestamp as number),
-  ]);
+  return data.map(row => {
+    let value = row[xAxis];
+    if (xAxisType === 'time') {
+      value = new Date(value as string).getTime();
+    }
+    return [value, evalExpression(expression, (value || 0) as number)];
+  });
 }
 
 export function parseAnnotationOpacity(opacity?: AnnotationOpacity): number {

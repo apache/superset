@@ -99,6 +99,10 @@ export const URL_PARAMS = {
     name: 'show_database_modal',
     type: 'boolean',
   },
+  saveAction: {
+    name: 'save_action',
+    type: 'string',
+  },
 } as const;
 
 export const RESERVED_CHART_URL_PARAMS: string[] = [

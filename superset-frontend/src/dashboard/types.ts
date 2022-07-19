@@ -20,7 +20,6 @@ import {
   ChartProps,
   DataMaskStateWithId,
   ExtraFormData,
-  GenericDataType,
   JsonObject,
   NativeFiltersState,
 } from '@superset-ui/core';
@@ -84,13 +83,8 @@ export type DashboardInfo = {
 
 export type ChartsState = { [key: string]: Chart };
 
-export type Datasource = Dataset & {
-  uid: string;
-  column_types: GenericDataType[];
-  table_name: string;
-};
 export type DatasourcesState = {
-  [key: string]: Datasource;
+  [key: string]: Dataset;
 };
 
 /** Root state of redux */
