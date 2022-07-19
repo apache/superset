@@ -256,7 +256,7 @@ export default class ResultSet extends React.PureComponent<
                     // const qid = this.props?.query?.results?.query_id;
                     // if (qid) {
                     //   // This will open explore using the query as datasource
-                    //   window.location.href = `/explore/?dataset_type=query&dataset_id=${qid}`;
+                    //   window.open(`/explore/?dataset_type=query&dataset_id=${qid}`, '_blank', 'noreferrer');
                     // } else {
                     //   this.setState({ showSaveDatasetModal: true });
                     // }
