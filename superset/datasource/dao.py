@@ -20,13 +20,10 @@ from typing import Dict, Type, Union
 
 from sqlalchemy.orm import Session
 
-from superset import security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.dao.base import BaseDAO
 from superset.dao.exceptions import DatasourceNotFound, DatasourceTypeNotSupportedError
-from superset.datasets.commands.exceptions import DatasetForbiddenError
 from superset.datasets.models import Dataset
-from superset.exceptions import SupersetSecurityException
 from superset.models.sql_lab import Query, SavedQuery
 from superset.tables.models import Table
 from superset.utils.core import DatasourceType

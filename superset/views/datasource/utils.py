@@ -38,15 +38,12 @@ def get_limit_clause(page: Optional[int], per_page: Optional[int]) -> Dict[str, 
             # reset limit value if input is invalid
             limit = samples_row_limit
 
-        offset = (int(page) - 1) * limit
-        if offset < 0:
-            # reset offset value if input is invalid
-            offset = 0
+        offset = max((int(page) - 1) * limit, 0)
 
     return {"row_offset": offset, "row_limit": limit}
 
 
-def get_samples(
+def get_samples(  # pylint: disable=too-many-arguments,too-many-locals
     datasource_type: str,
     datasource_id: int,
     force: bool = False,
