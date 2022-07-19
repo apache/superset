@@ -175,8 +175,12 @@ export default function sqlLabReducer(state = {}, action) {
     [actions.COLLAPSE_TABLE]() {
       return alterInArr(state, 'tables', action.table, { expanded: false });
     },
-    [actions.REMOVE_TABLE]() {
-      return removeFromArr(state, 'tables', action.table);
+    [actions.REMOVE_TABLES]() {
+      const tableIds = action.tables.map(table => table.id);
+      return {
+        ...state,
+        tables: state.tables.filter(table => !tableIds.includes(table.id)),
+      };
     },
     [actions.START_QUERY_VALIDATION]() {
       let newState = { ...state };
