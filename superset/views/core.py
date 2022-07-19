@@ -427,13 +427,13 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         _, slc = get_form_data(slice_id, use_slice_data=True)
         if not slc:
             abort(404)
-        endpoint = "/superset/explore/?form_data={}".format(
+        endpoint = "/explore/?form_data={}".format(
             parse.quote(json.dumps({"slice_id": slice_id}))
         )
 
         is_standalone_mode = ReservedUrlParameters.is_standalone_mode()
         if is_standalone_mode:
-            endpoint += f"&{ReservedUrlParameters.STANDALONE}={is_standalone_mode}"
+            endpoint += f"&{ReservedUrlParameters.STANDALONE}=true"
         return redirect(endpoint)
 
     def get_query_string_response(self, viz_obj: BaseViz) -> FlaskResponse:
