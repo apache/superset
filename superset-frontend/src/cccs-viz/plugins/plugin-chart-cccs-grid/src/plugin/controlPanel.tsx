@@ -559,7 +559,9 @@ config.controlPanelSections.push({
           label: t('Row grouping'),
           renderTrigger: true,
           default: false,
-          description: t('Whether to enable row grouping'),
+          description: t(
+            'Whether to enable row grouping (this will only take affect after a save)',
+          ),
         },
       },
     ],

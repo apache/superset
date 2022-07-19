@@ -91,9 +91,6 @@ export default function CccsGrid({
   const [filters, setFilters] = useState(initialFilters);
   const [searchValue, setSearchValue] = useState('');
   const [pageSize, setPageSize] = useState<number>(page_length);
-  const [goupingEnabled, setGroupingEnabled] = useState<string>(
-    enable_grouping ? 'always' : 'never',
-  );
 
   const gridRef = useRef<AgGridReact<any>>(null);
 
@@ -263,13 +260,6 @@ export default function CccsGrid({
     }
   }, [include_search]);
 
-  useEffect(() => {
-    setGroupingEnabled(enable_grouping ? 'always' : 'never');
-    // gridRef.current?.api?.paginationSetPageSize(newSize);
-    console.log('UseEffect Happened');
-    console.log(gridRef);
-  }, [enable_grouping]);
-
   const onColumnMoved = useCallback(e => {
     setControlValue('column_state', e.columnApi.getColumnState());
   }, []);
@@ -356,7 +346,7 @@ export default function CccsGrid({
           pagination={pageSize > 0}
           cacheQuickFilter={true}
           quickFilterText={searchValue}
-          rowGroupPanelShow={goupingEnabled}
+          rowGroupPanelShow={enable_grouping ? 'always' : 'never'}
           onColumnMoved={onColumnMoved}
         />
       </div>
