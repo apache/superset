@@ -65,6 +65,7 @@ def escape_value(value: str) -> str:
 
 
 def df_to_escaped_csv(df: pd.DataFrame, **kwargs: Any) -> Any:
+    escape_values = lambda v: escape_value(v) if isinstance(v, str) else v
 
     # Escape csv headers
     df = df.rename(columns=escape_values)
