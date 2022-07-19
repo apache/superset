@@ -442,8 +442,7 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
         full_table = quote(table_name)
         if schema:
             full_table = "{}.{}".format(quote(schema), full_table)
-        columns = inspector.bind.execute("SHOW COLUMNS FROM {}".format(full_table))
-        return columns
+        return inspector.bind.execute(f"SHOW COLUMNS FROM {full_table}").fetchall()
 
     column_type_mappings = (
         (
