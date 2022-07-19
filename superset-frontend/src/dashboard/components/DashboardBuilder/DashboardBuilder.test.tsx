@@ -150,13 +150,13 @@ describe('DashboardBuilder', () => {
     );
     const sticky = await findAllByTestId('nav-list');
 
-    expect(sticky).toHaveLength(1);
+    expect(sticky.length).toBe(1);
     expect(sticky[0]).toHaveAttribute('id', 'TABS_ID');
 
     const dashboardTabComponents = within(sticky[0]).getAllByRole('tab');
     const tabChildren =
       undoableDashboardLayoutWithTabs.present.TABS_ID.children;
-    expect(dashboardTabComponents).toHaveLength(tabChildren.length);
+    expect(dashboardTabComponents.length).toBe(tabChildren.length);
     tabChildren.forEach((tabId, i) => {
       const idMatcher = new RegExp(tabId + '$');
       expect(dashboardTabComponents[i]).toHaveAttribute(
@@ -171,9 +171,9 @@ describe('DashboardBuilder', () => {
       dashboardLayout: undoableDashboardLayoutWithTabs,
     });
     const tabs = await findAllByRole('tablist');
-    expect(tabs).toHaveLength(1);
+    expect(tabs.length).toBe(1);
     const tabPanels = await findAllByRole('tabpanel');
-    expect(tabPanels).toHaveLength(2);
+    expect(tabPanels.length).toBe(2);
   });
 
   it('should render a TabPane and DashboardGrid for first Tab', async () => {
@@ -187,10 +187,10 @@ describe('DashboardBuilder', () => {
       // to include invisiable tab panels
       hidden: true,
     });
-    expect(tabPanels).toHaveLength(expectedCount);
+    expect(tabPanels.length).toBe(expectedCount);
     expect(
-      within(tabPanels[0]).getAllByTestId('mock-dashboard-grid'),
-    ).toHaveLength(1);
+      within(tabPanels[0]).getAllByTestId('mock-dashboard-grid').length,
+    ).toBe(1);
   });
 
   it('should render a TabPane and DashboardGrid for second Tab', async () => {
@@ -208,16 +208,16 @@ describe('DashboardBuilder', () => {
       // to include invisiable tab panels
       hidden: true,
     });
-    expect(tabPanels).toHaveLength(expectedCount);
+    expect(tabPanels.length).toBe(expectedCount);
     expect(
-      within(tabPanels[1]).getAllByTestId('mock-dashboard-grid'),
-    ).toHaveLength(1);
+      within(tabPanels[1]).getAllByTestId('mock-dashboard-grid').length,
+    ).toBe(1);
   });
 
   it('should render a BuilderComponentPane if editMode=false and user selects "Insert Components" pane', () => {
     const { queryAllByTestId } = setup();
     const builderComponents = queryAllByTestId('mock-builder-component-pane');
-    expect(builderComponents).toHaveLength(0);
+    expect(builderComponents.length).toBe(0);
   });
 
   it('should render a BuilderComponentPane if editMode=true and user selects "Insert Components" pane', () => {
