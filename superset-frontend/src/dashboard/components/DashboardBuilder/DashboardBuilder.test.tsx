@@ -158,7 +158,7 @@ describe('DashboardBuilder', () => {
       undoableDashboardLayoutWithTabs.present.TABS_ID.children;
     expect(dashboardTabComponents.length).toBe(tabChildren.length);
     tabChildren.forEach((tabId, i) => {
-      const idMatcher = new RegExp(tabId + '$');
+      const idMatcher = new RegExp(`${tabId}$`);
       expect(dashboardTabComponents[i]).toHaveAttribute(
         'id',
         expect.stringMatching(idMatcher),
