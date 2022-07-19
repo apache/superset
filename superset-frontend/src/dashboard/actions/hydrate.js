@@ -56,6 +56,7 @@ import extractUrlParams from '../util/extractUrlParams';
 import getNativeFilterConfig from '../util/filterboxMigrationHelper';
 import { updateColorSchema } from './dashboardInfo';
 import { getChartIdsInFilterScope } from '../util/getChartIdsInFilterScope';
+import updateComponentParentsList from '../util/updateComponentParentsList';
 
 export const HYDRATE_DASHBOARD = 'HYDRATE_DASHBOARD';
 
@@ -257,6 +258,19 @@ export const hydrateDashboard =
         layout[layoutId].meta.sliceName = slice.slice_name;
       }
     });
+
+    // make sure that parents tree is built
+    if (
+      Object.values(layout).some(
+        element => element.id !== DASHBOARD_ROOT_ID && !element.parents,
+      )
+    ) {
+      updateComponentParentsList({
+        currentComponent: layout[DASHBOARD_ROOT_ID],
+        layout,
+      });
+    }
+
     buildActiveFilters({
       dashboardFilters,
       components: layout,
