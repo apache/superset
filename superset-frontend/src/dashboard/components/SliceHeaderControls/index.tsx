@@ -109,7 +109,7 @@ export interface SliceHeaderControlsProps {
   isFullSize?: boolean;
   isDescriptionExpanded?: boolean;
   formData: QueryFormData;
-  exploreUrl?: string;
+  exploreUrl: string;
 
   forceRefresh: (sliceId: number, dashboardId: number) => void;
   logExploreChart?: (sliceId: number) => void;
@@ -308,7 +308,7 @@ class SliceHeaderControls extends React.PureComponent<
 
         {this.props.supersetCanExplore && (
           <Menu.Item key={MENU_KEYS.EXPLORE_CHART}>
-            <Link to={this.props.exploreUrl ?? '#'}>
+            <Link to={this.props.exploreUrl}>
               <Tooltip
                 title={getSliceHeaderTooltip(this.props.slice.slice_name)}
               >

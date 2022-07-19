@@ -131,10 +131,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
     }
   }, [sliceName, width, height, canExplore]);
 
-  const exploreUrl =
-    !editMode && supersetCanExplore
-      ? `/explore/?dashboard_tab_id=${dashboardTabId}&slice_id=${slice.slice_id}`
-      : undefined;
+  const exploreUrl = `/explore/?dashboard_tab_id=${dashboardTabId}&slice_id=${slice.slice_id}`;
 
   return (
     <div className="chart-header" data-test="slice-header" ref={innerRef}>
@@ -151,7 +148,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
             emptyText=""
             onSaveTitle={updateSliceName}
             showTooltip={false}
-            exploreUrl={exploreUrl}
+            url={canExplore ? exploreUrl : undefined}
           />
         </Tooltip>
         {!!Object.values(annotationQuery).length && (

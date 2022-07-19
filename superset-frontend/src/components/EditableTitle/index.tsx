@@ -38,7 +38,7 @@ export interface EditableTitleProps {
   placeholder?: string;
   certifiedBy?: string;
   certificationDetails?: string;
-  exploreUrl?: string;
+  url?: string;
 }
 
 const StyledCertifiedBadge = styled(CertifiedBadge)`
@@ -59,7 +59,7 @@ export default function EditableTitle({
   placeholder = '',
   certifiedBy,
   certificationDetails,
-  exploreUrl,
+  url,
   // rest is related to title tooltip
   ...rest
 }: EditableTitleProps) {
@@ -219,9 +219,9 @@ export default function EditableTitle({
   }
   if (!canEdit) {
     // don't actually want an input in this case
-    titleComponent = exploreUrl ? (
+    titleComponent = url ? (
       <Link
-        to={exploreUrl}
+        to={url}
         data-test="editable-title-input"
         css={(theme: SupersetTheme) => css`
           color: ${theme.colors.grayscale.dark1};
