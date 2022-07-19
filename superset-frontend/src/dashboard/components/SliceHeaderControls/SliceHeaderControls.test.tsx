@@ -91,6 +91,7 @@ const createProps = (viz_type = 'sunburst') =>
     showControls: true,
     supersetCanShare: true,
     formData: { slice_id: 1, datasource: '58__table', viz_type: 'sunburst' },
+    exploreUrl: '/explore',
   } as SliceHeaderControlsProps);
 
 const renderWrapper = (overrideProps?: SliceHeaderControlsProps) => {
