@@ -14,23 +14,4 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Migrating legacy TreeMap
-
-Revision ID: c747c78868b6
-Revises: cdcf3d64daf4
-Create Date: 2022-06-30 22:04:17.686635
-
-"""
-from superset.migrations.shared.migrate_viz import MigrateTreeMap
-
-# revision identifiers, used by Alembic.
-revision = "c747c78868b6"
-down_revision = "cdcf3d64daf4"
-
-
-def upgrade():
-    MigrateTreeMap.upgrade()
-
-
-def downgrade():
-    MigrateTreeMap.downgrade()
+from .processors import *
