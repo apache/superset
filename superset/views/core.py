@@ -815,7 +815,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             try:
                 datasource = DatasourceDAO.get_datasource(
                     db.session,
-                    DatasourceType(cast(str, datasource_type)),
+                    DatasourceType("table"),
                     datasource_id,
                 )
             except DatasetNotFoundError:
