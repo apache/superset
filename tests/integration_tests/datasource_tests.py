@@ -23,13 +23,15 @@ import prison
 import pytest
 
 from superset import app, db
-from superset.connectors.sqla.models import SqlaTable
+from superset.common.utils.query_cache_manager import QueryCacheManager
+from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+from superset.constants import CacheRegion
 from superset.dao.exceptions import DatasourceNotFound, DatasourceTypeNotSupportedError
 from superset.datasets.commands.exceptions import DatasetNotFoundError
 from superset.exceptions import SupersetGenericDBErrorException
 from superset.models.core import Database
-from superset.utils.core import DatasourceType, get_example_default_schema
-from superset.utils.database import get_example_database
+from superset.utils.core import backend, get_example_default_schema
+from superset.utils.database import get_example_database, get_main_database
 from tests.integration_tests.base_tests import db_insert_temp_object, SupersetTestCase
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
@@ -416,3 +418,177 @@ class TestDatasource(SupersetTestCase):
         self.login(username="admin")
         resp = self.get_json_resp("/datasource/get/druid/500000/", raise_on_error=False)
         self.assertEqual(resp.get("error"), "'druid' is not a valid DatasourceType")
+
+    @pytest.fixture()
+    def create_datasets(self):
+        with self.create_app().app_context():
+            if backend() == "sqlite":
+                yield
+                return
+
+            datasets = []
+            admin = self.get_user("admin")
+            main_db = get_main_database()
+            for tables_name in self.fixture_tables_names:
+                datasets.append(self.insert_dataset(tables_name, [admin.id], main_db))
+
+            yield datasets
+
+            # rollback changes
+            for dataset in datasets:
+                db.session.delete(dataset)
+            db.session.commit()
+
+    def test_get_dataset_samples(self):
+        """
+        Dataset API: Test get dataset samples
+        """
+        if backend() == "sqlite":
+            return
+
+        dataset = SqlaTable(
+            table_name="virtual_dataset",
+            sql=("SELECT 'foo' as foo, 'bar' as bar"),
+            database=get_example_database(),
+        )
+        TableColumn(column_name="foo", type="VARCHAR(255)", table=dataset)
+        TableColumn(column_name="bar", type="VARCHAR(255)", table=dataset)
+        SqlMetric(metric_name="count", expression="count(*)", table=dataset)
+
+        self.login(username="admin")
+        uri = f"datasource/samples?datasource_id={dataset.id}&datasource_type=table"
+
+        # 1. should cache data
+        # feeds data
+        self.client.post(uri)
+        # get from cache
+        rv = self.client.post(uri)
+        rv_data = json.loads(rv.data)
+        assert rv.status_code == 200
+        assert "result" in rv_data
+        assert rv_data["result"]["cached_dttm"] is not None
+        cache_key1 = rv_data["result"]["cache_key"]
+        assert QueryCacheManager.has(cache_key1, region=CacheRegion.DATA)
+
+        # 2. should through cache
+        uri2 = f"datasource/samples?datasource_id={dataset.id}&datasource_type=table&force=true"
+        # feeds data
+        self.client.post(uri2)
+        # force query
+        rv2 = self.client.post(uri2)
+        rv_data2 = json.loads(rv2.data)
+        assert rv_data2["result"]["cached_dttm"] is None
+        cache_key2 = rv_data2["result"]["cache_key"]
+        assert QueryCacheManager.has(cache_key2, region=CacheRegion.DATA)
+
+        # 3. data precision
+        assert "colnames" in rv_data2["result"]
+        assert "coltypes" in rv_data2["result"]
+        assert "data" in rv_data2["result"]
+
+        eager_samples = dataset.database.get_df(
+            f"select * from ({dataset.sql}) as tbl"
+            f' limit {self.app.config["SAMPLES_ROW_LIMIT"]}'
+        ).to_dict(orient="records")
+        assert eager_samples == rv_data2["result"]["data"]
+
+        db.session.delete(dataset)
+        db.session.commit()
+
+    def test_get_dataset_samples_with_failed_cc(self):
+        if backend() == "sqlite":
+            return
+
+        dataset = SqlaTable(
+            table_name="virtual_dataset",
+            sql=("SELECT 'foo' as foo, 'bar' as bar"),
+            database=get_example_database(),
+        )
+        TableColumn(column_name="foo", type="VARCHAR(255)", table=dataset)
+        TableColumn(column_name="bar", type="VARCHAR(255)", table=dataset)
+        SqlMetric(metric_name="count", expression="count(*)", table=dataset)
+
+        self.login(username="admin")
+        failed_column = TableColumn(
+            column_name="DUMMY CC",
+            type="VARCHAR(255)",
+            table=dataset,
+            expression="INCORRECT SQL",
+        )
+        uri = f"datasource/samples?datasource_id={dataset.id}&datasource_type=table"
+        dataset.columns.append(failed_column)
+        rv = self.client.post(uri)
+        assert rv.status_code == 422
+        rv_data = json.loads(rv.data)
+        assert "error" in rv_data
+        if dataset.database.db_engine_spec.engine_name == "PostgreSQL":
+            assert "INCORRECT SQL" in rv_data.get("error")
+
+        db.session.delete(dataset)
+        db.session.commit()
+
+    def test_get_datasource_samples_on_virtual_dataset(self):
+        if backend() == "sqlite":
+            return
+
+        virtual_dataset = SqlaTable(
+            table_name="virtual_dataset",
+            sql=("SELECT 'foo' as foo, 'bar' as bar"),
+            database=get_example_database(),
+        )
+        TableColumn(column_name="foo", type="VARCHAR(255)", table=virtual_dataset)
+        TableColumn(column_name="bar", type="VARCHAR(255)", table=virtual_dataset)
+        SqlMetric(metric_name="count", expression="count(*)", table=virtual_dataset)
+
+        self.login(username="admin")
+        uri = f"datasource/samples?datasource_id={virtual_dataset.id}&datasource_type=table"
+        rv = self.client.post(uri)
+        assert rv.status_code == 200
+        rv_data = json.loads(rv.data)
+        cache_key = rv_data["result"]["cache_key"]
+        assert QueryCacheManager.has(cache_key, region=CacheRegion.DATA)
+
+        # remove original column in dataset
+        virtual_dataset.sql = "SELECT 'foo' as foo"
+        rv = self.client.post(uri)
+        assert rv.status_code == 422
+
+        db.session.delete(virtual_dataset)
+        db.session.commit()
+
+    def test_get_datasource_samples_with_filters(self):
+        virtual_dataset = SqlaTable(
+            table_name="virtual_dataset",
+            sql=("SELECT 'foo' as foo, 'bar' as bar UNION ALL SELECT 'foo2', 'bar2'"),
+            database=get_example_database(),
+        )
+        TableColumn(column_name="foo", type="VARCHAR(255)", table=virtual_dataset)
+        TableColumn(column_name="bar", type="VARCHAR(255)", table=virtual_dataset)
+        SqlMetric(metric_name="count", expression="count(*)", table=virtual_dataset)
+
+        self.login(username="admin")
+        uri = f"datasource/samples?datasource_id={virtual_dataset.id}&datasource_type=table"
+        rv = self.client.post(uri, json=None)
+        assert rv.status_code == 200
+
+        rv = self.client.post(uri, json={})
+        assert rv.status_code == 200
+
+        rv = self.client.post(uri, json={"foo": "bar"})
+        assert rv.status_code == 400
+
+        rv = self.client.post(
+            uri, json={"filters": [{"col": "foo", "op": "INVALID", "val": "foo2"}]}
+        )
+        assert rv.status_code == 400
+
+        rv = self.client.post(
+            uri, json={"filters": [{"col": "foo", "op": "==", "val": "foo2"}]}
+        )
+        assert rv.status_code == 200
+        rv_data = json.loads(rv.data)
+        assert rv_data["result"]["colnames"] == ["foo", "bar"]
+        assert rv_data["result"]["rowcount"] == 1
+
+        db.session.delete(virtual_dataset)
+        db.session.commit()
