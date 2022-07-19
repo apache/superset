@@ -30,7 +30,7 @@ import { createSamplesPaneProps } from './fixture';
 
 describe('SamplesPane', () => {
   fetchMock.post(
-    '/api/v1/explore/samples?force=false&datasource_type=table&datasource_id=34',
+    'end:/datasource/samples?force=false&datasource_type=table&datasource_id=34',
     {
       result: {
         data: [],
@@ -41,7 +41,7 @@ describe('SamplesPane', () => {
   );
 
   fetchMock.post(
-    'end:/api/v1/explore/samples?force=true&datasource_type=table&datasource_id=35',
+    'end:/datasource/samples?force=true&datasource_type=table&datasource_id=35',
     {
       result: {
         data: [
@@ -55,7 +55,7 @@ describe('SamplesPane', () => {
   );
 
   fetchMock.post(
-    'end:/api/v1/explore/samples?force=false&datasource_type=table&datasource_id=36',
+    'end:/datasource/samples?force=false&datasource_type=table&datasource_id=36',
     400,
   );
 
