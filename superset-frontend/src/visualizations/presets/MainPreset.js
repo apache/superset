@@ -81,6 +81,7 @@ import { PivotTableChartPlugin as PivotTableChartPluginV2 } from '@superset-ui/p
 import { HandlebarsChartPlugin } from '@superset-ui/plugin-chart-handlebars';
 import FilterBoxChartPlugin from '../FilterBox/FilterBoxChartPlugin';
 import TimeTableChartPlugin from '../TimeTable';
+import { SupersetPluginChartDualYAxis } from '../superset-plugin-chart-dual-y-axis/src/index';
 
 export default class MainPreset extends Preset {
   constructor() {
@@ -166,6 +167,9 @@ export default class MainPreset extends Preset {
         new TimeGrainFilterPlugin().configure({ key: 'filter_timegrain' }),
         new EchartsTreeChartPlugin().configure({ key: 'tree_chart' }),
         new HandlebarsChartPlugin().configure({ key: 'handlebars' }),
+        new SupersetPluginChartDualYAxis().configure({
+          key: 'ext-dual-y-axis',
+        }),
         ...experimentalplugins,
       ],
     });
