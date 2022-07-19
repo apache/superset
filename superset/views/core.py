@@ -2504,11 +2504,11 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             )
 
             df = pd.DataFrame(
-                data=obj["data"], 
-                dtype=object, 
+                data=obj["data"],
+                dtype=object,
                 columns=[c["name"] for c in obj["columns"]],
             )
-            
+
             logger.info("Using pandas to convert to CSV")
         else:
             logger.info("Running a query to turn into CSV")
