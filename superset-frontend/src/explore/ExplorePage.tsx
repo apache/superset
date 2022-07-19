@@ -39,7 +39,7 @@ import { ExploreResponsePayload } from './types';
 import { fallbackExploreInitialData } from './fixtures';
 import { getItem, LocalStorageKeys } from '../utils/localStorageHelpers';
 import { getChartIdAndColumnFromFilterKey } from '../dashboard/util/getDashboardFilterKey';
-import { getFormDataFromDashboardContext } from './controlUtils/getFormDataWithDashboardContext';
+import { getFormDataWithDashboardContext } from './controlUtils/getFormDataWithDashboardContext';
 
 const isResult = (rv: JsonObject): rv is ExploreResponsePayload =>
   rv?.result?.form_data &&
@@ -114,7 +114,7 @@ const getDashboardContextFormData = () => {
       extraControls: {},
     });
     Object.assign(dashboardContextWithFilters, { dashboardId });
-    return getFormDataFromDashboardContext(dashboardContextWithFilters);
+    return dashboardContextWithFilters;
   }
   return {};
 };
@@ -128,17 +128,18 @@ export default function ExplorePage() {
   useEffect(() => {
     const exploreUrlParams = getParsedExploreURLParams(location);
     const isSaveAction = !!getUrlParam(URL_PARAMS.saveAction);
-    const dashboardFormData = getDashboardContextFormData();
+    const dashboardContextFormData = getDashboardContextFormData();
     if (!isExploreInitialized.current || isSaveAction) {
       fetchExploreData(exploreUrlParams)
         .then(({ result }) => {
+          const formData = getFormDataWithDashboardContext(
+            result.form_data,
+            dashboardContextFormData,
+          );
           dispatch(
             hydrateExplore({
               ...result,
-              form_data: {
-                ...result.form_data,
-                ...dashboardFormData,
-              },
+              form_data: formData,
             }),
           );
         })

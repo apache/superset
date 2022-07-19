@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import isEqual from 'lodash/isEqual';
 import {
   EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS,
   EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS,
@@ -24,6 +25,7 @@ import {
   ensureIsArray,
   QueryObjectFilterClause,
   SimpleAdhocFilter,
+  QueryFormData,
 } from '@superset-ui/core';
 import { NO_TIME_RANGE } from '../constants';
 
@@ -46,11 +48,37 @@ const simpleFilterToAdhoc = (
         .substring(2, 15)}_${Math.random().toString(36).substring(2, 15)}`,
     });
   }
-
   return result;
 };
 
-const mergeFilterBoxToFormData = (formData: Record<string, any>) => {
+const removeAdhocFilterDuplicates = (filters: SimpleAdhocFilter[]) => {
+  const isDuplicate = (
+    adhocFilter: SimpleAdhocFilter,
+    existingFilters: SimpleAdhocFilter[],
+  ) =>
+    existingFilters.some(
+      (existingFilter: SimpleAdhocFilter) =>
+        existingFilter.operator === adhocFilter.operator &&
+        existingFilter.subject === adhocFilter.subject &&
+        ((!('comparator' in existingFilter) &&
+          !('comparator' in adhocFilter)) ||
+          ('comparator' in existingFilter &&
+            'comparator' in adhocFilter &&
+            isEqual(existingFilter.comparator, adhocFilter.comparator))),
+    );
+
+  return filters.reduce((acc, filter) => {
+    if (!isDuplicate(filter, acc)) {
+      acc.push(filter);
+    }
+    return acc;
+  }, [] as SimpleAdhocFilter[]);
+};
+
+const mergeFilterBoxToFormData = (
+  exploreFormData: QueryFormData,
+  dashboardFormData: JsonObject,
+) => {
   const dateColumns = {
     __time_range: 'time_range',
     __time_col: 'granularity_sqla',
@@ -59,11 +87,11 @@ const mergeFilterBoxToFormData = (formData: Record<string, any>) => {
   };
   const appliedTimeExtras = {};
 
-  const newFormData = { ...formData };
-  ensureIsArray(newFormData.extra_filters).forEach(filter => {
+  const filterBoxData: JsonObject = {};
+  ensureIsArray(dashboardFormData.extra_filters).forEach(filter => {
     if (dateColumns[filter.col]) {
       if (filter.val !== NO_TIME_RANGE) {
-        newFormData[dateColumns[filter.col]] = filter.val;
+        filterBoxData[dateColumns[filter.col]] = filter.val;
         appliedTimeExtras[filter.col] = filter.val;
       }
     } else {
@@ -71,50 +99,40 @@ const mergeFilterBoxToFormData = (formData: Record<string, any>) => {
         ...(filter as QueryObjectFilterClause),
         isExtra: true,
       });
-      if (!Array.isArray(newFormData.adhocFilters)) {
-        newFormData.adhoc_filters = [adhocFilter];
-      } else if (
-        newFormData.adhoc_filters.some(
-          (existingFilter: SimpleAdhocFilter) =>
-            existingFilter.operator === adhocFilter.operator &&
-            existingFilter.subject === adhocFilter.subject &&
-            ((!('comparator' in existingFilter) &&
-              !('comparator' in adhocFilter)) ||
-              ('comparator' in existingFilter &&
-                'comparator' in adhocFilter &&
-                existingFilter.comparator === adhocFilter.comparator)),
-        )
-      ) {
-        newFormData.adhoc_filters.push(adhocFilter);
-      }
+      filterBoxData.adhoc_filters = [
+        ...ensureIsArray(filterBoxData.adhoc_filters),
+        adhocFilter,
+      ];
     }
   });
-  newFormData.applied_time_extras = appliedTimeExtras;
-  delete newFormData.extra_filters;
-  return newFormData;
+  filterBoxData.applied_time_extras = appliedTimeExtras;
+  return filterBoxData;
 };
 
-export const getFormDataFromDashboardContext = (formData: JsonObject) => {
-  const newFormData = mergeFilterBoxToFormData(formData);
-  const extraFormData = newFormData.extra_form_data || {};
+const mergeNativeFiltersToFormData = (
+  exploreFormData: QueryFormData,
+  dashboardFormData: JsonObject,
+) => {
+  const nativeFiltersData: JsonObject = {};
+  const extraFormData = dashboardFormData.extra_form_data || {};
 
   Object.entries(EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS).forEach(
     ([srcKey, targetKey]) => {
       const val = extraFormData[srcKey];
       if (isDefined(val)) {
-        newFormData[targetKey] = val;
+        nativeFiltersData[targetKey] = val;
       }
     },
   );
 
   if ('time_grain_sqla' in extraFormData) {
-    newFormData.time_grain_sqla = extraFormData.time_grain_sqla;
+    nativeFiltersData.time_grain_sqla = extraFormData.time_grain_sqla;
   }
   if ('granularity_sqla' in extraFormData) {
-    newFormData.granularity_sqla = extraFormData.granularity_sqla;
+    nativeFiltersData.granularity_sqla = extraFormData.granularity_sqla;
   }
 
-  const extras = formData.extras || {};
+  const extras = dashboardFormData.extras || {};
   EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS.forEach(key => {
     const val = extraFormData[key];
     if (isDefined(val)) {
@@ -122,25 +140,52 @@ export const getFormDataFromDashboardContext = (formData: JsonObject) => {
     }
   });
   if (Object.keys(extras).length) {
-    newFormData.extras = extras;
+    nativeFiltersData.extras = extras;
   }
 
-  newFormData.adhoc_filters = [
-    ...ensureIsArray(newFormData.adhoc_filters),
-    ...ensureIsArray(extraFormData.adhoc_filters).map(filter => ({
-      ...filter,
-      isExtra: true,
-    })),
-  ];
+  nativeFiltersData.adhoc_filters = ensureIsArray(
+    extraFormData.adhoc_filters,
+  ).map(filter => ({
+    ...filter,
+    isExtra: true,
+  }));
 
   const appendFilters = ensureIsArray(extraFormData.filters).map(extraFilter =>
     simpleFilterToAdhoc({ ...extraFilter, isExtra: true }),
   );
-  Object.keys(newFormData).forEach(key => {
+  Object.keys(exploreFormData).forEach(key => {
     if (key.match(/adhoc_filter.*/)) {
-      newFormData[key] = [...newFormData[key], ...appendFilters];
+      nativeFiltersData[key] = [
+        ...ensureIsArray(nativeFiltersData[key]),
+        ...appendFilters,
+      ];
     }
   });
+  return nativeFiltersData;
+};
 
-  return newFormData;
+export const getFormDataWithDashboardContext = (
+  exploreFormData: QueryFormData,
+  dashboardContextFormData: JsonObject,
+) => {
+  const filterBoxData = mergeFilterBoxToFormData(
+    exploreFormData,
+    dashboardContextFormData,
+  );
+  const nativeFiltersData = mergeNativeFiltersToFormData(
+    exploreFormData,
+    dashboardContextFormData,
+  );
+  const adhocFilters = removeAdhocFilterDuplicates([
+    ...ensureIsArray(exploreFormData.adhoc_filters),
+    ...ensureIsArray(filterBoxData.adhoc_filters),
+    ...ensureIsArray(nativeFiltersData.adhoc_filters),
+  ]);
+  return {
+    ...exploreFormData,
+    ...dashboardContextFormData,
+    ...filterBoxData,
+    ...nativeFiltersData,
+    adhoc_filters: adhocFilters,
+  };
 };
