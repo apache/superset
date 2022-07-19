@@ -91,9 +91,11 @@ export default function CccsGrid({
   const [filters, setFilters] = useState(initialFilters);
   const [searchValue, setSearchValue] = useState('');
   const [pageSize, setPageSize] = useState<number>(page_length);
+  const [goupingEnabled, setGroupingEnabled] = useState<string>(
+    enable_grouping ? 'always' : 'never',
+  );
 
-  const gridRef = useRef<AgGridReact>(null);
-  const keyRefresh = useRef<number>(0);
+  const gridRef = useRef<AgGridReact<any>>(null);
 
   const handleChange = useCallback(
     filters => {
@@ -241,14 +243,13 @@ export default function CccsGrid({
   }
 
   const updatePageSize = (newSize: number) => {
-    gridRef.current?.props.api?.paginationSetPageSize(pageSize);
+    gridRef.current?.api?.paginationSetPageSize(newSize);
     setPageSize(newSize <= 0 ? 0 : newSize);
-    keyRefresh.current += 1;
   };
 
-  // useEffect(() => {
-  //   updatePageSize(page_length);
-  // }, [page_length]);
+  useEffect(() => {
+    updatePageSize(page_length);
+  }, [page_length]);
 
   function setSearch(e: ChangeEvent<HTMLInputElement>) {
     const target = e.target as HTMLInputElement;
@@ -262,9 +263,12 @@ export default function CccsGrid({
     }
   }, [include_search]);
 
-  // useEffect(() => {
-  //   keyRefresh.current += 1;
-  // }, [enable_grouping]);
+  useEffect(() => {
+    setGroupingEnabled(enable_grouping ? 'always' : 'never');
+    // gridRef.current?.api?.paginationSetPageSize(newSize);
+    console.log('UseEffect Happened');
+    console.log(gridRef);
+  }, [enable_grouping]);
 
   const onColumnMoved = useCallback(e => {
     setControlValue('column_state', e.columnApi.getColumnState());
@@ -334,7 +338,6 @@ export default function CccsGrid({
       </div>
       <div style={{ flex: '1 1 auto' }}>
         <AgGridReact
-          key={keyRefresh.current}
           ref={gridRef}
           modules={AllModules}
           columnDefs={columnDefs}
@@ -343,18 +346,18 @@ export default function CccsGrid({
           enableRangeSelection={true}
           allowContextMenuWithControlKey={true}
           gridOptions={gridOptions}
-          // onGridColumnsChanged={autoSizeFirst100Columns}
-          // getContextMenuItems={getContextMenuItems}
-          // onGridReady={onGridReady}
+          onGridColumnsChanged={autoSizeFirst100Columns}
+          getContextMenuItems={getContextMenuItems}
+          onGridReady={onGridReady}
           onRangeSelectionChanged={onRangeSelectionChanged}
-          // onSelectionChanged={onSelectionChanged}
+          onSelectionChanged={onSelectionChanged}
           rowData={rowData}
           paginationPageSize={pageSize}
           pagination={pageSize > 0}
           cacheQuickFilter={true}
           quickFilterText={searchValue}
-          rowGroupPanelShow={enable_grouping ? 'always' : 'never'}
-          // onColumnMoved={onColumnMoved}
+          rowGroupPanelShow={goupingEnabled}
+          onColumnMoved={onColumnMoved}
         />
       </div>
     </div>
