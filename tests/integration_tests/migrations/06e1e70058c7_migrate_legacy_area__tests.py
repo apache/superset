@@ -17,7 +17,7 @@
 import json
 
 from superset.app import SupersetApp
-from superset.utils.migrate_viz import get_migrate_class, MigrateVizEnum
+from superset.migrations.shared.migrate_viz import MigrateAreaChart
 
 area_form_data = """{
   "adhoc_filters": [],
@@ -60,21 +60,19 @@ area_form_data = """{
 }
 """
 
-area_processor = get_migrate_class[MigrateVizEnum.area]
-
 
 def test_area_migrate(app_context: SupersetApp) -> None:
     from superset.models.slice import Slice
 
     slc = Slice(
-        viz_type="area",
+        viz_type=MigrateAreaChart.source_viz_type,
         datasource_type="table",
         params=area_form_data,
         query_context=f'{{"form_data": {area_form_data}}}',
     )
 
-    slc = area_processor.upgrade(slc)
-    assert slc.viz_type == area_processor.target_viz_type
+    slc = MigrateAreaChart.upgrade_slice(slc)
+    assert slc.viz_type == MigrateAreaChart.target_viz_type
     # verify form_data
     new_form_data = json.loads(slc.params)
     assert new_form_data["contributionMode"] == "row"
@@ -89,11 +87,13 @@ def test_area_migrate(app_context: SupersetApp) -> None:
 
     # verify query_context
     new_query_context = json.loads(slc.query_context)
-    assert new_query_context["form_data"]["viz_type"] == area_processor.target_viz_type
+    assert (
+        new_query_context["form_data"]["viz_type"] == MigrateAreaChart.target_viz_type
+    )
 
     # downgrade
-    slc = area_processor.downgrade(slc)
-    assert slc.viz_type == area_processor.source_viz_type
+    slc = MigrateAreaChart.downgrade_slice(slc)
+    assert slc.viz_type == MigrateAreaChart.source_viz_type
     assert json.dumps(json.loads(slc.params), sort_keys=True) == json.dumps(
         json.loads(area_form_data), sort_keys=True
     )
