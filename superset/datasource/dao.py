@@ -62,7 +62,8 @@ class DatasourceDAO(BaseDAO):
         if not datasource:
             logger.warning(
                 "Datasource not found datasource_type: %s, datasource_id: %s",
-                 datasource_type, datasource_id
+                datasource_type,
+                datasource_id,
             )
             raise DatasourceNotFound()
 
