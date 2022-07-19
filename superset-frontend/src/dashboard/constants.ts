@@ -37,6 +37,7 @@ export const PLACEHOLDER_DATASOURCE: Dataset = {
 export const MAIN_HEADER_HEIGHT = 53;
 export const CLOSED_FILTER_BAR_WIDTH = 32;
 export const OPEN_FILTER_BAR_WIDTH = 260;
+export const OPEN_FILTER_BAR_MAX_WIDTH = 550;
 export const FILTER_BAR_HEADER_HEIGHT = 80;
 export const FILTER_BAR_TABS_HEIGHT = 46;
 export const BUILDER_SIDEPANEL_WIDTH = 374;
