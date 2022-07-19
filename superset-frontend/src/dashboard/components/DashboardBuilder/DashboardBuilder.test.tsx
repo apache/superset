@@ -126,7 +126,7 @@ describe('DashboardBuilder', () => {
   it('should render a StickyContainer with class "dashboard"', () => {
     const { getByTestId } = setup();
     const stickyContainer = getByTestId('dashboard-content');
-    expect(stickyContainer.className).toBe('dashboard');
+    expect(stickyContainer).toHaveClass('dashboard');
   });
 
   it('should add the "dashboard--editing" class if editMode=true', () => {
@@ -134,7 +134,7 @@ describe('DashboardBuilder', () => {
       dashboardState: { ...mockState.dashboardState, editMode: true },
     });
     const stickyContainer = getByTestId('dashboard-content');
-    expect(stickyContainer.className).toBe('dashboard dashboard--editing');
+    expect(stickyContainer).toHaveClass('dashboard dashboard--editing');
   });
 
   it('should render a DragDroppable DashboardHeader', () => {
@@ -151,14 +151,18 @@ describe('DashboardBuilder', () => {
     const sticky = await findAllByTestId('nav-list');
 
     expect(sticky).toHaveLength(1);
-    expect(sticky[0].getAttribute('id')).toContain('TABS_ID');
+    expect(sticky[0]).toHaveAttribute('id', 'TABS_ID');
 
     const dashboardTabComponents = within(sticky[0]).getAllByRole('tab');
     const tabChildren =
       undoableDashboardLayoutWithTabs.present.TABS_ID.children;
     expect(dashboardTabComponents).toHaveLength(tabChildren.length);
     tabChildren.forEach((tabId, i) => {
-      expect(dashboardTabComponents[i].getAttribute('id')).toContain(tabId);
+      const idMatcher = new RegExp(tabId + '$');
+      expect(dashboardTabComponents[i]).toHaveAttribute(
+        'id',
+        expect.stringMatching(idMatcher),
+      );
     });
   });
 
