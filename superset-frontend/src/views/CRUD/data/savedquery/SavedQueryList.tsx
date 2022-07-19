@@ -43,12 +43,12 @@ import ListView, {
 import Loading from 'src/components/Loading';
 import DeleteModal from 'src/components/DeleteModal';
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
-import { TagsList } from 'src/components/TagsList';
+import { TagsList } from 'src/components/Tags';
 import { Tooltip } from 'src/components/Tooltip';
 import { commonMenuData } from 'src/views/CRUD/data/common';
 import { SavedQueryObject } from 'src/views/CRUD/types';
 import copyTextToClipboard from 'src/utils/copy';
-import Tag from 'src/types/Tag';
+import Tag from 'src/types/TagType';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import ImportModelsModal from 'src/components/ImportModal/index';
 import Icons from 'src/components/Icons';

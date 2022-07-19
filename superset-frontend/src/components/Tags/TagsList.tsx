@@ -17,24 +17,17 @@
  * under the License.
  */
 
-import React from 'react';
-import { styled, SupersetTheme } from '@superset-ui/core';
-import AntdTag from 'antd/lib/tag';
-import Tag from 'src/types/Tag';
+import React, { useState } from 'react';
+import { styled, SupersetTheme, t } from '@superset-ui/core';
+import Tag from './Tag';
+import TagType from 'src/types/TagType';
+import Icons from '../Icons';
 
 export type TagsListProps = {
-  tags: Tag[];
+  tags: TagType[];
+  editable?: boolean;
+  onDelete: (index: number) => void;
 };
-
-const customTagStyler = (theme: SupersetTheme) => `
-  margin-top: ${theme.gridUnit * 1}px;
-  margin-bottom: ${theme.gridUnit * 1}px;
-  font-size: ${theme.typography.sizes.s}px;
-`;
-
-const StyledTag = styled(AntdTag)`
-  ${({ theme }) => customTagStyler(theme)}
-`;
 
 const TagsDiv = styled.div`
   max-width: 100%;
@@ -44,12 +37,36 @@ const TagsDiv = styled.div`
   -webkit-flex-wrap: wrap;
 `;
 
-export const TagsList = ({ tags }: TagsListProps) => (
-  <TagsDiv>
-    {tags.map((tag: Tag) => (
-      <StyledTag>
-        <a href={`/superset/tags/?tags=${tag.name}`}>{tag.name}</a>
-      </StyledTag>
-    ))}
-  </TagsDiv>
-);
+const EditButton = ({
+  onClick,
+} : any ) => {
+  return (
+    <div
+      role="button"
+      className="action-button"
+      onClick={onClick}
+      data-test="dashboard-card-option-edit-button"
+    >
+      <Icons.EditAlt iconSize="l" data-test="edit-alt" />
+    </div>
+  );
+}
+const TagsList = ({ 
+  tags, 
+  editable=false, 
+  onDelete=(index) => null, 
+}: TagsListProps) => {
+
+  const handleDelete = (index: number) => {
+    onDelete(index);
+  }
+  return (
+    <TagsDiv>
+      {tags.map((tag: TagType, index) => (
+        <Tag id={tag.id} name={tag.name} index={index} onDelete={handleDelete} editable={editable}/>
+      ))}
+    </TagsDiv>
+  );
+};
+
+export default TagsList;

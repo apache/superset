@@ -17,19 +17,18 @@
  * under the License.
  */
 
-import React, { useEffect, useState } from 'react';
-import ReactTags from 'react-tag-autocomplete';
-import { t, styled } from '@superset-ui/core';
-import { TagsList } from 'src/components/TagsList';
-import AntdTag from 'antd/lib/tag';
-import Tag from 'src/types/Tag';
+import React, { useCallback, useEffect, useState } from 'react';
+import { styled, SupersetClient, t } from '@superset-ui/core';
+import Tag from 'src/types/TagType';
 
 import './ObjectTags.css';
-
-interface TagComponentProps {
-  tag: Tag;
-  onDelete: (event: React.MouseEvent<HTMLButtonElement>) => void;
-}
+import { TagsList } from 'src/components/Tags';
+import Icons from '../Icons';
+import AsyncSelect from '../Select/AsyncSelect';
+import rison from 'rison';
+import { cacheWrapper } from 'src/utils/cacheWrapper';
+import { ClientErrorObject, getClientErrorObject } from 'src/utils/getClientErrorObject';
+import { SelectValue } from 'antd/lib/select';
 
 interface ObjectTagsProps {
   fetchTags: (callback: (tags: Tag[]) => void) => void;
@@ -40,15 +39,146 @@ interface ObjectTagsProps {
   onChange?: (tags: Tag[]) => void;
 }
 
+interface SelectTagsProps {
+  onSelectTag: (tag: Tag) => void;
+}
+
 const TagsDiv = styled.div`
   margin-left: ${({ theme }) => theme.gridUnit * 2}px;
+  max-width: 100%;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-flex-direction: row;
+  -webkit-flex-wrap: wrap;
 `;
 
-const TagComponent = ({ tag, onDelete }: TagComponentProps) => (
-  <AntdTag key={tag.id} closable onClose={onDelete} color="blue">
-    {tag.name}
-  </AntdTag>
+const AddTags = styled.div`
+  max-width: 100%;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-flex-direction: row;
+  -webkit-flex-wrap: wrap;
+`;
+
+const localCache = new Map<string, any>();
+
+const cachedSupersetGet = cacheWrapper(
+  SupersetClient.get,
+  localCache,
+  ({ endpoint }) => endpoint || '',
 );
+
+type SelectTagsValue = {
+  value: string | number | undefined;
+  label: string;
+};
+
+export const tagToSelectOption = (
+  item: Tag & { table_name: string },
+): SelectTagsValue => ({
+  value: item.id,
+  label: item.name,
+});
+
+const SelectTags = ({
+  onSelectTag,
+}: SelectTagsProps) => {
+
+  const [selectValue, setSelectValue] = useState<SelectValue>();
+
+  const getErrorMessage = useCallback(
+    ({ error, message }: ClientErrorObject) => {
+      let errorText = message || error || t('An error has occurred');
+      if (message === 'Forbidden') {
+        errorText = t('You do not have permission to edit this dashboard');
+      }
+      return errorText;
+    },
+    [],
+  );
+
+  const loadTags = async (
+    search: string,
+    page: number,
+    pageSize: number,
+  ) => {
+    const searchColumn = 'name';
+    const query = rison.encode({
+      filters: [{ col: searchColumn, opr: 'ct', value: search }],
+      page,
+      page_size: pageSize,
+      order_column: searchColumn,
+      order_direction: 'asc',
+    });
+    return cachedSupersetGet({
+      endpoint: `/api/v1/tag/?q=${query}`,
+      // endpoint: `/api/v1/tags/?q=${query}`,
+    })
+      .then(response => {
+        const data: {
+          label: string;
+          value: string | number;
+        }[] = response.json.result.map(tagToSelectOption);
+        return {
+          data,
+          totalCount: response.json.count,
+        };
+      })
+      .catch(async error => {
+        const errorMessage = getErrorMessage(await getClientErrorObject(error));
+        throw new Error(errorMessage);
+      });
+  };
+  
+  const onSelect = (value: { label: string; value: number }) => {
+    onSelectTag({name: value.label});
+    setSelectValue('');
+  };
+
+  const selectProps = {
+    allowClear: true,
+    allowNewOptions: true,
+    ariaLabel: 'Tags',
+    labelInValue: true,
+    options: loadTags,
+    pageSize: 10,
+    showSearch: true,
+  };
+
+  return (<AsyncSelect {...selectProps} onChange={onSelect} value={selectValue}/>);
+};
+
+const EditButton = ({
+  onClick,
+  visible=true,
+} : any ) => {
+  if(!visible) {return null}
+  return (
+    <div
+      role="button"
+      className="action-button"
+      onClick={onClick}
+      data-test="dashboard-tags-edit-button"
+    >
+      <Icons.EditAlt iconSize="l" data-test="edit-alt" />
+    </div>
+  );
+}
+
+const SaveButton = ({
+  onClick,
+} : any ) => {
+  return (
+    <div
+      role="button"
+      className="action-button"
+      onClick={onClick}
+      data-test="dashboard-tags-check-button"
+    >
+      <Icons.CheckCircleOutlined iconSize="l" />
+    </div>
+  );
+}
 
 export const ObjectTags = ({
   fetchTags,
@@ -61,6 +191,8 @@ export const ObjectTags = ({
   const [tags, setTags] = useState<Tag[]>([]);
   const [tagSuggestions, setTagSuggestions] = useState<Tag[]>([]);
   const [filteredSuggestions, setFilteredSuggestions] = useState<Tag[]>([]);
+  const [showEditButton, setShowEditButton] = useState(false);
+  const [editMode, setEditMode] = useState(false);
 
   const filterSuggestions = () => {
     setFilteredSuggestions(
@@ -72,10 +204,12 @@ export const ObjectTags = ({
 
   useEffect(() => {
     fetchTags((tags: Tag[]) => {
-      setTags(tags);
+      setTags(tags) 
     });
+    
+    
     fetchSuggestions((suggestions: Tag[]) => {
-      setTagSuggestions(suggestions);
+      suggestions && setTagSuggestions(suggestions);
     });
   }, []);
 
@@ -100,8 +234,21 @@ export const ObjectTags = ({
     onChange?.(tags);
   };
 
-  if (editable) {
-    return (
+  const toggleEditMode = () => {
+    setEditMode(!editMode);
+  }
+
+  const handleMouseOver = () => {
+    setShowEditButton(true);
+  }
+  
+  const handleMouseLeave = () => {
+    setShowEditButton(false);
+  }
+
+  return (
+    <span>
+      {/* {false ? (
       <ReactTags
         tags={tags}
         suggestions={filteredSuggestions}
@@ -112,13 +259,21 @@ export const ObjectTags = ({
         allowBackspace={false}
         allowNew
       />
-    );
-  }
-
-  return (
-    <TagsDiv>
-      <TagsList tags={tags} />
-    </TagsDiv>
+      ) : ( */}
+      <TagsDiv onMouseOver={handleMouseOver} onMouseLeave={handleMouseLeave}>
+        <TagsList tags={tags} editable={editMode} onDelete={onDelete}/>
+        {editMode ? (
+          <AddTags>
+            <SelectTags onSelectTag={onAddition}/>
+            <SaveButton onClick={toggleEditMode}/>
+          </AddTags>
+        ) : (
+            <EditButton onClick={toggleEditMode} visible={true}/>
+        )}
+      </TagsDiv>
+    {/* ) */}
+    {/* } */}
+    </span>
   );
 };
 

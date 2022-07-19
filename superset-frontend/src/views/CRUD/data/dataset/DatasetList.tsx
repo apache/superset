@@ -50,7 +50,7 @@ import SubMenu, {
 } from 'src/views/components/SubMenu';
 import { commonMenuData } from 'src/views/CRUD/data/common';
 import Owner from 'src/types/Owner';
-import Tag from 'src/types/Tag';
+import Tag from 'src/types/TagType';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
@@ -58,7 +58,7 @@ import FacePile from 'src/components/FacePile';
 import CertifiedBadge from 'src/components/CertifiedBadge';
 import InfoTooltip from 'src/components/InfoTooltip';
 import ImportModelsModal from 'src/components/ImportModal/index';
-import { TagsList } from 'src/components/TagsList';
+import { TagsList } from 'src/components/Tags';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';

@@ -183,12 +183,12 @@ export const ExploreChartHeader = ({
       objectId: chart.id,
     });
   }
-  const handleAddTag = () => {
+  const handleAddTag = (tag, callback) => {
     return addTag({
       objectType: OBJECT_TYPES.CHART,
       objectId: chart.id,
       includeTypes: false,
-    })
+    }, tag, callback);
   }
 
   const oldSliceName = slice?.slice_name;

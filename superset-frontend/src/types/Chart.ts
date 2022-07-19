@@ -23,7 +23,7 @@
 
 import { QueryFormData } from '@superset-ui/core';
 import Owner from './Owner';
-import Tag from './Tag';
+import Tag from './TagType';
 
 export interface Chart {
   id: number;

@@ -198,23 +198,27 @@ class Header extends React.PureComponent {
     this.showPropertiesModal = this.showPropertiesModal.bind(this);
     this.hidePropertiesModal = this.hidePropertiesModal.bind(this);
     this.setIsDropdownVisible = this.setIsDropdownVisible.bind(this);
-    this.fetchTags = fetchTags.bind(this, {
-      objectType: OBJECT_TYPES.DASHBOARD,
-      objectId: props.dashboardInfo.id,
-      includeTypes: false,
-    });
-    this.fetchSuggestions = fetchSuggestions.bind(this, {
-      includeTypes: false,
-    });
-    this.deleteTag = deleteTag.bind(this, {
-      objectType: OBJECT_TYPES.DASHBOARD,
-      objectId: props.dashboardInfo.id,
-    });
-    this.addTag = addTag.bind(this, {
-      objectType: OBJECT_TYPES.DASHBOARD,
-      objectId: props.dashboardInfo.id,
-      includeTypes: false,
-    });
+    // this.fetchTags = fetchTags.bind(this, {
+    //   objectType: OBJECT_TYPES.DASHBOARD,
+    //   objectId: props.dashboardInfo.id,
+    //   includeTypes: false,
+    // });
+    // this.fetchSuggestions = fetchSuggestions.bind(this, {
+    //   includeTypes: false,
+    // });
+    // this.deleteTag = deleteTag.bind(this, {
+    //   objectType: OBJECT_TYPES.DASHBOARD,
+    //   objectId: props.dashboardInfo.id,
+    // });
+    // this.addTag = addTag.bind(this, {
+    //   objectType: OBJECT_TYPES.DASHBOARD,
+    //   objectId: props.dashboardInfo.id,
+    //   includeTypes: false,
+    // });
+    this.handleFetchTags = this.handleFetchTags.bind(this);
+    this.handleFetchSuggestions = this.handleFetchSuggestions.bind(this);
+    this.handleDeleteTag = this.handleDeleteTag.bind(this);
+    this.handleAddTag = this.handleAddTag.bind(this);
   }
 
   componentDidMount() {
@@ -250,6 +254,43 @@ class Header extends React.PureComponent {
     this.props.setRefreshFrequency(0);
     clearTimeout(this.ctrlYTimeout);
     clearTimeout(this.ctrlZTimeout);
+  }
+
+  handleFetchTags(callback) {
+    if (!this.props.isLoading) {
+      fetchTags({
+        objectType: OBJECT_TYPES.DASHBOARD,
+        objectId: this.props.dashboardInfo.id,
+        includeTypes: false,
+      }, callback);
+    }
+  }
+
+  handleFetchSuggestions(callback){
+    if (!this.props.isLoading) {
+      fetchSuggestions({
+        includeTypes: false,
+      }, callback);
+    }
+  }
+
+  handleDeleteTag(tag, callback){
+    if (!this.props.isLoading) {
+      deleteTag({
+        objectType: OBJECT_TYPES.DASHBOARD,
+        objectId: this.props.dashboardInfo.id,
+      }, tag, callback);
+    }
+  }
+
+  handleAddTag(tag, callback){
+    if (!this.props.isLoading) {
+      addTag({
+        objectType: OBJECT_TYPES.DASHBOARD,
+        objectId: this.props.dashboardInfo.id,
+        includeTypes: false,
+      }, tag, callback);
+    }
   }
 
   handleChangeText(nextText) {
@@ -547,10 +588,10 @@ class Header extends React.PureComponent {
               />,
               isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM) ? (
                 <ObjectTags
-                  fetchTags={this.fetchTags}
-                  fetchSuggestions={this.fetchSuggestions}
-                  deleteTag={this.deleteTag}
-                  addTag={this.addTag}
+                  fetchTags={this.handleFetchTags}
+                  fetchSuggestions={this.handleFetchSuggestions}
+                  deleteTag={this.handleDeleteTag}
+                  addTag={this.handleAddTag}
                   editable={dashboardInfo.dash_edit_perm}
                 />
               ) : null

@@ -18,7 +18,7 @@
  */
 import React, { useEffect, useState } from 'react';
 import { styled } from '@superset-ui/core';
-import Tag from 'src/types/Tag';
+import Tag from 'src/types/TagType';
 import { StringParam, useQueryParam } from 'use-query-params';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import SelectControl from 'src/explore/components/controls/SelectControl';

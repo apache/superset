@@ -17,7 +17,7 @@
  * under the License.
  */
 import { JsonObject, SupersetClient } from '@superset-ui/core';
-import Tag from 'src/types/Tag';
+import Tag from 'src/types/TagType';
 
 export const OBJECT_TYPES = Object.freeze({
   DASHBOARD: 'dashboard',

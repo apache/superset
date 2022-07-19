@@ -17,10 +17,5 @@
  * under the License.
  */
 
-export interface Tag {
-  id: string | number;
-  type?: string | number;
-  name: string;
-}
-
-export default Tag;
+export { default as TagsList } from './TagsList';
+export { default as Tag } from './Tag';
