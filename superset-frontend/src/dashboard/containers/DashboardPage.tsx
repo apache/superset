@@ -95,6 +95,9 @@ const getDashboardContextLocalStorage = () => {
     LocalStorageKeys.dashboard__explore_context,
     {},
   );
+  // A new dashboard tab id is generated on each dashboard page opening.
+  // We mark ids as redundant when user leaves the dashboard, because they won't be reused.
+  // Then we remove redundant dashboard contexts from local storage in order not to clutter it
   return Object.fromEntries(
     Object.entries(dashboardsContexts).filter(
       ([, value]) => !value.isRedundant,
@@ -153,6 +156,8 @@ const useSyncDashboardStateWithLocalStorage = () => {
     };
     updateDashboardTabLocalStorage(dashboardTabId, payload);
     return () => {
+      // mark tab id as redundant when dashboard unmounts - case when user opens
+      // Explore in the same tab
       updateDashboardTabLocalStorage(dashboardTabId, {
         ...payload,
         isRedundant: true,
@@ -205,6 +210,8 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   );
 
   useEffect(() => {
+    // mark tab id as redundant when user closes browser tab - a new id will be
+    // generated next time user opens a dashboard and the old one won't be reused
     const handleTabClose = () => {
       const dashboardsContexts = getDashboardContextLocalStorage();
       setItem(LocalStorageKeys.dashboard__explore_context, {
