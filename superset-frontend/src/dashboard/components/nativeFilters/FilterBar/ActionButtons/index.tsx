@@ -86,7 +86,7 @@ const ActionButtonsContainer = styled.div<{ width: number }>`
 `;
 
 export const ActionButtons = ({
-  width,
+  width = OPEN_FILTER_BAR_WIDTH,
   onApply,
   onClearAll,
   dataMaskApplied,
@@ -105,10 +105,7 @@ export const ActionButtons = ({
   );
 
   return (
-    <ActionButtonsContainer
-      data-test="filterbar-action-buttons"
-      width={width || OPEN_FILTER_BAR_WIDTH}
-    >
+    <ActionButtonsContainer data-test="filterbar-action-buttons" width={width}>
       <Button
         disabled={isApplyDisabled}
         buttonStyle="primary"
