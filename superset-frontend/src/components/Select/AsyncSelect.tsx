@@ -55,7 +55,6 @@ type PickedSelectProps = Pick<
   | 'autoFocus'
   | 'disabled'
   | 'filterOption'
-  | 'labelInValue'
   | 'loading'
   | 'notFoundContent'
   | 'onChange'
@@ -298,7 +297,6 @@ const AsyncSelect = (
     filterOption = true,
     header = null,
     invertSelection = false,
-    labelInValue = true,
     lazyLoading = true,
     loading,
     mode = 'single',
@@ -322,7 +320,6 @@ const AsyncSelect = (
   ref: RefObject<AsyncSelectRef>,
 ) => {
   const isSingleMode = mode === 'single';
-  const shouldShowSearch = allowNewOptions ? true : showSearch;
   const [selectValue, setSelectValue] = useState(value);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(loading);
@@ -620,7 +617,7 @@ const AsyncSelect = (
     if (isLoading) {
       return <StyledSpin size="small" />;
     }
-    if (shouldShowSearch && isDropdownVisible) {
+    if (showSearch && isDropdownVisible) {
       return <SearchOutlined />;
     }
     return <DownOutlined />;
@@ -692,20 +689,20 @@ const AsyncSelect = (
         getPopupContainer={
           getPopupContainer || (triggerNode => triggerNode.parentNode)
         }
-        labelInValue={labelInValue}
+        labelInValue
         maxTagCount={MAX_TAG_COUNT}
         mode={mappedMode}
         notFoundContent={isLoading ? t('Loading...') : notFoundContent}
         onDeselect={handleOnDeselect}
         onDropdownVisibleChange={handleOnDropdownVisibleChange}
         onPopupScroll={handlePagination}
-        onSearch={shouldShowSearch ? handleOnSearch : undefined}
+        onSearch={showSearch ? handleOnSearch : undefined}
         onSelect={handleOnSelect}
         onClear={handleClear}
         onChange={onChange}
         options={hasCustomLabels ? undefined : fullSelectOptions}
         placeholder={placeholder}
-        showSearch={shouldShowSearch}
+        showSearch
         showArrow
         tokenSeparators={tokenSeparators || TOKEN_SEPARATORS}
         value={selectValue}
