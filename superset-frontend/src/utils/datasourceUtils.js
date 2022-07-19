@@ -16,27 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Dataset } from '@superset-ui/chart-controls';
-import { getDatasourceUid } from 'src/utils/getDatasourceUid';
-import {
-  AnyDatasourcesAction,
-  SET_DATASOURCE,
-} from '../actions/datasourcesActions';
-import { HYDRATE_EXPLORE, HydrateExplore } from '../actions/hydrateExplore';
-
-export default function datasourcesReducer(
-  // TODO: change type to include other datasource types
-  datasources: { [key: string]: Dataset },
-  action: AnyDatasourcesAction | HydrateExplore,
-) {
-  if (action.type === SET_DATASOURCE) {
-    return {
-      ...datasources,
-      [getDatasourceUid(action.datasource)]: action.datasource,
-    };
-  }
-  if (action.type === HYDRATE_EXPLORE) {
-    return { ...(action as HydrateExplore).data.datasources };
-  }
-  return datasources || {};
-}
+export const getDatasourceAsSaveableDataset = source => ({
+  columns: source.columns,
+  name: source?.datasource_name || 'Untitled',
+  dbId: source.database.id,
+  sql: source?.sql || '',
+  schema: source?.schema,
+});

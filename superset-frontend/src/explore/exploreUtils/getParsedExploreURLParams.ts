@@ -17,6 +17,11 @@
  * under the License.
  */
 
+export interface Location {
+  search: string;
+  pathname: string;
+}
+
 // mapping { url_param: v1_explore_request_param }
 const EXPLORE_URL_SEARCH_PARAMS = {
   form_data: {
@@ -70,8 +75,8 @@ const EXPLORE_URL_PATH_PARAMS = {
 
 // search params can be placed in form_data object
 // we need to "flatten" the search params to use them with /v1/explore endpoint
-const getParsedExploreURLSearchParams = () => {
-  const urlSearchParams = new URLSearchParams(window.location.search);
+const getParsedExploreURLSearchParams = (search: string) => {
+  const urlSearchParams = new URLSearchParams(search);
   return Object.keys(EXPLORE_URL_SEARCH_PARAMS).reduce((acc, currentParam) => {
     const paramValue = urlSearchParams.get(currentParam);
     if (paramValue === null) {
@@ -96,21 +101,23 @@ const getParsedExploreURLSearchParams = () => {
 };
 
 // path params need to be transformed to search params to use them with /v1/explore endpoint
-const getParsedExploreURLPathParams = () =>
+const getParsedExploreURLPathParams = (pathname: string) =>
   Object.keys(EXPLORE_URL_PATH_PARAMS).reduce((acc, currentParam) => {
     const re = new RegExp(`/(${currentParam})/(\\w+)`);
-    const pathGroups = window.location.pathname.match(re);
+    const pathGroups = pathname.match(re);
     if (pathGroups && pathGroups[2]) {
       return { ...acc, [EXPLORE_URL_PATH_PARAMS[currentParam]]: pathGroups[2] };
     }
     return acc;
   }, {});
 
-export const getParsedExploreURLParams = () =>
+export const getParsedExploreURLParams = (
+  location: Location = window.location,
+) =>
   new URLSearchParams(
     Object.entries({
-      ...getParsedExploreURLSearchParams(),
-      ...getParsedExploreURLPathParams(),
+      ...getParsedExploreURLSearchParams(location.search),
+      ...getParsedExploreURLPathParams(location.pathname),
     })
       .map(entry => entry.join('='))
       .join('&'),

@@ -21,7 +21,6 @@ import { Metric } from './Metric';
 
 export enum DatasourceType {
   Table = 'table',
-  Druid = 'druid',
   Query = 'query',
   Dataset = 'dataset',
   SlTable = 'sl_table',
@@ -47,11 +46,14 @@ export interface Datasource {
   };
 }
 
-export const DEFAULT_METRICS = [
+export const DEFAULT_METRICS: Metric[] = [
   {
     metric_name: 'COUNT(*)',
     expression: 'COUNT(*)',
   },
 ];
+
+export const isValidDatasourceType = (datasource: DatasourceType) =>
+  Object.values(DatasourceType).includes(datasource);
 
 export default {};

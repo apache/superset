@@ -19,7 +19,7 @@ from typing import Any, Dict, Generator
 
 import pytest
 from sqlalchemy import Column, create_engine, Date, Integer, MetaData, String, Table
-from sqlalchemy.ext.declarative.api import declarative_base
+from sqlalchemy.ext.declarative import declarative_base
 
 from superset.columns.models import Column as Sl_Column
 from superset.connectors.sqla.models import SqlaTable, TableColumn
