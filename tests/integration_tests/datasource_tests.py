@@ -419,26 +419,6 @@ class TestDatasource(SupersetTestCase):
         resp = self.get_json_resp("/datasource/get/druid/500000/", raise_on_error=False)
         self.assertEqual(resp.get("error"), "'druid' is not a valid DatasourceType")
 
-    @pytest.fixture()
-    def create_datasets(self):
-        with self.create_app().app_context():
-            if backend() == "sqlite":
-                yield
-                return
-
-            datasets = []
-            admin = self.get_user("admin")
-            main_db = get_main_database()
-            for tables_name in self.fixture_tables_names:
-                datasets.append(self.insert_dataset(tables_name, [admin.id], main_db))
-
-            yield datasets
-
-            # rollback changes
-            for dataset in datasets:
-                db.session.delete(dataset)
-            db.session.commit()
-
     def test_get_dataset_samples(self):
         """
         Dataset API: Test get dataset samples
