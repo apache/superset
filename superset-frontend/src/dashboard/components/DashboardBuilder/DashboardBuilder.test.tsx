@@ -20,7 +20,7 @@ import { Store } from 'redux';
 import React from 'react';
 import fetchMock from 'fetch-mock';
 import { render } from 'spec/helpers/testing-library';
-import { fireEvent, within } from '@testing-library/dom';
+import { fireEvent, within } from '@testing-library/react';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import DashboardBuilder from 'src/dashboard/components/DashboardBuilder/DashboardBuilder';
 import useStoredFilterBarWidth from 'src/dashboard/components/DashboardBuilder/useStoredFilterBarWidth';
