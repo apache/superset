@@ -183,7 +183,7 @@ cypress-run-all() {
   nohup flask run --no-debugger -p $port >"$flasklog" 2>&1 </dev/null &
   local flaskProcessId=$!
 
-  cypress-run "*/**/!(*.applitools.test.ts)"
+  cypress-run "*/**/*"
 
   # After job is done, print out Flask log for debugging
   say "::group::Flask log for default run"
@@ -198,7 +198,7 @@ cypress-run-all() {
   nohup flask run --no-debugger -p $port >"$flasklog" 2>&1 </dev/null &
   local flaskProcessId=$!
 
-  cypress-run "sqllab/!(*.applitools.test.ts)" "Backend persist"
+  cypress-run "sqllab/*" "Backend persist"
 
   # Upload code coverage separately so each page can have separate flags
   # -c will clean existing coverage reports, -F means add flags
