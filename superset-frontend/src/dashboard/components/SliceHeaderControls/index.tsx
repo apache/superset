@@ -16,11 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { MouseEvent, Key } from 'react';
+import React, {
+  MouseEvent,
+  Key,
+  ReactChild,
+  useState,
+  useCallback,
+} from 'react';
 import moment from 'moment';
 import {
   Behavior,
   css,
+  Datasource,
   getChartMetadataRegistry,
   QueryFormData,
   styled,
@@ -39,6 +46,8 @@ import ModalTrigger from 'src/components/ModalTrigger';
 import Button from 'src/components/Button';
 import ViewQueryModal from 'src/explore/components/controls/ViewQueryModal';
 import { ResultsPaneOnDashboard } from 'src/explore/components/DataTablesPane';
+import Modal from 'src/components/Modal';
+import DatasourceResultsPane from '../DatasourceResultsPane';
 
 const MENU_KEYS = {
   CROSS_FILTER_SCOPING: 'cross_filter_scoping',
@@ -51,6 +60,7 @@ const MENU_KEYS = {
   TOGGLE_CHART_DESCRIPTION: 'toggle_chart_description',
   VIEW_QUERY: 'view_query',
   VIEW_RESULTS: 'view_results',
+  DRILL_TO_DETAIL: 'drill_to_detail',
 };
 
 const VerticalDotsContainer = styled.div`
@@ -124,6 +134,8 @@ export interface SliceHeaderControlsProps {
   supersetCanShare?: boolean;
   supersetCanCSV?: boolean;
   sliceCanEdit?: boolean;
+
+  datasource: Datasource;
 }
 interface State {
   showControls: boolean;
@@ -136,6 +148,66 @@ const dropdownIconsStyles = css`
     vertical-align: 0;
   }
 `;
+
+const DashboardChartModalTrigger = ({
+  onExploreChart,
+  triggerNode,
+  modalTitle,
+  modalBody,
+}: {
+  onExploreChart: (event: MouseEvent) => void;
+  triggerNode: ReactChild;
+  modalTitle: ReactChild;
+  modalBody: ReactChild;
+}) => {
+  const [showModal, setShowModal] = useState(false);
+  const openModal = useCallback(() => setShowModal(true), []);
+  const closeModal = useCallback(() => setShowModal(false), []);
+
+  return (
+    <>
+      <span
+        data-test="span-modal-trigger"
+        onClick={openModal}
+        role="button"
+        tabIndex={0}
+      >
+        {triggerNode}
+      </span>
+      {(() => (
+        <Modal
+          show={showModal}
+          onHide={closeModal}
+          title={modalTitle}
+          footer={
+            <>
+              <Button
+                buttonStyle="secondary"
+                buttonSize="small"
+                onClick={onExploreChart}
+              >
+                {t('Edit chart')}
+              </Button>
+              <Button
+                buttonStyle="primary"
+                buttonSize="small"
+                onClick={closeModal}
+              >
+                {t('Close')}
+              </Button>
+            </>
+          }
+          responsive
+          resizable
+          draggable
+          destroyOnClose
+        >
+          {modalBody}
+        </Modal>
+      ))()}
+    </>
+  );
+};
 
 class SliceHeaderControls extends React.PureComponent<
   SliceHeaderControlsProps,
@@ -335,7 +407,8 @@ class SliceHeaderControls extends React.PureComponent<
 
         {this.props.supersetCanExplore && (
           <Menu.Item key={MENU_KEYS.VIEW_RESULTS}>
-            <ModalTrigger
+            <DashboardChartModalTrigger
+              onExploreChart={this.props.onExploreChart}
               triggerNode={
                 <span data-test="view-query-menu-item">
                   {t('View as table')}
@@ -351,18 +424,23 @@ class SliceHeaderControls extends React.PureComponent<
                   isVisible
                 />
               }
-              modalFooter={
-                <Button
-                  buttonStyle="secondary"
-                  buttonSize="small"
-                  onClick={this.props.onExploreChart}
-                >
-                  {t('Edit chart')}
-                </Button>
+            />
+          </Menu.Item>
+        )}
+
+        {this.props.supersetCanExplore && (
+          <Menu.Item key={MENU_KEYS.DRILL_TO_DETAIL}>
+            <DashboardChartModalTrigger
+              onExploreChart={this.props.onExploreChart}
+              triggerNode={
+                <span data-test="view-query-menu-item">
+                  {t('Drill to detail')}
+                </span>
               }
-              draggable
-              resizable
-              responsive
+              modalTitle={t('Drill to detail: %s', slice.slice_name)}
+              modalBody={
+                <DatasourceResultsPane datasource={this.props.datasource} />
+              }
             />
           </Menu.Item>
         )}

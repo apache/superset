@@ -603,8 +603,13 @@ export const getDatasourceSamples = async (
   datasourceId,
   force,
   jsonPayload,
+  pagination,
 ) => {
-  const endpoint = `/datasource/samples?force=${force}&datasource_type=${datasourceType}&datasource_id=${datasourceId}`;
+  let endpoint = `/datasource/samples?force=${force}&datasource_type=${datasourceType}&datasource_id=${datasourceId}`;
+  if (pagination) {
+    endpoint += `&page=${pagination.page}&per_page=${pagination.perPage}`;
+  }
+
   try {
     const response = await SupersetClient.post({ endpoint, jsonPayload });
     return response.json.result;

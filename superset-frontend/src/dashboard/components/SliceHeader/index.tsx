@@ -94,6 +94,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
   formData,
   width,
   height,
+  datasource,
 }) => {
   const dispatch = useDispatch();
   const uiConfig = useUiConfig();
@@ -222,6 +223,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
                 isDescriptionExpanded={isExpanded}
                 chartStatus={chartStatus}
                 formData={formData}
+                datasource={datasource}
               />
             )}
           </>

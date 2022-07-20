@@ -399,4 +399,8 @@ export enum ContributionType {
   Column = 'column',
 }
 
+export type DatasourceSamplesQuery = {
+  filters?: QueryObjectFilterClause[];
+};
+
 export default {};
