@@ -75,10 +75,7 @@ export function fetchSlices(
         'url',
         'viz_type',
       ],
-      filters: [
-        { col: 'owners', opr: 'rel_m_m', value: userId },
-        ...additional_filters,
-      ],
+      filters: [...additional_filters],
       page_size: FETCH_SLICES_PAGE_SIZE,
       order_column:
         sortColumn === 'changed_on' ? 'changed_on_delta_humanized' : sortColumn,
