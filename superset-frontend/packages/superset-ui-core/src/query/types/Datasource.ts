@@ -53,7 +53,4 @@ export const DEFAULT_METRICS: Metric[] = [
   },
 ];
 
-export const isValidDatasourceType = (datasource: DatasourceType) =>
-  Object.values(DatasourceType).includes(datasource);
-
 export default {};
