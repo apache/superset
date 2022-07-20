@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
+ import React, {
   FunctionComponent,
   useState,
   ReactNode,
@@ -47,22 +47,18 @@ const TableSelectorWrapper = styled.div`
       margin-left: ${theme.gridUnit}px;
       margin-top: ${theme.gridUnit * 5}px;
     }
-
     .section {
       display: flex;
       flex-direction: row;
       align-items: center;
     }
-
     .divider {
       border-bottom: 1px solid ${theme.colors.secondary.light5};
       margin: 15px 0;
     }
-
     .table-length {
       color: ${theme.colors.grayscale.light1};
     }
-
     .select {
       flex: 1;
     }
@@ -73,7 +69,6 @@ const TableLabel = styled.span`
   align-items: center;
   display: flex;
   white-space: nowrap;
-
   svg,
   small {
     margin-right: ${({ theme }) => theme.gridUnit}px;
@@ -190,8 +185,6 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   const [previousRefresh, setPreviousRefresh] = useState(0);
   const [loadingTables, setLoadingTables] = useState(false);
   const { addSuccessToast } = useToasts();
-
-
 
   const shouldLoadTables = (database: DatabaseObject | undefined) =>
     database?.has_catalogs
