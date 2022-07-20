@@ -66,6 +66,7 @@ from superset import app, is_feature_enabled, security_manager
 from superset.advanced_data_type.types import AdvancedDataTypeResponse
 from superset.common.db_query_status import QueryStatus
 from superset.constants import EMPTY_STRING, NULL_STRING
+from superset.db_engine_specs.base import TimestampExpression
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     AdvancedDataTypeResponseError,
@@ -1221,6 +1222,31 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         df = pd.read_sql_query(sql=sql, con=engine)
         return df[column_name].to_list()
 
+    def get_timestamp_expression(
+        self,
+        column: Dict[str, Any],
+        time_grain: Optional[str],
+        label: Optional[str] = None,
+        template_processor: Optional[BaseTemplateProcessor] = None,
+    ) -> Union[TimestampExpression, Label]:
+        """
+        Return a SQLAlchemy Core element representation of self to be used in a query.
+
+        :param time_grain: Optional time grain, e.g. P1Y
+        :param label: alias/label that column is expected to have
+        :param template_processor: template processor
+        :return: A TimeExpression object wrapped in a Label if supported by db
+        """
+        label = label or utils.DTTM_ALIAS
+
+        pdf = None
+        is_epoch = pdf in ("epoch_s", "epoch_ms")
+        column_spec = self.db_engine_spec.get_column_spec(column.get("type"))
+        type_ = column_spec.sqla_type if column_spec else sa.DateTime
+        col = sa.column(column.get("column_name"), type_=type_)
+        time_expr = self.db_engine_spec.get_timestamp_expr(col, pdf, time_grain)
+        return self.make_sqla_column_compatible(time_expr, label)
+
     def get_sqla_query(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branches,too-many-statements
         self,
         apply_fetch_values_predicate: bool = False,
@@ -1442,9 +1468,14 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             time_filters: List[Any] = []
 
             if is_timeseries:
-                timestamp = dttm_col.get_timestamp_expression(
-                    time_grain=time_grain, template_processor=template_processor
-                )
+                if isinstance(dttm_col, dict):
+                    timestamp = self.get_timestamp_expression(
+                        dttm_col, time_grain, template_processor
+                    )
+                else:
+                    timestamp = dttm_col.get_timestamp_expression(
+                        time_grain=time_grain, template_processor=template_processor
+                    )
                 # always put timestamp as the first column
                 select_exprs.insert(0, timestamp)
                 groupby_all_columns[timestamp.name] = timestamp
