@@ -22,6 +22,8 @@ import React, {
   useMemo,
   forwardRef,
   useImperativeHandle,
+  useLayoutEffect,
+  useCallback,
 } from 'react';
 import { styled } from '@superset-ui/core';
 import { ECharts, init } from 'echarts';
@@ -92,10 +94,23 @@ function Echart(
     previousSelection.current = currentSelection;
   }, [currentSelection]);
 
-  // Ensure that each render and resize is idempotent
-  if (chartRef.current) {
-    chartRef.current.resize({ width, height });
-  }
+  const handleSizeChange = useCallback(
+    ({ width, height }: { width: number; height: number }) => {
+      if (chartRef.current) {
+        chartRef.current.resize({ width, height });
+      }
+    },
+    [],
+  );
+
+  // did mount
+  useEffect(() => {
+    handleSizeChange({ width, height });
+  }, []);
+
+  useLayoutEffect(() => {
+    handleSizeChange({ width, height });
+  }, [width, height, handleSizeChange]);
 
   return <Styles ref={divRef} height={height} width={width} />;
 }
