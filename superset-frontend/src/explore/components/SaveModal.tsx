@@ -21,7 +21,13 @@ import React from 'react';
 import { Input } from 'src/components/Input';
 import { Form, FormItem } from 'src/components/Form';
 import Alert from 'src/components/Alert';
-import { t, styled } from '@superset-ui/core';
+import {
+  JsonObject,
+  t,
+  styled,
+  SupersetClient,
+  Query,
+} from '@superset-ui/core';
 import ReactMarkdown from 'react-markdown';
 import Modal from 'src/components/Modal';
 import { Radio } from 'src/components/Radio';
@@ -30,6 +36,9 @@ import { Select } from 'src/components';
 import { SelectValue } from 'antd/lib/select';
 import { connect } from 'react-redux';
 import { withRouter, RouteComponentProps } from 'react-router-dom';
+import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
+import { LocalStorageKeys, setItem } from 'src/utils/localStorageHelpers';
+import { exploreChart } from '../exploreUtils';
 
 // Session storage key for recent dashboard
 const SK_DASHBOARD_ID = 'save_chart_recent_dashboard';
@@ -55,6 +64,7 @@ type SaveModalState = {
   saveToDashboardId: number | string | null;
   newSliceName?: string;
   newDashboardName?: string;
+  datasetName: '';
   alert: string | null;
   action: ActionType;
 };
@@ -62,6 +72,11 @@ type SaveModalState = {
 export const StyledModal = styled(Modal)`
   .ant-modal-body {
     overflow: visible;
+  }
+  i {
+    position: absolute;
+    top: -21px;
+    left: 107px;
   }
 `;
 
@@ -71,6 +86,7 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
     this.state = {
       saveToDashboardId: null,
       newSliceName: props.sliceName,
+      datasetName: '',
       alert: null,
       action: this.canOverwriteSlice() ? 'overwrite' : 'saveas',
     };
@@ -115,6 +131,11 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
     });
   }
 
+  handleDatasetNameChange = (e: React.FormEvent<HTMLInputElement>) => {
+    // @ts-expect-error
+    this.setState({ datasetName: e.target.value });
+  };
+
   onSliceNameChange(event: React.ChangeEvent<HTMLInputElement>) {
     this.setState({ newSliceName: event.target.value });
   }
@@ -144,6 +165,39 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
       url: string;
       dashboard_title: string;
     };
+
+    if (this.props.datasource?.type === 'query') {
+      const { schema, sql, database } = this.props.datasource;
+      const { templateParams } = this.props.datasource;
+      const selectedColumns =
+        this.props.datasource?.results?.selected_columns || [];
+      SupersetClient.post({
+        endpoint: '/superset/sqllab_viz/',
+        postPayload: {
+          data: {
+            schema,
+            sql,
+            dbId: database?.id,
+            templateParams,
+            datasourceName: this.state.datasetName,
+            columns: selectedColumns,
+          },
+        },
+      })
+        .then(({ json }) => json)
+        .then((data: { table_id: number }) => {
+          exploreChart({
+            datasource: `${data.table_id}__table`,
+            metrics: [],
+            groupby: [],
+            time_range: 'No filter',
+            viz_type: 'table',
+            all_columns: selectedColumns.map((c: { name: string }) => c.name),
+            row_limit: 1000,
+          });
+          setItem(LocalStorageKeys.datasetname_set_successful, true);
+        });
+    }
 
     let dashboard: DashboardGetResponse | null = null;
     if (this.state.newDashboardName || this.state.saveToDashboardId) {
@@ -327,6 +381,22 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
               data-test="new-chart-name"
             />
           </FormItem>
+          {this.props.datasource?.type === 'query' ? (
+            <FormItem label={t('Dataset Name')} required>
+              <InfoTooltipWithTrigger
+                tooltip={t('A reusable dataset will be saved with your chart.')}
+                placement="right"
+              />
+          <Input
+                name="dataset_name"
+                type="text"
+                placeholder="Dataset Name"
+                value={this.state.datasetName}
+                onChange={this.handleDatasetNameChange}
+                data-test="new-dataset-name"
+              />{' '}
+             </FormItem>
+          ) : null}
           <FormItem
             label={t('Add to dashboard')}
             data-test="save-chart-modal-select-dashboard-form"

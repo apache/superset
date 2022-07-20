@@ -56,6 +56,7 @@ import { getFormDataFromControls } from 'src/explore/controlUtils';
 import * as exploreActions from 'src/explore/actions/exploreActions';
 import * as saveModalActions from 'src/explore/actions/saveModalActions';
 import { useTabId } from 'src/hooks/useTabId';
+import withToasts from 'src/components/MessageToasts/withToasts';
 import ExploreChartPanel from '../ExploreChartPanel';
 import ConnectedControlPanelsContainer from '../ControlPanelsContainer';
 import SaveModal from '../SaveModal';
@@ -386,6 +387,11 @@ function ExploreViewContainer(props) {
     );
     if (!hasError) {
       props.actions.triggerQuery(true, props.chart.id);
+    }
+    const toShowToast = getItem(LocalStorageKeys.datasetname_set_successful);
+    if (toShowToast) {
+      props.addSuccessToast('Chart saved');
+      setItem(LocalStorageKeys.datasetname_set_successful, false);
     }
   }, []);
 
@@ -767,4 +773,4 @@ function mapDispatchToProps(dispatch) {
 export default connect(
   mapStateToProps,
   mapDispatchToProps,
-)(ExploreViewContainer);
+)(withToasts(ExploreViewContainer));
