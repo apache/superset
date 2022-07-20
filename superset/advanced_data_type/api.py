@@ -159,7 +159,7 @@ class AdvancedDataTypeRestApi(BaseApi):
         log_to_statsd=False,  # pylint: disable-arguments-renamed
     )
     @rison(advanced_data_type_datasets_schema)
-    def get_datasets(self, **kwargs: Any):
+    def get_datasets(self, **kwargs: Any) -> Response:
         """Get all datasets with a column of the specified advanced type
         ---
         get:
