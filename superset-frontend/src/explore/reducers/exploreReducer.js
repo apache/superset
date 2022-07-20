@@ -50,19 +50,6 @@ export default function exploreReducer(state = {}, action) {
         isDatasourceMetaLoading: true,
       };
     },
-    [actions.SAVE_DATASOURCE]() {
-      return {
-        ...state,
-        datasource: action.datasource,
-        controls: {
-          ...state.controls,
-          datasource: {
-            ...state.controls.datasource,
-            datasource: action.datasource,
-          },
-        },
-      };
-    },
     [actions.UPDATE_FORM_DATA_BY_DATASOURCE]() {
       const newFormData = { ...state.form_data };
       const { prevDatasource, newDatasource } = action;

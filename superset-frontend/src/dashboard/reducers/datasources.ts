@@ -1,6 +1,3 @@
-/* eslint-disable import/prefer-default-export */
-import { DatasourceType } from '@superset-ui/core';
-import { Datasource } from 'src/dashboard/types';
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -19,25 +16,28 @@ import { Datasource } from 'src/dashboard/types';
  * specific language governing permissions and limitations
  * under the License.
  */
-export const PLACEHOLDER_DATASOURCE: Datasource = {
-  id: 0,
-  type: DatasourceType.Table,
-  uid: '_placeholder_',
-  datasource_name: '',
-  table_name: '',
-  columns: [],
-  column_types: [],
-  metrics: [],
-  column_format: {},
-  verbose_map: {},
-  main_dttm_col: '',
-  description: '',
-};
+import { keyBy } from 'lodash';
+import { DatasourcesState } from 'src/dashboard/types';
+import {
+  DatasourcesActionPayload,
+  DatasourcesAction,
+} from '../actions/datasources';
 
-export const MAIN_HEADER_HEIGHT = 53;
-export const CLOSED_FILTER_BAR_WIDTH = 32;
-export const OPEN_FILTER_BAR_WIDTH = 260;
-export const OPEN_FILTER_BAR_MAX_WIDTH = 550;
-export const FILTER_BAR_HEADER_HEIGHT = 80;
-export const FILTER_BAR_TABS_HEIGHT = 46;
-export const BUILDER_SIDEPANEL_WIDTH = 374;
+export default function datasourcesReducer(
+  datasources: DatasourcesState | undefined,
+  action: DatasourcesActionPayload,
+) {
+  if (action.type === DatasourcesAction.SET_DATASOURCES) {
+    return {
+      ...datasources,
+      ...keyBy(action.datasources, 'uid'),
+    };
+  }
+  if (action.type === DatasourcesAction.SET_DATASOURCE) {
+    return {
+      ...datasources,
+      [action.key]: action.datasource,
+    };
+  }
+  return datasources || {};
+}
