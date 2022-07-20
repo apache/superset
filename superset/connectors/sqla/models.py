@@ -920,6 +920,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             data_["is_sqllab_view"] = self.is_sqllab_view
             data_["health_check_message"] = self.health_check_message
             data_["extra"] = self.extra
+            data_["owners"] = self.owners_data
         return data_
 
     @property
