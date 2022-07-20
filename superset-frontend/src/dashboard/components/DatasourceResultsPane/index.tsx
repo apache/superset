@@ -30,7 +30,6 @@ import {
   ensureIsArray,
   GenericDataType,
   QueryObjectFilterClause,
-  styled,
   t,
   useTheme,
 } from '@superset-ui/core';
@@ -40,10 +39,6 @@ import TableView, { EmptyWrapperType } from 'src/components/TableView';
 import { useTableColumns } from 'src/explore/components/DataTableControl';
 import { getDatasourceSamples } from 'src/components/Chart/chartAction';
 import DatasourceFilterBar from './DatasourceFilterBar';
-
-const Error = styled.pre`
-  margin-top: ${({ theme }) => `${theme.gridUnit * 4}px`};
-`;
 
 const PAGE_SIZE = 50;
 
@@ -140,7 +135,15 @@ export default function DatasourceResultsPane({
   }
 
   if (responseError) {
-    return <Error>{responseError}</Error>;
+    return (
+      <pre
+        css={css`
+          margin-top: ${theme.gridUnit * 4}px;
+        `}
+      >
+        {responseError}
+      </pre>
+    );
   }
 
   if (!results || results.total === 0) {
