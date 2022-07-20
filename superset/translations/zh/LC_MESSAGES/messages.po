@@ -2140,7 +2140,7 @@ msgstr "csv 文件 \"%(csv_filename)s\" 上传到数据库 \"%(db_name)s\" 中�
 
 #: superset/views/database/views.py:118
 msgid "CSV to Database configuration"
-msgstr "csv 到数据库配置"
+msgstr "CSV到数据库配置"
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseList.tsx:271
 msgid "CSV upload"
@@ -2373,7 +2373,6 @@ msgstr "认证细节"
 
 #: superset-frontend/src/views/CRUD/chart/ChartList.tsx:530
 #: superset-frontend/src/views/CRUD/dashboard/DashboardList.tsx:504
-#, fuzzy
 msgid "Certified"
 msgstr "认证"
 
@@ -3085,7 +3084,7 @@ msgstr ""
 #: superset/views/database/views.py:414
 #, fuzzy
 msgid "Columnar to Database configuration"
-msgstr "Excel 到数据库配置"
+msgstr "列到数据库配置"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/dndControls.tsx:55
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/index.tsx:214
@@ -5431,7 +5430,7 @@ msgstr ""
 
 #: superset/views/database/views.py:268
 msgid "Excel to Database configuration"
-msgstr "Excel 到数据库配置"
+msgstr "Excel到数据库配置"
 
 #: superset-frontend/src/filters/components/Select/controlPanel.ts:126
 #, fuzzy
@@ -6590,7 +6589,6 @@ msgid "Is Hidden"
 msgstr "隐藏"
 
 #: superset/charts/filters.py:63 superset/dashboards/filters.py:168
-#, fuzzy
 msgid "Is certified"
 msgstr "认证"
 
@@ -6628,7 +6626,7 @@ msgstr "貌似您没有访问到任何数据库"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/Bar/controlPanel.tsx:221
 msgid "It’s not recommended to truncate y-axis in Bar chart."
-msgstr ""
+msgstr "不建议在条形图中截断 y 轴。"
 
 #: superset-frontend/src/components/CronPicker/CronPicker.tsx:91
 msgid "JAN"
@@ -6673,7 +6671,7 @@ msgstr "一月"
 msgid ""
 "Json list of the column names that should be read. If not None, only "
 "these columns will be read from the file."
-msgstr ""
+msgstr "应读取的列名的Json列表。如果没有，则仅从文件中读取这些列。"
 
 #: superset/views/database/forms.py:235 superset/views/database/forms.py:368
 msgid ""
@@ -6757,15 +6755,15 @@ msgstr "标签"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bullet/controlPanel.ts:90
 msgid "Labels for the marker lines"
-msgstr ""
+msgstr "标记线的标签"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bullet/controlPanel.ts:70
 msgid "Labels for the markers"
-msgstr ""
+msgstr "标记的标签"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bullet/controlPanel.ts:50
 msgid "Labels for the ranges"
-msgstr ""
+msgstr "标签范围"
 
 #: superset-frontend/plugins/legacy-preset-chart-big-number/src/sharedControls.ts:47
 #: superset-frontend/plugins/legacy-preset-chart-big-number/src/sharedControls.ts:81
@@ -6830,16 +6828,16 @@ msgstr "配置Layer"
 #: superset-frontend/plugins/plugin-chart-echarts/src/Graph/controlPanel.tsx:101
 #: superset-frontend/plugins/plugin-chart-echarts/src/Tree/controlPanel.tsx:110
 msgid "Layout"
-msgstr ""
+msgstr "布局"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Graph/controlPanel.tsx:114
 msgid "Layout type of graph"
-msgstr ""
+msgstr "图形的布局类型"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Tree/controlPanel.tsx:123
 #: superset-frontend/plugins/plugin-chart-echarts/src/Tree/controlPanel.tsx:246
 msgid "Layout type of tree"
-msgstr ""
+msgstr "树型的布局类型"
 
 #: superset-frontend/plugins/legacy-plugin-chart-event-flow/src/controlPanel.tsx:81
 msgid ""
@@ -6883,7 +6881,7 @@ msgstr "左边距，以像素为单位，为轴标签留出更多空间"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Tree/controlPanel.tsx:137
 msgid "Left to Right"
-msgstr ""
+msgstr "从左到右"
 
 #: superset-frontend/src/explore/components/controls/ConditionalFormattingControl/FormattingPopoverContent.tsx:147
 #, fuzzy
@@ -6934,11 +6932,11 @@ msgstr "图示类型"
 
 #: superset-frontend/plugins/legacy-plugin-chart-paired-t-test/src/controlPanel.ts:98
 msgid "Lift percent precision"
-msgstr ""
+msgstr "提升百分比精度"
 
 #: superset-frontend/plugins/legacy-plugin-chart-map-box/src/index.js:30
 msgid "Light mode"
-msgstr ""
+msgstr "灯光模式"
 
 #: superset-frontend/src/explore/components/RowCountLabel.jsx:45
 msgid "Limit reached"
@@ -6957,7 +6955,7 @@ msgstr ""
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/index.tsx:335
 #: superset-frontend/src/explore/controls.jsx:364
 msgid "Limits the number of rows that get displayed."
-msgstr ""
+msgstr "限制显示的行数。"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/index.tsx:345
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/index.tsx:359
@@ -7741,7 +7739,7 @@ msgstr "名称必须是唯一的"
 #: superset/views/database/forms.py:380
 #, fuzzy
 msgid "Name of table to be created from columnar data."
-msgstr "从excel数据将创建的表的名称。"
+msgstr "从列数据创建的表的名称。"
 
 #: superset/views/database/forms.py:96
 msgid "Name of table to be created from csv data."
@@ -7753,7 +7751,7 @@ msgstr "从excel数据将创建的表的名称。"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Tree/controlPanel.tsx:61
 msgid "Name of the column containing the id of the parent node"
-msgstr ""
+msgstr "包含父节点id的列的名称"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Tree/controlPanel.tsx:51
 #, fuzzy
@@ -7762,7 +7760,7 @@ msgstr "时间序列的列"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Graph/controlPanel.tsx:53
 msgid "Name of the source nodes"
-msgstr ""
+msgstr "源节点名称"
 
 #: superset/connectors/sqla/views.py:439
 msgid "Name of the table that exists in the source database"
@@ -7789,7 +7787,7 @@ msgstr "新增"
 
 #: superset-frontend/src/components/ReportModal/index.tsx:251
 msgid "New Email Report"
-msgstr ""
+msgstr "新增邮件报告"
 
 #: superset-frontend/src/explore/components/ExploreAdditionalActionsMenu/index.jsx:61
 msgid "New chart"
@@ -9884,7 +9882,6 @@ msgid "Row"
 msgstr "行"
 
 #: superset/initialization/__init__.py:274
-#, fuzzy
 msgid "Row Level Security"
 msgstr "行级安全"
 
@@ -10257,7 +10254,7 @@ msgstr "计划时间"
 
 #: superset-frontend/src/components/ReportModal/index.tsx:359
 msgid "Scheduled reports will be sent to your email as a PNG"
-msgstr ""
+msgstr "计划报告将以PNG格式发送到您的电子邮件"
 
 #: superset-frontend/src/components/DatabaseSelector/index.tsx:295
 #: superset-frontend/src/components/Datasource/ChangeDatasourceModal.tsx:220
@@ -10431,7 +10428,6 @@ msgid "Select a CSV file to be uploaded to a database."
 msgstr "选择一个CSV文件上传到数据库."
 
 #: superset/views/database/forms.py:386
-#, fuzzy
 msgid "Select a Columnar file to be uploaded to a database."
 msgstr "选择要上传到数据库的Excel文件。"
 
@@ -10445,7 +10441,6 @@ msgid "Select a column"
 msgstr "反选所有"
 
 #: superset-frontend/src/explore/components/SaveModal.tsx:264
-#, fuzzy
 msgid "Select a dashboard"
 msgstr "看板"
 
@@ -10460,7 +10455,7 @@ msgstr "%s 聚合"
 
 #: superset-frontend/plugins/legacy-plugin-chart-event-flow/src/controlPanel.tsx:107
 msgid "Select any columns for metadata inspection"
-msgstr ""
+msgstr "选择任意列进行元数据检查"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/LineMulti/controlPanel.ts:103
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/LineMulti/controlPanel.ts:138
@@ -10508,7 +10503,7 @@ msgstr "选择过滤器"
 msgid ""
 "Select first item by default (when using this option, default value can’t"
 " be set)"
-msgstr ""
+msgstr "默认选择第一项（使用此选项时，无法设置默认值）"
 
 #: superset-frontend/src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSimpleTabContent/index.tsx:303
 #, fuzzy, python-format
@@ -10516,7 +10511,6 @@ msgid "Select operator"
 msgstr "%s 运算符"
 
 #: superset-frontend/src/components/ListView/Filters/Select.tsx:84
-#, fuzzy
 msgid "Select or type a value"
 msgstr "选择或者键入数据集名称"
 
@@ -10551,7 +10545,7 @@ msgstr "选择开始和结束时间"
 
 #: superset-frontend/src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSimpleTabContent/index.tsx:265
 msgid "Select subject"
-msgstr ""
+msgstr "选择主题"
 
 #: superset-frontend/src/components/TableSelector/index.tsx:298
 #: superset-frontend/src/components/TableSelector/index.tsx:308
@@ -10571,15 +10565,15 @@ msgstr "选择直方图的容器数"
 
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1340
 msgid "Send as CSV"
-msgstr ""
+msgstr "作为CSV发送"
 
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1339
 msgid "Send as PNG"
-msgstr ""
+msgstr "作为PNG发送"
 
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1342
 msgid "Send as text"
-msgstr ""
+msgstr "作为Text发送"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Line/controlPanel.ts:58
 msgid "Send range filter events to other charts"
@@ -10658,7 +10652,7 @@ msgstr "设置"
 
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:133
 msgid "Settings for time series"
-msgstr ""
+msgstr "设置时间序列"
 
 #: superset-frontend/src/views/CRUD/welcome/SavedQueries.tsx:229
 msgid "Share"
@@ -10666,12 +10660,10 @@ msgstr "分享"
 
 #: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:317
 #: superset-frontend/src/explore/components/ExploreActionButtons.tsx:175
-#, fuzzy
 msgid "Share chart by email"
 msgstr "共享图表"
 
 #: superset-frontend/src/dashboard/components/Header/HeaderActionsDropdown/index.jsx:264
-#, fuzzy
 msgid "Share dashboard by email"
 msgstr "分享看板"
 
@@ -10825,11 +10817,11 @@ msgstr "显示表"
 
 #: superset-frontend/plugins/legacy-preset-chart-big-number/src/BigNumber/controlPanel.tsx:85
 msgid "Show Timestamp"
-msgstr ""
+msgstr "显示时间戳"
 
 #: superset-frontend/plugins/legacy-preset-chart-big-number/src/BigNumber/controlPanel.tsx:97
 msgid "Show Trend Line"
-msgstr ""
+msgstr "显示趋势线"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Treemap/controlPanel.tsx:83
 #, fuzzy
@@ -11659,14 +11651,14 @@ msgstr "数据表"
 
 #: superset-frontend/src/dashboard/components/gridComponents/new/NewTabs.jsx:31
 msgid "Tabs"
-msgstr ""
+msgstr "选项卡"
 
 #: superset-frontend/plugins/legacy-plugin-chart-paired-t-test/src/index.js:30
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/index.ts:55
 #: superset-frontend/plugins/plugin-chart-table/src/index.ts:50
 #: superset-frontend/src/visualizations/TimeTable/TimeTableChartPlugin.ts:34
 msgid "Tabular"
-msgstr ""
+msgstr "表格"
 
 #: superset-frontend/src/explore/components/controls/VizTypeControl/VizTypeGallery.tsx:607
 #, fuzzy
@@ -13389,7 +13381,6 @@ msgid "Type \"%s\" to confirm"
 msgstr "键入 \"%s\" 来确认"
 
 #: superset-frontend/src/components/ListView/Filters/Search.tsx:71
-#, fuzzy
 msgid "Type a value"
 msgstr "在这里键入一个值"
 
@@ -13641,7 +13632,7 @@ msgstr "上传"
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal/DatabaseConnectionForm/EncryptedField.tsx:134
 #, fuzzy
 msgid "Upload Credentials"
-msgstr "上传Excel"
+msgstr "上传凭据"
 
 #: superset/initialization/__init__.py:400
 msgid "Upload Excel"
@@ -13649,7 +13640,7 @@ msgstr "上传Excel"
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal/DatabaseConnectionForm/EncryptedField.tsx:102
 msgid "Upload JSON file"
-msgstr ""
+msgstr "上传JSON文件"
 
 #: superset/initialization/__init__.py:369
 msgid "Upload a CSV"
@@ -13657,7 +13648,7 @@ msgstr "上传CSV文件"
 
 #: superset/initialization/__init__.py:383
 msgid "Upload a Columnar File"
-msgstr ""
+msgstr "上传列文件"
 
 #: superset-frontend/plugins/legacy-plugin-chart-rose/src/controlPanel.tsx:112
 #, fuzzy
@@ -13667,7 +13658,7 @@ msgstr "桶断点"
 #: superset/views/database/forms.py:175 superset/views/database/forms.py:433
 #, fuzzy, python-format
 msgid "Use Columns"
-msgstr "%s 列"
+msgstr "使用列"
 
 #: superset/views/database/forms.py:211
 msgid "Use Pandas to interpret the datetime format automatically."
@@ -13689,7 +13680,7 @@ msgstr "使用Y轴的对数刻度"
 
 #: superset/db_engine_specs/base.py:1401
 msgid "Use an encrypted connection to the database"
-msgstr ""
+msgstr "使用与数据库的加密连接"
 
 #: superset-frontend/src/components/Datasource/DatasourceModal.tsx:209
 msgid "Use legacy datasource editor"
@@ -13697,21 +13688,21 @@ msgstr "使用旧数据源编辑器"
 
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:85
 msgid "Use metrics as a top level group for columns or for rows"
-msgstr ""
+msgstr "将指标用作列或行的顶级组"
 
 #: superset-frontend/src/filters/components/Range/controlPanel.ts:68
 msgid "Use only a single value."
-msgstr ""
+msgstr "仅使用单个值。"
 
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:124
 msgid "Use the Advanced Analytics options below"
-msgstr ""
+msgstr "使用下面的高级分析选项"
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal/DatabaseConnectionForm/EncryptedField.tsx:136
 msgid ""
 "Use the JSON file you automatically downloaded when creating your service"
 " account."
-msgstr ""
+msgstr "使用创建服务帐户时自动下载的JSON文件。"
 
 #: superset/templates/superset/fab_overrides/list_with_checkboxes.html:82
 msgid "Use the edit buttom to change this field"
@@ -13846,7 +13837,7 @@ msgstr "`行偏移量` 必须大于或等于0"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Area/index.js:39
 msgid "Vehicle Types"
-msgstr ""
+msgstr "车辆类型"
 
 #: superset/connectors/druid/views.py:189
 #: superset/connectors/druid/views.py:238 superset/connectors/sqla/views.py:144
@@ -13861,7 +13852,7 @@ msgstr "维度"
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal/ExtraOptions.tsx:489
 msgid "Version number"
-msgstr ""
+msgstr "版本号"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bar/index.js:41
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/DistBar/index.js:48
@@ -15573,3 +15564,27 @@ msgstr "年"
 #: superset-frontend/src/explore/components/controls/ConditionalFormattingControl/FormattingPopoverContent.tsx:42
 msgid "yellow"
 msgstr ""
+
+#: superset\views\core.py:2984
+msgid "No database is allowed for your csv upload"
+msgstr "不允许将数据库用于csv上载"
+
+#: superset\views\dashboard\views.py:129
+msgid "[ untitled dashboard ]"
+msgstr "[ 未命名看板 ]"
+
+#: superset-frontend/src/dashboard/components/DashboardGrid.jsx:155
+msgid "Drag and drop components and charts to the dashboard"
+msgstr "将组件和图表拖放到仪表板"
+
+#: superset-frontend/src/dashboard/components/DashboardGrid.jsx:157
+msgid "You can create new charts or use existing ones from the panel on the right"
+msgstr "您可以从右侧面板创建新图表或使用现有图表"
+
+#: superset-frontend/src/dashboard/components/DashboardBuilder/DashboardBuilder.tsx:394
+msgid "There are no charts added to this dashboard"
+msgstr "此仪表板中未添加任何图表"
+
+#: superset-frontend/src/dashboard/components/DashboardBuilder/DashboardBuilder.tsx:398
+msgid "Go to the edit mode to configure the dashboard and add charts"
+msgstr "转到编辑模式以配置仪表板并添加图表"
