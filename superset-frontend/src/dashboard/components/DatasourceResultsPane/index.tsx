@@ -118,6 +118,11 @@ export default function DatasourceResultsPane({
     datasourceId,
   );
 
+  const sortDisabledColumns = columns.map(column => ({
+    ...column,
+    disableSortBy: true,
+  }));
+
   const onServerPagination = useCallback(({ pageIndex }) => {
     setPage(pageIndex);
   }, []);
@@ -155,7 +160,7 @@ export default function DatasourceResultsPane({
     <>
       <DatasourceFilterBar filters={filters} setFilters={setFilters} />
       <TableView
-        columns={columns}
+        columns={sortDisabledColumns}
         data={results.dataPage}
         pageSize={PAGE_SIZE}
         totalCount={results.total}
