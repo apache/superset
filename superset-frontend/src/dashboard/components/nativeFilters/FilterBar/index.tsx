@@ -493,6 +493,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
             </div>
           )}
           <ActionButtons
+            width={width}
             onApply={handleApply}
             onClearAll={handleClearAll}
             dataMaskSelected={dataMaskSelected}
