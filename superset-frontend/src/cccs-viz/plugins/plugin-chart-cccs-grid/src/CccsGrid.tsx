@@ -23,15 +23,14 @@ import React, {
   useRef,
   useState,
 } from 'react';
-// import { styled } from '@superset-ui/core';
 import { AgGridReact } from '@ag-grid-community/react';
+import { AgGridReact as AgGridReactType } from '@ag-grid-community/react/lib/agGridReact';
 import {
   AllModules,
   LicenseManager,
   MenuItemDef,
   GetContextMenuItemsParams,
 } from '@ag-grid-enterprise/all-modules';
-import { NULL_STRING } from 'src/utils/common';
 import { ensureIsArray } from '@superset-ui/core';
 import { useDispatch, useSelector } from 'react-redux';
 import { clearDataMask } from 'src/dataMask/actions';
@@ -92,7 +91,7 @@ export default function CccsGrid({
   const [searchValue, setSearchValue] = useState('');
   const [pageSize, setPageSize] = useState<number>(page_length);
 
-  const gridRef = useRef<AgGridReact<any>>(null);
+  const gridRef = useRef<AgGridReactType>(null);
 
   const handleChange = useCallback(
     filters => {
