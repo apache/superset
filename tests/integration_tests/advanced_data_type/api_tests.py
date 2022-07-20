@@ -36,7 +36,7 @@ from superset.advanced_data_type.types import (
     AdvancedDataTypeResponse,
 )
 from superset.extensions import db
-from superset.utils.core import FilterOperator, FilterStringOperators
+from superset.utils.core import backend, FilterOperator, FilterStringOperators
 
 
 target_resp: AdvancedDataTypeResponse = {
@@ -75,6 +75,9 @@ class TestAdvancedDataTypeApi(SupersetTestCase):
     @pytest.fixture()
     def create_dataset(self):
         with self.create_app().app_context():
+            if backend() == "sqlite":
+                yield
+                return
             obj_owners = [self.get_user("admin")]
             table = SqlaTable(
                 table_name="test_dataset",
@@ -162,6 +165,8 @@ class TestAdvancedDataTypeApi(SupersetTestCase):
 
     @pytest.mark.usefixtures("create_dataset")
     def test_get_datasets(self):
+        if backend() == "sqlite":
+            return
         arguments = {"type": "port"}
         uri = f"api/v1/advanced_data_type/datasets?q={prison.dumps(arguments)}"
         self.login(username="admin")
