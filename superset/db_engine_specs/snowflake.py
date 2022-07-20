@@ -114,15 +114,13 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
     @classmethod
     def adjust_database_uri(
         cls, uri: URL, selected_schema: Optional[str] = None
-    ) -> URL:
+    ) -> None:
         database = uri.database
         if "/" in uri.database:
             database = uri.database.split("/")[0]
         if selected_schema:
             selected_schema = parse.quote(selected_schema, safe="")
-            uri = uri.set(database=f"{database}/{selected_schema}")
-
-        return uri
+            uri.database = database + "/" + selected_schema
 
     @classmethod
     def epoch_to_dttm(cls) -> str:

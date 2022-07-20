@@ -65,18 +65,16 @@ class TrinoEngineSpec(PrestoEngineSpec):
             connect_args["user"] = username
 
     @classmethod
-    def get_url_for_impersonation(
+    def modify_url_for_impersonation(
         cls, url: URL, impersonate_user: bool, username: Optional[str]
-    ) -> URL:
+    ) -> None:
         """
-        Return a modified URL with the username set.
-
+        Modify the SQL Alchemy URL object with the user to impersonate if applicable.
         :param url: SQLAlchemy URL object
         :param impersonate_user: Flag indicating if impersonation is enabled
         :param username: Effective username
         """
         # Do nothing and let update_impersonation_config take care of impersonation
-        return url
 
     @classmethod
     def get_allow_cost_estimate(cls, extra: Dict[str, Any]) -> bool:

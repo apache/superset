@@ -16,11 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  ControlPanelConfig,
-  getStandardizedControls,
-  sections,
-} from '@superset-ui/chart-controls';
+import { ControlPanelConfig, sections } from '@superset-ui/chart-controls';
 import { t, validateNonEmpty } from '@superset-ui/core';
 import {
   filterNulls,
@@ -54,10 +50,8 @@ const config: ControlPanelConfig = {
       label: t('Map'),
       controlSetRows: [
         [mapboxStyle, viewport],
-        ['color_scheme'],
-        [autozoom],
-        [gridSize],
-        [extruded],
+        ['color_picker', autozoom],
+        [gridSize, extruded],
       ],
     },
     {
@@ -77,10 +71,6 @@ const config: ControlPanelConfig = {
       validators: [validateNonEmpty],
     },
   },
-  formDataOverrides: formData => ({
-    ...formData,
-    size: getStandardizedControls().shiftMetric(),
-  }),
 };
 
 export default config;

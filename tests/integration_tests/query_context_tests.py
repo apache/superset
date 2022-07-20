@@ -26,15 +26,10 @@ from superset.charts.schemas import ChartDataQueryContextSchema
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.query_context import QueryContext
 from superset.common.query_object import QueryObject
+from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.sqla.models import SqlMetric
-from superset.datasource.dao import DatasourceDAO
 from superset.extensions import cache_manager
-from superset.utils.core import (
-    AdhocMetricExpressionType,
-    backend,
-    DatasourceType,
-    QueryStatus,
-)
+from superset.utils.core import AdhocMetricExpressionType, backend, QueryStatus
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
@@ -137,10 +132,10 @@ class TestQueryContext(SupersetTestCase):
         cache_key_original = query_context.query_cache_key(query_object)
 
         # make temporary change and revert it to refresh the changed_on property
-        datasource = DatasourceDAO.get_datasource(
-            session=db.session,
-            datasource_type=DatasourceType(payload["datasource"]["type"]),
+        datasource = ConnectorRegistry.get_datasource(
+            datasource_type=payload["datasource"]["type"],
             datasource_id=payload["datasource"]["id"],
+            session=db.session,
         )
         description_original = datasource.description
         datasource.description = "temporary description"
@@ -161,10 +156,10 @@ class TestQueryContext(SupersetTestCase):
         payload = get_query_context("birth_names")
 
         # make temporary change and revert it to refresh the changed_on property
-        datasource = DatasourceDAO.get_datasource(
-            session=db.session,
-            datasource_type=DatasourceType(payload["datasource"]["type"]),
+        datasource = ConnectorRegistry.get_datasource(
+            datasource_type=payload["datasource"]["type"],
             datasource_id=payload["datasource"]["id"],
+            session=db.session,
         )
 
         datasource.metrics.append(SqlMetric(metric_name="foo", expression="select 1;"))
@@ -283,6 +278,7 @@ class TestQueryContext(SupersetTestCase):
         self.assertEqual(query_object.columns, columns)
         self.assertEqual(query_object.series_limit, 99)
         self.assertEqual(query_object.series_limit_metric, "sum__num")
+        self.assertIn("having_druid", query_object.extras)
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_csv_response_format(self):
@@ -293,7 +289,7 @@ class TestQueryContext(SupersetTestCase):
         payload = get_query_context("birth_names")
         payload["result_format"] = ChartDataResultFormat.CSV.value
         payload["queries"][0]["row_limit"] = 10
-        query_context: QueryContext = ChartDataQueryContextSchema().load(payload)
+        query_context = ChartDataQueryContextSchema().load(payload)
         responses = query_context.get_payload()
         self.assertEqual(len(responses), 1)
         data = responses["queries"][0]["data"]

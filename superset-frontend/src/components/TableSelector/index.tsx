@@ -22,10 +22,11 @@ import React, {
   ReactNode,
   useMemo,
   useEffect,
+  useCallback,
 } from 'react';
 import { SelectValue } from 'antd/lib/select';
 
-import { styled, SupersetClient, t } from '@superset-ui/core';
+import { JsonObject, styled, SupersetClient, t } from '@superset-ui/core';
 import { Select } from 'src/components';
 import { FormLabel } from 'src/components/Form';
 import Icons from 'src/components/Icons';
@@ -81,7 +82,7 @@ const TableLabel = styled.span`
 
 interface TableSelectorProps {
   clearable?: boolean;
-  database?: DatabaseObject | null;
+  database?: DatabaseObject;
   emptyState?: ReactNode;
   formMode?: boolean;
   getDbList?: (arg0: any) => {};
@@ -90,9 +91,12 @@ interface TableSelectorProps {
   onDbChange?: (db: DatabaseObject) => void;
   onSchemaChange?: (schema?: string) => void;
   onSchemasLoad?: () => void;
+  onCatalogsLoad?: () => void;
+  onCatalogChange?: (catalog?: string) => void;
   onTablesLoad?: (options: Array<any>) => void;
   readOnly?: boolean;
   schema?: string;
+  catalog?: string;
   onEmptyResults?: (searchText?: string) => void;
   sqlLabMode?: boolean;
   tableValue?: string | string[];
@@ -164,13 +168,20 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   tableSelectMode = 'single',
   tableValue = undefined,
   onTableSelectChange,
+  catalog,
+  onCatalogsLoad,
+  onCatalogChange,
 }) => {
   const [currentDatabase, setCurrentDatabase] = useState<
-    DatabaseObject | null | undefined
+    DatabaseObject | undefined
   >(database);
   const [currentSchema, setCurrentSchema] = useState<string | undefined>(
     schema,
   );
+  const [currentCatalog, setCurrentCatalog] = useState<string | undefined>(
+    catalog,
+  );
+
   const [tableOptions, setTableOptions] = useState<TableOption[]>([]);
   const [tableSelectValue, setTableSelectValue] = useState<
     SelectValue | undefined
@@ -180,18 +191,60 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   const [loadingTables, setLoadingTables] = useState(false);
   const { addSuccessToast } = useToasts();
 
+
+
+  const shouldLoadTables = (database: DatabaseObject | undefined) =>
+    database?.has_catalogs
+      ? currentDatabase && currentCatalog && currentSchema
+      : currentDatabase && currentSchema;
+
+  const getEndpoint = useCallback(
+    ({
+      schema,
+      databaseId,
+      forceRefresh,
+    }: {
+      schema: string;
+      databaseId: number;
+      forceRefresh: boolean;
+    }) => {
+      // TODO: Would be nice to add pagination in a follow-up. Needs endpoint changes.
+      const encodedSchema = encodeURIComponent(schema);
+      return `/superset/tables/${databaseId}/${encodedSchema}/undefined/${forceRefresh}/`;
+    },
+    [schema],
+  );
+
+  const mapAndSetTables = (json: JsonObject, forceRefresh: boolean) => {
+    const options: TableOption[] = json.options.map((table: Table) => ({
+      value: table.value,
+      text: table.label,
+      label: <TableOption table={table} />,
+    }));
+    if (onTablesLoad) onTablesLoad(json.options);
+    onTablesLoad?.(json.options);
+    setTableOptions(options);
+    setLoadingTables(false);
+    if (forceRefresh) addSuccessToast('List updated');
+  };
+
+  const fetchTables = (endpoint: string, forceRefresh: boolean) =>
+    SupersetClient.get({ endpoint })
+      .then(({ json }) => mapAndSetTables(json, forceRefresh))
+      .catch(e => {
+        setLoadingTables(false);
+        handleError(t('There was an error loading the tables'));
+      });
+
   useEffect(() => {
     // reset selections
     if (database === undefined) {
       setCurrentDatabase(undefined);
+      setCurrentCatalog(undefined);
       setCurrentSchema(undefined);
       setTableSelectValue(undefined);
     }
   }, [database, tableSelectMode]);
-
-  useEffect(() => {
-    setCurrentDatabase(database);
-  }, [database]);
 
   useEffect(() => {
     if (tableSelectMode === 'single') {
@@ -208,45 +261,30 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   }, [tableOptions, tableValue, tableSelectMode]);
 
   useEffect(() => {
-    if (currentDatabase && currentSchema) {
+    if (shouldLoadTables(currentDatabase)) {
       setLoadingTables(true);
-      const encodedSchema = encodeURIComponent(currentSchema);
+      // const encodedSchema = encodeURIComponent(currentSchema);
       const forceRefresh = refresh !== previousRefresh;
-      // TODO: Would be nice to add pagination in a follow-up. Needs endpoint changes.
-      const endpoint = encodeURI(
-        `/superset/tables/${currentDatabase.id}/${encodedSchema}/undefined/${forceRefresh}/`,
-      );
-
-      if (previousRefresh !== refresh) {
-        setPreviousRefresh(refresh);
-      }
-
-      SupersetClient.get({ endpoint })
-        .then(({ json }) => {
-          const options: TableOption[] = json.options.map((table: Table) => {
-            const option: TableOption = {
-              value: table.value,
-              label: <TableOption table={table} />,
-              text: table.label,
-            };
-
-            return option;
-          });
-
-          onTablesLoad?.(json.options);
-          setTableOptions(options);
-          setLoadingTables(false);
-          if (forceRefresh) addSuccessToast('List updated');
-        })
-        .catch(() => {
-          setLoadingTables(false);
-          handleError(t('There was an error loading the tables'));
-        });
+      const endpoint = getEndpoint({
+        forceRefresh,
+        schema: currentSchema || '',
+        databaseId: currentDatabase?.id || 0,
+      });
+      const encodedEndpoint = encodeURI(endpoint);
+      if (previousRefresh !== refresh) setPreviousRefresh(refresh);
+      fetchTables(encodedEndpoint, forceRefresh);
     }
     // We are using the refresh state to re-trigger the query
     // previousRefresh should be out of dependencies array
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentDatabase, currentSchema, onTablesLoad, setTableOptions, refresh]);
+  }, [
+    refresh,
+    onTablesLoad,
+    currentSchema,
+    currentDatabase,
+    currentCatalog,
+    setTableOptions,
+  ]);
 
   function renderSelectRow(select: ReactNode, refreshBtn: ReactNode) {
     return (
@@ -288,6 +326,15 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
     internalTableChange(undefined);
   };
 
+  const internalCatalogChange = (catalog?: string) => {
+    setCurrentCatalog(catalog);
+    if (onCatalogChange) {
+      onCatalogChange(catalog);
+    }
+    internalSchemaChange(undefined);
+    internalTableChange(undefined);
+  };
+
   function renderDatabaseSelector() {
     return (
       <DatabaseSelector
@@ -305,6 +352,9 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
         sqlLabMode={sqlLabMode}
         isDatabaseSelectEnabled={isDatabaseSelectEnabled && !readOnly}
         readOnly={readOnly}
+        catalog={currentCatalog}
+        onCatalogLoad={onCatalogsLoad}
+        onCatalogChange={readOnly ? undefined : internalCatalogChange}
       />
     );
   }
@@ -365,7 +415,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
     <TableSelectorWrapper>
       {renderDatabaseSelector()}
       {sqlLabMode && !formMode && <div className="divider" />}
-      {renderTableSelect()}
+      {shouldLoadTables(database) && renderTableSelect()}
     </TableSelectorWrapper>
   );
 };

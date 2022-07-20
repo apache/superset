@@ -18,7 +18,7 @@
  */
 /* eslint-disable no-underscore-dangle */
 
-import { QueryFormData } from '@superset-ui/core';
+import { QueryFormData } from './types';
 import { TimeGranularity } from '../time-format';
 
 export default function extractTimegrain(

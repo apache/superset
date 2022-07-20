@@ -188,6 +188,8 @@ def test_compare_after_pivot():
             "sum_metric": {"operator": "sum"},
             "count_metric": {"operator": "sum"},
         },
+        flatten_columns=False,
+        reset_index=False,
     )
     """
                    count_metric    sum_metric

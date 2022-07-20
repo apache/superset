@@ -33,6 +33,7 @@ from superset.superset_typing import FlaskResponse
 from superset.utils import core as utils
 from superset.views.base import (
     BaseSupersetView,
+    check_ownership,
     common_bootstrap_payload,
     DeleteMixin,
     generate_download_headers,
@@ -96,11 +97,12 @@ class DashboardModelView(
             item.owners.append(g.user)
         utils.validate_json(item.json_metadata)
         utils.validate_json(item.position_json)
+        owners = list(item.owners)
         for slc in item.slices:
-            slc.owners = list(set(item.owners) | set(slc.owners))
+            slc.owners = list(set(owners) | set(slc.owners))
 
     def pre_update(self, item: "DashboardModelView") -> None:
-        security_manager.raise_for_ownership(item)
+        check_ownership(item)
         self.pre_add(item)
 
 

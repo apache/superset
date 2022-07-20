@@ -30,6 +30,7 @@ export type TimeColumnConfigKey =
   | '__time_col'
   | '__time_grain'
   | '__time_range'
+  | '__time_origin'
   | '__granularity';
 
 export type AppliedTimeExtras = Partial<

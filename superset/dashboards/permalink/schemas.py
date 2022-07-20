@@ -18,16 +18,10 @@ from marshmallow import fields, Schema
 
 
 class DashboardPermalinkPostSchema(Schema):
-    dataMask = fields.Dict(
+    filterState = fields.Dict(
         required=False,
         allow_none=True,
-        description="Data mask used for native filter state",
-    )
-    activeTabs = fields.List(
-        fields.String(),
-        required=False,
-        allow_none=True,
-        description="Current active dashboard tabs",
+        description="Native filter state",
     )
     urlParams = fields.List(
         fields.Tuple(
@@ -43,8 +37,6 @@ class DashboardPermalinkPostSchema(Schema):
         allow_none=True,
         description="URL Parameters",
     )
-    anchor = fields.String(
-        required=False,
-        allow_none=True,
-        description="Optional anchor link added to url hash",
+    hash = fields.String(
+        required=False, allow_none=True, description="Optional anchor link"
     )

@@ -94,17 +94,12 @@ class App extends React.PureComponent {
   }
 
   render() {
-    const { queries, actions, queriesLastUpdate } = this.props;
     if (this.state.hash && this.state.hash === '#search') {
       return window.location.replace('/superset/sqllab/history/');
     }
     return (
       <div className="App SqlLab">
-        <QueryAutoRefresh
-          queries={queries}
-          refreshQueries={actions?.refreshQueries}
-          queriesLastUpdate={queriesLastUpdate}
-        />
+        <QueryAutoRefresh />
         <TabbedSqlEditors />
         <ToastContainer />
       </div>
@@ -119,12 +114,10 @@ App.propTypes = {
 };
 
 function mapStateToProps(state) {
-  const { common, localStorageUsageInKilobytes, sqlLab } = state;
+  const { common, localStorageUsageInKilobytes } = state;
   return {
     common,
     localStorageUsageInKilobytes,
-    queries: sqlLab?.queries,
-    queriesLastUpdate: sqlLab?.queriesLastUpdate,
   };
 }
 

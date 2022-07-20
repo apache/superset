@@ -19,7 +19,6 @@
 import sinon from 'sinon';
 import * as actions from 'src/SqlLab/actions/sqlLab';
 import { ColumnKeyTypeType } from 'src/SqlLab/components/ColumnElement';
-import { DatasourceType, QueryResponse, QueryState } from '@superset-ui/core';
 
 export const mockedActions = sinon.stub({ ...actions });
 
@@ -190,7 +189,6 @@ export const defaultQueryEditor = {
     },
   ],
 };
-
 export const queries = [
   {
     dbId: 1,
@@ -203,7 +201,7 @@ export const queries = [
     id: 'BkA1CLrJg',
     progress: 100,
     startDttm: 1476910566092.96,
-    state: QueryState.SUCCESS,
+    state: 'success',
     changedOn: 1476910566000,
     tempTable: null,
     userId: 1,
@@ -262,7 +260,7 @@ export const queries = [
     id: 'S1zeAISkx',
     progress: 100,
     startDttm: 1476910570802.2,
-    state: QueryState.SUCCESS,
+    state: 'success',
     changedOn: 1476910572000,
     tempTable: null,
     userId: 1,
@@ -296,7 +294,7 @@ export const queryWithNoQueryLimit = {
   id: 'BkA1CLrJg',
   progress: 100,
   startDttm: 1476910566092.96,
-  state: QueryState.SUCCESS,
+  state: 'success',
   changedOn: 1476910566000,
   tempTable: null,
   userId: 1,
@@ -346,7 +344,6 @@ export const queryWithNoQueryLimit = {
     },
   },
 };
-
 export const queryWithBadColumns = {
   ...queries[0],
   results: {
@@ -410,7 +407,6 @@ export const queryWithBadColumns = {
     ],
   },
 };
-
 export const databases = {
   result: [
     {
@@ -433,7 +429,6 @@ export const databases = {
     },
   ],
 };
-
 export const tables = {
   options: [
     {
@@ -469,7 +464,7 @@ export const stoppedQuery = {
   sql: 'SELECT ...',
   sqlEditorId: 'rJaf5u9WZ',
   startDttm: 1497400851936,
-  state: QueryState.STOPPED,
+  state: 'stopped',
   tab: 'Untitled Query 2',
   tempTable: '',
 };
@@ -487,7 +482,7 @@ export const failedQueryWithErrorMessage = {
   sql: 'SELECT ...',
   sqlEditorId: 'rJaf5u9WZ',
   startDttm: 1497400851936,
-  state: QueryState.FAILED,
+  state: 'failed',
   tab: 'Untitled Query 2',
   tempTable: '',
 };
@@ -512,113 +507,20 @@ export const failedQueryWithErrors = {
   sql: 'SELECT ...',
   sqlEditorId: 'rJaf5u9WZ',
   startDttm: 1497400851936,
-  state: QueryState.FAILED,
+  state: 'failed',
   tab: 'Untitled Query 2',
   tempTable: '',
 };
 
-const baseQuery: QueryResponse = {
-  queryId: 567,
-  dbId: 1,
-  sql: 'SELECT * FROM superset.slices',
-  sqlEditorId: 'SJ8YO72R',
-  tab: 'Demo',
-  ctas: false,
-  cached: false,
-  id: 'BkA1CLrJg',
-  progress: 100,
-  startDttm: 1476910566092.96,
-  state: QueryState.SUCCESS,
-  tempSchema: null,
-  tempTable: 'temp',
-  userId: 1,
-  executedSql: 'SELECT * FROM superset.slices',
-  rows: 42,
-  started: 'started',
-  queryLimit: 100,
-  endDttm: 1476910566798,
-  schema: 'test_schema',
-  errorMessage: null,
-  db: { key: 'main' },
-  user: { key: 'admin' },
-  isDataPreview: false,
-  resultsKey: null,
-  trackingUrl: null,
-  templateParams: null,
-  limitingFactor: 'capacity',
-  duration: '2334645675467',
-  time: { key: 'value' },
-  querylink: { key: 'value' },
-  output: { key: 'value' },
-  actions: { key: 'value' },
-  extra: {
-    progress: null,
-  },
-  columns: [],
-  type: DatasourceType.Query,
-  results: {
-    displayLimitReached: false,
-    query: { limit: 6 },
-    columns: [
-      {
-        is_dttm: true,
-        name: 'ds',
-        type: 'STRING',
-      },
-      {
-        is_dttm: false,
-        name: 'gender',
-        type: 'STRING',
-      },
-    ],
-    selected_columns: [
-      {
-        is_dttm: true,
-        name: 'ds',
-        type: 'STRING',
-      },
-      {
-        is_dttm: false,
-        name: 'gender',
-        type: 'STRING',
-      },
-    ],
-    expanded_columns: [
-      {
-        is_dttm: true,
-        name: 'ds',
-        type: 'STRING',
-      },
-    ],
-    data: [
-      { col1: '0', col2: '1' },
-      { col1: '2', col2: '3' },
-    ],
-  },
-};
-
-export const runningQuery: QueryResponse = {
-  ...baseQuery,
+export const runningQuery = {
   dbId: 1,
   cached: false,
   ctas: false,
   id: 'ryhMUZCGb',
   progress: 90,
-  state: QueryState.RUNNING,
+  state: 'running',
   startDttm: Date.now() - 500,
 };
-
-export const successfulQuery: QueryResponse = {
-  ...baseQuery,
-  dbId: 1,
-  cached: false,
-  ctas: false,
-  id: 'ryhMUZCGb',
-  progress: 100,
-  state: QueryState.SUCCESS,
-  startDttm: Date.now() - 500,
-};
-
 export const cachedQuery = { ...queries[0], cached: true };
 
 export const user = {

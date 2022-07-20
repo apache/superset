@@ -30,7 +30,6 @@ import {
   ControlSetRow,
   CustomControlItem,
   emitFilterControl,
-  getStandardizedControls,
   sections,
   sharedControls,
 } from '@superset-ui/chart-controls';
@@ -450,23 +449,15 @@ const config: ControlPanelConfig = {
       ],
     },
   ],
-  formDataOverrides: formData => {
-    const groupby = getStandardizedControls().controls.columns.filter(
-      col => !ensureIsArray(formData.groupby_b).includes(col),
-    );
-    getStandardizedControls().controls.columns =
-      getStandardizedControls().controls.columns.filter(
-        col => !groupby.includes(col),
+  denormalizeFormData: formData => {
+    const groupby =
+      formData.standardizedFormData.standardizedState.columns.filter(
+        col => !ensureIsArray(formData.groupby_b).includes(col),
       );
-
-    const metrics = getStandardizedControls().controls.metrics.filter(
-      metric => !ensureIsArray(formData.metrics_b).includes(metric),
-    );
-    getStandardizedControls().controls.metrics =
-      getStandardizedControls().controls.metrics.filter(
-        col => !metrics.includes(col),
+    const metrics =
+      formData.standardizedFormData.standardizedState.metrics.filter(
+        metric => !ensureIsArray(formData.metrics_b).includes(metric),
       );
-
     return {
       ...formData,
       metrics,

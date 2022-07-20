@@ -28,7 +28,7 @@ import { HEALTH_POP_FORM_DATA_DEFAULTS } from './visualizations/shared.helper';
 const apiURL = (endpoint: string, queryObject: Record<string, unknown>) =>
   `${endpoint}?q=${rison.encode(queryObject)}`;
 
-describe.skip('Test explore links', () => {
+describe('Test explore links', () => {
   beforeEach(() => {
     cy.login();
     interceptChart({ legacy: true }).as('chartData');
@@ -74,7 +74,7 @@ describe.skip('Test explore links', () => {
     };
     const newChartName = `Test chart [${shortid.generate()}]`;
 
-    cy.visitChartByParams(formData);
+    cy.visitChartByParams(JSON.stringify(formData));
     cy.verifySliceSuccess({ waitAlias: '@tableChartData' });
     cy.url().then(() => {
       cy.get('[data-test="query-save-button"]').click();

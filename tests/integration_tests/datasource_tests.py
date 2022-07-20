@@ -22,13 +22,12 @@ from unittest import mock
 import prison
 import pytest
 
-from superset import app, db
+from superset import app, ConnectorRegistry, db
 from superset.connectors.sqla.models import SqlaTable
-from superset.dao.exceptions import DatasourceNotFound, DatasourceTypeNotSupportedError
 from superset.datasets.commands.exceptions import DatasetNotFoundError
 from superset.exceptions import SupersetGenericDBErrorException
 from superset.models.core import Database
-from superset.utils.core import DatasourceType, get_example_default_schema
+from superset.utils.core import get_example_default_schema
 from superset.utils.database import get_example_database
 from tests.integration_tests.base_tests import db_insert_temp_object, SupersetTestCase
 from tests.integration_tests.fixtures.birth_names_dashboard import (
@@ -257,10 +256,9 @@ class TestDatasource(SupersetTestCase):
 
         pytest.raises(
             SupersetGenericDBErrorException,
-            lambda: db.session.query(SqlaTable)
-            .filter_by(id=tbl.id)
-            .one_or_none()
-            .external_metadata(),
+            lambda: ConnectorRegistry.get_datasource(
+                "table", tbl.id, db.session
+            ).external_metadata(),
         )
 
         resp = self.client.get(url)
@@ -387,30 +385,21 @@ class TestDatasource(SupersetTestCase):
         app.config["DATASET_HEALTH_CHECK"] = my_check
         self.login(username="admin")
         tbl = self.get_table(name="birth_names")
-        datasource = db.session.query(SqlaTable).filter_by(id=tbl.id).one_or_none()
+        datasource = ConnectorRegistry.get_datasource("table", tbl.id, db.session)
         assert datasource.health_check_message == "Warning message!"
         app.config["DATASET_HEALTH_CHECK"] = None
 
     def test_get_datasource_failed(self):
-        from superset.datasource.dao import DatasourceDAO
-
         pytest.raises(
-            DatasourceNotFound,
-            lambda: DatasourceDAO.get_datasource(db.session, "table", 9999999),
-        )
-
-        self.login(username="admin")
-        resp = self.get_json_resp("/datasource/get/table/500000/", raise_on_error=False)
-        self.assertEqual(resp.get("error"), "Datasource does not exist")
-
-    def test_get_datasource_invalid_datasource_failed(self):
-        from superset.datasource.dao import DatasourceDAO
-
-        pytest.raises(
-            DatasourceTypeNotSupportedError,
-            lambda: DatasourceDAO.get_datasource(db.session, "druid", 9999999),
+            DatasetNotFoundError,
+            lambda: ConnectorRegistry.get_datasource("table", 9999999, db.session),
         )
 
         self.login(username="admin")
         resp = self.get_json_resp("/datasource/get/druid/500000/", raise_on_error=False)
-        self.assertEqual(resp.get("error"), "'druid' is not a valid DatasourceType")
+        self.assertEqual(resp.get("error"), "Dataset does not exist")
+
+        resp = self.get_json_resp(
+            "/datasource/get/invalid-datasource-type/500000/", raise_on_error=False
+        )
+        self.assertEqual(resp.get("error"), "Dataset does not exist")

@@ -178,9 +178,9 @@ export function isTimeseriesAnnotationResult(
 }
 
 export function isRecordAnnotationResult(
-  result: any,
+  result: AnnotationResult,
 ): result is RecordAnnotationResult {
-  return Array.isArray(result?.columns) && Array.isArray(result?.records);
+  return 'columns' in result && 'records' in result;
 }
 
 export type AnnotationData = { [key: string]: AnnotationResult };

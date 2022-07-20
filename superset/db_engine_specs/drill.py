@@ -68,31 +68,26 @@ class DrillEngineSpec(BaseEngineSpec):
         return None
 
     @classmethod
-    def adjust_database_uri(cls, uri: URL, selected_schema: Optional[str]) -> URL:
+    def adjust_database_uri(cls, uri: URL, selected_schema: Optional[str]) -> None:
         if selected_schema:
-            uri = uri.set(database=parse.quote(selected_schema, safe=""))
-
-        return uri
+            uri.database = parse.quote(selected_schema, safe="")
 
     @classmethod
-    def get_url_for_impersonation(
+    def modify_url_for_impersonation(
         cls, url: URL, impersonate_user: bool, username: Optional[str]
-    ) -> URL:
+    ) -> None:
         """
-        Return a modified URL with the username set.
-
+        Modify the SQL Alchemy URL object with the user to impersonate if applicable.
         :param url: SQLAlchemy URL object
         :param impersonate_user: Flag indicating if impersonation is enabled
         :param username: Effective username
         """
         if impersonate_user and username is not None:
             if url.drivername == "drill+odbc":
-                url = url.update_query_dict({"DelegationUID": username})
+                url.query["DelegationUID"] = username
             elif url.drivername in ["drill+sadrill", "drill+jdbc"]:
-                url = url.update_query_dict({"impersonation_target": username})
+                url.query["impersonation_target"] = username
             else:
                 raise SupersetDBAPIProgrammingError(
                     f"impersonation is not supported for {url.drivername}"
                 )
-
-        return url

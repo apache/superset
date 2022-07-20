@@ -269,11 +269,9 @@ class HiveEngineSpec(PrestoEngineSpec):
     @classmethod
     def adjust_database_uri(
         cls, uri: URL, selected_schema: Optional[str] = None
-    ) -> URL:
+    ) -> None:
         if selected_schema:
-            uri = uri.set(database=parse.quote(selected_schema, safe=""))
-
-        return uri
+            uri.database = parse.quote(selected_schema, safe="")
 
     @classmethod
     def _extract_error_message(cls, ex: Exception) -> str:
@@ -487,19 +485,17 @@ class HiveEngineSpec(PrestoEngineSpec):
         )
 
     @classmethod
-    def get_url_for_impersonation(
+    def modify_url_for_impersonation(
         cls, url: URL, impersonate_user: bool, username: Optional[str]
-    ) -> URL:
+    ) -> None:
         """
-        Return a modified URL with the username set.
-
+        Modify the SQL Alchemy URL object with the user to impersonate if applicable.
         :param url: SQLAlchemy URL object
         :param impersonate_user: Flag indicating if impersonation is enabled
         :param username: Effective username
         """
         # Do nothing in the URL object since instead this should modify
         # the configuraiton dictionary. See get_configuration_for_impersonation
-        return url
 
     @classmethod
     def update_impersonation_config(
@@ -584,3 +580,8 @@ class HiveEngineSpec(PrestoEngineSpec):
         """
 
         return True
+
+
+class SparkEngineSpec(HiveEngineSpec):
+
+    engine_name = "Apache Spark SQL"

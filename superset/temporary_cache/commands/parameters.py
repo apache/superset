@@ -17,9 +17,12 @@
 from dataclasses import dataclass
 from typing import Optional
 
+from flask_appbuilder.security.sqla.models import User
+
 
 @dataclass
 class CommandParameters:
+    actor: User
     resource_id: int
     tab_id: Optional[int] = None
     key: Optional[str] = None

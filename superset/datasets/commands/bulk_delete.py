@@ -17,7 +17,8 @@
 import logging
 from typing import List, Optional
 
-from superset import security_manager
+from flask_appbuilder.security.sqla.models import User
+
 from superset.commands.base import BaseCommand
 from superset.commands.exceptions import DeleteFailedError
 from superset.connectors.sqla.models import SqlaTable
@@ -28,13 +29,15 @@ from superset.datasets.commands.exceptions import (
 )
 from superset.datasets.dao import DatasetDAO
 from superset.exceptions import SupersetSecurityException
-from superset.extensions import db
+from superset.extensions import db, security_manager
+from superset.views.base import check_ownership
 
 logger = logging.getLogger(__name__)
 
 
 class BulkDeleteDatasetCommand(BaseCommand):
-    def __init__(self, model_ids: List[int]):
+    def __init__(self, user: User, model_ids: List[int]):
+        self._actor = user
         self._model_ids = model_ids
         self._models: Optional[List[SqlaTable]] = None
 
@@ -81,6 +84,6 @@ class BulkDeleteDatasetCommand(BaseCommand):
         # Check ownership
         for model in self._models:
             try:
-                security_manager.raise_for_ownership(model)
+                check_ownership(model)
             except SupersetSecurityException as ex:
                 raise DatasetForbiddenError() from ex

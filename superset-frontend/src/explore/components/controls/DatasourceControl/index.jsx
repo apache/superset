@@ -17,7 +17,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 import React from 'react';
 import PropTypes from 'prop-types';
 import {
@@ -27,8 +26,8 @@ import {
   t,
   withTheme,
 } from '@superset-ui/core';
-
 import { getUrlParam } from 'src/utils/urlUtils';
+
 import { AntdDropdown } from 'src/components';
 import { Menu } from 'src/components/Menu';
 import { Tooltip } from 'src/components/Tooltip';
@@ -41,14 +40,9 @@ import Button from 'src/components/Button';
 import ErrorAlert from 'src/components/ErrorMessage/ErrorAlert';
 import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
 import { URL_PARAMS } from 'src/constants';
-import { getDatasourceAsSaveableDataset } from 'src/utils/datasourceUtils';
-import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
-import ModalTrigger from 'src/components/ModalTrigger';
-import ViewQueryModalFooter from 'src/explore/components/controls/ViewQueryModalFooter';
-import ViewQuery from 'src/explore/components/controls/ViewQuery';
+import { isUserAdmin } from 'src/dashboard/util/findPermission';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { safeStringify } from 'src/utils/safeStringify';
-import { isString } from 'lodash';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -110,7 +104,7 @@ const Styles = styled.div`
     white-space: nowrap;
     overflow: hidden;
   }
-  .datasource-svg {
+  .dataset-svg {
     margin-right: ${({ theme }) => 2 * theme.gridUnit}px;
     flex: none;
   }
@@ -128,49 +122,24 @@ const EDIT_DATASET = 'edit_dataset';
 const QUERY_PREVIEW = 'query_preview';
 const SAVE_AS_DATASET = 'save_as_dataset';
 
-// If the string is longer than this value's number characters we add
-// a tooltip for user can see the full name by hovering over the visually truncated string in UI
-const VISIBLE_TITLE_LENGTH = 25;
-
-// Assign icon for each DatasourceType.  If no icon assingment is found in the lookup, no icon will render
-export const datasourceIconLookup = {
-  [DatasourceType.Query]: (
-    <Icons.ConsoleSqlOutlined className="datasource-svg" />
-  ),
-  [DatasourceType.Table]: <Icons.DatasetPhysical className="datasource-svg" />,
-};
-
-// Render title for datasource with tooltip only if text is longer than VISIBLE_TITLE_LENGTH
-export const renderDatasourceTitle = (displayString, tooltip) =>
-  displayString?.length > VISIBLE_TITLE_LENGTH ? (
-    // Add a tooltip only for long names that will be visually truncated
-    <Tooltip title={tooltip}>
-      <span className="title-select">{displayString}</span>
-    </Tooltip>
-  ) : (
-    <span title={tooltip} className="title-select">
-      {displayString}
-    </span>
-  );
-
-// Different data source types use different attributes for the display title
-export const getDatasourceTitle = datasource => {
-  if (datasource?.type === 'query') return datasource?.sql;
-  return datasource?.name || '';
-};
-
 class DatasourceControl extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
       showEditDatasourceModal: false,
       showChangeDatasourceModal: false,
-      showSaveDatasetModal: false,
     };
+    this.onDatasourceSave = this.onDatasourceSave.bind(this);
+    this.toggleChangeDatasourceModal =
+      this.toggleChangeDatasourceModal.bind(this);
+    this.toggleEditDatasourceModal = this.toggleEditDatasourceModal.bind(this);
+    this.toggleShowDatasource = this.toggleShowDatasource.bind(this);
+    this.handleMenuItemClick = this.handleMenuItemClick.bind(this);
+    this.toggleSaveDatasetModal = this.toggleSaveDatasetModal.bind(this);
   }
 
-  onDatasourceSave = datasource => {
-    this.props.actions.changeDatasource(datasource);
+  onDatasourceSave(datasource) {
+    this.props.actions.setDatasource(datasource);
     const timeCol = this.props.form_data?.granularity_sqla;
     const { columns } = this.props.datasource;
     const firstDttmCol = columns.find(column => column.is_dttm);
@@ -187,33 +156,33 @@ class DatasourceControl extends React.PureComponent {
     if (this.props.onDatasourceSave) {
       this.props.onDatasourceSave(datasource);
     }
-  };
+  }
 
-  toggleShowDatasource = () => {
+  toggleShowDatasource() {
     this.setState(({ showDatasource }) => ({
       showDatasource: !showDatasource,
     }));
-  };
+  }
 
-  toggleChangeDatasourceModal = () => {
+  toggleChangeDatasourceModal() {
     this.setState(({ showChangeDatasourceModal }) => ({
       showChangeDatasourceModal: !showChangeDatasourceModal,
     }));
-  };
+  }
 
-  toggleEditDatasourceModal = () => {
+  toggleEditDatasourceModal() {
     this.setState(({ showEditDatasourceModal }) => ({
       showEditDatasourceModal: !showEditDatasourceModal,
     }));
-  };
+  }
 
-  toggleSaveDatasetModal = () => {
+  toggleSaveDatasetModal() {
     this.setState(({ showSaveDatasetModal }) => ({
       showSaveDatasetModal: !showSaveDatasetModal,
     }));
-  };
+  }
 
-  handleMenuItemClick = ({ key }) => {
+  handleMenuItemClick({ key }) {
     switch (key) {
       case CHANGE_DATASET:
         this.toggleChangeDatasourceModal();
@@ -236,6 +205,9 @@ class DatasourceControl extends React.PureComponent {
         }
         break;
 
+      case QUERY_PREVIEW:
+        break;
+
       case SAVE_AS_DATASET:
         this.toggleSaveDatasetModal();
         break;
@@ -243,7 +215,7 @@ class DatasourceControl extends React.PureComponent {
       default:
         break;
     }
-  };
+  }
 
   render() {
     const {
@@ -252,7 +224,7 @@ class DatasourceControl extends React.PureComponent {
       showSaveDatasetModal,
     } = this.state;
     const { datasource, onChange, theme } = this.props;
-    const isMissingDatasource = datasource?.id == null;
+    const isMissingDatasource = datasource.id == null;
     let isMissingParams = false;
     if (isMissingDatasource) {
       const datasourceId = getUrlParam(URL_PARAMS.datasourceId);
@@ -262,10 +234,12 @@ class DatasourceControl extends React.PureComponent {
       }
     }
 
+    const isSqlSupported = datasource.type === 'table';
     const { user } = this.props;
-    const allowEdit =
-      datasource.owners?.map(o => o.id || o.value).includes(user.userId) ||
-      isUserAdmin(user);
+    const allowEdit = datasource.owners
+      .map(o => o.id || o.value)
+      .includes(user.userId);
+    isUserAdmin(user);
 
     const editText = t('Edit dataset');
 
@@ -291,7 +265,7 @@ class DatasourceControl extends React.PureComponent {
           </Menu.Item>
         )}
         <Menu.Item key={CHANGE_DATASET}>{t('Change dataset')}</Menu.Item>
-        {datasource && (
+        {isSqlSupported && (
           <Menu.Item key={VIEW_IN_SQL_LAB}>{t('View in SQL Lab')}</Menu.Item>
         )}
       </Menu>
@@ -299,28 +273,7 @@ class DatasourceControl extends React.PureComponent {
 
     const queryDatasourceMenu = (
       <Menu onClick={this.handleMenuItemClick}>
-        <Menu.Item key={QUERY_PREVIEW}>
-          <ModalTrigger
-            triggerNode={
-              <span data-test="view-query-menu-item">{t('Query preview')}</span>
-            }
-            modalTitle={t('Query preview')}
-            modalBody={
-              <ViewQuery
-                sql={datasource?.sql || datasource?.select_star || ''}
-              />
-            }
-            modalFooter={
-              <ViewQueryModalFooter
-                changeDatasource={this.toggleSaveDatasetModal}
-                datasource={datasource}
-              />
-            }
-            draggable={false}
-            resizable={false}
-            responsive
-          />
-        </Menu.Item>
+        <Menu.Item key={QUERY_PREVIEW}>{t('Query preview')}</Menu.Item>
         <Menu.Item key={VIEW_IN_SQL_LAB}>{t('View in SQL Lab')}</Menu.Item>
         <Menu.Item key={SAVE_AS_DATASET}>{t('Save as dataset')}</Menu.Item>
       </Menu>
@@ -328,25 +281,27 @@ class DatasourceControl extends React.PureComponent {
 
     const { health_check_message: healthCheckMessage } = datasource;
 
-    let extra;
+    let extra = {};
     if (datasource?.extra) {
-      if (isString(datasource.extra)) {
-        try {
-          extra = JSON.parse(datasource.extra);
-        } catch {} // eslint-disable-line no-empty
-      } else {
-        extra = datasource.extra; // eslint-disable-line prefer-destructuring
-      }
+      try {
+        extra = JSON.parse(datasource?.extra);
+      } catch {} // eslint-disable-line no-empty
     }
-
-    const titleText = getDatasourceTitle(datasource);
-    const tooltip = titleText;
 
     return (
       <Styles data-test="datasource-control" className="DatasourceControl">
         <div className="data-container">
-          {datasourceIconLookup[datasource?.type]}
-          {renderDatasourceTitle(titleText, tooltip)}
+          <Icons.DatasetPhysical className="dataset-svg" />
+          {/* Add a tooltip only for long dataset names */}
+          {!isMissingDatasource && datasource.name.length > 25 ? (
+            <Tooltip title={datasource.name}>
+              <span className="title-select">{datasource.name}</span>
+            </Tooltip>
+          ) : (
+            <span title={datasource.name} className="title-select">
+              {datasource.name}
+            </span>
+          )}
           {healthCheckMessage && (
             <Tooltip title={healthCheckMessage}>
               <Icons.AlertSolid iconColor={theme.colors.warning.base} />
@@ -364,10 +319,12 @@ class DatasourceControl extends React.PureComponent {
             trigger={['click']}
             data-test="datasource-menu"
           >
-            <Icons.MoreVert
-              className="datasource-modal-trigger"
-              data-test="datasource-menu-trigger"
-            />
+            <Tooltip title={t('More dataset related options')}>
+              <Icons.MoreVert
+                className="datasource-modal-trigger"
+                data-test="datasource-menu-trigger"
+              />
+            </Tooltip>
           </AntdDropdown>
         </div>
         {/* missing dataset */}
@@ -442,9 +399,7 @@ class DatasourceControl extends React.PureComponent {
             modalDescription={t(
               'Save this query as a virtual dataset to continue exploring',
             )}
-            datasource={getDatasourceAsSaveableDataset(datasource)}
-            openWindow={false}
-            formData={this.props.form_data}
+            datasource={datasource}
           />
         )}
       </Styles>

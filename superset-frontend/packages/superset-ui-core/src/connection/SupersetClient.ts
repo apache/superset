@@ -44,7 +44,6 @@ const SupersetClient: SupersetClientInterface = {
   get: request => getInstance().get(request),
   init: force => getInstance().init(force),
   isAuthenticated: () => getInstance().isAuthenticated(),
-  getGuestToken: () => getInstance().getGuestToken(),
   post: request => getInstance().post(request),
   postForm: (...args) => getInstance().postForm(...args),
   put: request => getInstance().put(request),

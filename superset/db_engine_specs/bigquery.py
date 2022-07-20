@@ -123,12 +123,8 @@ class BigQueryEngineSpec(BaseEngineSpec):
 
     _time_grain_expressions = {
         None: "{col}",
-        "PT1S": "CAST(TIMESTAMP_SECONDS("
-        "UNIX_SECONDS(CAST({col} AS TIMESTAMP))"
-        ") AS {type})",
-        "PT1M": "CAST(TIMESTAMP_SECONDS("
-        "60 * DIV(UNIX_SECONDS(CAST({col} AS TIMESTAMP)), 60)"
-        ") AS {type})",
+        "PT1S": "{func}({col}, SECOND)",
+        "PT1M": "{func}({col}, MINUTE)",
         "PT5M": "CAST(TIMESTAMP_SECONDS("
         "5*60 * DIV(UNIX_SECONDS(CAST({col} AS TIMESTAMP)), 5*60)"
         ") AS {type})",

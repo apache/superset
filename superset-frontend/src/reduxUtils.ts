@@ -136,11 +136,10 @@ export function extendArr(
 export function initEnhancer(
   persist = true,
   persistConfig: { paths?: StorageAdapter<unknown>; config?: string } = {},
-  disableDebugger = false,
 ) {
   const { paths, config } = persistConfig;
   const composeEnhancers =
-    process.env.WEBPACK_MODE === 'development' && disableDebugger !== true
+    process.env.WEBPACK_MODE === 'development'
       ? /* eslint-disable-next-line no-underscore-dangle, dot-notation */
         window['__REDUX_DEVTOOLS_EXTENSION_COMPOSE__']
         ? /* eslint-disable-next-line no-underscore-dangle, dot-notation */

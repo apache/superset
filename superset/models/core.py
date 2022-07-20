@@ -182,6 +182,10 @@ class Database(
         return self.db_engine_spec.allows_subqueries
 
     @property
+    def has_catalogs(self) -> bool:
+        return self.db_engine_spec.has_catalogs
+
+    @property
     def function_names(self) -> List[str]:
         try:
             return self.db_engine_spec.get_function_names(self)
@@ -236,6 +240,7 @@ class Database(
             "parameters": self.parameters,
             "disable_data_preview": self.disable_data_preview,
             "parameters_schema": self.parameters_schema,
+            "has_catalogs": self.has_catalogs
         }
 
     @property
@@ -312,7 +317,7 @@ class Database(
     def get_password_masked_url(cls, masked_url: URL) -> URL:
         url_copy = deepcopy(masked_url)
         if url_copy.password is not None:
-            url_copy = url_copy.set(password=PASSWORD_MASK)
+            url_copy.password = PASSWORD_MASK
         return url_copy
 
     def set_sqlalchemy_uri(self, uri: str) -> None:
@@ -320,7 +325,7 @@ class Database(
         if conn.password != PASSWORD_MASK and not custom_password_store:
             # do not over-write the password with the password mask
             self.password = conn.password
-        conn = conn.set(password=PASSWORD_MASK if conn.password else None)
+        conn.password = PASSWORD_MASK if conn.password else None
         self.sqlalchemy_uri = str(conn)  # hides the password
 
     def get_effective_user(self, object_url: URL) -> Optional[str]:
@@ -355,12 +360,12 @@ class Database(
     ) -> Engine:
         extra = self.get_extra()
         sqlalchemy_url = make_url_safe(self.sqlalchemy_uri_decrypted)
-        sqlalchemy_url = self.db_engine_spec.adjust_database_uri(sqlalchemy_url, schema)
+        self.db_engine_spec.adjust_database_uri(sqlalchemy_url, schema)
         effective_username = self.get_effective_user(sqlalchemy_url)
         # If using MySQL or Presto for example, will set url.username
         # If using Hive, will not do anything yet since that relies on a
         # configuration parameter instead.
-        sqlalchemy_url = self.db_engine_spec.get_url_for_impersonation(
+        self.db_engine_spec.modify_url_for_impersonation(
             sqlalchemy_url, self.impersonate_user, effective_username
         )
 
@@ -386,7 +391,7 @@ class Database(
             if not source and request and request.referrer:
                 if "/superset/dashboard/" in request.referrer:
                     source = utils.QuerySource.DASHBOARD
-                elif "/explore/" in request.referrer:
+                elif "/superset/explore/" in request.referrer:
                     source = utils.QuerySource.CHART
                 elif "/superset/sqllab/" in request.referrer:
                     source = utils.QuerySource.SQL_LAB
@@ -633,6 +638,52 @@ class Database(
         """
         return self.db_engine_spec.get_schema_names(self.inspector)
 
+    @cache_util.memoized_func(
+        key=lambda self, *args, **kwargs: f"db:{self.id}:schema_list",
+        cache=cache_manager.data_cache,
+    )
+    def get_all_catalog_schema_names(  # pylint: disable=unused-argument
+        self,
+        catalog_name: str,
+        cache: bool = False,
+        force: bool = False,
+        cache_timeout: Optional[int] = None,
+    ) -> List[str]:
+        """Parameters need to be passed as keyword arguments.
+
+        For unused parameters, they are referenced in
+        cache_util.memoized_func decorator.
+
+        :param cache: whether cache is enabled for the function
+        :param cache_timeout: timeout in seconds for the cache
+        :param force: whether to force refresh the cache
+        :param catalog_name: catalog name from the database
+        :return: catalog list
+        """
+        return self.db_engine_spec.get_all_catalog_schema_names(self.inspector, catalog_name)
+
+    @cache_util.memoized_func(
+        key=lambda self, *args, **kwargs: f"db:{self.id}:catalog_list",
+        cache=cache_manager.data_cache,
+    )
+    def get_all_catalog_names(  # pylint: disable=unused-argument
+        self,
+        cache: bool = False,
+        cache_timeout: Optional[int] = None,
+        force: bool = False,
+    ) -> List[str]:
+        """Parameters need to be passed as keyword arguments.
+
+        For unused parameters, they are referenced in
+        cache_util.memoized_func decorator.
+
+        :param cache: whether cache is enabled for the function
+        :param cache_timeout: timeout in seconds for the cache
+        :param force: whether to force refresh the cache
+        :return: catalog list
+        """
+        return self.db_engine_spec.get_catalog_names(self.inspector) 
+
     @property
     def db_engine_spec(self) -> Type[db_engine_specs.BaseEngineSpec]:
         return self.get_db_engine_spec_for_backend(self.backend)
@@ -736,9 +787,9 @@ class Database(
             # (so users see 500 less often)
             return "dialect://invalid_uri"
         if custom_password_store:
-            conn = conn.set(password=custom_password_store(conn))
+            conn.password = custom_password_store(conn)
         else:
-            conn = conn.set(password=self.password)
+            conn.password = self.password
         return str(conn)
 
     @property

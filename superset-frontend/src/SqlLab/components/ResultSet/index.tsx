@@ -23,11 +23,7 @@ import Button from 'src/components/Button';
 import shortid from 'shortid';
 import { styled, t, QueryResponse } from '@superset-ui/core';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
-import {
-  ISaveableDatasource,
-  ISimpleColumn,
-  SaveDatasetModal,
-} from 'src/SqlLab/components/SaveDatasetModal';
+import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import ProgressBar from 'src/components/ProgressBar';
 import Loading from 'src/components/Loading';
@@ -224,15 +220,6 @@ export default class ResultSet extends React.PureComponent<
       const { showSaveDatasetModal } = this.state;
       const { query } = this.props;
 
-      const datasource: ISaveableDatasource = {
-        columns: query.results.columns as ISimpleColumn[],
-        name: query?.tab || 'Untitled',
-        dbId: query?.dbId,
-        sql: query?.sql,
-        templateParams: query?.templateParams,
-        schema: query?.schema,
-      };
-
       return (
         <ResultSetControls>
           <SaveDatasetModal
@@ -243,25 +230,14 @@ export default class ResultSet extends React.PureComponent<
             modalDescription={t(
               'Save this query as a virtual dataset to continue exploring',
             )}
-            datasource={datasource}
+            datasource={query}
           />
           <ResultSetButtons>
             {this.props.visualize &&
               this.props.database?.allows_virtual_table_explore && (
                 <ExploreResultsButton
                   database={this.props.database}
-                  onClick={() => {
-                    // There is currently redux / state issue where sometimes a query will have serverId
-                    // and other times it will not.  We need this attribute consistently for this to work
-                    // const qid = this.props?.query?.results?.query_id;
-                    // if (qid) {
-                    //   // This will open explore using the query as datasource
-                    //   window.location.href = `/explore/?dataset_type=query&dataset_id=${qid}`;
-                    // } else {
-                    //   this.setState({ showSaveDatasetModal: true });
-                    // }
-                    this.setState({ showSaveDatasetModal: true });
-                  }}
+                  onClick={() => this.setState({ showSaveDatasetModal: true })}
                 />
               )}
             {this.props.csv && (

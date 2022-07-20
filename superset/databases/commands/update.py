@@ -18,6 +18,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from flask_appbuilder.models.sqla import Model
+from flask_appbuilder.security.sqla.models import User
 from marshmallow import ValidationError
 
 from superset.commands.base import BaseCommand
@@ -37,7 +38,8 @@ logger = logging.getLogger(__name__)
 
 
 class UpdateDatabaseCommand(BaseCommand):
-    def __init__(self, model_id: int, data: Dict[str, Any]):
+    def __init__(self, user: User, model_id: int, data: Dict[str, Any]):
+        self._actor = user
         self._properties = data.copy()
         self._model_id = model_id
         self._model: Optional[Database] = None

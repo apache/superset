@@ -40,6 +40,7 @@ class GetFormDataCommand(BaseCommand, ABC):
 
     def run(self) -> Optional[str]:
         try:
+            actor = self._cmd_params.actor
             key = self._cmd_params.key
             state: TemporaryExploreState = cache_manager.explore_form_data_cache.get(
                 key
@@ -48,6 +49,7 @@ class GetFormDataCommand(BaseCommand, ABC):
                 check_access(
                     state["datasource_id"],
                     state["chart_id"],
+                    actor,
                     DatasourceType(state["datasource_type"]),
                 )
                 if self._refresh_timeout:

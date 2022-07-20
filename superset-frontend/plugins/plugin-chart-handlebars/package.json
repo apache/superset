@@ -26,8 +26,7 @@
     "access": "public"
   },
   "dependencies": {
-    "handlebars": "^4.7.7",
-    "just-handlebars-helpers": "^1.0.19"
+    "handlebars": "^4.7.7"
   },
   "peerDependencies": {
     "@superset-ui/chart-controls": "*",
@@ -40,8 +39,8 @@
     "react-dom": "^16.13.1"
   },
   "devDependencies": {
-    "@types/jest": "^26.0.0",
     "@types/lodash": "^4.14.149",
+    "@types/jest": "^26.0.0",
     "jest": "^26.0.1"
   }
 }

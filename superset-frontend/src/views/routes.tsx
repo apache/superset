@@ -21,12 +21,6 @@ import React, { lazy } from 'react';
 // not lazy loaded since this is the home page.
 import Welcome from 'src/views/CRUD/welcome/Welcome';
 
-const AddSliceContainer = lazy(
-  () =>
-    import(
-      /* webpackChunkName: "AddSliceContainer" */ 'src/addSlice/AddSliceContainer'
-    ),
-);
 const AnnotationLayersList = lazy(
   () =>
     import(
@@ -87,9 +81,6 @@ const ExecutionLog = lazy(
       /* webpackChunkName: "ExecutionLog" */ 'src/views/CRUD/alert/ExecutionLog'
     ),
 );
-const ExplorePage = lazy(
-  () => import(/* webpackChunkName: "ExplorePage" */ 'src/explore/ExplorePage'),
-);
 const QueryList = lazy(
   () =>
     import(
@@ -122,10 +113,6 @@ export const routes: Routes = [
   {
     path: '/superset/dashboard/:idOrSlug/',
     Component: DashboardRoute,
-  },
-  {
-    path: '/chart/add',
-    Component: AddSliceContainer,
   },
   {
     path: '/chart/list/',
@@ -180,14 +167,6 @@ export const routes: Routes = [
     props: {
       isReportEnabled: true,
     },
-  },
-  {
-    path: '/explore/',
-    Component: ExplorePage,
-  },
-  {
-    path: '/superset/explore/p',
-    Component: ExplorePage,
   },
 ];
 
