@@ -29,12 +29,12 @@ import rison from 'rison';
 import { cacheWrapper } from 'src/utils/cacheWrapper';
 import { ClientErrorObject, getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { SelectValue } from 'antd/lib/select';
+import { addTag, deleteTag, fetchSuggestions, fetchTags } from 'src/tags';
 
 interface ObjectTagsProps {
-  fetchTags: (callback: (tags: Tag[]) => void) => void;
-  fetchSuggestions: (callback: (suggestions: Tag[]) => void) => void;
-  deleteTag: (tag: string, callback: () => void) => void;
-  addTag: (tag: string, callback: () => void) => void;
+  objectType: string;
+  objectId: number;
+  includeTypes: boolean;
   editable: boolean;
   onChange?: (tags: Tag[]) => void;
 }
@@ -181,10 +181,9 @@ const SaveButton = ({
 }
 
 export const ObjectTags = ({
-  fetchTags,
-  fetchSuggestions,
-  deleteTag,
-  addTag,
+  objectType,
+  objectId,
+  includeTypes,
   editable,
   onChange,
 }: ObjectTagsProps) => {
@@ -203,15 +202,18 @@ export const ObjectTags = ({
   };
 
   useEffect(() => {
-    fetchTags((tags: Tag[]) => {
-      setTags(tags) 
-    });
+    fetchTags(
+      {objectType, objectId, includeTypes},
+      (tags: Tag[]) => setTags(tags),
+      () => {/*TODO: handle error*/});
     
     
-    fetchSuggestions((suggestions: Tag[]) => {
-      suggestions && setTagSuggestions(suggestions);
-    });
-  }, []);
+    fetchSuggestions(
+      {includeTypes},
+      (suggestions: Tag[]) => suggestions && setTagSuggestions(suggestions),
+      () => {/* TODO: handle error */}
+    );
+  }, [objectType, objectId, includeTypes]);
 
   useEffect(() => {
     if (tagSuggestions.length !== 0) {
@@ -220,8 +222,11 @@ export const ObjectTags = ({
   }, [tags, tagSuggestions]);
 
   const onDelete = (tagIndex: number) => {
-    deleteTag(tags[tagIndex].name, () =>
-      setTags(tags.filter((_, i) => i !== tagIndex)),
+    deleteTag(
+      {objectType, objectId},
+      tags[tagIndex], 
+      () => setTags(tags.filter((_, i) => i !== tagIndex)),
+      () => {/* TODO: handle error */}
     );
     onChange?.(tags);
   };
@@ -230,7 +235,12 @@ export const ObjectTags = ({
     if (tags.some(t => t.name === tag.name)) {
       return;
     }
-    addTag(tag.name, () => setTags([...tags, tag]));
+    addTag(
+      {objectType, objectId, includeTypes},
+      tag.name, 
+      () => setTags([...tags, tag]),
+      () => {/* TODO: handle error */}
+    );
     onChange?.(tags);
   };
 

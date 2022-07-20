@@ -39,15 +39,8 @@ import { useExploreAdditionalActionsMenu } from '../useExploreAdditionalActionsM
 import CertifiedBadge from 'src/components/CertifiedBadge';
 import RowCountLabel from '../RowCountLabel';
 import ObjectTags from 'src/components/ObjectTags';
-import {
-  addTag,
-  deleteTag,
-  fetchSuggestions,
-  fetchTags,
-  OBJECT_TYPES,
-} from 'src/tags';
+import {OBJECT_TYPES} from 'src/tags';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
-
 
 const CHART_STATUS_MAP = {
   failed: 'danger',
@@ -165,32 +158,6 @@ export const ExploreChartHeader = ({
       ownState,
     );
 
-  const handleFetchTags = () => {
-    return fetchTags({
-      objectType: OBJECT_TYPES.CHART,
-      objectId: chart.id,
-      includeTypes: false,
-    })
-  }
-
-  const handleFetchSuggestions = () => {
-    return fetchSuggestions({includeTypes: false});
-  }
-
-  const handleDeleteTag = () => {
-    return deleteTag({
-      objectType: OBJECT_TYPES.CHART,
-      objectId: chart.id,
-    });
-  }
-  const handleAddTag = (tag, callback) => {
-    return addTag({
-      objectType: OBJECT_TYPES.CHART,
-      objectId: chart.id,
-      includeTypes: false,
-    }, tag, callback);
-  }
-
   const oldSliceName = slice?.slice_name;
   return (
     <>
@@ -232,10 +199,9 @@ export const ExploreChartHeader = ({
             ) : null,
             isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM) ? (
               <ObjectTags
-                fetchTags={handleFetchTags}
-                fetchSuggestions={handleFetchSuggestions}
-                deleteTag={handleDeleteTag}
-                addTag={handleAddTag}
+                objectType={OBJECT_TYPES.CHART}
+                objectId={chart.id}
+                includeTypes={false}
                 editable={
                   canOverwrite ||
                   (slice?.owners || []).includes(
