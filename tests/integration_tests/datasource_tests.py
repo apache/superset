@@ -290,6 +290,8 @@ class TestDatasource(SupersetTestCase):
                 self.compare_lists(datasource_post[k], resp[k], "metric_name")
             elif k == "database":
                 self.assertEqual(resp[k]["id"], datasource_post[k]["id"])
+            elif k == "owners":
+                self.assertEqual([o["id"] for o in resp[k]], datasource_post["owners"])
             else:
                 print(k)
                 self.assertEqual(resp[k], datasource_post[k])
