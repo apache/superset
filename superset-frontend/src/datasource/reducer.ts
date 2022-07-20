@@ -17,26 +17,30 @@
  * under the License.
  */
 import { keyBy } from 'lodash';
-import { DatasourcesState } from 'src/dashboard/types';
+import { getDatasourceUid } from 'src/utils/getDatasourceUid';
 import {
-  DatasourcesActionPayload,
   DatasourcesAction,
-} from '../actions/datasources';
+  DatasourcesActionType,
+} from 'src/datasource/actions';
+import { Dataset } from '@superset-ui/chart-controls';
 
 export default function datasourcesReducer(
-  datasources: DatasourcesState | undefined,
-  action: DatasourcesActionPayload,
+  datasources: { [key: string]: Dataset } | undefined,
+  action: DatasourcesAction,
 ) {
-  if (action.type === DatasourcesAction.SET_DATASOURCES) {
+  if (action.type === DatasourcesActionType.INIT_DATASOURCES) {
+    return { ...action.datasources };
+  }
+  if (action.type === DatasourcesActionType.SET_DATASOURCES) {
     return {
       ...datasources,
       ...keyBy(action.datasources, 'uid'),
     };
   }
-  if (action.type === DatasourcesAction.SET_DATASOURCE) {
+  if (action.type === DatasourcesActionType.SET_DATASOURCE) {
     return {
       ...datasources,
-      [action.key]: action.datasource,
+      [getDatasourceUid(action.datasource)]: action.datasource,
     };
   }
   return datasources || {};

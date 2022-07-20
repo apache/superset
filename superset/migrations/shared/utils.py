@@ -14,10 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import json
 import logging
 import os
 import time
-from typing import Any, Callable, Iterator, Optional, Union
+from typing import Any, Callable, Dict, Iterator, Optional, Union
 from uuid import uuid4
 
 from alembic import op
@@ -115,3 +116,11 @@ def paginated_update(
         if print_page_progress:
             print_page_progress(end, count)
         start += batch_size
+
+
+def try_load_json(data: Optional[str]) -> Dict[str, Any]:
+    try:
+        return data and json.loads(data) or {}
+    except json.decoder.JSONDecodeError:
+        print(f"Failed to parse: {data}")
+        return {}

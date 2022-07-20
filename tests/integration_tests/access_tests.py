@@ -562,34 +562,34 @@ def test_get_username(
     assert get_username() == username
 
 
-@pytest.mark.parametrize(
-    "username",
-    [
-        None,
-        "alpha",
-        "gamma",
-    ],
-)
+@pytest.mark.parametrize("username", [None, "alpha", "gamma"])
+@pytest.mark.parametrize("force", [False, True])
 def test_override_user(
     app_context: AppContext,
     mocker: MockFixture,
     username: str,
+    force: bool,
 ) -> None:
     mock_g = mocker.patch("superset.utils.core.g", spec={})
     admin = security_manager.find_user(username="admin")
     user = security_manager.find_user(username)
 
-    assert not hasattr(mock_g, "user")
-
-    with override_user(user):
+    with override_user(user, force):
         assert mock_g.user == user
 
     assert not hasattr(mock_g, "user")
+
+    mock_g.user = None
+
+    with override_user(user, force):
+        assert mock_g.user == user
+
+    assert mock_g.user is None
 
     mock_g.user = admin
 
-    with override_user(user):
-        assert mock_g.user == user
+    with override_user(user, force):
+        assert mock_g.user == user if force else admin
 
     assert mock_g.user == admin
 

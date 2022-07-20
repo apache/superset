@@ -38,7 +38,6 @@ from superset.explore.form_data.commands.parameters import (
 )
 from superset.explore.permalink.commands.get import GetExplorePermalinkCommand
 from superset.explore.permalink.exceptions import ExplorePermalinkGetFailedError
-from superset.models.sql_lab import Query
 from superset.utils import core as utils
 from superset.views.utils import (
     get_datasource_info,
@@ -54,7 +53,6 @@ class GetExploreCommand(BaseCommand, ABC):
         self,
         params: CommandParameters,
     ) -> None:
-        self._actor = params.actor
         self._permalink_key = params.permalink_key
         self._form_data_key = params.form_data_key
         self._dataset_id = params.dataset_id
@@ -66,7 +64,7 @@ class GetExploreCommand(BaseCommand, ABC):
         initial_form_data = {}
 
         if self._permalink_key is not None:
-            command = GetExplorePermalinkCommand(self._actor, self._permalink_key)
+            command = GetExplorePermalinkCommand(self._permalink_key)
             permalink_value = command.run()
             if not permalink_value:
                 raise ExplorePermalinkGetFailedError()
@@ -76,9 +74,7 @@ class GetExploreCommand(BaseCommand, ABC):
             if url_params:
                 initial_form_data["url_params"] = dict(url_params)
         elif self._form_data_key:
-            parameters = FormDataCommandParameters(
-                actor=self._actor, key=self._form_data_key
-            )
+            parameters = FormDataCommandParameters(key=self._form_data_key)
             value = GetFormDataCommand(parameters).run()
             initial_form_data = json.loads(value) if value else {}
 
@@ -92,7 +88,9 @@ class GetExploreCommand(BaseCommand, ABC):
                         "Form data not found in cache, reverting to chart metadata."
                     )
             elif self._dataset_id:
-                initial_form_data["datasource"] = f"{self._dataset_id}__table"
+                initial_form_data[
+                    "datasource"
+                ] = f"{self._dataset_id}__{self._dataset_type}"
                 if self._form_data_key:
                     message = _(
                         "Form data not found in cache, reverting to dataset metadata."
@@ -154,11 +152,6 @@ class GetExploreCommand(BaseCommand, ABC):
             dataset_data = dataset.data if dataset else dummy_dataset_data
         except (SupersetException, SQLAlchemyError):
             dataset_data = dummy_dataset_data
-
-        if dataset:
-            dataset_data["owners"] = dataset.owners_data
-            if isinstance(dataset, Query):
-                dataset_data["columns"] = dataset.columns
 
         return {
             "dataset": sanitize_datasource_data(dataset_data),

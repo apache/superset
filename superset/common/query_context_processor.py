@@ -32,7 +32,7 @@ from superset.charts.dao import ChartDAO
 from superset.common.chart_data import ChartDataResultFormat
 from superset.common.db_query_status import QueryStatus
 from superset.common.query_actions import get_query_results
-from superset.common.utils import dataframe_utils as df_utils
+from superset.common.utils import dataframe_utils
 from superset.common.utils.query_cache_manager import QueryCacheManager
 from superset.connectors.base.models import BaseDatasource
 from superset.constants import CacheRegion
@@ -116,6 +116,7 @@ class QueryContextProcessor:
                         and col != DTTM_ALIAS
                     )
                 ]
+
                 if invalid_columns:
                     raise QueryObjectValidationError(
                         _(
@@ -123,6 +124,7 @@ class QueryContextProcessor:
                             invalid_columns=invalid_columns,
                         )
                     )
+
                 query_result = self.get_query_result(query_obj)
                 annotation_data = self.get_annotation_data(query_obj)
                 cache.set_query_result(
@@ -183,8 +185,16 @@ class QueryContextProcessor:
         # support multiple queries from different data sources.
 
         # The datasource here can be different backend but the interface is common
-        result = query_context.datasource.query(query_object.to_dict())
-        query = result.query + ";\n\n"
+        # pylint: disable=import-outside-toplevel
+        from superset.models.sql_lab import Query
+
+        query = ""
+        if isinstance(query_context.datasource, Query):
+            # todo(hugh): add logic to manage all sip68 models here
+            result = query_context.datasource.exc_query(query_object.to_dict())
+        else:
+            result = query_context.datasource.query(query_object.to_dict())
+            query = result.query + ";\n\n"
 
         df = result.df
         # Transform the timestamp we received from database to pandas supported
@@ -231,7 +241,7 @@ class QueryContextProcessor:
         )
 
         if self.enforce_numerical_metrics:
-            df_utils.df_metrics_to_num(df, query_object)
+            dataframe_utils.df_metrics_to_num(df, query_object)
 
         df.replace([np.inf, -np.inf], np.nan, inplace=True)
 
@@ -322,9 +332,7 @@ class QueryContextProcessor:
                 #  multi-dimensional charts
                 granularity = query_object.granularity
                 index = granularity if granularity in df.columns else DTTM_ALIAS
-                if not pd.api.types.is_datetime64_any_dtype(
-                    offset_metrics_df.get(index)
-                ):
+                if not dataframe_utils.is_datetime_series(offset_metrics_df.get(index)):
                     raise QueryObjectValidationError(
                         _(
                             "A time column must be specified "
@@ -337,7 +345,7 @@ class QueryContextProcessor:
                 )
 
             # df left join `offset_metrics_df`
-            offset_df = df_utils.left_join_df(
+            offset_df = dataframe_utils.left_join_df(
                 left_df=df,
                 right_df=offset_metrics_df,
                 join_keys=join_keys,

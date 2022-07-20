@@ -181,7 +181,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         "superset.utils.core.current_app.config",
         {**app.config, "SQL_MAX_ROW": 5},
     )
-    def test_as_samples_with_row_limit_bigger_then_sql_max_row__rowcount_as_sql_max_row(
+    def test_as_samples_with_row_limit_bigger_then_sql_max_row_rowcount_as_sql_max_row(
         self,
     ):
         expected_row_count = app.config["SQL_MAX_ROW"]
@@ -333,12 +333,6 @@ class TestPostChartDataApi(BaseTestChartDataApi):
                 {"column": "num"},
                 {"column": "name"},
                 {"column": "__time_range"},
-            ],
-        )
-        self.assertEqual(
-            data["result"][0]["rejected_filters"],
-            [
-                {"column": "__time_origin", "reason": "not_druid_datasource"},
             ],
         )
         expected_row_count = self.get_expected_row_count("client_id_2")
@@ -798,7 +792,6 @@ class TestGetChartDataApi(BaseTestChartDataApi):
                         "filters": [],
                         "extras": {
                             "having": "",
-                            "having_druid": [],
                             "where": "",
                         },
                         "applied_time_extras": {},

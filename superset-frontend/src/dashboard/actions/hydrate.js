@@ -138,8 +138,7 @@ export const hydrateDashboard =
       chartQueries[key] = {
         ...chart,
         id: key,
-        form_data,
-        formData: applyDefaultFormData(form_data),
+        form_data: applyDefaultFormData(form_data),
       };
 
       slices[key] = {
@@ -316,7 +315,7 @@ export const hydrateDashboard =
         const behaviors =
           (
             getChartMetadataRegistry().get(
-              chartQueries[chartId]?.formData?.viz_type,
+              chartQueries[chartId]?.form_data?.viz_type,
             ) ?? {}
           )?.behaviors ?? [];
 

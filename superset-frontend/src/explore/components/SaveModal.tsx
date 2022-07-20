@@ -21,7 +21,7 @@ import React from 'react';
 import { Input } from 'src/components/Input';
 import { Form, FormItem } from 'src/components/Form';
 import Alert from 'src/components/Alert';
-import { JsonObject, t, styled } from '@superset-ui/core';
+import { t, styled } from '@superset-ui/core';
 import ReactMarkdown from 'react-markdown';
 import Modal from 'src/components/Modal';
 import { Radio } from 'src/components/Radio';
@@ -29,12 +29,13 @@ import Button from 'src/components/Button';
 import { Select } from 'src/components';
 import { SelectValue } from 'antd/lib/select';
 import { connect } from 'react-redux';
+import { withRouter, RouteComponentProps } from 'react-router-dom';
 
 // Session storage key for recent dashboard
 const SK_DASHBOARD_ID = 'save_chart_recent_dashboard';
 const SELECT_PLACEHOLDER = t('**Select** a dashboard OR **create** a new one');
 
-type SaveModalProps = {
+interface SaveModalProps extends RouteComponentProps {
   onHide: () => void;
   actions: Record<string, any>;
   form_data?: Record<string, any>;
@@ -45,7 +46,8 @@ type SaveModalProps = {
   slice?: Record<string, any>;
   datasource?: Record<string, any>;
   dashboardId: '' | number | null;
-};
+  sliceDashboards: number[];
+}
 
 type ActionType = 'overwrite' | 'saveas';
 
@@ -131,39 +133,94 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
   saveOrOverwrite(gotodash: boolean) {
     this.setState({ alert: null });
     this.props.actions.removeSaveModalAlert();
-    const sliceParams: Record<string, any> = {};
-
-    if (this.props.slice && this.props.slice.slice_id) {
-      sliceParams.slice_id = this.props.slice.slice_id;
-    }
-    if (sliceParams.action === 'saveas') {
-      if (this.state.newSliceName === '') {
-        this.setState({ alert: t('Please enter a chart name') });
-        return;
-      }
-    }
-    sliceParams.action = this.state.action;
-    sliceParams.slice_name = this.state.newSliceName;
-    sliceParams.save_to_dashboard_id = this.state.saveToDashboardId;
-    sliceParams.new_dashboard_name = this.state.newDashboardName;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { url_params, ...formData } = this.props.form_data || {};
 
-    this.props.actions
-      .saveSlice(formData, sliceParams)
-      .then((data: JsonObject) => {
-        if (data.dashboard_id === null) {
-          sessionStorage.removeItem(SK_DASHBOARD_ID);
-        } else {
-          sessionStorage.setItem(SK_DASHBOARD_ID, data.dashboard_id);
-        }
-        // Go to new slice url or dashboard url
-        let url = gotodash ? data.dashboard_url : data.slice.slice_url;
-        if (url_params) {
-          const prefix = url.includes('?') ? '&' : '?';
-          url = `${url}${prefix}${new URLSearchParams(url_params).toString()}`;
-        }
-        window.location.assign(url);
-      });
+    let promise = Promise.resolve();
+
+    //  Create or retrieve dashboard
+    type DashboardGetResponse = {
+      id: number;
+      url: string;
+      dashboard_title: string;
+    };
+
+    let dashboard: DashboardGetResponse | null = null;
+    if (this.state.newDashboardName || this.state.saveToDashboardId) {
+      let saveToDashboardId = this.state.saveToDashboardId || null;
+      if (!this.state.saveToDashboardId) {
+        promise = promise
+          .then(() =>
+            this.props.actions.createDashboard(this.state.newDashboardName),
+          )
+          .then((response: { id: number }) => {
+            saveToDashboardId = response.id;
+          });
+      }
+
+      promise = promise
+        .then(() => this.props.actions.getDashboard(saveToDashboardId))
+        .then((response: { result: DashboardGetResponse }) => {
+          dashboard = response.result;
+          const dashboards = new Set<number>(this.props.sliceDashboards);
+          dashboards.add(dashboard.id);
+          formData.dashboards = Array.from(dashboards);
+        });
+    }
+
+    //  Update or create slice
+    if (this.state.action === 'overwrite') {
+      promise = promise.then(() =>
+        this.props.actions.updateSlice(
+          this.props.slice,
+          this.state.newSliceName,
+          formData,
+          dashboard
+            ? {
+                title: dashboard.dashboard_title,
+                new: !this.state.saveToDashboardId,
+              }
+            : null,
+        ),
+      );
+    } else {
+      promise = promise.then(() =>
+        this.props.actions.createSlice(
+          this.state.newSliceName,
+          formData,
+          dashboard
+            ? {
+                title: dashboard.dashboard_title,
+                new: !this.state.saveToDashboardId,
+              }
+            : null,
+        ),
+      );
+    }
+
+    promise.then(((value: { id: number }) => {
+      //  Update recent dashboard
+      if (dashboard) {
+        sessionStorage.setItem(SK_DASHBOARD_ID, `${dashboard.id}`);
+      } else {
+        sessionStorage.removeItem(SK_DASHBOARD_ID);
+      }
+
+      // Go to new dashboard url
+      if (gotodash && dashboard) {
+        this.props.history.push(dashboard.url);
+        return;
+      }
+
+      const searchParams = new URLSearchParams(this.props.location.search);
+      searchParams.set('save_action', this.state.action);
+      searchParams.delete('form_data_key');
+      if (this.state.action === 'saveas') {
+        searchParams.set('slice_id', value.id.toString());
+      }
+      this.props.history.replace(`/explore/?${searchParams.toString()}`);
+    }) as (value: any) => void);
+
     this.props.onHide();
   }
 
@@ -296,11 +353,19 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
   }
 }
 
+interface StateProps {
+  datasource: any;
+  slice: any;
+  userId: any;
+  dashboards: any;
+  alert: any;
+}
+
 function mapStateToProps({
   explore,
   saveModal,
   user,
-}: Record<string, any>): Partial<SaveModalProps> {
+}: Record<string, any>): StateProps {
   return {
     datasource: explore.datasource,
     slice: explore.slice,
@@ -310,4 +375,4 @@ function mapStateToProps({
   };
 }
 
-export default connect(mapStateToProps, () => ({}))(SaveModal);
+export default withRouter(connect(mapStateToProps, () => ({}))(SaveModal));

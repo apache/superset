@@ -16,23 +16,29 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Dataset } from '@superset-ui/chart-controls';
-import { getDatasourceUid } from 'src/utils/getDatasourceUid';
-import {
-  AnyDatasourcesAction,
-  SET_DATASOURCE,
-} from '../actions/datasourcesActions';
 
-export default function datasourcesReducer(
-  // TODO: change type to include other datasource types
-  datasources: { [key: string]: Dataset },
-  action: AnyDatasourcesAction,
-) {
-  if (action.type === SET_DATASOURCE) {
-    return {
-      ...datasources,
-      [getDatasourceUid(action.datasource)]: action.datasource,
-    };
+import React from 'react';
+import { FeatureFlag, isFeatureEnabled, t } from '@superset-ui/core';
+import { detectOS } from 'src/utils/common';
+
+export const getSliceHeaderTooltip = (sliceName: string | undefined) => {
+  if (isFeatureEnabled(FeatureFlag.DASHBOARD_EDIT_CHART_IN_NEW_TAB)) {
+    return sliceName
+      ? t('Click to edit %s in a new tab', sliceName)
+      : t('Click to edit chart.');
   }
-  return datasources || {};
-}
+  const isMac = detectOS() === 'MacOS';
+  const firstLine = sliceName
+    ? t('Click to edit %s.', sliceName)
+    : t('Click to edit chart.');
+  const secondLine = t(
+    'Use %s to open in a new tab.',
+    isMac ? '⌘ + click' : 'ctrl + click',
+  );
+  return (
+    <>
+      <div>{firstLine}</div>
+      <div>{secondLine}</div>
+    </>
+  );
+};

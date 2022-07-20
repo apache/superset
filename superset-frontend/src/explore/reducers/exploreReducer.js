@@ -28,6 +28,7 @@ import {
   StandardizedFormData,
 } from 'src/explore/controlUtils';
 import * as actions from 'src/explore/actions/exploreActions';
+import { HYDRATE_EXPLORE } from '../actions/hydrateExplore';
 
 export default function exploreReducer(state = {}, action) {
   const actionHandlers = {
@@ -47,6 +48,19 @@ export default function exploreReducer(state = {}, action) {
       return {
         ...state,
         isDatasourceMetaLoading: true,
+      };
+    },
+    [actions.SAVE_DATASOURCE]() {
+      return {
+        ...state,
+        datasource: action.datasource,
+        controls: {
+          ...state.controls,
+          datasource: {
+            ...state.controls.datasource,
+            datasource: action.datasource,
+          },
+        },
       };
     },
     [actions.UPDATE_FORM_DATA_BY_DATASOURCE]() {
@@ -247,8 +261,12 @@ export default function exploreReducer(state = {}, action) {
         force: action.force,
       };
     },
+    [HYDRATE_EXPLORE]() {
+      return {
+        ...action.data.explore,
+      };
+    },
   };
-
   if (action.type in actionHandlers) {
     return actionHandlers[action.type]();
   }

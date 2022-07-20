@@ -91,6 +91,18 @@ export const URL_PARAMS = {
     name: 'permalink_key',
     type: 'string',
   },
+  vizType: {
+    name: 'viz_type',
+    type: 'string',
+  },
+  showDatabaseModal: {
+    name: 'show_database_modal',
+    type: 'boolean',
+  },
+  saveAction: {
+    name: 'save_action',
+    type: 'string',
+  },
 } as const;
 
 export const RESERVED_CHART_URL_PARAMS: string[] = [

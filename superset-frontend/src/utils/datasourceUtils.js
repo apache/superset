@@ -16,8 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { getUiOverrideRegistry } from '@superset-ui/core';
-
-test('should get instance of getUiOverrideRegistry', () => {
-  expect(getUiOverrideRegistry().name).toBe('UiOverrideRegistry');
+export const getDatasourceAsSaveableDataset = source => ({
+  columns: source.columns,
+  name: source?.datasource_name || 'Untitled',
+  dbId: source.database.id,
+  sql: source?.sql || '',
+  schema: source?.schema,
 });

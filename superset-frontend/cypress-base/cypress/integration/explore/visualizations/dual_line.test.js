@@ -23,7 +23,7 @@ describe('Visualization > Dual Line', () => {
     slice_id: 58,
     granularity_sqla: 'ds',
     time_grain_sqla: 'P1D',
-    time_range: '100+years+ago+:+now',
+    time_range: '100 years ago : now',
     color_scheme: 'bnbColors',
     x_axis_format: 'smart_date',
     metric: 'sum__num',
@@ -35,7 +35,7 @@ describe('Visualization > Dual Line', () => {
   };
 
   function verify(formData) {
-    cy.visitChartByParams(JSON.stringify(formData));
+    cy.visitChartByParams(formData);
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
   }
 

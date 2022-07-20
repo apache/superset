@@ -25,7 +25,7 @@ import Alert from 'src/components/Alert';
 import Badge from 'src/components/Badge';
 import shortid from 'shortid';
 import { styled, SupersetClient, t, withTheme } from '@superset-ui/core';
-import { Select, Row, Col } from 'src/components';
+import { Select, AsyncSelect, Row, Col } from 'src/components';
 import { FormLabel } from 'src/components/Form';
 import Button from 'src/components/Button';
 import Tabs from 'src/components/Tabs';
@@ -548,7 +548,7 @@ function OwnersSelector({ datasource, onChange }) {
   }, []);
 
   return (
-    <Select
+    <AsyncSelect
       ariaLabel={t('Select owners')}
       mode="multiple"
       name="owners"
@@ -589,9 +589,6 @@ class DatasourceEditor extends React.PureComponent {
         }),
       },
       errors: [],
-      isDruid:
-        props.datasource.type === 'druid' ||
-        props.datasource.datasource_type === 'druid',
       isSqla:
         props.datasource.datasource_type === 'table' ||
         props.datasource.type === 'table',
@@ -1088,20 +1085,6 @@ class DatasourceEditor extends React.PureComponent {
                     }
                   />
                 </>
-              )}
-              {this.state.isDruid && (
-                <Field
-                  fieldKey="json"
-                  label={t('JSON')}
-                  description={
-                    <div>
-                      {t('The JSON metric or post aggregation definition.')}
-                    </div>
-                  }
-                  control={
-                    <TextAreaControl language="json" offerEditInModal={false} />
-                  }
-                />
               )}
             </div>
           )}

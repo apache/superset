@@ -228,7 +228,6 @@ class TestUtils(SupersetTestCase):
                 {"col": "__time_col", "op": "in", "val": "birth_year"},
                 {"col": "__time_grain", "op": "in", "val": "years"},
                 {"col": "A", "op": "like", "val": "hello"},
-                {"col": "__time_origin", "op": "in", "val": "now"},
                 {"col": "__granularity", "op": "in", "val": "90 seconds"},
             ]
         }
@@ -248,12 +247,10 @@ class TestUtils(SupersetTestCase):
             "granularity_sqla": "birth_year",
             "time_grain_sqla": "years",
             "granularity": "90 seconds",
-            "druid_time_origin": "now",
             "applied_time_extras": {
                 "__time_range": "1 year ago :",
                 "__time_col": "birth_year",
                 "__time_grain": "years",
-                "__time_origin": "now",
                 "__granularity": "90 seconds",
             },
         }

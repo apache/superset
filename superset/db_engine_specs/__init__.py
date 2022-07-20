@@ -71,7 +71,7 @@ def load_engine_specs() -> List[Type[BaseEngineSpec]]:
         try:
             engine_spec = ep.load()
         except Exception:  # pylint: disable=broad-except
-            logger.warning("Unable to load Superset DB engine spec: %s", engine_spec)
+            logger.warning("Unable to load Superset DB engine spec: %s", ep.name)
             continue
         engine_specs.append(engine_spec)
 
