@@ -16,7 +16,9 @@
 # under the License.
 
 from datetime import datetime
-from typing import Any, Dict, Optional, TYPE_CHECKING
+from typing import Any, Dict, List, Optional, TYPE_CHECKING
+
+from sqlalchemy.engine.reflection import Inspector
 
 from superset.constants import USER_AGENT
 from superset.db_engine_specs.base import BaseEngineSpec
@@ -87,3 +89,16 @@ class DatabricksNativeEngineSpec(DatabricksODBCEngineSpec):
         }
         extra.update(BaseEngineSpec.get_extra_params(database))
         return extra
+
+    @classmethod
+    def get_table_names(
+        cls,
+        database: "Database",
+        inspector: Inspector,
+        schema: Optional[str],
+    ) -> List[str]:
+        tables = set(super().get_table_names(database, inspector, schema))
+        views = set(cls.get_view_names(database, inspector, schema))
+        actual_tables = tables - views
+
+        return list(actual_tables)
