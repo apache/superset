@@ -110,19 +110,18 @@ const config: ControlPanelConfig = {
             name: 'cols',
             config: {
               ...sharedControls.groupby,
-              label: t('Columns'),
+              label: t('Chart Parameters'),
               description: t('Columns to group by'),
             },
           },
         ],
         [
           {
-            name: 'metrics',
+            name: 'xValues',
             config: {
-              ...sharedControls.metrics,
-              // it's possible to add validators to controls if
-              // certain selections/types need to be enforced
-              validators: [validateNonEmpty],
+              ...sharedControls.columns,
+              label: t('X-Axis'),
+              description: t('X-Axis plot'),
             },
           },
         ],

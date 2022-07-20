@@ -54,7 +54,7 @@ function SupersetPluginChartDualYAxis(
   let rootElem = useRef<HTMLDivElement>();
   const chartRef = useRef<ECharts>();
   let chartData: [] = [];
-  let xAxisData: [] = [];
+  let chartCols: [] = [];
 
   const colors = ['#5470C6', '#91CC75', '#EE6666'];
 
@@ -137,50 +137,33 @@ function SupersetPluginChartDualYAxis(
     if (!chartRef.current) {
       chartRef.current = init(rootElem.current);
     }
-    if (formData.cols.length > 2) {
-      formData.cols.map((colData, index) => {
+    chartCols = formData.cols;
+    if (formData.cols.length > 1) {
+      chartCols = formData.cols.filter(
+        colName => colName !== formData.xValues[0],
+      );
+      chartCols.map((colData, index) => {
         data.map(colValue => {
           chartData.push(colValue[colData]);
         });
-        if (index + 1 < formData.cols.length) {
+        if (index + 1 !== chartCols.length) {
           options.yAxis.push(barChartConfig(colData, colors[index]));
           options.series.push(seriesBarData(colData, chartData));
         } else {
           options.yAxis.push(lineChartConfig(colData, colors[index]));
-          options.xAxis.push(xAxisConfig(chartData));
+          options.series.push(seriesLineData(colData, chartData));
         }
         chartData = [];
       });
-      data.map(elements => {
-        xAxisData.push(elements[formData.metrics[formData.metrics.length - 1]]);
-      });
-      options.series.push(
-        seriesLineData(formData.cols[formData.cols.length - 1], xAxisData),
-      );
-    } else {
-      formData.cols.map((colData, index) => {
-        data.map(colValue => {
-          chartData.push(colValue[colData]);
-        });
-        options.yAxis.push(barChartConfig(colData, colors[index]));
-        options.series.push(seriesBarData(colData, chartData));
-        chartData = [];
-      });
-      data.map(metricValue => {
-        xAxisData.push(metricValue[formData.metrics[0]]);
-      });
-      options.xAxis.push(xAxisConfig(xAxisData));
     }
-    if (options.yAxis.length >= 2) {
-      options.yAxis[1].offset = 80;
+    if (formData.xValues.length) {
+      data.map(colValue => {
+        chartData.push(colValue[formData.xValues[0]]);
+      });
+      options.xAxis.push(xAxisConfig(chartData));
+      chartData = [];
     }
-    if (options.series.length >= 2) {
-      options.series[1].yAxisIndex = 1;
-      if (options.series[2]) {
-        options.series[2].yAxisIndex = 2;
-      }
-    }
-    console.log(options, 'options');
+    options.series[1].yAxisIndex = 1;
     chartRef.current.setOption(options, true);
   }, []);
 
