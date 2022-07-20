@@ -22,7 +22,13 @@ import { render, RenderOptions } from '@testing-library/react';
 import { ThemeProvider, supersetTheme } from '@superset-ui/core';
 import { BrowserRouter } from 'react-router-dom';
 import { Provider } from 'react-redux';
-import { combineReducers, createStore, applyMiddleware, compose } from 'redux';
+import {
+  combineReducers,
+  createStore,
+  applyMiddleware,
+  compose,
+  Store,
+} from 'redux';
 import thunk from 'redux-thunk';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
@@ -36,6 +42,7 @@ type Options = Omit<RenderOptions, 'queries'> & {
   useRouter?: boolean;
   initialState?: {};
   reducers?: {};
+  store?: Store;
 };
 
 function createWrapper(options?: Options) {
@@ -46,6 +53,7 @@ function createWrapper(options?: Options) {
     useRouter,
     initialState,
     reducers,
+    store,
   } = options || {};
 
   return ({ children }: { children?: ReactNode }) => {
@@ -58,13 +66,15 @@ function createWrapper(options?: Options) {
     }
 
     if (useRedux) {
-      const store = createStore(
-        combineReducers(reducers || reducerIndex),
-        initialState || {},
-        compose(applyMiddleware(thunk)),
-      );
+      const mockStore =
+        store ??
+        createStore(
+          combineReducers(reducers || reducerIndex),
+          initialState || {},
+          compose(applyMiddleware(thunk)),
+        );
 
-      result = <Provider store={store}>{result}</Provider>;
+      result = <Provider store={mockStore}>{result}</Provider>;
     }
 
     if (useQueryParams) {

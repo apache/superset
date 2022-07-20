@@ -486,6 +486,7 @@ class Header extends React.PureComponent {
     return (
       <div
         css={headerContainerStyle}
+        data-test="dashboard-header-container"
         data-test-id={dashboardInfo.id}
         className="dashboard-header-container"
       >
