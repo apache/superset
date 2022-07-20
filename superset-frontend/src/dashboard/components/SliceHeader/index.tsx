@@ -38,7 +38,7 @@ import Icons from 'src/components/Icons';
 import { RootState } from 'src/dashboard/types';
 import FilterIndicator from 'src/dashboard/components/FiltersBadge/FilterIndicator';
 import { getSliceHeaderTooltip } from 'src/dashboard/util/getSliceHeaderTooltip';
-import { DashboardTabIdContext } from 'src/dashboard/containers/DashboardPage';
+import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
 import { clearDataMask } from 'src/dataMask/actions';
 
 type SliceHeaderProps = SliceHeaderControlsProps & {
@@ -98,7 +98,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
 }) => {
   const dispatch = useDispatch();
   const uiConfig = useUiConfig();
-  const dashboardTabId = useContext(DashboardTabIdContext);
+  const dashboardPageId = useContext(DashboardPageIdContext);
   const [headerTooltip, setHeaderTooltip] = useState<ReactNode | null>(null);
   const headerRef = useRef<HTMLDivElement>(null);
   // TODO: change to indicator field after it will be implemented
@@ -131,7 +131,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
     }
   }, [sliceName, width, height, canExplore]);
 
-  const exploreUrl = `/explore/?dashboard_tab_id=${dashboardTabId}&slice_id=${slice.slice_id}`;
+  const exploreUrl = `/explore/?dashboard_page_id=${dashboardPageId}&slice_id=${slice.slice_id}`;
 
   return (
     <div className="chart-header" data-test="slice-header" ref={innerRef}>

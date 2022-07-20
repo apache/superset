@@ -19,26 +19,20 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { useLocation } from 'react-router-dom';
-import {
-  DataRecordValue,
-  isDefined,
-  JsonObject,
-  makeApi,
-  t,
-} from '@superset-ui/core';
+import { isDefined, JsonObject, makeApi, t } from '@superset-ui/core';
 import Loading from 'src/components/Loading';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { URL_PARAMS } from 'src/constants';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import getFormDataWithExtraFilters from 'src/dashboard/util/charts/getFormDataWithExtraFilters';
+import { getAppliedFilterValues } from 'src/dashboard/util/activeDashboardFilters';
 import { getParsedExploreURLParams } from './exploreUtils/getParsedExploreURLParams';
 import { hydrateExplore } from './actions/hydrateExplore';
 import ExploreViewContainer from './components/ExploreViewContainer';
 import { ExploreResponsePayload } from './types';
 import { fallbackExploreInitialData } from './fixtures';
 import { getItem, LocalStorageKeys } from '../utils/localStorageHelpers';
-import { getChartIdAndColumnFromFilterKey } from '../dashboard/util/getDashboardFilterKey';
 import { getFormDataWithDashboardContext } from './controlUtils/getFormDataWithDashboardContext';
 
 const isResult = (rv: JsonObject): rv is ExploreResponsePayload =>
@@ -68,10 +62,10 @@ const fetchExploreData = async (exploreUrlParams: URLSearchParams) => {
 };
 
 const getDashboardContextFormData = () => {
-  const dashboardTabId = getUrlParam(URL_PARAMS.dashboardTabId);
+  const dashboardPageId = getUrlParam(URL_PARAMS.dashboardPageId);
   const sliceId = getUrlParam(URL_PARAMS.sliceId) || 0;
   let dashboardContextWithFilters = {};
-  if (dashboardTabId) {
+  if (dashboardPageId) {
     const {
       labelColors,
       sharedLabelColors,
@@ -83,26 +77,11 @@ const getDashboardContextFormData = () => {
       dashboardId,
     } =
       getItem(LocalStorageKeys.dashboard__explore_context, {})[
-        dashboardTabId
+        dashboardPageId
       ] || {};
     dashboardContextWithFilters = getFormDataWithExtraFilters({
       chart: { id: sliceId },
-      filters: Object.fromEntries(
-        (
-          Object.entries(filterBoxFilters) as [
-            string,
-            {
-              scope: number[];
-              values: DataRecordValue[];
-            },
-          ][]
-        )
-          .filter(([, filter]) => filter.scope.includes(sliceId))
-          .map(([key, filter]) => [
-            getChartIdAndColumnFromFilterKey(key).column,
-            filter.values,
-          ]),
-      ),
+      filters: getAppliedFilterValues(sliceId, filterBoxFilters),
       nativeFilters,
       chartConfiguration,
       colorScheme,

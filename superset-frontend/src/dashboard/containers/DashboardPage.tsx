@@ -19,15 +19,13 @@
 import React, { FC, useEffect, useMemo, useRef, useState } from 'react';
 import {
   CategoricalColorNamespace,
-  DataMaskStateWithId,
   FeatureFlag,
-  Filters,
   getSharedLabelColor,
   isFeatureEnabled,
-  JsonObject,
   t,
   useTheme,
 } from '@superset-ui/core';
+import pick from 'lodash/pick';
 import { useDispatch, useSelector } from 'react-redux';
 import { Global } from '@emotion/react';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
@@ -64,6 +62,7 @@ import {
   getPermalinkValue,
 } from 'src/dashboard/components/nativeFilters/FilterBar/keyValue';
 import { filterCardPopoverStyle } from 'src/dashboard/styles';
+import { DashboardContextForExplore } from 'src/types/DashboardContextForExplore';
 import shortid from 'shortid';
 import { RootState } from '../types';
 import { getActiveFilters } from '../util/activeDashboardFilters';
@@ -72,7 +71,7 @@ export const MigrationContext = React.createContext(
   FILTER_BOX_MIGRATION_STATES.NOOP,
 );
 
-export const DashboardTabIdContext = React.createContext('');
+export const DashboardPageIdContext = React.createContext('');
 
 setupPlugins();
 const DashboardContainer = React.lazy(
@@ -106,75 +105,51 @@ const getDashboardContextLocalStorage = () => {
 };
 
 const updateDashboardTabLocalStorage = (
-  dashboardTabId: string,
-  payload?: Record<string, any>,
+  dashboardPageId: string,
+  dashboardContext: DashboardContextForExplore,
 ) => {
   const dashboardsContexts = getDashboardContextLocalStorage();
   setItem(LocalStorageKeys.dashboard__explore_context, {
     ...dashboardsContexts,
-    [dashboardTabId]: payload,
+    [dashboardPageId]: dashboardContext,
   });
 };
 
 const useSyncDashboardStateWithLocalStorage = () => {
-  const labelColors = useSelector<RootState, JsonObject>(
-    state => state.dashboardInfo?.metadata?.label_colors || {},
-  );
-  const sharedLabelColors = useSelector<RootState, JsonObject>(
-    state => state.dashboardInfo?.metadata?.shared_label_colors || {},
-  );
-  const colorScheme = useSelector<RootState, string>(
-    state => state.dashboardState?.colorScheme,
-  );
-  const chartConfiguration = useSelector<RootState, JsonObject>(
-    state => state.dashboardInfo.metadata?.chart_configuration,
-  );
-  const nativeFilters = useSelector<RootState, Filters>(
-    state => state.nativeFilters.filters,
-  );
-  const dataMask = useSelector<RootState, DataMaskStateWithId>(
-    state => state.dataMask,
-  );
-  const dashboardId = useSelector<RootState, number>(
-    state => state.dashboardInfo.id,
-  );
-  const filterBoxFilters = useSelector<RootState, Record<string, any>>(() =>
-    getActiveFilters(),
-  );
-  const dashboardTabId = useMemo(() => shortid.generate(), []);
+  const dashboardPageId = useMemo(() => shortid.generate(), []);
+  const dashboardContextForExplore = useSelector<
+    RootState,
+    DashboardContextForExplore
+  >(({ dashboardInfo, dashboardState, nativeFilters, dataMask }) => ({
+    labelColors: dashboardInfo.metadata?.label_colors || {},
+    sharedLabelColors: dashboardInfo.metadata?.shared_label_colors || {},
+    colorScheme: dashboardState?.colorScheme,
+    chartConfiguration: dashboardInfo.metadata?.chart_configuration || {},
+    nativeFilters: Object.entries(nativeFilters.filters).reduce(
+      (acc, [key, filterValue]) => ({
+        ...acc,
+        [key]: pick(filterValue, ['chartsInScope']),
+      }),
+      {},
+    ),
+    dataMask,
+    dashboardId: dashboardInfo.id,
+    filterBoxFilters: getActiveFilters(),
+    dashboardPageId,
+  }));
 
   useEffect(() => {
-    const payload = {
-      labelColors,
-      sharedLabelColors,
-      colorScheme,
-      chartConfiguration,
-      nativeFilters,
-      dataMask,
-      dashboardId,
-      filterBoxFilters,
-    };
-    updateDashboardTabLocalStorage(dashboardTabId, payload);
+    updateDashboardTabLocalStorage(dashboardPageId, dashboardContextForExplore);
     return () => {
       // mark tab id as redundant when dashboard unmounts - case when user opens
       // Explore in the same tab
-      updateDashboardTabLocalStorage(dashboardTabId, {
-        ...payload,
+      updateDashboardTabLocalStorage(dashboardPageId, {
+        ...dashboardContextForExplore,
         isRedundant: true,
       });
     };
-  }, [
-    chartConfiguration,
-    colorScheme,
-    dashboardId,
-    dashboardTabId,
-    dataMask,
-    filterBoxFilters,
-    labelColors,
-    nativeFilters,
-    sharedLabelColors,
-  ]);
-  return dashboardTabId;
+  }, [dashboardContextForExplore, dashboardPageId]);
+  return dashboardPageId;
 };
 
 export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
@@ -183,7 +158,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   const user = useSelector<any, UserWithPermissionsAndRoles>(
     state => state.user,
   );
-  const dashboardTabId = useSyncDashboardStateWithLocalStorage();
+  const dashboardPageId = useSyncDashboardStateWithLocalStorage();
   const { addDangerToast } = useToasts();
   const { result: dashboard, error: dashboardApiError } =
     useDashboard(idOrSlug);
@@ -216,8 +191,8 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
       const dashboardsContexts = getDashboardContextLocalStorage();
       setItem(LocalStorageKeys.dashboard__explore_context, {
         ...dashboardsContexts,
-        [dashboardTabId]: {
-          ...dashboardsContexts[dashboardTabId],
+        [dashboardPageId]: {
+          ...dashboardsContexts[dashboardPageId],
           isRedundant: true,
         },
       });
@@ -226,7 +201,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     return () => {
       window.removeEventListener('beforeunload', handleTabClose);
     };
-  }, [dashboardTabId]);
+  }, [dashboardPageId]);
 
   useEffect(() => {
     dispatch(setDatasetsStatus(status));
@@ -410,9 +385,9 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
       />
 
       <MigrationContext.Provider value={filterboxMigrationState}>
-        <DashboardTabIdContext.Provider value={dashboardTabId}>
+        <DashboardPageIdContext.Provider value={dashboardPageId}>
           <DashboardContainer />
-        </DashboardTabIdContext.Provider>
+        </DashboardPageIdContext.Provider>
       </MigrationContext.Provider>
     </>
   );

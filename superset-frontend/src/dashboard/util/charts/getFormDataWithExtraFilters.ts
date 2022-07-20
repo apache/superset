@@ -19,8 +19,8 @@
 import {
   DataMaskStateWithId,
   DataRecordFilters,
-  Filters,
   JsonObject,
+  PartialFilters,
 } from '@superset-ui/core';
 import { ChartQueryPayload } from 'src/dashboard/types';
 import { getExtraFormData } from 'src/dashboard/components/nativeFilters/utils';
@@ -42,7 +42,7 @@ export interface GetFormDataWithExtraFiltersArguments {
   colorNamespace?: string;
   sliceId: number;
   dataMask: DataMaskStateWithId;
-  nativeFilters: Filters;
+  nativeFilters: PartialFilters;
   extraControls: Record<string, string | boolean | null>;
   labelColors?: Record<string, string>;
   sharedLabelColors?: Record<string, string>;

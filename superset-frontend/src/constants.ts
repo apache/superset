@@ -103,8 +103,8 @@ export const URL_PARAMS = {
     name: 'save_action',
     type: 'string',
   },
-  dashboardTabId: {
-    name: 'dashboard_tab_id',
+  dashboardPageId: {
+    name: 'dashboard_page_id',
     type: 'string',
   },
 } as const;

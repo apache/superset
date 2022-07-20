@@ -16,7 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DataMaskStateWithId, Filters, JsonObject } from '@superset-ui/core';
+import {
+  DataMaskStateWithId,
+  PartialFilters,
+  JsonObject,
+} from '@superset-ui/core';
 import { ActiveFilters } from '../types';
 import { ChartConfiguration } from '../reducers/types';
 
@@ -39,7 +43,7 @@ export const getAllActiveFilters = ({
 }: {
   chartConfiguration: ChartConfiguration;
   dataMask: DataMaskStateWithId;
-  nativeFilters: Filters;
+  nativeFilters: PartialFilters;
   allSliceIds: number[];
 }): ActiveFilters => {
   const activeFilters = {};

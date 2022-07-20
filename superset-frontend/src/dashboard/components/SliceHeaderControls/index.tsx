@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { MouseEvent, Key } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, RouteComponentProps, withRouter } from 'react-router-dom';
 import moment from 'moment';
 import {
   Behavior,
@@ -126,6 +126,8 @@ export interface SliceHeaderControlsProps {
   supersetCanCSV?: boolean;
   sliceCanEdit?: boolean;
 }
+type SliceHeaderControlsPropsWithRouter = SliceHeaderControlsProps &
+  RouteComponentProps;
 interface State {
   showControls: boolean;
   showCrossFilterScopingModal: boolean;
@@ -139,10 +141,10 @@ const dropdownIconsStyles = css`
 `;
 
 class SliceHeaderControls extends React.PureComponent<
-  SliceHeaderControlsProps,
+  SliceHeaderControlsPropsWithRouter,
   State
 > {
-  constructor(props: SliceHeaderControlsProps) {
+  constructor(props: SliceHeaderControlsPropsWithRouter) {
     super(props);
     this.toggleControls = this.toggleControls.bind(this);
     this.refreshChart = this.refreshChart.bind(this);
@@ -354,10 +356,12 @@ class SliceHeaderControls extends React.PureComponent<
                 />
               }
               modalFooter={
-                <Button buttonStyle="secondary" buttonSize="small">
-                  <Link to={this.props.exploreUrl ?? '#'}>
-                    {t('Edit chart')}
-                  </Link>
+                <Button
+                  buttonStyle="secondary"
+                  buttonSize="small"
+                  onClick={() => this.props.history.push(this.props.exploreUrl)}
+                >
+                  {t('Edit chart')}
                 </Button>
               }
               draggable
@@ -463,4 +467,4 @@ class SliceHeaderControls extends React.PureComponent<
   }
 }
 
-export default SliceHeaderControls;
+export default withRouter(SliceHeaderControls);
