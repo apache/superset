@@ -220,14 +220,19 @@ eyes-storybook-dependencies() {
 }
 
 cypress-run-applitools() {
+  cd "$GITHUB_WORKSPACE/superset-frontend/cypress-base"
+
   local flasklog="${HOME}/flask.log"
   local port=8081
+  local cypress="./node_modules/.bin/cypress run"
+  local browser=${CYPRESS_BROWSER:-chrome}
+  
   export CYPRESS_BASE_URL="http://localhost:${port}"
 
   nohup flask run --no-debugger -p $port >"$flasklog" 2>&1 </dev/null &
   local flaskProcessId=$!
 
-  cypress-run "*/**/*.applitools.test.ts"
+  $cypress --spec "cypress/integration/*/**/*.applitools.test.ts" --browser "$browser" --headless --config ignoreTestFiles="[]"
 
   codecov -c -F "cypress" || true
 
