@@ -40,7 +40,7 @@ export const QUERY_EDITOR_SAVED = 'QUERY_EDITOR_SAVED';
 export const CLONE_QUERY_TO_NEW_TAB = 'CLONE_QUERY_TO_NEW_TAB';
 export const REMOVE_QUERY_EDITOR = 'REMOVE_QUERY_EDITOR';
 export const MERGE_TABLE = 'MERGE_TABLE';
-export const REMOVE_TABLE = 'REMOVE_TABLE';
+export const REMOVE_TABLES = 'REMOVE_TABLES';
 export const END_QUERY = 'END_QUERY';
 export const REMOVE_QUERY = 'REMOVE_QUERY';
 export const EXPAND_TABLE = 'EXPAND_TABLE';
@@ -1213,16 +1213,21 @@ export function collapseTable(table) {
   };
 }
 
-export function removeTable(table) {
+export function removeTables(tables) {
   return function (dispatch) {
+    const tablesToRemove = tables?.filter(Boolean) ?? [];
     const sync = isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)
-      ? SupersetClient.delete({
-          endpoint: encodeURI(`/tableschemaview/${table.id}`),
-        })
+      ? Promise.all(
+          tablesToRemove.map(table =>
+            SupersetClient.delete({
+              endpoint: encodeURI(`/tableschemaview/${table.id}`),
+            }),
+          ),
+        )
       : Promise.resolve();
 
     return sync
-      .then(() => dispatch({ type: REMOVE_TABLE, table }))
+      .then(() => dispatch({ type: REMOVE_TABLES, tables: tablesToRemove }))
       .catch(() =>
         dispatch(
           addDangerToast(

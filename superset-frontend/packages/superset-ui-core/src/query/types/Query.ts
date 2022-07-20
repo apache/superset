@@ -334,6 +334,7 @@ export type QueryResults = {
     expanded_columns: QueryColumn[];
     selected_columns: QueryColumn[];
     query: { limit: number };
+    query_id?: number;
   };
 };
 

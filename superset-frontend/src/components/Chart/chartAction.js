@@ -598,8 +598,12 @@ export function refreshChart(chartKey, force, dashboardId) {
   };
 }
 
-export const getDatasetSamples = async (datasetId, force) => {
-  const endpoint = `/api/v1/dataset/${datasetId}/samples?force=${force}`;
+export const getDatasourceSamples = async (
+  datasourceType,
+  datasourceId,
+  force,
+) => {
+  const endpoint = `/api/v1/explore/samples?force=${force}&datasource_type=${datasourceType}&datasource_id=${datasourceId}`;
   try {
     const response = await SupersetClient.get({ endpoint });
     return response.json.result;

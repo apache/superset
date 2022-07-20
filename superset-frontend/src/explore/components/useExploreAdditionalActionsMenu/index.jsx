@@ -107,7 +107,6 @@ export const useExploreAdditionalActionsMenu = (
   );
 
   const { datasource } = latestQueryFormData;
-  const sqlSupported = datasource && datasource.split('__')[1] === 'table';
 
   const shareByEmail = useCallback(async () => {
     try {
@@ -356,7 +355,7 @@ export const useExploreAdditionalActionsMenu = (
             responsive
           />
         </Menu.Item>
-        {sqlSupported && (
+        {datasource && (
           <Menu.Item key={MENU_KEYS.RUN_IN_SQL_LAB}>
             {t('Run in SQL Lab')}
           </Menu.Item>
@@ -373,7 +372,6 @@ export const useExploreAdditionalActionsMenu = (
       openSubmenus,
       showReportSubMenu,
       slice,
-      sqlSupported,
       theme.gridUnit,
     ],
   );
