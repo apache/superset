@@ -19,8 +19,8 @@
 import React, { ReactNode, useState, useCallback, useRef } from 'react';
 import Button from 'src/components/Button';
 import ControlHeader from 'src/explore/components/ControlHeader';
-import AsyncSelect, { AsyncSelectProps, AsyncSelectRef } from './AsyncSelect';
-import Select, { SelectProps, OptionsTypePage, OptionsType } from './Select';
+import AsyncSelect, { AsyncSelectProps, AsyncSelectRef, OptionsTypePage } from './AsyncSelect';
+import Select, { SelectProps, OptionsType } from './Select';
 
 export default {
   title: 'Select',

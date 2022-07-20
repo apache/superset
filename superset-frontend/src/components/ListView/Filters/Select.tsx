@@ -27,6 +27,7 @@ import { Select } from 'src/components';
 import { Filter, SelectOption } from 'src/components/ListView/types';
 import { FormLabel } from 'src/components/Form';
 import { FilterContainer, BaseFilter, FilterHandler } from './Base';
+import AsyncSelect from 'src/components/Select/AsyncSelect';
 
 interface SelectFilterProps extends BaseFilter {
   fetchSelects?: Filter['fetchSelects'];
@@ -86,19 +87,37 @@ function SelectFilter(
 
   return (
     <FilterContainer>
-      <Select
-        allowClear
-        ariaLabel={typeof Header === 'string' ? Header : name || t('Filter')}
-        labelInValue
-        data-test="filters-select"
-        header={<FormLabel>{Header}</FormLabel>}
-        onChange={onChange}
-        onClear={onClear}
-        options={fetchSelects ? fetchAndFormatSelects : selects}
-        placeholder={t('Select or type a value')}
-        showSearch
-        value={selectedOption}
-      />
+      {
+        fetchSelects ? (
+        <AsyncSelect
+          allowClear
+          ariaLabel={typeof Header === 'string' ? Header : name || t('Filter')}
+          data-test="filters-select"
+          header={<FormLabel>{Header}</FormLabel>}
+          onChange={onChange}
+          onClear={onClear}
+          options={fetchAndFormatSelects}
+          placeholder={t('Select or type a value')}
+          showSearch
+          value={selectedOption}
+        />
+        ) : (
+          <Select
+            allowClear
+            ariaLabel={typeof Header === 'string' ? Header : name || t('Filter')}
+            data-test="filters-select"
+            header={<FormLabel>{Header}</FormLabel>}
+            labelInValue
+            onChange={onChange}
+            onClear={onClear}
+            options={selects}
+            placeholder={t('Select or type a value')}
+            showSearch
+            value={selectedOption}
+          />
+        )
+      }
+      
     </FilterContainer>
   );
 }
