@@ -16,18 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DatasourceKey } from '@superset-ui/core';
+import { DatasourceType, DEFAULT_METRICS } from '@superset-ui/core';
 
-describe('DatasourceKey', () => {
-  it('should handle table data sources', () => {
-    const datasourceKey = new DatasourceKey('5__table');
-    expect(datasourceKey.toString()).toBe('5__table');
-    expect(datasourceKey.toObject()).toEqual({ id: 5, type: 'table' });
-  });
+test('DEFAULT_METRICS', () => {
+  expect(DEFAULT_METRICS).toEqual([
+    {
+      metric_name: 'COUNT(*)',
+      expression: 'COUNT(*)',
+    },
+  ]);
+});
 
-  it('should handle query data sources', () => {
-    const datasourceKey = new DatasourceKey('5__query');
-    expect(datasourceKey.toString()).toBe('5__query');
-    expect(datasourceKey.toObject()).toEqual({ id: 5, type: 'query' });
-  });
+test('DatasourceType', () => {
+  expect(Object.keys(DatasourceType).length).toBe(5);
+  expect(DatasourceType.Table).toBe('table');
+  expect(DatasourceType.Query).toBe('query');
+  expect(DatasourceType.Dataset).toBe('dataset');
+  expect(DatasourceType.SlTable).toBe('sl_table');
+  expect(DatasourceType.SavedQuery).toBe('saved_query');
 });
