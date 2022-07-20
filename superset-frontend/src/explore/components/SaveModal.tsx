@@ -387,7 +387,7 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
                 tooltip={t('A reusable dataset will be saved with your chart.')}
                 placement="right"
               />
-          <Input
+              <Input
                 name="dataset_name"
                 type="text"
                 placeholder="Dataset Name"
@@ -395,7 +395,7 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
                 onChange={this.handleDatasetNameChange}
                 data-test="new-dataset-name"
               />{' '}
-             </FormItem>
+            </FormItem>
           ) : null}
           <FormItem
             label={t('Add to dashboard')}
