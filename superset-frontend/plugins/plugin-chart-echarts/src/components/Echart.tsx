@@ -92,11 +92,10 @@ function Echart(
     previousSelection.current = currentSelection;
   }, [currentSelection]);
 
-  useEffect(() => {
-    if (chartRef.current) {
-      chartRef.current.resize({ width, height });
-    }
-  }, [width, height]);
+  // Ensure that each render and resize is idempotent
+  if (chartRef.current) {
+    chartRef.current.resize({ width, height });
+  }
 
   return <Styles ref={divRef} height={height} width={width} />;
 }
