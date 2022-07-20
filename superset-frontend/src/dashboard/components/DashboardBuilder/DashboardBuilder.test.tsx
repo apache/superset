@@ -137,9 +137,9 @@ describe('DashboardBuilder', () => {
     expect(stickyContainer).toHaveClass('dashboard dashboard--editing');
   });
 
-  it('should render a DragDroppable DashboardHeader', async () => {
-    const { findByTestId } = setup();
-    const header = await findByTestId('dashboard-header-container');
+  it('should render a DragDroppable DashboardHeader', () => {
+    const { queryByTestId } = setup();
+    const header = queryByTestId('dashboard-header-container');
     expect(header).toBeTruthy();
   });
 
