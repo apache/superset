@@ -81,7 +81,7 @@ export default function DatasourceResultsPane({
             datasource.type,
             datasource.id,
             true,
-            filters.length ? filters : null,
+            filters.length ? { filters } : null,
             { page: page + 1, perPage: PAGE_SIZE },
           );
 
