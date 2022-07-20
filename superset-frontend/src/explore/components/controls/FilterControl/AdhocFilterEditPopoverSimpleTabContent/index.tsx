@@ -359,7 +359,7 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
       const col = props.adhocFilter.subject;
       const having = props.adhocFilter.clause === CLAUSES.HAVING;
 
-      if (col && datasource?.filter_select !== false && !having) {
+      if (col && datasource && datasource.filter_select && !having) {
         const controller = new AbortController();
         const { signal } = controller;
         if (loadingComparatorSuggestions) {
