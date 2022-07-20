@@ -1530,9 +1530,15 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 if sqla_col is not None:
                     pass
                 elif col_obj and filter_grain:
-                    sqla_col = col_obj.get_timestamp_expression(
-                        time_grain=filter_grain, template_processor=template_processor
-                    )
+                    if isinstance(col_obj, dict):
+                        sqla_col = self.get_timestamp_expression(
+                            col_obj, time_grain, template_processor
+                        )
+                    else:
+                        sqla_col = col_obj.get_timestamp_expression(
+                            time_grain=filter_grain,
+                            template_processor=template_processor,
+                        )
                 elif col_obj and isinstance(col_obj, dict):
                     sqla_col = sa.column(col_obj.get("column_name"))
                 elif col_obj:
