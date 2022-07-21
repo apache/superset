@@ -23,7 +23,7 @@ from zipfile import is_zipfile, ZipFile
 
 import simplejson
 import yaml
-from flask import make_response, request, Response, send_file
+from flask import g, make_response, request, Response, send_file
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
