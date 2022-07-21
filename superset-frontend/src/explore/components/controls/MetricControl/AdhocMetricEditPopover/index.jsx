@@ -19,7 +19,7 @@
 /* eslint-disable camelcase */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { t, styled, ensureIsArray } from '@superset-ui/core';
+import { t, styled, ensureIsArray, DatasourceType } from '@superset-ui/core';
 import Tabs from 'src/components/Tabs';
 import Button from 'src/components/Button';
 import { Select } from 'src/components';
@@ -370,7 +370,7 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
                   {...savedSelectProps}
                 />
               </FormItem>
-            ) : datasource.type === 'dataset' ? (
+            ) : datasource.type === DatasourceType.Query ? (
               <EmptyStateSmall
                 image="empty.svg"
                 title={t('No saved metrics found')}
