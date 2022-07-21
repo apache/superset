@@ -59,6 +59,7 @@ def get_samples(  # pylint: disable=too-many-arguments,too-many-locals
 
     limit_clause = get_limit_clause(page, per_page)
 
+    # todo(yongjie): Constructing count(*) and samples in the same query_context, then remove query_type==SAMPLES
     # constructing samples query
     samples_instance = QueryContextFactory().create(
         datasource={

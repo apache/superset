@@ -78,4 +78,7 @@ class SamplesRequestSchema(Schema):
     datasource_id = fields.Integer(required=True)
     force = fields.Boolean(load_default=False)
     page = fields.Integer(load_default=1)
-    per_page = fields.Integer(load_default=app.config.get("SAMPLES_ROW_LIMIT", 1000))
+    per_page = fields.Integer(
+        validate=validate.Range(min=1, max=app.config.get("SAMPLES_ROW_LIMIT", 1000)),
+        load_default=app.config.get("SAMPLES_ROW_LIMIT", 1000),
+    )
