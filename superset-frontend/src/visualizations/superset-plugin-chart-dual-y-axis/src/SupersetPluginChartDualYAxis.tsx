@@ -51,36 +51,29 @@ function SupersetPluginChartDualYAxis(
   // There is also a `data` prop, which is, of course, your DATA 🎉
   const { data, height, width, formData } = props;
 
-  let rootElem = useRef<HTMLDivElement>();
+  const rootElem = useRef<HTMLDivElement>();
   const chartRef = useRef<ECharts>();
   let chartData: [] = [];
   let chartCols: [] = [];
-
-  const colors = ['#5470C6', '#91CC75', '#EE6666'];
-
-  const barChartConfig = (name, color) => ({
+  const colors = ['#5470C6', '#EE6666', '#91CC75'];
+  const newBarColors = ['#08c', '#fdab3c', '#A6A6A6FF', '#004765'];
+  const barChartConfig = name => ({
     type: 'value',
-    name: name,
+    name,
     position: 'right',
     alignTicks: true,
     axisLine: {
       show: true,
-      lineStyle: {
-        color: color,
-      },
     },
   });
 
-  const lineChartConfig = (name, color) => ({
+  const lineChartConfig = name => ({
     type: 'value',
-    name: name,
+    name,
     position: 'left',
     alignTicks: true,
     axisLine: {
       show: true,
-      lineStyle: {
-        color: color,
-      },
     },
   });
 
@@ -93,15 +86,15 @@ function SupersetPluginChartDualYAxis(
   });
 
   const seriesBarData = (name, data) => ({
-    name: name,
+    name,
     type: 'bar',
-    data: data,
+    data,
   });
 
   const seriesLineData = (name, data) => ({
-    name: name,
+    name,
     type: 'line',
-    data: data,
+    data,
   });
 
   const options = {
@@ -123,7 +116,7 @@ function SupersetPluginChartDualYAxis(
       },
     },
     legend: {
-      data: [...formData.cols, ...formData.metrics],
+      data: [...formData.cols, ...formData.xValues],
     },
     xAxis: [],
     yAxis: [],
@@ -131,6 +124,21 @@ function SupersetPluginChartDualYAxis(
   };
 
   // Often, you just want to get a hold of the DOM and go nuts.
+  function assignBarColors(data) {
+    const tempData: [] = [];
+    data.map((colValue, index) => {
+      const dataObject = {
+        value: colValue,
+        itemStyle: {
+          color: newBarColors[index],
+        },
+      };
+      // @ts-ignore
+      tempData.push(dataObject);
+    });
+    return tempData;
+  }
+
   // Here, you can do that with createRef, and the useEffect hook.
   useEffect(() => {
     if (!rootElem.current) return;
@@ -147,10 +155,11 @@ function SupersetPluginChartDualYAxis(
           chartData.push(colValue[colData]);
         });
         if (index + 1 !== chartCols.length) {
-          options.yAxis.push(barChartConfig(colData, colors[index]));
+          chartData = assignBarColors(chartData);
+          options.yAxis.push(barChartConfig(colData));
           options.series.push(seriesBarData(colData, chartData));
         } else {
-          options.yAxis.push(lineChartConfig(colData, colors[index]));
+          options.yAxis.push(lineChartConfig(colData));
           options.series.push(seriesLineData(colData, chartData));
         }
         chartData = [];
