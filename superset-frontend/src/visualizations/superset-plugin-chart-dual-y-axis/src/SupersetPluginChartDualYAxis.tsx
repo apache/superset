@@ -58,9 +58,13 @@ function SupersetPluginChartDualYAxis(
   const colors = ['#5470C6', '#EE6666', '#91CC75'];
   const newBarColors = ['#08c', '#fdab3c', '#A6A6A6FF', '#004765'];
   const barChartConfig = name => ({
+    nameLocation: 'center',
+    nameTextStyle: {
+      padding: [15, 0],
+    },
     type: 'value',
     name,
-    position: 'right',
+    position: 'left',
     alignTicks: true,
     axisLine: {
       show: true,
@@ -68,9 +72,13 @@ function SupersetPluginChartDualYAxis(
   });
 
   const lineChartConfig = name => ({
+    nameLocation: 'center',
+    nameTextStyle: {
+      padding: [10, 0],
+    },
     type: 'value',
     name,
-    position: 'left',
+    position: 'right',
     alignTicks: true,
     axisLine: {
       show: true,
