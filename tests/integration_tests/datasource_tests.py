@@ -424,9 +424,6 @@ def test_get_samples(test_client, login_as_admin, virtual_dataset):
     """
     Dataset API: Test get dataset samples
     """
-    if backend() == "sqlite":
-        return
-
     # 1. should cache data
     uri = (
         f"/datasource/samples?datasource_id={virtual_dataset.id}&datasource_type=table"
@@ -475,9 +472,6 @@ def test_get_samples(test_client, login_as_admin, virtual_dataset):
 
 
 def test_get_samples_with_incorrect_cc(test_client, login_as_admin, virtual_dataset):
-    if backend() == "sqlite":
-        return
-
     TableColumn(
         column_name="DUMMY CC",
         type="VARCHAR(255)",
@@ -499,9 +493,6 @@ def test_get_samples_with_incorrect_cc(test_client, login_as_admin, virtual_data
 
 
 def test_get_samples_on_physical_dataset(test_client, login_as_admin, physical_dataset):
-    if backend() == "sqlite":
-        return
-
     uri = (
         f"/datasource/samples?datasource_id={physical_dataset.id}&datasource_type=table"
     )

@@ -259,6 +259,7 @@ def physical_dataset():
 
     example_database = get_example_database()
     engine = example_database.get_sqla_engine()
+    # sqlite can only execute one statement at a time
     engine.execute(
         """
         CREATE TABLE IF NOT EXISTS physical_dataset(
@@ -268,6 +269,10 @@ def physical_dataset():
           col4 VARCHAR(255),
           col5 VARCHAR(255)
         );
+        """
+    )
+    engine.execute(
+        """
         INSERT INTO physical_dataset values
         (0, 'a', 1.0, NULL, '2000-01-01 00:00:00'),
         (1, 'b', 1.1, NULL, '2000-01-02 00:00:00'),
@@ -293,6 +298,8 @@ def physical_dataset():
     TableColumn(column_name="col5", type="VARCHAR(255)", table=dataset)
     SqlMetric(metric_name="count", expression="count(*)", table=dataset)
     db.session.merge(dataset)
+    if example_database.backend == "sqlite":
+        db.session.commit()
 
     yield dataset
 
