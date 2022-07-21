@@ -221,6 +221,7 @@ export default class ResultSet extends React.PureComponent<
 
   async createExploreResultsOnClick() {
     const { results } = this.props.query;
+
     if (results.query_id) {
       const key = await postFormData(results.query_id, 'table', {
         ...EXPLORE_CHART_DEFAULT,
@@ -248,7 +249,7 @@ export default class ResultSet extends React.PureComponent<
       // Added compute logic to stop user from being able to Save & Explore
       const { showSaveDatasetModal } = this.state;
       const { query } = this.props;
-      console.log('this is query', query);
+
       const datasource: ISaveableDatasource = {
         columns: query.results.columns as ISimpleColumn[],
         name: query?.tab || 'Untitled',
@@ -275,8 +276,11 @@ export default class ResultSet extends React.PureComponent<
               this.props.database?.allows_virtual_table_explore && (
                 <ExploreResultsButton
                   database={this.props.database}
-                  onClick={this.createExploreResultsOnClick}
+                  onClick={() => this.setState({ showSaveDatasetModal: true })}
                 />
+                // In order to use the new workflow for a query powered chart, replace the
+                // above function with:
+                // onClick={this.createExploreResultsOnClick}
               )}
             {this.props.csv && (
               <Button buttonSize="small" href={`/superset/csv/${query.id}`}>
