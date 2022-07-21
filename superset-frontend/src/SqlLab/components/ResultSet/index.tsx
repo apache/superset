@@ -38,13 +38,14 @@ import FilterableTable, {
   MAX_COLUMNS_FOR_TABLE,
 } from 'src/components/FilterableTable';
 import CopyToClipboard from 'src/components/CopyToClipboard';
+import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { prepareCopyToClipboardTabularData } from 'src/utils/common';
 import { CtasEnum } from 'src/SqlLab/actions/sqlLab';
+import { URL_PARAMS } from 'src/constants';
 import ExploreCtasResultsButton from '../ExploreCtasResultsButton';
 import ExploreResultsButton from '../ExploreResultsButton';
 import HighlightedSql from '../HighlightedSql';
 import QueryStateLabel from '../QueryStateLabel';
-import { URL_PARAMS } from 'src/constants';
 
 enum LIMITING_FACTOR {
   QUERY = 'QUERY',
@@ -138,8 +139,6 @@ export default class ResultSet extends React.PureComponent<
     this.reFetchQueryResults = this.reFetchQueryResults.bind(this);
     this.toggleExploreResultsButton =
       this.toggleExploreResultsButton.bind(this);
-    this.createExploreResultsOnClick =
-      this.createExploreResultsOnClick.bind(this);
   }
 
   async componentDidMount() {
@@ -219,10 +218,10 @@ export default class ResultSet extends React.PureComponent<
     }
   }
 
-  async createExploreResultsOnClick() {
+  createExploreResultsOnClick = async () => {
     const { results } = this.props.query;
 
-    if (results.query_id) {
+    if (results?.query_id) {
       const key = await postFormData(results.query_id, 'query', {
         ...EXPLORE_CHART_DEFAULT,
         datasource: `${results.query_id}__query`,
@@ -235,9 +234,9 @@ export default class ResultSet extends React.PureComponent<
       });
       window.open(url, '_blank', 'noreferrer');
     } else {
-      this.setState({ showSaveDatasetModal: true });
+      addDangerToast(t('Unable to create chart without a query id.'));
     }
-  }
+  };
 
   renderControls() {
     if (this.props.search || this.props.visualize || this.props.csv) {
