@@ -1227,7 +1227,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         column: Dict[str, Any],
         time_grain: Optional[str],
         label: Optional[str] = None,
-        template_processor: Optional[BaseTemplateProcessor] = None,
+        template_processor: Optional[
+            BaseTemplateProcessor
+        ] = None,  # pylint: disable=unused-argument
     ) -> Union[TimestampExpression, Label]:
         """
         Return a SQLAlchemy Core element representation of self to be used in a query.
@@ -1238,13 +1240,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         :return: A TimeExpression object wrapped in a Label if supported by db
         """
         label = label or utils.DTTM_ALIAS
-
-        pdf = None
-        is_epoch = pdf in ("epoch_s", "epoch_ms")
         column_spec = self.db_engine_spec.get_column_spec(column.get("type"))
         type_ = column_spec.sqla_type if column_spec else sa.DateTime
         col = sa.column(column.get("column_name"), type_=type_)
-        time_expr = self.db_engine_spec.get_timestamp_expr(col, pdf, time_grain)
+        time_expr = self.db_engine_spec.get_timestamp_expr(col, None, time_grain)
         return self.make_sqla_column_compatible(time_expr, label)
 
     def get_sqla_query(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branches,too-many-statements
