@@ -61,7 +61,7 @@ export function isAdhocColumn(column?: any): column is AdhocColumn {
     typeof column !== 'string' &&
     column?.sqlExpression !== undefined &&
     column?.label !== undefined &&
-    column?.expressionType === 'SQL'
+    (column?.expressionType === undefined || column?.expressionType === 'SQL')
   );
 }
 
