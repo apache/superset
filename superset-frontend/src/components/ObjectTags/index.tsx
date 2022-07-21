@@ -18,7 +18,7 @@
  */
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { styled, SupersetClient, t } from '@superset-ui/core';
+import { styled, SupersetClient, t, useTheme } from '@superset-ui/core';
 import Tag from 'src/types/TagType';
 
 import './ObjectTags.css';
@@ -30,12 +30,14 @@ import { cacheWrapper } from 'src/utils/cacheWrapper';
 import { ClientErrorObject, getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { SelectValue } from 'antd/lib/select';
 import { addTag, deleteTag, fetchSuggestions, fetchTags } from 'src/tags';
+import { StyledModal } from 'src/components/Modal';
 
 interface ObjectTagsProps {
   objectType: string;
   objectId: number;
   includeTypes: boolean;
-  editable: boolean;
+  editMode: boolean;
+  maxTags: number | null;
   onChange?: (tags: Tag[]) => void;
 }
 
@@ -43,21 +45,30 @@ interface SelectTagsProps {
   onSelectTag: (tag: Tag) => void;
 }
 
-const TagsDiv = styled.div`
+const StyledTagsDiv = styled.div`
   margin-left: ${({ theme }) => theme.gridUnit * 2}px;
   max-width: 100%;
   display: -webkit-flex;
   display: flex;
   -webkit-flex-direction: row;
   -webkit-flex-wrap: wrap;
-`;
+  `
+
+const StyledTagsDropdown = styled.div`
+  margin-left: ${({ theme }) => theme.gridUnit * 2}px;
+  max-width: 100%;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-flex-direction: row;
+  -webkit-flex-wrap: wrap;
+  backgroundColor: ${({ theme }) => theme.colors.grayscale.light4};
+  `
 
 const AddTags = styled.div`
   max-width: 100%;
   display: -webkit-flex;
   display: flex;
   -webkit-flex-direction: row;
-  -webkit-flex-wrap: wrap;
 `;
 
 const localCache = new Map<string, any>();
@@ -80,55 +91,54 @@ export const tagToSelectOption = (
   label: item.name,
 });
 
+export const loadTags = async (
+  search: string,
+  page: number,
+  pageSize: number,
+) => {
+  const searchColumn = 'name';
+  const query = rison.encode({
+    filters: [{ col: searchColumn, opr: 'ct', value: search }],
+    page,
+    page_size: pageSize,
+    order_column: searchColumn,
+    order_direction: 'asc',
+  });
+  
+  const getErrorMessage = ({ error, message }: ClientErrorObject) => {
+      let errorText = message || error || t('An error has occurred');
+      if (message === 'Forbidden') {
+        errorText = t('You do not have permission to edit this dashboard');
+      }
+      return errorText;
+  }
+  
+  return cachedSupersetGet({
+    endpoint: `/api/v1/tag/?q=${query}`,
+    // endpoint: `/api/v1/tags/?q=${query}`,
+  })
+    .then(response => {
+      const data: {
+        label: string;
+        value: string | number;
+      }[] = response.json.result.map(tagToSelectOption);
+      return {
+        data,
+        totalCount: response.json.count,
+      };
+    })
+    .catch(async error => {
+      const errorMessage = getErrorMessage(await getClientErrorObject(error));
+      throw new Error(errorMessage);
+    });
+};
+
 const SelectTags = ({
   onSelectTag,
 }: SelectTagsProps) => {
 
   const [selectValue, setSelectValue] = useState<SelectValue>();
 
-  const getErrorMessage = useCallback(
-    ({ error, message }: ClientErrorObject) => {
-      let errorText = message || error || t('An error has occurred');
-      if (message === 'Forbidden') {
-        errorText = t('You do not have permission to edit this dashboard');
-      }
-      return errorText;
-    },
-    [],
-  );
-
-  const loadTags = async (
-    search: string,
-    page: number,
-    pageSize: number,
-  ) => {
-    const searchColumn = 'name';
-    const query = rison.encode({
-      filters: [{ col: searchColumn, opr: 'ct', value: search }],
-      page,
-      page_size: pageSize,
-      order_column: searchColumn,
-      order_direction: 'asc',
-    });
-    return cachedSupersetGet({
-      endpoint: `/api/v1/tag/?q=${query}`,
-      // endpoint: `/api/v1/tags/?q=${query}`,
-    })
-      .then(response => {
-        const data: {
-          label: string;
-          value: string | number;
-        }[] = response.json.result.map(tagToSelectOption);
-        return {
-          data,
-          totalCount: response.json.count,
-        };
-      })
-      .catch(async error => {
-        const errorMessage = getErrorMessage(await getClientErrorObject(error));
-        throw new Error(errorMessage);
-      });
-  };
   
   const onSelect = (value: { label: string; value: number }) => {
     onSelectTag({name: value.label});
@@ -144,9 +154,6 @@ const SelectTags = ({
     pageSize: 10,
     showSearch: true,
   };
-  const styling = {
-    verticalAlign: '-webkit-baseline-middle'
-  }
   return (<AsyncSelect {...selectProps} onChange={onSelect} value={selectValue}/>);
 };
 
@@ -174,6 +181,10 @@ const EditTagsButton = ({
 const SaveButton = ({
   onClick,
 } : any ) => {
+  const styling = {
+    verticalAlign: '-webkit-baseline-middle',
+    marginLeft:  `inherit`
+  }
   return (
     <div
       role="button"
@@ -181,7 +192,7 @@ const SaveButton = ({
       onClick={onClick}
       data-test="dashboard-tags-check-button"
     >
-      <Icons.CheckCircleOutlined iconSize="l" />
+      <Icons.CheckCircleOutlined iconSize="l" style={styling} />
     </div>
   );
 }
@@ -190,22 +201,12 @@ export const ObjectTags = ({
   objectType,
   objectId,
   includeTypes,
-  editable,
+  editMode=false,
+  maxTags=null,
   onChange,
 }: ObjectTagsProps) => {
   const [tags, setTags] = useState<Tag[]>([]);
-  const [tagSuggestions, setTagSuggestions] = useState<Tag[]>([]);
-  const [filteredSuggestions, setFilteredSuggestions] = useState<Tag[]>([]);
-  const [showEditButton, setShowEditButton] = useState(false);
-  const [editMode, setEditMode] = useState(false);
-
-  const filterSuggestions = () => {
-    setFilteredSuggestions(
-      [...tagSuggestions].filter(suggestion =>
-        tags.every(tag => tag.name !== suggestion.name),
-      ),
-    );
-  };
+  const [showTagsDropdown, setShowTagsDropdown] = useState(false);
 
   useEffect(() => {
     try {
@@ -216,19 +217,21 @@ export const ObjectTags = ({
     } catch(error: any) {
       console.log(error)
     }
-    
-    fetchSuggestions(
-      {includeTypes},
-      (suggestions: Tag[]) => suggestions && setTagSuggestions(suggestions),
-      () => {/* TODO: handle error */}
-    );
   }, [objectType, objectId, includeTypes]);
 
-  useEffect(() => {
-    if (tagSuggestions.length !== 0) {
-      filterSuggestions();
+  const theme = useTheme();
+
+  const TagsDiv = ({
+    ...props
+  }: any ) => {
+    if(showTagsDropdown){
+      return (
+        <StyledTagsDropdown 
+        {...props} css={{backgroundColor: theme.colors.grayscale.light4}}/>
+      );
     }
-  }, [tags, tagSuggestions]);
+    return (<StyledTagsDiv {...props}/>)
+  };
 
   const onDelete = (tagIndex: number) => {
     deleteTag(
@@ -253,45 +256,19 @@ export const ObjectTags = ({
     onChange?.(tags);
   };
 
-  const toggleEditMode = () => {
-    setEditMode(!editMode);
-  }
-
   const handleMouseOver = () => {
-    setShowEditButton(true);
+    setShowTagsDropdown(true);
   }
   
   const handleMouseLeave = () => {
-    setShowEditButton(false);
+    setShowTagsDropdown(false);
   }
 
   return (
     <span>
-      {/* {false ? (
-      <ReactTags
-        tags={tags}
-        suggestions={filteredSuggestions}
-        onDelete={onDelete}
-        onAddition={onAddition}
-        placeholderText={t('Add tag')}
-        tagComponent={TagComponent}
-        allowBackspace={false}
-        allowNew
-      />
-      ) : ( */}
       <TagsDiv onMouseOver={handleMouseOver} onMouseLeave={handleMouseLeave}>
-        <TagsList tags={tags} editable={editMode} onDelete={onDelete}/>
-        {editMode ? (
-          <AddTags>
-            <SelectTags onSelectTag={onAddition}/>
-            <SaveButton onClick={toggleEditMode}/>
-          </AddTags>
-        ) : (
-            <EditTagsButton onClick={toggleEditMode} visible={true}/>
-        )}
+        <TagsList tags={tags} editable={editMode} onDelete={onDelete} maxTags={maxTags}/>
       </TagsDiv>
-    {/* ) */}
-    {/* } */}
     </span>
   );
 };

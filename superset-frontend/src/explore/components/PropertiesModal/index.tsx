@@ -27,6 +27,8 @@ import { t, SupersetClient, styled } from '@superset-ui/core';
 import Chart, { Slice } from 'src/types/Chart';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import withToasts from 'src/components/MessageToasts/withToasts';
+import ObjectTags, { loadTags } from 'src/components/ObjectTags';
+import { OBJECT_TYPES } from 'src/tags';
 
 export type PropertiesModalProps = {
   slice: Slice;
@@ -62,6 +64,8 @@ function PropertiesModal({
   const [selectedOwners, setSelectedOwners] = useState<SelectValue | null>(
     null,
   );
+
+  const [selectedTags, setSelectedTags] = useState<SelectValue | null>(null,);
 
   function showError({ error, statusText, message }: any) {
     let errorText = error || statusText || t('An error has occurred');
@@ -313,6 +317,29 @@ function PropertiesModal({
                   'A list of users who can alter the chart. Searchable by name or username.',
                 )}
               </StyledHelpBlock>
+            </FormItem>
+            <h3 style={{ marginTop: '1em' }}>{t('Tags')}</h3>
+            <FormItem>
+              <AsyncSelect
+                ariaLabel='Tags'
+                mode="multiple"
+                value={selectedOwners || []}
+                onChange={setSelectedTags}
+                options={loadTags}
+                disabled={!selectedOwners}
+                allowClear
+              />
+              <StyledHelpBlock className="help-block">
+                {t(
+                  'A list of tags that have been applied to this chart.',
+                )}
+              </StyledHelpBlock>
+              <ObjectTags
+                objectType={OBJECT_TYPES.CHART}
+                objectId={slice.slice_id}
+                includeTypes={false}
+                editMode={true}
+              />
             </FormItem>
           </Col>
         </Row>

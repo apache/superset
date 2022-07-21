@@ -534,7 +534,6 @@ class Header extends React.PureComponent {
                   objectType={OBJECT_TYPES.DASHBOARD}
                   objectId={dashboardInfo.id}
                   includeTypes={false}
-                  editable={dashboardInfo.dash_edit_perm}
                 />
               ) : null
             ]

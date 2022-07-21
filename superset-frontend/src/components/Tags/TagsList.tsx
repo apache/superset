@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { styled, SupersetTheme, t } from '@superset-ui/core';
 import Tag from './Tag';
 import TagType from 'src/types/TagType';
@@ -27,6 +27,7 @@ export type TagsListProps = {
   tags: TagType[];
   editable?: boolean;
   onDelete: (index: number) => void;
+  maxTags: number | null;
 };
 
 const TagsDiv = styled.div`
@@ -37,34 +38,35 @@ const TagsDiv = styled.div`
   -webkit-flex-wrap: wrap;
 `;
 
-const EditButton = ({
-  onClick,
-} : any ) => {
-  return (
-    <div
-      role="button"
-      className="action-button"
-      onClick={onClick}
-      data-test="dashboard-card-option-edit-button"
-    >
-      <Icons.EditAlt iconSize="l" data-test="edit-alt" />
-    </div>
-  );
-}
 const TagsList = ({ 
   tags, 
   editable=false, 
   onDelete=(index) => null, 
+  maxTags=null
 }: TagsListProps) => {
 
   const handleDelete = (index: number) => {
     onDelete(index);
   }
+
+  const tagsIsLong: boolean | null = useMemo(() => (maxTags ? (tags.length > maxTags): null), [tags.length, maxTags]);
+
+  const extraTags: number | null = useMemo(() => ((typeof maxTags === "number") ? ((tags.length - maxTags) + 1) : null), [tagsIsLong, tags.length, maxTags])
+
   return (
     <TagsDiv>
-      {tags.map((tag: TagType, index) => (
-        <Tag id={tag.id} name={tag.name} index={index} onDelete={handleDelete} editable={editable}/>
-      ))}
+      {(tagsIsLong === true && typeof maxTags === "number") ? (
+        <>
+        {tags.slice(0,(maxTags-1)).map((tag: TagType, index) => (
+          <Tag id={tag.id} name={tag.name} index={index} onDelete={handleDelete} editable={editable}/>
+        ))}
+        {tags.length > maxTags ? (<Tag name={`+${extraTags}...`}/>) : (null)}
+        </>
+      ): (
+        tags.map((tag: TagType, index) => (
+          <Tag id={tag.id} name={tag.name} index={index} onDelete={handleDelete} editable={editable}/>
+        ))
+      )}
     </TagsDiv>
   );
 };

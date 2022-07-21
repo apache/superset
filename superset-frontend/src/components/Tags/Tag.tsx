@@ -20,6 +20,9 @@
 import { styled, SupersetTheme } from "@superset-ui/core";
 import Tag from "src/types/TagType";
 import AntdTag from 'antd/lib/tag';
+import { useMemo } from "react";
+import { Tooltip } from 'src/components/Tooltip';
+import React from 'react';
   
 const customTagStyler = (theme: SupersetTheme) => `
     margin-top: ${theme.gridUnit * 1}px;
@@ -40,35 +43,47 @@ const Tag = ({
     onClick=null 
 } : Tag) => {
     
+    const isLongTag = useMemo(() => name.length > 20, [name]);
+
     const handleClose = () => {
         return (index >= 0) ? (
             onDelete(index)
         ) : (
             null
-        )
-            
-        return onDelete(index);
+        )            
     }
-    return (
-        <div>
+
+    const tagElem =(
+        <>
             {editable ? (
                 <StyledTag 
                     key={id} 
                     closable={editable} 
                     onClose={handleClose} 
                     color="blue">
-                    {name}
+                    {isLongTag ? `${name.slice(0, 20)}...` : name}
                 </StyledTag>
             ) : (
                 <StyledTag key={id} onClick={onClick}>
                     {id ? (
-                        <a href={`/superset/tags/?tags=${name}`}>{name}</a>
+                        <a href={`/superset/tags/?tags=${name}`}>{isLongTag ? `${name.slice(0, 20)}...` : name}</a>
                     ):(
-                        name
+                        isLongTag ? `${name.slice(0, 20)}...` : name
                     )}
                 </StyledTag>
             )}
-        </div>
+        </>
+    );
+
+    return (
+        isLongTag ? (
+          <Tooltip title={name} key={name}>
+            {tagElem}
+          </Tooltip>
+        ) : (
+          tagElem
+        )
+            
     );
 }
 

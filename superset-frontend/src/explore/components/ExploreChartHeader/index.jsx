@@ -202,13 +202,6 @@ export const ExploreChartHeader = ({
                 objectType={OBJECT_TYPES.CHART}
                 objectId={chart.id}
                 includeTypes={false}
-                editable={
-                  canOverwrite ||
-                  (slice?.owners || []).includes(
-                    user?.userId,
-                  ) ||
-                  !!user?.roles?.Admin
-                }
               />
             ) : null
           ]

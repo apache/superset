@@ -71,7 +71,7 @@ export function deleteTag(
   }
   SupersetClient.delete({
     endpoint: `/tagview/tags/${objectType}/${objectId}/`,
-    body: JSON.stringify([tag]),
+    body: JSON.stringify([tag.name]),
     parseMethod: 'text',
   })
     .then(({ text }) => callback(text))
