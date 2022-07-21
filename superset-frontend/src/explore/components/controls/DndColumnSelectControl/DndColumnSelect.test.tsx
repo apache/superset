@@ -51,12 +51,12 @@ test('renders adhoc column', () => {
       {...defaultProps}
       value={{
         sqlExpression: 'Count *',
-        label: 'adhoc metric',
+        label: 'adhoc column',
         expressionType: 'SQL',
       }}
     />,
     { useDnd: true },
   );
-  expect(screen.getByText('adhoc metric')).toBeVisible();
+  expect(screen.getByText('adhoc column')).toBeVisible();
   expect(screen.getByLabelText('calculator')).toBeVisible();
 });

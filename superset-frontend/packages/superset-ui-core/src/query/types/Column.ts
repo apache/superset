@@ -18,7 +18,6 @@
  * under the License.
  */
 
-import { isDefined } from '@superset-ui/core';
 import { GenericDataType } from './QueryResponse';
 import { QueryFormColumn } from './QueryFormData';
 
@@ -62,7 +61,7 @@ export function isAdhocColumn(column?: any): column is AdhocColumn {
     typeof column !== 'string' &&
     column?.sqlExpression !== undefined &&
     column?.label !== undefined &&
-    (!isDefined(column?.expressionType) || column?.expressionType === 'SQL')
+    (column?.expressionType === undefined || column?.expressionType === 'SQL')
   );
 }
 
