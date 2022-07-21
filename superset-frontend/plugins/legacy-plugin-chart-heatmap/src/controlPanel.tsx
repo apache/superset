@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import React from 'react';
 import {
   FeatureFlag,
   isFeatureEnabled,
@@ -170,10 +171,23 @@ const config: ControlPanelConfig = {
                 ['y', 'y'],
               ],
               default: 'heatmap',
-              description: t(
-                'Color will be rendered based on a ratio ' +
-                  'of the cell against the sum of across this ' +
-                  'criteria',
+              description: (
+                <>
+                  <div>
+                    {t(
+                      'Color will be shaded based the normalized (0% to 100%) value of a given cell against the other cells in the selected range: ',
+                    )}
+                  </div>
+                  <ul>
+                    <li>{t('x: values are normalized within each column')}</li>
+                    <li>{t('y: values are normalized within each row')}</li>
+                    <li>
+                      {t(
+                        'heatmap: values are normalized across the entire heatmap',
+                      )}
+                    </li>
+                  </ul>
+                </>
               ),
             },
           },
