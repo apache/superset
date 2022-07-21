@@ -19,6 +19,7 @@
 import React from 'react';
 import userEvent from '@testing-library/user-event';
 import { render, screen } from 'spec/helpers/testing-library';
+import { getChartMetadataRegistry, ChartMetadata } from '@superset-ui/core';
 import ChartContainer from 'src/explore/components/ExploreChartPanel';
 
 const createProps = (overrides = {}) => ({
@@ -67,6 +68,14 @@ describe('ChartContainer', () => {
       chartIsStale: true,
       chart: { chartStatus: 'rendered', queriesResponse: [{}] },
     });
+    getChartMetadataRegistry().registerValue(
+      'histogram',
+      new ChartMetadata({
+        name: 'fake table',
+        thumbnail: '.png',
+        useLegacyApi: false,
+      }),
+    );
     render(<ChartContainer {...props} />, { useRedux: true });
     expect(screen.getByText('Your chart is not up to date')).toBeVisible();
   });

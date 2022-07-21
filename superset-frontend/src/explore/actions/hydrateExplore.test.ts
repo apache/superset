@@ -64,6 +64,9 @@ test('creates hydrate action from initial data', () => {
             lastRendered: 0,
           },
         },
+        datasources: {
+          '8__table': exploreInitialData.dataset,
+        },
         saveModal: {
           dashboards: [],
           saveModalAlert: null,

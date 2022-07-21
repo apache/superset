@@ -41,6 +41,7 @@
     "build-storybook": "build-storybook",
     "check-translation": "prettier --check ../superset/translations/**/LC_MESSAGES/*.json",
     "clean-translation": "prettier --write ../superset/translations/**/LC_MESSAGES/*.json",
+    "core:cover": "cross-env NODE_ENV=test jest --coverage --coverageThreshold='{\"global\":{\"statements\":100,\"branches\":100,\"functions\":100,\"lines\":100}}' --collectCoverageFrom='[\"packages/**/src/**/*.{js,ts}\", \"!packages/superset-ui-demo/**/*\"]' packages",
     "cover": "cross-env NODE_ENV=test jest --coverage",
     "dev": "webpack --mode=development --color --watch",
     "dev-server": "cross-env NODE_ENV=development BABEL_ENV=development node --max_old_space_size=4096 ./node_modules/webpack-dev-server/bin/webpack-dev-server.js --mode=development",

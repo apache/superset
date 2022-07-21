@@ -199,7 +199,10 @@ class TestDatabaseModel(SupersetTestCase):
             model.get_sqla_engine()
             call_args = mocked_create_engine.call_args
 
-            assert str(call_args[0][0]) == "trino://original_user@localhost"
+            assert (
+                str(call_args[0][0])
+                == "trino://original_user:original_user_password@localhost"
+            )
             assert call_args[1]["connect_args"] == {"user": "gamma"}
 
     @mock.patch("superset.models.core.create_engine")
