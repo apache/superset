@@ -181,8 +181,8 @@ describe('sqlLabReducer', () => {
     });
     it('should remove a table', () => {
       const action = {
-        type: actions.REMOVE_TABLE,
-        table: newTable,
+        type: actions.REMOVE_TABLES,
+        tables: [newTable],
       };
       newState = sqlLabReducer(newState, action);
       expect(newState.tables).toHaveLength(0);

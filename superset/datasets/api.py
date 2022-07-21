@@ -147,6 +147,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "owners.username",
         "owners.first_name",
         "owners.last_name",
+        "columns.advanced_data_type",
         "columns.changed_on",
         "columns.column_name",
         "columns.created_on",
@@ -162,7 +163,18 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "columns.type",
         "columns.uuid",
         "columns.verbose_name",
-        "metrics",
+        "metrics",  # TODO(john-bodley): Deprecate in 3.0.
+        "metrics.changed_on",
+        "metrics.created_on",
+        "metrics.d3format",
+        "metrics.description",
+        "metrics.expression",
+        "metrics.extra",
+        "metrics.id",
+        "metrics.metric_name",
+        "metrics.metric_type",
+        "metrics.verbose_name",
+        "metrics.warning_text",
         "datasource_type",
         "url",
         "extra",
@@ -204,7 +216,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "sql": [DatasetIsNullOrEmptyFilter],
         "id": [DatasetCertifiedFilter],
     }
-    search_columns = ["id", "database", "owners", "sql", "table_name"]
+    search_columns = ["id", "database", "owners", "schema", "sql", "table_name"]
     filter_rel_fields = {"database": [["id", DatabaseFilter, lambda: []]]}
     allowed_rel_fields = {"database", "owners"}
     allowed_distinct_fields = {"schema"}
