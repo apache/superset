@@ -602,15 +602,6 @@ def test_get_samples_pagination(test_client, login_as_admin, virtual_dataset):
     assert rv_data["result"]["total_count"] == 10
     assert [row["col1"] for row in rv_data["result"]["data"]] == [2, 3]
 
-    # 4. turning pages
-    uri = f"/datasource/samples?datasource_id={virtual_dataset.id}&datasource_type=table&per_page=2&page=1"
-    rv = test_client.post(uri)
-    rv_data = json.loads(rv.data)
-    assert rv_data["result"]["page"] == 1
-    assert rv_data["result"]["per_page"] == 2
-    assert rv_data["result"]["total_count"] == 10
-    assert [row["col1"] for row in rv_data["result"]["data"]] == [0, 1]
-
     # 5. Exceeding the maximum pages
     uri = f"/datasource/samples?datasource_id={virtual_dataset.id}&datasource_type=table&per_page=2&page=6"
     rv = test_client.post(uri)
