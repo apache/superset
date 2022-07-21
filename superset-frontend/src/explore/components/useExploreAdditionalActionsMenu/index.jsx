@@ -31,6 +31,7 @@ import copyTextToClipboard from 'src/utils/copy';
 import HeaderReportDropDown from 'src/components/ReportModal/HeaderReportDropdown';
 import ViewQueryModal from '../controls/ViewQueryModal';
 import EmbedCodeContent from '../EmbedCodeContent';
+import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 
 const MENU_KEYS = {
   EDIT_PROPERTIES: 'edit_properties',
@@ -297,7 +298,7 @@ export const useExploreAdditionalActionsMenu = (
           <Menu.Item key={MENU_KEYS.SHARE_BY_EMAIL}>
             {t('Share chart by email')}
           </Menu.Item>
-          <Menu.Item key={MENU_KEYS.EMBED_CODE}>
+          {isFeatureEnabled(FeatureFlag.EMBEDDABLE_CHARTS) ? <Menu.Item key={MENU_KEYS.EMBED_CODE}>
             <ModalTrigger
               triggerNode={
                 <span data-test="embed-code-button">{t('Embed code')}</span>
@@ -313,7 +314,7 @@ export const useExploreAdditionalActionsMenu = (
               destroyOnClose
               responsive
             />
-          </Menu.Item>
+          </Menu.Item> : null}
         </Menu.SubMenu>
         <Menu.Divider />
         {showReportSubMenu ? (
