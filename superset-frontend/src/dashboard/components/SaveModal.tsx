@@ -24,7 +24,7 @@ import { Input } from 'src/components/Input';
 import Button from 'src/components/Button';
 import { t, JsonResponse } from '@superset-ui/core';
 
-import ModalTrigger from 'src/components/ModalTrigger';
+import ModalTrigger, { ModalTriggerRef } from 'src/components/ModalTrigger';
 import Checkbox from 'src/components/Checkbox';
 import {
   SAVE_TYPE_OVERWRITE,
@@ -69,7 +69,7 @@ const defaultProps = {
 class SaveModal extends React.PureComponent<SaveModalProps, SaveModalState> {
   static defaultProps = defaultProps;
 
-  modal: ModalTrigger | null;
+  modal: ModalTriggerRef | null;
 
   onSave: (
     data: Record<string, any>,
@@ -84,17 +84,13 @@ class SaveModal extends React.PureComponent<SaveModalProps, SaveModalState> {
       newDashName: `${props.dashboardTitle} [copy]`,
       duplicateSlices: false,
     };
-    this.modal = null;
+
     this.handleSaveTypeChange = this.handleSaveTypeChange.bind(this);
     this.handleNameChange = this.handleNameChange.bind(this);
     this.saveDashboard = this.saveDashboard.bind(this);
-    this.setModalRef = this.setModalRef.bind(this);
     this.toggleDuplicateSlices = this.toggleDuplicateSlices.bind(this);
     this.onSave = this.props.onSave.bind(this);
-  }
-
-  setModalRef(ref: ModalTrigger | null) {
-    this.modal = ref;
+    this.modal = React.createRef() as ModalTriggerRef;
   }
 
   toggleDuplicateSlices(): void {
@@ -166,14 +162,14 @@ class SaveModal extends React.PureComponent<SaveModalProps, SaveModalState> {
           window.location.href = `/superset/dashboard/${resp.json.id}/`;
         }
       });
-      this.modal?.close();
+      this.modal?.current?.close?.();
     }
   }
 
   render() {
     return (
       <ModalTrigger
-        ref={this.setModalRef}
+        ref={this.modal}
         triggerNode={this.props.triggerNode}
         modalTitle={t('Save dashboard')}
         modalBody={

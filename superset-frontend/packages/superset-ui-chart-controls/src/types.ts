@@ -28,6 +28,7 @@ import type {
   QueryFormData,
   QueryFormMetric,
   QueryResponse,
+  GenericDataType,
 } from '@superset-ui/core';
 import { sharedControls } from './shared-controls';
 import sharedControlComponents from './shared-controls/components';
@@ -50,6 +51,14 @@ export type SharedControlComponents = typeof sharedControlComponents;
 /** ----------------------------------------------
  * Input data/props while rendering
  * ---------------------------------------------*/
+export interface Owner {
+  first_name: string;
+  id: number;
+  last_name: string;
+  username: string;
+  email?: string;
+}
+
 export type ColumnMeta = Omit<Column, 'id'> & {
   id?: number;
 } & AnyDict;
@@ -58,6 +67,7 @@ export interface Dataset {
   id: number;
   type: DatasourceType;
   columns: ColumnMeta[];
+  column_types?: GenericDataType[];
   metrics: Metric[];
   column_format: Record<string, string>;
   verbose_map: Record<string, string>;
@@ -67,7 +77,11 @@ export interface Dataset {
   time_grain_sqla?: string;
   granularity_sqla?: string;
   datasource_name: string | null;
+  name?: string;
   description: string | null;
+  uid?: string;
+  owners?: Owner[];
+  table_name?: string;
 }
 
 export interface ControlPanelState {
@@ -193,8 +207,22 @@ export interface BaseControlConfig<
   V = JsonValue,
 > extends AnyDict {
   type: T;
-  label?: ReactNode;
-  description?: ReactNode;
+  label?:
+    | ReactNode
+    | ((
+        state: ControlPanelState,
+        controlState: ControlState,
+        // TODO: add strict `chartState` typing (see superset-frontend/src/explore/types)
+        chartState?: AnyDict,
+      ) => ReactNode);
+  description?:
+    | ReactNode
+    | ((
+        state: ControlPanelState,
+        controlState: ControlState,
+        // TODO: add strict `chartState` typing (see superset-frontend/src/explore/types)
+        chartState?: AnyDict,
+      ) => ReactNode);
   default?: V;
   renderTrigger?: boolean;
   validators?: ControlValueValidator<T, O, V>[];
@@ -343,26 +371,36 @@ export interface ControlPanelSectionConfig {
   controlSetRows: ControlSetRow[];
 }
 
-export interface StandardizedState {
+export interface StandardizedControls {
   metrics: QueryFormMetric[];
   columns: QueryFormColumn[];
 }
 
 export interface StandardizedFormDataInterface {
-  standardizedState: StandardizedState;
+  // Controls not used in the current viz
+  controls: StandardizedControls;
+  // Transformation history
   memorizedFormData: Map<string, QueryFormData>;
 }
+
+export type QueryStandardizedFormData = QueryFormData & {
+  standardizedFormData: StandardizedFormDataInterface;
+};
+
+export const isStandardizedFormData = (
+  formData: QueryFormData,
+): formData is QueryStandardizedFormData =>
+  formData?.standardizedFormData?.controls &&
+  formData?.standardizedFormData?.memorizedFormData &&
+  Array.isArray(formData.standardizedFormData.controls.metrics) &&
+  Array.isArray(formData.standardizedFormData.controls.columns);
 
 export interface ControlPanelConfig {
   controlPanelSections: (ControlPanelSectionConfig | null)[];
   controlOverrides?: ControlOverrides;
   sectionOverrides?: SectionOverrides;
   onInit?: (state: ControlStateMapping) => void;
-  denormalizeFormData?: (
-    formData: QueryFormData & {
-      standardizedFormData: StandardizedFormDataInterface;
-    },
-  ) => QueryFormData;
+  formDataOverrides?: (formData: QueryFormData) => QueryFormData;
 }
 
 export type ControlOverrides = {
@@ -424,12 +462,6 @@ export function isSavedExpression(
   return (
     'column_name' in column && 'expression' in column && !!column.expression
   );
-}
-
-export function isAdhocColumn(
-  column: AdhocColumn | ColumnMeta,
-): column is AdhocColumn {
-  return 'label' in column && 'sqlExpression' in column;
 }
 
 export function isControlPanelSectionConfig(

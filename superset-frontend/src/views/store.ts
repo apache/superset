@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { applyMiddleware, combineReducers, compose, createStore } from 'redux';
+import {
+  applyMiddleware,
+  combineReducers,
+  compose,
+  createStore,
+  Store,
+} from 'redux';
 import thunk from 'redux-thunk';
 import messageToastReducer from 'src/components/MessageToasts/reducers';
 import { initEnhancer } from 'src/reduxUtils';
@@ -27,10 +33,12 @@ import dashboardInfo from 'src/dashboard/reducers/dashboardInfo';
 import dashboardState from 'src/dashboard/reducers/dashboardState';
 import dashboardFilters from 'src/dashboard/reducers/dashboardFilters';
 import nativeFilters from 'src/dashboard/reducers/nativeFilters';
-import datasources from 'src/dashboard/reducers/datasources';
+import datasources from 'src/datasource/reducer';
 import sliceEntities from 'src/dashboard/reducers/sliceEntities';
 import dashboardLayout from 'src/dashboard/reducers/undoableDashboardLayout';
 import logger from 'src/middleware/loggerMiddleware';
+import saveModal from 'src/explore/reducers/saveModalReducer';
+import explore from 'src/explore/reducers/exploreReducer';
 import shortid from 'shortid';
 import {
   BootstrapUser,
@@ -46,20 +54,6 @@ const noopReducer =
 
 const container = document.getElementById('app');
 const bootstrap = JSON.parse(container?.getAttribute('data-bootstrap') ?? '{}');
-
-// reducers used only in the dashboard page
-const dashboardReducers = {
-  charts,
-  datasources,
-  dashboardInfo,
-  dashboardFilters,
-  dataMask,
-  nativeFilters,
-  dashboardState,
-  dashboardLayout,
-  sliceEntities,
-  reports,
-};
 
 export const USER_LOADED = 'USER_LOADED';
 
@@ -84,11 +78,40 @@ export const rootReducer = combineReducers({
   common: noopReducer(bootstrap.common || {}),
   user: userReducer,
   impressionId: noopReducer(shortid.generate()),
-  ...dashboardReducers,
+  charts,
+  datasources,
+  dashboardInfo,
+  dashboardFilters,
+  dataMask,
+  nativeFilters,
+  dashboardState,
+  dashboardLayout,
+  sliceEntities,
+  reports,
+  saveModal,
+  explore,
 });
 
-export const store = createStore(
+export const store: Store = createStore(
   rootReducer,
   {},
   compose(applyMiddleware(thunk, logger), initEnhancer(false)),
 );
+
+/* In some cases the jinja template injects two seperate React apps into basic.html
+ * One for the top navigation Menu and one for the application below the Menu
+ * The first app to connect to the Redux debugger wins which is the menu blocking
+ * the application from being able to connect to the redux debugger.
+ * setupStore with disableDebugger true enables the menu.tsx component to avoid connecting
+ * to redux debugger so the application can connect to redux debugger
+ */
+export function setupStore(disableDegugger = false): Store {
+  return createStore(
+    rootReducer,
+    {},
+    compose(
+      applyMiddleware(thunk, logger),
+      initEnhancer(false, undefined, disableDegugger),
+    ),
+  );
+}

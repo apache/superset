@@ -64,6 +64,9 @@ spec:
       {{- end }}
       securityContext:
         runAsUser: {{ .Values.runAsUser }}
+      {{- if .Values.supersetCeleryBeat.podSecurityContext }}
+        {{ toYaml .Values.supersetCeleryBeat.podSecurityContext | nindent 8 }}
+      {{- end }}
       {{- if .Values.supersetCeleryBeat.initContainers }}
       initContainers:
       {{-  tpl (toYaml .Values.supersetCeleryBeat.initContainers) . | nindent 6 }}
@@ -75,6 +78,9 @@ spec:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- if .Values.supersetCeleryBeat.containerSecurityContext }}
+          securityContext: {{ toYaml .Values.supersetCeleryBeat.containerSecurityContext | nindent 12 }}
+          {{- end }}
           command: {{  tpl (toJson .Values.supersetCeleryBeat.command) . }}
           env:
             - name: "SUPERSET_PORT"

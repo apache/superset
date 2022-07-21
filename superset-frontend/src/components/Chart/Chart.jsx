@@ -203,7 +203,6 @@ class Chart extends React.PureComponent {
       height,
       datasetsStatus,
     } = this.props;
-
     const error = queryResponse?.errors?.[0];
     const message = chartAlert || queryResponse?.message;
 
@@ -237,6 +236,7 @@ class Chart extends React.PureComponent {
         link={queryResponse ? queryResponse.link : null}
         source={dashboardId ? 'dashboard' : 'explore'}
         stackTrace={chartStackTrace}
+        errorMitigationFunction={this.toggleSaveDatasetModal}
       />
     );
   }

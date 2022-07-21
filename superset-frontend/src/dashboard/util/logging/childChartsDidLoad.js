@@ -26,7 +26,7 @@ export default function childChartsDidLoad({ chartQueries, layout, id }) {
     const query = chartQueries[chartId] || {};
 
     // filterbox's don't re-render, don't use stale update time
-    if (query.formData && query.formData.viz_type !== 'filter_box') {
+    if (query.form_data && query.form_data.viz_type !== 'filter_box') {
       minQueryStartTime = Math.min(
         query.chartUpdateStartTime,
         minQueryStartTime,

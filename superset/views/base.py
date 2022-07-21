@@ -38,7 +38,6 @@ from flask_appbuilder import BaseView, Model, ModelView
 from flask_appbuilder.actions import action
 from flask_appbuilder.forms import DynamicForm
 from flask_appbuilder.models.sqla.filters import BaseFilter
-from flask_appbuilder.security.sqla.models import User
 from flask_appbuilder.widgets import ListWidget
 from flask_babel import get_locale, gettext as __, lazy_gettext as _
 from flask_jwt_extended.exceptions import NoAuthorizationError
@@ -76,6 +75,7 @@ from superset.models.reports import ReportRecipientType
 from superset.superset_typing import FlaskResponse
 from superset.translations.utils import get_language_pack
 from superset.utils import core as utils
+from superset.utils.core import get_user_id
 
 from .utils import bootstrap_user_data
 
@@ -267,11 +267,6 @@ def create_table_permissions(table: models.SqlaTable) -> None:
     security_manager.add_permission_view_menu("datasource_access", table.get_perm())
     if table.schema:
         security_manager.add_permission_view_menu("schema_access", table.schema_perm)
-
-
-def is_user_admin() -> bool:
-    user_roles = [role.name.lower() for role in list(security_manager.get_user_roles())]
-    return "admin" in user_roles
 
 
 class BaseSupersetView(BaseView):
@@ -623,10 +618,7 @@ class DatasourceFilter(BaseFilter):  # pylint: disable=too-few-public-methods
         owner_ids_query = (
             db.session.query(models.SqlaTable.id)
             .join(models.SqlaTable.owners)
-            .filter(
-                security_manager.user_model.id
-                == security_manager.user_model.get_user_id()
-            )
+            .filter(security_manager.user_model.id == get_user_id())
         )
         return query.filter(
             or_(
@@ -644,53 +636,6 @@ class CsvResponse(Response):
 
     charset = conf["CSV_EXPORT"].get("encoding", "utf-8")
     default_mimetype = "text/csv"
-
-
-def check_ownership(obj: Any, raise_if_false: bool = True) -> bool:
-    """Meant to be used in `pre_update` hooks on models to enforce ownership
-
-    Admin have all access, and other users need to be referenced on either
-    the created_by field that comes with the ``AuditMixin``, or in a field
-    named ``owners`` which is expected to be a one-to-many with the User
-    model. It is meant to be used in the ModelView's pre_update hook in
-    which raising will abort the update.
-    """
-    if not obj:
-        return False
-
-    security_exception = SupersetSecurityException(
-        SupersetError(
-            error_type=SupersetErrorType.MISSING_OWNERSHIP_ERROR,
-            message="You don't have the rights to alter [{}]".format(obj),
-            level=ErrorLevel.ERROR,
-        )
-    )
-
-    if g.user.is_anonymous:
-        if raise_if_false:
-            raise security_exception
-        return False
-    if is_user_admin():
-        return True
-    scoped_session = db.create_scoped_session()
-    orig_obj = scoped_session.query(obj.__class__).filter_by(id=obj.id).first()
-
-    # Making a list of owners that works across ORM models
-    owners: List[User] = []
-    if hasattr(orig_obj, "owners"):
-        owners += orig_obj.owners
-    if hasattr(orig_obj, "owner"):
-        owners += [orig_obj.owner]
-    if hasattr(orig_obj, "created_by"):
-        owners += [orig_obj.created_by]
-
-    owner_names = [o.username for o in owners if o]
-
-    if g.user and hasattr(g.user, "username") and g.user.username in owner_names:
-        return True
-    if raise_if_false:
-        raise security_exception
-    return False
 
 
 def bind_field(

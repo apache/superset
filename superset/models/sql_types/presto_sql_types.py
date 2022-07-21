@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-# pylint: disable=abstract-method
+# pylint: disable=abstract-method, no-init
 from typing import Any, Dict, List, Optional, Type
 
 from sqlalchemy.engine.interfaces import Dialect

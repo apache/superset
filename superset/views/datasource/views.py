@@ -18,7 +18,7 @@ import json
 from collections import Counter
 from typing import Any
 
-from flask import g, request
+from flask import request
 from flask_appbuilder import expose
 from flask_appbuilder.api import rison
 from flask_appbuilder.security.decorators import has_access_api
@@ -27,7 +27,7 @@ from marshmallow import ValidationError
 from sqlalchemy.exc import NoSuchTableError
 from sqlalchemy.orm.exc import NoResultFound
 
-from superset import db, event_logger
+from superset import db, event_logger, security_manager
 from superset.commands.utils import populate_owners
 from superset.connectors.sqla.models import SqlaTable
 from superset.connectors.sqla.utils import get_physical_table_metadata
@@ -37,14 +37,12 @@ from superset.datasets.commands.exceptions import (
 )
 from superset.datasource.dao import DatasourceDAO
 from superset.exceptions import SupersetException, SupersetSecurityException
-from superset.extensions import security_manager
 from superset.models.core import Database
 from superset.superset_typing import FlaskResponse
 from superset.utils.core import DatasourceType
 from superset.views.base import (
     api,
     BaseSupersetView,
-    check_ownership,
     handle_api_exception,
     json_error_response,
 )
@@ -84,13 +82,12 @@ class Datasource(BaseSupersetView):
         if "owners" in datasource_dict and orm_datasource.owner_class is not None:
             # Check ownership
             try:
-                check_ownership(orm_datasource)
+                security_manager.raise_for_ownership(orm_datasource)
             except SupersetSecurityException as ex:
                 raise DatasetForbiddenError() from ex
 
-        user = security_manager.get_user_by_id(g.user.id)
         datasource_dict["owners"] = populate_owners(
-            user, datasource_dict["owners"], default_to_user=False
+            datasource_dict["owners"], default_to_user=False
         )
 
         duplicates = [

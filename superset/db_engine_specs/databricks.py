@@ -13,13 +13,19 @@
 # "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
-# under the License.o
+# under the License.
 
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional, TYPE_CHECKING
 
+from sqlalchemy.engine.reflection import Inspector
+
+from superset.constants import USER_AGENT
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.hive import HiveEngineSpec
+
+if TYPE_CHECKING:
+    from superset.models.core import Database
 
 time_grain_expressions = {
     None: "{col}",
@@ -71,3 +77,28 @@ class DatabricksNativeEngineSpec(DatabricksODBCEngineSpec):
     engine = "databricks"
     engine_name = "Databricks Native Connector"
     driver = "connector"
+
+    @staticmethod
+    def get_extra_params(database: "Database") -> Dict[str, Any]:
+        """
+        Add a user agent to be used in the requests.
+        """
+        extra = {
+            "http_headers": [("User-Agent", USER_AGENT)],
+            "_user_agent_entry": USER_AGENT,
+        }
+        extra.update(BaseEngineSpec.get_extra_params(database))
+        return extra
+
+    @classmethod
+    def get_table_names(
+        cls,
+        database: "Database",
+        inspector: Inspector,
+        schema: Optional[str],
+    ) -> List[str]:
+        tables = set(super().get_table_names(database, inspector, schema))
+        views = set(cls.get_view_names(database, inspector, schema))
+        actual_tables = tables - views
+
+        return list(actual_tables)

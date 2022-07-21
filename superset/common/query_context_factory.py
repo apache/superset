@@ -82,6 +82,9 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
 
     # pylint: disable=no-self-use
     def _convert_to_model(self, datasource: DatasourceDict) -> BaseDatasource:
+
         return DatasourceDAO.get_datasource(
-            db.session, DatasourceType(datasource["type"]), int(datasource["id"])
+            session=db.session,
+            datasource_type=DatasourceType(datasource["type"]),
+            datasource_id=int(datasource["id"]),
         )

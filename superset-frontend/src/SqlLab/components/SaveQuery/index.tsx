@@ -173,7 +173,7 @@ export default function SaveQuery({
         width="620px"
         show={showSave}
         title={<h4>{t('Save query')}</h4>}
-        footer={[
+        footer={
           <>
             <Button onClick={close} data-test="cancel-query" cta>
               {t('Cancel')}
@@ -196,8 +196,8 @@ export default function SaveQuery({
                 {t('Update')}
               </Button>
             )}
-          </>,
-        ]}
+          </>
+        }
       >
         {renderModalBody()}
       </Modal>

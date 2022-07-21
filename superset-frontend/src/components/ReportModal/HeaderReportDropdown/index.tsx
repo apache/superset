@@ -104,7 +104,7 @@ export default function HeaderReportDropDown({
   const user: UserWithPermissionsAndRoles = useSelector<
     any,
     UserWithPermissionsAndRoles
-  >(state => state.user || state.explore?.user);
+  >(state => state.user);
   const canAddReports = () => {
     if (!isFeatureEnabled(FeatureFlag.ALERT_REPORTS)) {
       return false;

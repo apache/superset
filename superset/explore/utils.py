@@ -16,8 +16,6 @@
 # under the License.
 from typing import Optional
 
-from flask_appbuilder.security.sqla.models import User
-
 from superset import security_manager
 from superset.charts.commands.exceptions import (
     ChartAccessDeniedError,
@@ -36,8 +34,6 @@ from superset.datasets.commands.exceptions import (
 from superset.datasets.dao import DatasetDAO
 from superset.queries.dao import QueryDAO
 from superset.utils.core import DatasourceType
-from superset.views.base import is_user_admin
-from superset.views.utils import is_owner
 
 
 def check_dataset_access(dataset_id: int) -> Optional[bool]:
@@ -80,7 +76,6 @@ def check_datasource_access(
 def check_access(
     datasource_id: int,
     chart_id: Optional[int],
-    actor: User,
     datasource_type: DatasourceType,
 ) -> Optional[bool]:
     check_datasource_access(datasource_id, datasource_type)
@@ -88,11 +83,9 @@ def check_access(
         return True
     chart = ChartDAO.find_by_id(chart_id)
     if chart:
-        can_access_chart = (
-            is_user_admin()
-            or is_owner(chart, actor)
-            or security_manager.can_access("can_read", "Chart")
-        )
+        can_access_chart = security_manager.is_owner(
+            chart
+        ) or security_manager.can_access("can_read", "Chart")
         if can_access_chart:
             return True
         raise ChartAccessDeniedError()

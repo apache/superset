@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { MouseEvent, Key } from 'react';
 import moment from 'moment';
 import {
   Behavior,
@@ -32,6 +32,8 @@ import ShareMenuItems from 'src/dashboard/components/menu/ShareMenuItems';
 import downloadAsImage from 'src/utils/downloadAsImage';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import CrossFilterScopingModal from 'src/dashboard/components/CrossFilterScopingModal/CrossFilterScopingModal';
+import { getSliceHeaderTooltip } from 'src/dashboard/util/getSliceHeaderTooltip';
+import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
 import ModalTrigger from 'src/components/ModalTrigger';
 import Button from 'src/components/Button';
@@ -106,7 +108,7 @@ export interface SliceHeaderControlsProps {
   isFullSize?: boolean;
   isDescriptionExpanded?: boolean;
   formData: QueryFormData;
-  onExploreChart: () => void;
+  onExploreChart: (event: MouseEvent) => void;
 
   forceRefresh: (sliceId: number, dashboardId: number) => void;
   logExploreChart?: (sliceId: number) => void;
@@ -170,8 +172,8 @@ class SliceHeaderControls extends React.PureComponent<
     key,
     domEvent,
   }: {
-    key: React.Key;
-    domEvent: React.MouseEvent<HTMLElement>;
+    key: Key;
+    domEvent: MouseEvent<HTMLElement>;
   }) {
     switch (key) {
       case MENU_KEYS.FORCE_REFRESH:
@@ -306,9 +308,11 @@ class SliceHeaderControls extends React.PureComponent<
         {this.props.supersetCanExplore && (
           <Menu.Item
             key={MENU_KEYS.EXPLORE_CHART}
-            onClick={this.props.onExploreChart}
+            onClick={({ domEvent }) => this.props.onExploreChart(domEvent)}
           >
-            {t('Edit chart')}
+            <Tooltip title={getSliceHeaderTooltip(this.props.slice.slice_name)}>
+              {t('Edit chart')}
+            </Tooltip>
           </Menu.Item>
         )}
 
@@ -334,7 +338,7 @@ class SliceHeaderControls extends React.PureComponent<
             <ModalTrigger
               triggerNode={
                 <span data-test="view-query-menu-item">
-                  {t('Drill to detail')}
+                  {t('View as table')}
                 </span>
               }
               modalTitle={t('Chart Data: %s', slice.slice_name)}

@@ -31,6 +31,7 @@ const formData: SqlaFormData = {
   granularity: 'month',
   datasource: 'foo',
   viz_type: 'table',
+  show_empty_columns: true,
 };
 const queryObject: QueryObject = {
   metrics: [
@@ -93,8 +94,6 @@ test('should pivot on any type of timeCompare', () => {
           },
         },
         drop_missing_columns: false,
-        flatten_columns: false,
-        reset_index: false,
         columns: ['foo', 'bar'],
         index: ['__timestamp'],
       },
@@ -133,8 +132,6 @@ test('should pivot on x-axis', () => {
       drop_missing_columns: false,
       columns: ['foo', 'bar'],
       index: ['ds'],
-      flatten_columns: false,
-      reset_index: false,
     },
   });
 });
@@ -174,8 +171,6 @@ test('should pivot on adhoc x-axis', () => {
       drop_missing_columns: false,
       columns: ['foo', 'bar'],
       index: ['my_case_expr'],
-      flatten_columns: false,
-      reset_index: false,
     },
   });
 });

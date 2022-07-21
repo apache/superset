@@ -28,6 +28,7 @@ const formData: SqlaFormData = {
   granularity: 'month',
   datasource: 'foo',
   viz_type: 'table',
+  show_empty_columns: true,
 };
 const queryObject: QueryObject = {
   metrics: [
@@ -80,8 +81,6 @@ test('pivot by __timestamp without groupby', () => {
         'sum(val)': { operator: 'mean' },
       },
       drop_missing_columns: false,
-      flatten_columns: false,
-      reset_index: false,
     },
   });
 });
@@ -103,8 +102,6 @@ test('pivot by __timestamp with groupby', () => {
         'sum(val)': { operator: 'mean' },
       },
       drop_missing_columns: false,
-      flatten_columns: false,
-      reset_index: false,
     },
   });
 });
@@ -131,8 +128,6 @@ test('pivot by x_axis with groupby', () => {
         'sum(val)': { operator: 'mean' },
       },
       drop_missing_columns: false,
-      flatten_columns: false,
-      reset_index: false,
     },
   });
 });
@@ -163,8 +158,6 @@ test('pivot by adhoc x_axis', () => {
         'sum(val)': { operator: 'mean' },
       },
       drop_missing_columns: false,
-      flatten_columns: false,
-      reset_index: false,
     },
   });
 });
