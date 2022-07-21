@@ -34,6 +34,7 @@ from superset.sqllab.exceptions import (
     QueryIsForbiddenToAccessException,
     SqlLabException,
 )
+from superset.sqllab.execution_context_convertor import ExecutionContextConvertor
 from superset.sqllab.limiting_factor import LimitingFactor
 
 if TYPE_CHECKING:
@@ -41,6 +42,7 @@ if TYPE_CHECKING:
     from superset.queries.dao import QueryDAO
     from superset.sqllab.sql_json_executer import SqlJsonExecutor
     from superset.sqllab.sqllab_execution_context import SqlJsonExecutionContext
+
 
 logger = logging.getLogger(__name__)
 
@@ -94,11 +96,19 @@ class ExecuteSqlCommand(BaseCommand):
                 status = SqlJsonExecutionStatus.QUERY_ALREADY_CREATED
             else:
                 status = self._run_sql_json_exec_from_scratch()
+
+            self._execution_context_convertor.set_payload(
+                self._execution_context, status
+            )
+
+            # save columns into metadata_json
+            self._query_dao.save_metadata(
+                self._execution_context.query, self._execution_context_convertor.payload
+            )
+
             return {
                 "status": status,
-                "payload": self._execution_context_convertor.to_payload(
-                    self._execution_context, status
-                ),
+                "payload": self._execution_context_convertor.serialize_payload(),
             }
         except (SqlLabException, SupersetErrorsException) as ex:
             raise ex
@@ -208,13 +218,4 @@ class CanAccessQueryValidator:
 
 class SqlQueryRender:
     def render(self, execution_context: SqlJsonExecutionContext) -> str:
-        raise NotImplementedError()
-
-
-class ExecutionContextConvertor:
-    def to_payload(
-        self,
-        execution_context: SqlJsonExecutionContext,
-        execution_status: SqlJsonExecutionStatus,
-    ) -> str:
         raise NotImplementedError()

@@ -52,7 +52,7 @@ from superset.utils.core import (
     get_column_names_from_metrics,
     get_metric_names,
     normalize_dttm_col,
-    TIME_COMPARISION,
+    TIME_COMPARISON,
 )
 from superset.utils.date_parser import get_past_or_future, normalize_time_delta
 from superset.views.utils import get_viz
@@ -289,7 +289,7 @@ class QueryContextProcessor:
             query_object_clone_dct = query_object_clone.to_dict()
             # rename metrics: SUM(value) => SUM(value) 1 year ago
             metrics_mapping = {
-                metric: TIME_COMPARISION.join([metric, offset])
+                metric: TIME_COMPARISON.join([metric, offset])
                 for metric in get_metric_names(
                     query_object_clone_dct.get("metrics", [])
                 )

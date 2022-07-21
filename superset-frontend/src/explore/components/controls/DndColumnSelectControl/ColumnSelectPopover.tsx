@@ -348,6 +348,7 @@ const ColumnSelectPopover = ({
           }
           buttonSize="small"
           onClick={onSave}
+          data-test="ColumnEdit#save"
           cta
         >
           {t('Save')}

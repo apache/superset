@@ -155,22 +155,6 @@ export class Tabs extends React.PureComponent {
       this.setState(() => ({ tabIndex: maxIndex }));
     }
 
-    if (nextTabsIds.length) {
-      const lastTabId = nextTabsIds[nextTabsIds.length - 1];
-      // if a new tab is added focus on it immediately
-      if (nextTabsIds.length > currTabsIds.length) {
-        // a new tab's path may be empty, here also need to set tabIndex
-        this.setState(() => ({
-          activeKey: lastTabId,
-          tabIndex: maxIndex,
-        }));
-      }
-      // if a tab is removed focus on the first
-      if (nextTabsIds.length < currTabsIds.length) {
-        this.setState(() => ({ activeKey: nextTabsIds[0] }));
-      }
-    }
-
     if (nextProps.isComponentVisible) {
       const nextFocusComponent = getLeafComponentIdFromPath(
         nextProps.directPathToChild,
@@ -179,7 +163,14 @@ export class Tabs extends React.PureComponent {
         this.props.directPathToChild,
       );
 
-      if (nextFocusComponent !== currentFocusComponent) {
+      // If the currently selected component is different than the new one,
+      // or the tab length/order changed, calculate the new tab index and
+      // replace it if it's different than the current one
+      if (
+        nextFocusComponent !== currentFocusComponent ||
+        (nextFocusComponent === currentFocusComponent &&
+          currTabsIds !== nextTabsIds)
+      ) {
         const nextTabIndex = findTabIndexByComponentId({
           currentComponent: nextProps.component,
           directPathToChild: nextProps.directPathToChild,
@@ -219,9 +210,12 @@ export class Tabs extends React.PureComponent {
     });
   };
 
-  handleEdit = (key, action) => {
+  handleEdit = (event, action) => {
     const { component, createComponent } = this.props;
     if (action === 'add') {
+      // Prevent the tab container to be selected
+      event?.stopPropagation?.();
+
       createComponent({
         destination: {
           id: component.id,
@@ -234,7 +228,7 @@ export class Tabs extends React.PureComponent {
         },
       });
     } else if (action === 'remove') {
-      this.showDeleteConfirmModal(key);
+      this.showDeleteConfirmModal(event);
     }
   };
 
@@ -261,7 +255,11 @@ export class Tabs extends React.PureComponent {
   }
 
   handleDeleteTab(tabIndex) {
-    this.handleClickTab(Math.max(0, tabIndex - 1));
+    // If we're removing the currently selected tab,
+    // select the previous one (if any)
+    if (this.state.tabIndex === tabIndex) {
+      this.handleClickTab(Math.max(0, tabIndex - 1));
+    }
   }
 
   handleDropOnTab(dropResult) {

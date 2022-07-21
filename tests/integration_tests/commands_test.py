@@ -16,11 +16,11 @@
 # under the License.
 import copy
 import json
-from unittest.mock import patch
 
 import yaml
+from flask import g
 
-from superset import db, security_manager
+from superset import db
 from superset.commands.exceptions import CommandInvalidError
 from superset.commands.importers.v1.assets import ImportAssetsCommand
 from superset.commands.importers.v1.utils import is_valid_config
@@ -58,10 +58,13 @@ class TestImportersV1Utils(SupersetTestCase):
 
 
 class TestImportAssetsCommand(SupersetTestCase):
-    @patch("superset.dashboards.commands.importers.v1.utils.g")
-    def test_import_assets(self, mock_g):
+    def setUp(self):
+        user = self.get_user("admin")
+        self.user = user
+        setattr(g, "user", user)
+
+    def test_import_assets(self):
         """Test that we can import multiple assets"""
-        mock_g.user = security_manager.find_user("admin")
         contents = {
             "metadata.yaml": yaml.safe_dump(metadata_config),
             "databases/imported_database.yaml": yaml.safe_dump(database_config),
@@ -141,7 +144,7 @@ class TestImportAssetsCommand(SupersetTestCase):
         database = dataset.database
         assert str(database.uuid) == database_config["uuid"]
 
-        assert dashboard.owners == [mock_g.user]
+        assert dashboard.owners == [self.user]
 
         dashboard.owners = []
         chart.owners = []
@@ -153,11 +156,8 @@ class TestImportAssetsCommand(SupersetTestCase):
         db.session.delete(database)
         db.session.commit()
 
-    @patch("superset.dashboards.commands.importers.v1.utils.g")
-    def test_import_v1_dashboard_overwrite(self, mock_g):
+    def test_import_v1_dashboard_overwrite(self):
         """Test that assets can be overwritten"""
-        mock_g.user = security_manager.find_user("admin")
-
         contents = {
             "metadata.yaml": yaml.safe_dump(metadata_config),
             "databases/imported_database.yaml": yaml.safe_dump(database_config),

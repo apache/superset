@@ -38,6 +38,15 @@ const columnsConfig = isFeatureEnabled(FeatureFlag.ENABLE_EXPLORE_DRAG_AND_DROP)
   ? dndEntity
   : allColumns;
 
+const colorChoices = [
+  ['rgb(0, 139, 139)', 'Dark Cyan'],
+  ['rgb(128, 0, 128)', 'Purple'],
+  ['rgb(255, 215, 0)', 'Gold'],
+  ['rgb(69, 69, 69)', 'Dim Gray'],
+  ['rgb(220, 20, 60)', 'Crimson'],
+  ['rgb(34, 139, 34)', 'Forest Green'],
+];
+
 const config: ControlPanelConfig = {
   controlPanelSections: [
     sections.legacyRegularTime,
@@ -249,15 +258,8 @@ const config: ControlPanelConfig = {
               type: 'SelectControl',
               freeForm: true,
               label: t('RGB Color'),
-              default: 'rgb(0, 122, 135)',
-              choices: [
-                ['rgb(0, 139, 139)', 'Dark Cyan'],
-                ['rgb(128, 0, 128)', 'Purple'],
-                ['rgb(255, 215, 0)', 'Gold'],
-                ['rgb(69, 69, 69)', 'Dim Gray'],
-                ['rgb(220, 20, 60)', 'Crimson'],
-                ['rgb(34, 139, 34)', 'Forest Green'],
-              ],
+              default: colorChoices[0][0],
+              choices: colorChoices,
               description: t('The color for points and clusters in RGB'),
             },
           },

@@ -24,8 +24,10 @@ import { EchartsHandler, EventHandlers } from '../types';
 import Echart from '../components/Echart';
 import { TimeseriesChartTransformedProps } from './types';
 import { currentSeries } from '../utils/series';
+import { ExtraControls } from '../components/ExtraControls';
 
 const TIMER_DURATION = 300;
+
 // @ts-ignore
 export default function EchartsTimeseries({
   formData,
@@ -36,6 +38,7 @@ export default function EchartsTimeseries({
   labelMap,
   selectedValues,
   setDataMask,
+  setControlValue,
   legendData = [],
 }: TimeseriesChartTransformedProps) {
   const { emitFilter, stack } = formData;
@@ -120,7 +123,7 @@ export default function EchartsTimeseries({
         },
       });
     },
-    [groupby, labelMap, setDataMask],
+    [groupby, labelMap, setDataMask, emitFilter],
   );
 
   const eventHandlers: EventHandlers = {
@@ -195,14 +198,17 @@ export default function EchartsTimeseries({
   };
 
   return (
-    <Echart
-      ref={echartRef}
-      height={height}
-      width={width}
-      echartOptions={echartOptions}
-      eventHandlers={eventHandlers}
-      zrEventHandlers={zrEventHandlers}
-      selectedValues={selectedValues}
-    />
+    <>
+      <ExtraControls formData={formData} setControlValue={setControlValue} />
+      <Echart
+        ref={echartRef}
+        height={height}
+        width={width}
+        echartOptions={echartOptions}
+        eventHandlers={eventHandlers}
+        zrEventHandlers={zrEventHandlers}
+        selectedValues={selectedValues}
+      />
+    </>
   );
 }

@@ -64,7 +64,7 @@ import {
   legacyValidateInteger,
   validateNonEmpty,
 } from '@superset-ui/core';
-import { formatSelectOptions } from 'src/modules/utils';
+import { formatSelectOptions } from 'src/explore/exploreUtils';
 import { TIME_FILTER_LABELS } from './constants';
 import { StyledColumnOption } from './components/optionRenderers';
 
@@ -120,7 +120,7 @@ const groupByControl = {
   type: 'SelectControl',
   multi: true,
   freeForm: true,
-  label: t('Group by'),
+  label: t('Dimensions'),
   default: [],
   includeTime: false,
   description: t(
@@ -351,10 +351,6 @@ export const controls = {
         "using the engine's local timezone. Note one can explicitly set the timezone " +
         'per the ISO 8601 format if specifying either the start and/or end time.',
     ),
-    mapStateToProps: ({ form_data: formData }) => ({
-      // eslint-disable-next-line camelcase
-      endpoints: formData?.time_range_endpoints,
-    }),
   },
 
   row_limit: {
@@ -400,7 +396,7 @@ export const controls = {
 
   series: {
     ...groupByControl,
-    label: t('Series'),
+    label: t('Dimensions'),
     multi: false,
     default: null,
     description: t(

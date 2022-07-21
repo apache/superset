@@ -1,9 +1,5 @@
 import { getChartAlias, Slice } from 'cypress/utils/vizPlugins';
-import {
-  dashboardView,
-  editDashboardView,
-  nativeFilters,
-} from 'cypress/support/directories';
+import { dashboardView } from 'cypress/support/directories';
 
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -24,11 +20,13 @@ import {
  * under the License.
  */
 export const WORLD_HEALTH_DASHBOARD = '/superset/dashboard/world_health/';
+export const testDashboard = '/superset/dashboard/538/';
 export const TABBED_DASHBOARD = '/superset/dashboard/tabbed_dash/';
 
 export const testItems = {
-  dashboard: 'Cypress Sales Dashboard',
+  dashboard: 'Cypress test Dashboard',
   dataset: 'Vehicle Sales',
+  datasetForNativeFilter: 'wb_health_population',
   chart: 'Cypress chart',
   newChart: 'New Cypress Chart',
   createdDashboard: 'New Dashboard',
@@ -37,6 +35,25 @@ export const testItems = {
   bulkFirstNameDashboard: 'First Dash',
   bulkSecondNameDashboard: 'Second Dash',
   worldBanksDataCopy: `World Bank's Data [copy]`,
+  filterType: {
+    value: 'Value',
+    numerical: 'Numerical range',
+    timeColumn: 'Time column',
+    timeGrain: 'Time grain',
+    timeRange: 'Time range',
+  },
+  topTenChart: {
+    name: 'Most Populated Countries',
+    filterColumn: 'country_name',
+    filterColumnYear: 'year',
+    filterColumnRegion: 'region',
+    filterColumnCountryCode: 'country_code',
+  },
+  filterDefaultValue: 'United States',
+  filterOtherCountry: 'China',
+  filterTimeGrain: 'Month',
+  filterTimeColumn: 'created',
+  filterNumericalColumn: 'SP_RUR_TOTL_ZS',
 };
 
 export const CHECK_DASHBOARD_FAVORITE_ENDPOINT =
@@ -138,7 +155,7 @@ export function resize(selector: string) {
   return {
     to(cordX: number, cordY: number) {
       cy.get(selector)
-        .trigger('mousedown', { which: 1 })
+        .trigger('mousedown', { which: 1, force: true })
         .trigger('mousemove', { which: 1, cordX, cordY, force: true })
         .trigger('mouseup', { which: 1, force: true });
     },
@@ -159,97 +176,34 @@ export function cleanUp() {
 }
 
 /** ************************************************************************
- * Clicks on new filter button
+ * Copy dashboard for testing purpose
  * @returns {None}
- * @summary helper for adding new filter
+ * @summary helper for copy dashboard for testing purpose
  ************************************************************************* */
-export function clickOnAddFilterInModal() {
-  return cy
-    .get(nativeFilters.addFilterButton.button)
-    .first()
-    .click()
-    .then(() => {
-      cy.get(nativeFilters.addFilterButton.dropdownItem)
-        .contains('Filter')
-        .click({ force: true });
-    });
-}
-
-/** ************************************************************************
- * Fills value native filter form with basic information
- * @param {string} name name for filter
- * @param {string} dataset which dataset should be used
- * @param {string} filterColumn which column should be used
- * @returns {None}
- * @summary helper for filling value native filter form
- ************************************************************************* */
-export function fillValueNativeFilterForm(
-  name: string,
-  dataset: string,
-  filterColumn: string,
-) {
-  cy.get(nativeFilters.modal.container)
-    .find(nativeFilters.filtersPanel.filterName)
-    .last()
-    .click({ scrollBehavior: false })
-    .type(name, { scrollBehavior: false });
-  cy.get(nativeFilters.modal.container)
-    .find(nativeFilters.filtersPanel.datasetName)
-    .last()
-    .click({ scrollBehavior: false })
-    .type(`${dataset}{enter}`, { scrollBehavior: false });
-  cy.get(nativeFilters.silentLoading).should('not.exist');
-  cy.get(nativeFilters.filtersPanel.filterInfoInput)
-    .last()
+export function copyTestDashboard(dashboard: string) {
+  cy.intercept('POST', '**/copy_dash/**').as('copy');
+  cy.intercept('GET', '**/api/v1/dataset/**').as('datasetLoad');
+  cy.intercept('**/api/v1/dashboard/?q=**').as('dashboardsList');
+  cy.intercept('**/api/v1/dashboard/**').as('dashboard');
+  cy.visit('dashboard/list/');
+  cy.contains('Actions');
+  cy.wait('@dashboardsList').then(xhr => {
+    const dashboards = xhr.response?.body.result;
+    /* eslint-disable no-unused-expressions */
+    expect(dashboards).not.to.be.undefined;
+    const testDashboard = dashboards.find(
+      (d: { dashboard_title: string }) => d.dashboard_title === `${dashboard}`,
+    );
+    cy.visit(testDashboard.url);
+  });
+  cy.get(dashboardView.threeDotsMenuIcon).should('be.visible').click();
+  cy.get(dashboardView.saveAsMenuOption).click();
+  cy.get(dashboardView.saveModal.dashboardNameInput)
     .should('be.visible')
-    .click({ force: true });
-  cy.get(nativeFilters.filtersPanel.filterInfoInput).last().type(filterColumn);
-  cy.get(nativeFilters.filtersPanel.inputDropdown)
-    .should('be.visible', { timeout: 20000 })
-    .last()
-    .click();
-}
-/** ************************************************************************
- * Get native filter placeholder e.g 9 options
- * @param {number} index which input it fills
- * @returns cy object for assertions
- * @summary helper for getting placeholder value
- ************************************************************************* */
-export function getNativeFilterPlaceholderWithIndex(index: number) {
-  return cy.get(nativeFilters.filtersPanel.columnEmptyInput).eq(index);
-}
-
-/** ************************************************************************
- * Apply native filter value from dashboard view
- * @param {number} index which input it fills
- * @param {string} value what is filter value
- * @returns {null}
- * @summary put value to nth native filter input in view
- ************************************************************************* */
-export function applyNativeFilterValueWithIndex(index: number, value: string) {
-  cy.get(nativeFilters.filterFromDashboardView.filterValueInput)
-    .eq(index)
-    .parent()
-    .should('be.visible', { timeout: 10000 })
-    .type(`${value}{enter}`);
-  // click the title to dismiss shown options
-  cy.get(nativeFilters.filterFromDashboardView.filterName).eq(index).click();
-}
-
-/** ************************************************************************
- * Fills parent filter input
- * @param {number} index which input it fills
- * @param {string} value on which filter it depends on
- * @returns {null}
- * @summary takes first or second input and modify the depends on filter value
- ************************************************************************* */
-export function addParentFilterWithValue(index: number, value: string) {
-  return cy
-    .get(nativeFilters.filterConfigurationSections.displayedSection)
-    .within(() => {
-      cy.get('input[aria-label="Limit type"]')
-        .eq(index)
-        .click({ force: true })
-        .type(`${value}{enter}`, { delay: 30, force: true });
-    });
+    .clear()
+    .type(testItems.dashboard);
+  cy.get(dashboardView.saveModal.saveButton).click();
+  cy.wait('@copy', { timeout: 45000 })
+    .its('response.statusCode')
+    .should('eq', 200);
 }

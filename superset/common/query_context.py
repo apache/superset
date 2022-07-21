@@ -70,7 +70,6 @@ class QueryContext:
         result_format: ChartDataResultFormat,
         force: bool = False,
         custom_cache_timeout: Optional[int] = None,
-        viz_type: Optional[str] = None,
         cache_values: Dict[str, Any],
     ) -> None:
         self.datasource = datasource

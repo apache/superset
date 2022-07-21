@@ -85,6 +85,7 @@ const config: ControlPanelConfig = {
         ['timeseries_limit_metric'],
         ['order_desc'],
         ['row_limit'],
+        ['truncate_metric'],
       ],
     },
     sections.advancedAnalyticsControls,
@@ -194,7 +195,7 @@ const config: ControlPanelConfig = {
           },
         ],
         ...legendSection,
-        [<h1 className="section-header">{t('X Axis')}</h1>],
+        [<div className="section-header">{t('X Axis')}</div>],
         [
           {
             name: 'x_axis_time_format',
@@ -229,7 +230,7 @@ const config: ControlPanelConfig = {
         ],
         ...richTooltipSection,
         // eslint-disable-next-line react/jsx-key
-        [<h1 className="section-header">{t('Y Axis')}</h1>],
+        [<div className="section-header">{t('Y Axis')}</div>],
         ['y_axis_format'],
         [
           {
@@ -296,6 +297,11 @@ const config: ControlPanelConfig = {
       default: rowLimit,
     },
   },
+  denormalizeFormData: formData => ({
+    ...formData,
+    metrics: formData.standardizedFormData.standardizedState.metrics,
+    groupby: formData.standardizedFormData.standardizedState.columns,
+  }),
 };
 
 export default config;

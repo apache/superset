@@ -29,8 +29,6 @@ import {
 
 export const FRAME_OPTIONS: SelectOptionType[] = [
   { value: 'Common', label: t('Last') },
-  { value: 'Today', label: t('Today') },
-  { value: 'Yesterday', label: t('Yesterday') },
   { value: 'Calendar', label: t('Previous') },
   { value: 'Custom', label: t('Custom') },
   { value: 'Advanced', label: t('Advanced') },
@@ -93,7 +91,7 @@ export const SINCE_MODE_OPTIONS: SelectOptionType[] = [
   { value: 'specific', label: t('Specific Date/Time') },
   { value: 'relative', label: t('Relative Date/Time') },
   { value: 'now', label: t('Now') },
-  { value: DEFAULT_RELATIVE_END_TIME, label: t('Midnight') },
+  { value: 'today', label: t('Midnight') },
 ];
 
 export const UNTIL_MODE_OPTIONS: SelectOptionType[] =

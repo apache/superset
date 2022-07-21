@@ -113,23 +113,27 @@ const WelcomeContainer = styled.div`
 `;
 
 const WelcomeNav = styled.div`
-  height: 50px;
-  background-color: white;
-  .navbar-brand {
-    margin-left: ${({ theme }) => theme.gridUnit * 2}px;
-    font-weight: ${({ theme }) => theme.typography.weights.bold};
-  }
-  .switch {
-    float: right;
-    margin: ${({ theme }) => theme.gridUnit * 5}px;
+  ${({ theme }) => `
     display: flex;
-    flex-direction: row;
-    span {
-      display: block;
-      margin: ${({ theme }) => theme.gridUnit * 1}px;
-      line-height: 1;
+    justify-content: space-between;
+    height: 50px;
+    background-color: ${theme.colors.grayscale.light5};
+    .welcome-header {
+      font-size: ${theme.typography.sizes.l}px;
+      padding: ${theme.gridUnit * 4}px ${theme.gridUnit * 2 + 2}px;
+      margin: 0 ${theme.gridUnit * 2}px;
     }
-  }
+    .switch {
+      display: flex;
+      flex-direction: row;
+      margin: ${theme.gridUnit * 4}px;
+      span {
+        display: block;
+        margin: ${theme.gridUnit * 1}px;
+        line-height: 1;
+      }
+    }
+  `}
 `;
 
 export const LoadingCards = ({ cover }: LoadingProps) => (
@@ -147,7 +151,7 @@ export const LoadingCards = ({ cover }: LoadingProps) => (
 
 function Welcome({ user, addDangerToast }: WelcomeProps) {
   const userid = user.userId;
-  const id = userid.toString();
+  const id = userid!.toString(); // confident that user is not a guest user
   const recent = `/superset/recent_activity/${user.userId}/?limit=6`;
   const [activeChild, setActiveChild] = useState('Loading');
   const userKey = dangerouslyGetItemDoNotUse(id, null);
@@ -176,7 +180,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
   useEffect(() => {
     const activeTab = getItem(LocalStorageKeys.homepage_activity_filter, null);
     setActiveState(collapseState.length > 0 ? collapseState : DEFAULT_TAB_ARR);
-    getRecentAcitivtyObjs(user.userId, recent, addDangerToast)
+    getRecentAcitivtyObjs(user.userId!, recent, addDangerToast)
       .then(res => {
         const data: ActivityData | null = {};
         data.Examples = res.examples;
@@ -275,7 +279,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
   return (
     <WelcomeContainer>
       <WelcomeNav>
-        <span className="navbar-brand">Home</span>
+        <h1 className="welcome-header">Home</h1>
         {isFeatureEnabled(FeatureFlag.THUMBNAILS) ? (
           <div className="switch">
             <AntdSwitch checked={checked} onChange={handleToggle} />
@@ -291,7 +295,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
             activityData.Created) &&
           activeChild !== 'Loading' ? (
             <ActivityTable
-              user={user}
+              user={{ userId: user.userId! }} // user is definitely not a guest user on this page
               activeChild={activeChild}
               setActiveChild={setActiveChild}
               activityData={activityData}

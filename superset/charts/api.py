@@ -30,7 +30,7 @@ from marshmallow import ValidationError
 from werkzeug.wrappers import Response as WerkzeugResponse
 from werkzeug.wsgi import FileWrapper
 
-from superset import is_feature_enabled, thumbnail_cache
+from superset import app, is_feature_enabled, thumbnail_cache
 from superset.charts.commands.bulk_delete import BulkDeleteChartCommand
 from superset.charts.commands.create import CreateChartCommand
 from superset.charts.commands.delete import DeleteChartCommand
@@ -82,6 +82,7 @@ from superset.views.base_api import (
 from superset.views.filters import FilterRelatedOwners
 
 logger = logging.getLogger(__name__)
+config = app.config
 
 
 class ChartRestApi(BaseSupersetModelRestApi):
@@ -516,14 +517,12 @@ class ChartRestApi(BaseSupersetModelRestApi):
                 schema:
                   $ref: '#/components/schemas/screenshot_query_schema'
           responses:
-            200:
+            202:
               description: Chart async result
               content:
                 application/json:
                   schema:
                     $ref: "#/components/schemas/ChartCacheScreenshotResponseSchema"
-            302:
-              description: Redirects to the current digest
             400:
               $ref: '#/components/responses/400'
             401:
@@ -596,8 +595,6 @@ class ChartRestApi(BaseSupersetModelRestApi):
                  schema:
                    type: string
                    format: binary
-            302:
-              description: Redirects to the current digest
             400:
               $ref: '#/components/responses/400'
             401:

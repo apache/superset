@@ -24,13 +24,14 @@ const NOOP = () => {};
 const mockedProps = {
   queries: [],
   actions: {
-    queryEditorSetSql: NOOP,
+    queryEditorSetAndSaveSql: NOOP,
     cloneQueryToNewTab: NOOP,
     fetchQueryResults: NOOP,
     clearQueryResults: NOOP,
     removeQuery: NOOP,
   },
   displayLimit: 1000,
+  latestQueryId: 'yhMUZCGb',
 };
 
 const setup = (overrides = {}) => (

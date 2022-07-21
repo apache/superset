@@ -123,7 +123,7 @@ const config: ControlPanelConfig = {
       ),
       controlSetRows: [
         // eslint-disable-next-line react/jsx-key
-        [<h1 className="section-header">{t('Rolling Window')}</h1>],
+        [<div className="section-header">{t('Rolling Window')}</div>],
         [
           {
             name: 'rolling_type',
@@ -175,7 +175,7 @@ const config: ControlPanelConfig = {
           },
         ],
         // eslint-disable-next-line react/jsx-key
-        [<h1 className="section-header">{t('Time Comparison')}</h1>],
+        [<div className="section-header">{t('Time Comparison')}</div>],
         [
           {
             name: 'time_compare',
@@ -224,10 +224,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        // eslint-disable-next-line react/jsx-key
-        [<h1 className="section-header">{t('Python Functions')}</h1>],
-        // eslint-disable-next-line react/jsx-key
-        [<h2 className="section-header">pandas.resample</h2>],
+        [<div className="section-header">{t('Resample')}</div>],
         [
           {
             name: 'resample_rule',

@@ -17,11 +17,18 @@
  * under the License.
  */
 import React from 'react';
-import { t } from '@superset-ui/core';
+import {
+  ensureIsArray,
+  FeatureFlag,
+  isFeatureEnabled,
+  t,
+} from '@superset-ui/core';
+import { cloneDeep } from 'lodash';
 import {
   ControlPanelConfig,
   ControlPanelSectionConfig,
   ControlSetRow,
+  CustomControlItem,
   emitFilterControl,
   sections,
   sharedControls,
@@ -29,11 +36,10 @@ import {
 
 import { DEFAULT_FORM_DATA } from './types';
 import { EchartsTimeseriesSeriesType } from '../Timeseries/types';
-import { legendSection, richTooltipSection } from '../controls';
+import { legendSection, richTooltipSection, xAxisControl } from '../controls';
 
 const {
   area,
-  annotationLayers,
   logAxis,
   markerEnabled,
   markerSize,
@@ -117,6 +123,15 @@ function createQuerySection(
           },
         },
       ],
+      [
+        {
+          name: `truncate_metric${controlSuffix}`,
+          config: {
+            ...sharedControls.truncate_metric,
+            default: sharedControls.truncate_metric.default,
+          },
+        },
+      ],
     ],
   };
 }
@@ -126,7 +141,7 @@ function createCustomizeSection(
   controlSuffix: string,
 ): ControlSetRow[] {
   return [
-    [<h1 className="section-header">{label}</h1>],
+    [<div className="section-header">{label}</div>],
     [
       {
         name: `seriesType${controlSuffix}`,
@@ -253,28 +268,41 @@ function createCustomizeSection(
   ];
 }
 
+function createAdvancedAnalyticsSection(
+  label: string,
+  controlSuffix: string,
+): ControlPanelSectionConfig {
+  const aaWithSuffix = cloneDeep(sections.advancedAnalyticsControls);
+  aaWithSuffix.label = label;
+  if (!controlSuffix) {
+    return aaWithSuffix;
+  }
+  aaWithSuffix.controlSetRows.forEach(row =>
+    row.forEach((control: CustomControlItem) => {
+      if (control?.name) {
+        // eslint-disable-next-line no-param-reassign
+        control.name = `${control.name}${controlSuffix}`;
+      }
+    }),
+  );
+  return aaWithSuffix;
+}
+
 const config: ControlPanelConfig = {
   controlPanelSections: [
     sections.legacyTimeseriesTime,
+    isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES)
+      ? {
+          label: t('Shared query fields'),
+          expanded: true,
+          controlSetRows: [[xAxisControl]],
+        }
+      : null,
     createQuerySection(t('Query A'), ''),
+    createAdvancedAnalyticsSection(t('Advanced analytics Query A'), ''),
     createQuerySection(t('Query B'), '_b'),
-    {
-      label: t('Annotations and Layers'),
-      expanded: false,
-      controlSetRows: [
-        [
-          {
-            name: 'annotation_layers',
-            config: {
-              type: 'AnnotationLayerControl',
-              label: '',
-              default: annotationLayers,
-              description: t('Annotation Layers'),
-            },
-          },
-        ],
-      ],
-    },
+    createAdvancedAnalyticsSection(t('Advanced analytics Query B'), '_b'),
+    sections.annotationsAndLayersControls,
     sections.titleControls,
     {
       label: t('Chart Options'),
@@ -296,7 +324,7 @@ const config: ControlPanelConfig = {
           },
         ],
         ...legendSection,
-        [<h1 className="section-header">{t('X Axis')}</h1>],
+        [<div className="section-header">{t('X Axis')}</div>],
         ['x_axis_time_format'],
         [
           {
@@ -320,7 +348,7 @@ const config: ControlPanelConfig = {
         ],
         ...richTooltipSection,
         // eslint-disable-next-line react/jsx-key
-        [<h1 className="section-header">{t('Y Axis')}</h1>],
+        [<div className="section-header">{t('Y Axis')}</div>],
         [
           {
             name: 'minorSplitLine',
@@ -421,6 +449,21 @@ const config: ControlPanelConfig = {
       ],
     },
   ],
+  denormalizeFormData: formData => {
+    const groupby =
+      formData.standardizedFormData.standardizedState.columns.filter(
+        col => !ensureIsArray(formData.groupby_b).includes(col),
+      );
+    const metrics =
+      formData.standardizedFormData.standardizedState.metrics.filter(
+        metric => !ensureIsArray(formData.metrics_b).includes(metric),
+      );
+    return {
+      ...formData,
+      metrics,
+      groupby,
+    };
+  },
 };
 
 export default config;

@@ -45,6 +45,7 @@ export interface GetFormDataWithExtraFiltersArguments {
   sliceId: number;
   dataMask: DataMaskStateWithId;
   nativeFilters: NativeFiltersState;
+  extraControls: Record<string, string | boolean | null>;
   labelColors?: Record<string, string>;
   sharedLabelColors?: Record<string, string>;
 }
@@ -63,6 +64,7 @@ export default function getFormDataWithExtraFilters({
   sliceId,
   layout,
   dataMask,
+  extraControls,
   labelColors,
   sharedLabelColors,
 }: GetFormDataWithExtraFiltersArguments) {
@@ -84,6 +86,9 @@ export default function getFormDataWithExtraFilters({
     }) &&
     !!cachedFormData &&
     areObjectsEqual(cachedFormData?.dataMask, dataMask, {
+      ignoreUndefined: true,
+    }) &&
+    areObjectsEqual(cachedFormData?.extraControls, extraControls, {
       ignoreUndefined: true,
     })
   ) {
@@ -117,10 +122,11 @@ export default function getFormDataWithExtraFilters({
     ...(colorScheme && { color_scheme: colorScheme }),
     extra_filters: getEffectiveExtraFilters(filters),
     ...extraData,
+    ...extraControls,
   };
 
   cachedFiltersByChart[sliceId] = filters;
-  cachedFormdataByChart[sliceId] = { ...formData, dataMask };
+  cachedFormdataByChart[sliceId] = { ...formData, dataMask, extraControls };
 
   return formData;
 }

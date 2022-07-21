@@ -58,6 +58,7 @@ const propTypes = {
   placeholder: PropTypes.string,
   filterOption: PropTypes.func,
   tokenSeparators: PropTypes.arrayOf(PropTypes.string),
+  notFoundContent: PropTypes.object,
 
   // ControlHeader props
   label: PropTypes.string,
@@ -216,6 +217,7 @@ export default class SelectControl extends React.PureComponent {
       showHeader,
       value,
       tokenSeparators,
+      notFoundContent,
       // ControlHeader props
       description,
       renderTrigger,
@@ -282,6 +284,7 @@ export default class SelectControl extends React.PureComponent {
       sortComparator: this.props.sortComparator,
       value: getValue(),
       tokenSeparators,
+      notFoundContent,
     };
 
     return (

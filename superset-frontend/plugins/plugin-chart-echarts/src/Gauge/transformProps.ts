@@ -38,7 +38,7 @@ import {
   EchartsGaugeChartProps,
 } from './types';
 import {
-  DEFAULT_GAUGE_SERIES_OPTION,
+  defaultGaugeSeriesOption,
   INTERVAL_GAUGE_SERIES_OPTION,
   OFFSETS,
   FONT_SIZE_MULTIPLIERS,
@@ -83,8 +83,11 @@ const calculateAxisLineWidth = (
 export default function transformProps(
   chartProps: EchartsGaugeChartProps,
 ): GaugeChartTransformedProps {
-  const { width, height, formData, queriesData, hooks, filterState } =
+  const { width, height, formData, queriesData, hooks, filterState, theme } =
     chartProps;
+
+  const gaugeSeriesOptions = defaultGaugeSeriesOption(theme);
+
   const {
     groupby,
     metric,
@@ -205,14 +208,14 @@ export default function transformProps(
     length: splitLineLength,
     lineStyle: {
       width: FONT_SIZE_MULTIPLIERS.splitLineWidth * fontSize,
-      color: DEFAULT_GAUGE_SERIES_OPTION.splitLine?.lineStyle?.color,
+      color: gaugeSeriesOptions.splitLine?.lineStyle?.color,
     },
   };
   const axisLine = {
     roundCap,
     lineStyle: {
       width: axisLineWidth,
-      color: DEFAULT_GAUGE_SERIES_OPTION.axisLine?.lineStyle?.color,
+      color: gaugeSeriesOptions.axisLine?.lineStyle?.color,
     },
   };
   const axisLabel = {
@@ -227,19 +230,18 @@ export default function transformProps(
       OFFSETS.ticksFromLine,
     fontSize,
     formatter: numberFormatter,
-    color: DEFAULT_GAUGE_SERIES_OPTION.axisLabel?.color,
+    color: gaugeSeriesOptions.axisLabel?.color,
   };
   const axisTick = {
     show: showAxisTick,
     distance: -axisLineWidth - axisTickLength - OFFSETS.ticksFromLine,
     length: axisTickLength,
-    lineStyle: DEFAULT_GAUGE_SERIES_OPTION.axisTick
-      ?.lineStyle as AxisTickLineStyle,
+    lineStyle: gaugeSeriesOptions.axisTick?.lineStyle as AxisTickLineStyle,
   };
   const detail = {
     valueAnimation: animation,
     formatter: (value: number) => formatValue(value),
-    color: DEFAULT_GAUGE_SERIES_OPTION.detail?.color,
+    color: gaugeSeriesOptions.detail?.color,
   };
   let pointer;
 

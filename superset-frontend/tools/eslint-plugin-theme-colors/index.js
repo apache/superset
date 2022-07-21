@@ -72,14 +72,19 @@ module.exports = {
         return {
           TemplateElement(node) {
             const rawValue = node?.value?.raw;
-            const isParentProperty =
+            const isChildParentTagged =
               node?.parent?.parent?.type === 'TaggedTemplateExpression';
+            const isChildParentArrow =
+              node?.parent?.parent?.type === 'ArrowFunctionExpression';
+            const isParentTemplateLiteral =
+              node?.parent?.type === 'TemplateLiteral';
             const loc = node?.parent?.parent?.loc;
             const locId = loc && JSON.stringify(loc);
             const hasWarned = warned.includes(locId);
             if (
               !hasWarned &&
-              isParentProperty &&
+              (isChildParentTagged ||
+                (isChildParentArrow && isParentTemplateLiteral)) &&
               rawValue &&
               (hasLiteralColor(rawValue) ||
                 hasHexColor(rawValue) ||

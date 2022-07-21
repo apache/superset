@@ -1,0 +1,46 @@
+{
+  "name": "@superset-ui/plugin-chart-handlebars",
+  "version": "0.0.0",
+  "description": "Superset Chart - Write a handlebars template to render the data",
+  "sideEffects": false,
+  "main": "lib/index.js",
+  "module": "esm/index.js",
+  "files": [
+    "esm",
+    "lib"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/apache-superset/superset-ui.git"
+  },
+  "keywords": [
+    "superset"
+  ],
+  "author": "Superset",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/apache-superset/superset-ui/issues"
+  },
+  "homepage": "https://github.com/apache-superset/superset-ui#readme",
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "handlebars": "^4.7.7"
+  },
+  "peerDependencies": {
+    "@superset-ui/chart-controls": "*",
+    "@superset-ui/core": "*",
+    "ace-builds": "^1.4.14",
+    "lodash": "^4.17.11",
+    "moment": "^2.26.0",
+    "react": "^16.13.1",
+    "react-ace": "^9.4.4",
+    "react-dom": "^16.13.1"
+  },
+  "devDependencies": {
+    "@types/lodash": "^4.14.149",
+    "@types/jest": "^26.0.0",
+    "jest": "^26.0.1"
+  }
+}

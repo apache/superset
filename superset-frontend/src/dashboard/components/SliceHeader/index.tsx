@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { FC, useMemo } from 'react';
+import React, { FC, useEffect, useMemo, useRef, useState } from 'react';
 import { styled, t } from '@superset-ui/core';
 import { useUiConfig } from 'src/components/UiConfigContext';
 import { Tooltip } from 'src/components/Tooltip';
@@ -41,6 +41,8 @@ type SliceHeaderProps = SliceHeaderControlsProps & {
   filters: object;
   handleToggleFullSize: () => void;
   formData: object;
+  width: number;
+  height: number;
 };
 
 const annotationsLoading = t('Annotation layers are still loading.');
@@ -82,9 +84,13 @@ const SliceHeader: FC<SliceHeaderProps> = ({
   isFullSize,
   chartStatus,
   formData,
+  width,
+  height,
 }) => {
   const dispatch = useDispatch();
   const uiConfig = useUiConfig();
+  const [headerTooltip, setHeaderTooltip] = useState<string | null>(null);
+  const headerRef = useRef<HTMLDivElement>(null);
   // TODO: change to indicator field after it will be implemented
   const crossFilterValue = useSelector<RootState, any>(
     state => state.dataMask[slice?.slice_id]?.filterState?.value,
@@ -98,21 +104,46 @@ const SliceHeader: FC<SliceHeaderProps> = ({
     [crossFilterValue],
   );
 
+  const handleClickTitle =
+    !editMode && supersetCanExplore ? onExploreChart : undefined;
+
+  useEffect(() => {
+    const headerElement = headerRef.current;
+    if (handleClickTitle) {
+      setHeaderTooltip(
+        sliceName
+          ? t('Click to edit %s in a new tab', sliceName)
+          : t('Click to edit chart in a new tab'),
+      );
+    } else if (
+      headerElement &&
+      (headerElement.scrollWidth > headerElement.offsetWidth ||
+        headerElement.scrollHeight > headerElement.offsetHeight)
+    ) {
+      setHeaderTooltip(sliceName ?? null);
+    } else {
+      setHeaderTooltip(null);
+    }
+  }, [sliceName, width, height, handleClickTitle]);
+
   return (
     <div className="chart-header" data-test="slice-header" ref={innerRef}>
-      <div className="header-title">
-        <EditableTitle
-          title={
-            sliceName ||
-            (editMode
-              ? '---' // this makes an empty title clickable
-              : '')
-          }
-          canEdit={editMode}
-          emptyText=""
-          onSaveTitle={updateSliceName}
-          showTooltip={false}
-        />
+      <div className="header-title" ref={headerRef}>
+        <Tooltip title={headerTooltip}>
+          <EditableTitle
+            title={
+              sliceName ||
+              (editMode
+                ? '---' // this makes an empty title clickable
+                : '')
+            }
+            canEdit={editMode}
+            emptyText=""
+            onSaveTitle={updateSliceName}
+            showTooltip={false}
+            onClickTitle={handleClickTitle}
+          />
+        </Tooltip>
         {!!Object.values(annotationQuery).length && (
           <Tooltip
             id="annotations-loading-tooltip"
@@ -184,6 +215,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
                 addDangerToast={addDangerToast}
                 handleToggleFullSize={handleToggleFullSize}
                 isFullSize={isFullSize}
+                isDescriptionExpanded={isExpanded}
                 chartStatus={chartStatus}
                 formData={formData}
               />

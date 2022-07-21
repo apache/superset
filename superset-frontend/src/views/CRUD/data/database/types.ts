@@ -79,7 +79,7 @@ export type DatabaseObject = {
   // Extra
   extra_json?: {
     engine_params?: {
-      catalog: Record<any, any> | string;
+      catalog?: Record<any, any> | string;
     };
     metadata_params?: {} | string;
     metadata_cache_timeout?: {

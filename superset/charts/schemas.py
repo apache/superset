@@ -17,6 +17,7 @@
 # pylint: disable=too-many-lines
 from __future__ import annotations
 
+import inspect
 from typing import Any, Dict, Optional, TYPE_CHECKING
 
 from flask_babel import gettext as _
@@ -27,13 +28,13 @@ from marshmallow_enum import EnumField
 from superset import app
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.db_engine_specs.base import builtin_time_grains
-from superset.utils import schema as utils
+from superset.utils import pandas_postprocessing, schema as utils
 from superset.utils.core import (
     AnnotationType,
+    DatasourceType,
     FilterOperator,
     PostProcessingBoxplotWhiskerType,
     PostProcessingContributionOrientation,
-    TimeRangeEndpoint,
 )
 
 if TYPE_CHECKING:
@@ -156,7 +157,6 @@ class ChartEntityResponseSchema(Schema):
     slice_name = fields.String(description=slice_name_description)
     cache_timeout = fields.Integer(description=cache_timeout_description)
     changed_on = fields.String(description=changed_on_description)
-    modified = fields.String()
     description = fields.String(description=description_description)
     description_markeddown = fields.String(
         description=description_markeddown_description
@@ -199,7 +199,7 @@ class ChartPostSchema(Schema):
     datasource_id = fields.Integer(description=datasource_id_description, required=True)
     datasource_type = fields.String(
         description=datasource_type_description,
-        validate=validate.OneOf(choices=("druid", "table", "view")),
+        validate=validate.OneOf(choices=[ds.value for ds in DatasourceType]),
         required=True,
     )
     datasource_name = fields.String(
@@ -245,7 +245,7 @@ class ChartPutSchema(Schema):
     )
     datasource_type = fields.String(
         description=datasource_type_description,
-        validate=validate.OneOf(choices=("druid", "table", "view")),
+        validate=validate.OneOf(choices=[ds.value for ds in DatasourceType]),
         allow_none=True,
     )
     dashboards = fields.List(fields.Integer(description=dashboards_description))
@@ -771,24 +771,12 @@ class ChartDataPostProcessingOperationSchema(Schema):
         description="Post processing operation type",
         required=True,
         validate=validate.OneOf(
-            choices=(
-                "aggregate",
-                "boxplot",
-                "contribution",
-                "cum",
-                "geodetic_parse",
-                "geohash_decode",
-                "geohash_encode",
-                "pivot",
-                "prophet",
-                "rolling",
-                "select",
-                "sort",
-                "diff",
-                "compare",
-                "resample",
-                "flatten",
-            )
+            choices=[
+                name
+                for name, value in inspect.getmembers(
+                    pandas_postprocessing, inspect.isfunction
+                )
+            ]
         ),
         example="aggregate",
     )
@@ -846,7 +834,6 @@ class ChartDataFilterSchema(Schema):
 
 class ChartDataExtrasSchema(Schema):
 
-    time_range_endpoints = fields.List(EnumField(TimeRangeEndpoint, by_value=True))
     relative_start = fields.String(
         description="Start time for relative time deltas. "
         'Default: `config["DEFAULT_RELATIVE_START_TIME"]`',
@@ -997,7 +984,7 @@ class ChartDataDatasourceSchema(Schema):
     )
     type = fields.String(
         description="Datasource type",
-        validate=validate.OneOf(choices=("druid", "table")),
+        validate=validate.OneOf(choices=[ds.value for ds in DatasourceType]),
     )
 
 

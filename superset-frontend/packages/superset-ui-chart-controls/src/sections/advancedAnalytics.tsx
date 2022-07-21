@@ -30,7 +30,7 @@ export const advancedAnalyticsControls: ControlPanelSectionConfig = {
       'of query results',
   ),
   controlSetRows: [
-    [<h1 className="section-header">{t('Rolling window')}</h1>],
+    [<div className="section-header">{t('Rolling window')}</div>],
     [
       {
         name: 'rolling_type',
@@ -59,9 +59,16 @@ export const advancedAnalyticsControls: ControlPanelSectionConfig = {
             'Defines the size of the rolling window function, ' +
               'relative to the time granularity selected',
           ),
-          visibility: ({ controls }) =>
-            Boolean(controls?.rolling_type?.value) &&
-            controls.rolling_type.value !== RollingType.Cumsum,
+          visibility: ({ controls }, { name }) => {
+            // `rolling_type_b` refer to rolling_type in mixed timeseries Query B
+            const rollingTypeControlName = name.endsWith('_b')
+              ? 'rolling_type_b'
+              : 'rolling_type';
+            return (
+              Boolean(controls[rollingTypeControlName]?.value) &&
+              controls[rollingTypeControlName]?.value !== RollingType.Cumsum
+            );
+          },
         },
       },
     ],
@@ -79,13 +86,20 @@ export const advancedAnalyticsControls: ControlPanelSectionConfig = {
               'shown are the total of 7 periods. This will hide the "ramp up" ' +
               'taking place over the first 7 periods',
           ),
-          visibility: ({ controls }) =>
-            Boolean(controls?.rolling_type?.value) &&
-            controls.rolling_type.value !== RollingType.Cumsum,
+          visibility: ({ controls }, { name }) => {
+            // `rolling_type_b` refer to rolling_type in mixed timeseries Query B
+            const rollingTypeControlName = name.endsWith('_b')
+              ? 'rolling_type_b'
+              : 'rolling_type';
+            return (
+              Boolean(controls[rollingTypeControlName]?.value) &&
+              controls[rollingTypeControlName]?.value !== RollingType.Cumsum
+            );
+          },
         },
       },
     ],
-    [<h1 className="section-header">{t('Time comparison')}</h1>],
+    [<div className="section-header">{t('Time comparison')}</div>],
     [
       {
         name: 'time_compare',
@@ -136,7 +150,7 @@ export const advancedAnalyticsControls: ControlPanelSectionConfig = {
         },
       },
     ],
-    [<h1 className="section-header">{t('Resample')}</h1>],
+    [<div className="section-header">{t('Resample')}</div>],
     [
       {
         name: 'resample_rule',

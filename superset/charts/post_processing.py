@@ -18,7 +18,7 @@
 Functions to reproduce the post-processing of data on text charts.
 
 Some text-based charts (pivot tables and t-test table) perform
-post-processing of the data in Javascript. When sending the data
+post-processing of the data in JavaScript. When sending the data
 to users in reports we want to show the same data they would see
 on Explore.
 

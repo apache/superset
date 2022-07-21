@@ -39,18 +39,20 @@ Chord.propTypes = {
 };
 
 export default styled(Chord)`
-  .superset-legacy-chart-chord svg #circle circle {
-    fill: none;
-    pointer-events: all;
-  }
-  .superset-legacy-chart-chord svg .group path {
-    fill-opacity: 0.6;
-  }
-  .superset-legacy-chart-chord svg path.chord {
-    stroke: #000;
-    stroke-width: 0.25px;
-  }
-  .superset-legacy-chart-chord svg #circle:hover path.fade {
-    opacity: 0.2;
-  }
+  ${({ theme }) => `
+    .superset-legacy-chart-chord svg #circle circle {
+      fill: none;
+      pointer-events: all;
+    }
+    .superset-legacy-chart-chord svg .group path {
+      fill-opacity: ${theme.opacity.mediumHeavy};
+    }
+    .superset-legacy-chart-chord svg path.chord {
+      stroke: ${theme.colors.grayscale.dark2};
+      stroke-width: 0.25px;
+    }
+    .superset-legacy-chart-chord svg #circle:hover path.fade {
+      opacity:  ${theme.opacity.light};
+    }
+  `}
 `;

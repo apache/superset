@@ -41,7 +41,6 @@ import setupApp from '../setup/setupApp';
 
 import './main.less';
 import '../assets/stylesheets/reactable-pagination.less';
-import '../components/FilterableTable/FilterableTableStyles.less';
 import { theme } from '../preamble';
 
 setupApp();

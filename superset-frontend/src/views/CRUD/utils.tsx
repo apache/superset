@@ -246,7 +246,7 @@ export function handleChartDelete(
   addDangerToast: (arg0: string) => void,
   refreshData: (arg0?: FetchDataConfig | null) => void,
   chartFilter?: string,
-  userId?: number,
+  userId?: string | number,
 ) {
   const filters = {
     pageIndex: 0,
@@ -399,15 +399,17 @@ export const getAlreadyExists = (errors: Record<string, any>[]) =>
     .flat();
 
 export const hasTerminalValidation = (errors: Record<string, any>[]) =>
-  errors.some(
-    error =>
-      !Object.entries(error.extra)
-        .filter(([key, _]) => key !== 'issue_codes')
-        .every(
-          ([_, payload]) =>
-            isNeedsPassword(payload) || isAlreadyExists(payload),
-        ),
-  );
+  errors.some(error => {
+    const noIssuesCodes = Object.entries(error.extra).filter(
+      ([key]) => key !== 'issue_codes',
+    );
+
+    if (noIssuesCodes.length === 0) return true;
+
+    return !noIssuesCodes.every(
+      ([, payload]) => isNeedsPassword(payload) || isAlreadyExists(payload),
+    );
+  });
 
 export const checkUploadExtensions = (
   perm: Array<string>,
@@ -425,14 +427,20 @@ export const uploadUserPerms = (
   colExt: Array<string>,
   excelExt: Array<string>,
   allowedExt: Array<string>,
-) => ({
-  canUploadCSV:
+) => {
+  const canUploadCSV =
     findPermission('can_this_form_get', 'CsvToDatabaseView', roles) &&
-    checkUploadExtensions(csvExt, allowedExt),
-  canUploadColumnar:
+    checkUploadExtensions(csvExt, allowedExt);
+  const canUploadColumnar =
     checkUploadExtensions(colExt, allowedExt) &&
-    findPermission('can_this_form_get', 'ColumnarToDatabaseView', roles),
-  canUploadExcel:
+    findPermission('can_this_form_get', 'ColumnarToDatabaseView', roles);
+  const canUploadExcel =
     checkUploadExtensions(excelExt, allowedExt) &&
-    findPermission('can_this_form_get', 'ExcelToDatabaseView', roles),
-});
+    findPermission('can_this_form_get', 'ExcelToDatabaseView', roles);
+  return {
+    canUploadCSV,
+    canUploadColumnar,
+    canUploadExcel,
+    canUploadData: canUploadCSV || canUploadColumnar || canUploadExcel,
+  };
+};

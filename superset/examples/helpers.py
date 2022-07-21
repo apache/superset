@@ -39,17 +39,24 @@ def get_examples_folder() -> str:
     return os.path.join(app.config["BASE_DIR"], "examples")
 
 
-def update_slice_ids(layout_dict: Dict[Any, Any], slices: List[Slice]) -> None:
-    charts = [
+def update_slice_ids(pos: Dict[Any, Any]) -> List[Slice]:
+    """Update slice ids in position_json and return the slices found."""
+    slice_components = [
         component
-        for component in layout_dict.values()
-        if isinstance(component, dict) and component["type"] == "CHART"
+        for component in pos.values()
+        if isinstance(component, dict) and component.get("type") == "CHART"
     ]
-    sorted_charts = sorted(charts, key=lambda k: k["meta"]["chartId"])
-    for i, chart_component in enumerate(sorted_charts):
-        if i < len(slices):
-            chart_component["meta"]["chartId"] = int(slices[i].id)
-            chart_component["meta"]["uuid"] = str(slices[i].uuid)
+    slices = {}
+    for name in set(component["meta"]["sliceName"] for component in slice_components):
+        slc = db.session.query(Slice).filter_by(slice_name=name).first()
+        if slc:
+            slices[name] = slc
+    for component in slice_components:
+        slc = slices.get(component["meta"]["sliceName"])
+        if slc:
+            component["meta"]["chartId"] = slc.id
+            component["meta"]["uuid"] = str(slc.uuid)
+    return list(slices.values())
 
 
 def merge_slice(slc: Slice) -> None:

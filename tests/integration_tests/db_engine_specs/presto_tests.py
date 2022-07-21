@@ -512,19 +512,6 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
         query_result = str(result.compile(compile_kwargs={"literal_binds": True}))
         self.assertEqual("SELECT  \nWHERE ds = '01-01-19' AND hour = 1", query_result)
 
-    def test_convert_dttm(self):
-        dttm = self.get_dttm()
-
-        self.assertEqual(
-            PrestoEngineSpec.convert_dttm("DATE", dttm),
-            "from_iso8601_date('2019-01-02')",
-        )
-
-        self.assertEqual(
-            PrestoEngineSpec.convert_dttm("TIMESTAMP", dttm),
-            "from_iso8601_timestamp('2019-01-02T03:04:05.678900')",
-        )
-
     def test_query_cost_formatter(self):
         raw_cost = [
             {
@@ -672,12 +659,10 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
 
         column_spec = PrestoEngineSpec.get_column_spec("time")
         assert isinstance(column_spec.sqla_type, types.Time)
-        assert type(column_spec.sqla_type).__name__ == "TemporalWrapperType"
         self.assertEqual(column_spec.generic_type, GenericDataType.TEMPORAL)
 
         column_spec = PrestoEngineSpec.get_column_spec("timestamp")
         assert isinstance(column_spec.sqla_type, types.TIMESTAMP)
-        assert type(column_spec.sqla_type).__name__ == "TemporalWrapperType"
         self.assertEqual(column_spec.generic_type, GenericDataType.TEMPORAL)
 
         sqla_type = PrestoEngineSpec.get_sqla_column_type(None)

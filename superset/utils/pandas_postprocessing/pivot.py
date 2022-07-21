@@ -56,7 +56,7 @@ def pivot(  # pylint: disable=too-many-arguments,too-many-locals
     :param drop_missing_columns: Do not include columns whose entries are all missing
     :param combine_value_with_metric: Display metrics side by side within each column,
            as opposed to each column being displayed side by side for each metric.
-    :param aggregates: A mapping from aggregate column name to the the aggregate
+    :param aggregates: A mapping from aggregate column name to the aggregate
            config.
     :param marginal_distributions: Add totals for row/column. Default to False
     :param marginal_distribution_name: Name of row/column with marginal distribution.

@@ -16,13 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState } from 'react';
+import React, { forwardRef, useImperativeHandle, useState } from 'react';
 import { t, styled } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import { AntdInput } from 'src/components';
 import { SELECT_WIDTH } from 'src/components/ListView/utils';
 import { FormLabel } from 'src/components/Form';
-import { BaseFilter } from './Base';
+import { BaseFilter, FilterHandler } from './Base';
 
 interface SearchHeaderProps extends BaseFilter {
   Header: string;
@@ -42,12 +42,10 @@ const StyledInput = styled(AntdInput)`
   border-radius: ${({ theme }) => theme.gridUnit}px;
 `;
 
-export default function SearchFilter({
-  Header,
-  name,
-  initialValue,
-  onSubmit,
-}: SearchHeaderProps) {
+function SearchFilter(
+  { Header, name, initialValue, onSubmit }: SearchHeaderProps,
+  ref: React.RefObject<FilterHandler>,
+) {
   const [value, setValue] = useState(initialValue || '');
   const handleSubmit = () => {
     if (value) {
@@ -60,6 +58,13 @@ export default function SearchFilter({
       onSubmit('');
     }
   };
+
+  useImperativeHandle(ref, () => ({
+    clearFilter: () => {
+      setValue('');
+      onSubmit('');
+    },
+  }));
 
   return (
     <Container>
@@ -78,3 +83,5 @@ export default function SearchFilter({
     </Container>
   );
 }
+
+export default forwardRef(SearchFilter);

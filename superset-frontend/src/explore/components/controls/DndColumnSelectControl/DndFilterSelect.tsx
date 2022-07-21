@@ -147,7 +147,7 @@ export const DndFilterSelect = (props: DndFilterSelectProps) => {
 
       if (!isSqllabView && dbId && name && schema) {
         SupersetClient.get({
-          endpoint: `/superset/extra_table_metadata/${dbId}/${name}/${schema}/`,
+          endpoint: `/api/v1/database/${dbId}/table_extra/${name}/${schema}/`,
         })
           .then(({ json }: { json: Record<string, any> }) => {
             if (json && json.partitions) {

@@ -24,10 +24,10 @@ from marshmallow import EXCLUDE, fields, pre_load, Schema, validates_schema
 from marshmallow.validate import Length, ValidationError
 from marshmallow_enum import EnumField
 from sqlalchemy import MetaData
-from sqlalchemy.engine.url import make_url
-from sqlalchemy.exc import ArgumentError
 
 from superset import db
+from superset.databases.commands.exceptions import DatabaseInvalidError
+from superset.databases.utils import make_url_safe
 from superset.db_engine_specs import BaseEngineSpec, get_engine_specs
 from superset.exceptions import CertificateException, SupersetSecurityException
 from superset.models.core import ConfigurationMethod, Database, PASSWORD_MASK
@@ -144,8 +144,8 @@ def sqlalchemy_uri_validator(value: str) -> str:
     Validate if it's a valid SQLAlchemy URI and refuse SQLLite by default
     """
     try:
-        uri = make_url(value.strip())
-    except (ArgumentError, AttributeError, ValueError) as ex:
+        uri = make_url_safe(value.strip())
+    except DatabaseInvalidError as ex:
         raise ValidationError(
             [
                 _(
@@ -527,12 +527,31 @@ class TableMetadataResponseSchema(Schema):
     selectStar = fields.String(description="SQL select star")
 
 
+class TableExtraMetadataResponseSchema(Schema):
+    metadata = fields.Dict()
+    partitions = fields.Dict()
+    clustering = fields.Dict()
+
+
 class SelectStarResponseSchema(Schema):
     result = fields.String(description="SQL select star")
 
 
 class SchemasResponseSchema(Schema):
     result = fields.List(fields.String(description="A database schema name"))
+
+
+class ValidateSQLRequest(Schema):
+    sql = fields.String(required=True, description="SQL statement to validate")
+    schema = fields.String(required=False, allow_none=True)
+    template_params = fields.Dict(required=False, allow_none=True)
+
+
+class ValidateSQLResponse(Schema):
+    line_number = fields.Integer()
+    start_column = fields.Integer()
+    end_column = fields.Integer()
+    message = fields.String()
 
 
 class DatabaseRelatedChart(Schema):
@@ -605,6 +624,7 @@ class ImportV1DatabaseExtraSchema(Schema):
     schemas_allowed_for_csv_upload = fields.List(fields.String())
     cost_estimate_enabled = fields.Boolean()
     allows_virtual_table_explore = fields.Boolean(required=False)
+    cancel_query_on_windows_unload = fields.Boolean(required=False)
 
 
 class ImportV1DatabaseSchema(Schema):
@@ -649,7 +669,7 @@ class ImportV1DatabaseSchema(Schema):
             return
 
         uri = data["sqlalchemy_uri"]
-        password = make_url(uri).password
+        password = make_url_safe(uri).password
         if password == PASSWORD_MASK and data.get("password") is None:
             raise ValidationError("Must provide a password for the database")
 

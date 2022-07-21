@@ -25,22 +25,25 @@ import ChartRenderer from 'src/components/Chart/ChartRenderer';
 const requiredProps = {
   chartId: 1,
   datasource: {},
-  formData: {},
-  vizType: 'foo',
+  formData: { testControl: 'foo' },
+  latestQueryFormData: {
+    testControl: 'bar',
+  },
+  vizType: 'table',
 };
 
 describe('ChartRenderer', () => {
   it('should render SuperChart', () => {
     const wrapper = shallow(
-      <ChartRenderer {...requiredProps} refreshOverlayVisible={false} />,
+      <ChartRenderer {...requiredProps} chartIsStale={false} />,
     );
     expect(wrapper.find(SuperChart)).toExist();
   });
 
-  it('should not render SuperChart when refreshOverlayVisible is true', () => {
-    const wrapper = shallow(
-      <ChartRenderer {...requiredProps} refreshOverlayVisible />,
-    );
-    expect(wrapper.find(SuperChart)).not.toExist();
+  it('should use latestQueryFormData instead of formData when chartIsStale is true', () => {
+    const wrapper = shallow(<ChartRenderer {...requiredProps} chartIsStale />);
+    expect(wrapper.find(SuperChart).prop('formData')).toEqual({
+      testControl: 'bar',
+    });
   });
 });

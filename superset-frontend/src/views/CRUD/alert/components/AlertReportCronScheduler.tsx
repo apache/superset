@@ -16,27 +16,33 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useCallback, useRef, FunctionComponent } from 'react';
+import React, { useState, useCallback, useRef, FocusEvent } from 'react';
 import { t, useTheme } from '@superset-ui/core';
 
-import { AntdInput } from 'src/components';
+import { AntdInput, RadioChangeEvent } from 'src/components';
 import { Input } from 'src/components/Input';
 import { Radio } from 'src/components/Radio';
 import { CronPicker, CronError } from 'src/components/CronPicker';
 import { StyledInputContainer } from 'src/views/CRUD/alert/AlertReportModal';
 
-interface AlertReportCronSchedulerProps {
+export interface AlertReportCronSchedulerProps {
   value: string;
   onChange: (change: string) => any;
 }
 
-export const AlertReportCronScheduler: FunctionComponent<AlertReportCronSchedulerProps> =
+export const AlertReportCronScheduler: React.FC<AlertReportCronSchedulerProps> =
   ({ value, onChange }) => {
     const theme = useTheme();
     const inputRef = useRef<AntdInput>(null);
     const [scheduleFormat, setScheduleFormat] = useState<'picker' | 'input'>(
       'picker',
     );
+
+    const handleRadioButtonChange = useCallback(
+      (e: RadioChangeEvent) => setScheduleFormat(e.target.value),
+      [],
+    );
+
     const customSetValue = useCallback(
       (newValue: string) => {
         onChange(newValue);
@@ -44,16 +50,25 @@ export const AlertReportCronScheduler: FunctionComponent<AlertReportCronSchedule
       },
       [inputRef, onChange],
     );
+
+    const handleBlur = useCallback(
+      (event: FocusEvent<HTMLInputElement>) => {
+        onChange(event.target.value);
+      },
+      [onChange],
+    );
+
+    const handlePressEnter = useCallback(() => {
+      onChange(inputRef.current?.input.value || '');
+    }, [onChange]);
+
     const [error, onError] = useState<CronError>();
 
     return (
       <>
-        <Radio.Group
-          onChange={e => setScheduleFormat(e.target.value)}
-          value={scheduleFormat}
-        >
+        <Radio.Group onChange={handleRadioButtonChange} value={scheduleFormat}>
           <div className="inline-container add-margin">
-            <Radio value="picker" />
+            <Radio data-test="picker" value="picker" />
             <CronPicker
               clearButton={false}
               value={value}
@@ -64,9 +79,12 @@ export const AlertReportCronScheduler: FunctionComponent<AlertReportCronSchedule
             />
           </div>
           <div className="inline-container add-margin">
-            <Radio value="input" />
+            <Radio data-test="input" value="input" />
             <span className="input-label">CRON Schedule</span>
-            <StyledInputContainer className="styled-input">
+            <StyledInputContainer
+              data-test="input-content"
+              className="styled-input"
+            >
               <div className="input-container">
                 <Input
                   type="text"
@@ -75,12 +93,8 @@ export const AlertReportCronScheduler: FunctionComponent<AlertReportCronSchedule
                   style={error ? { borderColor: theme.colors.error.base } : {}}
                   placeholder={t('CRON expression')}
                   disabled={scheduleFormat !== 'input'}
-                  onBlur={event => {
-                    onChange(event.target.value);
-                  }}
-                  onPressEnter={() => {
-                    onChange(inputRef.current?.input.value || '');
-                  }}
+                  onBlur={handleBlur}
+                  onPressEnter={handlePressEnter}
                 />
               </div>
             </StyledInputContainer>

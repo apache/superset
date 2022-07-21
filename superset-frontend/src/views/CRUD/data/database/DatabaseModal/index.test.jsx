@@ -1028,7 +1028,24 @@ describe('DatabaseModal', () => {
         */
       });
     });
+
+    describe('Import database flow', () => {
+      it('imports a file', () => {
+        const importDbButton = screen.getByTestId('import-database-btn');
+        expect(importDbButton).toBeVisible();
+
+        const testFile = new File([new ArrayBuffer(1)], 'model_export.zip');
+
+        userEvent.click(importDbButton);
+        userEvent.upload(importDbButton, testFile);
+
+        expect(importDbButton.files[0]).toStrictEqual(testFile);
+        expect(importDbButton.files.item(0)).toStrictEqual(testFile);
+        expect(importDbButton.files).toHaveLength(1);
+      });
+    });
   });
+
   describe('DatabaseModal w/ Deeplinking Engine', () => {
     const renderAndWait = async () => {
       const mounted = act(async () => {

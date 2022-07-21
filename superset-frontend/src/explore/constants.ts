@@ -32,13 +32,13 @@ export enum Operators {
   EQUALS = 'EQUALS',
   NOT_EQUALS = 'NOT_EQUALS',
   LESS_THAN = 'LESS_THAN',
-  GREATER_THAN = 'GREATER_THAN',
   LESS_THAN_OR_EQUAL = 'LESS_THAN_OR_EQUAL',
+  GREATER_THAN = 'GREATER_THAN',
   GREATER_THAN_OR_EQUAL = 'GREATER_THAN_OR_EQUAL',
   IN = 'IN',
   NOT_IN = 'NOT_IN',
-  ILIKE = 'ILIKE',
   LIKE = 'LIKE',
+  ILIKE = 'ILIKE',
   REGEX = 'REGEX',
   IS_NOT_NULL = 'IS_NOT_NULL',
   IS_NULL = 'IS_NULL',
@@ -55,25 +55,31 @@ export interface OperatorType {
 export const OPERATOR_ENUM_TO_OPERATOR_TYPE: {
   [key in Operators]: OperatorType;
 } = {
-  [Operators.EQUALS]: { display: 'equals', operation: '==' },
-  [Operators.NOT_EQUALS]: { display: 'not equals', operation: '!=' },
-  [Operators.GREATER_THAN]: { display: '>', operation: '>' },
-  [Operators.LESS_THAN]: { display: '<', operation: '<' },
-  [Operators.GREATER_THAN_OR_EQUAL]: { display: '>=', operation: '>=' },
-  [Operators.LESS_THAN_OR_EQUAL]: { display: '<=', operation: '<=' },
-  [Operators.IN]: { display: 'IN', operation: 'IN' },
-  [Operators.NOT_IN]: { display: 'NOT IN', operation: 'NOT IN' },
-  [Operators.LIKE]: { display: 'LIKE', operation: 'LIKE' },
-  [Operators.ILIKE]: { display: 'LIKE (case insensitive)', operation: 'ILIKE' },
-  [Operators.REGEX]: { display: 'REGEX', operation: 'REGEX' },
-  [Operators.IS_NOT_NULL]: { display: 'IS NOT NULL', operation: 'IS NOT NULL' },
-  [Operators.IS_NULL]: { display: 'IS NULL', operation: 'IS NULL' },
+  [Operators.EQUALS]: { display: 'Equal to (=)', operation: '==' },
+  [Operators.NOT_EQUALS]: { display: 'Not equal to (≠)', operation: '!=' },
+  [Operators.LESS_THAN]: { display: 'Less than (<)', operation: '<' },
+  [Operators.LESS_THAN_OR_EQUAL]: {
+    display: 'Less or equal (<=)',
+    operation: '<=',
+  },
+  [Operators.GREATER_THAN]: { display: 'Greater than (>)', operation: '>' },
+  [Operators.GREATER_THAN_OR_EQUAL]: {
+    display: 'Greater or equal (>=)',
+    operation: '>=',
+  },
+  [Operators.IN]: { display: 'In', operation: 'IN' },
+  [Operators.NOT_IN]: { display: 'Not in', operation: 'NOT IN' },
+  [Operators.LIKE]: { display: 'Like', operation: 'LIKE' },
+  [Operators.ILIKE]: { display: 'Like (case insensitive)', operation: 'ILIKE' },
+  [Operators.REGEX]: { display: 'Regex', operation: 'REGEX' },
+  [Operators.IS_NOT_NULL]: { display: 'Is not null', operation: 'IS NOT NULL' },
+  [Operators.IS_NULL]: { display: 'Is null', operation: 'IS NULL' },
   [Operators.LATEST_PARTITION]: {
     display: 'use latest_partition template',
     operation: 'LATEST PARTITION',
   },
-  [Operators.IS_TRUE]: { display: 'IS TRUE', operation: '==' },
-  [Operators.IS_FALSE]: { display: 'IS FALSE', operation: '==' },
+  [Operators.IS_TRUE]: { display: 'Is true', operation: '==' },
+  [Operators.IS_FALSE]: { display: 'Is false', operation: '==' },
 };
 
 export const OPERATORS_OPTIONS = Object.values(Operators) as Operators[];
@@ -83,10 +89,10 @@ export const DRUID_ONLY_OPERATORS = [Operators.REGEX];
 export const HAVING_OPERATORS = [
   Operators.EQUALS,
   Operators.NOT_EQUALS,
-  Operators.GREATER_THAN,
   Operators.LESS_THAN,
-  Operators.GREATER_THAN_OR_EQUAL,
   Operators.LESS_THAN_OR_EQUAL,
+  Operators.GREATER_THAN,
+  Operators.GREATER_THAN_OR_EQUAL,
 ];
 export const MULTI_OPERATORS = new Set([Operators.IN, Operators.NOT_IN]);
 // CUSTOM_OPERATORS will show operator in simple mode,

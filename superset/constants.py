@@ -112,6 +112,7 @@ MODEL_API_RW_METHOD_PERMISSION_MAP = {
     "schemas": "read",
     "select_star": "read",
     "table_metadata": "read",
+    "table_extra_metadata": "read",
     "test_connection": "read",
     "validate_parameters": "read",
     "favorite_status": "read",
@@ -126,7 +127,9 @@ MODEL_API_RW_METHOD_PERMISSION_MAP = {
     "get_datasets": "read",
     "function_names": "read",
     "available": "read",
+    "validate_sql": "read",
     "get_data": "read",
+    "samples": "read",
 }
 
 EXTRA_FORM_DATA_APPEND_KEYS = {
@@ -146,7 +149,6 @@ EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS = {
     "time_range": "time_range",
     "druid_time_origin": "druid_time_origin",
     "time_grain_sqla": "time_grain_sqla",
-    "time_range_endpoints": "time_range_endpoints",
 }
 
 EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS = {

@@ -43,7 +43,7 @@ interface ChartCardProps {
   saveFavoriteStatus: (id: number, isStarred: boolean) => void;
   favoriteStatus: boolean;
   chartFilter?: string;
-  userId?: number;
+  userId?: string | number;
   showThumbnails?: boolean;
   handleBulkChartExport: (chartsToExport: Chart[]) => void;
 }
@@ -165,11 +165,21 @@ export default function ChartCard({
               e.preventDefault();
             }}
           >
+<<<<<<< HEAD
             <FaveStar
               itemId={chart.id}
               saveFaveStar={saveFavoriteStatus}
               isStarred={favoriteStatus}
             />
+=======
+            {userId && (
+              <FaveStar
+                itemId={chart.id}
+                saveFaveStar={saveFavoriteStatus}
+                isStarred={favoriteStatus}
+              />
+            )}
+>>>>>>> 16654034849505109b638fd2a784dfb377238a0e
             <AntdDropdown overlay={menu}>
               <Icons.MoreVert iconColor={theme.colors.grayscale.base} />
             </AntdDropdown>

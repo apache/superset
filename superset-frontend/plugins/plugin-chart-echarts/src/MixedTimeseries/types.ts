@@ -32,6 +32,7 @@ import {
   EchartsLegendFormData,
   EchartsTitleFormData,
   DEFAULT_TITLE_FORM_DATA,
+  StackType,
 } from '../types';
 import {
   DEFAULT_FORM_DATA as TIMESERIES_DEFAULTS,
@@ -78,8 +79,8 @@ export type EchartsMixedTimeseriesFormData = QueryFormData & {
   seriesTypeB: EchartsTimeseriesSeriesType;
   showValue: boolean;
   showValueB: boolean;
-  stack: boolean;
-  stackB: boolean;
+  stack: StackType;
+  stackB: StackType;
   yAxisIndex?: number;
   yAxisIndexB?: number;
   groupby: QueryFormColumn[];

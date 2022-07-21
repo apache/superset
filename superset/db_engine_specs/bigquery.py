@@ -28,11 +28,11 @@ from marshmallow import fields, Schema
 from marshmallow.exceptions import ValidationError
 from sqlalchemy import column
 from sqlalchemy.engine.base import Engine
-from sqlalchemy.engine.url import make_url
 from sqlalchemy.sql import sqltypes
 from typing_extensions import TypedDict
 
 from superset.databases.schemas import encrypted_field_properties, EncryptedString
+from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.exceptions import SupersetDBAPIDisconnectionError
 from superset.errors import SupersetError, SupersetErrorType
@@ -140,6 +140,7 @@ class BigQueryEngineSpec(BaseEngineSpec):
         "PT1H": "{func}({col}, HOUR)",
         "P1D": "{func}({col}, DAY)",
         "P1W": "{func}({col}, WEEK)",
+        "1969-12-29T00:00:00Z/P1W": "{func}({col}, ISOWEEK)",
         "P1M": "{func}({col}, MONTH)",
         "P3M": "{func}({col}, QUARTER)",
         "P1Y": "{func}({col}, YEAR)",
@@ -268,7 +269,7 @@ class BigQueryEngineSpec(BaseEngineSpec):
 
     @classmethod
     def extra_table_metadata(
-        cls, database: "Database", table_name: str, schema_name: str
+        cls, database: "Database", table_name: str, schema_name: Optional[str]
     ) -> Dict[str, Any]:
         indexes = database.get_indexes(table_name, schema_name)
         if not indexes:
@@ -377,7 +378,7 @@ class BigQueryEngineSpec(BaseEngineSpec):
     def get_parameters_from_uri(
         cls, uri: str, encrypted_extra: Optional[Dict[str, str]] = None
     ) -> Any:
-        value = make_url(uri)
+        value = make_url_safe(uri)
 
         # Building parameters from encrypted_extra and uri
         if encrypted_extra:

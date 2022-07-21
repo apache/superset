@@ -23,7 +23,6 @@ tables, metrics, and datasets were also introduced.
 
 These models are not fully implemented, and shouldn't be used yet.
 """
-
 import sqlalchemy as sa
 from flask_appbuilder import Model
 
@@ -32,6 +31,8 @@ from superset.models.helpers import (
     ExtraJSONMixin,
     ImportExportMixin,
 )
+
+UNKOWN_TYPE = "UNKNOWN"
 
 
 class Column(
@@ -52,46 +53,16 @@ class Column(
 
     id = sa.Column(sa.Integer, primary_key=True)
 
-    # We use ``sa.Text`` for these attributes because (1) in modern databases the
-    # performance is the same as ``VARCHAR``[1] and (2) because some table names can be
-    # **really** long (eg, Google Sheets URLs).
-    #
-    # [1] https://www.postgresql.org/docs/9.1/datatype-character.html
-    name = sa.Column(sa.Text)
-    type = sa.Column(sa.Text)
-
-    # Columns are defined by expressions. For tables, these are the actual columns names,
-    # and should match the ``name`` attribute. For datasets, these can be any valid SQL
-    # expression. If the SQL expression is an aggregation the column is a metric,
-    # otherwise it's a computed column.
-    expression = sa.Column(sa.Text)
-
-    # Does the expression point directly to a physical column?
-    is_physical = sa.Column(sa.Boolean, default=True)
-
-    # Additional metadata describing the column.
-    description = sa.Column(sa.Text)
-    warning_text = sa.Column(sa.Text)
-    unit = sa.Column(sa.Text)
-
-    # Is this a time column? Useful for plotting time series.
-    is_temporal = sa.Column(sa.Boolean, default=False)
-
-    # Is this a spatial column? This could be leveraged in the future for spatial
-    # visualizations.
-    is_spatial = sa.Column(sa.Boolean, default=False)
-
-    # Is this column a partition? Useful for scheduling queries and previewing the latest
-    # data.
-    is_partition = sa.Column(sa.Boolean, default=False)
-
-    # Is this column an aggregation (metric)?
-    is_aggregation = sa.Column(sa.Boolean, default=False)
-
     # Assuming the column is an aggregation, is it additive? Useful for determining which
     # aggregations can be done on the metric. Eg, ``COUNT(DISTINCT user_id)`` is not
     # additive, so it shouldn't be used in a ``SUM``.
     is_additive = sa.Column(sa.Boolean, default=False)
+
+    # Is this column an aggregation (metric)?
+    is_aggregation = sa.Column(sa.Boolean, default=False)
+
+    is_filterable = sa.Column(sa.Boolean, nullable=False, default=True)
+    is_dimensional = sa.Column(sa.Boolean, nullable=False, default=False)
 
     # Is an increase desired? Useful for displaying the results of A/B tests, or setting
     # up alerts. Eg, this is true for "revenue", but false for "latency".
@@ -99,4 +70,45 @@ class Column(
 
     # Column is managed externally and should be read-only inside Superset
     is_managed_externally = sa.Column(sa.Boolean, nullable=False, default=False)
+
+    # Is this column a partition? Useful for scheduling queries and previewing the latest
+    # data.
+    is_partition = sa.Column(sa.Boolean, default=False)
+
+    # Does the expression point directly to a physical column?
+    is_physical = sa.Column(sa.Boolean, default=True)
+
+    # Is this a spatial column? This could be leveraged in the future for spatial
+    # visualizations.
+    is_spatial = sa.Column(sa.Boolean, default=False)
+
+    # Is this a time column? Useful for plotting time series.
+    is_temporal = sa.Column(sa.Boolean, default=False)
+
+    # We use ``sa.Text`` for these attributes because (1) in modern databases the
+    # performance is the same as ``VARCHAR``[1] and (2) because some table names can be
+    # **really** long (eg, Google Sheets URLs).
+    #
+    # [1] https://www.postgresql.org/docs/9.1/datatype-character.html
+    name = sa.Column(sa.Text)
+    # Raw type as returned and used by db engine.
+    type = sa.Column(sa.Text, default=UNKOWN_TYPE)
+
+    # Assigns column advnaced type to determine custom behavior
+    # does nothing unless feature flag ENABLE_ADVANCED_DATA_TYPES in true
+    advanced_data_type = sa.Column(sa.Text)
+
+    # Columns are defined by expressions. For tables, these are the actual columns names,
+    # and should match the ``name`` attribute. For datasets, these can be any valid SQL
+    # expression. If the SQL expression is an aggregation the column is a metric,
+    # otherwise it's a computed column.
+    expression = sa.Column(sa.Text)
+    unit = sa.Column(sa.Text)
+
+    # Additional metadata describing the column.
+    description = sa.Column(sa.Text)
+    warning_text = sa.Column(sa.Text)
     external_url = sa.Column(sa.Text, nullable=True)
+
+    def __repr__(self) -> str:
+        return f"<Column id={self.id}>"

@@ -19,6 +19,9 @@
 import React, { ReactNode } from 'react';
 import rison from 'rison';
 import { styled, t, SupersetClient, JsonResponse } from '@superset-ui/core';
+import { getUrlParam } from 'src/utils/urlUtils';
+import { URL_PARAMS } from 'src/constants';
+import { isNullish } from 'src/utils/common';
 import Button from 'src/components/Button';
 import { Select, Steps } from 'src/components';
 import { FormLabel } from 'src/components/Form';
@@ -195,10 +198,12 @@ export default class AddSliceContainer extends React.PureComponent<
   }
 
   exploreUrl() {
+    const dashboardId = getUrlParam(URL_PARAMS.dashboardId);
     const formData = encodeURIComponent(
       JSON.stringify({
         viz_type: this.state.visType,
         datasource: this.state.datasource?.value,
+        ...(!isNullish(dashboardId) && { dashboardId }),
       }),
     );
     return `/superset/explore/?form_data=${formData}`;

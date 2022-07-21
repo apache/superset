@@ -62,7 +62,7 @@ const config: ControlPanelConfig = {
       expanded: true,
       controlSetRows: [
         ['color_scheme'],
-        [<h1 className="section-header">{t('Labels')}</h1>],
+        [<div className="section-header">{t('Labels')}</div>],
         [
           {
             name: 'show_labels',
@@ -137,6 +137,11 @@ const config: ControlPanelConfig = {
       ],
     },
   ],
+  denormalizeFormData: formData => ({
+    ...formData,
+    metric: formData.standardizedFormData.standardizedState.metrics[0],
+    groupby: formData.standardizedFormData.standardizedState.columns,
+  }),
 };
 
 export default config;

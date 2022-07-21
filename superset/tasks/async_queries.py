@@ -47,12 +47,15 @@ query_timeout = current_app.config[
 def ensure_user_is_set(user_id: Optional[int]) -> None:
     user_is_not_set = not (hasattr(g, "user") and g.user is not None)
     if user_is_not_set and user_id is not None:
+        # pylint: disable=assigning-non-slot
         g.user = security_manager.get_user_by_id(user_id)
     elif user_is_not_set:
+        # pylint: disable=assigning-non-slot
         g.user = security_manager.get_anonymous_user()
 
 
 def set_form_data(form_data: Dict[str, Any]) -> None:
+    # pylint: disable=assigning-non-slot
     g.form_data = form_data
 
 

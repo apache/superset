@@ -83,7 +83,7 @@ export function formatFunnelLabel({
 export default function transformProps(
   chartProps: EchartsFunnelChartProps,
 ): FunnelChartTransformedProps {
-  const { formData, height, hooks, filterState, queriesData, width } =
+  const { formData, height, hooks, filterState, queriesData, width, theme } =
     chartProps;
   const data: DataRecord[] = queriesData[0].data || [];
 
@@ -173,7 +173,7 @@ export default function transformProps(
   const defaultLabel = {
     formatter,
     show: showLabels,
-    color: '#000000',
+    color: theme.colors.grayscale.dark2,
   };
 
   const series: FunnelSeriesOption[] = [

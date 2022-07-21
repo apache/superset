@@ -17,9 +17,9 @@
  * under the License.
  */
 
-import tinycolor from 'tinycolor2';
 import { CategoricalColorNamespace } from '.';
-import makeSingleton from '../utils/makeSingleton';
+import { FeatureFlag, isFeatureEnabled, makeSingleton } from '../utils';
+import { getAnalogousColors } from './utils';
 
 export class SharedLabelColor {
   sliceLabelColorMap: Record<number, Record<string, string | undefined>>;
@@ -37,36 +37,39 @@ export class SharedLabelColor {
     if (colorScheme) {
       const categoricalNamespace =
         CategoricalColorNamespace.getNamespace(colorNamespace);
-      const colors = categoricalNamespace.getScale(colorScheme).range();
       const sharedLabels = this.getSharedLabels();
-      const generatedColors: tinycolor.Instance[] = [];
+      let generatedColors: string[] = [];
       let sharedLabelMap;
 
       if (sharedLabels.length) {
-        const multiple = Math.ceil(sharedLabels.length / colors.length);
-        const ext = 5;
-        const analogousColors = colors.map(color => {
-          const result = tinycolor(color).analogous(multiple + ext);
-          return result.slice(ext);
-        });
-
-        // [[A, AA, AAA], [B, BB, BBB]] => [A, B, AA, BB, AAA, BBB]
-        while (analogousColors[analogousColors.length - 1]?.length) {
-          analogousColors.forEach(colors =>
-            generatedColors.push(colors.shift() as tinycolor.Instance),
+        const colorScale = categoricalNamespace.getScale(colorScheme);
+        const colors = colorScale.range();
+        if (isFeatureEnabled(FeatureFlag.USE_ANALAGOUS_COLORS)) {
+          const multiple = Math.ceil(sharedLabels.length / colors.length);
+          generatedColors = getAnalogousColors(colors, multiple);
+          sharedLabelMap = sharedLabels.reduce(
+            (res, label, index) => ({
+              ...res,
+              [label.toString()]: generatedColors[index],
+            }),
+            {},
+          );
+        } else {
+          // reverse colors to reduce color conflicts
+          colorScale.range(colors.reverse());
+          sharedLabelMap = sharedLabels.reduce(
+            (res, label) => ({
+              ...res,
+              [label.toString()]: colorScale(label),
+            }),
+            {},
           );
         }
-        sharedLabelMap = sharedLabels.reduce(
-          (res, label, index) => ({
-            ...res,
-            [label.toString()]: generatedColors[index]?.toHexString(),
-          }),
-          {},
-        );
       }
 
       const labelMap = Object.keys(this.sliceLabelColorMap).reduce(
         (res, sliceId) => {
+          // get new color scale instance
           const colorScale = categoricalNamespace.getScale(colorScheme);
           return {
             ...res,

@@ -24,6 +24,7 @@ from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import TabState
+from superset.utils.core import DatasourceType
 
 logger = logging.getLogger(__name__)
 
@@ -75,7 +76,8 @@ class DatabaseDAO(BaseDAO):
         charts = (
             db.session.query(Slice)
             .filter(
-                Slice.datasource_id.in_(dataset_ids), Slice.datasource_type == "table"
+                Slice.datasource_id.in_(dataset_ids),
+                Slice.datasource_type == DatasourceType.TABLE,
             )
             .all()
         )

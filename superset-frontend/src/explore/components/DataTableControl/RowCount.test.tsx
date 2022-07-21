@@ -20,9 +20,14 @@ import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
 import { RowCount } from '.';
 
-test('Render a RowCount', () => {
+test('Render a RowCount with a single row', () => {
+  render(<RowCount data={[{}]} loading={false} />);
+  expect(screen.getByText('1 row')).toBeInTheDocument();
+});
+
+test('Render a RowCount with multiple rows', () => {
   render(<RowCount data={[{}, {}, {}]} loading={false} />);
-  expect(screen.getByText('3 rows retrieved')).toBeInTheDocument();
+  expect(screen.getByText('3 rows')).toBeInTheDocument();
 });
 
 test('Render a RowCount on loading', () => {

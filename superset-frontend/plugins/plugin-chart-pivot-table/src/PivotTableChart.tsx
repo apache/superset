@@ -55,8 +55,17 @@ const PivotTableWrapper = styled.div`
 `;
 
 const METRIC_KEY = 'metric';
-const iconStyle = { stroke: 'black', strokeWidth: '16px' };
 const vals = ['value'];
+
+const StyledPlusSquareOutlined = styled(PlusSquareOutlined)`
+  stroke: ${({ theme }) => theme.colors.grayscale.light2};
+  stroke-width: 16px;
+`;
+
+const StyledMinusSquareOutlined = styled(MinusSquareOutlined)`
+  stroke: ${({ theme }) => theme.colors.grayscale.light2};
+  stroke-width: 16px;
+`;
 
 const aggregatorsFactory = (formatter: NumberFormatter) => ({
   Count: aggregatorTemplates.count(formatter),
@@ -345,8 +354,8 @@ export default function PivotTableChart(props: PivotTableProps) {
     () => ({
       colSubtotalDisplay: { displayOnTop: colSubtotalPosition },
       rowSubtotalDisplay: { displayOnTop: rowSubtotalPosition },
-      arrowCollapsed: <PlusSquareOutlined style={iconStyle} />,
-      arrowExpanded: <MinusSquareOutlined style={iconStyle} />,
+      arrowCollapsed: <StyledPlusSquareOutlined />,
+      arrowExpanded: <StyledMinusSquareOutlined />,
     }),
     [colSubtotalPosition, rowSubtotalPosition],
   );
