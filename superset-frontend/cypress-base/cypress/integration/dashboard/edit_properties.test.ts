@@ -119,30 +119,23 @@ describe('Dashboard edit action', () => {
   describe('the color picker is changed', () => {
     describe('the metadata has a color scheme', () => {
       describe('the advanced tab is open', () => {
-        // TODO test passes locally but not on ci
-        xit('should overwrite the color scheme', () => {
+        it('should overwrite the color scheme', () => {
           openAdvancedProperties();
-          cy.wait('@dashboardGet').then(() => {
-            selectColorScheme('d3Category20b');
-            assertMetadata('d3Category20b');
-          });
+          selectColorScheme('d3Category20b');
+          assertMetadata('d3Category20b');
         });
       });
       describe('the advanced tab is not open', () => {
-        // TODO test passes locally but not on ci
-        xit('should overwrite the color scheme', () => {
+        it('should overwrite the color scheme', () => {
           selectColorScheme('bnbColors');
           openAdvancedProperties();
-          cy.wait('@dashboardGet').then(() => {
-            assertMetadata('bnbColors');
-          });
+          assertMetadata('bnbColors');
         });
       });
     });
   });
   describe('a valid colorScheme is entered', () => {
-    // TODO test passes locally but not on ci
-    xit('should save json metadata color change to dropdown', () => {
+    it('should save json metadata color change to dropdown', () => {
       // edit json metadata
       openAdvancedProperties().then(() => {
         typeMetadata(
@@ -151,8 +144,8 @@ describe('Dashboard edit action', () => {
       });
 
       // save edit changes
-      cy.get('.modal-footer')
-        .contains('Save')
+      cy.get('.ant-modal-footer')
+        .contains('Apply')
         .click()
         .then(() => {
           // assert that modal edit window has closed
@@ -163,7 +156,7 @@ describe('Dashboard edit action', () => {
           openAdvancedProperties().then(() => {
             assertMetadata('d3Category20');
           });
-          cy.get('.color-scheme-container').should(
+          cy.get('.ant-select-selection-item ul').should(
             'have.attr',
             'data-test',
             'd3Category20',
@@ -172,8 +165,7 @@ describe('Dashboard edit action', () => {
     });
   });
   describe('an invalid colorScheme is entered', () => {
-    // TODO test passes locally but not on ci
-    xit('should throw an error', () => {
+    it('should throw an error', () => {
       // edit json metadata
       openAdvancedProperties().then(() => {
         typeMetadata(
@@ -182,8 +174,8 @@ describe('Dashboard edit action', () => {
       });
 
       // save edit changes
-      cy.get('.modal-footer')
-        .contains('Save')
+      cy.get('.ant-modal-footer')
+        .contains('Apply')
         .click()
         .then(() => {
           // assert that modal edit window has closed
