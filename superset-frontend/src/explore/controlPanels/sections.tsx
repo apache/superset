@@ -21,13 +21,6 @@ import { t } from '@superset-ui/core';
 import { ControlPanelSectionConfig } from '@superset-ui/chart-controls';
 import { formatSelectOptions } from 'src/explore/exploreUtils';
 
-export const druidTimeSeries: ControlPanelSectionConfig = {
-  label: t('Time'),
-  expanded: true,
-  description: t('Time related form attributes'),
-  controlSetRows: [['time_range']],
-};
-
 export const datasourceAndVizType: ControlPanelSectionConfig = {
   label: t('Visualization type'),
   expanded: true,

@@ -16,28 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { keyBy } from 'lodash';
-import { DatasourcesState } from 'src/dashboard/types';
-import {
-  DatasourcesActionPayload,
-  DatasourcesAction,
-} from '../actions/datasources';
+import { DatasourceType, DEFAULT_METRICS } from '@superset-ui/core';
 
-export default function datasourcesReducer(
-  datasources: DatasourcesState | undefined,
-  action: DatasourcesActionPayload,
-) {
-  if (action.type === DatasourcesAction.SET_DATASOURCES) {
-    return {
-      ...datasources,
-      ...keyBy(action.datasources, 'uid'),
-    };
-  }
-  if (action.type === DatasourcesAction.SET_DATASOURCE) {
-    return {
-      ...datasources,
-      [action.key]: action.datasource,
-    };
-  }
-  return datasources || {};
-}
+test('DEFAULT_METRICS', () => {
+  expect(DEFAULT_METRICS).toEqual([
+    {
+      metric_name: 'COUNT(*)',
+      expression: 'COUNT(*)',
+    },
+  ]);
+});
+
+test('DatasourceType', () => {
+  expect(Object.keys(DatasourceType).length).toBe(5);
+  expect(DatasourceType.Table).toBe('table');
+  expect(DatasourceType.Query).toBe('query');
+  expect(DatasourceType.Dataset).toBe('dataset');
+  expect(DatasourceType.SlTable).toBe('sl_table');
+  expect(DatasourceType.SavedQuery).toBe('saved_query');
+});

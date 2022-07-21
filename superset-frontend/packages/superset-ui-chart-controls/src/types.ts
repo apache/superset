@@ -28,6 +28,7 @@ import type {
   QueryFormData,
   QueryFormMetric,
   QueryResponse,
+  GenericDataType,
 } from '@superset-ui/core';
 import { sharedControls } from './shared-controls';
 import sharedControlComponents from './shared-controls/components';
@@ -66,6 +67,7 @@ export interface Dataset {
   id: number;
   type: DatasourceType;
   columns: ColumnMeta[];
+  column_types?: GenericDataType[];
   metrics: Metric[];
   column_format: Record<string, string>;
   verbose_map: Record<string, string>;
@@ -79,6 +81,7 @@ export interface Dataset {
   description: string | null;
   uid?: string;
   owners?: Owner[];
+  table_name?: string;
 }
 
 export interface ControlPanelState {
@@ -204,8 +207,22 @@ export interface BaseControlConfig<
   V = JsonValue,
 > extends AnyDict {
   type: T;
-  label?: ReactNode;
-  description?: ReactNode;
+  label?:
+    | ReactNode
+    | ((
+        state: ControlPanelState,
+        controlState: ControlState,
+        // TODO: add strict `chartState` typing (see superset-frontend/src/explore/types)
+        chartState?: AnyDict,
+      ) => ReactNode);
+  description?:
+    | ReactNode
+    | ((
+        state: ControlPanelState,
+        controlState: ControlState,
+        // TODO: add strict `chartState` typing (see superset-frontend/src/explore/types)
+        chartState?: AnyDict,
+      ) => ReactNode);
   default?: V;
   renderTrigger?: boolean;
   validators?: ControlValueValidator<T, O, V>[];

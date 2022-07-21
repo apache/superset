@@ -283,7 +283,6 @@ class TestQueryContext(SupersetTestCase):
         self.assertEqual(query_object.columns, columns)
         self.assertEqual(query_object.series_limit, 99)
         self.assertEqual(query_object.series_limit_metric, "sum__num")
-        self.assertIn("having_druid", query_object.extras)
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_csv_response_format(self):
@@ -294,7 +293,7 @@ class TestQueryContext(SupersetTestCase):
         payload = get_query_context("birth_names")
         payload["result_format"] = ChartDataResultFormat.CSV.value
         payload["queries"][0]["row_limit"] = 10
-        query_context = ChartDataQueryContextSchema().load(payload)
+        query_context: QueryContext = ChartDataQueryContextSchema().load(payload)
         responses = query_context.get_payload()
         self.assertEqual(len(responses), 1)
         data = responses["queries"][0]["data"]

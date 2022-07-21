@@ -115,6 +115,8 @@ GLOBAL_ASYNC_QUERIES_JWT_SECRET = "test-secret-change-me-test-secret-change-me"
 
 ALERT_REPORTS_WORKING_TIME_OUT_KILL = True
 
+ALERT_REPORTS_QUERY_EXECUTION_MAX_TRIES = 3
+
 
 class CeleryConfig(object):
     BROKER_URL = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_CELERY_DB}"

@@ -18,7 +18,11 @@
  */
 import React from 'react';
 import fetchMock from 'fetch-mock';
-import { getChartControlPanelRegistry } from '@superset-ui/core';
+import {
+  getChartControlPanelRegistry,
+  getChartMetadataRegistry,
+  ChartMetadata,
+} from '@superset-ui/core';
 import { MemoryRouter, Route } from 'react-router-dom';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
@@ -81,7 +85,7 @@ fetchMock.get('glob:*/api/v1/explore/form_data*', {});
 fetchMock.get('glob:*/favstar/slice*', { count: 0 });
 
 const renderWithRouter = (withKey?: boolean) => {
-  const path = '/superset/explore/';
+  const path = '/explore/';
   const search = withKey ? `?form_data_key=${key}&dataset_id=1` : '';
   return render(
     <MemoryRouter initialEntries={[`${path}${search}`]}>
@@ -94,6 +98,14 @@ const renderWithRouter = (withKey?: boolean) => {
 };
 
 test('generates a new form_data param when none is available', async () => {
+  getChartMetadataRegistry().registerValue(
+    'table',
+    new ChartMetadata({
+      name: 'fake table',
+      thumbnail: '.png',
+      useLegacyApi: false,
+    }),
+  );
   const replaceState = jest.spyOn(window.history, 'replaceState');
   await waitFor(() => renderWithRouter());
   expect(replaceState).toHaveBeenCalledWith(

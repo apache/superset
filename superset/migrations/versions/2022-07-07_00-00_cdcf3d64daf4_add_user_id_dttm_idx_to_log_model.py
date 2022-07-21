@@ -14,12 +14,27 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from __future__ import annotations
+"""Add user_id and dttm composite index to Log model
 
-from superset import conf, security_manager
+Revision ID: cdcf3d64daf4
+Revises: 7fb8bca906d2
+Create Date: 2022-04-05 13:27:06.028908
+
+"""
+
+# revision identifiers, used by Alembic.
+revision = "cdcf3d64daf4"
+down_revision = "7fb8bca906d2"
 
 
-def is_user_admin() -> bool:
-    user_roles = [role.name.lower() for role in security_manager.get_user_roles()]
-    admin_role = conf.get("AUTH_ROLE_ADMIN").lower()
-    return admin_role in user_roles
+from alembic import op
+
+
+def upgrade():
+    op.create_index(
+        op.f("ix_logs_user_id_dttm"), "logs", ["user_id", "dttm"], unique=False
+    )
+
+
+def downgrade():
+    op.drop_index(op.f("ix_logs_user_id_dttm"), table_name="logs")

@@ -41,6 +41,7 @@ import handleResourceExport from 'src/utils/export';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import SubMenu, { SubMenuProps } from 'src/views/components/SubMenu';
 import FaveStar from 'src/components/FaveStar';
+import { Link, useHistory } from 'react-router-dom';
 import ListView, {
   Filter,
   FilterOperator,
@@ -151,6 +152,8 @@ function ChartList(props: ChartListProps) {
     addSuccessToast,
     user: { userId },
   } = props;
+
+  const history = useHistory();
 
   const {
     state: {
@@ -270,7 +273,7 @@ function ChartList(props: ChartListProps) {
           },
         }: any) => (
           <FlexRowContainer>
-            <a href={url} data-test={`${sliceName}-list-chart-title`}>
+            <Link to={url} data-test={`${sliceName}-list-chart-title`}>
               {certifiedBy && (
                 <>
                   <CertifiedBadge
@@ -280,7 +283,7 @@ function ChartList(props: ChartListProps) {
                 </>
               )}
               {sliceName}
-            </a>
+            </Link>
             {description && (
               <InfoTooltip tooltip={description} viewBox="0 -1 24 24" />
             )}
@@ -652,7 +655,7 @@ function ChartList(props: ChartListProps) {
       ),
       buttonStyle: 'primary',
       onClick: () => {
-        window.location.assign('/chart/add');
+        history.push('/chart/add');
       },
     });
 

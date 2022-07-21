@@ -87,7 +87,7 @@ export function getURIDirectory(endpointType = 'base') {
   ) {
     return '/superset/explore_json/';
   }
-  return '/superset/explore/';
+  return '/explore/';
 }
 
 export function mountExploreUrl(endpointType, extraSearch = {}, force = false) {

@@ -17,7 +17,7 @@
 import logging
 from typing import Any, cast
 
-from flask import g, request, Response
+from flask import request, Response
 from flask_appbuilder.api import (
     expose,
     get_list_schema,
@@ -243,7 +243,7 @@ class FilterSetRestApi(BaseSupersetModelRestApi):
         """
         try:
             item = self.add_model_schema.load(request.json)
-            new_model = CreateFilterSetCommand(g.user, dashboard_id, item).run()
+            new_model = CreateFilterSetCommand(dashboard_id, item).run()
             return self.response(
                 201, **self.show_model_schema.dump(new_model, many=False)
             )
@@ -314,7 +314,7 @@ class FilterSetRestApi(BaseSupersetModelRestApi):
         """
         try:
             item = self.edit_model_schema.load(request.json)
-            changed_model = UpdateFilterSetCommand(g.user, dashboard_id, pk, item).run()
+            changed_model = UpdateFilterSetCommand(dashboard_id, pk, item).run()
             return self.response(
                 200, **self.show_model_schema.dump(changed_model, many=False)
             )
@@ -374,7 +374,7 @@ class FilterSetRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         try:
-            changed_model = DeleteFilterSetCommand(g.user, dashboard_id, pk).run()
+            changed_model = DeleteFilterSetCommand(dashboard_id, pk).run()
             return self.response(200, id=changed_model.id)
         except ValidationError as error:
             return self.response_400(message=error.messages)

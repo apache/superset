@@ -36,7 +36,7 @@ import {
   useDashboardDatasets,
 } from 'src/hooks/apiResources';
 import { hydrateDashboard } from 'src/dashboard/actions/hydrate';
-import { setDatasources } from 'src/dashboard/actions/datasources';
+import { setDatasources } from 'src/datasource/actions';
 import injectCustomCss from 'src/dashboard/util/injectCustomCss';
 import setupPlugins from 'src/setup/setupPlugins';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
@@ -186,7 +186,9 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
       const isOldRison = getUrlParam(URL_PARAMS.nativeFilters);
 
       let dataMask = nativeFilterKeyValue || {};
-      let activeTabs: string[] | undefined = [];
+      // activeTabs is initialized with undefined so that it doesn't override
+      // the currently stored value when hydrating
+      let activeTabs: string[] | undefined;
       if (permalinkKey) {
         const permalinkValue = await getPermalinkValue(permalinkKey);
         if (permalinkValue) {

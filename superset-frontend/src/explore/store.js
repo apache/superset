@@ -45,7 +45,6 @@ export function getControlsState(state, inputFormData) {
     formData.viz_type || state.common?.conf.DEFAULT_VIZ_TYPE || 'table';
 
   handleDeprecatedControls(formData);
-
   const controlsState = getAllControlsState(
     vizType,
     state.datasource.type,
