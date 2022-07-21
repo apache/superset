@@ -223,9 +223,9 @@ export default class ResultSet extends React.PureComponent<
     const { results } = this.props.query;
 
     if (results.query_id) {
-      const key = await postFormData(results.query_id, 'table', {
+      const key = await postFormData(results.query_id, 'query', {
         ...EXPLORE_CHART_DEFAULT,
-        datasource: `${results.query_id}__table`,
+        datasource: `${results.query_id}__query`,
         ...{
           all_columns: results.columns.map(column => column.name),
         },
