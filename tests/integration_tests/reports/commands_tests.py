@@ -16,7 +16,7 @@
 # under the License.
 import json
 from contextlib import contextmanager
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 from unittest.mock import Mock, patch
 from uuid import uuid4
@@ -724,7 +724,7 @@ def test_email_chart_report_schedule(
         )
         # assert that the link sent is correct
         assert (
-            '<a href="http://0.0.0.0:8080/superset/explore/?'
+            '<a href="http://0.0.0.0:8080/explore/?'
             "form_data=%7B%22slice_id%22%3A%20"
             f"{create_report_email_chart.chart.id}%7D&"
             'standalone=0&force=false">Explore in Superset</a>'
@@ -769,7 +769,7 @@ def test_email_chart_report_schedule_force_screenshot(
         )
         # assert that the link sent is correct
         assert (
-            '<a href="http://0.0.0.0:8080/superset/explore/?'
+            '<a href="http://0.0.0.0:8080/explore/?'
             "form_data=%7B%22slice_id%22%3A%20"
             f"{create_report_email_chart_force_screenshot.chart.id}%7D&"
             'standalone=0&force=true">Explore in Superset</a>'
@@ -808,7 +808,7 @@ def test_email_chart_alert_schedule(
         notification_targets = get_target_from_report_schedule(create_alert_email_chart)
         # assert that the link sent is correct
         assert (
-            '<a href="http://0.0.0.0:8080/superset/explore/?'
+            '<a href="http://0.0.0.0:8080/explore/?'
             "form_data=%7B%22slice_id%22%3A%20"
             f"{create_alert_email_chart.chart.id}%7D&"
             'standalone=0&force=true">Explore in Superset</a>'
@@ -882,7 +882,7 @@ def test_email_chart_report_schedule_with_csv(
         )
         # assert that the link sent is correct
         assert (
-            '<a href="http://0.0.0.0:8080/superset/explore/?'
+            '<a href="http://0.0.0.0:8080/explore/?'
             "form_data=%7B%22slice_id%22%3A%20"
             f"{create_report_email_chart_with_csv.chart.id}%7D&"
             'standalone=0&force=false">Explore in Superset</a>'
@@ -960,6 +960,8 @@ def test_email_chart_report_schedule_with_text(
     mock_open.return_value = response
     mock_urlopen.return_value = response
     mock_urlopen.return_value.getcode.return_value = 200
+
+    # test without date type.
     response.read.return_value = json.dumps(
         {
             "result": [
@@ -971,6 +973,7 @@ def test_email_chart_report_schedule_with_text(
                     },
                     "colnames": [("t1",), ("t2",), ("t3__sum",)],
                     "indexnames": [(0,), (1,)],
+                    "coltypes": [1, 1],
                 },
             ],
         }
@@ -1010,6 +1013,59 @@ def test_email_chart_report_schedule_with_text(
 
         # Assert logs are correct
         assert_log(ReportState.SUCCESS)
+
+    # test with date type.
+    dt = datetime(2022, 1, 1).replace(tzinfo=timezone.utc)
+    ts = datetime.timestamp(dt) * 1000
+    response.read.return_value = json.dumps(
+        {
+            "result": [
+                {
+                    "data": {
+                        "t1": {0: "c11", 1: "c21"},
+                        "t2__date": {0: ts, 1: ts},
+                        "t3__sum": {0: "c13", 1: "c23"},
+                    },
+                    "colnames": [("t1",), ("t2__date",), ("t3__sum",)],
+                    "indexnames": [(0,), (1,)],
+                    "coltypes": [1, 2],
+                },
+            ],
+        }
+    ).encode("utf-8")
+
+    with freeze_time("2020-01-01T00:00:00Z"):
+        AsyncExecuteReportScheduleCommand(
+            TEST_ID, create_report_email_chart_with_text.id, datetime.utcnow()
+        ).run()
+
+        # assert that the data is embedded correctly
+        table_html = """<table border="1" class="dataframe">
+  <thead>
+    <tr>
+      <th></th>
+      <th>t1</th>
+      <th>t2__date</th>
+      <th>t3__sum</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>c11</td>
+      <td>2022-01-01</td>
+      <td>c13</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>c21</td>
+      <td>2022-01-01</td>
+      <td>c23</td>
+    </tr>
+  </tbody>
+</table>"""
+
+        assert table_html in email_mock.call_args[0][2]
 
 
 @pytest.mark.usefixtures(
@@ -1204,7 +1260,7 @@ def test_slack_chart_report_schedule_with_text(
 |  1 | c21  | c22  | c23       |"""
         assert table_markdown in post_message_mock.call_args[1]["text"]
         assert (
-            f"<http://0.0.0.0:8080/superset/explore/?form_data=%7B%22slice_id%22%3A%20{create_report_slack_chart_with_text.chart.id}%7D&standalone=0&force=false|Explore in Superset>"
+            f"<http://0.0.0.0:8080/explore/?form_data=%7B%22slice_id%22%3A%20{create_report_slack_chart_with_text.chart.id}%7D&standalone=0&force=false|Explore in Superset>"
             in post_message_mock.call_args[1]["text"]
         )
 

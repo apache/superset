@@ -31,6 +31,7 @@ import React, {
   useReducer,
   Reducer,
 } from 'react';
+import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import { UploadChangeParam, UploadFile } from 'antd/lib/upload/interface';
 import Tabs from 'src/components/Tabs';
 import { AntdSelect, Upload } from 'src/components';
@@ -41,6 +42,7 @@ import IconButton from 'src/components/IconButton';
 import InfoTooltip from 'src/components/InfoTooltip';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import ValidatedInput from 'src/components/Form/LabeledErrorBoundInput';
+import ErrorAlert from 'src/components/ImportModal/ErrorAlert';
 import {
   testDatabaseConnection,
   useSingleViewResource,
@@ -190,6 +192,11 @@ type DBReducerActionType =
         configuration_method: CONFIGURATION_METHOD;
       };
     };
+
+const StyledBtns = styled.div`
+  margin-bottom: ${({ theme }) => theme.gridUnit * 3}px;
+  margin-left: ${({ theme }) => theme.gridUnit * 3}px;
+`;
 
 function dbReducer(
   state: Partial<DatabaseObject> | null,
@@ -446,6 +453,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const [confirmedOverwrite, setConfirmedOverwrite] = useState<boolean>(false);
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [importingModal, setImportingModal] = useState<boolean>(false);
+  const [importingErrorMessage, setImportingErrorMessage] = useState<string>();
+  const [passwordFields, setPasswordFields] = useState<string[]>([]);
 
   const conf = useCommonConf();
   const dbImages = getDatabaseImages();
@@ -516,6 +525,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     setEditNewDb(false);
     setFileList([]);
     setImportingModal(false);
+    setImportingErrorMessage('');
+    setPasswordFields([]);
     setPasswords({});
     setConfirmedOverwrite(false);
     onHide();
@@ -531,8 +542,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     },
     importResource,
   } = useImportResource('database', t('database'), msg => {
-    addDangerToast(msg);
-    onClose();
+    setImportingErrorMessage(msg);
   });
 
   const onChange = (type: any, payload: any) => {
@@ -788,6 +798,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             onClick={() => setDatabaseModel(database.name)}
             buttonText={database.name}
             icon={dbImages?.[database.engine]}
+            key={`${database.name}`}
           />
         ))}
     </div>
@@ -803,6 +814,12 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const handleBackButtonOnConnect = () => {
     if (editNewDb) setHasConnectedDb(false);
     if (importingModal) setImportingModal(false);
+    if (importErrored) {
+      setImportingModal(false);
+      setImportingErrorMessage('');
+      setPasswordFields([]);
+      setPasswords({});
+    }
     setDB({ type: ActionType.reset });
     setFileList([]);
   };
@@ -963,7 +980,14 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     }
   }, [importingModal]);
 
+  useEffect(() => {
+    setPasswordFields([...passwordsNeeded]);
+  }, [passwordsNeeded]);
+
   const onDbImport = async (info: UploadChangeParam) => {
+    setImportingErrorMessage('');
+    setPasswordFields([]);
+    setPasswords({});
     setImportingModal(true);
     setFileList([
       {
@@ -973,17 +997,18 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     ]);
 
     if (!(info.file.originFileObj instanceof File)) return;
-    await importResource(
+    const dbId = await importResource(
       info.file.originFileObj,
       passwords,
       confirmedOverwrite,
     );
+    if (dbId) onDatabaseAdd?.();
   };
 
   const passwordNeededField = () => {
-    if (!passwordsNeeded.length) return null;
+    if (!passwordFields.length) return null;
 
-    return passwordsNeeded.map(database => (
+    return passwordFields.map(database => (
       <>
         <StyledAlertMargin>
           <Alert
@@ -1012,6 +1037,19 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         />
       </>
     ));
+  };
+
+  const importingErrorAlert = () => {
+    if (!importingErrorMessage) return null;
+
+    return (
+      <StyledAlertMargin>
+        <ErrorAlert
+          errorMessage={importingErrorMessage}
+          showDbInstallInstructions={passwordFields.length > 0}
+        />
+      </StyledAlertMargin>
+    );
   };
 
   const confirmOverwrite = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -1107,6 +1145,39 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     return <></>;
   };
 
+  const fetchAndSetDB = () => {
+    setLoading(true);
+    fetchResource(dbFetched?.id as number).then(r => {
+      setItem(LocalStorageKeys.db, r);
+    });
+  };
+
+  const renderCTABtns = () => (
+    <StyledBtns>
+      <Button
+        // eslint-disable-next-line no-return-assign
+        buttonStyle="default"
+        onClick={() => {
+          fetchAndSetDB();
+          window.location.href = '/tablemodelview/list';
+        }}
+      >
+        {' '}
+        {t('CREATE A DATASET')}{' '}
+      </Button>
+      <Button
+        buttonStyle="default"
+        // eslint-disable-next-line no-return-assign
+        onClick={() => {
+          fetchAndSetDB();
+          window.location.href = `/superset/sqllab/?db=true`;
+        }}
+      >
+        {t('QUERY DATA IN SQL LAB')}{' '}
+      </Button>
+    </StyledBtns>
+  );
+
   const renderFinishState = () => {
     if (!editNewDb) {
       return (
@@ -1184,7 +1255,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     );
   };
 
-  if (fileList.length > 0 && (alreadyExists.length || passwordsNeeded.length)) {
+  if (fileList.length > 0 && (alreadyExists.length || passwordFields.length)) {
     return (
       <Modal
         css={(theme: SupersetTheme) => [
@@ -1215,6 +1286,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         />
         {passwordNeededField()}
         {confirmOverwriteField()}
+        {importingErrorAlert()}
       </Modal>
     );
   }
@@ -1438,6 +1510,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             dbModel={dbModel}
             editNewDb={editNewDb}
           />
+          {renderCTABtns()}
           {renderFinishState()}
         </>
       ) : (
@@ -1477,6 +1550,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                     </Button>
                   </Upload>
                 </StyledUploadWrapper>
+                {importingErrorAlert()}
               </SelectDatabaseStyles>
             ) : (
               <>

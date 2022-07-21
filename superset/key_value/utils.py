@@ -18,15 +18,15 @@ from __future__ import annotations
 
 from hashlib import md5
 from secrets import token_urlsafe
-from typing import Optional, Union
-from uuid import UUID
+from typing import Any, Union
+from uuid import UUID, uuid3
 
 import hashids
-from flask_appbuilder.security.sqla.models import User
 from flask_babel import gettext as _
 
 from superset.key_value.exceptions import KeyValueParseKeyError
 from superset.key_value.types import KeyValueFilter, KeyValueResource
+from superset.utils.core import json_dumps_w_dates
 
 HASHIDS_MIN_LENGTH = 11
 
@@ -66,5 +66,7 @@ def get_uuid_namespace(seed: str) -> UUID:
     return UUID(md5_obj.hexdigest())
 
 
-def get_owner(user: User) -> Optional[int]:
-    return user.get_user_id() if not user.is_anonymous else None
+def get_deterministic_uuid(namespace: str, payload: Any) -> UUID:
+    """Get a deterministic UUID (uuid3) from a salt and a JSON-serializable payload."""
+    payload_str = json_dumps_w_dates(payload, sort_keys=True)
+    return uuid3(get_uuid_namespace(namespace), payload_str)

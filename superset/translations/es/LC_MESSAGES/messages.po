@@ -13258,7 +13258,8 @@ msgstr "Serie Temporal - Gráfico de Barras"
 msgid ""
 "Time-series Bar Charts are used to show the changes in a metric over time"
 " as a series of bars."
-msgstr ""
+msgstr "Los gráficos de barras en las series de tiempo se utilizan para mostrar"
+" los cambios en las métricas con el paso del tiempo, en forma de barras."
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/index.ts:69
 #, fuzzy
@@ -13283,19 +13284,21 @@ msgstr "Serie Temporal - Pivote de periodo"
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/Scatter/index.ts:69
 #, fuzzy
 msgid "Time-series Scatter Plot"
-msgstr "Tabla de serie temporal"
+msgstr "Gráfico de Dispersión de Puntos (Series de Tiempo)"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/Scatter/index.ts:59
 msgid ""
 "Time-series Scatter Plot has time on the horizontal axis in linear units,"
 " and the points are connected in order. It shows a statistical "
 "relationship between two variables."
-msgstr ""
+msgstr "Gráfico de Dispersión de Puntos (en Series de tiempo), muestra en el eje "
+"horizontal el tiempo en unidades lineales, conectando los puntos en orden. Muestra"
+" una relación estadística entre dos variables-"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/SmoothLine/index.ts:69
 #, fuzzy
 msgid "Time-series Smooth Line"
-msgstr "Tabla de serie temporal"
+msgstr "Tabla de serie temporal Suavizada"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/SmoothLine/index.ts:59
 msgid ""
@@ -13306,7 +13309,7 @@ msgstr ""
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Step/index.ts:60
 #, fuzzy
 msgid "Time-series Stepped Line"
-msgstr "Tabla de serie temporal"
+msgstr "Tabla de serie temporal por pasos"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Step/index.ts:50
 msgid ""
@@ -13315,6 +13318,11 @@ msgid ""
 "points. A step chart can be useful when you want to show the changes that"
 " occur at irregular intervals."
 msgstr ""
+"Gráfico de Series por tiempo en Pasos (conocida como Tabla de Pasos) "
+"es una variación del gráfico de Linea, en la cual la linea que forma la serie "
+"de tiempo forma una serie de 'pasos' entre los puntos de intervalos de datos. "
+"Una tabla de paso es útil cuando se quieren mostrar los cambios ocurridos en "
+"intervalos regulares."
 
 #: superset-frontend/src/visualizations/TimeTable/TimeTableChartPlugin.ts:25
 msgid "Time-series Table"
@@ -13327,6 +13335,11 @@ msgid ""
 " information as a series of data points connected by straight line "
 "segments. It is a basic type of chart common in many fields."
 msgstr ""
+"El gráfico de linea (en series de tiempo) es un gráfico de linea utilizado  "
+"para visualizar medidas tomadas en intervalos de tiempo regulares. "
+"El gráfico de linea es un tipo de gráfico que muestra información de "
+"una serie de puntos de datos conectados por segmentos de lineas rectas. "
+"Es un tipo básico de gráfico en la estadística."
 
 #: superset-frontend/src/components/ErrorMessage/TimeoutErrorMessage.tsx:98
 msgid "Timeout error"
@@ -13378,7 +13391,7 @@ msgstr "Columna de Tiempo"
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/DividerConfigForm.tsx:45
 #, fuzzy
 msgid "Title is required"
-msgstr "El campo es obligatorio"
+msgstr "El título es obligatorio"
 
 #: superset/dashboards/filters.py:33
 msgid "Title or Slug"
@@ -13426,7 +13439,7 @@ msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-table/src/TableChart.tsx:439
 msgid "Totals"
-msgstr ""
+msgstr "Totales"
 
 #: superset-frontend/src/SqlLab/components/ResultSet/index.tsx:820
 msgid "Track job"
@@ -13442,11 +13455,11 @@ msgstr "Seguir trabajo"
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Step/index.ts:67
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/index.ts:76
 msgid "Transformable"
-msgstr ""
+msgstr "Transformable"
 
 #: superset-frontend/src/dashboard/util/backgroundStyleOptions.ts:25
 msgid "Transparent"
-msgstr ""
+msgstr "Transparente"
 
 #: superset-frontend/plugins/legacy-plugin-chart-pivot-table/src/controlPanel.ts:110
 msgid "Transpose Pivot"
@@ -13454,7 +13467,7 @@ msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:173
 msgid "Transpose pivot"
-msgstr ""
+msgstr "Transponer pivot"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Tree/index.ts:39
 #, fuzzy
@@ -13495,7 +13508,7 @@ msgstr "Modificado"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Tree/controlPanel.tsx:226
 msgid "Triangle"
-msgstr ""
+msgstr "Triángulo"
 
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1168
 msgid "Trigger Alert If..."
@@ -13509,7 +13522,7 @@ msgstr "Disparar Alerta si..."
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Step/controlPanel.tsx:271
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/controlPanel.tsx:274
 msgid "Truncate Y Axis"
-msgstr ""
+msgstr "Truncar el eje Y"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/MixedTimeseries/controlPanel.tsx:343
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Area/controlPanel.tsx:258
@@ -13518,15 +13531,15 @@ msgstr ""
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Step/controlPanel.tsx:274
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/controlPanel.tsx:277
 msgid "Truncate Y Axis. Can be overridden by specifying a min or max bound."
-msgstr ""
+msgstr "Truncar el eje Y. Puede ser sobreescrito al especificar un límite máximo o mínimo"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/components/DateFunctionTooltip.tsx:58
 msgid "Truncates the specified date to the accuracy specified by the date unit."
-msgstr ""
+msgstr "Trunca la fecha especificada a la precisión establecida en el formato de fecha"
 
 #: superset-frontend/plugins/legacy-preset-chart-big-number/src/BigNumber/BigNumber.tsx:222
 msgid "Try applying different filters or ensuring your datasource has data"
-msgstr ""
+msgstr "Intente aplicar filtros diferentes o asegúrese de que la fuente de datos tiene información"
 
 #: superset-frontend/src/components/CronPicker/CronPicker.tsx:58
 msgid "Tuesday"
@@ -13592,7 +13605,7 @@ msgstr "Parámetros de URL"
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal/index.tsx:125
 #, fuzzy
 msgid "URL could not be identified"
-msgstr "El Gráfico no ha podido eliminarse"
+msgstr "El Gráfico no ha podido identificarse"
 
 #: superset-frontend/src/explore/controlPanels/sections.tsx:60
 msgid "URL parameters"
@@ -13604,18 +13617,18 @@ msgstr "nombre para URL"
 
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:531
 msgid "Unable to add a new tab to the backend. Please contact your administrator."
-msgstr ""
+msgstr "No se pueden añadir nueva pestaña al back-end. Contacte al administrador."
 
 #: superset/db_engine_specs/presto.py:218
 #, python-format
 msgid "Unable to connect to catalog named \"%(catalog_name)s\"."
-msgstr ""
+msgstr "No se puede conectar al catálogo \"%(catalog_name)s\"."
 
 #: superset/db_engine_specs/mysql.py:139
 #: superset/db_engine_specs/postgres.py:145
 #, python-format
 msgid "Unable to connect to database \"%(database)s\"."
-msgstr ""
+msgstr "No se puede conectar a la Base de Datos: \"%(database)s\ "
 
 #: superset/utils/date_parser.py:390
 #, fuzzy, python-format
@@ -13696,7 +13709,7 @@ msgstr ""
 #: superset-frontend/src/utils/getClientErrorObject.ts:55
 #, fuzzy
 msgid "Unexpected error: "
-msgstr "Error inesperado"
+msgstr "Error inesperado: "
 
 #: superset-frontend/src/views/CRUD/welcome/ActivityTable.tsx:95
 #, fuzzy
@@ -13706,7 +13719,7 @@ msgstr "Error desconocido"
 #: superset/db_engine_specs/mysql.py:129
 #, python-format
 msgid "Unknown MySQL server host \"%(hostname)s\"."
-msgstr ""
+msgstr "Host desconocido de MySQL: \"%(hostname)s\""
 
 #: superset/db_engine_specs/presto.py:1005
 msgid "Unknown Presto Error"
@@ -13714,22 +13727,22 @@ msgstr "Error de Presto desconocido"
 
 #: superset-frontend/src/SqlLab/components/QueryTable/index.jsx:111
 msgid "Unknown Status"
-msgstr ""
+msgstr "EStado desconocido"
 
 #: superset/connectors/sqla/models.py:1121
 #, python-format
 msgid "Unknown column used in orderby: %(col)s"
-msgstr ""
+msgstr "Columna desconocida utilizada al ordenar: %(col)s%"
 
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:349
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:389
 msgid "Unknown error"
-msgstr "Error desconocido"
+msgstr "Valor desconocido"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/FilterSets/utils/index.ts:45
 #, fuzzy
 msgid "Unknown value"
-msgstr "Error desconocido"
+msgstr "Valor desconocido"
 
 #: superset/jinja_context.py:347
 #, python-format
@@ -13800,7 +13813,7 @@ msgstr "Subir"
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal/DatabaseConnectionForm/EncryptedField.tsx:134
 #, fuzzy
 msgid "Upload Credentials"
-msgstr "Subir Excel"
+msgstr "Subir Credenciales"
 
 #: superset/initialization/__init__.py:400
 msgid "Upload Excel"
@@ -13808,7 +13821,7 @@ msgstr "Subir Excel"
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal/DatabaseConnectionForm/EncryptedField.tsx:102
 msgid "Upload JSON file"
-msgstr ""
+msgstr "Subir un archivo JSON"
 
 #: superset/initialization/__init__.py:369
 msgid "Upload a CSV"
@@ -13834,19 +13847,19 @@ msgstr "Usar Pandas para interpretar el formato de fecha y hora automáticamente
 
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:207
 msgid "Use a log scale"
-msgstr ""
+msgstr "Usar escala logarítimica"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bubble/controlPanel.ts:107
 msgid "Use a log scale for the X-axis"
-msgstr ""
+msgstr "Usar escala logarítimica para el Eje X"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:230
 msgid "Use a log scale for the Y-axis"
-msgstr ""
+msgstr "Usar escala logarítimica para el Eje Y"
 
 #: superset/db_engine_specs/base.py:1401
 msgid "Use an encrypted connection to the database"
-msgstr ""
+msgstr "Usar una conexión encriptada a la base de datos"
 
 #: superset-frontend/src/components/Datasource/DatasourceModal.tsx:209
 msgid "Use legacy datasource editor"
@@ -13858,11 +13871,11 @@ msgstr ""
 
 #: superset-frontend/src/filters/components/Range/controlPanel.ts:68
 msgid "Use only a single value."
-msgstr ""
+msgstr "Usar un único valor"
 
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:124
 msgid "Use the Advanced Analytics options below"
-msgstr ""
+msgstr "Usar la opción de Analítica Avanzada debajo "
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal/DatabaseConnectionForm/EncryptedField.tsx:136
 msgid ""
@@ -13877,7 +13890,7 @@ msgstr "Usa el botón 'editar' para cambiar este campo"
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/index.tsx:176
 #: superset-frontend/src/explore/controls.jsx:207
 msgid "Use this to define a static color for all circles"
-msgstr ""
+msgstr "Use esto para definir un color estático para todos los círculos"
 
 #: superset/views/dynamic_plugins.py:48
 msgid ""

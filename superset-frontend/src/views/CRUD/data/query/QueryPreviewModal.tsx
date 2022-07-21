@@ -115,32 +115,34 @@ function QueryPreviewModal({
         onHide={onHide}
         show={show}
         title={t('Query preview')}
-        footer={[
-          <Button
-            data-test="previous-query"
-            key="previous-query"
-            disabled={disablePrevious}
-            onClick={() => handleDataChange(true)}
-          >
-            {t('Previous')}
-          </Button>,
-          <Button
-            data-test="next-query"
-            key="next-query"
-            disabled={disableNext}
-            onClick={() => handleDataChange(false)}
-          >
-            {t('Next')}
-          </Button>,
-          <Button
-            data-test="open-in-sql-lab"
-            key="open-in-sql-lab"
-            buttonStyle="primary"
-            onClick={() => openInSqlLab(id)}
-          >
-            {t('Open in SQL Lab')}
-          </Button>,
-        ]}
+        footer={
+          <>
+            <Button
+              data-test="previous-query"
+              key="previous-query"
+              disabled={disablePrevious}
+              onClick={() => handleDataChange(true)}
+            >
+              {t('Previous')}
+            </Button>
+            <Button
+              data-test="next-query"
+              key="next-query"
+              disabled={disableNext}
+              onClick={() => handleDataChange(false)}
+            >
+              {t('Next')}
+            </Button>
+            <Button
+              data-test="open-in-sql-lab"
+              key="open-in-sql-lab"
+              buttonStyle="primary"
+              onClick={() => openInSqlLab(id)}
+            >
+              {t('Open in SQL Lab')}
+            </Button>
+          </>
+        }
       >
         <QueryTitle>{t('Tab name')}</QueryTitle>
         <QueryLabel>{query.tab_name}</QueryLabel>

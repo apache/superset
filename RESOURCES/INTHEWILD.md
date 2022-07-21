@@ -120,10 +120,12 @@ Join our growing community!
 
 ### Education
 - [Brilliant.org](https://brilliant.org/)
+- [Platzi.com](https://platzi.com/)
 - [Sunbird](https://www.sunbird.org/) [@eksteporg]
 - [The GRAPH Network](https://thegraphnetwork.org/)[@fccoelho]
 - [Udemy](https://www.udemy.com/) [@sungjuly]
 - [VIPKID](https://www.vipkid.com.cn/) [@illpanda]
+- [WikiMedia Foundation](https://wikimediafoundation.org) [@vg]
 
 ### Energy
 - [Airboxlab](https://foobot.io) [@antoine-galataud]

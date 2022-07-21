@@ -1409,7 +1409,6 @@ def test_insert_rls(
         candidate: Token,
         database_id: int,
         default_schema: str,
-        username: Optional[str] = None,
     ) -> Optional[TokenList]:
         """
         Return the RLS ``condition`` if ``candidate`` matches ``table``.

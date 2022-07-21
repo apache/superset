@@ -2454,6 +2454,8 @@
       ],
       "X-axis": [""],
       "Dimension to use on x-axis.": [""],
+      "Y-axis": [""],
+      "Dimension to use on y-axis.": [""],
       "Percentage threshold": [""],
       "Minimum threshold in percentage points for showing labels.": [""],
       "Rich tooltip": [""],

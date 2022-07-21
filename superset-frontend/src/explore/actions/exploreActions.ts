@@ -18,34 +18,28 @@
  */
 /* eslint camelcase: 0 */
 import { Dataset } from '@superset-ui/chart-controls';
-import {
-  t,
-  SupersetClient,
-  DatasourceType,
-  QueryFormData,
-} from '@superset-ui/core';
+import { t, SupersetClient, QueryFormData } from '@superset-ui/core';
 import { Dispatch } from 'redux';
 import {
   addDangerToast,
   toastActions,
 } from 'src/components/MessageToasts/actions';
 import { Slice } from 'src/types/Chart';
+import { setDatasource } from 'src/datasource/actions';
+import { ExplorePageState } from 'src/explore/types';
 
 const FAVESTAR_BASE_URL = '/superset/favstar/slice';
 
-export const SET_DATASOURCE_TYPE = 'SET_DATASOURCE_TYPE';
-export function setDatasourceType(datasourceType: DatasourceType) {
-  return { type: SET_DATASOURCE_TYPE, datasourceType };
-}
-
-export const SET_DATASOURCE = 'SET_DATASOURCE';
-export function setDatasource(datasource: Dataset) {
-  return { type: SET_DATASOURCE, datasource };
-}
-
-export const SET_DATASOURCES = 'SET_DATASOURCES';
-export function setDatasources(datasources: Dataset[]) {
-  return { type: SET_DATASOURCES, datasources };
+export const UPDATE_FORM_DATA_BY_DATASOURCE = 'UPDATE_FORM_DATA_BY_DATASOURCE';
+export function updateFormDataByDatasource(
+  prevDatasource: Dataset,
+  newDatasource: Dataset,
+) {
+  return {
+    type: UPDATE_FORM_DATA_BY_DATASOURCE,
+    prevDatasource,
+    newDatasource,
+  };
 }
 
 export const POST_DATASOURCE_STARTED = 'POST_DATASOURCE_STARTED';
@@ -148,11 +142,26 @@ export function setForceQuery(force: boolean) {
   };
 }
 
+export const SAVE_DATASOURCE = 'SAVE_DATASOURCE';
+export function saveDatasource(datasource: Dataset) {
+  return function (dispatch: Dispatch) {
+    dispatch(setDatasource(datasource));
+    dispatch({ type: SAVE_DATASOURCE, datasource });
+  };
+}
+
+export function changeDatasource(newDatasource: Dataset) {
+  return function (dispatch: Dispatch, getState: () => ExplorePageState) {
+    const {
+      explore: { datasource: prevDatasource },
+    } = getState();
+    dispatch(setDatasource(newDatasource));
+    dispatch(updateFormDataByDatasource(prevDatasource, newDatasource));
+  };
+}
+
 export const exploreActions = {
   ...toastActions,
-  setDatasourceType,
-  setDatasource,
-  setDatasources,
   fetchDatasourcesStarted,
   fetchDatasourcesSucceeded,
   toggleFaveStar,
@@ -164,6 +173,7 @@ export const exploreActions = {
   createNewSlice,
   sliceUpdated,
   setForceQuery,
+  changeDatasource,
 };
 
 export type ExploreActions = typeof exploreActions;

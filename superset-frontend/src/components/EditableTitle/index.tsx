@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useState, useRef } from 'react';
+import React, { MouseEvent, useEffect, useState, useRef } from 'react';
 import cx from 'classnames';
 import { css, styled, t } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
@@ -37,7 +37,7 @@ export interface EditableTitleProps {
   placeholder?: string;
   certifiedBy?: string;
   certificationDetails?: string;
-  onClickTitle?: () => void;
+  onClickTitle?: (event: MouseEvent) => void;
 }
 
 const StyledCertifiedBadge = styled(CertifiedBadge)`

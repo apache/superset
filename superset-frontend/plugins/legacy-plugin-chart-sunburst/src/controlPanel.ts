@@ -20,6 +20,7 @@ import { t } from '@superset-ui/core';
 import {
   ControlPanelConfig,
   ControlPanelsContainerProps,
+  getStandardizedControls,
   sections,
 } from '@superset-ui/chart-controls';
 
@@ -96,6 +97,12 @@ const config: ControlPanelConfig = {
       description: t('This defines the level of the hierarchy'),
     },
   },
+  formDataOverrides: formData => ({
+    ...formData,
+    groupby: getStandardizedControls().popAllColumns(),
+    metric: getStandardizedControls().shiftMetric(),
+    secondary_metric: getStandardizedControls().shiftMetric(),
+  }),
 };
 
 export default config;

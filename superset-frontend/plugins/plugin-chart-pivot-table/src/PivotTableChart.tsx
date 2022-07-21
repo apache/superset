@@ -27,8 +27,8 @@ import {
   NumberFormatter,
   styled,
   useTheme,
+  isAdhocColumn,
 } from '@superset-ui/core';
-import { isAdhocColumn } from '@superset-ui/chart-controls';
 import { PivotTable, sortAs, aggregatorTemplates } from './react-pivottable';
 import {
   FilterType,

@@ -23,3 +23,4 @@ export * from './getColorFormatters';
 export { default as mainMetric } from './mainMetric';
 export { default as columnChoices } from './columnChoices';
 export * from './defineSavedMetrics';
+export * from './getStandardizedControls';
