@@ -427,7 +427,9 @@ def test_get_samples(test_client, login_as_admin, virtual_dataset):
     if backend() == "sqlite":
         return
 
-    uri = f"datasource/samples?datasource_id={virtual_dataset.id}&datasource_type=table"
+    uri = (
+        f"/datasource/samples?datasource_id={virtual_dataset.id}&datasource_type=table"
+    )
 
     # 1. should cache data
     # feeds data
@@ -444,7 +446,7 @@ def test_get_samples(test_client, login_as_admin, virtual_dataset):
     assert rv_data["result"]["is_cached"]
 
     # 2. should read through cache data
-    uri2 = f"datasource/samples?datasource_id={virtual_dataset.id}&datasource_type=table&force=true"
+    uri2 = f"/datasource/samples?datasource_id={virtual_dataset.id}&datasource_type=table&force=true"
     # feeds data
     test_client.post(uri2)
     # force query
@@ -485,7 +487,9 @@ def test_get_samples_with_incorrect_cc(test_client, login_as_admin, virtual_data
     )
     db.session.merge(virtual_dataset)
 
-    uri = f"datasource/samples?datasource_id={virtual_dataset.id}&datasource_type=table"
+    uri = (
+        f"/datasource/samples?datasource_id={virtual_dataset.id}&datasource_type=table"
+    )
     rv = test_client.post(uri)
     assert rv.status_code == 422
 
@@ -500,7 +504,7 @@ def test_get_samples_on_physical_dataset(test_client, login_as_admin, physical_d
         return
 
     uri = (
-        f"datasource/samples?datasource_id={physical_dataset.id}&datasource_type=table"
+        f"/datasource/samples?datasource_id={physical_dataset.id}&datasource_type=table"
     )
     rv = test_client.post(uri)
     assert rv.status_code == 200
