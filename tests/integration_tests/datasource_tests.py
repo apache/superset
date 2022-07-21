@@ -427,11 +427,10 @@ def test_get_samples(test_client, login_as_admin, virtual_dataset):
     if backend() == "sqlite":
         return
 
+    # 1. should cache data
     uri = (
         f"/datasource/samples?datasource_id={virtual_dataset.id}&datasource_type=table"
     )
-
-    # 1. should cache data
     # feeds data
     test_client.post(uri)
     # get from cache
