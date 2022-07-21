@@ -144,15 +144,21 @@ const SelectTags = ({
     pageSize: 10,
     showSearch: true,
   };
-
+  const styling = {
+    verticalAlign: '-webkit-baseline-middle'
+  }
   return (<AsyncSelect {...selectProps} onChange={onSelect} value={selectValue}/>);
 };
 
-const EditButton = ({
+
+const EditTagsButton = ({
   onClick,
   visible=true,
 } : any ) => {
   if(!visible) {return null}
+  const styling = {
+    verticalAlign: '-webkit-baseline-middle'
+  }
   return (
     <div
       role="button"
@@ -160,7 +166,7 @@ const EditButton = ({
       onClick={onClick}
       data-test="dashboard-tags-edit-button"
     >
-      <Icons.EditAlt iconSize="l" data-test="edit-alt" />
+      <Icons.EditAlt iconSize="l" data-test="edit-alt" style={styling}/>
     </div>
   );
 }
@@ -202,11 +208,14 @@ export const ObjectTags = ({
   };
 
   useEffect(() => {
-    fetchTags(
-      {objectType, objectId, includeTypes},
-      (tags: Tag[]) => setTags(tags),
-      () => {/*TODO: handle error*/});
-    
+    try {
+      fetchTags(
+        {objectType, objectId, includeTypes},
+        (tags: Tag[]) => setTags(tags),
+        () => {/*TODO: handle error*/});
+    } catch(error: any) {
+      console.log(error)
+    }
     
     fetchSuggestions(
       {includeTypes},
@@ -278,7 +287,7 @@ export const ObjectTags = ({
             <SaveButton onClick={toggleEditMode}/>
           </AddTags>
         ) : (
-            <EditButton onClick={toggleEditMode} visible={true}/>
+            <EditTagsButton onClick={toggleEditMode} visible={true}/>
         )}
       </TagsDiv>
     {/* ) */}
