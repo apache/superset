@@ -135,9 +135,7 @@ describe('Dashboard save action', () => {
           });
 
         // update title
-        cy.get('.ant-modal-body')
-          .contains('Title')
-          .siblings('input')
+        cy.get('[data-test="dashboard-title-input"]')
           .type(`{selectall}{backspace}${dashboardTitle}`);
 
         // save edit changes
@@ -155,8 +153,8 @@ describe('Dashboard save action', () => {
             cy.contains('saved successfully').should('be.visible');
 
             // assert title has been updated
-            cy.get('.editable-title [data-test="editable-title-input"]').should(
-              'have.value',
+            cy.get('.header-with-actions .title-panel [data-test="editable-title"]').should(
+              'have.text',
               dashboardTitle,
             );
           });

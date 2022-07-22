@@ -48,12 +48,11 @@ function assertMetadata(text: string) {
       expect(ace.edit(metadata).getValue()).to.match(regex);
     });
 }
-
-function typeMetadata(text: string) {
-  cy.get('.ant-modal-body')
-    .find('#json_metadata')
-    .should('be.visible')
-    .type(text);
+function clear(input: string) {
+  cy.get(input).type('{selectall}{backspace}');
+}
+function type(input: string, text: string) {
+  cy.get(input).type(text, { parseSpecialCharSequences: false });
 }
 
 function openAdvancedProperties() {
@@ -138,8 +137,10 @@ describe('Dashboard edit action', () => {
     it('should save json metadata color change to dropdown', () => {
       // edit json metadata
       openAdvancedProperties().then(() => {
-        typeMetadata(
-          '{selectall}{backspace}{{}"color_scheme":"d3Category20"{}}',
+        clear('#json_metadata');
+        type(
+          '#json_metadata',
+          '{"color_scheme":"d3Category20"}'
         );
       });
 
@@ -168,8 +169,10 @@ describe('Dashboard edit action', () => {
     it('should throw an error', () => {
       // edit json metadata
       openAdvancedProperties().then(() => {
-        typeMetadata(
-          '{selectall}{backspace}{{}"color_scheme":"THIS_DOES_NOT_WORK"{}}',
+        clear('#json_metadata');
+        type(
+          '#json_metadata',
+          '{"color_scheme":"THIS_DOES_NOT_WORK"}'
         );
       });
 
@@ -191,6 +194,46 @@ describe('Dashboard edit action', () => {
         // failing this test
         return false;
       });
+    });
+  });
+  describe('the color scheme affects the chart colors', () => {
+    it('should change the chart colors', () => {
+      openAdvancedProperties().then(() => {
+        clear('#json_metadata');
+        type(
+          '#json_metadata',
+          '{"color_scheme":"lyftColors"}',
+        );
+      });
+
+      cy.get('.ant-modal-footer')
+        .contains('Apply')
+        .click()
+        .then(() => {
+          cy.get('.ant-modal-body').should('not.exist');
+          // assert that the chart has changed colors
+          cy.get('#chart-id-41 .nv-legend-symbol').first().should('have.css', 'fill', 'rgb(234, 11, 140)');
+
+        });
+    });
+    it('the label colors should take precedence over the scheme', () => {
+      openAdvancedProperties().then(() => {
+        clear('#json_metadata');
+        type(
+          '#json_metadata',
+          '{"color_scheme":"lyftColors","label_colors":{"Bangladesh":"red"}}',
+        );
+      });
+
+      cy.get('.ant-modal-footer')
+        .contains('Apply')
+        .click()
+        .then(() => {
+          cy.get('.ant-modal-body').should('not.exist');
+          // assert that the chart has changed colors
+          cy.get('#chart-id-41 .nv-legend-symbol').first().should('have.css', 'fill', 'rgb(255, 0, 0)');
+
+        });
     });
   });
 });
