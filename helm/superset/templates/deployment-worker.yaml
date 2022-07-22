@@ -135,6 +135,7 @@ spec:
         - name: superset-config
           secret:
             secretName: {{ tpl .Values.configFromSecret . }}
+        {{- if .Values.extraConfigs }}
         - name: superset-extra-config
           configMap:
             name: {{ template "superset.fullname" . }}-extra-config
