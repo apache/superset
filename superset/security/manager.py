@@ -63,6 +63,7 @@ from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.orm.query import Query as SqlaQuery
 
 from superset import sql_parse
+from superset.connectors.sqla.models import SqlaTable
 from superset.constants import RouteMethod
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
@@ -987,7 +988,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     def _update_vm_database_access(
         self,
         connection: Connection,
-        old_database_name,
+        old_database_name: str,
         target: "Database",
     ) -> Optional[ViewMenu]:
         view_menu_table = self.viewmenu_model.__table__  # pylint: disable=no-member
@@ -1000,7 +1001,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 "Could not find previous database permission %s",
                 old_view_menu_name,
             )
-            return
+            return None
         new_updated_pvm = self.find_permission_view_menu(
             "database_access", new_view_menu_name
         )
@@ -1008,7 +1009,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             logger.info(
                 "New permission [%s] already exists, nothing to do", new_view_menu_name
             )
-            return
+            return None
         connection.execute(
             view_menu_table.update()
             .where(view_menu_table.c.id == db_pvm.view_menu_id)
@@ -1019,11 +1020,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     def _update_vm_datasources_access(
         self,
         connection: Connection,
-        old_database_name,
+        old_database_name: str,
         target: "Database",
     ) -> List[ViewMenu]:
-        from superset.connectors.sqla.models import SqlaTable
-
         view_menu_table = self.viewmenu_model.__table__  # pylint: disable=no-member
         new_database_name = target.database_name
         datasets = (
@@ -1050,7 +1049,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             updated_view_menus.append(self.find_view_menu(new_dataset_vm_name))
         return updated_view_menus
 
-    def database_after_update(  # pylint: disable=unused-argument
+    def database_after_update(
         self,
         mapper: Mapper,
         connection: Connection,
@@ -1068,18 +1067,17 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             connection, old_database_name, target
         )
         if new_db_view_menu:
-            self.on_view_after_update(mapper, connection, new_db_view_menu)
-
+            self.on_view_menu_after_update(mapper, connection, new_db_view_menu)
         # update datasource access
         new_dataset_view_menus = self._update_vm_datasources_access(
             connection, old_database_name, target
         )
         for new_dataset_view_menu in new_dataset_view_menus:
-            self.on_view_after_update(mapper, connection, new_dataset_view_menu)
+            self.on_view_menu_after_update(mapper, connection, new_dataset_view_menu)
 
-    def on_view_after_update(
+    def on_view_menu_after_update(
         self, mapper: Mapper, connection: Connection, target: ViewMenu
-    ):
+    ) -> None:
         """
         Hook that allows for further custom operations when a new ViewMenu
         is updated

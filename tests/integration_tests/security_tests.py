@@ -107,6 +107,7 @@ class TestRolePermission(SupersetTestCase):
     """Testing export role permissions."""
 
     def setUp(self):
+        return
         schema = get_example_default_schema()
         session = db.session
         security_manager.add_role(SCHEMA_ACCESS_ROLE)
@@ -134,6 +135,7 @@ class TestRolePermission(SupersetTestCase):
         session.commit()
 
     def tearDown(self):
+        return
         session = db.session
         ds = (
             session.query(SqlaTable)
@@ -353,6 +355,127 @@ class TestRolePermission(SupersetTestCase):
 
         session.delete(stored_db)
         session.commit()
+
+    def test_after_update_database__perm_database_access(self):
+        session = db.session
+        database = Database(database_name="tmp_database", sqlalchemy_uri="sqlite://")
+        session.add(database)
+        session.commit()
+        stored_db = (
+            session.query(Database).filter_by(database_name="tmp_database").one()
+        )
+
+        self.assertIsNotNone(
+            security_manager.find_permission_view_menu(
+                "database_access", stored_db.perm
+            )
+        )
+
+        stored_db.database_name = "tmp_database2"
+        session.commit()
+
+        # Assert that the old permission was updated
+        self.assertIsNone(
+            security_manager.find_permission_view_menu(
+                "database_access", f"[tmp_database].(id:{stored_db.id})"
+            )
+        )
+        # Assert that the db permission was updated
+        self.assertIsNotNone(
+            security_manager.find_permission_view_menu(
+                "database_access", f"[tmp_database2].(id:{stored_db.id})"
+            )
+        )
+        session.delete(stored_db)
+        session.commit()
+
+    def test_after_update_database__perm_datasource_access(self):
+        session = db.session
+        database = Database(database_name="tmp_database", sqlalchemy_uri="sqlite://")
+        session.add(database)
+        session.commit()
+
+        table1 = SqlaTable(
+            schema="tmp_schema",
+            table_name="tmp_table1",
+            database=database,
+        )
+        session.add(table1)
+        table2 = SqlaTable(
+            schema="tmp_schema",
+            table_name="tmp_table2",
+            database=database,
+        )
+        session.add(table2)
+        session.commit()
+
+        # assert initial perms
+        self.assertIsNotNone(
+            security_manager.find_permission_view_menu(
+                "datasource_access", f"[tmp_database].[tmp_table1](id:{table1.id})"
+            )
+        )
+        self.assertIsNotNone(
+            security_manager.find_permission_view_menu(
+                "datasource_access", f"[tmp_database].[tmp_table2](id:{table2.id})"
+            )
+        )
+
+        stored_db = (
+            session.query(Database).filter_by(database_name="tmp_database").one()
+        )
+        stored_db.database_name = "tmp_database2"
+        session.commit()
+
+        # Assert that the old permissions were updated
+        self.assertIsNone(
+            security_manager.find_permission_view_menu(
+                "datasource_access", f"[tmp_database].[tmp_table1](id:{table1.id})"
+            )
+        )
+        self.assertIsNone(
+            security_manager.find_permission_view_menu(
+                "datasource_access", f"[tmp_database].[tmp_table2](id:{table2.id})"
+            )
+        )
+
+        # Assert that the db permission was updated
+        self.assertIsNotNone(
+            security_manager.find_permission_view_menu(
+                "datasource_access", f"[tmp_database2].[tmp_table1](id:{table1.id})"
+            )
+        )
+        self.assertIsNotNone(
+            security_manager.find_permission_view_menu(
+                "datasource_access", f"[tmp_database2].[tmp_table2](id:{table2.id})"
+            )
+        )
+        session.delete(stored_db)
+        session.commit()
+
+    def test_after_delete_database__perm_database_access(self):
+        session = db.session
+        database = Database(database_name="tmp_database", sqlalchemy_uri="sqlite://")
+        session.add(database)
+        session.commit()
+        stored_db = (
+            session.query(Database).filter_by(database_name="tmp_database").one()
+        )
+
+        self.assertIsNotNone(
+            security_manager.find_permission_view_menu(
+                "database_access", stored_db.perm
+            )
+        )
+        session.delete(stored_db)
+        session.commit()
+
+        # Assert that the old permission was updated
+        self.assertIsNone(
+            security_manager.find_permission_view_menu(
+                "database_access", f"[tmp_database].(id:{stored_db.id})"
+            )
+        )
 
     def test_hybrid_perm_database(self):
         database = Database(database_name="tmp_database3", sqlalchemy_uri="sqlite://")
