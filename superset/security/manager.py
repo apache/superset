@@ -63,7 +63,6 @@ from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.orm.query import Query as SqlaQuery
 
 from superset import sql_parse
-from superset.connectors.sqla.models import SqlaTable
 from superset.constants import RouteMethod
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
@@ -1023,6 +1022,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         old_database_name: str,
         target: "Database",
     ) -> List[ViewMenu]:
+        from superset.connectors.sqla.models import (  # pylint: disable=import-outside-toplevel
+            SqlaTable,
+        )
+
         view_menu_table = self.viewmenu_model.__table__  # pylint: disable=no-member
         new_database_name = target.database_name
         datasets = (
