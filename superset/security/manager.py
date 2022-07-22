@@ -984,34 +984,114 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 )
             )
 
+    def _update_vm_database_access(
+        self,
+        connection: Connection,
+        old_database_name,
+        target: "Database",
+    ) -> Optional[ViewMenu]:
+        view_menu_table = self.viewmenu_model.__table__  # pylint: disable=no-member
+        new_database_name = target.database_name
+        old_view_menu_name = f"[{old_database_name}].(id:{target.id})"
+        new_view_menu_name = f"[{new_database_name}].(id:{target.id})"
+        db_pvm = self.find_permission_view_menu("database_access", old_view_menu_name)
+        if not db_pvm:
+            logger.warning(
+                "Could not find previous database permission %s",
+                old_view_menu_name,
+            )
+            return
+        new_updated_pvm = self.find_permission_view_menu(
+            "database_access", new_view_menu_name
+        )
+        if new_updated_pvm:
+            logger.info(
+                "New permission [%s] already exists, nothing to do", new_view_menu_name
+            )
+            return
+        connection.execute(
+            view_menu_table.update()
+            .where(view_menu_table.c.id == db_pvm.view_menu_id)
+            .values(name=new_view_menu_name)
+        )
+        return self.find_view_menu(new_view_menu_name)
+
+    def _update_vm_datasources_access(
+        self,
+        connection: Connection,
+        old_database_name,
+        target: "Database",
+    ) -> List[ViewMenu]:
+        from superset.connectors.sqla.models import SqlaTable
+
+        view_menu_table = self.viewmenu_model.__table__  # pylint: disable=no-member
+        new_database_name = target.database_name
+        datasets = (
+            self.get_session.query(SqlaTable)
+            .filter(SqlaTable.database_id == target.id)
+            .all()
+        )
+        updated_view_menus: List[ViewMenu] = []
+        for dataset in datasets:
+            old_dataset_vm_name = (
+                f"[{old_database_name}].[{dataset.table_name}](id:{dataset.id})"
+            )
+            new_dataset_vm_name = (
+                f"[{new_database_name}].[{dataset.table_name}](id:{dataset.id})"
+            )
+            new_dataset_view_menu = self.find_view_menu(new_dataset_vm_name)
+            if new_dataset_view_menu:
+                continue
+            connection.execute(
+                view_menu_table.update()
+                .where(view_menu_table.c.name == old_dataset_vm_name)
+                .values(name=new_dataset_vm_name)
+            )
+            updated_view_menus.append(self.find_view_menu(new_dataset_vm_name))
+        return updated_view_menus
+
     def database_after_update(  # pylint: disable=unused-argument
         self,
         mapper: Mapper,
         connection: Connection,
         target: "Database",
     ) -> None:
-        state = inspect(target)
-
-        history = state.get_history("database_name", True)
         # Check if database name has changed
-        if history.has_changes() and len(history.deleted) > 0:
-            old_view_menu_name = f"[{history.deleted[0]}].(id:{target.id})"
-            view_menu_table = self.viewmenu_model.__table__  # pylint: disable=no-member
-            db_pvm = self.find_permission_view_menu(
-                "database_access", old_view_menu_name
-            )
-            if not db_pvm:
-                logger.warning(
-                    "Could not find previous database permission %s",
-                    old_view_menu_name,
-                )
-                return
-            connection.execute(
-                view_menu_table.update()
-                .where(view_menu_table.c.id == db_pvm.view_menu_id)
-                .values(name=target.get_perm())
-            )
-        return
+        state = inspect(target)
+        history = state.get_history("database_name", True)
+        if not history.has_changes() or not history.deleted:
+            return
+
+        old_database_name = history.deleted[0]
+        # update database access permission
+        new_db_view_menu = self._update_vm_database_access(
+            connection, old_database_name, target
+        )
+        if new_db_view_menu:
+            self.on_view_after_update(mapper, connection, new_db_view_menu)
+
+        # update datasource access
+        new_dataset_view_menus = self._update_vm_datasources_access(
+            connection, old_database_name, target
+        )
+        for new_dataset_view_menu in new_dataset_view_menus:
+            self.on_view_after_update(mapper, connection, new_dataset_view_menu)
+
+    def on_view_after_update(
+        self, mapper: Mapper, connection: Connection, target: ViewMenu
+    ):
+        """
+        Hook that allows for further custom operations when a new ViewMenu
+        is updated
+
+        Since the update may be performed on after_update event. We cannot
+        update ViewMenus using a session, so any SQLAlchemy events hooked to
+        `ViewMenu` will not trigger an after_update.
+
+        :param mapper: The table mapper
+        :param connection: The DB-API connection
+        :param target: The mapped instance being persisted
+        """
 
     def on_permission_after_insert(
         self, mapper: Mapper, connection: Connection, target: Permission
