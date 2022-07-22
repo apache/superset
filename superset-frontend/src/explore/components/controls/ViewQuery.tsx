@@ -45,10 +45,12 @@ interface ViewQueryProps {
 
 const StyledSyntaxContainer = styled.div`
   height: 100%;
+  display: flex;
+  flex-direction: column;
 `;
 
 const StyledSyntaxHighlighter = styled(SyntaxHighlighter)`
-  height: calc(100% - 26px); // 100% - clipboard height
+  flex: 1;
 `;
 
 const ViewQuery: React.FC<ViewQueryProps> = props => {
