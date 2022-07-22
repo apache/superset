@@ -752,6 +752,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             "This API endpoint is deprecated and will be removed in version 3.0.0",
             self.__class__.__name__,
         )
+        if request.method == "GET":
+            return redirect(request.url.replace("/superset/explore", "/explore"))
+
         initial_form_data = {}
 
         form_data_key = request.args.get("form_data_key")
