@@ -27,7 +27,6 @@ import moment from 'moment';
 import {
   Behavior,
   css,
-  Datasource,
   getChartMetadataRegistry,
   QueryFormData,
   styled,
@@ -106,6 +105,7 @@ export interface SliceHeaderControlsProps {
     slice_id: number;
     slice_description: string;
     form_data?: { emit_filter?: boolean };
+    datasource: string;
   };
 
   componentId: string;
@@ -134,8 +134,6 @@ export interface SliceHeaderControlsProps {
   supersetCanShare?: boolean;
   supersetCanCSV?: boolean;
   sliceCanEdit?: boolean;
-
-  datasource: Datasource;
 }
 interface State {
   showControls: boolean;
@@ -439,7 +437,9 @@ class SliceHeaderControls extends React.PureComponent<
               }
               modalTitle={t('Drill to detail: %s', slice.slice_name)}
               modalBody={
-                <DatasourceResultsPane datasource={this.props.datasource} />
+                <DatasourceResultsPane
+                  datasource={this.props.slice.datasource}
+                />
               }
             />
           </Menu.Item>

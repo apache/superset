@@ -27,7 +27,6 @@ import React, {
 import {
   BinaryQueryObjectFilterClause,
   css,
-  Datasource,
   ensureIsArray,
   GenericDataType,
   t,
@@ -46,7 +45,7 @@ export default function DatasourceResultsPane({
   datasource,
   initialFilters,
 }: {
-  datasource: Datasource;
+  datasource: string;
   initialFilters?: BinaryQueryObjectFilterClause[];
 }) {
   const theme = useTheme();
@@ -68,8 +67,8 @@ export default function DatasourceResultsPane({
   >(new Map());
 
   //  Get string identifier for dataset
-  const datasourceId = useMemo(
-    () => `${datasource.id}__${datasource.type}`,
+  const [datasourceId, datasourceType] = useMemo(
+    () => datasource.split('__'),
     [datasource],
   );
 
@@ -95,8 +94,8 @@ export default function DatasourceResultsPane({
     if (!resultsPages.has(pageIndex)) {
       setIsLoading(true);
       getDatasourceSamples(
-        datasource.type,
-        datasource.id,
+        datasourceType,
+        datasourceId,
         true,
         filters.length ? { filters } : null,
         { page: pageIndex + 1, perPage: PAGE_SIZE },
@@ -125,14 +124,7 @@ export default function DatasourceResultsPane({
           setIsLoading(false);
         });
     }
-  }, [
-    datasource.id,
-    datasource.type,
-    filters,
-    pageIndex,
-    resultsPage,
-    resultsPages,
-  ]);
+  }, [datasourceId, datasourceType, filters, pageIndex, resultsPages]);
 
   // this is to preserve the order of the columns, even if there are integer values,
   // while also only grabbing the first column's keys
@@ -140,7 +132,7 @@ export default function DatasourceResultsPane({
     resultsPage?.colNames,
     resultsPage?.colTypes,
     resultsPage?.data,
-    datasourceId,
+    datasource,
   );
 
   const sortDisabledColumns = columns.map(column => ({
