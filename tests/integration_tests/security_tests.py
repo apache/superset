@@ -107,7 +107,6 @@ class TestRolePermission(SupersetTestCase):
     """Testing export role permissions."""
 
     def setUp(self):
-        return
         schema = get_example_default_schema()
         session = db.session
         security_manager.add_role(SCHEMA_ACCESS_ROLE)
@@ -135,7 +134,6 @@ class TestRolePermission(SupersetTestCase):
         session.commit()
 
     def tearDown(self):
-        return
         session = db.session
         ds = (
             session.query(SqlaTable)
