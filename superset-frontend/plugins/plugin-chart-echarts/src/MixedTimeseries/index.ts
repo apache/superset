@@ -84,6 +84,7 @@ export default class EchartsTimeseriesChartPlugin extends ChartPlugin<
           t('Time'),
           t('Transformable'),
         ],
+        queryObjectCount: 2,
       }),
       // @ts-ignore
       transformProps,
