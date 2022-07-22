@@ -226,7 +226,7 @@ cypress-run-applitools() {
   local port=8081
   local cypress="./node_modules/.bin/cypress run"
   local browser=${CYPRESS_BROWSER:-chrome}
-  
+
   export CYPRESS_BASE_URL="http://localhost:${port}"
 
   nohup flask run --no-debugger -p $port >"$flasklog" 2>&1 </dev/null &
