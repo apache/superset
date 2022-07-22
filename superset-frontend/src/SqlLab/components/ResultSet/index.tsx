@@ -29,14 +29,19 @@ import {
   SaveDatasetModal,
 } from 'src/SqlLab/components/SaveDatasetModal';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import { EXPLORE_CHART_DEFAULT } from 'src/SqlLab/types';
+import { mountExploreUrl } from 'src/explore/exploreUtils';
+import { postFormData } from 'src/explore/exploreUtils/formData';
 import ProgressBar from 'src/components/ProgressBar';
 import Loading from 'src/components/Loading';
 import FilterableTable, {
   MAX_COLUMNS_FOR_TABLE,
 } from 'src/components/FilterableTable';
 import CopyToClipboard from 'src/components/CopyToClipboard';
+import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { prepareCopyToClipboardTabularData } from 'src/utils/common';
 import { CtasEnum } from 'src/SqlLab/actions/sqlLab';
+import { URL_PARAMS } from 'src/constants';
 import ExploreCtasResultsButton from '../ExploreCtasResultsButton';
 import ExploreResultsButton from '../ExploreResultsButton';
 import HighlightedSql from '../HighlightedSql';
@@ -213,6 +218,26 @@ export default class ResultSet extends React.PureComponent<
     }
   }
 
+  createExploreResultsOnClick = async () => {
+    const { results } = this.props.query;
+
+    if (results?.query_id) {
+      const key = await postFormData(results.query_id, 'query', {
+        ...EXPLORE_CHART_DEFAULT,
+        datasource: `${results.query_id}__query`,
+        ...{
+          all_columns: results.columns.map(column => column.name),
+        },
+      });
+      const url = mountExploreUrl(null, {
+        [URL_PARAMS.formDataKey.name]: key,
+      });
+      window.open(url, '_blank', 'noreferrer');
+    } else {
+      addDangerToast(t('Unable to create chart without a query id.'));
+    }
+  };
+
   renderControls() {
     if (this.props.search || this.props.visualize || this.props.csv) {
       let { data } = this.props.query.results;
@@ -250,19 +275,11 @@ export default class ResultSet extends React.PureComponent<
               this.props.database?.allows_virtual_table_explore && (
                 <ExploreResultsButton
                   database={this.props.database}
-                  onClick={() => {
-                    // There is currently redux / state issue where sometimes a query will have serverId
-                    // and other times it will not.  We need this attribute consistently for this to work
-                    // const qid = this.props?.query?.results?.query_id;
-                    // if (qid) {
-                    //   // This will open explore using the query as datasource
-                    //   window.location.href = `/explore/?dataset_type=query&dataset_id=${qid}`;
-                    // } else {
-                    //   this.setState({ showSaveDatasetModal: true });
-                    // }
-                    this.setState({ showSaveDatasetModal: true });
-                  }}
+                  onClick={() => this.setState({ showSaveDatasetModal: true })}
                 />
+                // In order to use the new workflow for a query powered chart, replace the
+                // above function with:
+                // onClick={this.createExploreResultsOnClick}
               )}
             {this.props.csv && (
               <Button buttonSize="small" href={`/superset/csv/${query.id}`}>
