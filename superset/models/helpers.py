@@ -1227,9 +1227,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         column: Dict[str, Any],
         time_grain: Optional[str],
         label: Optional[str] = None,
-        template_processor: Optional[
+        template_processor: Optional[  # pylint: disable=unused-argument
             BaseTemplateProcessor
-        ] = None,  # pylint: disable=unused-argument
+        ] = None,
     ) -> Union[TimestampExpression, Label]:
         """
         Return a SQLAlchemy Core element representation of self to be used in a query.
