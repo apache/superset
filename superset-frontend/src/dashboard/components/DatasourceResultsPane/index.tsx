@@ -196,29 +196,27 @@ export default function DatasourceResultsPane({
         totalCount={resultsPage?.total}
         onReload={handleReload}
       />
-      <div>
-        <TableView
-          columns={sortDisabledColumns}
-          data={resultsPage?.data || []}
-          pageSize={PAGE_SIZE}
-          totalCount={resultsPage?.total}
-          serverPagination
-          initialPageIndex={pageIndex}
-          onServerPagination={onServerPagination}
-          loading={isLoading}
-          noDataText={t('No results')}
-          emptyWrapperType={EmptyWrapperType.Small}
-          className="table-condensed"
-          isPaginationSticky
-          showRowCount={false}
-          small
-          css={css`
-            min-height: 0;
-            overflow: scroll;
-            height: ${theme.gridUnit * 128}px;
-          `}
-        />
-      </div>
+      <TableView
+        columns={sortDisabledColumns}
+        data={resultsPage?.data || []}
+        pageSize={PAGE_SIZE}
+        totalCount={resultsPage?.total}
+        serverPagination
+        initialPageIndex={pageIndex}
+        onServerPagination={onServerPagination}
+        loading={isLoading}
+        noDataText={t('No results')}
+        emptyWrapperType={EmptyWrapperType.Small}
+        className="table-condensed"
+        isPaginationSticky
+        showRowCount={false}
+        small
+        css={css`
+          min-height: 0;
+          overflow: scroll;
+          height: ${theme.gridUnit * 128}px;
+        `}
+      />
     </div>
   );
 }
