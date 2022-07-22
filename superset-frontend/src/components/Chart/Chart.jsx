@@ -112,7 +112,6 @@ const Styles = styled.div`
   }
 `;
 
-
 const MonospaceDiv = styled.div`
   font-family: ${({ theme }) => theme.typography.families.monospace};
   white-space: pre;

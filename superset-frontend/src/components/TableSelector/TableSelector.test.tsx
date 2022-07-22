@@ -152,6 +152,11 @@ test('table options are notified after schema selection', async () => {
     expect(callback).toHaveBeenCalledWith([
       { label: 'table_a', value: 'table_a' },
       { label: 'table_b', value: 'table_b' },
+      { label: 'table_c', value: 'table_c' },
+      { label: 'table_d', value: 'table_d' },
+    ]);
+  });
+});
 
 test('table select retain value if not in SQL Lab mode', async () => {
   SupersetClientGet.mockImplementation(getTableMockFunction);

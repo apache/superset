@@ -36,7 +36,6 @@ import {
   BOOL_TRUE_DISPLAY,
   NULL_DISPLAY,
   SLOW_DEBOUNCE,
-  NULL_DISPLAY,
 } from 'src/constants';
 import { Radio } from 'src/components/Radio';
 import Icons from 'src/components/Icons';
@@ -46,10 +45,6 @@ import { prepareCopyToClipboardTabularData } from 'src/utils/common';
 import CopyToClipboard from 'src/components/CopyToClipboard';
 import RowCountLabel from 'src/explore/components/RowCountLabel';
 import { getTimeColumns, setTimeColumns } from './utils';
-
-export const CellNull = styled('span')`
-  color: ${({ theme }) => theme.colors.grayscale.light1};
-`;
 
 export const CellNull = styled('span')`
   color: ${({ theme }) => theme.colors.grayscale.light1};

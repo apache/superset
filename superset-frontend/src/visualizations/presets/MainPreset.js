@@ -78,6 +78,19 @@ import {
 } from 'src/filters/components/';
 import { PivotTableChartPlugin as PivotTableChartPluginV2 } from '@superset-ui/plugin-chart-pivot-table';
 import { HandlebarsChartPlugin } from '@superset-ui/plugin-chart-handlebars';
+import {
+  GwwkChartsChartPlugin,
+  GwwkDatasetsChartPlugin,
+  GwwkDashboardsChartPlugin,
+  IframeDemoChartPlugin,
+  CccsGridChartPlugin,
+  BigNumberChartPlugin,
+  AtAGlanceChartIpPlugin,
+  AtAGlanceChartDnsPlugin,
+  AtAGlanceUserIdChartPlugin,
+  AtAGlanceUserIDSasChartPlugin,
+  ApplicationLinksChartPlugin,
+} from 'src/cccs-viz/plugins/';
 import FilterBoxChartPlugin from '../FilterBox/FilterBoxChartPlugin';
 import TimeTableChartPlugin from '../TimeTable';
 
@@ -107,7 +120,6 @@ export default class MainPreset extends Preset {
         new GwwkChartsChartPlugin().configure({ key: 'gwwk_charts' }),
         new GwwkDatasetsChartPlugin().configure({ key: 'gwwk_datasets' }),
         new GwwkDashboardsChartPlugin().configure({ key: 'gwwk_dashboards' }),
-        new StatusIndicatorChartPlugin().configure({ key: 'status_indicator' }),
         new IframeDemoChartPlugin().configure({ key: 'iframe_demo' }),
         new CccsGridChartPlugin().configure({ key: 'cccs_grid' }),
         new AreaChartPlugin().configure({ key: 'area' }),

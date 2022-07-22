@@ -253,15 +253,6 @@ function ReportModal({
     </>
   );
 
-  const errorAlert = () => (
-    <Alert
-      type="error"
-      css={(theme: SupersetTheme) => antDErrorAlertStyles(theme)}
-      message={t('Report Creation Error')}
-      description={currentReport?.error}
-    />
-  );
-
   return (
     <StyledModal
       show={show}

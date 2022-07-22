@@ -185,7 +185,6 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
   const {
     value = DEFAULT_TIME_RANGE,
     onChange,
-    type,
     onOpenPopover = noOp,
     onClosePopover = noOp,
   } = props;

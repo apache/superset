@@ -169,33 +169,6 @@ function DashboardTable({
       ),
     );
 
-<<<<<<< HEAD
-  const getFilters = (filterName: string) => {
-    const filters = [];
-    if (filterName === 'Mine') {
-      filters.push({
-        id: 'owners',
-        operator: 'rel_m_m',
-        value: `${user?.userId}`,
-      });
-    } else if (filterName === 'Favorite') {
-      filters.push({
-        id: 'id',
-        operator: 'dashboard_is_favorite',
-        value: true,
-      });
-    } else if (filterName === 'Examples') {
-      filters.push({
-        id: 'created_by',
-        operator: 'rel_o_m',
-        value: 0,
-      });
-    }
-    return filters;
-  };
-
-=======
->>>>>>> 16654034849505109b638fd2a784dfb377238a0e
   const menuTabs = [
     {
       name: 'Favorite',

@@ -38,17 +38,6 @@ import { act } from 'react-dom/test-utils';
 const mockStore = configureStore([thunk]);
 const store = mockStore({});
 
-const mockAppState = {
-  common: {
-    config: {
-      CSV_EXTENSIONS: ['csv'],
-      EXCEL_EXTENSIONS: ['xls', 'xlsx'],
-      COLUMNAR_EXTENSIONS: ['parquet', 'zip'],
-      ALLOWED_EXTENSIONS: ['parquet', 'zip', 'xls', 'xlsx', 'csv'],
-    },
-  },
-};
-
 const databasesInfoEndpoint = 'glob:*/api/v1/database/_info*';
 const databasesEndpoint = 'glob:*/api/v1/database/?*';
 const databaseEndpoint = 'glob:*/api/v1/database/*';

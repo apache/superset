@@ -165,13 +165,6 @@ export default function ChartCard({
               e.preventDefault();
             }}
           >
-<<<<<<< HEAD
-            <FaveStar
-              itemId={chart.id}
-              saveFaveStar={saveFavoriteStatus}
-              isStarred={favoriteStatus}
-            />
-=======
             {userId && (
               <FaveStar
                 itemId={chart.id}
@@ -179,7 +172,6 @@ export default function ChartCard({
                 isStarred={favoriteStatus}
               />
             )}
->>>>>>> 16654034849505109b638fd2a784dfb377238a0e
             <AntdDropdown overlay={menu}>
               <Icons.MoreVert iconColor={theme.colors.grayscale.base} />
             </AntdDropdown>
