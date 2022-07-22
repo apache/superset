@@ -3719,7 +3719,8 @@
       "Text": ["Zone de texte"],
       "Trend": ["Tendance"],
       "Subtotal": ["Sous-Total"],
-      "Shift + Click to sort by multiple columns": ["Maintenir Shift + Clic pour trier plusieurs colonnes"]
+      "Shift + Click to sort by multiple columns": ["Maintenir Shift + Clic pour trier plusieurs colonnes"],
+      "metrics": ["métrique"]
     }
   }
 }
