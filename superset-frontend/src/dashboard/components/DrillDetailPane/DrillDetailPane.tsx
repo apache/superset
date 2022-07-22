@@ -39,7 +39,15 @@ import { useTableColumns } from 'src/explore/components/DataTableControl';
 import { getDatasourceSamples } from 'src/components/Chart/chartAction';
 import TableControls from './TableControls';
 
+type ResultsPage = {
+  total: number;
+  data: Record<string, any>[];
+  colNames: string[];
+  colTypes: GenericDataType[];
+};
+
 const PAGE_SIZE = 50;
+const MAX_CACHED_PAGES = 5;
 
 export default function DrillDetailPane({
   datasource,
@@ -54,17 +62,9 @@ export default function DrillDetailPane({
   const [filters, setFilters] = useState(initialFilters || []);
   const [isLoading, setIsLoading] = useState(false);
   const [responseError, setResponseError] = useState('');
-  const [resultsPages, setResultsPages] = useState<
-    Map<
-      number,
-      {
-        total: number;
-        data: Record<string, any>[];
-        colNames: string[];
-        colTypes: GenericDataType[];
-      }
-    >
-  >(new Map());
+  const [resultsPages, setResultsPages] = useState<Map<number, ResultsPage>>(
+    new Map(),
+  );
 
   //  Get string identifier for dataset
   const [datasourceId, datasourceType] = useMemo(
@@ -89,7 +89,24 @@ export default function DrillDetailPane({
     setPageIndex(0);
   }, [filters]);
 
-  //  Download page of results if not already in cache
+  //  Update cache order if page in cache
+  useEffect(() => {
+    if (
+      resultsPages.has(pageIndex) &&
+      [...resultsPages.keys()].at(-1) !== pageIndex
+    ) {
+      const nextResultsPages = new Map(resultsPages);
+      nextResultsPages.delete(pageIndex);
+      setResultsPages(
+        nextResultsPages.set(
+          pageIndex,
+          resultsPages.get(pageIndex) as ResultsPage,
+        ),
+      );
+    }
+  }, [pageIndex, resultsPages]);
+
+  //  Download page of results & trim cache if page not in cache
   useEffect(() => {
     if (!resultsPages.has(pageIndex)) {
       setIsLoading(true);
@@ -103,7 +120,7 @@ export default function DrillDetailPane({
         .then(response => {
           setResultsPages(
             new Map([
-              ...resultsPages.entries(),
+              ...[...resultsPages.entries()].slice(-MAX_CACHED_PAGES + 1),
               [
                 pageIndex,
                 {
