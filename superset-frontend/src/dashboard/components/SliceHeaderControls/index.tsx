@@ -46,7 +46,7 @@ import Button from 'src/components/Button';
 import ViewQueryModal from 'src/explore/components/controls/ViewQueryModal';
 import { ResultsPaneOnDashboard } from 'src/explore/components/DataTablesPane';
 import Modal from 'src/components/Modal';
-import DatasourceResultsPane from '../DatasourceResultsPane';
+import DrillDetailPane from 'src/dashboard/components/DrillDetailPane';
 
 const MENU_KEYS = {
   CROSS_FILTER_SCOPING: 'cross_filter_scoping',
@@ -437,9 +437,7 @@ class SliceHeaderControls extends React.PureComponent<
               }
               modalTitle={t('Drill to detail: %s', slice.slice_name)}
               modalBody={
-                <DatasourceResultsPane
-                  datasource={this.props.slice.datasource}
-                />
+                <DrillDetailPane datasource={this.props.slice.datasource} />
               }
             />
           </Menu.Item>

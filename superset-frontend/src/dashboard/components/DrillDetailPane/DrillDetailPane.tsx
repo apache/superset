@@ -41,7 +41,7 @@ import TableControls from './TableControls';
 
 const PAGE_SIZE = 50;
 
-export default function DatasourceResultsPane({
+export default function DrillDetailPane({
   datasource,
   initialFilters,
 }: {
