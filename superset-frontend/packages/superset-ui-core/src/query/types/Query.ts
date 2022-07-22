@@ -32,23 +32,30 @@ import { PostProcessingRule } from './PostProcessing';
 import { JsonObject } from '../../connection';
 import { TimeGranularity } from '../../time-format';
 
-export type QueryObjectFilterClause = {
+export type BaseQueryObjectFilterClause = {
   col: QueryFormColumn;
   grain?: TimeGranularity;
   isExtra?: boolean;
-} & (
-  | {
-      op: BinaryOperator;
-      val: string | number | boolean;
-    }
-  | {
-      op: SetOperator;
-      val: (string | number | boolean)[];
-    }
-  | {
-      op: UnaryOperator;
-    }
-);
+};
+
+export type BinaryQueryObjectFilterClause = BaseQueryObjectFilterClause & {
+  op: BinaryOperator;
+  val: string | number | boolean;
+};
+
+export type SetQueryObjectFilterClause = BaseQueryObjectFilterClause & {
+  op: SetOperator;
+  val: (string | number | boolean)[];
+};
+
+export type UnaryQueryObjectFilterClause = BaseQueryObjectFilterClause & {
+  op: UnaryOperator;
+};
+
+export type QueryObjectFilterClause =
+  | BinaryQueryObjectFilterClause
+  | SetQueryObjectFilterClause
+  | UnaryQueryObjectFilterClause;
 
 export type QueryObjectExtras = Partial<{
   /** HAVING condition for Druid */

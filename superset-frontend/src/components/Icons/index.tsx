@@ -136,6 +136,7 @@ const IconFileNames = [
   'plus_solid',
   'queued',
   'refresh',
+  'reload',
   'running',
   'save',
   'sql',

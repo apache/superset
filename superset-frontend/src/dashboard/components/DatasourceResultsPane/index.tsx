@@ -25,11 +25,11 @@ import React, {
   useRef,
 } from 'react';
 import {
+  BinaryQueryObjectFilterClause,
   css,
   Datasource,
   ensureIsArray,
   GenericDataType,
-  QueryObjectFilterClause,
   t,
   useTheme,
 } from '@superset-ui/core';
@@ -38,7 +38,7 @@ import { EmptyStateMedium } from 'src/components/EmptyState';
 import TableView, { EmptyWrapperType } from 'src/components/TableView';
 import { useTableColumns } from 'src/explore/components/DataTableControl';
 import { getDatasourceSamples } from 'src/components/Chart/chartAction';
-import DatasourceFilterBar from './DatasourceFilterBar';
+import TableControls from './TableControls';
 
 const PAGE_SIZE = 50;
 
@@ -47,74 +47,99 @@ export default function DatasourceResultsPane({
   initialFilters,
 }: {
   datasource: Datasource;
-  initialFilters?: QueryObjectFilterClause[];
+  initialFilters?: BinaryQueryObjectFilterClause[];
 }) {
   const theme = useTheme();
-  const pageResponses = useRef({});
-  const [results, setResults] = useState<{
-    total: number;
-    dataPage: Record<string, any>[];
-  } | null>();
-
-  const [colnames, setColnames] = useState<string[]>([]);
-  const [coltypes, setColtypes] = useState<GenericDataType[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [responseError, setResponseError] = useState<string>('');
+  const [pageIndex, setPageIndex] = useState(0);
+  const lastPageIndex = useRef(pageIndex);
   const [filters, setFilters] = useState(initialFilters || []);
-  const [page, setPage] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+  const [responseError, setResponseError] = useState('');
+  const [resultsPages, setResultsPages] = useState<
+    Map<
+      number,
+      {
+        total: number;
+        data: Record<string, any>[];
+        colNames: string[];
+        colTypes: GenericDataType[];
+      }
+    >
+  >(new Map());
+
+  //  Get string identifier for dataset
   const datasourceId = useMemo(
     () => `${datasource.id}__${datasource.type}`,
     [datasource],
   );
 
-  useEffect(() => {
-    pageResponses.current = {};
-  }, [datasource, filters]);
+  //  Get page of results
+  const resultsPage = useMemo(() => {
+    const nextResultsPage = resultsPages.get(pageIndex);
+    if (nextResultsPage) {
+      lastPageIndex.current = pageIndex;
+      return nextResultsPage;
+    }
 
+    return resultsPages.get(lastPageIndex.current);
+  }, [pageIndex, resultsPages]);
+
+  //  Clear cache and reset page index if filters change
   useEffect(() => {
-    const getPageData = async () => {
-      try {
-        setIsLoading(true);
-        let pageResponse = pageResponses.current[page];
-        if (!pageResponse) {
-          pageResponse = await getDatasourceSamples(
-            datasource.type,
-            datasource.id,
-            true,
-            filters.length ? { filters } : null,
-            { page: page + 1, perPage: PAGE_SIZE },
+    setResultsPages(new Map());
+    setPageIndex(0);
+  }, [filters]);
+
+  //  Download page of results if not already in cache
+  useEffect(() => {
+    if (!resultsPages.has(pageIndex)) {
+      setIsLoading(true);
+      getDatasourceSamples(
+        datasource.type,
+        datasource.id,
+        true,
+        filters.length ? { filters } : null,
+        { page: pageIndex + 1, perPage: PAGE_SIZE },
+      )
+        .then(response => {
+          setResultsPages(
+            new Map([
+              ...resultsPages.entries(),
+              [
+                pageIndex,
+                {
+                  total: response.total_count,
+                  data: response.data,
+                  colNames: ensureIsArray(response.colnames),
+                  colTypes: ensureIsArray(response.coltypes),
+                },
+              ],
+            ]),
           );
-
-          pageResponses.current[page] = pageResponse;
-        }
-
-        setResults({
-          total: pageResponse.total_count,
-          dataPage: pageResponse.data,
+          setResponseError('');
+        })
+        .catch(error => {
+          setResponseError(`${error.name}: ${error.message}`);
+        })
+        .finally(() => {
+          setIsLoading(false);
         });
-
-        setColnames(ensureIsArray(pageResponse.colnames));
-        setColtypes(ensureIsArray(pageResponse.coltypes));
-        setResponseError('');
-      } catch (error) {
-        setResults(null);
-        setColnames([]);
-        setColtypes([]);
-        setResponseError(`${error.name}: ${error.message}`);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    getPageData();
-  }, [page, datasource, filters]);
+    }
+  }, [
+    datasource.id,
+    datasource.type,
+    filters,
+    pageIndex,
+    resultsPage,
+    resultsPages,
+  ]);
 
   // this is to preserve the order of the columns, even if there are integer values,
   // while also only grabbing the first column's keys
   const columns = useTableColumns(
-    colnames,
-    coltypes,
-    results?.dataPage,
+    resultsPage?.colNames,
+    resultsPage?.colTypes,
+    resultsPage?.data,
     datasourceId,
   );
 
@@ -123,22 +148,17 @@ export default function DatasourceResultsPane({
     disableSortBy: true,
   }));
 
+  //  Update page index on pagination click
   const onServerPagination = useCallback(({ pageIndex }) => {
-    setPage(pageIndex);
+    setPageIndex(pageIndex);
   }, []);
 
-  if (isLoading && !results) {
-    return (
-      <div
-        css={css`
-          height: ${theme.gridUnit * 25}px;
-        `}
-      >
-        <Loading />
-      </div>
-    );
-  }
+  //  Clear cache on reload button click
+  const handleReload = useCallback(() => {
+    setResultsPages(new Map());
+  }, []);
 
+  //  Render error if page download failed
   if (responseError) {
     return (
       <pre
@@ -151,30 +171,62 @@ export default function DatasourceResultsPane({
     );
   }
 
-  if (!results || results.total === 0) {
+  //  Render loading if first page hasn't loaded
+  if (!resultsPages.size) {
+    return (
+      <div
+        css={css`
+          height: ${theme.gridUnit * 25}px;
+        `}
+      >
+        <Loading />
+      </div>
+    );
+  }
+
+  //  Render empty state if no results are returned for page
+  if (resultsPage?.total === 0) {
     const title = t('No rows were returned for this dataset');
     return <EmptyStateMedium image="document.svg" title={title} />;
   }
 
+  //  Render chart if at least one page has successfully loaded
   return (
-    <>
-      <DatasourceFilterBar filters={filters} setFilters={setFilters} />
-      <TableView
-        columns={sortDisabledColumns}
-        data={results.dataPage}
-        pageSize={PAGE_SIZE}
-        totalCount={results.total}
-        serverPagination
-        initialPageIndex={page}
-        onServerPagination={onServerPagination}
-        loading={isLoading}
-        noDataText={t('No results')}
-        emptyWrapperType={EmptyWrapperType.Small}
-        className="table-condensed"
-        isPaginationSticky
-        showRowCount={false}
-        small
+    <div
+      css={css`
+        display: flex;
+        flex-direction: column;
+      `}
+    >
+      <TableControls
+        filters={filters}
+        setFilters={setFilters}
+        totalCount={resultsPage?.total}
+        onReload={handleReload}
       />
-    </>
+      <div>
+        <TableView
+          columns={sortDisabledColumns}
+          data={resultsPage?.data || []}
+          pageSize={PAGE_SIZE}
+          totalCount={resultsPage?.total}
+          serverPagination
+          initialPageIndex={pageIndex}
+          onServerPagination={onServerPagination}
+          loading={isLoading}
+          noDataText={t('No results')}
+          emptyWrapperType={EmptyWrapperType.Small}
+          className="table-condensed"
+          isPaginationSticky
+          showRowCount={false}
+          small
+          css={css`
+            min-height: 0;
+            overflow: scroll;
+            height: ${theme.gridUnit * 128}px;
+          `}
+        />
+      </div>
+    </div>
   );
 }
