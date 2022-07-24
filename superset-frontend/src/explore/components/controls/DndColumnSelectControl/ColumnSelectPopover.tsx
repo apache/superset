@@ -342,7 +342,7 @@ const ColumnSelectPopover = ({
               image="empty.svg"
               title={t('No temporal columns found')}
               description={
-                datasourceType === 'dataset' ? (
+                datasourceType === DatasourceType.Table ? (
                   t('Mark a column as temporal in "Edit datasource" modal')
                 ) : (
                   <>
