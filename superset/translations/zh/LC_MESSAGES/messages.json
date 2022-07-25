@@ -1212,7 +1212,7 @@
         "将此查询另存为虚拟数据集以继续探索"
       ],
       "Overwrite existing": ["覆盖已有"],
-      "Select or type dataset name": ["选择或者键入数据集名称"],
+      "Select or type dataset name": ["选择或者输入数据集名称"],
       "Are you sure you want to overwrite this dataset?": [
         "您确定要覆盖此数据集吗？"
       ],
@@ -1381,7 +1381,7 @@
       "datasource": ["数据源"],
       "schema": ["模式"],
       "delete": ["删除"],
-      "Type \"%s\" to confirm": ["键入 \"%s\" 来确认"],
+      "Type \"%s\" to confirm": ["输入 \"%s\" 来确认"],
       "DELETE": ["删除"],
       "Click to edit": ["点击编辑"],
       "You don't have the rights to alter this title.": [
@@ -1578,7 +1578,8 @@
       "Divider": ["分隔"],
       "Header": ["标题行"],
       "Row": ["行"],
-      "Tabs": [""],
+      "Tabs": ["选项卡"],
+      "Markdown": ["Markdown"],
       "Preview": ["预览"],
       "Yes, cancel": ["是的，取消"],
       "Keep editing": ["继续编辑"],
@@ -1798,7 +1799,7 @@
       "Height": ["高度"],
       "Width": ["宽度"],
       "Export to .json": ["导出到 .json"],
-      "Export to .csv format": ["导出为 .csv 格式"],
+      "Export to .csv format": ["导出到 .csv格式"],
       "%s - untitled": ["%s  - 无标题"],
       "Edit chart properties": ["编辑图表属性"],
       "Control labeled ": ["控件名称为 "],
@@ -1869,7 +1870,7 @@
       ],
       "Search all filter options": ["搜索所有过滤选项"],
       "By default, each filter loads at most 1000 choices at the initial page load. Check this box if you have more than 1000 filter values and want to enable dynamically searching that loads filter values as users type (may add stress to your database).": [
-        "默认情况下，每个过滤器在初始页面加载时最多加载1000个选项。如果您有超过1000个过滤值，并且希望启用动态搜索，以便在键入时加载筛选值（可能会给数据库增加压力），请选中此框。"
+        "默认情况下，每个过滤器在初始页面加载时最多加载1000个选项。如果您有超过1000个过滤值，并且希望启用动态搜索，以便输入时加载筛选值（可能会给数据库增加压力），请选中此框。"
       ],
       "User must select a value for this filter": [
         "用户必须给过滤器选择一个值"
@@ -1919,7 +1920,7 @@
         "若要在计量值上筛选，请使用自定义SQL选项卡。"
       ],
       "%s operators(s)": ["%s 运算符"],
-      "Type a value here": ["在这里键入一个值"],
+      "Type a value here": ["在这里输入一个值"],
       "Filter value (case sensitive)": ["过滤值（区分大小写）"],
       "choose WHERE or HAVING...": ["选择WHERE或HAVING子句..."],
       "Filters by columns": ["按列过滤"],
@@ -2419,7 +2420,7 @@
       "Last run %s": ["上次执行 %s"],
       "Recents": ["最近"],
       "Select start and end date": ["选择开始和结束时间"],
-      "Type or Select [%s]": ["键入或选择 [%s]"],
+      "Type or Select [%s]": ["输入或选择 [%s]"],
       "Filter box": ["过滤器"],
       "Filters configuration": ["过滤配置"],
       "Filter configuration for the filter box": ["过滤条件的过滤配置"],
@@ -3118,7 +3119,295 @@
       "No Results": ["无结果"],
       "No results were returned for this query. If you expected results to be returned, ensure any filters are configured properly and the datasource contains data for the selected time range.": [
         "此查询没有返回任何结果。如果希望返回结果，请确保所有过滤选择的配置正确，并且数据源包含所选时间范围的数据。"
-      ]
+      ],
+      "Connect database": ["连接数据库"],
+      "Connect Google Sheet": ["连接Google工作表"],
+      "Upload CSV to database": ["上传CSV文件到数据库"],
+      "Upload columnar file to database": ["上传列文件到数据库"],
+      "Upload Excel file to database": ["上传Excel文件到数据库"],
+      "No filters are currently added": ["当前未添加任何筛选器"],
+      "Click the button above to add a filter to the dashboard": ["单击上面的按钮将过滤器添加到仪表板"],
+      "Apply filters": ["应用"],
+      "Clear all": ["全部清除"],
+      "Please apply filter changes": ["请应用筛选器更改"],
+      "Unknown value": ["未知值"],
+      "Add/Edit Filters": ["添加/编辑过滤器"],
+      "Dependent on": ["依赖于"],
+      "Filter only displays values relevant to selections made in other filters.": [
+        "过滤器仅显示与在其他过滤器中所做选择相关的值"
+      ],
+      "Scope": ["范围"],
+      "Filter type": ["过滤器类型"],
+      "Title is required": ["需要标题"],
+      "Add filters and dividers": ["添加过滤器和分配器"],
+      "Add and edit filters": ["添加、编辑过滤器"],
+      "Cannot create cyclic hierarchy": ["无法创建循环层次结构"],
+      "Column select": ["列选择"],
+      "Select a column": ["选择一列"],
+      "No compatible columns found": ["找不到兼容列"],
+      "Value is required": ["必填"],
+      "Filter Configuration": ["过滤器配置"],
+      "Filter Settings": ["过滤器设置"],
+      "Select filter": ["选择过滤器"],
+      "Range filter": ["范围过滤器"],
+      "Numerical range": ["数值范围"],
+      "Time filter": ["时间过滤器"],
+      "Group By": ["分组"],
+      "Pre-filter is required": ["需要预过滤器"],
+      "(deleted)": ["(删除)"],
+      "Filter Type": ["过滤器类型"],
+      "Datasets do not contain a temporal column": ["数据集不包含时间列"],
+      "Dataset is required": ["数据集必填"],
+      "Filter is hierarchical": ["过滤器是分层的"],
+      "Parent filter is required": ["需要父过滤器"],
+      "Pre-filter available values": ["预过滤可用值"],
+      "Pre-filter": ["预过滤器"],
+      "Optional time column if time range should apply to another column than the default time column": [
+        "如果时间范围应应用于默认时间列以外的另一列，则为可选时间列"
+      ],
+      "Sort filter values": ["排序过滤器值"],
+      "Sort type": ["排序类型"],
+      "Sort Metric": ["排序度量"],
+      "If a metric is specified, sorting will be done based on the metric value": [
+        "如果指定了指标，则将根据指标值进行排序"
+      ],
+      "Single Value": ["单个值"],
+      "Single value type": ["单值类型"],
+      "Minimum": ["最小值"],
+      "Exact": ["准确的"],
+      "Maximum": ["最大值"],
+      "Filter has default value": ["过滤器具有默认值"],
+      "Default Value": ["默认值"],
+      "Default value is required": ["必填默认值"],
+      "Refresh the default values": ["刷新默认值"],
+      "Fill all required fields to enable \"Default Value\"": ["填写所有必填字段以启用 \"默认值\""],
+      "Restore Filter": ["还原过滤器"],
+      "Column is required": ["必填列"],
+      "Populate \"Default value\" to enable this control": ["填充 \"默认值\"以启用此控件"],
+      "Default value set automatically when \"Select first filter value by default\" is checked": [
+        "选中“默认选择第一个过滤器值”时自动设置默认值"
+      ],
+      "Default value must be set when \"Filter value is required\" is checked": [
+        "选中“需要筛选值”时，必须设置默认值"
+      ],
+      "Default value must be set when \"Filter has default value\" is checked": [
+        "当选中“过滤器具有默认值”时，必须设置默认值"
+      ],
+      "Use only a single value.": ["仅使用单个值"],
+      "Range filter plugin using AntD": ["使用AntD的范围过滤器插件“"],
+      " (excluded)": [" (排除)"],
+      "Select first filter value by default": ["默认情况下选择第一个过滤器值"],
+      "When using this option, default value can’t be set": ["使用此选项时，无法设置默认值"],
+      "Exclude selected values": ["排除选定值"],
+      "Dynamically search all filter values": ["动态搜索所有筛选器值"],
+      "Select filter plugin using AntD": ["使用AntD选择过滤器插件"],
+      "Custom time filter plugin": ["自定义时间过滤器插件"],
+      "No time columns": ["没有时间列"],
+      "Time column filter plugin": ["时间过滤器插件"],
+      "Time grain filter plugin": ["时间颗粒过滤器插件"],
+      "Can select multiple values": ["可以选择多个值"],
+      "Filter value is required": ["需要筛选值"],
+      "User must select a value before applying the filter": ["用户必须在应用筛选器之前选择一个值"],
+      "Group By filter plugin": ["按筛选器分组插件"],
+      "Chosen non-numeric column": ["选定的非数字列"],
+      
+      "All panels": ["所有面板"],
+      "This chart might be incompatible with the filter (datasets don't match)": [
+        "此图表可能与筛选器不兼容（数据集不匹配）"
+      ],
+      "There are unsaved changes.": ["存在未保存的更改。"],
+      "Copy permalink to clipboard": ["将永久链接复制到剪贴板"],
+      "Share permalink by email": ["通过电子邮件分享永久链接"],
+      "Exit fullscreen": ["退出全屏"],
+      "Enter fullscreen": ["进入全屏"],
+      "Dashboard properties updated": ["仪表板属性已更新"],
+      "Certified": ["认证"],
+      "Type a value": ["输入一个值"],
+      "Select or type a value": ["选择或输入一个值"],
+      "Instructions to add a dataset are available in the Superset tutorial.": [
+        "Superset教程中提供了添加数据集的说明。"
+      ],
+      "Choose chart type": ["选择图表类型"],
+      "Please select both a Dataset and a Chart type to proceed": ["请同时选择数据集和图表类型以继续"],
+      "Drag and drop values into highlighted field(s) on the left control panel and run query": [
+        "将值拖放到左侧控制面板上突出显示的字段中，然后运行查询"
+      ],
+      "Select values in highlighted field(s) on the left control panel and run query": [
+        "在左侧控制面板上高亮显示的字段中选择值，然后运行查询"
+      ],
+      "Add required control values to preview chart": ["将所需的控制值添加到预览图表"],
+      "No results were returned for this query": ["未返回此查询的结果"],
+      "Make sure that the controls are configured properly and the datasource contains data for the selected time range": [
+        "确保控件配置正确，并且数据源包含选定时间范围的数据"
+      ],
+      "Recommended tags": ["推荐标签"],
+      "Category": ["类别"],
+      "Search all charts": ["搜索所有图表"],
+      "No description available.": ["没有可用的描述。"],
+      "Select Viz Type": ["选择Viz类型"],
+      "A map of the world, that can indicate values in different countries.": [
+        "世界地图，可以指示不同国家/地区的值"
+      ],
+      "Multi-Dimensions": ["多维度"],
+      "Multi-Variables": ["多度量"],
+      "Popular": ["流行的"],
+      "deck.gl charts": [""],
+      "Pick a set of deck.gl charts to layer on top of one another": ["选择一组 deck.gl 图表，彼此叠加"],
+      "Select charts": ["选择图表"],
+      "Error while fetching charts": ["获取图表时出错"],
+      "Compose multiple layers together to form complex visuals.": ["将多个层组合在一起，形成复杂的视觉效果。"],
+      "deckGL": [""],
+      "Data has no time steps": [""],
+      "Pick a dimension from which categorical colors are defined": ["选择定义分类颜色的维度"],
+      "Stroke Width": ["行程宽度"],
+      "Used to summarize a set of data by grouping together multiple statistics along two axes. Examples: Sales numbers by region and month, tasks by status and assignee, active users by age and location.\n\n  This chart is being deprecated and we recommend checking out Pivot Table V2 instead!": [
+        "用于通过沿两个轴将多个统计数据分组来汇总一组数据。示例：按地区和月份列出的销售数字，按状态和受让人列出的任务，按年龄和位置列出的活跃用户。\n\n此图表已被弃用，建议改为签出透视表V2！"
+      ],
+      "Use Area Proportions": ["使用面积比例"],
+      "Check if the Rose Chart should use segment area instead of segment radius for proportioning": [
+        "检查玫瑰图是否应使用段面积而不是段半径进行配比"
+      ],
+      "A polar coordinate chart where the circle is broken into wedges of equal angle, and the value represented by any wedge is illustrated by its area, rather than its radius or sweep angle.": [
+        "一种极坐标图，其中圆被分成等角的楔块，任何楔块表示的值由其面积而不是其半径或扫描角度来表示。"
+      ],
+      "Advanced-Analytics": ["高级分析"],
+      "Multi-Layers": ["多层"],
+      "Limiting rows may result in incomplete data and misleading charts. Consider filtering or grouping source/target names instead.": [
+        "限制行数可能会导致数据不完整和图表误导。请考虑过滤或分组源/目标名称。"
+      ],
+      "Visualizes the flow of different group's values through different stages of a system. New stages in the pipeline are visualized as nodes or layers. The thickness of the bars or edges represent the metric being visualized.": [
+        "可视化不同群体的价值观在系统不同阶段的流动。管道中的新阶段可视为节点或层。条形或边缘的厚度表示正在可视化的度量"
+      ],
+      "Demographics": [""],
+      "Survey Responses": ["调查回复"],
+      "Percentages": ["百分比"],
+      "Sankey Diagram with Loops": [""],
+      "Correlation": ["相关性"],
+      "Visualizes how a metric has changed over a time using a color scale and a calendar view. Gray values are used to indicate missing values and the linear color scheme is used to encode the magnitude of each day's value.": [
+        "使用色阶和日历视图可视化指标在一段时间内的变化。灰度值用于表示缺失值，线性颜色方案用于编码每天值的大小。"
+      ],
+      "Business": ["商业"],
+      "Comparison": ["比较"],
+      "Intensity": ["强烈"],
+      "Pattern": ["图案"],
+      "Report": ["汇报"],
+      "Trend": ["趋势"],
+      "Adaptive formatting": ["自适应格式"],
+      "Original value": ["原始格式"],
+      "Embed code": ["嵌入代码"],
+      "Dashboard scheme": ["仪表板方案"],
+      "Select color scheme": ["选择配色方案"],
+      "Select scheme": ["选择方案"],
+      "Edit formatter": ["编辑格式化程序"],
+      "Add new formatter": ["添加新格式化程序"],
+      "Add new color formatter": ["添加新的颜色格式化程序"],
+      "green": ["绿色"],
+      "yellow": ["黄色"],
+      "red": ["红色"],
+      "Certification": ["认证"],
+      "Person or group that has certified this dashboard.": ["已认证此仪表板的人员或组。"],
+      "Any additional detail to show in the certification tooltip.": ["要在认证工具提示中显示的任何其他详细信息。"],
+      "Emitted values": ["Uitgestuurde waarden"],
+      "There was an error loading the schemas": ["加载模式时出错"],
+      "Select database or type database name": ["选择数据库或输入数据库名称"],
+      "Select schema or type schema name": ["选择模式或输入模式名称"],
+      "Upload file to database": ["上传文件到数据库"],
+      "Upload CSV": ["上传CSV文件"],
+      "Upload columnar file": ["上传列式文件"],
+      "Upload Excel file": ["上传Excel文件"],
+      "Run a query to display query history": ["运行查询以显示查询历史记录"],
+      "Database Creation Error": ["数据库创建错误"],
+      "Connect a database": ["连接数据库"],
+      "Connect this database using the dynamic form instead": ["改为使用动态表单连接此数据库"],
+      "Click this link to switch to an alternate form that exposes only the required fields needed to connect this database.": [
+        "单击此链接可切换到另一种形式，该形式仅公开连接此数据库所需的字段。"
+      ],
+      "Select databases require additional fields to be completed in the Advanced tab to successfully connect the database. Learn what requirements your databases has ": [
+        "选择数据库需要在“高级”选项卡中填写其他字段才能成功连接数据库。了解数据库的要求"
+      ],
+      "Connect this database with a SQLAlchemy URI string instead": ["改为使用SQLAlchemy URI字符串连接此数据库"],
+      "Click this link to switch to an alternate form that allows you to input the SQLAlchemy URL for this database manually.": [
+        "单击此链接可切换到另一个表单，该表单允许您手动输入此数据库的SQLAlchemy URL。"
+      ],
+      "This can be either an IP address (e.g. 127.0.0.1) or a domain name (e.g. mydatabase.com).": [
+        "这可以是IP地址（例如127.0.0.1）或域名（例如mydatabase.com）。"
+      ],
+      "e.g. 127.0.0.1": [""],
+      "Host": [""],
+      "e.g. 5432": [""],
+      "e.g. world_population": [""],
+      "Copy the name of the  database you are trying to connect to.": ["复制您尝试连接的数据库的名称。"],
+      "e.g. Analytics": [""],
+      "e.g. ********": [""],
+      "Pick a nickname for this database to display as in Superset.": ["为此数据库选择一个昵称以显示在Superset。"],
+      "e.g. param1=value1&param2=value2": [""],
+      "Additional Parameters": ["其他参数"],
+      "Add additional custom parameters": ["添加其他自定义参数"],
+      "SSL Mode \"require\" will be used.": ["将使用SSL模式“require”。"],
+      "Type of Google Sheets allowed": ["允许的谷歌表单类型"],
+      "Publicly shared sheets only": ["仅公开共享图纸"],
+      "Public and privately shared sheets": ["公共和私人共享表单"],
+      "How do you want to enter service account credentials?": ["您希望如何输入服务帐户凭据？"],
+      "Upload JSON file": ["上传JSON文件"],
+      "Copy and Paste JSON credentials": ["复制并粘贴JSON凭据"],
+      "Service Account": ["服务帐户"],
+      "Copy and paste the entire service account .json file here": ["复制并粘贴整个服务帐户，此处为.json文件"],
+      "Upload Credentials": ["上传凭据"],
+      "Use the JSON file you automatically downloaded when creating your service account.": [
+        "使用创建服务帐户时自动下载的JSON文件。"
+      ],
+      "Connect Google Sheets as tables to this database": ["将Google Sheets作为表格连接到此数据库"],
+      "Google Sheet Name and URL": ["谷歌表单名称和URL"],
+      "Enter a name for this sheet": ["输入此工作表的名称"],
+      "Paste the shareable Google Sheet URL here": ["在此处粘贴可共享的谷歌工作表URL"],
+      "Add sheet": ["添加工作表"],
+      "Copy the account name of that database you are trying to connect to.": [
+        "复制您尝试连接到的数据库的帐户名。"
+      ],
+      "Database settings updated": ["数据库设置已更新"],
+      "Database connected": ["数据库已连接"],
+      "Or choose from a list of other databases we support:": ["或者从我们支持的其他数据库列表中选择："],
+      "Supported databases": ["支持的数据库"],
+      "Choose a database...": ["选择一个数据库..."],
+      "Want to add a new database?": ["要添加新数据库吗？"],
+      "Any databases that allow connections via SQL Alchemy URIs can be added. ": [
+        "可以添加任何允许通过SQL Alchemy URI进行连接的数据库。"
+      ],
+      "Any databases that allow connections via SQL Alchemy URIs can be added. Learn about how to connect a database driver ": [
+        "可以添加任何允许通过SQL Alchemy URI进行连接的数据库。了解如何连接数据库驱动程序"
+      ],
+      "Version": ["版本"],
+      "Version number": ["版本号"],
+      "Specify the database version. This should be used with Presto in order to enable query cost estimation.": [
+        "指定数据库版本。这应该与Presto一起使用，以实现查询成本估算。"
+      ],
+      "Display Name": ["显示名称"],
+      "Name your database": ["命名数据库"],
+      "Pick a name to help you identify this database.": [
+        "选择一个名称以帮助您识别此数据库。"
+      ],
+      "Refer to the": ["请参阅"],
+      "for more information on how to structure your URI.": ["有关如何构造URI的更多信息。"],
+      "Missing Required Fields": ["缺少必填字段"],
+      "Please complete all required fields.": ["请填写所有必填字段。"],
+      "Could not verify the host": ["无法验证主机"],
+      "The host is invalid. Please verify that this field is entered correctly.": [
+        "主机无效。请确认此字段输入正确。"
+      ],
+      "Port is closed": ["端口已关闭"],
+      "Please verify that port is open to connect.": ["请验证端口是否已打开以进行连接。"],
+      "Invalid Port Number": ["端口号无效"],
+      "The port must be a whole number less than or equal to 65535.": ["端口必须是小于或等于65535的整数。"],
+      "Invalid account information": ["无效的帐户信息"],
+      "Either the username or password is incorrect.": ["用户名或密码不正确。"],
+      "Incorrect Fields": ["字段不正确"],
+      "Please make sure all fields are filled out correctly": ["请确保所有字段填写正确"],
+      "URL could not be identified": ["无法识别URL"],
+      "The URL could not be identified. Please check for typos and make sure that \"Type of google sheet allowed\" selection matches the input": [
+        "无法识别URL。请检查拼写错误，并确保“允许的谷歌工作表类型”选择与输入匹配"
+      ],
+      "Additional fields may be required": ["可能需要其他字段"],
+      "Enter Primary Credentials": ["输入主凭据"]
     }
   }
 }
