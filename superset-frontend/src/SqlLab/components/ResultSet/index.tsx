@@ -283,6 +283,9 @@ export default class ResultSet extends React.PureComponent<
                   database={this.props.database}
                   onClick={() => this.setState({ showSaveDatasetModal: true })}
                 />
+                // In order to use the new workflow for a query powered chart, replace the
+                // above function with:
+                // onClick={this.createExploreResultsOnClick}
               )}
             {this.props.csv && (
               <Button buttonSize="small" href={`/superset/csv/${query.id}`}>
