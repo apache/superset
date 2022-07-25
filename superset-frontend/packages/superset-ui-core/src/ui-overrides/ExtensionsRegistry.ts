@@ -20,6 +20,7 @@
 import React from 'react';
 import { TypedRegistry } from '../models';
 import { makeSingleton } from '../utils';
+import { User } from 'src/types/bootstrapTypes';
 
 /**
  * A function which returns text (or marked-up text)
@@ -46,8 +47,8 @@ export type Extensions = Partial<{
   'dashboard.nav.right': React.ComponentType;
   'navbar.right': React.ComponentType;
   'welcome.banner': React.ComponentType;
-  'welcome.data': React.ComponentType;
-  'welcome.table': React.ComponentType;
+  'welcome.data': React.ComponentType<DataProps>;
+  'welcome.table': React.ComponentType<DataProps>;
 }>;
 
 /**

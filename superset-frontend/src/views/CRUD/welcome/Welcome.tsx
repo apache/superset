@@ -285,10 +285,10 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
   return (
     <WelcomeContainer>
       {WelcomeTopExtension && <WelcomeTopExtension />}
-      {WelcomeDataExtension && <WelcomeDataExtension user={user} />}
-      {WelcomeTableExtension && (
-        <WelcomeTableExtension examples={activityData?.Examples} user={user} />
+      {WelcomeDataExtension && (
+        <WelcomeDataExtension examples={activityData?.Examples} user={user} />
       )}
+      {WelcomeTableExtension && <WelcomeTableExtension user={user} />}
       {(!WelcomeTopExtension ||
         !WelcomeTableExtension ||
         !WelcomeDataExtension) && (
@@ -302,7 +302,12 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
               </div>
             ) : null}
           </WelcomeNav>
-          <Collapse activeKey={activeState} onChange={handleCollapse} ghost bigger>
+          <Collapse
+            activeKey={activeState}
+            onChange={handleCollapse}
+            ghost
+            bigger
+          >
             <Collapse.Panel header={t('Recents')} key="1">
               {activityData &&
               (activityData.Viewed ||
