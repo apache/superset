@@ -227,6 +227,7 @@ function PropertiesModal({
         (tags: TagType[]) => setTags(tags),
         () => {
           /* TODO: handle error */
+          return
         },
       );
     } catch (error: any) {

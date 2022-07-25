@@ -559,8 +559,7 @@ const PropertiesModal = ({
         return;
       }
       setTags([...tags, tag]);
-      setNewTags([...newTags, tag]);
-      return;
+      return setNewTags([...newTags, tag]);
     });
   };
 
