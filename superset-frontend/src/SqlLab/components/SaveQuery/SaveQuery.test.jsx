@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { render, screen } from 'spec/helpers/testing-library';
+import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import SaveQuery from 'src/SqlLab/components/SaveQuery';
 import { databases } from 'src/SqlLab/fixtures';
@@ -117,38 +117,44 @@ describe('SavedQuery', () => {
     expect(updateBtn).toBeVisible();
   });
 
-  it('renders a split save button when allows_virtual_table_explore is enabled', () => {
+  it('renders a split save button when allows_virtual_table_explore is enabled', async () => {
     render(<SaveQuery {...splitSaveBtnProps} />, { useRedux: true });
 
-    const saveBtn = screen.getByRole('button', { name: /save/i });
-    const caretBtn = screen.getByRole('button', { name: /caret-down/i });
+    await waitFor(() => {
+      const saveBtn = screen.getByRole('button', { name: /save/i });
+      const caretBtn = screen.getByRole('button', { name: /caret-down/i });
 
-    expect(saveBtn).toBeVisible();
-    expect(caretBtn).toBeVisible();
+      expect(saveBtn).toBeVisible();
+      expect(caretBtn).toBeVisible();
+    });
   });
 
-  it('renders a save dataset modal when user clicks "save dataset" menu item', () => {
+  it('renders a save dataset modal when user clicks "save dataset" menu item', async () => {
     render(<SaveQuery {...splitSaveBtnProps} />, { useRedux: true });
 
-    const caretBtn = screen.getByRole('button', { name: /caret-down/i });
-    userEvent.click(caretBtn);
+    await waitFor(() => {
+      const caretBtn = screen.getByRole('button', { name: /caret-down/i });
+      userEvent.click(caretBtn);
 
-    const saveDatasetMenuItem = screen.getByText(/save dataset/i);
-    userEvent.click(saveDatasetMenuItem);
+      const saveDatasetMenuItem = screen.getByText(/save dataset/i);
+      userEvent.click(saveDatasetMenuItem);
+    });
 
     const saveDatasetHeader = screen.getByText(/save or overwrite dataset/i);
 
     expect(saveDatasetHeader).toBeVisible();
   });
 
-  it('renders the save dataset modal UI', () => {
+  it('renders the save dataset modal UI', async () => {
     render(<SaveQuery {...splitSaveBtnProps} />, { useRedux: true });
 
-    const caretBtn = screen.getByRole('button', { name: /caret-down/i });
-    userEvent.click(caretBtn);
+    await waitFor(() => {
+      const caretBtn = screen.getByRole('button', { name: /caret-down/i });
+      userEvent.click(caretBtn);
 
-    const saveDatasetMenuItem = screen.getByText(/save dataset/i);
-    userEvent.click(saveDatasetMenuItem);
+      const saveDatasetMenuItem = screen.getByText(/save dataset/i);
+      userEvent.click(saveDatasetMenuItem);
+    });
 
     const closeBtn = screen.getByRole('button', { name: /close/i });
     const saveDatasetHeader = screen.getByText(/save or overwrite dataset/i);
