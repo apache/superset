@@ -117,5 +117,4 @@ export enum FilterOperator {
   dashboardTags = 'dashboard_tags',
   chartTags = 'chart_tags',
   savedQueryTags = 'saved_query_tags',
-  datasetTags = 'dataset_tags',
 }

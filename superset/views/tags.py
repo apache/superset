@@ -253,31 +253,4 @@ class TagView(BaseSupersetView):
                 for obj in saved_queries
             )
 
-        # datasets
-        if not types or "dataset" in types:
-            datasets = (
-                db.session.query(SqlaTable)
-                .join(
-                    TaggedObject,
-                    and_(
-                        TaggedObject.object_id == SqlaTable.id,
-                        TaggedObject.object_type == ObjectTypes.dataset,
-                    ),
-                )
-                .join(Tag, TaggedObject.tag_id == Tag.id)
-                .filter(Tag.name.in_(tags))
-            )
-            results.extend(
-                {
-                    "id": obj.id,
-                    "type": ObjectTypes.dataset.name,
-                    "name": obj.label,
-                    "url": obj.url(),
-                    "changed_on": obj.changed_on,
-                    "created_by": obj.created_by_fk,
-                    "creator": obj.creator(),
-                }
-                for obj in datasets
-            )
-
         return json_success(json.dumps(results, default=utils.core.json_int_dttm_ser))
