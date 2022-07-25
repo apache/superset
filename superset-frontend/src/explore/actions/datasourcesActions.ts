@@ -16,32 +16,34 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { keyBy } from 'lodash';
-import { getDatasourceUid } from 'src/utils/getDatasourceUid';
-import {
-  DatasourcesAction,
-  DatasourcesActionType,
-} from 'src/datasource/actions';
-import { Dataset } from '@superset-ui/chart-controls';
 
-export default function datasourcesReducer(
-  datasources: { [key: string]: Dataset } | undefined,
-  action: DatasourcesAction,
-) {
-  if (action.type === DatasourcesActionType.INIT_DATASOURCES) {
-    return { ...action.datasources };
-  }
-  if (action.type === DatasourcesActionType.SET_DATASOURCES) {
-    return {
-      ...datasources,
-      ...keyBy(action.datasources, 'uid'),
-    };
-  }
-  if (action.type === DatasourcesActionType.SET_DATASOURCE) {
-    return {
-      ...datasources,
-      [getDatasourceUid(action.datasource)]: action.datasource,
-    };
-  }
-  return datasources || {};
+import { Dispatch } from 'redux';
+import { Dataset } from '@superset-ui/chart-controls';
+import { updateFormDataByDatasource } from './exploreActions';
+import { ExplorePageState } from '../types';
+
+export const SET_DATASOURCE = 'SET_DATASOURCE';
+export interface SetDatasource {
+  type: string;
+  datasource: Dataset;
 }
+export function setDatasource(datasource: Dataset) {
+  return { type: SET_DATASOURCE, datasource };
+}
+
+export function changeDatasource(newDatasource: Dataset) {
+  return function (dispatch: Dispatch, getState: () => ExplorePageState) {
+    const {
+      explore: { datasource: prevDatasource },
+    } = getState();
+    dispatch(setDatasource(newDatasource));
+    dispatch(updateFormDataByDatasource(prevDatasource, newDatasource));
+  };
+}
+
+export const datasourcesActions = {
+  setDatasource,
+  changeDatasource,
+};
+
+export type AnyDatasourcesAction = SetDatasource;

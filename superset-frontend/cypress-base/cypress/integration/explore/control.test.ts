@@ -129,7 +129,7 @@ describe('Test datatable', () => {
   });
   it('Datapane loads view samples', () => {
     cy.intercept(
-      'api/v1/explore/samples?force=false&datasource_type=table&datasource_id=*',
+      'datasource/samples?force=false&datasource_type=table&datasource_id=*',
     ).as('Samples');
     cy.contains('Samples')
       .click()

@@ -602,10 +602,11 @@ export const getDatasourceSamples = async (
   datasourceType,
   datasourceId,
   force,
+  jsonPayload,
 ) => {
-  const endpoint = `/api/v1/explore/samples?force=${force}&datasource_type=${datasourceType}&datasource_id=${datasourceId}`;
+  const endpoint = `/datasource/samples?force=${force}&datasource_type=${datasourceType}&datasource_id=${datasourceId}`;
   try {
-    const response = await SupersetClient.get({ endpoint });
+    const response = await SupersetClient.post({ endpoint, jsonPayload });
     return response.json.result;
   } catch (err) {
     const clientError = await getClientErrorObject(err);
