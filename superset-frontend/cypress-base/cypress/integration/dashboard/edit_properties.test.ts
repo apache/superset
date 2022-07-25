@@ -235,5 +235,26 @@ describe('Dashboard edit action', () => {
 
         });
     });
+    it('the shared label colors and label colors are applied correctly', () => {
+      cy.viewport('macbook-16');
+      openAdvancedProperties().then(() => {
+        clear('#json_metadata');
+        type(
+          '#json_metadata',
+          '{"color_scheme":"lyftColors","label_colors":{"Bangladesh":"red"}}',
+        );
+      });
+
+      cy.get('.ant-modal-footer')
+        .contains('Apply')
+        .click()
+        .then(() => {
+          cy.get('.ant-modal-body').should('not.exist');
+          // assert that the chart has changed colors
+          cy.get('#chart-id-41 .nv-legend-symbol').first().should('have.css', 'fill', 'rgb(255, 0, 0)');
+          cy.get('#chart-id-45 .nv-legend-symbol').first().should('have.css', 'fill', 'rgb(234, 11, 95)');
+          cy.get('#chart-id-43 .nv-legend-symbol').eq(5).should('have.css', 'fill', 'rgb(234, 11, 95)');
+        });
+    });
   });
 });
