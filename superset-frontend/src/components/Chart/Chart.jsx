@@ -295,29 +295,27 @@ class Chart extends React.PureComponent {
     }
 
     return (
-      <>
-        <ErrorBoundary
-          onError={this.handleRenderContainerFailure}
-          showMessage={false}
+      <ErrorBoundary
+        onError={this.handleRenderContainerFailure}
+        showMessage={false}
+      >
+        <Styles
+          data-ui-anchor="chart"
+          className="chart-container"
+          data-test="chart-container"
+          height={height}
+          width={width}
         >
-          <Styles
-            data-ui-anchor="chart"
-            className="chart-container"
-            data-test="chart-container"
-            height={height}
-            width={width}
-          >
-            <div className="slice_container" data-test="slice-container">
-              <ChartRenderer
-                {...this.props}
-                source={this.props.dashboardId ? 'dashboard' : 'explore'}
-                data-test={this.props.vizType}
-              />
-            </div>
-            {isLoading && !isDeactivatedViz && <Loading />}
-          </Styles>
-        </ErrorBoundary>
-      </>
+          <div className="slice_container" data-test="slice-container">
+            <ChartRenderer
+              {...this.props}
+              source={this.props.dashboardId ? 'dashboard' : 'explore'}
+              data-test={this.props.vizType}
+            />
+          </div>
+          {isLoading && !isDeactivatedViz && <Loading />}
+        </Styles>
+      </ErrorBoundary>
     );
   }
 }
