@@ -197,7 +197,6 @@ export const controls = {
 
   viz_type: {
     type: 'VizTypeControl',
-    label: t('Visualization type'),
     default: 'table',
     description: t('The type of visualization to display'),
   },
