@@ -35,14 +35,14 @@ const TagsContainer = styled.div`
   .select-control-label {
     text-transform: uppercase;
     font-size: ${({ theme }) => theme.gridUnit * 3}px;
-    color: #666666;
+    color: ${({ theme }) => theme.colors.grayscale.base};
     margin-bottom: ${({ theme }) => theme.gridUnit * 1}px;
   }
 `;
 
 const TagsNav = styled.div`
   height: 50px;
-  background-color: white;
+  background-color: ${({ theme }) => theme.colors.grayscale.light5};
   margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
   .navbar-brand {
     margin-left: ${({ theme }) => theme.gridUnit * 2}px;

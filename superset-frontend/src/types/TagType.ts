@@ -20,7 +20,7 @@
 export interface TagType {
   id?: string | number;
   type?: string | number;
-  editable?: boolean
+  editable?: boolean;
   onDelete?: any;
   onClick?: any;
   name: string;

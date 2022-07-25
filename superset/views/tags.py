@@ -29,7 +29,6 @@ from sqlalchemy import and_, func
 from werkzeug.exceptions import NotFound
 
 from superset import db, is_feature_enabled, utils
-from superset.connectors.sqla.models import SqlaTable
 from superset.jinja_context import ExtraCache
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice

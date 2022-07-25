@@ -18,15 +18,15 @@
  */
 import React from 'react';
 import { render } from 'spec/helpers/testing-library';
-import Tag from './Tag';
 import TagType from 'src/types/TagType';
+import Tag from './Tag';
 
 const mockedProps: TagType = {
-  name: 'example-tag', 
-  id: 1,  
-  onDelete: null, 
-  editable: false, 
-  onClick: null 
+  name: 'example-tag',
+  id: 1,
+  onDelete: null,
+  editable: false,
+  onClick: null,
 };
 
 test('should render', () => {

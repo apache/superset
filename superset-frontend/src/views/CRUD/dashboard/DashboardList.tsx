@@ -353,9 +353,12 @@ function DashboardList(props: DashboardListProps) {
           },
         }: any) => (
           // Only show custom type tags
-          <TagsList 
-            tags={tags.filter((tag: Tag) => (tag.type === 'TagTypes.custom' || tag.type === 1))} 
-            maxTags={3}/>
+          <TagsList
+            tags={tags.filter(
+              (tag: Tag) => tag.type === 'TagTypes.custom' || tag.type === 1,
+            )}
+            maxTags={3}
+          />
         ),
         Header: t('Tags'),
         accessor: 'tags',

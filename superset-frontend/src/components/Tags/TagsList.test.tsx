@@ -41,7 +41,7 @@ const testTags = [
     name: 'example-tag5',
     id: 5,
   },
-]
+];
 
 const mockedProps: TagsListProps = {
   tags: testTags,
@@ -49,8 +49,7 @@ const mockedProps: TagsListProps = {
   maxTags: 5,
 };
 
-const findAllTags = () =>
-  screen.getAllByRole("tag")! as HTMLElement[];
+const findAllTags = () => screen.getAllByRole('link')! as HTMLElement[];
 
 test('should render', () => {
   const { container } = render(<TagsList {...mockedProps} />);
@@ -70,7 +69,7 @@ test('should render 5 elements', () => {
 });
 
 test('should render 3 elements when maxTags is set to 3', () => {
-  render(<TagsList {...mockedProps} maxTags={3}/>);
+  render(<TagsList {...mockedProps} maxTags={3} />);
   const tagsListItems = findAllTags();
   expect(tagsListItems).toHaveLength(3);
   expect(tagsListItems[2]).toHaveTextContent('+3...');

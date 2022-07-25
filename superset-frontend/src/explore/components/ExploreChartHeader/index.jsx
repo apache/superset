@@ -35,20 +35,10 @@ import Icons from 'src/components/Icons';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
 import { sliceUpdated } from 'src/explore/actions/exploreActions';
 import { PageHeaderWithActions } from 'src/components/PageHeaderWithActions';
-import { useExploreAdditionalActionsMenu } from '../useExploreAdditionalActionsMenu';
-import CertifiedBadge from 'src/components/CertifiedBadge';
-import RowCountLabel from '../RowCountLabel';
-import ObjectTags from 'src/components/ObjectTags';
-import {fetchTags, OBJECT_TYPES} from 'src/tags';
+import { fetchTags, OBJECT_TYPES } from 'src/tags';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import { TagsList } from 'src/components/Tags';
-import { Tag } from 'src/types/TagType'
-
-const CHART_STATUS_MAP = {
-  failed: 'danger',
-  loading: 'warning',
-  success: 'success',
-};
+import { useExploreAdditionalActionsMenu } from '../useExploreAdditionalActionsMenu';
 
 const MAX_TAGS = 3;
 
@@ -165,15 +155,19 @@ export const ExploreChartHeader = ({
   const oldSliceName = slice?.slice_name;
 
   const [tags, setTags] = useState([]);
-    
+
   useEffect(() => {
-    fetchTags({
-      objectType: OBJECT_TYPES.CHART,
-      objectId: slice.slice_id,
-      includeTypes: false
-    },
-    (tags) => setTags(tags),
-    () => {/** handle error */})
+    fetchTags(
+      {
+        objectType: OBJECT_TYPES.CHART,
+        objectId: slice.slice_id,
+        includeTypes: false,
+      },
+      tags => setTags(tags),
+      () => {
+        /** handle error */
+      },
+    );
   }, [slice]);
 
   return (
@@ -202,26 +196,28 @@ export const ExploreChartHeader = ({
           isStarred,
           showTooltip: true,
         }}
-        titlePanelAdditionalItems={
-          [
-            sliceFormData ? (
-              <AlteredSliceTag
-                className="altered"
-                origFormData={{
-                  ...sliceFormData,
-                  chartTitle: oldSliceName,
-                }}
-                currentFormData={{ ...formData, chartTitle: sliceName }}
-              />
-            ) : null,
-            isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM) ? (
-              <TagsList 
-                tags={tags.filter((tag) => (tag.type ? (tag.type === 1 || tag.type === "TagTypes.custom"): (true)))}
-                maxTags={MAX_TAGS}
-              />
-            ) : null
-          ]
-        }
+        titlePanelAdditionalItems={[
+          sliceFormData ? (
+            <AlteredSliceTag
+              className="altered"
+              origFormData={{
+                ...sliceFormData,
+                chartTitle: oldSliceName,
+              }}
+              currentFormData={{ ...formData, chartTitle: sliceName }}
+            />
+          ) : null,
+          isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM) ? (
+            <TagsList
+              tags={tags.filter(tag =>
+                tag.type
+                  ? tag.type === 1 || tag.type === 'TagTypes.custom'
+                  : true,
+              )}
+              maxTags={MAX_TAGS}
+            />
+          ) : null,
+        ]}
         rightPanelAdditionalItems={
           <Tooltip
             title={

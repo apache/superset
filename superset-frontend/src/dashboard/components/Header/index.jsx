@@ -33,8 +33,6 @@ import Button from 'src/components/Button';
 import { AntdButton } from 'src/components/';
 import { findPermission } from 'src/utils/findPermission';
 import { Tooltip } from 'src/components/Tooltip';
-import EditableTitle from 'src/components/EditableTitle';
-import FaveStar from 'src/components/FaveStar';
 import ObjectTags from 'src/components/ObjectTags';
 import { safeStringify } from 'src/utils/safeStringify';
 import HeaderActionsDropdown from 'src/dashboard/components/Header/HeaderActionsDropdown';
@@ -54,8 +52,8 @@ import setPeriodicRunner, {
 import { options as PeriodicRefreshOptions } from 'src/dashboard/components/RefreshIntervalModal';
 import { FILTER_BOX_MIGRATION_STATES } from 'src/explore/constants';
 import { PageHeaderWithActions } from 'src/components/PageHeaderWithActions';
-import { DashboardEmbedModal } from '../DashboardEmbedControls';
 import { OBJECT_TYPES } from 'src/tags';
+import { DashboardEmbedModal } from '../DashboardEmbedControls';
 
 const MAX_TAGS = 3;
 
@@ -516,25 +514,26 @@ class Header extends React.PureComponent {
             isStarred: this.props.isStarred,
             showTooltip: true,
           }}
-          titlePanelAdditionalItems={
-            [
-              !editMode && <PublishedStatus
+          titlePanelAdditionalItems={[
+            !editMode && (
+              <PublishedStatus
                 dashboardId={dashboardInfo.id}
                 isPublished={isPublished}
                 savePublished={this.props.savePublished}
                 canEdit={userCanEdit}
                 canSave={userCanSaveAs}
                 visible={!editMode}
-              />,
-              isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM) &&
+              />
+            ),
+            isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM) && (
               <ObjectTags
                 objectType={OBJECT_TYPES.DASHBOARD}
                 objectId={dashboardInfo.id}
                 includeTypes={false}
                 maxTags={MAX_TAGS}
               />
-            ]
-          }
+            ),
+          ]}
           rightPanelAdditionalItems={
             <div className="button-container">
               {userCanSaveAs && (
@@ -632,7 +631,6 @@ class Header extends React.PureComponent {
                   )}
                 </div>
               )}
-              
             </div>
           }
           menuDropdownProps={{

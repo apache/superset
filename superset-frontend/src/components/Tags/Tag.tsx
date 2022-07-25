@@ -17,13 +17,12 @@
  * under the License.
  */
 
-import { styled, SupersetTheme } from "@superset-ui/core";
-import TagType from "src/types/TagType";
+import { styled, SupersetTheme } from '@superset-ui/core';
+import TagType from 'src/types/TagType';
 import AntdTag from 'antd/lib/tag';
-import { useMemo } from "react";
+import { useMemo, React } from 'react';
 import { Tooltip } from 'src/components/Tooltip';
-import React from 'react';
-  
+
 const customTagStyler = (theme: SupersetTheme) => `
     margin-top: ${theme.gridUnit * 1}px;
     margin-bottom: ${theme.gridUnit * 1}px;
@@ -34,57 +33,52 @@ const StyledTag = styled(AntdTag)`
     ${({ theme }) => customTagStyler(theme)}}
 `;
 
-const Tag = ({ 
-    name, 
-    id, 
-    index=-1, 
-    onDelete=null, 
-    editable=false, 
-    onClick=null 
-} : TagType) => {
-    
-    const isLongTag = useMemo(() => name.length > 20, [name]);
+const Tag = ({
+  name,
+  id,
+  index = -1,
+  onDelete = null,
+  editable = false,
+  onClick = null,
+}: TagType) => {
+  const isLongTag = useMemo(() => name.length > 20, [name]);
 
-    const handleClose = () => {
-        return (index >= 0) ? (
-            onDelete(index)
-        ) : (
-            null
-        )            
-    }
+  const handleClose = () => (index >= 0 ? onDelete(index) : null);
 
-    const tagElem =(
-        <>
-            {editable ? (
-                <StyledTag 
-                    key={id} 
-                    closable={editable} 
-                    onClose={handleClose} 
-                    color="blue">
-                    {isLongTag ? `${name.slice(0, 20)}...` : name}
-                </StyledTag>
-            ) : (
-                <StyledTag role="tag" key={id} onClick={onClick}>
-                    {id ? (
-                        <a href={`/superset/tags/?tags=${name}`}>{isLongTag ? `${name.slice(0, 20)}...` : name}</a>
-                    ):(
-                        isLongTag ? `${name.slice(0, 20)}...` : name
-                    )}
-                </StyledTag>
-            )}
-        </>
-    );
+  const tagElem = (
+    <>
+      {editable ? (
+        <StyledTag
+          key={id}
+          closable={editable}
+          onClose={handleClose}
+          color="blue"
+        >
+          {isLongTag ? `${name.slice(0, 20)}...` : name}
+        </StyledTag>
+      ) : (
+        <StyledTag role="link" key={id} onClick={onClick}>
+          {id ? (
+            <a href={`/superset/tags/?tags=${name}`}>
+              {isLongTag ? `${name.slice(0, 20)}...` : name}
+            </a>
+          ) : isLongTag ? (
+            `${name.slice(0, 20)}...`
+          ) : (
+            name
+          )}
+        </StyledTag>
+      )}
+    </>
+  );
 
-    return (
-        isLongTag ? (
-          <Tooltip title={name} key={name}>
-            {tagElem}
-          </Tooltip>
-        ) : (
-          tagElem
-        )
-            
-    );
-}
+  return isLongTag ? (
+    <Tooltip title={name} key={name}>
+      {tagElem}
+    </Tooltip>
+  ) : (
+    tagElem
+  );
+};
 
 export default Tag;

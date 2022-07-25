@@ -25,7 +25,10 @@ import './ObjectTags.css';
 import { TagsList } from 'src/components/Tags';
 import rison from 'rison';
 import { cacheWrapper } from 'src/utils/cacheWrapper';
-import { ClientErrorObject, getClientErrorObject } from 'src/utils/getClientErrorObject';
+import {
+  ClientErrorObject,
+  getClientErrorObject,
+} from 'src/utils/getClientErrorObject';
 import { deleteTag, fetchTags } from 'src/tags';
 
 export interface ObjectTagsProps {
@@ -44,7 +47,7 @@ const StyledTagsDiv = styled.div`
   display: flex;
   -webkit-flex-direction: row;
   -webkit-flex-wrap: wrap;
-  `
+`;
 
 const localCache = new Map<string, any>();
 
@@ -79,15 +82,15 @@ export const loadTags = async (
     order_column: searchColumn,
     order_direction: 'asc',
   });
-  
+
   const getErrorMessage = ({ error, message }: ClientErrorObject) => {
-      let errorText = message || error || t('An error has occurred');
-      if (message === 'Forbidden') {
-        errorText = t('You do not have permission to edit this dashboard');
-      }
-      return errorText;
-  }
-  
+    let errorText = message || error || t('An error has occurred');
+    if (message === 'Forbidden') {
+      errorText = t('You do not have permission to edit this dashboard');
+    }
+    return errorText;
+  };
+
   return cachedSupersetGet({
     endpoint: `/api/v1/tag/?q=${query}`,
     // endpoint: `/api/v1/tags/?q=${query}`,
@@ -96,7 +99,9 @@ export const loadTags = async (
       const data: {
         label: string;
         value: string | number;
-      }[] = response.json.result.filter((item: Tag & { table_name: string },) => (item.type === 1)).map(tagToSelectOption);
+      }[] = response.json.result
+        .filter((item: Tag & { table_name: string }) => item.type === 1)
+        .map(tagToSelectOption);
       return {
         data,
         totalCount: response.json.count,
@@ -112,8 +117,8 @@ export const ObjectTags = ({
   objectType,
   objectId,
   includeTypes,
-  editMode=false,
-  maxTags=undefined,
+  editMode = false,
+  maxTags = undefined,
   onChange,
 }: ObjectTagsProps) => {
   const [tags, setTags] = useState<Tag[]>([]);
@@ -121,21 +126,25 @@ export const ObjectTags = ({
   useEffect(() => {
     try {
       fetchTags(
-        {objectType, objectId, includeTypes},
+        { objectType, objectId, includeTypes },
         (tags: Tag[]) => setTags(tags),
-        () => {/*TODO: handle error*/});
-    } catch(error: any) {
-      console.log(error)
+        () => {
+          /* TODO: handle error */
+        },
+      );
+    } catch (error: any) {
+      console.log(error);
     }
   }, [objectType, objectId, includeTypes]);
 
-
   const onDelete = (tagIndex: number) => {
     deleteTag(
-      {objectType, objectId},
-      tags[tagIndex], 
+      { objectType, objectId },
+      tags[tagIndex],
       () => setTags(tags.filter((_, i) => i !== tagIndex)),
-      () => {/* TODO: handle error */}
+      () => {
+        /* TODO: handle error */
+      },
     );
     onChange?.(tags);
   };
@@ -143,7 +152,12 @@ export const ObjectTags = ({
   return (
     <span>
       <StyledTagsDiv>
-        <TagsList tags={tags} editable={editMode} onDelete={onDelete} maxTags={maxTags}/>
+        <TagsList
+          tags={tags}
+          editable={editMode}
+          onDelete={onDelete}
+          maxTags={maxTags}
+        />
       </StyledTagsDiv>
     </span>
   );

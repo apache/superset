@@ -19,14 +19,14 @@
 
 import React, { useMemo, useState } from 'react';
 import { styled } from '@superset-ui/core';
-import Tag from './Tag';
 import TagType from 'src/types/TagType';
+import Tag from './Tag';
 
 export type TagsListProps = {
   tags: TagType[];
   editable?: boolean;
   /**
-   * OnDelete: 
+   * OnDelete:
    * Only applies when editable is true
    * Callback for when a tag is deleted
    */
@@ -42,42 +42,66 @@ const TagsDiv = styled.div`
   -webkit-flex-wrap: wrap;
 `;
 
-const TagsList = ({ 
-  tags, 
-  editable=false, 
-  onDelete, 
-  maxTags
+const TagsList = ({
+  tags,
+  editable = false,
+  onDelete,
+  maxTags,
 }: TagsListProps) => {
-
   const [tempMaxTags, setTempMaxTags] = useState<number | undefined>(maxTags);
 
   const handleDelete = (index: number) => {
     onDelete?.(index);
-  }
+  };
 
   const expand = () => setTempMaxTags(undefined);
 
   const collapse = () => setTempMaxTags(maxTags);
 
-  const tagsIsLong: boolean | null = useMemo(() => (tempMaxTags ? (tags.length > tempMaxTags): null), [tags.length, tempMaxTags]);
+  const tagsIsLong: boolean | null = useMemo(
+    () => (tempMaxTags ? tags.length > tempMaxTags : null),
+    [tags.length, tempMaxTags],
+  );
 
-  const extraTags: number | null = useMemo(() => ((typeof tempMaxTags === "number") ? ((tags.length - tempMaxTags) + 1) : null), [tagsIsLong, tags.length, tempMaxTags])
+  const extraTags: number | null = useMemo(
+    () =>
+      typeof tempMaxTags === 'number' ? tags.length - tempMaxTags + 1 : null,
+    [tagsIsLong, tags.length, tempMaxTags],
+  );
 
   return (
-    <TagsDiv className='tag-list'>
-      {(tagsIsLong === true && typeof tempMaxTags === "number") ? (
+    <TagsDiv className="tag-list">
+      {tagsIsLong === true && typeof tempMaxTags === 'number' ? (
         <>
-        {tags.slice(0,(tempMaxTags-1)).map((tag: TagType, index) => (
-          <Tag id={tag.id} name={tag.name} index={index} onDelete={handleDelete} editable={editable}/>
-        ))}
-        {tags.length > tempMaxTags ? (<Tag name={`+${extraTags}...`} onClick={expand}/>) : (null)}
+          {tags.slice(0, tempMaxTags - 1).map((tag: TagType, index) => (
+            <Tag
+              id={tag.id}
+              name={tag.name}
+              index={index}
+              onDelete={handleDelete}
+              editable={editable}
+            />
+          ))}
+          {tags.length > tempMaxTags ? (
+            <Tag name={`+${extraTags}...`} onClick={expand} />
+          ) : null}
         </>
-      ): (
+      ) : (
         <>
-        {tags.map((tag: TagType, index) => (
-          <Tag id={tag.id} name={tag.name} index={index} onDelete={handleDelete} editable={editable} />
-        ))}
-        {maxTags ? (tags.length > maxTags ? (<Tag name={'...'} onClick={collapse}/>) : (null)) : (null)}
+          {tags.map((tag: TagType, index) => (
+            <Tag
+              id={tag.id}
+              name={tag.name}
+              index={index}
+              onDelete={handleDelete}
+              editable={editable}
+            />
+          ))}
+          {maxTags ? (
+            tags.length > maxTags ? (
+              <Tag name="..." onClick={collapse} />
+            ) : null
+          ) : null}
         </>
       )}
     </TagsDiv>

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
- .ant-tag {
+.ant-tag {
   color: black;
 }
 
@@ -47,7 +47,7 @@
   padding: 6px 8px;
   border: 0px solid #f5f5f5;
   border-radius: 2px;
-  background: #F1F1F1;
+  background: #f1f1f1;
 
   /* match the font styles */
   font-size: inherit;
@@ -74,12 +74,10 @@
 }
 
 @media screen and (min-width: 30em) {
-
   .react-tags__search {
     /* this will become the offsetParent for suggestions */
     position: relative;
   }
-
 }
 
 .react-tags__search input {
@@ -110,11 +108,9 @@
 }
 
 @media screen and (min-width: 30em) {
-
   .react-tags__suggestions {
     width: 240px;
   }
-
 }
 
 .react-tags__suggestions ul {
@@ -122,7 +118,7 @@
   padding: 0;
   list-style: none;
   background: white;
-  border: 1px solid #D1D1D1;
+  border: 1px solid #d1d1d1;
   border-radius: 2px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
 }

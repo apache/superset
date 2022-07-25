@@ -323,31 +323,29 @@ const PropertiesModal = ({
     });
 
     // update tags
-    newTags.map((tag: TagType) => {
-      // add new tags
+    newTags.map((tag: TagType) =>
       addTag(
         {
           objectType: OBJECT_TYPES.DASHBOARD,
           objectId: dashboardId,
           includeTypes: false,
-        }, 
+        },
         tag.name,
         () => {},
-        () => {}
-      );
-    });
-    oldTags.map((tag: TagType) => {
-      // add new tags
+        () => {},
+      ),
+    );
+    oldTags.map((tag: TagType) =>
       deleteTag(
         {
           objectType: OBJECT_TYPES.DASHBOARD,
           objectId: dashboardId,
-        }, 
+        },
         tag,
         () => {},
-        () => {}
-      );
-    });
+        () => {},
+      ),
+    );
     const moreOnSubmitProps: { roles?: Roles } = {};
     const morePutProps: { roles?: number[] } = {};
     if (isFeatureEnabled(FeatureFlag.DASHBOARD_RBAC)) {
@@ -533,31 +531,39 @@ const PropertiesModal = ({
     try {
       fetchTags(
         {
-          objectType: OBJECT_TYPES.DASHBOARD, 
-          objectId: dashboardId, 
-          includeTypes: false},
+          objectType: OBJECT_TYPES.DASHBOARD,
+          objectId: dashboardId,
+          includeTypes: false,
+        },
         (tags: TagType[]) => setTags(tags),
-        () => {/*TODO: handle error*/});
-    } catch(error: any) {
-      console.log(error)
+        () => {
+          /* TODO: handle error */
+        },
+      );
+    } catch (error: any) {
+      console.log(error);
     }
   }, [dashboardId]);
 
   const handleAddTag = (values: { label: string; value: number }[]) => {
     values.map((value: { label: string; value: number }) => {
-      let tag = {name: value.label};
+      const tag = { name: value.label };
       if (tags.some(t => t.name === tag.name)) {
         return;
       }
       setTags([...tags, tag]);
-      setNewTags([...newTags, tag])
+      setNewTags([...newTags, tag]);
+      return;
     });
-  }
+  };
 
   const handleDeleteTag = (tagIndex: number) => {
     setOldTags([...oldTags, tags[tagIndex]]);
-    setTags([...tags.slice(0,tagIndex), ...tags.slice(tagIndex+1, tags.length)]);
-  }
+    setTags([
+      ...tags.slice(0, tagIndex),
+      ...tags.slice(tagIndex + 1, tags.length),
+    ]);
+  };
 
   return (
     <Modal
@@ -657,15 +663,15 @@ const PropertiesModal = ({
           </Col>
         </Row>
         <Row gutter={16}>
-        <Col xs={24} md={12}>
-          <h3 style={{ marginTop: '1em' }}>{t('Tags')}</h3>
-        </Col>
+          <Col xs={24} md={12}>
+            <h3 style={{ marginTop: '1em' }}>{t('Tags')}</h3>
+          </Col>
         </Row>
         <Row gutter={16}>
           <Col xs={24} md={12}>
             <StyledFormItem>
               <AsyncSelect
-                ariaLabel='Tags'
+                ariaLabel="Tags"
                 mode="multiple"
                 allowNewOptions
                 value={[]}
@@ -675,17 +681,15 @@ const PropertiesModal = ({
               />
             </StyledFormItem>
             <p className="help-block">
-              {t(
-                  'A list of tags that have been applied to this chart.',
-                )}
+              {t('A list of tags that have been applied to this chart.')}
             </p>
           </Col>
           <Col xs={24} md={12}>
             <TagsList
-              tags={tags} 
-              editable={true} 
-              onDelete={handleDeleteTag} 
-              maxTags={null}
+              tags={tags}
+              editable
+              onDelete={handleDeleteTag}
+              maxTags={undefined}
             />
           </Col>
         </Row>

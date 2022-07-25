@@ -375,8 +375,12 @@ function ChartList(props: ChartListProps) {
           },
         }: any) => (
           // Only show custom type tags
-          <TagsList 
-            tags={tags.filter((tag: Tag) => (tag.type ? (tag.type === 1 || tag.type === "TagTypes.custom"): (true)))}
+          <TagsList
+            tags={tags.filter((tag: Tag) =>
+              tag.type
+                ? tag.type === 1 || tag.type === 'TagTypes.custom'
+                : true,
+            )}
             maxTags={3}
           />
         ),

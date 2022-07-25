@@ -157,32 +157,30 @@ function PropertiesModal({
       ).map(o => o.value);
     }
     // update tags
-    newTags.map((tag: TagType) => {
-      // add new tags
+    newTags.map((tag: TagType) =>
       addTag(
         {
           objectType: OBJECT_TYPES.CHART,
           objectId: slice.slice_id,
           includeTypes: false,
-        }, 
+        },
         tag.name,
         () => {},
-        () => {}
-      );
-    });
-    oldTags.map((tag: TagType) => {
-      // add new tags
+        () => {},
+      ),
+    );
+    oldTags.map((tag: TagType) =>
       deleteTag(
         {
           objectType: OBJECT_TYPES.CHART,
           objectId: slice.slice_id,
-        }, 
+        },
         tag,
         () => {},
-        () => {}
-      );
-    });
-    
+        () => {},
+      ),
+    );
+
     try {
       const res = await SupersetClient.put({
         endpoint: `/api/v1/chart/${slice.slice_id}`,
@@ -193,7 +191,7 @@ function PropertiesModal({
       const updatedChart = {
         ...payload,
         ...res.json.result,
-        tags: tags,
+        tags,
         id: slice.slice_id,
       };
       onSave(updatedChart);
@@ -222,31 +220,38 @@ function PropertiesModal({
     try {
       fetchTags(
         {
-          objectType: OBJECT_TYPES.CHART, 
-          objectId: slice.slice_id, 
-          includeTypes: false},
+          objectType: OBJECT_TYPES.CHART,
+          objectId: slice.slice_id,
+          includeTypes: false,
+        },
         (tags: TagType[]) => setTags(tags),
-        () => {/*TODO: handle error*/});
-    } catch(error: any) {
-      console.log(error)
+        () => {
+          /* TODO: handle error */
+        },
+      );
+    } catch (error: any) {
+      console.log(error);
     }
   }, [slice.slice_id]);
 
   const handleAddTag = (values: { label: string; value: number }[]) => {
     values.map((value: { label: string; value: number }) => {
-      let tag = {name: value.label};
+      const tag = { name: value.label };
       if (tags.some(t => t.name === tag.name)) {
         return;
       }
       setTags([...tags, tag]);
-      setNewTags([...newTags, tag])
+      return setNewTags([...newTags, tag]);
     });
-  }
+  };
 
   const handleDeleteTag = (tagIndex: number) => {
     setOldTags([...oldTags, tags[tagIndex]]);
-    setTags([...tags.slice(0,tagIndex), ...tags.slice(tagIndex+1, tags.length)]);
-  }
+    setTags([
+      ...tags.slice(0, tagIndex),
+      ...tags.slice(tagIndex + 1, tags.length),
+    ]);
+  };
 
   return (
     <Modal
@@ -383,7 +388,7 @@ function PropertiesModal({
             <h3 style={{ marginTop: '1em' }}>{t('Tags')}</h3>
             <FormItem>
               <AsyncSelect
-                ariaLabel='Tags'
+                ariaLabel="Tags"
                 mode="multiple"
                 allowNewOptions
                 value={[]}
@@ -392,15 +397,13 @@ function PropertiesModal({
                 allowClear
               />
               <StyledHelpBlock className="help-block">
-                {t(
-                  'A list of tags that have been applied to this chart.',
-                )}
+                {t('A list of tags that have been applied to this chart.')}
               </StyledHelpBlock>
               <TagsList
-                tags={tags} 
-                editable={true} 
-                onDelete={handleDeleteTag} 
-                maxTags={null}
+                tags={tags}
+                editable
+                onDelete={handleDeleteTag}
+                maxTags={undefined}
               />
             </FormItem>
           </Col>
