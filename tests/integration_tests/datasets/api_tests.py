@@ -27,9 +27,7 @@ import pytest
 import yaml
 from sqlalchemy.sql import func
 
-from superset.common.utils.query_cache_manager import QueryCacheManager
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
-from superset.constants import CacheRegion
 from superset.dao.exceptions import (
     DAOCreateFailedError,
     DAODeleteFailedError,
@@ -2084,103 +2082,4 @@ class TestDatasetApi(SupersetTestCase):
         assert response.get("count") == 1
 
         db.session.delete(table_w_certification)
-        db.session.commit()
-
-    @pytest.mark.usefixtures("create_datasets")
-    def test_get_dataset_samples(self):
-        """
-        Dataset API: Test get dataset samples
-        """
-        if backend() == "sqlite":
-            return
-
-        dataset = self.get_fixture_datasets()[0]
-
-        self.login(username="admin")
-        uri = f"api/v1/dataset/{dataset.id}/samples"
-
-        # 1. should cache data
-        # feeds data
-        self.client.get(uri)
-        # get from cache
-        rv = self.client.get(uri)
-        rv_data = json.loads(rv.data)
-        assert rv.status_code == 200
-        assert "result" in rv_data
-        assert rv_data["result"]["cached_dttm"] is not None
-        cache_key1 = rv_data["result"]["cache_key"]
-        assert QueryCacheManager.has(cache_key1, region=CacheRegion.DATA)
-
-        # 2. should through cache
-        uri2 = f"api/v1/dataset/{dataset.id}/samples?force=true"
-        # feeds data
-        self.client.get(uri2)
-        # force query
-        rv2 = self.client.get(uri2)
-        rv_data2 = json.loads(rv2.data)
-        assert rv_data2["result"]["cached_dttm"] is None
-        cache_key2 = rv_data2["result"]["cache_key"]
-        assert QueryCacheManager.has(cache_key2, region=CacheRegion.DATA)
-
-        # 3. data precision
-        assert "colnames" in rv_data2["result"]
-        assert "coltypes" in rv_data2["result"]
-        assert "data" in rv_data2["result"]
-
-        eager_samples = dataset.database.get_df(
-            f"select * from {dataset.table_name}"
-            f' limit {self.app.config["SAMPLES_ROW_LIMIT"]}'
-        ).to_dict(orient="records")
-        assert eager_samples == rv_data2["result"]["data"]
-
-    @pytest.mark.usefixtures("create_datasets")
-    def test_get_dataset_samples_with_failed_cc(self):
-        if backend() == "sqlite":
-            return
-
-        dataset = self.get_fixture_datasets()[0]
-
-        self.login(username="admin")
-        failed_column = TableColumn(
-            column_name="DUMMY CC",
-            type="VARCHAR(255)",
-            table=dataset,
-            expression="INCORRECT SQL",
-        )
-        uri = f"api/v1/dataset/{dataset.id}/samples"
-        dataset.columns.append(failed_column)
-        rv = self.client.get(uri)
-        assert rv.status_code == 400
-        rv_data = json.loads(rv.data)
-        assert "message" in rv_data
-        if dataset.database.db_engine_spec.engine_name == "PostgreSQL":
-            assert "INCORRECT SQL" in rv_data.get("message")
-
-    def test_get_dataset_samples_on_virtual_dataset(self):
-        if backend() == "sqlite":
-            return
-
-        virtual_dataset = SqlaTable(
-            table_name="virtual_dataset",
-            sql=("SELECT 'foo' as foo, 'bar' as bar"),
-            database=get_example_database(),
-        )
-        TableColumn(column_name="foo", type="VARCHAR(255)", table=virtual_dataset)
-        TableColumn(column_name="bar", type="VARCHAR(255)", table=virtual_dataset)
-        SqlMetric(metric_name="count", expression="count(*)", table=virtual_dataset)
-
-        self.login(username="admin")
-        uri = f"api/v1/dataset/{virtual_dataset.id}/samples"
-        rv = self.client.get(uri)
-        assert rv.status_code == 200
-        rv_data = json.loads(rv.data)
-        cache_key = rv_data["result"]["cache_key"]
-        assert QueryCacheManager.has(cache_key, region=CacheRegion.DATA)
-
-        # remove original column in dataset
-        virtual_dataset.sql = "SELECT 'foo' as foo"
-        rv = self.client.get(uri)
-        assert rv.status_code == 400
-
-        db.session.delete(virtual_dataset)
         db.session.commit()

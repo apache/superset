@@ -111,8 +111,7 @@ class ReportScheduleDAO(BaseDAO):
             if commit:
                 db.session.commit()
         except SQLAlchemyError as ex:
-            if commit:
-                db.session.rollback()
+            db.session.rollback()
             raise DAODeleteFailedError(str(ex)) from ex
 
     @staticmethod
@@ -324,6 +323,5 @@ class ReportScheduleDAO(BaseDAO):
                 session.commit()
             return row_count
         except SQLAlchemyError as ex:
-            if commit:
-                session.rollback()
+            session.rollback()
             raise DAODeleteFailedError(str(ex)) from ex

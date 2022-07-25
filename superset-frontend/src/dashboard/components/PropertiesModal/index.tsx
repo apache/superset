@@ -63,6 +63,7 @@ type PropertiesModalProps = {
   setColorSchemeAndUnsavedChanges?: () => void;
   onSubmit?: (params: Record<string, any>) => void;
   addSuccessToast: (message: string) => void;
+  addDangerToast: (message: string) => void;
   onlyApply?: boolean;
 };
 
@@ -84,6 +85,7 @@ type DashboardInfo = {
 
 const PropertiesModal = ({
   addSuccessToast,
+  addDangerToast,
   colorScheme: currentColorScheme,
   dashboardId,
   dashboardInfo: currentDashboardInfo,
@@ -301,7 +303,12 @@ const PropertiesModal = ({
 
     // color scheme in json metadata has precedence over selection
     if (currentJsonMetadata?.length) {
-      const metadata = JSON.parse(currentJsonMetadata);
+      let metadata;
+      try {
+        metadata = JSON.parse(currentJsonMetadata);
+      } catch (error) {
+        addDangerToast(t('JSON metadata is invalid!'));
+      }
       currentColorScheme = metadata?.color_scheme || colorScheme;
       colorNamespace = metadata?.color_namespace || '';
 

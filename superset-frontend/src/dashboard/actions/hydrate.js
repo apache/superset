@@ -55,6 +55,8 @@ import { FeatureFlag, isFeatureEnabled } from '../../featureFlags';
 import extractUrlParams from '../util/extractUrlParams';
 import getNativeFilterConfig from '../util/filterboxMigrationHelper';
 import { updateColorSchema } from './dashboardInfo';
+import { getChartIdsInFilterScope } from '../util/getChartIdsInFilterScope';
+import updateComponentParentsList from '../util/updateComponentParentsList';
 
 export const HYDRATE_DASHBOARD = 'HYDRATE_DASHBOARD';
 
@@ -256,6 +258,19 @@ export const hydrateDashboard =
         layout[layoutId].meta.sliceName = slice.slice_name;
       }
     });
+
+    // make sure that parents tree is built
+    if (
+      Object.values(layout).some(
+        element => element.id !== DASHBOARD_ROOT_ID && !element.parents,
+      )
+    ) {
+      updateComponentParentsList({
+        currentComponent: layout[DASHBOARD_ROOT_ID],
+        layout,
+      });
+    }
+
     buildActiveFilters({
       dashboardFilters,
       components: layout,
@@ -333,8 +348,20 @@ export const hydrateDashboard =
                 rootPath: [DASHBOARD_ROOT_ID],
                 excluded: [chartId], // By default it doesn't affects itself
               },
+              chartsInScope: Array.from(sliceIds),
             },
           };
+        }
+        if (
+          behaviors.includes(Behavior.INTERACTIVE_CHART) &&
+          !metadata.chart_configuration[chartId].crossFilters?.chartsInScope
+        ) {
+          metadata.chart_configuration[chartId].crossFilters.chartsInScope =
+            getChartIdsInFilterScope(
+              metadata.chart_configuration[chartId].crossFilters.scope,
+              charts,
+              dashboardLayout.present,
+            );
         }
       });
     }

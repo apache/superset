@@ -48,6 +48,7 @@ export interface ChartMetadataConfig {
   // label: ChartLabel.DEPRECATED which will display a "deprecated" label on the chart.
   label?: ChartLabel | null;
   labelExplanation?: string | null;
+  queryObjectCount?: number;
 }
 
 export default class ChartMetadata {
@@ -87,6 +88,8 @@ export default class ChartMetadata {
 
   labelExplanation?: string | null;
 
+  queryObjectCount: number;
+
   constructor(config: ChartMetadataConfig) {
     const {
       name,
@@ -106,6 +109,7 @@ export default class ChartMetadata {
       deprecated = false,
       label = null,
       labelExplanation = null,
+      queryObjectCount = 1,
     } = config;
 
     this.name = name;
@@ -134,6 +138,7 @@ export default class ChartMetadata {
     this.deprecated = deprecated;
     this.label = label;
     this.labelExplanation = labelExplanation;
+    this.queryObjectCount = queryObjectCount;
   }
 
   canBeAnnotationType(type: string): boolean {

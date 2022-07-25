@@ -752,6 +752,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             "This API endpoint is deprecated and will be removed in version 3.0.0",
             self.__class__.__name__,
         )
+        if request.method == "GET":
+            return redirect(request.url.replace("/superset/explore", "/explore"))
+
         initial_form_data = {}
 
         form_data_key = request.args.get("form_data_key")
@@ -2477,9 +2480,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access
     @event_logger.log_this
     @expose("/csv/<client_id>")
-    def csv(  # pylint: disable=no-self-use,too-many-locals
-        self, client_id: str
-    ) -> FlaskResponse:
+    def csv(self, client_id: str) -> FlaskResponse:  # pylint: disable=no-self-use
         """Download the query results as csv."""
         logger.info("Exporting CSV file [%s]", client_id)
         query = db.session.query(Query).filter_by(client_id=client_id).one()

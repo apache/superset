@@ -17,6 +17,7 @@
  * under the License.
  */
 import React, { MouseEvent, Key } from 'react';
+import { Link, RouteComponentProps, withRouter } from 'react-router-dom';
 import moment from 'moment';
 import {
   Behavior,
@@ -108,7 +109,7 @@ export interface SliceHeaderControlsProps {
   isFullSize?: boolean;
   isDescriptionExpanded?: boolean;
   formData: QueryFormData;
-  onExploreChart: (event: MouseEvent) => void;
+  exploreUrl: string;
 
   forceRefresh: (sliceId: number, dashboardId: number) => void;
   logExploreChart?: (sliceId: number) => void;
@@ -125,6 +126,8 @@ export interface SliceHeaderControlsProps {
   supersetCanCSV?: boolean;
   sliceCanEdit?: boolean;
 }
+type SliceHeaderControlsPropsWithRouter = SliceHeaderControlsProps &
+  RouteComponentProps;
 interface State {
   showControls: boolean;
   showCrossFilterScopingModal: boolean;
@@ -138,10 +141,10 @@ const dropdownIconsStyles = css`
 `;
 
 class SliceHeaderControls extends React.PureComponent<
-  SliceHeaderControlsProps,
+  SliceHeaderControlsPropsWithRouter,
   State
 > {
-  constructor(props: SliceHeaderControlsProps) {
+  constructor(props: SliceHeaderControlsPropsWithRouter) {
     super(props);
     this.toggleControls = this.toggleControls.bind(this);
     this.refreshChart = this.refreshChart.bind(this);
@@ -306,13 +309,14 @@ class SliceHeaderControls extends React.PureComponent<
         )}
 
         {this.props.supersetCanExplore && (
-          <Menu.Item
-            key={MENU_KEYS.EXPLORE_CHART}
-            onClick={({ domEvent }) => this.props.onExploreChart(domEvent)}
-          >
-            <Tooltip title={getSliceHeaderTooltip(this.props.slice.slice_name)}>
-              {t('Edit chart')}
-            </Tooltip>
+          <Menu.Item key={MENU_KEYS.EXPLORE_CHART}>
+            <Link to={this.props.exploreUrl}>
+              <Tooltip
+                title={getSliceHeaderTooltip(this.props.slice.slice_name)}
+              >
+                {t('Edit chart')}
+              </Tooltip>
+            </Link>
           </Menu.Item>
         )}
 
@@ -355,7 +359,7 @@ class SliceHeaderControls extends React.PureComponent<
                 <Button
                   buttonStyle="secondary"
                   buttonSize="small"
-                  onClick={this.props.onExploreChart}
+                  onClick={() => this.props.history.push(this.props.exploreUrl)}
                 >
                   {t('Edit chart')}
                 </Button>
@@ -463,4 +467,4 @@ class SliceHeaderControls extends React.PureComponent<
   }
 }
 
-export default SliceHeaderControls;
+export default withRouter(SliceHeaderControls);

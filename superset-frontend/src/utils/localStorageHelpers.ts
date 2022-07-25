@@ -19,6 +19,7 @@
 
 import { TableTabTypes } from 'src/views/CRUD/types';
 import { SetTabType } from 'src/views/CRUD/welcome/ActivityTable';
+import { DashboardContextForExplore } from 'src/types/DashboardContextForExplore';
 
 export enum LocalStorageKeys {
   /**
@@ -52,6 +53,7 @@ export enum LocalStorageKeys {
   sqllab__is_autocomplete_enabled = 'sqllab__is_autocomplete_enabled',
   explore__data_table_original_formatted_time_columns = 'explore__data_table_original_formatted_time_columns',
   dashboard__custom_filter_bar_widths = 'dashboard__custom_filter_bar_widths',
+  dashboard__explore_context = 'dashboard__explore_context',
 }
 
 export type LocalStorageValues = {
@@ -68,6 +70,7 @@ export type LocalStorageValues = {
   sqllab__is_autocomplete_enabled: boolean;
   explore__data_table_original_formatted_time_columns: Record<string, string[]>;
   dashboard__custom_filter_bar_widths: Record<string, number>;
+  dashboard__explore_context: Record<string, DashboardContextForExplore>;
 };
 
 /*
