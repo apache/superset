@@ -24,12 +24,12 @@ import Button from 'src/components/Button';
 import { DropdownButtonProps } from 'antd/lib/dropdown';
 
 interface Props {
-  toggleSave: () => void;
+  setShowSave: (arg0: boolean) => void;
   overlayMenu: JSX.Element | null;
 }
 
 export default function SaveDatasetActionButton({
-  toggleSave,
+  setShowSave,
   overlayMenu,
 }: Props) {
   const theme = useTheme();
@@ -58,7 +58,7 @@ export default function SaveDatasetActionButton({
 
   return !overlayMenu ? (
     <Button
-      onClick={toggleSave}
+      onClick={() => setShowSave(true)}
       buttonStyle="primary"
       css={{ width: theme.gridUnit * 25 }}
     >
@@ -66,7 +66,7 @@ export default function SaveDatasetActionButton({
     </Button>
   ) : (
     <StyledDropdownButton
-      onClick={toggleSave}
+      onClick={() => setShowSave(true)}
       overlay={overlayMenu}
       icon={
         <Icons.CaretDown

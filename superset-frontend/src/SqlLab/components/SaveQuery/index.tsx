@@ -129,8 +129,6 @@ export default function SaveQuery({
     setDescription(e.target.value);
   };
 
-  const toggleSave = () => setShowSave(!showSave);
-
   const renderModalBody = () => (
     <Form layout="vertical">
       <Row>
@@ -171,7 +169,7 @@ export default function SaveQuery({
   return (
     <Styles className="SaveQuery">
       <SaveDatasetActionButton
-        toggleSave={toggleSave}
+        setShowSave={setShowSave}
         overlayMenu={canExploreDatabase ? overlayMenu : null}
       />
       <SaveDatasetModal
