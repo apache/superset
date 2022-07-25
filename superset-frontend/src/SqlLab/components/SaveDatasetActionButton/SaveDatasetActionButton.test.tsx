@@ -32,7 +32,7 @@ describe('SaveDatasetActionButton', () => {
   it('renders a split save button', () => {
     render(
       <SaveDatasetActionButton
-        toggleSave={() => {}}
+        setShowSave={() => true}
         overlayMenu={overlayMenu}
       />,
     );
@@ -47,7 +47,7 @@ describe('SaveDatasetActionButton', () => {
   it('renders a "save dataset" dropdown menu item when user clicks caret button', () => {
     render(
       <SaveDatasetActionButton
-        toggleSave={() => {}}
+        setShowSave={() => true}
         overlayMenu={overlayMenu}
       />,
     );
