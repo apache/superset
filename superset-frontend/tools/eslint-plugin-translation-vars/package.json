@@ -1,0 +1,20 @@
+{
+  "name": "eslint-plugin-translation-vars",
+  "version": "1.0.0",
+  "description": "Warns about translation variables",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "license": "Apache-2.0",
+  "author": "Apache",
+  "dependencies": {},
+  "peerDependencies": {
+    "eslint": ">=0.8.0"
+  },
+  "engines": {
+    "node": "^16.9.1",
+    "npm": "^7.5.4"
+  }
+}

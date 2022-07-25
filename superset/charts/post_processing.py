@@ -18,7 +18,7 @@
 Functions to reproduce the post-processing of data on text charts.
 
 Some text-based charts (pivot tables and t-test table) perform
-post-processing of the data in Javascript. When sending the data
+post-processing of the data in JavaScript. When sending the data
 to users in reports we want to show the same data they would see
 on Explore.
 
@@ -44,6 +44,8 @@ from superset.common.query_context import QueryContext
 if TYPE_CHECKING:
     from superset.connectors.base.models import BaseDatasource
 
+config = app.config
+logger = logging.getLogger(__name__)
 
 def get_column_key(label: Tuple[str, ...], metrics: List[str]) -> Tuple[Any, ...]:
     """
@@ -305,9 +307,20 @@ def table(
     return df
 
 
-def cccs_grid(result: Dict[Any, Any], form_data: Dict[str, Any]) -> Dict[Any, Any]:
+def AgGrid(result: Dict[Any, Any], form_data: Dict[str, Any]) -> Dict[Any, Any]:
     """
     CCCS Grid.
+    """
+    try:
+        result["queries"][0]["agGridLicenseKey"] = config["AG_GRID_LICENSE_KEY"]
+    except KeyError as err:
+        logger.exception(err)
+
+    return result
+
+def AtAGlanceUserIDCore(result: Dict[Any, Any], form_data: Dict[str, Any]) -> Dict[Any, Any]:
+    """
+    AAG User ID.
     """
     try:
         result["queries"][0]["agGridLicenseKey"] = config["AG_GRID_LICENSE_KEY"]
@@ -320,10 +333,15 @@ def cccs_grid(result: Dict[Any, Any], form_data: Dict[str, Any]) -> Dict[Any, An
 post_processors = {
     "pivot_table": pivot_table,
     "pivot_table_v2": pivot_table_v2,
-    "cccs_grid": cccs_grid,
     "table": table,
+    "cccs_grid": AgGrid,
+    "at_a_glance_user_id": AgGrid,
+    "at_a_glance_ip": AgGrid,
+    "at_a_glance_dns": AgGrid,
+    "at_a_glance_user_id_sas": AgGrid
 }
 
+rawPostProcess = ["cccs_grid", "at_a_glance_user_id", "at_a_glance_ip", "at_a_glance_dns", "at_a_glance_user_id_sas"]
 
 def apply_post_process(
     result: Dict[Any, Any],
@@ -356,7 +374,7 @@ def apply_post_process(
             query["rowcount"] = len(processed_df.index)
     else:
         result = post_processor(result, form_data)
-    if viz_type == 'cccs_grid':
+    if viz_type in rawPostProcess:
         result = post_processor(result, form_data)
     else:
         for query in result["queries"]:

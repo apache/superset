@@ -16,9 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { ColumnState } from '@ag-grid-enterprise/all-modules';
 import {
   ChartDataResponseResult,
   ChartProps,
+  HandlerFunction,
   QueryFormData,
   SetDataMaskHook,
   supersetTheme,
@@ -30,6 +32,10 @@ export type CccsGridQueryFormData = QueryFormData & {
   setDataMask?: SetDataMaskHook;
   selectedValues?: Record<number, string>;
   emitFilter: boolean;
+  include_search: boolean;
+  page_length: number;
+  enable_grouping: boolean;
+  column_state: ColumnState[];
 };
 
 export interface CccsGridStylesProps {
@@ -41,7 +47,6 @@ export interface CccsGridStylesProps {
 
 // @ts-ignore
 export const DEFAULT_FORM_DATA: CccsGridQueryFormData = {
-  emitFilter: false,
   result_type: 'post_processed',
   viz_type: 'cccs_grid',
 };
@@ -60,6 +65,7 @@ export class CccsGridChartProps extends ChartProps {
 export interface CccsGridTransformedProps extends CccsGridStylesProps {
   formData: CccsGridQueryFormData;
   setDataMask: SetDataMaskHook;
+  setControlValue: HandlerFunction;
   selectedValues: Record<number, string>;
   emitFilter: boolean;
   data: TimeseriesDataRecord[];
@@ -71,6 +77,10 @@ export interface CccsGridTransformedProps extends CccsGridStylesProps {
   defaultColDef: any;
   rowSelection: any;
   filters: any;
+  include_search: boolean;
+  page_length: number;
+  enable_grouping: boolean;
+  column_state: ColumnState[];
   // add typing here for the props you pass in from transformProps.ts!
   agGridLicenseKey: string;
 }

@@ -21,12 +21,15 @@ import {
   AnnotationLayer,
   CategoricalColorNamespace,
   DataRecordValue,
-  TimeseriesDataRecord,
+  DTTM_ALIAS,
+  GenericDataType,
+  getColumnLabel,
   getNumberFormatter,
   isEventAnnotationLayer,
   isFormulaAnnotationLayer,
   isIntervalAnnotationLayer,
   isTimeseriesAnnotationLayer,
+  TimeseriesDataRecord,
 } from '@superset-ui/core';
 import { EChartsCoreOption, SeriesOption } from 'echarts';
 import {
@@ -41,6 +44,8 @@ import {
   currentSeries,
   dedupSeries,
   extractSeries,
+  getAxisType,
+  getColtypesMapping,
   getLegendProps,
 } from '../utils/series';
 import { extractAnnotationLabels } from '../utils/annotation';
@@ -62,7 +67,7 @@ import {
   transformSeries,
   transformTimeseriesAnnotation,
 } from '../Timeseries/transformers';
-import { TIMESERIES_CONSTANTS } from '../constants';
+import { TIMESERIES_CONSTANTS, TIMEGRAIN_TO_TIMESTAMP } from '../constants';
 
 export default function transformProps(
   chartProps: EchartsMixedTimeseriesProps,
@@ -75,9 +80,9 @@ export default function transformProps(
     hooks,
     filterState,
     datasource,
+    theme,
+    annotationData = {},
   } = chartProps;
-  const { annotation_data: annotationData_ } = queriesData[0];
-  const annotationData = annotationData_ || {};
   const { verboseMap = {} } = datasource;
   const data1 = (queriesData[0].data || []) as TimeseriesDataRecord[];
   const data2 = (queriesData[1].data || []) as TimeseriesDataRecord[];
@@ -123,24 +128,35 @@ export default function transformProps(
     groupbyB,
     emitFilter,
     emitFilterB,
+    xAxis: xAxisOrig,
     xAxisTitle,
     yAxisTitle,
     xAxisTitleMargin,
     yAxisTitleMargin,
     yAxisTitlePosition,
     sliceId,
+    timeGrainSqla,
   }: EchartsMixedTimeseriesFormData = { ...DEFAULT_FORM_DATA, ...formData };
 
   const colorScale = CategoricalColorNamespace.getScale(colorScheme as string);
+
+  const xAxisCol =
+    verboseMap[xAxisOrig] || getColumnLabel(xAxisOrig || DTTM_ALIAS);
+
   const rebasedDataA = rebaseForecastDatum(data1, verboseMap);
   const rawSeriesA = extractSeries(rebasedDataA, {
     fillNeighborValue: stack ? 0 : undefined,
+    xAxis: xAxisCol,
   });
   const rebasedDataB = rebaseForecastDatum(data2, verboseMap);
   const rawSeriesB = extractSeries(rebasedDataB, {
     fillNeighborValue: stackB ? 0 : undefined,
+    xAxis: xAxisCol,
   });
 
+  const dataTypes = getColtypesMapping(queriesData[0]);
+  const xAxisDataType = dataTypes?.[xAxisCol];
+  const xAxisType = getAxisType(xAxisDataType);
   const series: SeriesOption[] = [];
   const formatter = getNumberFormatter(contributionMode ? ',.0%' : yAxisFormat);
   const formatterSecondary = getNumberFormatter(
@@ -174,7 +190,7 @@ export default function transformProps(
       areaOpacity: opacity,
       seriesType,
       showValue,
-      stack,
+      stack: Boolean(stack),
       yAxisIndex,
       filterState,
       seriesKey: entry.name,
@@ -191,7 +207,7 @@ export default function transformProps(
       areaOpacity: opacityB,
       seriesType: seriesTypeB,
       showValue: showValueB,
-      stack: stackB,
+      stack: Boolean(stackB),
       yAxisIndex: yAxisIndexB,
       filterState,
       seriesKey: primarySeries.has(entry.name as string)
@@ -216,6 +232,7 @@ export default function transformProps(
             data1,
             annotationData,
             colorScale,
+            theme,
             sliceId,
           ),
         );
@@ -226,6 +243,7 @@ export default function transformProps(
             data1,
             annotationData,
             colorScale,
+            theme,
             sliceId,
           ),
         );
@@ -236,6 +254,8 @@ export default function transformProps(
             markerSize,
             data1,
             annotationData,
+            colorScale,
+            sliceId,
           ),
         );
       }
@@ -250,8 +270,14 @@ export default function transformProps(
     if (max === undefined) max = 1;
   }
 
-  const tooltipTimeFormatter = getTooltipTimeFormatter(tooltipTimeFormat);
-  const xAxisFormatter = getXAxisFormatter(xAxisTimeFormat);
+  const tooltipFormatter =
+    xAxisDataType === GenericDataType.TEMPORAL
+      ? getTooltipTimeFormatter(tooltipTimeFormat)
+      : String;
+  const xAxisFormatter =
+    xAxisDataType === GenericDataType.TEMPORAL
+      ? getXAxisFormatter(xAxisTimeFormat)
+      : String;
 
   const addYAxisTitleOffset = !!(yAxisTitle || yAxisTitleSecondary);
   const addXAxisTitleOffset = !!xAxisTitle;
@@ -293,7 +319,7 @@ export default function transformProps(
       ...chartPadding,
     },
     xAxis: {
-      type: 'time',
+      type: xAxisType,
       name: xAxisTitle,
       nameGap: convertInteger(xAxisTitleMargin),
       nameLocation: 'middle',
@@ -301,6 +327,10 @@ export default function transformProps(
         formatter: xAxisFormatter,
         rotate: xAxisLabelRotation,
       },
+      minInterval:
+        xAxisType === 'time' && timeGrainSqla
+          ? TIMEGRAIN_TO_TIMESTAMP[timeGrainSqla]
+          : 0,
     },
     yAxis: [
       {
@@ -345,7 +375,7 @@ export default function transformProps(
           forecastValue.sort((a, b) => b.data[1] - a.data[1]);
         }
 
-        const rows: Array<string> = [`${tooltipTimeFormatter(xValue)}`];
+        const rows: Array<string> = [`${tooltipFormatter(xValue)}`];
         const forecastValues =
           extractForecastValuesFromTooltipParams(forecastValue);
 

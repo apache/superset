@@ -154,11 +154,15 @@ export function getChartPermalink(
   });
 }
 
-export function getDashboardPermalink(
-  dashboardId: string,
-  filterState: JsonObject,
-  hash?: string,
-) {
+export function getDashboardPermalink({
+  dashboardId,
+  filterState,
+  hash, // the anchor part of the link which corresponds to the tab/chart id
+}: {
+  dashboardId: string | number;
+  filterState: JsonObject;
+  hash?: string;
+}) {
   // only encode filter box state if non-empty
   return getPermalink(`/api/v1/dashboard/${dashboardId}/permalink`, {
     filterState,

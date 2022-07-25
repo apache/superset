@@ -30,7 +30,6 @@ describe('extractExtras', () => {
     expect(
       extractExtras({
         ...baseQueryFormData,
-        time_range_endpoints: ['inclusive', 'exclusive'],
         extra_filters: [
           {
             col: '__time_col',
@@ -57,7 +56,6 @@ describe('extractExtras', () => {
       },
       extras: {
         time_grain_sqla: 'PT5M',
-        time_range_endpoints: ['inclusive', 'exclusive'],
       },
       filters: [],
       granularity: 'ds2',
@@ -107,7 +105,6 @@ describe('extractExtras', () => {
     expect(
       extractExtras({
         ...baseQueryFormData,
-        time_range_endpoints: ['inclusive', 'exclusive'],
         extra_filters: [
           {
             col: 'gender',
@@ -139,7 +136,6 @@ describe('extractExtras', () => {
       },
       extras: {
         time_grain_sqla: 'PT5M',
-        time_range_endpoints: ['inclusive', 'exclusive'],
       },
       filters: [
         {

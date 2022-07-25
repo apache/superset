@@ -348,3 +348,7 @@ export const getSimpleSQLExpression = (subject, operator, comparator) => {
   }
   return expression;
 };
+
+export function formatSelectOptions(options) {
+  return options.map(opt => [opt, opt.toString()]);
+}

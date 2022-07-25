@@ -52,11 +52,6 @@ const UrlListItem = {
   padding: 0,
 };
 
-const HostList = {
-  maxHeight: 200,
-  overflow: 'auto',
-};
-
 const RowBullet = {
   display: 'list-item',
   'list-style-type': 'disc',
@@ -75,7 +70,7 @@ const AtAGlance = {
 };
 
 const Table = {
-  width: '75%',
+  width: '500px',
 };
 
 const AtAGlanceLists = {
@@ -92,7 +87,6 @@ const styles = {
   SectionTitle,
   UrlList,
   UrlListItem,
-  HostList,
   RowBullet,
   HostnameTitle,
   AtAGlance,

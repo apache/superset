@@ -124,3 +124,28 @@ def test_boxplot_percentile_incorrect_params():
             metrics=["cars"],
             percentiles=[10, 90, 10],
         )
+
+
+def test_boxplot_type_coercion():
+    df = names_df
+    df["cars"] = df["cars"].astype(str)
+    df = boxplot(
+        df=df,
+        groupby=["region"],
+        whisker_type=PostProcessingBoxplotWhiskerType.TUKEY,
+        metrics=["cars"],
+    )
+
+    columns = {column for column in df.columns}
+    assert columns == {
+        "cars__mean",
+        "cars__median",
+        "cars__q1",
+        "cars__q3",
+        "cars__max",
+        "cars__min",
+        "cars__count",
+        "cars__outliers",
+        "region",
+    }
+    assert len(df) == 4

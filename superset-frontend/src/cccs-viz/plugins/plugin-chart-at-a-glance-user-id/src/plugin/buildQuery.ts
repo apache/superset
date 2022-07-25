@@ -38,7 +38,13 @@ export default function buildQuery(formData: QueryFormData) {
    We fire multiple queries to multiple data sets and collect the results here.
    */
 
-  return buildQueryContext(formData, baseQueryObject => {
+  const formDataCopy = {
+    ...formData,
+    viz_type: 'at_a_glance_user_id',
+    result_type: 'post_processed',
+  };
+
+  return buildQueryContext(formDataCopy, baseQueryObject => {
     // RAW mode (not aggregated)
     // eslint-disable-next-line no-param-reassign
     baseQueryObject.metrics = undefined;

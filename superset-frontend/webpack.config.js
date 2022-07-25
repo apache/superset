@@ -363,7 +363,7 @@ const config = {
           {
             loader: 'css-loader',
             options: {
-              sourceMap: isDevMode,
+              sourceMap: true,
             },
           },
         ],
@@ -376,14 +376,16 @@ const config = {
           {
             loader: 'css-loader',
             options: {
-              sourceMap: isDevMode,
+              sourceMap: true,
             },
           },
           {
             loader: 'less-loader',
             options: {
-              sourceMap: isDevMode,
-              javascriptEnabled: true,
+              sourceMap: true,
+              lessOptions: {
+                javascriptEnabled: true,
+              },
             },
           },
         ],
@@ -414,6 +416,7 @@ const config = {
               svgoConfig: {
                 plugins: {
                   removeViewBox: false,
+                  icon: true,
                 },
               },
             },
@@ -449,7 +452,7 @@ const config = {
     'react/lib/ReactContext': true,
   },
   plugins,
-  devtool: false,
+  devtool: 'source-map',
 };
 
 // find all the symlinked plugins and use their source code for imports

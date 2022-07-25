@@ -44,6 +44,9 @@ import {
   ExtraControlProps,
   ControlState,
   emitFilterControl,
+  Dataset,
+  ColumnMeta,
+  defineSavedMetrics,
 } from '@superset-ui/chart-controls';
 
 import i18n from './i18n';
@@ -117,6 +120,7 @@ const all_columns: typeof sharedControls.groupby = {
         : [],
   }),
   visibility: isRawMode,
+  resetOnHide: false,
 };
 
 const dnd_all_columns: typeof sharedControls.groupby = {
@@ -126,12 +130,12 @@ const dnd_all_columns: typeof sharedControls.groupby = {
   default: [],
   mapStateToProps({ datasource, controls }, controlState) {
     const newState: ExtraControlProps = {};
-    if (datasource) {
-      const options = datasource.columns;
+    if (datasource?.columns[0]?.hasOwnProperty('column_name')) {
+      const options = (datasource as Dataset).columns;
       newState.options = Object.fromEntries(
-        options.map(option => [option.column_name, option]),
+        options.map((option: ColumnMeta) => [option.column_name, option]),
       );
-    }
+    } else newState.options = datasource?.columns;
     newState.queryMode = getQueryMode(controls);
     newState.externalValidationErrors =
       isRawMode({ controls }) && ensureIsArray(controlState.value).length === 0
@@ -140,6 +144,7 @@ const dnd_all_columns: typeof sharedControls.groupby = {
     return newState;
   },
   visibility: isRawMode,
+  resetOnHide: false,
 };
 
 const percent_metrics: typeof sharedControls.metrics = {
@@ -150,9 +155,10 @@ const percent_metrics: typeof sharedControls.metrics = {
   ),
   multi: true,
   visibility: isAggMode,
+  resetOnHide: false,
   mapStateToProps: ({ datasource, controls }, controlState) => ({
     columns: datasource?.columns || [],
-    savedMetrics: datasource?.metrics || [],
+    savedMetrics: defineSavedMetrics(datasource),
     datasource,
     datasourceType: datasource?.type,
     queryMode: getQueryMode(controls),
@@ -190,6 +196,7 @@ const config: ControlPanelConfig = {
             name: 'groupby',
             override: {
               visibility: isAggMode,
+              resetOnHide: false,
               mapStateToProps: (
                 state: ControlPanelState,
                 controlState: ControlState,
@@ -220,12 +227,17 @@ const config: ControlPanelConfig = {
             override: {
               validators: [],
               visibility: isAggMode,
+              resetOnHide: false,
               mapStateToProps: (
                 { controls, datasource, form_data }: ControlPanelState,
                 controlState: ControlState,
               ) => ({
-                columns: datasource?.columns.filter(c => c.filterable) || [],
-                savedMetrics: datasource?.metrics || [],
+                columns: datasource?.columns[0]?.hasOwnProperty('filterable')
+                  ? (datasource as Dataset)?.columns?.filter(
+                      (c: ColumnMeta) => c.filterable,
+                    )
+                  : datasource?.columns,
+                savedMetrics: defineSavedMetrics(datasource),
                 // current active adhoc metrics
                 selectedMetrics:
                   form_data.metrics ||
@@ -263,6 +275,7 @@ const config: ControlPanelConfig = {
             name: 'timeseries_limit_metric',
             override: {
               visibility: isAggMode,
+              resetOnHide: false,
             },
           },
           {
@@ -274,9 +287,12 @@ const config: ControlPanelConfig = {
               multi: true,
               default: [],
               mapStateToProps: ({ datasource }) => ({
-                choices: datasource?.order_by_choices || [],
+                choices: datasource?.hasOwnProperty('order_by_choices')
+                  ? (datasource as Dataset)?.order_by_choices
+                  : datasource?.columns || [],
               }),
               visibility: isRawMode,
+              resetOnHide: false,
             },
           },
         ],
@@ -329,6 +345,7 @@ const config: ControlPanelConfig = {
               ),
               default: false,
               visibility: isAggMode,
+              resetOnHide: false,
             },
           },
           {
@@ -339,6 +356,7 @@ const config: ControlPanelConfig = {
               default: true,
               description: t('Whether to sort descending or ascending'),
               visibility: isAggMode,
+              resetOnHide: false,
             },
           },
         ],
@@ -353,6 +371,7 @@ const config: ControlPanelConfig = {
                 'Show total aggregations of selected metrics. Note that row limit does not apply to the result.',
               ),
               visibility: isAggMode,
+              resetOnHide: false,
             },
           },
         ],
@@ -393,7 +412,6 @@ const config: ControlPanelConfig = {
                 !controls?.server_pagination?.value,
             },
           },
-          null,
         ],
         [
           {
@@ -447,6 +465,20 @@ const config: ControlPanelConfig = {
         ],
         [
           {
+            name: 'allow_rearrange_columns',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Allow columns to be rearranged'),
+              renderTrigger: true,
+              default: false,
+              description: t(
+                "Allow end user to drag-and-drop column headers to rearrange them. Note their changes won't persist for the next time they open the chart.",
+              ),
+            },
+          },
+        ],
+        [
+          {
             name: 'column_config',
             config: {
               type: 'ColumnConfigControl',
@@ -481,7 +513,11 @@ const config: ControlPanelConfig = {
                 return true;
               },
               mapStateToProps(explore, _, chart) {
-                const verboseMap = explore?.datasource?.verbose_map ?? {};
+                const verboseMap = explore?.datasource?.hasOwnProperty(
+                  'verbose_map',
+                )
+                  ? (explore?.datasource as Dataset)?.verbose_map
+                  : explore?.datasource?.columns ?? {};
                 const { colnames, coltypes } =
                   chart?.queriesResponse?.[0] ?? {};
                 const numericColumns =
@@ -507,6 +543,11 @@ const config: ControlPanelConfig = {
       ],
     },
   ],
+  denormalizeFormData: formData => ({
+    ...formData,
+    metrics: formData.standardizedFormData.standardizedState.metrics,
+    groupby: formData.standardizedFormData.standardizedState.columns,
+  }),
 };
 
 export default config;

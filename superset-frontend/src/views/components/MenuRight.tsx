@@ -16,14 +16,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { Fragment, useState } from 'react';
-import { MainNav as Menu } from 'src/components/Menu';
-import { t, styled, css, SupersetTheme } from '@superset-ui/core';
-import { Link } from 'react-router-dom';
-import Icons from 'src/components/Icons';
-import findPermission from 'src/dashboard/util/findPermission';
+import React, { Fragment, useState, useEffect } from 'react';
+import rison from 'rison';
 import { useSelector } from 'react-redux';
+import { Link } from 'react-router-dom';
+import { useQueryParams, BooleanParam } from 'use-query-params';
+
+import {
+  t,
+  styled,
+  css,
+  SupersetTheme,
+  SupersetClient,
+} from '@superset-ui/core';
+import { MainNav as Menu } from 'src/components/Menu';
+import { Tooltip } from 'src/components/Tooltip';
+import Icons from 'src/components/Icons';
+import findPermission, { isUserAdmin } from 'src/dashboard/util/findPermission';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import { RootState } from 'src/dashboard/types';
+import { Tag } from 'antd';
 import LanguagePicker from './LanguagePicker';
 import DatabaseModal from '../CRUD/data/database/DatabaseModal';
 import { uploadUserPerms } from '../CRUD/utils';
@@ -43,6 +55,15 @@ const versionInfoStyles = (theme: SupersetTheme) => css`
 `;
 const StyledI = styled.div`
   color: ${({ theme }) => theme.colors.primary.dark1};
+`;
+
+const styledDisabled = (theme: SupersetTheme) => css`
+  color: ${theme.colors.grayscale.base};
+  backgroundColor: ${theme.colors.grayscale.light2}};
+  .ant-menu-item:hover {
+    color: ${theme.colors.grayscale.base};
+    cursor: default;
+  }
 `;
 
 const StyledDiv = styled.div<{ align: string }>`
@@ -68,10 +89,19 @@ const RightMenu = ({
   settings,
   navbarRight,
   isFrontendRoute,
-}: RightMenuProps) => {
-  const { roles } = useSelector<any, UserWithPermissionsAndRoles>(
+  environmentTag,
+  setQuery,
+}: RightMenuProps & {
+  setQuery: ({ databaseAdded }: { databaseAdded: boolean }) => void;
+}) => {
+  const user = useSelector<any, UserWithPermissionsAndRoles>(
     state => state.user,
   );
+  const dashboardId = useSelector<RootState, number | undefined>(
+    state => state.dashboardInfo?.id,
+  );
+
+  const { roles } = user;
   const {
     CSV_EXTENSIONS,
     COLUMNAR_EXTENSIONS,
@@ -86,16 +116,19 @@ const RightMenu = ({
   const canChart = findPermission('can_write', 'Chart', roles);
   const canDatabase = findPermission('can_write', 'Database', roles);
 
-  const { canUploadCSV, canUploadColumnar, canUploadExcel } = uploadUserPerms(
-    roles,
-    CSV_EXTENSIONS,
-    COLUMNAR_EXTENSIONS,
-    EXCEL_EXTENSIONS,
-    ALLOWED_EXTENSIONS,
-  );
+  const { canUploadData, canUploadCSV, canUploadColumnar, canUploadExcel } =
+    uploadUserPerms(
+      roles,
+      CSV_EXTENSIONS,
+      COLUMNAR_EXTENSIONS,
+      EXCEL_EXTENSIONS,
+      ALLOWED_EXTENSIONS,
+    );
 
-  const canUpload = canUploadCSV || canUploadColumnar || canUploadExcel;
   const showActionDropdown = canSql || canChart || canDashboard;
+  const [allowUploads, setAllowUploads] = useState<boolean>(false);
+  const isAdmin = isUserAdmin(user);
+  const showUploads = allowUploads || isAdmin;
   const dropdownItems: MenuObjectProps[] = [
     {
       label: t('Data'),
@@ -115,19 +148,19 @@ const RightMenu = ({
           label: t('Upload CSV to database'),
           name: 'Upload a CSV',
           url: '/csvtodatabaseview/form',
-          perm: canUploadCSV,
+          perm: canUploadCSV && showUploads,
         },
         {
           label: t('Upload columnar file to database'),
           name: 'Upload a Columnar file',
           url: '/columnartodatabaseview/form',
-          perm: canUploadColumnar,
+          perm: canUploadColumnar && showUploads,
         },
         {
           label: t('Upload Excel file to database'),
           name: 'Upload Excel',
           url: '/exceltodatabaseview/form',
-          perm: canUploadExcel,
+          perm: canUploadExcel && showUploads,
         },
       ],
     },
@@ -140,7 +173,9 @@ const RightMenu = ({
     },
     {
       label: t('Chart'),
-      url: '/chart/add',
+      url: Number.isInteger(dashboardId)
+        ? `/chart/add?dashboard_id=${dashboardId}`
+        : '/chart/add',
       icon: 'fa-fw fa-bar-chart',
       perm: 'can_write',
       view: 'Chart',
@@ -153,6 +188,25 @@ const RightMenu = ({
       view: 'Dashboard',
     },
   ];
+
+  const checkAllowUploads = () => {
+    const payload = {
+      filters: [
+        { col: 'allow_file_upload', opr: 'upload_is_enabled', value: true },
+      ],
+    };
+    SupersetClient.get({
+      endpoint: `/api/v1/database/?q=${rison.encode(payload)}`,
+    }).then(({ json }: Record<string, any>) => {
+      setAllowUploads(json.count >= 1);
+    });
+  };
+
+  useEffect(() => {
+    if (canUploadData) {
+      checkAllowUploads();
+    }
+  }, [canUploadData]);
 
   const menuIconAndLabel = (menu: MenuObjectProps) => (
     <>
@@ -175,14 +229,57 @@ const RightMenu = ({
     setShowModal(false);
   };
 
+  const isDisabled = isAdmin && !allowUploads;
+
+  const tooltipText = t(
+    "Enable 'Allow data upload' in any database's settings",
+  );
+
+  const buildMenuItem = (item: Record<string, any>) => {
+    const disabledText = isDisabled && item.url;
+    return disabledText ? (
+      <Menu.Item key={item.name} css={styledDisabled}>
+        <Tooltip placement="top" title={tooltipText}>
+          {item.label}
+        </Tooltip>
+      </Menu.Item>
+    ) : (
+      <Menu.Item key={item.name}>
+        {item.url ? <a href={item.url}> {item.label} </a> : item.label}
+      </Menu.Item>
+    );
+  };
+
+  const onMenuOpen = (openKeys: string[]) => {
+    if (openKeys.length && canUploadData) {
+      return checkAllowUploads();
+    }
+    return null;
+  };
+
+  const handleDatabaseAdd = () => setQuery({ databaseAdded: true });
+
   return (
     <StyledDiv align={align}>
-      <DatabaseModal
-        onHide={handleOnHideModal}
-        show={showModal}
-        dbEngine={engine}
-      />
-      <Menu selectable={false} mode="horizontal" onClick={handleMenuSelection}>
+      {canDatabase && (
+        <DatabaseModal
+          onHide={handleOnHideModal}
+          show={showModal}
+          dbEngine={engine}
+          onDatabaseAdd={handleDatabaseAdd}
+        />
+      )}
+      {environmentTag.text && (
+        <Tag css={{ borderRadius: '500px' }} color={environmentTag.color}>
+          {environmentTag.text}
+        </Tag>
+      )}
+      <Menu
+        selectable={false}
+        mode="horizontal"
+        onClick={handleMenuSelection}
+        onOpenChange={onMenuOpen}
+      >
         {!navbarRight.user_is_anonymous && showActionDropdown && (
           <SubMenu
             data-test="new-dropdown"
@@ -192,29 +289,31 @@ const RightMenu = ({
             icon={<Icons.TriangleDown />}
           >
             {dropdownItems.map(menu => {
+              const canShowChild = menu.childs?.some(
+                item => typeof item === 'object' && !!item.perm,
+              );
               if (menu.childs) {
-                return canDatabase || canUpload ? (
-                  <SubMenu
-                    key={`sub2_${menu.label}`}
-                    className="data-menu"
-                    title={menuIconAndLabel(menu)}
-                  >
-                    {menu.childs.map((item, idx) =>
-                      typeof item !== 'string' && item.name && item.perm ? (
-                        <Fragment key={item.name}>
-                          {idx === 2 && <Menu.Divider />}
-                          <Menu.Item>
-                            {item.url ? (
-                              <a href={item.url}> {item.label} </a>
-                            ) : (
-                              item.label
-                            )}
-                          </Menu.Item>
-                        </Fragment>
-                      ) : null,
-                    )}
-                  </SubMenu>
-                ) : null;
+                if (canShowChild) {
+                  return (
+                    <SubMenu
+                      key={`sub2_${menu.label}`}
+                      className="data-menu"
+                      title={menuIconAndLabel(menu)}
+                    >
+                      {menu.childs.map((item, idx) =>
+                        typeof item !== 'string' && item.name && item.perm ? (
+                          <Fragment key={item.name}>
+                            {idx === 2 && <Menu.Divider />}
+                            {buildMenuItem(item)}
+                          </Fragment>
+                        ) : null,
+                      )}
+                    </SubMenu>
+                  );
+                }
+                if (!menu.url) {
+                  return null;
+                }
               }
               return (
                 findPermission(
@@ -346,4 +445,43 @@ const RightMenu = ({
   );
 };
 
-export default RightMenu;
+const RightMenuWithQueryWrapper: React.FC<RightMenuProps> = props => {
+  const [, setQuery] = useQueryParams({
+    databaseAdded: BooleanParam,
+  });
+
+  return <RightMenu setQuery={setQuery} {...props} />;
+};
+
+// Query param manipulation requires that, during the setup, the
+// QueryParamProvider is present and configured.
+// Superset still has multiple entry points, and not all of them have
+// the same setup, and critically, not all of them have the QueryParamProvider.
+// This wrapper ensures the RightMenu renders regardless of the provider being present.
+class RightMenuErrorWrapper extends React.PureComponent<RightMenuProps> {
+  state = {
+    hasError: false,
+  };
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  noop = () => {};
+
+  render() {
+    if (this.state.hasError) {
+      return <RightMenu setQuery={this.noop} {...this.props} />;
+    }
+
+    return this.props.children;
+  }
+}
+
+const RightMenuWrapper: React.FC<RightMenuProps> = props => (
+  <RightMenuErrorWrapper {...props}>
+    <RightMenuWithQueryWrapper {...props} />
+  </RightMenuErrorWrapper>
+);
+
+export default RightMenuWrapper;

@@ -285,7 +285,8 @@ describe('buildQueryObject', () => {
         datasource: '5__table',
         granularity_sqla: 'ds',
         viz_type: 'table',
-        url_params: null as unknown as undefined,
+        // @ts-expect-error
+        url_params: null,
       }).url_params,
     ).toBeUndefined();
   });

@@ -27,8 +27,20 @@ function decreaseSizeUntil(
 ): number {
   let size = startSize;
   let dimension = computeDimension(size);
+
   while (!condition(dimension)) {
     size -= 1;
+
+    // Here if the size goes below zero most likely is because it
+    // has additional style applied in which case we assume the user
+    // knows what it's doing and we just let them use that.
+    // Visually it works, although it could have another
+    // check in place.
+    if (size < 0) {
+      size = startSize;
+      break;
+    }
+
     dimension = computeDimension(size);
   }
 
@@ -66,7 +78,7 @@ export default function computeMaxFontSize(
     size = decreaseSizeUntil(
       size,
       computeDimension,
-      dim => dim.width <= maxWidth,
+      dim => dim.width > 0 && dim.width <= maxWidth,
     );
   }
 
@@ -74,7 +86,7 @@ export default function computeMaxFontSize(
     size = decreaseSizeUntil(
       size,
       computeDimension,
-      dim => dim.height <= maxHeight,
+      dim => dim.height > 0 && dim.height <= maxHeight,
     );
   }
 

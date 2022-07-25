@@ -18,7 +18,6 @@ import json
 import logging
 import os
 import sys
-from datetime import datetime
 from typing import Optional
 
 import click
@@ -32,6 +31,7 @@ from flask_appbuilder.api.manager import resolver
 
 import superset.utils.database as database_utils
 from superset.extensions import db
+from superset.utils.core import override_user
 from superset.utils.encrypt import SecretsMigrator
 
 logger = logging.getLogger(__name__)
@@ -56,55 +56,33 @@ def set_database_uri(database_name: str, uri: str, skip_create: bool) -> None:
 @click.command()
 @with_appcontext
 @click.option(
-    "--datasource",
-    "-d",
-    help="Specify which datasource name to load, if "
-    "omitted, all datasources will be refreshed",
+    "--username",
+    "-u",
+    default=None,
+    help=(
+        "Specify which user should execute the underlying SQL queries. If undefined "
+        "defaults to the user registered with the database connection."
+    ),
 )
-@click.option(
-    "--merge",
-    "-m",
-    is_flag=True,
-    default=False,
-    help="Specify using 'merge' property during operation. " "Default value is False.",
-)
-def refresh_druid(datasource: str, merge: bool) -> None:
-    """Refresh druid datasources"""
-    # pylint: disable=import-outside-toplevel
-    from superset.connectors.druid.models import DruidCluster
-
-    session = db.session()
-
-    for cluster in session.query(DruidCluster).all():
-        try:
-            cluster.refresh_datasources(datasource_name=datasource, merge_flag=merge)
-        except Exception as ex:  # pylint: disable=broad-except
-            print("Error while processing cluster '{}'\n{}".format(cluster, str(ex)))
-            logger.exception(ex)
-        cluster.metadata_last_refreshed = datetime.now()
-        print("Refreshed metadata from cluster " "[" + cluster.cluster_name + "]")
-    session.commit()
-
-
-@click.command()
-@with_appcontext
-def update_datasources_cache() -> None:
+def update_datasources_cache(username: Optional[str]) -> None:
     """Refresh sqllab datasources cache"""
     # pylint: disable=import-outside-toplevel
+    from superset import security_manager
     from superset.models.core import Database
 
-    for database in db.session.query(Database).all():
-        if database.allow_multi_schema_metadata_fetch:
-            print("Fetching {} datasources ...".format(database.name))
-            try:
-                database.get_all_table_names_in_database(
-                    force=True, cache=True, cache_timeout=24 * 60 * 60
-                )
-                database.get_all_view_names_in_database(
-                    force=True, cache=True, cache_timeout=24 * 60 * 60
-                )
-            except Exception as ex:  # pylint: disable=broad-except
-                print("{}".format(str(ex)))
+    with override_user(security_manager.find_user(username)):
+        for database in db.session.query(Database).all():
+            if database.allow_multi_schema_metadata_fetch:
+                print("Fetching {} datasources ...".format(database.name))
+                try:
+                    database.get_all_table_names_in_database(
+                        force=True, cache=True, cache_timeout=24 * 60 * 60
+                    )
+                    database.get_all_view_names_in_database(
+                        force=True, cache=True, cache_timeout=24 * 60 * 60
+                    )
+                except Exception as ex:  # pylint: disable=broad-except
+                    print("{}".format(str(ex)))
 
 
 @click.command()

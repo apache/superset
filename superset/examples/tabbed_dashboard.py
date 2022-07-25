@@ -20,7 +20,6 @@ import textwrap
 
 from superset import db
 from superset.models.dashboard import Dashboard
-from superset.models.slice import Slice
 
 from .helpers import update_slice_ids
 
@@ -35,304 +34,492 @@ def load_tabbed_dashboard(_: bool = False) -> None:
     if not dash:
         dash = Dashboard()
 
-    # reuse charts in "World's Bank Data and create
-    # new dashboard with nested tabs
-    tabbed_dash_slices = set()
-    tabbed_dash_slices.add("Region Filter")
-    tabbed_dash_slices.add("Growth Rate")
-    tabbed_dash_slices.add("Treemap")
-    tabbed_dash_slices.add("Box plot")
-
     js = textwrap.dedent(
-        """\
-    {
-      "CHART-c0EjR-OZ0n": {
-        "children": [],
-        "id": "CHART-c0EjR-OZ0n",
-        "meta": {
-          "chartId": 870,
-          "height": 50,
-          "sliceName": "Box plot",
-          "width": 4
-        },
-        "parents": [
-          "ROOT_ID",
-          "TABS-lV0r00f4H1",
-          "TAB-NF3dlrWGS",
-          "ROW-7G2o5uDvfo"
-        ],
-        "type": "CHART"
-      },
-      "CHART-dxV7Il74hH": {
-        "children": [],
-        "id": "CHART-dxV7Il74hH",
-        "meta": {
-          "chartId": 797,
-          "height": 50,
-          "sliceName": "Treemap",
-          "width": 4
-        },
-        "parents": [
-          "ROOT_ID",
-          "TABS-lV0r00f4H1",
-          "TAB-gcQJxApOZS",
-          "TABS-afnrUvdxYF",
-          "TAB-jNNd4WWar1",
-          "ROW-7ygtDczaQ"
-        ],
-        "type": "CHART"
-      },
-      "CHART-jJ5Yj1Ptaz": {
-        "children": [],
-        "id": "CHART-jJ5Yj1Ptaz",
-        "meta": {
-          "chartId": 789,
-          "height": 50,
-          "sliceName": "World's Population",
-          "width": 4
-        },
-        "parents": [
-          "ROOT_ID",
-          "TABS-lV0r00f4H1",
-          "TAB-NF3dlrWGS",
-          "TABS-CSjo6VfNrj",
-          "TAB-z81Q87PD7",
-          "ROW-G73z9PIHn"
-        ],
-        "type": "CHART"
-      },
-      "CHART-z4gmEuCqQ5": {
-        "children": [],
-        "id": "CHART-z4gmEuCqQ5",
-        "meta": {
-          "chartId": 788,
-          "height": 50,
-          "sliceName": "Region Filter",
-          "width": 4
-        },
-        "parents": [
-          "ROOT_ID",
-          "TABS-lV0r00f4H1",
-          "TAB-NF3dlrWGS",
-          "TABS-CSjo6VfNrj",
-          "TAB-EcNm_wh922",
-          "ROW-LCjsdSetJ"
-        ],
-        "type": "CHART"
-      },
-      "DASHBOARD_VERSION_KEY": "v2",
-      "GRID_ID": {
-        "children": [],
-        "id": "GRID_ID",
-        "type": "GRID"
-      },
-      "HEADER_ID": {
-        "id": "HEADER_ID",
-        "meta": {
-          "text": "Tabbed Dashboard"
-        },
-        "type": "HEADER"
-      },
-      "ROOT_ID": {
-        "children": [
-          "TABS-lV0r00f4H1"
-        ],
-        "id": "ROOT_ID",
-        "type": "ROOT"
-      },
-      "ROW-7G2o5uDvfo": {
-        "children": [
-          "CHART-c0EjR-OZ0n"
-        ],
-        "id": "ROW-7G2o5uDvfo",
-        "meta": {
-          "background": "BACKGROUND_TRANSPARENT"
-        },
-        "parents": [
-          "ROOT_ID",
-          "TABS-lV0r00f4H1",
-          "TAB-NF3dlrWGS"
-        ],
-        "type": "ROW"
-      },
-      "ROW-7ygtDczaQ": {
-        "children": [
-          "CHART-dxV7Il74hH"
-        ],
-        "id": "ROW-7ygtDczaQ",
-        "meta": {
-          "background": "BACKGROUND_TRANSPARENT"
-        },
-        "parents": [
-          "ROOT_ID",
-          "TABS-lV0r00f4H1",
-          "TAB-gcQJxApOZS",
-          "TABS-afnrUvdxYF",
-          "TAB-jNNd4WWar1"
-        ],
-        "type": "ROW"
-      },
-      "ROW-G73z9PIHn": {
-        "children": [
-          "CHART-jJ5Yj1Ptaz"
-        ],
-        "id": "ROW-G73z9PIHn",
-        "meta": {
-          "background": "BACKGROUND_TRANSPARENT"
-        },
-        "parents": [
-          "ROOT_ID",
-          "TABS-lV0r00f4H1",
-          "TAB-NF3dlrWGS",
-          "TABS-CSjo6VfNrj",
-          "TAB-z81Q87PD7"
-        ],
-        "type": "ROW"
-      },
-      "ROW-LCjsdSetJ": {
-        "children": [
-          "CHART-z4gmEuCqQ5"
-        ],
-        "id": "ROW-LCjsdSetJ",
-        "meta": {
-          "background": "BACKGROUND_TRANSPARENT"
-        },
-        "parents": [
-          "ROOT_ID",
-          "TABS-lV0r00f4H1",
-          "TAB-NF3dlrWGS",
-          "TABS-CSjo6VfNrj",
-          "TAB-EcNm_wh922"
-        ],
-        "type": "ROW"
-      },
-      "TAB-EcNm_wh922": {
-        "children": [
-          "ROW-LCjsdSetJ"
-        ],
-        "id": "TAB-EcNm_wh922",
-        "meta": {
-          "text": "row tab 1"
-        },
-        "parents": [
-          "ROOT_ID",
-          "TABS-lV0r00f4H1",
-          "TAB-NF3dlrWGS",
-          "TABS-CSjo6VfNrj"
-        ],
-        "type": "TAB"
-      },
-      "TAB-NF3dlrWGS": {
-        "children": [
-          "ROW-7G2o5uDvfo",
-          "TABS-CSjo6VfNrj"
-        ],
-        "id": "TAB-NF3dlrWGS",
-        "meta": {
-          "text": "Tab A"
-        },
-        "parents": [
-          "ROOT_ID",
-          "TABS-lV0r00f4H1"
-        ],
-        "type": "TAB"
-      },
-      "TAB-gcQJxApOZS": {
-        "children": [
-          "TABS-afnrUvdxYF"
-        ],
-        "id": "TAB-gcQJxApOZS",
-        "meta": {
-          "text": "Tab B"
-        },
-        "parents": [
-          "ROOT_ID",
-          "TABS-lV0r00f4H1"
-        ],
-        "type": "TAB"
-      },
-      "TAB-jNNd4WWar1": {
-        "children": [
-          "ROW-7ygtDczaQ"
-        ],
-        "id": "TAB-jNNd4WWar1",
-        "meta": {
-          "text": "New Tab"
-        },
-        "parents": [
-          "ROOT_ID",
-          "TABS-lV0r00f4H1",
-          "TAB-gcQJxApOZS",
-          "TABS-afnrUvdxYF"
-        ],
-        "type": "TAB"
-      },
-      "TAB-z81Q87PD7": {
-        "children": [
-          "ROW-G73z9PIHn"
-        ],
-        "id": "TAB-z81Q87PD7",
-        "meta": {
-          "text": "row tab 2"
-        },
-        "parents": [
-          "ROOT_ID",
-          "TABS-lV0r00f4H1",
-          "TAB-NF3dlrWGS",
-          "TABS-CSjo6VfNrj"
-        ],
-        "type": "TAB"
-      },
-      "TABS-CSjo6VfNrj": {
-        "children": [
-          "TAB-EcNm_wh922",
-          "TAB-z81Q87PD7"
-        ],
-        "id": "TABS-CSjo6VfNrj",
-        "meta": {},
-        "parents": [
-          "ROOT_ID",
-          "TABS-lV0r00f4H1",
-          "TAB-NF3dlrWGS"
-        ],
-        "type": "TABS"
-      },
-      "TABS-afnrUvdxYF": {
-        "children": [
-          "TAB-jNNd4WWar1"
-        ],
-        "id": "TABS-afnrUvdxYF",
-        "meta": {},
-        "parents": [
-          "ROOT_ID",
-          "TABS-lV0r00f4H1",
-          "TAB-gcQJxApOZS"
-        ],
-        "type": "TABS"
-      },
-      "TABS-lV0r00f4H1": {
-        "children": [
-          "TAB-NF3dlrWGS",
-          "TAB-gcQJxApOZS"
-        ],
-        "id": "TABS-lV0r00f4H1",
-        "meta": {},
-        "parents": [
-          "ROOT_ID"
-        ],
-        "type": "TABS"
-      }
-    }
         """
+{
+    "CHART-06Kg-rUggO": {
+      "children": [],
+      "id": "CHART-06Kg-rUggO",
+      "meta": {
+        "chartId": 617,
+        "height": 42,
+        "sliceName": "Number of Girls",
+        "width": 4
+      },
+      "parents": [
+        "ROOT_ID",
+        "TABS-lV0r00f4H1",
+        "TAB-NF3dlrWGS",
+        "ROW-kHj58UJg5N",
+        "COLUMN-_o23occSTg",
+        "TABS-CslNeIC6x8",
+        "TAB-SDz1jDqYZ2",
+        "ROW-DnYkJgKQE"
+      ],
+      "type": "CHART"
+    },
+    "CHART-E4rQMdzY9-": {
+      "children": [],
+      "id": "CHART-E4rQMdzY9-",
+      "meta": {
+        "chartId": 616,
+        "height": 41,
+        "sliceName": "Names Sorted by Num in California",
+        "width": 4
+      },
+      "parents": [
+        "ROOT_ID",
+        "TABS-lV0r00f4H1",
+        "TAB-NF3dlrWGS",
+        "ROW-kHj58UJg5N",
+        "COLUMN-_o23occSTg",
+        "TABS-CslNeIC6x8",
+        "TAB-SDz1jDqYZ2",
+        "ROW-DnYkJgKQE"
+      ],
+      "type": "CHART"
+    },
+    "CHART-WO52N6b5de": {
+      "children": [],
+      "id": "CHART-WO52N6b5de",
+      "meta": {
+        "chartId": 615,
+        "height": 41,
+        "sliceName": "Top 10 California Names Timeseries",
+        "width": 8
+      },
+      "parents": [
+        "ROOT_ID",
+        "TABS-lV0r00f4H1",
+        "TAB-NF3dlrWGS",
+        "ROW-kHj58UJg5N",
+        "COLUMN-_o23occSTg",
+        "TABS-CslNeIC6x8",
+        "TAB-t54frVKlx",
+        "ROW-ghqEVzr2fA"
+      ],
+      "type": "CHART"
+    },
+    "CHART-c0EjR-OZ0n": {
+      "children": [],
+      "id": "CHART-c0EjR-OZ0n",
+      "meta": {
+        "chartId": 598,
+        "height": 50,
+        "sliceName": "Treemap",
+        "width": 4
+      },
+      "parents": [
+        "ROOT_ID",
+        "TABS-lV0r00f4H1",
+        "TAB-NF3dlrWGS",
+        "ROW-kHj58UJg5N",
+        "COLUMN-RGd6kjW57J"
+      ],
+      "type": "CHART"
+    },
+    "CHART-dxV7Il74hH": {
+      "children": [],
+      "id": "CHART-dxV7Il74hH",
+      "meta": {
+        "chartId": 597,
+        "height": 50,
+        "sliceName": "Box plot",
+        "width": 4
+      },
+      "parents": [
+        "ROOT_ID",
+        "TABS-lV0r00f4H1",
+        "TAB-gcQJxApOZS",
+        "TABS-afnrUvdxYF",
+        "TAB-jNNd4WWar1",
+        "ROW-7ygtDczaQ"
+      ],
+      "type": "CHART"
+    },
+    "CHART-jJ5Yj1Ptaz": {
+      "children": [],
+      "id": "CHART-jJ5Yj1Ptaz",
+      "meta": {
+        "chartId": 592,
+        "height": 29,
+        "sliceName": "Growth Rate",
+        "width": 5
+      },
+      "parents": [
+        "ROOT_ID",
+        "TABS-lV0r00f4H1",
+        "TAB-NF3dlrWGS",
+        "TABS-CSjo6VfNrj",
+        "TAB-z81Q87PD7",
+        "ROW-G73z9PIHn"
+      ],
+      "type": "CHART"
+    },
+    "CHART-z4gmEuCqQ5": {
+      "children": [],
+      "id": "CHART-z4gmEuCqQ5",
+      "meta": {
+        "chartId": 589,
+        "height": 50,
+        "sliceName": "Region Filter",
+        "width": 4
+      },
+      "parents": [
+        "ROOT_ID",
+        "TABS-lV0r00f4H1",
+        "TAB-NF3dlrWGS",
+        "TABS-CSjo6VfNrj",
+        "TAB-EcNm_wh922",
+        "ROW-LCjsdSetJ"
+      ],
+      "type": "CHART"
+    },
+    "COLUMN-RGd6kjW57J": {
+      "children": ["CHART-c0EjR-OZ0n"],
+      "id": "COLUMN-RGd6kjW57J",
+      "meta": { "background": "BACKGROUND_TRANSPARENT", "width": 4 },
+      "parents": [
+        "ROOT_ID",
+        "TABS-lV0r00f4H1",
+        "TAB-NF3dlrWGS",
+        "ROW-kHj58UJg5N"
+      ],
+      "type": "COLUMN"
+    },
+    "COLUMN-V6vsdWdOEJ": {
+      "children": ["TABS-urzRuDRusW"],
+      "id": "COLUMN-V6vsdWdOEJ",
+      "meta": { "background": "BACKGROUND_TRANSPARENT", "width": 7 },
+      "parents": [
+        "ROOT_ID",
+        "TABS-lV0r00f4H1",
+        "TAB-NF3dlrWGS",
+        "TABS-CSjo6VfNrj",
+        "TAB-z81Q87PD7",
+        "ROW-G73z9PIHn"
+      ],
+      "type": "COLUMN"
+    },
+    "COLUMN-_o23occSTg": {
+      "children": ["TABS-CslNeIC6x8"],
+      "id": "COLUMN-_o23occSTg",
+      "meta": { "background": "BACKGROUND_TRANSPARENT", "width": 8 },
+      "parents": [
+        "ROOT_ID",
+        "TABS-lV0r00f4H1",
+        "TAB-NF3dlrWGS",
+        "ROW-kHj58UJg5N"
+      ],
+      "type": "COLUMN"
+    },
+    "DASHBOARD_VERSION_KEY": "v2",
+    "GRID_ID": { "children": [], "id": "GRID_ID", "type": "GRID" },
+    "HEADER_ID": {
+      "id": "HEADER_ID",
+      "type": "HEADER",
+      "meta": { "text": "Tabbed Dashboard" }
+    },
+    "ROOT_ID": {
+      "children": ["TABS-lV0r00f4H1"],
+      "id": "ROOT_ID",
+      "type": "ROOT"
+    },
+    "ROW-7ygtDczaQ": {
+      "children": ["CHART-dxV7Il74hH"],
+      "id": "ROW-7ygtDczaQ",
+      "meta": { "background": "BACKGROUND_TRANSPARENT" },
+      "parents": [
+        "ROOT_ID",
+        "TABS-lV0r00f4H1",
+        "TAB-gcQJxApOZS",
+        "TABS-afnrUvdxYF",
+        "TAB-jNNd4WWar1"
+      ],
+      "type": "ROW"
+    },
+    "ROW-DnYkJgKQE": {
+      "children": ["CHART-06Kg-rUggO", "CHART-E4rQMdzY9-"],
+      "id": "ROW-DnYkJgKQE",
+      "meta": { "background": "BACKGROUND_TRANSPARENT" },
+      "parents": [
+        "ROOT_ID",
+        "TABS-lV0r00f4H1",
+        "TAB-NF3dlrWGS",
+        "ROW-kHj58UJg5N",
+        "COLUMN-_o23occSTg",
+        "TABS-CslNeIC6x8",
+        "TAB-SDz1jDqYZ2"
+      ],
+      "type": "ROW"
+    },
+    "ROW-G73z9PIHn": {
+      "children": ["CHART-jJ5Yj1Ptaz", "COLUMN-V6vsdWdOEJ"],
+      "id": "ROW-G73z9PIHn",
+      "meta": { "background": "BACKGROUND_TRANSPARENT" },
+      "parents": [
+        "ROOT_ID",
+        "TABS-lV0r00f4H1",
+        "TAB-NF3dlrWGS",
+        "TABS-CSjo6VfNrj",
+        "TAB-z81Q87PD7"
+      ],
+      "type": "ROW"
+    },
+    "ROW-LCjsdSetJ": {
+      "children": ["CHART-z4gmEuCqQ5"],
+      "id": "ROW-LCjsdSetJ",
+      "meta": { "background": "BACKGROUND_TRANSPARENT" },
+      "parents": [
+        "ROOT_ID",
+        "TABS-lV0r00f4H1",
+        "TAB-NF3dlrWGS",
+        "TABS-CSjo6VfNrj",
+        "TAB-EcNm_wh922"
+      ],
+      "type": "ROW"
+    },
+    "ROW-ghqEVzr2fA": {
+      "children": ["CHART-WO52N6b5de"],
+      "id": "ROW-ghqEVzr2fA",
+      "meta": { "background": "BACKGROUND_TRANSPARENT" },
+      "parents": [
+        "ROOT_ID",
+        "TABS-lV0r00f4H1",
+        "TAB-NF3dlrWGS",
+        "ROW-kHj58UJg5N",
+        "COLUMN-_o23occSTg",
+        "TABS-CslNeIC6x8",
+        "TAB-t54frVKlx"
+      ],
+      "type": "ROW"
+    },
+    "ROW-kHj58UJg5N": {
+      "children": ["COLUMN-RGd6kjW57J", "COLUMN-_o23occSTg"],
+      "id": "ROW-kHj58UJg5N",
+      "meta": { "background": "BACKGROUND_TRANSPARENT" },
+      "parents": ["ROOT_ID", "TABS-lV0r00f4H1", "TAB-NF3dlrWGS"],
+      "type": "ROW"
+    },
+    "TAB-0yhA2SgdPg": {
+      "children": ["ROW-Gr9YPyQGwf"],
+      "id": "TAB-0yhA2SgdPg",
+      "meta": {
+        "defaultText": "Tab title",
+        "placeholder": "Tab title",
+        "text": "Level 2 nested tab 1"
+      },
+      "parents": [
+        "ROOT_ID",
+        "TABS-lV0r00f4H1",
+        "TAB-NF3dlrWGS",
+        "TABS-CSjo6VfNrj",
+        "TAB-z81Q87PD7",
+        "ROW-G73z9PIHn",
+        "COLUMN-V6vsdWdOEJ",
+        "TABS-urzRuDRusW"
+      ],
+      "type": "TAB"
+    },
+    "TAB-3a1Gvm-Ef": {
+      "children": [],
+      "id": "TAB-3a1Gvm-Ef",
+      "meta": {
+        "defaultText": "Tab title",
+        "placeholder": "Tab title",
+        "text": "Level 2 nested tab 2"
+      },
+      "parents": [
+        "ROOT_ID",
+        "TABS-lV0r00f4H1",
+        "TAB-NF3dlrWGS",
+        "TABS-CSjo6VfNrj",
+        "TAB-z81Q87PD7",
+        "ROW-G73z9PIHn",
+        "COLUMN-V6vsdWdOEJ",
+        "TABS-urzRuDRusW"
+      ],
+      "type": "TAB"
+    },
+    "TAB-EcNm_wh922": {
+      "children": ["ROW-LCjsdSetJ"],
+      "id": "TAB-EcNm_wh922",
+      "meta": { "text": "row tab 1" },
+      "parents": [
+        "ROOT_ID",
+        "TABS-lV0r00f4H1",
+        "TAB-NF3dlrWGS",
+        "TABS-CSjo6VfNrj"
+      ],
+      "type": "TAB"
+    },
+    "TAB-NF3dlrWGS": {
+      "children": ["ROW-kHj58UJg5N", "TABS-CSjo6VfNrj"],
+      "id": "TAB-NF3dlrWGS",
+      "meta": { "text": "Tab A" },
+      "parents": ["ROOT_ID", "TABS-lV0r00f4H1"],
+      "type": "TAB"
+    },
+    "TAB-SDz1jDqYZ2": {
+      "children": ["ROW-DnYkJgKQE"],
+      "id": "TAB-SDz1jDqYZ2",
+      "meta": {
+        "defaultText": "Tab title",
+        "placeholder": "Tab title",
+        "text": "Nested tab 1"
+      },
+      "parents": [
+        "ROOT_ID",
+        "TABS-lV0r00f4H1",
+        "TAB-NF3dlrWGS",
+        "ROW-kHj58UJg5N",
+        "COLUMN-_o23occSTg",
+        "TABS-CslNeIC6x8"
+      ],
+      "type": "TAB"
+    },
+    "TAB-gcQJxApOZS": {
+      "children": ["TABS-afnrUvdxYF"],
+      "id": "TAB-gcQJxApOZS",
+      "meta": { "text": "Tab B" },
+      "parents": ["ROOT_ID", "TABS-lV0r00f4H1"],
+      "type": "TAB"
+    },
+    "TAB-jNNd4WWar1": {
+      "children": ["ROW-7ygtDczaQ"],
+      "id": "TAB-jNNd4WWar1",
+      "meta": { "text": "New Tab" },
+      "parents": [
+        "ROOT_ID",
+        "TABS-lV0r00f4H1",
+        "TAB-gcQJxApOZS",
+        "TABS-afnrUvdxYF"
+      ],
+      "type": "TAB"
+    },
+    "TAB-t54frVKlx": {
+      "children": ["ROW-ghqEVzr2fA"],
+      "id": "TAB-t54frVKlx",
+      "meta": {
+        "defaultText": "Tab title",
+        "placeholder": "Tab title",
+        "text": "Nested tab 2"
+      },
+      "parents": [
+        "ROOT_ID",
+        "TABS-lV0r00f4H1",
+        "TAB-NF3dlrWGS",
+        "ROW-kHj58UJg5N",
+        "COLUMN-_o23occSTg",
+        "TABS-CslNeIC6x8"
+      ],
+      "type": "TAB"
+    },
+    "TAB-z81Q87PD7": {
+      "children": ["ROW-G73z9PIHn"],
+      "id": "TAB-z81Q87PD7",
+      "meta": { "text": "row tab 2" },
+      "parents": [
+        "ROOT_ID",
+        "TABS-lV0r00f4H1",
+        "TAB-NF3dlrWGS",
+        "TABS-CSjo6VfNrj"
+      ],
+      "type": "TAB"
+    },
+    "TABS-CSjo6VfNrj": {
+      "children": ["TAB-EcNm_wh922", "TAB-z81Q87PD7"],
+      "id": "TABS-CSjo6VfNrj",
+      "meta": {},
+      "parents": ["ROOT_ID", "TABS-lV0r00f4H1", "TAB-NF3dlrWGS"],
+      "type": "TABS"
+    },
+    "TABS-CslNeIC6x8": {
+      "children": ["TAB-SDz1jDqYZ2", "TAB-t54frVKlx"],
+      "id": "TABS-CslNeIC6x8",
+      "meta": {},
+      "parents": [
+        "ROOT_ID",
+        "TABS-lV0r00f4H1",
+        "TAB-NF3dlrWGS",
+        "ROW-kHj58UJg5N",
+        "COLUMN-_o23occSTg"
+      ],
+      "type": "TABS"
+    },
+    "TABS-afnrUvdxYF": {
+      "children": ["TAB-jNNd4WWar1"],
+      "id": "TABS-afnrUvdxYF",
+      "meta": {},
+      "parents": ["ROOT_ID", "TABS-lV0r00f4H1", "TAB-gcQJxApOZS"],
+      "type": "TABS"
+    },
+    "TABS-lV0r00f4H1": {
+      "children": ["TAB-NF3dlrWGS", "TAB-gcQJxApOZS"],
+      "id": "TABS-lV0r00f4H1",
+      "meta": {},
+      "parents": ["ROOT_ID"],
+      "type": "TABS"
+    },
+    "TABS-urzRuDRusW": {
+      "children": ["TAB-0yhA2SgdPg", "TAB-3a1Gvm-Ef"],
+      "id": "TABS-urzRuDRusW",
+      "meta": {},
+      "parents": [
+        "ROOT_ID",
+        "TABS-lV0r00f4H1",
+        "TAB-NF3dlrWGS",
+        "TABS-CSjo6VfNrj",
+        "TAB-z81Q87PD7",
+        "ROW-G73z9PIHn",
+        "COLUMN-V6vsdWdOEJ"
+      ],
+      "type": "TABS"
+    },
+    "CHART-p4_VUp8w3w": {
+      "type": "CHART",
+      "id": "CHART-p4_VUp8w3w",
+      "children": [],
+      "parents": [
+        "ROOT_ID",
+        "TABS-lV0r00f4H1",
+        "TAB-NF3dlrWGS",
+        "TABS-CSjo6VfNrj",
+        "TAB-z81Q87PD7",
+        "ROW-G73z9PIHn",
+        "COLUMN-V6vsdWdOEJ",
+        "TABS-urzRuDRusW",
+        "TAB-0yhA2SgdPg",
+        "ROW-Gr9YPyQGwf"
+      ],
+      "meta": {
+        "width": 4,
+        "height": 20,
+        "chartId": 614,
+        "sliceName": "Number of California Births"
+      }
+    },
+    "ROW-Gr9YPyQGwf": {
+      "type": "ROW",
+      "id": "ROW-Gr9YPyQGwf",
+      "children": ["CHART-p4_VUp8w3w"],
+      "parents": [
+        "ROOT_ID",
+        "TABS-lV0r00f4H1",
+        "TAB-NF3dlrWGS",
+        "TABS-CSjo6VfNrj",
+        "TAB-z81Q87PD7",
+        "ROW-G73z9PIHn",
+        "COLUMN-V6vsdWdOEJ",
+        "TABS-urzRuDRusW",
+        "TAB-0yhA2SgdPg"
+      ],
+      "meta": { "background": "BACKGROUND_TRANSPARENT" }
+    }
+}"""
     )
     pos = json.loads(js)
-    slices = [
-        db.session.query(Slice).filter_by(slice_name=name).first()
-        for name in tabbed_dash_slices
-    ]
-
-    slices = sorted(slices, key=lambda x: x.id)
-    update_slice_ids(pos, slices)
+    slices = update_slice_ids(pos)
     dash.position_json = json.dumps(pos, indent=4)
     dash.slices = slices
     dash.dashboard_title = "Tabbed Dashboard"

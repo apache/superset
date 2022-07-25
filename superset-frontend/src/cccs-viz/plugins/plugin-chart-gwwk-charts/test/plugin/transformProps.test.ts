@@ -1,4 +1,4 @@
-import { ChartProps } from '@superset-ui/core';
+import { ChartProps, supersetTheme } from '@superset-ui/core';
 import transformProps from '../../src/Charts/transformProps';
 
 describe('GwwkCharts tranformProps', () => {
@@ -21,6 +21,7 @@ describe('GwwkCharts tranformProps', () => {
         data: [{ name: 'Hulk', sum__num: 1 }],
       },
     ],
+    theme: supersetTheme,
   });
 
   it('should transform chart props for viz', () => {

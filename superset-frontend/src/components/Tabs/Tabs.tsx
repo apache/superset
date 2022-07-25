@@ -96,27 +96,31 @@ const Tabs = Object.assign(StyledTabs, {
 });
 
 const StyledEditableTabs = styled(StyledTabs)`
-  .ant-tabs-content-holder {
-    background: white;
-  }
+  ${({ theme, fullWidth }) => `
+    .ant-tabs-content-holder {
+      background: ${theme.colors.grayscale.light5};
+    }
 
-  & > .ant-tabs-nav {
-    margin-bottom: 0;
-  }
+    & > .ant-tabs-nav {
+      margin-bottom: 0;
+    }
 
-  .ant-tabs-tab-remove {
-    padding-top: 0;
-    padding-bottom: 0;
-    height: ${({ theme }) => theme.gridUnit * 6}px;
-  }
+    .ant-tabs-tab-remove {
+      padding-top: 0;
+      padding-bottom: 0;
+      height: ${theme.gridUnit * 6}px;
+    }
 
-  ${({ fullWidth }) =>
-    fullWidth &&
-    css`
-      .ant-tabs-nav-list {
-        width: 100%;
-      }
-    `}
+    ${
+      fullWidth
+        ? css`
+            .ant-tabs-nav-list {
+              width: 100%;
+            }
+          `
+        : ''
+    }
+  `}
 `;
 
 const StyledCancelXIcon = styled(Icons.CancelX)`

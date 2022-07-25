@@ -31,6 +31,7 @@ import {
   getChartControlPanelRegistry,
   QueryFormData,
   DatasourceType,
+  supersetTheme,
 } from '@superset-ui/core';
 
 describe('ChartPlugin', () => {
@@ -47,6 +48,7 @@ describe('ChartPlugin', () => {
     force: false,
     result_format: 'json',
     result_type: 'full',
+    viz_type: 'table',
   });
 
   const controlPanel = { abc: 1 };
@@ -130,6 +132,7 @@ describe('ChartPlugin', () => {
         width: 400,
         height: 400,
         queriesData: [{}],
+        theme: supersetTheme,
       });
       it('defaults to identity function', () => {
         const plugin = new ChartPlugin({

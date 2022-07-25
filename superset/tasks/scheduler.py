@@ -72,6 +72,7 @@ def scheduler() -> None:
 
 @celery_app.task(name="reports.execute")
 def execute(report_schedule_id: int, scheduled_dttm: str) -> None:
+    task_id = None
     try:
         task_id = execute.request.id
         scheduled_dttm_ = parser.parse(scheduled_dttm)
@@ -80,12 +81,14 @@ def execute(report_schedule_id: int, scheduled_dttm: str) -> None:
             report_schedule_id,
             scheduled_dttm_,
         ).run()
-    except ReportScheduleUnexpectedError as ex:
-        logger.error(
-            "An unexpected occurred while executing the report: %s", ex, exc_info=True
+    except ReportScheduleUnexpectedError:
+        logger.exception(
+            "An unexpected occurred while executing the report: %s", task_id
         )
-    except CommandException as ex:
-        logger.info("Report state: %s", ex)
+    except CommandException:
+        logger.exception(
+            "A downstream exception occurred while generating" " a report: %s", task_id
+        )
 
 
 @celery_app.task(name="reports.prune_log")
@@ -95,8 +98,4 @@ def prune_log() -> None:
     except SoftTimeLimitExceeded as ex:
         logger.warning("A timeout occurred while pruning report schedule logs: %s", ex)
     except CommandException as ex:
-        logger.error(
-            "An exception occurred while pruning report schedule logs: %s",
-            ex,
-            exc_info=True,
-        )
+        logger.exception("An exception occurred while pruning report schedule logs")

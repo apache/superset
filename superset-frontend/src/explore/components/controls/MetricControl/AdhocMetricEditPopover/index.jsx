@@ -465,7 +465,10 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
               onChange={this.onSqlExpressionChange}
               width="100%"
               showGutter={false}
-              value={adhocMetric.sqlExpression || adhocMetric.translateToSql()}
+              value={
+                adhocMetric.sqlExpression ||
+                adhocMetric.translateToSql({ transformCountDistinct: true })
+              }
               editorProps={{ $blockScrolling: true }}
               enableLiveAutocompletion
               className="filter-sql-editor"

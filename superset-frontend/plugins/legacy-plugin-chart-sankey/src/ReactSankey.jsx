@@ -34,40 +34,42 @@ SankeyComponent.propTypes = {
 };
 
 export default styled(SankeyComponent)`
-  .superset-legacy-chart-sankey {
-    .node {
-      rect {
-        cursor: move;
-        fill-opacity: 0.9;
-        shape-rendering: crispEdges;
+  ${({ theme }) => `
+    .superset-legacy-chart-sankey {
+      .node {
+        rect {
+          cursor: move;
+          fill-opacity: ${theme.opacity.heavy};
+          shape-rendering: crispEdges;
+        }
+        text {
+          pointer-events: none;
+          text-shadow: 0 1px 0 ${theme.colors.grayscale.light5};
+          font-size: ${theme.typography.sizes.s}px;
+        }
       }
-      text {
-        pointer-events: none;
-        text-shadow: 0 1px 0 #fff;
-        font-size: ${({ fontSize }) => fontSize}em;
+      .link {
+        fill: none;
+        stroke: ${theme.colors.grayscale.dark2};
+        stroke-opacity: ${theme.opacity.light};
+        &:hover {
+          stroke-opacity: ${theme.opacity.mediumLight};
+        }
+      }
+      .opacity-0 {
+        opacity: 0;
       }
     }
-    .link {
-      fill: none;
-      stroke: #000;
-      stroke-opacity: 0.2;
-      &:hover {
-        stroke-opacity: 0.5;
-      }
+    .sankey-tooltip {
+      position: absolute;
+      width: auto;
+      background: ${theme.colors.grayscale.light2};
+      padding: ${theme.gridUnit * 3}px;
+      font-size: ${theme.typography.sizes.s}px;
+      color: ${theme.colors.grayscale.dark2};
+      border: 1px solid ${theme.colors.grayscale.light5};
+      text-align: center;
+      pointer-events: none;
     }
-    .opacity-0 {
-      opacity: 0;
-    }
-  }
-  .sankey-tooltip {
-    position: absolute;
-    width: auto;
-    background: #ddd;
-    padding: 10px;
-    font-size: ${({ fontSize }) => fontSize}em;
-    color: #000;
-    border: 1px solid #fff;
-    text-align: center;
-    pointer-events: none;
-  }
+  `}
 `;

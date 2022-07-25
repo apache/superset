@@ -104,11 +104,13 @@ const matchTimezoneToOptions = (timezone: string) =>
 export type TimezoneSelectorProps = {
   onTimezoneChange: (value: string) => void;
   timezone?: string | null;
+  minWidth?: string;
 };
 
 export default function TimezoneSelector({
   onTimezoneChange,
   timezone,
+  minWidth = MIN_SELECT_WIDTH, // smallest size for current values
 }: TimezoneSelectorProps) {
   const validTimezone = useMemo(
     () => matchTimezoneToOptions(timezone || moment.tz.guess()),
@@ -125,7 +127,7 @@ export default function TimezoneSelector({
   return (
     <Select
       ariaLabel={t('Timezone selector')}
-      css={{ minWidth: MIN_SELECT_WIDTH }} // smallest size for current values
+      css={{ minWidth }}
       onChange={tz => onTimezoneChange(tz as string)}
       value={validTimezone}
       options={TIMEZONE_OPTIONS}

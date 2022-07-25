@@ -51,18 +51,21 @@ describe('MetricOption', () => {
     expect(lbl).toHaveLength(1);
     expect(lbl.first().text()).toBe('Foo');
   });
-  it('shows 2 InfoTooltipWithTrigger', () => {
-    expect(wrapper.find('InfoTooltipWithTrigger')).toHaveLength(2);
+  it('shows a InfoTooltipWithTrigger', () => {
+    expect(wrapper.find('InfoTooltipWithTrigger')).toHaveLength(1);
+  });
+  it('shows SQL Popover trigger', () => {
+    expect(wrapper.find('SQLPopover')).toHaveLength(1);
   });
   it('shows a label with metric_name when no verbose_name', () => {
     props.metric.verbose_name = '';
     wrapper = shallow(factory(props));
     expect(wrapper.find('.option-label').first().text()).toBe('foo');
   });
-  it('shows only 1 InfoTooltipWithTrigger when no warning', () => {
+  it('doesnt show InfoTooltipWithTrigger when no warning', () => {
     props.metric.warning_text = '';
     wrapper = shallow(factory(props));
-    expect(wrapper.find('InfoTooltipWithTrigger')).toHaveLength(1);
+    expect(wrapper.find('InfoTooltipWithTrigger')).toHaveLength(0);
   });
   it('sets target="_blank" when openInNewWindow is true', () => {
     props.url = 'https://github.com/apache/incubator-superset';

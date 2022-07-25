@@ -909,17 +909,10 @@
         "Verwijderde %(num)d rapport schema’s"
       ],
       "Value must be greater than 0": ["Waarde moet groter zijn dan 0"],
-      "Alert query returned more then one row. %s rows returned": [
-        "Alert query heeft meer dan één rij geretourneerd. %s rijen geretourneerd"
-      ],
-      "Alert query returned more then one column. %s columns returned": [
-        "Alert query retourneerde meer dan één kolom. %s kolommen geretourneerd"
-      ],
       "Dashboard does not exist": ["Het dashboard bestaat niet"],
       "Chart does not exist": ["Grafiek bestaat niet"],
       "Database is required for alerts": [
         "Database is nodig voor waarschuwingen"
-      ],
       "Type is required": ["Type is vereist"],
       "Choose a chart or dashboard not both": [
         "Kies een grafiek of een dashboard, niet beide"
@@ -965,13 +958,13 @@
       "Report Schedule reached a working timeout.": [
         "Rapportage planning heeft een werk time-out bereikt."
       ],
-      "Alert query returned more then one row.": [
+      "Alert query returned more than one row.": [
         "Alert query retourneerde meer dan één rij."
       ],
       "Alert validator config error.": [
         "Waarschuwing validator configuratiefout."
       ],
-      "Alert query returned more then one column.": [
+      "Alert query returned more than one column.": [
         "Alert query heeft meer dan één kolom geretourneerd."
       ],
       "Alert query returned a non-number value.": [
@@ -1777,7 +1770,7 @@
         ""
       ],
       "D3 format syntax: https://github.com/d3/d3-format": [""],
-      "Adaptative formating": [""],
+      "Adaptive formatting": [""],
       "Duration in ms (66000 => 1m 6s)": [""],
       "Duration in ms (1.40008 => 1ms 400µs 80ns)": [""],
       "D3 time format syntax: https://github.com/d3/d3-time-format": [""],
@@ -3065,6 +3058,7 @@
       "Run selection": ["Selectie uitvoeren"],
       "Run": ["Uitvoeren"],
       "Stop running (Ctrl + x)": ["Stop de uitvoering (Ctrl + x)"],
+      "Stop running (Ctrl + e)": ["Stop de uitvoering (Ctrl + e)"],
       "Run query (Ctrl + Return)": ["Query uitvoeren (Ctrl + Return)"],
       "Save & Explore": ["Opslaan en verkennen"],
       "Overwrite & Explore": ["Overschrijven en verkennen"],

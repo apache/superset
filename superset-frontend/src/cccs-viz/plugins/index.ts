@@ -22,7 +22,6 @@ export { default as BigNumberChartPlugin } from './plugin-chart-big-number-curre
 export { default as GwwkChartsChartPlugin } from './plugin-chart-gwwk-charts/src/Charts';
 export { default as GwwkDatasetsChartPlugin } from './plugin-chart-gwwk-charts/src/Datasets';
 export { default as GwwkDashboardsChartPlugin } from './plugin-chart-gwwk-charts/src/Dashboards';
-export { default as IframeDemoChartPlugin } from './plugin-chart-iframe-demo/src/plugin';
 export { default as CccsGridChartPlugin } from './plugin-chart-cccs-grid/src/plugin';
 export { default as AtAGlanceChartIpPlugin } from './plugin-chart-at-a-glance-ip/src/plugin';
 export { default as AtAGlanceChartDnsPlugin } from './plugin-chart-at-a-glance-dns/src/plugin';

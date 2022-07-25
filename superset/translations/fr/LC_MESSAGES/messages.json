@@ -993,10 +993,10 @@
         "%(num)d planifications de rapport supprimées"
       ],
       "Value must be greater than 0": ["La valeur doit être plus grande que 0"],
-      "Alert query returned more then one row. %s rows returned": [
+      "Alert query returned more than one row. %s rows returned": [
         "La requête a retourné plus d'une ligne. %s lignes retournées"
       ],
-      "Alert query returned more then one column. %s columns returned": [
+      "Alert query returned more than one column. %s columns returned": [
         "La requête a retourné plus d'une colonne. %s colonnes retournées"
       ],
       "Dashboard does not exist": ["Le tableau de bord n'existe pas"],
@@ -1051,13 +1051,13 @@
       "Report Schedule reached a working timeout.": [
         "La planification de rapport a atteint un timeout d'exécution."
       ],
-      "Alert query returned more then one row.": [
+      "Alert query returned more than one row.": [
         "La requête a retourné plus d'une ligne."
       ],
       "Alert validator config error.": [
         "Erreur de configuration du validateur."
       ],
-      "Alert query returned more then one column.": [
+      "Alert query returned more than one column.": [
         "La requête a retourné plus d'une colonne."
       ],
       "Alert query returned a non-number value.": [
@@ -1898,6 +1898,7 @@
       "Run selection": ["Exécuter la sélection"],
       "Run": ["Exécuter"],
       "Stop running (Ctrl + x)": ["Arrêter l'exécution (Ctrl + x)"],
+      "Stop running (Ctrl + e)": ["Arrêter l'exécution (Ctrl + e)"],
       "Run query (Ctrl + Return)": ["Exécuter la requête (Ctrl + Return)"],
       "Save & Explore": ["Sauver et explorer"],
       "Overwrite & Explore": ["Modifier et explorer"],
@@ -3703,21 +3704,10 @@
       "Check to include time column dropdown": [
         "Cocher pour inclure la liste déroulante colonne Temps"
       ],
-      "Limit selector values": ["Limiter les valeurs"],
-      "These filters apply to the values available in the dropdowns": [
-        "Ces filtres s'appliquent aux valeurs disponibles dans les listes déroulantes"
-      ],
+      "Limit selector values": [""],
+      "These filters apply to the values available in the dropdowns": [""],
       "Time-series Table": ["Table de Séries temporelles"],
-      "Compare multiple time series charts (as sparklines) and related metrics quickly.": [
-        "Comparer rapidement des graphiques de multiple séries temporelles et leurs métriques."
-      ],
-      "Multi-Variables": ["Multi-Variables"],
-      "Comparison": ["Comparaison"],
-      "Legacy": ["Legacy"],
-      "Percentages": ["Pourcentages"],
-      "Tabular": ["Tabulaire"],
-      "Text": ["Zone de texte"],
-      "Trend": ["Tendance"]
+      "Copy the content of this control": ["Copier le contenu de ce contrôle"]
     }
   }
 }

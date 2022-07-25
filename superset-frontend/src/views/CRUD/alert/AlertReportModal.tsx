@@ -73,6 +73,7 @@ type SelectValue = {
 };
 
 interface AlertReportModalProps {
+  addSuccessToast: (msg: string) => void;
   addDangerToast: (msg: string) => void;
   alert?: AlertObject | null;
   isReport?: boolean;
@@ -153,6 +154,9 @@ const DEFAULT_ALERT = {
 };
 
 const StyledModal = styled(Modal)`
+  max-width: 1200px;
+  width: 100%;
+
   .ant-modal-body {
     overflow: initial;
   }
@@ -165,7 +169,6 @@ const StyledIcon = (theme: SupersetTheme) => css`
 
 const StyledSectionContainer = styled.div`
   display: flex;
-  min-width: 1000px;
   flex-direction: column;
 
   .header-section {
@@ -260,7 +263,7 @@ export const StyledInputContainer = styled.div`
   .helper {
     display: block;
     color: ${({ theme }) => theme.colors.grayscale.base};
-    font-size: ${({ theme }) => theme.typography.sizes.s - 1}px;
+    font-size: ${({ theme }) => theme.typography.sizes.s}px;
     padding: ${({ theme }) => theme.gridUnit}px 0;
     text-align: left;
   }
@@ -402,6 +405,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   show,
   alert = null,
   isReport = false,
+  addSuccessToast,
 }) => {
   const conf = useCommonConf();
   const allowedNotificationMethods: NotificationMethodOption[] =
@@ -555,6 +559,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             return;
           }
 
+          addSuccessToast(t('%s updated', data.type));
+
           if (onAdd) {
             onAdd();
           }
@@ -568,6 +574,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         if (!response) {
           return;
         }
+
+        addSuccessToast(t('%s updated', data.type));
 
         if (onAdd) {
           onAdd(response);
@@ -1242,6 +1250,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               <TimezoneSelector
                 onTimezoneChange={onTimezoneChange}
                 timezone={currentAlert?.timezone}
+                minWidth="100%"
               />
             </div>
             <StyledSectionTitle>

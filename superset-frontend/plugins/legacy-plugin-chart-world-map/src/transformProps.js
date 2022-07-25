@@ -25,6 +25,7 @@ export default function transformProps(chartProps) {
     showBubbles,
     linearColorScheme,
     colorPicker,
+    colorBy,
     colorScheme,
     sliceId,
   } = formData;
@@ -38,6 +39,7 @@ export default function transformProps(chartProps) {
     showBubbles,
     linearColorScheme,
     color: rgb(r, g, b).hex(),
+    colorBy,
     colorScheme,
     sliceId,
   };

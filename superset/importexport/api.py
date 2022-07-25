@@ -40,6 +40,7 @@ class ImportExportRestApi(BaseApi):
 
     resource_name = "assets"
     openapi_spec_tag = "Import/export"
+    allow_browser_login = True
 
     @expose("/export/", methods=["GET"])
     @protect()
@@ -63,8 +64,6 @@ class ImportExportRestApi(BaseApi):
                   schema:
                     type: string
                     format: binary
-            400:
-              $ref: '#/components/responses/400'
             401:
               $ref: '#/components/responses/401'
             404:
@@ -123,7 +122,7 @@ class ImportExportRestApi(BaseApi):
                       type: string
           responses:
             200:
-              description: Dashboard import result
+              description: Assets import result
               content:
                 application/json:
                   schema:

@@ -17,9 +17,10 @@
 import dataclasses
 import functools
 import logging
+import os
 import traceback
 from datetime import datetime
-from typing import Any, Callable, cast, Dict, List, Optional, TYPE_CHECKING, Union
+from typing import Any, Callable, cast, Dict, List, Optional, Union
 
 import simplejson as json
 import yaml
@@ -45,7 +46,7 @@ from flask_jwt_extended.exceptions import NoAuthorizationError
 from flask_wtf.csrf import CSRFError
 from flask_wtf.form import FlaskForm
 from pkg_resources import resource_filename
-from sqlalchemy import or_
+from sqlalchemy import exc, or_
 from sqlalchemy.orm import Query
 from werkzeug.exceptions import HTTPException
 from wtforms import Form
@@ -79,16 +80,12 @@ from superset.utils import core as utils
 
 from .utils import bootstrap_user_data
 
-if TYPE_CHECKING:
-    from superset.connectors.druid.views import DruidClusterModelView
-
 FRONTEND_CONF_KEYS = (
     "SUPERSET_WEBSERVER_TIMEOUT",
     "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT",
     "SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT",
     "SUPERSET_DASHBOARD_PERIODICAL_REFRESH_WARNING_MESSAGE",
     "DISABLE_DATASET_SOURCE_EDIT",
-    "DRUID_IS_ACTIVE",
     "ENABLE_JAVASCRIPT_CONTROLS",
     "DEFAULT_SQLLAB_LIMIT",
     "DEFAULT_VIZ_TYPE",
@@ -187,8 +184,8 @@ def api(f: Callable[..., FlaskResponse]) -> Callable[..., FlaskResponse]:
     def wraps(self: "BaseSupersetView", *args: Any, **kwargs: Any) -> FlaskResponse:
         try:
             return f(self, *args, **kwargs)
-        except NoAuthorizationError as ex:
-            logger.warning(ex)
+        except NoAuthorizationError:
+            logger.warning("Api failed- no authorization", exc_info=True)
             return json_error_response(get_error_msg(), status=401)
         except Exception as ex:  # pylint: disable=broad-except
             logger.exception(ex)
@@ -210,7 +207,7 @@ def handle_api_exception(
         try:
             return f(self, *args, **kwargs)
         except SupersetSecurityException as ex:
-            logger.warning(ex)
+            logger.warning("SupersetSecurityException", exc_info=True)
             return json_errors_response(
                 errors=[ex.error], status=ex.status, payload=ex.payload
             )
@@ -218,7 +215,7 @@ def handle_api_exception(
             logger.warning(ex, exc_info=True)
             return json_errors_response(errors=ex.errors, status=ex.status)
         except SupersetErrorException as ex:
-            logger.warning(ex)
+            logger.warning("SupersetErrorException", exc_info=True)
             return json_errors_response(errors=[ex.error], status=ex.status)
         except SupersetException as ex:
             if ex.status >= 500:
@@ -231,6 +228,9 @@ def handle_api_exception(
             return json_error_response(
                 utils.error_msg_from_exception(ex), status=cast(int, ex.code)
             )
+        except (exc.IntegrityError, exc.DatabaseError, exc.DataError) as ex:
+            logger.exception(ex)
+            return json_error_response(utils.error_msg_from_exception(ex), status=422)
         except Exception as ex:  # pylint: disable=broad-except
             logger.exception(ex)
             return json_error_response(utils.error_msg_from_exception(ex))
@@ -311,16 +311,22 @@ def menu_data() -> Dict[str, Any]:
     if callable(brand_text):
         brand_text = brand_text()
     build_number = appbuilder.app.config["BUILD_NUMBER"]
+    environment_tag = (
+        appbuilder.app.config["ENVIRONMENT_TAG_CONFIG"]["values"][
+            os.environ.get(appbuilder.app.config["ENVIRONMENT_TAG_CONFIG"]["variable"])
+        ]
+        or {}
+    )
     return {
         "menu": menu,
         "brand": {
             "path": appbuilder.app.config["LOGO_TARGET_PATH"] or "/",
             "icon": appbuilder.app_icon,
             "alt": appbuilder.app_name,
-            "width": appbuilder.app.config["APP_ICON_WIDTH"],
             "tooltip": appbuilder.app.config["LOGO_TOOLTIP"],
             "text": brand_text,
         },
+        "environment_tag": environment_tag,
         "navbar_right": {
             # show the watermark if the default app icon has been overriden
             "show_watermark": ("superset-logo-horiz" not in appbuilder.app_icon),
@@ -399,20 +405,20 @@ def get_error_level_from_status_code(  # pylint: disable=invalid-name
 # SupersetErrorException or SupersetErrorsException
 @superset_app.errorhandler(SupersetErrorException)
 def show_superset_error(ex: SupersetErrorException) -> FlaskResponse:
-    logger.warning(ex)
+    logger.warning("SupersetErrorException", exc_info=True)
     return json_errors_response(errors=[ex.error], status=ex.status)
 
 
 @superset_app.errorhandler(SupersetErrorsException)
 def show_superset_errors(ex: SupersetErrorsException) -> FlaskResponse:
-    logger.warning(ex)
+    logger.warning("SupersetErrorsException", exc_info=True)
     return json_errors_response(errors=ex.errors, status=ex.status)
 
 
 # Redirect to login if the CSRF token is expired
 @superset_app.errorhandler(CSRFError)
 def refresh_csrf_token(ex: CSRFError) -> FlaskResponse:
-    logger.warning(ex)
+    logger.warning("Refresh CSRF token error", exc_info=True)
 
     if request.is_json:
         return show_http_exception(ex)
@@ -422,7 +428,7 @@ def refresh_csrf_token(ex: CSRFError) -> FlaskResponse:
 
 @superset_app.errorhandler(HTTPException)
 def show_http_exception(ex: HTTPException) -> FlaskResponse:
-    logger.warning(ex)
+    logger.warning("HTTPException", exc_info=True)
     if (
         "text/html" in request.accept_mimetypes
         and not config["DEBUG"]
@@ -448,7 +454,7 @@ def show_http_exception(ex: HTTPException) -> FlaskResponse:
 # or SupersetErrorsException, with a specific status code and error type
 @superset_app.errorhandler(CommandException)
 def show_command_errors(ex: CommandException) -> FlaskResponse:
-    logger.warning(ex)
+    logger.warning("CommandException", exc_info=True)
     if "text/html" in request.accept_mimetypes and not config["DEBUG"]:
         path = resource_filename("superset", "static/assets/500.html")
         return send_file(path, cache_timeout=0), 500
@@ -622,10 +628,19 @@ class DatasourceFilter(BaseFilter):  # pylint: disable=too-few-public-methods
             return query
         datasource_perms = security_manager.user_view_menu_names("datasource_access")
         schema_perms = security_manager.user_view_menu_names("schema_access")
+        owner_ids_query = (
+            db.session.query(models.SqlaTable.id)
+            .join(models.SqlaTable.owners)
+            .filter(
+                security_manager.user_model.id
+                == security_manager.user_model.get_user_id()
+            )
+        )
         return query.filter(
             or_(
                 self.model.perm.in_(datasource_perms),
                 self.model.schema_perm.in_(schema_perms),
+                models.SqlaTable.id.in_(owner_ids_query),
             )
         )
 

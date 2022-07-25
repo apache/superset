@@ -43,9 +43,9 @@ from sqlalchemy import (
     Table,
     Text,
 )
-from sqlalchemy.engine import Connection, Dialect, Engine, url
+from sqlalchemy.engine import Connection, Dialect, Engine
 from sqlalchemy.engine.reflection import Inspector
-from sqlalchemy.engine.url import make_url, URL
+from sqlalchemy.engine.url import URL
 from sqlalchemy.exc import ArgumentError
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship
@@ -54,12 +54,14 @@ from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import expression, Select
 
 from superset import app, db_engine_specs, is_feature_enabled
+from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import TimeGrain
 from superset.extensions import cache_manager, encrypted_field_factory, security_manager
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 from superset.models.tags import FavStarUpdater
 from superset.result_set import SupersetResultSet
 from superset.utils import cache as cache_util, core as utils
+from superset.utils.core import get_username
 from superset.utils.memoized import memoized
 
 config = app.config
@@ -243,16 +245,16 @@ class Database(
 
     @property
     def url_object(self) -> URL:
-        return make_url(self.sqlalchemy_uri_decrypted)
+        return make_url_safe(self.sqlalchemy_uri_decrypted)
 
     @property
     def backend(self) -> str:
-        sqlalchemy_url = make_url(self.sqlalchemy_uri_decrypted)
-        return sqlalchemy_url.get_backend_name()  # pylint: disable=no-member
+        sqlalchemy_url = make_url_safe(self.sqlalchemy_uri_decrypted)
+        return sqlalchemy_url.get_backend_name()
 
     @property
     def parameters(self) -> Dict[str, Any]:
-        uri = make_url(self.sqlalchemy_uri_decrypted)
+        uri = make_url_safe(self.sqlalchemy_uri_decrypted)
         encrypted_extra = self.get_encrypted_extra()
         try:
             # pylint: disable=useless-suppression
@@ -304,7 +306,7 @@ class Database(
     def get_password_masked_url_from_uri(  # pylint: disable=invalid-name
         cls, uri: str
     ) -> URL:
-        sqlalchemy_url = make_url(uri)
+        sqlalchemy_url = make_url_safe(uri)
         return cls.get_password_masked_url(sqlalchemy_url)
 
     @classmethod
@@ -315,36 +317,28 @@ class Database(
         return url_copy
 
     def set_sqlalchemy_uri(self, uri: str) -> None:
-        conn = sqla.engine.url.make_url(uri.strip())
+        conn = make_url_safe(uri.strip())
         if conn.password != PASSWORD_MASK and not custom_password_store:
             # do not over-write the password with the password mask
             self.password = conn.password
         conn.password = PASSWORD_MASK if conn.password else None
         self.sqlalchemy_uri = str(conn)  # hides the password
 
-    def get_effective_user(
-        self,
-        object_url: URL,
-        user_name: Optional[str] = None,
-    ) -> Optional[str]:
+    def get_effective_user(self, object_url: URL) -> Optional[str]:
         """
         Get the effective user, especially during impersonation.
+
         :param object_url: SQL Alchemy URL object
-        :param user_name: Default username
         :return: The effective username
         """
-        effective_username = None
-        if self.impersonate_user:
-            effective_username = object_url.username
-            if user_name:
-                effective_username = user_name
-            elif (
-                hasattr(g, "user")
-                and hasattr(g.user, "username")
-                and g.user.username is not None
-            ):
-                effective_username = g.user.username
-        return effective_username
+
+        return (  # pylint: disable=used-before-assignment
+            username
+            if (username := get_username())
+            else object_url.username
+            if self.impersonate_user
+            else None
+        )
 
     @memoized(
         watch=(
@@ -358,13 +352,12 @@ class Database(
         self,
         schema: Optional[str] = None,
         nullpool: bool = True,
-        user_name: Optional[str] = None,
         source: Optional[utils.QuerySource] = None,
     ) -> Engine:
         extra = self.get_extra()
-        sqlalchemy_url = make_url(self.sqlalchemy_uri_decrypted)
+        sqlalchemy_url = make_url_safe(self.sqlalchemy_uri_decrypted)
         self.db_engine_spec.adjust_database_uri(sqlalchemy_url, schema)
-        effective_username = self.get_effective_user(sqlalchemy_url, user_name)
+        effective_username = self.get_effective_user(sqlalchemy_url)
         # If using MySQL or Presto for example, will set url.username
         # If using Hive, will not do anything yet since that relies on a
         # configuration parameter instead.
@@ -408,23 +401,22 @@ class Database(
         except Exception as ex:
             raise self.db_engine_spec.get_dbapi_mapped_exception(ex)
 
+    @property
+    def quote_identifier(self) -> Callable[[str], str]:
+        """Add quotes to potential identifiter expressions if needed"""
+        return self.get_dialect().identifier_preparer.quote
+
     def get_reserved_words(self) -> Set[str]:
         return self.get_dialect().preparer.reserved_words
-
-    def get_quoter(self) -> Callable[[str, Any], str]:
-        return self.get_dialect().identifier_preparer.quote
 
     def get_df(  # pylint: disable=too-many-locals
         self,
         sql: str,
         schema: Optional[str] = None,
         mutator: Optional[Callable[[pd.DataFrame], None]] = None,
-        username: Optional[str] = None,
     ) -> pd.DataFrame:
         sqls = self.db_engine_spec.parse_sql(sql)
-
-        engine = self.get_sqla_engine(schema=schema, user_name=username)
-        username = utils.get_username() or username
+        engine = self.get_sqla_engine(schema)
 
         def needs_conversion(df_series: pd.Series) -> bool:
             return (
@@ -435,7 +427,14 @@ class Database(
 
         def _log_query(sql: str) -> None:
             if log_query:
-                log_query(engine.url, sql, schema, username, __name__, security_manager)
+                log_query(
+                    engine.url,
+                    sql,
+                    schema,
+                    get_username(),
+                    __name__,
+                    security_manager,
+                )
 
         with closing(engine.raw_connection()) as conn:
             cursor = conn.cursor()
@@ -512,7 +511,7 @@ class Database(
         return sqla.inspect(engine)
 
     @cache_util.memoized_func(
-        key=lambda self, *args, **kwargs: f"db:{self.id}:schema:None:table_list",
+        key="db:{self.id}:schema:None:table_list",
         cache=cache_manager.data_cache,
     )
     def get_all_table_names_in_database(  # pylint: disable=unused-argument
@@ -520,14 +519,19 @@ class Database(
         cache: bool = False,
         cache_timeout: Optional[bool] = None,
         force: bool = False,
-    ) -> List[utils.DatasourceName]:
+    ) -> List[Tuple[str, str]]:
         """Parameters need to be passed as keyword arguments."""
         if not self.allow_multi_schema_metadata_fetch:
             return []
-        return self.db_engine_spec.get_all_datasource_names(self, "table")
+        return [
+            (datasource_name.table, datasource_name.schema)
+            for datasource_name in self.db_engine_spec.get_all_datasource_names(
+                self, "table"
+            )
+        ]
 
     @cache_util.memoized_func(
-        key=lambda self, *args, **kwargs: f"db:{self.id}:schema:None:view_list",
+        key="db:{self.id}:schema:None:view_list",
         cache=cache_manager.data_cache,
     )
     def get_all_view_names_in_database(  # pylint: disable=unused-argument
@@ -535,14 +539,19 @@ class Database(
         cache: bool = False,
         cache_timeout: Optional[bool] = None,
         force: bool = False,
-    ) -> List[utils.DatasourceName]:
+    ) -> List[Tuple[str, str]]:
         """Parameters need to be passed as keyword arguments."""
         if not self.allow_multi_schema_metadata_fetch:
             return []
-        return self.db_engine_spec.get_all_datasource_names(self, "view")
+        return [
+            (datasource_name.table, datasource_name.schema)
+            for datasource_name in self.db_engine_spec.get_all_datasource_names(
+                self, "view"
+            )
+        ]
 
     @cache_util.memoized_func(
-        key=lambda self, schema, *args, **kwargs: f"db:{self.id}:schema:{schema}:table_list",  # pylint: disable=line-too-long,useless-suppression
+        key="db:{self.id}:schema:{schema}:table_list",
         cache=cache_manager.data_cache,
     )
     def get_all_table_names_in_schema(  # pylint: disable=unused-argument
@@ -551,7 +560,7 @@ class Database(
         cache: bool = False,
         cache_timeout: Optional[int] = None,
         force: bool = False,
-    ) -> List[utils.DatasourceName]:
+    ) -> List[Tuple[str, str]]:
         """Parameters need to be passed as keyword arguments.
 
         For unused parameters, they are referenced in
@@ -567,15 +576,13 @@ class Database(
             tables = self.db_engine_spec.get_table_names(
                 database=self, inspector=self.inspector, schema=schema
             )
-            return [
-                utils.DatasourceName(table=table, schema=schema) for table in tables
-            ]
-        except Exception as ex:  # pylint: disable=broad-except
-            logger.warning(ex)
+            return [(table, schema) for table in tables]
+        except Exception:  # pylint: disable=broad-except
+            logger.warning("Get all table names in schema failed", exc_info=True)
             return []
 
     @cache_util.memoized_func(
-        key=lambda self, schema, *args, **kwargs: f"db:{self.id}:schema:{schema}:view_list",  # pylint: disable=line-too-long,useless-suppression
+        key="db:{self.id}:schema:{schema}:view_list",
         cache=cache_manager.data_cache,
     )
     def get_all_view_names_in_schema(  # pylint: disable=unused-argument
@@ -584,7 +591,7 @@ class Database(
         cache: bool = False,
         cache_timeout: Optional[int] = None,
         force: bool = False,
-    ) -> List[utils.DatasourceName]:
+    ) -> List[Tuple[str, str]]:
         """Parameters need to be passed as keyword arguments.
 
         For unused parameters, they are referenced in
@@ -600,13 +607,13 @@ class Database(
             views = self.db_engine_spec.get_view_names(
                 database=self, inspector=self.inspector, schema=schema
             )
-            return [utils.DatasourceName(table=view, schema=schema) for view in views]
-        except Exception as ex:  # pylint: disable=broad-except
-            logger.warning(ex)
+            return [(view, schema) for view in views]
+        except Exception:  # pylint: disable=broad-except
+            logger.warning("Get all view names failed", exc_info=True)
             return []
 
     @cache_util.memoized_func(
-        key=lambda self, *args, **kwargs: f"db:{self.id}:schema_list",
+        key="db:{self.id}:schema_list",
         cache=cache_manager.data_cache,
     )
     def get_all_schema_names(  # pylint: disable=unused-argument
@@ -724,7 +731,7 @@ class Database(
     @property
     def sqlalchemy_uri_decrypted(self) -> str:
         try:
-            conn = sqla.engine.url.make_url(self.sqlalchemy_uri)
+            conn = make_url_safe(self.sqlalchemy_uri)
         except (ArgumentError, ValueError):
             # if the URI is invalid, ignore and return a placeholder url
             # (so users see 500 less often)
@@ -771,8 +778,8 @@ class Database(
         view_names: List[str] = []
         try:
             view_names = dialect.get_view_names(connection=conn, schema=schema)
-        except Exception as ex:  # pylint: disable=broad-except
-            logger.warning(ex)
+        except Exception:  # pylint: disable=broad-except
+            logger.warning("Has view failed", exc_info=True)
         return view_name in view_names
 
     def has_view(self, view_name: str, schema: Optional[str] = None) -> bool:
@@ -784,7 +791,7 @@ class Database(
 
     @memoized
     def get_dialect(self) -> Dialect:
-        sqla_url = url.make_url(self.sqlalchemy_uri_decrypted)
+        sqla_url = make_url_safe(self.sqlalchemy_uri_decrypted)
         return sqla_url.get_dialect()()
 
 

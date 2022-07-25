@@ -20,7 +20,8 @@ from typing_extensions import TypedDict
 
 
 class TemporaryExploreState(TypedDict):
-    owner: int
-    dataset_id: int
+    owner: Optional[int]
+    datasource_id: int
+    datasource_type: str
     chart_id: Optional[int]
     form_data: str

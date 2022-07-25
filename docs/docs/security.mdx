@@ -49,7 +49,7 @@ to all databases by default, both **Alpha** and **Gamma** users need to be given
 
 To allow logged-out users to access some Superset features, you can use the `PUBLIC_ROLE_LIKE` config setting and assign it to another role whose permissions you want passed to this role.
 
-For example, by setting `PUBLIC_ROLE_LIKE = Gamma` in your `superset_config.py` file, you grant
+For example, by setting `PUBLIC_ROLE_LIKE = "Gamma"` in your `superset_config.py` file, you grant
 public role the same set of permissions as for the **Gamma** role. This is useful if one
 wants to enable anonymous users to view dashboards. Explicit grant on specific datasets is
 still required, meaning that you need to edit the **Public** role and add the public data sources to the role manually.

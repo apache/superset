@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { getContrastingColor } from '@superset-ui/core';
+import { getContrastingColor, addAlpha } from '@superset-ui/core';
 
 describe('color utils', () => {
   describe('getContrastingColor', () => {
@@ -57,6 +57,28 @@ describe('color utils', () => {
     it('when called with invalid color, throw error', () => {
       expect(() => {
         getContrastingColor('#0000');
+      }).toThrow();
+    });
+  });
+  describe('addAlpha', () => {
+    it('adds 20% opacity to black', () => {
+      expect(addAlpha('#000000', 0.2)).toBe('#00000033');
+    });
+    it('adds 50% opacity to white', () => {
+      expect(addAlpha('#FFFFFF', 0.5)).toBe('#FFFFFF80');
+    });
+    it('should apply transparent alpha', () => {
+      expect(addAlpha('#000000', 0)).toBe('#00000000');
+    });
+    it('should apply fully opaque', () => {
+      expect(addAlpha('#000000', 1)).toBe('#000000FF');
+    });
+    it('opacity should be between 0 and 1', () => {
+      expect(() => {
+        addAlpha('#000000', 2);
+      }).toThrow();
+      expect(() => {
+        addAlpha('#000000', -1);
       }).toThrow();
     });
   });

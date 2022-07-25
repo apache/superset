@@ -27,12 +27,15 @@ import pytest
 import yaml
 from sqlalchemy.sql import func
 
+from superset.common.utils.query_cache_manager import QueryCacheManager
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+from superset.constants import CacheRegion
 from superset.dao.exceptions import (
     DAOCreateFailedError,
     DAODeleteFailedError,
     DAOUpdateFailedError,
 )
+from superset.datasets.models import Dataset
 from superset.extensions import db, security_manager
 from superset.models.core import Database
 from superset.utils.core import backend, get_example_default_schema
@@ -128,6 +131,7 @@ class TestDatasetApi(SupersetTestCase):
             main_db = get_main_database()
             for tables_name in self.fixture_tables_names:
                 datasets.append(self.insert_dataset(tables_name, [admin.id], main_db))
+
             yield datasets
 
             # rollback changes
@@ -213,6 +217,27 @@ class TestDatasetApi(SupersetTestCase):
         response = json.loads(rv.data.decode("utf-8"))
         assert response["result"] == []
 
+    def test_get_dataset_list_gamma_owned(self):
+        """
+        Dataset API: Test get dataset list owned by gamma
+        """
+        main_db = get_main_database()
+        owned_dataset = self.insert_dataset(
+            "ab_user", [self.get_user("gamma").id], main_db
+        )
+
+        self.login(username="gamma")
+        uri = "api/v1/dataset/"
+        rv = self.get_assert_metric(uri, "get_list")
+        assert rv.status_code == 200
+        response = json.loads(rv.data.decode("utf-8"))
+
+        assert response["count"] == 1
+        assert response["result"][0]["table_name"] == "ab_user"
+
+        db.session.delete(owned_dataset)
+        db.session.commit()
+
     def test_get_dataset_related_database_gamma(self):
         """
         Dataset API: Test get dataset related databases gamma
@@ -252,6 +277,7 @@ class TestDatasetApi(SupersetTestCase):
             "fetch_values_predicate": None,
             "filter_select_enabled": False,
             "is_sqllab_view": False,
+            "kind": "physical",
             "main_dttm_col": None,
             "offset": 0,
             "owners": [],
@@ -296,12 +322,11 @@ class TestDatasetApi(SupersetTestCase):
                 )
             )
             schema_values = [
-                "admin_database",
                 "information_schema",
                 "public",
             ]
             expected_response = {
-                "count": 3,
+                "count": 2,
                 "result": [{"text": val, "value": val} for val in schema_values],
             }
             self.login(username="admin")
@@ -327,8 +352,10 @@ class TestDatasetApi(SupersetTestCase):
             pg_test_query_parameter(
                 query_parameter,
                 {
-                    "count": 3,
-                    "result": [{"text": "admin_database", "value": "admin_database"}],
+                    "count": 2,
+                    "result": [
+                        {"text": "information_schema", "value": "information_schema"}
+                    ],
                 },
             )
 
@@ -659,11 +686,7 @@ class TestDatasetApi(SupersetTestCase):
             "description": "description",
             "expression": "expression",
             "type": "INTEGER",
-            "business_type": "BUSINESS_TYPE",
             "verbose_name": "New Col",
-        }
-        dataset_data = {
-            "columns": [new_col_dict],
             "description": "changed description",
         }
         uri = f"api/v1/dataset/{dataset.id}?override_columns=true"
@@ -676,7 +699,9 @@ class TestDatasetApi(SupersetTestCase):
         assert new_col_dict["description"] in [col.description for col in columns]
         assert new_col_dict["expression"] in [col.expression for col in columns]
         assert new_col_dict["type"] in [col.type for col in columns]
-        assert new_col_dict["business_type"] in [col.business_type for col in columns]
+        assert new_col_dict["advanced_data_type"] in [
+            col.advanced_data_type for col in columns
+        ]
 
         db.session.delete(dataset)
         db.session.commit()
@@ -694,7 +719,7 @@ class TestDatasetApi(SupersetTestCase):
             "expression": "expression",
             "extra": '{"abc":123}',
             "type": "INTEGER",
-            "business_type": "BUSINESS_TYPE",
+            "advanced_data_type": "ADVANCED_DATA_TYPE",
             "verbose_name": "New Col",
             "uuid": "c626b60a-3fb2-4e99-9f01-53aca0b17166",
         }
@@ -751,6 +776,7 @@ class TestDatasetApi(SupersetTestCase):
         assert columns[2].description == new_column_data["description"]
         assert columns[2].expression == new_column_data["expression"]
         assert columns[2].type == new_column_data["type"]
+        assert columns[2].advanced_data_type == new_column_data["advanced_data_type"]
         assert columns[2].extra == new_column_data["extra"]
         assert columns[2].verbose_name == new_column_data["verbose_name"]
         assert columns[2].business_type == new_column_data["business_type"]
@@ -788,7 +814,7 @@ class TestDatasetApi(SupersetTestCase):
             "description": "description",
             "expression": "expression",
             "type": "INTEGER",
-            "business_type": "BUSINESS_TYPE",
+            "advanced_data_type": "ADVANCED_DATA_TYPE",
             "verbose_name": "New Col",
         }
         uri = f"api/v1/dataset/{dataset.id}"
@@ -1471,11 +1497,6 @@ class TestDatasetApi(SupersetTestCase):
         rv = self.client.get(uri)
         assert rv.status_code == 200
 
-    @patch.dict(
-        "superset.extensions.feature_flag_manager._feature_flags",
-        {"VERSIONED_EXPORT": True},
-        clear=True,
-    )
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_export_dataset_bundle(self):
         """
@@ -1498,11 +1519,6 @@ class TestDatasetApi(SupersetTestCase):
         buf = BytesIO(rv.data)
         assert is_zipfile(buf)
 
-    @patch.dict(
-        "superset.extensions.feature_flag_manager._feature_flags",
-        {"VERSIONED_EXPORT": True},
-        clear=True,
-    )
     def test_export_dataset_bundle_not_found(self):
         """
         Dataset API: Test export dataset not found
@@ -1515,11 +1531,6 @@ class TestDatasetApi(SupersetTestCase):
 
         assert rv.status_code == 404
 
-    @patch.dict(
-        "superset.extensions.feature_flag_manager._feature_flags",
-        {"VERSIONED_EXPORT": True},
-        clear=True,
-    )
     @pytest.mark.usefixtures("create_datasets")
     def test_export_dataset_bundle_gamma(self):
         """
@@ -1623,16 +1634,21 @@ class TestDatasetApi(SupersetTestCase):
         database = (
             db.session.query(Database).filter_by(uuid=database_config["uuid"]).one()
         )
+        shadow_dataset = (
+            db.session.query(Dataset).filter_by(uuid=dataset_config["uuid"]).one()
+        )
         assert database.database_name == "imported_database"
 
         assert len(database.tables) == 1
         dataset = database.tables[0]
         assert dataset.table_name == "imported_dataset"
         assert str(dataset.uuid) == dataset_config["uuid"]
+        assert str(shadow_dataset.uuid) == dataset_config["uuid"]
 
         dataset.owners = []
         database.owners = []
         db.session.delete(dataset)
+        db.session.delete(shadow_dataset)
         db.session.delete(database)
         db.session.commit()
 
@@ -1823,3 +1839,123 @@ class TestDatasetApi(SupersetTestCase):
                 }
             ]
         }
+
+    @pytest.mark.usefixtures("create_datasets")
+    def test_get_datasets_is_certified_filter(self):
+        """
+        Dataset API: Test custom dataset_is_certified filter
+        """
+        table_w_certification = SqlaTable(
+            table_name="foo",
+            schema=None,
+            owners=[],
+            database=get_main_database(),
+            sql=None,
+            extra='{"certification": 1}',
+        )
+        db.session.add(table_w_certification)
+        db.session.commit()
+
+        arguments = {
+            "filters": [{"col": "id", "opr": "dataset_is_certified", "value": True}]
+        }
+        self.login(username="admin")
+        uri = f"api/v1/dataset/?q={prison.dumps(arguments)}"
+        rv = self.client.get(uri)
+
+        assert rv.status_code == 200
+        response = json.loads(rv.data.decode("utf-8"))
+        assert response.get("count") == 1
+
+        db.session.delete(table_w_certification)
+        db.session.commit()
+
+    @pytest.mark.usefixtures("create_datasets")
+    def test_get_dataset_samples(self):
+        """
+        Dataset API: Test get dataset samples
+        """
+        dataset = self.get_fixture_datasets()[0]
+
+        self.login(username="admin")
+        uri = f"api/v1/dataset/{dataset.id}/samples"
+
+        # 1. should cache data
+        # feeds data
+        self.client.get(uri)
+        # get from cache
+        rv = self.client.get(uri)
+        rv_data = json.loads(rv.data)
+        assert rv.status_code == 200
+        assert "result" in rv_data
+        assert rv_data["result"]["cached_dttm"] is not None
+        cache_key1 = rv_data["result"]["cache_key"]
+        assert QueryCacheManager.has(cache_key1, region=CacheRegion.DATA)
+
+        # 2. should through cache
+        uri2 = f"api/v1/dataset/{dataset.id}/samples?force=true"
+        # feeds data
+        self.client.get(uri2)
+        # force query
+        rv2 = self.client.get(uri2)
+        rv_data2 = json.loads(rv2.data)
+        assert rv_data2["result"]["cached_dttm"] is None
+        cache_key2 = rv_data2["result"]["cache_key"]
+        assert QueryCacheManager.has(cache_key2, region=CacheRegion.DATA)
+
+        # 3. data precision
+        assert "colnames" in rv_data2["result"]
+        assert "coltypes" in rv_data2["result"]
+        assert "data" in rv_data2["result"]
+
+        eager_samples = dataset.database.get_df(
+            f"select * from {dataset.table_name}"
+            f' limit {self.app.config["SAMPLES_ROW_LIMIT"]}'
+        ).to_dict(orient="records")
+        assert eager_samples == rv_data2["result"]["data"]
+
+    @pytest.mark.usefixtures("create_datasets")
+    def test_get_dataset_samples_with_failed_cc(self):
+        dataset = self.get_fixture_datasets()[0]
+
+        self.login(username="admin")
+        failed_column = TableColumn(
+            column_name="DUMMY CC",
+            type="VARCHAR(255)",
+            table=dataset,
+            expression="INCORRECT SQL",
+        )
+        uri = f"api/v1/dataset/{dataset.id}/samples"
+        dataset.columns.append(failed_column)
+        rv = self.client.get(uri)
+        assert rv.status_code == 400
+        rv_data = json.loads(rv.data)
+        assert "message" in rv_data
+        if dataset.database.db_engine_spec.engine_name == "PostgreSQL":
+            assert "INCORRECT SQL" in rv_data.get("message")
+
+    def test_get_dataset_samples_on_virtual_dataset(self):
+        virtual_dataset = SqlaTable(
+            table_name="virtual_dataset",
+            sql=("SELECT 'foo' as foo, 'bar' as bar"),
+            database=get_example_database(),
+        )
+        TableColumn(column_name="foo", type="VARCHAR(255)", table=virtual_dataset)
+        TableColumn(column_name="bar", type="VARCHAR(255)", table=virtual_dataset)
+        SqlMetric(metric_name="count", expression="count(*)", table=virtual_dataset)
+
+        self.login(username="admin")
+        uri = f"api/v1/dataset/{virtual_dataset.id}/samples"
+        rv = self.client.get(uri)
+        assert rv.status_code == 200
+        rv_data = json.loads(rv.data)
+        cache_key = rv_data["result"]["cache_key"]
+        assert QueryCacheManager.has(cache_key, region=CacheRegion.DATA)
+
+        # remove original column in dataset
+        virtual_dataset.sql = "SELECT 'foo' as foo"
+        rv = self.client.get(uri)
+        assert rv.status_code == 400
+
+        db.session.delete(virtual_dataset)
+        db.session.commit()

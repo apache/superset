@@ -51,7 +51,7 @@ test('Should send correct props', () => {
   );
 });
 
-test('Should get correct filds', () => {
+test('Should get correct fields', () => {
   const props = createProps();
   render(<CrossFilterScopingForm {...(props as any)} />);
   expect(props.form.getFieldValue).toBeCalledTimes(2);

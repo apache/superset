@@ -53,7 +53,7 @@ export default function transformProps(chartProps: ChartProps) {
 
   const application = 'ALFRED';
   let appVal = '';
-  let appType = 'IP';
+  let appType = '';
 
   // eslint-disable-next-line no-plusplus
   for (let i = 0; i < formData?.extraFormData?.filters?.length; i++) {

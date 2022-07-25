@@ -20,12 +20,8 @@ import React from 'react';
 import { shallow, ShallowWrapper } from 'enzyme';
 import { GenericDataType } from '@superset-ui/core';
 
-import {
-  ColumnOption,
-  ColumnOptionProps,
-  ColumnTypeLabel,
-  InfoTooltipWithTrigger,
-} from '../../src';
+import { ColumnOption, ColumnOptionProps, ColumnTypeLabel } from '../../src';
+import { SQLPopover } from '../../src/components/SQLPopover';
 
 describe('ColumnOption', () => {
   const defaultProps: ColumnOptionProps = {
@@ -53,8 +49,8 @@ describe('ColumnOption', () => {
     expect(lbl).toHaveLength(1);
     expect(lbl.first().text()).toBe('Foo');
   });
-  it('shows 1 InfoTooltipWithTrigger', () => {
-    expect(wrapper.find(InfoTooltipWithTrigger)).toHaveLength(1);
+  it('shows SQL Popover trigger', () => {
+    expect(wrapper.find(SQLPopover)).toHaveLength(1);
   });
   it('shows a label with column_name when no verbose_name', () => {
     delete props.column.verbose_name;

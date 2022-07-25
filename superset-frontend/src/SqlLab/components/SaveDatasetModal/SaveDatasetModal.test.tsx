@@ -17,44 +17,60 @@
  * under the License.
  */
 import React from 'react';
-import { shallow } from 'enzyme';
-import { Radio } from 'src/components/Radio';
-import { AutoComplete } from 'src/components';
-import { Input } from 'src/components/Input';
+import { QueryResponse, testQuery } from '@superset-ui/core';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
+import { render, screen } from 'spec/helpers/testing-library';
 
-describe('SaveDatasetModal', () => {
-  const mockedProps = {
-    visible: false,
-    onOk: () => {},
-    onHide: () => {},
-    handleDatasetNameChange: () => {},
-    handleSaveDatasetRadioBtnState: () => {},
-    saveDatasetRadioBtnState: 1,
-    handleOverwriteCancel: () => {},
-    handleOverwriteDataset: () => {},
-    handleOverwriteDatasetOption: () => {},
-    defaultCreateDatasetValue: 'someDatasets',
-    shouldOverwriteDataset: false,
-    userDatasetOptions: [],
-    disableSaveAndExploreBtn: false,
-    handleSaveDatasetModalSearch: () => Promise,
-    filterAutocompleteOption: () => false,
-    onChangeAutoComplete: () => {},
-  };
-  it('renders a radio group btn', () => {
-    // @ts-ignore
-    const wrapper = shallow(<SaveDatasetModal {...mockedProps} />);
-    expect(wrapper.find(Radio.Group)).toExist();
+const mockedProps = {
+  visible: true,
+  onHide: () => {},
+  buttonTextOnSave: 'Save',
+  buttonTextOnOverwrite: 'Overwrite',
+  datasource: testQuery as QueryResponse,
+};
+
+describe('SaveDatasetModal RTL', () => {
+  it('renders a "Save as new" field', () => {
+    render(<SaveDatasetModal {...mockedProps} />, { useRedux: true });
+
+    const saveRadioBtn = screen.getByRole('radio', {
+      name: /save as new unimportant/i,
+    });
+    const fieldLabel = screen.getByText(/save as new/i);
+    const inputField = screen.getByRole('textbox');
+    const inputFieldText = screen.getByDisplayValue(/unimportant/i);
+
+    expect(saveRadioBtn).toBeVisible();
+    expect(fieldLabel).toBeVisible();
+    expect(inputField).toBeVisible();
+    expect(inputFieldText).toBeVisible();
   });
-  it('renders a autocomplete', () => {
-    // @ts-ignore
-    const wrapper = shallow(<SaveDatasetModal {...mockedProps} />);
-    expect(wrapper.find(AutoComplete)).toExist();
+
+  it('renders an "Overwrite existing" field', () => {
+    render(<SaveDatasetModal {...mockedProps} />, { useRedux: true });
+
+    const overwriteRadioBtn = screen.getByRole('radio', {
+      name: /overwrite existing select or type dataset name/i,
+    });
+    const fieldLabel = screen.getByText(/overwrite existing/i);
+    const inputField = screen.getByRole('combobox');
+    const placeholderText = screen.getByText(/select or type dataset name/i);
+
+    expect(overwriteRadioBtn).toBeVisible();
+    expect(fieldLabel).toBeVisible();
+    expect(inputField).toBeVisible();
+    expect(placeholderText).toBeVisible();
   });
-  it('renders an input form', () => {
-    // @ts-ignore
-    const wrapper = shallow(<SaveDatasetModal {...mockedProps} />);
-    expect(wrapper.find(Input)).toExist();
+
+  it('renders a save button', () => {
+    render(<SaveDatasetModal {...mockedProps} />, { useRedux: true });
+
+    expect(screen.getByRole('button', { name: /save/i })).toBeVisible();
+  });
+
+  it('renders a close button', () => {
+    render(<SaveDatasetModal {...mockedProps} />, { useRedux: true });
+
+    expect(screen.getByRole('button', { name: /close/i })).toBeVisible();
   });
 });

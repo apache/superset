@@ -69,6 +69,17 @@ describe('AlteredSliceTag', () => {
     expect(wrapper.instance().render()).toBeNull();
   });
 
+  it('does not run when temporary controls have changes', () => {
+    props = {
+      origFormData: { ...props.origFormData, url_params: { foo: 'foo' } },
+      currentFormData: { ...props.origFormData, url_params: { bar: 'bar' } },
+    };
+    wrapper = mount(<AlteredSliceTag {...props} />);
+    expect(wrapper.instance().state.rows).toEqual([]);
+    expect(wrapper.instance().state.hasDiffs).toBe(false);
+    expect(wrapper.instance().render()).toBeNull();
+  });
+
   it('sets new rows when receiving new props', () => {
     const testRows = ['testValue'];
     const getRowsFromDiffsStub = jest

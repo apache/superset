@@ -82,7 +82,16 @@ const validateAggControlValues = (
     ? [t('Metrics or Group By must have a value')]
     : [];
 };
-
+const columnChoices = (datasource: any) => {
+  if (datasource?.columns) {
+    return datasource.columns
+      .map((col : any) => [col.column_name, col.verbose_name || col.column_name])
+      .sort((opt1: any, opt2: any) =>
+        opt1[1].toLowerCase() > opt2[1].toLowerCase() ? 1 : -1,
+      );
+  }
+  return [];
+}
 const config: ControlPanelConfig = {
   // For control input types, see: superset-frontend/src/explore/components/controls/index.js
   controlPanelSections: [
@@ -179,7 +188,7 @@ const config: ControlPanelConfig = {
               multi: true,
               default: [],
               mapStateToProps: ({ datasource }) => ({
-                choices: datasource?.order_by_choices || [],
+                choices: columnChoices(datasource),
               }),
               visibility: isRawMode,
             },

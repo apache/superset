@@ -1,14 +1,12 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { QueryFormData } from '@superset-ui/core';
 import Collapse from 'src/components/Collapse';
+import { AgGridReact } from '@ag-grid-community/react';
+import { LicenseManager, AllModules } from '@ag-grid-enterprise/all-modules';
 import styles from './styles';
 
-type DataManager = {
-  data: any[];
-  isInit: boolean;
-  isLoading: boolean;
-  isError: boolean;
-};
+// eslint-disable-next-line import/no-extraneous-dependencies
+import '@ag-grid-community/core/dist/styles/ag-theme-balham.css';
 
 type AtAGlanceUserIDProps = QueryFormData & {
   ipDashboardId: string;
@@ -16,53 +14,15 @@ type AtAGlanceUserIDProps = QueryFormData & {
   ipDashBoardBaseUrl: string;
 };
 
-const getIPList = (ip_list: any) => {
-  const counter = {};
-
-  ip_list.forEach(function (obj: any) {
-    const key = JSON.stringify(obj.client_ip);
-    counter[key] = (counter[key] || 0) + 1;
-  });
-
-  return counter;
-};
-
-const generateClientIpLinksList = (
-  ipList: any,
-  ipDashBoardBaseUrl: string,
-  ipDashboardId: string,
-  ipDashboardFilterId: string,
-) => (
-  <table
-    className="table table-striped table-condensed"
-    style={styles.AtAGlanceLists}
-  >
-    <tbody>
-      <tr>
-        <th scope="col">IP Address</th>
-        <th scope="col">Count</th>
-      </tr>
-      {Object.keys(ipList)
-        .map(user_ip => user_ip.replaceAll('"', ''))
-        .map(user_ip => (
-          <tr>
-            <td>
-              <a
-                href={
-                  `${ipDashBoardBaseUrl}/superset/dashboard/${ipDashboardId}/?native_filters=%28NATIVE_FILTER-${ipDashboardFilterId}%3A%28__cache%3A%28label%3A'${user_ip}'` +
-                  `%2CvalidateStatus%3A%21f%2Cvalue%3A%21%28'${user_ip}'%29%29%2CextraFormData%3A%28filters%3A%21%28%28col%3Aip_string%2Cop%3AIN%2Cval%3A%21%28'${user_ip}'` +
-                  `%29%29%29%29%2CfilterState%3A%28label%3A'${user_ip}'%2CvalidateStatus%3A%21f%2Cvalue%3A%21%28'${user_ip}'%29%29%2Cid%3ANATIVE_FILTER-${ipDashboardFilterId}` +
-                  `%2CownState%3A%28%29%29%29`
-                }
-              >
-                {user_ip}
-              </a>
-            </td>
-            <td>&nbsp;{ipList[`"${user_ip}"`]}</td>
-          </tr>
-        ))}
-    </tbody>
-  </table>
+const generateClientIpLinksList = (columnDefs: any, rowData: any) => (
+  <div className="ag-theme-balham">
+    <AgGridReact
+      modules={AllModules}
+      rowData={rowData}
+      columnDefs={columnDefs}
+      domLayout="autoHeight"
+    />
+  </div>
 );
 
 /**
@@ -104,85 +64,146 @@ const getPayloadField = (field: string, payload: any) => {
   return value;
 };
 
-// Main Component
-function AtAGlanceUserIDCore(props: AtAGlanceUserIDProps) {
-  const [userIDString, setUserIDString] = useState('user@domain.invalid,');
+const formatList = (ipList: any) => {
+  const updatedList: { 'IP Address': string; Count: number }[] = [];
+  const ipDictionary = {};
+  let counter = 0;
 
-  let canadianIpsList: any[] = [];
-  let nonCanadianIpsList: any[] = [];
-  let unsuccessfulCanadianIpsList: any[] = [];
-  let unsuccessfulNonCanadianIpsList: any[] = [];
-
-  const [aadDataManager, setAadDataManger] = useState<DataManager>({
-    data: props.data,
-    isInit: false,
-    isLoading: false,
-    isError: false,
+  ipList.forEach(function (obj: any) {
+    const key = JSON.stringify(obj.client_ip);
+    ipDictionary[key] = (ipDictionary[key] || 0) + 1;
+    counter += 1;
   });
 
-  let hasFiltered = false;
+  Object.keys(ipDictionary).forEach(key => {
+    updatedList.push({
+      'IP Address': key.replaceAll('"', ''),
+      Count: ipDictionary[key],
+    });
+  });
 
-  for (
-    let i = 0;
-    i < props.formData?.extraFormData?.filters?.length;
-    // eslint-disable-next-line no-plusplus
-    i++
-  ) {
-    const filter = props.formData.extraFormData.filters[i];
-    if (filter.col === 'user_id') {
-      const localUserId: string = filter.val[0];
-      if (localUserId !== userIDString) {
-        setAadDataManger({
-          ...aadDataManager,
-          data: props.data,
-        });
-        setUserIDString(localUserId);
-        hasFiltered = false;
+  return [updatedList, counter];
+};
+
+const ipToInt = (ip: any) =>
+  ip.split('.').reduce((int: any, v: any) => int * 256 + +v);
+
+// Main Component
+function AtAGlanceUserIDCore(props: AtAGlanceUserIDProps) {
+  const [userIDString, setUserIDString] = useState('');
+  LicenseManager.setLicenseKey(props.agGridLicenseKey);
+
+  const [columnDefs] = useState([
+    {
+      field: 'IP Address',
+      flex: 1,
+      resizable: true,
+      sortable: true,
+      cellRenderer(params: any) {
+        const ipData = params.data['IP Address'];
+        const newLink = `<a href=${props.ipDashBoardBaseUrl}/superset/dashboard/${props.ipDashboardId}/?native_filters=%28NATIVE_FILTER-${props.ipDashboardFilterId}%3A%28__cache%3A%28label%3A'${ipData}'%2CvalidateStatus%3A%21f%2Cvalue%3A%21%28'${ipData}'%29%29%2CextraFormData%3A%28filters%3A%21%28%28col%3Aip_string%2Cop%3AIN%2Cval%3A%21%28'${ipData}'%29%29%29%29%2CfilterState%3A%28label%3A'${ipData}'%2CvalidateStatus%3A%21f%2Cvalue%3A%21%28'${ipData}'%29%29%2Cid%3ANATIVE_FILTER-${props.ipDashboardFilterId}%2CownState%3A%28%29%29%29 target="_blank">${ipData}</a>`;
+
+        return newLink;
+      },
+      comparator: (
+        valueA: any,
+        valueB: any,
+        nodeA: any,
+        nodeB: any,
+        isInverted: any,
+      ) => {
+        if (valueA === valueB) return 0;
+        return ipToInt(valueA) > ipToInt(valueB) ? 1 : -1;
+      },
+    },
+    {
+      field: 'Count',
+      flex: 1,
+      resizable: true,
+      sortable: true,
+      sort: 'desc',
+    },
+  ]);
+
+  const [canadianIpsListData, setCanadianIpsListData] = useState([{}]);
+  const [nonCanadianIpsListData, setNonCanadianIpsListData] = useState([{}]);
+  const [unsuccessfulCanadianIpsListData, setUnsuccessfulCanadianIpsListData] =
+    useState([{}]);
+  const [
+    unsuccessfulNonCanadianIpsListData,
+    setUnsuccessfulNonCanadianIpsListData,
+  ] = useState([{}]);
+
+  useEffect(() => {
+    let canadianIpsList: any[] = [];
+    let nonCanadianIpsList: any[] = [];
+    let unsuccessfulCanadianIpsList: any[] = [];
+    let unsuccessfulNonCanadianIpsList: any[] = [];
+
+    const COUNTRY_NAME_FIELD = 'client_ip_cbs_geo_country_name';
+    const CANADA = 'canada';
+    const OPERATION = 'operation';
+    const USER_LOGGED_IN = 'UserLoggedIn';
+
+    if (typeof props.formData?.extraFormData?.filters !== 'undefined') {
+      for (
+        let i = 0;
+        i < props.formData?.extraFormData?.filters?.length;
+        i += 1
+      ) {
+        const filter = props.formData.extraFormData.filters[i];
+        if (filter.col === 'user_id') {
+          const localUserId: string = filter.val[0];
+          setUserIDString(localUserId);
+          break;
+        }
       }
-      break;
+    } else {
+      setUserIDString('');
     }
-  }
 
-  const COUNTRY_NAME_FIELD = 'client_ip_cbs_geo_country_name';
-  const CANADA = 'canada';
-  const OPERATION = 'operation';
-  const USER_LOGGED_IN = 'UserLoggedIn';
-  if (
-    !aadDataManager.isLoading ||
-    (aadDataManager.isInit && hasFiltered === false)
-  ) {
-    canadianIpsList = aadDataManager.data.filter(function (item) {
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    canadianIpsList = props.data.filter(function (item: any) {
       return (
         getPayloadField(COUNTRY_NAME_FIELD, item) === CANADA &&
         getPayloadField(OPERATION, item) === USER_LOGGED_IN
       );
     });
 
-    nonCanadianIpsList = aadDataManager.data.filter(function (item) {
+    setCanadianIpsListData(formatList(canadianIpsList));
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    nonCanadianIpsList = props.data.filter(function (item: any) {
       return (
         getPayloadField(COUNTRY_NAME_FIELD, item) !== CANADA &&
         getPayloadField(OPERATION, item) === USER_LOGGED_IN
       );
     });
 
-    unsuccessfulCanadianIpsList = aadDataManager.data.filter(function (item) {
+    setNonCanadianIpsListData(formatList(nonCanadianIpsList));
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    unsuccessfulCanadianIpsList = props.data.filter(function (item: any) {
       return (
         getPayloadField(COUNTRY_NAME_FIELD, item) === CANADA &&
         getPayloadField(OPERATION, item) !== USER_LOGGED_IN
       );
     });
 
-    unsuccessfulNonCanadianIpsList = aadDataManager.data.filter(function (
-      item,
-    ) {
+    setUnsuccessfulCanadianIpsListData(formatList(unsuccessfulCanadianIpsList));
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    unsuccessfulNonCanadianIpsList = props.data.filter(function (item: any) {
       return (
         getPayloadField(COUNTRY_NAME_FIELD, item) !== CANADA &&
         getPayloadField(OPERATION, item) !== USER_LOGGED_IN
       );
     });
 
-    hasFiltered = true;
-  }
+    setUnsuccessfulNonCanadianIpsListData(
+      formatList(unsuccessfulNonCanadianIpsList),
+    );
+  }, [props.data]);
 
   return (
     <div style={styles.AtAGlance}>
@@ -195,14 +216,17 @@ function AtAGlanceUserIDCore(props: AtAGlanceUserIDProps) {
             </td>
           </tr>
           <tr>
+            <td>*This chart only contains the first 100 results*</td>
+          </tr>
+          <tr>
             <td>User Email: {userIDString}</td>
           </tr>
           <tr>
             <td>
               User ID:{' '}
-              {aadDataManager.isLoading
-                ? 'Loading'
-                : getPayloadField('user_key', aadDataManager.data[0])}
+              {userIDString !== ''
+                ? getPayloadField('user_key', props.data[0])
+                : ''}
             </td>
           </tr>
         </table>
@@ -215,96 +239,57 @@ function AtAGlanceUserIDCore(props: AtAGlanceUserIDProps) {
                 header={
                   <span className="header">
                     {' '}
-                    Number of Successful Canadian Login Attempts:{' '}
-                    {aadDataManager.isLoading
-                      ? 'Loading'
-                      : canadianIpsList.length}{' '}
+                    Number of successful Canadian login attempts:{' '}
+                    {canadianIpsListData[1]}{' '}
                   </span>
                 }
                 key="1"
-                style={styles.HostList}
               >
-                {aadDataManager.isLoading && !aadDataManager.isInit ? (
-                  <></>
-                ) : (
-                  generateClientIpLinksList(
-                    getIPList(canadianIpsList),
-                    props.ipDashBoardBaseUrl,
-                    props.ipDashboardId,
-                    props.ipDashboardFilterId,
-                  )
-                )}
+                {generateClientIpLinksList(columnDefs, canadianIpsListData[0])}
               </Collapse.Panel>
               <Collapse.Panel
                 header={
                   <span className="header">
                     {' '}
-                    Number of Successful non Canadian Login Attempts:{' '}
-                    {aadDataManager.isLoading
-                      ? 'Loading'
-                      : nonCanadianIpsList.length}{' '}
+                    Number of successful non-Canadian login attempts:{' '}
+                    {nonCanadianIpsListData[1]}{' '}
                   </span>
                 }
                 key="2"
-                style={styles.HostList}
               >
-                {aadDataManager.isLoading && !aadDataManager.isInit ? (
-                  <></>
-                ) : (
-                  generateClientIpLinksList(
-                    getIPList(nonCanadianIpsList),
-                    props.ipDashBoardBaseUrl,
-                    props.ipDashboardId,
-                    props.ipDashboardFilterId,
-                  )
+                {generateClientIpLinksList(
+                  columnDefs,
+                  nonCanadianIpsListData[0],
                 )}
               </Collapse.Panel>
               <Collapse.Panel
                 header={
                   <span className="header">
                     {' '}
-                    Number of Unsuccessful Canadian Login Attempts:{' '}
-                    {aadDataManager.isLoading
-                      ? 'Loading'
-                      : unsuccessfulCanadianIpsList.length}{' '}
+                    Number of unsuccessful Canadian login attempts:{' '}
+                    {unsuccessfulCanadianIpsListData[1]}{' '}
                   </span>
                 }
                 key="3"
-                style={styles.HostList}
               >
-                {aadDataManager.isLoading && !aadDataManager.isInit ? (
-                  <></>
-                ) : (
-                  generateClientIpLinksList(
-                    getIPList(unsuccessfulCanadianIpsList),
-                    props.ipDashBoardBaseUrl,
-                    props.ipDashboardId,
-                    props.ipDashboardFilterId,
-                  )
+                {generateClientIpLinksList(
+                  columnDefs,
+                  unsuccessfulCanadianIpsListData[0],
                 )}
               </Collapse.Panel>
               <Collapse.Panel
                 header={
                   <span className="header">
                     {' '}
-                    Number of Unsuccessful non Canadian Login Attempts:{' '}
-                    {aadDataManager.isLoading
-                      ? 'Loading'
-                      : unsuccessfulNonCanadianIpsList.length}{' '}
+                    Number of unsuccessful non-Canadian login attempts:{' '}
+                    {unsuccessfulNonCanadianIpsListData[1]}{' '}
                   </span>
                 }
                 key="4"
-                style={styles.HostList}
               >
-                {aadDataManager.isLoading && !aadDataManager.isInit ? (
-                  <></>
-                ) : (
-                  generateClientIpLinksList(
-                    getIPList(unsuccessfulNonCanadianIpsList),
-                    props.ipDashBoardBaseUrl,
-                    props.ipDashboardId,
-                    props.ipDashboardFilterId,
-                  )
+                {generateClientIpLinksList(
+                  columnDefs,
+                  unsuccessfulNonCanadianIpsListData[0],
                 )}
               </Collapse.Panel>
             </Collapse>

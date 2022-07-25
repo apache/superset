@@ -381,6 +381,7 @@ interface ImportResourceState {
   loading: boolean;
   passwordsNeeded: string[];
   alreadyExists: string[];
+  failed: boolean;
 }
 
 export function useImportResource(
@@ -392,6 +393,7 @@ export function useImportResource(
     loading: false,
     passwordsNeeded: [],
     alreadyExists: [],
+    failed: false,
   });
 
   function updateState(update: Partial<ImportResourceState>) {
@@ -407,6 +409,7 @@ export function useImportResource(
       // Set loading state
       updateState({
         loading: true,
+        failed: false,
       });
 
       const formData = new FormData();
@@ -430,9 +433,19 @@ export function useImportResource(
         body: formData,
         headers: { Accept: 'application/json' },
       })
-        .then(() => true)
+        .then(() => {
+          updateState({
+            passwordsNeeded: [],
+            alreadyExists: [],
+            failed: false,
+          });
+          return true;
+        })
         .catch(response =>
           getClientErrorObject(response).then(error => {
+            updateState({
+              failed: true,
+            });
             if (!error.errors) {
               handleErrorMsg(
                 t(
@@ -448,7 +461,10 @@ export function useImportResource(
                 t(
                   'An error occurred while importing %s: %s',
                   resourceLabel,
-                  error.errors.map(payload => payload.message).join('\n'),
+                  [
+                    ...error.errors.map(payload => payload.message),
+                    t('Please re-export your file and try importing again'),
+                  ].join('\n'),
                 ),
               );
             } else {
@@ -595,8 +611,10 @@ export const copyQueryLink = (
   addDangerToast: (arg0: string) => void,
   addSuccessToast: (arg0: string) => void,
 ) => {
-  copyTextToClipboard(
-    `${window.location.origin}/superset/sqllab?savedQueryId=${id}`,
+  copyTextToClipboard(() =>
+    Promise.resolve(
+      `${window.location.origin}/superset/sqllab?savedQueryId=${id}`,
+    ),
   )
     .then(() => {
       addSuccessToast(t('Link Copied!'));
@@ -689,6 +707,10 @@ export function useDatabaseValidation() {
                           url: string;
                           idx: number;
                         };
+                        issue_codes?: {
+                          code?: number;
+                          message?: string;
+                        }[];
                       };
                       message: string;
                     },
@@ -744,11 +766,20 @@ export function useDatabaseValidation() {
                         ),
                       };
                     }
+                    if (extra.issue_codes?.length) {
+                      return {
+                        ...obj,
+                        error_type,
+                        description: message || extra.issue_codes[0]?.message,
+                      };
+                    }
+
                     return obj;
                   },
                   {},
                 );
               setValidationErrors(parsedErrors);
+              return parsedErrors;
             });
           }
           // eslint-disable-next-line no-console
@@ -759,3 +790,14 @@ export function useDatabaseValidation() {
 
   return [validationErrors, getValidation, setValidationErrors] as const;
 }
+
+export const reportSelector = (
+  state: Record<string, any>,
+  resourceType: string,
+  resourceId?: number,
+) => {
+  if (resourceId) {
+    return state.reports[resourceType]?.[resourceId];
+  }
+  return {};
+};

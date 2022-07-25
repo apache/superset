@@ -32,6 +32,7 @@ import threading
 import traceback
 import uuid
 import zlib
+from contextlib import contextmanager
 from datetime import date, datetime, time, timedelta
 from distutils.util import strtobool
 from email.mime.application import MIMEApplication
@@ -128,7 +129,7 @@ DTTM_ALIAS = "__timestamp"
 
 NO_TIME_RANGE = "No filter"
 
-TIME_COMPARISION = "__"
+TIME_COMPARISON = "__"
 
 JS_MAX_INTEGER = 9007199254740991  # Largest int Java Script can handle 2^53-1
 
@@ -174,8 +175,17 @@ class GenericDataType(IntEnum):
     # ROW = 7
 
 
+class DatasourceType(str, Enum):
+    SLTABLE = "sl_table"
+    TABLE = "table"
+    DATASET = "dataset"
+    QUERY = "query"
+    SAVEDQUERY = "saved_query"
+    VIEW = "view"
+
+
 class DatasourceDict(TypedDict):
-    type: str
+    type: str  # todo(hugh): update this to be DatasourceType
     id: int
 
 
@@ -232,6 +242,25 @@ class FilterOperator(str, Enum):
     REGEX = "REGEX"
     IS_TRUE = "IS TRUE"
     IS_FALSE = "IS FALSE"
+
+
+class FilterStringOperators(str, Enum):
+    EQUALS = ("EQUALS",)
+    NOT_EQUALS = ("NOT_EQUALS",)
+    LESS_THAN = ("LESS_THAN",)
+    GREATER_THAN = ("GREATER_THAN",)
+    LESS_THAN_OR_EQUAL = ("LESS_THAN_OR_EQUAL",)
+    GREATER_THAN_OR_EQUAL = ("GREATER_THAN_OR_EQUAL",)
+    IN = ("IN",)
+    NOT_IN = ("NOT_IN",)
+    ILIKE = ("ILIKE",)
+    LIKE = ("LIKE",)
+    REGEX = ("REGEX",)
+    IS_NOT_NULL = ("IS_NOT_NULL",)
+    IS_NULL = ("IS_NULL",)
+    LATEST_PARTITION = ("LATEST_PARTITION",)
+    IS_TRUE = ("IS_TRUE",)
+    IS_FALSE = ("IS_FALSE",)
 
 
 class PostProcessingBoxplotWhiskerType(str, Enum):
@@ -313,22 +342,6 @@ class ReservedUrlParameters(str, Enum):
 class RowLevelSecurityFilterType(str, Enum):
     REGULAR = "Regular"
     BASE = "Base"
-
-
-class TimeRangeEndpoint(str, Enum):
-    """
-    The time range endpoint types which represent inclusive, exclusive, or unknown.
-
-    Unknown represents endpoints which are ill-defined as though the interval may be
-    [start, end] the filter may behave like (start, end] due to mixed data types and
-    lexicographical ordering.
-
-    :see: https://github.com/apache/superset/issues/6360
-    """
-
-    EXCLUSIVE = "exclusive"
-    INCLUSIVE = "inclusive"
-    UNKNOWN = "unknown"
 
 
 class TemporalType(str, Enum):
@@ -944,7 +957,9 @@ def send_email_smtp(  # pylint: disable=invalid-name,too-many-arguments,too-many
     # Attach any inline images, which may be required for display in
     # HTML content (inline)
     for msgid, imgdata in (images or {}).items():
-        image = MIMEImage(imgdata)
+        formatted_time = formatdate(localtime=True)
+        file_name = f"{subject} {formatted_time}"
+        image = MIMEImage(imgdata, name=file_name)
         image.add_header("Content-ID", "<%s>" % msgid)
         image.add_header("Content-Disposition", "inline")
         msg.attach(image)
@@ -1414,6 +1429,30 @@ def get_username() -> Optional[str]:
         return None
 
 
+@contextmanager
+def override_user(user: Optional[User]) -> Iterator[Any]:
+    """
+    Temporarily override the current user (if defined) per `flask.g`.
+
+    Sometimes, often in the context of async Celery tasks, it is useful to switch the
+    current user (which may be undefined) to different one, execute some SQLAlchemy
+    tasks and then revert back to the original one.
+
+    :param user: The override user
+    """
+
+    # pylint: disable=assigning-non-slot
+    if hasattr(g, "user"):
+        current = g.user
+        g.user = user
+        yield
+        g.user = current
+    else:
+        g.user = user
+        yield
+        delattr(g, "user")
+
+
 def parse_ssl_cert(certificate: str) -> _Certificate:
     """
     Parses the contents of a certificate and returns a valid certificate object
@@ -1762,14 +1801,14 @@ def normalize_dttm_col(
             # Column is formatted as a numeric value
             unit = timestamp_format.replace("epoch_", "")
             df[DTTM_ALIAS] = pd.to_datetime(
-                dttm_col, utc=False, unit=unit, origin="unix"
+                dttm_col, utc=False, unit=unit, origin="unix", errors="coerce"
             )
         else:
             # Column has already been formatted as a timestamp.
             df[DTTM_ALIAS] = dttm_col.apply(pd.Timestamp)
     else:
         df[DTTM_ALIAS] = pd.to_datetime(
-            df[DTTM_ALIAS], utc=False, format=timestamp_format
+            df[DTTM_ALIAS], utc=False, format=timestamp_format, errors="coerce"
         )
     if offset:
         df[DTTM_ALIAS] += timedelta(hours=offset)

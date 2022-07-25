@@ -22,9 +22,10 @@ import moment from 'moment';
 import React, { useEffect, useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import ListView from 'src/components/ListView';
+import { Tooltip } from 'src/components/Tooltip';
 import SubMenu from 'src/views/components/SubMenu';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import { fDuration } from 'src/modules/dates';
+import { fDuration } from 'src/utils/dates';
 import AlertStatusIcon from 'src/views/CRUD/alert/components/AlertStatusIcon';
 import {
   useListViewResource,
@@ -144,6 +145,15 @@ function ExecutionLog({ addDangerToast, isReportEnabled }: ExecutionLogProps) {
       {
         accessor: 'error_message',
         Header: t('Error message'),
+        Cell: ({
+          row: {
+            original: { error_message = '' },
+          },
+        }: any) => (
+          <Tooltip title={error_message} placement="topLeft">
+            <span>{error_message}</span>
+          </Tooltip>
+        ),
       },
     ],
     [isReportEnabled],

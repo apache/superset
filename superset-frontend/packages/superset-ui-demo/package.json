@@ -69,7 +69,6 @@
     "@superset-ui/legacy-plugin-chart-chord": "*",
     "@superset-ui/legacy-plugin-chart-country-map": "*",
     "@superset-ui/legacy-plugin-chart-event-flow": "*",
-    "@superset-ui/legacy-plugin-chart-force-directed": "*",
     "@superset-ui/legacy-plugin-chart-heatmap": "*",
     "@superset-ui/legacy-plugin-chart-histogram": "*",
     "@superset-ui/legacy-plugin-chart-horizon": "*",

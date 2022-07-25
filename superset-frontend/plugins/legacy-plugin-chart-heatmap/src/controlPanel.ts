@@ -274,7 +274,7 @@ const config: ControlPanelConfig = {
               type: 'CheckboxControl',
               label: t('Legend'),
               renderTrigger: true,
-              default: false,
+              default: true,
               description: t('Whether to display the legend (toggles)'),
             },
           },

@@ -74,6 +74,7 @@ if feature_flags.get("VERSIONED_EXPORT"):
         from superset.dashboards.commands.export import ExportDashboardsCommand
         from superset.models.dashboard import Dashboard
 
+        # pylint: disable=assigning-non-slot
         g.user = security_manager.find_user(username="admin")
 
         dashboard_ids = [id_ for (id_,) in db.session.query(Dashboard.id).all()]
@@ -108,6 +109,7 @@ if feature_flags.get("VERSIONED_EXPORT"):
         from superset.connectors.sqla.models import SqlaTable
         from superset.datasets.commands.export import ExportDatasetsCommand
 
+        # pylint: disable=assigning-non-slot
         g.user = security_manager.find_user(username="admin")
 
         dataset_ids = [id_ for (id_,) in db.session.query(SqlaTable.id).all()]
@@ -149,6 +151,7 @@ if feature_flags.get("VERSIONED_EXPORT"):
         )
 
         if username is not None:
+            # pylint: disable=assigning-non-slot
             g.user = security_manager.find_user(username=username)
         if is_zipfile(path):
             with ZipFile(path) as bundle:
@@ -314,6 +317,7 @@ else:
         elif path_object.exists() and recursive:
             files.extend(path_object.rglob("*.json"))
         if username is not None:
+            # pylint: disable=assigning-non-slot
             g.user = security_manager.find_user(username=username)
         contents = {}
         for path_ in files:

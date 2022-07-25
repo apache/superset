@@ -637,7 +637,7 @@ msgstr "实际时间范围"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/utils/D3Formatting.ts:28
 #: superset-frontend/packages/superset-ui-chart-controls/src/utils/D3Formatting.ts:49
-msgid "Adaptative formating"
+msgid "Adaptive formatting"
 msgstr "自动匹配格式化"
 
 #: superset-frontend/src/components/ReportModal/index.tsx:267
@@ -969,21 +969,21 @@ msgid "Alert query returned a non-number value."
 msgstr "警报查询返回非数字值。"
 
 #: superset/reports/commands/exceptions.py:186
-msgid "Alert query returned more then one column."
+msgid "Alert query returned more than one column."
 msgstr "警报查询返回多个列。"
 
 #: superset/reports/commands/alert.py:105
 #, python-format
-msgid "Alert query returned more then one column. %s columns returned"
+msgid "Alert query returned more than one column. %s columns returned"
 msgstr "警报查询返回多个列。%s 列被返回"
 
 #: superset/reports/commands/exceptions.py:177
-msgid "Alert query returned more then one row."
+msgid "Alert query returned more than one row."
 msgstr "警报查询返回了多行。"
 
 #: superset/reports/commands/alert.py:96
 #, python-format
-msgid "Alert query returned more then one row. %s rows returned"
+msgid "Alert query returned more than one row. %s rows returned"
 msgstr "警报查询返回了多行。%s 行被返回"
 
 #: superset-frontend/src/views/CRUD/alert/components/AlertStatusIcon.tsx:75

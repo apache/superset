@@ -18,14 +18,7 @@
  */
 import React, { useState, useEffect, useMemo } from 'react';
 import rison from 'rison';
-import {
-  css,
-  SupersetClient,
-  styled,
-  t,
-  TimeRangeEndpoints,
-  useTheme,
-} from '@superset-ui/core';
+import { css, SupersetClient, styled, t, useTheme } from '@superset-ui/core';
 import {
   buildTimeRangeString,
   formatTimeRange,
@@ -79,10 +72,7 @@ const guessFrame = (timeRange: string): FrameType => {
   return 'Advanced';
 };
 
-const fetchTimeRange = async (
-  timeRange: string,
-  endpoints?: TimeRangeEndpoints,
-) => {
+const fetchTimeRange = async (timeRange: string) => {
   const query = rison.encode_uri(timeRange);
   const endpoint = `/api/v1/time_range/?q=${query}`;
   try {
@@ -92,7 +82,7 @@ const fetchTimeRange = async (
       response?.json?.result?.until || '',
     );
     return {
-      value: formatTimeRange(timeRangeString, endpoints),
+      value: formatTimeRange(timeRangeString),
     };
   } catch (response) {
     const clientError = await getClientErrorObject(response);
@@ -130,7 +120,7 @@ const ContentStyleWrapper = styled.div`
     .control-label {
       font-size: 11px;
       font-weight: ${theme.typography.weights.medium};
-      color: #b2b2b2;
+      color: ${theme.colors.grayscale.light2};
       line-height: 16px;
       text-transform: uppercase;
       margin: 8px 0;
@@ -181,7 +171,6 @@ interface DateFilterControlProps {
   name: string;
   onChange: (timeRange: string) => void;
   value?: string;
-  endpoints?: TimeRangeEndpoints;
   type?: Type;
   onOpenPopover?: () => void;
   onClosePopover?: () => void;
@@ -195,7 +184,6 @@ export const getDateFilterControlTestId = testWithId(
 export default function DateFilterLabel(props: DateFilterControlProps) {
   const {
     value = DEFAULT_TIME_RANGE,
-    endpoints,
     onChange,
     onOpenPopover = noOp,
     onClosePopover = noOp,
@@ -212,7 +200,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
   const [tooltipTitle, setTooltipTitle] = useState<string>(value);
 
   useEffect(() => {
-    fetchTimeRange(value, endpoints).then(({ value: actualRange, error }) => {
+    fetchTimeRange(value).then(({ value: actualRange, error }) => {
       if (error) {
         setEvalResponse(error || '');
         setValidTimeRange(false);
@@ -252,18 +240,16 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
   useDebouncedEffect(
     () => {
       if (lastFetchedTimeRange !== timeRangeValue) {
-        fetchTimeRange(timeRangeValue, endpoints).then(
-          ({ value: actualRange, error }) => {
-            if (error) {
-              setEvalResponse(error || '');
-              setValidTimeRange(false);
-            } else {
-              setEvalResponse(actualRange || '');
-              setValidTimeRange(true);
-            }
-            setLastFetchedTimeRange(timeRangeValue);
-          },
-        );
+        fetchTimeRange(timeRangeValue).then(({ value: actualRange, error }) => {
+          if (error) {
+            setEvalResponse(error || '');
+            setValidTimeRange(false);
+          } else {
+            setEvalResponse(actualRange || '');
+            setValidTimeRange(true);
+          }
+          setLastFetchedTimeRange(timeRangeValue);
+        });
       }
     },
     SLOW_DEBOUNCE,

@@ -28,7 +28,7 @@ import Loading from 'src/components/Loading';
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import fetchMock from 'fetch-mock';
-import FilterableTable from 'src/components/FilterableTable/FilterableTable';
+import FilterableTable from 'src/components/FilterableTable';
 import ExploreResultsButton from 'src/SqlLab/components/ExploreResultsButton';
 import ResultSet from 'src/SqlLab/components/ResultSet';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';

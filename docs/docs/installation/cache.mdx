@@ -42,26 +42,6 @@ defined in `DATA_CACHE_CONFIG`.
 
 ## Celery beat
 
-Superset has a Celery task that will periodically warm up the cache based on different strategies.
-To use it, add the following to the `CELERYBEAT_SCHEDULE` section in `config.py`:
-
-```python
-CELERYBEAT_SCHEDULE = {
-    'cache-warmup-hourly': {
-        'task': 'cache-warmup',
-        'schedule': crontab(minute=0, hour='*'),  # hourly
-        'kwargs': {
-            'strategy_name': 'top_n_dashboards',
-            'top_n': 5,
-            'since': '7 days ago',
-        },
-    },
-}
-```
-
-This will cache all the charts in the top 5 most popular dashboards every hour. For other
-strategies, check the `superset/tasks/cache.py` file.
-
 ### Caching Thumbnails
 
 This is an optional feature that can be turned on by activating it’s feature flag on config:
@@ -85,11 +65,11 @@ from s3cache.s3cache import S3Cache
 ...
 
 class CeleryConfig(object):
-    BROKER_URL = "redis://localhost:6379/0"
-    CELERY_IMPORTS = ("superset.sql_lab", "superset.tasks", "superset.tasks.thumbnails")
-    CELERY_RESULT_BACKEND = "redis://localhost:6379/0"
-    CELERYD_PREFETCH_MULTIPLIER = 10
-    CELERY_ACKS_LATE = True
+    broker_url = "redis://localhost:6379/0"
+    imports = ("superset.sql_lab", "superset.tasks", "superset.tasks.thumbnails")
+    result_backend = "redis://localhost:6379/0"
+    worker_prefetch_multiplier = 10
+    task_acks_late = True
 
 
 CELERY_CONFIG = CeleryConfig

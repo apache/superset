@@ -93,7 +93,7 @@ export default class JsonValueRenderer extends Component<
     if (jsonObject) {
       return addJsonModal(cellNode, jsonObject, cellData);
     }
-    return cellData;
+    return cellData ?? null;
   }
 
   static getValueToDisplay(params: { valueFormatted: any; value: any }) {

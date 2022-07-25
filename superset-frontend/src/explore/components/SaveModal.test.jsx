@@ -95,7 +95,34 @@ describe('SaveModal', () => {
     expect(wrapper.find(Radio)).toHaveLength(2);
 
     const footerWrapper = shallow(wrapper.find(StyledModal).props().footer);
+
     expect(footerWrapper.find(Button)).toHaveLength(3);
+  });
+
+  it('renders the right footer buttons when an existing dashboard', () => {
+    const wrapper = getWrapper();
+    const footerWrapper = shallow(wrapper.find(StyledModal).props().footer);
+    const saveAndGoDash = footerWrapper
+      .find('#btn_modal_save_goto_dash')
+      .getElement();
+    const save = footerWrapper.find('#btn_modal_save').getElement();
+    expect(save.props.children).toBe('Save');
+    expect(saveAndGoDash.props.children).toBe('Save & go to dashboard');
+  });
+
+  it('renders the right footer buttons when a new dashboard', () => {
+    const wrapper = getWrapper();
+    wrapper.setState({
+      saveToDashboardId: null,
+      newDashboardName: 'Test new dashboard',
+    });
+    const footerWrapper = shallow(wrapper.find(StyledModal).props().footer);
+    const saveAndGoDash = footerWrapper
+      .find('#btn_modal_save_goto_dash')
+      .getElement();
+    const save = footerWrapper.find('#btn_modal_save').getElement();
+    expect(save.props.children).toBe('Save to new dashboard');
+    expect(saveAndGoDash.props.children).toBe('Save & go to new dashboard');
   });
 
   it('overwrite radio button is disabled for new slice', () => {

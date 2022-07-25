@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { FC, ReactNode } from 'react';
-import { t, css, useTheme } from '@superset-ui/core';
+import { t, css, useTheme, SupersetTheme } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import { Tooltip } from 'src/components/Tooltip';
 import { FormLabel } from 'src/components/Form';
@@ -38,6 +38,10 @@ export type ControlHeaderProps = {
   tooltipOnClick?: () => void;
   warning?: string;
   danger?: string;
+  canCopy?: boolean;
+  copyOnClick?: () => void;
+  canSelectAll?: boolean;
+  selectAllOnClick?: () => void;
 };
 
 const ControlHeader: FC<ControlHeaderProps> = ({
@@ -53,6 +57,10 @@ const ControlHeader: FC<ControlHeaderProps> = ({
   tooltipOnClick = () => {},
   warning,
   danger,
+  canCopy,
+  copyOnClick,
+  canSelectAll,
+  selectAllOnClick,
 }) => {
   const { gridUnit, colors } = useTheme();
 
@@ -99,17 +107,55 @@ const ControlHeader: FC<ControlHeaderProps> = ({
       </span>
     );
   };
+  const renderOptionalActionIcons = () => (
+    <span
+      css={() => css`
+        padding-left: ${gridUnit}px;
+      `}
+    >
+      {canSelectAll && (
+        <span>
+          <InfoTooltipWithTrigger
+            label={t('select-all')}
+            tooltip={t('Select All (ctl+a)')}
+            placement="top"
+            icon="arrow-circle-up"
+            onClick={selectAllOnClick}
+          />{' '}
+        </span>
+      )}
+      {canCopy && (
+        <span>
+          <InfoTooltipWithTrigger
+            label={t('copy')}
+            tooltip={t('Copy the content of this control')}
+            placement="top"
+            icon="copy"
+            onClick={copyOnClick}
+          />{' '}
+        </span>
+      )}
+    </span>
+  );
 
   const labelClass = validationErrors?.length > 0 ? 'text-danger' : '';
 
   return (
-    <div className="ControlHeader" data-test={`${name}-header`}>
+    <div
+      className="ControlHeader"
+      data-test={`${name}-header`}
+      css={() => css`
+        width: 100%;
+      `}
+    >
       <div className="pull-left">
         <FormLabel
-          css={{
-            marginBottom: 0,
-            position: 'relative',
-          }}
+          css={(theme: SupersetTheme) =>
+            css`
+              margin-bottom: ${theme.gridUnit * 0.5}px;
+              position: relative;
+            `
+          }
         >
           {leftNode && <span>{leftNode}</span>}
           <span
@@ -149,6 +195,11 @@ const ControlHeader: FC<ControlHeaderProps> = ({
           {renderOptionalIcons()}
         </FormLabel>
       </div>
+
+      {!rightNode && (
+        <div className="pull-right">{renderOptionalActionIcons()}</div>
+      )}
+
       {rightNode && <div className="pull-right">{rightNode}</div>}
       <div className="clearfix" />
     </div>

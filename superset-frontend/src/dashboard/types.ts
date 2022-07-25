@@ -24,7 +24,7 @@ import {
   JsonObject,
   NativeFiltersState,
 } from '@superset-ui/core';
-import { DatasourceMeta } from '@superset-ui/chart-controls';
+import { Dataset } from '@superset-ui/chart-controls';
 import { chart } from 'src/components/Chart/chartReducer';
 import componentTypes from 'src/dashboard/util/componentTypes';
 
@@ -84,7 +84,7 @@ export type DashboardInfo = {
 
 export type ChartsState = { [key: string]: Chart };
 
-export type Datasource = DatasourceMeta & {
+export type Datasource = Dataset & {
   uid: string;
   column_types: GenericDataType[];
   table_name: string;

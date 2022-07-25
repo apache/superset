@@ -114,7 +114,7 @@ describe('SqlLab query panel', () => {
 
     cy.wait('@sqlLabQuery');
 
-    // Save results to check agains below
+    // Save results to check against below
     selectResultsTab().then(resultsA => {
       initialResultsTable = resultsA[0];
     });

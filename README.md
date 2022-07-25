@@ -65,7 +65,7 @@ Superset provides:
 
 **Large Gallery of Visualizations**
 
-<kbd><a href="https://superset.apache.org/gallery"><img title="Gallery" src="superset-frontend/src/assets/images/screenshots/gallery.jpg"/></a></kbd><br/>
+<kbd><img title="Gallery" src="superset-frontend/src/assets/images/screenshots/gallery.jpg"/></kbd><br/>
 
 **Craft Beautiful, Dynamic Dashboards**
 
