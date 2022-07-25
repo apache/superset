@@ -26,8 +26,13 @@ import Icons from '../Icons';
 export type TagsListProps = {
   tags: TagType[];
   editable?: boolean;
-  onDelete: (index: number) => void;
-  maxTags: number | null;
+  /**
+   * OnDelete: 
+   * Only applies when editable is true
+   * Callback for when a tag is deleted
+   */
+  onDelete: ((index: number) => void) | undefined;
+  maxTags: number | undefined;
 };
 
 const TagsDiv = styled.div`
@@ -41,31 +46,40 @@ const TagsDiv = styled.div`
 const TagsList = ({ 
   tags, 
   editable=false, 
-  onDelete=(index) => null, 
-  maxTags=null
+  onDelete, 
+  maxTags
 }: TagsListProps) => {
 
+  const [tempMaxTags, setTempMaxTags] = useState<number | undefined>(maxTags);
+
   const handleDelete = (index: number) => {
-    onDelete(index);
+    onDelete?.(index);
   }
 
-  const tagsIsLong: boolean | null = useMemo(() => (maxTags ? (tags.length > maxTags): null), [tags.length, maxTags]);
+  const expand = () => setTempMaxTags(undefined);
 
-  const extraTags: number | null = useMemo(() => ((typeof maxTags === "number") ? ((tags.length - maxTags) + 1) : null), [tagsIsLong, tags.length, maxTags])
+  const collapse = () => setTempMaxTags(maxTags);
+
+  const tagsIsLong: boolean | null = useMemo(() => (tempMaxTags ? (tags.length > tempMaxTags): null), [tags.length, tempMaxTags]);
+
+  const extraTags: number | null = useMemo(() => ((typeof tempMaxTags === "number") ? ((tags.length - tempMaxTags) + 1) : null), [tagsIsLong, tags.length, tempMaxTags])
 
   return (
     <TagsDiv>
-      {(tagsIsLong === true && typeof maxTags === "number") ? (
+      {(tagsIsLong === true && typeof tempMaxTags === "number") ? (
         <>
-        {tags.slice(0,(maxTags-1)).map((tag: TagType, index) => (
+        {tags.slice(0,(tempMaxTags-1)).map((tag: TagType, index) => (
           <Tag id={tag.id} name={tag.name} index={index} onDelete={handleDelete} editable={editable}/>
         ))}
-        {tags.length > maxTags ? (<Tag name={`+${extraTags}...`}/>) : (null)}
+        {tags.length > tempMaxTags ? (<Tag name={`+${extraTags}...`} onClick={expand}/>) : (null)}
         </>
       ): (
-        tags.map((tag: TagType, index) => (
-          <Tag id={tag.id} name={tag.name} index={index} onDelete={handleDelete} editable={editable}/>
-        ))
+        <>
+        {tags.map((tag: TagType, index) => (
+          <Tag id={tag.id} name={tag.name} index={index} onDelete={handleDelete} editable={editable} />
+        ))}
+        {maxTags ? (tags.length > maxTags ? (<Tag name={'...'} onClick={collapse}/>) : (null)) : (null)}
+        </>
       )}
     </TagsDiv>
   );

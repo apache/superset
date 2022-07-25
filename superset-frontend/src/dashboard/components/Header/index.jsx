@@ -55,13 +55,9 @@ import { options as PeriodicRefreshOptions } from 'src/dashboard/components/Refr
 import { FILTER_BOX_MIGRATION_STATES } from 'src/explore/constants';
 import { PageHeaderWithActions } from 'src/components/PageHeaderWithActions';
 import { DashboardEmbedModal } from '../DashboardEmbedControls';
-import {
-  addTag,
-  deleteTag,
-  fetchSuggestions,
-  fetchTags,
-  OBJECT_TYPES,
-} from '../../../tags';
+import { OBJECT_TYPES } from 'src/tags';
+
+const MAX_TAGS = 3;
 
 const propTypes = {
   addSuccessToast: PropTypes.func.isRequired,
@@ -522,20 +518,21 @@ class Header extends React.PureComponent {
           }}
           titlePanelAdditionalItems={
             [
-              <PublishedStatus
+              !editMode && <PublishedStatus
                 dashboardId={dashboardInfo.id}
                 isPublished={isPublished}
                 savePublished={this.props.savePublished}
                 canEdit={userCanEdit}
                 canSave={userCanSaveAs}
+                visible={!editMode}
               />,
-              isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM) ? (
-                <ObjectTags
-                  objectType={OBJECT_TYPES.DASHBOARD}
-                  objectId={dashboardInfo.id}
-                  includeTypes={false}
-                />
-              ) : null
+              isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM) &&
+              <ObjectTags
+                objectType={OBJECT_TYPES.DASHBOARD}
+                objectId={dashboardInfo.id}
+                includeTypes={false}
+                maxTags={MAX_TAGS}
+              />
             ]
           }
           rightPanelAdditionalItems={
@@ -683,7 +680,7 @@ class Header extends React.PureComponent {
             />
           }
           showFaveStar={user?.userId && dashboardInfo?.id}
-          showTitlePanelItems={!editMode}
+          showTitlePanelItems
         />
         {this.state.showingPropertiesModal && (
           <PropertiesModal

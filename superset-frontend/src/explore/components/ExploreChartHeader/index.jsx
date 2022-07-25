@@ -39,14 +39,18 @@ import { useExploreAdditionalActionsMenu } from '../useExploreAdditionalActionsM
 import CertifiedBadge from 'src/components/CertifiedBadge';
 import RowCountLabel from '../RowCountLabel';
 import ObjectTags from 'src/components/ObjectTags';
-import {OBJECT_TYPES} from 'src/tags';
+import {fetchTags, OBJECT_TYPES} from 'src/tags';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
+import { TagsList } from 'src/components/Tags';
+import { Tag } from 'src/types/TagType'
 
 const CHART_STATUS_MAP = {
   failed: 'danger',
   loading: 'warning',
   success: 'success',
 };
+
+const MAX_TAGS = 3;
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -138,7 +142,7 @@ export const ExploreChartHeader = ({
     if (dashboardId) {
       fetchChartDashboardData();
     }
-  }, []);
+  }, [dashboardId]);
 
   const openPropertiesModal = () => {
     setIsPropertiesModalOpen(true);
@@ -159,6 +163,19 @@ export const ExploreChartHeader = ({
     );
 
   const oldSliceName = slice?.slice_name;
+
+  const [tags, setTags] = useState([]);
+    
+  useEffect(() => {
+    fetchTags({
+      objectType: OBJECT_TYPES.CHART,
+      objectId: slice.slice_id,
+      includeTypes: false
+    },
+    (tags) => setTags(tags),
+    () => {/** handle error */})
+  }, [slice]);
+
   return (
     <>
       <PageHeaderWithActions
@@ -198,10 +215,9 @@ export const ExploreChartHeader = ({
               />
             ) : null,
             isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM) ? (
-              <ObjectTags
-                objectType={OBJECT_TYPES.CHART}
-                objectId={chart.id}
-                includeTypes={false}
+              <TagsList 
+                tags={tags.filter((tag) => (tag.type ? (tag.type === 1 || tag.type === "TagTypes.custom"): (true)))}
+                maxTags={MAX_TAGS}
               />
             ) : null
           ]

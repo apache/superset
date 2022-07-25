@@ -39,6 +39,10 @@ import ColorSchemeControlWrapper from 'src/dashboard/components/ColorSchemeContr
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
+import { loadTags } from 'src/components/ObjectTags';
+import TagType from 'src/types/TagType';
+import { addTag, deleteTag, fetchTags, OBJECT_TYPES } from 'src/tags';
+import { TagsList } from 'src/components/Tags';
 
 const StyledFormItem = styled(FormItem)`
   margin-bottom: 0;
@@ -98,6 +102,9 @@ const PropertiesModal = ({
   const [owners, setOwners] = useState<Owners>([]);
   const [roles, setRoles] = useState<Roles>([]);
   const saveLabel = onlyApply ? t('Apply') : t('Save');
+  const [tags, setTags] = useState<TagType[]>([]);
+  const [newTags, setNewTags] = useState<TagType[]>([]);
+  const [oldTags, setOldTags] = useState<TagType[]>([]);
 
   const handleErrorResponse = async (response: Response) => {
     const { error, statusText, message } = await getClientErrorObject(response);
@@ -315,6 +322,32 @@ const PropertiesModal = ({
       updateMetadata: false,
     });
 
+    // update tags
+    newTags.map((tag: TagType) => {
+      // add new tags
+      addTag(
+        {
+          objectType: OBJECT_TYPES.DASHBOARD,
+          objectId: dashboardId,
+          includeTypes: false,
+        }, 
+        tag.name,
+        () => {},
+        () => {}
+      );
+    });
+    oldTags.map((tag: TagType) => {
+      // add new tags
+      deleteTag(
+        {
+          objectType: OBJECT_TYPES.DASHBOARD,
+          objectId: dashboardId,
+        }, 
+        tag,
+        () => {},
+        () => {}
+      );
+    });
     const moreOnSubmitProps: { roles?: Roles } = {};
     const morePutProps: { roles?: number[] } = {};
     if (isFeatureEnabled(FeatureFlag.DASHBOARD_RBAC)) {
@@ -496,6 +529,36 @@ const PropertiesModal = ({
     }
   }, [dashboardInfo, dashboardTitle, form]);
 
+  useEffect(() => {
+    try {
+      fetchTags(
+        {
+          objectType: OBJECT_TYPES.DASHBOARD, 
+          objectId: dashboardId, 
+          includeTypes: false},
+        (tags: TagType[]) => setTags(tags),
+        () => {/*TODO: handle error*/});
+    } catch(error: any) {
+      console.log(error)
+    }
+  }, [dashboardId]);
+
+  const handleAddTag = (values: { label: string; value: number }[]) => {
+    values.map((value: { label: string; value: number }) => {
+      let tag = {name: value.label};
+      if (tags.some(t => t.name === tag.name)) {
+        return;
+      }
+      setTags([...tags, tag]);
+      setNewTags([...newTags, tag])
+    });
+  }
+
+  const handleDeleteTag = (tagIndex: number) => {
+    setOldTags([...oldTags, tags[tagIndex]]);
+    setTags([...tags.slice(0,tagIndex), ...tags.slice(tagIndex+1, tags.length)]);
+  }
+
   return (
     <Modal
       show={show}
@@ -591,6 +654,39 @@ const PropertiesModal = ({
             <p className="help-block">
               {t('Any additional detail to show in the certification tooltip.')}
             </p>
+          </Col>
+        </Row>
+        <Row gutter={16}>
+        <Col xs={24} md={12}>
+          <h3 style={{ marginTop: '1em' }}>{t('Tags')}</h3>
+        </Col>
+        </Row>
+        <Row gutter={16}>
+          <Col xs={24} md={12}>
+            <StyledFormItem>
+              <AsyncSelect
+                ariaLabel='Tags'
+                mode="multiple"
+                allowNewOptions
+                value={[]}
+                options={loadTags}
+                onChange={handleAddTag}
+                allowClear
+              />
+            </StyledFormItem>
+            <p className="help-block">
+              {t(
+                  'A list of tags that have been applied to this chart.',
+                )}
+            </p>
+          </Col>
+          <Col xs={24} md={12}>
+            <TagsList
+              tags={tags} 
+              editable={true} 
+              onDelete={handleDeleteTag} 
+              maxTags={null}
+            />
           </Col>
         </Row>
         <Row>

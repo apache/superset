@@ -184,6 +184,8 @@ function DashboardList(props: DashboardListProps) {
                 url = '',
                 certified_by = '',
                 certification_details = '',
+                owners,
+                tags,
               } = json.result;
               return {
                 ...dashboard,
@@ -197,6 +199,8 @@ function DashboardList(props: DashboardListProps) {
                 url,
                 certified_by,
                 certification_details,
+                owners,
+                tags,
               };
             }
             return dashboard;
@@ -349,7 +353,9 @@ function DashboardList(props: DashboardListProps) {
           },
         }: any) => (
           // Only show custom type tags
-          <TagsList tags={tags.filter((tag: Tag) => tag.type === 1)} />
+          <TagsList 
+            tags={tags.filter((tag: Tag) => (tag.type === 'TagTypes.custom' || tag.type === 1))} 
+            maxTags={3}/>
         ),
         Header: t('Tags'),
         accessor: 'tags',

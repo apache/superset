@@ -17,32 +17,24 @@
  * under the License.
  */
 
-import React, { useCallback, useEffect, useState } from 'react';
-import { styled, SupersetClient, t, useTheme } from '@superset-ui/core';
+import React, { useEffect, useState } from 'react';
+import { styled, SupersetClient, t } from '@superset-ui/core';
 import Tag from 'src/types/TagType';
 
 import './ObjectTags.css';
 import { TagsList } from 'src/components/Tags';
-import Icons from '../Icons';
-import AsyncSelect from '../Select/AsyncSelect';
 import rison from 'rison';
 import { cacheWrapper } from 'src/utils/cacheWrapper';
 import { ClientErrorObject, getClientErrorObject } from 'src/utils/getClientErrorObject';
-import { SelectValue } from 'antd/lib/select';
-import { addTag, deleteTag, fetchSuggestions, fetchTags } from 'src/tags';
-import { StyledModal } from 'src/components/Modal';
+import { deleteTag, fetchTags } from 'src/tags';
 
 interface ObjectTagsProps {
   objectType: string;
   objectId: number;
   includeTypes: boolean;
   editMode: boolean;
-  maxTags: number | null;
+  maxTags: number | undefined;
   onChange?: (tags: Tag[]) => void;
-}
-
-interface SelectTagsProps {
-  onSelectTag: (tag: Tag) => void;
 }
 
 const StyledTagsDiv = styled.div`
@@ -53,23 +45,6 @@ const StyledTagsDiv = styled.div`
   -webkit-flex-direction: row;
   -webkit-flex-wrap: wrap;
   `
-
-const StyledTagsDropdown = styled.div`
-  margin-left: ${({ theme }) => theme.gridUnit * 2}px;
-  max-width: 100%;
-  display: -webkit-flex;
-  display: flex;
-  -webkit-flex-direction: row;
-  -webkit-flex-wrap: wrap;
-  backgroundColor: ${({ theme }) => theme.colors.grayscale.light4};
-  `
-
-const AddTags = styled.div`
-  max-width: 100%;
-  display: -webkit-flex;
-  display: flex;
-  -webkit-flex-direction: row;
-`;
 
 const localCache = new Map<string, any>();
 
@@ -121,7 +96,7 @@ export const loadTags = async (
       const data: {
         label: string;
         value: string | number;
-      }[] = response.json.result.map(tagToSelectOption);
+      }[] = response.json.result.filter((item: Tag & { table_name: string },) => (item.type === 1)).map(tagToSelectOption);
       return {
         data,
         totalCount: response.json.count,
@@ -133,80 +108,15 @@ export const loadTags = async (
     });
 };
 
-const SelectTags = ({
-  onSelectTag,
-}: SelectTagsProps) => {
-
-  const [selectValue, setSelectValue] = useState<SelectValue>();
-
-  
-  const onSelect = (value: { label: string; value: number }) => {
-    onSelectTag({name: value.label});
-    setSelectValue('');
-  };
-
-  const selectProps = {
-    allowClear: true,
-    allowNewOptions: true,
-    ariaLabel: 'Tags',
-    labelInValue: true,
-    options: loadTags,
-    pageSize: 10,
-    showSearch: true,
-  };
-  return (<AsyncSelect {...selectProps} onChange={onSelect} value={selectValue}/>);
-};
-
-
-const EditTagsButton = ({
-  onClick,
-  visible=true,
-} : any ) => {
-  if(!visible) {return null}
-  const styling = {
-    verticalAlign: '-webkit-baseline-middle'
-  }
-  return (
-    <div
-      role="button"
-      className="action-button"
-      onClick={onClick}
-      data-test="dashboard-tags-edit-button"
-    >
-      <Icons.EditAlt iconSize="l" data-test="edit-alt" style={styling}/>
-    </div>
-  );
-}
-
-const SaveButton = ({
-  onClick,
-} : any ) => {
-  const styling = {
-    verticalAlign: '-webkit-baseline-middle',
-    marginLeft:  `inherit`
-  }
-  return (
-    <div
-      role="button"
-      className="action-button"
-      onClick={onClick}
-      data-test="dashboard-tags-check-button"
-    >
-      <Icons.CheckCircleOutlined iconSize="l" style={styling} />
-    </div>
-  );
-}
-
 export const ObjectTags = ({
   objectType,
   objectId,
   includeTypes,
   editMode=false,
-  maxTags=null,
+  maxTags=undefined,
   onChange,
 }: ObjectTagsProps) => {
   const [tags, setTags] = useState<Tag[]>([]);
-  const [showTagsDropdown, setShowTagsDropdown] = useState(false);
 
   useEffect(() => {
     try {
@@ -219,19 +129,6 @@ export const ObjectTags = ({
     }
   }, [objectType, objectId, includeTypes]);
 
-  const theme = useTheme();
-
-  const TagsDiv = ({
-    ...props
-  }: any ) => {
-    if(showTagsDropdown){
-      return (
-        <StyledTagsDropdown 
-        {...props} css={{backgroundColor: theme.colors.grayscale.light4}}/>
-      );
-    }
-    return (<StyledTagsDiv {...props}/>)
-  };
 
   const onDelete = (tagIndex: number) => {
     deleteTag(
@@ -243,32 +140,11 @@ export const ObjectTags = ({
     onChange?.(tags);
   };
 
-  const onAddition = (tag: Tag) => {
-    if (tags.some(t => t.name === tag.name)) {
-      return;
-    }
-    addTag(
-      {objectType, objectId, includeTypes},
-      tag.name, 
-      () => setTags([...tags, tag]),
-      () => {/* TODO: handle error */}
-    );
-    onChange?.(tags);
-  };
-
-  const handleMouseOver = () => {
-    setShowTagsDropdown(true);
-  }
-  
-  const handleMouseLeave = () => {
-    setShowTagsDropdown(false);
-  }
-
   return (
     <span>
-      <TagsDiv onMouseOver={handleMouseOver} onMouseLeave={handleMouseLeave}>
+      <StyledTagsDiv>
         <TagsList tags={tags} editable={editMode} onDelete={onDelete} maxTags={maxTags}/>
-      </TagsDiv>
+      </StyledTagsDiv>
     </span>
   );
 };

@@ -27,8 +27,10 @@ import { t, SupersetClient, styled } from '@superset-ui/core';
 import Chart, { Slice } from 'src/types/Chart';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import ObjectTags, { loadTags } from 'src/components/ObjectTags';
-import { OBJECT_TYPES } from 'src/tags';
+import { loadTags } from 'src/components/ObjectTags';
+import { addTag, deleteTag, fetchTags, OBJECT_TYPES } from 'src/tags';
+import TagType from 'src/types/TagType';
+import { TagsList } from 'src/components/Tags';
 
 export type PropertiesModalProps = {
   slice: Slice;
@@ -65,7 +67,9 @@ function PropertiesModal({
     null,
   );
 
-  const [selectedTags, setSelectedTags] = useState<SelectValue | null>(null,);
+  const [tags, setTags] = useState<TagType[]>([]);
+  const [newTags, setNewTags] = useState<TagType[]>([]);
+  const [oldTags, setOldTags] = useState<TagType[]>([]);
 
   function showError({ error, statusText, message }: any) {
     let errorText = error || statusText || t('An error has occurred');
@@ -152,6 +156,33 @@ function PropertiesModal({
         }[]
       ).map(o => o.value);
     }
+    // update tags
+    newTags.map((tag: TagType) => {
+      // add new tags
+      addTag(
+        {
+          objectType: OBJECT_TYPES.CHART,
+          objectId: slice.slice_id,
+          includeTypes: false,
+        }, 
+        tag.name,
+        () => {},
+        () => {}
+      );
+    });
+    oldTags.map((tag: TagType) => {
+      // add new tags
+      deleteTag(
+        {
+          objectType: OBJECT_TYPES.CHART,
+          objectId: slice.slice_id,
+        }, 
+        tag,
+        () => {},
+        () => {}
+      );
+    });
+    
     try {
       const res = await SupersetClient.put({
         endpoint: `/api/v1/chart/${slice.slice_id}`,
@@ -162,6 +193,7 @@ function PropertiesModal({
       const updatedChart = {
         ...payload,
         ...res.json.result,
+        tags: tags,
         id: slice.slice_id,
       };
       onSave(updatedChart);
@@ -185,6 +217,36 @@ function PropertiesModal({
   useEffect(() => {
     setName(slice.slice_name || '');
   }, [slice.slice_name]);
+
+  useEffect(() => {
+    try {
+      fetchTags(
+        {
+          objectType: OBJECT_TYPES.CHART, 
+          objectId: slice.slice_id, 
+          includeTypes: false},
+        (tags: TagType[]) => setTags(tags),
+        () => {/*TODO: handle error*/});
+    } catch(error: any) {
+      console.log(error)
+    }
+  }, [slice.slice_id]);
+
+  const handleAddTag = (values: { label: string; value: number }[]) => {
+    values.map((value: { label: string; value: number }) => {
+      let tag = {name: value.label};
+      if (tags.some(t => t.name === tag.name)) {
+        return;
+      }
+      setTags([...tags, tag]);
+      setNewTags([...newTags, tag])
+    });
+  }
+
+  const handleDeleteTag = (tagIndex: number) => {
+    setOldTags([...oldTags, tags[tagIndex]]);
+    setTags([...tags.slice(0,tagIndex), ...tags.slice(tagIndex+1, tags.length)]);
+  }
 
   return (
     <Modal
@@ -323,10 +385,10 @@ function PropertiesModal({
               <AsyncSelect
                 ariaLabel='Tags'
                 mode="multiple"
-                value={selectedOwners || []}
-                onChange={setSelectedTags}
+                allowNewOptions
+                value={[]}
                 options={loadTags}
-                disabled={!selectedOwners}
+                onChange={handleAddTag}
                 allowClear
               />
               <StyledHelpBlock className="help-block">
@@ -334,11 +396,11 @@ function PropertiesModal({
                   'A list of tags that have been applied to this chart.',
                 )}
               </StyledHelpBlock>
-              <ObjectTags
-                objectType={OBJECT_TYPES.CHART}
-                objectId={slice.slice_id}
-                includeTypes={false}
-                editMode={true}
+              <TagsList
+                tags={tags} 
+                editable={true} 
+                onDelete={handleDeleteTag} 
+                maxTags={null}
               />
             </FormItem>
           </Col>
