@@ -91,7 +91,7 @@ Here are some of the major database solutions that are supported:
   <img src="superset-frontend/src/assets/images/snowflake.png" alt="snowflake" border="0" width="152" height="46"/>
   <img src="superset-frontend/src/assets/images/trino.png" alt="trino" border="0" width="46" height="46"/>
   <img src="superset-frontend/src/assets/images/presto.png" alt="presto" border="0" width="152" height="46"/>
-  <img src="superset-frontend/src/assets/images/databricks.png" alt="druid" border="0" width="142" height="22" />
+  <img src="superset-frontend/src/assets/images/databricks.png" alt="databricks" border="0" width="142" height="22" />
   <img src="superset-frontend/src/assets/images/druid.png" alt="druid" border="0" width="135" height="37" />
   <img src="superset-frontend/src/assets/images/firebolt.png" alt="firebolt" border="0" width="133" height="21.5" />
   <img src="superset-frontend/src/assets/images/timescale.png" alt="timescale" border="0" width="102" height="26.8" />  
