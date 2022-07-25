@@ -28,7 +28,7 @@ import { cacheWrapper } from 'src/utils/cacheWrapper';
 import { ClientErrorObject, getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { deleteTag, fetchTags } from 'src/tags';
 
-interface ObjectTagsProps {
+export interface ObjectTagsProps {
   objectType: string;
   objectId: number;
   includeTypes: boolean;

@@ -18,10 +18,9 @@
  */
 
 import React, { useMemo, useState } from 'react';
-import { styled, SupersetTheme, t } from '@superset-ui/core';
+import { styled } from '@superset-ui/core';
 import Tag from './Tag';
 import TagType from 'src/types/TagType';
-import Icons from '../Icons';
 
 export type TagsListProps = {
   tags: TagType[];
@@ -65,7 +64,7 @@ const TagsList = ({
   const extraTags: number | null = useMemo(() => ((typeof tempMaxTags === "number") ? ((tags.length - tempMaxTags) + 1) : null), [tagsIsLong, tags.length, tempMaxTags])
 
   return (
-    <TagsDiv>
+    <TagsDiv className='tag-list'>
       {(tagsIsLong === true && typeof tempMaxTags === "number") ? (
         <>
         {tags.slice(0,(tempMaxTags-1)).map((tag: TagType, index) => (

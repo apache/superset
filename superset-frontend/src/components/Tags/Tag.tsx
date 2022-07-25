@@ -18,7 +18,7 @@
  */
 
 import { styled, SupersetTheme } from "@superset-ui/core";
-import Tag from "src/types/TagType";
+import TagType from "src/types/TagType";
 import AntdTag from 'antd/lib/tag';
 import { useMemo } from "react";
 import { Tooltip } from 'src/components/Tooltip';
@@ -41,7 +41,7 @@ const Tag = ({
     onDelete=null, 
     editable=false, 
     onClick=null 
-} : Tag) => {
+} : TagType) => {
     
     const isLongTag = useMemo(() => name.length > 20, [name]);
 
@@ -64,7 +64,7 @@ const Tag = ({
                     {isLongTag ? `${name.slice(0, 20)}...` : name}
                 </StyledTag>
             ) : (
-                <StyledTag key={id} onClick={onClick}>
+                <StyledTag role="tag" key={id} onClick={onClick}>
                     {id ? (
                         <a href={`/superset/tags/?tags=${name}`}>{isLongTag ? `${name.slice(0, 20)}...` : name}</a>
                     ):(
