@@ -17,21 +17,21 @@
  * under the License.
  */
 
-import { Row } from 'react-table';
-
-export const sortAlphanumericCaseInsensitive = <D extends {}>(
-  rowA: Row<D>,
-  rowB: Row<D>,
-  columnId: string,
-) => {
-  const valueA = rowA.values[columnId];
-  const valueB = rowB.values[columnId];
-
-  if (!valueA || typeof valueA !== 'string') {
-    return -1;
+declare module 'dom-to-image-more' {
+  export interface Options {
+    filter?: ((node: Node) => boolean) | undefined;
+    bgcolor?: string | undefined;
+    width?: number | undefined;
+    height?: number | undefined;
+    style?: {} | undefined;
+    quality?: number | undefined;
+    imagePlaceholder?: string | undefined;
+    cacheBust?: boolean | undefined;
   }
-  if (!valueB || typeof valueB !== 'string') {
-    return 1;
+
+  class DomToImageMore {
+    static toJpeg(node: Node, options?: Options): Promise<string>;
   }
-  return valueA.localeCompare(valueB);
-};
+
+  export default DomToImageMore;
+}

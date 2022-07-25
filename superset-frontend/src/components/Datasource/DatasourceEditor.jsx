@@ -123,6 +123,13 @@ const StyledColumnsTabWrapper = styled.div`
   }
 `;
 
+const StyledButtonWrapper = styled.span`
+  ${({ theme }) => `
+    margin-top: ${theme.gridUnit * 3}px;
+    margin-left: ${theme.gridUnit * 3}px;
+  `}
+`;
+
 const checkboxGenerator = (d, onChange) => (
   <CheckboxControl value={d} onChange={onChange} />
 );
@@ -1361,7 +1368,7 @@ class DatasourceEditor extends React.PureComponent {
           >
             <StyledColumnsTabWrapper>
               <ColumnButtonWrapper>
-                <span className="m-t-10 m-r-10">
+                <StyledButtonWrapper>
                   <Button
                     buttonSize="small"
                     buttonStyle="tertiary"
@@ -1372,7 +1379,7 @@ class DatasourceEditor extends React.PureComponent {
                     <i className="fa fa-database" />{' '}
                     {t('Sync columns from source')}
                   </Button>
-                </span>
+                </StyledButtonWrapper>
               </ColumnButtonWrapper>
               <ColumnCollectionTable
                 className="columns-table"
