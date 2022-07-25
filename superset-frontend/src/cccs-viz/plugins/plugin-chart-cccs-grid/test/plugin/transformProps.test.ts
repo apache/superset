@@ -1,4 +1,5 @@
 import { CccsGridQueryFormData, CccsGridChartProps } from '../../src/types';
+import { supersetTheme } from '@superset-ui/core';
 import transformProps from '../../src/plugin/transformProps';
 
 describe('CccsGrid tranformProps', () => {
@@ -27,6 +28,7 @@ describe('CccsGrid tranformProps', () => {
         data: [{ name: 'Hulk', sum__num: 1, __timestamp: 599616000000 }],
       },
     ],
+    theme: supersetTheme,
   });
 
   it('should tranform chart props for viz', () => {

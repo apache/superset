@@ -1,4 +1,4 @@
-import { ChartProps } from '@superset-ui/core';
+import { ChartProps, supersetTheme } from '@superset-ui/core';
 import transformProps from '../../src/plugin/transformProps';
 
 describe('AtAGlance tranformProps', () => {
@@ -21,6 +21,7 @@ describe('AtAGlance tranformProps', () => {
         data: [{ name: 'Hulk', sum__num: 1 }],
       },
     ],
+    theme: supersetTheme,
   });
 
   it('should tranform chart props for viz', () => {
