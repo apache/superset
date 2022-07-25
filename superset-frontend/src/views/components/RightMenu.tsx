@@ -28,7 +28,7 @@ import {
   css,
   SupersetTheme,
   SupersetClient,
-  getUiOverrideRegistry,
+  getExtensionsRegistry,
 } from '@superset-ui/core';
 import { MainNav as Menu } from 'src/components/Menu';
 import { Tooltip } from 'src/components/Tooltip';
@@ -47,7 +47,7 @@ import {
 } from './types';
 import { MenuObjectProps } from './Menu';
 
-const uiOverrideRegistry = getUiOverrideRegistry();
+const extensionsRegistry = getExtensionsRegistry();
 
 const versionInfoStyles = (theme: SupersetTheme) => css`
   padding: ${theme.gridUnit * 1.5}px ${theme.gridUnit * 4}px
@@ -102,8 +102,8 @@ const RightMenu = ({
   const dashboardId = useSelector<RootState, number | undefined>(
     state => state.dashboardInfo?.id,
   );
-
-  const { roles } = user;
+  const userValues = user || {};
+  const { roles } = userValues;
   const {
     CSV_EXTENSIONS,
     COLUMNAR_EXTENSIONS,
@@ -258,7 +258,7 @@ const RightMenu = ({
     }
     return null;
   };
-  const RightMenuExtension = uiOverrideRegistry.get('navbar.right');
+  const RightMenuExtension = extensionsRegistry.get('navbar.right');
 
   const handleDatabaseAdd = () => setQuery({ databaseAdded: true });
 
@@ -287,7 +287,7 @@ const RightMenu = ({
             }
             icon={<Icons.TriangleDown />}
           >
-            {dropdownItems.map(menu => {
+            {dropdownItems?.map?.(menu => {
               const canShowChild = menu.childs?.some(
                 item => typeof item === 'object' && !!item.perm,
               );
@@ -299,7 +299,7 @@ const RightMenu = ({
                       className="data-menu"
                       title={menuIconAndLabel(menu)}
                     >
-                      {menu.childs.map((item, idx) =>
+                      {menu?.childs?.map?.((item, idx) =>
                         typeof item !== 'string' && item.name && item.perm ? (
                           <Fragment key={item.name}>
                             {idx === 2 && <Menu.Divider />}
@@ -321,13 +321,23 @@ const RightMenu = ({
                   roles,
                 ) && (
                   <Menu.Item key={menu.label}>
-                    <a href={menu.url}>
-                      <i
-                        data-test={`menu-item-${menu.label}`}
-                        className={`fa ${menu.icon}`}
-                      />{' '}
-                      {menu.label}
-                    </a>
+                    {isFrontendRoute(menu.url) ? (
+                      <Link to={menu.url || ''}>
+                        <i
+                          data-test={`menu-item-${menu.label}`}
+                          className={`fa ${menu.icon}`}
+                        />{' '}
+                        {menu.label}
+                      </Link>
+                    ) : (
+                      <a href={menu.url}>
+                        <i
+                          data-test={`menu-item-${menu.label}`}
+                          className={`fa ${menu.icon}`}
+                        />{' '}
+                        {menu.label}
+                      </a>
+                    )}
                   </Menu.Item>
                 )
               );
@@ -338,9 +348,9 @@ const RightMenu = ({
           title={t('Settings')}
           icon={<Icons.TriangleDown iconSize="xl" />}
         >
-          {settings.map((section, index) => [
+          {settings?.map?.((section, index) => [
             <Menu.ItemGroup key={`${section.label}`} title={section.label}>
-              {section.childs?.map(child => {
+              {section?.childs?.map?.(child => {
                 if (typeof child !== 'string') {
                   return (
                     <Menu.Item key={`${child.label}`}>

@@ -38,7 +38,7 @@ export type PhysicalColumn = string;
  * Column information defined in datasource.
  */
 export interface Column {
-  id: number;
+  id?: number;
   type?: string;
   type_generic?: GenericDataType;
   column_name: string;
@@ -61,7 +61,7 @@ export function isAdhocColumn(column?: any): column is AdhocColumn {
     typeof column !== 'string' &&
     column?.sqlExpression !== undefined &&
     column?.label !== undefined &&
-    column?.expressionType === 'SQL'
+    (column?.expressionType === undefined || column?.expressionType === 'SQL')
   );
 }
 

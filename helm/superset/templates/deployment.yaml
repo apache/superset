@@ -65,8 +65,8 @@ spec:
       {{- end }}
       securityContext:
         runAsUser: {{ .Values.runAsUser }}
-      {{- if .Values.supersetNode.securityContext }}
-        {{ toYaml .Values.supersetNode.securityContext | nindent 8 }}
+      {{- if .Values.supersetNode.podSecurityContext }}
+        {{ toYaml .Values.supersetNode.podSecurityContext | nindent 8 }}
       {{- end }}
       {{- if .Values.supersetNode.initContainers }}
       initContainers:
@@ -79,6 +79,9 @@ spec:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- if .Values.supersetNode.containerSecurityContext }}
+          securityContext: {{ toYaml .Values.supersetNode.containerSecurityContext | nindent 12 }}
+          {{- end }}
           command: {{  tpl (toJson .Values.supersetNode.command) . }}
           env:
             - name: "SUPERSET_PORT"

@@ -21,7 +21,7 @@ import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
 import { FeatureFlag } from 'src/featureFlags';
-import SliceHeaderControls from '.';
+import SliceHeaderControls, { SliceHeaderControlsProps } from '.';
 
 jest.mock('src/components/Dropdown', () => {
   const original = jest.requireActual('src/components/Dropdown');
@@ -36,66 +36,74 @@ jest.mock('src/components/Dropdown', () => {
   };
 });
 
-const createProps = (viz_type = 'sunburst') => ({
-  addDangerToast: jest.fn(),
-  addSuccessToast: jest.fn(),
-  exploreChart: jest.fn(),
-  exportCSV: jest.fn(),
-  exportFullCSV: jest.fn(),
-  forceRefresh: jest.fn(),
-  handleToggleFullSize: jest.fn(),
-  toggleExpandSlice: jest.fn(),
-  onExploreChart: jest.fn(),
-  slice: {
-    slice_id: 371,
-    slice_url: '/explore/?form_data=%7B%22slice_id%22%3A%20371%7D',
-    slice_name: 'Vaccine Candidates per Country & Stage',
-    slice_description: 'Table of vaccine candidates for 100 countries',
-    form_data: {
-      adhoc_filters: [],
-      color_scheme: 'supersetColors',
-      datasource: '58__table',
-      groupby: ['product_category', 'clinical_stage'],
-      linear_color_scheme: 'schemeYlOrBr',
-      metric: 'count',
-      queryFields: {
-        groupby: 'groupby',
-        metric: 'metrics',
-        secondary_metric: 'metrics',
-      },
-      row_limit: 10000,
+const createProps = (viz_type = 'sunburst') =>
+  ({
+    addDangerToast: jest.fn(),
+    addSuccessToast: jest.fn(),
+    exploreChart: jest.fn(),
+    exportCSV: jest.fn(),
+    exportFullCSV: jest.fn(),
+    forceRefresh: jest.fn(),
+    handleToggleFullSize: jest.fn(),
+    toggleExpandSlice: jest.fn(),
+    slice: {
       slice_id: 371,
-      time_range: 'No filter',
-      url_params: {},
+      slice_url: '/explore/?form_data=%7B%22slice_id%22%3A%20371%7D',
+      slice_name: 'Vaccine Candidates per Country & Stage',
+      slice_description: 'Table of vaccine candidates for 100 countries',
+      form_data: {
+        adhoc_filters: [],
+        color_scheme: 'supersetColors',
+        datasource: '58__table',
+        groupby: ['product_category', 'clinical_stage'],
+        linear_color_scheme: 'schemeYlOrBr',
+        metric: 'count',
+        queryFields: {
+          groupby: 'groupby',
+          metric: 'metrics',
+          secondary_metric: 'metrics',
+        },
+        row_limit: 10000,
+        slice_id: 371,
+        time_range: 'No filter',
+        url_params: {},
+        viz_type,
+      },
       viz_type,
+      datasource: '58__table',
+      description: 'test-description',
+      description_markeddown: '',
+      owners: [],
+      modified: '<span class="no-wrap">22 hours ago</span>',
+      changed_on: 1617143411523,
     },
-    viz_type,
-    datasource: '58__table',
-    description: 'test-description',
-    description_markeddown: '',
-    owners: [],
-    modified: '<span class="no-wrap">22 hours ago</span>',
-    changed_on: 1617143411523,
-  },
-  isCached: [false],
-  isExpanded: false,
-  cachedDttm: [''],
-  updatedDttm: 1617213803803,
-  supersetCanExplore: true,
-  supersetCanCSV: true,
-  sliceCanEdit: false,
-  componentId: 'CHART-fYo7IyvKZQ',
-  dashboardId: 26,
-  isFullSize: false,
-  chartStatus: 'rendered',
-  showControls: true,
-  supersetCanShare: true,
-  formData: { slice_id: 1, datasource: '58__table', viz_type: 'sunburst' },
-});
+    isCached: [false],
+    isExpanded: false,
+    cachedDttm: [''],
+    updatedDttm: 1617213803803,
+    supersetCanExplore: true,
+    supersetCanCSV: true,
+    sliceCanEdit: false,
+    componentId: 'CHART-fYo7IyvKZQ',
+    dashboardId: 26,
+    isFullSize: false,
+    chartStatus: 'rendered',
+    showControls: true,
+    supersetCanShare: true,
+    formData: { slice_id: 1, datasource: '58__table', viz_type: 'sunburst' },
+    exploreUrl: '/explore',
+  } as SliceHeaderControlsProps);
+
+const renderWrapper = (overrideProps?: SliceHeaderControlsProps) => {
+  const props = overrideProps || createProps();
+  return render(<SliceHeaderControls {...props} />, {
+    useRedux: true,
+    useRouter: true,
+  });
+};
 
 test('Should render', () => {
-  const props = createProps();
-  render(<SliceHeaderControls {...props} />, { useRedux: true });
+  renderWrapper();
   expect(
     screen.getByRole('button', { name: 'More Options' }),
   ).toBeInTheDocument();
@@ -124,7 +132,7 @@ test('Should render default props', () => {
   // @ts-ignore
   delete props.sliceCanEdit;
 
-  render(<SliceHeaderControls {...props} />, { useRedux: true });
+  renderWrapper(props);
   expect(
     screen.getByRole('menuitem', { name: 'Enter fullscreen' }),
   ).toBeInTheDocument();
@@ -150,8 +158,7 @@ test('Should render default props', () => {
 
 test('Should "export to CSV"', async () => {
   const props = createProps();
-  render(<SliceHeaderControls {...props} />, { useRedux: true });
-
+  renderWrapper(props);
   expect(props.exportCSV).toBeCalledTimes(0);
   userEvent.hover(screen.getByText('Download'));
   userEvent.click(await screen.findByText('Export to .CSV'));
@@ -161,7 +168,7 @@ test('Should "export to CSV"', async () => {
 
 test('Should not show "Download" if slice is filter box', () => {
   const props = createProps('filter_box');
-  render(<SliceHeaderControls {...props} />, { useRedux: true });
+  renderWrapper(props);
   expect(screen.queryByText('Download')).not.toBeInTheDocument();
 });
 
@@ -171,7 +178,7 @@ test('Export full CSV is under featureflag', async () => {
     [FeatureFlag.ALLOW_FULL_CSV_EXPORT]: false,
   };
   const props = createProps('table');
-  render(<SliceHeaderControls {...props} />, { useRedux: true });
+  renderWrapper(props);
   userEvent.hover(screen.getByText('Download'));
   expect(await screen.findByText('Export to .CSV')).toBeInTheDocument();
   expect(screen.queryByText('Export to full .CSV')).not.toBeInTheDocument();
@@ -183,7 +190,7 @@ test('Should "export full CSV"', async () => {
     [FeatureFlag.ALLOW_FULL_CSV_EXPORT]: true,
   };
   const props = createProps('table');
-  render(<SliceHeaderControls {...props} />, { useRedux: true });
+  renderWrapper(props);
   expect(props.exportFullCSV).toBeCalledTimes(0);
   userEvent.hover(screen.getByText('Download'));
   userEvent.click(await screen.findByText('Export to full .CSV'));
@@ -196,8 +203,7 @@ test('Should not show export full CSV if report is not table', async () => {
   global.featureFlags = {
     [FeatureFlag.ALLOW_FULL_CSV_EXPORT]: true,
   };
-  const props = createProps();
-  render(<SliceHeaderControls {...props} />, { useRedux: true });
+  renderWrapper();
   userEvent.hover(screen.getByText('Download'));
   expect(await screen.findByText('Export to .CSV')).toBeInTheDocument();
   expect(screen.queryByText('Export to full .CSV')).not.toBeInTheDocument();
@@ -205,8 +211,7 @@ test('Should not show export full CSV if report is not table', async () => {
 
 test('Should "Show chart description"', () => {
   const props = createProps();
-  render(<SliceHeaderControls {...props} />, { useRedux: true });
-
+  renderWrapper(props);
   expect(props.toggleExpandSlice).toBeCalledTimes(0);
   userEvent.click(screen.getByText('Show chart description'));
   expect(props.toggleExpandSlice).toBeCalledTimes(1);
@@ -215,8 +220,7 @@ test('Should "Show chart description"', () => {
 
 test('Should "Force refresh"', () => {
   const props = createProps();
-  render(<SliceHeaderControls {...props} />, { useRedux: true });
-
+  renderWrapper(props);
   expect(props.forceRefresh).toBeCalledTimes(0);
   userEvent.click(screen.getByText('Force refresh'));
   expect(props.forceRefresh).toBeCalledTimes(1);
@@ -226,7 +230,7 @@ test('Should "Force refresh"', () => {
 
 test('Should "Enter fullscreen"', () => {
   const props = createProps();
-  render(<SliceHeaderControls {...props} />, { useRedux: true });
+  renderWrapper(props);
 
   expect(props.handleToggleFullSize).toBeCalledTimes(0);
   userEvent.click(screen.getByText('Enter fullscreen'));

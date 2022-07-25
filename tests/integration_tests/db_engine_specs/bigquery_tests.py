@@ -362,8 +362,8 @@ class TestBigQueryDbEngineSpec(TestDbEngineSpec):
             table=table,
             expression="""
             case
-              when gender=true then "male"
-              else "female"
+              when gender='boy' then 'male'
+              else 'female'
             end
             """,
         )

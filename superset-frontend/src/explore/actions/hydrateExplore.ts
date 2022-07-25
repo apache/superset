@@ -55,8 +55,7 @@ export const hydrateExplore =
     if (dashboardId) {
       initialFormData.dashboardId = dashboardId;
     }
-    const initialDatasource =
-      datasources?.[initialFormData.datasource] ?? dataset;
+    const initialDatasource = dataset;
 
     const initialExploreState = {
       form_data: initialFormData,
@@ -89,6 +88,7 @@ export const hydrateExplore =
       controlsTransferred: [],
       standalone: getUrlParam(URL_PARAMS.standalone),
       force: getUrlParam(URL_PARAMS.force),
+      sliceDashboards: initialFormData.dashboards,
     };
 
     // apply initial mapStateToProps for all controls, must execute AFTER

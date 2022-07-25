@@ -23,7 +23,7 @@ import unittest
 from random import random
 
 import pytest
-from flask import escape, url_for
+from flask import Response, escape, url_for
 from sqlalchemy import func
 
 from tests.integration_tests.test_app import app
@@ -125,13 +125,12 @@ class TestDashboard(SupersetTestCase):
             positions[id] = d
         return positions
 
-    def test_dashboard(self):
+    def test_get_dashboard(self):
         self.login(username="admin")
-        urls = {}
-        for dash in db.session.query(Dashboard).all():
-            urls[dash.dashboard_title] = dash.url
-        for title, url in urls.items():
-            assert escape(title) in self.client.get(url).data.decode("utf-8")
+        for dash in db.session.query(Dashboard):
+            assert escape(dash.dashboard_title) in self.client.get(dash.url).get_data(
+                as_text=True
+            )
 
     def test_superset_dashboard_url(self):
         url_for("Superset.dashboard", dashboard_id_or_slug=1)
@@ -424,8 +423,9 @@ class TestDashboard(SupersetTestCase):
         # Cleanup
         self.revoke_public_access_to_table(table)
 
-    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    @pytest.mark.usefixtures("public_role_like_gamma")
+    @pytest.mark.usefixtures(
+        "load_birth_names_dashboard_with_slices", "public_role_like_gamma"
+    )
     def test_dashboard_with_created_by_can_be_accessed_by_public_users(self):
         self.logout()
         table = db.session.query(SqlaTable).filter_by(table_name="birth_names").one()
@@ -437,8 +437,9 @@ class TestDashboard(SupersetTestCase):
         db.session.merge(dash)
         db.session.commit()
 
-        # this asserts a non-4xx response
-        self.get_resp("/superset/dashboard/births/")
+        res: Response = self.client.get("/superset/dashboard/births/")
+        assert res.status_code == 200
+
         # Cleanup
         self.revoke_public_access_to_table(table)
 

@@ -293,8 +293,8 @@ class TestDbEngineSpecs(TestDbEngineSpec):
             table=table,
             expression="""
             case
-              when gender=true then "male"
-              else "female"
+              when gender='boy' then 'male'
+              else 'female'
             end
             """,
         )
@@ -309,8 +309,8 @@ class TestDbEngineSpecs(TestDbEngineSpec):
         sql = table.get_query_str(query_obj)
         assert (
             """ORDER BY case
-             when gender=true then "male"
-             else "female"
+             when gender='boy' then 'male'
+             else 'female'
          end ASC;"""
             in sql
         )

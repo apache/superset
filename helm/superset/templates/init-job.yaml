@@ -36,8 +36,8 @@ spec:
       {{- end }}
       securityContext:
         runAsUser: {{ .Values.runAsUser }}
-      {{- if .Values.init.securityContext }}
-        {{ toYaml .Values.init.securityContext | nindent 8 }}
+      {{- if .Values.init.podSecurityContext }}
+        {{ toYaml .Values.init.podSecurityContext | nindent 8 }}
       {{- end }}
       {{- if .Values.init.initContainers }}
       initContainers:
@@ -64,6 +64,9 @@ spec:
               name: {{ tpl . $ }}
           {{- end }}
         imagePullPolicy: {{ .Values.image.pullPolicy }}
+        {{- if .Values.init.containerSecurityContext }}
+        securityContext: {{ toYaml .Values.init.containerSecurityContext | nindent 12 }}
+        {{- end }}
         volumeMounts:
           - name: superset-config
             mountPath: {{ .Values.configMountPath | quote }}

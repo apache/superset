@@ -167,7 +167,7 @@ class BaseReportState:
                     force=force,
                 )
             return get_url_path(
-                "Superset.explore",
+                "ExploreView.root",
                 user_friendly=user_friendly,
                 form_data=json.dumps({"slice_id": self._report_schedule.chart_id}),
                 standalone="true",

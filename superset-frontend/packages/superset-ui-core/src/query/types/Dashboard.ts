@@ -82,7 +82,6 @@ export type Filter = {
   adhoc_filters?: AdhocFilter[];
   granularity_sqla?: string;
   granularity?: string;
-  druid_time_origin?: string;
   time_grain_sqla?: string;
   time_range?: string;
   requiredFirst?: boolean;
@@ -115,6 +114,10 @@ export type FilterConfiguration = Array<Filter | Divider>;
 
 export type Filters = {
   [filterId: string]: Filter | Divider;
+};
+
+export type PartialFilters = {
+  [filterId: string]: Partial<Filters[keyof Filters]>;
 };
 
 export type NativeFiltersState = {

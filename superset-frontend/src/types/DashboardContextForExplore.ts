@@ -16,9 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-const queryObjectCount = {
-  mixed_timeseries: 2,
-};
+import {
+  DataMaskStateWithId,
+  DataRecordValue,
+  PartialFilters,
+} from '@superset-ui/core';
+import { ChartConfiguration } from 'src/dashboard/reducers/types';
 
-export const getQueryCount = (vizType: string): number =>
-  queryObjectCount?.[vizType] || 1;
+export interface DashboardContextForExplore {
+  labelColors: Record<string, string>;
+  sharedLabelColors: Record<string, string>;
+  colorScheme: string;
+  chartConfiguration: ChartConfiguration;
+  nativeFilters: PartialFilters;
+  dataMask: DataMaskStateWithId;
+  dashboardId: number;
+  filterBoxFilters:
+    | {
+        [key: string]: {
+          scope: number[];
+          values: DataRecordValue[];
+        };
+      }
+    | {};
+  isRedundant?: boolean;
+}

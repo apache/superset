@@ -14,10 +14,14 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any
+from typing import Any, Dict
 
-from marshmallow import fields, post_load, Schema
+from marshmallow import fields, post_load, pre_load, Schema, validate
 from typing_extensions import TypedDict
+
+from superset import app
+from superset.charts.schemas import ChartDataFilterSchema
+from superset.utils.core import DatasourceType
 
 
 class ExternalMetadataParams(TypedDict):
@@ -54,3 +58,27 @@ class ExternalMetadataSchema(Schema):
             schema_name=data.get("schema_name", ""),
             table_name=data["table_name"],
         )
+
+
+class SamplesPayloadSchema(Schema):
+    filters = fields.List(fields.Nested(ChartDataFilterSchema), required=False)
+
+    @pre_load
+    # pylint: disable=no-self-use, unused-argument
+    def handle_none(self, data: Dict[str, Any], **kwargs: Any) -> Dict[str, Any]:
+        if data is None:
+            return {}
+        return data
+
+
+class SamplesRequestSchema(Schema):
+    datasource_type = fields.String(
+        validate=validate.OneOf([e.value for e in DatasourceType]), required=True
+    )
+    datasource_id = fields.Integer(required=True)
+    force = fields.Boolean(load_default=False)
+    page = fields.Integer(load_default=1)
+    per_page = fields.Integer(
+        validate=validate.Range(min=1, max=app.config.get("SAMPLES_ROW_LIMIT", 1000)),
+        load_default=app.config.get("SAMPLES_ROW_LIMIT", 1000),
+    )

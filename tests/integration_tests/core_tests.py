@@ -83,11 +83,17 @@ from tests.integration_tests.fixtures.world_bank_dashboard import (
 logger = logging.getLogger(__name__)
 
 
+@pytest.fixture(scope="module")
+def cleanup():
+    db.session.query(Query).delete()
+    db.session.query(DatasourceAccessRequest).delete()
+    db.session.query(models.Log).delete()
+    db.session.commit()
+    yield
+
+
 class TestCore(SupersetTestCase):
     def setUp(self):
-        db.session.query(Query).delete()
-        db.session.query(DatasourceAccessRequest).delete()
-        db.session.query(models.Log).delete()
         self.table_ids = {
             tbl.table_name: tbl.id for tbl in (db.session.query(SqlaTable).all())
         }
@@ -117,15 +123,6 @@ class TestCore(SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_slice_endpoint(self):
         self.login(username="admin")
-        slc = self.get_slice("Girls", db.session)
-        resp = self.get_resp("/superset/slice/{}/".format(slc.id))
-        assert "Original value" in resp
-        assert "List Roles" in resp
-
-        # Testing overrides
-        resp = self.get_resp("/superset/slice/{}/?standalone=true".format(slc.id))
-        assert '<div class="navbar' not in resp
-
         resp = self.client.get("/superset/slice/-1/")
         assert resp.status_code == 404
 
@@ -224,7 +221,7 @@ class TestCore(SupersetTestCase):
 
     def test_get_superset_tables_substr(self):
         example_db = superset.utils.database.get_example_database()
-        if example_db.backend in {"presto", "hive"}:
+        if example_db.backend in {"presto", "hive", "sqlite"}:
             # TODO: change table to the real table that is in examples.
             return
         self.login(username="admin")
@@ -875,7 +872,7 @@ class TestCore(SupersetTestCase):
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_slice_id_is_always_logged_correctly_on_web_request(self):
-        # superset/explore case
+        # explore case
         self.login("admin")
         slc = db.session.query(Slice).filter_by(slice_name="Girls").one()
         qry = db.session.query(models.Log).filter_by(slice_id=slc.id)
@@ -1418,7 +1415,7 @@ class TestCore(SupersetTestCase):
             "/superset/welcome",
             f"/superset/dashboard/{dash_id}/",
             "/superset/profile/admin/",
-            f"/superset/explore/table/{tbl_id}",
+            f"/explore/?dataset_type=table&dataset_id={tbl_id}",
         ]
         for url in urls:
             data = self.get_resp(url)
@@ -1560,7 +1557,7 @@ class TestCore(SupersetTestCase):
         exception = SupersetException("Error message")
         mock_db_connection_mutator.side_effect = exception
         slice = db.session.query(Slice).first()
-        url = f"/superset/explore/?form_data=%7B%22slice_id%22%3A%20{slice.id}%7D"
+        url = f"/explore/?form_data=%7B%22slice_id%22%3A%20{slice.id}%7D"
 
         self.login()
         data = self.get_resp(url)
@@ -1570,7 +1567,7 @@ class TestCore(SupersetTestCase):
         exception = SQLAlchemyError("Error message")
         mock_db_connection_mutator.side_effect = exception
         slice = db.session.query(Slice).first()
-        url = f"/superset/explore/?form_data=%7B%22slice_id%22%3A%20{slice.id}%7D"
+        url = f"/explore/?form_data=%7B%22slice_id%22%3A%20{slice.id}%7D"
 
         self.login()
         data = self.get_resp(url)

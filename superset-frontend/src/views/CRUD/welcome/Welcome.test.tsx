@@ -28,7 +28,7 @@ import Welcome from 'src/views/CRUD/welcome/Welcome';
 import { ReactWrapper } from 'enzyme';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import { render, screen } from 'spec/helpers/testing-library';
-import { getUiOverrideRegistry } from '@superset-ui/core';
+import { getExtensionsRegistry } from '@superset-ui/core';
 import setupExtensions from 'src/setup/setupExtensions';
 
 const mockStore = configureStore([thunk]);
@@ -184,9 +184,9 @@ describe('Welcome page with toggle switch', () => {
 });
 
 test('should render an extension component if one is supplied', () => {
-  const uiOverrideRegistry = getUiOverrideRegistry();
+  const extensionsRegistry = getExtensionsRegistry();
 
-  uiOverrideRegistry.set('welcome.banner', () => (
+  extensionsRegistry.set('welcome.banner', () => (
     <>welcome.banner extension component</>
   ));
 

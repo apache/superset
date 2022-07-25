@@ -219,7 +219,6 @@ class ExtraFiltersTimeColumnType(str, Enum):
 class ExtraFiltersReasonType(str, Enum):
     NO_TEMPORAL_COLUMN = "no_temporal_column"
     COL_NOT_IN_DATASOURCE = "not_in_datasource"
-    NOT_DRUID_DATASOURCE = "not_druid_datasource"
 
 
 class FilterOperator(str, Enum):
@@ -609,8 +608,9 @@ def json_int_dttm_ser(obj: Any) -> float:
     return obj
 
 
-def json_dumps_w_dates(payload: Dict[Any, Any]) -> str:
-    return json.dumps(payload, default=json_int_dttm_ser)
+def json_dumps_w_dates(payload: Dict[Any, Any], sort_keys: bool = False) -> str:
+    """Dumps payload to JSON with Datetime objects properly converted"""
+    return json.dumps(payload, default=json_int_dttm_ser, sort_keys=sort_keys)
 
 
 def error_msg_from_exception(ex: Exception) -> str:
@@ -1145,7 +1145,6 @@ def merge_extra_filters(form_data: Dict[str, Any]) -> None:
             "__time_range": "time_range",
             "__time_col": "granularity_sqla",
             "__time_grain": "time_grain_sqla",
-            "__time_origin": "druid_time_origin",
             "__granularity": "granularity",
         }
         # Grab list of existing filters 'keyed' on the column and operator
@@ -1675,21 +1674,31 @@ def extract_dataframe_dtypes(
         "date": GenericDataType.TEMPORAL,
     }
 
-    columns_by_name = (
-        {column.column_name: column for column in datasource.columns}
-        if datasource
-        else {}
-    )
+    columns_by_name: Dict[str, Any] = {}
+    if datasource:
+        for column in datasource.columns:
+            if isinstance(column, dict):
+                columns_by_name[column.get("column_name")] = column
+            else:
+                columns_by_name[column.column_name] = column
+
     generic_types: List[GenericDataType] = []
     for column in df.columns:
         column_object = columns_by_name.get(column)
         series = df[column]
         inferred_type = infer_dtype(series)
-        generic_type = (
-            GenericDataType.TEMPORAL
-            if column_object and column_object.is_dttm
-            else inferred_type_map.get(inferred_type, GenericDataType.STRING)
-        )
+        if isinstance(column_object, dict):  # type: ignore
+            generic_type = (
+                GenericDataType.TEMPORAL
+                if column_object and column_object.get("is_dttm")
+                else inferred_type_map.get(inferred_type, GenericDataType.STRING)
+            )
+        else:
+            generic_type = (
+                GenericDataType.TEMPORAL
+                if column_object and column_object.is_dttm
+                else inferred_type_map.get(inferred_type, GenericDataType.STRING)
+            )
         generic_types.append(generic_type)
 
     return generic_types
@@ -1723,7 +1732,16 @@ def get_time_filter_status(
     datasource: "BaseDatasource",
     applied_time_extras: Dict[str, str],
 ) -> Tuple[List[Dict[str, str]], List[Dict[str, str]]]:
-    temporal_columns = {col.column_name for col in datasource.columns if col.is_dttm}
+
+    temporal_columns: Set[Any]
+    if datasource.type == "query":
+        temporal_columns = {
+            col.get("column_name") for col in datasource.columns if col.get("is_dttm")
+        }
+    else:
+        temporal_columns = {
+            col.column_name for col in datasource.columns if col.is_dttm
+        }
     applied: List[Dict[str, str]] = []
     rejected: List[Dict[str, str]] = []
     time_column = applied_time_extras.get(ExtraFiltersTimeColumnType.TIME_COL)
@@ -1760,28 +1778,6 @@ def get_time_filter_status(
                 {
                     "reason": ExtraFiltersReasonType.NO_TEMPORAL_COLUMN,
                     "column": ExtraFiltersTimeColumnType.TIME_RANGE,
-                }
-            )
-
-    if ExtraFiltersTimeColumnType.TIME_ORIGIN in applied_time_extras:
-        if datasource.type == "druid":
-            applied.append({"column": ExtraFiltersTimeColumnType.TIME_ORIGIN})
-        else:
-            rejected.append(
-                {
-                    "reason": ExtraFiltersReasonType.NOT_DRUID_DATASOURCE,
-                    "column": ExtraFiltersTimeColumnType.TIME_ORIGIN,
-                }
-            )
-
-    if ExtraFiltersTimeColumnType.GRANULARITY in applied_time_extras:
-        if datasource.type == "druid":
-            applied.append({"column": ExtraFiltersTimeColumnType.GRANULARITY})
-        else:
-            rejected.append(
-                {
-                    "reason": ExtraFiltersReasonType.NOT_DRUID_DATASOURCE,
-                    "column": ExtraFiltersTimeColumnType.GRANULARITY,
                 }
             )
 

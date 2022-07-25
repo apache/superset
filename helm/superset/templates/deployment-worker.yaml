@@ -62,8 +62,8 @@ spec:
       {{- end }}
       securityContext:
         runAsUser: {{ .Values.runAsUser }}
-      {{- if .Values.supersetWorker.securityContext }}
-        {{ toYaml .Values.supersetWorker.securityContext | nindent 8 }}
+      {{- if .Values.supersetWorker.podSecurityContext }}
+        {{ toYaml .Values.supersetWorker.podSecurityContext | nindent 8 }}
       {{- end }}
       {{- if .Values.supersetWorker.initContainers }}
       initContainers:
@@ -76,6 +76,9 @@ spec:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- if .Values.supersetWorker.containerSecurityContext }}
+          securityContext: {{ toYaml .Values.supersetWorker.containerSecurityContext | nindent 12 }}
+          {{- end }}
           command: {{  tpl (toJson .Values.supersetWorker.command) . }}
           env:
             - name: "SUPERSET_PORT"
@@ -98,6 +101,11 @@ spec:
             - name: superset-config
               mountPath: {{ .Values.configMountPath | quote }}
               readOnly: true
+          {{- if .Values.extraConfigs }}
+            - name: superset-extra-config
+              mountPath: {{ .Values.extraConfigMountPath | quote }}
+              readOnly: true
+          {{- end }}
           {{- with .Values.extraVolumeMounts }}
           {{- tpl (toYaml .) $ | nindent 12 -}}
           {{- end }}
@@ -127,6 +135,11 @@ spec:
         - name: superset-config
           secret:
             secretName: {{ tpl .Values.configFromSecret . }}
-      {{- with .Values.extraVolumes }}
-      {{- tpl (toYaml .) $ | nindent 8 -}}
-      {{- end }}
+        {{- if .Values.extraConfigs }}
+        - name: superset-extra-config
+          configMap:
+            name: {{ template "superset.fullname" . }}-extra-config
+        {{- end }}
+        {{- with .Values.extraVolumes }}
+        {{- tpl (toYaml .) $ | nindent 8 -}}
+        {{- end }}

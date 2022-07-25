@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { MouseEvent, Key } from 'react';
+import { Link, RouteComponentProps, withRouter } from 'react-router-dom';
 import moment from 'moment';
 import {
   Behavior,
@@ -32,6 +33,8 @@ import ShareMenuItems from 'src/dashboard/components/menu/ShareMenuItems';
 import downloadAsImage from 'src/utils/downloadAsImage';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import CrossFilterScopingModal from 'src/dashboard/components/CrossFilterScopingModal/CrossFilterScopingModal';
+import { getSliceHeaderTooltip } from 'src/dashboard/util/getSliceHeaderTooltip';
+import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
 import ModalTrigger from 'src/components/ModalTrigger';
 import Button from 'src/components/Button';
@@ -106,7 +109,7 @@ export interface SliceHeaderControlsProps {
   isFullSize?: boolean;
   isDescriptionExpanded?: boolean;
   formData: QueryFormData;
-  onExploreChart: () => void;
+  exploreUrl: string;
 
   forceRefresh: (sliceId: number, dashboardId: number) => void;
   logExploreChart?: (sliceId: number) => void;
@@ -123,6 +126,8 @@ export interface SliceHeaderControlsProps {
   supersetCanCSV?: boolean;
   sliceCanEdit?: boolean;
 }
+type SliceHeaderControlsPropsWithRouter = SliceHeaderControlsProps &
+  RouteComponentProps;
 interface State {
   showControls: boolean;
   showCrossFilterScopingModal: boolean;
@@ -136,10 +141,10 @@ const dropdownIconsStyles = css`
 `;
 
 class SliceHeaderControls extends React.PureComponent<
-  SliceHeaderControlsProps,
+  SliceHeaderControlsPropsWithRouter,
   State
 > {
-  constructor(props: SliceHeaderControlsProps) {
+  constructor(props: SliceHeaderControlsPropsWithRouter) {
     super(props);
     this.toggleControls = this.toggleControls.bind(this);
     this.refreshChart = this.refreshChart.bind(this);
@@ -170,8 +175,8 @@ class SliceHeaderControls extends React.PureComponent<
     key,
     domEvent,
   }: {
-    key: React.Key;
-    domEvent: React.MouseEvent<HTMLElement>;
+    key: Key;
+    domEvent: MouseEvent<HTMLElement>;
   }) {
     switch (key) {
       case MENU_KEYS.FORCE_REFRESH:
@@ -304,11 +309,14 @@ class SliceHeaderControls extends React.PureComponent<
         )}
 
         {this.props.supersetCanExplore && (
-          <Menu.Item
-            key={MENU_KEYS.EXPLORE_CHART}
-            onClick={this.props.onExploreChart}
-          >
-            {t('Edit chart')}
+          <Menu.Item key={MENU_KEYS.EXPLORE_CHART}>
+            <Link to={this.props.exploreUrl}>
+              <Tooltip
+                title={getSliceHeaderTooltip(this.props.slice.slice_name)}
+              >
+                {t('Edit chart')}
+              </Tooltip>
+            </Link>
           </Menu.Item>
         )}
 
@@ -351,7 +359,7 @@ class SliceHeaderControls extends React.PureComponent<
                 <Button
                   buttonStyle="secondary"
                   buttonSize="small"
-                  onClick={this.props.onExploreChart}
+                  onClick={() => this.props.history.push(this.props.exploreUrl)}
                 >
                   {t('Edit chart')}
                 </Button>
@@ -459,4 +467,4 @@ class SliceHeaderControls extends React.PureComponent<
   }
 }
 
-export default SliceHeaderControls;
+export default withRouter(SliceHeaderControls);
