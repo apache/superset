@@ -41,7 +41,7 @@ import { getSliceHeaderTooltip } from 'src/dashboard/util/getSliceHeaderTooltip'
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
 import { clearDataMask } from 'src/dataMask/actions';
 
-type SliceHeaderProps = SliceHeaderControlsProps & {
+type SliceHeaderProps = Omit<SliceHeaderControlsProps, 'exploreUrl'> & {
   innerRef?: string;
   updateSliceName?: (arg0: string) => void;
   editMode?: boolean;

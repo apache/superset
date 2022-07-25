@@ -221,7 +221,7 @@ export default function EditableTitle({
     // don't actually want an input in this case
     titleComponent = url ? (
       <Link
-        to={url}
+        to={{ pathname: url, state: { fromDashboard: true } }}
         data-test="editable-title-input"
         css={(theme: SupersetTheme) => css`
           color: ${theme.colors.grayscale.dark1};

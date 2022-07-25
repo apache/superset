@@ -16,10 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useRef, useState } from 'react';
-import { useDispatch } from 'react-redux';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { useLocation } from 'react-router-dom';
-import { isDefined, JsonObject, makeApi, t } from '@superset-ui/core';
+import pick from 'lodash/pick';
+import {
+  isDefined,
+  JsonObject,
+  makeApi,
+  QueryFormData,
+  SupersetClient,
+  t,
+} from '@superset-ui/core';
+import { Dataset } from '@superset-ui/chart-controls';
 import Loading from 'src/components/Loading';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { getUrlParam } from 'src/utils/urlUtils';
@@ -27,12 +36,14 @@ import { URL_PARAMS } from 'src/constants';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import getFormDataWithExtraFilters from 'src/dashboard/util/charts/getFormDataWithExtraFilters';
 import { getAppliedFilterValues } from 'src/dashboard/util/activeDashboardFilters';
+import { RootState } from 'src/dashboard/types';
+import { Slice } from 'src/types/Chart';
+import { getItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import { getParsedExploreURLParams } from './exploreUtils/getParsedExploreURLParams';
 import { hydrateExplore } from './actions/hydrateExplore';
 import ExploreViewContainer from './components/ExploreViewContainer';
 import { ExploreResponsePayload } from './types';
 import { fallbackExploreInitialData } from './fixtures';
-import { getItem, LocalStorageKeys } from '../utils/localStorageHelpers';
 import { getFormDataWithDashboardContext } from './controlUtils/getFormDataWithDashboardContext';
 
 const isResult = (rv: JsonObject): rv is ExploreResponsePayload =>
@@ -98,18 +109,60 @@ const getDashboardContextFormData = () => {
   return {};
 };
 
+const useExploreInitialData = () => {
+  const location = useLocation<{ fromDashboard?: number }>();
+  const sliceId = getUrlParam(URL_PARAMS.sliceId);
+  const exploreUrlParams = getParsedExploreURLParams(location);
+  const fromDashboard = isDefined(location.state?.fromDashboard);
+  const slice = useSelector<RootState, Slice | null>(({ sliceEntities }) =>
+    isDefined(sliceId) ? sliceEntities?.slices?.[sliceId] : null,
+  );
+  const formData = useSelector<RootState, QueryFormData | null>(state =>
+    isDefined(sliceId) ? state.charts?.[sliceId]?.form_data : null,
+  );
+  const { id: datasourceId, type: datasourceType } = useSelector<
+    RootState,
+    { id: number | undefined; type: string | undefined }
+  >(({ datasources }) =>
+    formData?.datasource
+      ? pick(datasources[formData.datasource], ['id', 'type'])
+      : { id: undefined, type: undefined },
+  );
+  return useCallback(() => {
+    if (
+      !fromDashboard ||
+      !isDefined(slice) ||
+      !isDefined(formData) ||
+      !isDefined(datasourceId) ||
+      !isDefined(datasourceType)
+    ) {
+      return fetchExploreData(exploreUrlParams);
+    }
+    return SupersetClient.get({
+      endpoint: `/datasource/get/${datasourceType}/${datasourceId}/`,
+    }).then(({ json }) => ({
+      result: {
+        slice,
+        form_data: formData,
+        dataset: json as Dataset,
+        message: '',
+      },
+    }));
+    /* eslint-disable react-hooks/exhaustive-deps */
+  }, []);
+};
+
 export default function ExplorePage() {
   const [isLoaded, setIsLoaded] = useState(false);
   const isExploreInitialized = useRef(false);
   const dispatch = useDispatch();
-  const location = useLocation();
+  const getExploreInitialData = useExploreInitialData();
 
   useEffect(() => {
-    const exploreUrlParams = getParsedExploreURLParams(location);
     const isSaveAction = !!getUrlParam(URL_PARAMS.saveAction);
     const dashboardContextFormData = getDashboardContextFormData();
     if (!isExploreInitialized.current || isSaveAction) {
-      fetchExploreData(exploreUrlParams)
+      getExploreInitialData()
         .then(({ result }) => {
           const formData = getFormDataWithDashboardContext(
             result.form_data,
@@ -131,7 +184,7 @@ export default function ExplorePage() {
           isExploreInitialized.current = true;
         });
     }
-  }, [dispatch, location]);
+  }, []);
 
   if (!isLoaded) {
     return <Loading />;

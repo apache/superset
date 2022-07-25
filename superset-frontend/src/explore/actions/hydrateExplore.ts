@@ -55,12 +55,11 @@ export const hydrateExplore =
     if (dashboardId) {
       initialFormData.dashboardId = dashboardId;
     }
-    const initialDatasource = dataset;
 
     const initialExploreState = {
       form_data: initialFormData,
       slice: initialSlice,
-      datasource: initialDatasource,
+      datasource: dataset,
     };
     const initialControls = getControlsState(
       initialExploreState,
@@ -79,7 +78,7 @@ export const hydrateExplore =
       isStarred: false,
       triggerRender: false,
       // duplicate datasource in exploreState - it's needed by getControlsState
-      datasource: initialDatasource,
+      datasource: dataset,
       // Initial control state will skip `control.mapStateToProps`
       // because `bootstrapData.controls` is undefined.
       controls: initialControls,
@@ -129,7 +128,7 @@ export const hydrateExplore =
         },
         datasources: {
           ...datasources,
-          [getDatasourceUid(initialDatasource)]: initialDatasource,
+          [getDatasourceUid(dataset)]: dataset,
         },
         saveModal: {
           dashboards: [],
