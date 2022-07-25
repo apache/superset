@@ -2101,6 +2101,9 @@ class TestDatasetApi(SupersetTestCase):
         """
         Dataset API: Test duplicate virtual dataset
         """
+        if backend() == "sqlite":
+            return
+
         dataset = self.get_fixture_virtual_datasets()[0]
 
         self.login(username="admin")
@@ -2124,6 +2127,9 @@ class TestDatasetApi(SupersetTestCase):
         """
         Dataset API: Test duplicate physical dataset
         """
+        if backend() == "sqlite":
+            return
+
         dataset = self.get_fixture_datasets()[0]
 
         self.login(username="admin")
@@ -2137,6 +2143,9 @@ class TestDatasetApi(SupersetTestCase):
         """
         Dataset API: Test duplicate dataset with existing name
         """
+        if backend() == "sqlite":
+            return
+
         dataset = self.get_fixture_virtual_datasets()[0]
 
         self.login(username="admin")
