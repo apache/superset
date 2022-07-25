@@ -379,9 +379,8 @@ class TestDatabaseModel(SupersetTestCase):
             "extras": {},
         }
 
-        # Table with Jinja callable.
         table = SqlaTable(
-            table_name="test_table",
+            table_name="another_test_table",
             sql="SELECT * from test_table;",
             database=get_example_database(),
         )

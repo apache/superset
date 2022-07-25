@@ -124,11 +124,11 @@ def test_import_dataset(app_context: None, session: Session) -> None:
     assert len(sqla_table.columns) == 1
     assert sqla_table.columns[0].column_name == "profit"
     assert sqla_table.columns[0].verbose_name is None
-    assert sqla_table.columns[0].is_dttm is None
-    assert sqla_table.columns[0].is_active is None
+    assert sqla_table.columns[0].is_dttm is False
+    assert sqla_table.columns[0].is_active is True
     assert sqla_table.columns[0].type == "INTEGER"
-    assert sqla_table.columns[0].groupby is None
-    assert sqla_table.columns[0].filterable is None
+    assert sqla_table.columns[0].groupby is True
+    assert sqla_table.columns[0].filterable is True
     assert sqla_table.columns[0].expression == "revenue-expenses"
     assert sqla_table.columns[0].description is None
     assert sqla_table.columns[0].python_date_format is None

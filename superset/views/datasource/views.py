@@ -50,7 +50,10 @@ from superset.views.datasource.schemas import (
     ExternalMetadataParams,
     ExternalMetadataSchema,
     get_external_metadata_schema,
+    SamplesPayloadSchema,
+    SamplesRequestSchema,
 )
+from superset.views.datasource.utils import get_samples
 from superset.views.utils import sanitize_datasource_data
 
 
@@ -179,3 +182,24 @@ class Datasource(BaseSupersetView):
         except (NoResultFound, NoSuchTableError) as ex:
             raise DatasetNotFoundError() from ex
         return self.json_response(external_metadata)
+
+    @expose("/samples", methods=["POST"])
+    @has_access_api
+    @api
+    @handle_api_exception
+    def samples(self) -> FlaskResponse:
+        try:
+            params = SamplesRequestSchema().load(request.args)
+            payload = SamplesPayloadSchema().load(request.json)
+        except ValidationError as err:
+            return json_error_response(err.messages, status=400)
+
+        rv = get_samples(
+            datasource_type=params["datasource_type"],
+            datasource_id=params["datasource_id"],
+            force=params["force"],
+            page=params["page"],
+            per_page=params["per_page"],
+            payload=payload,
+        )
+        return self.json_response({"result": rv})

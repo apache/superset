@@ -206,7 +206,7 @@ class DashboardDatasetSchema(Schema):
     health_check_message = fields.Str()
     fetch_values_predicate = fields.Str()
     template_params = fields.Str()
-    owners = fields.List(fields.Int())
+    owners = fields.List(fields.Dict())
     columns = fields.List(fields.Dict())
     column_types = fields.List(fields.Int())
     metrics = fields.List(fields.Dict())

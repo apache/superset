@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import logging
 from typing import Dict, Type, Union
 
 from sqlalchemy.orm import Session
@@ -26,6 +27,8 @@ from superset.datasets.models import Dataset
 from superset.models.sql_lab import Query, SavedQuery
 from superset.tables.models import Table
 from superset.utils.core import DatasourceType
+
+logger = logging.getLogger(__name__)
 
 Datasource = Union[Dataset, SqlaTable, Table, Query, SavedQuery]
 
@@ -57,6 +60,11 @@ class DatasourceDAO(BaseDAO):
         )
 
         if not datasource:
+            logger.warning(
+                "Datasource not found datasource_type: %s, datasource_id: %s",
+                datasource_type,
+                datasource_id,
+            )
             raise DatasourceNotFound()
 
         return datasource

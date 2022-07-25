@@ -225,7 +225,7 @@ const SelectorLabel = styled.button`
     }
 
     &.selected {
-      background-color: ${theme.colors.primary.dark1};
+      background-color: ${theme.colors.primary.base};
       color: ${theme.colors.primary.light5};
 
       svg {
