@@ -186,6 +186,11 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
     ...(formData || {}),
   };
   const handleOverwriteDataset = async () => {
+    // if user wants to overwrite a dataset we need to prompt them
+    if (!shouldOverwriteDataset) {
+      setShouldOverwriteDataset(true);
+      return;
+    }
     const [, key] = await Promise.all([
       updateDataset(
         datasource?.dbId,
@@ -257,12 +262,6 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
   );
 
   const handleSaveInDataset = () => {
-    // if user wants to overwrite a dataset we need to prompt them
-    if (newOrOverwrite === DatasetRadioState.OVERWRITE_DATASET) {
-      setShouldOverwriteDataset(true);
-      return;
-    }
-
     const selectedColumns = datasource?.columns ?? [];
 
     // The filters param is only used to test jinja templates.
@@ -346,7 +345,7 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
       onHide={onHide}
       footer={
         <>
-          {!shouldOverwriteDataset && (
+          {newOrOverwrite === DatasetRadioState.SAVE_NEW && (
             <Button
               disabled={disableSaveAndExploreBtn}
               buttonStyle="primary"
@@ -355,7 +354,7 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
               {buttonTextOnSave}
             </Button>
           )}
-          {shouldOverwriteDataset && (
+          {newOrOverwrite === DatasetRadioState.OVERWRITE_DATASET && (
             <>
               <Button onClick={handleOverwriteCancel}>Back</Button>
               <Button

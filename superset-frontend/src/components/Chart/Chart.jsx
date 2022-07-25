@@ -25,6 +25,7 @@ import { PLACEHOLDER_DATASOURCE } from 'src/dashboard/constants';
 import Loading from 'src/components/Loading';
 import { EmptyStateBig } from 'src/components/EmptyState';
 import ErrorBoundary from 'src/components/ErrorBoundary';
+import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
@@ -122,8 +123,10 @@ const MonospaceDiv = styled.div`
 class Chart extends React.PureComponent {
   constructor(props) {
     super(props);
+    this.state = { showSaveDatasetModal: false };
     this.handleRenderContainerFailure =
       this.handleRenderContainerFailure.bind(this);
+    this.toggleSaveDatasetModal = this.toggleSaveDatasetModal.bind(this);
   }
 
   componentDidMount() {
@@ -135,6 +138,12 @@ class Chart extends React.PureComponent {
       this.runQuery();
     }
   }
+
+  toggleSaveDatasetModal = () => {
+    this.setState(({ showSaveDatasetModal }) => ({
+      showSaveDatasetModal: !showSaveDatasetModal,
+    }));
+  };
 
   componentDidUpdate() {
     // during migration, hold chart queries before user choose review or cancel
@@ -253,6 +262,7 @@ class Chart extends React.PureComponent {
       width,
     } = this.props;
 
+    const { showSaveDatasetModal } = this.state;
     const isLoading = chartStatus === 'loading';
     this.renderContainerStartTime = Logger.getTimestamp();
     if (chartStatus === 'failed') {
@@ -296,27 +306,39 @@ class Chart extends React.PureComponent {
     }
 
     return (
-      <ErrorBoundary
-        onError={this.handleRenderContainerFailure}
-        showMessage={false}
-      >
-        <Styles
-          data-ui-anchor="chart"
-          className="chart-container"
-          data-test="chart-container"
-          height={height}
-          width={width}
+      <>
+        <ErrorBoundary
+          onError={this.handleRenderContainerFailure}
+          showMessage={false}
         >
-          <div className="slice_container" data-test="slice-container">
-            <ChartRenderer
-              {...this.props}
-              source={this.props.dashboardId ? 'dashboard' : 'explore'}
-              data-test={this.props.vizType}
-            />
-          </div>
-          {isLoading && !isDeactivatedViz && <Loading />}
-        </Styles>
-      </ErrorBoundary>
+          <Styles
+            data-ui-anchor="chart"
+            className="chart-container"
+            data-test="chart-container"
+            height={height}
+            width={width}
+          >
+            <div className="slice_container" data-test="slice-container">
+              <ChartRenderer
+                {...this.props}
+                source={this.props.dashboardId ? 'dashboard' : 'explore'}
+                data-test={this.props.vizType}
+              />
+            </div>
+            {isLoading && !isDeactivatedViz && <Loading />}
+          </Styles>
+        </ErrorBoundary>
+        {showSaveDatasetModal && (
+          <SaveDatasetModal
+            key={Math.random()}
+            visible={showSaveDatasetModal}
+            onHide={this.toggleSaveDatasetModal}
+            buttonTextOnSave={t('Save')}
+            buttonTextOnOverwrite={t('Overwrite')}
+            datasource={this.props.datasource}
+          />
+        )}
+      </>
     );
   }
 }
