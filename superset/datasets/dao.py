@@ -154,10 +154,10 @@ class DatasetDAO(BaseDAO):  # pylint: disable=too-many-public-methods
         """
 
         if "columns" in properties:
-            cls.update_columns(model, properties.pop("columns"))
+            cls.update_columns(model, properties.pop("columns"), commit=commit)
 
         if "metrics" in properties:
-            cls.update_metrics(model, properties.pop("metrics"))
+            cls.update_metrics(model, properties.pop("metrics"), commit=commit)
 
         return super().update(model, properties, commit=commit)
 
@@ -166,6 +166,7 @@ class DatasetDAO(BaseDAO):  # pylint: disable=too-many-public-methods
         cls,
         model: SqlaTable,
         property_columns: List[Dict[str, Any]],
+        commit: bool = True,
     ) -> None:
         """
         Creates/updates and/or deletes a list of columns, based on a
@@ -198,11 +199,15 @@ class DatasetDAO(BaseDAO):  # pylint: disable=too-many-public-methods
         for id_ in {obj.id for obj in model.columns} - seen:
             DatasetDAO.delete_column(column_by_id[id_], commit=False)
 
+        if commit:
+            db.session.commit()
+
     @classmethod
     def update_metrics(
         cls,
         model: SqlaTable,
         property_metrics: List[Dict[str, Any]],
+        commit: bool = True,
     ) -> None:
         """
         Creates/updates and/or deletes a list of metrics, based on a
@@ -234,6 +239,9 @@ class DatasetDAO(BaseDAO):  # pylint: disable=too-many-public-methods
 
         for id_ in {obj.id for obj in model.metrics} - seen:
             DatasetDAO.delete_column(metric_by_id[id_], commit=False)
+
+        if commit:
+            db.session.commit()
 
     @classmethod
     def find_dataset_column(
