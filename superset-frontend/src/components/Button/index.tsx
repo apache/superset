@@ -119,8 +119,8 @@ export default function Button(props: ButtonProps) {
   let borderColorDisabled = 'transparent';
 
   if (buttonStyle === 'primary') {
-    backgroundColor = primary.dark1;
-    backgroundColorHover = mix(0.1, grayscale.light5, primary.dark1);
+    backgroundColor = primary.base;
+    backgroundColorHover = primary.dark1;
     backgroundColorActive = mix(0.2, grayscale.dark2, primary.dark1);
     color = grayscale.light5;
     colorHover = color;

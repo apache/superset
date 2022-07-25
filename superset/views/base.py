@@ -104,6 +104,7 @@ FRONTEND_CONF_KEYS = (
     "CSV_EXTENSIONS",
     "COLUMNAR_EXTENSIONS",
     "ALLOWED_EXTENSIONS",
+    "SAMPLES_ROW_LIMIT",
 )
 
 logger = logging.getLogger(__name__)

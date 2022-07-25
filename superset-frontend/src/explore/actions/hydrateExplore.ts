@@ -39,7 +39,6 @@ import { getDatasourceUid } from 'src/utils/getDatasourceUid';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { URL_PARAMS } from 'src/constants';
 import { findPermission } from 'src/utils/findPermission';
-import { initDatasources } from 'src/datasource/actions';
 
 enum ColorSchemeType {
   CATEGORICAL = 'CATEGORICAL',
@@ -155,19 +154,16 @@ export const hydrateExplore =
       lastRendered: 0,
     };
 
-    dispatch(
-      initDatasources({
-        ...datasources,
-        [getDatasourceUid(initialDatasource)]: initialDatasource,
-      }),
-    );
-
     return dispatch({
       type: HYDRATE_EXPLORE,
       data: {
         charts: {
           ...charts,
           [chartKey]: chart,
+        },
+        datasources: {
+          ...datasources,
+          [getDatasourceUid(initialDatasource)]: initialDatasource,
         },
         saveModal: {
           dashboards: [],

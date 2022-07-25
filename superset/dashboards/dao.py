@@ -169,8 +169,7 @@ class DashboardDAO(BaseDAO):
             if commit:
                 db.session.commit()
         except SQLAlchemyError as ex:
-            if commit:
-                db.session.rollback()
+            db.session.rollback()
             raise ex
 
     @staticmethod

@@ -247,7 +247,13 @@ const CustomModal = ({
   const draggableRef = useRef<HTMLDivElement>(null);
   const [bounds, setBounds] = useState<DraggableBounds>();
   const [dragDisabled, setDragDisabled] = useState<boolean>(true);
-  const modalFooter = isNil(footer)
+  let FooterComponent;
+  if (React.isValidElement(footer)) {
+    // If a footer component is provided inject a closeModal function
+    // so the footer can provide a "close" button if desired
+    FooterComponent = React.cloneElement(footer, { closeModal: onHide });
+  }
+  const modalFooter = isNil(FooterComponent)
     ? [
         <Button key="back" onClick={onHide} cta data-test="modal-cancel-button">
           {t('Cancel')}
@@ -264,7 +270,7 @@ const CustomModal = ({
           {primaryButtonName}
         </Button>,
       ]
-    : footer;
+    : FooterComponent;
 
   const modalWidth = width || (responsive ? '100vw' : '600px');
   const shouldShowMask = !(resizable || draggable);

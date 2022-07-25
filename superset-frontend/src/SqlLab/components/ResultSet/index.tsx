@@ -23,16 +23,25 @@ import Button from 'src/components/Button';
 import shortid from 'shortid';
 import { styled, t, QueryResponse } from '@superset-ui/core';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
-import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
+import {
+  ISaveableDatasource,
+  ISimpleColumn,
+  SaveDatasetModal,
+} from 'src/SqlLab/components/SaveDatasetModal';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import { EXPLORE_CHART_DEFAULT } from 'src/SqlLab/types';
+import { mountExploreUrl } from 'src/explore/exploreUtils';
+import { postFormData } from 'src/explore/exploreUtils/formData';
 import ProgressBar from 'src/components/ProgressBar';
 import Loading from 'src/components/Loading';
 import FilterableTable, {
   MAX_COLUMNS_FOR_TABLE,
 } from 'src/components/FilterableTable';
 import CopyToClipboard from 'src/components/CopyToClipboard';
+import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { prepareCopyToClipboardTabularData } from 'src/utils/common';
 import { CtasEnum } from 'src/SqlLab/actions/sqlLab';
+import { URL_PARAMS } from 'src/constants';
 import ExploreCtasResultsButton from '../ExploreCtasResultsButton';
 import ExploreResultsButton from '../ExploreResultsButton';
 import HighlightedSql from '../HighlightedSql';
@@ -209,6 +218,26 @@ export default class ResultSet extends React.PureComponent<
     }
   }
 
+  createExploreResultsOnClick = async () => {
+    const { results } = this.props.query;
+
+    if (results?.query_id) {
+      const key = await postFormData(results.query_id, 'query', {
+        ...EXPLORE_CHART_DEFAULT,
+        datasource: `${results.query_id}__query`,
+        ...{
+          all_columns: results.columns.map(column => column.name),
+        },
+      });
+      const url = mountExploreUrl(null, {
+        [URL_PARAMS.formDataKey.name]: key,
+      });
+      window.open(url, '_blank', 'noreferrer');
+    } else {
+      addDangerToast(t('Unable to create chart without a query id.'));
+    }
+  };
+
   renderControls() {
     if (this.props.search || this.props.visualize || this.props.csv) {
       let { data } = this.props.query.results;
@@ -220,6 +249,15 @@ export default class ResultSet extends React.PureComponent<
       const { showSaveDatasetModal } = this.state;
       const { query } = this.props;
 
+      const datasource: ISaveableDatasource = {
+        columns: query.results.columns as ISimpleColumn[],
+        name: query?.tab || 'Untitled',
+        dbId: query?.dbId,
+        sql: query?.sql,
+        templateParams: query?.templateParams,
+        schema: query?.schema,
+      };
+
       return (
         <ResultSetControls>
           <SaveDatasetModal
@@ -230,7 +268,7 @@ export default class ResultSet extends React.PureComponent<
             modalDescription={t(
               'Save this query as a virtual dataset to continue exploring',
             )}
-            datasource={query}
+            datasource={datasource}
           />
           <ResultSetButtons>
             {this.props.visualize &&
@@ -239,6 +277,9 @@ export default class ResultSet extends React.PureComponent<
                   database={this.props.database}
                   onClick={() => this.setState({ showSaveDatasetModal: true })}
                 />
+                // In order to use the new workflow for a query powered chart, replace the
+                // above function with:
+                // onClick={this.createExploreResultsOnClick}
               )}
             {this.props.csv && (
               <Button buttonSize="small" href={`/superset/csv/${query.id}`}>

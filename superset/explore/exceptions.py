@@ -16,7 +16,13 @@
 # under the License.
 from typing import Optional
 
-from superset.commands.exceptions import CommandException, ForbiddenError
+from flask_babel import lazy_gettext as _
+
+from superset.commands.exceptions import (
+    CommandException,
+    CommandInvalidError,
+    ForbiddenError,
+)
 
 
 class DatasetAccessDeniedError(ForbiddenError):
@@ -33,3 +39,11 @@ class WrongEndpointError(CommandException):
     def __init__(self, redirect: str) -> None:
         self.redirect = redirect
         super().__init__()
+
+
+class DatasourceSamplesFailedError(CommandInvalidError):
+    message = _("Samples for datasource could not be retrieved.")
+
+
+class DatasourceForbiddenError(ForbiddenError):
+    message = _("Changing this datasource is forbidden")

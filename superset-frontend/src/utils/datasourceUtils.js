@@ -16,9 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-const queryObjectCount = {
-  mixed_timeseries: 2,
-};
-
-export const getQueryCount = (vizType: string): number =>
-  queryObjectCount?.[vizType] || 1;
+export const getDatasourceAsSaveableDataset = source => ({
+  columns: source.columns,
+  name: source?.datasource_name || 'Untitled',
+  dbId: source.database.id,
+  sql: source?.sql || '',
+  schema: source?.schema,
+});

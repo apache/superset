@@ -43,13 +43,13 @@ import serializeFilterScopes from 'src/dashboard/util/serializeFilterScopes';
 import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 import { safeStringify } from 'src/utils/safeStringify';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
-import { fetchDatasourceMetadata } from 'src/dashboard/util/fetchDatasourceMetadata';
 import { UPDATE_COMPONENTS_PARENTS_LIST } from './dashboardLayout';
 import {
   setChartConfiguration,
   dashboardInfoChanged,
   SET_CHART_CONFIG_COMPLETE,
 } from './dashboardInfo';
+import { fetchDatasourceMetadata } from './datasources';
 import {
   addFilter,
   removeFilter,
