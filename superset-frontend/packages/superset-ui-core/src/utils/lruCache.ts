@@ -41,7 +41,6 @@ class LRUCache<T> {
       this.cache.set(key, tmp);
       return tmp;
     }
-
     return undefined;
   }
 
