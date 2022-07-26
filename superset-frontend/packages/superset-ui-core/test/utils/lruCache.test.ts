@@ -26,7 +26,7 @@ test('initial LRU', () => {
   expect(() => lruCache(0)).toThrow(Error);
 });
 
-test('LRU operation', () => {
+test('LRU operations', () => {
   const cache = lruCache<string>(3);
   cache.set('1', 'a');
   cache.set('2', 'b');
@@ -39,8 +39,10 @@ test('LRU operation', () => {
   cache.set('5', 'e');
   expect(cache.has('2')).toBeTruthy();
   expect(cache.has('3')).toBeFalsy();
-  // @ts-ignore
+  // @ts-expect-error
   expect(() => cache.set(0)).toThrow(TypeError);
+  expect(() => cache.get(0)).toThrow(TypeError);
+  expect(cache.size).toBe(3);
   cache.clear();
   expect(cache.size).toBe(0);
   expect(cache.capacity).toBe(3);

@@ -35,6 +35,11 @@ class LRUCache<T> {
   }
 
   public get(key: string): T | undefined {
+    // Prevent runtime errors
+    if (typeof key !== 'string') {
+      throw new TypeError('The LRUCache key must be string.');
+    }
+
     if (this.cache.has(key)) {
       const tmp = this.cache.get(key) as T;
       this.cache.delete(key);
