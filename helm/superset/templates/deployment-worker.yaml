@@ -29,8 +29,8 @@ metadata:
 {{- end }}
 spec:
   replicas:
-  {{- if .Values.supersetNode.resources }}
-    {{ toYaml .Values.supersetNode.resources }}
+  {{- if .Values.supersetWorker.replicaCount }}
+    {{ .Values.supersetWorker.replicaCount }}
   {{- else }}
     {{ .Values.replicaCount }}
   {{- end }}
