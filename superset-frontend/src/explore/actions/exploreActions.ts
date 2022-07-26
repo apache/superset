@@ -25,8 +25,6 @@ import {
   toastActions,
 } from 'src/components/MessageToasts/actions';
 import { Slice } from 'src/types/Chart';
-import { setDatasource } from 'src/datasource/actions';
-import { ExplorePageState } from 'src/explore/types';
 
 const FAVESTAR_BASE_URL = '/superset/favstar/slice';
 
@@ -142,24 +140,6 @@ export function setForceQuery(force: boolean) {
   };
 }
 
-export const SAVE_DATASOURCE = 'SAVE_DATASOURCE';
-export function saveDatasource(datasource: Dataset) {
-  return function (dispatch: Dispatch) {
-    dispatch(setDatasource(datasource));
-    dispatch({ type: SAVE_DATASOURCE, datasource });
-  };
-}
-
-export function changeDatasource(newDatasource: Dataset) {
-  return function (dispatch: Dispatch, getState: () => ExplorePageState) {
-    const {
-      explore: { datasource: prevDatasource },
-    } = getState();
-    dispatch(setDatasource(newDatasource));
-    dispatch(updateFormDataByDatasource(prevDatasource, newDatasource));
-  };
-}
-
 export const exploreActions = {
   ...toastActions,
   fetchDatasourcesStarted,
@@ -173,7 +153,6 @@ export const exploreActions = {
   createNewSlice,
   sliceUpdated,
   setForceQuery,
-  changeDatasource,
 };
 
 export type ExploreActions = typeof exploreActions;

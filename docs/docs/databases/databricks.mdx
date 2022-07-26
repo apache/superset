@@ -33,12 +33,9 @@ You also need to add the following configuration to "Other" -> "Engine Parameter
 
 ```json
 {
-    "connect_args": {"http_path": "sql/protocolv1/o/****"},
-    "http_headers": [["User-Agent", "Apache Superset"]]
+    "connect_args": {"http_path": "sql/protocolv1/o/****"}
 }
 ```
-
-The `User-Agent` header is optional, but helps Databricks identify traffic from Superset. If you need to use a different header please reach out to Databricks and let them know.
 
 ## Older driver
 

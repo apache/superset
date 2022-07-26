@@ -92,7 +92,7 @@ const buttonsStyles = (theme: SupersetTheme) => css`
   & .fave-unfave-icon {
     padding: 0 ${theme.gridUnit}px;
 
-    &:first-child {
+    &:first-of-type {
       padding-left: 0;
     }
   }
