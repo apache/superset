@@ -28,7 +28,12 @@ metadata:
     {{ toYaml .Values.supersetNode.deploymentAnnotations | nindent 4 }}
 {{- end }}
 spec:
-  replicas: {{ .Values.supersetNode.replicaCount }}
+  replicas:
+  {{- if .Values.supersetNode.resources }}
+    {{ toYaml .Values.supersetNode.resources }}
+  {{- else }}
+    {{ .Values.replicaCount }}
+  {{- end }}
   selector:
     matchLabels:
       app: {{ template "superset.name" . }}

@@ -3,6 +3,9 @@
     "type": "object",
     "additionalProperties": true,
     "properties": {
+        "replicaCount": {
+            "type": "integer"
+        },
         "runAsUser": {
             "type": "integer"
         },
