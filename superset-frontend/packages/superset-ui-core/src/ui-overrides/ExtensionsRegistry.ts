@@ -20,7 +20,18 @@
 import React from 'react';
 import { TypedRegistry } from '../models';
 import { makeSingleton } from '../utils';
-import { User } from 'src/types/bootstrapTypes';
+
+// Taken from superset-frontend bootstrapTypes
+type User = {
+  createdOn?: string;
+  email?: string;
+  firstName: string;
+  isActive: boolean;
+  isAnonymous: boolean;
+  lastName: string;
+  userId?: number; // optional because guest user doesn't have a user id
+  username: string;
+};
 
 /**
  * A function which returns text (or marked-up text)
