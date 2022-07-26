@@ -1534,20 +1534,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         if self.is_admin():
             return
 
-        # Set of wners that works across ORM models.
-        owners: List[User] = []
-
         orig_resource = db.session.query(resource.__class__).get(resource.id)
-
-        if orig_resource:
-            if hasattr(resource, "owners"):
-                owners += orig_resource.owners
-
-            if hasattr(resource, "owner"):
-                owners.append(orig_resource.owner)
-
-            if hasattr(resource, "created_by"):
-                owners.append(orig_resource.created_by)
+        owners = orig_resource.owners if hasattr(orig_resource, "owners") else []
 
         if g.user.is_anonymous or g.user not in owners:
             raise SupersetSecurityException(
