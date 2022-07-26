@@ -19,7 +19,7 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
-# Can be overriden by supersetNode.replicaCount or supersetWorker.replicaCount
+# This value be overriden by supersetNode.replicaCount or supersetWorker.replicaCount
 replicaCount: 1
 
 # User ID directive. This user must have enough permissions to run the bootstrap script
@@ -225,7 +225,6 @@ hostAliases: []
 ##
 ## Superset node configuration
 supersetNode:
-  replicaCount: 1
   command:
     - "/bin/sh"
     - "-c"
@@ -270,7 +269,6 @@ supersetNode:
 ##
 ## Superset worker configuration
 supersetWorker:
-  replicaCount: 1
   command:
     - "/bin/sh"
     - "-c"
