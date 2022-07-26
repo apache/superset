@@ -333,7 +333,7 @@ const ColumnSelectPopover = ({
                     >
                       {t('Create a dataset')}
                     </span>{' '}
-                    {t(' to mark a column as a calculated column')}
+                    {t(' to add calculated columns')}
                   </>
                 )
               }
