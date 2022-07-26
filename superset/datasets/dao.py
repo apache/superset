@@ -147,14 +147,19 @@ class DatasetDAO(BaseDAO):  # pylint: disable=too-many-public-methods
 
     @classmethod
     def update(
-        cls, model: SqlaTable, properties: Dict[str, Any], commit: bool = True
+        cls,
+        model: SqlaTable,
+        properties: Dict[str, Any],
+        commit: bool = True,
     ) -> Optional[SqlaTable]:
         """
         Updates a Dataset model on the metadata DB
         """
 
         if "columns" in properties:
-            properties["columns"] = cls.update_columns(model, properties["columns"])
+            properties["columns"] = cls.update_columns(
+                model, properties["columns"], properties["override_columns"]
+            )
 
         if "metrics" in properties:
             properties["metrics"] = cls.update_metrics(model, properties["metrics"])
@@ -166,6 +171,7 @@ class DatasetDAO(BaseDAO):  # pylint: disable=too-many-public-methods
         cls,
         model: SqlaTable,
         property_columns: List[Dict[str, Any]],
+        override_columns: Optional[bool] = False,
     ) -> List[TableColumn]:
         """
         Creates/updates and/or deletes a list of columns, based on a
@@ -179,6 +185,7 @@ class DatasetDAO(BaseDAO):  # pylint: disable=too-many-public-methods
 
         column_by_id = {column.id: column for column in model.columns}
         columns = []
+        original_columns = {obj.id for obj in model.columns}
 
         for properties in property_columns:
             if "id" in properties:
@@ -194,8 +201,13 @@ class DatasetDAO(BaseDAO):  # pylint: disable=too-many-public-methods
                 # Note for new columns the primary key is undefined sans a commit/flush.
                 columns.append(DatasetDAO.create_column(properties, commit=False))
 
-        for id_ in {obj.id for obj in model.columns} - {obj.id for obj in columns}:
+        for id_ in original_columns - {obj.id for obj in columns}:
             DatasetDAO.delete_column(column_by_id[id_], commit=False)
+
+        if override_columns:
+            # Delete original columns tied to the dataset to bypass unique constraint
+            for id_ in original_columns:
+                DatasetDAO.delete_column(column_by_id[id_], commit=False)
 
         return columns
 
