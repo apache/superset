@@ -147,7 +147,10 @@ class DatasetDAO(BaseDAO):  # pylint: disable=too-many-public-methods
 
     @classmethod
     def update(
-        cls, model: SqlaTable, properties: Dict[str, Any], commit: bool = True
+        cls,
+        model: SqlaTable,
+        properties: Dict[str, Any],
+        commit: bool = True,
     ) -> Optional[SqlaTable]:
         """
         Updates a Dataset model on the metadata DB
@@ -167,6 +170,7 @@ class DatasetDAO(BaseDAO):  # pylint: disable=too-many-public-methods
         model: SqlaTable,
         property_columns: List[Dict[str, Any]],
         commit: bool = True,
+        override_columns: Optional[bool] = False,
     ) -> None:
         """
         Creates/updates and/or deletes a list of columns, based on a
@@ -179,6 +183,7 @@ class DatasetDAO(BaseDAO):  # pylint: disable=too-many-public-methods
         """
 
         column_by_id = {column.id: column for column in model.columns}
+        original = {obj.id for obj in model.columns}
         seen = set()
 
         for properties in property_columns:
@@ -196,8 +201,13 @@ class DatasetDAO(BaseDAO):  # pylint: disable=too-many-public-methods
                     commit=False,
                 )
 
-        for id_ in {obj.id for obj in model.columns} - seen:
+        # Delete original columns tied to the dataset to bypass unique constraint
+        columns_to_delete = original if override_columns else original - seen
+        for id_ in columns_to_delete:
             DatasetDAO.delete_column(column_by_id[id_], commit=False)
+
+        if override_columns:
+            db.session.flush()
 
         if commit:
             db.session.commit()
