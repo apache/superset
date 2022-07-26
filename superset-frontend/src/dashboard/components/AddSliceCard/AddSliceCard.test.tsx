@@ -29,15 +29,12 @@ jest.mock('src/components/DynamicPlugins', () => ({
 }));
 
 const mockedProps = {
-  datasourceUrl: null,
-  datasourceName: '-',
-  innerRef: null,
-  isSelected: false,
-  style: null,
-  thumbnailUrl: null,
-  lastModified: null,
   visType: 'table',
   sliceName: '-',
+};
+
+declare const global: {
+  featureFlags: Record<string, boolean>;
 };
 
 test('do not render thumbnail if feature flag is not set', async () => {

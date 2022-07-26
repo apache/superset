@@ -16,42 +16,30 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import PropTypes from 'prop-types';
+
+import React, {
+  CSSProperties,
+  ReactNode,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { t, isFeatureEnabled, FeatureFlag, css } from '@superset-ui/core';
 import ImageLoader from 'src/components/ListViewCard/ImageLoader';
 import { usePluginContext } from 'src/components/DynamicPlugins';
 import { Tooltip } from 'src/components/Tooltip';
-
-const propTypes = {
-  datasourceUrl: PropTypes.string,
-  datasourceName: PropTypes.string,
-  innerRef: PropTypes.func,
-  isSelected: PropTypes.bool,
-  lastModified: PropTypes.string,
-  sliceName: PropTypes.string.isRequired,
-  style: PropTypes.object,
-  thumbnailUrl: PropTypes.string,
-  visType: PropTypes.string.isRequired,
-};
-
-const defaultProps = {
-  datasourceUrl: null,
-  datasourceName: '-',
-  innerRef: null,
-  isSelected: false,
-  style: null,
-  thumbnailUrl: null,
-  lastModified: null,
-};
+import { Theme } from '@emotion/react';
 
 const FALLBACK_THUMBNAIL_URL = '/static/assets/images/chart-card-fallback.svg';
 
-const TruncatedTextWithTooltip = ({ children, ...props }) => {
-  const [isTruncated, setIsTruncated] = useState();
-  const ref = useRef();
+const TruncatedTextWithTooltip: React.FC = ({ children, ...props }) => {
+  const [isTruncated, setIsTruncated] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    setIsTruncated(ref.current.offsetWidth < ref.current.scrollWidth);
+    setIsTruncated(
+      ref.current ? ref.current.offsetWidth < ref.current.scrollWidth : false,
+    );
   }, [children]);
 
   const div = (
@@ -72,9 +60,12 @@ const TruncatedTextWithTooltip = ({ children, ...props }) => {
   return isTruncated ? <Tooltip title={children}>{div}</Tooltip> : div;
 };
 
-const MetadataItem = ({ label, value }) => (
+const MetadataItem: React.FC<{
+  label: ReactNode;
+  value: ReactNode;
+}> = ({ label, value }) => (
   <div
-    css={theme => css`
+    css={(theme: Theme) => css`
       font-size: ${theme.typography.sizes.s}px;
       display: flex;
       justify-content: space-between;
@@ -85,7 +76,7 @@ const MetadataItem = ({ label, value }) => (
     `}
   >
     <span
-      css={theme => css`
+      css={(theme: Theme) => css`
         margin-right: ${theme.gridUnit * 4}px;
         color: ${theme.colors.grayscale.base};
       `}
@@ -102,10 +93,13 @@ const MetadataItem = ({ label, value }) => (
   </div>
 );
 
-const SliceAddedBadgePlaceholder = ({ showThumbnails, placeholderRef }) => (
+const SliceAddedBadgePlaceholder: React.FC<{
+  showThumbnails?: boolean;
+  placeholderRef: (element: HTMLDivElement) => void;
+}> = ({ showThumbnails, placeholderRef }) => (
   <div
     ref={placeholderRef}
-    css={theme => css`
+    css={(theme: Theme) => css`
       /* Display styles */
       border: 1px solid ${theme.colors.primary.dark1};
       border-radius: ${theme.gridUnit}px;
@@ -128,9 +122,11 @@ const SliceAddedBadgePlaceholder = ({ showThumbnails, placeholderRef }) => (
   </div>
 );
 
-const SliceAddedBadge = ({ placeholder }) => (
+const SliceAddedBadge: React.FC<{ placeholder?: HTMLDivElement }> = ({
+  placeholder,
+}) => (
   <div
-    css={theme => css`
+    css={(theme: Theme) => css`
       /* Display styles */
       border: 1px solid ${theme.colors.primary.dark1};
       border-radius: ${theme.gridUnit}px;
@@ -153,19 +149,29 @@ const SliceAddedBadge = ({ placeholder }) => (
   </div>
 );
 
-function AddSliceCard({
+const AddSliceCard: React.FC<{
+  datasourceUrl?: string;
+  datasourceName?: string;
+  innerRef?: React.RefObject<HTMLDivElement>;
+  isSelected?: boolean;
+  lastModified?: string;
+  sliceName: string;
+  style?: CSSProperties;
+  thumbnailUrl?: string;
+  visType: string;
+}> = ({
   datasourceUrl,
-  datasourceName,
+  datasourceName = '-',
   innerRef,
-  isSelected,
+  isSelected = false,
   lastModified,
   sliceName,
-  style,
+  style = {},
   thumbnailUrl,
   visType,
-}) {
+}) => {
   const showThumbnails = isFeatureEnabled(FeatureFlag.THUMBNAILS);
-  const [sliceAddedBadge, setSliceAddedBadge] = useState();
+  const [sliceAddedBadge, setSliceAddedBadge] = useState<HTMLDivElement>();
   const { mountedPluginMetadata } = usePluginContext();
   const vizName = useMemo(
     () => mountedPluginMetadata[visType].name,
@@ -176,7 +182,7 @@ function AddSliceCard({
     <div ref={innerRef} style={style}>
       <div
         data-test="chart-card"
-        css={theme => css`
+        css={(theme: Theme) => css`
           border: 1px solid ${theme.colors.grayscale.light2};
           border-radius: ${theme.gridUnit}px;
           background: ${theme.colors.grayscale.light5};
@@ -234,7 +240,7 @@ function AddSliceCard({
           >
             <div
               data-test="card-title"
-              css={theme => css`
+              css={(theme: Theme) => css`
                 margin-bottom: ${theme.gridUnit * 2}px;
                 font-weight: ${theme.typography.weights.bold};
                 display: flex;
@@ -268,9 +274,6 @@ function AddSliceCard({
       <SliceAddedBadge placeholder={sliceAddedBadge} />
     </div>
   );
-}
-
-AddSliceCard.propTypes = propTypes;
-AddSliceCard.defaultProps = defaultProps;
+};
 
 export default AddSliceCard;
