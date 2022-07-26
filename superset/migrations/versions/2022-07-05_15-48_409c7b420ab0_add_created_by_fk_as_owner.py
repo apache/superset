@@ -17,14 +17,14 @@
 """add created_by_fk as owner
 
 Revision ID: 409c7b420ab0
-Revises: cdcf3d64daf4
+Revises: a39867932713
 Create Date: 2022-07-05 15:48:06.029190
 
 """
 
 # revision identifiers, used by Alembic.
 revision = "409c7b420ab0"
-down_revision = "cdcf3d64daf4"
+down_revision = "a39867932713"
 
 from alembic import op
 from sqlalchemy import and_, Column, insert, Integer
