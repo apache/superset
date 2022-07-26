@@ -49,6 +49,7 @@ import {
   UNRESIZABLE_POPOVER_WIDTH,
 } from 'src/explore/constants';
 import { ExplorePageState } from 'src/explore/types';
+import { data } from 'jquery';
 
 const StyledSelect = styled(Select)`
   .metric-option {
@@ -103,6 +104,7 @@ const ColumnSelectPopover = ({
   const datasourceType = useSelector<ExplorePageState, string | undefined>(
     state => state.explore.datasource.type,
   );
+  console.log('datasource', datasourceType);
   const [initialLabel] = useState(label);
   const [initialAdhocColumn, initialCalculatedColumn, initialSimpleColumn] =
     getInitialColumnValues(editedColumn);
@@ -247,6 +249,8 @@ const ColumnSelectPopover = ({
   const savedExpressionsLabel = t('Saved expressions');
   const simpleColumnsLabel = t('Column');
 
+  console.log(calculatedColumns.length > 0);
+  console.log(datasourceType === DatasourceType.Query);
   return (
     <Form layout="vertical" id="metrics-edit-popover">
       <Tabs
@@ -282,7 +286,7 @@ const ColumnSelectPopover = ({
                 }))}
               />
             </FormItem>
-          ) : datasourceType === DatasourceType.Query ? (
+          ) : datasourceType === DatasourceType.Table ? (
             <EmptyStateSmall
               image="empty.svg"
               title={

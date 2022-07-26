@@ -370,7 +370,7 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
                   {...savedSelectProps}
                 />
               </FormItem>
-            ) : datasource.type === DatasourceType.Query ? (
+            ) : datasource.type === DatasourceType.Table ? (
               <EmptyStateSmall
                 image="empty.svg"
                 title={t('No saved metrics found')}
