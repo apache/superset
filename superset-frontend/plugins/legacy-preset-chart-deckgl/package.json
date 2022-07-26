@@ -44,15 +44,13 @@
   "peerDependencies": {
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
-    "mapbox-gl": "*",
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
-    "react-map-gl": "^4.0.10"
+    "react-map-gl": "^4.0.10",
+    "mapbox-gl": "*"
+
   },
   "publishConfig": {
     "access": "public"
-  },
-  "devDependencies": {
-    "@types/react-map-gl": "^6.1.3"
   }
 }

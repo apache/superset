@@ -329,30 +329,33 @@ const PropertiesModal = ({
       updateMetadata: false,
     });
 
-    // update tags
-    newTags.map((tag: TagType) =>
-      addTag(
-        {
-          objectType: OBJECT_TYPES.DASHBOARD,
-          objectId: dashboardId,
-          includeTypes: false,
-        },
-        tag.name,
-        () => {},
-        () => {},
-      ),
-    );
-    oldTags.map((tag: TagType) =>
-      deleteTag(
-        {
-          objectType: OBJECT_TYPES.DASHBOARD,
-          objectId: dashboardId,
-        },
-        tag,
-        () => {},
-        () => {},
-      ),
-    );
+    if(isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM)) {  
+      // update tags
+      newTags.map((tag: TagType) =>
+        addTag(
+          {
+            objectType: OBJECT_TYPES.DASHBOARD,
+            objectId: dashboardId,
+            includeTypes: false,
+          },
+          tag.name,
+          () => {},
+          () => {},
+        ),
+      );
+      oldTags.map((tag: TagType) =>
+        deleteTag(
+          {
+            objectType: OBJECT_TYPES.DASHBOARD,
+            objectId: dashboardId,
+          },
+          tag,
+          () => {},
+          () => {},
+        ),
+      );
+    }
+    
     const moreOnSubmitProps: { roles?: Roles } = {};
     const morePutProps: { roles?: number[] } = {};
     if (isFeatureEnabled(FeatureFlag.DASHBOARD_RBAC)) {
@@ -535,6 +538,7 @@ const PropertiesModal = ({
   }, [dashboardInfo, dashboardTitle, form]);
 
   useEffect(() => {
+    if(!isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM)) return;
     try {
       fetchTags(
         {
@@ -673,6 +677,7 @@ const PropertiesModal = ({
             <h3 style={{ marginTop: '1em' }}>{t('Tags')}</h3>
           </Col>
         </Row>
+        {isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM) ?
         <Row gutter={16}>
           <Col xs={24} md={12}>
             <StyledFormItem>
@@ -699,6 +704,7 @@ const PropertiesModal = ({
             />
           </Col>
         </Row>
+        : null}
         <Row>
           <Col xs={24} md={24}>
             <h3 style={{ marginTop: '1em' }}>

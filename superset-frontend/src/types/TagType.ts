@@ -24,7 +24,7 @@ export interface TagType {
   onDelete?: any;
   onClick?: any;
   name: string;
-  index?: number;
+  index?: number | undefined;
 }
 
 export default TagType;

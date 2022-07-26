@@ -23,7 +23,7 @@ import Button from 'src/components/Button';
 import { AsyncSelect, Row, Col, AntdForm } from 'src/components';
 import { SelectValue } from 'antd/lib/select';
 import rison from 'rison';
-import { t, SupersetClient, styled } from '@superset-ui/core';
+import { t, SupersetClient, styled, isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import Chart, { Slice } from 'src/types/Chart';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import withToasts from 'src/components/MessageToasts/withToasts';
@@ -156,31 +156,33 @@ function PropertiesModal({
         }[]
       ).map(o => o.value);
     }
-    // update tags
-    newTags.map((tag: TagType) =>
-      addTag(
-        {
-          objectType: OBJECT_TYPES.CHART,
-          objectId: slice.slice_id,
-          includeTypes: false,
-        },
-        tag.name,
-        () => {},
-        () => {},
-      ),
-    );
-    oldTags.map((tag: TagType) =>
-      deleteTag(
-        {
-          objectType: OBJECT_TYPES.CHART,
-          objectId: slice.slice_id,
-        },
-        tag,
-        () => {},
-        () => {},
-      ),
-    );
-
+    if(isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM)){
+      // update tags
+      newTags.map((tag: TagType) =>
+        addTag(
+          {
+            objectType: OBJECT_TYPES.CHART,
+            objectId: slice.slice_id,
+            includeTypes: false,
+          },
+          tag.name,
+          () => {},
+          () => {},
+        ),
+      );
+      oldTags.map((tag: TagType) =>
+        deleteTag(
+          {
+            objectType: OBJECT_TYPES.CHART,
+            objectId: slice.slice_id,
+          },
+          tag,
+          () => {},
+          () => {},
+        ),
+      );
+    }
+    
     try {
       const res = await SupersetClient.put({
         endpoint: `/api/v1/chart/${slice.slice_id}`,
@@ -217,6 +219,7 @@ function PropertiesModal({
   }, [slice.slice_name]);
 
   useEffect(() => {
+    if(!isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM)) return;
     try {
       fetchTags(
         {
@@ -227,7 +230,7 @@ function PropertiesModal({
         (tags: TagType[]) => setTags(tags),
         () => {
           /* TODO: handle error */
-          return
+          return;
         },
       );
     } catch (error: any) {
@@ -386,27 +389,29 @@ function PropertiesModal({
                 )}
               </StyledHelpBlock>
             </FormItem>
-            <h3 style={{ marginTop: '1em' }}>{t('Tags')}</h3>
-            <FormItem>
-              <AsyncSelect
-                ariaLabel="Tags"
-                mode="multiple"
-                allowNewOptions
-                value={[]}
-                options={loadTags}
-                onChange={handleAddTag}
-                allowClear
-              />
-              <StyledHelpBlock className="help-block">
-                {t('A list of tags that have been applied to this chart.')}
-              </StyledHelpBlock>
-              <TagsList
-                tags={tags}
-                editable
-                onDelete={handleDeleteTag}
-                maxTags={undefined}
-              />
-            </FormItem>
+            {isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM) && <h3 style={{ marginTop: '1em' }}>{t('Tags')}</h3>}
+            {isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM) && 
+              <FormItem>
+                <AsyncSelect
+                  ariaLabel="Tags"
+                  mode="multiple"
+                  allowNewOptions
+                  value={[]}
+                  options={loadTags}
+                  onChange={handleAddTag}
+                  allowClear
+                />
+                <StyledHelpBlock className="help-block">
+                  {t('A list of tags that have been applied to this chart.')}
+                </StyledHelpBlock>
+                <TagsList
+                  tags={tags}
+                  editable
+                  onDelete={handleDeleteTag}
+                  maxTags={undefined}
+                />
+              </FormItem>
+            }
           </Col>
         </Row>
       </AntdForm>

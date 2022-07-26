@@ -157,6 +157,7 @@ export const ExploreChartHeader = ({
   const [tags, setTags] = useState([]);
 
   useEffect(() => {
+    if(!isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM)) return;
     fetchTags(
       {
         objectType: OBJECT_TYPES.CHART,
