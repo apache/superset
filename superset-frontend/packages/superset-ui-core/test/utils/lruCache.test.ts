@@ -41,6 +41,7 @@ test('LRU operations', () => {
   expect(cache.has('3')).toBeFalsy();
   // @ts-expect-error
   expect(() => cache.set(0)).toThrow(TypeError);
+  // @ts-expect-error
   expect(() => cache.get(0)).toThrow(TypeError);
   expect(cache.size).toBe(3);
   cache.clear();
