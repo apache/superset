@@ -273,7 +273,7 @@ class Query(Model, ExtraJSONMixin, ExploreMixin):  # pylint: disable=abstract-me
 
     @property
     def schema_perm(self) -> str:
-        return f"{self.database.name}.{self.database.schema}"
+        return f"{self.database.database_name}.{self.schema}"
 
     @property
     def default_endpoint(self) -> str:
