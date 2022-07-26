@@ -65,11 +65,15 @@ const ControlHeader: FC<ControlHeaderProps> = ({
       hasHadNoErrors.current = true;
     }
 
-    return hasHadNoErrors.current
-      ? validationErrors.length
-        ? colors.error.base
-        : 'unset'
-      : colors.alert.base;
+    if (hasHadNoErrors.current) {
+      if (validationErrors.length) {
+        return colors.error.base;
+      }
+
+      return 'unset';
+    }
+
+    return colors.alert.base;
   }, [colors.error.base, colors.alert.base, validationErrors.length]);
 
   if (!label) {
