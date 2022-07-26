@@ -436,6 +436,8 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     # Enable caching per impersonation key (e.g username) in a datasource where user
     # impersonation is enabled
     "CACHE_IMPERSONATION": False,
+    # Enable sharing charts with embedding
+    "EMBEDDABLE_CHARTS": True,
 }
 
 # Feature flags may also be set via 'SUPERSET_FEATURE_' prefixed environment vars.
