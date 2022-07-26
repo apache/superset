@@ -28,11 +28,10 @@ metadata:
     {{ toYaml .Values.supersetNode.deploymentAnnotations | nindent 4 }}
 {{- end }}
 spec:
-  replicas:
   {{- if .Values.supersetNode.replicaCount }}
-    {{ .Values.supersetNode.replicaCount }}
+  replicas: {{ .Values.supersetNode.replicaCount }}
   {{- else }}
-    {{ .Values.replicaCount }}
+  replicas: {{ .Values.replicaCount }}
   {{- end }}
   selector:
     matchLabels:
