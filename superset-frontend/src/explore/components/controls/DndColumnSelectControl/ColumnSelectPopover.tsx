@@ -49,7 +49,6 @@ import {
   UNRESIZABLE_POPOVER_WIDTH,
 } from 'src/explore/constants';
 import { ExplorePageState } from 'src/explore/types';
-import { data } from 'jquery';
 
 const StyledSelect = styled(Select)`
   .metric-option {
