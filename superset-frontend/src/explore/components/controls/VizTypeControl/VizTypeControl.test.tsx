@@ -121,9 +121,7 @@ describe('VizTypeControl', () => {
     expect(screen.getByLabelText('bar-chart-tile')).toBeVisible();
     expect(screen.getByLabelText('area-chart-tile')).toBeVisible();
     expect(screen.queryByLabelText('monitor')).not.toBeInTheDocument();
-    expect(
-      screen.queryByLabelText('current-rendered-tile'),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('check-square')).not.toBeInTheDocument();
 
     expect(
       within(screen.getByTestId('fast-viz-switcher')).getByText(
@@ -189,7 +187,7 @@ describe('VizTypeControl', () => {
       },
     };
     renderWrapper(props, state);
-    expect(screen.getByLabelText('current-rendered-tile')).toBeVisible();
+    expect(screen.getByLabelText('check-square')).toBeVisible();
     expect(
       within(screen.getByTestId('fast-viz-switcher')).getByText('Line Chart'),
     ).toBeVisible();
