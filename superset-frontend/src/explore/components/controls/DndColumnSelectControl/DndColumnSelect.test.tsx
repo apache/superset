@@ -34,13 +34,17 @@ const defaultProps: DndColumnSelectProps = {
 };
 
 test('renders with default props', () => {
-  render(<DndColumnSelect {...defaultProps} />, { useDnd: true });
+  render(<DndColumnSelect {...defaultProps} />, {
+    useDnd: true,
+    useRedux: true,
+  });
   expect(screen.getByText('Drop columns here')).toBeInTheDocument();
 });
 
 test('renders with value', () => {
   render(<DndColumnSelect {...defaultProps} value="string" />, {
     useDnd: true,
+    useRedux: true,
   });
   expect(screen.getByText('Column A')).toBeInTheDocument();
 });
@@ -55,7 +59,7 @@ test('renders adhoc column', () => {
         expressionType: 'SQL',
       }}
     />,
-    { useDnd: true },
+    { useDnd: true, useRedux: true },
   );
   expect(screen.getByText('adhoc column')).toBeVisible();
   expect(screen.getByLabelText('calculator')).toBeVisible();
