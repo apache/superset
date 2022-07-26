@@ -241,8 +241,8 @@ class AdhocMetricPopoverTrigger extends React.PureComponent<
           <SaveDatasetModal
             visible={this.state.showSaveDatasetModal}
             onHide={() => this.handleDatasetModal(false)}
-            buttonTextOnSave={t('Save & Explore')}
-            buttonTextOnOverwrite={t('Overwrite & Explore')}
+            buttonTextOnSave={t('Save')}
+            buttonTextOnOverwrite={t('Overwrite')}
             modalDescription={t(
               'Save this query as a virtual dataset to continue exploring',
             )}

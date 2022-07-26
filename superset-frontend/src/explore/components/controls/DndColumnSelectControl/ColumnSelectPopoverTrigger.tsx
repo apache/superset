@@ -144,8 +144,8 @@ const ColumnSelectPopoverTrigger = ({
         <SaveDatasetModal
           visible={showDatasetModal}
           onHide={() => setDatasetModal(false)}
-          buttonTextOnSave={t('Save & Explore')}
-          buttonTextOnOverwrite={t('Overwrite & Explore')}
+          buttonTextOnSave={t('Save')}
+          buttonTextOnOverwrite={t('Overwrite')}
           modalDescription={t(
             'Save this query as a virtual dataset to continue exploring',
           )}
