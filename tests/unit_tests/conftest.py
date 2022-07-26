@@ -47,10 +47,12 @@ def get_session(mocker: MockFixture) -> Callable[[], Session]:
         in_memory_session.remove = lambda: None
 
         # patch session
-        mocker.patch(
+        get_session = mocker.patch(
             "superset.security.SupersetSecurityManager.get_session",
-            return_value=in_memory_session,
         )
+        get_session.return_value = in_memory_session
+        # FAB calls get_session.get_bind() to get a handler to the engine
+        get_session.get_bind.return_value = engine
         mocker.patch("superset.db.session", in_memory_session)
         return in_memory_session
 

@@ -52,10 +52,10 @@ export function getUrlParam({ name, type }: UrlParam): unknown {
       if (!urlParam) {
         return null;
       }
-      if (urlParam === 'true') {
+      if (urlParam.toLowerCase() === 'true') {
         return 1;
       }
-      if (urlParam === 'false') {
+      if (urlParam.toLowerCase() === 'false') {
         return 0;
       }
       if (!Number.isNaN(Number(urlParam))) {
@@ -71,7 +71,7 @@ export function getUrlParam({ name, type }: UrlParam): unknown {
       if (!urlParam) {
         return null;
       }
-      return urlParam !== 'false' && urlParam !== '0';
+      return urlParam.toLowerCase() !== 'false' && urlParam !== '0';
     case 'rison':
       if (!urlParam) {
         return null;

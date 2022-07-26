@@ -19,11 +19,15 @@
 import { DatasourceKey } from '@superset-ui/core';
 
 describe('DatasourceKey', () => {
-  const tableKey = '5__table';
-
   it('should handle table data sources', () => {
-    const datasourceKey = new DatasourceKey(tableKey);
-    expect(datasourceKey.toString()).toBe(tableKey);
+    const datasourceKey = new DatasourceKey('5__table');
+    expect(datasourceKey.toString()).toBe('5__table');
     expect(datasourceKey.toObject()).toEqual({ id: 5, type: 'table' });
+  });
+
+  it('should handle query data sources', () => {
+    const datasourceKey = new DatasourceKey('5__query');
+    expect(datasourceKey.toString()).toBe('5__query');
+    expect(datasourceKey.toObject()).toEqual({ id: 5, type: 'query' });
   });
 });

@@ -17,7 +17,7 @@
 import json
 
 from superset.app import SupersetApp
-from superset.utils.migrate_viz import get_migrate_class, MigrateVizEnum
+from superset.migrations.shared.migrate_viz import MigrateTreeMap
 
 treemap_form_data = """{
   "adhoc_filters": [
@@ -57,21 +57,19 @@ treemap_form_data = """{
 }
 """
 
-treemap_processor = get_migrate_class[MigrateVizEnum.treemap]
-
 
 def test_treemap_migrate(app_context: SupersetApp) -> None:
     from superset.models.slice import Slice
 
     slc = Slice(
-        viz_type="treemap",
+        viz_type=MigrateTreeMap.source_viz_type,
         datasource_type="table",
         params=treemap_form_data,
         query_context=f'{{"form_data": {treemap_form_data}}}',
     )
 
-    slc = treemap_processor.upgrade(slc)
-    assert slc.viz_type == treemap_processor.target_viz_type
+    slc = MigrateTreeMap.upgrade_slice(slc)
+    assert slc.viz_type == MigrateTreeMap.target_viz_type
     # verify form_data
     new_form_data = json.loads(slc.params)
     assert new_form_data["metric"] == "sum__num"
@@ -86,8 +84,8 @@ def test_treemap_migrate(app_context: SupersetApp) -> None:
     assert new_query_context["form_data"]["viz_type"] == "treemap_v2"
 
     # downgrade
-    slc = treemap_processor.downgrade(slc)
-    assert slc.viz_type == treemap_processor.source_viz_type
+    slc = MigrateTreeMap.downgrade_slice(slc)
+    assert slc.viz_type == MigrateTreeMap.source_viz_type
     assert json.dumps(json.loads(slc.params), sort_keys=True) == json.dumps(
         json.loads(treemap_form_data), sort_keys=True
     )
