@@ -327,7 +327,7 @@ const TimeTable = ({
 
   return (
     <TimeTableStyles
-      data-test="time-table-loco"
+      data-test="time-table"
       className={className}
       height={height}
     >
