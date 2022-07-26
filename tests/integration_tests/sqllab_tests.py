@@ -410,14 +410,13 @@ class TestSqlLab(SupersetTestCase):
     def test_search_query_filter_by_time(self):
         self.run_some_queries()
         self.login("admin")
-        first_query_time = (
-            db.session.query(Query).filter_by(sql=QUERY_1).one()
-        ).start_time
-        second_query_time = (
-            db.session.query(Query).filter_by(sql=QUERY_2).one()
-        ).start_time
-        # pylint: disable=line-too-long
-        url = f"/superset/search_queries?from={floor(first_query_time)}&to={ceil(second_query_time)}"
+        from_time = floor(
+            (db.session.query(Query).filter_by(sql=QUERY_1).one()).start_time
+        )
+        to_time = ceil(
+            (db.session.query(Query).filter_by(sql=QUERY_2).one()).start_time
+        )
+        url = f"/superset/search_queries?from={from_time}&to={to_time}"
         assert len(self.client.get(url).json) == 2
 
     def test_search_query_only_owned(self) -> None:
