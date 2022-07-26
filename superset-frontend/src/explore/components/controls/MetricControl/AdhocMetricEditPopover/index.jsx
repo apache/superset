@@ -19,7 +19,7 @@
 /* eslint-disable camelcase */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { t, styled, ensureIsArray } from '@superset-ui/core';
+import { t, styled, ensureIsArray, DatasourceType } from '@superset-ui/core';
 import Tabs from 'src/components/Tabs';
 import Button from 'src/components/Button';
 import { Select } from 'src/components';
@@ -370,13 +370,33 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
                   {...savedSelectProps}
                 />
               </FormItem>
-            ) : (
+            ) : datasource.type === DatasourceType.Table ? (
               <EmptyStateSmall
                 image="empty.svg"
                 title={t('No saved metrics found')}
                 description={t(
                   'Add metrics to dataset in "Edit datasource" modal',
                 )}
+              />
+            ) : (
+              <EmptyStateSmall
+                image="empty.svg"
+                title={t('No saved metrics found')}
+                description={
+                  <>
+                    <span
+                      tabIndex={0}
+                      role="button"
+                      onClick={() => {
+                        this.props.handleDatasetModal(true);
+                        this.props.onClose();
+                      }}
+                    >
+                      {t('Create a dataset')}{' '}
+                    </span>
+                    {t('to add metrics')}
+                  </>
+                }
               />
             )}
           </Tabs.TabPane>
