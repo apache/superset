@@ -28,7 +28,6 @@ import {
 } from '@superset-ui/core';
 import { NO_TIME_RANGE, TIME_FILTER_MAP } from 'src/explore/constants';
 import { getChartIdsInFilterBoxScope } from 'src/dashboard/util/activeDashboardFilters';
-import { CHART_TYPE } from 'src/dashboard/util/componentTypes';
 import { ChartConfiguration } from 'src/dashboard/reducers/types';
 import { Layout } from 'src/dashboard/types';
 import { areObjectsEqual } from 'src/reduxUtils';
@@ -293,18 +292,9 @@ export const selectNativeIndicatorsForChart = (
   let crossFilterIndicators: any = [];
   if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
     const dashboardLayoutValues = Object.values(dashboardLayout);
-    const chartLayoutItem = dashboardLayoutValues.find(
-      layoutItem => layoutItem?.meta?.chartId === chartId,
-    );
     crossFilterIndicators = Object.values(chartConfiguration)
-      .filter(
-        chartConfig =>
-          !chartConfig.crossFilters.scope.excluded.includes(chartId) &&
-          chartConfig.crossFilters.scope.rootPath.some(
-            elementId =>
-              chartLayoutItem?.type === CHART_TYPE &&
-              chartLayoutItem?.parents?.includes(elementId),
-          ),
+      .filter(chartConfig =>
+        chartConfig.crossFilters.chartsInScope.includes(chartId),
       )
       .map(chartConfig => {
         const filterState = dataMask[chartConfig.id]?.filterState;
