@@ -17,6 +17,7 @@
  * under the License.
  */
 import React, { useCallback } from 'react';
+import { QueryObjectFilterClause } from '@superset-ui/core';
 import { EchartsMixedTimeseriesChartTransformedProps } from './types';
 import Echart from '../components/Echart';
 import { EventHandlers } from '../types';
@@ -34,6 +35,8 @@ export default function EchartsMixedTimeseries({
   selectedValues,
   formData,
   seriesBreakdown,
+  onContextMenu,
+  xValueFormatter,
 }: EchartsMixedTimeseriesChartTransformedProps) {
   const isFirstQuery = useCallback(
     (seriesIndex: number) => seriesIndex < seriesBreakdown,
@@ -104,6 +107,34 @@ export default function EchartsMixedTimeseries({
     },
     mouseover: params => {
       currentSeries.name = params.seriesName;
+    },
+    contextmenu: eventParams => {
+      if (onContextMenu) {
+        eventParams.event.stop();
+        const { data, seriesIndex } = eventParams;
+        if (data) {
+          const pointerEvent = eventParams.event.event;
+          const values = eventParams.seriesName.split(',');
+          const { queryIndex } = (echartOptions.series as any)[seriesIndex];
+          const groupby = queryIndex > 0 ? formData.groupbyB : formData.groupby;
+          const filters: QueryObjectFilterClause[] = [];
+          filters.push({
+            col: formData.granularitySqla,
+            op: '==',
+            val: data[0],
+            formattedVal: xValueFormatter(data[0]),
+          });
+          groupby.forEach((dimension, i) =>
+            filters.push({
+              col: dimension,
+              op: '==',
+              val: values[i],
+              formattedVal: values[i],
+            }),
+          );
+          onContextMenu(filters, pointerEvent.offsetX, pointerEvent.offsetY);
+        }
+      }
     },
   };
 

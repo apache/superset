@@ -62,7 +62,7 @@ const formatPercentChange = getNumberFormatter(
 export default function transformProps(
   chartProps: BigNumberWithTrendlineChartProps,
 ) {
-  const { width, height, queriesData, formData, rawFormData, theme } =
+  const { width, height, queriesData, formData, rawFormData, theme, hooks } =
     chartProps;
   const {
     colorPicker,
@@ -234,6 +234,9 @@ export default function transformProps(
         },
       }
     : {};
+
+  const { onContextMenu } = hooks;
+
   return {
     width,
     height,
@@ -252,5 +255,6 @@ export default function transformProps(
     timestamp,
     trendLineData,
     echartOptions,
+    onContextMenu,
   };
 }

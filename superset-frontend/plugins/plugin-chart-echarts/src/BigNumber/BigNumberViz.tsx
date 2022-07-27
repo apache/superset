@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { MouseEvent } from 'react';
 import {
   t,
   getNumberFormatter,
@@ -26,6 +26,7 @@ import {
   computeMaxFontSize,
   BRAND_COLOR,
   styled,
+  QueryObjectFilterClause,
 } from '@superset-ui/core';
 import { EChartsCoreOption } from 'echarts';
 import Echart from '../components/Echart';
@@ -62,6 +63,11 @@ type BigNumberVisProps = {
   trendLineData?: TimeSeriesDatum[];
   mainColor: string;
   echartOptions: EChartsCoreOption;
+  onContextMenu?: (
+    filters: QueryObjectFilterClause[],
+    offsetX: number,
+    offsetY: number,
+  ) => void;
 };
 
 class BigNumberVis extends React.PureComponent<BigNumberVisProps> {
@@ -159,6 +165,17 @@ class BigNumberVis extends React.PureComponent<BigNumberVisProps> {
     });
     container.remove();
 
+    const onContextMenu = (e: MouseEvent<HTMLDivElement>) => {
+      if (this.props.onContextMenu) {
+        e.preventDefault();
+        this.props.onContextMenu(
+          [],
+          e.nativeEvent.offsetX,
+          e.nativeEvent.offsetY,
+        );
+      }
+    };
+
     return (
       <div
         className="header-line"
@@ -166,6 +183,7 @@ class BigNumberVis extends React.PureComponent<BigNumberVisProps> {
           fontSize,
           height: maxHeight,
         }}
+        onContextMenu={onContextMenu}
       >
         {text}
       </div>

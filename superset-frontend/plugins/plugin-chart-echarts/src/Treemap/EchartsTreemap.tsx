@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { QueryObjectFilterClause } from '@superset-ui/core';
 import React, { useCallback } from 'react';
 import Echart from '../components/Echart';
 import { EventHandlers } from '../types';
@@ -31,6 +32,7 @@ export default function EchartsTreemap({
   groupby,
   selectedValues,
   formData,
+  onContextMenu,
 }: TreemapTransformedProps) {
   const handleChange = useCallback(
     (values: string[]) => {
@@ -71,7 +73,7 @@ export default function EchartsTreemap({
   const eventHandlers: EventHandlers = {
     click: props => {
       const { data, treePathInfo } = props;
-      // do noting when clicking the parent node
+      // do nothing when clicking on the parent node
       if (data?.children) {
         return;
       }
@@ -82,6 +84,23 @@ export default function EchartsTreemap({
         handleChange(values.filter(v => v !== name));
       } else {
         handleChange([name]);
+      }
+    },
+    contextmenu: eventParams => {
+      if (onContextMenu) {
+        eventParams.event.stop();
+        const { treePath } = extractTreePathInfo(eventParams.treePathInfo);
+        const pointerEvent = eventParams.event.event;
+        const filters: QueryObjectFilterClause[] = [];
+        groupby.forEach((dimension, i) =>
+          filters.push({
+            col: dimension,
+            op: '==',
+            val: treePath[i],
+            formattedVal: treePath[i],
+          }),
+        );
+        onContextMenu(filters, pointerEvent.offsetX, pointerEvent.offsetY);
       }
     },
   };

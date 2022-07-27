@@ -194,7 +194,7 @@ export default function transformProps(
     },
   );
 
-  const { setDataMask = () => {} } = hooks;
+  const { setDataMask = () => {}, onContextMenu } = hooks;
 
   const progress = {
     show: showProgress,
@@ -298,5 +298,6 @@ export default function transformProps(
     labelMap: Object.fromEntries(columnsLabelMap),
     groupby,
     selectedValues: filterState.selectedValues || [],
+    onContextMenu,
   };
 }

@@ -97,6 +97,7 @@ export function transformSeries(
     sliceId?: number;
     isHorizontal?: boolean;
     lineStyle?: LineStyleOption;
+    queryIndex?: number;
   },
 ): SeriesOption | undefined {
   const { name } = series;
@@ -120,6 +121,7 @@ export function transformSeries(
     seriesKey,
     sliceId,
     isHorizontal = false,
+    queryIndex = 0,
   } = opts;
   const contexts = seriesContexts[name || ''] || [];
   const hasForecast =
@@ -197,6 +199,7 @@ export function transformSeries(
     : { ...opts.lineStyle, opacity };
   return {
     ...series,
+    queryIndex,
     yAxisIndex,
     name: forecastSeries.name,
     itemStyle,
