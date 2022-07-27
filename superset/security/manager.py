@@ -1033,7 +1033,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         from superset.connectors.sqla.models import (  # pylint: disable=import-outside-toplevel
             SqlaTable,
         )
-        from superset.models.slice import Slice  # pylint: disable=import-outside-toplevel
+        from superset.models.slice import (  # pylint: disable=import-outside-toplevel
+            Slice,
+        )
 
         view_menu_table = self.viewmenu_model.__table__  # pylint: disable=no-member
         sqlatable_table = SqlaTable.__table__  # pylint: disable=no-member
