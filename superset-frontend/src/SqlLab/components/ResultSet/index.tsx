@@ -109,6 +109,9 @@ const ResultSetButtons = styled.div`
 
 const ResultSetErrorMessage = styled.div`
   padding-top: ${({ theme }) => 4 * theme.gridUnit}px;
+  .sql-result-track-job {
+    margin-top: ${({ theme }) => 2 * theme.gridUnit}px;
+  }
 `;
 
 export default class ResultSet extends React.PureComponent<
@@ -417,6 +420,19 @@ export default class ResultSet extends React.PureComponent<
     if (this.props.database && this.props.database.explore_database_id) {
       exploreDBId = this.props.database.explore_database_id;
     }
+    let trackingUrl;
+    if (query.trackingUrl) {
+      trackingUrl = (
+        <Button
+          className="sql-result-track-job"
+          buttonSize="small"
+          href={query.trackingUrl}
+          target="_blank"
+        >
+          {query.state === 'running' ? t('Track job') : t('See query details')}
+        </Button>
+      );
+    }
 
     if (this.props.showSql) sql = <HighlightedSql sql={query.sql} />;
 
@@ -434,6 +450,7 @@ export default class ResultSet extends React.PureComponent<
             link={query.link}
             source="sqllab"
           />
+          {trackingUrl}
         </ResultSetErrorMessage>
       );
     }
@@ -550,7 +567,6 @@ export default class ResultSet extends React.PureComponent<
         );
       }
     }
-    let trackingUrl;
     let progressBar;
     if (query.progress > 0) {
       progressBar = (
@@ -558,16 +574,6 @@ export default class ResultSet extends React.PureComponent<
           percent={parseInt(query.progress.toFixed(0), 10)}
           striped
         />
-      );
-    }
-    if (query.trackingUrl) {
-      trackingUrl = (
-        <Button
-          buttonSize="small"
-          onClick={() => query.trackingUrl && window.open(query.trackingUrl)}
-        >
-          {t('Track job')}
-        </Button>
       );
     }
     const progressMsg =

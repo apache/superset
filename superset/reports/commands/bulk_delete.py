@@ -21,13 +21,13 @@ from superset import security_manager
 from superset.commands.base import BaseCommand
 from superset.dao.exceptions import DAODeleteFailedError
 from superset.exceptions import SupersetSecurityException
-from superset.models.reports import ReportSchedule
 from superset.reports.commands.exceptions import (
     ReportScheduleBulkDeleteFailedError,
     ReportScheduleForbiddenError,
     ReportScheduleNotFoundError,
 )
 from superset.reports.dao import ReportScheduleDAO
+from superset.reports.models import ReportSchedule
 
 logger = logging.getLogger(__name__)
 

@@ -438,13 +438,15 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
         )
 
     @classmethod
-    def get(cls, id_or_slug: str) -> Dashboard:
+    def get(cls, id_or_slug: Union[str, int]) -> Dashboard:
         session = db.session()
         qry = session.query(Dashboard).filter(id_or_slug_filter(id_or_slug))
         return qry.one_or_none()
 
 
-def id_or_slug_filter(id_or_slug: str) -> BinaryExpression:
+def id_or_slug_filter(id_or_slug: Union[int, str]) -> BinaryExpression:
+    if isinstance(id_or_slug, int):
+        return Dashboard.id == id_or_slug
     if id_or_slug.isdigit():
         return Dashboard.id == int(id_or_slug)
     return Dashboard.slug == id_or_slug
