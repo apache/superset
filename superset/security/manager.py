@@ -1033,7 +1033,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         from superset.connectors.sqla.models import (  # pylint: disable=import-outside-toplevel
             SqlaTable,
         )
-        from superset.models.slice import Slice
+        from superset.models.slice import Slice  # pylint: disable=import-outside-toplevel
 
         view_menu_table = self.viewmenu_model.__table__  # pylint: disable=no-member
         sqlatable_table = SqlaTable.__table__  # pylint: disable=no-member
@@ -1052,8 +1052,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             new_dataset_vm_name = (
                 f"[{new_database_name}].[{dataset.table_name}](id:{dataset.id})"
             )
-            new_dataset_view_menu = self.find_view_menu(new_dataset_vm_name)
-            if new_dataset_view_menu:
+            if self.find_view_menu(new_dataset_vm_name):
                 continue
             connection.execute(
                 view_menu_table.update()
