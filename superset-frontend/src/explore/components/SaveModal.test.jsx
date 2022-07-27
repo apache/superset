@@ -100,7 +100,6 @@ const queryDefaultProps = {
 };
 
 const fetchDashboardsEndpoint = `glob:*/dashboardasync/api/read?_flt_0_owners=${1}`;
-const postCreateDataset = `end:/superset/sqllab_viz/`;
 
 beforeAll(() => fetchMock.get(fetchDashboardsEndpoint, mockDashboardData));
 

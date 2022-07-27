@@ -595,6 +595,7 @@ function ExploreViewContainer(props) {
         />
         {showingModal && (
           <SaveModal
+            addDangerToast={props.addDangerToast}
             onHide={toggleModal}
             actions={props.actions}
             form_data={props.form_data}
