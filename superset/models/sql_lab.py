@@ -272,6 +272,10 @@ class Query(Model, ExtraJSONMixin, ExploreMixin):  # pylint: disable=abstract-me
         return [col.get("column_name") for col in self.columns if col.get("is_dttm")]
 
     @property
+    def schema_perm(self) -> str:
+        return f"{self.database.database_name}.{self.schema}"
+
+    @property
     def default_endpoint(self) -> str:
         return ""
 
