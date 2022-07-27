@@ -1022,11 +1022,22 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         old_database_name: str,
         target: "Database",
     ) -> List[ViewMenu]:
+        """
+        Updates all datasource access permission when a database name changes
+
+        :param connection: Current connection (called on SQLAlchemy event listener scope)
+        :param old_database_name: the old database name
+        :param target: The new database name
+        :return: A list of changed view menus (permission resource names)
+        """
         from superset.connectors.sqla.models import (  # pylint: disable=import-outside-toplevel
             SqlaTable,
         )
+        from superset.models.slice import Slice
 
         view_menu_table = self.viewmenu_model.__table__  # pylint: disable=no-member
+        sqlatable_table = SqlaTable.__table__  # pylint: disable=no-member
+        chart_table = Slice.__table__  # pylint: disable=no-member
         new_database_name = target.database_name
         datasets = (
             self.get_session.query(SqlaTable)
@@ -1049,6 +1060,22 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 .where(view_menu_table.c.name == old_dataset_vm_name)
                 .values(name=new_dataset_vm_name)
             )
+            # Update dataset (SqlaTable perm field)
+            connection.execute(
+                sqlatable_table.update()
+                .where(
+                    sqlatable_table.c.id == dataset.id,
+                    sqlatable_table.c.perm == old_dataset_vm_name,
+                )
+                .values(perm=new_dataset_vm_name)
+            )
+            # Update charts (Slice perm field)
+            connection.execute(
+                chart_table.update()
+                .where(chart_table.c.perm == old_dataset_vm_name)
+                .values(perm=new_dataset_vm_name)
+            )
+
             updated_view_menus.append(self.find_view_menu(new_dataset_vm_name))
         return updated_view_menus
 
