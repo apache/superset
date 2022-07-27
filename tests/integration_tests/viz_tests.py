@@ -716,7 +716,7 @@ class TestPairedTTest(SupersetTestCase):
         self.assertEqual(data, expected)
 
     def test_get_data_empty_null_keys(self):
-        form_data = {"groupby": [], "metrics": ["", None]}
+        form_data = {"groupby": [], "metrics": [""]}
         datasource = self.get_datasource_mock()
         # Test data
         raw = {}
@@ -735,16 +735,6 @@ class TestPairedTTest(SupersetTestCase):
                         {"x": 100, "y": 1},
                         {"x": 200, "y": 2},
                         {"x": 300, "y": 3},
-                    ],
-                    "group": "All",
-                }
-            ],
-            "NULL": [
-                {
-                    "values": [
-                        {"x": 100, "y": 10},
-                        {"x": 200, "y": 20},
-                        {"x": 300, "y": 30},
                     ],
                     "group": "All",
                 }
