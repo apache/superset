@@ -1294,7 +1294,7 @@ def get_metric_name(
             sql_expression = metric.get("sqlExpression")
             if sql_expression:
                 return sql_expression
-        elif expression_type == "SIMPLE":
+        if expression_type == "SIMPLE":
             column: AdhocMetricColumn = metric.get("column") or {}
             column_name = column.get("column_name")
             aggregate = metric.get("aggregate")
