@@ -22,14 +22,14 @@ import { render, screen } from 'spec/helpers/testing-library';
 import { GenericLink } from './GenericLink';
 
 test('renders', () => {
-  render(<GenericLink to={'/explore'}>Link to Explore</GenericLink>, {
+  render(<GenericLink to="/explore">Link to Explore</GenericLink>, {
     useRouter: true,
   });
   expect(screen.getByText('Link to Explore')).toBeVisible();
 });
 
 test('navigates to internal URL', () => {
-  render(<GenericLink to={'/explore'}>Link to Explore</GenericLink>, {
+  render(<GenericLink to="/explore">Link to Explore</GenericLink>, {
     useRouter: true,
   });
   const internalLink = screen.getByTestId('internal-link');
@@ -38,7 +38,7 @@ test('navigates to internal URL', () => {
 
 test('navigates to external URL', () => {
   render(
-    <GenericLink to={'https://superset.apache.org/'}>
+    <GenericLink to="https://superset.apache.org/">
       Link to external website
     </GenericLink>,
     { useRouter: true },
