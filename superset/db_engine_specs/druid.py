@@ -17,7 +17,10 @@
 import json
 import logging
 from datetime import datetime
-from typing import Any, Dict, Optional, TYPE_CHECKING
+from typing import Any, Dict, List, Optional, TYPE_CHECKING
+
+from sqlalchemy import types
+from sqlalchemy.engine.reflection import Inspector
 
 from superset import is_feature_enabled
 from superset.db_engine_specs.base import BaseEngineSpec
@@ -119,3 +122,17 @@ class DruidEngineSpec(BaseEngineSpec):
         Convert from number of milliseconds since the epoch to a timestamp.
         """
         return "MILLIS_TO_TIMESTAMP({col})"
+
+    @classmethod
+    def get_columns(
+        cls, inspector: Inspector, table_name: str, schema: Optional[str]
+    ) -> List[Dict[str, Any]]:
+        """
+        Update the Druid type map.
+        """
+        # pylint: disable=import-outside-toplevel
+        from pydruid.db.sqlalchemy import type_map
+
+        type_map["complex<hllsketch>"] = types.BLOB
+
+        return super().get_columns(inspector, table_name, schema)
