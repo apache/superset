@@ -66,6 +66,7 @@ from sqlalchemy import (
     update,
 )
 from sqlalchemy.engine.base import Connection
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import backref, Query, relationship, RelationshipProperty, Session
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm.mapper import Mapper
@@ -741,7 +742,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         "MAX": sa.func.MAX,
     }
 
-    def __repr__(self) -> str:
+    def __repr__(self) -> str:  # pylint: disable=invalid-repr-returned
         return self.name
 
     @staticmethod
@@ -835,11 +836,9 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             raise DatasetInvalidPermissionEvaluationException()
         return f"[{self.database}].[{self.table_name}](id:{self.id})"
 
-    @property
-    def name(self) -> str:
-        if not self.schema:
-            return self.table_name
-        return "{}.{}".format(self.schema, self.table_name)
+    @hybrid_property
+    def name(self) -> str:  # pylint: disable=invalid-overridden-method
+        return self.schema + "." + self.table_name if self.schema else self.table_name
 
     @property
     def full_name(self) -> str:
