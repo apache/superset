@@ -20,7 +20,7 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
 import * as ace from 'brace';
 import * as shortid from 'shortid';
-import { WORLD_HEALTH_DASHBOARD } from './dashboard.helper';
+import { USA_BIRTH_NAMES_DASHBOARD } from './dashboard.helper';
 
 function selectColorScheme(color: string) {
   // open color scheme dropdown
@@ -78,8 +78,8 @@ function openDashboardEditProperties() {
 describe('Dashboard edit action', () => {
   beforeEach(() => {
     cy.login();
-    cy.visit(WORLD_HEALTH_DASHBOARD);
-    cy.intercept(`/api/v1/dashboard/1`).as('dashboardGet');
+    cy.visit(USA_BIRTH_NAMES_DASHBOARD);
+    cy.intercept(`/api/v1/dashboard/births`).as('dashboardGet');
     cy.get('.dashboard-grid', { timeout: 50000 })
       .should('be.visible') // wait for 50 secs to load dashboard
       .then(() => {
@@ -202,7 +202,7 @@ describe('Dashboard edit action', () => {
         clear('#json_metadata');
         type(
           '#json_metadata',
-          '{"color_scheme":"lyftColors"}',
+          '{"color_scheme":"lyftColors", "label_colors": {}}',
         );
       });
 
@@ -212,7 +212,7 @@ describe('Dashboard edit action', () => {
         .then(() => {
           cy.get('.ant-modal-body').should('not.exist');
           // assert that the chart has changed colors
-          cy.get('#chart-id-41 .nv-legend-symbol').first().should('have.css', 'fill', 'rgb(234, 11, 140)');
+          cy.get('#chart-id-51 .nv-legend-symbol').first().should('have.css', 'fill', 'rgb(157, 172, 185)');
 
         });
     });
@@ -221,7 +221,7 @@ describe('Dashboard edit action', () => {
         clear('#json_metadata');
         type(
           '#json_metadata',
-          '{"color_scheme":"lyftColors","label_colors":{"Bangladesh":"red"}}',
+          '{"color_scheme":"lyftColors","label_colors":{"Amanda":"red"}}',
         );
       });
 
@@ -231,17 +231,16 @@ describe('Dashboard edit action', () => {
         .then(() => {
           cy.get('.ant-modal-body').should('not.exist');
           // assert that the chart has changed colors
-          cy.get('#chart-id-41 .nv-legend-symbol').first().should('have.css', 'fill', 'rgb(255, 0, 0)');
+          cy.get('#chart-id-51 .nv-legend-symbol').first().should('have.css', 'fill', 'rgb(255, 0, 0)');
 
         });
     });
     it('the shared label colors and label colors are applied correctly', () => {
-      cy.viewport('macbook-16');
       openAdvancedProperties().then(() => {
         clear('#json_metadata');
         type(
           '#json_metadata',
-          '{"color_scheme":"lyftColors","label_colors":{"Bangladesh":"red"}}',
+          '{"color_scheme":"lyftColors","label_colors":{"Amanda":"red"}}',
         );
       });
 
@@ -251,9 +250,10 @@ describe('Dashboard edit action', () => {
         .then(() => {
           cy.get('.ant-modal-body').should('not.exist');
           // assert that the chart has changed colors
-          cy.get('#chart-id-41 .nv-legend-symbol').first().should('have.css', 'fill', 'rgb(255, 0, 0)');
-          cy.get('#chart-id-45 .nv-legend-symbol').first().should('have.css', 'fill', 'rgb(234, 11, 95)');
-          cy.get('#chart-id-43 .nv-legend-symbol').eq(5).should('have.css', 'fill', 'rgb(234, 11, 95)');
+          cy.get('#chart-id-51.line .nv-legend-symbol').first().should('have.css', 'fill', 'rgb(255, 0, 0)');  // label: amanda
+          cy.get('#chart-id-51.line .nv-legend-symbol').eq(11).should('have.css', 'fill', 'rgb(234, 11, 140)'); // label: jennifer
+          cy.get('#chart-id-54.word_cloud > svg text ').first().should('have.css', 'fill', 'rgb(234, 11, 140)');  // label: jennifer
+
         });
     });
   });
