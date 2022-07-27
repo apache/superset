@@ -1689,7 +1689,7 @@ def extract_dataframe_dtypes(
         column_object = columns_by_name.get(column)
         series = df[column]
         inferred_type = infer_dtype(series)
-        if isinstance(column_object, dict):  # type: ignore
+        if isinstance(column_object, dict):
             generic_type = (
                 GenericDataType.TEMPORAL
                 if column_object and column_object.get("is_dttm")
