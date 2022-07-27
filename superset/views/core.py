@@ -2322,6 +2322,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             raise SupersetCancelQueryException("Could not cancel query")
 
         query.status = QueryStatus.STOPPED
+        query.end_time = now_as_float()
         db.session.commit()
 
         return self.json_response("OK")

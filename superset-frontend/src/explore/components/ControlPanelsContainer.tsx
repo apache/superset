@@ -182,7 +182,8 @@ const sectionsToExpand = (
   // avoid expanding time section if datasource doesn't include time column
   sections.reduce(
     (acc, section) =>
-      section.expanded && (!isTimeSection(section) || hasTimeColumn(datasource))
+      (section.expanded || !section.label) &&
+      (!isTimeSection(section) || hasTimeColumn(datasource))
         ? [...acc, String(section.label)]
         : acc,
     [] as string[],
@@ -436,6 +437,12 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
           span.label {
             display: inline-block;
           }
+          ${!section.label &&
+          `
+            .ant-collapse-header {
+              display: none;
+            }
+          `}
         `}
         header={<PanelHeader />}
         key={sectionId}

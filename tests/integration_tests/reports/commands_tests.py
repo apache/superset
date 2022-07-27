@@ -27,19 +27,9 @@ from flask_sqlalchemy import BaseQuery
 from freezegun import freeze_time
 from sqlalchemy.sql import func
 
-from superset import db, security_manager
+from superset import db
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
-from superset.models.reports import (
-    ReportDataFormat,
-    ReportExecutionLog,
-    ReportRecipients,
-    ReportRecipientType,
-    ReportSchedule,
-    ReportScheduleType,
-    ReportScheduleValidatorType,
-    ReportState,
-)
 from superset.models.slice import Slice
 from superset.reports.commands.exceptions import (
     AlertQueryError,
@@ -57,28 +47,36 @@ from superset.reports.commands.exceptions import (
 )
 from superset.reports.commands.execute import AsyncExecuteReportScheduleCommand
 from superset.reports.commands.log_prune import AsyncPruneReportScheduleLogCommand
+from superset.reports.models import (
+    ReportDataFormat,
+    ReportExecutionLog,
+    ReportSchedule,
+    ReportScheduleType,
+    ReportScheduleValidatorType,
+    ReportState,
+)
 from superset.utils.database import get_example_database
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
     load_birth_names_data,
 )
-from tests.integration_tests.fixtures.tabbed_dashboard import tabbed_dashboard
 from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices_module_scope,
     load_world_bank_data,
 )
-from tests.integration_tests.reports.utils import insert_report_schedule
+from tests.integration_tests.reports.utils import (
+    cleanup_report_schedule,
+    create_report_notification,
+    CSV_FILE,
+    OWNER_EMAIL,
+    SCREENSHOT_FILE,
+    TEST_ID,
+)
 from tests.integration_tests.test_app import app
-from tests.integration_tests.utils import read_fixture
 
 pytestmark = pytest.mark.usefixtures(
     "load_world_bank_dashboard_with_slices_module_scope"
 )
-
-TEST_ID = str(uuid4())
-CSV_FILE = read_fixture("trends.csv")
-SCREENSHOT_FILE = read_fixture("sample.png")
-OWNER_EMAIL = "admin@fab.org"
 
 
 def get_target_from_report_schedule(report_schedule: ReportSchedule) -> List[str]:
@@ -127,78 +125,6 @@ def assert_log(state: str, error_message: Optional[str] = None):
         if log.state == ReportState.WORKING:
             assert log.value is None
             assert log.value_row_json is None
-
-
-def create_report_notification(
-    email_target: Optional[str] = None,
-    slack_channel: Optional[str] = None,
-    chart: Optional[Slice] = None,
-    dashboard: Optional[Dashboard] = None,
-    database: Optional[Database] = None,
-    sql: Optional[str] = None,
-    report_type: Optional[str] = None,
-    validator_type: Optional[str] = None,
-    validator_config_json: Optional[str] = None,
-    grace_period: Optional[int] = None,
-    report_format: Optional[ReportDataFormat] = None,
-    name: Optional[str] = None,
-    extra: Optional[Dict[str, Any]] = None,
-    force_screenshot: bool = False,
-) -> ReportSchedule:
-    report_type = report_type or ReportScheduleType.REPORT
-    target = email_target or slack_channel
-    config_json = {"target": target}
-    owner = (
-        db.session.query(security_manager.user_model)
-        .filter_by(email=OWNER_EMAIL)
-        .one_or_none()
-    )
-
-    if slack_channel:
-        recipient = ReportRecipients(
-            type=ReportRecipientType.SLACK,
-            recipient_config_json=json.dumps(config_json),
-        )
-    else:
-        recipient = ReportRecipients(
-            type=ReportRecipientType.EMAIL,
-            recipient_config_json=json.dumps(config_json),
-        )
-
-    if name is None:
-        name = "report_with_csv" if report_format else "report"
-
-    report_schedule = insert_report_schedule(
-        type=report_type,
-        name=name,
-        crontab="0 9 * * *",
-        description="Daily report",
-        sql=sql,
-        chart=chart,
-        dashboard=dashboard,
-        database=database,
-        recipients=[recipient],
-        owners=[owner],
-        validator_type=validator_type,
-        validator_config_json=validator_config_json,
-        grace_period=grace_period,
-        report_format=report_format or ReportDataFormat.VISUALIZATION,
-        extra=extra,
-        force_screenshot=force_screenshot,
-    )
-    return report_schedule
-
-
-def cleanup_report_schedule(report_schedule: ReportSchedule) -> None:
-    db.session.query(ReportExecutionLog).filter(
-        ReportExecutionLog.report_schedule == report_schedule
-    ).delete()
-    db.session.query(ReportRecipients).filter(
-        ReportRecipients.report_schedule == report_schedule
-    ).delete()
-
-    db.session.delete(report_schedule)
-    db.session.commit()
 
 
 @contextmanager
@@ -305,23 +231,6 @@ def create_report_email_dashboard_force_screenshot():
         )
         yield report_schedule
 
-        cleanup_report_schedule(report_schedule)
-
-
-@pytest.fixture()
-def create_report_email_tabbed_dashboard(tabbed_dashboard):
-    with app.app_context():
-        report_schedule = create_report_notification(
-            email_target="target@email.com",
-            dashboard=tabbed_dashboard,
-            extra={
-                "dashboard_tab_ids": [
-                    "TAB-j53G4gtKGF",
-                    "TAB-nerWR09Ju",
-                ]
-            },
-        )
-        yield report_schedule
         cleanup_report_schedule(report_schedule)
 
 
@@ -1900,41 +1809,9 @@ def test_grace_period_error_flap(
 )
 @patch("superset.reports.dao.ReportScheduleDAO.bulk_delete_logs")
 def test_prune_log_soft_time_out(bulk_delete_logs, create_report_email_dashboard):
-    from datetime import datetime, timedelta
-
     from celery.exceptions import SoftTimeLimitExceeded
 
     bulk_delete_logs.side_effect = SoftTimeLimitExceeded()
     with pytest.raises(SoftTimeLimitExceeded) as excinfo:
         AsyncPruneReportScheduleLogCommand().run()
     assert str(excinfo.value) == "SoftTimeLimitExceeded()"
-
-
-@pytest.mark.usefixtures(
-    "create_report_email_tabbed_dashboard",
-)
-@patch("superset.reports.notifications.email.send_email_smtp")
-@patch(
-    "superset.reports.commands.execute.DashboardScreenshot",
-)
-def test_when_tabs_are_selected_it_takes_screenshots_for_every_tabs(
-    dashboard_screenshot_mock,
-    send_email_smtp_mock,
-    create_report_email_tabbed_dashboard,
-):
-    dashboard_screenshot_mock.get_screenshot.return_value = b"test-image"
-    dashboard = create_report_email_tabbed_dashboard.dashboard
-
-    AsyncExecuteReportScheduleCommand(
-        TEST_ID, create_report_email_tabbed_dashboard.id, datetime.utcnow()
-    ).run()
-
-    tabs = json.loads(create_report_email_tabbed_dashboard.extra)["dashboard_tab_ids"]
-    assert dashboard_screenshot_mock.call_count == 2
-    for index, tab in enumerate(tabs):
-        assert dashboard_screenshot_mock.call_args_list[index].args == (
-            f"http://0.0.0.0:8080/superset/dashboard/{dashboard.id}/?standalone=3&force=false#{tab}",
-            f"{dashboard.digest}",
-        )
-    assert send_email_smtp_mock.called is True
-    assert len(send_email_smtp_mock.call_args.kwargs["images"]) == 2
