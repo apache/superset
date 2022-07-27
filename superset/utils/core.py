@@ -1302,7 +1302,6 @@ def get_metric_name(
                 return f"{aggregate}({column_name})"
             if column_name:
                 return column_name
-        raise ValueError(__("Invalid metric object"))
 
     if isinstance(metric, str):
         verbose_map = verbose_map or {}
