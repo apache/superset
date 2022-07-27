@@ -21,13 +21,7 @@ import React from 'react';
 import { Input } from 'src/components/Input';
 import { Form, FormItem } from 'src/components/Form';
 import Alert from 'src/components/Alert';
-import {
-  JsonObject,
-  t,
-  styled,
-  SupersetClient,
-  Query,
-} from '@superset-ui/core';
+import { t, styled, SupersetClient, DatasourceType } from '@superset-ui/core';
 import ReactMarkdown from 'react-markdown';
 import Modal from 'src/components/Modal';
 import { Radio } from 'src/components/Radio';
@@ -166,11 +160,13 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
       dashboard_title: string;
     };
 
-    if (this.props.datasource?.type === 'query') {
+    if (this.props.datasource?.type === DatasourceType.Query) {
       const { schema, sql, database } = this.props.datasource;
       const { templateParams } = this.props.datasource;
       const selectedColumns =
         this.props.datasource?.results?.selected_columns || [];
+
+      // Create a dataset object
       SupersetClient.post({
         endpoint: '/superset/sqllab_viz/',
         postPayload: {
@@ -186,6 +182,7 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
       })
         .then(({ json }) => json)
         .then((data: { table_id: number }) => {
+          // Create a chart reference
           exploreChart({
             datasource: `${data.table_id}__table`,
             metrics: [],
