@@ -291,7 +291,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     def get(
         self,
         dash: Dashboard,
-        add_extra_log_payload: Callable[..., None] = lambda **kwargs: None
+        add_extra_log_payload: Callable[..., None] = lambda **kwargs: None,
     ) -> Response:
         """Gets a dashboard
         ---
@@ -325,8 +325,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         """
         result = self.dashboard_get_response_schema.dump(dash)
         add_extra_log_payload(
-            dashboard_id=dash.id,
-            action=f"{self.__class__.__name__}.get"
+            dashboard_id=dash.id, action=f"{self.__class__.__name__}.get"
         )
         return self.response(200, result=result)
 
