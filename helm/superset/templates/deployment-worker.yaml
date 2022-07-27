@@ -101,6 +101,11 @@ spec:
             - name: superset-config
               mountPath: {{ .Values.configMountPath | quote }}
               readOnly: true
+          {{- if .Values.extraConfigs }}
+            - name: superset-extra-config
+              mountPath: {{ .Values.extraConfigMountPath | quote }}
+              readOnly: true
+          {{- end }}
           {{- with .Values.extraVolumeMounts }}
           {{- tpl (toYaml .) $ | nindent 12 -}}
           {{- end }}
@@ -130,6 +135,11 @@ spec:
         - name: superset-config
           secret:
             secretName: {{ tpl .Values.configFromSecret . }}
-      {{- with .Values.extraVolumes }}
-      {{- tpl (toYaml .) $ | nindent 8 -}}
-      {{- end }}
+        {{- if .Values.extraConfigs }}
+        - name: superset-extra-config
+          configMap:
+            name: {{ template "superset.fullname" . }}-extra-config
+        {{- end }}
+        {{- with .Values.extraVolumes }}
+        {{- tpl (toYaml .) $ | nindent 8 -}}
+        {{- end }}

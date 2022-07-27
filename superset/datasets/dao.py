@@ -154,10 +154,10 @@ class DatasetDAO(BaseDAO):  # pylint: disable=too-many-public-methods
         """
 
         if "columns" in properties:
-            properties["columns"] = cls.update_columns(model, properties["columns"])
+            cls.update_columns(model, properties.pop("columns"), commit=commit)
 
         if "metrics" in properties:
-            properties["metrics"] = cls.update_metrics(model, properties["metrics"])
+            cls.update_metrics(model, properties.pop("metrics"), commit=commit)
 
         return super().update(model, properties, commit=commit)
 
@@ -166,7 +166,8 @@ class DatasetDAO(BaseDAO):  # pylint: disable=too-many-public-methods
         cls,
         model: SqlaTable,
         property_columns: List[Dict[str, Any]],
-    ) -> List[TableColumn]:
+        commit: bool = True,
+    ) -> None:
         """
         Creates/updates and/or deletes a list of columns, based on a
         list of Dict.
@@ -178,33 +179,36 @@ class DatasetDAO(BaseDAO):  # pylint: disable=too-many-public-methods
         """
 
         column_by_id = {column.id: column for column in model.columns}
-        columns = []
+        seen = set()
 
         for properties in property_columns:
             if "id" in properties:
-                columns.append(
-                    DatasetDAO.update_column(
-                        column_by_id[properties["id"]],
-                        properties,
-                        commit=False,
-                    )
+                seen.add(properties["id"])
+
+                DatasetDAO.update_column(
+                    column_by_id[properties["id"]],
+                    properties,
+                    commit=False,
                 )
             else:
+                DatasetDAO.create_column(
+                    {**properties, "table_id": model.id},
+                    commit=False,
+                )
 
-                # Note for new columns the primary key is undefined sans a commit/flush.
-                columns.append(DatasetDAO.create_column(properties, commit=False))
-
-        for id_ in {obj.id for obj in model.columns} - {obj.id for obj in columns}:
+        for id_ in {obj.id for obj in model.columns} - seen:
             DatasetDAO.delete_column(column_by_id[id_], commit=False)
 
-        return columns
+        if commit:
+            db.session.commit()
 
     @classmethod
     def update_metrics(
         cls,
         model: SqlaTable,
         property_metrics: List[Dict[str, Any]],
-    ) -> List[SqlMetric]:
+        commit: bool = True,
+    ) -> None:
         """
         Creates/updates and/or deletes a list of metrics, based on a
         list of Dict.
@@ -216,26 +220,28 @@ class DatasetDAO(BaseDAO):  # pylint: disable=too-many-public-methods
         """
 
         metric_by_id = {metric.id: metric for metric in model.metrics}
-        metrics = []
+        seen = set()
 
         for properties in property_metrics:
             if "id" in properties:
-                metrics.append(
-                    DatasetDAO.update_metric(
-                        metric_by_id[properties["id"]],
-                        properties,
-                        commit=False,
-                    )
+                seen.add(properties["id"])
+
+                DatasetDAO.update_metric(
+                    metric_by_id[properties["id"]],
+                    properties,
+                    commit=False,
                 )
             else:
+                DatasetDAO.create_metric(
+                    {**properties, "table_id": model.id},
+                    commit=False,
+                )
 
-                # Note for new metrics the primary key is undefined sans a commit/flush.
-                metrics.append(DatasetDAO.create_metric(properties, commit=False))
-
-        for id_ in {obj.id for obj in model.metrics} - {obj.id for obj in metrics}:
+        for id_ in {obj.id for obj in model.metrics} - seen:
             DatasetDAO.delete_column(metric_by_id[id_], commit=False)
 
-        return metrics
+        if commit:
+            db.session.commit()
 
     @classmethod
     def find_dataset_column(

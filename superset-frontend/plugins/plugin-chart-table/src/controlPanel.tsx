@@ -19,7 +19,6 @@
  */
 import React from 'react';
 import {
-  addLocaleData,
   ChartDataResponseResult,
   ensureIsArray,
   FeatureFlag,
@@ -50,10 +49,7 @@ import {
   getStandardizedControls,
 } from '@superset-ui/chart-controls';
 
-import i18n from './i18n';
 import { PAGE_SIZE_OPTIONS } from './consts';
-
-addLocaleData(i18n);
 
 function getQueryMode(controls: ControlStateMapping): QueryMode {
   const mode = controls?.query_mode?.value;
