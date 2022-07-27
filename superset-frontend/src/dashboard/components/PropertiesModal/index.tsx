@@ -431,6 +431,7 @@ const PropertiesModal = ({
           <StyledFormItem label={t('Owners')}>
             <AsyncSelect
               allowClear
+              allowNewOptions
               ariaLabel={t('Owners')}
               disabled={isLoading}
               mode="multiple"
