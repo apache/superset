@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from sqlalchemy import Metadata
+from sqlalchemy import MetaData
 from sqlalchemy.engine import Engine
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql import and_, func, functions, join, literal, select
@@ -22,7 +22,7 @@ from sqlalchemy.sql import and_, func, functions, join, literal, select
 from superset.models.tags import ObjectTypes, TagTypes
 
 
-def add_types(engine: Engine, metadata: Metadata) -> None:
+def add_types(engine: Engine, metadata: MetaData) -> None:
     """
     Tag every object according to its type:
 
@@ -67,6 +67,20 @@ def add_types(engine: Engine, metadata: Metadata) -> None:
         AND tagged_object.object_id = saved_query.id
         AND tagged_object.object_type = 'query'
       WHERE tagged_object.tag_id IS NULL;
+      
+      INSERT INTO tagged_object (tag_id, object_id, object_type)
+      SELECT
+        tag.id AS tag_id,
+        tables.id AS object_id,
+        'dataset' AS object_type
+      FROM tables
+      JOIN tag
+        ON tag.name = 'type:dataset'
+      LEFT OUTER JOIN tagged_object
+        ON tagged_object.tag_id = tag.id
+        AND tagged_object.object_id = tables.id
+        AND tagged_object.object_type = 'dataset'
+      WHERE tagged_object.tag_id IS NULL;
 
     """
 
@@ -75,6 +89,7 @@ def add_types(engine: Engine, metadata: Metadata) -> None:
     slices = metadata.tables["slices"]
     dashboards = metadata.tables["dashboards"]
     saved_query = metadata.tables["saved_query"]
+    tables = metadata.tables["tables"]
     columns = ["tag_id", "object_id", "object_type"]
 
     # add a tag for each object type
@@ -163,8 +178,34 @@ def add_types(engine: Engine, metadata: Metadata) -> None:
     query = tagged_object.insert().from_select(columns, saved_queries)
     engine.execute(query)
 
+    datasets = (
+        select(
+            [
+                tag.c.id.label("tag_id"),
+                tables.c.id.label("object_id"),
+                literal(ObjectTypes.dataset.name).label("object_type"),
+            ]
+        )
+        .select_from(
+            join(
+                join(tables, tag, tag.c.name == "type:dataset"),
+                tagged_object,
+                and_(
+                    tagged_object.c.tag_id == tag.c.id,
+                    tagged_object.c.object_id == tables.c.id,
+                    tagged_object.c.object_type == "dataset",
+                ),
+                isouter=True,
+                full=False,
+            )
+        )
+        .where(tagged_object.c.tag_id.is_(None))
+    )
+    query = tagged_object.insert().from_select(columns, datasets)
+    engine.execute(query)
 
-def add_owners(engine: Engine, metadata: Metadata) -> None:
+
+def add_owners(engine: Engine, metadata: MetaData) -> None:
     """
     Tag every object according to its owner:
 
@@ -208,6 +249,19 @@ def add_owners(engine: Engine, metadata: Metadata) -> None:
         AND tagged_object.object_type = 'query'
       WHERE tagged_object.tag_id IS NULL;
 
+      SELECT
+        tag.id AS tag_id,
+        tables.id AS object_id,
+        'dataset' AS object_type
+      FROM tables
+      JOIN tag
+      ON tag.name = CONCAT('owner:', tables.created_by_fk)
+      LEFT OUTER JOIN tagged_object
+        ON tagged_object.tag_id = tag.id
+        AND tagged_object.object_id = tables.id
+        AND tagged_object.object_type = 'dataset'
+      WHERE tagged_object.tag_id IS NULL;
+
     """
 
     tag = metadata.tables["tag"]
@@ -216,6 +270,7 @@ def add_owners(engine: Engine, metadata: Metadata) -> None:
     slices = metadata.tables["slices"]
     dashboards = metadata.tables["dashboards"]
     saved_query = metadata.tables["saved_query"]
+    tables = metadata.tables["tables"]
     columns = ["tag_id", "object_id", "object_type"]
 
     # create a custom tag for each user
@@ -240,7 +295,7 @@ def add_owners(engine: Engine, metadata: Metadata) -> None:
                 join(
                     slices,
                     tag,
-                    tag.c.name == functions.concat("owner:", slices.c.created_by_fk),
+                    tag.c.name == "owner:" + slices.c.created_by_fk,
                 ),
                 tagged_object,
                 and_(
@@ -271,7 +326,7 @@ def add_owners(engine: Engine, metadata: Metadata) -> None:
                     dashboards,
                     tag,
                     tag.c.name
-                    == functions.concat("owner:", dashboards.c.created_by_fk),
+                    == "owner:" + dashboards.c.created_by_fk,
                 ),
                 tagged_object,
                 and_(
@@ -302,7 +357,7 @@ def add_owners(engine: Engine, metadata: Metadata) -> None:
                     saved_query,
                     tag,
                     tag.c.name
-                    == functions.concat("owner:", saved_query.c.created_by_fk),
+                    == "owner:" + saved_query.c.created_by_fk,
                 ),
                 tagged_object,
                 and_(
@@ -319,8 +374,37 @@ def add_owners(engine: Engine, metadata: Metadata) -> None:
     query = tagged_object.insert().from_select(columns, saved_queries)
     engine.execute(query)
 
+    datasets = (
+        select(
+            [
+                tag.c.id.label("tag_id"),
+                tables.c.id.label("object_id"),
+                literal(ObjectTypes.dataset.name).label("object_type"),
+            ]
+        )
+        .select_from(
+            join(
+                join(
+                    tables,
+                    tag,
+                    tag.c.name == "owner:" + tables.c.created_by_fk,
+                ),
+                tagged_object,
+                and_(
+                    tagged_object.c.tag_id == tag.c.id,
+                    tagged_object.c.object_id == tables.c.id,
+                    tagged_object.c.object_type == "dataset",
+                ),
+                isouter=True,
+                full=False,
+            )
+        )
+        .where(tagged_object.c.tag_id.is_(None))
+    )
+    query = tagged_object.insert().from_select(columns, datasets)
+    engine.execute(query)
 
-def add_favorites(engine: Engine, metadata: Metadata) -> None:
+def add_favorites(engine: Engine, metadata: MetaData) -> None:
     """
     Tag every object that was favorited:
 
@@ -368,7 +452,7 @@ def add_favorites(engine: Engine, metadata: Metadata) -> None:
                 join(
                     favstar,
                     tag,
-                    tag.c.name == functions.concat("favorited_by:", favstar.c.user_id),
+                    tag.c.name == "favorited_by:" + favstar.c.user_id,
                 ),
                 tagged_object,
                 and_(

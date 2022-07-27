@@ -32,6 +32,7 @@ if TYPE_CHECKING:
     from superset.models.dashboard import Dashboard
     from superset.models.slice import Slice
     from superset.models.sql_lab import Query
+    from superset.connectors.sqla.models import SqlaTable
 
 Session = sessionmaker(autoflush=False)
 
@@ -41,7 +42,7 @@ class TagTypes(enum.Enum):
     """
     Types for tags.
 
-    Objects (queries, charts and dashboards) will have with implicit tags based
+    Objects (queries, charts, dashboards, and datasets) will have with implicit tags based
     on metadata: types, owners and who favorited them. This way, user "alice"
     can find all their objects by querying for the tag `owner:alice`.
     """
@@ -64,11 +65,12 @@ class ObjectTypes(enum.Enum):
     query = 1
     chart = 2
     dashboard = 3
+    dataset = 4
 
 
 class Tag(Model, AuditMixinNullable):
 
-    """A tag attached to an object (query, chart or dashboard)."""
+    """A tag attached to an object (query, chart, dashboard, or dataset)."""
 
     __tablename__ = "tag"
     id = Column(Integer, primary_key=True)
@@ -103,6 +105,7 @@ def get_object_type(class_name: str) -> ObjectTypes:
         "slice": ObjectTypes.chart,
         "dashboard": ObjectTypes.dashboard,
         "query": ObjectTypes.query,
+        "dataset": ObjectTypes.dataset,
     }
     try:
         return mapping[class_name.lower()]
@@ -116,13 +119,13 @@ class ObjectUpdater:
 
     @classmethod
     def get_owners_ids(
-        cls, target: Union["Dashboard", "FavStar", "Slice"]
+        cls, target: Union["Dashboard", "FavStar", "Slice", "SqlaTable"]
     ) -> List[int]:
         raise NotImplementedError("Subclass should implement `get_owners_ids`")
 
     @classmethod
     def _add_owners(
-        cls, session: Session, target: Union["Dashboard", "FavStar", "Slice"]
+        cls, session: Session, target: Union["Dashboard", "FavStar", "Slice", "SqlaTable"]
     ) -> None:
         for owner_id in cls.get_owners_ids(target):
             name = "owner:{0}".format(owner_id)
@@ -137,7 +140,7 @@ class ObjectUpdater:
         cls,
         _mapper: Mapper,
         connection: Connection,
-        target: Union["Dashboard", "FavStar", "Slice"],
+        target: Union["Dashboard", "FavStar", "Slice", "SqlaTable"],
     ) -> None:
         session = Session(bind=connection)
 
@@ -158,7 +161,7 @@ class ObjectUpdater:
         cls,
         _mapper: Mapper,
         connection: Connection,
-        target: Union["Dashboard", "FavStar", "Slice"],
+        target: Union["Dashboard", "FavStar", "Slice", "SqlaTable"],
     ) -> None:
         session = Session(bind=connection)
 
@@ -187,7 +190,7 @@ class ObjectUpdater:
         cls,
         _mapper: Mapper,
         connection: Connection,
-        target: Union["Dashboard", "FavStar", "Slice"],
+        target: Union["Dashboard", "FavStar", "Slice", "SqlaTable"],
     ) -> None:
         session = Session(bind=connection)
 
@@ -225,6 +228,15 @@ class QueryUpdater(ObjectUpdater):
     @classmethod
     def get_owners_ids(cls, target: "Query") -> List[int]:
         return [target.user_id]
+
+
+class DatasetUpdater(ObjectUpdater):
+
+    object_type = "dataset"
+
+    @classmethod
+    def get_owners_ids(cls, target: "SqlaTable") -> List[int]:
+        return [owner.id for owner in target.owners]
 
 
 class FavStarUpdater:

@@ -32,6 +32,7 @@ from superset.jinja_context import ExtraCache
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import SavedQuery
+from superset.connectors.sqla.models import SqlaQuery
 from superset.models.tags import ObjectTypes, Tag, TaggedObject, TagTypes
 from superset.superset_typing import FlaskResponse
 
@@ -236,6 +237,33 @@ class TagView(BaseSupersetView):
                     "creator": obj.creator(),
                 }
                 for obj in saved_queries
+            )
+
+        # datasets
+        if not types or "dataset" in types:
+            datasets = (
+                db.session.query(SqlaQuery)
+                .join(
+                    TaggedObject,
+                    and_(
+                        TaggedObject.object_id == SqlaQuery.id,
+                        TaggedObject.object_type == ObjectTypes.dataset,
+                    ),
+                )
+                .join(Tag, TaggedObject.tag_id == Tag.id)
+                .filter(Tag.name.in_(tags))
+            )
+            results.extend(
+                {
+                    "id": obj.id,
+                    "type": ObjectTypes.dataset.name,
+                    "name": obj.table_name,
+                    "url": obj.sql_url(),
+                    "changed_on": obj.changed_on,
+                    "created_by": obj.created_by_fk,
+                    "creator": obj.creator(),
+                }
+                for obj in datasets
             )
 
         return json_success(json.dumps(results, default=utils.core.json_int_dttm_ser))
