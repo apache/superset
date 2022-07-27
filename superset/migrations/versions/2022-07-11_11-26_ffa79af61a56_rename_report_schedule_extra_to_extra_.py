@@ -14,28 +14,40 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any
+"""rename report_schedule.extra to extra_json
 
-from flask_babel import lazy_gettext as _
-from sqlalchemy import or_
-from sqlalchemy.orm.query import Query
+So we can reuse the ExtraJSONMixin
 
-from superset.reports.models import ReportSchedule
-from superset.views.base import BaseFilter
+Revision ID: ffa79af61a56
+Revises: 409c7b420ab0
+Create Date: 2022-07-11 11:26:00.010714
+
+"""
+
+# revision identifiers, used by Alembic.
+revision = "ffa79af61a56"
+down_revision = "409c7b420ab0"
+
+from alembic import op
+from sqlalchemy.types import Text
 
 
-class ReportScheduleAllTextFilter(BaseFilter):  # pylint: disable=too-few-public-methods
-    name = _("All Text")
-    arg_name = "report_all_text"
+def upgrade():
+    op.alter_column(
+        "report_schedule",
+        "extra",
+        new_column_name="extra_json",
+        # existing info is required for MySQL
+        existing_type=Text,
+        existing_nullable=True,
+    )
 
-    def apply(self, query: Query, value: Any) -> Query:
-        if not value:
-            return query
-        ilike_value = f"%{value}%"
-        return query.filter(
-            or_(
-                ReportSchedule.name.ilike(ilike_value),
-                ReportSchedule.description.ilike(ilike_value),
-                ReportSchedule.sql.ilike((ilike_value)),
-            )
-        )
+
+def downgrade():
+    op.alter_column(
+        "report_schedule",
+        "extra_json",
+        new_column_name="extra",
+        existing_type=Text,
+        existing_nullable=True,
+    )

@@ -30,7 +30,6 @@ from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.dashboards.filters import DashboardAccessFilter
 from superset.databases.filters import DatabaseFilter
 from superset.extensions import event_logger
-from superset.models.reports import ReportSchedule
 from superset.reports.commands.bulk_delete import BulkDeleteReportScheduleCommand
 from superset.reports.commands.create import CreateReportScheduleCommand
 from superset.reports.commands.delete import DeleteReportScheduleCommand
@@ -45,6 +44,7 @@ from superset.reports.commands.exceptions import (
 )
 from superset.reports.commands.update import UpdateReportScheduleCommand
 from superset.reports.filters import ReportScheduleAllTextFilter
+from superset.reports.models import ReportSchedule
 from superset.reports.schemas import (
     get_delete_ids_schema,
     openapi_spec_methods_override,
@@ -94,6 +94,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "database.database_name",
         "database.id",
         "description",
+        "extra",
         "force_screenshot",
         "grace_period",
         "last_eval_dttm",
@@ -135,6 +136,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "crontab_humanized",
         "dashboard_id",
         "description",
+        "extra",
         "id",
         "last_eval_dttm",
         "last_state",
@@ -156,6 +158,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "dashboard",
         "database",
         "description",
+        "extra",
         "force_screenshot",
         "grace_period",
         "log_retention",

@@ -14,28 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any
+from typing import TypedDict
 
-from flask_babel import lazy_gettext as _
-from sqlalchemy import or_
-from sqlalchemy.orm.query import Query
-
-from superset.reports.models import ReportSchedule
-from superset.views.base import BaseFilter
+from superset.dashboards.permalink.types import DashboardPermalinkState
 
 
-class ReportScheduleAllTextFilter(BaseFilter):  # pylint: disable=too-few-public-methods
-    name = _("All Text")
-    arg_name = "report_all_text"
-
-    def apply(self, query: Query, value: Any) -> Query:
-        if not value:
-            return query
-        ilike_value = f"%{value}%"
-        return query.filter(
-            or_(
-                ReportSchedule.name.ilike(ilike_value),
-                ReportSchedule.description.ilike(ilike_value),
-                ReportSchedule.sql.ilike((ilike_value)),
-            )
-        )
+class ReportScheduleExtra(TypedDict):
+    dashboard: DashboardPermalinkState
