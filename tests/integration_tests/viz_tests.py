@@ -742,6 +742,10 @@ class TestPairedTTest(SupersetTestCase):
         }
         self.assertEqual(data, expected)
 
+        form_data = {"groupby": [], "metrics": [None]}
+        with self.assertRaises(ValueError):
+            viz.viz_types["paired_ttest"](datasource, form_data)
+
 
 class TestPartitionViz(SupersetTestCase):
     @patch("superset.viz.BaseViz.query_obj")
