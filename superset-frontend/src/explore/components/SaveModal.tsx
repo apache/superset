@@ -373,7 +373,7 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
               data-test="new-chart-name"
             />
           </FormItem>
-          {this.props.datasource?.type === 'query' ? (
+          {this.props.datasource?.type === 'query' && (
             <FormItem label={t('Dataset Name')} required>
               <InfoTooltipWithTrigger
                 tooltip={t('A reusable dataset will be saved with your chart.')}
@@ -386,9 +386,9 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
                 value={this.state.datasetName}
                 onChange={this.handleDatasetNameChange}
                 data-test="new-dataset-name"
-              />{' '}
+              />
             </FormItem>
-          ) : null}
+          )}
           <FormItem
             label={t('Add to dashboard')}
             data-test="save-chart-modal-select-dashboard-form"
