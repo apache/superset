@@ -22,7 +22,7 @@ import {
   ISaveableDatasource,
   SaveDatasetModal,
 } from 'src/SqlLab/components/SaveDatasetModal';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import { render, screen, waitFor, within } from 'spec/helpers/testing-library';
 import { DatasourceType } from '@superset-ui/core';
 import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
@@ -182,10 +182,10 @@ describe('SaveDatasetModal', () => {
     await waitFor(async () => userEvent.click(select));
 
     // Select the first "existing dataset" from the listbox
-    await waitFor(async () => {
-      const listbox = screen.getByRole('listbox');
-      userEvent.selectOptions(listbox, 'coolest table 0');
-    });
+    const option = within(
+      document.querySelector('.rc-virtual-list')!,
+    ).getByText('coolest table 0')!;
+    userEvent.click(option);
 
     // Overwrite button should now be enabled
     expect(overwriteConfirmationBtn).toBeEnabled();
