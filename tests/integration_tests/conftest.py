@@ -16,15 +16,18 @@
 # under the License.
 from __future__ import annotations
 
+import contextlib
 import functools
+from operator import ge
 from typing import Any, Callable, Optional, TYPE_CHECKING
 from unittest.mock import patch
 
 import pytest
 from flask.ctx import AppContext
+from flask_appbuilder.security.sqla import models as ab_models
 from sqlalchemy.engine import Engine
 
-from superset import db
+from superset import db, security_manager
 from superset.extensions import feature_flag_manager
 from superset.utils.core import json_dumps_w_dates
 from superset.utils.database import get_example_database, remove_database
@@ -66,6 +69,50 @@ def login_as(test_client: "FlaskClient[Any]"):
 @pytest.fixture
 def login_as_admin(login_as: Callable[..., None]):
     yield login_as("admin")
+
+
+@pytest.fixture
+def create_user(app_context: AppContext):
+    def _create_user(username: str, role: str = "Admin", password: str = "general"):
+        security_manager.add_user(
+            username,
+            "firstname",
+            "lastname",
+            "email@exaple.com",
+            security_manager.find_role(role),
+            password,
+        )
+        return security_manager.find_user(username)
+
+    return _create_user
+
+
+@pytest.fixture
+def get_user(app_context: AppContext):
+    def _get_user(username: str) -> ab_models.User:
+        return (
+            db.session.query(security_manager.user_model)
+            .filter_by(username=username)
+            .one_or_none()
+        )
+
+    return _get_user
+
+
+@pytest.fixture
+def get_or_create_user(get_user, create_user) -> ab_models.User:
+    @contextlib.contextmanager
+    def _get_user(username: str) -> ab_models.User:
+        user = get_user(username)
+        if not user:
+            # if user is created by test, remove it after done
+            user = create_user(username)
+            yield user
+            db.session.delete(user)
+        else:
+            yield user
+
+    return _get_user
 
 
 @pytest.fixture(autouse=True, scope="session")
