@@ -851,6 +851,12 @@ class ChartDataExtrasSchema(Schema):
         description="HAVING clause to be added to aggregate queries using "
         "AND operator.",
     )
+    having_druid = fields.List(
+        fields.Nested(ChartDataFilterSchema),
+        description="HAVING filters to be added to legacy Druid datasource queries. "
+        "This field is deprecated",
+        deprecated=True,
+    )
     time_grain_sqla = fields.String(
         description="To what level of granularity should the temporal column be "
         "aggregated. Supports "
