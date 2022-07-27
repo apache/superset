@@ -315,7 +315,7 @@ class HiveEngineSpec(PrestoEngineSpec):
         return int(progress)
 
     @classmethod
-    def get_tracking_url(cls, log_lines: List[str]) -> Optional[str]:
+    def get_tracking_url_from_logs(cls, log_lines: List[str]) -> Optional[str]:
         lkp = "Tracking URL = "
         for line in log_lines:
             if lkp in line:
@@ -366,18 +366,11 @@ class HiveEngineSpec(PrestoEngineSpec):
                     query.progress = progress
                     needs_commit = True
                 if not tracking_url:
-                    tracking_url = cls.get_tracking_url(log_lines)
+                    tracking_url = cls.get_tracking_url_from_logs(log_lines)
                     if tracking_url:
                         job_id = tracking_url.split("/")[-2]
                         logger.info(
                             "Query %s: Found the tracking url: %s",
-                            str(query_id),
-                            tracking_url,
-                        )
-                        transformer = current_app.config["TRACKING_URL_TRANSFORMER"]
-                        tracking_url = transformer(tracking_url)
-                        logger.info(
-                            "Query %s: Transformation applied: %s",
                             str(query_id),
                             tracking_url,
                         )

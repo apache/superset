@@ -24,7 +24,7 @@ from superset.commands.exceptions import (
     ForbiddenError,
     ValidationError,
 )
-from superset.models.reports import ReportScheduleType
+from superset.reports.models import ReportScheduleType
 
 
 class DatabaseNotFoundValidationError(ValidationError):
@@ -72,13 +72,24 @@ class ReportScheduleRequiredTypeValidationError(ValidationError):
         super().__init__(_("Type is required"), field_name="type")
 
 
-class ReportScheduleChartOrDashboardValidationError(ValidationError):
+class ReportScheduleOnlyChartOrDashboardError(ValidationError):
     """
     Marshmallow validation error for report schedule accept exlusive chart or dashboard
     """
 
     def __init__(self) -> None:
         super().__init__(_("Choose a chart or dashboard not both"), field_name="chart")
+
+
+class ReportScheduleEitherChartOrDashboardError(ValidationError):
+    """
+    Marshmallow validation error for report schedule missing both dashboard and chart id
+    """
+
+    def __init__(self) -> None:
+        super().__init__(
+            _("Must choose either a chart or a dashboard"), field_name="chart"
+        )
 
 
 class ChartNotSavedValidationError(ValidationError):
