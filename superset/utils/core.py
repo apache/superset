@@ -1304,8 +1304,11 @@ def get_metric_name(
                 return column_name
         raise ValueError(__("Invalid metric object"))
 
-    verbose_map = verbose_map or {}
-    return verbose_map.get(metric, metric)  # type: ignore
+    if isinstance(metric, str):
+        verbose_map = verbose_map or {}
+        return verbose_map.get(metric, metric)
+
+    raise ValueError(__("Invalid metric object: %(metric)s", metric=str(metric)))
 
 
 def get_column_names(

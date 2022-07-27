@@ -383,8 +383,10 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                 self.dashboard_dataset_schema.dump(dataset) for dataset in datasets
             ]
             return self.response(200, result=result)
-        except TypeError:
-            return self.response_400(message=gettext("Dataset schema is invalid."))
+        except (TypeError, ValueError) as err:
+            return self.response_400(
+                message=gettext(f"Dataset schema is invalid, caused by: {str(err)}")
+            )
         except DashboardAccessDeniedError:
             return self.response_403()
         except DashboardNotFoundError:
