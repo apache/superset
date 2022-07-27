@@ -287,7 +287,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @with_dashboard
     @event_logger.log_this_with_extra_payload
-    # pylint: disable=arguments-renamed, arguments-differ
+    # pylint: disable=arguments-differ
     def get(
         self,
         dash: Dashboard,
