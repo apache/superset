@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ReactNode, useState, useCallback, useRef, useMemo } from 'react';
+import React, {
+  ReactNode,
+  useState,
+  useCallback,
+  useRef,
+  useMemo,
+} from 'react';
 import Button from 'src/components/Button';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import AsyncSelect, {
@@ -460,7 +466,8 @@ export const AsynchronousSelect = ({
   const initialValue = useMemo(
     () => ({ label: 'Valentina', value: 'Valentina' }),
     [],
-   ); 
+  );
+
   return (
     <>
       <div
