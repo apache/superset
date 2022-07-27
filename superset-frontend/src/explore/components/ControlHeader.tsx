@@ -22,10 +22,6 @@ import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import { Tooltip } from 'src/components/Tooltip';
 import { FormLabel } from 'src/components/Form';
 import Icons from 'src/components/Icons';
-import {
-  ExclamationCircleOutlined,
-  InfoCircleOutlined,
-} from '@ant-design/icons';
 
 type ValidationError = string;
 
@@ -43,6 +39,16 @@ export type ControlHeaderProps = {
   warning?: string;
   danger?: string;
 };
+
+const iconStyles = css`
+  &.anticon {
+    font-size: unset;
+    .anticon {
+      line-height: unset;
+      vertical-align: unset;
+    }
+  }
+`;
 
 const ControlHeader: FC<ControlHeaderProps> = ({
   name,
@@ -103,7 +109,10 @@ const ControlHeader: FC<ControlHeaderProps> = ({
               title={description}
               placement="top"
             >
-              <InfoCircleOutlined onClick={tooltipOnClick} />
+              <Icons.InfoCircleOutlined
+                css={iconStyles}
+                onClick={tooltipOnClick}
+              />
             </Tooltip>{' '}
           </span>
         )}
@@ -162,7 +171,12 @@ const ControlHeader: FC<ControlHeaderProps> = ({
                 placement="top"
                 title={validationErrors?.join(' ')}
               >
-                <ExclamationCircleOutlined style={{ color: labelColor }} />
+                <Icons.ExclamationCircleOutlined
+                  css={css`
+                    ${iconStyles}
+                    color: ${labelColor};
+                  `}
+                />
               </Tooltip>{' '}
             </span>
           )}

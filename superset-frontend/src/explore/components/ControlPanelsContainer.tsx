@@ -56,13 +56,10 @@ import { getSectionsToRender } from 'src/explore/controlUtils';
 import { ExploreActions } from 'src/explore/actions/exploreActions';
 import { ChartState, ExplorePageState } from 'src/explore/types';
 import { Tooltip } from 'src/components/Tooltip';
+import Icons from 'src/components/Icons';
 
 import { rgba } from 'emotion-rgba';
 import { kebabCase } from 'lodash';
-import {
-  ExclamationCircleOutlined,
-  InfoCircleOutlined,
-} from '@ant-design/icons';
 import ControlRow from './ControlRow';
 import Control from './Control';
 import { ExploreAlert } from './ExploreAlert';
@@ -89,6 +86,16 @@ export type ExpandedControlPanelSectionConfig = Omit<
 > & {
   controlSetRows: ExpandedControlItem[][];
 };
+
+const iconStyles = css`
+  &.anticon {
+    font-size: unset;
+    .anticon {
+      line-height: unset;
+      vertical-align: unset;
+    }
+  }
+`;
 
 const actionButtonsContainerStyles = (theme: SupersetTheme) => css`
   display: flex;
@@ -437,7 +444,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
         </span>{' '}
         {description && (
           <Tooltip id={sectionId} title={description}>
-            <InfoCircleOutlined />
+            <Icons.InfoCircleOutlined css={iconStyles} />
           </Tooltip>
         )}
         {hasErrors && (
@@ -445,7 +452,12 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
             id={`${kebabCase('validation-errors')}-tooltip`}
             title="This section contains validation errors"
           >
-            <InfoCircleOutlined style={{ color: errorColor }} />
+            <Icons.InfoCircleOutlined
+              css={css`
+                ${iconStyles}
+                color: ${errorColor};
+              `}
+            />
           </Tooltip>
         )}
       </span>
@@ -576,7 +588,12 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
               placement="right"
               title={props.errorMessage}
             >
-              <ExclamationCircleOutlined style={{ color: errorColor }} />
+              <Icons.ExclamationCircleOutlined
+                css={css`
+                  ${iconStyles}
+                  color: ${errorColor};
+                `}
+              />
             </Tooltip>
           </span>
         )}
