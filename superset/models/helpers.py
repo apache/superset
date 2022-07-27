@@ -55,7 +55,7 @@ from flask_babel import lazy_gettext as _
 from jinja2.exceptions import TemplateError
 from sqlalchemy import and_, Column, or_, UniqueConstraint
 from sqlalchemy.ext.declarative import declared_attr
-from sqlalchemy.orm import Mapper, Session
+from sqlalchemy.orm import Mapper, Session, validates
 from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy.sql.elements import ColumnElement, literal_column, TextClause
 from sqlalchemy.sql.expression import Label, Select, TextAsFrom
@@ -567,20 +567,31 @@ class ExtraJSONMixin:
     @property
     def extra(self) -> Dict[str, Any]:
         try:
-            return json.loads(self.extra_json) if self.extra_json else {}
+            return json.loads(self.extra_json or "{}") or {}
         except (TypeError, JSONDecodeError) as exc:
             logger.error(
                 "Unable to load an extra json: %r. Leaving empty.", exc, exc_info=True
             )
             return {}
 
-    def set_extra_json(self, extras: Dict[str, Any]) -> None:
+    @extra.setter
+    def extra(self, extras: Dict[str, Any]) -> None:
         self.extra_json = json.dumps(extras)
 
     def set_extra_json_key(self, key: str, value: Any) -> None:
         extra = self.extra
         extra[key] = value
         self.extra_json = json.dumps(extra)
+
+    @validates("extra_json")
+    def ensure_extra_json_is_not_none(  # pylint: disable=no-self-use
+        self,
+        _: str,
+        value: Optional[Dict[str, Any]],
+    ) -> Any:
+        if value is None:
+            return "{}"
+        return value
 
 
 class CertificationMixin:
