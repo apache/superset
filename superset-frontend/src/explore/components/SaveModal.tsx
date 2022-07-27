@@ -32,7 +32,10 @@ import { connect } from 'react-redux';
 import { withRouter, RouteComponentProps } from 'react-router-dom';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import { LocalStorageKeys, setItem } from 'src/utils/localStorageHelpers';
-import { exploreChart } from '../exploreUtils';
+import { postFormData } from 'src/explore/exploreUtils/formData';
+import { URL_PARAMS } from 'src/constants';
+import { mountExploreUrl } from 'src/explore/exploreUtils';
+import { EXPLORE_CHART_DEFAULT } from 'src/SqlLab/types';
 
 // Session storage key for recent dashboard
 const SK_DASHBOARD_ID = 'save_chart_recent_dashboard';
@@ -80,7 +83,7 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
     this.state = {
       saveToDashboardId: null,
       newSliceName: props.sliceName,
-      datasetName: '',
+      datasetName: props.datasource?.name,
       alert: null,
       action: this.canOverwriteSlice() ? 'overwrite' : 'saveas',
     };
@@ -145,7 +148,7 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
     this.setState({ action });
   }
 
-  saveOrOverwrite(gotodash: boolean) {
+  async saveOrOverwrite(gotodash: boolean) {
     this.setState({ alert: null });
     this.props.actions.removeSaveModalAlert();
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -163,11 +166,10 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
     if (this.props.datasource?.type === DatasourceType.Query) {
       const { schema, sql, database } = this.props.datasource;
       const { templateParams } = this.props.datasource;
-      const selectedColumns =
-        this.props.datasource?.results?.selected_columns || [];
+      const columns = this.props.datasource?.columns || [];
 
       // Create a dataset object
-      SupersetClient.post({
+      await SupersetClient.post({
         endpoint: '/superset/sqllab_viz/',
         postPayload: {
           data: {
@@ -176,22 +178,15 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
             dbId: database?.id,
             templateParams,
             datasourceName: this.state.datasetName,
-            columns: selectedColumns,
+            metrics: [],
+            columns,
           },
         },
       })
         .then(({ json }) => json)
-        .then((data: { table_id: number }) => {
-          // Create a chart reference
-          exploreChart({
-            datasource: `${data.table_id}__table`,
-            metrics: [],
-            groupby: [],
-            time_range: 'No filter',
-            viz_type: 'table',
-            all_columns: selectedColumns.map((c: { name: string }) => c.name),
-            row_limit: 1000,
-          });
+        .then(async (data: { table_id: number }) => {
+          // Update form_data to point to new dataset
+          formData.datasource = `${data.table_id}__table`;
           setItem(LocalStorageKeys.datasetname_set_successful, true);
         });
     }
