@@ -702,7 +702,7 @@ const AsyncSelect = (
         onChange={onChange}
         options={hasCustomLabels ? undefined : fullSelectOptions}
         placeholder={placeholder}
-        showSearch
+        showSearch={showSearch}
         showArrow
         tokenSeparators={tokenSeparators || TOKEN_SEPARATORS}
         value={selectValue}
