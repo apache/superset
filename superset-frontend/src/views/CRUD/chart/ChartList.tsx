@@ -507,109 +507,114 @@ function ChartList(props: ChartListProps) {
   );
 
   const filters: Filters = useMemo(
-    () => [
-      {
-        Header: t('Owner'),
-        id: 'owners',
-        input: 'select',
-        operator: FilterOperator.relationManyMany,
-        unfilteredLabel: t('All'),
-        fetchSelects: createFetchRelated(
-          'chart',
-          'owners',
-          createErrorHandler(errMsg =>
-            addDangerToast(
-              t(
-                'An error occurred while fetching chart owners values: %s',
-                errMsg,
+    () => {
+      const filters_list = [
+        {
+          Header: t('Owner'),
+          id: 'owners',
+          input: 'select',
+          operator: FilterOperator.relationManyMany,
+          unfilteredLabel: t('All'),
+          fetchSelects: createFetchRelated(
+            'chart',
+            'owners',
+            createErrorHandler(errMsg =>
+              addDangerToast(
+                t(
+                  'An error occurred while fetching chart owners values: %s',
+                  errMsg,
+                ),
               ),
             ),
+            props.user,
           ),
-          props.user,
-        ),
-        paginate: true,
-      },
-      {
-        Header: t('Created by'),
-        id: 'created_by',
-        input: 'select',
-        operator: FilterOperator.relationOneMany,
-        unfilteredLabel: t('All'),
-        fetchSelects: createFetchRelated(
-          'chart',
-          'created_by',
-          createErrorHandler(errMsg =>
-            addDangerToast(
-              t(
-                'An error occurred while fetching chart created by values: %s',
-                errMsg,
+          paginate: true,
+        },
+        {
+          Header: t('Created by'),
+          id: 'created_by',
+          input: 'select',
+          operator: FilterOperator.relationOneMany,
+          unfilteredLabel: t('All'),
+          fetchSelects: createFetchRelated(
+            'chart',
+            'created_by',
+            createErrorHandler(errMsg =>
+              addDangerToast(
+                t(
+                  'An error occurred while fetching chart created by values: %s',
+                  errMsg,
+                ),
               ),
             ),
+            props.user,
           ),
-          props.user,
-        ),
-        paginate: true,
-      },
-      {
-        Header: t('Chart type'),
-        id: 'viz_type',
-        input: 'select',
-        operator: FilterOperator.equals,
-        unfilteredLabel: t('All'),
-        selects: registry
-          .keys()
-          .filter(k => nativeFilterGate(registry.get(k)?.behaviors || []))
-          .map(k => ({ label: registry.get(k)?.name || k, value: k }))
-          .sort((a, b) => {
-            if (!a.label || !b.label) {
+          paginate: true,
+        },
+        {
+          Header: t('Chart type'),
+          id: 'viz_type',
+          input: 'select',
+          operator: FilterOperator.equals,
+          unfilteredLabel: t('All'),
+          selects: registry
+            .keys()
+            .filter(k => nativeFilterGate(registry.get(k)?.behaviors || []))
+            .map(k => ({ label: registry.get(k)?.name || k, value: k }))
+            .sort((a, b) => {
+              if (!a.label || !b.label) {
+                return 0;
+              }
+
+              if (a.label > b.label) {
+                return 1;
+              }
+              if (a.label < b.label) {
+                return -1;
+              }
+
               return 0;
-            }
-
-            if (a.label > b.label) {
-              return 1;
-            }
-            if (a.label < b.label) {
-              return -1;
-            }
-
-            return 0;
-          }),
-      },
-      {
-        Header: t('Dataset'),
-        id: 'datasource_id',
-        input: 'select',
-        operator: FilterOperator.equals,
-        unfilteredLabel: t('All'),
-        fetchSelects: createFetchDatasets,
-        paginate: true,
-      },
-      ...(userId ? [favoritesFilter] : []),
-      {
-        Header: t('Certified'),
-        id: 'id',
-        urlDisplay: 'certified',
-        input: 'select',
-        operator: FilterOperator.chartIsCertified,
-        unfilteredLabel: t('Any'),
-        selects: [
-          { label: t('Yes'), value: true },
-          { label: t('No'), value: false },
-        ],
-      },
-      {
-        Header: t('Tags'),
-        id: 'tags',
-        input: 'search',
-        operator: FilterOperator.chartTags,
-      },
-      {
+            }),
+        },
+        {
+          Header: t('Dataset'),
+          id: 'datasource_id',
+          input: 'select',
+          operator: FilterOperator.equals,
+          unfilteredLabel: t('All'),
+          fetchSelects: createFetchDatasets,
+          paginate: true,
+        },
+        ...(userId ? [favoritesFilter] : []),
+        {
+          Header: t('Certified'),
+          id: 'id',
+          urlDisplay: 'certified',
+          input: 'select',
+          operator: FilterOperator.chartIsCertified,
+          unfilteredLabel: t('Any'),
+          selects: [
+            { label: t('Yes'), value: true },
+            { label: t('No'), value: false },
+          ],
+        },
+      ] as Filters;
+      if(isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM)) {
+        filters_list.push({
+            Header: t('Tags'),
+            id: 'tags',
+            input: 'search',
+            operator: FilterOperator.chartTags
+        });
+      }
+      filters_list.push({
         Header: t('Search'),
         id: 'slice_name',
         input: 'search',
         operator: FilterOperator.chartAllText,
-      },
-    ],
+      });
+      return filters_list;
+  },
     [addDangerToast, favoritesFilter, props.user],
   );
 

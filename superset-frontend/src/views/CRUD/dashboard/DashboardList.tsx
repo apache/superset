@@ -478,8 +478,8 @@ function DashboardList(props: DashboardListProps) {
     [],
   );
 
-  const filters: Filters = useMemo(
-    () => [
+  const filters: Filters = useMemo(() => {
+    const filters_list = [
       {
         Header: t('Owner'),
         id: 'owners',
@@ -546,19 +546,23 @@ function DashboardList(props: DashboardListProps) {
           { label: t('No'), value: false },
         ],
       },
-      {
+    ] as Filters;
+    if(isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM)){
+      filters_list.push({
         Header: t('Tags'),
         id: 'tags',
         input: 'search',
         operator: FilterOperator.dashboardTags,
-      },
-      {
-        Header: t('Search'),
-        id: 'dashboard_title',
-        input: 'search',
-        operator: FilterOperator.titleOrSlug,
-      },
-    ],
+      })
+    }
+    filters_list.push({
+      Header: t('Search'),
+      id: 'dashboard_title',
+      input: 'search',
+      operator: FilterOperator.titleOrSlug,
+    });
+    return filters_list;
+  },
     [addDangerToast, favoritesFilter, props.user],
   );
 
