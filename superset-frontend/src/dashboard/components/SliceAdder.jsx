@@ -83,7 +83,7 @@ const DEFAULT_SORT_KEY = 'changed_on';
 const MARGIN_BOTTOM = 16;
 const SIDEPANE_HEADER_HEIGHT = 30;
 const SLICE_ADDER_CONTROL_HEIGHT = 64;
-const DEFAULT_CELL_HEIGHT = 112;
+const DEFAULT_CELL_HEIGHT = 128;
 
 const Controls = styled.div`
   display: flex;
@@ -273,6 +273,7 @@ class SliceAdder extends React.Component {
             visType={cellData.viz_type}
             datasourceUrl={cellData.datasource_url}
             datasourceName={cellData.datasource_name}
+            thumbnailUrl={cellData.thumbnail_url}
             isSelected={isSelected}
           />
         )}
