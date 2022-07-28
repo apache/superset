@@ -270,6 +270,14 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         return None
 
+    @staticmethod
+    def get_database_perm(database_id: int, database_name: str) -> str:
+        return f"[{database_name}].(id:{database_id})"
+
+    @staticmethod
+    def get_dataset_perm(dataset_id: int, dataset_name: str, database_name: str) -> str:
+        return f"[{database_name}].[{dataset_name}](id:{dataset_id})"
+
     def unpack_database_and_schema(  # pylint: disable=no-self-use
         self, schema_permission: str
     ) -> DatabaseAndSchema:
@@ -954,7 +962,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         permission_view_menu_table = (
             self.permissionview_model.__table__  # pylint: disable=no-member
         )
-        view_menu_name = f"[{database_name}].(id:{database_id})"
+        view_menu_name = self.get_database_perm(database_id, database_name)
         # Clean database access permission
         db_pvm = self.find_permission_view_menu("database_access", view_menu_name)
         if not db_pvm:
@@ -968,7 +976,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 permission_view_menu_table.c.id == db_pvm.id
             )
         )
-        self.on_permission_after_delete(None, connection, db_pvm)
+        self.on_permission_after_delete(mapper, connection, db_pvm)
         connection.execute(
             view_menu_table.delete().where(view_menu_table.c.id == db_pvm.view_menu_id)
         )
@@ -988,7 +996,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     permission_view_menu_table.c.id == schema_pvm.id
                 )
             )
-            self.on_permission_after_delete(None, connection, schema_pvm)
+            self.on_permission_after_delete(mapper, connection, schema_pvm)
             connection.execute(
                 view_menu_table.delete().where(
                     view_menu_table.c.id == schema_pvm.view_menu_id
@@ -1004,8 +1012,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     ) -> Optional[ViewMenu]:
         view_menu_table = self.viewmenu_model.__table__  # pylint: disable=no-member
         new_database_name = target.database_name
-        old_view_menu_name = f"[{old_database_name}].(id:{target.id})"
-        new_view_menu_name = f"[{new_database_name}].(id:{target.id})"
+        old_view_menu_name = self.get_database_perm(target.id, old_database_name)
+        new_view_menu_name = self.get_database_perm(target.id, new_database_name)
         db_pvm = self.find_permission_view_menu("database_access", old_view_menu_name)
         if not db_pvm:
             logger.warning(
@@ -1068,13 +1076,14 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         )
         updated_view_menus: List[ViewMenu] = []
         for dataset in datasets:
-            old_dataset_vm_name = (
-                f"[{old_database_name}].[{dataset.table_name}](id:{dataset.id})"
+            old_dataset_vm_name = self.get_dataset_perm(
+                dataset.id, dataset.table_name, old_database_name
             )
-            new_dataset_vm_name = (
-                f"[{new_database_name}].[{dataset.table_name}](id:{dataset.id})"
+            new_dataset_vm_name = self.get_dataset_perm(
+                dataset.id, dataset.table_name, new_database_name
             )
-            if self.find_view_menu(new_dataset_vm_name):
+            new_dataset_view_menu = self.find_view_menu(new_dataset_vm_name)
+            if new_dataset_view_menu:
                 continue
             connection.execute(
                 view_menu_table.update()
@@ -1096,8 +1105,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 .where(chart_table.c.perm == old_dataset_vm_name)
                 .values(perm=new_dataset_vm_name)
             )
-            self.on_view_menu_after_update(mapper, connection, new_dataset_vm_name)
-            updated_view_menus.append(self.find_view_menu(new_dataset_vm_name))
+            self.on_view_menu_after_update(mapper, connection, new_dataset_view_menu)
+            updated_view_menus.append(self.find_view_menu(new_dataset_view_menu))
         return updated_view_menus
 
     def database_after_update(
@@ -1114,11 +1123,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         old_database_name = history.deleted[0]
         # update database access permission
-        new_db_view_menu = self._update_vm_database_access(
-            mapper, connection, old_database_name, target
-        )
+        self._update_vm_database_access(mapper, connection, old_database_name, target)
         # update datasource access
-        new_dataset_view_menus = self._update_vm_datasources_access(
+        self._update_vm_datasources_access(
             mapper, connection, old_database_name, target
         )
 
