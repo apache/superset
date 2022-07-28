@@ -786,7 +786,8 @@ class TestDatasetApi(SupersetTestCase):
 
         # Add default dataset
         main_db = get_main_database()
-        dataset = self.insert_dataset("flights", [self.get_user("admin").id], main_db)
+        dataset = self.insert_dataset("Flights", [self.get_user("admin").id], main_db)
+        prev_col_len = len(dataset.columns)
 
         self.login(username="admin")
         dataset_data = {
@@ -802,7 +803,7 @@ class TestDatasetApi(SupersetTestCase):
         assert rv.status_code == 200
 
         columns = db.session.query(TableColumn).filter_by(table_id=dataset.id).all()
-        assert len(columns) == 3
+        assert len(columns) != prev_col_len
         db.session.delete(dataset)
         db.session.commit()
 
