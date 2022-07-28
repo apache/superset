@@ -18,69 +18,11 @@
  */
 import React from 'react';
 import * as reactRedux from 'react-redux';
-import {
-  ISaveableDatasource,
-  SaveDatasetModal,
-} from 'src/SqlLab/components/SaveDatasetModal';
 import { render, screen, waitFor, within } from 'spec/helpers/testing-library';
-import { DatasourceType } from '@superset-ui/core';
 import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
-
-const user = {
-  createdOn: '2021-04-27T18:12:38.952304',
-  email: 'admin',
-  firstName: 'admin',
-  isActive: true,
-  lastName: 'admin',
-  permissions: {},
-  roles: {
-    Admin: [
-      ['can_sqllab', 'Superset'],
-      ['can_write', 'Dashboard'],
-      ['can_write', 'Chart'],
-    ],
-  },
-  userId: 1,
-  username: 'admin',
-};
-
-const testQuery: ISaveableDatasource = {
-  name: 'unimportant',
-  dbId: 1,
-  sql: 'SELECT *',
-  columns: [
-    {
-      name: 'Column 1',
-      type: DatasourceType.Query,
-      is_dttm: false,
-    },
-    {
-      name: 'Column 3',
-      type: DatasourceType.Query,
-      is_dttm: false,
-    },
-    {
-      name: 'Column 2',
-      type: DatasourceType.Query,
-      is_dttm: true,
-    },
-  ],
-};
-
-const mockdatasets = [...new Array(3)].map((_, i) => ({
-  changed_by_name: 'user',
-  kind: i === 0 ? 'virtual' : 'physical', // ensure there is 1 virtual
-  changed_by_url: 'changed_by_url',
-  changed_by: 'user',
-  changed_on: new Date().toISOString(),
-  database_name: `db ${i}`,
-  explore_url: `/explore/?dataset_type=table&dataset_id=${i}`,
-  id: i,
-  schema: `schema ${i}`,
-  table_name: `coolest table ${i}`,
-  owners: [{ username: 'admin', userId: 1 }],
-}));
+import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
+import { user, testQuery, mockdatasets } from 'src/SqlLab/fixtures';
 
 const mockedProps = {
   visible: true,
@@ -178,7 +120,7 @@ describe('SaveDatasetModal', () => {
     expect(overwriteConfirmationBtn).toBeDisabled();
 
     // Click the select component
-    const select = screen.getByRole('combobox', { name: /existing dataset/i });
+    const select = screen.getByRole('combobox', { name: /existing dataset/i })!;
     await waitFor(async () => userEvent.click(select));
 
     // Select the first "existing dataset" from the listbox
