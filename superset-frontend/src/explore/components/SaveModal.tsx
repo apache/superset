@@ -248,7 +248,7 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
 
       // Go to new dashboard url
       if (gotodash && dashboard) {
-        this.props.history.push(dashboard.url);
+        this.props.history.push(dashboard.url, { isChartSaveAction: true });
         return;
       }
 
@@ -258,7 +258,9 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
       if (this.state.action === 'saveas') {
         searchParams.set('slice_id', value.id.toString());
       }
-      this.props.history.replace(`/explore/?${searchParams.toString()}`);
+      this.props.history.replace(`/explore/?${searchParams.toString()}`, {
+        isChartSaveAction: true,
+      });
     }) as (value: any) => void);
 
     this.setState({ isLoading: false });

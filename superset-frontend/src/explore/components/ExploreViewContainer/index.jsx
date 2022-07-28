@@ -55,7 +55,11 @@ import * as chartActions from 'src/components/Chart/chartAction';
 import { fetchDatasourceMetadata } from 'src/dashboard/actions/datasources';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
 import { mergeExtraFormData } from 'src/dashboard/components/nativeFilters/utils';
-import { getFormDataDiffs, postFormData, putFormData } from 'src/explore/exploreUtils/formData';
+import {
+  getFormDataDiffs,
+  postFormData,
+  putFormData,
+} from 'src/explore/exploreUtils/formData';
 import { datasourcesActions } from 'src/explore/actions/datasourcesActions';
 import { mountExploreUrl } from 'src/explore/exploreUtils';
 import { getFormDataFromControls } from 'src/explore/controlUtils';
@@ -63,6 +67,7 @@ import * as exploreActions from 'src/explore/actions/exploreActions';
 import * as saveModalActions from 'src/explore/actions/saveModalActions';
 import { useTabId } from 'src/hooks/useTabId';
 import withToasts from 'src/components/MessageToasts/withToasts';
+import { RouteLeaveGuard } from 'src/components/RouteLeaveGuard/RouteLeaveGuard';
 import ExploreChartPanel from '../ExploreChartPanel';
 import ConnectedControlPanelsContainer from '../ControlPanelsContainer';
 import SaveModal from '../SaveModal';
@@ -231,11 +236,6 @@ const updateHistory = debounce(
   1000,
 );
 
-const handleUnloadEvent = e => {
-  e.preventDefault();
-  e.returnValue = 'Controls changed';
-};
-
 function ExploreViewContainer(props) {
   const dynamicPluginContext = usePluginContext();
   const dynamicPlugin = dynamicPluginContext.dynamicPlugins[props.vizType];
@@ -256,8 +256,24 @@ function ExploreViewContainer(props) {
 
   const theme = useTheme();
 
-  const isBeforeUnloadActive = useRef(false);
   const initialFormData = useRef(props.form_data);
+
+  useChangeEffect(props.slice.form_data, (prev, curr) => {
+    console.log(prev, curr);
+    if (prev !== undefined) {
+      initialFormData.current = curr;
+    }
+  });
+
+  const formDataChanged = useMemo(
+    () => !isEmpty(getFormDataDiffs(initialFormData.current, props.form_data)),
+    [props.form_data],
+  );
+
+  console.log(
+    formDataChanged,
+    getFormDataDiffs(initialFormData.current, props.form_data),
+  );
 
   const defaultSidebarsWidth = {
     controls_width: 320,
@@ -389,27 +405,6 @@ function ExploreViewContainer(props) {
       document.removeEventListener('keydown', handleKeydown);
     };
   }, [handleKeydown, previousHandleKeyDown]);
-
-  useEffect(() => {
-    const formDataChanged = !isEmpty(
-      getFormDataDiffs(initialFormData.current, props.form_data),
-    );
-    if (formDataChanged && !isBeforeUnloadActive.current) {
-      window.addEventListener('beforeunload', handleUnloadEvent);
-      isBeforeUnloadActive.current = true;
-    }
-    if (!formDataChanged && isBeforeUnloadActive.current) {
-      window.removeEventListener('beforeunload', handleUnloadEvent);
-      isBeforeUnloadActive.current = false;
-    }
-  }, [props.form_data]);
-
-  // cleanup beforeunload event listener
-  // we use separate useEffect to call it only on component unmount instead of on every form data change
-  useEffect(
-    () => () => window.removeEventListener('beforeunload', handleUnloadEvent),
-    [],
-  );
 
   useEffect(() => {
     if (wasDynamicPluginLoading && !isDynamicPluginLoading) {
@@ -733,6 +728,14 @@ function ExploreViewContainer(props) {
           {renderChartContainer()}
         </div>
       </ExplorePanelContainer>
+      <RouteLeaveGuard
+        message={location =>
+          location.state?.isChartSaveAction || !formDataChanged
+            ? true
+            : t('Your changes may be unsaved')
+        }
+        when={formDataChanged}
+      />
     </ExploreContainer>
   );
 }
