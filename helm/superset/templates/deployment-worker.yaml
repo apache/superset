@@ -28,11 +28,7 @@ metadata:
     {{ toYaml .Values.supersetWorker.deploymentAnnotations | nindent 4 }}
 {{- end }}
 spec:
-  {{- if .Values.supersetWorker.replicaCount }}
-  replicas: {{ .Values.supersetWorker.replicaCount }}
-  {{- else }}
-  replicas: {{ .Values.replicaCount }}
-  {{- end }}
+  replicas: {{ .Values.supersetWorker.replicaCount | default .Values.replicaCount }}
   selector:
     matchLabels:
       app: {{ template "superset.name" . }}-worker
