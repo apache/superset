@@ -14,12 +14,142 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from typing import Any, List
+
 from sqlalchemy import MetaData
 from sqlalchemy.engine import Engine
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.sql import and_, func, functions, join, literal, select
+from sqlalchemy.sql import and_, func, join, literal, select
 
 from superset.models.tags import ObjectTypes, TagTypes
+
+
+def add_types_to_charts(
+    engine: Engine, metadata: MetaData, tag: Any, tagged_object: Any, columns: List[str]
+) -> None:
+    slices = metadata.tables["slices"]
+
+    charts = (
+        select(
+            [
+                tag.c.id.label("tag_id"),
+                slices.c.id.label("object_id"),
+                literal(ObjectTypes.chart.name).label("object_type"),
+            ]
+        )
+        .select_from(
+            join(
+                join(slices, tag, tag.c.name == "type:chart"),
+                tagged_object,
+                and_(
+                    tagged_object.c.tag_id == tag.c.id,
+                    tagged_object.c.object_id == slices.c.id,
+                    tagged_object.c.object_type == "chart",
+                ),
+                isouter=True,
+                full=False,
+            )
+        )
+        .where(tagged_object.c.tag_id.is_(None))
+    )
+    query = tagged_object.insert().from_select(columns, charts)
+    engine.execute(query)
+
+
+def add_types_to_dashboards(
+    engine: Engine, metadata: MetaData, tag: Any, tagged_object: Any, columns: List[str]
+) -> None:
+    dashboard_table = metadata.tables["dashboards"]
+
+    dashboards = (
+        select(
+            [
+                tag.c.id.label("tag_id"),
+                dashboard_table.c.id.label("object_id"),
+                literal(ObjectTypes.dashboard.name).label("object_type"),
+            ]
+        )
+        .select_from(
+            join(
+                join(dashboard_table, tag, tag.c.name == "type:dashboard"),
+                tagged_object,
+                and_(
+                    tagged_object.c.tag_id == tag.c.id,
+                    tagged_object.c.object_id == dashboard_table.c.id,
+                    tagged_object.c.object_type == "dashboard",
+                ),
+                isouter=True,
+                full=False,
+            )
+        )
+        .where(tagged_object.c.tag_id.is_(None))
+    )
+    query = tagged_object.insert().from_select(columns, dashboards)
+    engine.execute(query)
+
+
+def add_types_to_saved_queries(
+    engine: Engine, metadata: MetaData, tag: Any, tagged_object: Any, columns: List[str]
+) -> None:
+    saved_query = metadata.tables["saved_query"]
+
+    saved_queries = (
+        select(
+            [
+                tag.c.id.label("tag_id"),
+                saved_query.c.id.label("object_id"),
+                literal(ObjectTypes.query.name).label("object_type"),
+            ]
+        )
+        .select_from(
+            join(
+                join(saved_query, tag, tag.c.name == "type:query"),
+                tagged_object,
+                and_(
+                    tagged_object.c.tag_id == tag.c.id,
+                    tagged_object.c.object_id == saved_query.c.id,
+                    tagged_object.c.object_type == "query",
+                ),
+                isouter=True,
+                full=False,
+            )
+        )
+        .where(tagged_object.c.tag_id.is_(None))
+    )
+    query = tagged_object.insert().from_select(columns, saved_queries)
+    engine.execute(query)
+
+
+def add_types_to_datasets(
+    engine: Engine, metadata: MetaData, tag: Any, tagged_object: Any, columns: List[str]
+) -> None:
+    tables = metadata.tables["tables"]
+
+    datasets = (
+        select(
+            [
+                tag.c.id.label("tag_id"),
+                tables.c.id.label("object_id"),
+                literal(ObjectTypes.dataset.name).label("object_type"),
+            ]
+        )
+        .select_from(
+            join(
+                join(tables, tag, tag.c.name == "type:dataset"),
+                tagged_object,
+                and_(
+                    tagged_object.c.tag_id == tag.c.id,
+                    tagged_object.c.object_id == tables.c.id,
+                    tagged_object.c.object_type == "dataset",
+                ),
+                isouter=True,
+                full=False,
+            )
+        )
+        .where(tagged_object.c.tag_id.is_(None))
+    )
+    query = tagged_object.insert().from_select(columns, datasets)
+    engine.execute(query)
 
 
 def add_types(engine: Engine, metadata: MetaData) -> None:
@@ -86,10 +216,6 @@ def add_types(engine: Engine, metadata: MetaData) -> None:
 
     tag = metadata.tables["tag"]
     tagged_object = metadata.tables["tagged_object"]
-    slices = metadata.tables["slices"]
-    dashboards = metadata.tables["dashboards"]
-    saved_query = metadata.tables["saved_query"]
-    tables = metadata.tables["tables"]
     columns = ["tag_id", "object_id", "object_type"]
 
     # add a tag for each object type
@@ -99,6 +225,17 @@ def add_types(engine: Engine, metadata: MetaData) -> None:
             engine.execute(insert, name=f"type:{type_}", type=TagTypes.type)
         except IntegrityError:
             pass  # already exists
+
+    add_types_to_charts(engine, metadata, tag, tagged_object, columns)
+    add_types_to_dashboards(engine, metadata, tag, tagged_object, columns)
+    add_types_to_saved_queries(engine, metadata, tag, tagged_object, columns)
+    add_types_to_datasets(engine, metadata, tag, tagged_object, columns)
+
+
+def add_owners_to_charts(
+    engine: Engine, metadata: MetaData, tag: Any, tagged_object: Any, columns: List[str]
+) -> None:
+    slices = metadata.tables["slices"]
 
     charts = (
         select(
@@ -110,7 +247,11 @@ def add_types(engine: Engine, metadata: MetaData) -> None:
         )
         .select_from(
             join(
-                join(slices, tag, tag.c.name == "type:chart"),
+                join(
+                    slices,
+                    tag,
+                    tag.c.name == "owner:" + slices.c.created_by_fk,
+                ),
                 tagged_object,
                 and_(
                     tagged_object.c.tag_id == tag.c.id,
@@ -126,21 +267,31 @@ def add_types(engine: Engine, metadata: MetaData) -> None:
     query = tagged_object.insert().from_select(columns, charts)
     engine.execute(query)
 
+
+def add_owners_to_dashboards(
+    engine: Engine, metadata: MetaData, tag: Any, tagged_object: Any, columns: List[str]
+) -> None:
+    dashboard_table = metadata.tables["dashboards"]
+
     dashboards = (
         select(
             [
                 tag.c.id.label("tag_id"),
-                dashboards.c.id.label("object_id"),
+                dashboard_table.c.id.label("object_id"),
                 literal(ObjectTypes.dashboard.name).label("object_type"),
             ]
         )
         .select_from(
             join(
-                join(dashboards, tag, tag.c.name == "type:dashboard"),
+                join(
+                    dashboard_table,
+                    tag,
+                    tag.c.name == "owner:" + dashboard_table.c.created_by_fk,
+                ),
                 tagged_object,
                 and_(
                     tagged_object.c.tag_id == tag.c.id,
-                    tagged_object.c.object_id == dashboards.c.id,
+                    tagged_object.c.object_id == dashboard_table.c.id,
                     tagged_object.c.object_type == "dashboard",
                 ),
                 isouter=True,
@@ -152,6 +303,12 @@ def add_types(engine: Engine, metadata: MetaData) -> None:
     query = tagged_object.insert().from_select(columns, dashboards)
     engine.execute(query)
 
+
+def add_owners_to_saved_queries(
+    engine: Engine, metadata: MetaData, tag: Any, tagged_object: Any, columns: List[str]
+) -> None:
+    saved_query = metadata.tables["saved_query"]
+
     saved_queries = (
         select(
             [
@@ -162,7 +319,11 @@ def add_types(engine: Engine, metadata: MetaData) -> None:
         )
         .select_from(
             join(
-                join(saved_query, tag, tag.c.name == "type:query"),
+                join(
+                    saved_query,
+                    tag,
+                    tag.c.name == "owner:" + saved_query.c.created_by_fk,
+                ),
                 tagged_object,
                 and_(
                     tagged_object.c.tag_id == tag.c.id,
@@ -178,6 +339,12 @@ def add_types(engine: Engine, metadata: MetaData) -> None:
     query = tagged_object.insert().from_select(columns, saved_queries)
     engine.execute(query)
 
+
+def add_owners_to_datasets(
+    engine: Engine, metadata: MetaData, tag: Any, tagged_object: Any, columns: List[str]
+) -> None:
+    tables = metadata.tables["tables"]
+
     datasets = (
         select(
             [
@@ -188,7 +355,11 @@ def add_types(engine: Engine, metadata: MetaData) -> None:
         )
         .select_from(
             join(
-                join(tables, tag, tag.c.name == "type:dataset"),
+                join(
+                    tables,
+                    tag,
+                    tag.c.name == "owner:" + tables.c.created_by_fk,
+                ),
                 tagged_object,
                 and_(
                     tagged_object.c.tag_id == tag.c.id,
@@ -267,10 +438,6 @@ def add_owners(engine: Engine, metadata: MetaData) -> None:
     tag = metadata.tables["tag"]
     tagged_object = metadata.tables["tagged_object"]
     users = metadata.tables["ab_user"]
-    slices = metadata.tables["slices"]
-    dashboards = metadata.tables["dashboards"]
-    saved_query = metadata.tables["saved_query"]
-    tables = metadata.tables["tables"]
     columns = ["tag_id", "object_id", "object_type"]
 
     # create a custom tag for each user
@@ -282,125 +449,10 @@ def add_owners(engine: Engine, metadata: MetaData) -> None:
         except IntegrityError:
             pass  # already exists
 
-    charts = (
-        select(
-            [
-                tag.c.id.label("tag_id"),
-                slices.c.id.label("object_id"),
-                literal(ObjectTypes.chart.name).label("object_type"),
-            ]
-        )
-        .select_from(
-            join(
-                join(
-                    slices,
-                    tag,
-                    tag.c.name == "owner:" + slices.c.created_by_fk,
-                ),
-                tagged_object,
-                and_(
-                    tagged_object.c.tag_id == tag.c.id,
-                    tagged_object.c.object_id == slices.c.id,
-                    tagged_object.c.object_type == "chart",
-                ),
-                isouter=True,
-                full=False,
-            )
-        )
-        .where(tagged_object.c.tag_id.is_(None))
-    )
-    query = tagged_object.insert().from_select(columns, charts)
-    engine.execute(query)
-
-    dashboards = (
-        select(
-            [
-                tag.c.id.label("tag_id"),
-                dashboards.c.id.label("object_id"),
-                literal(ObjectTypes.dashboard.name).label("object_type"),
-            ]
-        )
-        .select_from(
-            join(
-                join(
-                    dashboards,
-                    tag,
-                    tag.c.name == "owner:" + dashboards.c.created_by_fk,
-                ),
-                tagged_object,
-                and_(
-                    tagged_object.c.tag_id == tag.c.id,
-                    tagged_object.c.object_id == dashboards.c.id,
-                    tagged_object.c.object_type == "dashboard",
-                ),
-                isouter=True,
-                full=False,
-            )
-        )
-        .where(tagged_object.c.tag_id.is_(None))
-    )
-    query = tagged_object.insert().from_select(columns, dashboards)
-    engine.execute(query)
-
-    saved_queries = (
-        select(
-            [
-                tag.c.id.label("tag_id"),
-                saved_query.c.id.label("object_id"),
-                literal(ObjectTypes.query.name).label("object_type"),
-            ]
-        )
-        .select_from(
-            join(
-                join(
-                    saved_query,
-                    tag,
-                    tag.c.name == "owner:" + saved_query.c.created_by_fk,
-                ),
-                tagged_object,
-                and_(
-                    tagged_object.c.tag_id == tag.c.id,
-                    tagged_object.c.object_id == saved_query.c.id,
-                    tagged_object.c.object_type == "query",
-                ),
-                isouter=True,
-                full=False,
-            )
-        )
-        .where(tagged_object.c.tag_id.is_(None))
-    )
-    query = tagged_object.insert().from_select(columns, saved_queries)
-    engine.execute(query)
-
-    datasets = (
-        select(
-            [
-                tag.c.id.label("tag_id"),
-                tables.c.id.label("object_id"),
-                literal(ObjectTypes.dataset.name).label("object_type"),
-            ]
-        )
-        .select_from(
-            join(
-                join(
-                    tables,
-                    tag,
-                    tag.c.name == "owner:" + tables.c.created_by_fk,
-                ),
-                tagged_object,
-                and_(
-                    tagged_object.c.tag_id == tag.c.id,
-                    tagged_object.c.object_id == tables.c.id,
-                    tagged_object.c.object_type == "dataset",
-                ),
-                isouter=True,
-                full=False,
-            )
-        )
-        .where(tagged_object.c.tag_id.is_(None))
-    )
-    query = tagged_object.insert().from_select(columns, datasets)
-    engine.execute(query)
+    add_owners_to_charts(engine, metadata, tag, tagged_object, columns)
+    add_owners_to_dashboards(engine, metadata, tag, tagged_object, columns)
+    add_owners_to_saved_queries(engine, metadata, tag, tagged_object, columns)
+    add_owners_to_datasets(engine, metadata, tag, tagged_object, columns)
 
 
 def add_favorites(engine: Engine, metadata: MetaData) -> None:
