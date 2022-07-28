@@ -61,7 +61,9 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class Query(Model, ExtraJSONMixin, ExploreMixin):  # pylint: disable=abstract-method
+class Query(
+    Model, ExtraJSONMixin, ExploreMixin
+):  # pylint: disable=abstract-method,too-many-public-methods
     """ORM model for SQL query
 
     Now that SQL Lab support multi-statement execution, an entry in this
