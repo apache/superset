@@ -317,9 +317,14 @@ class Database(
 
     def set_sqlalchemy_uri(self, uri: str) -> None:
         conn = make_url_safe(uri.strip())
-        if conn.password != PASSWORD_MASK and not custom_password_store:
-            # do not over-write the password with the password mask
-            self.password = conn.password
+        input_password = conn.password
+        if custom_password_store and custom_password_store(conn) is None:
+            self.password = input_password
+        else:
+            if conn.password != PASSWORD_MASK and not custom_password_store:
+                # do not over-write the password with the password mask
+                self.password = conn.password
+
         conn = conn.set(password=PASSWORD_MASK if conn.password else None)
         self.sqlalchemy_uri = str(conn)  # hides the password
 
@@ -736,7 +741,11 @@ class Database(
             # (so users see 500 less often)
             return "dialect://invalid_uri"
         if custom_password_store:
-            conn = conn.set(password=custom_password_store(conn))
+            password_to_check = custom_password_store(conn)
+            if password_to_check is None:
+                conn = conn.set(password=self.password)
+            else:
+                conn = conn.set(password=password_to_check)
         else:
             conn = conn.set(password=self.password)
         return str(conn)
