@@ -67,7 +67,7 @@ def add_types(engine: Engine, metadata: MetaData) -> None:
         AND tagged_object.object_id = saved_query.id
         AND tagged_object.object_type = 'query'
       WHERE tagged_object.tag_id IS NULL;
-      
+
       INSERT INTO tagged_object (tag_id, object_id, object_type)
       SELECT
         tag.id AS tag_id,
@@ -325,8 +325,7 @@ def add_owners(engine: Engine, metadata: MetaData) -> None:
                 join(
                     dashboards,
                     tag,
-                    tag.c.name
-                    == "owner:" + dashboards.c.created_by_fk,
+                    tag.c.name == "owner:" + dashboards.c.created_by_fk,
                 ),
                 tagged_object,
                 and_(
@@ -356,8 +355,7 @@ def add_owners(engine: Engine, metadata: MetaData) -> None:
                 join(
                     saved_query,
                     tag,
-                    tag.c.name
-                    == "owner:" + saved_query.c.created_by_fk,
+                    tag.c.name == "owner:" + saved_query.c.created_by_fk,
                 ),
                 tagged_object,
                 and_(
@@ -403,6 +401,7 @@ def add_owners(engine: Engine, metadata: MetaData) -> None:
     )
     query = tagged_object.insert().from_select(columns, datasets)
     engine.execute(query)
+
 
 def add_favorites(engine: Engine, metadata: MetaData) -> None:
     """

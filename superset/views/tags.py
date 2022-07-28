@@ -28,11 +28,11 @@ from sqlalchemy import and_, func
 from werkzeug.exceptions import NotFound
 
 from superset import db, is_feature_enabled, utils
+from superset.connectors.sqla.models import SqlaTable
 from superset.jinja_context import ExtraCache
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import SavedQuery
-from superset.connectors.sqla.models import SqlaQuery
 from superset.models.tags import ObjectTypes, Tag, TaggedObject, TagTypes
 from superset.superset_typing import FlaskResponse
 
@@ -242,11 +242,11 @@ class TagView(BaseSupersetView):
         # datasets
         if not types or "dataset" in types:
             datasets = (
-                db.session.query(SqlaQuery)
+                db.session.query(SqlaTable)
                 .join(
                     TaggedObject,
                     and_(
-                        TaggedObject.object_id == SqlaQuery.id,
+                        TaggedObject.object_id == SqlaTable.id,
                         TaggedObject.object_type == ObjectTypes.dataset,
                     ),
                 )

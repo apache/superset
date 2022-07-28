@@ -28,11 +28,11 @@ from sqlalchemy.orm.mapper import Mapper
 from superset.models.helpers import AuditMixinNullable
 
 if TYPE_CHECKING:
+    from superset.connectors.sqla.models import SqlaTable
     from superset.models.core import FavStar
     from superset.models.dashboard import Dashboard
     from superset.models.slice import Slice
     from superset.models.sql_lab import Query
-    from superset.connectors.sqla.models import SqlaTable
 
 Session = sessionmaker(autoflush=False)
 
@@ -125,7 +125,9 @@ class ObjectUpdater:
 
     @classmethod
     def _add_owners(
-        cls, session: Session, target: Union["Dashboard", "FavStar", "Slice", "SqlaTable"]
+        cls,
+        session: Session,
+        target: Union["Dashboard", "FavStar", "Slice", "SqlaTable"],
     ) -> None:
         for owner_id in cls.get_owners_ids(target):
             name = "owner:{0}".format(owner_id)
