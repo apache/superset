@@ -40,7 +40,7 @@ const SK_DASHBOARD_ID = 'save_chart_recent_dashboard';
 const SELECT_PLACEHOLDER = t('**Select** a dashboard OR **create** a new one');
 
 interface SaveModalProps extends RouteComponentProps {
-  addDangerToast: () => void;
+  addDangerToast: (msg: string) => void;
   onHide: () => void;
   actions: Record<string, any>;
   form_data?: Record<string, any>;
@@ -64,7 +64,7 @@ type SaveModalState = {
   alert: string | null;
   action: ActionType;
   isLoading: boolean;
-  saveStatus: string;
+  saveStatus: string | null;
 };
 
 export const StyledModal = styled(Modal)`
