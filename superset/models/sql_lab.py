@@ -56,7 +56,9 @@ if TYPE_CHECKING:
     from superset.db_engine_specs import BaseEngineSpec
 
 
-class Query(Model, ExtraJSONMixin, ExploreMixin):  # pylint: disable=abstract-method
+class Query(
+    Model, ExtraJSONMixin, ExploreMixin
+):  # pylint: disable=abstract-method,too-many-public-methods
     """ORM model for SQL query
 
     Now that SQL Lab support multi-statement execution, an entry in this
