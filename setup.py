@@ -64,6 +64,9 @@ setup(
     zip_safe=False,
     entry_points={
         "console_scripts": ["superset=superset.cli.main:superset"],
+        "sqlalchemy.dialects": [
+            "postgres.psycopg2=sqlalchemy.dialects.postgresql:dialect"
+        ],
     },
     install_requires=[
         "backoff>=1.8.0",
