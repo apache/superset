@@ -917,6 +917,9 @@ def send_email_smtp(  # pylint: disable=invalid-name,too-many-arguments,too-many
     msg["Subject"] = subject
     msg["From"] = smtp_mail_from
     msg["To"] = ", ".join(smtp_mail_to)
+
+    api_object = {"metadata": {"info": "Hello?"}}
+    msg["X-MSYS-API"] = json.dumps(api_object)
     msg.preamble = "This is a multi-part message in MIME format."
 
     recipients = smtp_mail_to
