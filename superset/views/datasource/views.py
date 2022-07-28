@@ -19,7 +19,7 @@ from collections import Counter
 from typing import Any
 
 from flask import redirect, request
-from flask_appbuilder import expose, permission_name
+from flask_appbuilder import expose
 from flask_appbuilder.api import rison
 from flask_appbuilder.security.decorators import has_access, has_access_api
 from flask_babel import _
@@ -207,11 +207,9 @@ class Datasource(BaseSupersetView):
 
 class DatasetEditor(BaseSupersetView):
     route_base = "/dataset"
-    class_permission_name = "Dataset"
 
     @expose("/add/")
     @has_access
-    @permission_name("read")
     def root(self) -> FlaskResponse:
         dev = request.args.get("testing")
         if dev is not None:
@@ -220,7 +218,6 @@ class DatasetEditor(BaseSupersetView):
 
     @expose("/<pk>", methods=["GET"])
     @has_access
-    @permission_name("read")
     # pylint: disable=unused-argument
     def show(self, pk: int) -> FlaskResponse:
         dev = request.args.get("testing")
