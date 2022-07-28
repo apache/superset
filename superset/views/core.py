@@ -2098,7 +2098,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             return json_errors_response(
                 [
                     SupersetError(
-                        message=f"Dataset [{table_name}] already exist",
+                        message=f"Dataset [{table_name}] already exists",
                         error_type=SupersetErrorType.GENERIC_BACKEND_ERROR,
                         level=ErrorLevel.WARNING,
                     )
