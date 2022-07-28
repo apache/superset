@@ -618,6 +618,20 @@ class TestCore(SupersetTestCase):
         # Disable for password store for later tests
         models.custom_password_store = None
 
+    def test_custom_password_store_fallback(self):
+        database = superset.utils.database.get_example_database()
+        conn_pre = sqla.engine.url.make_url(database.sqlalchemy_uri_decrypted)
+
+        def custom_password_store(uri):
+            return None
+
+        models.custom_password_store = custom_password_store
+        conn = sqla.engine.url.make_url(database.sqlalchemy_uri_decrypted)
+        if conn_pre.password:
+            assert conn.password == conn_pre.password
+        # Disable for password store for later tests
+        models.custom_password_store = None
+
     def test_databaseview_edit(self, username="admin"):
         # validate that sending a password-masked uri does not over-write the decrypted
         # uri
