@@ -29,6 +29,7 @@ import {
   SupersetTheme,
   SupersetClient,
   getExtensionsRegistry,
+  useTheme,
 } from '@superset-ui/core';
 import { MainNav as Menu } from 'src/components/Menu';
 import { Tooltip } from 'src/components/Tooltip';
@@ -268,6 +269,8 @@ const RightMenu = ({
 
   const handleDatabaseAdd = () => setQuery({ databaseAdded: true });
 
+  const theme = useTheme();
+
   return (
     <StyledDiv align={align}>
       {canDatabase && (
@@ -279,7 +282,16 @@ const RightMenu = ({
         />
       )}
       {environmentTag.text && (
-        <Label css={{ borderRadius: '500px' }} color={environmentTag.color}>
+        <Label
+          css={{ borderRadius: '500px' }}
+          color={
+            /^#(?:[0-9a-f]{3}){1,2}$/i.test(environmentTag.color)
+              ? environmentTag.color
+              : environmentTag.color
+                  .split('.')
+                  .reduce((o, i) => o[i], theme.colors)
+          }
+        >
           <span css={tagStyles}>{environmentTag.text}</span>
         </Label>
       )}
