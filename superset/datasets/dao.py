@@ -157,7 +157,12 @@ class DatasetDAO(BaseDAO):  # pylint: disable=too-many-public-methods
         """
 
         if "columns" in properties:
-            cls.update_columns(model, properties.pop("columns"), commit=commit)
+            cls.update_columns(
+                model,
+                properties.pop("columns"),
+                commit=commit,
+                override_columns=properties.get("override_columns"),
+            )
 
         if "metrics" in properties:
             cls.update_metrics(model, properties.pop("metrics"), commit=commit)
@@ -170,6 +175,7 @@ class DatasetDAO(BaseDAO):  # pylint: disable=too-many-public-methods
         model: SqlaTable,
         property_columns: List[Dict[str, Any]],
         commit: bool = True,
+        override_columns: bool = False,
     ) -> None:
         """
         Creates/updates and/or deletes a list of columns, based on a
@@ -183,24 +189,27 @@ class DatasetDAO(BaseDAO):  # pylint: disable=too-many-public-methods
 
         column_by_id = {column.id: column for column in model.columns}
         seen = set()
-        with db.session.no_autoflush:
-            for properties in property_columns:
-                if "id" in properties:
-                    seen.add(properties["id"])
+        original_cols = {obj.id for obj in model.columns}
+        cols_to_create = []
 
-                    DatasetDAO.update_column(
-                        column_by_id[properties["id"]],
-                        properties,
-                        commit=False,
-                    )
-                else:
-                    DatasetDAO.create_column(
-                        {**properties, "table_id": model.id},
-                        commit=False,
-                    )
+        for properties in property_columns:
+            if "id" in properties:
+                seen.add(properties["id"])
 
-            for id_ in {obj.id for obj in model.columns} - seen:
-                DatasetDAO.delete_column(column_by_id[id_], commit=False)
+                DatasetDAO.update_column(
+                    column_by_id[properties["id"]],
+                    properties,
+                    commit=False,
+                )
+            else:
+                DatasetDAO.create_column(
+                    {**properties, "table_id": model.id},
+                    commit=False,
+                )
+
+        cols_to_remove = original_cols if override_columns else original_cols - seen
+        for id_ in cols_to_remove:
+            DatasetDAO.delete_column(column_by_id[id_], commit=override_columns)
 
         if commit:
             db.session.commit()
