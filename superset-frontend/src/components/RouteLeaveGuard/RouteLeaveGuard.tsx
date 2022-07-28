@@ -19,6 +19,7 @@
 
 import React, { useEffect, useRef } from 'react';
 import { Prompt } from 'react-router-dom';
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { PromptProps } from 'react-router';
 
 const handleUnloadEvent = (e: BeforeUnloadEvent) => {
