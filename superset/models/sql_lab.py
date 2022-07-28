@@ -57,6 +57,7 @@ from superset.utils.core import GenericDataType, QueryStatus, user_label
 if TYPE_CHECKING:
     from superset.db_engine_specs import BaseEngineSpec
 
+
 logger = logging.getLogger(__name__)
 
 
