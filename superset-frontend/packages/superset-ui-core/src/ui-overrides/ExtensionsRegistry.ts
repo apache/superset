@@ -38,6 +38,7 @@ type ReturningDisplayable<P = void> = (props: P) => string | React.ReactElement;
 export type Extensions = Partial<{
   'embedded.documentation.description': ReturningDisplayable;
   'embedded.documentation.url': string;
+  'dashboard.nav.right': React.ComponentType;
   'navbar.right': React.ComponentType;
   'welcome.banner': React.ComponentType;
 }>;
