@@ -138,7 +138,7 @@ export default class ChartProps<FormData extends RawFormData = RawFormData> {
 
   inputRef?: RefObject<any>;
 
-  inContextMenu: boolean;
+  inContextMenu?: boolean;
 
   theme: SupersetTheme;
 

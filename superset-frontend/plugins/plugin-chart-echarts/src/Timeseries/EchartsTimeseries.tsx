@@ -186,6 +186,7 @@ export default function EchartsTimeseries({
           const filters: QueryObjectFilterClause[] = [];
           filters.push({
             col: formData.granularitySqla,
+            grain: formData.timeGrainSqla,
             op: '==',
             val: data[0],
             formattedVal: xValueFormatter(data[0]),

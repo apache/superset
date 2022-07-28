@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { useCallback } from 'react';
-import { QueryObjectFilterClause } from '@superset-ui/core';
+import { DataRecordValue, QueryObjectFilterClause } from '@superset-ui/core';
 import { EchartsMixedTimeseriesChartTransformedProps } from './types';
 import Echart from '../components/Echart';
 import { EventHandlers } from '../types';
@@ -66,7 +66,9 @@ export default function EchartsMixedTimeseries({
               ? []
               : [
                   ...currentGroupBy.map((col, idx) => {
-                    const val = groupbyValues.map(v => v[idx]);
+                    const val: DataRecordValue[] = groupbyValues.map(
+                      v => v[idx],
+                    );
                     if (val === null || val === undefined)
                       return {
                         col,
@@ -120,6 +122,7 @@ export default function EchartsMixedTimeseries({
           const filters: QueryObjectFilterClause[] = [];
           filters.push({
             col: formData.granularitySqla,
+            grain: formData.timeGrainSqla,
             op: '==',
             val: data[0],
             formattedVal: xValueFormatter(data[0]),
