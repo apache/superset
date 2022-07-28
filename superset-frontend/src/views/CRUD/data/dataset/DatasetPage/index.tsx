@@ -17,18 +17,22 @@
  * under the License.
  */
 import React from 'react';
-import Header from '../Header';
+import Header from './Header';
 import DatasetPanel from './DatasetPanel';
+import LeftPanel from './LeftPanel';
 import RightPanel from './RightPanel';
+import Footer from './Footer';
 
 export default function DatasetCreator() {
   return (
     <div>
       <Header />
+      <LeftPanel />
       <div css={{ display: 'flex' }}>
         <DatasetPanel />
-        <RightPanel />
+        <Footer />
       </div>
+      <RightPanel />
     </div>
   );
 }
