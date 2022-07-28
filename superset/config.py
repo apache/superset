@@ -995,7 +995,13 @@ BLUEPRINTS: List[Blueprint] = []
 # into a proxied one
 
 
-TRACKING_URL_TRANSFORMER = lambda x: x
+# Transform SQL query tracking url for Hive and Presto engines. You may also
+# access information about the query itself by adding a second parameter
+# to your transformer function, e.g.:
+#   TRACKING_URL_TRANSFORMER = (
+#       lambda url, query: url if is_fresh(query) else None
+#   )
+TRACKING_URL_TRANSFORMER = lambda url: url
 
 
 # Interval between consecutive polls when using Hive Engine

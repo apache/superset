@@ -23,7 +23,7 @@ from marshmallow.validate import Length, Range, ValidationError
 from marshmallow_enum import EnumField
 from pytz import all_timezones
 
-from superset.models.reports import (
+from superset.reports.models import (
     ReportCreationMethod,
     ReportDataFormat,
     ReportRecipientType,
@@ -297,4 +297,5 @@ class ReportSchedulePutSchema(Schema):
         default=ReportDataFormat.VISUALIZATION,
         validate=validate.OneOf(choices=tuple(key.value for key in ReportDataFormat)),
     )
+    extra = fields.Dict(default=None)
     force_screenshot = fields.Boolean(default=False)
