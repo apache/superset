@@ -105,6 +105,18 @@ def test_get_metric_name_invalid_metric():
     with pytest.raises(ValueError):
         get_metric_name(metric)
 
+    metric = deepcopy(SQL_ADHOC_METRIC)
+    del metric["expressionType"]
+    with pytest.raises(ValueError):
+        get_metric_name(metric)
+
+    with pytest.raises(ValueError):
+        get_metric_name(None)
+    with pytest.raises(ValueError):
+        get_metric_name(0)
+    with pytest.raises(ValueError):
+        get_metric_name({})
+
 
 def test_get_metric_names():
     assert get_metric_names(
