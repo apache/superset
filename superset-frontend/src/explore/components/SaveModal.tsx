@@ -60,7 +60,7 @@ type SaveModalState = {
   saveToDashboardId: number | string | null;
   newSliceName?: string;
   newDashboardName?: string;
-  datasetName: '';
+  datasetName: string;
   alert: string | null;
   action: ActionType;
   isLoading: boolean;
