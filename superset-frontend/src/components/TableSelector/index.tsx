@@ -336,7 +336,6 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
         filterOption={handleFilterOption}
         header={header}
         labelInValue
-        lazyLoading={false}
         loading={loadingTables}
         name="select-table"
         onChange={(options: TableOption | TableOption[]) =>

@@ -55,7 +55,6 @@ type PickedSelectProps = Pick<
   | 'autoFocus'
   | 'disabled'
   | 'filterOption'
-  | 'labelInValue'
   | 'loading'
   | 'notFoundContent'
   | 'onChange'
@@ -129,11 +128,10 @@ export interface AsyncSelectProps extends PickedSelectProps {
   optionFilterProps?: string[];
   /**
    * It defines the options of the Select.
-   * The options can be static, an array of options.
-   * The options can also be async, a promise that returns
+   * The options are async, a promise that returns
    * an array of options.
    */
-  options: OptionsType | OptionsPagePromise;
+  options: OptionsPagePromise;
   /**
    * It defines how many results should be included
    * in the query response.
@@ -299,7 +297,6 @@ const AsyncSelect = (
     filterOption = true,
     header = null,
     invertSelection = false,
-    labelInValue = false,
     lazyLoading = true,
     loading,
     mode = 'single',
@@ -322,9 +319,7 @@ const AsyncSelect = (
   }: AsyncSelectProps,
   ref: RefObject<AsyncSelectRef>,
 ) => {
-  const isAsync = typeof options === 'function';
   const isSingleMode = mode === 'single';
-  const shouldShowSearch = isAsync || allowNewOptions ? true : showSearch;
   const [selectValue, setSelectValue] = useState(value);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(loading);
@@ -360,8 +355,8 @@ const AsyncSelect = (
       sortSelectedFirst(a, b) ||
       // Only apply the custom sorter in async mode because we should
       // preserve the options order as much as possible.
-      (isAsync ? sortComparator(a, b, '') : 0),
-    [isAsync, sortComparator, sortSelectedFirst],
+      sortComparator(a, b, ''),
+    [sortComparator, sortSelectedFirst],
   );
 
   const initialOptions = useMemo(
@@ -528,7 +523,6 @@ const AsyncSelect = (
       setSelectOptions(newOptions);
     }
     if (
-      isAsync &&
       !allValuesLoaded &&
       loadingEnabled &&
       !fetchedQueries.current.has(getQueryCacheKey(searchValue, 0, pageSize))
@@ -546,7 +540,7 @@ const AsyncSelect = (
       vScroll.scrollTop > (vScroll.scrollHeight - vScroll.offsetHeight) * 0.7;
     const hasMoreData = page * pageSize + pageSize < totalCount;
 
-    if (!isLoading && isAsync && hasMoreData && thresholdReached) {
+    if (!isLoading && hasMoreData && thresholdReached) {
       const newPage = page + 1;
       fetchPage(inputValue, newPage);
     }
@@ -575,30 +569,26 @@ const AsyncSelect = (
   const handleOnDropdownVisibleChange = (isDropdownVisible: boolean) => {
     setIsDropdownVisible(isDropdownVisible);
 
-    if (isAsync) {
-      // loading is enabled when dropdown is open,
-      // disabled when dropdown is closed
-      if (loadingEnabled !== isDropdownVisible) {
-        setLoadingEnabled(isDropdownVisible);
-      }
-      // when closing dropdown, always reset loading state
-      if (!isDropdownVisible && isLoading) {
-        // delay is for the animation of closing the dropdown
-        // so the dropdown doesn't flash between "Loading..." and "No data"
-        // before closing.
-        setTimeout(() => {
-          setIsLoading(false);
-        }, 250);
-      }
+    // loading is enabled when dropdown is open,
+    // disabled when dropdown is closed
+    if (loadingEnabled !== isDropdownVisible) {
+      setLoadingEnabled(isDropdownVisible);
+    }
+    // when closing dropdown, always reset loading state
+    if (!isDropdownVisible && isLoading) {
+      // delay is for the animation of closing the dropdown
+      // so the dropdown doesn't flash between "Loading..." and "No data"
+      // before closing.
+      setTimeout(() => {
+        setIsLoading(false);
+      }, 250);
     }
     // if no search input value, force sort options because it won't be sorted by
     // `filterSort`.
     if (isDropdownVisible && !inputValue && selectOptions.length > 1) {
-      const sortedOptions = isAsync
-        ? selectOptions.slice().sort(sortComparatorForNoSearch)
-        : // if not in async mode, revert to the original select options
-          // (with selected options still sorted to the top)
-          initialOptionsSorted;
+      const sortedOptions = selectOptions
+        .slice()
+        .sort(sortComparatorForNoSearch);
       if (!isEqual(sortedOptions, selectOptions)) {
         setSelectOptions(sortedOptions);
       }
@@ -627,7 +617,7 @@ const AsyncSelect = (
     if (isLoading) {
       return <StyledSpin size="small" />;
     }
-    if (shouldShowSearch && isDropdownVisible) {
+    if (showSearch && isDropdownVisible) {
       return <SearchOutlined />;
     }
     return <DownOutlined />;
@@ -660,7 +650,7 @@ const AsyncSelect = (
   );
 
   useEffect(() => {
-    if (isAsync && loadingEnabled && allowFetch) {
+    if (loadingEnabled && allowFetch) {
       // trigger fetch every time inputValue changes
       if (inputValue) {
         debouncedFetchPage(inputValue, 0);
@@ -668,14 +658,7 @@ const AsyncSelect = (
         fetchPage('', 0);
       }
     }
-  }, [
-    isAsync,
-    loadingEnabled,
-    fetchPage,
-    allowFetch,
-    inputValue,
-    debouncedFetchPage,
-  ]);
+  }, [loadingEnabled, fetchPage, allowFetch, inputValue, debouncedFetchPage]);
 
   useEffect(() => {
     if (loading !== undefined && loading !== isLoading) {
@@ -706,20 +689,20 @@ const AsyncSelect = (
         getPopupContainer={
           getPopupContainer || (triggerNode => triggerNode.parentNode)
         }
-        labelInValue={isAsync || labelInValue}
+        labelInValue
         maxTagCount={MAX_TAG_COUNT}
         mode={mappedMode}
         notFoundContent={isLoading ? t('Loading...') : notFoundContent}
         onDeselect={handleOnDeselect}
         onDropdownVisibleChange={handleOnDropdownVisibleChange}
-        onPopupScroll={isAsync ? handlePagination : undefined}
-        onSearch={shouldShowSearch ? handleOnSearch : undefined}
+        onPopupScroll={handlePagination}
+        onSearch={showSearch ? handleOnSearch : undefined}
         onSelect={handleOnSelect}
         onClear={handleClear}
         onChange={onChange}
         options={hasCustomLabels ? undefined : fullSelectOptions}
         placeholder={placeholder}
-        showSearch={shouldShowSearch}
+        showSearch={showSearch}
         showArrow
         tokenSeparators={tokenSeparators || TOKEN_SEPARATORS}
         value={selectValue}
