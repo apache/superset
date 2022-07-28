@@ -31,7 +31,6 @@ import { SelectValue } from 'antd/lib/select';
 import { connect } from 'react-redux';
 import { withRouter, RouteComponentProps } from 'react-router-dom';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
-import { LocalStorageKeys, setItem } from 'src/utils/localStorageHelpers';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import Loading from 'src/components/Loading';
 
@@ -191,7 +190,6 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
           // Update form_data to point to new dataset
           formData.datasource = `${data.table_id}__table`;
           this.setState({ saveStatus: 'succeed' });
-          setItem(LocalStorageKeys.datasetname_set_successful, true);
         })
         .catch(response =>
           getClientErrorObject(response).then(e => {
@@ -401,7 +399,7 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
         buttonSize="small"
         buttonStyle="primary"
         onClick={() => this.saveOrOverwrite(false)}
-        disabled={!this.state.newSliceName}
+        disabled={this.state.isLoading || !this.state.newSliceName}
         data-test="btn-modal-save"
       >
         {!this.canOverwriteSlice() && this.props.slice

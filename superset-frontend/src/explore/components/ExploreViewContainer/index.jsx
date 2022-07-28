@@ -388,11 +388,6 @@ function ExploreViewContainer(props) {
     if (!hasError) {
       props.actions.triggerQuery(true, props.chart.id);
     }
-    const toShowToast = getItem(LocalStorageKeys.datasetname_set_successful);
-    if (toShowToast) {
-      props.addSuccessToast('Chart saved');
-      setItem(LocalStorageKeys.datasetname_set_successful, false);
-    }
   }, []);
 
   const reRenderChart = useCallback(
