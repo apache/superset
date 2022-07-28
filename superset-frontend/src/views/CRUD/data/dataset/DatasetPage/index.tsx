@@ -17,7 +17,6 @@
  * under the License.
  */
 import React from 'react';
-// import React, { useReducer, Reducer } from 'react';
 import Header from './Header';
 import DatasetPanel from './DatasetPanel';
 import LeftPanel from './LeftPanel';
