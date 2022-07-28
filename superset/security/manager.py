@@ -941,7 +941,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         return pvm.permission.name in {"can_override_role_permissions", "can_approve"}
 
-    def database_after_delete(  # pylint: disable=unused-argument
+    def database_after_delete(
         self,
         mapper: Mapper,
         connection: Connection,
@@ -1043,7 +1043,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         self.on_view_menu_after_update(mapper, connection, new_db_view_menu)
         return new_db_view_menu
 
-    def _update_vm_datasources_access(
+    def _update_vm_datasources_access(  # pylint: disable=too-many-locals
         self,
         mapper: Mapper,
         connection: Connection,
