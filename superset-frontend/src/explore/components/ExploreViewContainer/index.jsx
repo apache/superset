@@ -259,7 +259,6 @@ function ExploreViewContainer(props) {
   const initialFormData = useRef(props.form_data);
 
   useChangeEffect(props.slice.form_data, (prev, curr) => {
-    console.log(prev, curr);
     if (prev !== undefined) {
       initialFormData.current = curr;
     }
@@ -268,11 +267,6 @@ function ExploreViewContainer(props) {
   const formDataChanged = useMemo(
     () => !isEmpty(getFormDataDiffs(initialFormData.current, props.form_data)),
     [props.form_data],
-  );
-
-  console.log(
-    formDataChanged,
-    getFormDataDiffs(initialFormData.current, props.form_data),
   );
 
   const defaultSidebarsWidth = {
@@ -732,7 +726,7 @@ function ExploreViewContainer(props) {
         message={location =>
           location.state?.isChartSaveAction || !formDataChanged
             ? true
-            : t('Your changes may be unsaved')
+            : t('Leave site? Changes that you made may not be saved.')
         }
         when={formDataChanged}
       />

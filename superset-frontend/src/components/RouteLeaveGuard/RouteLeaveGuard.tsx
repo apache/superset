@@ -31,12 +31,10 @@ export const RouteLeaveGuard = ({ message, when }: PromptProps) => {
 
   useEffect(() => {
     if (when && !isBeforeUnloadActive.current) {
-      console.log('ADD');
       window.addEventListener('beforeunload', handleUnloadEvent);
       isBeforeUnloadActive.current = true;
     }
     if (!when && isBeforeUnloadActive.current) {
-      console.log('REMOVE');
       window.removeEventListener('beforeunload', handleUnloadEvent);
       isBeforeUnloadActive.current = false;
     }
