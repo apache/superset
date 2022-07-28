@@ -939,13 +939,22 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         connection: Connection,
         target: "Database",
     ) -> None:
+        self._delete_vm_database_access(
+            mapper, connection, target.id, target.database_name
+        )
+
+    def _delete_vm_database_access(
+        self,
+        mapper: Mapper,
+        connection: Connection,
+        database_id: int,
+        database_name: str,
+    ) -> None:
         view_menu_table = self.viewmenu_model.__table__  # pylint: disable=no-member
         permission_view_menu_table = (
             self.permissionview_model.__table__  # pylint: disable=no-member
         )
-
-        view_menu_name = target.get_perm()
-
+        view_menu_name = f"[{database_name}].(id:{database_id})"
         # Clean database access permission
         db_pvm = self.find_permission_view_menu("database_access", view_menu_name)
         if not db_pvm:
@@ -959,6 +968,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 permission_view_menu_table.c.id == db_pvm.id
             )
         )
+        self.on_permission_after_delete(None, connection, db_pvm)
         connection.execute(
             view_menu_table.delete().where(view_menu_table.c.id == db_pvm.view_menu_id)
         )
@@ -969,7 +979,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             .join(self.permission_model)
             .join(self.viewmenu_model)
             .filter(self.permission_model.name == "schema_access")
-            .filter(self.viewmenu_model.name.like(f"[{target.database_name}].[%]"))
+            .filter(self.viewmenu_model.name.like(f"[{database_name}].[%]"))
             .all()
         )
         for schema_pvm in schema_pvms:
@@ -978,6 +988,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     permission_view_menu_table.c.id == schema_pvm.id
                 )
             )
+            self.on_permission_after_delete(None, connection, schema_pvm)
             connection.execute(
                 view_menu_table.delete().where(
                     view_menu_table.c.id == schema_pvm.view_menu_id
@@ -986,6 +997,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
     def _update_vm_database_access(
         self,
+        mapper: Mapper,
         connection: Connection,
         old_database_name: str,
         target: "Database",
@@ -1006,7 +1018,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         )
         if new_updated_pvm:
             logger.info(
-                "New permission [%s] already exists, nothing to do", new_view_menu_name
+                "New permission [%s] already exists, deleting the previous",
+                new_view_menu_name,
+            )
+            self._delete_vm_database_access(
+                mapper, connection, target.id, old_database_name
             )
             return None
         connection.execute(
@@ -1014,10 +1030,14 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             .where(view_menu_table.c.id == db_pvm.view_menu_id)
             .values(name=new_view_menu_name)
         )
-        return self.find_view_menu(new_view_menu_name)
+        new_db_view_menu = self.find_view_menu(new_view_menu_name)
+
+        self.on_view_menu_after_update(mapper, connection, new_db_view_menu)
+        return new_db_view_menu
 
     def _update_vm_datasources_access(
         self,
+        mapper: Mapper,
         connection: Connection,
         old_database_name: str,
         target: "Database",
@@ -1076,7 +1096,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 .where(chart_table.c.perm == old_dataset_vm_name)
                 .values(perm=new_dataset_vm_name)
             )
-
+            self.on_view_menu_after_update(mapper, connection, new_dataset_vm_name)
             updated_view_menus.append(self.find_view_menu(new_dataset_vm_name))
         return updated_view_menus
 
@@ -1095,16 +1115,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         old_database_name = history.deleted[0]
         # update database access permission
         new_db_view_menu = self._update_vm_database_access(
-            connection, old_database_name, target
+            mapper, connection, old_database_name, target
         )
-        if new_db_view_menu:
-            self.on_view_menu_after_update(mapper, connection, new_db_view_menu)
         # update datasource access
         new_dataset_view_menus = self._update_vm_datasources_access(
-            connection, old_database_name, target
+            mapper, connection, old_database_name, target
         )
-        for new_dataset_view_menu in new_dataset_view_menus:
-            self.on_view_menu_after_update(mapper, connection, new_dataset_view_menu)
 
     def on_view_menu_after_update(
         self, mapper: Mapper, connection: Connection, target: ViewMenu
@@ -1116,6 +1132,18 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         Since the update may be performed on after_update event. We cannot
         update ViewMenus using a session, so any SQLAlchemy events hooked to
         `ViewMenu` will not trigger an after_update.
+
+        :param mapper: The table mapper
+        :param connection: The DB-API connection
+        :param target: The mapped instance being persisted
+        """
+
+    def on_permission_after_delete(
+        self, mapper: Mapper, connection: Connection, target: Permission
+    ) -> None:
+        """
+        Hook that allows for further custom operations when a permission
+        is deleted by sqlalchemy events.
 
         :param mapper: The table mapper
         :param connection: The DB-API connection

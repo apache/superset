@@ -107,54 +107,56 @@ class TestRolePermission(SupersetTestCase):
     """Testing export role permissions."""
 
     def setUp(self):
-        schema = get_example_default_schema()
-        session = db.session
-        security_manager.add_role(SCHEMA_ACCESS_ROLE)
-        session.commit()
-
-        ds = (
-            db.session.query(SqlaTable)
-            .filter_by(table_name="wb_health_population", schema=schema)
-            .first()
-        )
-        ds.schema = "temp_schema"
-        ds.schema_perm = ds.get_schema_perm()
-
-        ds_slices = (
-            session.query(Slice)
-            .filter_by(datasource_type=DatasourceType.TABLE)
-            .filter_by(datasource_id=ds.id)
-            .all()
-        )
-        for s in ds_slices:
-            s.schema_perm = ds.schema_perm
-        create_schema_perm("[examples].[temp_schema]")
-        gamma_user = security_manager.find_user(username="gamma")
-        gamma_user.roles.append(security_manager.find_role(SCHEMA_ACCESS_ROLE))
-        session.commit()
+        ...
+        # schema = get_example_default_schema()
+        # session = db.session
+        # security_manager.add_role(SCHEMA_ACCESS_ROLE)
+        # session.commit()
+        #
+        # ds = (
+        #     db.session.query(SqlaTable)
+        #     .filter_by(table_name="wb_health_population", schema=schema)
+        #     .first()
+        # )
+        # ds.schema = "temp_schema"
+        # ds.schema_perm = ds.get_schema_perm()
+        #
+        # ds_slices = (
+        #     session.query(Slice)
+        #     .filter_by(datasource_type=DatasourceType.TABLE)
+        #     .filter_by(datasource_id=ds.id)
+        #     .all()
+        # )
+        # for s in ds_slices:
+        #     s.schema_perm = ds.schema_perm
+        # create_schema_perm("[examples].[temp_schema]")
+        # gamma_user = security_manager.find_user(username="gamma")
+        # gamma_user.roles.append(security_manager.find_role(SCHEMA_ACCESS_ROLE))
+        # session.commit()
 
     def tearDown(self):
-        session = db.session
-        ds = (
-            session.query(SqlaTable)
-            .filter_by(table_name="wb_health_population", schema="temp_schema")
-            .first()
-        )
-        schema_perm = ds.schema_perm
-        ds.schema = get_example_default_schema()
-        ds.schema_perm = None
-        ds_slices = (
-            session.query(Slice)
-            .filter_by(datasource_type=DatasourceType.TABLE)
-            .filter_by(datasource_id=ds.id)
-            .all()
-        )
-        for s in ds_slices:
-            s.schema_perm = None
-
-        delete_schema_perm(schema_perm)
-        session.delete(security_manager.find_role(SCHEMA_ACCESS_ROLE))
-        session.commit()
+        ...
+        # session = db.session
+        # ds = (
+        #     session.query(SqlaTable)
+        #     .filter_by(table_name="wb_health_population", schema="temp_schema")
+        #     .first()
+        # )
+        # schema_perm = ds.schema_perm
+        # ds.schema = get_example_default_schema()
+        # ds.schema_perm = None
+        # ds_slices = (
+        #     session.query(Slice)
+        #     .filter_by(datasource_type=DatasourceType.TABLE)
+        #     .filter_by(datasource_id=ds.id)
+        #     .all()
+        # )
+        # for s in ds_slices:
+        #     s.schema_perm = None
+        #
+        # delete_schema_perm(schema_perm)
+        # session.delete(security_manager.find_role(SCHEMA_ACCESS_ROLE))
+        # session.commit()
 
     def test_set_perm_sqla_table(self):
         security_manager.on_view_menu_after_insert = Mock()
@@ -361,6 +363,44 @@ class TestRolePermission(SupersetTestCase):
         session.commit()
         stored_db = (
             session.query(Database).filter_by(database_name="tmp_database").one()
+        )
+
+        self.assertIsNotNone(
+            security_manager.find_permission_view_menu(
+                "database_access", stored_db.perm
+            )
+        )
+
+        stored_db.database_name = "tmp_database2"
+        session.commit()
+
+        # Assert that the old permission was updated
+        self.assertIsNone(
+            security_manager.find_permission_view_menu(
+                "database_access", f"[tmp_database].(id:{stored_db.id})"
+            )
+        )
+        # Assert that the db permission was updated
+        self.assertIsNotNone(
+            security_manager.find_permission_view_menu(
+                "database_access", f"[tmp_database2].(id:{stored_db.id})"
+            )
+        )
+        session.delete(stored_db)
+        session.commit()
+
+    def test_after_update_database__perm_database_access_exists(self):
+        session = db.session
+        # Add a bogus existing permission before the change
+
+        database = Database(database_name="tmp_database", sqlalchemy_uri="sqlite://")
+        session.add(database)
+        session.commit()
+        stored_db = (
+            session.query(Database).filter_by(database_name="tmp_database").one()
+        )
+        security_manager.add_permission_view_menu(
+            "database_access", f"[tmp_database2].(id:{stored_db.id})"
         )
 
         self.assertIsNotNone(
