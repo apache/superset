@@ -175,8 +175,8 @@ export default function SaveQuery({
       <SaveDatasetModal
         visible={showSaveDatasetModal}
         onHide={() => setShowSaveDatasetModal(false)}
-        buttonTextOnSave={t('Save')}
-        buttonTextOnOverwrite={t('Overwrite')}
+        buttonTextOnSave={t('Save & Explore')}
+        buttonTextOnOverwrite={t('Overwrite & Explore')}
         datasource={query}
       />
       <Modal
