@@ -64,6 +64,11 @@ setup(
     zip_safe=False,
     entry_points={
         "console_scripts": ["superset=superset.cli.main:superset"],
+        # the `postgres+psycopg2://` scheme was removed in SQLAlchemy 1.4, add an alias here
+        # to prevent breaking existing databases
+        "sqlalchemy.dialects": [
+            "postgres.psycopg2=sqlalchemy.dialects.postgresql:dialect"
+        ],
     },
     install_requires=[
         "backoff>=1.8.0",
