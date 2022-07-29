@@ -208,7 +208,7 @@ describe('Dashboard edit action', () => {
           // assert that the chart has changed colors
           cy.get('.line .nv-legend-symbol')
             .first()
-            .should('have.css', 'fill', 'rgb(157, 172, 185)');
+            .should('have.css', 'fill', 'rgb(117, 96, 170)');
         });
     });
     it('the label colors should take precedence over the scheme', () => {
