@@ -23,7 +23,6 @@ from email.utils import make_msgid, parseaddr
 from typing import Any, Dict, Optional
 
 import bleach
-
 from flask_babel import gettext as __
 
 from superset import app

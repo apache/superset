@@ -15,9 +15,10 @@
 # specific language governing permissions and limitations
 # under the License.
 import pandas as pd
+from flask.ctx import AppContext
 
 
-def test_render_description_with_html(app_context):
+def test_render_description_with_html(app_context: AppContext) -> None:
     # `superset.models.helpers`, a dependency of following imports,
     # requires app context
     from superset.reports.models import ReportRecipients, ReportRecipientType
