@@ -40,6 +40,9 @@ export default function saveModalReducer(state = {}, action) {
     [actions.REMOVE_SAVE_MODAL_ALERT]() {
       return { ...state, saveModalAlert: null };
     },
+    [actions.SET_MODAL_VISIBLE]() {
+      return { ...state, isVisible: action.isVisible };
+    },
     [HYDRATE_EXPLORE]() {
       return { ...action.data.saveModal };
     },

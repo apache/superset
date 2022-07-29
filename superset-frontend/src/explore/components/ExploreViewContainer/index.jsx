@@ -67,7 +67,7 @@ import * as exploreActions from 'src/explore/actions/exploreActions';
 import * as saveModalActions from 'src/explore/actions/saveModalActions';
 import { useTabId } from 'src/hooks/useTabId';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import { RouteLeaveGuard } from 'src/components/RouteLeaveGuard/RouteLeaveGuard';
+import { useRouteLeaveGuard } from 'src/components/useRouteLeaveGuard/useRouteLeaveGuard';
 import ExploreChartPanel from '../ExploreChartPanel';
 import ConnectedControlPanelsContainer from '../ControlPanelsContainer';
 import SaveModal from '../SaveModal';
@@ -91,6 +91,7 @@ const propTypes = {
   timeout: PropTypes.number,
   impressionId: PropTypes.string,
   vizType: PropTypes.string,
+  isSaveModalVisible: PropTypes.bool,
 };
 
 const ExploreContainer = styled.div`
@@ -164,6 +165,11 @@ const ExplorePanelContainer = styled.div`
     }
   `};
 `;
+
+const defaultSidebarsWidth = {
+  controls_width: 320,
+  datasource_width: 300,
+};
 
 const updateHistory = debounce(
   async (
@@ -249,7 +255,6 @@ function ExploreViewContainer(props) {
     props.controls,
   );
 
-  const [showingModal, setShowingModal] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [shouldForceUpdate, setShouldForceUpdate] = useState(-1);
   const tabId = useTabId();
@@ -258,21 +263,29 @@ function ExploreViewContainer(props) {
 
   const initialFormData = useRef(props.form_data);
 
-  useChangeEffect(props.slice.form_data, (prev, curr) => {
-    if (prev !== undefined) {
+  useChangeEffect(props.slice?.form_data, (prev, curr) => {
+    if (prev !== undefined && curr !== undefined) {
       initialFormData.current = curr;
     }
   });
 
   const formDataChanged = useMemo(
-    () => !isEmpty(getFormDataDiffs(initialFormData.current, props.form_data)),
-    [props.form_data],
+    () =>
+      !isEmpty(
+        getFormDataDiffs(
+          { ...initialFormData.current, chartTitle: props.slice?.slice_name },
+          { ...props.form_data, chartTitle: props.sliceName },
+        ),
+      ),
+    [props.form_data, props.slice?.slice_name, props.sliceName],
   );
 
-  const defaultSidebarsWidth = {
-    controls_width: 320,
-    datasource_width: 300,
-  };
+  const allowNavigation = useCallback(
+    location => location.state?.isChartSaveAction || !formDataChanged,
+    [formDataChanged],
+  );
+
+  useRouteLeaveGuard(allowNavigation, formDataChanged);
 
   const addHistory = useCallback(
     async ({ isReplace = false, title } = {}) => {
@@ -361,7 +374,7 @@ function ExploreViewContainer(props) {
   }
 
   function toggleModal() {
-    setShowingModal(!showingModal);
+    props.actions.setSaveModalVisible(!props.isSaveModalVisible);
   }
 
   function toggleCollapse() {
@@ -615,7 +628,7 @@ function ExploreViewContainer(props) {
             }
           `}
         />
-        {showingModal && (
+        {props.isSaveModalVisible && (
           <SaveModal
             addDangerToast={props.addDangerToast}
             onHide={toggleModal}
@@ -722,14 +735,6 @@ function ExploreViewContainer(props) {
           {renderChartContainer()}
         </div>
       </ExplorePanelContainer>
-      <RouteLeaveGuard
-        message={location =>
-          location.state?.isChartSaveAction || !formDataChanged
-            ? true
-            : t('Leave site? Changes that you made may not be saved.')
-        }
-        when={formDataChanged}
-      />
     </ExploreContainer>
   );
 }
@@ -737,8 +742,16 @@ function ExploreViewContainer(props) {
 ExploreViewContainer.propTypes = propTypes;
 
 function mapStateToProps(state) {
-  const { explore, charts, common, impressionId, dataMask, reports, user } =
-    state;
+  const {
+    explore,
+    charts,
+    common,
+    impressionId,
+    dataMask,
+    reports,
+    user,
+    saveModal,
+  } = state;
   const { controls, slice, datasource } = explore;
   const form_data = getFormDataFromControls(controls);
   const slice_id = form_data.slice_id ?? slice?.slice_id ?? 0; // 0 - unsaved chart
@@ -785,6 +798,7 @@ function mapStateToProps(state) {
     user,
     exploreState: explore,
     reports,
+    isSaveModalVisible: saveModal.isVisible,
   };
 }
 

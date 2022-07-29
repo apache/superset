@@ -169,6 +169,7 @@ export const hydrateExplore =
         saveModal: {
           dashboards: [],
           saveModalAlert: null,
+          isVisible: false,
         },
         explore: exploreState,
       },

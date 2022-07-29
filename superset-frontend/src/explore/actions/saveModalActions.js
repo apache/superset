@@ -61,6 +61,11 @@ export function removeSaveModalAlert() {
   return { type: REMOVE_SAVE_MODAL_ALERT };
 }
 
+export const SET_MODAL_VISIBLE = 'SET_MODAL_VISIBLE';
+export function setSaveModalVisible(isVisible) {
+  return { type: SET_MODAL_VISIBLE, isVisible };
+}
+
 export const getSlicePayload = (
   sliceName,
   formDataWithNativeFilters,
