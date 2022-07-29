@@ -206,7 +206,7 @@ describe('Dashboard edit action', () => {
         .then(() => {
           cy.get('.ant-modal-body').should('not.exist');
           // assert that the chart has changed colors
-          cy.get('#chart-id-51 .nv-legend-symbol')
+          cy.get('.line .nv-legend-symbol')
             .first()
             .should('have.css', 'fill', 'rgb(157, 172, 185)');
         });
@@ -226,7 +226,7 @@ describe('Dashboard edit action', () => {
         .then(() => {
           cy.get('.ant-modal-body').should('not.exist');
           // assert that the chart has changed colors
-          cy.get('#chart-id-51 .nv-legend-symbol')
+          cy.get('.line .nv-legend-symbol')
             .first()
             .should('have.css', 'fill', 'rgb(255, 0, 0)');
         });
@@ -246,13 +246,15 @@ describe('Dashboard edit action', () => {
         .then(() => {
           cy.get('.ant-modal-body').should('not.exist');
           // assert that the chart has changed colors
-          cy.get('#chart-id-51.line .nv-legend-symbol')
+          cy.get('.line .nv-legend-symbol')
             .first()
             .should('have.css', 'fill', 'rgb(255, 0, 0)'); // label: amanda
-          cy.get('#chart-id-51.line .nv-legend-symbol')
+          cy.get('.line .nv-legend-symbol')
             .eq(11)
             .should('have.css', 'fill', 'rgb(234, 11, 140)'); // label: jennifer
-          cy.get('#chart-id-54.word_cloud > svg text ')
+          cy.get('.word_cloud')
+            .first()
+            .find('svg text')
             .first()
             .should('have.css', 'fill', 'rgb(234, 11, 140)'); // label: jennifer
         });
