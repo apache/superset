@@ -41,12 +41,13 @@ export default function SaveDatasetActionButton({
       &:first-of-type {
         width: ${theme.gridUnit * 16}px;
       }
+      font-weight: ${theme.gridUnit * 150};
       background-color: ${theme.colors.primary.light4};
       color: ${theme.colors.primary.dark1};
       &:nth-child(2) {
         &:before,
         &:hover:before {
-          border-left: 1px solid ${theme.colors.primary.dark2};
+          border-left: 2px solid ${theme.colors.primary.dark2};
         }
       }
     }
