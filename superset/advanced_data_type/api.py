@@ -209,10 +209,7 @@ class AdvancedDataTypeRestApi(BaseApi):
             if column[0] in forbidden_datasets:
                 continue
             if column[0] not in result:
-                dataset = DatasetDAO.find_by_id(column[0])
-                if dataset is None or not security_manager.can_access_datasource(
-                    dataset
-                ):
+                if DatasetDAO.find_by_id(column[0]) is None:
                     forbidden_datasets.append(column[0])
                 else:
                     result[column[0]] = [column[1]]
