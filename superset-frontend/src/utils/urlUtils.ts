@@ -184,6 +184,9 @@ export function getDashboardPermalink({
 const externalUrlRegex =
   /^([^:/?#]+:)?(?:(\/\/)?([^/?#]*))?([^?#]+)?(\?[^#]*)?(#.*)?/;
 
+// group 1 matches protocol
+// group 2 matches '//'
+// group 3 matches hostname
 export function isUrlExternal(url: string) {
   const match = url.match(externalUrlRegex) || [];
   return (
