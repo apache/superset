@@ -26,8 +26,10 @@ from superset.advanced_data_type.schemas import (
     advanced_data_type_datasets_schema,
     AdvancedDataTypeSchema,
 )
+from superset import security_manager
 from superset.advanced_data_type.types import AdvancedDataTypeResponse
 from superset.connectors.sqla.models import TableColumn
+from superset.datasets.dao import DatasetDAO
 from superset.extensions import db, event_logger
 
 config = app.config
@@ -201,10 +203,19 @@ class AdvancedDataTypeRestApi(BaseApi):
             .filter(TableColumn.advanced_data_type == advanced_data_type)
             .all()
         )
+        forbidden_datasets = []
         result = {}
         for column in columns:
+            if column[0] in forbidden_datasets:
+                continue
             if column[0] not in result:
-                result[column[0]] = [column[1]]
+                dataset = DatasetDAO.find_by_id(column[0])
+                if dataset is None or not security_manager.can_access_datasource(
+                    dataset
+                ):
+                    forbidden_datasets.append(column[0])
+                else:
+                    result[column[0]] = [column[1]]
             else:
                 result[column[0]].append(column[1])
 
