@@ -72,8 +72,8 @@ export const StyledModal = styled(Modal)`
   }
   i {
     position: absolute;
-    top: -21px;
-    left: 107px;
+    top: -${({ theme }) => theme.gridUnit * 5.25}px;
+    left: ${({ theme }) => theme.gridUnit * 26.75}px;
   }
 `;
 
