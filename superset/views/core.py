@@ -1207,7 +1207,16 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             max_tables = max_items * len(tables) // total_items
             max_views = max_items * len(views) // total_items
 
-        dataset_tables = {table.name: table for table in database.tables}
+        extra_dict_by_name = {
+            table.name: table.extra_dict
+            for table in (
+                db.session.query(SqlaTable).filter(
+                    SqlaTable.name.in_(  # # pylint: disable=no-member
+                        f"{table.schema}.{table.table}" for table in tables
+                    )
+                )
+            ).all()
+        }
 
         table_options = [
             {
@@ -1216,9 +1225,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 "label": get_datasource_label(tn),
                 "title": get_datasource_label(tn),
                 "type": "table",
-                "extra": dataset_tables[f"{tn.schema}.{tn.table}"].extra_dict
-                if (f"{tn.schema}.{tn.table}" in dataset_tables)
-                else None,
+                "extra": extra_dict_by_name.get(f"{tn.schema}.{tn.table}", None),
             }
             for tn in tables[:max_tables]
         ]
