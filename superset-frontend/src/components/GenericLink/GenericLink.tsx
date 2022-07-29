@@ -19,6 +19,7 @@
 
 import React from 'react';
 import { Link, LinkProps } from 'react-router-dom';
+import { isUrlExternal, parseUrl } from 'src/utils/urlUtils';
 
 export const GenericLink = <S,>({
   to,
@@ -29,9 +30,9 @@ export const GenericLink = <S,>({
   ...rest
 }: React.PropsWithoutRef<LinkProps<S>> &
   React.RefAttributes<HTMLAnchorElement>) => {
-  if (typeof to === 'string' && /^https?:\/\//.test(to)) {
+  if (typeof to === 'string' && isUrlExternal(to)) {
     return (
-      <a data-test="external-link" href={to} {...rest}>
+      <a data-test="external-link" href={parseUrl(to)} {...rest}>
         {children}
       </a>
     );

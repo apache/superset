@@ -46,3 +46,14 @@ test('navigates to external URL', () => {
   const externalLink = screen.getByTestId('external-link');
   expect(externalLink).toHaveAttribute('href', 'https://superset.apache.org/');
 });
+
+test('navigates to external URL without host', () => {
+  render(
+    <GenericLink to="superset.apache.org/">
+      Link to external website
+    </GenericLink>,
+    { useRouter: true },
+  );
+  const externalLink = screen.getByTestId('external-link');
+  expect(externalLink).toHaveAttribute('href', '//superset.apache.org/');
+});
