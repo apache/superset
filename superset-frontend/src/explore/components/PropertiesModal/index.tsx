@@ -23,7 +23,13 @@ import Button from 'src/components/Button';
 import { AsyncSelect, Row, Col, AntdForm } from 'src/components';
 import { SelectValue } from 'antd/lib/select';
 import rison from 'rison';
-import { t, SupersetClient, styled, isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
+import {
+  t,
+  SupersetClient,
+  styled,
+  isFeatureEnabled,
+  FeatureFlag,
+} from '@superset-ui/core';
 import Chart, { Slice } from 'src/types/Chart';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import withToasts from 'src/components/MessageToasts/withToasts';
@@ -156,7 +162,7 @@ function PropertiesModal({
         }[]
       ).map(o => o.value);
     }
-    if(isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM)){
+    if (isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM)) {
       // update tags
       newTags.map((tag: TagType) =>
         addTag(
@@ -182,7 +188,7 @@ function PropertiesModal({
         ),
       );
     }
-    
+
     try {
       const res = await SupersetClient.put({
         endpoint: `/api/v1/chart/${slice.slice_id}`,
@@ -219,7 +225,7 @@ function PropertiesModal({
   }, [slice.slice_name]);
 
   useEffect(() => {
-    if(!isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM)) return;
+    if (!isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM)) return;
     try {
       fetchTags(
         {
@@ -230,7 +236,6 @@ function PropertiesModal({
         (tags: TagType[]) => setTags(tags),
         () => {
           /* TODO: handle error */
-          return;
         },
       );
     } catch (error: any) {
@@ -245,7 +250,7 @@ function PropertiesModal({
         return;
       }
       setTags([...tags, tag]);
-      return setNewTags([...newTags, tag]);
+      setNewTags([...newTags, tag]);
     });
   };
 
@@ -389,8 +394,10 @@ function PropertiesModal({
                 )}
               </StyledHelpBlock>
             </FormItem>
-            {isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM) && <h3 style={{ marginTop: '1em' }}>{t('Tags')}</h3>}
-            {isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM) && 
+            {isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM) && (
+              <h3 style={{ marginTop: '1em' }}>{t('Tags')}</h3>
+            )}
+            {isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM) && (
               <FormItem>
                 <AsyncSelect
                   ariaLabel="Tags"
@@ -411,7 +418,7 @@ function PropertiesModal({
                   maxTags={undefined}
                 />
               </FormItem>
-            }
+            )}
           </Col>
         </Row>
       </AntdForm>

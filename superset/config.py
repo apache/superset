@@ -388,7 +388,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "DASHBOARD_CACHE": False,
     "REMOVE_SLICE_LEVEL_LABEL_COLORS": False,
     "SHARE_QUERIES_VIA_KV_STORE": False,
-    "TAGGING_SYSTEM": False,
+    "TAGGING_SYSTEM": True,
     "SQLLAB_BACKEND_PERSISTENCE": True,
     "LISTVIEWS_DEFAULT_CARD_VIEW": False,
     # When True, this flag allows display of HTML tags in Markdown components

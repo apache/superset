@@ -347,7 +347,7 @@ const PropertiesModal = ({
       updateMetadata: false,
     });
 
-    if(isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM)) {  
+    if (isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM)) {
       // update tags
       newTags.map((tag: TagType) =>
         addTag(
@@ -373,7 +373,7 @@ const PropertiesModal = ({
         ),
       );
     }
-    
+
     const moreOnSubmitProps: { roles?: Roles } = {};
     const morePutProps: { roles?: number[] } = {};
     if (isFeatureEnabled(FeatureFlag.DASHBOARD_RBAC)) {
@@ -557,7 +557,7 @@ const PropertiesModal = ({
   }, [dashboardInfo, dashboardTitle, form]);
 
   useEffect(() => {
-    if(!isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM)) return;
+    if (!isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM)) return;
     try {
       fetchTags(
         {
@@ -582,7 +582,7 @@ const PropertiesModal = ({
         return;
       }
       setTags([...tags, tag]);
-      return setNewTags([...newTags, tag]);
+      setNewTags([...newTags, tag]);
     });
   };
 
@@ -696,34 +696,34 @@ const PropertiesModal = ({
             <h3 style={{ marginTop: '1em' }}>{t('Tags')}</h3>
           </Col>
         </Row>
-        {isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM) ?
-        <Row gutter={16}>
-          <Col xs={24} md={12}>
-            <StyledFormItem>
-              <AsyncSelect
-                ariaLabel="Tags"
-                mode="multiple"
-                allowNewOptions
-                value={[]}
-                options={loadTags}
-                onChange={handleAddTag}
-                allowClear
+        {isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM) ? (
+          <Row gutter={16}>
+            <Col xs={24} md={12}>
+              <StyledFormItem>
+                <AsyncSelect
+                  ariaLabel="Tags"
+                  mode="multiple"
+                  allowNewOptions
+                  value={[]}
+                  options={loadTags}
+                  onChange={handleAddTag}
+                  allowClear
+                />
+              </StyledFormItem>
+              <p className="help-block">
+                {t('A list of tags that have been applied to this chart.')}
+              </p>
+            </Col>
+            <Col xs={24} md={12}>
+              <TagsList
+                tags={tags}
+                editable
+                onDelete={handleDeleteTag}
+                maxTags={undefined}
               />
-            </StyledFormItem>
-            <p className="help-block">
-              {t('A list of tags that have been applied to this chart.')}
-            </p>
-          </Col>
-          <Col xs={24} md={12}>
-            <TagsList
-              tags={tags}
-              editable
-              onDelete={handleDeleteTag}
-              maxTags={undefined}
-            />
-          </Col>
-        </Row>
-        : null}
+            </Col>
+          </Row>
+        ) : null}
         <Row>
           <Col xs={24} md={24}>
             <h3 style={{ marginTop: '1em' }}>

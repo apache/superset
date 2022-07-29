@@ -547,13 +547,13 @@ function DashboardList(props: DashboardListProps) {
         ],
       },
     ] as Filters;
-    if(isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM)){
+    if (isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM)) {
       filters_list.push({
         Header: t('Tags'),
         id: 'tags',
         input: 'search',
         operator: FilterOperator.dashboardTags,
-      })
+      });
     }
     filters_list.push({
       Header: t('Search'),
@@ -562,9 +562,7 @@ function DashboardList(props: DashboardListProps) {
       operator: FilterOperator.titleOrSlug,
     });
     return filters_list;
-  },
-    [addDangerToast, favoritesFilter, props.user],
-  );
+  }, [addDangerToast, favoritesFilter, props.user]);
 
   const sortTypes = [
     {

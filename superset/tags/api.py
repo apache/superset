@@ -81,7 +81,7 @@ class TagRestApi(BaseSupersetModelRestApi):
             self.appbuilder.app.config["VERSION_SHA"],
         )
 
-    @expose("/<object_type:object_type>/<int:object_id>/", methods=["POST"])
+    @expose("/<int:object_type>/<int:object_id>/", methods=["POST"])
     @protect()
     @safe
     @statsd_metrics
@@ -102,6 +102,15 @@ class TagRestApi(BaseSupersetModelRestApi):
               application/json:
                 schema:
                   $ref: '#/components/schemas/{{self.__class__.__name__}}.post'
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: object_type
+          - in: path
+            schema:
+              type: integer
+            name: object_id
           responses:
             201:
               description: Tag added
