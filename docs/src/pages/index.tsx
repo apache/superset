@@ -256,7 +256,6 @@ const StyledCredits = styled.div`
   background-color: #282E4A;
   text-align: center;
   color: #FFFFFF;
-
 `;
 
 const StyledDatabaseImg = styled.img`
