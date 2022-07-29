@@ -627,8 +627,10 @@ class TestCore(SupersetTestCase):
 
         models.custom_password_store = custom_password_store
         conn = sqla.engine.url.make_url(database.sqlalchemy_uri_decrypted)
+        database.set_sqlalchemy_uri(database.sqlalchemy_uri_decrypted)
         if conn_pre.password:
             assert conn.password == conn_pre.password
+            assert conn.password == database.password
         # Disable for password store for later tests
         models.custom_password_store = None
 
