@@ -138,10 +138,7 @@ describe('Dashboard edit action', () => {
       // edit json metadata
       openAdvancedProperties().then(() => {
         clear('#json_metadata');
-        type(
-          '#json_metadata',
-          '{"color_scheme":"d3Category20"}'
-        );
+        type('#json_metadata', '{"color_scheme":"d3Category20"}');
       });
 
       // save edit changes
@@ -170,10 +167,7 @@ describe('Dashboard edit action', () => {
       // edit json metadata
       openAdvancedProperties().then(() => {
         clear('#json_metadata');
-        type(
-          '#json_metadata',
-          '{"color_scheme":"THIS_DOES_NOT_WORK"}'
-        );
+        type('#json_metadata', '{"color_scheme":"THIS_DOES_NOT_WORK"}');
       });
 
       // save edit changes
@@ -212,8 +206,9 @@ describe('Dashboard edit action', () => {
         .then(() => {
           cy.get('.ant-modal-body').should('not.exist');
           // assert that the chart has changed colors
-          cy.get('#chart-id-51 .nv-legend-symbol').first().should('have.css', 'fill', 'rgb(157, 172, 185)');
-
+          cy.get('#chart-id-51 .nv-legend-symbol')
+            .first()
+            .should('have.css', 'fill', 'rgb(157, 172, 185)');
         });
     });
     it('the label colors should take precedence over the scheme', () => {
@@ -231,8 +226,9 @@ describe('Dashboard edit action', () => {
         .then(() => {
           cy.get('.ant-modal-body').should('not.exist');
           // assert that the chart has changed colors
-          cy.get('#chart-id-51 .nv-legend-symbol').first().should('have.css', 'fill', 'rgb(255, 0, 0)');
-
+          cy.get('#chart-id-51 .nv-legend-symbol')
+            .first()
+            .should('have.css', 'fill', 'rgb(255, 0, 0)');
         });
     });
     it('the shared label colors and label colors are applied correctly', () => {
@@ -250,10 +246,15 @@ describe('Dashboard edit action', () => {
         .then(() => {
           cy.get('.ant-modal-body').should('not.exist');
           // assert that the chart has changed colors
-          cy.get('#chart-id-51.line .nv-legend-symbol').first().should('have.css', 'fill', 'rgb(255, 0, 0)');  // label: amanda
-          cy.get('#chart-id-51.line .nv-legend-symbol').eq(11).should('have.css', 'fill', 'rgb(234, 11, 140)'); // label: jennifer
-          cy.get('#chart-id-54.word_cloud > svg text ').first().should('have.css', 'fill', 'rgb(234, 11, 140)');  // label: jennifer
-
+          cy.get('#chart-id-51.line .nv-legend-symbol')
+            .first()
+            .should('have.css', 'fill', 'rgb(255, 0, 0)'); // label: amanda
+          cy.get('#chart-id-51.line .nv-legend-symbol')
+            .eq(11)
+            .should('have.css', 'fill', 'rgb(234, 11, 140)'); // label: jennifer
+          cy.get('#chart-id-54.word_cloud > svg text ')
+            .first()
+            .should('have.css', 'fill', 'rgb(234, 11, 140)'); // label: jennifer
         });
     });
   });

@@ -27,8 +27,8 @@ import {
 function openDashboardEditProperties() {
   // open dashboard properties edit modal
   cy.get('.header-with-actions [aria-label="Edit dashboard"]')
-  .should('be.visible')
-  .click();
+    .should('be.visible')
+    .click();
   cy.get(
     '.header-with-actions .right-button-panel .ant-dropdown-trigger',
   ).trigger('click', {
@@ -113,7 +113,7 @@ describe('Dashboard save action', () => {
         openDashboardEditProperties();
 
         // open color scheme dropdown
-          cy.get('.ant-modal-body')
+        cy.get('.ant-modal-body')
           .contains('Color scheme')
           .parents('.ControlHeader')
           .next('.ant-select')
@@ -135,8 +135,9 @@ describe('Dashboard save action', () => {
           });
 
         // update title
-        cy.get('[data-test="dashboard-title-input"]')
-          .type(`{selectall}{backspace}${dashboardTitle}`);
+        cy.get('[data-test="dashboard-title-input"]').type(
+          `{selectall}{backspace}${dashboardTitle}`,
+        );
 
         // save edit changes
         cy.get('.ant-modal-footer')
@@ -153,10 +154,9 @@ describe('Dashboard save action', () => {
             cy.contains('saved successfully').should('be.visible');
 
             // assert title has been updated
-            cy.get('.header-with-actions .title-panel [data-test="editable-title"]').should(
-              'have.text',
-              dashboardTitle,
-            );
+            cy.get(
+              '.header-with-actions .title-panel [data-test="editable-title"]',
+            ).should('have.text', dashboardTitle);
           });
       });
   });
