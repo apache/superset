@@ -63,7 +63,7 @@ type SaveModalState = {
   alert: string | null;
   action: ActionType;
   isLoading: boolean;
-  saveStatus: string | null;
+  saveStatus?: string | null;
 };
 
 export const StyledModal = styled(Modal)`
