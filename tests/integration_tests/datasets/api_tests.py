@@ -777,6 +777,36 @@ class TestDatasetApi(SupersetTestCase):
         db.session.delete(dataset)
         db.session.commit()
 
+    def test_update_dataset_item_w_override_columns_same_columns(self):
+        """
+        Dataset API: Test update dataset with override columns
+        """
+        if backend() == "sqlite":
+            return
+
+        # Add default dataset
+        main_db = get_main_database()
+        dataset = self.insert_dataset("Flights", [self.get_user("admin").id], main_db)
+        prev_col_len = len(dataset.columns)
+
+        self.login(username="admin")
+        dataset_data = {
+            "sql": "SELECT * from flights ",
+            "columns": [
+                {"column_name": "YEAR", "type": "INT", "is_dttm": False},
+                {"column_name": "MONTH", "type": "INT", "is_dttm": False},
+                {"column_name": "DAY", "type": "INT", "is_dttm": False},
+            ],
+        }
+        uri = f"api/v1/dataset/{dataset.id}?override_columns=true"
+        rv = self.put_assert_metric(uri, dataset_data, "put")
+        assert rv.status_code == 200
+
+        columns = db.session.query(TableColumn).filter_by(table_id=dataset.id).all()
+        assert len(columns) != prev_col_len
+        db.session.delete(dataset)
+        db.session.commit()
+
     def test_update_dataset_create_column_and_metric(self):
         """
         Dataset API: Test update dataset create column
