@@ -217,6 +217,7 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
 
     setShouldOverwriteDataset(false);
     setDatasetName(getDefaultDatasetName());
+    onHide();
   };
 
   const loadDatasetOverwriteOptions = useCallback(
