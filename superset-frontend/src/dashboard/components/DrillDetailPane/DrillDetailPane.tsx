@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 import React, {
   useState,
   useEffect,
@@ -31,6 +30,8 @@ import {
   GenericDataType,
   t,
   useTheme,
+  QueryFormData,
+  QueryObjectFilterClause,
 } from '@superset-ui/core';
 import Loading from 'src/components/Loading';
 import { EmptyStateMedium } from 'src/components/EmptyState';
@@ -38,6 +39,7 @@ import TableView, { EmptyWrapperType } from 'src/components/TableView';
 import { useTableColumns } from 'src/explore/components/DataTableControl';
 import { getDatasourceSamples } from 'src/components/Chart/chartAction';
 import TableControls from './TableControls';
+import { getDrillPayload } from './utils';
 
 type ResultsPage = {
   total: number;
@@ -51,15 +53,17 @@ const MAX_CACHED_PAGES = 5;
 
 export default function DrillDetailPane({
   datasource,
-  initialFilters,
+  queryFormData,
+  drillFilters,
 }: {
   datasource: string;
-  initialFilters?: BinaryQueryObjectFilterClause[];
+  queryFormData?: QueryFormData;
+  drillFilters?: QueryObjectFilterClause[];
 }) {
   const theme = useTheme();
   const [pageIndex, setPageIndex] = useState(0);
   const lastPageIndex = useRef(pageIndex);
-  const [filters, setFilters] = useState(initialFilters || []);
+  const [filters, setFilters] = useState(drillFilters || []);
   const [isLoading, setIsLoading] = useState(false);
   const [responseError, setResponseError] = useState('');
   const [resultsPages, setResultsPages] = useState<Map<number, ResultsPage>>(
@@ -110,13 +114,11 @@ export default function DrillDetailPane({
   useEffect(() => {
     if (!resultsPages.has(pageIndex)) {
       setIsLoading(true);
-      getDatasourceSamples(
-        datasourceType,
-        datasourceId,
-        true,
-        filters.length ? { filters } : null,
-        { page: pageIndex + 1, perPage: PAGE_SIZE },
-      )
+      const jsonPayload = getDrillPayload(queryFormData, drillFilters);
+      getDatasourceSamples(datasourceType, datasourceId, true, jsonPayload, {
+        page: pageIndex + 1,
+        perPage: PAGE_SIZE,
+      })
         .then(response => {
           setResultsPages(
             new Map([
