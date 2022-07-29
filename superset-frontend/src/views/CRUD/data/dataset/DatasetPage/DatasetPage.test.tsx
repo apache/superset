@@ -17,27 +17,26 @@
  * under the License.
  */
 import React from 'react';
-import { t } from '@superset-ui/core';
-import { EmptyStateBig } from 'src/components/EmptyState';
+import { render, screen } from 'spec/helpers/testing-library';
+import DatasetPage from 'src/views/CRUD/data/dataset/DatasetPage';
 
-const renderDescription = () => (
-  <>
-    {t(
-      'Datasets can be created from database tables or SQL queries. Select a database table to the left or ',
-    )}
-    <a href="https://preset.io/">{t('create dataset from SQL query')}</a>
-    {t(' to open SQL Lab. From there you can save the query as a dataset.')}
-  </>
-);
+describe('DatasetPage', () => {
+  it('renders a blank state DatasetPage', () => {
+    render(<DatasetPage />);
 
-export default function DatasetPanel() {
-  return (
-    <>
-      <EmptyStateBig
-        image="empty-dataset.svg"
-        title={t('Select dataset source')}
-        description={renderDescription()}
-      />
-    </>
-  );
-}
+    const blankeStateImgs = screen.getAllByRole('img', { name: /empty/i });
+
+    // Header
+    expect(screen.getByText(/header/i)).toBeVisible();
+    // Left panel
+    expect(blankeStateImgs[0]).toBeVisible();
+    expect(screen.getByText(/no database tables found/i)).toBeVisible();
+    // Database panel
+    expect(blankeStateImgs[1]).toBeVisible();
+    expect(screen.getByText(/select dataset source/i)).toBeVisible();
+    // Footer
+    expect(screen.getByText(/footer/i)).toBeVisible();
+
+    expect(blankeStateImgs.length).toBe(2);
+  });
+});

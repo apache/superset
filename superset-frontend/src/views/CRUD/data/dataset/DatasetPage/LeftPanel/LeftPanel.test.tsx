@@ -17,27 +17,15 @@
  * under the License.
  */
 import React from 'react';
-import { t } from '@superset-ui/core';
-import { EmptyStateBig } from 'src/components/EmptyState';
+import { render, screen } from 'spec/helpers/testing-library';
+import LeftPanel from 'src/views/CRUD/data/dataset/DatasetPage/LeftPanel';
 
-const renderDescription = () => (
-  <>
-    {t(
-      'Datasets can be created from database tables or SQL queries. Select a database table to the left or ',
-    )}
-    <a href="https://preset.io/">{t('create dataset from SQL query')}</a>
-    {t(' to open SQL Lab. From there you can save the query as a dataset.')}
-  </>
-);
+describe('LeftPanel', () => {
+  it('renders a blank state LeftPanel', () => {
+    render(<LeftPanel />);
 
-export default function DatasetPanel() {
-  return (
-    <>
-      <EmptyStateBig
-        image="empty-dataset.svg"
-        title={t('Select dataset source')}
-        description={renderDescription()}
-      />
-    </>
-  );
-}
+    expect(screen.getByRole('img', { name: /empty/i })).toBeVisible();
+    expect(screen.getByText(/no database tables found/i)).toBeVisible();
+    expect(screen.getByText(/try selecting a different schema/i)).toBeVisible();
+  });
+});

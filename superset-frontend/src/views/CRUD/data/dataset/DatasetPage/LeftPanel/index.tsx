@@ -17,7 +17,17 @@
  * under the License.
  */
 import React from 'react';
+import { t } from '@superset-ui/core';
+import { EmptyStateMedium } from 'src/components/EmptyState';
 
 export default function LeftPanel() {
-  return <div>Left Panel</div>;
+  return (
+    <>
+      <EmptyStateMedium
+        image="empty-table.svg"
+        title={t('No database tables found')}
+        description={t('Try selecting a different schema')}
+      />
+    </>
+  );
 }

@@ -20,9 +20,10 @@ import React from 'react';
 import Header from './Header';
 import DatasetPanel from './DatasetPanel';
 import LeftPanel from './LeftPanel';
-import RightPanel from './RightPanel';
+// import RightPanel from './RightPanel';
 import Footer from './Footer';
 import { DatasetActionType, DatasetObject, DSReducerActionType } from './types';
+import DatasetLayout from '../DatasetLayout';
 
 export function datasetReducer(
   state: Partial<DatasetObject> | null,
@@ -68,14 +69,12 @@ export default function DatasetPage() {
   // >(datasetReducer, null);
 
   return (
-    <div>
-      <Header />
-      <LeftPanel />
-      <div css={{ display: 'flex' }}>
-        <DatasetPanel />
-        <Footer />
-      </div>
-      <RightPanel />
-    </div>
+    <DatasetLayout
+      header={Header()}
+      leftPanel={LeftPanel()}
+      datasetPanel={DatasetPanel()}
+      // rightPanel={RightPanel()}
+      footer={Footer()}
+    />
   );
 }

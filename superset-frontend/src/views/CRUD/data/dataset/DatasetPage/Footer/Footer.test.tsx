@@ -17,27 +17,13 @@
  * under the License.
  */
 import React from 'react';
-import { t } from '@superset-ui/core';
-import { EmptyStateBig } from 'src/components/EmptyState';
+import { render, screen } from 'spec/helpers/testing-library';
+import Footer from 'src/views/CRUD/data/dataset/DatasetPage/Footer';
 
-const renderDescription = () => (
-  <>
-    {t(
-      'Datasets can be created from database tables or SQL queries. Select a database table to the left or ',
-    )}
-    <a href="https://preset.io/">{t('create dataset from SQL query')}</a>
-    {t(' to open SQL Lab. From there you can save the query as a dataset.')}
-  </>
-);
+describe('Footer', () => {
+  it('renders a blank state Footer', () => {
+    render(<Footer />);
 
-export default function DatasetPanel() {
-  return (
-    <>
-      <EmptyStateBig
-        image="empty-dataset.svg"
-        title={t('Select dataset source')}
-        description={renderDescription()}
-      />
-    </>
-  );
-}
+    expect(screen.getByText(/footer/i)).toBeVisible();
+  });
+});
