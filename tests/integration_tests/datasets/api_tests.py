@@ -823,6 +823,7 @@ class TestDatasetApi(SupersetTestCase):
 
         columns = db.session.query(TableColumn).filter_by(table_id=dataset.id).all()
         assert len(columns) != prev_col_len
+        assert len(columns) == 3
         db.session.delete(dataset)
         db.session.commit()
 
