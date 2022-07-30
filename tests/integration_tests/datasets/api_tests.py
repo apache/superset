@@ -786,20 +786,39 @@ class TestDatasetApi(SupersetTestCase):
 
         # Add default dataset
         main_db = get_main_database()
-        dataset = self.insert_dataset("Flights", [self.get_user("admin").id], main_db)
+        dataset = self.insert_default_dataset()
         prev_col_len = len(dataset.columns)
+
+        cols = [
+            {
+                "column_name": c.column_name,
+                "description": c.description,
+                "expression": c.expression,
+                "type": c.type,
+                "advanced_data_type": c.advanced_data_type,
+                "verbose_name": c.verbose_name,
+            }
+            for c in dataset.columns
+        ]
+
+        cols.append(
+            {
+                "column_name": "new_col",
+                "description": "description",
+                "expression": "expression",
+                "type": "INTEGER",
+                "advanced_data_type": "ADVANCED_DATA_TYPE",
+                "verbose_name": "New Col",
+            }
+        )
 
         self.login(username="admin")
         dataset_data = {
-            "sql": "SELECT * from flights ",
-            "columns": [
-                {"column_name": "YEAR", "type": "INT", "is_dttm": False},
-                {"column_name": "MONTH", "type": "INT", "is_dttm": False},
-                {"column_name": "DAY", "type": "INT", "is_dttm": False},
-            ],
+            "columns": cols,
         }
         uri = f"api/v1/dataset/{dataset.id}?override_columns=true"
         rv = self.put_assert_metric(uri, dataset_data, "put")
+
         assert rv.status_code == 200
 
         columns = db.session.query(TableColumn).filter_by(table_id=dataset.id).all()
