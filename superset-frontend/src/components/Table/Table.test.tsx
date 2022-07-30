@@ -16,34 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-// Superset's webpack.config.js
-const customConfig = require('../webpack.config.js');
+import React from 'react';
+import { render, screen } from 'spec/helpers/testing-library';
+import Table from './index';
 
-module.exports = {
-  core: {
-    builder: 'webpack5',
-  },
-  stories: [
-    '../src/@(components|common|filters|explore)/**/*.stories.@(t|j)sx',
-  ],
-  addons: [
-    '@storybook/addon-essentials',
-    '@storybook/addon-links',
-    'storybook-addon-jsx',
-    '@storybook/addon-knobs',
-    'storybook-addon-paddings',
-  ],
-  staticDirs: ['../src/assets/images'],
-  webpackFinal: config => ({
-    ...config,
-    module: {
-      ...config.module,
-      rules: customConfig.module.rules,
-    },
-    resolve: {
-      ...config.resolve,
-      ...customConfig.resolve,
-    },
-    plugins: [...config.plugins, ...customConfig.plugins],
-  }),
-};
+test('renders with default props', async () => {
+  render(<Table />);
+
+  expect(screen.getByRole('alert')).toHaveTextContent('Message');
+  expect(await screen.findByLabelText(`info icon`)).toBeInTheDocument();
+  expect(await screen.findByLabelText('close icon')).toBeInTheDocument();
+});

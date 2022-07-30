@@ -63,7 +63,7 @@ addParameters({
   },
   options: {
     storySort: {
-      method: 'alphabetical',
+      order: ['Design System', ['Foundations', 'Components', 'Patterns'], '*'],
     },
   },
 });
