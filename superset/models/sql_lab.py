@@ -219,6 +219,9 @@ class Query(
     @property
     def data(self) -> Dict[str, Any]:
         return {
+            "time_grain_sqla": [
+                (g.duration, g.name) for g in self.database.grains() or []
+            ],
             "filter_select": True,
             "name": self.tab_name,
             "columns": self.columns,
