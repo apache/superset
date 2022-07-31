@@ -48,6 +48,7 @@ Join our growing community!
 
 ### E-Commerce
 - [AiHello](https://www.aihello.com) [@ganeshkrishnan1]
+- [Bazaar Technologies](https://www.bazaartech.com) [@umair-abro]
 - [Dragonpass](https://www.dragonpass.com.cn/) [@zhxjdwh]
 - [Fanatics](https://www.fanatics.com) [@coderfender]
 - [Fordeal](http://www.fordeal.com) [@Renkai]

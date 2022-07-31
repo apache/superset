@@ -18,13 +18,23 @@
  */
 /* eslint-disable camelcase */
 import React, {
+  Dispatch,
+  SetStateAction,
   useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
 } from 'react';
-import { AdhocColumn, isAdhocColumn, t, styled, css } from '@superset-ui/core';
+import { useSelector } from 'react-redux';
+import {
+  AdhocColumn,
+  isAdhocColumn,
+  t,
+  styled,
+  css,
+  DatasourceType,
+} from '@superset-ui/core';
 import { ColumnMeta, isSavedExpression } from '@superset-ui/chart-controls';
 import Tabs from 'src/components/Tabs';
 import Button from 'src/components/Button';
@@ -38,6 +48,7 @@ import {
   POPOVER_INITIAL_HEIGHT,
   UNRESIZABLE_POPOVER_WIDTH,
 } from 'src/explore/constants';
+import { ExplorePageState } from 'src/explore/types';
 
 const StyledSelect = styled(Select)`
   .metric-option {
@@ -60,6 +71,7 @@ interface ColumnSelectPopoverProps {
   getCurrentTab: (tab: string) => void;
   label: string;
   isTemporal?: boolean;
+  setDatasetModal?: Dispatch<SetStateAction<boolean>>;
 }
 
 const getInitialColumnValues = (
@@ -82,11 +94,16 @@ const ColumnSelectPopover = ({
   editedColumn,
   onChange,
   onClose,
+  setDatasetModal,
   setLabel,
   getCurrentTab,
   label,
   isTemporal,
 }: ColumnSelectPopoverProps) => {
+  const datasourceType = useSelector<ExplorePageState, string | undefined>(
+    state => state.explore.datasource.type,
+  );
+  console.log('datasource', datasourceType);
   const [initialLabel] = useState(label);
   const [initialAdhocColumn, initialCalculatedColumn, initialSimpleColumn] =
     getInitialColumnValues(editedColumn);
@@ -214,6 +231,11 @@ const ColumnSelectPopover = ({
     sqlEditorRef.current?.editor.resize();
   }, []);
 
+  const setDatasetAndClose = () => {
+    if (setDatasetModal) setDatasetModal(true);
+    onClose();
+  };
+
   const stateIsValid =
     adhocColumn || selectedCalculatedColumn || selectedSimpleColumn;
   const hasUnsavedChanges =
@@ -226,6 +248,8 @@ const ColumnSelectPopover = ({
   const savedExpressionsLabel = t('Saved expressions');
   const simpleColumnsLabel = t('Column');
 
+  console.log(calculatedColumns.length > 0);
+  console.log(datasourceType === DatasourceType.Query);
   return (
     <Form layout="vertical" id="metrics-edit-popover">
       <Tabs
@@ -261,7 +285,7 @@ const ColumnSelectPopover = ({
                 }))}
               />
             </FormItem>
-          ) : (
+          ) : datasourceType === DatasourceType.Table ? (
             <EmptyStateSmall
               image="empty.svg"
               title={
@@ -279,6 +303,40 @@ const ColumnSelectPopover = ({
                     )
               }
             />
+          ) : (
+            <EmptyStateSmall
+              image="empty.svg"
+              title={
+                isTemporal
+                  ? t('No temporal columns found')
+                  : t('No saved expressions found')
+              }
+              description={
+                isTemporal ? (
+                  <>
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      onClick={setDatasetAndClose}
+                    >
+                      {t('Create a dataset')}
+                    </span>{' '}
+                    {t(' to mark a column as a time column')}
+                  </>
+                ) : (
+                  <>
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      onClick={setDatasetAndClose}
+                    >
+                      {t('Create a dataset')}
+                    </span>{' '}
+                    {t(' to add calculated columns')}
+                  </>
+                )
+              }
+            />
           )}
         </Tabs.TabPane>
         <Tabs.TabPane key="simple" tab={t('Simple')}>
@@ -286,9 +344,22 @@ const ColumnSelectPopover = ({
             <EmptyStateSmall
               image="empty.svg"
               title={t('No temporal columns found')}
-              description={t(
-                'Mark a column as temporal in "Edit datasource" modal',
-              )}
+              description={
+                datasourceType === DatasourceType.Table ? (
+                  t('Mark a column as temporal in "Edit datasource" modal')
+                ) : (
+                  <>
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      onClick={setDatasetAndClose}
+                    >
+                      {t('Create a dataset')}
+                    </span>{' '}
+                    {t(' to mark a column as a time column')}
+                  </>
+                )
+              }
             />
           ) : (
             <FormItem label={simpleColumnsLabel}>

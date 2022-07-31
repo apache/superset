@@ -55,7 +55,7 @@ from flask_babel import lazy_gettext as _
 from jinja2.exceptions import TemplateError
 from sqlalchemy import and_, Column, or_, UniqueConstraint
 from sqlalchemy.ext.declarative import declared_attr
-from sqlalchemy.orm import Mapper, Session
+from sqlalchemy.orm import Mapper, Session, validates
 from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy.sql.elements import ColumnElement, literal_column, TextClause
 from sqlalchemy.sql.expression import Label, Select, TextAsFrom
@@ -567,20 +567,31 @@ class ExtraJSONMixin:
     @property
     def extra(self) -> Dict[str, Any]:
         try:
-            return json.loads(self.extra_json) if self.extra_json else {}
+            return json.loads(self.extra_json or "{}") or {}
         except (TypeError, JSONDecodeError) as exc:
             logger.error(
                 "Unable to load an extra json: %r. Leaving empty.", exc, exc_info=True
             )
             return {}
 
-    def set_extra_json(self, extras: Dict[str, Any]) -> None:
+    @extra.setter
+    def extra(self, extras: Dict[str, Any]) -> None:
         self.extra_json = json.dumps(extras)
 
     def set_extra_json_key(self, key: str, value: Any) -> None:
         extra = self.extra
         extra[key] = value
         self.extra_json = json.dumps(extra)
+
+    @validates("extra_json")
+    def ensure_extra_json_is_not_none(  # pylint: disable=no-self-use
+        self,
+        _: str,
+        value: Optional[Dict[str, Any]],
+    ) -> Any:
+        if value is None:
+            return "{}"
+        return value
 
 
 class CertificationMixin:
@@ -739,7 +750,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
     def get_extra_cache_keys(query_obj: Dict[str, Any]) -> List[str]:
         raise NotImplementedError()
 
-    def _process_sql_expression(  # type: ignore # pylint: disable=no-self-use
+    def _process_sql_expression(  # pylint: disable=no-self-use
         self,
         expression: Optional[str],
         database_id: int,
@@ -1050,7 +1061,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             sqla_column = sa.column(column_name)
             sqla_metric = self.sqla_aggregations[metric["aggregate"]](sqla_column)
         elif expression_type == utils.AdhocMetricExpressionType.SQL:
-            expression = self._process_sql_expression(  # type: ignore
+            expression = self._process_sql_expression(
                 expression=metric["sqlExpression"],
                 database_id=self.database_id,
                 schema=self.schema,
@@ -1159,8 +1170,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         :rtype: sqlalchemy.sql.column
         """
         label = utils.get_column_name(col)  # type: ignore
-        expression = self._process_sql_expression(  # type: ignore
-            expression=col["sqlExpression"],  # type: ignore
+        expression = self._process_sql_expression(
+            expression=col["sqlExpression"],
             database_id=self.database_id,
             schema=self.schema,
             template_processor=template_processor,
@@ -1340,7 +1351,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 metrics_exprs.append(
                     self.adhoc_metric_to_sqla(
                         metric=metric,
-                        columns_by_name=columns_by_name,  # type: ignore
+                        columns_by_name=columns_by_name,
                         template_processor=template_processor,
                     )
                 )
@@ -1368,7 +1379,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             if isinstance(col, dict):
                 col = cast(AdhocMetric, col)
                 if col.get("sqlExpression"):
-                    col["sqlExpression"] = self._process_sql_expression(  # type: ignore
+                    col["sqlExpression"] = self._process_sql_expression(
                         expression=col["sqlExpression"],
                         database_id=self.database_id,
                         schema=self.schema,
@@ -1376,7 +1387,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     )
                 if utils.is_adhoc_metric(col):
                     # add adhoc sort by column to columns_by_name if not exists
-                    col = self.adhoc_metric_to_sqla(col, columns_by_name)  # type: ignore
+                    col = self.adhoc_metric_to_sqla(col, columns_by_name)
                     # if the adhoc metric has been defined before
                     # use the existing instance.
                     col = metrics_exprs_by_expr.get(str(col), col)

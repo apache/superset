@@ -1294,7 +1294,7 @@ def get_metric_name(
             sql_expression = metric.get("sqlExpression")
             if sql_expression:
                 return sql_expression
-        elif expression_type == "SIMPLE":
+        if expression_type == "SIMPLE":
             column: AdhocMetricColumn = metric.get("column") or {}
             column_name = column.get("column_name")
             aggregate = metric.get("aggregate")
@@ -1302,10 +1302,12 @@ def get_metric_name(
                 return f"{aggregate}({column_name})"
             if column_name:
                 return column_name
-        raise ValueError(__("Invalid metric object"))
 
-    verbose_map = verbose_map or {}
-    return verbose_map.get(metric, metric)  # type: ignore
+    if isinstance(metric, str):
+        verbose_map = verbose_map or {}
+        return verbose_map.get(metric, metric)
+
+    raise ValueError(__("Invalid metric object: %(metric)s", metric=str(metric)))
 
 
 def get_column_names(
@@ -1687,7 +1689,7 @@ def extract_dataframe_dtypes(
         column_object = columns_by_name.get(column)
         series = df[column]
         inferred_type = infer_dtype(series)
-        if isinstance(column_object, dict):  # type: ignore
+        if isinstance(column_object, dict):
             generic_type = (
                 GenericDataType.TEMPORAL
                 if column_object and column_object.get("is_dttm")

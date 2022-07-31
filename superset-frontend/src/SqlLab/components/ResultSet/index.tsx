@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { CSSProperties } from 'react';
+import React from 'react';
 import ButtonGroup from 'src/components/ButtonGroup';
 import Alert from 'src/components/Alert';
 import Button from 'src/components/Button';
@@ -54,8 +54,6 @@ enum LIMITING_FACTOR {
   NOT_LIMITED = 'NOT_LIMITED',
 }
 
-const LOADING_STYLES: CSSProperties = { position: 'relative', minHeight: 100 };
-
 interface ResultSetProps {
   showControls?: boolean;
   actions: Record<string, any>;
@@ -79,6 +77,14 @@ interface ResultSetState {
   showSaveDatasetModal: boolean;
   alertIsOpen: boolean;
 }
+
+const Styles = styled.div`
+  position: relative;
+  minheight: 100px;
+  .sql-result-track-job {
+    margin-top: ${({ theme }) => theme.gridUnit * 2}px;
+  }
+`;
 
 // Making text render line breaks/tabs as is as monospace,
 // but wrapping text too so text doesn't overflow
@@ -417,6 +423,23 @@ export default class ResultSet extends React.PureComponent<
     if (this.props.database && this.props.database.explore_database_id) {
       exploreDBId = this.props.database.explore_database_id;
     }
+    let trackingUrl;
+    if (
+      query.trackingUrl &&
+      query.state !== 'success' &&
+      query.state !== 'fetching'
+    ) {
+      trackingUrl = (
+        <Button
+          className="sql-result-track-job"
+          buttonSize="small"
+          href={query.trackingUrl}
+          target="_blank"
+        >
+          {query.state === 'running' ? t('Track job') : t('See query details')}
+        </Button>
+      );
+    }
 
     if (this.props.showSql) sql = <HighlightedSql sql={query.sql} />;
 
@@ -434,6 +457,7 @@ export default class ResultSet extends React.PureComponent<
             link={query.link}
             source="sqllab"
           />
+          {trackingUrl}
         </ResultSetErrorMessage>
       );
     }
@@ -550,7 +574,6 @@ export default class ResultSet extends React.PureComponent<
         );
       }
     }
-    let trackingUrl;
     let progressBar;
     if (query.progress > 0) {
       progressBar = (
@@ -560,23 +583,13 @@ export default class ResultSet extends React.PureComponent<
         />
       );
     }
-    if (query.trackingUrl) {
-      trackingUrl = (
-        <Button
-          buttonSize="small"
-          onClick={() => query.trackingUrl && window.open(query.trackingUrl)}
-        >
-          {t('Track job')}
-        </Button>
-      );
-    }
     const progressMsg =
       query && query.extra && query.extra.progress
         ? query.extra.progress
         : null;
 
     return (
-      <div style={LOADING_STYLES}>
+      <Styles>
         <div>{!progressBar && <Loading position="normal" />}</div>
         {/* show loading bar whenever progress bar is completed but needs time to render */}
         <div>{query.progress === 100 && <Loading position="normal" />}</div>
@@ -585,8 +598,8 @@ export default class ResultSet extends React.PureComponent<
           {progressMsg && <Alert type="success" message={progressMsg} />}
         </div>
         <div>{query.progress !== 100 && progressBar}</div>
-        <div>{trackingUrl}</div>
-      </div>
+        {trackingUrl && <div>{trackingUrl}</div>}
+      </Styles>
     );
   }
 }
