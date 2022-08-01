@@ -33,6 +33,11 @@ spec:
     matchLabels:
       app: {{ template "superset.name" . }}-worker
       release: {{ .Release.Name }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: {{ .Values.supersetWorker.rollingUpdate.maxSurge }}
+      maxUnavailable: {{ .Values.supersetWorker.rollingUpdate.maxUnavailable }}
   template:
     metadata:
       annotations:

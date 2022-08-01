@@ -29,6 +29,11 @@ metadata:
 {{- end }}
 spec:
   replicas: {{ .Values.supersetNode.replicaCount }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: {{ .Values.supersetNode.rollingUpdate.maxSurge }}
+      maxUnavailable: {{ .Values.supersetNode.rollingUpdate.maxUnavailable }}
   selector:
     matchLabels:
       app: {{ template "superset.name" . }}
