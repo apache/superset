@@ -25,11 +25,10 @@ import {
   isFeatureEnabled,
   Metric,
   QueryFormMetric,
+  t,
   tn,
 } from '@superset-ui/core';
 import { ColumnMeta, withDndFallback } from '@superset-ui/chart-controls';
-import { isEqual } from 'lodash';
-import { usePrevious } from 'src/hooks/usePrevious';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
 import AdhocMetricPopoverTrigger from 'src/explore/components/controls/MetricControl/AdhocMetricPopoverTrigger';
 import MetricDefinitionValue from 'src/explore/components/controls/MetricControl/MetricDefinitionValue';
@@ -81,53 +80,8 @@ const getOptionsForSavedMetrics = (
 
 type ValueType = Metric | AdhocMetric | QueryFormMetric;
 
-// TODO: use typeguards to distinguish saved metrics from adhoc metrics
-const getMetricsMatchingCurrentDataset = (
-  values: ValueType[],
-  columns: ColumnMeta[],
-  savedMetrics: (savedMetricType | Metric)[],
-  prevColumns: ColumnMeta[],
-  prevSavedMetrics: (savedMetricType | Metric)[],
-): ValueType[] => {
-  const areSavedMetricsEqual =
-    !prevSavedMetrics || isEqual(prevSavedMetrics, savedMetrics);
-  const areColsEqual = !prevColumns || isEqual(prevColumns, columns);
-
-  if (areColsEqual && areSavedMetricsEqual) {
-    return values;
-  }
-  return values.reduce((acc: ValueType[], metric) => {
-    if (typeof metric === 'string' || (metric as Metric).metric_name) {
-      if (
-        areSavedMetricsEqual ||
-        savedMetrics?.some(
-          savedMetric =>
-            savedMetric.metric_name === metric ||
-            savedMetric.metric_name === (metric as Metric).metric_name,
-        )
-      ) {
-        acc.push(metric);
-      }
-      return acc;
-    }
-
-    if (!areColsEqual) {
-      const newCol = columns?.find(
-        column =>
-          (metric as AdhocMetric).column?.column_name === column.column_name,
-      );
-      if (newCol) {
-        acc.push({ ...(metric as AdhocMetric), column: newCol });
-      }
-    } else {
-      acc.push(metric);
-    }
-    return acc;
-  }, []);
-};
-
 const DndMetricSelect = (props: any) => {
-  const { onChange, multi, columns, savedMetrics } = props;
+  const { onChange, multi } = props;
 
   const handleChange = useCallback(
     opts => {
@@ -159,33 +113,10 @@ const DndMetricSelect = (props: any) => {
     DatasourcePanelDndItem | typeof EMPTY_OBJECT
   >({});
   const [newMetricPopoverVisible, setNewMetricPopoverVisible] = useState(false);
-  const prevColumns = usePrevious(columns);
-  const prevSavedMetrics = usePrevious(savedMetrics);
 
   useEffect(() => {
     setValue(coerceAdhocMetrics(props.value));
   }, [JSON.stringify(props.value)]);
-
-  useEffect(() => {
-    // Remove selected custom metrics that do not exist in the dataset anymore
-    // Remove selected adhoc metrics that use columns which do not exist in the dataset anymore
-    // Sync adhoc metrics with dataset columns when they are modified by the user
-    if (!props.value) {
-      return;
-    }
-    const propsValues = ensureIsArray(props.value);
-    const matchingMetrics = getMetricsMatchingCurrentDataset(
-      propsValues,
-      columns,
-      savedMetrics,
-      prevColumns,
-      prevSavedMetrics,
-    );
-
-    if (!isEqual(propsValues, matchingMetrics)) {
-      handleChange(matchingMetrics);
-    }
-  }, [columns, savedMetrics, handleChange]);
 
   const canDrop = useCallback(
     (item: DatasourcePanelDndItem) => {
@@ -291,6 +222,11 @@ const DndMetricSelect = (props: any) => {
         onDropLabel={handleDropLabel}
         type={`${DndItemType.AdhocMetricOption}_${props.name}_${props.label}`}
         multi={multi}
+        datasourceWarningMessage={
+          option instanceof AdhocMetric && option.datasourceWarning
+            ? t('This metric might be incompatible with current dataset')
+            : undefined
+        }
       />
     ),
     [

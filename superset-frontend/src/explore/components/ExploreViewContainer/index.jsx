@@ -458,6 +458,7 @@ function ExploreViewContainer(props) {
           !areObjectsEqual(
             props.controls[key].value,
             lastQueriedControls[key].value,
+            { ignoreFields: ['datasourceWarning'] },
           ),
       );
 
