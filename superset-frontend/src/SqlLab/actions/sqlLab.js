@@ -112,7 +112,7 @@ const queryClientMapping = {
   id: 'remoteId',
   db_id: 'dbId',
   client_id: 'id',
-  label: 'title',
+  label: 'name',
 };
 const queryServerMapping = invert(queryClientMapping);
 
@@ -541,7 +541,7 @@ export function cloneQueryToNewTab(query, autorun) {
       qe => qe.id === tabHistory[tabHistory.length - 1],
     );
     const queryEditor = {
-      title: t('Copy of %s', sourceQueryEditor.title),
+      name: t('Copy of %s', sourceQueryEditor.name),
       dbId: query.dbId ? query.dbId : null,
       schema: query.schema ? query.schema : null,
       autorun,
@@ -629,7 +629,7 @@ export function switchQueryEditor(queryEditor, displayLimit) {
           const loadedQueryEditor = {
             id: json.id.toString(),
             loaded: true,
-            title: json.label,
+            name: json.label,
             sql: json.sql,
             selectedText: null,
             latestQueryId: json.latest_query?.id,
@@ -834,24 +834,22 @@ export function queryEditorSetAutorun(queryEditor, autorun) {
   };
 }
 
-export function queryEditorSetTitle(queryEditor, title) {
+export function queryEditorSetTitle(queryEditor, name) {
   return function (dispatch) {
     const sync = isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)
       ? SupersetClient.put({
           endpoint: encodeURI(`/tabstateview/${queryEditor.id}`),
-          postPayload: { label: title },
+          postPayload: { label: name },
         })
       : Promise.resolve();
 
     return sync
-      .then(() =>
-        dispatch({ type: QUERY_EDITOR_SET_TITLE, queryEditor, title }),
-      )
+      .then(() => dispatch({ type: QUERY_EDITOR_SET_TITLE, queryEditor, name }))
       .catch(() =>
         dispatch(
           addDangerToast(
             t(
-              'An error occurred while setting the tab title. Please contact your administrator.',
+              'An error occurred while setting the tab name. Please contact your administrator.',
             ),
           ),
         ),
@@ -873,7 +871,7 @@ export function saveQuery(query) {
           query,
           result: savedQuery,
         });
-        dispatch(queryEditorSetTitle(query, query.title));
+        dispatch(queryEditorSetTitle(query, query.name));
         return savedQuery;
       })
       .catch(() =>
@@ -908,7 +906,7 @@ export function updateSavedQuery(query) {
     })
       .then(() => {
         dispatch(addSuccessToast(t('Your query was updated')));
-        dispatch(queryEditorSetTitle(query, query.title));
+        dispatch(queryEditorSetTitle(query, query.name));
       })
       .catch(() =>
         dispatch(addDangerToast(t('Your query could not be updated'))),
@@ -965,7 +963,7 @@ export function queryEditorSetQueryLimit(queryEditor, queryLimit) {
         dispatch(
           addDangerToast(
             t(
-              'An error occurred while setting the tab title. Please contact your administrator.',
+              'An error occurred while setting the tab name. Please contact your administrator.',
             ),
           ),
         ),
@@ -1264,7 +1262,7 @@ export function popStoredQuery(urlId) {
       .then(({ json }) =>
         dispatch(
           addQueryEditor({
-            title: json.title ? json.title : t('Shared query'),
+            name: json.name ? json.name : t('Shared query'),
             dbId: json.dbId ? parseInt(json.dbId, 10) : null,
             schema: json.schema ? json.schema : null,
             autorun: json.autorun ? json.autorun : false,
@@ -1302,7 +1300,7 @@ export function popQuery(queryId) {
           dbId: queryData.database.id,
           schema: queryData.schema,
           sql: queryData.sql,
-          title: `Copy of ${queryData.tab_name}`,
+          name: `Copy of ${queryData.tab_name}`,
           autorun: false,
         };
         return dispatch(addQueryEditor(queryEditorProps));
@@ -1318,7 +1316,7 @@ export function popDatasourceQuery(datasourceKey, sql) {
       .then(({ json }) =>
         dispatch(
           addQueryEditor({
-            title: `Query ${json.name}`,
+            name: `Query ${json.name}`,
             dbId: json.database.id,
             schema: json.schema,
             autorun: sql !== undefined,

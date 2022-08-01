@@ -42,7 +42,7 @@ const standardProvider = ({ children }) => (
 const defaultProps = {
   queryEditor: {
     dbId: 0,
-    title: 'query title',
+    name: 'query title',
     schema: 'query_schema',
     autorun: false,
     sql: 'SELECT * FROM ...',
