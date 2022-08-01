@@ -345,10 +345,10 @@ class SqlEditor extends React.PureComponent {
         key: userOS === 'Windows' ? 'ctrl+q' : 'ctrl+t',
         descr: t('New tab'),
         func: () => {
-          const title = newQueryTabName(this.props.queryEditors || []);
+          const name = newQueryTabName(this.props.queryEditors || []);
           this.props.addQueryEditor({
             ...this.props.queryEditor,
-            title,
+            name,
           });
         },
       },
@@ -463,7 +463,7 @@ class SqlEditor extends React.PureComponent {
       dbId: qe.dbId,
       sql: qe.selectedText ? qe.selectedText : qe.sql,
       sqlEditorId: qe.id,
-      tab: qe.title,
+      tab: qe.name,
       schema: qe.schema,
       tempTable: ctas ? this.state.ctas : '',
       templateParams: qe.templateParams,
@@ -584,7 +584,7 @@ class SqlEditor extends React.PureComponent {
         {scheduledQueriesConf && (
           <Menu.Item>
             <ScheduleQueryButton
-              defaultLabel={qe.title}
+              defaultLabel={qe.name}
               sql={qe.sql}
               onSchedule={this.props.actions.scheduleQuery}
               schema={qe.schema}
@@ -722,10 +722,11 @@ class SqlEditor extends React.PureComponent {
           <span>
             <SaveQuery
               query={qe}
-              defaultLabel={qe.title || qe.description}
+              defaultLabel={qe.name || qe.description}
               onSave={this.saveQuery}
               onUpdate={this.props.actions.updateSavedQuery}
               saveQueryWarning={this.props.saveQueryWarning}
+              database={this.props.database}
             />
           </span>
           <span>

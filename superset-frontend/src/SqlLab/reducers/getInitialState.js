@@ -41,7 +41,7 @@ export default function getInitialState({
   const defaultQueryEditor = {
     id: null,
     loaded: true,
-    title: t('Untitled query'),
+    name: t('Untitled query'),
     sql: 'SELECT *\nFROM\nWHERE',
     selectedText: null,
     latestQueryId: null,
@@ -73,7 +73,7 @@ export default function getInitialState({
       queryEditor = {
         id: id.toString(),
         loaded: true,
-        title: activeTab.label,
+        name: activeTab.label,
         sql: activeTab.sql || undefined,
         selectedText: undefined,
         latestQueryId: activeTab.latest_query
@@ -99,7 +99,7 @@ export default function getInitialState({
         ...defaultQueryEditor,
         id: id.toString(),
         loaded: false,
-        title: label,
+        name: label,
       };
     }
     queryEditors.push(queryEditor);
