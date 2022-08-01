@@ -19,31 +19,37 @@
 import { QueryObjectFilterClause } from '@superset-ui/core';
 import { EChartTransformedProps, EventHandlers } from '../types';
 
-type Event = {
+export type Event = {
   name: string;
   event: { stop: () => void; event: PointerEvent };
 };
 
-export const defaultEventHandlers = (
-  transformedProps: EChartTransformedProps<any>,
-  handleChange: (values: string[]) => void,
-) => {
-  const { groupby, selectedValues, onContextMenu } = transformedProps;
-  const eventHandlers: EventHandlers = {
-    click: ({ name }: { name: string }) => {
-      const values = Object.values(selectedValues);
-      if (values.includes(name)) {
-        handleChange(values.filter(v => v !== name));
-      } else {
-        handleChange([name]);
-      }
-    },
-    contextmenu: (e: Event) => {
-      if (onContextMenu) {
-        e.event.stop();
-        const pointerEvent = e.event.event;
+export const clickEventHandler =
+  (
+    selectedValues: Record<number, string>,
+    handleChange: (values: string[]) => void,
+  ) =>
+  ({ name }: { name: string }) => {
+    const values = Object.values(selectedValues);
+    if (values.includes(name)) {
+      handleChange(values.filter(v => v !== name));
+    } else {
+      handleChange([name]);
+    }
+  };
+
+export const contextMenuEventHandler =
+  (
+    groupby: EChartTransformedProps<any>['groupby'],
+    onContextMenu: EChartTransformedProps<any>['onContextMenu'],
+  ) =>
+  (e: Event) => {
+    if (onContextMenu) {
+      e.event.stop();
+      const pointerEvent = e.event.event;
+      const filters: QueryObjectFilterClause[] = [];
+      if (groupby.length > 0) {
         const values = e.name.split(',');
-        const filters: QueryObjectFilterClause[] = [];
         groupby.forEach((dimension, i) =>
           filters.push({
             col: dimension,
@@ -52,9 +58,19 @@ export const defaultEventHandlers = (
             formattedVal: values[i],
           }),
         );
-        onContextMenu(filters, pointerEvent.offsetX, pointerEvent.offsetY);
       }
-    },
+      onContextMenu(filters, pointerEvent.offsetX, pointerEvent.offsetY);
+    }
+  };
+
+export const allEventHandlers = (
+  transformedProps: EChartTransformedProps<any>,
+  handleChange: (values: string[]) => void,
+) => {
+  const { groupby, selectedValues, onContextMenu } = transformedProps;
+  const eventHandlers: EventHandlers = {
+    click: clickEventHandler(selectedValues, handleChange),
+    contextmenu: contextMenuEventHandler(groupby, onContextMenu),
   };
   return eventHandlers;
 };

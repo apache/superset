@@ -19,7 +19,7 @@
 import React, { useCallback } from 'react';
 import { RadarChartTransformedProps } from './types';
 import Echart from '../components/Echart';
-import { defaultEventHandlers } from '../utils/eventHandlers';
+import { allEventHandlers } from '../utils/eventHandlers';
 
 export default function EchartsRadar(props: RadarChartTransformedProps) {
   const {
@@ -68,7 +68,7 @@ export default function EchartsRadar(props: RadarChartTransformedProps) {
     [groupby, labelMap, setDataMask, selectedValues],
   );
 
-  const eventHandlers = defaultEventHandlers(props, handleChange);
+  const eventHandlers = allEventHandlers(props, handleChange);
 
   return (
     <Echart

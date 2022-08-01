@@ -19,7 +19,7 @@
 import React, { useCallback } from 'react';
 import { PieChartTransformedProps } from './types';
 import Echart from '../components/Echart';
-import { defaultEventHandlers } from '../utils/eventHandlers';
+import { allEventHandlers } from '../utils/eventHandlers';
 
 export default function EchartsPie(props: PieChartTransformedProps) {
   const {
@@ -68,7 +68,7 @@ export default function EchartsPie(props: PieChartTransformedProps) {
     [groupby, labelMap, setDataMask, selectedValues],
   );
 
-  const eventHandlers = defaultEventHandlers(props, handleChange);
+  const eventHandlers = allEventHandlers(props, handleChange);
 
   return (
     <Echart

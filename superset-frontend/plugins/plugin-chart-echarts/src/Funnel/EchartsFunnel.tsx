@@ -19,7 +19,7 @@
 import React, { useCallback } from 'react';
 import { FunnelChartTransformedProps } from './types';
 import Echart from '../components/Echart';
-import { defaultEventHandlers } from '../utils/eventHandlers';
+import { allEventHandlers } from '../utils/eventHandlers';
 
 export default function EchartsFunnel(props: FunnelChartTransformedProps) {
   const {
@@ -68,7 +68,7 @@ export default function EchartsFunnel(props: FunnelChartTransformedProps) {
     [groupby, labelMap, setDataMask, selectedValues],
   );
 
-  const eventHandlers = defaultEventHandlers(props, handleChange);
+  const eventHandlers = allEventHandlers(props, handleChange);
 
   return (
     <Echart

@@ -18,7 +18,7 @@
  */
 import React, { useCallback } from 'react';
 import Echart from '../components/Echart';
-import { defaultEventHandlers } from '../utils/eventHandlers';
+import { allEventHandlers } from '../utils/eventHandlers';
 import { BoxPlotChartTransformedProps } from './types';
 
 export default function EchartsBoxPlot(props: BoxPlotChartTransformedProps) {
@@ -68,7 +68,7 @@ export default function EchartsBoxPlot(props: BoxPlotChartTransformedProps) {
     [groupby, labelMap, setDataMask, selectedValues],
   );
 
-  const eventHandlers = defaultEventHandlers(props, handleChange);
+  const eventHandlers = allEventHandlers(props, handleChange);
 
   return (
     <Echart
