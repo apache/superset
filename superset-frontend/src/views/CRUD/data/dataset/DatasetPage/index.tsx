@@ -23,7 +23,7 @@ import LeftPanel from './LeftPanel';
 import RightPanel from './RightPanel';
 import Footer from './Footer';
 
-export default function DatasetCreator() {
+export default function DatasetPage() {
   return (
     <div>
       <Header />
