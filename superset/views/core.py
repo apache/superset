@@ -2135,7 +2135,12 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         table.columns = cols
         table.metrics = [SqlMetric(metric_name="count", expression="count(*)")]
         db.session.commit()
-        return json_success(json.dumps({"table_id": table.id}))
+
+        return json_success(
+            json.dumps(
+                {"table_id": table.id, "data": sanitize_datasource_data(table.data)}
+            )
+        )
 
     @has_access
     @expose("/extra_table_metadata/<int:database_id>/<table_name>/<schema>/")

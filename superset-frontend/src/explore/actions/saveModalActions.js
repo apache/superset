@@ -135,8 +135,13 @@ const addToasts = (isNewSlice, sliceName, addedToDashboard) => {
 
 //  Update existing slice
 export const updateSlice =
-  ({ slice_id: sliceId, owners }, sliceName, formData, addedToDashboard) =>
-  async dispatch => {
+  ({ slice_id: sliceId, owners }, sliceName, addedToDashboard) =>
+  async (dispatch, getState) => {
+    const {
+      explore: {
+        form_data: { url_params: _, ...formData },
+      },
+    } = getState();
     try {
       const response = await SupersetClient.put({
         endpoint: `/api/v1/chart/${sliceId}`,
@@ -154,7 +159,12 @@ export const updateSlice =
 
 //  Create new slice
 export const createSlice =
-  (sliceName, formData, addedToDashboard) => async dispatch => {
+  (sliceName, addedToDashboard) => async (dispatch, getState) => {
+    const {
+      explore: {
+        form_data: { url_params: _, ...formData },
+      },
+    } = getState();
     try {
       const response = await SupersetClient.post({
         endpoint: `/api/v1/chart/`,
