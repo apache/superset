@@ -189,7 +189,7 @@ export function areObjectsEqual(
   opts: {
     ignoreUndefined?: boolean;
     ignoreNull?: boolean;
-    ignoreFields: string[];
+    ignoreFields?: string[];
   } = { ignoreUndefined: false, ignoreNull: false, ignoreFields: [] },
 ) {
   let comp1 = obj1;
@@ -202,11 +202,12 @@ export function areObjectsEqual(
     comp1 = omitBy(comp1, isNull);
     comp2 = omitBy(comp2, isNull);
   }
-  if (opts.ignoreFields?.length) {
+  if (opts.ignoreFields) {
+    const ignoreFields = ensureIsArray(opts.ignoreFields);
     return isEqualWith(comp1, comp2, (val1, val2) =>
       isEqual(
-        ensureIsArray(val1).map(value => omit(value, opts.ignoreFields)),
-        ensureIsArray(val2).map(value => omit(value, opts.ignoreFields)),
+        ensureIsArray(val1).map(value => omit(value, ignoreFields)),
+        ensureIsArray(val2).map(value => omit(value, ignoreFields)),
       ),
     );
   }
