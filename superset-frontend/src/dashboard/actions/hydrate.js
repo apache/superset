@@ -337,6 +337,25 @@ export const hydrateDashboard =
         if (!metadata.chart_configuration) {
           metadata.chart_configuration = {};
         }
+        if (behaviors.includes(Behavior.INTERACTIVE_CHART)) {
+          if (!metadata.chart_configuration[chartId]) {
+            metadata.chart_configuration[chartId] = {
+              id: chartId,
+              crossFilters: {
+                scope: {
+                  rootPath: [DASHBOARD_ROOT_ID],
+                  excluded: [chartId], // By default it doesn't affects itself
+                },
+              },
+            };
+          }
+          metadata.chart_configuration[chartId].crossFilters.chartsInScope =
+            getChartIdsInFilterScope(
+              metadata.chart_configuration[chartId].crossFilters.scope,
+              chartQueries,
+              dashboardLayout.present,
+            );
+        }
         if (
           behaviors.includes(Behavior.INTERACTIVE_CHART) &&
           !metadata.chart_configuration[chartId]
@@ -348,20 +367,8 @@ export const hydrateDashboard =
                 rootPath: [DASHBOARD_ROOT_ID],
                 excluded: [chartId], // By default it doesn't affects itself
               },
-              chartsInScope: Array.from(sliceIds),
             },
           };
-        }
-        if (
-          behaviors.includes(Behavior.INTERACTIVE_CHART) &&
-          !metadata.chart_configuration[chartId].crossFilters?.chartsInScope
-        ) {
-          metadata.chart_configuration[chartId].crossFilters.chartsInScope =
-            getChartIdsInFilterScope(
-              metadata.chart_configuration[chartId].crossFilters.scope,
-              charts,
-              dashboardLayout.present,
-            );
         }
       });
     }
