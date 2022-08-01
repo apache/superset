@@ -43,13 +43,13 @@ import serializeFilterScopes from 'src/dashboard/util/serializeFilterScopes';
 import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 import { safeStringify } from 'src/utils/safeStringify';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
-import { fetchDatasourceMetadata } from 'src/dashboard/util/fetchDatasourceMetadata';
 import { UPDATE_COMPONENTS_PARENTS_LIST } from './dashboardLayout';
 import {
   setChartConfiguration,
   dashboardInfoChanged,
   SET_CHART_CONFIG_COMPLETE,
 } from './dashboardInfo';
+import { fetchDatasourceMetadata } from './datasources';
 import {
   addFilter,
   removeFilter,
@@ -240,6 +240,7 @@ export function saveDashboardRequest(data, id, saveType) {
         ...data.metadata,
         color_namespace: data.metadata?.color_namespace || undefined,
         color_scheme: data.metadata?.color_scheme || '',
+        color_scheme_domain: data.metadata?.color_scheme_domain || [],
         expanded_slices: data.metadata?.expanded_slices || {},
         label_colors: data.metadata?.label_colors || {},
         shared_label_colors: data.metadata?.shared_label_colors || {},

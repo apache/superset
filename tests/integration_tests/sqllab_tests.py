@@ -18,6 +18,7 @@
 """Unit tests for Sql Lab"""
 import json
 from datetime import datetime, timedelta
+from math import ceil, floor
 
 import pytest
 from celery.exceptions import SoftTimeLimitExceeded
@@ -70,8 +71,8 @@ class TestSqlLab(SupersetTestCase):
         db.session.query(Query).delete()
         db.session.commit()
         self.run_sql(QUERY_1, client_id="client_id_1", username="admin")
-        self.run_sql(QUERY_2, client_id="client_id_3", username="admin")
-        self.run_sql(QUERY_3, client_id="client_id_2", username="gamma_sqllab")
+        self.run_sql(QUERY_2, client_id="client_id_2", username="admin")
+        self.run_sql(QUERY_3, client_id="client_id_3", username="gamma_sqllab")
         self.logout()
 
     def tearDown(self):
@@ -406,22 +407,17 @@ class TestSqlLab(SupersetTestCase):
         self.assertEqual(2, len(data))
         self.assertIn("birth", data[0]["sql"])
 
-    def test_search_query_on_time(self):
+    def test_search_query_filter_by_time(self):
         self.run_some_queries()
         self.login("admin")
-        first_query_time = (
-            db.session.query(Query).filter_by(sql=QUERY_1).one()
-        ).start_time
-        second_query_time = (
-            db.session.query(Query).filter_by(sql=QUERY_3).one()
-        ).start_time
-        # Test search queries on time filter
-        from_time = "from={}".format(int(first_query_time))
-        to_time = "to={}".format(int(second_query_time))
-        params = [from_time, to_time]
-        resp = self.get_resp("/superset/search_queries?" + "&".join(params))
-        data = json.loads(resp)
-        self.assertEqual(2, len(data))
+        from_time = floor(
+            (db.session.query(Query).filter_by(sql=QUERY_1).one()).start_time
+        )
+        to_time = ceil(
+            (db.session.query(Query).filter_by(sql=QUERY_2).one()).start_time
+        )
+        url = f"/superset/search_queries?from={from_time}&to={to_time}"
+        assert len(self.client.get(url).json) == 2
 
     def test_search_query_only_owned(self) -> None:
         """

@@ -28,7 +28,7 @@ import {
   getChartMetadataRegistry,
   QueryFormData,
 } from '@superset-ui/core';
-import { Charts, DashboardLayout } from 'src/dashboard/types';
+import { DashboardLayout } from 'src/dashboard/types';
 import extractUrlParams from 'src/dashboard/util/extractUrlParams';
 import { isFeatureEnabled } from 'src/featureFlags';
 import { CHART_TYPE, TAB_TYPE } from '../../util/componentTypes';
@@ -122,7 +122,6 @@ export function isCrossFilter(vizType: string) {
 
 export function getExtraFormData(
   dataMask: DataMaskStateWithId,
-  charts: Charts,
   filterIdsAppliedOnChart: string[],
 ): ExtraFormData {
   let extraFormData: ExtraFormData = {};

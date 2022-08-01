@@ -20,6 +20,7 @@ import {
   ChartProps,
   DataMaskStateWithId,
   ExtraFormData,
+  GenericDataType,
   JsonObject,
   NativeFiltersState,
 } from '@superset-ui/core';
@@ -64,6 +65,8 @@ export type DashboardState = {
   isRefreshing: boolean;
   isFiltersRefreshing: boolean;
   hasUnsavedChanges: boolean;
+  colorScheme: string;
+  sliceIds: number[];
 };
 export type DashboardInfo = {
   id: number;
@@ -78,13 +81,23 @@ export type DashboardInfo = {
     native_filter_configuration: JsonObject;
     show_native_filters: boolean;
     chart_configuration: JsonObject;
+    color_scheme: string;
+    color_namespace: string;
+    color_scheme_domain: string[];
+    label_colors: JsonObject;
+    shared_label_colors: JsonObject;
   };
 };
 
 export type ChartsState = { [key: string]: Chart };
 
+export type Datasource = Dataset & {
+  uid: string;
+  column_types: GenericDataType[];
+  table_name: string;
+};
 export type DatasourcesState = {
-  [key: string]: Dataset;
+  [key: string]: Datasource;
 };
 
 /** Root state of redux */

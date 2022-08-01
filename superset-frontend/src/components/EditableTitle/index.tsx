@@ -16,9 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { MouseEvent, useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import cx from 'classnames';
-import { css, styled, t } from '@superset-ui/core';
+import { css, styled, SupersetTheme, t } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
 import CertifiedBadge from '../CertifiedBadge';
 
@@ -37,7 +38,7 @@ export interface EditableTitleProps {
   placeholder?: string;
   certifiedBy?: string;
   certificationDetails?: string;
-  onClickTitle?: (event: MouseEvent) => void;
+  url?: string;
 }
 
 const StyledCertifiedBadge = styled(CertifiedBadge)`
@@ -58,7 +59,7 @@ export default function EditableTitle({
   placeholder = '',
   certifiedBy,
   certificationDetails,
-  onClickTitle,
+  url,
   // rest is related to title tooltip
   ...rest
 }: EditableTitleProps) {
@@ -218,20 +219,20 @@ export default function EditableTitle({
   }
   if (!canEdit) {
     // don't actually want an input in this case
-    titleComponent = onClickTitle ? (
-      <span
-        role="button"
-        onClick={onClickTitle}
-        tabIndex={0}
+    titleComponent = url ? (
+      <Link
+        to={url}
         data-test="editable-title-input"
-        css={css`
+        css={(theme: SupersetTheme) => css`
+          color: ${theme.colors.grayscale.dark1};
+          text-decoration: none;
           :hover {
             text-decoration: underline;
           }
         `}
       >
         {value}
-      </span>
+      </Link>
     ) : (
       <span data-test="editable-title-input">{value}</span>
     );

@@ -62,7 +62,7 @@ const propTypes = {
   vizType: PropTypes.string.isRequired,
   form_data: PropTypes.object,
   ownState: PropTypes.object,
-  standalone: PropTypes.number,
+  standalone: PropTypes.bool,
   force: PropTypes.bool,
   timeout: PropTypes.number,
   chartIsStale: PropTypes.bool,

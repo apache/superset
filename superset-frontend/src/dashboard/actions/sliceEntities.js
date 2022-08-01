@@ -72,13 +72,11 @@ export function fetchSlices(
         'id',
         'params',
         'slice_name',
+        'thumbnail_url',
         'url',
         'viz_type',
       ],
-      filters: [
-        { col: 'owners', opr: 'rel_m_m', value: userId },
-        ...additional_filters,
-      ],
+      filters: [...additional_filters],
       page_size: FETCH_SLICES_PAGE_SIZE,
       order_column:
         sortColumn === 'changed_on' ? 'changed_on_delta_humanized' : sortColumn,
@@ -117,6 +115,7 @@ export function fetchSlices(
           viz_type: slice.viz_type,
           modified: slice.changed_on_delta_humanized,
           changed_on_humanized: slice.changed_on_delta_humanized,
+          thumbnail_url: slice.thumbnail_url,
         };
       });
 

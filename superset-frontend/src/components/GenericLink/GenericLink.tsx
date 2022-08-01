@@ -16,9 +16,37 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-const queryObjectCount = {
-  mixed_timeseries: 2,
-};
 
-export const getQueryCount = (vizType: string): number =>
-  queryObjectCount?.[vizType] || 1;
+import React from 'react';
+import { Link, LinkProps } from 'react-router-dom';
+import { isUrlExternal, parseUrl } from 'src/utils/urlUtils';
+
+export const GenericLink = <S,>({
+  to,
+  component,
+  replace,
+  innerRef,
+  children,
+  ...rest
+}: React.PropsWithoutRef<LinkProps<S>> &
+  React.RefAttributes<HTMLAnchorElement>) => {
+  if (typeof to === 'string' && isUrlExternal(to)) {
+    return (
+      <a data-test="external-link" href={parseUrl(to)} {...rest}>
+        {children}
+      </a>
+    );
+  }
+  return (
+    <Link
+      data-test="internal-link"
+      to={to}
+      component={component}
+      replace={replace}
+      innerRef={innerRef}
+      {...rest}
+    >
+      {children}
+    </Link>
+  );
+};
