@@ -1543,9 +1543,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     )
 
             if isinstance(dttm_col, dict):
-                time_filters.append(dttm_col.get_time_filter(from_dttm, to_dttm))
-            else:
                 time_filters.append(self.get_time_filter(dttm_col, from_dttm, to_dttm))
+            else:
+                time_filters.append(dttm_col.get_time_filter(from_dttm, to_dttm))
 
         # Always remove duplicates by column name, as sometimes `metrics_exprs`
         # can have the same name as a groupby column (e.g. when users use
