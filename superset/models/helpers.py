@@ -1203,14 +1203,15 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
     def dttm_sql_literal(self, dttm: sa.DateTime, col_type: Optional[str]) -> str:
         """Convert datetime object to a SQL expression string"""
-        # sql = (
-        #     self.db_engine_spec.convert_dttm(col_type, dttm, db_extra=None)
-        #     if col_type
-        #     else None
-        # )
 
-        # if sql:
-        #     return sql
+        sql = (
+            self.db_engine_spec.convert_dttm(col_type, dttm, db_extra=None)
+            if col_type
+            else None
+        )
+
+        if sql:
+            return sql
 
         return f'{dttm.strftime("%Y-%m-%d %H:%M:%S.%f")}'
 
@@ -1226,9 +1227,19 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         my_col = self.make_sqla_column_compatible(sqla_col, label)
         l = []
         if start_dttm:
-            l.append(my_col >= self.dttm_sql_literal(start_dttm, time_col.get("type")))
+            l.append(
+                my_col
+                >= self.db_engine_spec.get_text_clause(
+                    self.dttm_sql_literal(start_dttm, time_col.get("type"))
+                )
+            )
         if end_dttm:
-            l.append(my_col < self.dttm_sql_literal(end_dttm, time_col.get("type")))
+            l.append(
+                my_col
+                < self.db_engine_spec.get_text_clause(
+                    self.dttm_sql_literal(end_dttm, time_col.get("type"))
+                )
+            )
         return and_(*l)
 
     def values_for_column(self, column_name: str, limit: int = 10000) -> List[Any]:
