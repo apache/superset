@@ -187,5 +187,4 @@ class TestAdvancedDataTypeApi(SupersetTestCase):
             )
             .one_or_none()
         )
-        print(dataset)
         assert data == {"result": {f"{dataset[0]}": [dataset[1]]}}
