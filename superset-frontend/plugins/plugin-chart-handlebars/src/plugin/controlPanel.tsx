@@ -21,8 +21,7 @@ import {
   emitFilterControl,
   sections,
 } from '@superset-ui/chart-controls';
-import { addLocaleData, t } from '@superset-ui/core';
-import i18n from '../i18n';
+import { t } from '@superset-ui/core';
 import { allColumnsControlSetItem } from './controls/columns';
 import { groupByControlSetItem } from './controls/groupBy';
 import { handlebarsTemplateControlSetItem } from './controls/handlebarTemplate';
@@ -46,8 +45,6 @@ import {
 } from './controls/pagination';
 import { queryModeControlSetItem } from './controls/queryMode';
 import { styleControlSetItem } from './controls/style';
-
-addLocaleData(i18n);
 
 const config: ControlPanelConfig = {
   controlPanelSections: [

@@ -313,8 +313,5 @@ export function getAxisType(
   if (dataType === GenericDataType.TEMPORAL) {
     return 'time';
   }
-  if (dataType === GenericDataType.NUMERIC) {
-    return 'value';
-  }
   return 'category';
 }

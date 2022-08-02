@@ -16,91 +16,100 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import fetchMock from 'fetch-mock';
-import userEvent from '@testing-library/user-event';
-import {
-  render,
-  waitForElementToBeRemoved,
-} from 'spec/helpers/testing-library';
-import { exploreActions } from 'src/explore/actions/exploreActions';
-import { promiseTimeout } from '@superset-ui/core';
-import { SamplesPane } from '../components';
-import { createSamplesPaneProps } from './fixture';
+ import React from 'react';
+ import fetchMock from 'fetch-mock';
+ import userEvent from '@testing-library/user-event';
+ import {
+   render,
+   waitForElementToBeRemoved,
+ } from 'spec/helpers/testing-library';
+ import { exploreActions } from 'src/explore/actions/exploreActions';
+ import { promiseTimeout } from '@superset-ui/core';
+ import { SamplesPane } from '../components';
+ import { createSamplesPaneProps } from './fixture';
 
-describe('SamplesPane', () => {
-  fetchMock.get('end:/api/v1/dataset/34/samples?force=false', {
-    result: {
-      data: [],
-      colnames: [],
-      coltypes: [],
-    },
-  });
+ describe('SamplesPane', () => {
+   fetchMock.post(
+     'end:/datasource/samples?force=false&datasource_type=table&datasource_id=34',
+     {
+       result: {
+         data: [],
+         colnames: [],
+         coltypes: [],
+       },
+     },
+   );
 
-  fetchMock.get('end:/api/v1/dataset/35/samples?force=true', {
-    result: {
-      data: [
-        { __timestamp: 1230768000000, genre: 'Action' },
-        { __timestamp: 1230768000010, genre: 'Horror' },
-      ],
-      colnames: ['__timestamp', 'genre'],
-      coltypes: [2, 1],
-    },
-  });
+   fetchMock.post(
+     'end:/datasource/samples?force=true&datasource_type=table&datasource_id=35',
+     {
+       result: {
+         data: [
+           { __timestamp: 1230768000000, genre: 'Action' },
+           { __timestamp: 1230768000010, genre: 'Horror' },
+         ],
+         colnames: ['__timestamp', 'genre'],
+         coltypes: [2, 1],
+       },
+     },
+   );
 
-  fetchMock.get('end:/api/v1/dataset/36/samples?force=false', 400);
+   fetchMock.post(
+     'end:/datasource/samples?force=false&datasource_type=table&datasource_id=36',
+     400,
+   );
 
-  const setForceQuery = jest.spyOn(exploreActions, 'setForceQuery');
+   const setForceQuery = jest.spyOn(exploreActions, 'setForceQuery');
 
-  afterAll(() => {
-    fetchMock.reset();
-    jest.resetAllMocks();
-  });
+   afterAll(() => {
+     fetchMock.reset();
+     jest.resetAllMocks();
+   });
 
-  test('render', async () => {
-    const props = createSamplesPaneProps({ datasourceId: 34 });
-    const { findByText } = render(<SamplesPane {...props} />);
-    expect(
-      await findByText('No samples were returned for this dataset'),
-    ).toBeVisible();
-    await promiseTimeout(() => {
-      expect(setForceQuery).toHaveBeenCalledTimes(0);
-    }, 10);
-  });
+   test('render', async () => {
+     const props = createSamplesPaneProps({ datasourceId: 34 });
+     const { findByText } = render(<SamplesPane {...props} />);
+     expect(
+       await findByText('No samples were returned for this dataset'),
+     ).toBeVisible();
+     await promiseTimeout(() => {
+       expect(setForceQuery).toHaveBeenCalledTimes(0);
+     }, 10);
+   });
 
-  test('error response', async () => {
-    const props = createSamplesPaneProps({
-      datasourceId: 36,
-    });
-    const { findByText } = render(<SamplesPane {...props} />, {
-      useRedux: true,
-    });
+   test('error response', async () => {
+     const props = createSamplesPaneProps({
+       datasourceId: 36,
+     });
+     const { findByText } = render(<SamplesPane {...props} />, {
+       useRedux: true,
+     });
 
-    expect(await findByText('Error: Bad Request')).toBeVisible();
-  });
+     expect(await findByText('Error: Bad Request')).toBeVisible();
+   });
 
-  test('force query, render and search', async () => {
-    const props = createSamplesPaneProps({
-      datasourceId: 35,
-      queryForce: true,
-    });
-    const { queryByText, getByPlaceholderText } = render(
-      <SamplesPane {...props} />,
-      {
-        useRedux: true,
-      },
-    );
+   test('force query, render and search', async () => {
+     const props = createSamplesPaneProps({
+       datasourceId: 35,
+       queryForce: true,
+     });
+     const { queryByText, getByPlaceholderText } = render(
+       <SamplesPane {...props} />,
+       {
+         useRedux: true,
+       },
+     );
 
-    await promiseTimeout(() => {
-      expect(setForceQuery).toHaveBeenCalledTimes(1);
-    }, 10);
-    expect(queryByText('2 rows')).toBeVisible();
-    expect(queryByText('Action')).toBeVisible();
-    expect(queryByText('Horror')).toBeVisible();
+     await promiseTimeout(() => {
+       expect(setForceQuery).toHaveBeenCalledTimes(1);
+     }, 10);
+     expect(queryByText('2 rows')).toBeVisible();
+     expect(queryByText('Action')).toBeVisible();
+     expect(queryByText('Horror')).toBeVisible();
 
-    userEvent.type(getByPlaceholderText('Search'), 'hor');
-    await waitForElementToBeRemoved(() => queryByText('Action'));
-    expect(queryByText('Horror')).toBeVisible();
-    expect(queryByText('Action')).not.toBeInTheDocument();
-  });
-});
+     userEvent.type(getByPlaceholderText('Search'), 'hor');
+     await waitForElementToBeRemoved(() => queryByText('Action'));
+     expect(queryByText('Horror')).toBeVisible();
+     expect(queryByText('Action')).not.toBeInTheDocument();
+   });
+ });

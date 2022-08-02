@@ -49,7 +49,7 @@ export default function exploreReducer(state = {}, action) {
         isDatasourceMetaLoading: true,
       };
     },
-    [actions.SET_DATASOURCE]() {
+    [actions.UPDATE_FORM_DATA_BY_DATASOURCE]() {
       const newFormData = { ...state.form_data };
       if (action.datasource.type !== state.datasource.type) {
         if (action.datasource.type === 'table') {

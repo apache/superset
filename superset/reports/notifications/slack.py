@@ -26,7 +26,7 @@ from slack import WebClient
 from slack.errors import SlackApiError, SlackClientError
 
 from superset import app
-from superset.models.reports import ReportRecipientType
+from superset.reports.models import ReportRecipientType
 from superset.reports.notifications.base import BaseNotification
 from superset.reports.notifications.exceptions import NotificationError
 from superset.utils.decorators import statsd_gauge

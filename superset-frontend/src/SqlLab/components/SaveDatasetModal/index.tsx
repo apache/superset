@@ -155,14 +155,7 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
     setShouldOverwriteDataset(false);
     setDatasetToOverwrite({});
     setDatasetName(getDefaultDatasetName());
-
-    exploreChart({
-      ...EXPLORE_CHART_DEFAULT,
-      datasource: `${datasetToOverwrite.datasetId}__table`,
-      all_columns: query.results.selected_columns.map(
-        (d: { name: string; type: string; is_dttm: boolean }) => d.name,
-      ),
-    });
+    onHide();
   };
 
   const getUserDatasets = async (searchText = '') => {

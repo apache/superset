@@ -16,112 +16,77 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useState } from 'react';
-import { ensureIsArray, styled, t } from '@superset-ui/core';
-import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';
-import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
-import CopyToClipboard from 'src/components/CopyToClipboard';
-import Loading from 'src/components/Loading';
-import { CopyButton } from 'src/explore/components/DataTableControl';
-import { getClientErrorObject } from 'src/utils/getClientErrorObject';
-import { getChartDataRequest } from 'src/components/Chart/chartAction';
-import markdownSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/markdown';
-import htmlSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/htmlbars';
-import sqlSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/sql';
-import jsonSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/json';
+ import React, { useEffect, useState } from 'react';
+ import { styled, ensureIsArray, t } from '@superset-ui/core';
+ import Loading from 'src/components/Loading';
+ import { getClientErrorObject } from 'src/utils/getClientErrorObject';
+ import { getChartDataRequest } from 'src/components/Chart/chartAction';
+ import ViewQuery from 'src/explore/components/controls/ViewQuery';
 
-const CopyButtonViewQuery = styled(CopyButton)`
-  && {
-    margin: 0 0 ${({ theme }) => theme.gridUnit}px;
-  }
-`;
+ interface Props {
+   latestQueryFormData: object;
+ }
 
-SyntaxHighlighter.registerLanguage('markdown', markdownSyntax);
-SyntaxHighlighter.registerLanguage('html', htmlSyntax);
-SyntaxHighlighter.registerLanguage('sql', sqlSyntax);
-SyntaxHighlighter.registerLanguage('json', jsonSyntax);
+ type Result = {
+   query: string;
+   language: string;
+ };
 
-interface Props {
-  latestQueryFormData: object;
-}
+ const ViewQueryModalContainer = styled.div`
+   height: 100%;
+   display: flex;
+   flex-direction: column;
+ `;
 
-type Result = {
-  query: string;
-  language: string;
-};
+ const ViewQueryModal: React.FC<Props> = props => {
+   const [result, setResult] = useState<Result[]>([]);
+   const [isLoading, setIsLoading] = useState(false);
+   const [error, setError] = useState<string | null>(null);
 
-const StyledSyntaxContainer = styled.div`
-  height: 100%;
-`;
+   const loadChartData = (resultType: string) => {
+     setIsLoading(true);
+     getChartDataRequest({
+       formData: props.latestQueryFormData,
+       resultFormat: 'json',
+       resultType,
+     })
+       .then(({ json }) => {
+         setResult(ensureIsArray(json.result));
+         setIsLoading(false);
+         setError(null);
+       })
+       .catch(response => {
+         getClientErrorObject(response).then(({ error, message }) => {
+           setError(
+             error ||
+               message ||
+               response.statusText ||
+               t('Sorry, An error occurred'),
+           );
+           setIsLoading(false);
+         });
+       });
+   };
+   useEffect(() => {
+     loadChartData('query');
+   }, [JSON.stringify(props.latestQueryFormData)]);
 
-const StyledSyntaxHighlighter = styled(SyntaxHighlighter)`
-  height: calc(100% - 26px); // 100% - clipboard height
-`;
+   if (isLoading) {
+     return <Loading />;
+   }
+   if (error) {
+     return <pre>{error}</pre>;
+   }
 
-const ViewQueryModal: React.FC<Props> = props => {
-  const [result, setResult] = useState<Result[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+   return (
+     <ViewQueryModalContainer>
+       {result.map(item =>
+         item.query ? (
+           <ViewQuery sql={item.query} language={item.language || undefined} />
+         ) : null,
+       )}
+     </ViewQueryModalContainer>
+   );
+ };
 
-  const loadChartData = (resultType: string) => {
-    setIsLoading(true);
-    getChartDataRequest({
-      formData: props.latestQueryFormData,
-      resultFormat: 'json',
-      resultType,
-    })
-      .then(({ json }) => {
-        setResult(ensureIsArray(json.result));
-        setIsLoading(false);
-        setError(null);
-      })
-      .catch(response => {
-        getClientErrorObject(response).then(({ error, message }) => {
-          setError(
-            error ||
-              message ||
-              response.statusText ||
-              t('Sorry, An error occurred'),
-          );
-          setIsLoading(false);
-        });
-      });
-  };
-  useEffect(() => {
-    loadChartData('query');
-  }, [JSON.stringify(props.latestQueryFormData)]);
-
-  if (isLoading) {
-    return <Loading />;
-  }
-  if (error) {
-    return <pre>{error}</pre>;
-  }
-  return (
-    <>
-      {result.map(item =>
-        item.query ? (
-          <StyledSyntaxContainer key={item.query}>
-            <CopyToClipboard
-              text={item.query}
-              shouldShowText={false}
-              copyNode={
-                <CopyButtonViewQuery buttonSize="xsmall">
-                  <i className="fa fa-clipboard" />
-                </CopyButtonViewQuery>
-              }
-            />
-            <StyledSyntaxHighlighter
-              language={item.language || undefined}
-              style={github}
-            >
-              {item.query}
-            </StyledSyntaxHighlighter>
-          </StyledSyntaxContainer>
-        ) : null,
-      )}
-    </>
-  );
-};
-
-export default ViewQueryModal;
+ export default ViewQueryModal;

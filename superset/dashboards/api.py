@@ -28,7 +28,7 @@ from flask_appbuilder import permission_name
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-from flask_babel import ngettext
+from flask_babel import gettext, ngettext
 from marshmallow import ValidationError
 from werkzeug.wrappers import Response as WerkzeugResponse
 from werkzeug.wsgi import FileWrapper
@@ -383,6 +383,12 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                 self.dashboard_dataset_schema.dump(dataset) for dataset in datasets
             ]
             return self.response(200, result=result)
+        except (TypeError, ValueError) as err:
+            return self.response_400(
+                message=gettext(
+                    "Dataset schema is invalid, caused by: %(error)s", error=str(err)
+                )
+            )
         except DashboardAccessDeniedError:
             return self.response_403()
         except DashboardNotFoundError:

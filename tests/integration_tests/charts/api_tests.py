@@ -30,7 +30,7 @@ from superset.connectors.sqla.models import SqlaTable
 from superset.extensions import cache_manager, db
 from superset.models.core import Database, FavStar, FavStarClassName
 from superset.models.dashboard import Dashboard
-from superset.models.reports import ReportSchedule, ReportScheduleType
+from superset.reports.models import ReportSchedule, ReportScheduleType
 from superset.models.slice import Slice
 from superset.utils.core import get_example_default_schema
 

@@ -1466,3 +1466,57 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             if str(resource["id"]) == str(dashboard.embedded[0].uuid):
                 return True
         return False
+
+    def raise_for_ownership(self, resource: Model) -> None:
+        """
+        Raise an exception if the user does not own the resource.
+
+        Note admins are deemed owners of all resources.
+
+        :param resource: The dashboard, dataste, chart, etc. resource
+        :raises SupersetSecurityException: If the current user is not an owner
+        """
+
+        # pylint: disable=import-outside-toplevel
+        from superset import db
+
+        if self.is_admin():
+            return
+
+        orig_resource = db.session.query(resource.__class__).get(resource.id)
+        owners = orig_resource.owners if hasattr(orig_resource, "owners") else []
+
+        if g.user.is_anonymous or g.user not in owners:
+            raise SupersetSecurityException(
+                SupersetError(
+                    error_type=SupersetErrorType.MISSING_OWNERSHIP_ERROR,
+                    message=f"You don't have the rights to alter [{resource}]",
+                    level=ErrorLevel.ERROR,
+                )
+            )
+
+    def is_owner(self, resource: Model) -> bool:
+        """
+        Returns True if the current user is an owner of the resource, False otherwise.
+
+        :param resource: The dashboard, dataste, chart, etc. resource
+        :returns: Whethe the current user is an owner of the resource
+        """
+
+        try:
+            self.raise_for_ownership(resource)
+        except SupersetSecurityException:
+            return False
+
+        return True
+
+    def is_admin(self) -> bool:
+        """
+        Returns True if the current user is an admin user, False otherwise.
+
+        :returns: Whehther the current user is an admin user
+        """
+
+        return current_app.config["AUTH_ROLE_ADMIN"] in [
+            role.name for role in self.get_user_roles()
+        ]

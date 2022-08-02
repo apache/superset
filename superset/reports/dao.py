@@ -26,7 +26,7 @@ from sqlalchemy.orm import Session
 from superset.dao.base import BaseDAO
 from superset.dao.exceptions import DAOCreateFailedError, DAODeleteFailedError
 from superset.extensions import db
-from superset.models.reports import (
+from superset.reports.models import (
     ReportExecutionLog,
     ReportRecipients,
     ReportSchedule,
@@ -110,8 +110,7 @@ class ReportScheduleDAO(BaseDAO):
             if commit:
                 db.session.commit()
         except SQLAlchemyError as ex:
-            if commit:
-                db.session.rollback()
+            db.session.rollback()
             raise DAODeleteFailedError(str(ex)) from ex
 
     @staticmethod
@@ -154,7 +153,7 @@ class ReportScheduleDAO(BaseDAO):
         return found_id is None or found_id == expect_id
 
     @classmethod
-    def create(cls, properties: Dict[str, Any], commit: bool = True) -> Model:
+    def create(cls, properties: Dict[str, Any], commit: bool = True) -> ReportSchedule:
         """
         create a report schedule and nested recipients
         :raises: DAOCreateFailedError
@@ -186,7 +185,7 @@ class ReportScheduleDAO(BaseDAO):
     @classmethod
     def update(
         cls, model: Model, properties: Dict[str, Any], commit: bool = True
-    ) -> Model:
+    ) -> ReportSchedule:
         """
         create a report schedule and nested recipients
         :raises: DAOCreateFailedError
@@ -323,6 +322,5 @@ class ReportScheduleDAO(BaseDAO):
                 session.commit()
             return row_count
         except SQLAlchemyError as ex:
-            if commit:
-                session.rollback()
+            session.rollback()
             raise DAODeleteFailedError(str(ex)) from ex

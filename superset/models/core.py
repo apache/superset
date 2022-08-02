@@ -516,7 +516,7 @@ class Database(
 
     @cache_util.memoized_func(
         key="db:{self.id}:schema:None:table_list",
-        cache=cache_manager.data_cache,
+        cache=cache_manager.cache,
     )
     def get_all_table_names_in_database(  # pylint: disable=unused-argument
         self,
@@ -536,7 +536,7 @@ class Database(
 
     @cache_util.memoized_func(
         key="db:{self.id}:schema:None:view_list",
-        cache=cache_manager.data_cache,
+        cache=cache_manager.cache,
     )
     def get_all_view_names_in_database(  # pylint: disable=unused-argument
         self,
@@ -556,7 +556,7 @@ class Database(
 
     @cache_util.memoized_func(
         key="db:{self.id}:schema:{schema}:table_list",
-        cache=cache_manager.data_cache,
+        cache=cache_manager.cache,
     )
     def get_all_table_names_in_schema(  # pylint: disable=unused-argument
         self,
@@ -587,7 +587,7 @@ class Database(
 
     @cache_util.memoized_func(
         key="db:{self.id}:schema:{schema}:view_list",
-        cache=cache_manager.data_cache,
+        cache=cache_manager.cache,
     )
     def get_all_view_names_in_schema(  # pylint: disable=unused-argument
         self,
@@ -618,7 +618,7 @@ class Database(
 
     @cache_util.memoized_func(
         key="db:{self.id}:schema_list",
-        cache=cache_manager.data_cache,
+        cache=cache_manager.cache,
     )
     def get_all_schema_names(  # pylint: disable=unused-argument
         self,

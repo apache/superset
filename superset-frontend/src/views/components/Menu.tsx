@@ -155,7 +155,7 @@ const StyledHeader = styled.header`
         .ant-menu > .ant-menu-item > a {
           padding: 0px;
         }
-        .main-nav .ant-menu-submenu-title > svg:nth-child(1) {
+        .main-nav .ant-menu-submenu-title > svg:nth-of-type(1) {
           display: none;
         }
         .ant-menu-item-active > a {

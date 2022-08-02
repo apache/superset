@@ -26,7 +26,7 @@ import bleach
 from flask_babel import gettext as __
 
 from superset import app
-from superset.models.reports import ReportRecipientType
+from superset.reports.models import ReportRecipientType
 from superset.reports.notifications.base import BaseNotification
 from superset.reports.notifications.exceptions import NotificationError
 from superset.utils.core import send_email_smtp
@@ -37,6 +37,31 @@ logger = logging.getLogger(__name__)
 
 TABLE_TAGS = ["table", "th", "tr", "td", "thead", "tbody", "tfoot"]
 TABLE_ATTRIBUTES = ["colspan", "rowspan", "halign", "border", "class"]
+
+ALLOWED_TAGS = [
+    "a",
+    "abbr",
+    "acronym",
+    "b",
+    "blockquote",
+    "br",
+    "code",
+    "div",
+    "em",
+    "i",
+    "li",
+    "ol",
+    "p",
+    "strong",
+    "ul",
+] + TABLE_TAGS
+
+ALLOWED_ATTRIBUTES = {
+    "a": ["href", "title"],
+    "abbr": ["title"],
+    "acronym": ["title"],
+    **{tag: TABLE_ATTRIBUTES for tag in TABLE_TAGS},
+}
 
 
 @dataclass
@@ -82,13 +107,19 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
             }
 
         # Strip any malicious HTML from the description
-        description = bleach.clean(self._content.description or "")
+        description = bleach.clean(
+            self._content.description or "",
+            tags=ALLOWED_TAGS,
+            attributes=ALLOWED_ATTRIBUTES,
+        )
 
         # Strip malicious HTML from embedded data, allowing only table elements
         if self._content.embedded_data is not None:
             df = self._content.embedded_data
             html_table = bleach.clean(
-                df.to_html(na_rep="", index=True),
+                df.to_html(na_rep="", index=True, escape=True),
+                # pandas will escape the HTML in cells already, so passing
+                # more allowed tags here will not work
                 tags=TABLE_TAGS,
                 attributes=TABLE_ATTRIBUTES,
             )
@@ -127,7 +158,8 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
                 </style>
               </head>
               <body>
-                <p>{description}</p>
+                <div>{description}</div>
+                <br>
                 <b><a href="{url}">{call_to_action}</a></b><p></p>
                 {html_table}
                 {img_tag}

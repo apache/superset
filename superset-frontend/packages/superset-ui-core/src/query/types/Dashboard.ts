@@ -117,6 +117,10 @@ export type Filters = {
   [filterId: string]: Filter | Divider;
 };
 
+export type PartialFilters = {
+  [filterId: string]: Partial<Filters[keyof Filters]>;
+};
+
 export type NativeFiltersState = {
   filters: Filters;
   filterSets: FilterSets;

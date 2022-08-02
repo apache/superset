@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 # type: ignore
+import logging
 import math
 from copy import copy
 from datetime import timedelta
@@ -23,6 +24,12 @@ from superset.config import *
 from tests.integration_tests.superset_test_custom_template_processors import (
     CustomPrestoTemplateProcessor,
 )
+
+logging.getLogger("flask_appbuilder.baseviews").setLevel(logging.WARNING)
+logging.getLogger("flask_appbuilder.base").setLevel(logging.WARNING)
+logging.getLogger("flask_appbuilder.api").setLevel(logging.WARNING)
+logging.getLogger("flask_appbuilder.security.sqla.manager").setLevel(logging.WARNING)
+logging.getLogger("sqlalchemy.engine.Engine").setLevel(logging.WARNING)
 
 AUTH_USER_REGISTRATION_ROLE = "alpha"
 SQLALCHEMY_DATABASE_URI = "sqlite:///" + os.path.join(

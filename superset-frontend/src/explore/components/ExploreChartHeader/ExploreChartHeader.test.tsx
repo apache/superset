@@ -25,11 +25,16 @@ import fetchMock from 'fetch-mock';
 import * as chartAction from 'src/components/Chart/chartAction';
 import * as downloadAsImage from 'src/utils/downloadAsImage';
 import * as exploreUtils from 'src/explore/exploreUtils';
+import { FeatureFlag } from '@superset-ui/core';
 import ExploreHeader from '.';
 
 const chartEndpoint = 'glob:*api/v1/chart/*';
 
 fetchMock.get(chartEndpoint, { json: 'foo' });
+
+window.featureFlags = {
+  [FeatureFlag.EMBEDDABLE_CHARTS]: true,
+};
 
 const createProps = () => ({
   chart: {

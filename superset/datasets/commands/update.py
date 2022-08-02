@@ -52,13 +52,14 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
         user: User,
         model_id: int,
         data: Dict[str, Any],
-        override_columns: bool = False,
+        override_columns: Optional[bool] = False,
     ):
         self._actor = user
         self._model_id = model_id
         self._properties = data.copy()
         self._model: Optional[SqlaTable] = None
         self.override_columns = override_columns
+        self._properties["override_columns"] = override_columns
 
     def run(self) -> Model:
         self.validate()

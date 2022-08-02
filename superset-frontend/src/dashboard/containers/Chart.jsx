@@ -46,7 +46,6 @@ function mapStateToProps(
     charts: chartQueries,
     dashboardInfo,
     dashboardState,
-    dashboardLayout,
     dataMask,
     datasources,
     sliceEntities,
@@ -65,16 +64,15 @@ function mapStateToProps(
   const sharedLabelColors = dashboardInfo?.metadata?.shared_label_colors || {};
   // note: this method caches filters if possible to prevent render cascades
   const formData = getFormDataWithExtraFilters({
-    layout: dashboardLayout.present,
     chart,
-    // eslint-disable-next-line camelcase
     chartConfiguration: dashboardInfo.metadata?.chart_configuration,
     charts: chartQueries,
     filters: getAppliedFilterValues(id),
     colorScheme,
     colorNamespace,
     sliceId: id,
-    nativeFilters,
+    nativeFilters: nativeFilters?.filters,
+    allSliceIds: dashboardState.sliceIds,
     dataMask,
     extraControls,
     labelColors,

@@ -65,7 +65,7 @@ export const URL_PARAMS = {
   },
   sliceId: {
     name: 'slice_id',
-    type: 'string',
+    type: 'number',
   },
   datasourceId: {
     name: 'datasource_id',
@@ -89,6 +89,22 @@ export const URL_PARAMS = {
   },
   permalinkKey: {
     name: 'permalink_key',
+    type: 'string',
+  },
+  vizType: {
+    name: 'viz_type',
+    type: 'string',
+  },
+  showDatabaseModal: {
+    name: 'show_database_modal',
+    type: 'boolean',
+  },
+  saveAction: {
+    name: 'save_action',
+    type: 'string',
+  },
+  dashboardPageId: {
+    name: 'dashboard_page_id',
     type: 'string',
   },
 } as const;

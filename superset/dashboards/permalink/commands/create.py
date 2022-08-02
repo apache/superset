@@ -30,6 +30,13 @@ logger = logging.getLogger(__name__)
 
 
 class CreateDashboardPermalinkCommand(BaseDashboardPermalinkCommand):
+    """
+    Get or create a permalink key for the dashboard.
+
+    The same dashboard_id and state for the same user will return the
+    same permalink.
+    """
+
     def __init__(
         self,
         actor: User,

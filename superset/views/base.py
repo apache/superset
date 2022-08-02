@@ -72,7 +72,7 @@ from superset.exceptions import (
     SupersetSecurityException,
 )
 from superset.models.helpers import ImportExportMixin
-from superset.models.reports import ReportRecipientType
+from superset.reports.models import ReportRecipientType
 from superset.superset_typing import FlaskResponse
 from superset.translations.utils import get_language_pack
 from superset.utils import core as utils
@@ -104,6 +104,7 @@ FRONTEND_CONF_KEYS = (
     "CSV_EXTENSIONS",
     "COLUMNAR_EXTENSIONS",
     "ALLOWED_EXTENSIONS",
+    "SAMPLES_ROW_LIMIT",
 )
 
 logger = logging.getLogger(__name__)

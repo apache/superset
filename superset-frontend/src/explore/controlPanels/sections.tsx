@@ -29,8 +29,6 @@ export const druidTimeSeries: ControlPanelSectionConfig = {
 };
 
 export const datasourceAndVizType: ControlPanelSectionConfig = {
-  label: t('Visualization type'),
-  expanded: true,
   controlSetRows: [
     ['datasource'],
     ['viz_type'],
