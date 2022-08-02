@@ -200,7 +200,9 @@ describe('DatasetList', () => {
         .onClick();
     });
     await waitForComponentToPaint(wrapper);
-    expect(wrapper.find('[data-test="duplicate-modal-input"]').exists());
+    expect(
+      wrapper.find('[data-test="duplicate-modal-input"]').exists(),
+    ).toBeTruthy();
   });
 
   it('calls the duplicate endpoint', async () => {
