@@ -1156,24 +1156,23 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     <StyledBtns>
       <Button
         // eslint-disable-next-line no-return-assign
-        buttonStyle="default"
+        buttonStyle="secondary"
         onClick={() => {
           fetchAndSetDB();
-          window.location.href = '/tablemodelview/list';
+          window.location.href = '/tablemodelview/list#create';
         }}
       >
-        {' '}
-        {t('CREATE A DATASET')}{' '}
+        {t('CREATE DATASET')}
       </Button>
       <Button
-        buttonStyle="default"
+        buttonStyle="secondary"
         // eslint-disable-next-line no-return-assign
         onClick={() => {
           fetchAndSetDB();
           window.location.href = `/superset/sqllab/?db=true`;
         }}
       >
-        {t('QUERY DATA IN SQL LAB')}{' '}
+        {t('QUERY DATA IN SQL LAB')}
       </Button>
     </StyledBtns>
   );
