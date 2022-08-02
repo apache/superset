@@ -19,6 +19,7 @@
 import React, {
   FC,
   ReactNode,
+  useContext,
   useEffect,
   useMemo,
   useRef,
@@ -37,6 +38,7 @@ import Icons from 'src/components/Icons';
 import { RootState } from 'src/dashboard/types';
 import FilterIndicator from 'src/dashboard/components/FiltersBadge/FilterIndicator';
 import { getSliceHeaderTooltip } from 'src/dashboard/util/getSliceHeaderTooltip';
+import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
 import { clearDataMask } from 'src/dataMask/actions';
 
 type SliceHeaderProps = SliceHeaderControlsProps & {
@@ -68,7 +70,6 @@ const SliceHeader: FC<SliceHeaderProps> = ({
   updateSliceName = () => ({}),
   toggleExpandSlice = () => ({}),
   logExploreChart = () => ({}),
-  onExploreChart,
   exportCSV = () => ({}),
   editMode = false,
   annotationQuery = {},
@@ -97,6 +98,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
 }) => {
   const dispatch = useDispatch();
   const uiConfig = useUiConfig();
+  const dashboardPageId = useContext(DashboardPageIdContext);
   const [headerTooltip, setHeaderTooltip] = useState<ReactNode | null>(null);
   const headerRef = useRef<HTMLDivElement>(null);
   // TODO: change to indicator field after it will be implemented
@@ -112,12 +114,11 @@ const SliceHeader: FC<SliceHeaderProps> = ({
     [crossFilterValue],
   );
 
-  const handleClickTitle =
-    !editMode && supersetCanExplore ? onExploreChart : undefined;
+  const canExplore = !editMode && supersetCanExplore;
 
   useEffect(() => {
     const headerElement = headerRef.current;
-    if (handleClickTitle) {
+    if (canExplore) {
       setHeaderTooltip(getSliceHeaderTooltip(sliceName));
     } else if (
       headerElement &&
@@ -128,7 +129,9 @@ const SliceHeader: FC<SliceHeaderProps> = ({
     } else {
       setHeaderTooltip(null);
     }
-  }, [sliceName, width, height, handleClickTitle]);
+  }, [sliceName, width, height, canExplore]);
+
+  const exploreUrl = `/explore/?dashboard_page_id=${dashboardPageId}&slice_id=${slice.slice_id}`;
 
   return (
     <div className="chart-header" data-test="slice-header" ref={innerRef}>
@@ -145,7 +148,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
             emptyText=""
             onSaveTitle={updateSliceName}
             showTooltip={false}
-            onClickTitle={handleClickTitle}
+            url={canExplore ? exploreUrl : undefined}
           />
         </Tooltip>
         {!!Object.values(annotationQuery).length && (
@@ -206,7 +209,6 @@ const SliceHeader: FC<SliceHeaderProps> = ({
                 toggleExpandSlice={toggleExpandSlice}
                 forceRefresh={forceRefresh}
                 logExploreChart={logExploreChart}
-                onExploreChart={onExploreChart}
                 exportCSV={exportCSV}
                 exportFullCSV={exportFullCSV}
                 supersetCanExplore={supersetCanExplore}
@@ -222,6 +224,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
                 isDescriptionExpanded={isExpanded}
                 chartStatus={chartStatus}
                 formData={formData}
+                exploreUrl={exploreUrl}
               />
             )}
           </>
