@@ -263,16 +263,18 @@ const AddSliceCard: React.FC<{
               `}
             >
               <MetadataItem label={t('Viz type')} value={vizName} />
-              {datasourceUrl && (
-                <MetadataItem
-                  label={t('Dataset')}
-                  value={
+              <MetadataItem
+                label={t('Dataset')}
+                value={
+                  datasourceUrl ? (
                     <GenericLink to={datasourceUrl}>
                       {datasourceName}
                     </GenericLink>
-                  }
-                />
-              )}
+                  ) : (
+                    datasourceName
+                  )
+                }
+              />
               <MetadataItem label={t('Modified')} value={lastModified} />
             </div>
           </div>
