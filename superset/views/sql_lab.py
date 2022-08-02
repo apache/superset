@@ -139,6 +139,7 @@ class TabStateView(BaseSupersetView):
         query_editor = json.loads(request.form["queryEditor"])
         tab_state = TabState(
             user_id=get_user_id(),
+            # This is for backward compatibility
             label=query_editor.get("name")
             or query_editor.get("title", "Untitled Query"),
             active=True,
