@@ -81,6 +81,10 @@ import { PivotTableChartPlugin as PivotTableChartPluginV2 } from '@superset-ui/p
 import { HandlebarsChartPlugin } from '@superset-ui/plugin-chart-handlebars';
 import FilterBoxChartPlugin from '../FilterBox/FilterBoxChartPlugin';
 import TimeTableChartPlugin from '../TimeTable';
+import { SupersetPluginChartHelloWorld } from '../../../plugins/superset-plugin-chart-hello-world';
+import { SupersetPluginChartSamdtServiceLanes } from '../../../plugins/superset-plugin-chart-samdtServiceLanes';
+import { SupersetPluginChartSamdtBigPct } from '../../../plugins/superset-plugin-chart-samdt-big-pct';
+import { SupersetPluginChartSamdtBigNo } from '../../../plugins/superset-plugin-chart-samdt-big-no';
 
 export default class MainPreset extends Preset {
   constructor() {
@@ -166,6 +170,10 @@ export default class MainPreset extends Preset {
         new TimeGrainFilterPlugin().configure({ key: 'filter_timegrain' }),
         new EchartsTreeChartPlugin().configure({ key: 'tree_chart' }),
         new HandlebarsChartPlugin().configure({ key: 'handlebars' }),
+        new SupersetPluginChartHelloWorld().configure({ key: 'ext-hello-world' }),
+        new SupersetPluginChartSamdtServiceLanes().configure({ key: 'ext-samdt-serviceLanes' }),
+        new SupersetPluginChartSamdtBigPct().configure({ key: 'ext-samdt-big-pct' }),
+        new SupersetPluginChartSamdtBigNo().configure({ key: 'ext-samdt-big-no' }),
         ...experimentalplugins,
       ],
     });
