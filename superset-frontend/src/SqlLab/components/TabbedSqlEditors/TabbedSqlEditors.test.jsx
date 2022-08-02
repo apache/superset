@@ -55,7 +55,7 @@ describe('TabbedSqlEditors', () => {
       schema: null,
       selectedText: null,
       sql: 'SELECT ds...',
-      title: 'Untitled Query',
+      name: 'Untitled Query',
     },
   ];
   const queries = {
@@ -177,7 +177,7 @@ describe('TabbedSqlEditors', () => {
 
     wrapper.instance().newQueryEditor();
     expect(
-      wrapper.instance().props.actions.addQueryEditor.getCall(0).args[0].title,
+      wrapper.instance().props.actions.addQueryEditor.getCall(0).args[0].name,
     ).toContain('Untitled Query');
   });
   it('should properly increment query tab name', () => {
@@ -186,7 +186,7 @@ describe('TabbedSqlEditors', () => {
 
     wrapper.instance().newQueryEditor();
     expect(
-      wrapper.instance().props.actions.addQueryEditor.getCall(0).args[0].title,
+      wrapper.instance().props.actions.addQueryEditor.getCall(0).args[0].name,
     ).toContain('Untitled Query 2');
   });
   it('should duplicate query editor', () => {

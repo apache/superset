@@ -21,6 +21,10 @@ import { SupersetError } from 'src/components/ErrorMessage/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { ToastType } from 'src/components/MessageToasts/types';
 import { RootState } from 'src/dashboard/types';
+import { DropdownButtonProps } from 'src/components/DropdownButton';
+import { ButtonProps } from 'src/components/Button';
+
+export type QueryButtonProps = DropdownButtonProps | ButtonProps;
 
 // Object as Dictionary (associative array) with Query id as the key and type Query as the value
 export type QueryDictionary = {
@@ -29,7 +33,7 @@ export type QueryDictionary = {
 
 export interface QueryEditor {
   dbId?: number;
-  title: string;
+  name: string;
   schema: string;
   autorun: boolean;
   sql: string;
