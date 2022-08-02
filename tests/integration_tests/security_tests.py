@@ -206,6 +206,7 @@ class TestRolePermission(SupersetTestCase):
         )
 
         # table name change
+        orig_table_perm = stored_table.perm
         stored_table.table_name = "tmp_perm_table_v2"
         session.commit()
         stored_table = (
@@ -213,6 +214,11 @@ class TestRolePermission(SupersetTestCase):
         )
         self.assertEqual(
             stored_table.perm, f"[examples].[tmp_perm_table_v2](id:{stored_table.id})"
+        )
+        self.assertIsNone(
+            security_manager.find_permission_view_menu(
+                "datasource_access", orig_table_perm
+            )
         )
         self.assertIsNotNone(
             security_manager.find_permission_view_menu(
