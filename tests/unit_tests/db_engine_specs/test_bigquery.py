@@ -16,14 +16,13 @@
 # under the License.
 # pylint: disable=unused-argument, import-outside-toplevel, protected-access
 
-from flask.ctx import AppContext
 from pybigquery.sqlalchemy_bigquery import BigQueryDialect
 from pytest_mock import MockFixture
 from sqlalchemy import select
 from sqlalchemy.sql import sqltypes
 
 
-def test_get_fields(app_context: AppContext) -> None:
+def test_get_fields() -> None:
     """
     Test the custom ``_get_fields`` method.
 
@@ -66,7 +65,7 @@ def test_get_fields(app_context: AppContext) -> None:
     )
 
 
-def test_select_star(mocker: MockFixture, app_context: AppContext) -> None:
+def test_select_star(mocker: MockFixture) -> None:
     """
     Test the ``select_star`` method.
 
