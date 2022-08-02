@@ -20,9 +20,9 @@ import {
   DataMaskStateWithId,
   DataRecordFilters,
   JsonObject,
-  NativeFiltersState,
+  PartialFilters,
 } from '@superset-ui/core';
-import { ChartQueryPayload, Charts, LayoutItem } from 'src/dashboard/types';
+import { ChartQueryPayload } from 'src/dashboard/types';
 import { getExtraFormData } from 'src/dashboard/components/nativeFilters/utils';
 import { areObjectsEqual } from 'src/reduxUtils';
 import getEffectiveExtraFilters from './getEffectiveExtraFilters';
@@ -37,17 +37,16 @@ const cachedFormdataByChart = {};
 export interface GetFormDataWithExtraFiltersArguments {
   chartConfiguration: ChartConfiguration;
   chart: ChartQueryPayload;
-  charts: Charts;
   filters: DataRecordFilters;
-  layout: { [key: string]: LayoutItem };
   colorScheme?: string;
   colorNamespace?: string;
   sliceId: number;
   dataMask: DataMaskStateWithId;
-  nativeFilters: NativeFiltersState;
+  nativeFilters: PartialFilters;
   extraControls: Record<string, string | boolean | null>;
   labelColors?: Record<string, string>;
   sharedLabelColors?: Record<string, string>;
+  allSliceIds: number[];
 }
 
 // this function merge chart's formData with dashboard filters value,
@@ -55,18 +54,17 @@ export interface GetFormDataWithExtraFiltersArguments {
 // filters param only contains those applicable to this chart.
 export default function getFormDataWithExtraFilters({
   chart,
-  charts,
   filters,
   nativeFilters,
   chartConfiguration,
   colorScheme,
   colorNamespace,
   sliceId,
-  layout,
   dataMask,
   extraControls,
   labelColors,
   sharedLabelColors,
+  allSliceIds,
 }: GetFormDataWithExtraFiltersArguments) {
   // if dashboard metadata + filters have not changed, use cache if possible
   const cachedFormData = cachedFormdataByChart[sliceId];
@@ -99,19 +97,15 @@ export default function getFormDataWithExtraFilters({
   const activeFilters = getAllActiveFilters({
     chartConfiguration,
     dataMask,
-    layout,
-    nativeFilters: nativeFilters.filters,
+    nativeFilters,
+    allSliceIds,
   });
   const filterIdsAppliedOnChart = Object.entries(activeFilters)
     .filter(([, { scope }]) => scope.includes(chart.id))
     .map(([filterId]) => filterId);
   if (filterIdsAppliedOnChart.length) {
     extraData = {
-      extra_form_data: getExtraFormData(
-        dataMask,
-        charts,
-        filterIdsAppliedOnChart,
-      ),
+      extra_form_data: getExtraFormData(dataMask, filterIdsAppliedOnChart),
     };
   }
 
