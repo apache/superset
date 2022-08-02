@@ -120,7 +120,7 @@ type Dataset = {
 };
 
 interface VirtualDataset extends Dataset {
-  extra: any;
+  extra: Record<string, any>;
   sql: string;
 }
 
