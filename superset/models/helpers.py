@@ -1203,7 +1203,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
     def dttm_sql_literal(self, dttm: sa.DateTime, col_type: Optional[str]) -> str:
         """Convert datetime object to a SQL expression string"""
-
         sql = (
             self.db_engine_spec.convert_dttm(col_type, dttm, db_extra=None)
             if col_type
