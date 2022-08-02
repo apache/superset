@@ -17,30 +17,36 @@
  * under the License.
  */
 
-import { newQueryTabName } from './newQueryTabName';
+import React from 'react';
+import { Link, LinkProps } from 'react-router-dom';
+import { isUrlExternal, parseUrl } from 'src/utils/urlUtils';
 
-const emptyEditor = {
-  title: '',
-  schema: '',
-  autorun: false,
-  sql: '',
-  remoteId: null,
+export const GenericLink = <S,>({
+  to,
+  component,
+  replace,
+  innerRef,
+  children,
+  ...rest
+}: React.PropsWithoutRef<LinkProps<S>> &
+  React.RefAttributes<HTMLAnchorElement>) => {
+  if (typeof to === 'string' && isUrlExternal(to)) {
+    return (
+      <a data-test="external-link" href={parseUrl(to)} {...rest}>
+        {children}
+      </a>
+    );
+  }
+  return (
+    <Link
+      data-test="internal-link"
+      to={to}
+      component={component}
+      replace={replace}
+      innerRef={innerRef}
+      {...rest}
+    >
+      {children}
+    </Link>
+  );
 };
-
-describe('newQueryTabName', () => {
-  it("should return default title if queryEditor's length is 0", () => {
-    const defaultTitle = 'default title';
-    const title = newQueryTabName([], defaultTitle);
-    expect(title).toEqual(defaultTitle);
-  });
-  it('should return next available number if there are unsaved editors', () => {
-    const untitledQueryText = 'Untitled Query';
-    const unsavedEditors = [
-      { ...emptyEditor, name: `${untitledQueryText} 1` },
-      { ...emptyEditor, name: `${untitledQueryText} 2` },
-    ];
-
-    const nextTitle = newQueryTabName(unsavedEditors);
-    expect(nextTitle).toEqual(`${untitledQueryText} 3`);
-  });
-});

@@ -19,8 +19,6 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
-replicaCount: 1
-
 # User ID directive. This user must have enough permissions to run the bootstrap script
 # Runn containers as root is not recommended in production. Change this to another UID - e.g. 1000 to be more secure
 runAsUser: 0
@@ -224,6 +222,7 @@ hostAliases: []
 ##
 ## Superset node configuration
 supersetNode:
+  replicaCount: 1
   command:
     - "/bin/sh"
     - "-c"
@@ -268,6 +267,7 @@ supersetNode:
 ##
 ## Superset worker configuration
 supersetWorker:
+  replicaCount: 1
   command:
     - "/bin/sh"
     - "-c"

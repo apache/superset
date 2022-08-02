@@ -16,10 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export const getDatasourceAsSaveableDataset = source => ({
-  columns: source.columns,
-  name: source?.datasource_name || source?.name || 'Untitled',
-  dbId: source.database.id,
-  sql: source?.sql || '',
-  schema: source?.schema,
-});
+import React from 'react';
+import Header from './Header';
+import DatasetPanel from './DatasetPanel';
+import LeftPanel from './LeftPanel';
+import RightPanel from './RightPanel';
+import Footer from './Footer';
+
+export default function DatasetPage() {
+  return (
+    <div>
+      <Header />
+      <LeftPanel />
+      <div css={{ display: 'flex' }}>
+        <DatasetPanel />
+        <Footer />
+      </div>
+      <RightPanel />
+    </div>
+  );
+}

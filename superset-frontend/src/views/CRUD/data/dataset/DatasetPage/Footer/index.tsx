@@ -16,10 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export const getDatasourceAsSaveableDataset = source => ({
-  columns: source.columns,
-  name: source?.datasource_name || source?.name || 'Untitled',
-  dbId: source.database.id,
-  sql: source?.sql || '',
-  schema: source?.schema,
-});
+import React from 'react';
+
+export default function Footer() {
+  return <div>Footer</div>;
+}
