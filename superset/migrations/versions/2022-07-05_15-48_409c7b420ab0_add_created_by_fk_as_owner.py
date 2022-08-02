@@ -22,15 +22,16 @@ Create Date: 2022-07-05 15:48:06.029190
 
 """
 
-# revision identifiers, used by Alembic.
-revision = "409c7b420ab0"
-down_revision = "a39867932713"
-
 from alembic import op
 from sqlalchemy import and_, Column, insert, Integer
 from sqlalchemy.ext.declarative import declarative_base
 
+# revision identifiers, used by Alembic.
 from superset import db
+
+revision = "409c7b420ab0"
+down_revision = "a39867932713"
+
 
 Base = declarative_base()
 
@@ -95,7 +96,7 @@ def upgrade():
                     DatasetUser.user_id == Dataset.created_by_fk,
                 ),
             )
-            .filter(DatasetUser.dataset_id == None),
+            .filter(DatasetUser.dataset_id == None, Dataset.created_by_fk != None),
         )
     )
 
