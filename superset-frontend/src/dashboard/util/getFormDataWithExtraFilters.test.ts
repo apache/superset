@@ -35,7 +35,7 @@ describe('getFormDataWithExtraFilters', () => {
     queryController: null,
     queriesResponse: null,
     triggerQuery: false,
-    form_data: {
+    formData: {
       viz_type: 'filter_select',
       filters: [
         {
@@ -45,7 +45,6 @@ describe('getFormDataWithExtraFilters', () => {
         },
       ],
       datasource: '123',
-      url_params: {},
     },
   };
   const mockArgs: GetFormDataWithExtraFiltersArguments = {

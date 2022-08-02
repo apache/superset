@@ -15,8 +15,9 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+from abc import ABC
 
-from flask import request, Response
+from flask import g, request, Response
 from flask_appbuilder.api import BaseApi, expose, protect, safe
 from marshmallow import ValidationError
 
@@ -37,7 +38,7 @@ from superset.views.base_api import requires_json
 logger = logging.getLogger(__name__)
 
 
-class ExploreFormDataRestApi(BaseApi):
+class ExploreFormDataRestApi(BaseApi, ABC):
     add_model_schema = FormDataPostSchema()
     edit_model_schema = FormDataPutSchema()
     method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
@@ -102,6 +103,7 @@ class ExploreFormDataRestApi(BaseApi):
             item = self.add_model_schema.load(request.json)
             tab_id = request.args.get("tab_id")
             args = CommandParameters(
+                actor=g.user,
                 datasource_id=item["datasource_id"],
                 datasource_type=item["datasource_type"],
                 chart_id=item.get("chart_id"),
@@ -172,6 +174,7 @@ class ExploreFormDataRestApi(BaseApi):
             item = self.edit_model_schema.load(request.json)
             tab_id = request.args.get("tab_id")
             args = CommandParameters(
+                actor=g.user,
                 datasource_id=item["datasource_id"],
                 datasource_type=item["datasource_type"],
                 chart_id=item.get("chart_id"),
@@ -231,7 +234,7 @@ class ExploreFormDataRestApi(BaseApi):
               $ref: '#/components/responses/500'
         """
         try:
-            args = CommandParameters(key=key)
+            args = CommandParameters(actor=g.user, key=key)
             form_data = GetFormDataCommand(args).run()
             if not form_data:
                 return self.response_404()
@@ -283,7 +286,7 @@ class ExploreFormDataRestApi(BaseApi):
               $ref: '#/components/responses/500'
         """
         try:
-            args = CommandParameters(key=key)
+            args = CommandParameters(actor=g.user, key=key)
             result = DeleteFormDataCommand(args).run()
             if not result:
                 return self.response_404()

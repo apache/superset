@@ -27,7 +27,7 @@ describe('Visualization > Gauge', () => {
   };
 
   function verify(formData) {
-    cy.visitChartByParams(formData);
+    cy.visitChartByParams(JSON.stringify(formData));
     cy.verifySliceSuccess({ waitAlias: '@getJson' });
   }
 

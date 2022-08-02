@@ -17,7 +17,6 @@
 # pylint: disable=redefined-outer-name, import-outside-toplevel
 
 import importlib
-import os
 from typing import Any, Callable, Iterator
 
 import pytest
@@ -47,12 +46,10 @@ def get_session(mocker: MockFixture) -> Callable[[], Session]:
         in_memory_session.remove = lambda: None
 
         # patch session
-        get_session = mocker.patch(
+        mocker.patch(
             "superset.security.SupersetSecurityManager.get_session",
+            return_value=in_memory_session,
         )
-        get_session.return_value = in_memory_session
-        # FAB calls get_session.get_bind() to get a handler to the engine
-        get_session.get_bind.return_value = engine
         mocker.patch("superset.db.session", in_memory_session)
         return in_memory_session
 
@@ -72,9 +69,7 @@ def app() -> Iterator[SupersetApp]:
     app = SupersetApp(__name__)
 
     app.config.from_object("superset.config")
-    app.config["SQLALCHEMY_DATABASE_URI"] = (
-        os.environ.get("SUPERSET__SQLALCHEMY_DATABASE_URI") or "sqlite://"
-    )
+    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite://"
     app.config["WTF_CSRF_ENABLED"] = False
     app.config["PREVENT_UNSAFE_DB_CONNECTIONS"] = False
     app.config["TESTING"] = True

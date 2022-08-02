@@ -17,11 +17,7 @@
  * under the License.
  */
 import { t } from '@superset-ui/core';
-import {
-  ControlPanelConfig,
-  getStandardizedControls,
-  sections,
-} from '@superset-ui/chart-controls';
+import { ControlPanelConfig, sections } from '@superset-ui/chart-controls';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -71,11 +67,6 @@ const config: ControlPanelConfig = {
       controlSetRows: [['color_scheme']],
     },
   ],
-  formDataOverrides: formData => ({
-    ...formData,
-    groupby: getStandardizedControls().popAllColumns(),
-    metric: getStandardizedControls().shiftMetric(),
-  }),
 };
 
 export default config;

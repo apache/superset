@@ -17,6 +17,7 @@
 import logging
 from typing import Optional
 
+from flask_appbuilder.security.sqla.models import User
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset.datasets.commands.exceptions import DatasetNotFoundError
@@ -33,7 +34,8 @@ logger = logging.getLogger(__name__)
 
 
 class GetExplorePermalinkCommand(BaseExplorePermalinkCommand):
-    def __init__(self, key: str):
+    def __init__(self, actor: User, key: str):
+        self.actor = actor
         self.key = key
 
     def run(self) -> Optional[ExplorePermalinkValue]:
@@ -53,7 +55,7 @@ class GetExplorePermalinkCommand(BaseExplorePermalinkCommand):
                 datasource_type = DatasourceType(
                     value.get("datasourceType", DatasourceType.TABLE)
                 )
-                check_chart_access(datasource_id, chart_id, datasource_type)
+                check_chart_access(datasource_id, chart_id, self.actor, datasource_type)
                 return value
             return None
         except (

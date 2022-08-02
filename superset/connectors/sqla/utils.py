@@ -213,7 +213,7 @@ def find_cached_objects_in_session(
         return iter([])
     uuids = uuids or []
     try:
-        items = list(session)
+        items = set(session)
     except ObjectDeletedError:
         logger.warning("ObjectDeletedError", exc_info=True)
         return iter(())

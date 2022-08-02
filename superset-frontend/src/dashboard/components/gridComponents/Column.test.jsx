@@ -20,7 +20,6 @@ import { Provider } from 'react-redux';
 import React from 'react';
 import { mount } from 'enzyme';
 import sinon from 'sinon';
-import { MemoryRouter } from 'react-router-dom';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
@@ -72,11 +71,9 @@ describe('Column', () => {
     });
     const wrapper = mount(
       <Provider store={mockStore}>
-        <MemoryRouter>
-          <DndProvider backend={HTML5Backend}>
-            <Column {...props} {...overrideProps} />
-          </DndProvider>
-        </MemoryRouter>
+        <DndProvider backend={HTML5Backend}>
+          <Column {...props} {...overrideProps} />
+        </DndProvider>
       </Provider>,
       {
         wrappingComponent: ThemeProvider,

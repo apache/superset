@@ -122,14 +122,14 @@ export type ExtraFormDataAppend = {
  * filter clauses can't be overridden */
 export type ExtraFormDataOverrideExtras = Pick<
   QueryObjectExtras,
-  'relative_start' | 'relative_end' | 'time_grain_sqla'
+  'druid_time_origin' | 'relative_start' | 'relative_end' | 'time_grain_sqla'
 >;
 
 /** These parameters override those already present in the form data/query object */
 export type ExtraFormDataOverrideRegular = Partial<
   Pick<SqlaFormData, 'granularity_sqla'>
 > &
-  Partial<Pick<SqlaFormData, 'granularity'>> &
+  Partial<Pick<DruidFormData, 'granularity'>> &
   Partial<Pick<BaseFormData, 'time_range'>> &
   Partial<Pick<QueryObject, 'time_column' | 'time_grain'>>;
 
@@ -194,16 +194,34 @@ export interface SqlaFormData extends BaseFormData {
   /**
    * Name of the Time Column. Time column is optional.
    */
-  granularity?: string;
   granularity_sqla?: string;
   time_grain_sqla?: TimeGranularity;
   having?: string;
 }
 
-export type QueryFormData = SqlaFormData;
+/**
+ * Form data for Druid datasources.
+ */
+export interface DruidFormData extends BaseFormData {
+  granularity?: string;
+  having_druid?: string;
+  druid_time_origin?: string;
+}
+
+export type QueryFormData = DruidFormData | SqlaFormData;
 
 //---------------------------------------------------
 // Type guards
 //---------------------------------------------------
+
+export function isDruidFormData(
+  formData: QueryFormData,
+): formData is DruidFormData {
+  return 'granularity' in formData;
+}
+
+export function isSavedMetric(metric: QueryFormMetric): metric is SavedMetric {
+  return typeof metric === 'string';
+}
 
 export default {};

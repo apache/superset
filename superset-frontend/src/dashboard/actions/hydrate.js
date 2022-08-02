@@ -24,8 +24,9 @@ import { initSliceEntities } from 'src/dashboard/reducers/sliceEntities';
 import { getInitialState as getInitialNativeFilterState } from 'src/dashboard/reducers/nativeFilters';
 import { applyDefaultFormData } from 'src/explore/store';
 import { buildActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
-import { findPermission } from 'src/utils/findPermission';
-import { canUserEditDashboard } from 'src/dashboard/util/permissionUtils';
+import findPermission, {
+  canUserEditDashboard,
+} from 'src/dashboard/util/findPermission';
 import {
   DASHBOARD_FILTER_SCOPE_GLOBAL,
   dashboardFilter,
@@ -59,23 +60,23 @@ import { updateColorSchema } from './dashboardInfo';
 export const HYDRATE_DASHBOARD = 'HYDRATE_DASHBOARD';
 
 export const hydrateDashboard =
-  ({
-    dashboard,
-    charts,
+  (
+    dashboardData,
+    chartData,
     filterboxMigrationState = FILTER_BOX_MIGRATION_STATES.NOOP,
-    dataMask,
-    activeTabs,
-  }) =>
+    dataMaskApplied,
+  ) =>
   (dispatch, getState) => {
     const { user, common, dashboardState } = getState();
-    const { metadata, position_data: positionData } = dashboard;
+
+    const { metadata } = dashboardData;
     const regularUrlParams = extractUrlParams('regular');
     const reservedUrlParams = extractUrlParams('reserved');
     const editMode = reservedUrlParams.edit === 'true';
 
     let preselectFilters = {};
 
-    charts.forEach(chart => {
+    chartData.forEach(chart => {
       // eslint-disable-next-line no-param-reassign
       chart.slice_id = chart.form_data.slice_id;
     });
@@ -98,10 +99,12 @@ export const hydrateDashboard =
       updateColorSchema(metadata, metadata?.label_colors);
     }
 
+    // dashboard layout
+    const { position_data } = dashboardData;
     // new dash: position_json could be {} or null
     const layout =
-      positionData && Object.keys(positionData).length > 0
-        ? positionData
+      position_data && Object.keys(position_data).length > 0
+        ? position_data
         : getEmptyLayout();
 
     // create a lookup to sync layout names with slice names
@@ -126,7 +129,7 @@ export const hydrateDashboard =
     const sliceIds = new Set();
     const slicesFromExploreCount = new Map();
 
-    charts.forEach(slice => {
+    chartData.forEach(slice => {
       const key = slice.slice_id;
       const form_data = {
         ...slice.form_data,
@@ -138,7 +141,8 @@ export const hydrateDashboard =
       chartQueries[key] = {
         ...chart,
         id: key,
-        form_data: applyDefaultFormData(form_data),
+        form_data,
+        formData: applyDefaultFormData(form_data),
       };
 
       slices[key] = {
@@ -266,7 +270,7 @@ export const hydrateDashboard =
       id: DASHBOARD_HEADER_ID,
       type: DASHBOARD_HEADER_TYPE,
       meta: {
-        text: dashboard.dashboard_title,
+        text: dashboardData.dashboard_title,
       },
     };
 
@@ -288,7 +292,7 @@ export const hydrateDashboard =
     let filterConfig = metadata?.native_filter_configuration || [];
     if (filterboxMigrationState === FILTER_BOX_MIGRATION_STATES.REVIEWING) {
       filterConfig = getNativeFilterConfig(
-        charts,
+        chartData,
         filterScopes,
         preselectFilters,
       );
@@ -299,7 +303,7 @@ export const hydrateDashboard =
       filterConfig,
     });
     metadata.show_native_filters =
-      dashboard?.metadata?.show_native_filters ??
+      dashboardData?.metadata?.show_native_filters ??
       (isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) &&
         [
           FILTER_BOX_MIGRATION_STATES.CONVERTED,
@@ -315,7 +319,7 @@ export const hydrateDashboard =
         const behaviors =
           (
             getChartMetadataRegistry().get(
-              chartQueries[chartId]?.form_data?.viz_type,
+              chartQueries[chartId]?.formData?.viz_type,
             ) ?? {}
           )?.behaviors ?? [];
 
@@ -340,7 +344,7 @@ export const hydrateDashboard =
     }
 
     const { roles } = user;
-    const canEdit = canUserEditDashboard(dashboard, user);
+    const canEdit = canUserEditDashboard(dashboardData, user);
 
     return dispatch({
       type: HYDRATE_DASHBOARD,
@@ -349,7 +353,7 @@ export const hydrateDashboard =
         charts: chartQueries,
         // read-only data
         dashboardInfo: {
-          ...dashboard,
+          ...dashboardData,
           metadata,
           userId: user.userId ? String(user.userId) : null, // legacy, please use state.user instead
           dash_edit_perm: canEdit,
@@ -377,7 +381,7 @@ export const hydrateDashboard =
             conf: common?.conf,
           },
         },
-        dataMask,
+        dataMask: dataMaskApplied,
         dashboardFilters,
         nativeFilters,
         dashboardState: {
@@ -391,17 +395,17 @@ export const hydrateDashboard =
           // dashboard viewers can set refresh frequency for the current visit,
           // only persistent refreshFrequency will be saved to backend
           shouldPersistRefreshFrequency: false,
-          css: dashboard.css || '',
+          css: dashboardData.css || '',
           colorNamespace: metadata?.color_namespace || null,
           colorScheme: metadata?.color_scheme || null,
           editMode: canEdit && editMode,
-          isPublished: dashboard.published,
+          isPublished: dashboardData.published,
           hasUnsavedChanges: false,
           maxUndoHistoryExceeded: false,
-          lastModifiedTime: dashboard.changed_on,
+          lastModifiedTime: dashboardData.changed_on,
           isRefreshing: false,
           isFiltersRefreshing: false,
-          activeTabs: activeTabs || dashboardState?.activeTabs || [],
+          activeTabs: dashboardState?.activeTabs || [],
           filterboxMigrationState,
           datasetsStatus: ResourceStatus.LOADING,
         },

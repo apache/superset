@@ -110,6 +110,7 @@ class TestCreateFormDataCommand(SupersetTestCase):
 
         datasource = f"{dataset.id}__{DatasourceType.TABLE}"
         args = CommandParameters(
+            actor=mock_g.user,
             datasource_id=dataset.id,
             datasource_type=DatasourceType.TABLE,
             chart_id=slice.id,
@@ -135,6 +136,7 @@ class TestCreateFormDataCommand(SupersetTestCase):
 
         datasource = f"{dataset.id}__{DatasourceType.TABLE}"
         create_args = CommandParameters(
+            actor=mock_g.user,
             datasource_id=dataset.id,
             datasource_type="InvalidType",
             chart_id=slice.id,
@@ -161,6 +163,7 @@ class TestCreateFormDataCommand(SupersetTestCase):
 
         datasource = f"{dataset.id}__{DatasourceType.TABLE}"
         create_args = CommandParameters(
+            actor=mock_g.user,
             datasource_id=dataset.id,
             datasource_type="table",
             chart_id=slice.id,
@@ -186,6 +189,7 @@ class TestCreateFormDataCommand(SupersetTestCase):
 
         datasource = f"{dataset.id}__{DatasourceType.TABLE}"
         create_args = CommandParameters(
+            actor=mock_g.user,
             datasource_id=dataset.id,
             datasource_type=DatasourceType.TABLE,
             chart_id=slice.id,
@@ -194,7 +198,7 @@ class TestCreateFormDataCommand(SupersetTestCase):
         )
         key = CreateFormDataCommand(create_args).run()
 
-        key_args = CommandParameters(key=key)
+        key_args = CommandParameters(actor=mock_g.user, key=key)
         get_command = GetFormDataCommand(key_args)
         cache_data = json.loads(get_command.run())
 
@@ -217,6 +221,7 @@ class TestCreateFormDataCommand(SupersetTestCase):
 
         datasource = f"{dataset.id}__{DatasourceType.TABLE}"
         create_args = CommandParameters(
+            actor=mock_g.user,
             datasource_id=dataset.id,
             datasource_type=DatasourceType.TABLE,
             chart_id=slice.id,
@@ -227,6 +232,7 @@ class TestCreateFormDataCommand(SupersetTestCase):
 
         query_datasource = f"{dataset.id}__{DatasourceType.TABLE}"
         update_args = CommandParameters(
+            actor=mock_g.user,
             datasource_id=query.id,
             datasource_type=DatasourceType.QUERY,
             chart_id=slice.id,
@@ -243,7 +249,7 @@ class TestCreateFormDataCommand(SupersetTestCase):
         # the updated key returned should be different from the old one
         assert new_key != key
 
-        key_args = CommandParameters(key=key)
+        key_args = CommandParameters(actor=mock_g.user, key=key)
         get_command = GetFormDataCommand(key_args)
 
         cache_data = json.loads(get_command.run())
@@ -265,6 +271,7 @@ class TestCreateFormDataCommand(SupersetTestCase):
 
         datasource = f"{dataset.id}__{DatasourceType.TABLE}"
         create_args = CommandParameters(
+            actor=mock_g.user,
             datasource_id=dataset.id,
             datasource_type=DatasourceType.TABLE,
             chart_id=slice.id,
@@ -274,6 +281,7 @@ class TestCreateFormDataCommand(SupersetTestCase):
         key = CreateFormDataCommand(create_args).run()
 
         update_args = CommandParameters(
+            actor=mock_g.user,
             datasource_id=dataset.id,
             datasource_type=DatasourceType.TABLE,
             chart_id=slice.id,
@@ -291,7 +299,7 @@ class TestCreateFormDataCommand(SupersetTestCase):
         # the updated key returned should be the same as the old one
         assert new_key == key
 
-        key_args = CommandParameters(key=key)
+        key_args = CommandParameters(actor=mock_g.user, key=key)
         get_command = GetFormDataCommand(key_args)
 
         cache_data = json.loads(get_command.run())
@@ -313,6 +321,7 @@ class TestCreateFormDataCommand(SupersetTestCase):
 
         datasource = f"{dataset.id}__{DatasourceType.TABLE}"
         create_args = CommandParameters(
+            actor=mock_g.user,
             datasource_id=dataset.id,
             datasource_type=DatasourceType.TABLE,
             chart_id=slice.id,
@@ -322,6 +331,7 @@ class TestCreateFormDataCommand(SupersetTestCase):
         key = CreateFormDataCommand(create_args).run()
 
         delete_args = CommandParameters(
+            actor=mock_g.user,
             key=key,
         )
 
@@ -339,6 +349,7 @@ class TestCreateFormDataCommand(SupersetTestCase):
         }
 
         delete_args = CommandParameters(
+            actor=mock_g.user,
             key="some_expired_key",
         )
 

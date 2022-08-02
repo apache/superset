@@ -33,7 +33,7 @@ from flask_babel import gettext as __, lazy_gettext as _
 from sqlalchemy import Column, literal_column, types
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.reflection import Inspector
-from sqlalchemy.engine.result import Row as ResultRow
+from sqlalchemy.engine.result import RowProxy
 from sqlalchemy.engine.url import URL
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.expression import ColumnClause, Select
@@ -147,6 +147,8 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
     engine_name = "Presto"
     allows_alias_to_source_column = False
 
+    has_catalogs = True
+
     _time_grain_expressions = {
         None: "{col}",
         "PT1S": "date_trunc('second', CAST({col} AS TIMESTAMP))",
@@ -217,6 +219,26 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
             {},
         ),
     }
+
+    @classmethod
+    def get_catalog_names(cls, inspector: Inspector) -> List[str]:
+        catalogs = [
+            row[0]
+            for row in inspector.engine.execute("SHOW CATALOGS")
+            if not row[0].startswith("_")
+        ]
+        return catalogs
+
+    @classmethod
+    def get_all_catalog_schema_names(cls, inspector: Inspector,
+        catalog_name: str
+    ) -> List[str]:
+        schemas = [
+            row[0]
+            for row in inspector.engine.execute("SHOW SCHEMAS FROM " + catalog_name)
+            if not row[0].startswith("_")
+        ]
+        return schemas
 
     @classmethod
     def get_allow_cost_estimate(cls, extra: Dict[str, Any]) -> bool:
@@ -430,7 +452,7 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
     @classmethod
     def _show_columns(
         cls, inspector: Inspector, table_name: str, schema: Optional[str]
-    ) -> List[ResultRow]:
+    ) -> List[RowProxy]:
         """
         Show presto column names
         :param inspector: object that performs database schema inspection
@@ -442,7 +464,8 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
         full_table = quote(table_name)
         if schema:
             full_table = "{}.{}".format(quote(schema), full_table)
-        return inspector.bind.execute(f"SHOW COLUMNS FROM {full_table}").fetchall()
+        columns = inspector.bind.execute("SHOW COLUMNS FROM {}".format(full_table))
+        return columns
 
     column_type_mappings = (
         (
@@ -728,7 +751,7 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
     @classmethod
     def adjust_database_uri(
         cls, uri: URL, selected_schema: Optional[str] = None
-    ) -> URL:
+    ) -> None:
         database = uri.database
         if selected_schema and database:
             selected_schema = parse.quote(selected_schema, safe="")
@@ -736,9 +759,7 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
                 database = database.split("/")[0] + "/" + selected_schema
             else:
                 database += "/" + selected_schema
-            uri = uri.set(database=database)
-
-        return uri
+            uri.database = database
 
     @classmethod
     def convert_dttm(

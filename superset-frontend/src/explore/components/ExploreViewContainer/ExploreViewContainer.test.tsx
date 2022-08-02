@@ -18,11 +18,7 @@
  */
 import React from 'react';
 import fetchMock from 'fetch-mock';
-import {
-  getChartControlPanelRegistry,
-  getChartMetadataRegistry,
-  ChartMetadata,
-} from '@superset-ui/core';
+import { getChartControlPanelRegistry } from '@superset-ui/core';
 import { MemoryRouter, Route } from 'react-router-dom';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
@@ -30,6 +26,7 @@ import ExploreViewContainer from '.';
 
 const reduxState = {
   explore: {
+    common: { conf: { SUPERSET_WEBSERVER_TIMEOUT: 60 } },
     controls: {
       datasource: { value: '1__table' },
       viz_type: { value: 'table' },
@@ -40,10 +37,10 @@ const reduxState = {
       columns: [{ is_dttm: false }],
       metrics: [{ id: 1, metric_name: 'count' }],
     },
-    isStarred: false,
-    slice: {
-      slice_id: 1,
+    user: {
+      userId: 1,
     },
+    isStarred: false,
   },
   charts: {
     1: {
@@ -51,18 +48,6 @@ const reduxState = {
       latestQueryFormData: {
         datasource: '1__table',
       },
-    },
-  },
-  user: {
-    userId: 1,
-  },
-  common: { conf: { SUPERSET_WEBSERVER_TIMEOUT: 60 } },
-  datasources: {
-    '1__table': {
-      id: 1,
-      type: 'table',
-      columns: [{ is_dttm: false }],
-      metrics: [{ id: 1, metric_name: 'count' }],
     },
   },
 };
@@ -82,10 +67,9 @@ jest.mock('lodash/debounce', () => ({
 fetchMock.post('glob:*/api/v1/explore/form_data*', { key });
 fetchMock.put('glob:*/api/v1/explore/form_data*', { key });
 fetchMock.get('glob:*/api/v1/explore/form_data*', {});
-fetchMock.get('glob:*/favstar/slice*', { count: 0 });
 
 const renderWithRouter = (withKey?: boolean) => {
-  const path = '/explore/';
+  const path = '/superset/explore/';
   const search = withKey ? `?form_data_key=${key}&dataset_id=1` : '';
   return render(
     <MemoryRouter initialEntries={[`${path}${search}`]}>
@@ -98,14 +82,6 @@ const renderWithRouter = (withKey?: boolean) => {
 };
 
 test('generates a new form_data param when none is available', async () => {
-  getChartMetadataRegistry().registerValue(
-    'table',
-    new ChartMetadata({
-      name: 'fake table',
-      thumbnail: '.png',
-      useLegacyApi: false,
-    }),
-  );
   const replaceState = jest.spyOn(window.history, 'replaceState');
   await waitFor(() => renderWithRouter());
   expect(replaceState).toHaveBeenCalledWith(

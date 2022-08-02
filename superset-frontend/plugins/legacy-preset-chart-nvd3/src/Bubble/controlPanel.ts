@@ -22,7 +22,6 @@ import {
   formatSelectOptions,
   D3_FORMAT_OPTIONS,
   sections,
-  getStandardizedControls,
 } from '@superset-ui/chart-controls';
 import {
   showLegend,
@@ -129,14 +128,6 @@ const config: ControlPanelConfig = {
       renderTrigger: false,
     },
   },
-  formDataOverrides: formData => ({
-    ...formData,
-    series: getStandardizedControls().shiftColumn(),
-    entity: getStandardizedControls().shiftColumn(),
-    x: getStandardizedControls().shiftMetric(),
-    y: getStandardizedControls().shiftMetric(),
-    size: getStandardizedControls().shiftMetric(),
-  }),
 };
 
 export default config;

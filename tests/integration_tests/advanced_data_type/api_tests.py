@@ -18,9 +18,17 @@
 """Unit tests for Superset"""
 import json
 import prison
+from sqlalchemy import null
 
+from superset.connectors.sqla.models import SqlaTable
 from superset.utils.core import get_example_default_schema
 
+from tests.integration_tests.base_tests import (
+    SupersetTestCase,
+    logged_in_admin,
+    test_client,
+)
+from tests.integration_tests.test_app import app
 from tests.integration_tests.utils.get_dashboards import get_dashboards_ids
 from unittest import mock
 from sqlalchemy import Column
@@ -72,7 +80,7 @@ CHARTS_FIXTURE_COUNT = 10
     "superset.advanced_data_type.api.ADVANCED_DATA_TYPES",
     {"type": 1},
 )
-def test_types_type_request(test_client, login_as_admin):
+def test_types_type_request(logged_in_admin):
     """
     Advanced Data Type API: Test to see if the API call returns all the valid advanced data types
     """
@@ -83,7 +91,7 @@ def test_types_type_request(test_client, login_as_admin):
     assert data == {"result": ["type"]}
 
 
-def test_types_convert_bad_request_no_vals(test_client, login_as_admin):
+def test_types_convert_bad_request_no_vals(logged_in_admin):
     """
     Advanced Data Type API: Test request to see if it behaves as expected when no values are passed
     """
@@ -93,7 +101,7 @@ def test_types_convert_bad_request_no_vals(test_client, login_as_admin):
     assert response_value.status_code == 400
 
 
-def test_types_convert_bad_request_no_type(test_client, login_as_admin):
+def test_types_convert_bad_request_no_type(logged_in_admin):
     """
     Advanced Data Type API: Test request to see if it behaves as expected when no type is passed
     """
@@ -107,7 +115,7 @@ def test_types_convert_bad_request_no_type(test_client, login_as_admin):
     "superset.advanced_data_type.api.ADVANCED_DATA_TYPES",
     {"type": 1},
 )
-def test_types_convert_bad_request_type_not_found(test_client, login_as_admin):
+def test_types_convert_bad_request_type_not_found(logged_in_admin):
     """
     Advanced Data Type API: Test request to see if it behaves as expected when passed in type is
     not found/not valid
@@ -122,7 +130,7 @@ def test_types_convert_bad_request_type_not_found(test_client, login_as_admin):
     "superset.advanced_data_type.api.ADVANCED_DATA_TYPES",
     {"type": test_type},
 )
-def test_types_convert_request(test_client, login_as_admin):
+def test_types_convert_request(logged_in_admin):
     """
     Advanced Data Type API: Test request to see if it behaves as expected when a valid type
     and valid values are passed in

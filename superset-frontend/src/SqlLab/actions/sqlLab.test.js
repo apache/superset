@@ -835,7 +835,7 @@ describe('async actions', () => {
       });
     });
 
-    describe('removeTables', () => {
+    describe('removeTable', () => {
       it('updates the table schema state in the backend', () => {
         expect.assertions(2);
 
@@ -843,30 +843,13 @@ describe('async actions', () => {
         const store = mockStore({});
         const expectedActions = [
           {
-            type: actions.REMOVE_TABLES,
-            tables: [table],
+            type: actions.REMOVE_TABLE,
+            table,
           },
         ];
-        return store.dispatch(actions.removeTables([table])).then(() => {
+        return store.dispatch(actions.removeTable(table)).then(() => {
           expect(store.getActions()).toEqual(expectedActions);
           expect(fetchMock.calls(updateTableSchemaEndpoint)).toHaveLength(1);
-        });
-      });
-
-      it('deletes multiple tables and updates the table schema state in the backend', () => {
-        expect.assertions(2);
-
-        const tables = [{ id: 1 }, { id: 2 }];
-        const store = mockStore({});
-        const expectedActions = [
-          {
-            type: actions.REMOVE_TABLES,
-            tables,
-          },
-        ];
-        return store.dispatch(actions.removeTables(tables)).then(() => {
-          expect(store.getActions()).toEqual(expectedActions);
-          expect(fetchMock.calls(updateTableSchemaEndpoint)).toHaveLength(2);
         });
       });
     });

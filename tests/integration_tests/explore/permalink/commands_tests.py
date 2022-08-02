@@ -109,7 +109,7 @@ class TestCreatePermalinkDataCommand(SupersetTestCase):
 
         datasource = f"{dataset.id}__{DatasourceType.TABLE}"
         command = CreateExplorePermalinkCommand(
-            {"formData": {"datasource": datasource, "slice_id": slice.id}}
+            mock_g.user, {"formData": {"datasource": datasource, "slice_id": slice.id}}
         )
 
         assert isinstance(command.run(), str)
@@ -130,10 +130,10 @@ class TestCreatePermalinkDataCommand(SupersetTestCase):
         datasource = f"{dataset.id}__{DatasourceType.TABLE}"
 
         key = CreateExplorePermalinkCommand(
-            {"formData": {"datasource": datasource, "slice_id": slice.id}}
+            mock_g.user, {"formData": {"datasource": datasource, "slice_id": slice.id}}
         ).run()
 
-        get_command = GetExplorePermalinkCommand(key)
+        get_command = GetExplorePermalinkCommand(mock_g.user, key)
         cache_data = get_command.run()
 
         assert cache_data.get("datasource") == datasource
@@ -166,7 +166,7 @@ class TestCreatePermalinkDataCommand(SupersetTestCase):
                 "formData": {"datasource": datasource_string, "slice_id": slice.id}
             },
         }
-        get_command = GetExplorePermalinkCommand("thisisallmocked")
+        get_command = GetExplorePermalinkCommand(mock_g.user, "thisisallmocked")
         cache_data = get_command.run()
 
         assert cache_data.get("datasource") == datasource_string

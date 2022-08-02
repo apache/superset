@@ -36,7 +36,7 @@ import {
   useDashboardDatasets,
 } from 'src/hooks/apiResources';
 import { hydrateDashboard } from 'src/dashboard/actions/hydrate';
-import { setDatasources } from 'src/datasource/actions';
+import { setDatasources } from 'src/dashboard/actions/datasources';
 import injectCustomCss from 'src/dashboard/util/injectCustomCss';
 import setupPlugins from 'src/setup/setupPlugins';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
@@ -53,14 +53,14 @@ import {
 } from 'src/explore/constants';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
-import { canUserEditDashboard } from 'src/dashboard/util/permissionUtils';
-import { getFilterSets } from 'src/dashboard/actions/nativeFilters';
-import { setDatasetsStatus } from 'src/dashboard/actions/dashboardState';
+import { canUserEditDashboard } from 'src/dashboard/util/findPermission';
+import { getFilterSets } from '../actions/nativeFilters';
+import { setDatasetsStatus } from '../actions/dashboardState';
 import {
   getFilterValue,
   getPermalinkValue,
-} from 'src/dashboard/components/nativeFilters/FilterBar/keyValue';
-import { filterCardPopoverStyle } from 'src/dashboard/styles';
+} from '../components/nativeFilters/FilterBar/keyValue';
+import { filterCardPopoverStyle } from '../styles';
 
 export const MigrationContext = React.createContext(
   FILTER_BOX_MIGRATION_STATES.NOOP,
@@ -183,22 +183,19 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     async function getDataMaskApplied() {
       const permalinkKey = getUrlParam(URL_PARAMS.permalinkKey);
       const nativeFilterKeyValue = getUrlParam(URL_PARAMS.nativeFiltersKey);
-      const isOldRison = getUrlParam(URL_PARAMS.nativeFilters);
+      let dataMaskFromUrl = nativeFilterKeyValue || {};
 
-      let dataMask = nativeFilterKeyValue || {};
-      // activeTabs is initialized with undefined so that it doesn't override
-      // the currently stored value when hydrating
-      let activeTabs: string[] | undefined;
+      const isOldRison = getUrlParam(URL_PARAMS.nativeFilters);
       if (permalinkKey) {
         const permalinkValue = await getPermalinkValue(permalinkKey);
         if (permalinkValue) {
-          ({ dataMask, activeTabs } = permalinkValue.state);
+          dataMaskFromUrl = permalinkValue.state.filterState;
         }
       } else if (nativeFilterKeyValue) {
-        dataMask = await getFilterValue(id, nativeFilterKeyValue);
+        dataMaskFromUrl = await getFilterValue(id, nativeFilterKeyValue);
       }
       if (isOldRison) {
-        dataMask = isOldRison;
+        dataMaskFromUrl = isOldRison;
       }
 
       if (readyToRender) {
@@ -210,13 +207,12 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
           }
         }
         dispatch(
-          hydrateDashboard({
+          hydrateDashboard(
             dashboard,
             charts,
-            activeTabs,
             filterboxMigrationState,
-            dataMask,
-          }),
+            dataMaskFromUrl,
+          ),
         );
       }
       return null;

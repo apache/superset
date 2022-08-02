@@ -97,8 +97,7 @@ const StyledHeader = styled.div`
 
         a {
           margin: 0;
-          padding: ${({ theme }) => theme.gridUnit * 2}px
-            ${({ theme }) => theme.gridUnit * 4}px;
+          padding: ${({ theme }) => theme.gridUnit * 4}px;
           line-height: ${({ theme }) => theme.gridUnit * 5}px;
 
           &:hover {
@@ -113,8 +112,7 @@ const StyledHeader = styled.div`
       }
 
       &.active a {
-        background: ${({ theme }) => theme.colors.secondary.light4};
-        border-radius: ${({ theme }) => theme.borderRadius}px;
+        text-decoration: underline;
       }
     }
 
@@ -124,8 +122,7 @@ const StyledHeader = styled.div`
     li > a:hover,
     li > a:focus,
     li > div:hover,
-    div > div:hover,
-    div > a:hover {
+    div > div:hover {
       background: ${({ theme }) => theme.colors.secondary.light4};
       border-bottom: none;
       border-radius: ${({ theme }) => theme.borderRadius}px;

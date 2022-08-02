@@ -39,7 +39,7 @@ describe('Visualization > Histogram', () => {
   };
 
   function verify(formData: QueryFormData) {
-    cy.visitChartByParams(formData);
+    cy.visitChartByParams(JSON.stringify(formData));
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
   }
 

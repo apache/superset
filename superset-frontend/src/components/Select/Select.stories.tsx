@@ -16,10 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ReactNode, useState, useCallback, useRef } from 'react';
-import Button from 'src/components/Button';
+import React, { ReactNode, useState, useCallback } from 'react';
 import ControlHeader from 'src/explore/components/ControlHeader';
-import AsyncSelect, { AsyncSelectProps, AsyncSelectRef } from './AsyncSelect';
 import Select, { SelectProps, OptionsTypePage, OptionsType } from './Select';
 
 export default {
@@ -377,19 +375,18 @@ const USERS = [
   'Ilenia',
 ].sort();
 
-export const AsynchronousSelect = ({
+export const AsyncSelect = ({
   fetchOnlyOnSearch,
   withError,
   withInitialValue,
   responseTime,
   ...rest
-}: AsyncSelectProps & {
+}: SelectProps & {
   withError: boolean;
   withInitialValue: boolean;
   responseTime: number;
 }) => {
   const [requests, setRequests] = useState<ReactNode[]>([]);
-  const ref = useRef<AsyncSelectRef>(null);
 
   const getResults = (username?: string) => {
     let results: { label: string; value: string }[] = [];
@@ -459,12 +456,11 @@ export const AsynchronousSelect = ({
           width: DEFAULT_WIDTH,
         }}
       >
-        <AsyncSelect
+        <Select
           {...rest}
-          ref={ref}
           fetchOnlyOnSearch={fetchOnlyOnSearch}
           options={withError ? fetchUserListError : fetchUserListPage}
-          placeholder={fetchOnlyOnSearch ? 'Type anything' : 'AsyncSelect...'}
+          placeholder={fetchOnlyOnSearch ? 'Type anything' : 'Select...'}
           value={
             withInitialValue
               ? { label: 'Valentina', value: 'Valentina' }
@@ -488,24 +484,11 @@ export const AsynchronousSelect = ({
           <p key={`request-${index}`}>{request}</p>
         ))}
       </div>
-      <Button
-        style={{
-          position: 'absolute',
-          top: 452,
-          left: DEFAULT_WIDTH + 580,
-        }}
-        onClick={() => {
-          ref.current?.clearCache();
-          setRequests([]);
-        }}
-      >
-        Clear cache
-      </Button>
     </>
   );
 };
 
-AsynchronousSelect.args = {
+AsyncSelect.args = {
   allowClear: false,
   allowNewOptions: false,
   fetchOnlyOnSearch: false,
@@ -515,7 +498,7 @@ AsynchronousSelect.args = {
   tokenSeparators: ['\n', '\t', ';'],
 };
 
-AsynchronousSelect.argTypes = {
+AsyncSelect.argTypes = {
   ...ARG_TYPES,
   header: {
     table: {
@@ -548,7 +531,7 @@ AsynchronousSelect.argTypes = {
   },
 };
 
-AsynchronousSelect.story = {
+AsyncSelect.story = {
   parameters: {
     knobs: {
       disable: true,

@@ -18,11 +18,10 @@
  */
 import { HexagonLayer } from 'deck.gl';
 import React from 'react';
-import { t, CategoricalColorNamespace } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
 
 import { commonLayerProps, getAggFunc } from '../common';
 import sandboxedEval from '../../utils/sandbox';
-import { hexToRGB } from '../../utils/colors';
 import { createDeckGLComponent } from '../../factory';
 import TooltipRow from '../../TooltipRow';
 
@@ -43,9 +42,11 @@ function setTooltipContent(o) {
 
 export function getLayer(formData, payload, onAddFilter, setTooltip) {
   const fd = formData;
-  const colorScale = CategoricalColorNamespace.getScale(fd.color_scheme);
-  const colorRange = colorScale.range().map(color => hexToRGB(color));
-  let data = payload.data.features;
+  const c = fd.color_picker;
+  let data = payload.data.features.map(d => ({
+    ...d,
+    color: [c.r, c.g, c.b, 255 * c.a],
+  }));
 
   if (fd.js_data_mutator) {
     // Applying user defined data mutator if defined
@@ -59,8 +60,9 @@ export function getLayer(formData, payload, onAddFilter, setTooltip) {
     data,
     pickable: true,
     radius: fd.grid_size,
+    minColor: [0, 0, 0, 0],
     extruded: fd.extruded,
-    colorRange,
+    maxColor: [c.r, c.g, c.b, 255 * c.a],
     outline: false,
     getElevationValue: aggFunc,
     getColorValue: aggFunc,

@@ -26,6 +26,7 @@ from superset.dashboards.filter_sets.consts import (
     OWNER_TYPE_FIELD,
     PARAMS_PROPERTY,
 )
+from tests.integration_tests.base_tests import login
 from tests.integration_tests.dashboards.filter_sets.consts import (
     DASHBOARD_OWNER_USERNAME,
     FILTER_SET_OWNER_USERNAME,
@@ -36,7 +37,6 @@ from tests.integration_tests.dashboards.filter_sets.utils import (
     collect_all_ids,
     get_filter_set_by_name,
 )
-from tests.integration_tests.test_app import login
 
 if TYPE_CHECKING:
     from flask.testing import FlaskClient

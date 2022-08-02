@@ -160,9 +160,6 @@ def _add_table_metrics(datasource: SqlaTable) -> None:
             col.is_dttm = True
             break
 
-    datasource.columns = columns
-    datasource.metrics = metrics
-
 
 def create_slices(tbl: SqlaTable, admin_owner: bool) -> Tuple[List[Slice], List[Slice]]:
     metrics = [

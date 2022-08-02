@@ -17,11 +17,29 @@
  * under the License.
  */
 import React, { useEffect, useState } from 'react';
-import { ensureIsArray, t } from '@superset-ui/core';
+import { ensureIsArray, styled, t } from '@superset-ui/core';
+import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';
+import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
+import CopyToClipboard from 'src/components/CopyToClipboard';
 import Loading from 'src/components/Loading';
+import { CopyButton } from 'src/explore/components/DataTableControl';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
-import ViewQuery from 'src/explore/components/controls/ViewQuery';
+import markdownSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/markdown';
+import htmlSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/htmlbars';
+import sqlSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/sql';
+import jsonSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/json';
+
+const CopyButtonViewQuery = styled(CopyButton)`
+  && {
+    margin: 0 0 ${({ theme }) => theme.gridUnit}px;
+  }
+`;
+
+SyntaxHighlighter.registerLanguage('markdown', markdownSyntax);
+SyntaxHighlighter.registerLanguage('html', htmlSyntax);
+SyntaxHighlighter.registerLanguage('sql', sqlSyntax);
+SyntaxHighlighter.registerLanguage('json', jsonSyntax);
 
 interface Props {
   latestQueryFormData: object;
@@ -31,6 +49,14 @@ type Result = {
   query: string;
   language: string;
 };
+
+const StyledSyntaxContainer = styled.div`
+  height: 100%;
+`;
+
+const StyledSyntaxHighlighter = styled(SyntaxHighlighter)`
+  height: calc(100% - 26px); // 100% - clipboard height
+`;
 
 const ViewQueryModal: React.FC<Props> = props => {
   const [result, setResult] = useState<Result[]>([]);
@@ -75,7 +101,23 @@ const ViewQueryModal: React.FC<Props> = props => {
     <>
       {result.map(item =>
         item.query ? (
-          <ViewQuery sql={item.query} language={item.language || undefined} />
+          <StyledSyntaxContainer key={item.query}>
+            <CopyToClipboard
+              text={item.query}
+              shouldShowText={false}
+              copyNode={
+                <CopyButtonViewQuery buttonSize="xsmall">
+                  <i className="fa fa-clipboard" />
+                </CopyButtonViewQuery>
+              }
+            />
+            <StyledSyntaxHighlighter
+              language={item.language || undefined}
+              style={github}
+            >
+              {item.query}
+            </StyledSyntaxHighlighter>
+          </StyledSyntaxContainer>
         ) : null,
       )}
     </>

@@ -17,42 +17,16 @@
  * under the License.
  */
 import React from 'react';
-import {
-  ISaveableDatasource,
-  SaveDatasetModal,
-} from 'src/SqlLab/components/SaveDatasetModal';
+import { QueryResponse, testQuery } from '@superset-ui/core';
+import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { render, screen } from 'spec/helpers/testing-library';
-import { DatasourceType } from '@superset-ui/core';
-
-const testQuery: ISaveableDatasource = {
-  name: 'unimportant',
-  dbId: 1,
-  sql: 'SELECT *',
-  columns: [
-    {
-      name: 'Column 1',
-      type: DatasourceType.Query,
-      is_dttm: false,
-    },
-    {
-      name: 'Column 3',
-      type: DatasourceType.Query,
-      is_dttm: false,
-    },
-    {
-      name: 'Column 2',
-      type: DatasourceType.Query,
-      is_dttm: true,
-    },
-  ],
-};
 
 const mockedProps = {
   visible: true,
   onHide: () => {},
   buttonTextOnSave: 'Save',
   buttonTextOnOverwrite: 'Overwrite',
-  datasource: testQuery,
+  datasource: testQuery as QueryResponse,
 };
 
 describe('SaveDatasetModal RTL', () => {
@@ -62,7 +36,6 @@ describe('SaveDatasetModal RTL', () => {
     const saveRadioBtn = screen.getByRole('radio', {
       name: /save as new unimportant/i,
     });
-
     const fieldLabel = screen.getByText(/save as new/i);
     const inputField = screen.getByRole('textbox');
     const inputFieldText = screen.getByDisplayValue(/unimportant/i);
@@ -77,7 +50,7 @@ describe('SaveDatasetModal RTL', () => {
     render(<SaveDatasetModal {...mockedProps} />, { useRedux: true });
 
     const overwriteRadioBtn = screen.getByRole('radio', {
-      name: /overwrite existing/i,
+      name: /overwrite existing select or type dataset name/i,
     });
     const fieldLabel = screen.getByText(/overwrite existing/i);
     const inputField = screen.getByRole('combobox');

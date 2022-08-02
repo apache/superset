@@ -17,6 +17,7 @@
 import logging
 from typing import Any, Dict, Optional
 
+from flask_appbuilder.security.sqla.models import User
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset.explore.permalink.commands.base import BaseExplorePermalinkCommand
@@ -30,7 +31,8 @@ logger = logging.getLogger(__name__)
 
 
 class CreateExplorePermalinkCommand(BaseExplorePermalinkCommand):
-    def __init__(self, state: Dict[str, Any]):
+    def __init__(self, actor: User, state: Dict[str, Any]):
+        self.actor = actor
         self.chart_id: Optional[int] = state["formData"].get("slice_id")
         self.datasource: str = state["formData"]["datasource"]
         self.state = state
@@ -41,7 +43,9 @@ class CreateExplorePermalinkCommand(BaseExplorePermalinkCommand):
             d_id, d_type = self.datasource.split("__")
             datasource_id = int(d_id)
             datasource_type = DatasourceType(d_type)
-            check_chart_access(datasource_id, self.chart_id, datasource_type)
+            check_chart_access(
+                datasource_id, self.chart_id, self.actor, datasource_type
+            )
             value = {
                 "chartId": self.chart_id,
                 "datasourceId": datasource_id,
@@ -50,6 +54,7 @@ class CreateExplorePermalinkCommand(BaseExplorePermalinkCommand):
                 "state": self.state,
             }
             command = CreateKeyValueCommand(
+                actor=self.actor,
                 resource=self.resource,
                 value=value,
             )

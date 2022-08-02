@@ -61,6 +61,7 @@ from typing_extensions import TypedDict
 from superset import security_manager, sql_parse
 from superset.databases.utils import make_url_safe
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.models.sql_lab import Query
 from superset.sql_parse import ParsedQuery, Table
 from superset.superset_typing import ResultSetColumnType
 from superset.utils import core as utils
@@ -72,7 +73,6 @@ if TYPE_CHECKING:
     # prevent circular imports
     from superset.connectors.sqla.models import TableColumn
     from superset.models.core import Database
-    from superset.models.sql_lab import Query
 
 ColumnTypeMapping = Tuple[
     Pattern[str],
@@ -117,9 +117,7 @@ builtin_time_grains: Dict[Optional[str], str] = {
 }
 
 
-class TimestampExpression(
-    ColumnClause
-):  # pylint: disable=abstract-method, too-many-ancestors
+class TimestampExpression(ColumnClause):  # pylint: disable=abstract-method
     def __init__(self, expr: str, col: ColumnClause, **kwargs: Any) -> None:
         """Sqlalchemy class that can be can be used to render native column elements
         respeting engine-specific quoting rules as part of a string-based expression.
@@ -330,6 +328,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # This set will give the keywords for data limit statements
     # to consider for the engines with TOP SQL parsing
     top_keywords: Set[str] = {"TOP"}
+    # Whetherthe database engine supports catalogs structure.
+    # If True, then catalogs will be fetched for the database engine
+    has_catalogs = False
+
+    has_catalogs = False
 
     force_column_alias_quotes = False
     arraysize = 0
@@ -887,7 +890,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return all_datasources
 
     @classmethod
-    def handle_cursor(cls, cursor: Any, query: "Query", session: Session) -> None:
+    def handle_cursor(cls, cursor: Any, query: Query, session: Session) -> None:
         """Handle a live cursor between the execute and fetchall calls
 
         The flow works without this method doing anything, but it allows
@@ -935,13 +938,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         ]
 
     @classmethod
-    def adjust_database_uri(  # pylint: disable=unused-argument
-        cls,
-        uri: URL,
-        selected_schema: Optional[str],
-    ) -> URL:
+    def adjust_database_uri(cls, uri: URL, selected_schema: Optional[str]) -> None:
         """
-        Return a modified URL with a new database component.
+        Mutate the database component of the SQLAlchemy URI.
 
         The URI here represents the URI as entered when saving the database,
         ``selected_schema`` is the schema currently active presumably in
@@ -955,10 +954,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         For those it's probably better to not alter the database
         component of the URI with the schema name, it won't work.
 
-        Some database drivers like Presto accept '{catalog}/{schema}' in
+        Some database drivers like presto accept '{catalog}/{schema}' in
         the database component of the URL, that can be handled here.
         """
-        return uri
 
     @classmethod
     def patch(cls) -> None:
@@ -975,6 +973,28 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :return: All schemas in the database
         """
         return sorted(inspector.get_schema_names())
+
+    @classmethod
+    def get_catalog_names(cls, inspector: Inspector) -> List[str]:
+        """
+        Get all catalogs from database
+
+        :param inspector: SqlAlchemy inspector
+        :return: All catalogs in the database
+        """
+        return sorted(inspector.get_catalog_names())
+
+    @classmethod
+    def get_all_catalog_schema_names(cls, inspector: Inspector, 
+        catalog_name: str
+    ) -> List[str]:
+        """
+        Get all schemas under a catalog from database
+
+        :param inspector: SqlAlchemy inspector
+        :return: All catalogs in the database
+        """
+        return sorted(inspector.get_all_catalog_schema_names(catalog_name))
 
     @classmethod
     def get_table_names(  # pylint: disable=unused-argument
@@ -1213,20 +1233,17 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return costs
 
     @classmethod
-    def get_url_for_impersonation(
+    def modify_url_for_impersonation(
         cls, url: URL, impersonate_user: bool, username: Optional[str]
-    ) -> URL:
+    ) -> None:
         """
-        Return a modified URL with the username set.
-
+        Modify the SQL Alchemy URL object with the user to impersonate if applicable.
         :param url: SQLAlchemy URL object
         :param impersonate_user: Flag indicating if impersonation is enabled
         :param username: Effective username
         """
         if impersonate_user and username is not None:
-            url = url.set(username=username)
-
-        return url
+            url.username = username
 
     @classmethod
     def update_impersonation_config(
@@ -1511,7 +1528,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     def get_cancel_query_id(  # pylint: disable=unused-argument
         cls,
         cursor: Any,
-        query: "Query",
+        query: Query,
     ) -> Optional[str]:
         """
         Select identifiers from the database engine that uniquely identifies the
@@ -1529,7 +1546,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     def cancel_query(  # pylint: disable=unused-argument
         cls,
         cursor: Any,
-        query: "Query",
+        query: Query,
         cancel_query_id: str,
     ) -> bool:
         """

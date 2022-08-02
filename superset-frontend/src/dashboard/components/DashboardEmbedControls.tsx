@@ -22,7 +22,7 @@ import {
   styled,
   SupersetApiError,
   t,
-  getExtensionsRegistry,
+  getUiOverrideRegistry,
 } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import Modal from 'src/components/Modal';
@@ -33,7 +33,7 @@ import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { FormItem } from 'src/components/Form';
 import { EmbeddedDashboard } from '../types';
 
-const extensionsRegistry = getExtensionsRegistry();
+const uiOverrideRegistry = getUiOverrideRegistry();
 
 type Props = {
   dashboardId: string;
@@ -148,11 +148,11 @@ export const DashboardEmbedControls = ({ dashboardId, onHide }: Props) => {
     return <Loading />;
   }
 
-  const docsDescription = extensionsRegistry.get(
+  const docsDescription = uiOverrideRegistry.get(
     'embedded.documentation.description',
   );
   const docsUrl =
-    extensionsRegistry.get('embedded.documentation.url') ??
+    uiOverrideRegistry.get('embedded.documentation.url') ??
     'https://www.npmjs.com/package/@superset-ui/embedded-sdk';
 
   return (

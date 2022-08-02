@@ -20,11 +20,11 @@ import React from 'react';
 import ModalTrigger from '.';
 
 interface IModalTriggerProps {
-  triggerNode: JSX.Element;
+  triggerNode: React.ReactNode;
   dialogClassName?: string;
-  modalTitle?: string;
-  modalBody?: JSX.Element;
-  modalFooter?: JSX.Element;
+  modalTitle?: React.ReactNode;
+  modalBody?: React.ReactNode;
+  modalFooter?: React.ReactNode;
   beforeOpen?: () => void;
   onExit?: () => void;
   isButton?: boolean;

@@ -17,7 +17,8 @@
 import logging
 from typing import Any, Dict, Optional
 
-from superset import security_manager
+from flask_appbuilder.security.sqla.models import User
+
 from superset.commands.base import BaseCommand
 from superset.common.chart_data import ChartDataResultType
 from superset.common.query_context_factory import QueryContextFactory
@@ -32,12 +33,14 @@ from superset.datasets.commands.exceptions import (
 from superset.datasets.dao import DatasetDAO
 from superset.exceptions import SupersetSecurityException
 from superset.utils.core import QueryStatus
+from superset.views.base import check_ownership
 
 logger = logging.getLogger(__name__)
 
 
 class SamplesDatasetCommand(BaseCommand):
-    def __init__(self, model_id: int, force: bool):
+    def __init__(self, user: User, model_id: int, force: bool):
+        self._actor = user
         self._model_id = model_id
         self._force = force
         self._model: Optional[SqlaTable] = None
@@ -75,6 +78,6 @@ class SamplesDatasetCommand(BaseCommand):
             raise DatasetNotFoundError()
         # Check ownership
         try:
-            security_manager.raise_for_ownership(self._model)
+            check_ownership(self._model)
         except SupersetSecurityException as ex:
             raise DatasetForbiddenError() from ex

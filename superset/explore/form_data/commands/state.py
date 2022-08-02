@@ -18,12 +18,10 @@ from typing import Optional
 
 from typing_extensions import TypedDict
 
-from superset.utils.core import DatasourceType
-
 
 class TemporaryExploreState(TypedDict):
     owner: Optional[int]
     datasource_id: int
-    datasource_type: DatasourceType
+    datasource_type: str
     chart_id: Optional[int]
     form_data: str

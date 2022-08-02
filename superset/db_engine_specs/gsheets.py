@@ -81,18 +81,16 @@ class GSheetsEngineSpec(SqliteEngineSpec):
     }
 
     @classmethod
-    def get_url_for_impersonation(
+    def modify_url_for_impersonation(
         cls,
         url: URL,
         impersonate_user: bool,
         username: Optional[str],
-    ) -> URL:
+    ) -> None:
         if impersonate_user and username is not None:
             user = security_manager.find_user(username=username)
             if user and user.email:
-                url = url.update_query_dict({"subject": user.email})
-
-        return url
+                url.query["subject"] = user.email
 
     @classmethod
     def extra_table_metadata(

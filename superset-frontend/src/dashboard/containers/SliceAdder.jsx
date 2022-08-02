@@ -19,11 +19,7 @@
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 
-import {
-  fetchAllSlices,
-  fetchSortedSlices,
-  fetchFilteredSlices,
-} from '../actions/sliceEntities';
+import { fetchAllSlices } from '../actions/sliceEntities';
 import SliceAdder from '../components/SliceAdder';
 
 function mapStateToProps(
@@ -48,8 +44,6 @@ function mapDispatchToProps(dispatch) {
   return bindActionCreators(
     {
       fetchAllSlices,
-      fetchSortedSlices,
-      fetchFilteredSlices,
     },
     dispatch,
   );

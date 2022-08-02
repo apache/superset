@@ -17,6 +17,7 @@
 import logging
 from typing import Optional
 
+from flask_appbuilder.security.sqla.models import User
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset.dashboards.commands.exceptions import DashboardNotFoundError
@@ -32,7 +33,8 @@ logger = logging.getLogger(__name__)
 
 
 class GetDashboardPermalinkCommand(BaseDashboardPermalinkCommand):
-    def __init__(self, key: str):
+    def __init__(self, actor: User, key: str):
+        self.actor = actor
         self.key = key
 
     def run(self) -> Optional[DashboardPermalinkValue]:

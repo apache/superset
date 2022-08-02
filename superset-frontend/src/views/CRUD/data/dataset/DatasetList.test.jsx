@@ -51,7 +51,7 @@ const mockdatasets = [...new Array(3)].map((_, i) => ({
   changed_by: 'user',
   changed_on: new Date().toISOString(),
   database_name: `db ${i}`,
-  explore_url: `/explore/?dataset_type=table&dataset_id=${i}`,
+  explore_url: `/explore/table/${i}`,
   id: i,
   schema: `schema ${i}`,
   table_name: `coolest table ${i}`,
@@ -183,12 +183,6 @@ describe('DatasetList', () => {
   });
 });
 
-jest.mock('react-router-dom', () => ({
-  ...jest.requireActual('react-router-dom'),
-  useLocation: () => ({}),
-  useHistory: () => ({}),
-}));
-
 describe('RTL', () => {
   async function renderAndWait() {
     const mounted = act(async () => {
@@ -197,7 +191,7 @@ describe('RTL', () => {
         <QueryParamProvider>
           <DatasetList {...mockedProps} user={mockUser} />
         </QueryParamProvider>,
-        { useRedux: true, useRouter: true },
+        { useRedux: true },
       );
     });
 

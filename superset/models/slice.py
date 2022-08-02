@@ -39,7 +39,7 @@ from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm.mapper import Mapper
 
-from superset import db, is_feature_enabled, security_manager
+from superset import ConnectorRegistry, db, is_feature_enabled, security_manager
 from superset.legacy import update_time_range
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 from superset.models.tags import ChartUpdater
@@ -126,10 +126,7 @@ class Slice(  # pylint: disable=too-many-public-methods
 
     @property
     def cls_model(self) -> Type["BaseDatasource"]:
-        # pylint: disable=import-outside-toplevel
-        from superset.datasource.dao import DatasourceDAO
-
-        return DatasourceDAO.sources[self.datasource_type]
+        return ConnectorRegistry.sources[self.datasource_type]
 
     @property
     def datasource(self) -> Optional["BaseDatasource"]:
@@ -286,14 +283,14 @@ class Slice(  # pylint: disable=too-many-public-methods
 
     def get_explore_url(
         self,
-        base_url: str = "/explore",
+        base_url: str = "/superset/explore",
         overrides: Optional[Dict[str, Any]] = None,
     ) -> str:
         overrides = overrides or {}
         form_data = {"slice_id": self.id}
         form_data.update(overrides)
         params = parse.quote(json.dumps(form_data))
-        return f"{base_url}/?slice_id={self.id}&form_data={params}"
+        return f"{base_url}/?form_data={params}"
 
     @property
     def slice_url(self) -> str:
@@ -335,8 +332,7 @@ class Slice(  # pylint: disable=too-many-public-methods
 
     @property
     def url(self) -> str:
-        form_data = f"%7B%22slice_id%22%3A%20{self.id}%7D"
-        return f"/explore/?slice_id={self.id}&form_data={form_data}"
+        return f"/superset/explore/?form_data=%7B%22slice_id%22%3A%20{self.id}%7D"
 
     def get_query_context_factory(self) -> QueryContextFactory:
         if self.query_context_factory is None:

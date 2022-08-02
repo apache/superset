@@ -21,6 +21,7 @@ from flask_appbuilder import Model
 from sqlalchemy import Column, Integer, String
 
 from superset import app, db, security_manager
+from superset.connectors.connector_registry import ConnectorRegistry
 from superset.models.helpers import AuditMixinNullable
 from superset.utils.memoized import memoized
 
@@ -43,10 +44,7 @@ class DatasourceAccessRequest(Model, AuditMixinNullable):
 
     @property
     def cls_model(self) -> Type["BaseDatasource"]:
-        # pylint: disable=import-outside-toplevel
-        from superset.datasource.dao import DatasourceDAO
-
-        return DatasourceDAO.sources[self.datasource_type]
+        return ConnectorRegistry.sources[self.datasource_type]
 
     @property
     def username(self) -> Markup:

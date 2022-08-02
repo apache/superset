@@ -33,7 +33,7 @@ const createParams = () => ({
 
 test('Get ExploreUrl with default params', () => {
   const params = createParams();
-  expect(getExploreUrl(params)).toBe('http://localhost/explore/');
+  expect(getExploreUrl(params)).toBe('http://localhost/superset/explore/');
 });
 
 test('Get ExploreUrl with endpointType:full', () => {

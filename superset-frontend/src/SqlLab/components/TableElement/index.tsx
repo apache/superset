@@ -57,7 +57,7 @@ export interface TableElementProps {
   table: Table;
   actions: {
     removeDataPreview: (table: Table) => void;
-    removeTables: (tables: Table[]) => void;
+    removeTable: (table: Table) => void;
   };
 }
 
@@ -85,7 +85,7 @@ const TableElement = ({ table, actions, ...props }: TableElementProps) => {
 
   const removeTable = () => {
     actions.removeDataPreview(table);
-    actions.removeTables([table]);
+    actions.removeTable(table);
   };
 
   const toggleSortColumns = () => {
@@ -152,7 +152,11 @@ const TableElement = ({ table, actions, ...props }: TableElementProps) => {
     if (table?.indexes?.length) {
       keyLink = (
         <ModalTrigger
-          modalTitle={`${t('Keys for table')} ${table.name}`}
+          modalTitle={
+            <div>
+              {t('Keys for table')} <strong>{table.name}</strong>
+            </div>
+          }
           modalBody={table.indexes.map((ix, i) => (
             <pre key={i}>{JSON.stringify(ix, null, '  ')}</pre>
           ))}

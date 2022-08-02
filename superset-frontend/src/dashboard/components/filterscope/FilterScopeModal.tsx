@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { RefObject } from 'react';
 import { styled } from '@superset-ui/core';
-import ModalTrigger, { ModalTriggerRef } from 'src/components/ModalTrigger';
+import ModalTrigger from 'src/components/ModalTrigger';
 import FilterScope from 'src/dashboard/containers/FilterScope';
 
 type FilterScopeModalProps = {
@@ -34,17 +34,19 @@ export default class FilterScopeModal extends React.PureComponent<
   FilterScopeModalProps,
   {}
 > {
-  modal: ModalTriggerRef;
+  modal: RefObject<ModalTrigger>;
 
   constructor(props: FilterScopeModalProps) {
     super(props);
 
-    this.modal = React.createRef() as ModalTriggerRef;
+    this.modal = React.createRef();
     this.handleCloseModal = this.handleCloseModal.bind(this);
   }
 
   handleCloseModal(): void {
-    this?.modal?.current?.close?.();
+    if (this.modal.current) {
+      this.modal.current.close();
+    }
   }
 
   render() {

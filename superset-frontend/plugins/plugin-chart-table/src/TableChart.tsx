@@ -341,8 +341,6 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           ? defaultColorPN
           : config.colorPositiveNegative;
 
-      const { truncateLongCells } = config;
-
       const hasColumnColorFormatters =
         isNumeric &&
         Array.isArray(columnColorFormatters) &&
@@ -396,7 +394,6 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                   colorPositiveNegative,
                 })
               : undefined)};
-            white-space: ${value instanceof Date ? 'nowrap' : undefined};
           `;
 
           const cellProps = {
@@ -413,37 +410,12 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             ].join(' '),
           };
           if (html) {
-            if (truncateLongCells) {
-              // eslint-disable-next-line react/no-danger
-              return (
-                <StyledCell {...cellProps}>
-                  <div
-                    className="dt-truncate-cell"
-                    style={columnWidth ? { width: columnWidth } : undefined}
-                    dangerouslySetInnerHTML={html}
-                  />
-                </StyledCell>
-              );
-            }
             // eslint-disable-next-line react/no-danger
             return <StyledCell {...cellProps} dangerouslySetInnerHTML={html} />;
           }
           // If cellProps renderes textContent already, then we don't have to
           // render `Cell`. This saves some time for large tables.
-          return (
-            <StyledCell {...cellProps}>
-              {truncateLongCells ? (
-                <div
-                  className="dt-truncate-cell"
-                  style={columnWidth ? { width: columnWidth } : undefined}
-                >
-                  {text}
-                </div>
-              ) : (
-                text
-              )}
-            </StyledCell>
-          );
+          return <StyledCell {...cellProps}>{text}</StyledCell>;
         },
         Header: ({ column: col, onClick, style, onDragStart, onDrop }) => (
           <th
@@ -477,7 +449,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
               data-column-name={col.id}
               css={{
                 display: 'inline-flex',
-                alignItems: 'flex-end',
+                alignItems: 'center',
               }}
             >
               <span data-column-name={col.id}>{label}</span>

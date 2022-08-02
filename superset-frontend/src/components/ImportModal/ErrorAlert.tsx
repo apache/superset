@@ -31,13 +31,9 @@ export const DOCUMENTATION_LINK = supersetTextDocs
 
 export interface IProps {
   errorMessage: string;
-  showDbInstallInstructions: boolean;
 }
 
-const ErrorAlert: FunctionComponent<IProps> = ({
-  errorMessage,
-  showDbInstallInstructions,
-}) => (
+const ErrorAlert: FunctionComponent<IProps> = ({ errorMessage }) => (
   <Alert
     closable={false}
     css={(theme: SupersetTheme) => antdWarningAlertStyles(theme)}
@@ -45,25 +41,21 @@ const ErrorAlert: FunctionComponent<IProps> = ({
     showIcon
     message={errorMessage}
     description={
-      showDbInstallInstructions ? (
-        <>
-          <br />
-          {t(
-            'Database driver for importing maybe not installed. Visit the Superset documentation page for installation instructions: ',
-          )}
-          <a
-            href={DOCUMENTATION_LINK}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="additional-fields-alert-description"
-          >
-            {t('here')}
-          </a>
-          .
-        </>
-      ) : (
-        ''
-      )
+      <>
+        <br />
+        {t(
+          'Database driver for importing maybe not installed. Visit the Superset documentation page for installation instructions:',
+        )}
+        <a
+          href={DOCUMENTATION_LINK}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="additional-fields-alert-description"
+        >
+          {t('here')}
+        </a>
+        .
+      </>
     }
   />
 );

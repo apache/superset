@@ -21,16 +21,13 @@ import {
   QueryFormData,
   AnnotationData,
   AdhocMetric,
-  JsonObject,
 } from '@superset-ui/core';
-import {
-  ColumnMeta,
-  ControlStateMapping,
-  Dataset,
-} from '@superset-ui/chart-controls';
+import { ColumnMeta, Dataset } from '@superset-ui/chart-controls';
 import { DatabaseObject } from 'src/views/CRUD/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
-import { Slice } from 'src/types/Chart';
+import { toastState } from 'src/SqlLab/types';
+
+export { Slice, Chart } from 'src/types/Chart';
 
 export type ChartStatus =
   | 'loading'
@@ -68,39 +65,28 @@ export type Datasource = Dataset & {
   is_sqllab_view?: boolean;
 };
 
-export interface ExplorePageInitialData {
-  dataset: Dataset;
-  form_data: QueryFormData;
-  slice: Slice | null;
-}
-
-export interface ExploreResponsePayload {
-  result: ExplorePageInitialData & { message: string };
-}
-
-export interface ExplorePageState {
-  user: UserWithPermissionsAndRoles;
-  common: {
-    flash_messages: string[];
-    conf: JsonObject;
-  };
-  charts: { [key: number]: ChartState };
-  datasources: { [key: string]: Dataset };
+export type ExploreRootState = {
   explore: {
     can_add: boolean;
     can_download: boolean;
-    can_overwrite: boolean;
+    common: object;
+    controls: object;
+    controlsTransferred: object;
+    datasource: object;
+    datasource_id: number;
+    datasource_type: string;
+    force: boolean;
+    forced_height: object;
+    form_data: object;
     isDatasourceMetaLoading: boolean;
     isStarred: boolean;
-    triggerRender: boolean;
-    // duplicate datasource in exploreState - it's needed by getControlsState
-    datasource: Dataset;
-    controls: ControlStateMapping;
-    form_data: QueryFormData;
-    slice: Slice;
-    controlsTransferred: string[];
+    slice: object;
+    sliceName: string;
     standalone: boolean;
-    force: boolean;
+    timeFormattedColumns: object;
+    user: UserWithPermissionsAndRoles;
   };
-  sliceEntities?: JsonObject; // propagated from Dashboard view
-}
+  localStorageUsageInKilobytes: number;
+  messageToasts: toastState[];
+  common: {};
+};

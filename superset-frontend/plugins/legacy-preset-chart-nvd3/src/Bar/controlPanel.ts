@@ -19,7 +19,6 @@
 import { t } from '@superset-ui/core';
 import {
   ControlPanelConfig,
-  getStandardizedControls,
   sections,
   sharedControls,
 } from '@superset-ui/chart-controls';
@@ -123,10 +122,10 @@ const config: ControlPanelConfig = {
     timeSeriesSection[1],
     sections.annotations,
   ],
-  formDataOverrides: formData => ({
+  denormalizeFormData: formData => ({
     ...formData,
-    metrics: getStandardizedControls().popAllMetrics(),
-    groupby: getStandardizedControls().popAllColumns(),
+    metrics: formData.standardizedFormData.standardizedState.metrics,
+    groupby: formData.standardizedFormData.standardizedState.columns,
   }),
 };
 

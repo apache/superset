@@ -36,7 +36,6 @@ describe('SliceAdder', () => {
   const props = {
     ...mockSliceEntities,
     fetchAllSlices: () => {},
-    fetchSortedSlices: () => {},
     selectedSliceIds: [127, 128],
     userId: '1',
     height: 100,

@@ -14,12 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""adding advanced data type to column models
-
+"""adding_advanced_data_type.py
 Revision ID: 6f139c533bea
 Revises: cbe71abde154
 Create Date: 2021-05-27 16:10:59.567684
-
 """
 
 import sqlalchemy as sa

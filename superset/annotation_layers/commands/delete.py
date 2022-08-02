@@ -18,6 +18,7 @@ import logging
 from typing import Optional
 
 from flask_appbuilder.models.sqla import Model
+from flask_appbuilder.security.sqla.models import User
 
 from superset.annotation_layers.commands.exceptions import (
     AnnotationLayerDeleteFailedError,
@@ -33,7 +34,8 @@ logger = logging.getLogger(__name__)
 
 
 class DeleteAnnotationLayerCommand(BaseCommand):
-    def __init__(self, model_id: int):
+    def __init__(self, user: User, model_id: int):
+        self._actor = user
         self._model_id = model_id
         self._model: Optional[AnnotationLayer] = None
 

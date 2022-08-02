@@ -16,9 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { ColumnMeta } from '@superset-ui/chart-controls';
 import { GenericDataType } from '@superset-ui/core';
 
-export const columns = [
+export const columns: ColumnMeta[] = [
   {
     column_name: 'bootcamp_attend',
     description: null,
