@@ -29,18 +29,17 @@ import {
 } from '@superset-ui/core';
 import { availableDomains } from 'src/utils/hostNamesConfig';
 import { safeStringify } from 'src/utils/safeStringify';
-import { optionLabel } from 'src/utils/common';
 import { URL_PARAMS } from 'src/constants';
 import {
   MULTI_OPERATORS,
   OPERATOR_ENUM_TO_OPERATOR_TYPE,
-  UNSAVED_CHART_ID,
 } from 'src/explore/constants';
 import { DashboardStandaloneMode } from 'src/dashboard/util/constants';
+import { optionLabel } from '../../utils/common';
 
 export function getChartKey(explore) {
-  const { slice, form_data } = explore;
-  return slice?.slice_id ?? form_data?.slice_id ?? UNSAVED_CHART_ID;
+  const { slice } = explore;
+  return slice ? slice.slice_id : 0;
 }
 
 let requestCounter = 0;
@@ -87,7 +86,7 @@ export function getURIDirectory(endpointType = 'base') {
   ) {
     return '/superset/explore_json/';
   }
-  return '/explore/';
+  return '/superset/explore/';
 }
 
 export function mountExploreUrl(endpointType, extraSearch = {}, force = false) {
@@ -267,12 +266,11 @@ export const exportChart = ({
   SupersetClient.postForm(url, { form_data: safeStringify(payload) });
 };
 
-export const exploreChart = (formData, requestParams) => {
+export const exploreChart = formData => {
   const url = getExploreUrl({
     formData,
     endpointType: 'base',
     allowDomainSharding: false,
-    requestParams,
   });
   SupersetClient.postForm(url, { form_data: safeStringify(formData) });
 };

@@ -25,7 +25,6 @@ import {
   D3_FORMAT_OPTIONS,
   D3_TIME_FORMAT_OPTIONS,
   sections,
-  getStandardizedControls,
 } from '@superset-ui/chart-controls';
 
 const config: ControlPanelConfig = {
@@ -267,11 +266,6 @@ const config: ControlPanelConfig = {
       ],
     },
   ],
-  formDataOverrides: formData => ({
-    ...formData,
-    groupby: getStandardizedControls().popAllColumns(),
-    metrics: getStandardizedControls().popAllMetrics(),
-  }),
 };
 
 export default config;

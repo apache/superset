@@ -127,16 +127,10 @@ describe('Test datatable', () => {
     cy.get('[data-test="row-count-label"]').contains('26 rows');
     cy.get('.ant-empty-description').should('not.exist');
   });
-  it('Datapane loads view samples', () => {
-    cy.intercept('/api/v1/dataset/*/samples?force=false').as('Samples');
-    cy.contains('Samples')
-      .click()
-      .then(() => {
-        cy.wait('@Samples');
-        cy.get('.ant-tabs-tab-active').contains('Samples');
-        cy.get('[data-test="row-count-label"]').contains('1k rows');
-        cy.get('.ant-empty-description').should('not.exist');
-      });
+  it.skip('Datapane loads view samples', () => {
+    cy.contains('Samples').click();
+    cy.get('[data-test="row-count-label"]').contains('1k rows');
+    cy.get('.ant-empty-description').should('not.exist');
   });
 });
 
@@ -154,7 +148,7 @@ describe('Time range filter', () => {
       metrics: [NUM_METRIC],
     };
 
-    cy.visitChartByParams(formData);
+    cy.visitChartByParams(JSON.stringify(formData));
     cy.verifySliceSuccess({ waitAlias: '@chartData' });
 
     cy.get('[data-test=time-range-trigger]')
@@ -178,7 +172,7 @@ describe('Time range filter', () => {
       time_range: 'Last year',
     };
 
-    cy.visitChartByParams(formData);
+    cy.visitChartByParams(JSON.stringify(formData));
     cy.verifySliceSuccess({ waitAlias: '@chartData' });
 
     cy.get('[data-test=time-range-trigger]')
@@ -198,7 +192,7 @@ describe('Time range filter', () => {
       time_range: 'previous calendar month',
     };
 
-    cy.visitChartByParams(formData);
+    cy.visitChartByParams(JSON.stringify(formData));
     cy.verifySliceSuccess({ waitAlias: '@chartData' });
 
     cy.get('[data-test=time-range-trigger]')
@@ -218,7 +212,7 @@ describe('Time range filter', () => {
       time_range: 'DATEADD(DATETIME("today"), -7, day) : today',
     };
 
-    cy.visitChartByParams(formData);
+    cy.visitChartByParams(JSON.stringify(formData));
     cy.verifySliceSuccess({ waitAlias: '@chartData' });
 
     cy.get('[data-test=time-range-trigger]')
@@ -241,7 +235,7 @@ describe('Time range filter', () => {
       time_range: 'No filter',
     };
 
-    cy.visitChartByParams(formData);
+    cy.visitChartByParams(JSON.stringify(formData));
     cy.verifySliceSuccess({ waitAlias: '@chartData' });
 
     cy.get('[data-test=time-range-trigger]')

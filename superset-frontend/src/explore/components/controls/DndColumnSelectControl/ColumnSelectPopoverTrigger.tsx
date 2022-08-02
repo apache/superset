@@ -17,8 +17,12 @@
  * under the License.
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { AdhocColumn, t, isAdhocColumn } from '@superset-ui/core';
-import { ColumnMeta, isColumnMeta } from '@superset-ui/chart-controls';
+import { AdhocColumn, t } from '@superset-ui/core';
+import {
+  ColumnMeta,
+  isAdhocColumn,
+  isColumnMeta,
+} from '@superset-ui/chart-controls';
 import { ExplorePopoverContent } from 'src/explore/components/ExploreContentPopover';
 import ColumnSelectPopover from './ColumnSelectPopover';
 import { DndColumnSelectPopoverTitle } from './DndColumnSelectPopoverTitle';

@@ -35,7 +35,7 @@ describe('Visualization > World Map', () => {
   };
 
   function verify(formData) {
-    cy.visitChartByParams(formData);
+    cy.visitChartByParams(JSON.stringify(formData));
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
   }
 

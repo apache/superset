@@ -16,14 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { TimeGranularity } from '@superset-ui/core';
 import extractExtras from '../../src/query/extractExtras';
 
 describe('extractExtras', () => {
   const baseQueryFormData = {
     datasource: '1__table',
     granularity_sqla: 'ds',
-    time_grain_sqla: TimeGranularity.MINUTE,
+    time_grain_sqla: 'PT1M',
     viz_type: 'my_viz',
   };
 

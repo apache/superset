@@ -25,7 +25,6 @@ import React, {
   Dispatch,
   SetStateAction,
 } from 'react';
-import querystring from 'query-string';
 import Button from 'src/components/Button';
 import { t, styled, css, SupersetTheme } from '@superset-ui/core';
 import Collapse from 'src/components/Collapse';
@@ -35,11 +34,6 @@ import { IconTooltip } from 'src/components/IconTooltip';
 import { QueryEditor } from 'src/SqlLab/types';
 import { DatabaseObject } from 'src/components/DatabaseSelector';
 import { EmptyStateSmall } from 'src/components/EmptyState';
-import {
-  getItem,
-  LocalStorageKeys,
-  setItem,
-} from 'src/utils/localStorageHelpers';
 import TableElement, { Table, TableElementProps } from '../TableElement';
 
 interface ExtendedTable extends Table {
@@ -111,26 +105,10 @@ export default function SqlEditorLeftBar({
   // that require and modify the queryEditor
   const queryEditorRef = useRef<QueryEditor>(queryEditor);
   const [emptyResultsWithSearch, setEmptyResultsWithSearch] = useState(false);
-  const [userSelectedDb, setUserSelected] = useState<DatabaseObject | null>(
-    null,
-  );
-
-  useEffect(() => {
-    const bool = querystring.parse(window.location.search).db;
-    const userSelected = getItem(
-      LocalStorageKeys.db,
-      null,
-    ) as DatabaseObject | null;
-
-    if (bool && userSelected) {
-      setUserSelected(userSelected);
-      setItem(LocalStorageKeys.db, null);
-    } else setUserSelected(database);
-  }, []);
 
   useEffect(() => {
     queryEditorRef.current = queryEditor;
-  }, [queryEditor, database]);
+  }, [queryEditor]);
 
   const onEmptyResults = (searchText?: string) => {
     setEmptyResultsWithSearch(!!searchText);
@@ -244,7 +222,7 @@ export default function SqlEditorLeftBar({
       <TableSelectorMultiple
         onEmptyResults={onEmptyResults}
         emptyState={emptyStateComponent}
-        database={userSelectedDb}
+        database={database}
         getDbList={actions.setDatabases}
         handleError={actions.addDangerToast}
         onDbChange={onDbChange}

@@ -18,7 +18,7 @@ from typing import Callable, List, Optional
 
 import pytest
 
-from superset import db
+from superset import ConnectorRegistry, db
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
@@ -95,11 +95,14 @@ def _create_table(
 
 def _cleanup(dash_id: int, slices_ids: List[int]) -> None:
     schema = get_example_default_schema()
-    datasource = (
+
+    table_id = (
         db.session.query(SqlaTable)
         .filter_by(table_name="birth_names", schema=schema)
         .one()
+        .id
     )
+    datasource = ConnectorRegistry.get_datasource("table", table_id, db.session)
     columns = [column for column in datasource.columns]
     metrics = [metric for metric in datasource.metrics]
 

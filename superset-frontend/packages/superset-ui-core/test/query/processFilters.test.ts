@@ -28,7 +28,7 @@ describe('processFilters', () => {
       }),
     ).toEqual(
       expect.objectContaining({
-        extras: { having: '', where: '' },
+        extras: { having: '', having_druid: [], where: '' },
         filters: [],
       }),
     );
@@ -54,19 +54,12 @@ describe('processFilters', () => {
             subject: 'gender',
             operator: 'IS NOT NULL',
           },
-          // ignore simple having filter
-          {
-            expressionType: 'SIMPLE',
-            clause: 'HAVING',
-            subject: 'sum(sales)',
-            operator: '>',
-            comparator: '100',
-          },
         ],
       }),
     ).toEqual({
       extras: {
         having: '',
+        having_druid: [],
         where: '',
       },
       filters: [
@@ -96,6 +89,7 @@ describe('processFilters', () => {
       filters: [],
       extras: {
         having: '',
+        having_druid: [],
         where: '(1 = 1)',
       },
     });
@@ -122,6 +116,20 @@ describe('processFilters', () => {
             comparator: 'almond',
           },
           {
+            expressionType: 'SIMPLE',
+            clause: 'HAVING',
+            subject: 'sweetness',
+            operator: '>',
+            comparator: '0',
+          },
+          {
+            expressionType: 'SIMPLE',
+            clause: 'HAVING',
+            subject: 'sweetness',
+            operator: '<=',
+            comparator: '50',
+          },
+          {
             expressionType: 'SQL',
             clause: 'WHERE',
             sqlExpression: "tea = 'jasmine'",
@@ -146,6 +154,18 @@ describe('processFilters', () => {
     ).toEqual({
       extras: {
         having: '(ice = 25 OR ice = 50) AND (waitTime <= 180 -- comment\n)',
+        having_druid: [
+          {
+            col: 'sweetness',
+            op: '>',
+            val: '0',
+          },
+          {
+            col: 'sweetness',
+            op: '<=',
+            val: '50',
+          },
+        ],
         where: "(tea = 'jasmine') AND (cup = 'large' -- comment\n)",
       },
       filters: [

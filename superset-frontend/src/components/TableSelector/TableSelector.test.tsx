@@ -32,6 +32,7 @@ const createProps = (props = {}) => ({
     database_name: 'main',
     backend: 'sqlite',
     allow_multi_schema_metadata_fetch: false,
+    has_catalogs: false,
   },
   schema: 'test_schema',
   handleError: jest.fn(),

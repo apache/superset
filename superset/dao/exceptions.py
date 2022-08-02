@@ -60,7 +60,6 @@ class DatasourceTypeNotSupportedError(DAOException):
     DAO datasource query source type is not supported
     """
 
-    status = 422
     message = "DAO datasource query source type is not supported"
 
 

@@ -47,10 +47,7 @@ class StartEndDttmValidator:  # pylint: disable=too-few-public-methods
             )
 
 
-class AnnotationModelView(  # pylint: disable=too-many-ancestors
-    SupersetModelView,
-    CompactCRUDMixin,
-):
+class AnnotationModelView(SupersetModelView, CompactCRUDMixin):
     datamodel = SQLAInterface(Annotation)
     include_route_methods = RouteMethod.CRUD_SET | {"annotation"}
 

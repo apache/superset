@@ -25,7 +25,6 @@ import {
   ControlStateMapping,
   D3_TIME_FORMAT_DOCS,
   formatSelectOptions,
-  getStandardizedControls,
   sections,
   sharedControls,
 } from '@superset-ui/chart-controls';
@@ -329,10 +328,10 @@ const config: ControlPanelConfig = {
       default: rowLimit,
     },
   },
-  formDataOverrides: formData => ({
+  denormalizeFormData: formData => ({
     ...formData,
-    metrics: getStandardizedControls().popAllMetrics(),
-    groupby: getStandardizedControls().popAllColumns(),
+    metrics: formData.standardizedFormData.standardizedState.metrics,
+    groupby: formData.standardizedFormData.standardizedState.columns,
   }),
 };
 

@@ -580,3 +580,8 @@ class HiveEngineSpec(PrestoEngineSpec):
         """
 
         return True
+
+
+class SparkEngineSpec(HiveEngineSpec):
+
+    engine_name = "Apache Spark SQL"

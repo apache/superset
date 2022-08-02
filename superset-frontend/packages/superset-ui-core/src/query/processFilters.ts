@@ -43,6 +43,7 @@ export default function processFilters(
   const { adhoc_filters, extras = {}, filters = [], where } = formData;
   const simpleWhere: QueryObjectFilterClause[] = filters;
 
+  const simpleHaving: QueryObjectFilterClause[] = [];
   const freeformWhere: string[] = [];
   if (where) freeformWhere.push(where);
   const freeformHaving: string[] = [];
@@ -53,6 +54,8 @@ export default function processFilters(
       const filterClause = convertFilter(filter);
       if (clause === 'WHERE') {
         simpleWhere.push(filterClause);
+      } else {
+        simpleHaving.push(filterClause);
       }
     } else {
       const { sqlExpression } = filter;
@@ -66,6 +69,7 @@ export default function processFilters(
 
   // some filter-related fields need to go in `extras`
   extras.having = freeformHaving.map(sanitizeClause).join(' AND ');
+  extras.having_druid = simpleHaving;
   extras.where = freeformWhere.map(sanitizeClause).join(' AND ');
 
   return {

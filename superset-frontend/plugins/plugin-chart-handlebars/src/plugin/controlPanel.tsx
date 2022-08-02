@@ -19,7 +19,6 @@
 import {
   ControlPanelConfig,
   emitFilterControl,
-  getStandardizedControls,
   sections,
 } from '@superset-ui/chart-controls';
 import { addLocaleData, t } from '@superset-ui/core';
@@ -79,11 +78,6 @@ const config: ControlPanelConfig = {
       ],
     },
   ],
-  formDataOverrides: formData => ({
-    ...formData,
-    groupby: getStandardizedControls().popAllColumns(),
-    metrics: getStandardizedControls().popAllMetrics(),
-  }),
 };
 
 export default config;

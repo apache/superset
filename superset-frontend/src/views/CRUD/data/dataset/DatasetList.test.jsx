@@ -183,12 +183,6 @@ describe('DatasetList', () => {
   });
 });
 
-jest.mock('react-router-dom', () => ({
-  ...jest.requireActual('react-router-dom'),
-  useLocation: () => ({}),
-  useHistory: () => ({}),
-}));
-
 describe('RTL', () => {
   async function renderAndWait() {
     const mounted = act(async () => {
@@ -197,7 +191,7 @@ describe('RTL', () => {
         <QueryParamProvider>
           <DatasetList {...mockedProps} user={mockUser} />
         </QueryParamProvider>,
-        { useRedux: true, useRouter: true },
+        { useRedux: true },
       );
     });
 

@@ -48,7 +48,6 @@ const propTypes = {
   editMode: PropTypes.bool.isRequired,
   renderHoverMenu: PropTypes.bool,
   directPathToChild: PropTypes.arrayOf(PropTypes.string),
-  activeTabs: PropTypes.arrayOf(PropTypes.string),
   filterboxMigrationState: FILTER_BOX_MIGRATION_STATES,
 
   // actions (from DashboardComponent.jsx)
@@ -75,7 +74,6 @@ const defaultProps = {
   renderHoverMenu: true,
   availableColumnCount: 0,
   columnWidth: 0,
-  activeTabs: [],
   directPathToChild: [],
   filterboxMigrationState: FILTER_BOX_MIGRATION_STATES.NOOP,
   setActiveTabs() {},
@@ -114,20 +112,13 @@ const StyledTabsContainer = styled.div`
 export class Tabs extends React.PureComponent {
   constructor(props) {
     super(props);
-    let tabIndex = Math.max(
+    const tabIndex = Math.max(
       0,
       findTabIndexByComponentId({
         currentComponent: props.component,
         directPathToChild: props.directPathToChild,
       }),
     );
-    if (tabIndex === 0 && props.activeTabs?.length) {
-      props.component.children.forEach((tabId, index) => {
-        if (tabIndex === 0 && props.activeTabs.includes(tabId)) {
-          tabIndex = index;
-        }
-      });
-    }
     const { children: tabIds } = props.component;
     const activeKey = tabIds[tabIndex];
 
@@ -417,7 +408,6 @@ Tabs.defaultProps = defaultProps;
 function mapStateToProps(state) {
   return {
     nativeFilters: state.nativeFilters,
-    activeTabs: state.dashboardState.activeTabs,
     directPathToChild: state.dashboardState.directPathToChild,
     filterboxMigrationState: state.dashboardState.filterboxMigrationState,
   };

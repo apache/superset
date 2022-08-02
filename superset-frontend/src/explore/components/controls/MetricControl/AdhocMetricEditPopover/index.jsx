@@ -323,6 +323,15 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
       autoFocus: true,
     };
 
+    if (
+      this.props.datasource?.type === 'druid' &&
+      aggregateSelectProps.options
+    ) {
+      aggregateSelectProps.options = aggregateSelectProps.options.filter(
+        aggregate => aggregate !== 'AVG',
+      );
+    }
+
     const stateIsValid = adhocMetric.isValid() || savedMetric?.metric_name;
     const hasUnsavedChanges =
       !adhocMetric.equals(propsAdhocMetric) ||
@@ -422,11 +431,18 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
           <Tabs.TabPane
             key={EXPRESSION_TYPES.SQL}
             tab={
-              extra.disallow_adhoc_metrics ? (
+              extra.disallow_adhoc_metrics ||
+              this.props.datasource?.type === 'druid' ? (
                 <Tooltip
-                  title={t(
-                    'Custom SQL ad-hoc metrics are not enabled for this dataset',
-                  )}
+                  title={
+                    this.props.datasource?.type === 'druid'
+                      ? t(
+                          'Custom SQL ad-hoc metrics are not available for the native Druid connector',
+                        )
+                      : t(
+                          'Custom SQL ad-hoc metrics are not enabled for this dataset',
+                        )
+                  }
                 >
                   {t('Custom SQL')}
                 </Tooltip>
@@ -435,7 +451,10 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
               )
             }
             data-test="adhoc-metric-edit-tab#custom"
-            disabled={extra.disallow_adhoc_metrics}
+            disabled={
+              extra.disallow_adhoc_metrics ||
+              this.props.datasource?.type === 'druid'
+            }
           >
             <SQLEditor
               data-test="sql-editor"

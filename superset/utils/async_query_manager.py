@@ -21,9 +21,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import jwt
 import redis
-from flask import Flask, request, Request, Response, session
-
-from superset.utils.core import get_user_id
+from flask import Flask, g, request, Request, Response, session
 
 logger = logging.getLogger(__name__)
 
@@ -37,12 +35,12 @@ class AsyncQueryJobException(Exception):
 
 
 def build_job_metadata(
-    channel_id: str, job_id: str, user_id: Optional[int], **kwargs: Any
+    channel_id: str, job_id: str, user_id: Optional[str], **kwargs: Any
 ) -> Dict[str, Any]:
     return {
         "channel_id": channel_id,
         "job_id": job_id,
-        "user_id": user_id,
+        "user_id": int(user_id) if user_id else None,
         "status": kwargs.get("status"),
         "errors": kwargs.get("errors", []),
         "result_url": kwargs.get("result_url"),
@@ -115,7 +113,13 @@ class AsyncQueryManager:
 
         @app.after_request
         def validate_session(response: Response) -> Response:
-            user_id = get_user_id()
+            user_id = None
+
+            try:
+                user_id = g.user.get_id()
+                user_id = int(user_id)
+            except Exception:  # pylint: disable=broad-except
+                pass
 
             reset_token = (
                 not request.cookies.get(self._jwt_cookie_name)
@@ -157,7 +161,7 @@ class AsyncQueryManager:
             logger.warning("Parse jwt failed", exc_info=True)
             raise AsyncQueryTokenException("Failed to parse token") from ex
 
-    def init_job(self, channel_id: str, user_id: Optional[int]) -> Dict[str, Any]:
+    def init_job(self, channel_id: str, user_id: Optional[str]) -> Dict[str, Any]:
         job_id = str(uuid.uuid4())
         return build_job_metadata(
             channel_id, job_id, user_id, status=self.STATUS_PENDING

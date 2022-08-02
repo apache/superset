@@ -350,60 +350,58 @@ class TestImportChartsCommand(SupersetTestCase):
 
 
 class TestChartsCreateCommand(SupersetTestCase):
-    @patch("superset.utils.core.g")
-    @patch("superset.charts.commands.create.g")
+    @patch("superset.views.base.g")
     @patch("superset.security.manager.g")
     @pytest.mark.usefixtures("load_energy_table_with_slice")
-    def test_create_v1_response(self, mock_sm_g, mock_c_g, mock_u_g):
+    def test_create_v1_response(self, mock_sm_g, mock_g):
         """Test that the create chart command creates a chart"""
-        user = security_manager.find_user(username="admin")
-        mock_u_g.user = mock_c_g.user = mock_sm_g.user = user
+        actor = security_manager.find_user(username="admin")
+        mock_g.user = mock_sm_g.user = actor
         chart_data = {
             "slice_name": "new chart",
             "description": "new description",
-            "owners": [user.id],
+            "owners": [actor.id],
             "viz_type": "new_viz_type",
             "params": json.dumps({"viz_type": "new_viz_type"}),
             "cache_timeout": 1000,
             "datasource_id": 1,
             "datasource_type": "table",
         }
-        command = CreateChartCommand(chart_data)
+        command = CreateChartCommand(actor, chart_data)
         chart = command.run()
         chart = db.session.query(Slice).get(chart.id)
         assert chart.viz_type == "new_viz_type"
         json_params = json.loads(chart.params)
         assert json_params == {"viz_type": "new_viz_type"}
         assert chart.slice_name == "new chart"
-        assert chart.owners == [user]
+        assert chart.owners == [actor]
         db.session.delete(chart)
         db.session.commit()
 
 
 class TestChartsUpdateCommand(SupersetTestCase):
-    @patch("superset.charts.commands.update.g")
-    @patch("superset.utils.core.g")
+    @patch("superset.views.base.g")
     @patch("superset.security.manager.g")
     @pytest.mark.usefixtures("load_energy_table_with_slice")
-    def test_update_v1_response(self, mock_sm_g, mock_c_g, mock_u_g):
+    def test_update_v1_response(self, mock_sm_g, mock_g):
         """Test that a chart command updates properties"""
         pk = db.session.query(Slice).all()[0].id
-        user = security_manager.find_user(username="admin")
-        mock_u_g.user = mock_c_g.user = mock_sm_g.user = user
+        actor = security_manager.find_user(username="admin")
+        mock_g.user = mock_sm_g.user = actor
         model_id = pk
         json_obj = {
             "description": "test for update",
             "cache_timeout": None,
-            "owners": [user.id],
+            "owners": [actor.id],
         }
-        command = UpdateChartCommand(model_id, json_obj)
+        command = UpdateChartCommand(actor, model_id, json_obj)
         last_saved_before = db.session.query(Slice).get(pk).last_saved_at
         command.run()
         chart = db.session.query(Slice).get(pk)
         assert chart.last_saved_at != last_saved_before
-        assert chart.last_saved_by == user
+        assert chart.last_saved_by == actor
 
-    @patch("superset.utils.core.g")
+    @patch("superset.views.base.g")
     @patch("superset.security.manager.g")
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_query_context_update_command(self, mock_sm_g, mock_g):
@@ -417,14 +415,14 @@ class TestChartsUpdateCommand(SupersetTestCase):
         chart.owners = [admin]
         db.session.commit()
 
-        user = security_manager.find_user(username="alpha")
-        mock_g.user = mock_sm_g.user = user
+        actor = security_manager.find_user(username="alpha")
+        mock_g.user = mock_sm_g.user = actor
         query_context = json.dumps({"foo": "bar"})
         json_obj = {
             "query_context_generation": True,
             "query_context": query_context,
         }
-        command = UpdateChartCommand(pk, json_obj)
+        command = UpdateChartCommand(actor, pk, json_obj)
         command.run()
         chart = db.session.query(Slice).get(pk)
         assert chart.query_context == query_context

@@ -28,7 +28,6 @@ import {
   StandardizedFormData,
 } from 'src/explore/controlUtils';
 import * as actions from 'src/explore/actions/exploreActions';
-import { HYDRATE_EXPLORE } from '../actions/hydrateExplore';
 
 export default function exploreReducer(state = {}, action) {
   const actionHandlers = {
@@ -50,14 +49,27 @@ export default function exploreReducer(state = {}, action) {
         isDatasourceMetaLoading: true,
       };
     },
-    [actions.UPDATE_FORM_DATA_BY_DATASOURCE]() {
+    [actions.SET_DATASOURCE]() {
       const newFormData = { ...state.form_data };
-      const { prevDatasource, newDatasource } = action;
+      if (action.datasource.type !== state.datasource.type) {
+        if (action.datasource.type === 'table') {
+          newFormData.granularity_sqla = action.datasource.granularity_sqla;
+          newFormData.time_grain_sqla = action.datasource.time_grain_sqla;
+          delete newFormData.druid_time_origin;
+          delete newFormData.granularity;
+        } else {
+          newFormData.druid_time_origin = action.datasource.druid_time_origin;
+          newFormData.granularity = action.datasource.granularity;
+          delete newFormData.granularity_sqla;
+          delete newFormData.time_grain_sqla;
+        }
+      }
+
       const controls = { ...state.controls };
       const controlsTransferred = [];
       if (
-        prevDatasource.id !== newDatasource.id ||
-        prevDatasource.type !== newDatasource.type
+        action.datasource.id !== state.datasource.id ||
+        action.datasource.type !== state.datasource.type
       ) {
         // reset time range filter to default
         newFormData.time_range = DEFAULT_TIME_RANGE;
@@ -76,7 +88,7 @@ export default function exploreReducer(state = {}, action) {
               ...controlState,
             };
             newFormData[controlName] = getControlValuesCompatibleWithDatasource(
-              newDatasource,
+              action.datasource,
               controlState,
               controlState.value,
             );
@@ -93,7 +105,9 @@ export default function exploreReducer(state = {}, action) {
       const newState = {
         ...state,
         controls,
-        datasource: action.newDatasource,
+        datasource: action.datasource,
+        datasource_id: action.datasource.id,
+        datasource_type: action.datasource.type,
       };
       return {
         ...newState,
@@ -106,6 +120,12 @@ export default function exploreReducer(state = {}, action) {
       return {
         ...state,
         isDatasourcesLoading: true,
+      };
+    },
+    [actions.SET_DATASOURCES]() {
+      return {
+        ...state,
+        datasources: action.datasources,
       };
     },
     [actions.SET_FIELD_VALUE]() {
@@ -248,12 +268,8 @@ export default function exploreReducer(state = {}, action) {
         force: action.force,
       };
     },
-    [HYDRATE_EXPLORE]() {
-      return {
-        ...action.data.explore,
-      };
-    },
   };
+
   if (action.type in actionHandlers) {
     return actionHandlers[action.type]();
   }

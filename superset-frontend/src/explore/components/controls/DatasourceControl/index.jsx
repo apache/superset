@@ -40,7 +40,7 @@ import Button from 'src/components/Button';
 import ErrorAlert from 'src/components/ErrorMessage/ErrorAlert';
 import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
 import { URL_PARAMS } from 'src/constants';
-import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
+import { isUserAdmin } from 'src/dashboard/util/findPermission';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { safeStringify } from 'src/utils/safeStringify';
 
@@ -139,7 +139,7 @@ class DatasourceControl extends React.PureComponent {
   }
 
   onDatasourceSave(datasource) {
-    this.props.actions.changeDatasource(datasource);
+    this.props.actions.setDatasource(datasource);
     const timeCol = this.props.form_data?.granularity_sqla;
     const { columns } = this.props.datasource;
     const firstDttmCol = columns.find(column => column.is_dttm);
@@ -236,9 +236,10 @@ class DatasourceControl extends React.PureComponent {
 
     const isSqlSupported = datasource.type === 'table';
     const { user } = this.props;
-    const allowEdit =
-      datasource.owners?.map(o => o.id || o.value).includes(user.userId) ||
-      isUserAdmin(user);
+    const allowEdit = datasource.owners
+      .map(o => o.id || o.value)
+      .includes(user.userId);
+    isUserAdmin(user);
 
     const editText = t('Edit dataset');
 

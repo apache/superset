@@ -147,6 +147,8 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
     engine_name = "Presto"
     allows_alias_to_source_column = False
 
+    has_catalogs = True
+
     _time_grain_expressions = {
         None: "{col}",
         "PT1S": "date_trunc('second', CAST({col} AS TIMESTAMP))",
@@ -217,6 +219,26 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
             {},
         ),
     }
+
+    @classmethod
+    def get_catalog_names(cls, inspector: Inspector) -> List[str]:
+        catalogs = [
+            row[0]
+            for row in inspector.engine.execute("SHOW CATALOGS")
+            if not row[0].startswith("_")
+        ]
+        return catalogs
+
+    @classmethod
+    def get_all_catalog_schema_names(cls, inspector: Inspector,
+        catalog_name: str
+    ) -> List[str]:
+        schemas = [
+            row[0]
+            for row in inspector.engine.execute("SHOW SCHEMAS FROM " + catalog_name)
+            if not row[0].startswith("_")
+        ]
+        return schemas
 
     @classmethod
     def get_allow_cost_estimate(cls, extra: Dict[str, Any]) -> bool:

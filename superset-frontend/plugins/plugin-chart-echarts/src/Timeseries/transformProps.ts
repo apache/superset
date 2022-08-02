@@ -55,10 +55,7 @@ import {
   extractDataTotalValues,
   extractShowValueIndexes,
 } from '../utils/series';
-import {
-  extractAnnotationLabels,
-  getAnnotationData,
-} from '../utils/annotation';
+import { extractAnnotationLabels } from '../utils/annotation';
 import {
   extractForecastSeriesContext,
   extractForecastSeriesContexts,
@@ -96,12 +93,12 @@ export default function transformProps(
     queriesData,
     datasource,
     theme,
+    annotationData = {},
   } = chartProps;
   const { verboseMap = {} } = datasource;
   const [queryData] = queriesData;
   const { data = [] } = queryData as TimeseriesChartDataResponseResult;
   const dataTypes = getColtypesMapping(queryData);
-  const annotationData = getAnnotationData(chartProps);
 
   const {
     area,
@@ -223,14 +220,7 @@ export default function transformProps(
     .forEach((layer: AnnotationLayer) => {
       if (isFormulaAnnotationLayer(layer))
         series.push(
-          transformFormulaAnnotation(
-            layer,
-            data,
-            xAxisCol,
-            xAxisType,
-            colorScale,
-            sliceId,
-          ),
+          transformFormulaAnnotation(layer, data, colorScale, sliceId),
         );
       else if (isIntervalAnnotationLayer(layer)) {
         series.push(

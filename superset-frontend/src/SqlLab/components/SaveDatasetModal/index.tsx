@@ -17,9 +17,9 @@
  * under the License.
  */
 
-import React, { FunctionComponent, useCallback, useState } from 'react';
+import React, { FunctionComponent, useState } from 'react';
 import { Radio } from 'src/components/Radio';
-import { RadioChangeEvent, Select } from 'src/components';
+import { AutoComplete, RadioChangeEvent } from 'src/components';
 import { Input } from 'src/components/Input';
 import StyledModal from 'src/components/Modal';
 import Button from 'src/components/Button';
@@ -27,6 +27,7 @@ import {
   styled,
   t,
   SupersetClient,
+  makeApi,
   JsonResponse,
   JsonObject,
   QueryResponse,
@@ -41,16 +42,12 @@ import {
   DatasetRadioState,
   EXPLORE_CHART_DEFAULT,
   DatasetOwner,
+  DatasetOptionAutocomplete,
   SqlLabExploreRootState,
   getInitialState,
   ExploreDatasource,
-  SqlLabRootState,
 } from 'src/SqlLab/types';
-import { mountExploreUrl } from 'src/explore/exploreUtils';
-import { postFormData } from 'src/explore/exploreUtils/formData';
-import { URL_PARAMS } from 'src/constants';
-import { SelectValue } from 'antd/lib/select';
-import { isEmpty } from 'lodash';
+import { exploreChart } from 'src/explore/exploreUtils';
 
 interface SaveDatasetModalProps {
   visible: boolean;
@@ -70,8 +67,8 @@ const Styles = styled.div`
     width: 401px;
   }
   .sdm-autocomplete {
+    margin-left: 8px;
     width: 401px;
-    align-self: center;
   }
   .sdm-radio {
     display: block;
@@ -81,10 +78,6 @@ const Styles = styled.div`
   }
   .sdm-overwrite-msg {
     margin: 7px;
-  }
-  .sdm-overwrite-container {
-    flex: 1 1 auto;
-    display: flex;
   }
 `;
 
@@ -122,9 +115,6 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
   modalDescription,
   datasource,
 }) => {
-  const defaultVizType = useSelector<SqlLabRootState, string>(
-    state => state.common?.conf?.DEFAULT_VIZ_TYPE || 'table',
-  );
   const query = datasource as QueryResponse;
   const getDefaultDatasetName = () =>
     `${query.tab} ${moment().format('MM/DD/YYYY HH:mm:ss')}`;
@@ -133,12 +123,13 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
     DatasetRadioState.SAVE_NEW,
   );
   const [shouldOverwriteDataset, setShouldOverwriteDataset] = useState(false);
+  const [userDatasetOptions, setUserDatasetOptions] = useState<
+    DatasetOptionAutocomplete[]
+  >([]);
   const [datasetToOverwrite, setDatasetToOverwrite] = useState<
     Record<string, any>
   >({});
-  const [selectedDatasetToOverwrite, setSelectedDatasetToOverwrite] = useState<
-    SelectValue | undefined
-  >(undefined);
+  const [autocompleteValue, setAutocompleteValue] = useState('');
 
   const user = useSelector<SqlLabExploreRootState, User>(user =>
     getInitialState(user),
@@ -146,51 +137,45 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
   const dispatch = useDispatch<(dispatch: any) => Promise<JsonObject>>();
 
   const handleOverwriteDataset = async () => {
-    const [, key] = await Promise.all([
-      updateDataset(
-        query.dbId,
-        datasetToOverwrite.datasetid,
-        query.sql,
-        query.results.selected_columns.map(
-          (d: { name: string; type: string; is_dttm: boolean }) => ({
-            column_name: d.name,
-            type: d.type,
-            is_dttm: d.is_dttm,
-          }),
-        ),
-        datasetToOverwrite.owners.map((o: DatasetOwner) => o.id),
-        true,
-      ),
-      postFormData(datasetToOverwrite.datasetid, 'table', {
-        ...EXPLORE_CHART_DEFAULT,
-        datasource: `${datasetToOverwrite.datasetid}__table`,
-        ...(defaultVizType === 'table' && {
-          all_columns: query.results.selected_columns.map(
-            column => column.name,
-          ),
+    await updateDataset(
+      query.dbId,
+      datasetToOverwrite.datasetId,
+      query.sql,
+      query.results.selected_columns.map(
+        (d: { name: string; type: string; is_dttm: boolean }) => ({
+          column_name: d.name,
+          type: d.type,
+          is_dttm: d.is_dttm,
         }),
-      }),
-    ]);
-
-    const url = mountExploreUrl(null, {
-      [URL_PARAMS.formDataKey.name]: key,
-    });
-    window.open(url, '_blank', 'noreferrer');
+      ),
+      datasetToOverwrite.owners.map((o: DatasetOwner) => o.id),
+      true,
+    );
 
     setShouldOverwriteDataset(false);
     setDatasetToOverwrite({});
     setDatasetName(getDefaultDatasetName());
+
+    exploreChart({
+      ...EXPLORE_CHART_DEFAULT,
+      datasource: `${datasetToOverwrite.datasetId}__table`,
+      all_columns: query.results.selected_columns.map(
+        (d: { name: string; type: string; is_dttm: boolean }) => d.name,
+      ),
+    });
   };
 
-  const loadDatasetOverwriteOptions = useCallback(
-    async (input = '') => {
-      const { userId } = user;
+  const getUserDatasets = async (searchText = '') => {
+    // Making sure that autocomplete input has a value before rendering the dropdown
+    // Transforming the userDatasetsOwned data for SaveModalComponent)
+    const { userId } = user;
+    if (userId) {
       const queryParams = rison.encode({
         filters: [
           {
             col: 'table_name',
             opr: 'ct',
-            value: input,
+            value: searchText,
           },
           {
             col: 'owners',
@@ -202,22 +187,22 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
         order_direction: 'desc',
       });
 
-      return SupersetClient.get({
-        endpoint: `/api/v1/dataset?q=${queryParams}`,
-      }).then(response => ({
-        data: response.json.result.map(
-          (r: { table_name: string; id: number; owners: [DatasetOwner] }) => ({
-            value: r.table_name,
-            label: r.table_name,
-            datasetid: r.id,
-            owners: r.owners,
-          }),
-        ),
-        totalCount: response.json.count,
-      }));
-    },
-    [user],
-  );
+      const response = await makeApi({
+        method: 'GET',
+        endpoint: '/api/v1/dataset',
+      })(`q=${queryParams}`);
+
+      return response.result.map(
+        (r: { table_name: string; id: number; owners: [DatasetOwner] }) => ({
+          value: r.table_name,
+          datasetId: r.id,
+          owners: r.owners,
+        }),
+      );
+    }
+
+    return null;
+  };
 
   const handleSaveInDataset = () => {
     // if user wants to overwrite a dataset we need to prompt them
@@ -252,20 +237,16 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
         columns: selectedColumns,
       }),
     )
-      .then((data: { table_id: number }) =>
-        postFormData(data.table_id, 'table', {
-          ...EXPLORE_CHART_DEFAULT,
+      .then((data: { table_id: number }) => {
+        exploreChart({
           datasource: `${data.table_id}__table`,
-          ...(defaultVizType === 'table' && {
-            all_columns: selectedColumns.map(column => column.name),
-          }),
-        }),
-      )
-      .then((key: string) => {
-        const url = mountExploreUrl(null, {
-          [URL_PARAMS.formDataKey.name]: key,
+          metrics: [],
+          groupby: [],
+          time_range: 'No filter',
+          viz_type: 'table',
+          all_columns: selectedColumns.map(c => c.name),
+          row_limit: 1000,
         });
-        window.open(url, '_blank', 'noreferrer');
       })
       .catch(() => {
         addDangerToast(t('An error occurred saving dataset'));
@@ -275,10 +256,15 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
     onHide();
   };
 
-  const handleOverwriteDatasetOption = (value: SelectValue, option: any) => {
-    setDatasetToOverwrite(option);
-    setSelectedDatasetToOverwrite(value);
+  const handleSaveDatasetModalSearch = async (searchText: string) => {
+    const userDatasetsOwned = await getUserDatasets(searchText);
+    setUserDatasetOptions(userDatasetsOwned);
   };
+
+  const handleOverwriteDatasetOption = (
+    _data: string,
+    option: Record<string, any>,
+  ) => setDatasetToOverwrite(option);
 
   const handleDatasetNameChange = (e: React.FormEvent<HTMLInputElement>) => {
     // @ts-expect-error
@@ -294,11 +280,12 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
     (newOrOverwrite === DatasetRadioState.SAVE_NEW &&
       datasetName.length === 0) ||
     (newOrOverwrite === DatasetRadioState.OVERWRITE_DATASET &&
-      isEmpty(selectedDatasetToOverwrite));
+      Object.keys(datasetToOverwrite).length === 0 &&
+      autocompleteValue.length === 0);
 
   const filterAutocompleteOption = (
     inputValue: string,
-    option: { value: string; datasetid: number },
+    option: { value: string; datasetId: number },
   ) => option.value.toLowerCase().includes(inputValue.toLowerCase());
 
   return (
@@ -354,25 +341,23 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
                   disabled={newOrOverwrite !== 1}
                 />
               </Radio>
-              <div className="sdm-overwrite-container">
-                <Radio className="sdm-radio" value={2}>
-                  {t('Overwrite existing')}
-                </Radio>
-                <div className="sdm-autocomplete">
-                  <Select
-                    allowClear
-                    showSearch
-                    placeholder={t('Select or type dataset name')}
-                    ariaLabel={t('Existing dataset')}
-                    onChange={handleOverwriteDatasetOption}
-                    options={input => loadDatasetOverwriteOptions(input)}
-                    value={selectedDatasetToOverwrite}
-                    filterOption={filterAutocompleteOption}
-                    disabled={newOrOverwrite !== 2}
-                    getPopupContainer={() => document.body}
-                  />
-                </div>
-              </div>
+              <Radio className="sdm-radio" value={2}>
+                {t('Overwrite existing')}
+                <AutoComplete
+                  className="sdm-autocomplete"
+                  options={userDatasetOptions}
+                  onSelect={handleOverwriteDatasetOption}
+                  onSearch={handleSaveDatasetModalSearch}
+                  onChange={value => {
+                    setDatasetToOverwrite({});
+                    setAutocompleteValue(value);
+                  }}
+                  placeholder={t('Select or type dataset name')}
+                  filterOption={filterAutocompleteOption}
+                  disabled={newOrOverwrite !== 2}
+                  value={autocompleteValue}
+                />
+              </Radio>
             </Radio.Group>
           </div>
         )}

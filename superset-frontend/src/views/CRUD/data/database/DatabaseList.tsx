@@ -29,11 +29,9 @@ import { createErrorHandler, uploadUserPerms } from 'src/views/CRUD/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import SubMenu, { SubMenuProps } from 'src/views/components/SubMenu';
 import DeleteModal from 'src/components/DeleteModal';
-import { getUrlParam } from 'src/utils/urlUtils';
-import { URL_PARAMS } from 'src/constants';
 import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
-import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
+import { isUserAdmin } from 'src/dashboard/util/findPermission';
 import ListView, { FilterOperator, Filters } from 'src/components/ListView';
 import { commonMenuData } from 'src/views/CRUD/data/common';
 import handleResourceExport from 'src/utils/export';
@@ -94,15 +92,12 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
   const user = useSelector<any, UserWithPermissionsAndRoles>(
     state => state.user,
   );
-  const showDatabaseModal = getUrlParam(URL_PARAMS.showDatabaseModal);
 
   const [query, setQuery] = useQueryParams({
     databaseAdded: BooleanParam,
   });
 
-  const [databaseModalOpen, setDatabaseModalOpen] = useState<boolean>(
-    showDatabaseModal || false,
-  );
+  const [databaseModalOpen, setDatabaseModalOpen] = useState<boolean>(false);
   const [databaseCurrentlyDeleting, setDatabaseCurrentlyDeleting] =
     useState<DatabaseDeleteObject | null>(null);
   const [currentDatabase, setCurrentDatabase] = useState<DatabaseObject | null>(

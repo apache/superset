@@ -31,6 +31,7 @@ export const TIME_FILTER_LABELS = {
   time_range: t('Time Range'),
   granularity_sqla: t('Time Column'),
   time_grain_sqla: t('Time Grain'),
+  druid_time_origin: t('Origin'),
   granularity: t('Time Granularity'),
 };
 

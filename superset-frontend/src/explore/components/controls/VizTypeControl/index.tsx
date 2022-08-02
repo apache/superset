@@ -140,7 +140,6 @@ const VizTypeControl = ({
           key={modalKey}
           selectedViz={selectedViz}
           onChange={setSelectedViz}
-          onDoubleClick={onSubmit}
         />
       </UnpaddedModal>
     </>

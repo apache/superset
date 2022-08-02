@@ -158,10 +158,6 @@ export default class SupersetClientClass {
     return this.csrfToken !== null && this.csrfToken !== undefined;
   }
 
-  getGuestToken() {
-    return this.guestToken;
-  }
-
   async get<T extends ParseMethod = 'json'>(
     requestConfig: RequestConfig & { parseMethod?: T },
   ) {

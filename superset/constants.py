@@ -110,6 +110,8 @@ MODEL_API_RW_METHOD_PERMISSION_MAP = {
     "related": "read",
     "related_objects": "read",
     "schemas": "read",
+    "catalogs": "read",
+    "catalog_schemas": "read",
     "select_star": "read",
     "table_metadata": "read",
     "table_extra_metadata": "read",
@@ -147,6 +149,7 @@ EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS = {
     "time_column": "time_column",
     "time_grain": "time_grain",
     "time_range": "time_range",
+    "druid_time_origin": "druid_time_origin",
     "time_grain_sqla": "time_grain_sqla",
 }
 

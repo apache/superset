@@ -33,5 +33,5 @@ export const sortAlphanumericCaseInsensitive = <D extends {}>(
   if (!valueB || typeof valueB !== 'string') {
     return 1;
   }
-  return valueA.localeCompare(valueB);
+  return valueA.localeCompare(valueB) > 0 ? 1 : -1;
 };

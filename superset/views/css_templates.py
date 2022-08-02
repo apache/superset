@@ -25,10 +25,7 @@ from superset.superset_typing import FlaskResponse
 from superset.views.base import DeleteMixin, SupersetModelView
 
 
-class CssTemplateModelView(  # pylint: disable=too-many-ancestors
-    SupersetModelView,
-    DeleteMixin,
-):
+class CssTemplateModelView(SupersetModelView, DeleteMixin):
     datamodel = SQLAInterface(models.CssTemplate)
     include_route_methods = RouteMethod.CRUD_SET
 

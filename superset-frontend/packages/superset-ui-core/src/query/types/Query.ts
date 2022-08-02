@@ -52,6 +52,8 @@ export type QueryObjectFilterClause = {
 
 export type QueryObjectExtras = Partial<{
   /** HAVING condition for Druid */
+  having_druid?: string;
+  druid_time_origin?: string;
   /** HAVING condition for SQLAlchemy */
   having?: string;
   relative_start?: string;
@@ -252,35 +254,15 @@ export type QueryColumn = {
   is_dttm: boolean;
 };
 
-// Possible states of a query object for processing on the server
-export enum QueryState {
-  STARTED = 'started',
-  STOPPED = 'stopped',
-  FAILED = 'failed',
-  PENDING = 'pending',
-  RUNNING = 'running',
-  SCHEDULED = 'scheduled',
-  SUCCESS = 'success',
-  FETCHING = 'fetching',
-  TIMED_OUT = 'timed_out',
-}
-
-// Inidcates a Query's state is still processing
-export const runningQueryStateList: QueryState[] = [
-  QueryState.RUNNING,
-  QueryState.STARTED,
-  QueryState.PENDING,
-  QueryState.FETCHING,
-  QueryState.SCHEDULED,
-];
-
-// Indicates a Query's state has completed processing regardless of success / failure
-export const concludedQueryStateList: QueryState[] = [
-  QueryState.STOPPED,
-  QueryState.FAILED,
-  QueryState.SUCCESS,
-  QueryState.TIMED_OUT,
-];
+export type QueryState =
+  | 'stopped'
+  | 'failed'
+  | 'pending'
+  | 'running'
+  | 'scheduled'
+  | 'success'
+  | 'fetching'
+  | 'timed_out';
 
 export type Query = {
   cached: boolean;
@@ -322,7 +304,7 @@ export type Query = {
   executedSql: string;
   output: string | Record<string, any>;
   actions: Record<string, any>;
-  type: DatasourceType;
+  type: DatasourceType.Query;
   columns: QueryColumn[];
 };
 
@@ -353,7 +335,7 @@ export const testQuery: Query = {
   isDataPreview: false,
   progress: 0,
   resultsKey: null,
-  state: QueryState.SUCCESS,
+  state: 'success',
   tempSchema: null,
   trackingUrl: null,
   templateParams: null,

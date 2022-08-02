@@ -40,7 +40,6 @@ from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy_utils import UUIDType
 
 from superset.common.db_query_status import QueryStatus
-from superset.utils.core import get_user_id
 
 logger = logging.getLogger(__name__)
 
@@ -385,7 +384,7 @@ class AuditMixinNullable(AuditMixin):
         return sa.Column(
             sa.Integer,
             sa.ForeignKey("ab_user.id"),
-            default=get_user_id,
+            default=self.get_user_id,
             nullable=True,
         )
 
@@ -394,8 +393,8 @@ class AuditMixinNullable(AuditMixin):
         return sa.Column(
             sa.Integer,
             sa.ForeignKey("ab_user.id"),
-            default=get_user_id,
-            onupdate=get_user_id,
+            default=self.get_user_id,
+            onupdate=self.get_user_id,
             nullable=True,
         )
 

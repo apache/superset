@@ -182,6 +182,10 @@ class Database(
         return self.db_engine_spec.allows_subqueries
 
     @property
+    def has_catalogs(self) -> bool:
+        return self.db_engine_spec.has_catalogs
+
+    @property
     def function_names(self) -> List[str]:
         try:
             return self.db_engine_spec.get_function_names(self)
@@ -236,6 +240,7 @@ class Database(
             "parameters": self.parameters,
             "disable_data_preview": self.disable_data_preview,
             "parameters_schema": self.parameters_schema,
+            "has_catalogs": self.has_catalogs
         }
 
     @property
@@ -632,6 +637,52 @@ class Database(
         :return: schema list
         """
         return self.db_engine_spec.get_schema_names(self.inspector)
+
+    @cache_util.memoized_func(
+        key=lambda self, *args, **kwargs: f"db:{self.id}:schema_list",
+        cache=cache_manager.data_cache,
+    )
+    def get_all_catalog_schema_names(  # pylint: disable=unused-argument
+        self,
+        catalog_name: str,
+        cache: bool = False,
+        force: bool = False,
+        cache_timeout: Optional[int] = None,
+    ) -> List[str]:
+        """Parameters need to be passed as keyword arguments.
+
+        For unused parameters, they are referenced in
+        cache_util.memoized_func decorator.
+
+        :param cache: whether cache is enabled for the function
+        :param cache_timeout: timeout in seconds for the cache
+        :param force: whether to force refresh the cache
+        :param catalog_name: catalog name from the database
+        :return: catalog list
+        """
+        return self.db_engine_spec.get_all_catalog_schema_names(self.inspector, catalog_name)
+
+    @cache_util.memoized_func(
+        key=lambda self, *args, **kwargs: f"db:{self.id}:catalog_list",
+        cache=cache_manager.data_cache,
+    )
+    def get_all_catalog_names(  # pylint: disable=unused-argument
+        self,
+        cache: bool = False,
+        cache_timeout: Optional[int] = None,
+        force: bool = False,
+    ) -> List[str]:
+        """Parameters need to be passed as keyword arguments.
+
+        For unused parameters, they are referenced in
+        cache_util.memoized_func decorator.
+
+        :param cache: whether cache is enabled for the function
+        :param cache_timeout: timeout in seconds for the cache
+        :param force: whether to force refresh the cache
+        :return: catalog list
+        """
+        return self.db_engine_spec.get_catalog_names(self.inspector) 
 
     @property
     def db_engine_spec(self) -> Type[db_engine_specs.BaseEngineSpec]:

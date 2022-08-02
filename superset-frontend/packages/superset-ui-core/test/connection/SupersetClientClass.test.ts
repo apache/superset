@@ -329,7 +329,7 @@ describe('SupersetClientClass', () => {
     });
 
     it('uses a guest token when provided', async () => {
-      expect.assertions(2);
+      expect.assertions(1);
 
       const client = new SupersetClientClass({
         protocol,
@@ -337,7 +337,6 @@ describe('SupersetClientClass', () => {
         guestToken: 'abc123',
         guestTokenHeaderName: 'guestTokenHeader',
       });
-      expect(client.getGuestToken()).toBe('abc123');
 
       await client.init();
       await client.get({ url: mockGetUrl });

@@ -17,7 +17,6 @@
 # pylint: disable=redefined-outer-name, import-outside-toplevel
 
 import importlib
-import os
 from typing import Any, Callable, Iterator
 
 import pytest
@@ -70,9 +69,7 @@ def app() -> Iterator[SupersetApp]:
     app = SupersetApp(__name__)
 
     app.config.from_object("superset.config")
-    app.config["SQLALCHEMY_DATABASE_URI"] = (
-        os.environ.get("SUPERSET__SQLALCHEMY_DATABASE_URI") or "sqlite://"
-    )
+    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite://"
     app.config["WTF_CSRF_ENABLED"] = False
     app.config["PREVENT_UNSAFE_DB_CONNECTIONS"] = False
     app.config["TESTING"] = True

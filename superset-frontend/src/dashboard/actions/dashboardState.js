@@ -489,7 +489,8 @@ export function addSliceToDashboard(id, component) {
     const newChart = {
       ...initChart,
       id,
-      form_data: applyDefaultFormData(form_data),
+      form_data,
+      formData: applyDefaultFormData(form_data),
     };
 
     return Promise.all([

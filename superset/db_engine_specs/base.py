@@ -328,6 +328,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # This set will give the keywords for data limit statements
     # to consider for the engines with TOP SQL parsing
     top_keywords: Set[str] = {"TOP"}
+    # Whetherthe database engine supports catalogs structure.
+    # If True, then catalogs will be fetched for the database engine
+    has_catalogs = False
+
+    has_catalogs = False
 
     force_column_alias_quotes = False
     arraysize = 0
@@ -968,6 +973,28 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :return: All schemas in the database
         """
         return sorted(inspector.get_schema_names())
+
+    @classmethod
+    def get_catalog_names(cls, inspector: Inspector) -> List[str]:
+        """
+        Get all catalogs from database
+
+        :param inspector: SqlAlchemy inspector
+        :return: All catalogs in the database
+        """
+        return sorted(inspector.get_catalog_names())
+
+    @classmethod
+    def get_all_catalog_schema_names(cls, inspector: Inspector, 
+        catalog_name: str
+    ) -> List[str]:
+        """
+        Get all schemas under a catalog from database
+
+        :param inspector: SqlAlchemy inspector
+        :return: All catalogs in the database
+        """
+        return sorted(inspector.get_all_catalog_schema_names(catalog_name))
 
     @classmethod
     def get_table_names(  # pylint: disable=unused-argument

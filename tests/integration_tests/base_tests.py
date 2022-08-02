@@ -21,7 +21,7 @@ import imp
 import json
 from contextlib import contextmanager
 from typing import Any, Dict, Union, List, Optional
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 
 import pandas as pd
 import pytest
@@ -252,7 +252,7 @@ class SupersetTestCase(TestCase):
 
     @staticmethod
     def get_datasource_mock() -> BaseDatasource:
-        datasource = MagicMock()
+        datasource = Mock()
         results = Mock()
         results.query = Mock()
         results.status = Mock()
@@ -266,7 +266,6 @@ class SupersetTestCase(TestCase):
         datasource.database = Mock()
         datasource.database.db_engine_spec = Mock()
         datasource.database.db_engine_spec.mutate_expression_label = lambda x: x
-        datasource.owners = MagicMock()
         return datasource
 
     def get_resp(
