@@ -394,7 +394,7 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
                     >
                       {t('Create a dataset')}
                     </span>
-                    {t('to add metrics')}
+                    {t(' to add metrics')}
                   </>
                 }
               />
