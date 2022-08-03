@@ -218,6 +218,16 @@ class Query(
 
     @property
     def data(self) -> Dict[str, Any]:
+        order_by_choices = []
+        for c in self.columns:
+            column_name = str(c.get("column_name") or "")
+            order_by_choices.append(
+                (json.dumps([column_name, True]), column_name + " [asc]")
+            )
+            order_by_choices.append(
+                (json.dumps([column_name, False]), column_name + " [desc]")
+            )
+
         return {
             "time_grain_sqla": [
                 (g.duration, g.name) for g in self.database.grains() or []
@@ -231,6 +241,7 @@ class Query(
             "sql": self.sql,
             "owners": self.owners_data,
             "database": {"id": self.database_id, "backend": self.database.backend},
+            "order_by_choices": order_by_choices,
         }
 
     def raise_for_access(self) -> None:

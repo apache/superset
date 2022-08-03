@@ -1298,6 +1298,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         time_expr = self.db_engine_spec.get_timestamp_expr(col, None, time_grain)
         return self.make_sqla_column_compatible(time_expr, label)
 
+    def get_sqla_col(self, col: Dict[str, Any]) -> Column:
+        label = col.get("column_name")
+        col_type = col.get("type")
+        col = sa.column(label, type_=col_type)
+        return self.make_sqla_column_compatible(col, label)
+
     def get_sqla_query(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branches,too-many-statements
         self,
         apply_fetch_values_predicate: bool = False,
@@ -1434,7 +1440,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     col = metrics_exprs_by_expr.get(str(col), col)
                     need_groupby = True
             elif col in columns_by_name:
-                col = columns_by_name[col].get_sqla_col()
+                gb_column_obj = columns_by_name[col]
+                if isinstance(gb_column_obj, dict):
+                    col = self.get_sqla_col(gb_column_obj)
+                else:
+                    col = gb_column_obj.get_sqla_col()
             elif col in metrics_exprs_by_label:
                 col = metrics_exprs_by_label[col]
                 need_groupby = True
