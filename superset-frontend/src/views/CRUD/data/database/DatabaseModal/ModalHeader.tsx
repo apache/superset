@@ -109,9 +109,9 @@ const ModalHeader = ({
       <StyledFormHeader>
         <p className="helper-top"> STEP 3 OF 3 </p>
         <h4 className="step-3-text">Database connected</h4>
-        <p>
+        <p className="subheader-text">
           {' '}
-          Create a dataset to start visualizing your data as a chart or go to
+          Create a dataset to begin visualizing your data as a chart or go to
           SQL Lab to query your data.
         </p>
       </StyledFormHeader>

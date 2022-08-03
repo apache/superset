@@ -445,6 +445,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const [validationErrors, getValidation, setValidationErrors] =
     useDatabaseValidation();
   const [hasConnectedDb, setHasConnectedDb] = useState<boolean>(false);
+  const [showCTAbtns, setShowCTAbtns] = useState(false);
   const [dbName, setDbName] = useState('');
   const [editNewDb, setEditNewDb] = useState<boolean>(false);
   const [isLoading, setLoading] = useState<boolean>(false);
@@ -666,6 +667,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       }
     }
 
+    setShowCTAbtns(true);
     setEditNewDb(false);
     setLoading(false);
   };
@@ -808,6 +810,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     if (dbFetched) {
       fetchResource(dbFetched.id as number);
     }
+    setShowCTAbtns(false);
     setEditNewDb(true);
   };
 
@@ -1158,6 +1161,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         // eslint-disable-next-line no-return-assign
         buttonStyle="secondary"
         onClick={() => {
+          setLoading(true);
           fetchAndSetDB();
           window.location.href = '/tablemodelview/list#create';
         }}
@@ -1168,6 +1172,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         buttonStyle="secondary"
         // eslint-disable-next-line no-return-assign
         onClick={() => {
+          setLoading(true);
           fetchAndSetDB();
           window.location.href = `/superset/sqllab/?db=true`;
         }}
@@ -1497,7 +1502,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       title={<h4>{t('Connect a database')}</h4>}
       footer={renderModalFooter()}
     >
-      {hasConnectedDb ? (
+      {!isLoading && hasConnectedDb ? (
         <>
           <ModalHeader
             isLoading={isLoading}
@@ -1509,7 +1514,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             dbModel={dbModel}
             editNewDb={editNewDb}
           />
-          {renderCTABtns()}
+          {showCTAbtns && renderCTABtns()}
           {renderFinishState()}
         </>
       ) : (
