@@ -18,7 +18,7 @@
 # pylint: disable=import-outside-toplevel, unused-argument
 
 
-def test_column_names_as_bytes(app_context: None) -> None:
+def test_column_names_as_bytes() -> None:
     """
     Test that we can handle column names as bytes.
     """

@@ -795,7 +795,8 @@ class Database(
 
 
 sqla.event.listen(Database, "after_insert", security_manager.set_perm)
-sqla.event.listen(Database, "after_update", security_manager.set_perm)
+sqla.event.listen(Database, "after_update", security_manager.database_after_update)
+sqla.event.listen(Database, "after_delete", security_manager.database_after_delete)
 
 
 class Log(Model):  # pylint: disable=too-few-public-methods

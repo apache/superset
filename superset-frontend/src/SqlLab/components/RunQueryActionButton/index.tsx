@@ -20,13 +20,11 @@ import React, { useMemo } from 'react';
 import { t, styled, useTheme } from '@superset-ui/core';
 
 import { Menu } from 'src/components/Menu';
-import Button, { ButtonProps } from 'src/components/Button';
+import Button from 'src/components/Button';
 import Icons from 'src/components/Icons';
-import {
-  DropdownButton,
-  DropdownButtonProps,
-} from 'src/components/DropdownButton';
+import { DropdownButton } from 'src/components/DropdownButton';
 import { detectOS } from 'src/utils/common';
+import { QueryButtonProps } from 'src/SqlLab/types';
 
 interface Props {
   allowAsync: boolean;
@@ -37,8 +35,6 @@ interface Props {
   sql: string;
   overlayCreateAsMenu: typeof Menu | null;
 }
-
-type QueryButtonProps = DropdownButtonProps | ButtonProps;
 
 const buildText = (
   shouldShowStopButton: boolean,
@@ -80,7 +76,7 @@ const StyledButton = styled.span`
     }
     span[name='caret-down'] {
       display: flex;
-      margin-right: ${({ theme }) => theme.gridUnit * -2}px;
+      margin-left: ${({ theme }) => theme.gridUnit * 1}px;
     }
   }
 `;
