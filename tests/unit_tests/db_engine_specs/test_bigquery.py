@@ -18,14 +18,13 @@
 
 import json
 
-from flask.ctx import AppContext
 from pybigquery.sqlalchemy_bigquery import BigQueryDialect
 from pytest_mock import MockFixture
 from sqlalchemy import select
 from sqlalchemy.sql import sqltypes
 
 
-def test_get_fields(app_context: AppContext) -> None:
+def test_get_fields() -> None:
     """
     Test the custom ``_get_fields`` method.
 
@@ -68,7 +67,7 @@ def test_get_fields(app_context: AppContext) -> None:
     )
 
 
-def test_select_star(mocker: MockFixture, app_context: AppContext) -> None:
+def test_select_star(mocker: MockFixture) -> None:
     """
     Test the ``select_star`` method.
 
@@ -149,7 +148,7 @@ LIMIT :param_1"""
     )
 
 
-def test_get_parameters_from_uri(app_context: None) -> None:
+def test_get_parameters_from_uri() -> None:
     """
     Test that the result from ``get_parameters_from_uri`` is JSON serializable.
     """
