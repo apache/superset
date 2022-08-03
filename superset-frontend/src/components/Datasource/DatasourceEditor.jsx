@@ -235,6 +235,7 @@ function ColumnCollectionTable({
                   <TextAreaControl
                     language="markdown"
                     offerEditInModal={false}
+                    resize="vertical"
                   />
                 }
               />
@@ -848,7 +849,11 @@ class DatasourceEditor extends React.PureComponent {
           fieldKey="description"
           label={t('Description')}
           control={
-            <TextAreaControl language="markdown" offerEditInModal={false} />
+            <TextAreaControl
+              language="markdown"
+              offerEditInModal={false}
+              resize="vertical"
+            />
           }
         />
         <Field
@@ -882,6 +887,7 @@ class DatasourceEditor extends React.PureComponent {
                 language="sql"
                 controlId="fetch_values_predicate"
                 minLines={5}
+                resize="vertical"
               />
             }
           />
@@ -901,6 +907,7 @@ class DatasourceEditor extends React.PureComponent {
                 controlId="extra"
                 language="json"
                 offerEditInModal={false}
+                resize="vertical"
               />
             }
           />
@@ -1081,6 +1088,7 @@ class DatasourceEditor extends React.PureComponent {
                         minLines={20}
                         maxLines={20}
                         readOnly={!this.state.isEditMode}
+                        resize="both"
                       />
                     }
                   />
@@ -1233,6 +1241,7 @@ class DatasourceEditor extends React.PureComponent {
                     controlId="warning_markdown"
                     language="markdown"
                     offerEditInModal={false}
+                    resize="vertical"
                   />
                 }
               />
@@ -1247,6 +1256,11 @@ class DatasourceEditor extends React.PureComponent {
           verbose_name: '',
           expression: '',
         })}
+        itemCellProps={{
+          expression: () => ({
+            width: '240px',
+          }),
+        }}
         itemRenderers={{
           metric_name: (v, onChange, _, record) => (
             <FlexRowContainer>
@@ -1276,6 +1290,8 @@ class DatasourceEditor extends React.PureComponent {
               language="sql"
               offerEditInModal={false}
               minLines={5}
+              textAreaStyles={{ minWidth: '200px', maxWidth: '450px' }}
+              resize="both"
             />
           ),
           description: (v, onChange, label) => (
