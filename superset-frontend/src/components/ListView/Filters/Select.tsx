@@ -26,6 +26,7 @@ import { t } from '@superset-ui/core';
 import { Select } from 'src/components';
 import { Filter, SelectOption } from 'src/components/ListView/types';
 import { FormLabel } from 'src/components/Form';
+import AsyncSelect from 'src/components/Select/AsyncSelect';
 import { FilterContainer, BaseFilter, FilterHandler } from './Base';
 
 interface SelectFilterProps extends BaseFilter {
@@ -86,19 +87,34 @@ function SelectFilter(
 
   return (
     <FilterContainer>
-      <Select
-        allowClear
-        ariaLabel={typeof Header === 'string' ? Header : name || t('Filter')}
-        labelInValue
-        data-test="filters-select"
-        header={<FormLabel>{Header}</FormLabel>}
-        onChange={onChange}
-        onClear={onClear}
-        options={fetchSelects ? fetchAndFormatSelects : selects}
-        placeholder={t('Select or type a value')}
-        showSearch
-        value={selectedOption}
-      />
+      {fetchSelects ? (
+        <AsyncSelect
+          allowClear
+          ariaLabel={typeof Header === 'string' ? Header : name || t('Filter')}
+          data-test="filters-select"
+          header={<FormLabel>{Header}</FormLabel>}
+          onChange={onChange}
+          onClear={onClear}
+          options={fetchAndFormatSelects}
+          placeholder={t('Select or type a value')}
+          showSearch
+          value={selectedOption}
+        />
+      ) : (
+        <Select
+          allowClear
+          ariaLabel={typeof Header === 'string' ? Header : name || t('Filter')}
+          data-test="filters-select"
+          header={<FormLabel>{Header}</FormLabel>}
+          labelInValue
+          onChange={onChange}
+          onClear={onClear}
+          options={selects}
+          placeholder={t('Select or type a value')}
+          showSearch
+          value={selectedOption}
+        />
+      )}
     </FilterContainer>
   );
 }

@@ -1445,7 +1445,7 @@ def test_add_table_name(rls: str, table: str, expected: str) -> None:
     assert str(condition) == expected
 
 
-def test_get_rls_for_table(mocker: MockerFixture, app_context: None) -> None:
+def test_get_rls_for_table(mocker: MockerFixture) -> None:
     """
     Tests for ``get_rls_for_table``.
     """

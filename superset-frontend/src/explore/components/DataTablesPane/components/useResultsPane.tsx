@@ -17,13 +17,17 @@
  * under the License.
  */
 import React, { useState, useEffect } from 'react';
-import { ensureIsArray, styled, t } from '@superset-ui/core';
+import {
+  ensureIsArray,
+  styled,
+  t,
+  getChartMetadataRegistry,
+} from '@superset-ui/core';
 import Loading from 'src/components/Loading';
 import { EmptyStateMedium } from 'src/components/EmptyState';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { ResultsPaneProps, QueryResultInterface } from '../types';
-import { getQueryCount } from '../utils';
 import { SingleQueryResultPane } from './SingleQueryResultPane';
 import { TableControls } from './DataTableControls';
 
@@ -43,12 +47,14 @@ export const useResultsPane = ({
   isVisible,
   dataSize = 50,
 }: ResultsPaneProps): React.ReactElement[] => {
+  const metadata = getChartMetadataRegistry().get(
+    queryFormData?.viz_type || queryFormData?.vizType,
+  );
+
   const [resultResp, setResultResp] = useState<QueryResultInterface[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [responseError, setResponseError] = useState<string>('');
-  const queryCount = getQueryCount(
-    queryFormData?.viz_type || queryFormData?.vizType,
-  );
+  const queryCount = metadata?.queryObjectCount ?? 1;
 
   useEffect(() => {
     // it's an invalid formData when gets a errorMessage
@@ -122,15 +128,17 @@ export const useResultsPane = ({
     );
   }
 
-  return resultResp.map((result, idx) => (
-    <SingleQueryResultPane
-      data={result.data}
-      colnames={result.colnames}
-      coltypes={result.coltypes}
-      dataSize={dataSize}
-      datasourceId={queryFormData.datasource}
-      key={idx}
-      isVisible={isVisible}
-    />
-  ));
+  return resultResp
+    .slice(0, queryCount)
+    .map((result, idx) => (
+      <SingleQueryResultPane
+        data={result.data}
+        colnames={result.colnames}
+        coltypes={result.coltypes}
+        dataSize={dataSize}
+        datasourceId={queryFormData.datasource}
+        key={idx}
+        isVisible={isVisible}
+      />
+    ));
 };

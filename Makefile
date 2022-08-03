@@ -47,7 +47,7 @@ superset:
 	superset load-examples
 
 	# Install node packages
-	cd superset-frontend; npm install
+	cd superset-frontend; npm ci
 
 update: update-py update-js
 
@@ -101,7 +101,7 @@ node-app:
 
 build-cypress:
 	cd superset-frontend; npm run build-instrumented
-	cd superset-frontend/cypress-base; npm install
+	cd superset-frontend/cypress-base; npm ci
 
 open-cypress:
 	if ! [ $(port) ]; then cd superset-frontend/cypress-base; CYPRESS_BASE_URL=http://localhost:9000 npm run cypress open; fi

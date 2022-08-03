@@ -16,15 +16,18 @@
 # under the License.
 from __future__ import annotations
 
+import contextlib
 import functools
+from operator import ge
 from typing import Any, Callable, Optional, TYPE_CHECKING
 from unittest.mock import patch
 
 import pytest
 from flask.ctx import AppContext
+from flask_appbuilder.security.sqla import models as ab_models
 from sqlalchemy.engine import Engine
 
-from superset import db
+from superset import db, security_manager
 from superset.extensions import feature_flag_manager
 from superset.utils.core import json_dumps_w_dates
 from superset.utils.database import get_example_database, remove_database
@@ -66,6 +69,50 @@ def login_as(test_client: "FlaskClient[Any]"):
 @pytest.fixture
 def login_as_admin(login_as: Callable[..., None]):
     yield login_as("admin")
+
+
+@pytest.fixture
+def create_user(app_context: AppContext):
+    def _create_user(username: str, role: str = "Admin", password: str = "general"):
+        security_manager.add_user(
+            username,
+            "firstname",
+            "lastname",
+            "email@exaple.com",
+            security_manager.find_role(role),
+            password,
+        )
+        return security_manager.find_user(username)
+
+    return _create_user
+
+
+@pytest.fixture
+def get_user(app_context: AppContext):
+    def _get_user(username: str) -> ab_models.User:
+        return (
+            db.session.query(security_manager.user_model)
+            .filter_by(username=username)
+            .one_or_none()
+        )
+
+    return _get_user
+
+
+@pytest.fixture
+def get_or_create_user(get_user, create_user) -> ab_models.User:
+    @contextlib.contextmanager
+    def _get_user(username: str) -> ab_models.User:
+        user = get_user(username)
+        if not user:
+            # if user is created by test, remove it after done
+            user = create_user(username)
+            yield user
+            db.session.delete(user)
+        else:
+            yield user
+
+    return _get_user
 
 
 @pytest.fixture(autouse=True, scope="session")
@@ -206,3 +253,107 @@ def with_feature_flags(**mock_feature_flags):
         return functools.update_wrapper(wrapper, test_fn)
 
     return decorate
+
+
+@pytest.fixture
+def virtual_dataset():
+    from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+
+    dataset = SqlaTable(
+        table_name="virtual_dataset",
+        sql=(
+            "SELECT 0 as col1, 'a' as col2, 1.0 as col3, NULL as col4, '2000-01-01 00:00:00' as col5 "
+            "UNION ALL "
+            "SELECT 1, 'b', 1.1, NULL, '2000-01-02 00:00:00' "
+            "UNION ALL "
+            "SELECT 2 as col1, 'c' as col2, 1.2, NULL, '2000-01-03 00:00:00' "
+            "UNION ALL "
+            "SELECT 3 as col1, 'd' as col2, 1.3, NULL, '2000-01-04 00:00:00' "
+            "UNION ALL "
+            "SELECT 4 as col1, 'e' as col2, 1.4, NULL, '2000-01-05 00:00:00' "
+            "UNION ALL "
+            "SELECT 5 as col1, 'f' as col2, 1.5, NULL, '2000-01-06 00:00:00' "
+            "UNION ALL "
+            "SELECT 6 as col1, 'g' as col2, 1.6, NULL, '2000-01-07 00:00:00' "
+            "UNION ALL "
+            "SELECT 7 as col1, 'h' as col2, 1.7, NULL, '2000-01-08 00:00:00' "
+            "UNION ALL "
+            "SELECT 8 as col1, 'i' as col2, 1.8, NULL, '2000-01-09 00:00:00' "
+            "UNION ALL "
+            "SELECT 9 as col1, 'j' as col2, 1.9, NULL, '2000-01-10 00:00:00' "
+        ),
+        database=get_example_database(),
+    )
+    TableColumn(column_name="col1", type="INTEGER", table=dataset)
+    TableColumn(column_name="col2", type="VARCHAR(255)", table=dataset)
+    TableColumn(column_name="col3", type="DECIMAL(4,2)", table=dataset)
+    TableColumn(column_name="col4", type="VARCHAR(255)", table=dataset)
+    # Different database dialect datetime type is not consistent, so temporarily use varchar
+    TableColumn(column_name="col5", type="VARCHAR(255)", table=dataset)
+
+    SqlMetric(metric_name="count", expression="count(*)", table=dataset)
+    db.session.merge(dataset)
+
+    yield dataset
+
+    db.session.delete(dataset)
+    db.session.commit()
+
+
+@pytest.fixture
+def physical_dataset():
+    from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+
+    example_database = get_example_database()
+    engine = example_database.get_sqla_engine()
+    # sqlite can only execute one statement at a time
+    engine.execute(
+        """
+        CREATE TABLE IF NOT EXISTS physical_dataset(
+          col1 INTEGER,
+          col2 VARCHAR(255),
+          col3 DECIMAL(4,2),
+          col4 VARCHAR(255),
+          col5 VARCHAR(255)
+        );
+        """
+    )
+    engine.execute(
+        """
+        INSERT INTO physical_dataset values
+        (0, 'a', 1.0, NULL, '2000-01-01 00:00:00'),
+        (1, 'b', 1.1, NULL, '2000-01-02 00:00:00'),
+        (2, 'c', 1.2, NULL, '2000-01-03 00:00:00'),
+        (3, 'd', 1.3, NULL, '2000-01-04 00:00:00'),
+        (4, 'e', 1.4, NULL, '2000-01-05 00:00:00'),
+        (5, 'f', 1.5, NULL, '2000-01-06 00:00:00'),
+        (6, 'g', 1.6, NULL, '2000-01-07 00:00:00'),
+        (7, 'h', 1.7, NULL, '2000-01-08 00:00:00'),
+        (8, 'i', 1.8, NULL, '2000-01-09 00:00:00'),
+        (9, 'j', 1.9, NULL, '2000-01-10 00:00:00');
+    """
+    )
+
+    dataset = SqlaTable(
+        table_name="physical_dataset",
+        database=example_database,
+    )
+    TableColumn(column_name="col1", type="INTEGER", table=dataset)
+    TableColumn(column_name="col2", type="VARCHAR(255)", table=dataset)
+    TableColumn(column_name="col3", type="DECIMAL(4,2)", table=dataset)
+    TableColumn(column_name="col4", type="VARCHAR(255)", table=dataset)
+    TableColumn(column_name="col5", type="VARCHAR(255)", table=dataset)
+    SqlMetric(metric_name="count", expression="count(*)", table=dataset)
+    db.session.merge(dataset)
+    if example_database.backend == "sqlite":
+        db.session.commit()
+
+    yield dataset
+
+    engine.execute(
+        """
+        DROP TABLE physical_dataset;
+    """
+    )
+    db.session.delete(dataset)
+    db.session.commit()

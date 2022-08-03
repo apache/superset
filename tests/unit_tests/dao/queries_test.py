@@ -21,7 +21,7 @@ import pytest
 from sqlalchemy.orm.session import Session
 
 
-def test_query_dao_save_metadata(app_context: None, session: Session) -> None:
+def test_query_dao_save_metadata(session: Session) -> None:
     from superset.models.core import Database
     from superset.models.sql_lab import Query
 
