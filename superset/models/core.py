@@ -511,7 +511,7 @@ class Database(
 
     @cache_util.memoized_func(
         key="db:{self.id}:schema:None:table_list",
-        cache=cache_manager.data_cache,
+        cache=cache_manager.cache,
     )
     def get_all_table_names_in_database(  # pylint: disable=unused-argument
         self,
@@ -531,7 +531,7 @@ class Database(
 
     @cache_util.memoized_func(
         key="db:{self.id}:schema:None:view_list",
-        cache=cache_manager.data_cache,
+        cache=cache_manager.cache,
     )
     def get_all_view_names_in_database(  # pylint: disable=unused-argument
         self,
@@ -551,7 +551,7 @@ class Database(
 
     @cache_util.memoized_func(
         key="db:{self.id}:schema:{schema}:table_list",
-        cache=cache_manager.data_cache,
+        cache=cache_manager.cache,
     )
     def get_all_table_names_in_schema(  # pylint: disable=unused-argument
         self,
@@ -582,7 +582,7 @@ class Database(
 
     @cache_util.memoized_func(
         key="db:{self.id}:schema:{schema}:view_list",
-        cache=cache_manager.data_cache,
+        cache=cache_manager.cache,
     )
     def get_all_view_names_in_schema(  # pylint: disable=unused-argument
         self,
@@ -613,7 +613,7 @@ class Database(
 
     @cache_util.memoized_func(
         key="db:{self.id}:schema_list",
-        cache=cache_manager.data_cache,
+        cache=cache_manager.cache,
     )
     def get_all_schema_names(  # pylint: disable=unused-argument
         self,
@@ -795,7 +795,8 @@ class Database(
 
 
 sqla.event.listen(Database, "after_insert", security_manager.set_perm)
-sqla.event.listen(Database, "after_update", security_manager.set_perm)
+sqla.event.listen(Database, "after_update", security_manager.database_after_update)
+sqla.event.listen(Database, "after_delete", security_manager.database_after_delete)
 
 
 class Log(Model):  # pylint: disable=too-few-public-methods

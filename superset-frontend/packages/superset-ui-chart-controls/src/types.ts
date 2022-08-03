@@ -361,7 +361,7 @@ export type ControlSetRow = ControlSetItem[];
 //  - superset-frontend/src/explore/components/ControlPanelsContainer.jsx
 //  - superset-frontend/src/explore/components/ControlPanelSection.jsx
 export interface ControlPanelSectionConfig {
-  label: ReactNode;
+  label?: ReactNode;
   description?: ReactNode;
   expanded?: boolean;
   tabOverride?: TabOverride;

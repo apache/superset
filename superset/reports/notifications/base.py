@@ -20,7 +20,7 @@ from typing import Any, List, Optional, Type
 
 import pandas as pd
 
-from superset.models.reports import ReportRecipients, ReportRecipientType
+from superset.reports.models import ReportRecipients, ReportRecipientType
 
 
 @dataclass

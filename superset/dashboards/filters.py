@@ -111,7 +111,7 @@ class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-metho
 
         datasource_perm_query = (
             db.session.query(Dashboard.id)
-            .join(Dashboard.slices)
+            .join(Dashboard.slices, isouter=True)
             .filter(
                 and_(
                     Dashboard.published.is_(True),

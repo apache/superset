@@ -49,6 +49,11 @@ export const Databases = [
     imgName: 'dremio.png',
   },
   {
+    title: 'Databricks',
+    href: 'https://www.databricks.com',
+    imgName: 'databricks.png',
+  },
+  {
     title: 'Exasol',
     href: 'https://www.exasol.com/en/',
     imgName: 'exasol.png',
