@@ -286,6 +286,10 @@ class Query(
         return f"{self.database.database_name}.{self.schema}"
 
     @property
+    def perm(self) -> str:
+        return f"[{self.database.database_name}].[{self.tab_name}](id:{self.id})"
+
+    @property
     def default_endpoint(self) -> str:
         return ""
 
