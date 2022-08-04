@@ -7,7 +7,7 @@
   },
   "dependencies": {
     "cookie-parser": "~1.4.6",
-    "debug": "~4.3.2",
+    "debug": "~4.3.4",
     "express": "~4.17.1",
     "http-errors": "~1.8.0",
     "jsonwebtoken": "^8.5.1",
