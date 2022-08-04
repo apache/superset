@@ -721,7 +721,10 @@ class SqlEditor extends React.PureComponent {
         <div className="rightItems">
           <span>
             <SaveQuery
-              query={qe}
+              query={{
+                ...qe,
+                columns: this.props.latestQuery?.results?.columns || [],
+              }}
               defaultLabel={qe.name || qe.description}
               onSave={this.saveQuery}
               onUpdate={this.props.actions.updateSavedQuery}
