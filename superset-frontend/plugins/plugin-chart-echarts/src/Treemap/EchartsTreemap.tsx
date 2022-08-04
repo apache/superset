@@ -90,17 +90,19 @@ export default function EchartsTreemap({
       if (onContextMenu) {
         eventParams.event.stop();
         const { treePath } = extractTreePathInfo(eventParams.treePathInfo);
-        const pointerEvent = eventParams.event.event;
-        const filters: QueryObjectFilterClause[] = [];
-        groupby.forEach((dimension, i) =>
-          filters.push({
-            col: dimension,
-            op: '==',
-            val: treePath[i],
-            formattedVal: treePath[i],
-          }),
-        );
-        onContextMenu(filters, pointerEvent.offsetX, pointerEvent.offsetY);
+        if (treePath.length > 0) {
+          const pointerEvent = eventParams.event.event;
+          const filters: QueryObjectFilterClause[] = [];
+          groupby.forEach((dimension, i) =>
+            filters.push({
+              col: dimension,
+              op: '==',
+              val: treePath[i],
+              formattedVal: treePath[i],
+            }),
+          );
+          onContextMenu(filters, pointerEvent.offsetX, pointerEvent.offsetY);
+        }
       }
     },
   };
