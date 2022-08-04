@@ -357,7 +357,9 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
           )}
           {newOrOverwrite === DatasetRadioState.OVERWRITE_DATASET && (
             <>
-              <Button onClick={handleOverwriteCancel}>Back</Button>
+              {shouldOverwriteDataset && (
+                <Button onClick={handleOverwriteCancel}>Back</Button>
+              )}
               <Button
                 className="md"
                 buttonStyle="primary"
