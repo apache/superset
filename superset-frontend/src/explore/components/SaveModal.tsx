@@ -368,7 +368,9 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
         buttonSize="small"
         disabled={
           !this.state.newSliceName ||
-          (!this.state.saveToDashboardId && !this.state.newDashboardName)
+          (!this.state.saveToDashboardId && !this.state.newDashboardName) ||
+          (this.props.datasource?.type !== DatasourceType.Table &&
+            !this.state.datasetName)
         }
         onClick={() => this.saveOrOverwrite(true)}
       >
