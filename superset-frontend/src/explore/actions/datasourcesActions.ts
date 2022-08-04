@@ -67,7 +67,7 @@ export function saveDataset({
       return data;
     } catch (error) {
       getClientErrorObject(error).then(e => {
-        addDangerToast(e.error);
+        dispatch(addDangerToast(e.error));
       });
       throw error;
     }

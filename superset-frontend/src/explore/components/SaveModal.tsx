@@ -178,6 +178,7 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
         });
       } catch {
         // Don't continue since server was unable to create dataset
+        this.setState({ isLoading: false });
         return;
       }
     }
