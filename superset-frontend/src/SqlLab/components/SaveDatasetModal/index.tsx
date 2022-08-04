@@ -151,7 +151,6 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
   openWindow = true,
   formData = {},
 }) => {
-  console.log('FINDME SaveDatasetModal', datasource);
   const defaultVizType = useSelector<SqlLabRootState, string>(
     state => state.common?.conf?.DEFAULT_VIZ_TYPE || 'table',
   );

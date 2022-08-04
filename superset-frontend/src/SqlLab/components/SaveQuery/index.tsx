@@ -167,7 +167,6 @@ export default function SaveQuery({
     </Form>
   );
 
-  console.log('FINDME SaveQuery', query, queryPayload());
   return (
     <Styles className="SaveQuery">
       <SaveDatasetActionButton

@@ -663,11 +663,6 @@ class SqlEditor extends React.PureComponent {
       </Menu>
     );
 
-    const queryWithColumns = () => ({
-      ...qe,
-      columns: this.props.latestQuery?.results?.columns || [],
-    });
-    console.log('findme SqlEditor', qe, queryWithColumns());
     return (
       <StyledToolbar className="sql-toolbar" id="js-sql-toolbar">
         <div className="leftItems">
@@ -726,7 +721,10 @@ class SqlEditor extends React.PureComponent {
         <div className="rightItems">
           <span>
             <SaveQuery
-              query={queryWithColumns()}
+              query={{
+                ...qe,
+                columns: this.props.latestQuery?.results?.columns || [],
+              }}
               defaultLabel={qe.name || qe.description}
               onSave={this.saveQuery}
               onUpdate={this.props.actions.updateSavedQuery}
