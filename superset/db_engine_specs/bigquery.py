@@ -386,7 +386,9 @@ class BigQueryEngineSpec(BaseEngineSpec):
 
         # Building parameters from encrypted_extra and uri
         if encrypted_extra:
-            return {**encrypted_extra, "query": value.query}
+            # ``value.query`` needs to be explicitly converted into a dict (from an
+            # ``immutabledict``) so that it can be JSON serialized
+            return {**encrypted_extra, "query": dict(value.query)}
 
         raise ValidationError("Invalid service credentials")
 
