@@ -46,6 +46,7 @@ from superset.models.helpers import QueryResult
 from superset.utils import csv
 from superset.utils.cache import generate_cache_key, set_and_log_cache
 from superset.utils.core import (
+    DatasourceType,
     DTTM_ALIAS,
     error_msg_from_exception,
     get_column_names_from_columns,
@@ -512,4 +513,8 @@ class QueryContextProcessor:
         """
         for query in self._query_context.queries:
             query.validate()
-        security_manager.raise_for_access(query_context=self._query_context)
+
+        if self._qc_datasource.type == DatasourceType.QUERY:
+            security_manager.raise_for_access(query=self._qc_datasource)
+        else:
+            security_manager.raise_for_access(query_context=self._query_context)
