@@ -18,7 +18,13 @@
  */
 import React from 'react';
 import * as reactRedux from 'react-redux';
-import { render, screen, waitFor, within } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  waitFor,
+  within,
+  cleanup,
+} from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
@@ -39,7 +45,10 @@ fetchMock.get('glob:*/api/v1/dataset?*', {
 
 // Mock the user
 const useSelectorMock = jest.spyOn(reactRedux, 'useSelector');
-beforeEach(() => useSelectorMock.mockClear());
+beforeEach(() => {
+  useSelectorMock.mockClear();
+  cleanup();
+});
 
 describe('SaveDatasetModal', () => {
   it('renders a "Save as new" field', async () => {
@@ -88,7 +97,7 @@ describe('SaveDatasetModal', () => {
     expect(screen.getByRole('button', { name: /save/i })).toBeVisible();
   });
 
-  it('renders a back and overwrite button when "Overwrite existing" is selected', async () => {
+  it('renders an overwrite button when "Overwrite existing" is selected', async () => {
     render(<SaveDatasetModal {...mockedProps} />, { useRedux: true });
 
     // Click the overwrite radio button to reveal the overwrite confirmation and back buttons
@@ -97,11 +106,10 @@ describe('SaveDatasetModal', () => {
     });
     userEvent.click(overwriteRadioBtn);
 
-    expect(screen.getByRole('button', { name: /back/i })).toBeVisible();
     expect(screen.getByRole('button', { name: /overwrite/i })).toBeVisible();
   });
 
-  it('renders the overwrite button as disabled until an existing dataset is selected', async () => {
+  it('renders the overwrite button as disabled until an existing dataset is selected, confirms overwrite', async () => {
     useSelectorMock.mockReturnValue({ ...user });
     render(<SaveDatasetModal {...mockedProps} />, { useRedux: true });
 
@@ -131,5 +139,10 @@ describe('SaveDatasetModal', () => {
 
     // Overwrite button should now be enabled
     expect(overwriteConfirmationBtn).toBeEnabled();
+
+    // Check Overwrite confirmation functionality
+    userEvent.click(overwriteConfirmationBtn);
+    expect(screen.getByRole('button', { name: /back/i })).toBeVisible();
+    expect(screen.getByRole('button', { name: /overwrite/i })).toBeVisible();
   });
 });
