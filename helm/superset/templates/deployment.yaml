@@ -77,8 +77,13 @@ spec:
       {{- end }}
       containers:
         - name: {{ .Chart.Name }}
+          {{- if .Values.supersetNode.image }}
+          image: "{{ .Values.supersetNode.image.repository }}:{{ .Values.supersetNode.image.tag }}"
+          imagePullPolicy: {{ .Values.supersetNode.image.pullPolicy }}
+          {{- else }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- end }}
           {{- if .Values.supersetNode.containerSecurityContext }}
           securityContext: {{ toYaml .Values.supersetNode.containerSecurityContext | nindent 12 }}
           {{- end }}

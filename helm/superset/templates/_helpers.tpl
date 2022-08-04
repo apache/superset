@@ -89,6 +89,9 @@ WTF_CSRF_ENABLED = True
 WTF_CSRF_EXEMPT_LIST = []
 # A CSRF token that expires in 1 year
 WTF_CSRF_TIME_LIMIT = 60 * 60 * 24 * 365
+
+{{- if .Values.supersetCeleryBeat.enabled }}
+from celery.schedules import crontab
 class CeleryConfig(object):
   CELERY_IMPORTS = ('superset.sql_lab', )
   CELERY_ANNOTATIONS = {'tasks.add': {'rate_limit': '10/s'}}
@@ -101,6 +104,8 @@ class CeleryConfig(object):
 {{- end }}
 
 CELERY_CONFIG = CeleryConfig
+{{- end }}
+
 RESULTS_BACKEND = RedisCache(
       host=env('REDIS_HOST'),
 {{- if .Values.supersetNode.connections.redis_password }}

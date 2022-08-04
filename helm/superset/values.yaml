@@ -222,6 +222,11 @@ hostAliases: []
 ##
 ## Superset node configuration
 supersetNode:
+  # You can set custom docker image for every Superset element
+  # image:
+  #   repository: apache/superset
+  #   tag: latest
+  #   pullPolicy: IfNotPresent
   replicaCount: 1
   command:
     - "/bin/sh"
@@ -267,6 +272,11 @@ supersetNode:
 ##
 ## Superset worker configuration
 supersetWorker:
+  # You can set custom docker image for every Superset element
+  # image:
+  #   repository: apache/superset
+  #   tag: latest
+  #   pullPolicy: IfNotPresent
   replicaCount: 1
   command:
     - "/bin/sh"
@@ -302,6 +312,11 @@ supersetWorker:
 supersetCeleryBeat:
   # This is only required if you intend to use alerts and reports
   enabled: false
+  # You can set custom docker image for every Superset element
+  # image:
+  #   repository: apache/superset
+  #   tag: latest
+  #   pullPolicy: IfNotPresent
   command:
     - "/bin/sh"
     - "-c"
@@ -346,6 +361,11 @@ init:
     # requests:
     #   cpu:
     #   memory:
+  # You can set custom docker image for every Superset element
+  # image:
+  #   repository: apache/superset
+  #   tag: latest
+  #   pullPolicy: IfNotPresent
   command:
     - "/bin/sh"
     - "-c"

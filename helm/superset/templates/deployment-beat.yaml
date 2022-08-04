@@ -76,8 +76,13 @@ spec:
       {{- end }}
       containers:
         - name: {{ .Chart.Name }}
+          {{- if .Values.supersetCeleryBeat.image }}
+          image: "{{ .Values.supersetCeleryBeat.image.repository }}:{{ .Values.supersetCeleryBeat.image.tag }}"
+          imagePullPolicy: {{ .Values.supersetCeleryBeat.image.pullPolicy }}
+          {{- else }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- end }}
           {{- if .Values.supersetCeleryBeat.containerSecurityContext }}
           securityContext: {{ toYaml .Values.supersetCeleryBeat.containerSecurityContext | nindent 12 }}
           {{- end }}

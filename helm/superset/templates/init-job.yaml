@@ -45,7 +45,16 @@ spec:
       {{- end }}
       containers:
       - name: {{ template "superset.name" . }}-init-db
+        {{- if .Values.init.image }}
+        image: "{{ .Values.init.image.repository }}:{{ .Values.init.image.tag }}"
+        imagePullPolicy: {{ .Values.init.image.pullPolicy }}
+        {{- else }}
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        {{- end }}
+        {{- if .Values.init.containerSecurityContext }}
+        securityContext: {{ toYaml .Values.init.containerSecurityContext | nindent 12 }}
+        {{- end }}
         {{- if or .Values.extraEnv .Values.extraEnvRaw }}
         env:
           {{- range $key, $value := .Values.extraEnv }}
@@ -63,10 +72,6 @@ spec:
           - secretRef:
               name: {{ tpl . $ }}
           {{- end }}
-        imagePullPolicy: {{ .Values.image.pullPolicy }}
-        {{- if .Values.init.containerSecurityContext }}
-        securityContext: {{ toYaml .Values.init.containerSecurityContext | nindent 12 }}
-        {{- end }}
         volumeMounts:
           - name: superset-config
             mountPath: {{ .Values.configMountPath | quote }}
