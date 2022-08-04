@@ -219,8 +219,8 @@ class Query(
     @property
     def data(self) -> Dict[str, Any]:
         order_by_choices = []
-        for c in self.columns:
-            column_name = str(c.get("column_name") or "")
+        for col in self.columns:
+            column_name = str(col.get("column_name") or "")
             order_by_choices.append(
                 (json.dumps([column_name, True]), column_name + " [asc]")
             )
