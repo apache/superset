@@ -26,9 +26,10 @@ import { Form, FormItem } from 'src/components/Form';
 import Modal from 'src/components/Modal';
 import SaveDatasetActionButton from 'src/SqlLab/components/SaveDatasetActionButton';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
+import { getDatasourceAsSaveableDataset } from 'src/utils/datasourceUtils';
 
 interface SaveQueryProps {
-  query: any;
+  query: QueryPayload;
   defaultLabel: string;
   onSave: (arg0: QueryPayload) => void;
   onUpdate: (arg0: QueryPayload) => void;
@@ -177,7 +178,7 @@ export default function SaveQuery({
         onHide={() => setShowSaveDatasetModal(false)}
         buttonTextOnSave={t('Save & Explore')}
         buttonTextOnOverwrite={t('Overwrite & Explore')}
-        datasource={query}
+        datasource={getDatasourceAsSaveableDataset(query)}
       />
       <Modal
         className="save-query-modal"
