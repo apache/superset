@@ -16,6 +16,8 @@
 # under the License.
 # pylint: disable=unused-argument, import-outside-toplevel, protected-access
 
+import json
+
 from pybigquery.sqlalchemy_bigquery import BigQueryDialect
 from pytest_mock import MockFixture
 from sqlalchemy import select
@@ -144,3 +146,17 @@ def test_select_star(mocker: MockFixture) -> None:
 FROM `my_table`
 LIMIT :param_1"""
     )
+
+
+def test_get_parameters_from_uri() -> None:
+    """
+    Test that the result from ``get_parameters_from_uri`` is JSON serializable.
+    """
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    parameters = BigQueryEngineSpec.get_parameters_from_uri(
+        "bigquery://dbt-tutorial-347100/",
+        {"access_token": "TOP_SECRET"},
+    )
+    assert parameters == {"access_token": "TOP_SECRET", "query": {}}
+    assert json.loads(json.dumps(parameters)) == parameters
