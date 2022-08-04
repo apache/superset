@@ -1201,6 +1201,47 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         return or_(*groups)
 
+    def dttm_sql_literal(self, dttm: sa.DateTime, col_type: Optional[str]) -> str:
+        """Convert datetime object to a SQL expression string"""
+
+        sql = (
+            self.db_engine_spec.convert_dttm(col_type, dttm, db_extra=None)
+            if col_type
+            else None
+        )
+
+        if sql:
+            return sql
+
+        return f'{dttm.strftime("%Y-%m-%d %H:%M:%S.%f")}'
+
+    def get_time_filter(
+        self,
+        time_col: Dict[str, Any],
+        start_dttm: sa.DateTime,
+        end_dttm: sa.DateTime,
+    ) -> ColumnElement:
+        label = "__time"
+        col = time_col.get("column_name")
+        sqla_col = literal_column(col)
+        my_col = self.make_sqla_column_compatible(sqla_col, label)
+        l = []
+        if start_dttm:
+            l.append(
+                my_col
+                >= self.db_engine_spec.get_text_clause(
+                    self.dttm_sql_literal(start_dttm, time_col.get("type"))
+                )
+            )
+        if end_dttm:
+            l.append(
+                my_col
+                < self.db_engine_spec.get_text_clause(
+                    self.dttm_sql_literal(end_dttm, time_col.get("type"))
+                )
+            )
+        return and_(*l)
+
     def values_for_column(self, column_name: str, limit: int = 10000) -> List[Any]:
         """Runs query against sqla to retrieve some
         sample values for the given column.
@@ -1256,6 +1297,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         col = sa.column(column.get("column_name"), type_=type_)
         time_expr = self.db_engine_spec.get_timestamp_expr(col, None, time_grain)
         return self.make_sqla_column_compatible(time_expr, label)
+
+    def get_sqla_col(self, col: Dict[str, Any]) -> Column:
+        label = col.get("column_name")
+        col_type = col.get("type")
+        col = sa.column(label, type_=col_type)
+        return self.make_sqla_column_compatible(col, label)
 
     def get_sqla_query(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branches,too-many-statements
         self,
@@ -1393,7 +1440,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     col = metrics_exprs_by_expr.get(str(col), col)
                     need_groupby = True
             elif col in columns_by_name:
-                col = columns_by_name[col].get_sqla_col()
+                gb_column_obj = columns_by_name[col]
+                if isinstance(gb_column_obj, dict):
+                    col = self.get_sqla_col(gb_column_obj)
+                else:
+                    col = gb_column_obj.get_sqla_col()
             elif col in metrics_exprs_by_label:
                 col = metrics_exprs_by_label[col]
                 need_groupby = True
@@ -1489,6 +1540,33 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 # always put timestamp as the first column
                 select_exprs.insert(0, timestamp)
                 groupby_all_columns[timestamp.name] = timestamp
+
+            # Use main dttm column to support index with secondary dttm columns.
+            if (
+                db_engine_spec.time_secondary_columns
+                and self.main_dttm_col in self.dttm_cols
+                and self.main_dttm_col != dttm_col.column_name
+            ):
+                if isinstance(self.main_dttm_col, dict):
+                    time_filters.append(
+                        self.get_time_filter(
+                            self.main_dttm_col,
+                            from_dttm,
+                            to_dttm,
+                        )
+                    )
+                else:
+                    time_filters.append(
+                        columns_by_name[self.main_dttm_col].get_time_filter(
+                            from_dttm,
+                            to_dttm,
+                        )
+                    )
+
+            if isinstance(dttm_col, dict):
+                time_filters.append(self.get_time_filter(dttm_col, from_dttm, to_dttm))
+            else:
+                time_filters.append(dttm_col.get_time_filter(from_dttm, to_dttm))
 
         # Always remove duplicates by column name, as sometimes `metrics_exprs`
         # can have the same name as a groupby column (e.g. when users use
