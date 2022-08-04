@@ -888,14 +888,26 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         column_ = columns_by_name[dimension]
         db_extra: Dict[str, Any] = self.database.get_extra()  # type: ignore
 
-        if column_.type and column_.is_temporal and isinstance(value, str):
-            sql = self.db_engine_spec.convert_dttm(
-                column_.type, dateutil.parser.parse(value), db_extra=db_extra
-            )
+        if isinstance(column_, dict):
+            if (
+                column_.get("type")
+                and column_.get("is_temporal")
+                and isinstance(value, str)
+            ):
+                sql = self.db_engine_spec.convert_dttm(
+                    column_.get("type"), dateutil.parser.parse(value), db_extra=None
+                )
 
-            if sql:
-                value = self.text(sql)
+                if sql:
+                    value = self.db_engine_spec.get_text_clause(sql)
+        else:
+            if column_.type and column_.is_temporal and isinstance(value, str):
+                sql = self.db_engine_spec.convert_dttm(
+                    column_.type, dateutil.parser.parse(value), db_extra=db_extra
+                )
 
+                if sql:
+                    value = self.text(sql)
         return value
 
     def make_orderby_compatible(
@@ -1827,12 +1839,22 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 inner_time_filter = []
 
                 if dttm_col and not db_engine_spec.time_groupby_inline:
-                    inner_time_filter = [
-                        dttm_col.get_time_filter(
-                            inner_from_dttm or from_dttm,
-                            inner_to_dttm or to_dttm,
-                        )
-                    ]
+                    if isinstance(dttm_col, dict):
+                        inner_time_filter = [
+                            self.get_time_filter(
+                                dttm_col,
+                                inner_from_dttm or from_dttm,
+                                inner_to_dttm or to_dttm,
+                            )
+                        ]
+                    else:
+                        inner_time_filter = [
+                            dttm_col.get_time_filter(
+                                inner_from_dttm or from_dttm,
+                                inner_to_dttm or to_dttm,
+                            )
+                        ]
+
                 subq = subq.where(and_(*(where_clause_and + inner_time_filter)))
                 subq = subq.group_by(*inner_groupby_exprs)
 
@@ -1866,8 +1888,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     "columns": columns,
                     "order_desc": True,
                 }
-
-                result = self.query(prequery_obj)  # type: ignore
+                result = self.exc_query(prequery_obj)
                 prequeries.append(result.query)
                 dimensions = [
                     c
