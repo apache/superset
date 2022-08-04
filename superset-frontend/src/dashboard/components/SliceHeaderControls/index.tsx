@@ -448,7 +448,10 @@ class SliceHeaderControls extends React.PureComponent<
               }
               modalTitle={t('Drill to detail: %s', slice.slice_name)}
               modalBody={
-                <DrillDetailPane datasource={this.props.slice.datasource} />
+                <DrillDetailPane
+                  datasource={this.props.slice.datasource}
+                  queryFormData={this.props.formData}
+                />
               }
             />
           </Menu.Item>
