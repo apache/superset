@@ -20,7 +20,13 @@
 import moment from 'moment';
 import React from 'react';
 import PropTypes from 'prop-types';
-import { styled, css, t, getSharedLabelColor } from '@superset-ui/core';
+import {
+  styled,
+  css,
+  t,
+  getSharedLabelColor,
+  getUiOverrideRegistry,
+} from '@superset-ui/core';
 import { Global } from '@emotion/react';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import {
@@ -52,6 +58,8 @@ import { options as PeriodicRefreshOptions } from 'src/dashboard/components/Refr
 import { FILTER_BOX_MIGRATION_STATES } from 'src/explore/constants';
 import { PageHeaderWithActions } from 'src/components/PageHeaderWithActions';
 import { DashboardEmbedModal } from '../DashboardEmbedControls';
+
+const uiOverrideRegistry = getUiOverrideRegistry();
 
 const propTypes = {
   addSuccessToast: PropTypes.func.isRequired,
@@ -483,6 +491,8 @@ class Header extends React.PureComponent {
       dashboardTitleChanged(updates.title);
     };
 
+    const NavExtension = uiOverrideRegistry.get('dashboard.nav.right');
+
     return (
       <div
         css={headerContainerStyle}
@@ -602,6 +612,7 @@ class Header extends React.PureComponent {
                 />
               ) : (
                 <div css={actionButtonsStyle}>
+                  {NavExtension && <NavExtension />}
                   {userCanEdit && (
                     <Button
                       buttonStyle="secondary"
