@@ -123,6 +123,11 @@ export interface SelectProps extends PickedSelectProps {
    * Will not apply to predefined `options` array when users are not searching.
    */
   sortComparator?: typeof DEFAULT_SORT_COMPARATOR;
+
+  /**
+   * Allows the values of a select to be edited after being entered.
+   */
+  editable?: boolean;
 }
 
 const StyledContainer = styled.div`
@@ -223,6 +228,7 @@ const Select = (
     allowClear,
     allowNewOptions = false,
     ariaLabel,
+    editable,
     filterOption = true,
     header = null,
     invertSelection = false,
@@ -433,6 +439,12 @@ const Select = (
     );
   };
 
+  const tagRenderProps = editable
+    ? {
+        tagRender: tagRender,
+      }
+    : {};
+
   useEffect(() => {
     // when `options` list is updated from component prop, reset states
     setSelectOptions(initialOptions);
@@ -486,7 +498,7 @@ const Select = (
           )
         }
         ref={ref}
-        tagRender={tagRender}
+        {...tagRenderProps}
         {...props}
       >
         {hasCustomLabels &&

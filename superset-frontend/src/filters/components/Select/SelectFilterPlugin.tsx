@@ -97,6 +97,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     inverseSelection,
     defaultToFirstItem,
     searchAllOptions,
+    editable,
   } = formData;
   const groupby = useMemo(
     () => ensureIsArray(formData.groupby).map(getColumnLabel),
@@ -329,6 +330,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
           options={options}
           sortComparator={sortComparator}
           onDropdownVisibleChange={setFilterActive}
+          editable={editable}
         />
       </StyledFormItem>
     </FilterPluginStyle>

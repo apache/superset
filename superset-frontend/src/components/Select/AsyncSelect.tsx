@@ -165,6 +165,10 @@ export interface AsyncSelectProps extends PickedSelectProps {
    * Will not apply to predefined `options` array when users are not searching.
    */
   sortComparator?: typeof DEFAULT_SORT_COMPARATOR;
+  /**
+   * Allows the values of a select to be edited after being entered.
+   */
+  editable?: boolean;
 }
 
 const StyledContainer = styled.div`
@@ -294,6 +298,7 @@ const AsyncSelect = (
     allowClear,
     allowNewOptions = false,
     ariaLabel,
+    editable,
     fetchOnlyOnSearch,
     filterOption = true,
     header = null,
@@ -690,6 +695,12 @@ const AsyncSelect = (
     );
   };
 
+  const tagRenderProps = editable
+    ? {
+        tagRender: tagRender,
+      }
+    : {};
+
   return (
     <StyledContainer>
       {header}
@@ -728,7 +739,7 @@ const AsyncSelect = (
           )
         }
         ref={ref}
-        tagRender={tagRender}
+        {...tagRenderProps}
         {...props}
       >
         {hasCustomLabels &&

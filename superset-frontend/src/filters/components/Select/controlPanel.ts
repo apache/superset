@@ -31,6 +31,7 @@ const {
   defaultToFirstItem,
   searchAllOptions,
   sortAscending,
+  editable,
 } = DEFAULT_FORM_DATA;
 
 const config: ControlPanelConfig = {
@@ -140,6 +141,17 @@ const config: ControlPanelConfig = {
                   'Check this box if you have more than 1000 filter values and want to enable dynamically ' +
                   'searching that loads filter values as users type (may add stress to your database).',
               ),
+            },
+          },
+        ],
+        [
+          {
+            name: 'editable',
+            config: {
+              type: 'CheckboxControl',
+              renderTrigger: true,
+              label: t('Allow value to be edited'),
+              default: editable,
             },
           },
         ],
