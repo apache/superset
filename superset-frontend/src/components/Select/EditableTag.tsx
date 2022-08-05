@@ -17,13 +17,13 @@
  * under the License.
  */
 
-import React, { Dispatch, SetStateAction, useRef, useState } from 'react';
+import React, { Dispatch, SetStateAction, useState } from 'react';
 import { SelectValue as AntdSelectValue } from 'antd/lib/select';
 import { Tag } from 'antd';
+import { ensureIsArray } from '@superset-ui/core';
 import { Input } from '../Input';
 import { OptionsType } from './Select';
 import { isLabeledValue } from './utils';
-import { ensureIsArray } from '@superset-ui/core';
 
 export type CustomTagProps = {
   label: React.ReactNode;
@@ -43,13 +43,12 @@ export interface EditableTagProps extends CustomTagProps {
 const EditableTag = (props: EditableTagProps) => {
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(props.value);
-  const inputRef = useRef(null);
 
   const updateValue = () => {
     setEditing(false);
     const array = ensureIsArray(props.selectValue);
 
-    // Non-strict comparison is intentional here.
+    // eslint-disable-next-line eqeqeq -- Non-strict comparison is intentional here because types could be different.
     const existingOption = props.selectOptions?.find(e => e.value == value);
 
     const v: string[] = array
@@ -83,8 +82,6 @@ const EditableTag = (props: EditableTagProps) => {
       closable={props.closable}
       onDoubleClick={() => {
         setEditing(true);
-        if (inputRef.current) {
-        }
       }}
       onClose={props.onClose}
     >
@@ -101,7 +98,6 @@ const EditableTag = (props: EditableTagProps) => {
               event.stopPropagation();
             }
           }}
-          ref={inputRef}
           value={value}
           onChange={event => setValue(event.target.value)}
         />

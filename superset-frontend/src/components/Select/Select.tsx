@@ -37,8 +37,8 @@ import { Spin } from 'antd';
 import { isEqual } from 'lodash';
 import Icons from 'src/components/Icons';
 import { rankedSearchCompare } from 'src/utils/rankedSearchCompare';
-import { getValue, hasOption, isLabeledValue } from './utils';
 import { Option } from 'react-select/src/filters';
+import { getValue, hasOption, isLabeledValue } from './utils';
 import EditableTag, { CustomTagProps } from './EditableTag';
 
 const { Option } = AntdSelect;
@@ -427,17 +427,15 @@ const Select = (
     }
   };
 
-  const tagRender = (props: CustomTagProps) => {
-    return (
-      <EditableTag
-        selectValue={selectValue}
-        setSelectValue={setSelectValue}
-        selectOptions={selectOptions}
-        onChange={onChange}
-        {...props}
-      />
-    );
-  };
+  const tagRender = (props: CustomTagProps) => (
+    <EditableTag
+      selectValue={selectValue}
+      setSelectValue={setSelectValue}
+      selectOptions={selectOptions}
+      onChange={onChange}
+      {...props}
+    />
+  );
 
   const tagRenderProps = editable
     ? {

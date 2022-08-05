@@ -683,17 +683,15 @@ const AsyncSelect = (
     [ref],
   );
 
-  const tagRender = (props: CustomTagProps) => {
-    return (
-      <EditableTag
-        selectValue={selectValue}
-        setSelectValue={setSelectValue}
-        selectOptions={selectOptions}
-        onChange={onChange}
-        {...props}
-      />
-    );
-  };
+  const tagRender = (props: CustomTagProps) => (
+    <EditableTag
+      selectValue={selectValue}
+      setSelectValue={setSelectValue}
+      selectOptions={selectOptions}
+      onChange={onChange}
+      {...props}
+    />
+  );
 
   const tagRenderProps = editable
     ? {
