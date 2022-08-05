@@ -439,7 +439,7 @@ const Select = (
 
   const tagRenderProps = editable
     ? {
-        tagRender: tagRender,
+        tagRender,
       }
     : {};
 

@@ -695,7 +695,7 @@ const AsyncSelect = (
 
   const tagRenderProps = editable
     ? {
-        tagRender: tagRender,
+        tagRender,
       }
     : {};
 

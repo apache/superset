@@ -59,7 +59,7 @@ const EditableTag = (props: EditableTagProps) => {
             return existingOption.value;
           }
           if (isLabeledValue(props.value)) {
-            return { key: value, value: value, label: String(value) };
+            return { key: value, value, label: String(value) };
           }
         }
         return e;
