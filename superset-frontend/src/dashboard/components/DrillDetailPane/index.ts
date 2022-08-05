@@ -17,6 +17,4 @@
  * under the License.
  */
 
-import DrillDetailPane from './DrillDetailPane';
-
-export default DrillDetailPane;
+export { default } from './DrillDetailPane';
