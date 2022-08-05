@@ -23,6 +23,7 @@ import React, {
   useCallback,
   useRef,
 } from 'react';
+import { useSelector } from 'react-redux';
 import {
   BinaryQueryObjectFilterClause,
   css,
@@ -31,6 +32,7 @@ import {
   t,
   useTheme,
   QueryFormData,
+  JsonObject,
 } from '@superset-ui/core';
 import Loading from 'src/components/Loading';
 import { EmptyStateMedium } from 'src/components/EmptyState';
@@ -48,7 +50,6 @@ type ResultsPage = {
 };
 
 const PAGE_SIZE = 50;
-const MAX_CACHED_PAGES = 5;
 
 export default function DrillDetailPane({
   datasource,
@@ -69,7 +70,12 @@ export default function DrillDetailPane({
     new Map(),
   );
 
-  //  Get string identifier for dataset
+  const SAMPLES_ROW_LIMIT = useSelector(
+    (state: { common: { conf: JsonObject } }) =>
+      state.common.conf.SAMPLES_ROW_LIMIT,
+  );
+
+  //  Extract datasource ID/type from string ID
   const [datasourceId, datasourceType] = useMemo(
     () => datasource.split('__'),
     [datasource],
@@ -110,6 +116,7 @@ export default function DrillDetailPane({
   }, [pageIndex, resultsPages]);
 
   //  Download page of results & trim cache if page not in cache
+  const cachePageLimit = Math.ceil(SAMPLES_ROW_LIMIT / PAGE_SIZE);
   useEffect(() => {
     if (!resultsPages.has(pageIndex)) {
       setIsLoading(true);
@@ -121,7 +128,7 @@ export default function DrillDetailPane({
         .then(response => {
           setResultsPages(
             new Map([
-              ...[...resultsPages.entries()].slice(-MAX_CACHED_PAGES + 1),
+              ...[...resultsPages.entries()].slice(-cachePageLimit + 1),
               [
                 pageIndex,
                 {
@@ -143,10 +150,10 @@ export default function DrillDetailPane({
         });
     }
   }, [
+    cachePageLimit,
     datasourceId,
     datasourceType,
     drillFilters,
-    filters,
     pageIndex,
     queryFormData,
     resultsPages,
