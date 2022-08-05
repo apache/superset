@@ -21,13 +21,10 @@ import React, {
   ReactElement,
   ReactNode,
   RefObject,
+  useCallback,
   useEffect,
   useMemo,
   useState,
-  useCallback,
-  useRef,
-  Dispatch,
-  SetStateAction,
 } from 'react';
 import { ensureIsArray, styled, t } from '@superset-ui/core';
 import AntdSelect, {
@@ -36,13 +33,13 @@ import AntdSelect, {
   LabeledValue as AntdLabeledValue,
 } from 'antd/lib/select';
 import { DownOutlined, SearchOutlined } from '@ant-design/icons';
-import { Spin, Tag } from 'antd';
+import { Spin } from 'antd';
 import { isEqual } from 'lodash';
 import Icons from 'src/components/Icons';
 import { rankedSearchCompare } from 'src/utils/rankedSearchCompare';
 import { getValue, hasOption, isLabeledValue } from './utils';
-import { Input } from '../Input';
 import { Option } from 'react-select/src/filters';
+import EditableTag, { CustomTagProps } from './EditableTag';
 
 const { Option } = AntdSelect;
 
@@ -68,20 +65,6 @@ type PickedSelectProps = Pick<
   | 'value'
   | 'getPopupContainer'
 >;
-
-type CustomTagProps = {
-  label: React.ReactNode;
-  value: any;
-  disabled: boolean;
-  onClose: (event?: React.MouseEvent<HTMLElement, MouseEvent>) => void;
-  closable: boolean;
-};
-
-interface EditableTagProps extends CustomTagProps {
-  selectValue: AntdSelectValue | undefined;
-  setSelectValue: Dispatch<SetStateAction<AntdSelectValue | undefined>>;
-  onChange?: (value: any, option: any) => void;
-}
 
 export type OptionsType = Exclude<AntdSelectAllProps['options'], undefined>;
 
@@ -221,65 +204,6 @@ export const propertyComparator =
     return (a[property] as number) - (b[property] as number);
   };
 
-const EditableTag = (props: EditableTagProps) => {
-  const [editing, setEditing] = useState(false);
-  const [value, setValue] = useState(props.value);
-  const inputRef = useRef(null);
-
-  const updateValue = () => {
-    setEditing(false);
-    if (Array.isArray(props.selectValue)) {
-      const array = props.selectValue as string[];
-      const v: string[] = array
-        .map(e => (e === props.value ? value : e))
-        .filter(e => e !== '');
-      props.setSelectValue(value);
-      if (props.onChange) {
-        props.onChange(v, null);
-      }
-    } else {
-      props.setSelectValue(value);
-    }
-  };
-
-  // Sometimes an empty tag will appear for some reason if this is not included.
-  if (!props.value || props.value === '') {
-    return null;
-  }
-
-  return (
-    <Tag
-      closable
-      onDoubleClick={() => {
-        setEditing(true);
-        if (inputRef.current) {
-        }
-      }}
-      onClose={props.onClose}
-    >
-      {editing ? (
-        <Input
-          style={{ width: '95%' }}
-          autoFocus
-          onBlur={event => updateValue()}
-          onKeyDown={event => {
-            if (event.key === 'Backspace') {
-              event.stopPropagation();
-            } else if (event.key === 'Enter') {
-              updateValue();
-              event.stopPropagation();
-            }
-          }}
-          ref={inputRef}
-          value={value}
-          onChange={event => setValue(event.target.value)}
-        />
-      ) : (
-        props.value
-      )}
-    </Tag>
-  );
-};
 /**
  * This component is a customized version of the Antdesign 4.X Select component
  * https://ant.design/components/select/.
