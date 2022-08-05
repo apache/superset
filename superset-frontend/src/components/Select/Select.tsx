@@ -37,7 +37,6 @@ import { Spin } from 'antd';
 import { isEqual } from 'lodash';
 import Icons from 'src/components/Icons';
 import { rankedSearchCompare } from 'src/utils/rankedSearchCompare';
-import { Option } from 'react-select/src/filters';
 import { getValue, hasOption, isLabeledValue } from './utils';
 import EditableTag, { CustomTagProps } from './EditableTag';
 
