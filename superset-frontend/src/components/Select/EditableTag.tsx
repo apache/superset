@@ -22,7 +22,7 @@ import { SelectValue as AntdSelectValue } from 'antd/lib/select';
 import { Tag } from 'antd';
 import { Input } from '../Input';
 import { OptionsType } from './Select';
-import { getValue } from './utils';
+import { isLabeledValue } from './utils';
 import { ensureIsArray } from '@superset-ui/core';
 
 export type CustomTagProps = {
@@ -54,14 +54,16 @@ const EditableTag = (props: EditableTagProps) => {
 
     const v: string[] = array
       .map(e => {
-        if (getValue(e) === props.value) {
+        if (e === props.value) {
           // If this one we want to replace, use the value of the existing option if it exists
           if (existingOption) {
             return existingOption.value;
           }
-          return value;
+          if (isLabeledValue(props.value)) {
+            return { key: value, value: value, label: String(value) };
+          }
         }
-        return getValue(e);
+        return e;
       })
       .filter(e => e !== '' && e !== null);
 
@@ -104,7 +106,7 @@ const EditableTag = (props: EditableTagProps) => {
           onChange={event => setValue(event.target.value)}
         />
       ) : (
-        props.value
+        props.label
       )}
     </Tag>
   );
