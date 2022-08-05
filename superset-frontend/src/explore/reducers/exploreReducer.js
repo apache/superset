@@ -62,6 +62,8 @@ export default function exploreReducer(state = {}, action) {
         // reset time range filter to default
         newFormData.time_range = DEFAULT_TIME_RANGE;
 
+        newFormData.datasource = newDatasource.uid;
+
         // reset control values for column/metric related controls
         Object.entries(controls).forEach(([controlName, controlState]) => {
           if (
@@ -213,6 +215,12 @@ export default function exploreReducer(state = {}, action) {
       return {
         ...state,
         controls: getControlsState(state, action.formData),
+      };
+    },
+    [actions.SET_FORM_DATA]() {
+      return {
+        ...state,
+        form_data: action.formData,
       };
     },
     [actions.UPDATE_CHART_TITLE]() {
