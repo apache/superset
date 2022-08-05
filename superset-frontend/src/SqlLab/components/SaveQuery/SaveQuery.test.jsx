@@ -159,7 +159,7 @@ describe('SavedQuery', () => {
     const closeBtn = screen.getByRole('button', { name: /close/i });
     const saveDatasetHeader = screen.getByText(/save or overwrite dataset/i);
     const saveRadio = screen.getByRole('radio', {
-      name: /save as new untitled dataset/i,
+      name: /save as new untitled/i,
     });
     const saveLabel = screen.getByText(/save as new/i);
     const saveTextbox = screen.getByRole('textbox');
