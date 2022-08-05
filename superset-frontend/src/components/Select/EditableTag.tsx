@@ -80,7 +80,7 @@ const EditableTag = (props: EditableTagProps) => {
 
   return (
     <Tag
-      closable
+      closable={props.closable}
       onDoubleClick={() => {
         setEditing(true);
         if (inputRef.current) {
