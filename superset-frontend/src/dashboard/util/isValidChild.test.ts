@@ -29,6 +29,9 @@ import {
   ROW_TYPE as ROW,
   TABS_TYPE as TABS,
   TAB_TYPE as TAB,
+  IKI_TABLE_TYPE as IKI_TABLE,
+  IKI_PROCESS_BUILDER_TYPE as IKI_PROCESS_BUILDER,
+  IKI_RUN_PIPELINE_TYPE as IKI_RUN_PIPELINE,
 } from 'src/dashboard/util/componentTypes';
 
 const getIndentation = (depth: number) =>
@@ -47,42 +50,89 @@ describe('isValidChild', () => {
     const validExamples = [
       [ROOT, GRID, CHART], // chart is valid because it is wrapped in a row
       [ROOT, GRID, MARKDOWN], // markdown is valid because it is wrapped in a row
+      [ROOT, GRID, IKI_TABLE], // iki table is valid because it is wrapped in a row
+      [ROOT, GRID, IKI_PROCESS_BUILDER], // iki process builder is valid because it is wrapped in a row
+      [ROOT, GRID, IKI_RUN_PIPELINE], // iki run pipeline is valid because it is wrapped in a row
       [ROOT, GRID, COLUMN], // column is valid because it is wrapped in a row
       [ROOT, GRID, HEADER],
       [ROOT, GRID, ROW, MARKDOWN],
+      [ROOT, GRID, ROW, IKI_TABLE],
+      [ROOT, GRID, ROW, IKI_PROCESS_BUILDER],
+      [ROOT, GRID, ROW, IKI_RUN_PIPELINE],
       [ROOT, GRID, ROW, CHART],
 
       [ROOT, GRID, ROW, COLUMN, HEADER],
       [ROOT, GRID, ROW, COLUMN, DIVIDER],
       [ROOT, GRID, ROW, COLUMN, CHART],
       [ROOT, GRID, ROW, COLUMN, MARKDOWN],
+      [ROOT, GRID, ROW, COLUMN, IKI_TABLE],
+      [ROOT, GRID, ROW, COLUMN, IKI_PROCESS_BUILDER],
+      [ROOT, GRID, ROW, COLUMN, IKI_RUN_PIPELINE],
 
       [ROOT, GRID, ROW, COLUMN, ROW, CHART],
       [ROOT, GRID, ROW, COLUMN, ROW, MARKDOWN],
+      [ROOT, GRID, ROW, COLUMN, ROW, IKI_TABLE],
+      [ROOT, GRID, ROW, COLUMN, ROW, IKI_PROCESS_BUILDER],
+      [ROOT, GRID, ROW, COLUMN, ROW, IKI_RUN_PIPELINE],
 
       [ROOT, GRID, ROW, COLUMN, ROW, COLUMN, CHART],
       [ROOT, GRID, ROW, COLUMN, ROW, COLUMN, MARKDOWN],
+      [ROOT, GRID, ROW, COLUMN, ROW, COLUMN, IKI_TABLE],
+      [ROOT, GRID, ROW, COLUMN, ROW, COLUMN, IKI_PROCESS_BUILDER],
+      [ROOT, GRID, ROW, COLUMN, ROW, COLUMN, IKI_RUN_PIPELINE],
       [ROOT, GRID, TABS, TAB, ROW, COLUMN, ROW, COLUMN, MARKDOWN],
+      [ROOT, GRID, TABS, TAB, ROW, COLUMN, ROW, COLUMN, IKI_TABLE],
+      [ROOT, GRID, TABS, TAB, ROW, COLUMN, ROW, COLUMN, IKI_PROCESS_BUILDER],
+      [ROOT, GRID, TABS, TAB, ROW, COLUMN, ROW, COLUMN, IKI_RUN_PIPELINE],
 
       // tab equivalents
       [ROOT, TABS, TAB, CHART],
       [ROOT, TABS, TAB, MARKDOWN],
+      [ROOT, TABS, TAB, ROW, IKI_TABLE],
+      [ROOT, TABS, TAB, ROW, IKI_PROCESS_BUILDER],
+      [ROOT, TABS, TAB, IKI_RUN_PIPELINE],
       [ROOT, TABS, TAB, COLUMN],
       [ROOT, TABS, TAB, HEADER],
       [ROOT, TABS, TAB, ROW, MARKDOWN],
+      [ROOT, TABS, TAB, IKI_TABLE],
+      [ROOT, TABS, TAB, IKI_PROCESS_BUILDER],
+      [ROOT, TABS, TAB, IKI_RUN_PIPELINE],
       [ROOT, TABS, TAB, ROW, CHART],
 
       [ROOT, TABS, TAB, ROW, COLUMN, HEADER],
       [ROOT, TABS, TAB, ROW, COLUMN, DIVIDER],
       [ROOT, TABS, TAB, ROW, COLUMN, CHART],
       [ROOT, TABS, TAB, ROW, COLUMN, MARKDOWN],
+      [ROOT, TABS, TAB, ROW, COLUMN, IKI_TABLE],
+      [ROOT, TABS, TAB, ROW, COLUMN, IKI_PROCESS_BUILDER],
+      [ROOT, TABS, TAB, ROW, COLUMN, IKI_RUN_PIPELINE],
 
       [ROOT, TABS, TAB, ROW, COLUMN, ROW, CHART],
       [ROOT, TABS, TAB, ROW, COLUMN, ROW, MARKDOWN],
+      [ROOT, TABS, TAB, ROW, COLUMN, ROW, IKI_TABLE],
+      [ROOT, TABS, TAB, ROW, COLUMN, ROW, IKI_PROCESS_BUILDER],
+      [ROOT, TABS, TAB, ROW, COLUMN, ROW, IKI_RUN_PIPELINE],
 
       [ROOT, TABS, TAB, ROW, COLUMN, ROW, COLUMN, CHART],
       [ROOT, TABS, TAB, ROW, COLUMN, ROW, COLUMN, MARKDOWN],
+      [ROOT, TABS, TAB, ROW, COLUMN, ROW, COLUMN, IKI_TABLE],
+      [ROOT, TABS, TAB, ROW, COLUMN, ROW, COLUMN, IKI_PROCESS_BUILDER],
+      [ROOT, TABS, TAB, ROW, COLUMN, ROW, COLUMN, IKI_RUN_PIPELINE],
       [ROOT, TABS, TAB, TABS, TAB, ROW, COLUMN, ROW, COLUMN, MARKDOWN],
+      [ROOT, TABS, TAB, TABS, TAB, ROW, COLUMN, ROW, COLUMN, IKI_TABLE],
+      [
+        ROOT,
+        TABS,
+        TAB,
+        TABS,
+        TAB,
+        ROW,
+        COLUMN,
+        ROW,
+        COLUMN,
+        IKI_PROCESS_BUILDER,
+      ],
+      [ROOT, TABS, TAB, TABS, TAB, ROW, COLUMN, ROW, COLUMN, IKI_RUN_PIPELINE],
       [ROOT, GRID, ROW, COLUMN, TABS],
     ];
 

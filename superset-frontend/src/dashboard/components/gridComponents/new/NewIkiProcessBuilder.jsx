@@ -16,13 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-@import './chart.less';
-@import './column.less';
-@import './divider.less';
-@import './header.less';
-@import './new-component.less';
-@import './row.less';
-@import './markdown.less';
-@import './iki-table.less';
-@import './iki-process-builder.less';
-@import './iki-run-pipeline.less';
+import React from 'react';
+import { t } from '@superset-ui/core';
+
+import { IKI_PROCESS_BUILDER_TYPE } from '../../../util/componentTypes';
+import { NEW_IKI_PROCESS_BUILDER_ID } from '../../../util/constants';
+import DraggableNewComponent from './DraggableNewComponent';
+
+export default function DraggableNewDivider() {
+  return (
+    <DraggableNewComponent
+      id={NEW_IKI_PROCESS_BUILDER_ID}
+      type={IKI_PROCESS_BUILDER_TYPE}
+      label={t('Process Diagram')}
+      className="fa fa-columns"
+    />
+  );
+}

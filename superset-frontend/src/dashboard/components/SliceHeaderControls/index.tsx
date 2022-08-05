@@ -28,7 +28,7 @@ import {
 } from '@superset-ui/core';
 import { Menu } from 'src/components/Menu';
 import { NoAnimationDropdown } from 'src/components/Dropdown';
-import ShareMenuItems from 'src/dashboard/components/menu/ShareMenuItems';
+// import ShareMenuItems from 'src/dashboard/components/menu/ShareMenuItems';
 import downloadAsImage from 'src/utils/downloadAsImage';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import CrossFilterScopingModal from 'src/dashboard/components/CrossFilterScopingModal/CrossFilterScopingModal';
@@ -227,15 +227,15 @@ class SliceHeaderControls extends React.PureComponent<
 
   render() {
     const {
-      componentId,
-      dashboardId,
+      // componentId,
+      // dashboardId,
       slice,
       isFullSize,
       cachedDttm = [],
       updatedDttm = null,
-      addSuccessToast = () => {},
-      addDangerToast = () => {},
-      supersetCanShare = false,
+      // addSuccessToast = () => {},
+      // addDangerToast = () => {},
+      // supersetCanShare = false,
       isCached = [],
     } = this.props;
     const crossFilterItems = getChartMetadataRegistry().items;
@@ -378,7 +378,7 @@ class SliceHeaderControls extends React.PureComponent<
             </>
           )}
 
-        {supersetCanShare && (
+        {/* {supersetCanShare && (
           <Menu.SubMenu title={t('Share')}>
             <ShareMenuItems
               dashboardId={dashboardId}
@@ -391,7 +391,7 @@ class SliceHeaderControls extends React.PureComponent<
               addDangerToast={addDangerToast}
             />
           </Menu.SubMenu>
-        )}
+        )} */}
 
         {this.props.slice.viz_type !== 'filter_box' &&
           this.props.supersetCanCSV && (

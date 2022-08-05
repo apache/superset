@@ -17,6 +17,7 @@
 """Utility functions used across Superset"""
 # pylint: disable=too-many-lines
 import _thread
+import requests
 import collections
 import decimal
 import errno
@@ -63,6 +64,8 @@ from typing import (
     Union,
 )
 from urllib.parse import unquote_plus
+from urllib.parse import urljoin
+
 from zipfile import ZipFile
 
 import bleach
@@ -113,6 +116,7 @@ from superset.superset_typing import (
 from superset.utils.database import get_example_database
 from superset.utils.dates import datetime_to_epoch, EPOCH
 from superset.utils.hashing import md5_sha_from_dict, md5_sha_from_str
+from superset.utils.ikigai_utils import parse_error_components
 
 try:
     from pydruid.utils.having import Having
@@ -614,6 +618,16 @@ def json_dumps_w_dates(payload: Dict[Any, Any]) -> str:
 
 
 def error_msg_from_exception(ex: Exception) -> str:
+    """Superset function with minor changes to assist with Dremio Error Reporting.
+    - Captures error message
+    - Checks if error message has "Dremio" in it
+        - If not does not affect supersets pipeline
+        - If yes stores it in "PAYLOAD"
+    - send response to parser
+    - Send parser functions reply to superset error output"""
+    ERR_DB_NAME = os.environ.get("ERR_DB_NAME")
+    BASE_URL = os.environ.get("BASE_URL")
+    DREMIO_PARSE_ENDPOINT = os.environ.get("DREMIO_PARSE_ENDPOINT")
     """Translate exception into error message
 
     Database have different ways to handle exception. This function attempts
@@ -633,7 +647,31 @@ def error_msg_from_exception(ex: Exception) -> str:
             msg = ex.message.get("message")  # type: ignore
         elif ex.message:  # type: ignore
             msg = ex.message  # type: ignore
-    return msg or str(ex)
+    # return msg or str(ex)
+
+    if msg:
+        return msg
+
+    # If error is not from dremio
+    if ERR_DB_NAME not in str(ex):
+        return str(ex)
+
+    # Load error string to be sent
+    payload = {
+        'error_string':str(ex),
+    }
+
+    # Send to API:
+    url = urljoin(BASE_URL, DREMIO_PARSE_ENDPOINT)
+    response = requests.post(
+        url=url, 
+        data=json.dumps(payload))
+
+    # If API does not respond as expected:
+    if response.status_code != 200:
+        return f'[{response.status_code}] Unable to connect to Error Reporting API please contact support for further assistance.'
+
+    return parse_error_components(response)
 
 
 def markdown(raw: str, markup_wrap: Optional[bool] = False) -> str:

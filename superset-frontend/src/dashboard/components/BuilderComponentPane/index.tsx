@@ -33,6 +33,9 @@ import NewRow from '../gridComponents/new/NewRow';
 import NewTabs from '../gridComponents/new/NewTabs';
 import NewMarkdown from '../gridComponents/new/NewMarkdown';
 import NewDynamicComponent from '../gridComponents/new/NewDynamicComponent';
+import NewIkiTable from '../gridComponents/new/NewIkiTable';
+import NewIkiProcessBuilder from '../gridComponents/new/NewIkiProcessBuilder';
+import NewIkiRunPipeline from '../gridComponents/new/NewIkiRunPipeline';
 
 export interface BCPProps {
   isStandalone: boolean;
@@ -119,6 +122,9 @@ const BuilderComponentPane: React.FC<BCPProps> = ({
                       <NewHeader />
                       <NewMarkdown />
                       <NewDivider />
+                      <NewIkiTable />
+                      <NewIkiProcessBuilder />
+                      <NewIkiRunPipeline />
                       {dashboardComponents
                         .getAll()
                         .map(({ key: componentKey, metadata }) => (

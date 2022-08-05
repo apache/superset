@@ -27,7 +27,7 @@ import { StaticMap } from 'react-map-gl';
 import DeckGL from 'deck.gl';
 import { styled } from '@superset-ui/core';
 import Tooltip from './components/Tooltip';
-import 'mapbox-gl/dist/mapbox-gl.css';
+// import 'mapbox-gl/dist/mapbox-gl.css';
 
 const TICK = 250; // milliseconds
 

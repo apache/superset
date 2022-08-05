@@ -30,6 +30,9 @@ export const TABS_TYPE = 'TABS';
 export const TAB_TYPE = 'TAB';
 // Dynamic type proposes lazy loading of custom dashboard components that can be added in separate repository
 export const DYNAMIC_TYPE = 'DYNAMIC';
+export const IKI_TABLE_TYPE = 'IKI_TABLE';
+export const IKI_PROCESS_BUILDER_TYPE = 'IKI_PROCESS_BUILDER';
+export const IKI_RUN_PIPELINE_TYPE = 'IKI_RUN_PIPELINE';
 
 export default {
   CHART_TYPE,
@@ -45,4 +48,7 @@ export default {
   TABS_TYPE,
   TAB_TYPE,
   DYNAMIC_TYPE,
+  IKI_TABLE_TYPE,
+  IKI_PROCESS_BUILDER_TYPE,
+  IKI_RUN_PIPELINE_TYPE,
 };
