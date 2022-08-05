@@ -126,8 +126,8 @@ export default function DrillDetailPane({
         datasourceId,
         true,
         jsonPayload,
-        pageIndex + 1,
         PAGE_SIZE,
+        pageIndex + 1,
       )
         .then(response => {
           setResultsPages(
