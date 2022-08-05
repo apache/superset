@@ -43,6 +43,7 @@ from superset.exceptions import (
 )
 from superset.extensions import cache_manager, security_manager
 from superset.models.helpers import QueryResult
+from superset.models.sql_lab import Query
 from superset.utils import csv
 from superset.utils.cache import generate_cache_key, set_and_log_cache
 from superset.utils.core import (
@@ -185,10 +186,6 @@ class QueryContextProcessor:
         # a valid assumption for current setting. In the long term, we may
         # support multiple queries from different data sources.
 
-        # The datasource here can be different backend but the interface is common
-        # pylint: disable=import-outside-toplevel
-        from superset.models.sql_lab import Query
-
         query = ""
         if isinstance(query_context.datasource, Query):
             # todo(hugh): add logic to manage all sip68 models here
@@ -248,7 +245,7 @@ class QueryContextProcessor:
 
         return df
 
-    def processing_time_offsets(  # pylint: disable=too-many-locals
+    def processing_time_offsets(  # pylint: disable=too-many-locals,too-many-statements
         self,
         df: pd.DataFrame,
         query_object: QueryObject,
@@ -307,7 +304,11 @@ class QueryContextProcessor:
             }
             join_keys = [col for col in df.columns if col not in metrics_mapping.keys()]
 
-            result = self._qc_datasource.query(query_object_clone_dct)
+            if isinstance(self._qc_datasource, Query):
+                result = self._qc_datasource.exc_query(query_object_clone_dct)
+            else:
+                result = self._qc_datasource.query(query_object_clone_dct)
+
             queries.append(result.query)
             cache_keys.append(None)
 
