@@ -21,6 +21,9 @@ import React, { Dispatch, SetStateAction, useRef, useState } from 'react';
 import { SelectValue as AntdSelectValue } from 'antd/lib/select';
 import { Tag } from 'antd';
 import { Input } from '../Input';
+import { OptionsType } from './Select';
+import { getValue } from './utils';
+import { ensureIsArray } from '@superset-ui/core';
 
 export type CustomTagProps = {
   label: React.ReactNode;
@@ -33,6 +36,7 @@ export type CustomTagProps = {
 export interface EditableTagProps extends CustomTagProps {
   selectValue: AntdSelectValue | undefined;
   setSelectValue: Dispatch<SetStateAction<AntdSelectValue | undefined>>;
+  selectOptions?: OptionsType;
   onChange?: (value: any, option: any) => void;
 }
 
@@ -43,17 +47,27 @@ const EditableTag = (props: EditableTagProps) => {
 
   const updateValue = () => {
     setEditing(false);
-    if (Array.isArray(props.selectValue)) {
-      const array = props.selectValue as string[];
-      const v: string[] = array
-        .map(e => (e === props.value ? value : e))
-        .filter(e => e !== '');
-      props.setSelectValue(value);
-      if (props.onChange) {
-        props.onChange(v, null);
-      }
-    } else {
-      props.setSelectValue(value);
+    const array = ensureIsArray(props.selectValue);
+
+    // Non-strict comparison is intentional here.
+    const existingOption = props.selectOptions?.find(e => e.value == value);
+
+    const v: string[] = array
+      .map(e => {
+        if (getValue(e) === props.value) {
+          // If this one we want to replace, use the value of the existing option if it exists
+          if (existingOption) {
+            return existingOption.value;
+          }
+          return value;
+        }
+        return getValue(e);
+      })
+      .filter(e => e !== '' && e !== null);
+
+    props.setSelectValue(v);
+    if (props.onChange) {
+      props.onChange(v, existingOption ?? { value: v, label: String(v) });
     }
   };
 

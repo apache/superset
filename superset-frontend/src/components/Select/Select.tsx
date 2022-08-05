@@ -426,6 +426,7 @@ const Select = (
       <EditableTag
         selectValue={selectValue}
         setSelectValue={setSelectValue}
+        selectOptions={selectOptions}
         onChange={onChange}
         {...props}
       />

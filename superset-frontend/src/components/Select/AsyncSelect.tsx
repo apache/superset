@@ -683,6 +683,7 @@ const AsyncSelect = (
       <EditableTag
         selectValue={selectValue}
         setSelectValue={setSelectValue}
+        selectOptions={selectOptions}
         onChange={onChange}
         {...props}
       />
