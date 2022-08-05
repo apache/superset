@@ -44,6 +44,7 @@ import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { SLOW_DEBOUNCE } from 'src/constants';
 import { rankedSearchCompare } from 'src/utils/rankedSearchCompare';
 import { getValue, hasOption, isLabeledValue } from './utils';
+import EditableTag, { CustomTagProps } from './EditableTag';
 
 const { Option } = AntdSelect;
 
@@ -677,6 +678,17 @@ const AsyncSelect = (
     [ref],
   );
 
+  const tagRender = (props: CustomTagProps) => {
+    return (
+      <EditableTag
+        selectValue={selectValue}
+        setSelectValue={setSelectValue}
+        onChange={onChange}
+        {...props}
+      />
+    );
+  };
+
   return (
     <StyledContainer>
       {header}
@@ -715,6 +727,7 @@ const AsyncSelect = (
           )
         }
         ref={ref}
+        tagRender={tagRender}
         {...props}
       >
         {hasCustomLabels &&
