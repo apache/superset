@@ -116,6 +116,11 @@ const ResultSetButtons = styled.div`
   padding-right: ${({ theme }) => 2 * theme.gridUnit}px;
 `;
 
+const LimitMessage = styled.span`
+  color: ${({ theme }) => theme.colors.secondary.light1};
+  margin-left: ${({ theme }) => theme.gridUnit * 2}px;
+`;
+
 export default class ResultSet extends React.PureComponent<
   ResultSetProps,
   ResultSetState
@@ -377,7 +382,7 @@ export default class ResultSet extends React.PureComponent<
         {!limitReached && !shouldUseDefaultDropdownAlert && (
           <span title={tooltipText}>
             {rowsReturnedMessage}
-            <span>{limitMessage}</span>
+            <LimitMessage>{limitMessage}</LimitMessage>
           </span>
         )}
         {!limitReached && shouldUseDefaultDropdownAlert && (
