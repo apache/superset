@@ -190,13 +190,19 @@ export default function DrillDetailPane({
   //  Render error if page download failed
   if (responseError) {
     return (
-      <pre
+      <div
         css={css`
-          margin-top: ${theme.gridUnit * 4}px;
+          height: ${theme.gridUnit * 128}px;
         `}
       >
-        {responseError}
-      </pre>
+        <pre
+          css={css`
+            margin-top: ${theme.gridUnit * 4}px;
+          `}
+        >
+          {responseError}
+        </pre>
+      </div>
     );
   }
 
@@ -205,7 +211,7 @@ export default function DrillDetailPane({
     return (
       <div
         css={css`
-          height: ${theme.gridUnit * 25}px;
+          height: ${theme.gridUnit * 128}px;
         `}
       >
         <Loading />
@@ -216,7 +222,15 @@ export default function DrillDetailPane({
   //  Render empty state if no results are returned for page
   if (resultsPage?.total === 0) {
     const title = t('No rows were returned for this dataset');
-    return <EmptyStateMedium image="document.svg" title={title} />;
+    return (
+      <div
+        css={css`
+          height: ${theme.gridUnit * 128}px;
+        `}
+      >
+        <EmptyStateMedium image="document.svg" title={title} />
+      </div>
+    );
   }
 
   //  Render chart if at least one page has successfully loaded
@@ -225,6 +239,7 @@ export default function DrillDetailPane({
       css={css`
         display: flex;
         flex-direction: column;
+        height: ${theme.gridUnit * 128}px;
       `}
     >
       <TableControls
@@ -251,7 +266,6 @@ export default function DrillDetailPane({
         css={css`
           min-height: 0;
           overflow: scroll;
-          height: ${theme.gridUnit * 128}px;
         `}
       />
     </div>
