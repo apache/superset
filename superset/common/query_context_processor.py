@@ -186,10 +186,6 @@ class QueryContextProcessor:
         # a valid assumption for current setting. In the long term, we may
         # support multiple queries from different data sources.
 
-        # The datasource here can be different backend but the interface is common
-        # pylint: disable=import-outside-toplevel
-        from superset.models.sql_lab import Query
-
         query = ""
         if isinstance(query_context.datasource, Query):
             # todo(hugh): add logic to manage all sip68 models here
@@ -249,7 +245,7 @@ class QueryContextProcessor:
 
         return df
 
-    def processing_time_offsets(  # pylint: disable=too-many-locals
+    def processing_time_offsets(  # pylint: disable=too-many-locals,too-many-statements
         self,
         df: pd.DataFrame,
         query_object: QueryObject,
