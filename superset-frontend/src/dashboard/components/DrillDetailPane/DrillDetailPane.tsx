@@ -121,10 +121,14 @@ export default function DrillDetailPane({
     if (!resultsPages.has(pageIndex)) {
       setIsLoading(true);
       const jsonPayload = getDrillPayload(queryFormData, drillFilters);
-      getDatasourceSamples(datasourceType, datasourceId, true, jsonPayload, {
-        page: pageIndex + 1,
-        perPage: PAGE_SIZE,
-      })
+      getDatasourceSamples(
+        datasourceType,
+        datasourceId,
+        true,
+        jsonPayload,
+        pageIndex + 1,
+        PAGE_SIZE,
+      )
         .then(response => {
           setResultsPages(
             new Map([
