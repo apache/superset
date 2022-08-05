@@ -18,7 +18,7 @@
 ######################################################################
 # PY stage that simply does a pip install on our requirements
 ######################################################################
-ARG PY_VER=3.8.13
+ARG PY_VER=3.8.12
 FROM python:${PY_VER} AS superset-py
 
 RUN mkdir /app \
@@ -41,6 +41,9 @@ RUN cd /app \
     && touch superset/static/version_info.json \
     && pip install --no-cache -r requirements/local.txt
 
+RUN pip install "PyAthena>1.2.0"
+RUN pip install pybigquery
+RUN pip install redis
 
 ######################################################################
 # Node stage to deal with static asset construction
@@ -71,7 +74,7 @@ RUN cd /app/superset-frontend \
 ######################################################################
 # Final lean image...
 ######################################################################
-ARG PY_VER=3.8.13
+ARG PY_VER=3.8.12
 FROM python:${PY_VER} AS lean
 
 ENV LANG=C.UTF-8 \
@@ -157,6 +160,16 @@ USER superset
 # CI image...
 ######################################################################
 FROM lean AS ci
+
+ARG superset_username
+ARG superset_password
+ARG superset_email
+
+ENV SUPERSET_USERNAME=$superset_username
+ENV SUPERSET_PASSWORD=$superset_password
+ENV SUPERSET_EMAIL=$superset_email
+
+COPY superset_config.py pythonpath/superset_config.py
 
 COPY --chown=superset ./docker/docker-bootstrap.sh /app/docker/
 COPY --chown=superset ./docker/docker-init.sh /app/docker/

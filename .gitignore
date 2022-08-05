@@ -52,7 +52,6 @@ env_py3
 envpy3
 env36
 local_config.py
-/superset_config.py
 /superset_text.yml
 superset.egg-info/
 superset/bin/supersetc
