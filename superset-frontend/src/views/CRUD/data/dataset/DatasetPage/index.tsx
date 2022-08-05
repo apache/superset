@@ -17,13 +17,57 @@
  * under the License.
  */
 import React from 'react';
+// import React, { useReducer, Reducer } from 'react';
 import Header from './Header';
 import DatasetPanel from './DatasetPanel';
 import LeftPanel from './LeftPanel';
 import RightPanel from './RightPanel';
 import Footer from './Footer';
+import { DatasetActionType, DatasetObject, DSReducerActionType } from './types';
+
+export function datasetReducer(
+  state: Partial<DatasetObject> | null,
+  action: DSReducerActionType,
+): Partial<DatasetObject> | null {
+  const trimmedState = {
+    ...(state || {}),
+  };
+  switch (action.type) {
+    case DatasetActionType.selectDatabase:
+      return {
+        ...trimmedState,
+        ...action.payload,
+        schema: null,
+        table_name: null,
+      };
+    case DatasetActionType.selectSchema:
+      return {
+        ...trimmedState,
+        ...action.payload,
+        table_name: null,
+      };
+    case DatasetActionType.selectTable:
+      return {
+        ...trimmedState,
+        ...action.payload,
+      };
+    case DatasetActionType.changeDataset:
+      return {
+        ...trimmedState,
+        [action.payload.name]: action.payload.value,
+      };
+    default:
+      return null;
+  }
+}
 
 export default function DatasetPage() {
+  // this is commented out for now, but can be commented in as the component
+  // is built up. Uncomment the useReducer in imports too
+  // const [dataset, setDataset] = useReducer<
+  //   Reducer<Partial<DatasetObject> | null, DSReducerActionType>
+  // >(datasetReducer, null);
+
   return (
     <div>
       <Header />
