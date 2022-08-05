@@ -202,7 +202,7 @@ export function areObjectsEqual(
     comp1 = omitBy(comp1, isNull);
     comp2 = omitBy(comp2, isNull);
   }
-  if (opts.ignoreFields) {
+  if (opts.ignoreFields?.length) {
     const ignoreFields = ensureIsArray(opts.ignoreFields);
     return isEqualWith(comp1, comp2, (val1, val2) =>
       isEqual(

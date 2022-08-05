@@ -293,7 +293,13 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
         props.actions.setControlValue(controlName, alteredControls);
       });
     }
-  }, [props.chart.chartStatus]);
+  }, [
+    controlsTransferred,
+    props.actions,
+    props.chart.chartStatus,
+    props.controls,
+  ]);
+
   useEffect(() => {
     if (
       prevDatasource &&
