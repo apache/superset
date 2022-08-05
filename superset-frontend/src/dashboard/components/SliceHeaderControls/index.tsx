@@ -437,25 +437,26 @@ class SliceHeaderControls extends React.PureComponent<
           </Menu.Item>
         )}
 
-        {this.props.supersetCanExplore && (
-          <Menu.Item key={MENU_KEYS.DRILL_TO_DETAIL}>
-            <DashboardChartModalTrigger
-              exploreUrl={this.props.exploreUrl}
-              triggerNode={
-                <span data-test="view-query-menu-item">
-                  {t('Drill to detail')}
-                </span>
-              }
-              modalTitle={t('Drill to detail: %s', slice.slice_name)}
-              modalBody={
-                <DrillDetailPane
-                  datasource={this.props.slice.datasource}
-                  queryFormData={this.props.formData}
-                />
-              }
-            />
-          </Menu.Item>
-        )}
+        {isFeatureEnabled(FeatureFlag.DRILL_TO_DETAIL) &&
+          this.props.supersetCanExplore && (
+            <Menu.Item key={MENU_KEYS.DRILL_TO_DETAIL}>
+              <DashboardChartModalTrigger
+                exploreUrl={this.props.exploreUrl}
+                triggerNode={
+                  <span data-test="view-query-menu-item">
+                    {t('Drill to detail')}
+                  </span>
+                }
+                modalTitle={t('Drill to detail: %s', slice.slice_name)}
+                modalBody={
+                  <DrillDetailPane
+                    datasource={this.props.slice.datasource}
+                    queryFormData={this.props.formData}
+                  />
+                }
+              />
+            </Menu.Item>
+          )}
 
         {(slice.description || this.props.supersetCanExplore) && (
           <Menu.Divider />
