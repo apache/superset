@@ -17,7 +17,29 @@
  * under the License.
  */
 import React from 'react';
+import DatabaseSelector from 'src/components/DatabaseSelector';
 
 export default function LeftPanel() {
-  return <div>Left Panel</div>;
+  return (
+    <div>
+      <DatabaseSelector
+        handleError={() => null}
+       /* key={}
+        db={}
+        emptyState={}
+        formMode={}
+        getDbList={}
+        handleError={}
+        onDbChange={}
+        onEmptyResults={}
+        onSchemaChange={}
+        onSchemasLoad={}
+        schema={}
+        sqlLabMode={}
+        isDatabaseSelectEnabled={}
+        readOnly={}
+        */
+      />
+    </div>
+  );
 }

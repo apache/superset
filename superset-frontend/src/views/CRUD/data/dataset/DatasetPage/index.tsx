@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-// import React, { useReducer, Reducer } from 'react';
+import React, { useReducer, Reducer } from 'react';
 import Header from './Header';
 import DatasetPanel from './DatasetPanel';
 import LeftPanel from './LeftPanel';
@@ -64,14 +64,14 @@ export function datasetReducer(
 export default function DatasetPage() {
   // this is commented out for now, but can be commented in as the component
   // is built up. Uncomment the useReducer in imports too
-  // const [dataset, setDataset] = useReducer<
-  //   Reducer<Partial<DatasetObject> | null, DSReducerActionType>
-  // >(datasetReducer, null);
+  const [dataset, setDataset] = useReducer<
+    Reducer<Partial<DatasetObject> | null, DSReducerActionType>
+  >(datasetReducer, null);
 
   return (
     <div>
       <Header />
-      <LeftPanel />
+      <LeftPanel setDataset={setDataset} />
       <div css={{ display: 'flex' }}>
         <DatasetPanel />
         <Footer />
