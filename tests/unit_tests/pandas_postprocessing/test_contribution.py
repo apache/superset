@@ -74,7 +74,7 @@ def test_contribution():
         rename_columns=["pct_a"],
     )
     assert processed_df.columns.tolist() == ["a", "b", "c", "pct_a"]
-    assert_array_equal(processed_df["a"].tolist(), [1, 3, nan])
-    assert_array_equal(processed_df["b"].tolist(), [1, 9, nan])
-    assert_array_equal(processed_df["c"].tolist(), [nan, nan, nan])
+    assert_array_equal(processed_df["a"].tolist(), [1, 3, 0])
+    assert_array_equal(processed_df["b"].tolist(), [1, 9, 0])
+    assert_array_equal(processed_df["c"].tolist(), [0, 0, 0])
     assert processed_df["pct_a"].tolist() == [0.25, 0.75, 0]
