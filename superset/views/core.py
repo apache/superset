@@ -2433,6 +2433,24 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @event_logger.log_this
     @expose("/sql_json/", methods=["POST"])
     def sql_json(self) -> FlaskResponse:
+        sql = request.json.get("sql")
+        database_id = request.json.get("database_id")
+        payload = {"errors": []}
+
+        if database_id is None:
+            payload["errors"].append(
+                "'database_id' is required param. "
+                "Please provide existed ID of database."
+            )
+
+        if sql is None:
+            payload["errors"].append(
+                "'sql' is required param. Please provide valid sql query string."
+            )
+
+        if len(payload["errors"]) > 0:
+            return json_error_response(status=400, payload=payload)
+
         try:
             log_params = {
                 "user_agent": cast(Optional[str], request.headers.get("USER_AGENT"))
