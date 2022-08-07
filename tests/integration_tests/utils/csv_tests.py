@@ -67,7 +67,7 @@ def test_df_to_escaped_csv():
     ]
     csv_str = "\n".join([",".join(row) for row in csv_rows])
 
-    df = pd.read_csv(io.StringIO(csv_str))
+    df = pd.read_csv(io.StringIO(csv_str), engine="pyarrow")
 
     escaped_csv_str = csv.df_to_escaped_csv(df, encoding="utf8", index=False)
     escaped_csv_rows = [row.split(",") for row in escaped_csv_str.strip().split("\n")]

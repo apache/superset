@@ -47,7 +47,7 @@ def load_country_map_data(only_metadata: bool = False, force: bool = False) -> N
         csv_bytes = get_example_data(
             "birth_france_data_for_country_map.csv", is_gzip=False, make_bytes=True
         )
-        data = pd.read_csv(csv_bytes, encoding="utf-8")
+        data = pd.read_csv(csv_bytes, encoding="utf-8", engine="pyarrow")
         data["dttm"] = datetime.datetime.now().date()
         data.to_sql(
             tbl_name,
