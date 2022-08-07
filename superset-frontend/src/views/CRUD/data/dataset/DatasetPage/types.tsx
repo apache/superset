@@ -16,10 +16,38 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export const getDatasourceAsSaveableDataset = source => ({
-  columns: source.columns,
-  name: source?.datasource_name || source?.name || 'Untitled',
-  dbId: source?.database?.id || source?.dbId,
-  sql: source?.sql || '',
-  schema: source?.schema,
-});
+export enum DatasetActionType {
+  selectDatabase,
+  selectSchema,
+  selectTable,
+  changeDataset,
+}
+
+export interface DatasetObject {
+  database: {
+    id: string;
+    database_name: string;
+  };
+  owners: number[];
+  schema?: string | null;
+  dataset_name: string;
+  table_name?: string | null;
+}
+
+interface DatasetReducerPayloadType {
+  name: string;
+  value?: string;
+}
+
+export type DSReducerActionType =
+  | {
+      type:
+        | DatasetActionType.selectDatabase
+        | DatasetActionType.selectSchema
+        | DatasetActionType.selectTable;
+      payload: Partial<DatasetObject>;
+    }
+  | {
+      type: DatasetActionType.changeDataset;
+      payload: DatasetReducerPayloadType;
+    };

@@ -16,10 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export const getDatasourceAsSaveableDataset = source => ({
-  columns: source.columns,
-  name: source?.datasource_name || source?.name || 'Untitled',
-  dbId: source?.database?.id || source?.dbId,
-  sql: source?.sql || '',
-  schema: source?.schema,
-});
+
+// /superset/sqllab_viz
+interface SqlLabPostRequest {
+  data: {
+    schema: string;
+    sql: string;
+    dbId: number;
+    templateParams?: string | undefined;
+    datasourceName: string;
+    metrics?: string[];
+    columns?: string[];
+  };
+}

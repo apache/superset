@@ -206,15 +206,18 @@ const updateHistory = debounce(
         );
         stateModifier = 'pushState';
       }
-      const url = mountExploreUrl(
-        standalone ? URL_PARAMS.standalone.name : null,
-        {
-          [URL_PARAMS.formDataKey.name]: key,
-          ...additionalParam,
-        },
-        force,
-      );
-      window.history[stateModifier](payload, title, url);
+      // avoid race condition in case user changes route before explore updates the url
+      if (window.location.pathname.startsWith('/explore')) {
+        const url = mountExploreUrl(
+          standalone ? URL_PARAMS.standalone.name : null,
+          {
+            [URL_PARAMS.formDataKey.name]: key,
+            ...additionalParam,
+          },
+          force,
+        );
+        window.history[stateModifier](payload, title, url);
+      }
     } catch (e) {
       logging.warn('Failed at altering browser history', e);
     }
