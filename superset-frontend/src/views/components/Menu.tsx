@@ -25,6 +25,7 @@ import { Row, Col, Grid } from 'src/components';
 import { MainNav as DropdownMenu, MenuMode } from 'src/components/Menu';
 import { Tooltip } from 'src/components/Tooltip';
 import { Link } from 'react-router-dom';
+import { GenericLink } from 'src/components/GenericLink/GenericLink';
 import Icons from 'src/components/Icons';
 import { useUiConfig } from 'src/components/UiConfigContext';
 import { URL_PARAMS } from 'src/constants';
@@ -282,9 +283,9 @@ export function Menu({
             title={brand.tooltip}
             arrowPointAtCenter
           >
-            <a className="navbar-brand" href={brand.path}>
+            <GenericLink className="navbar-brand" to={brand.path}>
               <img src={brand.icon} alt={brand.alt} />
-            </a>
+            </GenericLink>
           </Tooltip>
           {brand.text && (
             <div className="navbar-brand-text">
