@@ -56,7 +56,7 @@ def load_world_bank_health_n_pop(  # pylint: disable=too-many-locals, too-many-s
     table_exists = database.has_table_by_name(tbl_name)
 
     if not only_metadata and (not table_exists or force):
-        data = get_example_data("countries.json.gz")
+        data = get_example_data("countries.json.gz", make_bytes=True)
         pdf = pd.read_json(data)
         pdf.columns = [col.replace(".", "_") for col in pdf.columns]
         if database.backend == "presto":

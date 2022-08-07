@@ -66,7 +66,7 @@ def gen_filter(
 
 
 def load_data(tbl_name: str, database: Database, sample: bool = False) -> None:
-    pdf = pd.read_json(get_example_data("birth_names2.json.gz"))
+    pdf = pd.read_json(get_example_data("birth_names2.json.gz", make_bytes=True))
     # TODO(bkyryliuk): move load examples data into the pytest fixture
     if database.backend == "presto":
         pdf.ds = pd.to_datetime(pdf.ds, unit="ms")
