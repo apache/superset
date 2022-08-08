@@ -62,6 +62,7 @@ from superset.reports.models import (
     ReportRecipientType,
     ReportSchedule,
     ReportScheduleType,
+    ReportSourceFormat,
     ReportState,
 )
 from superset.reports.notifications import create_notification
@@ -342,16 +343,23 @@ class BaseReportState:
         ):
             embedded_data = self._get_embedded_data()
 
+        notification_source = None
+        notification_source_id = None
         if self._report_schedule.chart:
             name = (
                 f"{self._report_schedule.name}: "
                 f"{self._report_schedule.chart.slice_name}"
             )
+            notification_source = ReportSourceFormat.CHART
+            notification_source_id = self._report_schedule.chart_id
         else:
             name = (
                 f"{self._report_schedule.name}: "
                 f"{self._report_schedule.dashboard.dashboard_title}"
             )
+            notification_source = ReportSourceFormat.DASHBOARDS
+            notification_source_id = self._report_schedule.dashboard_id
+
         return NotificationContent(
             name=name,
             url=url,
@@ -359,6 +367,10 @@ class BaseReportState:
             description=self._report_schedule.description,
             csv=csv_data,
             embedded_data=embedded_data,
+            notification_type=self._report_schedule.type,
+            notification_source=notification_source,
+            notification_source_id=notification_source_id,
+            notification_format=self._report_schedule.report_format,
         )
 
     def _send(

@@ -26,7 +26,7 @@ import bleach
 from flask_babel import gettext as __
 
 from superset import app
-from superset.reports.models import ReportRecipientType
+from superset.reports.models import ReportRecipientType, ReportSourceFormat
 from superset.reports.notifications.base import BaseNotification
 from superset.reports.notifications.exceptions import NotificationError
 from superset.utils.core import send_email_smtp
@@ -69,6 +69,16 @@ class EmailContent:
     body: str
     data: Optional[Dict[str, Any]] = None
     images: Optional[Dict[str, bytes]] = None
+
+
+@dataclass
+class LogDataContent:
+    owner: str
+    report_type: Optional[str] = None
+    report_source: Optional[str] = None
+    file_type: Optional[str] = None
+    chart_id: Optional[int] = None
+    dashboard_id: Optional[int] = None
 
 
 class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-methods
@@ -182,11 +192,31 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
     def _get_to(self) -> str:
         return json.loads(self._recipient.recipient_config_json)["target"]
 
+    def _get_log_data(self) -> Dict[str, Any]:
+        chart_id = None
+        dashboard_id = None
+        owner = self._get_to()
+        if self._content.notification_source == ReportSourceFormat.CHART:
+            chart_id = self._content.notification_source_id
+        else:
+            dashboard_id = self._content.notification_source_id
+
+        log_data = LogDataContent(
+            report_type=self._content.notification_type,
+            file_type=self._content.notification_format,
+            report_source=self._content.notification_source,
+            chart_id=chart_id,
+            dashboard_id=dashboard_id,
+            owner=owner,
+        )
+        return log_data.__dict__
+
     @statsd_gauge("reports.email.send")
     def send(self) -> None:
         subject = self._get_subject()
         content = self._get_content()
         to = self._get_to()
+        log_data = self._get_log_data()
         try:
             send_email_smtp(
                 to,
@@ -199,6 +229,7 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
                 bcc="",
                 mime_subtype="related",
                 dryrun=False,
+                log_data=log_data,
             )
             logger.info("Report sent to email")
         except Exception as ex:

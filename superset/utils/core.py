@@ -904,6 +904,7 @@ def send_email_smtp(  # pylint: disable=invalid-name,too-many-arguments,too-many
     cc: Optional[str] = None,
     bcc: Optional[str] = None,
     mime_subtype: str = "mixed",
+    log_data: Optional[Dict[str, Any]] = None,
 ) -> None:
     """
     Send an email with html content, eg:
@@ -918,7 +919,7 @@ def send_email_smtp(  # pylint: disable=invalid-name,too-many-arguments,too-many
     msg["From"] = smtp_mail_from
     msg["To"] = ", ".join(smtp_mail_to)
 
-    api_object = {"metadata": {"info": "Hello?"}}
+    api_object = {"metadata": log_data}
     msg["X-MSYS-API"] = json.dumps(api_object)
     msg.preamble = "This is a multi-part message in MIME format."
 
