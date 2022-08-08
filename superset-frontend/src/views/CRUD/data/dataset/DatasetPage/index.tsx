@@ -68,10 +68,20 @@ export default function DatasetPage() {
     Reducer<Partial<DatasetObject> | null, DSReducerActionType>
   >(datasetReducer, null);
 
+  const onChangeDatabase = (db: any) => {
+    setDataset(db);
+    setDataset({ type: DatasetActionType.selectDatabase, payload: db });
+  };
+
+  const onChangeSchema = (schema: any) => {
+    setDataset(schema);
+    setDataset({ type: DatasetActionType.selectSchema, payload: schema });
+  };
+
   return (
     <div>
       <Header />
-      <LeftPanel setDataset={setDataset} />
+      <LeftPanel setDataset={onChangeDatabase} setSchema={onChangeSchema} />
       <div css={{ display: 'flex' }}>
         <DatasetPanel />
         <Footer />

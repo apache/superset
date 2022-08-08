@@ -16,21 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { Dispatch, FunctionComponent, Reducer } from 'react';
 import DatabaseSelector from 'src/components/DatabaseSelector';
 
-export default function LeftPanel() {
+interface LeftPanelProps {
+  setDataset: () => null & Dispatch<Reducer>;
+  setSchema: () => null & Dispatch<Reducer>;
+}
+
+export default function LeftPanel({ setDataset, setSchema }: LeftPanelProps) {
   return (
     <div>
       <DatabaseSelector
         handleError={() => null}
-       /* key={}
+        onDbChange={setDataset}
+        onSchemaChange={setSchema}
+        /* key={}
         db={}
         emptyState={}
         formMode={}
         getDbList={}
         handleError={}
-        onDbChange={}
         onEmptyResults={}
         onSchemaChange={}
         onSchemasLoad={}
