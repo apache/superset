@@ -61,7 +61,9 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class Query(Model, ExtraJSONMixin, ExploreMixin):  # pylint: disable=abstract-method
+class Query(
+    Model, ExtraJSONMixin, ExploreMixin
+):  # pylint: disable=abstract-method,too-many-public-methods
     """ORM model for SQL query
 
     Now that SQL Lab support multi-statement execution, an entry in this
@@ -216,7 +218,20 @@ class Query(Model, ExtraJSONMixin, ExploreMixin):  # pylint: disable=abstract-me
 
     @property
     def data(self) -> Dict[str, Any]:
+        order_by_choices = []
+        for col in self.columns:
+            column_name = str(col.get("column_name") or "")
+            order_by_choices.append(
+                (json.dumps([column_name, True]), column_name + " [asc]")
+            )
+            order_by_choices.append(
+                (json.dumps([column_name, False]), column_name + " [desc]")
+            )
+
         return {
+            "time_grain_sqla": [
+                (g.duration, g.name) for g in self.database.grains() or []
+            ],
             "filter_select": True,
             "name": self.tab_name,
             "columns": self.columns,
@@ -226,6 +241,7 @@ class Query(Model, ExtraJSONMixin, ExploreMixin):  # pylint: disable=abstract-me
             "sql": self.sql,
             "owners": self.owners_data,
             "database": {"id": self.database_id, "backend": self.database.backend},
+            "order_by_choices": order_by_choices,
         }
 
     def raise_for_access(self) -> None:
@@ -279,6 +295,10 @@ class Query(Model, ExtraJSONMixin, ExploreMixin):  # pylint: disable=abstract-me
     @property
     def schema_perm(self) -> str:
         return f"{self.database.database_name}.{self.schema}"
+
+    @property
+    def perm(self) -> str:
+        return f"[{self.database.database_name}].[{self.tab_name}](id:{self.id})"
 
     @property
     def default_endpoint(self) -> str:

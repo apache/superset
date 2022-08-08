@@ -167,7 +167,7 @@ class TabbedSqlEditors extends React.PureComponent {
           }
         }
         const newQueryEditor = {
-          title: query.title,
+          name: query.name,
           dbId,
           schema: query.schema,
           autorun: query.autorun,
@@ -266,7 +266,7 @@ class TabbedSqlEditors extends React.PureComponent {
     const newTitle = newQueryTabName(this.props.queryEditors || []);
 
     const qe = {
-      title: newTitle,
+      name: newTitle,
       dbId:
         activeQueryEditor && activeQueryEditor.dbId
           ? activeQueryEditor.dbId
@@ -376,7 +376,7 @@ class TabbedSqlEditors extends React.PureComponent {
       const tabHeader = (
         <TabTitleWrapper>
           <Dropdown overlay={menu} trigger={['click']} />
-          <TabTitle>{qe.title}</TabTitle> <TabStatusIcon tabState={state} />{' '}
+          <TabTitle>{qe.name}</TabTitle> <TabStatusIcon tabState={state} />{' '}
         </TabTitleWrapper>
       );
       return (

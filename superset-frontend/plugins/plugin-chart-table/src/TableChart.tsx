@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { CSSProperties, useCallback, useMemo, useState } from 'react';
+import React, {
+  CSSProperties,
+  useCallback,
+  useLayoutEffect,
+  useMemo,
+  useState,
+} from 'react';
 import {
   ColumnInstance,
   ColumnWithLooseAccessor,
@@ -50,8 +56,14 @@ import Styles from './Styles';
 import { formatColumnValue } from './utils/formatValue';
 import { PAGE_SIZE_OPTIONS } from './consts';
 import { updateExternalFormData } from './DataTable/utils/externalAPIs';
+import getScrollBarSize from './DataTable/utils/getScrollBarSize';
 
 type ValueRange = [number, number];
+
+interface TableSize {
+  width: number;
+  height: number;
+}
 
 /**
  * Return sortType based on data type
@@ -198,7 +210,10 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     value => getTimeFormatterForGranularity(timeGrain)(value),
     [timeGrain],
   );
-
+  const [tableSize, setTableSize] = useState<TableSize>({
+    width: 0,
+    height: 0,
+  });
   // keep track of whether column order changed, so that column widths can too
   const [columnOrderToggle, setColumnOrderToggle] = useState(false);
 
@@ -526,6 +541,41 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     [setDataMask],
   );
 
+  const handleSizeChange = useCallback(
+    ({ width, height }: { width: number; height: number }) => {
+      setTableSize({ width, height });
+    },
+    [],
+  );
+
+  useLayoutEffect(() => {
+    // After initial load the table should resize only when the new sizes
+    // Are not only scrollbar updates, otherwise, the table would twicth
+    const scrollBarSize = getScrollBarSize();
+    const { width: tableWidth, height: tableHeight } = tableSize;
+    // Table is increasing its original size
+    if (
+      width - tableWidth > scrollBarSize ||
+      height - tableHeight > scrollBarSize
+    ) {
+      handleSizeChange({
+        width: width - scrollBarSize,
+        height: height - scrollBarSize,
+      });
+    } else if (
+      tableWidth - width > scrollBarSize ||
+      tableHeight - height > scrollBarSize
+    ) {
+      // Table is decreasing its original size
+      handleSizeChange({
+        width,
+        height,
+      });
+    }
+  }, [width, height, handleSizeChange, tableSize]);
+
+  const { width: widthFromState, height: heightFromState } = tableSize;
+
   return (
     <Styles>
       <DataTable<D>
@@ -536,8 +586,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         pageSize={pageSize}
         serverPaginationData={serverPaginationData}
         pageSizeOptions={pageSizeOptions}
-        width={width}
-        height={height}
+        width={widthFromState}
+        height={heightFromState}
         serverPagination={serverPagination}
         onServerPaginationChange={handleServerPaginationChange}
         onColumnOrderChange={() => setColumnOrderToggle(!columnOrderToggle)}

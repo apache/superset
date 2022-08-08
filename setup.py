@@ -64,6 +64,11 @@ setup(
     zip_safe=False,
     entry_points={
         "console_scripts": ["superset=superset.cli.main:superset"],
+        # the `postgres+psycopg2://` scheme was removed in SQLAlchemy 1.4, add an alias here
+        # to prevent breaking existing databases
+        "sqlalchemy.dialects": [
+            "postgres.psycopg2=sqlalchemy.dialects.postgresql:dialect"
+        ],
     },
     install_requires=[
         "backoff>=1.8.0",
@@ -162,9 +167,7 @@ setup(
         "shillelagh": [
             "shillelagh[datasetteapi,gsheetsapi,socrata,weatherapi]>=1.0.3, <2"
         ],
-        "snowflake": [
-            "snowflake-sqlalchemy==1.2.4"
-        ],  # PINNED! 1.2.5 introduced breaking changes requiring sqlalchemy>=1.4.0
+        "snowflake": ["snowflake-sqlalchemy>=1.2.4, <2"],
         "spark": ["pyhive[hive]>=0.6.5", "tableschema", "thrift>=0.11.0, <1.0.0"],
         "teradata": ["teradatasql>=16.20.0.23"],
         "thumbnails": ["Pillow>=9.1.1, <10.0.0"],

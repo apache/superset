@@ -40,7 +40,10 @@ describe('Visualization > Line', () => {
     cy.get('.panel-body').contains(
       `Add required control values to preview chart`,
     );
-    cy.get('.text-danger').contains('Metrics');
+    cy.get('[data-test="metrics-header"]').contains('Metrics');
+    cy.get('[data-test="metrics-header"] [data-test="error-tooltip"]').should(
+      'exist',
+    );
 
     cy.get('[data-test=metrics]')
       .contains('Drop columns/metrics here or click')
@@ -55,7 +58,11 @@ describe('Visualization > Line', () => {
       .type('sum{enter}');
     cy.get('[data-test="AdhocMetricEdit#save"]').contains('Save').click();
 
-    cy.get('.text-danger').should('not.exist');
+    cy.get('[data-test="metrics-header"]').contains('Metrics');
+    cy.get('[data-test="metrics-header"] [data-test="error-tooltip"]').should(
+      'not.exist',
+    );
+
     cy.get('.ant-alert-warning').should('not.exist');
   });
 

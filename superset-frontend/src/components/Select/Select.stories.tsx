@@ -16,11 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ReactNode, useState, useCallback, useRef } from 'react';
+import React, {
+  ReactNode,
+  useState,
+  useCallback,
+  useRef,
+  useMemo,
+} from 'react';
 import Button from 'src/components/Button';
 import ControlHeader from 'src/explore/components/ControlHeader';
-import AsyncSelect, { AsyncSelectProps, AsyncSelectRef } from './AsyncSelect';
-import Select, { SelectProps, OptionsTypePage, OptionsType } from './Select';
+import AsyncSelect, {
+  AsyncSelectProps,
+  AsyncSelectRef,
+  OptionsTypePage,
+} from './AsyncSelect';
+
+import Select, { SelectProps, OptionsType } from './Select';
 
 export default {
   title: 'Select',
@@ -452,6 +463,11 @@ export const AsynchronousSelect = ({
       reject(new Error('Error while fetching the names from the server'));
     });
 
+  const initialValue = useMemo(
+    () => ({ label: 'Valentina', value: 'Valentina' }),
+    [],
+  );
+
   return (
     <>
       <div
@@ -465,11 +481,7 @@ export const AsynchronousSelect = ({
           fetchOnlyOnSearch={fetchOnlyOnSearch}
           options={withError ? fetchUserListError : fetchUserListPage}
           placeholder={fetchOnlyOnSearch ? 'Type anything' : 'AsyncSelect...'}
-          value={
-            withInitialValue
-              ? { label: 'Valentina', value: 'Valentina' }
-              : undefined
-          }
+          value={withInitialValue ? initialValue : undefined}
         />
       </div>
       <div

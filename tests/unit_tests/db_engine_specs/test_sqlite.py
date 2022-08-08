@@ -19,31 +19,30 @@ from datetime import datetime
 from unittest import mock
 
 import pytest
-from flask.ctx import AppContext
 from sqlalchemy.engine import create_engine
 
 from tests.unit_tests.fixtures.common import dttm
 
 
-def test_convert_dttm(app_context: AppContext, dttm: datetime) -> None:
+def test_convert_dttm(dttm: datetime) -> None:
     from superset.db_engine_specs.sqlite import SqliteEngineSpec
 
     assert SqliteEngineSpec.convert_dttm("TEXT", dttm) == "'2019-01-02 03:04:05.678900'"
 
 
-def test_convert_dttm_lower(app_context: AppContext, dttm: datetime) -> None:
+def test_convert_dttm_lower(dttm: datetime) -> None:
     from superset.db_engine_specs.sqlite import SqliteEngineSpec
 
     assert SqliteEngineSpec.convert_dttm("text", dttm) == "'2019-01-02 03:04:05.678900'"
 
 
-def test_convert_dttm_invalid_type(app_context: AppContext, dttm: datetime) -> None:
+def test_convert_dttm_invalid_type(dttm: datetime) -> None:
     from superset.db_engine_specs.sqlite import SqliteEngineSpec
 
     assert SqliteEngineSpec.convert_dttm("other", dttm) is None
 
 
-def test_get_all_datasource_names_table(app_context: AppContext) -> None:
+def test_get_all_datasource_names_table() -> None:
     from superset.db_engine_specs.sqlite import SqliteEngineSpec
 
     database = mock.MagicMock()
@@ -62,7 +61,7 @@ def test_get_all_datasource_names_table(app_context: AppContext) -> None:
     )
 
 
-def test_get_all_datasource_names_view(app_context: AppContext) -> None:
+def test_get_all_datasource_names_view() -> None:
     from superset.db_engine_specs.sqlite import SqliteEngineSpec
 
     database = mock.MagicMock()
@@ -81,7 +80,7 @@ def test_get_all_datasource_names_view(app_context: AppContext) -> None:
     )
 
 
-def test_get_all_datasource_names_invalid_type(app_context: AppContext) -> None:
+def test_get_all_datasource_names_invalid_type() -> None:
     from superset.db_engine_specs.sqlite import SqliteEngineSpec
 
     database = mock.MagicMock()
@@ -132,9 +131,7 @@ def test_get_all_datasource_names_invalid_type(app_context: AppContext) -> None:
         ("2022-12-04T05:06:07.89Z", "P3M", "2022-10-01 00:00:00"),
     ],
 )
-def test_time_grain_expressions(
-    dttm: str, grain: str, expected: str, app_context: AppContext
-) -> None:
+def test_time_grain_expressions(dttm: str, grain: str, expected: str) -> None:
     from superset.db_engine_specs.sqlite import SqliteEngineSpec
 
     engine = create_engine("sqlite://")

@@ -626,6 +626,7 @@ class ImportV1DatabaseExtraSchema(Schema):
     cost_estimate_enabled = fields.Boolean()
     allows_virtual_table_explore = fields.Boolean(required=False)
     cancel_query_on_windows_unload = fields.Boolean(required=False)
+    disable_data_preview = fields.Boolean(required=False)
 
 
 class ImportV1DatabaseSchema(Schema):
