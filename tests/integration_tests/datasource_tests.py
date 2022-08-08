@@ -556,10 +556,11 @@ def test_get_samples_with_time_filter(test_client, login_as_admin, physical_data
     }
     rv = test_client.post(uri, json=payload)
     assert len(rv.json["result"]["data"]) == 2
-    assert [row["col5"] for row in rv.json["result"]["data"]] == [
-        946771200000.0,  # 2000-01-02 00:00:00
-        946857600000.0,  # 2000-01-03 00:00:00
-    ]
+    if physical_dataset.database.backend != "sqlite":
+        assert [row["col5"] for row in rv.json["result"]["data"]] == [
+            946771200000.0,  # 2000-01-02 00:00:00
+            946857600000.0,  # 2000-01-03 00:00:00
+        ]
     assert rv.json["result"]["page"] == 1
     assert rv.json["result"]["per_page"] == app.config["SAMPLES_ROW_LIMIT"]
     assert rv.json["result"]["total_count"] == 2
