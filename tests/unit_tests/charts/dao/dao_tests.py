@@ -42,6 +42,7 @@ def session_with_data(session: Session) -> Iterator[Session]:
     session.flush()
     yield session
     session.delete(slice_obj)
+    session.commit()
 
 
 def test_slice_find_by_id_skip_filter(session_with_data: Session) -> None:

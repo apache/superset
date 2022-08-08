@@ -43,6 +43,7 @@ def session_with_data(session: Session) -> Iterator[Session]:
     yield session
     session.delete(sqla_table)
     session.delete(db)
+    session.commit()
 
 
 def test_datasource_find_by_id_skip_filter(session_with_data: Session) -> None:
