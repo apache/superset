@@ -341,10 +341,8 @@ export function getOverMaxHiddenFormatter(
   return new NumberFormatter({
     formatFunc: value =>
       `${
-        shouldHideIfOverMax
-          ? value > max
-            ? ''
-            : formatter?.format(value) || value
+        shouldHideIfOverMax && value > max
+          ? ''
           : formatter?.format(value) || value
       }`,
     id: NumberFormats.OVER_MAX_HIDDEN,
