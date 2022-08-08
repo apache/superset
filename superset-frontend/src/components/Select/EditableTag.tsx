@@ -84,7 +84,6 @@ const EditableTag = (props: EditableTagProps) => {
         setEditing(true);
       }}
       onClose={props.onClose}
-      className=".ant-select-selection-item"
     >
       {editing ? (
         <Input
