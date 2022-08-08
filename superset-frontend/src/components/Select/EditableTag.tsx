@@ -114,6 +114,9 @@ const EditableTag = (props: EditableTagProps) => {
       {props.closable && (
         <span
           className={`${selectionPrefixCls}-item-remove`}
+          style={{ userSelect: 'none' }}
+          unselectable="on"
+          aria-hidden="true"
           onMouseDown={(e: any) => e.preventDefault()}
           onClick={props.onClose}
         >
