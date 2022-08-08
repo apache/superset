@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useRef } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ViewRootGroup } from 'echarts/types/src/util/types';
 import GlobalModel from 'echarts/types/src/model/Global';
 import ComponentModel from 'echarts/types/src/model/Component';
@@ -46,6 +46,12 @@ export default function EchartsTimeseries({
   const lastTimeRef = useRef(Date.now());
   const lastSelectedLegend = useRef('');
   const clickTimer = useRef<ReturnType<typeof setTimeout>>();
+  const extraControlRef = useRef<HTMLDivElement>(null);
+  const [extraControlHeight, setExtraControlHeight] = useState(0);
+  useEffect(() => {
+    const updatedHeight = extraControlRef.current?.offsetHeight || 0;
+    setExtraControlHeight(updatedHeight);
+  }, [formData.showExtraControls]);
 
   const handleDoubleClickChange = useCallback(
     (name?: string) => {
@@ -199,10 +205,12 @@ export default function EchartsTimeseries({
 
   return (
     <>
-      <ExtraControls formData={formData} setControlValue={setControlValue} />
+      <div ref={extraControlRef}>
+        <ExtraControls formData={formData} setControlValue={setControlValue} />
+      </div>
       <Echart
         ref={echartRef}
-        height={height}
+        height={height - extraControlHeight}
         width={width}
         echartOptions={echartOptions}
         eventHandlers={eventHandlers}
