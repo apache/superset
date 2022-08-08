@@ -18,7 +18,6 @@
  */
 import {
   t,
-  tn,
   FeatureFlag,
   isFeatureEnabled,
   DEFAULT_METRICS,
@@ -101,27 +100,7 @@ const validateAggControlValues = (
     : [];
 };
 
-const validateColumnValues = (
-  controls: ControlStateMapping,
-  values: any[],
-  state: ControlPanelState,
-) => {
-  const invalidColumns = values.filter(
-    (val: any) =>
-      val !== undefined &&
-      !state.datasource?.columns.some(col => col.name === val),
-  );
-  return invalidColumns.length !== 0
-    ? [
-        tn(
-          'Invalid column: %s',
-          'Invalid columns: %s',
-          invalidColumns.length,
-          invalidColumns.join(', '),
-        ),
-      ]
-    : [];
-};
+
 
 const validateAggColumnValues = (
   controls: ControlStateMapping,
@@ -130,7 +109,7 @@ const validateAggColumnValues = (
 ) => {
   const result = validateAggControlValues(controls, values);
   if (result.length === 0 && isAggMode({ controls })) {
-    return validateColumnValues(controls, values[1], state);
+    return [];
   }
   return result;
 };
@@ -373,12 +352,6 @@ const config: ControlPanelConfig = {
                   isRawMode({ controls }) &&
                   ensureIsArray(controlState.value).length === 0
                     ? [t('must have a value')]
-                    : isRawMode({ controls })
-                    ? validateColumnValues(
-                        controls,
-                        ensureIsArray(controlState.value),
-                        state,
-                      )
                     : [];
                 return newState;
               },
