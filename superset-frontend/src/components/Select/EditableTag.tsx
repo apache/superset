@@ -18,8 +18,10 @@
  */
 
 import React, { Dispatch, SetStateAction, useState } from 'react';
+import TransBtn from 'rc-select/lib/TransBtn';
 import { SelectValue as AntdSelectValue } from 'antd/lib/select';
-import { Tag } from 'antd';
+import classNames from 'classnames';
+import { CloseOutlined } from '@ant-design/icons';
 import { ensureIsArray } from '@superset-ui/core';
 import { Input } from '../Input';
 import { OptionsType } from './Select';
@@ -77,34 +79,49 @@ const EditableTag = (props: EditableTagProps) => {
     return null;
   }
 
+  const selectionPrefixCls = 'ant-select-selection';
+
   return (
-    <Tag
-      closable={props.closable}
+    <span
+      className={classNames(`${selectionPrefixCls}-item`, {
+        [`${selectionPrefixCls}-item-disabled`]: props.disabled,
+      })}
       onDoubleClick={() => {
         setEditing(true);
       }}
-      onClose={props.onClose}
     >
-      {editing ? (
-        <Input
-          style={{ width: '95%' }}
-          autoFocus
-          onBlur={event => updateValue()}
-          onKeyDown={event => {
-            if (event.key === 'Backspace') {
-              event.stopPropagation();
-            } else if (event.key === 'Enter') {
-              updateValue();
-              event.stopPropagation();
-            }
-          }}
-          value={value}
-          onChange={event => setValue(event.target.value)}
-        />
-      ) : (
-        props.label
+      <span className={`${selectionPrefixCls}-item-content`}>
+        {editing ? (
+          <Input
+            style={{ width: '95%', lineHeight: 'normal', padding: '0' }}
+            autoFocus
+            onBlur={event => updateValue()}
+            onKeyDown={event => {
+              if (event.key === 'Backspace') {
+                event.stopPropagation();
+              } else if (event.key === 'Enter') {
+                updateValue();
+                event.stopPropagation();
+              }
+            }}
+            value={value}
+            onChange={event => setValue(event.target.value)}
+          />
+        ) : (
+          props.label
+        )}
+      </span>
+      {props.closable && (
+        <TransBtn
+          className={`${selectionPrefixCls}-item-remove`}
+          onMouseDown={(e: any) => e.preventDefault()}
+          onClick={props.onClose}
+          customizeIcon={<CloseOutlined />}
+        >
+          ×
+        </TransBtn>
       )}
-    </Tag>
+    </span>
   );
 };
 
