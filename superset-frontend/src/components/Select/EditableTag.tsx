@@ -18,7 +18,6 @@
  */
 
 import React, { Dispatch, SetStateAction, useState } from 'react';
-import TransBtn from 'rc-select/lib/TransBtn';
 import { SelectValue as AntdSelectValue } from 'antd/lib/select';
 import classNames from 'classnames';
 import { CloseOutlined } from '@ant-design/icons';
@@ -62,9 +61,8 @@ const EditableTag = (props: EditableTagProps) => {
           }
           if (isLabeledValue(props.value)) {
             return { key: value, value, label: String(value) };
-          } else {
-            return value;
           }
+          return value;
         }
         return e;
       })
@@ -114,14 +112,13 @@ const EditableTag = (props: EditableTagProps) => {
         )}
       </span>
       {props.closable && (
-        <TransBtn
+        <span
           className={`${selectionPrefixCls}-item-remove`}
           onMouseDown={(e: any) => e.preventDefault()}
           onClick={props.onClose}
-          customizeIcon={<CloseOutlined />}
         >
-          ×
-        </TransBtn>
+          <CloseOutlined />
+        </span>
       )}
     </span>
   );
