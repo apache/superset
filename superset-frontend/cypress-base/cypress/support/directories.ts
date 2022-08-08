@@ -352,6 +352,7 @@ export const nativeFilters = {
     collapse: dataTestLocator('filter-bar__collapse-button'),
     filterName: dataTestLocator('filter-control-name'),
     filterContent: '.ant-select-selection-item',
+    filterContentEdit: '.ant-select-selection-item input',
     createFilterButton: dataTestLocator('filter-bar__create-filter'),
     timeRangeFilterContent: dataTestLocator('time-range-trigger'),
   },

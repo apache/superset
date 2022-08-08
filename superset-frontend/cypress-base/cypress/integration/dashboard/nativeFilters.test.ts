@@ -511,6 +511,29 @@ describe('Nativefilters initial state not required', () => {
     });
   });
 
+  it('User can edit editable value filter', () => {
+    enterNativeFilterEditModal();
+    addCountryNameFilter();
+    cy.contains('Allow value to be edited').click();
+    saveNativeFilterSettings();
+    WORLD_HEALTH_CHARTS.forEach(waitForChartLoad);
+    applyNativeFilterValueWithIndex(0, testItems.filterDefaultValue);
+    cy.get(nativeFilters.applyFilter).click();
+    cy.get(dataTestChartName(testItems.topTenChart.name)).within(() => {
+      cy.contains(testItems.filterDefaultValue).should('be.visible');
+      cy.contains(testItems.filterOtherCountry).should('not.exist');
+    });
+    cy.get(nativeFilters.filterFromDashboardView.filterContent).dblclick();
+    cy.get(nativeFilters.filterFromDashboardView.filterContentEdit)
+      .should('be.visible')
+      .type(`{selectAll}${testItems.filterOtherCountry}{enter}`);
+    cy.get(nativeFilters.applyFilter).click();
+    cy.get(dataTestChartName(testItems.topTenChart.name)).within(() => {
+      cy.contains(testItems.filterDefaultValue).should('not.exist');
+      cy.contains(testItems.filterOtherCountry).should('be.visible');
+    });
+  });
+
   it('User can stop filtering when filter is removed', () => {
     enterNativeFilterEditModal();
     addCountryNameFilter();
