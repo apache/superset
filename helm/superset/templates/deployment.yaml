@@ -133,7 +133,7 @@ spec:
             httpGet:
               path: /health
               port: http
-            initialDelaySeconds: {{ .supersetNode.Values.readinessProbe.initialDelaySeconds }}
+            initialDelaySeconds: {{ .Values.supersetNode.readinessProbe.initialDelaySeconds }}
             timeoutSeconds: {{ .Values.supersetNode.readinessProbe.timeoutSeconds }}
             failureThreshold: {{ .Values.supersetNode.readinessProbe.failureThreshold }}
             periodSeconds: {{ .Values.supersetNode.readinessProbe.periodSeconds }}
