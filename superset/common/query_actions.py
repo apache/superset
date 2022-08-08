@@ -162,7 +162,7 @@ def _get_samples(
     return _get_full(query_context, query_obj, force_cached)
 
 
-def _get_deill_detail(
+def _get_drill_detail(
     query_context: QueryContext, query_obj: QueryObject, force_cached: bool = False
 ) -> Dict[str, Any]:
     # todo(yongjie): Remove this function,
@@ -203,7 +203,7 @@ _result_type_functions: Dict[
     # and post-process it later where we have the chart context, since
     # post-processing is unique to each visualization type
     ChartDataResultType.POST_PROCESSED: _get_full,
-    ChartDataResultType.DRILL_DETAIL: _get_deill_detail,
+    ChartDataResultType.DRILL_DETAIL: _get_drill_detail,
 }
 
 
