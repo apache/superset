@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: vault-superset-worker
+  namespace: "default"
+  labels:
+    name: superset
+    component: primary
+spec:
+  replicas: 1
+  serviceName: vault-superset-worker
+  updateStrategy:
+    rollingUpdate: {}
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      name: superset-worker
+      component: primary
+  template:
+    metadata:
+      name: vault-superset-worker
+      labels:
+        name: superset-worker
+        component: primary
+      annotations:
+    spec:
+      securityContext:
+        runAsUser: 0
+      initContainers:
+      - command:
+        - /bin/sh
+        - -c
+        - until nc -zv $DB_HOST $DB_PORT -w1; do echo 'waiting for db'; sleep 1; done
+        envFrom:
+        - secretRef:
+            name: 'vault-superset-env'
+        image: 'busybox:latest'
+        imagePullPolicy: 'IfNotPresent'
+        name: wait-for-postgres
+      containers:
+        - name: superset
+          image: apache/superset:1.5.1
+          imagePullPolicy: IfNotPresent
+          command: ["/bin/sh","-c",". /app/pythonpath/superset_bootstrap.sh; celery --app=superset.tasks.celery_app:app worker"]
+          env:
+            - name: "SUPERSET_PORT"
+              value: "8088"
+          envFrom:
+            - secretRef:
+                name: "vault-superset-env"
+          volumeMounts:
+            - name: superset-config
+              mountPath: "/app/pythonpath"
+              readOnly: true
+          resources:
+            {}
+      volumes:
+        - name: superset-config
+          secret:
+            secretName: vault-superset-config

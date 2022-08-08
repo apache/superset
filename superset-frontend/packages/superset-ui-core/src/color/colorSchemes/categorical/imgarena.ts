@@ -17,11 +17,25 @@
  * under the License.
  */
 
-export { default as CategoricalAirbnb } from './airbnb';
-export { default as CategoricalIMGArena } from './imgarena';
-export { default as CategoricalD3 } from './d3';
-export { default as CategoricalEcharts } from './echarts';
-export { default as CategoricalGoogle } from './google';
-export { default as CategoricalLyft } from './lyft';
-export { default as CategoricalPreset } from './preset';
-export { default as CategoricalSuperset } from './superset';
+import CategoricalScheme from '../../CategoricalScheme';
+
+const schemes = [
+  {
+    id: 'imgarenaGolfCourse',
+    label: 'IMGArena Golf Course',
+    colors: [
+      '#ff00ff',
+      '#B4B4B4',
+      '#1c6cad',
+      '#358806',
+      '#FFFF9F',
+      '#92F100',
+      '#71CE01',
+      '#4CA30D',
+      '#255E04',
+      '#358806',
+    ],
+  },
+].map(s => new CategoricalScheme(s));
+
+export default schemes;

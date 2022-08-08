@@ -18,6 +18,7 @@
  */
 import {
   CategoricalAirbnb,
+  CategoricalIMGArena,
   CategoricalEcharts,
   CategoricalSuperset,
   CategoricalPreset,
@@ -35,6 +36,7 @@ describe('Color Schemes', () => {
     it('returns an array of CategoricalScheme', () => {
       [
         CategoricalAirbnb,
+        CategoricalIMGArena,
         CategoricalEcharts,
         CategoricalD3,
         CategoricalGoogle,

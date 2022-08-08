@@ -1,0 +1,47 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: superset-init-db
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-delete-policy": "before-hook-creation"
+spec:
+  template:
+    metadata:
+      name: superset-init-db
+    spec:
+      securityContext:
+        runAsUser: 0
+      initContainers:
+      - command:
+        - /bin/sh
+        - -c
+        - until nc -zv $DB_HOST $DB_PORT -w1; do echo 'waiting for db'; sleep 1; done
+        envFrom:
+        - secretRef:
+            name: 'vault-superset-env'
+        image: 'busybox:latest'
+        imagePullPolicy: 'IfNotPresent'
+        name: wait-for-postgres
+      containers:
+      - name: superset-init-db
+        image: apache/superset:1.5.1
+        env:
+          - name: INIT_JOB
+            value: "true"
+        envFrom:
+          - secretRef:
+              name: vault-superset-env
+        imagePullPolicy: IfNotPresent
+        volumeMounts:
+          - name: superset-config
+            mountPath: "/app/pythonpath"
+            readOnly: true
+        command: ["/bin/sh","-c",". /app/pythonpath/superset_bootstrap.sh; . /app/pythonpath/superset_init.sh"]
+        resources:
+          {}
+      volumes:
+        - name: superset-config
+          secret:
+            secretName: vault-superset-config
+      restartPolicy: Never

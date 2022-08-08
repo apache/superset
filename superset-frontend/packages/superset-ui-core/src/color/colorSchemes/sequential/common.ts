@@ -213,6 +213,59 @@ const schemes = [
     ],
   },
   {
+    id: 'imgarena_seq_1',
+    label: 'IMGArena Golf Course',
+    isDiverging: false,
+    colors: [
+      '#92F100', // Green
+      '#71CE01', // Fairways
+      '#255E04', // Rough
+      '#358806', // Wastearea
+      '#FFFF9F', // Bunkers
+      '#B4B4B4', // Path
+      '#1c6cad', // Water
+    ],
+  },
+  {
+    id: 'imgarena_seq_2',
+    label: 'IMGArena Golf Course no fairway',
+    isDiverging: false,
+    colors: [
+      '#92F100', // Green, Fairways
+      '#255E04', // Rough
+      '#358806', // Wastearea
+      '#FFFF9F', // Bunkers
+      '#B4B4B4', // Path
+      '#1c6cad', // Water
+    ],
+  },
+  {
+    id: 'imgarena_seq_3',
+    label: 'IMGArena Golf Course no water',
+    isDiverging: false,
+    colors: [
+      '#92F100', // Green
+      '#71CE01', // Fairways
+      '#255E04', // Rough
+      '#358806', // Wastearea
+      '#FFFF9F', // Bunkers
+      '#B4B4B4', // Path
+      '#1c6cad', // Water
+    ],
+  },
+  {
+    id: 'imgarena_seq_4',
+    label: 'IMGArena Golf Course no fairway or water',
+    isDiverging: false,
+    colors: [
+      '#92F100', // Green, Fairways
+      '#255E04', // Rough
+      '#358806', // Wastearea
+      '#FFFF9F', // Bunkers
+      '#B4B4B4', // Path
+    ],
+  },
+  {
     id: 'echarts_gradient',
     label: 'ECharts gradient',
     isDiverging: false,

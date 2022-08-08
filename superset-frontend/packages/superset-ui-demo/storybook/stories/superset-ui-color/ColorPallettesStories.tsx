@@ -20,6 +20,7 @@
 import React from 'react';
 import {
   CategoricalAirbnb,
+  CategoricalIMGArena,
   CategoricalD3,
   CategoricalEcharts,
   CategoricalGoogle,
@@ -39,6 +40,7 @@ export const categoricalPalettes = () =>
   [
     { palettes: CategoricalSuperset, storyName: 'Superset' },
     { palettes: CategoricalAirbnb, storyName: 'Airbnb' },
+    { palettes: CategoricalIMGArena, storyName: 'IMGArena' },
     { palettes: CategoricalD3, storyName: 'd3' },
     { palettes: CategoricalEcharts, storyName: 'ECharts' },
     { palettes: CategoricalGoogle, storyName: 'Google' },
