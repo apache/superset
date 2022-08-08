@@ -39,17 +39,16 @@ def session_with_data(session: Session) -> Iterator[Session]:
     )
 
     session.add(slice_obj)
-    session.flush()
-    yield session
-    session.delete(slice_obj)
     session.commit()
+    yield session
+    session.rollback()
 
 
-def test_slice_find_by_id_skip_filter(session_with_data: Session) -> None:
+def test_slice_find_by_id_skip_base_filter(session_with_data: Session) -> None:
     from superset.charts.dao import ChartDAO
     from superset.models.slice import Slice
 
-    result = ChartDAO.find_by_id(1, session=session_with_data, skip_filter=True)
+    result = ChartDAO.find_by_id(1, session=session_with_data, skip_base_filter=True)
 
     assert result
     assert 1 == result.id
@@ -57,10 +56,12 @@ def test_slice_find_by_id_skip_filter(session_with_data: Session) -> None:
     assert isinstance(result, Slice)
 
 
-def test_datasource_find_by_id_skip_filter_not_found(
+def test_datasource_find_by_id_skip_base_filter_not_found(
     session_with_data: Session,
 ) -> None:
     from superset.charts.dao import ChartDAO
 
-    result = ChartDAO.find_by_id(125326326, session=session_with_data, skip_filter=True)
+    result = ChartDAO.find_by_id(
+        125326326, session=session_with_data, skip_base_filter=True
+    )
     assert result is None

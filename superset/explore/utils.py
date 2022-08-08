@@ -39,7 +39,7 @@ from superset.utils.core import DatasourceType
 def check_dataset_access(dataset_id: int) -> Optional[bool]:
     if dataset_id:
         # Access checks below, no need to validate them twice as they can be expensive.
-        dataset = DatasetDAO.find_by_id(dataset_id, skip_filter=True)
+        dataset = DatasetDAO.find_by_id(dataset_id, skip_base_filter=True)
         if dataset:
             can_access_datasource = security_manager.can_access_datasource(dataset)
             if can_access_datasource:
@@ -51,7 +51,7 @@ def check_dataset_access(dataset_id: int) -> Optional[bool]:
 def check_query_access(query_id: int) -> Optional[bool]:
     if query_id:
         # Access checks below, no need to validate them twice as they can be expensive.
-        query = QueryDAO.find_by_id(query_id, skip_filter=True)
+        query = QueryDAO.find_by_id(query_id, skip_base_filter=True)
         if query:
             security_manager.raise_for_access(query=query)
             return True
@@ -84,7 +84,7 @@ def check_access(
     if not chart_id:
         return True
     # Access checks below, no need to validate them twice as they can be expensive.
-    chart = ChartDAO.find_by_id(chart_id, skip_filter=True)
+    chart = ChartDAO.find_by_id(chart_id, skip_base_filter=True)
     if chart:
         can_access_chart = security_manager.is_owner(
             chart
