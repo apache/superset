@@ -18,14 +18,7 @@
  */
 import React from 'react';
 import * as reactRedux from 'react-redux';
-import {
-  render,
-  screen,
-  waitFor,
-  within,
-  cleanup,
-  act,
-} from 'spec/helpers/testing-library';
+import { render, screen, cleanup, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
@@ -43,6 +36,8 @@ fetchMock.get('glob:*/api/v1/dataset?*', {
   result: mockdatasets,
   dataset_count: 3,
 });
+
+jest.useFakeTimers();
 
 // Mock the user
 const useSelectorMock = jest.spyOn(reactRedux, 'useSelector');
@@ -110,7 +105,7 @@ describe('SaveDatasetModal', () => {
     expect(screen.getByRole('button', { name: /overwrite/i })).toBeVisible();
   });
 
-  it('renders the overwrite button as disabled until an existing dataset is selected, confirms overwrite', () => {
+  it('renders the overwrite button as disabled until an existing dataset is selected', async () => {
     useSelectorMock.mockReturnValue({ ...user });
     render(<SaveDatasetModal {...mockedProps} />, { useRedux: true });
 
@@ -118,9 +113,7 @@ describe('SaveDatasetModal', () => {
     const overwriteRadioBtn = screen.getByRole('radio', {
       name: /overwrite existing/i,
     });
-    act(() => {
-      userEvent.click(overwriteRadioBtn);
-    });
+    userEvent.click(overwriteRadioBtn);
 
     // Overwrite confirmation button should be disabled at this point
     const overwriteConfirmationBtn = screen.getByRole('button', {
@@ -128,26 +121,23 @@ describe('SaveDatasetModal', () => {
     });
     expect(overwriteConfirmationBtn).toBeDisabled();
 
-    // Click the select component
+    // Click the overwrite select component
     const select = screen.getByRole('combobox', { name: /existing dataset/i })!;
-    act(() => userEvent.click(select));
+    userEvent.click(select);
+
+    await waitFor(() =>
+      expect(screen.queryByText('Loading...')).not.toBeVisible(),
+    );
 
     // Select the first "existing dataset" from the listbox
-    const option = within(
-      document.querySelector('.rc-virtual-list')!,
-    ).getByText('coolest table 0')!;
+    const option = screen.getAllByText('coolest table 0')[1];
     userEvent.click(option);
 
     // Overwrite button should now be enabled
     expect(overwriteConfirmationBtn).toBeEnabled();
-
-    // Check Overwrite confirmation functionality
-    userEvent.click(overwriteConfirmationBtn);
-    expect(screen.getByRole('button', { name: /back/i })).toBeVisible();
-    expect(screen.getByRole('button', { name: /overwrite/i })).toBeVisible();
   });
 
-  it('renders the overwrite button as disabled until an existing dataset is selected, confirms overwrite', async () => {
+  it('renders a confirm overwrite screen when overwrite is clicked', async () => {
     useSelectorMock.mockReturnValue({ ...user });
     render(<SaveDatasetModal {...mockedProps} />, { useRedux: true });
 
@@ -155,31 +145,33 @@ describe('SaveDatasetModal', () => {
     const overwriteRadioBtn = screen.getByRole('radio', {
       name: /overwrite existing/i,
     });
-    act(() => {
-      userEvent.click(overwriteRadioBtn);
-    });
+    userEvent.click(overwriteRadioBtn);
 
-    // Overwrite confirmation button should be disabled at this point
+    // Click the overwrite select component
+    const select = screen.getByRole('combobox', { name: /existing dataset/i });
+    userEvent.click(select);
+
+    await waitFor(() =>
+      expect(screen.queryByText('Loading...')).not.toBeVisible(),
+    );
+
+    // Select the first "existing dataset" from the listbox
+    const option = screen.getAllByText('coolest table 0')[1];
+    userEvent.click(option);
+
+    // Click the overwrite button to access the confirmation screen
     const overwriteConfirmationBtn = screen.getByRole('button', {
       name: /overwrite/i,
     });
-    expect(overwriteConfirmationBtn).toBeDisabled();
-
-    // Click the select component
-    const select = screen.getByRole('combobox', { name: /existing dataset/i })!;
-    act(() => userEvent.click(select));
-
-    // Select the first "existing dataset" from the listbox
-
-    const list = await within(document.querySelector('.rc-virtual-list')!);
-    const option = await list.findByText('coolest table 0')!;
-    userEvent.click(option);
-
-    // Overwrite button should now be enabled
-    expect(overwriteConfirmationBtn).toBeEnabled();
-
-    // Check Overwrite confirmation functionality
     userEvent.click(overwriteConfirmationBtn);
+
+    // Overwrite screen text
+    expect(screen.getByText(/save or overwrite dataset/i)).toBeVisible();
+    expect(
+      screen.getByText(/are you sure you want to overwrite this dataset\?/i),
+    ).toBeVisible();
+    // Overwrite screen buttons
+    expect(screen.getByRole('button', { name: /close/i })).toBeVisible();
     expect(screen.getByRole('button', { name: /back/i })).toBeVisible();
     expect(screen.getByRole('button', { name: /overwrite/i })).toBeVisible();
   });
