@@ -48,7 +48,7 @@ export default function sqlLabReducer(state = {}, action) {
         existing,
         {
           remoteId: result.remoteId,
-          title: query.title,
+          name: query.name,
         },
         'id',
       );
@@ -71,7 +71,7 @@ export default function sqlLabReducer(state = {}, action) {
       );
       const qe = {
         remoteId: progenitor.remoteId,
-        title: t('Copy of %s', progenitor.title),
+        name: t('Copy of %s', progenitor.name),
         dbId: action.query.dbId ? action.query.dbId : null,
         schema: action.query.schema ? action.query.schema : null,
         autorun: true,
@@ -467,7 +467,7 @@ export default function sqlLabReducer(state = {}, action) {
     },
     [actions.QUERY_EDITOR_SET_TITLE]() {
       return alterInArr(state, 'queryEditors', action.queryEditor, {
-        title: action.title,
+        name: action.name,
       });
     },
     [actions.QUERY_EDITOR_SET_SQL]() {

@@ -236,7 +236,6 @@ class Chart extends React.PureComponent {
         link={queryResponse ? queryResponse.link : null}
         source={dashboardId ? 'dashboard' : 'explore'}
         stackTrace={chartStackTrace}
-        errorMitigationFunction={this.toggleSaveDatasetModal}
       />
     );
   }

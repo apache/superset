@@ -777,6 +777,56 @@ class TestDatasetApi(SupersetTestCase):
         db.session.delete(dataset)
         db.session.commit()
 
+    def test_update_dataset_item_w_override_columns_same_columns(self):
+        """
+        Dataset API: Test update dataset with override columns
+        """
+        if backend() == "sqlite":
+            return
+
+        # Add default dataset
+        main_db = get_main_database()
+        dataset = self.insert_default_dataset()
+        prev_col_len = len(dataset.columns)
+
+        cols = [
+            {
+                "column_name": c.column_name,
+                "description": c.description,
+                "expression": c.expression,
+                "type": c.type,
+                "advanced_data_type": c.advanced_data_type,
+                "verbose_name": c.verbose_name,
+            }
+            for c in dataset.columns
+        ]
+
+        cols.append(
+            {
+                "column_name": "new_col",
+                "description": "description",
+                "expression": "expression",
+                "type": "INTEGER",
+                "advanced_data_type": "ADVANCED_DATA_TYPE",
+                "verbose_name": "New Col",
+            }
+        )
+
+        self.login(username="admin")
+        dataset_data = {
+            "columns": cols,
+        }
+        uri = f"api/v1/dataset/{dataset.id}?override_columns=true"
+        rv = self.put_assert_metric(uri, dataset_data, "put")
+
+        assert rv.status_code == 200
+
+        columns = db.session.query(TableColumn).filter_by(table_id=dataset.id).all()
+        assert len(columns) != prev_col_len
+        assert len(columns) == 3
+        db.session.delete(dataset)
+        db.session.commit()
+
     def test_update_dataset_create_column_and_metric(self):
         """
         Dataset API: Test update dataset create column

@@ -64,6 +64,12 @@ if TYPE_CHECKING:
     # prevent circular imports
     from superset.models.core import Database
 
+    # need try/catch because pyhive may not be installed
+    try:
+        from pyhive.presto import Cursor  # pylint: disable=unused-import
+    except ImportError:
+        pass
+
 COLUMN_DOES_NOT_EXIST_REGEX = re.compile(
     "line (?P<location>.+?): .*Column '(?P<column_name>.+?)' cannot be resolved"
 )
@@ -957,8 +963,23 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
         return rows[0][0]
 
     @classmethod
-    def handle_cursor(cls, cursor: Any, query: Query, session: Session) -> None:
+    def get_tracking_url(cls, cursor: "Cursor") -> Optional[str]:
+        try:
+            if cursor.last_query_id:
+                # pylint: disable=protected-access, line-too-long
+                return f"{cursor._protocol}://{cursor._host}:{cursor._port}/ui/query.html?{cursor.last_query_id}"
+        except AttributeError:
+            pass
+        return None
+
+    @classmethod
+    def handle_cursor(cls, cursor: "Cursor", query: Query, session: Session) -> None:
         """Updates progress information"""
+        tracking_url = cls.get_tracking_url(cursor)
+        if tracking_url:
+            query.tracking_url = tracking_url
+            session.commit()
+
         query_id = query.id
         poll_interval = query.database.connect_args.get(
             "poll_interval", current_app.config["PRESTO_POLL_INTERVAL"]

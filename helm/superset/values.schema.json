@@ -3,9 +3,6 @@
     "type": "object",
     "additionalProperties": true,
     "properties": {
-        "replicaCount": {
-            "type": "integer"
-        },
         "runAsUser": {
             "type": "integer"
         },
@@ -216,6 +213,9 @@
             "type": "object",
             "additionalProperties": false,
             "properties": {
+                "replicaCount": {
+                    "type": "integer"
+                },
                 "command": {
                     "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.api.core.v1.Container/properties/command"
                 },
@@ -343,6 +343,7 @@
                 }
             },
             "required": [
+                "replicaCount",
                 "command",
                 "connections",
                 "env",
@@ -353,6 +354,9 @@
             "type": "object",
             "additionalProperties": false,
             "properties": {
+                "replicaCount": {
+                    "type": "integer"
+                },
                 "command": {
                     "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.api.core.v1.Container/properties/command"
                 },
@@ -382,6 +386,7 @@
                 }
             },
             "required": [
+                "replicaCount",
                 "command",
                 "forceReload"
             ]
@@ -650,7 +655,6 @@
         }
     },
     "required": [
-        "replicaCount",
         "runAsUser",
         "serviceAccount",
         "bootstrapScript",

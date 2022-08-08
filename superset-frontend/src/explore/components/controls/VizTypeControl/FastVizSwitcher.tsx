@@ -53,18 +53,28 @@ const FEATURED_CHARTS: VizMeta[] = [
     name: 'echarts_timeseries_line',
     icon: <Icons.LineChartTile />,
   },
+  {
+    name: 'echarts_timeseries_bar',
+    icon: <Icons.BarChartTile />,
+  },
+  { name: 'echarts_area', icon: <Icons.AreaChartTile /> },
   { name: 'table', icon: <Icons.TableChartTile /> },
   {
     name: 'big_number_total',
     icon: <Icons.BigNumberChartTile />,
   },
   { name: 'pie', icon: <Icons.PieChartTile /> },
-  {
-    name: 'echarts_timeseries_bar',
-    icon: <Icons.BarChartTile />,
-  },
-  { name: 'echarts_area', icon: <Icons.AreaChartTile /> },
 ];
+
+const antdIconProps = {
+  iconSize: 'l' as const,
+  css: (theme: SupersetTheme) => css`
+    padding: ${theme.gridUnit}px;
+    & > * {
+      line-height: 0;
+    }
+  `,
+};
 
 const VizTile = ({
   isActive,
@@ -203,17 +213,7 @@ export const FastVizSwitcher = React.memo(
       ) {
         vizTiles.unshift({
           name: currentSelection,
-          icon: (
-            <Icons.MonitorOutlined
-              iconSize="l"
-              css={(theme: SupersetTheme) => css`
-                padding: ${theme.gridUnit}px;
-                & > * {
-                  line-height: 0;
-                }
-              `}
-            />
-          ),
+          icon: <Icons.MonitorOutlined {...antdIconProps} />,
         });
       }
       if (
@@ -224,7 +224,7 @@ export const FastVizSwitcher = React.memo(
       ) {
         vizTiles.unshift({
           name: currentViz,
-          icon: <Icons.CurrentRenderedTile />,
+          icon: <Icons.CheckSquareOutlined {...antdIconProps} />,
         });
       }
       return vizTiles;

@@ -21,7 +21,7 @@
 from pytest_mock import MockerFixture
 
 
-def test_memoized_func(app_context: None, mocker: MockerFixture) -> None:
+def test_memoized_func(mocker: MockerFixture) -> None:
     """
     Test the ``memoized_func`` decorator.
     """

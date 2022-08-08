@@ -45,5 +45,5 @@
   "granularity_sqla": null,
   "autozoom": true,
   "url_params": {},
-  "size": 100
+  "size": "100"
 }
