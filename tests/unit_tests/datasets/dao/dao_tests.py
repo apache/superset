@@ -41,16 +41,18 @@ def session_with_data(session: Session) -> Iterator[Session]:
     session.add(sqla_table)
     session.flush()
     yield session
+    session.delete(sqla_table)
+    session.delete(db)
 
 
-def test_datasource_find_by_id_no_filter(session_with_data: Session) -> None:
+def test_datasource_find_by_id_skip_filter(session_with_data: Session) -> None:
     from superset.connectors.sqla.models import SqlaTable
     from superset.datasets.dao import DatasetDAO
 
     result = DatasetDAO.find_by_id(
         1,
         session=session_with_data,
-        no_filter=True,
+        skip_filter=True,
     )
 
     assert result
@@ -59,12 +61,14 @@ def test_datasource_find_by_id_no_filter(session_with_data: Session) -> None:
     assert isinstance(result, SqlaTable)
 
 
-def test_datasource_find_by_id_no_filter_not_found(session_with_data: Session) -> None:
+def test_datasource_find_by_id_skip_filter_not_found(
+    session_with_data: Session,
+) -> None:
     from superset.datasets.dao import DatasetDAO
 
     result = DatasetDAO.find_by_id(
         125326326,
         session=session_with_data,
-        no_filter=True,
+        skip_filter=True,
     )
     assert result is None
