@@ -52,7 +52,7 @@ class QueryContext:
     form_data: Optional[Dict[str, Any]]
     result_type: ChartDataResultType
     result_format: ChartDataResultFormat
-    viz_type: str
+    viz_type: Optional[str]
     force: bool
     custom_cache_timeout: Optional[int]
 
@@ -74,6 +74,7 @@ class QueryContext:
         force: bool = False,
         custom_cache_timeout: Optional[int] = None,
         cache_values: Dict[str, Any],
+        viz_type: Optional[str]
     ) -> None:
         self.datasource = datasource
         self.slice_ = slice_

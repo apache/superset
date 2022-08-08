@@ -47,7 +47,6 @@ def validate_python_date_format(value: str) -> None:
 class DatasetColumnsPutSchema(Schema):
     id = fields.Integer()
     column_name = fields.String(required=True, validate=Length(1, 255))
-    business_type = fields.String(allow_none=True, Length=(1, 255))
     type = fields.String(allow_none=True)
     advanced_data_type = fields.String(allow_none=True, validate=Length(1, 255))
     verbose_name = fields.String(allow_none=True, Length=(1, 1024))
