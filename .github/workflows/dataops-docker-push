@@ -1,0 +1,18 @@
+name: DataOps Push Image
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+jobs:
+  build_test_scan_and_push:
+    name: Build, test, scan and push image
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ self-hosted-ubuntu-2004 ]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
