@@ -22,6 +22,7 @@ EPOCH = datetime(1970, 1, 1)
 
 
 def datetime_to_epoch(dttm: datetime) -> float:
+    """Convert datetime to milliseconds to epoch"""
     if dttm.tzinfo:
         dttm = dttm.replace(tzinfo=pytz.utc)
         epoch_with_tz = pytz.utc.localize(EPOCH)

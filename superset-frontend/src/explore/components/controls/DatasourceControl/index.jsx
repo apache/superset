@@ -437,8 +437,8 @@ class DatasourceControl extends React.PureComponent {
           <SaveDatasetModal
             visible={showSaveDatasetModal}
             onHide={this.toggleSaveDatasetModal}
-            buttonTextOnSave={t('Save & Explore')}
-            buttonTextOnOverwrite={t('Overwrite & Explore')}
+            buttonTextOnSave={t('Save')}
+            buttonTextOnOverwrite={t('Overwrite')}
             modalDescription={t(
               'Save this query as a virtual dataset to continue exploring',
             )}

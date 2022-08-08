@@ -27,18 +27,40 @@ const defaultProps: DndColumnSelectProps = {
   type: 'DndColumnSelect',
   name: 'Filter',
   onChange: jest.fn(),
-  options: { string: { column_name: 'Column A' } },
+  options: {
+    string: { column_name: 'Column A' },
+  },
   actions: { setControlValue: jest.fn() },
 };
 
 test('renders with default props', () => {
-  render(<DndColumnSelect {...defaultProps} />, { useDnd: true });
+  render(<DndColumnSelect {...defaultProps} />, {
+    useDnd: true,
+    useRedux: true,
+  });
   expect(screen.getByText('Drop columns here')).toBeInTheDocument();
 });
 
 test('renders with value', () => {
   render(<DndColumnSelect {...defaultProps} value="string" />, {
     useDnd: true,
+    useRedux: true,
   });
   expect(screen.getByText('Column A')).toBeInTheDocument();
+});
+
+test('renders adhoc column', () => {
+  render(
+    <DndColumnSelect
+      {...defaultProps}
+      value={{
+        sqlExpression: 'Count *',
+        label: 'adhoc column',
+        expressionType: 'SQL',
+      }}
+    />,
+    { useDnd: true, useRedux: true },
+  );
+  expect(screen.getByText('adhoc column')).toBeVisible();
+  expect(screen.getByLabelText('calculator')).toBeVisible();
 });

@@ -16,32 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { keyBy } from 'lodash';
+import { Dataset } from '@superset-ui/chart-controls';
 import { getDatasourceUid } from 'src/utils/getDatasourceUid';
 import {
-  DatasourcesAction,
-  DatasourcesActionType,
-} from 'src/datasource/actions';
-import { Dataset } from '@superset-ui/chart-controls';
+  AnyDatasourcesAction,
+  SET_DATASOURCE,
+} from '../actions/datasourcesActions';
+import { HYDRATE_EXPLORE, HydrateExplore } from '../actions/hydrateExplore';
 
 export default function datasourcesReducer(
-  datasources: { [key: string]: Dataset } | undefined,
-  action: DatasourcesAction,
+  // TODO: change type to include other datasource types
+  datasources: { [key: string]: Dataset },
+  action: AnyDatasourcesAction | HydrateExplore,
 ) {
-  if (action.type === DatasourcesActionType.INIT_DATASOURCES) {
-    return { ...action.datasources };
-  }
-  if (action.type === DatasourcesActionType.SET_DATASOURCES) {
-    return {
-      ...datasources,
-      ...keyBy(action.datasources, 'uid'),
-    };
-  }
-  if (action.type === DatasourcesActionType.SET_DATASOURCE) {
+  if (action.type === SET_DATASOURCE) {
     return {
       ...datasources,
       [getDatasourceUid(action.datasource)]: action.datasource,
     };
+  }
+  if (action.type === HYDRATE_EXPLORE) {
+    return { ...(action as HydrateExplore).data.datasources };
   }
   return datasources || {};
 }

@@ -60,6 +60,7 @@ import ImportModelsModal from 'src/components/ImportModal/index';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
+import { GenericLink } from 'src/components/GenericLink/GenericLink';
 import AddDatasetModal from './AddDatasetModal';
 
 import {
@@ -289,7 +290,11 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
             },
           },
         }: any) => {
-          const titleLink = <a href={exploreURL}>{datasetTitle}</a>;
+          const titleLink = (
+            // exploreUrl can be a link to Explore or an external link
+            // in the first case use SPA routing, else use HTML anchor
+            <GenericLink to={exploreURL}>{datasetTitle}</GenericLink>
+          );
           try {
             const parsedExtra = JSON.parse(extra);
             return (

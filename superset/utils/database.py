@@ -39,10 +39,7 @@ def get_or_create_db(
     from superset.models import core as models
 
     database = (
-        db.session.query(models.Database)
-        .filter_by(database_name=database_name)
-        .autoflush(False)
-        .first()
+        db.session.query(models.Database).filter_by(database_name=database_name).first()
     )
 
     # databases with a fixed UUID
@@ -56,8 +53,11 @@ def get_or_create_db(
             database_name=database_name, uuid=uuids.get(database_name)
         )
         db.session.add(database)
+        database.set_sqlalchemy_uri(sqlalchemy_uri)
+        db.session.commit()
 
-    if database:
+    # todo: it's a bad idea to do an update in a get/create function
+    if database and database.sqlalchemy_uri_decrypted != sqlalchemy_uri:
         database.set_sqlalchemy_uri(sqlalchemy_uri)
         db.session.commit()
 

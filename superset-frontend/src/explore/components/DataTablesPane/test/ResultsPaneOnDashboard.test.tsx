@@ -24,7 +24,7 @@ import {
   waitForElementToBeRemoved,
 } from 'spec/helpers/testing-library';
 import { exploreActions } from 'src/explore/actions/exploreActions';
-import { promiseTimeout } from '@superset-ui/core';
+import { ChartMetadata, ChartPlugin, promiseTimeout } from '@superset-ui/core';
 import { ResultsPaneOnDashboard } from '../components';
 import { createResultsPaneOnDashboardProps } from './fixture';
 
@@ -147,6 +147,19 @@ describe('ResultsPaneOnDashboard', () => {
   });
 
   test('multiple results pane', async () => {
+    const FakeChart = () => <span>test</span>;
+    const metadata = new ChartMetadata({
+      name: 'test-chart',
+      thumbnail: '',
+      queryObjectCount: 2,
+    });
+
+    const plugin = new ChartPlugin({
+      metadata,
+      Chart: FakeChart,
+    });
+    plugin.configure({ key: 'mixed_timeseries' }).register();
+
     const props = createResultsPaneOnDashboardProps({
       sliceId: 196,
       vizType: 'mixed_timeseries',

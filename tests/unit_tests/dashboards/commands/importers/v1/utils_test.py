@@ -82,7 +82,7 @@ def test_update_id_refs_immune_missing(  # pylint: disable=invalid-name
     }
 
 
-def test_update_native_filter_config_scope_excluded(app_context: None):
+def test_update_native_filter_config_scope_excluded():
     from superset.dashboards.commands.importers.v1.utils import update_id_refs
 
     config = {

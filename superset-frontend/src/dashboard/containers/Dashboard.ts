@@ -24,7 +24,7 @@ import {
   addSliceToDashboard,
   removeSliceFromDashboard,
 } from 'src/dashboard/actions/dashboardState';
-import { setDatasources } from 'src/datasource/actions';
+import { setDatasources } from 'src/dashboard/actions/datasources';
 
 import { triggerQuery } from 'src/components/Chart/chartAction';
 import { logEvent } from 'src/logger/actions';
@@ -68,7 +68,7 @@ function mapStateToProps(state: RootState) {
         chartConfiguration: dashboardInfo.metadata?.chart_configuration,
         nativeFilters: nativeFilters.filters,
         dataMask,
-        layout: dashboardLayout.present,
+        allSliceIds: dashboardState.sliceIds,
       }),
     },
     chartConfiguration: dashboardInfo.metadata?.chart_configuration,

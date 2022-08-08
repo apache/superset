@@ -16,9 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-const queryObjectCount = {
-  mixed_timeseries: 2,
-};
 
-export const getQueryCount = (vizType: string): number =>
-  queryObjectCount?.[vizType] || 1;
+import { useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
+
+export const ScrollToTop = () => {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+
+  return null;
+};

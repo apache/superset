@@ -302,7 +302,6 @@ export default function DatabaseSelector({
         disabled={!currentDb || readOnly}
         header={<FormLabel>{t('Schema')}</FormLabel>}
         labelInValue
-        lazyLoading={false}
         loading={loadingSchemas}
         name="select-schema"
         placeholder={t('Select schema or type schema name')}

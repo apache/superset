@@ -16,23 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Dispatch } from 'redux';
-import { SupersetClient } from '@superset-ui/core';
-import { Dataset } from '@superset-ui/chart-controls';
-import { RootState } from 'src/dashboard/types';
-import { setDatasource } from 'src/datasource/actions';
+import React from 'react';
 
-export function fetchDatasourceMetadata(key: string) {
-  return (dispatch: Dispatch, getState: () => RootState) => {
-    const { datasources } = getState();
-    const datasource = datasources[key];
-
-    if (datasource) {
-      return dispatch(setDatasource(datasource));
-    }
-
-    return SupersetClient.get({
-      endpoint: `/superset/fetch_datasource_metadata?datasourceKey=${key}`,
-    }).then(({ json }) => dispatch(setDatasource(json as Dataset)));
-  };
+export default function Footer() {
+  return <div>Footer</div>;
 }
