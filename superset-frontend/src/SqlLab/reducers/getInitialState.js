@@ -17,7 +17,7 @@
  * under the License.
  */
 import { t } from '@superset-ui/core';
-import getToastsFromPyFlashMessages from '../../messageToasts/utils/getToastsFromPyFlashMessages';
+import getToastsFromPyFlashMessages from 'src/components/MessageToasts/getToastsFromPyFlashMessages';
 
 export default function getInitialState({
   defaultDbId,
@@ -60,6 +60,7 @@ export default function getInitialState({
       completed: false,
       error: null,
     },
+    hideLeftBar: false,
   };
 
   /**
@@ -73,13 +74,14 @@ export default function getInitialState({
         id: id.toString(),
         loaded: true,
         title: activeTab.label,
-        sql: activeTab.sql,
-        selectedText: null,
+        sql: activeTab.sql || undefined,
+        selectedText: undefined,
         latestQueryId: activeTab.latest_query
           ? activeTab.latest_query.id
           : null,
+        remoteId: activeTab.saved_query?.id,
         autorun: activeTab.autorun,
-        templateParams: activeTab.template_params,
+        templateParams: activeTab.template_params || undefined,
         dbId: activeTab.database_id,
         functionNames: [],
         schema: activeTab.schema,
@@ -89,6 +91,7 @@ export default function getInitialState({
           errors: [],
           completed: false,
         },
+        hideLeftBar: activeTab.hide_left_bar,
       };
     } else {
       // dummy state, actual state will be loaded on tab switch
@@ -115,6 +118,8 @@ export default function getInitialState({
           foreignKeys,
           indexes,
           dataPreviewQueryId,
+          partitions,
+          metadata,
         } = tableSchema.description;
         const table = {
           dbId: tableSchema.database_id,
@@ -131,6 +136,8 @@ export default function getInitialState({
           primaryKey,
           foreignKeys,
           indexes,
+          partitions,
+          metadata,
         };
         tables.push(table);
       });

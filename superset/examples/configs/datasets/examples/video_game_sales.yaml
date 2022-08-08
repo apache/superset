@@ -21,136 +21,136 @@ default_endpoint: null
 offset: 0
 cache_timeout: null
 schema: null
-sql: ''
+sql: ""
 params:
   remote_id: 64
   database_name: examples
   import_time: 1606677834
 template_params: null
-filter_select_enabled: false
+filter_select_enabled: true
 fetch_values_predicate: null
 extra: null
 uuid: 53d47c0c-c03d-47f0-b9ac-81225f808283
 metrics:
-- metric_name: count
-  verbose_name: COUNT(*)
-  metric_type: null
-  expression: COUNT(*)
-  description: null
-  d3format: null
-  extra: null
-  warning_text: null
+  - metric_name: count
+    verbose_name: COUNT(*)
+    metric_type: null
+    expression: COUNT(*)
+    description: null
+    d3format: null
+    extra: null
+    warning_text: null
 columns:
-- column_name: year
-  verbose_name: null
-  is_dttm: true
-  is_active: null
-  type: BIGINT
-  groupby: true
-  filterable: true
-  expression: null
-  description: null
-  python_date_format: '%Y'
-- column_name: na_sales
-  verbose_name: null
-  is_dttm: false
-  is_active: null
-  type: FLOAT64
-  groupby: true
-  filterable: true
-  expression: null
-  description: null
-  python_date_format: null
-- column_name: eu_sales
-  verbose_name: null
-  is_dttm: false
-  is_active: null
-  type: FLOAT64
-  groupby: true
-  filterable: true
-  expression: null
-  description: null
-  python_date_format: null
-- column_name: global_sales
-  verbose_name: null
-  is_dttm: false
-  is_active: null
-  type: FLOAT64
-  groupby: true
-  filterable: true
-  expression: null
-  description: null
-  python_date_format: null
-- column_name: jp_sales
-  verbose_name: null
-  is_dttm: false
-  is_active: null
-  type: FLOAT64
-  groupby: true
-  filterable: true
-  expression: null
-  description: null
-  python_date_format: null
-- column_name: other_sales
-  verbose_name: null
-  is_dttm: false
-  is_active: null
-  type: FLOAT64
-  groupby: true
-  filterable: true
-  expression: null
-  description: null
-  python_date_format: null
-- column_name: rank
-  verbose_name: null
-  is_dttm: false
-  is_active: null
-  type: BIGINT
-  groupby: true
-  filterable: true
-  expression: null
-  description: null
-  python_date_format: null
-- column_name: genre
-  verbose_name: null
-  is_dttm: false
-  is_active: null
-  type: STRING
-  groupby: true
-  filterable: true
-  expression: null
-  description: null
-  python_date_format: null
-- column_name: name
-  verbose_name: null
-  is_dttm: false
-  is_active: null
-  type: STRING
-  groupby: true
-  filterable: true
-  expression: null
-  description: null
-  python_date_format: null
-- column_name: platform
-  verbose_name: null
-  is_dttm: false
-  is_active: null
-  type: STRING
-  groupby: true
-  filterable: true
-  expression: null
-  description: null
-  python_date_format: null
-- column_name: publisher
-  verbose_name: null
-  is_dttm: false
-  is_active: null
-  type: STRING
-  groupby: true
-  filterable: true
-  expression: null
-  description: null
-  python_date_format: null
+  - column_name: year
+    verbose_name: null
+    is_dttm: true
+    is_active: null
+    type: BIGINT
+    groupby: true
+    filterable: true
+    expression: null
+    description: null
+    python_date_format: "%Y"
+  - column_name: na_sales
+    verbose_name: null
+    is_dttm: false
+    is_active: null
+    type: FLOAT64
+    groupby: true
+    filterable: true
+    expression: null
+    description: null
+    python_date_format: null
+  - column_name: eu_sales
+    verbose_name: null
+    is_dttm: false
+    is_active: null
+    type: FLOAT64
+    groupby: true
+    filterable: true
+    expression: null
+    description: null
+    python_date_format: null
+  - column_name: global_sales
+    verbose_name: null
+    is_dttm: false
+    is_active: null
+    type: FLOAT64
+    groupby: true
+    filterable: true
+    expression: null
+    description: null
+    python_date_format: null
+  - column_name: jp_sales
+    verbose_name: null
+    is_dttm: false
+    is_active: null
+    type: FLOAT64
+    groupby: true
+    filterable: true
+    expression: null
+    description: null
+    python_date_format: null
+  - column_name: other_sales
+    verbose_name: null
+    is_dttm: false
+    is_active: null
+    type: FLOAT64
+    groupby: true
+    filterable: true
+    expression: null
+    description: null
+    python_date_format: null
+  - column_name: rank
+    verbose_name: null
+    is_dttm: false
+    is_active: null
+    type: BIGINT
+    groupby: true
+    filterable: true
+    expression: null
+    description: null
+    python_date_format: null
+  - column_name: genre
+    verbose_name: null
+    is_dttm: false
+    is_active: null
+    type: STRING
+    groupby: true
+    filterable: true
+    expression: null
+    description: null
+    python_date_format: null
+  - column_name: name
+    verbose_name: null
+    is_dttm: false
+    is_active: null
+    type: STRING
+    groupby: true
+    filterable: true
+    expression: null
+    description: null
+    python_date_format: null
+  - column_name: platform
+    verbose_name: null
+    is_dttm: false
+    is_active: null
+    type: STRING
+    groupby: true
+    filterable: true
+    expression: null
+    description: null
+    python_date_format: null
+  - column_name: publisher
+    verbose_name: null
+    is_dttm: false
+    is_active: null
+    type: STRING
+    groupby: true
+    filterable: true
+    expression: null
+    description: null
+    python_date_format: null
 version: 1.0.0
 database_uuid: a2dc77af-e654-49bb-b321-40f6b559a1ee
 data: https://github.com/apache-superset/examples-data/raw/lowercase_columns_examples/datasets/examples/video_game_sales.csv

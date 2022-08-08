@@ -17,7 +17,7 @@
 from typing import Any
 
 from flask_babel import lazy_gettext as _
-from sqlalchemy import or_
+from sqlalchemy import and_, or_
 from sqlalchemy.orm.query import Query
 
 from superset import security_manager
@@ -53,6 +53,22 @@ class ChartFavoriteFilter(BaseFavoriteFilter):  # pylint: disable=too-few-public
     arg_name = "chart_is_favorite"
     class_name = "slice"
     model = Slice
+
+
+class ChartCertifiedFilter(BaseFilter):  # pylint: disable=too-few-public-methods
+    """
+    Custom filter for the GET list that filters all certified charts
+    """
+
+    name = _("Is certified")
+    arg_name = "chart_is_certified"
+
+    def apply(self, query: Query, value: Any) -> Query:
+        if value is True:
+            return query.filter(and_(Slice.certified_by.isnot(None)))
+        if value is False:
+            return query.filter(and_(Slice.certified_by.is_(None)))
+        return query
 
 
 class ChartFilter(BaseFilter):  # pylint: disable=too-few-public-methods

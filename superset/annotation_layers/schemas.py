@@ -40,7 +40,7 @@ annotation_layer_descr = "Give a description for this annotation layer"
 
 class AnnotationLayerPostSchema(Schema):
     name = fields.String(
-        description=annotation_layer_name, allow_none=False, validate=[Length(1, 250)]
+        description=annotation_layer_name, required=True, validate=[Length(1, 250)]
     )
     descr = fields.String(description=annotation_layer_descr, allow_none=True)
 

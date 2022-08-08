@@ -44,7 +44,7 @@ class DeleteAnnotationCommand(BaseCommand):
             annotation = AnnotationDAO.delete(self._model)
         except DAODeleteFailedError as ex:
             logger.exception(ex.exception)
-            raise AnnotationDeleteFailedError()
+            raise AnnotationDeleteFailedError() from ex
         return annotation
 
     def validate(self) -> None:

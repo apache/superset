@@ -39,19 +39,51 @@ revision = "c25cb2c78727"
 down_revision = "ccb74baaa89b"
 
 
-NEW_PVMS = {"Annotation": ("can_read", "can_write",)}
+NEW_PVMS = {
+    "Annotation": (
+        "can_read",
+        "can_write",
+    )
+}
 PVM_MAP = {
     Pvm("AnnotationLayerModelView", "can_delete"): (Pvm("Annotation", "can_write"),),
     Pvm("AnnotationLayerModelView", "can_list"): (Pvm("Annotation", "can_read"),),
-    Pvm("AnnotationLayerModelView", "can_show",): (Pvm("Annotation", "can_read"),),
-    Pvm("AnnotationLayerModelView", "can_add",): (Pvm("Annotation", "can_write"),),
-    Pvm("AnnotationLayerModelView", "can_edit",): (Pvm("Annotation", "can_write"),),
-    Pvm("AnnotationModelView", "can_annotation",): (Pvm("Annotation", "can_read"),),
-    Pvm("AnnotationModelView", "can_show",): (Pvm("Annotation", "can_read"),),
-    Pvm("AnnotationModelView", "can_add",): (Pvm("Annotation", "can_write"),),
-    Pvm("AnnotationModelView", "can_delete",): (Pvm("Annotation", "can_write"),),
-    Pvm("AnnotationModelView", "can_edit",): (Pvm("Annotation", "can_write"),),
-    Pvm("AnnotationModelView", "can_list",): (Pvm("Annotation", "can_read"),),
+    Pvm(
+        "AnnotationLayerModelView",
+        "can_show",
+    ): (Pvm("Annotation", "can_read"),),
+    Pvm(
+        "AnnotationLayerModelView",
+        "can_add",
+    ): (Pvm("Annotation", "can_write"),),
+    Pvm(
+        "AnnotationLayerModelView",
+        "can_edit",
+    ): (Pvm("Annotation", "can_write"),),
+    Pvm(
+        "AnnotationModelView",
+        "can_annotation",
+    ): (Pvm("Annotation", "can_read"),),
+    Pvm(
+        "AnnotationModelView",
+        "can_show",
+    ): (Pvm("Annotation", "can_read"),),
+    Pvm(
+        "AnnotationModelView",
+        "can_add",
+    ): (Pvm("Annotation", "can_write"),),
+    Pvm(
+        "AnnotationModelView",
+        "can_delete",
+    ): (Pvm("Annotation", "can_write"),),
+    Pvm(
+        "AnnotationModelView",
+        "can_edit",
+    ): (Pvm("Annotation", "can_write"),),
+    Pvm(
+        "AnnotationModelView",
+        "can_list",
+    ): (Pvm("Annotation", "can_read"),),
 }
 
 

@@ -14,8 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import logging
 from datetime import datetime
-from typing import Dict, Optional, Type
+from distutils.version import StrictVersion
+from typing import Any, Dict, Optional, Type
 
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.exceptions import (
@@ -25,14 +27,17 @@ from superset.db_engine_specs.exceptions import (
 )
 from superset.utils import core as utils
 
+logger = logging.getLogger()
+
 
 class ElasticSearchEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     engine = "elasticsearch"
-    engine_name = "ElasticSearch"
+    engine_name = "ElasticSearch (SQL API)"
     time_groupby_inline = True
     time_secondary_columns = True
     allows_joins = False
     allows_subqueries = True
+    allows_sql_comments = False
 
     _time_grain_expressions = {
         None: "{col}",
@@ -48,7 +53,8 @@ class ElasticSearchEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-metho
 
     @classmethod
     def get_dbapi_exception_mapping(cls) -> Dict[Type[Exception], Type[Exception]]:
-        import es.exceptions as es_exceptions  # pylint: disable=import-error
+        # pylint: disable=import-error,import-outside-toplevel
+        import es.exceptions as es_exceptions
 
         return {
             es_exceptions.DatabaseError: SupersetDBAPIDatabaseError,
@@ -57,7 +63,66 @@ class ElasticSearchEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-metho
         }
 
     @classmethod
-    def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
+    def convert_dttm(
+        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
+    ) -> Optional[str]:
+
+        db_extra = db_extra or {}
         if target_type.upper() == utils.TemporalType.DATETIME:
+            es_version = db_extra.get("version")
+            # The elasticsearch CAST function does not take effect for the time zone
+            # setting. In elasticsearch7.8 and above, we can use the DATETIME_PARSE
+            # function to solve this problem.
+            supports_dttm_parse = False
+            try:
+                if es_version:
+                    supports_dttm_parse = StrictVersion(es_version) >= StrictVersion(
+                        "7.8"
+                    )
+            except Exception as ex:  # pylint: disable=broad-except
+                logger.error("Unexpected error while convert es_version", exc_info=True)
+                logger.exception(ex)
+
+            if supports_dttm_parse:
+                datetime_formatted = dttm.isoformat(sep=" ", timespec="seconds")
+                return (
+                    f"""DATETIME_PARSE('{datetime_formatted}', 'yyyy-MM-dd HH:mm:ss')"""
+                )
+
             return f"""CAST('{dttm.isoformat(timespec="seconds")}' AS DATETIME)"""
+
         return None
+
+
+class OpenDistroEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
+
+    time_groupby_inline = True
+    time_secondary_columns = True
+    allows_joins = False
+    allows_subqueries = True
+    allows_sql_comments = False
+
+    _time_grain_expressions = {
+        None: "{col}",
+        "PT1S": "date_format({col}, 'yyyy-MM-dd HH:mm:ss.000')",
+        "PT1M": "date_format({col}, 'yyyy-MM-dd HH:mm:00.000')",
+        "PT1H": "date_format({col}, 'yyyy-MM-dd HH:00:00.000')",
+        "P1D": "date_format({col}, 'yyyy-MM-dd 00:00:00.000')",
+        "P1M": "date_format({col}, 'yyyy-MM-01 00:00:00.000')",
+        "P1Y": "date_format({col}, 'yyyy-01-01 00:00:00.000')",
+    }
+
+    engine = "odelasticsearch"
+    engine_name = "ElasticSearch (OpenDistro SQL)"
+
+    @classmethod
+    def convert_dttm(
+        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
+    ) -> Optional[str]:
+        if target_type.upper() == utils.TemporalType.DATETIME:
+            return f"""'{dttm.isoformat(timespec="seconds")}'"""
+        return None
+
+    @staticmethod
+    def _mutate_label(label: str) -> str:
+        return label.replace(".", "_")

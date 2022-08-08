@@ -18,20 +18,30 @@
 import json
 import re
 from functools import partial
-from typing import Any, Callable, cast, Dict, List, Optional, Tuple, TYPE_CHECKING
+from typing import (
+    Any,
+    Callable,
+    cast,
+    Dict,
+    List,
+    Optional,
+    Tuple,
+    TYPE_CHECKING,
+    Union,
+)
 
-from flask import current_app, g, request
+from flask import current_app, g, has_request_context, request
 from flask_babel import gettext as _
 from jinja2 import DebugUndefined
 from jinja2.sandbox import SandboxedEnvironment
+from sqlalchemy.engine.interfaces import Dialect
+from sqlalchemy.types import String
+from typing_extensions import TypedDict
 
 from superset.exceptions import SupersetTemplateException
 from superset.extensions import feature_flag_manager
-from superset.utils.core import (
-    convert_legacy_filters_into_adhoc,
-    memoized,
-    merge_extra_filters,
-)
+from superset.utils.core import convert_legacy_filters_into_adhoc, merge_extra_filters
+from superset.utils.memoized import memoized
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
@@ -60,56 +70,10 @@ def context_addons() -> Dict[str, Any]:
     return current_app.config.get("JINJA_CONTEXT_ADDONS", {})
 
 
-def filter_values(column: str, default: Optional[str] = None) -> List[str]:
-    """Gets a values for a particular filter as a list
-
-    This is useful if:
-        - you want to use a filter box to filter a query where the name of filter box
-          column doesn't match the one in the select statement
-        - you want to have the ability for filter inside the main query for speed
-          purposes
-
-    Usage example::
-
-        SELECT action, count(*) as times
-        FROM logs
-        WHERE action in ( {{ "'" + "','".join(filter_values('action_type')) + "'" }} )
-        GROUP BY action
-
-    :param column: column/filter name to lookup
-    :param default: default value to return if there's no matching columns
-    :return: returns a list of filter values
-    """
-
-    from superset.views.utils import get_form_data
-
-    form_data, _ = get_form_data()
-    convert_legacy_filters_into_adhoc(form_data)
-    merge_extra_filters(form_data)
-
-    return_val = [
-        comparator
-        for filter in form_data.get("adhoc_filters", [])
-        for comparator in (
-            filter["comparator"]
-            if isinstance(filter["comparator"], list)
-            else [filter["comparator"]]
-        )
-        if (
-            filter.get("expressionType") == "SIMPLE"
-            and filter.get("clause") == "WHERE"
-            and filter.get("subject") == column
-            and filter.get("comparator")
-        )
-    ]
-
-    if return_val:
-        return return_val
-
-    if default:
-        return [default]
-
-    return []
+class Filter(TypedDict):
+    op: str  # pylint: disable=C0103
+    col: str
+    val: Union[None, Any, List[Any]]
 
 
 class ExtraCache:
@@ -129,8 +93,17 @@ class ExtraCache:
         r").*\}\}"
     )
 
-    def __init__(self, extra_cache_keys: Optional[List[Any]] = None):
+    def __init__(
+        self,
+        extra_cache_keys: Optional[List[Any]] = None,
+        applied_filters: Optional[List[str]] = None,
+        removed_filters: Optional[List[str]] = None,
+        dialect: Optional[Dialect] = None,
+    ):
         self.extra_cache_keys = extra_cache_keys
+        self.applied_filters = applied_filters if applied_filters is not None else []
+        self.removed_filters = removed_filters if removed_filters is not None else []
+        self.dialect = dialect
 
     def current_user_id(self, add_to_cache_keys: bool = True) -> Optional[int]:
         """
@@ -142,8 +115,8 @@ class ExtraCache:
 
         if hasattr(g, "user") and g.user:
             if add_to_cache_keys:
-                self.cache_key_wrapper(g.user.id)
-            return g.user.id
+                self.cache_key_wrapper(g.user.get_id())
+            return g.user.get_id()
         return None
 
     def current_username(self, add_to_cache_keys: bool = True) -> Optional[str]:
@@ -154,7 +127,7 @@ class ExtraCache:
         :returns: The username
         """
 
-        if g.user:
+        if g.user and hasattr(g.user, "username"):
             if add_to_cache_keys:
                 self.cache_key_wrapper(g.user.username)
             return g.user.username
@@ -178,7 +151,11 @@ class ExtraCache:
         return key
 
     def url_param(
-        self, param: str, default: Optional[str] = None, add_to_cache_keys: bool = True
+        self,
+        param: str,
+        default: Optional[str] = None,
+        add_to_cache_keys: bool = True,
+        escape_result: bool = True,
     ) -> Optional[str]:
         """
         Read a url or post parameter and use it in your SQL Lab query.
@@ -199,19 +176,167 @@ class ExtraCache:
         :param param: the parameter to lookup
         :param default: the value to return in the absence of the parameter
         :param add_to_cache_keys: Whether the value should be included in the cache key
+        :param escape_result: Should special characters in the result be escaped
         :returns: The URL parameters
         """
 
+        # pylint: disable=import-outside-toplevel
         from superset.views.utils import get_form_data
 
-        if request.args.get(param):
+        if has_request_context() and request.args.get(param):  # type: ignore
             return request.args.get(param, default)
+
         form_data, _ = get_form_data()
         url_params = form_data.get("url_params") or {}
         result = url_params.get(param, default)
+        if result and escape_result and self.dialect:
+            # use the dialect specific quoting logic to escape string
+            result = String().literal_processor(dialect=self.dialect)(value=result)[
+                1:-1
+            ]
         if add_to_cache_keys:
             self.cache_key_wrapper(result)
         return result
+
+    def filter_values(
+        self, column: str, default: Optional[str] = None, remove_filter: bool = False
+    ) -> List[Any]:
+        """Gets a values for a particular filter as a list
+
+        This is useful if:
+            - you want to use a filter component to filter a query where the name of
+             filter component column doesn't match the one in the select statement
+            - you want to have the ability for filter inside the main query for speed
+            purposes
+
+        Usage example::
+
+            SELECT action, count(*) as times
+            FROM logs
+            WHERE
+                action in ({{ "'" + "','".join(filter_values('action_type')) + "'" }})
+            GROUP BY action
+
+        :param column: column/filter name to lookup
+        :param default: default value to return if there's no matching columns
+        :param remove_filter: When set to true, mark the filter as processed,
+            removing it from the outer query. Useful when a filter should
+            only apply to the inner query
+        :return: returns a list of filter values
+        """
+        return_val: List[Any] = []
+        filters = self.get_filters(column, remove_filter)
+        for flt in filters:
+            val = flt.get("val")
+            if isinstance(val, list):
+                return_val.extend(val)
+            elif val:
+                return_val.append(val)
+
+        if (not return_val) and default:
+            # If no values are found, return the default provided.
+            return_val = [default]
+
+        return return_val
+
+    def get_filters(self, column: str, remove_filter: bool = False) -> List[Filter]:
+        """Get the filters applied to the given column. In addition
+           to returning values like the filter_values function
+           the get_filters function returns the operator specified in the explorer UI.
+
+        This is useful if:
+            - you want to handle more than the IN operator in your SQL clause
+            - you want to handle generating custom SQL conditions for a filter
+            - you want to have the ability for filter inside the main query for speed
+            purposes
+
+        Usage example::
+
+
+            WITH RECURSIVE
+                superiors(employee_id, manager_id, full_name, level, lineage) AS (
+                SELECT
+                    employee_id,
+                    manager_id,
+                    full_name,
+                1 as level,
+                employee_id as lineage
+                FROM
+                    employees
+                WHERE
+                1=1
+                {# Render a blank line #}
+                {%- for filter in get_filters('full_name', remove_filter=True) -%}
+                {%- if filter.get('op') == 'IN' -%}
+                    AND
+                    full_name IN ( {{ "'" + "', '".join(filter.get('val')) + "'" }} )
+                {%- endif -%}
+                {%- if filter.get('op') == 'LIKE' -%}
+                    AND
+                    full_name LIKE {{ "'" + filter.get('val') + "'" }}
+                {%- endif -%}
+                {%- endfor -%}
+                UNION ALL
+                    SELECT
+                        e.employee_id,
+                        e.manager_id,
+                        e.full_name,
+                s.level + 1 as level,
+                s.lineage
+                    FROM
+                        employees e,
+                    superiors s
+                    WHERE s.manager_id = e.employee_id
+            )
+
+
+            SELECT
+                employee_id, manager_id, full_name, level, lineage
+            FROM
+                superiors
+            order by lineage, level
+
+        :param column: column/filter name to lookup
+        :param remove_filter: When set to true, mark the filter as processed,
+            removing it from the outer query. Useful when a filter should
+            only apply to the inner query
+        :return: returns a list of filters
+        """
+        # pylint: disable=import-outside-toplevel
+        from superset.utils.core import FilterOperator
+        from superset.views.utils import get_form_data
+
+        form_data, _ = get_form_data()
+        convert_legacy_filters_into_adhoc(form_data)
+        merge_extra_filters(form_data)
+
+        filters: List[Filter] = []
+
+        for flt in form_data.get("adhoc_filters", []):
+            val: Union[Any, List[Any]] = flt.get("comparator")
+            op: str = flt["operator"].upper() if flt.get("operator") else None
+            # fltOpName: str = flt.get("filterOptionName")
+            if (
+                flt.get("expressionType") == "SIMPLE"
+                and flt.get("clause") == "WHERE"
+                and flt.get("subject") == column
+                and val
+            ):
+                if remove_filter:
+                    if column not in self.removed_filters:
+                        self.removed_filters.append(column)
+                if column not in self.applied_filters:
+                    self.applied_filters.append(column)
+
+                if op in (
+                    FilterOperator.IN.value,
+                    FilterOperator.NOT_IN.value,
+                ) and not isinstance(val, list):
+                    val = [val]
+
+                filters.append({"op": op, "col": column, "val": val})
+
+        return filters
 
 
 def safe_proxy(func: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
@@ -228,10 +353,13 @@ def safe_proxy(func: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
     if value_type in COLLECTION_TYPES:
         try:
             return_value = json.loads(json.dumps(return_value))
-        except TypeError:
+        except TypeError as ex:
             raise SupersetTemplateException(
-                _("Unsupported return value for method %(name)s", name=func.__name__,)
-            )
+                _(
+                    "Unsupported return value for method %(name)s",
+                    name=func.__name__,
+                )
+            ) from ex
 
     return return_value
 
@@ -252,10 +380,10 @@ def validate_context_types(context: Dict[str, Any]) -> Dict[str, Any]:
         if arg_type in COLLECTION_TYPES:
             try:
                 context[key] = json.loads(json.dumps(context[key]))
-            except TypeError:
+            except TypeError as ex:
                 raise SupersetTemplateException(
                     _("Unsupported template value for key %(key)s", key=key)
-                )
+                ) from ex
 
     return context
 
@@ -273,19 +401,22 @@ def validate_template_context(
     return validate_context_types(context)
 
 
-class BaseTemplateProcessor:  # pylint: disable=too-few-public-methods
+class BaseTemplateProcessor:
     """
     Base class for database-specific jinja context
     """
 
     engine: Optional[str] = None
 
+    # pylint: disable=too-many-arguments
     def __init__(
         self,
         database: "Database",
         query: Optional["Query"] = None,
         table: Optional["SqlaTable"] = None,
         extra_cache_keys: Optional[List[Any]] = None,
+        removed_filters: Optional[List[str]] = None,
+        applied_filters: Optional[List[str]] = None,
         **kwargs: Any,
     ) -> None:
         self._database = database
@@ -296,6 +427,8 @@ class BaseTemplateProcessor:  # pylint: disable=too-few-public-methods
         elif table:
             self._schema = table.schema
         self._extra_cache_keys = extra_cache_keys
+        self._applied_filters = applied_filters
+        self._removed_filters = removed_filters
         self._context: Dict[str, Any] = {}
         self._env = SandboxedEnvironment(undefined=DebugUndefined)
         self.set_context(**kwargs)
@@ -321,21 +454,25 @@ class BaseTemplateProcessor:  # pylint: disable=too-few-public-methods
 class JinjaTemplateProcessor(BaseTemplateProcessor):
     def set_context(self, **kwargs: Any) -> None:
         super().set_context(**kwargs)
-        extra_cache = ExtraCache(self._extra_cache_keys)
+        extra_cache = ExtraCache(
+            extra_cache_keys=self._extra_cache_keys,
+            applied_filters=self._applied_filters,
+            removed_filters=self._removed_filters,
+            dialect=self._database.get_dialect(),
+        )
         self._context.update(
             {
                 "url_param": partial(safe_proxy, extra_cache.url_param),
                 "current_user_id": partial(safe_proxy, extra_cache.current_user_id),
                 "current_username": partial(safe_proxy, extra_cache.current_username),
                 "cache_key_wrapper": partial(safe_proxy, extra_cache.cache_key_wrapper),
-                "filter_values": partial(safe_proxy, filter_values),
+                "filter_values": partial(safe_proxy, extra_cache.filter_values),
+                "get_filters": partial(safe_proxy, extra_cache.get_filters),
             }
         )
 
 
-class NoOpTemplateProcessor(
-    BaseTemplateProcessor
-):  # pylint: disable=too-few-public-methods
+class NoOpTemplateProcessor(BaseTemplateProcessor):
     def process_template(self, sql: str, **kwargs: Any) -> str:
         """
         Makes processing a template a noop
@@ -389,6 +526,7 @@ class PrestoTemplateProcessor(JinjaTemplateProcessor):
         :return: the latest partition array
         """
 
+        # pylint: disable=import-outside-toplevel
         from superset.db_engine_specs.presto import PrestoEngineSpec
 
         table_name, schema = self._schema_table(table_name, self._schema)
@@ -399,6 +537,7 @@ class PrestoTemplateProcessor(JinjaTemplateProcessor):
     def latest_sub_partition(self, table_name: str, **kwargs: Any) -> Any:
         table_name, schema = self._schema_table(table_name, self._schema)
 
+        # pylint: disable=import-outside-toplevel
         from superset.db_engine_specs.presto import PrestoEngineSpec
 
         return cast(
@@ -420,10 +559,10 @@ DEFAULT_PROCESSORS = {"presto": PrestoTemplateProcessor, "hive": HiveTemplatePro
 @memoized
 def get_template_processors() -> Dict[str, Any]:
     processors = current_app.config.get("CUSTOM_TEMPLATE_PROCESSORS", {})
-    for engine in DEFAULT_PROCESSORS:
+    for engine, processor in DEFAULT_PROCESSORS.items():
         # do not overwrite engine-specific CUSTOM_TEMPLATE_PROCESSORS
         if not engine in processors:
-            processors[engine] = DEFAULT_PROCESSORS[engine]
+            processors[engine] = processor
 
     return processors
 

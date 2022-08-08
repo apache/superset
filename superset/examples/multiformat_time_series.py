@@ -17,28 +17,29 @@
 from typing import Dict, Optional, Tuple
 
 import pandas as pd
-from sqlalchemy import BigInteger, Date, DateTime, String
+from sqlalchemy import BigInteger, Date, DateTime, inspect, String
 
-from superset import db
+from superset import app, db
 from superset.models.slice import Slice
-from superset.utils.core import get_example_database
 
+from ..utils.database import get_example_database
 from .helpers import (
-    config,
     get_example_data,
     get_slice_json,
+    get_table_connector_registry,
     merge_slice,
     misc_dash_slices,
-    TBL,
 )
 
 
-def load_multiformat_time_series(
+def load_multiformat_time_series(  # pylint: disable=too-many-locals
     only_metadata: bool = False, force: bool = False
 ) -> None:
     """Loading time series data from a zip file in the repo"""
     tbl_name = "multiformat_time_series"
     database = get_example_database()
+    engine = database.get_sqla_engine()
+    schema = inspect(engine).default_schema_name
     table_exists = database.has_table_by_name(tbl_name)
 
     if not only_metadata and (not table_exists or force):
@@ -56,7 +57,8 @@ def load_multiformat_time_series(
 
         pdf.to_sql(
             tbl_name,
-            database.get_sqla_engine(),
+            engine,
+            schema=schema,
             if_exists="replace",
             chunksize=500,
             dtype={
@@ -75,11 +77,13 @@ def load_multiformat_time_series(
         print("-" * 80)
 
     print(f"Creating table [{tbl_name}] reference")
-    obj = db.session.query(TBL).filter_by(table_name=tbl_name).first()
+    table = get_table_connector_registry()
+    obj = db.session.query(table).filter_by(table_name=tbl_name).first()
     if not obj:
-        obj = TBL(table_name=tbl_name)
+        obj = table(table_name=tbl_name, schema=schema)
     obj.main_dttm_col = "ds"
     obj.database = database
+    obj.filter_select_enabled = True
     dttm_and_expr_dict: Dict[str, Tuple[Optional[str], None]] = {
         "ds": (None, None),
         "ds2": (None, None),
@@ -105,7 +109,7 @@ def load_multiformat_time_series(
         slice_data = {
             "metrics": ["count"],
             "granularity_sqla": col.column_name,
-            "row_limit": config["ROW_LIMIT"],
+            "row_limit": app.config["ROW_LIMIT"],
             "since": "2015",
             "until": "2016",
             "viz_type": "cal_heatmap",

@@ -19,20 +19,26 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import Split from 'react-split';
-import { styled, useTheme } from '@superset-ui/core';
+import { styled, SupersetClient, useTheme } from '@superset-ui/core';
 import { useResizeDetector } from 'react-resize-detector';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
-import ChartContainer from 'src/chart/ChartContainer';
+import ChartContainer from 'src/components/Chart/ChartContainer';
+import {
+  getItem,
+  setItem,
+  LocalStorageKeys,
+} from 'src/utils/localStorageHelpers';
 import ConnectedExploreChartHeader from './ExploreChartHeader';
 import { DataTablesPane } from './DataTablesPane';
+import { buildV1ChartDataPayload } from '../exploreUtils';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
-  addHistory: PropTypes.func,
   onQuery: PropTypes.func,
   can_overwrite: PropTypes.bool.isRequired,
   can_download: PropTypes.bool.isRequired,
   datasource: PropTypes.object,
+  dashboardId: PropTypes.number,
   column_formats: PropTypes.object,
   containerId: PropTypes.string.isRequired,
   height: PropTypes.string.isRequired,
@@ -43,7 +49,9 @@ const propTypes = {
   table_name: PropTypes.string,
   vizType: PropTypes.string.isRequired,
   form_data: PropTypes.object,
-  standalone: PropTypes.bool,
+  ownState: PropTypes.object,
+  standalone: PropTypes.number,
+  force: PropTypes.bool,
   timeout: PropTypes.number,
   refreshOverlayVisible: PropTypes.bool,
   chart: chartPropShape,
@@ -53,7 +61,8 @@ const propTypes = {
 
 const GUTTER_SIZE_FACTOR = 1.25;
 
-const CHART_PANEL_PADDING = 30;
+const CHART_PANEL_PADDING_HORIZ = 30;
+const CHART_PANEL_PADDING_VERTICAL = 15;
 const HEADER_PADDING = 15;
 
 const INITIAL_SIZES = [90, 10];
@@ -105,16 +114,46 @@ const ExploreChartPanel = props => {
   const theme = useTheme();
   const gutterMargin = theme.gridUnit * GUTTER_SIZE_FACTOR;
   const gutterHeight = theme.gridUnit * GUTTER_SIZE_FACTOR;
-
   const { height: hHeight, ref: headerRef } = useResizeDetector({
     refreshMode: 'debounce',
     refreshRate: 300,
   });
-  const { width: chartWidth, ref: chartRef } = useResizeDetector({
+  const { width: chartPanelWidth, ref: chartPanelRef } = useResizeDetector({
     refreshMode: 'debounce',
     refreshRate: 300,
   });
-  const [splitSizes, setSplitSizes] = useState(INITIAL_SIZES);
+  const [splitSizes, setSplitSizes] = useState(
+    getItem(LocalStorageKeys.chart_split_sizes, INITIAL_SIZES),
+  );
+  const { slice } = props;
+  const updateQueryContext = useCallback(
+    async function fetchChartData() {
+      if (slice && slice.query_context === null) {
+        const queryContext = buildV1ChartDataPayload({
+          formData: slice.form_data,
+          force: props.force,
+          resultFormat: 'json',
+          resultType: 'full',
+          setDataMask: null,
+          ownState: null,
+        });
+
+        await SupersetClient.put({
+          endpoint: `/api/v1/chart/${slice.slice_id}`,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            query_context: JSON.stringify(queryContext),
+            query_context_generation: true,
+          }),
+        });
+      }
+    },
+    [slice],
+  );
+
+  useEffect(() => {
+    updateQueryContext();
+  }, [updateQueryContext]);
 
   const calcSectionHeight = useCallback(
     percent => {
@@ -149,6 +188,10 @@ const ExploreChartPanel = props => {
     recalcPanelSizes(splitSizes);
   }, [recalcPanelSizes, splitSizes]);
 
+  useEffect(() => {
+    setItem(LocalStorageKeys.chart_split_sizes, splitSizes);
+  }, [splitSizes]);
+
   const onDragEnd = sizes => {
     setSplitSizes(sizes);
   };
@@ -165,26 +208,30 @@ const ExploreChartPanel = props => {
     }
     setSplitSizes(splitSizes);
   };
-
   const renderChart = useCallback(() => {
-    const { chart } = props;
-    const newHeight = calcSectionHeight(splitSizes[0]) - CHART_PANEL_PADDING;
+    const { chart, vizType } = props;
+    const newHeight =
+      vizType === 'filter_box'
+        ? calcSectionHeight(100) - CHART_PANEL_PADDING_VERTICAL
+        : calcSectionHeight(splitSizes[0]) - CHART_PANEL_PADDING_VERTICAL;
+    const chartWidth = chartPanelWidth - CHART_PANEL_PADDING_HORIZ;
     return (
       chartWidth > 0 && (
         <ChartContainer
           width={Math.floor(chartWidth)}
           height={newHeight}
+          ownState={props.ownState}
           annotationData={chart.annotationData}
           chartAlert={chart.chartAlert}
           chartStackTrace={chart.chartStackTrace}
           chartId={chart.id}
           chartStatus={chart.chartStatus}
           triggerRender={props.triggerRender}
+          force={props.force}
           datasource={props.datasource}
           errorMessage={props.errorMessage}
           formData={props.form_data}
           onQuery={props.onQuery}
-          owners={props?.slice?.owners}
           queriesResponse={chart.queriesResponse}
           refreshOverlayVisible={props.refreshOverlayVisible}
           setControlValue={props.actions.setControlValue}
@@ -194,21 +241,37 @@ const ExploreChartPanel = props => {
         />
       )
     );
-  }, [calcSectionHeight, chartWidth, props, splitSizes]);
+  }, [calcSectionHeight, chartPanelWidth, props, splitSizes]);
 
   const panelBody = useMemo(
     () => (
-      <div className="panel-body" ref={chartRef}>
+      <div className="panel-body" ref={chartPanelRef}>
         {renderChart()}
       </div>
     ),
-    [chartRef, renderChart],
+    [chartPanelRef, renderChart],
   );
 
   const standaloneChartBody = useMemo(
-    () => <div ref={chartRef}>{renderChart()}</div>,
-    [chartRef, renderChart],
+    () => <div ref={chartPanelRef}>{renderChart()}</div>,
+    [chartPanelRef, renderChart],
   );
+
+  const [queryFormData, setQueryFormData] = useState(
+    props.chart.latestQueryFormData,
+  );
+
+  useEffect(() => {
+    // only update when `latestQueryFormData` changes AND `triggerRender`
+    // is false. No update should be done when only `triggerRender` changes,
+    // as this can trigger a query downstream based on incomplete form data.
+    // (`latestQueryFormData` is only updated when a a valid request has been
+    // triggered).
+    if (!props.triggerRender) {
+      setQueryFormData(props.chart.latestQueryFormData);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [props.chart.latestQueryFormData]);
 
   if (props.standalone) {
     // dom manipulation hack to get rid of the boostrap theme's body background
@@ -222,11 +285,11 @@ const ExploreChartPanel = props => {
 
   const header = (
     <ConnectedExploreChartHeader
+      ownState={props.ownState}
       actions={props.actions}
-      addHistory={props.addHistory}
       can_overwrite={props.can_overwrite}
       can_download={props.can_download}
-      chartHeight={props.height}
+      dashboardId={props.dashboardId}
       isStarred={props.isStarred}
       slice={props.slice}
       sliceName={props.sliceName}
@@ -234,6 +297,8 @@ const ExploreChartPanel = props => {
       form_data={props.form_data}
       timeout={props.timeout}
       chart={props.chart}
+      user={props.user}
+      reports={props.reports}
     />
   );
 
@@ -242,7 +307,7 @@ const ExploreChartPanel = props => {
   });
 
   return (
-    <Styles className="panel panel-default chart-container">
+    <Styles className="panel panel-default chart-container" ref={chartPanelRef}>
       <div className="panel-heading" ref={headerRef}>
         {header}
       </div>
@@ -259,10 +324,13 @@ const ExploreChartPanel = props => {
         >
           {panelBody}
           <DataTablesPane
-            queryFormData={props.chart.latestQueryFormData}
+            ownState={props.ownState}
+            queryFormData={queryFormData}
             tableSectionHeight={tableSectionHeight}
             onCollapseChange={onCollapseChange}
             chartStatus={props.chart.chartStatus}
+            errorMessage={props.errorMessage}
+            queriesResponse={props.chart.queriesResponse}
           />
         </Split>
       )}

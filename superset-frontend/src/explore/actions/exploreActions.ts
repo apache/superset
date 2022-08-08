@@ -25,7 +25,10 @@ import {
   QueryFormData,
 } from '@superset-ui/core';
 import { Dispatch } from 'redux';
-import { addDangerToast, toastActions } from 'src/messageToasts/actions';
+import {
+  addDangerToast,
+  toastActions,
+} from 'src/components/MessageToasts/actions';
 import { Slice } from 'src/types/Chart';
 
 const FAVESTAR_BASE_URL = '/superset/favstar/slice';
@@ -61,11 +64,6 @@ export function fetchDatasourcesSucceeded() {
   return { type: FETCH_DATASOURCES_SUCCEEDED };
 }
 
-export const RESET_FIELDS = 'RESET_FIELDS';
-export function resetControls() {
-  return { type: RESET_FIELDS };
-}
-
 export const TOGGLE_FAVE_STAR = 'TOGGLE_FAVE_STAR';
 export function toggleFaveStar(isStarred: boolean) {
   return { type: TOGGLE_FAVE_STAR, isStarred };
@@ -75,7 +73,7 @@ export const FETCH_FAVE_STAR = 'FETCH_FAVE_STAR';
 export function fetchFaveStar(sliceId: string) {
   return function (dispatch: Dispatch) {
     SupersetClient.get({
-      endpoint: `${FAVESTAR_BASE_URL}/${sliceId}/count`,
+      endpoint: `${FAVESTAR_BASE_URL}/${sliceId}/count/`,
     }).then(({ json }) => {
       if (json.count > 0) {
         dispatch(toggleFaveStar(true));
@@ -104,7 +102,7 @@ export const SET_FIELD_VALUE = 'SET_FIELD_VALUE';
 export function setControlValue(
   controlName: string,
   value: any,
-  validationErrors: any[],
+  validationErrors?: any[],
 ) {
   return { type: SET_FIELD_VALUE, controlName, value, validationErrors };
 }
@@ -112,11 +110,6 @@ export function setControlValue(
 export const SET_EXPLORE_CONTROLS = 'UPDATE_EXPLORE_CONTROLS';
 export function setExploreControls(formData: QueryFormData) {
   return { type: SET_EXPLORE_CONTROLS, formData };
-}
-
-export const REMOVE_CONTROL_PANEL_ALERT = 'REMOVE_CONTROL_PANEL_ALERT';
-export function removeControlPanelAlert() {
-  return { type: REMOVE_CONTROL_PANEL_ALERT };
 }
 
 export const UPDATE_CHART_TITLE = 'UPDATE_CHART_TITLE';
@@ -147,6 +140,30 @@ export function sliceUpdated(slice: Slice) {
   return { type: SLICE_UPDATED, slice };
 }
 
+export const SET_TIME_FORMATTED_COLUMN = 'SET_TIME_FORMATTED_COLUMN';
+export function setTimeFormattedColumn(
+  datasourceId: string,
+  columnName: string,
+) {
+  return {
+    type: SET_TIME_FORMATTED_COLUMN,
+    datasourceId,
+    columnName,
+  };
+}
+
+export const UNSET_TIME_FORMATTED_COLUMN = 'UNSET_TIME_FORMATTED_COLUMN';
+export function unsetTimeFormattedColumn(
+  datasourceId: string,
+  columnIndex: number,
+) {
+  return {
+    type: UNSET_TIME_FORMATTED_COLUMN,
+    datasourceId,
+    columnIndex,
+  };
+}
+
 export const exploreActions = {
   ...toastActions,
   setDatasourceType,
@@ -154,16 +171,16 @@ export const exploreActions = {
   setDatasources,
   fetchDatasourcesStarted,
   fetchDatasourcesSucceeded,
-  resetControls,
   toggleFaveStar,
   fetchFaveStar,
   saveFaveStar,
   setControlValue,
   setExploreControls,
-  removeControlPanelAlert,
   updateChartTitle,
   createNewSlice,
   sliceUpdated,
+  setTimeFormattedColumn,
+  unsetTimeFormattedColumn,
 };
 
 export type ExploreActions = typeof exploreActions;

@@ -59,15 +59,14 @@ type MenuListPropsChildren<OptionType> =
   | Component<OptionProps<OptionType>>[]
   | ReactElement[];
 
-export type MenuListProps<
-  OptionType extends OptionTypeBase
-> = MenuListComponentProps<OptionType> & {
-  children: MenuListPropsChildren<OptionType>;
-  // theme is not present with built-in @types/react-select, but is actually
-  // available via CommonProps.
-  theme?: ThemeConfig;
-  className?: string;
-} & WindowedMenuListProps;
+export type MenuListProps<OptionType extends OptionTypeBase> =
+  MenuListComponentProps<OptionType> & {
+    children: MenuListPropsChildren<OptionType>;
+    // theme is not present with built-in @types/react-select, but is actually
+    // available via CommonProps.
+    theme?: ThemeConfig;
+    className?: string;
+  } & WindowedMenuListProps;
 
 const DEFAULT_OPTION_HEIGHT = 30;
 

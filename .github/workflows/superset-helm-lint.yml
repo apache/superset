@@ -1,0 +1,46 @@
+name: Lint and Test Charts
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+
+jobs:
+  lint-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+        uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v1
+        with:
+          version: v3.5.4
+
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+
+      - name: Set up chart-testing
+        uses: ./.github/actions/chart-testing-action
+
+      - name: Run chart-testing (list-changed)
+        id: list-changed
+        run: |
+          changed=$(ct list-changed  --print-config)
+          if [[ -n "$changed" ]]; then
+            echo "::set-output name=changed::true"
+          fi
+        env:
+          CT_CHART_DIRS: helm
+          CT_SINCE: HEAD
+
+      - name: Run chart-testing (lint)
+        run: ct lint --print-config
+        env:
+          CT_CHART_DIRS: helm
+          CT_LINT_CONF: lintconf.yaml
+          CT_SINCE: HEAD

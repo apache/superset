@@ -16,21 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-const path = require('path');
-
-// Suerset's webpack.config.js
+// Superset's webpack.config.js
 const customConfig = require('../webpack.config.js');
 
 module.exports = {
-stories: ['../src/@(components|common)/**/*.stories.@(t|j)sx'],
+  core: {
+    builder: 'webpack5',
+  },
+  stories: [
+    '../src/@(components|common|filters|explore)/**/*.stories.@(t|j)sx',
+  ],
   addons: [
     '@storybook/addon-essentials',
     '@storybook/addon-links',
-    '@storybook/preset-typescript',
     'storybook-addon-jsx',
-    '@storybook/addon-knobs/register',
+    '@storybook/addon-knobs',
     'storybook-addon-paddings',
   ],
+  staticDirs: ['../src/assets/images'],
   webpackFinal: config => ({
     ...config,
     module: {
@@ -43,4 +46,7 @@ stories: ['../src/@(components|common)/**/*.stories.@(t|j)sx'],
     },
     plugins: [...config.plugins, ...customConfig.plugins],
   }),
+  typescript: {
+    reactDocgen: 'none',
+  },
 };

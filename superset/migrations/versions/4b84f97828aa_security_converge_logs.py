@@ -37,10 +37,18 @@ from superset.migrations.shared.security_converge import (
 revision = "4b84f97828aa"
 down_revision = "45731db65d9c"
 
-NEW_PVMS = {"Log": ("can_read", "can_write",)}
+NEW_PVMS = {
+    "Log": (
+        "can_read",
+        "can_write",
+    )
+}
 PVM_MAP = {
     Pvm("LogModelView", "can_show"): (Pvm("Log", "can_read"),),
-    Pvm("LogModelView", "can_add",): (Pvm("Log", "can_write"),),
+    Pvm(
+        "LogModelView",
+        "can_add",
+    ): (Pvm("Log", "can_write"),),
     Pvm("LogModelView", "can_list"): (Pvm("Log", "can_read"),),
 }
 

@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from datetime import datetime
-from typing import Any, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from superset.db_engine_specs.base import BaseEngineSpec, LimitMethod
 from superset.utils import core as utils
@@ -36,12 +36,14 @@ class OracleEngineSpec(BaseEngineSpec):
         "P1D": "TRUNC(CAST({col} as DATE), 'DDD')",
         "P1W": "TRUNC(CAST({col} as DATE), 'WW')",
         "P1M": "TRUNC(CAST({col} as DATE), 'MONTH')",
-        "P0.25Y": "TRUNC(CAST({col} as DATE), 'Q')",
+        "P3M": "TRUNC(CAST({col} as DATE), 'Q')",
         "P1Y": "TRUNC(CAST({col} as DATE), 'YEAR')",
     }
 
     @classmethod
-    def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
+    def convert_dttm(
+        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
+    ) -> Optional[str]:
         tt = target_type.upper()
         if tt == utils.TemporalType.DATE:
             return f"TO_DATE('{dttm.date().isoformat()}', 'YYYY-MM-DD')"

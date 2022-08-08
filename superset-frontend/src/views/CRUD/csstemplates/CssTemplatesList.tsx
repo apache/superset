@@ -24,14 +24,17 @@ import rison from 'rison';
 import moment from 'moment';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import { createFetchRelated, createErrorHandler } from 'src/views/CRUD/utils';
-import withToasts from 'src/messageToasts/enhancers/withToasts';
-import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
+import withToasts from 'src/components/MessageToasts/withToasts';
+import SubMenu, { SubMenuProps } from 'src/views/components/SubMenu';
 import DeleteModal from 'src/components/DeleteModal';
-import TooltipWrapper from 'src/components/TooltipWrapper';
+import { Tooltip } from 'src/components/Tooltip';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
-import { IconName } from 'src/components/Icon';
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
-import ListView, { ListViewProps, Filters } from 'src/components/ListView';
+import ListView, {
+  ListViewProps,
+  Filters,
+  FilterOperator,
+} from 'src/components/ListView';
 import CssTemplateModal from './CssTemplateModal';
 import { TemplateObject } from './types';
 
@@ -42,6 +45,8 @@ interface CssTemplatesListProps {
   addSuccessToast: (msg: string) => void;
   user: {
     userId: string | number;
+    firstName: string;
+    lastName: string;
   };
 }
 
@@ -66,22 +71,17 @@ function CssTemplatesList({
     t('CSS templates'),
     addDangerToast,
   );
-  const [cssTemplateModalOpen, setCssTemplateModalOpen] = useState<boolean>(
-    false,
-  );
-  const [
-    currentCssTemplate,
-    setCurrentCssTemplate,
-  ] = useState<TemplateObject | null>(null);
+  const [cssTemplateModalOpen, setCssTemplateModalOpen] =
+    useState<boolean>(false);
+  const [currentCssTemplate, setCurrentCssTemplate] =
+    useState<TemplateObject | null>(null);
 
   const canCreate = hasPerm('can_write');
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
 
-  const [
-    templateCurrentlyDeleting,
-    setTemplateCurrentlyDeleting,
-  ] = useState<TemplateObject | null>(null);
+  const [templateCurrentlyDeleting, setTemplateCurrentlyDeleting] =
+    useState<TemplateObject | null>(null);
 
   const handleTemplateDelete = ({ id, template_name }: TemplateObject) => {
     SupersetClient.delete({
@@ -146,13 +146,13 @@ function CssTemplatesList({
           }
 
           return (
-            <TooltipWrapper
-              label="allow-run-async-header"
-              tooltip={t('Last modified by %s', name)}
+            <Tooltip
+              id="allow-run-async-header-tooltip"
+              title={t('Last modified by %s', name)}
               placement="right"
             >
               <span>{changedOn}</span>
-            </TooltipWrapper>
+            </Tooltip>
           );
         },
         Header: t('Last modified'),
@@ -209,7 +209,7 @@ function CssTemplatesList({
                   label: 'edit-action',
                   tooltip: t('Edit template'),
                   placement: 'bottom',
-                  icon: 'edit' as IconName,
+                  icon: 'Edit',
                   onClick: handleEdit,
                 }
               : null,
@@ -218,7 +218,7 @@ function CssTemplatesList({
                   label: 'delete-action',
                   tooltip: t('Delete template'),
                   placement: 'bottom',
-                  icon: 'trash' as IconName,
+                  icon: 'Trash',
                   onClick: handleDelete,
                 }
               : null,
@@ -273,7 +273,7 @@ function CssTemplatesList({
         Header: t('Created by'),
         id: 'created_by',
         input: 'select',
-        operator: 'rel_o_m',
+        operator: FilterOperator.relationOneMany,
         unfilteredLabel: 'All',
         fetchSelects: createFetchRelated(
           'css_template',
@@ -284,7 +284,7 @@ function CssTemplatesList({
               errMsg,
             ),
           ),
-          user.userId,
+          user,
         ),
         paginate: true,
       },
@@ -292,7 +292,7 @@ function CssTemplatesList({
         Header: t('Search'),
         id: 'template_name',
         input: 'search',
-        operator: 'ct',
+        operator: FilterOperator.contains,
       },
     ],
     [],

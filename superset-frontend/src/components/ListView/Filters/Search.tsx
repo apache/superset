@@ -17,14 +17,30 @@
  * under the License.
  */
 import React, { useState } from 'react';
-import SearchInput from 'src/components/SearchInput';
-import { FilterContainer, BaseFilter } from './Base';
+import { t, styled } from '@superset-ui/core';
+import Icons from 'src/components/Icons';
+import { AntdInput } from 'src/components';
+import { SELECT_WIDTH } from 'src/components/ListView/utils';
+import { FormLabel } from 'src/components/Form';
+import { BaseFilter } from './Base';
 
 interface SearchHeaderProps extends BaseFilter {
   Header: string;
   onSubmit: (val: string) => void;
   name: string;
 }
+
+const Container = styled.div`
+  width: ${SELECT_WIDTH}px;
+`;
+
+const SearchIcon = styled(Icons.Search)`
+  color: ${({ theme }) => theme.colors.grayscale.light1};
+`;
+
+const StyledInput = styled(AntdInput)`
+  border-radius: ${({ theme }) => theme.gridUnit}px;
+`;
 
 export default function SearchFilter({
   Header,
@@ -35,27 +51,30 @@ export default function SearchFilter({
   const [value, setValue] = useState(initialValue || '');
   const handleSubmit = () => {
     if (value) {
-      onSubmit(value);
+      onSubmit(value.trim());
     }
   };
-  const onClear = () => {
-    setValue('');
-    onSubmit('');
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setValue(e.currentTarget.value);
+    if (e.currentTarget.value === '') {
+      onSubmit('');
+    }
   };
 
   return (
-    <FilterContainer>
-      <SearchInput
+    <Container>
+      <FormLabel>{Header}</FormLabel>
+      <StyledInput
+        allowClear
         data-test="filters-search"
-        placeholder={Header}
+        placeholder={t('Type a value')}
         name={name}
         value={value}
-        onChange={e => {
-          setValue(e.currentTarget.value);
-        }}
-        onSubmit={handleSubmit}
-        onClear={onClear}
+        onChange={handleChange}
+        onPressEnter={handleSubmit}
+        onBlur={handleSubmit}
+        prefix={<SearchIcon iconSize="l" />}
       />
-    </FilterContainer>
+    </Container>
   );
 }

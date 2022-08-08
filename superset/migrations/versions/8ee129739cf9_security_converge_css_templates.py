@@ -39,16 +39,39 @@ from superset.migrations.shared.security_converge import (
     Pvm,
 )
 
-NEW_PVMS = {"CssTemplate": ("can_read", "can_write",)}
+NEW_PVMS = {
+    "CssTemplate": (
+        "can_read",
+        "can_write",
+    )
+}
 PVM_MAP = {
     Pvm("CssTemplateModelView", "can_list"): (Pvm("CssTemplate", "can_read"),),
     Pvm("CssTemplateModelView", "can_show"): (Pvm("CssTemplate", "can_read"),),
-    Pvm("CssTemplateModelView", "can_add",): (Pvm("CssTemplate", "can_write"),),
-    Pvm("CssTemplateModelView", "can_edit",): (Pvm("CssTemplate", "can_write"),),
-    Pvm("CssTemplateModelView", "can_delete",): (Pvm("CssTemplate", "can_write"),),
-    Pvm("CssTemplateModelView", "muldelete",): (Pvm("CssTemplate", "can_write"),),
-    Pvm("CssTemplateAsyncModelView", "can_list",): (Pvm("CssTemplate", "can_read"),),
-    Pvm("CssTemplateAsyncModelView", "muldelete",): (Pvm("CssTemplate", "can_write"),),
+    Pvm(
+        "CssTemplateModelView",
+        "can_add",
+    ): (Pvm("CssTemplate", "can_write"),),
+    Pvm(
+        "CssTemplateModelView",
+        "can_edit",
+    ): (Pvm("CssTemplate", "can_write"),),
+    Pvm(
+        "CssTemplateModelView",
+        "can_delete",
+    ): (Pvm("CssTemplate", "can_write"),),
+    Pvm(
+        "CssTemplateModelView",
+        "muldelete",
+    ): (Pvm("CssTemplate", "can_write"),),
+    Pvm(
+        "CssTemplateAsyncModelView",
+        "can_list",
+    ): (Pvm("CssTemplate", "can_read"),),
+    Pvm(
+        "CssTemplateAsyncModelView",
+        "muldelete",
+    ): (Pvm("CssTemplate", "can_write"),),
 }
 
 

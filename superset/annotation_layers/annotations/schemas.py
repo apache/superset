@@ -51,19 +51,30 @@ annotation_json_metadata = "JSON metadata"
 def validate_json(value: Union[bytes, bytearray, str]) -> None:
     try:
         utils.validate_json(value)
-    except SupersetException:
-        raise ValidationError("JSON not valid")
+    except SupersetException as ex:
+        raise ValidationError("JSON not valid") from ex
 
 
 class AnnotationPostSchema(Schema):
     short_descr = fields.String(
-        description=annotation_short_descr, allow_none=False, validate=[Length(1, 500)]
+        description=annotation_short_descr,
+        required=True,
+        allow_none=False,
+        validate=[Length(1, 500)],
     )
     long_descr = fields.String(description=annotation_long_descr, allow_none=True)
-    start_dttm = fields.DateTime(description=annotation_start_dttm, allow_none=False)
-    end_dttm = fields.DateTime(description=annotation_end_dttm, allow_none=False)
+    start_dttm = fields.DateTime(
+        description=annotation_start_dttm,
+        required=True,
+        allow_none=False,
+    )
+    end_dttm = fields.DateTime(
+        description=annotation_end_dttm, required=True, allow_none=False
+    )
     json_metadata = fields.String(
-        description=annotation_json_metadata, validate=validate_json, allow_none=True,
+        description=annotation_json_metadata,
+        validate=validate_json,
+        allow_none=True,
     )
 
 
@@ -71,9 +82,14 @@ class AnnotationPutSchema(Schema):
     short_descr = fields.String(
         description=annotation_short_descr, required=False, validate=[Length(1, 500)]
     )
-    long_descr = fields.String(description=annotation_long_descr, required=False)
+    long_descr = fields.String(
+        description=annotation_long_descr, required=False, allow_none=True
+    )
     start_dttm = fields.DateTime(description=annotation_start_dttm, required=False)
     end_dttm = fields.DateTime(description=annotation_end_dttm, required=False)
     json_metadata = fields.String(
-        description=annotation_json_metadata, validate=validate_json, required=False
+        description=annotation_json_metadata,
+        validate=validate_json,
+        required=False,
+        allow_none=True,
     )

@@ -17,10 +17,23 @@
  * under the License.
  */
 import { User } from 'src/types/bootstrapTypes';
+import Database from 'src/types/Database';
 import Owner from 'src/types/Owner';
 
 export type FavoriteStatus = {
   [id: number]: boolean;
+};
+
+export enum TableTabTypes {
+  FAVORITE = 'Favorite',
+  MINE = 'Mine',
+  EXAMPLES = 'Examples',
+}
+
+export type Filters = {
+  col: string;
+  opr: string;
+  value: string | number;
 };
 
 export interface DashboardTableProps {
@@ -29,12 +42,18 @@ export interface DashboardTableProps {
   search: string;
   user?: User;
   mine: Array<Dashboard>;
+  showThumbnails?: boolean;
+  featureFlag?: boolean;
+  examples: Array<Dashboard>;
 }
 
 export interface Dashboard {
+  certified_by?: string;
+  certification_details?: string;
   changed_by_name: string;
   changed_by_url: string;
-  changed_on_delta_humanized: string;
+  changed_on_delta_humanized?: string;
+  changed_on_utc?: string;
   changed_by: string;
   dashboard_title: string;
   slice_name?: string;
@@ -47,13 +66,15 @@ export interface Dashboard {
 }
 
 export type SavedQueryObject = {
+  id: number;
+  changed_on: string;
+  changed_on_delta_humanized: string;
   database: {
     database_name: string;
     id: number;
   };
   db_id: number;
   description?: string;
-  id: number;
   label: string;
   schema: string;
   sql: string | null;
@@ -112,4 +133,12 @@ export enum QueryObjectColumns {
   tracking_url = 'tracking_url',
 }
 
-export type ImportResourceName = 'chart' | 'dashboard' | 'database' | 'dataset';
+export type ImportResourceName =
+  | 'chart'
+  | 'dashboard'
+  | 'database'
+  | 'dataset'
+  | 'saved_query';
+
+export type DatabaseObject = Partial<Database> &
+  Pick<Database, 'sqlalchemy_uri'>;

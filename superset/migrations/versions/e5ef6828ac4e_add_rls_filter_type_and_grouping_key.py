@@ -53,6 +53,8 @@ def upgrade():
 
 def downgrade():
     with op.batch_alter_table("row_level_security_filters") as batch_op:
-        batch_op.drop_index(op.f("ix_row_level_security_filters_filter_type"),)
+        batch_op.drop_index(
+            op.f("ix_row_level_security_filters_filter_type"),
+        )
         batch_op.drop_column("filter_type")
         batch_op.drop_column("group_key")

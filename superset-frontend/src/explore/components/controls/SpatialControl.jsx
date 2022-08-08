@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Row, Col } from 'react-bootstrap';
+import { Row, Col } from 'src/components';
 import { t } from '@superset-ui/core';
 
 import Label from 'src/components/Label';
@@ -134,6 +134,7 @@ export default class SpatialControl extends React.Component {
   renderSelect(name, type) {
     return (
       <SelectControl
+        ariaLabel={name}
         name={name}
         choices={this.props.choices}
         value={this.state[name]}
@@ -168,12 +169,12 @@ export default class SpatialControl extends React.Component {
           isSelected={this.state.type === spatialTypes.latlong}
           onSelect={this.setType.bind(this, spatialTypes.latlong)}
         >
-          <Row>
-            <Col md={6}>
+          <Row gutter={16}>
+            <Col xs={24} md={12}>
               Longitude
               {this.renderSelect('lonCol', spatialTypes.latlong)}
             </Col>
-            <Col md={6}>
+            <Col xs={24} md={12}>
               Latitude
               {this.renderSelect('latCol', spatialTypes.latlong)}
             </Col>
@@ -188,12 +189,14 @@ export default class SpatialControl extends React.Component {
           isSelected={this.state.type === spatialTypes.delimited}
           onSelect={this.setType.bind(this, spatialTypes.delimited)}
         >
-          <Row>
-            <Col md={6}>
+          <Row gutter={16}>
+            <Col xs={24} md={12}>
               {t('Column')}
               {this.renderSelect('lonlatCol', spatialTypes.delimited)}
             </Col>
-            <Col md={6}>{this.renderReverseCheckbox()}</Col>
+            <Col xs={24} md={12}>
+              {this.renderReverseCheckbox()}
+            </Col>
           </Row>
         </PopoverSection>
         <PopoverSection
@@ -201,12 +204,14 @@ export default class SpatialControl extends React.Component {
           isSelected={this.state.type === spatialTypes.geohash}
           onSelect={this.setType.bind(this, spatialTypes.geohash)}
         >
-          <Row>
-            <Col md={6}>
+          <Row gutter={16}>
+            <Col xs={24} md={12}>
               Column
               {this.renderSelect('geohashCol', spatialTypes.geohash)}
             </Col>
-            <Col md={6}>{this.renderReverseCheckbox()}</Col>
+            <Col xs={24} md={12}>
+              {this.renderReverseCheckbox()}
+            </Col>
           </Row>
         </PopoverSection>
       </div>

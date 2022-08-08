@@ -25,7 +25,7 @@ sql: SELECT date, total_membership - lag(total_membership) OVER (ORDER BY date) 
   new_members FROM exported_stats
 params: null
 template_params: null
-filter_select_enabled: false
+filter_select_enabled: true
 fetch_values_predicate: null
 extra: null
 uuid: 9dd99cda-ff6b-4575-9a74-684d06e871ab

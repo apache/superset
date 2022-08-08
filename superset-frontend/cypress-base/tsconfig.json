@@ -8,7 +8,7 @@
     "lib": ["es2019", "DOM"],
     "types": ["cypress"],
     "allowJs": true,
-    "noEmit": true,
+    "noEmit": true
   },
   "files": ["cypress/support/index.d.ts"],
   "include": ["node_modules/cypress", "cypress/**/*.ts"]

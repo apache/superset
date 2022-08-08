@@ -31,8 +31,8 @@ def validate_owner(value: int) -> None:
             .filter_by(id=value)
             .one()
         )
-    except NoResultFound:
-        raise ValidationError(f"User {value} does not exist")
+    except NoResultFound as ex:
+        raise ValidationError(f"User {value} does not exist") from ex
 
 
 class BaseSupersetSchema(Schema):
@@ -112,9 +112,9 @@ class BaseOwnedSchema(BaseSupersetSchema):
 
     @staticmethod
     def set_owners(instance: Model, owners: List[int]) -> None:
-        owner_objs = list()
-        if g.user.id not in owners:
-            owners.append(g.user.id)
+        owner_objs = []
+        if g.user.get_id() not in owners:
+            owners.append(g.user.get_id())
         for owner_id in owners:
             user = current_app.appbuilder.get_session.query(
                 current_app.appbuilder.sm.user_model

@@ -17,13 +17,13 @@
  * under the License.
  */
 
-import { styled, t } from '@superset-ui/core';
+import { css, styled, t } from '@superset-ui/core';
 import moment from 'moment';
 import React, { useEffect, useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import ListView from 'src/components/ListView';
-import SubMenu from 'src/components/Menu/SubMenu';
-import withToasts from 'src/messageToasts/enhancers/withToasts';
+import SubMenu from 'src/views/components/SubMenu';
+import withToasts from 'src/components/MessageToasts/withToasts';
 import { fDuration } from 'src/modules/dates';
 import AlertStatusIcon from 'src/views/CRUD/alert/components/AlertStatusIcon';
 import {
@@ -35,16 +35,18 @@ import { AlertObject, LogObject } from './types';
 const PAGE_SIZE = 25;
 
 const StyledHeader = styled.div`
-  display: flex;
-  flex-direction: row;
+  ${({ theme }) => css`
+    display: flex;
+    flex-direction: row;
 
-  a,
-  Link {
-    margin-left: 16px;
-    font-size: 12px;
-    font-weight: normal;
-    text-decoration: underline;
-  }
+    a,
+    Link {
+      margin-left: ${theme.gridUnit * 4}px;
+      font-size: ${theme.typography.sizes.s};
+      font-weight: ${theme.typography.weights.normal};
+      text-decoration: underline;
+    }
+  `}
 `;
 
 interface ExecutionLogProps {
@@ -96,16 +98,33 @@ function ExecutionLog({ addDangerToast, isReportEnabled }: ExecutionLogProps) {
         disableSortBy: true,
       },
       {
+        Cell: ({
+          row: {
+            original: { uuid: executionId },
+          },
+        }: any) => (executionId ? executionId.slice(0, 6) : 'none'),
+        accessor: 'uuid',
+        Header: t('Execution ID'),
+        size: 'xs',
+        disableSortBy: true,
+      },
+      {
+        Cell: ({
+          row: {
+            original: { scheduled_dttm: scheduledDttm },
+          },
+        }: any) =>
+          moment(new Date(scheduledDttm)).format('YYYY-MM-DD hh:mm:ss a'),
         accessor: 'scheduled_dttm',
-        Header: t('Scheduled at'),
+        Header: t('Scheduled at (UTC)'),
       },
       {
         Cell: ({
           row: {
             original: { start_dttm: startDttm },
           },
-        }: any) => moment(new Date(startDttm)).format('MM/DD/YYYY hh:mm:ss a'),
-        Header: t('Start at'),
+        }: any) => moment(new Date(startDttm)).format('YYYY-MM-DD hh:mm:ss a'),
+        Header: t('Start at (UTC)'),
         accessor: 'start_dttm',
       },
       {
@@ -136,7 +155,7 @@ function ExecutionLog({ addDangerToast, isReportEnabled }: ExecutionLogProps) {
         name={
           <StyledHeader>
             <span>
-              {t(`${alertResource?.type}`)} {alertResource?.name}
+              {alertResource?.type} {alertResource?.name}
             </span>
             <span>
               <Link to={path}>Back to all</Link>

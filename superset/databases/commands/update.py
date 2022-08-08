@@ -54,9 +54,9 @@ class UpdateDatabaseCommand(BaseCommand):
             # TODO Improve this simplistic implementation for catching DB conn fails
             try:
                 schemas = database.get_all_schema_names()
-            except Exception:
+            except Exception as ex:
                 db.session.rollback()
-                raise DatabaseConnectionFailedError()
+                raise DatabaseConnectionFailedError() from ex
             for schema in schemas:
                 security_manager.add_permission_view_menu(
                     "schema_access", security_manager.get_schema_perm(database, schema)
@@ -65,11 +65,11 @@ class UpdateDatabaseCommand(BaseCommand):
 
         except DAOUpdateFailedError as ex:
             logger.exception(ex.exception)
-            raise DatabaseUpdateFailedError()
+            raise DatabaseUpdateFailedError() from ex
         return database
 
     def validate(self) -> None:
-        exceptions: List[ValidationError] = list()
+        exceptions: List[ValidationError] = []
         # Validate/populate model exists
         self._model = DatabaseDAO.find_by_id(self._model_id)
         if not self._model:

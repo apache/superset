@@ -17,15 +17,20 @@
  * under the License.
  */
 import { t, validateNonEmpty } from '@superset-ui/core';
-import { ControlPanelConfig, sections } from '@superset-ui/chart-controls';
+import {
+  ControlPanelConfig,
+  sections,
+  sharedControls,
+} from '@superset-ui/chart-controls';
 import { DEFAULT_FORM_DATA } from './types';
 
 const {
   enableEmptyFilter,
-  fetchPredicate,
   inverseSelection,
   multiSelect,
-  showSearch,
+  defaultToFirstItem,
+  searchAllOptions,
+  sortAscending,
 } = DEFAULT_FORM_DATA;
 
 const config: ControlPanelConfig = {
@@ -36,17 +41,44 @@ const config: ControlPanelConfig = {
       label: t('Query'),
       expanded: true,
       controlSetRows: [
-        ['groupby'],
-        ['metrics'],
-        ['adhoc_filters'],
+        [
+          {
+            name: 'groupby',
+            config: {
+              ...sharedControls.groupby,
+              label: 'Column',
+              required: true,
+            },
+          },
+        ],
+      ],
+    },
+    {
+      label: t('UI Configuration'),
+      expanded: true,
+      controlSetRows: [
+        [
+          {
+            name: 'sortAscending',
+            config: {
+              type: 'CheckboxControl',
+              renderTrigger: true,
+              label: t('Sort ascending'),
+              default: sortAscending,
+              description: t('Check for sorting ascending'),
+            },
+          },
+        ],
         [
           {
             name: 'multiSelect',
             config: {
               type: 'CheckboxControl',
-              label: t('Multiple select'),
+              label: t('Can select multiple values'),
               default: multiSelect,
-              description: t('Allow selecting multiple values'),
+              resetConfig: true,
+              affectsDataMask: true,
+              renderTrigger: true,
             },
           },
         ],
@@ -55,10 +87,28 @@ const config: ControlPanelConfig = {
             name: 'enableEmptyFilter',
             config: {
               type: 'CheckboxControl',
-              label: t('Enable empty filter'),
+              label: t('Filter value is required'),
               default: enableEmptyFilter,
+              renderTrigger: true,
               description: t(
-                'When selection is empty, should an always false filter event be emitted',
+                'User must select a value before applying the filter',
+              ),
+            },
+          },
+        ],
+        [
+          {
+            name: 'defaultToFirstItem',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Select first filter value by default'),
+              default: defaultToFirstItem,
+              resetConfig: true,
+              affectsDataMask: true,
+              renderTrigger: true,
+              requiredFirst: true,
+              description: t(
+                'When using this option, default value can’t be set',
               ),
             },
           },
@@ -68,6 +118,8 @@ const config: ControlPanelConfig = {
             name: 'inverseSelection',
             config: {
               type: 'CheckboxControl',
+              renderTrigger: true,
+              affectsDataMask: true,
               label: t('Inverse selection'),
               default: inverseSelection,
               description: t('Exclude selected values'),
@@ -76,30 +128,21 @@ const config: ControlPanelConfig = {
         ],
         [
           {
-            name: 'showSearch',
+            name: 'searchAllOptions',
             config: {
               type: 'CheckboxControl',
-              label: t('Search field'),
-              default: showSearch,
-              description: t('Allow typing search terms'),
-            },
-          },
-        ],
-        [
-          {
-            name: 'fetchPredicate',
-            config: {
-              type: 'TextControl',
-              label: t('Fetch predicate'),
-              default: fetchPredicate,
+              renderTrigger: true,
+              affectsDataMask: true,
+              label: t('Dynamically search all filter values'),
+              default: searchAllOptions,
               description: t(
-                'Predicate applied when fetching distinct value to populate the filter control component.',
+                'By default, each filter loads at most 1000 choices at the initial page load. ' +
+                  'Check this box if you have more than 1000 filter values and want to enable dynamically ' +
+                  'searching that loads filter values as users type (may add stress to your database).',
               ),
             },
           },
-          null,
         ],
-        ['row_limit', null],
       ],
     },
   ],

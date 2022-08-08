@@ -1,0 +1,202 @@
+# Python integration tests
+name: Python-Integration
+
+on:
+  push:
+    branches-ignore:
+      - "dependabot/npm_and_yarn/**"
+  pull_request:
+    types: [synchronize, opened, reopened, ready_for_review]
+
+jobs:
+  test-mysql:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        python-version: [3.8]
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+      SUPERSET_CONFIG: tests.integration_tests.superset_test_config
+      REDIS_PORT: 16379
+      SUPERSET__SQLALCHEMY_DATABASE_URI: |
+        mysql+mysqldb://superset:superset@127.0.0.1:13306/superset?charset=utf8mb4&binary_prefix=true
+    services:
+      mysql:
+        image: mysql:5.7
+        env:
+          MYSQL_ROOT_PASSWORD: root
+        ports:
+          - 13306:3306
+      redis:
+        image: redis:5-alpine
+        options: --entrypoint redis-server
+        ports:
+          - 16379:6379
+    steps:
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+        uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+          submodules: recursive
+      - name: Check if python changes are present
+        id: check
+        env:
+          GITHUB_REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        continue-on-error: true
+        run: ./scripts/ci_check_no_file_changes.sh python
+      - name: Setup Python
+        if: steps.check.outcome == 'failure'
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+          cache-dependency-path: 'requirements/testing.txt'
+      - name: Install dependencies
+        if: steps.check.outcome == 'failure'
+        uses: ./.github/actions/cached-dependencies
+        with:
+          run: |
+            apt-get-install
+            pip-upgrade
+            pip install wheel
+            pip install -r requirements/testing.txt
+            setup-mysql
+      - name: Run celery
+        if: steps.check.outcome == 'failure'
+        run: celery --app=superset.tasks.celery_app:app worker -Ofair -c 2 &
+      - name: Python integration tests (MySQL)
+        if: steps.check.outcome == 'failure'
+        run: |
+          ./scripts/python_tests.sh
+      - name: Upload code coverage
+        if: steps.check.outcome == 'failure'
+        run: |
+          bash .github/workflows/codecov.sh -c -F python -F mysql
+
+  test-postgres:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        python-version: [3.8, 3.9]
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+      SUPERSET_CONFIG: tests.integration_tests.superset_test_config
+      REDIS_PORT: 16379
+      SUPERSET__SQLALCHEMY_DATABASE_URI: postgresql+psycopg2://superset:superset@127.0.0.1:15432/superset
+    services:
+      postgres:
+        image: postgres:10-alpine
+        env:
+          POSTGRES_USER: superset
+          POSTGRES_PASSWORD: superset
+        ports:
+          # Use custom ports for services to avoid accidentally connecting to
+          # GitHub action runner's default installations
+          - 15432:5432
+      redis:
+        image: redis:5-alpine
+        ports:
+          - 16379:6379
+    steps:
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+        uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+          submodules: recursive
+      - name: Check if python changes are present
+        id: check
+        env:
+          GITHUB_REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        continue-on-error: true
+        run: ./scripts/ci_check_no_file_changes.sh python
+      - name: Setup Python
+        if: steps.check.outcome == 'failure'
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+          cache-dependency-path: 'requirements/testing.txt'
+      - name: Install dependencies
+        if: steps.check.outcome == 'failure'
+        uses: ./.github/actions/cached-dependencies
+        with:
+          run: |
+            apt-get-install
+            pip-upgrade
+            pip install wheel
+            pip install -r requirements/testing.txt
+            setup-postgres
+      - name: Run celery
+        if: steps.check.outcome == 'failure'
+        run: celery --app=superset.tasks.celery_app:app worker -Ofair -c 2 &
+      - name: Python integration tests (PostgreSQL)
+        if: steps.check.outcome == 'failure'
+        run: |
+          ./scripts/python_tests.sh
+      - name: Upload code coverage
+        if: steps.check.outcome == 'failure'
+        run: |
+          bash .github/workflows/codecov.sh -c -F python -F postgres
+
+  test-sqlite:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        python-version: [3.8]
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+      SUPERSET_CONFIG: tests.integration_tests.superset_test_config
+      REDIS_PORT: 16379
+      SUPERSET__SQLALCHEMY_DATABASE_URI: |
+        sqlite:///${{ github.workspace }}/.temp/unittest.db
+    services:
+      redis:
+        image: redis:5-alpine
+        ports:
+          - 16379:6379
+    steps:
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+        uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+          submodules: recursive
+      - name: Check if python changes are present
+        id: check
+        env:
+          GITHUB_REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        continue-on-error: true
+        run: ./scripts/ci_check_no_file_changes.sh python
+      - name: Setup Python
+        if: steps.check.outcome == 'failure'
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+          cache-dependency-path: 'requirements/testing.txt'
+      - name: Install dependencies
+        if: steps.check.outcome == 'failure'
+        uses: ./.github/actions/cached-dependencies
+        with:
+          run: |
+            apt-get-install
+            pip-upgrade
+            pip install wheel
+            pip install -r requirements/testing.txt
+            mkdir ${{ github.workspace }}/.temp
+      - name: Run celery
+        if: steps.check.outcome == 'failure'
+        run: celery --app=superset.tasks.celery_app:app worker -Ofair -c 2 &
+      - name: Python integration tests (SQLite)
+        if: steps.check.outcome == 'failure'
+        run: |
+          ./scripts/python_tests.sh
+      - name: Upload code coverage
+        if: steps.check.outcome == 'failure'
+        run: |
+          bash .github/workflows/codecov.sh -c -F python -F sqlite

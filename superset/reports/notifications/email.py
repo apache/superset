@@ -17,10 +17,12 @@
 # under the License.
 import json
 import logging
+import textwrap
 from dataclasses import dataclass
 from email.utils import make_msgid, parseaddr
-from typing import Dict
+from typing import Any, Dict, Optional
 
+import bleach
 from flask_babel import gettext as __
 
 from superset import app
@@ -28,14 +30,19 @@ from superset.models.reports import ReportRecipientType
 from superset.reports.notifications.base import BaseNotification
 from superset.reports.notifications.exceptions import NotificationError
 from superset.utils.core import send_email_smtp
+from superset.utils.urls import modify_url_query
 
 logger = logging.getLogger(__name__)
+
+TABLE_TAGS = ["table", "th", "tr", "td", "thead", "tbody", "tfoot"]
+TABLE_ATTRIBUTES = ["colspan", "rowspan", "halign", "border", "class"]
 
 
 @dataclass
 class EmailContent:
     body: str
-    images: Dict[str, bytes]
+    data: Optional[Dict[str, Any]] = None
+    images: Optional[Dict[str, bytes]] = None
 
 
 class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-methods
@@ -49,22 +56,88 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
     def _get_smtp_domain() -> str:
         return parseaddr(app.config["SMTP_MAIL_FROM"])[1].split("@")[1]
 
-    def _get_content(self) -> EmailContent:
-        # Get the domain from the 'From' address ..
-        # and make a message id without the < > in the ends
-        domain = self._get_smtp_domain()
-        msgid = make_msgid(domain)[1:-1]
-
-        image = {msgid: self._content.screenshot.image}
-        body = __(
+    @staticmethod
+    def _error_template(text: str) -> str:
+        return __(
             """
-            <b><a href="%(url)s">Explore in Superset</a></b><p></p>
-            <img src="cid:%(msgid)s">
+            Error: %(text)s
             """,
-            url=self._content.screenshot.url,
-            msgid=msgid,
+            text=text,
         )
-        return EmailContent(body=body, images=image)
+
+    def _get_content(self) -> EmailContent:
+        if self._content.text:
+            return EmailContent(body=self._error_template(self._content.text))
+        # Get the domain from the 'From' address ..
+        # and make a message id without the < > in the end
+        csv_data = None
+        domain = self._get_smtp_domain()
+        images = {}
+
+        if self._content.screenshots:
+            images = {
+                make_msgid(domain)[1:-1]: screenshot
+                for screenshot in self._content.screenshots
+            }
+
+        # Strip any malicious HTML from the description
+        description = bleach.clean(self._content.description or "")
+
+        # Strip malicious HTML from embedded data, allowing only table elements
+        if self._content.embedded_data is not None:
+            df = self._content.embedded_data
+            html_table = bleach.clean(
+                df.to_html(na_rep="", index=True),
+                tags=TABLE_TAGS,
+                attributes=TABLE_ATTRIBUTES,
+            )
+        else:
+            html_table = ""
+
+        call_to_action = __("Explore in Superset")
+        url = (
+            modify_url_query(self._content.url, standalone="0")
+            if self._content.url is not None
+            else ""
+        )
+        img_tags = []
+        for msgid in images.keys():
+            img_tags.append(
+                f"""<div class="image">
+                    <img width="1000px" src="cid:{msgid}">
+                </div>
+                """
+            )
+        img_tag = "".join(img_tags)
+        body = textwrap.dedent(
+            f"""
+            <html>
+              <head>
+                <style type="text/css">
+                  table, th, td {{
+                    border-collapse: collapse;
+                    border-color: rgb(200, 212, 227);
+                    color: rgb(42, 63, 95);
+                    padding: 4px 8px;
+                  }}
+                  .image{{
+                      margin-bottom: 18px;
+                  }}
+                </style>
+              </head>
+              <body>
+                <p>{description}</p>
+                <b><a href="{url}">{call_to_action}</a></b><p></p>
+                {html_table}
+                {img_tag}
+              </body>
+            </html>
+            """
+        )
+
+        if self._content.csv:
+            csv_data = {__("%(name)s.csv", name=self._content.name): self._content.csv}
+        return EmailContent(body=body, images=images, data=csv_data)
 
     def _get_subject(self) -> str:
         return __(
@@ -87,7 +160,7 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
                 content.body,
                 app.config,
                 files=[],
-                data=None,
+                data=content.data,
                 images=content.images,
                 bcc="",
                 mime_subtype="related",
@@ -95,4 +168,4 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
             )
             logger.info("Report sent to email")
         except Exception as ex:
-            raise NotificationError(ex)
+            raise NotificationError(ex) from ex

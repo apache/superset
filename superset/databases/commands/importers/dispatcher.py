@@ -38,7 +38,6 @@ class ImportDatabasesCommand(BaseCommand):
     until it finds one that matches.
     """
 
-    # pylint: disable=unused-argument
     def __init__(self, contents: Dict[str, str], *args: Any, **kwargs: Any):
         self.contents = contents
         self.args = args

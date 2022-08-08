@@ -16,25 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
+import { Behavior, ChartMetadata, ChartPlugin, t } from '@superset-ui/core';
 import buildQuery from './buildQuery';
 import controlPanel from './controlPanel';
 import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
 
-export default class AntdFilterSelectPlugin extends ChartPlugin {
+export default class FilterSelectPlugin extends ChartPlugin {
   constructor() {
     const metadata = new ChartMetadata({
-      name: t('Select filter plugin'),
-      description: 'Select filter plugin using AntD',
-      isNativeFilter: true,
+      name: t('Select filter'),
+      description: t('Select filter plugin using AntD'),
+      behaviors: [Behavior.INTERACTIVE_CHART, Behavior.NATIVE_FILTER],
+      enableNoResults: false,
+      tags: [t('Experimental')],
       thumbnail,
     });
 
     super({
       buildQuery,
       controlPanel,
-      loadChart: () => import('./AntdSelectFilter'),
+      loadChart: () => import('./SelectFilterPlugin'),
       metadata,
       transformProps,
     });

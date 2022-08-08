@@ -1,3 +1,6 @@
+import { JsonObject, Locale } from '@superset-ui/core';
+import { isPlainObject } from 'lodash';
+
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -21,6 +24,7 @@ export type User = {
   email: string;
   firstName: string;
   isActive: boolean;
+  isAnonymous: boolean;
   lastName: string;
   userId: number;
   username: string;
@@ -31,8 +35,10 @@ export interface UserWithPermissionsAndRoles extends User {
     database_access?: string[];
     datasource_access?: string[];
   };
-  roles: Record<string, string[][]>;
+  roles: Record<string, [string, string][]>;
 }
+
+export type UndefinedUser = {};
 
 export type Dashboard = {
   dttm: number;
@@ -42,3 +48,20 @@ export type Dashboard = {
   creator?: string;
   creator_url?: string;
 };
+
+export interface CommonBootstrapData {
+  flash_messages: string[][];
+  conf: JsonObject;
+  locale: Locale;
+  feature_flags: Record<string, boolean>;
+}
+
+export function isUser(user: any): user is User {
+  return isPlainObject(user) && 'username' in user;
+}
+
+export function isUserWithPermissionsAndRoles(
+  user: any,
+): user is UserWithPermissionsAndRoles {
+  return isUser(user) && 'permissions' in user && 'roles' in user;
+}

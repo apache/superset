@@ -17,17 +17,38 @@
  * under the License.
  */
 import { ChartProps } from '@superset-ui/core';
+import { noOp } from 'src/utils/common';
 
 export default function transformProps(chartProps: ChartProps) {
-  const { formData, height, hooks, queriesData, width } = chartProps;
-  const { setExtraFormData } = hooks;
+  const {
+    formData,
+    height,
+    hooks,
+    queriesData,
+    width,
+    behaviors,
+    filterState,
+    inputRef,
+  } = chartProps;
+  const {
+    setDataMask = noOp,
+    setFocusedFilter = noOp,
+    unsetFocusedFilter = noOp,
+    setFilterActive = noOp,
+  } = hooks;
   const { data } = queriesData[0];
 
   return {
     data,
     formData,
+    behaviors,
     height,
-    setExtraFormData,
+    setDataMask,
+    filterState,
     width,
+    setFocusedFilter,
+    unsetFocusedFilter,
+    setFilterActive,
+    inputRef,
   };
 }

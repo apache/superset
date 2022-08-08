@@ -17,12 +17,12 @@
  * under the License.
  */
 import React, { useState, ReactNode } from 'react';
-import { styled, supersetTheme, t } from '@superset-ui/core';
+import { styled, useTheme, t } from '@superset-ui/core';
 import { noOp } from 'src/utils/common';
-import Modal from 'src/common/components/Modal';
+import Modal from 'src/components/Modal';
 import Button from 'src/components/Button';
 
-import Icon from '../Icon';
+import Icons from 'src/components/Icons';
 import { ErrorLevel, ErrorSource } from './types';
 import CopyToClipboard from '../CopyToClipboard';
 
@@ -92,25 +92,28 @@ interface ErrorAlertProps {
 export default function ErrorAlert({
   body,
   copyText,
-  level,
+  level = 'error',
   source = 'dashboard',
   subtitle,
   title,
 }: ErrorAlertProps) {
+  const theme = useTheme();
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isBodyExpanded, setIsBodyExpanded] = useState(false);
 
   const isExpandable = ['explore', 'sqllab'].includes(source);
+  const iconColor = theme.colors[level].base;
 
   return (
-    <ErrorAlertDiv level={level}>
+    <ErrorAlertDiv level={level} role="alert">
       <div className="top-row">
         <LeftSideContent>
-          <Icon
-            className="icon"
-            name={level === 'error' ? 'error-solid' : 'warning-solid'}
-            color={supersetTheme.colors[level].base}
-          />
+          {level === 'error' ? (
+            <Icons.ErrorSolid className="icon" iconColor={iconColor} />
+          ) : (
+            <Icons.WarningSolid className="icon" iconColor={iconColor} />
+          )}
           <strong>{title}</strong>
         </LeftSideContent>
         {!isExpandable && (
@@ -163,11 +166,11 @@ export default function ErrorAlert({
           onHide={() => setIsModalOpen(false)}
           title={
             <div className="header">
-              <Icon
-                className="icon"
-                name={level === 'error' ? 'error-solid' : 'warning-solid'}
-                color={supersetTheme.colors[level].base}
-              />
+              {level === 'error' ? (
+                <Icons.ErrorSolid className="icon" iconColor={iconColor} />
+              ) : (
+                <Icons.WarningSolid className="icon" iconColor={iconColor} />
+              )}
               <div className="title">{title}</div>
             </div>
           }

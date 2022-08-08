@@ -16,25 +16,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
+import { Behavior, ChartMetadata, ChartPlugin, t } from '@superset-ui/core';
 import buildQuery from './buildQuery';
 import controlPanel from './controlPanel';
 import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
 
-export default class AntdRangeFilterPlugin extends ChartPlugin {
+export default class RangeFilterPlugin extends ChartPlugin {
   constructor() {
     const metadata = new ChartMetadata({
-      name: t('Range filter plugin'),
-      description: 'Range filter plugin using AntD',
-      isNativeFilter: true,
+      name: t('Range filter'),
+      description: t('Range filter plugin using AntD'),
+      behaviors: [Behavior.INTERACTIVE_CHART, Behavior.NATIVE_FILTER],
+      tags: [t('Experimental')],
       thumbnail,
     });
 
     super({
       buildQuery,
       controlPanel,
-      loadChart: () => import('./AntdRangeFilter'),
+      loadChart: () => import('./RangeFilterPlugin'),
       metadata,
       transformProps,
     });

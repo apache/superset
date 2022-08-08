@@ -20,7 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { SketchPicker } from 'react-color';
 import { getCategoricalSchemeRegistry } from '@superset-ui/core';
-import Popover from 'src/common/components/Popover';
+import Popover from 'src/components/Popover';
 import ControlHeader from '../ControlHeader';
 
 const propTypes = {

@@ -14,10 +14,13 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import io
 import os
 import tempfile
+import zipfile
 from typing import TYPE_CHECKING
 
+import pandas as pd
 from flask import flash, g, redirect
 from flask_appbuilder import expose, SimpleFormView
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -32,17 +35,18 @@ from superset import app, db, is_feature_enabled
 from superset.connectors.sqla.models import SqlaTable
 from superset.constants import MODEL_VIEW_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.exceptions import CertificateException
+from superset.extensions import event_logger
 from superset.sql_parse import Table
-from superset.typing import FlaskResponse
+from superset.superset_typing import FlaskResponse
 from superset.utils import core as utils
 from superset.views.base import DeleteMixin, SupersetModelView, YamlExportMixin
 
-from .forms import CsvToDatabaseForm, ExcelToDatabaseForm
+from .forms import ColumnarToDatabaseForm, CsvToDatabaseForm, ExcelToDatabaseForm
 from .mixins import DatabaseMixin
-from .validators import schema_allows_csv_upload, sqlalchemy_uri_validator
+from .validators import schema_allows_file_upload, sqlalchemy_uri_validator
 
 if TYPE_CHECKING:
-    from werkzeug.datastructures import FileStorage  # pylint: disable=unused-import
+    from werkzeug.datastructures import FileStorage
 
 config = app.config
 stats_logger = config["STATS_LOGGER"]
@@ -64,7 +68,7 @@ def certificate_form_validator(_: _, field: StringField) -> None:
         try:
             utils.parse_ssl_cert(field.data)
         except CertificateException as ex:
-            raise ValidationError(ex.message)
+            raise ValidationError(ex.message) from ex
 
 
 def upload_stream_write(form_file_field: "FileStorage", path: str) -> None:
@@ -128,7 +132,7 @@ class CsvToDatabaseView(SimpleFormView):
         database = form.con.data
         csv_table = Table(table=form.name.data, schema=form.schema.data)
 
-        if not schema_allows_csv_upload(database, csv_table.schema):
+        if not schema_allows_file_upload(database, csv_table.schema):
             message = _(
                 'Database "%(database_name)s" schema "%(schema_name)s" '
                 "is not allowed for csv uploads. Please contact your Superset Admin.",
@@ -138,66 +142,45 @@ class CsvToDatabaseView(SimpleFormView):
             flash(message, "danger")
             return redirect("/csvtodatabaseview/form")
 
-        if "." in csv_table.table and csv_table.schema:
-            message = _(
-                "You cannot specify a namespace both in the name of the table: "
-                '"%(csv_table.table)s" and in the schema field: '
-                '"%(csv_table.schema)s". Please remove one',
-                table=csv_table.table,
-                schema=csv_table.schema,
-            )
-            flash(message, "danger")
-            return redirect("/csvtodatabaseview/form")
-
-        uploaded_tmp_file_path = tempfile.NamedTemporaryFile(
-            dir=app.config["UPLOAD_FOLDER"],
-            suffix=os.path.splitext(form.csv_file.data.filename)[1].lower(),
-            delete=False,
-        ).name
-
         try:
-            utils.ensure_path_exists(config["UPLOAD_FOLDER"])
-            upload_stream_write(form.csv_file.data, uploaded_tmp_file_path)
-
-            con = form.data.get("con")
-            database = (
-                db.session.query(models.Database).filter_by(id=con.data.get("id")).one()
+            df = pd.concat(
+                pd.read_csv(
+                    chunksize=1000,
+                    encoding="utf-8",
+                    filepath_or_buffer=form.csv_file.data,
+                    header=form.header.data if form.header.data else 0,
+                    index_col=form.index_col.data,
+                    infer_datetime_format=form.infer_datetime_format.data,
+                    iterator=True,
+                    keep_default_na=not form.null_values.data,
+                    mangle_dupe_cols=form.mangle_dupe_cols.data,
+                    usecols=form.usecols.data if form.usecols.data else None,
+                    na_values=form.null_values.data if form.null_values.data else None,
+                    nrows=form.nrows.data,
+                    parse_dates=form.parse_dates.data,
+                    sep=form.sep.data,
+                    skip_blank_lines=form.skip_blank_lines.data,
+                    skipinitialspace=form.skipinitialspace.data,
+                    skiprows=form.skiprows.data,
+                )
             )
 
-            # More can be found here:
-            # https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.read_csv.html
-            csv_to_df_kwargs = {
-                "sep": form.sep.data,
-                "header": form.header.data if form.header.data else 0,
-                "index_col": form.index_col.data,
-                "mangle_dupe_cols": form.mangle_dupe_cols.data,
-                "skipinitialspace": form.skipinitialspace.data,
-                "skiprows": form.skiprows.data,
-                "nrows": form.nrows.data,
-                "skip_blank_lines": form.skip_blank_lines.data,
-                "parse_dates": form.parse_dates.data,
-                "infer_datetime_format": form.infer_datetime_format.data,
-                "chunksize": 1000,
-            }
-            if form.null_values.data:
-                csv_to_df_kwargs["na_values"] = form.null_values.data
-                csv_to_df_kwargs["keep_default_na"] = False
+            database = (
+                db.session.query(models.Database)
+                .filter_by(id=form.data.get("con").data.get("id"))
+                .one()
+            )
 
-            # More can be found here:
-            # https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.to_sql.html
-            df_to_sql_kwargs = {
-                "name": csv_table.table,
-                "if_exists": form.if_exists.data,
-                "index": form.index.data,
-                "index_label": form.index_label.data,
-                "chunksize": 1000,
-            }
-            database.db_engine_spec.create_table_from_csv(
-                uploaded_tmp_file_path,
-                csv_table,
+            database.db_engine_spec.df_to_sql(
                 database,
-                csv_to_df_kwargs,
-                df_to_sql_kwargs,
+                csv_table,
+                df,
+                to_sql_kwargs={
+                    "chunksize": 1000,
+                    "if_exists": form.if_exists.data,
+                    "index": form.index.data,
+                    "index_label": form.index_label.data,
+                },
             )
 
             # Connect table to the database that should be used for exploration.
@@ -229,17 +212,13 @@ class CsvToDatabaseView(SimpleFormView):
                 sqla_table = SqlaTable(table_name=csv_table.table)
                 sqla_table.database = expore_database
                 sqla_table.database_id = database.id
-                sqla_table.user_id = g.user.id
+                sqla_table.owners = [g.user]
                 sqla_table.schema = csv_table.schema
                 sqla_table.fetch_metadata()
                 db.session.add(sqla_table)
             db.session.commit()
         except Exception as ex:  # pylint: disable=broad-except
             db.session.rollback()
-            try:
-                os.remove(uploaded_tmp_file_path)
-            except OSError:
-                pass
             message = _(
                 'Unable to upload CSV file "%(filename)s" to table '
                 '"%(table_name)s" in database "%(db_name)s". '
@@ -254,7 +233,6 @@ class CsvToDatabaseView(SimpleFormView):
             stats_logger.incr("failed_csv_upload")
             return redirect("/csvtodatabaseview/form")
 
-        os.remove(uploaded_tmp_file_path)
         # Go back to welcome page / splash screen
         message = _(
             'CSV file "%(csv_filename)s" uploaded to table "%(table_name)s" in '
@@ -264,7 +242,12 @@ class CsvToDatabaseView(SimpleFormView):
             db_name=sqla_table.database.database_name,
         )
         flash(message, "info")
-        stats_logger.incr("successful_csv_upload")
+        event_logger.log_with_context(
+            action="successful_csv_upload",
+            database=form.con.data.name,
+            schema=form.schema.data,
+            table=form.name.data,
+        )
         return redirect("/tablemodelview/list/")
 
 
@@ -285,7 +268,7 @@ class ExcelToDatabaseView(SimpleFormView):
         database = form.con.data
         excel_table = Table(table=form.name.data, schema=form.schema.data)
 
-        if not schema_allows_csv_upload(database, excel_table.schema):
+        if not schema_allows_file_upload(database, excel_table.schema):
             message = _(
                 'Database "%(database_name)s" schema "%(schema_name)s" '
                 "is not allowed for excel uploads. Please contact your Superset Admin.",
@@ -295,61 +278,46 @@ class ExcelToDatabaseView(SimpleFormView):
             flash(message, "danger")
             return redirect("/exceltodatabaseview/form")
 
-        if "." in excel_table.table and excel_table.schema:
-            message = _(
-                "You cannot specify a namespace both in the name of the table: "
-                '"%(excel_table.table)s" and in the schema field: '
-                '"%(excel_table.schema)s". Please remove one',
-                table=excel_table.table,
-                schema=excel_table.schema,
-            )
-            flash(message, "danger")
-            return redirect("/exceltodatabaseview/form")
-
-        uploaded_tmp_file_path = tempfile.NamedTemporaryFile(
-            dir=app.config["UPLOAD_FOLDER"],
-            suffix=os.path.splitext(form.excel_file.data.filename)[1].lower(),
-            delete=False,
-        ).name
+        uploaded_tmp_file_path = (
+            tempfile.NamedTemporaryFile(  # pylint: disable=consider-using-with
+                dir=app.config["UPLOAD_FOLDER"],
+                suffix=os.path.splitext(form.excel_file.data.filename)[1].lower(),
+                delete=False,
+            ).name
+        )
 
         try:
             utils.ensure_path_exists(config["UPLOAD_FOLDER"])
             upload_stream_write(form.excel_file.data, uploaded_tmp_file_path)
 
-            con = form.data.get("con")
-            database = (
-                db.session.query(models.Database).filter_by(id=con.data.get("id")).one()
+            df = pd.read_excel(
+                header=form.header.data if form.header.data else 0,
+                index_col=form.index_col.data,
+                io=form.excel_file.data,
+                keep_default_na=not form.null_values.data,
+                mangle_dupe_cols=form.mangle_dupe_cols.data,
+                na_values=form.null_values.data if form.null_values.data else None,
+                parse_dates=form.parse_dates.data,
+                skiprows=form.skiprows.data,
+                sheet_name=form.sheet_name.data if form.sheet_name.data else 0,
             )
 
-            # some params are not supported by pandas.read_excel (e.g. chunksize).
-            # More can be found here:
-            # https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.read_excel.html
-            excel_to_df_kwargs = {
-                "header": form.header.data if form.header.data else 0,
-                "index_col": form.index_col.data,
-                "mangle_dupe_cols": form.mangle_dupe_cols.data,
-                "skiprows": form.skiprows.data,
-                "nrows": form.nrows.data,
-                "sheet_name": form.sheet_name.data if form.sheet_name.data else 0,
-                "parse_dates": form.parse_dates.data,
-            }
-            if form.null_values.data:
-                excel_to_df_kwargs["na_values"] = form.null_values.data
-                excel_to_df_kwargs["keep_default_na"] = False
+            database = (
+                db.session.query(models.Database)
+                .filter_by(id=form.data.get("con").data.get("id"))
+                .one()
+            )
 
-            df_to_sql_kwargs = {
-                "name": excel_table.table,
-                "if_exists": form.if_exists.data,
-                "index": form.index.data,
-                "index_label": form.index_label.data,
-                "chunksize": 1000,
-            }
-            database.db_engine_spec.create_table_from_excel(
-                uploaded_tmp_file_path,
-                excel_table,
+            database.db_engine_spec.df_to_sql(
                 database,
-                excel_to_df_kwargs,
-                df_to_sql_kwargs,
+                excel_table,
+                df,
+                to_sql_kwargs={
+                    "chunksize": 1000,
+                    "if_exists": form.if_exists.data,
+                    "index": form.index.data,
+                    "index_label": form.index_label.data,
+                },
             )
 
             # Connect table to the database that should be used for exploration.
@@ -381,17 +349,13 @@ class ExcelToDatabaseView(SimpleFormView):
                 sqla_table = SqlaTable(table_name=excel_table.table)
                 sqla_table.database = expore_database
                 sqla_table.database_id = database.id
-                sqla_table.user_id = g.user.id
+                sqla_table.owners = [g.user]
                 sqla_table.schema = excel_table.schema
                 sqla_table.fetch_metadata()
                 db.session.add(sqla_table)
             db.session.commit()
         except Exception as ex:  # pylint: disable=broad-except
             db.session.rollback()
-            try:
-                os.remove(uploaded_tmp_file_path)
-            except OSError:
-                pass
             message = _(
                 'Unable to upload Excel file "%(filename)s" to table '
                 '"%(table_name)s" in database "%(db_name)s". '
@@ -406,7 +370,6 @@ class ExcelToDatabaseView(SimpleFormView):
             stats_logger.incr("failed_excel_upload")
             return redirect("/exceltodatabaseview/form")
 
-        os.remove(uploaded_tmp_file_path)
         # Go back to welcome page / splash screen
         message = _(
             'Excel file "%(excel_filename)s" uploaded to table "%(table_name)s" in '
@@ -416,5 +379,151 @@ class ExcelToDatabaseView(SimpleFormView):
             db_name=sqla_table.database.database_name,
         )
         flash(message, "info")
-        stats_logger.incr("successful_excel_upload")
+        event_logger.log_with_context(
+            action="successful_excel_upload",
+            database=form.con.data.name,
+            schema=form.schema.data,
+            table=form.name.data,
+        )
+        return redirect("/tablemodelview/list/")
+
+
+class ColumnarToDatabaseView(SimpleFormView):
+    form = ColumnarToDatabaseForm
+    form_template = "superset/form_view/columnar_to_database_view/edit.html"
+    form_title = _("Columnar to Database configuration")
+    add_columns = ["database", "schema", "table_name"]
+
+    def form_get(self, form: ColumnarToDatabaseForm) -> None:
+        form.if_exists.data = "fail"
+
+    def form_post(  # pylint: disable=too-many-locals
+        self, form: ColumnarToDatabaseForm
+    ) -> Response:
+        database = form.con.data
+        columnar_table = Table(table=form.name.data, schema=form.schema.data)
+        files = form.columnar_file.data
+        file_type = {file.filename.split(".")[-1] for file in files}
+
+        if file_type == {"zip"}:
+            zipfile_ob = zipfile.ZipFile(  # pylint: disable=consider-using-with
+                form.columnar_file.data[0]
+            )  # pylint: disable=consider-using-with
+            file_type = {filename.split(".")[-1] for filename in zipfile_ob.namelist()}
+            files = [
+                io.BytesIO((zipfile_ob.open(filename).read(), filename)[0])
+                for filename in zipfile_ob.namelist()
+            ]
+
+        if len(file_type) > 1:
+            message = _(
+                "Multiple file extensions are not allowed for columnar uploads."
+                " Please make sure all files are of the same extension.",
+            )
+            flash(message, "danger")
+            return redirect("/columnartodatabaseview/form")
+
+        read = pd.read_parquet
+        kwargs = {
+            "columns": form.usecols.data if form.usecols.data else None,
+        }
+
+        if not schema_allows_file_upload(database, columnar_table.schema):
+            message = _(
+                'Database "%(database_name)s" schema "%(schema_name)s" '
+                "is not allowed for columnar uploads. "
+                "Please contact your Superset Admin.",
+                database_name=database.database_name,
+                schema_name=columnar_table.schema,
+            )
+            flash(message, "danger")
+            return redirect("/columnartodatabaseview/form")
+
+        try:
+            chunks = [read(file, **kwargs) for file in files]
+            df = pd.concat(chunks)
+
+            database = (
+                db.session.query(models.Database)
+                .filter_by(id=form.data.get("con").data.get("id"))
+                .one()
+            )
+
+            database.db_engine_spec.df_to_sql(
+                database,
+                columnar_table,
+                df,
+                to_sql_kwargs={
+                    "chunksize": 1000,
+                    "if_exists": form.if_exists.data,
+                    "index": form.index.data,
+                    "index_label": form.index_label.data,
+                },
+            )
+
+            # Connect table to the database that should be used for exploration.
+            # E.g. if hive was used to upload a csv, presto will be a better option
+            # to explore the table.
+            expore_database = database
+            explore_database_id = database.explore_database_id
+            if explore_database_id:
+                expore_database = (
+                    db.session.query(models.Database)
+                    .filter_by(id=explore_database_id)
+                    .one_or_none()
+                    or database
+                )
+
+            sqla_table = (
+                db.session.query(SqlaTable)
+                .filter_by(
+                    table_name=columnar_table.table,
+                    schema=columnar_table.schema,
+                    database_id=expore_database.id,
+                )
+                .one_or_none()
+            )
+
+            if sqla_table:
+                sqla_table.fetch_metadata()
+            if not sqla_table:
+                sqla_table = SqlaTable(table_name=columnar_table.table)
+                sqla_table.database = expore_database
+                sqla_table.database_id = database.id
+                sqla_table.owners = [g.user]
+                sqla_table.schema = columnar_table.schema
+                sqla_table.fetch_metadata()
+                db.session.add(sqla_table)
+            db.session.commit()
+        except Exception as ex:  # pylint: disable=broad-except
+            db.session.rollback()
+            message = _(
+                'Unable to upload Columnar file "%(filename)s" to table '
+                '"%(table_name)s" in database "%(db_name)s". '
+                "Error message: %(error_msg)s",
+                filename=[file.filename for file in form.columnar_file.data],
+                table_name=form.name.data,
+                db_name=database.database_name,
+                error_msg=str(ex),
+            )
+
+            flash(message, "danger")
+            stats_logger.incr("failed_columnar_upload")
+            return redirect("/columnartodatabaseview/form")
+
+        # Go back to welcome page / splash screen
+        message = _(
+            'Columnar file "%(columnar_filename)s" uploaded to table "%(table_name)s" '
+            'in database "%(db_name)s"',
+            columnar_filename=[file.filename for file in form.columnar_file.data],
+            table_name=str(columnar_table),
+            db_name=sqla_table.database.database_name,
+        )
+        flash(message, "info")
+        event_logger.log_with_context(
+            action="successful_columnar_upload",
+            database=form.con.data.name,
+            schema=form.schema.data,
+            table=form.name.data,
+        )
         return redirect("/tablemodelview/list/")

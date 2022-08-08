@@ -16,34 +16,34 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled, t } from '@superset-ui/core';
+import { t, SupersetTheme, useTheme } from '@superset-ui/core';
 import React from 'react';
-import { Tooltip } from 'src/common/components/Tooltip';
-import Icon, { IconName } from 'src/components/Icon';
+import { Tooltip } from 'src/components/Tooltip';
+import Icons from 'src/components/Icons';
 import { AlertState } from '../types';
 
-const StatusIcon = styled(Icon, {
-  shouldForwardProp: prop => prop !== 'status' && prop !== 'isReportEnabled',
-})<{ status: string; isReportEnabled: boolean }>`
-  color: ${({ status, theme, isReportEnabled }) => {
-    switch (status) {
-      case AlertState.working:
-        return theme.colors.primary.base;
-      case AlertState.error:
-        return theme.colors.error.base;
-      case AlertState.success:
-        return isReportEnabled
-          ? theme.colors.success.base
-          : theme.colors.alert.base;
-      case AlertState.noop:
-        return theme.colors.success.base;
-      case AlertState.grace:
-        return theme.colors.alert.base;
-      default:
-        return theme.colors.grayscale.base;
-    }
-  }};
-`;
+function getStatusColor(
+  status: string,
+  isReportEnabled: boolean,
+  theme: SupersetTheme,
+) {
+  switch (status) {
+    case AlertState.Working:
+      return theme.colors.primary.base;
+    case AlertState.Error:
+      return theme.colors.error.base;
+    case AlertState.Success:
+      return isReportEnabled
+        ? theme.colors.success.base
+        : theme.colors.alert.base;
+    case AlertState.Noop:
+      return theme.colors.success.base;
+    case AlertState.Grace:
+      return theme.colors.alert.base;
+    default:
+      return theme.colors.grayscale.base;
+  }
+}
 
 export default function AlertStatusIcon({
   state,
@@ -52,59 +52,60 @@ export default function AlertStatusIcon({
   state: string;
   isReportEnabled: boolean;
 }) {
+  const theme = useTheme();
   const lastStateConfig = {
-    name: '',
+    icon: Icons.Check,
     label: '',
     status: '',
   };
   switch (state) {
-    case AlertState.success:
-      lastStateConfig.name = isReportEnabled ? 'check' : 'alert-solid-small';
+    case AlertState.Success:
+      lastStateConfig.icon = isReportEnabled
+        ? Icons.Check
+        : Icons.AlertSolidSmall;
       lastStateConfig.label = isReportEnabled
         ? t('Report sent')
         : t('Alert triggered, notification sent');
-      lastStateConfig.status = AlertState.success;
+      lastStateConfig.status = AlertState.Success;
       break;
-    case AlertState.working:
-      lastStateConfig.name = 'running';
+    case AlertState.Working:
+      lastStateConfig.icon = Icons.Running;
       lastStateConfig.label = isReportEnabled
         ? t('Report sending')
         : t('Alert running');
-      lastStateConfig.status = AlertState.working;
+      lastStateConfig.status = AlertState.Working;
       break;
-    case AlertState.error:
-      lastStateConfig.name = 'x-small';
+    case AlertState.Error:
+      lastStateConfig.icon = Icons.XSmall;
       lastStateConfig.label = isReportEnabled
         ? t('Report failed')
         : t('Alert failed');
-      lastStateConfig.status = AlertState.error;
+      lastStateConfig.status = AlertState.Error;
       break;
-    case AlertState.noop:
-      lastStateConfig.name = 'check';
+    case AlertState.Noop:
+      lastStateConfig.icon = Icons.Check;
       lastStateConfig.label = t('Nothing triggered');
-      lastStateConfig.status = AlertState.noop;
+      lastStateConfig.status = AlertState.Noop;
       break;
-    case AlertState.grace:
-      lastStateConfig.name = 'alert-solid-small';
+    case AlertState.Grace:
+      lastStateConfig.icon = Icons.AlertSolidSmall;
       lastStateConfig.label = t('Alert Triggered, In Grace Period');
-      lastStateConfig.status = AlertState.grace;
+      lastStateConfig.status = AlertState.Grace;
       break;
     default:
-      lastStateConfig.name = 'check';
+      lastStateConfig.icon = Icons.Check;
       lastStateConfig.label = t('Nothing triggered');
-      lastStateConfig.status = AlertState.noop;
+      lastStateConfig.status = AlertState.Noop;
   }
+  const Icon = lastStateConfig.icon;
   return (
     <Tooltip title={lastStateConfig.label} placement="bottomLeft">
-      <StatusIcon
-        name={lastStateConfig.name as IconName}
-        status={lastStateConfig.status}
-        isReportEnabled={isReportEnabled}
-        viewBox={
-          lastStateConfig.name === 'alert-solid-small'
-            ? '-6 -6 24 24'
-            : '0 0 24 24'
-        }
+      <Icon
+        iconColor={getStatusColor(
+          lastStateConfig.status,
+          isReportEnabled,
+          theme,
+        )}
       />
     </Tooltip>
   );

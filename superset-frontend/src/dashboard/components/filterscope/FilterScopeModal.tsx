@@ -18,7 +18,6 @@
  */
 import React, { RefObject } from 'react';
 import { styled } from '@superset-ui/core';
-
 import ModalTrigger from 'src/components/ModalTrigger';
 import FilterScope from 'src/dashboard/containers/FilterScope';
 

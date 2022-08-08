@@ -16,8 +16,7 @@
 #
 {{ if .Values.ingress.enabled -}}
 {{- $fullName := include "superset.fullname" . -}}
-{{- $ingressPath := .Values.ingress.path -}}
-apiVersion: extensions/v1beta1
+apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: {{ $fullName }}
@@ -31,6 +30,9 @@ metadata:
 {{ toYaml . | indent 4 }}
 {{- end }}
 spec:
+{{- if .Values.ingress.ingressClassName }}
+  ingressClassName: {{ .Values.ingress.ingressClassName }}
+{{- end }}
 {{- if .Values.ingress.tls }}
   tls:
   {{- range .Values.ingress.tls }}
@@ -46,9 +48,12 @@ spec:
     - host: {{ . }}
       http:
         paths:
-          - path: {{ $ingressPath }}
+          - path: {{ $.Values.ingress.path }}
+            pathType: {{ $.Values.ingress.pathType }}
             backend:
-              serviceName: {{ $fullName }}
-              servicePort: http
+              service:
+                name: {{ $fullName }}
+                port:
+                  name: http
   {{- end }}
 {{- end }}

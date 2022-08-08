@@ -37,8 +37,8 @@ describe('SqlLab query panel', () => {
     const sampleResponse = {
       status: 'success',
       data: [{ '?column?': 1 }],
-      columns: [{ name: '?column?', type: 'INT', is_date: false }],
-      selected_columns: [{ name: '?column?', type: 'INT', is_date: false }],
+      columns: [{ name: '?column?', type: 'INT', is_dttm: false }],
+      selected_columns: [{ name: '?column?', type: 'INT', is_dttm: false }],
       expanded_columns: [],
     };
 
@@ -92,8 +92,8 @@ describe('SqlLab query panel', () => {
   });
 
   it.skip('successfully saves a query', () => {
-    cy.intercept('savedqueryviewapi/**').as('getSavedQuery');
     cy.intercept('superset/tables/**').as('getTables');
+    cy.intercept('savedqueryviewapi/**').as('getSavedQuery');
 
     const query =
       'SELECT ds, gender, name, num FROM main.birth_names ORDER BY name LIMIT 3';

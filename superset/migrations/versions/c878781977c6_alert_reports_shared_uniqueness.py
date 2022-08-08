@@ -80,7 +80,8 @@ def upgrade():
 
         if isinstance(bind.dialect, MySQLDialect):
             op.drop_index(
-                op.f("name"), table_name="report_schedule",
+                op.f("name"),
+                table_name="report_schedule",
             )
 
         if isinstance(bind.dialect, PGDialect):

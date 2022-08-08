@@ -19,8 +19,9 @@ import logging
 import re
 from datetime import datetime, timedelta
 from time import struct_time
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
+import pandas as pd
 import parsedatetime
 from dateutil.parser import parse
 from dateutil.relativedelta import relativedelta
@@ -39,7 +40,13 @@ from pyparsing import (
     Suppress,
 )
 
-from .core import memoized
+from superset.charts.commands.exceptions import (
+    TimeDeltaAmbiguousError,
+    TimeRangeAmbiguousError,
+    TimeRangeParseFailError,
+)
+from superset.utils.core import NO_TIME_RANGE
+from superset.utils.memoized import memoized
 
 ParserElement.enablePackrat()
 
@@ -47,60 +54,37 @@ logger = logging.getLogger(__name__)
 
 
 def parse_human_datetime(human_readable: str) -> datetime:
-    """
-    Returns ``datetime.datetime`` from human readable strings
-
-    >>> from datetime import date, timedelta
-    >>> from dateutil.relativedelta import relativedelta
-    >>> parse_human_datetime('2015-04-03')
-    datetime.datetime(2015, 4, 3, 0, 0)
-    >>> parse_human_datetime('2/3/1969')
-    datetime.datetime(1969, 2, 3, 0, 0)
-    >>> parse_human_datetime('now') <= datetime.now()
-    True
-    >>> parse_human_datetime('yesterday') <= datetime.now()
-    True
-    >>> date.today() - timedelta(1) == parse_human_datetime('yesterday').date()
-    True
-    >>> year_ago_1 = parse_human_datetime('one year ago').date()
-    >>> year_ago_2 = (datetime.now() - relativedelta(years=1)).date()
-    >>> year_ago_1 == year_ago_2
-    True
-    >>> year_after_1 = parse_human_datetime('2 years after').date()
-    >>> year_after_2 = (datetime.now() + relativedelta(years=2)).date()
-    >>> year_after_1 == year_after_2
-    True
-    """
+    """Returns ``datetime.datetime`` from human readable strings"""
     x_periods = r"^\s*([0-9]+)\s+(second|minute|hour|day|week|month|quarter|year)s?\s*$"
     if re.search(x_periods, human_readable, re.IGNORECASE):
-        raise ValueError(
-            _(
-                "Date string is unclear."
-                " Please specify [%(human_readable)s ago]"
-                " or [%(human_readable)s later]",
-                human_readable=human_readable,
-            )
-        )
-
+        raise TimeRangeAmbiguousError(human_readable)
     try:
-        dttm = parse(human_readable)
+        default = datetime(year=datetime.now().year, month=1, day=1)
+        dttm = parse(human_readable, default=default)
     except (ValueError, OverflowError) as ex:
         cal = parsedatetime.Calendar()
         parsed_dttm, parsed_flags = cal.parseDT(human_readable)
         # 0 == not parsed at all
         if parsed_flags == 0:
-            logger.exception(ex)
-            raise ValueError(
-                _(
-                    "Couldn't parse date string [%(human_readable)s]",
-                    human_readable=human_readable,
-                )
-            )
+            logger.debug(ex)
+            raise TimeRangeParseFailError(human_readable) from ex
         # when time is not extracted, we 'reset to midnight'
         if parsed_flags & 2 == 0:
             parsed_dttm = parsed_dttm.replace(hour=0, minute=0, second=0)
         dttm = dttm_from_timetuple(parsed_dttm.utctimetuple())
     return dttm
+
+
+def normalize_time_delta(human_readable: str) -> Dict[str, int]:
+    x_unit = r"^\s*([0-9]+)\s+(second|minute|hour|day|week|month|quarter|year)s?\s+(ago|later)*$"  # pylint: disable=line-too-long,useless-suppression
+    matched = re.match(x_unit, human_readable, re.IGNORECASE)
+    if not matched:
+        raise TimeDeltaAmbiguousError(human_readable)
+
+    key = matched[2] + "s"
+    value = int(matched[1])
+    value = -value if matched[3] == "ago" else value
+    return {key: value}
 
 
 def dttm_from_timetuple(date_: struct_time) -> datetime:
@@ -114,8 +98,20 @@ def dttm_from_timetuple(date_: struct_time) -> datetime:
     )
 
 
+def get_past_or_future(
+    human_readable: Optional[str],
+    source_time: Optional[datetime] = None,
+) -> datetime:
+    cal = parsedatetime.Calendar()
+    source_dttm = dttm_from_timetuple(
+        source_time.timetuple() if source_time else datetime.now().timetuple()
+    )
+    return dttm_from_timetuple(cal.parse(human_readable or "", source_dttm)[0])
+
+
 def parse_human_timedelta(
-    human_readable: Optional[str], source_time: Optional[datetime] = None,
+    human_readable: Optional[str],
+    source_time: Optional[datetime] = None,
 ) -> timedelta:
     """
     Returns ``datetime.timedelta`` from natural language time deltas
@@ -123,12 +119,10 @@ def parse_human_timedelta(
     >>> parse_human_timedelta('1 day') == timedelta(days=1)
     True
     """
-    cal = parsedatetime.Calendar()
     source_dttm = dttm_from_timetuple(
         source_time.timetuple() if source_time else datetime.now().timetuple()
     )
-    modified_dttm = dttm_from_timetuple(cal.parse(human_readable or "", source_dttm)[0])
-    return modified_dttm - source_dttm
+    return get_past_or_future(human_readable, source_time) - source_dttm
 
 
 def parse_past_timedelta(
@@ -143,12 +137,12 @@ def parse_past_timedelta(
     or datetime.timedelta(365).
     """
     return -parse_human_timedelta(
-        delta_str if delta_str.startswith("-") else f"-{delta_str}", source_time,
+        delta_str if delta_str.startswith("-") else f"-{delta_str}",
+        source_time,
     )
 
 
-# pylint: disable=too-many-arguments, too-many-locals, too-many-branches
-def get_since_until(
+def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branches
     time_range: Optional[str] = None,
     since: Optional[str] = None,
     until: Optional[str] = None,
@@ -184,7 +178,7 @@ def get_since_until(
     _relative_start = relative_start if relative_start else "today"
     _relative_end = relative_end if relative_end else "today"
 
-    if time_range == "No filter":
+    if time_range == NO_TIME_RANGE:
         return None, None
 
     if time_range and time_range.startswith("Last") and separator not in time_range:
@@ -198,19 +192,19 @@ def get_since_until(
         and time_range.startswith("previous calendar week")
         and separator not in time_range
     ):
-        time_range = "DATETRUNC(DATEADD(DATETIME('today'), -1, WEEK), WEEK) : DATETRUNC(DATETIME('today'), WEEK)"  # pylint: disable=line-too-long
+        time_range = "DATETRUNC(DATEADD(DATETIME('today'), -1, WEEK), WEEK) : DATETRUNC(DATETIME('today'), WEEK)"  # pylint: disable=line-too-long,useless-suppression
     if (
         time_range
         and time_range.startswith("previous calendar month")
         and separator not in time_range
     ):
-        time_range = "DATETRUNC(DATEADD(DATETIME('today'), -1, MONTH), MONTH) : DATETRUNC(DATETIME('today'), MONTH)"  # pylint: disable=line-too-long
+        time_range = "DATETRUNC(DATEADD(DATETIME('today'), -1, MONTH), MONTH) : DATETRUNC(DATETIME('today'), MONTH)"  # pylint: disable=line-too-long,useless-suppression
     if (
         time_range
         and time_range.startswith("previous calendar year")
         and separator not in time_range
     ):
-        time_range = "DATETRUNC(DATEADD(DATETIME('today'), -1, YEAR), YEAR) : DATETRUNC(DATETIME('today'), YEAR)"  # pylint: disable=line-too-long
+        time_range = "DATETRUNC(DATEADD(DATETIME('today'), -1, YEAR), YEAR) : DATETRUNC(DATETIME('today'), YEAR)"  # pylint: disable=line-too-long,useless-suppression
 
     if time_range and separator in time_range:
         time_range_lookup = [
@@ -219,12 +213,12 @@ def get_since_until(
                 lambda unit: f"DATEADD(DATETIME('{_relative_start}'), -1, {unit})",
             ),
             (
-                r"^last\s+([0-9]+)\s+(second|minute|hour|day|week|month|year)s$",
-                lambda delta, unit: f"DATEADD(DATETIME('{_relative_start}'), -{int(delta)}, {unit})",  # pylint: disable=line-too-long
+                r"^last\s+([0-9]+)\s+(second|minute|hour|day|week|month|year)s?$",
+                lambda delta, unit: f"DATEADD(DATETIME('{_relative_start}'), -{int(delta)}, {unit})",  # pylint: disable=line-too-long,useless-suppression
             ),
             (
-                r"^next\s+([0-9]+)\s+(second|minute|hour|day|week|month|year)s$",
-                lambda delta, unit: f"DATEADD(DATETIME('{_relative_end}'), {int(delta)}, {unit})",  # pylint: disable=line-too-long
+                r"^next\s+([0-9]+)\s+(second|minute|hour|day|week|month|year)s?$",
+                lambda delta, unit: f"DATEADD(DATETIME('{_relative_end}'), {int(delta)}, {unit})",  # pylint: disable=line-too-long,useless-suppression
             ),
             (
                 r"^(DATETIME.*|DATEADD.*|DATETRUNC.*|LASTDAY.*|HOLIDAY.*)$",
@@ -332,10 +326,14 @@ class EvalDateTruncFunc:  # pylint: disable=too-few-public-methods
             dttm = dttm.replace(
                 month=1, day=1, hour=0, minute=0, second=0, microsecond=0
             )
+        if unit == "quarter":
+            dttm = (
+                pd.Period(pd.Timestamp(dttm), freq="Q").to_timestamp().to_pydatetime()
+            )
         elif unit == "month":
             dttm = dttm.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
         elif unit == "week":
-            dttm = dttm - relativedelta(days=dttm.weekday())
+            dttm -= relativedelta(days=dttm.weekday())
             dttm = dttm.replace(hour=0, minute=0, second=0, microsecond=0)
         elif unit == "day":
             dttm = dttm.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -453,7 +451,7 @@ def datetime_parser() -> ParseResults:  # pylint: disable=too-many-locals
         + Group(
             date_expr
             + comma
-            + (YEAR | MONTH | WEEK | DAY | HOUR | MINUTE | SECOND)
+            + (YEAR | QUARTER | MONTH | WEEK | DAY | HOUR | MINUTE | SECOND)
             + ppOptional(comma)
         )
         + rparen
@@ -485,16 +483,16 @@ def datetime_eval(datetime_expression: Optional[str] = None) -> Optional[datetim
     if datetime_expression:
         try:
             return datetime_parser().parseString(datetime_expression)[0].eval()
-        except ParseException as error:
-            raise ValueError(error)
+        except ParseException as ex:
+            raise ValueError(ex) from ex
     return None
 
 
 class DateRangeMigration:  # pylint: disable=too-few-public-methods
     x_dateunit_in_since = (
-        r'"time_range":\s"\s*[0-9]+\s(day|week|month|quarter|year)s?\s*\s:\s'
+        r'"time_range":\s*"\s*[0-9]+\s+(day|week|month|quarter|year)s?\s*\s:\s'
     )
     x_dateunit_in_until = (
-        r'"time_range":\s".*\s:\s\s*[0-9]+\s(day|week|month|quarter|year)s?\s*"'
+        r'"time_range":\s*".*\s:\s*[0-9]+\s+(day|week|month|quarter|year)s?\s*"'
     )
-    x_dateunit = r"\s*[0-9]+\s(day|week|month|quarter|year)s?\s*"
+    x_dateunit = r"^\s*[0-9]+\s+(day|week|month|quarter|year)s?\s*$"

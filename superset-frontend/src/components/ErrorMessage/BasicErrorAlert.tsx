@@ -17,8 +17,8 @@
  * under the License.
  */
 import React from 'react';
-import { styled, supersetTheme } from '@superset-ui/core';
-import Icon from '../Icon';
+import { styled, useTheme } from '@superset-ui/core';
+import Icons from 'src/components/Icons';
 import { ErrorLevel } from './types';
 
 const StyledContainer = styled.div<{ level: ErrorLevel }>`
@@ -51,15 +51,19 @@ interface BasicErrorAlertProps {
 
 export default function BasicErrorAlert({
   body,
-  level,
+  level = 'error',
   title,
 }: BasicErrorAlertProps) {
+  const theme = useTheme();
+  const iconColor = theme.colors[level].base;
+
   return (
-    <StyledContainer level={level}>
-      <Icon
-        name={level === 'error' ? 'error-solid' : 'warning-solid'}
-        color={supersetTheme.colors[level].base}
-      />
+    <StyledContainer level={level} role="alert">
+      {level === 'error' ? (
+        <Icons.ErrorSolid iconColor={iconColor} />
+      ) : (
+        <Icons.WarningSolid iconColor={iconColor} />
+      )}
       <StyledContent>
         <StyledTitle>{title}</StyledTitle>
         <p>{body}</p>

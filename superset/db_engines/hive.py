@@ -20,9 +20,8 @@ if TYPE_CHECKING:
     from pyhive.hive import Cursor
     from TCLIService.ttypes import TFetchOrientation
 
-# pylint: disable=protected-access
 # TODO: contribute back to pyhive.
-def fetch_logs(
+def fetch_logs(  # pylint: disable=protected-access
     self: "Cursor",
     _max_rows: int = 1024,
     orientation: Optional["TFetchOrientation"] = None,
@@ -35,6 +34,7 @@ def fetch_logs(
     .. note::
         This is not a part of DB-API.
     """
+    # pylint: disable=import-outside-toplevel
     from pyhive import hive
     from TCLIService import ttypes
     from thrift import Thrift
@@ -45,9 +45,9 @@ def fetch_logs(
         logs = self._connection.client.GetLog(req).log
         return logs
     # raised if Hive is used
-    except (ttypes.TApplicationException, Thrift.TApplicationException):
+    except (ttypes.TApplicationException, Thrift.TApplicationException) as ex:
         if self._state == self._STATE_NONE:
-            raise hive.ProgrammingError("No query yet")
+            raise hive.ProgrammingError("No query yet") from ex
         logs = []
         while True:
             req = ttypes.TFetchResultsReq(

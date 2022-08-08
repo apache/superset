@@ -50,9 +50,9 @@ class AsyncPruneReportScheduleLogCommand(BaseCommand):
                             report_schedule, from_date, session=session, commit=False
                         )
                         logger.info(
-                            "Deleted %s logs for %s",
+                            "Deleted %s logs for report schedule id: %s",
                             str(row_count),
-                            ReportSchedule.name,
+                            str(report_schedule.id),
                         )
                     except DAODeleteFailedError as ex:
                         prune_errors.append(str(ex))

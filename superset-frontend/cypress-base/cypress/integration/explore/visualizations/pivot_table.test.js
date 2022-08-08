@@ -28,7 +28,7 @@ describe('Visualization > Pivot Table', () => {
     adhoc_filters: [],
     groupby: ['name'],
     columns: ['state'],
-    row_limit: 50000,
+    row_limit: 5000,
     pandas_aggfunc: 'sum',
     pivot_margins: true,
     number_format: '.3s',

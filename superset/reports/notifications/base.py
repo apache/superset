@@ -18,19 +18,20 @@
 from dataclasses import dataclass
 from typing import Any, List, Optional, Type
 
+import pandas as pd
+
 from superset.models.reports import ReportRecipients, ReportRecipientType
-
-
-@dataclass
-class ScreenshotData:
-    url: str  # url to chart/dashboard for this screenshot
-    image: bytes  # bytes for the screenshot
 
 
 @dataclass
 class NotificationContent:
     name: str
-    screenshot: ScreenshotData
+    csv: Optional[bytes] = None  # bytes for csv file
+    screenshots: Optional[List[bytes]] = None  # bytes for a list of screenshots
+    text: Optional[str] = None
+    description: Optional[str] = ""
+    url: Optional[str] = None  # url to chart/dashboard for this screenshot
+    embedded_data: Optional[pd.DataFrame] = None
 
 
 class BaseNotification:  # pylint: disable=too-few-public-methods
@@ -49,7 +50,7 @@ class BaseNotification:  # pylint: disable=too-few-public-methods
     """
 
     def __init_subclass__(cls, *args: Any, **kwargs: Any) -> None:
-        super().__init_subclass__(*args, **kwargs)  # type: ignore
+        super().__init_subclass__(*args, **kwargs)
         cls.plugins.append(cls)
 
     def __init__(

@@ -19,10 +19,11 @@
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 
-import DashboardHeader from '../components/Header';
-import isDashboardLoading from '../util/isDashboardLoading';
+import { updateDataMask } from 'src/dataMask/actions';
+import DashboardHeader from 'src/dashboard/components/Header';
+import isDashboardLoading from 'src/dashboard/util/isDashboardLoading';
 
-import { dashboardInfoChanged } from '../actions/dashboardInfo';
+import { dashboardInfoChanged } from 'src/dashboard/actions/dashboardInfo';
 
 import {
   setEditMode,
@@ -38,29 +39,37 @@ import {
   setMaxUndoHistoryExceeded,
   maxUndoHistoryToast,
   setRefreshFrequency,
-} from '../actions/dashboardState';
+  onRefresh,
+} from 'src/dashboard/actions/dashboardState';
 
 import {
   undoLayoutAction,
   redoLayoutAction,
   updateDashboardTitle,
   dashboardTitleChanged,
-} from '../actions/dashboardLayout';
-
+} from 'src/dashboard/actions/dashboardLayout';
 import {
   addSuccessToast,
   addDangerToast,
   addWarningToast,
-} from '../../messageToasts/actions';
+} from 'src/components/MessageToasts/actions';
 
-import { logEvent } from '../../logger/actions';
-import { DASHBOARD_HEADER_ID } from '../util/constants';
+import { logEvent } from 'src/logger/actions';
+import { DASHBOARD_HEADER_ID } from 'src/dashboard/util/constants';
+import {
+  fetchUISpecificReport,
+  toggleActive,
+  deleteActiveReport,
+} from 'src/reports/actions/reports';
 
 function mapStateToProps({
   dashboardLayout: undoableLayout,
   dashboardState,
+  reports,
   dashboardInfo,
   charts,
+  dataMask,
+  user,
 }) {
   return {
     dashboardInfo,
@@ -72,12 +81,14 @@ function mapStateToProps({
     ).text,
     expandedSlices: dashboardState.expandedSlices,
     refreshFrequency: dashboardState.refreshFrequency,
-    shouldPersistRefreshFrequency: !!dashboardState.shouldPersistRefreshFrequency,
+    shouldPersistRefreshFrequency:
+      !!dashboardState.shouldPersistRefreshFrequency,
     customCss: dashboardState.css,
     colorNamespace: dashboardState.colorNamespace,
     colorScheme: dashboardState.colorScheme,
     charts,
-    userId: dashboardInfo.userId,
+    dataMask,
+    user,
     isStarred: !!dashboardState.isStarred,
     isPublished: !!dashboardState.isPublished,
     isLoading: isDashboardLoading(charts),
@@ -85,11 +96,13 @@ function mapStateToProps({
     maxUndoHistoryExceeded: !!dashboardState.maxUndoHistoryExceeded,
     lastModifiedTime: Math.max(
       dashboardState.lastModifiedTime,
-      dashboardInfo.lastModifiedTime,
+      dashboardInfo.last_modified_time,
     ),
     editMode: !!dashboardState.editMode,
     slug: dashboardInfo.slug,
     metadata: dashboardInfo.metadata,
+    reports,
+    filterboxMigrationState: dashboardState.filterboxMigrationState,
   };
 }
 
@@ -116,8 +129,13 @@ function mapDispatchToProps(dispatch) {
       maxUndoHistoryToast,
       logEvent,
       setRefreshFrequency,
+      onRefresh,
       dashboardInfoChanged,
       dashboardTitleChanged,
+      updateDataMask,
+      fetchUISpecificReport,
+      toggleActive,
+      deleteActiveReport,
     },
     dispatch,
   );

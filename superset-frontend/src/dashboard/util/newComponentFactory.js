@@ -17,6 +17,7 @@
  * under the License.
  */
 import shortid from 'shortid';
+import { t } from '@superset-ui/core';
 
 import {
   CHART_TYPE,
@@ -27,12 +28,14 @@ import {
   ROW_TYPE,
   TABS_TYPE,
   TAB_TYPE,
+  DYNAMIC_TYPE,
 } from './componentTypes';
 
 import {
   MEDIUM_HEADER,
   BACKGROUND_TRANSPARENT,
   GRID_DEFAULT_CHART_WIDTH,
+  GRID_COLUMN_COUNT,
 } from './constants';
 
 const typeToDefaultMetaData = {
@@ -50,7 +53,15 @@ const typeToDefaultMetaData = {
   [MARKDOWN_TYPE]: { width: GRID_DEFAULT_CHART_WIDTH, height: 50 },
   [ROW_TYPE]: { background: BACKGROUND_TRANSPARENT },
   [TABS_TYPE]: null,
-  [TAB_TYPE]: { text: 'New tab' },
+  [TAB_TYPE]: {
+    text: '',
+    defaultText: t('Tab title'),
+    placeholder: t('Tab title'),
+  },
+  [DYNAMIC_TYPE]: {
+    width: GRID_COLUMN_COUNT,
+    background: BACKGROUND_TRANSPARENT,
+  },
 };
 
 function uuid(type) {

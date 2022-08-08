@@ -39,9 +39,14 @@ little bit helps, and credit will always be given.
     - [Protocol](#protocol)
       - [Authoring](#authoring)
       - [Reviewing](#reviewing)
+      - [Test Environments](#test-environments)
       - [Merging](#merging)
       - [Post-merge Responsibility](#post-merge-responsibility)
   - [Design Guidelines](#design-guidelines)
+    - [Capitalization guidelines](#capitalization-guidelines)
+      - [Sentence case](#sentence-case)
+      - [How to refer to UI elements](#how-to-refer-to-ui-elements)
+      - [\*\*Exceptions to sentence case:](#exceptions-to-sentence-case)
   - [Managing Issues and PRs](#managing-issues-and-prs)
   - [Reporting a Security Vulnerability](#reporting-a-security-vulnerability)
   - [Revert Guidelines](#revert-guidelines)
@@ -64,22 +69,23 @@ little bit helps, and credit will always be given.
   - [Git Hooks](#git-hooks)
   - [Linting](#linting)
   - [Conventions](#conventions)
-    - [Python](#python)
+    - [Python](#python-conventions)
   - [Typing](#typing)
-    - [Python](#python-1)
-    - [TypeScript](#typescript)
+    - [Python](#python-typing)
+    - [TypeScript](#typeScript-typing)
   - [Testing](#testing)
     - [Python Testing](#python-testing)
     - [Frontend Testing](#frontend-testing)
     - [Integration Testing](#integration-testing)
+    - [Debugging Server App](#debugging-server-app)
+    - [Debugging Server App in Kubernetes Environment](#debugging-server-app-in-kubernetes-environment)
     - [Storybook](#storybook)
   - [Translating](#translating)
     - [Enabling language selection](#enabling-language-selection)
-    - [Extracting new strings for translation](#extracting-new-strings-for-translation)
+    - [Updating language files](#updating-language-files)
     - [Creating a new language dictionary](#creating-a-new-language-dictionary)
   - [Tips](#tips)
     - [Adding a new datasource](#adding-a-new-datasource)
-    - [Improving visualizations](#improving-visualizations)
     - [Visualization Plugins](#visualization-plugins)
     - [Adding a DB migration](#adding-a-db-migration)
     - [Merging DB migrations](#merging-db-migrations)
@@ -109,17 +115,6 @@ Here's a list of repositories that contain Superset-related packages:
   also includes Superset's main TypeScript/JavaScript bundles and react apps under
   the [superset-frontend](https://github.com/apache/superset/tree/master/superset-frontend)
   folder.
-- [apache-superset/superset-ui](https://github.com/apache-superset/superset-ui)
-  contains core Superset's
-  [npm packages](https://github.com/apache-superset/superset-ui/tree/master/packages).
-  These packages are shared across the React apps in the main repository,
-  and in visualization plugins.
-- [apache-superset/superset-ui-plugins](https://github.com/apache-superset/superset-ui-plugins)
-  contains the code for the default visualizations that ship with Superset
-  and are maintained by the core community.
-- [apache-superset/superset-ui-plugins-deckgl](https://github.com/apache-superset/superset-ui-plugins-deckgl)
-  contains the code for the geospatial visualizations that ship with Superset
-  and are maintained by the core community.
 - [github.com/apache-superset](https://github.com/apache-superset) is the
   Github organization under which we manage Superset-related
   small tools, forks and Superset-related experimental ideas.
@@ -190,7 +185,7 @@ The purpose is to separate problem from possible solutions.
 
 **Refactor:** For small refactors, it can be a standalone PR itself detailing what you are refactoring and why. If there are concerns, project maintainers may request you to create a `#SIP` for the PR before proceeding.
 
-**Feature/Large changes:** If you intend to change the public API, or make any non-trivial changes to the implementation, we requires you to file a new issue as `#SIP` (Superset Improvement Proposal). This lets us reach an agreement on your proposal before you put significant effort into it. You are welcome to submit a PR along with the SIP (sometimes necessary for demonstration), but we will not review/merge the code until the SIP is approved.
+**Feature/Large changes:** If you intend to change the public API, or make any non-trivial changes to the implementation, we require you to file a new issue as `#SIP` (Superset Improvement Proposal). This lets us reach an agreement on your proposal before you put significant effort into it. You are welcome to submit a PR along with the SIP (sometimes necessary for demonstration), but we will not review/merge the code until the SIP is approved.
 
 In general, small PRs are always easier to review than large PRs. The best practice is to break your work into smaller independent PRs and refer to the same issue. This will greatly reduce turnaround time.
 
@@ -203,7 +198,7 @@ Finally, never submit a PR that will put master branch in broken state. If the P
 #### Authoring
 
 - Fill in all sections of the PR template.
-- Title the PR with one of the following semantic prefixes (inspired by [Karma](http://karma-runner.github.io/0.10/dev/git-commit-msg.html])):
+- Title the PR with one of the following semantic prefixes (inspired by [Karma](http://karma-runner.github.io/0.10/dev/git-commit-msg.html)):
 
   - `feat` (new feature)
   - `fix` (bug fix)
@@ -222,6 +217,7 @@ Finally, never submit a PR that will put master branch in broken state. If the P
     - `fix(chart-api): cached-indicator always shows value is cached`
 
 - Add prefix `[WIP]` to title if not ready for review (WIP = work-in-progress). We recommend creating a PR with `[WIP]` first and remove it once you have passed CI test and read through your code changes at least once.
+- If you believe your PR contributes a potentially breaking change, put a `!` after the semantic prefix but before the colon in the PR title, like so: `feat!: Added foo functionality to bar`
 - **Screenshots/GIFs:** Changes to user interface require before/after screenshots, or GIF for interactions
   - Recommended capture tools ([Kap](https://getkap.co/), [LICEcap](https://www.cockos.com/licecap/), [Skitch](https://download.cnet.com/Skitch/3000-13455_4-189876.html))
   - If no screenshot is provided, the committers will mark the PR with `need:screenshot` label and will not review until screenshot is provided.
@@ -242,6 +238,20 @@ Finally, never submit a PR that will put master branch in broken state. If the P
 - If you are asked to update your pull request with some changes there's no need to create a new one. Push your changes to the same branch.
 - The committers reserve the right to reject any PR and in some cases may request the author to file an issue.
 
+#### Test Environments
+
+- Members of the Apache GitHub org can launch an ephemeral test environment directly on a pull request by creating a comment containing (only) the command `/testenv up`.
+  - Note that org membership must be public in order for this validation to function properly.
+- Feature flags may be set for a test environment by specifying the flag name (prefixed with `FEATURE_`) and value after the command.
+  - Format: `/testenv up FEATURE_<feature flag name>=true|false`
+  - Example: `/testenv up FEATURE_DASHBOARD_NATIVE_FILTERS=true`
+  - Multiple feature flags may be set in single command, separated by whitespace
+- A comment will be created by the workflow script with the address and login information for the ephemeral environment.
+- Test environments may be created once the Docker build CI workflow for the PR has completed successfully.
+- Test environments do not currently update automatically when new commits are added to a pull request.
+- Test environments do not currently support async workers, though this is planned.
+- Running test environments will be shutdown upon closing the pull request.
+
 #### Merging
 
 - At least one approval is required for merging a PR.
@@ -258,9 +268,11 @@ Finally, never submit a PR that will put master branch in broken state. If the P
 ### Capitalization guidelines
 
 #### Sentence case
-Use sentence-case capitalization for everything in the UI (except these **).
+
+Use sentence-case capitalization for everything in the UI (except these \*\*).
 
 Sentence case is predominantly lowercase. Capitalize only the initial character of the first word, and other words that require capitalization, like:
+
 - **Proper nouns.** Objects in the product _are not_ considered proper nouns e.g. dashboards, charts, saved queries etc. Proprietary feature names eg. SQL Lab, Preset Manager _are_ considered proper nouns
 - **Acronyms** (e.g. CSS, HTML)
 - When referring to **UI labels that are themselves capitalized** from sentence case (e.g. page titles - Dashboards page, Charts page, Saved queries page, etc.)
@@ -271,10 +283,12 @@ Title case: "A Dog Takes a Walk in Paris"
 Sentence case: "A dog takes a walk in Paris"
 
 **Why sentence case?**
+
 - It’s generally accepted as the quickest to read
 - It’s the easiest form to distinguish between common and proper nouns
 
 #### How to refer to UI elements
+
 When writing about a UI element, use the same capitalization as used in the UI.
 
 For example, if an input field is labeled “Name” then you refer to this as the “Name input field”. Similarly, if a button has the label “Save” in it, then it is correct to refer to the “Save button”.
@@ -292,7 +306,7 @@ Often a product page will have the same title as the objects it contains. In thi
 - Queries that you save will appear on the Saved queries page
 - Create custom queries in SQL Lab then create dashboards
 
-#### **Exceptions to sentence case:
+#### \*\*Exceptions to sentence case:
 
 - Input labels, buttons and UI tabs are all caps
 - User input values (e.g. column names, SQL Lab tab names) should be in their original case
@@ -333,6 +347,8 @@ If the PR passes CI tests and does not have any `need:` labels, it is ready for 
 
 If an issue/PR has been inactive for >=30 days, it will be closed. If it does not have any status label, add `inactive`.
 
+When creating a PR, if you're aiming to have it included in a specific release, please tag it with the version label. For example, to have a PR considered for inclusion in Superset 1.1 use the label `v1.1`.
+
 ## Reporting a Security Vulnerability
 
 Please report security vulnerabilities to private@superset.apache.org.
@@ -343,7 +359,7 @@ In the event a community member discovers a security flaw in Superset, it is imp
 
 Reverting changes that are causing issues in the master branch is a normal and expected part of the development process. In an open source community, the ramifications of a change cannot always be fully understood. With that in mind, here are some considerations to keep in mind when considering a revert:
 
-- **Availability of the PR author:** If the original PR author or the engineer who merged the code is highly available and can provide a fix in a reasonable timeframe, this would counter-indicate reverting.
+- **Availability of the PR author:** If the original PR author or the engineer who merged the code is highly available and can provide a fix in a reasonable time frame, this would counter-indicate reverting.
 - **Severity of the issue:** How severe is the problem on master? Is it keeping the project from moving forward? Is there user impact? What percentage of users will experience a problem?
 - **Size of the change being reverted:** Reverting a single small PR is a much lower-risk proposition than reverting a massive, multi-PR change.
 - **Age of the change being reverted:** Reverting a recently-merged PR will be more acceptable than reverting an older PR. A bug discovered in an older PR is unlikely to be causing widespread serious issues.
@@ -380,20 +396,21 @@ referenced in the rst, e.g.
     .. image:: _static/images/tutorial/tutorial_01_sources_database.png
 
 aren't actually stored in that directory. Instead, you should add and commit
-images (and any other static assets) to the `superset-frontend/images` directory.
+images (and any other static assets) to the `superset-frontend/src/assets/images` directory.
 When the docs are deployed to https://superset.apache.org/, images
 are copied from there to the `_static/images` directory, just like they're referenced
 in the docs.
 
-For example, the image referenced above actually lives in `superset-frontend/images/tutorial`. Since the image is moved during the documentation build process, the docs reference the image in `_static/images/tutorial` instead.
+For example, the image referenced above actually lives in `superset-frontend/src/assets/images/tutorial`. Since the image is moved during the documentation build process, the docs reference the image in `_static/images/tutorial` instead.
 
 ### Flask server
 
 #### OS Dependencies
 
 Make sure your machine meets the [OS dependencies](https://superset.apache.org/docs/installation/installing-superset-from-scratch#os-dependencies) before following these steps.
+You also need to install MySQL or [MariaDB](https://mariadb.com/downloads).
 
-Ensure Python versions >3.7, Then proceed with:
+Ensure that you are using Python version 3.7 or 3.8, then proceed with:
 
 ```bash
 # Create a virtual environment and activate it (recommended)
@@ -401,27 +418,45 @@ python3 -m venv venv # setup a python3 virtualenv
 source venv/bin/activate
 
 # Install external dependencies
-pip install -r requirements/local.txt
+pip install -r requirements/testing.txt
 
 # Install Superset in editable (development) mode
 pip install -e .
 
-# Create an admin user in your metadata database
-superset fab create-admin
-
 # Initialize the database
 superset db upgrade
+
+# Create an admin user in your metadata database (use `admin` as username to be able to load the examples)
+superset fab create-admin
 
 # Create default roles and permissions
 superset init
 
-# Load some data to play with
-superset load_examples
+# Load some data to play with.
+# Note: you MUST have previously created an admin user with the username `admin` for this command to work.
+superset load-examples
 
 # Start the Flask dev web server from inside your virtualenv.
-# Note that your page may not have css at this point.
+# Note that your page may not have CSS at this point.
 # See instructions below how to build the front-end assets.
 FLASK_ENV=development superset run -p 8088 --with-threads --reload --debugger
+```
+
+Or you can install via our Makefile
+
+```bash
+# Create a virtual environment and activate it (recommended)
+$ python3 -m venv venv # setup a python3 virtualenv
+$ source venv/bin/activate
+
+# install pip packages + pre-commit
+$ make install
+
+# Install superset pip packages and setup env only
+$ make superset
+
+# Setup pre-commit only
+$ make pre-commit
 ```
 
 **Note: the FLASK_APP env var should not need to be set, as it's currently controlled
@@ -429,6 +464,31 @@ via `.flaskenv`, however if needed, it should be set to `superset.app:create_app
 
 If you have made changes to the FAB-managed templates, which are not built the same way as the newer, React-powered front-end assets, you need to start the app without the `--with-threads` argument like so:
 `FLASK_ENV=development superset run -p 8088 --reload --debugger`
+
+#### Dependencies
+
+If you add a new requirement or update an existing requirement (per the `install_requires` section in `setup.py`) you must recompile (freeze) the Python dependencies to ensure that for CI, testing, etc. the build is deterministic. This can be achieved via,
+
+```bash
+$ python3 -m venv venv
+$ source venv/bin/activate
+$ python3 -m pip install -r requirements/integration.txt
+$ pip-compile-multi --no-upgrade
+```
+
+When upgrading the version number of a single package, you should run `pip-compile-multi` with the `-P` flag:
+
+```bash
+$ pip-compile-multi -P my-package
+```
+
+To bring all dependencies up to date as per the restrictions defined in `setup.py` and `requirements/*.in`, run pip-compile-multi` without any flags:
+
+```bash
+$ pip-compile-multi
+```
+
+This should be done periodically, but it is rcommended to do thorough manual testing of the application to ensure no breaking changes have been introduced that aren't caught by the unit and integration tests.
 
 #### Logging to the browser console
 
@@ -463,14 +523,25 @@ Frontend assets (TypeScript, JavaScript, CSS, and images) must be compiled in or
 
 ##### nvm and node
 
-First, be sure you are using recent versions of NodeJS and npm. We recommend using [nvm](https://github.com/nvm-sh/nvm) to manage your node environment:
+First, be sure you are using the following versions of Node.js and npm:
+
+- `Node.js`: Version 16
+- `npm`: Version 7
+
+We recommend using [nvm](https://github.com/nvm-sh/nvm) to manage your node environment:
 
 ```bash
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.37.0/install.sh | bash
 
 cd superset-frontend
-nvm install
-nvm use
+nvm install --lts
+nvm use --lts
+```
+
+Or if you use the default macOS starting with Catalina shell `zsh`, try:
+
+```zsh
+sh -c "$(curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.37.0/install.sh)"
 ```
 
 For those interested, you may also try out [avn](https://github.com/nvm-sh/nvm#deeper-shell-integration) to automatically switch to the node version that is required to run Superset frontend.
@@ -497,14 +568,14 @@ There are three types of assets you can build:
 
 #### Webpack dev server
 
-The dev server by default starts at `http://localhost:9000` and proxies the backend requests to `http://localhost:8080`. It's possible to change these settings:
+The dev server by default starts at `http://localhost:9000` and proxies the backend requests to `http://localhost:8088`. It's possible to change these settings:
 
 ```bash
 # Start the dev server at http://localhost:9000
 npm run dev-server
 
 # Run the dev server on a non-default port
-npm run dev-server -- --devserverPort=9001
+npm run dev-server -- --port=9001
 
 # Proxy backend requests to a Flask server running on a non-default port
 npm run dev-server -- --supersetPort=8081
@@ -542,7 +613,7 @@ FEATURE_FLAGS = {
 }
 ```
 
-If you want to use the same flag in the client code, also add it to the FeatureFlag TypeScript enum in `superset-frontend/src/featureFlags.ts`. For example,
+If you want to use the same flag in the client code, also add it to the FeatureFlag TypeScript enum in [@superset-ui/core](https://github.com/apache-superset/superset-ui/blob/master/packages/superset-ui-core/src/utils/featureFlags.ts). For example,
 
 ```typescript
 export enum FeatureFlag {
@@ -554,6 +625,8 @@ export enum FeatureFlag {
 those specified under FEATURE_FLAGS in `superset_config.py`. For example, `DEFAULT_FEATURE_FLAGS = { 'FOO': True, 'BAR': False }` in `superset/config.py` and `FEATURE_FLAGS = { 'BAR': True, 'BAZ': True }` in `superset_config.py` will result
 in combined feature flags of `{ 'FOO': True, 'BAR': True, 'BAZ': True }`.
 
+The current status of the usability of each flag (stable vs testing, etc) can be found in `RESOURCES/FEATURE_FLAGS.md`.
+
 ## Git Hooks
 
 Superset uses Git pre-commit hooks courtesy of [pre-commit](https://pre-commit.com/). To install run the following:
@@ -563,34 +636,57 @@ pip3 install -r requirements/integration.txt
 pre-commit install
 ```
 
+A series of checks will now run when you make a git commit.
+
 Alternatively it is possible to run pre-commit via tox:
 
 ```bash
 tox -e pre-commit
 ```
 
+Or by running pre-commit manually:
+
+```bash
+pre-commit run --all-files
+```
+
 ## Linting
 
-Lint the project with:
+### Python
+
+We use [Pylint](https://pylint.org/) for linting which can be invoked via:
 
 ```bash
 # for python
 tox -e pylint
+```
 
-# for frontend
+In terms of best practices please advoid blanket disablement of Pylint messages globally (via `.pylintrc`) or top-level within the file header, albeit there being a few exceptions. Disablement should occur inline as it prevents masking issues and provides context as to why said message is disabled.
+
+Additionally, the Python code is auto-formatted using [Black](https://github.com/python/black) which
+is configured as a pre-commit hook. There are also numerous [editor integrations](https://black.readthedocs.io/en/stable/integrations/editors.html)
+
+### TypeScript
+
+```bash
 cd superset-frontend
 npm ci
 npm run lint
 ```
 
-The Python code is auto-formatted using [Black](https://github.com/python/black) which
-is configured as a pre-commit hook. There are also numerous [editor integrations](https://black.readthedocs.io/en/stable/editor_integration.html).
+If using the eslint extension with vscode, put the following in your workspace `settings.json` file:
+
+```json
+"eslint.workingDirectories": [
+  "superset-frontend"
+]
+```
 
 ## Conventions
 
-### Python
+### Python Conventions
 
-Parameters in the `config.py` (which are accessible via the Flask app.config dictionary) are assummed to always be defined and thus should be accessed directly via,
+Parameters in the `config.py` (which are accessible via the Flask app.config dictionary) are assumed to always be defined and thus should be accessed directly via,
 
 ```python
 blueprints = app.config["BLUEPRINTS"]
@@ -606,7 +702,7 @@ or similar as the later will cause typing issues. The former is of type `List[Ca
 
 ## Typing
 
-### Python
+### Python Typing
 
 To ensure clarity, consistency, all readability, _all_ new functions should use
 [type hints](https://docs.python.org/3/library/typing.html) and include a
@@ -633,7 +729,7 @@ def sqrt(x: Union[float, int]) -> Union[float, int]:
     return math.sqrt(x)
 ```
 
-### TypeScript
+### TypeScript Typing
 
 TypeScript is fully supported and is the recommended language for writing all new frontend components. When modifying existing functions/components, migrating to TypeScript is appreciated, but not required. Examples of migrating functions/components to TypeScript can be found in [#9162](https://github.com/apache/superset/pull/9162) and [#9180](https://github.com/apache/superset/pull/9180).
 
@@ -671,6 +767,21 @@ Note that the test environment uses a temporary directory for defining the
 SQLite databases which will be cleared each time before the group of test
 commands are invoked.
 
+There is also a utility script included in the Superset codebase to run python integration tests. The [readme can be
+found here](https://github.com/apache/superset/tree/master/scripts/tests)
+
+To run all integration tests for example, run this script from the root directory:
+
+```bash
+scripts/tests/run.sh
+```
+
+You can run unit tests found in './tests/unit_tests' for example with pytest. It is a simple way to run an isolated test that doesn't need any database setup
+
+```bash
+pytest ./link_to_test.py
+```
+
 ### Frontend Testing
 
 We use [Jest](https://jestjs.io/) and [Enzyme](https://airbnb.io/enzyme/) to test TypeScript/JavaScript. Tests can be run with:
@@ -691,13 +802,13 @@ npm run test -- path/to/file.js
 We use [Cypress](https://www.cypress.io/) for integration tests. Tests can be run by `tox -e cypress`. To open Cypress and explore tests first setup and run test server:
 
 ```bash
-export SUPERSET_CONFIG=tests.superset_test_config
+export SUPERSET_CONFIG=tests.integration_tests.superset_test_config
 export SUPERSET_TESTENV=true
 export ENABLE_REACT_CRUD_VIEWS=true
 export CYPRESS_BASE_URL="http://localhost:8081"
 superset db upgrade
 superset load_test_users
-superset load_examples --load-test-data
+superset load-examples --load-test-data
 superset init
 superset run --port 8081
 ```
@@ -715,7 +826,7 @@ npm install
 npm run cypress-run-chrome
 
 # run tests from a specific file
-npm run cypress-run-chrome -- --spec cypress/integration/explore/link.test.js
+npm run cypress-run-chrome -- --spec cypress/integration/explore/link.test.ts
 
 # run specific file with video capture
 npm run cypress-run-chrome -- --spec cypress/integration/dashboard/index.test.js --config video=true
@@ -751,6 +862,134 @@ cd cypress-base
 npm install
 npm run cypress open
 ```
+
+### Debugging Server App
+
+Follow these instructions to debug the Flask app running inside a docker container.
+
+First add the following to the ./docker-compose.yaml file
+
+```diff
+superset:
+    env_file: docker/.env
+    image: *superset-image
+    container_name: superset_app
+    command: ["/app/docker/docker-bootstrap.sh", "app"]
+    restart: unless-stopped
++   cap_add:
++     - SYS_PTRACE
+    ports:
+      - 8088:8088
++     - 5678:5678
+    user: "root"
+    depends_on: *superset-depends-on
+    volumes: *superset-volumes
+    environment:
+      CYPRESS_CONFIG: "${CYPRESS_CONFIG}"
+```
+
+Start Superset as usual
+
+```bash
+docker-compose up
+```
+
+Install the required libraries and packages to the docker container
+
+Enter the superset_app container
+
+```bash
+docker exec -it superset_app /bin/bash
+root@39ce8cf9d6ab:/app#
+```
+
+Run the following commands inside the container
+
+```bash
+apt update
+apt install -y gdb
+apt install -y net-tools
+pip install debugpy
+```
+
+Find the PID for the Flask process. Make sure to use the first PID. The Flask app will re-spawn a sub-process every time you change any of the python code. So it's important to use the first PID.
+
+```bash
+ps -ef
+
+UID        PID  PPID  C STIME TTY          TIME CMD
+root         1     0  0 14:09 ?        00:00:00 bash /app/docker/docker-bootstrap.sh app
+root         6     1  4 14:09 ?        00:00:04 /usr/local/bin/python /usr/bin/flask run -p 8088 --with-threads --reload --debugger --host=0.0.0.0
+root        10     6  7 14:09 ?        00:00:07 /usr/local/bin/python /usr/bin/flask run -p 8088 --with-threads --reload --debugger --host=0.0.0.0
+```
+
+Inject debugpy into the running Flask process. In this case PID 6.
+
+```bash
+python3 -m debugpy --listen 0.0.0.0:5678 --pid 6
+```
+
+Verify that debugpy is listening on port 5678
+
+```bash
+netstat -tunap
+
+Active Internet connections (servers and established)
+Proto Recv-Q Send-Q Local Address           Foreign Address         State       PID/Program name
+tcp        0      0 0.0.0.0:5678            0.0.0.0:*               LISTEN      462/python
+tcp        0      0 0.0.0.0:8088            0.0.0.0:*               LISTEN      6/python
+```
+
+You are now ready to attach a debugger to the process. Using VSCode you can configure a launch configuration file .vscode/launch.json like so.
+
+```
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Attach to Superset App in Docker Container",
+            "type": "python",
+            "request": "attach",
+            "connect": {
+                "host": "127.0.0.1",
+                "port": 5678
+            },
+            "pathMappings": [
+                {
+                    "localRoot": "${workspaceFolder}",
+                    "remoteRoot": "/app"
+                }
+            ]
+        },
+    ]
+}
+```
+
+VSCode will not stop on breakpoints right away. We've attached to PID 6 however it does not yet know of any sub-processes. In order to "wake up" the debugger you need to modify a python file. This will trigger Flask to reload the code and create a new sub-process. This new sub-process will be detected by VSCode and breakpoints will be activated.
+
+### Debugging Server App in Kubernetes Environment
+
+To debug Flask running in POD inside kubernetes cluster. You'll need to make sure the pod runs as root and is granted the SYS_TRACE capability.These settings should not be used in production environments.
+
+```
+  securityContext:
+    capabilities:
+      add: ["SYS_PTRACE"]
+```
+
+See (set capabilities for a container)[https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-capabilities-for-a-container] for more details.
+
+Once the pod is running as root and has the SYS_PTRACE capability it will be able to debug the Flask app.
+
+You can follow the same instructions as in the docker-compose. Enter the pod and install the required library and packages; gdb, netstat and debugpy.
+
+Often in a Kubernetes environment nodes are not addressable from outside the cluster. VSCode will thus be unable to remotely connect to port 5678 on a Kubernetes node. In order to do this you need to create a tunnel that port forwards 5678 to your local machine.
+
+```
+kubectl port-forward  pod/superset-<some random id> 5678:5678
+```
+
+You can now launch your VSCode debugger with the same config as above. VSCode will connect to to 127.0.0.1:5678 which is forwarded by kubectl to your remote kubernetes POD.
 
 ### Storybook
 
@@ -801,22 +1040,15 @@ LANGUAGES = {
 }
 ```
 
-### Extracting new strings for translation
-
-```bash
-pybabel extract -F superset/translations/babel.cfg -o superset/translations/messages.pot -k _ -k __ -k t -k tn -k tct .
-```
-
-This will update the template file `superset/translations/messages.pot` with current application strings. Do not forget to update
-this file with the appropriate license information.
-
 ### Updating language files
 
 ```bash
- pybabel update -i superset/translations/messages.pot -d superset/translations --ignore-obsolete
+./scripts/babel_update.sh
 ```
 
-This will update language files with the new extracted strings.
+This script will
+1. update the template file `superset/translations/messages.pot` with current application strings.
+2. update language files with the new extracted strings.
 
 You can then translate the strings gathered in files located under
 `superset/translation`, where there's one per language. You can use [Poedit](https://poedit.net/features)
@@ -836,7 +1068,7 @@ To convert all PO files to formatted JSON files you can use the `po2json.sh` scr
 ```
 
 If you get errors running `po2json`, you might be running the Ubuntu package with the same
-name, rather than the NodeJS package (they have a different format for the arguments). If
+name, rather than the Node.js package (they have a different format for the arguments). If
 there is a conflict, you may need to update your `PATH` environment variable or fully qualify
 the executable path (e.g. `/usr/local/bin/po2json` instead of `po2json`).
 If you get a lot of `[null,***]` in `messages.json`, just delete all the `null,`.
@@ -858,7 +1090,7 @@ pip install -r superset/translations/requirements.txt
 pybabel init -i superset/translations/messages.pot -d superset/translations -l LANGUAGE_CODE
 ```
 
-Then, [extract strings for the new language](#extracting-new-strings-for-translation).
+Then, [Updating language files](#updating-language-files).
 
 ## Tips
 
@@ -880,41 +1112,13 @@ Then, [extract strings for the new language](#extracting-new-strings-for-transla
 
    This means it'll register MyDatasource and MyOtherDatasource in superset.my_models module in the source registry.
 
-### Improving visualizations
-
-To edit the frontend code for visualizations, you will have to check out a copy of [apache-superset/superset-ui](https://github.com/apache-superset/superset-ui):
-
-```bash
-git clone https://github.com/apache-superset/superset-ui.git
-cd superset-ui
-yarn
-yarn build
-```
-
-Then use `npm link` to create symlinks of the plugins/superset-ui packages you want to edit in `superset-frontend/node_modules`:
-
-```bash
-cd superset/superset-frontend
-npm link ../../superset-ui/plugins/[PLUGIN NAME]
-
-# Or to link all core superset-ui and plugin packages:
-# npm link ../../superset-ui/{packages,plugins}/*
-
-# Start developing
-npm run dev-server
-```
-
-When `superset-ui` packages are linked with `npm link`, the dev server will automatically load a package's source code from its `/src` directory, instead of the built modules in `lib/` or `esm/`.
-
-Note that every time you do `npm install`, you will lose the symlink(s) and may have to run `npm link` again.
-
 ### Visualization Plugins
 
 The topic of authoring new plugins, whether you'd like to contribute
 it back or not has been well documented in the
-[So, You Want to Build a Superset Viz Plugin...](https://preset.io/blog/2020-07-02-hello-world/) blog post
+[the documentation](https://superset.apache.org/docs/contributing/creating-viz-plugins), and in [this blog post](https://preset.io/blog/building-custom-viz-plugins-in-superset-v2).
 
-To contribute a plugin to Superset-UI, your plugin must meet the following criteria:
+To contribute a plugin to Superset, your plugin must meet the following criteria:
 
 - The plugin should be applicable to the community at large, not a particularly specialized use case
 - The plugin should be written with TypeScript
@@ -937,7 +1141,7 @@ Submissions will be considered for submission (or removal) on a case-by-case bas
 1. Generate the migration file
 
    ```bash
-   superset db migrate -m 'add_metadata_column_to_annotation_model.py'
+   superset db migrate -m 'add_metadata_column_to_annotation_model'
    ```
 
    This will generate a file in `migrations/version/{SHA}_this_will_be_in_the_migration_filename.py`.
@@ -982,7 +1186,7 @@ Submissions will be considered for submission (or removal) on a case-by-case bas
 
 When two DB migrations collide, you'll get an error message like this one:
 
-```
+```text
 alembic.util.exc.CommandError: Multiple head revisions are present for
 given argument 'head'; please specify a specific target
 revision, '<branchname>@head' to narrow to a specific head,
@@ -997,15 +1201,46 @@ To fix it:
    superset db heads
    ```
 
-   This should list two or more migration hashes.
+   This should list two or more migration hashes. E.g.
 
-1. Create a new merge migration
+   ```bash
+   1412ec1e5a7b (head)
+   67da9ef1ef9c (head)
+   ```
+
+2. Pick one of them as the parent revision, open the script for the other revision
+   and update `Revises` and `down_revision` to the new parent revision. E.g.:
+
+   ```diff
+   --- a/67da9ef1ef9c_add_hide_left_bar_to_tabstate.py
+   +++ b/67da9ef1ef9c_add_hide_left_bar_to_tabstate.py
+   @@ -17,14 +17,14 @@
+   """add hide_left_bar to tabstate
+
+   Revision ID: 67da9ef1ef9c
+   -Revises: c501b7c653a3
+   +Revises: 1412ec1e5a7b
+   Create Date: 2021-02-22 11:22:10.156942
+
+   """
+
+   # revision identifiers, used by Alembic.
+   revision = "67da9ef1ef9c"
+   -down_revision = "c501b7c653a3"
+   +down_revision = "1412ec1e5a7b"
+
+   import sqlalchemy as sa
+   from alembic import op
+   ```
+
+   Alternatively you may also run `superset db merge` to create a migration script
+   just for merging the heads.
 
    ```bash
    superset db merge {HASH1} {HASH2}
    ```
 
-1. Upgrade the DB to the new checkpoint
+3. Upgrade the DB to the new checkpoint
 
    ```bash
    superset db upgrade
@@ -1033,7 +1268,7 @@ To do this, you'll need to:
 - Start up a celery worker
 
   ```shell script
-  celery worker --app=superset.tasks.celery_app:app -Ofair
+  celery --app=superset.tasks.celery_app:app worker -Ofair
   ```
 
 Note that:
@@ -1063,8 +1298,9 @@ The following configuration settings are available for async queries (see config
 - `GLOBAL_ASYNC_QUERIES_REDIS_STREAM_LIMIT_FIREHOSE` - the maximum number of events for all users (FIFO eviction)
 - `GLOBAL_ASYNC_QUERIES_JWT_COOKIE_NAME` - the async query feature uses a [JWT](https://tools.ietf.org/html/rfc7519) cookie for authentication, this setting is the cookie's name
 - `GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SECURE` - JWT cookie secure option
+- `GLOBAL_ASYNC_QUERIES_JWT_COOKIE_DOMAIN` - JWT cookie domain option ([see docs for set_cookie](https://tedboy.github.io/flask/interface_api.response_object.html#flask.Response.set_cookie))
 - `GLOBAL_ASYNC_QUERIES_JWT_SECRET` - JWT's use a secret key to sign and validate the contents. This value should be at least 32 bytes and have sufficient randomness for proper security
-- `GLOBAL_ASYNC_QUERIES_TRANSPORT` - currently the only available option is (HTTP) `polling`, but support for a WebSocket will be added in future versions
+- `GLOBAL_ASYNC_QUERIES_TRANSPORT` - available options: "polling" (HTTP, default), "ws" (WebSocket, requires running superset-websocket server)
 - `GLOBAL_ASYNC_QUERIES_POLLING_DELAY` - the time (in ms) between polling requests
 
 More information on the async query feature can be found in [SIP-39](https://github.com/apache/superset/issues/9190).
@@ -1073,16 +1309,16 @@ More information on the async query feature can be found in [SIP-39](https://git
 
 Chart parameters are stored as a JSON encoded string the `slices.params` column and are often referenced throughout the code as form-data. Currently the form-data is neither versioned nor typed as thus is somewhat free-formed. Note in the future there may be merit in using something like [JSON Schema](https://json-schema.org/) to both annotate and validate the JSON object in addition to using a Mypy `TypedDict` (introduced in Python 3.8) for typing the form-data in the backend. This section serves as a potential primer for that work.
 
-The following tables provide a non-exhausive list of the various fields which can be present in the JSON object grouped by the Explorer pane sections. These values were obtained by extracting the distinct fields from a legacy deployment consisting of tens of thousands of charts and thus some fields may be missing whilst others may be deprecated.
+The following tables provide a non-exhaustive list of the various fields which can be present in the JSON object grouped by the Explorer pane sections. These values were obtained by extracting the distinct fields from a legacy deployment consisting of tens of thousands of charts and thus some fields may be missing whilst others may be deprecated.
 
-Note not all fields are correctly catagorized. The fields vary based on visualization type and may apprear in different sections depending on the type. Verified deprecated columns may indicate a missing migration and/or prior migrations which were unsucessful and thus future work may be required to clean up the form-data.
+Note not all fields are correctly categorized. The fields vary based on visualization type and may appear in different sections depending on the type. Verified deprecated columns may indicate a missing migration and/or prior migrations which were unsuccessful and thus future work may be required to clean up the form-data.
 
 ### Datasource & Chart Type
 
 | Field             | Type     | Notes                               |
 | ----------------- | -------- | ----------------------------------- |
 | `database_name`   | _string_ | _Deprecated?_                       |
-| `datasource`      | _string_ | `<datasouce_id>__<datasource_type>` |
+| `datasource`      | _string_ | `<datasource_id>__<datasource_type>` |
 | `datasource_id`   | _string_ | _Deprecated?_ See `datasource`      |
 | `datasource_name` | _string_ | _Deprecated?_                       |
 | `datasource_type` | _string_ | _Deprecated?_ See `datasource`      |
@@ -1132,10 +1368,11 @@ Note not all fields are correctly catagorized. The fields vary based on visualiz
 | Field                                                                                                  | Type                                              | Notes                                             |
 | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------- | ------------------------------------------------- |
 | `adhoc_filters`                                                                                        | _array(object)_                                   | The **Filters** widget                            |
+| `extra_filters`                                                                                        | _array(object)_                                   | Another pathway to the **Filters** widget.<br/>It is generally used to pass dashboard filter parameters to a chart.<br/>It can be used for appending additional filters to a chart that has been saved with its own filters on an ad-hoc basis if the chart is being used as a standalone widget.<br/><br/>For implementation examples see : [utils test.py](https://github.com/apache/superset/blob/66a4c94a1ed542e69fe6399bab4c01d4540486cf/tests/utils_tests.py#L181)<br/>For insight into how superset processes the contents of this parameter see: [exploreUtils/index.js](https://github.com/apache/superset/blob/93c7f5bb446ec6895d7702835f3157426955d5a9/superset-frontend/src/explore/exploreUtils/index.js#L159)                         |
 | `columns`                                                                                              | _array(string)_                                   | The **Breakdowns** widget                         |
 | `groupby`                                                                                              | _array(string)_                                   | The **Group by** or **Series** widget             |
 | `limit`                                                                                                | _number_                                          | The **Series Limit** widget                       |
-| `metric`<br>`metric_2`<br>`metrics`<br>`percent_mertics`<br>`secondary_metric`<br>`size`<br>`x`<br>`y` | _string_,_object_,_array(string)_,_array(object)_ | The metric(s) depending on the visualization type |
+| `metric`<br>`metric_2`<br>`metrics`<br>`percent_metrics`<br>`secondary_metric`<br>`size`<br>`x`<br>`y` | _string_,_object_,_array(string)_,_array(object)_ | The metric(s) depending on the visualization type |
 | `order_asc`                                                                                            | _boolean_                                         | The **Sort Descending** widget                    |
 | `row_limit`                                                                                            | _number_                                          | The **Row limit** widget                          |
 | `timeseries_limit_metric`                                                                              | _object_                                          | The **Sort By** widget                            |
@@ -1178,7 +1415,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `default_filters`             | _N/A_ |       |
 | `entity`                      | _N/A_ |       |
 | `expanded_slices`             | _N/A_ |       |
-| `extra_filters`               | _N/A_ |       |
 | `filter_immune_slice_fields`  | _N/A_ |       |
 | `filter_immune_slices`        | _N/A_ |       |
 | `flt_col_0`                   | _N/A_ |       |

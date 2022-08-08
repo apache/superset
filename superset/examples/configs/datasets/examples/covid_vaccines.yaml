@@ -24,7 +24,7 @@ schema: null
 sql: ''
 params: null
 template_params: null
-filter_select_enabled: false
+filter_select_enabled: true
 fetch_values_predicate: null
 extra: null
 uuid: 974b7a1c-22ea-49cb-9214-97b7dbd511e0

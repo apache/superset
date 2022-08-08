@@ -16,7 +16,7 @@
 # under the License.
 from flask_babel import lazy_gettext as _
 
-from ...dashboards.filters import DashboardFilter
+from ...dashboards.filters import DashboardAccessFilter
 from ..base import check_ownership
 
 
@@ -39,7 +39,7 @@ class DashboardMixin:  # pylint: disable=too-few-public-methods
         "json_metadata",
         "published",
     ]
-    show_columns = edit_columns + ["table_names", "charts"]
+    show_columns = edit_columns + ["charts"]
     search_columns = ("dashboard_title", "slug", "owners", "published")
     add_columns = edit_columns
     base_order = ("changed_on", "desc")
@@ -65,8 +65,7 @@ class DashboardMixin:  # pylint: disable=too-few-public-methods
         "owners": _("Owners is a list of users who can alter the dashboard."),
         "roles": _(
             "Roles is a list which defines access to the dashboard. "
-            "These roles are always applied in addition to restrictions on dataset "
-            "level access. "
+            "Granting a role access to a dashboard will bypass dataset level checks."
             "If no roles defined then the dashboard is available to all roles."
         ),
         "published": _(
@@ -74,7 +73,7 @@ class DashboardMixin:  # pylint: disable=too-few-public-methods
             "visible in the list of all dashboards"
         ),
     }
-    base_filters = [["slice", DashboardFilter, lambda: []]]
+    base_filters = [["slice", DashboardAccessFilter, lambda: []]]
     label_columns = {
         "dashboard_link": _("Dashboard"),
         "dashboard_title": _("Title"),
@@ -88,7 +87,6 @@ class DashboardMixin:  # pylint: disable=too-few-public-methods
         "position_json": _("Position JSON"),
         "css": _("CSS"),
         "json_metadata": _("JSON Metadata"),
-        "table_names": _("Underlying Tables"),
     }
 
     def pre_delete(self, item: "DashboardMixin") -> None:  # pylint: disable=no-self-use

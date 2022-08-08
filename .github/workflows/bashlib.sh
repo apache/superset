@@ -55,7 +55,6 @@ npm-install() {
   cd "$GITHUB_WORKSPACE/superset-frontend"
 
   # cache-restore npm
-
   say "::group::Install npm packages"
   echo "npm: $(npm --version)"
   echo "node: $(node --version)"
@@ -69,7 +68,7 @@ build-assets() {
   cd "$GITHUB_WORKSPACE/superset-frontend"
 
   say "::group::Build static assets"
-  npm run build -- --no-progress
+  npm run build
   say "::endgroup::"
 }
 
@@ -81,7 +80,7 @@ build-instrumented-assets() {
   if [[ -f "$ASSETS_MANIFEST" ]]; then
     echo 'Skip frontend build because instrumented static assets already exist.'
   else
-    npm run build-instrumented -- --no-progress
+    npm run build-instrumented
     cache-save instrumented-assets
   fi
   say "::endgroup::"
@@ -131,12 +130,7 @@ testdata() {
 
 codecov() {
   say "::group::Upload code coverage"
-  local codecovScript="${HOME}/codecov.sh"
-  # download bash script if needed
-  if [[ ! -f "$codecovScript" ]]; then
-    curl -s https://codecov.io/bash >"$codecovScript"
-  fi
-  bash "$codecovScript" "$@"
+  bash ".github/workflows/codecov.sh" "$@"
   say "::endgroup::"
 }
 
@@ -191,18 +185,13 @@ cypress-run-all() {
 
   cypress-run "*/**/*"
 
-  # Upload code coverage separately so each page can have separate flags
-  # -c will clean existing coverage reports, -F means add flags
-  # || true to prevent CI failure on codecov upload
-  codecov -cF "cypress" || true
-
   # After job is done, print out Flask log for debugging
   say "::group::Flask log for default run"
   cat "$flasklog"
   say "::endgroup::"
 
   # Rerun SQL Lab tests with backend persist enabled
-  export SUPERSET_CONFIG=tests.superset_test_config_sqllab_backend_persist
+  export SUPERSET_CONFIG=tests.integration_tests.superset_test_config_sqllab_backend_persist
 
   # Restart Flask with new configs
   kill $flaskProcessId
@@ -211,8 +200,10 @@ cypress-run-all() {
 
   cypress-run "sqllab/*" "Backend persist"
 
+  # Upload code coverage separately so each page can have separate flags
+  # -c will clean existing coverage reports, -F means add flags
   # || true to prevent CI failure on codecov upload
-  codecov -cF "cypress" || true
+  codecov -c -F "cypress" || true
 
   say "::group::Flask log for backend persist"
   cat "$flasklog"

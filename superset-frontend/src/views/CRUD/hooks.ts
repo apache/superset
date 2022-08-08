@@ -18,15 +18,21 @@
  */
 import rison from 'rison';
 import { useState, useEffect, useCallback } from 'react';
-import { makeApi, SupersetClient, t } from '@superset-ui/core';
+import { makeApi, SupersetClient, t, JsonObject } from '@superset-ui/core';
 
-import { createErrorHandler } from 'src/views/CRUD/utils';
+import {
+  createErrorHandler,
+  getAlreadyExists,
+  getPasswordsNeeded,
+  hasTerminalValidation,
+} from 'src/views/CRUD/utils';
 import { FetchDataConfig } from 'src/components/ListView';
 import { FilterValue } from 'src/components/ListView/types';
 import Chart, { Slice } from 'src/types/Chart';
 import copyTextToClipboard from 'src/utils/copy';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
-import { FavoriteStatus, ImportResourceName } from './types';
+import SupersetText from 'src/utils/textUtils';
+import { FavoriteStatus, ImportResourceName, DatabaseObject } from './types';
 
 interface ListViewResourceState<D extends object = any> {
   loading: boolean;
@@ -38,6 +44,22 @@ interface ListViewResourceState<D extends object = any> {
   lastFetched?: string;
 }
 
+const parsedErrorMessage = (
+  errorMessage: Record<string, string[] | string> | string,
+) => {
+  if (typeof errorMessage === 'string') {
+    return errorMessage;
+  }
+  return Object.entries(errorMessage)
+    .map(([key, value]) => {
+      if (Array.isArray(value)) {
+        return `(${key}) ${value.join(', ')}`;
+      }
+      return `(${key}) ${value}`;
+    })
+    .join('\n');
+};
+
 export function useListViewResource<D extends object = any>(
   resource: string,
   resourceLabel: string, // resourceLabel for translations
@@ -45,11 +67,12 @@ export function useListViewResource<D extends object = any>(
   infoEnable = true,
   defaultCollectionValue: D[] = [],
   baseFilters?: FilterValue[], // must be memoized
+  initialLoadingState = true,
 ) {
   const [state, setState] = useState<ListViewResourceState<D>>({
     count: 0,
     collection: defaultCollectionValue,
-    loading: true,
+    loading: initialLoadingState,
     lastFetchDataConfig: null,
     permissions: [],
     bulkSelectEnabled: false,
@@ -118,10 +141,13 @@ export function useListViewResource<D extends object = any>(
         .map(({ id, operator: opr, value }) => ({
           col: id,
           opr,
-          value,
+          value:
+            value && typeof value === 'object' && 'value' in value
+              ? value.value
+              : value,
         }));
 
-      const queryParams = rison.encode({
+      const queryParams = rison.encode_uri({
         order_column: sortBy[0].id,
         order_direction: sortBy[0].desc ? 'desc' : 'asc',
         page: pageIndex,
@@ -188,7 +214,7 @@ export function useListViewResource<D extends object = any>(
 interface SingleViewResourceState<D extends object = any> {
   loading: boolean;
   resource: D | null;
-  error: string | null;
+  error: any | null;
 }
 
 export function useSingleViewResource<D extends object = any>(
@@ -224,12 +250,12 @@ export function useSingleViewResource<D extends object = any>(
             });
             return json.result;
           },
-          createErrorHandler(errMsg => {
+          createErrorHandler((errMsg: Record<string, string[] | string>) => {
             handleErrorMsg(
               t(
                 'An error occurred while fetching %ss: %s',
                 resourceLabel,
-                JSON.stringify(errMsg),
+                parsedErrorMessage(errMsg),
               ),
             );
 
@@ -246,7 +272,7 @@ export function useSingleViewResource<D extends object = any>(
   );
 
   const createResource = useCallback(
-    (resource: D) => {
+    (resource: D, hideToast = false) => {
       // Set loading state
       updateState({
         loading: true,
@@ -260,19 +286,22 @@ export function useSingleViewResource<D extends object = any>(
         .then(
           ({ json = {} }) => {
             updateState({
-              resource: json.result,
+              resource: { id: json.id, ...json.result },
               error: null,
             });
             return json.id;
           },
-          createErrorHandler(errMsg => {
-            handleErrorMsg(
-              t(
-                'An error occurred while creating %ss: %s',
-                resourceLabel,
-                JSON.stringify(errMsg),
-              ),
-            );
+          createErrorHandler((errMsg: Record<string, string[] | string>) => {
+            // we did not want toasts for db-connection-ui but did not want to disable it everywhere
+            if (!hideToast) {
+              handleErrorMsg(
+                t(
+                  'An error occurred while creating %ss: %s',
+                  resourceLabel,
+                  parsedErrorMessage(errMsg),
+                ),
+              );
+            }
 
             updateState({
               error: errMsg,
@@ -287,7 +316,7 @@ export function useSingleViewResource<D extends object = any>(
   );
 
   const updateResource = useCallback(
-    (resourceID: number, resource: D) => {
+    (resourceID: number, resource: D, hideToast = false) => {
       // Set loading state
       updateState({
         loading: true,
@@ -301,19 +330,21 @@ export function useSingleViewResource<D extends object = any>(
         .then(
           ({ json = {} }) => {
             updateState({
-              resource: json.result,
+              resource: { ...json.result, id: json.id },
               error: null,
             });
             return json.result;
           },
           createErrorHandler(errMsg => {
-            handleErrorMsg(
-              t(
-                'An error occurred while fetching %ss: %s',
-                resourceLabel,
-                JSON.stringify(errMsg),
-              ),
-            );
+            if (!hideToast) {
+              handleErrorMsg(
+                t(
+                  'An error occurred while fetching %ss: %s',
+                  resourceLabel,
+                  JSON.stringify(errMsg),
+                ),
+              );
+            }
 
             updateState({
               error: errMsg,
@@ -367,38 +398,6 @@ export function useImportResource(
     setState(currentState => ({ ...currentState, ...update }));
   }
 
-  /* eslint-disable no-underscore-dangle */
-  const isNeedsPassword = (payload: any) =>
-    typeof payload === 'object' &&
-    Array.isArray(payload._schema) &&
-    payload._schema.length === 1 &&
-    payload._schema[0] === 'Must provide a password for the database';
-
-  const isAlreadyExists = (payload: any) =>
-    typeof payload === 'string' &&
-    payload.includes('already exists and `overwrite=true` was not passed');
-
-  const getPasswordsNeeded = (
-    errMsg: Record<string, Record<string, string[]>>,
-  ) =>
-    Object.entries(errMsg)
-      .filter(([, validationErrors]) => isNeedsPassword(validationErrors))
-      .map(([fileName]) => fileName);
-
-  const getAlreadyExists = (errMsg: Record<string, Record<string, string[]>>) =>
-    Object.entries(errMsg)
-      .filter(([, validationErrors]) => isAlreadyExists(validationErrors))
-      .map(([fileName]) => fileName);
-
-  const hasTerminalValidation = (
-    errMsg: Record<string, Record<string, string[]>>,
-  ) =>
-    Object.values(errMsg).some(
-      validationErrors =>
-        !isNeedsPassword(validationErrors) &&
-        !isAlreadyExists(validationErrors),
-    );
-
   const importResource = useCallback(
     (
       bundle: File,
@@ -429,33 +428,33 @@ export function useImportResource(
       return SupersetClient.post({
         endpoint: `/api/v1/${resourceName}/import/`,
         body: formData,
+        headers: { Accept: 'application/json' },
       })
         .then(() => true)
         .catch(response =>
           getClientErrorObject(response).then(error => {
-            const errMsg = error.message || error.error;
-            if (typeof errMsg === 'string') {
+            if (!error.errors) {
               handleErrorMsg(
                 t(
                   'An error occurred while importing %s: %s',
                   resourceLabel,
-                  errMsg,
+                  error.message || error.error,
                 ),
               );
               return false;
             }
-            if (hasTerminalValidation(errMsg)) {
+            if (hasTerminalValidation(error.errors)) {
               handleErrorMsg(
                 t(
                   'An error occurred while importing %s: %s',
                   resourceLabel,
-                  JSON.stringify(errMsg),
+                  error.errors.map(payload => payload.message).join('\n'),
                 ),
               );
             } else {
               updateState({
-                passwordsNeeded: getPasswordsNeeded(errMsg),
-                alreadyExists: getAlreadyExists(errMsg),
+                passwordsNeeded: getPasswordsNeeded(error.errors),
+                alreadyExists: getAlreadyExists(error.errors),
               });
             }
             return false;
@@ -484,15 +483,15 @@ type FavoriteStatusResponse = {
 };
 
 const favoriteApis = {
-  chart: makeApi<string, FavoriteStatusResponse>({
-    requestType: 'search',
+  chart: makeApi<Array<string | number>, FavoriteStatusResponse>({
+    requestType: 'rison',
     method: 'GET',
-    endpoint: '/api/v1/chart/favorite_status',
+    endpoint: '/api/v1/chart/favorite_status/',
   }),
-  dashboard: makeApi<string, FavoriteStatusResponse>({
-    requestType: 'search',
+  dashboard: makeApi<Array<string | number>, FavoriteStatusResponse>({
+    requestType: 'rison',
     method: 'GET',
-    endpoint: '/api/v1/dashboard/favorite_status',
+    endpoint: '/api/v1/dashboard/favorite_status/',
   }),
 };
 
@@ -510,7 +509,7 @@ export function useFavoriteStatus(
     if (!ids.length) {
       return;
     }
-    favoriteApis[type](`q=${rison.encode(ids)}`).then(
+    favoriteApis[type](ids).then(
       ({ result }) => {
         const update = result.reduce((acc, element) => {
           acc[element.id] = element.value;
@@ -524,7 +523,7 @@ export function useFavoriteStatus(
         ),
       ),
     );
-  }, [ids]);
+  }, [ids, type, handleErrorMsg]);
 
   const saveFaveStar = useCallback(
     (id: number, isStarred: boolean) => {
@@ -556,10 +555,8 @@ export const useChartEditModal = (
   setCharts: (charts: Array<Chart>) => void,
   charts: Array<Chart>,
 ) => {
-  const [
-    sliceCurrentlyEditing,
-    setSliceCurrentlyEditing,
-  ] = useState<Slice | null>(null);
+  const [sliceCurrentlyEditing, setSliceCurrentlyEditing] =
+    useState<Slice | null>(null);
 
   function openChartEditModal(chart: Chart) {
     setSliceCurrentlyEditing({
@@ -567,6 +564,9 @@ export const useChartEditModal = (
       slice_name: chart.slice_name,
       description: chart.description,
       cache_timeout: chart.cache_timeout,
+      certified_by: chart.certified_by,
+      certification_details: chart.certification_details,
+      is_managed_externally: chart.is_managed_externally,
     });
   }
 
@@ -605,3 +605,157 @@ export const copyQueryLink = (
       addDangerToast(t('Sorry, your browser does not support copying.'));
     });
 };
+
+export const getDatabaseImages = () => SupersetText.DB_IMAGES;
+
+export const getConnectionAlert = () => SupersetText.DB_CONNECTION_ALERTS;
+export const getDatabaseDocumentationLinks = () =>
+  SupersetText.DB_CONNECTION_DOC_LINKS;
+
+export const testDatabaseConnection = (
+  connection: DatabaseObject,
+  handleErrorMsg: (errorMsg: string) => void,
+  addSuccessToast: (arg0: string) => void,
+) => {
+  SupersetClient.post({
+    endpoint: 'api/v1/database/test_connection',
+    body: JSON.stringify(connection),
+    headers: { 'Content-Type': 'application/json' },
+  }).then(
+    () => {
+      addSuccessToast(t('Connection looks good!'));
+    },
+    createErrorHandler((errMsg: Record<string, string[] | string> | string) => {
+      handleErrorMsg(t('ERROR: %s', parsedErrorMessage(errMsg)));
+    }),
+  );
+};
+
+export function useAvailableDatabases() {
+  const [availableDbs, setAvailableDbs] = useState<JsonObject | null>(null);
+
+  const getAvailable = useCallback(() => {
+    SupersetClient.get({
+      endpoint: `/api/v1/database/available/`,
+    }).then(({ json }) => {
+      setAvailableDbs(json);
+    });
+  }, [setAvailableDbs]);
+
+  return [availableDbs, getAvailable] as const;
+}
+
+export function useDatabaseValidation() {
+  const [validationErrors, setValidationErrors] = useState<JsonObject | null>(
+    null,
+  );
+  const getValidation = useCallback(
+    (database: Partial<DatabaseObject> | null, onCreate = false) =>
+      SupersetClient.post({
+        endpoint: '/api/v1/database/validate_parameters',
+        body: JSON.stringify(database),
+        headers: { 'Content-Type': 'application/json' },
+      })
+        .then(() => {
+          setValidationErrors(null);
+        })
+        // eslint-disable-next-line consistent-return
+        .catch(e => {
+          if (typeof e.json === 'function') {
+            return e.json().then(({ errors = [] }: JsonObject) => {
+              const parsedErrors = errors
+                .filter((error: { error_type: string }) => {
+                  const skipValidationError = ![
+                    'CONNECTION_MISSING_PARAMETERS_ERROR',
+                    'CONNECTION_ACCESS_DENIED_ERROR',
+                  ].includes(error.error_type);
+                  return skipValidationError || onCreate;
+                })
+                .reduce(
+                  (
+                    obj: {},
+                    {
+                      error_type,
+                      extra,
+                      message,
+                    }: {
+                      error_type: string;
+                      extra: {
+                        invalid?: string[];
+                        missing?: string[];
+                        name: string;
+                        catalog: {
+                          name: string;
+                          url: string;
+                          idx: number;
+                        };
+                      };
+                      message: string;
+                    },
+                  ) => {
+                    if (extra.catalog) {
+                      if (extra.catalog.name) {
+                        return {
+                          ...obj,
+                          error_type,
+                          [extra.catalog.idx]: {
+                            name: message,
+                          },
+                        };
+                      }
+                      if (extra.catalog.url) {
+                        return {
+                          ...obj,
+                          error_type,
+                          [extra.catalog.idx]: {
+                            url: message,
+                          },
+                        };
+                      }
+
+                      return {
+                        ...obj,
+                        error_type,
+                        [extra.catalog.idx]: {
+                          name: message,
+                          url: message,
+                        },
+                      };
+                    }
+                    // if extra.invalid doesn't exist then the
+                    // error can't be mapped to a parameter
+                    // so leave it alone
+                    if (extra.invalid) {
+                      return {
+                        ...obj,
+                        [extra.invalid[0]]: message,
+                        error_type,
+                      };
+                    }
+                    if (extra.missing) {
+                      return {
+                        ...obj,
+                        error_type,
+                        ...Object.assign(
+                          {},
+                          ...extra.missing.map(field => ({
+                            [field]: 'This is a required field',
+                          })),
+                        ),
+                      };
+                    }
+                    return obj;
+                  },
+                  {},
+                );
+              setValidationErrors(parsedErrors);
+            });
+          }
+          // eslint-disable-next-line no-console
+          console.error(e);
+        }),
+    [setValidationErrors],
+  );
+
+  return [validationErrors, getValidation, setValidationErrors] as const;
+}

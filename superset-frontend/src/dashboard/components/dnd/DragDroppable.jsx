@@ -66,7 +66,7 @@ const defaultProps = {
 };
 
 // export unwrapped component for testing
-export class UnwrappedDragDroppable extends React.Component {
+export class UnwrappedDragDroppable extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
@@ -104,6 +104,7 @@ export class UnwrappedDragDroppable extends React.Component {
       className,
       orientation,
       dragSourceRef,
+      disableDragDrop,
       isDragging,
       isDraggingOver,
       style,
@@ -112,7 +113,7 @@ export class UnwrappedDragDroppable extends React.Component {
 
     const { dropIndicator } = this.state;
     const dropIndicatorProps =
-      isDraggingOver && dropIndicator
+      isDraggingOver && dropIndicator && !disableDragDrop
         ? {
             className: cx(
               'drop-indicator',

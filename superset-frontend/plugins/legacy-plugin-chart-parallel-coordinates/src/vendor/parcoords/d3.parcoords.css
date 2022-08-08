@@ -1,0 +1,79 @@
+/* [LICENSE TBD] */
+.parcoords svg,
+.parcoords canvas {
+  font-size: 12px;
+  position: absolute;
+}
+.parcoords > canvas {
+  pointer-events: none;
+}
+
+.parcoords text.label {
+  font: 100%;
+  font-size: 12px;
+  cursor: drag;
+}
+
+.parcoords rect.background {
+  fill: transparent;
+}
+.parcoords rect.background:hover {
+  fill: rgba(120, 120, 120, 0.2);
+}
+.parcoords .resize rect {
+  fill: rgba(0, 0, 0, 0.1);
+}
+.parcoords rect.extent {
+  fill: rgba(255, 255, 255, 0.25);
+  stroke: rgba(0, 0, 0, 0.6);
+}
+.parcoords .axis line,
+.parcoords .axis path {
+  fill: none;
+  stroke: #222;
+  shape-rendering: crispEdges;
+}
+.parcoords canvas {
+  opacity: 1;
+  -moz-transition: opacity 0.3s;
+  -webkit-transition: opacity 0.3s;
+  -o-transition: opacity 0.3s;
+}
+.parcoords canvas.faded {
+  opacity: 0.25;
+}
+.parcoords {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  background-color: white;
+}
+
+/* data table styles */
+.parcoords .row,
+.parcoords .header {
+  clear: left;
+  font-size: 12px;
+  line-height: 18px;
+  height: 18px;
+  margin: 0px;
+}
+.parcoords .row:nth-child(odd) {
+  background: rgba(0, 0, 0, 0.05);
+}
+.parcoords .header {
+  font-weight: bold;
+}
+.parcoords .cell {
+  float: left;
+  overflow: hidden;
+  white-space: nowrap;
+  width: 100px;
+  height: 18px;
+}
+.parcoords .col-0 {
+  width: 180px;
+}

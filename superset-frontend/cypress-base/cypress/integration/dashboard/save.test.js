@@ -18,10 +18,14 @@
  */
 
 import shortid from 'shortid';
-import { WORLD_HEALTH_DASHBOARD } from './dashboard.helper';
+import {
+  waitForChartLoad,
+  WORLD_HEALTH_CHARTS,
+  WORLD_HEALTH_DASHBOARD,
+} from './dashboard.helper';
 
 function openDashboardEditProperties() {
-  cy.get('.dashboard-header [data-test=edit-alt]').click();
+  cy.get('.dashboard-header [aria-label=edit-alt]').click();
   cy.get('#save-dash-split-button').trigger('click', { force: true });
   cy.get('.dropdown-menu').contains('Edit dashboard properties').click();
 }
@@ -31,57 +35,59 @@ describe('Dashboard save action', () => {
     cy.login();
     cy.visit(WORLD_HEALTH_DASHBOARD);
     cy.get('#app').then(data => {
-      const bootstrapData = JSON.parse(data[0].dataset.bootstrap);
-      const dashboard = bootstrapData.dashboard_data;
-      const dashboardId = dashboard.id;
-      cy.intercept('POST', `/superset/copy_dash/${dashboardId}/`).as(
-        'copyRequest',
-      );
+      cy.get('[data-test="dashboard-header"]').then(headerElement => {
+        const dashboardId = headerElement.attr('data-test-id');
 
-      cy.get('[data-test="more-horiz"]').trigger('click', { force: true });
-      cy.get('[data-test="save-as-menu-item"]').trigger('click', {
-        force: true,
-      });
-      cy.get('[data-test="modal-save-dashboard-button"]').trigger('click', {
-        force: true,
+        cy.intercept('POST', `/superset/copy_dash/${dashboardId}/`).as(
+          'copyRequest',
+        );
+
+        cy.get('[aria-label="more-horiz"]').trigger('click', { force: true });
+        cy.get('[data-test="save-as-menu-item"]').trigger('click', {
+          force: true,
+        });
+        cy.get('[data-test="modal-save-dashboard-button"]').trigger('click', {
+          force: true,
+        });
       });
     });
   });
 
+  // change to what the title should be
   it('should save as new dashboard', () => {
     cy.wait('@copyRequest').then(xhr => {
-      expect(xhr.response.body.dashboard_title).to.not.equal(
-        `World Bank's Data`,
-      );
+      cy.get('[data-test="editable-title-input"]').then(element => {
+        const dashboardTitle = element.attr('title');
+        expect(dashboardTitle).to.not.equal(`World Bank's Data`);
+      });
     });
   });
 
   it('should save/overwrite dashboard', () => {
     // should load chart
-    cy.get('.dashboard-grid', { timeout: 30000 });
-    cy.get('.box_plot').should('be.visible');
+    WORLD_HEALTH_CHARTS.forEach(waitForChartLoad);
 
     // remove box_plot chart from dashboard
-    cy.get('[data-test="edit-alt"]').click({ timeout: 5000 });
+    cy.get('[aria-label="edit-alt"]').click({ timeout: 5000 });
     cy.get('[data-test="dashboard-delete-component-button"]')
       .last()
-      .trigger('moustenter')
+      .trigger('mouseenter')
       .click();
 
     cy.get('[data-test="grid-container"]')
       .find('.box_plot')
       .should('not.exist');
 
-    cy.intercept('POST', '/superset/save_dash/**/').as('saveRequest');
+    cy.intercept('PUT', '/api/v1/dashboard/**').as('putDashboardRequest');
     cy.get('[data-test="dashboard-header"]')
       .find('[data-test="header-save-button"]')
       .contains('Save')
       .click();
 
     // go back to view mode
-    cy.wait('@saveRequest');
+    cy.wait('@putDashboardRequest');
     cy.get('[data-test="dashboard-header"]')
-      .find('[data-test="edit-alt"]')
+      .find('[aria-label="edit-alt"]')
       .click();
 
     // deleted boxplot should still not exist

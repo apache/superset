@@ -17,26 +17,19 @@
  * under the License.
  */
 import React from 'react';
-import { styled } from '@superset-ui/core';
-import Icon from 'src/components/Icon';
-import { Card, Skeleton, ThinSkeleton } from 'src/common/components';
-import { Tooltip } from 'src/common/components/Tooltip';
+import { styled, useTheme } from '@superset-ui/core';
+import { Skeleton, AntdCard } from 'src/components';
+import { Tooltip } from 'src/components/Tooltip';
 import ImageLoader, { BackgroundPosition } from './ImageLoader';
-
-const MenuIcon = styled(Icon)`
-  width: ${({ theme }) => theme.gridUnit * 4}px;
-  height: ${({ theme }) => theme.gridUnit * 4}px;
-  position: relative;
-  top: ${({ theme }) => theme.gridUnit / 2}px;
-`;
+import CertifiedBadge from '../CertifiedBadge';
 
 const ActionsWrapper = styled.div`
   width: 64px;
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
 `;
 
-const StyledCard = styled(Card)`
+const StyledCard = styled(AntdCard)`
   border: 1px solid #d9dbe4;
   border-radius: ${({ theme }) => theme.gridUnit}px;
   overflow: hidden;
@@ -100,18 +93,26 @@ const TitleContainer = styled.div`
   .card-actions {
     margin-left: auto;
     align-self: flex-end;
-    padding-left: ${({ theme }) => theme.gridUnit * 8}px;
+    padding-left: ${({ theme }) => theme.gridUnit}px;
+    span[role='img'] {
+      display: flex;
+      align-items: center;
+    }
   }
 `;
 
-const TitleLink = styled.a`
-  color: ${({ theme }) => theme.colors.grayscale.dark1} !important;
+const TitleLink = styled.span`
   overflow: hidden;
   text-overflow: ellipsis;
-
-  & + .title-right {
-    margin-left: ${({ theme }) => theme.gridUnit * 2}px;
+  & a {
+    color: ${({ theme }) => theme.colors.grayscale.dark1} !important;
   }
+`;
+
+const TitleRight = styled.span`
+  position: absolute;
+  right: -1px;
+  bottom: ${({ theme }) => theme.gridUnit}px;
 `;
 
 const CoverFooter = styled.div`
@@ -135,18 +136,30 @@ const CoverFooterRight = styled.div`
   text-overflow: ellipsis;
 `;
 
-const SkeletonTitle = styled(Skeleton.Input)`
-  width: ${({ theme }) => Math.trunc(theme.gridUnit * 62.5)}px;
-`;
+const ThinSkeleton = styled(Skeleton)`
+  h3 {
+    margin: ${({ theme }) => theme.gridUnit}px 0;
+  }
 
-const SkeletonActions = styled(Skeleton.Button)`
-  width: ${({ theme }) => theme.gridUnit * 10}px;
+  ul {
+    margin-bottom: 0;
+  }
 `;
 
 const paragraphConfig = { rows: 1, width: 150 };
+
+interface LinkProps {
+  to: string;
+}
+
+const AnchorLink: React.FC<LinkProps> = ({ to, children }) => (
+  <a href={to}>{children}</a>
+);
+
 interface CardProps {
   title?: React.ReactNode;
   url?: string;
+  linkComponent?: React.ComponentType<LinkProps>;
   imgURL?: string;
   imgFallbackURL?: string;
   imgPosition?: BackgroundPosition;
@@ -157,13 +170,16 @@ interface CardProps {
   coverRight?: React.ReactNode;
   actions?: React.ReactNode | null;
   rows?: number | string;
-  avatar?: string;
+  avatar?: React.ReactElement | null;
   cover?: React.ReactNode | null;
+  certifiedBy?: string;
+  certificationDetails?: string;
 }
 
 function ListViewCard({
   title,
   url,
+  linkComponent,
   titleRight,
   imgURL,
   imgFallbackURL,
@@ -175,14 +191,18 @@ function ListViewCard({
   loading,
   imgPosition = 'top',
   cover,
+  certifiedBy,
+  certificationDetails,
 }: CardProps) {
+  const Link = url && linkComponent ? linkComponent : AnchorLink;
+  const theme = useTheme();
   return (
     <StyledCard
       data-test="styled-card"
       cover={
         cover || (
           <Cover>
-            <a href={url}>
+            <Link to={url!}>
               <div className="gradient-container">
                 <ImageLoader
                   src={imgURL || ''}
@@ -191,7 +211,7 @@ function ListViewCard({
                   position={imgPosition}
                 />
               </div>
-            </a>
+            </Link>
             <CoverFooter className="cover-footer">
               {!loading && coverLeft && (
                 <CoverFooterLeft>{coverLeft}</CoverFooterLeft>
@@ -205,14 +225,25 @@ function ListViewCard({
       }
     >
       {loading && (
-        <Card.Meta
+        <AntdCard.Meta
           title={
             <>
               <TitleContainer>
-                <SkeletonTitle active size="small" />
+                <Skeleton.Input
+                  active
+                  size="small"
+                  css={{
+                    width: Math.trunc(theme.gridUnit * 62.5),
+                  }}
+                />
                 <div className="card-actions">
                   <Skeleton.Button active shape="circle" />{' '}
-                  <SkeletonActions active />
+                  <Skeleton.Button
+                    active
+                    css={{
+                      width: theme.gridUnit * 10,
+                    }}
+                  />
                 </div>
               </TitleContainer>
             </>
@@ -228,21 +259,32 @@ function ListViewCard({
         />
       )}
       {!loading && (
-        <Card.Meta
+        <AntdCard.Meta
           title={
             <TitleContainer>
               <Tooltip title={title}>
-                <TitleLink href={url}>{title}</TitleLink>
+                <TitleLink>
+                  <Link to={url!}>
+                    {certifiedBy && (
+                      <>
+                        <CertifiedBadge
+                          certifiedBy={certifiedBy}
+                          details={certificationDetails}
+                        />{' '}
+                      </>
+                    )}
+                    {title}
+                  </Link>
+                </TitleLink>
               </Tooltip>
-              {titleRight && <div className="title-right"> {titleRight}</div>}
+              {titleRight && <TitleRight>{titleRight}</TitleRight>}
               <div className="card-actions" data-test="card-actions">
                 {actions}
               </div>
             </TitleContainer>
           }
           description={description}
-          // @ts-ignore
-          avatar={avatar ? <Icon name={avatar} /> : null}
+          avatar={avatar || null}
         />
       )}
     </StyledCard>
@@ -250,5 +292,5 @@ function ListViewCard({
 }
 
 ListViewCard.Actions = ActionsWrapper;
-ListViewCard.MenuIcon = MenuIcon;
+
 export default ListViewCard;

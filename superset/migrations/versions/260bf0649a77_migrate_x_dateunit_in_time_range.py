@@ -79,11 +79,14 @@ def upgrade():
         )
 
     try:
-        slices = session.query(Slice).filter(where_clause).all()
+        slices = session.query(Slice).filter(where_clause)
+        total = slices.count()
         sep = " : "
         pattern = DateRangeMigration.x_dateunit
-        for idx, slc in enumerate(slices):
-            print(f"Upgrading ({idx + 1}/{len(slices)}): {slc.slice_name}#{slc.id}")
+        idx = 0
+        for slc in slices.yield_per(100):
+            idx += 1
+            print(f"Upgrading ({idx}/{total}): {slc.slice_name}#{slc.id}")
             params = json.loads(slc.params)
             time_range = params["time_range"]
             if sep in time_range:
@@ -93,7 +96,6 @@ def upgrade():
                 if re.match(pattern, end):
                     end = f"{end.strip()} later"
                 params["time_range"] = f"{start}{sep}{end}"
-
                 slc.params = json.dumps(params, sort_keys=True, indent=4)
                 session.commit()
     except OperationalError:

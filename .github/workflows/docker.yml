@@ -24,3 +24,19 @@ jobs:
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         run: |
           .github/workflows/docker_build_push.sh
+
+      - name: Build ephemeral env image
+        if: github.event_name == 'pull_request'
+        run: |
+          mkdir -p ./build
+          echo ${{ github.sha }} > ./build/SHA
+          echo ${{ github.event.pull_request.number }} > ./build/PR-NUM
+          docker build --target ci -t ${{ github.sha }} -t "pr-${{ github.event.pull_request.number }}" .
+          docker save ${{ github.sha }} | gzip > ./build/${{ github.sha }}.tar.gz
+
+      - name: Upload build artifacts
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v2
+        with:
+          name: build
+          path: build/

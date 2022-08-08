@@ -39,13 +39,27 @@ from superset.migrations.shared.security_converge import (
     Pvm,
 )
 
-NEW_PVMS = {"ReportSchedule": ("can_read", "can_write",)}
+NEW_PVMS = {
+    "ReportSchedule": (
+        "can_read",
+        "can_write",
+    )
+}
 PVM_MAP = {
     Pvm("ReportSchedule", "can_list"): (Pvm("ReportSchedule", "can_read"),),
     Pvm("ReportSchedule", "can_show"): (Pvm("ReportSchedule", "can_read"),),
-    Pvm("ReportSchedule", "can_add",): (Pvm("ReportSchedule", "can_write"),),
-    Pvm("ReportSchedule", "can_edit",): (Pvm("ReportSchedule", "can_write"),),
-    Pvm("ReportSchedule", "can_delete",): (Pvm("ReportSchedule", "can_write"),),
+    Pvm(
+        "ReportSchedule",
+        "can_add",
+    ): (Pvm("ReportSchedule", "can_write"),),
+    Pvm(
+        "ReportSchedule",
+        "can_edit",
+    ): (Pvm("ReportSchedule", "can_write"),),
+    Pvm(
+        "ReportSchedule",
+        "can_delete",
+    ): (Pvm("ReportSchedule", "can_write"),),
 }
 
 

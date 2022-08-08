@@ -14,8 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any
+import uuid
+from typing import Any, Optional, Union
 
+from flask import g
 from flask_appbuilder.security.sqla.models import Role
 from flask_babel import lazy_gettext as _
 from sqlalchemy import and_, or_
@@ -24,8 +26,10 @@ from sqlalchemy.orm.query import Query
 from superset import db, is_feature_enabled, security_manager
 from superset.models.core import FavStar
 from superset.models.dashboard import Dashboard
+from superset.models.embedded_dashboard import EmbeddedDashboard
 from superset.models.slice import Slice
-from superset.views.base import BaseFilter, get_user_roles, is_user_admin
+from superset.security.guest_token import GuestTokenResourceType, GuestUser
+from superset.views.base import BaseFilter, is_user_admin
 from superset.views.base_api import BaseFavoriteFilter
 
 
@@ -45,9 +49,9 @@ class DashboardTitleOrSlugFilter(BaseFilter):  # pylint: disable=too-few-public-
         )
 
 
-class DashboardFavoriteFilter(
+class DashboardFavoriteFilter(  # pylint: disable=too-few-public-methods
     BaseFavoriteFilter
-):  # pylint: disable=too-few-public-methods
+):
     """
     Custom filter for the GET list that filters all dashboards that a user has favored
     """
@@ -57,16 +61,24 @@ class DashboardFavoriteFilter(
     model = Dashboard
 
 
-class DashboardFilter(BaseFilter):  # pylint: disable=too-few-public-methods
+def is_uuid(value: Union[str, int]) -> bool:
+    try:
+        uuid.UUID(str(value))
+        return True
+    except ValueError:
+        return False
+
+
+class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-methods
     """
     List dashboards with the following criteria:
         1. Those which the user owns
         2. Those which the user has favorited
         3. Those which have been published (if they have access to at least one slice)
 
-    If the user is an admin show them all dashboards.
+    If the user is an admin then show all dashboards.
     This means they do not get curation but can still sort by "published"
-    if they wish to see those dashboards which are published first
+    if they wish to see those dashboards which are published first.
     """
 
     def apply(self, query: Query, value: Any) -> Query:
@@ -112,7 +124,7 @@ class DashboardFilter(BaseFilter):  # pylint: disable=too-few-public-methods
             )
         )
 
-        dashboard_rbac_or_filters = []
+        feature_flagged_filters = []
         if is_feature_enabled("DASHBOARD_RBAC"):
             roles_based_query = (
                 db.session.query(Dashboard.id)
@@ -121,20 +133,88 @@ class DashboardFilter(BaseFilter):  # pylint: disable=too-few-public-methods
                     and_(
                         Dashboard.published.is_(True),
                         dashboard_has_roles,
-                        Role.id.in_([x.id for x in get_user_roles()]),
+                        Role.id.in_([x.id for x in security_manager.get_user_roles()]),
                     ),
                 )
             )
 
-            dashboard_rbac_or_filters.append(Dashboard.id.in_(roles_based_query))
+            feature_flagged_filters.append(Dashboard.id.in_(roles_based_query))
+
+        if is_feature_enabled("EMBEDDED_SUPERSET") and security_manager.is_guest_user(
+            g.user
+        ):
+
+            guest_user: GuestUser = g.user
+            embedded_dashboard_ids = [
+                r["id"]
+                for r in guest_user.resources
+                if r["type"] == GuestTokenResourceType.DASHBOARD.value
+            ]
+
+            # TODO (embedded): only use uuid filter once uuids are rolled out
+            condition = (
+                Dashboard.embedded.any(
+                    EmbeddedDashboard.uuid.in_(embedded_dashboard_ids)
+                )
+                if any(is_uuid(id_) for id_ in embedded_dashboard_ids)
+                else Dashboard.id.in_(embedded_dashboard_ids)
+            )
+
+            feature_flagged_filters.append(condition)
 
         query = query.filter(
             or_(
                 Dashboard.id.in_(owner_ids_query),
                 Dashboard.id.in_(datasource_perm_query),
                 Dashboard.id.in_(users_favorite_dash_query),
-                *dashboard_rbac_or_filters,
+                *feature_flagged_filters,
             )
         )
 
+        return query
+
+
+class FilterRelatedRoles(BaseFilter):  # pylint: disable=too-few-public-methods
+    """
+    A filter to allow searching for related roles of a resource.
+
+    Use in the api by adding something like:
+    related_field_filters = {
+      "roles": RelatedFieldFilter("name", FilterRelatedRoles),
+    }
+    """
+
+    name = _("Role")
+    arg_name = "roles"
+
+    def apply(self, query: Query, value: Optional[Any]) -> Query:
+        role_model = security_manager.role_model
+        if value:
+            return query.filter(
+                role_model.name.ilike(f"%{value}%"),
+            )
+        return query
+
+
+class DashboardCertifiedFilter(BaseFilter):  # pylint: disable=too-few-public-methods
+    """
+    Custom filter for the GET list that filters all certified dashboards
+    """
+
+    name = _("Is certified")
+    arg_name = "dashboard_is_certified"
+
+    def apply(self, query: Query, value: Any) -> Query:
+        if value is True:
+            return query.filter(
+                and_(
+                    Dashboard.certified_by.isnot(None),
+                )
+            )
+        if value is False:
+            return query.filter(
+                and_(
+                    Dashboard.certified_by.is_(None),
+                )
+            )
         return query

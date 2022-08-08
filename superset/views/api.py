@@ -14,8 +14,9 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=R
-from typing import Any
+from __future__ import annotations
+
+from typing import Any, TYPE_CHECKING
 
 import simplejson as json
 from flask import request
@@ -24,18 +25,26 @@ from flask_appbuilder.api import rison
 from flask_appbuilder.security.decorators import has_access_api
 
 from superset import db, event_logger
-from superset.common.query_context import QueryContext
+from superset.charts.commands.exceptions import (
+    TimeRangeAmbiguousError,
+    TimeRangeParseFailError,
+)
 from superset.legacy import update_time_range
 from superset.models.slice import Slice
-from superset.typing import FlaskResponse
+from superset.superset_typing import FlaskResponse
 from superset.utils import core as utils
 from superset.utils.date_parser import get_since_until
 from superset.views.base import api, BaseSupersetView, handle_api_exception
+
+if TYPE_CHECKING:
+    from superset.common.query_context_factory import QueryContextFactory
 
 get_time_range_schema = {"type": "string"}
 
 
 class Api(BaseSupersetView):
+    query_context_factory = None
+
     @event_logger.log_this
     @api
     @handle_api_exception
@@ -48,7 +57,9 @@ class Api(BaseSupersetView):
 
         raises SupersetSecurityException: If the user cannot access the resource
         """
-        query_context = QueryContext(**json.loads(request.form["query_context"]))
+        query_context = self.get_query_context_factory().create(
+            **json.loads(request.form["query_context"])
+        )
         query_context.raise_for_access()
         result = query_context.get_payload()
         payload_json = result["queries"]
@@ -61,7 +72,7 @@ class Api(BaseSupersetView):
     @handle_api_exception
     @has_access_api
     @expose("/v1/form_data/", methods=["GET"])
-    def query_form_data(self) -> FlaskResponse:
+    def query_form_data(self) -> FlaskResponse:  # pylint: disable=no-self-use
         """
         Get the formdata stored in the database for existing slice.
         params: slice_id: integer
@@ -93,6 +104,14 @@ class Api(BaseSupersetView):
                 "timeRange": time_range,
             }
             return self.json_response({"result": result})
-        except ValueError as error:
+        except (ValueError, TimeRangeParseFailError, TimeRangeAmbiguousError) as error:
             error_msg = {"message": f"Unexpected time range: {error}"}
             return self.json_response(error_msg, 400)
+
+    def get_query_context_factory(self) -> QueryContextFactory:
+        if self.query_context_factory is None:
+            # pylint: disable=import-outside-toplevel
+            from superset.common.query_context_factory import QueryContextFactory
+
+            self.query_context_factory = QueryContextFactory()
+        return self.query_context_factory

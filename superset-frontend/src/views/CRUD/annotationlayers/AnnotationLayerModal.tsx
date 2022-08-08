@@ -20,14 +20,16 @@ import React, { FunctionComponent, useState, useEffect } from 'react';
 import { styled, t } from '@superset-ui/core';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 
-import Icon from 'src/components/Icon';
-import Modal from 'src/common/components/Modal';
-import withToasts from 'src/messageToasts/enhancers/withToasts';
+import Icons from 'src/components/Icons';
+import { StyledIcon } from 'src/views/CRUD/utils';
+import Modal from 'src/components/Modal';
+import withToasts from 'src/components/MessageToasts/withToasts';
 
 import { AnnotationLayerObject } from './types';
 
 interface AnnotationLayerModalProps {
   addDangerToast: (msg: string) => void;
+  addSuccessToast: (msg: string) => void;
   layer?: AnnotationLayerObject | null;
   onLayerAdd?: (layer?: AnnotationLayerObject) => void;
   onHide: () => void;
@@ -37,10 +39,6 @@ interface AnnotationLayerModalProps {
 const StyledAnnotationLayerTitle = styled.div`
   margin: ${({ theme }) => theme.gridUnit * 2}px auto
     ${({ theme }) => theme.gridUnit * 4}px auto;
-`;
-
-const StyledIcon = styled(Icon)`
-  margin: auto ${({ theme }) => theme.gridUnit * 2}px auto 0;
 `;
 
 const LayerContainer = styled.div`
@@ -83,16 +81,15 @@ const LayerContainer = styled.div`
 
 const AnnotationLayerModal: FunctionComponent<AnnotationLayerModalProps> = ({
   addDangerToast,
+  addSuccessToast,
   onLayerAdd,
   onHide,
   show,
   layer = null,
 }) => {
   const [disableSave, setDisableSave] = useState<boolean>(true);
-  const [
-    currentLayer,
-    setCurrentLayer,
-  ] = useState<AnnotationLayerObject | null>();
+  const [currentLayer, setCurrentLayer] =
+    useState<AnnotationLayerObject | null>();
   const [isHidden, setIsHidden] = useState<boolean>(true);
   const isEditMode = layer !== null;
 
@@ -108,9 +105,21 @@ const AnnotationLayerModal: FunctionComponent<AnnotationLayerModalProps> = ({
     addDangerToast,
   );
 
+  const resetLayer = () => {
+    // Reset layer
+    setCurrentLayer({
+      name: '',
+      descr: '',
+    });
+  };
+
   // Functions
   const hide = () => {
     setIsHidden(true);
+
+    // Reset layer
+    resetLayer();
+
     onHide();
   };
 
@@ -121,18 +130,28 @@ const AnnotationLayerModal: FunctionComponent<AnnotationLayerModalProps> = ({
         const update_id = currentLayer.id;
         delete currentLayer.id;
         delete currentLayer.created_by;
-        updateResource(update_id, currentLayer).then(() => {
+        updateResource(update_id, currentLayer).then(response => {
+          if (!response) {
+            return;
+          }
+
           hide();
+          addSuccessToast(t('Annotation template updated'));
         });
       }
     } else if (currentLayer) {
       // Create
       createResource(currentLayer).then(response => {
+        if (!response) {
+          return;
+        }
+
         if (onLayerAdd) {
           onLayerAdd(response);
         }
 
         hide();
+        addSuccessToast(t('Annotation template created'));
       });
     }
   };
@@ -154,7 +173,7 @@ const AnnotationLayerModal: FunctionComponent<AnnotationLayerModalProps> = ({
   };
 
   const validate = () => {
-    if (currentLayer && currentLayer.name.length) {
+    if (currentLayer && currentLayer.name?.length) {
       setDisableSave(false);
     } else {
       setDisableSave(true);
@@ -162,29 +181,33 @@ const AnnotationLayerModal: FunctionComponent<AnnotationLayerModalProps> = ({
   };
 
   // Initialize
-  if (
-    isEditMode &&
-    (!currentLayer ||
-      !currentLayer.id ||
-      (layer && layer.id !== currentLayer.id) ||
-      (isHidden && show))
-  ) {
-    if (layer && layer.id !== null && !loading) {
-      const id = layer.id || 0;
+  useEffect(() => {
+    if (
+      isEditMode &&
+      (!currentLayer ||
+        !currentLayer.id ||
+        (layer && layer.id !== currentLayer.id) ||
+        (isHidden && show))
+    ) {
+      if (show && layer && layer.id !== null && !loading) {
+        const id = layer.id || 0;
 
-      fetchResource(id).then(() => {
-        setCurrentLayer(resource);
-      });
+        fetchResource(id);
+      }
+    } else if (
+      !isEditMode &&
+      (!currentLayer || currentLayer.id || (isHidden && show))
+    ) {
+      // Reset layer
+      resetLayer();
     }
-  } else if (
-    !isEditMode &&
-    (!currentLayer || currentLayer.id || (isHidden && show))
-  ) {
-    setCurrentLayer({
-      name: '',
-      descr: '',
-    });
-  }
+  }, [layer, show]);
+
+  useEffect(() => {
+    if (resource) {
+      setCurrentLayer(resource);
+    }
+  }, [resource]);
 
   // Validation
   useEffect(() => {
@@ -210,9 +233,9 @@ const AnnotationLayerModal: FunctionComponent<AnnotationLayerModalProps> = ({
       title={
         <h4 data-test="annotation-layer-modal-title">
           {isEditMode ? (
-            <StyledIcon name="edit-alt" />
+            <Icons.EditAlt css={StyledIcon} />
           ) : (
-            <StyledIcon name="plus-large" />
+            <Icons.PlusLarge css={StyledIcon} />
           )}
           {isEditMode
             ? t('Edit annotation layer properties')

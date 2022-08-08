@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-@import '../../stylesheets/less/variables.less';
+@import '../assets/stylesheets/less/variables.less';
 
 body {
   min-height: ~'max(100vh, 500px)'; // Set a min height so the gutter is always visible when resizing
@@ -55,6 +55,8 @@ body {
   height: 100%;
   position: relative;
   background-color: @lightest;
+  overflow-x: auto;
+  overflow-y: auto;
 
   > .ant-tabs-tabpane {
     position: absolute;
@@ -205,7 +207,7 @@ div.Workspace {
     flex-direction: column;
   }
 
-  #brace-editor {
+  #ace-editor {
     height: calc(100% - 51px);
     flex-grow: 1;
   }
@@ -292,12 +294,14 @@ div.Workspace {
   .queryPane {
     flex: 1 1 auto;
     padding-left: 10px;
-    overflow: visible;
+    overflow-y: none;
+    overflow-x: scroll;
   }
 
   .schemaPane-enter-done,
   .schemaPane-exit {
     transform: translateX(0);
+    z-index: 7;
   }
 
   .schemaPane-exit-active {
@@ -361,24 +365,6 @@ div.tablePopover {
   }
 }
 
-.ResultSetControls {
-  display: flex;
-  justify-content: space-between;
-  padding: 8px 0;
-  position: fixed;
-}
-
-.ResultSetButtons {
-  display: grid;
-  grid-auto-flow: column;
-  grid-gap: 4px;
-  padding-right: 8px;
-}
-
-.result-set-error-message {
-  padding-top: 16px;
-}
-
 .ace_editor.ace_editor {
   //double class is better than !important
   border: 1px solid @gray-light;
@@ -413,8 +399,6 @@ div.tablePopover {
 }
 
 .TableElement {
-  margin-right: 10px;
-
   .well {
     margin-top: 5px;
     margin-bottom: 5px;
@@ -428,24 +412,33 @@ div.tablePopover {
 
   .header-container {
     display: flex;
+    flex: 1;
+    align-items: center;
+    width: 100%;
 
     .table-name {
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
       font-size: 16px;
+      flex: 1;
     }
 
     .header-right-side {
       margin-left: auto;
       display: flex;
       align-items: center;
+      margin-right: 33px;
     }
   }
 }
 
 .QueryTable .label {
   display: inline-block;
+}
+
+.QueryTable .ant-btn {
+  position: static;
 }
 
 .ResultsModal .ant-modal-body {

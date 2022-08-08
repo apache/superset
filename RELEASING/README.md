@@ -29,7 +29,13 @@ on the Superset Slack. People crafting releases and those interested in
 partaking in the process should join the channel.
 
 ## Release notes for recent releases
-- [1.0.0](release-notes-1-0/README.md)
+
+- [1.5](release-notes-1-5/README.md)
+- [1.4](release-notes-1-4/README.md)
+- [1.3](release-notes-1-3/README.md)
+- [1.2](release-notes-1-2/README.md)
+- [1.1](release-notes-1-1/README.md)
+- [1.0](release-notes-1-0/README.md)
 - [0.38](release-notes-0-38/README.md)
 
 ## Release setup (First Time Only)
@@ -56,6 +62,9 @@ need to be done at every release.
 
     # Commit the changes
     svn commit -m "Add PGP keys of new Superset committer"
+
+    # push the changes
+    svn update
 ```
 
 ## Setting up the release environment (do every time)
@@ -126,6 +135,12 @@ Example:
 python changelog.py --previous_version 0.37 --current_version 0.38 changelog
 ```
 
+You can get a list of pull requests with labels started with blocking, risk, hold, revert and security by using the parameter `--risk`.
+Example:
+```bash
+python changelog.py --previous_version 0.37 --current_version 0.38 changelog --access_token {GITHUB_TOKEN} --risk
+```
+
 The script will checkout both branches and compare all the PR's, copy the output and paste it on the `CHANGELOG.md`
 
 Then, in `UPDATING.md`, a file that contains a list of notifications around
@@ -166,7 +181,7 @@ the tag and create a signed source tarball from it:
 Note that `make_tarball.sh`:
 
 - By default assumes you have already executed an SVN checkout to `$HOME/svn/superset_dev`.
-This can be overriden by setting `SUPERSET_SVN_DEV_PATH` environment var to a different svn dev directory
+This can be overridden by setting `SUPERSET_SVN_DEV_PATH` environment var to a different svn dev directory
 - Will refuse to craft a new release candidate if a release already exists on your local svn dev directory
 - Will check `package.json` version number and fails if it's not correctly set
 
@@ -188,6 +203,7 @@ Now let's ship this RC into svn's dev folder
 cd ~/svn/superset_dev/
 svn add ${SUPERSET_VERSION_RC}
 svn commit -m "Release ${SUPERSET_VERSION_RC}"
+svn update
 ```
 
 ### Build and test from SVN source tarball
@@ -261,6 +277,7 @@ cd ~/svn/superset/
 for f in ${SUPERSET_VERSION}/*; do mv "$f" "${f/${SUPERSET_VERSION_RC}/${SUPERSET_VERSION}}"; done
 svn add ${SUPERSET_VERSION}
 svn commit -m "Release ${SUPERSET_VERSION}"
+svn update
 ```
 
 Then tag the final release:
@@ -271,6 +288,8 @@ cd ~/src/superset/
 git branch
 # Create the release tag
 git tag -f ${SUPERSET_VERSION}
+# push the tag to the remote
+git push upstream ${SUPERSET_VERSION}
 ```
 
 ### Update CHANGELOG and UPDATING on superset

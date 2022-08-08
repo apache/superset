@@ -19,35 +19,37 @@ import textwrap
 from typing import Dict, List, Tuple, Union
 
 import pandas as pd
-from sqlalchemy import DateTime, String
+from flask_appbuilder.security.sqla.models import User
+from sqlalchemy import DateTime, inspect, String
 from sqlalchemy.sql import column
 
-from superset import db, security_manager
-from superset.connectors.base.models import BaseDatasource
-from superset.connectors.sqla.models import SqlMetric, TableColumn
+from superset import app, db, security_manager
+from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.exceptions import NoDataException
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from superset.utils.core import get_example_database
 
+from ..utils.database import get_example_database
 from .helpers import (
-    config,
     get_example_data,
     get_slice_json,
+    get_table_connector_registry,
     merge_slice,
     misc_dash_slices,
-    TBL,
     update_slice_ids,
 )
 
-admin = security_manager.find_user("admin")
-if admin is None:
-    raise NoDataException(
-        "Admin user does not exist. "
-        "Please, check if test users are properly loaded "
-        "(`superset load_test_users`)."
-    )
+
+def get_admin_user() -> User:
+    admin = security_manager.find_user("admin")
+    if admin is None:
+        raise NoDataException(
+            "Admin user does not exist. "
+            "Please, check if test users are properly loaded "
+            "(`superset load_test_users`)."
+        )
+    return admin
 
 
 def gen_filter(
@@ -72,9 +74,13 @@ def load_data(tbl_name: str, database: Database, sample: bool = False) -> None:
         pdf.ds = pd.to_datetime(pdf.ds, unit="ms")
     pdf = pdf.head(100) if sample else pdf
 
+    engine = database.get_sqla_engine()
+    schema = inspect(engine).default_schema_name
+
     pdf.to_sql(
         tbl_name,
         database.get_sqla_engine(),
+        schema=schema,
         if_exists="replace",
         chunksize=500,
         dtype={
@@ -95,18 +101,21 @@ def load_birth_names(
     only_metadata: bool = False, force: bool = False, sample: bool = False
 ) -> None:
     """Loading birth name dataset from a zip file in the repo"""
-    # pylint: disable=too-many-locals
-    tbl_name = "birth_names"
     database = get_example_database()
-    table_exists = database.has_table_by_name(tbl_name)
+    engine = database.get_sqla_engine()
+    schema = inspect(engine).default_schema_name
+
+    tbl_name = "birth_names"
+    table_exists = database.has_table_by_name(tbl_name, schema=schema)
 
     if not only_metadata and (not table_exists or force):
         load_data(tbl_name, database, sample=sample)
 
-    obj = db.session.query(TBL).filter_by(table_name=tbl_name).first()
+    table = get_table_connector_registry()
+    obj = db.session.query(table).filter_by(table_name=tbl_name, schema=schema).first()
     if not obj:
         print(f"Creating table [{tbl_name}] reference")
-        obj = TBL(table_name=tbl_name)
+        obj = table(table_name=tbl_name, schema=schema)
         db.session.add(obj)
 
     _set_table_metadata(obj, database)
@@ -118,14 +127,14 @@ def load_birth_names(
     create_dashboard(slices)
 
 
-def _set_table_metadata(datasource: "BaseDatasource", database: "Database") -> None:
-    datasource.main_dttm_col = "ds"  # type: ignore
+def _set_table_metadata(datasource: SqlaTable, database: "Database") -> None:
+    datasource.main_dttm_col = "ds"
     datasource.database = database
     datasource.filter_select_enabled = True
     datasource.fetch_metadata()
 
 
-def _add_table_metrics(datasource: "BaseDatasource") -> None:
+def _add_table_metrics(datasource: SqlaTable) -> None:
     if not any(col.column_name == "num_california" for col in datasource.columns):
         col_state = str(column("state").compile(db.engine))
         col_num = str(column("num").compile(db.engine))
@@ -144,13 +153,11 @@ def _add_table_metrics(datasource: "BaseDatasource") -> None:
 
     for col in datasource.columns:
         if col.column_name == "ds":
-            col.is_dttm = True  # type: ignore
+            col.is_dttm = True
             break
 
 
-def create_slices(
-    tbl: BaseDatasource, admin_owner: bool
-) -> Tuple[List[Slice], List[Slice]]:
+def create_slices(tbl: SqlaTable, admin_owner: bool) -> Tuple[List[Slice], List[Slice]]:
     metrics = [
         {
             "expressionType": "SIMPLE",
@@ -170,13 +177,29 @@ def create_slices(
         "time_range_endpoints": ["inclusive", "exclusive"],
         "granularity_sqla": "ds",
         "groupby": [],
-        "row_limit": config["ROW_LIMIT"],
+        "row_limit": app.config["ROW_LIMIT"],
         "since": "100 years ago",
         "until": "now",
         "viz_type": "table",
         "markup_type": "markdown",
     }
 
+    default_query_context = {
+        "result_format": "json",
+        "result_type": "full",
+        "datasource": {
+            "id": tbl.id,
+            "type": "table",
+        },
+        "queries": [
+            {
+                "columns": [],
+                "metrics": [],
+            },
+        ],
+    }
+
+    admin = get_admin_user()
     if admin_owner:
         slice_props = dict(
             datasource_id=tbl.id,
@@ -271,8 +294,8 @@ def create_slices(
                 groupby=["name"],
                 adhoc_filters=[gen_filter("gender", "girl")],
                 row_limit=50,
-                timeseries_limit_metric="sum__num",
-                metrics=metrics,
+                timeseries_limit_metric=metric,
+                metrics=[metric],
             ),
         ),
         Slice(
@@ -300,7 +323,8 @@ def create_slices(
                 groupby=["name"],
                 adhoc_filters=[gen_filter("gender", "boy")],
                 row_limit=50,
-                metrics=metrics,
+                timeseries_limit_metric=metric,
+                metrics=[metric],
             ),
         ),
         Slice(
@@ -351,6 +375,27 @@ def create_slices(
                 viz_type="area",
                 x_axis_forma="smart_date",
                 metrics=metrics,
+            ),
+        ),
+        Slice(
+            **slice_props,
+            slice_name="Pivot Table v2",
+            viz_type="pivot_table_v2",
+            params=get_slice_json(
+                defaults,
+                viz_type="pivot_table_v2",
+                groupbyRows=["name"],
+                groupbyColumns=["state"],
+                metrics=[metric],
+            ),
+            query_context=get_slice_json(
+                default_query_context,
+                queries=[
+                    {
+                        "columns": ["name", "state"],
+                        "metrics": [metric],
+                    }
+                ],
             ),
         ),
     ]
@@ -502,7 +547,7 @@ def create_slices(
 
 def create_dashboard(slices: List[Slice]) -> Dashboard:
     print("Creating a dashboard")
-
+    admin = get_admin_user()
     dash = db.session.query(Dashboard).filter_by(slug="births").first()
     if not dash:
         dash = Dashboard()
@@ -522,9 +567,9 @@ def create_dashboard(slices: List[Slice]) -> Dashboard:
         }
     }"""
     )
+    # pylint: disable=line-too-long
     pos = json.loads(
         textwrap.dedent(
-            # pylint: disable=line-too-long
             """\
         {
           "CHART-6GdlekVise": {
@@ -794,9 +839,10 @@ def create_dashboard(slices: List[Slice]) -> Dashboard:
             "type": "ROW"
           }
         }
-        """  # pylint: enable=line-too-long
+        """
         )
     )
+    # pylint: enable=line-too-long
     # dashboard v2 doesn't allow add markup slice
     dash.slices = [slc for slc in slices if slc.viz_type != "markup"]
     update_slice_ids(pos, dash.slices)

@@ -17,12 +17,15 @@
 import json
 import logging
 from operator import eq, ge, gt, le, lt, ne
+from timeit import default_timer
 from typing import Optional
 
 import numpy as np
+import pandas as pd
+from celery.exceptions import SoftTimeLimitExceeded
 from flask_babel import lazy_gettext as _
 
-from superset import jinja_context
+from superset import app, jinja_context
 from superset.commands.base import BaseCommand
 from superset.models.reports import ReportSchedule, ReportScheduleValidatorType
 from superset.reports.commands.exceptions import (
@@ -30,12 +33,16 @@ from superset.reports.commands.exceptions import (
     AlertQueryInvalidTypeError,
     AlertQueryMultipleColumnsError,
     AlertQueryMultipleRowsError,
+    AlertQueryTimeout,
     AlertValidatorConfigError,
 )
 
 logger = logging.getLogger(__name__)
 
 
+ALERT_SQL_LIMIT = 2
+# All sql statements have an applied LIMIT,
+# to avoid heavy loads done by a user mistake
 OPERATOR_FUNCTIONS = {">=": ge, ">": gt, "<=": le, "<": lt, "==": eq, "!=": ne}
 
 
@@ -45,9 +52,23 @@ class AlertCommand(BaseCommand):
         self._result: Optional[float] = None
 
     def run(self) -> bool:
+        """
+        Executes an alert SQL query and validates it.
+        Will set the report_schedule.last_value or last_value_row_json
+        with the query result
+
+        :return: bool, if the alert triggered or not
+        :raises AlertQueryError: SQL query is not valid
+        :raises AlertQueryInvalidTypeError: The output from the SQL query
+        is not an allowed type
+        :raises AlertQueryMultipleColumnsError: The SQL query returned multiple columns
+        :raises AlertQueryMultipleRowsError: The SQL query returned multiple rows
+        :raises AlertQueryTimeout: The SQL query received a celery soft timeout
+        :raises AlertValidatorConfigError: The validator query data is not valid
+        """
         self.validate()
 
-        if self._report_schedule.validator_type == ReportScheduleValidatorType.NOT_NULL:
+        if self._is_validator_not_null:
             self._report_schedule.last_value_row_json = str(self._result)
             return self._result not in (0, None, np.nan)
         self._report_schedule.last_value = self._result
@@ -56,9 +77,9 @@ class AlertCommand(BaseCommand):
             threshold = json.loads(self._report_schedule.validator_config_json)[
                 "threshold"
             ]
-            return OPERATOR_FUNCTIONS[operator](self._result, threshold)
-        except (KeyError, json.JSONDecodeError):
-            raise AlertValidatorConfigError()
+            return OPERATOR_FUNCTIONS[operator](self._result, threshold)  # type: ignore
+        except (KeyError, json.JSONDecodeError) as ex:
+            raise AlertValidatorConfigError() from ex
 
     def _validate_not_null(self, rows: np.recarray) -> None:
         self._validate_result(rows)
@@ -86,32 +107,76 @@ class AlertCommand(BaseCommand):
 
     def _validate_operator(self, rows: np.recarray) -> None:
         self._validate_result(rows)
-        if rows[0][1] is None:
+        if rows[0][1] in (0, None, np.nan):
+            self._result = 0.0
             return
         try:
             # Check if it's float or if we can convert it
             self._result = float(rows[0][1])
             return
-        except (AssertionError, TypeError, ValueError):
-            raise AlertQueryInvalidTypeError()
+        except (AssertionError, TypeError, ValueError) as ex:
+            raise AlertQueryInvalidTypeError() from ex
 
-    def validate(self) -> None:
+    @property
+    def _is_validator_not_null(self) -> bool:
+        return (
+            self._report_schedule.validator_type == ReportScheduleValidatorType.NOT_NULL
+        )
+
+    @property
+    def _is_validator_operator(self) -> bool:
+        return (
+            self._report_schedule.validator_type == ReportScheduleValidatorType.OPERATOR
+        )
+
+    def _execute_query(self) -> pd.DataFrame:
         """
-        Validate the query result as a Pandas DataFrame
+        Executes the actual alert SQL query template
+
+        :return: A pandas dataframe
+        :raises AlertQueryError: SQL query is not valid
+        :raises AlertQueryTimeout: The SQL query received a celery soft timeout
         """
         sql_template = jinja_context.get_template_processor(
             database=self._report_schedule.database
         )
         rendered_sql = sql_template.process_template(self._report_schedule.sql)
         try:
-            df = self._report_schedule.database.get_df(rendered_sql)
+            limited_rendered_sql = self._report_schedule.database.apply_limit_to_sql(
+                rendered_sql, ALERT_SQL_LIMIT
+            )
+            query_username = app.config["THUMBNAIL_SELENIUM_USER"]
+            start = default_timer()
+            df = self._report_schedule.database.get_df(
+                sql=limited_rendered_sql, username=query_username
+            )
+            stop = default_timer()
+            logger.info(
+                "Query for %s took %.2f ms",
+                self._report_schedule.name,
+                (stop - start) * 1000.0,
+            )
+            return df
+        except SoftTimeLimitExceeded as ex:
+            logger.warning("A timeout occurred while executing the alert query: %s", ex)
+            raise AlertQueryTimeout() from ex
         except Exception as ex:
-            raise AlertQueryError(message=str(ex))
+            raise AlertQueryError(message=str(ex)) from ex
 
-        if df.empty:
+    def validate(self) -> None:
+        """
+        Validate the query result as a Pandas DataFrame
+        """
+        df = self._execute_query()
+
+        if df.empty and self._is_validator_not_null:
+            self._result = None
+            return
+        if df.empty and self._is_validator_operator:
+            self._result = 0.0
             return
         rows = df.to_records()
-        if self._report_schedule.validator_type == ReportScheduleValidatorType.NOT_NULL:
+        if self._is_validator_not_null:
             self._validate_not_null(rows)
             return
         self._validate_operator(rows)

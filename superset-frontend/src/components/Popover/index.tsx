@@ -16,7 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Popover } from 'src/common/components';
+import { Popover } from 'antd';
+
+export { PopoverProps } from 'antd/lib/popover';
+export { TooltipPlacement } from 'antd/lib/tooltip';
 
 // Eventually Popover can be wrapped and customized in this file
 // for now we're just redirecting

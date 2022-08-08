@@ -26,9 +26,16 @@ spec:
   template:
     metadata:
       name: {{ template "superset.name" . }}-init-db
+      {{- if .Values.init.podAnnotations }}
+      annotations:
+        {{ toYaml .Values.init.podAnnotations | nindent 8 }}
+      {{- end }}
     spec:
+      {{- if or (.Values.serviceAccount.create) (.Values.serviceAccountName) }}
+      serviceAccountName: {{ template "superset.serviceAccountName" . }}
+      {{- end }}
       securityContext:
-        runAsUser: 0 # Needed in order to allow pip install to work in bootstrap
+        runAsUser: {{ .Values.runAsUser }}
       {{- if .Values.init.initContainers }}
       initContainers:
       {{-  tpl (toYaml .Values.init.initContainers) . | nindent 6 }}
@@ -36,27 +43,43 @@ spec:
       containers:
       - name: {{ template "superset.name" . }}-init-db
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-        {{ if .Values.extraEnv }}
+        {{- if or .Values.extraEnv .Values.extraEnvRaw }}
         env:
           {{- range $key, $value := .Values.extraEnv }}
           - name: {{ $key | quote }}
             value: {{ $value | quote }}
           {{- end }}
+          {{- if .Values.extraEnvRaw }}
+          {{- toYaml .Values.extraEnvRaw | nindent 10 }}
+          {{- end }}
         {{- end }}
         envFrom:
           - secretRef:
               name: {{ tpl .Values.envFromSecret . }}
+          {{- range .Values.envFromSecrets }}
+          - secretRef:
+              name: {{ tpl . $ }}
+          {{- end }}
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         volumeMounts:
           - name: superset-config
             mountPath: {{ .Values.configMountPath | quote }}
             readOnly: true
-        {{ if .Values.extraConfigs }}
+        {{- if .Values.extraConfigs }}
           - name: superset-extra-config
             mountPath: {{ .Values.extraConfigMountPath | quote }}
             readOnly: true
         {{- end }}
+        {{- with .Values.extraVolumeMounts }}
+        {{- tpl (toYaml .) $ | nindent 10 -}}
+        {{- end }}
         command: {{  tpl (toJson .Values.init.command) . }}
+        resources:
+{{ toYaml .Values.init.resources | indent 10 }}
+{{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+{{ toYaml .Values.imagePullSecrets | indent 8 }}
+      {{- end }}
       volumes:
         - name: superset-config
           secret:
@@ -65,6 +88,9 @@ spec:
         - name: superset-extra-config
           configMap:
             name: {{ template "superset.fullname" . }}-extra-config
+        {{- end }}
+        {{- with .Values.extraVolumes }}
+        {{- tpl (toYaml .) $ | nindent 8 -}}
         {{- end }}
       restartPolicy: Never
 {{- end }}

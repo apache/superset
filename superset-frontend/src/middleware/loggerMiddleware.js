@@ -68,12 +68,8 @@ const loggerMiddleware = store => next => action => {
     return next(action);
   }
 
-  const {
-    dashboardInfo,
-    explore,
-    impressionId,
-    dashboardLayout,
-  } = store.getState();
+  const { dashboardInfo, explore, impressionId, dashboardLayout } =
+    store.getState();
   let logMetadata = {
     impression_id: impressionId,
     version: 'v2',
@@ -116,7 +112,7 @@ const loggerMiddleware = store => next => action => {
     };
   }
 
-  if (eventData.target_id && dashboardLayout.present) {
+  if (eventData.target_id && dashboardLayout?.present?.[eventData.target_id]) {
     const { meta } = dashboardLayout.present[eventData.target_id];
     // chart name or tab/header text
     eventData.target_name = meta.chartId ? meta.sliceName : meta.text;

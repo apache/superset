@@ -33,6 +33,7 @@ const PERSISTENT_QUERY_EDITOR_KEYS = new Set([
   'sql',
   'templateParams',
   'title',
+  'hideLeftBar',
 ]);
 
 export function emptyQueryResults(queries) {

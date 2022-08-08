@@ -1,0 +1,73 @@
+---
+title: Installing Database Drivers
+hide_title: true
+sidebar_position: 1
+version: 1
+---
+
+## Install Database Drivers
+
+Superset requires a Python DB-API database driver and a SQLAlchemy
+dialect to be installed for each datastore you want to connect to.
+
+You can read more [here](/docs/databases/docker-add-drivers) about how to
+install new database drivers into your Superset configuration.
+
+### Supported Databases and Dependencies
+
+Superset does not ship bundled with connectivity to databases, except for SQLite,
+which is part of the Python standard library. You’ll need to install the required packages for the database you want to use as your metadata database as well as the packages needed to connect to the databases you want to access through Superset.
+
+A list of some of the recommended packages.
+
+| Database                                                  | PyPI package                                                                       | Connection String                                                                                           |
+| --------------------------------------------------------- | ---------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| [Amazon Athena](/docs/databases/athena)                   | `pip install "PyAthenaJDBC>1.0.9` , `pip install "PyAthena>1.2.0`                  | `awsathena+rest://{aws_access_key_id}:{aws_secret_access_key}@athena.{region_name}.amazonaws.com/{ `        |
+| [Amazon Redshift](/docs/databases/redshift)               | `pip install sqlalchemy-redshift`                                                  | ` redshift+psycopg2://<userName>:<DBPassword>@<AWS End Point>:5439/<Database Name>`                         |
+| [Apache Drill](/docs/databases/drill)                     | `pip install sqlalchemy-drill`                                                     | `drill+sadrill:// For JDBC drill+jdbc://`                                                                   |
+| [Apache Druid](/docs/databases/druid)                     | `pip install pydruid`                                                              | `druid://<User>:<password>@<Host>:<Port-default-9088>/druid/v2/sql`                                         |
+| [Apache Hive](/docs/databases/hive)                       | `pip install pyhive`                                                               | `hive://hive@{hostname}:{port}/{database}`                                                                  |
+| [Apache Impala](/docs/databases/impala)                   | `pip install impyla`                                                               | `impala://{hostname}:{port}/{database}`                                                                     |
+| [Apache Kylin](/docs/databases/kylin)                     | `pip install kylinpy`                                                              | `kylin://<username>:<password>@<hostname>:<port>/<project>?<param1>=<value1>&<param2>=<value2>`             |
+| [Apache Pinot](/docs/databases/pinot)                     | `pip install pinotdb`                                                              | `pinot://BROKER:5436/query?server=http://CONTROLLER:5983/`                                                  |
+| [Apache Solr](/docs/databases/solr)                       | `pip install sqlalchemy-solr`                                                      | `solr://{username}:{password}@{hostname}:{port}/{server_path}/{collection}`                                 |
+| [Apache Spark SQL](/docs/databases/spark-sql)             | `pip install pyhive`                                                               | `hive://hive@{hostname}:{port}/{database}`                                                                  |
+| [Ascend.io](/docs/databases/ascend)                       | `pip install impyla`                                                               | `ascend://{username}:{password}@{hostname}:{port}/{database}?auth_mechanism=PLAIN;use_ssl=true`             |
+| [Azure MS SQL](/docs/databases/sql-server)                | `pip install pymssql`                                                              | `mssql+pymssql://UserName@presetSQL:TestPassword@presetSQL.database.windows.net:1433/TestSchema`            |
+| [Big Query](/docs/databases/bigquery)                     | `pip install pybigquery`                                                           | `bigquery://{project_id}`                                                                                   |
+| [ClickHouse](/docs/databases/clickhouse)                  | `pip install clickhouse-driver==0.2.0 && pip install clickhouse-sqlalchemy==0.1.6` | `clickhouse+native://{username}:{password}@{hostname}:{port}/{database}`                                    |
+| [CockroachDB](/docs/databases/cockroachdb)                | `pip install cockroachdb`                                                          | `cockroachdb://root@{hostname}:{port}/{database}?sslmode=disable`                                           |
+| [Dremio](/docs/databases/dremio)                          | `pip install sqlalchemy_dremio`                                                    | `dremio://user:pwd@host:31010/`                                                                             |
+| [Elasticsearch](/docs/databases/elasticsearch)            | `pip install elasticsearch-dbapi`                                                  | `elasticsearch+http://{user}:{password}@{host}:9200/`                                                       |
+| [Exasol](/docs/databases/exasol)                          | `pip install sqlalchemy-exasol`                                                    | `exa+pyodbc://{username}:{password}@{hostname}:{port}/my_schema?CONNECTIONLCALL=en_US.UTF-8&driver=EXAODBC` |
+| [Google Sheets](/docs/databases/google-sheets)            | `pip install shillelagh[gsheetsapi]`                                               | `gsheets://`                                                                                                |
+| [Firebolt](/docs/databases/firebolt)                      | `pip install firebolt-sqlalchemy`                                                  | `firebolt://{username}:{password}@{database} or firebolt://{username}:{password}@{database}/{engine_name}`  |
+| [Hologres](/docs/databases/hologres)                      | `pip install psycopg2`                                                             | `postgresql+psycopg2://<UserName>:<DBPassword>@<Database Host>/<Database Name>`                             |
+| [IBM Db2](/docs/databases/ibm-db2)                        | `pip install ibm_db_sa`                                                            | `db2+ibm_db://`                                                                                             |
+| [IBM Netezza Performance Server](/docs/databases/netezza) | `pip install nzalchemy`                                                            | `netezza+nzpy://<UserName>:<DBPassword>@<Database Host>/<Database Name>`                                    |
+| [MySQL](/docs/databases/mysql)                            | `pip install mysqlclient`                                                          | `mysql://<UserName>:<DBPassword>@<Database Host>/<Database Name>`                                           |
+| [Oracle](/docs/databases/oracle)                          | `pip install cx_Oracle`                                                            | `oracle://`                                                                                                 |
+| [PostgreSQL](/docs/databases/postgres)                    | `pip install psycopg2`                                                             | `postgresql://<UserName>:<DBPassword>@<Database Host>/<Database Name>`                                      |
+| [Trino](/docs/databases/trino)                            | `pip install sqlalchemy-trino`                                                     | `trino://{username}:{password}@{hostname}:{port}/{catalog}`                                                 |
+| [Presto](/docs/databases/presto)                          | `pip install pyhive`                                                               | `presto://`                                                                                                 |
+| [SAP Hana](/docs/databases/hana)                          | `pip install hdbcli sqlalchemy-hana or pip install apache-superset[hana]`          | `hana://{username}:{password}@{host}:{port}`                                                                |
+| [Snowflake](/docs/databases/snowflake)                    | `pip install snowflake-sqlalchemy`                                                 | `snowflake://{user}:{password}@{account}.{region}/{database}?role={role}&warehouse={warehouse}`             |
+| SQLite                                                    | No additional library needed                                                       | `sqlite://`                                                                                                 |
+| [SQL Server](/docs/databases/sql-server)                  | `pip install pymssql`                                                              | `mssql://`                                                                                                  |
+| [Teradata](/docs/databases/teradata)                      | `pip install teradatasqlalchemy `                                                  | `teradata://{user}:{password}@{host}`                                                                       |
+| [Vertica](/docs/databases/vertica)                        | `pip install sqlalchemy-vertica-python`                                            | `vertica+vertica_python://<UserName>:<DBPassword>@<Database Host>/<Database Name>`                          |
+| [YugabyteDB](/docs/databases/yugabytedb)                      | `pip install psycopg2`                                                             | `postgresql://<UserName>:<DBPassword>@<Database Host>/<Database Name>`                                      |
+
+---
+
+Note that many other databases are supported, the main criteria being the existence of a functional
+SQLAlchemy dialect and Python driver. Searching for the keyword "sqlalchemy + (database name)"
+should help get you to the right place.
+
+If your database or data engine isn't on the list but a SQL interface
+exists, please file an issue on the
+[Superset GitHub repo](https://github.com/apache/superset/issues), so we can work on documenting and
+supporting it.
+
+If you'd like to build a database connector for Superset integration,
+read the [following tutorial](https://preset.io/blog/building-database-connector/).

@@ -14,16 +14,22 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+"""
+DEPRECATION NOTICE: this module is deprecated and will be removed on 2.0.
+"""
+
 import enum
 from typing import Type, Union
 
 import simplejson as json
 from croniter import croniter
-from flask import flash, g
+from flask import current_app as app, flash, g, Markup
 from flask_appbuilder import expose
+from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access
 from flask_babel import lazy_gettext as _
+from werkzeug.exceptions import NotFound
 from wtforms import BooleanField, Form, StringField
 
 from superset import db, security_manager
@@ -36,19 +42,26 @@ from superset.models.schedules import (
     SliceEmailSchedule,
 )
 from superset.models.slice import Slice
+from superset.superset_typing import FlaskResponse
 from superset.tasks.schedules import schedule_email_report
-from superset.typing import FlaskResponse
 from superset.utils.core import get_email_address_list, json_iso_dttm_ser
 from superset.views.core import json_success
 
 from .base import DeleteMixin, SupersetModelView
 
 
-class EmailScheduleView(
-    SupersetModelView, DeleteMixin
-):  # pylint: disable=too-many-ancestors
+class EmailScheduleView(SupersetModelView, DeleteMixin):
     include_route_methods = RouteMethod.CRUD_SET
     _extra_data = {"test_email": False, "test_email_recipients": None}
+
+    @staticmethod
+    def is_enabled() -> bool:
+        return app.config["ENABLE_SCHEDULED_EMAIL_REPORTS"]
+
+    @before_request
+    def ensure_enabled(self) -> None:
+        if not self.is_enabled():
+            raise NotFound()
 
     @property
     def schedule_type(self) -> str:
@@ -119,8 +132,8 @@ class EmailScheduleView(
         try:
             recipients = get_email_address_list(item.recipients)
             item.recipients = ", ".join(recipients)
-        except Exception:
-            raise SupersetException("Invalid email list")
+        except Exception as ex:
+            raise SupersetException("Invalid email list") from ex
 
         item.user = item.user or g.user
         if not croniter.is_valid(item.crontab):
@@ -232,10 +245,27 @@ class DashboardEmailScheduleView(
         "delivery_type": _("Delivery Type"),
     }
 
+    @expose("/list/")
+    @has_access
+    def list(self) -> FlaskResponse:
+        flash(
+            Markup(
+                _(
+                    "This feature is deprecated and will be removed on 2.0. "
+                    "Take a look at the replacement feature "
+                    "<a href="
+                    "'https://superset.apache.org/docs/installation/alerts-reports'>"
+                    "Alerts & Reports documentation</a>"
+                )
+            ),
+            "warning",
+        )
+        return super().list()
+
     def pre_add(self, item: "DashboardEmailScheduleView") -> None:
         if item.dashboard is None:
             raise SupersetException("Dashboard is mandatory")
-        super(DashboardEmailScheduleView, self).pre_add(item)
+        super().pre_add(item)
 
 
 class SliceEmailScheduleView(EmailScheduleView):  # pylint: disable=too-many-ancestors
@@ -296,7 +326,24 @@ class SliceEmailScheduleView(EmailScheduleView):  # pylint: disable=too-many-anc
         "email_format": _("Email Format"),
     }
 
+    @expose("/list/")
+    @has_access
+    def list(self) -> FlaskResponse:
+        flash(
+            Markup(
+                _(
+                    "This feature is deprecated and will be removed on 2.0. "
+                    "Take a look at the replacement feature "
+                    "<a href="
+                    "'https://superset.apache.org/docs/installation/alerts-reports'>"
+                    "Alerts & Reports documentation</a>"
+                )
+            ),
+            "warning",
+        )
+        return super().list()
+
     def pre_add(self, item: "SliceEmailScheduleView") -> None:
         if item.slice is None:
             raise SupersetException("Slice is mandatory")
-        super(SliceEmailScheduleView, self).pre_add(item)
+        super().pre_add(item)

@@ -20,19 +20,22 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import cx from 'classnames';
 
-import DragDroppable from '../dnd/DragDroppable';
-import DragHandle from '../dnd/DragHandle';
-import EditableTitle from '../../../components/EditableTitle';
-import AnchorLink from '../../../components/AnchorLink';
-import HoverMenu from '../menu/HoverMenu';
-import WithPopoverMenu from '../menu/WithPopoverMenu';
-import BackgroundStyleDropdown from '../menu/BackgroundStyleDropdown';
-import DeleteComponentButton from '../DeleteComponentButton';
-import PopoverDropdown from '../menu/PopoverDropdown';
-import headerStyleOptions from '../../util/headerStyleOptions';
-import backgroundStyleOptions from '../../util/backgroundStyleOptions';
-import { componentShape } from '../../util/propShapes';
-import { SMALL_HEADER, BACKGROUND_TRANSPARENT } from '../../util/constants';
+import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
+import DragHandle from 'src/dashboard/components/dnd/DragHandle';
+import EditableTitle from 'src/components/EditableTitle';
+import AnchorLink from 'src/components/AnchorLink';
+import HoverMenu from 'src/dashboard/components/menu/HoverMenu';
+import WithPopoverMenu from 'src/dashboard/components/menu/WithPopoverMenu';
+import BackgroundStyleDropdown from 'src/dashboard/components/menu/BackgroundStyleDropdown';
+import DeleteComponentButton from 'src/dashboard/components/DeleteComponentButton';
+import PopoverDropdown from 'src/components/PopoverDropdown';
+import headerStyleOptions from 'src/dashboard/util/headerStyleOptions';
+import backgroundStyleOptions from 'src/dashboard/util/backgroundStyleOptions';
+import { componentShape } from 'src/dashboard/util/propShapes';
+import {
+  SMALL_HEADER,
+  BACKGROUND_TRANSPARENT,
+} from 'src/dashboard/util/constants';
 
 const propTypes = {
   id: PropTypes.string.isRequired,
@@ -134,7 +137,6 @@ class Header extends React.PureComponent {
                   <DragHandle position="left" />
                 </HoverMenu>
               )}
-
             <WithPopoverMenu
               onChangeFocus={this.handleChangeFocus}
               menuItems={[
@@ -143,14 +145,12 @@ class Header extends React.PureComponent {
                   options={headerStyleOptions}
                   value={component.meta.headerSize}
                   onChange={this.handleChangeSize}
-                  renderTitle={option => `${option.label} header`}
                 />,
                 <BackgroundStyleDropdown
                   id={`${component.id}-background`}
                   value={component.meta.background}
                   onChange={this.handleChangeBackground}
                 />,
-                <DeleteComponentButton onDelete={this.handleDeleteComponent} />,
               ]}
               editMode={editMode}
             >
@@ -162,6 +162,13 @@ class Header extends React.PureComponent {
                   rowStyle.className,
                 )}
               >
+                {editMode && (
+                  <HoverMenu position="top">
+                    <DeleteComponentButton
+                      onDelete={this.handleDeleteComponent}
+                    />
+                  </HoverMenu>
+                )}
                 <EditableTitle
                   title={component.meta.text}
                   canEdit={editMode}

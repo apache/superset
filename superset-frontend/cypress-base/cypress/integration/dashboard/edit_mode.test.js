@@ -23,7 +23,7 @@ describe('Dashboard edit mode', () => {
     cy.login();
     cy.visit(WORLD_HEALTH_DASHBOARD);
     cy.get('[data-test="dashboard-header"]')
-      .find('[data-test=edit-alt]')
+      .find('[aria-label=edit-alt]')
       .click();
   });
 
@@ -96,7 +96,7 @@ describe('Dashboard edit mode', () => {
       .click();
     cy.get('[data-test="dashboard-header"]').within(() => {
       cy.get('[data-test="dashboard-edit-actions"]').should('not.be.visible');
-      cy.get('[data-test="edit-alt"]').should('be.visible');
+      cy.get('[aria-label="edit-alt"]').should('be.visible');
     });
   });
 });

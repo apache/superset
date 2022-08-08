@@ -28,6 +28,7 @@ down_revision = "96e99fb176a0"
 
 import sqlalchemy as sa
 from alembic import op
+from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.exc import OperationalError
 
 
@@ -113,19 +114,29 @@ def upgrade():
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("user_id", sa.Integer(), nullable=False),
         sa.Column("report_schedule_id", sa.Integer(), nullable=False),
-        sa.ForeignKeyConstraint(["report_schedule_id"], ["report_schedule.id"],),
-        sa.ForeignKeyConstraint(["user_id"], ["ab_user.id"],),
+        sa.ForeignKeyConstraint(
+            ["report_schedule_id"],
+            ["report_schedule.id"],
+        ),
+        sa.ForeignKeyConstraint(
+            ["user_id"],
+            ["ab_user.id"],
+        ),
         sa.PrimaryKeyConstraint("id"),
     )
 
 
+def has_unique_constraint(constraint_name: str, table_name: str) -> bool:
+    bind = op.get_bind()
+    inspector = Inspector.from_engine(bind)
+    unique_constraints = inspector.get_unique_constraints(table_name)
+    return constraint_name in {constraint["name"] for constraint in unique_constraints}
+
+
 def downgrade():
     op.drop_index(op.f("ix_report_schedule_active"), table_name="report_schedule")
-    try:
+    if has_unique_constraint("uq_report_schedule_name", "report_schedule"):
         op.drop_constraint("uq_report_schedule_name", "report_schedule", type_="unique")
-    except Exception:
-        # Expected to fail on SQLite
-        pass
 
     op.drop_table("report_execution_log")
     op.drop_table("report_recipient")

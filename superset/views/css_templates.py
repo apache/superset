@@ -22,13 +22,11 @@ from flask_babel import lazy_gettext as _
 from superset import is_feature_enabled
 from superset.constants import MODEL_VIEW_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.models import core as models
-from superset.typing import FlaskResponse
+from superset.superset_typing import FlaskResponse
 from superset.views.base import DeleteMixin, SupersetModelView
 
 
-class CssTemplateModelView(  # pylint: disable=too-many-ancestors
-    SupersetModelView, DeleteMixin
-):
+class CssTemplateModelView(SupersetModelView, DeleteMixin):
     datamodel = SQLAInterface(models.CssTemplate)
     include_route_methods = RouteMethod.CRUD_SET
 

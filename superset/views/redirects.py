@@ -14,47 +14,46 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from flask import flash, request, Response
+import logging
+from typing import Optional
+
+from flask import flash
 from flask_appbuilder import expose
-from flask_appbuilder.security.decorators import has_access_api
 from werkzeug.utils import redirect
 
 from superset import db, event_logger
 from superset.models import core as models
-from superset.typing import FlaskResponse
+from superset.superset_typing import FlaskResponse
 from superset.views.base import BaseSupersetView
+
+logger = logging.getLogger(__name__)
 
 
 class R(BaseSupersetView):  # pylint: disable=invalid-name
 
     """used for short urls"""
 
+    @staticmethod
+    def _validate_url(url: Optional[str] = None) -> bool:
+        if url and (
+            url.startswith("//superset/dashboard/")
+            or url.startswith("//superset/explore/")
+        ):
+            return True
+        return False
+
     @event_logger.log_this
     @expose("/<int:url_id>")
-    def index(self, url_id: int) -> FlaskResponse:  # pylint: disable=no-self-use
+    def index(self, url_id: int) -> FlaskResponse:
         url = db.session.query(models.Url).get(url_id)
         if url and url.url:
             explore_url = "//superset/explore/?"
             if url.url.startswith(explore_url):
                 explore_url += f"r={url_id}"
                 return redirect(explore_url[1:])
-
-            return redirect(url.url[1:])
+            if self._validate_url(url.url):
+                return redirect(url.url[1:])
+            return redirect("/")
 
         flash("URL to nowhere...", "danger")
         return redirect("/")
-
-    @event_logger.log_this
-    @has_access_api
-    @expose("/shortner/", methods=["POST"])
-    def shortner(self) -> FlaskResponse:  # pylint: disable=no-self-use
-        url = request.form.get("data")
-        obj = models.Url(url=url)
-        db.session.add(obj)
-        db.session.commit()
-        return Response(
-            "{scheme}://{request.headers[Host]}/r/{obj.id}".format(
-                scheme=request.scheme, request=request, obj=obj
-            ),
-            mimetype="text/plain",
-        )

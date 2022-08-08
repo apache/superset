@@ -44,7 +44,7 @@ class BulkDeleteAnnotationCommand(BaseCommand):
             return None
         except DAODeleteFailedError as ex:
             logger.exception(ex.exception)
-            raise AnnotationBulkDeleteFailedError()
+            raise AnnotationBulkDeleteFailedError() from ex
 
     def validate(self) -> None:
         # Validate/populate model exists

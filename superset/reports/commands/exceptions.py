@@ -80,6 +80,32 @@ class ReportScheduleChartOrDashboardValidationError(ValidationError):
         super().__init__(_("Choose a chart or dashboard not both"), field_name="chart")
 
 
+class ChartNotSavedValidationError(ValidationError):
+    """
+    Marshmallow validation error for charts that haven't been saved yet
+    """
+
+    def __init__(self) -> None:
+        super().__init__(
+            _("Please save your chart first, then try creating a new email report."),
+            field_name="chart",
+        )
+
+
+class DashboardNotSavedValidationError(ValidationError):
+    """
+    Marshmallow validation error for dashboards that haven't been saved yet
+    """
+
+    def __init__(self) -> None:
+        super().__init__(
+            _(
+                "Please save your dashboard first, then try creating a new email report."
+            ),
+            field_name="dashboard",
+        )
+
+
 class ReportScheduleInvalidError(CommandInvalidError):
     message = _("Report Schedule parameters are invalid.")
 
@@ -112,6 +138,14 @@ class ReportScheduleScreenshotFailedError(CommandException):
     message = _("Report Schedule execution failed when generating a screenshot.")
 
 
+class ReportScheduleCsvFailedError(CommandException):
+    message = _("Report Schedule execution failed when generating a csv.")
+
+
+class ReportScheduleDataFrameFailedError(CommandException):
+    message = _("Report Schedule execution failed when generating a dataframe.")
+
+
 class ReportScheduleExecuteUnexpectedError(CommandException):
     message = _("Report Schedule execution got an unexpected error.")
 
@@ -131,6 +165,11 @@ class ReportScheduleNameUniquenessValidationError(ValidationError):
 
     def __init__(self) -> None:
         super().__init__([_("Name must be unique")], field_name="name")
+
+
+class ReportScheduleCreationMethodUniquenessValidationError(CommandException):
+    status = 409
+    message = "Resource already has an attached report."
 
 
 class AlertQueryMultipleRowsError(CommandException):
@@ -153,6 +192,22 @@ class AlertQueryInvalidTypeError(CommandException):
 
 class AlertQueryError(CommandException):
     message = _("Alert found an error while executing a query.")
+
+
+class AlertQueryTimeout(CommandException):
+    message = _("A timeout occurred while executing the query.")
+
+
+class ReportScheduleScreenshotTimeout(CommandException):
+    message = _("A timeout occurred while taking a screenshot.")
+
+
+class ReportScheduleCsvTimeout(CommandException):
+    message = _("A timeout occurred while generating a csv.")
+
+
+class ReportScheduleDataFrameTimeout(CommandException):
+    message = _("A timeout occurred while generating a dataframe.")
 
 
 class ReportScheduleAlertGracePeriodError(CommandException):

@@ -134,7 +134,7 @@ export default function sqlLabReducer(state = {}, action) {
       }
       // for new table, associate Id of query for data preview
       at.dataPreviewQueryId = null;
-      let newState = addToArr(state, 'tables', at);
+      let newState = addToArr(state, 'tables', at, Boolean(action.prepend));
       if (action.query) {
         newState = alterInArr(newState, 'tables', at, {
           dataPreviewQueryId: action.query.id,
@@ -332,8 +332,9 @@ export default function sqlLabReducer(state = {}, action) {
         endDttm: now(),
         progress: 100,
         results: action.results,
-        rows: action?.results?.data?.length,
+        rows: action?.results?.query?.rows || 0,
         state: 'success',
+        limitingFactor: action?.results?.query?.limitingFactor,
         tempSchema: action?.results?.query?.tempSchema,
         tempTable: action?.results?.query?.tempTable,
         errorMessage: null,
@@ -357,7 +358,7 @@ export default function sqlLabReducer(state = {}, action) {
     [actions.SET_ACTIVE_QUERY_EDITOR]() {
       const qeIds = state.queryEditors.map(qe => qe.id);
       if (
-        qeIds.indexOf(action.queryEditor.id) > -1 &&
+        qeIds.indexOf(action.queryEditor?.id) > -1 &&
         state.tabHistory[state.tabHistory.length - 1] !== action.queryEditor.id
       ) {
         const tabHistory = state.tabHistory.slice();
@@ -490,10 +491,18 @@ export default function sqlLabReducer(state = {}, action) {
         southPercent: action.southPercent,
       });
     },
+    [actions.QUERY_EDITOR_TOGGLE_LEFT_BAR]() {
+      return alterInArr(state, 'queryEditors', action.queryEditor, {
+        hideLeftBar: action.hideLeftBar,
+      });
+    },
     [actions.SET_DATABASES]() {
       const databases = {};
       action.databases.forEach(db => {
-        databases[db.id] = db;
+        databases[db.id] = {
+          ...db,
+          extra_json: JSON.parse(db.extra || ''),
+        };
       });
       return { ...state, databases };
     },
@@ -511,7 +520,20 @@ export default function sqlLabReducer(state = {}, action) {
           if (changedQuery.changedOn > queriesLastUpdate) {
             queriesLastUpdate = changedQuery.changedOn;
           }
-          newQueries[id] = { ...state.queries[id], ...changedQuery };
+          const prevState = state.queries[id]?.state;
+          const currentState = changedQuery.state;
+          newQueries[id] = {
+            ...state.queries[id],
+            ...changedQuery,
+            // race condition:
+            // because of async behavior, sql lab may still poll a couple of seconds
+            // when it started fetching or finished rendering results
+            state:
+              currentState === 'success' &&
+              ['fetching', 'success'].includes(prevState)
+                ? prevState
+                : currentState,
+          };
           change = true;
         }
       });

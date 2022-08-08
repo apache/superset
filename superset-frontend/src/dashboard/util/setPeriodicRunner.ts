@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-const stopPeriodicRender = (refreshTimer?: number) => {
+export const stopPeriodicRender = (refreshTimer?: number) => {
   if (refreshTimer) {
     clearInterval(refreshTimer);
   }

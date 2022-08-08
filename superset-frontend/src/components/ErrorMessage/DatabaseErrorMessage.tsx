@@ -35,18 +35,21 @@ interface DatabaseErrorExtra {
 function DatabaseErrorMessage({
   error,
   source = 'dashboard',
+  subtitle,
 }: ErrorMessageComponentProps<DatabaseErrorExtra>) {
   const { extra, level, message } = error;
 
   const isVisualization = ['dashboard', 'explore'].includes(source);
 
-  const body = (
+  const body = extra && (
     <>
       <p>
         {t('This may be triggered by:')}
         <br />
         {extra.issue_codes
-          .map<React.ReactNode>(issueCode => <IssueCode {...issueCode} />)
+          .map<React.ReactNode>(issueCode => (
+            <IssueCode {...issueCode} key={issueCode.code} />
+          ))
           .reduce((prev, curr) => [prev, <br />, curr])}
       </p>
       {isVisualization && extra.owners && (
@@ -72,14 +75,20 @@ function DatabaseErrorMessage({
     </>
   );
 
-  const copyText = `${message}
-${t('This may be triggered by:')}
-${extra.issue_codes.map(issueCode => issueCode.message).join('\n')}`;
+  const copyText =
+    extra && extra.issue_codes
+      ? t('%(message)s\nThis may be triggered by: \n%(issues)s', {
+          message,
+          issues: extra.issue_codes
+            .map(issueCode => issueCode.message)
+            .join('\n'),
+        })
+      : message;
 
   return (
     <ErrorAlert
-      title={t('%s Error', extra.engine_name || t('DB engine'))}
-      subtitle={message}
+      title={t('%s Error', (extra && extra.engine_name) || t('DB engine'))}
+      subtitle={subtitle}
       level={level}
       source={source}
       copyText={copyText}

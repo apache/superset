@@ -54,7 +54,7 @@ describe('Visualization > Table', () => {
       granularity_sqla: undefined,
       metrics: ['count'],
     });
-    cy.get('input[name="select-granularity_sqla"]').should('have.value', 'ds');
+    cy.get('[data-test=granularity_sqla] .column-option-label').contains('ds');
   });
 
   it('Format non-numeric metrics correctly', () => {
@@ -62,7 +62,7 @@ describe('Visualization > Table', () => {
       ...VIZ_DEFAULTS,
       include_time: true,
       granularity_sqla: 'ds',
-      time_grain_sqla: 'P0.25Y',
+      time_grain_sqla: 'P3M',
       metrics: [NUM_METRIC, MAX_DS, MAX_STATE],
     });
     // when format with smart_date, time column use format by granularity
@@ -77,7 +77,7 @@ describe('Visualization > Table', () => {
       ...VIZ_DEFAULTS,
       include_time: true,
       granularity_sqla: 'ds',
-      time_grain_sqla: 'P0.25Y',
+      time_grain_sqla: 'P3M',
       table_timestamp_format: '%Y-%m-%d %H:%M',
       metrics: [NUM_METRIC, MAX_DS, MAX_STATE],
     });
@@ -111,7 +111,7 @@ describe('Visualization > Table', () => {
       ...VIZ_DEFAULTS,
       include_time: true,
       granularity_sqla: 'ds',
-      time_grain_sqla: 'P0.25Y',
+      time_grain_sqla: 'P3M',
       metrics: [NUM_METRIC, MAX_DS],
       groupby: ['name'],
     });
@@ -151,6 +151,21 @@ describe('Visualization > Table', () => {
     cy.verifySliceSuccess({ waitAlias: '@chartData', chartSelector: 'table' });
   });
 
+  it('Test table with groupby + order by + no metric', () => {
+    cy.visitChartByParams({
+      ...VIZ_DEFAULTS,
+      metrics: [],
+      groupby: ['name'],
+      timeseries_limit_metric: NUM_METRIC,
+      order_desc: true,
+    });
+    // should contain only the group by column
+    cy.get('.chart-container th').its('length').should('eq', 1);
+    // should order correctly
+    cy.get('.chart-container td:eq(0)').contains('Michael');
+    cy.verifySliceSuccess({ waitAlias: '@chartData', chartSelector: 'table' });
+  });
+
   it('Test table with groupby and limit', () => {
     const limit = 10;
     const formData = {
@@ -172,19 +187,20 @@ describe('Visualization > Table', () => {
       ...VIZ_DEFAULTS,
       // should still work when query_mode is not-set/invalid
       query_mode: undefined,
-      all_columns: ['name'],
+      all_columns: ['state'],
       metrics: [],
-      row_limit: 10,
+      row_limit: 100,
     });
 
     // should display in raw records mode
-    cy.get('div[data-test="query_mode"] .btn.active').contains('Raw Records');
+    cy.get('div[data-test="query_mode"] .btn.active').contains('Raw records');
     cy.get('div[data-test="all_columns"]').should('be.visible');
     cy.get('div[data-test="groupby"]').should('not.exist');
 
     cy.verifySliceSuccess({ waitAlias: '@chartData', chartSelector: 'table' });
+    cy.get('[data-test="row-count-label"]').contains('100 rows');
 
-    // should allow switch to aggregate mode
+    // should allow switch back to aggregate mode
     cy.get('div[data-test="query_mode"] .btn').contains('Aggregate').click();
     cy.get('div[data-test="query_mode"] .btn.active').contains('Aggregate');
     cy.get('div[data-test="all_columns"]').should('not.exist');

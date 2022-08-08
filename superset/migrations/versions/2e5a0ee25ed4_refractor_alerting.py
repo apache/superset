@@ -43,9 +43,18 @@ def upgrade():
         sa.Column("created_by_fk", sa.Integer(), nullable=True),
         sa.Column("changed_by_fk", sa.Integer(), nullable=True),
         sa.Column("alert_id", sa.Integer(), nullable=False),
-        sa.ForeignKeyConstraint(["alert_id"], ["alerts.id"],),
-        sa.ForeignKeyConstraint(["changed_by_fk"], ["ab_user.id"],),
-        sa.ForeignKeyConstraint(["created_by_fk"], ["ab_user.id"],),
+        sa.ForeignKeyConstraint(
+            ["alert_id"],
+            ["alerts.id"],
+        ),
+        sa.ForeignKeyConstraint(
+            ["changed_by_fk"],
+            ["ab_user.id"],
+        ),
+        sa.ForeignKeyConstraint(
+            ["created_by_fk"],
+            ["ab_user.id"],
+        ),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_table(
@@ -58,10 +67,22 @@ def upgrade():
         sa.Column("changed_by_fk", sa.Integer(), nullable=True),
         sa.Column("alert_id", sa.Integer(), nullable=False),
         sa.Column("database_id", sa.Integer(), nullable=False),
-        sa.ForeignKeyConstraint(["alert_id"], ["alerts.id"],),
-        sa.ForeignKeyConstraint(["changed_by_fk"], ["ab_user.id"],),
-        sa.ForeignKeyConstraint(["created_by_fk"], ["ab_user.id"],),
-        sa.ForeignKeyConstraint(["database_id"], ["dbs.id"],),
+        sa.ForeignKeyConstraint(
+            ["alert_id"],
+            ["alerts.id"],
+        ),
+        sa.ForeignKeyConstraint(
+            ["changed_by_fk"],
+            ["ab_user.id"],
+        ),
+        sa.ForeignKeyConstraint(
+            ["created_by_fk"],
+            ["ab_user.id"],
+        ),
+        sa.ForeignKeyConstraint(
+            ["database_id"],
+            ["dbs.id"],
+        ),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_table(
@@ -72,8 +93,14 @@ def upgrade():
         sa.Column("alert_id", sa.Integer(), nullable=True),
         sa.Column("value", sa.Float(), nullable=True),
         sa.Column("error_msg", sa.String(length=500), nullable=True),
-        sa.ForeignKeyConstraint(["alert_id"], ["alerts.id"],),
-        sa.ForeignKeyConstraint(["observer_id"], ["sql_observers.id"],),
+        sa.ForeignKeyConstraint(
+            ["alert_id"],
+            ["alerts.id"],
+        ),
+        sa.ForeignKeyConstraint(
+            ["observer_id"],
+            ["sql_observers.id"],
+        ),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index(

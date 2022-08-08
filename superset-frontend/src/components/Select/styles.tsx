@@ -17,20 +17,20 @@
  * under the License.
  */
 import React, { CSSProperties, ComponentType, ReactNode } from 'react';
-import { css, SerializedStyles, ClassNames } from '@emotion/core';
-import { SupersetTheme } from '@superset-ui/core';
+import { SerializedStyles } from '@emotion/react';
+import { SupersetTheme, css } from '@superset-ui/core';
 import {
   Styles,
   Theme,
   SelectComponentsConfig,
   components as defaultComponents,
   InputProps as ReactSelectInputProps,
+  Props as SelectProps,
 } from 'react-select';
-import { Props as SelectProps } from 'react-select/src/Select';
-import { colors as reactSelectColors } from 'react-select/src/theme';
-import { DeepNonNullable } from 'react-select/src/components';
+import type { colors as reactSelectColors } from 'react-select/src/theme';
+import type { DeepNonNullable } from 'react-select/src/components';
 import { OptionType } from 'antd/lib/select';
-import { SupersetStyledSelectProps } from './SupersetStyledSelect';
+import { SupersetStyledSelectProps } from './DeprecatedSelect';
 
 export const DEFAULT_CLASS_NAME = 'Select';
 export const DEFAULT_CLASS_NAME_PREFIX = 'Select';
@@ -71,12 +71,11 @@ export type ThemeConfig = {
   colors: {
     // add known colors
     [key in keyof typeof reactSelectColors]: string;
-  } &
-    {
-      [key in keyof ReturnType<typeof colors>]: string;
-    } & {
-      [key: string]: string; // any other colors
-    };
+  } & {
+    [key in keyof ReturnType<typeof colors>]: string;
+  } & {
+    [key: string]: string; // any other colors
+  };
   spacing: Theme['spacing'] & {
     // line height and font size must be pixels for easier computation
     // of option item height in WindowedMenuList
@@ -89,21 +88,21 @@ export type ThemeConfig = {
 
 export type PartialThemeConfig = RecursivePartial<ThemeConfig>;
 
-export const defaultTheme: (
-  theme: SupersetTheme,
-) => PartialThemeConfig = theme => ({
-  borderRadius: theme.borderRadius,
-  zIndex: 11,
-  colors: colors(theme),
-  spacing: {
-    baseUnit: 3,
-    menuGutter: 0,
-    controlHeight: 34,
-    lineHeight: 19,
-    fontSize: 14,
-    minWidth: '7.5em', // just enough to display 'No options'
-  },
-});
+export const defaultTheme: (theme: SupersetTheme) => PartialThemeConfig =
+  theme => ({
+    borderRadius: theme.borderRadius,
+    zIndex: 11,
+    colors: colors(theme),
+    spacing: {
+      baseUnit: 3,
+      menuGutter: 0,
+      controlHeight: 34,
+      lineHeight: 19,
+      fontSize: 14,
+      minWidth: '6.5em',
+    },
+    weights: theme.typography.weights,
+  });
 
 // let styles accept serialized CSS, too
 type CSSStyles = CSSProperties | SerializedStyles;
@@ -221,6 +220,7 @@ export const DEFAULT_STYLES: PartialStylesConfig = {
       theme: {
         colors,
         spacing: { lineHeight, fontSize },
+        weights,
       },
     },
   ) => {
@@ -239,7 +239,7 @@ export const DEFAULT_STYLES: PartialStylesConfig = {
         font-size: ${fontSize}px;
         background-color: ${backgroundColor};
         color: ${color};
-        font-weight: ${isSelected ? 600 : 400};
+        font-weight: ${isSelected ? weights.bold : weights.normal};
         white-space: nowrap;
         &:hover:active {
           background-color: ${colors.grayBg};
@@ -314,13 +314,8 @@ export type InputProps = ReactSelectInputProps & {
   inputStyle?: object;
 };
 
-const {
-  ClearIndicator,
-  DropdownIndicator,
-  Option,
-  Input,
-  SelectContainer,
-} = defaultComponents as Required<DeepNonNullable<SelectComponentsType>>;
+const { ClearIndicator, DropdownIndicator, Option, Input, SelectContainer } =
+  defaultComponents as Required<DeepNonNullable<SelectComponentsType>>;
 
 export const DEFAULT_COMPONENTS: SelectComponentsType = {
   SelectContainer: ({ children, ...props }) => {
@@ -345,18 +340,14 @@ export const DEFAULT_COMPONENTS: SelectComponentsType = {
     );
   },
   Option: ({ children, innerProps, data, ...props }) => (
-    <ClassNames>
-      {({ css }) => (
-        <Option
-          {...props}
-          data={data}
-          className={css(data && data.style ? data.style : null)}
-          innerProps={innerProps}
-        >
-          {children}
-        </Option>
-      )}
-    </ClassNames>
+    <Option
+      {...props}
+      data={data}
+      css={data?.style ? data.style : null}
+      innerProps={innerProps}
+    >
+      {children}
+    </Option>
   ),
   ClearIndicator: props => (
     <ClearIndicator {...props}>

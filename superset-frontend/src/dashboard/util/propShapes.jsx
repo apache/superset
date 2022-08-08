@@ -59,7 +59,6 @@ export const slicePropShape = PropTypes.shape({
   slice_id: PropTypes.number.isRequired,
   slice_url: PropTypes.string.isRequired,
   slice_name: PropTypes.string.isRequired,
-  edit_url: PropTypes.string.isRequired,
   datasource: PropTypes.string,
   datasource_name: PropTypes.string,
   datasource_link: PropTypes.string,

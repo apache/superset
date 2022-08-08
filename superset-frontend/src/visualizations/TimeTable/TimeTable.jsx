@@ -27,12 +27,22 @@ import {
   MetricOption,
 } from '@superset-ui/chart-controls';
 import moment from 'moment';
+import sortNumericValues from 'src/utils/sortNumericValues';
 
 import FormattedNumber from './FormattedNumber';
 import SparklineCell from './SparklineCell';
 import './TimeTable.less';
 
 const ACCESSIBLE_COLOR_BOUNDS = ['#ca0020', '#0571b0'];
+
+const sortNumberWithMixedTypes = (rowA, rowB, columnId, descending) =>
+  sortNumericValues(
+    rowA.values[columnId].props['data-value'],
+    rowB.values[columnId].props['data-value'],
+    { descending, nanTreatment: 'asSmallest' },
+  ) *
+  // react-table sort function always expects -1 for smaller number
+  (descending ? -1 : 1);
 
 function colorFromBounds(value, bounds, colorBounds = ACCESSIBLE_COLOR_BOUNDS) {
   if (bounds) {
@@ -126,11 +136,7 @@ const TimeTable = ({
             )}
           </>
         ),
-        sortType: (rowA, rowB, columnId) => {
-          const rowAVal = rowA.values[columnId].props['data-value'];
-          const rowBVal = rowB.values[columnId].props['data-value'];
-          return rowAVal - rowBVal;
-        },
+        sortType: sortNumberWithMixedTypes,
       })),
     ],
     [columnConfigs],
@@ -192,14 +198,17 @@ const TimeTable = ({
         } else {
           v = reversedEntries[timeLag][valueField];
         }
-        if (column.comparisonType === 'diff') {
-          v = recent - v;
-        } else if (column.comparisonType === 'perc') {
-          v = recent / v;
-        } else if (column.comparisonType === 'perc_change') {
-          v = recent / v - 1;
+        if (typeof v === 'number' && typeof recent === 'number') {
+          if (column.comparisonType === 'diff') {
+            v = recent - v;
+          } else if (column.comparisonType === 'perc') {
+            v = recent / v;
+          } else if (column.comparisonType === 'perc_change') {
+            v = recent / v - 1;
+          }
+        } else {
+          v = null;
         }
-        v = v || 0;
       } else if (column.colType === 'contrib') {
         // contribution to column total
         v =
@@ -209,10 +218,21 @@ const TimeTable = ({
             .reduce((a, b) => a + b);
       } else if (column.colType === 'avg') {
         // Average over the last {timeLag}
-        v =
-          reversedEntries
-            .map((k, i) => (i < column.timeLag ? k[valueField] : 0))
-            .reduce((a, b) => a + b) / column.timeLag;
+        v = null;
+        if (reversedEntries.length > 0) {
+          const stats = reversedEntries.slice(undefined, column.timeLag).reduce(
+            function ({ count, sum }, entry) {
+              return entry[valueField] !== undefined &&
+                entry[valueField] !== null
+                ? { count: count + 1, sum: sum + entry[valueField] }
+                : { count, sum };
+            },
+            { count: 0, sum: 0 },
+          );
+          if (stats.count > 0) {
+            v = stats.sum / stats.count;
+          }
+        }
       }
 
       const color = colorFromBounds(v, column.bounds);

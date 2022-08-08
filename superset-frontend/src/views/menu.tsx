@@ -16,19 +16,38 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
+// Menu App. Used in views that do not already include the Menu component in the layout.
+// eg, backend rendered views
 import React from 'react';
 import ReactDOM from 'react-dom';
+import { CacheProvider } from '@emotion/react';
+import createCache from '@emotion/cache';
 import { ThemeProvider } from '@superset-ui/core';
-import Menu from 'src/components/Menu/Menu';
-import { theme } from '../preamble';
+import Menu from 'src/views/components/Menu';
+import { theme } from 'src/preamble';
+
+import { Provider } from 'react-redux';
+import { store } from './store';
 
 const container = document.getElementById('app');
 const bootstrapJson = container?.getAttribute('data-bootstrap') ?? '{}';
 const bootstrap = JSON.parse(bootstrapJson);
 const menu = { ...bootstrap.common.menu_data };
+
+const emotionCache = createCache({
+  key: 'menu',
+});
+
 const app = (
-  <ThemeProvider theme={theme}>
-    <Menu data={menu} />
-  </ThemeProvider>
+  // @ts-ignore: emotion types defs are incompatible between core and cache
+  <CacheProvider value={emotionCache}>
+    <ThemeProvider theme={theme}>
+      <Provider store={store}>
+        <Menu data={menu} />
+      </Provider>
+    </ThemeProvider>
+  </CacheProvider>
 );
+
 ReactDOM.render(app, document.getElementById('app-menu'));

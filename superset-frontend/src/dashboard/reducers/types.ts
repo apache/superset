@@ -18,12 +18,25 @@
  */
 
 import componentTypes from 'src/dashboard/util/componentTypes';
-import { ExtraFormData, JsonObject } from '@superset-ui/core';
-import { Filter } from '../components/nativeFilters/types';
+import { NativeFilterScope, JsonObject } from '@superset-ui/core';
 
 export enum Scoping {
-  all,
-  specific,
+  All = 'All',
+  Specific = 'Specific',
+}
+
+export type ChartConfiguration = {
+  [chartId: number]: {
+    id: number;
+    crossFilters: {
+      scope: NativeFilterScope;
+    };
+  };
+};
+
+export interface DashboardInfo {
+  id: number;
+  json_metadata: string;
 }
 
 /** Chart state of redux */
@@ -44,11 +57,6 @@ export type RootState = {
 
 /** State of dashboardLayout in redux */
 export type Layout = { [key: string]: LayoutItem };
-
-/** State of nativeFilters currentState */
-export type CurrentFilterState = JsonObject & {
-  value: any;
-};
 
 /** State of charts in redux */
 export type Charts = { [key: number]: Chart };
@@ -72,18 +80,15 @@ export type LayoutItem = {
   };
 };
 
-/** Current state of the filter, stored in `nativeFilters` in redux */
-export type NativeFilterState = {
-  id: string; // ties this filter state to the config object
-  extraFormData?: ExtraFormData;
-  currentState?: CurrentFilterState;
-};
-
-export type NativeFiltersState = {
-  filters: {
-    [filterId: string]: Filter;
-  };
-  filtersState: {
-    [filterId: string]: NativeFilterState;
-  };
+export type FilterSetFullData = {
+  changed_by_fk: string | null;
+  changed_on: string | null;
+  created_by_fk: string | null;
+  created_on: string | null;
+  dashboard_id: number;
+  description: string | null;
+  name: string;
+  owner_id: number;
+  owner_type: string;
+  params: JsonObject;
 };

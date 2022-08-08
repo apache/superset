@@ -17,57 +17,91 @@
  * under the License.
  */
 import {
-  SET_EXTRA_FORM_DATA,
   AnyFilterAction,
   SET_FILTER_CONFIG_COMPLETE,
+  SET_IN_SCOPE_STATUS_OF_FILTERS,
+  SET_FILTER_SETS_COMPLETE,
+  SET_FOCUSED_NATIVE_FILTER,
+  UNSET_FOCUSED_NATIVE_FILTER,
 } from 'src/dashboard/actions/nativeFilters';
-import { NativeFiltersState, NativeFilterState } from './types';
-import { FilterConfiguration } from '../components/nativeFilters/types';
+import {
+  FilterSet,
+  FilterConfiguration,
+  NativeFiltersState,
+} from '@superset-ui/core';
+import { HYDRATE_DASHBOARD } from '../actions/hydrate';
 
-export function getInitialFilterState(id: string): NativeFilterState {
-  return {
-    id,
-    extraFormData: {},
-  };
-}
+export function getInitialState({
+  filterSetsConfig,
+  filterConfig,
+  state: prevState,
+}: {
+  filterSetsConfig?: FilterSet[];
+  filterConfig?: FilterConfiguration;
+  state?: NativeFiltersState;
+}): NativeFiltersState {
+  const state: Partial<NativeFiltersState> = {};
 
-export function getInitialState(
-  filterConfig: FilterConfiguration,
-  prevFiltersState: { [filterId: string]: NativeFilterState },
-): NativeFiltersState {
   const filters = {};
-  const filtersState = {};
-  const state = { filters, filtersState };
-  filterConfig.forEach(filter => {
-    const { id } = filter;
-    filters[id] = filter;
-    filtersState[id] = prevFiltersState?.[id] || getInitialFilterState(id);
-  });
-  return state;
+  if (filterConfig) {
+    filterConfig.forEach(filter => {
+      const { id } = filter;
+      filters[id] = filter;
+    });
+    state.filters = filters;
+  } else {
+    state.filters = prevState?.filters ?? {};
+  }
+
+  if (filterSetsConfig) {
+    const filterSets = {};
+    filterSetsConfig.forEach(filtersSet => {
+      const { id } = filtersSet;
+      filterSets[id] = filtersSet;
+    });
+    state.filterSets = filterSets;
+  } else {
+    state.filterSets = prevState?.filterSets ?? {};
+  }
+  state.focusedFilterId = undefined;
+  return state as NativeFiltersState;
 }
 
 export default function nativeFilterReducer(
-  state: NativeFiltersState = { filters: {}, filtersState: {} },
+  state: NativeFiltersState = {
+    filters: {},
+    filterSets: {},
+  },
   action: AnyFilterAction,
 ) {
-  const { filters, filtersState } = state;
   switch (action.type) {
-    case SET_EXTRA_FORM_DATA:
+    case HYDRATE_DASHBOARD:
       return {
-        filters,
-        filtersState: {
-          ...filtersState,
-          [action.filterId]: {
-            ...filtersState[action.filterId],
-            extraFormData: action.extraFormData,
-            currentState: action.currentState,
-          },
-        },
+        filters: action.data.nativeFilters.filters,
+        filterSets: action.data.nativeFilters.filterSets,
       };
 
     case SET_FILTER_CONFIG_COMPLETE:
-      return getInitialState(action.filterConfig, filtersState);
+    case SET_IN_SCOPE_STATUS_OF_FILTERS:
+      return getInitialState({ filterConfig: action.filterConfig, state });
 
+    case SET_FILTER_SETS_COMPLETE:
+      return getInitialState({
+        filterSetsConfig: action.filterSets,
+        state,
+      });
+
+    case SET_FOCUSED_NATIVE_FILTER:
+      return {
+        ...state,
+        focusedFilterId: action.id,
+      };
+
+    case UNSET_FOCUSED_NATIVE_FILTER:
+      return {
+        ...state,
+        focusedFilterId: undefined,
+      };
     // TODO handle SET_FILTER_CONFIG_FAIL action
     default:
       return state;

@@ -18,10 +18,12 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { LineEditableTabs } from 'src/common/components/Tabs';
-import { LOG_ACTIONS_SELECT_DASHBOARD_TAB } from 'src/logger/LogUtils';
-import { Modal } from 'src/common/components';
 import { styled, t } from '@superset-ui/core';
+import { connect } from 'react-redux';
+import { LineEditableTabs } from 'src/components/Tabs';
+import { LOG_ACTIONS_SELECT_DASHBOARD_TAB } from 'src/logger/LogUtils';
+import { AntdModal } from 'src/components';
+import { FILTER_BOX_MIGRATION_STATES } from 'src/explore/constants';
 import DragDroppable from '../dnd/DragDroppable';
 import DragHandle from '../dnd/DragHandle';
 import DashboardComponent from '../../containers/DashboardComponent';
@@ -33,7 +35,7 @@ import getLeafComponentIdFromPath from '../../util/getLeafComponentIdFromPath';
 import { componentShape } from '../../util/propShapes';
 import { NEW_TAB_ID, DASHBOARD_ROOT_ID } from '../../util/constants';
 import { RENDER_TAB, RENDER_TAB_CONTENT } from './Tab';
-import { TAB_TYPE } from '../../util/componentTypes';
+import { TABS_TYPE, TAB_TYPE } from '../../util/componentTypes';
 
 const propTypes = {
   id: PropTypes.string.isRequired,
@@ -46,9 +48,11 @@ const propTypes = {
   editMode: PropTypes.bool.isRequired,
   renderHoverMenu: PropTypes.bool,
   directPathToChild: PropTypes.arrayOf(PropTypes.string),
+  filterboxMigrationState: FILTER_BOX_MIGRATION_STATES,
 
   // actions (from DashboardComponent.jsx)
   logEvent: PropTypes.func.isRequired,
+  setActiveTabs: PropTypes.func,
 
   // grid related
   availableColumnCount: PropTypes.number,
@@ -71,6 +75,8 @@ const defaultProps = {
   availableColumnCount: 0,
   columnWidth: 0,
   directPathToChild: [],
+  filterboxMigrationState: FILTER_BOX_MIGRATION_STATES.NOOP,
+  setActiveTabs() {},
   onResizeStart() {},
   onResize() {},
   onResizeStop() {},
@@ -89,6 +95,10 @@ const StyledTabsContainer = styled.div`
   .ant-tabs {
     overflow: visible;
 
+    .ant-tabs-nav-wrap {
+      min-height: ${({ theme }) => theme.gridUnit * 12.5}px;
+    }
+
     .ant-tabs-content-holder {
       overflow: visible;
     }
@@ -99,7 +109,7 @@ const StyledTabsContainer = styled.div`
   }
 `;
 
-class Tabs extends React.PureComponent {
+export class Tabs extends React.PureComponent {
   constructor(props) {
     super(props);
     const tabIndex = Math.max(
@@ -109,20 +119,56 @@ class Tabs extends React.PureComponent {
         directPathToChild: props.directPathToChild,
       }),
     );
+    const { children: tabIds } = props.component;
+    const activeKey = tabIds[tabIndex];
 
     this.state = {
       tabIndex,
+      activeKey,
     };
     this.handleClickTab = this.handleClickTab.bind(this);
     this.handleDeleteComponent = this.handleDeleteComponent.bind(this);
     this.handleDeleteTab = this.handleDeleteTab.bind(this);
     this.handleDropOnTab = this.handleDropOnTab.bind(this);
+    this.handleDrop = this.handleDrop.bind(this);
+  }
+
+  componentDidMount() {
+    this.props.setActiveTabs(this.state.activeKey);
+  }
+
+  componentDidUpdate(prevProps, prevState) {
+    if (
+      prevState.activeKey !== this.state.activeKey ||
+      prevProps.filterboxMigrationState !== this.props.filterboxMigrationState
+    ) {
+      this.props.setActiveTabs(this.state.activeKey, prevState.activeKey);
+    }
   }
 
   UNSAFE_componentWillReceiveProps(nextProps) {
     const maxIndex = Math.max(0, nextProps.component.children.length - 1);
+    const currTabsIds = this.props.component.children;
+    const nextTabsIds = nextProps.component.children;
+
     if (this.state.tabIndex > maxIndex) {
       this.setState(() => ({ tabIndex: maxIndex }));
+    }
+
+    if (nextTabsIds.length) {
+      const lastTabId = nextTabsIds[nextTabsIds.length - 1];
+      // if a new tab is added focus on it immediately
+      if (nextTabsIds.length > currTabsIds.length) {
+        // a new tab's path may be empty, here also need to set tabIndex
+        this.setState(() => ({
+          activeKey: lastTabId,
+          tabIndex: maxIndex,
+        }));
+      }
+      // if a tab is removed focus on the first
+      if (nextTabsIds.length < currTabsIds.length) {
+        this.setState(() => ({ activeKey: nextTabsIds[0] }));
+      }
     }
 
     if (nextProps.isComponentVisible) {
@@ -141,7 +187,10 @@ class Tabs extends React.PureComponent {
 
         // make sure nextFocusComponent is under this tabs component
         if (nextTabIndex > -1 && nextTabIndex !== this.state.tabIndex) {
-          this.setState(() => ({ tabIndex: nextTabIndex }));
+          this.setState(() => ({
+            tabIndex: nextTabIndex,
+            activeKey: nextTabsIds[nextTabIndex],
+          }));
         }
       }
     }
@@ -149,7 +198,7 @@ class Tabs extends React.PureComponent {
 
   showDeleteConfirmModal = key => {
     const { component, deleteComponent } = this.props;
-    Modal.confirm({
+    AntdModal.confirm({
       title: t('Delete dashboard tab?'),
       content: (
         <span>
@@ -161,7 +210,7 @@ class Tabs extends React.PureComponent {
       onOk: () => {
         deleteComponent(key, component.id);
         const tabIndex = component.children.indexOf(key);
-        this.handleClickTab(Math.max(0, tabIndex - 1));
+        this.handleDeleteTab(tabIndex);
       },
       okType: 'danger',
       okText: 'DELETE',
@@ -191,6 +240,7 @@ class Tabs extends React.PureComponent {
 
   handleClickTab(tabIndex) {
     const { component } = this.props;
+    const { children: tabIds } = component;
 
     if (tabIndex !== this.state.tabIndex) {
       const pathToTabIndex = getDirectPathToTabIndex(component, tabIndex);
@@ -202,6 +252,7 @@ class Tabs extends React.PureComponent {
 
       this.props.onChangeTab({ pathToTabIndex });
     }
+    this.setState(() => ({ activeKey: tabIds[tabIndex] }));
   }
 
   handleDeleteComponent() {
@@ -232,6 +283,12 @@ class Tabs extends React.PureComponent {
     }
   }
 
+  handleDrop(dropResult) {
+    if (dropResult.dragging.type !== TABS_TYPE) {
+      this.props.handleComponentDrop(dropResult);
+    }
+  }
+
   render() {
     const {
       depth,
@@ -243,18 +300,21 @@ class Tabs extends React.PureComponent {
       onResizeStart,
       onResize,
       onResizeStop,
-      handleComponentDrop,
       renderTabContent,
       renderHoverMenu,
       isComponentVisible: isCurrentTabVisible,
       editMode,
+      nativeFilters,
     } = this.props;
 
-    const { tabIndex: selectedTabIndex } = this.state;
     const { children: tabIds } = tabsComponent;
+    const { tabIndex: selectedTabIndex, activeKey } = this.state;
 
-    const activeKey = tabIds[selectedTabIndex];
-
+    let tabsToHighlight;
+    if (nativeFilters?.focusedFilterId) {
+      tabsToHighlight =
+        nativeFilters.filters[nativeFilters.focusedFilterId].tabsInScope;
+    }
     return (
       <DragDroppable
         component={tabsComponent}
@@ -262,7 +322,7 @@ class Tabs extends React.PureComponent {
         orientation="row"
         index={index}
         depth={depth}
-        onDrop={handleComponentDrop}
+        onDrop={this.handleDrop}
         editMode={editMode}
       >
         {({
@@ -304,6 +364,9 @@ class Tabs extends React.PureComponent {
                       columnWidth={columnWidth}
                       onDropOnTab={this.handleDropOnTab}
                       isFocused={activeKey === tabId}
+                      isHighlighted={
+                        activeKey !== tabId && tabsToHighlight?.includes(tabId)
+                      }
                     />
                   }
                 >
@@ -344,4 +407,11 @@ class Tabs extends React.PureComponent {
 Tabs.propTypes = propTypes;
 Tabs.defaultProps = defaultProps;
 
-export default Tabs;
+function mapStateToProps(state) {
+  return {
+    nativeFilters: state.nativeFilters,
+    directPathToChild: state.dashboardState.directPathToChild,
+    filterboxMigrationState: state.dashboardState.filterboxMigrationState,
+  };
+}
+export default connect(mapStateToProps)(Tabs);

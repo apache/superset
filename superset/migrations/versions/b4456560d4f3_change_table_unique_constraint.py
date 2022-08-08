@@ -42,6 +42,6 @@ def upgrade():
 def downgrade():
     try:
         # Trying since sqlite doesn't like constraints
-        op.drop_constraint(u"_customer_location_uc", "tables", type_="unique")
+        op.drop_constraint("_customer_location_uc", "tables", type_="unique")
     except Exception:
         pass

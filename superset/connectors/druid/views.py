@@ -14,17 +14,18 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=too-many-ancestors
 import json
 import logging
 from datetime import datetime
 
-from flask import flash, Markup, redirect
+from flask import current_app as app, flash, Markup, redirect
 from flask_appbuilder import CompactCRUDMixin, expose
 from flask_appbuilder.fieldwidgets import Select2Widget
+from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access
 from flask_babel import lazy_gettext as _
+from werkzeug.exceptions import NotFound
 from wtforms import StringField
 from wtforms.ext.sqlalchemy.fields import QuerySelectField
 
@@ -33,7 +34,7 @@ from superset.connectors.base.views import BS3TextFieldROWidget, DatasourceModel
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.druid import models
 from superset.constants import RouteMethod
-from superset.typing import FlaskResponse
+from superset.superset_typing import FlaskResponse
 from superset.utils import core as utils
 from superset.views.base import (
     BaseSupersetView,
@@ -49,7 +50,22 @@ from superset.views.base import (
 logger = logging.getLogger(__name__)
 
 
-class DruidColumnInlineView(CompactCRUDMixin, SupersetModelView):
+class EnsureEnabledMixin:
+    @staticmethod
+    def is_enabled() -> bool:
+        return bool(app.config["DRUID_IS_ACTIVE"])
+
+    @before_request
+    def ensure_enabled(self) -> None:
+        if not self.is_enabled():
+            raise NotFound()
+
+
+class DruidColumnInlineView(  # pylint: disable=too-many-ancestors
+    CompactCRUDMixin,
+    EnsureEnabledMixin,
+    SupersetModelView,
+):
     datamodel = SQLAInterface(models.DruidColumn)
     include_route_methods = RouteMethod.RELATED_VIEW_SET
 
@@ -114,7 +130,7 @@ class DruidColumnInlineView(CompactCRUDMixin, SupersetModelView):
             try:
                 dimension_spec = json.loads(item.dimension_spec_json)
             except ValueError as ex:
-                raise ValueError("Invalid Dimension Spec JSON: " + str(ex))
+                raise ValueError("Invalid Dimension Spec JSON: " + str(ex)) from ex
             if not isinstance(dimension_spec, dict):
                 raise ValueError("Dimension Spec must be a JSON object")
             if "outputName" not in dimension_spec:
@@ -136,7 +152,11 @@ class DruidColumnInlineView(CompactCRUDMixin, SupersetModelView):
         self.post_update(item)
 
 
-class DruidMetricInlineView(CompactCRUDMixin, SupersetModelView):
+class DruidMetricInlineView(  # pylint: disable=too-many-ancestors
+    CompactCRUDMixin,
+    EnsureEnabledMixin,
+    SupersetModelView,
+):
     datamodel = SQLAInterface(models.DruidMetric)
     include_route_methods = RouteMethod.RELATED_VIEW_SET
 
@@ -189,7 +209,12 @@ class DruidMetricInlineView(CompactCRUDMixin, SupersetModelView):
     edit_form_extra_fields = add_form_extra_fields
 
 
-class DruidClusterModelView(SupersetModelView, DeleteMixin, YamlExportMixin):
+class DruidClusterModelView(  # pylint: disable=too-many-ancestors
+    EnsureEnabledMixin,
+    SupersetModelView,
+    DeleteMixin,
+    YamlExportMixin,
+):
     datamodel = SQLAInterface(models.DruidCluster)
     include_route_methods = RouteMethod.CRUD_SET
     list_title = _("Druid Clusters")
@@ -251,7 +276,12 @@ class DruidClusterModelView(SupersetModelView, DeleteMixin, YamlExportMixin):
         DeleteMixin._delete(self, pk)
 
 
-class DruidDatasourceModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):
+class DruidDatasourceModelView(  # pylint: disable=too-many-ancestors
+    EnsureEnabledMixin,
+    DatasourceModelView,
+    DeleteMixin,
+    YamlExportMixin,
+):
     datamodel = SQLAInterface(models.DruidDatasource)
     include_route_methods = RouteMethod.CRUD_SET
     list_title = _("Druid Datasources")
@@ -367,7 +397,7 @@ class DruidDatasourceModelView(DatasourceModelView, DeleteMixin, YamlExportMixin
         DeleteMixin._delete(self, pk)
 
 
-class Druid(BaseSupersetView):
+class Druid(EnsureEnabledMixin, BaseSupersetView):
     """The base views for Superset!"""
 
     @has_access

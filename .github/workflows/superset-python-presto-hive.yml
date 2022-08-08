@@ -14,11 +14,10 @@ jobs:
     runs-on: ubuntu-20.04
     strategy:
       matrix:
-        # run unit tests in multiple version just for fun
         python-version: [3.8]
     env:
       PYTHONPATH: ${{ github.workspace }}
-      SUPERSET_CONFIG: tests.superset_test_config
+      SUPERSET_CONFIG: tests.integration_tests.superset_test_config
       REDIS_PORT: 16379
       SUPERSET__SQLALCHEMY_DATABASE_URI: postgresql+psycopg2://superset:superset@127.0.0.1:15432/superset
       SUPERSET__SQLALCHEMY_EXAMPLES_URI: presto://localhost:15433/memory/default
@@ -33,7 +32,7 @@ jobs:
           # GitHub action runner's default installations
           - 15432:5432
       presto:
-        image: prestosql/presto:339
+        image: starburstdata/presto:350-e.6
         env:
           POSTGRES_USER: superset
           POSTGRES_PASSWORD: superset
@@ -63,6 +62,8 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+          cache-dependency-path: 'requirements/testing.txt'
       - name: Install dependencies
         if: steps.check.outcome == 'failure'
         uses: ./.github/actions/cached-dependencies
@@ -70,30 +71,30 @@ jobs:
           run: |
             apt-get-install
             pip-upgrade
+            pip install wheel
             pip install -r requirements/testing.txt
             setup-postgres
       - name: Run celery
         if: steps.check.outcome == 'failure'
-        run: celery worker --app=superset.tasks.celery_app:app -Ofair -c 2 &
+        run: celery --app=superset.tasks.celery_app:app worker -Ofair -c 2 &
       - name: Python unit tests (PostgreSQL)
         if: steps.check.outcome == 'failure'
         run: |
-          ./scripts/python_tests.sh
+          ./scripts/python_tests.sh -m 'chart_data_flow or sql_json_flow'
       - name: Upload code coverage
         if: steps.check.outcome == 'failure'
         run: |
-          bash <(curl -s https://codecov.io/bash) -cF python
+          bash .github/workflows/codecov.sh -c -F python -F presto
 
   test-postgres-hive:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-20.04
     strategy:
       matrix:
-        # run unit tests in multiple version just for fun
-        python-version: [3.7, 3.8]
+        python-version: [3.8]
     env:
       PYTHONPATH: ${{ github.workspace }}
-      SUPERSET_CONFIG: tests.superset_test_config
+      SUPERSET_CONFIG: tests.integration_tests.superset_test_config
       REDIS_PORT: 16379
       SUPERSET__SQLALCHEMY_DATABASE_URI: postgresql+psycopg2://superset:superset@127.0.0.1:15432/superset
       SUPERSET__SQLALCHEMY_EXAMPLES_URI: hive://localhost:10000/default
@@ -139,6 +140,8 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+          cache-dependency-path: 'requirements/testing.txt'
       - name: Install dependencies
         if: steps.check.outcome == 'failure'
         uses: ./.github/actions/cached-dependencies
@@ -146,16 +149,17 @@ jobs:
           run: |
             apt-get-install
             pip-upgrade
+            pip install wheel
             pip install -r requirements/testing.txt
             setup-postgres
       - name: Run celery
         if: steps.check.outcome == 'failure'
-        run: celery worker --app=superset.tasks.celery_app:app -Ofair -c 2 &
+        run: celery --app=superset.tasks.celery_app:app worker -Ofair -c 2 &
       - name: Python unit tests (PostgreSQL)
         if: steps.check.outcome == 'failure'
         run: |
-          ./scripts/python_tests.sh
+          ./scripts/python_tests.sh -m 'chart_data_flow or sql_json_flow'
       - name: Upload code coverage
         if: steps.check.outcome == 'failure'
         run: |
-          bash <(curl -s https://codecov.io/bash) -cF python
+          bash .github/workflows/codecov.sh -c -F python -F hive

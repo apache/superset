@@ -17,25 +17,27 @@
  * under the License.
  */
 import {
+  Behavior,
   DataRecord,
+  FilterState,
   QueryFormData,
-  SetExtraFormDataHook,
 } from '@superset-ui/core';
 import { RefObject } from 'react';
-import { AntdPluginFilterStylesProps } from '../types';
+import { PluginFilterHooks, PluginFilterStylesProps } from '../types';
 
-interface AntdPluginFilterSelectCustomizeProps {
+interface PluginFilterSelectCustomizeProps {
   max?: number;
   min?: number;
 }
 
 export type PluginFilterRangeQueryFormData = QueryFormData &
-  AntdPluginFilterStylesProps &
-  AntdPluginFilterSelectCustomizeProps;
+  PluginFilterStylesProps &
+  PluginFilterSelectCustomizeProps;
 
-export type AntdPluginFilterRangeProps = AntdPluginFilterStylesProps & {
+export type PluginFilterRangeProps = PluginFilterStylesProps & {
   data: DataRecord[];
   formData: PluginFilterRangeQueryFormData;
-  setExtraFormData: SetExtraFormDataHook;
+  filterState: FilterState;
+  behaviors: Behavior[];
   inputRef: RefObject<any>;
-};
+} & PluginFilterHooks;

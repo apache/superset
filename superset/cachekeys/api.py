@@ -110,8 +110,10 @@ class CacheRestApi(BaseSupersetModelRestApi):
                 )
 
             try:
-                delete_stmt = CacheKey.__table__.delete().where(  # pylint: disable=no-member
-                    CacheKey.cache_key.in_(cache_keys)
+                delete_stmt = (
+                    CacheKey.__table__.delete().where(  # pylint: disable=no-member
+                        CacheKey.cache_key.in_(cache_keys)
+                    )
                 )
                 db.session.execute(delete_stmt)
                 db.session.commit()
@@ -122,7 +124,7 @@ class CacheRestApi(BaseSupersetModelRestApi):
                     len(datasource_uids),
                 )
             except SQLAlchemyError as ex:  # pragma: no cover
-                logger.error(ex)
+                logger.error(ex, exc_info=True)
                 db.session.rollback()
                 return self.response_500(str(ex))
             db.session.commit()

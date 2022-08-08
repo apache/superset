@@ -16,8 +16,10 @@
 # under the License.
 from typing import Dict, List, Optional, Set, Type, TYPE_CHECKING
 
+from flask_babel import _
 from sqlalchemy import or_
 from sqlalchemy.orm import Session, subqueryload
+from sqlalchemy.orm.exc import NoResultFound
 
 from superset.datasets.commands.exceptions import DatasetNotFoundError
 
@@ -29,7 +31,7 @@ if TYPE_CHECKING:
 
 
 class ConnectorRegistry:
-    """ Central Registry for all available datasource engines"""
+    """Central Registry for all available datasource engines"""
 
     sources: Dict[str, Type["BaseDatasource"]] = {}
 
@@ -66,12 +68,35 @@ class ConnectorRegistry:
     @classmethod
     def get_all_datasources(cls, session: Session) -> List["BaseDatasource"]:
         datasources: List["BaseDatasource"] = []
-        for source_type in ConnectorRegistry.sources:
-            source_class = ConnectorRegistry.sources[source_type]
+        for source_class in ConnectorRegistry.sources.values():
             qry = session.query(source_class)
             qry = source_class.default_query(qry)
             datasources.extend(qry.all())
         return datasources
+
+    @classmethod
+    def get_datasource_by_id(
+        cls, session: Session, datasource_id: int
+    ) -> "BaseDatasource":
+        """
+        Find a datasource instance based on the unique id.
+
+        :param session: Session to use
+        :param datasource_id: unique id of datasource
+        :return: Datasource corresponding to the id
+        :raises NoResultFound: if no datasource is found corresponding to the id
+        """
+        for datasource_class in ConnectorRegistry.sources.values():
+            try:
+                return (
+                    session.query(datasource_class)
+                    .filter(datasource_class.id == datasource_id)
+                    .one()
+                )
+            except NoResultFound:
+                # proceed to next datasource type
+                pass
+        raise NoResultFound(_("Datasource id not found: %(id)s", id=datasource_id))
 
     @classmethod
     def get_datasource_by_name(  # pylint: disable=too-many-arguments

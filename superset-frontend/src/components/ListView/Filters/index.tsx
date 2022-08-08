@@ -17,12 +17,13 @@
  * under the License.
  */
 import React from 'react';
-import { styled, withTheme } from '@superset-ui/core';
+import { withTheme } from '@superset-ui/core';
 
 import {
   FilterValue,
   Filters,
   InternalFilter,
+  SelectOption,
 } from 'src/components/ListView/types';
 import SearchFilter from './Search';
 import SelectFilter from './Select';
@@ -34,42 +35,28 @@ interface UIFiltersProps {
   updateFilterValue: (id: number, value: FilterValue['value']) => void;
 }
 
-const FilterWrapper = styled.div`
-  display: inline-block;
-`;
-
 function UIFilters({
   filters,
   internalFilters = [],
   updateFilterValue,
 }: UIFiltersProps) {
   return (
-    <FilterWrapper>
+    <>
       {filters.map(
-        (
-          {
-            Header,
-            fetchSelects,
-            id,
-            input,
-            paginate,
-            selects,
-            unfilteredLabel,
-          },
-          index,
-        ) => {
+        ({ Header, fetchSelects, id, input, paginate, selects }, index) => {
           const initialValue =
             internalFilters[index] && internalFilters[index].value;
           if (input === 'select') {
             return (
               <SelectFilter
                 Header={Header}
-                emptyLabel={unfilteredLabel}
                 fetchSelects={fetchSelects}
                 initialValue={initialValue}
                 key={id}
                 name={id}
-                onSelect={(value: any) => updateFilterValue(index, value)}
+                onSelect={(option: SelectOption | undefined) =>
+                  updateFilterValue(index, option)
+                }
                 paginate={paginate}
                 selects={selects}
               />
@@ -100,7 +87,7 @@ function UIFilters({
           return null;
         },
       )}
-    </FilterWrapper>
+    </>
   );
 }
 

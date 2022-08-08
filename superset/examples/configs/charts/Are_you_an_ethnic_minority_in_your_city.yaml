@@ -30,7 +30,7 @@ params:
   metric: count
   number_format: SMART_NUMBER
   outerRadius: 69
-  pie_label_type: key
+  label_type: key
   queryFields:
     groupby: groupby
     metric: metrics

@@ -17,13 +17,13 @@
  * under the License.
  */
 import React, { RefObject } from 'react';
-import Select from 'src/components/Select';
+import Select, { propertyComparator } from 'src/components/Select/Select';
 import { t, styled } from '@superset-ui/core';
-import { Alert } from 'react-bootstrap';
+import Alert from 'src/components/Alert';
 import Button from 'src/components/Button';
 
 import ModalTrigger from 'src/components/ModalTrigger';
-import FormLabel from 'src/components/FormLabel';
+import { FormLabel } from 'src/components/Form';
 
 export const options = [
   [0, t("Don't refresh")],
@@ -36,7 +36,7 @@ export const options = [
   [21600, t('6 hours')],
   [43200, t('12 hours')],
   [86400, t('24 hours')],
-].map(o => ({ value: o[0], label: o[1] }));
+].map(o => ({ value: o[0] as number, label: o[1] }));
 
 const StyledModalTrigger = styled(ModalTrigger)`
   .ant-modal-body {
@@ -49,6 +49,7 @@ const RefreshWarningContainer = styled.div`
 `;
 
 type RefreshIntervalModalProps = {
+  addSuccessToast: (msg: string) => void;
   triggerNode: JSX.Element;
   refreshFrequency: number;
   onChange: (refreshLimit: number, editMode: boolean) => void;
@@ -86,6 +87,7 @@ class RefreshIntervalModal extends React.PureComponent<
   onSave() {
     this.props.onChange(this.state.refreshFrequency, this.props.editMode);
     this.modalRef.current?.close();
+    this.props.addSuccessToast(t('Refresh interval saved'));
   }
 
   onCancel() {
@@ -95,10 +97,9 @@ class RefreshIntervalModal extends React.PureComponent<
     this.modalRef.current?.close();
   }
 
-  handleFrequencyChange(opt: Record<string, any>) {
-    const value = opt ? opt.value : options[0].value;
+  handleFrequencyChange(value: number) {
     this.setState({
-      refreshFrequency: value,
+      refreshFrequency: value || options[0].value,
     });
   }
 
@@ -117,18 +118,24 @@ class RefreshIntervalModal extends React.PureComponent<
           <div>
             <FormLabel>{t('Refresh frequency')}</FormLabel>
             <Select
+              ariaLabel={t('Refresh interval')}
               options={options}
-              value={{ value: refreshFrequency }}
+              value={refreshFrequency}
               onChange={this.handleFrequencyChange}
-              forceOverflow
+              sortComparator={propertyComparator('value')}
             />
             {showRefreshWarning && (
               <RefreshWarningContainer>
-                <Alert bsStyle="warning">
-                  <div>{refreshWarning}</div>
-                  <br />
-                  <strong>{t('Are you sure you want to proceed?')}</strong>
-                </Alert>
+                <Alert
+                  type="warning"
+                  message={
+                    <>
+                      <div>{refreshWarning}</div>
+                      <br />
+                      <strong>{t('Are you sure you want to proceed?')}</strong>
+                    </>
+                  }
+                />
               </RefreshWarningContainer>
             )}
           </div>

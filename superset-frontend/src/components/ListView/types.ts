@@ -37,28 +37,6 @@ export interface CardSortSelectOption {
   value: any;
 }
 
-type FilterOperator =
-  | 'sw'
-  | 'ew'
-  | 'ct'
-  | 'eq'
-  | 'nsw'
-  | 'new'
-  | 'nct'
-  | 'neq'
-  | 'gt'
-  | 'lt'
-  | 'rel_m_m'
-  | 'rel_o_m'
-  | 'title_or_slug'
-  | 'name_or_description'
-  | 'all_text'
-  | 'chart_all_text'
-  | 'dataset_is_null_or_empty'
-  | 'between'
-  | 'dashboard_is_favorite'
-  | 'chart_is_favorite';
-
 export interface Filter {
   Header: ReactNode;
   id: string;
@@ -75,10 +53,10 @@ export interface Filter {
   selects?: SelectOption[];
   onFilterOpen?: () => void;
   fetchSelects?: (
-    filterValue?: string,
-    pageIndex?: number,
-    pageSize?: number,
-  ) => Promise<SelectOption[]>;
+    filterValue: string,
+    page: number,
+    pageSize: number,
+  ) => Promise<{ data: SelectOption[]; totalCount: number }>;
   paginate?: boolean;
 }
 
@@ -90,7 +68,15 @@ export interface FilterValue {
   id: string;
   urlDisplay?: string;
   operator?: string;
-  value: string | boolean | number | null | undefined | string[] | number[];
+  value:
+    | string
+    | boolean
+    | number
+    | null
+    | undefined
+    | string[]
+    | number[]
+    | { label: string; value: string | number };
 }
 
 export interface FetchDataConfig {
@@ -104,7 +90,7 @@ export interface InternalFilter extends FilterValue {
   Header?: string;
 }
 
-export enum FilterOperators {
+export enum FilterOperator {
   startsWith = 'sw',
   endsWith = 'ew',
   contains = 'ct',
@@ -125,4 +111,6 @@ export enum FilterOperators {
   between = 'between',
   dashboardIsFav = 'dashboard_is_favorite',
   chartIsFav = 'chart_is_favorite',
+  chartIsCertified = 'chart_is_certified',
+  dashboardIsCertified = 'dashboard_is_certified',
 }

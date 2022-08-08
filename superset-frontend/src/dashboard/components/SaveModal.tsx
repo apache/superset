@@ -18,11 +18,11 @@
  */
 /* eslint-env browser */
 import React from 'react';
-import { FormControl, FormGroup } from 'react-bootstrap';
-import { RadioChangeEvent } from 'src/common/components';
-import { Radio } from 'src/common/components/Radio';
+import { Radio } from 'src/components/Radio';
+import { RadioChangeEvent } from 'src/components';
+import { Input } from 'src/components/Input';
 import Button from 'src/components/Button';
-import { t, CategoricalColorNamespace, JsonResponse } from '@superset-ui/core';
+import { t, JsonResponse } from '@superset-ui/core';
 
 import ModalTrigger from 'src/components/ModalTrigger';
 import Checkbox from 'src/components/Checkbox';
@@ -109,9 +109,9 @@ class SaveModal extends React.PureComponent<SaveModalProps, SaveModalState> {
     });
   }
 
-  handleNameChange(event: React.FormEvent<FormControl>) {
+  handleNameChange(name: string) {
     this.setState({
-      newDashName: (event.target as HTMLInputElement).value,
+      newDashName: name,
       saveType: SAVE_TYPE_NEWDASHBOARD,
     });
   }
@@ -123,37 +123,32 @@ class SaveModal extends React.PureComponent<SaveModalProps, SaveModalState> {
       dashboardInfo,
       layout: positions,
       customCss,
-      colorNamespace,
-      colorScheme,
-      expandedSlices,
       dashboardId,
       refreshFrequency: currentRefreshFrequency,
       shouldPersistRefreshFrequency,
       lastModifiedTime,
     } = this.props;
 
-    const scale = CategoricalColorNamespace.getScale(
-      colorScheme,
-      colorNamespace,
-    );
-    const labelColors = colorScheme ? scale.getColorMap() : {};
     // check refresh frequency is for current session or persist
     const refreshFrequency = shouldPersistRefreshFrequency
       ? currentRefreshFrequency
-      : dashboardInfo.metadata.refresh_frequency; // eslint-disable camelcase
+      : dashboardInfo.metadata?.refresh_frequency; // eslint-disable camelcase
 
     const data = {
-      positions,
+      certified_by: dashboardInfo.certified_by,
+      certification_details: dashboardInfo.certification_details,
       css: customCss,
-      color_namespace: colorNamespace,
-      color_scheme: colorScheme,
-      label_colors: labelColors,
-      expanded_slices: expandedSlices,
       dashboard_title:
         saveType === SAVE_TYPE_NEWDASHBOARD ? newDashName : dashboardTitle,
       duplicate_slices: this.state.duplicateSlices,
-      refresh_frequency: refreshFrequency,
       last_modified_time: lastModifiedTime,
+      owners: dashboardInfo.owners,
+      roles: dashboardInfo.roles,
+      metadata: {
+        ...dashboardInfo?.metadata,
+        positions,
+        refresh_frequency: refreshFrequency,
+      },
     };
 
     if (saveType === SAVE_TYPE_NEWDASHBOARD && !newDashName) {
@@ -182,7 +177,7 @@ class SaveModal extends React.PureComponent<SaveModalProps, SaveModalState> {
         triggerNode={this.props.triggerNode}
         modalTitle={t('Save dashboard')}
         modalBody={
-          <FormGroup>
+          <div>
             <Radio
               value={SAVE_TYPE_OVERWRITE}
               onChange={this.handleSaveTypeChange}
@@ -199,12 +194,12 @@ class SaveModal extends React.PureComponent<SaveModalProps, SaveModalState> {
             >
               {t('Save as:')}
             </Radio>
-            <FormControl
+            <Input
               type="text"
               placeholder={t('[dashboard name]')}
               value={this.state.newDashName}
-              onFocus={this.handleNameChange}
-              onChange={this.handleNameChange}
+              onFocus={e => this.handleNameChange(e.target.value)}
+              onChange={e => this.handleNameChange(e.target.value)}
             />
             <div className="m-l-25 m-t-5">
               <Checkbox
@@ -213,7 +208,7 @@ class SaveModal extends React.PureComponent<SaveModalProps, SaveModalState> {
               />
               <span className="m-l-5">{t('also copy (duplicate) charts')}</span>
             </div>
-          </FormGroup>
+          </div>
         }
         modalFooter={
           <div>

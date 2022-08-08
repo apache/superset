@@ -25,8 +25,8 @@ import numpy as np
 import pandas as pd
 import pyarrow as pa
 
-from superset import db_engine_specs
-from superset.typing import DbapiDescription, DbapiResult
+from superset.db_engine_specs import BaseEngineSpec
+from superset.superset_typing import DbapiDescription, DbapiResult, ResultSetColumnType
 from superset.utils import core as utils
 
 logger = logging.getLogger(__name__)
@@ -72,11 +72,11 @@ def destringify(obj: str) -> Any:
 
 
 class SupersetResultSet:
-    def __init__(  # pylint: disable=too-many-locals,too-many-branches
+    def __init__(  # pylint: disable=too-many-locals
         self,
         data: DbapiResult,
         cursor_description: DbapiDescription,
-        db_engine_spec: Type[db_engine_specs.BaseEngineSpec],
+        db_engine_spec: Type[BaseEngineSpec],
     ):
         self.db_engine_spec = db_engine_spec
         data = data or []
@@ -174,16 +174,20 @@ class SupersetResultSet:
 
     @staticmethod
     def convert_table_to_df(table: pa.Table) -> pd.DataFrame:
-        return table.to_pandas(integer_object_nulls=True)
+        try:
+            return table.to_pandas(integer_object_nulls=True)
+        except pa.lib.ArrowInvalid:
+            return table.to_pandas(integer_object_nulls=True, timestamp_as_object=True)
 
     @staticmethod
     def first_nonempty(items: List[Any]) -> Any:
         return next((i for i in items if i), None)
 
     def is_temporal(self, db_type_str: Optional[str]) -> bool:
-        return self.db_engine_spec.is_db_column_type_match(
-            db_type_str, utils.GenericDataType.TEMPORAL
-        )
+        column_spec = self.db_engine_spec.get_column_spec(db_type_str)
+        if column_spec is None:
+            return False
+        return column_spec.is_dttm
 
     def data_type(self, col_name: str, pa_dtype: pa.DataType) -> Optional[str]:
         """Given a pyarrow data type, Returns a generic database type"""
@@ -209,17 +213,17 @@ class SupersetResultSet:
         return self.table.num_rows
 
     @property
-    def columns(self) -> List[Dict[str, Any]]:
+    def columns(self) -> List[ResultSetColumnType]:
         if not self.table.column_names:
             return []
 
         columns = []
         for col in self.table.schema:
             db_type_str = self.data_type(col.name, col.type)
-            column = {
+            column: ResultSetColumnType = {
                 "name": col.name,
                 "type": db_type_str,
-                "is_date": self.is_temporal(db_type_str),
+                "is_dttm": self.is_temporal(db_type_str),
             }
             columns.append(column)
 

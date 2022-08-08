@@ -41,7 +41,8 @@ export function getControlsState(state, inputFormData) {
    * */
   // Getting a list of active control names for the current viz
   const formData = { ...inputFormData };
-  const vizType = formData.viz_type || 'table';
+  const vizType =
+    formData.viz_type || state.common.conf.DEFAULT_VIZ_TYPE || 'table';
 
   handleDeprecatedControls(formData);
 
