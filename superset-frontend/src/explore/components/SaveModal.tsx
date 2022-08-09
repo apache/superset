@@ -248,15 +248,7 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
               onChange={() => this.changeAction('overwrite')}
               data-test="save-overwrite-radio"
             >
-              {t('Save (Overwrite)')}
-            </Radio>
-            <Radio
-              id="saveas-radio"
-              data-test="saveas-radio"
-              checked={this.state.action === 'saveas'}
-              onChange={() => this.changeAction('saveas')}
-            >
-              {t('Save as...')}
+              {t('Save')}
             </Radio>
           </FormItem>
           <hr />

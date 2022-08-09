@@ -104,18 +104,7 @@ const BuilderComponentPane: React.FC<BCPProps> = ({
                     className="tabs-components"
                     data-test="dashboard-builder-component-pane-tabs-navigation"
                   >
-                    <Tabs.TabPane
-                      key={1}
-                      tab={t('Charts')}
-                      className="tab-charts"
-                    >
-                      <SliceAdder
-                        height={
-                          height + (isSticky ? SUPERSET_HEADER_HEIGHT : 0)
-                        }
-                      />
-                    </Tabs.TabPane>
-                    <Tabs.TabPane key={2} tab={t('Layout elements')}>
+                    <Tabs.TabPane key={1} tab={t('Components')}>
                       <NewTabs />
                       <NewRow />
                       <NewColumn />
@@ -133,6 +122,17 @@ const BuilderComponentPane: React.FC<BCPProps> = ({
                             componentKey={componentKey}
                           />
                         ))}
+                    </Tabs.TabPane>
+                    <Tabs.TabPane
+                      key={2}
+                      tab={t('Charts')}
+                      className="tab-charts"
+                    >
+                      <SliceAdder
+                        height={
+                          height + (isSticky ? SUPERSET_HEADER_HEIGHT : 0)
+                        }
+                      />
                     </Tabs.TabPane>
                   </BuilderComponentPaneTabs>
                 </div>

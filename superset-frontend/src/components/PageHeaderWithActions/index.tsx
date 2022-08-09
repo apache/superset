@@ -17,16 +17,14 @@
  * under the License.
  */
 import React, { ReactNode, ReactElement } from 'react';
-import { css, SupersetTheme, t, useTheme } from '@superset-ui/core';
-import { AntdDropdown, AntdDropdownProps } from 'src/components';
+import { css, SupersetTheme } from '@superset-ui/core';
+import { AntdDropdownProps } from 'src/components';
 import {
   DynamicEditableTitle,
   DynamicEditableTitleProps,
 } from '../DynamicEditableTitle';
 import CertifiedBadge, { CertifiedBadgeProps } from '../CertifiedBadge';
 import FaveStar, { FaveStarProps } from '../FaveStar';
-import Icons from '../Icons';
-import Button from '../Button';
 
 export const menuTriggerStyles = (theme: SupersetTheme) => css`
   width: ${theme.gridUnit * 8}px;
@@ -46,7 +44,7 @@ export const menuTriggerStyles = (theme: SupersetTheme) => css`
 
 const headerStyles = (theme: SupersetTheme) => css`
   display: flex;
-  flex-direction: row;
+  flex-direction: row-reverse;
   align-items: center;
   flex-wrap: nowrap;
   justify-content: space-between;
@@ -72,7 +70,7 @@ const headerStyles = (theme: SupersetTheme) => css`
   }
 
   .title-panel {
-    display: flex;
+    display: none;
     align-items: center;
     min-width: 0;
     margin-right: ${theme.gridUnit * 12}px;
@@ -98,9 +96,9 @@ const buttonsStyles = (theme: SupersetTheme) => css`
   }
 `;
 
-const additionalActionsContainerStyles = (theme: SupersetTheme) => css`
-  margin-left: ${theme.gridUnit * 2}px;
-`;
+// const additionalActionsContainerStyles = (theme: SupersetTheme) => css`
+//   margin-left: ${theme.gridUnit * 2}px;
+// `;
 
 export type PageHeaderWithActionsProps = {
   editableTitleProps: DynamicEditableTitleProps;
@@ -124,43 +122,20 @@ export const PageHeaderWithActions = ({
   rightPanelAdditionalItems,
   additionalActionsMenu,
   menuDropdownProps,
-}: PageHeaderWithActionsProps) => {
-  const theme = useTheme();
-  return (
-    <div css={headerStyles} className="header-with-actions">
-      <div className="title-panel">
-        <DynamicEditableTitle {...editableTitleProps} />
-        {showTitlePanelItems && (
-          <div css={buttonsStyles}>
-            {certificatiedBadgeProps?.certifiedBy && (
-              <CertifiedBadge {...certificatiedBadgeProps} />
-            )}
-            {showFaveStar && <FaveStar {...faveStarProps} />}
-            {titlePanelAdditionalItems}
-          </div>
-        )}
-      </div>
-      <div className="right-button-panel">
-        {rightPanelAdditionalItems}
-        <div css={additionalActionsContainerStyles}>
-          <AntdDropdown
-            trigger={['click']}
-            overlay={additionalActionsMenu}
-            {...menuDropdownProps}
-          >
-            <Button
-              css={menuTriggerStyles}
-              buttonStyle="tertiary"
-              aria-label={t('Menu actions trigger')}
-            >
-              <Icons.MoreHoriz
-                iconColor={theme.colors.primary.dark2}
-                iconSize="l"
-              />
-            </Button>
-          </AntdDropdown>
+}: PageHeaderWithActionsProps) => (
+  <div css={headerStyles} className="header-with-actions">
+    <div className="title-panel">
+      <DynamicEditableTitle {...editableTitleProps} />
+      {showTitlePanelItems && (
+        <div css={buttonsStyles}>
+          {certificatiedBadgeProps?.certifiedBy && (
+            <CertifiedBadge {...certificatiedBadgeProps} />
+          )}
+          {showFaveStar && <FaveStar {...faveStarProps} />}
+          {titlePanelAdditionalItems}
         </div>
-      </div>
+      )}
     </div>
-  );
-};
+    <div className="right-button-panel">{rightPanelAdditionalItems}</div>
+  </div>
+);

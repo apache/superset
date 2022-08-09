@@ -233,7 +233,7 @@ function ExploreViewContainer(props) {
   );
 
   const [showingModal, setShowingModal] = useState(false);
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(true);
   const [shouldForceUpdate, setShouldForceUpdate] = useState(-1);
   const tabId = useTabId();
 
@@ -603,7 +603,7 @@ function ExploreViewContainer(props) {
           }
         >
           <div className="title-container">
-            <span className="horizontal-text">{t('Dataset')}</span>
+            <span className="horizontal-text">{t('Metrics & Columns')}</span>
             <span
               role="button"
               tabIndex={0}

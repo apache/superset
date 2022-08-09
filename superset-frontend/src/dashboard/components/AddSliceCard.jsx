@@ -104,8 +104,8 @@ const Styled = styled.div`
 `;
 
 function AddSliceCard({
-  datasourceUrl,
-  datasourceName,
+  // datasourceUrl,
+  // datasourceName,
   innerRef,
   isSelected,
   lastModified,
@@ -131,10 +131,10 @@ function AddSliceCard({
             <span>{t('Visualization')} </span>
             <span>{visType}</span>
           </div>
-          <div className="item">
+          {/* <div className="item">
             <span>{t('Data source')} </span>
             <a href={datasourceUrl}>{datasourceName}</a>
-          </div>
+          </div> */}
         </div>
       </div>
       {isSelected && <div className="is-added-label">{t('Added')}</div>}

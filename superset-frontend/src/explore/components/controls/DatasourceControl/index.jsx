@@ -63,7 +63,7 @@ const defaultProps = {
 
 const Styles = styled.div`
   .data-container {
-    display: flex;
+    display: none;
     justify-content: space-between;
     align-items: center;
     border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
