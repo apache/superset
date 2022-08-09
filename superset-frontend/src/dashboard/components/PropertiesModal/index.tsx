@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Input } from 'src/components/Input';
 import { FormItem } from 'src/components/Form';
 import jsonStringify from 'json-stringify-pretty-compact';
@@ -105,9 +105,18 @@ const PropertiesModal = ({
   const [roles, setRoles] = useState<Roles>([]);
   const saveLabel = onlyApply ? t('Apply') : t('Save');
   const [tags, setTags] = useState<TagType[]>([]);
-  const [newTags, setNewTags] = useState<TagType[]>([]);
-  const [oldTags, setOldTags] = useState<TagType[]>([]);
   const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
+
+  const tagsAsSelectValues = useMemo(() => {
+    const selectTags = tags.map((tag) => {
+      return {
+        value:tag.name,
+        label:tag.name
+      }
+    });
+    return selectTags;
+  }, [tags.length])
+
 
   const handleErrorResponse = async (response: Response) => {
     const { error, statusText, message } = await getClientErrorObject(response);
@@ -349,29 +358,21 @@ const PropertiesModal = ({
 
     if (isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM)) {
       // update tags
-      newTags.map((tag: TagType) =>
-        addTag(
+      try {
+        fetchTags(
           {
             objectType: OBJECT_TYPES.DASHBOARD,
             objectId: dashboardId,
             includeTypes: false,
           },
-          tag.name,
-          () => {},
-          () => {},
-        ),
-      );
-      oldTags.map((tag: TagType) =>
-        deleteTag(
-          {
-            objectType: OBJECT_TYPES.DASHBOARD,
-            objectId: dashboardId,
+          (currentTags: TagType[]) => updateTags(currentTags, tags),
+          () => {
+            /* TODO: handle error */
           },
-          tag,
-          () => {},
-          () => {},
-        ),
-      );
+        );
+      } catch (error: any) {
+        console.log(error);
+      }
     }
 
     const moreOnSubmitProps: { roles?: Roles } = {};
@@ -575,24 +576,47 @@ const PropertiesModal = ({
     }
   }, [dashboardId]);
 
-  const handleAddTag = (values: { label: string; value: number }[]) => {
-    values.map((value: { label: string; value: number }) => {
-      const tag = { name: value.label };
-      if (tags.some(t => t.name === tag.name)) {
-        return;
+  const updateTags = (oldTags: TagType[], newTags: TagType[]) => {
+    // update the tags for this object
+    // add tags that are in new tags, but not in old tags
+    newTags.map((tag: TagType) => {
+      if (!oldTags.some(t => t.name === tag.name)) {
+        addTag(
+          {
+            objectType: OBJECT_TYPES.DASHBOARD,
+            objectId: dashboardId,
+            includeTypes: false,
+          },
+          tag.name,
+          () => {},
+          () => {},
+        );
       }
-      setTags([...tags, tag]);
-      setNewTags([...newTags, tag]);
     });
-  };
+    // delete tags that are in old tags, but not in new tags
+    oldTags.map((tag: TagType) => {
+      if (!newTags.some(t => t.name === tag.name)) {
+        deleteTag(
+          {
+            objectType: OBJECT_TYPES.DASHBOARD,
+            objectId: dashboardId,
+          },
+          tag,
+          () => {},
+          () => {},
+        )
+      }
+    });
+  }
 
-  const handleDeleteTag = (tagIndex: number) => {
-    setOldTags([...oldTags, tags[tagIndex]]);
-    setTags([
-      ...tags.slice(0, tagIndex),
-      ...tags.slice(tagIndex + 1, tags.length),
-    ]);
-  };
+  const handleChangeTags = (values: { label: string; value: number }[]) => {
+    // triggered whenever a new tag is selected or a tag was deselected
+    // on new tag selected, add the tag
+    
+    const uniqueTags = [...new Set(values.map((v => v.label)))];
+    setTags([...uniqueTags.map(t => ({name: t}))])
+    return;
+  }
 
   return (
     <Modal
@@ -704,23 +728,15 @@ const PropertiesModal = ({
                   ariaLabel="Tags"
                   mode="multiple"
                   allowNewOptions
-                  value={[]}
+                  value={tagsAsSelectValues}
                   options={loadTags}
-                  onChange={handleAddTag}
+                  onChange={handleChangeTags}
                   allowClear
                 />
               </StyledFormItem>
               <p className="help-block">
                 {t('A list of tags that have been applied to this chart.')}
               </p>
-            </Col>
-            <Col xs={24} md={12}>
-              <TagsList
-                tags={tags}
-                editable
-                onDelete={handleDeleteTag}
-                maxTags={undefined}
-              />
             </Col>
           </Row>
         ) : null}
