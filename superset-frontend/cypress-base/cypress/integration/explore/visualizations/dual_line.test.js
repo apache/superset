@@ -66,4 +66,18 @@ describe('Visualization > Dual Line', () => {
     });
     cy.get('.chart-container svg path.nv-line').should('have.length', 2);
   });
+
+  it('should allow type to search color schemes and apply the scheme', () => {
+    cy.get('#controlSections-tab-display').click();
+    cy.get('.Control[data-test="color_scheme"]').scrollIntoView();
+    cy.get('.Control[data-test="color_scheme"] input[type="search"]')
+      .focus()
+      .type('supersetColors{enter}');
+    cy.get(
+      '.Control[data-test="color_scheme"] .ant-select-selection-item ul[data-test="supersetColors"]',
+    ).should('exist');
+    cy.get('.dual_line .nv-legend .nv-legend-symbol')
+      .first()
+      .should('have.css', 'fill', 'rgb(31, 168, 201)');
+  });
 });
