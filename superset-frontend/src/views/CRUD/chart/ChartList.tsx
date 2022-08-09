@@ -64,6 +64,8 @@ import setupPlugins from 'src/setup/setupPlugins';
 import InfoTooltip from 'src/components/InfoTooltip';
 import CertifiedBadge from 'src/components/CertifiedBadge';
 import ChartCard from './ChartCard';
+import { OBJECT_TYPES } from 'src/tags';
+import { loadTags } from 'src/components/ObjectTags';
 
 const FlexRowContainer = styled.div`
   align-items: center;
@@ -602,8 +604,10 @@ function ChartList(props: ChartListProps) {
       filters_list.push({
         Header: t('Tags'),
         id: 'tags',
-        input: 'search',
+        input: 'select',
         operator: FilterOperator.chartTags,
+        unfilteredLabel: t('All'),
+        fetchSelects: loadTags
       });
     }
     filters_list.push({

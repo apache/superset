@@ -30,8 +30,8 @@ export type TagsListProps = {
    * Only applies when editable is true
    * Callback for when a tag is deleted
    */
-  onDelete: ((index: number) => void) | undefined;
-  maxTags: number | undefined;
+  onDelete?: ((index: number) => void) | undefined;
+  maxTags?: number | undefined;
 };
 
 const TagsDiv = styled.div`

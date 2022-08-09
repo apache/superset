@@ -53,6 +53,7 @@ import Dashboard from 'src/dashboard/containers/Dashboard';
 import CertifiedBadge from 'src/components/CertifiedBadge';
 import DashboardCard from './DashboardCard';
 import { DashboardStatus } from './types';
+import { loadTags } from 'src/components/ObjectTags';
 
 const PAGE_SIZE = 25;
 const PASSWORDS_NEEDED_MESSAGE = t(
@@ -551,8 +552,10 @@ function DashboardList(props: DashboardListProps) {
       filters_list.push({
         Header: t('Tags'),
         id: 'tags',
-        input: 'search',
-        operator: FilterOperator.dashboardTags,
+        input: 'select',
+        operator: FilterOperator.chartTags,
+        unfilteredLabel: t('All'),
+        fetchSelects: loadTags
       });
     }
     filters_list.push({
