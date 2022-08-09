@@ -94,3 +94,10 @@ export interface EchartsTimeseriesChartProps
 
 export type TimeseriesChartTransformedProps =
   EChartTransformedProps<EchartsTimeseriesFormData>;
+
+export enum AxisType {
+  category = 'category',
+  value = 'value',
+  time = 'time',
+  log = 'log',
+}

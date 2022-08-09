@@ -41,7 +41,7 @@ import handleResourceExport from 'src/utils/export';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import SubMenu, { SubMenuProps } from 'src/views/components/SubMenu';
 import FaveStar from 'src/components/FaveStar';
-import { Link } from 'react-router-dom';
+import { Link, useHistory } from 'react-router-dom';
 import ListView, {
   Filter,
   FilterOperator,
@@ -61,6 +61,7 @@ import { nativeFilterGate } from 'src/dashboard/components/nativeFilters/utils';
 import setupPlugins from 'src/setup/setupPlugins';
 import InfoTooltip from 'src/components/InfoTooltip';
 import CertifiedBadge from 'src/components/CertifiedBadge';
+import { GenericLink } from 'src/components/GenericLink/GenericLink';
 import ChartCard from './ChartCard';
 
 const FlexRowContainer = styled.div`
@@ -152,6 +153,8 @@ function ChartList(props: ChartListProps) {
     addSuccessToast,
     user: { userId },
   } = props;
+
+  const history = useHistory();
 
   const {
     state: {
@@ -308,7 +311,7 @@ function ChartList(props: ChartListProps) {
               datasource_url: dsUrl,
             },
           },
-        }: any) => <a href={dsUrl}>{dsNameTxt}</a>,
+        }: any) => <GenericLink to={dsUrl}>{dsNameTxt}</GenericLink>,
         Header: t('Dataset'),
         accessor: 'datasource_id',
         disableSortBy: true,
@@ -653,7 +656,7 @@ function ChartList(props: ChartListProps) {
       ),
       buttonStyle: 'primary',
       onClick: () => {
-        window.location.assign('/chart/add');
+        history.push('/chart/add');
       },
     });
 

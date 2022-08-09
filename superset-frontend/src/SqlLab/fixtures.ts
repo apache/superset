@@ -20,6 +20,7 @@ import sinon from 'sinon';
 import * as actions from 'src/SqlLab/actions/sqlLab';
 import { ColumnKeyTypeType } from 'src/SqlLab/components/ColumnElement';
 import { DatasourceType, QueryResponse, QueryState } from '@superset-ui/core';
+import { ISaveableDatasource } from 'src/SqlLab/components/SaveDatasetModal';
 
 export const mockedActions = sinon.stub({ ...actions });
 
@@ -181,12 +182,12 @@ export const defaultQueryEditor = {
   latestQueryId: null,
   selectedText: null,
   sql: 'SELECT *\nFROM\nWHERE',
-  title: 'Untitled Query 1',
+  name: 'Untitled Query 1',
   schemaOptions: [
     {
       value: 'main',
       label: 'main',
-      title: 'main',
+      name: 'main',
     },
   ],
 };
@@ -670,3 +671,40 @@ export const query = {
   ctas: false,
   cached: false,
 };
+
+export const testQuery: ISaveableDatasource = {
+  name: 'unimportant',
+  dbId: 1,
+  sql: 'SELECT *',
+  columns: [
+    {
+      name: 'Column 1',
+      type: DatasourceType.Query,
+      is_dttm: false,
+    },
+    {
+      name: 'Column 3',
+      type: DatasourceType.Query,
+      is_dttm: false,
+    },
+    {
+      name: 'Column 2',
+      type: DatasourceType.Query,
+      is_dttm: true,
+    },
+  ],
+};
+
+export const mockdatasets = [...new Array(3)].map((_, i) => ({
+  changed_by_name: 'user',
+  kind: i === 0 ? 'virtual' : 'physical', // ensure there is 1 virtual
+  changed_by_url: 'changed_by_url',
+  changed_by: 'user',
+  changed_on: new Date().toISOString(),
+  database_name: `db ${i}`,
+  explore_url: `/explore/?dataset_type=table&dataset_id=${i}`,
+  id: i,
+  schema: `schema ${i}`,
+  table_name: `coolest table ${i}`,
+  owners: [{ username: 'admin', userId: 1 }],
+}));

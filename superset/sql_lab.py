@@ -96,8 +96,13 @@ def handle_query_error(
     msg = f"{prefix_message} {str(ex)}".strip()
     troubleshooting_link = config["TROUBLESHOOTING_LINK"]
     query.error_message = msg
-    query.status = QueryStatus.FAILED
     query.tmp_table_name = None
+    query.status = QueryStatus.FAILED
+    # TODO: re-enable this after updating the frontend to properly display timeout status
+    # if query.status != QueryStatus.TIMED_OUT:
+    #   query.status = QueryStatus.FAILED
+    if not query.end_time:
+        query.end_time = now_as_float()
 
     # extract DB-specific errors (invalid column, eg)
     if isinstance(ex, SupersetErrorException):
@@ -286,6 +291,8 @@ def execute_sql_statement(  # pylint: disable=too-many-arguments,too-many-statem
                 # return 1 row less than increased_query
                 data = data[:-1]
     except SoftTimeLimitExceeded as ex:
+        query.status = QueryStatus.TIMED_OUT
+
         logger.warning("Query %d: Time limit exceeded", query.id)
         logger.debug("Query %d: %s", query.id, ex)
         raise SupersetErrorException(
@@ -517,6 +524,7 @@ def execute_sql_statements(  # pylint: disable=too-many-arguments, too-many-loca
     query.rows = result_set.size
     query.progress = 100
     query.set_extra_json_key("progress", None)
+    query.set_extra_json_key("columns", result_set.columns)
     if query.select_as_cta:
         query.select_sql = database.select_star(
             query.tmp_table_name,

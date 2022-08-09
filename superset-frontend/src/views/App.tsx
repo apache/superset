@@ -35,6 +35,7 @@ import setupPlugins from 'src/setup/setupPlugins';
 import { routes, isFrontendRoute } from 'src/views/routes';
 import { Logger } from 'src/logger/LogUtils';
 import { RootContextProviders } from './RootContextProviders';
+import { ScrollToTop } from './ScrollToTop';
 
 setupApp();
 setupPlugins();
@@ -60,6 +61,7 @@ const LocationPathnameLogger = () => {
 
 const App = () => (
   <Router>
+    <ScrollToTop />
     <LocationPathnameLogger />
     <RootContextProviders>
       <GlobalStyles />

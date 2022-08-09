@@ -26,7 +26,11 @@ import {
 import { getChartKey } from 'src/explore/exploreUtils';
 import { getControlsState } from 'src/explore/store';
 import { Dispatch } from 'redux';
-import { ensureIsArray } from '@superset-ui/core';
+import {
+  ensureIsArray,
+  getCategoricalSchemeRegistry,
+  getSequentialSchemeRegistry,
+} from '@superset-ui/core';
 import {
   getFormDataFromControls,
   applyMapStateToPropsToControl,
@@ -36,11 +40,17 @@ import { getUrlParam } from 'src/utils/urlUtils';
 import { URL_PARAMS } from 'src/constants';
 import { findPermission } from 'src/utils/findPermission';
 
+enum ColorSchemeType {
+  CATEGORICAL = 'CATEGORICAL',
+  SEQUENTIAL = 'SEQUENTIAL',
+}
+
 export const HYDRATE_EXPLORE = 'HYDRATE_EXPLORE';
 export const hydrateExplore =
   ({ form_data, slice, dataset }: ExplorePageInitialData) =>
   (dispatch: Dispatch, getState: () => ExplorePageState) => {
-    const { user, datasources, charts, sliceEntities, common } = getState();
+    const { user, datasources, charts, sliceEntities, common, explore } =
+      getState();
 
     const sliceId = getUrlParam(URL_PARAMS.sliceId);
     const dashboardId = getUrlParam(URL_PARAMS.dashboardId);
@@ -55,8 +65,7 @@ export const hydrateExplore =
     if (dashboardId) {
       initialFormData.dashboardId = dashboardId;
     }
-    const initialDatasource =
-      datasources?.[initialFormData.datasource] ?? dataset;
+    const initialDatasource = dataset;
 
     const initialExploreState = {
       form_data: initialFormData,
@@ -67,6 +76,31 @@ export const hydrateExplore =
       initialExploreState,
       initialFormData,
     ) as ControlStateMapping;
+    const colorSchemeKey = initialControls.color_scheme && 'color_scheme';
+    const linearColorSchemeKey =
+      initialControls.linear_color_scheme && 'linear_color_scheme';
+    // if the selected color scheme does not exist anymore
+    // fallbacks and selects the available default one
+    const verifyColorScheme = (type: ColorSchemeType) => {
+      const schemes =
+        type === 'CATEGORICAL'
+          ? getCategoricalSchemeRegistry()
+          : getSequentialSchemeRegistry();
+      const key =
+        type === 'CATEGORICAL' ? colorSchemeKey : linearColorSchemeKey;
+      const registryDefaultScheme = schemes.defaultKey;
+      const defaultScheme =
+        type === 'CATEGORICAL' ? 'supersetColors' : 'superset_seq_1';
+      const currentScheme = initialFormData[key];
+      const colorSchemeExists = !!schemes.get(currentScheme, true);
+
+      if (currentScheme && !colorSchemeExists) {
+        initialControls[key].value = registryDefaultScheme || defaultScheme;
+      }
+    };
+
+    if (colorSchemeKey) verifyColorScheme(ColorSchemeType.CATEGORICAL);
+    if (linearColorSchemeKey) verifyColorScheme(ColorSchemeType.SEQUENTIAL);
 
     const exploreState = {
       // note this will add `form_data` to state,
@@ -86,9 +120,10 @@ export const hydrateExplore =
       controls: initialControls,
       form_data: initialFormData,
       slice: initialSlice,
-      controlsTransferred: [],
+      controlsTransferred: explore.controlsTransferred,
       standalone: getUrlParam(URL_PARAMS.standalone),
       force: getUrlParam(URL_PARAMS.force),
+      sliceDashboards: initialFormData.dashboards,
     };
 
     // apply initial mapStateToProps for all controls, must execute AFTER

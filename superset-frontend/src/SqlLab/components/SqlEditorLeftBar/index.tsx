@@ -167,7 +167,7 @@ export default function SqlEditorLeftBar({
       actions.addTable(queryEditor, database, tableName, schemaName),
     );
 
-    currentTables.forEach(table => actions.removeTable(table));
+    actions.removeTables(currentTables);
   };
 
   const onToggleTable = (updatedTables: string[]) => {

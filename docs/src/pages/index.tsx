@@ -249,6 +249,15 @@ const CarouselSection = styled('div')`
   }
 `;
 
+const StyledCredits = styled.div`
+  width: 100%;
+  height: 60px;
+  padding: 18px;
+  background-color: #282E4A;
+  text-align: center;
+  color: #FFFFFF;
+`;
+
 const StyledDatabaseImg = styled.img`
   width: ${(props) => props.width};
   height: ${(props) => props.height};
@@ -461,8 +470,13 @@ export default function Home(): JSX.Element {
               </span>
             </StyledIntegrations>
         </CarouselSection>
-
       </StyledMain>
+      <StyledCredits>
+        We use{' '}
+        <a href="https://applitools.com/" target="_blank" rel="nofollow">
+          <img src="img/applitools.png" title="Applitools" />
+        </a>
+      </StyledCredits>
     </Layout>
   );
 }

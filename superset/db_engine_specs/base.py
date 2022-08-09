@@ -61,7 +61,6 @@ from typing_extensions import TypedDict
 from superset import security_manager, sql_parse
 from superset.databases.utils import make_url_safe
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.models.sql_lab import Query
 from superset.sql_parse import ParsedQuery, Table
 from superset.superset_typing import ResultSetColumnType
 from superset.utils import core as utils
@@ -73,6 +72,7 @@ if TYPE_CHECKING:
     # prevent circular imports
     from superset.connectors.sqla.models import TableColumn
     from superset.models.core import Database
+    from superset.models.sql_lab import Query
 
 ColumnTypeMapping = Tuple[
     Pattern[str],
@@ -117,7 +117,9 @@ builtin_time_grains: Dict[Optional[str], str] = {
 }
 
 
-class TimestampExpression(ColumnClause):  # pylint: disable=abstract-method
+class TimestampExpression(
+    ColumnClause
+):  # pylint: disable=abstract-method, too-many-ancestors
     def __init__(self, expr: str, col: ColumnClause, **kwargs: Any) -> None:
         """Sqlalchemy class that can be can be used to render native column elements
         respeting engine-specific quoting rules as part of a string-based expression.
@@ -150,6 +152,21 @@ class LimitMethod:  # pylint: disable=too-few-public-methods
     FETCH_MANY = "fetch_many"
     WRAP_SQL = "wrap_sql"
     FORCE_LIMIT = "force_limit"
+
+
+class MetricType(TypedDict, total=False):
+    """
+    Type for metrics return by `get_metrics`.
+    """
+
+    metric_name: str
+    expression: str
+    verbose_name: Optional[str]
+    metric_type: Optional[str]
+    description: Optional[str]
+    d3format: Optional[str]
+    warning_text: Optional[str]
+    extra: Optional[str]
 
 
 class BaseEngineSpec:  # pylint: disable=too-many-public-methods
@@ -885,7 +902,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return all_datasources
 
     @classmethod
-    def handle_cursor(cls, cursor: Any, query: Query, session: Session) -> None:
+    def handle_cursor(cls, cursor: Any, query: "Query", session: Session) -> None:
         """Handle a live cursor between the execute and fetchall calls
 
         The flow works without this method doing anything, but it allows
@@ -933,9 +950,13 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         ]
 
     @classmethod
-    def adjust_database_uri(cls, uri: URL, selected_schema: Optional[str]) -> None:
+    def adjust_database_uri(  # pylint: disable=unused-argument
+        cls,
+        uri: URL,
+        selected_schema: Optional[str],
+    ) -> URL:
         """
-        Mutate the database component of the SQLAlchemy URI.
+        Return a modified URL with a new database component.
 
         The URI here represents the URI as entered when saving the database,
         ``selected_schema`` is the schema currently active presumably in
@@ -949,9 +970,10 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         For those it's probably better to not alter the database
         component of the URI with the schema name, it won't work.
 
-        Some database drivers like presto accept '{catalog}/{schema}' in
+        Some database drivers like Presto accept '{catalog}/{schema}' in
         the database component of the URL, that can be handled here.
         """
+        return uri
 
     @classmethod
     def patch(cls) -> None:
@@ -1046,6 +1068,26 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :return: All columns in table
         """
         return inspector.get_columns(table_name, schema)
+
+    @classmethod
+    def get_metrics(  # pylint: disable=unused-argument
+        cls,
+        database: "Database",
+        inspector: Inspector,
+        table_name: str,
+        schema: Optional[str],
+    ) -> List[MetricType]:
+        """
+        Get all metrics from a given schema and table.
+        """
+        return [
+            {
+                "metric_name": "count",
+                "verbose_name": "COUNT(*)",
+                "metric_type": "count",
+                "expression": "COUNT(*)",
+            }
+        ]
 
     @classmethod
     def where_latest_partition(  # pylint: disable=too-many-arguments,unused-argument
@@ -1206,17 +1248,20 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return costs
 
     @classmethod
-    def modify_url_for_impersonation(
+    def get_url_for_impersonation(
         cls, url: URL, impersonate_user: bool, username: Optional[str]
-    ) -> None:
+    ) -> URL:
         """
-        Modify the SQL Alchemy URL object with the user to impersonate if applicable.
+        Return a modified URL with the username set.
+
         :param url: SQLAlchemy URL object
         :param impersonate_user: Flag indicating if impersonation is enabled
         :param username: Effective username
         """
         if impersonate_user and username is not None:
-            url.username = username
+            url = url.set(username=username)
+
+        return url
 
     @classmethod
     def update_impersonation_config(
@@ -1501,7 +1546,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     def get_cancel_query_id(  # pylint: disable=unused-argument
         cls,
         cursor: Any,
-        query: Query,
+        query: "Query",
     ) -> Optional[str]:
         """
         Select identifiers from the database engine that uniquely identifies the
@@ -1519,7 +1564,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     def cancel_query(  # pylint: disable=unused-argument
         cls,
         cursor: Any,
-        query: Query,
+        query: "Query",
         cancel_query_id: str,
     ) -> bool:
         """

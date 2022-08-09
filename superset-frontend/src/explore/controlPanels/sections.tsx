@@ -22,8 +22,6 @@ import { ControlPanelSectionConfig } from '@superset-ui/chart-controls';
 import { formatSelectOptions } from 'src/explore/exploreUtils';
 
 export const datasourceAndVizType: ControlPanelSectionConfig = {
-  label: t('Visualization type'),
-  expanded: true,
   controlSetRows: [
     ['datasource'],
     ['viz_type'],

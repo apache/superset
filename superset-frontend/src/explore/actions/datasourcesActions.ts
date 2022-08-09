@@ -17,8 +17,12 @@
  * under the License.
  */
 
-import { Dispatch } from 'redux';
+import { Dispatch, AnyAction } from 'redux';
+import { ThunkDispatch } from 'redux-thunk';
 import { Dataset } from '@superset-ui/chart-controls';
+import { SupersetClient } from '@superset-ui/core';
+import { addDangerToast } from 'src/components/MessageToasts/actions';
+import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { updateFormDataByDatasource } from './exploreActions';
 import { ExplorePageState } from '../types';
 
@@ -29,6 +33,45 @@ export interface SetDatasource {
 }
 export function setDatasource(datasource: Dataset) {
   return { type: SET_DATASOURCE, datasource };
+}
+
+export function saveDataset({
+  schema,
+  sql,
+  database,
+  templateParams,
+  datasourceName,
+  columns,
+}: Omit<SqlLabPostRequest['data'], 'dbId'> & { database: { id: number } }) {
+  return async function (dispatch: ThunkDispatch<any, undefined, AnyAction>) {
+    // Create a dataset object
+    try {
+      const {
+        json: { data },
+      } = await SupersetClient.post({
+        endpoint: '/superset/sqllab_viz/',
+        postPayload: {
+          data: {
+            schema,
+            sql,
+            dbId: database?.id,
+            templateParams,
+            datasourceName,
+            metrics: [],
+            columns,
+          },
+        },
+      });
+      // Update form_data to point to new dataset
+      dispatch(changeDatasource(data));
+      return data;
+    } catch (error) {
+      getClientErrorObject(error).then(e => {
+        dispatch(addDangerToast(e.error));
+      });
+      throw error;
+    }
+  };
 }
 
 export function changeDatasource(newDatasource: Dataset) {
@@ -44,6 +87,7 @@ export function changeDatasource(newDatasource: Dataset) {
 export const datasourcesActions = {
   setDatasource,
   changeDatasource,
+  saveDataset,
 };
 
 export type AnyDatasourcesAction = SetDatasource;

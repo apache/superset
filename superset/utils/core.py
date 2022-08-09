@@ -608,8 +608,9 @@ def json_int_dttm_ser(obj: Any) -> float:
     return obj
 
 
-def json_dumps_w_dates(payload: Dict[Any, Any]) -> str:
-    return json.dumps(payload, default=json_int_dttm_ser)
+def json_dumps_w_dates(payload: Dict[Any, Any], sort_keys: bool = False) -> str:
+    """Dumps payload to JSON with Datetime objects properly converted"""
+    return json.dumps(payload, default=json_int_dttm_ser, sort_keys=sort_keys)
 
 
 def error_msg_from_exception(ex: Exception) -> str:
@@ -1293,7 +1294,7 @@ def get_metric_name(
             sql_expression = metric.get("sqlExpression")
             if sql_expression:
                 return sql_expression
-        elif expression_type == "SIMPLE":
+        if expression_type == "SIMPLE":
             column: AdhocMetricColumn = metric.get("column") or {}
             column_name = column.get("column_name")
             aggregate = metric.get("aggregate")
@@ -1301,10 +1302,12 @@ def get_metric_name(
                 return f"{aggregate}({column_name})"
             if column_name:
                 return column_name
-        raise ValueError(__("Invalid metric object"))
 
-    verbose_map = verbose_map or {}
-    return verbose_map.get(metric, metric)  # type: ignore
+    if isinstance(metric, str):
+        verbose_map = verbose_map or {}
+        return verbose_map.get(metric, metric)
+
+    raise ValueError(__("Invalid metric object: %(metric)s", metric=str(metric)))
 
 
 def get_column_names(
@@ -1673,21 +1676,31 @@ def extract_dataframe_dtypes(
         "date": GenericDataType.TEMPORAL,
     }
 
-    columns_by_name = (
-        {column.column_name: column for column in datasource.columns}
-        if datasource
-        else {}
-    )
+    columns_by_name: Dict[str, Any] = {}
+    if datasource:
+        for column in datasource.columns:
+            if isinstance(column, dict):
+                columns_by_name[column.get("column_name")] = column
+            else:
+                columns_by_name[column.column_name] = column
+
     generic_types: List[GenericDataType] = []
     for column in df.columns:
         column_object = columns_by_name.get(column)
         series = df[column]
         inferred_type = infer_dtype(series)
-        generic_type = (
-            GenericDataType.TEMPORAL
-            if column_object and column_object.is_dttm
-            else inferred_type_map.get(inferred_type, GenericDataType.STRING)
-        )
+        if isinstance(column_object, dict):
+            generic_type = (
+                GenericDataType.TEMPORAL
+                if column_object and column_object.get("is_dttm")
+                else inferred_type_map.get(inferred_type, GenericDataType.STRING)
+            )
+        else:
+            generic_type = (
+                GenericDataType.TEMPORAL
+                if column_object and column_object.is_dttm
+                else inferred_type_map.get(inferred_type, GenericDataType.STRING)
+            )
         generic_types.append(generic_type)
 
     return generic_types
@@ -1721,7 +1734,16 @@ def get_time_filter_status(
     datasource: "BaseDatasource",
     applied_time_extras: Dict[str, str],
 ) -> Tuple[List[Dict[str, str]], List[Dict[str, str]]]:
-    temporal_columns = {col.column_name for col in datasource.columns if col.is_dttm}
+
+    temporal_columns: Set[Any]
+    if datasource.type == "query":
+        temporal_columns = {
+            col.get("column_name") for col in datasource.columns if col.get("is_dttm")
+        }
+    else:
+        temporal_columns = {
+            col.column_name for col in datasource.columns if col.is_dttm
+        }
     applied: List[Dict[str, str]] = []
     rejected: List[Dict[str, str]] = []
     time_column = applied_time_extras.get(ExtraFiltersTimeColumnType.TIME_COL)

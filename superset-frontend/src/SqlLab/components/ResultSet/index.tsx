@@ -16,23 +16,32 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { CSSProperties } from 'react';
+import React from 'react';
 import ButtonGroup from 'src/components/ButtonGroup';
 import Alert from 'src/components/Alert';
 import Button from 'src/components/Button';
 import shortid from 'shortid';
 import { styled, t, QueryResponse } from '@superset-ui/core';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
-import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
+import {
+  ISaveableDatasource,
+  ISimpleColumn,
+  SaveDatasetModal,
+} from 'src/SqlLab/components/SaveDatasetModal';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import { EXPLORE_CHART_DEFAULT } from 'src/SqlLab/types';
+import { mountExploreUrl } from 'src/explore/exploreUtils';
+import { postFormData } from 'src/explore/exploreUtils/formData';
 import ProgressBar from 'src/components/ProgressBar';
 import Loading from 'src/components/Loading';
 import FilterableTable, {
   MAX_COLUMNS_FOR_TABLE,
 } from 'src/components/FilterableTable';
 import CopyToClipboard from 'src/components/CopyToClipboard';
+import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { prepareCopyToClipboardTabularData } from 'src/utils/common';
 import { CtasEnum } from 'src/SqlLab/actions/sqlLab';
+import { URL_PARAMS } from 'src/constants';
 import ExploreCtasResultsButton from '../ExploreCtasResultsButton';
 import ExploreResultsButton from '../ExploreResultsButton';
 import HighlightedSql from '../HighlightedSql';
@@ -44,8 +53,6 @@ enum LIMITING_FACTOR {
   DROPDOWN = 'DROPDOWN',
   NOT_LIMITED = 'NOT_LIMITED',
 }
-
-const LOADING_STYLES: CSSProperties = { position: 'relative', minHeight: 100 };
 
 interface ResultSetProps {
   showControls?: boolean;
@@ -70,6 +77,17 @@ interface ResultSetState {
   showSaveDatasetModal: boolean;
   alertIsOpen: boolean;
 }
+
+const ResultlessStyles = styled.div`
+  position: relative;
+  min-height: 100px;
+  [role='alert'] {
+    margin-top: ${({ theme }) => theme.gridUnit * 2}px;
+  }
+  .sql-result-track-job {
+    margin-top: ${({ theme }) => theme.gridUnit * 2}px;
+  }
+`;
 
 // Making text render line breaks/tabs as is as monospace,
 // but wrapping text too so text doesn't overflow
@@ -98,8 +116,9 @@ const ResultSetButtons = styled.div`
   padding-right: ${({ theme }) => 2 * theme.gridUnit}px;
 `;
 
-const ResultSetErrorMessage = styled.div`
-  padding-top: ${({ theme }) => 4 * theme.gridUnit}px;
+const LimitMessage = styled.span`
+  color: ${({ theme }) => theme.colors.secondary.light1};
+  margin-left: ${({ theme }) => theme.gridUnit * 2}px;
 `;
 
 export default class ResultSet extends React.PureComponent<
@@ -173,7 +192,7 @@ export default class ResultSet extends React.PureComponent<
   popSelectStar(tempSchema: string | null, tempTable: string) {
     const qe = {
       id: shortid.generate(),
-      title: tempTable,
+      name: tempTable,
       autorun: false,
       dbId: this.props.query.dbId,
       sql: `SELECT * FROM ${tempSchema ? `${tempSchema}.` : ''}${tempTable}`,
@@ -209,6 +228,26 @@ export default class ResultSet extends React.PureComponent<
     }
   }
 
+  createExploreResultsOnClick = async () => {
+    const { results } = this.props.query;
+
+    if (results?.query_id) {
+      const key = await postFormData(results.query_id, 'query', {
+        ...EXPLORE_CHART_DEFAULT,
+        datasource: `${results.query_id}__query`,
+        ...{
+          all_columns: results.columns.map(column => column.name),
+        },
+      });
+      const url = mountExploreUrl(null, {
+        [URL_PARAMS.formDataKey.name]: key,
+      });
+      window.open(url, '_blank', 'noreferrer');
+    } else {
+      addDangerToast(t('Unable to create chart without a query id.'));
+    }
+  };
+
   renderControls() {
     if (this.props.search || this.props.visualize || this.props.csv) {
       let { data } = this.props.query.results;
@@ -220,6 +259,15 @@ export default class ResultSet extends React.PureComponent<
       const { showSaveDatasetModal } = this.state;
       const { query } = this.props;
 
+      const datasource: ISaveableDatasource = {
+        columns: query.results.columns as ISimpleColumn[],
+        name: query?.tab || 'Untitled',
+        dbId: query?.dbId,
+        sql: query?.sql,
+        templateParams: query?.templateParams,
+        schema: query?.schema,
+      };
+
       return (
         <ResultSetControls>
           <SaveDatasetModal
@@ -230,14 +278,14 @@ export default class ResultSet extends React.PureComponent<
             modalDescription={t(
               'Save this query as a virtual dataset to continue exploring',
             )}
-            datasource={query}
+            datasource={datasource}
           />
           <ResultSetButtons>
             {this.props.visualize &&
               this.props.database?.allows_virtual_table_explore && (
                 <ExploreResultsButton
                   database={this.props.database}
-                  onClick={() => this.setState({ showSaveDatasetModal: true })}
+                  onClick={this.createExploreResultsOnClick}
                 />
               )}
             {this.props.csv && (
@@ -334,7 +382,7 @@ export default class ResultSet extends React.PureComponent<
         {!limitReached && !shouldUseDefaultDropdownAlert && (
           <span title={tooltipText}>
             {rowsReturnedMessage}
-            <span>{limitMessage}</span>
+            <LimitMessage>{limitMessage}</LimitMessage>
           </span>
         )}
         {!limitReached && shouldUseDefaultDropdownAlert && (
@@ -376,6 +424,23 @@ export default class ResultSet extends React.PureComponent<
     if (this.props.database && this.props.database.explore_database_id) {
       exploreDBId = this.props.database.explore_database_id;
     }
+    let trackingUrl;
+    if (
+      query.trackingUrl &&
+      query.state !== 'success' &&
+      query.state !== 'fetching'
+    ) {
+      trackingUrl = (
+        <Button
+          className="sql-result-track-job"
+          buttonSize="small"
+          href={query.trackingUrl}
+          target="_blank"
+        >
+          {query.state === 'running' ? t('Track job') : t('See query details')}
+        </Button>
+      );
+    }
 
     if (this.props.showSql) sql = <HighlightedSql sql={query.sql} />;
 
@@ -384,7 +449,7 @@ export default class ResultSet extends React.PureComponent<
     }
     if (query.state === 'failed') {
       return (
-        <ResultSetErrorMessage>
+        <ResultlessStyles>
           <ErrorMessageWithStackTrace
             title={t('Database error')}
             error={query?.errors?.[0]}
@@ -393,7 +458,8 @@ export default class ResultSet extends React.PureComponent<
             link={query.link}
             source="sqllab"
           />
-        </ResultSetErrorMessage>
+          {trackingUrl}
+        </ResultlessStyles>
       );
     }
     if (query.state === 'success' && query.ctas) {
@@ -509,7 +575,6 @@ export default class ResultSet extends React.PureComponent<
         );
       }
     }
-    let trackingUrl;
     let progressBar;
     if (query.progress > 0) {
       progressBar = (
@@ -519,23 +584,13 @@ export default class ResultSet extends React.PureComponent<
         />
       );
     }
-    if (query.trackingUrl) {
-      trackingUrl = (
-        <Button
-          buttonSize="small"
-          onClick={() => query.trackingUrl && window.open(query.trackingUrl)}
-        >
-          {t('Track job')}
-        </Button>
-      );
-    }
     const progressMsg =
       query && query.extra && query.extra.progress
         ? query.extra.progress
         : null;
 
     return (
-      <div style={LOADING_STYLES}>
+      <ResultlessStyles>
         <div>{!progressBar && <Loading position="normal" />}</div>
         {/* show loading bar whenever progress bar is completed but needs time to render */}
         <div>{query.progress === 100 && <Loading position="normal" />}</div>
@@ -544,8 +599,8 @@ export default class ResultSet extends React.PureComponent<
           {progressMsg && <Alert type="success" message={progressMsg} />}
         </div>
         <div>{query.progress !== 100 && progressBar}</div>
-        <div>{trackingUrl}</div>
-      </div>
+        {trackingUrl && <div>{trackingUrl}</div>}
+      </ResultlessStyles>
     );
   }
 }

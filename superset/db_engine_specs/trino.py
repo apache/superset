@@ -32,6 +32,11 @@ from superset.utils import core as utils
 if TYPE_CHECKING:
     from superset.models.core import Database
 
+    try:
+        from trino.dbapi import Cursor  # pylint: disable=unused-import
+    except ImportError:
+        pass
+
 logger = logging.getLogger(__name__)
 
 
@@ -65,16 +70,18 @@ class TrinoEngineSpec(PrestoEngineSpec):
             connect_args["user"] = username
 
     @classmethod
-    def modify_url_for_impersonation(
+    def get_url_for_impersonation(
         cls, url: URL, impersonate_user: bool, username: Optional[str]
-    ) -> None:
+    ) -> URL:
         """
-        Modify the SQL Alchemy URL object with the user to impersonate if applicable.
+        Return a modified URL with the username set.
+
         :param url: SQLAlchemy URL object
         :param impersonate_user: Flag indicating if impersonation is enabled
         :param username: Effective username
         """
         # Do nothing and let update_impersonation_config take care of impersonation
+        return url
 
     @classmethod
     def get_allow_cost_estimate(cls, extra: Dict[str, Any]) -> bool:
@@ -107,8 +114,25 @@ class TrinoEngineSpec(PrestoEngineSpec):
         )
 
     @classmethod
-    def handle_cursor(cls, cursor: Any, query: Query, session: Session) -> None:
+    def get_tracking_url(cls, cursor: "Cursor") -> Optional[str]:
+        try:
+            return cursor.info_uri
+        except AttributeError:
+            try:
+                conn = cursor.connection
+                # pylint: disable=protected-access, line-too-long
+                return f"{conn.http_scheme}://{conn.host}:{conn.port}/ui/query.html?{cursor._query.query_id}"
+            except AttributeError:
+                pass
+        return None
+
+    @classmethod
+    def handle_cursor(cls, cursor: "Cursor", query: Query, session: Session) -> None:
         """Updates progress information"""
+        tracking_url = cls.get_tracking_url(cursor)
+        if tracking_url:
+            query.tracking_url = tracking_url
+            session.commit()
         BaseEngineSpec.handle_cursor(cursor=cursor, query=query, session=session)
 
     @staticmethod

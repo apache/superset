@@ -30,6 +30,7 @@ partaking in the process should join the channel.
 
 ## Release notes for recent releases
 
+- [2.0](release-notes-2-0/README.md)
 - [1.5](release-notes-1-5/README.md)
 - [1.4](release-notes-1-4/README.md)
 - [1.3](release-notes-1-3/README.md)
@@ -458,10 +459,13 @@ while requesting access to push packages.
 
 ```bash
 twine upload dist/apache-superset-${SUPERSET_VERSION}.tar.gz
-
-# Set your username to token
-# Set your password to the token value, including the pypi- prefix
 ```
+
+Set your username to `__token__`
+
+Set your password to the token value, including the `pypi-` prefix
+
+More information on https://pypi.org/help/#apitoken
 
 ### Announcing
 

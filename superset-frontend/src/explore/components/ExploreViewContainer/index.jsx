@@ -56,6 +56,7 @@ import { getFormDataFromControls } from 'src/explore/controlUtils';
 import * as exploreActions from 'src/explore/actions/exploreActions';
 import * as saveModalActions from 'src/explore/actions/saveModalActions';
 import { useTabId } from 'src/hooks/useTabId';
+import withToasts from 'src/components/MessageToasts/withToasts';
 import ExploreChartPanel from '../ExploreChartPanel';
 import ConnectedControlPanelsContainer from '../ControlPanelsContainer';
 import SaveModal from '../SaveModal';
@@ -74,7 +75,7 @@ const propTypes = {
   controls: PropTypes.object.isRequired,
   forcedHeight: PropTypes.string,
   form_data: PropTypes.object.isRequired,
-  standalone: PropTypes.number.isRequired,
+  standalone: PropTypes.bool.isRequired,
   force: PropTypes.bool,
   timeout: PropTypes.number,
   impressionId: PropTypes.string,
@@ -128,10 +129,10 @@ const ExplorePanelContainer = styled.div`
       position: relative;
       display: flex;
       flex-direction: row;
-      padding: 0 ${theme.gridUnit * 4}px;
+      padding: 0 ${theme.gridUnit * 2}px 0 ${theme.gridUnit * 4}px;
       justify-content: space-between;
       .horizontal-text {
-        font-size: ${theme.typography.sizes.s}px;
+        font-size: ${theme.typography.sizes.m}px;
       }
     }
     .no-show {
@@ -147,7 +148,7 @@ const ExplorePanelContainer = styled.div`
       padding: ${theme.gridUnit * 2}px;
       width: ${theme.gridUnit * 8}px;
     }
-    .callpase-icon > svg {
+    .collapse-icon > svg {
       color: ${theme.colors.primary.base};
     }
   `};
@@ -205,15 +206,18 @@ const updateHistory = debounce(
         );
         stateModifier = 'pushState';
       }
-      const url = mountExploreUrl(
-        standalone ? URL_PARAMS.standalone.name : null,
-        {
-          [URL_PARAMS.formDataKey.name]: key,
-          ...additionalParam,
-        },
-        force,
-      );
-      window.history[stateModifier](payload, title, url);
+      // avoid race condition in case user changes route before explore updates the url
+      if (window.location.pathname.startsWith('/explore')) {
+        const url = mountExploreUrl(
+          standalone ? URL_PARAMS.standalone.name : null,
+          {
+            [URL_PARAMS.formDataKey.name]: key,
+            ...additionalParam,
+          },
+          force,
+        );
+        window.history[stateModifier](payload, title, url);
+      }
     } catch (e) {
       logging.warn('Failed at altering browser history', e);
     }
@@ -464,6 +468,14 @@ function ExploreViewContainer(props) {
     return false;
   }, [lastQueriedControls, props.controls]);
 
+  const saveAction = getUrlParam(URL_PARAMS.saveAction);
+  useChangeEffect(saveAction, () => {
+    if (['saveas', 'overwrite'].includes(saveAction)) {
+      onQuery();
+      addHistory({ isReplace: true });
+    }
+  });
+
   useEffect(() => {
     if (props.ownState !== undefined) {
       onQuery();
@@ -581,11 +593,13 @@ function ExploreViewContainer(props) {
         />
         {showingModal && (
           <SaveModal
+            addDangerToast={props.addDangerToast}
             onHide={toggleModal}
             actions={props.actions}
             form_data={props.form_data}
             sliceName={props.sliceName}
             dashboardId={props.dashboardId}
+            sliceDashboards={props.exploreState.sliceDashboards ?? []}
           />
         )}
         <Resizable
@@ -605,7 +619,7 @@ function ExploreViewContainer(props) {
           }
         >
           <div className="title-container">
-            <span className="horizontal-text">{t('Dataset')}</span>
+            <span className="horizontal-text">{t('Chart Source')}</span>
             <span
               role="button"
               tabIndex={0}
@@ -620,6 +634,7 @@ function ExploreViewContainer(props) {
             </span>
           </div>
           <DataSourcePanel
+            formData={props.form_data}
             datasource={props.datasource}
             controls={props.controls}
             actions={props.actions}
@@ -644,11 +659,6 @@ function ExploreViewContainer(props) {
                 />
               </Tooltip>
             </span>
-            <Icons.DatasetPhysical
-              css={{ marginTop: theme.gridUnit * 2 }}
-              iconSize="l"
-              iconColor={theme.colors.grayscale.base}
-            />
           </div>
         ) : null}
         <Resizable
@@ -762,4 +772,4 @@ function mapDispatchToProps(dispatch) {
 export default connect(
   mapStateToProps,
   mapDispatchToProps,
-)(ExploreViewContainer);
+)(withToasts(ExploreViewContainer));

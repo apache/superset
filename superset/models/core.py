@@ -55,7 +55,7 @@ from sqlalchemy.sql import expression, Select
 
 from superset import app, db_engine_specs, is_feature_enabled
 from superset.databases.utils import make_url_safe
-from superset.db_engine_specs.base import TimeGrain
+from superset.db_engine_specs.base import MetricType, TimeGrain
 from superset.extensions import cache_manager, encrypted_field_factory, security_manager
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 from superset.models.tags import FavStarUpdater
@@ -312,7 +312,7 @@ class Database(
     def get_password_masked_url(cls, masked_url: URL) -> URL:
         url_copy = deepcopy(masked_url)
         if url_copy.password is not None:
-            url_copy.password = PASSWORD_MASK
+            url_copy = url_copy.set(password=PASSWORD_MASK)
         return url_copy
 
     def set_sqlalchemy_uri(self, uri: str) -> None:
@@ -320,7 +320,7 @@ class Database(
         if conn.password != PASSWORD_MASK and not custom_password_store:
             # do not over-write the password with the password mask
             self.password = conn.password
-        conn.password = PASSWORD_MASK if conn.password else None
+        conn = conn.set(password=PASSWORD_MASK if conn.password else None)
         self.sqlalchemy_uri = str(conn)  # hides the password
 
     def get_effective_user(self, object_url: URL) -> Optional[str]:
@@ -355,12 +355,12 @@ class Database(
     ) -> Engine:
         extra = self.get_extra()
         sqlalchemy_url = make_url_safe(self.sqlalchemy_uri_decrypted)
-        self.db_engine_spec.adjust_database_uri(sqlalchemy_url, schema)
+        sqlalchemy_url = self.db_engine_spec.adjust_database_uri(sqlalchemy_url, schema)
         effective_username = self.get_effective_user(sqlalchemy_url)
         # If using MySQL or Presto for example, will set url.username
         # If using Hive, will not do anything yet since that relies on a
         # configuration parameter instead.
-        self.db_engine_spec.modify_url_for_impersonation(
+        sqlalchemy_url = self.db_engine_spec.get_url_for_impersonation(
             sqlalchemy_url, self.impersonate_user, effective_username
         )
 
@@ -386,7 +386,7 @@ class Database(
             if not source and request and request.referrer:
                 if "/superset/dashboard/" in request.referrer:
                     source = utils.QuerySource.DASHBOARD
-                elif "/superset/explore/" in request.referrer:
+                elif "/explore/" in request.referrer:
                     source = utils.QuerySource.CHART
                 elif "/superset/sqllab/" in request.referrer:
                     source = utils.QuerySource.SQL_LAB
@@ -511,7 +511,7 @@ class Database(
 
     @cache_util.memoized_func(
         key="db:{self.id}:schema:None:table_list",
-        cache=cache_manager.data_cache,
+        cache=cache_manager.cache,
     )
     def get_all_table_names_in_database(  # pylint: disable=unused-argument
         self,
@@ -531,7 +531,7 @@ class Database(
 
     @cache_util.memoized_func(
         key="db:{self.id}:schema:None:view_list",
-        cache=cache_manager.data_cache,
+        cache=cache_manager.cache,
     )
     def get_all_view_names_in_database(  # pylint: disable=unused-argument
         self,
@@ -551,7 +551,7 @@ class Database(
 
     @cache_util.memoized_func(
         key="db:{self.id}:schema:{schema}:table_list",
-        cache=cache_manager.data_cache,
+        cache=cache_manager.cache,
     )
     def get_all_table_names_in_schema(  # pylint: disable=unused-argument
         self,
@@ -582,7 +582,7 @@ class Database(
 
     @cache_util.memoized_func(
         key="db:{self.id}:schema:{schema}:view_list",
-        cache=cache_manager.data_cache,
+        cache=cache_manager.cache,
     )
     def get_all_view_names_in_schema(  # pylint: disable=unused-argument
         self,
@@ -613,7 +613,7 @@ class Database(
 
     @cache_util.memoized_func(
         key="db:{self.id}:schema_list",
-        cache=cache_manager.data_cache,
+        cache=cache_manager.cache,
     )
     def get_all_schema_names(  # pylint: disable=unused-argument
         self,
@@ -693,6 +693,13 @@ class Database(
     ) -> List[Dict[str, Any]]:
         return self.db_engine_spec.get_columns(self.inspector, table_name, schema)
 
+    def get_metrics(
+        self,
+        table_name: str,
+        schema: Optional[str] = None,
+    ) -> List[MetricType]:
+        return self.db_engine_spec.get_metrics(self, self.inspector, table_name, schema)
+
     def get_indexes(
         self, table_name: str, schema: Optional[str] = None
     ) -> List[Dict[str, Any]]:
@@ -736,9 +743,9 @@ class Database(
             # (so users see 500 less often)
             return "dialect://invalid_uri"
         if custom_password_store:
-            conn.password = custom_password_store(conn)
+            conn = conn.set(password=custom_password_store(conn))
         else:
-            conn.password = self.password
+            conn = conn.set(password=self.password)
         return str(conn)
 
     @property
@@ -795,7 +802,8 @@ class Database(
 
 
 sqla.event.listen(Database, "after_insert", security_manager.set_perm)
-sqla.event.listen(Database, "after_update", security_manager.set_perm)
+sqla.event.listen(Database, "after_update", security_manager.database_after_update)
+sqla.event.listen(Database, "after_delete", security_manager.database_after_delete)
 
 
 class Log(Model):  # pylint: disable=too-few-public-methods

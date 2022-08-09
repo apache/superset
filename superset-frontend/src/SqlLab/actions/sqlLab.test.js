@@ -38,8 +38,8 @@ describe('async actions', () => {
     latestQueryId: null,
     selectedText: null,
     sql: 'SELECT *\nFROM\nWHERE',
-    title: 'Untitled Query 1',
-    schemaOptions: [{ value: 'main', label: 'main', title: 'main' }],
+    name: 'Untitled Query 1',
+    schemaOptions: [{ value: 'main', label: 'main', name: 'main' }],
   };
 
   let dispatch;
@@ -290,7 +290,7 @@ describe('async actions', () => {
       const state = {
         sqlLab: {
           tabHistory: [id],
-          queryEditors: [{ id, title: 'Dummy query editor' }],
+          queryEditors: [{ id, name: 'Dummy query editor' }],
         },
       };
       const store = mockStore(state);
@@ -350,7 +350,7 @@ describe('async actions', () => {
       const state = {
         sqlLab: {
           tabHistory: [id],
-          queryEditors: [{ id, title: 'Dummy query editor' }],
+          queryEditors: [{ id, name: 'Dummy query editor' }],
         },
       };
       const store = mockStore(state);
@@ -358,7 +358,7 @@ describe('async actions', () => {
         {
           type: actions.ADD_QUERY_EDITOR,
           queryEditor: {
-            title: 'Copy of Dummy query editor',
+            name: 'Copy of Dummy query editor',
             dbId: 1,
             schema: null,
             autorun: true,
@@ -617,17 +617,17 @@ describe('async actions', () => {
       it('updates the tab state in the backend', () => {
         expect.assertions(2);
 
-        const title = 'title';
+        const name = 'name';
         const store = mockStore({});
         const expectedActions = [
           {
             type: actions.QUERY_EDITOR_SET_TITLE,
             queryEditor,
-            title,
+            name,
           },
         ];
         return store
-          .dispatch(actions.queryEditorSetTitle(queryEditor, title))
+          .dispatch(actions.queryEditorSetTitle(queryEditor, name))
           .then(() => {
             expect(store.getActions()).toEqual(expectedActions);
             expect(fetchMock.calls(updateTabStateEndpoint)).toHaveLength(1);
@@ -835,7 +835,7 @@ describe('async actions', () => {
       });
     });
 
-    describe('removeTable', () => {
+    describe('removeTables', () => {
       it('updates the table schema state in the backend', () => {
         expect.assertions(2);
 
@@ -843,13 +843,30 @@ describe('async actions', () => {
         const store = mockStore({});
         const expectedActions = [
           {
-            type: actions.REMOVE_TABLE,
-            table,
+            type: actions.REMOVE_TABLES,
+            tables: [table],
           },
         ];
-        return store.dispatch(actions.removeTable(table)).then(() => {
+        return store.dispatch(actions.removeTables([table])).then(() => {
           expect(store.getActions()).toEqual(expectedActions);
           expect(fetchMock.calls(updateTableSchemaEndpoint)).toHaveLength(1);
+        });
+      });
+
+      it('deletes multiple tables and updates the table schema state in the backend', () => {
+        expect.assertions(2);
+
+        const tables = [{ id: 1 }, { id: 2 }];
+        const store = mockStore({});
+        const expectedActions = [
+          {
+            type: actions.REMOVE_TABLES,
+            tables,
+          },
+        ];
+        return store.dispatch(actions.removeTables(tables)).then(() => {
+          expect(store.getActions()).toEqual(expectedActions);
+          expect(fetchMock.calls(updateTableSchemaEndpoint)).toHaveLength(2);
         });
       });
     });

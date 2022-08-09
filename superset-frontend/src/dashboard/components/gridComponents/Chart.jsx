@@ -162,6 +162,14 @@ class Chart extends React.Component {
       return true;
     }
 
+    // allow chart to update if the status changed and the previous status was loading.
+    if (
+      this.props?.chart?.chartStatus !== nextProps?.chart?.chartStatus &&
+      this.props?.chart?.chartStatus === 'loading'
+    ) {
+      return true;
+    }
+
     // allow chart update/re-render only if visible:
     // under selected tab or no tab layout
     if (nextProps.isComponentVisible) {

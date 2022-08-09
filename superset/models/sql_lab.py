@@ -15,13 +15,15 @@
 # specific language governing permissions and limitations
 # under the License.
 """A collection of ORM sqlalchemy models for SQL Lab"""
+import inspect
+import logging
 import re
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional, Type, TYPE_CHECKING
 
 import simplejson as json
 import sqlalchemy as sqla
-from flask import Markup
+from flask import current_app, Markup
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
 from humanize import naturaltime
@@ -42,25 +44,36 @@ from sqlalchemy.orm import backref, relationship
 from superset import security_manager
 from superset.models.helpers import (
     AuditMixinNullable,
+    ExploreMixin,
     ExtraJSONMixin,
     ImportExportMixin,
 )
 from superset.models.tags import QueryUpdater
 from superset.sql_parse import CtasMethod, ParsedQuery, Table
 from superset.sqllab.limiting_factor import LimitingFactor
-from superset.utils.core import QueryStatus, user_label
+from superset.superset_typing import ResultSetColumnType
+from superset.utils.core import GenericDataType, QueryStatus, user_label
+
+if TYPE_CHECKING:
+    from superset.db_engine_specs import BaseEngineSpec
 
 
-class Query(Model, ExtraJSONMixin):
+logger = logging.getLogger(__name__)
+
+
+class Query(
+    Model, ExtraJSONMixin, ExploreMixin
+):  # pylint: disable=abstract-method,too-many-public-methods
     """ORM model for SQL query
 
     Now that SQL Lab support multi-statement execution, an entry in this
     table may represent multiple SQL statements executed sequentially"""
 
     __tablename__ = "query"
+    type = "query"
     id = Column(Integer, primary_key=True)
     client_id = Column(String(11), unique=True, nullable=False)
-
+    query_language = "sql"
     database_id = Column(Integer, ForeignKey("dbs.id"), nullable=False)
 
     # Store the tmp table into the DB only if the user asks for it.
@@ -98,7 +111,7 @@ class Query(Model, ExtraJSONMixin):
     start_running_time = Column(Numeric(precision=20, scale=6))
     end_time = Column(Numeric(precision=20, scale=6))
     end_result_backend_time = Column(Numeric(precision=20, scale=6))
-    tracking_url = Column(Text)
+    tracking_url_raw = Column(Text, name="tracking_url")
 
     changed_on = Column(
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=True
@@ -167,8 +180,69 @@ class Query(Model, ExtraJSONMixin):
         return list(ParsedQuery(self.sql).tables)
 
     @property
-    def columns(self) -> List[Table]:
-        return self.extra.get("columns", [])
+    def columns(self) -> List[ResultSetColumnType]:
+        bool_types = ("BOOL",)
+        num_types = (
+            "DOUBLE",
+            "FLOAT",
+            "INT",
+            "BIGINT",
+            "NUMBER",
+            "LONG",
+            "REAL",
+            "NUMERIC",
+            "DECIMAL",
+            "MONEY",
+        )
+        date_types = ("DATE", "TIME")
+        str_types = ("VARCHAR", "STRING", "CHAR")
+        columns = []
+        col_type = ""
+        for col in self.extra.get("columns", []):
+            computed_column = {**col}
+            col_type = col.get("type")
+
+            if col_type and any(map(lambda t: t in col_type.upper(), str_types)):
+                computed_column["type_generic"] = GenericDataType.STRING
+            if col_type and any(map(lambda t: t in col_type.upper(), bool_types)):
+                computed_column["type_generic"] = GenericDataType.BOOLEAN
+            if col_type and any(map(lambda t: t in col_type.upper(), num_types)):
+                computed_column["type_generic"] = GenericDataType.NUMERIC
+            if col_type and any(map(lambda t: t in col_type.upper(), date_types)):
+                computed_column["type_generic"] = GenericDataType.TEMPORAL
+
+            computed_column["column_name"] = col.get("name")
+            computed_column["groupby"] = True
+            columns.append(computed_column)
+        return columns  # type: ignore
+
+    @property
+    def data(self) -> Dict[str, Any]:
+        order_by_choices = []
+        for col in self.columns:
+            column_name = str(col.get("column_name") or "")
+            order_by_choices.append(
+                (json.dumps([column_name, True]), column_name + " [asc]")
+            )
+            order_by_choices.append(
+                (json.dumps([column_name, False]), column_name + " [desc]")
+            )
+
+        return {
+            "time_grain_sqla": [
+                (g.duration, g.name) for g in self.database.grains() or []
+            ],
+            "filter_select": True,
+            "name": self.tab_name,
+            "columns": self.columns,
+            "metrics": [],
+            "id": self.id,
+            "type": self.type,
+            "sql": self.sql,
+            "owners": self.owners_data,
+            "database": {"id": self.database_id, "backend": self.database.backend},
+            "order_by_choices": order_by_choices,
+        }
 
     def raise_for_access(self) -> None:
         """
@@ -178,6 +252,82 @@ class Query(Model, ExtraJSONMixin):
         """
 
         security_manager.raise_for_access(query=self)
+
+    @property
+    def db_engine_spec(self) -> Type["BaseEngineSpec"]:
+        return self.database.db_engine_spec
+
+    @property
+    def owners_data(self) -> List[Dict[str, Any]]:
+        return []
+
+    @property
+    def uid(self) -> str:
+        return f"{self.id}__{self.type}"
+
+    @property
+    def is_rls_supported(self) -> bool:
+        return False
+
+    @property
+    def cache_timeout(self) -> int:
+        return 0
+
+    @property
+    def column_names(self) -> List[Any]:
+        return [col.get("column_name") for col in self.columns]
+
+    @property
+    def offset(self) -> int:
+        return 0
+
+    @property
+    def main_dttm_col(self) -> Optional[str]:
+        for col in self.columns:
+            if col.get("is_dttm"):
+                return col.get("column_name")  # type: ignore
+        return None
+
+    @property
+    def dttm_cols(self) -> List[Any]:
+        return [col.get("column_name") for col in self.columns if col.get("is_dttm")]
+
+    @property
+    def schema_perm(self) -> str:
+        return f"{self.database.database_name}.{self.schema}"
+
+    @property
+    def perm(self) -> str:
+        return f"[{self.database.database_name}].[{self.tab_name}](id:{self.id})"
+
+    @property
+    def default_endpoint(self) -> str:
+        return ""
+
+    @staticmethod
+    def get_extra_cache_keys(query_obj: Dict[str, Any]) -> List[str]:
+        return []
+
+    @property
+    def tracking_url(self) -> Optional[str]:
+        """
+        Transfrom tracking url at run time because the exact URL may depends
+        on query properties such as execution and finish time.
+        """
+        transform = current_app.config.get("TRACKING_URL_TRANSFORMER")
+        url = self.tracking_url_raw
+        if url and transform:
+            sig = inspect.signature(transform)
+            # for backward compatibility, users may define a transformer function
+            # with only one parameter (`url`).
+            args = [url, self][: len(sig.parameters)]
+            url = transform(*args)
+            logger.debug("Transformed tracking url: %s", url)
+        return url
+
+    @tracking_url.setter
+    def tracking_url(self, value: str) -> None:
+        self.tracking_url_raw = value
 
 
 class SavedQuery(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):

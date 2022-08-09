@@ -93,24 +93,16 @@ def _create_table(
     return table
 
 
-def _cleanup(dash_id: int, slices_ids: List[int]) -> None:
+def _cleanup(dash_id: int, slice_ids: List[int]) -> None:
     schema = get_example_default_schema()
-    datasource = (
-        db.session.query(SqlaTable)
-        .filter_by(table_name="birth_names", schema=schema)
-        .one()
-    )
-    columns = [column for column in datasource.columns]
-    metrics = [metric for metric in datasource.metrics]
+    for datasource in db.session.query(SqlaTable).filter_by(
+        table_name="birth_names", schema=schema
+    ):
+        for col in datasource.columns + datasource.metrics:
+            db.session.delete(col)
 
-    for column in columns:
-        db.session.delete(column)
-    for metric in metrics:
-        db.session.delete(metric)
-
-    dash = db.session.query(Dashboard).filter_by(id=dash_id).first()
-
-    db.session.delete(dash)
-    for slice_id in slices_ids:
-        db.session.query(Slice).filter_by(id=slice_id).delete()
+    for dash in db.session.query(Dashboard).filter_by(id=dash_id):
+        db.session.delete(dash)
+    for slc in db.session.query(Slice).filter(Slice.id.in_(slice_ids)):
+        db.session.delete(slc)
     db.session.commit()

@@ -29,6 +29,7 @@ import downloadAsImage from 'src/utils/downloadAsImage';
 import { getChartPermalink } from 'src/utils/urlUtils';
 import copyTextToClipboard from 'src/utils/copy';
 import HeaderReportDropDown from 'src/components/ReportModal/HeaderReportDropdown';
+import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import ViewQueryModal from '../controls/ViewQueryModal';
 import EmbedCodeContent from '../EmbedCodeContent';
 
@@ -107,7 +108,6 @@ export const useExploreAdditionalActionsMenu = (
   );
 
   const { datasource } = latestQueryFormData;
-  const sqlSupported = datasource && datasource.split('__')[1] === 'table';
 
   const shareByEmail = useCallback(async () => {
     try {
@@ -298,23 +298,25 @@ export const useExploreAdditionalActionsMenu = (
           <Menu.Item key={MENU_KEYS.SHARE_BY_EMAIL}>
             {t('Share chart by email')}
           </Menu.Item>
-          <Menu.Item key={MENU_KEYS.EMBED_CODE}>
-            <ModalTrigger
-              triggerNode={
-                <span data-test="embed-code-button">{t('Embed code')}</span>
-              }
-              modalTitle={t('Embed code')}
-              modalBody={
-                <EmbedCodeContent
-                  formData={latestQueryFormData}
-                  addDangerToast={addDangerToast}
-                />
-              }
-              maxWidth={`${theme.gridUnit * 100}px`}
-              destroyOnClose
-              responsive
-            />
-          </Menu.Item>
+          {isFeatureEnabled(FeatureFlag.EMBEDDABLE_CHARTS) ? (
+            <Menu.Item key={MENU_KEYS.EMBED_CODE}>
+              <ModalTrigger
+                triggerNode={
+                  <span data-test="embed-code-button">{t('Embed code')}</span>
+                }
+                modalTitle={t('Embed code')}
+                modalBody={
+                  <EmbedCodeContent
+                    formData={latestQueryFormData}
+                    addDangerToast={addDangerToast}
+                  />
+                }
+                maxWidth={`${theme.gridUnit * 100}px`}
+                destroyOnClose
+                responsive
+              />
+            </Menu.Item>
+          ) : null}
         </Menu.SubMenu>
         <Menu.Divider />
         {showReportSubMenu ? (
@@ -356,7 +358,7 @@ export const useExploreAdditionalActionsMenu = (
             responsive
           />
         </Menu.Item>
-        {sqlSupported && (
+        {datasource && (
           <Menu.Item key={MENU_KEYS.RUN_IN_SQL_LAB}>
             {t('Run in SQL Lab')}
           </Menu.Item>
@@ -373,7 +375,6 @@ export const useExploreAdditionalActionsMenu = (
       openSubmenus,
       showReportSubMenu,
       slice,
-      sqlSupported,
       theme.gridUnit,
     ],
   );

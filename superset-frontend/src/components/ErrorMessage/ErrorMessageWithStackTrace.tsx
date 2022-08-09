@@ -18,7 +18,6 @@
  */
 import React from 'react';
 import { t } from '@superset-ui/core';
-
 import getErrorMessageComponentRegistry from './getErrorMessageComponentRegistry';
 import { SupersetError, ErrorSource } from './types';
 import ErrorAlert from './ErrorAlert';
@@ -34,6 +33,7 @@ type Props = {
   stackTrace?: string;
   source?: ErrorSource;
   description?: string;
+  errorMitigationFunction?: () => void;
 };
 
 export default function ErrorMessageWithStackTrace({

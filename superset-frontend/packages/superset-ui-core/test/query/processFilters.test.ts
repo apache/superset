@@ -54,6 +54,14 @@ describe('processFilters', () => {
             subject: 'gender',
             operator: 'IS NOT NULL',
           },
+          // ignore simple having filter
+          {
+            expressionType: 'SIMPLE',
+            clause: 'HAVING',
+            subject: 'sum(sales)',
+            operator: '>',
+            comparator: '100',
+          },
         ],
       }),
     ).toEqual({

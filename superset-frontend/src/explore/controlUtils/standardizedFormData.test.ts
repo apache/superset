@@ -40,14 +40,12 @@ const adhocColumn: AdhocColumn = {
   optionName: 'country',
   sqlExpression: 'country',
 };
-
 const adhocMetricSQL: AdhocMetricSQL = {
   expressionType: 'SQL',
   label: 'count',
   optionName: 'count',
   sqlExpression: 'count(*)',
 };
-
 const adhocMetricSimple: AdhocMetricSimple = {
   expressionType: 'SIMPLE',
   column: {
@@ -59,6 +57,114 @@ const adhocMetricSimple: AdhocMetricSimple = {
   aggregate: 'SUM',
   label: 'count',
   optionName: 'count',
+};
+
+const tableVizFormData = {
+  datasource: '30__table',
+  viz_type: 'table',
+  granularity_sqla: 'ds',
+  time_grain_sqla: TimeGranularity.DAY,
+  time_range: 'No filter',
+  query_mode: 'aggregate',
+  groupby: ['name', 'gender', adhocColumn],
+  metrics: ['count', 'avg(sales)', adhocMetricSimple, adhocMetricSQL],
+  all_columns: [],
+  percent_metrics: [],
+  adhoc_filters: [],
+  order_by_cols: [],
+  row_limit: 10000,
+  server_page_length: 10,
+  order_desc: true,
+  table_timestamp_format: 'smart_date',
+  show_cell_bars: true,
+  color_pn: true,
+  url_params: {
+    form_data_key:
+      'p3No_sqDW7k-kMTzlBPAPd9vwp1IXTf6stbyzjlrPPa0ninvdYUUiMC6F1iKit3Y',
+    dataset_id: '30',
+  },
+};
+const tableVizStore = {
+  form_data: tableVizFormData,
+  controls: {
+    datasource: {
+      value: '30__table',
+    },
+    viz_type: {
+      value: 'table',
+    },
+    slice_id: {},
+    cache_timeout: {},
+    url_params: {
+      value: {
+        form_data_key:
+          'p3No_sqDW7k-kMTzlBPAPd9vwp1IXTf6stbyzjlrPPa0ninvdYUUiMC6F1iKit3Y',
+        dataset_id: '30',
+      },
+    },
+    granularity_sqla: {
+      value: 'ds',
+    },
+    time_grain_sqla: {
+      value: 'P1D',
+    },
+    time_range: {
+      value: 'No filter',
+    },
+    query_mode: {
+      value: 'aggregate',
+    },
+    groupby: {
+      value: ['name', 'gender', adhocColumn],
+    },
+    metrics: {
+      value: ['count', 'avg(sales)', adhocMetricSimple, adhocMetricSQL],
+    },
+    all_columns: {
+      value: [],
+    },
+    percent_metrics: {
+      value: [],
+    },
+    adhoc_filters: {
+      value: [],
+    },
+    timeseries_limit_metric: {},
+    order_by_cols: {
+      value: [],
+    },
+    server_pagination: {},
+    row_limit: {
+      value: 10000,
+    },
+    server_page_length: {
+      value: 10,
+    },
+    include_time: {},
+    order_desc: {
+      value: true,
+    },
+    show_totals: {},
+    emit_filter: {},
+    table_timestamp_format: {
+      value: 'smart_date',
+    },
+    page_length: {},
+    include_search: {},
+    show_cell_bars: {
+      value: true,
+    },
+    align_pn: {},
+    color_pn: {
+      value: true,
+    },
+    column_config: {},
+    conditional_formatting: {},
+  },
+  datasource: {
+    type: 'table',
+    columns: [],
+  },
 };
 
 describe('should collect control values and create SFD', () => {
@@ -271,114 +377,6 @@ describe('should collect control values and create SFD', () => {
 });
 
 describe('should transform form_data between table and bigNumberTotal', () => {
-  const tableVizFormData = {
-    datasource: '30__table',
-    viz_type: 'table',
-    granularity_sqla: 'ds',
-    time_grain_sqla: TimeGranularity.DAY,
-    time_range: 'No filter',
-    query_mode: 'aggregate',
-    groupby: ['name', 'gender', adhocColumn],
-    metrics: ['count', 'avg(sales)', adhocMetricSimple, adhocMetricSQL],
-    all_columns: [],
-    percent_metrics: [],
-    adhoc_filters: [],
-    order_by_cols: [],
-    row_limit: 10000,
-    server_page_length: 10,
-    order_desc: true,
-    table_timestamp_format: 'smart_date',
-    show_cell_bars: true,
-    color_pn: true,
-    url_params: {
-      form_data_key:
-        'p3No_sqDW7k-kMTzlBPAPd9vwp1IXTf6stbyzjlrPPa0ninvdYUUiMC6F1iKit3Y',
-      dataset_id: '30',
-    },
-  };
-  const tableVizStore = {
-    form_data: tableVizFormData,
-    controls: {
-      datasource: {
-        value: '30__table',
-      },
-      viz_type: {
-        value: 'table',
-      },
-      slice_id: {},
-      cache_timeout: {},
-      url_params: {
-        value: {
-          form_data_key:
-            'p3No_sqDW7k-kMTzlBPAPd9vwp1IXTf6stbyzjlrPPa0ninvdYUUiMC6F1iKit3Y',
-          dataset_id: '30',
-        },
-      },
-      granularity_sqla: {
-        value: 'ds',
-      },
-      time_grain_sqla: {
-        value: 'P1D',
-      },
-      time_range: {
-        value: 'No filter',
-      },
-      query_mode: {
-        value: 'aggregate',
-      },
-      groupby: {
-        value: ['name', 'gender', adhocColumn],
-      },
-      metrics: {
-        value: ['count', 'avg(sales)', adhocMetricSimple, adhocMetricSQL],
-      },
-      all_columns: {
-        value: [],
-      },
-      percent_metrics: {
-        value: [],
-      },
-      adhoc_filters: {
-        value: [],
-      },
-      timeseries_limit_metric: {},
-      order_by_cols: {
-        value: [],
-      },
-      server_pagination: {},
-      row_limit: {
-        value: 10000,
-      },
-      server_page_length: {
-        value: 10,
-      },
-      include_time: {},
-      order_desc: {
-        value: true,
-      },
-      show_totals: {},
-      emit_filter: {},
-      table_timestamp_format: {
-        value: 'smart_date',
-      },
-      page_length: {},
-      include_search: {},
-      show_cell_bars: {
-        value: true,
-      },
-      align_pn: {},
-      color_pn: {
-        value: true,
-      },
-      column_config: {},
-      conditional_formatting: {},
-    },
-    datasource: {
-      type: 'table',
-      columns: [],
-    },
-  };
-
   beforeAll(() => {
     getChartControlPanelRegistry().registerValue(
       'big_number_total',
@@ -443,5 +441,48 @@ describe('should transform form_data between table and bigNumberTotal', () => {
     ]);
     expect(tblFormData.groupby).toEqual(['name', 'gender', adhocColumn]);
     expect(tblFormData.time_range).toBe('2021 : 2022');
+  });
+});
+
+describe('initial SFD between different datasource', () => {
+  beforeAll(() => {
+    getChartControlPanelRegistry().registerValue(
+      'big_number_total',
+      new BigNumberTotalChartPlugin().controlPanel,
+    );
+    getChartControlPanelRegistry().registerValue(
+      'table',
+      new TableChartPlugin().controlPanel,
+    );
+  });
+
+  test('initial SFD between different datasource', () => {
+    const sfd = new StandardizedFormData(tableVizFormData);
+    // table -> big number
+    const { formData: bntFormData, controlsState: bntControlsState } =
+      sfd.transform('big_number_total', tableVizStore);
+    const sfd2 = new StandardizedFormData(bntFormData);
+    // big number -> table
+    const { formData: tblFormData } = sfd2.transform('table', {
+      ...tableVizStore,
+      form_data: bntFormData,
+      controls: bntControlsState,
+    });
+
+    expect(
+      tblFormData.standardizedFormData.memorizedFormData.map(
+        (mfd: [string, QueryFormData][]) => mfd[0],
+      ),
+    ).toEqual(['table', 'big_number_total']);
+    const newDatasourceFormData = { ...tblFormData, datasource: '20__table' };
+    const newDatasourceSFD = new StandardizedFormData(newDatasourceFormData);
+    expect(
+      newDatasourceSFD
+        .serialize()
+        .memorizedFormData.map(([vizType]) => vizType),
+    ).toEqual(['table']);
+    expect(newDatasourceSFD.get('table')).not.toHaveProperty(
+      'standardizedFormData',
+    );
   });
 });

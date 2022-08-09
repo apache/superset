@@ -314,9 +314,9 @@ export const useTableColumns = (
               const isOriginalTimeColumn =
                 originalFormattedTimeColumns.includes(key);
               return {
-                id: key,
+                // react-table requires a non-empty id, therefore we introduce a fallback value in case the key is empty
+                id: key || index,
                 accessor: row => row[key],
-                // When the key is empty, have to give a string of length greater than 0
                 Header:
                   colType === GenericDataType.TEMPORAL &&
                   typeof firstValue !== 'string' ? (

@@ -80,4 +80,14 @@ describe('Visualization > World Map', () => {
       ).to.equal(0);
     });
   });
+
+  it('should allow type to search color schemes', () => {
+    cy.get('.Control[data-test="linear_color_scheme"]').scrollIntoView();
+    cy.get('.Control[data-test="linear_color_scheme"] input[type="search"]')
+      .focus()
+      .type('greens{enter}');
+    cy.get(
+      '.Control[data-test="linear_color_scheme"] .ant-select-selection-item ul[data-test="greens"]',
+    ).should('exist');
+  });
 });

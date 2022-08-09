@@ -427,13 +427,13 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         _, slc = get_form_data(slice_id, use_slice_data=True)
         if not slc:
             abort(404)
-        endpoint = "/superset/explore/?form_data={}".format(
+        endpoint = "/explore/?form_data={}".format(
             parse.quote(json.dumps({"slice_id": slice_id}))
         )
 
         is_standalone_mode = ReservedUrlParameters.is_standalone_mode()
         if is_standalone_mode:
-            endpoint += f"&{ReservedUrlParameters.STANDALONE}={is_standalone_mode}"
+            endpoint += f"&{ReservedUrlParameters.STANDALONE}=true"
         return redirect(endpoint)
 
     def get_query_string_response(self, viz_obj: BaseViz) -> FlaskResponse:
@@ -752,6 +752,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             "This API endpoint is deprecated and will be removed in version 3.0.0",
             self.__class__.__name__,
         )
+        if request.method == "GET":
+            return redirect(request.url.replace("/superset/explore", "/explore"))
+
         initial_form_data = {}
 
         form_data_key = request.args.get("form_data_key")
@@ -815,7 +818,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             try:
                 datasource = DatasourceDAO.get_datasource(
                     db.session,
-                    DatasourceType(cast(str, datasource_type)),
+                    DatasourceType("table"),
                     datasource_id,
                 )
             except DatasetNotFoundError:
@@ -1204,7 +1207,16 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             max_tables = max_items * len(tables) // total_items
             max_views = max_items * len(views) // total_items
 
-        dataset_tables = {table.name: table for table in database.tables}
+        extra_dict_by_name = {
+            table.name: table.extra_dict
+            for table in (
+                db.session.query(SqlaTable).filter(
+                    SqlaTable.name.in_(  # # pylint: disable=no-member
+                        f"{table.schema}.{table.table}" for table in tables
+                    )
+                )
+            ).all()
+        }
 
         table_options = [
             {
@@ -1213,9 +1225,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 "label": get_datasource_label(tn),
                 "title": get_datasource_label(tn),
                 "type": "table",
-                "extra": dataset_tables[f"{tn.schema}.{tn.table}"].extra_dict
-                if (f"{tn.schema}.{tn.table}" in dataset_tables)
-                else None,
+                "extra": extra_dict_by_name.get(f"{tn.schema}.{tn.table}", None),
             }
             for tn in tables[:max_tables]
         ]
@@ -1979,6 +1989,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         return self.render_template(
             "superset/spa.html",
             entry="spa",
+            # dashboard title is always visible
+            title=dashboard.dashboard_title,
             bootstrap_data=json.dumps(
                 bootstrap_data, default=utils.pessimistic_json_iso_dttm_ser
             ),
@@ -2088,8 +2100,20 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             .filter_by(database_id=database_id, table_name=table_name)
             .one_or_none()
         )
-        if not table:
-            table = SqlaTable(table_name=table_name, owners=[g.user])
+
+        if table:
+            return json_errors_response(
+                [
+                    SupersetError(
+                        message=f"Dataset [{table_name}] already exists",
+                        error_type=SupersetErrorType.GENERIC_BACKEND_ERROR,
+                        level=ErrorLevel.WARNING,
+                    )
+                ],
+                status=422,
+            )
+
+        table = SqlaTable(table_name=table_name, owners=[g.user])
         table.database = database
         table.schema = data.get("schema")
         table.template_params = data.get("templateParams")
@@ -2111,7 +2135,12 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         table.columns = cols
         table.metrics = [SqlMetric(metric_name="count", expression="count(*)")]
         db.session.commit()
-        return json_success(json.dumps({"table_id": table.id}))
+
+        return json_success(
+            json.dumps(
+                {"table_id": table.id, "data": sanitize_datasource_data(table.data)}
+            )
+        )
 
     @has_access
     @expose("/extra_table_metadata/<int:database_id>/<table_name>/<schema>/")
@@ -2317,6 +2346,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             raise SupersetCancelQueryException("Could not cancel query")
 
         query.status = QueryStatus.STOPPED
+        query.end_time = now_as_float()
         db.session.commit()
 
         return self.json_response("OK")
@@ -2475,9 +2505,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access
     @event_logger.log_this
     @expose("/csv/<client_id>")
-    def csv(  # pylint: disable=no-self-use,too-many-locals
-        self, client_id: str
-    ) -> FlaskResponse:
+    def csv(self, client_id: str) -> FlaskResponse:  # pylint: disable=no-self-use
         """Download the query results as csv."""
         logger.info("Exporting CSV file [%s]", client_id)
         query = db.session.query(Query).filter_by(client_id=client_id).one()
@@ -2500,8 +2528,13 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             obj = _deserialize_results_payload(
                 payload, query, cast(bool, results_backend_use_msgpack)
             )
-            columns = [c["name"] for c in obj["columns"]]
-            df = pd.DataFrame.from_records(obj["data"], columns=columns)
+
+            df = pd.DataFrame(
+                data=obj["data"],
+                dtype=object,
+                columns=[c["name"] for c in obj["columns"]],
+            )
+
             logger.info("Using pandas to convert to CSV")
         else:
             logger.info("Running a query to turn into CSV")
