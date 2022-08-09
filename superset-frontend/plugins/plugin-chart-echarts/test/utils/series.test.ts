@@ -309,7 +309,7 @@ describe('extractShowValueIndexes', () => {
               ['2000-01-01', null],
               ['2000-02-01', 0],
               ['2000-03-01', null],
-              ['2000-04-01', 0],
+              ['2000-04-01', 1],
               ['2000-05-01', null],
               ['2000-06-01', 0],
               ['2000-07-01', -2],
@@ -321,7 +321,7 @@ describe('extractShowValueIndexes', () => {
         ],
         { stack: true, onlyTotal: true },
       ),
-    ).toEqual([0, 0, 0, 0, 0, 0, 1, 2, 0, 0]);
+    ).toEqual([undefined, 1, 0, 2, undefined, 1, 1, 2, undefined, 1]);
   });
 });
 

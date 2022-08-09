@@ -242,7 +242,8 @@ export function transformSeries(
         if (!stack || isSelectedLegend) return formatter(numericValue);
         if (!onlyTotal) {
           if (
-            numericValue >= (thresholdValues[dataIndex] ?? Number.MIN_VALUE)
+            numericValue >=
+            (thresholdValues[dataIndex] || Number.MIN_SAFE_INTEGER)
           ) {
             return formatter(numericValue);
           }
