@@ -77,6 +77,7 @@ export function extractShowValueIndexes(
   series: SeriesOption[],
   opts: {
     stack: StackType;
+    onlyTotal: boolean;
   },
 ): number[] {
   const showValueIndexes: number[] = [];
@@ -84,8 +85,14 @@ export function extractShowValueIndexes(
     series.forEach((entry, seriesIndex) => {
       const { data = [] } = entry;
       (data as [any, number][]).forEach((datum, dataIndex) => {
-        if (datum[1] !== null) {
+        if (!opts.onlyTotal && datum[1] !== null) {
           showValueIndexes[dataIndex] = seriesIndex;
+        }
+        if (opts.onlyTotal) {
+          showValueIndexes[dataIndex] = showValueIndexes[dataIndex] ?? 0;
+          if (datum[1] > 0) {
+            showValueIndexes[dataIndex] = seriesIndex;
+          }
         }
       });
     });
