@@ -202,7 +202,7 @@ class ChartRenderer extends React.Component {
   }
 
   handleContextMenuSelected(filters) {
-    const extraFilters = this.props.formData.extra_form_data.filters || [];
+    const extraFilters = this.props.formData.extra_form_data?.filters || [];
     // eslint-disable-next-line no-alert
     alert(JSON.stringify(filters.concat(extraFilters)));
     this.setState({ inContextMenu: false });

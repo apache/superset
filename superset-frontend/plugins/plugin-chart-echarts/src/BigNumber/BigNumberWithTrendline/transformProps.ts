@@ -62,8 +62,16 @@ const formatPercentChange = getNumberFormatter(
 export default function transformProps(
   chartProps: BigNumberWithTrendlineChartProps,
 ) {
-  const { width, height, queriesData, formData, rawFormData, theme, hooks } =
-    chartProps;
+  const {
+    width,
+    height,
+    queriesData,
+    formData,
+    rawFormData,
+    theme,
+    hooks,
+    inContextMenu,
+  } = chartProps;
   const {
     colorPicker,
     compareLag: compareLag_,
@@ -221,7 +229,7 @@ export default function transformProps(
         },
         tooltip: {
           appendToBody: true,
-          show: true,
+          show: !inContextMenu,
           trigger: 'axis',
           confine: true,
           formatter: renderTooltipFactory(formatTime, headerFormatter),
@@ -245,6 +253,7 @@ export default function transformProps(
     className,
     headerFormatter,
     formatTime,
+    formData,
     headerFontSize,
     subheaderFontSize,
     mainColor,
@@ -256,5 +265,6 @@ export default function transformProps(
     trendLineData,
     echartOptions,
     onContextMenu,
+    xValueFormatter: formatTime,
   };
 }
