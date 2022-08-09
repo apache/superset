@@ -35,7 +35,8 @@ from superset.views.utils import is_owner
 
 def check_dataset_access(dataset_id: int) -> Optional[bool]:
     if dataset_id:
-        dataset = DatasetDAO.find_by_id(dataset_id)
+        # Access checks below, no need to validate them twice as they can be expensive.
+        dataset = DatasetDAO.find_by_id(dataset_id, skip_base_filter=True)
         if dataset:
             can_access_datasource = security_manager.can_access_datasource(dataset)
             if can_access_datasource:
@@ -48,7 +49,8 @@ def check_access(dataset_id: int, chart_id: Optional[int], actor: User) -> None:
     check_dataset_access(dataset_id)
     if not chart_id:
         return
-    chart = ChartDAO.find_by_id(chart_id)
+    # Access checks below, no need to validate them twice as they can be expensive.
+    chart = ChartDAO.find_by_id(chart_id, skip_base_filter=True)
     if chart:
         can_access_chart = (
             is_user_admin()

@@ -119,7 +119,7 @@ def test_post_access_denied(client, chart_id: int, dataset_id: int):
         "form_data": INITIAL_FORM_DATA,
     }
     resp = client.post("api/v1/explore/form_data", json=payload)
-    assert resp.status_code == 404
+    assert resp.status_code == 403
 
 
 def test_post_same_key_for_same_context(client, chart_id: int, dataset_id: int):
@@ -310,7 +310,7 @@ def test_put_access_denied(client, chart_id: int, dataset_id: int):
         "form_data": UPDATED_FORM_DATA,
     }
     resp = client.put(f"api/v1/explore/form_data/{KEY}", json=payload)
-    assert resp.status_code == 404
+    assert resp.status_code == 403
 
 
 def test_put_not_owner(client, chart_id: int, dataset_id: int):
@@ -321,7 +321,7 @@ def test_put_not_owner(client, chart_id: int, dataset_id: int):
         "form_data": UPDATED_FORM_DATA,
     }
     resp = client.put(f"api/v1/explore/form_data/{KEY}", json=payload)
-    assert resp.status_code == 404
+    assert resp.status_code == 403
 
 
 def test_get_key_not_found(client):
@@ -341,7 +341,7 @@ def test_get(client):
 def test_get_access_denied(client):
     login(client, "gamma")
     resp = client.get(f"api/v1/explore/form_data/{KEY}")
-    assert resp.status_code == 404
+    assert resp.status_code == 403
 
 
 @patch("superset.security.SupersetSecurityManager.can_access_datasource")
@@ -361,7 +361,7 @@ def test_delete(client):
 def test_delete_access_denied(client):
     login(client, "gamma")
     resp = client.delete(f"api/v1/explore/form_data/{KEY}")
-    assert resp.status_code == 404
+    assert resp.status_code == 403
 
 
 def test_delete_not_owner(client, chart_id: int, dataset_id: int, admin_id: int):

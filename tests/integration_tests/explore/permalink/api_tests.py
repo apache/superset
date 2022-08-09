@@ -85,7 +85,7 @@ def test_post(client, form_data: Dict[str, Any], permalink_salt: str):
 def test_post_access_denied(client, form_data):
     login(client, "gamma")
     resp = client.post(f"api/v1/explore/permalink", json={"formData": form_data})
-    assert resp.status_code == 404
+    assert resp.status_code == 403
 
 
 def test_get_missing_chart(client, chart, permalink_salt: str) -> None:
