@@ -45,7 +45,7 @@ def load_long_lat_data(only_metadata: bool = False, force: bool = False) -> None
 
     if not only_metadata and (not table_exists or force):
         data = get_example_data("san_francisco.csv.gz", make_bytes=True)
-        pdf = pd.read_csv(data, encoding="utf-8", engine="pyarrow")
+        pdf = pd.read_csv(data, encoding="utf-8")
         start = datetime.datetime.now().replace(
             hour=0, minute=0, second=0, microsecond=0
         )

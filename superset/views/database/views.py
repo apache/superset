@@ -142,7 +142,6 @@ class CsvToDatabaseView(SimpleFormView):
         try:
             df = pd.concat(
                 pd.read_csv(
-                    engine="pyarrow",
                     chunksize=1000,
                     encoding="utf-8",
                     filepath_or_buffer=form.csv_file.data,

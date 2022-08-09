@@ -19,7 +19,7 @@ import json
 import os
 import zlib
 from io import BytesIO
-from typing import Any, Dict, List, Set
+from typing import Union, Any, Dict, List, Set
 from urllib import request
 
 from superset import app, db
@@ -75,7 +75,7 @@ def get_slice_json(defaults: Dict[Any, Any], **kwargs: Any) -> str:
 
 def get_example_data(
     filepath: str, is_gzip: bool = True, make_bytes: bool = False
-) -> BytesIO:
+) -> Union[bytes, BytesIO]:
     content = request.urlopen(  # pylint: disable=consider-using-with
         f"{BASE_URL}{filepath}?raw=true"
     ).read()

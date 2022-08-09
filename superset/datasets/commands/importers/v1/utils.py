@@ -154,7 +154,7 @@ def load_data(
     data = request.urlopen(data_uri)  # pylint: disable=consider-using-with
     if data_uri.endswith(".gz"):
         data = gzip.open(data)
-    df = pd.read_csv(data, encoding="utf-8", engine="pyarrow")
+    df = pd.read_csv(data, encoding="utf-8")
     dtype = get_dtype(df, dataset)
 
     # convert temporal columns

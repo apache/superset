@@ -22,12 +22,12 @@ This data was downloaded from the
 Here's the script that was used to massage the data:
 
     DIR = ""
-    df_country = pd.read_csv(DIR + '/HNP_Country.csv', engine="pyarrow")
+    df_country = pd.read_csv(DIR + '/HNP_Country.csv')
     df_country.columns = ['country_code'] + list(df_country.columns[1:])
     df_country = df_country[['country_code', 'Region']]
     df_country.columns = ['country_code', 'region']
 
-    df = pd.read_csv(DIR + '/HNP_Data.csv', engine="pyarrow")
+    df = pd.read_csv(DIR + '/HNP_Data.csv')
     del df['Unnamed: 60']
     df.columns = ['country_name', 'country_code'] + list(df.columns[2:])
     ndf = df.merge(df_country, how='inner')

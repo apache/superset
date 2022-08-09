@@ -34,7 +34,7 @@ def load_bart_lines(only_metadata: bool = False, force: bool = False) -> None:
     table_exists = database.has_table_by_name(tbl_name)
 
     if not only_metadata and (not table_exists or force):
-        content = get_example_data("bart-lines.json.gz", make_bytes=True)
+        content = get_example_data("bart-lines.json.gz").decode("utf-8")
         df = pd.read_json(content, encoding="latin-1")
         df["path_json"] = df.path.map(json.dumps)
         df["polyline"] = df.path.map(polyline.encode)

@@ -33,11 +33,11 @@ def load_flights(only_metadata: bool = False, force: bool = False) -> None:
 
     if not only_metadata and (not table_exists or force):
         data = get_example_data("flight_data.csv.gz", make_bytes=True)
-        pdf = pd.read_csv(data, encoding="latin-1", engine="pyarrow")
+        pdf = pd.read_csv(data, encoding="latin-1")
 
         # Loading airports info to join and get lat/long
         airports_bytes = get_example_data("airports.csv.gz", make_bytes=True)
-        airports = pd.read_csv(airports_bytes, encoding="latin-1", engine="pyarrow")
+        airports = pd.read_csv(airports_bytes, encoding="latin-1")
         airports = airports.set_index("IATA_CODE")
 
         pdf[  # pylint: disable=unsupported-assignment-operation,useless-suppression

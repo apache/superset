@@ -46,7 +46,7 @@ def load_energy(
     table_exists = database.has_table_by_name(tbl_name)
 
     if not only_metadata and (not table_exists or force):
-        data = get_example_data("energy.json.gz", make_bytes=True)
+        data = get_example_data("energy.json.gz").decode("utf-8")
         pdf = pd.read_json(data)
         pdf = pdf.head(100) if sample else pdf
         pdf.to_sql(

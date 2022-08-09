@@ -44,7 +44,7 @@ def load_multiformat_time_series(  # pylint: disable=too-many-locals
     table_exists = database.has_table_by_name(tbl_name)
 
     if not only_metadata and (not table_exists or force):
-        data = get_example_data("multiformat_time_series.json.gz", make_bytes=True)
+        data = get_example_data("multiformat_time_series.json.gz").decode("utf-8")
         pdf = pd.read_json(data)
         # TODO(bkyryliuk): move load examples data into the pytest fixture
         if database.backend == "presto":

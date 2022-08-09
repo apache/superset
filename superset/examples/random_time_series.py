@@ -42,7 +42,7 @@ def load_random_time_series_data(
     table_exists = database.has_table_by_name(tbl_name)
 
     if not only_metadata and (not table_exists or force):
-        data = get_example_data("random_time_series.json.gz", make_bytes=True)
+        data = get_example_data("random_time_series.json.gz").decode("utf-8")
         pdf = pd.read_json(data)
         if database.backend == "presto":
             pdf.ds = pd.to_datetime(pdf.ds, unit="s")
