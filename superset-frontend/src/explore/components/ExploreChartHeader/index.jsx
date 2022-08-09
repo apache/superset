@@ -35,12 +35,8 @@ import Icons from 'src/components/Icons';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
 import { sliceUpdated } from 'src/explore/actions/exploreActions';
 import { PageHeaderWithActions } from 'src/components/PageHeaderWithActions';
-import { fetchTags, OBJECT_TYPES } from 'src/tags';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
-import { TagsList } from 'src/components/Tags';
 import { useExploreAdditionalActionsMenu } from '../useExploreAdditionalActionsMenu';
-
-const MAX_TAGS = 3;
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -154,23 +150,6 @@ export const ExploreChartHeader = ({
 
   const oldSliceName = slice?.slice_name;
 
-  const [tags, setTags] = useState([]);
-
-  useEffect(() => {
-    if (!isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM)) return;
-    fetchTags(
-      {
-        objectType: OBJECT_TYPES.CHART,
-        objectId: slice.slice_id,
-        includeTypes: false,
-      },
-      tags => setTags(tags),
-      () => {
-        /** handle error */
-      },
-    );
-  }, [slice]);
-
   return (
     <>
       <PageHeaderWithActions
@@ -206,16 +185,6 @@ export const ExploreChartHeader = ({
                 chartTitle: oldSliceName,
               }}
               currentFormData={{ ...formData, chartTitle: sliceName }}
-            />
-          ) : null,
-          isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM) ? (
-            <TagsList
-              tags={tags.filter(tag =>
-                tag.type
-                  ? tag.type === 1 || tag.type === 'TagTypes.custom'
-                  : true,
-              )}
-              maxTags={MAX_TAGS}
             />
           ) : null,
         ]}

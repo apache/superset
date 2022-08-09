@@ -33,7 +33,6 @@ import Button from 'src/components/Button';
 import { AntdButton } from 'src/components/';
 import { findPermission } from 'src/utils/findPermission';
 import { Tooltip } from 'src/components/Tooltip';
-import ObjectTags from 'src/components/ObjectTags';
 import { safeStringify } from 'src/utils/safeStringify';
 import HeaderActionsDropdown from 'src/dashboard/components/Header/HeaderActionsDropdown';
 import PublishedStatus from 'src/dashboard/components/PublishedStatus';
@@ -52,10 +51,7 @@ import setPeriodicRunner, {
 import { options as PeriodicRefreshOptions } from 'src/dashboard/components/RefreshIntervalModal';
 import { FILTER_BOX_MIGRATION_STATES } from 'src/explore/constants';
 import { PageHeaderWithActions } from 'src/components/PageHeaderWithActions';
-import { OBJECT_TYPES } from 'src/tags';
 import { DashboardEmbedModal } from '../DashboardEmbedControls';
-
-const MAX_TAGS = 3;
 
 const propTypes = {
   addSuccessToast: PropTypes.func.isRequired,
@@ -523,14 +519,6 @@ class Header extends React.PureComponent {
                 canEdit={userCanEdit}
                 canSave={userCanSaveAs}
                 visible={!editMode}
-              />
-            ),
-            isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM) && (
-              <ObjectTags
-                objectType={OBJECT_TYPES.DASHBOARD}
-                objectId={dashboardInfo.id}
-                includeTypes={false}
-                maxTags={MAX_TAGS}
               />
             ),
           ]}
