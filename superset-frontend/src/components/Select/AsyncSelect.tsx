@@ -686,8 +686,7 @@ const AsyncSelect = forwardRef(
       }),
       [ref],
     );
-    
-    
+
     const tagRender = (props: CustomTagProps) => (
       <EditableTag
         selectValue={selectValue}

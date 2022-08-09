@@ -422,7 +422,7 @@ const Select = forwardRef(
       }
       return <DownOutlined />;
     };
-    
+
     const handleClear = () => {
       setSelectValue(undefined);
       if (onClear) {
@@ -444,7 +444,7 @@ const Select = forwardRef(
         setIsLoading(loading);
       }
     }, [isLoading, loading]);
-    
+
     const tagRender = (props: CustomTagProps) => (
       <EditableTag
         selectValue={selectValue}
