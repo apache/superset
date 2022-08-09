@@ -84,7 +84,7 @@ def test_post(
 def test_post_access_denied(test_client, login_as, form_data):
     login_as("gamma")
     resp = test_client.post(f"api/v1/explore/permalink", json={"formData": form_data})
-    assert resp.status_code == 404
+    assert resp.status_code == 403
 
 
 def test_get_missing_chart(

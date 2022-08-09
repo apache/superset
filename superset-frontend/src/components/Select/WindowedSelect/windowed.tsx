@@ -68,13 +68,17 @@ export function MenuList<OptionType extends OptionTypeBase>({
 export default function windowed<OptionType extends OptionTypeBase>(
   SelectComponent: ComponentType<SelectProps<OptionType>>,
 ): WindowedSelectComponentType<OptionType> {
-  function WindowedSelect(
-    props: WindowedSelectProps<OptionType>,
-    ref: React.RefObject<Select<OptionType>>,
-  ) {
-    const { components: components_ = {}, ...restProps } = props;
-    const components = { ...components_, MenuList };
-    return <SelectComponent components={components} ref={ref} {...restProps} />;
-  }
-  return forwardRef(WindowedSelect);
+  const WindowedSelect = forwardRef(
+    (
+      props: WindowedSelectProps<OptionType>,
+      ref: React.RefObject<Select<OptionType>>,
+    ) => {
+      const { components: components_ = {}, ...restProps } = props;
+      const components = { ...components_, MenuList };
+      return (
+        <SelectComponent components={components} ref={ref} {...restProps} />
+      );
+    },
+  );
+  return WindowedSelect;
 }

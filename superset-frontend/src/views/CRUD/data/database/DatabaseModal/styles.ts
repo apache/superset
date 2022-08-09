@@ -51,6 +51,10 @@ export const StyledFormHeader = styled.header`
     margin: 0;
   }
 
+  .subheader-text {
+    line-height: ${({ theme }) => theme.gridUnit * 4.25}px;
+  }
+
   .helper-bottom {
     padding-top: 0;
     color: ${({ theme }) => theme.colors.grayscale.base};
