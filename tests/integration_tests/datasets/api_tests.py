@@ -1817,6 +1817,7 @@ class TestDatasetApi(SupersetTestCase):
         rv = self.client.get(uri)
         assert rv.status_code == 404
         self.logout()
+
         self.login(username="gamma")
         table = self.get_birth_names_dataset()
         uri = f"api/v1/dataset/{table.id}/related_objects"
