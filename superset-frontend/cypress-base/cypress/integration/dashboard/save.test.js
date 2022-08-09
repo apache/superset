@@ -25,11 +25,18 @@ import {
 } from './dashboard.helper';
 
 function openDashboardEditProperties() {
-  cy.get('.header-with-actions [aria-label="Edit dashboard"]').click();
+  // open dashboard properties edit modal
+  cy.get('.header-with-actions [aria-label="Edit dashboard"]')
+    .should('be.visible')
+    .click();
   cy.get(
     '.header-with-actions .right-button-panel .ant-dropdown-trigger',
-  ).trigger('click', { force: true });
-  cy.get('.dropdown-menu').contains('Edit properties').click();
+  ).trigger('click', {
+    force: true,
+  });
+  cy.get('[data-test=header-actions-menu]')
+    .contains('Edit properties')
+    .click({ force: true });
 }
 
 describe('Dashboard save action', () => {
@@ -98,8 +105,7 @@ describe('Dashboard save action', () => {
       .should('not.exist');
   });
 
-  // TODO: Fix broken test
-  xit('should save after edit', () => {
+  it('should save after edit', () => {
     cy.get('.dashboard-grid', { timeout: 50000 }) // wait for 50 secs to load dashboard
       .then(() => {
         const dashboardTitle = `Test dashboard [${shortid.generate()}]`;
@@ -110,14 +116,13 @@ describe('Dashboard save action', () => {
         cy.get('.ant-modal-body')
           .contains('Color scheme')
           .parents('.ControlHeader')
-          .next('.Select')
+          .next('.ant-select')
           .click()
-          .then($colorSelect => {
+          .then(() => {
             // select a new color scheme
-            cy.wrap($colorSelect)
-              .find('.Select__option')
+            cy.get('.ant-modal-body')
+              .find('.ant-select-item-option-active')
               .first()
-              .next()
               .click();
           });
 
@@ -130,14 +135,13 @@ describe('Dashboard save action', () => {
           });
 
         // update title
-        cy.get('.ant-modal-body')
-          .contains('Title')
-          .siblings('input')
-          .type(`{selectall}{backspace}${dashboardTitle}`);
+        cy.get('[data-test="dashboard-title-input"]').type(
+          `{selectall}{backspace}${dashboardTitle}`,
+        );
 
         // save edit changes
         cy.get('.ant-modal-footer')
-          .contains('Save')
+          .contains('Apply')
           .click()
           .then(() => {
             // assert that modal edit window has closed
@@ -150,10 +154,9 @@ describe('Dashboard save action', () => {
             cy.contains('saved successfully').should('be.visible');
 
             // assert title has been updated
-            cy.get('.editable-title [data-test="editable-title-input"]').should(
-              'have.value',
-              dashboardTitle,
-            );
+            cy.get(
+              '.header-with-actions .title-panel [data-test="editable-title"]',
+            ).should('have.text', dashboardTitle);
           });
       });
   });
