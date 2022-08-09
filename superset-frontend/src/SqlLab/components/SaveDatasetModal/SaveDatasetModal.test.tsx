@@ -47,7 +47,7 @@ beforeEach(() => {
 });
 
 describe('SaveDatasetModal', () => {
-  it('renders a "Save as new" field', async () => {
+  it('renders a "Save as new" field', () => {
     render(<SaveDatasetModal {...mockedProps} />, { useRedux: true });
 
     const saveRadioBtn = screen.getByRole('radio', {
@@ -64,7 +64,7 @@ describe('SaveDatasetModal', () => {
     expect(inputFieldText).toBeVisible();
   });
 
-  it('renders an "Overwrite existing" field', async () => {
+  it('renders an "Overwrite existing" field', () => {
     render(<SaveDatasetModal {...mockedProps} />, { useRedux: true });
 
     const overwriteRadioBtn = screen.getByRole('radio', {
@@ -80,20 +80,20 @@ describe('SaveDatasetModal', () => {
     expect(placeholderText).toBeVisible();
   });
 
-  it('renders a close button', async () => {
+  it('renders a close button', () => {
     render(<SaveDatasetModal {...mockedProps} />, { useRedux: true });
 
     expect(screen.getByRole('button', { name: /close/i })).toBeVisible();
   });
 
-  it('renders a save button when "Save as new" is selected', async () => {
+  it('renders a save button when "Save as new" is selected', () => {
     render(<SaveDatasetModal {...mockedProps} />, { useRedux: true });
 
     // "Save as new" is selected when the modal opens by default
     expect(screen.getByRole('button', { name: /save/i })).toBeVisible();
   });
 
-  it('renders an overwrite button when "Overwrite existing" is selected', async () => {
+  it('renders an overwrite button when "Overwrite existing" is selected', () => {
     render(<SaveDatasetModal {...mockedProps} />, { useRedux: true });
 
     // Click the overwrite radio button to reveal the overwrite confirmation and back buttons
