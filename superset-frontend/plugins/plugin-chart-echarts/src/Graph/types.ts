@@ -16,10 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { QueryFormData } from '@superset-ui/core';
+import {
+  PlainObject,
+  QueryFormData,
+  QueryObjectFilterClause,
+} from '@superset-ui/core';
 import { GraphNodeItemOption } from 'echarts/types/src/chart/graph/GraphSeries';
 import { SeriesTooltipOption } from 'echarts/types/src/util/types';
-import { EchartsLegendFormData, LegendOrientation, LegendType } from '../types';
+import {
+  EchartsLegendFormData,
+  EchartsProps,
+  LegendOrientation,
+  LegendType,
+} from '../types';
 import { DEFAULT_LEGEND_FORM_DATA } from '../constants';
 
 export type EdgeSymbol = 'none' | 'circle' | 'arrow';
@@ -74,4 +83,13 @@ export const DEFAULT_FORM_DATA: EchartsGraphFormData = {
 
 export type tooltipFormatParams = {
   data: { [name: string]: string };
+};
+
+export type GraphChartTransformedProps = EchartsProps & {
+  formData: PlainObject;
+  onContextMenu?: (
+    filters: QueryObjectFilterClause[],
+    offsetX: number,
+    offsetY: number,
+  ) => void;
 };

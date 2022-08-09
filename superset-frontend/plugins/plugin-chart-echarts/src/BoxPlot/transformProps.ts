@@ -44,10 +44,17 @@ import { OpacityEnum } from '../constants';
 export default function transformProps(
   chartProps: EchartsBoxPlotChartProps,
 ): BoxPlotChartTransformedProps {
-  const { width, height, formData, hooks, filterState, queriesData } =
-    chartProps;
+  const {
+    width,
+    height,
+    formData,
+    hooks,
+    filterState,
+    queriesData,
+    inContextMenu,
+  } = chartProps;
   const { data = [] } = queriesData[0];
-  const { setDataMask = () => {} } = hooks;
+  const { setDataMask = () => {}, onContextMenu } = hooks;
   const coltypeMapping = getColtypesMapping(queriesData[0]);
   const {
     colorScheme,
@@ -268,6 +275,7 @@ export default function transformProps(
     },
     tooltip: {
       ...defaultTooltip,
+      show: !inContextMenu,
       trigger: 'item',
       axisPointer: {
         type: 'shadow',
@@ -286,5 +294,6 @@ export default function transformProps(
     labelMap,
     groupby,
     selectedValues,
+    onContextMenu,
   };
 }

@@ -16,23 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { EChartsCoreOption } from 'echarts';
 import {
   AnnotationLayer,
   TimeGranularity,
   DataRecordValue,
-  SetDataMaskHook,
   QueryFormData,
   ChartProps,
   ChartDataResponseResult,
   QueryFormColumn,
   ContributionType,
+  TimeFormatter,
 } from '@superset-ui/core';
 import {
   EchartsLegendFormData,
   EchartsTitleFormData,
   StackType,
   EchartsTimeseriesSeriesType,
+  EChartTransformedProps,
 } from '../types';
 import {
   DEFAULT_LEGEND_FORM_DATA,
@@ -138,18 +138,11 @@ export interface EchartsMixedTimeseriesProps extends ChartProps {
   queriesData: ChartDataResponseResult[];
 }
 
-export type EchartsMixedTimeseriesChartTransformedProps = {
-  formData: EchartsMixedTimeseriesFormData;
-  height: number;
-  width: number;
-  echartOptions: EChartsCoreOption;
-  emitFilter: boolean;
-  emitFilterB: boolean;
-  setDataMask: SetDataMaskHook;
-  groupby: QueryFormColumn[];
-  groupbyB: QueryFormColumn[];
-  labelMap: Record<string, DataRecordValue[]>;
-  labelMapB: Record<string, DataRecordValue[]>;
-  selectedValues: Record<number, string>;
-  seriesBreakdown: number;
-};
+export type EchartsMixedTimeseriesChartTransformedProps =
+  EChartTransformedProps<EchartsMixedTimeseriesFormData> & {
+    emitFilterB: boolean;
+    groupbyB: QueryFormColumn[];
+    labelMapB: Record<string, DataRecordValue[]>;
+    seriesBreakdown: number;
+    xValueFormatter: TimeFormatter | StringConstructor;
+  };

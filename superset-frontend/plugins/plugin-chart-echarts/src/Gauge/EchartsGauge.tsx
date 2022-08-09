@@ -17,9 +17,10 @@
  * under the License.
  */
 import React, { useCallback } from 'react';
+import { QueryObjectFilterClause } from '@superset-ui/core';
 import { GaugeChartTransformedProps } from './types';
 import Echart from '../components/Echart';
-import { EventHandlers } from '../types';
+import { Event, clickEventHandler } from '../utils/eventHandlers';
 
 export default function EchartsGauge({
   height,
@@ -30,6 +31,7 @@ export default function EchartsGauge({
   groupby,
   selectedValues,
   formData: { emitFilter },
+  onContextMenu,
 }: GaugeChartTransformedProps) {
   const handleChange = useCallback(
     (values: string[]) => {
@@ -67,14 +69,25 @@ export default function EchartsGauge({
     [groupby, labelMap, setDataMask, selectedValues],
   );
 
-  const eventHandlers: EventHandlers = {
-    click: props => {
-      const { name } = props;
-      const values = Object.values(selectedValues);
-      if (values.includes(name)) {
-        handleChange(values.filter(v => v !== name));
-      } else {
-        handleChange([name]);
+  const eventHandlers = {
+    click: clickEventHandler(selectedValues, handleChange),
+    contextmenu: (e: Event) => {
+      if (onContextMenu) {
+        e.event.stop();
+        const pointerEvent = e.event.event;
+        const filters: QueryObjectFilterClause[] = [];
+        if (groupby.length > 0) {
+          const values = e.name.split(',');
+          groupby.forEach((dimension, i) =>
+            filters.push({
+              col: dimension,
+              op: '==',
+              val: values[i].split(': ')[1],
+              formattedVal: values[i].split(': ')[1],
+            }),
+          );
+        }
+        onContextMenu(filters, pointerEvent.offsetX, pointerEvent.offsetY);
       }
     },
   };
