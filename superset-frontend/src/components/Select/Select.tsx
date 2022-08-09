@@ -436,11 +436,12 @@ const Select = (
     />
   );
 
-  const tagRenderProps = editable
-    ? {
-        tagRender,
-      }
-    : {};
+  const tagRenderProps =
+    editable && allowNewOptions
+      ? {
+          tagRender,
+        }
+      : {};
 
   useEffect(() => {
     // when `options` list is updated from component prop, reset states

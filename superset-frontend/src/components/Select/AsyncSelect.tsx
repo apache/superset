@@ -693,11 +693,12 @@ const AsyncSelect = (
     />
   );
 
-  const tagRenderProps = editable
-    ? {
-        tagRender,
-      }
-    : {};
+  const tagRenderProps =
+    editable && allowNewOptions
+      ? {
+          tagRender,
+        }
+      : {};
 
   return (
     <StyledContainer>
