@@ -288,450 +288,455 @@ const getQueryCacheKey = (value: string, page: number, pageSize: number) =>
  * Each of the categories come with different abilities. For a comprehensive guide please refer to
  * the storybook in src/components/Select/Select.stories.tsx.
  */
-const AsyncSelect = (
-  {
-    allowClear,
-    allowNewOptions = false,
-    ariaLabel,
-    fetchOnlyOnSearch,
-    filterOption = true,
-    header = null,
-    invertSelection = false,
-    lazyLoading = true,
-    loading,
-    mode = 'single',
-    name,
-    notFoundContent,
-    onError,
-    onChange,
-    onClear,
-    onDropdownVisibleChange,
-    optionFilterProps = ['label', 'value'],
-    options,
-    pageSize = DEFAULT_PAGE_SIZE,
-    placeholder = t('Select ...'),
-    showSearch = true,
-    sortComparator = DEFAULT_SORT_COMPARATOR,
-    tokenSeparators,
-    value,
-    getPopupContainer,
-    ...props
-  }: AsyncSelectProps,
-  ref: RefObject<AsyncSelectRef>,
-) => {
-  const isSingleMode = mode === 'single';
-  const [selectValue, setSelectValue] = useState(value);
-  const [inputValue, setInputValue] = useState('');
-  const [isLoading, setIsLoading] = useState(loading);
-  const [error, setError] = useState('');
-  const [isDropdownVisible, setIsDropdownVisible] = useState(false);
-  const [page, setPage] = useState(0);
-  const [totalCount, setTotalCount] = useState(0);
-  const [loadingEnabled, setLoadingEnabled] = useState(!lazyLoading);
-  const [allValuesLoaded, setAllValuesLoaded] = useState(false);
-  const fetchedQueries = useRef(new Map<string, number>());
-  const mappedMode = isSingleMode
-    ? undefined
-    : allowNewOptions
-    ? 'tags'
-    : 'multiple';
-  const allowFetch = !fetchOnlyOnSearch || inputValue;
-
-  const sortSelectedFirst = useCallback(
-    (a: AntdLabeledValue, b: AntdLabeledValue) =>
-      selectValue && a.value !== undefined && b.value !== undefined
-        ? Number(hasOption(b.value, selectValue)) -
-          Number(hasOption(a.value, selectValue))
-        : 0,
-    [selectValue],
-  );
-  const sortComparatorWithSearch = useCallback(
-    (a: AntdLabeledValue, b: AntdLabeledValue) =>
-      sortSelectedFirst(a, b) || sortComparator(a, b, inputValue),
-    [inputValue, sortComparator, sortSelectedFirst],
-  );
-  const sortComparatorForNoSearch = useCallback(
-    (a: AntdLabeledValue, b: AntdLabeledValue) =>
-      sortSelectedFirst(a, b) ||
-      // Only apply the custom sorter in async mode because we should
-      // preserve the options order as much as possible.
-      sortComparator(a, b, ''),
-    [sortComparator, sortSelectedFirst],
-  );
-
-  const initialOptions = useMemo(
-    () => (options && Array.isArray(options) ? options.slice() : EMPTY_OPTIONS),
-    [options],
-  );
-  const initialOptionsSorted = useMemo(
-    () => initialOptions.slice().sort(sortComparatorForNoSearch),
-    [initialOptions, sortComparatorForNoSearch],
-  );
-
-  const [selectOptions, setSelectOptions] =
-    useState<OptionsType>(initialOptionsSorted);
-
-  // add selected values to options list if they are not in it
-  const fullSelectOptions = useMemo(() => {
-    const missingValues: OptionsType = ensureIsArray(selectValue)
-      .filter(opt => !hasOption(getValue(opt), selectOptions))
-      .map(opt =>
-        isLabeledValue(opt) ? opt : { value: opt, label: String(opt) },
-      );
-    return missingValues.length > 0
-      ? missingValues.concat(selectOptions)
-      : selectOptions;
-  }, [selectOptions, selectValue]);
-
-  const hasCustomLabels = fullSelectOptions.some(opt => !!opt?.customLabel);
-
-  const handleOnSelect = (
-    selectedItem: string | number | AntdLabeledValue | undefined,
-  ) => {
-    if (isSingleMode) {
-      setSelectValue(selectedItem);
-    } else {
-      setSelectValue(previousState => {
-        const array = ensureIsArray(previousState);
-        const value = getValue(selectedItem);
-        // Tokenized values can contain duplicated values
-        if (!hasOption(value, array)) {
-          const result = [...array, selectedItem];
-          return isLabeledValue(selectedItem)
-            ? (result as AntdLabeledValue[])
-            : (result as (string | number)[]);
-        }
-        return previousState;
-      });
-    }
-    setInputValue('');
-  };
-
-  const handleOnDeselect = (
-    value: string | number | AntdLabeledValue | undefined,
-  ) => {
-    if (Array.isArray(selectValue)) {
-      if (isLabeledValue(value)) {
-        const array = selectValue as AntdLabeledValue[];
-        setSelectValue(array.filter(element => element.value !== value.value));
-      } else {
-        const array = selectValue as (string | number)[];
-        setSelectValue(array.filter(element => element !== value));
-      }
-    }
-    setInputValue('');
-  };
-
-  const internalOnError = useCallback(
-    (response: Response) =>
-      getClientErrorObject(response).then(e => {
-        const { error } = e;
-        setError(error);
-
-        if (onError) {
-          onError(error);
-        }
-      }),
-    [onError],
-  );
-
-  const mergeData = useCallback(
-    (data: OptionsType) => {
-      let mergedData: OptionsType = [];
-      if (data && Array.isArray(data) && data.length) {
-        // unique option values should always be case sensitive so don't lowercase
-        const dataValues = new Set(data.map(opt => opt.value));
-        // merges with existing and creates unique options
-        setSelectOptions(prevOptions => {
-          mergedData = prevOptions
-            .filter(previousOption => !dataValues.has(previousOption.value))
-            .concat(data)
-            .sort(sortComparatorForNoSearch);
-          return mergedData;
-        });
-      }
-      return mergedData;
-    },
-    [sortComparatorForNoSearch],
-  );
-
-  const fetchPage = useMemo(
-    () => (search: string, page: number) => {
-      setPage(page);
-      if (allValuesLoaded) {
-        setIsLoading(false);
-        return;
-      }
-      const key = getQueryCacheKey(search, page, pageSize);
-      const cachedCount = fetchedQueries.current.get(key);
-      if (cachedCount !== undefined) {
-        setTotalCount(cachedCount);
-        setIsLoading(false);
-        return;
-      }
-      setIsLoading(true);
-      const fetchOptions = options as OptionsPagePromise;
-      fetchOptions(search, page, pageSize)
-        .then(({ data, totalCount }: OptionsTypePage) => {
-          const mergedData = mergeData(data);
-          fetchedQueries.current.set(key, totalCount);
-          setTotalCount(totalCount);
-          if (
-            !fetchOnlyOnSearch &&
-            value === '' &&
-            mergedData.length >= totalCount
-          ) {
-            setAllValuesLoaded(true);
-          }
-        })
-        .catch(internalOnError)
-        .finally(() => {
-          setIsLoading(false);
-        });
-    },
-    [
-      allValuesLoaded,
+const AsyncSelect = forwardRef(
+  (
+    {
+      allowClear,
+      allowNewOptions = false,
+      ariaLabel,
       fetchOnlyOnSearch,
-      mergeData,
-      internalOnError,
+      filterOption = true,
+      header = null,
+      invertSelection = false,
+      lazyLoading = true,
+      loading,
+      mode = 'single',
+      name,
+      notFoundContent,
+      onError,
+      onChange,
+      onClear,
+      onDropdownVisibleChange,
+      optionFilterProps = ['label', 'value'],
       options,
-      pageSize,
+      pageSize = DEFAULT_PAGE_SIZE,
+      placeholder = t('Select ...'),
+      showSearch = true,
+      sortComparator = DEFAULT_SORT_COMPARATOR,
+      tokenSeparators,
       value,
-    ],
-  );
+      getPopupContainer,
+      ...props
+    }: AsyncSelectProps,
+    ref: RefObject<AsyncSelectRef>,
+  ) => {
+    const isSingleMode = mode === 'single';
+    const [selectValue, setSelectValue] = useState(value);
+    const [inputValue, setInputValue] = useState('');
+    const [isLoading, setIsLoading] = useState(loading);
+    const [error, setError] = useState('');
+    const [isDropdownVisible, setIsDropdownVisible] = useState(false);
+    const [page, setPage] = useState(0);
+    const [totalCount, setTotalCount] = useState(0);
+    const [loadingEnabled, setLoadingEnabled] = useState(!lazyLoading);
+    const [allValuesLoaded, setAllValuesLoaded] = useState(false);
+    const fetchedQueries = useRef(new Map<string, number>());
+    const mappedMode = isSingleMode
+      ? undefined
+      : allowNewOptions
+      ? 'tags'
+      : 'multiple';
+    const allowFetch = !fetchOnlyOnSearch || inputValue;
 
-  const debouncedFetchPage = useMemo(
-    () => debounce(fetchPage, SLOW_DEBOUNCE),
-    [fetchPage],
-  );
+    const sortSelectedFirst = useCallback(
+      (a: AntdLabeledValue, b: AntdLabeledValue) =>
+        selectValue && a.value !== undefined && b.value !== undefined
+          ? Number(hasOption(b.value, selectValue)) -
+            Number(hasOption(a.value, selectValue))
+          : 0,
+      [selectValue],
+    );
+    const sortComparatorWithSearch = useCallback(
+      (a: AntdLabeledValue, b: AntdLabeledValue) =>
+        sortSelectedFirst(a, b) || sortComparator(a, b, inputValue),
+      [inputValue, sortComparator, sortSelectedFirst],
+    );
+    const sortComparatorForNoSearch = useCallback(
+      (a: AntdLabeledValue, b: AntdLabeledValue) =>
+        sortSelectedFirst(a, b) ||
+        // Only apply the custom sorter in async mode because we should
+        // preserve the options order as much as possible.
+        sortComparator(a, b, ''),
+      [sortComparator, sortSelectedFirst],
+    );
 
-  const handleOnSearch = (search: string) => {
-    const searchValue = search.trim();
-    if (allowNewOptions && isSingleMode) {
-      const newOption = searchValue &&
-        !hasOption(searchValue, fullSelectOptions, true) && {
-          label: searchValue,
-          value: searchValue,
-          isNewOption: true,
-        };
-      const cleanSelectOptions = fullSelectOptions.filter(
-        opt => !opt.isNewOption || hasOption(opt.value, selectValue),
-      );
-      const newOptions = newOption
-        ? [newOption, ...cleanSelectOptions]
-        : cleanSelectOptions;
-      setSelectOptions(newOptions);
-    }
-    if (
-      !allValuesLoaded &&
-      loadingEnabled &&
-      !fetchedQueries.current.has(getQueryCacheKey(searchValue, 0, pageSize))
-    ) {
-      // if fetch only on search but search value is empty, then should not be
-      // in loading state
-      setIsLoading(!(fetchOnlyOnSearch && !searchValue));
-    }
-    setInputValue(search);
-  };
+    const initialOptions = useMemo(
+      () =>
+        options && Array.isArray(options) ? options.slice() : EMPTY_OPTIONS,
+      [options],
+    );
+    const initialOptionsSorted = useMemo(
+      () => initialOptions.slice().sort(sortComparatorForNoSearch),
+      [initialOptions, sortComparatorForNoSearch],
+    );
 
-  const handlePagination = (e: UIEvent<HTMLElement>) => {
-    const vScroll = e.currentTarget;
-    const thresholdReached =
-      vScroll.scrollTop > (vScroll.scrollHeight - vScroll.offsetHeight) * 0.7;
-    const hasMoreData = page * pageSize + pageSize < totalCount;
+    const [selectOptions, setSelectOptions] =
+      useState<OptionsType>(initialOptionsSorted);
 
-    if (!isLoading && hasMoreData && thresholdReached) {
-      const newPage = page + 1;
-      fetchPage(inputValue, newPage);
-    }
-  };
+    // add selected values to options list if they are not in it
+    const fullSelectOptions = useMemo(() => {
+      const missingValues: OptionsType = ensureIsArray(selectValue)
+        .filter(opt => !hasOption(getValue(opt), selectOptions))
+        .map(opt =>
+          isLabeledValue(opt) ? opt : { value: opt, label: String(opt) },
+        );
+      return missingValues.length > 0
+        ? missingValues.concat(selectOptions)
+        : selectOptions;
+    }, [selectOptions, selectValue]);
 
-  const handleFilterOption = (search: string, option: AntdLabeledValue) => {
-    if (typeof filterOption === 'function') {
-      return filterOption(search, option);
-    }
+    const hasCustomLabels = fullSelectOptions.some(opt => !!opt?.customLabel);
 
-    if (filterOption) {
-      const searchValue = search.trim().toLowerCase();
-      if (optionFilterProps && optionFilterProps.length) {
-        return optionFilterProps.some(prop => {
-          const optionProp = option?.[prop]
-            ? String(option[prop]).trim().toLowerCase()
-            : '';
-          return optionProp.includes(searchValue);
+    const handleOnSelect = (
+      selectedItem: string | number | AntdLabeledValue | undefined,
+    ) => {
+      if (isSingleMode) {
+        setSelectValue(selectedItem);
+      } else {
+        setSelectValue(previousState => {
+          const array = ensureIsArray(previousState);
+          const value = getValue(selectedItem);
+          // Tokenized values can contain duplicated values
+          if (!hasOption(value, array)) {
+            const result = [...array, selectedItem];
+            return isLabeledValue(selectedItem)
+              ? (result as AntdLabeledValue[])
+              : (result as (string | number)[]);
+          }
+          return previousState;
         });
       }
-    }
+      setInputValue('');
+    };
 
-    return false;
-  };
-
-  const handleOnDropdownVisibleChange = (isDropdownVisible: boolean) => {
-    setIsDropdownVisible(isDropdownVisible);
-
-    // loading is enabled when dropdown is open,
-    // disabled when dropdown is closed
-    if (loadingEnabled !== isDropdownVisible) {
-      setLoadingEnabled(isDropdownVisible);
-    }
-    // when closing dropdown, always reset loading state
-    if (!isDropdownVisible && isLoading) {
-      // delay is for the animation of closing the dropdown
-      // so the dropdown doesn't flash between "Loading..." and "No data"
-      // before closing.
-      setTimeout(() => {
-        setIsLoading(false);
-      }, 250);
-    }
-    // if no search input value, force sort options because it won't be sorted by
-    // `filterSort`.
-    if (isDropdownVisible && !inputValue && selectOptions.length > 1) {
-      const sortedOptions = selectOptions
-        .slice()
-        .sort(sortComparatorForNoSearch);
-      if (!isEqual(sortedOptions, selectOptions)) {
-        setSelectOptions(sortedOptions);
-      }
-    }
-
-    if (onDropdownVisibleChange) {
-      onDropdownVisibleChange(isDropdownVisible);
-    }
-  };
-
-  const dropdownRender = (
-    originNode: ReactElement & { ref?: RefObject<HTMLElement> },
-  ) => {
-    if (!isDropdownVisible) {
-      originNode.ref?.current?.scrollTo({ top: 0 });
-    }
-    if (isLoading && fullSelectOptions.length === 0) {
-      return <StyledLoadingText>{t('Loading...')}</StyledLoadingText>;
-    }
-    return error ? <Error error={error} /> : originNode;
-  };
-
-  // use a function instead of component since every rerender of the
-  // Select component will create a new component
-  const getSuffixIcon = () => {
-    if (isLoading) {
-      return <StyledSpin size="small" />;
-    }
-    if (showSearch && isDropdownVisible) {
-      return <SearchOutlined />;
-    }
-    return <DownOutlined />;
-  };
-
-  const handleClear = () => {
-    setSelectValue(undefined);
-    if (onClear) {
-      onClear();
-    }
-  };
-
-  useEffect(() => {
-    // when `options` list is updated from component prop, reset states
-    fetchedQueries.current.clear();
-    setAllValuesLoaded(false);
-    setSelectOptions(initialOptions);
-  }, [initialOptions]);
-
-  useEffect(() => {
-    setSelectValue(value);
-  }, [value]);
-
-  // Stop the invocation of the debounced function after unmounting
-  useEffect(
-    () => () => {
-      debouncedFetchPage.cancel();
-    },
-    [debouncedFetchPage],
-  );
-
-  useEffect(() => {
-    if (loadingEnabled && allowFetch) {
-      // trigger fetch every time inputValue changes
-      if (inputValue) {
-        debouncedFetchPage(inputValue, 0);
-      } else {
-        fetchPage('', 0);
-      }
-    }
-  }, [loadingEnabled, fetchPage, allowFetch, inputValue, debouncedFetchPage]);
-
-  useEffect(() => {
-    if (loading !== undefined && loading !== isLoading) {
-      setIsLoading(loading);
-    }
-  }, [isLoading, loading]);
-
-  const clearCache = () => fetchedQueries.current.clear();
-
-  useImperativeHandle(
-    ref,
-    () => ({
-      ...(ref.current as HTMLInputElement),
-      clearCache,
-    }),
-    [ref],
-  );
-
-  return (
-    <StyledContainer>
-      {header}
-      <StyledSelect
-        allowClear={!isLoading && allowClear}
-        aria-label={ariaLabel || name}
-        dropdownRender={dropdownRender}
-        filterOption={handleFilterOption}
-        filterSort={sortComparatorWithSearch}
-        getPopupContainer={
-          getPopupContainer || (triggerNode => triggerNode.parentNode)
+    const handleOnDeselect = (
+      value: string | number | AntdLabeledValue | undefined,
+    ) => {
+      if (Array.isArray(selectValue)) {
+        if (isLabeledValue(value)) {
+          const array = selectValue as AntdLabeledValue[];
+          setSelectValue(
+            array.filter(element => element.value !== value.value),
+          );
+        } else {
+          const array = selectValue as (string | number)[];
+          setSelectValue(array.filter(element => element !== value));
         }
-        labelInValue
-        maxTagCount={MAX_TAG_COUNT}
-        mode={mappedMode}
-        notFoundContent={isLoading ? t('Loading...') : notFoundContent}
-        onDeselect={handleOnDeselect}
-        onDropdownVisibleChange={handleOnDropdownVisibleChange}
-        onPopupScroll={handlePagination}
-        onSearch={showSearch ? handleOnSearch : undefined}
-        onSelect={handleOnSelect}
-        onClear={handleClear}
-        onChange={onChange}
-        options={hasCustomLabels ? undefined : fullSelectOptions}
-        placeholder={placeholder}
-        showSearch={showSearch}
-        showArrow
-        tokenSeparators={tokenSeparators || TOKEN_SEPARATORS}
-        value={selectValue}
-        suffixIcon={getSuffixIcon()}
-        menuItemSelectedIcon={
-          invertSelection ? (
-            <StyledStopOutlined iconSize="m" />
-          ) : (
-            <StyledCheckOutlined iconSize="m" />
-          )
-        }
-        ref={ref}
-        {...props}
-      >
-        {hasCustomLabels &&
-          fullSelectOptions.map(opt => {
-            const isOptObject = typeof opt === 'object';
-            const label = isOptObject ? opt?.label || opt.value : opt;
-            const value = isOptObject ? opt.value : opt;
-            const { customLabel, ...optProps } = opt;
-            return (
-              <Option {...optProps} key={value} label={label} value={value}>
-                {isOptObject && customLabel ? customLabel : label}
-              </Option>
-            );
-          })}
-      </StyledSelect>
-    </StyledContainer>
-  );
-};
+      }
+      setInputValue('');
+    };
 
-export default forwardRef(AsyncSelect);
+    const internalOnError = useCallback(
+      (response: Response) =>
+        getClientErrorObject(response).then(e => {
+          const { error } = e;
+          setError(error);
+
+          if (onError) {
+            onError(error);
+          }
+        }),
+      [onError],
+    );
+
+    const mergeData = useCallback(
+      (data: OptionsType) => {
+        let mergedData: OptionsType = [];
+        if (data && Array.isArray(data) && data.length) {
+          // unique option values should always be case sensitive so don't lowercase
+          const dataValues = new Set(data.map(opt => opt.value));
+          // merges with existing and creates unique options
+          setSelectOptions(prevOptions => {
+            mergedData = prevOptions
+              .filter(previousOption => !dataValues.has(previousOption.value))
+              .concat(data)
+              .sort(sortComparatorForNoSearch);
+            return mergedData;
+          });
+        }
+        return mergedData;
+      },
+      [sortComparatorForNoSearch],
+    );
+
+    const fetchPage = useMemo(
+      () => (search: string, page: number) => {
+        setPage(page);
+        if (allValuesLoaded) {
+          setIsLoading(false);
+          return;
+        }
+        const key = getQueryCacheKey(search, page, pageSize);
+        const cachedCount = fetchedQueries.current.get(key);
+        if (cachedCount !== undefined) {
+          setTotalCount(cachedCount);
+          setIsLoading(false);
+          return;
+        }
+        setIsLoading(true);
+        const fetchOptions = options as OptionsPagePromise;
+        fetchOptions(search, page, pageSize)
+          .then(({ data, totalCount }: OptionsTypePage) => {
+            const mergedData = mergeData(data);
+            fetchedQueries.current.set(key, totalCount);
+            setTotalCount(totalCount);
+            if (
+              !fetchOnlyOnSearch &&
+              value === '' &&
+              mergedData.length >= totalCount
+            ) {
+              setAllValuesLoaded(true);
+            }
+          })
+          .catch(internalOnError)
+          .finally(() => {
+            setIsLoading(false);
+          });
+      },
+      [
+        allValuesLoaded,
+        fetchOnlyOnSearch,
+        mergeData,
+        internalOnError,
+        options,
+        pageSize,
+        value,
+      ],
+    );
+
+    const debouncedFetchPage = useMemo(
+      () => debounce(fetchPage, SLOW_DEBOUNCE),
+      [fetchPage],
+    );
+
+    const handleOnSearch = (search: string) => {
+      const searchValue = search.trim();
+      if (allowNewOptions && isSingleMode) {
+        const newOption = searchValue &&
+          !hasOption(searchValue, fullSelectOptions, true) && {
+            label: searchValue,
+            value: searchValue,
+            isNewOption: true,
+          };
+        const cleanSelectOptions = fullSelectOptions.filter(
+          opt => !opt.isNewOption || hasOption(opt.value, selectValue),
+        );
+        const newOptions = newOption
+          ? [newOption, ...cleanSelectOptions]
+          : cleanSelectOptions;
+        setSelectOptions(newOptions);
+      }
+      if (
+        !allValuesLoaded &&
+        loadingEnabled &&
+        !fetchedQueries.current.has(getQueryCacheKey(searchValue, 0, pageSize))
+      ) {
+        // if fetch only on search but search value is empty, then should not be
+        // in loading state
+        setIsLoading(!(fetchOnlyOnSearch && !searchValue));
+      }
+      setInputValue(search);
+    };
+
+    const handlePagination = (e: UIEvent<HTMLElement>) => {
+      const vScroll = e.currentTarget;
+      const thresholdReached =
+        vScroll.scrollTop > (vScroll.scrollHeight - vScroll.offsetHeight) * 0.7;
+      const hasMoreData = page * pageSize + pageSize < totalCount;
+
+      if (!isLoading && hasMoreData && thresholdReached) {
+        const newPage = page + 1;
+        fetchPage(inputValue, newPage);
+      }
+    };
+
+    const handleFilterOption = (search: string, option: AntdLabeledValue) => {
+      if (typeof filterOption === 'function') {
+        return filterOption(search, option);
+      }
+
+      if (filterOption) {
+        const searchValue = search.trim().toLowerCase();
+        if (optionFilterProps && optionFilterProps.length) {
+          return optionFilterProps.some(prop => {
+            const optionProp = option?.[prop]
+              ? String(option[prop]).trim().toLowerCase()
+              : '';
+            return optionProp.includes(searchValue);
+          });
+        }
+      }
+
+      return false;
+    };
+
+    const handleOnDropdownVisibleChange = (isDropdownVisible: boolean) => {
+      setIsDropdownVisible(isDropdownVisible);
+
+      // loading is enabled when dropdown is open,
+      // disabled when dropdown is closed
+      if (loadingEnabled !== isDropdownVisible) {
+        setLoadingEnabled(isDropdownVisible);
+      }
+      // when closing dropdown, always reset loading state
+      if (!isDropdownVisible && isLoading) {
+        // delay is for the animation of closing the dropdown
+        // so the dropdown doesn't flash between "Loading..." and "No data"
+        // before closing.
+        setTimeout(() => {
+          setIsLoading(false);
+        }, 250);
+      }
+      // if no search input value, force sort options because it won't be sorted by
+      // `filterSort`.
+      if (isDropdownVisible && !inputValue && selectOptions.length > 1) {
+        const sortedOptions = selectOptions
+          .slice()
+          .sort(sortComparatorForNoSearch);
+        if (!isEqual(sortedOptions, selectOptions)) {
+          setSelectOptions(sortedOptions);
+        }
+      }
+
+      if (onDropdownVisibleChange) {
+        onDropdownVisibleChange(isDropdownVisible);
+      }
+    };
+
+    const dropdownRender = (
+      originNode: ReactElement & { ref?: RefObject<HTMLElement> },
+    ) => {
+      if (!isDropdownVisible) {
+        originNode.ref?.current?.scrollTo({ top: 0 });
+      }
+      if (isLoading && fullSelectOptions.length === 0) {
+        return <StyledLoadingText>{t('Loading...')}</StyledLoadingText>;
+      }
+      return error ? <Error error={error} /> : originNode;
+    };
+
+    // use a function instead of component since every rerender of the
+    // Select component will create a new component
+    const getSuffixIcon = () => {
+      if (isLoading) {
+        return <StyledSpin size="small" />;
+      }
+      if (showSearch && isDropdownVisible) {
+        return <SearchOutlined />;
+      }
+      return <DownOutlined />;
+    };
+
+    const handleClear = () => {
+      setSelectValue(undefined);
+      if (onClear) {
+        onClear();
+      }
+    };
+
+    useEffect(() => {
+      // when `options` list is updated from component prop, reset states
+      fetchedQueries.current.clear();
+      setAllValuesLoaded(false);
+      setSelectOptions(initialOptions);
+    }, [initialOptions]);
+
+    useEffect(() => {
+      setSelectValue(value);
+    }, [value]);
+
+    // Stop the invocation of the debounced function after unmounting
+    useEffect(
+      () => () => {
+        debouncedFetchPage.cancel();
+      },
+      [debouncedFetchPage],
+    );
+
+    useEffect(() => {
+      if (loadingEnabled && allowFetch) {
+        // trigger fetch every time inputValue changes
+        if (inputValue) {
+          debouncedFetchPage(inputValue, 0);
+        } else {
+          fetchPage('', 0);
+        }
+      }
+    }, [loadingEnabled, fetchPage, allowFetch, inputValue, debouncedFetchPage]);
+
+    useEffect(() => {
+      if (loading !== undefined && loading !== isLoading) {
+        setIsLoading(loading);
+      }
+    }, [isLoading, loading]);
+
+    const clearCache = () => fetchedQueries.current.clear();
+
+    useImperativeHandle(
+      ref,
+      () => ({
+        ...(ref.current as HTMLInputElement),
+        clearCache,
+      }),
+      [ref],
+    );
+
+    return (
+      <StyledContainer>
+        {header}
+        <StyledSelect
+          allowClear={!isLoading && allowClear}
+          aria-label={ariaLabel || name}
+          dropdownRender={dropdownRender}
+          filterOption={handleFilterOption}
+          filterSort={sortComparatorWithSearch}
+          getPopupContainer={
+            getPopupContainer || (triggerNode => triggerNode.parentNode)
+          }
+          labelInValue
+          maxTagCount={MAX_TAG_COUNT}
+          mode={mappedMode}
+          notFoundContent={isLoading ? t('Loading...') : notFoundContent}
+          onDeselect={handleOnDeselect}
+          onDropdownVisibleChange={handleOnDropdownVisibleChange}
+          onPopupScroll={handlePagination}
+          onSearch={showSearch ? handleOnSearch : undefined}
+          onSelect={handleOnSelect}
+          onClear={handleClear}
+          onChange={onChange}
+          options={hasCustomLabels ? undefined : fullSelectOptions}
+          placeholder={placeholder}
+          showSearch={showSearch}
+          showArrow
+          tokenSeparators={tokenSeparators || TOKEN_SEPARATORS}
+          value={selectValue}
+          suffixIcon={getSuffixIcon()}
+          menuItemSelectedIcon={
+            invertSelection ? (
+              <StyledStopOutlined iconSize="m" />
+            ) : (
+              <StyledCheckOutlined iconSize="m" />
+            )
+          }
+          ref={ref}
+          {...props}
+        >
+          {hasCustomLabels &&
+            fullSelectOptions.map(opt => {
+              const isOptObject = typeof opt === 'object';
+              const label = isOptObject ? opt?.label || opt.value : opt;
+              const value = isOptObject ? opt.value : opt;
+              const { customLabel, ...optProps } = opt;
+              return (
+                <Option {...optProps} key={value} label={label} value={value}>
+                  {isOptObject && customLabel ? customLabel : label}
+                </Option>
+              );
+            })}
+        </StyledSelect>
+      </StyledContainer>
+    );
+  },
+);
+
+export default AsyncSelect;
