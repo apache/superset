@@ -119,6 +119,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "dashboards.id",
         "dashboards.json_metadata",
         "description",
+        "id",
         "owners.first_name",
         "owners.id",
         "owners.last_name",
