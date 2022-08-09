@@ -89,8 +89,10 @@ export function extractShowValueIndexes(
           showValueIndexes[dataIndex] = seriesIndex;
         }
         if (opts.onlyTotal) {
-          showValueIndexes[dataIndex] = showValueIndexes[dataIndex] ?? 0;
           if (datum[1] > 0) {
+            showValueIndexes[dataIndex] = seriesIndex;
+          }
+          if (!showValueIndexes[dataIndex] && datum[1] !== null) {
             showValueIndexes[dataIndex] = seriesIndex;
           }
         }
