@@ -493,6 +493,8 @@ class QueryContextProcessor:
         chart = ChartDAO.find_by_id(annotation_layer["value"])
         if not chart:
             raise QueryObjectValidationError(_("The chart does not exist"))
+        if not chart.datasource:
+            raise QueryObjectValidationError(_("The chart datasource does not exist"))
         form_data = chart.form_data.copy()
         try:
             viz_obj = get_viz(
