@@ -84,6 +84,7 @@ export default function transformProps(
     filterState,
     datasource,
     theme,
+    inContextMenu,
   } = chartProps;
   const { verboseMap = {} } = datasource;
   const data1 = (queriesData[0].data || []) as TimeseriesDataRecord[];
@@ -198,6 +199,7 @@ export default function transformProps(
       filterState,
       seriesKey: entry.name,
       sliceId,
+      queryIndex: 0,
     });
     if (transformedSeries) series.push(transformedSeries);
   });
@@ -217,6 +219,7 @@ export default function transformProps(
         ? `${entry.name} (1)`
         : entry.name,
       sliceId,
+      queryIndex: 1,
     });
     if (transformedSeries) series.push(transformedSeries);
   });
@@ -319,7 +322,7 @@ export default function transformProps(
     };
   }, {}) as Record<string, DataRecordValue[]>;
 
-  const { setDataMask = () => {} } = hooks;
+  const { setDataMask = () => {}, onContextMenu } = hooks;
   const alignTicks = yAxisIndex !== yAxisIndexB;
 
   const echartOptions: EChartsCoreOption = {
@@ -373,6 +376,7 @@ export default function transformProps(
     ],
     tooltip: {
       ...defaultTooltip,
+      show: !inContextMenu,
       appendToBody: true,
       trigger: richTooltip ? 'axis' : 'item',
       formatter: (params: any) => {
@@ -459,5 +463,7 @@ export default function transformProps(
     groupbyB,
     seriesBreakdown: rawSeriesA.length,
     selectedValues: filterState.selectedValues || [],
+    onContextMenu,
+    xValueFormatter: tooltipFormatter,
   };
 }

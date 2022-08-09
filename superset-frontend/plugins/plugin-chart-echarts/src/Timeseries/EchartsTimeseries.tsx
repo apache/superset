@@ -17,6 +17,7 @@
  * under the License.
  */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { QueryObjectFilterClause } from '@superset-ui/core';
 import { ViewRootGroup } from 'echarts/types/src/util/types';
 import GlobalModel from 'echarts/types/src/model/Global';
 import ComponentModel from 'echarts/types/src/model/Component';
@@ -40,6 +41,8 @@ export default function EchartsTimeseries({
   setDataMask,
   setControlValue,
   legendData = [],
+  onContextMenu,
+  xValueFormatter,
 }: TimeseriesChartTransformedProps) {
   const { emitFilter, stack } = formData;
   const echartRef = useRef<EchartsHandler | null>(null);
@@ -171,6 +174,33 @@ export default function EchartsTimeseries({
       // if all legend is unselected, we keep all selected
       if (Object.values(payload.selected).every(i => !i)) {
         handleDoubleClickChange();
+      }
+    },
+    contextmenu: eventParams => {
+      if (onContextMenu) {
+        eventParams.event.stop();
+        const { data } = eventParams;
+        if (data) {
+          const pointerEvent = eventParams.event.event;
+          const values = eventParams.seriesName.split(',');
+          const filters: QueryObjectFilterClause[] = [];
+          filters.push({
+            col: formData.granularitySqla,
+            grain: formData.timeGrainSqla,
+            op: '==',
+            val: data[0],
+            formattedVal: xValueFormatter(data[0]),
+          });
+          formData.groupby.forEach((dimension, i) =>
+            filters.push({
+              col: dimension,
+              op: '==',
+              val: values[i],
+              formattedVal: values[i],
+            }),
+          );
+          onContextMenu(filters, pointerEvent.offsetX, pointerEvent.offsetY);
+        }
       }
     },
   };
