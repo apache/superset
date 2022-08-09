@@ -330,6 +330,7 @@ export default styled(BigNumberVis)`
     display: flex;
     flex-direction: column;
     justify-content: center;
+    align-items: flex-start;
 
     &.no-trendline .subheader-line {
       padding-bottom: 0.3em;

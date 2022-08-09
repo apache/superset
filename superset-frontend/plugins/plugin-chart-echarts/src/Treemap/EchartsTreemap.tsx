@@ -93,12 +93,12 @@ export default function EchartsTreemap({
         if (treePath.length > 0) {
           const pointerEvent = eventParams.event.event;
           const filters: QueryObjectFilterClause[] = [];
-          groupby.forEach((dimension, i) =>
+          treePath.forEach((path, i) =>
             filters.push({
-              col: dimension,
+              col: groupby[i],
               op: '==',
-              val: treePath[i],
-              formattedVal: treePath[i],
+              val: path,
+              formattedVal: path,
             }),
           );
           onContextMenu(filters, pointerEvent.offsetX, pointerEvent.offsetY);
