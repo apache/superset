@@ -65,7 +65,6 @@ export default function ColorSchemeLabel(props: ColorSchemeLabelProps) {
       visible={showTooltip}
     >
       <span
-        title={label}
         onMouseEnter={handleShowTooltip}
         onMouseLeave={handleHideTooltip}
         css={css`
