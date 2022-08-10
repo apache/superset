@@ -340,7 +340,6 @@ def apply_post_process(
         if datasource:
             df.rename(columns=datasource.data["verbose_map"], inplace=True)
 
-        # key error raise
         processed_df = post_processor(df, form_data, datasource)
 
         query["colnames"] = list(processed_df.columns)
