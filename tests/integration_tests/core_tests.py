@@ -1468,6 +1468,38 @@ class TestCore(SupersetTestCase):
         payload = views.Superset._get_sqllab_tabs(user_id=user_id)
         self.assertEqual(len(payload["queries"]), 1)
 
+    @mock.patch.dict(
+        "superset.extensions.feature_flag_manager._feature_flags",
+        {"SQLLAB_BACKEND_PERSISTENCE": True},
+        clear=True,
+    )
+    def test_tabstate_with_name(self):
+        """
+        The tabstateview endpoint GET should be able to take name or title
+        for backward compatibility
+        """
+        username = "admin"
+        self.login(username)
+
+        # create a tab
+        data = {
+            "queryEditor": json.dumps(
+                {
+                    "name": "Untitled Query foo",
+                    "dbId": 1,
+                    "schema": None,
+                    "autorun": False,
+                    "sql": "SELECT ...",
+                    "queryLimit": 1000,
+                }
+            )
+        }
+        resp = self.get_json_resp("/tabstateview/", data=data)
+        tab_state_id = resp["id"]
+        payload = self.get_json_resp(f"/tabstateview/{tab_state_id}")
+
+        self.assertEqual(payload["label"], "Untitled Query foo")
+
     def test_virtual_table_explore_visibility(self):
         # test that default visibility it set to True
         database = superset.utils.database.get_example_database()
