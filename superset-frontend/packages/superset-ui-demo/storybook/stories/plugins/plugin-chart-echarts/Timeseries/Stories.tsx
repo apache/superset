@@ -104,10 +104,15 @@ export const WithNegativeNumbers = ({ width, height }) => (
         'line',
       ),
       yAxisFormat: '$,.2f',
-      stack: true,
+      stack: boolean('Stack', true),
       showValue: true,
       showLegend: true,
-      onlyTotal: true,
+      onlyTotal: boolean('Only Total', true),
+      orientation: select(
+        'Orientation',
+        ['vertical', 'horizontal'],
+        'vertical',
+      ),
     }}
   />
 );

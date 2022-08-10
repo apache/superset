@@ -261,7 +261,7 @@ describe('extractShowValueIndexes', () => {
             ],
           },
         ],
-        { stack: true, onlyTotal: false },
+        { stack: true, onlyTotal: false, isHorizontal: false },
       ),
     ).toEqual([undefined, 1, 0, 1, undefined, 2, 1, 1, undefined, 1]);
   });
@@ -319,7 +319,7 @@ describe('extractShowValueIndexes', () => {
             ],
           },
         ],
-        { stack: true, onlyTotal: true },
+        { stack: true, onlyTotal: true, isHorizontal: false },
       ),
     ).toEqual([undefined, 1, 0, 2, undefined, 1, 1, 2, undefined, 1]);
   });
