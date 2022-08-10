@@ -336,7 +336,7 @@ def apply_post_process(
         elif query["result_format"] == ChartDataResultFormat.CSV:
             df = pd.read_csv(StringIO(query["data"]))
 
-        # convert metrics to verbose (label) name
+        # convert all columns to verbose (label) name
         if datasource:
             df.rename(columns=datasource.data["verbose_map"], inplace=True)
 
