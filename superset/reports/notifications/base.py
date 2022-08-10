@@ -15,8 +15,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from dataclasses import dataclass
-from typing import Any, List, Optional, Type
+from dataclasses import dataclass, field
+from typing import Any, Dict, List, Optional, Type
 
 import pandas as pd
 
@@ -32,10 +32,7 @@ class NotificationContent:
     description: Optional[str] = ""
     url: Optional[str] = None  # url to chart/dashboard for this screenshot
     embedded_data: Optional[pd.DataFrame] = None
-    notification_type: Optional[str] = None
-    notification_format: Optional[str] = None
-    notification_source: Optional[str] = None
-    notification_source_id: Optional[int] = None
+    header_data: Optional[Dict[Any, Any]] = field(default_factory=lambda: {})
 
 
 class BaseNotification:  # pylint: disable=too-few-public-methods

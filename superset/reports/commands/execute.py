@@ -17,7 +17,7 @@
 import json
 import logging
 from datetime import datetime, timedelta
-from typing import Any, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 from uuid import UUID
 
 import pandas as pd
@@ -306,6 +306,26 @@ class BaseReportState:
                 "Please try loading the chart and saving it again."
             ) from ex
 
+    def _get_log_data(self) -> Dict[str, Any]:
+        chart_id = None
+        dashboard_id = None
+        report_source = None
+        if self._report_schedule.chart:
+            report_source = ReportSourceFormat.CHART
+            chart_id = self._report_schedule.chart_id
+        else:
+            report_source = ReportSourceFormat.DASHBOARD
+            dashboard_id = self._report_schedule.dashboard_id
+        log_data = {
+            "notification_type": self._report_schedule.type or None,
+            "notification_source": report_source,
+            "notification_format": self._report_schedule.report_format or None,
+            "chart_id": chart_id,
+            "dashboard_id": dashboard_id,
+            "owners": self._report_schedule.owners or None,
+        }
+        return log_data
+
     def _get_notification_content(self) -> NotificationContent:
         """
         Gets a notification content, this is composed by a title and a screenshot
@@ -316,6 +336,7 @@ class BaseReportState:
         embedded_data = None
         error_text = None
         screenshot_data = []
+
         url = self._get_url(user_friendly=True)
         if (
             feature_flag_manager.is_feature_enabled("ALERTS_ATTACH_REPORTS")
@@ -343,22 +364,18 @@ class BaseReportState:
         ):
             embedded_data = self._get_embedded_data()
 
-        notification_source = None
-        notification_source_id = None
         if self._report_schedule.chart:
             name = (
                 f"{self._report_schedule.name}: "
                 f"{self._report_schedule.chart.slice_name}"
             )
-            notification_source = ReportSourceFormat.CHART
-            notification_source_id = self._report_schedule.chart_id
         else:
             name = (
                 f"{self._report_schedule.name}: "
                 f"{self._report_schedule.dashboard.dashboard_title}"
             )
-            notification_source = ReportSourceFormat.DASHBOARDS
-            notification_source_id = self._report_schedule.dashboard_id
+
+        header_data = self._get_log_data()
 
         return NotificationContent(
             name=name,
@@ -367,10 +384,7 @@ class BaseReportState:
             description=self._report_schedule.description,
             csv=csv_data,
             embedded_data=embedded_data,
-            notification_type=self._report_schedule.type,
-            notification_source=notification_source,
-            notification_source_id=notification_source_id,
-            notification_format=self._report_schedule.report_format,
+            header_data=header_data,
         )
 
     def _send(

@@ -904,7 +904,7 @@ def send_email_smtp(  # pylint: disable=invalid-name,too-many-arguments,too-many
     cc: Optional[str] = None,
     bcc: Optional[str] = None,
     mime_subtype: str = "mixed",
-    log_data: Optional[Dict[str, Any]] = None,
+    header_data: Optional[Dict[str, Any]] = None,
 ) -> None:
     """
     Send an email with html content, eg:
@@ -919,8 +919,6 @@ def send_email_smtp(  # pylint: disable=invalid-name,too-many-arguments,too-many
     msg["From"] = smtp_mail_from
     msg["To"] = ", ".join(smtp_mail_to)
 
-    api_object = {"metadata": log_data}
-    msg["X-MSYS-API"] = json.dumps(api_object)
     msg.preamble = "This is a multi-part message in MIME format."
 
     recipients = smtp_mail_to
@@ -967,8 +965,10 @@ def send_email_smtp(  # pylint: disable=invalid-name,too-many-arguments,too-many
         image.add_header("Content-ID", "<%s>" % msgid)
         image.add_header("Content-Disposition", "inline")
         msg.attach(image)
-
-    send_mime_email(smtp_mail_from, recipients, msg, config, dryrun=dryrun)
+    msg_mutator = config["NOTIFICATION_EMAIL_HEADER_MUTATOR"]
+    # the base notification returns the message without any editing.
+    new_msg = msg_mutator(msg, **header_data or {})
+    send_mime_email(smtp_mail_from, recipients, new_msg, config, dryrun=dryrun)
 
 
 def send_mime_email(
