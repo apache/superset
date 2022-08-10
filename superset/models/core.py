@@ -55,7 +55,7 @@ from sqlalchemy.sql import expression, Select
 
 from superset import app, db_engine_specs, is_feature_enabled
 from superset.databases.utils import make_url_safe
-from superset.db_engine_specs.base import TimeGrain
+from superset.db_engine_specs.base import MetricType, TimeGrain
 from superset.extensions import cache_manager, encrypted_field_factory, security_manager
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 from superset.models.tags import FavStarUpdater
@@ -692,6 +692,13 @@ class Database(
         self, table_name: str, schema: Optional[str] = None
     ) -> List[Dict[str, Any]]:
         return self.db_engine_spec.get_columns(self.inspector, table_name, schema)
+
+    def get_metrics(
+        self,
+        table_name: str,
+        schema: Optional[str] = None,
+    ) -> List[MetricType]:
+        return self.db_engine_spec.get_metrics(self, self.inspector, table_name, schema)
 
     def get_indexes(
         self, table_name: str, schema: Optional[str] = None

@@ -80,7 +80,7 @@ interface ResultSetState {
 
 const ResultlessStyles = styled.div`
   position: relative;
-  minheight: 100px;
+  min-height: 100px;
   [role='alert'] {
     margin-top: ${({ theme }) => theme.gridUnit * 2}px;
   }

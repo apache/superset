@@ -107,4 +107,20 @@ describe('Visualization > Bubble', () => {
         );
       });
   });
+
+  it('should allow type to search color schemes and apply the scheme', () => {
+    cy.get('.Control[data-test="color_scheme"]').scrollIntoView();
+    cy.get('.Control[data-test="color_scheme"] input[type="search"]')
+      .focus()
+      .type('supersetColors{enter}');
+    cy.get(
+      '.Control[data-test="color_scheme"] .ant-select-selection-item ul[data-test="supersetColors"]',
+    ).should('exist');
+    cy.get('[data-test=run-query-button]').click();
+    cy.get('.bubble .nv-legend .nv-legend-symbol').should(
+      'have.css',
+      'fill',
+      'rgb(31, 168, 201)',
+    );
+  });
 });

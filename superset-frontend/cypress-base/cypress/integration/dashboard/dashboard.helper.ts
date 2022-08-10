@@ -20,6 +20,7 @@ import { dashboardView } from 'cypress/support/directories';
  * under the License.
  */
 export const WORLD_HEALTH_DASHBOARD = '/superset/dashboard/world_health/';
+export const USA_BIRTH_NAMES_DASHBOARD = '/superset/dashboard/births/';
 export const testDashboard = '/superset/dashboard/538/';
 export const TABBED_DASHBOARD = '/superset/dashboard/tabbed_dash/';
 

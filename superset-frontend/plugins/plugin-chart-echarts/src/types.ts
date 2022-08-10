@@ -20,6 +20,7 @@ import {
   DataRecordValue,
   HandlerFunction,
   QueryFormColumn,
+  QueryObjectFilterClause,
   SetDataMaskHook,
 } from '@superset-ui/core';
 import { EChartsCoreOption, ECharts } from 'echarts';
@@ -115,6 +116,11 @@ export interface EChartTransformedProps<F> {
   groupby: QueryFormColumn[];
   selectedValues: Record<number, string>;
   legendData?: OptionName[];
+  onContextMenu?: (
+    filters: QueryObjectFilterClause[],
+    offsetX: number,
+    offsetY: number,
+  ) => void;
 }
 
 export interface EchartsTitleFormData {
