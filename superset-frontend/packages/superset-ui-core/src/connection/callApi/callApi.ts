@@ -155,7 +155,7 @@ export default async function callApi({
             } catch (e) {
               // eslint-disable-next-line no-console
               console.error(
-                `Unable to convert attribut '${key}' to a String(). ${key} is not part of the formData payload for call to ${url}`,
+                `Unable to convert attribute '${key}' to a String(). ${key} is not part of the formData payload for call to ${url}`,
                 value,
                 e,
               );
