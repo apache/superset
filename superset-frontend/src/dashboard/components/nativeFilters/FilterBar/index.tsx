@@ -69,7 +69,6 @@ import { createFilterKey, updateFilterKey } from './keyValue';
 import EditSection from './FilterSets/EditSection';
 import Header from './Header';
 import FilterControls from './FilterControls/FilterControls';
-import { ActionButtons } from './ActionButtons';
 
 export const FILTER_BAR_TEST_ID = 'filter-bar';
 export const getFilterBarTestId = testWithId(FILTER_BAR_TEST_ID);
@@ -403,7 +402,14 @@ const FilterBar: React.FC<FiltersBarProps> = ({
           />
         </CollapsedBar>
         <Bar className={cx({ open: filtersOpen })} width={width}>
-          <Header toggleFiltersBar={toggleFiltersBar} />
+        <Header
+          toggleFiltersBar={toggleFiltersBar}
+          onApply={handleApply}
+          onClearAll={handleClearAll}
+          isApplyDisabled={isApplyDisabled}
+          dataMaskSelected={dataMaskSelected}
+          dataMaskApplied={dataMaskApplied}
+        />
           {!isInitialized ? (
             <div css={{ height }}>
               <Loading />
@@ -492,13 +498,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
               )}
             </div>
           )}
-          <ActionButtons
-            onApply={handleApply}
-            onClearAll={handleClearAll}
-            dataMaskSelected={dataMaskSelected}
-            dataMaskApplied={dataMaskApplied}
-            isApplyDisabled={isApplyDisabled}
-          />
+          
         </Bar>
       </BarWrapper>
     </FilterBarScrollContext.Provider>

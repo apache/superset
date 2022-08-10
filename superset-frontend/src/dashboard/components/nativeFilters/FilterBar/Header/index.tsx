@@ -17,7 +17,14 @@
  * under the License.
  */
 /* eslint-disable no-param-reassign */
-import { css, styled, t, useTheme } from '@superset-ui/core';
+import {
+  css,
+  DataMaskState,
+  DataMaskStateWithId,
+  styled,
+  t,
+  useTheme
+} from '@superset-ui/core';
 import React, { FC } from 'react';
 import Icons from 'src/components/Icons';
 import Button from 'src/components/Button';
@@ -39,6 +46,19 @@ const TitleArea = styled.h4`
   }
 `;
 
+const ActionButtons = styled.div`
+  display: grid;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  grid-gap: 10px;
+  grid-template-columns: 1fr 1fr;
+  ${({ theme }) => `padding: 0 ${theme.gridUnit * 2}px`};
+  .btn {
+    flex: 1;
+  }
+`;
+
 const HeaderButton = styled(Button)`
   padding: 0;
 `;
@@ -50,6 +70,11 @@ const Wrapper = styled.div`
 
 type HeaderProps = {
   toggleFiltersBar: (arg0: boolean) => void;
+  onApply: () => void;
+  onClearAll: () => void;
+  dataMaskSelected: DataMaskState;
+  dataMaskApplied: DataMaskStateWithId;
+  isApplyDisabled: boolean;
 };
 
 const AddFiltersButtonContainer = styled.div`
@@ -71,7 +96,14 @@ const AddFiltersButtonContainer = styled.div`
   `}
 `;
 
-const Header: FC<HeaderProps> = ({ toggleFiltersBar }) => {
+const Header: FC<HeaderProps> = ({
+  onApply,
+  onClearAll,
+  isApplyDisabled,
+  dataMaskSelected,
+  dataMaskApplied,
+  toggleFiltersBar,
+}) => {
   const theme = useTheme();
   const filters = useFilters();
   const filterValues = Object.values(filters);
@@ -80,6 +112,12 @@ const Header: FC<HeaderProps> = ({ toggleFiltersBar }) => {
   );
   const dashboardId = useSelector<RootState, number>(
     ({ dashboardInfo }) => dashboardInfo.id,
+  );
+
+  const isClearAllDisabled = Object.values(dataMaskApplied).every(
+    filter =>
+      dataMaskSelected[filter.id]?.filterState?.value === null ||
+      (!dataMaskSelected[filter.id] && filter.filterState?.value === null),
   );
 
   return (
@@ -105,6 +143,27 @@ const Header: FC<HeaderProps> = ({ toggleFiltersBar }) => {
           </FilterConfigurationLink>
         </AddFiltersButtonContainer>
       )}
+      <ActionButtons>
+        <Button
+          disabled={isClearAllDisabled}
+          buttonStyle="tertiary"
+          buttonSize="small"
+          onClick={onClearAll}
+          {...getFilterBarTestId('clear-button')}
+        >
+          {t('Clear all')}
+        </Button>
+        <Button
+          disabled={isApplyDisabled}
+          buttonStyle="primary"
+          htmlType="submit"
+          buttonSize="small"
+          onClick={onApply}
+          {...getFilterBarTestId('apply-button')}
+        >
+          {t('Apply')}
+        </Button>
+      </ActionButtons>
     </Wrapper>
   );
 };
