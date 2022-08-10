@@ -77,8 +77,8 @@ export function extractShowValueIndexes(
   series: SeriesOption[],
   opts: {
     stack: StackType;
-    onlyTotal: boolean;
-    isHorizontal: boolean;
+    onlyTotal?: boolean;
+    isHorizontal?: boolean;
   },
 ): number[] {
   const showValueIndexes: number[] = [];
