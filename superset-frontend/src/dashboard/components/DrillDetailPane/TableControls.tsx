@@ -33,12 +33,13 @@ export default function TableControls({
   filters,
   setFilters,
   totalCount,
+  loading,
   onReload,
 }: {
   filters: BinaryQueryObjectFilterClause[];
   setFilters: (filters: BinaryQueryObjectFilterClause[]) => void;
   totalCount?: number;
-  loading?: boolean;
+  loading: boolean;
   onReload: () => void;
 }) {
   const theme = useTheme();
@@ -120,7 +121,7 @@ export default function TableControls({
           height: min-content;
         `}
       >
-        <RowCountLabel rowcount={totalCount} />
+        <RowCountLabel loading={loading && !totalCount} rowcount={totalCount} />
         <Icons.ReloadOutlined
           iconColor={theme.colors.grayscale.light1}
           iconSize="l"

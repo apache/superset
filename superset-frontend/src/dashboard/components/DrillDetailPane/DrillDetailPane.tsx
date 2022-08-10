@@ -116,7 +116,7 @@ export default function DrillDetailPane({
   //  Download page of results & trim cache if page not in cache
   const cachePageLimit = Math.ceil(SAMPLES_ROW_LIMIT / PAGE_SIZE);
   useEffect(() => {
-    if (!resultsPages.has(pageIndex)) {
+    if (!isLoading && !resultsPages.has(pageIndex)) {
       setIsLoading(true);
       const jsonPayload = getDrillPayload(formData, filters);
       getDatasourceSamples(
@@ -157,6 +157,7 @@ export default function DrillDetailPane({
     datasourceType,
     filters,
     formData,
+    isLoading,
     pageIndex,
     resultsPages,
   ]);
@@ -185,9 +186,11 @@ export default function DrillDetailPane({
     setResultsPages(new Map());
   }, []);
 
-  //  Render error if page download failed
+  let tableContent = null;
+
   if (responseError) {
-    return (
+    //  Render error if page download failed
+    tableContent = (
       <div
         css={css`
           height: ${theme.gridUnit * 128}px;
@@ -202,11 +205,9 @@ export default function DrillDetailPane({
         </pre>
       </div>
     );
-  }
-
-  //  Render loading if first page hasn't loaded
-  if (!resultsPages.size) {
-    return (
+  } else if (!resultsPages.size) {
+    //  Render loading if first page hasn't loaded
+    tableContent = (
       <div
         css={css`
           height: ${theme.gridUnit * 128}px;
@@ -215,12 +216,10 @@ export default function DrillDetailPane({
         <Loading />
       </div>
     );
-  }
-
-  //  Render empty state if no results are returned for page
-  if (resultsPage?.total === 0) {
+  } else if (resultsPage?.total === 0) {
+    //  Render empty state if no results are returned for page
     const title = t('No rows were returned for this dataset');
-    return (
+    tableContent = (
       <div
         css={css`
           height: ${theme.gridUnit * 128}px;
@@ -229,23 +228,9 @@ export default function DrillDetailPane({
         <EmptyStateMedium image="document.svg" title={title} />
       </div>
     );
-  }
-
-  //  Render chart if at least one page has successfully loaded
-  return (
-    <div
-      css={css`
-        display: flex;
-        flex-direction: column;
-        height: ${theme.gridUnit * 128}px;
-      `}
-    >
-      <TableControls
-        filters={filters}
-        setFilters={setFilters}
-        totalCount={resultsPage?.total}
-        onReload={handleReload}
-      />
+  } else {
+    //  Render table if at least one page has successfully loaded
+    tableContent = (
       <TableView
         columns={sortDisabledColumns}
         data={resultsPage?.data || []}
@@ -266,6 +251,25 @@ export default function DrillDetailPane({
           overflow: scroll;
         `}
       />
+    );
+  }
+
+  return (
+    <div
+      css={css`
+        display: flex;
+        flex-direction: column;
+        height: ${theme.gridUnit * 128}px;
+      `}
+    >
+      <TableControls
+        filters={filters}
+        setFilters={setFilters}
+        totalCount={resultsPage?.total}
+        loading={isLoading}
+        onReload={handleReload}
+      />
+      {tableContent}
     </div>
   );
 }
