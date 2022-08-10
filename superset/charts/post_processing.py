@@ -89,7 +89,7 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
         df = df.pivot_table(
             index=rows,
             columns=columns,
-            values=metrics,
+            values=metrics, # [count] => ["count(*)"]
             aggfunc=pivot_v2_aggfunc_map[aggfunc],
             margins=False,
         )
@@ -230,7 +230,7 @@ def pivot_table_v2(
     verbose_map = datasource.data["verbose_map"] if datasource else None
     if form_data.get("granularity_sqla") == "all" and DTTM_ALIAS in df:
         del df[DTTM_ALIAS]
-
+    
     return pivot_df(
         df,
         rows=get_column_names(form_data.get("groupbyRows"), verbose_map),
@@ -336,6 +336,11 @@ def apply_post_process(
         elif query["result_format"] == ChartDataResultFormat.CSV:
             df = pd.read_csv(StringIO(query["data"]))
 
+        # convert metrics to verbose (label) name
+        if datasource: 
+            df.rename(columns=datasource.data["verbose_map"], inplace=True)
+
+        # key error raise
         processed_df = post_processor(df, form_data, datasource)
 
         query["colnames"] = list(processed_df.columns)
