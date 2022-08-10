@@ -52,18 +52,16 @@ type ResultsPage = {
 const PAGE_SIZE = 50;
 
 export default function DrillDetailPane({
-  datasource,
-  queryFormData,
-  drillFilters,
+  formData,
+  initialFilters,
 }: {
-  datasource: string;
-  queryFormData?: QueryFormData;
-  drillFilters?: BinaryQueryObjectFilterClause[];
+  formData: QueryFormData;
+  initialFilters?: BinaryQueryObjectFilterClause[];
 }) {
   const theme = useTheme();
   const [pageIndex, setPageIndex] = useState(0);
   const lastPageIndex = useRef(pageIndex);
-  const [filters, setFilters] = useState(drillFilters || []);
+  const [filters, setFilters] = useState(initialFilters || []);
   const [isLoading, setIsLoading] = useState(false);
   const [responseError, setResponseError] = useState('');
   const [resultsPages, setResultsPages] = useState<Map<number, ResultsPage>>(
@@ -77,8 +75,8 @@ export default function DrillDetailPane({
 
   //  Extract datasource ID/type from string ID
   const [datasourceId, datasourceType] = useMemo(
-    () => datasource.split('__'),
-    [datasource],
+    () => formData.datasource.split('__'),
+    [formData.datasource],
   );
 
   //  Get page of results
@@ -120,7 +118,7 @@ export default function DrillDetailPane({
   useEffect(() => {
     if (!resultsPages.has(pageIndex)) {
       setIsLoading(true);
-      const jsonPayload = getDrillPayload(queryFormData, drillFilters);
+      const jsonPayload = getDrillPayload(formData, filters);
       getDatasourceSamples(
         datasourceType,
         datasourceId,
@@ -157,9 +155,9 @@ export default function DrillDetailPane({
     cachePageLimit,
     datasourceId,
     datasourceType,
-    drillFilters,
+    filters,
+    formData,
     pageIndex,
-    queryFormData,
     resultsPages,
   ]);
 
@@ -169,7 +167,7 @@ export default function DrillDetailPane({
     resultsPage?.colNames,
     resultsPage?.colTypes,
     resultsPage?.data,
-    datasource,
+    formData.datasource,
   );
 
   const sortDisabledColumns = columns.map(column => ({

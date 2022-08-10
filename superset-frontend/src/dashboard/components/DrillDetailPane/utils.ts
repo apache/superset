@@ -35,7 +35,7 @@ export function getDrillPayload(
   const extras = omit(queryObject.extras, 'having');
   const filters = [
     ...ensureIsArray(queryObject.filters),
-    ...ensureIsArray(drillFilters),
+    ...ensureIsArray(drillFilters).map(f => omit(f, 'formattedVal')),
   ];
   return {
     granularity: queryObject.granularity,
