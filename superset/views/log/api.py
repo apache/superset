@@ -14,34 +14,43 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from flask_appbuilder import ModelRestApi
+from flask import current_app as app
+from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 
 import superset.models.core as models
-from superset import app, appbuilder
+from superset.views.base_api import BaseSupersetModelRestApi
 
+from ...constants import MODEL_API_RW_METHOD_PERMISSION_MAP
 from . import LogMixin
 
 
-class LogRestApi(LogMixin, ModelRestApi):
+class LogRestApi(LogMixin, BaseSupersetModelRestApi):
     datamodel = SQLAInterface(models.Log)
-
-    class_permission_name = "LogModelView"
-    method_permission_name = {
-        "get_list": "list",
-        "get": "show",
-        "post": "add",
-        "put": "edit",
-        "delete": "delete",
-        "info": "list",
-    }
+    include_route_methods = {"get_list", "get", "post"}
+    class_permission_name = "Log"
+    method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
     resource_name = "log"
     allow_browser_login = True
-    list_columns = ("user.username", "action", "dttm")
+    list_columns = [
+        "user.username",
+        "action",
+        "dttm",
+        "json",
+        "slice_id",
+        "dashboard_id",
+        "user_id",
+        "duration_ms",
+        "referrer",
+    ]
+    show_columns = list_columns
 
+    @staticmethod
+    def is_enabled() -> bool:
+        return app.config["FAB_ADD_SECURITY_VIEWS"] and app.config["SUPERSET_LOG_VIEW"]
 
-if (
-    not app.config["FAB_ADD_SECURITY_VIEWS"] is False
-    or app.config["SUPERSET_LOG_VIEW"] is False
-):
-    appbuilder.add_api(LogRestApi)
+    @before_request
+    def ensure_enabled(self) -> None:
+        if not self.is_enabled():
+            return self.response_404()
+        return None

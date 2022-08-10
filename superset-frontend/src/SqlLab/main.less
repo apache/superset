@@ -1,0 +1,493 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+@import '../assets/stylesheets/less/variables.less';
+
+body {
+  min-height: ~'max(100vh, 500px)'; // Set a min height so the gutter is always visible when resizing
+  overflow: hidden;
+}
+
+.inlineBlock {
+  display: inline-block;
+}
+
+.valignTop {
+  vertical-align: top;
+}
+
+.inline {
+  display: inline;
+}
+
+.nopadding {
+  padding: 0px;
+}
+
+.pane-cell {
+  padding: 10px;
+  overflow: auto;
+  width: 100%;
+  height: 100%;
+}
+
+.ant-tabs-content-holder {
+  /* This is needed for Safari */
+  height: 100%;
+}
+
+.ant-tabs-content {
+  height: 100%;
+  position: relative;
+  background-color: @lightest;
+  overflow-x: auto;
+  overflow-y: auto;
+
+  > .ant-tabs-tabpane {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+  }
+}
+
+.Workspace .btn-sm {
+  box-shadow: 1px 1px 2px fade(@darkest, @opacity-light);
+  margin-top: 2px;
+  padding: 4px;
+}
+
+.Workspace hr {
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+
+div.Workspace {
+  height: 100%;
+  margin: 0px;
+}
+
+.padded {
+  padding: 10px;
+}
+
+.p-t-10 {
+  padding-top: 10px;
+}
+
+.p-t-5 {
+  padding-top: 5px;
+}
+
+.m-r-5 {
+  margin-right: 5px;
+}
+
+.m-r-3 {
+  margin-right: 3px;
+}
+
+.m-l-1 {
+  margin-left: 1px;
+}
+
+.m-l-2 {
+  margin-left: 2px;
+}
+
+.m-r-10 {
+  margin-right: 10px;
+}
+
+.m-l-10 {
+  margin-left: 10px;
+}
+
+.m-l-5 {
+  margin-left: 5px;
+}
+
+.m-b-10 {
+  margin-bottom: 10px;
+}
+
+.m-t-5 {
+  margin-top: 5px;
+}
+
+.m-t-10 {
+  margin-top: 10px;
+}
+
+.p-t-10 {
+  padding-top: 10px;
+}
+
+.no-shadow {
+  box-shadow: none;
+  background-color: transparent;
+}
+
+.pane-west {
+  height: 100%;
+  overflow: auto;
+}
+
+.circle {
+  @circle-diameter: 10px;
+  border-radius: (@circle-diameter / 2);
+  width: @circle-diameter;
+  height: @circle-diameter;
+
+  display: inline-block;
+  background-color: @gray-light;
+  text-align: center;
+  vertical-align: middle;
+  font-size: @font-size-m;
+  font-weight: @font-weight-bold;
+}
+
+.running {
+  background-color: fade(@success, @opacity-heavy);
+  color: @darkest;
+}
+
+.success {
+  background-color: @success;
+}
+
+.failed {
+  background-color: @danger;
+}
+
+.handle {
+  cursor: move;
+}
+
+#a11y-query-editor-tabs {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.SqlLab {
+  position: absolute;
+  top: 0px;
+  right: 0px;
+  bottom: 0px;
+  left: 0px;
+  padding: 0 10px;
+
+  pre {
+    padding: 0px !important;
+    margin: 0px;
+    border: none;
+    font-size: @font-size-s;
+    background-color: transparent !important;
+  }
+
+  .north-pane {
+    display: flex;
+    flex-direction: column;
+  }
+
+  #ace-editor {
+    height: calc(100% - 51px);
+    flex-grow: 1;
+  }
+
+  .ace_content {
+    height: 100%;
+  }
+}
+
+.SqlEditorTabs li {
+  a:focus {
+    outline: 0;
+  }
+
+  .ddbtn-tab {
+    font-size: inherit;
+    color: black;
+
+    &:active {
+      background: none;
+    }
+
+    svg {
+      vertical-align: middle;
+    }
+  }
+
+  .dropdown.btn-group.btn-group-sm {
+    width: 3px;
+    height: 3px;
+    border-radius: 1.5px;
+    background: #bababa;
+    margin-right: 8px;
+    font-weight: @font-weight-normal;
+    display: inline-flex;
+
+    &:hover {
+      background-color: @primary-color;
+
+      &:before,
+      &:after {
+        background-color: @primary-color;
+      }
+    }
+
+    &:before,
+    &:after {
+      position: absolute;
+      content: ' ';
+      width: 3px;
+      height: 3px;
+      border-radius: 1.5px;
+      background-color: #bababa;
+    }
+    &:before {
+      transform: translateY(-5px);
+    }
+    &:after {
+      transform: translateY(5px);
+    }
+  }
+
+  ul.dropdown-menu {
+    margin-top: 10px;
+  }
+
+  .dropdown-toggle {
+    padding-top: 2px;
+  }
+}
+
+.SqlEditor {
+  display: flex;
+  flex-direction: row;
+  height: 100%;
+  padding: 10px;
+
+  .schemaPane {
+    flex: 0 0 400px;
+    max-width: 400px;
+    transition: transform @timing-normal ease-in-out;
+  }
+
+  .queryPane {
+    flex: 1 1 auto;
+    padding-left: 10px;
+    overflow-y: none;
+    overflow-x: scroll;
+  }
+
+  .schemaPane-enter-done,
+  .schemaPane-exit {
+    transform: translateX(0);
+    z-index: 7;
+  }
+
+  .schemaPane-exit-active {
+    transform: translateX(-120%);
+  }
+
+  .schemaPane-enter-active {
+    transform: translateX(0);
+    max-width: 300px;
+  }
+
+  .schemaPane-enter,
+  .schemaPane-exit-done {
+    max-width: 0;
+    transform: translateX(-120%);
+    overflow: hidden;
+  }
+
+  .schemaPane-exit-done + .queryPane {
+    margin-left: 0;
+  }
+
+  .gutter {
+    border-top: 1px solid @gray-light;
+    border-bottom: 1px solid @gray-light;
+    width: 3%;
+    margin: 3px 47%;
+  }
+
+  .gutter.gutter-vertical {
+    cursor: row-resize;
+  }
+}
+
+.SqlEditorLeftBar {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+
+  .divider {
+    border-bottom: 1px solid @gray-bg;
+    margin: 15px 0;
+  }
+}
+
+.popover {
+  max-width: 400px;
+}
+
+.table-label {
+  margin-top: 5px;
+  margin-right: 10px;
+  float: left;
+}
+
+div.tablePopover {
+  opacity: 0.7 !important;
+
+  &:hover {
+    opacity: 1 !important;
+  }
+}
+
+.ace_editor.ace_editor {
+  //double class is better than !important
+  border: 1px solid @gray-light;
+  font-feature-settings: @font-feature-settings;
+  // Fira Code causes problem with Ace under Firefox
+  font-family: 'Menlo', 'Lucida Console', 'Courier New', 'Ubuntu Mono',
+    'Consolas', 'source-code-pro', monospace;
+
+  &.ace_autocomplete {
+    // Use !important because Ace Editor applies extra CSS at the last second
+    // when opening the autocomplete.
+    width: 520px !important;
+  }
+}
+
+.Select__menu-outer {
+  min-width: 100%;
+  width: inherit;
+  z-index: @z-index-dropdown;
+}
+
+.Select__clear-indicator {
+  margin-top: -2px;
+}
+
+.Select__arrow {
+  margin-top: 5px;
+}
+
+.ace_scroller {
+  background-color: @gray-bg;
+}
+
+.TableElement {
+  .well {
+    margin-top: 5px;
+    margin-bottom: 5px;
+    padding: 5px 10px;
+  }
+
+  .ws-el-controls {
+    margin-right: -0.3em;
+    display: flex;
+  }
+
+  .header-container {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    width: 100%;
+
+    .table-name {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-size: 16px;
+      flex: 1;
+    }
+
+    .header-right-side {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      margin-right: 33px;
+    }
+  }
+}
+
+.QueryTable .label {
+  display: inline-block;
+}
+
+.QueryTable .ant-btn {
+  position: static;
+}
+
+.ResultsModal .ant-modal-body {
+  min-height: 560px;
+}
+
+.ant-modal-body {
+  overflow: auto;
+}
+
+a.Link {
+  cursor: pointer;
+}
+
+.QueryTable .well {
+  padding: 3px 5px;
+  margin: 3px 5px;
+}
+
+.nav-tabs .ddbtn-tab {
+  padding: 0;
+  border: none;
+  background: none;
+  position: relative;
+  top: 2px;
+
+  &:focus {
+    outline: 0;
+  }
+
+  &:active {
+    box-shadow: none;
+  }
+}
+
+.icon-container {
+  display: inline-block;
+  width: 30px;
+  text-align: center;
+}
+
+.search-date-filter-container {
+  display: flex;
+
+  .Select {
+    margin-right: 3px;
+  }
+}
+
+.cost-estimate {
+  font-size: @font-size-s;
+}

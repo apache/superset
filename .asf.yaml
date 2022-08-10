@@ -1,0 +1,81 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+# https://cwiki.apache.org/confluence/display/INFRA/.asf.yaml+features+for+git+repositories
+---
+github:
+  description: "Apache Superset is a Data Visualization and Data Exploration Platform"
+  homepage: https://superset.apache.org/
+  labels:
+    - superset
+    - apache
+    - apache-superset
+    - data-visualization
+    - data-viz
+    - analytics
+    - business-intelligence
+    - data-science
+    - data-engineering
+    - asf
+    - bi
+    - business-analytics
+    - data-analytics
+    - data-analysis
+    - data-science
+    - python
+    - react
+    - sql-editor
+    - flask
+  features:
+    # Enable issues management
+    issues: true
+    # Enable projects for project management boards
+    projects: true
+    # Enable wiki for documentation
+    wiki: true
+
+  enabled_merge_buttons:
+    squash: true
+    merge: false
+    rebase: false
+
+  protected_branches:
+    master:
+      required_status_checks:
+        # strict means "Require branches to be up to date before merging".
+        strict: false
+        # contexts are the names of checks that must pass
+        contexts:
+          - check
+          - cypress-matrix (1, chrome)
+          - cypress-matrix (2, chrome)
+          - cypress-matrix (3, chrome)
+          - docker-build
+          - frontend-build
+          - pre-commit (3.8)
+          - python-lint (3.8)
+          - test-mysql (3.8)
+          - test-postgres (3.8)
+          - test-postgres (3.9)
+          - test-sqlite (3.8)
+
+      required_pull_request_reviews:
+        dismiss_stale_reviews: false
+        require_code_owner_reviews: true
+        required_approving_review_count: 1
+
+      required_signatures: false

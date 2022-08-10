@@ -15,9 +15,14 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from sqlalchemy import types
-from sqlalchemy.sql.sqltypes import Integer
+# pylint: disable=abstract-method, no-init
+from typing import Any, Dict, List, Optional, Type
+
+from sqlalchemy.engine.interfaces import Dialect
+from sqlalchemy.sql.sqltypes import DATE, Integer, TIMESTAMP
 from sqlalchemy.sql.type_api import TypeEngine
+from sqlalchemy.sql.visitors import Visitable
+from sqlalchemy.types import TypeDecorator
 
 # _compiler_dispatch is defined to help with type compilation
 
@@ -27,11 +32,12 @@ class TinyInteger(Integer):
     A type for tiny ``int`` integers.
     """
 
-    def python_type(self):
+    @property
+    def python_type(self) -> Type[int]:
         return int
 
     @classmethod
-    def _compiler_dispatch(cls, _visitor, **_kw):
+    def _compiler_dispatch(cls, _visitor: Visitable, **_kw: Any) -> str:
         return "TINYINT"
 
 
@@ -40,11 +46,12 @@ class Interval(TypeEngine):
     A type for intervals.
     """
 
-    def python_type(self):
+    @property
+    def python_type(self) -> Optional[Type[Any]]:
         return None
 
     @classmethod
-    def _compiler_dispatch(cls, _visitor, **_kw):
+    def _compiler_dispatch(cls, _visitor: Visitable, **_kw: Any) -> str:
         return "INTERVAL"
 
 
@@ -53,11 +60,12 @@ class Array(TypeEngine):
     A type for arrays.
     """
 
-    def python_type(self):
+    @property
+    def python_type(self) -> Optional[Type[List[Any]]]:
         return list
 
     @classmethod
-    def _compiler_dispatch(cls, _visitor, **_kw):
+    def _compiler_dispatch(cls, _visitor: Visitable, **_kw: Any) -> str:
         return "ARRAY"
 
 
@@ -66,11 +74,12 @@ class Map(TypeEngine):
     A type for maps.
     """
 
-    def python_type(self):
+    @property
+    def python_type(self) -> Optional[Type[Dict[Any, Any]]]:
         return dict
 
     @classmethod
-    def _compiler_dispatch(cls, _visitor, **_kw):
+    def _compiler_dispatch(cls, _visitor: Visitable, **_kw: Any) -> str:
         return "MAP"
 
 
@@ -79,32 +88,42 @@ class Row(TypeEngine):
     A type for rows.
     """
 
-    def python_type(self):
+    @property
+    def python_type(self) -> Optional[Type[Any]]:
         return None
 
     @classmethod
-    def _compiler_dispatch(cls, _visitor, **_kw):
+    def _compiler_dispatch(cls, _visitor: Visitable, **_kw: Any) -> str:
         return "ROW"
 
 
-type_map = {
-    "boolean": types.Boolean,
-    "tinyint": TinyInteger,
-    "smallint": types.SmallInteger,
-    "integer": types.Integer,
-    "bigint": types.BigInteger,
-    "real": types.Float,
-    "double": types.Float,
-    "decimal": types.DECIMAL,
-    "varchar": types.String,
-    "char": types.CHAR,
-    "varbinary": types.VARBINARY,
-    "JSON": types.JSON,
-    "date": types.DATE,
-    "time": types.Time,
-    "timestamp": types.TIMESTAMP,
-    "interval": Interval,
-    "array": Array,
-    "map": Map,
-    "row": Row,
-}
+class TimeStamp(TypeDecorator):
+    """
+    A type to extend functionality of timestamp data type.
+    """
+
+    impl = TIMESTAMP
+
+    @classmethod
+    def process_bind_param(cls, value: str, dialect: Dialect) -> str:
+        """
+        Used for in-line rendering of TIMESTAMP data type
+        as Presto does not support automatic casting.
+        """
+        return f"TIMESTAMP '{value}'"
+
+
+class Date(TypeDecorator):
+    """
+    A type to extend functionality of date data type.
+    """
+
+    impl = DATE
+
+    @classmethod
+    def process_bind_param(cls, value: str, dialect: Dialect) -> str:
+        """
+        Used for in-line rendering of DATE data type
+        as Presto does not support automatic casting.
+        """
+        return f"DATE '{value}'"

@@ -1,0 +1,42 @@
+name: Docker
+
+on:
+  push:
+    branches:
+      - 'master'
+  pull_request:
+    types: [synchronize, opened, reopened, ready_for_review]
+
+jobs:
+  docker-build:
+    if: github.event.pull_request.draft == false
+    name: docker-build
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+        uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+
+      - shell: bash
+        env:
+          DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          .github/workflows/docker_build_push.sh
+
+      - name: Build ephemeral env image
+        if: github.event_name == 'pull_request'
+        run: |
+          mkdir -p ./build
+          echo ${{ github.sha }} > ./build/SHA
+          echo ${{ github.event.pull_request.number }} > ./build/PR-NUM
+          docker build --target ci -t ${{ github.sha }} -t "pr-${{ github.event.pull_request.number }}" .
+          docker save ${{ github.sha }} | gzip > ./build/${{ github.sha }}.tar.gz
+
+      - name: Upload build artifacts
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v2
+        with:
+          name: build
+          path: build/

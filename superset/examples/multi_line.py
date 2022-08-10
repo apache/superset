@@ -17,13 +17,15 @@
 import json
 
 from superset import db
+from superset.models.slice import Slice
+from superset.utils.core import DatasourceType
 
 from .birth_names import load_birth_names
-from .helpers import merge_slice, misc_dash_slices, Slice
+from .helpers import merge_slice, misc_dash_slices
 from .world_bank import load_world_bank_health_n_pop
 
 
-def load_multi_line(only_metadata=False):
+def load_multi_line(only_metadata: bool = False) -> None:
     load_world_bank_health_n_pop(only_metadata)
     load_birth_names(only_metadata)
     ids = [
@@ -34,7 +36,7 @@ def load_multi_line(only_metadata=False):
     ]
 
     slc = Slice(
-        datasource_type="table",  # not true, but needed
+        datasource_type=DatasourceType.TABLE,  # not true, but needed
         datasource_id=1,  # cannot be empty
         slice_name="Multi Line",
         viz_type="line_multi",

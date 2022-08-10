@@ -20,7 +20,7 @@ Dear {{ user.username }},
 <br>
 <a href={{ url_for('Superset.profile', username=granter.username, _external=True) }}>
    {{ granter.username }}</a> has extended the role {{ role.name }} to include
-<a href={{ url_for('Superset.explore', datasource_type=datasource.type, datasource_id=datasource.id, _external=True) }}>
+<a href={{ url_for('ExploreView.root', datasource_type=datasource.type, datasource_id=datasource.id, _external=True) }}>
  {{datasource.full_name}}</a> and granted you access to it.
 <br>
 <br>

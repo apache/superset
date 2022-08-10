@@ -1,0 +1,45 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+slice_name: Number of Aspiring Developers
+viz_type: big_number_total
+params:
+  adhoc_filters:
+  - clause: WHERE
+    comparator: '0'
+    expressionType: SIMPLE
+    filterOptionName: filter_3f8ug0vnqk1_oy0mvl0izdc
+    isExtra: false
+    isNew: false
+    operator: ==
+    sqlExpression: null
+    subject: is_software_dev
+  datasource: 42__table
+  granularity_sqla: time_start
+  header_font_size: 0.4
+  metric: count
+  queryFields:
+    metric: metrics
+  slice_id: 1363
+  subheader_font_size: 0.15
+  time_range: No filter
+  url_params: {}
+  viz_type: big_number_total
+  y_axis_format: SMART_NUMBER
+cache_timeout: null
+uuid: a0e5329f-224e-6fc8-efd2-d37d0f546ee8
+version: 1.0.0
+dataset_uuid: d95a2865-53ce-1f82-a53d-8e3c89331469

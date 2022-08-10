@@ -14,14 +14,15 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-
+from sqlalchemy import Metadata
+from sqlalchemy.engine import Engine
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql import and_, func, functions, join, literal, select
 
 from superset.models.tags import ObjectTypes, TagTypes
 
 
-def add_types(engine, metadata):
+def add_types(engine: Engine, metadata: Metadata) -> None:
     """
     Tag every object according to its type:
 
@@ -163,7 +164,7 @@ def add_types(engine, metadata):
     engine.execute(query)
 
 
-def add_owners(engine, metadata):
+def add_owners(engine: Engine, metadata: Metadata) -> None:
     """
     Tag every object according to its owner:
 
@@ -319,7 +320,7 @@ def add_owners(engine, metadata):
     engine.execute(query)
 
 
-def add_favorites(engine, metadata):
+def add_favorites(engine: Engine, metadata: Metadata) -> None:
     """
     Tag every object that was favorited:
 

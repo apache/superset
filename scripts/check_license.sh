@@ -71,9 +71,6 @@ mkdir -p ${TMP_DIR}/lib
     exit 1
 }
 
-# This is the target of a symlink in superset/assets/docs - and rat exclude doesn't cope with the symlink target doesn't exist
-mkdir -p docs/_build/html/
-
 echo "Running license checks. This can take a while."
 echo "$FWDIR"/.rat-excludes
 $java_cmd -jar "$rat_jar" -E "$FWDIR"/.rat-excludes  -d "$FWDIR" > rat-results.txt

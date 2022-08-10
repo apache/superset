@@ -14,36 +14,55 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=R
+from __future__ import annotations
+
+from typing import Any, TYPE_CHECKING
+
 import simplejson as json
 from flask import request
 from flask_appbuilder import expose
+from flask_appbuilder.api import rison
 from flask_appbuilder.security.decorators import has_access_api
 
-import superset.models.core as models
-from superset import appbuilder, db, event_logger, security_manager
-from superset.common.query_context import QueryContext
+from superset import db, event_logger
+from superset.charts.commands.exceptions import (
+    TimeRangeAmbiguousError,
+    TimeRangeParseFailError,
+)
 from superset.legacy import update_time_range
+from superset.models.slice import Slice
+from superset.superset_typing import FlaskResponse
 from superset.utils import core as utils
+from superset.utils.date_parser import get_since_until
+from superset.views.base import api, BaseSupersetView, handle_api_exception
 
-from .base import api, BaseSupersetView, handle_api_exception
+if TYPE_CHECKING:
+    from superset.common.query_context_factory import QueryContextFactory
+
+get_time_range_schema = {"type": "string"}
 
 
 class Api(BaseSupersetView):
+    query_context_factory = None
+
     @event_logger.log_this
     @api
     @handle_api_exception
     @has_access_api
     @expose("/v1/query/", methods=["POST"])
-    def query(self):
+    def query(self) -> FlaskResponse:
         """
         Takes a query_obj constructed in the client and returns payload data response
         for the given query_obj.
-        params: query_context: json_blob
+
+        raises SupersetSecurityException: If the user cannot access the resource
         """
-        query_context = QueryContext(**json.loads(request.form.get("query_context")))
-        security_manager.assert_query_context_permission(query_context)
-        payload_json = query_context.get_payload()
+        query_context = self.get_query_context_factory().create(
+            **json.loads(request.form["query_context"])
+        )
+        query_context.raise_for_access()
+        result = query_context.get_payload()
+        payload_json = result["queries"]
         return json.dumps(
             payload_json, default=utils.json_int_dttm_ser, ignore_nan=True
         )
@@ -53,7 +72,7 @@ class Api(BaseSupersetView):
     @handle_api_exception
     @has_access_api
     @expose("/v1/form_data/", methods=["GET"])
-    def query_form_data(self):
+    def query_form_data(self) -> FlaskResponse:  # pylint: disable=no-self-use
         """
         Get the formdata stored in the database for existing slice.
         params: slice_id: integer
@@ -61,7 +80,7 @@ class Api(BaseSupersetView):
         form_data = {}
         slice_id = request.args.get("slice_id")
         if slice_id:
-            slc = db.session.query(models.Slice).filter_by(id=slice_id).one_or_none()
+            slc = db.session.query(Slice).filter_by(id=slice_id).one_or_none()
             if slc:
                 form_data = slc.form_data.copy()
 
@@ -69,5 +88,30 @@ class Api(BaseSupersetView):
 
         return json.dumps(form_data)
 
+    @api
+    @handle_api_exception
+    @has_access_api
+    @rison(get_time_range_schema)
+    @expose("/v1/time_range/", methods=["GET"])
+    def time_range(self, **kwargs: Any) -> FlaskResponse:
+        """Get actually time range from human readable string or datetime expression"""
+        time_range = kwargs["rison"]
+        try:
+            since, until = get_since_until(time_range)
+            result = {
+                "since": since.isoformat() if since else "",
+                "until": until.isoformat() if until else "",
+                "timeRange": time_range,
+            }
+            return self.json_response({"result": result})
+        except (ValueError, TimeRangeParseFailError, TimeRangeAmbiguousError) as error:
+            error_msg = {"message": f"Unexpected time range: {error}"}
+            return self.json_response(error_msg, 400)
 
-appbuilder.add_view_no_menu(Api)
+    def get_query_context_factory(self) -> QueryContextFactory:
+        if self.query_context_factory is None:
+            # pylint: disable=import-outside-toplevel
+            from superset.common.query_context_factory import QueryContextFactory
+
+            self.query_context_factory = QueryContextFactory()
+        return self.query_context_factory

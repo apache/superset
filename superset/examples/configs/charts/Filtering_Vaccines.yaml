@@ -1,0 +1,53 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+slice_name: Filtering Vaccines
+viz_type: filter_box
+params:
+  adhoc_filters: []
+  datasource: 69__table
+  date_filter: false
+  filter_configs:
+  - asc: true
+    clearable: true
+    column: country_name
+    key: D00hRxPLE
+    label: Country
+    multiple: true
+    searchAllOptions: false
+  - asc: true
+    clearable: true
+    column: product_category
+    key: jJ7x2cuIc
+    label: Vaccine Approach
+    multiple: true
+    searchAllOptions: false
+  - asc: true
+    clearable: true
+    column: clinical_stage
+    key: EgGwwAUU6
+    label: Clinical Stage
+    multiple: true
+    searchAllOptions: false
+  queryFields: {}
+  slice_id: 3965
+  time_range: No filter
+  url_params: {}
+  viz_type: filter_box
+cache_timeout: null
+uuid: c29381ce-0e99-4cf3-bf0f-5f55d6b94176
+version: 1.0.0
+dataset_uuid: 974b7a1c-22ea-49cb-9214-97b7dbd511e0

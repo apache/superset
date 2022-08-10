@@ -1,10 +1,18 @@
 ---
 name: Bug report
 about: Create a report to help us improve
+labels: "#bug"
 
 ---
 
 A clear and concise description of what the bug is.
+
+#### How to reproduce the bug
+
+1. Go to '...'
+2. Click on '....'
+3. Scroll down to '....'
+4. See error
 
 ### Expected results
 
@@ -18,25 +26,20 @@ what actually happens.
 
 If applicable, add screenshots to help explain your problem.
 
-#### How to reproduce the bug
-
-1. Go to '...'
-2. Click on '....'
-3. Scroll down to '....'
-4. See error
 
 ### Environment
 
 (please complete the following information):
 
+- browser type and version:
 - superset version: `superset version`
 - python version: `python --version`
 - node.js version: `node -v`
-- npm version: `npm -v`
+- any feature flags active:
 
 ### Checklist
 
-Make sure these boxes are checked before submitting your issue - thank you!
+Make sure to follow these steps before submitting your issue - thank you!
 
 - [ ] I have checked the superset logs for python stacktraces and included it here as text if there are any.
 - [ ] I have reproduced the issue with at least the latest released version of superset.

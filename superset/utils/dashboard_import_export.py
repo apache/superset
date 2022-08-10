@@ -14,32 +14,18 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
-import json
 import logging
-import time
 
-from superset.models.core import Dashboard
-from superset.utils.core import decode_dashboards
+from sqlalchemy.orm import Session
 
+from superset.models.dashboard import Dashboard
 
-def import_dashboards(session, data_stream, import_time=None):
-    """Imports dashboards from a stream to databases"""
-    current_tt = int(time.time())
-    import_time = current_tt if import_time is None else import_time
-    data = json.loads(data_stream.read(), object_hook=decode_dashboards)
-    # TODO: import DRUID datasources
-    for table in data["datasources"]:
-        type(table).import_obj(table, import_time=import_time)
-    session.commit()
-    for dashboard in data["dashboards"]:
-        Dashboard.import_obj(dashboard, import_time=import_time)
-    session.commit()
+logger = logging.getLogger(__name__)
 
 
-def export_dashboards(session):
+def export_dashboards(session: Session) -> str:
     """Returns all dashboards metadata as a json dump"""
-    logging.info("Starting export")
+    logger.info("Starting export")
     dashboards = session.query(Dashboard)
     dashboard_ids = []
     for dashboard in dashboards:

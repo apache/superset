@@ -15,19 +15,20 @@
 # specific language governing permissions and limitations
 # under the License.
 from datetime import datetime
-from typing import Optional
+from typing import Any, Dict, List, Optional, Tuple
 
-from superset.db_engine_specs.base import LimitMethod
-from superset.db_engine_specs.postgres import PostgresBaseEngineSpec
+from superset.db_engine_specs.base import BaseEngineSpec, LimitMethod
+from superset.utils import core as utils
 
 
-class OracleEngineSpec(PostgresBaseEngineSpec):
+class OracleEngineSpec(BaseEngineSpec):
     engine = "oracle"
+    engine_name = "Oracle"
     limit_method = LimitMethod.WRAP_SQL
     force_column_alias_quotes = True
     max_column_name_length = 30
 
-    _time_grain_functions = {
+    _time_grain_expressions = {
         None: "{col}",
         "PT1S": "CAST({col} as DATE)",
         "PT1M": "TRUNC(CAST({col} as DATE), 'MI')",
@@ -35,15 +36,42 @@ class OracleEngineSpec(PostgresBaseEngineSpec):
         "P1D": "TRUNC(CAST({col} as DATE), 'DDD')",
         "P1W": "TRUNC(CAST({col} as DATE), 'WW')",
         "P1M": "TRUNC(CAST({col} as DATE), 'MONTH')",
-        "P0.25Y": "TRUNC(CAST({col} as DATE), 'Q')",
+        "P3M": "TRUNC(CAST({col} as DATE), 'Q')",
         "P1Y": "TRUNC(CAST({col} as DATE), 'YEAR')",
     }
 
     @classmethod
-    def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
+    def convert_dttm(
+        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
+    ) -> Optional[str]:
         tt = target_type.upper()
-        if tt == "DATE":
+        if tt == utils.TemporalType.DATE:
             return f"TO_DATE('{dttm.date().isoformat()}', 'YYYY-MM-DD')"
-        if tt == "TIMESTAMP":
-            return f"""TO_TIMESTAMP('{dttm.isoformat(timespec="microseconds")}', 'YYYY-MM-DD"T"HH24:MI:SS.ff6')"""  # pylint: disable=line-too-long
+        if tt == utils.TemporalType.DATETIME:
+            datetime_formatted = dttm.isoformat(timespec="seconds")
+            return f"""TO_DATE('{datetime_formatted}', 'YYYY-MM-DD"T"HH24:MI:SS')"""
+        if tt == utils.TemporalType.TIMESTAMP:
+            return f"""TO_TIMESTAMP('{dttm
+                .isoformat(timespec="microseconds")}', 'YYYY-MM-DD"T"HH24:MI:SS.ff6')"""
         return None
+
+    @classmethod
+    def epoch_to_dttm(cls) -> str:
+        return "TO_DATE('1970-01-01','YYYY-MM-DD')+(1/24/60/60)*{col}"
+
+    @classmethod
+    def epoch_ms_to_dttm(cls) -> str:
+        return "TO_DATE('1970-01-01','YYYY-MM-DD')+(1/24/60/60/1000)*{col}"
+
+    @classmethod
+    def fetch_data(
+        cls, cursor: Any, limit: Optional[int] = None
+    ) -> List[Tuple[Any, ...]]:
+        """
+        :param cursor: Cursor instance
+        :param limit: Maximum number of rows to be returned by the cursor
+        :return: Result of query
+        """
+        if not cursor.description:
+            return []
+        return super().fetch_data(cursor, limit)

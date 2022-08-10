@@ -22,12 +22,9 @@ import sys
 
 from setuptools import find_packages, setup
 
-if sys.version_info < (3, 6):
-    sys.exit("Sorry, Python < 3.6 is not supported")
-
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+PACKAGE_JSON = os.path.join(BASE_DIR, "superset-frontend", "package.json")
 
-PACKAGE_JSON = os.path.join(BASE_DIR, "superset", "assets", "package.json")
 with open(PACKAGE_JSON, "r") as package_file:
     version_string = json.load(package_file)["version"]
 
@@ -35,7 +32,7 @@ with io.open("README.md", "r", encoding="utf-8") as f:
     long_description = f.read()
 
 
-def get_git_sha():
+def get_git_sha() -> str:
     try:
         s = subprocess.check_output(["git", "rev-parse", "HEAD"])
         return s.decode().strip()
@@ -50,9 +47,7 @@ print("VERSION: " + version_string)
 print("GIT SHA: " + GIT_SHA)
 print("-==-" * 15)
 
-VERSION_INFO_FILE = os.path.join(
-    BASE_DIR, "superset", "static", "assets", "version_info.json"
-)
+VERSION_INFO_FILE = os.path.join(BASE_DIR, "superset", "static", "version_info.json")
 
 with open(VERSION_INFO_FILE, "w") as version_file:
     json.dump(version_info, version_file)
@@ -60,73 +55,132 @@ with open(VERSION_INFO_FILE, "w") as version_file:
 
 setup(
     name="apache-superset",
-    description=("A modern, enterprise-ready business intelligence web application"),
+    description="A modern, enterprise-ready business intelligence web application",
     long_description=long_description,
     long_description_content_type="text/markdown",
     version=version_string,
     packages=find_packages(),
     include_package_data=True,
     zip_safe=False,
-    scripts=["superset/bin/superset"],
+    entry_points={
+        "console_scripts": ["superset=superset.cli.main:superset"],
+        # the `postgres+psycopg2://` scheme was removed in SQLAlchemy 1.4, add an alias here
+        # to prevent breaking existing databases
+        "sqlalchemy.dialects": [
+            "postgres.psycopg2=sqlalchemy.dialects.postgresql:dialect"
+        ],
+    },
     install_requires=[
         "backoff>=1.8.0",
         "bleach>=3.0.2, <4.0.0",
-        "celery>=4.3.0, <5.0.0",
-        "click>=6.0, <7.0.0",  # `click`>=7 forces "-" instead of "_"
+        "cachelib>=0.4.1,<0.5",
+        "celery>=5.2.2, <6.0.0",
+        "click>=8.0.3",
         "colorama",
-        "contextlib2",
         "croniter>=0.3.28",
-        "cryptography>=2.4.2",
-        "flask>=1.1.0, <2.0.0",
-        "flask-appbuilder>=2.2.0, <2.3.0",
-        "flask-caching",
+        "cron-descriptor",
+        "cryptography>=3.3.2",
+        "deprecation>=2.1.0, <2.2.0",
+        "flask>=2.0.0, <3.0.0",
+        "flask-appbuilder>=4.1.3, <5.0.0",
+        "flask-caching>=1.10.0",
         "flask-compress",
         "flask-talisman",
         "flask-migrate",
         "flask-wtf",
+        "func_timeout",
         "geopy",
-        "gunicorn<19.9.0",  # deprecated
+        "graphlib-backport",
+        "gunicorn>=20.1.0",
+        "hashids>=1.3.1, <2",
+        "holidays==0.10.3",  # PINNED! https://github.com/dr-prodigy/python-holidays/issues/406
         "humanize",
         "isodate",
         "markdown>=3.0",
-        "msgpack>=0.6.1, <0.7.0",
-        "pandas>=0.24.2, <0.25.0",
+        "msgpack>=1.0.0, <1.1",
+        "numpy==1.22.1",
+        "pandas>=1.3.0, <1.4",
         "parsedatetime",
-        "pathlib2",
+        "pgsanity",
         "polyline",
+        "pyparsing>=3.0.6, <4",
         "python-dateutil",
         "python-dotenv",
         "python-geohash",
-        "pyarrow>=0.15.1, <0.16.0",
-        "pyyaml>=5.1",
-        "retry>=0.9.2",
+        "pyarrow>=5.0.0, <6.0",
+        "pyyaml>=5.4",
+        "PyJWT>=2.4.0, <3.0",
+        "redis",
         "selenium>=3.141.0",
         "simplejson>=3.15.0",
-        "sqlalchemy>=1.3.5,<2.0",
-        "sqlalchemy-utils>=0.33.2",
-        "sqlparse>=0.3.0,<0.4",
+        "slackclient==2.5.0",  # PINNED! slack changes file upload api in the future versions
+        "sqlalchemy>=1.4, <2",
+        "sqlalchemy-utils>=0.37.8, <0.38",
+        "sqlparse==0.3.0",  # PINNED! see https://github.com/andialbrecht/sqlparse/issues/562
+        "tabulate==0.8.9",
+        # needed to support Literal (3.8) and TypeGuard (3.10)
+        "typing-extensions>=3.10, <4",
         "wtforms-json",
     ],
     extras_require={
-        "bigquery": ["pybigquery>=0.4.10", "pandas_gbq>=0.10.0"],
+        "athena": ["pyathena>=1.10.8, <1.11"],
+        "aurora-data-api": ["preset-sqlalchemy-aurora-data-api>=0.2.8,<0.3"],
+        "bigquery": [
+            "pandas_gbq>=0.10.0",
+            "pybigquery>=0.4.10",
+            "google-cloud-bigquery>=2.4.0",
+        ],
+        "clickhouse": ["clickhouse-sqlalchemy>=0.1.4, <0.2"],
+        "cockroachdb": ["cockroachdb>=0.3.5, <0.4"],
         "cors": ["flask-cors>=2.0.0"],
-        "gsheets": ["gsheetsdb>=0.1.9"],
-        "hive": ["pyhive[hive]>=0.6.1", "tableschema", "thrift>=0.11.0, <1.0.0"],
-        "mysql": ["mysqlclient==1.4.2.post1"],
-        "postgres": ["psycopg2-binary==2.7.5"],
-        "presto": ["pyhive[presto]>=0.4.0"],
-        "elasticsearch": ["elasticsearch-dbapi>=0.1.0, <0.2.0"],
-        "druid": ["pydruid==0.5.7", "requests==2.22.0"],
+        "crate": ["crate[sqlalchemy]>=0.26.0, <0.27"],
+        "databricks": [
+            "databricks-sql-connector>=2.0.2, <3",
+            "sqlalchemy-databricks>=0.2.0",
+        ],
+        "db2": ["ibm-db-sa>=0.3.5, <0.4"],
+        "dremio": ["sqlalchemy-dremio>=1.1.5, <1.3"],
+        "drill": ["sqlalchemy-drill==0.1.dev"],
+        "druid": ["pydruid>=0.6.1,<0.7"],
+        "solr": ["sqlalchemy-solr >= 0.2.0"],
+        "elasticsearch": ["elasticsearch-dbapi>=0.2.0, <0.3.0"],
+        "exasol": ["sqlalchemy-exasol >= 2.4.0, <3.0"],
+        "excel": ["xlrd>=1.2.0, <1.3"],
+        "firebird": ["sqlalchemy-firebird>=0.7.0, <0.8"],
+        "firebolt": ["firebolt-sqlalchemy>=0.0.1"],
+        "gsheets": ["shillelagh[gsheetsapi]>=1.0.14, <2"],
         "hana": ["hdbcli==2.4.162", "sqlalchemy_hana==0.4.0"],
+        "hive": ["pyhive[hive]>=0.6.5", "tableschema", "thrift>=0.11.0, <1.0.0"],
+        "impala": ["impyla>0.16.2, <0.17"],
+        "kusto": ["sqlalchemy-kusto>=1.0.1, <2"],
+        "kylin": ["kylinpy>=2.8.1, <2.9"],
+        "mssql": ["pymssql>=2.1.4, <2.2"],
+        "mysql": ["mysqlclient>=2.1.0, <3"],
+        "oracle": ["cx-Oracle>8.0.0, <8.1"],
+        "pinot": ["pinotdb>=0.3.3, <0.4"],
+        "postgres": ["psycopg2-binary==2.9.1"],
+        "presto": ["pyhive[presto]>=0.6.5"],
+        "trino": ["trino>=0.313.0"],
+        "prophet": ["prophet>=1.0.1, <1.1", "pystan<3.0"],
+        "redshift": ["sqlalchemy-redshift>=0.8.1, < 0.9"],
+        "rockset": ["rockset>=0.8.10, <0.9"],
+        "shillelagh": [
+            "shillelagh[datasetteapi,gsheetsapi,socrata,weatherapi]>=1.0.3, <2"
+        ],
+        "snowflake": ["snowflake-sqlalchemy>=1.2.4, <2"],
+        "spark": ["pyhive[hive]>=0.6.5", "tableschema", "thrift>=0.11.0, <1.0.0"],
+        "teradata": ["teradatasql>=16.20.0.23"],
+        "thumbnails": ["Pillow>=9.1.1, <10.0.0"],
+        "vertica": ["sqlalchemy-vertica-python>=0.5.9, < 0.6"],
+        "netezza": ["nzalchemy>=11.0.2"],
     },
-    python_requires="~=3.6",
+    python_requires="~=3.8",
     author="Apache Software Foundation",
-    author_email="dev@superset.incubator.apache.org",
+    author_email="dev@superset.apache.org",
     url="https://superset.apache.org/",
-    download_url="https://www.apache.org/dist/incubator/superset/" + version_string,
+    download_url="https://www.apache.org/dist/superset/" + version_string,
     classifiers=[
-        "Programming Language :: Python :: 3.6",
-        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
     ],
-    tests_require=["flask-testing==0.7.1"],
 )

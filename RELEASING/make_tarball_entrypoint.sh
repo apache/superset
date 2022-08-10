@@ -22,7 +22,7 @@ if [ -z "${SUPERSET_VERSION_RC}" ] || [ -z "${SUPERSET_SVN_DEV_PATH}" ] || [ -z 
   exit 1
 fi
 
-SUPERSET_RELEASE_RC=apache-superset-incubating-"${SUPERSET_VERSION_RC}"
+SUPERSET_RELEASE_RC=apache-superset-"${SUPERSET_VERSION_RC}"
 SUPERSET_RELEASE_RC_TARBALL="${SUPERSET_RELEASE_RC}"-source.tar.gz
 SUPERSET_RELEASE_RC_BASE_PATH="${SUPERSET_SVN_DEV_PATH}"/"${SUPERSET_VERSION_RC}"
 SUPERSET_RELEASE_RC_TARBALL_PATH="${SUPERSET_RELEASE_RC_BASE_PATH}"/"${SUPERSET_RELEASE_RC_TARBALL}"
@@ -32,14 +32,14 @@ mkdir -p "${SUPERSET_SVN_DEV_PATH}"/"${SUPERSET_VERSION_RC}"
 
 # Clone superset from tag to /tmp
 cd /tmp
-git clone --depth 1 --branch ${SUPERSET_VERSION_RC} https://github.com/apache/incubator-superset.git
+git clone --depth 1 --branch ${SUPERSET_VERSION_RC} https://github.com/apache/superset.git
 mkdir -p "${HOME}/${SUPERSET_VERSION_RC}"
-cd incubator-superset && \
+cd superset && \
 
 # Check RC version
-if ! jq -e --arg SUPERSET_VERSION $SUPERSET_VERSION '.version == $SUPERSET_VERSION' superset/assets/package.json
+if ! jq -e --arg SUPERSET_VERSION $SUPERSET_VERSION '.version == $SUPERSET_VERSION' superset-frontend/package.json
 then
-  SOURCE_VERSION=$(jq '.version' superset/assets/package.json)
+  SOURCE_VERSION=$(jq '.version' superset-frontend/package.json)
   echo "Source package.json version is wrong, found: ${SOURCE_VERSION} should be: ${SUPERSET_VERSION}"
   exit 1
 fi

@@ -14,16 +14,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-*.ipynb
 *.bak
 *.db
 *.pyc
 *.sqllite
 *.swp
+__pycache__
+
+.local
+.cache
+.bento*
 .cache-loader
 .coverage
+cover
 .DS_Store
 .eggs
+.env
 .envrc
 .idea
 .mypy_cache
@@ -46,33 +52,45 @@ env_py3
 envpy3
 env36
 local_config.py
-superset_config.py
+/superset_config.py
+/superset_text.yml
 superset.egg-info/
 superset/bin/supersetc
 tmp
+rat-results.txt
+superset/app/
 
-# Node.js, webpack artifacts
+# Node.js, webpack artifacts, storybook
 *.entry.js
 *.js.map
 node_modules
 npm-debug.log*
-superset/assets/coverage/*
-superset/assets/cypress/screenshots
-superset/assets/cypress/videos
-superset/assets/version_info.json
+superset/static/assets
+superset/static/version_info.json
+superset-frontend/**/esm/*
+superset-frontend/**/lib/*
+superset-frontend/**/storybook-static/*
 yarn-error.log
+*.map
+*.min.js
+test-changelog.md
+*.tsbuildinfo
+
+# Ignore package-lock in packages
+plugins/*/package-lock.json
+packages/*/package-lock.json
+
+# For country map geojson conversion script
+.ipynb_checkpoints/
+scripts/*.zip
 
 # IntelliJ
 *.iml
 venv
 @eaDir/
 
-# Docker
-./Dockerfile
-./docker-build.sh
-./docker-compose.yml
-./docker-entrypoint.sh
-./docker-init.sh
+# PyCharm
+.run
 
 # Test data
 celery_results.sqlite
@@ -84,6 +102,11 @@ ghostdriver.log
 testCSV.csv
 .terser-plugin-cache/
 apache-superset-*.tar.gz*
+release.json
 
 # Translation binaries
 messages.mo
+
+docker/requirements-local.txt
+
+cache/

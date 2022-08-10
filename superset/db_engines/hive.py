@@ -14,11 +14,18 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
+from typing import Optional, TYPE_CHECKING
 
+if TYPE_CHECKING:
+    from pyhive.hive import Cursor
+    from TCLIService.ttypes import TFetchOrientation
 
 # TODO: contribute back to pyhive.
-def fetch_logs(self, max_rows=1024, orientation=None):
+def fetch_logs(  # pylint: disable=protected-access
+    self: "Cursor",
+    _max_rows: int = 1024,
+    orientation: Optional["TFetchOrientation"] = None,
+) -> str:
     """Mocked. Retrieve the logs produced by the execution of the query.
     Can be called multiple times to fetch the logs produced after
     the previous call.
@@ -27,9 +34,10 @@ def fetch_logs(self, max_rows=1024, orientation=None):
     .. note::
         This is not a part of DB-API.
     """
+    # pylint: disable=import-outside-toplevel
     from pyhive import hive
     from TCLIService import ttypes
-    from thrift import Thrift  # pylint: disable=import-error
+    from thrift import Thrift
 
     orientation = orientation or ttypes.TFetchOrientation.FETCH_NEXT
     try:
@@ -37,9 +45,9 @@ def fetch_logs(self, max_rows=1024, orientation=None):
         logs = self._connection.client.GetLog(req).log
         return logs
     # raised if Hive is used
-    except (ttypes.TApplicationException, Thrift.TApplicationException):
+    except (ttypes.TApplicationException, Thrift.TApplicationException) as ex:
         if self._state == self._STATE_NONE:
-            raise hive.ProgrammingError("No query yet")
+            raise hive.ProgrammingError("No query yet") from ex
         logs = []
         while True:
             req = ttypes.TFetchResultsReq(

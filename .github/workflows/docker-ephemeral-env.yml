@@ -1,0 +1,78 @@
+name: Push ephmereral env image
+
+on:
+  workflow_run:
+    workflows: ["Docker"]
+    types:
+      - completed
+
+jobs:
+  docker_ephemeral_env:
+    name: Push ephemeral env Docker image to ECR
+    if: github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: 'Download artifact'
+      uses: actions/github-script@v3.1.0
+      with:
+        script: |
+          const artifacts = await github.actions.listWorkflowRunArtifacts({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: ${{ github.event.workflow_run.id }},
+          });
+
+          core.info('*** artifacts')
+          core.info(JSON.stringify(artifacts))
+
+          const matchArtifact = artifacts.data.artifacts.filter((artifact) => {
+            return artifact.name == "build"
+          })[0];
+          if(!matchArtifact) return core.setFailed("Build artifacts not found")
+
+          const download = await github.actions.downloadArtifact({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              artifact_id: matchArtifact.id,
+              archive_format: 'zip',
+          });
+          var fs = require('fs');
+          fs.writeFileSync('${{github.workspace}}/build.zip', Buffer.from(download.data));
+
+    - run: unzip build.zip
+
+    - name: Display downloaded files (debug)
+      run: ls -la
+
+    - name: Get SHA
+      id: get-sha
+      run: echo "::set-output name=sha::$(cat ./SHA)"
+
+    - name: Get PR
+      id: get-pr
+      run: echo "::set-output name=num::$(cat ./PR-NUM)"
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-west-2
+
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1
+
+    - name: Load, tag and push image to ECR
+      id: push-image
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        ECR_REPOSITORY: superset-ci
+        SHA: ${{ steps.get-sha.outputs.sha }}
+        IMAGE_TAG: pr-${{ steps.get-pr.outputs.num }}
+      run: |
+        docker load < $SHA.tar.gz
+        docker tag $SHA $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+        docker tag $SHA $ECR_REGISTRY/$ECR_REPOSITORY:$SHA
+        docker push -a $ECR_REGISTRY/$ECR_REPOSITORY

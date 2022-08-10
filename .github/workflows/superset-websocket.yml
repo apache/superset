@@ -1,0 +1,33 @@
+name: WebSocket server
+on:
+  push:
+    paths:
+      - "superset-websocket/**"
+  pull_request:
+    paths:
+      - "superset-websocket/**"
+
+jobs:
+  app-checks:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-20.04
+    steps:
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+        uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+      - name: Install dependencies
+        working-directory: ./superset-websocket
+        run: npm install
+      - name: lint
+        working-directory: ./superset-websocket
+        run: npm run lint
+      - name: prettier
+        working-directory: ./superset-websocket
+        run: npm run prettier-check
+      - name: unit tests
+        working-directory: ./superset-websocket
+        run: npm run test
+      - name: build
+        working-directory: ./superset-websocket
+        run: npm run build

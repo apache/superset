@@ -14,20 +14,35 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
-from flask import Markup
+from typing import Any
 
+from flask import Markup
+from flask_appbuilder.fieldwidgets import BS3TextFieldWidget
+
+from superset.connectors.base.models import BaseDatasource
 from superset.exceptions import SupersetException
 from superset.views.base import SupersetModelView
 
 
+class BS3TextFieldROWidget(  # pylint: disable=too-few-public-methods
+    BS3TextFieldWidget
+):
+    """
+    Custom read only text field widget.
+    """
+
+    def __call__(self, field: Any, **kwargs: Any) -> Markup:
+        kwargs["readonly"] = "true"
+        return super().__call__(field, **kwargs)
+
+
 class DatasourceModelView(SupersetModelView):
-    def pre_delete(self, obj):
-        if obj.slices:
+    def pre_delete(self, item: BaseDatasource) -> None:
+        if item.slices:
             raise SupersetException(
                 Markup(
                     "Cannot delete a datasource that has slices attached to it."
                     "Here's the list of associated charts: "
-                    + "".join([o.slice_name for o in obj.slices])
+                    + "".join([i.slice_name for i in item.slices])
                 )
             )

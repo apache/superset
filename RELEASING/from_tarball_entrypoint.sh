@@ -21,7 +21,7 @@ echo "[WARNING] this entrypoint creates an admin/admin user"
 echo "[WARNING] it should only be used for lightweight testing/validation"
 
 # Create an admin user (you will be prompted to set username, first and last name before setting a password)
-flask fab create-admin \
+superset fab create-admin \
     --username admin \
     --firstname admin \
     --lastname admin \
@@ -37,5 +37,5 @@ superset load_examples
 # Create default roles and permissions
 superset init
 
-FLASK_ENV=development FLASK_APP=superset:app \
+FLASK_ENV=development FLASK_APP="superset.app:create_app()" \
 flask run -p 8088 --with-threads --reload --debugger --host=0.0.0.0

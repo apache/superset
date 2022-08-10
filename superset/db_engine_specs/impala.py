@@ -15,26 +15,28 @@
 # specific language governing permissions and limitations
 # under the License.
 from datetime import datetime
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 from sqlalchemy.engine.reflection import Inspector
 
 from superset.db_engine_specs.base import BaseEngineSpec
+from superset.utils import core as utils
 
 
 class ImpalaEngineSpec(BaseEngineSpec):
     """Engine spec for Cloudera's Impala"""
 
     engine = "impala"
+    engine_name = "Apache Impala"
 
-    _time_grain_functions = {
+    _time_grain_expressions = {
         None: "{col}",
         "PT1M": "TRUNC({col}, 'MI')",
         "PT1H": "TRUNC({col}, 'HH')",
         "P1D": "TRUNC({col}, 'DD')",
         "P1W": "TRUNC({col}, 'WW')",
         "P1M": "TRUNC({col}, 'MONTH')",
-        "P0.25Y": "TRUNC({col}, 'Q')",
+        "P3M": "TRUNC({col}, 'Q')",
         "P1Y": "TRUNC({col}, 'YYYY')",
     }
 
@@ -43,11 +45,13 @@ class ImpalaEngineSpec(BaseEngineSpec):
         return "from_unixtime({col})"
 
     @classmethod
-    def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
+    def convert_dttm(
+        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
+    ) -> Optional[str]:
         tt = target_type.upper()
-        if tt == "DATE":
+        if tt == utils.TemporalType.DATE:
             return f"CAST('{dttm.date().isoformat()}' AS DATE)"
-        elif tt == "TIMESTAMP":
+        if tt == utils.TemporalType.TIMESTAMP:
             return f"""CAST('{dttm.isoformat(timespec="microseconds")}' AS TIMESTAMP)"""
         return None
 

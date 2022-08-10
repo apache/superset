@@ -26,13 +26,11 @@ analyze:
   modules:
   - name: assets
     type: npm
-    target: superset/assets
-    path: superset/assets
-  - name: docs
-    type: pip
-    target: docs
-    path: docs
-  - name: .
+    target: superset-frontend
+    path: superset-frontend
+  - name: base
     type: pip
     target: .
     path: .
+    options:
+      requirements: ./requirements/base.txt
