@@ -20,6 +20,7 @@ import json
 import pandas as pd
 from numpy import True_
 from pytest import raises
+from sqlalchemy.orm.session import Session
 
 from superset.charts.post_processing import apply_post_process, pivot_df, table
 from superset.common.chart_data import ChartDataResultFormat
@@ -1959,4 +1960,71 @@ def test_apply_post_process_json_format_data_is_none():
 
     assert apply_post_process(result, form_data) == {
         "queries": [{"result_format": ChartDataResultFormat.JSON, "data": None}]
+    }
+
+
+def test_apply_post_process_verbose_map(session: Session):
+    from superset.connectors.sqla.models import SqlaTable, SqlMetric
+    from superset.models.core import Database
+
+    engine = session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    db = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    sqla_table = SqlaTable(
+        table_name="my_sqla_table",
+        columns=[],
+        metrics=[
+            SqlMetric(
+                metric_name="count",
+                verbose_name="COUNT(*)",
+                metric_type="count",
+                expression="COUNT(*)",
+            )
+        ],
+        database=db,
+    )
+
+    result = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.JSON,
+                "data": [{"count": 4725}],
+            }
+        ]
+    }
+    form_data = {
+        "datasource": "19__table",
+        "viz_type": "pivot_table_v2",
+        "slice_id": 69,
+        "url_params": {},
+        "granularity_sqla": "time_start",
+        "time_grain_sqla": "P1D",
+        "time_range": "No filter",
+        "groupbyColumns": [],
+        "groupbyRows": [],
+        "metrics": ["COUNT(*)"],
+        "metricsLayout": "COLUMNS",
+        "row_limit": 10000,
+        "order_desc": True,
+        "valueFormat": "SMART_NUMBER",
+        "date_format": "smart_date",
+        "rowOrder": "key_a_to_z",
+        "colOrder": "key_a_to_z",
+        "extra_form_data": {},
+        "force": False,
+        "result_format": "json",
+        "result_type": "results",
+    }
+
+    assert apply_post_process(result, form_data, datasource=sqla_table) == {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.JSON,
+                "data": {"COUNT(*)": {"Total (Sum)": 4725}},
+                "colnames": [("COUNT(*)",)],
+                "indexnames": [("Total (Sum)",)],
+                "coltypes": [GenericDataType.NUMERIC],
+                "rowcount": 1,
+            }
+        ]
     }

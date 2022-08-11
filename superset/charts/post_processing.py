@@ -336,6 +336,10 @@ def apply_post_process(
         elif query["result_format"] == ChartDataResultFormat.CSV:
             df = pd.read_csv(StringIO(query["data"]))
 
+        # convert all columns to verbose (label) name
+        if datasource:
+            df.rename(columns=datasource.data["verbose_map"], inplace=True)
+
         processed_df = post_processor(df, form_data, datasource)
 
         query["colnames"] = list(processed_df.columns)
