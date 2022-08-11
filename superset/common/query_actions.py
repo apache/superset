@@ -162,6 +162,27 @@ def _get_samples(
     return _get_full(query_context, query_obj, force_cached)
 
 
+def _get_drill_detail(
+    query_context: QueryContext, query_obj: QueryObject, force_cached: bool = False
+) -> Dict[str, Any]:
+    # todo(yongjie): Remove this function,
+    #  when determining whether samples should be applied to the time filter.
+    datasource = _get_datasource(query_context, query_obj)
+    query_obj = copy.copy(query_obj)
+    query_obj.is_timeseries = False
+    query_obj.orderby = []
+    query_obj.metrics = None
+    query_obj.post_processing = []
+    qry_obj_cols = []
+    for o in datasource.columns:
+        if isinstance(o, dict):
+            qry_obj_cols.append(o.get("column_name"))
+        else:
+            qry_obj_cols.append(o.column_name)
+    query_obj.columns = qry_obj_cols
+    return _get_full(query_context, query_obj, force_cached)
+
+
 def _get_results(
     query_context: QueryContext, query_obj: QueryObject, force_cached: bool = False
 ) -> Dict[str, Any]:
@@ -182,6 +203,7 @@ _result_type_functions: Dict[
     # and post-process it later where we have the chart context, since
     # post-processing is unique to each visualization type
     ChartDataResultType.POST_PROCESSED: _get_full,
+    ChartDataResultType.DRILL_DETAIL: _get_drill_detail,
 }
 
 

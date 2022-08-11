@@ -154,6 +154,21 @@ class LimitMethod:  # pylint: disable=too-few-public-methods
     FORCE_LIMIT = "force_limit"
 
 
+class MetricType(TypedDict, total=False):
+    """
+    Type for metrics return by `get_metrics`.
+    """
+
+    metric_name: str
+    expression: str
+    verbose_name: Optional[str]
+    metric_type: Optional[str]
+    description: Optional[str]
+    d3format: Optional[str]
+    warning_text: Optional[str]
+    extra: Optional[str]
+
+
 class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     """Abstract class for database engine specific configurations
 
@@ -1053,6 +1068,26 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :return: All columns in table
         """
         return inspector.get_columns(table_name, schema)
+
+    @classmethod
+    def get_metrics(  # pylint: disable=unused-argument
+        cls,
+        database: "Database",
+        inspector: Inspector,
+        table_name: str,
+        schema: Optional[str],
+    ) -> List[MetricType]:
+        """
+        Get all metrics from a given schema and table.
+        """
+        return [
+            {
+                "metric_name": "count",
+                "verbose_name": "COUNT(*)",
+                "metric_type": "count",
+                "expression": "COUNT(*)",
+            }
+        ]
 
     @classmethod
     def where_latest_partition(  # pylint: disable=too-many-arguments,unused-argument

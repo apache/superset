@@ -908,9 +908,12 @@ export function updateSavedQuery(query) {
         dispatch(addSuccessToast(t('Your query was updated')));
         dispatch(queryEditorSetTitle(query, query.name));
       })
-      .catch(() =>
-        dispatch(addDangerToast(t('Your query could not be updated'))),
-      )
+      .catch(e => {
+        const message = t('Your query could not be updated');
+        // eslint-disable-next-line no-console
+        console.error(message, e);
+        dispatch(addDangerToast(message));
+      })
       .then(() => dispatch(updateQueryEditor(query)));
 }
 

@@ -77,4 +77,18 @@ describe('Visualization > Distribution bar chart', () => {
     cy.visitChartByParams(formData);
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
   });
+
+  it('should allow type to search color schemes and apply the scheme', () => {
+    cy.get('#controlSections-tab-display').click();
+    cy.get('.Control[data-test="color_scheme"]').scrollIntoView();
+    cy.get('.Control[data-test="color_scheme"] input[type="search"]')
+      .focus()
+      .type('bnbColors{enter}');
+    cy.get(
+      '.Control[data-test="color_scheme"] .ant-select-selection-item ul[data-test="bnbColors"]',
+    ).should('exist');
+    cy.get('.dist_bar .nv-legend .nv-legend-symbol')
+      .first()
+      .should('have.css', 'fill', 'rgb(255, 90, 95)');
+  });
 });
