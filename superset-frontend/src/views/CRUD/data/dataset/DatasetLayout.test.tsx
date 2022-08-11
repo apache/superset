@@ -28,7 +28,7 @@ import Footer from 'src/views/CRUD/data/dataset/DatasetPage/Footer';
 describe('DatasetLayout', () => {
   it('renders nothing when no components are passed in', () => {
     render(<DatasetLayout />);
-    const layoutWrapper = document.querySelector('.css-xyxtmn')!;
+    const layoutWrapper = screen.getByTestId('dataset-layout-wrapper');
 
     expect(layoutWrapper).toHaveTextContent('');
   });

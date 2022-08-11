@@ -44,7 +44,7 @@ export default function DatasetLayout({
   footer,
 }: DatasetLayoutProps) {
   return (
-    <div css={{ height: '100%' }}>
+    <div data-test="dataset-layout-wrapper">
       {header && <StyledHeader>{header}</StyledHeader>}
       <Row>
         {leftPanel && <StyledLeftPanel>{leftPanel}</StyledLeftPanel>}
