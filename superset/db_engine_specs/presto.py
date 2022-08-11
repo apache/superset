@@ -52,7 +52,6 @@ from superset.models.sql_types.presto_sql_types import (
     TinyInteger,
 )
 from superset.result_set import destringify
-from superset.sql_parse import ParsedQuery
 from superset.superset_typing import ResultSetColumnType
 from superset.utils import core as utils
 from superset.utils.core import ColumnSpec, GenericDataType
@@ -1100,11 +1099,6 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):  # pylint: disable=too-many-public
         if df.empty:
             return ""
         return df.to_dict()[field_to_return][0]
-
-    @classmethod
-    def is_readonly_query(cls, parsed_query: ParsedQuery) -> bool:
-        """Pessimistic readonly, 100% sure statement won't mutate anything"""
-        return super().is_readonly_query(parsed_query) or parsed_query.is_show()
 
     @classmethod
     def get_column_spec(
