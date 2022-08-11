@@ -763,6 +763,52 @@ class TestCore(SupersetTestCase):
             f"/superset/extra_table_metadata/{example_db.id}/birth_names/{schema}/"
         )
 
+    def test_required_params_in_sql_json(self):
+        self.login()
+        client_id = "{}".format(random.getrandbits(64))[:10]
+
+        data = {"client_id": client_id}
+        rv = self.client.post(
+            "/superset/sql_json/",
+            json=data,
+        )
+        failed_resp = {
+            "sql": ["Missing data for required field."],
+            "database_id": ["Missing data for required field."],
+        }
+        resp_data = json.loads(rv.data.decode("utf-8"))
+        self.assertDictEqual(resp_data, failed_resp)
+        self.assertEqual(rv.status_code, 400)
+
+        data = {"sql": "SELECT 1", "client_id": client_id}
+        rv = self.client.post(
+            "/superset/sql_json/",
+            json=data,
+        )
+        failed_resp = {"database_id": ["Missing data for required field."]}
+        resp_data = json.loads(rv.data.decode("utf-8"))
+        self.assertDictEqual(resp_data, failed_resp)
+        self.assertEqual(rv.status_code, 400)
+
+        data = {"database_id": 1, "client_id": client_id}
+        rv = self.client.post(
+            "/superset/sql_json/",
+            json=data,
+        )
+        failed_resp = {"sql": ["Missing data for required field."]}
+        resp_data = json.loads(rv.data.decode("utf-8"))
+        self.assertDictEqual(resp_data, failed_resp)
+        self.assertEqual(rv.status_code, 400)
+
+        data = {"sql": "SELECT 1", "database_id": 1, "client_id": client_id}
+        rv = self.client.post(
+            "/superset/sql_json/",
+            json=data,
+        )
+        resp_data = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(resp_data.get("status"), "success")
+        self.assertEqual(rv.status_code, 200)
+
     def test_templated_sql_json(self):
         if superset.utils.database.get_example_database().backend == "presto":
             # TODO: make it work for presto
