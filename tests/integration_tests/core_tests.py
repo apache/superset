@@ -773,8 +773,8 @@ class TestCore(SupersetTestCase):
             json=data,
         )
         failed_resp = {
-            'sql': ['Missing data for required field.'],
-            'database_id': ['Missing data for required field.']
+            "sql": ["Missing data for required field."],
+            "database_id": ["Missing data for required field."],
         }
         resp_data = json.loads(rv.data.decode("utf-8"))
         self.assertDictEqual(resp_data, failed_resp)
@@ -785,9 +785,7 @@ class TestCore(SupersetTestCase):
             "/superset/sql_json/",
             json=data,
         )
-        failed_resp = {
-            'database_id': ['Missing data for required field.']
-        }
+        failed_resp = {"database_id": ["Missing data for required field."]}
         resp_data = json.loads(rv.data.decode("utf-8"))
         self.assertDictEqual(resp_data, failed_resp)
         self.assertEqual(rv.status_code, 400)
@@ -797,9 +795,7 @@ class TestCore(SupersetTestCase):
             "/superset/sql_json/",
             json=data,
         )
-        failed_resp = {
-            'sql': ['Missing data for required field.']
-        }
+        failed_resp = {"sql": ["Missing data for required field."]}
         resp_data = json.loads(rv.data.decode("utf-8"))
         self.assertDictEqual(resp_data, failed_resp)
         self.assertEqual(rv.status_code, 400)
