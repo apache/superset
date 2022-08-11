@@ -2016,9 +2016,15 @@ def test_apply_post_process_verbose_map(session: Session):
         "result_type": "results",
     }
 
-    assert (
-        "COUNT(*)"
-        in apply_post_process(result, form_data, datasource=sqla_table)["queries"][0][
-            "data"
-        ].keys()
-    )
+    assert apply_post_process(result, form_data, datasource=sqla_table) == {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.JSON,
+                "data": {"COUNT(*)": {"Total (Sum)": 4725}},
+                "colnames": [("COUNT(*)",)],
+                "indexnames": [("Total (Sum)",)],
+                "coltypes": [GenericDataType.NUMERIC],
+                "rowcount": 1,
+            }
+        ]
+    }
