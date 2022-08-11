@@ -90,6 +90,35 @@ export default function DrillDetailPane({
     return resultsPages.get(lastPageIndex.current);
   }, [pageIndex, resultsPages]);
 
+  // this is to preserve the order of the columns, even if there are integer values,
+  // while also only grabbing the first column's keys
+  const columns = useTableColumns(
+    resultsPage?.colNames,
+    resultsPage?.colTypes,
+    resultsPage?.data,
+    formData.datasource,
+  );
+
+  //  Disable sorting on columns
+  const sortDisabledColumns = useMemo(
+    () =>
+      columns.map(column => ({
+        ...column,
+        disableSortBy: true,
+      })),
+    [columns],
+  );
+
+  //  Update page index on pagination click
+  const onServerPagination = useCallback(({ pageIndex }) => {
+    setPageIndex(pageIndex);
+  }, []);
+
+  //  Clear cache on reload button click
+  const handleReload = useCallback(() => {
+    setResultsPages(new Map());
+  }, []);
+
   //  Clear cache and reset page index if filters change
   useEffect(() => {
     setResultsPages(new Map());
@@ -114,11 +143,11 @@ export default function DrillDetailPane({
   }, [pageIndex, resultsPages]);
 
   //  Download page of results & trim cache if page not in cache
-  const cachePageLimit = Math.ceil(SAMPLES_ROW_LIMIT / PAGE_SIZE);
   useEffect(() => {
     if (!isLoading && !resultsPages.has(pageIndex)) {
       setIsLoading(true);
       const jsonPayload = getDrillPayload(formData, filters);
+      const cachePageLimit = Math.ceil(SAMPLES_ROW_LIMIT / PAGE_SIZE);
       getDatasourceSamples(
         datasourceType,
         datasourceId,
@@ -152,7 +181,7 @@ export default function DrillDetailPane({
         });
     }
   }, [
-    cachePageLimit,
+    SAMPLES_ROW_LIMIT,
     datasourceId,
     datasourceType,
     filters,
@@ -162,72 +191,25 @@ export default function DrillDetailPane({
     resultsPages,
   ]);
 
-  // this is to preserve the order of the columns, even if there are integer values,
-  // while also only grabbing the first column's keys
-  const columns = useTableColumns(
-    resultsPage?.colNames,
-    resultsPage?.colTypes,
-    resultsPage?.data,
-    formData.datasource,
-  );
-
-  const sortDisabledColumns = columns.map(column => ({
-    ...column,
-    disableSortBy: true,
-  }));
-
-  //  Update page index on pagination click
-  const onServerPagination = useCallback(({ pageIndex }) => {
-    setPageIndex(pageIndex);
-  }, []);
-
-  //  Clear cache on reload button click
-  const handleReload = useCallback(() => {
-    setResultsPages(new Map());
-  }, []);
-
   let tableContent = null;
-
   if (responseError) {
     //  Render error if page download failed
     tableContent = (
-      <div
+      <pre
         css={css`
-          height: ${theme.gridUnit * 128}px;
+          margin-top: ${theme.gridUnit * 4}px;
         `}
       >
-        <pre
-          css={css`
-            margin-top: ${theme.gridUnit * 4}px;
-          `}
-        >
-          {responseError}
-        </pre>
-      </div>
+        {responseError}
+      </pre>
     );
   } else if (!resultsPages.size) {
     //  Render loading if first page hasn't loaded
-    tableContent = (
-      <div
-        css={css`
-          height: ${theme.gridUnit * 128}px;
-        `}
-      >
-        <Loading />
-      </div>
-    );
+    tableContent = <Loading />;
   } else if (resultsPage?.total === 0) {
     //  Render empty state if no results are returned for page
     const title = t('No rows were returned for this dataset');
-    tableContent = (
-      <div
-        css={css`
-          height: ${theme.gridUnit * 128}px;
-        `}
-      >
-        <EmptyStateMedium image="document.svg" title={title} />
-      </div>
-    );
+    tableContent = <EmptyStateMedium image="document.svg" title={title} />;
   } else {
     //  Render table if at least one page has successfully loaded
     tableContent = (
