@@ -47,6 +47,30 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
     engine_name = "Trino"
 
     @classmethod
+    def extra_table_metadata(
+        cls,
+        database: Database,
+        table_name: str,
+        schema_name: Optional[str],
+    ) -> Dict[str, Any]:
+        metadata = {}
+
+        indexes = database.get_indexes(table_name, schema_name)
+        if indexes:
+            partitions_columns = []
+            for index in indexes:
+                if index.get("name") == "partition":
+                    partitions_columns += index.get("column_names", [])
+            metadata["partitions"] = {"cols": partitions_columns}
+
+        if database.has_view_by_name(table_name, schema_name):
+            metadata["view"] = database.inspector.get_view_definition(
+                table_name, schema_name
+            )
+
+        return metadata
+
+    @classmethod
     def update_impersonation_config(
         cls,
         connect_args: Dict[str, Any],
