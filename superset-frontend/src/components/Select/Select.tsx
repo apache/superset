@@ -38,33 +38,9 @@ import { isEqual } from 'lodash';
 import Icons from 'src/components/Icons';
 import { rankedSearchCompare } from 'src/utils/rankedSearchCompare';
 import { getValue, hasOption, isLabeledValue } from './utils';
+import { BaseSelect, DEFAULT_SORT_COMPARATOR, EMPTY_OPTIONS, MAX_TAG_COUNT, PickedSelectProps, SelectOptionsType, StyledCheckOutlined, StyledContainer, StyledLoadingText, StyledSpin, StyledStopOutlined, TOKEN_SEPARATORS } from './common';
 
 const { Option } = AntdSelect;
-
-type AntdSelectAllProps = AntdSelectProps<AntdSelectValue>;
-
-type PickedSelectProps = Pick<
-  AntdSelectAllProps,
-  | 'allowClear'
-  | 'autoFocus'
-  | 'disabled'
-  | 'filterOption'
-  | 'labelInValue'
-  | 'loading'
-  | 'notFoundContent'
-  | 'onChange'
-  | 'onClear'
-  | 'onFocus'
-  | 'onBlur'
-  | 'onDropdownVisibleChange'
-  | 'placeholder'
-  | 'showSearch'
-  | 'tokenSeparators'
-  | 'value'
-  | 'getPopupContainer'
->;
-
-export type OptionsType = Exclude<AntdSelectAllProps['options'], undefined>;
 
 export interface SelectProps extends PickedSelectProps {
   /**
@@ -107,7 +83,7 @@ export interface SelectProps extends PickedSelectProps {
    * The options can also be async, a promise that returns
    * an array of options.
    */
-  options: OptionsType;
+  options: SelectOptionsType;
   /**
    * It shows a stop-outlined icon at the far right of a selected
    * option instead of the default checkmark.
@@ -122,85 +98,6 @@ export interface SelectProps extends PickedSelectProps {
    */
   sortComparator?: typeof DEFAULT_SORT_COMPARATOR;
 }
-
-const StyledContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-`;
-
-const StyledSelect = styled(AntdSelect)`
-  ${({ theme }) => `
-    && .ant-select-selector {
-      border-radius: ${theme.gridUnit}px;
-    }
-    // Open the dropdown when clicking on the suffix
-    // This is fixed in version 4.16
-    .ant-select-arrow .anticon:not(.ant-select-suffix) {
-      pointer-events: none;
-    }
-  `}
-`;
-
-const StyledStopOutlined = styled(Icons.StopOutlined)`
-  vertical-align: 0;
-`;
-
-const StyledCheckOutlined = styled(Icons.CheckOutlined)`
-  vertical-align: 0;
-`;
-
-const StyledSpin = styled(Spin)`
-  margin-top: ${({ theme }) => -theme.gridUnit}px;
-`;
-
-const StyledLoadingText = styled.div`
-  ${({ theme }) => `
-    margin-left: ${theme.gridUnit * 3}px;
-    line-height: ${theme.gridUnit * 8}px;
-    color: ${theme.colors.grayscale.light1};
-  `}
-`;
-
-const MAX_TAG_COUNT = 4;
-const TOKEN_SEPARATORS = [',', '\n', '\t', ';'];
-const EMPTY_OPTIONS: OptionsType = [];
-
-export const DEFAULT_SORT_COMPARATOR = (
-  a: AntdLabeledValue,
-  b: AntdLabeledValue,
-  search?: string,
-) => {
-  let aText: string | undefined;
-  let bText: string | undefined;
-  if (typeof a.label === 'string' && typeof b.label === 'string') {
-    aText = a.label;
-    bText = b.label;
-  } else if (typeof a.value === 'string' && typeof b.value === 'string') {
-    aText = a.value;
-    bText = b.value;
-  }
-  // sort selected options first
-  if (typeof aText === 'string' && typeof bText === 'string') {
-    if (search) {
-      return rankedSearchCompare(aText, bText, search);
-    }
-    return aText.localeCompare(bText);
-  }
-  return (a.value as number) - (b.value as number);
-};
-
-/**
- * It creates a comparator to check for a specific property.
- * Can be used with string and number property values.
- * */
-export const propertyComparator =
-  (property: string) => (a: AntdLabeledValue, b: AntdLabeledValue) => {
-    if (typeof a[property] === 'string' && typeof b[property] === 'string') {
-      return a[property].localeCompare(b[property]);
-    }
-    return (a[property] as number) - (b[property] as number);
-  };
 
 /**
  * This component is a customized version of the Antdesign 4.X Select component
@@ -280,11 +177,11 @@ const Select = (
   );
 
   const [selectOptions, setSelectOptions] =
-    useState<OptionsType>(initialOptionsSorted);
+    useState<SelectOptionsType>(initialOptionsSorted);
 
   // add selected values to options list if they are not in it
   const fullSelectOptions = useMemo(() => {
-    const missingValues: OptionsType = ensureIsArray(selectValue)
+    const missingValues: SelectOptionsType = ensureIsArray(selectValue)
       .filter(opt => !hasOption(getValue(opt), selectOptions))
       .map(opt =>
         isLabeledValue(opt) ? opt : { value: opt, label: String(opt) },
@@ -435,59 +332,44 @@ const Select = (
   }, [isLoading, loading]);
 
   return (
-    <StyledContainer>
-      {header}
-      <StyledSelect
-        allowClear={!isLoading && allowClear}
-        aria-label={ariaLabel || name}
-        dropdownRender={dropdownRender}
-        filterOption={handleFilterOption}
-        filterSort={sortComparatorWithSearch}
-        getPopupContainer={
-          getPopupContainer || (triggerNode => triggerNode.parentNode)
-        }
-        labelInValue={labelInValue}
-        maxTagCount={MAX_TAG_COUNT}
-        mode={mappedMode}
-        notFoundContent={isLoading ? t('Loading...') : notFoundContent}
-        onDeselect={handleOnDeselect}
-        onDropdownVisibleChange={handleOnDropdownVisibleChange}
-        onPopupScroll={undefined}
-        onSearch={shouldShowSearch ? handleOnSearch : undefined}
-        onSelect={handleOnSelect}
-        onClear={handleClear}
-        onChange={onChange}
-        options={hasCustomLabels ? undefined : fullSelectOptions}
-        placeholder={placeholder}
-        showSearch={shouldShowSearch}
-        showArrow
-        tokenSeparators={tokenSeparators || TOKEN_SEPARATORS}
-        value={selectValue}
-        suffixIcon={getSuffixIcon()}
-        menuItemSelectedIcon={
-          invertSelection ? (
-            <StyledStopOutlined iconSize="m" />
-          ) : (
-            <StyledCheckOutlined iconSize="m" />
-          )
-        }
-        ref={ref}
-        {...props}
-      >
-        {hasCustomLabels &&
-          fullSelectOptions.map(opt => {
-            const isOptObject = typeof opt === 'object';
-            const label = isOptObject ? opt?.label || opt.value : opt;
-            const value = isOptObject ? opt.value : opt;
-            const { customLabel, ...optProps } = opt;
-            return (
-              <Option {...optProps} key={value} label={label} value={value}>
-                {isOptObject && customLabel ? customLabel : label}
-              </Option>
-            );
-          })}
-      </StyledSelect>
-    </StyledContainer>
+    <BaseSelect
+      header={header}
+      allowClear={!isLoading && allowClear}
+      ariaLabel={ariaLabel || name}
+      dropdownRender={dropdownRender}
+      filterOption={handleFilterOption}
+      filterSort={sortComparatorWithSearch}
+      getPopupContainer={
+        getPopupContainer || (triggerNode => triggerNode.parentNode)
+      }
+      labelInValue={labelInValue}
+      maxTagCount={MAX_TAG_COUNT}
+      mappedMode={mappedMode}
+      notFoundContent={isLoading ? t('Loading...') : notFoundContent}
+      onDeselect={handleOnDeselect}
+      onDropdownVisibleChange={handleOnDropdownVisibleChange}
+      onPopupScroll={undefined}
+      onSearch={shouldShowSearch ? handleOnSearch : undefined}
+      onSelect={handleOnSelect}
+      onClear={handleClear}
+      onChange={onChange}
+      options={fullSelectOptions}
+      placeholder={placeholder}
+      showSearch={shouldShowSearch}
+      showArrow
+      tokenSeparators={tokenSeparators || TOKEN_SEPARATORS}
+      value={selectValue}
+      suffixIcon={getSuffixIcon()}
+      menuItemSelectedIcon={
+        invertSelection ? (
+          <StyledStopOutlined iconSize="m" />
+        ) : (
+          <StyledCheckOutlined iconSize="m" />
+        )
+      }
+      ref={ref}
+      {...props}
+    />
   );
 };
 
