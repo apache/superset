@@ -28,6 +28,8 @@ from flask_babel import gettext as __, lazy_gettext as _
 from flask_compress import Compress
 from werkzeug.middleware.proxy_fix import ProxyFix
 
+from flask_appbuilder.security.sqla.apis import PermissionApi, PermissionViewMenuApi, \
+    RoleApi, UserApi, ViewMenuApi
 from superset.constants import CHANGE_ME_SECRET_KEY
 from superset.extensions import (
     _event_logger,
@@ -382,6 +384,11 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             ),
         )
         appbuilder.add_api(SecurityRestApi)
+        appbuilder.add_api(PermissionApi)
+        appbuilder.add_api(PermissionViewMenuApi)
+        appbuilder.add_api(RoleApi)
+        appbuilder.add_api(UserApi)
+        appbuilder.add_api(ViewMenuApi)
         #
         # Conditionally setup email views
         #
