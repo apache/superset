@@ -31,6 +31,7 @@ import {
   MixedTimeseriesTransformProps,
 } from '@superset-ui/plugin-chart-echarts';
 import data from '../Timeseries/data';
+import negativeNumData from './negativeData';
 import { withResizableChartDemo } from '../../../../shared/components/ResizableChartDemo';
 
 new EchartsTimeseriesChartPlugin()
@@ -57,6 +58,8 @@ export const Timeseries = ({ width, height }) => {
           Boston: row.Boston,
         }))
         .filter(row => !!row.Boston),
+      colnames: ['__timestamp'],
+      coltypes: [2],
     },
     {
       data: data
@@ -82,8 +85,13 @@ export const Timeseries = ({ width, height }) => {
         logAxis: boolean('Log axis', false),
         xAxisTimeFormat: 'smart_date',
         tooltipTimeFormat: 'smart_date',
-        yAxisFormat: 'SMART_NUMBER',
+        yAxisFormat: select(
+          'y-axis format',
+          ['$,.2f', 'SMART_NUMBER'],
+          '$,.2f',
+        ),
         yAxisTitle: text('Y Axis title', ''),
+        yAxisIndexB: select('yAxisIndexB', [0, 1], 1),
         minorSplitLine: boolean('Query 1: Minor splitline', false),
         seriesType: select(
           'Query 1: Line type',
@@ -105,7 +113,61 @@ export const Timeseries = ({ width, height }) => {
         markerEnabledB: boolean('Query 2: Enable markers', false),
         markerSizeB: number('Query 2: Marker Size', 6),
         opacityB: number('Query 2: Opacity', 0.2),
+        showValue: true,
       }}
     />
   );
 };
+
+export const WithNegativeNumbers = ({ width, height }) => (
+  <SuperChart
+    chartType="mixed-timeseries"
+    width={width}
+    height={height}
+    queriesData={[
+      {
+        data: negativeNumData,
+        colnames: ['__timestamp'],
+        coltypes: [2],
+      },
+      {
+        data: negativeNumData.map(({ __timestamp, Boston }) => ({
+          __timestamp,
+          avgRate: Boston / 100,
+        })),
+      },
+    ]}
+    formData={{
+      contributionMode: undefined,
+      colorScheme: 'supersetColors',
+      seriesType: select(
+        'Line type',
+        ['line', 'scatter', 'smooth', 'bar', 'start', 'middle', 'end'],
+        'line',
+      ),
+      xAxisTimeFormat: 'smart_date',
+      yAxisFormat: select(
+        'y-axis format',
+        {
+          'Original value': '~g',
+          'Smart number': 'SMART_NUMBER',
+          '(12345.432 => $12,345.43)': '$,.2f',
+        },
+        '$,.2f',
+      ),
+      stack: true,
+      showValue: boolean('Query 1: Show Value', true),
+      showValueB: boolean('Query 2: Show Value', false),
+      showLegend: true,
+      markerEnabledB: true,
+      yAxisIndexB: select(
+        'Query 2: Y Axis',
+        {
+          Primary: 0,
+          Secondary: 1,
+        },
+        1,
+      ),
+    }}
+  />
+);
