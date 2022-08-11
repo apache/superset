@@ -19,6 +19,10 @@ from marshmallow import fields, Schema
 
 
 class SqlJsonPayloadSchema(Schema):
-    client_id = fields.String(allow_none=True)
-    sql = fields.String(required=True)
     database_id = fields.Integer(required=True)
+    sql = fields.String(required=True)
+    client_id = fields.String(allow_none=True)
+    queryLimit = fields.Integer(allow_none=True)
+    sql_editor_id = fields.String(allow_none=True)
+    ctas_method = fields.String(allow_none=True)
+    templateParams = fields.String(allow_none=True)
