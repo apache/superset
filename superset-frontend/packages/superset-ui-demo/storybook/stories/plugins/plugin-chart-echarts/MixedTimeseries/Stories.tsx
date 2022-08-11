@@ -58,6 +58,8 @@ export const Timeseries = ({ width, height }) => {
           Boston: row.Boston,
         }))
         .filter(row => !!row.Boston),
+      colnames: ['__timestamp'],
+      coltypes: [2],
     },
     {
       data: data
@@ -121,6 +123,8 @@ export const WithNegativeNumbers = ({ width, height }) => (
     queriesData={[
       {
         data: negativeNumData,
+        colnames: ['__timestamp'],
+        coltypes: [2],
       },
       {
         data: negativeNumData.map(({ __timestamp, Boston }) => ({
