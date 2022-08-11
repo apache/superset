@@ -62,7 +62,9 @@ export const Timeseries = ({ width, height }) => {
       chartType="echarts-timeseries"
       width={width}
       height={height}
-      queriesData={[{ data: queryData }]}
+      queriesData={[
+        { data: queryData, colnames: ['__timestamp'], coltypes: [2] },
+      ]}
       formData={{
         contributionMode: undefined,
         forecastEnabled,
@@ -94,7 +96,9 @@ export const WithNegativeNumbers = ({ width, height }) => (
     chartType="echarts-timeseries"
     width={width}
     height={height}
-    queriesData={[{ data: negativeNumData }]}
+    queriesData={[
+      { data: negativeNumData, colnames: ['__timestamp'], coltypes: [2] },
+    ]}
     formData={{
       contributionMode: undefined,
       colorScheme: 'supersetColors',
