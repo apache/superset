@@ -115,7 +115,7 @@ const TabsStyled = styled(Tabs)`
 interface DatabaseModalProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
-  onDatabaseAdd?: (database?: DatabaseObject) => void; // TODO: should we add a separate function for edit?
+  onDatabaseAdd?: (database?: DatabaseObject) => void;
   onHide: () => void;
   show: boolean;
   databaseId: number | undefined; // If included, will go into edit mode
@@ -136,6 +136,7 @@ enum ActionType {
   addTableCatalogSheet,
   removeTableCatalogSheet,
   queryChange,
+  driverChange,
 }
 
 interface DBReducerPayloadType {
@@ -187,6 +188,10 @@ type DBReducerActionType =
         engine?: string;
         configuration_method: CONFIGURATION_METHOD;
       };
+    }
+  | {
+      type: ActionType.driverChange;
+      payload: string;
     };
 
 const StyledBtns = styled.div`
@@ -242,15 +247,32 @@ function dbReducer(
           },
         };
       }
+      if (action.payload.name === 'http_path') {
+        extra_json = {
+          ...trimmedState.extra_json,
+          engine_params: {
+            connect_args: {
+              [action.payload.name]: action.payload.value,
+            },
+          },
+        };
+        return {
+          ...trimmedState,
+          extra_json,
+          extra: JSON.stringify(extra_json),
+        };
+      }
+      extra_json = {
+        ...trimmedState.extra_json,
+        [action.payload.name]:
+          action.payload.type === 'checkbox'
+            ? action.payload.checked
+            : action.payload.value,
+      };
       return {
         ...trimmedState,
-        extra_json: {
-          ...trimmedState.extra_json,
-          [action.payload.name]:
-            action.payload.type === 'checkbox'
-              ? action.payload.checked
-              : action.payload.value,
-        },
+        extra_json,
+        extra: JSON.stringify(extra_json),
       };
     case ActionType.inputChange:
       if (action.payload.type === 'checkbox') {
@@ -333,7 +355,7 @@ function dbReducer(
       // convert all the keys in this payload into strings
       if (action.payload.extra) {
         extra_json = {
-          ...JSON.parse(action.payload.extra || ''),
+          ...JSON.parse(action.payload.extra || '{}'),
         } as DatabaseObject['extra_json'];
 
         deserializeExtraJSON = {
@@ -383,11 +405,13 @@ function dbReducer(
         query_input,
       };
 
-    case ActionType.dbSelected:
+    case ActionType.driverChange:
       return {
-        ...action.payload,
+        ...trimmedState,
+        driver: action.payload,
       };
 
+    case ActionType.dbSelected:
     case ActionType.configMethodChange:
       return {
         ...action.payload,
@@ -405,7 +429,7 @@ const serializeExtra = (extraJson: DatabaseObject['extra_json']) =>
   JSON.stringify({
     ...extraJson,
     metadata_params: JSON.parse((extraJson?.metadata_params as string) || '{}'),
-    engine_params: JSON.parse((extraJson?.engine_params as string) || '{}'),
+    engine_params: extraJson?.engine_params,
     schemas_allowed_for_file_upload: (
       extraJson?.schemas_allowed_for_file_upload || []
     ).filter(schema => schema !== ''),
@@ -445,6 +469,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const [dbName, setDbName] = useState('');
   const [editNewDb, setEditNewDb] = useState<boolean>(false);
   const [isLoading, setLoading] = useState<boolean>(false);
+  const [isFetching, setIsFetching] = useState<boolean>(false);
   const [testInProgress, setTestInProgress] = useState<boolean>(false);
   const [passwords, setPasswords] = useState<Record<string, string>>({});
   const [confirmedOverwrite, setConfirmedOverwrite] = useState<boolean>(false);
@@ -564,7 +589,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
     if (dbToUpdate.configuration_method === CONFIGURATION_METHOD.DYNAMIC_FORM) {
       // Validate DB before saving
+      setIsFetching(true);
       const errors = await getValidation(dbToUpdate, true);
+      setIsFetching(false);
       if ((validationErrors && !isEmpty(validationErrors)) || errors) {
         return;
       }
@@ -1233,11 +1260,20 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         sslForced={sslForced}
         dbModel={dbModel}
         db={db as DatabaseObject}
+        setDatabaseDriver={(driver: string) => {
+          onChange(ActionType.driverChange, driver);
+        }}
         onParametersChange={({ target }: { target: HTMLInputElement }) =>
           onChange(ActionType.parametersChange, {
             type: target.type,
             name: target.name,
             checked: target.checked,
+            value: target.value,
+          })
+        }
+        onExtraInputChange={({ target }: { target: HTMLInputElement }) =>
+          onChange(ActionType.extraInputChange, {
+            name: target.name,
             value: target.value,
           })
         }
@@ -1398,6 +1434,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               sslForced={sslForced}
               dbModel={dbModel}
               db={db as DatabaseObject}
+              setDatabaseDriver={(driver: string) => {
+                onChange(ActionType.driverChange, driver);
+              }}
               onParametersChange={({ target }: { target: HTMLInputElement }) =>
                 onChange(ActionType.parametersChange, {
                   type: target.type,
@@ -1408,6 +1447,12 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               }
               onChange={({ target }: { target: HTMLInputElement }) =>
                 onChange(ActionType.textChange, {
+                  name: target.name,
+                  value: target.value,
+                })
+              }
+              onExtraInputChange={({ target }: { target: HTMLInputElement }) =>
+                onChange(ActionType.extraInputChange, {
                   name: target.name,
                   value: target.value,
                 })
@@ -1503,6 +1548,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         formHelperStyles(theme),
         formStyles(theme),
       ]}
+      primaryButtonLoading={isFetching}
       name="database"
       onHandledPrimaryAction={onSave}
       onHide={onClose}
@@ -1583,11 +1629,24 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   db={db}
                   sslForced={sslForced}
                   dbModel={dbModel}
+                  setDatabaseDriver={(driver: string) => {
+                    onChange(ActionType.driverChange, driver);
+                  }}
                   onAddTableCatalog={() => {
                     setDB({ type: ActionType.addTableCatalogSheet });
                   }}
                   onQueryChange={({ target }: { target: HTMLInputElement }) =>
                     onChange(ActionType.queryChange, {
+                      name: target.name,
+                      value: target.value,
+                    })
+                  }
+                  onExtraInputChange={({
+                    target,
+                  }: {
+                    target: HTMLInputElement;
+                  }) =>
+                    onChange(ActionType.extraInputChange, {
                       name: target.name,
                       value: target.value,
                     })

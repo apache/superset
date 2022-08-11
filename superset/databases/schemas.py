@@ -318,7 +318,9 @@ class DatabaseValidateParametersSchema(Schema):
     parameters = fields.Dict(
         keys=fields.String(),
         values=fields.Raw(allow_none=True),
-        description="DB-specific parameters for configuration",
+        description="DB-specific parameters for configuration"
+        "This field is deprecated. Push all fields to base of request instead.",
+        deprecated="True",
     )
     database_name = fields.String(
         description=database_name_description,

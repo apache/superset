@@ -22,7 +22,7 @@ export default interface Database {
   allow_run_async: boolean;
   database_name: string;
   masked_encrypted_extra: string;
-  extra: string;
+  extra: object;
   impersonate_user: boolean;
   server_cert: string;
   sqlalchemy_uri: string;

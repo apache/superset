@@ -194,6 +194,37 @@ fetchMock.mock(AVAILABLE_DB_ENDPOINT, {
       preferred: false,
       sqlalchemy_uri_placeholder: 'bigquery://{project_id}',
     },
+    {
+      available_drivers: ['connector'],
+      default_driver: 'connector',
+      engine: 'databricks',
+      name: 'Databricks',
+      parameters: {
+        properties: {
+          access_token: {
+            type: 'string',
+          },
+          database: {
+            type: 'string',
+          },
+          host: {
+            type: 'string',
+          },
+          http_path: {
+            type: 'string',
+          },
+          port: {
+            format: 'int32',
+            type: 'integer',
+          },
+        },
+        required: ['access_token', 'database', 'host', 'http_path', 'port'],
+        type: 'object',
+      },
+      preferred: true,
+      sqlalchemy_uri_placeholder:
+        'databricks+connector://token:{access_token}@{host}:{port}/{database_name}',
+    },
   ],
 });
 fetchMock.post(VALIDATE_PARAMS_ENDPOINT, {

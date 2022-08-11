@@ -248,8 +248,7 @@ class Database(
 
     @property
     def backend(self) -> str:
-        sqlalchemy_url = make_url_safe(self.sqlalchemy_uri_decrypted)
-        return sqlalchemy_url.get_backend_name()
+        return self.url_object.get_backend_name()
 
     @property
     def masked_encrypted_extra(self) -> str:
@@ -262,11 +261,8 @@ class Database(
         # When returning the parameters we should use the masked SQLAlchemy URI and the
         # masked ``encrypted_extra`` to prevent exposing sensitive credentials.
         masked_uri = make_url_safe(self.sqlalchemy_uri)
-        masked_encrypted_extra = db_engine_spec.mask_encrypted_extra(
-            self.encrypted_extra
-        )
         try:
-            encrypted_config = json.loads(masked_encrypted_extra)
+            encrypted_config = json.loads(self.masked_encrypted_extra or "{}")
         except (TypeError, json.JSONDecodeError):
             encrypted_config = {}
 

@@ -41,6 +41,7 @@ from pkg_resources import iter_entry_points
 from sqlalchemy.engine.default import DefaultDialect
 from sqlalchemy.engine.url import URL
 
+from superset import app
 from superset.db_engine_specs.base import BaseEngineSpec
 
 logger = logging.getLogger(__name__)
@@ -169,6 +170,16 @@ def get_available_engine_specs() -> Dict[Type[BaseEngineSpec], Set[str]]:
     available_engines = {}
     for engine_spec in load_engine_specs():
         driver = drivers[engine_spec.engine]
+
+        # do not add blacklist db engine specs to available list
+        dbs_blacklist = app.config["DBS_AVAILABLE_BLACKLIST"]
+        dbs_blacklist_engines = dbs_blacklist.keys()
+        if (
+            engine_spec.engine in dbs_blacklist_engines
+            and hasattr(engine_spec, "driver")
+            and engine_spec.driver in dbs_blacklist[engine_spec.engine]  # type: ignore
+        ):
+            continue
 
         # lookup driver by engine aliases.
         if not driver and engine_spec.engine_aliases:

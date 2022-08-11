@@ -82,7 +82,10 @@ class DatabaseDAO(BaseDAO):
 
     @staticmethod
     def build_db_for_connection_test(
-        server_cert: str, extra: str, impersonate_user: bool, encrypted_extra: str
+        server_cert: str,
+        extra: str,
+        impersonate_user: bool,
+        encrypted_extra: str,
     ) -> Database:
         return Database(
             server_cert=server_cert,

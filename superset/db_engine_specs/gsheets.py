@@ -32,6 +32,7 @@ from typing_extensions import TypedDict
 from superset import security_manager
 from superset.constants import PASSWORD_MASK
 from superset.databases.schemas import encrypted_field_properties, EncryptedString
+from superset.db_engine_specs.base import BasicPropertiesType
 from superset.db_engine_specs.sqlite import SqliteEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 
@@ -56,6 +57,10 @@ class GSheetsParametersSchema(Schema):
 class GSheetsParametersType(TypedDict):
     service_account_info: str
     catalog: Dict[str, str]
+
+
+class GSheetsPropertiesType(TypedDict):
+    parameters: GSheetsParametersType
 
 
 class GSheetsEngineSpec(SqliteEngineSpec):
@@ -198,9 +203,10 @@ class GSheetsEngineSpec(SqliteEngineSpec):
     @classmethod
     def validate_parameters(
         cls,
-        parameters: GSheetsParametersType,
+        properties: GSheetsPropertiesType,
     ) -> List[SupersetError]:
         errors: List[SupersetError] = []
+        parameters = properties.get("parameters", {})
         encrypted_credentials = parameters.get("service_account_info") or "{}"
 
         # On create the encrypted credentials are a string,

@@ -36,7 +36,9 @@ export type DatabaseObject = {
   created_by?: null | DatabaseUser;
   changed_on_delta_humanized?: string;
   changed_on?: string;
+  driver: string;
   parameters?: {
+    access_token?: string;
     database_name?: string;
     host?: string;
     port?: number;
@@ -80,6 +82,9 @@ export type DatabaseObject = {
   extra_json?: {
     engine_params?: {
       catalog?: Record<any, any> | string;
+      connect_args: {
+        http_path?: string;
+      };
     };
     metadata_params?: {} | string;
     metadata_cache_timeout?: {

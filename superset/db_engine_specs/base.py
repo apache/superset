@@ -1270,7 +1270,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         if sql_query_mutator:
             sql = sql_query_mutator(
                 sql,
-                user_name=get_username(),  # TODO(john-bodley): Deprecate in 3.0.
+                # TODO(john-bodley): Deprecate in 3.0.
+                user_name=get_username(),
                 security_manager=security_manager,
                 database=database,
             )
@@ -1711,6 +1712,10 @@ class BasicParametersType(TypedDict, total=False):
     encryption: bool
 
 
+class BasicPropertiesType(TypedDict):
+    parameters: BasicParametersType
+
+
 class BasicParametersMixin:
     """
     Mixin for configuring DB engine specs via a dictionary.
@@ -1788,7 +1793,7 @@ class BasicParametersMixin:
 
     @classmethod
     def validate_parameters(
-        cls, parameters: BasicParametersType
+        cls, properties: BasicPropertiesType
     ) -> List[SupersetError]:
         """
         Validates any number of parameters, for progressive validation.
@@ -1799,6 +1804,7 @@ class BasicParametersMixin:
         errors: List[SupersetError] = []
 
         required = {"host", "port", "username", "database"}
+        parameters = properties.get("parameters", {})
         present = {key for key in parameters if parameters.get(key, ())}
         missing = sorted(required - present)
 

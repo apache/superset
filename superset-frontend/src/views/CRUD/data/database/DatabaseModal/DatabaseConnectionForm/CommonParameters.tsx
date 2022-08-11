@@ -71,6 +71,30 @@ export const portField = ({
     />
   </>
 );
+
+export const httpPath = ({
+  required,
+  changeMethods,
+  getValidation,
+  validationErrors,
+  db,
+}: FieldPropTypes) => {
+  const engineParams = db?.extra_json?.engine_params;
+  return (
+    <ValidatedInput
+      id="http_path"
+      name="http_path"
+      required={required}
+      value={engineParams?.connect_args?.http_path}
+      validationMethods={{ onBlur: getValidation }}
+      errorMessage={validationErrors?.http_path}
+      placeholder={t('e.g. sql/protocolv1/o/12345')}
+      label="HTTP Path"
+      onChange={changeMethods.onExtraInputChange}
+      helpText={t('Copy the name of the  HTTP Path of your cluster.')}
+    />
+  );
+};
 export const databaseField = ({
   required,
   changeMethods,
@@ -132,6 +156,28 @@ export const passwordField = ({
     onChange={changeMethods.onParametersChange}
   />
 );
+
+export const accessTokenField = ({
+  required,
+  changeMethods,
+  getValidation,
+  validationErrors,
+  db,
+  isEditMode,
+}: FieldPropTypes) => (
+  <ValidatedInput
+    id="access_token"
+    name="access_token"
+    required={required}
+    visibilityToggle={!isEditMode}
+    value={db?.parameters?.access_token}
+    validationMethods={{ onBlur: getValidation }}
+    errorMessage={validationErrors?.access_token}
+    placeholder={t('e.g. ********')}
+    label={t('Access token')}
+    onChange={changeMethods.onParametersChange}
+  />
+);
 export const displayField = ({
   changeMethods,
   getValidation,
@@ -150,7 +196,7 @@ export const displayField = ({
       label={t('Display Name')}
       onChange={changeMethods.onChange}
       helpText={t(
-        'Pick a nickname for this database to display as in Superset.',
+        'Pick a nickname for how the database will display in Superset.',
       )}
     />
   </>
