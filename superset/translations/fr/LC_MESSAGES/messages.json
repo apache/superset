@@ -3875,7 +3875,8 @@
         "Pas de données après filtrage ou données manquantes pour la période sélectionnée"
       ],
       "Scope": ["Périmètre"],
-      "Dependent on": ["Dépend de"]
+      "Dependent on": ["Dépend de"],
+      "No matching records found": ["Aucun résultat trouvé"]
     }
   }
 }
