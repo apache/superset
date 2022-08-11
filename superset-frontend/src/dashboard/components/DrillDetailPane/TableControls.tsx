@@ -68,7 +68,10 @@ export default function TableControls({
   const filterTags = useMemo(
     () =>
       Object.entries(filterMap)
-        .map(([colName, { val }]) => ({ colName, val }))
+        .map(([colName, { val, formattedVal }]) => ({
+          colName,
+          val: formattedVal ?? val,
+        }))
         .sort((a, b) => a.colName.localeCompare(b.colName)),
     [filterMap],
   );
