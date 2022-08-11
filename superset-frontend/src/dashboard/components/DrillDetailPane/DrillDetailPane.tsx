@@ -117,6 +117,7 @@ export default function DrillDetailPane({
   //  Clear cache on reload button click
   const handleReload = useCallback(() => {
     setResultsPages(new Map());
+    setPageIndex(0);
   }, []);
 
   //  Clear cache and reset page index if filters change
