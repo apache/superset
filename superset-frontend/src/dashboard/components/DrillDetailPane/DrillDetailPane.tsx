@@ -122,7 +122,7 @@ export default function DrillDetailPane({
       getDatasourceSamples(
         datasourceType,
         datasourceId,
-        true,
+        false,
         jsonPayload,
         PAGE_SIZE,
         pageIndex + 1,
