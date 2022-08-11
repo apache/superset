@@ -93,6 +93,24 @@ class TestTrinoDbEngineSpec(TestDbEngineSpec):
         self.assertEqual(connect_args.get("http_scheme"), "https")
         auth.assert_called_once_with(**auth_params)
 
+    @patch("trino.auth.CertificateAuthentication")
+    def test_auth_certificate(self, auth: Mock):
+        database = Mock()
+
+        auth_params = {
+            "cert": "/path/to/cert.pem",
+            "key": "/path/to/key.pem"
+        }
+        database.encrypted_extra = json.dumps(
+            {"auth_method": "certificate", "auth_params": auth_params}
+        )
+
+        params: Dict[str, Any] = {}
+        TrinoEngineSpec.update_encrypted_extra_params(database, params)
+        connect_args = params.setdefault("connect_args", {})
+        self.assertEqual(connect_args.get("http_scheme"), "https")
+        auth.assert_called_once_with(**auth_params)
+
     @patch("trino.auth.JWTAuthentication")
     def test_auth_jwt(self, auth: Mock):
         database = Mock()

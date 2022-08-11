@@ -177,6 +177,8 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
                 from trino.auth import BasicAuthentication as trino_auth  # noqa
             elif auth_method == "kerberos":
                 from trino.auth import KerberosAuthentication as trino_auth  # noqa
+            elif auth_method == "certificate":
+                from trino.auth import CertificateAuthentication as trino_auth  # noqa
             elif auth_method == "jwt":
                 from trino.auth import JWTAuthentication as trino_auth  # noqa
             else:
