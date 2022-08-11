@@ -757,7 +757,6 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
                 }
             ],
             "params": None,
-            "id": 42,
             "slice_name": "title",
             "viz_type": None,
             "query_context": None,
@@ -765,12 +764,14 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         }
         data = json.loads(rv.data.decode("utf-8"))
         self.assertIn("changed_on_delta_humanized", data["result"])
+        self.assertIn("id", data["result"])
         self.assertIn("thumbnail_url", data["result"])
         self.assertIn("url", data["result"])
         for key, value in data["result"].items():
-            # We can't assert timestamp values
+            # We can't assert timestamp values or id/urls
             if key not in (
                 "changed_on_delta_humanized",
+                "id",
                 "thumbnail_url",
                 "url",
             ):
