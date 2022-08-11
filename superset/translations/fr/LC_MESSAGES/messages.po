@@ -16381,4 +16381,3 @@ msgstr "Périmètre"
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterCard/DependenciesRow.tsx:86
 msgid "Dependent on"
 msgstr "Dépend de"
-
