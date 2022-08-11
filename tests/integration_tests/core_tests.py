@@ -772,9 +772,12 @@ class TestCore(SupersetTestCase):
             "/superset/sql_json/",
             json=data,
         )
+        failed_resp = {
+            'sql': ['Missing data for required field.'],
+            'database_id': ['Missing data for required field.']
+        }
         resp_data = json.loads(rv.data.decode("utf-8"))
-        self.assertIsNotNone(resp_data.get("errors"))
-        self.assertEqual(len(resp_data.get("errors")), 2)
+        self.assertDictEqual(resp_data, failed_resp)
         self.assertEqual(rv.status_code, 400)
 
         data = {"sql": "SELECT 1", "client_id": client_id}
@@ -782,9 +785,11 @@ class TestCore(SupersetTestCase):
             "/superset/sql_json/",
             json=data,
         )
+        failed_resp = {
+            'database_id': ['Missing data for required field.']
+        }
         resp_data = json.loads(rv.data.decode("utf-8"))
-        self.assertIsNotNone(resp_data.get("errors"))
-        self.assertEqual(len(resp_data.get("errors")), 1)
+        self.assertDictEqual(resp_data, failed_resp)
         self.assertEqual(rv.status_code, 400)
 
         data = {"database_id": 1, "client_id": client_id}
@@ -792,9 +797,11 @@ class TestCore(SupersetTestCase):
             "/superset/sql_json/",
             json=data,
         )
+        failed_resp = {
+            'sql': ['Missing data for required field.']
+        }
         resp_data = json.loads(rv.data.decode("utf-8"))
-        self.assertIsNotNone(resp_data.get("errors"))
-        self.assertEqual(len(resp_data.get("errors")), 1)
+        self.assertDictEqual(resp_data, failed_resp)
         self.assertEqual(rv.status_code, 400)
 
         data = {"sql": "SELECT 1", "database_id": 1, "client_id": client_id}
@@ -803,7 +810,7 @@ class TestCore(SupersetTestCase):
             json=data,
         )
         resp_data = json.loads(rv.data.decode("utf-8"))
-        self.assertIsNone(resp_data.get("errors"))
+        self.assertEqual(resp_data.get("status"), "success")
         self.assertEqual(rv.status_code, 200)
 
     def test_templated_sql_json(self):

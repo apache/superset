@@ -31,7 +31,7 @@ from superset.superset_typing import FlaskResponse
 from superset.utils import core as utils
 from superset.utils.core import get_user_id
 
-from .base import BaseSupersetView, DeleteMixin, json_success, SupersetModelView
+from ..base import BaseSupersetView, DeleteMixin, json_success, SupersetModelView
 
 logger = logging.getLogger(__name__)
 
