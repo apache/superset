@@ -241,7 +241,10 @@ export function transformSeries(
         if (!formatter) return numericValue;
         if (!stack || isSelectedLegend) return formatter(numericValue);
         if (!onlyTotal) {
-          if (numericValue >= thresholdValues[dataIndex]) {
+          if (
+            numericValue >=
+            (thresholdValues[dataIndex] || Number.MIN_SAFE_INTEGER)
+          ) {
             return formatter(numericValue);
           }
           return '';
