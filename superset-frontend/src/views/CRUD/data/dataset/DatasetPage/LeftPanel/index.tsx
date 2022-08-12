@@ -16,36 +16,135 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { Dispatch, FunctionComponent, Reducer } from 'react';
+import { SupersetClient } from '@superset-ui/core';
+import React, {
+  useEffect,
+  Dispatch,
+  FunctionComponent,
+  Reducer,
+  useState,
+  useRef,
+  useCallback,
+} from 'react';
+import { styled } from '@superset-ui/core';
+import { TableOption, Table } from 'src/components/TableSelector';
 import DatabaseSelector from 'src/components/DatabaseSelector';
+import { DatasetActionType } from '../types';
 
 interface LeftPanelProps {
-  setDataset: () => null & Dispatch<Reducer>;
-  setSchema: () => null & Dispatch<Reducer>;
+  setDataset: (db: any) => void;
+  schema?: string | undefined | null;
+  dbId?: string;
 }
 
-export default function LeftPanel({ setDataset, setSchema }: LeftPanelProps) {
+const LeftPanelStyle = styled.div`
+  ${({ theme }) => `
+  max-width: 350px;
+  height: 100%;
+  background-color: ${theme.colors.grayscale.light5}; 
+  .options-list {
+    overflow: auto;
+    height: 400px;
+  }
+`}
+`;
+
+export default function LeftPanel({
+  setDataset,
+  schema,
+  dbId,
+}: LeftPanelProps) {
+  const [tableOptions, setTableOptions] = useState<Array<TableOption>>([]);
+  const [page, setPage] = useState({
+    startIndex: 0,
+    lastIndex: 25,
+    length: 0,
+  });
+  const [resetTables, setResetTables] = useState(false);
+  const [loadTables, setLoadTables] = useState(false);
+
+  const setDatabase = (db: any) => {
+    setDataset({ type: DatasetActionType.selectDatabase, payload: db });
+    setResetTables(true);
+  };
+
+  const setSchema = (schema: any) => {
+    if (schema) {
+      setDataset({ type: DatasetActionType.selectSchema, payload: schema });
+      setLoadTables(true);
+    }
+    setResetTables(true);
+  };
+
+  const observer = useRef<IntersectionObserver | null>();
+  const lastElementRef = useCallback(node => {
+    if (observer.current) observer.current.disconnect();
+    observer.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting) {
+        setPage(prev => ({ ...prev, lastIndex: page.lastIndex + 50 }));
+      }
+    });
+    if (node) observer.current.observe(node);
+  }, []);
+
+  useEffect(() => {
+    if (loadTables) {
+      const encodedSchema = encodeURIComponent(schema as string);
+      const forceRefresh = null;
+      const endpoint = encodeURI(
+        `/superset/tables/${dbId}/${encodedSchema}/undefined/${forceRefresh}/`,
+      );
+      SupersetClient.get({ endpoint })
+        .then(({ json }) => {
+          const options: TableOption[] = json.options.map((table: Table) => {
+            const option: TableOption = {
+              value: table.value,
+              label: <TableOption table={table} />,
+              text: table.label,
+            };
+
+            return option;
+          });
+
+          setPage(existing => ({ ...existing, length: json.tableLength }));
+          setTableOptions(options);
+          setLoadTables(false);
+          setResetTables(false);
+        })
+        .catch(e => {
+          console.log('error', e);
+        });
+    }
+  }, [loadTables]);
+
+  useEffect(() => {
+    if (resetTables) {
+      setTableOptions([]);
+      setResetTables(false);
+    }
+  }, [resetTables]);
+
+  const paginatedTabeOptipons = tableOptions.slice(0, page.lastIndex);
   return (
-    <div>
+    <LeftPanelStyle>
+      <p> Select Database & Schema</p>
       <DatabaseSelector
         handleError={() => null}
-        onDbChange={setDataset}
+        onDbChange={setDatabase}
         onSchemaChange={setSchema}
-        /* key={}
-        db={}
-        emptyState={}
-        formMode={}
-        getDbList={}
-        handleError={}
-        onEmptyResults={}
-        onSchemaChange={}
-        onSchemasLoad={}
-        schema={}
-        sqlLabMode={}
-        isDatabaseSelectEnabled={}
-        readOnly={}
-        */
       />
-    </div>
+      <div className="options-list">
+        {paginatedTabeOptipons.map((o, i) => {
+          if (paginatedTabeOptipons.length === i + 1) {
+            return (
+              <div key={i} ref={lastElementRef}>
+                {o.label}
+              </div>
+            );
+          }
+          return <div key={i}>{o.label}</div>;
+        })}
+      </div>
+    </LeftPanelStyle>
   );
 }

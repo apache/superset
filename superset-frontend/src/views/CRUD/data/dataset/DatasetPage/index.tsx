@@ -16,14 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import React, { useReducer, Reducer } from 'react';
+import React, { useReducer, Reducer, useState } from 'react';
 import Header from './Header';
 import DatasetPanel from './DatasetPanel';
 import LeftPanel from './LeftPanel';
 import RightPanel from './RightPanel';
 import Footer from './Footer';
 import { DatasetActionType, DatasetObject, DSReducerActionType } from './types';
+import { styled } from '@superset-ui/core';
 
 export function datasetReducer(
   state: Partial<DatasetObject> | null,
@@ -32,6 +32,8 @@ export function datasetReducer(
   const trimmedState = {
     ...(state || {}),
   };
+  console.log('action.type', action.type)
+
   switch (action.type) {
     case DatasetActionType.selectDatabase:
       return {
@@ -43,7 +45,7 @@ export function datasetReducer(
     case DatasetActionType.selectSchema:
       return {
         ...trimmedState,
-        ...action.payload,
+        schema: action.payload,
         table_name: null,
       };
     case DatasetActionType.selectTable:
@@ -61,6 +63,10 @@ export function datasetReducer(
   }
 }
 
+const DatasetPageStyle = styled.div`
+  height: 100vh;
+`;
+
 export default function DatasetPage() {
   // this is commented out for now, but can be commented in as the component
   // is built up. Uncomment the useReducer in imports too
@@ -68,25 +74,20 @@ export default function DatasetPage() {
     Reducer<Partial<DatasetObject> | null, DSReducerActionType>
   >(datasetReducer, null);
 
-  const onChangeDatabase = (db: any) => {
-    setDataset(db);
-    setDataset({ type: DatasetActionType.selectDatabase, payload: db });
-  };
-
-  const onChangeSchema = (schema: any) => {
-    setDataset(schema);
-    setDataset({ type: DatasetActionType.selectSchema, payload: schema });
-  };
 
   return (
-    <div>
+    <DatasetPageStyle>
       <Header />
-      <LeftPanel setDataset={onChangeDatabase} setSchema={onChangeSchema} />
+      <LeftPanel
+        setDataset={setDataset}
+        schema={dataset?.schema}
+        dbId={dataset?.id}
+      />
       <div css={{ display: 'flex' }}>
         <DatasetPanel />
         <Footer />
       </div>
       <RightPanel />
-    </div>
+    </DatasetPageStyle>
   );
 }

@@ -16,7 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { styled } from '@superset-ui/core';
 import React from 'react';
+
+const DatasetPanelStyle = styled.div`
+    background: #FFFFFF;
+    position: relative;
+    width: 100%;
+    max-height: 100%;
+    min-height: 0;
+    display: flex;
+    flex: 1;
+    flex-wrap: nowrap;
+    border-top: 1px solid #E0E0E0;
+`;
 
 export default function DatasetPanel() {
   return <div>Dataset Panel</div>;

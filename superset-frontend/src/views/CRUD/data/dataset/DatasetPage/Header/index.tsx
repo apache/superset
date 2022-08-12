@@ -16,8 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { styled } from '@superset-ui/core';
 import React from 'react';
 
+const HeaderStyle = styled.div`
+  height: 67px;
+`;
 export default function Header() {
-  return <div>Header</div>;
+  return <HeaderStyle>Header</HeaderStyle>;
 }
