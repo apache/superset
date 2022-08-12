@@ -47,7 +47,7 @@ export type Extensions = Partial<{
   'navbar.right': React.ComponentType;
   'welcome.message': React.ComponentType;
   'welcome.banner': React.ComponentType;
-  'welcome.page.replacement': React.ComponentType;
+  'welcome.main.replacement': React.ComponentType;
 }>;
 
 /**
