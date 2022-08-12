@@ -14,14 +14,13 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
 import logging
 from typing import Any, Dict, List, Optional, Union
 from urllib import request
 from urllib.error import URLError
 
-from celery.utils.log import get_task_logger
 from celery.beat import SchedulingError
+from celery.utils.log import get_task_logger
 from sqlalchemy import and_, func
 
 from superset import app, db, security_manager
@@ -40,10 +39,8 @@ logger.setLevel(logging.INFO)
 def get_url(chart: Slice, dashboard: Optional[Dashboard] = None) -> str:
     """Return external URL for warming up a given chart/table cache."""
     with app.test_request_context():
-        baseurl = (
-            "{WEBDRIVER_BASEURL}".format(**app.config)
-        )
-        url = f"{baseurl}/superset/warm_up_cache/?slice_id={chart.id}"
+        baseurl = "{WEBDRIVER_BASEURL}".format(**app.config)
+        url = f"{baseurl}superset/warm_up_cache/?slice_id={chart.id}"
         if dashboard:
             url += f"&dashboard_id={dashboard.id}"
         return url
@@ -219,27 +216,26 @@ strategies = [DummyStrategy, TopNDashboardsStrategy, DashboardTagsStrategy]
 
 
 @celery_app.task(name="fetch_url")
-def fetch_url(url, headers):
+def fetch_url(url: str, headers: Dict[str, str]) -> Dict[str, str]:
     """
-        Celery job to fetch url
+    Celery job to fetch url
     """
     result = {}
     try:
         logger.info("Fetching %s", url)
         req = request.Request(url, headers=headers)
-        response = request.urlopen(req, timeout=600) # pylint: disable=consider-using-with
-        logger.info(f"Fetching {url} {response.code}")
+        response = request.urlopen(  # pylint: disable=consider-using-with
+            req, timeout=600
+        )
+        logger.info("Fetched %s, status code: %s", url, response.code)
         if response.code == 200:
-            result = {
-                "success": url,
-                "response": response.read().decode('utf-8')
-            }
+            result = {"success": url, "response": response.read().decode("utf-8")}
         else:
             result = {"error": url, "status_code": response.code}
             logger.error("Error fetching %s, status code: %s", url, response.code)
-    except URLError as e:
+    except URLError as err:
         logger.exception("Error warming up cache!")
-        result = {"error": url, "exception": str(e)}
+        result = {"error": url, "exception": str(err)}
     return result
 
 
@@ -272,9 +268,7 @@ def cache_warmup(
         logger.exception(message)
         return message
 
-    user = security_manager.get_user_by_username(
-        app.config["THUMBNAIL_SELENIUM_USER"]
-    )
+    user = security_manager.get_user_by_username(app.config["THUMBNAIL_SELENIUM_USER"])
     cookies = MachineAuthProvider.get_auth_cookies(user)
     headers = {"Cookie": f"session={cookies.get('session', '')}"}
 

@@ -40,6 +40,7 @@ from superset.tasks.cache import (
     DashboardTagsStrategy,
     TopNDashboardsStrategy,
 )
+from superset.utils.urls import get_url_host
 
 from .base_tests import SupersetTestCase
 from .dashboard_utils import create_dashboard, create_slice, create_table_metadata
@@ -48,7 +49,6 @@ from .fixtures.unicode_dashboard import (
     load_unicode_data,
 )
 
-URL_PREFIX = "http://0.0.0.0:8081/"
 
 mock_positions = {
     "DASHBOARD_VERSION_KEY": "v2",
@@ -68,7 +68,6 @@ mock_positions = {
 
 
 class TestCacheWarmUp(SupersetTestCase):
-
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_top_n_dashboards_strategy(self):
         # create a top visited dashboard
@@ -82,7 +81,7 @@ class TestCacheWarmUp(SupersetTestCase):
         result = sorted(strategy.get_urls())
         expected = sorted(
             [
-                f"{URL_PREFIX}superset/warm_up_cache/?slice_id={slc.id}&dashboard_id={dash.id}"
+                f"{get_url_host()}superset/warm_up_cache/?slice_id={slc.id}&dashboard_id={dash.id}"
                 for slc in dash.slices
             ]
         )
@@ -111,7 +110,12 @@ class TestCacheWarmUp(SupersetTestCase):
         # tag dashboard 'births' with `tag1`
         tag1 = get_tag("tag1", db.session, TagTypes.custom)
         dash = self.get_dash_by_slug("births")
-        tag1_urls = sorted([f"{URL_PREFIX}superset/warm_up_cache/?slice_id={slc.id}" for slc in dash.slices])
+        tag1_urls = sorted(
+            [
+                f"{get_url_host()}superset/warm_up_cache/?slice_id={slc.id}"
+                for slc in dash.slices
+            ]
+        )
         tagged_object = TaggedObject(
             tag_id=tag1.id, object_id=dash.id, object_type=ObjectTypes.dashboard
         )
@@ -131,7 +135,7 @@ class TestCacheWarmUp(SupersetTestCase):
         # tag first slice
         dash = self.get_dash_by_slug("unicode-test")
         slc = dash.slices[0]
-        tag2_urls = [f"{URL_PREFIX}superset/warm_up_cache/?slice_id={slc.id}"]
+        tag2_urls = [f"{get_url_host()}superset/warm_up_cache/?slice_id={slc.id}"]
         object_id = slc.id
         tagged_object = TaggedObject(
             tag_id=tag2.id, object_id=object_id, object_type=ObjectTypes.chart
