@@ -42,7 +42,7 @@ import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import type { MenuObjectProps } from 'src/views/components/Menu';
 import DatabaseModal from './DatabaseModal';
 
-import { DatabaseObject } from './types';
+import { DatabaseObject, Engines } from './types';
 
 const PAGE_SIZE = 25;
 
@@ -230,7 +230,15 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
     SupersetClient.get({
       endpoint: `/api/v1/database/?q=${rison.encode(payload)}`,
     }).then(({ json }: Record<string, any>) => {
-      setAllowUploads(json.count >= 1);
+      // There might be some existings Gsheets and Clickhouse DBs
+      // with allow_file_upload set as True which is not possible from now on
+      const allowedDatabasesWithFileUpload =
+        json?.result?.filter(
+          (database: any) =>
+            database?.backend !== Engines.GSheet &&
+            database?.backend !== Engines.ClickHouse,
+        ) || [];
+      setAllowUploads(allowedDatabasesWithFileUpload?.length >= 1);
     });
   };
 

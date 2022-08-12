@@ -29,7 +29,7 @@ import {
   antdCollapseStyles,
   no_margin_bottom,
 } from './styles';
-import { DatabaseObject } from '../types';
+import { DatabaseObject, Engines } from '../types';
 
 const ExtraOptions = ({
   db,
@@ -425,22 +425,24 @@ const ExtraOptions = ({
             />
           </div>
         </StyledInputContainer>
-        <StyledInputContainer css={{ ...no_margin_bottom }}>
-          <div className="input-container">
-            <IndeterminateCheckbox
-              id="allow_file_upload"
-              indeterminate={false}
-              checked={!!db?.allow_file_upload}
-              onChange={onInputChange}
-              labelText={t('Allow data upload')}
-            />
-            <InfoTooltip
-              tooltip={t(
-                'If selected, please set the schemas allowed for data upload in Extra.',
-              )}
-            />
-          </div>
-        </StyledInputContainer>
+        {db?.engine !== Engines.GSheet && db?.engine !== Engines.ClickHouse && (
+          <StyledInputContainer css={{ ...no_margin_bottom }}>
+            <div className="input-container">
+              <IndeterminateCheckbox
+                id="allow_file_upload"
+                indeterminate={false}
+                checked={!!db?.allow_file_upload}
+                onChange={onInputChange}
+                labelText={t('Allow data upload')}
+              />
+              <InfoTooltip
+                tooltip={t(
+                  'If selected, please set the schemas allowed for data upload in Extra.',
+                )}
+              />
+            </div>
+          </StyledInputContainer>
+        )}
       </Collapse.Panel>
       <Collapse.Panel
         header={

@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 """Contains the logic to create cohesive forms on the explore view"""
+from enum import Enum
 from typing import List
 
 from flask_appbuilder.fieldwidgets import BS3TextFieldWidget
@@ -39,6 +40,12 @@ from superset.forms import (
 )
 from superset.models.core import Database
 
+
+class DatabasesNotAllowedToFileUpload(str, Enum):
+    GSHEETS = "gsheets"
+    CLICKHOUSE = "clickhousedb"
+
+
 config = app.config
 
 
@@ -52,6 +59,7 @@ class UploadToDatabaseForm(DynamicForm):
             file_enabled_db
             for file_enabled_db in file_enabled_dbs
             if UploadToDatabaseForm.at_least_one_schema_is_allowed(file_enabled_db)
+            and UploadToDatabaseForm.is_db_allowed_to_file_upload(file_enabled_db)
         ]
 
     @staticmethod
@@ -88,6 +96,23 @@ class UploadToDatabaseForm(DynamicForm):
         ):
             return True
         return False
+
+    @staticmethod
+    def is_db_allowed_to_file_upload(database: Database) -> bool:
+        """
+        This method is mainly used for existing Gsheets and Clickhouse DBs
+        that have allow_file_upload set as True but they are no longer valid
+        DBs for file uploading.
+        New GSheets and Clickhouse DBs won't have the option to set
+        allow_file_upload set as True.
+        """
+        backend = database.data["backend"]
+        not_allowed_dbs = [
+            db_engine.value for db_engine in DatabasesNotAllowedToFileUpload
+        ]
+        if backend in not_allowed_dbs:
+            return False
+        return True
 
 
 class CsvToDatabaseForm(UploadToDatabaseForm):

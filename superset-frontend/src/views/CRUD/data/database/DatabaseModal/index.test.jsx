@@ -188,6 +188,13 @@ fetchMock.mock(AVAILABLE_DB_ENDPOINT, {
       preferred: false,
       sqlalchemy_uri_placeholder: 'bigquery://{project_id}',
     },
+    {
+      available_drivers: ['rest'],
+      default_driver: 'apsw',
+      engine: 'gsheets',
+      name: 'Google Sheets',
+      preferred: false,
+    },
   ],
 });
 fetchMock.post(VALIDATE_PARAMS_ENDPOINT, {
@@ -771,8 +778,11 @@ describe('DatabaseModal', () => {
       const securityTab = screen.getByRole('tab', {
         name: /right security add extra connection information\./i,
       });
+      const allowFileUploadCheckbox = screen.getByRole('checkbox', {
+        name: /allow data upload/i,
+      });
+      const allowFileUploadText = screen.getByText(/allow data upload/i);
 
-      // ---------- Assertions ----------
       const visibleComponents = [
         closeButton,
         advancedHeader,
@@ -785,10 +795,17 @@ describe('DatabaseModal', () => {
         sqlLabTab,
         performanceTab,
         securityTab,
+        allowFileUploadText,
       ];
+      // These components exist in the DOM but are not visible
+      const invisibleComponents = [allowFileUploadCheckbox];
 
+      // ---------- Assertions ----------
       visibleComponents.forEach(component => {
         expect(component).toBeVisible();
+      });
+      invisibleComponents.forEach(component => {
+        expect(component).not.toBeVisible();
       });
     });
 
@@ -1080,6 +1097,66 @@ describe('DatabaseModal', () => {
     test('enters step 2 of 3 when proper database is selected', () => {
       const step2of3text = screen.getByText(/step 2 of 3/i);
       expect(step2of3text).toBeVisible();
+    });
+  });
+
+  describe('DatabaseModal w/ GSheet Engine', () => {
+    const renderAndWait = async () => {
+      const dbProps = {
+        show: true,
+        database_name: 'my database',
+        sqlalchemy_uri: 'gsheets://',
+      };
+      const mounted = act(async () => {
+        render(<DatabaseModal {...dbProps} dbEngine="Google Sheets" />, {
+          useRedux: true,
+        });
+      });
+
+      return mounted;
+    };
+
+    beforeEach(async () => {
+      await renderAndWait();
+    });
+
+    it('enters step 2 of 2 when proper database is selected', () => {
+      const step2of2text = screen.getByText(/step 2 of 2/i);
+      expect(step2of2text).toBeVisible();
+    });
+
+    it('renders the "Advanced" - SECURITY tab without Allow File Upload Checkbox', async () => {
+      // Click the "Advanced" tab
+      userEvent.click(screen.getByRole('tab', { name: /advanced/i }));
+      // Click the "Security" tab
+      userEvent.click(
+        screen.getByRole('tab', {
+          name: /right security add extra connection information\./i,
+        }),
+      );
+
+      // ----- BEGIN STEP 2 (ADVANCED - SECURITY)
+      // <ExtraOptions> - Advanced tabs
+      const impersonateLoggerUserCheckbox = screen.getByRole('checkbox', {
+        name: /impersonate logged in/i,
+      });
+      const impersonateLoggerUserText = screen.getByText(
+        /impersonate logged in/i,
+      );
+      const allowFileUploadText = screen.queryByText(/allow data upload/i);
+
+      const visibleComponents = [impersonateLoggerUserText];
+      // These components exist in the DOM but are not visible
+      const invisibleComponents = [impersonateLoggerUserCheckbox];
+
+      // ---------- Assertions ----------
+      visibleComponents.forEach(component => {
+        expect(component).toBeVisible();
+      });
+      invisibleComponents.forEach(component => {
+        expect(component).not.toBeVisible();
+      });
+      expect(allowFileUploadText).not.toBeInTheDocument();
     });
   });
 });
