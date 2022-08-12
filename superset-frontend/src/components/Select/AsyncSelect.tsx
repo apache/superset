@@ -29,24 +29,33 @@ import React, {
   useCallback,
   useImperativeHandle,
 } from 'react';
-import { ensureIsArray, styled, t } from '@superset-ui/core';
-import AntdSelect, {
-  SelectProps as AntdSelectProps,
-  SelectValue as AntdSelectValue,
-  LabeledValue as AntdLabeledValue,
-} from 'antd/lib/select';
+import { ensureIsArray, t } from '@superset-ui/core';
+import { LabeledValue as AntdLabeledValue } from 'antd/lib/select';
 import { DownOutlined, SearchOutlined } from '@ant-design/icons';
-import { Spin } from 'antd';
 import debounce from 'lodash/debounce';
 import { isEqual } from 'lodash';
 import Icons from 'src/components/Icons';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { SLOW_DEBOUNCE } from 'src/constants';
-import { rankedSearchCompare } from 'src/utils/rankedSearchCompare';
 import { getValue, hasOption, isLabeledValue } from './utils';
-import { BaseSelect, DEFAULT_PAGE_SIZE, DEFAULT_SORT_COMPARATOR, EMPTY_OPTIONS, MAX_TAG_COUNT, PickedSelectProps, SelectOptionsPagePromise, SelectOptionsType, SelectOptionsTypePage, StyledCheckOutlined, StyledContainer, StyledError, StyledErrorMessage, StyledLoadingText, StyledSelect, StyledSpin, StyledStopOutlined, TOKEN_SEPARATORS } from './common';
-
-const { Option } = AntdSelect;
+import {
+  BaseSelect,
+  DEFAULT_PAGE_SIZE,
+  DEFAULT_SORT_COMPARATOR,
+  EMPTY_OPTIONS,
+  MAX_TAG_COUNT,
+  PickedSelectProps,
+  SelectOptionsPagePromise,
+  SelectOptionsType,
+  SelectOptionsTypePage,
+  StyledCheckOutlined,
+  StyledError,
+  StyledErrorMessage,
+  StyledLoadingText,
+  StyledSpin,
+  StyledStopOutlined,
+  TOKEN_SEPARATORS,
+} from './common';
 
 export type AsyncSelectRef = HTMLInputElement & { clearCache: () => void };
 
@@ -249,8 +258,6 @@ const AsyncSelect = (
       ? missingValues.concat(selectOptions)
       : selectOptions;
   }, [selectOptions, selectValue]);
-
-  const hasCustomLabels = fullSelectOptions.some(opt => !!opt?.customLabel);
 
   const handleOnSelect = (
     selectedItem: string | number | AntdLabeledValue | undefined,
@@ -552,7 +559,9 @@ const AsyncSelect = (
       dropdownRender={dropdownRender}
       filterOption={handleFilterOption}
       filterSort={sortComparatorWithSearch}
-      getPopupContainer={getPopupContainer || (triggerNode => triggerNode.parentNode)}
+      getPopupContainer={
+        getPopupContainer || (triggerNode => triggerNode.parentNode)
+      }
       labelInValue
       maxTagCount={MAX_TAG_COUNT}
       mappedMode={mappedMode}
@@ -580,7 +589,7 @@ const AsyncSelect = (
       }
       ref={ref}
       {...props}
-      />
+    />
   );
 };
 

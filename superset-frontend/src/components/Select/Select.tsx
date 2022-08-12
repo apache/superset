@@ -26,21 +26,24 @@ import React, {
   useState,
   useCallback,
 } from 'react';
-import { ensureIsArray, styled, t } from '@superset-ui/core';
-import AntdSelect, {
-  SelectProps as AntdSelectProps,
-  SelectValue as AntdSelectValue,
-  LabeledValue as AntdLabeledValue,
-} from 'antd/lib/select';
+import { ensureIsArray, t } from '@superset-ui/core';
+import { LabeledValue as AntdLabeledValue } from 'antd/lib/select';
 import { DownOutlined, SearchOutlined } from '@ant-design/icons';
-import { Spin } from 'antd';
 import { isEqual } from 'lodash';
-import Icons from 'src/components/Icons';
-import { rankedSearchCompare } from 'src/utils/rankedSearchCompare';
 import { getValue, hasOption, isLabeledValue } from './utils';
-import { BaseSelect, DEFAULT_SORT_COMPARATOR, EMPTY_OPTIONS, MAX_TAG_COUNT, PickedSelectProps, SelectOptionsType, StyledCheckOutlined, StyledContainer, StyledLoadingText, StyledSpin, StyledStopOutlined, TOKEN_SEPARATORS } from './common';
-
-const { Option } = AntdSelect;
+import {
+  BaseSelect,
+  DEFAULT_SORT_COMPARATOR,
+  EMPTY_OPTIONS,
+  MAX_TAG_COUNT,
+  PickedSelectProps,
+  SelectOptionsType,
+  StyledCheckOutlined,
+  StyledLoadingText,
+  StyledSpin,
+  StyledStopOutlined,
+  TOKEN_SEPARATORS,
+} from './common';
 
 export interface SelectProps extends PickedSelectProps {
   /**
@@ -190,8 +193,6 @@ const Select = (
       ? missingValues.concat(selectOptions)
       : selectOptions;
   }, [selectOptions, selectValue]);
-
-  const hasCustomLabels = fullSelectOptions.some(opt => !!opt?.customLabel);
 
   const handleOnSelect = (
     selectedItem: string | number | AntdLabeledValue | undefined,
