@@ -29,7 +29,7 @@ describe('DatasetPanel', () => {
     const blankDatasetDescription = screen.getByText(
       /datasets can be created from database tables or sql queries\. select a database table to the left or to open sql lab\. from there you can save the query as a dataset\./i,
     );
-    const sqlLabLink = screen.getByRole('link', {
+    const sqlLabLink = screen.getByRole('button', {
       name: /create dataset from sql query/i,
     });
 
