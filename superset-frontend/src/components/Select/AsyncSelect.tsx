@@ -556,46 +556,47 @@ const AsyncSelect = forwardRef(
       [ref],
     );
 
-  return (
-    <BaseSelect
-      header={header}
-      allowClear={!isLoading && allowClear}
-      ariaLabel={ariaLabel || name}
-      dropdownRender={dropdownRender}
-      filterOption={handleFilterOption}
-      filterSort={sortComparatorWithSearch}
-      getPopupContainer={
-        getPopupContainer || (triggerNode => triggerNode.parentNode)
-      }
-      labelInValue
-      maxTagCount={MAX_TAG_COUNT}
-      mappedMode={mappedMode}
-      notFoundContent={isLoading ? t('Loading...') : notFoundContent}
-      onDeselect={handleOnDeselect}
-      onDropdownVisibleChange={handleOnDropdownVisibleChange}
-      onPopupScroll={handlePagination}
-      onSearch={showSearch ? handleOnSearch : undefined}
-      onSelect={handleOnSelect}
-      onClear={handleClear}
-      onChange={onChange}
-      options={fullSelectOptions}
-      placeholder={placeholder}
-      showSearch={showSearch}
-      showArrow
-      tokenSeparators={tokenSeparators || TOKEN_SEPARATORS}
-      value={selectValue}
-      suffixIcon={getSuffixIcon()}
-      menuItemSelectedIcon={
-        invertSelection ? (
-          <StyledStopOutlined iconSize="m" />
-        ) : (
-          <StyledCheckOutlined iconSize="m" />
-        )
-      }
-      ref={ref}
-      {...props}
-    />
-  );
-});
+    return (
+      <BaseSelect
+        header={header}
+        allowClear={!isLoading && allowClear}
+        ariaLabel={ariaLabel || name}
+        dropdownRender={dropdownRender}
+        filterOption={handleFilterOption}
+        filterSort={sortComparatorWithSearch}
+        getPopupContainer={
+          getPopupContainer || (triggerNode => triggerNode.parentNode)
+        }
+        labelInValue
+        maxTagCount={MAX_TAG_COUNT}
+        mappedMode={mappedMode}
+        notFoundContent={isLoading ? t('Loading...') : notFoundContent}
+        onDeselect={handleOnDeselect}
+        onDropdownVisibleChange={handleOnDropdownVisibleChange}
+        onPopupScroll={handlePagination}
+        onSearch={showSearch ? handleOnSearch : undefined}
+        onSelect={handleOnSelect}
+        onClear={handleClear}
+        onChange={onChange}
+        options={fullSelectOptions}
+        placeholder={placeholder}
+        showSearch={showSearch}
+        showArrow
+        tokenSeparators={tokenSeparators || TOKEN_SEPARATORS}
+        value={selectValue}
+        suffixIcon={getSuffixIcon()}
+        menuItemSelectedIcon={
+          invertSelection ? (
+            <StyledStopOutlined iconSize="m" />
+          ) : (
+            <StyledCheckOutlined iconSize="m" />
+          )
+        }
+        ref={ref}
+        {...props}
+      />
+    );
+  }
+);
 
 export default AsyncSelect;
