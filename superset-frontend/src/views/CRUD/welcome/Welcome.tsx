@@ -181,8 +181,9 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
 
   const WelcomeMessageExtension = extensionsRegistry.get('welcome.message');
   const WelcomeTopExtension = extensionsRegistry.get('welcome.banner');
-  const WelcomeDataExtension = extensionsRegistry.get('welcome.data');
-  const WelcomeTableExtension = extensionsRegistry.get('welcome.table');
+  const WelcomeMainExtension = extensionsRegistry.get(
+    'welcome.main.replacement',
+  );
 
   useEffect(() => {
     const activeTab = getItem(LocalStorageKeys.homepage_activity_filter, null);
@@ -285,15 +286,10 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
     !activityData?.Examples && !activityData?.Viewed;
   return (
     <WelcomeContainer>
-      {WelcomeMessageExtension && <WelcomeMessageExtension user={user} />}
+      {WelcomeMessageExtension && <WelcomeMessageExtension />}
       {WelcomeTopExtension && <WelcomeTopExtension />}
-      {WelcomeDataExtension && (
-        <WelcomeDataExtension examples={activityData?.Examples} user={user} />
-      )}
-      {WelcomeTableExtension && <WelcomeTableExtension user={user} />}
-      {(!WelcomeTopExtension ||
-        !WelcomeTableExtension ||
-        !WelcomeDataExtension) && (
+      {WelcomeMainExtension && <WelcomeMainExtension />}
+      {(!WelcomeTopExtension || !WelcomeMainExtension) && (
         <>
           <WelcomeNav>
             <h1 className="welcome-header">Home</h1>

@@ -57,10 +57,9 @@ export type Extensions = Partial<{
   'embedded.documentation.url': string;
   'dashboard.nav.right': React.ComponentType;
   'navbar.right': React.ComponentType;
-  'welcome.message': React.ComponentType<DataProps>;
+  'welcome.message': React.ComponentType;
   'welcome.banner': React.ComponentType;
-  'welcome.data': React.ComponentType<DataProps>;
-  'welcome.table': React.ComponentType<DataProps>;
+  'welcome.page.replacement': React.ComponentType;
 }>;
 
 /**
