@@ -176,7 +176,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.views.log.api import LogRestApi
         from superset.views.log.views import LogModelView
         from superset.views.redirects import R
-        from superset.views.sql_lab import (
+        from superset.views.sql_lab.views import (
             SavedQueryView,
             SavedQueryViewApi,
             SqlLab,

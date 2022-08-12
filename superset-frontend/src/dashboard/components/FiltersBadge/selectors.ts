@@ -294,7 +294,7 @@ export const selectNativeIndicatorsForChart = (
     const dashboardLayoutValues = Object.values(dashboardLayout);
     crossFilterIndicators = Object.values(chartConfiguration)
       .filter(chartConfig =>
-        chartConfig.crossFilters.chartsInScope.includes(chartId),
+        chartConfig.crossFilters?.chartsInScope?.includes(chartId),
       )
       .map(chartConfig => {
         const filterState = dataMask[chartConfig.id]?.filterState;

@@ -78,9 +78,12 @@ interface ResultSetState {
   alertIsOpen: boolean;
 }
 
-const Styles = styled.div`
+const ResultlessStyles = styled.div`
   position: relative;
-  minheight: 100px;
+  min-height: 100px;
+  [role='alert'] {
+    margin-top: ${({ theme }) => theme.gridUnit * 2}px;
+  }
   .sql-result-track-job {
     margin-top: ${({ theme }) => theme.gridUnit * 2}px;
   }
@@ -113,8 +116,9 @@ const ResultSetButtons = styled.div`
   padding-right: ${({ theme }) => 2 * theme.gridUnit}px;
 `;
 
-const ResultSetErrorMessage = styled.div`
-  padding-top: ${({ theme }) => 4 * theme.gridUnit}px;
+const LimitMessage = styled.span`
+  color: ${({ theme }) => theme.colors.secondary.light1};
+  margin-left: ${({ theme }) => theme.gridUnit * 2}px;
 `;
 
 export default class ResultSet extends React.PureComponent<
@@ -378,7 +382,7 @@ export default class ResultSet extends React.PureComponent<
         {!limitReached && !shouldUseDefaultDropdownAlert && (
           <span title={tooltipText}>
             {rowsReturnedMessage}
-            <span>{limitMessage}</span>
+            <LimitMessage>{limitMessage}</LimitMessage>
           </span>
         )}
         {!limitReached && shouldUseDefaultDropdownAlert && (
@@ -445,7 +449,7 @@ export default class ResultSet extends React.PureComponent<
     }
     if (query.state === 'failed') {
       return (
-        <ResultSetErrorMessage>
+        <ResultlessStyles>
           <ErrorMessageWithStackTrace
             title={t('Database error')}
             error={query?.errors?.[0]}
@@ -455,7 +459,7 @@ export default class ResultSet extends React.PureComponent<
             source="sqllab"
           />
           {trackingUrl}
-        </ResultSetErrorMessage>
+        </ResultlessStyles>
       );
     }
     if (query.state === 'success' && query.ctas) {
@@ -586,7 +590,7 @@ export default class ResultSet extends React.PureComponent<
         : null;
 
     return (
-      <Styles>
+      <ResultlessStyles>
         <div>{!progressBar && <Loading position="normal" />}</div>
         {/* show loading bar whenever progress bar is completed but needs time to render */}
         <div>{query.progress === 100 && <Loading position="normal" />}</div>
@@ -596,7 +600,7 @@ export default class ResultSet extends React.PureComponent<
         </div>
         <div>{query.progress !== 100 && progressBar}</div>
         {trackingUrl && <div>{trackingUrl}</div>}
-      </Styles>
+      </ResultlessStyles>
     );
   }
 }

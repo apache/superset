@@ -33,6 +33,14 @@ interface CRUDCollectionProps {
   expandFieldset?: ReactNode;
   extraButtons?: ReactNode;
   itemGenerator?: () => any;
+  itemCellProps?: ((
+    val: unknown,
+    label: string,
+    record: any,
+  ) => React.DetailedHTMLProps<
+    React.TdHTMLAttributes<HTMLTableCellElement>,
+    HTMLTableCellElement
+  >)[];
   itemRenderers?: ((
     val: unknown,
     onChange: () => void,
@@ -335,6 +343,12 @@ export default class CRUDCollection extends React.PureComponent<
     );
   }
 
+  getCellProps(record: any, col: any) {
+    const cellPropsFn = this.props.itemCellProps?.[col];
+    const val = record[col];
+    return cellPropsFn ? cellPropsFn(val, this.getLabel(col), record) : {};
+  }
+
   renderCell(record: any, col: any) {
     const renderer = this.props.itemRenderers && this.props.itemRenderers[col];
     const val = record[col];
@@ -366,7 +380,9 @@ export default class CRUDCollection extends React.PureComponent<
     }
     tds = tds.concat(
       tableColumns.map(col => (
-        <td key={col}>{this.renderCell(record, col)}</td>
+        <td {...this.getCellProps(record, col)} key={col}>
+          {this.renderCell(record, col)}
+        </td>
       )),
     );
     if (allowAddItem) {

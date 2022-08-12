@@ -20,7 +20,7 @@ from marshmallow import fields, post_load, pre_load, Schema, validate
 from typing_extensions import TypedDict
 
 from superset import app
-from superset.charts.schemas import ChartDataFilterSchema
+from superset.charts.schemas import ChartDataExtrasSchema, ChartDataFilterSchema
 from superset.utils.core import DatasourceType
 
 
@@ -62,6 +62,17 @@ class ExternalMetadataSchema(Schema):
 
 class SamplesPayloadSchema(Schema):
     filters = fields.List(fields.Nested(ChartDataFilterSchema), required=False)
+    granularity = fields.String(
+        allow_none=True,
+    )
+    time_range = fields.String(
+        allow_none=True,
+    )
+    extras = fields.Nested(
+        ChartDataExtrasSchema,
+        description="Extra parameters to add to the query.",
+        allow_none=True,
+    )
 
     @pre_load
     # pylint: disable=no-self-use, unused-argument

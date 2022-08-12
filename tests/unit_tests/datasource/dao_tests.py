@@ -99,9 +99,7 @@ FROM my_catalog.my_schema.my_table
     yield session
 
 
-def test_get_datasource_sqlatable(
-    app_context: None, session_with_data: Session
-) -> None:
+def test_get_datasource_sqlatable(session_with_data: Session) -> None:
     from superset.connectors.sqla.models import SqlaTable
     from superset.datasource.dao import DatasourceDAO
 
@@ -116,7 +114,7 @@ def test_get_datasource_sqlatable(
     assert isinstance(result, SqlaTable)
 
 
-def test_get_datasource_query(app_context: None, session_with_data: Session) -> None:
+def test_get_datasource_query(session_with_data: Session) -> None:
     from superset.datasource.dao import DatasourceDAO
     from superset.models.sql_lab import Query
 
@@ -128,9 +126,7 @@ def test_get_datasource_query(app_context: None, session_with_data: Session) -> 
     assert isinstance(result, Query)
 
 
-def test_get_datasource_saved_query(
-    app_context: None, session_with_data: Session
-) -> None:
+def test_get_datasource_saved_query(session_with_data: Session) -> None:
     from superset.datasource.dao import DatasourceDAO
     from superset.models.sql_lab import SavedQuery
 
@@ -144,7 +140,7 @@ def test_get_datasource_saved_query(
     assert isinstance(result, SavedQuery)
 
 
-def test_get_datasource_sl_table(app_context: None, session_with_data: Session) -> None:
+def test_get_datasource_sl_table(session_with_data: Session) -> None:
     from superset.datasource.dao import DatasourceDAO
     from superset.tables.models import Table
 
@@ -160,9 +156,7 @@ def test_get_datasource_sl_table(app_context: None, session_with_data: Session) 
     assert isinstance(result, Table)
 
 
-def test_get_datasource_sl_dataset(
-    app_context: None, session_with_data: Session
-) -> None:
+def test_get_datasource_sl_dataset(session_with_data: Session) -> None:
     from superset.datasets.models import Dataset
     from superset.datasource.dao import DatasourceDAO
 
@@ -178,9 +172,7 @@ def test_get_datasource_sl_dataset(
     assert isinstance(result, Dataset)
 
 
-def test_get_datasource_w_str_param(
-    app_context: None, session_with_data: Session
-) -> None:
+def test_get_datasource_w_str_param(session_with_data: Session) -> None:
     from superset.connectors.sqla.models import SqlaTable
     from superset.datasets.models import Dataset
     from superset.datasource.dao import DatasourceDAO
@@ -205,7 +197,7 @@ def test_get_datasource_w_str_param(
     )
 
 
-def test_get_all_datasources(app_context: None, session_with_data: Session) -> None:
+def test_get_all_datasources(session_with_data: Session) -> None:
     from superset.connectors.sqla.models import SqlaTable
 
     result = SqlaTable.get_all_datasources(session=session_with_data)

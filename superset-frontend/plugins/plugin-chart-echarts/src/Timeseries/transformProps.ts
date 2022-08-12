@@ -41,6 +41,7 @@ import {
   EchartsTimeseriesSeriesType,
   TimeseriesChartTransformedProps,
   OrientationType,
+  AxisType,
 } from './types';
 import { DEFAULT_FORM_DATA } from './constants';
 import { ForecastSeriesEnum, ForecastValue } from '../types';
@@ -96,6 +97,7 @@ export default function transformProps(
     queriesData,
     datasource,
     theme,
+    inContextMenu,
   } = chartProps;
   const { verboseMap = {} } = datasource;
   const [queryData] = queriesData;
@@ -168,6 +170,8 @@ export default function transformProps(
   });
   const showValueIndexes = extractShowValueIndexes(rawSeries, {
     stack,
+    onlyTotal,
+    isHorizontal,
   });
   const seriesContexts = extractForecastSeriesContexts(
     Object.values(rawSeries).map(series => series.name as string),
@@ -301,6 +305,7 @@ export default function transformProps(
   const {
     setDataMask = () => {},
     setControlValue = (...args: unknown[]) => {},
+    onContextMenu,
   } = hooks;
 
   const addYAxisLabelOffset = !!yAxisTitle;
@@ -337,13 +342,23 @@ export default function transformProps(
       rotate: xAxisLabelRotation,
     },
     minInterval:
-      xAxisType === 'time' && timeGrainSqla
+      xAxisType === AxisType.time && timeGrainSqla
         ? TIMEGRAIN_TO_TIMESTAMP[timeGrainSqla]
         : 0,
   };
+
+  if (xAxisType === AxisType.time) {
+    /**
+     * Overriding default behavior (false) for time axis regardless of the granilarity.
+     * Not including this in the initial declaration above so if echarts changes the default
+     * behavior for other axist types we won't unintentionally override it
+     */
+    xAxis.axisLabel.showMaxLabel = null;
+  }
+
   let yAxis: any = {
     ...defaultYAxis,
-    type: logAxis ? 'log' : 'value',
+    type: logAxis ? AxisType.log : AxisType.value,
     min,
     max,
     minorTick: { show: true },
@@ -369,6 +384,7 @@ export default function transformProps(
     xAxis,
     yAxis,
     tooltip: {
+      show: !inContextMenu,
       ...defaultTooltip,
       appendToBody: true,
       trigger: richTooltip ? 'axis' : 'item',
@@ -446,5 +462,7 @@ export default function transformProps(
     setControlValue,
     width,
     legendData,
+    onContextMenu,
+    xValueFormatter: tooltipFormatter,
   };
 }
