@@ -17,7 +17,6 @@
  * under the License.
  */
 import React, { ReactElement, JSXElementConstructor } from 'react';
-import { styled } from '@superset-ui/core';
 import {
   Column,
   Row,
@@ -26,6 +25,8 @@ import {
   StyledDatasetPanel,
   StyledRightPanel,
   StyledFooter,
+  heightMinusHeaders,
+  heightMinusFooter,
 } from 'src/views/CRUD/data/dataset/styles';
 
 interface DatasetLayoutProps {
@@ -46,9 +47,9 @@ export default function DatasetLayout({
   return (
     <div data-test="dataset-layout-wrapper">
       {header && <StyledHeader>{header}</StyledHeader>}
-      <Row>
+      <Row css={heightMinusHeaders}>
         {leftPanel && <StyledLeftPanel>{leftPanel}</StyledLeftPanel>}
-        <Column>
+        <Column css={heightMinusFooter}>
           <Row>
             {datasetPanel && (
               <StyledDatasetPanel>{datasetPanel}</StyledDatasetPanel>

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled } from '@superset-ui/core';
+import { styled, css } from '@superset-ui/core';
 
 export const Column = styled.div`
   width: 100%;
@@ -26,20 +26,20 @@ export const Column = styled.div`
 
 export const Row = styled.div`
   width: 100%;
-  height: 100vh;
+  height: 100%;
   display: flex;
   flex-direction: row;
 `;
 
 export const StyledHeader = styled.div`
-  height: 64px;
+  height: ${({ theme }) => theme.gridUnit * 16}px;
   border-top: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   color: ${({ theme }) => theme.colors.error.base};
 `;
 
 export const StyledLeftPanel = styled.div`
-  width: 320px;
+  width: ${({ theme }) => theme.gridUnit * 80}px;
   height: 100%;
   border-right: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   color: ${({ theme }) => theme.colors.warning.base};
@@ -56,7 +56,16 @@ export const StyledRightPanel = styled.div`
 `;
 
 export const StyledFooter = styled.div`
+  height: ${({ theme }) => theme.gridUnit * 16}px;
   border-top: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   color: ${({ theme }) => theme.colors.info.base};
+`;
+
+export const heightMinusHeaders = css`
+  height: calc(100vh - 120px);
+`;
+
+export const heightMinusFooter = css`
+  height: calc(100vh - 184px);
 `;
