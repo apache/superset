@@ -946,7 +946,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):  # pylint: disable=too-many-public
         partition_select_clause = (
             f'SELECT * FROM "{table_name}$partitions"'
             if not presto_version
-               or StrictVersion(presto_version) >= StrictVersion("0.199")
+            or StrictVersion(presto_version) >= StrictVersion("0.199")
             else f"SHOW PARTITIONS FROM {table_name}"
         )
 

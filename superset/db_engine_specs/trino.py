@@ -35,7 +35,7 @@ if TYPE_CHECKING:
     from superset.models.core import Database
 
     try:
-        from trino.dbapi import Cursor  # pylint: disable=unused-import
+        from trino.dbapi import Cursor
     except ImportError:
         pass
 

@@ -40,6 +40,7 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
     A base class that share common functions between Presto and Trino
     """
 
+    # pylint: disable=line-too-long
     _time_grain_expressions = {
         None: "{col}",
         "PT1S": "date_trunc('second', CAST({col} AS TIMESTAMP))",
