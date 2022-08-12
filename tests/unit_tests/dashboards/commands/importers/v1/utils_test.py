@@ -121,3 +121,43 @@ def test_update_native_filter_config_scope_excluded():
         },
         "metadata": {"native_filter_configuration": [{"scope": {"excluded": [1, 2]}}]},
     }
+
+def test_update_cross_filter_config_scope_excluded():
+    from superset.dashboards.commands.importers.v1.utils import update_id_refs
+
+    config = {
+        "position": {
+            "CHART1": {
+                "id": "CHART1",
+                "meta": {"chartId": 101, "uuid": "uuid1"},
+                "type": "CHART",
+            },
+            "CHART2": {
+                "id": "CHART2",
+                "meta": {"chartId": 102, "uuid": "uuid2"},
+                "type": "CHART",
+            },
+        },
+        "metadata": {
+            "chart_configuration": {"101": {"id": 101, "crossFilters": {"scope": {"excluded": [101, 102, 103]}}}}
+        },
+    }
+    chart_ids = {"uuid1": 1, "uuid2": 2}
+    dataset_info: Dict[str, Dict[str, Any]] = {}  # not used
+
+    fixed = update_id_refs(config, chart_ids, dataset_info)
+    assert fixed == {
+        "position": {
+            "CHART1": {
+                "id": "CHART1",
+                "meta": {"chartId": 1, "uuid": "uuid1"},
+                "type": "CHART",
+            },
+            "CHART2": {
+                "id": "CHART2",
+                "meta": {"chartId": 2, "uuid": "uuid2"},
+                "type": "CHART",
+            },
+        },
+        "metadata": {"chart_configuration": {"1": {"id": 1, "crossFilters": {"scope": {"excluded": [1, 2]}}}}},        
+    }

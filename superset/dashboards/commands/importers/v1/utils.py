@@ -96,6 +96,26 @@ def update_id_refs(  # pylint: disable=too-many-locals
                     if old_id in id_map
                 ]
 
+    if "chart_configuration" in metadata:
+        # in chart_configuration the key is the chart ID as a string; we need to udpate
+        # them to be the new ID as a string:
+        metadata["chart_configuration"] = {
+            str(id_map[int(old_id)]): columns
+            for old_id, columns in metadata["chart_configuration"].items()
+            if int(old_id) in id_map
+        }
+
+        # now update columns to use new IDs:
+        for columns in metadata["chart_configuration"].values():
+            columns["id"] = id_map[columns["id"]]
+            if "crossFilters" in columns:
+                for attributes in columns['crossFilters'].values():
+                    attributes["excluded"] = [
+                        id_map[old_id]
+                        for old_id in attributes["excluded"]
+                        if old_id in id_map
+                    ]
+
     if "expanded_slices" in metadata:
         metadata["expanded_slices"] = {
             str(id_map[int(old_id)]): value
