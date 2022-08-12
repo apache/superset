@@ -21,18 +21,6 @@ import React from 'react';
 import { TypedRegistry } from '../models';
 import { makeSingleton } from '../utils';
 
-// Taken from superset-frontend bootstrapTypes
-type User = {
-  createdOn?: string;
-  email?: string;
-  firstName: string;
-  isActive: boolean;
-  isAnonymous: boolean;
-  lastName: string;
-  userId?: number; // optional because guest user doesn't have a user id
-  username: string;
-};
-
 /**
  * A function which returns text (or marked-up text)
  * If what you want is a react component, don't use this. Use React.ComponentType instead.
