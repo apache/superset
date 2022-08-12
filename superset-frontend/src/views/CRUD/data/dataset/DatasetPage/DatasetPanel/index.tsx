@@ -25,7 +25,15 @@ const renderDescription = () => (
     {t(
       'Datasets can be created from database tables or SQL queries. Select a database table to the left or ',
     )}
-    <a href="https://preset.io/">{t('create dataset from SQL query')}</a>
+    <span
+      role="button"
+      onClick={() => {
+        window.location.href = `/superset/sqllab`;
+      }}
+      tabIndex={0}
+    >
+      {t('create dataset from SQL query')}
+    </span>
     {t(' to open SQL Lab. From there you can save the query as a dataset.')}
   </>
 );
