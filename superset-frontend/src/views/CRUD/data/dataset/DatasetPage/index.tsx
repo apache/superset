@@ -20,7 +20,6 @@ import React from 'react';
 import Header from './Header';
 import DatasetPanel from './DatasetPanel';
 import LeftPanel from './LeftPanel';
-// import RightPanel from './RightPanel';
 import Footer from './Footer';
 import { DatasetActionType, DatasetObject, DSReducerActionType } from './types';
 import DatasetLayout from '../DatasetLayout';
@@ -73,7 +72,6 @@ export default function DatasetPage() {
       header={Header()}
       leftPanel={LeftPanel()}
       datasetPanel={DatasetPanel()}
-      // rightPanel={RightPanel()}
       footer={Footer()}
     />
   );
