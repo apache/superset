@@ -24,6 +24,7 @@ from flask import current_app
 from sqlalchemy.engine.url import URL
 from sqlalchemy.orm import Session
 
+from superset.constants import USER_AGENT
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.presto_base import PrestoBaseEngineSpec
@@ -174,6 +175,8 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         extra: Dict[str, Any] = BaseEngineSpec.get_extra_params(database)
         engine_params: Dict[str, Any] = extra.setdefault("engine_params", {})
         connect_args: Dict[str, Any] = engine_params.setdefault("connect_args", {})
+
+        connect_args.setdefault("source", USER_AGENT)
 
         if database.server_cert:
             connect_args["http_scheme"] = "https"
