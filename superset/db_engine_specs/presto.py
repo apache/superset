@@ -1102,18 +1102,6 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):  # pylint: disable=too-many-public
         return df.to_dict()[field_to_return][0]
 
     @classmethod
-    @cache_manager.data_cache.memoize()
-    def get_function_names(cls, database: "Database") -> List[str]:
-        """
-        Get a list of function names that are able to be called on the database.
-        Used for SQL Lab autocomplete.
-
-        :param database: The database to get functions for
-        :return: A list of function names useable in the database
-        """
-        return database.get_df("SHOW FUNCTIONS")["Function"].tolist()
-
-    @classmethod
     def is_readonly_query(cls, parsed_query: ParsedQuery) -> bool:
         """Pessimistic readonly, 100% sure statement won't mutate anything"""
         return super().is_readonly_query(parsed_query) or parsed_query.is_show()

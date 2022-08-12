@@ -14,17 +14,23 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
+
 import json
 import logging
 from abc import ABCMeta
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, TYPE_CHECKING
 from urllib import parse
 
 from sqlalchemy.engine import URL
 
+from superset import cache_manager
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.utils import core as utils
+
+if TYPE_CHECKING:
+    from superset.models.core import Database
 
 logger = logging.getLogger(__name__)
 
@@ -165,3 +171,15 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
             cost.append(statement_cost)
 
         return cost
+
+    @classmethod
+    @cache_manager.data_cache.memoize()
+    def get_function_names(cls, database: Database) -> List[str]:
+        """
+        Get a list of function names that are able to be called on the database.
+        Used for SQL Lab autocomplete.
+
+        :param database: The database to get functions for
+        :return: A list of function names useable in the database
+        """
+        return database.get_df("SHOW FUNCTIONS")["Function"].tolist()
