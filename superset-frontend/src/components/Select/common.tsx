@@ -219,11 +219,6 @@ export interface BaseSelectProps extends PickedSelectProps {
    */
   mappedMode?: 'multiple' | 'tags';
   /**
-   * Deprecated.
-   * Prefer ariaLabel instead.
-   */
-  name?: string; // discourage usage
-  /**
    * It allows to define which properties of the option object
    * should be looked for when searching.
    * By default label and value.
@@ -287,7 +282,6 @@ export const BaseSelect = ({
   labelInValue = false,
   loading,
   mappedMode,
-  name,
   notFoundContent,
   onError,
   onChange,
