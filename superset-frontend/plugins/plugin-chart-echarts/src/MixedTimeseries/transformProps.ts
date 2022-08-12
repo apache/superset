@@ -47,6 +47,8 @@ import {
   getAxisType,
   getColtypesMapping,
   getLegendProps,
+  extractDataTotalValues,
+  extractShowValueIndexes,
 } from '../utils/series';
 import {
   extractAnnotationLabels,
@@ -140,6 +142,7 @@ export default function transformProps(
     yAxisTitlePosition,
     sliceId,
     timeGrainSqla,
+    percentageThreshold,
   }: EchartsMixedTimeseriesFormData = { ...DEFAULT_FORM_DATA, ...formData };
 
   const colorScale = CategoricalColorNamespace.getScale(colorScheme as string);
@@ -185,7 +188,28 @@ export default function transformProps(
   rawSeriesB.forEach(seriesOption =>
     mapSeriesIdToAxis(seriesOption, yAxisIndexB),
   );
-
+  const showValueIndexesA = extractShowValueIndexes(rawSeriesA, {
+    stack,
+  });
+  const showValueIndexesB = extractShowValueIndexes(rawSeriesB, {
+    stack,
+  });
+  const { totalStackedValues, thresholdValues } = extractDataTotalValues(
+    rebasedDataA,
+    {
+      stack,
+      percentageThreshold,
+      xAxisCol,
+    },
+  );
+  const {
+    totalStackedValues: totalStackedValuesB,
+    thresholdValues: thresholdValuesB,
+  } = extractDataTotalValues(rebasedDataB, {
+    stack: Boolean(stackB),
+    percentageThreshold,
+    xAxisCol,
+  });
   rawSeriesA.forEach(entry => {
     const transformedSeries = transformSeries(entry, colorScale, {
       area,
@@ -200,6 +224,10 @@ export default function transformProps(
       seriesKey: entry.name,
       sliceId,
       queryIndex: 0,
+      formatter,
+      showValueIndexes: showValueIndexesA,
+      totalStackedValues,
+      thresholdValues,
     });
     if (transformedSeries) series.push(transformedSeries);
   });
@@ -220,6 +248,10 @@ export default function transformProps(
         : entry.name,
       sliceId,
       queryIndex: 1,
+      formatter: formatterSecondary,
+      showValueIndexes: showValueIndexesB,
+      totalStackedValues: totalStackedValuesB,
+      thresholdValues: thresholdValuesB,
     });
     if (transformedSeries) series.push(transformedSeries);
   });
