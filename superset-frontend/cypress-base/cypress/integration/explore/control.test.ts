@@ -99,8 +99,12 @@ describe('Color scheme control', () => {
 
   it('should show color options with and without tooltips', () => {
     cy.get('#controlSections-tab-display').click();
-    cy.get('.ant-select-selection-item .color-scheme-label').contains('Superset Colors');
-    cy.get('.ant-select-selection-item .color-scheme-label').trigger('mouseover');
+    cy.get('.ant-select-selection-item .color-scheme-label').contains(
+      'Superset Colors',
+    );
+    cy.get('.ant-select-selection-item .color-scheme-label').trigger(
+      'mouseover',
+    );
     cy.get('.color-scheme-tooltip').contains('Superset Colors');
     cy.get('.Control[data-test="color_scheme"]').scrollIntoView();
     cy.get('.Control[data-test="color_scheme"] input[type="search"]')
@@ -109,7 +113,9 @@ describe('Color scheme control', () => {
     cy.get(
       '.Control[data-test="color_scheme"] .ant-select-selection-item [data-test="lyftColors"]',
     ).should('exist');
-    cy.get('.ant-select-selection-item .color-scheme-label').trigger('mouseover');
+    cy.get('.ant-select-selection-item .color-scheme-label').trigger(
+      'mouseover',
+    );
     cy.get('.color-scheme-tooltip').should('not.exist');
   });
 });
