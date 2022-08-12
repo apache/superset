@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
-import DatasetPanel from 'src/views/CRUD/data/dataset/DatasetPage/DatasetPanel';
+import DatasetPanel from 'src/views/CRUD/data/dataset/AddDataset/DatasetPanel';
 
 describe('DatasetPanel', () => {
   it('renders a blank state DatasetPanel', () => {

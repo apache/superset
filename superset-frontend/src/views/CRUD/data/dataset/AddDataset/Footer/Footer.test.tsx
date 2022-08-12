@@ -18,25 +18,12 @@
  */
 import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
-import DatasetPage from 'src/views/CRUD/data/dataset/DatasetPage';
+import Footer from 'src/views/CRUD/data/dataset/AddDataset/Footer';
 
-describe('DatasetPage', () => {
-  it('renders a blank state DatasetPage', () => {
-    render(<DatasetPage />);
+describe('Footer', () => {
+  it('renders a blank state Footer', () => {
+    render(<Footer />);
 
-    const blankeStateImgs = screen.getAllByRole('img', { name: /empty/i });
-
-    // Header
-    expect(screen.getByText(/header/i)).toBeVisible();
-    // Left panel
-    expect(blankeStateImgs[0]).toBeVisible();
-    expect(screen.getByText(/no database tables found/i)).toBeVisible();
-    // Database panel
-    expect(blankeStateImgs[1]).toBeVisible();
-    expect(screen.getByText(/select dataset source/i)).toBeVisible();
-    // Footer
     expect(screen.getByText(/footer/i)).toBeVisible();
-
-    expect(blankeStateImgs.length).toBe(2);
   });
 });

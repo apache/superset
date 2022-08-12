@@ -19,11 +19,11 @@
 import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
 import DatasetLayout from 'src/views/CRUD/data/dataset/DatasetLayout';
-import Header from 'src/views/CRUD/data/dataset/DatasetPage/Header';
-import LeftPanel from 'src/views/CRUD/data/dataset/DatasetPage/LeftPanel';
-import DatasetPanel from 'src/views/CRUD/data/dataset/DatasetPage/DatasetPanel';
-import RightPanel from 'src/views/CRUD/data/dataset/DatasetPage/RightPanel';
-import Footer from 'src/views/CRUD/data/dataset/DatasetPage/Footer';
+import Header from 'src/views/CRUD/data/dataset/AddDataset/Header';
+import LeftPanel from 'src/views/CRUD/data/dataset/AddDataset/LeftPanel';
+import DatasetPanel from 'src/views/CRUD/data/dataset/AddDataset/DatasetPanel';
+import RightPanel from 'src/views/CRUD/data/dataset/AddDataset/RightPanel';
+import Footer from 'src/views/CRUD/data/dataset/AddDataset/Footer';
 
 describe('DatasetLayout', () => {
   it('renders nothing when no components are passed in', () => {

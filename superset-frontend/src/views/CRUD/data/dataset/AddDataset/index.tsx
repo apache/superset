@@ -60,7 +60,7 @@ export function datasetReducer(
   }
 }
 
-export default function DatasetPage() {
+export default function AddDataset() {
   // this is commented out for now, but can be commented in as the component
   // is built up. Uncomment the useReducer in imports too
   // const [dataset, setDataset] = useReducer<

@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
-import LeftPanel from 'src/views/CRUD/data/dataset/DatasetPage/LeftPanel';
+import LeftPanel from 'src/views/CRUD/data/dataset/AddDataset/LeftPanel';
 
 describe('LeftPanel', () => {
   it('renders a blank state LeftPanel', () => {

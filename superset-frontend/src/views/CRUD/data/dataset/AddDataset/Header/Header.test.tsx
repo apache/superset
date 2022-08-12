@@ -18,12 +18,12 @@
  */
 import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
-import RightPanel from 'src/views/CRUD/data/dataset/DatasetPage/RightPanel';
+import Header from 'src/views/CRUD/data/dataset/AddDataset/Header';
 
-describe('RightPanel', () => {
-  it('renders a blank state RightPanel', () => {
-    render(<RightPanel />);
+describe('Header', () => {
+  it('renders a blank state Header', () => {
+    render(<Header />);
 
-    expect(screen.getByText(/right panel/i)).toBeVisible();
+    expect(screen.getByText(/header/i)).toBeVisible();
   });
 });
