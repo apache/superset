@@ -17,15 +17,7 @@
  * under the License.
  */
 import { SupersetClient } from '@superset-ui/core';
-import React, {
-  useEffect,
-  Dispatch,
-  FunctionComponent,
-  Reducer,
-  useState,
-  useRef,
-  useCallback,
-} from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { styled } from '@superset-ui/core';
 import { TableOption, Table } from 'src/components/TableSelector';
 import DatabaseSelector from 'src/components/DatabaseSelector';
