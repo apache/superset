@@ -79,6 +79,7 @@ export default function ColorSchemeLabel(props: ColorSchemeLabelProps) {
   return (
     <Tooltip
       data-testid="tooltip"
+      overlayClassName="color-scheme-tooltip"
       title={tooltipContent}
       key={id}
       visible={showTooltip}
@@ -90,11 +91,13 @@ export default function ColorSchemeLabel(props: ColorSchemeLabelProps) {
           display: flex;
           align-items: center;
         `}
+        data-test={id}
       >
         <span
+          className="color-scheme-label"
           ref={labelNameRef}
           css={css`
-            min-width: 80px;
+            width: 80px;
             text-overflow: ellipsis;
             overflow: hidden;
             white-space: nowrap;
