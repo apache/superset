@@ -77,4 +77,15 @@ describe('Visualization > Graph', () => {
     });
     cy.get('.chart-container .graph_chart canvas').should('have.length', 1);
   });
+
+  it('should allow type to search color schemes', () => {
+    cy.get('#controlSections-tab-display').click();
+    cy.get('.Control[data-test="color_scheme"]').scrollIntoView();
+    cy.get('.Control[data-test="color_scheme"] input[type="search"]')
+      .focus()
+      .type('bnbColors{enter}');
+    cy.get(
+      '.Control[data-test="color_scheme"] .ant-select-selection-item ul[data-test="bnbColors"]',
+    ).should('exist');
+  });
 });
