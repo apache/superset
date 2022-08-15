@@ -94,7 +94,7 @@ setup(
         "graphlib-backport",
         "gunicorn>=20.1.0",
         "hashids>=1.3.1, <2",
-        "holidays==0.10.3",  # PINNED! https://github.com/dr-prodigy/python-holidays/issues/406
+        "holidays==0.14.2",
         "humanize",
         "isodate",
         "markdown>=3.0",
