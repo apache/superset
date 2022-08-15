@@ -268,93 +268,96 @@ export interface BaseSelectProps extends PickedSelectProps {
   ref: RefObject<HTMLInputElement>;
 }
 
-export const BaseSelect = ({
-  allowClear,
-  allowNewOptions = false,
-  ariaLabel,
-  dropdownRender,
-  fetchOnlyOnSearch,
-  filterOption = true,
-  filterSort,
-  header = null,
-  invertSelection = false,
-  lazyLoading = true,
-  labelInValue = false,
-  loading,
-  mappedMode,
-  notFoundContent,
-  onError,
-  onChange,
-  onClear,
-  onDeselect,
-  onSelect,
-  onDropdownVisibleChange,
-  onPopupScroll,
-  onSearch,
-  optionFilterProps = ['label', 'value'],
-  options,
-  pageSize = DEFAULT_PAGE_SIZE,
-  placeholder = t('Select ...'),
-  showSearch = true,
-  sortComparator = DEFAULT_SORT_COMPARATOR,
-  suffixIcon,
-  tokenSeparators,
-  value,
-  getPopupContainer,
-  menuItemSelectedIcon,
-  maxTagCount,
-  ref,
-  ...props
-}: BaseSelectProps) => {
-  const hasCustomLabels = options?.some(opt => !!opt?.customLabel);
+export const BaseSelect = forwardRef(
+  ({
+    allowClear,
+    allowNewOptions = false,
+    ariaLabel,
+    dropdownRender,
+    fetchOnlyOnSearch,
+    filterOption = true,
+    filterSort,
+    header = null,
+    invertSelection = false,
+    lazyLoading = true,
+    labelInValue = false,
+    loading,
+    mappedMode,
+    notFoundContent,
+    onError,
+    onChange,
+    onClear,
+    onDeselect,
+    onSelect,
+    onDropdownVisibleChange,
+    onPopupScroll,
+    onSearch,
+    optionFilterProps = ['label', 'value'],
+    options,
+    pageSize = DEFAULT_PAGE_SIZE,
+    placeholder = t('Select ...'),
+    showSearch = true,
+    showArrow = true,
+    sortComparator = DEFAULT_SORT_COMPARATOR,
+    suffixIcon,
+    tokenSeparators,
+    value,
+    getPopupContainer,
+    menuItemSelectedIcon,
+    maxTagCount,
+    ref,
+    ...props
+  }: BaseSelectProps) => {
+    const hasCustomLabels = options?.some(opt => !!opt?.customLabel);
 
-  return (
-    <StyledContainer>
-      {header}
-      <StyledSelect
-        allowClear={allowClear}
-        aria-label={ariaLabel}
-        dropdownRender={dropdownRender}
-        filterOption={filterOption}
-        filterSort={filterSort}
-        getPopupContainer={getPopupContainer}
-        labelInValue
-        maxTagCount={maxTagCount}
-        mode={mappedMode}
-        notFoundContent={notFoundContent}
-        onDeselect={onDeselect}
-        onDropdownVisibleChange={onDropdownVisibleChange}
-        onPopupScroll={onPopupScroll}
-        onSearch={onSearch}
-        onSelect={onSelect}
-        onClear={onClear}
-        onChange={onChange}
-        options={hasCustomLabels ? undefined : options}
-        placeholder={placeholder}
-        showSearch={showSearch}
-        showArrow
-        tokenSeparators={tokenSeparators}
-        value={value}
-        suffixIcon={suffixIcon}
-        menuItemSelectedIcon={menuItemSelectedIcon}
-        ref={ref}
-        {...props}
-      >
-        {hasCustomLabels &&
-          options.map(opt => {
-            const isOptObject = typeof opt === 'object';
-            const label = isOptObject ? opt?.label || opt.value : opt;
-            const value = isOptObject ? opt.value : opt;
-            const { customLabel, ...optProps } = opt;
-            return (
-              <Option {...optProps} key={value} label={label} value={value}>
-                {isOptObject && customLabel ? customLabel : label}
-              </Option>
-            );
-          })}
-      </StyledSelect>
-    </StyledContainer>
-  );
-};
+    return (
+      <StyledContainer>
+        {header}
+        <StyledSelect
+          allowClear={allowClear}
+          aria-label={ariaLabel}
+          dropdownRender={dropdownRender}
+          filterOption={filterOption}
+          filterSort={filterSort}
+          getPopupContainer={getPopupContainer}
+          labelInValue={labelInValue}
+          maxTagCount={maxTagCount}
+          mode={mappedMode}
+          notFoundContent={notFoundContent}
+          onDeselect={onDeselect}
+          onDropdownVisibleChange={onDropdownVisibleChange}
+          onPopupScroll={onPopupScroll}
+          onSearch={onSearch}
+          onSelect={onSelect}
+          onClear={onClear}
+          onChange={onChange}
+          options={hasCustomLabels ? undefined : options}
+          placeholder={placeholder}
+          showSearch={showSearch}
+          showArrow={showArrow}
+          tokenSeparators={tokenSeparators}
+          value={value}
+          suffixIcon={suffixIcon}
+          menuItemSelectedIcon={menuItemSelectedIcon}
+          ref={ref}
+          {...props}
+        >
+          {hasCustomLabels &&
+            options.map(opt => {
+              const isOptObject = typeof opt === 'object';
+              const label = isOptObject ? opt?.label || opt.value : opt;
+              const value = isOptObject ? opt.value : opt;
+              const { customLabel, ...optProps } = opt;
+              return (
+                <Option {...optProps} key={value} label={label} value={value}>
+                  {isOptObject && customLabel ? customLabel : label}
+                </Option>
+              );
+            })}
+        </StyledSelect>
+      </StyledContainer>
+    );
+  },
+);
 
-export default forwardRef(BaseSelect);
+export default BaseSelect;

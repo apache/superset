@@ -372,8 +372,7 @@ const Select = forwardRef(
         {...props}
       />
     );
-  }
+  },
 );
 
-   
 export default Select;

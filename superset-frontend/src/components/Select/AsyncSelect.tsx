@@ -544,7 +544,6 @@ const AsyncSelect = forwardRef(
       }
     }, [isLoading, loading]);
 
- 
     const clearCache = () => fetchedQueries.current.clear();
 
     useImperativeHandle(
@@ -596,7 +595,7 @@ const AsyncSelect = forwardRef(
         {...props}
       />
     );
-  }
+  },
 );
 
 export default AsyncSelect;
