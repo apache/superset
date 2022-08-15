@@ -361,6 +361,10 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         Pattern[str], Tuple[str, SupersetErrorType, Dict[str, Any]]
     ] = {}
 
+    # Whether the engine supports file uploads
+    # if True, database will be listed as option in the upload file form
+    allows_file_upload = True
+
     @classmethod
     def supports_url(cls, url: URL) -> bool:
         """
