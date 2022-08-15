@@ -9,10 +9,10 @@ name: 'Chromatic'
 on:
   push:
     paths:
-      'superset-frontend/**'
+      - 'superset-frontend/**'
   pull_request:
     paths:
-      'superset-frontend/**'
+      - 'superset-frontend/**'
 
 env:
   CHROMATIC_PROJECT_TOKEN: "35fcb57cf5ee"
