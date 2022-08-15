@@ -23,10 +23,8 @@ jobs:
     steps:
       - uses: actions/checkout@v1
       - name: Install dependencies
-        defaults:
-          run:
-            working-directory: superset-frontend
         run: npm ci
+        working-directory: superset-frontend
       # 👇 Checks if the branch is not master and runs Chromatic
       - name: Publish to Chromatic
         if: github.ref != 'refs/heads/master'
