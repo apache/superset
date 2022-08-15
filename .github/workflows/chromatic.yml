@@ -7,13 +7,15 @@ name: 'Chromatic'
 # Event for the workflow
 # Only run if changes were made in superset-frontend folder of repo
 on:
-  [push, pull_request]:
+  push:
+    paths:
+      - 'superset-frontend/**'
+  pull_request:
     paths:
       - 'superset-frontend/**'
 
 env:
   CHROMATIC_PROJECT_TOKEN: "35fcb57cf5ee"
-
 # List of jobs
 jobs:
   chromatic-deployment:
