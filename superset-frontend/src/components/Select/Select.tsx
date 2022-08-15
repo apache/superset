@@ -331,6 +331,10 @@ const Select = forwardRef(
         setIsLoading(loading);
       }
     }, [isLoading, loading]);
+    
+    useEffect(() => {
+      setSelectValue(value)
+    }, [value]);
 
     return (
       <BaseSelect
