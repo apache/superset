@@ -15,7 +15,7 @@ on:
       'superset-frontend/**'
 
 env:
-  CHROMATIC_PROJECT_TOKEN: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
+  CHROMATIC_PROJECT_TOKEN: "35fcb57cf5ee"
 # List of jobs
 jobs:
   chromatic-deployment:
