@@ -68,7 +68,7 @@
     "tdd": "cross-env NODE_ENV=test jest --watch",
     "test": "cross-env NODE_ENV=test jest",
     "type": "tsc --noEmit",
-    "chromatic": "npx chromatic --project-token=CHROMATIC_PROJECT_TOKEN --skip 'dependabot/**'  --only-changed"
+    "chromatic": "npx chromatic --skip 'dependabot/**'  --only-changed"
   },
   "browserslist": [
     "last 3 chrome versions",
