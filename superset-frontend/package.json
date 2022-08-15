@@ -1,6 +1,6 @@
 {
   "name": "superset",
-  "version": "0.0.0dev",
+  "version": "0.0.0-dev",
   "description": "Superset is a data exploration platform designed to be visual, intuitive, and interactive.",
   "keywords": [
     "big",
@@ -23,7 +23,9 @@
     "url": "git+https://github.com/apache/superset.git"
   },
   "license": "Apache-2.0",
-  "author": "Apache",
+  "author": {
+    "name": "Apache"
+  },
   "directories": {
     "doc": "docs",
     "test": "spec"
@@ -65,7 +67,8 @@
     "storybook": "cross-env NODE_ENV=development BABEL_ENV=development start-storybook -p 6006",
     "tdd": "cross-env NODE_ENV=test jest --watch",
     "test": "cross-env NODE_ENV=test jest",
-    "type": "tsc --noEmit"
+    "type": "tsc --noEmit",
+    "chromatic": "npx chromatic --project-token=CHROMATIC_PROJECT_TOKEN --skip 'dependabot/**'  --only-changed"
   },
   "browserslist": [
     "last 3 chrome versions",
@@ -82,6 +85,7 @@
     "@emotion/react": "^11.4.1",
     "@emotion/styled": "^11.3.0",
     "@fontsource/inter": "^4.0.0",
+    "@storybook/addon-docs": "^6.5.10",
     "@superset-ui/chart-controls": "file:./packages/superset-ui-chart-controls",
     "@superset-ui/core": "file:./packages/superset-ui-core",
     "@superset-ui/legacy-plugin-chart-calendar": "file:./plugins/legacy-plugin-chart-calendar",
@@ -273,6 +277,7 @@
     "babel-plugin-dynamic-import-node": "^2.3.3",
     "babel-plugin-jsx-remove-data-test-id": "^2.1.3",
     "babel-plugin-lodash": "^3.3.4",
+    "chromatic": "^6.7.4",
     "copy-webpack-plugin": "^9.0.1",
     "cross-env": "^5.2.0",
     "css-loader": "^6.2.0",
@@ -340,5 +345,7 @@
   "engines": {
     "node": "^16.9.1",
     "npm": "^7.5.4 || ^8.1.2"
-  }
+  },
+  "readme": "ERROR: No README data found!",
+  "_id": "superset@0.0.0-dev"
 }

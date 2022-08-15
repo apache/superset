@@ -17,90 +17,51 @@
  * under the License.
  */
 import React from 'react';
-import Alert, { AlertProps } from './index';
-
-type AlertType = Pick<AlertProps, 'type'>;
-type AlertTypeValue = AlertType[keyof AlertType];
-
-const types: AlertTypeValue[] = ['info', 'error', 'warning', 'success'];
-
-const smallText = 'Lorem ipsum dolor sit amet';
-
-const bigText =
-  'Lorem ipsum dolor sit amet, consectetur adipiscing elit. ' +
-  'Nam id porta neque, a vehicula orci. Maecenas rhoncus elit sit amet ' +
-  'purus convallis placerat in at nunc. Nulla nec viverra augue.';
+import Alert, { AlertProps, AlertType } from './index';
 
 export default {
-  title: 'Alert',
+  title: 'Superset Frontend/Components/Feedback/Alert/Examples',
   component: Alert,
 };
 
-export const AlertGallery = () => (
-  <>
-    {types.map(type => (
-      <div key={type} style={{ marginBottom: 40, width: 600 }}>
-        <h4>{type}</h4>
-        <Alert
-          type={type}
-          showIcon
-          closable
-          message={bigText}
-          style={{ marginBottom: 20 }}
-        />
-        <Alert
-          type={type}
-          showIcon
-          message={smallText}
-          description={bigText}
-          closable
-        />
-      </div>
-    ))}
-  </>
-);
-
-AlertGallery.story = {
-  parameters: {
-    actions: {
-      disable: true,
-    },
-    controls: {
-      disable: true,
-    },
-    knobs: {
-      disable: true,
-    },
-  },
-};
-
-export const InteractiveAlert = (args: AlertProps) => (
-  <>
-    <Alert {...args} />
-    Some content to test the `roomBelow` prop
-  </>
-);
-
-InteractiveAlert.args = {
+const sharedAlertProps = {
   closable: true,
   roomBelow: false,
-  type: 'info',
-  message: smallText,
-  description: bigText,
+  description: `This is the optional description text to provide the user with more context about the alert`,
   showIcon: true,
-};
-
-InteractiveAlert.argTypes = {
-  onClose: { action: 'onClose' },
-  type: {
-    control: { type: 'select', options: types },
+  onClose: () => {
+    alert('Alert onClose callback invoked');
   },
 };
 
-InteractiveAlert.story = {
-  parameters: {
-    knobs: {
-      disable: true,
-    },
-  },
+export const InfoAlert = (args: AlertProps) => <Alert {...args} />;
+
+InfoAlert.args = {
+  ...sharedAlertProps,
+  message: 'This is an info alert',
+  type: AlertType.INFO,
+};
+
+export const WarningAlert = (args: AlertProps) => <Alert {...args} />;
+
+WarningAlert.args = {
+  ...sharedAlertProps,
+  message: 'This is a warning alert',
+  type: AlertType.WARNING,
+};
+
+export const ErrorAlert = (args: AlertProps) => <Alert {...args} />;
+
+ErrorAlert.args = {
+  ...sharedAlertProps,
+  message: 'This is an error alert',
+  type: AlertType.ERROR,
+};
+
+export const SuccessAlert = (args: AlertProps) => <Alert {...args} />;
+
+SuccessAlert.args = {
+  ...sharedAlertProps,
+  message: 'This is a success alert',
+  type: AlertType.SUCCESS,
 };
