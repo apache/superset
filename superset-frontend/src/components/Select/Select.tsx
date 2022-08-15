@@ -331,9 +331,9 @@ const Select = forwardRef(
         setIsLoading(loading);
       }
     }, [isLoading, loading]);
-    
+
     useEffect(() => {
-      setSelectValue(value)
+      setSelectValue(value);
     }, [value]);
 
     return (
