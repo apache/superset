@@ -14,6 +14,8 @@ on:
     paths:
       'superset-frontend/**'
 
+env:
+  CHROMATIC_PROJECT_TOKEN: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
 # List of jobs
 jobs:
   chromatic-deployment:
@@ -34,7 +36,7 @@ jobs:
           # 👇 Location of package.json from root of mono-repo
           workingDir: superset-frontend
           # 👇 Chromatic projectToken, refer to the manage page to obtain it.
-          projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
+          projectToken: ${{ env.CHROMATIC_PROJECT_TOKEN }}
       # 👇 Checks if the branch is master and accepts all changes in Chromatic
       - name: Publish to Chromatic and auto accept changes
         if: github.ref == 'refs/heads/master'
@@ -44,5 +46,5 @@ jobs:
           # 👇 Location of package.json from root of mono-repo
           workingDir: superset-frontend
           # 👇 Chromatic projectToken, refer to the manage page to obtain it.
-          projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
+          projectToken: ${{ env.CHROMATIC_PROJECT_TOKEN }}
           autoAcceptChanges: true # 👈 Option to accept all changes
