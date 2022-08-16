@@ -71,6 +71,7 @@ from superset.exceptions import (
     SupersetException,
     SupersetSecurityException,
 )
+from superset.extensions import cache_manager
 from superset.models.helpers import ImportExportMixin
 from superset.models.reports import ReportRecipientType
 from superset.superset_typing import FlaskResponse
@@ -343,8 +344,13 @@ def menu_data() -> Dict[str, Any]:
     }
 
 
+@cache_manager.cache.memoize(timeout=60)
 def common_bootstrap_payload() -> Dict[str, Any]:
-    """Common data always sent to the client"""
+    """Common data always sent to the client
+
+    The function is memoized as the return value only changes based
+    on configuration and feature flag values.
+    """
     messages = get_flashed_messages(with_categories=True)
     locale = str(get_locale())
 
