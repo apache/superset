@@ -1,0 +1,65 @@
+<svg id="datahub-logo-color_v2" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 180 180" shape-rendering="geometricPrecision" text-rendering="geometricPrecision">
+    <defs>
+        <linearGradient id="red_gradient" x1="83.06" y1="68.88" x2="98.74" y2="40.67" gradientUnits="userSpaceOnUse">
+            <stop offset="0" stop-color="#dd3163"/>
+            <stop offset="1" stop-color="#ff5663"/>
+        </linearGradient>
+        <linearGradient id="yellow_gradient" x1="91.08" y1="126.64" x2="35.79" y2="50.66" gradientUnits="userSpaceOnUse">
+            <stop offset="0" stop-color="#efab00"/>
+            <stop offset="1" stop-color="#efb700"/>
+        </linearGradient>
+        <linearGradient id="blue_gradient" x1="50.22" y1="96.82" x2="144.42" y2="17.17" gradientUnits="userSpaceOnUse">
+            <stop offset="0" stop-color="#1890ff"/>
+            <stop offset="1" stop-color="#18b5ff"/>
+        </linearGradient>
+
+        <mask id="red_mask">
+            <circle r="34" fill="white"/>
+            <circle r="26" fill="black"/>
+            <rect y="-34" width="34" height="34" transform="rotate(170)" fill="black"/>
+            <rect y="-34" width="34" height="34" transform="rotate(280)" fill="black"/>
+            <rect y="-34" width="34" height="34" transform="rotate(225)" fill="black"/>
+            <g id="red_mask_cap">
+                <circle cy="-30" r="4" transform="rotate(10)" fill="white"/>
+                <circle cy="-30" r="4" transform="rotate(170)" fill="white"/>
+            </g>
+        </mask>
+        <mask id="yellow_mask">
+            <circle r="49" fill="white"/>
+            <circle r="41" fill="black"/>
+            <rect y="-49" width="49" height="49" transform="rotate(20)" fill="black"/>
+            <rect y="-49" width="49" height="49" transform="rotate(70)" fill="black"/>
+            <circle cy="-45" r="4" transform="rotate(20)" fill="white"/>
+            <circle cy="-45" r="4" transform="rotate(160)" fill="white"/>
+        </mask>
+        <mask id="blue_mask">
+            <circle r="64" fill="white"/>
+            <circle r="56" fill="black"/>
+            <rect y="-64" width="64" height="64" transform="rotate(275)" fill="black"/>
+            <rect y="-64" width="64" height="64" transform="rotate(220)" fill="black"/>
+            <circle cy="-60" r="4" transform="rotate(5)" fill="white"/>
+            <circle cy="-60" r="4" transform="rotate(220)" fill="white"/>
+        </mask>
+    </defs>
+
+    <g id="logo" transform="translate(90,90)">
+        <g id="red" fill="url(#red_gradient)">
+            <circle id="red_arc" r="34" mask="url(#red_mask)"/>
+        </g>
+
+        <g id="yellow" fill="url(#yellow_gradient)">
+            <rect id="yellow_joint" x="-4" y="45" width="8" height="35" transform="rotate(57)"/>
+            <circle id="yellow_arc" r="49" mask="url(#yellow_mask)"/>
+            <circle cy="80" r="4" transform="rotate(57)"/>
+            <circle id="yellow_satellite" cy="80" r="10" transform="rotate(57)"/>
+        </g>
+
+        <g id="blue" fill="url(#blue_gradient)">
+            <rect id="blue_joint" x="-4" y="-80" width="8" height="20" transform="rotate(57)"/>
+            <circle id="blue_arc" r="64" mask="url(#blue_mask)"/>
+            <circle cy="-80" r="4" transform="rotate(57)"/>
+            <circle id="blue_satellite" cy="-80" r="10" transform="rotate(57)"/>
+        </g>
+    </g>
+
+</svg>

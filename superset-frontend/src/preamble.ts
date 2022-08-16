@@ -81,6 +81,8 @@ const getMe = makeApi<void, User>({
   endpoint: '/api/v1/me/',
 });
 
+export const datahubUrl = bootstrapData?.common?.datahub_url;
+
 /**
  * When you re-open the window, we check if you are still logged in.
  * If your session expired or you signed out, we'll redirect to login.

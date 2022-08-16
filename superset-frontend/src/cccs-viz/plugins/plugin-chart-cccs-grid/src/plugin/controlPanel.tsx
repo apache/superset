@@ -562,6 +562,18 @@ config.controlPanelSections.push({
     ],
     [
       {
+        name: 'enable_row_numbers',
+        config: {
+          type: 'CheckboxControl',
+          label: t('Row numbers'),
+          renderTrigger: true,
+          default: true,
+          description: t('Whether to enable row numbers'),
+        },
+      },
+    ],
+    [
+      {
         name: 'page_length',
         config: {
           type: 'SelectControl',

@@ -36,6 +36,7 @@ export type CccsGridQueryFormData = QueryFormData & {
   page_length: number;
   enable_grouping: boolean;
   column_state: ColumnState[];
+  enable_row_numbers: boolean;
 };
 
 export interface CccsGridStylesProps {

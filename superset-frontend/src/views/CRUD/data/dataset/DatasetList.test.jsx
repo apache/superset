@@ -56,6 +56,7 @@ const mockdatasets = [...new Array(3)].map((_, i) => ({
   schema: `schema ${i}`,
   table_name: `coolest table ${i}`,
   owners: [{ username: 'admin', userId: 1 }],
+  extra: i === 0 ? JSON.stringify({ urn: 'urn' }) : '',
 }));
 
 const mockUser = {
@@ -180,6 +181,36 @@ describe('DatasetList', () => {
     expect(
       wrapper.find('[data-test="bulk-select-copy"]').text(),
     ).toMatchInlineSnapshot(`"3 Selected (2 Physical, 1 Virtual)"`);
+  });
+
+  it('renders datahub link when urn is defined', async () => {
+    await waitForComponentToPaint(wrapper);
+    expect(
+      wrapper
+        .find('[data-test="cell-text"]')
+        .filterWhere(
+          e =>
+            e.childAt(0).props().cell.column.id === 'datahub_link' &&
+            e.childAt(0).props().cell.row.index === 0,
+        )
+        .childAt(0)
+        .children(),
+    ).toHaveLength(1);
+  });
+
+  it('does not render datahub link when urn is undefined', async () => {
+    await waitForComponentToPaint(wrapper);
+    expect(
+      wrapper
+        .find('[data-test="cell-text"]')
+        .filterWhere(
+          e =>
+            e.childAt(0).props().cell.column.id === 'datahub_link' &&
+            e.childAt(0).props().cell.row.index === 1,
+        )
+        .childAt(0)
+        .children(),
+    ).toHaveLength(0);
   });
 });
 
