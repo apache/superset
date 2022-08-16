@@ -16,22 +16,55 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled, css } from '@superset-ui/core';
+import { styled } from '@superset-ui/core';
 
-export const Column = styled.div`
+export const StyledLayoutWrapper = styled.div`
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+`;
+
+const Column = styled.div`
   width: 100%;
   height: 100%;
   flex-direction: column;
 `;
 
-export const Row = styled.div`
+export const LeftColumn = styled(Column)`
+  width: ${({ theme }) => theme.gridUnit * 80}px;
+  height: auto;
+`;
+
+export const RightColumn = styled(Column)`
+  height: auto;
+  display: flex;
+  flex: 1 0 auto;
+  width: auto;
+`;
+
+const Row = styled.div`
   width: 100%;
   height: 100%;
   display: flex;
   flex-direction: row;
 `;
 
+export const OuterRow = styled(Row)`
+  flex: 1 0 auto;
+`;
+
+export const PanelRow = styled(Row)`
+  flex: 1 0 auto;
+  height: auto;
+`;
+
+export const FooterRow = styled(Row)`
+  flex: 0 0 auto;
+  height: ${({ theme }) => theme.gridUnit * 16}px;
+`;
+
 export const StyledHeader = styled.div`
+  flex: 0 0 auto;
   height: ${({ theme }) => theme.gridUnit * 16}px;
   border-top: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
@@ -57,15 +90,8 @@ export const StyledRightPanel = styled.div`
 
 export const StyledFooter = styled.div`
   height: ${({ theme }) => theme.gridUnit * 16}px;
+  width: 100%;
   border-top: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   color: ${({ theme }) => theme.colors.info.base};
-`;
-
-export const heightMinusHeaders = css`
-  height: calc(100vh - 120px);
-`;
-
-export const heightMinusFooter = css`
-  height: calc(100vh - 184px);
 `;

@@ -18,15 +18,17 @@
  */
 import React, { ReactElement, JSXElementConstructor } from 'react';
 import {
-  Column,
-  Row,
+  StyledLayoutWrapper,
+  LeftColumn,
+  RightColumn,
+  OuterRow,
+  PanelRow,
+  FooterRow,
   StyledHeader,
   StyledLeftPanel,
   StyledDatasetPanel,
   StyledRightPanel,
   StyledFooter,
-  heightMinusHeaders,
-  heightMinusFooter,
 } from 'src/views/CRUD/data/dataset/styles';
 
 interface DatasetLayoutProps {
@@ -45,20 +47,26 @@ export default function DatasetLayout({
   footer,
 }: DatasetLayoutProps) {
   return (
-    <div data-test="dataset-layout-wrapper">
+    <StyledLayoutWrapper data-test="dataset-layout-wrapper">
       {header && <StyledHeader>{header}</StyledHeader>}
-      <Row css={heightMinusHeaders}>
-        {leftPanel && <StyledLeftPanel>{leftPanel}</StyledLeftPanel>}
-        <Column css={heightMinusFooter}>
-          <Row>
+      <OuterRow>
+        <LeftColumn>
+          {leftPanel && <StyledLeftPanel>{leftPanel}</StyledLeftPanel>}
+        </LeftColumn>
+
+        <RightColumn>
+          <PanelRow>
             {datasetPanel && (
               <StyledDatasetPanel>{datasetPanel}</StyledDatasetPanel>
             )}
             {rightPanel && <StyledRightPanel>{rightPanel}</StyledRightPanel>}
-          </Row>
-          {footer && <StyledFooter>{footer}</StyledFooter>}
-        </Column>
-      </Row>
-    </div>
+          </PanelRow>
+
+          <FooterRow>
+            {footer && <StyledFooter>{footer}</StyledFooter>}
+          </FooterRow>
+        </RightColumn>
+      </OuterRow>
+    </StyledLayoutWrapper>
   );
 }
