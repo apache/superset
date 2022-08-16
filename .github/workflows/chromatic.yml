@@ -10,12 +10,12 @@ on:
   push:
     paths:
       - 'superset-frontend/**'
-  pull_request:
+  pull_request_target:
     paths:
       - 'superset-frontend/**'
 
 env:
-  CHROMATIC_PROJECT_TOKEN: "35fcb57cf5ee"
+  CHROMATIC_PROJECT_TOKEN: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
 # List of jobs
 jobs:
   chromatic-deployment:
