@@ -809,9 +809,12 @@ class DatasetRestApi(BaseSupersetModelRestApi):
                         type: object
                         properties:
                           table_id:
-                            type: array
-                            items:
-                              type: integer
+                            type: object
+                            additionalProperties:
+                              type: string
+                            example:
+                              column_id1: column_name1
+                              column_id2: column_name2
             401:
               $ref: '#/components/responses/401'
             404:

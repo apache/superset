@@ -2160,4 +2160,4 @@ class TestDatasetApi(SupersetTestCase):
             )
             .one_or_none()
         )
-        assert data == {"result": {f"{dataset[0]}": [dataset[1]]}}
+        assert data == {"result": {f"{dataset[0]}": {f"{dataset[1]}": f"{dataset[2]}"}}}

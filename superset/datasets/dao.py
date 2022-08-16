@@ -372,9 +372,14 @@ class DatasetDAO(BaseDAO):  # pylint: disable=too-many-public-methods
     @classmethod
     def find_with_advanced_data_type(
         cls, advanced_data_type: str
-    ) -> Dict[str, List[int]]:
+    ) -> Dict[str, Dict[str, str]]:
         query = (
-            db.session.query(SqlaTable.id, array_agg(TableColumn.id))
+            db.session.query(
+                SqlaTable.id,
+                array_agg(TableColumn.id),
+                array_agg(TableColumn.verbose_name),
+                array_agg(TableColumn.column_name),
+            )
             .join(TableColumn, TableColumn.table_id == SqlaTable.id)
             .filter(TableColumn.advanced_data_type == advanced_data_type)
             .group_by(SqlaTable.id)
@@ -383,9 +388,15 @@ class DatasetDAO(BaseDAO):  # pylint: disable=too-many-public-methods
             cls.id_column_name, SQLAInterface(cls.model_cls, db.session)
         ).apply(query, None)
         datasets = query.all()
+        print(datasets)
         result = {}
         for dataset in datasets:
-            result[dataset[0]] = dataset[1]
+            result[dataset[0]] = dict(
+                zip(
+                    dataset[1],
+                    map(lambda verbose, name: verbose or name, dataset[2], dataset[3]),
+                )
+            )
         return result
 
 
