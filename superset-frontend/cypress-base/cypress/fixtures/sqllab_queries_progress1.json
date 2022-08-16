@@ -1,0 +1,32 @@
+{
+  "mock_qid_28dvde": {
+    "changedOn": 1660593772545.774,
+    "changed_on": "2022-08-15T20:02:52.545774",
+    "dbId": 1,
+    "db": "examples",
+    "endDttm": null,
+    "errorMessage": null,
+    "executedSql": "SELECT id,\n       name\nFROM main.ab_permission\nLIMIT 101\nOFFSET 0",
+    "id": "mock_qid_28dvde",
+    "queryId": 8888800000,
+    "limit": 100,
+    "limitingFactor": "QUERY",
+    "progress": 35,
+    "rows": null,
+    "schema": null,
+    "ctas": false,
+    "serverId": 8888800000,
+    "sql": "SELECT id,\n       name\nFROM main.ab_permission\nLIMIT 100\nOFFSET 0",
+    "sqlEditorId": null,
+    "startDttm": 1660593772515.350098,
+    "state": "running",
+    "tab": "",
+    "tempSchema": null,
+    "tempTable": null,
+    "userId": 1,
+    "user": "admin user",
+    "resultsKey": null,
+    "trackingUrl": null,
+    "extra": { "progress": "Running statement 1 out of 1" }
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "query_id": 8888800000,
+  "status": "success",
+  "data": [
+    { "id": 1, "name": "data row 1" },
+    { "id": 2, "name": "data row 2" }
+  ],
+  "columns": [
+    { "name": "id", "type": "INT", "is_dttm": false },
+    { "name": "name", "type": "STRING", "is_dttm": false }
+  ],
+  "selected_columns": [
+    { "name": "id", "type": "INT", "is_dttm": false },
+    { "name": "name", "type": "STRING", "is_dttm": false }
+  ],
+  "expanded_columns": [],
+  "query": {
+    "changedOn": "2022-08-11T23:12:20.484447",
+    "changed_on": "2022-08-11T23:12:20.484447",
+    "dbId": 1,
+    "db": "examples",
+    "endDttm": 1660259540490.335,
+    "errorMessage": null,
+    "executedSql": "SELECT id,\n       name\nFROM mock.mock_table_1\nLIMIT 101\nOFFSET 0",
+    "id": "mock_qid_28dvde",
+    "queryId": 8888800000,
+    "limit": 100,
+    "limitingFactor": "NOT_LIMITED",
+    "progress": 100,
+    "rows": 2,
+    "schema": null,
+    "ctas": false,
+    "serverId": 8888800000,
+    "sql": "SELECT id,\n       name\nFROM mock.mock_table_1\nLIMIT 100\nOFFSET 0",
+    "sqlEditorId": "88889999",
+    "startDttm": 1660259540451.312988,
+    "state": "success",
+    "tab": "",
+    "tempSchema": null,
+    "tempTable": null,
+    "userId": 1,
+    "user": "admin user",
+    "resultsKey": null,
+    "trackingUrl": null,
+    "extra": { "progress": null }
+  }
+}

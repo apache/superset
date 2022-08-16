@@ -1,0 +1,27 @@
+{
+  "columns": [
+    {
+      "comment": null,
+      "keys": [],
+      "longType": "INTEGER",
+      "name": "id",
+      "type": "INTEGER"
+    },
+    {
+      "comment": null,
+      "keys": [],
+      "longType": "VARCHAR(100)",
+      "name": "mock_tcolumn_name",
+      "type": "VARCHAR"
+    }
+  ],
+  "comment": null,
+  "foreignKeys": [],
+  "indexes": [],
+  "name": "mock_table_1",
+  "primaryKey": {
+    "constrained_columns": null,
+    "name": null
+  },
+  "selectStar": "SELECT id,\n       mock_tcolumn_name\nFROM mock.mock_table_1\nLIMIT 100\nOFFSET 0"
+}

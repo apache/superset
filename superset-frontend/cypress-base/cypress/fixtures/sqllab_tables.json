@@ -1,0 +1,29 @@
+{
+  "options": [
+    {
+      "value": "mock_table_1",
+      "schema": "mock",
+      "label": "Mock table 1",
+      "title": "Mock table 1",
+      "type": "table",
+      "extra": null
+    },
+    {
+      "value": "mock_table_2",
+      "schema": "mock",
+      "label": "mock_table_2",
+      "title": "mock_table_2",
+      "type": "table",
+      "extra": null
+    },
+    {
+      "value": "mock_table_3",
+      "schema": "mock",
+      "label": "mock_table_3",
+      "title": "mock_table_3",
+      "type": "table",
+      "extra": null
+    }
+  ],
+  "tableLength": 3
+}
