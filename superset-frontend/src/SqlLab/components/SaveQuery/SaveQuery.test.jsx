@@ -28,6 +28,7 @@ const mockedProps = {
     schema: 'main',
     sql: 'SELECT * FROM t',
   },
+  saveDatasetEnabled: false,
   defaultLabel: 'untitled',
   animation: false,
   database: databases.result[0],
@@ -37,6 +38,7 @@ const mockedProps = {
 
 const splitSaveBtnProps = {
   ...mockedProps,
+  saveDatasetEnabled: true,
   database: {
     ...mockedProps.database,
     allows_virtual_table_explore: true,
@@ -44,12 +46,61 @@ const splitSaveBtnProps = {
 };
 
 describe('SavedQuery', () => {
-  it('renders a non-split save button when allows_virtual_table_explore is not enabled', () => {
+  it('renders a non-split save button when allows_virtual_table_explore and saveDatasetEnabled are not enabled', () => {
     render(<SaveQuery {...mockedProps} />, { useRedux: true });
 
     const saveBtn = screen.getByRole('button', { name: /save/i });
 
     expect(saveBtn).toBeVisible();
+    expect(
+      screen.queryByTestId('save-dataset-action-dropdown'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('renders a non-split save button when allows_virtual_table_explore is not enabled', () => {
+    render(<SaveQuery {...mockedProps} saveDatasetEnabled />, {
+      useRedux: true,
+    });
+
+    const saveBtn = screen.getByRole('button', { name: /save/i });
+
+    expect(saveBtn).toBeVisible();
+    expect(
+      screen.queryByTestId('save-dataset-action-dropdown'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('renders a non-split save button when saveDatasetEnabled is not enabled', () => {
+    render(
+      <SaveQuery
+        {...mockedProps}
+        database={{
+          ...mockedProps.database,
+          allows_virtual_table_explore: true,
+        }}
+      />,
+      { useRedux: true },
+    );
+
+    const saveBtn = screen.getByRole('button', { name: /save/i });
+
+    expect(saveBtn).toBeVisible();
+    expect(
+      screen.queryByTestId('save-dataset-action-dropdown'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('renders the save button with options when allows_virtual_table_explore and saveDatasetEnabled are enabled', () => {
+    render(<SaveQuery {...splitSaveBtnProps} />, {
+      useRedux: true,
+    });
+
+    const saveBtn = screen.getByRole('button', { name: /save/i });
+
+    expect(saveBtn).toBeVisible();
+    expect(
+      screen.queryByTestId('save-dataset-action-dropdown'),
+    ).toBeInTheDocument();
   });
 
   it('renders a save query modal when user clicks save button', () => {

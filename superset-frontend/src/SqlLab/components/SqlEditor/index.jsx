@@ -19,12 +19,13 @@
 /* eslint-disable jsx-a11y/anchor-is-valid */
 /* eslint-disable jsx-a11y/no-static-element-interactions */
 import React from 'react';
+import rison from 'rison';
 import { CSSTransition } from 'react-transition-group';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
 import Split from 'react-split';
-import { t, styled, withTheme } from '@superset-ui/core';
+import { t, styled, withTheme, SupersetClient } from '@superset-ui/core';
 import debounce from 'lodash/debounce';
 import throttle from 'lodash/throttle';
 import StyledModal from 'src/components/Modal';
@@ -185,6 +186,7 @@ class SqlEditor extends React.PureComponent {
       showCreateAsModal: false,
       createAs: '',
       showEmptyState: false,
+      saveDatasetEnabled: false,
     };
     this.sqlEditorRef = React.createRef();
     this.northPaneRef = React.createRef();
@@ -218,6 +220,7 @@ class SqlEditor extends React.PureComponent {
       this.handleWindowResize.bind(this),
       WINDOW_RESIZE_THROTTLE_MS,
     );
+    this.loadDatasetPermissions = this.loadDatasetPermissions.bind(this);
 
     this.onBeforeUnload = this.onBeforeUnload.bind(this);
     this.renderDropdown = this.renderDropdown.bind(this);
@@ -241,6 +244,8 @@ class SqlEditor extends React.PureComponent {
       this.setEmptyState(true);
     }
 
+    this.loadDatasetPermissions();
+
     window.addEventListener('resize', this.handleWindowResize);
     window.addEventListener('beforeunload', this.onBeforeUnload);
 
@@ -254,6 +259,23 @@ class SqlEditor extends React.PureComponent {
   componentWillUnmount() {
     window.removeEventListener('resize', this.handleWindowResize);
     window.removeEventListener('beforeunload', this.onBeforeUnload);
+  }
+
+  async loadDatasetPermissions() {
+    try {
+      const result = await SupersetClient.get({
+        endpoint: `/api/v1/dataset/_info?q=${rison.encode({
+          keys: ['permissions'],
+        })}`,
+      });
+
+      const saveDatasetEnabled = Boolean(
+        result?.json?.permissions?.find(p => p === 'can_write'),
+      );
+      this.setState({ saveDatasetEnabled });
+    } catch {
+      this.setState({ saveDatasetEnabled: false });
+    }
   }
 
   onResizeStart() {
@@ -729,6 +751,7 @@ class SqlEditor extends React.PureComponent {
               onSave={this.saveQuery}
               onUpdate={this.props.actions.updateSavedQuery}
               saveQueryWarning={this.props.saveQueryWarning}
+              saveDatasetEnabled={this.state.saveDatasetEnabled}
               database={this.props.database}
             />
           </span>

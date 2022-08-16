@@ -71,6 +71,7 @@ export default function SaveDatasetActionButton({
       overlay={overlayMenu}
       icon={
         <Icons.CaretDown
+          data-test="save-dataset-action-dropdown"
           iconColor={theme.colors.grayscale.light5}
           name="caret-down"
         />

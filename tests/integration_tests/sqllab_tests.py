@@ -517,6 +517,28 @@ class TestSqlLab(SupersetTestCase):
         response = self.client.post(url, data=data, follow_redirects=True)
         assert response.status_code == 400
 
+    def test_sqllab_viz_not_allowed(self):
+        self.login(username="gamma")
+        examples_dbid = get_example_database().id
+        payload = {
+            "chartType": "dist_bar",
+            "datasourceName": f"test_viz_flow_table_{random()}",
+            "schema": "superset",
+            "columns": [
+                {"is_dttm": False, "type": "STRING", "name": f"viz_type_{random()}"},
+                {"is_dttm": False, "type": "OBJECT", "name": f"ccount_{random()}"},
+            ],
+            "sql": """\
+                SELECT *
+                FROM birth_names
+                LIMIT 10""",
+            "dbId": examples_dbid,
+        }
+        data = {"data": json.dumps(payload)}
+        url = "/superset/sqllab_viz/"
+        response = self.client.post(url, data=data, follow_redirects=True)
+        assert response.status_code == 403
+
     def test_sqllab_table_viz(self):
         self.login("admin")
         examples_db = get_example_database()

@@ -2074,6 +2074,17 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @expose("/sqllab_viz/", methods=["POST"])
     @event_logger.log_this
     def sqllab_viz(self) -> FlaskResponse:  # pylint: disable=no-self-use
+        if not self.appbuilder.sm.has_access("can_write", "Dataset"):
+            raise SupersetSecurityException(
+                SupersetError(
+                    error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+                    message=_(
+                        "You don't have sufficient permissions to save a dataset."
+                    ),
+                    level=ErrorLevel.ERROR,
+                )
+            )
+
         data = json.loads(request.form["data"])
         try:
             table_name = data["datasourceName"]
@@ -2082,7 +2093,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             raise SupersetGenericErrorException(
                 __(
                     "One or more required fields are missing in the request. Please try "
-                    "again, and if the problem persists conctact your administrator."
+                    "again, and if the problem persists contact your administrator."
                 ),
                 status=400,
             ) from ex

@@ -8440,7 +8440,7 @@ msgstr "Ein oder mehrere in der Abfrage angegebene Parameter fehlen."
 #: superset/views/core.py:2092
 msgid ""
 "One or more required fields are missing in the request. Please try again,"
-" and if the problem persists conctact your administrator."
+" and if the problem persists contact your administrator."
 msgstr ""
 "Ein oder mehrere Pflichtfelder fehlen in der Anfrage. Bitte versuchen Sie"
 " es erneut, und wenn das Problem weiterhin besteht, wenden Sie sich an "

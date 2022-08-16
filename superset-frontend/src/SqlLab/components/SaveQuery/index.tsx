@@ -34,6 +34,7 @@ interface SaveQueryProps {
   onSave: (arg0: QueryPayload) => void;
   onUpdate: (arg0: QueryPayload) => void;
   saveQueryWarning: string | null;
+  saveDatasetEnabled: boolean;
   database: Record<string, any>;
 }
 
@@ -81,6 +82,7 @@ export default function SaveQuery({
   onSave = () => {},
   onUpdate,
   saveQueryWarning = null,
+  saveDatasetEnabled,
   database,
 }: SaveQueryProps) {
   const [description, setDescription] = useState<string>(
@@ -171,7 +173,9 @@ export default function SaveQuery({
     <Styles className="SaveQuery">
       <SaveDatasetActionButton
         setShowSave={setShowSave}
-        overlayMenu={canExploreDatabase ? overlayMenu : null}
+        overlayMenu={
+          canExploreDatabase && saveDatasetEnabled ? overlayMenu : null
+        }
       />
       <SaveDatasetModal
         visible={showSaveDatasetModal}
