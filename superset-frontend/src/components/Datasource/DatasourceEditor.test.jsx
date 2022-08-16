@@ -39,7 +39,12 @@ describe('DatasourceEditor', () => {
   let isFeatureEnabledMock;
 
   beforeEach(() => {
-    el = <DatasourceEditor {...props} />;
+    el = (
+      <DatasourceEditor
+        {...props}
+        datasource={{ ...props.datasource, table_name: 'Vehicle Sales +' }}
+      />
+    );
     render(el, { useRedux: true });
   });
 
@@ -51,7 +56,7 @@ describe('DatasourceEditor', () => {
     expect(screen.getByTestId('edit-dataset-tabs')).toBeInTheDocument();
   });
 
-  it('makes an async request', () =>
+  it('can sync columns from source', () =>
     new Promise(done => {
       const columnsTab = screen.getByTestId('collection-tab-Columns');
 
@@ -63,6 +68,9 @@ describe('DatasourceEditor', () => {
 
       setTimeout(() => {
         expect(fetchMock.calls(DATASOURCE_ENDPOINT)).toHaveLength(1);
+        expect(fetchMock.calls(DATASOURCE_ENDPOINT)[0][0]).toContain(
+          'Vehicle%20Sales%20%2B%27',
+        );
         fetchMock.reset();
         done();
       }, 0);
