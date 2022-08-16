@@ -137,6 +137,8 @@ class TestDatasetApi(SupersetTestCase):
             main_db = get_main_database()
             for tables_name in self.fixture_tables_names:
                 datasets.append(self.insert_dataset(tables_name, [admin.id], main_db))
+                if tables_name == "ab_permission":
+                    datasets[len(datasets) - 1].columns[0].advanced_data_type = "port"
 
             yield datasets
 
@@ -2133,3 +2135,29 @@ class TestDatasetApi(SupersetTestCase):
 
         db.session.delete(table_w_certification)
         db.session.commit()
+
+    @pytest.mark.usefixtures("create_datasets")
+    def test_get_advanced_data_type(self):
+        if backend() == "sqlite":
+            return
+        arguments = {"type": "port"}
+        uri = f"api/v1/dataset/advanced_data_type?q={prison.dumps(arguments)}"
+        self.login(username="admin")
+        response_value = self.client.get(uri)
+        assert response_value.status_code == 200
+        data = json.loads(response_value.data.decode("utf-8"))
+        dataset = (
+            db.session.query(
+                SqlaTable.id,
+                TableColumn.id,
+                TableColumn.column_name,
+                TableColumn.advanced_data_type,
+            )
+            .join(TableColumn, TableColumn.table_id == SqlaTable.id)
+            .filter(
+                SqlaTable.table_name == "ab_permission",
+                TableColumn.advanced_data_type == "port",
+            )
+            .one_or_none()
+        )
+        assert data == {"result": {f"{dataset[0]}": [dataset[1]]}}
