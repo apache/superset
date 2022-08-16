@@ -23,16 +23,15 @@ from zipfile import is_zipfile, ZipFile
 
 import yaml
 from flask import request, Response, send_file
-from flask_appbuilder.api import expose, permission_name, protect, rison, safe
+from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
 from marshmallow import ValidationError
-from sqlalchemy.sql.functions import array_agg
 
 from superset import event_logger, is_feature_enabled
 from superset.commands.importers.exceptions import NoValidFilesFoundError
 from superset.commands.importers.v1.utils import get_contents_from_bundle
-from superset.connectors.sqla.models import SqlaTable, TableColumn
+from superset.connectors.sqla.models import SqlaTable
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.databases.filters import DatabaseFilter
 from superset.datasets.commands.bulk_delete import BulkDeleteDatasetCommand
@@ -780,7 +779,6 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @expose("/advanced_data_type", methods=["GET"])
-    @permission_name("read")
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get",
         log_to_statsd=False,  # pylint: disable-arguments-renamed
@@ -823,17 +821,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         """
         item = kwargs["rison"]
         advanced_data_type = item["type"]
-        query = (
-            db.session.query(SqlaTable.id, array_agg(TableColumn.id))
-            .join(TableColumn, TableColumn.table_id == SqlaTable.id)
-            .filter(TableColumn.advanced_data_type == advanced_data_type)
-            .group_by(SqlaTable.id)
-        )
-        query = self._base_filters.apply_all(query)
-        datasets = query.all()
-        result = {}
-        for dataset in datasets:
-            result[dataset[0]] = dataset[1]
+        result = DatasetDAO.find_with_advanced_data_type(advanced_data_type)
 
         return self.response(
             200,

@@ -17,7 +17,9 @@
 import logging
 from typing import Any, Dict, List, Optional
 
+from flask_appbuilder.models.sqla.interface import SQLAInterface
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.sql.functions import array_agg
 
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.dao.base import BaseDAO
@@ -366,6 +368,25 @@ class DatasetDAO(BaseDAO):  # pylint: disable=too-many-public-methods
             if commit:
                 db.session.rollback()
             raise ex
+
+    @classmethod
+    def find_with_advanced_data_type(
+        cls, advanced_data_type: str
+    ) -> Dict[str, List[int]]:
+        query = (
+            db.session.query(SqlaTable.id, array_agg(TableColumn.id))
+            .join(TableColumn, TableColumn.table_id == SqlaTable.id)
+            .filter(TableColumn.advanced_data_type == advanced_data_type)
+            .group_by(SqlaTable.id)
+        )
+        query = cls.base_filter(
+            cls.id_column_name, SQLAInterface(cls.model_cls, db.session)
+        ).apply(query, None)
+        datasets = query.all()
+        result = {}
+        for dataset in datasets:
+            result[dataset[0]] = dataset[1]
+        return result
 
 
 class DatasetColumnDAO(BaseDAO):
