@@ -54,15 +54,19 @@ def upgrade():
             new_conditional_formatting = []
             for formatter in conditional_formatting:
                 color_scheme = formatter.get("colorScheme")
+                new_color_scheme = None
                 if color_scheme == "rgb(0,255,0)":
                     new_color_scheme = "#ACE1C4"
                 elif color_scheme == "rgb(255,255,0)":
                     new_color_scheme = "#FDE380"
-                else:
+                elif color_scheme == "rgb(255,0,0)":
                     new_color_scheme = "#EFA1AA"
-                new_conditional_formatting.append(
-                    {**formatter, "colorScheme": new_color_scheme}
-                )
+                if new_color_scheme:
+                    new_conditional_formatting.append(
+                        {**formatter, "colorScheme": new_color_scheme}
+                    )
+                else:
+                    new_conditional_formatting.append(formatter)
             params["conditional_formatting"] = new_conditional_formatting
             slc.params = json.dumps(params)
             session.merge(slc)
