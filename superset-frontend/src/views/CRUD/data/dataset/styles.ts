@@ -22,6 +22,7 @@ export const StyledLayoutWrapper = styled.div`
   flex-grow: 1;
   display: flex;
   flex-direction: column;
+  background-color: ${({ theme }) => theme.colors.grayscale.light5};
 `;
 
 const Column = styled.div`
