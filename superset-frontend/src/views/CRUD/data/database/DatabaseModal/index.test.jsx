@@ -779,9 +779,13 @@ describe('DatabaseModal', () => {
         name: /right security add extra connection information\./i,
       });
       const allowFileUploadCheckbox = screen.getByRole('checkbox', {
-        name: /allow data upload/i,
+        name: /Allow file uploads/i,
       });
-      const allowFileUploadText = screen.getByText(/allow data upload/i);
+      const allowFileUploadText = screen.getByText(/Allow file uploads/i);
+
+      const schemasForFileUploadText = screen.queryByText(
+        /Schemas allowed for File upload/i,
+      );
 
       const visibleComponents = [
         closeButton,
@@ -807,6 +811,91 @@ describe('DatabaseModal', () => {
       invisibleComponents.forEach(component => {
         expect(component).not.toBeVisible();
       });
+      expect(schemasForFileUploadText).not.toBeInTheDocument();
+    });
+
+    it('renders the "Advanced" - SECURITY tab correctly after selecting Allow file uploads', async () => {
+      // ---------- Components ----------
+      // On step 1, click dbButton to access step 2
+      userEvent.click(
+        screen.getByRole('button', {
+          name: /sqlite/i,
+        }),
+      );
+      // Click the "Advanced" tab
+      userEvent.click(screen.getByRole('tab', { name: /advanced/i }));
+      // Click the "Security" tab
+      userEvent.click(
+        screen.getByRole('tab', {
+          name: /right security add extra connection information\./i,
+        }),
+      );
+      // Click the "Allow file uploads" tab
+
+      const allowFileUploadCheckbox = screen.getByRole('checkbox', {
+        name: /Allow file uploads/i,
+      });
+      userEvent.click(allowFileUploadCheckbox);
+
+      // ----- BEGIN STEP 2 (ADVANCED - SECURITY)
+      // <TabHeader> - AntD header
+      const closeButton = screen.getByRole('button', { name: /close/i });
+      const advancedHeader = screen.getByRole('heading', {
+        name: /connect a database/i,
+      });
+      // <ModalHeader> - Connection header
+      const basicHelper = screen.getByText(/step 2 of 2/i);
+      const basicHeaderTitle = screen.getByText(/enter primary credentials/i);
+      const basicHeaderSubtitle = screen.getByText(
+        /need help\? learn how to connect your database \./i,
+      );
+      const basicHeaderLink = within(basicHeaderSubtitle).getByRole('link', {
+        name: /here/i,
+      });
+      // <Tabs> - Basic/Advanced tabs
+      const basicTab = screen.getByRole('tab', { name: /basic/i });
+      const advancedTab = screen.getByRole('tab', { name: /advanced/i });
+      // <ExtraOptions> - Advanced tabs
+      const sqlLabTab = screen.getByRole('tab', {
+        name: /right sql lab adjust how this database will interact with sql lab\./i,
+      });
+      const performanceTab = screen.getByRole('tab', {
+        name: /right performance adjust performance settings of this database\./i,
+      });
+      const securityTab = screen.getByRole('tab', {
+        name: /right security add extra connection information\./i,
+      });
+      const allowFileUploadText = screen.getByText(/Allow file uploads/i);
+
+      const schemasForFileUploadText = screen.queryByText(
+        /Schemas allowed for File upload/i,
+      );
+
+      const visibleComponents = [
+        closeButton,
+        advancedHeader,
+        basicHelper,
+        basicHeaderTitle,
+        basicHeaderSubtitle,
+        basicHeaderLink,
+        basicTab,
+        advancedTab,
+        sqlLabTab,
+        performanceTab,
+        securityTab,
+        allowFileUploadText,
+      ];
+      // These components exist in the DOM but are not visible
+      const invisibleComponents = [allowFileUploadCheckbox];
+
+      // ---------- Assertions ----------
+      visibleComponents.forEach(component => {
+        expect(component).toBeVisible();
+      });
+      invisibleComponents.forEach(component => {
+        expect(component).not.toBeVisible();
+      });
+      expect(schemasForFileUploadText).toBeInTheDocument();
     });
 
     test('renders the "Advanced" - OTHER tab correctly', async () => {
@@ -1143,7 +1232,10 @@ describe('DatabaseModal', () => {
       const impersonateLoggerUserText = screen.getByText(
         /impersonate logged in/i,
       );
-      const allowFileUploadText = screen.queryByText(/allow data upload/i);
+      const allowFileUploadText = screen.queryByText(/Allow file uploads/i);
+      const schemasForFileUploadText = screen.queryByText(
+        /Schemas allowed for File upload/i,
+      );
 
       const visibleComponents = [impersonateLoggerUserText];
       // These components exist in the DOM but are not visible
@@ -1157,6 +1249,7 @@ describe('DatabaseModal', () => {
         expect(component).not.toBeVisible();
       });
       expect(allowFileUploadText).not.toBeInTheDocument();
+      expect(schemasForFileUploadText).not.toBeInTheDocument();
     });
   });
 });
