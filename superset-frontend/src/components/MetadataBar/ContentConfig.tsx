@@ -20,7 +20,7 @@ import React from 'react';
 import moment from 'moment';
 import { ensureIsArray, styled, t } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
-import { ContentType } from './ContentType';
+import { ContentType, MetadataType } from './ContentType';
 
 const Header = styled.div`
   font-weight: ${({ theme }) => theme.typography.weights.bold};
@@ -54,85 +54,90 @@ const config = (contentType: ContentType) => {
    * types of tooltips to their own components and reference them here.
    */
 
-  if (type === 'dashboards') {
-    return {
-      icon: Icons.FundProjectionScreenOutlined,
-      title: contentType.title,
-      tooltip: contentType.description ? (
-        <div>
-          <Info header={contentType.title} text={contentType.description} />
-        </div>
-      ) : undefined,
-    };
+  switch (type) {
+    case MetadataType.DASHBOARDS:
+      return {
+        icon: Icons.FundProjectionScreenOutlined,
+        title: contentType.title,
+        tooltip: contentType.description ? (
+          <div>
+            <Info header={contentType.title} text={contentType.description} />
+          </div>
+        ) : undefined,
+      };
+
+    case MetadataType.DESCRIPTION:
+      return {
+        icon: Icons.BookOutlined,
+        title: contentType.value,
+      };
+
+    case MetadataType.LAST_MODIFIED:
+      return {
+        icon: Icons.EditOutlined,
+        title: moment.utc(contentType.value).fromNow(),
+        tooltip: (
+          <div>
+            <Info
+              header={t('Last modified')}
+              text={moment.utc(contentType.value).fromNow()}
+            />
+            <Info header={t('Modified by')} text={contentType.modifiedBy} />
+          </div>
+        ),
+      };
+
+    case MetadataType.OWNER:
+      return {
+        icon: Icons.UserOutlined,
+        title: contentType.createdBy,
+        tooltip: (
+          <div>
+            <Info header={t('Created by')} text={contentType.createdBy} />
+            <Info header={t('Owners')} text={contentType.owners} />
+            <Info
+              header={t('Created on')}
+              text={moment.utc(contentType.createdOn).fromNow()}
+            />
+          </div>
+        ),
+      };
+
+    case MetadataType.ROWS:
+      return {
+        icon: Icons.InsertRowBelowOutlined,
+        title: contentType.title,
+        tooltip: contentType.title,
+      };
+
+    case MetadataType.SQL:
+      return {
+        icon: Icons.ConsoleSqlOutlined,
+        title: contentType.title,
+        tooltip: contentType.title,
+      };
+
+    case MetadataType.TABLE:
+      return {
+        icon: Icons.Table,
+        title: contentType.title,
+        tooltip: contentType.title,
+      };
+
+    case MetadataType.TAGS:
+      return {
+        icon: Icons.TagsOutlined,
+        title: contentType.values.join(', '),
+        tooltip: (
+          <div>
+            <Info header={t('Tags')} text={contentType.values} />
+          </div>
+        ),
+      };
+
+    default:
+      throw Error(`Invalid type provided: ${type}`);
   }
-  if (type === 'description') {
-    return {
-      icon: Icons.BookOutlined,
-      title: contentType.value,
-    };
-  }
-  if (type === 'lastModified') {
-    const value = moment.utc(contentType.value).fromNow();
-    return {
-      icon: Icons.EditOutlined,
-      title: value,
-      tooltip: (
-        <div>
-          <Info header={t('Last modified')} text={value} />
-          <Info header={t('Modified by')} text={contentType.modifiedBy} />
-        </div>
-      ),
-    };
-  }
-  if (type === 'owner') {
-    return {
-      icon: Icons.UserOutlined,
-      title: contentType.createdBy,
-      tooltip: (
-        <div>
-          <Info header={t('Created by')} text={contentType.createdBy} />
-          <Info header={t('Owners')} text={contentType.owners} />
-          <Info
-            header={t('Created on')}
-            text={moment.utc(contentType.createdOn).fromNow()}
-          />
-        </div>
-      ),
-    };
-  }
-  if (type === 'rows') {
-    return {
-      icon: Icons.InsertRowBelowOutlined,
-      title: contentType.title,
-      tooltip: contentType.title,
-    };
-  }
-  if (type === 'sql') {
-    return {
-      icon: Icons.ConsoleSqlOutlined,
-      title: contentType.title,
-      tooltip: contentType.title,
-    };
-  }
-  if (type === 'table') {
-    return {
-      icon: Icons.Table,
-      title: contentType.title,
-      tooltip: contentType.title,
-    };
-  }
-  if (type === 'tags') {
-    return {
-      icon: Icons.TagsOutlined,
-      title: contentType.values.join(', '),
-      tooltip: (
-        <div>
-          <Info header={t('Tags')} text={contentType.values} />
-        </div>
-      ),
-    };
-  }
-  throw Error(`Invalid type provided: ${type}`);
 };
 
 export { config };

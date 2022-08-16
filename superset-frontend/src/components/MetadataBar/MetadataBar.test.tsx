@@ -23,8 +23,8 @@ import * as resizeDetector from 'react-resize-detector';
 import moment from 'moment';
 import { supersetTheme } from '@superset-ui/core';
 import { hexToRgb } from 'src/utils/colorUtils';
-import MetadataBar from '.';
-import { ContentType } from './ContentType';
+import MetadataBar, { MIN_NUMBER_ITEMS, MAX_NUMBER_ITEMS } from '.';
+import { ContentType, MetadataType } from './ContentType';
 
 const DASHBOARD_TITLE = 'Added to 452 dashboards';
 const DASHBOARD_DESCRIPTION =
@@ -48,39 +48,39 @@ const runWithBarCollapsed = async (func: Function) => {
 
 const ITEMS: ContentType[] = [
   {
-    type: 'dashboards',
+    type: MetadataType.DASHBOARDS,
     title: DASHBOARD_TITLE,
     description: DASHBOARD_DESCRIPTION,
   },
   {
-    type: 'description',
+    type: MetadataType.DESCRIPTION,
     value: DESCRIPTION_VALUE,
   },
   {
-    type: 'lastModified',
+    type: MetadataType.LAST_MODIFIED,
     value: DATE,
     modifiedBy: MODIFIED_BY,
   },
   {
-    type: 'owner',
+    type: MetadataType.OWNER,
     createdBy: CREATED_BY,
     owners: OWNERS,
     createdOn: DATE,
   },
   {
-    type: 'rows',
+    type: MetadataType.ROWS,
     title: ROWS_TITLE,
   },
   {
-    type: 'sql',
+    type: MetadataType.SQL,
     title: SQL_TITLE,
   },
   {
-    type: 'table',
+    type: MetadataType.TABLE,
     title: TABLE_TITLE,
   },
   {
-    type: 'tags',
+    type: MetadataType.TAGS,
     values: TAGS,
   },
 ];
@@ -94,11 +94,15 @@ test('renders an array of items', () => {
 test('throws errors when out of min/max restrictions', () => {
   const spy = jest.spyOn(console, 'error');
   spy.mockImplementation(() => {});
-  expect(() => render(<MetadataBar items={ITEMS.slice(0, 1)} />)).toThrow(
-    'The minimum number of items for the metadata bar is 2.',
+  expect(() =>
+    render(<MetadataBar items={ITEMS.slice(0, MIN_NUMBER_ITEMS - 1)} />),
+  ).toThrow(
+    `The minimum number of items for the metadata bar is ${MIN_NUMBER_ITEMS}.`,
   );
-  expect(() => render(<MetadataBar items={ITEMS} />)).toThrow(
-    'The maximum number of items for the metadata bar is 6.',
+  expect(() =>
+    render(<MetadataBar items={ITEMS.slice(0, MAX_NUMBER_ITEMS + 1)} />),
+  ).toThrow(
+    `The maximum number of items for the metadata bar is ${MAX_NUMBER_ITEMS}.`,
   );
   spy.mockRestore();
 });

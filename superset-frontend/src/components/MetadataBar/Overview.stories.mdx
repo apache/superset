@@ -32,8 +32,24 @@ Below you can find the configurations for each content type:
   language="jsx"
   format={true}
   code={`
+    export enum MetadataType {
+      DASHBOARDS = 'dashboards',
+      DESCRIPTION = 'description',
+      LAST_MODIFIED = 'lastModified',
+      OWNER = 'owner',
+      ROWS = 'rows',
+      SQL = 'sql',
+      TABLE = 'table',
+      TAGS = 'tags',
+    }`}
+/>
+
+<Source
+  language="jsx"
+  format={true}
+  code={`
     export type Dashboards = {
-      type: 'dashboards';
+      type: MetadataType.DASHBOARDS;
       title: string;
       description?: string;
       onClick?: (type: string) => void;
@@ -45,7 +61,7 @@ Below you can find the configurations for each content type:
   format={true}
   code={`
     export type Description = {
-      type: 'description';
+      type: MetadataType.DESCRIPTION;
       value: string;
       onClick?: (type: string) => void;
     };`}
@@ -56,7 +72,7 @@ Below you can find the configurations for each content type:
   format={true}
   code={`
     export type LastModified = {
-      type: 'lastModified';
+      type: MetadataType.LAST_MODIFIED;
       value: Date;
       modifiedBy: string;
       onClick?: (type: string) => void;
@@ -68,7 +84,7 @@ Below you can find the configurations for each content type:
   format={true}
   code={`
     export type Owner = {
-      type: 'owner';
+      type: MetadataType.OWNER;
       createdBy: string;
       owners: string[];
       createdOn: Date;
@@ -81,7 +97,7 @@ Below you can find the configurations for each content type:
   format={true}
   code={`
     export type Rows = {
-      type: 'rows';
+      type: MetadataType.ROWS;
       title: string;
       onClick?: (type: string) => void;
     };`}
@@ -92,7 +108,7 @@ Below you can find the configurations for each content type:
   format={true}
   code={`
     export type Sql = {
-      type: 'sql';
+      type: MetadataType.SQL;
       title: string;
       onClick?: (type: string) => void;
     };`}
@@ -103,7 +119,7 @@ Below you can find the configurations for each content type:
   format={true}
   code={`
     export type Table = {
-      type: 'table';
+      type: MetadataType.TABLE;
       title: string;
       onClick?: (type: string) => void;
     };`}
@@ -114,7 +130,7 @@ Below you can find the configurations for each content type:
   format={true}
   code={`
     export type Tags = {
-      type: 'tags';
+      type: MetadataType.TAGS;
       values: string[];
       onClick?: (type: string) => void;
     };`}

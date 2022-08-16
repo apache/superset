@@ -17,28 +17,39 @@
  * under the License.
  */
 
+export enum MetadataType {
+  DASHBOARDS = 'dashboards',
+  DESCRIPTION = 'description',
+  LAST_MODIFIED = 'lastModified',
+  OWNER = 'owner',
+  ROWS = 'rows',
+  SQL = 'sql',
+  TABLE = 'table',
+  TAGS = 'tags',
+}
+
 export type Dashboards = {
-  type: 'dashboards';
+  type: MetadataType.DASHBOARDS;
   title: string;
   description?: string;
   onClick?: (type: string) => void;
 };
 
 export type Description = {
-  type: 'description';
+  type: MetadataType.DESCRIPTION;
   value: string;
   onClick?: (type: string) => void;
 };
 
 export type LastModified = {
-  type: 'lastModified';
+  type: MetadataType.LAST_MODIFIED;
   value: Date;
   modifiedBy: string;
   onClick?: (type: string) => void;
 };
 
 export type Owner = {
-  type: 'owner';
+  type: MetadataType.OWNER;
   createdBy: string;
   owners: string[];
   createdOn: Date;
@@ -46,25 +57,25 @@ export type Owner = {
 };
 
 export type Rows = {
-  type: 'rows';
+  type: MetadataType.ROWS;
   title: string;
   onClick?: (type: string) => void;
 };
 
 export type Sql = {
-  type: 'sql';
+  type: MetadataType.SQL;
   title: string;
   onClick?: (type: string) => void;
 };
 
 export type Table = {
-  type: 'table';
+  type: MetadataType.TABLE;
   title: string;
   onClick?: (type: string) => void;
 };
 
 export type Tags = {
-  type: 'tags';
+  type: MetadataType.TAGS;
   values: string[];
   onClick?: (type: string) => void;
 };

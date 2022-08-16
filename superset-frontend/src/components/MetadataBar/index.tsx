@@ -24,6 +24,9 @@ import { Tooltip } from 'src/components/Tooltip';
 import { ContentType } from './ContentType';
 import { config } from './ContentConfig';
 
+export const MIN_NUMBER_ITEMS = 2;
+export const MAX_NUMBER_ITEMS = 6;
+
 const HORIZONTAL_PADDING = 12;
 const VERTICAL_PADDING = 8;
 const ICON_PADDING = 8;
@@ -157,10 +160,10 @@ const MetadataBar = ({ items }: MetadataBarProps) => {
   const uniqueItems = uniqWith(items, (a, b) => a.type === b.type);
   const sortedItems = uniqueItems.sort((a, b) => ORDER[a.type] - ORDER[b.type]);
   const count = sortedItems.length;
-  if (count < 2) {
+  if (count < MIN_NUMBER_ITEMS) {
     throw Error('The minimum number of items for the metadata bar is 2.');
   }
-  if (count > 6) {
+  if (count > MAX_NUMBER_ITEMS) {
     throw Error('The maximum number of items for the metadata bar is 6.');
   }
   // Calculates the breakpoint width to collapse the bar.
