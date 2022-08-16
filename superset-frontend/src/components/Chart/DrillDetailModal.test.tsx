@@ -25,7 +25,6 @@ import { QueryFormData } from '@superset-ui/core';
 import fetchMock from 'fetch-mock';
 import userEvent from '@testing-library/user-event';
 
-
 const chart = chartQueries[sliceId];
 const setup = (overrides: Record<string, any> = {}) => {
   const store = getMockStoreWithNativeFilters();

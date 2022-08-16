@@ -37,7 +37,7 @@ export default {
   nativeFilters: nativeFiltersInfo,
   common: {
     conf: {
-      SAMPLES_ROW_LIMIT: 100,
+      SAMPLES_ROW_LIMIT: 10,
     },
   },
   dataMask: mockDataMaskInfo,
