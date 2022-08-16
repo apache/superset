@@ -23,15 +23,16 @@ from zipfile import is_zipfile, ZipFile
 
 import yaml
 from flask import request, Response, send_file
-from flask_appbuilder.api import expose, protect, rison, safe
+from flask_appbuilder.api import expose, permission_name, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
 from marshmallow import ValidationError
+from sqlalchemy.sql.functions import array_agg
 
 from superset import event_logger, is_feature_enabled
 from superset.commands.importers.exceptions import NoValidFilesFoundError
 from superset.commands.importers.v1.utils import get_contents_from_bundle
-from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.databases.filters import DatabaseFilter
 from superset.datasets.commands.bulk_delete import BulkDeleteDatasetCommand
@@ -54,12 +55,14 @@ from superset.datasets.commands.update import UpdateDatasetCommand
 from superset.datasets.dao import DatasetDAO
 from superset.datasets.filters import DatasetCertifiedFilter, DatasetIsNullOrEmptyFilter
 from superset.datasets.schemas import (
+    dataset_advanced_data_type_schema,
     DatasetPostSchema,
     DatasetPutSchema,
     DatasetRelatedObjectsResponse,
     get_delete_ids_schema,
     get_export_ids_schema,
 )
+from superset.extensions import db
 from superset.utils.core import parse_boolean_string
 from superset.views.base import DatasourceFilter, generate_download_headers
 from superset.views.base_api import (
@@ -90,6 +93,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "bulk_delete",
         "refresh",
         "related_objects",
+        "get_advanced_data_type",
     }
     list_columns = [
         "id",
@@ -219,6 +223,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
 
     apispec_parameter_schemas = {
         "get_export_ids_schema": get_export_ids_schema,
+        "dataset_advanced_data_type_schema": dataset_advanced_data_type_schema,
     }
     openapi_spec_component_schemas = (DatasetRelatedObjectsResponse,)
 
@@ -771,3 +776,66 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         )
         command.run()
         return self.response(200, message="OK")
+
+    @protect()
+    @safe
+    @expose("/advanced_data_type", methods=["GET"])
+    @permission_name("read")
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get",
+        log_to_statsd=False,  # pylint: disable-arguments-renamed
+    )
+    @rison(dataset_advanced_data_type_schema)
+    def get_advanced_data_type(self, **kwargs: Any) -> Response:
+        """Get all datasets with a column of the specified advanced type
+        ---
+        get:
+          description:
+            Get all datasets with a column of the specified advanced type
+          parameters:
+          - in: query
+            name: q
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/dataset_advanced_data_type_schema'
+          responses:
+            200:
+              description: Query result
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: object
+                        properties:
+                          table_id:
+                            type: array
+                            items:
+                              type: integer
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        item = kwargs["rison"]
+        advanced_data_type = item["type"]
+        query = (
+            db.session.query(SqlaTable.id, array_agg(TableColumn.id))
+            .join(TableColumn, TableColumn.table_id == SqlaTable.id)
+            .filter(TableColumn.advanced_data_type == advanced_data_type)
+            .group_by(SqlaTable.id)
+        )
+        query = self._base_filters.apply_all(query)
+        datasets = query.all()
+        result = {}
+        for dataset in datasets:
+            result[dataset[0]] = dataset[1]
+
+        return self.response(
+            200,
+            result=result,
+        )

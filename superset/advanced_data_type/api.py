@@ -23,13 +23,10 @@ from flask_babel import lazy_gettext as _
 
 from superset.advanced_data_type.schemas import (
     advanced_data_type_convert_schema,
-    advanced_data_type_datasets_schema,
     AdvancedDataTypeSchema,
 )
 from superset.advanced_data_type.types import AdvancedDataTypeResponse
-from superset.connectors.sqla.models import TableColumn
-from superset.datasets.dao import DatasetDAO
-from superset.extensions import db, event_logger
+from superset.extensions import event_logger
 
 config = app.config
 ADVANCED_DATA_TYPES = config["ADVANCED_DATA_TYPES"]
@@ -44,14 +41,13 @@ class AdvancedDataTypeRestApi(BaseApi):
     """
 
     allow_browser_login = True
-    include_route_methods = {"get", "get_types", "get_datasets"}
+    include_route_methods = {"get", "get_types"}
     resource_name = "advanced_data_type"
     class_permission_name = "AdvancedDataType"
 
     openapi_spec_tag = "Advanced Data Type"
     apispec_parameter_schemas = {
         "advanced_data_type_convert_schema": advanced_data_type_convert_schema,
-        "advanced_data_type_datasets_schema": advanced_data_type_datasets_schema,
     }
     openapi_spec_component_schemas = (AdvancedDataTypeSchema,)
 
@@ -150,72 +146,3 @@ class AdvancedDataTypeRestApi(BaseApi):
         """
 
         return self.response(200, result=list(ADVANCED_DATA_TYPES.keys()))
-
-    @protect()
-    @safe
-    @expose("/datasets", methods=["GET"])
-    @permission_name("read")
-    @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get",
-        log_to_statsd=False,  # pylint: disable-arguments-renamed
-    )
-    @rison(advanced_data_type_datasets_schema)
-    def get_datasets(self, **kwargs: Any) -> Response:
-        """Get all datasets with a column of the specified advanced type
-        ---
-        get:
-          description:
-            Get all datasets with a column of the specified advanced type
-          parameters:
-          - in: query
-            name: q
-            content:
-              application/json:
-                schema:
-                  $ref: '#/components/schemas/advanced_data_type_datasets_schema'
-          responses:
-            200:
-              description: Query result
-              content:
-                application/json:
-                  schema:
-                    type: object
-                    properties:
-                      result:
-                        type: object
-                        properties:
-                          table_id:
-                            type: array
-                            items:
-                              type: integer
-            401:
-              $ref: '#/components/responses/401'
-            404:
-              $ref: '#/components/responses/404'
-            500:
-              $ref: '#/components/responses/500'
-        """
-        item = kwargs["rison"]
-        advanced_data_type = item["type"]
-        columns = (
-            db.session.query(TableColumn.table_id, TableColumn.id)
-            .filter(TableColumn.advanced_data_type == advanced_data_type)
-            .all()
-        )
-        forbidden_datasets = []
-        result = {}
-        for column in columns:
-            if column[0] in forbidden_datasets:
-                continue
-            if column[0] not in result:
-                if DatasetDAO.find_by_id(column[0]) is None:
-                    forbidden_datasets.append(column[0])
-                else:
-                    result[column[0]] = [column[1]]
-            else:
-                result[column[0]].append(column[1])
-
-        return self.response(
-            200,
-            result=result,
-        )

@@ -32,14 +32,6 @@ advanced_data_type_convert_schema = {
     "required": ["type", "values"],
 }
 
-advanced_data_type_datasets_schema = {
-    "type": "object",
-    "properties": {
-        "type": {"type": "string", "default": "port"},
-    },
-    "required": ["type"],
-}
-
 
 class AdvancedDataTypeSchema(Schema):
     """
