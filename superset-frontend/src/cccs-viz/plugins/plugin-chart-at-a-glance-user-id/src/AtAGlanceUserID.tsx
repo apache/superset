@@ -65,20 +65,27 @@ const getPayloadField = (field: string, payload: any) => {
 };
 
 const formatList = (ipList: any) => {
-  const updatedList: { 'IP Address': string; Count: number }[] = [];
+  const updatedList: {
+    'IP Address': string;
+    Count: number;
+    'User Email': string;
+  }[] = [];
   const ipDictionary = {};
   let counter = 0;
 
   ipList.forEach(function (obj: any) {
-    const key = JSON.stringify(obj.client_ip);
+    const key = `${JSON.stringify(obj.client_ip)},${JSON.stringify(
+      obj.user_id,
+    )}`;
     ipDictionary[key] = (ipDictionary[key] || 0) + 1;
     counter += 1;
   });
 
   Object.keys(ipDictionary).forEach(key => {
     updatedList.push({
-      'IP Address': key.replaceAll('"', ''),
+      'IP Address': key.split(',')[0].replaceAll('"', ''),
       Count: ipDictionary[key],
+      'User Email': key.split(',')[1].replaceAll('"', ''),
     });
   });
 
@@ -90,7 +97,6 @@ const ipToInt = (ip: any) =>
 
 // Main Component
 function AtAGlanceUserIDCore(props: AtAGlanceUserIDProps) {
-  const [userIDString, setUserIDString] = useState('');
   LicenseManager.setLicenseKey(props.agGridLicenseKey);
 
   const [columnDefs] = useState([
@@ -123,6 +129,13 @@ function AtAGlanceUserIDCore(props: AtAGlanceUserIDProps) {
       sortable: true,
       sort: 'desc',
     },
+    {
+      field: 'User Email',
+      flex: 1,
+      resizable: true,
+      sortable: true,
+      minWidth: 275,
+    },
   ]);
 
   const [canadianIpsListData, setCanadianIpsListData] = useState([{}]);
@@ -144,23 +157,6 @@ function AtAGlanceUserIDCore(props: AtAGlanceUserIDProps) {
     const CANADA = 'canada';
     const OPERATION = 'operation';
     const USER_LOGGED_IN = 'UserLoggedIn';
-
-    if (typeof props.formData?.extraFormData?.filters !== 'undefined') {
-      for (
-        let i = 0;
-        i < props.formData?.extraFormData?.filters?.length;
-        i += 1
-      ) {
-        const filter = props.formData.extraFormData.filters[i];
-        if (filter.col === 'user_id') {
-          const localUserId: string = filter.val[0];
-          setUserIDString(localUserId);
-          break;
-        }
-      }
-    } else {
-      setUserIDString('');
-    }
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
     canadianIpsList = props.data.filter(function (item: any) {
@@ -210,24 +206,7 @@ function AtAGlanceUserIDCore(props: AtAGlanceUserIDProps) {
       <div>
         <table style={styles.Table}>
           <tr>
-            <td>
-              **Please note that the results in this chart are only for the
-              first User Email**
-            </td>
-          </tr>
-          <tr>
-            <td>*This chart only contains the first 100 results*</td>
-          </tr>
-          <tr>
-            <td>User Email: {userIDString}</td>
-          </tr>
-          <tr>
-            <td>
-              User ID:{' '}
-              {userIDString !== ''
-                ? getPayloadField('user_key', props.data[0])
-                : ''}
-            </td>
+            <td>*This chart only contains the first 1000 results*</td>
           </tr>
         </table>
       </div>

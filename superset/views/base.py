@@ -386,6 +386,7 @@ def common_bootstrap_payload() -> Dict[str, Any]:
         "extra_categorical_color_schemes": conf["EXTRA_CATEGORICAL_COLOR_SCHEMES"],
         "theme_overrides": conf["THEME_OVERRIDES"],
         "menu_data": menu_data(),
+        "datahub_url": conf.get("DATAHUB_URL", ""),
     }
     bootstrap_data.update(conf["COMMON_BOOTSTRAP_OVERRIDES_FUNC"](bootstrap_data))
     return bootstrap_data

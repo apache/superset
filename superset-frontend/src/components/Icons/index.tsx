@@ -64,6 +64,7 @@ const IconFileNames = [
   'copy',
   'cursor_target',
   'database',
+  'datahub',
   'dataset_physical',
   'dataset_virtual_greyscale',
   'dataset_virtual',

@@ -12,8 +12,7 @@ variables:
   buildTimestamp: $[format('{0:yyyyMMddHHmmss}', pipeline.startTime)]
   DOCKER_BUILDKIT: 1
 
-pool:
-  vmImage: ubuntu-latest
+pool: cauldron-vmss
 
 steps:
   - bash: |
@@ -32,7 +31,7 @@ steps:
   - task: Docker@2
     displayName: Build image
     inputs:
-      command: 'build'
+      command: build
       repository: $(imageRepository)
       arguments: --progress=plain
       dockerfile: $(dockerfile)
@@ -42,7 +41,7 @@ steps:
   - task: Docker@2
     displayName: Push image
     inputs:
-      command: 'push'
+      command: push
       repository: $(imageRepository)
       tags: |
         $(BRANCH_NAME)

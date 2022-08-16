@@ -81,6 +81,7 @@ export default function transformProps(chartProps: CccsGridChartProps) {
     include_search,
     enable_grouping,
     column_state,
+    enable_row_numbers,
   }: CccsGridQueryFormData = { ...DEFAULT_FORM_DATA, ...formData };
   const data = queriesData[0].data as TimeseriesDataRecord[];
   const agGridLicenseKey = queriesData[0].agGridLicenseKey as String;
@@ -167,7 +168,7 @@ export default function transformProps(chartProps: CccsGridChartProps) {
     COUNTRY: 'countryValueRenderer',
     JSON: 'jsonValueRenderer',
   };
-  
+
   const percentMetricValueFormatter = function (params: ValueFormatterParams) {
     return getNumberFormatter(NumberFormats.PERCENT_3_POINT).format(
       params.value,
@@ -269,6 +270,16 @@ export default function transformProps(chartProps: CccsGridChartProps) {
         });
       columnDefs = columnDefs.concat(percentMetricsColumnDefs);
     }
+  }
+
+  if (enable_row_numbers) {
+    columnDefs.splice(0, 0, {
+      headerName: '#',
+      colId: 'rowNum',
+      pinned: 'left',
+      valueGetter: (params: any) =>
+        params.node ? params.node.rowIndex + 1 : null,
+    } as any);
   }
 
   return {

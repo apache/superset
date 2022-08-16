@@ -1301,6 +1301,8 @@ ADVANCED_DATA_TYPES: Dict[str, AdvancedDataType] = {
     "port": internet_port,
 }
 
+DATAHUB_URL = "https://localhost:9002/"
+
 
 # Configuration for environment tag shown on the navbar. Setting 'text' to '' will hide the tag.
 ENVIRONMENT_TAG_CONFIG = {

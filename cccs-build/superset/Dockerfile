@@ -3,6 +3,7 @@ ARG VAULT_CA_CONTAINER=uchimera.azurecr.io/cccs/hogwarts/vault-ca:master_2921_22
 FROM $VAULT_CA_CONTAINER AS vault_ca
 FROM uchimera.azurecr.io/cccs/superset-base:cccs-2.0_20220808144709_b4476
 
+
 USER root
 
 COPY *requirements.txt /tmp/
