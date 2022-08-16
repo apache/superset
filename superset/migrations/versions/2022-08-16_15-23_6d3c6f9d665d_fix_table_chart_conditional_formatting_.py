@@ -56,10 +56,13 @@ def upgrade():
                 color_scheme = formatter.get("colorScheme")
                 new_color_scheme = None
                 if color_scheme == "rgb(0,255,0)":
+                    # supersetTheme.colors.success.light1
                     new_color_scheme = "#ACE1C4"
                 elif color_scheme == "rgb(255,255,0)":
+                    # supersetTheme.colors.alert.light1
                     new_color_scheme = "#FDE380"
                 elif color_scheme == "rgb(255,0,0)":
+                    # supersetTheme.colors.error.light1
                     new_color_scheme = "#EFA1AA"
                 if new_color_scheme:
                     new_conditional_formatting.append(
