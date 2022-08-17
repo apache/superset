@@ -106,7 +106,7 @@ export default function transformProps(chartProps: CccsGridChartProps) {
     // @ts-ignore
     const name = column.column_name;
     // @ts-ignore
-    columnMap[name] = ((column.business_type as string) ?? '').toUpperCase();
+    columnMap[name] = ((column.advanced_data_type as string) ?? '').toUpperCase();
     return columnMap;
   }, columnAdvancedTypeMap);
 
