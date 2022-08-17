@@ -64,10 +64,11 @@ setup(
     zip_safe=False,
     entry_points={
         "console_scripts": ["superset=superset.cli.main:superset"],
-        # the `postgres+psycopg2://` scheme was removed in SQLAlchemy 1.4, add an alias here
-        # to prevent breaking existing databases
+        # the `postgres` and `postgres+psycopg2://` schemes were removed in SQLAlchemy 1.4
+        # add an alias here to prevent breaking existing databases
         "sqlalchemy.dialects": [
-            "postgres.psycopg2=sqlalchemy.dialects.postgresql:dialect"
+            "postgres.psycopg2 = sqlalchemy.dialects.postgresql:dialect",
+            "postgres = sqlalchemy.dialects.postgresql:dialect",
         ],
     },
     install_requires=[
@@ -93,13 +94,13 @@ setup(
         "graphlib-backport",
         "gunicorn>=20.1.0",
         "hashids>=1.3.1, <2",
-        "holidays==0.10.3",  # PINNED! https://github.com/dr-prodigy/python-holidays/issues/406
+        "holidays==0.14.2",
         "humanize",
         "isodate",
         "markdown>=3.0",
         "msgpack>=1.0.0, <1.1",
         "numpy==1.22.1",
-        "pandas>=1.3.0, <1.4",
+        "pandas>=1.4.3, <1.5",
         "parsedatetime",
         "pgsanity",
         "polyline",
@@ -107,7 +108,7 @@ setup(
         "python-dateutil",
         "python-dotenv",
         "python-geohash",
-        "pyarrow>=5.0.0, <6.0",
+        "pyarrow>=6.0.1, <7",
         "pyyaml>=5.4",
         "PyJWT>=2.4.0, <3.0",
         "redis",
@@ -182,5 +183,6 @@ setup(
     classifiers=[
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
     ],
 )

@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
+
 import logging
 from typing import Any, Dict, List, Optional, TYPE_CHECKING
 
@@ -90,7 +92,7 @@ class TrinoEngineSpec(PrestoEngineSpec):
     @classmethod
     def get_table_names(
         cls,
-        database: "Database",
+        database: Database,
         inspector: Inspector,
         schema: Optional[str],
     ) -> List[str]:
@@ -103,7 +105,7 @@ class TrinoEngineSpec(PrestoEngineSpec):
     @classmethod
     def get_view_names(
         cls,
-        database: "Database",
+        database: Database,
         inspector: Inspector,
         schema: Optional[str],
     ) -> List[str]:
@@ -114,7 +116,7 @@ class TrinoEngineSpec(PrestoEngineSpec):
         )
 
     @classmethod
-    def get_tracking_url(cls, cursor: "Cursor") -> Optional[str]:
+    def get_tracking_url(cls, cursor: Cursor) -> Optional[str]:
         try:
             return cursor.info_uri
         except AttributeError:
@@ -127,13 +129,41 @@ class TrinoEngineSpec(PrestoEngineSpec):
         return None
 
     @classmethod
-    def handle_cursor(cls, cursor: "Cursor", query: Query, session: Session) -> None:
-        """Updates progress information"""
+    def handle_cursor(cls, cursor: Cursor, query: Query, session: Session) -> None:
         tracking_url = cls.get_tracking_url(cursor)
         if tracking_url:
             query.tracking_url = tracking_url
-            session.commit()
+
+        # Adds the executed query id to the extra payload so the query can be cancelled
+        query.set_extra_json_key("cancel_query", cursor.stats["queryId"])
+
+        session.commit()
         BaseEngineSpec.handle_cursor(cursor=cursor, query=query, session=session)
+
+    @classmethod
+    def has_implicit_cancel(cls) -> bool:
+        return False
+
+    @classmethod
+    def cancel_query(cls, cursor: Any, query: Query, cancel_query_id: str) -> bool:
+        """
+        Cancel query in the underlying database.
+
+        :param cursor: New cursor instance to the db of the query
+        :param query: Query instance
+        :param cancel_query_id: Trino `queryId`
+        :return: True if query cancelled successfully, False otherwise
+        """
+        try:
+            cursor.execute(
+                f"CALL system.runtime.kill_query(query_id => '{cancel_query_id}',"
+                "message => 'Query cancelled by Superset')"
+            )
+            cursor.fetchall()  # needed to trigger the call
+        except Exception:  # pylint: disable=broad-except
+            return False
+
+        return True
 
     @staticmethod
     def get_extra_params(database: "Database") -> Dict[str, Any]:

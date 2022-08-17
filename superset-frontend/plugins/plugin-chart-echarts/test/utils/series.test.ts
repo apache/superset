@@ -25,6 +25,7 @@ import {
   getChartPadding,
   getLegendProps,
   sanitizeHtml,
+  extractShowValueIndexes,
 } from '../../src/utils/series';
 import { LegendOrientation, LegendType } from '../../src/types';
 import { defaultLegendPadding } from '../../src/defaults';
@@ -203,6 +204,124 @@ describe('extractGroupbyLabel', () => {
       }),
     ).toEqual('');
     expect(extractGroupbyLabel({})).toEqual('');
+  });
+});
+
+describe('extractShowValueIndexes', () => {
+  it('should return the latest index for stack', () => {
+    expect(
+      extractShowValueIndexes(
+        [
+          {
+            id: 'abc',
+            name: 'abc',
+            data: [
+              ['2000-01-01', null],
+              ['2000-02-01', 0],
+              ['2000-03-01', 1],
+              ['2000-04-01', 0],
+              ['2000-05-01', null],
+              ['2000-06-01', 0],
+              ['2000-07-01', 2],
+              ['2000-08-01', 3],
+              ['2000-09-01', null],
+              ['2000-10-01', null],
+            ],
+          },
+          {
+            id: 'def',
+            name: 'def',
+            data: [
+              ['2000-01-01', null],
+              ['2000-02-01', 0],
+              ['2000-03-01', null],
+              ['2000-04-01', 0],
+              ['2000-05-01', null],
+              ['2000-06-01', 0],
+              ['2000-07-01', 2],
+              ['2000-08-01', 3],
+              ['2000-09-01', null],
+              ['2000-10-01', 0],
+            ],
+          },
+          {
+            id: 'def',
+            name: 'def',
+            data: [
+              ['2000-01-01', null],
+              ['2000-02-01', null],
+              ['2000-03-01', null],
+              ['2000-04-01', null],
+              ['2000-05-01', null],
+              ['2000-06-01', 3],
+              ['2000-07-01', null],
+              ['2000-08-01', null],
+              ['2000-09-01', null],
+              ['2000-10-01', null],
+            ],
+          },
+        ],
+        { stack: true, onlyTotal: false, isHorizontal: false },
+      ),
+    ).toEqual([undefined, 1, 0, 1, undefined, 2, 1, 1, undefined, 1]);
+  });
+
+  it('should handle the negative numbers for total only', () => {
+    expect(
+      extractShowValueIndexes(
+        [
+          {
+            id: 'abc',
+            name: 'abc',
+            data: [
+              ['2000-01-01', null],
+              ['2000-02-01', 0],
+              ['2000-03-01', -1],
+              ['2000-04-01', 0],
+              ['2000-05-01', null],
+              ['2000-06-01', 0],
+              ['2000-07-01', -2],
+              ['2000-08-01', -3],
+              ['2000-09-01', null],
+              ['2000-10-01', null],
+            ],
+          },
+          {
+            id: 'def',
+            name: 'def',
+            data: [
+              ['2000-01-01', null],
+              ['2000-02-01', 0],
+              ['2000-03-01', null],
+              ['2000-04-01', 0],
+              ['2000-05-01', null],
+              ['2000-06-01', 0],
+              ['2000-07-01', 2],
+              ['2000-08-01', -3],
+              ['2000-09-01', null],
+              ['2000-10-01', 0],
+            ],
+          },
+          {
+            id: 'def',
+            name: 'def',
+            data: [
+              ['2000-01-01', null],
+              ['2000-02-01', 0],
+              ['2000-03-01', null],
+              ['2000-04-01', 1],
+              ['2000-05-01', null],
+              ['2000-06-01', 0],
+              ['2000-07-01', -2],
+              ['2000-08-01', 3],
+              ['2000-09-01', null],
+              ['2000-10-01', 0],
+            ],
+          },
+        ],
+        { stack: true, onlyTotal: true, isHorizontal: false },
+      ),
+    ).toEqual([undefined, 1, 0, 2, undefined, 1, 1, 2, undefined, 1]);
   });
 });
 
