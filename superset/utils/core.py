@@ -191,6 +191,7 @@ class HeaderDataType(TypedDict):
     notification_source: Optional[str]
     chart_id: Optional[int]
     dashboard_id: Optional[int]
+    error_text: Optional[str]
 
 
 class DatasourceDict(TypedDict):
@@ -976,7 +977,7 @@ def send_email_smtp(  # pylint: disable=invalid-name,too-many-arguments,too-many
         msg.attach(image)
     msg_mutator = config["EMAIL_HEADER_MUTATOR"]
     # the base notification returns the message without any editing.
-    new_msg = msg_mutator(msg, **header_data or {})
+    new_msg = msg_mutator(msg, **(header_data or {}))
     send_mime_email(smtp_mail_from, recipients, new_msg, config, dryrun=dryrun)
 
 

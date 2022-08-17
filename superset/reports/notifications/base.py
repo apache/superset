@@ -27,9 +27,7 @@ from superset.utils.core import HeaderDataType
 @dataclass
 class NotificationContent:
     name: str
-    header_data: Optional[
-        HeaderDataType
-    ] = None  # this is optional to account for error states
+    header_data: HeaderDataType  # this is optional to account for error states
     csv: Optional[bytes] = None  # bytes for csv file
     screenshots: Optional[List[bytes]] = None  # bytes for a list of screenshots
     text: Optional[str] = None

@@ -69,12 +69,11 @@ from superset.reports.notifications import create_notification
 from superset.reports.notifications.base import NotificationContent
 from superset.reports.notifications.exceptions import NotificationError
 from superset.utils.celery import session_scope
+from superset.utils.core import HeaderDataType
 from superset.utils.csv import get_chart_csv_data, get_chart_dataframe
 from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot
 from superset.utils.urls import get_url_path
 from superset.utils.webdriver import DashboardStandaloneMode
-
-from ...utils.core import HeaderDataType
 
 logger = logging.getLogger(__name__)
 
@@ -326,6 +325,7 @@ class BaseReportState:
             "chart_id": chart_id,
             "dashboard_id": dashboard_id,
             "owners": self._report_schedule.owners,
+            "error_text": None,
         }
         return log_data
 
@@ -339,7 +339,7 @@ class BaseReportState:
         embedded_data = None
         error_text = None
         screenshot_data = []
-
+        header_data = self._get_log_data()
         url = self._get_url(user_friendly=True)
         if (
             feature_flag_manager.is_feature_enabled("ALERTS_ATTACH_REPORTS")
@@ -357,8 +357,11 @@ class BaseReportState:
                 if not csv_data:
                     error_text = "Unexpected missing csv file"
             if error_text:
+                header_data["error_text"] = error_text
                 return NotificationContent(
-                    name=self._report_schedule.name, text=error_text
+                    name=self._report_schedule.name,
+                    text=error_text,
+                    header_data=header_data,
                 )
 
         if (
@@ -377,8 +380,6 @@ class BaseReportState:
                 f"{self._report_schedule.name}: "
                 f"{self._report_schedule.dashboard.dashboard_title}"
             )
-
-        header_data = self._get_log_data()
 
         return NotificationContent(
             name=name,
@@ -433,7 +434,11 @@ class BaseReportState:
 
         :raises: ReportScheduleNotificationError
         """
-        notification_content = NotificationContent(name=name, text=message)
+        header_data = self._get_log_data()
+        header_data["error_text"] = message
+        notification_content = NotificationContent(
+            name=name, text=message, header_data=header_data
+        )
 
         # filter recipients to recipients who are also owners
         owner_recipients = [
