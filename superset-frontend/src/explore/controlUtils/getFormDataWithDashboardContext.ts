@@ -185,16 +185,28 @@ export const getFormDataWithDashboardContext = (
     exploreFormData,
     dashboardContextFormData,
   );
-  const adhocFilters = removeAdhocFilterDuplicates([
-    ...ensureIsArray(exploreFormData.adhoc_filters),
-    ...ensureIsArray(filterBoxData.adhoc_filters),
-    ...ensureIsArray(nativeFiltersData.adhoc_filters),
-  ]);
+  const adhocFilters = [
+    ...Object.keys(exploreFormData),
+    ...Object.keys(filterBoxData),
+    ...Object.keys(nativeFiltersData),
+  ]
+    .filter(key => key.match(/adhoc_filter.*/))
+    .reduce(
+      (acc, key) => ({
+        ...acc,
+        [key]: removeAdhocFilterDuplicates([
+          ...ensureIsArray(exploreFormData[key]),
+          ...ensureIsArray(filterBoxData[key]),
+          ...ensureIsArray(nativeFiltersData[key]),
+        ]),
+      }),
+      {},
+    );
   return {
     ...exploreFormData,
     ...dashboardContextFormData,
     ...filterBoxData,
     ...nativeFiltersData,
-    adhoc_filters: adhocFilters,
+    ...adhocFilters,
   };
 };
