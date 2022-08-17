@@ -9,16 +9,17 @@ name: 'Chromatic'
 on:
   push:
     branches:
-      - 'master'
+      - master
     paths:
-      - 'superset-frontend/**'
-  pull_request:
-    types: [created, edited, synchronize, reopen]
+      - "superset-frontend/**"
+  pull_request_target:
+    types: [opened, edited, synchronize, reopen]
     paths:
-      - 'superset-frontend/**'
+      - "superset-frontend/**"
 
 env:
   CHROMATIC_PROJECT_TOKEN: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
+
 # List of jobs
 jobs:
   chromatic-deployment:
@@ -40,6 +41,7 @@ jobs:
           workingDir: superset-frontend
           # 👇 Chromatic projectToken, refer to the manage page to obtain it.
           projectToken: ${{ env.CHROMATIC_PROJECT_TOKEN }}
+          exitZeroOnChanges: true # 👈 Option to prevent the workflow from failing
       # 👇 Checks if the branch is master and accepts all changes in Chromatic
       - name: Publish to Chromatic and auto accept changes
         if: github.ref == 'refs/heads/master'
@@ -50,4 +52,5 @@ jobs:
           workingDir: superset-frontend
           # 👇 Chromatic projectToken, refer to the manage page to obtain it.
           projectToken: ${{ env.CHROMATIC_PROJECT_TOKEN }}
-          autoAcceptChanges: true # 👈 Option to accept all changes
+          autoAcceptChanges: true # 👈 Option to accept all changes when merging to master
+          exitZeroOnChanges: true # 👈 Option to prevent the workflow from failing
