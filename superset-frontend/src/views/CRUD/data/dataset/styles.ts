@@ -67,8 +67,7 @@ export const FooterRow = styled(Row)`
 export const StyledHeader = styled.div`
   flex: 0 0 auto;
   height: ${({ theme }) => theme.gridUnit * 16}px;
-  border-top: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
-  border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+  border-bottom: 2px solid ${({ theme }) => theme.colors.grayscale.light2};
   color: ${({ theme }) => theme.colors.error.base};
 `;
 
