@@ -61,7 +61,6 @@ from superset.datasets.schemas import (
     get_delete_ids_schema,
     get_export_ids_schema,
 )
-from superset.extensions import db
 from superset.utils.core import parse_boolean_string
 from superset.views.base import DatasourceFilter, generate_download_headers
 from superset.views.base_api import (
