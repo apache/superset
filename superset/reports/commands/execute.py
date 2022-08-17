@@ -17,7 +17,7 @@
 import json
 import logging
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, List, Optional, Union
 from uuid import UUID
 
 import pandas as pd
@@ -73,6 +73,8 @@ from superset.utils.csv import get_chart_csv_data, get_chart_dataframe
 from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot
 from superset.utils.urls import get_url_path
 from superset.utils.webdriver import DashboardStandaloneMode
+
+from ...utils.core import HeaderDataType
 
 logger = logging.getLogger(__name__)
 
@@ -306,7 +308,7 @@ class BaseReportState:
                 "Please try loading the chart and saving it again."
             ) from ex
 
-    def _get_log_data(self) -> Dict[str, Any]:
+    def _get_log_data(self) -> HeaderDataType:
         chart_id = None
         dashboard_id = None
         report_source = None
@@ -316,13 +318,14 @@ class BaseReportState:
         else:
             report_source = ReportSourceFormat.DASHBOARD
             dashboard_id = self._report_schedule.dashboard_id
-        log_data = {
-            "notification_type": self._report_schedule.type or None,
+
+        log_data: HeaderDataType = {
+            "notification_type": self._report_schedule.type,
             "notification_source": report_source,
-            "notification_format": self._report_schedule.report_format or None,
+            "notification_format": self._report_schedule.report_format,
             "chart_id": chart_id,
             "dashboard_id": dashboard_id,
-            "owners": self._report_schedule.owners or None,
+            "owners": self._report_schedule.owners,
         }
         return log_data
 

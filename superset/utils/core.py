@@ -99,7 +99,6 @@ from superset.exceptions import (
     SupersetException,
     SupersetTimeoutException,
 )
-from superset.reports.notifications.base import HeaderDataType
 from superset.sql_parse import sanitize_clause
 from superset.superset_typing import (
     AdhocColumn,
@@ -183,6 +182,15 @@ class DatasourceType(str, Enum):
     QUERY = "query"
     SAVEDQUERY = "saved_query"
     VIEW = "view"
+
+
+class HeaderDataType(TypedDict):
+    notification_format: str
+    owners: List[int]
+    notification_type: str
+    notification_source: Optional[str]
+    chart_id: Optional[int]
+    dashboard_id: Optional[int]
 
 
 class DatasourceDict(TypedDict):
