@@ -116,12 +116,14 @@ export default function DrillDetailPane({
 
   //  Clear cache on reload button click
   const handleReload = useCallback(() => {
+    setResponseError('');
     setResultsPages(new Map());
     setPageIndex(0);
   }, []);
 
   //  Clear cache and reset page index if filters change
   useEffect(() => {
+    setResponseError('');
     setResultsPages(new Map());
     setPageIndex(0);
   }, [filters]);
@@ -145,7 +147,7 @@ export default function DrillDetailPane({
 
   //  Download page of results & trim cache if page not in cache
   useEffect(() => {
-    if (!isLoading && !resultsPages.has(pageIndex)) {
+    if (!responseError && !isLoading && !resultsPages.has(pageIndex)) {
       setIsLoading(true);
       const jsonPayload = getDrillPayload(formData, filters);
       const cachePageLimit = Math.ceil(SAMPLES_ROW_LIMIT / PAGE_SIZE);
@@ -189,6 +191,7 @@ export default function DrillDetailPane({
     formData,
     isLoading,
     pageIndex,
+    responseError,
     resultsPages,
   ]);
 
