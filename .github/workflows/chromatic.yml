@@ -12,7 +12,7 @@ on:
       - 'master'
     paths:
       - 'superset-frontend/**'
-  pull_request_target:
+  pull_request:
     types: [created, edited, synchronize, reopen]
     paths:
       - 'superset-frontend/**'
