@@ -201,8 +201,31 @@ SQLALCHEMY_CUSTOM_PASSWORD_STORE = None
 # to the DB.
 #
 # Note: the default impl leverages SqlAlchemyUtils' EncryptedType, which defaults
-#  to AES-128 under the covers using the app's SECRET_KEY as key material.
+#  to AesEngine that uses AES-128 under the covers using the app's SECRET_KEY
+#  as key material. Do note that AesEngine allows for queryability over the
+#  encrypted fields.
 #
+#  To change the default engine you need to define your own adapter:
+#
+# e.g.:
+#
+# class AesGcmEncryptedAdapter(  # pylint: disable=too-few-public-methods
+#     AbstractEncryptedFieldAdapter
+# ):
+#     def create(
+#         self,
+#         app_config: Optional[Dict[str, Any]],
+#         *args: List[Any],
+#         **kwargs: Optional[Dict[str, Any]],
+#     ) -> TypeDecorator:
+#         if app_config:
+#             return EncryptedType(
+#                 *args, app_config["SECRET_KEY"], engine=AesGcmEngine, **kwargs
+#             )
+#         raise Exception("Missing app_config kwarg")
+#
+#
+#  SQLALCHEMY_ENCRYPTED_FIELD_TYPE_ADAPTER = AesGcmEncryptedAdapter
 SQLALCHEMY_ENCRYPTED_FIELD_TYPE_ADAPTER = (  # pylint: disable=invalid-name
     SQLAlchemyUtilsAdapter
 )
