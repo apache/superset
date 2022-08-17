@@ -30,6 +30,7 @@ import re
 import sys
 from collections import OrderedDict
 from datetime import timedelta
+from email.mime.multipart import MIMEMultipart
 from typing import (
     Any,
     Callable,
@@ -1066,9 +1067,12 @@ def SQL_QUERY_MUTATOR(  # pylint: disable=invalid-name,unused-argument
     return sql
 
 
-def NOTIFICATION_EMAIL_HEADER_MUTATOR(  # pylint: disable=invalid-name,unused-argument
-    msg: Dict[str, Any], **kwargs: Any
-) -> Dict[str, Any]:
+# This allows for a user to add header data to any outgoing emails. For example,
+# if you need to include metadata in the header or you want to change the specifications
+# of the email title, header, or sender.
+def EMAIL_HEADER_MUTATOR(  # pylint: disable=invalid-name,unused-argument
+    msg: MIMEMultipart, **kwargs: Any
+) -> MIMEMultipart:
     return msg
 
 

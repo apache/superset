@@ -15,24 +15,34 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Type
+from dataclasses import dataclass
+from typing import Any, List, Optional, Type
 
 import pandas as pd
+from typing_extensions import TypedDict
 
 from superset.reports.models import ReportRecipients, ReportRecipientType
+
+
+class HeaderDataType(TypedDict):
+    notification_format: str
+    owners: List[int]
+    notification_type: str
+    notification_source: Optional[str]
+    chart_id: Optional[int]
+    dashboard_id: Optional[int]
 
 
 @dataclass
 class NotificationContent:
     name: str
+    header_data: HeaderDataType
     csv: Optional[bytes] = None  # bytes for csv file
     screenshots: Optional[List[bytes]] = None  # bytes for a list of screenshots
     text: Optional[str] = None
     description: Optional[str] = ""
     url: Optional[str] = None  # url to chart/dashboard for this screenshot
     embedded_data: Optional[pd.DataFrame] = None
-    header_data: Optional[Dict[Any, Any]] = field(default_factory=lambda: {})
 
 
 class BaseNotification:  # pylint: disable=too-few-public-methods

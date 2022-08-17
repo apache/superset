@@ -27,7 +27,7 @@ from flask_babel import gettext as __
 
 from superset import app
 from superset.reports.models import ReportRecipientType
-from superset.reports.notifications.base import BaseNotification
+from superset.reports.notifications.base import BaseNotification, HeaderDataType
 from superset.reports.notifications.exceptions import NotificationError
 from superset.utils.core import send_email_smtp
 from superset.utils.decorators import statsd_gauge
@@ -67,9 +67,9 @@ ALLOWED_ATTRIBUTES = {
 @dataclass
 class EmailContent:
     body: str
+    header_data: Optional[HeaderDataType] = None
     data: Optional[Dict[str, Any]] = None
     images: Optional[Dict[str, bytes]] = None
-    header_data: Optional[Dict[str, Any]] = None
 
 
 class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-methods
