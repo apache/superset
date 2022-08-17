@@ -132,6 +132,7 @@ const actionButtonsStyle = theme => css`
   }
 
   .undoRedo {
+    display: flex;
     margin-right: ${theme.gridUnit * 2}px;
   }
 `;

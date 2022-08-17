@@ -82,8 +82,16 @@ export function formatFunnelLabel({
 export default function transformProps(
   chartProps: EchartsFunnelChartProps,
 ): FunnelChartTransformedProps {
-  const { formData, height, hooks, filterState, queriesData, width, theme } =
-    chartProps;
+  const {
+    formData,
+    height,
+    hooks,
+    filterState,
+    queriesData,
+    width,
+    theme,
+    inContextMenu,
+  } = chartProps;
   const data: DataRecord[] = queriesData[0].data || [];
 
   const {
@@ -128,7 +136,7 @@ export default function transformProps(
     {},
   );
 
-  const { setDataMask = () => {} } = hooks;
+  const { setDataMask = () => {}, onContextMenu } = hooks;
 
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
   const numberFormatter = getNumberFormatter(numberFormat);
@@ -209,6 +217,7 @@ export default function transformProps(
     },
     tooltip: {
       ...defaultTooltip,
+      show: !inContextMenu,
       trigger: 'item',
       formatter: (params: any) =>
         formatFunnelLabel({
@@ -234,5 +243,6 @@ export default function transformProps(
     labelMap,
     groupby,
     selectedValues,
+    onContextMenu,
   };
 }

@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useRef } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { QueryObjectFilterClause } from '@superset-ui/core';
 import { ViewRootGroup } from 'echarts/types/src/util/types';
 import GlobalModel from 'echarts/types/src/model/Global';
 import ComponentModel from 'echarts/types/src/model/Component';
@@ -40,12 +41,20 @@ export default function EchartsTimeseries({
   setDataMask,
   setControlValue,
   legendData = [],
+  onContextMenu,
+  xValueFormatter,
 }: TimeseriesChartTransformedProps) {
   const { emitFilter, stack } = formData;
   const echartRef = useRef<EchartsHandler | null>(null);
   const lastTimeRef = useRef(Date.now());
   const lastSelectedLegend = useRef('');
   const clickTimer = useRef<ReturnType<typeof setTimeout>>();
+  const extraControlRef = useRef<HTMLDivElement>(null);
+  const [extraControlHeight, setExtraControlHeight] = useState(0);
+  useEffect(() => {
+    const updatedHeight = extraControlRef.current?.offsetHeight || 0;
+    setExtraControlHeight(updatedHeight);
+  }, [formData.showExtraControls]);
 
   const handleDoubleClickChange = useCallback(
     (name?: string) => {
@@ -167,6 +176,33 @@ export default function EchartsTimeseries({
         handleDoubleClickChange();
       }
     },
+    contextmenu: eventParams => {
+      if (onContextMenu) {
+        eventParams.event.stop();
+        const { data } = eventParams;
+        if (data) {
+          const pointerEvent = eventParams.event.event;
+          const values = eventParams.seriesName.split(',');
+          const filters: QueryObjectFilterClause[] = [];
+          filters.push({
+            col: formData.granularitySqla,
+            grain: formData.timeGrainSqla,
+            op: '==',
+            val: data[0],
+            formattedVal: xValueFormatter(data[0]),
+          });
+          formData.groupby.forEach((dimension, i) =>
+            filters.push({
+              col: dimension,
+              op: '==',
+              val: values[i],
+              formattedVal: values[i],
+            }),
+          );
+          onContextMenu(filters, pointerEvent.offsetX, pointerEvent.offsetY);
+        }
+      }
+    },
   };
 
   const zrEventHandlers: EventHandlers = {
@@ -199,10 +235,12 @@ export default function EchartsTimeseries({
 
   return (
     <>
-      <ExtraControls formData={formData} setControlValue={setControlValue} />
+      <div ref={extraControlRef}>
+        <ExtraControls formData={formData} setControlValue={setControlValue} />
+      </div>
       <Echart
         ref={echartRef}
-        height={height}
+        height={height - extraControlHeight}
         width={width}
         echartOptions={echartOptions}
         eventHandlers={eventHandlers}

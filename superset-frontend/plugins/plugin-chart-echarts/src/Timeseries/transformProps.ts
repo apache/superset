@@ -97,6 +97,7 @@ export default function transformProps(
     queriesData,
     datasource,
     theme,
+    inContextMenu,
   } = chartProps;
   const { verboseMap = {} } = datasource;
   const [queryData] = queriesData;
@@ -169,6 +170,8 @@ export default function transformProps(
   });
   const showValueIndexes = extractShowValueIndexes(rawSeries, {
     stack,
+    onlyTotal,
+    isHorizontal,
   });
   const seriesContexts = extractForecastSeriesContexts(
     Object.values(rawSeries).map(series => series.name as string),
@@ -302,6 +305,7 @@ export default function transformProps(
   const {
     setDataMask = () => {},
     setControlValue = (...args: unknown[]) => {},
+    onContextMenu,
   } = hooks;
 
   const addYAxisLabelOffset = !!yAxisTitle;
@@ -380,6 +384,7 @@ export default function transformProps(
     xAxis,
     yAxis,
     tooltip: {
+      show: !inContextMenu,
       ...defaultTooltip,
       appendToBody: true,
       trigger: richTooltip ? 'axis' : 'item',
@@ -457,5 +462,7 @@ export default function transformProps(
     setControlValue,
     width,
     legendData,
+    onContextMenu,
+    xValueFormatter: tooltipFormatter,
   };
 }

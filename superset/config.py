@@ -438,6 +438,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "CACHE_IMPERSONATION": False,
     # Enable sharing charts with embedding
     "EMBEDDABLE_CHARTS": True,
+    "DRILL_TO_DETAIL": False,
 }
 
 # Feature flags may also be set via 'SUPERSET_FEATURE_' prefixed environment vars.
