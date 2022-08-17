@@ -105,7 +105,7 @@ describe('SqlLab query panel', () => {
       // multiple limit options
       [1, 3].forEach(limitSelectorIndex => {
         cy.get(
-          '#js-sql-toolbar .leftItems .ant-dropdown-trigger:last-child',
+          '#js-sql-toolbar .leftItems a.ant-dropdown-trigger:last-child',
         ).click();
         cy.get(
           `.ant-dropdown:last-child .ant-dropdown-menu-item:nth-child(${limitSelectorIndex}) [role="button"]`,
@@ -123,7 +123,7 @@ describe('SqlLab query panel', () => {
                 );
               });
 
-            cy.get('#ace-editor textarea')
+            cy.get('#ace-editor textarea.ace_text-input')
               .focus()
               .type(`{selectall}{backspace}${expectedQuery}`);
 
@@ -167,7 +167,7 @@ describe('SqlLab query panel', () => {
   });
 
   it('supports autocomplete', () => {
-    cy.get('#ace-editor textarea')
+    cy.get('#ace-editor textarea.ace_text-input')
       .focus()
       .type(`{selectall}{backspace}mock_table`);
 
@@ -181,13 +181,13 @@ describe('SqlLab query panel', () => {
       });
 
     // before a table schema loaded
-    cy.get('#ace-editor textarea')
+    cy.get('#ace-editor textarea.ace_text-input')
       .focus()
       .type(`{selectall}{backspace}mock_tcolumn_nam`);
 
     cy.get('.ace_autocomplete').should('not.be.visible');
 
-    cy.get('#ace-editor textarea').blur();
+    cy.get('#ace-editor textarea.ace_text-input').blur();
 
     // select a table
     cy.get('.SqlEditorLeftBar .divider + .section [type=search]')
@@ -217,7 +217,7 @@ describe('SqlLab query panel', () => {
       ).to.equal('1\ndata row 1\n2\ndata row 2');
     });
 
-    cy.get('#ace-editor textarea')
+    cy.get('#ace-editor textarea.ace_text-input')
       .focus()
       .clear()
       .type(`{selectall}{backspace}mock_tcolumn_nam`);
@@ -229,7 +229,7 @@ describe('SqlLab query panel', () => {
         expect(el.text()).to.include('mock_tcolumn_name');
       });
 
-    cy.get('#ace-editor textarea').blur();
+    cy.get('#ace-editor textarea.ace_text-input').blur();
 
     // turn off autocomplete
     cy.get(
@@ -237,23 +237,23 @@ describe('SqlLab query panel', () => {
     ).click();
     cy.get('.ant-dropdown button[name="autocomplete-switch"]').click();
 
-    cy.get('#ace-editor textarea')
+    cy.get('#ace-editor textarea.ace_text-input')
       .focus()
       .clear()
       .type(`{selectall}{backspace}mock_table`);
 
     // autocomplete should be skipped
     cy.get('.ace_autocomplete').should('not.be.visible');
-    cy.get('#ace-editor textarea').blur();
+    cy.get('#ace-editor textarea.ace_text-input').blur();
 
-    cy.get('#ace-editor textarea')
+    cy.get('#ace-editor textarea.ace_text-input')
       .focus()
       .clear()
       .type(`{selectall}{backspace}mock_tcolumn_nam`);
 
     cy.get('.ace_autocomplete').should('not.be.visible');
 
-    cy.get('#ace-editor textarea').blur();
+    cy.get('#ace-editor textarea.ace_text-input').blur();
   });
 
   it('successfully saves a query', () => {
@@ -284,7 +284,7 @@ describe('SqlLab query panel', () => {
       mockResponse,
     ).as('mockUpdateQuery');
 
-    cy.get('#ace-editor textarea')
+    cy.get('#ace-editor textarea.ace_text-input')
       .focus()
       .clear()
       .type(`{selectall}{backspace}${query}`, { delay: 0 });
