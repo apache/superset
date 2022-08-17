@@ -383,7 +383,7 @@ export function runQueryFromSqlEditor(
     const qe = getUpToDateQuery(getState(), queryEditor, queryEditor.id);
     const query = {
       dbId: qe.dbId,
-      sql: qe.selectedText ? qe.selectedText : qe.sql,
+      sql: qe.selectedText || qe.sql,
       sqlEditorId: qe.id,
       tab: qe.name,
       schema: qe.schema,
