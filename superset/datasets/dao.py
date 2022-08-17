@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import json
 import logging
 from typing import Any, Dict, List, Optional
 
@@ -406,10 +407,19 @@ class DatasetDAO(BaseDAO):  # pylint: disable=too-many-public-methods
         print(datasets)
         result = {}
         for dataset in datasets:
+            column_id = dataset[1]
+            if isinstance(column_id, str):
+                column_id = json.loads(dataset[1])
+            verbose_name = dataset[2]
+            if isinstance(verbose_name, str):
+                verbose_name = json.loads(dataset[2])
+            name = dataset[3]
+            if isinstance(name, str):
+                name = json.loads(dataset[3])
             result[dataset[0]] = dict(
                 zip(
-                    dataset[1],
-                    map(lambda verbose, name: verbose or name, dataset[2], dataset[3]),
+                    column_id,
+                    map(lambda verbose, name: verbose or name, verbose_name, name),
                 )
             )
         return result
