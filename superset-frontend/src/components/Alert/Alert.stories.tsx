@@ -30,6 +30,7 @@ const sharedAlertProps = {
   description: `This is the optional description text to provide the user with more context about the alert`,
   showIcon: true,
   onClose: () => {
+    // eslint-disable-next-line no-alert
     alert('Alert onClose callback invoked');
   },
 };
