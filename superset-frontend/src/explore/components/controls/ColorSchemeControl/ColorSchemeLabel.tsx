@@ -91,14 +91,16 @@ export default function ColorSchemeLabel(props: ColorSchemeLabelProps) {
         css={css`
           display: flex;
           align-items: center;
+          justify-content: flex-start;
         `}
         data-test={id}
       >
         <span
           className="color-scheme-label"
           ref={labelNameRef}
-          css={css`
-            width: 80px;
+          css={(theme: SupersetTheme) => css`
+            min-width: 125px;
+            padding-right: ${theme.gridUnit * 2}px;
             text-overflow: ellipsis;
             overflow: hidden;
             white-space: nowrap;
@@ -109,11 +111,11 @@ export default function ColorSchemeLabel(props: ColorSchemeLabelProps) {
         <span
           ref={labelColorsRef}
           css={(theme: SupersetTheme) => css`
-            padding-left: ${theme.gridUnit}px;
-            min-width: 150px;
+            flex: 100%;
             text-overflow: ellipsis;
             overflow: hidden;
             white-space: nowrap;
+            padding-right: ${theme.gridUnit}px;
           `}
         >
           {colorsList()}

@@ -58,13 +58,6 @@ const StyledAlert = styled(Icons.AlertSolid)`
   color: ${({ theme }) => theme.colors.alert.base};
 `;
 
-const StyledSelect = styled(Select)`
-  .ant-select-selection-item .color-scheme-label {
-    width: auto;
-    max-width: 80px;
-  }
-`;
-
 export default class ColorSchemeControl extends React.PureComponent {
   constructor(props) {
     super(props);
@@ -179,7 +172,7 @@ export default class ColorSchemeControl extends React.PureComponent {
     };
 
     return (
-      <StyledSelect
+      <Select
         header={<ControlHeader {...this.props} label={this.renderLabel()} />}
         {...selectProps}
       />
