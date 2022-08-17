@@ -107,5 +107,11 @@ open-cypress:
 	if ! [ $(port) ]; then cd superset-frontend/cypress-base; CYPRESS_BASE_URL=http://localhost:9000 npm run cypress open; fi
 	cd superset-frontend/cypress-base; CYPRESS_BASE_URL=http://localhost:$(port) npm run cypress open
 
+report-celery-worker:
+	celery --app=superset.tasks.celery_app:app worker
+
+report-celery-beat:
+	celery --app=superset.tasks.celery_app:app beat --pidfile /tmp/celerybeat.pid --schedule /tmp/celerybeat-schedulecd
+
 admin-user:
 	superset fab create-admin
