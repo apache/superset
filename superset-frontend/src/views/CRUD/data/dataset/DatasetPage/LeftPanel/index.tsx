@@ -16,12 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SupersetClient } from '@superset-ui/core';
-import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { styled } from '@superset-ui/core';
+import { SupersetClient, t, styled, FAST_DEBOUNCE } from '@superset-ui/core';
+import React, {
+  useEffect,
+  useState,
+  useRef,
+  useCallback,
+  useMemo,
+} from 'react';
+import { Input } from 'src/components/Input';
+import { Form } from 'src/components/Form';
 import { TableOption, Table } from 'src/components/TableSelector';
+import Loading from 'src/components/Loading';
 import DatabaseSelector from 'src/components/DatabaseSelector';
+import { debounce } from 'lodash';
 import { DatasetActionType } from '../types';
+import { CodeSandboxCircleFilled } from '@ant-design/icons';
 
 interface LeftPanelProps {
   setDataset: (db: any) => void;
@@ -47,17 +57,35 @@ export default function LeftPanel({
   dbId,
 }: LeftPanelProps) {
   const [tableOptions, setTableOptions] = useState<Array<TableOption>>([]);
-  const [page, setPage] = useState({
-    startIndex: 0,
-    lastIndex: 25,
-    length: 0,
-  });
   const [resetTables, setResetTables] = useState(false);
   const [loadTables, setLoadTables] = useState(false);
+  const [searchVal, setSearchVal] = useState('');
 
   const setDatabase = (db: any) => {
     setDataset({ type: DatasetActionType.selectDatabase, payload: db });
     setResetTables(true);
+  };
+
+  const getTablesList = (url: string) => {
+    SupersetClient.get({ url })
+      .then(({ json }) => {
+        const options: TableOption[] = json.options.map((table: Table) => {
+          const option: TableOption = {
+            value: table.value,
+            label: <TableOption table={table} />,
+            text: table.label,
+          };
+
+          return option;
+        });
+
+        setTableOptions(options);
+        setLoadTables(false);
+        setResetTables(false);
+      })
+      .catch(e => {
+        console.log('error', e);
+      });
   };
 
   const setSchema = (schema: any) => {
@@ -68,44 +96,15 @@ export default function LeftPanel({
     setResetTables(true);
   };
 
-  const observer = useRef<IntersectionObserver | null>();
-  const lastElementRef = useCallback(node => {
-    if (observer.current) observer.current.disconnect();
-    observer.current = new IntersectionObserver(entries => {
-      if (entries[0].isIntersecting) {
-        setPage(prev => ({ ...prev, lastIndex: page.lastIndex + 50 }));
-      }
-    });
-    if (node) observer.current.observe(node);
-  }, []);
+  const encodedSchema = encodeURIComponent(schema as string);
+  const forceRefresh = null;
 
   useEffect(() => {
     if (loadTables) {
-      const encodedSchema = encodeURIComponent(schema as string);
-      const forceRefresh = null;
       const endpoint = encodeURI(
         `/superset/tables/${dbId}/${encodedSchema}/undefined/${forceRefresh}/`,
       );
-      SupersetClient.get({ endpoint })
-        .then(({ json }) => {
-          const options: TableOption[] = json.options.map((table: Table) => {
-            const option: TableOption = {
-              value: table.value,
-              label: <TableOption table={table} />,
-              text: table.label,
-            };
-
-            return option;
-          });
-
-          setPage(existing => ({ ...existing, length: json.tableLength }));
-          setTableOptions(options);
-          setLoadTables(false);
-          setResetTables(false);
-        })
-        .catch(e => {
-          console.log('error', e);
-        });
+      getTablesList(endpoint);
     }
   }, [loadTables]);
 
@@ -116,7 +115,25 @@ export default function LeftPanel({
     }
   }, [resetTables]);
 
-  const paginatedTabeOptipons = tableOptions.slice(0, page.lastIndex);
+  const search = useMemo(
+    () =>
+      debounce(
+        (value: string) => {
+          console.log('i hit', value)
+          console.log('dbId', dbId)
+          const encodeTableName =
+            value === '' ? undefined : encodeURIComponent(value);
+          console.log('encode', encodeTableName)
+          const endpoint = encodeURI(
+            `/superset/tables/${dbId}/${encodedSchema}/${encodeTableName}/${forceRefresh}/`,
+          );
+          getTablesList(endpoint);
+        },
+        [FAST_DEBOUNCE],
+      ),
+    [dbId, encodedSchema],
+  );
+
   return (
     <LeftPanelStyle>
       <p> Select Database & Schema</p>
@@ -125,18 +142,32 @@ export default function LeftPanel({
         onDbChange={setDatabase}
         onSchemaChange={setSchema}
       />
-      <div className="options-list">
-        {paginatedTabeOptipons.map((o, i) => {
-          if (paginatedTabeOptipons.length === i + 1) {
-            return (
-              <div key={i} ref={lastElementRef}>
-                {o.label}
-              </div>
-            );
-          }
-          return <div key={i}>{o.label}</div>;
-        })}
-      </div>
+      {loadTables && (
+        <div>
+          <Loading />
+          <p>loading schemas ...</p>
+        </div>
+      )}
+      {!schema && !loadTables ? null : (
+        <>
+          <Form>
+            <Input
+              value={searchVal}
+              onChange={evt => {
+                search(evt.target.value);
+                setSearchVal(evt.target.value);
+              }}
+              className="table-form"
+              placeholder={t('Search Tables')}
+            />
+          </Form>
+          <div className="options-list">
+            {tableOptions.map((o, i) => (
+              <div key={i}>{o.label}</div>
+            ))}
+          </div>
+        </>
+      )}
     </LeftPanelStyle>
   );
 }
