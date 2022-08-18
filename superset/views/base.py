@@ -310,7 +310,7 @@ def menu_data() -> Dict[str, Any]:
     return {
         "menu": menu,
         "brand": {
-            "path": appbuilder.app.config["LOGO_TARGET_PATH"] or "/",
+            "path": appbuilder.app.config["LOGO_TARGET_PATH"] or "/superset/welcome/",
             "icon": appbuilder.app_icon,
             "alt": appbuilder.app_name,
             "tooltip": appbuilder.app.config["LOGO_TOOLTIP"],
