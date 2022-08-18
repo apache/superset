@@ -1,0 +1,36 @@
+---
+title: TimescaleDB
+hide_title: true
+sidebar_position: 31
+version: 1
+---
+
+## TimescaleDB
+[TimescaleDB](https://www.timescale.com) is the open-source relational database for time-series and analytics to build powerful data-intensive applications.
+
+
+TimescaleDB sample connection parameters:
+
+- **User Name**: User
+- **Password**: Password
+- **Database Host**:
+  - For Localhost: localhost or 127.0.0.1
+  - For On Prem: IP address or Host name
+  - For Timescale Cloud service: Host name
+  - For Managed Service for TimescaleDB service: Host name
+- **Database Name**: Database Name
+- **Port**: default 5432 or Port number of the service
+
+The connection string looks like:
+
+```
+postgresql://{username}:{password}@{host}:{port}/{database name}
+```
+
+You can require SSL by adding `?sslmode=require` at the end:
+
+```
+postgresql://{username}:{password}@{host}:{port}/{database name}?sslmode=require
+```
+
+For information about Postgres connector library [psycopg2](https://www.psycopg.org/docs/) with TimescaleDB, see [TimescaleDB Documentation](https://docs.timescale.com/timescaledb/latest/quick-start/python/).
