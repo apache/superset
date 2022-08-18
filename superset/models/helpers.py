@@ -1485,11 +1485,16 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     # if groupby field/expr equals granularity field/expr
                     if selected == granularity:
                         table_col = columns_by_name[selected]
-                        outer = table_col.get_timestamp_expression(
-                            time_grain=time_grain,
-                            label=selected,
-                            template_processor=template_processor,
-                        )
+                        if isinstance(table_col, dict):
+                            outer = self.get_timestamp_expression(
+                                table_col, time_grain, selected, template_processor
+                            )
+                        else:
+                            outer = table_col.get_timestamp_expression(
+                                time_grain=time_grain,
+                                label=selected,
+                                template_processor=template_processor,
+                            )
                     # if groupby field equals a selected column
                     elif selected in columns_by_name:
                         if isinstance(columns_by_name[selected], dict):
