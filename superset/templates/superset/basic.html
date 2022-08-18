@@ -22,6 +22,7 @@
 {% from 'superset/partials/asset_bundle.html' import css_bundle, js_bundle with context %}
 
 {% set favicons = appbuilder.app.config['FAVICONS'] %}
+{% set title = appbuilder.app.config['TAB_TITLE'] %}
 <html>
   <head>
     <title>
