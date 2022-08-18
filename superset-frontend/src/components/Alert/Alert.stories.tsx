@@ -27,7 +27,7 @@ export default {
 const sharedAlertProps = {
   closable: true,
   roomBelow: false,
-  description: `This is an optional description text to provide the user with more context about the alert`,
+  description: `This is an optional description to provide the user with more context about the alert`,
   showIcon: true,
   onClose: () => {
     // eslint-disable-next-line no-alert
