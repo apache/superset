@@ -102,6 +102,11 @@ export type DatabaseObject = {
   catalog?: Array<CatalogObject>;
   query_input?: string;
   extra?: string;
+
+  // DB Engine Spec information
+  engine_information?: {
+    allows_file_upload?: boolean;
+  };
 };
 
 export type DatabaseForm = {

@@ -48,7 +48,6 @@ import {
   RightMenuProps,
 } from './types';
 import { MenuObjectProps } from './Menu';
-import { Engines } from '../CRUD/data/database/types';
 
 const extensionsRegistry = getExtensionsRegistry();
 
@@ -212,9 +211,7 @@ const RightMenu = ({
       // with allow_file_upload set as True which is not possible from now on
       const allowedDatabasesWithFileUpload =
         json?.result?.filter(
-          (database: any) =>
-            database?.backend !== Engines.GSheet &&
-            database?.backend !== Engines.ClickHouse,
+          (database: any) => database?.engine_information?.allows_file_upload,
         ) || [];
       setAllowUploads(allowedDatabasesWithFileUpload?.length >= 1);
     });
@@ -250,7 +247,7 @@ const RightMenu = ({
   const isDisabled = isAdmin && !allowUploads;
 
   const tooltipText = t(
-    "Enable 'Allow data upload' in any database's settings",
+    "Enable 'Allow file uploads to database' in any database's settings",
   );
 
   const buildMenuItem = (item: Record<string, any>) => {

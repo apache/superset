@@ -1684,6 +1684,17 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         return new
 
+    @classmethod
+    def get_public_information(cls) -> Dict[str, Any]:
+        """
+        Construct a Dict with properties we want to expose.
+
+        :returns: Dict with properties of our class like allows_file_upload
+        """
+        return {
+            "allows_file_upload": cls.allows_file_upload,
+        }
+
 
 # schema for adding a database by providing parameters instead of the
 # full SQLAlchemy URI

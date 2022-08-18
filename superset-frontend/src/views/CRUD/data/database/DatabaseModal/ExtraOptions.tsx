@@ -29,7 +29,7 @@ import {
   antdCollapseStyles,
   no_margin_bottom,
 } from './styles';
-import { DatabaseObject, Engines } from '../types';
+import { DatabaseObject } from '../types';
 
 const ExtraOptions = ({
   db,
@@ -49,7 +49,7 @@ const ExtraOptions = ({
   const expandableModalIsOpen = !!db?.expose_in_sqllab;
   const createAsOpen = !!(db?.allow_ctas || db?.allow_cvas);
   const isFileUploadSupportedByEngine =
-    db?.engine !== Engines.GSheet && db?.engine !== Engines.ClickHouse;
+    db?.engine_information?.allows_file_upload;
 
   return (
     <Collapse

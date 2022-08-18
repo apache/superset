@@ -99,12 +99,18 @@ fetchMock.mock(AVAILABLE_DB_ENDPOINT, {
       preferred: true,
       sqlalchemy_uri_placeholder:
         'postgresql://user:password@host:port/dbname[?key=value&key=value...]',
+      engine_information: {
+        allows_file_upload: true,
+      },
     },
     {
       available_drivers: ['rest'],
       engine: 'presto',
       name: 'Presto',
       preferred: true,
+      engine_information: {
+        allows_file_upload: true,
+      },
     },
     {
       available_drivers: ['mysqldb'],
@@ -154,18 +160,27 @@ fetchMock.mock(AVAILABLE_DB_ENDPOINT, {
       preferred: true,
       sqlalchemy_uri_placeholder:
         'mysql://user:password@host:port/dbname[?key=value&key=value...]',
+      engine_information: {
+        allows_file_upload: true,
+      },
     },
     {
       available_drivers: ['pysqlite'],
       engine: 'sqlite',
       name: 'SQLite',
       preferred: true,
+      engine_information: {
+        allows_file_upload: true,
+      },
     },
     {
       available_drivers: ['rest'],
       engine: 'druid',
       name: 'Apache Druid',
       preferred: false,
+      engine_information: {
+        allows_file_upload: true,
+      },
     },
     {
       available_drivers: ['bigquery'],
@@ -187,6 +202,9 @@ fetchMock.mock(AVAILABLE_DB_ENDPOINT, {
       },
       preferred: false,
       sqlalchemy_uri_placeholder: 'bigquery://{project_id}',
+      engine_information: {
+        allows_file_upload: true,
+      },
     },
     {
       available_drivers: ['rest'],
@@ -194,6 +212,9 @@ fetchMock.mock(AVAILABLE_DB_ENDPOINT, {
       engine: 'gsheets',
       name: 'Google Sheets',
       preferred: false,
+      engine_information: {
+        allows_file_upload: false,
+      },
     },
   ],
 });
@@ -779,9 +800,11 @@ describe('DatabaseModal', () => {
         name: /right security add extra connection information\./i,
       });
       const allowFileUploadCheckbox = screen.getByRole('checkbox', {
-        name: /Allow file uploads/i,
+        name: /Allow file uploads to database/i,
       });
-      const allowFileUploadText = screen.getByText(/Allow file uploads/i);
+      const allowFileUploadText = screen.getByText(
+        /Allow file uploads to database/i,
+      );
 
       const schemasForFileUploadText = screen.queryByText(
         /Schemas allowed for File upload/i,
@@ -833,7 +856,7 @@ describe('DatabaseModal', () => {
       // Click the "Allow file uploads" tab
 
       const allowFileUploadCheckbox = screen.getByRole('checkbox', {
-        name: /Allow file uploads/i,
+        name: /Allow file uploads to database/i,
       });
       userEvent.click(allowFileUploadCheckbox);
 
@@ -865,7 +888,9 @@ describe('DatabaseModal', () => {
       const securityTab = screen.getByRole('tab', {
         name: /right security add extra connection information\./i,
       });
-      const allowFileUploadText = screen.getByText(/Allow file uploads/i);
+      const allowFileUploadText = screen.getByText(
+        /Allow file uploads to database/i,
+      );
 
       const schemasForFileUploadText = screen.queryByText(
         /Schemas allowed for File upload/i,
@@ -1232,7 +1257,9 @@ describe('DatabaseModal', () => {
       const impersonateLoggerUserText = screen.getByText(
         /impersonate logged in/i,
       );
-      const allowFileUploadText = screen.queryByText(/Allow file uploads/i);
+      const allowFileUploadText = screen.queryByText(
+        /Allow file uploads to database/i,
+      );
       const schemasForFileUploadText = screen.queryByText(
         /Schemas allowed for File upload/i,
       );

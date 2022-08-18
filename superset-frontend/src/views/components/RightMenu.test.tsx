@@ -99,6 +99,9 @@ const mockNonGSheetsDBs = [...new Array(2)].map((_, i) => ({
   changed_on_delta_humanized: `${i} day(s) ago`,
   changed_on: new Date().toISOString,
   id: i,
+  engine_information: {
+    allows_file_upload: true,
+  },
 }));
 
 const mockGsheetsDbs = [...new Array(2)].map((_, i) => ({
@@ -115,6 +118,9 @@ const mockGsheetsDbs = [...new Array(2)].map((_, i) => ({
   changed_on_delta_humanized: `${i} day(s) ago`,
   changed_on: new Date().toISOString,
   id: i,
+  engine_information: {
+    allows_file_upload: false,
+  },
 }));
 
 describe('RightMenu', () => {
