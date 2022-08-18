@@ -554,7 +554,7 @@ const AsyncSelect = forwardRef(
       }),
       [ref],
     );
-    
+
     useEffect(() => {
       setSelectValue(value);
     }, [value]);
