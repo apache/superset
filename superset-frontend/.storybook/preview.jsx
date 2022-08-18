@@ -73,4 +73,5 @@ addParameters({
       ],
     },
   },
+  controls: { expanded: true },
 });
