@@ -445,7 +445,8 @@ class TestSavedQueryApi(SupersetTestCase):
         expected_result = {
             "count": len(databases),
             "result": [
-                {"extra": {}, "text": str(database), "value": database.id} for database in databases
+                {"extra": {}, "text": str(database), "value": database.id}
+                for database in databases
             ],
         }
 
