@@ -30,8 +30,8 @@ import { TableOption, Table } from 'src/components/TableSelector';
 import Loading from 'src/components/Loading';
 import DatabaseSelector from 'src/components/DatabaseSelector';
 import { debounce } from 'lodash';
-import { DatasetActionType } from '../types';
 import { CodeSandboxCircleFilled } from '@ant-design/icons';
+import { DatasetActionType } from '../types';
 
 interface LeftPanelProps {
   setDataset: (db: any) => void;
@@ -117,20 +117,14 @@ export default function LeftPanel({
 
   const search = useMemo(
     () =>
-      debounce(
-        (value: string) => {
-          console.log('i hit', value)
-          console.log('dbId', dbId)
-          const encodeTableName =
-            value === '' ? undefined : encodeURIComponent(value);
-          console.log('encode', encodeTableName)
-          const endpoint = encodeURI(
-            `/superset/tables/${dbId}/${encodedSchema}/${encodeTableName}/${forceRefresh}/`,
-          );
-          getTablesList(endpoint);
-        },
-        [FAST_DEBOUNCE],
-      ),
+      debounce((value: string) => {
+        const encodeTableName =
+          value === '' ? undefined : encodeURIComponent(value);
+        const endpoint = encodeURI(
+          `/superset/tables/${dbId}/${encodedSchema}/${encodeTableName}/${forceRefresh}/`,
+        );
+        getTablesList(endpoint);
+      }, FAST_DEBOUNCE),
     [dbId, encodedSchema],
   );
 
