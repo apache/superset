@@ -37,6 +37,7 @@ import {
   QueryFormData,
   styled,
   t,
+  useTheme,
 } from '@superset-ui/core';
 import { Menu } from 'src/components/Menu';
 import { NoAnimationDropdown } from 'src/components/Dropdown';
@@ -171,6 +172,7 @@ const DashboardChartModalTrigger = ({
   const closeModal = useCallback(() => setShowModal(false), []);
   const history = useHistory();
   const exploreChart = () => history.push(exploreUrl);
+  const theme = useTheme();
 
   return (
     <>
@@ -184,6 +186,12 @@ const DashboardChartModalTrigger = ({
       </span>
       {(() => (
         <Modal
+          css={css`
+            .ant-modal-body {
+              display: flex;
+              flex-direction: column;
+            }
+          `}
           show={showModal}
           onHide={closeModal}
           title={modalTitle}
@@ -207,6 +215,14 @@ const DashboardChartModalTrigger = ({
           }
           responsive
           resizable
+          resizableConfig={{
+            minHeight: theme.gridUnit * 128,
+            minWidth: theme.gridUnit * 128,
+            defaultSize: {
+              width: 'auto',
+              height: '75vh',
+            },
+          }}
           draggable
           destroyOnClose
         >

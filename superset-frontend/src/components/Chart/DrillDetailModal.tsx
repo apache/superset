@@ -28,8 +28,10 @@ import { useSelector } from 'react-redux';
 import { useHistory } from 'react-router-dom';
 import {
   BinaryQueryObjectFilterClause,
+  css,
   QueryFormData,
   t,
+  useTheme,
 } from '@superset-ui/core';
 import DrillDetailPane from 'src/dashboard/components/DrillDetailPane';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
@@ -46,6 +48,7 @@ const DrillDetailModal: React.FC<{
   const openModal = useCallback(() => setShowModal(true), []);
   const closeModal = useCallback(() => setShowModal(false), []);
   const history = useHistory();
+  const theme = useTheme();
   const dashboardPageId = useContext(DashboardPageIdContext);
   const { slice_name: chartName } = useSelector(
     (state: { sliceEntities: { slices: Record<number, Slice> } }) =>
@@ -70,6 +73,12 @@ const DrillDetailModal: React.FC<{
 
   return (
     <Modal
+      css={css`
+        .ant-modal-body {
+          display: flex;
+          flex-direction: column;
+        }
+      `}
       show={showModal}
       onHide={closeModal}
       title={t('Drill to detail: %s', chartName)}
@@ -89,6 +98,14 @@ const DrillDetailModal: React.FC<{
       }
       responsive
       resizable
+      resizableConfig={{
+        minHeight: theme.gridUnit * 128,
+        minWidth: theme.gridUnit * 128,
+        defaultSize: {
+          width: 'auto',
+          height: '75vh',
+        },
+      }}
       draggable
       destroyOnClose
     >

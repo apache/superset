@@ -233,21 +233,17 @@ export default function DrillDetailPane({
         showRowCount={false}
         small
         css={css`
-          min-height: 0;
-          overflow: scroll;
+          overflow: auto;
+          .table {
+            margin-bottom: 0;
+          }
         `}
       />
     );
   }
 
   return (
-    <div
-      css={css`
-        display: flex;
-        flex-direction: column;
-        height: ${theme.gridUnit * 128}px;
-      `}
-    >
+    <>
       <TableControls
         filters={filters}
         setFilters={setFilters}
@@ -256,6 +252,6 @@ export default function DrillDetailPane({
         onReload={handleReload}
       />
       {tableContent}
-    </div>
+    </>
   );
 }
