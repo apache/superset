@@ -110,7 +110,7 @@ class SqliteEngineSpec(BaseEngineSpec):
     ) -> Optional[str]:
         tt = target_type.upper()
         if tt in (utils.TemporalType.TEXT, utils.TemporalType.DATETIME):
-            return f"""'{dttm.isoformat(sep=" ", timespec="microseconds")}'"""
+            return f"""'{dttm.isoformat(sep=" ", timespec="seconds")}'"""
         return None
 
     @classmethod
