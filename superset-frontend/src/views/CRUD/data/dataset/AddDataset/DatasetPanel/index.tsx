@@ -22,7 +22,7 @@ import { EmptyStateBig } from 'src/components/EmptyState';
 
 const renderDescription = () => (
   <>
-    {t('Datasets can be created from database tables or SQL queries. Select')}
+    {t('Datasets can be created from database tables or SQL queries. Select ')}
     <br />
     {t('a database table to the left or ')}
     <span
@@ -34,7 +34,7 @@ const renderDescription = () => (
     >
       {t('create dataset from SQL query')}
     </span>
-    {t(' to open')}
+    {t(' to open ')}
     <br />
     {t('SQL Lab. From there you can save the query as a dataset.')}
   </>
