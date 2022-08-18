@@ -75,12 +75,10 @@ export const StyledLeftPanel = styled.div`
   width: ${({ theme }) => theme.gridUnit * 80}px;
   height: 100%;
   border-right: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
-  color: ${({ theme }) => theme.colors.warning.base};
 `;
 
 export const StyledDatasetPanel = styled.div`
   width: 100%;
-  color: ${({ theme }) => theme.colors.alert.base};
 `;
 
 export const StyledRightPanel = styled.div`

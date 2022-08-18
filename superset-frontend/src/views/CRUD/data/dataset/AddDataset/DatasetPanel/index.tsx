@@ -17,19 +17,14 @@
  * under the License.
  */
 import React from 'react';
-import { t, styled } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
 import { EmptyStateBig } from 'src/components/EmptyState';
 
-const StyledEmptyDescription = styled.div`
-  width: ${({ theme }) => theme.gridUnit * 115}px;
-  line-height: 1.5;
-`;
-
-const renderEmptyDescription = () => (
-  <StyledEmptyDescription>
-    {t(
-      'Datasets can be created from database tables or SQL queries. Select a database table to the left or ',
-    )}
+const renderDescription = () => (
+  <>
+    {t('Datasets can be created from database tables or SQL queries. Select')}
+    <br />
+    {t('a database table to the left or ')}
     <span
       role="button"
       onClick={() => {
@@ -39,8 +34,10 @@ const renderEmptyDescription = () => (
     >
       {t('create dataset from SQL query')}
     </span>
-    {t(' to open SQL Lab. From there you can save the query as a dataset.')}
-  </StyledEmptyDescription>
+    {t(' to open')}
+    <br />
+    {t('SQL Lab. From there you can save the query as a dataset.')}
+  </>
 );
 
 export default function DatasetPanel() {
@@ -49,7 +46,7 @@ export default function DatasetPanel() {
       <EmptyStateBig
         image="empty-dataset.svg"
         title={t('Select dataset source')}
-        description={renderEmptyDescription()}
+        description={renderDescription()}
       />
     </>
   );
