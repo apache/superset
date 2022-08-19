@@ -398,6 +398,10 @@ class Database(
                 elif "/superset/sqllab/" in request.referrer:
                     source = utils.QuerySource.SQL_LAB
 
+            # Set the effective_username when users issue ad-hoc queries from SQL lab
+            if source == utils.QuerySource.SQL_LAB:
+                effective_username = user_name
+
             sqlalchemy_url, params = DB_CONNECTION_MUTATOR(
                 sqlalchemy_url, params, effective_username, security_manager, source
             )
