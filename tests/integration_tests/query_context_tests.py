@@ -36,6 +36,7 @@ from superset.utils.core import (
     DatasourceType,
     QueryStatus,
 )
+from superset.utils.pandas_postprocessing.utils import FLAT_COLUMN_SEPARATOR
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
@@ -717,13 +718,13 @@ def test_get_label_map(app_context, virtual_dataset_comma_in_column_value):
     label_map = qc.get_df_payload(query_object)["label_map"]
     assert list(df.columns.values) == [
         "col1",
-        "count, col2,row1",
-        "count, col2,row2",
-        "count, col2,row3",
+        "count" + FLAT_COLUMN_SEPARATOR + "col2, row1",
+        "count" + FLAT_COLUMN_SEPARATOR + "col2, row2",
+        "count" + FLAT_COLUMN_SEPARATOR + "col2, row3",
     ]
     assert label_map == {
         "col1": ["col1"],
-        "count, col2,row1": ["count", "col2,row1"],
-        "count, col2,row2": ["count", "col2,row2"],
-        "count, col2,row3": ["count", "col2,row3"],
+        "count, col2, row1": ["count", "col2, row1"],
+        "count, col2, row2": ["count", "col2, row2"],
+        "count, col2, row3": ["count", "col2, row3"],
     }

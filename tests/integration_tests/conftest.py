@@ -367,11 +367,11 @@ def virtual_dataset_comma_in_column_value():
     dataset = SqlaTable(
         table_name="virtual_dataset",
         sql=(
-            "SELECT 'col1,row1' as col1, 'col2,row1' as col2 "
+            "SELECT 'col1,row1' as col1, 'col2, row1' as col2 "
             "UNION ALL "
-            "SELECT 'col1,row2' as col1, 'col2,row2' as col2 "
+            "SELECT 'col1,row2' as col1, 'col2, row2' as col2 "
             "UNION ALL "
-            "SELECT 'col1,row3' as col1, 'col2,row3' as col2 "
+            "SELECT 'col1,row3' as col1, 'col2, row3' as col2 "
         ),
         database=get_example_database(),
     )
