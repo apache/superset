@@ -26,8 +26,7 @@
     "access": "public"
   },
   "dependencies": {
-    "handlebars": "^4.7.7",
-    "just-handlebars-helpers": "^1.0.19"
+    "handlebars": "^4.7.7"
   },
   "peerDependencies": {
     "@superset-ui/chart-controls": "*",
