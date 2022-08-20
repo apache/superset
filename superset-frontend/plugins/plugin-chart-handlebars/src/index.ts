@@ -17,7 +17,9 @@
  * under the License.
  */
 // eslint-disable-next-line import/prefer-default-export
-export { default as HandlebarsChartPlugin } from './plugin';
+import HandlebarsChartPlugin from './plugin';
+
+export default HandlebarsChartPlugin;
 /**
  * Note: this file exports the default export from Handlebars.tsx.
  * If you want to export multiple visualization modules, you will need to
