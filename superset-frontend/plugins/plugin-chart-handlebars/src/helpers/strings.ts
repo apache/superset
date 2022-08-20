@@ -6,11 +6,11 @@ import { isObject, isString, isArray } from './utils';
  * @example
  *      {{excerpt 'Just Wow' 4}}    => 'Just'
  *
- * @param {string} string
- * @param {number} length
+ * @param {any} string
+ * @param {any} length
  * @returns {string}
  */
-export function excerpt(string: string, length: number) {
+export function excerpt(string: any, length?: any) {
   const l = length || 50;
 
   if (typeof string !== 'string' || typeof l !== 'number') {
@@ -58,10 +58,10 @@ export function newLineToBr(string: string) {
  * @example
  *      {{capitalizeEach 'just wow'}}   => 'Just Wow'
  *
- * @param {string} string
+ * @param {any} string
  * @returns {string}
  */
-export function capitalizeEach(string: string) {
+export function capitalizeEach(string: any) {
   if (typeof string === 'string') {
     return string.toLowerCase().replace(/\w\S*/g, function (match) {
       return match.charAt(0).toUpperCase() + match.substr(1);
@@ -77,10 +77,10 @@ export function capitalizeEach(string: string) {
  * @example
  *      {{capitalizeFirst 'just wow'}}   => 'Just wow'
  *
- * @param {string} string
+ * @param {any} string
  * @returns {string}
  */
-export function capitalizeFirst(string: string) {
+export function capitalizeFirst(string: any) {
   if (typeof string === 'string') {
     return string.charAt(0).toUpperCase() + string.slice(1);
   }
@@ -139,7 +139,7 @@ export function first(collection: any[]) {
  *    var someArray = ['David', 'Miller', 'Jones'];
  *    {{last someArray}}   => 'Jones'
  *
- * @param {array} collection
+ * @param {any} collection
  * @returns {string}
  */
 export function last(collection: any) {
@@ -156,7 +156,7 @@ export function last(collection: any) {
  * @example
  *    {{concat 'Hello' ' world' '!!!'}}   => 'Hello world!!!'
  *
- * @param {any} params
+ * @param {array} params
  * @returns {string}
  */
 export function concat(...params: any[]) {
@@ -175,11 +175,11 @@ export function concat(...params: any[]) {
  *    var someArray = ['Hands', 'legs', 'feet'];
  *    {{join someArray ' & '}}   => 'Hands & legs & feet'
  *
- * @param  {array} params
+ * @param  {any} params
  * @param  {string} delimiter
  * @returns {string|boolean}
  */
-export function join(params: any[], delimiter: string) {
+export function join(params: any, delimiter?: string) {
   let d = delimiter;
   if (!delimiter || isObject(delimiter)) {
     d = '';

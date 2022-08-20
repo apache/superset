@@ -4,10 +4,10 @@
  * @example
  *      {{showIf true}}     => ''
  *
- * @param {boolean} expression
+ * @param {any} expression
  * @returns {string}
  */
-export function showIf(expression: boolean) {
+export function showIf(expression: any) {
   return expression ? '' : 'hidden';
 }
 
@@ -17,10 +17,10 @@ export function showIf(expression: boolean) {
  * @example
  *      {{hideIf true}}     => 'hidden'
  *
- * @param {boolean} expression
+ * @param {any} expression
  * @returns {string}
  */
-export function hideIf(expression: boolean) {
+export function hideIf(expression: any) {
   return expression ? 'hidden' : '';
 }
 
@@ -30,10 +30,10 @@ export function hideIf(expression: boolean) {
  * @example
  *      {{selectedIf true}} =>  'selected'
  *
- * @param {boolean} expression
+ * @param {any} expression
  * @returns {string}
  */
-export function selectedIf(expression: boolean) {
+export function selectedIf(expression: any) {
   return expression ? 'selected' : '';
 }
 
@@ -43,10 +43,10 @@ export function selectedIf(expression: boolean) {
  * @example
  *      {{checkedIf true}}  => 'checked'
  *
- * @param {boolean} expression
+ * @param {any} expression
  * @returns {string}
  */
-export function checkedIf(expression: boolean) {
+export function checkedIf(expression: any) {
   return expression ? 'checked' : '';
 }
 

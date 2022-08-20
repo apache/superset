@@ -133,10 +133,10 @@ export function not(expression: any) {
  * @example
  *      {{empty array}} => true | false
  *
- * @param {array} array
+ * @param {any} array
  * @returns {boolean}
  */
-export function empty(array: any[]) {
+export function empty(array: any) {
   if (!isArray(array)) {
     return true;
   }
@@ -150,10 +150,10 @@ export function empty(array: any[]) {
  * @example
  *      {{count array}} =>  false | array.length
  *
- * @param {array} array
+ * @param {any} array
  * @returns {boolean | number}
  */
-export function count(array: any[]) {
+export function count(array: any) {
   if (!isArray(array)) {
     return false;
   }
