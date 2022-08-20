@@ -21,7 +21,11 @@ import Handlebars from 'handlebars';
 import moment from 'moment';
 import React, { useMemo, useState } from 'react';
 import { isPlainObject } from 'lodash';
-import Helpers from 'just-handlebars-helpers';
+
+import * as html from '../../helpers/html';
+import * as math from '../../helpers/math';
+import * as strings from '../../helpers/strings';
+import * as conditionals from '../../helpers/conditionals';
 
 export interface HandlebarsViewerProps {
   templateSource: string;
@@ -75,4 +79,9 @@ Handlebars.registerHelper('stringify', (obj: any, obj2: any) => {
   return isPlainObject(obj) ? JSON.stringify(obj) : String(obj);
 });
 
-Helpers.registerHelpers(Handlebars);
+[math, html, strings, conditionals].forEach(helper => {
+  // Register all the helper functions to Handlebars
+  Object.keys(helper).forEach(name => {
+    Handlebars.registerHelper(name, helper[name]);
+  });
+});
