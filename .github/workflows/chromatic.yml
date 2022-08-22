@@ -6,14 +6,14 @@ name: 'Chromatic'
 
 # Event for the workflow
 # Only run if changes were made in superset-frontend folder of repo
-on:
+on: push
   # push:
   # branches:
   #   - master
   #  paths:
   #    - "superset-frontend/**"
-  pull_request_target:
-    types: [opened, edited, synchronize, reopen, ready_for_review]
+  # pull_request_target:
+    # types: [opened, edited, synchronize, reopen, ready_for_review]
     # paths:
     #  - "superset-frontend/**"
 
