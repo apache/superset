@@ -116,7 +116,7 @@ export default function EchartsMixedTimeseries({
         const { data, seriesIndex } = eventParams;
         if (data) {
           const pointerEvent = eventParams.event.event;
-          const values = eventParams.seriesName.split(',');
+          const values = labelMap[eventParams.seriesName];
           const { queryIndex } = (echartOptions.series as any)[seriesIndex];
           const groupby = queryIndex > 0 ? formData.groupbyB : formData.groupby;
           const filters: QueryObjectFilterClause[] = [];
@@ -132,7 +132,7 @@ export default function EchartsMixedTimeseries({
               col: dimension,
               op: '==',
               val: values[i],
-              formattedVal: values[i],
+              formattedVal: String(values[i]),
             }),
           );
           onContextMenu(filters, pointerEvent.offsetX, pointerEvent.offsetY);
