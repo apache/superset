@@ -100,6 +100,7 @@ class TableColumnInlineView(  # pylint: disable=too-many-ancestors
         "groupby",
         "filterable",
         "is_dttm",
+        "extra",
     ]
     page_size = 500
     description_columns = {

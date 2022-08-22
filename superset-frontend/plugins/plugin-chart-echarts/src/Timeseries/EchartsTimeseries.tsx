@@ -182,7 +182,7 @@ export default function EchartsTimeseries({
         const { data } = eventParams;
         if (data) {
           const pointerEvent = eventParams.event.event;
-          const values = eventParams.seriesName.split(',');
+          const values = labelMap[eventParams.seriesName];
           const filters: QueryObjectFilterClause[] = [];
           filters.push({
             col: formData.granularitySqla,
@@ -196,7 +196,7 @@ export default function EchartsTimeseries({
               col: dimension,
               op: '==',
               val: values[i],
-              formattedVal: values[i],
+              formattedVal: String(values[i]),
             }),
           );
           onContextMenu(filters, pointerEvent.offsetX, pointerEvent.offsetY);
