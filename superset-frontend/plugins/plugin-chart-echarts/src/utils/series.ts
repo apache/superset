@@ -24,6 +24,7 @@ import {
   DTTM_ALIAS,
   ensureIsArray,
   GenericDataType,
+  NumberFormats,
   NumberFormatter,
   TimeFormatter,
 } from '@superset-ui/core';
@@ -325,4 +326,25 @@ export function getAxisType(dataType?: GenericDataType): AxisType {
     return 'time';
   }
   return 'category';
+}
+
+export function getOverMaxHiddenFormatter(
+  config: {
+    max?: number;
+    formatter?: NumberFormatter;
+  } = {},
+) {
+  const { max, formatter } = config;
+  // Only apply this logic if there's a MAX set in the controls
+  const shouldHideIfOverMax = !!max || max === 0;
+
+  return new NumberFormatter({
+    formatFunc: value =>
+      `${
+        shouldHideIfOverMax && value > max
+          ? ''
+          : formatter?.format(value) || value
+      }`,
+    id: NumberFormats.OVER_MAX_HIDDEN,
+  });
 }

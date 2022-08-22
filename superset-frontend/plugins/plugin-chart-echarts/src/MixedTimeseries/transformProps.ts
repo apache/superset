@@ -38,9 +38,10 @@ import {
   EchartsMixedTimeseriesChartTransformedProps,
   EchartsMixedTimeseriesProps,
 } from './types';
-import { ForecastSeriesEnum } from '../types';
+import { EchartsTimeseriesSeriesType, ForecastSeriesEnum } from '../types';
 import { parseYAxisBound } from '../utils/controls';
 import {
+  getOverMaxHiddenFormatter,
   currentSeries,
   dedupSeries,
   extractSeries,
@@ -210,51 +211,6 @@ export default function transformProps(
     percentageThreshold,
     xAxisCol,
   });
-  rawSeriesA.forEach(entry => {
-    const transformedSeries = transformSeries(entry, colorScale, {
-      area,
-      markerEnabled,
-      markerSize,
-      areaOpacity: opacity,
-      seriesType,
-      showValue,
-      stack: Boolean(stack),
-      yAxisIndex,
-      filterState,
-      seriesKey: entry.name,
-      sliceId,
-      queryIndex: 0,
-      formatter,
-      showValueIndexes: showValueIndexesA,
-      totalStackedValues,
-      thresholdValues,
-    });
-    if (transformedSeries) series.push(transformedSeries);
-  });
-
-  rawSeriesB.forEach(entry => {
-    const transformedSeries = transformSeries(entry, colorScale, {
-      area: areaB,
-      markerEnabled: markerEnabledB,
-      markerSize: markerSizeB,
-      areaOpacity: opacityB,
-      seriesType: seriesTypeB,
-      showValue: showValueB,
-      stack: Boolean(stackB),
-      yAxisIndex: yAxisIndexB,
-      filterState,
-      seriesKey: primarySeries.has(entry.name as string)
-        ? `${entry.name} (1)`
-        : entry.name,
-      sliceId,
-      queryIndex: 1,
-      formatter: formatterSecondary,
-      showValueIndexes: showValueIndexesB,
-      totalStackedValues: totalStackedValuesB,
-      thresholdValues: thresholdValuesB,
-    });
-    if (transformedSeries) series.push(transformedSeries);
-  });
 
   annotationLayers
     .filter((layer: AnnotationLayer) => layer.show)
@@ -308,6 +264,64 @@ export default function transformProps(
 
   // yAxisBounds need to be parsed to replace incompatible values with undefined
   let [min, max] = (yAxisBounds || []).map(parseYAxisBound);
+
+  const maxLabelFormatter = getOverMaxHiddenFormatter({ max, formatter });
+  const maxLabelFormatterSecondary = getOverMaxHiddenFormatter({
+    max,
+    formatter: formatterSecondary,
+  });
+
+  rawSeriesA.forEach(entry => {
+    const transformedSeries = transformSeries(entry, colorScale, {
+      area,
+      markerEnabled,
+      markerSize,
+      areaOpacity: opacity,
+      seriesType,
+      showValue,
+      stack: Boolean(stack),
+      yAxisIndex,
+      filterState,
+      seriesKey: entry.name,
+      sliceId,
+      queryIndex: 0,
+      formatter:
+        seriesType === EchartsTimeseriesSeriesType.Bar
+          ? maxLabelFormatter
+          : formatter,
+      showValueIndexes: showValueIndexesA,
+      totalStackedValues,
+      thresholdValues,
+    });
+    if (transformedSeries) series.push(transformedSeries);
+  });
+
+  rawSeriesB.forEach(entry => {
+    const transformedSeries = transformSeries(entry, colorScale, {
+      area: areaB,
+      markerEnabled: markerEnabledB,
+      markerSize: markerSizeB,
+      areaOpacity: opacityB,
+      seriesType: seriesTypeB,
+      showValue: showValueB,
+      stack: Boolean(stackB),
+      yAxisIndex: yAxisIndexB,
+      filterState,
+      seriesKey: primarySeries.has(entry.name as string)
+        ? `${entry.name} (1)`
+        : entry.name,
+      sliceId,
+      queryIndex: 1,
+      formatter:
+        seriesTypeB === EchartsTimeseriesSeriesType.Bar
+          ? maxLabelFormatterSecondary
+          : formatterSecondary,
+      showValueIndexes: showValueIndexesB,
+      totalStackedValues: totalStackedValuesB,
+      thresholdValues: thresholdValuesB,
+    });
+    if (transformedSeries) series.push(transformedSeries);
+  });
 
   // default to 0-100% range when doing row-level contribution chart
   if (contributionMode === 'row' && stack) {
