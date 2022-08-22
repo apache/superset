@@ -54,7 +54,7 @@ describe('Visualization > Box Plot', () => {
       .focus()
       .type('supersetColors{enter}');
     cy.get(
-      '.Control[data-test="color_scheme"] .ant-select-selection-item ul[data-test="supersetColors"]',
+      '.Control[data-test="color_scheme"] .ant-select-selection-item [data-test="supersetColors"]',
     ).should('exist');
   });
 });
