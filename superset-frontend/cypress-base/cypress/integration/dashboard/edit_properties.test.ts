@@ -154,7 +154,7 @@ describe('Dashboard edit action', () => {
           openAdvancedProperties().then(() => {
             assertMetadata('d3Category20');
           });
-          cy.get('.ant-select-selection-item ul').should(
+          cy.get('.ant-select-selection-item .color-scheme-option').should(
             'have.attr',
             'data-test',
             'd3Category20',
