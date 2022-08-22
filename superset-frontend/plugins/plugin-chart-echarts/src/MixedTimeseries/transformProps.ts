@@ -20,7 +20,6 @@
 import {
   AnnotationLayer,
   CategoricalColorNamespace,
-  DataRecordValue,
   DTTM_ALIAS,
   GenericDataType,
   getColumnLabel,
@@ -29,6 +28,7 @@ import {
   isFormulaAnnotationLayer,
   isIntervalAnnotationLayer,
   isTimeseriesAnnotationLayer,
+  TimeseriesChartDataResponseResult,
   TimeseriesDataRecord,
 } from '@superset-ui/core';
 import { EChartsCoreOption, SeriesOption } from 'echarts';
@@ -90,6 +90,10 @@ export default function transformProps(
     inContextMenu,
   } = chartProps;
   const { verboseMap = {} } = datasource;
+  const { label_map: labelMap } =
+    queriesData[0] as TimeseriesChartDataResponseResult;
+  const { label_map: labelMapB } =
+    queriesData[1] as TimeseriesChartDataResponseResult;
   const data1 = (queriesData[0].data || []) as TimeseriesDataRecord[];
   const data2 = (queriesData[1].data || []) as TimeseriesDataRecord[];
   const annotationData = getAnnotationData(chartProps);
@@ -352,21 +356,6 @@ export default function transformProps(
     convertInteger(yAxisTitleMargin),
     convertInteger(xAxisTitleMargin),
   );
-  const labelMap = rawSeriesA.reduce((acc, datum) => {
-    const label = datum.name as string;
-    return {
-      ...acc,
-      [label]: label.split(', '),
-    };
-  }, {}) as Record<string, DataRecordValue[]>;
-
-  const labelMapB = rawSeriesB.reduce((acc, datum) => {
-    const label = datum.name as string;
-    return {
-      ...acc,
-      [label]: label.split(', '),
-    };
-  }, {}) as Record<string, DataRecordValue[]>;
 
   const { setDataMask = () => {}, onContextMenu } = hooks;
   const alignTicks = yAxisIndex !== yAxisIndexB;
