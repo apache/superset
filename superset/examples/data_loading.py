@@ -33,3 +33,4 @@ from .sf_population_polygons import load_sf_population_polygons
 from .tabbed_dashboard import load_tabbed_dashboard
 from .utils import load_examples_from_configs
 from .world_bank import load_world_bank_health_n_pop
+from .echarts_dashboard import load_echarts_dashboard
