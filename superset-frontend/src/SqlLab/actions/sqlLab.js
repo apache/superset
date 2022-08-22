@@ -375,7 +375,7 @@ export function validateQuery(query) {
     };
 
     return SupersetClient.post({
-      endpoint: `/api/v1/database/${query.dbId}/validate_sql`,
+      endpoint: `/api/v1/database/${query.dbId}/validate_sql/`,
       body: JSON.stringify(postPayload),
       headers: { 'Content-Type': 'application/json' },
     })
