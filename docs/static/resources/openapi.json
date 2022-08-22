@@ -13293,7 +13293,7 @@
         ]
       }
     },
-    "/api/v1/database/test_connection": {
+    "/api/v1/database/test_connection/": {
       "post": {
         "description": "Tests a database connection",
         "requestBody": {
@@ -13343,7 +13343,7 @@
         ]
       }
     },
-    "/api/v1/database/validate_parameters": {
+    "/api/v1/database/validate_parameters/": {
       "post": {
         "description": "Validates parameters used to connect to a database",
         "requestBody": {
