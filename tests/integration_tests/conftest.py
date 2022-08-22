@@ -358,3 +358,30 @@ def physical_dataset():
     for ds in dataset:
         db.session.delete(ds)
     db.session.commit()
+
+
+@pytest.fixture
+def virtual_dataset_comma_in_column_value():
+    from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+
+    dataset = SqlaTable(
+        table_name="virtual_dataset",
+        sql=(
+            "SELECT 'col1,row1' as col1, 'col2, row1' as col2 "
+            "UNION ALL "
+            "SELECT 'col1,row2' as col1, 'col2, row2' as col2 "
+            "UNION ALL "
+            "SELECT 'col1,row3' as col1, 'col2, row3' as col2 "
+        ),
+        database=get_example_database(),
+    )
+    TableColumn(column_name="col1", type="VARCHAR(255)", table=dataset)
+    TableColumn(column_name="col2", type="VARCHAR(255)", table=dataset)
+
+    SqlMetric(metric_name="count", expression="count(*)", table=dataset)
+    db.session.merge(dataset)
+
+    yield dataset
+
+    db.session.delete(dataset)
+    db.session.commit()
