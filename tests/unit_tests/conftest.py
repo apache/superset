@@ -102,7 +102,7 @@ def client(app: SupersetApp) -> Any:
         yield client
 
 
-@pytest.fixture
+@pytest.fixture(autouse=True)
 def app_context(app: SupersetApp) -> Iterator[None]:
     """
     A fixture that yields and application context.

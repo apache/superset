@@ -56,6 +56,7 @@ import { getFormDataFromControls } from 'src/explore/controlUtils';
 import * as exploreActions from 'src/explore/actions/exploreActions';
 import * as saveModalActions from 'src/explore/actions/saveModalActions';
 import { useTabId } from 'src/hooks/useTabId';
+import withToasts from 'src/components/MessageToasts/withToasts';
 import ExploreChartPanel from '../ExploreChartPanel';
 import ConnectedControlPanelsContainer from '../ControlPanelsContainer';
 import SaveModal from '../SaveModal';
@@ -205,15 +206,18 @@ const updateHistory = debounce(
         );
         stateModifier = 'pushState';
       }
-      const url = mountExploreUrl(
-        standalone ? URL_PARAMS.standalone.name : null,
-        {
-          [URL_PARAMS.formDataKey.name]: key,
-          ...additionalParam,
-        },
-        force,
-      );
-      window.history[stateModifier](payload, title, url);
+      // avoid race condition in case user changes route before explore updates the url
+      if (window.location.pathname.startsWith('/explore')) {
+        const url = mountExploreUrl(
+          standalone ? URL_PARAMS.standalone.name : null,
+          {
+            [URL_PARAMS.formDataKey.name]: key,
+            ...additionalParam,
+          },
+          force,
+        );
+        window.history[stateModifier](payload, title, url);
+      }
     } catch (e) {
       logging.warn('Failed at altering browser history', e);
     }
@@ -589,6 +593,7 @@ function ExploreViewContainer(props) {
         />
         {showingModal && (
           <SaveModal
+            addDangerToast={props.addDangerToast}
             onHide={toggleModal}
             actions={props.actions}
             form_data={props.form_data}
@@ -767,4 +772,4 @@ function mapDispatchToProps(dispatch) {
 export default connect(
   mapStateToProps,
   mapDispatchToProps,
-)(ExploreViewContainer);
+)(withToasts(ExploreViewContainer));

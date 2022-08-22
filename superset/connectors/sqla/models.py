@@ -66,6 +66,7 @@ from sqlalchemy import (
     update,
 )
 from sqlalchemy.engine.base import Connection
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import backref, Query, relationship, RelationshipProperty, Session
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm.mapper import Mapper
@@ -741,7 +742,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         "MAX": sa.func.MAX,
     }
 
-    def __repr__(self) -> str:
+    def __repr__(self) -> str:  # pylint: disable=invalid-repr-returned
         return self.name
 
     @staticmethod
@@ -835,11 +836,9 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             raise DatasetInvalidPermissionEvaluationException()
         return f"[{self.database}].[{self.table_name}](id:{self.id})"
 
-    @property
-    def name(self) -> str:
-        if not self.schema:
-            return self.table_name
-        return "{}.{}".format(self.schema, self.table_name)
+    @hybrid_property
+    def name(self) -> str:  # pylint: disable=invalid-overridden-method
+        return self.schema + "." + self.table_name if self.schema else self.table_name
 
     @property
     def full_name(self) -> str:
@@ -1933,7 +1932,10 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         :return: Tuple with lists of added, removed and modified column names.
         """
         new_columns = self.external_metadata()
-        metrics = []
+        metrics = [
+            SqlMetric(**metric)
+            for metric in self.database.get_metrics(self.table_name, self.schema)
+        ]
         any_date_col = None
         db_engine_spec = self.db_engine_spec
 
@@ -1990,14 +1992,6 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         columns.extend([col for col in old_columns if col.expression])
         self.columns = columns
 
-        metrics.append(
-            SqlMetric(
-                metric_name="count",
-                verbose_name="COUNT(*)",
-                metric_type="count",
-                expression="COUNT(*)",
-            )
-        )
         if not self.main_dttm_col:
             self.main_dttm_col = any_date_col
         self.add_missing_metrics(metrics)

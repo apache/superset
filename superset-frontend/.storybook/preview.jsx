@@ -66,4 +66,5 @@ addParameters({
       order: ['Design System', ['Foundations', 'Components', 'Patterns'], '*'],
     },
   },
+  controls: { expanded: true },
 });

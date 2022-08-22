@@ -38,3 +38,4 @@ class ChartDataResultType(str, Enum):
     SAMPLES = "samples"
     TIMEGRAINS = "timegrains"
     POST_PROCESSED = "post_processed"
+    DRILL_DETAIL = "drill_detail"

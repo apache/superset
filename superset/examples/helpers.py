@@ -17,10 +17,7 @@
 """Loads datasets, dashboards and slices in a new superset instance"""
 import json
 import os
-import zlib
-from io import BytesIO
 from typing import Any, Dict, List, Set
-from urllib import request
 
 from superset import app, db
 from superset.connectors.sqla.models import SqlaTable
@@ -73,14 +70,5 @@ def get_slice_json(defaults: Dict[Any, Any], **kwargs: Any) -> str:
     return json.dumps(defaults_copy, indent=4, sort_keys=True)
 
 
-def get_example_data(
-    filepath: str, is_gzip: bool = True, make_bytes: bool = False
-) -> BytesIO:
-    content = request.urlopen(  # pylint: disable=consider-using-with
-        f"{BASE_URL}{filepath}?raw=true"
-    ).read()
-    if is_gzip:
-        content = zlib.decompress(content, zlib.MAX_WBITS | 16)
-    if make_bytes:
-        content = BytesIO(content)
-    return content
+def get_example_url(filepath: str) -> str:
+    return f"{BASE_URL}{filepath}?raw=true"

@@ -49,8 +49,8 @@ function ShareSqlLabQuery({
   const theme = useTheme();
 
   const getCopyUrlForKvStore = (callback: Function) => {
-    const { dbId, title, schema, autorun, sql } = queryEditor;
-    const sharedQuery = { dbId, title, schema, autorun, sql };
+    const { dbId, name, schema, autorun, sql } = queryEditor;
+    const sharedQuery = { dbId, name, schema, autorun, sql };
 
     return storeQuery(sharedQuery)
       .then(shortUrl => {

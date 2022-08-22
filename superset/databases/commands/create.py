@@ -63,7 +63,6 @@ class CreateDatabaseCommand(BaseCommand):
                 security_manager.add_permission_view_menu(
                     "schema_access", security_manager.get_schema_perm(database, schema)
                 )
-            security_manager.add_permission_view_menu("database_access", database.perm)
             db.session.commit()
         except DAOCreateFailedError as ex:
             db.session.rollback()

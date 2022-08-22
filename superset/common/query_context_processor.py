@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import copy
 import logging
+import re
 from typing import Any, ClassVar, Dict, List, Optional, TYPE_CHECKING, Union
 
 import numpy as np
@@ -43,9 +44,11 @@ from superset.exceptions import (
 )
 from superset.extensions import cache_manager, security_manager
 from superset.models.helpers import QueryResult
+from superset.models.sql_lab import Query
 from superset.utils import csv
 from superset.utils.cache import generate_cache_key, set_and_log_cache
 from superset.utils.core import (
+    DatasourceType,
     DTTM_ALIAS,
     error_msg_from_exception,
     get_column_names_from_columns,
@@ -55,6 +58,7 @@ from superset.utils.core import (
     TIME_COMPARISON,
 )
 from superset.utils.date_parser import get_past_or_future, normalize_time_delta
+from superset.utils.pandas_postprocessing.utils import unescape_separator
 from superset.views.utils import get_viz
 
 if TYPE_CHECKING:
@@ -140,6 +144,17 @@ class QueryContextProcessor:
                 cache.error_message = str(ex)
                 cache.status = QueryStatus.FAILED
 
+        # the N-dimensional DataFrame has converteds into flat DataFrame
+        # by `flatten operator`, "comma" in the column is escaped by `escape_separator`
+        # the result DataFrame columns should be unescaped
+        label_map = {
+            unescape_separator(col): [
+                unescape_separator(col) for col in re.split(r"(?<!\\),\s", col)
+            ]
+            for col in cache.df.columns.values
+        }
+        cache.df.columns = [unescape_separator(col) for col in cache.df.columns.values]
+
         return {
             "cache_key": cache_key,
             "cached_dttm": cache.cache_dttm,
@@ -155,6 +170,7 @@ class QueryContextProcessor:
             "rowcount": len(cache.df.index),
             "from_dttm": query_obj.from_dttm,
             "to_dttm": query_obj.to_dttm,
+            "label_map": label_map,
         }
 
     def query_cache_key(self, query_obj: QueryObject, **kwargs: Any) -> Optional[str]:
@@ -183,10 +199,6 @@ class QueryContextProcessor:
         # Here, we assume that all the queries will use the same datasource, which is
         # a valid assumption for current setting. In the long term, we may
         # support multiple queries from different data sources.
-
-        # The datasource here can be different backend but the interface is common
-        # pylint: disable=import-outside-toplevel
-        from superset.models.sql_lab import Query
 
         query = ""
         if isinstance(query_context.datasource, Query):
@@ -247,7 +259,7 @@ class QueryContextProcessor:
 
         return df
 
-    def processing_time_offsets(  # pylint: disable=too-many-locals
+    def processing_time_offsets(  # pylint: disable=too-many-locals,too-many-statements
         self,
         df: pd.DataFrame,
         query_object: QueryObject,
@@ -306,7 +318,11 @@ class QueryContextProcessor:
             }
             join_keys = [col for col in df.columns if col not in metrics_mapping.keys()]
 
-            result = self._qc_datasource.query(query_object_clone_dct)
+            if isinstance(self._qc_datasource, Query):
+                result = self._qc_datasource.exc_query(query_object_clone_dct)
+            else:
+                result = self._qc_datasource.query(query_object_clone_dct)
+
             queries.append(result.query)
             cache_keys.append(None)
 
@@ -491,6 +507,8 @@ class QueryContextProcessor:
         chart = ChartDAO.find_by_id(annotation_layer["value"])
         if not chart:
             raise QueryObjectValidationError(_("The chart does not exist"))
+        if not chart.datasource:
+            raise QueryObjectValidationError(_("The chart datasource does not exist"))
         form_data = chart.form_data.copy()
         try:
             viz_obj = get_viz(
@@ -512,4 +530,8 @@ class QueryContextProcessor:
         """
         for query in self._query_context.queries:
             query.validate()
-        security_manager.raise_for_access(query_context=self._query_context)
+
+        if self._qc_datasource.type == DatasourceType.QUERY:
+            security_manager.raise_for_access(query=self._qc_datasource)
+        else:
+            security_manager.raise_for_access(query_context=self._query_context)
