@@ -249,6 +249,19 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category="",
             category_icon="",
         )
+
+        appbuilder.add_link(
+            "Datasets",
+            label=__("Datasets"),
+            href="/tablemodelview/list/",
+            icon="fa-table",
+            # category="Data",
+            # category_label=__("Data"),
+            # category_icon="fa-table",
+            category="",
+            category_icon="",
+        )
+
         appbuilder.add_view(
             DynamicPluginsView,
             "Plugins",
@@ -331,13 +344,14 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category_icon="fa-flask",
             icon="fa-flask",
             category="SQL Lab",
-            category_label=__("SQL Lab"),
+            category_label=__("SQL"),
         )
         appbuilder.add_link(
             __("Saved Queries"),
             href="/savedqueryview/list/",
             icon="fa-save",
             category="SQL Lab",
+            category_label=__("SQL"),
         )
         appbuilder.add_link(
             "Query Search",
@@ -346,27 +360,19 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             icon="fa-search",
             category_icon="fa-flask",
             category="SQL Lab",
-            category_label=__("SQL Lab"),
+            category_label=__("SQL"),
         )
-        appbuilder.add_view(
-            DatabaseView,
-            "Databases",
-            label=__("Databases"),
-            icon="fa-database",
-            category="Data",
-            category_label=__("Data"),
-            category_icon="fa-database",
-        )
-        appbuilder.add_link(
-            "Datasets",
-            label=__("Datasets"),
-            href="/tablemodelview/list/",
-            icon="fa-table",
-            category="Data",
-            category_label=__("Data"),
-            category_icon="fa-table",
-        )
-        appbuilder.add_separator("Data")
+        # todo(hugh): Move this to Right Menu
+        # appbuilder.add_view(
+        #     DatabaseView,
+        #     "Databases",
+        #     label=__("Databases"),
+        #     icon="fa-database",
+        #     category="Data",
+        #     category_label=__("Data"),
+        #     category_icon="fa-database",
+        # )
+        # appbuilder.add_separator("Data")
 
         appbuilder.add_api(LogRestApi)
         appbuilder.add_view(
