@@ -87,7 +87,7 @@ describe('Visualization > Treemap', () => {
       .focus()
       .type('supersetColors{enter}');
     cy.get(
-      '.Control[data-test="color_scheme"] .ant-select-selection-item ul[data-test="supersetColors"]',
+      '.Control[data-test="color_scheme"] .ant-select-selection-item [data-test="supersetColors"]',
     ).should('exist');
     cy.get('[data-test=run-query-button]').click();
     cy.get('#rect-IND').should('have.css', 'fill', 'rgb(69, 78, 124)');

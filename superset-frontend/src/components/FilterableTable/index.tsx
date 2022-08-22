@@ -17,7 +17,7 @@
  * under the License.
  */
 import JSONbig from 'json-bigint';
-import React, { PureComponent } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import JSONTree from 'react-json-tree';
 import {
   AutoSizer,
@@ -33,8 +33,7 @@ import {
   getMultipleTextDimensions,
   t,
   styled,
-  SupersetTheme,
-  withTheme,
+  useTheme,
 } from '@superset-ui/core';
 import Button from '../Button';
 import CopyToClipboard from '../CopyToClipboard';
@@ -188,98 +187,65 @@ export interface FilterableTableProps {
   orderedColumnKeys: string[];
   data: Record<string, unknown>[];
   height: number;
-  filterText: string;
-  headerHeight: number;
-  overscanColumnCount: number;
-  overscanRowCount: number;
-  rowHeight: number;
-  striped: boolean;
-  expandedColumns: string[];
-  theme: SupersetTheme;
+  filterText?: string;
+  headerHeight?: number;
+  overscanColumnCount?: number;
+  overscanRowCount?: number;
+  rowHeight?: number;
+  striped?: boolean;
+  expandedColumns?: string[];
 }
 
-interface FilterableTableState {
-  sortBy?: string;
-  sortDirection?: SortDirectionType;
-  fitted: boolean;
-  displayedList: Datum[];
-}
+const FilterableTable = ({
+  orderedColumnKeys,
+  data,
+  height,
+  filterText = '',
+  headerHeight = 32,
+  overscanColumnCount = 10,
+  overscanRowCount = 10,
+  rowHeight = 32,
+  striped = true,
+  expandedColumns = [],
+}: FilterableTableProps) => {
+  const formatTableData = (data: Record<string, unknown>[]): Datum[] =>
+    data.map(row => {
+      const newRow = {};
+      Object.entries(row).forEach(([key, val]) => {
+        if (['string', 'number'].indexOf(typeof val) >= 0) {
+          newRow[key] = val;
+        } else {
+          newRow[key] = val === null ? null : JSONbig.stringify(val);
+        }
+      });
+      return newRow;
+    });
 
-class FilterableTable extends PureComponent<
-  FilterableTableProps,
-  FilterableTableState
-> {
-  static defaultProps = {
-    filterText: '',
-    headerHeight: 32,
-    overscanColumnCount: 10,
-    overscanRowCount: 10,
-    rowHeight: 32,
-    striped: true,
-    expandedColumns: [],
-  };
+  const [sortByState, setSortByState] = useState<string | undefined>(undefined);
+  const [sortDirectionState, setSortDirectionState] = useState<
+    SortDirectionType | undefined
+  >(undefined);
+  const [fitted, setFitted] = useState(false);
+  const [list] = useState<Datum[]>(() => formatTableData(data));
+  const [displayedList, setDisplayedList] = useState<Datum[]>(list);
 
-  list: Datum[];
-
-  complexColumns: Record<string, boolean>;
-
-  widthsForColumnsByKey: Record<string, number>;
-
-  totalTableWidth: number;
-
-  totalTableHeight: number;
-
-  container: React.RefObject<HTMLDivElement>;
-
-  jsonTreeTheme: Record<string, string>;
-
-  constructor(props: FilterableTableProps) {
-    super(props);
-    this.list = this.formatTableData(props.data);
-    this.addJsonModal = this.addJsonModal.bind(this);
-    this.getCellContent = this.getCellContent.bind(this);
-    this.renderGridCell = this.renderGridCell.bind(this);
-    this.renderGridCellHeader = this.renderGridCellHeader.bind(this);
-    this.renderGrid = this.renderGrid.bind(this);
-    this.renderTableCell = this.renderTableCell.bind(this);
-    this.renderTableHeader = this.renderTableHeader.bind(this);
-    this.sortResults = this.sortResults.bind(this);
-    this.renderTable = this.renderTable.bind(this);
-    this.rowClassName = this.rowClassName.bind(this);
-    this.sort = this.sort.bind(this);
-    this.getJsonTreeTheme = this.getJsonTreeTheme.bind(this);
-
-    // columns that have complex type and were expanded into sub columns
-    this.complexColumns = props.orderedColumnKeys.reduce(
+  // columns that have complex type and were expanded into sub columns
+  const [complexColumns] = useState<Record<string, boolean>>(
+    orderedColumnKeys.reduce(
       (obj, key) => ({
         ...obj,
-        [key]: props.expandedColumns.some(name => name.startsWith(`${key}.`)),
+        [key]: expandedColumns.some(name => name.startsWith(`${key}.`)),
       }),
       {},
-    );
+    ),
+  );
 
-    this.widthsForColumnsByKey = this.getWidthsForColumns();
-    this.totalTableWidth = props.orderedColumnKeys
-      .map(key => this.widthsForColumnsByKey[key])
-      .reduce((curr, next) => curr + next);
-    this.totalTableHeight = props.height;
+  const theme = useTheme();
+  const [jsonTreeTheme, setJsonTreeTheme] = useState<Record<string, string>>();
 
-    this.state = {
-      fitted: false,
-      displayedList: [...this.list],
-    };
-
-    this.container = React.createRef();
-  }
-
-  componentDidMount() {
-    this.fitTableToWidthIfNeeded();
-  }
-
-  getJsonTreeTheme() {
-    if (!this.jsonTreeTheme) {
-      const { theme } = this.props;
-      this.jsonTreeTheme = {
+  const getJsonTreeTheme = () => {
+    if (!jsonTreeTheme) {
+      setJsonTreeTheme({
         base00: theme.colors.grayscale.dark2,
         base01: theme.colors.grayscale.dark1,
         base02: theme.colors.grayscale.base,
@@ -296,22 +262,20 @@ class FilterableTable extends PureComponent<
         base0D: theme.colors.primary.base,
         base0E: theme.colors.primary.dark1,
         base0F: theme.colors.error.dark1,
-      };
+      });
     }
-    return this.jsonTreeTheme;
-  }
+    return jsonTreeTheme;
+  };
 
-  getDatum(list: Datum[], index: number) {
-    return list[index % list.length];
-  }
+  const getDatum = (list: Datum[], index: number) => list[index % list.length];
 
-  getWidthsForColumns() {
+  const getWidthsForColumns = () => {
     const PADDING = 50; // accounts for cell padding and width of sorting icon
     const widthsByColumnKey = {};
     const cellContent = ([] as string[]).concat(
-      ...this.props.orderedColumnKeys.map(key => {
-        const cellContentList = this.list.map((data: Datum) =>
-          this.getCellContent({ cellData: data[key], columnKey: key }),
+      ...orderedColumnKeys.map(key => {
+        const cellContentList = list.map((data: Datum) =>
+          getCellContent({ cellData: data[key], columnKey: key }),
         );
         cellContentList.push(key);
         return cellContentList;
@@ -323,30 +287,26 @@ class FilterableTable extends PureComponent<
       texts: cellContent,
     }).map(dimension => dimension.width);
 
-    this.props.orderedColumnKeys.forEach((key, index) => {
+    orderedColumnKeys.forEach((key, index) => {
       // we can't use Math.max(...colWidths.slice(...)) here since the number
       // of elements might be bigger than the number of allowed arguments in a
-      // Javascript function
-      const value = (widthsByColumnKey[key] =
+      // JavaScript function
+      widthsByColumnKey[key] =
         colWidths
-          .slice(
-            index * (this.list.length + 1),
-            (index + 1) * (this.list.length + 1),
-          )
-          .reduce((a, b) => Math.max(a, b)) + PADDING);
-      widthsByColumnKey[key] = value;
+          .slice(index * (list.length + 1), (index + 1) * (list.length + 1))
+          .reduce((a, b) => Math.max(a, b)) + PADDING;
     });
 
     return widthsByColumnKey;
-  }
+  };
 
-  getCellContent({
+  const getCellContent = ({
     cellData,
     columnKey,
   }: {
     cellData: CellDataType;
     columnKey: string;
-  }) {
+  }) => {
     if (cellData === null) {
       return 'NULL';
     }
@@ -360,24 +320,35 @@ class FilterableTable extends PureComponent<
     } else {
       truncated = '';
     }
-    return this.complexColumns[columnKey] ? truncated : content;
-  }
+    return complexColumns[columnKey] ? truncated : content;
+  };
 
-  formatTableData(data: Record<string, unknown>[]): Datum[] {
-    return data.map(row => {
-      const newRow = {};
-      Object.entries(row).forEach(([key, val]) => {
-        if (['string', 'number'].indexOf(typeof val) >= 0) {
-          newRow[key] = val;
-        } else {
-          newRow[key] = val === null ? null : JSONbig.stringify(val);
-        }
-      });
-      return newRow;
-    });
-  }
+  const [widthsForColumnsByKey] = useState<Record<string, number>>(() =>
+    getWidthsForColumns(),
+  );
 
-  hasMatch(text: string, row: Datum) {
+  const totalTableWidth = useRef(
+    orderedColumnKeys
+      .map(key => widthsForColumnsByKey[key])
+      .reduce((curr, next) => curr + next),
+  );
+  const totalTableHeight = useRef(height);
+  const container = useRef<HTMLDivElement>(null);
+
+  const fitTableToWidthIfNeeded = () => {
+    const containerWidth = container.current?.clientWidth ?? 0;
+    if (totalTableWidth.current < containerWidth) {
+      // fit table width if content doesn't fill the width of the container
+      totalTableWidth.current = containerWidth;
+    }
+    setFitted(true);
+  };
+
+  useEffect(() => {
+    fitTableToWidthIfNeeded();
+  }, []);
+
+  const hasMatch = (text: string, row: Datum) => {
     const values: string[] = [];
     Object.keys(row).forEach(key => {
       if (row.hasOwnProperty(key)) {
@@ -394,82 +365,60 @@ class FilterableTable extends PureComponent<
     });
     const lowerCaseText = text.toLowerCase();
     return values.some(v => v.includes(lowerCaseText));
-  }
+  };
 
-  rowClassName({ index }: { index: number }) {
+  const rowClassName = ({ index }: { index: number }) => {
     let className = '';
-    if (this.props.striped) {
+    if (striped) {
       className = index % 2 === 0 ? 'even-row' : 'odd-row';
     }
     return className;
-  }
+  };
 
-  sort({
+  const sort = ({
     sortBy,
     sortDirection,
   }: {
     sortBy: string;
     sortDirection: SortDirectionType;
-  }) {
-    let updatedState: FilterableTableState;
-
+  }) => {
     const shouldClearSort =
-      this.state.sortDirection === SortDirection.DESC &&
-      this.state.sortBy === sortBy;
+      sortDirectionState === SortDirection.DESC && sortByState === sortBy;
 
     if (shouldClearSort) {
-      updatedState = {
-        ...this.state,
-        sortBy: undefined,
-        sortDirection: undefined,
-        displayedList: [...this.list],
-      };
+      setSortByState(undefined);
+      setSortDirectionState(undefined);
+      setDisplayedList([...list]);
     } else {
-      updatedState = {
-        ...this.state,
-        sortBy,
-        sortDirection,
-        displayedList: [...this.list].sort(
-          this.sortResults(sortBy, sortDirection === SortDirection.DESC),
+      setSortByState(sortBy);
+      setSortDirectionState(sortDirection);
+      setDisplayedList(
+        [...list].sort(
+          sortResults(sortBy, sortDirection === SortDirection.DESC),
         ),
-      };
+      );
     }
+  };
 
-    this.setState(updatedState);
-  }
-
-  fitTableToWidthIfNeeded() {
-    const containerWidth = this.container.current?.clientWidth ?? 0;
-    if (this.totalTableWidth < containerWidth) {
-      // fit table width if content doesn't fill the width of the container
-      this.totalTableWidth = containerWidth;
-    }
-    this.setState({ fitted: true });
-  }
-
-  addJsonModal(
+  const addJsonModal = (
     node: React.ReactNode,
     jsonObject: Record<string, unknown> | unknown[],
     jsonString: CellDataType,
-  ) {
-    return (
-      <ModalTrigger
-        modalBody={
-          <JSONTree data={jsonObject} theme={this.getJsonTreeTheme()} />
-        }
-        modalFooter={
-          <Button>
-            <CopyToClipboard shouldShowText={false} text={jsonString} />
-          </Button>
-        }
-        modalTitle={t('Cell content')}
-        triggerNode={node}
-      />
-    );
-  }
+  ) => (
+    <ModalTrigger
+      modalBody={<JSONTree data={jsonObject} theme={getJsonTreeTheme()} />}
+      modalFooter={
+        <Button>
+          <CopyToClipboard shouldShowText={false} text={jsonString} />
+        </Button>
+      }
+      modalTitle={t('Cell content')}
+      triggerNode={node}
+    />
+  );
 
   // Parse any numbers from strings so they'll sort correctly
-  parseNumberFromString = (value: string | number | null) => {
+  const parseNumberFromString = (value: string | number | null) => {
     if (typeof value === 'string') {
       if (ONLY_NUMBER_REGEX.test(value)) {
         return parseFloat(value);
@@ -479,10 +428,10 @@ class FilterableTable extends PureComponent<
     return value;
   };
 
-  sortResults(sortBy: string, descending: boolean) {
-    return (a: Datum, b: Datum) => {
-      const aValue = this.parseNumberFromString(a[sortBy]);
-      const bValue = this.parseNumberFromString(b[sortBy]);
+  const sortResults =
+    (sortBy: string, descending: boolean) => (a: Datum, b: Datum) => {
+      const aValue = parseNumberFromString(a[sortBy]);
+      const bValue = parseNumberFromString(b[sortBy]);
 
       // equal items sort equally
       if (aValue === bValue) {
@@ -502,20 +451,18 @@ class FilterableTable extends PureComponent<
       }
       return aValue < bValue ? -1 : 1;
     };
-  }
 
-  sortGrid = (label: string) => {
-    this.sort({
+  const sortGrid = (label: string) => {
+    sort({
       sortBy: label,
       sortDirection:
-        this.state.sortDirection === SortDirection.DESC ||
-        this.state.sortBy !== label
+        sortDirectionState === SortDirection.DESC || sortByState !== label
           ? SortDirection.ASC
           : SortDirection.DESC,
     });
   };
 
-  renderTableHeader({
+  const renderTableHeader = ({
     dataKey,
     label,
     sortBy,
@@ -525,9 +472,9 @@ class FilterableTable extends PureComponent<
     label: string;
     sortBy: string;
     sortDirection: SortDirectionType;
-  }) {
+  }) => {
     const className =
-      this.props.expandedColumns.indexOf(label) > -1
+      expandedColumns.indexOf(label) > -1
         ? 'header-style-disabled'
         : 'header-style';
 
@@ -537,9 +484,9 @@ class FilterableTable extends PureComponent<
         {sortBy === dataKey && <SortIndicator sortDirection={sortDirection} />}
       </div>
     );
-  }
+  };
 
-  renderGridCellHeader({
+  const renderGridCellHeader = ({
     columnIndex,
     key,
     style,
@@ -547,10 +494,10 @@ class FilterableTable extends PureComponent<
     columnIndex: number;
     key: string;
     style: React.CSSProperties;
-  }) {
-    const label = this.props.orderedColumnKeys[columnIndex];
+  }) => {
+    const label = orderedColumnKeys[columnIndex];
     const className =
-      this.props.expandedColumns.indexOf(label) > -1
+      expandedColumns.indexOf(label) > -1
         ? 'header-style-disabled'
         : 'header-style';
     return (
@@ -566,17 +513,17 @@ class FilterableTable extends PureComponent<
         className={`${className} grid-cell grid-header-cell`}
         role="columnheader"
         tabIndex={columnIndex}
-        onClick={() => this.sortGrid(label)}
+        onClick={() => sortGrid(label)}
       >
         {label}
-        {this.state.sortBy === label && (
-          <SortIndicator sortDirection={this.state.sortDirection} />
+        {sortByState === label && (
+          <SortIndicator sortDirection={sortDirectionState} />
         )}
       </div>
     );
-  }
+  };
 
-  renderGridCell({
+  const renderGridCell = ({
     columnIndex,
     key,
     rowIndex,
@@ -586,10 +533,10 @@ class FilterableTable extends PureComponent<
     key: string;
     rowIndex: number;
     style: React.CSSProperties;
-  }) {
-    const columnKey = this.props.orderedColumnKeys[columnIndex];
-    const cellData = this.state.displayedList[rowIndex][columnKey];
-    const cellText = this.getCellContent({ cellData, columnKey });
+  }) => {
+    const columnKey = orderedColumnKeys[columnIndex];
+    const cellData = displayedList[rowIndex][columnKey];
+    const cellText = getCellContent({ cellData, columnKey });
     const content =
       cellData === null ? <i className="text-muted">{cellText}</i> : cellText;
     const cellNode = (
@@ -602,7 +549,7 @@ class FilterableTable extends PureComponent<
               ? style.top - GRID_POSITION_ADJUSTMENT
               : style.top,
         }}
-        className={`grid-cell ${this.rowClassName({ index: rowIndex })}`}
+        className={`grid-cell ${rowClassName({ index: rowIndex })}`}
       >
         <div css={{ width: 'inherit' }}>{content}</div>
       </div>
@@ -610,33 +557,23 @@ class FilterableTable extends PureComponent<
 
     const jsonObject = safeJsonObjectParse(cellData);
     if (jsonObject) {
-      return this.addJsonModal(cellNode, jsonObject, cellData);
+      return addJsonModal(cellNode, jsonObject, cellData);
     }
     return cellNode;
-  }
+  };
 
-  renderGrid() {
-    const {
-      orderedColumnKeys,
-      overscanColumnCount,
-      overscanRowCount,
-      rowHeight,
-    } = this.props;
-
-    let { height } = this.props;
-    let totalTableHeight = height;
+  const renderGrid = () => {
     if (
-      this.container.current &&
-      this.totalTableWidth > this.container.current.clientWidth
+      container.current &&
+      totalTableWidth.current > container.current.clientWidth
     ) {
       // exclude the height of the horizontal scroll bar from the height of the table
       // and the height of the table container if the content overflows
-      height -= SCROLL_BAR_HEIGHT;
-      totalTableHeight -= SCROLL_BAR_HEIGHT;
+      totalTableHeight.current -= SCROLL_BAR_HEIGHT;
     }
 
     const getColumnWidth = ({ index }: { index: number }) =>
-      this.widthsForColumnsByKey[orderedColumnKeys[index]];
+      widthsForColumnsByKey[orderedColumnKeys[index]];
 
     // fix height of filterable table
     return (
@@ -648,7 +585,7 @@ class FilterableTable extends PureComponent<
                 {({ width }) => (
                   <div>
                     <Grid
-                      cellRenderer={this.renderGridCellHeader}
+                      cellRenderer={renderGridCellHeader}
                       columnCount={orderedColumnKeys.length}
                       columnWidth={getColumnWidth}
                       height={rowHeight}
@@ -659,14 +596,14 @@ class FilterableTable extends PureComponent<
                       style={{ overflow: 'hidden' }}
                     />
                     <Grid
-                      cellRenderer={this.renderGridCell}
+                      cellRenderer={renderGridCell}
                       columnCount={orderedColumnKeys.length}
                       columnWidth={getColumnWidth}
-                      height={totalTableHeight - rowHeight}
+                      height={totalTableHeight.current - rowHeight}
                       onScroll={onScroll}
                       overscanColumnCount={overscanColumnCount}
                       overscanRowCount={overscanRowCount}
-                      rowCount={this.list.length}
+                      rowCount={list.length}
                       rowHeight={rowHeight}
                       width={width}
                     />
@@ -678,86 +615,73 @@ class FilterableTable extends PureComponent<
         </ScrollSync>
       </StyledFilterableTable>
     );
-  }
+  };
 
-  renderTableCell({
+  const renderTableCell = ({
     cellData,
     columnKey,
   }: {
     cellData: CellDataType;
     columnKey: string;
-  }) {
-    const cellNode = this.getCellContent({ cellData, columnKey });
+  }) => {
+    const cellNode = getCellContent({ cellData, columnKey });
     const content =
       cellData === null ? <i className="text-muted">{cellNode}</i> : cellNode;
     const jsonObject = safeJsonObjectParse(cellData);
     if (jsonObject) {
-      return this.addJsonModal(cellNode, jsonObject, cellData);
+      return addJsonModal(cellNode, jsonObject, cellData);
     }
     return content;
-  }
+  };
 
-  renderTable() {
-    const { sortBy, sortDirection } = this.state;
-    const {
-      filterText,
-      headerHeight,
-      orderedColumnKeys,
-      overscanRowCount,
-      rowHeight,
-    } = this.props;
-
-    let sortedAndFilteredList = this.state.displayedList;
+  const renderTable = () => {
+    let sortedAndFilteredList = displayedList;
     // filter list
     if (filterText) {
       sortedAndFilteredList = sortedAndFilteredList.filter((row: Datum) =>
-        this.hasMatch(filterText, row),
+        hasMatch(filterText, row),
       );
     }
 
-    let { height } = this.props;
-    let totalTableHeight = height;
     if (
-      this.container.current &&
-      this.totalTableWidth > this.container.current.clientWidth
+      container.current &&
+      totalTableWidth.current > container.current.clientWidth
     ) {
       // exclude the height of the horizontal scroll bar from the height of the table
       // and the height of the table container if the content overflows
-      height -= SCROLL_BAR_HEIGHT;
-      totalTableHeight -= SCROLL_BAR_HEIGHT;
+      totalTableHeight.current -= SCROLL_BAR_HEIGHT;
     }
 
     const rowGetter = ({ index }: { index: number }) =>
-      this.getDatum(sortedAndFilteredList, index);
+      getDatum(sortedAndFilteredList, index);
     return (
       <StyledFilterableTable
         className="filterable-table-container"
-        ref={this.container}
+        ref={container}
       >
-        {this.state.fitted && (
+        {fitted && (
           <Table
-            ref="Table"
             headerHeight={headerHeight}
-            height={totalTableHeight}
+            height={totalTableHeight.current}
             overscanRowCount={overscanRowCount}
-            rowClassName={this.rowClassName}
+            rowClassName={rowClassName}
             rowHeight={rowHeight}
             rowGetter={rowGetter}
             rowCount={sortedAndFilteredList.length}
-            sort={this.sort}
-            sortBy={sortBy}
-            sortDirection={sortDirection}
-            width={this.totalTableWidth}
+            sort={sort}
+            sortBy={sortByState}
+            sortDirection={sortDirectionState}
+            width={totalTableWidth.current}
           >
             {orderedColumnKeys.map(columnKey => (
               <Column
                 cellRenderer={({ cellData }) =>
-                  this.renderTableCell({ cellData, columnKey })
+                  renderTableCell({ cellData, columnKey })
                 }
                 dataKey={columnKey}
                 disableSort={false}
-                headerRenderer={this.renderTableHeader}
-                width={this.widthsForColumnsByKey[columnKey]}
+                headerRenderer={renderTableHeader}
+                width={widthsForColumnsByKey[columnKey]}
                 label={columnKey}
                 key={columnKey}
               />
@@ -766,14 +690,12 @@ class FilterableTable extends PureComponent<
         )}
       </StyledFilterableTable>
     );
-  }
+  };
 
-  render() {
-    if (this.props.orderedColumnKeys.length > MAX_COLUMNS_FOR_TABLE) {
-      return this.renderGrid();
-    }
-    return this.renderTable();
+  if (orderedColumnKeys.length > MAX_COLUMNS_FOR_TABLE) {
+    return renderGrid();
   }
-}
+  return renderTable();
+};
 
-export default withTheme(FilterableTable);
+export default FilterableTable;
