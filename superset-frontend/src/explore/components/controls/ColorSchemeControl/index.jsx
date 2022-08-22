@@ -24,6 +24,7 @@ import { Tooltip } from 'src/components/Tooltip';
 import { styled, t } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import ControlHeader from 'src/explore/components/ControlHeader';
+import ColorSchemeLabel from './ColorSchemeLabel';
 
 const propTypes = {
   hasCustomLabelColors: PropTypes.bool,
@@ -86,36 +87,11 @@ export default class ColorSchemeControl extends React.PureComponent {
     }
 
     return (
-      <span key={currentScheme.id} title={currentScheme.label}>
-        <ul
-          css={{
-            listStyle: 'none',
-            margin: 0,
-            padding: 0,
-            display: 'flex',
-            alignItems: 'center',
-
-            '& li': {
-              flexBasis: 9,
-              height: 10,
-              margin: '9px 1px',
-            },
-          }}
-          data-test={currentScheme.id}
-        >
-          {colors.map((color, i) => (
-            <li
-              key={`${currentScheme.id}-${i}`}
-              css={{
-                backgroundColor: color,
-                border: `1px solid ${color === 'white' ? 'black' : color}`,
-              }}
-            >
-              &nbsp;
-            </li>
-          ))}
-        </ul>
-      </span>
+      <ColorSchemeLabel
+        id={currentScheme.id}
+        label={currentScheme.label}
+        colors={colors}
+      />
     );
   }
 

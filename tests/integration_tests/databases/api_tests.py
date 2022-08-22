@@ -1359,7 +1359,7 @@ class TestDatabaseApi(SupersetTestCase):
             "sqlalchemy_uri": example_db.safe_sqlalchemy_uri(),
             "server_cert": None,
         }
-        url = "api/v1/database/test_connection"
+        url = "api/v1/database/test_connection/"
         rv = self.post_assert_metric(url, data, "test_connection")
         self.assertEqual(rv.status_code, 200)
         self.assertEqual(rv.headers["Content-Type"], "application/json; charset=utf-8")
@@ -1388,7 +1388,7 @@ class TestDatabaseApi(SupersetTestCase):
             "impersonate_user": False,
             "server_cert": None,
         }
-        url = "api/v1/database/test_connection"
+        url = "api/v1/database/test_connection/"
         rv = self.post_assert_metric(url, data, "test_connection")
         self.assertEqual(rv.status_code, 422)
         self.assertEqual(rv.headers["Content-Type"], "application/json; charset=utf-8")
@@ -1454,7 +1454,7 @@ class TestDatabaseApi(SupersetTestCase):
             "impersonate_user": False,
             "server_cert": None,
         }
-        url = "api/v1/database/test_connection"
+        url = "api/v1/database/test_connection/"
         rv = self.post_assert_metric(url, data, "test_connection")
         self.assertEqual(rv.status_code, 400)
         response = json.loads(rv.data.decode("utf-8"))
@@ -1513,7 +1513,7 @@ class TestDatabaseApi(SupersetTestCase):
             "impersonate_user": False,
             "server_cert": None,
         }
-        url = "api/v1/database/test_connection"
+        url = "api/v1/database/test_connection/"
         rv = self.post_assert_metric(url, data, "test_connection")
 
         assert rv.status_code == 422
@@ -2121,7 +2121,7 @@ class TestDatabaseApi(SupersetTestCase):
 
     def test_validate_parameters_invalid_payload_format(self):
         self.login(username="admin")
-        url = "api/v1/database/validate_parameters"
+        url = "api/v1/database/validate_parameters/"
         rv = self.client.post(url, data="INVALID", content_type="text/plain")
         response = json.loads(rv.data.decode("utf-8"))
 
@@ -2146,7 +2146,7 @@ class TestDatabaseApi(SupersetTestCase):
 
     def test_validate_parameters_invalid_payload_schema(self):
         self.login(username="admin")
-        url = "api/v1/database/validate_parameters"
+        url = "api/v1/database/validate_parameters/"
         payload = {"foo": "bar"}
         rv = self.client.post(url, json=payload)
         response = json.loads(rv.data.decode("utf-8"))
@@ -2190,7 +2190,7 @@ class TestDatabaseApi(SupersetTestCase):
 
     def test_validate_parameters_missing_fields(self):
         self.login(username="admin")
-        url = "api/v1/database/validate_parameters"
+        url = "api/v1/database/validate_parameters/"
         payload = {
             "configuration_method": ConfigurationMethod.SQLALCHEMY_FORM,
             "engine": "postgresql",
@@ -2241,7 +2241,7 @@ class TestDatabaseApi(SupersetTestCase):
         is_port_open.return_value = True
 
         self.login(username="admin")
-        url = "api/v1/database/validate_parameters"
+        url = "api/v1/database/validate_parameters/"
         payload = {
             "engine": "postgresql",
             "parameters": defaultdict(dict),
@@ -2265,7 +2265,7 @@ class TestDatabaseApi(SupersetTestCase):
 
     def test_validate_parameters_invalid_port(self):
         self.login(username="admin")
-        url = "api/v1/database/validate_parameters"
+        url = "api/v1/database/validate_parameters/"
         payload = {
             "engine": "postgresql",
             "parameters": defaultdict(dict),
@@ -2324,7 +2324,7 @@ class TestDatabaseApi(SupersetTestCase):
         is_hostname_valid.return_value = False
 
         self.login(username="admin")
-        url = "api/v1/database/validate_parameters"
+        url = "api/v1/database/validate_parameters/"
         payload = {
             "engine": "postgresql",
             "parameters": defaultdict(dict),
@@ -2384,7 +2384,7 @@ class TestDatabaseApi(SupersetTestCase):
         is_hostname_valid.return_value = True
 
         self.login(username="admin")
-        url = "api/v1/database/validate_parameters"
+        url = "api/v1/database/validate_parameters/"
         payload = {
             "engine": "postgresql",
             "parameters": defaultdict(dict),
@@ -2467,7 +2467,7 @@ class TestDatabaseApi(SupersetTestCase):
             pytest.skip("Only presto and PG are implemented")
 
         self.login(username="admin")
-        uri = f"api/v1/database/{example_db.id}/validate_sql"
+        uri = f"api/v1/database/{example_db.id}/validate_sql/"
         rv = self.client.post(uri, json=request_payload)
         response = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(rv.status_code, 200)
@@ -2493,7 +2493,7 @@ class TestDatabaseApi(SupersetTestCase):
             pytest.skip("Only presto and PG are implemented")
 
         self.login(username="admin")
-        uri = f"api/v1/database/{example_db.id}/validate_sql"
+        uri = f"api/v1/database/{example_db.id}/validate_sql/"
         rv = self.client.post(uri, json=request_payload)
         response = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(rv.status_code, 200)
@@ -2525,7 +2525,7 @@ class TestDatabaseApi(SupersetTestCase):
         }
         self.login(username="admin")
         uri = (
-            f"api/v1/database/{self.get_nonexistent_numeric_id(Database)}/validate_sql"
+            f"api/v1/database/{self.get_nonexistent_numeric_id(Database)}/validate_sql/"
         )
         rv = self.client.post(uri, json=request_payload)
         self.assertEqual(rv.status_code, 404)
@@ -2546,7 +2546,7 @@ class TestDatabaseApi(SupersetTestCase):
         }
         self.login(username="admin")
         uri = (
-            f"api/v1/database/{self.get_nonexistent_numeric_id(Database)}/validate_sql"
+            f"api/v1/database/{self.get_nonexistent_numeric_id(Database)}/validate_sql/"
         )
         rv = self.client.post(uri, json=request_payload)
         response = json.loads(rv.data.decode("utf-8"))
@@ -2571,7 +2571,7 @@ class TestDatabaseApi(SupersetTestCase):
 
         example_db = get_example_database()
 
-        uri = f"api/v1/database/{example_db.id}/validate_sql"
+        uri = f"api/v1/database/{example_db.id}/validate_sql/"
         rv = self.client.post(uri, json=request_payload)
         response = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(rv.status_code, 422)
@@ -2624,7 +2624,7 @@ class TestDatabaseApi(SupersetTestCase):
 
         example_db = get_example_database()
 
-        uri = f"api/v1/database/{example_db.id}/validate_sql"
+        uri = f"api/v1/database/{example_db.id}/validate_sql/"
         rv = self.client.post(uri, json=request_payload)
         response = json.loads(rv.data.decode("utf-8"))
 

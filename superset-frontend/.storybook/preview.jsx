@@ -66,4 +66,5 @@ addParameters({
       method: 'alphabetical',
     },
   },
+  controls: { expanded: true },
 });
