@@ -99,7 +99,7 @@ class UploadToDatabaseForm(DynamicForm):
         New GSheets and Clickhouse DBs won't have the option to set
         allow_file_upload set as True.
         """
-        if database.db_engine_spec.allows_file_upload:
+        if database.db_engine_spec.supports_file_upload:
             return True
         return False
 

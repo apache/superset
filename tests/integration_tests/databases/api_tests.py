@@ -1944,7 +1944,7 @@ class TestDatabaseApi(SupersetTestCase):
                     "preferred": True,
                     "sqlalchemy_uri_placeholder": "postgresql://user:password@host:port/dbname[?key=value&key=value...]",
                     "engine_information": {
-                        "allows_file_upload": True,
+                        "supports_file_upload": True,
                     },
                 },
                 {
@@ -1966,7 +1966,7 @@ class TestDatabaseApi(SupersetTestCase):
                     "preferred": True,
                     "sqlalchemy_uri_placeholder": "bigquery://{project_id}",
                     "engine_information": {
-                        "allows_file_upload": True,
+                        "supports_file_upload": True,
                     },
                 },
                 {
@@ -2017,7 +2017,7 @@ class TestDatabaseApi(SupersetTestCase):
                     "preferred": False,
                     "sqlalchemy_uri_placeholder": "redshift+psycopg2://user:password@host:port/dbname[?key=value&key=value...]",
                     "engine_information": {
-                        "allows_file_upload": True,
+                        "supports_file_upload": True,
                     },
                 },
                 {
@@ -2039,7 +2039,7 @@ class TestDatabaseApi(SupersetTestCase):
                     "preferred": False,
                     "sqlalchemy_uri_placeholder": "gsheets://",
                     "engine_information": {
-                        "allows_file_upload": False,
+                        "supports_file_upload": False,
                     },
                 },
                 {
@@ -2090,7 +2090,7 @@ class TestDatabaseApi(SupersetTestCase):
                     "preferred": False,
                     "sqlalchemy_uri_placeholder": "mysql://user:password@host:port/dbname[?key=value&key=value...]",
                     "engine_information": {
-                        "allows_file_upload": True,
+                        "supports_file_upload": True,
                     },
                 },
                 {
@@ -2099,7 +2099,7 @@ class TestDatabaseApi(SupersetTestCase):
                     "name": "SAP HANA",
                     "preferred": False,
                     "engine_information": {
-                        "allows_file_upload": True,
+                        "supports_file_upload": True,
                     },
                 },
             ]
@@ -2129,7 +2129,7 @@ class TestDatabaseApi(SupersetTestCase):
                     "name": "MySQL",
                     "preferred": True,
                     "engine_information": {
-                        "allows_file_upload": True,
+                        "supports_file_upload": True,
                     },
                 },
                 {
@@ -2138,7 +2138,7 @@ class TestDatabaseApi(SupersetTestCase):
                     "name": "SAP HANA",
                     "preferred": False,
                     "engine_information": {
-                        "allows_file_upload": True,
+                        "supports_file_upload": True,
                     },
                 },
             ]

@@ -1071,7 +1071,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                           description: Dict with public properties form the DB Engine
                           type: object
                           properties:
-                            allows_file_upload:
+                            supports_file_upload:
                               description: Whether the engine supports file uploads
                               type: boolean
             400:

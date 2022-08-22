@@ -100,7 +100,7 @@ const mockNonGSheetsDBs = [...new Array(2)].map((_, i) => ({
   changed_on: new Date().toISOString,
   id: i,
   engine_information: {
-    allows_file_upload: true,
+    supports_file_upload: true,
   },
 }));
 
@@ -119,7 +119,7 @@ const mockGsheetsDbs = [...new Array(2)].map((_, i) => ({
   changed_on: new Date().toISOString,
   id: i,
   engine_information: {
-    allows_file_upload: false,
+    supports_file_upload: false,
   },
 }));
 

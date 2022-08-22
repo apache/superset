@@ -234,7 +234,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
       // with allow_file_upload set as True which is not possible from now on
       const allowedDatabasesWithFileUpload =
         json?.result?.filter(
-          (database: any) => database?.engine_information?.allows_file_upload,
+          (database: any) => database?.engine_information?.supports_file_upload,
         ) || [];
       setAllowUploads(allowedDatabasesWithFileUpload?.length >= 1);
     });

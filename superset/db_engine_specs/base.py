@@ -363,7 +363,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     # Whether the engine supports file uploads
     # if True, database will be listed as option in the upload file form
-    allows_file_upload = True
+    supports_file_upload = True
 
     @classmethod
     def supports_url(cls, url: URL) -> bool:
@@ -1689,10 +1689,10 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         Construct a Dict with properties we want to expose.
 
-        :returns: Dict with properties of our class like allows_file_upload
+        :returns: Dict with properties of our class like supports_file_upload
         """
         return {
-            "allows_file_upload": cls.allows_file_upload,
+            "supports_file_upload": cls.supports_file_upload,
         }
 
 

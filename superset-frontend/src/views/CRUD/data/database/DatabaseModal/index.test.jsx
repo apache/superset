@@ -100,7 +100,7 @@ fetchMock.mock(AVAILABLE_DB_ENDPOINT, {
       sqlalchemy_uri_placeholder:
         'postgresql://user:password@host:port/dbname[?key=value&key=value...]',
       engine_information: {
-        allows_file_upload: true,
+        supports_file_upload: true,
       },
     },
     {
@@ -109,7 +109,7 @@ fetchMock.mock(AVAILABLE_DB_ENDPOINT, {
       name: 'Presto',
       preferred: true,
       engine_information: {
-        allows_file_upload: true,
+        supports_file_upload: true,
       },
     },
     {
@@ -161,7 +161,7 @@ fetchMock.mock(AVAILABLE_DB_ENDPOINT, {
       sqlalchemy_uri_placeholder:
         'mysql://user:password@host:port/dbname[?key=value&key=value...]',
       engine_information: {
-        allows_file_upload: true,
+        supports_file_upload: true,
       },
     },
     {
@@ -170,7 +170,7 @@ fetchMock.mock(AVAILABLE_DB_ENDPOINT, {
       name: 'SQLite',
       preferred: true,
       engine_information: {
-        allows_file_upload: true,
+        supports_file_upload: true,
       },
     },
     {
@@ -179,7 +179,7 @@ fetchMock.mock(AVAILABLE_DB_ENDPOINT, {
       name: 'Apache Druid',
       preferred: false,
       engine_information: {
-        allows_file_upload: true,
+        supports_file_upload: true,
       },
     },
     {
@@ -203,7 +203,7 @@ fetchMock.mock(AVAILABLE_DB_ENDPOINT, {
       preferred: false,
       sqlalchemy_uri_placeholder: 'bigquery://{project_id}',
       engine_information: {
-        allows_file_upload: true,
+        supports_file_upload: true,
       },
     },
     {
@@ -213,7 +213,7 @@ fetchMock.mock(AVAILABLE_DB_ENDPOINT, {
       name: 'Google Sheets',
       preferred: false,
       engine_information: {
-        allows_file_upload: false,
+        supports_file_upload: false,
       },
     },
   ],

@@ -49,7 +49,7 @@ const ExtraOptions = ({
   const expandableModalIsOpen = !!db?.expose_in_sqllab;
   const createAsOpen = !!(db?.allow_ctas || db?.allow_cvas);
   const isFileUploadSupportedByEngine =
-    db?.engine_information?.allows_file_upload;
+    db?.engine_information?.supports_file_upload;
 
   return (
     <Collapse

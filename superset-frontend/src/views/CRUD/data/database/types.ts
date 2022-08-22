@@ -105,7 +105,7 @@ export type DatabaseObject = {
 
   // DB Engine Spec information
   engine_information?: {
-    allows_file_upload?: boolean;
+    supports_file_upload?: boolean;
   };
 };
 
