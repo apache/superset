@@ -17,7 +17,39 @@
  * under the License.
  */
 import React from 'react';
+import { t, styled } from '@superset-ui/core';
+import { EmptyStateBig } from 'src/components/EmptyState';
+
+const StyledEmptyStateBig = styled(EmptyStateBig)`
+  p {
+    width: ${({ theme }) => theme.gridUnit * 115}px;
+  }
+`;
+
+const renderDescription = () => (
+  <>
+    {t(
+      'Datasets can be created from database tables or SQL queries. Select a database table to the left or ',
+    )}
+    <span
+      role="button"
+      onClick={() => {
+        window.location.href = `/superset/sqllab`;
+      }}
+      tabIndex={0}
+    >
+      {t('create dataset from SQL query')}
+    </span>
+    {t(' to open SQL Lab. From there you can save the query as a dataset.')}
+  </>
+);
 
 export default function DatasetPanel() {
-  return <div>Dataset Panel</div>;
+  return (
+    <StyledEmptyStateBig
+      image="empty-dataset.svg"
+      title={t('Select dataset source')}
+      description={renderDescription()}
+    />
+  );
 }
