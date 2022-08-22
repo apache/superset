@@ -86,38 +86,37 @@ Superset can query data from any SQL-speaking datastore or data engine (Presto, 
 Here are some of the major database solutions that are supported:
 
 <p align="center">
-  <img src="superset-frontend/src/assets/images/redshift.png" alt="redshift" border="0" width="106" height="41"/>
-  <img src="superset-frontend/src/assets/images/google-biquery.png" alt="google-biquery" border="0" width="114" height="43"/>
-  <img src="superset-frontend/src/assets/images/snowflake.png" alt="snowflake" border="0" width="152" height="46"/>
-  <img src="superset-frontend/src/assets/images/trino.png" alt="trino" border="0" width="46" height="46"/>
-  <img src="superset-frontend/src/assets/images/presto.png" alt="presto" border="0" width="152" height="46"/>
-  <img src="superset-frontend/src/assets/images/databricks.png" alt="databricks" border="0" width="142" height="22" />
-  <img src="superset-frontend/src/assets/images/druid.png" alt="druid" border="0" width="135" height="37" />
-  <img src="superset-frontend/src/assets/images/firebolt.png" alt="firebolt" border="0" width="133" height="21.5" />
-  <img src="superset-frontend/src/assets/images/timescale.png" alt="timescale" border="0" width="102" height="26.8" />  
-  <img src="superset-frontend/src/assets/images/rockset.png" alt="rockset" border="0" width="125" height="51" />
-  <img src="superset-frontend/src/assets/images/postgresql.png" alt="postgresql" border="0" width="132" height="81" />
-  <img src="superset-frontend/src/assets/images/mysql.png" alt="mysql" border="0" width="119" height="62" />
-  <img src="superset-frontend/src/assets/images/mssql-server.png" alt="mssql-server" border="0" width="93" height="74" />
-  <img src="superset-frontend/src/assets/images/db2.png" alt="db2" border="0" width="62" height="62" />
-  <img src="superset-frontend/src/assets/images/sqlite.png" alt="sqlite" border="0" width="102" height="45" />
-  <img src="superset-frontend/src/assets/images/sybase.png" alt="sybase" border="0" width="128" height="47" />
-  <img src="superset-frontend/src/assets/images/mariadb.png" alt="mariadb" border="0" width="83" height="63" />
-  <img src="superset-frontend/src/assets/images/vertica.png" alt="vertica" border="0" width="128" height="40" />
-  <img src="superset-frontend/src/assets/images/oracle.png" alt="oracle" border="0" width="121" height="66" />
-  <img src="superset-frontend/src/assets/images/firebird.png" alt="firebird" border="0" width="86" height="56" />
-  <img src="superset-frontend/src/assets/images/greenplum.png" alt="greenplum" border="0" width="140" height="45" />
-  <img src="superset-frontend/src/assets/images/clickhouse.png" alt="clickhouse" border="0" width="133" height="34" />
-  <img src="superset-frontend/src/assets/images/exasol.png" alt="exasol" border="0" width="106" height="59" />
-  <img src="superset-frontend/src/assets/images/monet-db.png" alt="monet-db" border="0" width="106" height="46" />
-  <img src="superset-frontend/src/assets/images/apache-kylin.png" alt="apache-kylin" border="0" width="56" height="64"/>
-  <img src="superset-frontend/src/assets/images/hologres.png" alt="hologres" border="0" width="71" height="64"/>
-  <img src="superset-frontend/src/assets/images/netezza.png" alt="netezza" border="0" width="64" height="64"/>
-  <img src="superset-frontend/src/assets/images/pinot.png" alt="pinot" border="0" width="165" height="64"/>
-  <img src="superset-frontend/src/assets/images/teradata.png" alt="teradata" border="0" width="165" height="64"/>
-  <img src="superset-frontend/src/assets/images/yugabyte.png" alt="yugabyte" border="0" width="180" height="31"/>
+  <img src="superset-frontend/src/assets/images/redshift.png" alt="redshift" border="0" width="200" height="80"/>
+  <img src="superset-frontend/src/assets/images/google-biquery.png" alt="google-biquery" border="0" width="200" height="80"/>
+  <img src="superset-frontend/src/assets/images/snowflake.png" alt="snowflake" border="0" width="200" height="80"/>
+  <img src="superset-frontend/src/assets/images/trino.png" alt="trino" border="0" width="200" height="80"/>
+  <img src="superset-frontend/src/assets/images/presto.png" alt="presto" border="0" width="200" height="80"/>
+  <img src="superset-frontend/src/assets/images/databricks.png" alt="databricks" border="0" width="200" height="80" />
+  <img src="superset-frontend/src/assets/images/druid.png" alt="druid" border="0" width="200" height="80" />
+  <img src="superset-frontend/src/assets/images/firebolt.png" alt="firebolt" border="0" width="200" height="80" />
+  <img src="superset-frontend/src/assets/images/timescale.png" alt="timescale" border="0" width="200" height="80" />
+  <img src="superset-frontend/src/assets/images/rockset.png" alt="rockset" border="0" width="200" height="80" />
+  <img src="superset-frontend/src/assets/images/postgresql.png" alt="postgresql" border="0" width="200" height="80" />
+  <img src="superset-frontend/src/assets/images/mysql.png" alt="mysql" border="0" width="200" height="80" />
+  <img src="superset-frontend/src/assets/images/mssql-server.png" alt="mssql-server" border="0" width="200" height="80" />
+  <img src="superset-frontend/src/assets/images/db2.png" alt="db2" border="0" width="200" height="80" />
+  <img src="superset-frontend/src/assets/images/sqlite.png" alt="sqlite" border="0" width="200" height="80" />
+  <img src="superset-frontend/src/assets/images/sybase.png" alt="sybase" border="0" width="200" height="80" />
+  <img src="superset-frontend/src/assets/images/mariadb.png" alt="mariadb" border="0" width="200" height="80" />
+  <img src="superset-frontend/src/assets/images/vertica.png" alt="vertica" border="0" width="200" height="80" />
+  <img src="superset-frontend/src/assets/images/oracle.png" alt="oracle" border="0" width="200" height="80" />
+  <img src="superset-frontend/src/assets/images/firebird.png" alt="firebird" border="0" width="200" height="80" />
+  <img src="superset-frontend/src/assets/images/greenplum.png" alt="greenplum" border="0" width="200" height="80" />
+  <img src="superset-frontend/src/assets/images/clickhouse.png" alt="clickhouse" border="0" width="200" height="80" />
+  <img src="superset-frontend/src/assets/images/exasol.png" alt="exasol" border="0" width="200" height="80" />
+  <img src="superset-frontend/src/assets/images/monet-db.png" alt="monet-db" border="0" width="200" height="80" />
+  <img src="superset-frontend/src/assets/images/apache-kylin.png" alt="apache-kylin" border="0" width="200" height="80"/>
+  <img src="superset-frontend/src/assets/images/hologres.png" alt="hologres" border="0" width="200" height="80"/>
+  <img src="superset-frontend/src/assets/images/netezza.png" alt="netezza" border="0" width="200" height="80"/>
+  <img src="superset-frontend/src/assets/images/pinot.png" alt="pinot" border="0" width="200" height="80"/>
+  <img src="superset-frontend/src/assets/images/teradata.png" alt="teradata" border="0" width="200" height="80"/>
+  <img src="superset-frontend/src/assets/images/yugabyte.png" alt="yugabyte" border="0" width="200" height="80"/>
 </p>
-
 **A more comprehensive list of supported databases** along with the configuration instructions can be found
 [here](https://superset.apache.org/docs/databases/installing-database-drivers).
 
@@ -158,7 +157,7 @@ Understanding the Superset Points of View
   - [Building New Database Connectors](https://preset.io/blog/building-database-connector/)
   - [Create Your First Dashboard](https://superset.apache.org/docs/creating-charts-dashboards/first-dashboard)
   - [Comprehensive Tutorial for Contributing Code to Apache Superset
-](https://preset.io/blog/tutorial-contributing-code-to-apache-superset/)
+  ](https://preset.io/blog/tutorial-contributing-code-to-apache-superset/)
 - [Resources to master Superset by Preset](https://preset.io/resources/)
 
 - Deploying Superset
