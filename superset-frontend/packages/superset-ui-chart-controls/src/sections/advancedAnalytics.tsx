@@ -178,7 +178,6 @@ export const advancedAnalyticsControls: ControlPanelSectionConfig = {
         name: 'resample_method',
         config: {
           type: 'SelectControl',
-          freeForm: true,
           label: t('Fill method'),
           default: null,
           choices: [
