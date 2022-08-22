@@ -26,6 +26,7 @@ import {
   getLegendProps,
   sanitizeHtml,
   extractShowValueIndexes,
+  getOverMaxHiddenFormatter,
 } from '../../src/utils/series';
 import { LegendOrientation, LegendType } from '../../src/types';
 import { defaultLegendPadding } from '../../src/defaults';
@@ -534,6 +535,18 @@ describe('formatSeriesName', () => {
   describe('sanitizeHtml', () => {
     it('should remove html tags from series name', () => {
       expect(sanitizeHtml(NULL_STRING)).toEqual('&lt;NULL&gt;');
+    });
+  });
+
+  describe('getOverMaxHiddenFormatter', () => {
+    it('should hide value if greater than max', () => {
+      const formatter = getOverMaxHiddenFormatter({ max: 81000 });
+      expect(formatter.format(84500)).toEqual('');
+    });
+    it('should show value if less or equal than max', () => {
+      const formatter = getOverMaxHiddenFormatter({ max: 81000 });
+      expect(formatter.format(81000)).toEqual('81000');
+      expect(formatter.format(50000)).toEqual('50000');
     });
   });
 });
