@@ -39,12 +39,12 @@ export type QueryObjectFilterClause = {
 } & (
   | {
       op: BinaryOperator;
-      val: string | number | boolean;
+      val: string | number | boolean | null | Date;
       formattedVal?: string;
     }
   | {
       op: SetOperator;
-      val: (string | number | boolean)[];
+      val: (string | number | boolean | null | Date)[];
       formattedVal?: string[];
     }
   | {
