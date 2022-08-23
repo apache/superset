@@ -43,6 +43,10 @@ class UpdateDatabaseCommand(BaseCommand):
         self._model: Optional[Database] = None
 
     def run(self) -> Model:
+        from superset.connectors.sqla.models import (  # pylint: disable=import-outside-toplevel
+            SqlaTable,
+        )
+
         self.validate()
         if not self._model:
             raise DatabaseNotFoundError()
@@ -58,8 +62,10 @@ class UpdateDatabaseCommand(BaseCommand):
             except Exception as ex:
                 db.session.rollback()
                 raise DatabaseConnectionFailedError() from ex
+
             # Update database schema permissions
             new_schemas: List[str] = []
+
             for schema in schemas:
                 old_view_menu_name = security_manager.get_schema_perm(
                     old_database_name, schema
@@ -73,6 +79,15 @@ class UpdateDatabaseCommand(BaseCommand):
                 # Update the schema permission if the database name changed
                 if schema_pvm and old_database_name != database.database_name:
                     schema_pvm.view_menu.name = new_view_menu_name
+
+                    # Update schema_perm on all datasets
+                    datasets = (
+                        db.session.query(SqlaTable)
+                        .filter(SqlaTable.schema_perm == old_view_menu_name)
+                        .all()
+                    )
+                    for dataset in datasets:
+                        dataset.schema_perm = new_view_menu_name
                 else:
                     new_schemas.append(schema)
             for schema in new_schemas:

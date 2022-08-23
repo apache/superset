@@ -83,6 +83,7 @@ from superset.utils.urls import get_url_host
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
     from superset.connectors.base.models import BaseDatasource
+    from superset.connectors.sqla.models import SqlaTable
     from superset.models.core import Database
     from superset.models.dashboard import Dashboard
     from superset.models.sql_lab import Query
@@ -1128,6 +1129,101 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         self._update_vm_datasources_access(
             mapper, connection, old_database_name, target
         )
+
+    def dataset_after_delete(
+        self,
+        mapper: Mapper,
+        connection: Connection,
+        target: "SqlaTable",
+    ) -> None:
+        from superset.connectors.sqla.models import (  # pylint: disable=import-outside-toplevel
+            SqlaTable,
+        )
+
+        view_menu_table = self.viewmenu_model.__table__  # pylint: disable=no-member
+        permission_view_menu_table = (
+            self.permissionview_model.__table__  # pylint: disable=no-member
+        )
+
+        dataset_vm_name = self.get_dataset_perm(
+            target.id, target.table_name, target.database.database_name
+        )
+        dataset_pvm = self.find_permission_view_menu(
+            "datasource_access", dataset_vm_name
+        )
+
+        if not dataset_pvm:
+            return
+        # Delete the dataset PVM
+        connection.execute(
+            permission_view_menu_table.delete().where(
+                permission_view_menu_table.c.id == dataset_pvm.id
+            )
+        )
+        self.on_permission_after_delete(mapper, connection, dataset_pvm)
+        # Delete the dataset VM
+        connection.execute(
+            view_menu_table.delete().where(
+                view_menu_table.c.id == dataset_pvm.view_menu_id
+            )
+        )
+
+    def dataset_after_update(
+        self,
+        mapper: Mapper,
+        connection: Connection,
+        target: "SqlaTable",
+    ) -> None:
+        from superset.connectors.sqla.models import (  # pylint: disable=import-outside-toplevel
+            SqlaTable,
+        )
+        from superset.models.slice import (  # pylint: disable=import-outside-toplevel
+            Slice,
+        )
+
+        view_menu_table = self.viewmenu_model.__table__  # pylint: disable=no-member
+        sqlatable_table = SqlaTable.__table__  # pylint: disable=no-member
+        chart_table = Slice.__table__  # pylint: disable=no-member
+
+        # Check if database name has changed
+        state = inspect(target)
+        history = state.get_history("table_name", True)
+        if not history.has_changes() or not history.deleted:
+            return
+
+        old_dataset_name = history.deleted[0]
+
+        old_dataset_vm_name = self.get_dataset_perm(
+            target.id, old_dataset_name, target.database.database_name
+        )
+        new_dataset_vm_name = self.get_dataset_perm(
+            target.id, target.table_name, target.database.database_name
+        )
+        new_dataset_view_menu = self.find_view_menu(new_dataset_vm_name)
+        if new_dataset_view_menu:
+            return
+        # Update VM
+        connection.execute(
+            view_menu_table.update()
+            .where(view_menu_table.c.name == old_dataset_vm_name)
+            .values(name=new_dataset_vm_name)
+        )
+        # Update dataset (SqlaTable perm field)
+        connection.execute(
+            sqlatable_table.update()
+            .where(
+                sqlatable_table.c.id == target.id,
+                sqlatable_table.c.perm == old_dataset_vm_name,
+            )
+            .values(perm=new_dataset_vm_name)
+        )
+        # Update charts (Slice perm field)
+        connection.execute(
+            chart_table.update()
+            .where(chart_table.c.perm == old_dataset_vm_name)
+            .values(perm=new_dataset_vm_name)
+        )
+        self.on_view_menu_after_update(mapper, connection, new_dataset_view_menu)
 
     def on_view_menu_after_update(
         self, mapper: Mapper, connection: Connection, target: ViewMenu
