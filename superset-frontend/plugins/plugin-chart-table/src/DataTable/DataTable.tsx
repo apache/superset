@@ -66,6 +66,7 @@ export interface DataTableProps<D extends object> extends TableOptions<D> {
   rowCount: number;
   wrapperRef?: MutableRefObject<HTMLDivElement>;
   onColumnOrderChange: () => void;
+  onContextMenu?: (value: D, offsetX: number, offsetY: number) => void;
 }
 
 export interface RenderHTMLCellProps extends HTMLProps<HTMLTableCellElement> {
@@ -98,6 +99,7 @@ export default typedMemo(function DataTable<D extends object>({
   serverPagination,
   wrapperRef: userWrapperRef,
   onColumnOrderChange,
+  onContextMenu,
   ...moreUseTableOptions
 }: DataTableProps<D>): JSX.Element {
   const tableHooks: PluginHook<D>[] = [
@@ -270,7 +272,20 @@ export default typedMemo(function DataTable<D extends object>({
             prepareRow(row);
             const { key: rowKey, ...rowProps } = row.getRowProps();
             return (
-              <tr key={rowKey || row.id} {...rowProps}>
+              <tr
+                key={rowKey || row.id}
+                {...rowProps}
+                onContextMenu={(e: any) => {
+                  if (onContextMenu) {
+                    e.preventDefault();
+                    onContextMenu(
+                      row.original,
+                      e.nativeEvent.layerX,
+                      e.nativeEvent.layerY,
+                    );
+                  }
+                }}
+              >
                 {row.cells.map(cell =>
                   cell.render('Cell', { key: cell.column.id }),
                 )}
