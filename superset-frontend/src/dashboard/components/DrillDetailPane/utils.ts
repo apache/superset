@@ -16,21 +16,31 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled } from '@superset-ui/core';
-import React from 'react';
+import { omit } from 'lodash';
+import {
+  ensureIsArray,
+  QueryFormData,
+  BinaryQueryObjectFilterClause,
+  buildQueryObject,
+} from '@superset-ui/core';
 
-const DatasetPanelStyle = styled.div`
-    background: #FFFFFF;
-    position: relative;
-    width: 100%;
-    max-height: 100%;
-    min-height: 0;
-    display: flex;
-    flex: 1;
-    flex-wrap: nowrap;
-    border-top: 1px solid #E0E0E0;
-`;
-
-export default function DatasetPanel() {
-  return <div>Dataset Panel</div>;
+export function getDrillPayload(
+  queryFormData?: QueryFormData,
+  drillFilters?: BinaryQueryObjectFilterClause[],
+) {
+  if (!queryFormData) {
+    return undefined;
+  }
+  const queryObject = buildQueryObject(queryFormData);
+  const extras = omit(queryObject.extras, 'having');
+  const filters = [
+    ...ensureIsArray(queryObject.filters),
+    ...ensureIsArray(drillFilters).map(f => omit(f, 'formattedVal')),
+  ];
+  return {
+    granularity: queryObject.granularity,
+    time_range: queryObject.time_range,
+    filters,
+    extras,
+  };
 }

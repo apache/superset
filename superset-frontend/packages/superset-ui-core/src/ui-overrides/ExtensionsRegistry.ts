@@ -35,12 +35,19 @@ type ReturningDisplayable<P = void> = (props: P) => string | React.ReactElement;
  * When defining a new option here, take care to keep any parameters to functions (or components) minimal.
  * Any removal or alteration to a parameter will be considered a breaking change.
  */
+type ConfigDetailsProps = {
+  embeddedId: string;
+};
+
 export type Extensions = Partial<{
+  'embedded.documentation.configuration_details': React.ComponentType<ConfigDetailsProps>;
   'embedded.documentation.description': ReturningDisplayable;
   'embedded.documentation.url': string;
   'dashboard.nav.right': React.ComponentType;
   'navbar.right': React.ComponentType;
+  'welcome.message': React.ComponentType;
   'welcome.banner': React.ComponentType;
+  'welcome.main.replacement': React.ComponentType;
 }>;
 
 /**

@@ -104,6 +104,11 @@ export function setExploreControls(formData: QueryFormData) {
   return { type: SET_EXPLORE_CONTROLS, formData };
 }
 
+export const SET_FORM_DATA = 'UPDATE_FORM_DATA';
+export function setFormData(formData: QueryFormData) {
+  return { type: SET_FORM_DATA, formData };
+}
+
 export const UPDATE_CHART_TITLE = 'UPDATE_CHART_TITLE';
 export function updateChartTitle(sliceName: string) {
   return { type: UPDATE_CHART_TITLE, sliceName };

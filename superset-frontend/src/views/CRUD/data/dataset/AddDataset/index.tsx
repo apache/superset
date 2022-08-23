@@ -20,10 +20,10 @@ import React, { useReducer, Reducer, useState } from 'react';
 import Header from './Header';
 import DatasetPanel from './DatasetPanel';
 import LeftPanel from './LeftPanel';
-import RightPanel from './RightPanel';
 import Footer from './Footer';
 import { DatasetActionType, DatasetObject, DSReducerActionType } from './types';
 import { styled } from '@superset-ui/core';
+import DatasetLayout from '../DatasetLayout';
 
 export function datasetReducer(
   state: Partial<DatasetObject> | null,
@@ -63,11 +63,7 @@ export function datasetReducer(
   }
 }
 
-const DatasetPageStyle = styled.div`
-  height: 100vh;
-`;
-
-export default function DatasetPage() {
+export default function AddDataset() {
   // this is commented out for now, but can be commented in as the component
   // is built up. Uncomment the useReducer in imports too
   const [dataset, setDataset] = useReducer<
@@ -75,19 +71,15 @@ export default function DatasetPage() {
   >(datasetReducer, null);
 
 
+  // setDataset={setDataset}
+  // schema={dataset?.schema}
+  // dbId={dataset?.id}
   return (
-    <DatasetPageStyle>
-      <Header />
-      <LeftPanel
-        setDataset={setDataset}
-        schema={dataset?.schema}
-        dbId={dataset?.id}
-      />
-      <div css={{ display: 'flex' }}>
-        <DatasetPanel />
-        <Footer />
-      </div>
-      <RightPanel />
-    </DatasetPageStyle>
+    <DatasetLayout
+      header={Header()}
+      leftPanel={LeftPanel()}
+      datasetPanel={DatasetPanel()}
+      footer={Footer()}
+    />
   );
 }

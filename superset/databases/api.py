@@ -662,7 +662,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         self.incr_stats("success", self.select_star.__name__)
         return self.response(200, result=result)
 
-    @expose("/test_connection", methods=["POST"])
+    @expose("/test_connection/", methods=["POST"])
     @protect()
     @statsd_metrics
     @event_logger.log_this_with_context(
@@ -778,7 +778,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             },
         )
 
-    @expose("/<int:pk>/validate_sql", methods=["POST"])
+    @expose("/<int:pk>/validate_sql/", methods=["POST"])
     @protect()
     @statsd_metrics
     @event_logger.log_this_with_context(
@@ -1121,7 +1121,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
 
         return self.response(200, databases=response)
 
-    @expose("/validate_parameters", methods=["POST"])
+    @expose("/validate_parameters/", methods=["POST"])
     @protect()
     @statsd_metrics
     @event_logger.log_this_with_context(

@@ -291,7 +291,6 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   function renderDatabaseSelector() {
     return (
       <DatabaseSelector
-        key={currentDatabase?.id}
         db={currentDatabase}
         emptyState={emptyState}
         formMode={formMode}

@@ -375,7 +375,7 @@ export function validateQuery(query) {
     };
 
     return SupersetClient.post({
-      endpoint: `/api/v1/database/${query.dbId}/validate_sql`,
+      endpoint: `/api/v1/database/${query.dbId}/validate_sql/`,
       body: JSON.stringify(postPayload),
       headers: { 'Content-Type': 'application/json' },
     })
@@ -908,9 +908,12 @@ export function updateSavedQuery(query) {
         dispatch(addSuccessToast(t('Your query was updated')));
         dispatch(queryEditorSetTitle(query, query.name));
       })
-      .catch(() =>
-        dispatch(addDangerToast(t('Your query could not be updated'))),
-      )
+      .catch(e => {
+        const message = t('Your query could not be updated');
+        // eslint-disable-next-line no-console
+        console.error(message, e);
+        dispatch(addDangerToast(message));
+      })
       .then(() => dispatch(updateQueryEditor(query)));
 }
 
