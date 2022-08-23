@@ -81,12 +81,12 @@ jobs:
           exitZeroOnChanges: true # 👈 Option to prevent the workflow from failing
       - name: Echo Storybook build link
         if: ${{ success() }}
-        uses: actions/github-script@v3
+        uses: actions/github-script@v6
         with:
           github-token: ${{secrets.GITHUB_TOKEN}}
           script: |
             github.issues.createComment({
-              issue_number: ${{ context.issue.number }},
+              issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
               body: 'Storybook has completed and can be viewed at ${{ steps.chromatic-pr.outputs.storybookUrl }}'
