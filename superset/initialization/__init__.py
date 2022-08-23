@@ -224,6 +224,16 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             href="/superset/welcome/",
             cond=lambda: bool(appbuilder.app.config["LOGO_TARGET_PATH"]),
         )
+
+        appbuilder.add_view(
+            DatabaseView,
+            "Databases",
+            label=__("Manage Connections"),
+            icon="fa-database",
+            category="Manage",
+            category_label=__("Manage"),
+        )
+
         appbuilder.add_view(
             AnnotationLayerModelView,
             "Annotation Layers",
@@ -255,9 +265,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             label=__("Datasets"),
             href="/tablemodelview/list/",
             icon="fa-table",
-            # category="Data",
-            # category_label=__("Data"),
-            # category_icon="fa-table",
             category="",
             category_icon="",
         )
@@ -362,17 +369,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category="SQL Lab",
             category_label=__("SQL"),
         )
-        # todo(hugh): Move this to Right Menu
-        # appbuilder.add_view(
-        #     DatabaseView,
-        #     "Databases",
-        #     label=__("Databases"),
-        #     icon="fa-database",
-        #     category="Data",
-        #     category_label=__("Data"),
-        #     category_icon="fa-database",
-        # )
-        # appbuilder.add_separator("Data")
 
         appbuilder.add_api(LogRestApi)
         appbuilder.add_view(
