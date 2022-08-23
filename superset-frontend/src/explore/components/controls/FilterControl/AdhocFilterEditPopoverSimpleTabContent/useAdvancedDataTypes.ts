@@ -26,6 +26,7 @@ const INITIAL_ADVANCED_DATA_TYPES_STATE: AdvancedDataTypesState = {
   parsedAdvancedDataType: '',
   advancedDataTypeOperatorList: [],
   errorMessage: '',
+  useDefaultOperators: false,
 };
 
 const useAdvancedDataTypes = (validHandler: (isValid: boolean) => void) => {
@@ -58,6 +59,7 @@ const useAdvancedDataTypes = (validHandler: (isValid: boolean) => void) => {
               parsedAdvancedDataType: json.result.display_value,
               advancedDataTypeOperatorList: json.result.valid_filter_operators,
               errorMessage: json.result.error_message,
+              useDefaultOperators: false,
             });
             // Changed due to removal of status field
             validHandler(!json.result.error_message);
@@ -68,8 +70,9 @@ const useAdvancedDataTypes = (validHandler: (isValid: boolean) => void) => {
               advancedDataTypeOperatorList:
                 advancedDataTypesState.advancedDataTypeOperatorList,
               errorMessage: t('Failed to retrieve advanced type'),
+              useDefaultOperators: true,
             });
-            validHandler(false);
+            validHandler(true);
           });
       }, 600)();
     },
