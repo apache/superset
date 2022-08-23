@@ -60,11 +60,11 @@ export default function transformProps(chartProps: ChartProps) {
     const filter = formData.extraFormData.filters[0];
     if (filter.col === 'ip_string') {
       appType = 'IP';
-      appVal = filter.val[0];
+      appVal = filter.val;
       break;
     } else if (filter.col === 'user_id') {
       appType = 'USER_ID';
-      appVal = filter.val[0];
+      appVal = filter.val;
       break;
     }
   }
