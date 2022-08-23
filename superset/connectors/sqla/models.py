@@ -1125,6 +1125,13 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             template_processor=template_processor,
         )
         sqla_column = literal_column(expression)
+
+        if col.get("is_axis") and col.get("time_grain"):
+            sqla_column = self.db_engine_spec.get_timestamp_expr(
+                sqla_column,
+                None,
+                col.get("time_grain"),
+            )
         return self.make_sqla_column_compatible(sqla_column, label)
 
     def make_sqla_column_compatible(
