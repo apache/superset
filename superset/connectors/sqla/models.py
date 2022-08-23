@@ -2268,7 +2268,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         sqla_table.write_shadow_dataset()
 
     @staticmethod
-    def after_delete(  # pylint: disable=unused-argument
+    def after_delete(
         mapper: Mapper,
         connection: Connection,
         sqla_table: "SqlaTable",

@@ -1136,10 +1136,13 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         connection: Connection,
         target: "SqlaTable",
     ) -> None:
-        from superset.connectors.sqla.models import (  # pylint: disable=import-outside-toplevel
-            SqlaTable,
-        )
+        """
 
+        :param mapper:
+        :param connection:
+        :param target:
+        :return:
+        """
         view_menu_table = self.viewmenu_model.__table__  # pylint: disable=no-member
         permission_view_menu_table = (
             self.permissionview_model.__table__  # pylint: disable=no-member
