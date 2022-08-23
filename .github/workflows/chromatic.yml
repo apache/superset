@@ -56,6 +56,7 @@ jobs:
         working-directory: superset-frontend
       # 👇 Checks if the branch is not master and runs Chromatic
       - name: Publish to Chromatic
+        id: chromatic-pr
         if: github.ref != 'refs/heads/master'
         uses: chromaui/action@v1
         # Required options for the Chromatic GitHub Action
@@ -67,6 +68,7 @@ jobs:
           exitZeroOnChanges: true # 👈 Option to prevent the workflow from failing
       # 👇 Checks if the branch is master and accepts all changes in Chromatic
       - name: Publish to Chromatic and auto accept changes
+        id: chromatic-master
         if: github.ref == 'refs/heads/master'
         uses: chromaui/action@v1
         # Required options for the Chromatic GitHub Action
@@ -77,3 +79,15 @@ jobs:
           projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
           autoAcceptChanges: true # 👈 Option to accept all changes when merging to master
           exitZeroOnChanges: true # 👈 Option to prevent the workflow from failing
+      - name: Echo Storybook build link
+        if: ${{ success() }}
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{secrets.GITHUB_TOKEN}}
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: 'Storybook has completed and can be viewed at ${{ steps.chromatic-pr.outputs.storybookUrl }}'
+            })
