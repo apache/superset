@@ -32,16 +32,26 @@ export type QueryDictionary = {
 };
 
 export interface QueryEditor {
+  id: string;
   dbId?: number;
   name: string;
   schema: string;
   autorun: boolean;
   sql: string;
   remoteId: number | null;
+  tableOptions: any[];
+  schemaOptions?: SchemaOption[];
+  functionNames: string[];
   validationResult?: {
     completed: boolean;
     errors: SupersetError[];
   };
+  hideLeftBar?: boolean;
+  latestQueryId?: string | null;
+  templateParams?: string;
+  selectedText?: string;
+  queryLimit?: number;
+  description?: string;
 }
 
 export type toastState = {
@@ -59,13 +69,15 @@ export type SqlLabRootState = {
     databases: Record<string, any>;
     dbConnect: boolean;
     offline: boolean;
-    queries: Query[];
+    queries: Record<string, Query>;
     queryEditors: QueryEditor[];
     tabHistory: string[]; // default is activeTab ? [activeTab.id.toString()] : []
     tables: Record<string, any>[];
     queriesLastUpdate: number;
     user: UserWithPermissionsAndRoles;
     errorMessage: string | null;
+    unsavedQueryEditor: Partial<QueryEditor>;
+    queryCostEstimates?: Record<string, QueryCostEstimate>;
   };
   localStorageUsageInKilobytes: number;
   messageToasts: toastState[];
@@ -112,4 +124,16 @@ export interface DatasetOptionAutocomplete {
   value: string;
   datasetId: number;
   owners: [DatasetOwner];
+}
+
+export interface SchemaOption {
+  value: string;
+  label: string;
+  title: string;
+}
+
+export interface QueryCostEstimate {
+  completed: string;
+  cost: Record<string, any>[];
+  error: string;
 }
