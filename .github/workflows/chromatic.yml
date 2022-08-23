@@ -22,26 +22,26 @@ name: 'Chromatic'
 
 # Event for the workflow
 # Only run if changes were made in superset-frontend folder of repo
-on: push
+on:
   # This will trigger when a branch merges to master when the PR has changes in the frontend folder updating the chromatic baseline
-#   push:
-#     branches:
-#       - master
-#     paths:
-#       - "superset-frontend/**"
-#   # this will allow us to see how the Storybook builds when a PR has been created that has changes in the frontend folder
-#   # NOTE: pull_request_target actions will always run the version of this action on master branch
-#   # you will not see changes in the action behavior until this action's changes have been merged to master.
-#   # This is a security precaution so that PR coming from a fork cannot access a Github secret without a repo
-#   # committer aproving and merging the PR declaring the action safe.
-#   pull_request_target:
-#     # We want this action to run under specific pull request changes
-#     # opened: pull request is created
-#     # synchronize: commit(s) pushed to the pull request
-#     # reopened: closed pull request is reopened
-#     types: [opened, synchronize, reopened]
-#     paths:
-#       - "superset-frontend/**"
+  push:
+    branches:
+      - master
+    paths:
+      - "superset-frontend/**"
+  # this will allow us to see how the Storybook builds when a PR has been created that has changes in the frontend folder
+  # NOTE: pull_request_target actions will always run the version of this action on master branch
+  # you will not see changes in the action behavior until this action's changes have been merged to master.
+  # This is a security precaution so that PR coming from a fork cannot access a Github secret without a repo
+  # committer aproving and merging the PR declaring the action safe.
+  pull_request:
+    # We want this action to run under specific pull request changes
+    # opened: pull request is created
+    # synchronize: commit(s) pushed to the pull request
+    # reopened: closed pull request is reopened
+    types: [opened, synchronize, reopened]
+    paths:
+      - "superset-frontend/**"
 
 # List of jobs
 jobs:
