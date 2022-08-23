@@ -20,33 +20,14 @@ import React, { PropsWithChildren } from 'react';
 import AntdAlert, { AlertProps as AntdAlertProps } from 'antd/lib/alert';
 import { useTheme } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
-/*
+
 export type AlertProps = PropsWithChildren<
   AntdAlertProps & { roomBelow?: boolean }
 >;
-*/
-
-export interface AlertProps extends Omit<AntdAlertProps, 'type'> {
-  /* Type of notifcation changes the color fo the compoent to provide user with more context for the Alert */
-  type: AlertType;
-  /*  Adds additional margin below the component instance */
-  roomBelow?: boolean;
-}
-
-export enum AlertType {
-  /* Use when providing context to the user's situation */
-  INFO = 'info',
-  /* Use when the user needs clarification about consequences of an action or result */
-  WARNING = 'warning',
-  /* Use when an error has oocured to provide user overview of the problem */
-  ERROR = 'error',
-  /* Use to provide the user with notifcation that an action has succeeded */
-  SUCCESS = 'success',
-}
 
 export default function Alert(props: AlertProps) {
   const {
-    type = AlertType.INFO,
+    type = 'info',
     description,
     showIcon = true,
     closable = true,
@@ -60,13 +41,13 @@ export default function Alert(props: AlertProps) {
 
   let baseColor = info;
   let AlertIcon = Icons.InfoSolid;
-  if (type === AlertType.ERROR) {
+  if (type === 'error') {
     baseColor = error;
     AlertIcon = Icons.ErrorSolid;
-  } else if (type === AlertType.WARNING) {
+  } else if (type === 'warning') {
     baseColor = alert;
     AlertIcon = Icons.AlertSolid;
-  } else if (type === AlertType.SUCCESS) {
+  } else if (type === 'success') {
     baseColor = success;
     AlertIcon = Icons.CircleCheckSolid;
   }
