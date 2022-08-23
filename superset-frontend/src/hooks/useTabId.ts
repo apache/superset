@@ -41,22 +41,24 @@ export function useTabId() {
     }
   }
   useEffect(() => {
-    const updateTabId = () => {
-      if (isStorageAvailable()) {
-        const lastTabId = window.localStorage.getItem('last_tab_id');
-        const newTabId = String(
-          lastTabId ? Number.parseInt(lastTabId, 10) + 1 : 1,
-        );
-        window.sessionStorage.setItem('tab_id', newTabId);
-        window.localStorage.setItem('last_tab_id', newTabId);
-        setTabId(newTabId);
-      } else {
+    if (!isStorageAvailable()) {
+      if (!tabId) {
         setTabId(shortid.generate());
       }
+      return;
+    }
+
+    const updateTabId = () => {
+      const lastTabId = window.localStorage.getItem('last_tab_id');
+      const newTabId = String(
+        lastTabId ? Number.parseInt(lastTabId, 10) + 1 : 1,
+      );
+      window.sessionStorage.setItem('tab_id', newTabId);
+      window.localStorage.setItem('last_tab_id', newTabId);
+      setTabId(newTabId);
     };
 
-    const storedTabId =
-      isStorageAvailable() && window.sessionStorage.getItem('tab_id');
+    const storedTabId = window.sessionStorage.getItem('tab_id');
     if (storedTabId) {
       channel.postMessage({
         type: 'REQUESTING_TAB_ID',
