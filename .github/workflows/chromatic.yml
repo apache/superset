@@ -80,7 +80,7 @@ jobs:
           autoAcceptChanges: true # 👈 Option to accept all changes when merging to master
           exitZeroOnChanges: true # 👈 Option to prevent the workflow from failing
       - name: Echo Storybook build link
-        if: ${{ success() }} && github.ref != 'refs/heads/master'
+        if: ${{ success() }}
         uses: actions/github-script@v3
         with:
           github-token: ${{secrets.GITHUB_TOKEN}}
