@@ -115,6 +115,7 @@ export interface AdvancedDataTypesState {
   parsedAdvancedDataType: string;
   advancedDataTypeOperatorList: string[];
   errorMessage: string;
+  useDefaultOperators: boolean;
 }
 
 export const useSimpleTabFilterProps = (props: Props) => {
@@ -268,7 +269,7 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
   } = useAdvancedDataTypes(props.validHandler);
   // TODO: This does not need to exist, just use the advancedTypeOperatorList list
   const isOperatorRelevantWrapper = (operator: Operators, subject: string) =>
-    subjectAdvancedDataType
+    subjectAdvancedDataType && !advancedDataTypesState.useDefaultOperators
       ? isOperatorRelevant(operator, subject) &&
         advancedDataTypesState.advancedDataTypeOperatorList.includes(operator)
       : isOperatorRelevant(operator, subject);

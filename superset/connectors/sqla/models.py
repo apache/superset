@@ -1519,7 +1519,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                     utils.FilterOperator.NOT_IN.value,
                 )
 
-                col_advanced_data_type = col_obj.advanced_data_type if col_obj else ""
+                col_advanced_data_type: str = col_obj.advanced_data_type if col_obj else ""
 
                 if col_spec and not col_advanced_data_type:
                     target_generic_type = col_spec.generic_type
@@ -1535,14 +1535,15 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                 )
                 if (
                     col_advanced_data_type != ""
+                    and col_advanced_data_type
                     and feature_flag_manager.is_feature_enabled(
                         "ENABLE_ADVANCED_DATA_TYPES"
                     )
-                    and col_advanced_data_type in ADVANCED_DATA_TYPES
+                    and col_advanced_data_type.lower() in ADVANCED_DATA_TYPES
                 ):
                     values = eq if is_list_target else [eq]  # type: ignore
                     bus_resp: AdvancedDataTypeResponse = ADVANCED_DATA_TYPES[
-                        col_advanced_data_type
+                        col_advanced_data_type.lower()
                     ].translate_type(
                         {
                             "type": col_advanced_data_type,

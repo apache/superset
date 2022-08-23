@@ -387,6 +387,17 @@ def common_bootstrap_payload() -> Dict[str, Any]:
         "theme_overrides": conf["THEME_OVERRIDES"],
         "menu_data": menu_data(),
         "datahub_url": conf.get("DATAHUB_URL", ""),
+        "advanced_data_types": list(
+            map(
+                lambda v: {
+                    "id": v[0],
+                    "verbose_name": v[1].verbose_name,
+                    "description": v[1].description,
+                    "valid_data_types": v[1].valid_data_types,
+                },
+                config["ADVANCED_DATA_TYPES"].items(),
+            )
+        ),
     }
     bootstrap_data.update(conf["COMMON_BOOTSTRAP_OVERRIDES_FUNC"](bootstrap_data))
     return bootstrap_data
