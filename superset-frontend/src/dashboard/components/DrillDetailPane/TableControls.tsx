@@ -107,13 +107,14 @@ export default function TableControls({
             `}
           >
             <span
+              data-test="filter-col"
               css={css`
                 margin-right: ${theme.gridUnit}px;
               `}
             >
               {colName}
             </span>
-            <strong>{val}</strong>
+            <strong data-test="filter-val">{val}</strong>
           </Tag>
         ))}
       </div>
