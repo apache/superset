@@ -64,7 +64,7 @@ jobs:
           # 👇 Location of package.json from root of mono-repo
           workingDir: superset-frontend
           # 👇 Chromatic projectToken, refer to the Chromatic manage page to obtain it.
-          projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}'
+          projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
           exitZeroOnChanges: true # 👈 Option to prevent the workflow from failing
       # 👇 Checks if the branch is master and accepts all changes in Chromatic
       - name: Publish to Chromatic and auto accept changes
