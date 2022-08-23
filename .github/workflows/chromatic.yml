@@ -50,45 +50,44 @@ jobs:
     runs-on: ubuntu-latest
     # Job steps
     steps:
-      - uses: actions/checkout@v1
-      - name: Install dependencies
-        run: npm ci
-        working-directory: superset-frontend
-      # 👇 Checks if the branch is not master and runs Chromatic
-      - name: Publish to Chromatic
-        id: chromatic-pr
-        if: github.ref != 'refs/heads/master'
-        uses: chromaui/action@v1
-        # Required options for the Chromatic GitHub Action
-        with:
-          # 👇 Location of package.json from root of mono-repo
-          workingDir: superset-frontend
-          # 👇 Chromatic projectToken, refer to the Chromatic manage page to obtain it.
-          projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
-          exitZeroOnChanges: true # 👈 Option to prevent the workflow from failing
-      # 👇 Checks if the branch is master and accepts all changes in Chromatic
-      - name: Publish to Chromatic and auto accept changes
-        id: chromatic-master
-        if: github.ref == 'refs/heads/master'
-        uses: chromaui/action@v1
-        # Required options for the Chromatic GitHub Action
-        with:
-          # 👇 Location of package.json from root of mono-repo
-          workingDir: superset-frontend
-          # 👇 Chromatic projectToken, refer to the manage page to obtain it.
-          projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
-          autoAcceptChanges: true # 👈 Option to accept all changes when merging to master
-          exitZeroOnChanges: true # 👈 Option to prevent the workflow from failing
+      # - uses: actions/checkout@v1
+      # - name: Install dependencies
+      #   run: npm ci
+      #   working-directory: superset-frontend
+      # # 👇 Checks if the branch is not master and runs Chromatic
+      # - name: Publish to Chromatic
+      #   id: chromatic-pr
+      #   if: github.ref != 'refs/heads/master'
+      #   uses: chromaui/action@v1
+      #   # Required options for the Chromatic GitHub Action
+      #   with:
+      #     # 👇 Location of package.json from root of mono-repo
+      #     workingDir: superset-frontend
+      #     # 👇 Chromatic projectToken, refer to the Chromatic manage page to obtain it.
+      #     projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
+      #     exitZeroOnChanges: true # 👈 Option to prevent the workflow from failing
+      # # 👇 Checks if the branch is master and accepts all changes in Chromatic
+      # - name: Publish to Chromatic and auto accept changes
+      #   id: chromatic-master
+      #   if: github.ref == 'refs/heads/master'
+      #   uses: chromaui/action@v1
+      #   # Required options for the Chromatic GitHub Action
+      #   with:
+      #     # 👇 Location of package.json from root of mono-repo
+      #     workingDir: superset-frontend
+      #     # 👇 Chromatic projectToken, refer to the manage page to obtain it.
+      #     projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
+      #     autoAcceptChanges: true # 👈 Option to accept all changes when merging to master
+      #     exitZeroOnChanges: true # 👈 Option to prevent the workflow from failing
       - name: Echo Storybook build link
         if: ${{ success() }}
         uses: actions/github-script@v6
         with:
           github-token: ${{secrets.GITHUB_TOKEN}}
           script: |
-            github.issues.createComment({
-              issue_number: context.issue.number,
+            github.rest.issues.createComment({
+              issue_number: ${{ context.issue.number }},
               owner: context.repo.owner,
               repo: context.repo.repo,
               body: 'Storybook has completed and can be viewed at ${{ steps.chromatic-pr.outputs.storybookUrl }}'
             })
-          
