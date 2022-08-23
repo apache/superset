@@ -158,14 +158,22 @@ class ProxyRestAPI(BaseSupersetModelRestApi):
         current logged in user, and will then send a request to Alfred to see
         if the passed in user_id is in any reports/incidents
 
-        :param user_id: String value representing the user id passed in from the front-end
+        :param user_id: String value representing the user id(s) passed in from the front-end
         :param _kwargs: Array representing any other arguments passed to the function
         :returns: Response generated from passing values to the make_alfred_connection function
         """
+        user_emails = user_id.split(",")
+        user_email_string = ''
+
+        if len(user_emails) > 0:
+            user_email_string = user_emails[0]
+            for index in range(1, len(user_emails)):
+                user_email_string += "%22%2C%20%22" + user_emails[index]
+
         url = (
                 self.ALFRED_URL
                 + "/rest/search/cypher?expression=MATCH%20(email%3AEMAIL_ADDRESS)%20WHERE%20email.value%20IN%20%5B%22"
-                + user_id
+                + user_email_string
                 + "%22%5D%20RETURN%20email.value%2C%20email.maliciousness%2C%20email.uri"
             )
 
@@ -182,14 +190,22 @@ class ProxyRestAPI(BaseSupersetModelRestApi):
         current logged in user, and will then send a request to Alfred to see
         if the passed in ip_string is in any reports/incidents
 
-        :param ip_string: String value representing the ip passed in from the front-end
+        :param ip_string: String value representing the ip(s) passed in from the front-end
         :param _kwargs: Array representing any other arguments passed to the function
         :returns: Response generated from passing values to the make_alfred_connection function
         """
+        user_ips = ip_string.split(",")
+        user_ip_string = ''
+
+        if len(user_ips) > 0:
+            user_ip_string = user_ips[0]
+            for index in range(1, len(user_ips)):
+                user_ip_string += "%22%2C%20%22" + user_ips[index]
+            
         url = (
             self.ALFRED_URL
             + "/rest/search/cypher?expression=MATCH%20(ip%3AIP_ADDRESS)%20WHERE%20ip.value%20IN%20%5B%22"
-            + ip_string
+            + user_ip_string
             + "%22%5D%20RETURN%20ip.value%2C%20ip.maliciousness%2C%20ip.creation_date%2C%20ip.created_by%2C%20ip.uri%2C%20ip.report_uri"
         )
 
