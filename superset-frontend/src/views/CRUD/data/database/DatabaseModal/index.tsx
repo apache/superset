@@ -58,6 +58,7 @@ import {
   DatabaseForm,
   CONFIGURATION_METHOD,
   CatalogObject,
+  Engines,
 } from 'src/views/CRUD/data/database/types';
 import Loading from 'src/components/Loading';
 import ExtraOptions from './ExtraOptions';
@@ -86,11 +87,6 @@ import {
   StyledUploadWrapper,
 } from './styles';
 import ModalHeader, { DOCUMENTATION_LINK } from './ModalHeader';
-
-enum Engines {
-  GSheet = 'gsheets',
-  Snowflake = 'snowflake',
-}
 
 const engineSpecificAlertMapping = {
   [Engines.GSheet]: {
@@ -511,6 +507,18 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         addSuccessToast(errorMsg);
       },
     );
+  };
+
+  const getPlaceholder = (field: string) => {
+    if (field === 'database') {
+      switch (db?.engine) {
+        case Engines.Snowflake:
+          return 'e.g. xy12345.us-east-2.aws';
+        default:
+          return 'e.g. world_population';
+      }
+    }
+    return undefined;
   };
 
   const removeFile = (removedFile: UploadFile) => {
@@ -1607,6 +1615,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   }
                   getValidation={() => getValidation(db)}
                   validationErrors={validationErrors}
+                  getPlaceholder={field => getPlaceholder(field)}
                 />
                 <div css={(theme: SupersetTheme) => infoTooltip(theme)}>
                   {dbModel.engine !== Engines.GSheet && (
