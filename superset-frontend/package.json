@@ -42,6 +42,7 @@
     "build-instrumented": "cross-env NODE_ENV=production BABEL_ENV=instrumented webpack --mode=production --color",
     "build-storybook": "build-storybook",
     "check-translation": "prettier --check ../superset/translations/**/LC_MESSAGES/*.json",
+    "chromatic": "npx chromatic --skip 'dependabot/**'  --only-changed",
     "clean-translation": "prettier --write ../superset/translations/**/LC_MESSAGES/*.json",
     "core:cover": "cross-env NODE_ENV=test jest --coverage --coverageThreshold='{\"global\":{\"statements\":100,\"branches\":100,\"functions\":100,\"lines\":100}}' --collectCoverageFrom='[\"packages/**/src/**/*.{js,ts}\", \"!packages/superset-ui-demo/**/*\"]' packages",
     "cover": "cross-env NODE_ENV=test jest --coverage",
@@ -67,8 +68,7 @@
     "storybook": "cross-env NODE_ENV=development BABEL_ENV=development start-storybook -p 6006",
     "tdd": "cross-env NODE_ENV=test jest --watch",
     "test": "cross-env NODE_ENV=test jest",
-    "type": "tsc --noEmit",
-    "chromatic": "npx chromatic --skip 'dependabot/**'  --only-changed"
+    "type": "tsc --noEmit"
   },
   "browserslist": [
     "last 3 chrome versions",
