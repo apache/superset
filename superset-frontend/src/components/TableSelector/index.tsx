@@ -36,6 +36,7 @@ import RefreshLabel from 'src/components/RefreshLabel';
 import CertifiedBadge from 'src/components/CertifiedBadge';
 import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
+import { SchemaOption } from 'src/SqlLab/types';
 
 const TableSelectorWrapper = styled.div`
   ${({ theme }) => `
@@ -89,7 +90,7 @@ interface TableSelectorProps {
   isDatabaseSelectEnabled?: boolean;
   onDbChange?: (db: DatabaseObject) => void;
   onSchemaChange?: (schema?: string) => void;
-  onSchemasLoad?: () => void;
+  onSchemasLoad?: (schemaOptions: SchemaOption[]) => void;
   onTablesLoad?: (options: Array<any>) => void;
   readOnly?: boolean;
   schema?: string;

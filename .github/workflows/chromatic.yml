@@ -1,0 +1,79 @@
+# .github/workflows/chromatic.yml
+# seee https://www.chromatic.com/docs/github-actions
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+# Workflow name
+name: 'Chromatic'
+
+# Event for the workflow
+# Only run if changes were made in superset-frontend folder of repo
+on:
+  # This will trigger when a branch merges to master when the PR has changes in the frontend folder updating the chromatic baseline
+  push:
+    branches:
+      - master
+    paths:
+      - "superset-frontend/**"
+  # this will allow us to see how the Storybook builds when a PR has been created that has changes in the frontend folder
+  # NOTE: pull_request_target actions will always run the version of this action on master branch
+  # you will not see changes in the action behavior until this action's changes have been merged to master.
+  # This is a security precaution so that PR coming from a fork cannot access a Github secret without a repo
+  # committer aproving and merging the PR declaring the action safe.
+  pull_request_target:
+    # We want this action to run under specific pull request changes
+    # opened: pull request is created
+    # synchronize: commit(s) pushed to the pull request
+    # reopened: closed pull request is reopened
+    types: [opened, synchronize, reopened]
+    paths:
+      - "superset-frontend/**"
+
+# List of jobs
+jobs:
+  chromatic-deployment:
+    # Operating System
+    runs-on: ubuntu-latest
+    # Job steps
+    steps:
+      - uses: actions/checkout@v1
+      - name: Install dependencies
+        run: npm ci
+        working-directory: superset-frontend
+      # 👇 Checks if the branch is not master and runs Chromatic
+      - name: Publish to Chromatic
+        if: github.ref != 'refs/heads/master'
+        uses: chromaui/action@v1
+        # Required options for the Chromatic GitHub Action
+        with:
+          # 👇 Location of package.json from root of mono-repo
+          workingDir: superset-frontend
+          # 👇 Chromatic projectToken, refer to the Chromatic manage page to obtain it.
+          projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
+          exitZeroOnChanges: true # 👈 Option to prevent the workflow from failing
+      # 👇 Checks if the branch is master and accepts all changes in Chromatic
+      - name: Publish to Chromatic and auto accept changes
+        if: github.ref == 'refs/heads/master'
+        uses: chromaui/action@v1
+        # Required options for the Chromatic GitHub Action
+        with:
+          # 👇 Location of package.json from root of mono-repo
+          workingDir: superset-frontend
+          # 👇 Chromatic projectToken, refer to the manage page to obtain it.
+          projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
+          autoAcceptChanges: true # 👈 Option to accept all changes when merging to master
+          exitZeroOnChanges: true # 👈 Option to prevent the workflow from failing
