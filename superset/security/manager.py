@@ -1171,6 +1171,82 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             )
         )
 
+    def _update_schema_perm_dataset(
+        self,
+        mapper: Mapper,
+        connection: Connection,
+        new_dataset_schema_name: Optional[str],
+        target: "SqlaTable",
+    ) -> None:
+        from superset.connectors.sqla.models import (  # pylint: disable=import-outside-toplevel
+            SqlaTable,
+        )
+        from superset.models.slice import (  # pylint: disable=import-outside-toplevel
+            Slice,
+        )
+
+        sqlatable_table = SqlaTable.__table__  # pylint: disable=no-member
+        chart_table = Slice.__table__  # pylint: disable=no-member
+
+        # insert new schema PVM if it does not exist
+        self._insert_new_pvm_on_event(
+            mapper, connection, "schema_access", new_dataset_schema_name
+        )
+
+        # Update dataset (SqlaTable schema_perm field)
+        connection.execute(
+            sqlatable_table.update()
+            .where(
+                sqlatable_table.c.id == target.id,
+            )
+            .values(schema_perm=new_dataset_schema_name)
+        )
+
+        # Update charts (Slice schema_perm field)
+        connection.execute(
+            chart_table.update()
+            .where(
+                chart_table.c.datasource_id == target.id,
+                chart_table.c.datasource_type == "table",
+            )
+            .values(schema_perm=new_dataset_schema_name)
+        )
+
+    def _insert_new_pvm_on_event(
+        self,
+        mapper: Mapper,
+        connection: Connection,
+        permission_name: str,
+        view_menu_name: Optional[str],
+    ) -> None:
+        permission_table = self.permission_model.__table__  # pylint: disable=no-member
+        view_menu_table = self.viewmenu_model.__table__  # pylint: disable=no-member
+        permission_view_table = (
+            self.permissionview_model.__table__  # pylint: disable=no-member
+        )
+        if not view_menu_name:
+            return
+        pvm = self.find_permission_view_menu(permission_name, view_menu_name)
+        if pvm:
+            return
+        permission = self.find_permission(permission_name)
+        view_menu = self.find_view_menu(view_menu_name)
+        if not permission:
+            connection.execute(permission_table.insert().values(name=permission_name))
+            permission = self.find_permission(permission_name)
+            self.on_permission_after_insert(mapper, connection, permission)
+        if not view_menu:
+            connection.execute(view_menu_table.insert().values(name=view_menu_name))
+            view_menu = self.find_view_menu(view_menu_name)
+            self.on_view_menu_after_insert(mapper, connection, view_menu)
+        connection.execute(
+            permission_view_table.insert().values(
+                permission_id=permission.id, view_menu_id=view_menu.id
+            )
+        )
+        permission = self.find_permission_view_menu(permission_name, view_menu_name)
+        self.on_permission_view_after_insert(mapper, connection, permission)
+
     def dataset_after_update(
         self,
         mapper: Mapper,
@@ -1184,15 +1260,50 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             Slice,
         )
 
+        permission_table = self.permission_model.__table__  # pylint: disable=no-member
         view_menu_table = self.viewmenu_model.__table__  # pylint: disable=no-member
+        permission_view_table = (
+            self.permissionview_model.__table__  # pylint: disable=no-member
+        )
         sqlatable_table = SqlaTable.__table__  # pylint: disable=no-member
         chart_table = Slice.__table__  # pylint: disable=no-member
 
-        # Check if dataset name has changed
+        # Check if watched fields have changed
         state = inspect(target)
+        history_database = state.get_history("database_id", True)
         history_table_name = state.get_history("table_name", True)
         history_schema = state.get_history("schema", True)
 
+        # Whan database name changes
+        if history_database.has_changes() and history_database.deleted:
+            new_dataset_vm_name = self.get_dataset_perm(
+                target.id, target.table_name, target.database.database_name
+            )
+            # Update dataset (SqlaTable perm field)
+            connection.execute(
+                sqlatable_table.update()
+                .where(
+                    sqlatable_table.c.id == target.id,
+                )
+                .values(perm=new_dataset_vm_name)
+            )
+            # Insert new PVM
+            self._insert_new_pvm_on_event(
+                mapper, connection, "datasource_access", new_dataset_vm_name
+            )
+            new_dataset_schema_name = self.get_schema_perm(
+                target.database.database_name, target.schema
+            )
+            self._update_schema_perm_dataset(
+                mapper,
+                connection,
+                new_dataset_schema_name,
+                target,
+            )
+            # Get all slices and update them all
+            ...
+
+        # When table name changes
         if history_table_name.has_changes() and history_table_name.deleted:
             old_dataset_name = history_table_name.deleted[0]
             new_dataset_vm_name = self.get_dataset_perm(
@@ -1228,6 +1339,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             )
             self.on_view_menu_after_update(mapper, connection, new_dataset_view_menu)
 
+        # When schema changes
         if history_schema.has_changes() and history_schema.deleted:
             old_schema_name = history_schema.deleted[0]
             new_dataset_schema_name = self.get_schema_perm(
@@ -1236,22 +1348,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             old_dataset_schema_name = self.get_schema_perm(
                 target.database.database_name, old_schema_name
             )
-            # Update dataset (SqlaTable schema_perm field)
-            connection.execute(
-                sqlatable_table.update()
-                .where(
-                    sqlatable_table.c.id == target.id,
-                )
-                .values(schema_perm=new_dataset_schema_name)
-            )
-            # Update charts (Slice schema_perm field)
-            connection.execute(
-                chart_table.update()
-                .where(
-                    chart_table.c.datasource_id == target.id,
-                    chart_table.c.datasource_type == "table",
-                )
-                .values(schema_perm=new_dataset_schema_name)
+            self._update_schema_perm_dataset(
+                mapper,
+                connection,
+                new_dataset_schema_name,
+                target,
             )
 
     def on_view_menu_after_update(
@@ -1388,40 +1489,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         # TODO(bogdan): modify slice permissions as well.
         for permission_name, view_menu_name in pvm_names:
-            permission = self.find_permission(permission_name)
-            view_menu = self.find_view_menu(view_menu_name)
-            pv = None
-
-            if not permission:
-                connection.execute(
-                    permission_table.insert().values(name=permission_name)
-                )
-                permission = self.find_permission(permission_name)
-                self.on_permission_after_insert(mapper, connection, permission)
-            if not view_menu:
-                connection.execute(view_menu_table.insert().values(name=view_menu_name))
-                view_menu = self.find_view_menu(view_menu_name)
-                self.on_view_menu_after_insert(mapper, connection, view_menu)
-
-            if permission and view_menu:
-                pv = (
-                    self.get_session.query(self.permissionview_model)
-                    .filter_by(permission=permission, view_menu=view_menu)
-                    .first()
-                )
-            if not pv and permission and view_menu:
-                permission_view_table = (
-                    self.permissionview_model.__table__  # pylint: disable=no-member
-                )
-                connection.execute(
-                    permission_view_table.insert().values(
-                        permission_id=permission.id, view_menu_id=view_menu.id
-                    )
-                )
-                permission = self.find_permission_view_menu(
-                    permission_name, view_menu_name
-                )
-                self.on_permission_view_after_insert(mapper, connection, permission)
+            self._insert_new_pvm_on_event(
+                mapper, connection, permission_name, view_menu_name
+            )
 
     def raise_for_access(
         # pylint: disable=too-many-arguments,too-many-locals
