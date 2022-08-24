@@ -110,6 +110,7 @@ class AsyncQueryManager:
         ]
         self._jwt_cookie_name = config["GLOBAL_ASYNC_QUERIES_JWT_COOKIE_NAME"]
         self._jwt_cookie_secure = config["GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SECURE"]
+        self._jwt_cookie_samesite = config["GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SAMESITE"]
         self._jwt_cookie_domain = config["GLOBAL_ASYNC_QUERIES_JWT_COOKIE_DOMAIN"]
         self._jwt_secret = config["GLOBAL_ASYNC_QUERIES_JWT_SECRET"]
 
@@ -142,6 +143,7 @@ class AsyncQueryManager:
                     httponly=True,
                     secure=self._jwt_cookie_secure,
                     domain=self._jwt_cookie_domain,
+                    samesite=self._jwt_cookie_samesite,
                 )
 
             return response
