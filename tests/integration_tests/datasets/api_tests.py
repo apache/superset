@@ -260,6 +260,15 @@ class TestDatasetApi(SupersetTestCase):
         if backend() == "sqlite":
             return
 
+        # Add main database access to gamma role
+        main_db = get_main_database()
+        main_db_pvm = security_manager.find_permission_view_menu(
+            "database_access", main_db.perm
+        )
+        gamma_role = security_manager.find_role("Gamma")
+        gamma_role.permissions.append(main_db_pvm)
+        db.session.commit()
+
         self.login(username="gamma")
         uri = "api/v1/dataset/related/database"
         rv = self.client.get(uri)
@@ -269,6 +278,10 @@ class TestDatasetApi(SupersetTestCase):
         assert response["count"] == 1
         main_db = get_main_database()
         assert filter(lambda x: x.text == main_db, response["result"]) != []
+
+        # revert gamma permission
+        gamma_role.permissions.remove(main_db_pvm)
+        db.session.commit()
 
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_get_dataset_item(self):

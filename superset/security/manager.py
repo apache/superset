@@ -978,6 +978,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 assoc_permissionview_role.c.permission_view_id == db_pvm.id
             )
         )
+        # Delete the database access PVM
         connection.execute(
             permission_view_menu_table.delete().where(
                 permission_view_menu_table.c.id == db_pvm.id
