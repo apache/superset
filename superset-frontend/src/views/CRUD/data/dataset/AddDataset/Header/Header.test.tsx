@@ -44,6 +44,8 @@ describe('Header', () => {
 
     expect(datasetNameTextbox).toBeVisible();
     expect(saveButton).toBeVisible();
+    expect(saveButton).toBeDisabled();
     expect(menuButton).toBeVisible();
+    expect(menuButton).toBeDisabled();
   });
 });
