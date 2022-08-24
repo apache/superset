@@ -484,8 +484,8 @@ const ResultSet = ({
     // Accounts for offset needed for height of Alert if this.state.alertIsOpen
     const alertContainerHeight = 70;
     // We need to calculate the height of this.renderRowsReturned()
-    // if we want results panel to be propper height because the
-    // FilterTable component nedds an explcit height to render
+    // if we want results panel to be proper height because the
+    // FilterTable component needs an explicit height to render
     // react-virtualized Table component
     const rowsHeight = alertIsOpen
       ? height - alertContainerHeight
@@ -508,7 +508,7 @@ const ResultSet = ({
           <FilterableTable
             data={data}
             orderedColumnKeys={results.columns.map(col => col.name)}
-            height={alertIsOpen ? rowsHeight - 70 : rowsHeight}
+            height={rowsHeight}
             filterText={searchText}
             expandedColumns={expandedColumns}
           />
