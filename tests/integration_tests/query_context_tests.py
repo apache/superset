@@ -760,7 +760,14 @@ def test_column_with_time_grain(app_context, physical_dataset):
     )
     query_object = qc.queries[0]
     df = qc.get_df_payload(query_object)["df"]
-    assert df["I_AM_A_ORIGINAL_COLUMN"][0].strftime("%Y-%m-%d") == "2000-01-01"
-    assert df["I_AM_A_ORIGINAL_COLUMN"][1].strftime("%Y-%m-%d") == "2000-01-02"
-    assert df["I_AM_A_TRUNC_COLUMN"][0].strftime("%Y-%m-%d") == "2002-01-01"
-    assert df["I_AM_A_TRUNC_COLUMN"][1].strftime("%Y-%m-%d") == "2002-01-01"
+    if query_object.datasource.database.backend == "sqlite":
+        # sqlite returns string as timestamp column
+        assert df["I_AM_A_ORIGINAL_COLUMN"][0] == "2000-01-01 00:00:00"
+        assert df["I_AM_A_ORIGINAL_COLUMN"][1] == "2000-01-02 00:00:00"
+        assert df["I_AM_A_TRUNC_COLUMN"][0] == "2002-01-01 00:00:00"
+        assert df["I_AM_A_TRUNC_COLUMN"][1] == "2002-01-01 00:00:00"
+    else:
+        assert df["I_AM_A_ORIGINAL_COLUMN"][0].strftime("%Y-%m-%d") == "2000-01-01"
+        assert df["I_AM_A_ORIGINAL_COLUMN"][1].strftime("%Y-%m-%d") == "2000-01-02"
+        assert df["I_AM_A_TRUNC_COLUMN"][0].strftime("%Y-%m-%d") == "2002-01-01"
+        assert df["I_AM_A_TRUNC_COLUMN"][1].strftime("%Y-%m-%d") == "2002-01-01"
