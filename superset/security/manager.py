@@ -1188,46 +1188,71 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         sqlatable_table = SqlaTable.__table__  # pylint: disable=no-member
         chart_table = Slice.__table__  # pylint: disable=no-member
 
-        # Check if database name has changed
+        # Check if dataset name has changed
         state = inspect(target)
-        history = state.get_history("table_name", True)
-        if not history.has_changes() or not history.deleted:
-            return
+        history_table_name = state.get_history("table_name", True)
+        history_schema = state.get_history("schema", True)
 
-        old_dataset_name = history.deleted[0]
-
-        old_dataset_vm_name = self.get_dataset_perm(
-            target.id, old_dataset_name, target.database.database_name
-        )
-        new_dataset_vm_name = self.get_dataset_perm(
-            target.id, target.table_name, target.database.database_name
-        )
-        new_dataset_view_menu = self.find_view_menu(new_dataset_vm_name)
-        if new_dataset_view_menu:
-            return
-        # Update VM
-        connection.execute(
-            view_menu_table.update()
-            .where(view_menu_table.c.name == old_dataset_vm_name)
-            .values(name=new_dataset_vm_name)
-        )
-        # Update dataset (SqlaTable perm field)
-        # raise Exception(f"{target.id} {old_dataset_vm_name}->{new_dataset_vm_name}")
-        connection.execute(
-            sqlatable_table.update()
-            .where(
-                sqlatable_table.c.id == target.id,
-                sqlatable_table.c.perm == old_dataset_vm_name,
+        if history_table_name.has_changes() and history_table_name.deleted:
+            old_dataset_name = history_table_name.deleted[0]
+            new_dataset_vm_name = self.get_dataset_perm(
+                target.id, target.table_name, target.database.database_name
             )
-            .values(perm=new_dataset_vm_name)
-        )
-        # Update charts (Slice perm field)
-        connection.execute(
-            chart_table.update()
-            .where(chart_table.c.perm == old_dataset_vm_name)
-            .values(perm=new_dataset_vm_name)
-        )
-        self.on_view_menu_after_update(mapper, connection, new_dataset_view_menu)
+            old_dataset_vm_name = self.get_dataset_perm(
+                target.id, old_dataset_name, target.database.database_name
+            )
+            new_dataset_view_menu = self.find_view_menu(new_dataset_vm_name)
+            if new_dataset_view_menu:
+                return
+            # Update VM
+            connection.execute(
+                view_menu_table.update()
+                .where(view_menu_table.c.name == old_dataset_vm_name)
+                .values(name=new_dataset_vm_name)
+            )
+            # Update dataset (SqlaTable perm field)
+            connection.execute(
+                sqlatable_table.update()
+                .where(
+                    sqlatable_table.c.id == target.id,
+                    sqlatable_table.c.perm == old_dataset_vm_name,
+                )
+                .values(perm=new_dataset_vm_name)
+            )
+
+            # Update charts (Slice perm field)
+            connection.execute(
+                chart_table.update()
+                .where(chart_table.c.perm == old_dataset_vm_name)
+                .values(perm=new_dataset_vm_name)
+            )
+            self.on_view_menu_after_update(mapper, connection, new_dataset_view_menu)
+
+        if history_schema.has_changes() and history_schema.deleted:
+            old_schema_name = history_schema.deleted[0]
+            new_dataset_schema_name = self.get_schema_perm(
+                target.database.database_name, target.schema
+            )
+            old_dataset_schema_name = self.get_schema_perm(
+                target.database.database_name, old_schema_name
+            )
+            # Update dataset (SqlaTable schema_perm field)
+            connection.execute(
+                sqlatable_table.update()
+                .where(
+                    sqlatable_table.c.id == target.id,
+                )
+                .values(schema_perm=new_dataset_schema_name)
+            )
+            # Update charts (Slice schema_perm field)
+            connection.execute(
+                chart_table.update()
+                .where(
+                    chart_table.c.datasource_id == target.id,
+                    chart_table.c.datasource_type == "table",
+                )
+                .values(schema_perm=new_dataset_schema_name)
+            )
 
     def on_view_menu_after_update(
         self, mapper: Mapper, connection: Connection, target: ViewMenu
