@@ -152,6 +152,7 @@ from superset.views.base import (
     json_success,
     validate_sqlatable,
 )
+from superset.views.sql_lab.schemas import SqlJsonPayloadSchema
 from superset.views.utils import (
     _deserialize_results_payload,
     bootstrap_user_data,
@@ -1207,7 +1208,16 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             max_tables = max_items * len(tables) // total_items
             max_views = max_items * len(views) // total_items
 
-        dataset_tables = {table.name: table for table in database.tables}
+        extra_dict_by_name = {
+            table.name: table.extra_dict
+            for table in (
+                db.session.query(SqlaTable).filter(
+                    SqlaTable.name.in_(  # # pylint: disable=no-member
+                        f"{table.schema}.{table.table}" for table in tables
+                    )
+                )
+            ).all()
+        }
 
         table_options = [
             {
@@ -1216,9 +1226,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 "label": get_datasource_label(tn),
                 "title": get_datasource_label(tn),
                 "type": "table",
-                "extra": dataset_tables[f"{tn.schema}.{tn.table}"].extra_dict
-                if (f"{tn.schema}.{tn.table}" in dataset_tables)
-                else None,
+                "extra": extra_dict_by_name.get(f"{tn.schema}.{tn.table}", None),
             }
             for tn in tables[:max_tables]
         ]
@@ -2093,8 +2101,20 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             .filter_by(database_id=database_id, table_name=table_name)
             .one_or_none()
         )
-        if not table:
-            table = SqlaTable(table_name=table_name, owners=[g.user])
+
+        if table:
+            return json_errors_response(
+                [
+                    SupersetError(
+                        message=f"Dataset [{table_name}] already exists",
+                        error_type=SupersetErrorType.GENERIC_BACKEND_ERROR,
+                        level=ErrorLevel.WARNING,
+                    )
+                ],
+                status=422,
+            )
+
+        table = SqlaTable(table_name=table_name, owners=[g.user])
         table.database = database
         table.schema = data.get("schema")
         table.template_params = data.get("templateParams")
@@ -2116,7 +2136,12 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         table.columns = cols
         table.metrics = [SqlMetric(metric_name="count", expression="count(*)")]
         db.session.commit()
-        return json_success(json.dumps({"table_id": table.id}))
+
+        return json_success(
+            json.dumps(
+                {"table_id": table.id, "data": sanitize_datasource_data(table.data)}
+            )
+        )
 
     @has_access
     @expose("/extra_table_metadata/<int:database_id>/<table_name>/<schema>/")
@@ -2409,6 +2434,10 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @event_logger.log_this
     @expose("/sql_json/", methods=["POST"])
     def sql_json(self) -> FlaskResponse:
+        errors = SqlJsonPayloadSchema().validate(request.json)
+        if errors:
+            return json_error_response(status=400, payload=errors)
+
         try:
             log_params = {
                 "user_agent": cast(Optional[str], request.headers.get("USER_AGENT"))

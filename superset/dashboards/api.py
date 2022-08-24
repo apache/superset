@@ -285,13 +285,14 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
-    @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get",
-        log_to_statsd=False,
-    )
     @with_dashboard
-    # pylint: disable=arguments-renamed, arguments-differ
-    def get(self, dash: Dashboard) -> Response:
+    @event_logger.log_this_with_extra_payload
+    # pylint: disable=arguments-differ
+    def get(
+        self,
+        dash: Dashboard,
+        add_extra_log_payload: Callable[..., None] = lambda **kwargs: None,
+    ) -> Response:
         """Gets a dashboard
         ---
         get:
@@ -323,6 +324,9 @@ class DashboardRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/404'
         """
         result = self.dashboard_get_response_schema.dump(dash)
+        add_extra_log_payload(
+            dashboard_id=dash.id, action=f"{self.__class__.__name__}.get"
+        )
         return self.response(200, result=result)
 
     @etag_cache(
@@ -383,8 +387,12 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                 self.dashboard_dataset_schema.dump(dataset) for dataset in datasets
             ]
             return self.response(200, result=result)
-        except TypeError:
-            return self.response_400(message=gettext("Dataset schema is invalid."))
+        except (TypeError, ValueError) as err:
+            return self.response_400(
+                message=gettext(
+                    "Dataset schema is invalid, caused by: %(error)s", error=str(err)
+                )
+            )
         except DashboardAccessDeniedError:
             return self.response_403()
         except DashboardNotFoundError:

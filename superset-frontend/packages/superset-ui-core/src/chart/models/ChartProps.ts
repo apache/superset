@@ -50,6 +50,8 @@ type Hooks = {
    * also handles "change" and "remove".
    */
   onAddFilter?: (newFilters: DataRecordFilters, merge?: boolean) => void;
+  /** handle right click */
+  onContextMenu?: HandlerFunction;
   /** handle errors */
   onError?: HandlerFunction;
   /** use the vis as control to update state */
@@ -136,6 +138,8 @@ export default class ChartProps<FormData extends RawFormData = RawFormData> {
 
   inputRef?: RefObject<any>;
 
+  inContextMenu?: boolean;
+
   theme: SupersetTheme;
 
   constructor(config: ChartPropsConfig & { formData?: FormData } = {}) {
@@ -154,6 +158,7 @@ export default class ChartProps<FormData extends RawFormData = RawFormData> {
       appSection,
       isRefreshing,
       inputRef,
+      inContextMenu = false,
       theme,
     } = config;
     this.width = width;
@@ -172,6 +177,7 @@ export default class ChartProps<FormData extends RawFormData = RawFormData> {
     this.appSection = appSection;
     this.isRefreshing = isRefreshing;
     this.inputRef = inputRef;
+    this.inContextMenu = inContextMenu;
     this.theme = theme;
   }
 }
@@ -193,6 +199,7 @@ ChartProps.createSelector = function create(): ChartPropsSelector {
     input => input.appSection,
     input => input.isRefreshing,
     input => input.inputRef,
+    input => input.inContextMenu,
     input => input.theme,
     (
       annotationData,
@@ -209,6 +216,7 @@ ChartProps.createSelector = function create(): ChartPropsSelector {
       appSection,
       isRefreshing,
       inputRef,
+      inContextMenu,
       theme,
     ) =>
       new ChartProps({
@@ -226,6 +234,7 @@ ChartProps.createSelector = function create(): ChartPropsSelector {
         appSection,
         isRefreshing,
         inputRef,
+        inContextMenu,
         theme,
       }),
   );

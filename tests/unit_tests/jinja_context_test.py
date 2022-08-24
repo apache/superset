@@ -34,7 +34,7 @@ def test_where_in() -> None:
     assert where_in(["O'Malley's"]) == "('O''Malley''s')"
 
 
-def test_dataset_macro(mocker: MockFixture, app_context: None) -> None:
+def test_dataset_macro(mocker: MockFixture) -> None:
     """
     Test the ``dataset_macro`` macro.
     """

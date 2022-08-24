@@ -148,6 +148,9 @@ export const DashboardEmbedControls = ({ dashboardId, onHide }: Props) => {
     return <Loading />;
   }
 
+  const DocsConfigDetails = extensionsRegistry.get(
+    'embedded.documentation.configuration_details',
+  );
   const docsDescription = extensionsRegistry.get(
     'embedded.documentation.description',
   );
@@ -157,21 +160,25 @@ export const DashboardEmbedControls = ({ dashboardId, onHide }: Props) => {
 
   return (
     <>
-      <p>
-        {embedded ? (
-          <>
+      {embedded ? (
+        DocsConfigDetails ? (
+          <DocsConfigDetails embeddedId={embedded.uuid} />
+        ) : (
+          <p>
             {t(
               'This dashboard is ready to embed. In your application, pass the following id to the SDK:',
             )}
             <br />
             <code>{embedded.uuid}</code>
-          </>
-        ) : (
-          t(
+          </p>
+        )
+      ) : (
+        <p>
+          {t(
             'Configure this dashboard to embed it into an external web application.',
-          )
-        )}
-      </p>
+          )}
+        </p>
+      )}
       <p>
         {t('For further instructions, consult the')}{' '}
         <a href={docsUrl} target="_blank" rel="noreferrer">

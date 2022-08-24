@@ -19,9 +19,18 @@
 import { snakeCase, isEqual } from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
-import { SuperChart, logging, Behavior, t } from '@superset-ui/core';
+import {
+  SuperChart,
+  logging,
+  Behavior,
+  t,
+  isFeatureEnabled,
+  FeatureFlag,
+} from '@superset-ui/core';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
 import { EmptyStateBig, EmptyStateSmall } from 'src/components/EmptyState';
+import ChartContextMenu from './ChartContextMenu';
+import DrillDetailModal from './DrillDetailModal';
 
 const propTypes = {
   annotationData: PropTypes.object,
@@ -73,15 +82,29 @@ const defaultProps = {
 class ChartRenderer extends React.Component {
   constructor(props) {
     super(props);
+    this.state = {
+      inContextMenu: false,
+      drillDetailFilters: null,
+    };
     this.hasQueryResponseChange = false;
+
+    this.contextMenuRef = React.createRef();
 
     this.handleAddFilter = this.handleAddFilter.bind(this);
     this.handleRenderSuccess = this.handleRenderSuccess.bind(this);
     this.handleRenderFailure = this.handleRenderFailure.bind(this);
     this.handleSetControlValue = this.handleSetControlValue.bind(this);
+    this.handleOnContextMenu = this.handleOnContextMenu.bind(this);
+    this.handleContextMenuSelected = this.handleContextMenuSelected.bind(this);
+    this.handleContextMenuClosed = this.handleContextMenuClosed.bind(this);
+
+    const showContextMenu =
+      props.source === 'dashboard' &&
+      isFeatureEnabled(FeatureFlag.DRILL_TO_DETAIL);
 
     this.hooks = {
       onAddFilter: this.handleAddFilter,
+      onContextMenu: showContextMenu ? this.handleOnContextMenu : undefined,
       onError: this.handleRenderFailure,
       setControlValue: this.handleSetControlValue,
       onFilterMenuOpen: this.props.onFilterMenuOpen,
@@ -92,13 +115,16 @@ class ChartRenderer extends React.Component {
     };
   }
 
-  shouldComponentUpdate(nextProps) {
+  shouldComponentUpdate(nextProps, nextState) {
     const resultsReady =
       nextProps.queriesResponse &&
       ['success', 'rendered'].indexOf(nextProps.chartStatus) > -1 &&
       !nextProps.queriesResponse?.[0]?.error;
 
     if (resultsReady) {
+      if (!isEqual(this.state, nextState)) {
+        return true;
+      }
       this.hasQueryResponseChange =
         nextProps.queriesResponse !== this.props.queriesResponse;
       return (
@@ -170,6 +196,19 @@ class ChartRenderer extends React.Component {
     if (setControlValue) {
       setControlValue(...args);
     }
+  }
+
+  handleOnContextMenu(filters, offsetX, offsetY) {
+    this.contextMenuRef.current.open(filters, offsetX, offsetY);
+    this.setState({ inContextMenu: true });
+  }
+
+  handleContextMenuSelected(filters) {
+    this.setState({ inContextMenu: false, drillDetailFilters: filters });
+  }
+
+  handleContextMenuClosed() {
+    this.setState({ inContextMenu: false });
   }
 
   render() {
@@ -247,28 +286,46 @@ class ChartRenderer extends React.Component {
     }
 
     return (
-      <SuperChart
-        disableErrorBoundary
-        key={`${chartId}${webpackHash}`}
-        id={`chart-id-${chartId}`}
-        className={chartClassName}
-        chartType={vizType}
-        width={width}
-        height={height}
-        annotationData={annotationData}
-        datasource={datasource}
-        initialValues={initialValues}
-        formData={currentFormData}
-        ownState={ownState}
-        filterState={filterState}
-        hooks={this.hooks}
-        behaviors={behaviors}
-        queriesData={queriesResponse}
-        onRenderSuccess={this.handleRenderSuccess}
-        onRenderFailure={this.handleRenderFailure}
-        noResults={noResultsComponent}
-        postTransformProps={postTransformProps}
-      />
+      <div>
+        {this.props.source === 'dashboard' && (
+          <>
+            <ChartContextMenu
+              ref={this.contextMenuRef}
+              id={chartId}
+              onSelection={this.handleContextMenuSelected}
+              onClose={this.handleContextMenuClosed}
+            />
+            <DrillDetailModal
+              chartId={chartId}
+              initialFilters={this.state.drillDetailFilters}
+              formData={currentFormData}
+            />
+          </>
+        )}
+        <SuperChart
+          disableErrorBoundary
+          key={`${chartId}${webpackHash}`}
+          id={`chart-id-${chartId}`}
+          className={chartClassName}
+          chartType={vizType}
+          width={width}
+          height={height}
+          annotationData={annotationData}
+          datasource={datasource}
+          initialValues={initialValues}
+          formData={currentFormData}
+          ownState={ownState}
+          filterState={filterState}
+          hooks={this.hooks}
+          behaviors={behaviors}
+          queriesData={queriesResponse}
+          onRenderSuccess={this.handleRenderSuccess}
+          onRenderFailure={this.handleRenderFailure}
+          noResults={noResultsComponent}
+          postTransformProps={postTransformProps}
+          inContextMenu={this.state.inContextMenu}
+        />
+      </div>
     );
   }
 }

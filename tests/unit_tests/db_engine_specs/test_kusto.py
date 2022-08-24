@@ -18,7 +18,6 @@
 from datetime import datetime
 
 import pytest
-from flask.ctx import AppContext
 
 from tests.unit_tests.fixtures.common import dttm
 
@@ -32,9 +31,7 @@ from tests.unit_tests.fixtures.common import dttm
         ("INSERT INTO tbl (foo) VALUES (1)", False),
     ],
 )
-def test_sql_is_readonly_query(
-    app_context: AppContext, sql: str, expected: bool
-) -> None:
+def test_sql_is_readonly_query(sql: str, expected: bool) -> None:
     """
     Make sure that SQL dialect consider only SELECT statements as read-only
     """
@@ -56,7 +53,7 @@ def test_sql_is_readonly_query(
         (".show tables", False),
     ],
 )
-def test_kql_is_select_query(app_context: AppContext, kql: str, expected: bool) -> None:
+def test_kql_is_select_query(kql: str, expected: bool) -> None:
     """
     Make sure that KQL dialect consider only statements that do not start with "." (dot)
     as a SELECT statements
@@ -83,9 +80,7 @@ def test_kql_is_select_query(app_context: AppContext, kql: str, expected: bool) 
         (".set-or-append table foo <| bar", False),
     ],
 )
-def test_kql_is_readonly_query(
-    app_context: AppContext, kql: str, expected: bool
-) -> None:
+def test_kql_is_readonly_query(kql: str, expected: bool) -> None:
     """
     Make sure that KQL dialect consider only SELECT statements as read-only
     """
@@ -99,7 +94,7 @@ def test_kql_is_readonly_query(
     assert expected == is_readonly
 
 
-def test_kql_parse_sql(app_context: AppContext) -> None:
+def test_kql_parse_sql() -> None:
     """
     parse_sql method should always return a list with a single element
     which is an original query
@@ -121,7 +116,6 @@ def test_kql_parse_sql(app_context: AppContext) -> None:
     ],
 )
 def test_kql_convert_dttm(
-    app_context: AppContext,
     target_type: str,
     expected_dttm: str,
     dttm: datetime,
@@ -145,7 +139,6 @@ def test_kql_convert_dttm(
     ],
 )
 def test_sql_convert_dttm(
-    app_context: AppContext,
     target_type: str,
     expected_dttm: str,
     dttm: datetime,

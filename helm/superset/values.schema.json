@@ -3,9 +3,6 @@
     "type": "object",
     "additionalProperties": true,
     "properties": {
-        "replicaCount": {
-            "type": "integer"
-        },
         "runAsUser": {
             "type": "integer"
         },
@@ -216,6 +213,9 @@
             "type": "object",
             "additionalProperties": false,
             "properties": {
+                "replicaCount": {
+                    "type": "integer"
+                },
                 "command": {
                     "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.api.core.v1.Container/properties/command"
                 },
@@ -276,6 +276,62 @@
                 "podLabels": {
                     "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta/properties/labels"
                 },
+                "livenessProbe": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "initialDelaySeconds": {
+                            "type": "integer"
+                        },
+                        "timeoutSeconds": {
+                            "type": "integer"
+                        },
+                        "failureThreshold": {
+                            "type": "integer"
+                        },
+                        "periodSeconds": {
+                            "type": "integer"
+                        },
+                        "successThreshold": {
+                            "type": "integer"
+                        }
+                    },
+                    "required": [
+                        "initialDelaySeconds",
+                        "timeoutSeconds",
+                        "failureThreshold",
+                        "periodSeconds",
+                        "successThreshold"
+                    ]
+                },
+                "readinessProbe": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "initialDelaySeconds": {
+                            "type": "integer"
+                        },
+                        "timeoutSeconds": {
+                            "type": "integer"
+                        },
+                        "failureThreshold": {
+                            "type": "integer"
+                        },
+                        "periodSeconds": {
+                            "type": "integer"
+                        },
+                        "successThreshold": {
+                            "type": "integer"
+                        }
+                    },
+                    "required": [
+                        "initialDelaySeconds",
+                        "timeoutSeconds",
+                        "failureThreshold",
+                        "periodSeconds",
+                        "successThreshold"
+                    ]
+                },
                 "resources": {
                     "type": "object"
                 },
@@ -287,6 +343,7 @@
                 }
             },
             "required": [
+                "replicaCount",
                 "command",
                 "connections",
                 "env",
@@ -297,6 +354,9 @@
             "type": "object",
             "additionalProperties": false,
             "properties": {
+                "replicaCount": {
+                    "type": "integer"
+                },
                 "command": {
                     "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.api.core.v1.Container/properties/command"
                 },
@@ -326,6 +386,7 @@
                 }
             },
             "required": [
+                "replicaCount",
                 "command",
                 "forceReload"
             ]
@@ -594,7 +655,6 @@
         }
     },
     "required": [
-        "replicaCount",
         "runAsUser",
         "serviceAccount",
         "bootstrapScript",

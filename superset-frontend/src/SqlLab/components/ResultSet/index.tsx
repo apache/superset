@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { CSSProperties } from 'react';
+import React from 'react';
 import ButtonGroup from 'src/components/ButtonGroup';
 import Alert from 'src/components/Alert';
 import Button from 'src/components/Button';
@@ -54,8 +54,6 @@ enum LIMITING_FACTOR {
   NOT_LIMITED = 'NOT_LIMITED',
 }
 
-const LOADING_STYLES: CSSProperties = { position: 'relative', minHeight: 100 };
-
 interface ResultSetProps {
   showControls?: boolean;
   actions: Record<string, any>;
@@ -79,6 +77,17 @@ interface ResultSetState {
   showSaveDatasetModal: boolean;
   alertIsOpen: boolean;
 }
+
+const ResultlessStyles = styled.div`
+  position: relative;
+  min-height: 100px;
+  [role='alert'] {
+    margin-top: ${({ theme }) => theme.gridUnit * 2}px;
+  }
+  .sql-result-track-job {
+    margin-top: ${({ theme }) => theme.gridUnit * 2}px;
+  }
+`;
 
 // Making text render line breaks/tabs as is as monospace,
 // but wrapping text too so text doesn't overflow
@@ -107,11 +116,9 @@ const ResultSetButtons = styled.div`
   padding-right: ${({ theme }) => 2 * theme.gridUnit}px;
 `;
 
-const ResultSetErrorMessage = styled.div`
-  padding-top: ${({ theme }) => 4 * theme.gridUnit}px;
-  .sql-result-track-job {
-    margin-top: ${({ theme }) => 2 * theme.gridUnit}px;
-  }
+const LimitMessage = styled.span`
+  color: ${({ theme }) => theme.colors.secondary.light1};
+  margin-left: ${({ theme }) => theme.gridUnit * 2}px;
 `;
 
 export default class ResultSet extends React.PureComponent<
@@ -185,7 +192,7 @@ export default class ResultSet extends React.PureComponent<
   popSelectStar(tempSchema: string | null, tempTable: string) {
     const qe = {
       id: shortid.generate(),
-      title: tempTable,
+      name: tempTable,
       autorun: false,
       dbId: this.props.query.dbId,
       sql: `SELECT * FROM ${tempSchema ? `${tempSchema}.` : ''}${tempTable}`,
@@ -278,11 +285,8 @@ export default class ResultSet extends React.PureComponent<
               this.props.database?.allows_virtual_table_explore && (
                 <ExploreResultsButton
                   database={this.props.database}
-                  onClick={() => this.setState({ showSaveDatasetModal: true })}
+                  onClick={this.createExploreResultsOnClick}
                 />
-                // In order to use the new workflow for a query powered chart, replace the
-                // above function with:
-                // onClick={this.createExploreResultsOnClick}
               )}
             {this.props.csv && (
               <Button buttonSize="small" href={`/superset/csv/${query.id}`}>
@@ -378,7 +382,7 @@ export default class ResultSet extends React.PureComponent<
         {!limitReached && !shouldUseDefaultDropdownAlert && (
           <span title={tooltipText}>
             {rowsReturnedMessage}
-            <span>{limitMessage}</span>
+            <LimitMessage>{limitMessage}</LimitMessage>
           </span>
         )}
         {!limitReached && shouldUseDefaultDropdownAlert && (
@@ -421,7 +425,11 @@ export default class ResultSet extends React.PureComponent<
       exploreDBId = this.props.database.explore_database_id;
     }
     let trackingUrl;
-    if (query.trackingUrl) {
+    if (
+      query.trackingUrl &&
+      query.state !== 'success' &&
+      query.state !== 'fetching'
+    ) {
       trackingUrl = (
         <Button
           className="sql-result-track-job"
@@ -441,7 +449,7 @@ export default class ResultSet extends React.PureComponent<
     }
     if (query.state === 'failed') {
       return (
-        <ResultSetErrorMessage>
+        <ResultlessStyles>
           <ErrorMessageWithStackTrace
             title={t('Database error')}
             error={query?.errors?.[0]}
@@ -451,7 +459,7 @@ export default class ResultSet extends React.PureComponent<
             source="sqllab"
           />
           {trackingUrl}
-        </ResultSetErrorMessage>
+        </ResultlessStyles>
       );
     }
     if (query.state === 'success' && query.ctas) {
@@ -582,7 +590,7 @@ export default class ResultSet extends React.PureComponent<
         : null;
 
     return (
-      <div style={LOADING_STYLES}>
+      <ResultlessStyles>
         <div>{!progressBar && <Loading position="normal" />}</div>
         {/* show loading bar whenever progress bar is completed but needs time to render */}
         <div>{query.progress === 100 && <Loading position="normal" />}</div>
@@ -591,8 +599,8 @@ export default class ResultSet extends React.PureComponent<
           {progressMsg && <Alert type="success" message={progressMsg} />}
         </div>
         <div>{query.progress !== 100 && progressBar}</div>
-        <div>{trackingUrl}</div>
-      </div>
+        {trackingUrl && <div>{trackingUrl}</div>}
+      </ResultlessStyles>
     );
   }
 }
