@@ -972,6 +972,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 view_menu_name,
             )
             return
+        # Delete Any Role to PVM association
+        connection.execute(
+            assoc_permissionview_role.delete().where(
+                assoc_permissionview_role.c.permission_view_id == db_pvm.id
+            )
+        )
         connection.execute(
             permission_view_menu_table.delete().where(
                 permission_view_menu_table.c.id == db_pvm.id
@@ -992,6 +998,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             .all()
         )
         for schema_pvm in schema_pvms:
+            connection.execute(
+                assoc_permissionview_role.delete().where(
+                    assoc_permissionview_role.c.permission_view_id == schema_pvm.id
+                )
+            )
             connection.execute(
                 permission_view_menu_table.delete().where(
                     permission_view_menu_table.c.id == schema_pvm.id
@@ -1157,9 +1168,14 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         dataset_pvm = self.find_permission_view_menu(
             "datasource_access", dataset_vm_name
         )
-
         if not dataset_pvm:
             return
+        # Delete Any Role to PVM association
+        connection.execute(
+            assoc_permissionview_role.delete().where(
+                assoc_permissionview_role.c.permission_view_id == dataset_pvm.id
+            )
+        )
         # Delete the dataset PVM
         connection.execute(
             permission_view_menu_table.delete().where(
