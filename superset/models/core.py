@@ -63,7 +63,7 @@ from superset.result_set import SupersetResultSet
 from superset.utils import cache as cache_util, core as utils
 from superset.utils.core import get_username
 from superset.utils.memoized import memoized
-from superset.db_engine_specs.snowflake_privatekey import create_sn_url,create_sn_engin
+from superset.db_engine_specs.snowflake_privatekey import create_snowflake_engine_with_privatekey
 
 config = app.config
 custom_password_store = config["SQLALCHEMY_CUSTOM_PASSWORD_STORE"]
@@ -399,7 +399,7 @@ class Database(
         try:
             engine = None
             if "privatekey" in str(sqlalchemy_url):
-                engine = create_sn_engin(str(sqlalchemy_url))
+                engine = create_snowflake_engine_with_privatekey(str(sqlalchemy_url))
             else:
                 engine = create_engine(sqlalchemy_url, **params)
             return engine
