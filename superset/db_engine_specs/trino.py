@@ -27,7 +27,7 @@ from sqlalchemy.orm import Session
 from superset.constants import USER_AGENT
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import BaseEngineSpec
-from superset.db_engine_specs.presto_base import PrestoBaseEngineSpec
+from superset.db_engine_specs.presto import PrestoBaseEngineSpec
 from superset.models.sql_lab import Query
 from superset.utils import core as utils
 
@@ -44,7 +44,6 @@ logger = logging.getLogger(__name__)
 
 class TrinoEngineSpec(PrestoBaseEngineSpec):
     engine = "trino"
-    engine_aliases = {"trinonative"}  # Required for backwards compatibility.
     engine_name = "Trino"
 
     @classmethod
@@ -137,10 +136,6 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
 
         session.commit()
         super().handle_cursor(cursor=cursor, query=query, session=session)
-
-    @classmethod
-    def has_implicit_cancel(cls) -> bool:
-        return False
 
     @classmethod
     def cancel_query(cls, cursor: Any, query: Query, cancel_query_id: str) -> bool:
