@@ -16,13 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useReducer, Reducer, useState } from 'react';
+import React, { useReducer, Reducer } from 'react';
 import Header from './Header';
 import DatasetPanel from './DatasetPanel';
 import LeftPanel from './LeftPanel';
 import Footer from './Footer';
 import { DatasetActionType, DatasetObject, DSReducerActionType } from './types';
-import { styled } from '@superset-ui/core';
 import DatasetLayout from '../DatasetLayout';
 
 export function datasetReducer(
@@ -32,7 +31,6 @@ export function datasetReducer(
   const trimmedState = {
     ...(state || {}),
   };
-  console.log('action.type', action.type)
 
   switch (action.type) {
     case DatasetActionType.selectDatabase:
@@ -70,14 +68,18 @@ export default function AddDataset() {
     Reducer<Partial<DatasetObject> | null, DSReducerActionType>
   >(datasetReducer, null);
 
+  const LeftPanelComponent = () => (
+    <LeftPanel
+      setDataset={setDataset}
+      schema={dataset?.schema}
+      dbId={dataset?.id}
+    />
+  );
 
-  // setDataset={setDataset}
-  // schema={dataset?.schema}
-  // dbId={dataset?.id}
   return (
     <DatasetLayout
       header={Header()}
-      leftPanel={LeftPanel()}
+      leftPanel={LeftPanelComponent()}
       datasetPanel={DatasetPanel()}
       footer={Footer()}
     />
