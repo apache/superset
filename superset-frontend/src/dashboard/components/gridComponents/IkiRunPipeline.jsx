@@ -16,6 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+/**
+ * COMPONENT: RUN FLOW
+ * WIDGET FRONTEND URL EXAMPLE: http://localhost:3000/widget/pipeline/run?mode=preview&v=1&run_flow_times=1661354875318&pipeline_id=2Dj9IKLHAsi3W3euDQo2Vx6Gupt&submit_button_label=r1&pipeline_log_type=full-log&edit_variables=no
+ * PARAMETERS:
+ * mode=preview
+ * v=1
+ * run_flow_times=1661354875318
+ * pipeline_id=2Dj9IKLHAsi3W3euDQo2Vx6Gupt
+ * submit_button_label=r1
+ * pipeline_log_type=full-log
+ * edit_variables=no
+ */
 import React from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
@@ -212,8 +224,6 @@ class IkiRunPipeline extends React.PureComponent {
               widgetUrlQuery = new URLSearchParams(widgetUrl);
               widgetUrlQuery.set('mode', 'preview');
               widgetUrlQuery.set('pipeline_id', messageData.pipeline.id);
-              widgetUrlQuery.set('pipeline_name', messageData.pipeline.name);
-              widgetUrlQuery.set('project_name', messageData.projectName);
               widgetUrlQuery.set(
                 'submit_button_label',
                 messageData.buttonLabel,
@@ -343,19 +353,44 @@ class IkiRunPipeline extends React.PureComponent {
       iframeWrapper.innerHTML = markdownSource;
       const iframeHtml = iframeWrapper.firstChild;
       const iframeSrcUrl = new URL(iframeHtml.src);
-      const hostname = iframeSrcUrl.href.toString().split('ikigailabs.io')[0];
+      const paramMode = iframeSrcUrl.searchParams.get('mode')
+        ? iframeSrcUrl.searchParams.get('mode')
+        : '';
+      const paramTimestamp = iframeSrcUrl.searchParams.get('run_flow_times')
+        ? iframeSrcUrl.searchParams.get('run_flow_times')
+        : timestamp;
+      const paramPipelineId = iframeSrcUrl.searchParams.get('pipeline_id')
+        ? iframeSrcUrl.searchParams.get('pipeline_id')
+        : '';
+      const paramSubmitButtonLabel = iframeSrcUrl.searchParams.get(
+        'submit_button_label',
+      )
+        ? iframeSrcUrl.searchParams.get('submit_button_label')
+        : '';
+      const paramPipelineLogType = iframeSrcUrl.searchParams.get(
+        'pipeline_log_type',
+      )
+        ? iframeSrcUrl.searchParams.get('pipeline_log_type')
+        : '';
+      const paramEditVariables = iframeSrcUrl.searchParams.get('edit_variables')
+        ? iframeSrcUrl.searchParams.get('edit_variables')
+        : '';
+      const newIframeSrc = `${iframeSrcUrl.origin}${iframeSrcUrl.pathname}?mode=${paramMode}&v=1&run_flow_times=${paramTimestamp}&pipeline_id=${paramPipelineId}&submit_button_label=${paramSubmitButtonLabel}&pipeline_log_type=${paramPipelineLogType}&edit_variables=${paramEditVariables}`;
+      const newIframeSrcUrl = new URL(newIframeSrc);
+      const hostname = newIframeSrcUrl.href
+        .toString()
+        .split('ikigailabs.io')[0];
       if (hostname.includes('localhost') || hostname.includes('dev')) {
-        // iframeHtml.src = iframeSrcUrl.href.toString();
-        iframeSrc = iframeSrcUrl.href.toString();
+        // iframeHtml.src = newIframeSrcUrl.href.toString();
+        iframeSrc = newIframeSrcUrl.href.toString();
       } else {
         const srcUrl = `${dashURL}${
-          iframeSrcUrl.href.toString().split('.ikigailabs.io')[1]
+          newIframeSrcUrl.href.toString().split('.ikigailabs.io')[1]
         }`;
         // iframeHtml.src = srcUrl;
         iframeSrc = srcUrl;
       }
-
-      // console.log('iframe', iframeSrcUrl, iframeHtml);
+      // console.log('iframe', newIframeSrcUrl, iframeHtml);
     } else {
       iframeSrc = iframeEmptyURL;
     }
