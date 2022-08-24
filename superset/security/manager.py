@@ -1175,9 +1175,22 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         self,
         mapper: Mapper,
         connection: Connection,
-        new_dataset_schema_name: Optional[str],
+        new_schema_permission_name: Optional[str],
         target: "SqlaTable",
     ) -> None:
+        """
+        Helper method that is called by SQLAlchemy events on datasets to update
+        a new schema permission name, propagates the name change to datasets and charts.
+
+        If the schema permission name does not exist already has a PVM,
+        creates a new one.
+
+        :param mapper:
+        :param connection:
+        :param new_dataset_schema_name:
+        :param target:
+        :return:
+        """
         from superset.connectors.sqla.models import (  # pylint: disable=import-outside-toplevel
             SqlaTable,
         )
@@ -1190,7 +1203,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         # insert new schema PVM if it does not exist
         self._insert_new_pvm_on_event(
-            mapper, connection, "schema_access", new_dataset_schema_name
+            mapper, connection, "schema_access", new_schema_permission_name
         )
 
         # Update dataset (SqlaTable schema_perm field)
@@ -1199,7 +1212,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             .where(
                 sqlatable_table.c.id == target.id,
             )
-            .values(schema_perm=new_dataset_schema_name)
+            .values(schema_perm=new_schema_permission_name)
         )
 
         # Update charts (Slice schema_perm field)
@@ -1209,7 +1222,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 chart_table.c.datasource_id == target.id,
                 chart_table.c.datasource_type == "table",
             )
-            .values(schema_perm=new_dataset_schema_name)
+            .values(schema_perm=new_schema_permission_name)
         )
 
     def _insert_new_pvm_on_event(
@@ -1274,11 +1287,18 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         history_table_name = state.get_history("table_name", True)
         history_schema = state.get_history("schema", True)
 
-        # Whan database name changes
+        # When database name changes
         if history_database.has_changes() and history_database.deleted:
             new_dataset_vm_name = self.get_dataset_perm(
                 target.id, target.table_name, target.database.database_name
             )
+            # Update VM
+            connection.execute(
+                view_menu_table.update()
+                .where(view_menu_table.c.name == target.perm)
+                .values(name=new_dataset_vm_name)
+            )
+
             # Update dataset (SqlaTable perm field)
             connection.execute(
                 sqlatable_table.update()
@@ -1287,10 +1307,16 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 )
                 .values(perm=new_dataset_vm_name)
             )
-            # Insert new PVM
-            self._insert_new_pvm_on_event(
-                mapper, connection, "datasource_access", new_dataset_vm_name
+            # Update charts (Slice perm field)
+            connection.execute(
+                chart_table.update()
+                .where(
+                    chart_table.c.datasource_type == "table",
+                    chart_table.c.datasource_id == target.id,
+                )
+                .values(perm=new_dataset_vm_name)
             )
+            # Updates schema permissions
             new_dataset_schema_name = self.get_schema_perm(
                 target.database.database_name, target.schema
             )
@@ -1300,8 +1326,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 new_dataset_schema_name,
                 target,
             )
-            # Get all slices and update them all
-            ...
 
         # When table name changes
         if history_table_name.has_changes() and history_table_name.deleted:
@@ -1321,6 +1345,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 .where(view_menu_table.c.name == old_dataset_vm_name)
                 .values(name=new_dataset_vm_name)
             )
+            self.on_view_menu_after_update(mapper, connection, new_dataset_view_menu)
             # Update dataset (SqlaTable perm field)
             connection.execute(
                 sqlatable_table.update()
@@ -1330,14 +1355,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 )
                 .values(perm=new_dataset_vm_name)
             )
-
             # Update charts (Slice perm field)
             connection.execute(
                 chart_table.update()
                 .where(chart_table.c.perm == old_dataset_vm_name)
                 .values(perm=new_dataset_vm_name)
             )
-            self.on_view_menu_after_update(mapper, connection, new_dataset_view_menu)
 
         # When schema changes
         if history_schema.has_changes() and history_schema.deleted:
