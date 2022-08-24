@@ -46,6 +46,9 @@ class UpdateDatabaseCommand(BaseCommand):
         from superset.connectors.sqla.models import (  # pylint: disable=import-outside-toplevel
             SqlaTable,
         )
+        from superset.models.slice import (  # pylint: disable=import-outside-toplevel
+            Slice,
+        )
 
         self.validate()
         if not self._model:
@@ -88,6 +91,12 @@ class UpdateDatabaseCommand(BaseCommand):
                     )
                     for dataset in datasets:
                         dataset.schema_perm = new_view_menu_name
+                        charts = db.session.query(Slice).filter(
+                            Slice.datasource_type == "table",
+                            Slice.datasource_id == dataset.id,
+                        )
+                        for chart in charts:
+                            chart.schema_perm = new_view_menu_name
                 else:
                     new_schemas.append(schema)
             for schema in new_schemas:

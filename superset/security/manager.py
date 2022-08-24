@@ -1129,6 +1129,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         self._update_vm_datasources_access(
             mapper, connection, old_database_name, target
         )
+        # Note schema permissions are updated at the API level
+        # (database.commands.update). Since we need to fetch all existing schemas from
+        # the db
 
     def dataset_after_delete(
         self,
