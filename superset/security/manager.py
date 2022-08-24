@@ -1171,7 +1171,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             )
         )
 
-    def _update_schema_perm_dataset(
+    def __update_dataset_schema_perm(
         self,
         mapper: Mapper,
         connection: Connection,
@@ -1185,10 +1185,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         If the schema permission name does not exist already has a PVM,
         creates a new one.
 
-        :param mapper:
-        :param connection:
-        :param new_dataset_schema_name:
-        :param target:
+        :param mapper: The SQLA event mapper
+        :param connection: The SQLA connection
+        :param new_schema_permission_name: The new schema permission name that changed
+        :param target: Dataset that was updated
         :return:
         """
         from superset.connectors.sqla.models import (  # pylint: disable=import-outside-toplevel
@@ -1223,6 +1223,64 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 chart_table.c.datasource_type == "table",
             )
             .values(schema_perm=new_schema_permission_name)
+        )
+
+    def _update_dataset_perm(
+        self,
+        mapper: Mapper,
+        connection: Connection,
+        old_permission_name: Optional[str],
+        new_permission_name: Optional[str],
+        target: "SqlaTable",
+    ) -> None:
+        """
+        Helper method that is called by SQLAlchemy events on datasets to update
+        a permission name change, propagates the name change to VM, datasets and charts.
+
+        :param mapper:
+        :param connection:
+        :param old_permission_name
+        :param new_permission_name:
+        :param target:
+        :return:
+        """
+        from superset.connectors.sqla.models import (  # pylint: disable=import-outside-toplevel
+            SqlaTable,
+        )
+        from superset.models.slice import (  # pylint: disable=import-outside-toplevel
+            Slice,
+        )
+
+        view_menu_table = self.viewmenu_model.__table__  # pylint: disable=no-member
+        sqlatable_table = SqlaTable.__table__  # pylint: disable=no-member
+        chart_table = Slice.__table__  # pylint: disable=no-member
+
+        new_dataset_view_menu = self.find_view_menu(new_permission_name)
+        if new_dataset_view_menu:
+            return
+        # Update VM
+        connection.execute(
+            view_menu_table.update()
+            .where(view_menu_table.c.name == old_permission_name)
+            .values(name=new_permission_name)
+        )
+        self.on_view_menu_after_update(mapper, connection, new_dataset_view_menu)
+        # Update dataset (SqlaTable perm field)
+        connection.execute(
+            sqlatable_table.update()
+            .where(
+                sqlatable_table.c.id == target.id,
+            )
+            .values(perm=new_permission_name)
+        )
+        # Update charts (Slice perm field)
+        connection.execute(
+            chart_table.update()
+            .where(
+                chart_table.c.datasource_type == "table",
+                chart_table.c.datasource_id == target.id,
+            )
+            .values(perm=new_permission_name)
         )
 
     def _insert_new_pvm_on_event(
@@ -1292,35 +1350,15 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             new_dataset_vm_name = self.get_dataset_perm(
                 target.id, target.table_name, target.database.database_name
             )
-            # Update VM
-            connection.execute(
-                view_menu_table.update()
-                .where(view_menu_table.c.name == target.perm)
-                .values(name=new_dataset_vm_name)
+            self._update_dataset_perm(
+                mapper, connection, target.perm, new_dataset_vm_name, target
             )
 
-            # Update dataset (SqlaTable perm field)
-            connection.execute(
-                sqlatable_table.update()
-                .where(
-                    sqlatable_table.c.id == target.id,
-                )
-                .values(perm=new_dataset_vm_name)
-            )
-            # Update charts (Slice perm field)
-            connection.execute(
-                chart_table.update()
-                .where(
-                    chart_table.c.datasource_type == "table",
-                    chart_table.c.datasource_id == target.id,
-                )
-                .values(perm=new_dataset_vm_name)
-            )
             # Updates schema permissions
             new_dataset_schema_name = self.get_schema_perm(
                 target.database.database_name, target.schema
             )
-            self._update_schema_perm_dataset(
+            self.__update_dataset_schema_perm(
                 mapper,
                 connection,
                 new_dataset_schema_name,
@@ -1336,30 +1374,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             old_dataset_vm_name = self.get_dataset_perm(
                 target.id, old_dataset_name, target.database.database_name
             )
-            new_dataset_view_menu = self.find_view_menu(new_dataset_vm_name)
-            if new_dataset_view_menu:
-                return
-            # Update VM
-            connection.execute(
-                view_menu_table.update()
-                .where(view_menu_table.c.name == old_dataset_vm_name)
-                .values(name=new_dataset_vm_name)
-            )
-            self.on_view_menu_after_update(mapper, connection, new_dataset_view_menu)
-            # Update dataset (SqlaTable perm field)
-            connection.execute(
-                sqlatable_table.update()
-                .where(
-                    sqlatable_table.c.id == target.id,
-                    sqlatable_table.c.perm == old_dataset_vm_name,
-                )
-                .values(perm=new_dataset_vm_name)
-            )
-            # Update charts (Slice perm field)
-            connection.execute(
-                chart_table.update()
-                .where(chart_table.c.perm == old_dataset_vm_name)
-                .values(perm=new_dataset_vm_name)
+            self._update_dataset_perm(
+                mapper, connection, old_dataset_vm_name, new_dataset_vm_name, target
             )
 
         # When schema changes
@@ -1371,7 +1387,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             old_dataset_schema_name = self.get_schema_perm(
                 target.database.database_name, old_schema_name
             )
-            self._update_schema_perm_dataset(
+            self.__update_dataset_schema_perm(
                 mapper,
                 connection,
                 new_dataset_schema_name,
