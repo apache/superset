@@ -16,7 +16,6 @@
 # under the License.
 import re
 import time
-from datetime import datetime
 from typing import Any, Dict
 
 import pytest
@@ -732,15 +731,15 @@ def test_get_label_map(app_context, virtual_dataset_comma_in_column_value):
     }
 
 
-def test_column_with_config(app_context, physical_dataset):
+def test_column_with_time_grain(app_context, physical_dataset):
     column_on_axis: AdhocColumn = {
         "label": "I_AM_A_ORIGINAL_COLUMN",
-        "sqlExpression": '"col5"',
+        "sqlExpression": "col5",
         "time_grain": "P1Y",
     }
     adhoc_column: AdhocColumn = {
         "label": "I_AM_A_TRUNC_COLUMN",
-        "sqlExpression": '"col6"',
+        "sqlExpression": "col6",
         "is_axis": True,
         "time_grain": "P1Y",
     }
@@ -761,7 +760,7 @@ def test_column_with_config(app_context, physical_dataset):
     )
     query_object = qc.queries[0]
     df = qc.get_df_payload(query_object)["df"]
-    assert df["I_AM_A_ORIGINAL_COLUMN"][0] == datetime(2000, 1, 1)
-    assert df["I_AM_A_ORIGINAL_COLUMN"][1] == datetime(2000, 1, 2)
-    assert df["I_AM_A_TRUNC_COLUMN"][0] == datetime(2002, 1, 1)
-    assert df["I_AM_A_TRUNC_COLUMN"][1] == datetime(2002, 1, 1)
+    assert df["I_AM_A_ORIGINAL_COLUMN"][0].strftime("%Y-%m-%d") == "2000-01-01"
+    assert df["I_AM_A_ORIGINAL_COLUMN"][1].strftime("%Y-%m-%d") == "2000-01-02"
+    assert df["I_AM_A_TRUNC_COLUMN"][0].strftime("%Y-%m-%d") == "2002-01-01"
+    assert df["I_AM_A_TRUNC_COLUMN"][1].strftime("%Y-%m-%d") == "2002-01-01"
