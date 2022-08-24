@@ -114,8 +114,8 @@ export type PageHeaderWithActionsProps = {
   additionalActionsMenu: ReactElement;
   menuDropdownProps: Omit<AntdDropdownProps, 'overlay'>;
   tooltipProps?: {
-    text: string;
-    placement: TooltipPlacement;
+    text?: string;
+    placement?: TooltipPlacement;
   };
 };
 
