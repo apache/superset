@@ -28,7 +28,7 @@ from superset.models.slice import Slice
 from superset.utils.core import DatasourceType
 
 from .helpers import (
-    get_example_data,
+    get_example_url,
     get_table_connector_registry,
     merge_slice,
     misc_dash_slices,
@@ -46,8 +46,8 @@ def load_energy(
     table_exists = database.has_table_by_name(tbl_name)
 
     if not only_metadata and (not table_exists or force):
-        data = get_example_data("energy.json.gz")
-        pdf = pd.read_json(data)
+        url = get_example_url("energy.json.gz")
+        pdf = pd.read_json(url, compression="gzip")
         pdf = pdf.head(100) if sample else pdf
         pdf.to_sql(
             tbl_name,

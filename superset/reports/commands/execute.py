@@ -62,12 +62,14 @@ from superset.reports.models import (
     ReportRecipientType,
     ReportSchedule,
     ReportScheduleType,
+    ReportSourceFormat,
     ReportState,
 )
 from superset.reports.notifications import create_notification
 from superset.reports.notifications.base import NotificationContent
 from superset.reports.notifications.exceptions import NotificationError
 from superset.utils.celery import session_scope
+from superset.utils.core import HeaderDataType
 from superset.utils.csv import get_chart_csv_data, get_chart_dataframe
 from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot
 from superset.utils.urls import get_url_path
@@ -305,6 +307,28 @@ class BaseReportState:
                 "Please try loading the chart and saving it again."
             ) from ex
 
+    def _get_log_data(self) -> HeaderDataType:
+        chart_id = None
+        dashboard_id = None
+        report_source = None
+        if self._report_schedule.chart:
+            report_source = ReportSourceFormat.CHART
+            chart_id = self._report_schedule.chart_id
+        else:
+            report_source = ReportSourceFormat.DASHBOARD
+            dashboard_id = self._report_schedule.dashboard_id
+
+        log_data: HeaderDataType = {
+            "notification_type": self._report_schedule.type,
+            "notification_source": report_source,
+            "notification_format": self._report_schedule.report_format,
+            "chart_id": chart_id,
+            "dashboard_id": dashboard_id,
+            "owners": self._report_schedule.owners,
+            "error_text": None,
+        }
+        return log_data
+
     def _get_notification_content(self) -> NotificationContent:
         """
         Gets a notification content, this is composed by a title and a screenshot
@@ -315,6 +339,7 @@ class BaseReportState:
         embedded_data = None
         error_text = None
         screenshot_data = []
+        header_data = self._get_log_data()
         url = self._get_url(user_friendly=True)
         if (
             feature_flag_manager.is_feature_enabled("ALERTS_ATTACH_REPORTS")
@@ -332,8 +357,11 @@ class BaseReportState:
                 if not csv_data:
                     error_text = "Unexpected missing csv file"
             if error_text:
+                header_data["error_text"] = error_text
                 return NotificationContent(
-                    name=self._report_schedule.name, text=error_text
+                    name=self._report_schedule.name,
+                    text=error_text,
+                    header_data=header_data,
                 )
 
         if (
@@ -352,6 +380,7 @@ class BaseReportState:
                 f"{self._report_schedule.name}: "
                 f"{self._report_schedule.dashboard.dashboard_title}"
             )
+
         return NotificationContent(
             name=name,
             url=url,
@@ -359,6 +388,7 @@ class BaseReportState:
             description=self._report_schedule.description,
             csv=csv_data,
             embedded_data=embedded_data,
+            header_data=header_data,
         )
 
     def _send(
@@ -404,7 +434,11 @@ class BaseReportState:
 
         :raises: ReportScheduleNotificationError
         """
-        notification_content = NotificationContent(name=name, text=message)
+        header_data = self._get_log_data()
+        header_data["error_text"] = message
+        notification_content = NotificationContent(
+            name=name, text=message, header_data=header_data
+        )
 
         # filter recipients to recipients who are also owners
         owner_recipients = [

@@ -525,8 +525,10 @@ class TestSavedQueryApi(SupersetTestCase):
             "label": "label1",
         }
         data = json.loads(rv.data.decode("utf-8"))
+        self.assertIn("changed_on_delta_humanized", data["result"])
         for key, value in data["result"].items():
-            assert value == expected_result[key]
+            if key not in ("changed_on_delta_humanized",):
+                assert value == expected_result[key]
 
     def test_get_saved_query_not_found(self):
         """

@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import copy
 import logging
+import re
 from typing import Any, ClassVar, Dict, List, Optional, TYPE_CHECKING, Union
 
 import numpy as np
@@ -57,6 +58,7 @@ from superset.utils.core import (
     TIME_COMPARISON,
 )
 from superset.utils.date_parser import get_past_or_future, normalize_time_delta
+from superset.utils.pandas_postprocessing.utils import unescape_separator
 from superset.views.utils import get_viz
 
 if TYPE_CHECKING:
@@ -142,6 +144,17 @@ class QueryContextProcessor:
                 cache.error_message = str(ex)
                 cache.status = QueryStatus.FAILED
 
+        # the N-dimensional DataFrame has converteds into flat DataFrame
+        # by `flatten operator`, "comma" in the column is escaped by `escape_separator`
+        # the result DataFrame columns should be unescaped
+        label_map = {
+            unescape_separator(col): [
+                unescape_separator(col) for col in re.split(r"(?<!\\),\s", col)
+            ]
+            for col in cache.df.columns.values
+        }
+        cache.df.columns = [unescape_separator(col) for col in cache.df.columns.values]
+
         return {
             "cache_key": cache_key,
             "cached_dttm": cache.cache_dttm,
@@ -157,6 +170,7 @@ class QueryContextProcessor:
             "rowcount": len(cache.df.index),
             "from_dttm": query_obj.from_dttm,
             "to_dttm": query_obj.to_dttm,
+            "label_map": label_map,
         }
 
     def query_cache_key(self, query_obj: QueryObject, **kwargs: Any) -> Optional[str]:

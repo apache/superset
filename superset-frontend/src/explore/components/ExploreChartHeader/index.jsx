@@ -119,9 +119,7 @@ export const ExploreChartHeader = ({
   };
 
   useEffect(() => {
-    if (dashboardId) {
-      fetchChartDashboardData();
-    }
+    if (dashboardId) fetchChartDashboardData();
   }, []);
 
   const openPropertiesModal = () => {
