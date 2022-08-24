@@ -1125,12 +1125,15 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             template_processor=template_processor,
         )
         col_in_metadata = self.get_column(expression)
+        is_dttm = False
         if col_in_metadata:
+            is_dttm = col_in_metadata.is_temporal
             sqla_column = col_in_metadata.get_sqla_col()
         else:
+            # todo(Yongjie): should probe column type in time
             sqla_column = literal_column(expression)
 
-        if col.get("is_axis") and col.get("time_grain"):
+        if col.get("is_axis") and col.get("time_grain") and is_dttm:
             sqla_column = self.db_engine_spec.get_timestamp_expr(
                 sqla_column,
                 None,

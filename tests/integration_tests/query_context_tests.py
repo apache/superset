@@ -731,7 +731,7 @@ def test_get_label_map(app_context, virtual_dataset_comma_in_column_value):
     }
 
 
-def test_column_with_time_grain(app_context, physical_dataset):
+def test_time_column_with_time_grain(app_context, physical_dataset):
     column_on_axis: AdhocColumn = {
         "label": "I_AM_A_ORIGINAL_COLUMN",
         "sqlExpression": "col5",
@@ -771,6 +771,37 @@ def test_column_with_time_grain(app_context, physical_dataset):
         assert df["I_AM_A_ORIGINAL_COLUMN"][1].strftime("%Y-%m-%d") == "2000-01-02"
         assert df["I_AM_A_TRUNC_COLUMN"][0].strftime("%Y-%m-%d") == "2002-01-01"
         assert df["I_AM_A_TRUNC_COLUMN"][1].strftime("%Y-%m-%d") == "2002-01-01"
+
+
+def test_non_time_column_with_time_grain(app_context, physical_dataset):
+    qc = QueryContextFactory().create(
+        datasource={
+            "type": physical_dataset.type,
+            "id": physical_dataset.id,
+        },
+        queries=[
+            {
+                "columns": [
+                    "col1",
+                    {
+                        "label": "COL2 ALIAS",
+                        "sqlExpression": "col2",
+                        "is_axis": True,
+                        "time_grain": "P1Y",
+                    },
+                ],
+                "metrics": ["count"],
+                "orderby": [["col1", True]],
+                "row_limit": 1,
+            }
+        ],
+        result_type=ChartDataResultType.FULL,
+        force=True,
+    )
+
+    query_object = qc.queries[0]
+    df = qc.get_df_payload(query_object)["df"]
+    assert df["COL2 ALIAS"][0] == "a"
 
 
 def test_special_chars_in_column_name(app_context, physical_dataset):
