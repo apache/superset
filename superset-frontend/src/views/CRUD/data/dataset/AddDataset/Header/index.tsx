@@ -17,7 +17,85 @@
  * under the License.
  */
 import React from 'react';
+import { t, styled, css, SupersetTheme } from '@superset-ui/core';
+import { PageHeaderWithActions } from 'src/components/PageHeaderWithActions';
+import Button from 'src/components/Button';
+import Icons from 'src/components/Icons';
+import { Menu } from 'src/components/Menu';
+import { TooltipPlacement } from 'antd/es/tooltip';
+
+const editableTitleProps = {
+  title: '',
+  placeholder: 'Add the name of the dataset',
+  onSave: () => {},
+  canEdit: true,
+  label: 'dataset name',
+};
+
+const tooltipProps: { text: string; placement: TooltipPlacement } = {
+  text: 'Select a database table and create dataset',
+  placement: 'bottomRight',
+};
+
+const Styles = styled.div`
+  .ant-btn {
+    span {
+      margin-right: 0;
+    }
+
+    &:disabled {
+      svg {
+        color: ${({ theme }) => theme.colors.grayscale.light1};
+      }
+    }
+  }
+`;
+
+const disabledSaveBtnStyles = (theme: SupersetTheme) => css`
+  width: ${theme.gridUnit * 21.5}px;
+
+  &:disabled {
+    background-color: ${theme.colors.grayscale.light3};
+    color: ${theme.colors.grayscale.light1};
+  }
+`;
+
+const renderDisabledSaveButton = () => (
+  <Button
+    buttonStyle="primary"
+    tooltip={tooltipProps?.text}
+    placement={tooltipProps?.placement}
+    disabled
+    css={disabledSaveBtnStyles}
+  >
+    <Icons.Save iconSize="m" />
+    {t('Save')}
+  </Button>
+);
+
+const renderOverlay = () => (
+  <Menu>
+    <Menu.Item>{t('Settings')}</Menu.Item>
+    <Menu.Item>{t('Delete')}</Menu.Item>
+  </Menu>
+);
 
 export default function Header() {
-  return <div>Header</div>;
+  return (
+    <Styles>
+      <PageHeaderWithActions
+        editableTitleProps={editableTitleProps}
+        showTitlePanelItems={false}
+        showFaveStar={false}
+        faveStarProps={{ itemId: 1, saveFaveStar: () => {} }}
+        titlePanelAdditionalItems={<></>}
+        rightPanelAdditionalItems={renderDisabledSaveButton()}
+        additionalActionsMenu={renderOverlay()}
+        menuDropdownProps={{
+          disabled: true,
+        }}
+        tooltipProps={tooltipProps}
+      />
+    </Styles>
+  );
 }

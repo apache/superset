@@ -68,7 +68,10 @@ export const StyledHeader = styled.div`
   flex: 0 0 auto;
   height: ${({ theme }) => theme.gridUnit * 16}px;
   border-bottom: 2px solid ${({ theme }) => theme.colors.grayscale.light2};
-  color: ${({ theme }) => theme.colors.error.base};
+
+  .header-with-actions {
+    height: ${({ theme }) => theme.gridUnit * 15.5}px;
+  }
 `;
 
 export const StyledLeftPanel = styled.div`

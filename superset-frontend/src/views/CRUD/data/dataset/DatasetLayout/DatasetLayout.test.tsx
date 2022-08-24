@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { render, screen } from 'spec/helpers/testing-library';
+import { render, screen, act } from 'spec/helpers/testing-library';
 import DatasetLayout from 'src/views/CRUD/data/dataset/DatasetLayout';
 import Header from 'src/views/CRUD/data/dataset/AddDataset/Header';
 import LeftPanel from 'src/views/CRUD/data/dataset/AddDataset/LeftPanel';
@@ -33,10 +33,22 @@ describe('DatasetLayout', () => {
     expect(layoutWrapper).toHaveTextContent('');
   });
 
-  it('renders a Header when passed in', () => {
-    render(<DatasetLayout header={Header()} />);
+  const renderHeaderAndWait = async () => {
+    const mounted = act(async () => {
+      render(<Header />);
+    });
 
-    expect(screen.getByText(/header/i)).toBeVisible();
+    return mounted;
+  };
+
+  it('renders a Header when passed in', async () => {
+    await renderHeaderAndWait();
+
+    expect(
+      screen.getByRole('textbox', {
+        name: /dataset name/i,
+      }),
+    ).toBeVisible();
   });
 
   it('renders a LeftPanel when passed in', async () => {

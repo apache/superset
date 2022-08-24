@@ -17,13 +17,33 @@
  * under the License.
  */
 import React from 'react';
-import { render, screen } from 'spec/helpers/testing-library';
+import { render, screen, act } from 'spec/helpers/testing-library';
 import Header from 'src/views/CRUD/data/dataset/AddDataset/Header';
 
 describe('Header', () => {
-  it('renders a blank state Header', () => {
-    render(<Header />);
+  const renderAndWait = async () => {
+    const mounted = act(async () => {
+      render(<Header />);
+    });
 
-    expect(screen.getByText(/header/i)).toBeVisible();
+    return mounted;
+  };
+
+  it('renders a blank state Header', async () => {
+    await renderAndWait();
+
+    const datasetNameTextbox = screen.getByRole('textbox', {
+      name: /dataset name/i,
+    });
+    const saveButton = screen.getByRole('button', {
+      name: /save save/i,
+    });
+    const menuButton = screen.getByRole('button', {
+      name: /menu actions trigger/i,
+    });
+
+    expect(datasetNameTextbox).toBeVisible();
+    expect(saveButton).toBeVisible();
+    expect(menuButton).toBeVisible();
   });
 });

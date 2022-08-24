@@ -17,18 +17,29 @@
  * under the License.
  */
 import React from 'react';
-import { render, screen } from 'spec/helpers/testing-library';
+import { render, screen, act } from 'spec/helpers/testing-library';
 import AddDataset from 'src/views/CRUD/data/dataset/AddDataset';
 
 describe('AddDataset', () => {
+  const renderAndWait = async () => {
+    const mounted = act(async () => {
+      render(<AddDataset />);
+    });
+
+    return mounted;
+  };
   it('renders a blank state AddDataset', async () => {
-    render(<AddDataset />, { useRedux: true });
+    await renderAndWait();
 
     const blankeStateImgs = screen.getAllByRole('img', { name: /empty/i });
 
     expect(await screen.findByText(/header/i)).toBeInTheDocument();
     // Header
-    expect(screen.getByText(/header/i)).toBeVisible();
+    expect(
+      screen.getByRole('textbox', {
+        name: /dataset name/i,
+      }),
+    ).toBeVisible();
     // Left panel
     expect(blankeStateImgs[0]).toBeVisible();
     // Footer
