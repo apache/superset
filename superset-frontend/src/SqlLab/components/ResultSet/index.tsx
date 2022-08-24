@@ -150,8 +150,7 @@ const ResultSet = ({
     }
     if (
       query.resultsKey &&
-      prevQuery &&
-      prevQuery.resultsKey &&
+      prevQuery?.resultsKey &&
       query.resultsKey !== prevQuery.resultsKey
     ) {
       fetchResults(query);
