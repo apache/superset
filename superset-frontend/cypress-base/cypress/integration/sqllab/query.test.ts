@@ -34,19 +34,9 @@ describe('SqlLab query panel', () => {
     // are fetched below (because React _Virtualized_ does not render all rows)
     let clockTime = 0;
 
-    const sampleResponse = {
-      status: 'success',
-      data: [{ '?column?': 1 }],
-      columns: [{ name: '?column?', type: 'INT', is_dttm: false }],
-      selected_columns: [{ name: '?column?', type: 'INT', is_dttm: false }],
-      expanded_columns: [],
-    };
-
     cy.intercept({
       method: 'POST',
       url: '/superset/sql_json/',
-      delay: 1000,
-      response: () => sampleResponse,
     }).as('mockSQLResponse');
 
     cy.get('.TableSelector .Select:eq(0)').click();
@@ -166,6 +156,7 @@ describe('SqlLab query panel', () => {
     // cypress doesn't handle opening a new tab, override window.open to open in the same tab
     cy.window().then(win => {
       cy.stub(win, 'open', url => {
+        // eslint-disable-next-line no-param-reassign
         win.location.href = url;
       });
     });
