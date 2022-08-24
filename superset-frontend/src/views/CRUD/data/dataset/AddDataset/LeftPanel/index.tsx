@@ -16,17 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
-  useEffect,
-  useState,
-  useRef,
-  useCallback,
-  useMemo,
-} from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { SupersetClient, t, styled, FAST_DEBOUNCE } from '@superset-ui/core';
 import { Input } from 'src/components/Input';
 import { Form } from 'src/components/Form';
 import { TableOption, Table } from 'src/components/TableSelector';
+import RefreshLabel from 'src/components/RefreshLabel';
 import Loading from 'src/components/Loading';
 import DatabaseSelector from 'src/components/DatabaseSelector';
 import { debounce } from 'lodash';
@@ -42,7 +37,7 @@ interface LeftPanelProps {
 const LeftPanelStyle = styled.div`
   ${({ theme }) => `
   max-width: 350px;
-  padding: 16px;
+  padding: ${theme.gridUnit * 4}px;
   height: 100%;
   background-color: ${theme.colors.grayscale.light5}; 
   .refresh {
@@ -50,23 +45,41 @@ const LeftPanelStyle = styled.div`
     top: 290px;
     left: 67px;
     span[role="button"]{
-      font-size: 17px;
+      font-size: ${theme.gridUnit * 4.25}px;
     }
   }
   .section-title {
     margin-top: 44px;
     margin-bottom: 44px;
-    font-weight: 600;
+    font-weight: ${theme.typography.weights.bold};
   }
   .options-list {
     overflow: auto;
     max-height: 700px;
     .options {
-      margin: 16px;
+      padding: ${theme.gridUnit * 1.75}px;
+      border-radius: ${theme.borderRadius}px;
     }
   }
+  form > span {
+    position: absolute;
+    top: 410px;
+    left: 171px;
+    font-size: 17px;   
+  }
   .table-form {
-    margin-bottom: 32px;
+    margin-bottom: ${theme.gridUnit * 8}px;
+  }
+  .loading {
+    position: absolute;
+    bottom: 380px;
+    img {
+      position: absolute;
+      top: -53px;
+      right: -15px;
+      width: 71px;
+    }
+  }
   }
 `}
 `;
@@ -80,6 +93,7 @@ export default function LeftPanel({
   const [resetTables, setResetTables] = useState(false);
   const [loadTables, setLoadTables] = useState(false);
   const [searchVal, setSearchVal] = useState('');
+  const [refresh, setRefresh] = useState(false);
 
   const setDatabase = (db: any) => {
     setDataset({ type: DatasetActionType.selectDatabase, payload: db });
@@ -102,6 +116,7 @@ export default function LeftPanel({
         setTableOptions(options);
         setLoadTables(false);
         setResetTables(false);
+        setRefresh(false);
       })
       .catch(e => {
         console.log('error', e);
@@ -117,12 +132,11 @@ export default function LeftPanel({
   };
 
   const encodedSchema = encodeURIComponent(schema as string);
-  const forceRefresh = null;
 
   useEffect(() => {
     if (loadTables) {
       const endpoint = encodeURI(
-        `/superset/tables/${dbId}/${encodedSchema}/undefined/${forceRefresh}/`,
+        `/superset/tables/${dbId}/${encodedSchema}/undefined/${refresh}/`,
       );
       getTablesList(endpoint);
     }
@@ -141,7 +155,7 @@ export default function LeftPanel({
         const encodeTableName =
           value === '' ? undefined : encodeURIComponent(value);
         const endpoint = encodeURI(
-          `/superset/tables/${dbId}/${encodedSchema}/${encodeTableName}/${forceRefresh}/`,
+          `/superset/tables/${dbId}/${encodedSchema}/${encodeTableName}/`,
         );
         getTablesList(endpoint);
       }, FAST_DEBOUNCE),
@@ -157,8 +171,8 @@ export default function LeftPanel({
         onSchemaChange={setSchema}
       />
       {loadTables && (
-        <div>
-          <Loading />
+        <div className="loading">
+          <Loading position="inline" />
           <p>loading schemas ...</p>
         </div>
       )}
@@ -174,6 +188,13 @@ export default function LeftPanel({
         <>
           <Form>
             <p className="section-title">Select Database Table</p>
+            <RefreshLabel
+              onClick={() => {
+                setLoadTables(true);
+                setRefresh(true);
+              }}
+              tooltipContent={t('Refresh table list')}
+            />
             <Input
               value={searchVal}
               onChange={evt => {
