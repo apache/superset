@@ -38,6 +38,7 @@ from superset.errors import ErrorLevel, SupersetErrorType
 from superset.exceptions import SupersetSecurityException, SupersetTimeoutException
 from superset.extensions import event_logger
 from superset.models.core import Database
+from superset.db_engine_specs.snowflake_privatekey import create_sn_url,create_sn_engin
 
 logger = logging.getLogger(__name__)
 
@@ -73,8 +74,17 @@ class TestConnectionDatabaseCommand(BaseCommand):
 
             database.set_sqlalchemy_uri(uri)
             database.db_engine_spec.mutate_db_for_connection_test(database)
-
-            engine = database.get_sqla_engine()
+            
+            engine = None
+            print("==========================================================")
+            print(str(url))
+            print("privatekey" in str(url))
+            print(type(str(url)))
+            print("==========================================================")
+            if "privatekey" in str(url):
+                engine = create_sn_engin(str(url))
+            else:
+                engine = database.get_sqla_engine()
             event_logger.log_with_context(
                 action="test_connection_attempt",
                 engine=database.db_engine_spec.__name__,
