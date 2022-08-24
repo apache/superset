@@ -105,9 +105,9 @@ export default function TableControls({
               margin-bottom: ${theme.gridUnit * 4}px;
               line-height: 1.2;
             `}
+            data-test="filter-col"
           >
             <span
-              data-test="filter-col"
               css={css`
                 margin-right: ${theme.gridUnit}px;
               `}

@@ -16,24 +16,95 @@
 # under the License.
 import json
 import textwrap
+from typing import List, Tuple
 
-from superset import db
+from sqlalchemy import inspect
+
+from superset import db, security_manager
+from superset.connectors.sqla.models import SqlaTable
 from superset.models.dashboard import Dashboard
+from superset.models.slice import Slice
+from superset.utils.core import DatasourceType
 
-from .helpers import update_slice_ids
+from ..utils.database import get_example_database
+from .helpers import (
+    get_slice_json,
+    get_table_connector_registry,
+    merge_slice,
+    update_slice_ids,
+)
 
 DASH_SLUG = "echarts_dash"
 
+def create_slices(tbl: SqlaTable) -> Tuple[List[Slice], List[Slice]]:
+    admin = security_manager.find_user("admin")
+    slice_props = dict(
+        datasource_id=tbl.id,
+        datasource_type=DatasourceType.TABLE,
+        owners=[admin],
+        created_by=admin,
+    )
+
+    defaults = {
+        "limit": "25",
+        "time_range": "100 years ago : now",
+        "granularity_sqla": "ds",
+        "groupby": ["gender"],
+        "row_limit": "50000",
+        "viz_type": "echarts_timeseries_bar",
+    }
+
+    slices = [Slice(
+            **slice_props,
+            slice_name="Time-Series Bar Chart V2",
+            viz_type="echarts_timeseries_bar",
+            params=get_slice_json(
+                defaults,
+                adhoc_filters=[
+                    {
+                        "clause": "WHERE",
+                        "expressionType": "SIMPLE",
+                        "filterOptionName": "filter_i7pmq9ob0vg_lvnj4s14yt",
+                        "comparator": "10000",
+                        "operator": ">",
+                        "subject": "num_boys",
+                    }
+                ],
+                viz_type="dist_bar",
+                metrics=["sum__num"],
+                groupby=["gender"],
+            ),
+        ),]
+
+    for slc in slices:
+        merge_slice(slc)
+
+    return slices
 
 def load_echarts_dashboard() -> None:
     """Loading a dashboard featuring EChart charts"""
 
+    database = get_example_database()
+    engine = database.get_sqla_engine()
+    schema = inspect(engine).default_schema_name
+
+    tbl_name = "birth_names"
+    table_exists = database.has_table_by_name(tbl_name, schema=schema)
+
+    if table_exists:
+        table = get_table_connector_registry()
+        obj = db.session.query(table).filter_by(table_name=tbl_name, schema=schema).first()
+        create_slices(obj)
+
     print("Creating the dashboard")
+
     db.session.expunge_all()
     dash = db.session.query(Dashboard).filter_by(slug=DASH_SLUG).first()
 
     if not dash:
         dash = Dashboard()
+
+
     js = textwrap.dedent(
         """\
 {
@@ -92,6 +163,17 @@ def load_echarts_dashboard() -> None:
       },
       "type": "CHART"
     },
+    "CHART--LXvS-RDSu": {
+      "children": [],
+      "id": "CHART--LXvS-RDSu",
+      "meta": {
+        "chartId": 398,
+        "height": 50,
+        "sliceName": "Time-Series Bar Chart V2",
+        "width": 6
+      },
+      "type": "CHART"
+    },
     "GRID_ID": {
         "children": [
             "ROW-SytNzNA4X",
@@ -104,7 +186,7 @@ def load_echarts_dashboard() -> None:
     "HEADER_ID": {
         "id": "HEADER_ID",
         "meta": {
-            "text": "ECharts Charts"
+            "text": "ECharts Dashboard"
         },
         "type": "HEADER"
     },
@@ -139,7 +221,8 @@ def load_echarts_dashboard() -> None:
     },
     "ROW-BytNzNA4Y": {
         "children": [
-            "CHART--wEhS-MDSg"
+            "CHART--wEhS-MDSg",
+            "CHART--LXvS-RDSu"
         ],
         "id": "ROW-BytNzNA4Y",
         "meta": {
@@ -151,11 +234,10 @@ def load_echarts_dashboard() -> None:
 }
     """
     )
+
     pos = json.loads(js)
-    slices = update_slice_ids(pos)
+    dash.slices = update_slice_ids(pos)
     dash.dashboard_title = "ECharts Dashboard"
     dash.position_json = json.dumps(pos, indent=4)
     dash.slug = DASH_SLUG
-    dash.slices = slices
-    db.session.merge(dash)
     db.session.commit()
