@@ -15,6 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=too-many-lines
+from __future__ import annotations
+
 import logging
 import re
 import textwrap
@@ -390,7 +392,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):  # pylint: disable=too-many-public
 
     @classmethod
     def get_table_names(
-        cls, database: "Database", inspector: Inspector, schema: Optional[str]
+        cls, database: Database, inspector: Inspector, schema: Optional[str]
     ) -> List[str]:
         tables = super().get_table_names(database, inspector, schema)
         if not is_feature_enabled("PRESTO_SPLIT_VIEWS_FROM_TABLES"):
@@ -402,7 +404,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):  # pylint: disable=too-many-public
 
     @classmethod
     def get_view_names(
-        cls, database: "Database", inspector: Inspector, schema: Optional[str]
+        cls, database: Database, inspector: Inspector, schema: Optional[str]
     ) -> List[str]:
         """Returns an empty list
 
@@ -760,7 +762,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):  # pylint: disable=too-many-public
     @classmethod
     def select_star(  # pylint: disable=too-many-arguments
         cls,
-        database: "Database",
+        database: Database,
         table_name: str,
         engine: Engine,
         schema: Optional[str] = None,
@@ -796,7 +798,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):  # pylint: disable=too-many-public
 
     @classmethod
     def get_all_datasource_names(
-        cls, database: "Database", datasource_type: str
+        cls, database: Database, datasource_type: str
     ) -> List[utils.DatasourceName]:
         datasource_df = database.get_df(
             "SELECT table_schema, table_name FROM INFORMATION_SCHEMA.{}S "
@@ -925,7 +927,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):  # pylint: disable=too-many-public
 
     @classmethod
     def extra_table_metadata(
-        cls, database: "Database", table_name: str, schema_name: Optional[str]
+        cls, database: Database, table_name: str, schema_name: Optional[str]
     ) -> Dict[str, Any]:
         metadata = {}
 
@@ -957,7 +959,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):  # pylint: disable=too-many-public
 
     @classmethod
     def get_create_view(
-        cls, database: "Database", schema: Optional[str], table: str
+        cls, database: Database, schema: Optional[str], table: str
     ) -> Optional[str]:
         """
         Return a CREATE VIEW statement, or `None` if not a view.
@@ -1062,7 +1064,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):  # pylint: disable=too-many-public
     def _partition_query(  # pylint: disable=too-many-arguments,too-many-locals
         cls,
         table_name: str,
-        database: "Database",
+        database: Database,
         limit: int = 0,
         order_by: Optional[List[Tuple[str, bool]]] = None,
         filters: Optional[Dict[Any, Any]] = None,
@@ -1120,7 +1122,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):  # pylint: disable=too-many-public
         cls,
         table_name: str,
         schema: Optional[str],
-        database: "Database",
+        database: Database,
         query: Select,
         columns: Optional[List[Dict[str, str]]] = None,
     ) -> Optional[Select]:
@@ -1161,7 +1163,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):  # pylint: disable=too-many-public
         cls,
         table_name: str,
         schema: Optional[str],
-        database: "Database",
+        database: Database,
         show_first: bool = False,
     ) -> Tuple[List[str], Optional[List[str]]]:
         """Returns col name and the latest (max) partition value for a table
@@ -1204,7 +1206,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):  # pylint: disable=too-many-public
 
     @classmethod
     def latest_sub_partition(
-        cls, table_name: str, schema: Optional[str], database: "Database", **kwargs: Any
+        cls, table_name: str, schema: Optional[str], database: Database, **kwargs: Any
     ) -> Any:
         """Returns the latest (max) partition value for a table
 
