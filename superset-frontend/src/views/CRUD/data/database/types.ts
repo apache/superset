@@ -161,3 +161,8 @@ export enum CONFIGURATION_METHOD {
   SQLALCHEMY_URI = 'sqlalchemy_form',
   DYNAMIC_FORM = 'dynamic_form',
 }
+
+export enum Engines {
+  GSheet = 'gsheets',
+  Snowflake = 'snowflake',
+}
