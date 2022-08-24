@@ -42,6 +42,7 @@ from sqlalchemy.engine.url import URL
 from sqlalchemy.orm import backref, relationship
 
 from superset import security_manager
+from superset.jinja_context import BaseTemplateProcessor, get_template_processor
 from superset.models.helpers import (
     AuditMixinNullable,
     ExploreMixin,
@@ -53,10 +54,6 @@ from superset.sql_parse import CtasMethod, ParsedQuery, Table
 from superset.sqllab.limiting_factor import LimitingFactor
 from superset.superset_typing import ResultSetColumnType
 from superset.utils.core import GenericDataType, QueryStatus, user_label
-from superset.jinja_context import (
-    BaseTemplateProcessor,
-    get_template_processor,
-)
 
 if TYPE_CHECKING:
     from superset.db_engine_specs import BaseEngineSpec
