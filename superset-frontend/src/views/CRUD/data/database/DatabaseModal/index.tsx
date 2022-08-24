@@ -513,9 +513,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     if (field === 'database') {
       switch (db?.engine) {
         case Engines.Snowflake:
-          return 'e.g. xy12345.us-east-2.aws';
+          return t('e.g. xy12345.us-east-2.aws');
         default:
-          return 'e.g. world_population';
+          return t('e.g. world_population');
       }
     }
     return undefined;
@@ -1615,7 +1615,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   }
                   getValidation={() => getValidation(db)}
                   validationErrors={validationErrors}
-                  getPlaceholder={field => getPlaceholder(field)}
+                  getPlaceholder={getPlaceholder}
                 />
                 <div css={(theme: SupersetTheme) => infoTooltip(theme)}>
                   {dbModel.engine !== Engines.GSheet && (
