@@ -1183,7 +1183,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         from superset.models.slice import (  # pylint: disable=import-outside-toplevel
             Slice,
         )
-
         view_menu_table = self.viewmenu_model.__table__  # pylint: disable=no-member
         sqlatable_table = SqlaTable.__table__  # pylint: disable=no-member
         chart_table = Slice.__table__  # pylint: disable=no-member
@@ -1212,6 +1211,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             .values(name=new_dataset_vm_name)
         )
         # Update dataset (SqlaTable perm field)
+        # raise Exception(f"{target.id} {old_dataset_vm_name}->{new_dataset_vm_name}")
         connection.execute(
             sqlatable_table.update()
             .where(
