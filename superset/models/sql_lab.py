@@ -53,6 +53,10 @@ from superset.sql_parse import CtasMethod, ParsedQuery, Table
 from superset.sqllab.limiting_factor import LimitingFactor
 from superset.superset_typing import ResultSetColumnType
 from superset.utils.core import GenericDataType, QueryStatus, user_label
+from superset.jinja_context import (
+    BaseTemplateProcessor,
+    get_template_processor,
+)
 
 if TYPE_CHECKING:
     from superset.db_engine_specs import BaseEngineSpec
@@ -125,6 +129,9 @@ class Query(
     user = relationship(security_manager.user_model, foreign_keys=[user_id])
 
     __table_args__ = (sqla.Index("ti_user_id_changed_on", user_id, changed_on),)
+
+    def get_template_processor(self, **kwargs: Any) -> BaseTemplateProcessor:
+        return get_template_processor(query=self, database=self.database, **kwargs)
 
     def to_dict(self) -> Dict[str, Any]:
         return {
