@@ -1124,7 +1124,11 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             schema=self.schema,
             template_processor=template_processor,
         )
-        sqla_column = literal_column(expression)
+        col_in_metadata = self.get_column(expression)
+        if col_in_metadata:
+            sqla_column = col_in_metadata.get_sqla_col()
+        else:
+            sqla_column = literal_column(expression)
 
         if col.get("is_axis") and col.get("time_grain"):
             sqla_column = self.db_engine_spec.get_timestamp_expr(

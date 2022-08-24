@@ -771,3 +771,41 @@ def test_column_with_time_grain(app_context, physical_dataset):
         assert df["I_AM_A_ORIGINAL_COLUMN"][1].strftime("%Y-%m-%d") == "2000-01-02"
         assert df["I_AM_A_TRUNC_COLUMN"][0].strftime("%Y-%m-%d") == "2002-01-01"
         assert df["I_AM_A_TRUNC_COLUMN"][1].strftime("%Y-%m-%d") == "2002-01-01"
+
+
+def test_special_chars_in_column_name(app_context, physical_dataset):
+    qc = QueryContextFactory().create(
+        datasource={
+            "type": physical_dataset.type,
+            "id": physical_dataset.id,
+        },
+        queries=[
+            {
+                "columns": [
+                    "col1",
+                    "time column with spaces",
+                    {
+                        "label": "I_AM_A_TRUNC_COLUMN",
+                        "sqlExpression": "time column with spaces",
+                        "is_axis": True,
+                        "time_grain": "P1Y",
+                    },
+                ],
+                "metrics": ["count"],
+                "orderby": [["col1", True]],
+                "row_limit": 1,
+            }
+        ],
+        result_type=ChartDataResultType.FULL,
+        force=True,
+    )
+
+    query_object = qc.queries[0]
+    df = qc.get_df_payload(query_object)["df"]
+    if query_object.datasource.database.backend == "sqlite":
+        # sqlite returns string as timestamp column
+        assert df["time column with spaces"][0] == "2002-01-03 00:00:00"
+        assert df["I_AM_A_TRUNC_COLUMN"][0] == "2002-01-01 00:00:00"
+    else:
+        assert df["time column with spaces"][0].strftime("%Y-%m-%d") == "2002-01-03"
+        assert df["I_AM_A_TRUNC_COLUMN"][0].strftime("%Y-%m-%d") == "2002-01-01"
