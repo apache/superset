@@ -30,7 +30,7 @@ class AvailableDomainsRestApi(BaseApi):
     method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
     include_route_methods = {RouteMethod.GET}
     allow_browser_login = True
-    class_permission_name = "AvailableDomain"
+    class_permission_name = "AvailableDomains"
     resource_name = "available_domains"
     openapi_spec_tag = "Available Domains"
     openapi_spec_component_schemas = ()

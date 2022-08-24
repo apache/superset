@@ -16,15 +16,12 @@
 # under the License.
 import json
 
-import pytest
-
 from tests.integration_tests.test_app import app
 
 
-@pytest.mark.usefixtures("login_as_admin")
-def test_get_available_domains(test_client):
+def test_get_available_domains(test_client, login_as_admin):
     app.config["SUPERSET_WEBSERVER_DOMAINS"] = ["a", "b"]
-    resp = test_client.get(f"api/v1/available_domains/")
+    resp = test_client.get("api/v1/available_domains/")
     assert resp.status_code == 200
     data = json.loads(resp.data.decode("utf-8"))
     result = data.get("result")
