@@ -314,8 +314,8 @@ def physical_dataset():
           col2 VARCHAR(255),
           col3 DECIMAL(4,2),
           col4 VARCHAR(255),
-          col5 TIMESTAMP,
-          col6 TIMESTAMP
+          col5 TIMESTAMP NULL DEFAULT NULL,
+          col6 TIMESTAMP NULL DEFAULT NULL
         );
         """
     )
