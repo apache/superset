@@ -36,7 +36,8 @@ from .helpers import (
 
 DASH_SLUG = "echarts_dash"
 
-def create_slices(tbl: SqlaTable) -> Tuple[List[Slice], List[Slice]]:
+
+def create_slices(tbl: SqlaTable) -> List[Slice]:
     admin = security_manager.find_user("admin")
     slice_props = dict(
         datasource_id=tbl.id,
@@ -54,7 +55,8 @@ def create_slices(tbl: SqlaTable) -> Tuple[List[Slice], List[Slice]]:
         "viz_type": "echarts_timeseries_bar",
     }
 
-    slices = [Slice(
+    slices = [
+        Slice(
             **slice_props,
             slice_name="Time-Series Bar Chart V2",
             viz_type="echarts_timeseries_bar",
@@ -74,12 +76,14 @@ def create_slices(tbl: SqlaTable) -> Tuple[List[Slice], List[Slice]]:
                 metrics=["sum__num"],
                 groupby=["gender"],
             ),
-        ),]
+        ),
+    ]
 
     for slc in slices:
         merge_slice(slc)
 
     return slices
+
 
 def load_echarts_dashboard() -> None:
     """Loading a dashboard featuring EChart charts"""
@@ -93,7 +97,11 @@ def load_echarts_dashboard() -> None:
 
     if table_exists:
         table = get_table_connector_registry()
-        obj = db.session.query(table).filter_by(table_name=tbl_name, schema=schema).first()
+        obj = (
+            db.session.query(table)
+            .filter_by(table_name=tbl_name, schema=schema)
+            .first()
+        )
         create_slices(obj)
 
     print("Creating the dashboard")
@@ -103,7 +111,6 @@ def load_echarts_dashboard() -> None:
 
     if not dash:
         dash = Dashboard()
-
 
     js = textwrap.dedent(
         """\
