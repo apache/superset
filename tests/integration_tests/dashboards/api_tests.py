@@ -1852,7 +1852,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         rv = self.get_assert_metric(uri, "get_list")
         self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(data["count"], 2)
+        self.assertEqual(data["count"], 7)
 
     def test_gets_not_created_by_user_dashboards_filter(self):
         arguments = {
