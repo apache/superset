@@ -88,12 +88,19 @@ def load_engine_specs() -> List[Type[BaseEngineSpec]]:
 def get_engine_spec(backend: str, driver: Optional[str] = None) -> Type[BaseEngineSpec]:
     """
     Return the DB engine spec associated with a given SQLAlchemy URL.
+
+    Note that if a driver is not specified the function returns the first DB engine spec
+    that supports the backend. Also, if a driver is specified but no DB engine explicitly
+    supporting that driver exists then a backend-only match is done, in order to allow new
+    drivers to work with Superset even if they are not listed in the DB engine spec
+    drivers.
     """
     engine_specs = load_engine_specs()
 
-    for engine_spec in engine_specs:
-        if engine_spec.supports_backend(backend, driver):
-            return engine_spec
+    if driver is not None:
+        for engine_spec in engine_specs:
+            if engine_spec.supports_backend(backend, driver):
+                return engine_spec
 
     # check ignoring the driver, in order to support new drivers; this will return a
     # random DB engine spec that supports the engine

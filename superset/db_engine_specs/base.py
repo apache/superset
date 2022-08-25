@@ -185,35 +185,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     engine_name: Optional[str] = None  # for user messages, overridden in child classes
 
-    # These attributes map the DB engine spec to one or more SQLAlchemy dialects/drivers.
-    # For example, if a given DB engine spec has:
-    #
-    #     class PostgresDBEngineSpec:
-    #         engine = "postgresql"
-    #         engine_aliases = "postgres"
-    #         drivers = {
-    #             "psycopg2": "The default Postgres driver",
-    #             "asyncpg": "An asynchronous Postgres driver",
-    #         }
-    #
-    # It would be used for all the following SQLAlchemy URIs:
-    #
-    #   - postgres://user:password@host/db
-    #   - postgresql://user:password@host/db
-    #   - postgres+asyncpg://user:password@host/db
-    #   - postgres+psycopg2://user:password@host/db
-    #   - postgresql+asyncpg://user:password@host/db
-    #   - postgresql+psycopg2://user:password@host/db
-    #
-    # Note that SQLAlchemy has a default driver when one is not specified:
-    #
-    #     >>> from sqlalchemy.engine.url import make_url
-    #     >>> make_url('postgres://').get_driver_name()
-    #     'psycopg2'
-    #
-    # The ``default_driver`` should point to the recomended driver, and is used by
-    # database creation modals where the user provides parameters to connect to the
-    # database, instead of providing the SQLAlchemy URI.
+    # These attributes map the DB engine spec to one or more SQLAlchemy dialects/drivers;
+    # see the ``supports_url`` and ``supports_backend`` methods below.
     engine = "base"  # str as defined in sqlalchemy.engine.engine
     engine_aliases: Set[str] = set()
     drivers: Dict[str, str] = {}
@@ -392,6 +365,32 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     def supports_url(cls, url: URL) -> bool:
         """
         Returns true if the DB engine spec supports a given SQLAlchemy URL.
+
+        As an example, if a given DB engine spec has:
+
+            class PostgresDBEngineSpec:
+                engine = "postgresql"
+                engine_aliases = "postgres"
+                drivers = {
+                    "psycopg2": "The default Postgres driver",
+                    "asyncpg": "An asynchronous Postgres driver",
+                }
+
+        It would be used for all the following SQLAlchemy URIs:
+
+            - postgres://user:password@host/db
+            - postgresql://user:password@host/db
+            - postgres+asyncpg://user:password@host/db
+            - postgres+psycopg2://user:password@host/db
+            - postgresql+asyncpg://user:password@host/db
+            - postgresql+psycopg2://user:password@host/db
+
+        Note that SQLAlchemy has a default driver even if one is not specified:
+
+            >>> from sqlalchemy.engine.url import make_url
+            >>> make_url('postgres://').get_driver_name()
+            'psycopg2'
+
         """
         backend = url.get_backend_name()
         driver = url.get_driver_name()
