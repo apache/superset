@@ -70,8 +70,16 @@ export function formatLabel({
 export default function transformProps(
   chartProps: EchartsRadarChartProps,
 ): RadarChartTransformedProps {
-  const { formData, height, hooks, filterState, queriesData, width, theme } =
-    chartProps;
+  const {
+    formData,
+    height,
+    hooks,
+    filterState,
+    queriesData,
+    width,
+    theme,
+    inContextMenu,
+  } = chartProps;
   const { data = [] } = queriesData[0];
   const coltypeMapping = getColtypesMapping(queriesData[0]);
 
@@ -91,12 +99,13 @@ export default function transformProps(
     isCircle,
     columnConfig,
     sliceId,
+    emitFilter,
   }: EchartsRadarFormData = {
     ...DEFAULT_LEGEND_FORM_DATA,
     ...DEFAULT_RADAR_FORM_DATA,
     ...formData,
   };
-  const { setDataMask = () => {} } = hooks;
+  const { setDataMask = () => {}, onContextMenu } = hooks;
 
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
   const numberFormatter = getNumberFormatter(numberFormat);
@@ -222,6 +231,7 @@ export default function transformProps(
     },
     tooltip: {
       ...defaultTooltip,
+      show: !inContextMenu,
       trigger: 'item',
     },
     legend: {
@@ -240,9 +250,11 @@ export default function transformProps(
     width,
     height,
     echartOptions,
+    emitFilter,
     setDataMask,
     labelMap: Object.fromEntries(columnsLabelMap),
     groupby,
     selectedValues,
+    onContextMenu,
   };
 }

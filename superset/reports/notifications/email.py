@@ -29,7 +29,7 @@ from superset import app
 from superset.reports.models import ReportRecipientType
 from superset.reports.notifications.base import BaseNotification
 from superset.reports.notifications.exceptions import NotificationError
-from superset.utils.core import send_email_smtp
+from superset.utils.core import HeaderDataType, send_email_smtp
 from superset.utils.decorators import statsd_gauge
 from superset.utils.urls import modify_url_query
 
@@ -67,6 +67,7 @@ ALLOWED_ATTRIBUTES = {
 @dataclass
 class EmailContent:
     body: str
+    header_data: Optional[HeaderDataType] = None
     data: Optional[Dict[str, Any]] = None
     images: Optional[Dict[str, bytes]] = None
 
@@ -170,7 +171,12 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
 
         if self._content.csv:
             csv_data = {__("%(name)s.csv", name=self._content.name): self._content.csv}
-        return EmailContent(body=body, images=images, data=csv_data)
+        return EmailContent(
+            body=body,
+            images=images,
+            data=csv_data,
+            header_data=self._content.header_data,
+        )
 
     def _get_subject(self) -> str:
         return __(
@@ -199,6 +205,7 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
                 bcc="",
                 mime_subtype="related",
                 dryrun=False,
+                header_data=content.header_data,
             )
             logger.info("Report sent to email")
         except Exception as ex:

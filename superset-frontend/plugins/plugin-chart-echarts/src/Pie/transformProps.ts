@@ -134,8 +134,16 @@ function getTotalValuePadding({
 export default function transformProps(
   chartProps: EchartsPieChartProps,
 ): PieChartTransformedProps {
-  const { formData, height, hooks, filterState, queriesData, width, theme } =
-    chartProps;
+  const {
+    formData,
+    height,
+    hooks,
+    filterState,
+    queriesData,
+    width,
+    theme,
+    inContextMenu,
+  } = chartProps;
   const { data = [] } = queriesData[0];
   const coltypeMapping = getColtypesMapping(queriesData[0]);
 
@@ -193,7 +201,7 @@ export default function transformProps(
     {},
   );
 
-  const { setDataMask = () => {} } = hooks;
+  const { setDataMask = () => {}, onContextMenu } = hooks;
 
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
   const numberFormatter = getNumberFormatter(numberFormat);
@@ -296,6 +304,7 @@ export default function transformProps(
       ...defaultGrid,
     },
     tooltip: {
+      show: !inContextMenu,
       ...defaultTooltip,
       trigger: 'item',
       formatter: (params: any) =>
@@ -335,5 +344,6 @@ export default function transformProps(
     labelMap,
     groupby,
     selectedValues,
+    onContextMenu,
   };
 }

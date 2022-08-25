@@ -97,6 +97,7 @@ export function transformSeries(
     sliceId?: number;
     isHorizontal?: boolean;
     lineStyle?: LineStyleOption;
+    queryIndex?: number;
   },
 ): SeriesOption | undefined {
   const { name } = series;
@@ -120,6 +121,7 @@ export function transformSeries(
     seriesKey,
     sliceId,
     isHorizontal = false,
+    queryIndex = 0,
   } = opts;
   const contexts = seriesContexts[name || ''] || [];
   const hasForecast =
@@ -197,6 +199,7 @@ export function transformSeries(
     : { ...opts.lineStyle, opacity };
   return {
     ...series,
+    queryIndex,
     yAxisIndex,
     name: forecastSeries.name,
     itemStyle,
@@ -238,7 +241,10 @@ export function transformSeries(
         if (!formatter) return numericValue;
         if (!stack || isSelectedLegend) return formatter(numericValue);
         if (!onlyTotal) {
-          if (numericValue >= thresholdValues[dataIndex]) {
+          if (
+            numericValue >=
+            (thresholdValues[dataIndex] || Number.MIN_SAFE_INTEGER)
+          ) {
             return formatter(numericValue);
           }
           return '';

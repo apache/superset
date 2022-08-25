@@ -120,6 +120,24 @@ spec:
             - name: http
               containerPort: {{ .Values.service.port }}
               protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: {{ .Values.supersetNode.livenessProbe.initialDelaySeconds }}
+            timeoutSeconds: {{ .Values.supersetNode.livenessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.supersetNode.livenessProbe.failureThreshold }}
+            periodSeconds: {{ .Values.supersetNode.livenessProbe.periodSeconds }}
+            successThreshold: {{ .Values.supersetNode.livenessProbe.successThreshold }}
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: {{ .Values.supersetNode.readinessProbe.initialDelaySeconds }}
+            timeoutSeconds: {{ .Values.supersetNode.readinessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.supersetNode.readinessProbe.failureThreshold }}
+            periodSeconds: {{ .Values.supersetNode.readinessProbe.periodSeconds }}
+            successThreshold: {{ .Values.supersetNode.readinessProbe.successThreshold }}
           resources:
           {{- if .Values.supersetNode.resources }}
 {{ toYaml .Values.supersetNode.resources | indent 12 }}

@@ -27,13 +27,13 @@ from tests.unit_tests.fixtures.common import dttm
 def test_convert_dttm(dttm: datetime) -> None:
     from superset.db_engine_specs.sqlite import SqliteEngineSpec
 
-    assert SqliteEngineSpec.convert_dttm("TEXT", dttm) == "'2019-01-02 03:04:05.678900'"
+    assert SqliteEngineSpec.convert_dttm("TEXT", dttm) == "'2019-01-02 03:04:05'"
 
 
 def test_convert_dttm_lower(dttm: datetime) -> None:
     from superset.db_engine_specs.sqlite import SqliteEngineSpec
 
-    assert SqliteEngineSpec.convert_dttm("text", dttm) == "'2019-01-02 03:04:05.678900'"
+    assert SqliteEngineSpec.convert_dttm("text", dttm) == "'2019-01-02 03:04:05'"
 
 
 def test_convert_dttm_invalid_type(dttm: datetime) -> None:

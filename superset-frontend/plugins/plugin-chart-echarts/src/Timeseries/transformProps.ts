@@ -20,7 +20,6 @@
 import {
   AnnotationLayer,
   CategoricalColorNamespace,
-  DataRecordValue,
   DTTM_ALIAS,
   GenericDataType,
   getColumnLabel,
@@ -97,10 +96,12 @@ export default function transformProps(
     queriesData,
     datasource,
     theme,
+    inContextMenu,
   } = chartProps;
   const { verboseMap = {} } = datasource;
   const [queryData] = queriesData;
-  const { data = [] } = queryData as TimeseriesChartDataResponseResult;
+  const { data = [], label_map: labelMap } =
+    queryData as TimeseriesChartDataResponseResult;
   const dataTypes = getColtypesMapping(queryData);
   const annotationData = getAnnotationData(chartProps);
 
@@ -169,6 +170,8 @@ export default function transformProps(
   });
   const showValueIndexes = extractShowValueIndexes(rawSeries, {
     stack,
+    onlyTotal,
+    isHorizontal,
   });
   const seriesContexts = extractForecastSeriesContexts(
     Object.values(rawSeries).map(series => series.name as string),
@@ -288,20 +291,10 @@ export default function transformProps(
       ? getXAxisFormatter(xAxisTimeFormat)
       : String;
 
-  const labelMap = series.reduce(
-    (acc: Record<string, DataRecordValue[]>, datum) => {
-      const name: string = datum.name as string;
-      return {
-        ...acc,
-        [name]: [name],
-      };
-    },
-    {},
-  );
-
   const {
     setDataMask = () => {},
-    setControlValue = (...args: unknown[]) => {},
+    setControlValue = () => {},
+    onContextMenu,
   } = hooks;
 
   const addYAxisLabelOffset = !!yAxisTitle;
@@ -380,6 +373,7 @@ export default function transformProps(
     xAxis,
     yAxis,
     tooltip: {
+      show: !inContextMenu,
       ...defaultTooltip,
       appendToBody: true,
       trigger: richTooltip ? 'axis' : 'item',
@@ -457,5 +451,7 @@ export default function transformProps(
     setControlValue,
     width,
     legendData,
+    onContextMenu,
+    xValueFormatter: tooltipFormatter,
   };
 }

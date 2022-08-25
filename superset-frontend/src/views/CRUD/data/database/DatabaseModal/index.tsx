@@ -42,6 +42,7 @@ import IconButton from 'src/components/IconButton';
 import InfoTooltip from 'src/components/InfoTooltip';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import ValidatedInput from 'src/components/Form/LabeledErrorBoundInput';
+import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import ErrorAlert from 'src/components/ImportModal/ErrorAlert';
 import {
   testDatabaseConnection,
@@ -58,13 +59,13 @@ import {
   DatabaseForm,
   CONFIGURATION_METHOD,
   CatalogObject,
+  Engines,
 } from 'src/views/CRUD/data/database/types';
 import Loading from 'src/components/Loading';
 import ExtraOptions from './ExtraOptions';
 import SqlAlchemyForm from './SqlAlchemyForm';
 import DatabaseConnectionForm from './DatabaseConnectionForm';
 import {
-  antDErrorAlertStyles,
   antDAlertStyles,
   antdWarningAlertStyles,
   StyledAlertMargin,
@@ -86,11 +87,6 @@ import {
   StyledUploadWrapper,
 } from './styles';
 import ModalHeader, { DOCUMENTATION_LINK } from './ModalHeader';
-
-enum Engines {
-  GSheet = 'gsheets',
-  Snowflake = 'snowflake',
-}
 
 const engineSpecificAlertMapping = {
   [Engines.GSheet]: {
@@ -114,6 +110,12 @@ const TabsStyled = styled(Tabs)`
       position: relative;
     }
   }
+`;
+
+const ErrorAlertContainer = styled.div`
+  ${({ theme }) => `
+    margin: ${theme.gridUnit * 8}px ${theme.gridUnit * 4}px;
+  `};
 `;
 
 interface DatabaseModalProps {
@@ -475,7 +477,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     )?.parameters !== undefined;
   const showDBError = validationErrors || dbErrors;
   const isEmpty = (data?: Object | null) =>
-    data && Object.keys(data).length === 0;
+    !data || (data && Object.keys(data).length === 0);
 
   const dbModel: DatabaseForm =
     availableDbs?.databases?.find(
@@ -511,6 +513,18 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         addSuccessToast(errorMsg);
       },
     );
+  };
+
+  const getPlaceholder = (field: string) => {
+    if (field === 'database') {
+      switch (db?.engine) {
+        case Engines.Snowflake:
+          return t('e.g. xy12345.us-east-2.aws');
+        default:
+          return t('e.g. world_population');
+      }
+    }
+    return undefined;
   };
 
   const removeFile = (removedFile: UploadFile) => {
@@ -1126,22 +1140,24 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   // eslint-disable-next-line consistent-return
   const errorAlert = () => {
     let alertErrors: string[] = [];
-    if (isEmpty(dbErrors) === false) {
+    if (!isEmpty(dbErrors)) {
       alertErrors = typeof dbErrors === 'object' ? Object.values(dbErrors) : [];
-    } else if (db?.engine === Engines.Snowflake) {
+    } else if (!isEmpty(validationErrors)) {
       alertErrors =
         validationErrors?.error_type === 'GENERIC_DB_ENGINE_ERROR'
-          ? [validationErrors?.description]
+          ? [
+              'We are unable to connect to your database. Click "See more" for database-provided information that may help troubleshoot the issue.',
+            ]
           : [];
     }
 
     if (alertErrors.length) {
       return (
-        <Alert
-          type="error"
-          css={(theme: SupersetTheme) => antDErrorAlertStyles(theme)}
-          message={t('Database Creation Error')}
+        <ErrorMessageWithStackTrace
+          title={t('Database Creation Error')}
           description={t(alertErrors[0])}
+          subtitle={t(validationErrors?.description)}
+          copyText={t(validationErrors?.description)}
         />
       );
     }
@@ -1480,7 +1496,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               onChange(ActionType.extraEditorChange, payload);
             }}
           />
-          {showDBError && errorAlert()}
+          {showDBError && (
+            <ErrorAlertContainer>{errorAlert()}</ErrorAlertContainer>
+          )}
         </Tabs.TabPane>
       </TabsStyled>
     </Modal>
@@ -1607,6 +1625,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   }
                   getValidation={() => getValidation(db)}
                   validationErrors={validationErrors}
+                  getPlaceholder={getPlaceholder}
                 />
                 <div css={(theme: SupersetTheme) => infoTooltip(theme)}>
                   {dbModel.engine !== Engines.GSheet && (
@@ -1641,7 +1660,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   )}
                 </div>
                 {/* Step 2 */}
-                {showDBError && errorAlert()}
+                {showDBError && (
+                  <ErrorAlertContainer>{errorAlert()}</ErrorAlertContainer>
+                )}
               </>
             ))}
         </>

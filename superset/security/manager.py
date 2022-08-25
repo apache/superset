@@ -24,11 +24,13 @@ from typing import (
     Any,
     Callable,
     cast,
+    DefaultDict,
     Dict,
     List,
     NamedTuple,
     Optional,
     Set,
+    Tuple,
     TYPE_CHECKING,
     Union,
 )
@@ -1802,3 +1804,38 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         return current_app.config["AUTH_ROLE_ADMIN"] in [
             role.name for role in self.get_user_roles()
         ]
+
+    def get_permissions(
+        self,
+        user: User,
+    ) -> Tuple[Dict[str, List[List[str]]], DefaultDict[str, List[str]]]:
+        if not user.roles:
+            raise AttributeError("User object does not have roles")
+
+        roles = defaultdict(list)
+        permissions = defaultdict(set)
+
+        query = (
+            self.get_session.query(Role.name, Permission.name, ViewMenu.name)
+            .join(assoc_user_role, assoc_user_role.c.role_id == Role.id)
+            .join(Role.permissions)
+            .join(PermissionView.view_menu)
+            .join(PermissionView.permission)
+        )
+
+        if user.is_anonymous:
+            public_role = current_app.config.get("AUTH_ROLE_PUBLIC")
+            query = query.filter(Role.name == public_role)
+        else:
+            query = query.filter(assoc_user_role.c.user_id == user.id)
+
+        rows = query.all()
+        for role, permission, view_menu in rows:
+            if permission in ("datasource_access", "database_access"):
+                permissions[permission].add(view_menu)
+            roles[role].append([permission, view_menu])
+
+        transformed_permissions = defaultdict(list)
+        for perm in permissions:
+            transformed_permissions[perm] = list(permissions[perm])
+        return roles, transformed_permissions
