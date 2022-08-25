@@ -306,9 +306,10 @@ def physical_dataset():
 
     example_database = get_example_database()
     engine = example_database.get_sqla_engine()
+    quote = "`" if engine.name == "mysql" else '"'
     # sqlite can only execute one statement at a time
     engine.execute(
-        """
+        f"""
         CREATE TABLE IF NOT EXISTS physical_dataset(
           col1 INTEGER,
           col2 VARCHAR(255),
@@ -316,7 +317,7 @@ def physical_dataset():
           col4 VARCHAR(255),
           col5 TIMESTAMP DEFAULT '1970-01-01 00:00:01',
           col6 TIMESTAMP DEFAULT '1970-01-01 00:00:01',
-          "time column with spaces" TIMESTAMP DEFAULT '1970-01-01 00:00:01'
+          {quote}time column with spaces{quote} TIMESTAMP DEFAULT '1970-01-01 00:00:01'
         );
         """
     )
