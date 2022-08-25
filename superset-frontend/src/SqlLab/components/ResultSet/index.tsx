@@ -72,7 +72,7 @@ interface ResultSetProps {
 
 const ResultlessStyles = styled.div`
   position: relative;
-  min-height: 100px;
+  min-height: ${({ theme }) => theme.gridUnit * 25}px;
   [role='alert'] {
     margin-top: ${({ theme }) => theme.gridUnit * 2}px;
   }
@@ -139,12 +139,7 @@ const ResultSet = ({
 
   const prevQuery = usePrevious(query);
   useEffect(() => {
-    if (
-      cache &&
-      query.cached &&
-      query?.results?.data &&
-      query.results.data.length > 0
-    ) {
+    if (cache && query.cached && query?.results?.data?.length > 0) {
       setCachedData(query.results.data);
       clearQueryResults(query);
     }
@@ -492,7 +487,7 @@ const ResultSet = ({
     let data;
     if (cache && query.cached) {
       data = cachedData;
-    } else if (results && results.data) {
+    } else if (results?.data) {
       ({ data } = results);
     }
     if (data && data.length > 0) {

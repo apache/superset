@@ -164,7 +164,6 @@ export default function SouthPane({
       if (Date.now() - latestQuery.startDttm <= LOCALSTORAGE_MAX_QUERY_AGE_MS) {
         results = (
           <ResultSet
-            showControls
             search
             query={latestQuery}
             actions={actions}

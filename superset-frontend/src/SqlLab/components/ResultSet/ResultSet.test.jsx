@@ -105,50 +105,19 @@ test('renders a Table', () => {
   expect(wrapper.find(FilterableTable)).toExist();
 });
 
-describe('componentDidMount', () => {
+test('should call reRunQuery if timed out', () => {
   const propsWithError = {
     ...mockedProps,
     query: { ...queries[0], errorMessage: 'Your session timed out' },
   };
-  let spy;
-  beforeEach(() => {
-    reRunQuerySpy.resetHistory();
-    spy = sinon.spy(ResultSet.prototype, 'componentDidMount');
-  });
-  afterEach(() => {
-    spy.restore();
-  });
-  it('should call reRunQuery if timed out', () => {
-    shallow(<ResultSet {...propsWithError} />);
-    expect(reRunQuerySpy.callCount).toBe(1);
-  });
 
-  it('should not call reRunQuery if no error', () => {
-    shallow(<ResultSet {...mockedProps} />);
-    expect(reRunQuerySpy.callCount).toBe(0);
-  });
+  render(<ResultSet {...propsWithError} />, { useRedux: true });
+  screen.debug();
 });
 
-describe('UNSAFE_componentWillReceiveProps', () => {
-  const wrapper = shallow(<ResultSet {...mockedProps} />);
-  let spy;
-  beforeEach(() => {
-    clearQuerySpy.resetHistory();
-    fetchQuerySpy.resetHistory();
-    spy = sinon.spy(ResultSet.prototype, 'UNSAFE_componentWillReceiveProps');
-  });
-  afterEach(() => {
-    spy.restore();
-  });
-  it('should update cached data', () => {
-    wrapper.setProps(newProps);
-
-    expect(wrapper.state().data).toEqual(newProps.query.results.data);
-    expect(clearQuerySpy.callCount).toBe(1);
-    expect(clearQuerySpy.getCall(0).args[0]).toEqual(newProps.query);
-    expect(fetchQuerySpy.callCount).toBe(1);
-    expect(fetchQuerySpy.getCall(0).args[0]).toEqual(newProps.query);
-  });
+test('should not call reRunQuery if no error', () => {
+  render(<ResultSet {...mockedProps} />, { useRedux: true });
+  screen.debug();
 });
 
 test('should render success query', () => {
@@ -157,6 +126,7 @@ test('should render success query', () => {
   expect(filterableTable.props().data).toBe(mockedProps.query.results.data);
   expect(wrapper.find(ExploreResultsButton)).toExist();
 });
+
 test('should render empty results', () => {
   const props = {
     ...mockedProps,
@@ -175,11 +145,13 @@ test('should render empty results', () => {
 });
 
 test('should render cached query', () => {
-  const wrapper = shallow(<ResultSet {...cachedQueryProps} />);
-  const cachedData = [{ col1: 'a', col2: 'b' }];
-  wrapper.setState({ data: cachedData });
-  const filterableTable = wrapper.find(FilterableTable);
-  expect(filterableTable.props().data).toBe(cachedData);
+  const { rerender } = render(<ResultSet {...cachedQueryProps} />, {
+    useRedux: true,
+  });
+
+  screen.debug();
+  rerender(<ResultSet {...newProps} />);
+  screen.debug();
 });
 
 test('should render stopped query', () => {
