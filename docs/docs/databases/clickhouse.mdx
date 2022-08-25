@@ -7,18 +7,16 @@ version: 1
 
 ## ClickHouse
 
-To use ClickHouse with Superset, you will need to add the following Python libraries:
+To use ClickHouse with Superset, you will need to add the following Python library:
 
 ```
-clickhouse-driver==0.2.0
-clickhouse-sqlalchemy==0.1.6
+clickhouse-sqlalchemy>=0.2.2
 ```
 
 If running Superset using Docker Compose, add the following to your `./docker/requirements-local.txt` file:
 
 ```
-clickhouse-driver>=0.2.0
-clickhouse-sqlalchemy>=0.1.6
+clickhouse-sqlalchemy>=0.2.2
 ```
 
 The recommended connector library for ClickHouse is

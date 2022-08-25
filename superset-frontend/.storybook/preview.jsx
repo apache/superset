@@ -63,7 +63,14 @@ addParameters({
   },
   options: {
     storySort: {
-      method: 'alphabetical',
+      order: [
+        'Superset Frontend',
+        ['Controls', 'Display', 'Feedback', 'Input', '*'],
+        ['Overview', 'Examples', '*'],
+        'Design System',
+        ['Foundations', 'Components', 'Patterns', '*'],
+        '*',
+      ],
     },
   },
   controls: { expanded: true },
