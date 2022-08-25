@@ -457,8 +457,6 @@ const ResultSet = ({
                   {t('Query in a new tab')}
                 </Button>
                 <ExploreCtasResultsButton
-                  // @ts-ignore Redux types are difficult to work with, ignoring for now
-                  actions={actions}
                   table={tempTable}
                   schema={tempSchema}
                   dbId={exploreDBId}
