@@ -166,7 +166,6 @@ export default function SouthPane({
           <ResultSet
             search
             query={latestQuery}
-            actions={actions}
             user={user}
             height={innerTabContentHeight + EXTRA_HEIGHT_RESULTS}
             database={databases[latestQuery.dbId]}
@@ -198,7 +197,6 @@ export default function SouthPane({
           query={query}
           visualize={false}
           csv={false}
-          actions={actions}
           cache
           user={user}
           height={innerTabContentHeight}

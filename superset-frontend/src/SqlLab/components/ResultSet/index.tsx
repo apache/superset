@@ -17,6 +17,7 @@
  * under the License.
  */
 import React, { useState, useEffect } from 'react';
+import { useDispatch } from 'react-redux';
 import ButtonGroup from 'src/components/ButtonGroup';
 import Alert from 'src/components/Alert';
 import Button from 'src/components/Button';
@@ -41,7 +42,14 @@ import FilterableTable, {
 import CopyToClipboard from 'src/components/CopyToClipboard';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { prepareCopyToClipboardTabularData } from 'src/utils/common';
-import { CtasEnum } from 'src/SqlLab/actions/sqlLab';
+import {
+  CtasEnum,
+  clearQueryResults,
+  addQueryEditor,
+  fetchQueryResults,
+  reFetchQueryResults,
+  reRunQuery,
+} from 'src/SqlLab/actions/sqlLab';
 import { URL_PARAMS } from 'src/constants';
 import ExploreCtasResultsButton from '../ExploreCtasResultsButton';
 import ExploreResultsButton from '../ExploreResultsButton';
@@ -56,7 +64,6 @@ enum LIMITING_FACTOR {
 }
 
 interface ResultSetProps {
-  actions: Record<string, any>;
   cache?: boolean;
   csv?: boolean;
   database?: Record<string, any>;
@@ -114,7 +121,6 @@ const LimitMessage = styled.span`
 `;
 
 const ResultSet = ({
-  actions,
   cache = false,
   csv = true,
   database = {},
@@ -132,6 +138,8 @@ const ResultSet = ({
   const [showSaveDatasetModal, setShowSaveDatasetModal] = useState(false);
   const [alertIsOpen, setAlertIsOpen] = useState(false);
 
+  const dispatch = useDispatch();
+
   useEffect(() => {
     // only do this the first time the component is rendered/mounted
     reRunQueryIfSessionTimeoutErrorOnMount();
@@ -141,7 +149,7 @@ const ResultSet = ({
   useEffect(() => {
     if (cache && query.cached && query?.results?.data?.length > 0) {
       setCachedData(query.results.data);
-      clearQueryResults(query);
+      dispatch(clearQueryResults(query));
     }
     if (
       query.resultsKey &&
@@ -160,10 +168,6 @@ const ResultSet = ({
     }
   };
 
-  const clearQueryResults = (query: QueryResponse) => {
-    actions.clearQueryResults(query);
-  };
-
   const popSelectStar = (tempSchema: string | null, tempTable: string) => {
     const qe = {
       id: shortid.generate(),
@@ -172,7 +176,7 @@ const ResultSet = ({
       dbId: query.dbId,
       sql: `SELECT * FROM ${tempSchema ? `${tempSchema}.` : ''}${tempTable}`,
     };
-    actions.addQueryEditor(qe);
+    dispatch(addQueryEditor(qe));
   };
 
   const changeSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -180,11 +184,7 @@ const ResultSet = ({
   };
 
   const fetchResults = (query: QueryResponse) => {
-    actions.fetchQueryResults(query, displayLimit);
-  };
-
-  const reFetchQueryResults = (query: QueryResponse) => {
-    actions.reFetchQueryResults(query);
+    dispatch(fetchQueryResults(query, displayLimit));
   };
 
   const reRunQueryIfSessionTimeoutErrorOnMount = () => {
@@ -192,7 +192,7 @@ const ResultSet = ({
       query.errorMessage &&
       query.errorMessage.indexOf('session timed out') > 0
     ) {
-      actions.reRunQuery(query);
+      dispatch(reRunQuery(query));
     }
   };
 
@@ -519,10 +519,12 @@ const ResultSet = ({
           buttonSize="small"
           buttonStyle="primary"
           onClick={() =>
-            reFetchQueryResults({
-              ...query,
-              isDataPreview: true,
-            })
+            dispatch(
+              reFetchQueryResults({
+                ...query,
+                isDataPreview: true,
+              }),
+            )
           }
         >
           {t('Fetch data preview')}
