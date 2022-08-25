@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { render, screen } from 'spec/helpers/testing-library';
+import { render } from 'spec/helpers/testing-library';
 import configureStore from 'redux-mock-store';
 import { Store } from 'redux';
 import thunk from 'redux-thunk';
@@ -137,26 +137,37 @@ describe('ResultSet', () => {
   });
 
   it('should call reRunQuery if timed out', async () => {
+    const store = mockStore(initialState);
     const propsWithError = {
       ...mockedProps,
       query: { ...queries[0], errorMessage: 'Your session timed out' },
     };
 
-    setup(propsWithError, mockStore(initialState));
-    screen.debug();
+    setup(propsWithError, store);
+    expect(store.getActions()).toHaveLength(1);
+    expect(store.getActions()[0].query.errorMessage).toEqual(
+      'Your session timed out',
+    );
+    expect(store.getActions()[0].type).toEqual('START_QUERY');
   });
 
   it('should not call reRunQuery if no error', async () => {
-    setup(mockedProps, mockStore(initialState));
-    screen.debug();
+    const store = mockStore(initialState);
+    setup(mockedProps, store);
+    expect(store.getActions()).toEqual([]);
   });
 
   it('should render cached query', async () => {
-    const { rerender } = setup(cachedQueryProps, mockStore(initialState));
+    const store = mockStore(initialState);
+    const { rerender } = setup(cachedQueryProps, store);
 
-    screen.debug();
+    // @ts-ignore
     rerender(<ResultSet {...newProps} />);
-    screen.debug();
+    expect(store.getActions()).toHaveLength(1);
+    expect(store.getActions()[0].query.results).toEqual(
+      cachedQueryProps.query.results,
+    );
+    expect(store.getActions()[0].type).toEqual('CLEAR_QUERY_RESULTS');
   });
 
   it('should render stopped query', async () => {
