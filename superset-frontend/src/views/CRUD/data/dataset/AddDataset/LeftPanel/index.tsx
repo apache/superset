@@ -37,7 +37,7 @@ interface LeftPanelProps {
 
 const LeftPanelStyle = styled.div`
   ${({ theme }) => `
-  max-width: 350px;
+  max-width: ${theme.gridUnit * 87.5}px;
   padding: ${theme.gridUnit * 4}px;
   height: 100%;
   background-color: ${theme.colors.grayscale.light5}; 
