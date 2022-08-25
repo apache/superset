@@ -113,6 +113,27 @@ describe('ResultSet', () => {
     expect(table).toBeInTheDocument();
   });
 
+  it('should render success query', async () => {
+    const { baseElement, queryAllByText, getByTestId } = setup(mockedProps, mockStore(initialState));
+    const table = baseElement.getElementsByClassName(
+      'filterable-table-container',
+    )[0];
+
+    expect(table).toBeInTheDocument();
+
+    const firstColumn = queryAllByText(
+      mockedProps.query.results?.columns[0].name ?? '',
+    )[0];
+    const secondColumn = queryAllByText(
+      mockedProps.query.results?.columns[1].name ?? '',
+    )[0];
+    expect(firstColumn).toBeInTheDocument();
+    expect(secondColumn).toBeInTheDocument();
+
+    const exploreButton = getByTestId('explore-results-button');
+    expect(exploreButton).toBeInTheDocument();
+  });
+
   it('should call reRunQuery if timed out', async () => {
     const propsWithError = {
       ...mockedProps,
@@ -127,13 +148,6 @@ describe('ResultSet', () => {
     setup(mockedProps, mockStore(initialState));
     screen.debug();
   });
-});
-
-test('should render success query', () => {
-  const wrapper = shallow(<ResultSet {...mockedProps} />);
-  const filterableTable = wrapper.find(FilterableTable);
-  expect(filterableTable.props().data).toBe(mockedProps.query.results.data);
-  expect(wrapper.find(ExploreResultsButton)).toExist();
 });
 
 test('should render empty results', () => {
