@@ -24,10 +24,8 @@ export enum DatasetActionType {
 }
 
 export interface DatasetObject {
-  database: {
-    id: string;
-    database_name: string;
-  };
+  id: string;
+  database_name: string;
   owners: number[];
   schema?: string | null;
   dataset_name: string;
@@ -39,12 +37,16 @@ interface DatasetReducerPayloadType {
   value?: string;
 }
 
+export type Schema = {
+  schema?: string | null | undefined;
+};
+
 export type DSReducerActionType =
   | {
       type:
         | DatasetActionType.selectDatabase
-        | DatasetActionType.selectSchema
-        | DatasetActionType.selectTable;
+        | DatasetActionType.selectTable
+        | DatasetActionType.selectSchema;
       payload: Partial<DatasetObject>;
     }
   | {

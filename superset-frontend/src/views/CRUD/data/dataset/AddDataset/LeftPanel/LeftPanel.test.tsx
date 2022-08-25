@@ -17,15 +17,76 @@
  * under the License.
  */
 import React from 'react';
+import { SupersetClient } from '@superset-ui/core';
 import { render, screen } from 'spec/helpers/testing-library';
 import LeftPanel from 'src/views/CRUD/data/dataset/AddDataset/LeftPanel';
 
 describe('LeftPanel', () => {
-  it('renders a blank state LeftPanel', () => {
-    render(<LeftPanel />);
+  const mockFun = jest.fn();
+
+  const SupersetClientGet = jest.spyOn(SupersetClient, 'get');
+
+  const getSchemaMockFunction = async () =>
+    ({
+      json: {
+        result: ['schema_a', 'schema_b'],
+      },
+    } as any);
+
+  const getTableMockFunction = async () =>
+    ({
+      json: {
+        options: [
+          { label: 'table_a', value: 'table_a' },
+          { label: 'table_b', value: 'table_b' },
+          { label: 'table_c', value: 'table_c' },
+          { label: 'table_d', value: 'table_d' },
+        ],
+      },
+    } as any);
+
+  it('should render', () => {
+    const { container } = render(<LeftPanel setDataset={mockFun} />, {
+      useRedux: true,
+    });
+    expect(container).toBeInTheDocument();
+  });
+
+  it('should render tableselector and databaselector container and selects', () => {
+    render(<LeftPanel setDataset={mockFun} />, { useRedux: true });
+
+    expect(screen.getByText(/select database & schema/i)).toBeVisible();
+    // expect(screen.getByText(/schema/i)).toBeVisible();
+    // expect(screen.getByText(/database/i)).toBeVisible();
+
+    const databaseSelect = screen.getByRole('combobox', {
+      name: 'Select database or type database name',
+    });
+    const schemaSelect = screen.getByRole('combobox', {
+      name: 'Select schema or type schema name',
+    });
+    expect(databaseSelect).toBeInTheDocument();
+    expect(schemaSelect).toBeInTheDocument();
+  });
+  it('renders a blank state LeftPanel if there is no schema selected', () => {
+    render(<LeftPanel setDataset={mockFun} />, { useRedux: true });
 
     expect(screen.getByRole('img', { name: /empty/i })).toBeVisible();
     expect(screen.getByText(/no database tables found/i)).toBeVisible();
     expect(screen.getByText(/try selecting a different schema/i)).toBeVisible();
+  });
+  it.only('renders list of options when user clicks on schema', () => {
+    render(<LeftPanel setDataset={mockFun} schema="schema_a" dbId="1" />, {
+      useRedux: true,
+    });
+    // screen.debug('container', container)
+    SupersetClientGet.mockImplementation(getSchemaMockFunction);
+    SupersetClientGet.mockImplementation(getTableMockFunction);
+    const schemaSelect = screen.getByRole('combobox', {
+      name: 'Select schema or type schema name',
+    });
+    expect(screen.getByTestId('options-list')).toBeInTheDocument();
+    screen.logTestingPlaygroundURL();
+    expect.anything();
   });
 });

@@ -27,6 +27,7 @@ import DatabaseSelector from 'src/components/DatabaseSelector';
 import { debounce } from 'lodash';
 import { EmptyStateMedium } from 'src/components/EmptyState';
 import { DatasetActionType } from '../types';
+import { DatasetObject } from '../types';
 
 interface LeftPanelProps {
   setDataset: (db: any) => void;
@@ -95,7 +96,7 @@ export default function LeftPanel({
   const [searchVal, setSearchVal] = useState('');
   const [refresh, setRefresh] = useState(false);
 
-  const setDatabase = (db: any) => {
+  const setDatabase = (db: ) => {
     setDataset({ type: DatasetActionType.selectDatabase, payload: db });
     setResetTables(true);
   };
@@ -123,8 +124,9 @@ export default function LeftPanel({
       });
   };
 
-  const setSchema = (schema: any) => {
+  const setSchema = (schema: string) => {
     if (schema) {
+      console.log('schema', schema);
       setDataset({ type: DatasetActionType.selectSchema, payload: schema });
       setLoadTables(true);
     }
@@ -205,7 +207,7 @@ export default function LeftPanel({
               placeholder={t('Search Tables')}
             />
           </Form>
-          <div className="options-list">
+          <div className="options-list" data-test="options-list">
             {tableOptions.map((o, i) => (
               <div className="options" key={i}>
                 {o.label}

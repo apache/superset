@@ -24,10 +24,14 @@ import Footer from './Footer';
 import { DatasetActionType, DatasetObject, DSReducerActionType } from './types';
 import DatasetLayout from '../DatasetLayout';
 
+type Schema = {
+  schema: string;
+};
+
 export function datasetReducer(
-  state: Partial<DatasetObject> | null,
+  state: DatasetObject | null,
   action: DSReducerActionType,
-): Partial<DatasetObject> | null {
+): Partial<DatasetObject> | Schema | null {
   const trimmedState = {
     ...(state || {}),
   };
@@ -43,7 +47,7 @@ export function datasetReducer(
     case DatasetActionType.selectSchema:
       return {
         ...trimmedState,
-        schema: action.payload,
+        schema: action.payload as string,
         table_name: null,
       };
     case DatasetActionType.selectTable:
