@@ -76,7 +76,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
             database.db_engine_spec.mutate_db_for_connection_test(database)
             
             engine = None
-            if "privatekey" in str(url):
+            if "snowflake" in str(url) and "privatekey" in str(url):
                 engine = create_snowflake_engine_with_privatekey(str(url))
             else:
                 engine = database.get_sqla_engine()

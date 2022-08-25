@@ -398,7 +398,7 @@ class Database(
 
         try:
             engine = None
-            if "privatekey" in str(sqlalchemy_url):
+            if "snowflake" in str(sqlalchemy_url) and "privatekey" in str(sqlalchemy_url):
                 engine = create_snowflake_engine_with_privatekey(str(sqlalchemy_url))
             else:
                 engine = create_engine(sqlalchemy_url, **params)
