@@ -50,8 +50,8 @@ const LeftPanelStyle = styled.div`
     }
   }
   .section-title {
-    margin-top: 44px;
-    margin-bottom: 44px;
+    margin-top: ${theme.gridUnit * 11}px;
+    margin-bottom: ${theme.gridUnit * 11}px;
     font-weight: ${theme.typography.weights.bold};
   }
   .options-list {
