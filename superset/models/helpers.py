@@ -1294,9 +1294,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         column: Dict[str, Any],
         time_grain: Optional[str],
         label: Optional[str] = None,
-        template_processor: Optional[  # pylint: disable=unused-argument
-            BaseTemplateProcessor
-        ] = None,
+        template_processor: Optional[BaseTemplateProcessor] = None,
     ) -> Union[TimestampExpression, Label]:
         """
         Return a SQLAlchemy Core element representation of self to be used in a query.
@@ -1495,7 +1493,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         table_col = columns_by_name[selected]
                         if isinstance(table_col, dict):
                             outer = self.get_timestamp_expression(
-                                table_col, time_grain, selected, template_processor=template_processor
+                                column=table_col,
+                                time_grain=time_grain,
+                                label=selected,
+                                template_processor=template_processor,
                             )
                         else:
                             outer = table_col.get_timestamp_expression(
@@ -1776,9 +1777,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             where = extras.get("where")
             if where:
                 try:
-                    where = template_processor.process_template(
-                        f"{where}"
-                    )
+                    where = template_processor.process_template(f"{where}")
                 except TemplateError as ex:
                     raise QueryObjectValidationError(
                         _(
@@ -1790,9 +1789,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             having = extras.get("having")
             if having:
                 try:
-                    having = template_processor.process_template(
-                        f"{having}"
-                    )
+                    having = template_processor.process_template(f"{having}")
                 except TemplateError as ex:
                     raise QueryObjectValidationError(
                         _(
