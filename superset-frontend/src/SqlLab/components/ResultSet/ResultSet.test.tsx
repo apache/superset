@@ -26,11 +26,12 @@ import Alert from 'src/components/Alert';
 import ProgressBar from 'src/components/ProgressBar';
 import Loading from 'src/components/Loading';
 import configureStore from 'redux-mock-store';
+import { Store } from 'redux';
 import thunk from 'redux-thunk';
 import fetchMock from 'fetch-mock';
 import FilterableTable from 'src/components/FilterableTable';
 import ExploreResultsButton from 'src/SqlLab/components/ExploreResultsButton';
-import ResultSet from 'src/SqlLab/components/ResultSet';
+import ResultSet, { ResultSetProps } from 'src/SqlLab/components/ResultSet';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import {
   cachedQuery,
@@ -44,8 +45,6 @@ import {
   queryWithNoQueryLimit,
 } from 'src/SqlLab/fixtures';
 
-const mockStore = configureStore([thunk]);
-const store = mockStore(initialState);
 const clearQuerySpy = sinon.spy();
 const fetchQuerySpy = sinon.spy();
 const reRunQuerySpy = sinon.spy();
@@ -96,28 +95,38 @@ const newProps = {
 };
 fetchMock.get('glob:*/api/v1/dataset?*', { result: [] });
 
-test('is valid', () => {
-  expect(React.isValidElement(<ResultSet {...mockedProps} />)).toBe(true);
-});
+const middlewares = [thunk];
+const mockStore = configureStore(middlewares);
+const setup = (props?: Partial<ResultSetProps>, store?: Store) =>
+  render(<ResultSet {...props} />, {
+    useRedux: true,
+    ...(store && { store }),
+  });
 
-test('renders a Table', () => {
-  const wrapper = shallow(<ResultSet {...mockedProps} />);
-  expect(wrapper.find(FilterableTable)).toExist();
-});
+describe('ResultSet', () => {
+  it('renders a Table', async () => {
+    const { baseElement } = setup(mockedProps, mockStore(initialState));
+    const table = baseElement.getElementsByClassName(
+      'filterable-table-container',
+    )[0];
 
-test('should call reRunQuery if timed out', () => {
-  const propsWithError = {
-    ...mockedProps,
-    query: { ...queries[0], errorMessage: 'Your session timed out' },
-  };
+    expect(table).toBeInTheDocument();
+  });
 
-  render(<ResultSet {...propsWithError} />, { useRedux: true });
-  screen.debug();
-});
+  it('should call reRunQuery if timed out', async () => {
+    const propsWithError = {
+      ...mockedProps,
+      query: { ...queries[0], errorMessage: 'Your session timed out' },
+    };
 
-test('should not call reRunQuery if no error', () => {
-  render(<ResultSet {...mockedProps} />, { useRedux: true });
-  screen.debug();
+    setup(propsWithError, mockStore(initialState));
+    screen.debug();
+  });
+
+  it('should not call reRunQuery if no error', async () => {
+    setup(mockedProps, mockStore(initialState));
+    screen.debug();
+  });
 });
 
 test('should render success query', () => {

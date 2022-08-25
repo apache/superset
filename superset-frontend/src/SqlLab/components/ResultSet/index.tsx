@@ -63,7 +63,7 @@ enum LIMITING_FACTOR {
   NOT_LIMITED = 'NOT_LIMITED',
 }
 
-interface ResultSetProps {
+export interface ResultSetProps {
   cache?: boolean;
   csv?: boolean;
   database?: Record<string, any>;
