@@ -17,18 +17,12 @@
  * under the License.
  */
 import React from 'react';
-import { shallow } from 'enzyme';
 import { render, screen } from 'spec/helpers/testing-library';
-import sinon from 'sinon';
-import Alert from 'src/components/Alert';
-import ProgressBar from 'src/components/ProgressBar';
-import Loading from 'src/components/Loading';
 import configureStore from 'redux-mock-store';
 import { Store } from 'redux';
 import thunk from 'redux-thunk';
 import fetchMock from 'fetch-mock';
 import ResultSet, { ResultSetProps } from 'src/SqlLab/components/ResultSet';
-import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import {
   cachedQuery,
   failedQueryWithErrorMessage,
@@ -41,15 +35,7 @@ import {
   queryWithNoQueryLimit,
 } from 'src/SqlLab/fixtures';
 
-const clearQuerySpy = sinon.spy();
-const fetchQuerySpy = sinon.spy();
-const reRunQuerySpy = sinon.spy();
 const mockedProps = {
-  actions: {
-    clearQueryResults: clearQuerySpy,
-    fetchQueryResults: fetchQuerySpy,
-    reRunQuery: reRunQuerySpy,
-  },
   cache: true,
   query: queries[0],
   height: 140,
@@ -188,16 +174,17 @@ describe('ResultSet', () => {
     expect(loading).toBeInTheDocument();
     expect(getByText('fetching')).toBeInTheDocument();
   });
-});
 
-test('should render a failed query with an error message', () => {
-  const wrapper = shallow(<ResultSet {...failedQueryWithErrorMessageProps} />);
-  expect(wrapper.find(ErrorMessageWithStackTrace)).toExist();
-});
+  it('should render a failed query with an error message', async () => {
+    const { getByText } = setup(failedQueryWithErrorMessageProps, mockStore(initialState));
+    expect(getByText('Database error')).toBeInTheDocument();
+    expect(getByText('Something went wrong')).toBeInTheDocument();
+  });
 
-test('should render a failed query with an errors object', () => {
-  const wrapper = shallow(<ResultSet {...failedQueryWithErrorsProps} />);
-  expect(wrapper.find(ErrorMessageWithStackTrace)).toExist();
+  it('should render a failed query with an errors object', async () => {
+    const { getByText } = setup(failedQueryWithErrorsProps, mockStore(initialState));
+    expect(getByText('Database error')).toBeInTheDocument();
+  });
 });
 
 test('renders if there is no limit in query.results but has queryLimit', () => {
