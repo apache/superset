@@ -73,12 +73,12 @@ const LeftPanelStyle = styled.div`
   }
   .loading {
     position: absolute;
-    bottom: 380px;
+    bottom: ${theme.gridUnit * 95}px;
     img {
       position: absolute;
-      top: -53px;
-      right: -15px;
-      width: 71px;
+      top: -${theme.gridUnit * 13.25}px;
+      right: -${theme.gridUnit * 3.75}px;
+      width: ${theme.gridUnit * 17.75}px;
     }
   }
   }
