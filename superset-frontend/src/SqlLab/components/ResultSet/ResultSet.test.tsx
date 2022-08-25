@@ -18,9 +18,7 @@
  */
 import React from 'react';
 import { shallow } from 'enzyme';
-import { styledMount } from 'spec/helpers/theming';
 import { render, screen } from 'spec/helpers/testing-library';
-import { Provider } from 'react-redux';
 import sinon from 'sinon';
 import Alert from 'src/components/Alert';
 import ProgressBar from 'src/components/ProgressBar';
@@ -29,8 +27,6 @@ import configureStore from 'redux-mock-store';
 import { Store } from 'redux';
 import thunk from 'redux-thunk';
 import fetchMock from 'fetch-mock';
-import FilterableTable from 'src/components/FilterableTable';
-import ExploreResultsButton from 'src/SqlLab/components/ExploreResultsButton';
 import ResultSet, { ResultSetProps } from 'src/SqlLab/components/ResultSet';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import {
@@ -134,6 +130,23 @@ describe('ResultSet', () => {
     expect(exploreButton).toBeInTheDocument();
   });
 
+  it('should render empty results', async () => {
+    const props = {
+      ...mockedProps,
+      query: { ...mockedProps.query, results: { data: [] } },
+    };
+    const { baseElement, getByRole } = setup(props, mockStore(initialState));
+    const table = baseElement.getElementsByClassName(
+      'filterable-table-container',
+    )[0];
+
+    expect(table).toBeUndefined();
+
+    const alert = getByRole('alert');
+    expect(alert).toBeInTheDocument();
+    expect(alert).toHaveTextContent('The query returned no data');
+  });
+
   it('should call reRunQuery if timed out', async () => {
     const propsWithError = {
       ...mockedProps,
@@ -148,33 +161,14 @@ describe('ResultSet', () => {
     setup(mockedProps, mockStore(initialState));
     screen.debug();
   });
-});
 
-test('should render empty results', () => {
-  const props = {
-    ...mockedProps,
-    query: { ...mockedProps.query, results: { data: [] } },
-  };
-  const wrapper = styledMount(
-    <Provider store={store}>
-      <ResultSet {...props} />
-    </Provider>,
-  );
-  expect(wrapper.find(FilterableTable)).not.toExist();
-  expect(wrapper.find(Alert)).toExist();
-  expect(wrapper.find(Alert).render().text()).toBe(
-    'The query returned no data',
-  );
-});
+  it('should render cached query', async () => {
+    const { rerender } = setup(cachedQueryProps, mockStore(initialState));
 
-test('should render cached query', () => {
-  const { rerender } = render(<ResultSet {...cachedQueryProps} />, {
-    useRedux: true,
+    screen.debug();
+    rerender(<ResultSet {...newProps} />);
+    screen.debug();
   });
-
-  screen.debug();
-  rerender(<ResultSet {...newProps} />);
-  screen.debug();
 });
 
 test('should render stopped query', () => {
