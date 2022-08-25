@@ -17,19 +17,14 @@
  * under the License.
  */
 import React from 'react';
-import { render, screen, act } from 'spec/helpers/testing-library';
+import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import AddDataset from 'src/views/CRUD/data/dataset/AddDataset';
 
 describe('AddDataset', () => {
-  const renderAndWait = async () => {
-    const mounted = act(async () => {
-      render(<AddDataset />);
-    });
+  const waitForRender = () => waitFor(() => render(<AddDataset />));
 
-    return mounted;
-  };
   it('renders a blank state AddDataset', async () => {
-    await renderAndWait();
+    await waitForRender();
 
     const blankeStateImgs = screen.getAllByRole('img', { name: /empty/i });
 

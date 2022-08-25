@@ -19,7 +19,7 @@
 import React, { ReactNode, ReactElement } from 'react';
 import { css, SupersetTheme, t, useTheme } from '@superset-ui/core';
 import { AntdDropdown, AntdDropdownProps } from 'src/components';
-import { TooltipPlacement } from 'antd/es/tooltip';
+import { TooltipPlacement } from 'src/components/Tooltip';
 import {
   DynamicEditableTitle,
   DynamicEditableTitleProps,
@@ -158,8 +158,8 @@ export const PageHeaderWithActions = ({
               css={menuTriggerStyles}
               buttonStyle="tertiary"
               aria-label={t('Menu actions trigger')}
-              tooltip={tooltipProps?.text ?? undefined}
-              placement={tooltipProps?.placement ?? undefined}
+              tooltip={tooltipProps?.text}
+              placement={tooltipProps?.placement}
               data-test="actions-trigger"
             >
               <Icons.MoreHoriz

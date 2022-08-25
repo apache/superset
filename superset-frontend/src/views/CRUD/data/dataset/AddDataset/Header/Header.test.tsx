@@ -17,20 +17,19 @@
  * under the License.
  */
 import React from 'react';
-import { render, screen, act } from 'spec/helpers/testing-library';
+import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import Header from 'src/views/CRUD/data/dataset/AddDataset/Header';
 
 describe('Header', () => {
-  const renderAndWait = async () => {
-    const mounted = act(async () => {
-      render(<Header />);
-    });
+  const mockSetDataset = jest.fn();
 
-    return mounted;
-  };
+  const waitForRender = () =>
+    waitFor(() =>
+      render(<Header setDataset={mockSetDataset} datasetName="" />),
+    );
 
   it('renders a blank state Header', async () => {
-    await renderAndWait();
+    await waitForRender();
 
     const datasetNameTextbox = screen.getByRole('textbox', {
       name: /dataset name/i,

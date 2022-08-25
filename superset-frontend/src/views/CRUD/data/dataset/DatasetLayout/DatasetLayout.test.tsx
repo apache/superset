@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { render, screen, act } from 'spec/helpers/testing-library';
+import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import DatasetLayout from 'src/views/CRUD/data/dataset/DatasetLayout';
 import Header from 'src/views/CRUD/data/dataset/AddDataset/Header';
 import LeftPanel from 'src/views/CRUD/data/dataset/AddDataset/LeftPanel';
@@ -33,16 +33,15 @@ describe('DatasetLayout', () => {
     expect(layoutWrapper).toHaveTextContent('');
   });
 
-  const renderHeaderAndWait = async () => {
-    const mounted = act(async () => {
-      render(<Header />);
-    });
+  const mockSetDataset = jest.fn();
 
-    return mounted;
-  };
+  const waitForRender = () =>
+    waitFor(() =>
+      render(<Header setDataset={mockSetDataset} datasetName="" />),
+    );
 
   it('renders a Header when passed in', async () => {
-    await renderHeaderAndWait();
+    await waitForRender();
 
     expect(
       screen.getByRole('textbox', {

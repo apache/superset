@@ -17,48 +17,25 @@
  * under the License.
  */
 import React from 'react';
-import { t, styled, css, SupersetTheme } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
 import { PageHeaderWithActions } from 'src/components/PageHeaderWithActions';
 import Button from 'src/components/Button';
 import Icons from 'src/components/Icons';
 import { Menu } from 'src/components/Menu';
-import { TooltipPlacement } from 'antd/es/tooltip';
-
-const editableTitleProps = {
-  title: '',
-  placeholder: 'Add the name of the dataset',
-  onSave: () => {},
-  canEdit: true,
-  label: 'dataset name',
-};
+import { TooltipPlacement } from 'src/components/Tooltip';
+import {
+  HeaderComponentStyles,
+  disabledSaveBtnStyles,
+} from 'src/views/CRUD/data/dataset/styles';
+import {
+  DatasetActionType,
+  DSReducerActionType,
+} from 'src/views/CRUD/data/dataset/AddDataset/types';
 
 const tooltipProps: { text: string; placement: TooltipPlacement } = {
-  text: 'Select a database table and create dataset',
+  text: t('Select a database table and create dataset'),
   placement: 'bottomRight',
 };
-
-const Styles = styled.div`
-  .ant-btn {
-    span {
-      margin-right: 0;
-    }
-
-    &:disabled {
-      svg {
-        color: ${({ theme }) => theme.colors.grayscale.light1};
-      }
-    }
-  }
-`;
-
-const disabledSaveBtnStyles = (theme: SupersetTheme) => css`
-  width: ${theme.gridUnit * 21.5}px;
-
-  &:disabled {
-    background-color: ${theme.colors.grayscale.light3};
-    color: ${theme.colors.grayscale.light1};
-  }
-`;
 
 const renderDisabledSaveButton = () => (
   <Button
@@ -80,9 +57,28 @@ const renderOverlay = () => (
   </Menu>
 );
 
-export default function Header() {
+export default function Header({
+  setDataset,
+  datasetName,
+}: {
+  setDataset: React.Dispatch<DSReducerActionType>;
+  datasetName: string;
+}) {
+  const editableTitleProps = {
+    title: datasetName,
+    placeholder: t('Add the name of the dataset'),
+    onSave: (newDatasetName: string) => {
+      setDataset({
+        type: DatasetActionType.changeDataset,
+        payload: { name: 'dataset_name', value: newDatasetName },
+      });
+    },
+    canEdit: true,
+    label: t('dataset name'),
+  };
+
   return (
-    <Styles>
+    <HeaderComponentStyles>
       <PageHeaderWithActions
         editableTitleProps={editableTitleProps}
         showTitlePanelItems={false}
@@ -96,6 +92,6 @@ export default function Header() {
         }}
         tooltipProps={tooltipProps}
       />
-    </Styles>
+    </HeaderComponentStyles>
   );
 }

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled } from '@superset-ui/core';
+import { styled, css, SupersetTheme } from '@superset-ui/core';
 
 export const StyledLayoutWrapper = styled.div`
   flex-grow: 1;
@@ -64,7 +64,7 @@ export const FooterRow = styled(Row)`
   height: ${({ theme }) => theme.gridUnit * 16}px;
 `;
 
-export const StyledHeader = styled.div`
+export const StyledLayoutHeader = styled.div`
   flex: 0 0 auto;
   height: ${({ theme }) => theme.gridUnit * 16}px;
   border-bottom: 2px solid ${({ theme }) => theme.colors.grayscale.light2};
@@ -74,25 +74,48 @@ export const StyledHeader = styled.div`
   }
 `;
 
-export const StyledLeftPanel = styled.div`
+export const StyledLayoutLeftPanel = styled.div`
   width: ${({ theme }) => theme.gridUnit * 80}px;
   height: 100%;
   border-right: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
 `;
 
-export const StyledDatasetPanel = styled.div`
+export const StyledLayoutDatasetPanel = styled.div`
   width: 100%;
 `;
 
-export const StyledRightPanel = styled.div`
+export const StyledLayoutRightPanel = styled.div`
   border-left: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   color: ${({ theme }) => theme.colors.success.base};
 `;
 
-export const StyledFooter = styled.div`
+export const StyledLayoutFooter = styled.div`
   height: ${({ theme }) => theme.gridUnit * 16}px;
   width: 100%;
   border-top: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   color: ${({ theme }) => theme.colors.info.base};
+`;
+
+export const HeaderComponentStyles = styled.div`
+  .ant-btn {
+    span {
+      margin-right: 0;
+    }
+
+    &:disabled {
+      svg {
+        color: ${({ theme }) => theme.colors.grayscale.light1};
+      }
+    }
+  }
+`;
+
+export const disabledSaveBtnStyles = (theme: SupersetTheme) => css`
+  width: ${theme.gridUnit * 21.5}px;
+
+  &:disabled {
+    background-color: ${theme.colors.grayscale.light3};
+    color: ${theme.colors.grayscale.light1};
+  }
 `;
