@@ -161,7 +161,7 @@ describe('SqlLab query panel', () => {
       });
     });
 
-    const query = 'SELECT gender, name FROM main.birth_names';
+    const query = 'SELECT gender, name FROM birth_names';
 
     cy.get('.ace_text-input')
       .focus()

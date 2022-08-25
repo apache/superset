@@ -32,7 +32,7 @@ describe('Dataset list', () => {
       .click();
     cy.wait('@explore');
     cy.get('[data-test="datasource-control"] .title-select').contains(
-      'main.birth_names',
+      'birth_names',
     );
     cy.get('.metric-option-label').first().contains('COUNT(*)');
     cy.get('.column-option-label').first().contains('ds');
