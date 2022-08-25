@@ -213,7 +213,6 @@ GAMMA_ROLE_PERMISSIONS = {
         ["menu_access", "SQL Editor"],
         ["menu_access", "Saved Queries"],
         ["menu_access", "Query Search"],
-        ["menu_access", "Data"],
         ["menu_access", "Databases"],
         ["menu_access", "Datasets"],
         ["can_share_dashboard", "Superset"],
