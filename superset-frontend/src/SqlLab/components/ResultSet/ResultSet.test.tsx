@@ -169,21 +169,25 @@ describe('ResultSet', () => {
     rerender(<ResultSet {...newProps} />);
     screen.debug();
   });
-});
 
-test('should render stopped query', () => {
-  const wrapper = shallow(<ResultSet {...stoppedQueryProps} />);
-  expect(wrapper.find(Alert)).toExist();
-});
+  it('should render stopped query', async () => {
+    const { getByRole } = setup(stoppedQueryProps, mockStore(initialState));
+    const alert = getByRole('alert');
+    expect(alert).toBeInTheDocument();
+  });
 
-test('should render running/pending/fetching query', () => {
-  const wrapper = shallow(<ResultSet {...runningQueryProps} />);
-  expect(wrapper.find(ProgressBar)).toExist();
-});
+  it('should render running/pending/fetching query', async () => {
+    const { getByTestId } = setup(runningQueryProps, mockStore(initialState));
+    const progressBar = getByTestId('progress-bar');
+    expect(progressBar).toBeInTheDocument();
+  });
 
-test('should render fetching w/ 100 progress query', () => {
-  const wrapper = shallow(<ResultSet {...fetchingQueryProps} />);
-  expect(wrapper.find(Loading)).toExist();
+  it('should render fetching w/ 100 progress query', async () => {
+    const { getByRole, getByText } = setup(fetchingQueryProps, mockStore(initialState));
+    const loading = getByRole('status');
+    expect(loading).toBeInTheDocument();
+    expect(getByText('fetching')).toBeInTheDocument();
+  });
 });
 
 test('should render a failed query with an error message', () => {
