@@ -22,7 +22,7 @@ import configureStore from 'redux-mock-store';
 import { Store } from 'redux';
 import thunk from 'redux-thunk';
 import fetchMock from 'fetch-mock';
-import ResultSet, { ResultSetProps } from 'src/SqlLab/components/ResultSet';
+import ResultSet from 'src/SqlLab/components/ResultSet';
 import {
   cachedQuery,
   failedQueryWithErrorMessage,
@@ -79,7 +79,7 @@ fetchMock.get('glob:*/api/v1/dataset?*', { result: [] });
 
 const middlewares = [thunk];
 const mockStore = configureStore(middlewares);
-const setup = (props?: Partial<ResultSetProps>, store?: Store) =>
+const setup = (props?: any, store?: Store) =>
   render(<ResultSet {...props} />, {
     useRedux: true,
     ...(store && { store }),
@@ -96,7 +96,10 @@ describe('ResultSet', () => {
   });
 
   it('should render success query', async () => {
-    const { baseElement, queryAllByText, getByTestId } = setup(mockedProps, mockStore(initialState));
+    const { baseElement, queryAllByText, getByTestId } = setup(
+      mockedProps,
+      mockStore(initialState),
+    );
     const table = baseElement.getElementsByClassName(
       'filterable-table-container',
     )[0];
@@ -169,20 +172,29 @@ describe('ResultSet', () => {
   });
 
   it('should render fetching w/ 100 progress query', async () => {
-    const { getByRole, getByText } = setup(fetchingQueryProps, mockStore(initialState));
+    const { getByRole, getByText } = setup(
+      fetchingQueryProps,
+      mockStore(initialState),
+    );
     const loading = getByRole('status');
     expect(loading).toBeInTheDocument();
     expect(getByText('fetching')).toBeInTheDocument();
   });
 
   it('should render a failed query with an error message', async () => {
-    const { getByText } = setup(failedQueryWithErrorMessageProps, mockStore(initialState));
+    const { getByText } = setup(
+      failedQueryWithErrorMessageProps,
+      mockStore(initialState),
+    );
     expect(getByText('Database error')).toBeInTheDocument();
     expect(getByText('Something went wrong')).toBeInTheDocument();
   });
 
   it('should render a failed query with an errors object', async () => {
-    const { getByText } = setup(failedQueryWithErrorsProps, mockStore(initialState));
+    const { getByText } = setup(
+      failedQueryWithErrorsProps,
+      mockStore(initialState),
+    );
     expect(getByText('Database error')).toBeInTheDocument();
   });
 
