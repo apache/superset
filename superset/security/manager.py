@@ -1344,21 +1344,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         connection: Connection,
         target: "SqlaTable",
     ) -> None:
-        from superset.connectors.sqla.models import (  # pylint: disable=import-outside-toplevel
-            SqlaTable,
-        )
-        from superset.models.slice import (  # pylint: disable=import-outside-toplevel
-            Slice,
-        )
-
-        permission_table = self.permission_model.__table__  # pylint: disable=no-member
-        view_menu_table = self.viewmenu_model.__table__  # pylint: disable=no-member
-        permission_view_table = (
-            self.permissionview_model.__table__  # pylint: disable=no-member
-        )
-        sqlatable_table = SqlaTable.__table__  # pylint: disable=no-member
-        chart_table = Slice.__table__  # pylint: disable=no-member
-
         # Check if watched fields have changed
         state = inspect(target)
         history_database = state.get_history("database_id", True)
@@ -1403,9 +1388,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             old_schema_name = history_schema.deleted[0]
             new_dataset_schema_name = self.get_schema_perm(
                 target.database.database_name, target.schema
-            )
-            old_dataset_schema_name = self.get_schema_perm(
-                target.database.database_name, old_schema_name
             )
             self.__update_dataset_schema_perm(
                 mapper,
