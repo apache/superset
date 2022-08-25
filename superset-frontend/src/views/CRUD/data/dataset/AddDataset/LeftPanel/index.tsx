@@ -64,9 +64,9 @@ const LeftPanelStyle = styled.div`
   }
   form > span {
     position: absolute;
-    top: 410px;
-    left: 171px;
-    font-size: 17px;   
+    top: ${theme.gridUnit * 102.5}px;
+    left: ${theme.gridUnit * 42.75}px;
+    font-size: ${theme.gridUnit * 4.25}px;
   }
   .table-form {
     margin-bottom: ${theme.gridUnit * 8}px;
