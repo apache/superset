@@ -92,8 +92,8 @@ const MonospaceDiv = styled.div`
 `;
 
 const ReturnedRows = styled.div`
-  font-size: 13px;
-  line-height: 24px;
+  font-size: ${({ theme }) => theme.gridUnit * 3.25}px;
+  line-height: ${({ theme }) => theme.gridUnit * 6}px;
 `;
 
 const ResultSetControls = styled.div`
