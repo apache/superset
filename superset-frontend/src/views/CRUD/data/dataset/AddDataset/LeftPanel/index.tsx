@@ -43,8 +43,8 @@ const LeftPanelStyle = styled.div`
   background-color: ${theme.colors.grayscale.light5}; 
   .refresh {
     position: absolute;
-    top: 290px;
-    left: 67px;
+    top: ${theme.gridUnit * 72.5}px;
+    left: ${theme.gridUnit * 16.75}px;
     span[role="button"]{
       font-size: ${theme.gridUnit * 4.25}px;
     }
