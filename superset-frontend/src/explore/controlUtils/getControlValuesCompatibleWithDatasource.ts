@@ -23,8 +23,10 @@ import {
   isAdhocMetricSimple,
   isSavedMetric,
   isSimpleAdhocFilter,
+  isFreeFormAdhocFilter,
   JsonValue,
   SimpleAdhocFilter,
+  FreeFormAdhocFilter,
 } from '@superset-ui/core';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
 
@@ -70,6 +72,7 @@ const isControlValueCompatibleWithDatasource = (
         column.column_name === (value as SimpleAdhocFilter).subject,
     );
   }
+  if (isFreeFormAdhocFilter(value)) return true;
   return false;
 };
 
