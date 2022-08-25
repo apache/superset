@@ -185,15 +185,15 @@ describe('ResultSet', () => {
     const { getByText } = setup(failedQueryWithErrorsProps, mockStore(initialState));
     expect(getByText('Database error')).toBeInTheDocument();
   });
-});
 
-test('renders if there is no limit in query.results but has queryLimit', () => {
-  render(<ResultSet {...mockedProps} />, { useRedux: true });
-  expect(screen.getByRole('grid')).toBeInTheDocument();
-});
+  it('renders if there is no limit in query.results but has queryLimit', async () => {
+    const { getByRole } = setup(mockedProps, mockStore(initialState));
+    expect(getByRole('grid')).toBeInTheDocument();
+  });
 
-test('renders if there is a limit in query.results but not queryLimit', () => {
-  const props = { ...mockedProps, query: queryWithNoQueryLimit };
-  render(<ResultSet {...props} />, { useRedux: true });
-  expect(screen.getByRole('grid')).toBeInTheDocument();
+  it('renders if there is a limit in query.results but not queryLimit', async () => {
+    const props = { ...mockedProps, query: queryWithNoQueryLimit };
+    const { getByRole } = setup(props, mockStore(initialState));
+    expect(getByRole('grid')).toBeInTheDocument();
+  });
 });
