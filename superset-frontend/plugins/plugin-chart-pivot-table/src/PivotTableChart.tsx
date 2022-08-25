@@ -362,45 +362,48 @@ export default function PivotTableChart(props: PivotTableProps) {
     [colSubtotalPosition, rowSubtotalPosition],
   );
 
-  const handleContextMenu = (
-    e: MouseEvent,
-    colKey: DataRecordValue[] | undefined,
-    rowKey: DataRecordValue[] | undefined,
-  ) => {
-    if (onContextMenu) {
-      e.preventDefault();
-      const filters: QueryObjectFilterClause[] = [];
-      if (colKey && colKey.length > 1) {
-        colKey.forEach((val, i) => {
-          const col = cols[i];
-          const formattedVal =
-            dateFormatters[col]?.(val as number) || String(val);
-          if (i > 0) {
+  const handleContextMenu = useCallback(
+    (
+      e: MouseEvent,
+      colKey: DataRecordValue[] | undefined,
+      rowKey: DataRecordValue[] | undefined,
+    ) => {
+      if (onContextMenu) {
+        e.preventDefault();
+        const filters: QueryObjectFilterClause[] = [];
+        if (colKey && colKey.length > 1) {
+          colKey.forEach((val, i) => {
+            const col = cols[i];
+            const formattedVal =
+              dateFormatters[col]?.(val as number) || String(val);
+            if (i > 0) {
+              filters.push({
+                col,
+                op: '==',
+                val,
+                formattedVal,
+              });
+            }
+          });
+        }
+        if (rowKey) {
+          rowKey.forEach((val, i) => {
+            const col = rows[i];
+            const formattedVal =
+              dateFormatters[col]?.(val as number) || String(val);
             filters.push({
               col,
               op: '==',
               val,
               formattedVal,
             });
-          }
-        });
-      }
-      if (rowKey) {
-        rowKey.forEach((val, i) => {
-          const col = rows[i];
-          const formattedVal =
-            dateFormatters[col]?.(val as number) || String(val);
-          filters.push({
-            col,
-            op: '==',
-            val,
-            formattedVal,
           });
-        });
+        }
+        onContextMenu(filters, e.clientX, e.clientY);
       }
-      onContextMenu(filters, e.clientX, e.clientY);
-    }
-  };
+    },
+    [cols, dateFormatters, onContextMenu, rows],
+  );
 
   return (
     <Styles height={height} width={width} margin={theme.gridUnit * 4}>
