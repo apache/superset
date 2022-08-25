@@ -56,7 +56,7 @@ const LeftPanelStyle = styled.div`
   }
   .options-list {
     overflow: auto;
-    max-height: 700px;
+    max-height: ${theme.gridUnit * 175}px;
     .options {
       padding: ${theme.gridUnit * 1.75}px;
       border-radius: ${theme.borderRadius}px;
