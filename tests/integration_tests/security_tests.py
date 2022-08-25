@@ -107,54 +107,56 @@ class TestRolePermission(SupersetTestCase):
     """Testing export role permissions."""
 
     def setUp(self):
-        schema = get_example_default_schema()
-        session = db.session
-        security_manager.add_role(SCHEMA_ACCESS_ROLE)
-        session.commit()
-
-        ds = (
-            db.session.query(SqlaTable)
-            .filter_by(table_name="wb_health_population", schema=schema)
-            .first()
-        )
-        ds.schema = "temp_schema"
-        ds.schema_perm = ds.get_schema_perm()
-
-        ds_slices = (
-            session.query(Slice)
-            .filter_by(datasource_type=DatasourceType.TABLE)
-            .filter_by(datasource_id=ds.id)
-            .all()
-        )
-        for s in ds_slices:
-            s.schema_perm = ds.schema_perm
-        create_schema_perm("[examples].[temp_schema]")
-        gamma_user = security_manager.find_user(username="gamma")
-        gamma_user.roles.append(security_manager.find_role(SCHEMA_ACCESS_ROLE))
-        session.commit()
+        ...
+        # schema = get_example_default_schema()
+        # session = db.session
+        # security_manager.add_role(SCHEMA_ACCESS_ROLE)
+        # session.commit()
+        #
+        # ds = (
+        #     db.session.query(SqlaTable)
+        #     .filter_by(table_name="wb_health_population", schema=schema)
+        #     .first()
+        # )
+        # ds.schema = "temp_schema"
+        # ds.schema_perm = ds.get_schema_perm()
+        #
+        # ds_slices = (
+        #     session.query(Slice)
+        #     .filter_by(datasource_type=DatasourceType.TABLE)
+        #     .filter_by(datasource_id=ds.id)
+        #     .all()
+        # )
+        # for s in ds_slices:
+        #     s.schema_perm = ds.schema_perm
+        # create_schema_perm("[examples].[temp_schema]")
+        # gamma_user = security_manager.find_user(username="gamma")
+        # gamma_user.roles.append(security_manager.find_role(SCHEMA_ACCESS_ROLE))
+        # session.commit()
 
     def tearDown(self):
-        session = db.session
-        ds = (
-            session.query(SqlaTable)
-            .filter_by(table_name="wb_health_population", schema="temp_schema")
-            .first()
-        )
-        schema_perm = ds.schema_perm
-        ds.schema = get_example_default_schema()
-        ds.schema_perm = None
-        ds_slices = (
-            session.query(Slice)
-            .filter_by(datasource_type=DatasourceType.TABLE)
-            .filter_by(datasource_id=ds.id)
-            .all()
-        )
-        for s in ds_slices:
-            s.schema_perm = None
-
-        delete_schema_perm(schema_perm)
-        session.delete(security_manager.find_role(SCHEMA_ACCESS_ROLE))
-        session.commit()
+        ...
+        # session = db.session
+        # ds = (
+        #     session.query(SqlaTable)
+        #     .filter_by(table_name="wb_health_population", schema="temp_schema")
+        #     .first()
+        # )
+        # schema_perm = ds.schema_perm
+        # ds.schema = get_example_default_schema()
+        # ds.schema_perm = None
+        # ds_slices = (
+        #     session.query(Slice)
+        #     .filter_by(datasource_type=DatasourceType.TABLE)
+        #     .filter_by(datasource_id=ds.id)
+        #     .all()
+        # )
+        # for s in ds_slices:
+        #     s.schema_perm = None
+        #
+        # delete_schema_perm(schema_perm)
+        # session.delete(security_manager.find_role(SCHEMA_ACCESS_ROLE))
+        # session.commit()
 
     def test_set_perm_sqla_table(self):
         security_manager.on_view_menu_after_insert = Mock()
@@ -539,6 +541,316 @@ class TestRolePermission(SupersetTestCase):
                 "database_access", f"[tmp_database].(id:{stored_db.id})"
             )
         )
+
+    def test_after_delete_dataset(self):
+        from flask_appbuilder.security.sqla.models import Role
+
+        session = db.session
+        tmp_db = Database(database_name="tmp_database", sqlalchemy_uri="sqlite://")
+        session.add(tmp_db)
+        session.commit()
+
+        table1 = SqlaTable(
+            schema="tmp_schema",
+            table_name="tmp_table1",
+            database=tmp_db,
+        )
+        session.add(table1)
+        session.commit()
+
+        table1_pvm = security_manager.find_permission_view_menu(
+            "datasource_access", f"[tmp_database].[tmp_table1](id:{table1.id})"
+        )
+        self.assertIsNotNone(table1_pvm)
+
+        role1 = Role(name="tmp_role1")
+        role1.permissions.append(table1_pvm)
+        session.add(role1)
+        session.commit()
+
+        # refresh
+        table1 = session.query(SqlaTable).filter_by(table_name="tmp_table1").one()
+
+        # Test delete
+        session.delete(table1)
+        session.commit()
+
+        role1 = security_manager.find_role("tmp_role1")
+        self.assertEqual(role1.permissions, [])
+
+        table1_pvm = security_manager.find_permission_view_menu(
+            "datasource_access", f"[tmp_database].[tmp_table1](id:{table1.id})"
+        )
+        self.assertIsNone(table1_pvm)
+        table1_view_menu = security_manager.find_view_menu(
+            f"[tmp_database].[tmp_table1](id:{table1.id})"
+        )
+        self.assertIsNone(table1_view_menu)
+
+        # cleanup
+        session.delete(tmp_db)
+        session.commit()
+
+    def test_after_update_dataset__name_changes(self):
+        session = db.session
+        tmp_db = Database(database_name="tmp_database", sqlalchemy_uri="sqlite://")
+        session.add(tmp_db)
+        session.commit()
+
+        table1 = SqlaTable(
+            schema="tmp_schema",
+            table_name="tmp_table1",
+            database=tmp_db,
+        )
+        session.add(table1)
+        session.commit()
+
+        slice1 = Slice(
+            datasource_id=table1.id,
+            datasource_type=DatasourceType.TABLE,
+            datasource_name="tmp_table1",
+            slice_name="tmp_slice1",
+        )
+        session.add(slice1)
+        session.commit()
+
+        table1_pvm = security_manager.find_permission_view_menu(
+            "datasource_access", f"[tmp_database].[tmp_table1](id:{table1.id})"
+        )
+        self.assertIsNotNone(table1_pvm)
+
+        # refresh
+        table1 = session.query(SqlaTable).filter_by(table_name="tmp_table1").one()
+        # Test update
+        table1.table_name = "tmp_table1_changed"
+        session.commit()
+
+        # Test old permission does not exist
+        old_table1_pvm = security_manager.find_permission_view_menu(
+            "datasource_access", f"[tmp_database].[tmp_table1](id:{table1.id})"
+        )
+        self.assertIsNone(old_table1_pvm)
+
+        # Test new permission exist
+        new_table1_pvm = security_manager.find_permission_view_menu(
+            "datasource_access", f"[tmp_database].[tmp_table1_changed](id:{table1.id})"
+        )
+        self.assertIsNotNone(new_table1_pvm)
+
+        # test dataset permission changed
+        changed_table1 = (
+            session.query(SqlaTable).filter_by(table_name="tmp_table1_changed").one()
+        )
+        self.assertEqual(
+            changed_table1.perm, f"[tmp_database].[tmp_table1_changed](id:{table1.id})"
+        )
+
+        # Test Chart permission changed
+        slice1 = session.query(Slice).filter_by(slice_name="tmp_slice1").one()
+        self.assertEqual(
+            slice1.perm, f"[tmp_database].[tmp_table1_changed](id:{table1.id})"
+        )
+
+        # cleanup
+        session.delete(table1)
+        session.delete(slice1)
+        session.delete(tmp_db)
+        session.commit()
+
+    def test_after_update_dataset__db_changes(self):
+        session = db.session
+        tmp_db1 = Database(database_name="tmp_db1", sqlalchemy_uri="sqlite://")
+        tmp_db2 = Database(database_name="tmp_db2", sqlalchemy_uri="sqlite://")
+        session.add(tmp_db1)
+        session.add(tmp_db2)
+        session.commit()
+
+        table1 = SqlaTable(
+            schema="tmp_schema",
+            table_name="tmp_table1",
+            database=tmp_db1,
+        )
+        session.add(table1)
+        session.commit()
+
+        slice1 = Slice(
+            datasource_id=table1.id,
+            datasource_type=DatasourceType.TABLE,
+            datasource_name="tmp_table1",
+            slice_name="tmp_slice1",
+        )
+        session.add(slice1)
+        session.commit()
+
+        table1_pvm = security_manager.find_permission_view_menu(
+            "datasource_access", f"[tmp_db1].[tmp_table1](id:{table1.id})"
+        )
+        self.assertIsNotNone(table1_pvm)
+
+        # refresh
+        table1 = session.query(SqlaTable).filter_by(table_name="tmp_table1").one()
+        # Test update
+        table1.database = tmp_db2
+        session.commit()
+
+        # Test old permission does not exist
+        table1_pvm = security_manager.find_permission_view_menu(
+            "datasource_access", f"[tmp_db1].[tmp_table1](id:{table1.id})"
+        )
+        self.assertIsNone(table1_pvm)
+
+        # Test new permission exist
+        table1_pvm = security_manager.find_permission_view_menu(
+            "datasource_access", f"[tmp_db2].[tmp_table1](id:{table1.id})"
+        )
+        self.assertIsNotNone(table1_pvm)
+
+        # test dataset permission and schema permission changed
+        changed_table1 = (
+            session.query(SqlaTable).filter_by(table_name="tmp_table1").one()
+        )
+        self.assertEqual(changed_table1.perm, f"[tmp_db2].[tmp_table1](id:{table1.id})")
+        self.assertEqual(changed_table1.schema_perm, f"[tmp_db2].[tmp_schema]")
+
+        # Test Chart permission changed
+        slice1 = session.query(Slice).filter_by(slice_name="tmp_slice1").one()
+        self.assertEqual(slice1.perm, f"[tmp_db2].[tmp_table1](id:{table1.id})")
+        self.assertEqual(slice1.schema_perm, f"[tmp_db2].[tmp_schema]")
+
+        # cleanup
+        session.delete(table1)
+        session.delete(slice1)
+        session.delete(tmp_db1)
+        session.delete(tmp_db2)
+        session.commit()
+
+    def test_after_update_dataset__schema_changes(self):
+        session = db.session
+        tmp_db1 = Database(database_name="tmp_db1", sqlalchemy_uri="sqlite://")
+        session.add(tmp_db1)
+        session.commit()
+
+        table1 = SqlaTable(
+            schema="tmp_schema",
+            table_name="tmp_table1",
+            database=tmp_db1,
+        )
+        session.add(table1)
+        session.commit()
+
+        slice1 = Slice(
+            datasource_id=table1.id,
+            datasource_type=DatasourceType.TABLE,
+            datasource_name="tmp_table1",
+            slice_name="tmp_slice1",
+        )
+        session.add(slice1)
+        session.commit()
+
+        table1_pvm = security_manager.find_permission_view_menu(
+            "datasource_access", f"[tmp_db1].[tmp_table1](id:{table1.id})"
+        )
+        self.assertIsNotNone(table1_pvm)
+
+        # refresh
+        table1 = session.query(SqlaTable).filter_by(table_name="tmp_table1").one()
+        # Test update
+        table1.schema = "tmp_schema_changed"
+        session.commit()
+
+        # Test permission still exists
+        table1_pvm = security_manager.find_permission_view_menu(
+            "datasource_access", f"[tmp_db1].[tmp_table1](id:{table1.id})"
+        )
+        self.assertIsNotNone(table1_pvm)
+
+        # test dataset schema permission changed
+        changed_table1 = (
+            session.query(SqlaTable).filter_by(table_name="tmp_table1").one()
+        )
+        self.assertEqual(changed_table1.perm, f"[tmp_db1].[tmp_table1](id:{table1.id})")
+        self.assertEqual(changed_table1.schema_perm, f"[tmp_db1].[tmp_schema_changed]")
+
+        # Test Chart schema permission changed
+        slice1 = session.query(Slice).filter_by(slice_name="tmp_slice1").one()
+        self.assertEqual(slice1.perm, f"[tmp_db1].[tmp_table1](id:{table1.id})")
+        self.assertEqual(slice1.schema_perm, f"[tmp_db1].[tmp_schema_changed]")
+
+        # cleanup
+        session.delete(table1)
+        session.delete(slice1)
+        session.delete(tmp_db1)
+        session.commit()
+
+    def test_after_update_dataset__name_db_changes(self):
+        session = db.session
+        tmp_db1 = Database(database_name="tmp_db1", sqlalchemy_uri="sqlite://")
+        tmp_db2 = Database(database_name="tmp_db2", sqlalchemy_uri="sqlite://")
+        session.add(tmp_db1)
+        session.add(tmp_db2)
+        session.commit()
+
+        table1 = SqlaTable(
+            schema="tmp_schema",
+            table_name="tmp_table1",
+            database=tmp_db1,
+        )
+        session.add(table1)
+        session.commit()
+
+        slice1 = Slice(
+            datasource_id=table1.id,
+            datasource_type=DatasourceType.TABLE,
+            datasource_name="tmp_table1",
+            slice_name="tmp_slice1",
+        )
+        session.add(slice1)
+        session.commit()
+
+        table1_pvm = security_manager.find_permission_view_menu(
+            "datasource_access", f"[tmp_db1].[tmp_table1](id:{table1.id})"
+        )
+        self.assertIsNotNone(table1_pvm)
+
+        # refresh
+        table1 = session.query(SqlaTable).filter_by(table_name="tmp_table1").one()
+        # Test update
+        table1.table_name = "tmp_table1_changed"
+        table1.database = tmp_db2
+        session.commit()
+
+        # Test old permission does not exist
+        table1_pvm = security_manager.find_permission_view_menu(
+            "datasource_access", f"[tmp_db1].[tmp_table1](id:{table1.id})"
+        )
+        self.assertIsNone(table1_pvm)
+
+        # Test new permission exist
+        table1_pvm = security_manager.find_permission_view_menu(
+            "datasource_access", f"[tmp_db2].[tmp_table1_changed](id:{table1.id})"
+        )
+        self.assertIsNotNone(table1_pvm)
+
+        # test dataset permission and schema permission changed
+        changed_table1 = (
+            session.query(SqlaTable).filter_by(table_name="tmp_table1_changed").one()
+        )
+        self.assertEqual(
+            changed_table1.perm, f"[tmp_db2].[tmp_table1_changed](id:{table1.id})"
+        )
+        self.assertEqual(changed_table1.schema_perm, f"[tmp_db2].[tmp_schema]")
+
+        # Test Chart permission changed
+        slice1 = session.query(Slice).filter_by(slice_name="tmp_slice1").one()
+        self.assertEqual(slice1.perm, f"[tmp_db2].[tmp_table1_changed](id:{table1.id})")
+        self.assertEqual(slice1.schema_perm, f"[tmp_db2].[tmp_schema]")
+
+        # cleanup
+        session.delete(table1)
+        session.delete(slice1)
+        session.delete(tmp_db1)
+        session.delete(tmp_db2)
+        session.commit()
 
     def test_hybrid_perm_database(self):
         database = Database(database_name="tmp_database3", sqlalchemy_uri="sqlite://")

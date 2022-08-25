@@ -77,7 +77,12 @@ from superset.security.guest_token import (
     GuestTokenUser,
     GuestUser,
 )
-from superset.utils.core import DatasourceName, get_user_id, RowLevelSecurityFilterType
+from superset.utils.core import (
+    DatasourceName,
+    DatasourceType,
+    get_user_id,
+    RowLevelSecurityFilterType,
+)
 from superset.utils.urls import get_url_host
 
 if TYPE_CHECKING:
@@ -1191,7 +1196,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             )
         )
 
-    def __update_dataset_schema_perm(
+    def _update_dataset_schema_perm(
         self,
         mapper: Mapper,
         connection: Connection,
@@ -1240,12 +1245,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             chart_table.update()
             .where(
                 chart_table.c.datasource_id == target.id,
-                chart_table.c.datasource_type == "table",
+                chart_table.c.datasource_type == DatasourceType.TABLE,
             )
             .values(schema_perm=new_schema_permission_name)
         )
 
-    def _update_dataset_perm(
+    def _update_dataset_perm(  # pylint: disable=too-many-arguments
         self,
         mapper: Mapper,
         connection: Connection,
@@ -1297,7 +1302,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         connection.execute(
             chart_table.update()
             .where(
-                chart_table.c.datasource_type == "table",
+                chart_table.c.datasource_type == DatasourceType.TABLE,
                 chart_table.c.datasource_id == target.id,
             )
             .values(perm=new_permission_name)
@@ -1310,6 +1315,16 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         permission_name: str,
         view_menu_name: Optional[str],
     ) -> None:
+        """
+        Helper method that is called by SQLAlchemy events.
+        Inserts a new PVM (if it does not exist already)
+
+        :param mapper: The SQLA event mapper
+        :param connection: The SQLA connection
+        :param permission_name: e.g.: datasource_access, schema_access
+        :param view_menu_name: e.g. [db1].[public]
+        :return:
+        """
         permission_table = self.permission_model.__table__  # pylint: disable=no-member
         view_menu_table = self.viewmenu_model.__table__  # pylint: disable=no-member
         permission_view_table = (
@@ -1363,7 +1378,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             new_dataset_schema_name = self.get_schema_perm(
                 target.database.database_name, target.schema
             )
-            self.__update_dataset_schema_perm(
+            self._update_dataset_schema_perm(
                 mapper,
                 connection,
                 new_dataset_schema_name,
@@ -1385,16 +1400,47 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         # When schema changes
         if history_schema.has_changes() and history_schema.deleted:
-            old_schema_name = history_schema.deleted[0]
             new_dataset_schema_name = self.get_schema_perm(
                 target.database.database_name, target.schema
             )
-            self.__update_dataset_schema_perm(
+            self._update_dataset_schema_perm(
                 mapper,
                 connection,
                 new_dataset_schema_name,
                 target,
             )
+
+    def on_role_after_update(
+        self, mapper: Mapper, connection: Connection, target: Role
+    ) -> None:
+        """
+        Hook that allows for further custom operations when a Role update
+        is created by set_perm.
+
+        Since set_perm is executed by SQLAlchemy after_insert events, we cannot
+        create new view_menu's using a session, so any SQLAlchemy events hooked to
+        `ViewMenu` will not trigger an after_insert.
+
+        :param mapper: The table mapper
+        :param connection: The DB-API connection
+        :param target: The mapped instance being changed
+        """
+
+    def on_view_menu_after_insert(
+        self, mapper: Mapper, connection: Connection, target: ViewMenu
+    ) -> None:
+        """
+        Hook that allows for further custom operations when a new ViewMenu
+        is created by set_perm.
+
+        Since set_perm is executed by SQLAlchemy after_insert events, we cannot
+        create new view_menu's using a session, so any SQLAlchemy events hooked to
+        `ViewMenu` will not trigger an after_insert.
+
+        :param mapper: The table mapper
+        :param connection: The DB-API connection
+        :param target: The mapped instance being persisted
+        """
 
     def on_view_menu_after_update(
         self, mapper: Mapper, connection: Connection, target: ViewMenu
@@ -1440,32 +1486,32 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :param target: The mapped instance being persisted
         """
 
-    def on_view_menu_after_insert(
-        self, mapper: Mapper, connection: Connection, target: ViewMenu
+    def on_permission_view_after_insert(
+        self, mapper: Mapper, connection: Connection, target: PermissionView
     ) -> None:
         """
-        Hook that allows for further custom operations when a new ViewMenu
-        is created by set_perm.
+        Hook that allows for further custom operations when a new PermissionView
+        is created by SQLAlchemy events.
 
-        Since set_perm is executed by SQLAlchemy after_insert events, we cannot
-        create new view_menu's using a session, so any SQLAlchemy events hooked to
-        `ViewMenu` will not trigger an after_insert.
+        On SQLAlchemy after_insert events, we cannot
+        create new pvms using a session, so any SQLAlchemy events hooked to
+        `PermissionView` will not trigger an after_insert.
 
         :param mapper: The table mapper
         :param connection: The DB-API connection
         :param target: The mapped instance being persisted
         """
 
-    def on_permission_view_after_insert(
+    def on_permission_view_after_delete(
         self, mapper: Mapper, connection: Connection, target: PermissionView
     ) -> None:
         """
         Hook that allows for further custom operations when a new PermissionView
-        is created by set_perm.
+        is delete by SQLAlchemy events.
 
-        Since set_perm is executed by SQLAlchemy after_insert events, we cannot
-        create new pvms using a session, so any SQLAlchemy events hooked to
-        `PermissionView` will not trigger an after_insert.
+        On SQLAlchemy after_delete events, we cannot
+        delete pvms using a session, so any SQLAlchemy events hooked to
+        `PermissionView` will not trigger an after_delete.
 
         :param mapper: The table mapper
         :param connection: The DB-API connection
