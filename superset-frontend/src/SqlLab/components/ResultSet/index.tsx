@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useDispatch } from 'react-redux';
 import ButtonGroup from 'src/components/ButtonGroup';
 import Alert from 'src/components/Alert';
@@ -99,7 +99,7 @@ const MonospaceDiv = styled.div`
 `;
 
 const ReturnedRows = styled.div`
-  font-size: ${({ theme }) => theme.gridUnit * 3.25}px;
+  font-size: ${({ theme }) => theme.typography.sizes.s}px;
   line-height: ${({ theme }) => theme.gridUnit * 6}px;
 `;
 
@@ -140,10 +140,23 @@ const ResultSet = ({
 
   const dispatch = useDispatch();
 
+  const reRunQueryIfSessionTimeoutErrorOnMount = useCallback(() => {
+    if (
+      query.errorMessage &&
+      query.errorMessage.indexOf('session timed out') > 0
+    ) {
+      dispatch(reRunQuery(query));
+    }
+  }, []);
+
   useEffect(() => {
     // only do this the first time the component is rendered/mounted
     reRunQueryIfSessionTimeoutErrorOnMount();
-  }, []);
+  }, [reRunQueryIfSessionTimeoutErrorOnMount]);
+
+  const fetchResults = (query: QueryResponse) => {
+    dispatch(fetchQueryResults(query, displayLimit));
+  };
 
   const prevQuery = usePrevious(query);
   useEffect(() => {
@@ -181,19 +194,6 @@ const ResultSet = ({
 
   const changeSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSearchText(event.target.value);
-  };
-
-  const fetchResults = (query: QueryResponse) => {
-    dispatch(fetchQueryResults(query, displayLimit));
-  };
-
-  const reRunQueryIfSessionTimeoutErrorOnMount = () => {
-    if (
-      query.errorMessage &&
-      query.errorMessage.indexOf('session timed out') > 0
-    ) {
-      dispatch(reRunQuery(query));
-    }
   };
 
   const createExploreResultsOnClick = async () => {

@@ -87,23 +87,18 @@ const setup = (props?: any, store?: Store) =>
 
 describe('ResultSet', () => {
   it('renders a Table', async () => {
-    const { baseElement } = setup(mockedProps, mockStore(initialState));
-    const table = baseElement.getElementsByClassName(
-      'filterable-table-container',
-    )[0];
-
+    const { getByTestId } = setup(mockedProps, mockStore(initialState));
+    const table = getByTestId('table-container');
     expect(table).toBeInTheDocument();
   });
 
   it('should render success query', async () => {
-    const { baseElement, queryAllByText, getByTestId } = setup(
+    const { queryAllByText, getByTestId } = setup(
       mockedProps,
       mockStore(initialState),
     );
-    const table = baseElement.getElementsByClassName(
-      'filterable-table-container',
-    )[0];
 
+    const table = getByTestId('table-container');
     expect(table).toBeInTheDocument();
 
     const firstColumn = queryAllByText(
@@ -124,12 +119,7 @@ describe('ResultSet', () => {
       ...mockedProps,
       query: { ...mockedProps.query, results: { data: [] } },
     };
-    const { baseElement, getByRole } = setup(props, mockStore(initialState));
-    const table = baseElement.getElementsByClassName(
-      'filterable-table-container',
-    )[0];
-
-    expect(table).toBeUndefined();
+    const { getByRole } = setup(props, mockStore(initialState));
 
     const alert = getByRole('alert');
     expect(alert).toBeInTheDocument();
