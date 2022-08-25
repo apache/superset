@@ -185,15 +185,18 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     engine_name: Optional[str] = None  # for user messages, overridden in child classes
 
-    # Associate the DB engine spec to one or more SQLAlchemy dialects/drivers. For
-    # example, if a given DB engine spec has:
+    # These attributes map the DB engine spec to one or more SQLAlchemy dialects/drivers.
+    # For example, if a given DB engine spec has:
     #
     #     class PostgresDBEngineSpec:
-    #         engine = 'postgresql'
-    #         engine_aliases = 'postgres'
-    #         drivers = {'psycopg2', 'asyncpg'}
+    #         engine = "postgresql"
+    #         engine_aliases = "postgres"
+    #         drivers = {
+    #             "psycopg2": "The default Postgres driver",
+    #             "asyncpg": "An asynchronous Postgres driver",
+    #         }
     #
-    # It would be used for all the following SQLALchemy URIs:
+    # It would be used for all the following SQLAlchemy URIs:
     #
     #   - postgres://user:password@host/db
     #   - postgresql://user:password@host/db
@@ -450,7 +453,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     @classmethod
     def get_text_clause(cls, clause: str) -> TextClause:
         """
-        SQLALchemy wrapper to ensure text clauses are escaped properly
+        SQLAlchemy wrapper to ensure text clauses are escaped properly
 
         :param clause: string clause with potentially unescaped characters
         :return: text clause with escaped characters

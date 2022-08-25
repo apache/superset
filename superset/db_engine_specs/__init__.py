@@ -95,6 +95,12 @@ def get_engine_spec(backend: str, driver: Optional[str] = None) -> Type[BaseEngi
         if engine_spec.supports_backend(backend, driver):
             return engine_spec
 
+    # check ignoring the driver, in order to support new drivers; this will return a
+    # random DB engine spec that supports the engine
+    for engine_spec in engine_specs:
+        if engine_spec.supports_backend(backend):
+            return engine_spec
+
     # default to the generic DB engine spec
     return BaseEngineSpec
 

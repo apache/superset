@@ -124,12 +124,24 @@ def test_get_db_engine_spec(mocker: MockFixture) -> None:
         == PostgresDBEngineSpec
     )
     assert (
+        Database(
+            database_name="db", sqlalchemy_uri="postgresql+fancynewdriver://"
+        ).db_engine_spec
+        == PostgresDBEngineSpec
+    )
+    assert (
         Database(database_name="db", sqlalchemy_uri="mysql://").db_engine_spec
         == OldDBEngineSpec
     )
     assert (
         Database(
             database_name="db", sqlalchemy_uri="mysql+mysqlconnector://"
+        ).db_engine_spec
+        == OldDBEngineSpec
+    )
+    assert (
+        Database(
+            database_name="db", sqlalchemy_uri="mysql+fancynewdriver://"
         ).db_engine_spec
         == OldDBEngineSpec
     )
