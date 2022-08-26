@@ -66,8 +66,8 @@ type BigNumberVisProps = {
   echartOptions: EChartsCoreOption;
   onContextMenu?: (
     filters: QueryObjectFilterClause[],
-    offsetX: number,
-    offsetY: number,
+    clientX: number,
+    clientY: number,
   ) => void;
   xValueFormatter?: TimeFormatter;
   formData?: BigNumberWithTrendlineFormData;
@@ -173,8 +173,8 @@ class BigNumberVis extends React.PureComponent<BigNumberVisProps> {
         e.preventDefault();
         this.props.onContextMenu(
           [],
-          e.nativeEvent.offsetX,
-          e.nativeEvent.offsetY,
+          e.nativeEvent.clientX,
+          e.nativeEvent.clientY,
         );
       }
     };
@@ -234,7 +234,7 @@ class BigNumberVis extends React.PureComponent<BigNumberVisProps> {
     return null;
   }
 
-  renderTrendline(maxHeight: number, chartHeight: number) {
+  renderTrendline(maxHeight: number) {
     const { width, trendLineData, echartOptions } = this.props;
 
     // if can't find any non-null values, no point rendering the trendline
@@ -259,8 +259,8 @@ class BigNumberVis extends React.PureComponent<BigNumberVisProps> {
             });
             this.props.onContextMenu(
               filters,
-              pointerEvent.offsetX,
-              chartHeight - 100,
+              pointerEvent.clientX,
+              pointerEvent.clientY,
             );
           }
         }
@@ -307,7 +307,7 @@ class BigNumberVis extends React.PureComponent<BigNumberVisProps> {
               ),
             )}
           </div>
-          {this.renderTrendline(chartHeight, height)}
+          {this.renderTrendline(chartHeight)}
         </div>
       );
     }
