@@ -28,11 +28,12 @@ import { debounce } from 'lodash';
 import { EmptyStateMedium } from 'src/components/EmptyState';
 import { DatasetActionType } from '../types';
 import { DatasetObject } from '../types';
+import { useToasts } from 'src/components/MessageToasts/withToasts';
 
 interface LeftPanelProps {
   setDataset: (db: any) => void;
   schema?: string | undefined | null;
-  dbId?: string;
+  dbId?: number;
 }
 
 const LeftPanelStyle = styled.div`
@@ -96,7 +97,9 @@ export default function LeftPanel({
   const [searchVal, setSearchVal] = useState('');
   const [refresh, setRefresh] = useState(false);
 
-  const setDatabase = (db: ) => {
+  const { addDangerToast } = useToasts();
+
+  const setDatabase = (db: Partial<DatasetObject>) => {
     setDataset({ type: DatasetActionType.selectDatabase, payload: db });
     setResetTables(true);
   };
@@ -126,7 +129,6 @@ export default function LeftPanel({
 
   const setSchema = (schema: string) => {
     if (schema) {
-      console.log('schema', schema);
       setDataset({ type: DatasetActionType.selectSchema, payload: schema });
       setLoadTables(true);
     }
@@ -168,7 +170,7 @@ export default function LeftPanel({
     <LeftPanelStyle>
       <p className="section-title db-schema"> Select Database & Schema</p>
       <DatabaseSelector
-        handleError={() => null}
+        handleError={addDangerToast}
         onDbChange={setDatabase}
         onSchemaChange={setSchema}
       />

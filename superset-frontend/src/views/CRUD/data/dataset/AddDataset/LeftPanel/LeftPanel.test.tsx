@@ -75,18 +75,13 @@ describe('LeftPanel', () => {
     expect(screen.getByText(/no database tables found/i)).toBeVisible();
     expect(screen.getByText(/try selecting a different schema/i)).toBeVisible();
   });
-  it.only('renders list of options when user clicks on schema', () => {
+  it('renders list of options when user clicks on schema', () => {
     render(<LeftPanel setDataset={mockFun} schema="schema_a" dbId="1" />, {
       useRedux: true,
     });
     // screen.debug('container', container)
     SupersetClientGet.mockImplementation(getSchemaMockFunction);
     SupersetClientGet.mockImplementation(getTableMockFunction);
-    const schemaSelect = screen.getByRole('combobox', {
-      name: 'Select schema or type schema name',
-    });
     expect(screen.getByTestId('options-list')).toBeInTheDocument();
-    screen.logTestingPlaygroundURL();
-    expect.anything();
   });
 });
