@@ -45,7 +45,7 @@ import {
 // const dashURL = 'https://first-app.ikigailabs.io/widget/pipeline/run';
 // const dashURL = 'http://localhost:3000';
 const parentURL =
-  window.location != window.parent.location
+  window.location !== window.parent.location
     ? document.referrer
     : document.location.href;
 const dashURL = parentURL.substring(0, parentURL.indexOf('/', 8));
