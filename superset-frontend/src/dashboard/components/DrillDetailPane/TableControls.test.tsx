@@ -90,7 +90,7 @@ test('should render with filters', () => {
   expect(screen.getByText('IT')).toBeInTheDocument();
 });
 
-test('should remove the filters on close', async () => {
+test('should remove the filters on close', () => {
   setup({
     filters: [
       {
