@@ -38,26 +38,26 @@ interface LeftPanelProps {
 
 const LeftPanelStyle = styled.div`
   ${({ theme }) => `
-  max-width: 350px;
+  max-width: ${theme.gridUnit * 87.5}px;
   padding: ${theme.gridUnit * 4}px;
   height: 100%;
   background-color: ${theme.colors.grayscale.light5}; 
   .refresh {
     position: absolute;
-    top: 290px;
-    left: 67px;
+    top: ${theme.gridUnit * 72.5}px;
+    left: ${theme.gridUnit * 16.75}px;
     span[role="button"]{
       font-size: ${theme.gridUnit * 4.25}px;
     }
   }
   .section-title {
-    margin-top: 44px;
-    margin-bottom: 44px;
+    margin-top: ${theme.gridUnit * 11}px;
+    margin-bottom: ${theme.gridUnit * 11}px;
     font-weight: ${theme.typography.weights.bold};
   }
   .options-list {
     overflow: auto;
-    max-height: 700px;
+    max-height: ${theme.gridUnit * 175}px;
     .options {
       padding: ${theme.gridUnit * 1.75}px;
       border-radius: ${theme.borderRadius}px;
@@ -65,21 +65,21 @@ const LeftPanelStyle = styled.div`
   }
   form > span {
     position: absolute;
-    top: 410px;
-    left: 171px;
-    font-size: 17px;   
+    top: ${theme.gridUnit * 102.5}px;
+    left: ${theme.gridUnit * 42.75}px;
+    font-size: ${theme.gridUnit * 4.25}px;
   }
   .table-form {
     margin-bottom: ${theme.gridUnit * 8}px;
   }
   .loading {
     position: absolute;
-    bottom: 380px;
+    bottom: ${theme.gridUnit * 95}px;
     img {
       position: absolute;
-      top: -53px;
-      right: -15px;
-      width: 71px;
+      top: -${theme.gridUnit * 13.25}px;
+      right: -${theme.gridUnit * 3.75}px;
+      width: ${theme.gridUnit * 17.75}px;
     }
   }
   }
