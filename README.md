@@ -117,8 +117,8 @@ Here are some of the major database solutions that are supported:
   <img src="superset-frontend/src/assets/images/teradata.png" alt="teradata" border="0" width="200" height="80"/>
   <img src="superset-frontend/src/assets/images/yugabyte.png" alt="yugabyte" border="0" width="200" height="80"/>
 </p>
-**A more comprehensive list of supported databases** along with the configuration instructions can be found
-[here](https://superset.apache.org/docs/databases/installing-database-drivers).
+
+**A more comprehensive list of supported databases** along with the configuration instructions can be found [here](https://superset.apache.org/docs/databases/installing-database-drivers).
 
 Want to add support for your datastore or data engine? Read more [here](https://superset.apache.org/docs/frequently-asked-questions#does-superset-work-with-insert-database-engine-here) about the technical requirements.
 
