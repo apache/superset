@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DataRecordValue, QueryObjectFilterClause } from '@superset-ui/core';
+import { QueryObjectFilterClause } from '@superset-ui/core';
 import { EChartTransformedProps, EventHandlers } from '../types';
 
 export type Event = {
@@ -42,7 +42,7 @@ export const contextMenuEventHandler =
   (
     groupby: EChartTransformedProps<any>['groupby'],
     onContextMenu: EChartTransformedProps<any>['onContextMenu'],
-    labelMap: Record<string, DataRecordValue[]>,
+    labelMap: Record<string, string[]>,
   ) =>
   (e: Event) => {
     if (onContextMenu) {
