@@ -953,6 +953,18 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         connection: Connection,
         target: "Database",
     ) -> None:
+        """
+        Handles permissions when a database is created.
+        Triggered by a SQLAlchemy after_insert event.
+
+        We need to create:
+         - The database PVM
+
+        :param mapper: The SQLA mapper
+        :param connection: The SQLA connection
+        :param target: The changed database object
+        :return:
+        """
         self._insert_pvm_on_sqla_event(
             mapper, connection, "database_access", target.get_perm()
         )
