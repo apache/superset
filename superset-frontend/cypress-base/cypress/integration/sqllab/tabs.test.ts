@@ -30,8 +30,10 @@ describe('SqlLab query tabs', () => {
       const initialUntitledCount = Math.max(
         0,
         ...tabs
-          .map((i, tabItem) =>
-            Number(tabItem.textContent?.match(/Untitled Query (\d+)/)?.[1]),
+          .map(
+            (i, tabItem) =>
+              Number(tabItem.textContent?.match(/Untitled Query (\d+)/)?.[1]) ||
+              0,
           )
           .toArray(),
       );

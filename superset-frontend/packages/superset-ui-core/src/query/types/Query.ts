@@ -32,26 +32,33 @@ import { PostProcessingRule } from './PostProcessing';
 import { JsonObject } from '../../connection';
 import { TimeGranularity } from '../../time-format';
 
-export type QueryObjectFilterClause = {
+export type BaseQueryObjectFilterClause = {
   col: QueryFormColumn;
   grain?: TimeGranularity;
   isExtra?: boolean;
-} & (
-  | {
-      op: BinaryOperator;
-      val: string | number | boolean;
-      formattedVal?: string;
-    }
-  | {
-      op: SetOperator;
-      val: (string | number | boolean)[];
-      formattedVal?: string[];
-    }
-  | {
-      op: UnaryOperator;
-      formattedVal?: string;
-    }
-);
+};
+
+export type BinaryQueryObjectFilterClause = BaseQueryObjectFilterClause & {
+  op: BinaryOperator;
+  val: string | number | boolean;
+  formattedVal?: string;
+};
+
+export type SetQueryObjectFilterClause = BaseQueryObjectFilterClause & {
+  op: SetOperator;
+  val: (string | number | boolean)[];
+  formattedVal?: string[];
+};
+
+export type UnaryQueryObjectFilterClause = BaseQueryObjectFilterClause & {
+  op: UnaryOperator;
+  formattedVal?: string;
+};
+
+export type QueryObjectFilterClause =
+  | BinaryQueryObjectFilterClause
+  | SetQueryObjectFilterClause
+  | UnaryQueryObjectFilterClause;
 
 export type QueryObjectExtras = Partial<{
   /** HAVING condition for Druid */
@@ -401,5 +408,9 @@ export enum ContributionType {
   Row = 'row',
   Column = 'column',
 }
+
+export type DatasourceSamplesQuery = {
+  filters?: QueryObjectFilterClause[];
+};
 
 export default {};

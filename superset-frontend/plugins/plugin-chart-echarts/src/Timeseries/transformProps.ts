@@ -20,7 +20,6 @@
 import {
   AnnotationLayer,
   CategoricalColorNamespace,
-  DataRecordValue,
   DTTM_ALIAS,
   GenericDataType,
   getColumnLabel,
@@ -101,7 +100,8 @@ export default function transformProps(
   } = chartProps;
   const { verboseMap = {} } = datasource;
   const [queryData] = queriesData;
-  const { data = [] } = queryData as TimeseriesChartDataResponseResult;
+  const { data = [], label_map: labelMap } =
+    queryData as TimeseriesChartDataResponseResult;
   const dataTypes = getColtypesMapping(queryData);
   const annotationData = getAnnotationData(chartProps);
 
@@ -291,20 +291,9 @@ export default function transformProps(
       ? getXAxisFormatter(xAxisTimeFormat)
       : String;
 
-  const labelMap = series.reduce(
-    (acc: Record<string, DataRecordValue[]>, datum) => {
-      const name: string = datum.name as string;
-      return {
-        ...acc,
-        [name]: [name],
-      };
-    },
-    {},
-  );
-
   const {
     setDataMask = () => {},
-    setControlValue = (...args: unknown[]) => {},
+    setControlValue = () => {},
     onContextMenu,
   } = hooks;
 
