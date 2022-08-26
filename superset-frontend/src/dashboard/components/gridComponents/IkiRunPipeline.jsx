@@ -53,11 +53,10 @@ import {
 // const dashURL = 'https://dev-ui.ikigailabs.io';
 // const dashURL = 'https://first-app.ikigailabs.io/widget/pipeline/run';
 // const dashURL = 'http://localhost:3000';
-const parentURL =
-  window.location !== window.parent.location
-    ? document.referrer
-    : document.location.href;
-const dashURL = parentURL.substring(0, parentURL.indexOf('/', 8));
+const dashURL = document.location.ancestorOrigins[0].substring(
+  0,
+  document.location.ancestorOrigins[0].indexOf('/', 8),
+);
 const timestamp = new Date().getTime().toString();
 const iframeEmptyURL = `${dashURL}/widget/pipeline/run?mode=edit&v=1&run_flow_times=${timestamp}`;
 
@@ -115,17 +114,6 @@ class IkiRunPipeline extends React.PureComponent {
   }
 
   componentDidMount() {
-    console.log('document.referrer', document.referrer);
-    console.log('document.location.href', document.location.href);
-    console.log(
-      'document.location.ancestorOrigins',
-      document.location.ancestorOrigins,
-    );
-    console.log(
-      'document.location.ancestorOrigins[0]',
-      document.location.ancestorOrigins[0],
-    );
-    console.log('document.location', document.location);
     this.props.logEvent(LOG_ACTIONS_RENDER_CHART, {
       viz_type: 'markdown',
       start_offset: this.renderStartTime,
