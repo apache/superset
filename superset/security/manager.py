@@ -953,7 +953,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         connection: Connection,
         target: "Database",
     ) -> None:
-        self._insert_new_pvm_on_event(
+        self._insert_pvm_on_sqla_event(
             mapper, connection, "database_access", target.get_perm()
         )
 
@@ -997,36 +997,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         database_id: int,
         database_name: str,
     ) -> None:
-        view_menu_table = self.viewmenu_model.__table__  # pylint: disable=no-member
-        permission_view_menu_table = (
-            self.permissionview_model.__table__  # pylint: disable=no-member
-        )
         view_menu_name = self.get_database_perm(database_id, database_name)
         # Clean database access permission
-        db_pvm = self.find_permission_view_menu("database_access", view_menu_name)
-        if not db_pvm:
-            logger.warning(
-                "Could not find previous database permission %s",
-                view_menu_name,
-            )
-            return
-        # Delete Any Role to PVM association
-        connection.execute(
-            assoc_permissionview_role.delete().where(
-                assoc_permissionview_role.c.permission_view_id == db_pvm.id
-            )
+        self._delete_pvm_on_sqla_event(
+            mapper, connection, "database_access", view_menu_name
         )
-        # Delete the database access PVM
-        connection.execute(
-            permission_view_menu_table.delete().where(
-                permission_view_menu_table.c.id == db_pvm.id
-            )
-        )
-        self.on_permission_after_delete(mapper, connection, db_pvm)
-        connection.execute(
-            view_menu_table.delete().where(view_menu_table.c.id == db_pvm.view_menu_id)
-        )
-
         # Clean database schema permissions
         schema_pvms = (
             self.get_session.query(self.permissionview_model)
@@ -1037,22 +1012,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             .all()
         )
         for schema_pvm in schema_pvms:
-            connection.execute(
-                assoc_permissionview_role.delete().where(
-                    assoc_permissionview_role.c.permission_view_id == schema_pvm.id
-                )
-            )
-            connection.execute(
-                permission_view_menu_table.delete().where(
-                    permission_view_menu_table.c.id == schema_pvm.id
-                )
-            )
-            self.on_permission_after_delete(mapper, connection, schema_pvm)
-            connection.execute(
-                view_menu_table.delete().where(
-                    view_menu_table.c.id == schema_pvm.view_menu_id
-                )
-            )
+            self._delete_pvm_on_sqla_event(mapper, connection, pvm=schema_pvm)
 
     def _update_vm_database_access(
         self,
@@ -1071,7 +1031,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 "Could not find previous database permission %s",
                 old_view_menu_name,
             )
-            self._insert_new_pvm_on_event(
+            self._insert_pvm_on_sqla_event(
                 mapper, connection, "database_access", new_view_menu_name
             )
             return None
@@ -1176,7 +1136,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             return
         dataset_table = target.__table__
 
-        self._insert_new_pvm_on_event(
+        self._insert_pvm_on_sqla_event(
             mapper, connection, "datasource_access", dataset_perm
         )
         if target.perm != dataset_perm:
@@ -1191,7 +1151,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             dataset_schema_perm = self.get_schema_perm(
                 target.database.database_name, target.schema
             )
-            self._insert_new_pvm_on_event(
+            self._insert_pvm_on_sqla_event(
                 mapper, connection, "schema_access", dataset_schema_perm
             )
             target.schema_perm = dataset_schema_perm
@@ -1207,37 +1167,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         connection: Connection,
         target: "SqlaTable",
     ) -> None:
-        view_menu_table = self.viewmenu_model.__table__  # pylint: disable=no-member
-        permission_view_menu_table = (
-            self.permissionview_model.__table__  # pylint: disable=no-member
-        )
-
         dataset_vm_name = self.get_dataset_perm(
             target.id, target.table_name, target.database.database_name
         )
-        dataset_pvm = self.find_permission_view_menu(
-            "datasource_access", dataset_vm_name
-        )
-        if not dataset_pvm:
-            return
-        # Delete Any Role to PVM association
-        connection.execute(
-            assoc_permissionview_role.delete().where(
-                assoc_permissionview_role.c.permission_view_id == dataset_pvm.id
-            )
-        )
-        # Delete the dataset PVM
-        connection.execute(
-            permission_view_menu_table.delete().where(
-                permission_view_menu_table.c.id == dataset_pvm.id
-            )
-        )
-        self.on_permission_after_delete(mapper, connection, dataset_pvm)
-        # Delete the dataset VM
-        connection.execute(
-            view_menu_table.delete().where(
-                view_menu_table.c.id == dataset_pvm.view_menu_id
-            )
+        self._delete_pvm_on_sqla_event(
+            mapper, connection, "datasource_access", dataset_vm_name
         )
 
     def dataset_after_update(
@@ -1328,7 +1262,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         chart_table = Slice.__table__  # pylint: disable=no-member
 
         # insert new schema PVM if it does not exist
-        self._insert_new_pvm_on_event(
+        self._insert_pvm_on_sqla_event(
             mapper, connection, "schema_access", new_schema_permission_name
         )
 
@@ -1409,7 +1343,41 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             .values(perm=new_permission_name)
         )
 
-    def _insert_new_pvm_on_event(
+    def _delete_pvm_on_sqla_event(  # pylint: disable=too-many-arguments
+        self,
+        mapper: Mapper,
+        connection: Connection,
+        permission_name: Optional[str] = None,
+        view_menu_name: Optional[str] = None,
+        pvm: Optional[PermissionView] = None,
+    ) -> None:
+        view_menu_table = self.viewmenu_model.__table__  # pylint: disable=no-member
+        permission_view_menu_table = (
+            self.permissionview_model.__table__  # pylint: disable=no-member
+        )
+
+        if not pvm:
+            pvm = self.find_permission_view_menu(permission_name, view_menu_name)
+        if not pvm:
+            return
+        # Delete Any Role to PVM association
+        connection.execute(
+            assoc_permissionview_role.delete().where(
+                assoc_permissionview_role.c.permission_view_id == pvm.id
+            )
+        )
+        # Delete the database access PVM
+        connection.execute(
+            permission_view_menu_table.delete().where(
+                permission_view_menu_table.c.id == pvm.id
+            )
+        )
+        self.on_permission_view_after_delete(mapper, connection, pvm)
+        connection.execute(
+            view_menu_table.delete().where(view_menu_table.c.id == pvm.view_menu_id)
+        )
+
+    def _insert_pvm_on_sqla_event(
         self,
         mapper: Mapper,
         connection: Connection,
@@ -1459,9 +1427,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     ) -> None:
         """
         Hook that allows for further custom operations when a Role update
-        is created by set_perm.
+        is created by SQLAlchemy events.
 
-        Since set_perm is executed by SQLAlchemy after_insert events, we cannot
+        On SQLAlchemy after_insert events, we cannot
         create new view_menu's using a session, so any SQLAlchemy events hooked to
         `ViewMenu` will not trigger an after_insert.
 
@@ -1477,7 +1445,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         Hook that allows for further custom operations when a new ViewMenu
         is created by set_perm.
 
-        Since set_perm is executed by SQLAlchemy after_insert events, we cannot
+        On SQLAlchemy after_insert events, we cannot
         create new view_menu's using a session, so any SQLAlchemy events hooked to
         `ViewMenu` will not trigger an after_insert.
 
@@ -1496,18 +1464,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         Since the update may be performed on after_update event. We cannot
         update ViewMenus using a session, so any SQLAlchemy events hooked to
         `ViewMenu` will not trigger an after_update.
-
-        :param mapper: The table mapper
-        :param connection: The DB-API connection
-        :param target: The mapped instance being persisted
-        """
-
-    def on_permission_after_delete(
-        self, mapper: Mapper, connection: Connection, target: Permission
-    ) -> None:
-        """
-        Hook that allows for further custom operations when a permission
-        is deleted by sqlalchemy events.
 
         :param mapper: The table mapper
         :param connection: The DB-API connection
@@ -1561,68 +1517,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :param connection: The DB-API connection
         :param target: The mapped instance being persisted
         """
-
-    def set_perm(
-        self, mapper: Mapper, connection: Connection, target: "BaseDatasource"
-    ) -> None:
-        """
-        Set the datasource permissions.
-
-        :param mapper: The table mapper
-        :param connection: The DB-API connection
-        :param target: The mapped instance being persisted
-        """
-        try:
-            target_get_perm = target.get_perm()
-        except DatasetInvalidPermissionEvaluationException:
-            logger.warning("Dataset has no database refusing to set permission")
-            return
-        permission_table = self.permission_model.__table__  # pylint: disable=no-member
-        view_menu_table = self.viewmenu_model.__table__  # pylint: disable=no-member
-        link_table = target.__table__
-        if target.perm != target_get_perm:
-            connection.execute(
-                link_table.update()
-                .where(link_table.c.id == target.id)
-                .values(perm=target_get_perm)
-            )
-            connection.execute(
-                permission_table.update()
-                .where(permission_table.c.name == target.perm)
-                .values(name=target_get_perm)
-            )
-            connection.execute(
-                view_menu_table.update()
-                .where(view_menu_table.c.name == target.perm)
-                .values(name=target_get_perm)
-            )
-            target.perm = target_get_perm
-
-        # check schema perm for datasets
-        if (
-            hasattr(target, "schema_perm")
-            and target.schema_perm != target.get_schema_perm()
-        ):
-            connection.execute(
-                link_table.update()
-                .where(link_table.c.id == target.id)
-                .values(schema_perm=target.get_schema_perm())
-            )
-            target.schema_perm = target.get_schema_perm()
-
-        pvm_names = []
-        if target.__tablename__ in {"dbs", "clusters"}:
-            pvm_names.append(("database_access", target_get_perm))
-        else:
-            pvm_names.append(("datasource_access", target_get_perm))
-            if target.schema:
-                pvm_names.append(("schema_access", target.get_schema_perm()))
-
-        # TODO(bogdan): modify slice permissions as well.
-        for permission_name, view_menu_name in pvm_names:
-            self._insert_new_pvm_on_event(
-                mapper, connection, permission_name, view_menu_name
-            )
 
     def raise_for_access(
         # pylint: disable=too-many-arguments,too-many-locals
