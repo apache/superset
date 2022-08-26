@@ -1154,6 +1154,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 .where(view_menu_table.c.name == old_dataset_vm_name)
                 .values(name=new_dataset_vm_name)
             )
+            # After update refresh
+            new_dataset_view_menu = self.find_view_menu(new_dataset_vm_name)
+
             # Update dataset (SqlaTable perm field)
             connection.execute(
                 sqlatable_table.update()
@@ -1170,7 +1173,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 .values(perm=new_dataset_vm_name)
             )
             self.on_view_menu_after_update(mapper, connection, new_dataset_view_menu)
-            updated_view_menus.append(self.find_view_menu(new_dataset_view_menu))
+            updated_view_menus.append(new_dataset_view_menu)
         return updated_view_menus
 
     def dataset_after_insert(
@@ -1412,6 +1415,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             .where(view_menu_table.c.name == old_permission_name)
             .values(name=new_permission_name)
         )
+        # VM changed, so call hook
+        new_dataset_view_menu = self.find_view_menu(new_permission_name)
         self.on_view_menu_after_update(mapper, connection, new_dataset_view_menu)
         # Update dataset (SqlaTable perm field)
         connection.execute(
