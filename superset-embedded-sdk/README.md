@@ -44,7 +44,11 @@ embedDashboard({
       hideTitle: true,
       filters: {
           expanded: true,
-      }
+      },
+      urlParams: { // General Case: If undefined, passes all query parameters on main page.
+          // ...
+          // Special Case: If specified, passes explicit query parameters only.
+      },
   },
 });
 ```
