@@ -18,7 +18,6 @@
  */
 import {
   CategoricalColorNamespace,
-  DataRecordValue,
   ensureIsInt,
   getColumnLabel,
   getMetricLabel,
@@ -120,7 +119,7 @@ export default function transformProps(
   const groupbyLabels = groupby.map(getColumnLabel);
 
   const metricLabelAndMaxValueMap = new Map<string, number>();
-  const columnsLabelMap = new Map<string, DataRecordValue[]>();
+  const columnsLabelMap = new Map<string, string[]>();
   const transformedData: RadarSeriesDataItemOption[] = [];
   data.forEach(datum => {
     const joinedName = extractGroupbyLabel({
@@ -132,7 +131,7 @@ export default function transformProps(
     // map(joined_name: [columnLabel_1, columnLabel_2, ...])
     columnsLabelMap.set(
       joinedName,
-      groupbyLabels.map(col => datum[col]),
+      groupbyLabels.map(col => datum[col] as string),
     );
 
     // put max value of series into metricLabelAndMaxValueMap
