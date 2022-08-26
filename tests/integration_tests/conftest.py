@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import contextlib
 import functools
+import os
 from typing import Any, Callable, Optional, TYPE_CHECKING
 from unittest.mock import patch
 
@@ -395,3 +396,9 @@ def virtual_dataset_comma_in_column_value():
 
     db.session.delete(dataset)
     db.session.commit()
+
+
+only_postgresql = pytest.mark.skipif(
+    "postgresql" not in os.environ.get("SUPERSET__SQLALCHEMY_DATABASE_URI", ""),
+    reason="Only run test case in Postgresql",
+)
