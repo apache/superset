@@ -26,6 +26,32 @@ function interceptSamples() {
   cy.intercept(`/datasource/samples*`).as('samples');
 }
 
+function openModalFromMenu(chartType: string) {
+  interceptSamples();
+
+  cy.get(
+    `[data-test-viz-type='${chartType}'] [aria-label='More Options']`,
+  ).click();
+  cy.get('.ant-dropdown')
+    .not('.ant-dropdown-hidden')
+    .find("[role='menu'] [role='menuitem']")
+    .eq(5)
+    .should('contain', 'Drill to detail')
+    .click();
+  cy.wait('@samples');
+}
+
+function openModalFromChartContext(targetMenuItem: string) {
+  interceptSamples();
+
+  cy.get('.ant-dropdown')
+    .not('.ant-dropdown-hidden')
+    .find("[role='menu'] [role='menuitem']")
+    .should('contain', targetMenuItem)
+    .click();
+  cy.wait('@samples');
+}
+
 describe('Drill to detail modal', () => {
   beforeEach(() => {
     cy.login();
@@ -34,15 +60,8 @@ describe('Drill to detail modal', () => {
   });
 
   it('opens the modal from the context menu', () => {
-    cy.get(
-      "[data-test-viz-type='big_number_total'] [aria-label='More Options']",
-    ).click();
-    cy.get('.ant-dropdown')
-      .not('.ant-dropdown-hidden')
-      .find("[role='menu'] [role='menuitem']")
-      .eq(5)
-      .should('contain', 'Drill to detail')
-      .click();
+    openModalFromMenu('big_number_total');
+
     cy.get("[role='dialog'] .draggable-trigger").should(
       'contain',
       'Drill to detail: Number of Girls',
@@ -50,17 +69,7 @@ describe('Drill to detail modal', () => {
   });
 
   it('refreshes the data', () => {
-    interceptSamples();
-
-    cy.get(
-      "[data-test-viz-type='big_number_total'] [aria-label='More Options']",
-    ).click();
-    cy.get('.ant-dropdown')
-      .not('.ant-dropdown-hidden')
-      .find("[role='menu'] [role='menuitem']")
-      .eq(5)
-      .should('contain', 'Drill to detail')
-      .click();
+    openModalFromMenu('big_number_total');
     // move to the last page
     cy.get(".pagination-container [role='navigation'] [role='button']")
       .eq(7)
@@ -77,19 +86,7 @@ describe('Drill to detail modal', () => {
   });
 
   it('paginates', () => {
-    interceptSamples();
-
-    cy.get(
-      "[data-test-viz-type='big_number_total'] [aria-label='More Options']",
-    ).click();
-    cy.get('.ant-dropdown')
-      .not('.ant-dropdown-hidden')
-      .find("[role='menu'] [role='menuitem']")
-      .eq(5)
-      .should('contain', 'Drill to detail')
-      .click();
-    cy.wait('@samples');
-
+    openModalFromMenu('big_number_total');
     // checking the data
     cy.get("[data-test='row-count-label']").should('contain', '36.4k rows');
     cy.get("[role='rowgroup'] [role='row']")
@@ -128,12 +125,8 @@ describe('Drill to detail modal', () => {
       cy.wrap($canvas)
         .scrollIntoView()
         .rightclick(canvasCenterX, canvasCenterY, { force: true });
-      cy.get('.ant-dropdown')
-        .not('.ant-dropdown-hidden')
-        .find("[role='menu'] [role='menuitem']")
-        .should('contain', 'Drill to detail by East Asia & Pacific')
-        .click();
-      cy.wait('@samples');
+
+      openModalFromChartContext('Drill to detail by East Asia & Pacific');
 
       // checking the filter
       cy.get("[data-test='filter-val']").should(
@@ -210,12 +203,8 @@ describe('Drill to detail modal', () => {
         cy.wrap($canvas)
           .scrollIntoView()
           .rightclick(canvasCenterX, canvasCenterY, { force: true });
-        cy.get('.ant-dropdown')
-          .not('.ant-dropdown-hidden')
-          .find("[role='menu'] [role='menuitem']")
-          .should('contain', 'Drill to detail by East Asia & Pacific')
-          .click();
-        cy.wait('@samples');
+
+        openModalFromChartContext('Drill to detail by East Asia & Pacific');
 
         // checking the filter
         cy.get("[data-test='filter-val']").should(
@@ -240,12 +229,8 @@ describe('Drill to detail modal', () => {
         cy.wrap($canvas)
           .scrollIntoView()
           .rightclick(canvasCenterX, canvasCenterY, { force: true });
-        cy.get('.ant-dropdown')
-          .not('.ant-dropdown-hidden')
-          .find("[role='menu'] [role='menuitem']")
-          .should('contain', 'Drill to detail by boy')
-          .click();
-        cy.wait('@samples');
+
+        openModalFromChartContext('Drill to detail by boy');
 
         // checking the filtered and paginated data
         cy.get("[data-test='filter-val']").should('contain', 'boy');
@@ -261,12 +246,8 @@ describe('Drill to detail modal', () => {
       cy.get(
         "[data-test-viz-type='big_number_total'] .header-line",
       ).rightclick();
-      cy.get('.ant-dropdown')
-        .not('.ant-dropdown-hidden')
-        .find("[role='menu'] [role='menuitem']")
-        .should('contain', 'Drill to detail')
-        .click();
-      cy.wait('@samples');
+
+      openModalFromChartContext('Drill to detail');
 
       cy.get("[data-test='filter-val']").should('not.exist');
     });
@@ -278,12 +259,8 @@ describe('Drill to detail modal', () => {
 
       // opens the modal by clicking on the number
       cy.get("[data-test-viz-type='big_number'] .header-line").rightclick();
-      cy.get('.ant-dropdown')
-        .not('.ant-dropdown-hidden')
-        .find("[role='menu'] [role='menuitem']")
-        .should('contain', 'Drill to detail')
-        .click();
-      cy.wait('@samples');
+
+      openModalFromChartContext('Drill to detail');
 
       cy.get("[data-test='filter-val']").should('not.exist');
 

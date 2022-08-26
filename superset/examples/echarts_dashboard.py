@@ -16,7 +16,7 @@
 # under the License.
 import json
 import textwrap
-from typing import List, Tuple
+from typing import List
 
 from sqlalchemy import inspect
 
