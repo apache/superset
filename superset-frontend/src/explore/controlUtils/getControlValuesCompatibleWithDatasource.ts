@@ -26,7 +26,6 @@ import {
   isFreeFormAdhocFilter,
   JsonValue,
   SimpleAdhocFilter,
-  FreeFormAdhocFilter,
 } from '@superset-ui/core';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
 
