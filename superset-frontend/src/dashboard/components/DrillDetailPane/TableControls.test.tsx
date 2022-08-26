@@ -69,7 +69,7 @@ test('should call onreload', () => {
   expect(onReload).toHaveBeenCalledTimes(1);
 });
 
-test('should render with filters', async () => {
+test('should render with filters', () => {
   setup({
     filters: [
       {
