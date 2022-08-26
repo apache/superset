@@ -105,6 +105,13 @@ class IkiProcessBuilder extends React.PureComponent {
   }
 
   componentDidMount() {
+    this.props.logEvent(LOG_ACTIONS_RENDER_CHART, {
+      viz_type: 'markdown',
+      start_offset: this.renderStartTime,
+      ts: new Date().getTime(),
+      duration: Logger.getTimestamp() - this.renderStartTime,
+    });
+
     if (!this.props.component.meta.code) {
       this.handleIncomingWindowMsg();
     } else {
