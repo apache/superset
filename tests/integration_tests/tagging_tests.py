@@ -40,7 +40,7 @@ class TestTagging(SupersetTestCase):
             .all()
         )
         return [{"id": id, "name": name} for id, name in query]
-    
+
     def cleanup_tables(self):
         db.session.query(Tag).delete()
         db.session.query(TaggedObject).delete()
