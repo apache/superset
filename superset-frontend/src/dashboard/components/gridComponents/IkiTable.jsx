@@ -41,7 +41,11 @@ import {
 // const dashURL = 'https://dev-ui.ikigailabs.io';
 // const dashURL = 'https://first-app.ikigailabs.io/widget/pipeline/run';
 // const dashURL = 'http://localhost:3000';
-const dashURL = document.referrer.substring(0, document.referrer.length - 1);
+const parentURL =
+  window.location != window.parent.location
+    ? document.referrer
+    : document.location.href;
+const dashURL = parentURL.substring(0, parentURL.indexOf('/', 8));
 const timestamp = new Date().getTime().toString();
 const iframeEmptyURL = `${dashURL}/widget/dataset/table?v=1&editable_dataset_times=${timestamp}&mode=edit`;
 
