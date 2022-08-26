@@ -26,9 +26,8 @@ import Loading from 'src/components/Loading';
 import DatabaseSelector from 'src/components/DatabaseSelector';
 import { debounce } from 'lodash';
 import { EmptyStateMedium } from 'src/components/EmptyState';
-import { DatasetActionType } from '../types';
-import { DatasetObject } from '../types';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
+import { DatasetActionType, DatasetObject } from '../types';
 
 interface LeftPanelProps {
   setDataset: (db: any) => void;
@@ -42,9 +41,14 @@ const LeftPanelStyle = styled.div`
   padding: ${theme.gridUnit * 4}px;
   height: 100%;
   background-color: ${theme.colors.grayscale.light5}; 
+  position: relative;
+  .emptystate {
+    height: auto;
+    margin-top: 70px;
+  }
   .refresh {
     position: absolute;
-    top: ${theme.gridUnit * 72.5}px;
+    top: ${theme.gridUnit * 43.25}px;
     left: ${theme.gridUnit * 16.75}px;
     span[role="button"]{
       font-size: ${theme.gridUnit * 4.25}px;
@@ -55,9 +59,18 @@ const LeftPanelStyle = styled.div`
     margin-bottom: ${theme.gridUnit * 11}px;
     font-weight: ${theme.typography.weights.bold};
   }
+  .table-title {
+    margin-top: ${theme.gridUnit * 11}px;
+    margin-bottom: ${theme.gridUnit * 6}px;
+    font-weight: ${theme.typography.weights.bold};
+  }
   .options-list {
     overflow: auto;
-    max-height: ${theme.gridUnit * 175}px;
+    position: absolute;
+    bottom: 0px;
+    top: 390px;
+    left: 13px;
+    right: 0;
     .options {
       padding: ${theme.gridUnit * 1.75}px;
       border-radius: ${theme.borderRadius}px;
@@ -65,7 +78,7 @@ const LeftPanelStyle = styled.div`
   }
   form > span {
     position: absolute;
-    top: ${theme.gridUnit * 102.5}px;
+    top: ${theme.gridUnit * 73}px;
     left: ${theme.gridUnit * 42.75}px;
     font-size: ${theme.gridUnit * 4.25}px;
   }
@@ -181,17 +194,17 @@ export default function LeftPanel({
         </div>
       )}
       {!schema && !loadTables ? (
-        <>
+        <div className="emptystate">
           <EmptyStateMedium
             image="empty-table.svg"
             title={t('No database tables found')}
             description={t('Try selecting a different schema')}
           />
-        </>
+        </div>
       ) : (
         <>
           <Form>
-            <p className="section-title">Select Database Table</p>
+            <p className="table-title">Select Database Table</p>
             <RefreshLabel
               onClick={() => {
                 setLoadTables(true);
