@@ -16,16 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import React from 'react';
+import { QueryClient, QueryClientProvider } from 'react-query';
 
-export {
-  useApiResourceFullBody,
-  useApiV1Resource,
-  useTransformedResource,
-} from './apiResources';
+export const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: Infinity,
+      retry: false,
+      retryOnMount: false,
+      refetchOnMount: false,
+      refetchOnReconnect: false,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
-// A central catalog of API Resource hooks.
-// Add new API hooks here, organized under
-// different files for different resource types.
-export * from './charts';
-export * from './dashboards';
-export * from './tables';
+type Props = {
+  children: React.ReactNode;
+};
+
+const Queryprovider: React.FC<Props> = ({ children }) => (
+  <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+);
+
+export default Queryprovider;
