@@ -117,8 +117,8 @@ export interface EChartTransformedProps<F> {
   legendData?: OptionName[];
   onContextMenu?: (
     filters: QueryObjectFilterClause[],
-    offsetX: number,
-    offsetY: number,
+    clientX: number,
+    clientY: number,
   ) => void;
 }
 

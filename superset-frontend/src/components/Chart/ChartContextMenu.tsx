@@ -36,8 +36,8 @@ export interface ChartContextMenuProps {
 export interface Ref {
   open: (
     filters: QueryObjectFilterClause[],
-    offsetX: number,
-    offsetY: number,
+    clientX: number,
+    clientY: number,
   ) => void;
 }
 
@@ -54,9 +54,9 @@ const ChartContextMenu = (
 ) => {
   const [state, setState] = useState<{
     filters: QueryObjectFilterClause[];
-    offsetX: number;
-    offsetY: number;
-  }>({ filters: [], offsetX: 0, offsetY: 0 });
+    clientX: number;
+    clientY: number;
+  }>({ filters: [], clientX: 0, clientY: 0 });
 
   const menu = (
     <Menu>
@@ -81,8 +81,8 @@ const ChartContextMenu = (
   );
 
   const open = useCallback(
-    (filters: QueryObjectFilterClause[], offsetX: number, offsetY: number) => {
-      setState({ filters, offsetX, offsetY });
+    (filters: QueryObjectFilterClause[], clientX: number, clientY: number) => {
+      setState({ filters, clientX, clientY });
 
       // Since Ant Design's Dropdown does not offer an imperative API
       // and we can't attach event triggers to charts SVG elements, we
@@ -111,9 +111,11 @@ const ChartContextMenu = (
         id={`hidden-span-${id}`}
         css={{
           visibility: 'hidden',
-          position: 'absolute',
-          top: state.offsetY,
-          left: state.offsetX,
+          position: 'fixed',
+          top: state.clientY,
+          left: state.clientX,
+          width: 1,
+          height: 1,
         }}
       />
     </Dropdown>
