@@ -34,7 +34,7 @@ const setup = (overrides: Record<string, any> = {}) => {
   };
   return render(<TableControls {...props} />);
 };
-test('should render', async () => {
+test('should render', () => {
   const { container } = setup();
   expect(container).toBeInTheDocument();
 });
@@ -56,20 +56,20 @@ test('should render the reload button', () => {
   expect(screen.getByRole('button', { name: 'Reload' })).toBeInTheDocument();
 });
 
-test('should show the loading indicator', async () => {
+test('should show the loading indicator', () => {
   setup({
     loading: true,
   });
   expect(screen.getByText('Loading...')).toBeInTheDocument();
 });
 
-test('should call onreload', async () => {
+test('should call onreload', () => {
   setup();
   userEvent.click(screen.getByRole('button', { name: 'Reload' }));
   expect(onReload).toHaveBeenCalledTimes(1);
 });
 
-test('should render with filters', async () => {
+test('should render with filters', () => {
   setup({
     filters: [
       {
@@ -90,7 +90,7 @@ test('should render with filters', async () => {
   expect(screen.getByText('IT')).toBeInTheDocument();
 });
 
-test('should remove the filters on close', async () => {
+test('should remove the filters on close', () => {
   setup({
     filters: [
       {
