@@ -40,6 +40,11 @@ class TestTagging(SupersetTestCase):
             .all()
         )
         return [{"id": id, "name": name} for id, name in query]
+    
+    def cleanup_tables(self):
+        db.session.query(Tag).delete()
+        db.session.query(TaggedObject).delete()
+        db.session.commit()
 
     @with_feature_flags(TAGGING_SYSTEM=False)
     def test_tag_view_disabled(self):
@@ -60,6 +65,9 @@ class TestTagging(SupersetTestCase):
         a corresponding tag in the tagged_objects table
         is created
         """
+
+        # Make sure the tagged_object and tag tables are empty
+        self.cleanup_tables()
 
         # Test to make sure nothing is in the tagged_object table
         self.assertEqual([], self.query_tagged_object_table())
@@ -82,6 +90,7 @@ class TestTagging(SupersetTestCase):
         self.assertEqual("type:dataset", tags[0].get("name"))
 
         # Cleanup the db
+        self.cleanup_tables()
         db.session.delete(test_dataset)
         db.session.commit()
 
@@ -92,6 +101,9 @@ class TestTagging(SupersetTestCase):
         a corresponding tag in the tagged_objects table
         is created
         """
+
+        # Make sure the tagged_object and tag tables are empty
+        self.cleanup_tables()
 
         # Test to make sure nothing is in the tagged_object table
         self.assertEqual([], self.query_tagged_object_table())
@@ -113,6 +125,7 @@ class TestTagging(SupersetTestCase):
         self.assertEqual("type:chart", tags[0].get("name"))
 
         # Cleanup the db
+        self.cleanup_tables()
         db.session.delete(test_chart)
         db.session.commit()
 
@@ -123,6 +136,9 @@ class TestTagging(SupersetTestCase):
         a corresponding tag in the tagged_objects table
         is created
         """
+
+        # Make sure the tagged_object and tag tables are empty
+        self.cleanup_tables()
 
         # Test to make sure nothing is in the tagged_object table
         self.assertEqual([], self.query_tagged_object_table())
@@ -143,6 +159,7 @@ class TestTagging(SupersetTestCase):
         self.assertEqual("type:dashboard", tags[0].get("name"))
 
         # Cleanup the db
+        self.cleanup_tables()
         db.session.delete(test_dashboard)
         db.session.commit()
 
@@ -153,6 +170,9 @@ class TestTagging(SupersetTestCase):
         created, a corresponding tag in the tagged_objects
         table is created
         """
+
+        # Make sure the tagged_object and tag tables are empty
+        self.cleanup_tables()
 
         # Test to make sure nothing is in the tagged_object table
         self.assertEqual([], self.query_tagged_object_table())
@@ -168,5 +188,6 @@ class TestTagging(SupersetTestCase):
         self.assertEqual("favorited_by:1", tags[0].get("name"))
 
         # Cleanup the db
+        self.cleanup_tables()
         db.session.delete(test_saved_query)
         db.session.commit()
