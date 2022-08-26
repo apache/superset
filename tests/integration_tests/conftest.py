@@ -18,7 +18,6 @@ from __future__ import annotations
 
 import contextlib
 import functools
-from operator import ge
 from typing import Any, Callable, Optional, TYPE_CHECKING
 from unittest.mock import patch
 
@@ -303,10 +302,11 @@ def virtual_dataset():
 @pytest.fixture
 def physical_dataset():
     from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+    from superset.connectors.sqla.utils import get_identifier_quoter
 
     example_database = get_example_database()
     engine = example_database.get_sqla_engine()
-    quote = "`" if engine.name == "mysql" else '"'
+    quoter = get_identifier_quoter(engine.name)
     # sqlite can only execute one statement at a time
     engine.execute(
         f"""
@@ -317,7 +317,7 @@ def physical_dataset():
           col4 VARCHAR(255),
           col5 TIMESTAMP DEFAULT '1970-01-01 00:00:01',
           col6 TIMESTAMP DEFAULT '1970-01-01 00:00:01',
-          {quote}time column with spaces{quote} TIMESTAMP DEFAULT '1970-01-01 00:00:01'
+          {quoter('time column with spaces')} TIMESTAMP DEFAULT '1970-01-01 00:00:01'
         );
         """
     )
