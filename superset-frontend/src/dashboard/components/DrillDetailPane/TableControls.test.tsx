@@ -56,7 +56,7 @@ test('should render the reload button', () => {
   expect(screen.getByRole('button', { name: 'Reload' })).toBeInTheDocument();
 });
 
-test('should show the loading indicator', async () => {
+test('should show the loading indicator', () => {
   setup({
     loading: true,
   });
