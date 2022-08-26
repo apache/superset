@@ -22,7 +22,7 @@ import { useResizeDetector } from 'react-resize-detector';
 import MetadataBar, { MetadataBarProps } from './index';
 
 export default {
-  title: 'MetadataBar',
+  title: 'Design System/Components/MetadataBar/Examples',
   component: MetadataBar,
 };
 

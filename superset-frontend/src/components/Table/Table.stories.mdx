@@ -1,0 +1,84 @@
+import { Meta, Source } from '@storybook/addon-docs';
+
+<Meta title="Design System/Components/Table/Overview" />
+
+# Usage
+
+A table is UI that allows the user to explore data in a tabular format.
+
+Common table applications in Superset:
+
+- Display lists of user-generated entities (e.g. dashboard, charts, queries) for further exploration and use
+- Display data that can help the user make a decision (e.g. query results)
+
+# Variations
+
+The table component has several variations.
+
+### Size
+
+**Large** - Column header and cell width set to 44 px. This is the recommended size for displaying lists of user-generated entities (e.g. dashboard, charts, queries) for further exploration and use.
+
+**Small** - Column header and cell width set to 32 px. This is the recommended size for displaying data that can help the user make a decision (e.g. query results). Note that not all cell types (see below) can be used in small table sizes.
+
+### Cell content
+
+The following data types can be displayed in table cells.
+
+- Text
+  - w/ icons
+- Hyperlink text
+  - w/ icons
+- Icon
+- Button (Large size only)
+- Icon button (Large size only)(Cell is limited to one icon button. If you need to provide multiple actions to the user from a table cell, use the ellipses icon button to open a menu containing available actions.)
+- Single select field (Large size only)
+- Toggle (Large size only)
+
+### Loading
+
+**Pagination** - Table displays set number of rows at a time, user navigates table via pagination. Use in scenarios where the user is searching for a specific piece of content.
+
+**Infinite scroll** - Table displays a set number of rows at a time, then loads more as the user scrolls. Use in scenarios where the user is browsing dynamic information.
+
+Pagination may also be used over infinite scroll for performance optimization.
+
+### Toolbar
+
+The table component can include a toolbar that can contain one or more of the following sub-components:
+
+- **Title** - Includes a name for the table
+- **Buttons** - Allows the user to perform global actions (e.g. select all, add to table) related to table entities
+- **Search** - Allows the user to filter the table by a matching string
+
+## Checklist
+
+The following specifications are required every time a table is used. These choices should be intentional based on the specific user needs for the table instance.
+
+- [ ] Size
+  - Large
+  - Small
+- Columns
+  - [ ] Number of
+  - [ ] Contents
+  - [ ] Order
+  - [ ] Widths
+- Column headers
+  - [ ] Labels
+  - [ ] Has tooltip
+    - [ ] Tooltip text
+- [ ] Default sort
+- Functionality
+  - [ ] Can sort columns
+  - [ ] Can filter columns
+- [ ] Loading
+  - Pagination
+    - [ ] Number of rows per page
+  - Infinite scroll
+- [ ] Has toolbar
+  - [ ] Has table title
+    - [ ] Label
+  - [ ] Has buttons
+    - [ ] Labels
+    - [ ] Actions
+  - [ ] Has search

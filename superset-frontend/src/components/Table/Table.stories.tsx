@@ -18,7 +18,7 @@ export default {
    * See https://storybook.js.org/docs/react/configure/overview#configure-story-loading
    * to learn how to generate automatic titles
    */
-  title: 'Design System/Components/Table',
+  title: 'Design System/Components/Table/Examples',
   component: Table,
   decorators: [themeDecorator],
 } as ComponentMeta<typeof Table>;
@@ -64,6 +64,7 @@ const columns: ColumnsType[] = [
     render: (text: string) => (
       <ButtonCell label={text} handleClick={clikerit} />
     ),
+    width: 150,
   },
   {
     title: 'Age',
@@ -184,57 +185,6 @@ const baseData: ExampleData[] = [
 
 <Table data={baseData} columns />
 `;
-
-export const Overview: ComponentStory<typeof Table> = args => (
-  <ThemeProvider theme={supersetTheme}>
-    <div>
-      <h1>Table Component</h1>
-      <p>
-        The Superset Table component is based on{' '}
-        <a href="https://ant.design/components/table/" target="_blank">
-          antd Table Component
-        </a>{' '}
-        but wrapped within the Superset ThemeProvider and extended with some
-        conveniences specifc to Superset.
-      </p>
-      <p>
-        The Table component can be used anytime you need to display data in a
-        tabular format.
-      </p>
-      <p>
-        The Superset Table supports all the configurations avaiable in the{' '}
-        <a href="https://ant.design/components/table/" target="_blank">
-          antd Table Component
-        </a>{' '}
-        . This documentation will explicity cover the custimizations made for
-        the Superset wrapper componet.
-      </p>
-      <p>
-        A more comprehensive TableCard Pattern can be found at{' '}
-        <a
-          href="?path=/story/design-system-pattterns-table-card--examples"
-          target="_self"
-        >
-          TableCard Pattern
-        </a>{' '}
-      </p>
-      <hr />
-      <h2>Basic Use</h2>
-      <pre>{exampleString}</pre>
-      <Table {...args} />
-    </div>
-  </ThemeProvider>
-);
-
-Overview.args = {
-  data: bigdata,
-  columns,
-  selectedRows: [1],
-  handleRowSelection: (selection: React.Key[]) => {
-    alert(selection);
-  },
-  size: TableSize.SMALL,
-};
 
 export const Basic: ComponentStory<typeof Table> = args => (
   <ThemeProvider theme={supersetTheme}>
