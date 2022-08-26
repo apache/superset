@@ -60,7 +60,7 @@ export const contextMenuEventHandler =
           }),
         );
       }
-      onContextMenu(filters, pointerEvent.offsetX, pointerEvent.offsetY);
+      onContextMenu(filters, pointerEvent.clientX, pointerEvent.clientY);
     }
   };
 
