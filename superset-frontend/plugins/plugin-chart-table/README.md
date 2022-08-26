@@ -17,7 +17,7 @@ specific language governing permissions and limitations
 under the License.
 -->
 
-## @superset-ui/plugin-chart-table
+## @superset-ui/plugin-chart-table oops
 
 [![Version](https://img.shields.io/npm/v/@superset-ui/plugin-chart-table.svg?style=flat-square)](https://www.npmjs.com/package/@superset-ui/plugin-chart-table)
 [![David (path)](https://img.shields.io/david/apache-superset/superset-ui-plugins.svg?path=packages%2Fsuperset-ui-plugin-chart-table&style=flat-square)](https://david-dm.org/apache-superset/superset-ui-plugins?path=plugins/superset-ui-plugin-chart-table)
