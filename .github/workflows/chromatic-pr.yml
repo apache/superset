@@ -42,8 +42,13 @@ jobs:
   chromatic-deployment:
     # Operating System
     runs-on: ubuntu-latest
+    # define outputs that can be used in the storybook-link-comment job
+    outputs:
+      storybookUrl: ${{ steps.chromatic-deploy.outputs.storybookUrl }}
+      buildUrl: ${{ steps.chromatic-deploy.outputs.buildUrl }}
     # Job steps
     steps:
+      - id: chromatic-deploy
       - uses: actions/checkout@v1
       - name: Install dependencies
         run: npm ci
@@ -76,5 +81,5 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: 'Storybook has completed and can be viewed at ${{ needs.chromatic-deployment.outputs.storybookUrl }}.  Chromatic visual test results can be viewed at ${{ needs.chromatic-deployment.outputs.buildUrl }} '
+              body: 'Storybook has completed and can be viewed at ${{ needs.chromatic-deployment.outputs.storybookUrl }}  Chromatic visual test results can be viewed at ${{ needs.chromatic-deployment.outputs.buildUrl }}'
             })
