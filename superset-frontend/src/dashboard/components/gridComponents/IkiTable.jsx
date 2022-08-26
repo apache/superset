@@ -41,20 +41,23 @@ import {
 // const dashURL = 'https://dev-ui.ikigailabs.io';
 // const dashURL = 'https://first-app.ikigailabs.io/widget/pipeline/run';
 // const dashURL = 'http://localhost:3000';
-var parentURL =
+const parentURL =
   window.location !== window.parent.location
     ? document.referrer
     : document.location.href;
-var processedParentURL =
+const processedParentURL =
   parentURL.indexOf('/', 8) > 0
     ? parentURL.substring(0, parentURL.indexOf('/', 8))
     : parentURL;
-var domainName = processedParentURL.substring(
+const domainName = processedParentURL.substring(
   processedParentURL.indexOf('/') + 2,
   processedParentURL.indexOf('-superset'),
 );
-var protocol = processedParentURL.substring(0, processedParentURL.indexOf('/'));
-const dashURL = protocol + '//' + domainName + '-app.ikigailabs.io';
+const protocol = processedParentURL.substring(
+  0,
+  processedParentURL.indexOf('/'),
+);
+const dashURL = `${protocol}//${domainName}-app.ikigailabs.io`;
 const timestamp = new Date().getTime().toString();
 const iframeEmptyURL = `${dashURL}/widget/dataset/table?v=1&editable_dataset_times=${timestamp}&mode=edit`;
 
