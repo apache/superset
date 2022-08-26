@@ -50,12 +50,12 @@ var processedParentURL =
     ? parentURL.substring(0, parentURL.indexOf('/', 8))
     : parentURL;
 const dashURL = processedParentURL.contains('first')
-  ? 'https://first-app.ikigailabs.io/'
+  ? 'https://first-app.ikigailabs.io'
   : processedParentURL.contains('second') ||
     (processedParentURL.contains('app.ikigailabs') &&
       !processedParentURL.contains('dev'))
-  ? 'https://second-app.ikigailabs.io/'
-  : 'https://dev-app.ikigailabs.io/';
+  ? 'https://second-app.ikigailabs.io'
+  : 'https://dev-app.ikigailabs.io';
 const timestamp = new Date().getTime().toString();
 const iframeEmptyURL = `${dashURL}/widget/dataset/table?v=1&editable_dataset_times=${timestamp}&mode=edit`;
 
