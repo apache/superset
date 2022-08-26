@@ -10,14 +10,14 @@ updates:
     versioning-strategy: increase
 
   - package-ecosystem: "pip"
-    directory: "/requirements/"
+    directory: "/"
     schedule:
       interval: "daily"
     labels:
       - pip
       - dependabot
 
-  - package-ecosystem: "npm"
+  - package-ecosystem: "github-actions"
     directory: ".github/actions"
     schedule:
       interval: "daily"
