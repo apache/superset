@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { QueryObjectFilterClause } from '@superset-ui/core';
+import { DataRecordValue, QueryObjectFilterClause } from '@superset-ui/core';
 import React, { useCallback } from 'react';
 import Echart from '../components/Echart';
 import { EventHandlers } from '../types';
@@ -48,7 +48,7 @@ export default function EchartsTreemap({
             values.length === 0
               ? []
               : groupby.map((col, idx) => {
-                  const val = groupbyValues.map(v => v[idx]);
+                  const val: DataRecordValue[] = groupbyValues.map(v => v[idx]);
                   if (val === null || val === undefined)
                     return {
                       col,
@@ -101,7 +101,7 @@ export default function EchartsTreemap({
               formattedVal: path,
             }),
           );
-          onContextMenu(filters, pointerEvent.offsetX, pointerEvent.offsetY);
+          onContextMenu(filters, pointerEvent.clientX, pointerEvent.clientY);
         }
       }
     },
