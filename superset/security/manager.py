@@ -947,6 +947,16 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         return pvm.permission.name in {"can_override_role_permissions", "can_approve"}
 
+    def database_after_insert(
+        self,
+        mapper: Mapper,
+        connection: Connection,
+        target: "Database",
+    ) -> None:
+        self._insert_new_pvm_on_event(
+            mapper, connection, "database_access", target.get_perm()
+        )
+
     def database_after_delete(
         self,
         mapper: Mapper,
@@ -956,6 +966,29 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         self._delete_vm_database_access(
             mapper, connection, target.id, target.database_name
         )
+
+    def database_after_update(
+        self,
+        mapper: Mapper,
+        connection: Connection,
+        target: "Database",
+    ) -> None:
+        # Check if database name has changed
+        state = inspect(target)
+        history = state.get_history("database_name", True)
+        if not history.has_changes() or not history.deleted:
+            return
+
+        old_database_name = history.deleted[0]
+        # update database access permission
+        self._update_vm_database_access(mapper, connection, old_database_name, target)
+        # update datasource access
+        self._update_vm_datasources_access(
+            mapper, connection, old_database_name, target
+        )
+        # Note schema permissions are updated at the API level
+        # (database.commands.update). Since we need to fetch all existing schemas from
+        # the db
 
     def _delete_vm_database_access(
         self,
@@ -1037,6 +1070,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             logger.warning(
                 "Could not find previous database permission %s",
                 old_view_menu_name,
+            )
+            self._insert_new_pvm_on_event(
+                mapper, connection, "database_access", new_view_menu_name
             )
             return None
         new_updated_pvm = self.find_permission_view_menu(
@@ -1127,28 +1163,43 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             updated_view_menus.append(self.find_view_menu(new_dataset_view_menu))
         return updated_view_menus
 
-    def database_after_update(
+    def dataset_after_insert(
         self,
         mapper: Mapper,
         connection: Connection,
-        target: "Database",
+        target: "SqlaTable",
     ) -> None:
-        # Check if database name has changed
-        state = inspect(target)
-        history = state.get_history("database_name", True)
-        if not history.has_changes() or not history.deleted:
+        try:
+            dataset_perm = target.get_perm()
+        except DatasetInvalidPermissionEvaluationException:
+            logger.warning("Dataset has no database refusing to set permission")
             return
+        dataset_table = target.__table__
 
-        old_database_name = history.deleted[0]
-        # update database access permission
-        self._update_vm_database_access(mapper, connection, old_database_name, target)
-        # update datasource access
-        self._update_vm_datasources_access(
-            mapper, connection, old_database_name, target
+        self._insert_new_pvm_on_event(
+            mapper, connection, "datasource_access", dataset_perm
         )
-        # Note schema permissions are updated at the API level
-        # (database.commands.update). Since we need to fetch all existing schemas from
-        # the db
+        if target.perm != dataset_perm:
+            target.perm = dataset_perm
+            connection.execute(
+                dataset_table.update()
+                .where(dataset_table.c.id == target.id)
+                .values(perm=dataset_perm)
+            )
+
+        if target.schema:
+            dataset_schema_perm = self.get_schema_perm(
+                target.database.database_name, target.schema
+            )
+            self._insert_new_pvm_on_event(
+                mapper, connection, "schema_access", dataset_schema_perm
+            )
+            target.schema_perm = dataset_schema_perm
+            connection.execute(
+                dataset_table.update()
+                .where(dataset_table.c.id == target.id)
+                .values(schema_perm=dataset_schema_perm)
+            )
 
     def dataset_after_delete(
         self,
@@ -1156,13 +1207,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         connection: Connection,
         target: "SqlaTable",
     ) -> None:
-        """
-
-        :param mapper:
-        :param connection:
-        :param target:
-        :return:
-        """
         view_menu_table = self.viewmenu_model.__table__  # pylint: disable=no-member
         permission_view_menu_table = (
             self.permissionview_model.__table__  # pylint: disable=no-member
@@ -1195,6 +1239,63 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 view_menu_table.c.id == dataset_pvm.view_menu_id
             )
         )
+
+    def dataset_after_update(
+        self,
+        mapper: Mapper,
+        connection: Connection,
+        target: "SqlaTable",
+    ) -> None:
+        # Check if watched fields have changed
+        state = inspect(target)
+        history_database = state.get_history("database_id", True)
+        history_table_name = state.get_history("table_name", True)
+        history_schema = state.get_history("schema", True)
+
+        # When database name changes
+        if history_database.has_changes() and history_database.deleted:
+            new_dataset_vm_name = self.get_dataset_perm(
+                target.id, target.table_name, target.database.database_name
+            )
+            self._update_dataset_perm(
+                mapper, connection, target.perm, new_dataset_vm_name, target
+            )
+
+            # Updates schema permissions
+            new_dataset_schema_name = self.get_schema_perm(
+                target.database.database_name, target.schema
+            )
+            self._update_dataset_schema_perm(
+                mapper,
+                connection,
+                new_dataset_schema_name,
+                target,
+            )
+
+        # When table name changes
+        if history_table_name.has_changes() and history_table_name.deleted:
+            old_dataset_name = history_table_name.deleted[0]
+            new_dataset_vm_name = self.get_dataset_perm(
+                target.id, target.table_name, target.database.database_name
+            )
+            old_dataset_vm_name = self.get_dataset_perm(
+                target.id, old_dataset_name, target.database.database_name
+            )
+            self._update_dataset_perm(
+                mapper, connection, old_dataset_vm_name, new_dataset_vm_name, target
+            )
+
+        # When schema changes
+        if history_schema.has_changes() and history_schema.deleted:
+            new_dataset_schema_name = self.get_schema_perm(
+                target.database.database_name, target.schema
+            )
+            self._update_dataset_schema_perm(
+                mapper,
+                connection,
+                new_dataset_schema_name,
+                target,
+            )
 
     def _update_dataset_schema_perm(
         self,
@@ -1352,63 +1453,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         )
         permission = self.find_permission_view_menu(permission_name, view_menu_name)
         self.on_permission_view_after_insert(mapper, connection, permission)
-
-    def dataset_after_update(
-        self,
-        mapper: Mapper,
-        connection: Connection,
-        target: "SqlaTable",
-    ) -> None:
-        # Check if watched fields have changed
-        state = inspect(target)
-        history_database = state.get_history("database_id", True)
-        history_table_name = state.get_history("table_name", True)
-        history_schema = state.get_history("schema", True)
-
-        # When database name changes
-        if history_database.has_changes() and history_database.deleted:
-            new_dataset_vm_name = self.get_dataset_perm(
-                target.id, target.table_name, target.database.database_name
-            )
-            self._update_dataset_perm(
-                mapper, connection, target.perm, new_dataset_vm_name, target
-            )
-
-            # Updates schema permissions
-            new_dataset_schema_name = self.get_schema_perm(
-                target.database.database_name, target.schema
-            )
-            self._update_dataset_schema_perm(
-                mapper,
-                connection,
-                new_dataset_schema_name,
-                target,
-            )
-
-        # When table name changes
-        if history_table_name.has_changes() and history_table_name.deleted:
-            old_dataset_name = history_table_name.deleted[0]
-            new_dataset_vm_name = self.get_dataset_perm(
-                target.id, target.table_name, target.database.database_name
-            )
-            old_dataset_vm_name = self.get_dataset_perm(
-                target.id, old_dataset_name, target.database.database_name
-            )
-            self._update_dataset_perm(
-                mapper, connection, old_dataset_vm_name, new_dataset_vm_name, target
-            )
-
-        # When schema changes
-        if history_schema.has_changes() and history_schema.deleted:
-            new_dataset_schema_name = self.get_schema_perm(
-                target.database.database_name, target.schema
-            )
-            self._update_dataset_schema_perm(
-                mapper,
-                connection,
-                new_dataset_schema_name,
-                target,
-            )
 
     def on_role_after_update(
         self, mapper: Mapper, connection: Connection, target: Role

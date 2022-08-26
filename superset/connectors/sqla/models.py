@@ -2264,7 +2264,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
 
         For more context: https://github.com/apache/superset/issues/14909
         """
-        security_manager.set_perm(mapper, connection, sqla_table)
+        security_manager.dataset_after_insert(mapper, connection, sqla_table)
         sqla_table.write_shadow_dataset()
 
     @staticmethod

@@ -43,13 +43,6 @@ class UpdateDatabaseCommand(BaseCommand):
         self._model: Optional[Database] = None
 
     def run(self) -> Model:
-        from superset.connectors.sqla.models import (  # pylint: disable=import-outside-toplevel
-            SqlaTable,
-        )
-        from superset.models.slice import (  # pylint: disable=import-outside-toplevel
-            Slice,
-        )
-
         self.validate()
         if not self._model:
             raise DatabaseNotFoundError()
@@ -83,20 +76,9 @@ class UpdateDatabaseCommand(BaseCommand):
                 if schema_pvm and old_database_name != database.database_name:
                     schema_pvm.view_menu.name = new_view_menu_name
 
-                    # Update schema_perm on all datasets
-                    datasets = (
-                        db.session.query(SqlaTable)
-                        .filter(SqlaTable.schema_perm == old_view_menu_name)
-                        .all()
+                    self._propagate_schema_permissions(
+                        old_view_menu_name, new_view_menu_name
                     )
-                    for dataset in datasets:
-                        dataset.schema_perm = new_view_menu_name
-                        charts = db.session.query(Slice).filter(
-                            Slice.datasource_type == "table",
-                            Slice.datasource_id == dataset.id,
-                        )
-                        for chart in charts:
-                            chart.schema_perm = new_view_menu_name
                 else:
                     new_schemas.append(schema)
             for schema in new_schemas:
@@ -109,6 +91,33 @@ class UpdateDatabaseCommand(BaseCommand):
             logger.exception(ex.exception)
             raise DatabaseUpdateFailedError() from ex
         return database
+
+    @staticmethod
+    def _propagate_schema_permissions(
+        old_view_menu_name: str, new_view_menu_name: str
+    ) -> None:
+        from superset.connectors.sqla.models import (  # pylint: disable=import-outside-toplevel
+            SqlaTable,
+        )
+        from superset.models.slice import (  # pylint: disable=import-outside-toplevel
+            Slice,
+        )
+
+        # Update schema_perm on all datasets
+        datasets = (
+            db.session.query(SqlaTable)
+            .filter(SqlaTable.schema_perm == old_view_menu_name)
+            .all()
+        )
+        for dataset in datasets:
+            dataset.schema_perm = new_view_menu_name
+            charts = db.session.query(Slice).filter(
+                Slice.datasource_type == "table",
+                Slice.datasource_id == dataset.id,
+            )
+            # Update schema_perm on all charts
+            for chart in charts:
+                chart.schema_perm = new_view_menu_name
 
     def validate(self) -> None:
         exceptions: List[ValidationError] = []
