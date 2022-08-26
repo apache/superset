@@ -18,28 +18,22 @@
 #
 
 # Workflow name
-name: 'Chromatic'
+name: 'Chromatic Pull Request'
 
-# Event for the workflow
-# Only run if changes were made in superset-frontend folder of repo
+# This will allow us to see how the Storybook builds when a PR has been created that has changes in the frontend folder
+# NOTE: pull_request_target actions will always run the version of this action on master branch
+# you will not see changes in the action behavior until this action's changes have been merged to master.
+# This is a security precaution so that PR coming from a fork cannot access a Github secret without a repo
+# committer aproving and merging the PR declaring the action safe.
 on:
-  # This will trigger when a branch merges to master when the PR has changes in the frontend folder updating the chromatic baseline
-  push:
-    branches:
-      - master
-    paths:
-      - "superset-frontend/**"
-  # this will allow us to see how the Storybook builds when a PR has been created that has changes in the frontend folder
-  # NOTE: pull_request_target actions will always run the version of this action on master branch
-  # you will not see changes in the action behavior until this action's changes have been merged to master.
-  # This is a security precaution so that PR coming from a fork cannot access a Github secret without a repo
-  # committer aproving and merging the PR declaring the action safe.
   pull_request_target:
+
     # We want this action to run under specific pull request changes
     # opened: pull request is created
     # synchronize: commit(s) pushed to the pull request
     # reopened: closed pull request is reopened
     types: [opened, synchronize, reopened]
+    # This action will only run if one or more files have changes under the superset-frontend folder
     paths:
       - "superset-frontend/**"
 
@@ -54,22 +48,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
         working-directory: superset-frontend
-      # 👇 Checks if the branch is not master and runs Chromatic
-      - name: Publish to Chromatic
+      # 👇 Build and publish Storybook to Chromatic
+      - name: Build and publish Storybook to Chromatic
         id: chromatic-pr
-        if: github.ref != 'refs/heads/master'
-        uses: chromaui/action@v1
-        # Required options for the Chromatic GitHub Action
-        with:
-          # 👇 Location of package.json from root of mono-repo
-          workingDir: superset-frontend
-          # 👇 Chromatic projectToken, refer to the Chromatic manage page to obtain it.
-          projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
-          exitZeroOnChanges: true # 👈 Option to prevent the workflow from failing
-      # 👇 Checks if the branch is master and accepts all changes in Chromatic
-      - name: Publish to Chromatic and auto accept changes
-        id: chromatic-master
-        if: github.ref == 'refs/heads/master'
         uses: chromaui/action@v1
         # Required options for the Chromatic GitHub Action
         with:
@@ -77,10 +58,17 @@ jobs:
           workingDir: superset-frontend
           # 👇 Chromatic projectToken, refer to the manage page to obtain it.
           projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
-          autoAcceptChanges: true # 👈 Option to accept all changes when merging to master
-          exitZeroOnChanges: true # 👈 Option to prevent the workflow from failing
+          exitZeroOnChanges: true # 👈 Option to prevent the workflow from failing when changes are detected
+
+  # Put a comment on the PR with link to latest build of the Storybook for this branch
+  storybook-link-comment:
+    # Operating System
+    runs-on: ubuntu-latest
+    # job steps
+    needs: chromatic-deployment
+    if: needs.chromatic-deployment.outputs.storybookUrl && needs.chromatic-deployment.outputs.buildUrl
+    steps:
       - name: Echo Storybook build link
-        if: ${{ success() }}
         uses: actions/github-script@v6
         with:
           github-token: ${{secrets.GITHUB_TOKEN}}
@@ -89,5 +77,5 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: 'Storybook has completed and can be viewed at ${{ steps.chromatic-pr.outputs.storybookUrl }}'
+              body: 'Storybook has completed and can be viewed at ${{ needs.chromatic-deployment.outputs.storybookUrl }}.  Chromatic visual test results can be viewed at ${{ needs.chromatic-deployment.outputs.buildUrl }} '
             })
