@@ -63,7 +63,7 @@ test('should show the loading indicator', () => {
   expect(screen.getByText('Loading...')).toBeInTheDocument();
 });
 
-test('should call onreload', async () => {
+test('should call onreload', () => {
   setup();
   userEvent.click(screen.getByRole('button', { name: 'Reload' }));
   expect(onReload).toHaveBeenCalledTimes(1);
