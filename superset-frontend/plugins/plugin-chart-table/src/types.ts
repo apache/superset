@@ -114,8 +114,8 @@ export interface TableChartTransformedProps<D extends DataRecord = DataRecord> {
   allowRearrangeColumns?: boolean;
   onContextMenu?: (
     filters: QueryObjectFilterClause[],
-    offsetX: number,
-    offsetY: number,
+    clientX: number,
+    clientY: number,
   ) => void;
 }
 

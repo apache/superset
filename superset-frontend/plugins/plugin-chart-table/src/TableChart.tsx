@@ -580,19 +580,19 @@ export default function TableChart<D extends DataRecord = DataRecord>(
 
   const handleContextMenu =
     onContextMenu && !isRawRecords
-      ? (value: D, offsetX: number, offsetY: number) => {
+      ? (value: D, clientX: number, clientY: number) => {
           const filters: QueryObjectFilterClause[] = [];
           columnsMeta.forEach(col => {
             if (!col.isMetric) {
               filters.push({
                 col: col.key,
                 op: '==',
-                val: value[col.key],
+                val: value[col.key] as string | number | boolean,
                 formattedVal: String(value[col.key]),
               });
             }
           });
-          onContextMenu(filters, offsetX, offsetY);
+          onContextMenu(filters, clientX, clientY);
         }
       : undefined;
 

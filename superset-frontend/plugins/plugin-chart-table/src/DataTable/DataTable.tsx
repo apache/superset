@@ -23,6 +23,7 @@ import React, {
   HTMLProps,
   MutableRefObject,
   CSSProperties,
+  MouseEvent,
 } from 'react';
 import {
   useTable,
@@ -66,7 +67,7 @@ export interface DataTableProps<D extends object> extends TableOptions<D> {
   rowCount: number;
   wrapperRef?: MutableRefObject<HTMLDivElement>;
   onColumnOrderChange: () => void;
-  onContextMenu?: (value: D, offsetX: number, offsetY: number) => void;
+  onContextMenu?: (value: D, clientX: number, clientY: number) => void;
 }
 
 export interface RenderHTMLCellProps extends HTMLProps<HTMLTableCellElement> {
@@ -275,13 +276,13 @@ export default typedMemo(function DataTable<D extends object>({
               <tr
                 key={rowKey || row.id}
                 {...rowProps}
-                onContextMenu={(e: any) => {
+                onContextMenu={(e: MouseEvent) => {
                   if (onContextMenu) {
                     e.preventDefault();
                     onContextMenu(
                       row.original,
-                      e.nativeEvent.layerX,
-                      e.nativeEvent.layerY,
+                      e.nativeEvent.clientX,
+                      e.nativeEvent.clientY,
                     );
                   }
                 }}
