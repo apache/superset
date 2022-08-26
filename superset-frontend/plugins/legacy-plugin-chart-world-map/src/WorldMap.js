@@ -118,7 +118,7 @@ function WorldMap(element, props) {
         formattedVal,
       },
     ];
-    onContextMenu(filters, pointerEvent.offsetX, pointerEvent.offsetY);
+    onContextMenu(filters, pointerEvent.clientX, pointerEvent.clientY);
   };
 
   const map = new Datamap({

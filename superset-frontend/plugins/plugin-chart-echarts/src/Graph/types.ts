@@ -89,7 +89,7 @@ export type GraphChartTransformedProps = EchartsProps & {
   formData: PlainObject;
   onContextMenu?: (
     filters: QueryObjectFilterClause[],
-    offsetX: number,
-    offsetY: number,
+    clientX: number,
+    clientY: number,
   ) => void;
 };
