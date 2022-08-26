@@ -104,6 +104,17 @@ class IkiTable extends React.PureComponent {
   }
 
   componentDidMount() {
+    console.log('document.referrer', document.referrer);
+    console.log('document.location.href', document.location.href);
+    console.log(
+      'document.location.ancestorOrigins',
+      document.location.ancestorOrigins,
+    );
+    console.log(
+      'document.location.ancestorOrigins[0]',
+      document.location.ancestorOrigins[0],
+    );
+    console.log('document.location', document.location);
     // console.log('IkiTable componentDidMount', this.props, this.state);
     // console.log('ref',document.referrer,'dash',dashURL,'win loc',window.location);
     this.props.logEvent(LOG_ACTIONS_RENDER_CHART, {

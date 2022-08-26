@@ -115,6 +115,17 @@ class IkiRunPipeline extends React.PureComponent {
   }
 
   componentDidMount() {
+    console.log('document.referrer', document.referrer);
+    console.log('document.location.href', document.location.href);
+    console.log(
+      'document.location.ancestorOrigins',
+      document.location.ancestorOrigins,
+    );
+    console.log(
+      'document.location.ancestorOrigins[0]',
+      document.location.ancestorOrigins[0],
+    );
+    console.log('document.location', document.location);
     this.props.logEvent(LOG_ACTIONS_RENDER_CHART, {
       viz_type: 'markdown',
       start_offset: this.renderStartTime,
