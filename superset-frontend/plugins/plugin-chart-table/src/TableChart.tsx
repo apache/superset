@@ -39,6 +39,7 @@ import {
   ensureIsArray,
   GenericDataType,
   getTimeFormatterForGranularity,
+  QueryObjectFilterClause,
   styled,
   t,
   tn,
@@ -205,6 +206,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     sticky = true, // whether to use sticky header
     columnColorFormatters,
     allowRearrangeColumns = false,
+    onContextMenu,
   } = props;
   const timestampFormatter = useCallback(
     value => getTimeFormatterForGranularity(timeGrain)(value),
@@ -576,6 +578,24 @@ export default function TableChart<D extends DataRecord = DataRecord>(
 
   const { width: widthFromState, height: heightFromState } = tableSize;
 
+  const handleContextMenu =
+    onContextMenu && !isRawRecords
+      ? (value: D, clientX: number, clientY: number) => {
+          const filters: QueryObjectFilterClause[] = [];
+          columnsMeta.forEach(col => {
+            if (!col.isMetric) {
+              filters.push({
+                col: col.key,
+                op: '==',
+                val: value[col.key] as string | number | boolean,
+                formattedVal: String(value[col.key]),
+              });
+            }
+          });
+          onContextMenu(filters, clientX, clientY);
+        }
+      : undefined;
+
   return (
     <Styles>
       <DataTable<D>
@@ -598,6 +618,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         selectPageSize={pageSize !== null && SelectPageSize}
         // not in use in Superset, but needed for unit tests
         sticky={sticky}
+        onContextMenu={handleContextMenu}
       />
     </Styles>
   );

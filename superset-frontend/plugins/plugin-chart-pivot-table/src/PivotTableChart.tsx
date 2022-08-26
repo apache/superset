@@ -365,8 +365,8 @@ export default function PivotTableChart(props: PivotTableProps) {
   const handleContextMenu = useCallback(
     (
       e: MouseEvent,
-      colKey: DataRecordValue[] | undefined,
-      rowKey: DataRecordValue[] | undefined,
+      colKey: (string | number | boolean)[] | undefined,
+      rowKey: (string | number | boolean)[] | undefined,
     ) => {
       if (onContextMenu) {
         e.preventDefault();
