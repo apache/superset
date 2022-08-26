@@ -61,13 +61,12 @@ var processedParentURL =
   parentURL.indexOf('/', 8) > 0
     ? parentURL.substring(0, parentURL.indexOf('/', 8))
     : parentURL;
-const dashURL = processedParentURL.contains('first')
-  ? 'https://first-app.ikigailabs.io/'
-  : processedParentURL.contains('second') ||
-    (processedParentURL.contains('app.ikigailabs') &&
-      !processedParentURL.contains('dev'))
-  ? 'https://second-app.ikigailabs.io/'
-  : 'https://dev-app.ikigailabs.io/';
+var domainName = processedParentURL.substring(
+  processedParentURL.indexOf('/') + 2,
+  processedParentURL.indexOf('-superset'),
+);
+var protocol = processedParentURL.substring(0, processedParentURL.indexOf('/'));
+const dashURL = protocol + '//' + domainName + '-app.ikigailabs.io';
 const timestamp = new Date().getTime().toString();
 const iframeEmptyURL = `${dashURL}/widget/pipeline/run?mode=edit&v=1&run_flow_times=${timestamp}`;
 
