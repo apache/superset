@@ -42,8 +42,8 @@ class TestTagging(SupersetTestCase):
         return [{"id": id, "name": name} for id, name in query]
 
     def cleanup_tables(self):
-        db.session.query(Tag).delete()
         db.session.query(TaggedObject).delete()
+        db.session.query(Tag).delete()
         db.session.commit()
 
     @with_feature_flags(TAGGING_SYSTEM=False)
