@@ -18,7 +18,6 @@
  */
 import {
   CategoricalColorNamespace,
-  DataRecordValue,
   getColumnLabel,
   getMetricLabel,
   getNumberFormatter,
@@ -185,21 +184,18 @@ export default function transformProps(
       timeFormatter: getTimeFormatter(dateFormat),
     }),
   );
-  const labelMap = data.reduce(
-    (acc: Record<string, DataRecordValue[]>, datum) => {
-      const label = extractGroupbyLabel({
-        datum,
-        groupby: groupbyLabels,
-        coltypeMapping,
-        timeFormatter: getTimeFormatter(dateFormat),
-      });
-      return {
-        ...acc,
-        [label]: groupbyLabels.map(col => datum[col]),
-      };
-    },
-    {},
-  );
+  const labelMap = data.reduce((acc: Record<string, string[]>, datum) => {
+    const label = extractGroupbyLabel({
+      datum,
+      groupby: groupbyLabels,
+      coltypeMapping,
+      timeFormatter: getTimeFormatter(dateFormat),
+    });
+    return {
+      ...acc,
+      [label]: groupbyLabels.map(col => datum[col] as string),
+    };
+  }, {});
 
   const { setDataMask = () => {}, onContextMenu } = hooks;
 
