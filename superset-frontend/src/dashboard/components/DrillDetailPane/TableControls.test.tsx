@@ -34,7 +34,7 @@ const setup = (overrides: Record<string, any> = {}) => {
   };
   return render(<TableControls {...props} />);
 };
-test('should render', async () => {
+test('should render', () => {
   const { container } = setup();
   expect(container).toBeInTheDocument();
 });
