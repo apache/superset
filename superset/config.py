@@ -1342,6 +1342,21 @@ ADVANCED_DATA_TYPES: Dict[str, AdvancedDataType] = {
     "port": internet_port,
 }
 
+# Configuration for environment tag shown on the navbar. Setting 'text' to '' will hide the tag.
+# 'color' can either be a hex color code, or a dot-indexed theme color (e.g. error.base)
+ENVIRONMENT_TAG_CONFIG = {
+    "variable": "FLASK_ENV",
+    "values": {
+        "development": {
+            "color": "error.base",
+            "text": "Development",
+        },
+        "production": {
+            "color": "",
+            "text": "",
+        },
+    },
+}
 
 # -------------------------------------------------------------------
 # *                WARNING:  STOP EDITING  HERE                    *
