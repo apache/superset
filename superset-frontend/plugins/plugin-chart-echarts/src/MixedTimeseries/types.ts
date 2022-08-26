@@ -19,7 +19,6 @@
 import {
   AnnotationLayer,
   TimeGranularity,
-  DataRecordValue,
   QueryFormData,
   ChartProps,
   ChartDataResponseResult,
@@ -142,7 +141,7 @@ export type EchartsMixedTimeseriesChartTransformedProps =
   EChartTransformedProps<EchartsMixedTimeseriesFormData> & {
     emitFilterB: boolean;
     groupbyB: QueryFormColumn[];
-    labelMapB: Record<string, DataRecordValue[]>;
+    labelMapB: Record<string, string[]>;
     seriesBreakdown: number;
     xValueFormatter: TimeFormatter | StringConstructor;
   };

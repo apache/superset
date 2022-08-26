@@ -17,16 +17,27 @@
  * under the License.
  */
 
-import React from 'react';
-import { TableRenderer } from './TableRenderers';
+const DATASET_LIST_PATH = 'tablemodelview/list';
 
-class PivotTable extends React.PureComponent {
-  render() {
-    return <TableRenderer {...this.props} />;
-  }
-}
+describe('Dataset list', () => {
+  beforeEach(() => {
+    cy.login();
+    cy.visit(DATASET_LIST_PATH);
+  });
 
-PivotTable.propTypes = TableRenderer.propTypes;
-PivotTable.defaultProps = TableRenderer.defaultProps;
-
-export default PivotTable;
+  it('should open Explore on dataset name click', () => {
+    cy.intercept('**/api/v1/explore/**').as('explore');
+    cy.get('[data-test="listview-table"] [data-test="internal-link"]')
+      .contains('birth_names')
+      .click();
+    cy.wait('@explore');
+    cy.get('[data-test="datasource-control"] .title-select').contains(
+      'birth_names',
+    );
+    cy.get('.metric-option-label').first().contains('COUNT(*)');
+    cy.get('.column-option-label').first().contains('ds');
+    cy.get('[data-test="fast-viz-switcher"] > div:not([role="button"]')
+      .contains('Table')
+      .should('be.visible');
+  });
+});
