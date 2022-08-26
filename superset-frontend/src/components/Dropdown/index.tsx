@@ -66,7 +66,7 @@ const MenuDotsWrapper = styled.div`
   padding-left: ${({ theme }) => theme.gridUnit}px;
 `;
 
-export interface DropdownProps {
+export interface DropdownProps extends DropDownProps {
   overlay: React.ReactElement;
 }
 
