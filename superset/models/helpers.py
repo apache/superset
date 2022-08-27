@@ -750,6 +750,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
     def get_extra_cache_keys(query_obj: Dict[str, Any]) -> List[str]:
         raise NotImplementedError()
 
+    def get_template_processor(self, **kwargs: Any) -> BaseTemplateProcessor:
+        raise NotImplementedError()
+
     def _process_sql_expression(  # pylint: disable=no-self-use
         self,
         expression: Optional[str],
@@ -1291,9 +1294,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         column: Dict[str, Any],
         time_grain: Optional[str],
         label: Optional[str] = None,
-        template_processor: Optional[  # pylint: disable=unused-argument
-            BaseTemplateProcessor
-        ] = None,
+        template_processor: Optional[BaseTemplateProcessor] = None,
     ) -> Union[TimestampExpression, Label]:
         """
         Return a SQLAlchemy Core element representation of self to be used in a query.
@@ -1307,6 +1308,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         column_spec = self.db_engine_spec.get_column_spec(column.get("type"))
         type_ = column_spec.sqla_type if column_spec else sa.DateTime
         col = sa.column(column.get("column_name"), type_=type_)
+
+        if template_processor:
+            expression = template_processor.process_template(column["column_name"])
+            col = sa.literal_column(expression, type_=type_)
+
         time_expr = self.db_engine_spec.get_timestamp_expr(col, None, time_grain)
         return self.make_sqla_column_compatible(time_expr, label)
 
@@ -1377,7 +1383,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         applied_template_filters: List[str] = []
         template_kwargs["removed_filters"] = removed_filters
         template_kwargs["applied_filters"] = applied_template_filters
-        template_processor = None  # self.get_template_processor(**template_kwargs)
+        template_processor = self.get_template_processor(**template_kwargs)
         db_engine_spec = self.db_engine_spec
         prequeries: List[str] = []
         orderby = orderby or []
@@ -1487,7 +1493,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         table_col = columns_by_name[selected]
                         if isinstance(table_col, dict):
                             outer = self.get_timestamp_expression(
-                                table_col, time_grain, selected, template_processor
+                                column=table_col,
+                                time_grain=time_grain,
+                                label=selected,
+                                template_processor=template_processor,
                             )
                         else:
                             outer = table_col.get_timestamp_expression(
@@ -1550,7 +1559,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             if is_timeseries:
                 if isinstance(dttm_col, dict):
                     timestamp = self.get_timestamp_expression(
-                        dttm_col, time_grain, template_processor
+                        dttm_col, time_grain, template_processor=template_processor
                     )
                 else:
                     timestamp = dttm_col.get_timestamp_expression(
@@ -1639,7 +1648,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 elif col_obj and filter_grain:
                     if isinstance(col_obj, dict):
                         sqla_col = self.get_timestamp_expression(
-                            col_obj, time_grain, template_processor
+                            col_obj, time_grain, template_processor=template_processor
                         )
                     else:
                         sqla_col = col_obj.get_timestamp_expression(
@@ -1770,9 +1779,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             where = extras.get("where")
             if where:
                 try:
-                    where = template_processor.process_template(  # type: ignore
-                        f"({where})"
-                    )
+                    where = template_processor.process_template(f"{where}")
                 except TemplateError as ex:
                     raise QueryObjectValidationError(
                         _(
@@ -1784,9 +1791,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             having = extras.get("having")
             if having:
                 try:
-                    having = template_processor.process_template(  # type: ignore
-                        f"({having})"
-                    )
+                    having = template_processor.process_template(f"{having}")
                 except TemplateError as ex:
                     raise QueryObjectValidationError(
                         _(
