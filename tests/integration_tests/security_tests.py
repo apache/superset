@@ -247,8 +247,8 @@ class TestRolePermission(SupersetTestCase):
         security_manager.on_permission_view_after_insert = Mock()
 
         session = db.session
-        database = Database(database_name="tmp_db1", sqlalchemy_uri="sqlite://")
-        session.add(database)
+        tmp_db1 = Database(database_name="tmp_db1", sqlalchemy_uri="sqlite://")
+        session.add(tmp_db1)
 
         tmp_db1 = session.query(Database).filter_by(database_name="tmp_db1").one()
         self.assertEqual(tmp_db1.perm, f"[tmp_db1].(id:{tmp_db1.id})")
@@ -270,38 +270,34 @@ class TestRolePermission(SupersetTestCase):
         security_manager.on_view_menu_after_update = Mock()
 
         session = db.session
-        database = Database(database_name="tmp_database", sqlalchemy_uri="sqlite://")
-        session.add(database)
+        tmp_db1 = Database(database_name="tmp_db1", sqlalchemy_uri="sqlite://")
+        session.add(tmp_db1)
         session.commit()
-        stored_db = (
-            session.query(Database).filter_by(database_name="tmp_database").one()
-        )
+        tmp_db1 = session.query(Database).filter_by(database_name="tmp_db1").one()
 
         self.assertIsNotNone(
-            security_manager.find_permission_view_menu(
-                "database_access", stored_db.perm
-            )
+            security_manager.find_permission_view_menu("database_access", tmp_db1.perm)
         )
 
-        stored_db.database_name = "tmp_database2"
+        tmp_db1.database_name = "tmp_db2"
         session.commit()
 
         # Assert that the old permission was updated
         self.assertIsNone(
             security_manager.find_permission_view_menu(
-                "database_access", f"[tmp_database].(id:{stored_db.id})"
+                "database_access", f"[tmp_db1].(id:{tmp_db1.id})"
             )
         )
         # Assert that the db permission was updated
         self.assertIsNotNone(
             security_manager.find_permission_view_menu(
-                "database_access", f"[tmp_database2].(id:{stored_db.id})"
+                "database_access", f"[tmp_db2].(id:{tmp_db1.id})"
             )
         )
 
         # Assert the hook is called
         tmp_db1_view_menu = security_manager.find_view_menu(
-            f"[tmp_database2].(id:{stored_db.id})"
+            f"[tmp_db2].(id:{tmp_db1.id})"
         )
         security_manager.on_view_menu_after_update.assert_has_calls(
             [
@@ -309,7 +305,7 @@ class TestRolePermission(SupersetTestCase):
             ]
         )
 
-        session.delete(stored_db)
+        session.delete(tmp_db1)
         session.commit()
 
     def test_after_update_database__perm_database_access_exists(self):
@@ -318,35 +314,31 @@ class TestRolePermission(SupersetTestCase):
         session = db.session
         # Add a bogus existing permission before the change
 
-        database = Database(database_name="tmp_database", sqlalchemy_uri="sqlite://")
-        session.add(database)
+        tmp_db1 = Database(database_name="tmp_db1", sqlalchemy_uri="sqlite://")
+        session.add(tmp_db1)
         session.commit()
-        stored_db = (
-            session.query(Database).filter_by(database_name="tmp_database").one()
-        )
+        tmp_db1 = session.query(Database).filter_by(database_name="tmp_db1").one()
         security_manager.add_permission_view_menu(
-            "database_access", f"[tmp_database2].(id:{stored_db.id})"
+            "database_access", f"[tmp_db2].(id:{tmp_db1.id})"
         )
 
         self.assertIsNotNone(
-            security_manager.find_permission_view_menu(
-                "database_access", stored_db.perm
-            )
+            security_manager.find_permission_view_menu("database_access", tmp_db1.perm)
         )
 
-        stored_db.database_name = "tmp_database2"
+        tmp_db1.database_name = "tmp_db2"
         session.commit()
 
         # Assert that the old permission was updated
         self.assertIsNone(
             security_manager.find_permission_view_menu(
-                "database_access", f"[tmp_database].(id:{stored_db.id})"
+                "database_access", f"[tmp_db1].(id:{tmp_db1.id})"
             )
         )
         # Assert that the db permission was updated
         self.assertIsNotNone(
             security_manager.find_permission_view_menu(
-                "database_access", f"[tmp_database2].(id:{stored_db.id})"
+                "database_access", f"[tmp_db2].(id:{tmp_db1.id})"
             )
         )
 
@@ -356,7 +348,7 @@ class TestRolePermission(SupersetTestCase):
             ]
         )
 
-        session.delete(stored_db)
+        session.delete(tmp_db1)
         session.commit()
 
     def test_after_update_database__perm_datasource_access(self):
@@ -465,25 +457,21 @@ class TestRolePermission(SupersetTestCase):
 
     def test_after_delete_database__perm_database_access(self):
         session = db.session
-        database = Database(database_name="tmp_database", sqlalchemy_uri="sqlite://")
-        session.add(database)
+        tmp_db1 = Database(database_name="tmp_db1", sqlalchemy_uri="sqlite://")
+        session.add(tmp_db1)
         session.commit()
-        stored_db = (
-            session.query(Database).filter_by(database_name="tmp_database").one()
-        )
+        tmp_db1 = session.query(Database).filter_by(database_name="tmp_db1").one()
 
         self.assertIsNotNone(
-            security_manager.find_permission_view_menu(
-                "database_access", stored_db.perm
-            )
+            security_manager.find_permission_view_menu("database_access", tmp_db1.perm)
         )
-        session.delete(stored_db)
+        session.delete(tmp_db1)
         session.commit()
 
         # Assert that the old permission was updated
         self.assertIsNone(
             security_manager.find_permission_view_menu(
-                "database_access", f"[tmp_database].(id:{stored_db.id})"
+                "database_access", f"[tmp_db1].(id:{tmp_db1.id})"
             )
         )
 
@@ -491,7 +479,7 @@ class TestRolePermission(SupersetTestCase):
         security_manager.on_permission_view_after_delete = Mock()
 
         session = db.session
-        tmp_db = Database(database_name="tmp_database", sqlalchemy_uri="sqlite://")
+        tmp_db = Database(database_name="tmp_db", sqlalchemy_uri="sqlite://")
         session.add(tmp_db)
         session.commit()
 
@@ -504,7 +492,7 @@ class TestRolePermission(SupersetTestCase):
         session.commit()
 
         table1_pvm = security_manager.find_permission_view_menu(
-            "datasource_access", f"[tmp_database].[tmp_table1](id:{table1.id})"
+            "datasource_access", f"[tmp_db].[tmp_table1](id:{table1.id})"
         )
         self.assertIsNotNone(table1_pvm)
 
@@ -524,11 +512,11 @@ class TestRolePermission(SupersetTestCase):
         self.assertEqual(role1.permissions, [])
 
         table1_pvm = security_manager.find_permission_view_menu(
-            "datasource_access", f"[tmp_database].[tmp_table1](id:{table1.id})"
+            "datasource_access", f"[tmp_db].[tmp_table1](id:{table1.id})"
         )
         self.assertIsNone(table1_pvm)
         table1_view_menu = security_manager.find_view_menu(
-            f"[tmp_database].[tmp_table1](id:{table1.id})"
+            f"[tmp_db].[tmp_table1](id:{table1.id})"
         )
         self.assertIsNone(table1_view_menu)
 
@@ -540,6 +528,7 @@ class TestRolePermission(SupersetTestCase):
         )
 
         # cleanup
+        session.delete(role1)
         session.delete(tmp_db)
         session.commit()
 
@@ -547,7 +536,7 @@ class TestRolePermission(SupersetTestCase):
         security_manager.on_view_menu_after_update = Mock()
 
         session = db.session
-        tmp_db = Database(database_name="tmp_database", sqlalchemy_uri="sqlite://")
+        tmp_db = Database(database_name="tmp_db", sqlalchemy_uri="sqlite://")
         session.add(tmp_db)
         session.commit()
 
@@ -569,7 +558,7 @@ class TestRolePermission(SupersetTestCase):
         session.commit()
 
         table1_pvm = security_manager.find_permission_view_menu(
-            "datasource_access", f"[tmp_database].[tmp_table1](id:{table1.id})"
+            "datasource_access", f"[tmp_db].[tmp_table1](id:{table1.id})"
         )
         self.assertIsNotNone(table1_pvm)
 
@@ -581,13 +570,13 @@ class TestRolePermission(SupersetTestCase):
 
         # Test old permission does not exist
         old_table1_pvm = security_manager.find_permission_view_menu(
-            "datasource_access", f"[tmp_database].[tmp_table1](id:{table1.id})"
+            "datasource_access", f"[tmp_db].[tmp_table1](id:{table1.id})"
         )
         self.assertIsNone(old_table1_pvm)
 
         # Test new permission exist
         new_table1_pvm = security_manager.find_permission_view_menu(
-            "datasource_access", f"[tmp_database].[tmp_table1_changed](id:{table1.id})"
+            "datasource_access", f"[tmp_db].[tmp_table1_changed](id:{table1.id})"
         )
         self.assertIsNotNone(new_table1_pvm)
 
@@ -596,18 +585,16 @@ class TestRolePermission(SupersetTestCase):
             session.query(SqlaTable).filter_by(table_name="tmp_table1_changed").one()
         )
         self.assertEqual(
-            changed_table1.perm, f"[tmp_database].[tmp_table1_changed](id:{table1.id})"
+            changed_table1.perm, f"[tmp_db].[tmp_table1_changed](id:{table1.id})"
         )
 
         # Test Chart permission changed
         slice1 = session.query(Slice).filter_by(slice_name="tmp_slice1").one()
-        self.assertEqual(
-            slice1.perm, f"[tmp_database].[tmp_table1_changed](id:{table1.id})"
-        )
+        self.assertEqual(slice1.perm, f"[tmp_db].[tmp_table1_changed](id:{table1.id})")
 
         # Assert hook is called
         view_menu_dataset = security_manager.find_view_menu(
-            f"[tmp_database].[tmp_table1_changed](id:{table1.id})"
+            f"[tmp_db].[tmp_table1_changed](id:{table1.id})"
         )
         security_manager.on_view_menu_after_update.assert_has_calls(
             [
@@ -615,8 +602,8 @@ class TestRolePermission(SupersetTestCase):
             ]
         )
         # cleanup
-        session.delete(table1)
         session.delete(slice1)
+        session.delete(table1)
         session.delete(tmp_db)
         session.commit()
 
@@ -681,8 +668,8 @@ class TestRolePermission(SupersetTestCase):
         self.assertEqual(slice1.schema_perm, f"[tmp_db2].[tmp_schema]")
 
         # cleanup
-        session.delete(table1)
         session.delete(slice1)
+        session.delete(table1)
         session.delete(tmp_db1)
         session.delete(tmp_db2)
         session.commit()
@@ -740,8 +727,8 @@ class TestRolePermission(SupersetTestCase):
         self.assertEqual(slice1.schema_perm, f"[tmp_db1].[tmp_schema_changed]")
 
         # cleanup
-        session.delete(table1)
         session.delete(slice1)
+        session.delete(table1)
         session.delete(tmp_db1)
         session.commit()
 
@@ -785,8 +772,10 @@ class TestRolePermission(SupersetTestCase):
         self.assertEqual(table1.perm, f"[tmp_db1].[tmp_table1](id:{table1.id})")
         self.assertIsNone(table1.schema_perm)
 
-        session.delete(tmp_db1)
+        # cleanup
+        session.delete(slice1)
         session.delete(table1)
+        session.delete(tmp_db1)
         session.commit()
 
     def test_after_update_dataset__name_db_changes(self):
@@ -853,8 +842,8 @@ class TestRolePermission(SupersetTestCase):
         self.assertEqual(slice1.schema_perm, f"[tmp_db2].[tmp_schema]")
 
         # cleanup
-        session.delete(table1)
         session.delete(slice1)
+        session.delete(table1)
         session.delete(tmp_db1)
         session.delete(tmp_db2)
         session.commit()
@@ -925,8 +914,6 @@ class TestRolePermission(SupersetTestCase):
         session.delete(database)
 
         session.commit()
-
-        # TODO test slice permission
 
     @patch("superset.utils.core.g")
     @patch("superset.security.manager.g")
