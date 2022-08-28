@@ -137,7 +137,11 @@ class TestPostgresDbEngineSpec(TestDbEngineSpec):
         """
         DB Eng Specs (postgres): Test "postgres" in engine spec
         """
-        self.assertIn("postgres", [engine.engine for engine in load_engine_specs()])
+        backends = set()
+        for engine in load_engine_specs():
+            backends.add(engine.engine)
+            backends.update(engine.engine_aliases)
+        assert "postgres" in backends
 
     def test_extras_without_ssl(self):
         db = mock.Mock()

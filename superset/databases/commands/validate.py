@@ -44,7 +44,7 @@ class ValidateDatabaseParametersCommand(BaseCommand):
 
     def run(self) -> None:
         engine = self._properties["engine"]
-        driver = self._properties["driver"]
+        driver = self._properties.get("driver")
 
         if engine in BYPASS_VALIDATION_ENGINES:
             # Skip engines that are only validated onCreate
