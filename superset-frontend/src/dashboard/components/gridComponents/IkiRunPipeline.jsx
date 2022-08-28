@@ -57,7 +57,7 @@ const supersetUrl = new URL(window.location.href);
 const supersetHostname = supersetUrl.hostname;
 const clusterId = supersetHostname.split('-superset.ikigailabs.io')[0];
 const dashURL = `https://${clusterId}-app.ikigailabs.io`;
-console.log('supersetUrl', supersetUrl, supersetHostname, clusterId, dashURL);
+// console.log('supersetUrl', supersetUrl, supersetHostname, clusterId, dashURL);
 const timestamp = new Date().getTime().toString();
 const iframeEmptyURL = `${dashURL}/widget/pipeline/run?mode=edit&v=1&run_flow_times=${timestamp}`;
 
@@ -121,12 +121,7 @@ class IkiRunPipeline extends React.PureComponent {
       ts: new Date().getTime(),
       duration: Logger.getTimestamp() - this.renderStartTime,
     });
-    if (!this.props.component.meta.code) {
-      this.handleIncomingWindowMsg();
-      window.parent.postMessage('superset-to-parent/get-project-id', dashURL);
-    } else {
-      this.handleIncomingWindowMsg();
-    }
+    this.handleIncomingWindowMsg();
   }
 
   static getDerivedStateFromProps(nextProps, state) {
@@ -244,15 +239,6 @@ class IkiRunPipeline extends React.PureComponent {
                       style="min-height: 100%;"
                     />`;
               this.handleIkiRunPipelineChange(tempIframe);
-              if (
-                document.getElementById(
-                  `ikirunpipeline-widget-${this.props.component.id}`,
-                )
-              ) {
-                document.getElementById(
-                  `ikirunpipeline-widget-${this.props.component.id}`,
-                ).src = widgetUrl;
-              }
             }
           }
         }
@@ -379,7 +365,7 @@ class IkiRunPipeline extends React.PureComponent {
       const paramEditVariables = iframeSrcUrl.searchParams.get('edit_variables')
         ? iframeSrcUrl.searchParams.get('edit_variables')
         : '';
-      const newIframeSrc = `${iframeSrcUrl.origin}${iframeSrcUrl.pathname}?mode=${paramMode}&v=1&run_flow_times=${paramTimestamp}&pipeline_id=${paramPipelineId}&submit_button_label=${paramSubmitButtonLabel}&pipeline_log_type=${paramPipelineLogType}&edit_variables=${paramEditVariables}`;
+      const newIframeSrc = `${dashURL}/widget/pipeline/run?mode=${paramMode}&v=1&run_flow_times=${paramTimestamp}&pipeline_id=${paramPipelineId}&submit_button_label=${paramSubmitButtonLabel}&pipeline_log_type=${paramPipelineLogType}&edit_variables=${paramEditVariables}`;
       const newIframeSrcUrl = new URL(newIframeSrc);
       const hostname = newIframeSrcUrl.href
         .toString()
@@ -398,6 +384,7 @@ class IkiRunPipeline extends React.PureComponent {
     } else {
       iframeSrc = iframeEmptyURL;
     }
+    // console.log('iframeSrc', iframeSrc, markdownSource, iframeEmptyURL);
     iframe = `<iframe
                   id="ikirunpipeline-widget-${this.props.component.id}"
                   name="run-flow-${timestamp}"
