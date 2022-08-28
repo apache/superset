@@ -211,7 +211,7 @@ SQLALCHEMY_CUSTOM_PASSWORD_STORE = None
 #
 # e.g.:
 #
-# class AesGcmEncryptedAdapter(  # pylint: disable=too-few-public-methods
+# class AesGcmEncryptedAdapter(
 #     AbstractEncryptedFieldAdapter
 # ):
 #     def create(

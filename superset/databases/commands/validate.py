@@ -30,7 +30,6 @@ from superset.databases.commands.exceptions import (
 from superset.databases.dao import DatabaseDAO
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs import get_engine_spec
-from superset.db_engine_specs.base import BasicParametersMixin
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.extensions import event_logger
 from superset.models.core import Database
