@@ -55,7 +55,7 @@ jobs:
         working-directory: superset-frontend
       # 👇 Build and publish Storybook to Chromatic
       - name: Build and publish Storybook to Chromatic
-        id: chromatic-pr
+        id: chromatic-deploy
         uses: chromaui/action@v1
         # Required options for the Chromatic GitHub Action
         with:
