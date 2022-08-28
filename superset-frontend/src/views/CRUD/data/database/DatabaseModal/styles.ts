@@ -277,7 +277,6 @@ export const formStyles = (theme: SupersetTheme) => css`
       width: ${`calc(50% - ${theme.gridUnit * 4}px)`};
       & + .form-group-w-50 {
         margin-left: ${theme.gridUnit * 8}px;
-        margin-bottom: ${theme.gridUnit * 10}px;
       }
     }
   }

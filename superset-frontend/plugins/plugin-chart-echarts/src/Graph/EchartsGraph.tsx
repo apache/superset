@@ -61,7 +61,7 @@ export default function EchartsGraph({
               formattedVal: targetValue,
             },
           ];
-          onContextMenu(filters, pointerEvent.offsetX, pointerEvent.offsetY);
+          onContextMenu(filters, pointerEvent.clientX, pointerEvent.clientY);
         }
       }
     },
