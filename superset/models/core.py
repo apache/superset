@@ -646,7 +646,7 @@ class Database(
             driver = url.get_driver_name()
         except NoSuchModuleError:
             # can't load the driver, fallback for backwards compatibility
-            return db_engine_specs.BaseEngineSpec
+            driver = None
 
         return db_engine_specs.get_engine_spec(backend, driver)
 

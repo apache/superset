@@ -150,7 +150,7 @@ def sqlalchemy_uri_validator(value: str) -> str:
             [
                 _(
                     "Invalid connection string, a valid string usually follows: "
-                    "driver://user:password@database-host/database-name"
+                    "backend+driver://user:password@database-host/database-name"
                 )
             ]
         ) from ex
@@ -263,19 +263,19 @@ class DatabaseParametersSchemaMixin:  # pylint: disable=too-few-public-methods
             or parameters.pop("engine", None)
             or data.pop("backend", None)
         )
-        if not engine:
-            raise ValidationError(
-                [
-                    _(
-                        "An engine must be specified when passing "
-                        "individual parameters to a database."
-                    )
-                ]
-            )
         driver = data.pop("driver", None)
 
         configuration_method = data.get("configuration_method")
         if configuration_method == ConfigurationMethod.DYNAMIC_FORM:
+            if not engine:
+                raise ValidationError(
+                    [
+                        _(
+                            "An engine must be specified when passing "
+                            "individual parameters to a database."
+                        )
+                    ]
+                )
             engine_spec = get_engine_spec(engine, driver)
 
             if not hasattr(engine_spec, "build_sqlalchemy_uri") or not hasattr(
