@@ -80,7 +80,7 @@ Handlebars.registerHelper('stringify', (obj: any, obj2: any) => {
 });
 
 [math, html, strings, conditionals].forEach(helper => {
-  // Register all the helper functions to Handlebars
+  // register all the helper functions to Handlebars
   Object.keys(helper).forEach(name => {
     Handlebars.registerHelper(name, helper[name]);
   });
