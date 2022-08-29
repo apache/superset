@@ -186,14 +186,14 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   const {
     data,
     isFetching: loadingTables,
-    isFetchedAfterMount,
+    isFetched,
     refetch,
   } = useTables({
     dbId: database?.id,
     schema: currentSchema,
     onSuccess: (data: Table[]) => {
       onTablesLoad?.(data);
-      if (isFetchedAfterMount) {
+      if (isFetched) {
         addSuccessToast('List updated');
       }
     },
