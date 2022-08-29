@@ -199,7 +199,7 @@ export default function EchartsTimeseries({
               formattedVal: String(values[i]),
             }),
           );
-          onContextMenu(filters, pointerEvent.offsetX, pointerEvent.offsetY);
+          onContextMenu(filters, pointerEvent.clientX, pointerEvent.clientY);
         }
       }
     },

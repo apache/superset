@@ -190,7 +190,7 @@ describe('Dashboard edit action', () => {
       });
     });
   });
-  describe('the color scheme affects the chart colors', () => {
+  describe.skip('the color scheme affects the chart colors', () => {
     it('should change the chart colors', () => {
       openAdvancedProperties().then(() => {
         clear('#json_metadata');
