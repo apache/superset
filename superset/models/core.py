@@ -46,7 +46,7 @@ from sqlalchemy import (
 from sqlalchemy.engine import Connection, Dialect, Engine
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
-from sqlalchemy.exc import ArgumentError
+from sqlalchemy.exc import ArgumentError, NoSuchModuleError
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship
 from sqlalchemy.pool import NullPool
@@ -635,15 +635,20 @@ class Database(
 
     @property
     def db_engine_spec(self) -> Type[db_engine_specs.BaseEngineSpec]:
-        return self.get_db_engine_spec_for_backend(self.backend)
+        url = make_url_safe(self.sqlalchemy_uri_decrypted)
+        return self.get_db_engine_spec(url)
 
     @classmethod
     @memoized
-    def get_db_engine_spec_for_backend(
-        cls, backend: str
-    ) -> Type[db_engine_specs.BaseEngineSpec]:
-        engines = db_engine_specs.get_engine_specs()
-        return engines.get(backend, db_engine_specs.BaseEngineSpec)
+    def get_db_engine_spec(cls, url: URL) -> Type[db_engine_specs.BaseEngineSpec]:
+        backend = url.get_backend_name()
+        try:
+            driver = url.get_driver_name()
+        except NoSuchModuleError:
+            # can't load the driver, fallback for backwards compatibility
+            driver = None
+
+        return db_engine_specs.get_engine_spec(backend, driver)
 
     def grains(self) -> Tuple[TimeGrain, ...]:
         """Defines time granularity database-specific expressions.

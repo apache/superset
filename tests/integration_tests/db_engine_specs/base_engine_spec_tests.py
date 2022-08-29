@@ -20,7 +20,7 @@ from unittest import mock
 import pytest
 
 from superset.connectors.sqla.models import TableColumn
-from superset.db_engine_specs import get_engine_specs
+from superset.db_engine_specs import load_engine_specs
 from superset.db_engine_specs.base import (
     BaseEngineSpec,
     BasicParametersMixin,
@@ -195,7 +195,7 @@ class TestDbEngineSpecs(TestDbEngineSpec):
     def test_engine_time_grain_validity(self):
         time_grains = set(builtin_time_grains.keys())
         # loop over all subclasses of BaseEngineSpec
-        for engine in get_engine_specs().values():
+        for engine in load_engine_specs():
             if engine is not BaseEngineSpec:
                 # make sure time grain functions have been defined
                 self.assertGreater(len(engine.get_time_grain_expressions()), 0)

@@ -29,8 +29,7 @@ from superset.databases.commands.exceptions import (
 )
 from superset.databases.dao import DatabaseDAO
 from superset.databases.utils import make_url_safe
-from superset.db_engine_specs import get_engine_specs
-from superset.db_engine_specs.base import BasicParametersMixin
+from superset.db_engine_specs import get_engine_spec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.extensions import event_logger
 from superset.models.core import Database
@@ -45,25 +44,13 @@ class ValidateDatabaseParametersCommand(BaseCommand):
 
     def run(self) -> None:
         engine = self._properties["engine"]
-        engine_specs = get_engine_specs()
+        driver = self._properties.get("driver")
 
         if engine in BYPASS_VALIDATION_ENGINES:
             # Skip engines that are only validated onCreate
             return
 
-        if engine not in engine_specs:
-            raise InvalidEngineError(
-                SupersetError(
-                    message=__(
-                        'Engine "%(engine)s" is not a valid engine.',
-                        engine=engine,
-                    ),
-                    error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
-                    level=ErrorLevel.ERROR,
-                    extra={"allowed": list(engine_specs), "provided": engine},
-                ),
-            )
-        engine_spec = engine_specs[engine]
+        engine_spec = get_engine_spec(engine, driver)
         if not hasattr(engine_spec, "parameters_schema"):
             raise InvalidEngineError(
                 SupersetError(
@@ -73,14 +60,6 @@ class ValidateDatabaseParametersCommand(BaseCommand):
                     ),
                     error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
                     level=ErrorLevel.ERROR,
-                    extra={
-                        "allowed": [
-                            name
-                            for name, engine_spec in engine_specs.items()
-                            if issubclass(engine_spec, BasicParametersMixin)
-                        ],
-                        "provided": engine,
-                    },
                 ),
             )
 
