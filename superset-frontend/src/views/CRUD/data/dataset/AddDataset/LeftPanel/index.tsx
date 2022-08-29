@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useState, useMemo } from 'react';
+import React, {
+  useEffect,
+  useState,
+  useMemo,
+  SetStateAction,
+  Dispatch,
+} from 'react';
 import { SupersetClient, t, styled, FAST_DEBOUNCE } from '@superset-ui/core';
 import { Input } from 'src/components/Input';
 import { Form } from 'src/components/Form';
@@ -30,7 +36,7 @@ import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { DatasetActionType, DatasetObject } from '../types';
 
 interface LeftPanelProps {
-  setDataset: (db: any) => void;
+  setDataset: Dispatch<SetStateAction<object>>;
   schema?: string | undefined | null;
   dbId?: number;
 }
