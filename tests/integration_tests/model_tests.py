@@ -188,7 +188,7 @@ class TestDatabaseModel(SupersetTestCase):
             call_args = mocked_create_engine.call_args
 
             assert str(call_args[0][0]) == "trino://localhost"
-            assert call_args[1]["connect_args"] == {"user": "gamma"}
+            assert call_args[1]["connect_args"]["user"] == "gamma"
 
             model = Database(
                 database_name="test_database",
@@ -203,7 +203,7 @@ class TestDatabaseModel(SupersetTestCase):
                 str(call_args[0][0])
                 == "trino://original_user:original_user_password@localhost"
             )
-            assert call_args[1]["connect_args"] == {"user": "gamma"}
+            assert call_args[1]["connect_args"]["user"] == "gamma"
 
     @mock.patch("superset.models.core.create_engine")
     def test_impersonate_user_hive(self, mocked_create_engine):
