@@ -236,3 +236,23 @@ test('Should "Enter fullscreen"', () => {
   userEvent.click(screen.getByText('Enter fullscreen'));
   expect(props.handleToggleFullSize).toBeCalledTimes(1);
 });
+
+test('Drill to detail modal is under featureflag', () => {
+  // @ts-ignore
+  global.featureFlags = {
+    [FeatureFlag.DRILL_TO_DETAIL]: false,
+  };
+  const props = createProps();
+  renderWrapper(props);
+  expect(screen.queryByText('Drill to detail')).not.toBeInTheDocument();
+});
+
+test('Should show the "Drill to detail"', () => {
+  // @ts-ignore
+  global.featureFlags = {
+    [FeatureFlag.DRILL_TO_DETAIL]: true,
+  };
+  const props = createProps();
+  renderWrapper(props);
+  expect(screen.getByText('Drill to detail')).toBeInTheDocument();
+});
