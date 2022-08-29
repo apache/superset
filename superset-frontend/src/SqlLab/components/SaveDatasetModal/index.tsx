@@ -307,9 +307,11 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
       })
       .catch(() => {
         addDangerToast(t('An error occurred saving dataset'));
+        onHide();
       });
 
     setDatasetName(getDefaultDatasetName());
+    console.log(formData);
     onHide();
   };
 
