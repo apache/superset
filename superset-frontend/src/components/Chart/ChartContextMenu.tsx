@@ -27,6 +27,9 @@ import { QueryObjectFilterClause, t, styled } from '@superset-ui/core';
 import { Menu } from 'src/components/Menu';
 import { AntdDropdown as Dropdown } from 'src/components';
 
+const MENU_ITEM_HEIGHT = 32;
+const MENU_VERTICAL_SPACING = 32;
+
 export interface ChartContextMenuProps {
   id: string;
   onSelection: (filters: QueryObjectFilterClause[]) => void;
@@ -82,7 +85,19 @@ const ChartContextMenu = (
 
   const open = useCallback(
     (filters: QueryObjectFilterClause[], clientX: number, clientY: number) => {
-      setState({ filters, clientX, clientY });
+      // Viewport height
+      const vh = Math.max(
+        document.documentElement.clientHeight || 0,
+        window.innerHeight || 0,
+      );
+
+      // +1 for automatically added options such as 'All' and 'Drill to detail'
+      const itemsCount = filters.length + 1;
+      const menuHeight = MENU_ITEM_HEIGHT * itemsCount + MENU_VERTICAL_SPACING;
+      // Always show the context menu inside the viewport
+      const adjustedY = vh - clientY < menuHeight ? vh - menuHeight : clientY;
+
+      setState({ filters, clientX, clientY: adjustedY });
 
       // Since Ant Design's Dropdown does not offer an imperative API
       // and we can't attach event triggers to charts SVG elements, we
