@@ -54,6 +54,9 @@ def load_examples_run(
     if load_test_data:
         print("Loading [Tabbed dashboard]")
         examples.load_tabbed_dashboard(only_metadata)
+
+        print("Loading [ECharts Dashboard]")
+        examples.load_echarts_dashboard()
     else:
         print("Loading [Random long/lat data]")
         examples.load_long_lat_data(only_metadata, force)

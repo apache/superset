@@ -195,6 +195,7 @@ export default function transformProps(
             type: 'line',
             smooth: true,
             symbol: 'circle',
+            symbolSize: 10,
             showSymbol: false,
             color: mainColor,
             areaStyle: {
