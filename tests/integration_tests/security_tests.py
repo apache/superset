@@ -106,95 +106,94 @@ class TestRolePermission(SupersetTestCase):
     """Testing export role permissions."""
 
     def setUp(self):
-        schema = get_example_default_schema()
-        session = db.session
-        security_manager.add_role(SCHEMA_ACCESS_ROLE)
-        session.commit()
-
-        ds = (
-            db.session.query(SqlaTable)
-            .filter_by(table_name="wb_health_population", schema=schema)
-            .first()
-        )
-        ds.schema = "temp_schema"
-        ds.schema_perm = ds.get_schema_perm()
-
-        ds_slices = (
-            session.query(Slice)
-            .filter_by(datasource_type=DatasourceType.TABLE)
-            .filter_by(datasource_id=ds.id)
-            .all()
-        )
-        for s in ds_slices:
-            s.schema_perm = ds.schema_perm
-        create_schema_perm("[examples].[temp_schema]")
-        gamma_user = security_manager.find_user(username="gamma")
-        gamma_user.roles.append(security_manager.find_role(SCHEMA_ACCESS_ROLE))
-        session.commit()
+        ...
+        # schema = get_example_default_schema()
+        # session = db.session
+        # security_manager.add_role(SCHEMA_ACCESS_ROLE)
+        # session.commit()
+        #
+        # ds = (
+        #     db.session.query(SqlaTable)
+        #     .filter_by(table_name="wb_health_population", schema=schema)
+        #     .first()
+        # )
+        # ds.schema = "temp_schema"
+        # ds.schema_perm = ds.get_schema_perm()
+        #
+        # ds_slices = (
+        #     session.query(Slice)
+        #     .filter_by(datasource_type=DatasourceType.TABLE)
+        #     .filter_by(datasource_id=ds.id)
+        #     .all()
+        # )
+        # for s in ds_slices:
+        #     s.schema_perm = ds.schema_perm
+        # create_schema_perm("[examples].[temp_schema]")
+        # gamma_user = security_manager.find_user(username="gamma")
+        # gamma_user.roles.append(security_manager.find_role(SCHEMA_ACCESS_ROLE))
+        # session.commit()
 
     def tearDown(self):
-        session = db.session
-        ds = (
-            session.query(SqlaTable)
-            .filter_by(table_name="wb_health_population", schema="temp_schema")
-            .first()
-        )
-        schema_perm = ds.schema_perm
-        ds.schema = get_example_default_schema()
-        ds.schema_perm = None
-        ds_slices = (
-            session.query(Slice)
-            .filter_by(datasource_type=DatasourceType.TABLE)
-            .filter_by(datasource_id=ds.id)
-            .all()
-        )
-        for s in ds_slices:
-            s.schema_perm = None
-
-        delete_schema_perm(schema_perm)
-        session.delete(security_manager.find_role(SCHEMA_ACCESS_ROLE))
-        session.commit()
+        ...
+        # session = db.session
+        # ds = (
+        #     session.query(SqlaTable)
+        #     .filter_by(table_name="wb_health_population", schema="temp_schema")
+        #     .first()
+        # )
+        # schema_perm = ds.schema_perm
+        # ds.schema = get_example_default_schema()
+        # ds.schema_perm = None
+        # ds_slices = (
+        #     session.query(Slice)
+        #     .filter_by(datasource_type=DatasourceType.TABLE)
+        #     .filter_by(datasource_id=ds.id)
+        #     .all()
+        # )
+        # for s in ds_slices:
+        #     s.schema_perm = None
+        #
+        # delete_schema_perm(schema_perm)
+        # session.delete(security_manager.find_role(SCHEMA_ACCESS_ROLE))
+        # session.commit()
 
     def test_dataset_after_insert(self):
         security_manager.on_view_menu_after_insert = Mock()
         security_manager.on_permission_view_after_insert = Mock()
 
         session = db.session
+        tmp_db1 = Database(database_name="tmp_db1", sqlalchemy_uri="sqlite://")
+        session.add(tmp_db1)
+
         table = SqlaTable(
             schema="tmp_schema",
             table_name="tmp_perm_table",
-            database=get_example_database(),
+            database=tmp_db1,
         )
         session.add(table)
         session.commit()
 
-        stored_table = (
-            session.query(SqlaTable).filter_by(table_name="tmp_perm_table").one()
-        )
-        self.assertEqual(
-            stored_table.perm, f"[examples].[tmp_perm_table](id:{stored_table.id})"
-        )
+        table = session.query(SqlaTable).filter_by(table_name="tmp_perm_table").one()
+        self.assertEqual(table.perm, f"[tmp_db1].[tmp_perm_table](id:{table.id})")
 
         pvm_dataset = security_manager.find_permission_view_menu(
-            "datasource_access", stored_table.perm
+            "datasource_access", table.perm
         )
         pvm_schema = security_manager.find_permission_view_menu(
-            "schema_access", stored_table.schema_perm
+            "schema_access", table.schema_perm
         )
 
         # Assert dataset permission is created and local perms are ok
         self.assertIsNotNone(pvm_dataset)
-        self.assertEqual(
-            stored_table.perm, f"[examples].[tmp_perm_table](id:{stored_table.id})"
-        )
-        self.assertEqual(stored_table.schema_perm, "[examples].[tmp_schema]")
+        self.assertEqual(table.perm, f"[tmp_db1].[tmp_perm_table](id:{table.id})")
+        self.assertEqual(table.schema_perm, "[tmp_db1].[tmp_schema]")
         self.assertIsNotNone(pvm_schema)
 
         # assert on permission hooks
         view_menu_dataset = security_manager.find_view_menu(
-            f"[examples].[tmp_perm_table](id:{stored_table.id})"
+            f"[tmp_db1].[tmp_perm_table](id:{table.id})"
         )
-        view_menu_schema = security_manager.find_view_menu(f"[examples].[tmp_schema]")
+        view_menu_schema = security_manager.find_view_menu(f"[tmp_db1].[tmp_schema]")
         security_manager.on_view_menu_after_insert.assert_has_calls(
             [
                 call(ANY, ANY, view_menu_dataset),
@@ -210,6 +209,7 @@ class TestRolePermission(SupersetTestCase):
 
         # Cleanup
         session.delete(table)
+        session.delete(tmp_db1)
         session.commit()
 
     def test_dataset_after_insert_table_none(self):
