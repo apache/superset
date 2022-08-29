@@ -26,6 +26,7 @@ from superset.explore.commands.parameters import CommandParameters
 from superset.explore.exceptions import DatasetAccessDeniedError, WrongEndpointError
 from superset.explore.permalink.exceptions import ExplorePermalinkGetFailedError
 from superset.explore.schemas import ExploreContextSchema
+from superset.dao.exceptions import DatasourceNotFound
 from superset.extensions import event_logger
 from superset.temporary_cache.commands.exceptions import (
     TemporaryCacheAccessDeniedError,
@@ -115,8 +116,6 @@ class ExploreRestApi(BaseApi):
                 slice_id=request.args.get("slice_id", type=int),
             )
             result = GetExploreCommand(params).run()
-            if not result:
-                return self.response_404()
             return self.response(200, result=result)
         except ValueError as ex:
             return self.response(400, message=str(ex))
@@ -127,7 +126,7 @@ class ExploreRestApi(BaseApi):
                 dataset_id=ex.dataset_id,
                 dataset_type=ex.dataset_type,
             )
-        except (ChartNotFoundError, ExplorePermalinkGetFailedError) as ex:
+        except (DatasourceNotFound, ChartNotFoundError, ExplorePermalinkGetFailedError) as ex:
             return self.response(404, message=str(ex))
         except WrongEndpointError as ex:
             return self.response(302, redirect=ex.redirect)

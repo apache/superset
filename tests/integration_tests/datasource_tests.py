@@ -402,10 +402,13 @@ class TestDatasource(SupersetTestCase):
             DatasourceNotFound,
             lambda: DatasourceDAO.get_datasource(db.session, "table", 9999999),
         )
-
+        # assert rv.status_code == 404
         self.login(username="admin")
-        resp = self.get_json_resp("/datasource/get/table/500000/", raise_on_error=False)
-        self.assertEqual(resp.get("error"), "Datasource does not exist")
+        self.get_json_resp("/datasource/get/table/500000/", raise_on_error=True)
+        with self.assertRaises(Exception) as ex:
+            # assert rv.status_code == 404
+            print("ex 0000", ex)
+            self.assertEqual(ex, "test huh")
 
     def test_get_datasource_invalid_datasource_failed(self):
         from superset.datasource.dao import DatasourceDAO
@@ -416,7 +419,7 @@ class TestDatasource(SupersetTestCase):
         )
 
         self.login(username="admin")
-        resp = self.get_json_resp("/datasource/get/druid/500000/", raise_on_error=False)
+        resp = self.get_json_resp("/datasource/get/druid/500000/", raise_on_error=True)
         self.assertEqual(resp.get("error"), "'druid' is not a valid DatasourceType")
 
 
