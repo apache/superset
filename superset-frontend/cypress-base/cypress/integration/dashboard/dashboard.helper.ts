@@ -23,6 +23,7 @@ export const WORLD_HEALTH_DASHBOARD = '/superset/dashboard/world_health/';
 export const USA_BIRTH_NAMES_DASHBOARD = '/superset/dashboard/births/';
 export const testDashboard = '/superset/dashboard/538/';
 export const TABBED_DASHBOARD = '/superset/dashboard/tabbed_dash/';
+export const ECHARTS_DASHBOARD = '/superset/dashboard/echarts_dash/';
 
 export const testItems = {
   dashboard: 'Cypress test Dashboard',
@@ -73,6 +74,14 @@ export const WORLD_HEALTH_CHARTS = [
   { name: 'Box plot', viz: 'box_plot' },
 ] as const;
 
+export const ECHARTS_CHARTS = [
+  { name: 'Number of Girls', viz: 'big_number_total' },
+  { name: 'Participants', viz: 'big_number' },
+  { name: 'Box plot', viz: 'box_plot' },
+  { name: 'Genders', viz: 'pie' },
+  { name: 'Energy Force Layout', viz: 'graph_chart' },
+] as const;
+
 /** Used to specify charts expected by the test suite */
 export interface ChartSpec {
   name: string;
@@ -81,7 +90,7 @@ export interface ChartSpec {
 
 export function getChartGridComponent({ name, viz }: ChartSpec) {
   return cy
-    .get(`[data-test="chart-grid-component"][data-test-chart-name="${name}"]`)
+    .get(`[data-test-chart-name="${name}"]`)
     .should('have.attr', 'data-test-viz-type', viz);
 }
 
@@ -92,7 +101,7 @@ export function waitForChartLoad(chart: ChartSpec) {
     return (
       cy
         // this id only becomes visible when the chart is loaded
-        .get(`[data-test="chart-grid-component"] #chart-id-${chartId}`, {
+        .get(`#chart-id-${chartId}`, {
           timeout: 30000,
         })
         .should('be.visible')
