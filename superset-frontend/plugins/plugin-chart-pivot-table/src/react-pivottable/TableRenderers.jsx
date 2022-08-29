@@ -700,6 +700,7 @@ export class TableRenderer extends React.Component {
           className="pvtVal"
           key={`pvtVal-${flatColKey}`}
           onClick={rowClickHandlers[flatColKey]}
+          onContextMenu={e => this.props.onContextMenu(e, colKey, rowKey)}
           style={style}
         >
           {agg.format(aggValue)}
@@ -717,6 +718,7 @@ export class TableRenderer extends React.Component {
           key="total"
           className="pvtTotal"
           onClick={rowTotalCallbacks[flatRowKey]}
+          onContextMenu={e => this.props.onContextMenu(e, undefined, rowKey)}
         >
           {agg.format(aggValue)}
         </td>
@@ -776,6 +778,7 @@ export class TableRenderer extends React.Component {
           className="pvtTotal pvtRowTotal"
           key={`total-${flatColKey}`}
           onClick={colTotalCallbacks[flatColKey]}
+          onContextMenu={e => this.props.onContextMenu(e, colKey, undefined)}
           style={{ padding: '5px' }}
         >
           {agg.format(aggValue)}
@@ -793,6 +796,7 @@ export class TableRenderer extends React.Component {
           key="total"
           className="pvtGrandTotal pvtRowTotal"
           onClick={grandTotalCallback}
+          onContextMenu={e => this.props.onContextMenu(e, undefined, undefined)}
         >
           {agg.format(aggValue)}
         </td>
@@ -886,5 +890,6 @@ export class TableRenderer extends React.Component {
 TableRenderer.propTypes = {
   ...PivotData.propTypes,
   tableOptions: PropTypes.object,
+  onContextMenu: PropTypes.func,
 };
 TableRenderer.defaultProps = { ...PivotData.defaultProps, tableOptions: {} };

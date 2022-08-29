@@ -29,10 +29,12 @@ import {
   SupersetTheme,
   SupersetClient,
   getExtensionsRegistry,
+  useTheme,
 } from '@superset-ui/core';
 import { MainNav as Menu } from 'src/components/Menu';
 import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
+import Label from 'src/components/Label';
 import { findPermission } from 'src/utils/findPermission';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
@@ -85,6 +87,10 @@ const StyledAnchor = styled.a`
   padding-left: ${({ theme }) => theme.gridUnit}px;
 `;
 
+const tagStyles = (theme: SupersetTheme) => css`
+  color: ${theme.colors.grayscale.light5};
+`;
+
 const { SubMenu } = Menu;
 
 const RightMenu = ({
@@ -92,6 +98,7 @@ const RightMenu = ({
   settings,
   navbarRight,
   isFrontendRoute,
+  environmentTag,
   setQuery,
 }: RightMenuProps & {
   setQuery: ({ databaseAdded }: { databaseAdded: boolean }) => void;
@@ -262,6 +269,8 @@ const RightMenu = ({
 
   const handleDatabaseAdd = () => setQuery({ databaseAdded: true });
 
+  const theme = useTheme();
+
   return (
     <StyledDiv align={align}>
       {canDatabase && (
@@ -271,6 +280,20 @@ const RightMenu = ({
           dbEngine={engine}
           onDatabaseAdd={handleDatabaseAdd}
         />
+      )}
+      {environmentTag.text && (
+        <Label
+          css={{ borderRadius: `${theme.gridUnit * 125}px` }}
+          color={
+            /^#(?:[0-9a-f]{3}){1,2}$/i.test(environmentTag.color)
+              ? environmentTag.color
+              : environmentTag.color
+                  .split('.')
+                  .reduce((o, i) => o[i], theme.colors)
+          }
+        >
+          <span css={tagStyles}>{environmentTag.text}</span>
+        </Label>
       )}
       <Menu
         selectable={false}
