@@ -55,7 +55,9 @@ envFromSecrets: []
 extraEnv: {}
   # Extend timeout to allow long running queries.
   # GUNICORN_TIMEOUT: 300
-
+  # Increase the gunicorn worker amount, can improve performance drastically
+  # See: https://docs.gunicorn.org/en/stable/design.html#:~:text=Gunicorn%20should%20only%20need%204,workers%20to%20start%20off%20with.
+  # SERVER_WORKER_AMOUNT: 4
 
   # OAUTH_HOME_DOMAIN: ..
   # # If a whitelist is not set, any address that can use your OAuth2 endpoint will be able to login.
