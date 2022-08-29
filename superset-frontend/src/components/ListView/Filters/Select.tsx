@@ -58,7 +58,7 @@ function SelectFilter(
   };
 
   const onClear = () => {
-    onSelect(undefined);
+    onSelect(undefined, true);
     setSelectedOption(undefined);
   };
 
