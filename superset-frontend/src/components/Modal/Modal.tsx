@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState } from 'react';
 import { isNil } from 'lodash';
 import { styled, t } from '@superset-ui/core';
 import { css } from '@emotion/react';
@@ -29,7 +29,6 @@ import Draggable, {
   DraggableEvent,
   DraggableProps,
 } from 'react-draggable';
-import { cli } from 'webpack';
 
 export interface ModalProps {
   className?: string;
