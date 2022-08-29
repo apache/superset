@@ -25,4 +25,7 @@ module.exports = {
   isDisabled: false,
   showLogs: false,
   testConcurrency: 10,
+  forceFullPageScreenshot: true,
+  hideScrollbars: true,
+  hideCaret: true,
 };
