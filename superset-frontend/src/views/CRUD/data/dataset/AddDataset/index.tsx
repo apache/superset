@@ -80,6 +80,12 @@ export default function AddDataset() {
       schema={dataset?.schema}
       dbId={dataset?.db?.id}
     />
+  )
+  const prevUrl =
+    '/tablemodelview/list/?pageIndex=0&sortColumn=changed_on_delta_humanized&sortOrder=desc';
+
+  const FooterComponent = () => (
+    <Footer url={prevUrl} datasetObject={dataset} />
   );
   const prevUrl =
     '/tablemodelview/list/?pageIndex=0&sortColumn=changed_on_delta_humanized&sortOrder=desc';
