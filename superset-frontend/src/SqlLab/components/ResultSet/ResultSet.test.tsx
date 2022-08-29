@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { render } from 'spec/helpers/testing-library';
+import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import configureStore from 'redux-mock-store';
 import { Store } from 'redux';
 import thunk from 'redux-thunk';
@@ -119,9 +119,11 @@ describe('ResultSet', () => {
       ...mockedProps,
       query: { ...mockedProps.query, results: { data: [] } },
     };
-    const { getByRole } = setup(props, mockStore(initialState));
+    await waitFor(() => {
+      setup(props, mockStore(initialState));
+    });
 
-    const alert = getByRole('alert');
+    const alert = screen.getByRole('alert');
     expect(alert).toBeInTheDocument();
     expect(alert).toHaveTextContent('The query returned no data');
   });
@@ -161,8 +163,11 @@ describe('ResultSet', () => {
   });
 
   it('should render stopped query', async () => {
-    const { getByRole } = setup(stoppedQueryProps, mockStore(initialState));
-    const alert = getByRole('alert');
+    await waitFor(() => {
+      setup(stoppedQueryProps, mockStore(initialState));
+    });
+
+    const alert = screen.getByRole('alert');
     expect(alert).toBeInTheDocument();
   });
 
@@ -183,20 +188,19 @@ describe('ResultSet', () => {
   });
 
   it('should render a failed query with an error message', async () => {
-    const { getByText } = setup(
-      failedQueryWithErrorMessageProps,
-      mockStore(initialState),
-    );
-    expect(getByText('Database error')).toBeInTheDocument();
-    expect(getByText('Something went wrong')).toBeInTheDocument();
+    await waitFor(() => {
+      setup(failedQueryWithErrorMessageProps, mockStore(initialState));
+    });
+
+    expect(screen.getByText('Database error')).toBeInTheDocument();
+    expect(screen.getByText('Something went wrong')).toBeInTheDocument();
   });
 
   it('should render a failed query with an errors object', async () => {
-    const { getByText } = setup(
-      failedQueryWithErrorsProps,
-      mockStore(initialState),
-    );
-    expect(getByText('Database error')).toBeInTheDocument();
+    await waitFor(() => {
+      setup(failedQueryWithErrorsProps, mockStore(initialState));
+    });
+    expect(screen.getByText('Database error')).toBeInTheDocument();
   });
 
   it('renders if there is no limit in query.results but has queryLimit', async () => {
