@@ -39,11 +39,8 @@ export function fetchTables({
 
 type Params = Pick<UseQueryOptions, 'onSuccess' | 'onError'>;
 
-export function useTables(
-  dbId: string,
-  schema: string,
-  { onSuccess, onError }: Params,
-) {
+export function useTables(dbId: string, schema: string, options?: Params) {
+  const { onSuccess, onError } = options || {};
   const [forceRefresh, setForceRefresh] = useState(false);
   const params = { dbId, schema, forceRefresh };
   const result = useQuery(
