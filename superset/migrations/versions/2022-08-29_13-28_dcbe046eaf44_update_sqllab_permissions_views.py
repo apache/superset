@@ -38,8 +38,8 @@ down_revision = "6d3c6f9d665d"
 
 
 PVM_MAP = {
-    Pvm("SQL Lab", "menu_access"): (Pvm("SQL", "menu_access"),),
-    Pvm("SQL Editor", "menu_access"): (Pvm("SQL Lab", "menu_access"),),
+    Pvm("menu_access", "SQL Lab"): (Pvm("menu_access", "SQL"),),
+    Pvm("menu_access", "SQL Editor"): (Pvm("menu_access", "SQL Lab"),),
 }
 
 
