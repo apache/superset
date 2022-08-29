@@ -59,6 +59,16 @@ describe('utils/common', () => {
         'lorem\tipsum\t\ndolor\tsit\tamet\n',
       );
     });
+    it('includes 0 values', () => {
+      const array = [
+        { column1: 0, column2: 0 },
+        { column1: 1, column2: -1, 0: 0 },
+      ];
+      const column = ['column1', 'column2', '0'];
+      expect(prepareCopyToClipboardTabularData(array, column)).toEqual(
+        '0\t0\t\n1\t-1\t0\n',
+      );
+    });
   });
   describe('applyFormattingToTabularData', () => {
     it('does not mutate empty array', () => {
