@@ -80,6 +80,12 @@ export default function AddDataset() {
       schema={dataset?.schema}
       dbId={dataset?.id}
     />
+  )
+  const prevUrl =
+    '/tablemodelview/list/?pageIndex=0&sortColumn=changed_on_delta_humanized&sortOrder=desc';
+
+  const FooterComponent = () => (
+    <Footer url={prevUrl} datasetObject={dataset} />
   );
 
   return (
@@ -87,7 +93,7 @@ export default function AddDataset() {
       header={HeaderComponent()}
       leftPanel={LeftPanelComponent()}
       datasetPanel={DatasetPanel()}
-      footer={Footer()}
+      footer={FooterComponent()}
     />
   );
 }
