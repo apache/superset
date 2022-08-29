@@ -60,7 +60,11 @@ describe('useTables hook', () => {
     const expectedSchema = 'schemaA';
     const forceRefresh = false;
     const { result } = renderHook(
-      () => useTables(expectDbId, expectedSchema, {}),
+      () =>
+        useTables({
+          dbId: expectDbId,
+          schema: expectedSchema,
+        }),
       {
         wrapper: QueryProvider,
       },
@@ -87,7 +91,11 @@ describe('useTables hook', () => {
     const expectDbId = 'db1';
     const expectedSchema = 'schemaA';
     const { result, rerender } = renderHook(
-      () => useTables(expectDbId, expectedSchema, {}),
+      () =>
+        useTables({
+          dbId: expectDbId,
+          schema: expectedSchema,
+        }),
       {
         wrapper: QueryProvider,
       },
@@ -104,9 +112,12 @@ describe('useTables hook', () => {
   it('returns refreshed data after expires', async () => {
     const expectDbId = 'db1';
     const expectedSchema = 'schemaA';
-    jest.setSystemTime(new Date('2021-01-01 00:00:00'));
     const { result, rerender } = renderHook(
-      () => useTables(expectDbId, expectedSchema, {}),
+      () =>
+        useTables({
+          dbId: expectDbId,
+          schema: expectedSchema,
+        }),
       {
         wrapper: QueryProvider,
       },

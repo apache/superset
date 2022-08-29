@@ -21,8 +21,8 @@ import { useQuery, UseQueryOptions } from 'react-query';
 import { SupersetClient } from '@superset-ui/core';
 
 export type FetchTablesQueryParams = {
-  dbId: string | number;
-  schema: string;
+  dbId?: string | number;
+  schema?: string;
   forceRefresh?: boolean;
 };
 
@@ -31,16 +31,19 @@ export function fetchTables({
   schema,
   forceRefresh,
 }: FetchTablesQueryParams) {
-  const encodedSchema = encodeURIComponent(schema);
+  const encodedSchema = schema ? encodeURIComponent(schema) : '';
   // TODO: Would be nice to add pagination in a follow-up. Needs endpoint changes.
-  const endpoint = `/superset/tables/${dbId}/${encodedSchema}/undefined/${forceRefresh}/`;
+  const endpoint = `/superset/tables/${
+    dbId ?? 'undefined'
+  }/${encodedSchema}/undefined/${forceRefresh}/`;
   return SupersetClient.get({ endpoint });
 }
 
-type Params = Pick<UseQueryOptions, 'onSuccess' | 'onError'>;
+type Params = FetchTablesQueryParams &
+  Pick<UseQueryOptions, 'onSuccess' | 'onError'>;
 
-export function useTables(dbId: string, schema: string, options?: Params) {
-  const { onSuccess, onError } = options || {};
+export function useTables(options: Params) {
+  const { dbId, schema, onSuccess, onError } = options || {};
   const [forceRefresh, setForceRefresh] = useState(false);
   const params = { dbId, schema, forceRefresh };
   const result = useQuery(

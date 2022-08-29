@@ -188,7 +188,9 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
     isFetching: loadingTables,
     isFetchedAfterMount,
     refetch,
-  } = useTables(database?.id || '', currentSchema || '', {
+  } = useTables({
+    dbId: database?.id,
+    schema: currentSchema,
     onSuccess: (data: Table[]) => {
       onTablesLoad?.(data);
       if (isFetchedAfterMount) {
