@@ -247,8 +247,6 @@ const ColumnSelectPopover = ({
   const savedExpressionsLabel = t('Saved expressions');
   const simpleColumnsLabel = t('Column');
 
-  console.log(calculatedColumns.length > 0);
-  console.log(datasourceType === DatasourceType.Query);
   return (
     <Form layout="vertical" id="metrics-edit-popover">
       <Tabs
