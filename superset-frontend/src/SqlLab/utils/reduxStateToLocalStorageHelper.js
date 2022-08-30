@@ -32,7 +32,7 @@ const PERSISTENT_QUERY_EDITOR_KEYS = new Set([
   'southPercent',
   'sql',
   'templateParams',
-  'title',
+  'name',
   'hideLeftBar',
 ]);
 
