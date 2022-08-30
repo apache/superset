@@ -1826,6 +1826,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         if user.is_anonymous:
             public_role = current_app.config.get("AUTH_ROLE_PUBLIC")
             query = query.filter(Role.name == public_role)
+        elif self.is_guest_user(user):
+            guest_role = current_app.config.get("GUEST_ROLE_NAME")
+            query = query.filter(Role.name == guest_role)
         else:
             query = query.filter(assoc_user_role.c.user_id == user.id)
 

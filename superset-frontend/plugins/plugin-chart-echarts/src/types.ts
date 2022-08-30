@@ -17,7 +17,6 @@
  * under the License.
  */
 import {
-  DataRecordValue,
   HandlerFunction,
   QueryFormColumn,
   QueryObjectFilterClause,
@@ -112,14 +111,14 @@ export interface EChartTransformedProps<F> {
   emitFilter: boolean;
   setDataMask: SetDataMaskHook;
   setControlValue?: HandlerFunction;
-  labelMap: Record<string, DataRecordValue[]>;
+  labelMap: Record<string, string[]>;
   groupby: QueryFormColumn[];
   selectedValues: Record<number, string>;
   legendData?: OptionName[];
   onContextMenu?: (
     filters: QueryObjectFilterClause[],
-    offsetX: number,
-    offsetY: number,
+    clientX: number,
+    clientY: number,
   ) => void;
 }
 

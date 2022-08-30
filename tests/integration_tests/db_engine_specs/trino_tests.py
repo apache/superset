@@ -19,9 +19,9 @@ from typing import Any, Dict
 from unittest.mock import Mock, patch
 
 import pytest
-from sqlalchemy.engine.url import URL
 
 import superset.config
+from superset.constants import USER_AGENT
 from superset.db_engine_specs.trino import TrinoEngineSpec
 from tests.integration_tests.db_engine_specs.base_tests import TestDbEngineSpec
 
@@ -33,12 +33,15 @@ class TestTrinoDbEngineSpec(TestDbEngineSpec):
         database.extra = json.dumps({})
         database.server_cert = None
         extra = TrinoEngineSpec.get_extra_params(database)
-        expected = {"engine_params": {"connect_args": {}}}
+        expected = {"engine_params": {"connect_args": {"source": USER_AGENT}}}
         self.assertEqual(extra, expected)
 
         expected = {
             "first": 1,
-            "engine_params": {"second": "two", "connect_args": {"third": "three"}},
+            "engine_params": {
+                "second": "two",
+                "connect_args": {"source": "foobar", "third": "three"},
+            },
         }
         database.extra = json.dumps(expected)
         database.server_cert = None
@@ -85,6 +88,21 @@ class TestTrinoDbEngineSpec(TestDbEngineSpec):
         }
         database.encrypted_extra = json.dumps(
             {"auth_method": "kerberos", "auth_params": auth_params}
+        )
+
+        params: Dict[str, Any] = {}
+        TrinoEngineSpec.update_encrypted_extra_params(database, params)
+        connect_args = params.setdefault("connect_args", {})
+        self.assertEqual(connect_args.get("http_scheme"), "https")
+        auth.assert_called_once_with(**auth_params)
+
+    @patch("trino.auth.CertificateAuthentication")
+    def test_auth_certificate(self, auth: Mock):
+        database = Mock()
+
+        auth_params = {"cert": "/path/to/cert.pem", "key": "/path/to/key.pem"}
+        database.encrypted_extra = json.dumps(
+            {"auth_method": "certificate", "auth_params": auth_params}
         )
 
         params: Dict[str, Any] = {}

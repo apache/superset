@@ -103,7 +103,6 @@ PACKAGE_JSON_FILE = pkg_resources.resource_filename(
 #     "rel": "icon"
 # },
 FAVICONS = [{"href": "/static/assets/images/favicon.png"}]
-TAB_TITLE = None
 
 
 def _try_json_readversion(filepath: str) -> Optional[str]:
@@ -211,7 +210,7 @@ SQLALCHEMY_CUSTOM_PASSWORD_STORE = None
 #
 # e.g.:
 #
-# class AesGcmEncryptedAdapter(  # pylint: disable=too-few-public-methods
+# class AesGcmEncryptedAdapter(
 #     AbstractEncryptedFieldAdapter
 # ):
 #     def create(
@@ -1342,6 +1341,21 @@ ADVANCED_DATA_TYPES: Dict[str, AdvancedDataType] = {
     "port": internet_port,
 }
 
+# Configuration for environment tag shown on the navbar. Setting 'text' to '' will hide the tag.
+# 'color' can either be a hex color code, or a dot-indexed theme color (e.g. error.base)
+ENVIRONMENT_TAG_CONFIG = {
+    "variable": "FLASK_ENV",
+    "values": {
+        "development": {
+            "color": "error.base",
+            "text": "Development",
+        },
+        "production": {
+            "color": "",
+            "text": "",
+        },
+    },
+}
 
 # -------------------------------------------------------------------
 # *                WARNING:  STOP EDITING  HERE                    *
