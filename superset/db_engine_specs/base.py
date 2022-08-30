@@ -1530,7 +1530,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return extra
 
     @staticmethod
-    def update_encrypted_extra_params(
+    def update_params_from_encrypted_extra(
         database: "Database", params: Dict[str, Any]
     ) -> None:
         """

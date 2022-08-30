@@ -372,7 +372,7 @@ class Database(
         if connect_args:
             params["connect_args"] = connect_args
 
-        self.update_encrypted_extra_params(params)
+        self.update_params_from_encrypted_extra(params)
 
         if DB_CONNECTION_MUTATOR:
             if not source and request and request.referrer:
@@ -665,8 +665,8 @@ class Database(
                 raise ex
         return encrypted_extra
 
-    def update_encrypted_extra_params(self, params: Dict[str, Any]) -> None:
-        self.db_engine_spec.update_encrypted_extra_params(self, params)
+    def update_params_from_encrypted_extra(self, params: Dict[str, Any]) -> None:
+        self.db_engine_spec.update_params_from_encrypted_extra(self, params)
 
     def get_table(self, table_name: str, schema: Optional[str] = None) -> Table:
         extra = self.get_extra()
