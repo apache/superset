@@ -14,6 +14,9 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+
+# pylint: disable=import-outside-toplevel, invalid-name, line-too-long
+
 from pytest_mock import MockFixture
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -25,9 +28,7 @@ class ProgrammingError(Exception):
     """
 
 
-def test_validate_parameters_simple(
-    mocker: MockFixture,
-) -> None:
+def test_validate_parameters_simple() -> None:
     from superset.db_engine_specs.gsheets import (
         GSheetsEngineSpec,
         GSheetsParametersType,
@@ -200,3 +201,68 @@ def test_validate_parameters_catalog_and_credentials(
         service_account_info={},
         subject="admin@example.com",
     )
+
+
+def test_get_parameters_from_uri() -> None:
+    """
+    Test that the private key in the credentials is properly masked.
+    """
+    from superset.db_engine_specs.gsheets import GSheetsEngineSpec
+
+    uri = "gsheets://"
+    encrypted_extra = {
+        "service_account_info": {
+            "type": "service_account",
+            "project_id": "black-sanctum-314419",
+            "private_key_id": "259b0d419a8f840056158763ff54d8b08f7b8173",
+            "private_key": "SECRET",
+            "client_email": "google-spreadsheets-demo-servi@black-sanctum-314419.iam.gserviceaccount.com",
+            "client_id": "114567578578109757129",
+            "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+            "token_uri": "https://oauth2.googleapis.com/token",
+            "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+            "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/google-spreadsheets-demo-servi%40black-sanctum-314419.iam.gserviceaccount.com",
+        },
+    }
+
+    assert GSheetsEngineSpec.get_parameters_from_uri(uri, encrypted_extra) == {
+        "service_account_info": {
+            "type": "service_account",
+            "project_id": "black-sanctum-314419",
+            "private_key_id": "259b0d419a8f840056158763ff54d8b08f7b8173",
+            "private_key": "XXXXXXXXXX",
+            "client_email": "google-spreadsheets-demo-servi@black-sanctum-314419.iam.gserviceaccount.com",
+            "client_id": "114567578578109757129",
+            "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+            "token_uri": "https://oauth2.googleapis.com/token",
+            "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+            "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/google-spreadsheets-demo-servi%40black-sanctum-314419.iam.gserviceaccount.com",
+        },
+    }
+
+
+def test_update_encrypted_extra() -> None:
+    """
+    Test that the private key can be reused from the previous ``encrypted_extra``.
+    """
+    from superset.db_engine_specs.gsheets import GSheetsEngineSpec
+
+    old = {
+        "service_account_info": {
+            "project_id": "black-sanctum-314419",
+            "private_key": "SECRET",
+        },
+    }
+    new = {
+        "service_account_info": {
+            "project_id": "yellow-unicorn-314419",
+            "private_key": "XXXXXXXXXX",
+        },
+    }
+
+    assert GSheetsEngineSpec.update_encrypted_extra(old, new) == {
+        "service_account_info": {
+            "project_id": "yellow-unicorn-314419",
+            "private_key": "SECRET",
+        },
+    }
