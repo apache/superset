@@ -19,6 +19,31 @@ under the License.
 
 ## Change Log
 
+### 1.5.2 (Fri Jul 1 13:16:17 2022 -0500)
+
+**Database Migrations**
+
+**Features**
+
+**Fixes**
+
+- [#20178](https://github.com/apache/superset/pull/20178) fix: While exporting CSV , only the entries on first page are getting downloaded even when user is on other pages #17861 (@LahmerIlyas)
+- [#20058](https://github.com/apache/superset/pull/20058) fix: Support the Clipboard API in modern browsers (@diegomedina248)
+- [#20434](https://github.com/apache/superset/pull/20434) fix(20428): Address-Presto/Trino-Poll-Issue-Refactor (@Thelin90)
+- [#20348](https://github.com/apache/superset/pull/20348) fix(docker): Make Gunicorn Keepalive Adjustable (@mdeshmu)
+- [#20315](https://github.com/apache/superset/pull/20315) fix(chart): chart gets cut off on the dashboard (@stephenLYZ)
+- [#20235](https://github.com/apache/superset/pull/20235) fix: Box Plot Chart throws an error when the average (AVG) / SUM is being calculated on the Metrics (@diegomedina248)
+- [#20151](https://github.com/apache/superset/pull/20151) fix(csv): Ensure df_to_escaped_csv does not coerce integer columns to float (@john-bodley)
+- [#20173](https://github.com/apache/superset/pull/20173) fix: avoid while cycle in computeMaxFontSize for big Number run forever when css rule applied (@diegomedina248)
+- [#19570](https://github.com/apache/superset/pull/19570) fix: sqloxide optional (@betodealmeida)
+
+**Others**
+
+- [#20550](https://github.com/apache/superset/pull/20550) chore: updating python docker image to 3.8.13 (@nisheldo)
+- [#21018](https://github.com/apache/superset/pull/21018) perf: Memoize the common_bootstrap_payload (@bkyryliuk)
+- [#20974](https://github.com/apache/superset/pull/20974) perf: Implement model specific lookups by id to improve performance (@bkyryliuk)
+- [#20273](https://github.com/apache/superset/pull/20273) chore: adjust the psycopg2 version of k8s installation guide (@ensky)
+
 ### 1.5.1 (Thu May 26 14:45:20 2022 +0300)
 
 **Fixes**
