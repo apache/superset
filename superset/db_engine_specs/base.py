@@ -59,6 +59,7 @@ from sqlparse.tokens import CTE
 from typing_extensions import TypedDict
 
 from superset import security_manager, sql_parse
+from superset.constants import PASSWORD_MASK
 from superset.databases.utils import make_url_safe
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.sql_parse import ParsedQuery, Table
@@ -1750,7 +1751,7 @@ class BasicParametersMixin:
         )
         return {
             "username": url.username,
-            "password": url.password,
+            "password": PASSWORD_MASK,
             "host": url.host,
             "port": url.port,
             "database": url.database,
@@ -1852,3 +1853,18 @@ class BasicParametersMixin:
         )
         spec.components.schema(cls.__name__, schema=cls.parameters_schema)
         return spec.to_dict()["components"]["schemas"][cls.__name__]
+
+    @classmethod
+    def update_encrypted_extra(
+        cls,
+        old: Dict[str, Any],  # pylint: disable=unused-argument
+        new: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        """
+        Update ``encrypted_extra``.
+
+        This method allows reusing existing values from the current encrypted extra on
+        updates. It's useful for reusing masked passwords, allowing keys to be updated
+        without having to provide sensitive data to the client.
+        """
+        return new

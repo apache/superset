@@ -31,6 +31,7 @@ from sqlalchemy.engine.base import Engine
 from sqlalchemy.sql import sqltypes
 from typing_extensions import TypedDict
 
+from superset.constants import PASSWORD_MASK
 from superset.databases.schemas import encrypted_field_properties, EncryptedString
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import BaseEngineSpec
@@ -380,17 +381,41 @@ class BigQueryEngineSpec(BaseEngineSpec):
 
     @classmethod
     def get_parameters_from_uri(
-        cls, uri: str, encrypted_extra: Optional[Dict[str, str]] = None
+        cls,
+        uri: str,
+        encrypted_extra: Optional[Dict[str, Any]] = None,
     ) -> Any:
         value = make_url_safe(uri)
 
         # Building parameters from encrypted_extra and uri
         if encrypted_extra:
+            try:
+                encrypted_extra["credentials_info"]["private_key"] = PASSWORD_MASK
+            except KeyError:
+                pass
+
             # ``value.query`` needs to be explicitly converted into a dict (from an
             # ``immutabledict``) so that it can be JSON serialized
             return {**encrypted_extra, "query": dict(value.query)}
 
         raise ValidationError("Invalid service credentials")
+
+    @classmethod
+    def update_encrypted_extra(
+        cls,
+        old: Dict[str, Any],
+        new: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        """
+        Reuse ``private_key`` if available and unchanged.
+        """
+        if new.get("credentials_info", {}).get("private_key") == PASSWORD_MASK:
+            new["credentials_info"]["private_key"] = old.get(
+                "credentials_info",
+                {},
+            ).get("private_key")
+
+        return new
 
     @classmethod
     def get_dbapi_exception_mapping(cls) -> Dict[Type[Exception], Type[Exception]]:

@@ -30,6 +30,7 @@ from sqlalchemy.engine.url import URL
 from typing_extensions import TypedDict
 
 from superset import security_manager
+from superset.constants import PASSWORD_MASK
 from superset.databases.schemas import encrypted_field_properties, EncryptedString
 from superset.db_engine_specs.sqlite import SqliteEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -128,13 +129,35 @@ class GSheetsEngineSpec(SqliteEngineSpec):
     def get_parameters_from_uri(
         cls,
         uri: str,  # pylint: disable=unused-argument
-        encrypted_extra: Optional[Dict[str, str]] = None,
+        encrypted_extra: Optional[Dict[str, Any]] = None,
     ) -> Any:
         # Building parameters from encrypted_extra and uri
         if encrypted_extra:
+            try:
+                encrypted_extra["service_account_info"]["private_key"] = PASSWORD_MASK
+            except KeyError:
+                pass
+
             return {**encrypted_extra}
 
         raise ValidationError("Invalid service credentials")
+
+    @classmethod
+    def update_encrypted_extra(
+        cls,
+        old: Dict[str, Any],
+        new: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        """
+        Reuse ``private_key`` if available and unchanged.
+        """
+        if new.get("service_account_info", {}).get("private_key") == PASSWORD_MASK:
+            new["service_account_info"]["private_key"] = old.get(
+                "service_account_info",
+                {},
+            ).get("private_key")
+
+        return new
 
     @classmethod
     def parameters_json_schema(cls) -> Any:

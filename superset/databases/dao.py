@@ -33,6 +33,20 @@ class DatabaseDAO(BaseDAO):
     model_cls = Database
     base_filter = DatabaseFilter
 
+    @classmethod
+    def update(
+        cls,
+        model: Database,
+        properties: Dict[str, Any],
+        commit: bool = True,
+    ) -> Database:
+        if "encrypted_extra" in properties:
+            properties["encrypted_extra"] = model.db_engine_spec.update_encrypted_extra(
+                model.encrypted_extra, properties["encrypted_extra"]
+            )
+
+        return super().update(model, properties, commit)
+
     @staticmethod
     def validate_uniqueness(database_name: str) -> bool:
         database_query = db.session.query(Database).filter(
