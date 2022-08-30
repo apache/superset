@@ -289,11 +289,15 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
     }
 
     const iframeUrl: any = new URL(window.location.href);
+    console.log('iframeUrl', iframeUrl);
     if (iframeUrl && iframeUrl.search) {
       // console.log('iframeUrl', iframeUrl);
       const iframeUrlParameters: any = new URLSearchParams(iframeUrl.search);
+      console.log('iframeUrlParameters', iframeUrlParameters);
       if (iframeUrlParameters) {
-        const ikigaiURL: any = new URL(iframeUrlParameters.get('dash_url'));
+        const ikigaiURL: any = iframeUrlParameters.get('dash_url')
+          ? new URL(iframeUrlParameters.get('dash_url'))
+          : '';
         // console.log('ikigaiURL', ikigaiURL);
         const ikigaiURLOrigin = ikigaiURL ? ikigaiURL.origin : '';
         console.log('ikigaiURLOrigin', ikigaiURLOrigin);

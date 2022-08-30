@@ -623,7 +623,7 @@ export function setDatasetsStatus(status) {
 
 export const SET_IKIGAI_ORIGIN = 'SET_IKIGAI_ORIGIN';
 export function setIkigaiOrigin(ikigaiOrigin) {
-  // console.log('ikigaiOrigin', ikigaiOrigin);
+  console.log('ikigaiOrigin', ikigaiOrigin);
   return { type: SET_IKIGAI_ORIGIN, ikigaiOrigin };
 }
 
