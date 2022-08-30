@@ -103,7 +103,6 @@ const ColumnSelectPopover = ({
   const datasourceType = useSelector<ExplorePageState, string | undefined>(
     state => state.explore.datasource.type,
   );
-  console.log('datasource', datasourceType);
   const [initialLabel] = useState(label);
   const [initialAdhocColumn, initialCalculatedColumn, initialSimpleColumn] =
     getInitialColumnValues(editedColumn);
