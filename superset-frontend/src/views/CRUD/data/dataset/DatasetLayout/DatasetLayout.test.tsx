@@ -40,7 +40,10 @@ describe('DatasetLayout', () => {
   });
 
   it('renders a LeftPanel when passed in', () => {
-    render(<DatasetLayout leftPanel={LeftPanel()} />);
+    render(
+      <DatasetLayout leftPanel={<LeftPanel setDataset={() => null} />} />,
+      { useRedux: true },
+    );
 
     expect(screen.getByRole('img', { name: /empty/i })).toBeVisible();
     expect(screen.getByText(/no database tables found/i)).toBeVisible();

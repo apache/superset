@@ -56,8 +56,6 @@ describe('LeftPanel', () => {
     render(<LeftPanel setDataset={mockFun} />, { useRedux: true });
 
     expect(screen.getByText(/select database & schema/i)).toBeVisible();
-    // expect(screen.getByText(/schema/i)).toBeVisible();
-    // expect(screen.getByText(/database/i)).toBeVisible();
 
     const databaseSelect = screen.getByRole('combobox', {
       name: 'Select database or type database name',
@@ -76,7 +74,7 @@ describe('LeftPanel', () => {
     expect(screen.getByText(/try selecting a different schema/i)).toBeVisible();
   });
   it('renders list of options when user clicks on schema', () => {
-    render(<LeftPanel setDataset={mockFun} schema="schema_a" dbId="1" />, {
+    render(<LeftPanel setDataset={mockFun} schema="schema_a" dbId={1} />, {
       useRedux: true,
     });
     // screen.debug('container', container)
