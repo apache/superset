@@ -93,7 +93,6 @@ export const loadTags = async (
 
   return cachedSupersetGet({
     endpoint: `/api/v1/tag/?q=${query}`,
-    // endpoint: `/api/v1/tags/?q=${query}`,
   })
     .then(response => {
       const data: {

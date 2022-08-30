@@ -85,7 +85,7 @@ export default function TagsTable({ search = '' }: TagsTableProps) {
     const data = objects[type].map((o: TaggedObject) => ({
       [type]: <a href={o.url}>{o.name}</a>,
       // eslint-disable-next-line react/no-danger
-      creator: <div dangerouslySetInnerHTML={{ __html: o.creator }} />,
+      creator: <div>o.creator</div>,
       modified: moment.utc(o.changed_on).fromNow(),
     }));
     return (

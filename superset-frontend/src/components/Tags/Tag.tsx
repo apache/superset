@@ -23,14 +23,10 @@ import AntdTag from 'antd/lib/tag';
 import React, { useMemo } from 'react';
 import { Tooltip } from 'src/components/Tooltip';
 
-const customTagStyler = (theme: SupersetTheme) => `
-    margin-top: ${theme.gridUnit * 1}px;
-    margin-bottom: ${theme.gridUnit * 1}px;
-    font-size: ${theme.typography.sizes.s}px;
-`;
-
 const StyledTag = styled(AntdTag)`
-    ${({ theme }) => customTagStyler(theme)}}
+  margin-top: ${({ theme }) => theme.gridUnit}px;
+  margin-bottom: ${({ theme }) => theme.gridUnit}px;
+  font-size: ${({ theme }) => theme.typography.sizes.s}px;
 `;
 
 const Tag = ({
@@ -59,7 +55,7 @@ const Tag = ({
       ) : (
         <StyledTag role="link" key={id} onClick={onClick}>
           {id ? (
-            <a href={`/superset/tags/?tags=${name}`}>
+            <a href={`/superset/tags/?tags=${name}`} target="_blank">
               {isLongTag ? `${name.slice(0, 20)}...` : name}
             </a>
           ) : isLongTag ? (

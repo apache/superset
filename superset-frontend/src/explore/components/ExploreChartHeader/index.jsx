@@ -61,11 +61,6 @@ const saveButtonStyles = theme => css`
   }
 `;
 
-// const StyledButtons = styled.span`
-//   display: flex;
-//   align-items: center;
-// `;
-
 export const ExploreChartHeader = ({
   dashboardId,
   slice,

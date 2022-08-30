@@ -54,7 +54,6 @@ const findAllTags = () => screen.getAllByRole('link')! as HTMLElement[];
 test('should render', () => {
   const { container } = render(<TagsList {...mockedProps} />);
   expect(container).toBeInTheDocument();
-  // console.log(screen.getAllByRole("tag"));
 });
 
 test('should render 5 elements', () => {
