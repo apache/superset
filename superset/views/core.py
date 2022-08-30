@@ -1137,38 +1137,24 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         schema_parsed = utils.parse_js_uri_path_item(schema, eval_undefined=True)
         substr_parsed = utils.parse_js_uri_path_item(substr, eval_undefined=True)
 
-        if schema_parsed:
-            tables = [
-                utils.DatasourceName(*datasource_name)
-                for datasource_name in database.get_all_table_names_in_schema(
-                    schema=schema_parsed,
-                    force=force_refresh_parsed,
-                    cache=database.table_cache_enabled,
-                    cache_timeout=database.table_cache_timeout,
-                )
-            ] or []
-            views = [
-                utils.DatasourceName(*datasource_name)
-                for datasource_name in database.get_all_view_names_in_schema(
-                    schema=schema_parsed,
-                    force=force_refresh_parsed,
-                    cache=database.table_cache_enabled,
-                    cache_timeout=database.table_cache_timeout,
-                )
-            ] or []
-        else:
-            tables = [
-                utils.DatasourceName(*datasource_name)
-                for datasource_name in database.get_all_table_names_in_database(
-                    cache=True, force=False, cache_timeout=24 * 60 * 60
-                )
-            ]
-            views = [
-                utils.DatasourceName(*datasource_name)
-                for datasource_name in database.get_all_view_names_in_database(
-                    cache=True, force=False, cache_timeout=24 * 60 * 60
-                )
-            ]
+        tables = [
+            utils.DatasourceName(*datasource_name)
+            for datasource_name in database.get_all_table_names_in_schema(
+                schema=schema_parsed,
+                force=force_refresh_parsed,
+                cache=database.table_cache_enabled,
+                cache_timeout=database.table_cache_timeout,
+            )
+        ] or []
+        views = [
+            utils.DatasourceName(*datasource_name)
+            for datasource_name in database.get_all_view_names_in_schema(
+                schema=schema_parsed,
+                force=force_refresh_parsed,
+                cache=database.table_cache_enabled,
+                cache_timeout=database.table_cache_timeout,
+            )
+        ] or []
         tables = security_manager.get_datasources_accessible_by_user(
             database, tables, schema_parsed
         )
@@ -1177,9 +1163,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         )
 
         def get_datasource_label(ds_name: utils.DatasourceName) -> str:
-            return (
-                ds_name.table if schema_parsed else f"{ds_name.schema}.{ds_name.table}"
-            )
+            return ds_name.table
 
         def is_match(src: str, target: utils.DatasourceName) -> bool:
             target_label = get_datasource_label(target)
@@ -1190,15 +1174,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         if substr_parsed:
             tables = [tn for tn in tables if is_match(substr_parsed, tn)]
             views = [vn for vn in views if is_match(substr_parsed, vn)]
-
-        if not schema_parsed and database.default_schemas:
-            user_schemas = (
-                [g.user.email.split("@")[0]] if hasattr(g.user, "email") else []
-            )
-            valid_schemas = set(database.default_schemas + user_schemas)
-
-            tables = [tn for tn in tables if tn.schema in valid_schemas]
-            views = [vn for vn in views if vn.schema in valid_schemas]
 
         max_tables = len(tables)
         max_views = len(views)
