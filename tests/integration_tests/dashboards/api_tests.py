@@ -1869,6 +1869,6 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         rv = self.get_assert_metric(uri, "get_list")
         self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(data["count"], 1)
+        self.assertEqual(data["count"], 6)
         db.session.delete(dashboard)
         db.session.commit()
