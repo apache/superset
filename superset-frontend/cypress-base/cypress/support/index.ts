@@ -24,6 +24,14 @@ const TokenName = Cypress.env('TOKEN_NAME');
 
 require('cy-verify-downloads').addCustomCommand();
 
+Cypress.Commands.add('getBySel', (selector, ...args) => {
+  return cy.get(`[data-test=${selector}]`, ...args)
+});
+
+Cypress.Commands.add('getBySelLike', (selector, ...args) => {
+  return cy.get(`[data-test*=${selector}]`, ...args)
+});
+
 /* eslint-disable consistent-return */
 Cypress.on('uncaught:exception', err => {
   // ignore ResizeObserver client errors, as they are unrelated to operation
@@ -43,6 +51,11 @@ Cypress.Commands.add('login', () => {
   }).then(response => {
     expect(response.status).to.eq(200);
   });
+});
+
+Cypress.Commands.add('loginGoTo', url => {
+  cy.login();
+  cy.visit(url);
 });
 
 Cypress.Commands.add('visitChartByName', name => {
@@ -139,6 +152,27 @@ Cypress.Commands.add(
     });
     return cy;
   },
+);
+
+Cypress.Commands.add('createDashboard', (dashboardName: string) =>
+  cy
+  .request({
+    method: 'POST',
+    url: `/api/v1/dashboard/`,
+    body: {
+      dashboard_title: dashboardName,
+    },
+    headers: {
+      Cookie: `csrf_access_token=${window.localStorage.getItem(
+        'access_token',
+      )}`,
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${TokenName}`,
+      'X-CSRFToken': `${window.localStorage.getItem('access_token')}`,
+      Referer: `${Cypress.config().baseUrl}/`,
+    },
+  })
+  .then(resp => resp),
 );
 
 Cypress.Commands.add('deleteDashboardByName', (name: string) =>
