@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useState } from 'react';
+import { useRef } from 'react';
 import { useQuery, UseQueryOptions } from 'react-query';
 import { SupersetClient } from '@superset-ui/core';
 
@@ -44,26 +44,27 @@ type Params = FetchTablesQueryParams &
 
 export function useTables(options: Params) {
   const { dbId, schema, onSuccess, onError } = options || {};
-  const [forceRefresh, setForceRefresh] = useState(false);
-  const params = { dbId, schema, forceRefresh };
+  const forceRefreshRef = useRef(false);
+  const params = { dbId, schema };
   const result = useQuery(
     ['tables', { dbId, schema }],
-    () => fetchTables(params),
+    () => fetchTables({ ...params, forceRefresh: forceRefreshRef.current }),
     {
       select: ({ json }) => json.options,
       enabled: Boolean(dbId && schema),
       onSuccess,
       onError,
+      onSettled: () => {
+        forceRefreshRef.current = false;
+      },
     },
   );
 
-  const { isFetched } = result;
-
-  useEffect(() => {
-    if (isFetched) {
-      setForceRefresh(true);
-    }
-  }, [isFetched]);
-
-  return result;
+  return {
+    ...result,
+    refetch: () => {
+      forceRefreshRef.current = true;
+      result.refetch();
+    },
+  };
 }
