@@ -1992,8 +1992,6 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         columns.extend([col for col in old_columns if col.expression])
         self.columns = columns
 
-        db.session.flush()
-
         if not self.main_dttm_col:
             self.main_dttm_col = any_date_col
         self.add_missing_metrics(metrics)
