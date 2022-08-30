@@ -301,7 +301,7 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
         return database.get_df("SHOW FUNCTIONS")["Function"].tolist()
 
 
-class PrestoEngineSpec(PrestoBaseEngineSpec):  # pylint: disable=too-many-public-methods
+class PrestoEngineSpec(PrestoBaseEngineSpec):
     engine = "presto"
     engine_name = "Presto"
     allows_alias_to_source_column = False

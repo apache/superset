@@ -665,6 +665,7 @@ class Database(
                 raise ex
         return encrypted_extra
 
+    # pylint: disable=invalid-name
     def update_params_from_encrypted_extra(self, params: Dict[str, Any]) -> None:
         self.db_engine_spec.update_params_from_encrypted_extra(self, params)
 
