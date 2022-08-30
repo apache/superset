@@ -144,6 +144,7 @@ def test_update_with_password_mask(
             ),
         },
     )
+    session.commit()
     database = session.query(Database).one()
     assert (
         database.encrypted_extra
