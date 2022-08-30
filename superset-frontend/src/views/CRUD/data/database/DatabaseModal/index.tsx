@@ -559,10 +559,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   };
 
   const onSave = async () => {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { id, ...update } = db || {};
     // Clone DB object
-    const dbToUpdate = JSON.parse(JSON.stringify(update));
+    const dbToUpdate = JSON.parse(JSON.stringify(db || {}));
 
     if (dbToUpdate.configuration_method === CONFIGURATION_METHOD.DYNAMIC_FORM) {
       // Validate DB before saving

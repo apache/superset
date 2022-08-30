@@ -43,6 +43,8 @@ class ValidateDatabaseParametersCommand(BaseCommand):
         self._model: Optional[Database] = None
 
     def run(self) -> None:
+        self.validate()
+
         engine = self._properties["engine"]
         driver = self._properties.get("driver")
 
@@ -119,6 +121,6 @@ class ValidateDatabaseParametersCommand(BaseCommand):
             )
 
     def validate(self) -> None:
-        database_name = self._properties.get("database_name")
-        if database_name is not None:
-            self._model = DatabaseDAO.get_database_by_name(database_name)
+        database_id = self._properties.get("id")
+        if database_id is not None:
+            self._model = DatabaseDAO.find_by_id(database_id)
