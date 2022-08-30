@@ -42,14 +42,17 @@ class DatabaseDAO(BaseDAO):
         commit: bool = True,
     ) -> Database:
         if "encrypted_extra" in properties:
-            new = json.loads(properties["encrypted_extra"])
-            old = json.loads(model.encrypted_extra)
-            properties["encrypted_extra"] = json.dumps(
-                model.db_engine_spec.update_encrypted_extra(
-                    old,
-                    new,
+            try:
+                new = json.loads(properties["encrypted_extra"])
+                old = json.loads(model.encrypted_extra)
+                properties["encrypted_extra"] = json.dumps(
+                    model.db_engine_spec.update_encrypted_extra(
+                        old,
+                        new,
+                    )
                 )
-            )
+            except json.JSONDecodeError:
+                pass
 
         return super().update(model, properties, commit)
 
