@@ -164,6 +164,7 @@
         "Quand vous utilisez 'Grouper par' vous êtes limité à une seule métrique"
       ],
       "Pivot Table": ["Table pivot"],
+      "Pivot Table v2": ["Table pivot v2"],
       "Please choose at least one 'Group by' field ": [
         "Merci de choisir au moins un champ dans 'Grouper par' "
       ],
@@ -437,6 +438,7 @@
       "Add Druid Column": ["Ajouter une colonne Druid"],
       "Edit Druid Column": ["Éditer une colonne Druid"],
       "Column": ["Colonne"],
+      "column": ["colonne"],
       "Type": ["Type"],
       "Datasource": ["Source de données"],
       "Groupable": ["Groupable"],
@@ -506,6 +508,7 @@
       "Fetch Values From": ["Récupérer les valeurs des prédicats"],
       "Changed By": ["Modifié par"],
       "Modified": ["Modifié"],
+      "Edit the dashboard": ["Modifier le tableau de bord"],
       "Refreshed metadata from cluster [{}]": [
         "Métadonnées du cluster [{}] rafraîchies"
       ],
@@ -847,6 +850,11 @@
         "Veuillez corriger une erreur de syntaxe dans la requête près de \"%(syntax_error)s\". Puis essayez de relancer la requête."
       ],
       "Original value": ["Valeur d'origine"],
+      "Duration in ms (66000 => 1m 6s)": ["Durée en ms (66000 => 1m 6s)"],
+      "Duration in ms (1.40008 => 1ms 400µs 80ns)": [
+        "Durée en ms (1.40008 => 1ms 400µs 80ns)"
+      ],
+      "Adaptive formatting": ["Formatage adapté"],
       "Second": ["Seconde"],
       "5 second": ["5 secondes"],
       "30 second": ["30 secondes"],
@@ -947,7 +955,9 @@
       "Annotation Layers": ["Couches d'annotations"],
       "Manage": ["Gestion"],
       "Dashboards": ["Tableaux de bord"],
+      "dashboards": ["tableaux de bord"],
       "Charts": ["Graphiques"],
+      "charts": ["graphiques"],
       "Plugins": ["Plugins"],
       "CSS Templates": ["Templates CSS"],
       "Row Level Security": ["Sécurité de niveau ligne"],
@@ -1286,6 +1296,7 @@
       "Add Annotation Layer": ["Ajouter une couche d'annotation"],
       "Edit Annotation Layer": ["Editer la couche d'annotation"],
       "Name": ["Nom"],
+      "name": ["nom"],
       "Table [%{table}s] could not be found, please double check your database connection, schema, and table name, error: {}": [
         "La table [%{table}s] n'a pu être trouvée, vérifiez à nouveau votre la connexion à votre base de données, le schéma et le nom de la table, error: {}"
       ],
@@ -1835,7 +1846,7 @@
       "Query search string": ["Chaîne de recherche"],
       "[From]-": ["[Depuis]-"],
       "[To]-": ["[à]-"],
-      "Filter by status": ["Filtrer par status"],
+      "Filter by status": ["Filtrer par statut"],
       "Success": ["Succès"],
       "Failed": ["Echec"],
       "Running": ["En cours"],
@@ -1855,7 +1866,7 @@
         "Une erreur s'est produite durant la sauvegarde du jeu de données"
       ],
       "Download to CSV": ["Télécharger en CSV"],
-      "Copy to Clipboard": ["Copier vers le presse-papier"],
+      "Copy to Clipboard": ["Copier vers le presse-papiers"],
       "Filter results": ["Filtrer les résultats"],
       "The number of results displayed is limited to %(rows)d by the configuration DISPLAY_MAX_ROWS. ": [
         "Le nombre de résultats affichés est limité à %(rows)d  par la configuration DISPLAY_MAX_ROWS. "
@@ -1932,6 +1943,9 @@
       ],
       "Run a query to display results here": [
         "Lancer la requête pour afficher les résultats ici"
+      ],
+      "Run a query to display results": [
+        "Lancer une requête pour afficher les résultats"
       ],
       "Preview: `%s`": ["Prévisualisation : `%s`"],
       "Results": ["Résultats"],
@@ -2242,7 +2256,7 @@
         "Erreur au chargement de ces résultats. Les requêtes s'interrompent au bout de %s secondes."
       ],
       "Timeout error": ["Erreur de timeout"],
-      "Click to favorite/unfavorite": ["Cliquez pour favori ou non"],
+      "Click to favorite/unfavorite": ["Ajouter/Retirer des favoris"],
       "Cell content": ["Contenu de cellule"],
       "The import was successful": ["Importé avec succès"],
       "OVERWRITE": ["ECRASE"],
@@ -2403,7 +2417,9 @@
       "Copy dashboard URL": ["Copier l'URL du tableau de bord"],
       "Share dashboard by email": ["Partager le tableau de bord par e-mail"],
       "Refresh dashboard": ["Rafraichir le tableau de bord"],
-      "Set auto-refresh interval": ["Définir l'interval d'auto-refresh"],
+      "Set auto-refresh interval": [
+        "Définir l'intervalle de rafraichissement automatique"
+      ],
       "Set filter mapping": ["Définir le mappage de filtre"],
       "Edit dashboard properties": [
         "Modifier les propriétés de ce tableau de bord"
@@ -2503,7 +2519,7 @@
       "Filter Sets (${filterSetFilterValues.length})": [
         "Filtres définis (${filterSetFilterValues.length})"
       ],
-      "Select parent filters": ["Selectionnee les filtres parents"],
+      "Select parent filters": ["Sélectionnée les filtres parents"],
       "Check configuration": ["Vérifier la configuration"],
       "Cannot load filter": ["Impossible de charger le filtre"],
       "Editing filter set:": ["Modifier l'ensemble de filtre :"],
@@ -2542,7 +2558,7 @@
       "Value is required": ["Une valeur est obligatoire"],
       "Configuration": ["Configuration"],
       "Scoping": ["Portée"],
-      "Select filter": ["Selectionner un filtre"],
+      "Select filter": ["Sélectionner un filtre"],
       "Value": ["Valeur"],
       "Range filter": ["Filtre d'intervalle"],
       "Numerical range": ["Interval numérique"],
@@ -2863,7 +2879,7 @@
       "Configure Advanced Time Range ": [
         "Configurer Intervalle de temps avancé "
       ],
-      "START (INCLUSIVE)": ["DEBUT (INCLUSIVE)"],
+      "START (INCLUSIVE)": ["DÉBUT (INCLUSIVE)"],
       "Start date included in time range": [
         "Date de début incluse de l'intervalle de temps"
       ],
@@ -2878,7 +2894,7 @@
         "Configurer intervalle de temps : Dernier ..."
       ],
       "Configure custom time range": [
-        "Configurer un intervalle de temps personnalisée"
+        "Configurer un intervalle de temps personnalisé"
       ],
       "Relative quantity": ["Quantité relative"],
       "Relative period": ["Période relative"],
@@ -2946,7 +2962,27 @@
       "User must select a value for this filter": [
         "L'utilisateur doit sélectionner une valeur pour ce filtre"
       ],
-      "Filter configuration": ["Configuration du filtre"],
+      "Filter Configuration": ["Configuration du filtre"],
+      "Filter Settings": ["Paramètres du filtre"],
+      "Inverse selection": ["Inverser la selection"],
+      "Dynamically search all filter values": [
+        "Charge dynamiquement les valeurs du filtre"
+      ],
+      "Filter value is required": ["La valeur du filtre est requise"],
+      "Default value must be set when \"Filter value is required\" is checked": [
+        "La valeur par defaut doit être initialisé si \"La valeur du filtre est requise\" est selectionné"
+      ],
+      "User must select a value before applying the filter": [
+        "L'utilisateur doit selectionner une valeur avant d'appliquer le filtre"
+      ],
+      "When using this option, default value can’t be set": [
+        "Quand l'option est utilisée, une valeur par defaut doit être indiquée"
+      ],
+      "Exclude selected values": ["Exclus les valeurs selectionnées"],
+      "Can select multiple values": ["Peut selectionner plusieurs valeurs"],
+      "Select first filter value by default": [
+        "Selectionne la première valeur du filtre par défaut"
+      ],
       "Custom SQL ad-hoc filters are not available for the native Druid connector": [
         "Les filtres ad-hoc pour le SQL personnalisé ne sont par disponibles pour le connecteur Druid natif"
       ],
@@ -2981,7 +3017,6 @@
       "Simple ad-hoc metrics are not enabled for this dataset": [
         "Les métriques ad-hoc simples ne sont pas disponibles pour ce dataset"
       ],
-      "column": ["colonne"],
       "aggregate": ["agrégat"],
       "Custom SQL ad-hoc metrics are not available for the native Druid connector": [
         "Les métriques ad-hoc pour le SQL personnalisé ne sont pas disponibles pour le connecteur Druid natif"
@@ -3140,7 +3175,7 @@
       "An error occurred while fetching created by values: %s": [
         "Une erreur s'est produite en récupérant les valeurs créées : %s"
       ],
-      "Status": ["Status"],
+      "Status": ["Statut"],
       "${AlertState.success}": ["${AlertState.success}"],
       "${AlertState.working}": ["${AlertState.working}"],
       "${AlertState.error}": ["${AlertState.error}"],
@@ -3266,7 +3301,7 @@
         "Etes-vous sûr de vouloir supprimer les couches sélectionnées ?"
       ],
       "Are you sure you want to delete": ["Etes-vous sûr de vouloir supprimer"],
-      "Modified %s": ["%s modifié"],
+      "Modified %s": ["Modifié %s"],
       "The passwords for the databases below are needed in order to import them together with the charts. Please note that the \"Secure Extra\" and \"Certificate\" sections of the database configuration are not present in export files, and should be added manually after the import if they are needed.": [
         "Les mots de passe pour les bases de données ci-dessous sont nécessaires pour les importer en même temps que les graphiques. Notez que les sections \"Securité Supplémentaire\" et  \"Certificat\" de la configuration de la base de données ne sont pas présents dans les fichiers d'export et doivent être ajoutés manuellement après l'import si nécessaire."
       ],
@@ -3276,7 +3311,7 @@
       "There was an issue deleting the selected charts: %s": [
         "Il y a eu un problème lors de la suppression des graphiques sélectionnés : %s"
       ],
-      "Modified by": ["Modifié"],
+      "Modified by": ["Modifié par"],
       "Favorite": ["Favoris"],
       "Any": ["Tous"],
       "Yes": ["Oui"],
@@ -3290,6 +3325,7 @@
         "Une erreur s'est produite durant la récupération du graphique créé par les valeurs : %s"
       ],
       "Viz type": ["Type"],
+      "viz type": ["type de visualisation"],
       "Alphabetical": ["Alphabétique"],
       "Recently modified": ["Dernière modification"],
       "Least recently modified": ["Dernière modification"],
@@ -3615,9 +3651,10 @@
       "Query name": ["Nom de la requête"],
       "[Untitled]": ["[Sans titre]"],
       "Unknown": ["Erreur inconnue"],
-      "Edited": ["Édité"],
-      "Created": ["Créé le"],
+      "Edited": ["Édités"],
+      "Created": ["Créés le"],
       "Viewed": ["Consultés"],
+      "Viewed %s": ["Consulté %s"],
       "Mine": ["Personnel"],
       "Recently viewed charts, dashboards, and saved queries will appear here": [
         "Les graphiques, tableaux de bord et requêtes sauvegardées qui ont été récemment consultés apparaîtront ici"
@@ -3641,7 +3678,7 @@
       "${tableName}": ["${tableName}"],
       "query": ["requête"],
       "Share": ["Partage de requête"],
-      "Ran %s": ["A exécuté %s"],
+      "Ran %s": ["A été exécuté %s"],
       "There was an issue fetching your recent activity: %s": [
         "Une erreur s'est produite lors de la récupération de votre activité récente : %s"
       ],
@@ -3655,6 +3692,8 @@
         "Une erreur s'est produite lors de la récupération de vos requêtes sauvegardées : %s"
       ],
       "Recents": ["Récents"],
+      "recents": ["récents"],
+      "recent": ["date"],
       "Select start and end date": [
         "Selectionner la date de début et la date de fin"
       ],
@@ -3718,7 +3757,127 @@
       "Percentages": ["Pourcentages"],
       "Tabular": ["Tabulaire"],
       "Text": ["Zone de texte"],
-      "Trend": ["Tendance"]
+      "Trend": ["Tendance"],
+      "View All »": ["Tout voir »"],
+      "Add/Edit Filters": ["Ajouter/Modifier les filtres"],
+      "Add filters and dividers": ["Ajouter des filtres et diviseurs"],
+      "Add and edit filters": ["Ajouter et modifier les filtres"],
+      "Last": ["Dernier"],
+      "last day": ["hier"],
+      "last week": ["la semaine derniere"],
+      "last month": ["le mois dernier"],
+      "last quarter": ["le trimestre dernier"],
+      "last year": ["l'année dernière"],
+      "previous calendar week": ["semaine calendaire précédente"],
+      "previous calendar month": ["mois calendaire précédent"],
+      "previous calendar year": ["année calendaire précédente"],
+      "Days %s": ["Jours %s"],
+      "Before": ["Avant"],
+      "After": ["Après"],
+      "Custom": ["Personnalisée"],
+      "Seconds %s": ["Secondes %s"],
+      "Minutes %s": ["Minutes %s"],
+      "Hours %s": ["Heures %s"],
+      "Weeks %s": ["Semaines %s"],
+      "Months %s": ["Mois %s"],
+      "Quarters %s": ["Trimestres %s"],
+      "Years %s": ["Année %s"],
+      "Certified": ["Certifié"],
+      "Relative Date/Time": ["Date/Heure Relative"],
+      "Specific Date/Time": ["Date/Heure Spécifique"],
+      "Now": ["Maintenant"],
+      "Midnight": ["Minuit"],
+      "Apply filters": ["Appliquer les filtres"],
+      "Single Value": ["Valeur Unique"],
+      "Single value": ["Valeur unique"],
+      "Copy permalink to clipboard": ["Copier le lien dans le presse-papiers"],
+      "Share permalink by email": ["Partager le lien par mail"],
+      "Connect database": ["Connexion à la base de données"],
+      "Upload CSV to database": [
+        "Importer des fichiers CSV vers la base de données"
+      ],
+      "Upload columnar file to database": [
+        "Importer des colonnes vers la base de données"
+      ],
+      "Upload Excel file to database": [
+        "Importer des fichiers Excel vers la base de données"
+      ],
+      "No %(tableName)s yet": ["Il n'y a pas encore de %(tableName)s"],
+      "saved queries": ["requête sauvegardée"],
+      "See all %(tableName)s": ["Explorer - %(tableName)s"],
+      "Sort by %s": ["Trier par %s"],
+      "Filters out of scope (%d)": ["Filtres hors du périmètre (%d)"],
+      "There are no charts added to this dashboard": [
+        "Il n'y a pas de graphiques ajouté dans ce tableau de bord"
+      ],
+      "Go to the edit mode to configure the dashboard and add charts": [
+        "Allez dans l'edition pour configurer le tableau de bord et ajouter des graphiques"
+      ],
+      "No filters are currently added": ["Aucun filtre ajouté"],
+      "Drag and drop components and charts to the dashboard": [
+        "Glissez/Déposez des composants et des graphiques sur le tableau de bord"
+      ],
+      "You can create new charts or use existing ones from the panel on the right": [
+        "Vous pouvez créer de nouveaux graphiques ou utililser ceux existants à partir du panneau de droite"
+      ],
+      "You can create a new chart or use existing ones from the panel on the right": [
+        "Vous pouvez créer un nouveau graphique ou utililser ceux existants à partir du panneau de droite"
+      ],
+      "Enable 'Allow data upload' in any database's settings": [
+        "Activez l'option 'Autoriser le chargement de données' dans les paramètres de la base de données"
+      ],
+      "There are no components added to this tab": [
+        "Il n'y a pas de composant à ajouter dans cet onglet"
+      ],
+      "You can add the components in the edit mode": [
+        "Vous pouvez ajouter les composants via mode edition"
+      ],
+      "You can add the components in the": [
+        "Vous pouvez ajouter les composants via le"
+      ],
+      "edit mode": ["mode edition"],
+      "Time Column": ["Colonne de temps"],
+      "Time Grain": ["Granularité"],
+      "Pivot Options": ["Options de pivot"],
+      "Aggregation function": ["Fonction d'agrégation"],
+      "Aggregate function to apply when pivoting and computing the total rows and columns": [
+        "Fonction d'agrégation à appliquer lors du pivotement et du calcul du total des lignes et des colonnes"
+      ],
+      "Combine Metrics": ["Combiner les métriques"],
+      "Show totals": ["Afficher les totaux"],
+      "Transpose Pivot": ["Pivot de transposition"],
+      "Update chart": ["Mettre à jour"],
+      "Display total row/column": ["Affiche le total ligne/colonne"],
+      "Swap Groups and Columns": ["Permuter les groupes et les colonnes"],
+      "Samples": ["Exemples"],
+      "Number format": ["Format D3"],
+      "Date format": ["Format Date"],
+      "Values dependent on": ["Valeurs dépendent de"],
+      "No results were returned for this query": [
+        "Aucun résultat avec ces paramètres"
+      ],
+      "Values selected in other filters will affect the filter options to only show relevant values": [
+        "Les valeurs sélectionnées dans d'autres filtres affecteront les options de filtrage afin de n'afficher que les valeurs pertinentes"
+      ],
+      "Values are dependent on other filters": [
+        "Les valeurs dépendent d'autres filtres"
+      ],
+      "Display metrics side by side within each column, as opposed to each column being displayed side by side for each metric.": [
+        "Affichez les indicateurs côte à côte dans chaque colonne, au lieu d'afficher chaque colonne côte à côte pour chaque indicateur."
+      ],
+      "Click the button above to add a filter to the dashboard": [
+        "Cliquez sur le bouton ci-dessus pour ajouter un filtre au tableau de bord"
+      ],
+      "Totals": ["Totaux"],
+      "Filter only displays values relevant to selections made in other filters.": [
+        "Le filtre n'affiche que les valeurs pertinentes après les sélections effectuées dans d'autres filtres."
+      ],
+      "No data after filtering or data is NULL for the latest time record": [
+        "Pas de données après filtrage ou données manquantes pour la période sélectionnée"
+      ],
+      "Scope": ["Périmètre"],
+      "Dependent on": ["Dépend de"],
+      "No matching records found": ["Aucun résultat trouvé"]
     }
   }
 }
