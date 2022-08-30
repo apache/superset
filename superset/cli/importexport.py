@@ -34,6 +34,7 @@ logger = logging.getLogger(__name__)
 
 
 @click.command()
+@with_appcontext
 @click.argument("directory")
 @click.option(
     "--overwrite",
