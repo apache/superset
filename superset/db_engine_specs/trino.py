@@ -26,7 +26,6 @@ from sqlalchemy.engine.url import make_url, URL
 from sqlalchemy.orm import Session
 
 from superset.db_engine_specs.base import BaseEngineSpec
-from superset.db_engine_specs.presto import PrestoEngineSpec
 from superset.models.sql_lab import Query
 from superset.utils import core as utils
 

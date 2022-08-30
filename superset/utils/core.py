@@ -174,6 +174,15 @@ class GenericDataType(IntEnum):
     # ROW = 7
 
 
+class DatasourceType(str, Enum):
+    SLTABLE = "sl_table"
+    TABLE = "table"
+    DATASET = "dataset"
+    QUERY = "query"
+    SAVEDQUERY = "saved_query"
+    VIEW = "view"
+
+
 class DatasourceDict(TypedDict):
     type: str
     id: int
