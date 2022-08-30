@@ -1202,11 +1202,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         max_items = config["MAX_TABLE_NAMES"] or len(tables)
         total_items = len(tables) + len(views)
-        max_tables = len(tables)
-        max_views = len(views)
-        if total_items and substr_parsed:
-            max_tables = max_items * len(tables) // total_items
-            max_views = max_items * len(views) // total_items
+        max_tables = max_items or len(tables)
+        max_views = max_items or len(views)
 
         extra_dict_by_name = {
             table.name: table.extra_dict
@@ -1243,7 +1240,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             ]
         )
         table_options.sort(key=lambda value: value["label"])
-        payload = {"tableLength": len(tables) + len(views), "options": table_options}
+        payload = {"tableLength": total_items, "options": table_options}
         return json_success(json.dumps(payload))
 
     @api
