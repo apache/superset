@@ -55,6 +55,8 @@ envFromSecrets: []
 extraEnv: {}
   # Different gunicorn settings, refer to the gunicorn documentation
   # https://docs.gunicorn.org/en/stable/settings.html#
+  # These variables are used as Flags at the gunicorn startup
+  # https://github.com/apache/superset/blob/master/docker/run-server.sh#L22
   # Extend timeout to allow long running queries.
   # GUNICORN_TIMEOUT: 300
   # Increase the gunicorn worker amount, can improve performance drastically
