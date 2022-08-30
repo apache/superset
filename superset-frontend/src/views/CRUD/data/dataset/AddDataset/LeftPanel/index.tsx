@@ -46,7 +46,7 @@ const LeftPanelStyle = styled.div`
   max-width: ${theme.gridUnit * 87.5}px;
   padding: ${theme.gridUnit * 4}px;
   height: 100%;
-  background-color: ${theme.colors.grayscale.light5}; 
+  background-color: ${theme.colors.grayscale.light5};
   position: relative;
   .emptystate {
     height: auto;
