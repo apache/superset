@@ -88,6 +88,8 @@ const createProps = () => ({
   maxUndoHistoryToast: jest.fn(),
   dashboardInfoChanged: jest.fn(),
   dashboardTitleChanged: jest.fn(),
+  ikigaiOrigin: '',
+  supersetUrl: '',
 });
 const props = createProps();
 const editableProps = {
