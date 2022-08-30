@@ -339,14 +339,6 @@ class Database(
             else None
         )
 
-    @memoized(
-        watch=(
-            "impersonate_user",
-            "sqlalchemy_uri_decrypted",
-            "extra",
-            "encrypted_extra",
-        )
-    )
     def get_sqla_engine(
         self,
         schema: Optional[str] = None,
@@ -639,7 +631,6 @@ class Database(
         return self.get_db_engine_spec(url)
 
     @classmethod
-    @memoized
     def get_db_engine_spec(cls, url: URL) -> Type[db_engine_specs.BaseEngineSpec]:
         backend = url.get_backend_name()
         try:

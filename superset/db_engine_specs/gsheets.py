@@ -151,11 +151,16 @@ class GSheetsEngineSpec(SqliteEngineSpec):
         """
         Reuse ``private_key`` if available and unchanged.
         """
-        if new.get("service_account_info", {}).get("private_key") == PASSWORD_MASK:
-            new["service_account_info"]["private_key"] = old.get(
-                "service_account_info",
-                {},
-            ).get("private_key")
+        if "service_account_info" not in new:
+            return new
+
+        if "private_key" not in new["service_account_info"]:
+            return new
+
+        if new["service_account_info"]["private_key"] == PASSWORD_MASK:
+            new["service_account_info"]["private_key"] = old["service_account_info"][
+                "private_key"
+            ]
 
         return new
 

@@ -409,11 +409,16 @@ class BigQueryEngineSpec(BaseEngineSpec):
         """
         Reuse ``private_key`` if available and unchanged.
         """
-        if new.get("credentials_info", {}).get("private_key") == PASSWORD_MASK:
-            new["credentials_info"]["private_key"] = old.get(
-                "credentials_info",
-                {},
-            ).get("private_key")
+        if "credentials_info" not in new:
+            return new
+
+        if "private_key" not in new["credentials_info"]:
+            return new
+
+        if new["credentials_info"]["private_key"] == PASSWORD_MASK:
+            new["credentials_info"]["private_key"] = old["credentials_info"][
+                "private_key"
+            ]
 
         return new
 

@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import json
 import logging
 from typing import Any, Dict, Optional
 
@@ -41,8 +42,13 @@ class DatabaseDAO(BaseDAO):
         commit: bool = True,
     ) -> Database:
         if "encrypted_extra" in properties:
-            properties["encrypted_extra"] = model.db_engine_spec.update_encrypted_extra(
-                model.encrypted_extra, properties["encrypted_extra"]
+            new = json.loads(properties["encrypted_extra"])
+            old = json.loads(model.encrypted_extra)
+            properties["encrypted_extra"] = json.dumps(
+                model.db_engine_spec.update_encrypted_extra(
+                    old,
+                    new,
+                )
             )
 
         return super().update(model, properties, commit)

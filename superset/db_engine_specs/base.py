@@ -467,7 +467,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         cls,
         database: "Database",
         schema: Optional[str] = None,
-        source: Optional[str] = None,
+        source: Optional[utils.QuerySource] = None,
     ) -> Engine:
         return database.get_sqla_engine(schema=schema, source=source)
 
@@ -1280,7 +1280,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     @classmethod
     def estimate_query_cost(
-        cls, database: "Database", schema: str, sql: str, source: Optional[str] = None
+        cls,
+        database: "Database",
+        schema: str,
+        sql: str,
+        source: Optional[utils.QuerySource] = None,
     ) -> List[Dict[str, Any]]:
         """
         Estimate the cost of a multiple statement SQL query.
@@ -1653,6 +1657,21 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         return user.username if user else None
 
+    @classmethod
+    def update_encrypted_extra(
+        cls,
+        old: Dict[str, Any],  # pylint: disable=unused-argument
+        new: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        """
+        Update ``encrypted_extra``.
+
+        This method allows reusing existing values from the current encrypted extra on
+        updates. It's useful for reusing masked passwords, allowing keys to be updated
+        without having to provide sensitive data to the client.
+        """
+        return new
+
 
 # schema for adding a database by providing parameters instead of the
 # full SQLAlchemy URI
@@ -1853,18 +1872,3 @@ class BasicParametersMixin:
         )
         spec.components.schema(cls.__name__, schema=cls.parameters_schema)
         return spec.to_dict()["components"]["schemas"][cls.__name__]
-
-    @classmethod
-    def update_encrypted_extra(
-        cls,
-        old: Dict[str, Any],  # pylint: disable=unused-argument
-        new: Dict[str, Any],
-    ) -> Dict[str, Any]:
-        """
-        Update ``encrypted_extra``.
-
-        This method allows reusing existing values from the current encrypted extra on
-        updates. It's useful for reusing masked passwords, allowing keys to be updated
-        without having to provide sensitive data to the client.
-        """
-        return new
