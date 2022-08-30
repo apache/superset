@@ -65,6 +65,8 @@ FEATURE_FLAGS = {
     "DASHBOARD_NATIVE_FILTERS": True,
 }
 
+WEBDRIVER_BASEURL = "http://0.0.0.0:8081/"
+
 
 def GET_FEATURE_FLAGS_FUNC(ff):
     ff_copy = copy(ff)
