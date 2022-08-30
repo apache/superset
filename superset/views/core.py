@@ -1200,10 +1200,10 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             tables = [tn for tn in tables if tn.schema in valid_schemas]
             views = [vn for vn in views if vn.schema in valid_schemas]
 
-        max_items = config["MAX_TABLE_NAMES"] or len(tables)
+        max_tables = len(tables)
+        max_views = len(views)
         total_items = len(tables) + len(views)
-        max_tables = max_items or len(tables)
-        max_views = max_items or len(views)
+        max_items = config["MAX_TABLE_NAMES"] or total_items
 
         extra_dict_by_name = {
             table.name: table.extra_dict
@@ -1240,7 +1240,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             ]
         )
         table_options.sort(key=lambda value: value["label"])
-        payload = {"tableLength": total_items, "options": table_options}
+        payload = {"tableLength": total_items, "options": table_options[:max_items]}
         return json_success(json.dumps(payload))
 
     @api
