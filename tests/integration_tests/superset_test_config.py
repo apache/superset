@@ -73,6 +73,8 @@ FEATURE_FLAGS = {
     "DRILL_TO_DETAIL": True,
 }
 
+WEBDRIVER_BASEURL = "http://0.0.0.0:8081/"
+
 
 def GET_FEATURE_FLAGS_FUNC(ff):
     ff_copy = copy(ff)
