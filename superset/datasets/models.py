@@ -90,7 +90,7 @@ class Dataset(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
     columns: List[Column] = relationship(
         "Column",
         secondary=dataset_column_association_table,
-        cascade="all, delete-orphan",
+        cascade="all, delete, delete-orphan",
         single_parent=True,
         backref="datasets",
     )
