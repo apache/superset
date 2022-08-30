@@ -2312,7 +2312,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         For more context: https://github.com/apache/superset/issues/14909
         """
         # set permissions
-        # security_manager.dataset_after_update(mapper, connection, sqla_table)
+        security_manager.set_perm(mapper, connection, sqla_table)
 
         inspector = inspect(sqla_table)
         session = inspector.session
