@@ -31,15 +31,8 @@ from tests.integration_tests.conftest import with_feature_flags
 
 class TestTagging(SupersetTestCase):
     def query_tagged_object_table(self):
-        query = (
-            db.session.query(TaggedObject)
-            .join(Tag)
-            .with_entities(TaggedObject.tag_id, Tag.name)
-            .group_by(TaggedObject.tag_id, Tag.name)
-            .order_by(func.count().desc())
-            .all()
-        )
-        return [{"id": id, "name": name} for id, name in query]
+        query = (db.session.query(TaggedObject).all())
+        return query
 
     @with_feature_flags(TAGGING_SYSTEM=False)
     def test_tag_view_disabled(self):
@@ -79,7 +72,8 @@ class TestTagging(SupersetTestCase):
         # Test to make sure that a dataset tag was added to the tagged_object table
         tags = self.query_tagged_object_table()
         self.assertEqual(1, len(tags))
-        self.assertEqual("type:dataset", tags[0].get("name"))
+        self.assertEqual("ObjectTypes.dataset", str(tags[0].object_type))
+        self.assertEqual(test_dataset.id, tags[0].object_id)
 
         # Cleanup the db
         db.session.delete(test_dataset)
@@ -110,7 +104,8 @@ class TestTagging(SupersetTestCase):
         # Test to make sure that a chart tag was added to the tagged_object table
         tags = self.query_tagged_object_table()
         self.assertEqual(1, len(tags))
-        self.assertEqual("type:chart", tags[0].get("name"))
+        self.assertEqual("ObjectTypes.chart", str(tags[0].object_type))
+        self.assertEqual(test_chart.id, tags[0].object_id)
 
         # Cleanup the db
         db.session.delete(test_chart)
@@ -140,7 +135,8 @@ class TestTagging(SupersetTestCase):
         # Test to make sure that a dashboard tag was added to the tagged_object table
         tags = self.query_tagged_object_table()
         self.assertEqual(1, len(tags))
-        self.assertEqual("type:dashboard", tags[0].get("name"))
+        self.assertEqual("ObjectTypes.dashboard", str(tags[0].object_type))
+        self.assertEqual(test_dashboard.id, tags[0].object_id)
 
         # Cleanup the db
         db.session.delete(test_dashboard)
@@ -165,7 +161,8 @@ class TestTagging(SupersetTestCase):
         # Test to make sure that a saved query tag was added to the tagged_object table
         tags = self.query_tagged_object_table()
         self.assertEqual(1, len(tags))
-        self.assertEqual("favorited_by:1", tags[0].get("name"))
+        self.assertEqual("ObjectTypes.chart", str(tags[0].object_type))
+        self.assertEqual(test_saved_query.obj_id, tags[0].object_id)
 
         # Cleanup the db
         db.session.delete(test_saved_query)
