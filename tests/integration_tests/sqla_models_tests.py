@@ -453,7 +453,7 @@ class TestDatabaseModel(SupersetTestCase):
 
         # make sure the columns have been mapped properly
         assert len(table.columns) == 4
-        table.fetch_metadata()
+        table.fetch_metadata(commit=False)
 
         # assert that the removed column has been dropped and
         # the physical and calculated columns are present
