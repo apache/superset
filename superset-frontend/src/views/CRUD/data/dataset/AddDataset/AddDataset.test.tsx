@@ -22,7 +22,7 @@ import AddDataset from 'src/views/CRUD/data/dataset/AddDataset';
 
 describe('AddDataset', () => {
   it('renders a blank state AddDataset', () => {
-    render(<AddDataset />);
+    render(<AddDataset />, { useRedux: true });
 
     const blankeStateImgs = screen.getAllByRole('img', { name: /empty/i });
 
