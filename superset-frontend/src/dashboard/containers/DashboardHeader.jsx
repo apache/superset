@@ -99,6 +99,8 @@ function mapStateToProps({
     metadata: dashboardInfo.metadata,
     reports,
     filterboxMigrationState: dashboardState.filterboxMigrationState,
+    ikigaiOrigin: dashboardState.ikigaiOrigin,
+    supersetUrl: dashboardState.supersetUrl,
   };
 }
 

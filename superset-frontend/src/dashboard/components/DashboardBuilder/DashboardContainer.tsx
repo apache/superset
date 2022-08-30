@@ -49,6 +49,8 @@ import { NATIVE_FILTER_DIVIDER_PREFIX } from '../nativeFilters/FiltersConfigModa
 
 type DashboardContainerProps = {
   topLevelTabs?: LayoutItem;
+  ikigaiOrigin?: string;
+  supersetUrl?: string;
 };
 
 const useNativeFilterScopes = () => {

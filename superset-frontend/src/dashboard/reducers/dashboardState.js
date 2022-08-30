@@ -43,6 +43,8 @@ import {
   ON_FILTERS_REFRESH,
   ON_FILTERS_REFRESH_SUCCESS,
   SET_DATASETS_STATUS,
+  SET_IKIGAI_ORIGIN,
+  SET_SUPERSET_URL,
 } from '../actions/dashboardState';
 import { HYDRATE_DASHBOARD } from '../actions/hydrate';
 
@@ -217,6 +219,20 @@ export default function dashboardStateReducer(state = {}, action) {
       return {
         ...state,
         datasetsStatus: action.status,
+      };
+    },
+    [SET_IKIGAI_ORIGIN]() {
+      // console.log('action', action);
+      return {
+        ...state,
+        ikigaiOrigin: action.ikigaiOrigin,
+      };
+    },
+    [SET_SUPERSET_URL]() {
+      console.log('SET_SUPERSET_URL', action);
+      return {
+        ...state,
+        supersetUrl: action.supersetUrl,
       };
     },
   };

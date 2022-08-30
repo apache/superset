@@ -65,6 +65,8 @@ export type DashboardState = {
   isRefreshing: boolean;
   isFiltersRefreshing: boolean;
   hasUnsavedChanges: boolean;
+  ikigaiOrigin: string;
+  supersetUrl: string;
 };
 export type DashboardInfo = {
   id: number;

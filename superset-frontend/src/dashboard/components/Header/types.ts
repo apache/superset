@@ -97,4 +97,6 @@ export interface HeaderProps {
   setRefreshFrequency: () => void;
   dashboardInfoChanged: () => void;
   dashboardTitleChanged: () => void;
+  ikigaiOrigin: string;
+  supersetUrl: string;
 }

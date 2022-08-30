@@ -620,3 +620,15 @@ export function setDatasetsStatus(status) {
     status,
   };
 }
+
+export const SET_IKIGAI_ORIGIN = 'SET_IKIGAI_ORIGIN';
+export function setIkigaiOrigin(ikigaiOrigin) {
+  // console.log('ikigaiOrigin', ikigaiOrigin);
+  return { type: SET_IKIGAI_ORIGIN, ikigaiOrigin };
+}
+
+export const SET_SUPERSET_URL = 'SET_SUPERSET_URL';
+export function setSupersetUrl(supersetUrl) {
+  console.log('supersetUrl', supersetUrl);
+  return { type: SET_SUPERSET_URL, supersetUrl };
+}

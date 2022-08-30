@@ -48,7 +48,7 @@ const supersetUrl = new URL(window.location.href);
 const supersetHostname = supersetUrl.hostname;
 const clusterId = supersetHostname.split('-superset.ikigailabs.io')[0];
 const dashURL = `https://${clusterId}-app.ikigailabs.io`;
-console.log('supersetUrl', supersetUrl, supersetHostname, clusterId, dashURL);
+// console.log('supersetUrl', supersetUrl, supersetHostname, clusterId, dashURL);
 const timestamp = new Date().getTime().toString();
 const iframeEmptyURL = `${dashURL}/widget/diagram/builder?v=1&mode=edit&run_flow_times=${timestamp}`;
 

@@ -44,6 +44,8 @@ import { DashboardLayout, RootState } from 'src/dashboard/types';
 import {
   setDirectPathToChild,
   setEditMode,
+  setIkigaiOrigin,
+  setSupersetUrl,
 } from 'src/dashboard/actions/dashboardState';
 import { useElementOnScreen } from 'src/hooks/useElementOnScreen';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
@@ -284,6 +286,20 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
       });
 
       observer.observe(headerRef.current);
+    }
+
+    const iframeUrl: any = new URL(window.location.href);
+    if (iframeUrl && iframeUrl.search) {
+      // console.log('iframeUrl', iframeUrl);
+      const iframeUrlParameters: any = new URLSearchParams(iframeUrl.search);
+      if (iframeUrlParameters) {
+        const ikigaiURL: any = new URL(iframeUrlParameters.get('dash_url'));
+        // console.log('ikigaiURL', ikigaiURL);
+        const ikigaiURLOrigin = ikigaiURL ? ikigaiURL.origin : '';
+        console.log('ikigaiURLOrigin', ikigaiURLOrigin);
+        dispatch(setIkigaiOrigin(ikigaiURLOrigin));
+        dispatch(setSupersetUrl(iframeUrl.toString()));
+      }
     }
 
     return () => {
