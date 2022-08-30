@@ -53,9 +53,21 @@ envFromSecrets: []
 ## Extra environment variables that will be passed into pods
 ##
 extraEnv: {}
+  # Different gunicorn settings, refer to the gunicorn documentation
+  # https://docs.gunicorn.org/en/stable/settings.html#
+  # These variables are used as Flags at the gunicorn startup
+  # https://github.com/apache/superset/blob/master/docker/run-server.sh#L22
   # Extend timeout to allow long running queries.
   # GUNICORN_TIMEOUT: 300
-
+  # Increase the gunicorn worker amount, can improve performance drastically
+  # See: https://docs.gunicorn.org/en/stable/design.html#how-many-workers
+  # SERVER_WORKER_AMOUNT: 4
+  # WORKER_MAX_REQUESTS: 0
+  # WORKER_MAX_REQUESTS_JITTER: 0
+  # SERVER_THREADS_AMOUNT: 20
+  # GUNICORN_KEEPALIVE: 2
+  # SERVER_LIMIT_REQUEST_LINE: 0
+  # SERVER_LIMIT_REQUEST_FIELD_SIZE: 0
 
   # OAUTH_HOME_DOMAIN: ..
   # # If a whitelist is not set, any address that can use your OAuth2 endpoint will be able to login.

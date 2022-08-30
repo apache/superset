@@ -27,6 +27,9 @@ import { QueryObjectFilterClause, t, styled } from '@superset-ui/core';
 import { Menu } from 'src/components/Menu';
 import { AntdDropdown as Dropdown } from 'src/components';
 
+const MENU_ITEM_HEIGHT = 32;
+const MENU_VERTICAL_SPACING = 32;
+
 export interface ChartContextMenuProps {
   id: string;
   onSelection: (filters: QueryObjectFilterClause[]) => void;
@@ -36,8 +39,8 @@ export interface ChartContextMenuProps {
 export interface Ref {
   open: (
     filters: QueryObjectFilterClause[],
-    offsetX: number,
-    offsetY: number,
+    clientX: number,
+    clientY: number,
   ) => void;
 }
 
@@ -54,9 +57,9 @@ const ChartContextMenu = (
 ) => {
   const [state, setState] = useState<{
     filters: QueryObjectFilterClause[];
-    offsetX: number;
-    offsetY: number;
-  }>({ filters: [], offsetX: 0, offsetY: 0 });
+    clientX: number;
+    clientY: number;
+  }>({ filters: [], clientX: 0, clientY: 0 });
 
   const menu = (
     <Menu>
@@ -81,8 +84,20 @@ const ChartContextMenu = (
   );
 
   const open = useCallback(
-    (filters: QueryObjectFilterClause[], offsetX: number, offsetY: number) => {
-      setState({ filters, offsetX, offsetY });
+    (filters: QueryObjectFilterClause[], clientX: number, clientY: number) => {
+      // Viewport height
+      const vh = Math.max(
+        document.documentElement.clientHeight || 0,
+        window.innerHeight || 0,
+      );
+
+      // +1 for automatically added options such as 'All' and 'Drill to detail'
+      const itemsCount = filters.length + 1;
+      const menuHeight = MENU_ITEM_HEIGHT * itemsCount + MENU_VERTICAL_SPACING;
+      // Always show the context menu inside the viewport
+      const adjustedY = vh - clientY < menuHeight ? vh - menuHeight : clientY;
+
+      setState({ filters, clientX, clientY: adjustedY });
 
       // Since Ant Design's Dropdown does not offer an imperative API
       // and we can't attach event triggers to charts SVG elements, we
@@ -111,9 +126,11 @@ const ChartContextMenu = (
         id={`hidden-span-${id}`}
         css={{
           visibility: 'hidden',
-          position: 'absolute',
-          top: state.offsetY,
-          left: state.offsetX,
+          position: 'fixed',
+          top: state.clientY,
+          left: state.clientX,
+          width: 1,
+          height: 1,
         }}
       />
     </Dropdown>

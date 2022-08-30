@@ -19,7 +19,6 @@
 import {
   CategoricalColorNamespace,
   DataRecord,
-  DataRecordValue,
   getColumnLabel,
   getMetricLabel,
   getNumberFormatter,
@@ -150,7 +149,7 @@ export default function transformProps(
       labelType,
     });
 
-  const columnsLabelMap = new Map<string, DataRecordValue[]>();
+  const columnsLabelMap = new Map<string, string[]>();
 
   const transformer = (
     data: DataRecord[],
