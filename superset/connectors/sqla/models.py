@@ -1417,15 +1417,20 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                 select_exprs.append(outer)
         elif columns:
             for selected in columns:
-                selected = validate_adhoc_subquery(
-                    selected,
+                selected_query = (
+                    selected["sqlExpression"]
+                    if "sqlExpression" in selected
+                    else selected
+                )
+                selected_query = validate_adhoc_subquery(
+                    selected_query,
                     self.database_id,
                     self.schema,
                 )
                 select_exprs.append(
-                    columns_by_name[selected].get_sqla_col()
-                    if selected in columns_by_name
-                    else self.make_sqla_column_compatible(literal_column(selected))
+                    columns_by_name[selected_query].get_sqla_col()
+                    if selected_query in columns_by_name
+                    else self.adhoc_column_to_sqla(selected)
                 )
             metrics_exprs = []
 
