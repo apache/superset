@@ -26,11 +26,8 @@ Object.entries(packageConfig.dependencies).forEach(([pkg]) => {
   }
 });
 
-
 module.exports = {
-  extends: [
-    'plugin:react-prefer-function-component/recommended',
-  ],
+  extends: ['plugin:react-prefer-function-component/recommended'],
   parser: '@babel/eslint-parser',
   parserOptions: {
     ecmaFeatures: {
@@ -54,27 +51,27 @@ module.exports = {
       version: 'detect',
     },
   },
-  plugins: [
-    'react',
-    'react-prefer-function-component',
-  ],
+  plugins: ['react', 'react-prefer-function-component'],
   rules: {
     'react-prefer-function-component/react-prefer-function-component': 1,
     'react/jsx-filename-extension': [1, { extensions: ['.tsx'] }],
     'react/forbid-component-props': 1,
-    "no-restricted-imports": [
-      "warn", {
-        "patterns": [
+    'no-restricted-imports': [
+      'warn',
+      {
+        patterns: [
           {
-            "group": ["**/*.less, **/*.css"],
-            "message": "Please reduce/remove reliance on LESS/CSS files - move approprate styles to Emotion"
+            group: ['**/*.less, **/*.css'],
+            message:
+              'Please reduce/remove reliance on LESS/CSS files - move approprate styles to Emotion',
           },
           {
-            "group": ["antd/**"],
-            "message": "Please do not use AntD directly, but instead import through src/common/components"
-          }
-        ]
-      }
-    ]
+            group: ['antd/**'],
+            message:
+              'Please do not use AntD directly, but instead import through src/common/components',
+          },
+        ],
+      },
+    ],
   },
 };
