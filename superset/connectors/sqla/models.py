@@ -127,7 +127,6 @@ from superset.tables.models import Table as NewTable
 from superset.utils import core as utils
 from superset.utils.core import (
     GenericDataType,
-    get_axis_column,
     get_column_name,
     get_username,
     is_adhoc_column,
