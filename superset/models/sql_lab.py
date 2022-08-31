@@ -42,6 +42,7 @@ from sqlalchemy.engine.url import URL
 from sqlalchemy.orm import backref, relationship
 
 from superset import security_manager
+from superset.jinja_context import BaseTemplateProcessor, get_template_processor
 from superset.models.helpers import (
     AuditMixinNullable,
     ExploreMixin,
@@ -125,6 +126,9 @@ class Query(
     user = relationship(security_manager.user_model, foreign_keys=[user_id])
 
     __table_args__ = (sqla.Index("ti_user_id_changed_on", user_id, changed_on),)
+
+    def get_template_processor(self, **kwargs: Any) -> BaseTemplateProcessor:
+        return get_template_processor(query=self, database=self.database, **kwargs)
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -218,7 +222,20 @@ class Query(
 
     @property
     def data(self) -> Dict[str, Any]:
+        order_by_choices = []
+        for col in self.columns:
+            column_name = str(col.get("column_name") or "")
+            order_by_choices.append(
+                (json.dumps([column_name, True]), column_name + " [asc]")
+            )
+            order_by_choices.append(
+                (json.dumps([column_name, False]), column_name + " [desc]")
+            )
+
         return {
+            "time_grain_sqla": [
+                (g.duration, g.name) for g in self.database.grains() or []
+            ],
             "filter_select": True,
             "name": self.tab_name,
             "columns": self.columns,
@@ -228,6 +245,7 @@ class Query(
             "sql": self.sql,
             "owners": self.owners_data,
             "database": {"id": self.database_id, "backend": self.database.backend},
+            "order_by_choices": order_by_choices,
         }
 
     def raise_for_access(self) -> None:
@@ -281,6 +299,10 @@ class Query(
     @property
     def schema_perm(self) -> str:
         return f"{self.database.database_name}.{self.schema}"
+
+    @property
+    def perm(self) -> str:
+        return f"[{self.database.database_name}].[{self.tab_name}](id:{self.id})"
 
     @property
     def default_endpoint(self) -> str:

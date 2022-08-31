@@ -30,8 +30,12 @@ from superset.models.sql_lab import Query, SavedQuery, TableSchema, TabState
 from superset.superset_typing import FlaskResponse
 from superset.utils import core as utils
 from superset.utils.core import get_user_id
-
-from .base import BaseSupersetView, DeleteMixin, json_success, SupersetModelView
+from superset.views.base import (
+    BaseSupersetView,
+    DeleteMixin,
+    json_success,
+    SupersetModelView,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -139,7 +143,9 @@ class TabStateView(BaseSupersetView):
         query_editor = json.loads(request.form["queryEditor"])
         tab_state = TabState(
             user_id=get_user_id(),
-            label=query_editor.get("title", "Untitled Query"),
+            # This is for backward compatibility
+            label=query_editor.get("name")
+            or query_editor.get("title", "Untitled Query"),
             active=True,
             database_id=query_editor["dbId"],
             schema=query_editor.get("schema"),

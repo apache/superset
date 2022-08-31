@@ -15,31 +15,59 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from unittest import mock
+# pylint: disable=import-outside-toplevel, invalid-name, unused-argument, redefined-outer-name
 
+from typing import TYPE_CHECKING
+
+import pytest
 from marshmallow import fields, Schema, ValidationError
+from pytest_mock import MockFixture
 
-from superset.databases.schemas import DatabaseParametersSchemaMixin
-from superset.db_engine_specs.base import BasicParametersMixin
-from superset.models.core import ConfigurationMethod
-
-
-class DummySchema(Schema, DatabaseParametersSchemaMixin):
-    sqlalchemy_uri = fields.String()
+if TYPE_CHECKING:
+    from superset.databases.schemas import DatabaseParametersSchemaMixin
+    from superset.db_engine_specs.base import BasicParametersMixin
 
 
-class DummyEngine(BasicParametersMixin):
-    engine = "dummy"
-    default_driver = "dummy"
-
-
+# pylint: disable=too-few-public-methods
 class InvalidEngine:
-    pass
+    """
+    An invalid DB engine spec.
+    """
 
 
-@mock.patch("superset.databases.schemas.get_engine_specs")
-def test_database_parameters_schema_mixin(get_engine_specs):
-    get_engine_specs.return_value = {"dummy_engine": DummyEngine}
+@pytest.fixture
+def dummy_schema() -> "DatabaseParametersSchemaMixin":
+    """
+    Fixture providing a dummy schema.
+    """
+    from superset.databases.schemas import DatabaseParametersSchemaMixin
+
+    class DummySchema(Schema, DatabaseParametersSchemaMixin):
+        sqlalchemy_uri = fields.String()
+
+    return DummySchema()
+
+
+@pytest.fixture
+def dummy_engine(mocker: MockFixture) -> None:
+    """
+    Fixture proving a dummy DB engine spec.
+    """
+    from superset.db_engine_specs.base import BasicParametersMixin
+
+    class DummyEngine(BasicParametersMixin):
+        engine = "dummy"
+        default_driver = "dummy"
+
+    mocker.patch("superset.databases.schemas.get_engine_spec", return_value=DummyEngine)
+
+
+def test_database_parameters_schema_mixin(
+    dummy_engine: None,
+    dummy_schema: "Schema",
+) -> None:
+    from superset.models.core import ConfigurationMethod
+
     payload = {
         "engine": "dummy_engine",
         "configuration_method": ConfigurationMethod.DYNAMIC_FORM,
@@ -51,15 +79,18 @@ def test_database_parameters_schema_mixin(get_engine_specs):
             "database": "dbname",
         },
     }
-    schema = DummySchema()
-    result = schema.load(payload)
+    result = dummy_schema.load(payload)
     assert result == {
         "configuration_method": ConfigurationMethod.DYNAMIC_FORM,
         "sqlalchemy_uri": "dummy+dummy://username:password@localhost:12345/dbname",
     }
 
 
-def test_database_parameters_schema_mixin_no_engine():
+def test_database_parameters_schema_mixin_no_engine(
+    dummy_schema: "Schema",
+) -> None:
+    from superset.models.core import ConfigurationMethod
+
     payload = {
         "configuration_method": ConfigurationMethod.DYNAMIC_FORM,
         "parameters": {
@@ -67,23 +98,28 @@ def test_database_parameters_schema_mixin_no_engine():
             "password": "password",
             "host": "localhost",
             "port": 12345,
-            "dbname": "dbname",
+            "database": "dbname",
         },
     }
-    schema = DummySchema()
     try:
-        schema.load(payload)
+        dummy_schema.load(payload)
     except ValidationError as err:
         assert err.messages == {
             "_schema": [
-                "An engine must be specified when passing individual parameters to a database."
+                (
+                    "An engine must be specified when passing individual parameters to "
+                    "a database."
+                ),
             ]
         }
 
 
-@mock.patch("superset.databases.schemas.get_engine_specs")
-def test_database_parameters_schema_mixin_invalid_engine(get_engine_specs):
-    get_engine_specs.return_value = {}
+def test_database_parameters_schema_mixin_invalid_engine(
+    dummy_engine: None,
+    dummy_schema: "Schema",
+) -> None:
+    from superset.models.core import ConfigurationMethod
+
     payload = {
         "engine": "dummy_engine",
         "configuration_method": ConfigurationMethod.DYNAMIC_FORM,
@@ -92,21 +128,24 @@ def test_database_parameters_schema_mixin_invalid_engine(get_engine_specs):
             "password": "password",
             "host": "localhost",
             "port": 12345,
-            "dbname": "dbname",
+            "database": "dbname",
         },
     }
-    schema = DummySchema()
     try:
-        schema.load(payload)
+        dummy_schema.load(payload)
     except ValidationError as err:
+        print(err.messages)
         assert err.messages == {
             "_schema": ['Engine "dummy_engine" is not a valid engine.']
         }
 
 
-@mock.patch("superset.databases.schemas.get_engine_specs")
-def test_database_parameters_schema_no_mixin(get_engine_specs):
-    get_engine_specs.return_value = {"invalid_engine": InvalidEngine}
+def test_database_parameters_schema_no_mixin(
+    dummy_engine: None,
+    dummy_schema: "Schema",
+) -> None:
+    from superset.models.core import ConfigurationMethod
+
     payload = {
         "engine": "invalid_engine",
         "configuration_method": ConfigurationMethod.DYNAMIC_FORM,
@@ -118,9 +157,8 @@ def test_database_parameters_schema_no_mixin(get_engine_specs):
             "database": "dbname",
         },
     }
-    schema = DummySchema()
     try:
-        schema.load(payload)
+        dummy_schema.load(payload)
     except ValidationError as err:
         assert err.messages == {
             "_schema": [
@@ -132,9 +170,12 @@ def test_database_parameters_schema_no_mixin(get_engine_specs):
         }
 
 
-@mock.patch("superset.databases.schemas.get_engine_specs")
-def test_database_parameters_schema_mixin_invalid_type(get_engine_specs):
-    get_engine_specs.return_value = {"dummy_engine": DummyEngine}
+def test_database_parameters_schema_mixin_invalid_type(
+    dummy_engine: None,
+    dummy_schema: "Schema",
+) -> None:
+    from superset.models.core import ConfigurationMethod
+
     payload = {
         "engine": "dummy_engine",
         "configuration_method": ConfigurationMethod.DYNAMIC_FORM,
@@ -146,8 +187,7 @@ def test_database_parameters_schema_mixin_invalid_type(get_engine_specs):
             "database": "dbname",
         },
     }
-    schema = DummySchema()
     try:
-        schema.load(payload)
+        dummy_schema.load(payload)
     except ValidationError as err:
         assert err.messages == {"port": ["Not a valid integer."]}

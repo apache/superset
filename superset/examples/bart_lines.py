@@ -23,7 +23,7 @@ from sqlalchemy import inspect, String, Text
 from superset import db
 
 from ..utils.database import get_example_database
-from .helpers import get_example_data, get_table_connector_registry
+from .helpers import get_example_url, get_table_connector_registry
 
 
 def load_bart_lines(only_metadata: bool = False, force: bool = False) -> None:
@@ -34,8 +34,8 @@ def load_bart_lines(only_metadata: bool = False, force: bool = False) -> None:
     table_exists = database.has_table_by_name(tbl_name)
 
     if not only_metadata and (not table_exists or force):
-        content = get_example_data("bart-lines.json.gz")
-        df = pd.read_json(content, encoding="latin-1")
+        url = get_example_url("bart-lines.json.gz")
+        df = pd.read_json(url, encoding="latin-1", compression="gzip")
         df["path_json"] = df.path.map(json.dumps)
         df["polyline"] = df.path.map(polyline.encode)
         del df["path"]

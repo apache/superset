@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from flask.ctx import AppContext
 from pytest_mock import MockFixture
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -28,7 +27,6 @@ class ProgrammingError(Exception):
 
 def test_validate_parameters_simple(
     mocker: MockFixture,
-    app_context: AppContext,
 ) -> None:
     from superset.db_engine_specs.gsheets import (
         GSheetsEngineSpec,
@@ -52,7 +50,6 @@ def test_validate_parameters_simple(
 
 def test_validate_parameters_catalog(
     mocker: MockFixture,
-    app_context: AppContext,
 ) -> None:
     from superset.db_engine_specs.gsheets import (
         GSheetsEngineSpec,
@@ -143,7 +140,6 @@ def test_validate_parameters_catalog(
 
 def test_validate_parameters_catalog_and_credentials(
     mocker: MockFixture,
-    app_context: AppContext,
 ) -> None:
     from superset.db_engine_specs.gsheets import (
         GSheetsEngineSpec,

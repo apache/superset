@@ -108,19 +108,10 @@ const ModalHeader = ({
     <StyledStickyHeader>
       <StyledFormHeader>
         <p className="helper-top"> STEP 3 OF 3 </p>
-        <h4 className="step-3-text">
-          Your database was successfully connected! Create a dataset to begin
-          visualizing your data as a chart or go to SQL Lab to query your data.
-        </h4>
-        <p className="helper-bottom">
-          Need help? Learn more about{' '}
-          <a
-            href={documentationLink(db?.engine)}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            connecting to {dbModel.name}.
-          </a>
+        <h4 className="step-3-text">Database connected</h4>
+        <p className="subheader-text">
+          Create a dataset to begin visualizing your data as a chart or go to
+          SQL Lab to query your data.
         </p>
       </StyledFormHeader>
     </StyledStickyHeader>

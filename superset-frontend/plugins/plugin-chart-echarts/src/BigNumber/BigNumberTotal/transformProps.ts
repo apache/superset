@@ -27,7 +27,8 @@ import { BigNumberTotalChartProps } from '../types';
 import { getDateFormatter, parseMetricValue } from '../utils';
 
 export default function transformProps(chartProps: BigNumberTotalChartProps) {
-  const { width, height, queriesData, formData, rawFormData } = chartProps;
+  const { width, height, queriesData, formData, rawFormData, hooks } =
+    chartProps;
   const {
     headerFontSize,
     metric = 'value',
@@ -64,6 +65,8 @@ export default function transformProps(chartProps: BigNumberTotalChartProps) {
       ? formatTime
       : getNumberFormatter(yAxisFormat ?? metricEntry?.d3format ?? undefined);
 
+  const { onContextMenu } = hooks;
+
   return {
     width,
     height,
@@ -72,5 +75,6 @@ export default function transformProps(chartProps: BigNumberTotalChartProps) {
     headerFontSize,
     subheaderFontSize,
     subheader: formattedSubheader,
+    onContextMenu,
   };
 }

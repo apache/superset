@@ -57,6 +57,7 @@ export enum FeatureFlag {
   USE_ANALAGOUS_COLORS = 'USE_ANALAGOUS_COLORS',
   DASHBOARD_EDIT_CHART_IN_NEW_TAB = 'DASHBOARD_EDIT_CHART_IN_NEW_TAB',
   EMBEDDABLE_CHARTS = 'EMBEDDABLE_CHARTS',
+  DRILL_TO_DETAIL = 'DRILL_TO_DETAIL',
 }
 export type ScheduleQueriesProps = {
   JSONSCHEMA: {
@@ -83,5 +84,13 @@ declare global {
 }
 
 export function isFeatureEnabled(feature: FeatureFlag) {
-  return window && window.featureFlags && !!window.featureFlags[feature];
+  try {
+    return !!window.featureFlags[feature];
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error(`Failed to query feature flag ${feature} (see error below)`);
+    // eslint-disable-next-line no-console
+    console.error(error);
+    return false;
+  }
 }

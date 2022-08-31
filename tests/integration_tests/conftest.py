@@ -314,7 +314,7 @@ def physical_dataset():
           col2 VARCHAR(255),
           col3 DECIMAL(4,2),
           col4 VARCHAR(255),
-          col5 VARCHAR(255)
+          col5 TIMESTAMP
         );
         """
     )
@@ -342,11 +342,10 @@ def physical_dataset():
     TableColumn(column_name="col2", type="VARCHAR(255)", table=dataset)
     TableColumn(column_name="col3", type="DECIMAL(4,2)", table=dataset)
     TableColumn(column_name="col4", type="VARCHAR(255)", table=dataset)
-    TableColumn(column_name="col5", type="VARCHAR(255)", table=dataset)
+    TableColumn(column_name="col5", type="TIMESTAMP", is_dttm=True, table=dataset)
     SqlMetric(metric_name="count", expression="count(*)", table=dataset)
     db.session.merge(dataset)
-    if example_database.backend == "sqlite":
-        db.session.commit()
+    db.session.commit()
 
     yield dataset
 
@@ -355,5 +354,34 @@ def physical_dataset():
         DROP TABLE physical_dataset;
     """
     )
+    dataset = db.session.query(SqlaTable).filter_by(table_name="physical_dataset").all()
+    for ds in dataset:
+        db.session.delete(ds)
+    db.session.commit()
+
+
+@pytest.fixture
+def virtual_dataset_comma_in_column_value():
+    from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+
+    dataset = SqlaTable(
+        table_name="virtual_dataset",
+        sql=(
+            "SELECT 'col1,row1' as col1, 'col2, row1' as col2 "
+            "UNION ALL "
+            "SELECT 'col1,row2' as col1, 'col2, row2' as col2 "
+            "UNION ALL "
+            "SELECT 'col1,row3' as col1, 'col2, row3' as col2 "
+        ),
+        database=get_example_database(),
+    )
+    TableColumn(column_name="col1", type="VARCHAR(255)", table=dataset)
+    TableColumn(column_name="col2", type="VARCHAR(255)", table=dataset)
+
+    SqlMetric(metric_name="count", expression="count(*)", table=dataset)
+    db.session.merge(dataset)
+
+    yield dataset
+
     db.session.delete(dataset)
     db.session.commit()

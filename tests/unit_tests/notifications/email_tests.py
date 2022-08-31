@@ -15,10 +15,9 @@
 # specific language governing permissions and limitations
 # under the License.
 import pandas as pd
-from flask.ctx import AppContext
 
 
-def test_render_description_with_html(app_context: AppContext) -> None:
+def test_render_description_with_html() -> None:
     # `superset.models.helpers`, a dependency of following imports,
     # requires app context
     from superset.reports.models import ReportRecipients, ReportRecipientType
@@ -35,6 +34,15 @@ def test_render_description_with_html(app_context: AppContext) -> None:
             }
         ),
         description='<p>This is <a href="#">a test</a> alert</p><br />',
+        header_data={
+            "notification_format": "PNG",
+            "notification_type": "Alert",
+            "owners": [1],
+            "notification_source": None,
+            "chart_id": None,
+            "dashboard_id": None,
+            "error_text": None,
+        },
     )
     email_body = (
         EmailNotification(

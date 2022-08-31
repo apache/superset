@@ -29,6 +29,7 @@ import { t, isFeatureEnabled, FeatureFlag, css } from '@superset-ui/core';
 import ImageLoader from 'src/components/ListViewCard/ImageLoader';
 import { usePluginContext } from 'src/components/DynamicPlugins';
 import { Tooltip } from 'src/components/Tooltip';
+import { GenericLink } from 'src/components/GenericLink/GenericLink';
 import { Theme } from '@emotion/react';
 
 const FALLBACK_THUMBNAIL_URL = '/static/assets/images/chart-card-fallback.svg';
@@ -38,7 +39,7 @@ const TruncatedTextWithTooltip: React.FC = ({ children, ...props }) => {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     setIsTruncated(
-      ref.current ? ref.current.offsetWidth < ref.current.scrollWidth : false,
+      ref.current ? ref.current.scrollWidth > ref.current.clientWidth : false,
     );
   }, [children]);
 
@@ -264,7 +265,15 @@ const AddSliceCard: React.FC<{
               <MetadataItem label={t('Viz type')} value={vizName} />
               <MetadataItem
                 label={t('Dataset')}
-                value={<a href={datasourceUrl}>{datasourceName}</a>}
+                value={
+                  datasourceUrl ? (
+                    <GenericLink to={datasourceUrl}>
+                      {datasourceName}
+                    </GenericLink>
+                  ) : (
+                    datasourceName
+                  )
+                }
               />
               <MetadataItem label={t('Modified')} value={lastModified} />
             </div>

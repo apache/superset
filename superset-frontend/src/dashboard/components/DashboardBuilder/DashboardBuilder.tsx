@@ -149,6 +149,7 @@ const StyledHeader = styled.div`
   position: sticky;
   top: 0;
   z-index: 100;
+  max-width: 100vw;
 `;
 
 const StyledContent = styled.div<{
