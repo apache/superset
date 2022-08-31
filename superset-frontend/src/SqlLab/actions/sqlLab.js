@@ -1425,10 +1425,7 @@ export function createDatasource(vizOptions) {
 
         return Promise.resolve(json);
       })
-      .catch(error => {
-        getClientErrorObject(error).then(e => {
-          dispatch(addDangerToast(e.error));
-        });
+      .catch(() => {
         dispatch(
           createDatasourceFailed(
             t('An error occurred while creating the data source'),
