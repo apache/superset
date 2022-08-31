@@ -144,7 +144,7 @@ setup(
         "drill": ["sqlalchemy-drill==0.1.dev"],
         "druid": ["pydruid>=0.6.1,<0.7"],
         "solr": ["sqlalchemy-solr >= 0.2.0"],
-        "elasticsearch": ["elasticsearch-dbapi>=0.2.0, <0.3.0"],
+        "elasticsearch": ["elasticsearch-dbapi>=0.2.9, <0.3.0"],
         "exasol": ["sqlalchemy-exasol >= 2.4.0, <3.0"],
         "excel": ["xlrd>=1.2.0, <1.3"],
         "firebird": ["sqlalchemy-firebird>=0.7.0, <0.8"],
