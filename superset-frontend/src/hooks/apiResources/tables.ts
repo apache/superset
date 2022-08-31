@@ -24,33 +24,60 @@ export type FetchTablesQueryParams = {
   dbId?: string | number;
   schema?: string;
   forceRefresh?: boolean;
+  keyword?: string;
+};
+export interface Table {
+  label: string;
+  value: string;
+  type: string;
+  extra?: {
+    certification?: {
+      certified_by: string;
+      details: string;
+    };
+    warning_markdown?: string;
+  };
+}
+
+type QueryData = {
+  json: { options: Table[]; tableLength: number };
+  response: Response;
+};
+
+export type Data = QueryData['json'] & {
+  hasMore: boolean;
 };
 
 export function fetchTables({
   dbId,
   schema,
   forceRefresh,
+  keyword,
 }: FetchTablesQueryParams) {
   const encodedSchema = schema ? encodeURIComponent(schema) : '';
+  const encodedKeyword = keyword ? encodeURIComponent(keyword) : 'undefined';
   // TODO: Would be nice to add pagination in a follow-up. Needs endpoint changes.
   const endpoint = `/superset/tables/${
     dbId ?? 'undefined'
-  }/${encodedSchema}/undefined/${forceRefresh}/`;
-  return SupersetClient.get({ endpoint });
+  }/${encodedSchema}/${encodedKeyword}/${forceRefresh}/`;
+  return SupersetClient.get({ endpoint }) as Promise<QueryData>;
 }
 
 type Params = FetchTablesQueryParams &
   Pick<UseQueryOptions, 'onSuccess' | 'onError'>;
 
 export function useTables(options: Params) {
-  const { dbId, schema, onSuccess, onError } = options || {};
+  const { dbId, schema, keyword, onSuccess, onError } = options || {};
   const forceRefreshRef = useRef(false);
-  const params = { dbId, schema };
-  const result = useQuery(
-    ['tables', { dbId, schema }],
+  const params = { dbId, schema, keyword };
+  const result = useQuery<QueryData, Error, Data>(
+    ['tables', { dbId, schema, keyword }],
     () => fetchTables({ ...params, forceRefresh: forceRefreshRef.current }),
     {
-      select: ({ json }) => json.options,
+      select: ({ json }) => ({
+        ...json,
+        hasMore: json.tableLength > json.options.length,
+      }),
       enabled: Boolean(dbId && schema),
       onSuccess,
       onError,
@@ -64,7 +91,7 @@ export function useTables(options: Params) {
     ...result,
     refetch: () => {
       forceRefreshRef.current = true;
-      result.refetch();
+      return result.refetch();
     },
   };
 }

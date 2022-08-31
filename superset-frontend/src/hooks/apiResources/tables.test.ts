@@ -35,7 +35,36 @@ const fakeApiResult = {
         label: 'fake api label2',
       },
     ],
+    tableLength: 2,
   },
+};
+
+const fakeHasMoreApiResult = {
+  json: {
+    options: [
+      {
+        id: 1,
+        name: 'fake api result1',
+        label: 'fake api label1',
+      },
+      {
+        id: 2,
+        name: 'fake api result2',
+        label: 'fake api label2',
+      },
+    ],
+    tableLength: 4,
+  },
+};
+
+const expectedData = {
+  ...fakeApiResult.json,
+  hasMore: false,
+};
+
+const expectedHasMoreData = {
+  ...fakeHasMoreApiResult.json,
+  hasMore: true,
 };
 
 jest.mock('@superset-ui/core', () => ({
@@ -76,7 +105,7 @@ describe('useTables hook', () => {
     expect(SupersetClient.get).toHaveBeenCalledWith({
       endpoint: `/superset/tables/${expectDbId}/${expectedSchema}/undefined/${forceRefresh}/`,
     });
-    expect(result.current.data).toEqual(fakeApiResult.json.options);
+    expect(result.current.data).toEqual(expectedData);
     await act(async () => {
       result.current.refetch();
     });
@@ -84,7 +113,57 @@ describe('useTables hook', () => {
     expect(SupersetClient.get).toHaveBeenCalledWith({
       endpoint: `/superset/tables/${expectDbId}/${expectedSchema}/undefined/true/`,
     });
-    expect(result.current.data).toEqual(fakeApiResult.json.options);
+    expect(result.current.data).toEqual(expectedData);
+  });
+
+  it('returns api response for search keyword', async () => {
+    const expectDbId = 'db1';
+    const expectedSchema = 'schemaA';
+    const expectedKeyword = 'my work';
+    const forceRefresh = false;
+    renderHook(
+      () =>
+        useTables({
+          dbId: expectDbId,
+          schema: expectedSchema,
+          keyword: expectedKeyword,
+        }),
+      {
+        wrapper: QueryProvider,
+      },
+    );
+    await act(async () => {
+      jest.runAllTimers();
+    });
+    expect(SupersetClient.get).toHaveBeenCalledTimes(1);
+    expect(SupersetClient.get).toHaveBeenCalledWith({
+      endpoint: `/superset/tables/${expectDbId}/${expectedSchema}/${encodeURIComponent(
+        expectedKeyword,
+      )}/${forceRefresh}/`,
+    });
+  });
+
+  it('returns hasMore when total is larger than result size', async () => {
+    (SupersetClient.get as jest.Mock).mockResolvedValueOnce(
+      fakeHasMoreApiResult,
+    );
+    const expectDbId = 'db1';
+    const expectedSchema = 'schemaA';
+    const { result } = renderHook(
+      () =>
+        useTables({
+          dbId: expectDbId,
+          schema: expectedSchema,
+        }),
+      {
+        wrapper: QueryProvider,
+      },
+    );
+    await act(async () => {
+      jest.runAllTimers();
+    });
+    expect(SupersetClient.get).toHaveBeenCalledTimes(1);
+    expect(result.current.data).toEqual(expectedHasMoreData);
   });
 
   it('returns cached data without api request', async () => {
@@ -106,7 +185,7 @@ describe('useTables hook', () => {
     expect(SupersetClient.get).toHaveBeenCalledTimes(1);
     rerender();
     expect(SupersetClient.get).toHaveBeenCalledTimes(1);
-    expect(result.current.data).toEqual(fakeApiResult.json.options);
+    expect(result.current.data).toEqual(expectedData);
   });
 
   it('returns refreshed data after expires', async () => {
@@ -137,6 +216,6 @@ describe('useTables hook', () => {
       jest.runAllTimers();
     });
     expect(SupersetClient.get).toHaveBeenCalledTimes(2);
-    expect(result.current.data).toEqual(fakeApiResult.json.options);
+    expect(result.current.data).toEqual(expectedData);
   });
 });

@@ -37,7 +37,7 @@ import CertifiedBadge from 'src/components/CertifiedBadge';
 import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { SchemaOption } from 'src/SqlLab/types';
-import { useTables } from 'src/hooks/apiResources';
+import { useTables, Table } from 'src/hooks/apiResources';
 
 const TableSelectorWrapper = styled.div`
   ${({ theme }) => `
@@ -100,19 +100,6 @@ interface TableSelectorProps {
   tableValue?: string | string[];
   onTableSelectChange?: (value?: string | string[], schema?: string) => void;
   tableSelectMode?: 'single' | 'multiple';
-}
-
-interface Table {
-  label: string;
-  value: string;
-  type: string;
-  extra?: {
-    certification?: {
-      certified_by: string;
-      details: string;
-    };
-    warning_markdown?: string;
-  };
 }
 
 interface TableOption {
@@ -191,18 +178,19 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   } = useTables({
     dbId: database?.id,
     schema: currentSchema,
-    onSuccess: (data: Table[]) => {
-      onTablesLoad?.(data);
+    onSuccess: (data: { options: Table[] }) => {
+      onTablesLoad?.(data.options);
       if (isFetched) {
         addSuccessToast('List updated');
       }
     },
     onError: () => handleError(t('There was an error loading the tables')),
   });
-  const tableOptions = useMemo<Table[]>(
+
+  const tableOptions = useMemo<TableOption[]>(
     () =>
       data
-        ? data.map((table: Table) => ({
+        ? data.options.map(table => ({
             value: table.value,
             label: <TableOption table={table} />,
             text: table.label,
@@ -309,7 +297,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
       <Select
         ariaLabel={t('Select table or type table name')}
         disabled={disabled}
-        filterOption={handleFilterOption}
+        filterOption={keyword ? true : handleFilterOption}
         header={header}
         labelInValue
         loading={loadingTables}
