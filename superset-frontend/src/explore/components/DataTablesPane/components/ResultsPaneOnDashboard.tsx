@@ -42,41 +42,59 @@ export const ResultsPaneOnDashboard = ({
     dataSize,
     isVisible,
   });
-  if (resultsPanes.length === 1) {
-    return (
-      <div
-        css={css`
-          display: flex;
-          flex-direction: column;
-          height: 100%;
-          .table-condensed {
-            overflow: auto;
-          }
-        `}
-      >
-        {resultsPanes[0]}
-      </div>
-    );
-  }
 
-  const panes = resultsPanes.map((pane, idx) => {
-    if (idx === 0) {
+  let resultsPane;
+  if (resultsPanes.length === 1) {
+    resultsPane = resultsPanes[0];
+  } else {
+    const panes = resultsPanes.map((pane, idx) => {
+      if (idx === 0) {
+        return (
+          <Tabs.TabPane tab={t('Results')} key={ResultTypes.Results}>
+            {pane}
+          </Tabs.TabPane>
+        );
+      }
+
       return (
-        <Tabs.TabPane tab={t('Results')} key={ResultTypes.Results}>
+        <Tabs.TabPane
+          tab={t('Results %s', idx + 1)}
+          key={`${ResultTypes.Results} ${idx + 1}`}
+        >
           {pane}
         </Tabs.TabPane>
       );
-    }
+    });
 
-    return (
-      <Tabs.TabPane
-        tab={t('Results %s', idx + 1)}
-        key={`${ResultTypes.Results} ${idx + 1}`}
-      >
-        {pane}
-      </Tabs.TabPane>
-    );
-  });
+    resultsPane = <Tabs fullWidth={false}>{panes}</Tabs>;
+  }
 
-  return <Tabs fullWidth={false}> {panes} </Tabs>;
+  return (
+    <div
+      css={css`
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+
+        .ant-tabs {
+          height: 100%;
+        }
+
+        .ant-tabs-content {
+          height: 100%;
+        }
+
+        .ant-tabs-tabpane {
+          display: flex;
+          flex-direction: column;
+        }
+
+        .table-condensed {
+          overflow: auto;
+        }
+      `}
+    >
+      {resultsPane}
+    </div>
+  );
 };
