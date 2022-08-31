@@ -297,7 +297,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
       <Select
         ariaLabel={t('Select table or type table name')}
         disabled={disabled}
-        filterOption={keyword ? true : handleFilterOption}
+        filterOption={handleFilterOption}
         header={header}
         labelInValue
         loading={loadingTables}
