@@ -106,56 +106,54 @@ class TestRolePermission(SupersetTestCase):
     """Testing export role permissions."""
 
     def setUp(self):
-        ...
-        # schema = get_example_default_schema()
-        # session = db.session
-        # security_manager.add_role(SCHEMA_ACCESS_ROLE)
-        # session.commit()
-        #
-        # ds = (
-        #     db.session.query(SqlaTable)
-        #     .filter_by(table_name="wb_health_population", schema=schema)
-        #     .first()
-        # )
-        # ds.schema = "temp_schema"
-        # ds.schema_perm = ds.get_schema_perm()
-        #
-        # ds_slices = (
-        #     session.query(Slice)
-        #     .filter_by(datasource_type=DatasourceType.TABLE)
-        #     .filter_by(datasource_id=ds.id)
-        #     .all()
-        # )
-        # for s in ds_slices:
-        #     s.schema_perm = ds.schema_perm
-        # create_schema_perm("[examples].[temp_schema]")
-        # gamma_user = security_manager.find_user(username="gamma")
-        # gamma_user.roles.append(security_manager.find_role(SCHEMA_ACCESS_ROLE))
-        # session.commit()
+        schema = get_example_default_schema()
+        session = db.session
+        security_manager.add_role(SCHEMA_ACCESS_ROLE)
+        session.commit()
+
+        ds = (
+            db.session.query(SqlaTable)
+            .filter_by(table_name="wb_health_population", schema=schema)
+            .first()
+        )
+        ds.schema = "temp_schema"
+        ds.schema_perm = ds.get_schema_perm()
+
+        ds_slices = (
+            session.query(Slice)
+            .filter_by(datasource_type=DatasourceType.TABLE)
+            .filter_by(datasource_id=ds.id)
+            .all()
+        )
+        for s in ds_slices:
+            s.schema_perm = ds.schema_perm
+        create_schema_perm("[examples].[temp_schema]")
+        gamma_user = security_manager.find_user(username="gamma")
+        gamma_user.roles.append(security_manager.find_role(SCHEMA_ACCESS_ROLE))
+        session.commit()
 
     def tearDown(self):
-        ...
-        # session = db.session
-        # ds = (
-        #     session.query(SqlaTable)
-        #     .filter_by(table_name="wb_health_population", schema="temp_schema")
-        #     .first()
-        # )
-        # schema_perm = ds.schema_perm
-        # ds.schema = get_example_default_schema()
-        # ds.schema_perm = None
-        # ds_slices = (
-        #     session.query(Slice)
-        #     .filter_by(datasource_type=DatasourceType.TABLE)
-        #     .filter_by(datasource_id=ds.id)
-        #     .all()
-        # )
-        # for s in ds_slices:
-        #     s.schema_perm = None
-        #
-        # delete_schema_perm(schema_perm)
-        # session.delete(security_manager.find_role(SCHEMA_ACCESS_ROLE))
-        # session.commit()
+        session = db.session
+        ds = (
+            session.query(SqlaTable)
+            .filter_by(table_name="wb_health_population", schema="temp_schema")
+            .first()
+        )
+        schema_perm = ds.schema_perm
+        ds.schema = get_example_default_schema()
+        ds.schema_perm = None
+        ds_slices = (
+            session.query(Slice)
+            .filter_by(datasource_type=DatasourceType.TABLE)
+            .filter_by(datasource_id=ds.id)
+            .all()
+        )
+        for s in ds_slices:
+            s.schema_perm = None
+
+        delete_schema_perm(schema_perm)
+        session.delete(security_manager.find_role(SCHEMA_ACCESS_ROLE))
+        session.commit()
 
     def test_after_insert_dataset(self):
         security_manager.on_view_menu_after_insert = Mock()
@@ -620,6 +618,7 @@ class TestRolePermission(SupersetTestCase):
 
         # Cleanup
         session.delete(role1)
+        session.delete(tmp_db1)
         session.commit()
 
     def test_after_delete_dataset(self):
