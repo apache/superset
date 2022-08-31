@@ -44,7 +44,7 @@ def is_hostname_valid(host: str) -> bool:
     Test if a given hostname can be resolved.
     """
     try:
-        socket.gethostbyname(host)
+        socket.getaddrinfo(host, None)
         return True
     except socket.gaierror:
         return False
