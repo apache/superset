@@ -1,9 +1,10 @@
 {
   "metrics": [
     {
-      "issue": "We prefer Emotion for styling rather than `className` or `style` props",
       "eslint rule": "react/forbid-component-props",
-      "count": 302,
+      "issue": "We prefer Emotion for styling rather than `className` or `style` props",
+      "message": "Prop `className` is forbidden on Components",
+      "count": 239,
       "occurrences": [
         {
           "file": "/Users/evan/GitHub/superset/superset-frontend/packages/superset-ui-chart-controls/src/components/ColumnOption.tsx",
@@ -90,12 +91,6 @@
           "message": "Prop `className` is forbidden on Components"
         },
         {
-          "file": "/Users/evan/GitHub/superset/superset-frontend/plugins/legacy-plugin-chart-histogram/src/Histogram.jsx",
-          "line": 92,
-          "column": 15,
-          "message": "Prop `style` is forbidden on Components"
-        },
-        {
           "file": "/Users/evan/GitHub/superset/superset-frontend/plugins/legacy-plugin-chart-paired-t-test/src/TTestTable.jsx",
           "line": 212,
           "column": 11,
@@ -130,24 +125,6 @@
           "line": 40,
           "column": 11,
           "message": "Prop `className` is forbidden on Components"
-        },
-        {
-          "file": "/Users/evan/GitHub/superset/superset-frontend/plugins/plugin-chart-pivot-table/src/PivotTableChart.tsx",
-          "line": 348,
-          "column": 43,
-          "message": "Prop `style` is forbidden on Components"
-        },
-        {
-          "file": "/Users/evan/GitHub/superset/superset-frontend/plugins/plugin-chart-pivot-table/src/PivotTableChart.tsx",
-          "line": 349,
-          "column": 43,
-          "message": "Prop `style` is forbidden on Components"
-        },
-        {
-          "file": "/Users/evan/GitHub/superset/superset-frontend/plugins/plugin-chart-table/src/DataTable/DataTable.tsx",
-          "line": 348,
-          "column": 11,
-          "message": "Prop `style` is forbidden on Components"
         },
         {
           "file": "/Users/evan/GitHub/superset/superset-frontend/plugins/preset-chart-xy/src/components/BoxPlot/BoxPlot.tsx",
@@ -196,30 +173,6 @@
           "line": 82,
           "column": 11,
           "message": "Prop `className` is forbidden on Components"
-        },
-        {
-          "file": "/Users/evan/GitHub/superset/superset-frontend/src/SqlLab/components/EstimateQueryCostButton/index.tsx",
-          "line": 99,
-          "column": 13,
-          "message": "Prop `style` is forbidden on Components"
-        },
-        {
-          "file": "/Users/evan/GitHub/superset/superset-frontend/src/SqlLab/components/HighlightedSql/index.tsx",
-          "line": 67,
-          "column": 39,
-          "message": "Prop `style` is forbidden on Components"
-        },
-        {
-          "file": "/Users/evan/GitHub/superset/superset-frontend/src/SqlLab/components/HighlightedSql/index.tsx",
-          "line": 77,
-          "column": 41,
-          "message": "Prop `style` is forbidden on Components"
-        },
-        {
-          "file": "/Users/evan/GitHub/superset/superset-frontend/src/SqlLab/components/HighlightedSql/index.tsx",
-          "line": 83,
-          "column": 45,
-          "message": "Prop `style` is forbidden on Components"
         },
         {
           "file": "/Users/evan/GitHub/superset/superset-frontend/src/SqlLab/components/QueryStateLabel/index.tsx",
@@ -312,12 +265,6 @@
           "message": "Prop `className` is forbidden on Components"
         },
         {
-          "file": "/Users/evan/GitHub/superset/superset-frontend/src/SqlLab/components/ShowSQL/index.tsx",
-          "line": 50,
-          "column": 45,
-          "message": "Prop `style` is forbidden on Components"
-        },
-        {
           "file": "/Users/evan/GitHub/superset/superset-frontend/src/SqlLab/components/SouthPane/index.tsx",
           "line": 108,
           "column": 12,
@@ -343,27 +290,9 @@
         },
         {
           "file": "/Users/evan/GitHub/superset/superset-frontend/src/SqlLab/components/SqlEditor/index.jsx",
-          "line": 534,
-          "column": 44,
-          "message": "Prop `style` is forbidden on Components"
-        },
-        {
-          "file": "/Users/evan/GitHub/superset/superset-frontend/src/SqlLab/components/SqlEditor/index.jsx",
-          "line": 535,
-          "column": 20,
-          "message": "Prop `style` is forbidden on Components"
-        },
-        {
-          "file": "/Users/evan/GitHub/superset/superset-frontend/src/SqlLab/components/SqlEditor/index.jsx",
           "line": 634,
           "column": 22,
           "message": "Prop `className` is forbidden on Components"
-        },
-        {
-          "file": "/Users/evan/GitHub/superset/superset-frontend/src/SqlLab/components/TabbedSqlEditors/index.jsx",
-          "line": 329,
-          "column": 15,
-          "message": "Prop `style` is forbidden on Components"
         },
         {
           "file": "/Users/evan/GitHub/superset/superset-frontend/src/SqlLab/components/TabbedSqlEditors/index.jsx",
@@ -403,12 +332,6 @@
         },
         {
           "file": "/Users/evan/GitHub/superset/superset-frontend/src/SqlLab/components/TableElement/index.tsx",
-          "line": 232,
-          "column": 11,
-          "message": "Prop `style` is forbidden on Components"
-        },
-        {
-          "file": "/Users/evan/GitHub/superset/superset-frontend/src/SqlLab/components/TableElement/index.tsx",
           "line": 239,
           "column": 13,
           "message": "Prop `className` is forbidden on Components"
@@ -444,34 +367,10 @@
           "message": "Prop `className` is forbidden on Components"
         },
         {
-          "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/Alert/Alert.stories.tsx",
-          "line": 49,
-          "column": 11,
-          "message": "Prop `style` is forbidden on Components"
-        },
-        {
           "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/AlteredSliceTag/index.jsx",
           "line": 170,
           "column": 9,
           "message": "Prop `className` is forbidden on Components"
-        },
-        {
-          "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/Badge/Badge.stories.tsx",
-          "line": 125,
-          "column": 13,
-          "message": "Prop `style` is forbidden on Components"
-        },
-        {
-          "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/Badge/Badge.stories.tsx",
-          "line": 140,
-          "column": 9,
-          "message": "Prop `style` is forbidden on Components"
-        },
-        {
-          "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/Button/Button.stories.tsx",
-          "line": 88,
-          "column": 13,
-          "message": "Prop `style` is forbidden on Components"
         },
         {
           "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/Button/index.tsx",
@@ -490,66 +389,6 @@
           "line": 45,
           "column": 9,
           "message": "Prop `className` is forbidden on Components"
-        },
-        {
-          "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/Checkbox/Checkbox.stories.jsx",
-          "line": 39,
-          "column": 9,
-          "message": "Prop `style` is forbidden on Components"
-        },
-        {
-          "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/Checkbox/Checkbox.stories.jsx",
-          "line": 54,
-          "column": 61,
-          "message": "Prop `style` is forbidden on Components"
-        },
-        {
-          "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/Checkbox/Checkbox.test.tsx",
-          "line": 38,
-          "column": 19,
-          "message": "Prop `style` is forbidden on Components"
-        },
-        {
-          "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/Checkbox/Checkbox.test.tsx",
-          "line": 46,
-          "column": 19,
-          "message": "Prop `style` is forbidden on Components"
-        },
-        {
-          "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/Checkbox/Checkbox.test.tsx",
-          "line": 55,
-          "column": 19,
-          "message": "Prop `style` is forbidden on Components"
-        },
-        {
-          "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/Checkbox/Checkbox.test.tsx",
-          "line": 64,
-          "column": 17,
-          "message": "Prop `style` is forbidden on Components"
-        },
-        {
-          "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/Checkbox/Checkbox.test.tsx",
-          "line": 72,
-          "column": 55,
-          "message": "Prop `style` is forbidden on Components"
-        },
-        {
-          "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/Checkbox/Checkbox.tsx",
-          "line": 39,
-          "column": 7,
-          "message": "Prop `style` is forbidden on Components"
-        },
-        {
-          "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/Collapse/Collapse.stories.tsx",
-          "line": 33,
-          "column": 7,
-          "message": "Prop `style` is forbidden on Components"
-        },
-        {
-          "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/CopyToClipboard/index.jsx",
-          "line": 94,
-          "column": 9,
-          "message": "Prop `style` is forbidden on Components"
         },
         {
           "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/DatabaseSelector/index.tsx",
@@ -618,22 +457,10 @@
           "message": "Prop `className` is forbidden on Components"
         },
         {
-          "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/FacePile/index.tsx",
-          "line": 65,
-          "column": 15,
-          "message": "Prop `style` is forbidden on Components"
-        },
-        {
           "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/FaveStar/index.tsx",
           "line": 65,
           "column": 7,
           "message": "Prop `className` is forbidden on Components"
-        },
-        {
-          "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/FilterableTable/FilterableTable.tsx",
-          "line": 506,
-          "column": 23,
-          "message": "Prop `style` is forbidden on Components"
         },
         {
           "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/FilterableTable/FilterableTable.tsx",
@@ -654,40 +481,10 @@
           "message": "Prop `className` is forbidden on Components"
         },
         {
-          "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/FormRow/index.jsx",
-          "line": 55,
-          "column": 12,
-          "message": "Prop `style` is forbidden on Components"
-        },
-        {
-          "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/FormRow/index.jsx",
-          "line": 56,
-          "column": 29,
-          "message": "Prop `style` is forbidden on Components"
-        },
-        {
-          "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/FormRow/index.jsx",
-          "line": 66,
-          "column": 10,
-          "message": "Prop `style` is forbidden on Components"
-        },
-        {
-          "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/FormRow/index.jsx",
-          "line": 67,
-          "column": 27,
-          "message": "Prop `style` is forbidden on Components"
-        },
-        {
           "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/IconButton/index.tsx",
           "line": 110,
           "column": 13,
           "message": "Prop `className` is forbidden on Components"
-        },
-        {
-          "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/IconTooltip/index.tsx",
-          "line": 62,
-          "column": 7,
-          "message": "Prop `style` is forbidden on Components"
         },
         {
           "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/IconTooltip/index.tsx",
@@ -763,12 +560,6 @@
         },
         {
           "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/Menu/LanguagePicker.tsx",
-          "line": 75,
-          "column": 11,
-          "message": "Prop `style` is forbidden on Components"
-        },
-        {
-          "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/Menu/LanguagePicker.tsx",
           "line": 77,
           "column": 24,
           "message": "Prop `className` is forbidden on Components"
@@ -798,12 +589,6 @@
           "message": "Prop `className` is forbidden on Components"
         },
         {
-          "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/Menu/SubMenu.tsx",
-          "line": 199,
-          "column": 31,
-          "message": "Prop `style` is forbidden on Components"
-        },
-        {
           "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/MessageToasts/Toast.tsx",
           "line": 95,
           "column": 7,
@@ -828,12 +613,6 @@
           "message": "Prop `className` is forbidden on Components"
         },
         {
-          "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/Popover/Popover.stories.tsx",
-          "line": 32,
-          "column": 7,
-          "message": "Prop `style` is forbidden on Components"
-        },
-        {
           "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/PopoverDropdown/index.tsx",
           "line": 100,
           "column": 15,
@@ -852,12 +631,6 @@
           "message": "Prop `className` is forbidden on Components"
         },
         {
-          "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/Slider/Slider.stories.tsx",
-          "line": 28,
-          "column": 21,
-          "message": "Prop `style` is forbidden on Components"
-        },
-        {
           "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/TableCollection/index.tsx",
           "line": 230,
           "column": 7,
@@ -868,18 +641,6 @@
           "line": 223,
           "column": 11,
           "message": "Prop `className` is forbidden on Components"
-        },
-        {
-          "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/Tooltip/Tooltip.stories.tsx",
-          "line": 48,
-          "column": 13,
-          "message": "Prop `style` is forbidden on Components"
-        },
-        {
-          "file": "/Users/evan/GitHub/superset/superset-frontend/src/dashboard/components/AddSliceCard.jsx",
-          "line": 118,
-          "column": 28,
-          "message": "Prop `style` is forbidden on Components"
         },
         {
           "file": "/Users/evan/GitHub/superset/superset-frontend/src/dashboard/components/BuilderComponentPane.tsx",
@@ -904,12 +665,6 @@
           "line": 112,
           "column": 15,
           "message": "Prop `className` is forbidden on Components"
-        },
-        {
-          "file": "/Users/evan/GitHub/superset/superset-frontend/src/dashboard/components/DashboardBuilder/DashboardBuilder.tsx",
-          "line": 358,
-          "column": 11,
-          "message": "Prop `style` is forbidden on Components"
         },
         {
           "file": "/Users/evan/GitHub/superset/superset-frontend/src/dashboard/components/DashboardBuilder/DashboardBuilder.tsx",
@@ -967,51 +722,15 @@
         },
         {
           "file": "/Users/evan/GitHub/superset/superset-frontend/src/dashboard/components/SliceAdder.jsx",
-          "line": 217,
-          "column": 9,
-          "message": "Prop `style` is forbidden on Components"
-        },
-        {
-          "file": "/Users/evan/GitHub/superset/superset-frontend/src/dashboard/components/SliceAdder.jsx",
-          "line": 222,
-          "column": 13,
-          "message": "Prop `style` is forbidden on Components"
-        },
-        {
-          "file": "/Users/evan/GitHub/superset/superset-frontend/src/dashboard/components/SliceAdder.jsx",
           "line": 246,
           "column": 13,
           "message": "Prop `className` is forbidden on Components"
-        },
-        {
-          "file": "/Users/evan/GitHub/superset/superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx",
-          "line": 267,
-          "column": 11,
-          "message": "Prop `style` is forbidden on Components"
-        },
-        {
-          "file": "/Users/evan/GitHub/superset/superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx",
-          "line": 364,
-          "column": 13,
-          "message": "Prop `style` is forbidden on Components"
-        },
-        {
-          "file": "/Users/evan/GitHub/superset/superset-frontend/src/dashboard/components/dnd/AddSliceDragPreview.jsx",
-          "line": 70,
-          "column": 7,
-          "message": "Prop `style` is forbidden on Components"
         },
         {
           "file": "/Users/evan/GitHub/superset/superset-frontend/src/dashboard/components/gridComponents/Chart.jsx",
           "line": 397,
           "column": 15,
           "message": "Prop `className` is forbidden on Components"
-        },
-        {
-          "file": "/Users/evan/GitHub/superset/superset-frontend/src/dashboard/components/gridComponents/Chart.jsx",
-          "line": 398,
-          "column": 15,
-          "message": "Prop `style` is forbidden on Components"
         },
         {
           "file": "/Users/evan/GitHub/superset/superset-frontend/src/dashboard/components/gridComponents/ChartHolder.jsx",
@@ -1084,12 +803,6 @@
           "line": 76,
           "column": 28,
           "message": "Prop `className` is forbidden on Components"
-        },
-        {
-          "file": "/Users/evan/GitHub/superset/superset-frontend/src/dashboard/components/nativeFilters/FilterBar/FilterSets/FilterSetUnit.tsx",
-          "line": 103,
-          "column": 15,
-          "message": "Prop `style` is forbidden on Components"
         },
         {
           "file": "/Users/evan/GitHub/superset/superset-frontend/src/dashboard/components/nativeFilters/FilterBar/Header/index.tsx",
@@ -1255,12 +968,6 @@
         },
         {
           "file": "/Users/evan/GitHub/superset/superset-frontend/src/explore/components/PropertiesModal/index.tsx",
-          "line": 244,
-          "column": 36,
-          "message": "Prop `style` is forbidden on Components"
-        },
-        {
-          "file": "/Users/evan/GitHub/superset/superset-frontend/src/explore/components/PropertiesModal/index.tsx",
           "line": 246,
           "column": 32,
           "message": "Prop `className` is forbidden on Components"
@@ -1294,18 +1001,6 @@
           "line": 101,
           "column": 20,
           "message": "Prop `className` is forbidden on Components"
-        },
-        {
-          "file": "/Users/evan/GitHub/superset/superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx",
-          "line": 656,
-          "column": 15,
-          "message": "Prop `style` is forbidden on Components"
-        },
-        {
-          "file": "/Users/evan/GitHub/superset/superset-frontend/src/explore/components/controls/CheckboxControl.jsx",
-          "line": 46,
-          "column": 9,
-          "message": "Prop `style` is forbidden on Components"
         },
         {
           "file": "/Users/evan/GitHub/superset/superset-frontend/src/explore/components/controls/CollectionControl/index.jsx",
@@ -1393,12 +1088,6 @@
         },
         {
           "file": "/Users/evan/GitHub/superset/superset-frontend/src/explore/components/controls/FilterControl/AdhocFilterEditPopover/index.jsx",
-          "line": 194,
-          "column": 11,
-          "message": "Prop `style` is forbidden on Components"
-        },
-        {
-          "file": "/Users/evan/GitHub/superset/superset-frontend/src/explore/components/controls/FilterControl/AdhocFilterEditPopover/index.jsx",
           "line": 199,
           "column": 13,
           "message": "Prop `className` is forbidden on Components"
@@ -1435,12 +1124,6 @@
         },
         {
           "file": "/Users/evan/GitHub/superset/superset-frontend/src/explore/components/controls/MetricControl/AdhocMetricEditPopover/index.jsx",
-          "line": 364,
-          "column": 11,
-          "message": "Prop `style` is forbidden on Components"
-        },
-        {
-          "file": "/Users/evan/GitHub/superset/superset-frontend/src/explore/components/controls/MetricControl/AdhocMetricEditPopover/index.jsx",
           "line": 464,
           "column": 15,
           "message": "Prop `className` is forbidden on Components"
@@ -1459,18 +1142,6 @@
         },
         {
           "file": "/Users/evan/GitHub/superset/superset-frontend/src/explore/components/controls/TextAreaControl.jsx",
-          "line": 76,
-          "column": 11,
-          "message": "Prop `style` is forbidden on Components"
-        },
-        {
-          "file": "/Users/evan/GitHub/superset/superset-frontend/src/explore/components/controls/TextAreaControl.jsx",
-          "line": 96,
-          "column": 9,
-          "message": "Prop `style` is forbidden on Components"
-        },
-        {
-          "file": "/Users/evan/GitHub/superset/superset-frontend/src/explore/components/controls/TextAreaControl.jsx",
           "line": 120,
           "column": 42,
           "message": "Prop `className` is forbidden on Components"
@@ -1480,12 +1151,6 @@
           "line": 366,
           "column": 13,
           "message": "Prop `className` is forbidden on Components"
-        },
-        {
-          "file": "/Users/evan/GitHub/superset/superset-frontend/src/explore/components/controls/ViewQueryModal.tsx",
-          "line": 116,
-          "column": 15,
-          "message": "Prop `style` is forbidden on Components"
         },
         {
           "file": "/Users/evan/GitHub/superset/superset-frontend/src/explore/components/controls/ViewportControl.jsx",
@@ -1542,12 +1207,6 @@
           "message": "Prop `className` is forbidden on Components"
         },
         {
-          "file": "/Users/evan/GitHub/superset/superset-frontend/src/profile/components/UserInfo.tsx",
-          "line": 46,
-          "column": 11,
-          "message": "Prop `style` is forbidden on Components"
-        },
-        {
           "file": "/Users/evan/GitHub/superset/superset-frontend/src/views/CRUD/alert/AlertList.tsx",
           "line": 505,
           "column": 15,
@@ -1582,12 +1241,6 @@
           "line": 68,
           "column": 35,
           "message": "Prop `className` is forbidden on Components"
-        },
-        {
-          "file": "/Users/evan/GitHub/superset/superset-frontend/src/views/CRUD/alert/components/AlertReportCronScheduler.tsx",
-          "line": 74,
-          "column": 19,
-          "message": "Prop `style` is forbidden on Components"
         },
         {
           "file": "/Users/evan/GitHub/superset/superset-frontend/src/views/CRUD/annotation/AnnotationList.tsx",
@@ -1632,12 +1285,6 @@
           "message": "Prop `className` is forbidden on Components"
         },
         {
-          "file": "/Users/evan/GitHub/superset/superset-frontend/src/views/CRUD/data/components/SyntaxHighlighterCopy/index.tsx",
-          "line": 91,
-          "column": 26,
-          "message": "Prop `style` is forbidden on Components"
-        },
-        {
           "file": "/Users/evan/GitHub/superset/superset-frontend/src/views/CRUD/data/database/DatabaseList.tsx",
           "line": 321,
           "column": 22,
@@ -1660,18 +1307,6 @@
           "line": 68,
           "column": 7,
           "message": "Prop `className` is forbidden on Components"
-        },
-        {
-          "file": "/Users/evan/GitHub/superset/superset-frontend/src/views/CRUD/data/database/DatabaseModal/DatabaseConnectionForm/EncryptedField.tsx",
-          "line": 76,
-          "column": 13,
-          "message": "Prop `style` is forbidden on Components"
-        },
-        {
-          "file": "/Users/evan/GitHub/superset/superset-frontend/src/views/CRUD/data/database/DatabaseModal/DatabaseConnectionForm/EncryptedField.tsx",
-          "line": 98,
-          "column": 13,
-          "message": "Prop `style` is forbidden on Components"
         },
         {
           "file": "/Users/evan/GitHub/superset/superset-frontend/src/views/CRUD/data/database/DatabaseModal/DatabaseConnectionForm/EncryptedField.tsx",
@@ -1759,12 +1394,6 @@
         },
         {
           "file": "/Users/evan/GitHub/superset/superset-frontend/src/views/CRUD/data/query/QueryList.tsx",
-          "line": 302,
-          "column": 53,
-          "message": "Prop `style` is forbidden on Components"
-        },
-        {
-          "file": "/Users/evan/GitHub/superset/superset-frontend/src/views/CRUD/data/query/QueryList.tsx",
           "line": 413,
           "column": 9,
           "message": "Prop `className` is forbidden on Components"
@@ -1794,12 +1423,6 @@
           "message": "Prop `className` is forbidden on Components"
         },
         {
-          "file": "/Users/evan/GitHub/superset/superset-frontend/src/views/CRUD/welcome/SavedQueries.tsx",
-          "line": 331,
-          "column": 25,
-          "message": "Prop `style` is forbidden on Components"
-        },
-        {
           "file": "/Users/evan/GitHub/superset/superset-frontend/src/views/CRUD/welcome/Welcome.tsx",
           "line": 136,
           "column": 41,
@@ -1820,8 +1443,135 @@
       ]
     },
     {
-      "issue": "We prefer function components to class-based components",
+      "eslint rule": "no-restricted-imports",
+      "issue": "This rule catches several things that shouldn't be used anymore. LESS, antD, enzyme, etc. See individual occurrence messages for details",
+      "message": "'antd/lib/checkbox' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components",
+      "count": 1,
+      "occurrences": [
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/packages/superset-ui-chart-controls/src/components/ControlForm/controls.tsx",
+          "line": 21,
+          "column": 1,
+          "message": "'antd/lib/checkbox' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components"
+        }
+      ]
+    },
+    {
+      "eslint rule": "no-restricted-imports",
+      "issue": "This rule catches several things that shouldn't be used anymore. LESS, antD, enzyme, etc. See individual occurrence messages for details",
+      "message": "'antd/lib/tooltip' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components",
+      "count": 6,
+      "occurrences": [
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/packages/superset-ui-chart-controls/src/components/InfoTooltipWithTrigger.tsx",
+          "line": 21,
+          "column": 1,
+          "message": "'antd/lib/tooltip' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/packages/superset-ui-chart-controls/src/components/Tooltip.tsx",
+          "line": 23,
+          "column": 1,
+          "message": "'antd/lib/tooltip' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/packages/superset-ui-chart-controls/src/components/Tooltip.tsx",
+          "line": 26,
+          "column": 1,
+          "message": "'antd/lib/tooltip' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/ListView/ActionsBar.tsx",
+          "line": 23,
+          "column": 1,
+          "message": "'antd/lib/tooltip' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/Tooltip/Tooltip.stories.tsx",
+          "line": 21,
+          "column": 1,
+          "message": "'antd/lib/tooltip' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/Tooltip/index.tsx",
+          "line": 22,
+          "column": 1,
+          "message": "'antd/lib/tooltip' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components"
+        }
+      ]
+    },
+    {
+      "eslint rule": "no-restricted-imports",
+      "issue": "This rule catches several things that shouldn't be used anymore. LESS, antD, enzyme, etc. See individual occurrence messages for details",
+      "message": "'antd/lib/select' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components",
+      "count": 10,
+      "occurrences": [
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/packages/superset-ui-chart-controls/src/components/Select.tsx",
+          "line": 20,
+          "column": 1,
+          "message": "'antd/lib/select' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/common/components/index.tsx",
+          "line": 67,
+          "column": 1,
+          "message": "'antd/lib/select' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/common/components/index.tsx",
+          "line": 70,
+          "column": 1,
+          "message": "'antd/lib/select' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/Select/NativeSelect.tsx",
+          "line": 21,
+          "column": 1,
+          "message": "'antd/lib/select' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/Select/NativeSelect.tsx",
+          "line": 23,
+          "column": 1,
+          "message": "'antd/lib/select' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/Select/Select.tsx",
+          "line": 32,
+          "column": 1,
+          "message": "'antd/lib/select' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/Select/styles.tsx",
+          "line": 32,
+          "column": 1,
+          "message": "'antd/lib/select' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/explore/components/PropertiesModal/index.tsx",
+          "line": 24,
+          "column": 1,
+          "message": "'antd/lib/select' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/explore/components/SaveModal.tsx",
+          "line": 30,
+          "column": 1,
+          "message": "'antd/lib/select' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/explore/components/controls/SelectAsyncControl/index.tsx",
+          "line": 24,
+          "column": 1,
+          "message": "'antd/lib/select' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components"
+        }
+      ]
+    },
+    {
       "eslint rule": "react-prefer-function-component/react-prefer-function-component",
+      "issue": "We prefer function components to class-based components",
+      "message": "Class component should be written as a function",
       "count": 128,
       "occurrences": [
         {
@@ -2595,8 +2345,9 @@
       ]
     },
     {
-      "issue": "We prefer Typescript - all JSX files should be converted to TSX",
       "eslint rule": "react/jsx-filename-extension",
+      "issue": "We prefer Typescript - all JSX files should be converted to TSX",
+      "message": "JSX not allowed in files with extension '.jsx'",
       "count": 246,
       "occurrences": [
         {
@@ -4078,111 +3829,788 @@
       ]
     },
     {
-      "issue": "Please reduce/remove reliance on LESS files - move approprate styles to Emotion and kill off LESS files/imports",
-      "eslint rule": "no-restricted-imports",
-      "count": 17,
+      "eslint rule": "react/forbid-component-props",
+      "issue": "We prefer Emotion for styling rather than `className` or `style` props",
+      "message": "Prop `style` is forbidden on Components",
+      "count": 63,
       "occurrences": [
         {
-          "file": "/Users/evan/GitHub/superset/superset-frontend/src/CRUD/CollectionTable.tsx",
-          "line": 26,
-          "column": 1,
-          "message": "'./crud.less' import is restricted from being used by a pattern. Please reduce/remove reliance on LESS files - move approprate styles to Emotion"
+          "file": "/Users/evan/GitHub/superset/superset-frontend/plugins/legacy-plugin-chart-histogram/src/Histogram.jsx",
+          "line": 92,
+          "column": 15,
+          "message": "Prop `style` is forbidden on Components"
         },
         {
-          "file": "/Users/evan/GitHub/superset/superset-frontend/src/CRUD/Field.tsx",
-          "line": 23,
-          "column": 1,
-          "message": "'./crud.less' import is restricted from being used by a pattern. Please reduce/remove reliance on LESS files - move approprate styles to Emotion"
+          "file": "/Users/evan/GitHub/superset/superset-frontend/plugins/plugin-chart-pivot-table/src/PivotTableChart.tsx",
+          "line": 348,
+          "column": 43,
+          "message": "Prop `style` is forbidden on Components"
         },
         {
-          "file": "/Users/evan/GitHub/superset/superset-frontend/src/SqlLab/App.jsx",
-          "line": 41,
-          "column": 1,
-          "message": "'./main.less' import is restricted from being used by a pattern. Please reduce/remove reliance on LESS files - move approprate styles to Emotion"
+          "file": "/Users/evan/GitHub/superset/superset-frontend/plugins/plugin-chart-pivot-table/src/PivotTableChart.tsx",
+          "line": 349,
+          "column": 43,
+          "message": "Prop `style` is forbidden on Components"
         },
         {
-          "file": "/Users/evan/GitHub/superset/superset-frontend/src/SqlLab/App.jsx",
-          "line": 42,
-          "column": 1,
-          "message": "'../assets/stylesheets/reactable-pagination.less' import is restricted from being used by a pattern. Please reduce/remove reliance on LESS files - move approprate styles to Emotion"
+          "file": "/Users/evan/GitHub/superset/superset-frontend/plugins/plugin-chart-table/src/DataTable/DataTable.tsx",
+          "line": 348,
+          "column": 11,
+          "message": "Prop `style` is forbidden on Components"
         },
         {
-          "file": "/Users/evan/GitHub/superset/superset-frontend/src/SqlLab/App.jsx",
-          "line": 43,
-          "column": 1,
-          "message": "'../components/FilterableTable/FilterableTableStyles.less' import is restricted from being used by a pattern. Please reduce/remove reliance on LESS files - move approprate styles to Emotion"
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/SqlLab/components/EstimateQueryCostButton/index.tsx",
+          "line": 99,
+          "column": 13,
+          "message": "Prop `style` is forbidden on Components"
         },
         {
-          "file": "/Users/evan/GitHub/superset/superset-frontend/src/SqlLab/components/ScheduleQueryButton/index.tsx",
-          "line": 26,
-          "column": 1,
-          "message": "'./ScheduleQueryButton.less' import is restricted from being used by a pattern. Please reduce/remove reliance on LESS files - move approprate styles to Emotion"
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/SqlLab/components/HighlightedSql/index.tsx",
+          "line": 67,
+          "column": 39,
+          "message": "Prop `style` is forbidden on Components"
         },
         {
-          "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/TableLoader/index.tsx",
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/SqlLab/components/HighlightedSql/index.tsx",
+          "line": 77,
+          "column": 41,
+          "message": "Prop `style` is forbidden on Components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/SqlLab/components/HighlightedSql/index.tsx",
+          "line": 83,
+          "column": 45,
+          "message": "Prop `style` is forbidden on Components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/SqlLab/components/ShowSQL/index.tsx",
+          "line": 50,
+          "column": 45,
+          "message": "Prop `style` is forbidden on Components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/SqlLab/components/SqlEditor/index.jsx",
+          "line": 534,
+          "column": 44,
+          "message": "Prop `style` is forbidden on Components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/SqlLab/components/SqlEditor/index.jsx",
+          "line": 535,
+          "column": 20,
+          "message": "Prop `style` is forbidden on Components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/SqlLab/components/TabbedSqlEditors/index.jsx",
+          "line": 329,
+          "column": 15,
+          "message": "Prop `style` is forbidden on Components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/SqlLab/components/TableElement/index.tsx",
+          "line": 232,
+          "column": 11,
+          "message": "Prop `style` is forbidden on Components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/Alert/Alert.stories.tsx",
+          "line": 49,
+          "column": 11,
+          "message": "Prop `style` is forbidden on Components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/Badge/Badge.stories.tsx",
+          "line": 125,
+          "column": 13,
+          "message": "Prop `style` is forbidden on Components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/Badge/Badge.stories.tsx",
+          "line": 140,
+          "column": 9,
+          "message": "Prop `style` is forbidden on Components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/Button/Button.stories.tsx",
+          "line": 88,
+          "column": 13,
+          "message": "Prop `style` is forbidden on Components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/Checkbox/Checkbox.stories.jsx",
+          "line": 39,
+          "column": 9,
+          "message": "Prop `style` is forbidden on Components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/Checkbox/Checkbox.stories.jsx",
+          "line": 54,
+          "column": 61,
+          "message": "Prop `style` is forbidden on Components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/Checkbox/Checkbox.test.tsx",
+          "line": 38,
+          "column": 19,
+          "message": "Prop `style` is forbidden on Components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/Checkbox/Checkbox.test.tsx",
+          "line": 46,
+          "column": 19,
+          "message": "Prop `style` is forbidden on Components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/Checkbox/Checkbox.test.tsx",
+          "line": 55,
+          "column": 19,
+          "message": "Prop `style` is forbidden on Components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/Checkbox/Checkbox.test.tsx",
+          "line": 64,
+          "column": 17,
+          "message": "Prop `style` is forbidden on Components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/Checkbox/Checkbox.test.tsx",
+          "line": 72,
+          "column": 55,
+          "message": "Prop `style` is forbidden on Components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/Checkbox/Checkbox.tsx",
+          "line": 39,
+          "column": 7,
+          "message": "Prop `style` is forbidden on Components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/Collapse/Collapse.stories.tsx",
+          "line": 33,
+          "column": 7,
+          "message": "Prop `style` is forbidden on Components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/CopyToClipboard/index.jsx",
+          "line": 94,
+          "column": 9,
+          "message": "Prop `style` is forbidden on Components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/FacePile/index.tsx",
+          "line": 65,
+          "column": 15,
+          "message": "Prop `style` is forbidden on Components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/FilterableTable/FilterableTable.tsx",
+          "line": 506,
+          "column": 23,
+          "message": "Prop `style` is forbidden on Components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/FormRow/index.jsx",
+          "line": 55,
+          "column": 12,
+          "message": "Prop `style` is forbidden on Components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/FormRow/index.jsx",
+          "line": 56,
+          "column": 29,
+          "message": "Prop `style` is forbidden on Components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/FormRow/index.jsx",
+          "line": 66,
+          "column": 10,
+          "message": "Prop `style` is forbidden on Components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/FormRow/index.jsx",
+          "line": 67,
+          "column": 27,
+          "message": "Prop `style` is forbidden on Components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/IconTooltip/index.tsx",
+          "line": 62,
+          "column": 7,
+          "message": "Prop `style` is forbidden on Components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/Menu/LanguagePicker.tsx",
+          "line": 75,
+          "column": 11,
+          "message": "Prop `style` is forbidden on Components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/Menu/SubMenu.tsx",
+          "line": 199,
+          "column": 31,
+          "message": "Prop `style` is forbidden on Components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/Popover/Popover.stories.tsx",
+          "line": 32,
+          "column": 7,
+          "message": "Prop `style` is forbidden on Components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/Slider/Slider.stories.tsx",
+          "line": 28,
+          "column": 21,
+          "message": "Prop `style` is forbidden on Components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/Tooltip/Tooltip.stories.tsx",
+          "line": 48,
+          "column": 13,
+          "message": "Prop `style` is forbidden on Components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/dashboard/components/AddSliceCard.jsx",
+          "line": 118,
+          "column": 28,
+          "message": "Prop `style` is forbidden on Components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/dashboard/components/DashboardBuilder/DashboardBuilder.tsx",
+          "line": 358,
+          "column": 11,
+          "message": "Prop `style` is forbidden on Components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/dashboard/components/SliceAdder.jsx",
+          "line": 217,
+          "column": 9,
+          "message": "Prop `style` is forbidden on Components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/dashboard/components/SliceAdder.jsx",
+          "line": 222,
+          "column": 13,
+          "message": "Prop `style` is forbidden on Components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx",
+          "line": 267,
+          "column": 11,
+          "message": "Prop `style` is forbidden on Components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx",
+          "line": 364,
+          "column": 13,
+          "message": "Prop `style` is forbidden on Components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/dashboard/components/dnd/AddSliceDragPreview.jsx",
+          "line": 70,
+          "column": 7,
+          "message": "Prop `style` is forbidden on Components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/dashboard/components/gridComponents/Chart.jsx",
+          "line": 398,
+          "column": 15,
+          "message": "Prop `style` is forbidden on Components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/dashboard/components/nativeFilters/FilterBar/FilterSets/FilterSetUnit.tsx",
+          "line": 103,
+          "column": 15,
+          "message": "Prop `style` is forbidden on Components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/explore/components/PropertiesModal/index.tsx",
+          "line": 244,
+          "column": 36,
+          "message": "Prop `style` is forbidden on Components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx",
+          "line": 656,
+          "column": 15,
+          "message": "Prop `style` is forbidden on Components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/explore/components/controls/CheckboxControl.jsx",
+          "line": 46,
+          "column": 9,
+          "message": "Prop `style` is forbidden on Components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/explore/components/controls/FilterControl/AdhocFilterEditPopover/index.jsx",
+          "line": 194,
+          "column": 11,
+          "message": "Prop `style` is forbidden on Components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/explore/components/controls/MetricControl/AdhocMetricEditPopover/index.jsx",
+          "line": 364,
+          "column": 11,
+          "message": "Prop `style` is forbidden on Components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/explore/components/controls/TextAreaControl.jsx",
+          "line": 76,
+          "column": 11,
+          "message": "Prop `style` is forbidden on Components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/explore/components/controls/TextAreaControl.jsx",
+          "line": 96,
+          "column": 9,
+          "message": "Prop `style` is forbidden on Components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/explore/components/controls/ViewQueryModal.tsx",
+          "line": 116,
+          "column": 15,
+          "message": "Prop `style` is forbidden on Components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/profile/components/UserInfo.tsx",
+          "line": 46,
+          "column": 11,
+          "message": "Prop `style` is forbidden on Components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/views/CRUD/alert/components/AlertReportCronScheduler.tsx",
+          "line": 74,
+          "column": 19,
+          "message": "Prop `style` is forbidden on Components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/views/CRUD/data/components/SyntaxHighlighterCopy/index.tsx",
+          "line": 91,
+          "column": 26,
+          "message": "Prop `style` is forbidden on Components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/views/CRUD/data/database/DatabaseModal/DatabaseConnectionForm/EncryptedField.tsx",
+          "line": 76,
+          "column": 13,
+          "message": "Prop `style` is forbidden on Components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/views/CRUD/data/database/DatabaseModal/DatabaseConnectionForm/EncryptedField.tsx",
+          "line": 98,
+          "column": 13,
+          "message": "Prop `style` is forbidden on Components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/views/CRUD/data/query/QueryList.tsx",
+          "line": 302,
+          "column": 53,
+          "message": "Prop `style` is forbidden on Components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/views/CRUD/welcome/SavedQueries.tsx",
+          "line": 331,
+          "column": 25,
+          "message": "Prop `style` is forbidden on Components"
+        }
+      ]
+    },
+    {
+      "eslint rule": "no-restricted-imports",
+      "issue": "This rule catches several things that shouldn't be used anymore. LESS, antD, enzyme, etc. See individual occurrence messages for details",
+      "message": "'antd/lib/radio' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components",
+      "count": 3,
+      "occurrences": [
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/SqlLab/components/ResultSet/index.tsx",
           "line": 24,
           "column": 1,
-          "message": "'../../assets/stylesheets/reactable-pagination.less' import is restricted from being used by a pattern. Please reduce/remove reliance on LESS files - move approprate styles to Emotion"
+          "message": "'antd/lib/radio' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components"
         },
         {
-          "file": "/Users/evan/GitHub/superset/superset-frontend/src/dashboard/components/Dashboard.jsx",
-          "line": 42,
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/SqlLab/components/SaveDatasetModal/index.tsx",
+          "line": 27,
           "column": 1,
-          "message": "'../stylesheets/index.less' import is restricted from being used by a pattern. Please reduce/remove reliance on LESS files - move approprate styles to Emotion"
+          "message": "'antd/lib/radio' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components"
         },
         {
-          "file": "/Users/evan/GitHub/superset/superset-frontend/src/explore/App.jsx",
-          "line": 29,
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/common/components/index.tsx",
+          "line": 64,
           "column": 1,
-          "message": "'./main.less' import is restricted from being used by a pattern. Please reduce/remove reliance on LESS files - move approprate styles to Emotion"
-        },
+          "message": "'antd/lib/radio' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components"
+        }
+      ]
+    },
+    {
+      "eslint rule": "no-restricted-imports",
+      "issue": "This rule catches several things that shouldn't be used anymore. LESS, antD, enzyme, etc. See individual occurrence messages for details",
+      "message": "'antd/lib/auto-complete' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components",
+      "count": 1,
+      "occurrences": [
         {
-          "file": "/Users/evan/GitHub/superset/superset-frontend/src/explore/App.jsx",
-          "line": 30,
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/SqlLab/components/SaveDatasetModal/index.tsx",
+          "line": 21,
           "column": 1,
-          "message": "'../assets/stylesheets/reactable-pagination.less' import is restricted from being used by a pattern. Please reduce/remove reliance on LESS files - move approprate styles to Emotion"
-        },
+          "message": "'antd/lib/auto-complete' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components"
+        }
+      ]
+    },
+    {
+      "eslint rule": "no-restricted-imports",
+      "issue": "This rule catches several things that shouldn't be used anymore. LESS, antD, enzyme, etc. See individual occurrence messages for details",
+      "message": "'antd/lib/dropdown' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components",
+      "count": 1,
+      "occurrences": [
         {
-          "file": "/Users/evan/GitHub/superset/superset-frontend/src/explore/components/Control.tsx",
-          "line": 29,
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/common/components/index.tsx",
+          "line": 28,
           "column": 1,
-          "message": "'./Control.less' import is restricted from being used by a pattern. Please reduce/remove reliance on LESS files - move approprate styles to Emotion"
-        },
+          "message": "'antd/lib/dropdown' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components"
+        }
+      ]
+    },
+    {
+      "eslint rule": "no-restricted-imports",
+      "issue": "This rule catches several things that shouldn't be used anymore. LESS, antD, enzyme, etc. See individual occurrence messages for details",
+      "message": "'antd/lib/modal' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components",
+      "count": 2,
+      "occurrences": [
         {
-          "file": "/Users/evan/GitHub/superset/superset-frontend/src/profile/App.tsx",
-          "line": 29,
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/common/components/index.tsx",
+          "line": 61,
           "column": 1,
-          "message": "'./main.less' import is restricted from being used by a pattern. Please reduce/remove reliance on LESS files - move approprate styles to Emotion"
+          "message": "'antd/lib/modal' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components"
         },
         {
-          "file": "/Users/evan/GitHub/superset/superset-frontend/src/showSavedQuery/index.jsx",
-          "line": 23,
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/common/components/index.tsx",
+          "line": 62,
           "column": 1,
-          "message": "'./index.less' import is restricted from being used by a pattern. Please reduce/remove reliance on LESS files - move approprate styles to Emotion"
+          "message": "'antd/lib/modal' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components"
+        }
+      ]
+    },
+    {
+      "eslint rule": "no-restricted-imports",
+      "issue": "This rule catches several things that shouldn't be used anymore. LESS, antD, enzyme, etc. See individual occurrence messages for details",
+      "message": "'antd/lib/form' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components",
+      "count": 15,
+      "occurrences": [
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/common/components/index.tsx",
+          "line": 63,
+          "column": 1,
+          "message": "'antd/lib/form' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components"
         },
         {
-          "file": "/Users/evan/GitHub/superset/superset-frontend/src/theme.ts",
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/Form/Form.tsx",
+          "line": 20,
+          "column": 1,
+          "message": "'antd/lib/form' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/Form/FormItem.tsx",
           "line": 19,
           "column": 1,
-          "message": "'./assets/stylesheets/superset.less' import is restricted from being used by a pattern. Please reduce/remove reliance on LESS files - move approprate styles to Emotion"
+          "message": "'antd/lib/form' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components"
         },
         {
-          "file": "/Users/evan/GitHub/superset/superset-frontend/src/theme.ts",
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/dashboard/components/CrossFilterScopingModal/CrossFilterScopingForm/index.tsx",
+          "line": 20,
+          "column": 1,
+          "message": "'antd/lib/form' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/dashboard/components/CrossFilterScopingModal/utils/index.ts",
+          "line": 19,
+          "column": 1,
+          "message": "'antd/lib/form' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/ColumnSelect.tsx",
+          "line": 20,
+          "column": 1,
+          "message": "'antd/lib/form' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/DefaultValue.tsx",
+          "line": 27,
+          "column": 1,
+          "message": "'antd/lib/form' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FiltersConfigForm.tsx",
+          "line": 38,
+          "column": 1,
+          "message": "'antd/lib/form' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/getControlItemsMap.tsx",
+          "line": 25,
+          "column": 1,
+          "message": "'antd/lib/form' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/state.ts",
+          "line": 20,
+          "column": 1,
+          "message": "'antd/lib/form' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/utils.ts",
+          "line": 20,
+          "column": 1,
+          "message": "'antd/lib/form' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/utils.ts",
+          "line": 19,
+          "column": 1,
+          "message": "'antd/lib/form' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/filters/components/GroupBy/GroupByFilterPlugin.tsx",
+          "line": 27,
+          "column": 1,
+          "message": "'antd/lib/form' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/filters/components/TimeColumn/TimeColumnFilterPlugin.tsx",
+          "line": 28,
+          "column": 1,
+          "message": "'antd/lib/form' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/filters/components/TimeGrain/TimeGrainFilterPlugin.tsx",
+          "line": 28,
+          "column": 1,
+          "message": "'antd/lib/form' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components"
+        }
+      ]
+    },
+    {
+      "eslint rule": "no-restricted-imports",
+      "issue": "This rule catches several things that shouldn't be used anymore. LESS, antD, enzyme, etc. See individual occurrence messages for details",
+      "message": "'antd/lib/tree' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components",
+      "count": 1,
+      "occurrences": [
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/common/components/index.tsx",
+          "line": 65,
+          "column": 1,
+          "message": "'antd/lib/tree' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components"
+        }
+      ]
+    },
+    {
+      "eslint rule": "no-restricted-imports",
+      "issue": "This rule catches several things that shouldn't be used anymore. LESS, antD, enzyme, etc. See individual occurrence messages for details",
+      "message": "'antd/lib/alert' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components",
+      "count": 2,
+      "occurrences": [
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/common/components/index.tsx",
+          "line": 66,
+          "column": 1,
+          "message": "'antd/lib/alert' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/common/components/index.tsx",
+          "line": 69,
+          "column": 1,
+          "message": "'antd/lib/alert' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components"
+        }
+      ]
+    },
+    {
+      "eslint rule": "no-restricted-imports",
+      "issue": "This rule catches several things that shouldn't be used anymore. LESS, antD, enzyme, etc. See individual occurrence messages for details",
+      "message": "'antd/lib/list' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components",
+      "count": 2,
+      "occurrences": [
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/common/components/index.tsx",
+          "line": 68,
+          "column": 1,
+          "message": "'antd/lib/list' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components"
+        },
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/common/components/index.tsx",
+          "line": 71,
+          "column": 1,
+          "message": "'antd/lib/list' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components"
+        }
+      ]
+    },
+    {
+      "eslint rule": "no-restricted-imports",
+      "issue": "This rule catches several things that shouldn't be used anymore. LESS, antD, enzyme, etc. See individual occurrence messages for details",
+      "message": "'antd/lib/badge' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components",
+      "count": 1,
+      "occurrences": [
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/Badge/index.tsx",
           "line": 22,
           "column": 1,
-          "message": "'./assets/stylesheets/antd/index.less' import is restricted from being used by a pattern. Please reduce/remove reliance on LESS files - move approprate styles to Emotion"
+          "message": "'antd/lib/badge' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components"
+        }
+      ]
+    },
+    {
+      "eslint rule": "no-restricted-imports",
+      "issue": "This rule catches several things that shouldn't be used anymore. LESS, antD, enzyme, etc. See individual occurrence messages for details",
+      "message": "'antd/lib/card' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components",
+      "count": 1,
+      "occurrences": [
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/Card/index.tsx",
+          "line": 21,
+          "column": 1,
+          "message": "'antd/lib/card' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components"
+        }
+      ]
+    },
+    {
+      "eslint rule": "no-restricted-imports",
+      "issue": "This rule catches several things that shouldn't be used anymore. LESS, antD, enzyme, etc. See individual occurrence messages for details",
+      "message": "'antd/lib/collapse' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components",
+      "count": 1,
+      "occurrences": [
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/Collapse/index.tsx",
+          "line": 22,
+          "column": 1,
+          "message": "'antd/lib/collapse' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components"
+        }
+      ]
+    },
+    {
+      "eslint rule": "no-restricted-imports",
+      "issue": "This rule catches several things that shouldn't be used anymore. LESS, antD, enzyme, etc. See individual occurrence messages for details",
+      "message": "'antd/lib/date-picker' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components",
+      "count": 1,
+      "occurrences": [
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/DatePicker/DatePicker.stories.tsx",
+          "line": 20,
+          "column": 1,
+          "message": "'antd/lib/date-picker' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components"
+        }
+      ]
+    },
+    {
+      "eslint rule": "no-restricted-imports",
+      "issue": "This rule catches several things that shouldn't be used anymore. LESS, antD, enzyme, etc. See individual occurrence messages for details",
+      "message": "'antd/lib/button' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components",
+      "count": 1,
+      "occurrences": [
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/IconButton/index.tsx",
+          "line": 22,
+          "column": 1,
+          "message": "'antd/lib/button' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components"
+        }
+      ]
+    },
+    {
+      "eslint rule": "no-restricted-imports",
+      "issue": "This rule catches several things that shouldn't be used anymore. LESS, antD, enzyme, etc. See individual occurrence messages for details",
+      "message": "'antd/lib/upload/interface' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components",
+      "count": 1,
+      "occurrences": [
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/ImportModal/index.tsx",
+          "line": 20,
+          "column": 1,
+          "message": "'antd/lib/upload/interface' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components"
+        }
+      ]
+    },
+    {
+      "eslint rule": "no-restricted-imports",
+      "issue": "This rule catches several things that shouldn't be used anymore. LESS, antD, enzyme, etc. See individual occurrence messages for details",
+      "message": "'antd/lib/popover' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components",
+      "count": 2,
+      "occurrences": [
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/Popover/Popover.stories.tsx",
+          "line": 20,
+          "column": 1,
+          "message": "'antd/lib/popover' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components"
         },
         {
-          "file": "/Users/evan/GitHub/superset/superset-frontend/src/visualizations/FilterBox/FilterBox.jsx",
-          "line": 46,
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/explore/components/controls/ConditionalFormattingControl/types.ts",
+          "line": 21,
           "column": 1,
-          "message": "'./FilterBox.less' import is restricted from being used by a pattern. Please reduce/remove reliance on LESS files - move approprate styles to Emotion"
-        },
+          "message": "'antd/lib/popover' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components"
+        }
+      ]
+    },
+    {
+      "eslint rule": "no-restricted-imports",
+      "issue": "This rule catches several things that shouldn't be used anymore. LESS, antD, enzyme, etc. See individual occurrence messages for details",
+      "message": "'antd/lib/progress/progress' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components",
+      "count": 1,
+      "occurrences": [
         {
-          "file": "/Users/evan/GitHub/superset/superset-frontend/src/visualizations/TimeTable/TimeTable.jsx",
-          "line": 33,
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/ProgressBar/index.tsx",
+          "line": 22,
           "column": 1,
-          "message": "'./TimeTable.less' import is restricted from being used by a pattern. Please reduce/remove reliance on LESS files - move approprate styles to Emotion"
+          "message": "'antd/lib/progress/progress' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components"
+        }
+      ]
+    },
+    {
+      "eslint rule": "no-restricted-imports",
+      "issue": "This rule catches several things that shouldn't be used anymore. LESS, antD, enzyme, etc. See individual occurrence messages for details",
+      "message": "'antd/lib/slider' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components",
+      "count": 1,
+      "occurrences": [
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/Slider/index.tsx",
+          "line": 20,
+          "column": 1,
+          "message": "'antd/lib/slider' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components"
+        }
+      ]
+    },
+    {
+      "eslint rule": "no-restricted-imports",
+      "issue": "This rule catches several things that shouldn't be used anymore. LESS, antD, enzyme, etc. See individual occurrence messages for details",
+      "message": "'antd/lib/switch' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components",
+      "count": 1,
+      "occurrences": [
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/Switch/index.tsx",
+          "line": 21,
+          "column": 1,
+          "message": "'antd/lib/switch' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components"
+        }
+      ]
+    },
+    {
+      "eslint rule": "no-restricted-imports",
+      "issue": "This rule catches several things that shouldn't be used anymore. LESS, antD, enzyme, etc. See individual occurrence messages for details",
+      "message": "'antd/lib/tabs' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components",
+      "count": 1,
+      "occurrences": [
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/components/Tabs/Tabs.tsx",
+          "line": 21,
+          "column": 1,
+          "message": "'antd/lib/tabs' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components"
+        }
+      ]
+    },
+    {
+      "eslint rule": "no-restricted-imports",
+      "issue": "This rule catches several things that shouldn't be used anymore. LESS, antD, enzyme, etc. See individual occurrence messages for details",
+      "message": "'antd/lib/input' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components",
+      "count": 1,
+      "occurrences": [
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/views/CRUD/data/database/DatabaseModal/DatabaseConnectionForm/index.tsx",
+          "line": 21,
+          "column": 1,
+          "message": "'antd/lib/input' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components"
         }
       ]
     }

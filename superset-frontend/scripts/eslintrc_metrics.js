@@ -66,11 +66,11 @@ module.exports = {
       "warn", {
         "patterns": [
           {
-            "group": ["**/*.less"],
-            "message": "Please reduce/remove reliance on LESS files - move approprate styles to Emotion"
+            "group": ["**/*.less, **/*.css"],
+            "message": "Please reduce/remove reliance on LESS/CSS files - move approprate styles to Emotion"
           },
           {
-            "group": ["antd"],
+            "group": ["antd/**"],
             "message": "Please do not use AntD directly, but instead import through src/common/components"
           }
         ]

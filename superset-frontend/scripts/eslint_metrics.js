@@ -1,8 +1,12 @@
 module.exports = results => {
   const byRuleId = results.reduce((map, current) => {
     current.messages.forEach(({ ruleId, line, column, message, ...stuff }) => {
-      if (!map[ruleId]) {
-        map[ruleId] = [];
+      if (!map[ruleId+message]) {
+        map[ruleId+message] = {
+          rule: ruleId,
+          message,
+          occurrences: [],
+        };
       }
 
       // const occurrence = `${current.filePath}:${line}:${column}:${message}`;
@@ -12,8 +16,7 @@ module.exports = results => {
         column,
         message,
       };
-
-      map[ruleId].push(occurrence);
+      map[ruleId+message].occurrences.push(occurrence);
     });
     return map;
   }, {});
@@ -34,15 +37,16 @@ module.exports = results => {
   };
 
   const metricsByRule = Object.entries(byRuleId)
-    .filter(([ruleId, occurrences]) => enforcedRules[ruleId] || false)
+    .filter(([key, value]) => enforcedRules[value.rule] || false)
     .map(
-      ([ruleId, occurrences]) => 
+      ([key, value]) => 
       {
         return {
-         "issue" : enforcedRules[ruleId].description,
-         "eslint rule": ruleId,
-         "count": occurrences.length,
-         occurrences,
+          "eslint rule": value.rule,
+          "issue" : enforcedRules[value.rule].description,
+          "message" : value.message,
+          "count": value.occurrences.length,
+          occurrences: value.occurrences,
         }
       }
     );
