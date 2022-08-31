@@ -93,3 +93,19 @@ class ChartFilter(BaseFilter):  # pylint: disable=too-few-public-methods
                 models.SqlaTable.id.in_(owner_ids_query),
             )
         )
+
+
+class ChartHasCreatedByFilter(BaseFilter):  # pylint: disable=too-few-public-methods
+    """
+    Custom filter for the GET list that filters all charts created by user
+    """
+
+    name = _("Has created by")
+    arg_name = "chart_has_created_by"
+
+    def apply(self, query: Query, value: Any) -> Query:
+        if value is True:
+            return query.filter(and_(Slice.created_by_fk.isnot(None)))
+        if value is False:
+            return query.filter(and_(Slice.created_by_fk.is_(None)))
+        return query

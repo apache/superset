@@ -52,6 +52,7 @@ from superset.charts.filters import (
     ChartCertifiedFilter,
     ChartFavoriteFilter,
     ChartFilter,
+    ChartHasCreatedByFilter,
 )
 from superset.charts.schemas import (
     CHART_SCHEMAS,
@@ -205,6 +206,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
     search_filters = {
         "id": [ChartFavoriteFilter, ChartCertifiedFilter],
         "slice_name": [ChartAllTextFilter],
+        "created_by": [ChartHasCreatedByFilter],
     }
 
     # Will just affect _info endpoint
