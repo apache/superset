@@ -32,6 +32,7 @@ from superset.databases.commands.exceptions import (
 from superset.databases.dao import DatabaseDAO
 from superset.extensions import db, security_manager
 from superset.models.core import Database
+from superset.utils.core import DatasourceType
 
 logger = logging.getLogger(__name__)
 
@@ -112,7 +113,7 @@ class UpdateDatabaseCommand(BaseCommand):
         for dataset in datasets:
             dataset.schema_perm = new_view_menu_name
             charts = db.session.query(Slice).filter(
-                Slice.datasource_type == "table",
+                Slice.datasource_type == DatasourceType.TABLE,
                 Slice.datasource_id == dataset.id,
             )
             # Update schema_perm on all charts

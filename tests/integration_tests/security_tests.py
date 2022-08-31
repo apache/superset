@@ -106,56 +106,58 @@ class TestRolePermission(SupersetTestCase):
     """Testing export role permissions."""
 
     def setUp(self):
-        schema = get_example_default_schema()
-        session = db.session
-        security_manager.add_role(SCHEMA_ACCESS_ROLE)
-        session.commit()
-
-        ds = (
-            db.session.query(SqlaTable)
-            .filter_by(table_name="wb_health_population", schema=schema)
-            .first()
-        )
-        ds.schema = "temp_schema"
-        ds.schema_perm = ds.get_schema_perm()
-
-        ds_slices = (
-            session.query(Slice)
-            .filter_by(datasource_type=DatasourceType.TABLE)
-            .filter_by(datasource_id=ds.id)
-            .all()
-        )
-        for s in ds_slices:
-            s.schema_perm = ds.schema_perm
-        create_schema_perm("[examples].[temp_schema]")
-        gamma_user = security_manager.find_user(username="gamma")
-        gamma_user.roles.append(security_manager.find_role(SCHEMA_ACCESS_ROLE))
-        session.commit()
+        ...
+        # schema = get_example_default_schema()
+        # session = db.session
+        # security_manager.add_role(SCHEMA_ACCESS_ROLE)
+        # session.commit()
+        #
+        # ds = (
+        #     db.session.query(SqlaTable)
+        #     .filter_by(table_name="wb_health_population", schema=schema)
+        #     .first()
+        # )
+        # ds.schema = "temp_schema"
+        # ds.schema_perm = ds.get_schema_perm()
+        #
+        # ds_slices = (
+        #     session.query(Slice)
+        #     .filter_by(datasource_type=DatasourceType.TABLE)
+        #     .filter_by(datasource_id=ds.id)
+        #     .all()
+        # )
+        # for s in ds_slices:
+        #     s.schema_perm = ds.schema_perm
+        # create_schema_perm("[examples].[temp_schema]")
+        # gamma_user = security_manager.find_user(username="gamma")
+        # gamma_user.roles.append(security_manager.find_role(SCHEMA_ACCESS_ROLE))
+        # session.commit()
 
     def tearDown(self):
-        session = db.session
-        ds = (
-            session.query(SqlaTable)
-            .filter_by(table_name="wb_health_population", schema="temp_schema")
-            .first()
-        )
-        schema_perm = ds.schema_perm
-        ds.schema = get_example_default_schema()
-        ds.schema_perm = None
-        ds_slices = (
-            session.query(Slice)
-            .filter_by(datasource_type=DatasourceType.TABLE)
-            .filter_by(datasource_id=ds.id)
-            .all()
-        )
-        for s in ds_slices:
-            s.schema_perm = None
+        ...
+        # session = db.session
+        # ds = (
+        #     session.query(SqlaTable)
+        #     .filter_by(table_name="wb_health_population", schema="temp_schema")
+        #     .first()
+        # )
+        # schema_perm = ds.schema_perm
+        # ds.schema = get_example_default_schema()
+        # ds.schema_perm = None
+        # ds_slices = (
+        #     session.query(Slice)
+        #     .filter_by(datasource_type=DatasourceType.TABLE)
+        #     .filter_by(datasource_id=ds.id)
+        #     .all()
+        # )
+        # for s in ds_slices:
+        #     s.schema_perm = None
+        #
+        # delete_schema_perm(schema_perm)
+        # session.delete(security_manager.find_role(SCHEMA_ACCESS_ROLE))
+        # session.commit()
 
-        delete_schema_perm(schema_perm)
-        session.delete(security_manager.find_role(SCHEMA_ACCESS_ROLE))
-        session.commit()
-
-    def test_dataset_after_insert(self):
+    def test_after_insert_dataset(self):
         security_manager.on_view_menu_after_insert = Mock()
         security_manager.on_permission_view_after_insert = Mock()
 
@@ -210,7 +212,38 @@ class TestRolePermission(SupersetTestCase):
         session.delete(tmp_db1)
         session.commit()
 
-    def test_dataset_after_insert_table_none(self):
+    def test_after_insert_dataset_rollback(self):
+        session = db.session
+        tmp_db1 = Database(database_name="tmp_db1", sqlalchemy_uri="sqlite://")
+        session.add(tmp_db1)
+        session.commit()
+
+        table = SqlaTable(
+            schema="tmp_schema",
+            table_name="tmp_table",
+            database=tmp_db1,
+        )
+        session.add(table)
+        session.flush()
+
+        pvm_dataset = security_manager.find_permission_view_menu(
+            "datasource_access", f"[tmp_db1].[tmp_table](id:{table.id})"
+        )
+        self.assertIsNotNone(pvm_dataset)
+        table_id = table.id
+        session.rollback()
+
+        table = session.query(SqlaTable).filter_by(table_name="tmp_table").one_or_none()
+        self.assertIsNone(table)
+        pvm_dataset = security_manager.find_permission_view_menu(
+            "datasource_access", f"[tmp_db1].[tmp_table](id:{table_id})"
+        )
+        self.assertIsNone(pvm_dataset)
+
+        session.delete(tmp_db1)
+        session.commit()
+
+    def test_after_insert_dataset_table_none(self):
         session = db.session
         table = SqlaTable(
             schema="tmp_schema",
@@ -264,6 +297,23 @@ class TestRolePermission(SupersetTestCase):
         session.delete(tmp_db1)
         session.commit()
 
+    def test_after_insert_database_rollback(self):
+        session = db.session
+        tmp_db1 = Database(database_name="tmp_db1", sqlalchemy_uri="sqlite://")
+        session.add(tmp_db1)
+        session.flush()
+
+        pvm_database = security_manager.find_permission_view_menu(
+            "database_access", f"[tmp_db1].(id:{tmp_db1.id})"
+        )
+        self.assertIsNotNone(pvm_database)
+        session.rollback()
+
+        pvm_database = security_manager.find_permission_view_menu(
+            "database_access", f"[tmp_db1](id:{tmp_db1.id})"
+        )
+        self.assertIsNone(pvm_database)
+
     def test_after_update_database__perm_database_access(self):
         security_manager.on_view_menu_after_update = Mock()
 
@@ -301,6 +351,49 @@ class TestRolePermission(SupersetTestCase):
             [
                 call(ANY, ANY, tmp_db1_view_menu),
             ]
+        )
+
+        session.delete(tmp_db1)
+        session.commit()
+
+    def test_after_update_database_rollback(self):
+        session = db.session
+        tmp_db1 = Database(database_name="tmp_db1", sqlalchemy_uri="sqlite://")
+        session.add(tmp_db1)
+        session.commit()
+        tmp_db1 = session.query(Database).filter_by(database_name="tmp_db1").one()
+
+        self.assertIsNotNone(
+            security_manager.find_permission_view_menu("database_access", tmp_db1.perm)
+        )
+
+        tmp_db1.database_name = "tmp_db2"
+        session.flush()
+
+        # Assert that the old permission was updated
+        self.assertIsNone(
+            security_manager.find_permission_view_menu(
+                "database_access", f"[tmp_db1].(id:{tmp_db1.id})"
+            )
+        )
+        # Assert that the db permission was updated
+        self.assertIsNotNone(
+            security_manager.find_permission_view_menu(
+                "database_access", f"[tmp_db2].(id:{tmp_db1.id})"
+            )
+        )
+
+        session.rollback()
+        self.assertIsNotNone(
+            security_manager.find_permission_view_menu(
+                "database_access", f"[tmp_db1].(id:{tmp_db1.id})"
+            )
+        )
+        # Assert that the db permission was updated
+        self.assertIsNone(
+            security_manager.find_permission_view_menu(
+                "database_access", f"[tmp_db2].(id:{tmp_db1.id})"
+            )
         )
 
         session.delete(tmp_db1)
@@ -453,18 +546,28 @@ class TestRolePermission(SupersetTestCase):
         session.delete(tmp_db1)
         session.commit()
 
-    def test_after_delete_database__perm_database_access(self):
+    def test_after_delete_database(self):
         session = db.session
         tmp_db1 = Database(database_name="tmp_db1", sqlalchemy_uri="sqlite://")
         session.add(tmp_db1)
         session.commit()
         tmp_db1 = session.query(Database).filter_by(database_name="tmp_db1").one()
 
-        self.assertIsNotNone(
-            security_manager.find_permission_view_menu("database_access", tmp_db1.perm)
+        database_pvm = security_manager.find_permission_view_menu(
+            "database_access", tmp_db1.perm
         )
+        self.assertIsNotNone(database_pvm)
+        role1 = Role(name="tmp_role1")
+        role1.permissions.append(database_pvm)
+        session.add(role1)
+        session.commit()
+
         session.delete(tmp_db1)
         session.commit()
+
+        # Assert that PVM is removed from Role
+        role1 = security_manager.find_role("tmp_role1")
+        self.assertEqual(role1.permissions, [])
 
         # Assert that the old permission was updated
         self.assertIsNone(
@@ -472,6 +575,52 @@ class TestRolePermission(SupersetTestCase):
                 "database_access", f"[tmp_db1].(id:{tmp_db1.id})"
             )
         )
+
+        # Cleanup
+        session.delete(role1)
+        session.commit()
+
+    def test_after_delete_database_rollback(self):
+        session = db.session
+        tmp_db1 = Database(database_name="tmp_db1", sqlalchemy_uri="sqlite://")
+        session.add(tmp_db1)
+        session.commit()
+        tmp_db1 = session.query(Database).filter_by(database_name="tmp_db1").one()
+
+        database_pvm = security_manager.find_permission_view_menu(
+            "database_access", tmp_db1.perm
+        )
+        self.assertIsNotNone(database_pvm)
+        role1 = Role(name="tmp_role1")
+        role1.permissions.append(database_pvm)
+        session.add(role1)
+        session.commit()
+
+        session.delete(tmp_db1)
+        session.flush()
+
+        role1 = security_manager.find_role("tmp_role1")
+        self.assertEqual(role1.permissions, [])
+
+        self.assertIsNone(
+            security_manager.find_permission_view_menu(
+                "database_access", f"[tmp_db1].(id:{tmp_db1.id})"
+            )
+        )
+
+        session.rollback()
+
+        # Test a rollback reverts everything
+        database_pvm = security_manager.find_permission_view_menu(
+            "database_access", f"[tmp_db1].(id:{tmp_db1.id})"
+        )
+
+        role1 = security_manager.find_role("tmp_role1")
+        self.assertEqual(role1.permissions, [database_pvm])
+
+        # Cleanup
+        session.delete(role1)
+        session.commit()
 
     def test_after_delete_dataset(self):
         security_manager.on_permission_view_after_delete = Mock()
@@ -526,6 +675,60 @@ class TestRolePermission(SupersetTestCase):
         )
 
         # cleanup
+        session.delete(role1)
+        session.delete(tmp_db)
+        session.commit()
+
+    def test_after_delete_dataset_rollback(self):
+        session = db.session
+        tmp_db = Database(database_name="tmp_db", sqlalchemy_uri="sqlite://")
+        session.add(tmp_db)
+        session.commit()
+
+        table1 = SqlaTable(
+            schema="tmp_schema",
+            table_name="tmp_table1",
+            database=tmp_db,
+        )
+        session.add(table1)
+        session.commit()
+
+        table1_pvm = security_manager.find_permission_view_menu(
+            "datasource_access", f"[tmp_db].[tmp_table1](id:{table1.id})"
+        )
+        self.assertIsNotNone(table1_pvm)
+
+        role1 = Role(name="tmp_role1")
+        role1.permissions.append(table1_pvm)
+        session.add(role1)
+        session.commit()
+
+        # refresh
+        table1 = session.query(SqlaTable).filter_by(table_name="tmp_table1").one()
+
+        # Test delete, permissions are correctly deleted
+        session.delete(table1)
+        session.flush()
+
+        role1 = security_manager.find_role("tmp_role1")
+        self.assertEqual(role1.permissions, [])
+
+        table1_pvm = security_manager.find_permission_view_menu(
+            "datasource_access", f"[tmp_db].[tmp_table1](id:{table1.id})"
+        )
+        self.assertIsNone(table1_pvm)
+
+        # Test rollback, permissions exist everything is correctly rollback
+        session.rollback()
+        role1 = security_manager.find_role("tmp_role1")
+        table1_pvm = security_manager.find_permission_view_menu(
+            "datasource_access", f"[tmp_db].[tmp_table1](id:{table1.id})"
+        )
+        self.assertIsNotNone(table1_pvm)
+        self.assertEqual(role1.permissions, [table1_pvm])
+
+        # cleanup
+        session.delete(table1)
         session.delete(role1)
         session.delete(tmp_db)
         session.commit()
@@ -599,6 +802,61 @@ class TestRolePermission(SupersetTestCase):
                 call(ANY, ANY, view_menu_dataset),
             ]
         )
+        # cleanup
+        session.delete(slice1)
+        session.delete(table1)
+        session.delete(tmp_db)
+        session.commit()
+
+    def test_after_update_dataset_rollback(self):
+        session = db.session
+        tmp_db = Database(database_name="tmp_db", sqlalchemy_uri="sqlite://")
+        session.add(tmp_db)
+        session.commit()
+
+        table1 = SqlaTable(
+            schema="tmp_schema",
+            table_name="tmp_table1",
+            database=tmp_db,
+        )
+        session.add(table1)
+        session.commit()
+
+        slice1 = Slice(
+            datasource_id=table1.id,
+            datasource_type=DatasourceType.TABLE,
+            datasource_name="tmp_table1",
+            slice_name="tmp_slice1",
+        )
+        session.add(slice1)
+        session.commit()
+
+        # refresh
+        table1 = session.query(SqlaTable).filter_by(table_name="tmp_table1").one()
+        # Test update
+        table1.table_name = "tmp_table1_changed"
+        session.flush()
+
+        # Test old permission does not exist
+        old_table1_pvm = security_manager.find_permission_view_menu(
+            "datasource_access", f"[tmp_db].[tmp_table1](id:{table1.id})"
+        )
+        self.assertIsNone(old_table1_pvm)
+
+        # Test new permission exist
+        new_table1_pvm = security_manager.find_permission_view_menu(
+            "datasource_access", f"[tmp_db].[tmp_table1_changed](id:{table1.id})"
+        )
+        self.assertIsNotNone(new_table1_pvm)
+
+        # Test rollback
+        session.rollback()
+
+        old_table1_pvm = security_manager.find_permission_view_menu(
+            "datasource_access", f"[tmp_db].[tmp_table1](id:{table1.id})"
+        )
+        self.assertIsNotNone(old_table1_pvm)
+
         # cleanup
         session.delete(slice1)
         session.delete(table1)
