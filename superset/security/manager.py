@@ -1467,7 +1467,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 RowLevelSecurityFilter.filter_type == RowLevelSecurityFilterType.REGULAR
             )
             .filter(RLSFilterRoles.c.role_id.in_(user_roles))
-            .subquery()
         )
         base_filter_roles = (
             self.get_session()
@@ -1477,13 +1476,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 RowLevelSecurityFilter.filter_type == RowLevelSecurityFilterType.BASE
             )
             .filter(RLSFilterRoles.c.role_id.in_(user_roles))
-            .subquery()
         )
         filter_tables = (
             self.get_session()
             .query(RLSFilterTables.c.rls_filter_id)
             .filter(RLSFilterTables.c.table_id == table.id)
-            .subquery()
         )
         query = (
             self.get_session()
