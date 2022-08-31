@@ -17,18 +17,14 @@
  * under the License.
  */
 import { DASHBOARD_LIST } from 'cypress/utils/urls';
+import { setGridMode, setFilter, interceptBulkDelete, interceptUpdate, interceptDelete } from '../dashboard/utils';
 
 function toggleBulkSelect() {
   cy.getBySel("bulk-select").click();
 }
 
-function setGridMode(type: 'card' | 'list') {
-  cy.get(`[aria-label="${type}-view"]`).click();
-}
-
 function orderAlphabetical() {
-  cy.get('[aria-label="Sort"]').first().click();
-  cy.get('[title="Alphabetical"]').click();
+  setFilter('Sort', 'Alphabetical');
 }
 
 function openProperties() {
@@ -154,6 +150,7 @@ describe('Dashboards list', () => {
     });
 
     it('should bulk delete correctly', () => {
+      interceptBulkDelete();
       toggleBulkSelect();
 
       // bulk deletes in card-view
@@ -164,6 +161,7 @@ describe('Dashboards list', () => {
       cy.getBySel("styled-card").eq(1).contains('2 - Sample dashboard').click();
       cy.getBySel("bulk-select-action").eq(0).contains('Delete').click();
       confirmDelete();
+      cy.wait('@bulkDelete');
       cy.getBySel("styled-card").eq(0).should('not.contain', '1 - Sample dashboard');
       cy.getBySel("styled-card").eq(1).should('not.contain', '2 - Sample dashboard');
 
@@ -175,11 +173,14 @@ describe('Dashboards list', () => {
       cy.get('[data-test="table-row"] input[type="checkbox"]').eq(1).click();
       cy.getBySel("bulk-select-action").eq(0).contains('Delete').click();
       confirmDelete();
+      cy.wait('@bulkDelete');
       cy.getBySel("table-row").eq(0).should('not.contain', '3 - Sample dashboard');
       cy.getBySel("table-row").eq(1).should('not.contain', '4 - Sample dashboard');
     });
 
    it('should delete correctly', () => {
+      interceptDelete();
+
       // deletes in card-view
       setGridMode('card');
       orderAlphabetical();
@@ -188,6 +189,7 @@ describe('Dashboards list', () => {
       openMenu();
       cy.getBySel('dashboard-card-option-delete-button').click();
       confirmDelete();
+      cy.wait('@delete');
       cy.getBySel("styled-card").eq(0).should('not.contain', '1 - Sample dashboard');
 
       // deletes in list-view
@@ -195,11 +197,14 @@ describe('Dashboards list', () => {
       cy.getBySel("table-row").eq(0).contains('2 - Sample dashboard');
       cy.getBySel("dashboard-list-trash-icon").eq(0).click();
       confirmDelete();
+      cy.wait('@delete');
       cy.getBySel("table-row").eq(0).should('not.contain', '2 - Sample dashboard');
 
     });
 
     it('should edit correctly', () => {
+      interceptUpdate();
+
       // edits in card-view
       setGridMode('card');
       orderAlphabetical();
@@ -209,6 +214,7 @@ describe('Dashboards list', () => {
       openProperties();
       cy.getBySel('dashboard-title-input').type(' | EDITED');
       cy.get('button:contains("Save")').click();
+      cy.wait('@update');
       cy.getBySel("styled-card").eq(0).contains('1 - Sample dashboard | EDITED');
 
       // edits in list-view
@@ -216,6 +222,7 @@ describe('Dashboards list', () => {
       cy.getBySel("edit-alt").eq(0).click();
       cy.getBySel('dashboard-title-input').clear().type('1 - Sample dashboard');
       cy.get('button:contains("Save")').click();
+      cy.wait('@update');
       cy.getBySel("table-row").eq(0).contains('1 - Sample dashboard');
     });
   });
