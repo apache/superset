@@ -77,7 +77,6 @@ describe('LeftPanel', () => {
     render(<LeftPanel setDataset={mockFun} schema="schema_a" dbId={1} />, {
       useRedux: true,
     });
-    // screen.debug('container', container)
     SupersetClientGet.mockImplementation(getSchemaMockFunction);
     SupersetClientGet.mockImplementation(getTableMockFunction);
     expect(screen.getByTestId('options-list')).toBeInTheDocument();

@@ -47,7 +47,7 @@ export function datasetReducer(
     case DatasetActionType.selectSchema:
       return {
         ...trimmedState,
-        schema: action.payload as string,
+        [action.payload.name]: action.payload.value,
         table_name: null,
       };
     case DatasetActionType.selectTable:
@@ -66,8 +66,6 @@ export function datasetReducer(
 }
 
 export default function AddDataset() {
-  // this is commented out for now, but can be commented in as the component
-  // is built up. Uncomment the useReducer in imports too
   const [dataset, setDataset] = useReducer<
     Reducer<Partial<DatasetObject> | null, DSReducerActionType>
   >(datasetReducer, null);

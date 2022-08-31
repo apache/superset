@@ -50,7 +50,7 @@ const LeftPanelStyle = styled.div`
   position: relative;
   .emptystate {
     height: auto;
-    margin-top: 70px;
+    margin-top: ${theme.gridUnit * 17.5}px;
   }
   .refresh {
     position: absolute;
@@ -73,9 +73,9 @@ const LeftPanelStyle = styled.div`
   .options-list {
     overflow: auto;
     position: absolute;
-    bottom: 0px;
-    top: 390px;
-    left: 13px;
+    bottom: 0;
+    top: ${theme.gridUnit * 97.5}px;
+    left: ${theme.gridUnit * 3.25}px;
     right: 0;
     .options {
       padding: ${theme.gridUnit * 1.75}px;
@@ -148,13 +148,16 @@ export default function LeftPanel({
 
   const setSchema = (schema: string) => {
     if (schema) {
-      setDataset({ type: DatasetActionType.selectSchema, payload: schema });
+      setDataset({
+        type: DatasetActionType.selectSchema,
+        payload: { name: 'schema', value: schema },
+      });
       setLoadTables(true);
     }
     setResetTables(true);
   };
 
-  const encodedSchema = encodeURIComponent(schema as string);
+  const encodedSchema = schema ? encodeURIComponent(schema) : undefined;
 
   useEffect(() => {
     if (loadTables) {
@@ -187,7 +190,7 @@ export default function LeftPanel({
 
   return (
     <LeftPanelStyle>
-      <p className="section-title db-schema"> Select Database & Schema</p>
+      <p className="section-title db-schema">Select Database & Schema</p>
       <DatabaseSelector
         handleError={addDangerToast}
         onDbChange={setDatabase}
@@ -196,7 +199,7 @@ export default function LeftPanel({
       {loadTables && (
         <div className="loading">
           <Loading position="inline" />
-          <p>loading schemas ...</p>
+          <p>Tables loading ...</p>
         </div>
       )}
       {!schema && !loadTables ? (
