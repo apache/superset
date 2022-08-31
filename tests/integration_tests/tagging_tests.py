@@ -31,8 +31,12 @@ from tests.integration_tests.conftest import with_feature_flags
 
 class TestTagging(SupersetTestCase):
     def query_tagged_object_table(self):
-        query = (db.session.query(TaggedObject).all())
+        query = db.session.query(TaggedObject).all()
         return query
+
+    def clear_tagged_object_table(self):
+        db.session.query(TaggedObject).delete()
+        db.session.commit()
 
     @with_feature_flags(TAGGING_SYSTEM=False)
     def test_tag_view_disabled(self):
@@ -53,6 +57,9 @@ class TestTagging(SupersetTestCase):
         a corresponding tag in the tagged_objects table
         is created
         """
+
+        # Remove all existing rows in the tagged_object table
+        self.clear_tagged_object_table()
 
         # Test to make sure nothing is in the tagged_object table
         self.assertEqual([], self.query_tagged_object_table())
@@ -87,6 +94,9 @@ class TestTagging(SupersetTestCase):
         is created
         """
 
+        # Remove all existing rows in the tagged_object table
+        self.clear_tagged_object_table()
+
         # Test to make sure nothing is in the tagged_object table
         self.assertEqual([], self.query_tagged_object_table())
 
@@ -119,6 +129,9 @@ class TestTagging(SupersetTestCase):
         is created
         """
 
+        # Remove all existing rows in the tagged_object table
+        self.clear_tagged_object_table()
+
         # Test to make sure nothing is in the tagged_object table
         self.assertEqual([], self.query_tagged_object_table())
 
@@ -149,6 +162,9 @@ class TestTagging(SupersetTestCase):
         created, a corresponding tag in the tagged_objects
         table is created
         """
+
+        # Remove all existing rows in the tagged_object table
+        self.clear_tagged_object_table()
 
         # Test to make sure nothing is in the tagged_object table
         self.assertEqual([], self.query_tagged_object_table())
