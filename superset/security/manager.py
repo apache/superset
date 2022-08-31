@@ -79,12 +79,18 @@ from superset.security.guest_token import (
     GuestTokenUser,
     GuestUser,
 )
-from superset.utils.core import DatasourceName, get_user_id, RowLevelSecurityFilterType
+from superset.utils.core import (
+    DatasourceName,
+    DatasourceType,
+    get_user_id,
+    RowLevelSecurityFilterType,
+)
 from superset.utils.urls import get_url_host
 
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
     from superset.connectors.base.models import BaseDatasource
+    from superset.connectors.sqla.models import SqlaTable
     from superset.models.core import Database
     from superset.models.dashboard import Dashboard
     from superset.models.sql_lab import Query
@@ -943,15 +949,88 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         return pvm.permission.name in {"can_override_role_permissions", "can_approve"}
 
+    def database_after_insert(
+        self,
+        mapper: Mapper,
+        connection: Connection,
+        target: "Database",
+    ) -> None:
+        """
+        Handles permissions when a database is created.
+        Triggered by a SQLAlchemy after_insert event.
+
+        We need to create:
+         - The database PVM
+
+        :param mapper: The SQLA mapper
+        :param connection: The SQLA connection
+        :param target: The changed database object
+        :return:
+        """
+        self._insert_pvm_on_sqla_event(
+            mapper, connection, "database_access", target.get_perm()
+        )
+
     def database_after_delete(
         self,
         mapper: Mapper,
         connection: Connection,
         target: "Database",
     ) -> None:
+        """
+        Handles permissions update when a database is deleted.
+        Triggered by a SQLAlchemy after_delete event.
+
+        We need to delete:
+         - The database PVM
+
+        :param mapper: The SQLA mapper
+        :param connection: The SQLA connection
+        :param target: The changed database object
+        :return:
+        """
         self._delete_vm_database_access(
             mapper, connection, target.id, target.database_name
         )
+
+    def database_after_update(
+        self,
+        mapper: Mapper,
+        connection: Connection,
+        target: "Database",
+    ) -> None:
+        """
+        Handles all permissions update when a database is changed.
+        Triggered by a SQLAlchemy after_update event.
+
+        We need to update:
+         - The database PVM
+         - All datasets PVMs that reference the db, and it's local perm name
+         - All datasets local schema perm that reference the db.
+         - All charts local perm related with said datasets
+         - All charts local schema perm related with said datasets
+
+        :param mapper: The SQLA mapper
+        :param connection: The SQLA connection
+        :param target: The changed database object
+        :return:
+        """
+        # Check if database name has changed
+        state = inspect(target)
+        history = state.get_history("database_name", True)
+        if not history.has_changes() or not history.deleted:
+            return
+
+        old_database_name = history.deleted[0]
+        # update database access permission
+        self._update_vm_database_access(mapper, connection, old_database_name, target)
+        # update datasource access
+        self._update_vm_datasources_access(
+            mapper, connection, old_database_name, target
+        )
+        # Note schema permissions are updated at the API level
+        # (database.commands.update). Since we need to fetch all existing schemas from
+        # the db
 
     def _delete_vm_database_access(
         self,
@@ -960,29 +1039,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         database_id: int,
         database_name: str,
     ) -> None:
-        view_menu_table = self.viewmenu_model.__table__  # pylint: disable=no-member
-        permission_view_menu_table = (
-            self.permissionview_model.__table__  # pylint: disable=no-member
-        )
         view_menu_name = self.get_database_perm(database_id, database_name)
         # Clean database access permission
-        db_pvm = self.find_permission_view_menu("database_access", view_menu_name)
-        if not db_pvm:
-            logger.warning(
-                "Could not find previous database permission %s",
-                view_menu_name,
-            )
-            return
-        connection.execute(
-            permission_view_menu_table.delete().where(
-                permission_view_menu_table.c.id == db_pvm.id
-            )
+        self._delete_pvm_on_sqla_event(
+            mapper, connection, "database_access", view_menu_name
         )
-        self.on_permission_after_delete(mapper, connection, db_pvm)
-        connection.execute(
-            view_menu_table.delete().where(view_menu_table.c.id == db_pvm.view_menu_id)
-        )
-
         # Clean database schema permissions
         schema_pvms = (
             self.get_session.query(self.permissionview_model)
@@ -993,17 +1054,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             .all()
         )
         for schema_pvm in schema_pvms:
-            connection.execute(
-                permission_view_menu_table.delete().where(
-                    permission_view_menu_table.c.id == schema_pvm.id
-                )
-            )
-            self.on_permission_after_delete(mapper, connection, schema_pvm)
-            connection.execute(
-                view_menu_table.delete().where(
-                    view_menu_table.c.id == schema_pvm.view_menu_id
-                )
-            )
+            self._delete_pvm_on_sqla_event(mapper, connection, pvm=schema_pvm)
 
     def _update_vm_database_access(
         self,
@@ -1012,6 +1063,15 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         old_database_name: str,
         target: "Database",
     ) -> Optional[ViewMenu]:
+        """
+        Helper method that Updates all database access permission
+        when a database name changes.
+
+        :param connection: Current connection (called on SQLAlchemy event listener scope)
+        :param old_database_name: the old database name
+        :param target: The database object
+        :return: A list of changed view menus (permission resource names)
+        """
         view_menu_table = self.viewmenu_model.__table__  # pylint: disable=no-member
         new_database_name = target.database_name
         old_view_menu_name = self.get_database_perm(target.id, old_database_name)
@@ -1021,6 +1081,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             logger.warning(
                 "Could not find previous database permission %s",
                 old_view_menu_name,
+            )
+            self._insert_pvm_on_sqla_event(
+                mapper, connection, "database_access", new_view_menu_name
             )
             return None
         new_updated_pvm = self.find_permission_view_menu(
@@ -1053,11 +1116,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         target: "Database",
     ) -> List[ViewMenu]:
         """
-        Updates all datasource access permission when a database name changes
+        Helper method that Updates all datasource access permission
+        when a database name changes.
 
         :param connection: Current connection (called on SQLAlchemy event listener scope)
         :param old_database_name: the old database name
-        :param target: The new database name
+        :param target: The database object
         :return: A list of changed view menus (permission resource names)
         """
         from superset.connectors.sqla.models import (  # pylint: disable=import-outside-toplevel
@@ -1092,6 +1156,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 .where(view_menu_table.c.name == old_dataset_vm_name)
                 .values(name=new_dataset_vm_name)
             )
+            # After update refresh
+            new_dataset_view_menu = self.find_view_menu(new_dataset_vm_name)
+
             # Update dataset (SqlaTable perm field)
             connection.execute(
                 sqlatable_table.update()
@@ -1108,28 +1175,390 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 .values(perm=new_dataset_vm_name)
             )
             self.on_view_menu_after_update(mapper, connection, new_dataset_view_menu)
-            updated_view_menus.append(self.find_view_menu(new_dataset_view_menu))
+            updated_view_menus.append(new_dataset_view_menu)
         return updated_view_menus
 
-    def database_after_update(
+    def dataset_after_insert(
         self,
         mapper: Mapper,
         connection: Connection,
-        target: "Database",
+        target: "SqlaTable",
     ) -> None:
-        # Check if database name has changed
-        state = inspect(target)
-        history = state.get_history("database_name", True)
-        if not history.has_changes() or not history.deleted:
-            return
+        """
+        Handles permission creation when a dataset is inserted.
+        Triggered by a SQLAlchemy after_insert event.
 
-        old_database_name = history.deleted[0]
-        # update database access permission
-        self._update_vm_database_access(mapper, connection, old_database_name, target)
-        # update datasource access
-        self._update_vm_datasources_access(
-            mapper, connection, old_database_name, target
+        We need to create:
+         - The dataset PVM and set local and schema perm
+
+        :param mapper: The SQLA mapper
+        :param connection: The SQLA connection
+        :param target: The changed dataset object
+        :return:
+        """
+        try:
+            dataset_perm = target.get_perm()
+        except DatasetInvalidPermissionEvaluationException:
+            logger.warning("Dataset has no database refusing to set permission")
+            return
+        dataset_table = target.__table__
+
+        self._insert_pvm_on_sqla_event(
+            mapper, connection, "datasource_access", dataset_perm
         )
+        if target.perm != dataset_perm:
+            target.perm = dataset_perm
+            connection.execute(
+                dataset_table.update()
+                .where(dataset_table.c.id == target.id)
+                .values(perm=dataset_perm)
+            )
+
+        if target.schema:
+            dataset_schema_perm = self.get_schema_perm(
+                target.database.database_name, target.schema
+            )
+            self._insert_pvm_on_sqla_event(
+                mapper, connection, "schema_access", dataset_schema_perm
+            )
+            target.schema_perm = dataset_schema_perm
+            connection.execute(
+                dataset_table.update()
+                .where(dataset_table.c.id == target.id)
+                .values(schema_perm=dataset_schema_perm)
+            )
+
+    def dataset_after_delete(
+        self,
+        mapper: Mapper,
+        connection: Connection,
+        target: "SqlaTable",
+    ) -> None:
+        """
+        Handles permissions update when a dataset is deleted.
+        Triggered by a SQLAlchemy after_delete event.
+
+        We need to delete:
+         - The dataset PVM
+
+        :param mapper: The SQLA mapper
+        :param connection: The SQLA connection
+        :param target: The changed dataset object
+        :return:
+        """
+        dataset_vm_name = self.get_dataset_perm(
+            target.id, target.table_name, target.database.database_name
+        )
+        self._delete_pvm_on_sqla_event(
+            mapper, connection, "datasource_access", dataset_vm_name
+        )
+
+    def dataset_after_update(
+        self,
+        mapper: Mapper,
+        connection: Connection,
+        target: "SqlaTable",
+    ) -> None:
+        """
+        Handles all permissions update when a dataset is changed.
+        Triggered by a SQLAlchemy after_update event.
+
+        We need to update:
+         - The dataset PVM and local perm
+         - All charts local perm related with said datasets
+         - All charts local schema perm related with said datasets
+
+        :param mapper: The SQLA mapper
+        :param connection: The SQLA connection
+        :param target: The changed dataset object
+        :return:
+        """
+        # Check if watched fields have changed
+        state = inspect(target)
+        history_database = state.get_history("database_id", True)
+        history_table_name = state.get_history("table_name", True)
+        history_schema = state.get_history("schema", True)
+
+        # When database name changes
+        if history_database.has_changes() and history_database.deleted:
+            new_dataset_vm_name = self.get_dataset_perm(
+                target.id, target.table_name, target.database.database_name
+            )
+            self._update_dataset_perm(
+                mapper, connection, target.perm, new_dataset_vm_name, target
+            )
+
+            # Updates schema permissions
+            new_dataset_schema_name = self.get_schema_perm(
+                target.database.database_name, target.schema
+            )
+            self._update_dataset_schema_perm(
+                mapper,
+                connection,
+                new_dataset_schema_name,
+                target,
+            )
+
+        # When table name changes
+        if history_table_name.has_changes() and history_table_name.deleted:
+            old_dataset_name = history_table_name.deleted[0]
+            new_dataset_vm_name = self.get_dataset_perm(
+                target.id, target.table_name, target.database.database_name
+            )
+            old_dataset_vm_name = self.get_dataset_perm(
+                target.id, old_dataset_name, target.database.database_name
+            )
+            self._update_dataset_perm(
+                mapper, connection, old_dataset_vm_name, new_dataset_vm_name, target
+            )
+
+        # When schema changes
+        if history_schema.has_changes() and history_schema.deleted:
+            new_dataset_schema_name = self.get_schema_perm(
+                target.database.database_name, target.schema
+            )
+            self._update_dataset_schema_perm(
+                mapper,
+                connection,
+                new_dataset_schema_name,
+                target,
+            )
+
+    def _update_dataset_schema_perm(
+        self,
+        mapper: Mapper,
+        connection: Connection,
+        new_schema_permission_name: Optional[str],
+        target: "SqlaTable",
+    ) -> None:
+        """
+        Helper method that is called by SQLAlchemy events on datasets to update
+        a new schema permission name, propagates the name change to datasets and charts.
+
+        If the schema permission name does not exist already has a PVM,
+        creates a new one.
+
+        :param mapper: The SQLA event mapper
+        :param connection: The SQLA connection
+        :param new_schema_permission_name: The new schema permission name that changed
+        :param target: Dataset that was updated
+        :return:
+        """
+        from superset.connectors.sqla.models import (  # pylint: disable=import-outside-toplevel
+            SqlaTable,
+        )
+        from superset.models.slice import (  # pylint: disable=import-outside-toplevel
+            Slice,
+        )
+
+        sqlatable_table = SqlaTable.__table__  # pylint: disable=no-member
+        chart_table = Slice.__table__  # pylint: disable=no-member
+
+        # insert new schema PVM if it does not exist
+        self._insert_pvm_on_sqla_event(
+            mapper, connection, "schema_access", new_schema_permission_name
+        )
+
+        # Update dataset (SqlaTable schema_perm field)
+        connection.execute(
+            sqlatable_table.update()
+            .where(
+                sqlatable_table.c.id == target.id,
+            )
+            .values(schema_perm=new_schema_permission_name)
+        )
+
+        # Update charts (Slice schema_perm field)
+        connection.execute(
+            chart_table.update()
+            .where(
+                chart_table.c.datasource_id == target.id,
+                chart_table.c.datasource_type == DatasourceType.TABLE,
+            )
+            .values(schema_perm=new_schema_permission_name)
+        )
+
+    def _update_dataset_perm(  # pylint: disable=too-many-arguments
+        self,
+        mapper: Mapper,
+        connection: Connection,
+        old_permission_name: Optional[str],
+        new_permission_name: Optional[str],
+        target: "SqlaTable",
+    ) -> None:
+        """
+        Helper method that is called by SQLAlchemy events on datasets to update
+        a permission name change, propagates the name change to VM, datasets and charts.
+
+        :param mapper:
+        :param connection:
+        :param old_permission_name
+        :param new_permission_name:
+        :param target:
+        :return:
+        """
+        from superset.connectors.sqla.models import (  # pylint: disable=import-outside-toplevel
+            SqlaTable,
+        )
+        from superset.models.slice import (  # pylint: disable=import-outside-toplevel
+            Slice,
+        )
+
+        view_menu_table = self.viewmenu_model.__table__  # pylint: disable=no-member
+        sqlatable_table = SqlaTable.__table__  # pylint: disable=no-member
+        chart_table = Slice.__table__  # pylint: disable=no-member
+
+        new_dataset_view_menu = self.find_view_menu(new_permission_name)
+        if new_dataset_view_menu:
+            return
+        # Update VM
+        connection.execute(
+            view_menu_table.update()
+            .where(view_menu_table.c.name == old_permission_name)
+            .values(name=new_permission_name)
+        )
+        # VM changed, so call hook
+        new_dataset_view_menu = self.find_view_menu(new_permission_name)
+        self.on_view_menu_after_update(mapper, connection, new_dataset_view_menu)
+        # Update dataset (SqlaTable perm field)
+        connection.execute(
+            sqlatable_table.update()
+            .where(
+                sqlatable_table.c.id == target.id,
+            )
+            .values(perm=new_permission_name)
+        )
+        # Update charts (Slice perm field)
+        connection.execute(
+            chart_table.update()
+            .where(
+                chart_table.c.datasource_type == DatasourceType.TABLE,
+                chart_table.c.datasource_id == target.id,
+            )
+            .values(perm=new_permission_name)
+        )
+
+    def _delete_pvm_on_sqla_event(  # pylint: disable=too-many-arguments
+        self,
+        mapper: Mapper,
+        connection: Connection,
+        permission_name: Optional[str] = None,
+        view_menu_name: Optional[str] = None,
+        pvm: Optional[PermissionView] = None,
+    ) -> None:
+        """
+        Helper method that is called by SQLAlchemy events.
+        Deletes a PVM.
+
+        :param mapper: The SQLA event mapper
+        :param connection: The SQLA connection
+        :param permission_name: e.g.: datasource_access, schema_access
+        :param view_menu_name: e.g. [db1].[public]
+        :param pvm: Can be called with the actual PVM already
+        :return:
+        """
+        view_menu_table = self.viewmenu_model.__table__  # pylint: disable=no-member
+        permission_view_menu_table = (
+            self.permissionview_model.__table__  # pylint: disable=no-member
+        )
+
+        if not pvm:
+            pvm = self.find_permission_view_menu(permission_name, view_menu_name)
+        if not pvm:
+            return
+        # Delete Any Role to PVM association
+        connection.execute(
+            assoc_permissionview_role.delete().where(
+                assoc_permissionview_role.c.permission_view_id == pvm.id
+            )
+        )
+        # Delete the database access PVM
+        connection.execute(
+            permission_view_menu_table.delete().where(
+                permission_view_menu_table.c.id == pvm.id
+            )
+        )
+        self.on_permission_view_after_delete(mapper, connection, pvm)
+        connection.execute(
+            view_menu_table.delete().where(view_menu_table.c.id == pvm.view_menu_id)
+        )
+
+    def _insert_pvm_on_sqla_event(
+        self,
+        mapper: Mapper,
+        connection: Connection,
+        permission_name: str,
+        view_menu_name: Optional[str],
+    ) -> None:
+        """
+        Helper method that is called by SQLAlchemy events.
+        Inserts a new PVM (if it does not exist already)
+
+        :param mapper: The SQLA event mapper
+        :param connection: The SQLA connection
+        :param permission_name: e.g.: datasource_access, schema_access
+        :param view_menu_name: e.g. [db1].[public]
+        :return:
+        """
+        permission_table = self.permission_model.__table__  # pylint: disable=no-member
+        view_menu_table = self.viewmenu_model.__table__  # pylint: disable=no-member
+        permission_view_table = (
+            self.permissionview_model.__table__  # pylint: disable=no-member
+        )
+        if not view_menu_name:
+            return
+        pvm = self.find_permission_view_menu(permission_name, view_menu_name)
+        if pvm:
+            return
+        permission = self.find_permission(permission_name)
+        view_menu = self.find_view_menu(view_menu_name)
+        if not permission:
+            connection.execute(permission_table.insert().values(name=permission_name))
+            permission = self.find_permission(permission_name)
+            self.on_permission_after_insert(mapper, connection, permission)
+        if not view_menu:
+            connection.execute(view_menu_table.insert().values(name=view_menu_name))
+            view_menu = self.find_view_menu(view_menu_name)
+            self.on_view_menu_after_insert(mapper, connection, view_menu)
+        connection.execute(
+            permission_view_table.insert().values(
+                permission_id=permission.id, view_menu_id=view_menu.id
+            )
+        )
+        permission = self.find_permission_view_menu(permission_name, view_menu_name)
+        self.on_permission_view_after_insert(mapper, connection, permission)
+
+    def on_role_after_update(
+        self, mapper: Mapper, connection: Connection, target: Role
+    ) -> None:
+        """
+        Hook that allows for further custom operations when a Role update
+        is created by SQLAlchemy events.
+
+        On SQLAlchemy after_insert events, we cannot
+        create new view_menu's using a session, so any SQLAlchemy events hooked to
+        `ViewMenu` will not trigger an after_insert.
+
+        :param mapper: The table mapper
+        :param connection: The DB-API connection
+        :param target: The mapped instance being changed
+        """
+
+    def on_view_menu_after_insert(
+        self, mapper: Mapper, connection: Connection, target: ViewMenu
+    ) -> None:
+        """
+        Hook that allows for further custom operations when a new ViewMenu
+        is created by set_perm.
+
+        On SQLAlchemy after_insert events, we cannot
+        create new view_menu's using a session, so any SQLAlchemy events hooked to
+        `ViewMenu` will not trigger an after_insert.
+
+        :param mapper: The table mapper
+        :param connection: The DB-API connection
+        :param target: The mapped instance being persisted
+        """
 
     def on_view_menu_after_update(
         self, mapper: Mapper, connection: Connection, target: ViewMenu
@@ -1141,18 +1570,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         Since the update may be performed on after_update event. We cannot
         update ViewMenus using a session, so any SQLAlchemy events hooked to
         `ViewMenu` will not trigger an after_update.
-
-        :param mapper: The table mapper
-        :param connection: The DB-API connection
-        :param target: The mapped instance being persisted
-        """
-
-    def on_permission_after_delete(
-        self, mapper: Mapper, connection: Connection, target: Permission
-    ) -> None:
-        """
-        Hook that allows for further custom operations when a permission
-        is deleted by sqlalchemy events.
 
         :param mapper: The table mapper
         :param connection: The DB-API connection
@@ -1175,30 +1592,14 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :param target: The mapped instance being persisted
         """
 
-    def on_view_menu_after_insert(
-        self, mapper: Mapper, connection: Connection, target: ViewMenu
-    ) -> None:
-        """
-        Hook that allows for further custom operations when a new ViewMenu
-        is created by set_perm.
-
-        Since set_perm is executed by SQLAlchemy after_insert events, we cannot
-        create new view_menu's using a session, so any SQLAlchemy events hooked to
-        `ViewMenu` will not trigger an after_insert.
-
-        :param mapper: The table mapper
-        :param connection: The DB-API connection
-        :param target: The mapped instance being persisted
-        """
-
     def on_permission_view_after_insert(
         self, mapper: Mapper, connection: Connection, target: PermissionView
     ) -> None:
         """
         Hook that allows for further custom operations when a new PermissionView
-        is created by set_perm.
+        is created by SQLAlchemy events.
 
-        Since set_perm is executed by SQLAlchemy after_insert events, we cannot
+        On SQLAlchemy after_insert events, we cannot
         create new pvms using a session, so any SQLAlchemy events hooked to
         `PermissionView` will not trigger an after_insert.
 
@@ -1207,98 +1608,21 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :param target: The mapped instance being persisted
         """
 
-    def set_perm(
-        self, mapper: Mapper, connection: Connection, target: "BaseDatasource"
+    def on_permission_view_after_delete(
+        self, mapper: Mapper, connection: Connection, target: PermissionView
     ) -> None:
         """
-        Set the datasource permissions.
+        Hook that allows for further custom operations when a new PermissionView
+        is delete by SQLAlchemy events.
+
+        On SQLAlchemy after_delete events, we cannot
+        delete pvms using a session, so any SQLAlchemy events hooked to
+        `PermissionView` will not trigger an after_delete.
 
         :param mapper: The table mapper
         :param connection: The DB-API connection
         :param target: The mapped instance being persisted
         """
-        try:
-            target_get_perm = target.get_perm()
-        except DatasetInvalidPermissionEvaluationException:
-            logger.warning("Dataset has no database refusing to set permission")
-            return
-        permission_table = self.permission_model.__table__  # pylint: disable=no-member
-        view_menu_table = self.viewmenu_model.__table__  # pylint: disable=no-member
-        link_table = target.__table__
-        if target.perm != target_get_perm:
-            connection.execute(
-                link_table.update()
-                .where(link_table.c.id == target.id)
-                .values(perm=target_get_perm)
-            )
-            connection.execute(
-                permission_table.update()
-                .where(permission_table.c.name == target.perm)
-                .values(name=target_get_perm)
-            )
-            connection.execute(
-                view_menu_table.update()
-                .where(view_menu_table.c.name == target.perm)
-                .values(name=target_get_perm)
-            )
-            target.perm = target_get_perm
-
-        # check schema perm for datasets
-        if (
-            hasattr(target, "schema_perm")
-            and target.schema_perm != target.get_schema_perm()
-        ):
-            connection.execute(
-                link_table.update()
-                .where(link_table.c.id == target.id)
-                .values(schema_perm=target.get_schema_perm())
-            )
-            target.schema_perm = target.get_schema_perm()
-
-        pvm_names = []
-        if target.__tablename__ in {"dbs", "clusters"}:
-            pvm_names.append(("database_access", target_get_perm))
-        else:
-            pvm_names.append(("datasource_access", target_get_perm))
-            if target.schema:
-                pvm_names.append(("schema_access", target.get_schema_perm()))
-
-        # TODO(bogdan): modify slice permissions as well.
-        for permission_name, view_menu_name in pvm_names:
-            permission = self.find_permission(permission_name)
-            view_menu = self.find_view_menu(view_menu_name)
-            pv = None
-
-            if not permission:
-                connection.execute(
-                    permission_table.insert().values(name=permission_name)
-                )
-                permission = self.find_permission(permission_name)
-                self.on_permission_after_insert(mapper, connection, permission)
-            if not view_menu:
-                connection.execute(view_menu_table.insert().values(name=view_menu_name))
-                view_menu = self.find_view_menu(view_menu_name)
-                self.on_view_menu_after_insert(mapper, connection, view_menu)
-
-            if permission and view_menu:
-                pv = (
-                    self.get_session.query(self.permissionview_model)
-                    .filter_by(permission=permission, view_menu=view_menu)
-                    .first()
-                )
-            if not pv and permission and view_menu:
-                permission_view_table = (
-                    self.permissionview_model.__table__  # pylint: disable=no-member
-                )
-                connection.execute(
-                    permission_view_table.insert().values(
-                        permission_id=permission.id, view_menu_id=view_menu.id
-                    )
-                )
-                permission = self.find_permission_view_menu(
-                    permission_name, view_menu_name
-                )
-                self.on_permission_view_after_insert(mapper, connection, permission)
 
     def raise_for_access(
         # pylint: disable=too-many-arguments,too-many-locals
