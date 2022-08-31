@@ -18,9 +18,10 @@
  */
 module.exports = results => {
   const byRuleId = results.reduce((map, current) => {
-    current.messages.forEach(({ ruleId, line, column, message, ...stuff }) => {
-      if (!map[ruleId + message]) {
-        map[ruleId + message] = {
+    const resultsMap = map;
+    current.messages.forEach(({ ruleId, line, column, message }) => {
+      if (!resultsMap[ruleId + message]) {
+        resultsMap[ruleId + message] = {
           rule: ruleId,
           message,
           occurrences: [],
@@ -34,9 +35,9 @@ module.exports = results => {
         column,
         message,
       };
-      map[ruleId + message].occurrences.push(occurrence);
+      resultsMap[ruleId + message].occurrences.push(occurrence);
     });
-    return map;
+    return resultsMap;
   }, {});
 
   const enforcedRules = {
@@ -57,9 +58,9 @@ module.exports = results => {
     },
   };
 
-  const metricsByRule = Object.entries(byRuleId)
-    .filter(([key, value]) => enforcedRules[value.rule] || false)
-    .map(([key, value]) => ({
+  const metricsByRule = Object.values(byRuleId)
+    .filter(value => enforcedRules[value.rule] || false)
+    .map(value => ({
       'eslint rule': value.rule,
       issue: enforcedRules[value.rule].description,
       message: value.message,
