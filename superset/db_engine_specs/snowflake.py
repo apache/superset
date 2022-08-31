@@ -27,7 +27,6 @@ from marshmallow import fields, Schema
 from sqlalchemy.engine.url import URL
 from typing_extensions import TypedDict
 
-from superset.constants import PASSWORD_MASK
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.postgres import PostgresBaseEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -228,7 +227,7 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         query = dict(url.query.items())
         return {
             "username": url.username,
-            "password": PASSWORD_MASK,
+            "password": url.password,
             "account": url.host,
             "database": url.database,
             "role": query.get("role"),

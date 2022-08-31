@@ -389,11 +389,6 @@ class BigQueryEngineSpec(BaseEngineSpec):
 
         # Building parameters from encrypted_extra and uri
         if encrypted_extra:
-            try:
-                encrypted_extra["credentials_info"]["private_key"] = PASSWORD_MASK
-            except KeyError:
-                pass
-
             # ``value.query`` needs to be explicitly converted into a dict (from an
             # ``immutabledict``) so that it can be JSON serialized
             return {**encrypted_extra, "query": dict(value.query)}
@@ -401,7 +396,16 @@ class BigQueryEngineSpec(BaseEngineSpec):
         raise ValidationError("Invalid service credentials")
 
     @classmethod
-    def update_encrypted_extra(
+    def mask_encrypted_extra(cls, encrypted_extra: Dict[str, Any]) -> Dict[str, Any]:
+        try:
+            encrypted_extra["credentials_info"]["private_key"] = PASSWORD_MASK
+        except KeyError:
+            pass
+
+        return encrypted_extra
+
+    @classmethod
+    def unmask_encrypted_extra(
         cls,
         old: Dict[str, Any],
         new: Dict[str, Any],

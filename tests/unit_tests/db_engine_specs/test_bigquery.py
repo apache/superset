@@ -202,7 +202,7 @@ def test_get_parameters_from_uri() -> None:
     }
 
 
-def test_update_encrypted_extra() -> None:
+def test_unmask_encrypted_extra() -> None:
     """
     Test that the private key can be reused from the previous ``encrypted_extra``.
     """
@@ -221,7 +221,7 @@ def test_update_encrypted_extra() -> None:
         },
     }
 
-    assert BigQueryEngineSpec.update_encrypted_extra(old, new) == {
+    assert BigQueryEngineSpec.unmask_encrypted_extra(old, new) == {
         "credentials_info": {
             "project_id": "yellow-unicorn-314419",
             "private_key": "SECRET",

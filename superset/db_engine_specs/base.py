@@ -59,7 +59,6 @@ from sqlparse.tokens import CTE
 from typing_extensions import TypedDict
 
 from superset import security_manager, sql_parse
-from superset.constants import PASSWORD_MASK
 from superset.databases.utils import make_url_safe
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.sql_parse import ParsedQuery, Table
@@ -1658,13 +1657,25 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return user.username if user else None
 
     @classmethod
-    def update_encrypted_extra(
+    def mask_encrypted_extra(cls, encrypted_extra: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Mask ``encrypted_extra``.
+
+        This is used to remove any sensitive data in ``encrypted_extra`` when presenting
+        it to the user. For example, a private key might be replaced with a masked value
+        "XXXXXXXXXX". If the masked value is changed the corresponding entry is updated,
+        otherwise the old value is used (see ``unmask_encrypted_extra`` below).
+        """
+        return encrypted_extra
+
+    @classmethod
+    def unmask_encrypted_extra(
         cls,
         old: Dict[str, Any],  # pylint: disable=unused-argument
         new: Dict[str, Any],
     ) -> Dict[str, Any]:
         """
-        Update ``encrypted_extra``.
+        Remove masks from ``encrypted_extra``.
 
         This method allows reusing existing values from the current encrypted extra on
         updates. It's useful for reusing masked passwords, allowing keys to be updated
@@ -1770,7 +1781,7 @@ class BasicParametersMixin:
         )
         return {
             "username": url.username,
-            "password": PASSWORD_MASK,
+            "password": url.password,
             "host": url.host,
             "port": url.port,
             "database": url.database,

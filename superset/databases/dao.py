@@ -46,7 +46,7 @@ class DatabaseDAO(BaseDAO):
                 new = json.loads(properties["encrypted_extra"])
                 old = json.loads(model.encrypted_extra)
                 properties["encrypted_extra"] = json.dumps(
-                    model.db_engine_spec.update_encrypted_extra(
+                    model.db_engine_spec.unmask_encrypted_extra(
                         old,
                         new,
                     )

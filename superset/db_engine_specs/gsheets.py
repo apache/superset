@@ -133,17 +133,21 @@ class GSheetsEngineSpec(SqliteEngineSpec):
     ) -> Any:
         # Building parameters from encrypted_extra and uri
         if encrypted_extra:
-            try:
-                encrypted_extra["service_account_info"]["private_key"] = PASSWORD_MASK
-            except KeyError:
-                pass
-
             return {**encrypted_extra}
 
         raise ValidationError("Invalid service credentials")
 
     @classmethod
-    def update_encrypted_extra(
+    def mask_encrypted_extra(cls, encrypted_extra: Dict[str, Any]) -> Dict[str, Any]:
+        try:
+            encrypted_extra["service_account_info"]["private_key"] = PASSWORD_MASK
+        except KeyError:
+            pass
+
+        return encrypted_extra
+
+    @classmethod
+    def unmask_encrypted_extra(
         cls,
         old: Dict[str, Any],
         new: Dict[str, Any],
