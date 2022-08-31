@@ -563,6 +563,7 @@ const FilterableTable = ({
   };
 
   const renderGrid = () => {
+    totalTableHeight.current = height;
     if (
       container.current &&
       totalTableWidth.current > container.current.clientWidth
@@ -643,6 +644,7 @@ const FilterableTable = ({
       );
     }
 
+    totalTableHeight.current = height;
     if (
       container.current &&
       totalTableWidth.current > container.current.clientWidth

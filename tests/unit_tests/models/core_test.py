@@ -59,7 +59,7 @@ def test_get_metrics(mocker: MockFixture) -> None:
                 },
             ]
 
-    database.get_db_engine_spec_for_backend = mocker.MagicMock(  # type: ignore
+    database.get_db_engine_spec = mocker.MagicMock(  # type: ignore
         return_value=CustomSqliteEngineSpec
     )
     assert database.get_metrics("table") == [
@@ -70,3 +70,78 @@ def test_get_metrics(mocker: MockFixture) -> None:
             "verbose_name": "COUNT(DISTINCT user_id)",
         },
     ]
+
+
+def test_get_db_engine_spec(mocker: MockFixture) -> None:
+    """
+    Tests for ``get_db_engine_spec``.
+    """
+    from superset.db_engine_specs import BaseEngineSpec
+    from superset.models.core import Database
+
+    # pylint: disable=abstract-method
+    class PostgresDBEngineSpec(BaseEngineSpec):
+        """
+        A DB engine spec with drivers and a default driver.
+        """
+
+        engine = "postgresql"
+        engine_aliases = {"postgres"}
+        drivers = {
+            "psycopg2": "The default Postgres driver",
+            "asyncpg": "An async Postgres driver",
+        }
+        default_driver = "psycopg2"
+
+    # pylint: disable=abstract-method
+    class OldDBEngineSpec(BaseEngineSpec):
+        """
+        And old DB engine spec without drivers nor a default driver.
+        """
+
+        engine = "mysql"
+
+    load_engine_specs = mocker.patch("superset.db_engine_specs.load_engine_specs")
+    load_engine_specs.return_value = [
+        PostgresDBEngineSpec,
+        OldDBEngineSpec,
+    ]
+
+    assert (
+        Database(database_name="db", sqlalchemy_uri="postgresql://").db_engine_spec
+        == PostgresDBEngineSpec
+    )
+    assert (
+        Database(
+            database_name="db", sqlalchemy_uri="postgresql+psycopg2://"
+        ).db_engine_spec
+        == PostgresDBEngineSpec
+    )
+    assert (
+        Database(
+            database_name="db", sqlalchemy_uri="postgresql+asyncpg://"
+        ).db_engine_spec
+        == PostgresDBEngineSpec
+    )
+    assert (
+        Database(
+            database_name="db", sqlalchemy_uri="postgresql+fancynewdriver://"
+        ).db_engine_spec
+        == PostgresDBEngineSpec
+    )
+    assert (
+        Database(database_name="db", sqlalchemy_uri="mysql://").db_engine_spec
+        == OldDBEngineSpec
+    )
+    assert (
+        Database(
+            database_name="db", sqlalchemy_uri="mysql+mysqlconnector://"
+        ).db_engine_spec
+        == OldDBEngineSpec
+    )
+    assert (
+        Database(
+            database_name="db", sqlalchemy_uri="mysql+fancynewdriver://"
+        ).db_engine_spec
+        == OldDBEngineSpec
+    )
