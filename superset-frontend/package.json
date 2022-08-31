@@ -151,7 +151,7 @@
     "match-sorter": "^6.1.0",
     "memoize-one": "^5.1.1",
     "moment": "^2.26.0",
-    "moment-timezone": "^0.5.33",
+    "moment-timezone": "^0.5.35",
     "mousetrap": "^1.6.1",
     "mustache": "^2.2.1",
     "polished": "^3.7.2",
