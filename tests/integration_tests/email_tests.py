@@ -178,6 +178,15 @@ class TestEmailSmtp(SupersetTestCase):
             app.config["SMTP_HOST"], app.config["SMTP_PORT"]
         )
 
+    @mock.patch("smtplib.SMTP")
+    def test_send_mime_tls_server_auth(self, mock_smtp):
+        app.config["SMTP_STARTTLS"] = True
+        app.config["SMTP_TLS_SERVER_AUTH"] = True
+        mock_smtp.return_value = mock.Mock()
+        mock_smtp.return_value.starttls.return_value = mock.Mock()
+        utils.send_mime_email("from", "to", MIMEMultipart(), app.config, dryrun=False)
+        mock_smtp.return_value.starttls.assert_called_with(context=mock.ANY)
+
     @mock.patch("smtplib.SMTP_SSL")
     @mock.patch("smtplib.SMTP")
     def test_send_mime_noauth(self, mock_smtp, mock_smtp_ssl):

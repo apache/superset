@@ -27,6 +27,7 @@ import platform
 import re
 import signal
 import smtplib
+import ssl
 import tempfile
 import threading
 import traceback
@@ -994,6 +995,7 @@ def send_mime_email(
     smtp_password = config["SMTP_PASSWORD"]
     smtp_starttls = config["SMTP_STARTTLS"]
     smtp_ssl = config["SMTP_SSL"]
+    smtp_tls_server_auth = config["SMTP_TLS_SERVER_AUTH"]
 
     if not dryrun:
         smtp = (
@@ -1002,7 +1004,12 @@ def send_mime_email(
             else smtplib.SMTP(smtp_host, smtp_port)
         )
         if smtp_starttls:
-            smtp.starttls()
+            ssl_context = None
+            if smtp_tls_server_auth:
+                # Default ssl context is SERVER_AUTH using the default system
+                # root CA certificates
+                ssl_context = ssl.create_default_context()
+            smtp.starttls(context=ssl_context)
         if smtp_user and smtp_password:
             smtp.login(smtp_user, smtp_password)
         logger.debug("Sent an email to %s", str(e_to))
