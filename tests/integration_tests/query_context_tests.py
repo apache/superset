@@ -736,13 +736,13 @@ def test_time_column_with_time_grain(app_context, physical_dataset):
     column_on_axis: AdhocColumn = {
         "label": "I_AM_A_ORIGINAL_COLUMN",
         "sqlExpression": "col5",
-        "time_grain": "P1Y",
+        "timeGrain": "P1Y",
     }
     adhoc_column: AdhocColumn = {
         "label": "I_AM_A_TRUNC_COLUMN",
         "sqlExpression": "col6",
-        "is_axis": True,
-        "time_grain": "P1Y",
+        "columnType": "AXIS",
+        "timeGrain": "P1Y",
     }
     qc = QueryContextFactory().create(
         datasource={
@@ -787,8 +787,8 @@ def test_non_time_column_with_time_grain(app_context, physical_dataset):
                     {
                         "label": "COL2 ALIAS",
                         "sqlExpression": "col2",
-                        "is_axis": True,
-                        "time_grain": "P1Y",
+                        "columnType": "AXIS",
+                        "timeGrain": "P1Y",
                     },
                 ],
                 "metrics": ["count"],
@@ -819,8 +819,8 @@ def test_special_chars_in_column_name(app_context, physical_dataset):
                     {
                         "label": "I_AM_A_TRUNC_COLUMN",
                         "sqlExpression": "time column with spaces",
-                        "is_axis": True,
-                        "time_grain": "P1Y",
+                        "columnType": "AXIS",
+                        "timeGrain": "P1Y",
                     },
                 ],
                 "metrics": ["count"],
@@ -849,8 +849,8 @@ def test_date_adhoc_column(app_context, physical_dataset):
     column_on_axis: AdhocColumn = {
         "label": "ADHOC COLUMN",
         "sqlExpression": "col6 + interval '20 year'",
-        "is_axis": True,
-        "time_grain": "P1Y",
+        "columnType": "AXIS",
+        "timeGrain": "P1Y",
     }
     qc = QueryContextFactory().create(
         datasource={
@@ -880,8 +880,8 @@ def test_non_date_adhoc_column(app_context, physical_dataset):
     column_on_axis: AdhocColumn = {
         "label": "ADHOC COLUMN",
         "sqlExpression": "col1 * 10",
-        "is_axis": True,
-        "time_grain": "P1Y",
+        "columnType": "AXIS",
+        "timeGrain": "P1Y",
     }
     qc = QueryContextFactory().create(
         datasource={

@@ -127,6 +127,7 @@ from superset.tables.models import Table as NewTable
 from superset.utils import core as utils
 from superset.utils.core import (
     GenericDataType,
+    get_axis_column,
     get_column_name,
     get_username,
     is_adhoc_column,
@@ -1138,11 +1139,16 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             col_desc = get_columns_description(self.database, sql)
             is_dttm = col_desc[0]["is_dttm"]
 
-        if col.get("is_axis") and col.get("time_grain") and is_dttm:
+        if (
+            col.get("columnType")
+            and col.get("columnType") == "AXIS"
+            and col.get("timeGrain")
+            and is_dttm
+        ):
             sqla_column = self.db_engine_spec.get_timestamp_expr(
                 sqla_column,
                 None,
-                col.get("time_grain"),
+                col.get("timeGrain"),
             )
         return self.make_sqla_column_compatible(sqla_column, label)
 

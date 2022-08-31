@@ -27,6 +27,8 @@ export interface AdhocColumn {
   optionName?: string;
   sqlExpression: string;
   expressionType: 'SQL';
+  columnType?: 'AXIS' | 'SERIES';
+  timeGrain?: string;
 }
 
 /**
