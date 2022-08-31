@@ -18,20 +18,6 @@
  */
 import { DASHBOARD_LIST } from 'cypress/utils/urls';
 
-function refresh() {
-  cy.loginGoTo(DASHBOARD_LIST);
-}
-
-function revertChanges() {
-  cy.deleteDashboardByName('0 - Sample dashboard');
-  cy.deleteDashboardByName('1 - Sample dashboard');
-  cy.deleteDashboardByName('0 - Sample dashboard | EDITED');
-}
-
-function ensureAuth() {
-  cy.login();
-}
-
 function toggleBulkSelect() {
   cy.getBySel("bulk-select").click();
 }
@@ -45,15 +31,32 @@ function orderAlphabetical() {
   cy.get('[title="Alphabetical"]').click();
 }
 
+function openProperties() {
+  cy.get('[aria-label="more-vert"]').first().click();
+  cy.getBySel('dashboard-card-option-edit-button').click();
+}
+
+function openMenu() {
+  cy.get('[aria-label="more-vert"]').first().click();
+}
+
+function confirmDelete() {
+  cy.getBySel('delete-modal-input').type('DELETE');
+  cy.getBySel('modal-confirm-button').click();
+}
+
 describe('Dashboards list', () => {
+  before(() => {
+    cy.login();
+  });
+
   beforeEach(() => {
-    ensureAuth();
-    revertChanges();
+    cy.preserveLogin();
   });
 
   describe('list mode', () => {
     before(() => {
-      refresh()
+      cy.visit(DASHBOARD_LIST);
       setGridMode('list');
     });
 
@@ -96,7 +99,7 @@ describe('Dashboards list', () => {
 
   describe('card mode', () => {
     before(() => {
-      refresh();
+      cy.visit(DASHBOARD_LIST);
       setGridMode('card');
     });
 
@@ -126,18 +129,18 @@ describe('Dashboards list', () => {
 
   describe('common actions', () => {
     beforeEach(() => {
-      cy.createDashboard('0 - Sample dashboard');
-      cy.createDashboard('1 - Sample dashboard');
-      refresh();
-      setGridMode('card');
-      orderAlphabetical();
+      cy.createSampleDashboards();
+      cy.visit(DASHBOARD_LIST);
     });
 
     it('should allow to favorite/unfavorite dashboard', () => {
       cy.intercept(`/superset/favstar/Dashboard/*/select/`).as('select');
       cy.intercept(`/superset/favstar/Dashboard/*/unselect/`).as('unselect');
 
-      cy.getBySel('styled-card').first().contains('0 - Sample dashboard')
+      setGridMode('card');
+      orderAlphabetical();
+
+      cy.getBySel('styled-card').first().contains('1 - Sample dashboard')
       cy.getBySel('styled-card').first().find("[aria-label='favorite-unselected']")
         .click();
       cy.wait('@select');
@@ -153,32 +156,67 @@ describe('Dashboards list', () => {
     it('should bulk delete correctly', () => {
       toggleBulkSelect();
 
-      cy.getBySel("styled-card").eq(0).contains('0 - Sample dashboard').click();
-      cy.getBySel("styled-card").eq(1).contains('1 - Sample dashboard').click();
-      cy.getBySel("bulk-select-action").eq(0).contains('Delete').click();
-      cy.getBySel('delete-modal-input').type('DELETE');
-      cy.getBySel('modal-confirm-button').click();
-      cy.getBySel("styled-card").eq(0).should('not.contain', '0 - Sample dashboard');
-      cy.getBySel("styled-card").eq(1).should('not.contain', '1 - Sample dashboard');
+      // bulk deletes in card-view
+      setGridMode('card');
+      orderAlphabetical();
 
+      cy.getBySel("styled-card").eq(0).contains('1 - Sample dashboard').click();
+      cy.getBySel("styled-card").eq(1).contains('2 - Sample dashboard').click();
+      cy.getBySel("bulk-select-action").eq(0).contains('Delete').click();
+      confirmDelete();
+      cy.getBySel("styled-card").eq(0).should('not.contain', '1 - Sample dashboard');
+      cy.getBySel("styled-card").eq(1).should('not.contain', '2 - Sample dashboard');
+
+      // bulk deletes in list-view
+      setGridMode('list');
+      cy.getBySel("table-row").eq(0).contains('3 - Sample dashboard');
+      cy.getBySel("table-row").eq(1).contains('4 - Sample dashboard');
+      cy.get('[data-test="table-row"] input[type="checkbox"]').eq(0).click();
+      cy.get('[data-test="table-row"] input[type="checkbox"]').eq(1).click();
+      cy.getBySel("bulk-select-action").eq(0).contains('Delete').click();
+      confirmDelete();
+      cy.getBySel("table-row").eq(0).should('not.contain', '3 - Sample dashboard');
+      cy.getBySel("table-row").eq(1).should('not.contain', '4 - Sample dashboard');
     });
 
    it('should delete correctly', () => {
-      cy.getBySel("styled-card").eq(0).contains('0 - Sample dashboard');
-      cy.get('[aria-label="more-vert"]').first().click();
+      // deletes in card-view
+      setGridMode('card');
+      orderAlphabetical();
+
+      cy.getBySel("styled-card").eq(0).contains('1 - Sample dashboard');
+      openMenu();
       cy.getBySel('dashboard-card-option-delete-button').click();
-      cy.getBySel('delete-modal-input').type('DELETE');
-      cy.getBySel('modal-confirm-button').click();
-      cy.getBySel("styled-card").eq(0).should('not.contain', '0 - Sample dashboard');
+      confirmDelete();
+      cy.getBySel("styled-card").eq(0).should('not.contain', '1 - Sample dashboard');
+
+      // deletes in list-view
+      setGridMode('list');
+      cy.getBySel("table-row").eq(0).contains('2 - Sample dashboard');
+      cy.getBySel("dashboard-list-trash-icon").eq(0).click();
+      confirmDelete();
+      cy.getBySel("table-row").eq(0).should('not.contain', '2 - Sample dashboard');
+
     });
 
     it('should edit correctly', () => {
-      cy.getBySel("styled-card").eq(0).contains('0 - Sample dashboard');
-      cy.get('[aria-label="more-vert"]').first().click();
-      cy.getBySel('dashboard-card-option-edit-button').click();
+      // edits in card-view
+      setGridMode('card');
+      orderAlphabetical();
+      cy.getBySel("styled-card").eq(0).contains('1 - Sample dashboard');
+
+      // change title
+      openProperties();
       cy.getBySel('dashboard-title-input').type(' | EDITED');
       cy.get('button:contains("Save")').click();
-      cy.getBySel("styled-card").eq(0).contains('0 - Sample dashboard | EDITED');
+      cy.getBySel("styled-card").eq(0).contains('1 - Sample dashboard | EDITED');
+
+      // edits in list-view
+      setGridMode('list');
+      cy.getBySel("edit-alt").eq(0).click();
+      cy.getBySel('dashboard-title-input').clear().type('1 - Sample dashboard');
+      cy.get('button:contains("Save")').click();
+      cy.getBySel("table-row").eq(0).contains('1 - Sample dashboard');
     });
   });
 });

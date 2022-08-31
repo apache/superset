@@ -19,10 +19,22 @@
 import '@cypress/code-coverage/support';
 import '@applitools/eyes-cypress/commands';
 
+require('cy-verify-downloads').addCustomCommand();
+
 const BASE_EXPLORE_URL = '/explore/?form_data=';
 const TokenName = Cypress.env('TOKEN_NAME');
 
-require('cy-verify-downloads').addCustomCommand();
+function resetSamples() {
+  cy.fixture('dashboards.json').then((dashboards) => {
+    dashboards.forEach((d: { dashboard_title: string }) => {
+      cy.deleteDashboardByName(d.dashboard_title);
+    });
+  });
+}
+
+beforeEach(() => {
+  resetSamples();
+});
 
 Cypress.Commands.add('getBySel', (selector, ...args) => {
   return cy.get(`[data-test=${selector}]`, ...args)
@@ -53,9 +65,8 @@ Cypress.Commands.add('login', () => {
   });
 });
 
-Cypress.Commands.add('loginGoTo', url => {
-  cy.login();
-  cy.visit(url);
+Cypress.Commands.add('preserveLogin', () => {
+  Cypress.Cookies.preserveOnce('session');
 });
 
 Cypress.Commands.add('visitChartByName', name => {
@@ -154,35 +165,37 @@ Cypress.Commands.add(
   },
 );
 
-Cypress.Commands.add('createDashboard', (dashboardName: string) =>
-  cy
-  .request({
-    method: 'POST',
-    url: `/api/v1/dashboard/`,
-    body: {
-      dashboard_title: dashboardName,
-    },
-    headers: {
-      Cookie: `csrf_access_token=${window.localStorage.getItem(
-        'access_token',
-      )}`,
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${TokenName}`,
-      'X-CSRFToken': `${window.localStorage.getItem('access_token')}`,
-      Referer: `${Cypress.config().baseUrl}/`,
-    },
+Cypress.Commands.add('createSampleDashboards', () =>
+  cy.fixture('dashboards.json').then((dashboards) => {
+    dashboards.forEach((d: { dashboard_title: string }) => {
+      cy
+      .request({
+        method: 'POST',
+        url: `/api/v1/dashboard/`,
+        body: {
+          dashboard_title: d.dashboard_title,
+        },
+        headers: {
+          Cookie: `csrf_access_token=${window.localStorage.getItem(
+            'access_token',
+          )}`,
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${TokenName}`,
+          'X-CSRFToken': `${window.localStorage.getItem('access_token')}`,
+          Referer: `${Cypress.config().baseUrl}/`,
+        },
+      })
+      .then(resp => resp);
+    });
   })
-  .then(resp => resp),
 );
 
-Cypress.Commands.add('deleteDashboardByName', (name: string) =>
+Cypress.Commands.add('deleteDashboardByName', (dashboardName: string) =>
   cy.getDashboards().then((dashboards: any) => {
-    dashboards?.forEach((element: any) => {
-      if (element.dashboard_title === name) {
-        const elementId = element.id;
-        cy.deleteDashboard(elementId);
-      }
-    });
+    const dashboard = dashboards.find(d => d.dashboard_title === dashboardName);
+    if (dashboard) {
+      cy.deleteDashboard(dashboard.id);
+    }
   }),
 );
 
