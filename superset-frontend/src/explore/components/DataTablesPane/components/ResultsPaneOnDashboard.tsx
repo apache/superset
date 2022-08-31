@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { t } from '@superset-ui/core';
+import { t, css } from '@superset-ui/core';
 import Tabs from 'src/components/Tabs';
 import { ResultTypes, ResultsPaneProps } from '../types';
 import { useResultsPane } from './useResultsPane';
@@ -43,7 +43,20 @@ export const ResultsPaneOnDashboard = ({
     isVisible,
   });
   if (resultsPanes.length === 1) {
-    return resultsPanes[0];
+    return (
+      <div
+        css={css`
+          display: flex;
+          flex-direction: column;
+          height: 100%;
+          .table-condensed {
+            overflow: auto;
+          }
+        `}
+      >
+        {resultsPanes[0]}
+      </div>
+    );
   }
 
   const panes = resultsPanes.map((pane, idx) => {
