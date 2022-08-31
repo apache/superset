@@ -53,6 +53,9 @@ def get_session(mocker: MockFixture) -> Callable[[], Session]:
         get_session.return_value = in_memory_session
         # FAB calls get_session.get_bind() to get a handler to the engine
         get_session.get_bind.return_value = engine
+        # Allow for queries on security manager
+        get_session.query = in_memory_session.query
+
         mocker.patch("superset.db.session", in_memory_session)
         return in_memory_session
 
