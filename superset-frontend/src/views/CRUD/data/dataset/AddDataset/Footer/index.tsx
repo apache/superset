@@ -26,9 +26,14 @@ import { DatasetObject } from '../types';
 interface FooterObject {
   url: string;
   datasetObject?: Partial<DatasetObject> | null;
+  onDatasetAdd?: (dataset: DatasetObject) => void;
 }
 
-export default function Footer({ url, datasetObject }: FooterObject) {
+export default function Footer({
+  url,
+  datasetObject,
+  onDatasetAdd,
+}: FooterObject) {
   const { createResource } = useSingleViewResource<Partial<DatasetObject>>(
     'dataset',
     t('dataset'),
@@ -47,6 +52,9 @@ export default function Footer({ url, datasetObject }: FooterObject) {
       createResource(datasetObject).then(response => {
         if (!response) {
           return;
+        }
+        if (onDatasetAdd) {
+          onDatasetAdd({ id: response.id, ...response });
         }
       });
       cancelButtonOnClick();

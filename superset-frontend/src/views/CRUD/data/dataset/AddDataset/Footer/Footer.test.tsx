@@ -20,10 +20,47 @@ import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
 import Footer from 'src/views/CRUD/data/dataset/AddDataset/Footer';
 
-describe('Footer', () => {
-  it('renders a blank state Footer', () => {
-    render(<Footer />);
+const mockedProps = {
+  url: 'realwebsite.com',
+};
 
-    expect(screen.getByText(/footer/i)).toBeVisible();
+const mockPropsWithDataset = {
+  url: 'realwebsite.com',
+  datasetObject: {
+    database: {
+      id: '1',
+      database_name: 'examples',
+    },
+    owners: [1, 2, 3],
+    schema: 'public',
+    dataset_name: 'Untitled',
+    table_name: 'real_info',
+  },
+};
+
+describe('Footer', () => {
+  it('renders a Footer with a cancel button and a disabled create button', () => {
+    render(<Footer {...mockedProps} />, { useRedux: true });
+
+    const saveButton = screen.getByRole('button', {
+      name: /Cancel/i,
+    });
+
+    const createButton = screen.getByRole('button', {
+      name: /Create/i,
+    });
+
+    expect(saveButton).toBeVisible();
+    expect(createButton).toBeDisabled();
+  });
+
+  it('renders a Create Dataset button when a table is selected', () => {
+    render(<Footer {...mockPropsWithDataset} />, { useRedux: true });
+
+    const createButton = screen.getByRole('button', {
+      name: /Create/i,
+    });
+
+    expect(createButton).not.toBeDisabled();
   });
 });
