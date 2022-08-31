@@ -26,6 +26,9 @@ import ModalTrigger from 'src/components/ModalTrigger';
 import { ConfigEditor } from 'src/components/AsyncAceEditor';
 import { FAST_DEBOUNCE } from 'src/constants';
 import { Tooltip } from 'src/components/Tooltip';
+import { useSelector } from 'react-redux';
+import { QueryEditor, SqlLabRootState } from 'src/SqlLab/types';
+import { getUpToDateQuery } from 'src/SqlLab/actions/sqlLab';
 
 const StyledConfigEditor = styled(ConfigEditor)`
   &.ace_editor {
@@ -33,17 +36,24 @@ const StyledConfigEditor = styled(ConfigEditor)`
   }
 `;
 
-function TemplateParamsEditor({
-  code = '{}',
-  language,
-  onChange = () => {},
-}: {
-  code: string;
+export type Props = {
+  queryEditor: QueryEditor;
   language: 'yaml' | 'json';
   onChange: () => void;
-}) {
+};
+
+function TemplateParamsEditor({
+  queryEditor,
+  language,
+  onChange = () => {},
+}: Props) {
   const [parsedJSON, setParsedJSON] = useState({});
   const [isValid, setIsValid] = useState(true);
+  const code = useSelector<SqlLabRootState, string>(
+    rootState =>
+      (getUpToDateQuery(rootState, queryEditor) as unknown as QueryEditor)
+        .templateParams || '{}',
+  );
 
   useEffect(() => {
     try {

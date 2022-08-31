@@ -30,6 +30,7 @@ import {
 import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
 import { EmptyStateBig, EmptyStateSmall } from 'src/components/EmptyState';
 import ChartContextMenu from './ChartContextMenu';
+import DrillDetailModal from './DrillDetailModal';
 
 const propTypes = {
   annotationData: PropTypes.object,
@@ -83,6 +84,7 @@ class ChartRenderer extends React.Component {
     super(props);
     this.state = {
       inContextMenu: false,
+      drillDetailFilters: null,
     };
     this.hasQueryResponseChange = false;
 
@@ -202,10 +204,7 @@ class ChartRenderer extends React.Component {
   }
 
   handleContextMenuSelected(filters) {
-    const extraFilters = this.props.formData.extra_form_data?.filters || [];
-    // eslint-disable-next-line no-alert
-    alert(JSON.stringify(filters.concat(extraFilters)));
-    this.setState({ inContextMenu: false });
+    this.setState({ inContextMenu: false, drillDetailFilters: filters });
   }
 
   handleContextMenuClosed() {
@@ -289,12 +288,19 @@ class ChartRenderer extends React.Component {
     return (
       <div>
         {this.props.source === 'dashboard' && (
-          <ChartContextMenu
-            ref={this.contextMenuRef}
-            id={chartId}
-            onSelection={this.handleContextMenuSelected}
-            onClose={this.handleContextMenuClosed}
-          />
+          <>
+            <ChartContextMenu
+              ref={this.contextMenuRef}
+              id={chartId}
+              onSelection={this.handleContextMenuSelected}
+              onClose={this.handleContextMenuClosed}
+            />
+            <DrillDetailModal
+              chartId={chartId}
+              initialFilters={this.state.drillDetailFilters}
+              formData={currentFormData}
+            />
+          </>
         )}
         <SuperChart
           disableErrorBoundary

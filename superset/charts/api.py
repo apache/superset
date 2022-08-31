@@ -52,6 +52,7 @@ from superset.charts.filters import (
     ChartCertifiedFilter,
     ChartFavoriteFilter,
     ChartFilter,
+    ChartHasCreatedByFilter,
 )
 from superset.charts.schemas import (
     CHART_SCHEMAS,
@@ -114,16 +115,20 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "cache_timeout",
         "certified_by",
         "certification_details",
+        "changed_on_delta_humanized",
         "dashboards.dashboard_title",
         "dashboards.id",
         "dashboards.json_metadata",
         "description",
+        "id",
         "owners.first_name",
         "owners.id",
         "owners.last_name",
         "owners.username",
         "params",
         "slice_name",
+        "thumbnail_url",
+        "url",
         "viz_type",
         "query_context",
         "is_managed_externally",
@@ -201,6 +206,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
     search_filters = {
         "id": [ChartFavoriteFilter, ChartCertifiedFilter],
         "slice_name": [ChartAllTextFilter],
+        "created_by": [ChartHasCreatedByFilter],
     }
 
     # Will just affect _info endpoint

@@ -25,6 +25,7 @@ from superset.dashboards.permalink.commands.create import (
 )
 from superset.models.dashboard import Dashboard
 from superset.reports.commands.execute import AsyncExecuteReportScheduleCommand
+from superset.reports.models import ReportSourceFormat
 from tests.integration_tests.fixtures.tabbed_dashboard import tabbed_dashboard
 from tests.integration_tests.reports.utils import create_dashboard_report
 
@@ -66,3 +67,47 @@ def test_report_for_dashboard_with_tabs(
         assert digest == dashboard.digest
         assert send_email_smtp_mock.call_count == 1
         assert len(send_email_smtp_mock.call_args.kwargs["images"]) == 1
+
+
+@patch("superset.reports.notifications.email.send_email_smtp")
+@patch(
+    "superset.reports.commands.execute.DashboardScreenshot",
+)
+@patch(
+    "superset.dashboards.permalink.commands.create.CreateDashboardPermalinkCommand.run"
+)
+def test_report_with_header_data(
+    create_dashboard_permalink_mock: MagicMock,
+    dashboard_screenshot_mock: MagicMock,
+    send_email_smtp_mock: MagicMock,
+    tabbed_dashboard: Dashboard,
+) -> None:
+    create_dashboard_permalink_mock.return_value = "permalink"
+    dashboard_screenshot_mock.get_screenshot.return_value = b"test-image"
+    current_app.config["ALERT_REPORTS_NOTIFICATION_DRY_RUN"] = False
+
+    with create_dashboard_report(
+        dashboard=tabbed_dashboard,
+        extra={"active_tabs": ["TAB-L1B"]},
+        name="test report tabbed dashboard",
+    ) as report_schedule:
+        dashboard: Dashboard = report_schedule.dashboard
+        AsyncExecuteReportScheduleCommand(
+            str(uuid4()), report_schedule.id, datetime.utcnow()
+        ).run()
+        dashboard_state = report_schedule.extra.get("dashboard", {})
+        permalink_key = CreateDashboardPermalinkCommand(
+            dashboard.id, dashboard_state
+        ).run()
+
+        assert dashboard_screenshot_mock.call_count == 1
+        (url, digest) = dashboard_screenshot_mock.call_args.args
+        assert url.endswith(f"/superset/dashboard/p/{permalink_key}/")
+        assert digest == dashboard.digest
+        assert send_email_smtp_mock.call_count == 1
+        header_data = send_email_smtp_mock.call_args.kwargs["header_data"]
+        assert header_data.get("dashboard_id") == dashboard.id
+        assert header_data.get("notification_format") == report_schedule.report_format
+        assert header_data.get("notification_source") == ReportSourceFormat.DASHBOARD
+        assert header_data.get("notification_type") == report_schedule.type
+        assert len(send_email_smtp_mock.call_args.kwargs["header_data"]) == 7

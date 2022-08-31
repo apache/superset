@@ -34,6 +34,15 @@ def test_render_description_with_html() -> None:
             }
         ),
         description='<p>This is <a href="#">a test</a> alert</p><br />',
+        header_data={
+            "notification_format": "PNG",
+            "notification_type": "Alert",
+            "owners": [1],
+            "notification_source": None,
+            "chart_id": None,
+            "dashboard_id": None,
+            "error_text": None,
+        },
     )
     email_body = (
         EmailNotification(

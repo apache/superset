@@ -27,7 +27,7 @@ from superset import db, security_manager
 from superset.commands.base import BaseCommand
 from superset.connectors.base.models import BaseDatasource
 from superset.connectors.sqla.models import SqlaTable
-from superset.datasets.commands.exceptions import DatasetNotFoundError
+from superset.dao.exceptions import DatasourceNotFound
 from superset.datasource.dao import DatasourceDAO
 from superset.exceptions import SupersetException
 from superset.explore.commands.parameters import CommandParameters
@@ -114,7 +114,7 @@ class GetExploreCommand(BaseCommand, ABC):
                 dataset = DatasourceDAO.get_datasource(
                     db.session, cast(str, self._dataset_type), self._dataset_id
                 )
-            except DatasetNotFoundError:
+            except DatasourceNotFound:
                 pass
         dataset_name = dataset.name if dataset else _("[Missing Dataset]")
 

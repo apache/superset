@@ -26,6 +26,9 @@ import {
   QueryObjectFilterClause,
   SimpleAdhocFilter,
   QueryFormData,
+  AdhocFilter,
+  isFreeFormAdhocFilter,
+  isSimpleAdhocFilter,
 } from '@superset-ui/core';
 import { NO_TIME_RANGE } from '../constants';
 
@@ -51,20 +54,26 @@ const simpleFilterToAdhoc = (
   return result;
 };
 
-const removeAdhocFilterDuplicates = (filters: SimpleAdhocFilter[]) => {
+const removeAdhocFilterDuplicates = (filters: AdhocFilter[]) => {
   const isDuplicate = (
-    adhocFilter: SimpleAdhocFilter,
-    existingFilters: SimpleAdhocFilter[],
+    adhocFilter: AdhocFilter,
+    existingFilters: AdhocFilter[],
   ) =>
     existingFilters.some(
-      (existingFilter: SimpleAdhocFilter) =>
-        existingFilter.operator === adhocFilter.operator &&
-        existingFilter.subject === adhocFilter.subject &&
-        ((!('comparator' in existingFilter) &&
-          !('comparator' in adhocFilter)) ||
-          ('comparator' in existingFilter &&
-            'comparator' in adhocFilter &&
-            isEqual(existingFilter.comparator, adhocFilter.comparator))),
+      (existingFilter: AdhocFilter) =>
+        (isFreeFormAdhocFilter(existingFilter) &&
+          isFreeFormAdhocFilter(adhocFilter) &&
+          existingFilter.clause === adhocFilter.clause &&
+          existingFilter.sqlExpression === adhocFilter.sqlExpression) ||
+        (isSimpleAdhocFilter(existingFilter) &&
+          isSimpleAdhocFilter(adhocFilter) &&
+          existingFilter.operator === adhocFilter.operator &&
+          existingFilter.subject === adhocFilter.subject &&
+          ((!('comparator' in existingFilter) &&
+            !('comparator' in adhocFilter)) ||
+            ('comparator' in existingFilter &&
+              'comparator' in adhocFilter &&
+              isEqual(existingFilter.comparator, adhocFilter.comparator)))),
     );
 
   return filters.reduce((acc, filter) => {
@@ -72,7 +81,7 @@ const removeAdhocFilterDuplicates = (filters: SimpleAdhocFilter[]) => {
       acc.push(filter);
     }
     return acc;
-  }, [] as SimpleAdhocFilter[]);
+  }, [] as AdhocFilter[]);
 };
 
 const mergeFilterBoxToFormData = (
@@ -176,16 +185,28 @@ export const getFormDataWithDashboardContext = (
     exploreFormData,
     dashboardContextFormData,
   );
-  const adhocFilters = removeAdhocFilterDuplicates([
-    ...ensureIsArray(exploreFormData.adhoc_filters),
-    ...ensureIsArray(filterBoxData.adhoc_filters),
-    ...ensureIsArray(nativeFiltersData.adhoc_filters),
-  ]);
+  const adhocFilters = [
+    ...Object.keys(exploreFormData),
+    ...Object.keys(filterBoxData),
+    ...Object.keys(nativeFiltersData),
+  ]
+    .filter(key => key.match(/adhoc_filter.*/))
+    .reduce(
+      (acc, key) => ({
+        ...acc,
+        [key]: removeAdhocFilterDuplicates([
+          ...ensureIsArray(exploreFormData[key]),
+          ...ensureIsArray(filterBoxData[key]),
+          ...ensureIsArray(nativeFiltersData[key]),
+        ]),
+      }),
+      {},
+    );
   return {
     ...exploreFormData,
     ...dashboardContextFormData,
     ...filterBoxData,
     ...nativeFiltersData,
-    adhoc_filters: adhocFilters,
+    ...adhocFilters,
   };
 };
