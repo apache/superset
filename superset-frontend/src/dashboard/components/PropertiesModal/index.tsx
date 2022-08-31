@@ -366,8 +366,8 @@ const PropertiesModal = ({
             includeTypes: false,
           },
           (currentTags: TagType[]) => updateTags(currentTags, tags),
-          () => {
-            /* TODO: handle error */
+          (error) => {
+            handleErrorResponse(error);
           },
         );
       } catch (error: any) {
@@ -568,7 +568,7 @@ const PropertiesModal = ({
         },
         (tags: TagType[]) => setTags(tags),
         () => {
-          /* TODO: handle error */
+          handleErrorResponse(error);
         },
       );
     } catch (error: any) {

@@ -21,7 +21,7 @@ import React, { useEffect, useState } from 'react';
 import { styled, SupersetClient, t } from '@superset-ui/core';
 import Tag from 'src/types/TagType';
 
-import './ObjectTags.css';
+import { objectTagsStyles } from './styles';
 import { TagsList } from 'src/components/Tags';
 import rison from 'rison';
 import { cacheWrapper } from 'src/utils/cacheWrapper';
@@ -128,11 +128,11 @@ export const ObjectTags = ({
         { objectType, objectId, includeTypes },
         (tags: Tag[]) => setTags(tags),
         () => {
-          /* TODO: handle error */
+          throw new Error(t('An Error occured when fetching tags'));
         },
       );
     } catch (error: any) {
-      console.log(error);
+      throw new Error(t('An Error occured when fetching tags'));
     }
   }, [objectType, objectId, includeTypes]);
 
@@ -141,8 +141,8 @@ export const ObjectTags = ({
       { objectType, objectId },
       tags[tagIndex],
       () => setTags(tags.filter((_, i) => i !== tagIndex)),
-      () => {
-        /* TODO: handle error */
+      (error) => {
+        throw new Error(t('An Error occured when deleting the tag'));
       },
     );
     onChange?.(tags);
@@ -150,7 +150,9 @@ export const ObjectTags = ({
 
   return (
     <span>
-      <StyledTagsDiv>
+      <StyledTagsDiv
+        css={objectTagsStyles}
+      >
         <TagsList
           tags={tags}
           editable={editMode}

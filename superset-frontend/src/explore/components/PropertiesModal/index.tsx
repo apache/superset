@@ -180,8 +180,8 @@ function PropertiesModal({
             includeTypes: false,
           },
           (currentTags: TagType[]) => updateTags(currentTags, tags),
-          () => {
-            /* TODO: handle error */
+          (error) => {
+            showError(error)
           },
         );
       } catch (error: any) {
@@ -234,8 +234,8 @@ function PropertiesModal({
           includeTypes: false,
         },
         (tags: TagType[]) => setTags(tags),
-        () => {
-          /* TODO: handle error */
+        (error) => {
+          showError(error);
         },
       );
     } catch (error: any) {
