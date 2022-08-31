@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useRef, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { isNil } from 'lodash';
 import { styled, t } from '@superset-ui/core';
 import { css } from '@emotion/react';
@@ -290,12 +290,12 @@ const CustomModal = ({
     }
   };
 
-  const getResizableConfig = () => {
+  const getResizableConfig = useMemo(() => {
     if (Object.keys(resizableConfig).length === 0) {
       return defaultResizableConfig(hideFooter);
     }
     return resizableConfig;
-  };
+  }, [hideFooter, resizableConfig]);
 
   const ModalTitle = () =>
     draggable ? (
@@ -337,7 +337,7 @@ const CustomModal = ({
             {...draggableConfig}
           >
             {resizable ? (
-              <Resizable className="resizable" {...getResizableConfig()}>
+              <Resizable className="resizable" {...getResizableConfig}>
                 <div className="resizable-wrapper" ref={draggableRef}>
                   {modal}
                 </div>
