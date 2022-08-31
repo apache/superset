@@ -1140,15 +1140,15 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             is_dttm = col_desc[0]["is_dttm"]
 
         if (
-            col.get("columnType")
+            is_dttm
+            and col.get("columnType")
             and col.get("columnType") == "AXIS"
-            and col.get("timeGrain")
-            and is_dttm
+            and (time_grain := col.get("timeGrain"))
         ):
             sqla_column = self.db_engine_spec.get_timestamp_expr(
                 sqla_column,
                 None,
-                col.get("timeGrain"),
+                time_grain,
             )
         return self.make_sqla_column_compatible(sqla_column, label)
 
