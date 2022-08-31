@@ -47,6 +47,8 @@ import {
   ComparisionType,
   QueryResponse,
   QueryColumn,
+  isAdhocColumn,
+  isPhysicalColumn,
 } from '@superset-ui/core';
 
 import {
@@ -323,6 +325,21 @@ const time_grain_sqla: SharedControlConfig<'SelectControl'> = {
   mapStateToProps: ({ datasource }) => ({
     choices: (datasource as Dataset)?.time_grain_sqla || null,
   }),
+  visibility: ({ controls }) => {
+    if (!isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES)) {
+      return true;
+    }
+
+    const xAxisValue = controls?.x_axis?.value;
+    if (isAdhocColumn(xAxisValue)) {
+      return true;
+    }
+    if (isPhysicalColumn(xAxisValue)) {
+      const options = controls?.x_axis?.options ?? {};
+      return options[xAxisValue]?.is_dttm;
+    }
+    return false;
+  },
 };
 
 const time_range: SharedControlConfig<'DateFilterControl'> = {
