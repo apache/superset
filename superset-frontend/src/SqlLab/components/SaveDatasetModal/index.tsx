@@ -304,13 +304,12 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
           [URL_PARAMS.formDataKey.name]: key,
         });
         createWindow(url);
+        setDatasetName(getDefaultDatasetName());
+        onHide();
       })
       .catch(() => {
         addDangerToast(t('An error occurred saving dataset'));
       });
-
-    setDatasetName(getDefaultDatasetName());
-    onHide();
   };
 
   const handleOverwriteDatasetOption = (value: SelectValue, option: any) => {
