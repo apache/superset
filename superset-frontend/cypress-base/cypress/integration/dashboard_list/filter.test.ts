@@ -16,8 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
- import { DASHBOARD_LIST } from 'cypress/utils/urls';
- import { setGridMode, setFilter } from '../dashboard/utils';
+import { DASHBOARD_LIST } from 'cypress/utils/urls';
+import { setGridMode } from 'cypress/utils';
+import { setFilter } from '../dashboard/utils';
 
 function resetFilters() {
   cy.get('[aria-label="close-circle"]').click({ multiple: true, force: true });
@@ -49,7 +50,7 @@ describe('Dashboards filters', () => {
     it('should filter by created by correctly', () => {
       setFilter('Created by', 'alpha user');
       cy.getBySel('styled-card').should('not.exist');
-      setFilter('Created by', 'admin user')
+      setFilter('Created by', 'admin user');
       cy.getBySel('styled-card').should('have.length', 1);
     });
 
@@ -76,7 +77,7 @@ describe('Dashboards filters', () => {
     it('should filter by created by correctly', () => {
       setFilter('Created by', 'alpha user');
       cy.getBySel('table-row').should('not.exist');
-      setFilter('Created by', 'admin user')
+      setFilter('Created by', 'admin user');
       cy.getBySel('table-row').should('have.length', 1);
     });
 

@@ -17,5 +17,31 @@
  * under the License.
  */
 
-export const DASHBOARD_LIST = '/dashboard/list/';
-export const CHART_LIST = '/chart/list/';
+export function interceptFiltering() {
+  cy.intercept('GET', `/api/v1/chart/?q=*`).as('filtering');
+}
+
+export function interceptBulkDelete() {
+  cy.intercept('DELETE', `/api/v1/chart/?q=*`).as('bulkDelete');
+}
+
+export function interceptDelete() {
+  cy.intercept('DELETE', `/api/v1/chart/*`).as('delete');
+}
+
+export function interceptUpdate() {
+  cy.intercept('PUT', `/api/v1/chart/*`).as('update');
+}
+
+export function interceptPost() {
+  cy.intercept('POST', `/api/v1/chart/`).as('post');
+}
+
+export function setFilter(filter: string, option: string) {
+  interceptFiltering();
+
+  cy.get(`[aria-label="${filter}"]`).first().click();
+  cy.get(`[aria-label="${filter}"] [title="${option}"]`).click();
+
+  cy.wait('@filtering');
+}

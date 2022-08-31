@@ -18,3 +18,11 @@
  */
 export * from './vizPlugins';
 export { default as parsePostForm } from './parsePostForm';
+
+export function setGridMode(type: 'card' | 'list') {
+  cy.get(`[aria-label="${type}-view"]`).click();
+}
+
+export function toggleBulkSelect() {
+  cy.getBySel('bulk-select').click();
+}

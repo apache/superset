@@ -67,14 +67,15 @@ declare namespace Cypress {
      * Create
      */
     createSampleDashboards(): void;
+    createSampleCharts(): void;
 
     /**
      * Delete
      */
-    deleteDashboard(id: number): cy;
-    deleteDashboardByName(dashboardName: string): cy;
-    deleteChartByName(name: string): cy;
-    deleteChart(id: number): cy;
+    deleteDashboard(id: number, failOnStatusCode: boolean): cy;
+    deleteDashboardByName(dashboardName: string, failOnStatusCode: boolean): cy;
+    deleteChartByName(name: string, failOnStatusCode: boolean): cy;
+    deleteChart(id: number, failOnStatusCode: boolean): cy;
   }
 }
 

@@ -16,26 +16,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DASHBOARD_LIST } from 'cypress/utils/urls';
+import { CHART_LIST } from 'cypress/utils/urls';
 import { setGridMode, toggleBulkSelect } from 'cypress/utils';
 import {
   setFilter,
   interceptBulkDelete,
   interceptUpdate,
   interceptDelete,
-} from '../dashboard/utils';
+} from '../explore/utils';
 
 function orderAlphabetical() {
   setFilter('Sort', 'Alphabetical');
 }
 
 function openProperties() {
-  cy.get('[aria-label="more-vert"]').first().click();
-  cy.getBySel('dashboard-card-option-edit-button').click();
+  cy.get('[aria-label="more-vert"]').eq(1).click();
+  cy.getBySel('chart-list-edit-option').click();
 }
 
 function openMenu() {
-  cy.get('[aria-label="more-vert"]').first().click();
+  cy.get('[aria-label="more-vert"]').eq(1).click();
 }
 
 function confirmDelete() {
@@ -43,7 +43,7 @@ function confirmDelete() {
   cy.getBySel('modal-confirm-button').click();
 }
 
-describe('Dashboards list', () => {
+describe('Charts list', () => {
   before(() => {
     cy.login();
   });
@@ -54,34 +54,34 @@ describe('Dashboards list', () => {
 
   describe('list mode', () => {
     before(() => {
-      cy.visit(DASHBOARD_LIST);
+      cy.visit(CHART_LIST);
       setGridMode('list');
     });
 
     it('should load rows in list mode', () => {
       cy.getBySel('listview-table').should('be.visible');
-      cy.getBySel('sort-header').eq(1).contains('Title');
-      cy.getBySel('sort-header').eq(2).contains('Modified by');
-      cy.getBySel('sort-header').eq(3).contains('Status');
-      cy.getBySel('sort-header').eq(4).contains('Modified');
-      cy.getBySel('sort-header').eq(5).contains('Created by');
-      cy.getBySel('sort-header').eq(6).contains('Owners');
+      cy.getBySel('sort-header').eq(1).contains('Chart');
+      cy.getBySel('sort-header').eq(2).contains('Visualization type');
+      cy.getBySel('sort-header').eq(3).contains('Dataset');
+      cy.getBySel('sort-header').eq(4).contains('Modified by');
+      cy.getBySel('sort-header').eq(5).contains('Last modified');
+      cy.getBySel('sort-header').eq(6).contains('Created by');
       cy.getBySel('sort-header').eq(7).contains('Actions');
     });
 
     it('should sort correctly in list mode', () => {
       cy.getBySel('sort-header').eq(1).click();
-      cy.getBySel('table-row').first().contains('ECharts Dashboard');
+      cy.getBySel('table-row').first().contains('% Rural');
       cy.getBySel('sort-header').eq(1).click();
-      cy.getBySel('table-row').first().contains("World Bank's Data");
+      cy.getBySel('table-row').first().contains("World's Population");
       cy.getBySel('sort-header').eq(1).click();
     });
 
     it('should bulk select in list mode', () => {
       toggleBulkSelect();
       cy.get('#header-toggle-all').click();
-      cy.get('[aria-label="checkbox-on"]').should('have.length', 6);
-      cy.getBySel('bulk-select-copy').contains('5 Selected');
+      cy.get('[aria-label="checkbox-on"]').should('have.length', 26);
+      cy.getBySel('bulk-select-copy').contains('25 Selected');
       cy.getBySel('bulk-select-action')
         .should('have.length', 2)
         .then($btns => {
@@ -97,19 +97,19 @@ describe('Dashboards list', () => {
 
   describe('card mode', () => {
     before(() => {
-      cy.visit(DASHBOARD_LIST);
+      cy.visit(CHART_LIST);
       setGridMode('card');
     });
 
     it('should load rows in card mode', () => {
       cy.getBySel('listview-table').should('not.exist');
-      cy.getBySel('styled-card').should('have.length', 5);
+      cy.getBySel('styled-card').should('have.length', 25);
     });
 
     it('should bulk select in card mode', () => {
       toggleBulkSelect();
       cy.getBySel('styled-card').click({ multiple: true });
-      cy.getBySel('bulk-select-copy').contains('5 Selected');
+      cy.getBySel('bulk-select-copy').contains('25 Selected');
       cy.getBySel('bulk-select-action')
         .should('have.length', 2)
         .then($btns => {
@@ -123,24 +123,24 @@ describe('Dashboards list', () => {
 
     it('should sort in card mode', () => {
       orderAlphabetical();
-      cy.getBySel('styled-card').first().contains('ECharts Dashboard');
+      cy.getBySel('styled-card').first().contains('% Rural');
     });
   });
 
   describe('common actions', () => {
     beforeEach(() => {
-      cy.createSampleDashboards();
-      cy.visit(DASHBOARD_LIST);
+      cy.createSampleCharts();
+      cy.visit(CHART_LIST);
     });
 
-    it('should allow to favorite/unfavorite dashboard', () => {
-      cy.intercept(`/superset/favstar/Dashboard/*/select/`).as('select');
-      cy.intercept(`/superset/favstar/Dashboard/*/unselect/`).as('unselect');
+    it('should allow to favorite/unfavorite', () => {
+      cy.intercept(`/superset/favstar/slice/*/select/`).as('select');
+      cy.intercept(`/superset/favstar/slice/*/unselect/`).as('unselect');
 
       setGridMode('card');
       orderAlphabetical();
 
-      cy.getBySel('styled-card').first().contains('1 - Sample dashboard');
+      cy.getBySel('styled-card').first().contains('% Rural');
       cy.getBySel('styled-card')
         .first()
         .find("[aria-label='favorite-unselected']")
@@ -165,33 +165,29 @@ describe('Dashboards list', () => {
       setGridMode('card');
       orderAlphabetical();
 
-      cy.getBySel('styled-card').eq(0).contains('1 - Sample dashboard').click();
-      cy.getBySel('styled-card').eq(1).contains('2 - Sample dashboard').click();
+      cy.getBySel('styled-card').eq(1).contains('1 - Sample chart').click();
+      cy.getBySel('styled-card').eq(2).contains('2 - Sample chart').click();
       cy.getBySel('bulk-select-action').eq(0).contains('Delete').click();
       confirmDelete();
       cy.wait('@bulkDelete');
       cy.getBySel('styled-card')
-        .eq(0)
-        .should('not.contain', '1 - Sample dashboard');
-      cy.getBySel('styled-card')
         .eq(1)
-        .should('not.contain', '2 - Sample dashboard');
+        .should('not.contain', '1 - Sample chart');
+      cy.getBySel('styled-card')
+        .eq(2)
+        .should('not.contain', '2 - Sample chart');
 
       // bulk deletes in list-view
       setGridMode('list');
-      cy.getBySel('table-row').eq(0).contains('3 - Sample dashboard');
-      cy.getBySel('table-row').eq(1).contains('4 - Sample dashboard');
-      cy.get('[data-test="table-row"] input[type="checkbox"]').eq(0).click();
+      cy.getBySel('table-row').eq(1).contains('3 - Sample chart');
+      cy.getBySel('table-row').eq(2).contains('4 - Sample chart');
       cy.get('[data-test="table-row"] input[type="checkbox"]').eq(1).click();
+      cy.get('[data-test="table-row"] input[type="checkbox"]').eq(2).click();
       cy.getBySel('bulk-select-action').eq(0).contains('Delete').click();
       confirmDelete();
       cy.wait('@bulkDelete');
-      cy.getBySel('table-row')
-        .eq(0)
-        .should('not.contain', '3 - Sample dashboard');
-      cy.getBySel('table-row')
-        .eq(1)
-        .should('not.contain', '4 - Sample dashboard');
+      cy.getBySel('table-row').eq(1).should('not.contain', '3 - Sample chart');
+      cy.getBySel('table-row').eq(2).should('not.contain', '4 - Sample chart');
     });
 
     it('should delete correctly', () => {
@@ -201,24 +197,22 @@ describe('Dashboards list', () => {
       setGridMode('card');
       orderAlphabetical();
 
-      cy.getBySel('styled-card').eq(0).contains('1 - Sample dashboard');
+      cy.getBySel('styled-card').eq(1).contains('1 - Sample chart');
       openMenu();
-      cy.getBySel('dashboard-card-option-delete-button').click();
+      cy.getBySel('chart-list-delete-option').click();
       confirmDelete();
       cy.wait('@delete');
       cy.getBySel('styled-card')
-        .eq(0)
-        .should('not.contain', '1 - Sample dashboard');
+        .eq(1)
+        .should('not.contain', '1 - Sample chart');
 
       // deletes in list-view
       setGridMode('list');
-      cy.getBySel('table-row').eq(0).contains('2 - Sample dashboard');
-      cy.getBySel('dashboard-list-trash-icon').eq(0).click();
+      cy.getBySel('table-row').eq(1).contains('2 - Sample chart');
+      cy.getBySel('trash').eq(1).click();
       confirmDelete();
       cy.wait('@delete');
-      cy.getBySel('table-row')
-        .eq(0)
-        .should('not.contain', '2 - Sample dashboard');
+      cy.getBySel('table-row').eq(1).should('not.contain', '2 - Sample chart');
     });
 
     it('should edit correctly', () => {
@@ -227,24 +221,24 @@ describe('Dashboards list', () => {
       // edits in card-view
       setGridMode('card');
       orderAlphabetical();
-      cy.getBySel('styled-card').eq(0).contains('1 - Sample dashboard');
+      cy.getBySel('styled-card').eq(1).contains('1 - Sample chart');
 
       // change title
       openProperties();
-      cy.getBySel('dashboard-title-input').type(' | EDITED');
+      cy.getBySel('properties-modal-name-input').type(' | EDITED');
       cy.get('button:contains("Save")').click();
       cy.wait('@update');
-      cy.getBySel('styled-card')
-        .eq(0)
-        .contains('1 - Sample dashboard | EDITED');
+      cy.getBySel('styled-card').eq(1).contains('1 - Sample chart | EDITED');
 
       // edits in list-view
       setGridMode('list');
-      cy.getBySel('edit-alt').eq(0).click();
-      cy.getBySel('dashboard-title-input').clear().type('1 - Sample dashboard');
+      cy.getBySel('edit-alt').eq(1).click();
+      cy.getBySel('properties-modal-name-input')
+        .clear()
+        .type('1 - Sample chart');
       cy.get('button:contains("Save")').click();
       cy.wait('@update');
-      cy.getBySel('table-row').eq(0).contains('1 - Sample dashboard');
+      cy.getBySel('table-row').eq(1).contains('1 - Sample chart');
     });
   });
 });

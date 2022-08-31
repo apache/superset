@@ -56,7 +56,7 @@ import {
   valueNativeFilterOptions,
   validateFilterNameOnDashboard,
 } from './nativeFilter.helper';
-import { DASHBOARD_LIST } from '../dashboard_list/dashboard_list.helper';
+import { DASHBOARD_LIST } from 'cypress/utils/urls';
 import { CHART_LIST } from '../chart_list/chart_list.helper';
 
 // TODO: fix flaky init logic and re-enable

@@ -17,31 +17,31 @@
  * under the License.
  */
 
-export function setGridMode(type: 'card' | 'list') {
-    cy.get(`[aria-label="${type}-view"]`).click();
-}
-
 export function interceptFiltering() {
-    cy.intercept('GET', `/api/v1/dashboard/?q=*`).as('filtering');
+  cy.intercept('GET', `/api/v1/dashboard/?q=*`).as('filtering');
 }
 
 export function interceptBulkDelete() {
-    cy.intercept('DELETE', `/api/v1/dashboard/?q=*`).as('bulkDelete');
+  cy.intercept('DELETE', `/api/v1/dashboard/?q=*`).as('bulkDelete');
 }
 
 export function interceptDelete() {
-    cy.intercept('DELETE', `/api/v1/dashboard/*`).as('delete');
+  cy.intercept('DELETE', `/api/v1/dashboard/*`).as('delete');
 }
 
 export function interceptUpdate() {
-    cy.intercept('PUT', `/api/v1/dashboard/*`).as('update');
+  cy.intercept('PUT', `/api/v1/dashboard/*`).as('update');
+}
+
+export function interceptPost() {
+  cy.intercept('POST', `/api/v1/dashboard/`).as('post');
 }
 
 export function setFilter(filter: string, option: string) {
-    interceptFiltering();
+  interceptFiltering();
 
-    cy.get(`[aria-label="${filter}"]`).first().click();
-    cy.get(`[aria-label="${filter}"] [title="${option}"]`).click();
+  cy.get(`[aria-label="${filter}"]`).first().click();
+  cy.get(`[aria-label="${filter}"] [title="${option}"]`).click();
 
-    cy.wait('@filtering');
+  cy.wait('@filtering');
 }
