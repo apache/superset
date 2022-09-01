@@ -44,7 +44,6 @@ export const menuTriggerStyles = (theme: SupersetTheme) => css`
 
 const headerStyles = (theme: SupersetTheme) => css`
   display: flex;
-  flex-direction: row-reverse;
   align-items: center;
   flex-wrap: nowrap;
   justify-content: space-between;
