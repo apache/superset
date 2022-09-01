@@ -18,7 +18,6 @@
  */
 import {
   CategoricalColorNamespace,
-  DataRecordValue,
   DataRecord,
   getMetricLabel,
   getNumberFormatter,
@@ -121,20 +120,17 @@ export default function transformProps(
   const keys = data.map(datum =>
     extractGroupbyLabel({ datum, groupby: groupbyLabels, coltypeMapping: {} }),
   );
-  const labelMap = data.reduce(
-    (acc: Record<string, DataRecordValue[]>, datum) => {
-      const label = extractGroupbyLabel({
-        datum,
-        groupby: groupbyLabels,
-        coltypeMapping: {},
-      });
-      return {
-        ...acc,
-        [label]: groupbyLabels.map(col => datum[col]),
-      };
-    },
-    {},
-  );
+  const labelMap = data.reduce((acc: Record<string, string[]>, datum) => {
+    const label = extractGroupbyLabel({
+      datum,
+      groupby: groupbyLabels,
+      coltypeMapping: {},
+    });
+    return {
+      ...acc,
+      [label]: groupbyLabels.map(col => datum[col] as string),
+    };
+  }, {});
 
   const { setDataMask = () => {}, onContextMenu } = hooks;
 

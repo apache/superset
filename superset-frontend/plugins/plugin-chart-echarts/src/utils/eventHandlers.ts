@@ -42,6 +42,7 @@ export const contextMenuEventHandler =
   (
     groupby: EChartTransformedProps<any>['groupby'],
     onContextMenu: EChartTransformedProps<any>['onContextMenu'],
+    labelMap: Record<string, string[]>,
   ) =>
   (e: Event) => {
     if (onContextMenu) {
@@ -49,17 +50,17 @@ export const contextMenuEventHandler =
       const pointerEvent = e.event.event;
       const filters: QueryObjectFilterClause[] = [];
       if (groupby.length > 0) {
-        const values = e.name.split(',');
+        const values = labelMap[e.name];
         groupby.forEach((dimension, i) =>
           filters.push({
             col: dimension,
             op: '==',
             val: values[i],
-            formattedVal: values[i],
+            formattedVal: String(values[i]),
           }),
         );
       }
-      onContextMenu(filters, pointerEvent.offsetX, pointerEvent.offsetY);
+      onContextMenu(filters, pointerEvent.clientX, pointerEvent.clientY);
     }
   };
 
@@ -67,10 +68,10 @@ export const allEventHandlers = (
   transformedProps: EChartTransformedProps<any>,
   handleChange: (values: string[]) => void,
 ) => {
-  const { groupby, selectedValues, onContextMenu } = transformedProps;
+  const { groupby, selectedValues, onContextMenu, labelMap } = transformedProps;
   const eventHandlers: EventHandlers = {
     click: clickEventHandler(selectedValues, handleChange),
-    contextmenu: contextMenuEventHandler(groupby, onContextMenu),
+    contextmenu: contextMenuEventHandler(groupby, onContextMenu, labelMap),
   };
   return eventHandlers;
 };

@@ -741,7 +741,9 @@ class DatasourceEditor extends React.PureComponent {
       database_name:
         datasource.database.database_name || datasource.database.name,
       schema_name: datasource.schema,
-      table_name: datasource.table_name,
+      table_name: datasource.table_name
+        ? encodeURIComponent(datasource.table_name)
+        : datasource.table_name,
     };
     Object.entries(params).forEach(([key, value]) => {
       // rison can't encode the undefined value

@@ -30,6 +30,7 @@ import {
   ChartDataResponseResult,
   QueryFormData,
   SetDataMaskHook,
+  QueryObjectFilterClause,
 } from '@superset-ui/core';
 import { ColorFormatters, ColumnConfig } from '@superset-ui/chart-controls';
 
@@ -111,6 +112,11 @@ export interface TableChartTransformedProps<D extends DataRecord = DataRecord> {
   onChangeFilter?: ChartProps['hooks']['onAddFilter'];
   columnColorFormatters?: ColorFormatters;
   allowRearrangeColumns?: boolean;
+  onContextMenu?: (
+    filters: QueryObjectFilterClause[],
+    clientX: number,
+    clientY: number,
+  ) => void;
 }
 
 export default {};

@@ -36,7 +36,7 @@ import {
   DEFAULT_SORT_COMPARATOR,
   EMPTY_OPTIONS,
   MAX_TAG_COUNT,
-  PickedSelectProps,
+  AntdExposedProps,
   SelectOptionsType,
   StyledCheckOutlined,
   StyledLoadingText,
@@ -45,7 +45,7 @@ import {
   TOKEN_SEPARATORS,
 } from './common';
 
-export interface SelectProps extends PickedSelectProps {
+export interface SelectProps extends AntdExposedProps {
   /**
    * It enables the user to create new options.
    * Can be used with standard or async select types.

@@ -17,6 +17,7 @@
 import dataclasses
 import functools
 import logging
+import os
 import traceback
 from datetime import datetime
 from typing import Any, Callable, cast, Dict, List, Optional, Union
@@ -70,6 +71,7 @@ from superset.exceptions import (
     SupersetException,
     SupersetSecurityException,
 )
+from superset.extensions import cache_manager
 from superset.models.helpers import ImportExportMixin
 from superset.reports.models import ReportRecipientType
 from superset.superset_typing import FlaskResponse
@@ -306,15 +308,28 @@ def menu_data() -> Dict[str, Any]:
     if callable(brand_text):
         brand_text = brand_text()
     build_number = appbuilder.app.config["BUILD_NUMBER"]
+    try:
+        environment_tag = (
+            appbuilder.app.config["ENVIRONMENT_TAG_CONFIG"]["values"][
+                os.environ.get(
+                    appbuilder.app.config["ENVIRONMENT_TAG_CONFIG"]["variable"]
+                )
+            ]
+            or {}
+        )
+    except KeyError:
+        environment_tag = {}
+
     return {
         "menu": menu,
         "brand": {
-            "path": appbuilder.app.config["LOGO_TARGET_PATH"] or "/",
+            "path": appbuilder.app.config["LOGO_TARGET_PATH"] or "/superset/welcome/",
             "icon": appbuilder.app_icon,
             "alt": appbuilder.app_name,
             "tooltip": appbuilder.app.config["LOGO_TOOLTIP"],
             "text": brand_text,
         },
+        "environment_tag": environment_tag,
         "navbar_right": {
             # show the watermark if the default app icon has been overriden
             "show_watermark": ("superset-logo-horiz" not in appbuilder.app_icon),
@@ -339,8 +354,13 @@ def menu_data() -> Dict[str, Any]:
     }
 
 
+@cache_manager.cache.memoize(timeout=60)
 def common_bootstrap_payload() -> Dict[str, Any]:
-    """Common data always sent to the client"""
+    """Common data always sent to the client
+
+    The function is memoized as the return value only changes based
+    on configuration and feature flag values.
+    """
     messages = get_flashed_messages(with_categories=True)
     locale = str(get_locale())
 

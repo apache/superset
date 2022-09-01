@@ -33,7 +33,7 @@ describe('charts list view', () => {
     cy.eyesOpen({
       testName: 'Charts list-view',
     });
-    cy.eyesCheckWindow('Charts loaded');
+    cy.eyesCheckWindow('Charts list-view loaded');
   });
 
   it('should load the Charts card list', () => {
@@ -41,6 +41,6 @@ describe('charts list view', () => {
     cy.eyesOpen({
       testName: 'Charts card-view',
     });
-    cy.eyesCheckWindow('Charts loaded');
+    cy.eyesCheckWindow('Charts card-view loaded');
   });
 });

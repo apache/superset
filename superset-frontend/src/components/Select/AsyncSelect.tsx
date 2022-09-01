@@ -44,7 +44,7 @@ import {
   DEFAULT_SORT_COMPARATOR,
   EMPTY_OPTIONS,
   MAX_TAG_COUNT,
-  PickedSelectProps,
+  AntdExposedProps,
   SelectOptionsPagePromise,
   SelectOptionsType,
   SelectOptionsTypePage,
@@ -59,7 +59,7 @@ import {
 
 export type AsyncSelectRef = HTMLInputElement & { clearCache: () => void };
 
-export interface AsyncSelectProps extends PickedSelectProps {
+export interface AsyncSelectProps extends AntdExposedProps {
   /**
    * It enables the user to create new options.
    * Can be used with standard or async select types.

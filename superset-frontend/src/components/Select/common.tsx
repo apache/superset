@@ -32,13 +32,15 @@ import React, {
   RefObject,
   JSXElementConstructor,
 } from 'react';
+import { AsyncSelectProps } from './AsyncSelect';
+import { SelectProps } from './Select';
 
 const { Option } = AntdSelect;
 
-export type AntdSelectAllProps = AntdSelectProps<AntdSelectValue>;
+export type AntdProps = AntdSelectProps<AntdSelectValue>;
 
-export type PickedSelectProps = Pick<
-  AntdSelectAllProps,
+export type AntdExposedProps = Pick<
+  AntdProps,
   | 'allowClear'
   | 'autoFocus'
   | 'disabled'
@@ -67,7 +69,7 @@ export type PickedSelectProps = Pick<
 >;
 
 export type SelectOptionsType = Exclude<
-  AntdSelectAllProps['options'],
+  AntdProps['options'],
   undefined
 >;
 
@@ -181,7 +183,7 @@ export const propertyComparator =
     return (a[property] as number) - (b[property] as number);
   };
 
-export interface BaseSelectProps extends PickedSelectProps {
+export interface BaseSelectProps extends AntdExposedProps {
   /**
    * It enables the user to create new options.
    * Can be used with standard or async select types.
@@ -205,13 +207,6 @@ export interface BaseSelectProps extends PickedSelectProps {
    * Can be any ReactNode.
    */
   header?: ReactNode;
-  /**
-   * It fires a request against the server after
-   * the first interaction and not on render.
-   * Works in async mode only (See the options property).
-   * True by default.
-   */
-  lazyLoading?: boolean;
   /**
    * It allows to define which properties of the option object
    * should be looked for when searching.
@@ -307,7 +302,7 @@ export const BaseSelect = forwardRef(
     maxTagCount,
     ref,
     ...props
-  }: BaseSelectProps) => {
+  }: AsyncSelectProps | SelectProps) => {
     const hasCustomLabels = options?.some(opt => !!opt?.customLabel);
 
     return (

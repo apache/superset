@@ -183,9 +183,15 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
                                        having to add the same aggregation in SELECT.
     """
 
+    engine_name: Optional[str] = None  # for user messages, overridden in child classes
+
+    # These attributes map the DB engine spec to one or more SQLAlchemy dialects/drivers;
+    # see the ``supports_url`` and ``supports_backend`` methods below.
     engine = "base"  # str as defined in sqlalchemy.engine.engine
     engine_aliases: Set[str] = set()
-    engine_name: Optional[str] = None  # for user messages, overridden in child classes
+    drivers: Dict[str, str] = {}
+    default_driver: Optional[str] = None
+
     _date_trunc_functions: Dict[str, str] = {}
     _time_grain_expressions: Dict[Optional[str], str] = {}
     column_type_mappings: Tuple[ColumnTypeMapping, ...] = (
@@ -356,6 +362,58 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     ] = {}
 
     @classmethod
+    def supports_url(cls, url: URL) -> bool:
+        """
+        Returns true if the DB engine spec supports a given SQLAlchemy URL.
+
+        As an example, if a given DB engine spec has:
+
+            class PostgresDBEngineSpec:
+                engine = "postgresql"
+                engine_aliases = "postgres"
+                drivers = {
+                    "psycopg2": "The default Postgres driver",
+                    "asyncpg": "An asynchronous Postgres driver",
+                }
+
+        It would be used for all the following SQLAlchemy URIs:
+
+            - postgres://user:password@host/db
+            - postgresql://user:password@host/db
+            - postgres+asyncpg://user:password@host/db
+            - postgres+psycopg2://user:password@host/db
+            - postgresql+asyncpg://user:password@host/db
+            - postgresql+psycopg2://user:password@host/db
+
+        Note that SQLAlchemy has a default driver even if one is not specified:
+
+            >>> from sqlalchemy.engine.url import make_url
+            >>> make_url('postgres://').get_driver_name()
+            'psycopg2'
+
+        """
+        backend = url.get_backend_name()
+        driver = url.get_driver_name()
+        return cls.supports_backend(backend, driver)
+
+    @classmethod
+    def supports_backend(cls, backend: str, driver: Optional[str] = None) -> bool:
+        """
+        Returns true if the DB engine spec supports a given SQLAlchemy backend/driver.
+        """
+        # check the backend first
+        if backend != cls.engine and backend not in cls.engine_aliases:
+            return False
+
+        # originally DB engine specs didn't declare any drivers and the check was made
+        # only on the engine; if that's the case, ignore the driver for backwards
+        # compatibility
+        if not cls.drivers or driver is None:
+            return True
+
+        return driver in cls.drivers
+
+    @classmethod
     def get_dbapi_exception_mapping(cls) -> Dict[Type[Exception], Type[Exception]]:
         """
         Each engine can implement and converge its own specific exceptions into
@@ -394,7 +452,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     @classmethod
     def get_text_clause(cls, clause: str) -> TextClause:
         """
-        SQLALchemy wrapper to ensure text clauses are escaped properly
+        SQLAlchemy wrapper to ensure text clauses are escaped properly
 
         :param clause: string clause with potentially unescaped characters
         :return: text clause with escaped characters
