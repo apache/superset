@@ -52,7 +52,7 @@ const {
 } = DEFAULT_FORM_DATA;
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.legacyTimeseriesTime,
+    sections.echartsTimeseriesTime,
     sections.echartsTimeSeriesQuery,
     sections.advancedAnalyticsControls,
     sections.annotationsAndLayersControls,

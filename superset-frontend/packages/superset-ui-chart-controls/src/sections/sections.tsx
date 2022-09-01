@@ -33,6 +33,15 @@ export const legacyTimeseriesTime: ControlPanelSectionConfig = {
   controlSetRows: [
     ['granularity'],
     ['granularity_sqla'],
+    ['time_grain_sqla'],
+    ['time_range'],
+  ],
+};
+
+export const echartsTimeseriesTime: ControlPanelSectionConfig = {
+  ...baseTimeSection,
+  controlSetRows: [
+    ['granularity_sqla'],
     [
       isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES)
         ? null
