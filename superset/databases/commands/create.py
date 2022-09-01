@@ -55,7 +55,8 @@ class CreateDatabaseCommand(BaseCommand):
 
         # when creating a new database we don't need to unmask encrypted extra
         self._properties["encrypted_extra"] = self._properties.pop(
-            "masked_encrypted_extra"
+            "masked_encrypted_extra",
+            "{}",
         )
 
         try:

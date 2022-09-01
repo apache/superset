@@ -54,7 +54,7 @@ class UpdateDatabaseCommand(BaseCommand):
             "encrypted_extra"
         ] = self._model.db_engine_spec.unmask_encrypted_extra(
             self._model.encrypted_extra,
-            self._properties.pop("masked_encrypted_extra"),
+            self._properties.pop("masked_encrypted_extra", "{}"),
         )
 
         try:
