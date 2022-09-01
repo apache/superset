@@ -346,7 +346,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         )
         appbuilder.add_link(
             "SQL Editor",
-            label=_("SQL Editor"),
+            label=_("SQL Lab"),
             href="/superset/sqllab/",
             category_icon="fa-flask",
             icon="fa-flask",
