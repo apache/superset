@@ -722,7 +722,7 @@ test('fires a new request if all values have not been fetched', async () => {
   expect(mock).toHaveBeenCalledTimes(2);
 });
 
-test('does not renders a helper text by default', async () => {
+test('does not render a helper text by default', async () => {
   render(<AsyncSelect {...defaultProps} />);
   await open();
   expect(screen.queryByRole('note')).not.toBeInTheDocument();
