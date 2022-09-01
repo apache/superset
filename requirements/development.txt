@@ -103,7 +103,7 @@ tableschema==1.20.2
     # via apache-superset
 tabulator==1.53.5
     # via tableschema
-thrift==0.13.0
+thrift==0.14.1
     # via
     #   apache-superset
     #   pyhive
