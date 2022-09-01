@@ -69,13 +69,16 @@ def env(key, default=None):
 
 MAPBOX_API_KEY = env('MAPBOX_API_KEY', '')
 CACHE_CONFIG = {
-      'CACHE_TYPE': 'redis',
+      'CACHE_TYPE': 'RedisCache',
       'CACHE_DEFAULT_TIMEOUT': 300,
       'CACHE_KEY_PREFIX': 'superset_',
       'CACHE_REDIS_HOST': env('REDIS_HOST'),
       'CACHE_REDIS_PORT': env('REDIS_PORT'),
       'CACHE_REDIS_PASSWORD': env('REDIS_PASSWORD'),
       'CACHE_REDIS_DB': env('REDIS_DB', 1),
+      'CACHE_OPTIONS': {
+            'username': env('REDIS_USERNAME'),
+      }
 }
 DATA_CACHE_CONFIG = CACHE_CONFIG
 
@@ -93,8 +96,9 @@ class CeleryConfig(object):
   CELERY_IMPORTS = ('superset.sql_lab', )
   CELERY_ANNOTATIONS = {'tasks.add': {'rate_limit': '10/s'}}
 {{- if .Values.supersetNode.connections.redis_password }}
-  BROKER_URL = f"redis://:{env('REDIS_PASSWORD')}@{env('REDIS_HOST')}:{env('REDIS_PORT')}/0"
-  CELERY_RESULT_BACKEND = f"redis://:{env('REDIS_PASSWORD')}@{env('REDIS_HOST')}:{env('REDIS_PORT')}/0"
+  BROKER_URL = f"redis://{env('REDIS_USERNAME')}:{env('REDIS_PASSWORD')}@{env('REDIS_HOST')}:{env('REDIS_PORT')}/0"
+  CELERY_RESULT_BACKEND = f"redis://{env('REDIS_USERNAME')}:{env('REDIS_PASSWORD')}@{env('REDIS_HOST')}:{env('REDIS_PORT')}/0"
+
 {{- else }}
   BROKER_URL = f"redis://{env('REDIS_HOST')}:{env('REDIS_PORT')}/0"
   CELERY_RESULT_BACKEND = f"redis://{env('REDIS_HOST')}:{env('REDIS_PORT')}/0"
@@ -104,6 +108,7 @@ CELERY_CONFIG = CeleryConfig
 RESULTS_BACKEND = RedisCache(
       host=env('REDIS_HOST'),
 {{- if .Values.supersetNode.connections.redis_password }}
+      username=env('REDIS_USERNAME'),
       password=env('REDIS_PASSWORD'),
 {{- end }}
       port=env('REDIS_PORT'),

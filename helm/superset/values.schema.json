@@ -226,6 +226,9 @@
                         "redis_host": {
                             "type": "string"
                         },
+                        "redis_username": {
+                            "type": "string"
+                        },
                         "redis_password": {
                             "type": "string"
                         },
