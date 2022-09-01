@@ -31,7 +31,6 @@ import React, {
   useReducer,
   Reducer,
 } from 'react';
-import { isNil } from 'lodash';
 import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import { UploadChangeParam, UploadFile } from 'antd/lib/upload/interface';
 import Tabs from 'src/components/Tabs';
@@ -902,7 +901,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       );
     }
 
-    return null;
+    return <></>;
   };
 
   const renderEditModalFooter = (db: Partial<DatabaseObject> | null) => (
@@ -1512,7 +1511,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       show={show}
       title={<h4>{t('Connect a database')}</h4>}
       footer={renderModalFooter()}
-      hideFooter={isNil(renderModalFooter())}
     >
       {!isLoading && hasConnectedDb ? (
         <>
