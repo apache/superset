@@ -66,10 +66,10 @@ export function optionLabel(opt) {
     return EMPTY_STRING;
   }
   if (opt === true) {
-    return '<true>';
+    return 'true';
   }
   if (opt === false) {
-    return '<false>';
+    return 'false';
   }
   if (typeof opt !== 'string' && opt.toString) {
     return opt.toString();

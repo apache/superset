@@ -28,9 +28,9 @@ describe('utils/common', () => {
     it('converts values as expected', () => {
       expect(optionFromValue(false)).toEqual({
         value: false,
-        label: '<false>',
+        label: 'false',
       });
-      expect(optionFromValue(true)).toEqual({ value: true, label: '<true>' });
+      expect(optionFromValue(true)).toEqual({ value: true, label: 'true' });
       expect(optionFromValue(null)).toEqual({
         value: NULL_STRING,
         label: NULL_STRING,
