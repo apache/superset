@@ -26,3 +26,7 @@ export function setGridMode(type: 'card' | 'list') {
 export function toggleBulkSelect() {
   cy.getBySel('bulk-select').click();
 }
+
+export function clearAllInputs() {
+    cy.get('[aria-label="close-circle"]').click({ multiple: true, force: true });
+}

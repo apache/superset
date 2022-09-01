@@ -57,7 +57,7 @@ import {
   validateFilterNameOnDashboard,
 } from './nativeFilter.helper';
 import { DASHBOARD_LIST } from 'cypress/utils/urls';
-import { CHART_LIST } from '../chart_list/chart_list.helper';
+import { CHART_LIST } from 'cypress/utils/urls';
 
 // TODO: fix flaky init logic and re-enable
 const milliseconds = new Date().getTime();

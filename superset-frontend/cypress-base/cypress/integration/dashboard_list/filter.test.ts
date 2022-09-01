@@ -17,12 +17,8 @@
  * under the License.
  */
 import { DASHBOARD_LIST } from 'cypress/utils/urls';
-import { setGridMode } from 'cypress/utils';
+import { setGridMode, clearAllInputs } from 'cypress/utils';
 import { setFilter } from '../dashboard/utils';
-
-function resetFilters() {
-  cy.get('[aria-label="close-circle"]').click({ multiple: true, force: true });
-}
 
 describe('Dashboards filters', () => {
   before(() => {
@@ -32,7 +28,7 @@ describe('Dashboards filters', () => {
 
   beforeEach(() => {
     cy.preserveLogin();
-    resetFilters();
+    clearAllInputs();
   });
 
   describe('card-view', () => {
@@ -58,7 +54,7 @@ describe('Dashboards filters', () => {
       setFilter('Status', 'Published');
       cy.getBySel('styled-card').should('have.length', 3);
       setFilter('Status', 'Draft');
-      cy.get('[data-test="styled-card"]').should('have.length', 2);
+      cy.getBySel('styled-card').should('have.length', 2);
     });
   });
 
