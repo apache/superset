@@ -82,6 +82,7 @@ GAMMA_ROLE_PERMISSIONS = {
         ["can_write", "CssTemplate"],
         ["can_read", "ReportSchedule"],
         ["can_write", "ReportSchedule"],
+        ["can_read", "AvailableDomains"],
         ["can_read", "Chart"],
         ["can_write", "Chart"],
         ["can_read", "Annotation"],
