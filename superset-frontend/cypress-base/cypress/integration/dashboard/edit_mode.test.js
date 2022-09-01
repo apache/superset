@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { WORLD_HEALTH_DASHBOARD, drag } from './dashboard.helper';
+import { drag } from './dashboard.helper';
+import { WORLD_HEALTH_DASHBOARD } from 'cypress/utils/urls';
 
 describe('Dashboard edit mode', () => {
   beforeEach(() => {

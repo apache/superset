@@ -27,10 +27,11 @@ import {
   cleanUp,
   copyTestDashboard,
   testItems,
-  waitForChartLoad,
-  WORLD_HEALTH_DASHBOARD,
-  WORLD_HEALTH_CHARTS,
 } from './dashboard.helper';
+import { waitForChartLoad } from 'cypress/utils';
+import {WORLD_HEALTH_CHARTS} from './utils';
+import { WORLD_HEALTH_DASHBOARD } from 'cypress/utils/urls';
+
 import {
   addCountryCodeFilter,
   addCountryNameFilter,

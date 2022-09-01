@@ -17,9 +17,10 @@
  * under the License.
  */
 import {
-  WORLD_HEALTH_DASHBOARD,
   CHECK_DASHBOARD_FAVORITE_ENDPOINT,
 } from './dashboard.helper';
+
+import { WORLD_HEALTH_DASHBOARD } from 'cypress/utils/urls';
 
 describe('Dashboard add to favorite', () => {
   let isFavoriteDashboard = false;

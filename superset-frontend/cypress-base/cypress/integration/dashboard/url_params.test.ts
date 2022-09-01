@@ -18,10 +18,11 @@
  */
 import { parsePostForm, JsonObject } from 'cypress/utils';
 import {
-  WORLD_HEALTH_DASHBOARD,
-  WORLD_HEALTH_CHARTS,
   waitForChartLoad,
-} from './dashboard.helper';
+} from 'cypress/utils';
+
+import { WORLD_HEALTH_CHARTS } from './utils';
+import { WORLD_HEALTH_DASHBOARD } from 'cypress/utils/urls';
 
 describe('Dashboard form data', () => {
   const urlParams = { param1: '123', param2: 'abc' };

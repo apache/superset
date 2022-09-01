@@ -18,10 +18,10 @@
  */
 import qs from 'querystringify';
 import {
-  WORLD_HEALTH_DASHBOARD,
-  WORLD_HEALTH_CHARTS,
   waitForChartLoad,
-} from './dashboard.helper';
+} from 'cypress/utils';
+import {WORLD_HEALTH_CHARTS} from './utils';
+import { WORLD_HEALTH_DASHBOARD } from 'cypress/utils/urls';
 
 interface QueryString {
   native_filters_key: string;

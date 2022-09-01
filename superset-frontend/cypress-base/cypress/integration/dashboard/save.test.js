@@ -20,9 +20,9 @@
 import shortid from 'shortid';
 import {
   waitForChartLoad,
-  WORLD_HEALTH_CHARTS,
-  WORLD_HEALTH_DASHBOARD,
-} from './dashboard.helper';
+} from 'cypress/utils';
+import { WORLD_HEALTH_CHARTS } from './utils';
+import { WORLD_HEALTH_DASHBOARD } from 'cypress/utils/urls';
 
 function openDashboardEditProperties() {
   // open dashboard properties edit modal

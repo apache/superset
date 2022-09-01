@@ -18,11 +18,11 @@
  */
 import { isLegacyResponse, parsePostForm } from 'cypress/utils';
 import {
-  WORLD_HEALTH_CHARTS,
-  WORLD_HEALTH_DASHBOARD,
   getChartAliasesBySpec,
   waitForChartLoad,
-} from './dashboard.helper';
+} from 'cypress/utils';
+import {WORLD_HEALTH_CHARTS } from './utils';
+import { WORLD_HEALTH_DASHBOARD } from 'cypress/utils/urls';
 
 describe('Dashboard filter', () => {
   before(() => {

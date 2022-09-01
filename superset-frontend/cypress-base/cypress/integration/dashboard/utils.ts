@@ -17,6 +17,19 @@
  * under the License.
  */
 
+ export const WORLD_HEALTH_CHARTS = [
+    { name: '% Rural', viz: 'world_map' },
+    { name: 'Most Populated Countries', viz: 'table' },
+    { name: 'Region Filter', viz: 'filter_box' },
+    { name: "World's Population", viz: 'big_number' },
+    { name: 'Growth Rate', viz: 'line' },
+    { name: 'Rural Breakdown', viz: 'sunburst' },
+    { name: "World's Pop Growth", viz: 'area' },
+    { name: 'Life Expectancy VS Rural %', viz: 'bubble' },
+    { name: 'Treemap', viz: 'treemap' },
+    { name: 'Box plot', viz: 'box_plot' },
+  ] as const;
+
 export function interceptFiltering() {
   cy.intercept('GET', `/api/v1/dashboard/?q=*`).as('filtering');
 }
@@ -37,6 +50,10 @@ export function interceptPost() {
   cy.intercept('POST', `/api/v1/dashboard/`).as('post');
 }
 
+export function interceptLog() {
+  cy.intercept('/superset/log/?explode=events&dashboard_id=*').as('logs');
+}
+
 export function setFilter(filter: string, option: string) {
   interceptFiltering();
 
@@ -45,3 +62,4 @@ export function setFilter(filter: string, option: string) {
 
   cy.wait('@filtering');
 }
+

@@ -1,4 +1,3 @@
-import { getChartAlias, Slice } from 'cypress/utils/vizPlugins';
 import { dashboardView } from 'cypress/support/directories';
 
 /**
@@ -19,7 +18,6 @@ import { dashboardView } from 'cypress/support/directories';
  * specific language governing permissions and limitations
  * under the License.
  */
-export const WORLD_HEALTH_DASHBOARD = '/superset/dashboard/world_health/';
 export const USA_BIRTH_NAMES_DASHBOARD = '/superset/dashboard/births/';
 export const testDashboard = '/superset/dashboard/538/';
 export const TABBED_DASHBOARD = '/superset/dashboard/tabbed_dash/';
@@ -61,19 +59,6 @@ export const testItems = {
 export const CHECK_DASHBOARD_FAVORITE_ENDPOINT =
   '/superset/favstar/Dashboard/*/count';
 
-export const WORLD_HEALTH_CHARTS = [
-  { name: '% Rural', viz: 'world_map' },
-  { name: 'Most Populated Countries', viz: 'table' },
-  { name: 'Region Filter', viz: 'filter_box' },
-  { name: "World's Population", viz: 'big_number' },
-  { name: 'Growth Rate', viz: 'line' },
-  { name: 'Rural Breakdown', viz: 'sunburst' },
-  { name: "World's Pop Growth", viz: 'area' },
-  { name: 'Life Expectancy VS Rural %', viz: 'bubble' },
-  { name: 'Treemap', viz: 'treemap' },
-  { name: 'Box plot', viz: 'box_plot' },
-] as const;
-
 export const ECHARTS_CHARTS = [
   { name: 'Number of Girls', viz: 'big_number_total' },
   { name: 'Participants', viz: 'big_number' },
@@ -81,61 +66,6 @@ export const ECHARTS_CHARTS = [
   { name: 'Genders', viz: 'pie' },
   { name: 'Energy Force Layout', viz: 'graph_chart' },
 ] as const;
-
-/** Used to specify charts expected by the test suite */
-export interface ChartSpec {
-  name: string;
-  viz: string;
-}
-
-export function getChartGridComponent({ name, viz }: ChartSpec) {
-  return cy
-    .get(`[data-test-chart-name="${name}"]`)
-    .should('have.attr', 'data-test-viz-type', viz);
-}
-
-export function waitForChartLoad(chart: ChartSpec) {
-  return getChartGridComponent(chart).then(gridComponent => {
-    const chartId = gridComponent.attr('data-test-chart-id');
-    // the chart should load in under half a minute
-    return (
-      cy
-        // this id only becomes visible when the chart is loaded
-        .get(`#chart-id-${chartId}`, {
-          timeout: 30000,
-        })
-        .should('be.visible')
-        // return the chart grid component
-        .then(() => gridComponent)
-    );
-  });
-}
-
-const toSlicelike = ($chart: JQuery<HTMLElement>): Slice => ({
-  slice_id: parseInt($chart.attr('data-test-chart-id')!, 10),
-  form_data: {
-    viz_type: $chart.attr('data-test-viz-type')!,
-  },
-});
-
-export function getChartAliasBySpec(chart: ChartSpec) {
-  return getChartGridComponent(chart).then($chart =>
-    cy.wrap(getChartAlias(toSlicelike($chart))),
-  );
-}
-
-export function getChartAliasesBySpec(charts: readonly ChartSpec[]) {
-  const aliases: string[] = [];
-  charts.forEach(chart =>
-    getChartAliasBySpec(chart).then(alias => {
-      aliases.push(alias);
-    }),
-  );
-  // Wrapping the aliases is key.
-  // That way callers can chain off this function
-  // and actually get the list of aliases.
-  return cy.wrap(aliases);
-}
 
 /**
  * Drag an element and drop it to another element.

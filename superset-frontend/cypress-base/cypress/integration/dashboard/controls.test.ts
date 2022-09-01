@@ -17,12 +17,12 @@
  * under the License.
  */
 import {
-  WORLD_HEALTH_CHARTS,
-  WORLD_HEALTH_DASHBOARD,
   waitForChartLoad,
   ChartSpec,
   getChartAliasesBySpec,
-} from './dashboard.helper';
+} from 'cypress/utils';
+import { WORLD_HEALTH_CHARTS } from './utils';
+import { WORLD_HEALTH_DASHBOARD } from 'cypress/utils/urls';
 import { isLegacyResponse } from '../../utils/vizPlugins';
 
 describe('Dashboard top-level controls', () => {
