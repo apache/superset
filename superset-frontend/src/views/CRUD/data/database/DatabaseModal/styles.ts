@@ -156,7 +156,7 @@ export const antDModalStyles = (theme: SupersetTheme) => css`
   }
 
   .ant-modal-body {
-    height: ${theme.gridUnit * 180.5}px;
+    height: ${theme.gridUnit * 188}px;
   }
 
   .ant-modal-footer {
