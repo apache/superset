@@ -61,6 +61,7 @@ import {
   SQL_EDITOR_GUTTER_HEIGHT,
   SQL_EDITOR_GUTTER_MARGIN,
   SQL_TOOLBAR_HEIGHT,
+  SQL_EDITOR_LEFTBAR_WIDTH,
 } from 'src/SqlLab/constants';
 import {
   getItem,
@@ -696,8 +697,8 @@ class SqlEditor extends React.PureComponent {
         >
           <ResizableSidebar
             id={`sqllab:${this.props.queryEditor.id}`}
-            minWidth={400}
-            initialWidth={400}
+            minWidth={SQL_EDITOR_LEFTBAR_WIDTH}
+            initialWidth={SQL_EDITOR_LEFTBAR_WIDTH}
             enable={!this.props.hideLeftBar}
           >
             {adjustedWidth => (
