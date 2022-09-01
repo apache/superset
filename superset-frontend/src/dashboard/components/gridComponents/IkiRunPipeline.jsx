@@ -331,6 +331,7 @@ class IkiRunPipeline extends React.PureComponent {
     const { ikigaiOrigin } = this.props;
     let iframe = '';
     let iframeSrc = '';
+    console.log('ikigaiOrigin', ikigaiOrigin, 'markdownSource', markdownSource);
     if (ikigaiOrigin) {
       if (markdownSource) {
         // iframe = markdownSource;
@@ -371,7 +372,7 @@ class IkiRunPipeline extends React.PureComponent {
       // console.log('iframeSrc', iframeSrc, markdownSource);
       iframe = `<iframe
                     id="ikirunpipeline-widget-${this.props.component.id}"
-                    name="run-flow-component"
+                    name="run-flow-component-${timestamp}"
                     src="${iframeSrc}"
                     title="IkiRunPipeline Component"
                     className="ikirunpipeline-widget"

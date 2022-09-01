@@ -38,17 +38,6 @@ import {
   GRID_BASE_UNIT,
 } from 'src/dashboard/util/constants';
 
-// const dashURL = 'https://dev-ui.ikigailabs.io';
-// const dashURL = 'https://first-app.ikigailabs.io/widget/pipeline/run';
-// const dashURL = 'http://localhost:3000';
-const supersetUrl = new URL(window.location.href);
-const supersetHostname = supersetUrl.hostname;
-const clusterId = supersetHostname.split('-superset.ikigailabs.io')[0];
-const dashURL = `https://${clusterId}-app.ikigailabs.io`;
-// console.log('supersetUrl', supersetUrl, supersetHostname, clusterId, dashURL);
-const timestamp = new Date().getTime().toString();
-const iframeEmptyURL = `${dashURL}/widget/dataset/table?v=1&editable_dataset_times=${timestamp}&mode=edit`;
-
 const propTypes = {
   id: PropTypes.string.isRequired,
   parentId: PropTypes.string.isRequired,
@@ -57,6 +46,7 @@ const propTypes = {
   index: PropTypes.number.isRequired,
   depth: PropTypes.number.isRequired,
   editMode: PropTypes.bool.isRequired,
+  ikigaiOrigin: PropTypes.string,
 
   // from redux
   logEvent: PropTypes.func.isRequired,
@@ -77,6 +67,8 @@ const propTypes = {
   updateComponents: PropTypes.func.isRequired,
 };
 
+const timestamp = new Date().getTime().toString();
+
 const defaultProps = {};
 
 const MARKDOWN_ERROR_MESSAGE = t('This component has an error.');
@@ -91,7 +83,6 @@ class IkiTable extends React.PureComponent {
       editorMode: 'preview',
       undoLength: props.undoLength,
       redoLength: props.redoLength,
-      projectId: '',
     };
     this.renderStartTime = Logger.getTimestamp();
 
@@ -112,12 +103,7 @@ class IkiTable extends React.PureComponent {
       ts: new Date().getTime(),
       duration: Logger.getTimestamp() - this.renderStartTime,
     });
-    if (!this.props.component.meta.code) {
-      this.handleIncomingWindowMsg();
-      window.parent.postMessage('superset-to-parent/get-project-id', dashURL);
-    } else {
-      this.handleIncomingWindowMsg();
-    }
+    this.handleIncomingWindowMsg();
   }
 
   static getDerivedStateFromProps(nextProps, state) {
@@ -184,9 +170,8 @@ class IkiTable extends React.PureComponent {
 
   // eslint-disable-next-line class-methods-use-this
   handleIncomingWindowMsg() {
-    const { projectId } = this.state;
     window.addEventListener('message', event => {
-      if (event.origin === dashURL) {
+      if (event.origin === this.props.ikigaiOrigin) {
         // console.log('ikitable received 1: ', event.data);
         const messageObject = JSON.parse(event.data);
         if (messageObject.info && messageObject.dataType) {
@@ -199,55 +184,6 @@ class IkiTable extends React.PureComponent {
             messageData = messageObject.data;
           }
           if (
-            messageObject.info === 'top-window-to-superset/sending-project-id'
-          ) {
-            const tempMarkdownSouce = this.state.markdownSource;
-            if ((!projectId || projectId === '') && !tempMarkdownSouce) {
-              if (
-                document.getElementById(
-                  `ikitable-widget-${this.props.component.id}`,
-                )
-              ) {
-                widgetUrl = new URL(
-                  document.getElementById(
-                    `ikitable-widget-${this.props.component.id}`,
-                  ).src,
-                );
-                const widgetUrlQuery = new URLSearchParams(widgetUrl);
-                widgetUrlQuery.set('mode', 'edit');
-                widgetUrlQuery.set('project_id', messageData);
-                widgetUrl.search = widgetUrlQuery.toString();
-              } else {
-                widgetUrl = iframeEmptyURL;
-              }
-              // console.log('widgetUrl123', widgetUrl);
-              this.setState(
-                {
-                  projectId: messageData,
-                },
-                () => {
-                  const tempIframe = `<iframe
-                    id="ikitable-widget-${this.props.component.id}"
-                    name="editable-dataset-${timestamp}"
-                    src="${widgetUrl}"
-                    title="IkiTable Component"
-                    className="ikitable-widget"
-                    style="height:100%;"
-                  />`;
-                  this.handleIkiTableChange(tempIframe);
-                  if (
-                    document.getElementById(
-                      `ikitable-widget-${this.props.component.id}`,
-                    )
-                  ) {
-                    document.getElementById(
-                      `ikitable-widget-${this.props.component.id}`,
-                    ).src = widgetUrl;
-                  }
-                },
-              );
-            }
-          } else if (
             messageObject.info === 'widget-to-superset/sending-datasets-ids'
           ) {
             if (
@@ -255,7 +191,7 @@ class IkiTable extends React.PureComponent {
                 `ikitable-widget-${this.props.component.id}`,
               )
             ) {
-              const widgetUrl = new URL(
+              widgetUrl = new URL(
                 document.getElementById(
                   `ikitable-widget-${this.props.component.id}`,
                 ).src,
@@ -294,18 +230,19 @@ class IkiTable extends React.PureComponent {
                   );
                 }
                 // widgetUrl.search = widgetUrlQuery.toString();
+                const iframeSrc =
+                  this.props.ikigaiOrigin +
+                  widgetUrl.pathname +
+                  widgetUrl.search;
                 const tempIframe = `<iframe
                         id="ikitable-widget-${this.props.component.id}"
                         name="editable-dataset-${timestamp}"
-                        src="${widgetUrl}"
+                        src="${iframeSrc}"
                         title="IkiTable Component"
                         className="ikitable-widget"
                         style="height:100%;"
                       />`;
                 this.handleIkiTableChange(tempIframe);
-                document.getElementById(
-                  `ikitable-widget-${this.props.component.id}`,
-                ).src = widgetUrl;
               }
             }
           } else if (
@@ -332,18 +269,17 @@ class IkiTable extends React.PureComponent {
 
               // widgetUrl.search = widgetUrlQuery.toString();
               // console.log('widgetUrl...', widgetUrl);
+              const iframeSrc =
+                this.props.ikigaiOrigin + widgetUrl.pathname + widgetUrl.search;
               const tempIframe = `<iframe
                         id="ikitable-widget-${this.props.component.id}"
                         name="editable-dataset-${timestamp}"
-                        src="${widgetUrl}"
+                        src="${iframeSrc}"
                         title="IkiTable Component"
                         className="ikitable-widget"
                         style="height:100%;"
                       />`;
               this.handleIkiTableChange(tempIframe);
-              document.getElementById(
-                `ikitable-widget-${this.props.component.id}`,
-              ).src = widgetUrl;
             }
           }
         }
@@ -452,32 +388,36 @@ class IkiTable extends React.PureComponent {
 
   renderIframe() {
     const { markdownSource, hasError } = this.state;
+    const { ikigaiOrigin } = this.props;
     let iframe = '';
     let iframeSrc = '';
-    if (markdownSource) {
-      // iframe = markdownSource;
-      const iframeWrapper = document.createElement('div');
-      iframeWrapper.innerHTML = markdownSource;
-      const iframeHtml = iframeWrapper.firstChild;
-      const iframeSrcUrl = new URL(iframeHtml.src);
-      const hostname = iframeSrcUrl.href.toString().split('ikigailabs.io')[0];
-      if (hostname.includes('localhost') || hostname.includes('dev')) {
-        // iframeHtml.src = iframeSrcUrl.href.toString();
-        iframeSrc = iframeSrcUrl.href.toString();
+    console.log('ikigaiOrigin', ikigaiOrigin, 'markdownSource', markdownSource);
+    if (ikigaiOrigin) {
+      if (markdownSource) {
+        // iframe = markdownSource;
+        const iframeWrapper = document.createElement('div');
+        iframeWrapper.innerHTML = markdownSource;
+        const iframeHtml = iframeWrapper.firstChild;
+        const iframeSrcUrl = new URL(iframeHtml.src);
+        /* const hostname = iframeSrcUrl.href.toString().split('ikigailabs.io')[0];
+        if (hostname.includes('localhost') || hostname.includes('dev')) {
+          // iframeHtml.src = iframeSrcUrl.href.toString();
+          iframeSrc = iframeSrcUrl.href.toString();
+        } else {
+          const srcUrl = `${dashURL}${
+            iframeSrcUrl.href.toString().split('.ikigailabs.io')[1]
+          }`;
+          // iframeHtml.src = srcUrl;
+          iframeSrc = srcUrl;
+        } */
+
+        iframeSrc = ikigaiOrigin + iframeSrcUrl.pathname + iframeSrcUrl.search;
+
+        console.log('iframe', iframeSrcUrl, iframeHtml, iframeSrc);
       } else {
-        const srcUrl = `${dashURL}${
-          iframeSrcUrl.href.toString().split('.ikigailabs.io')[1]
-        }`;
-        // iframeHtml.src = srcUrl;
-        iframeSrc = srcUrl;
+        iframeSrc = `${ikigaiOrigin}/widget/dataset/table?v=1&editable_dataset_times=${timestamp}&mode=edit`;
       }
-
-      // console.log('iframe', iframeSrcUrl, iframeHtml);
-    } else {
-      iframeSrc = iframeEmptyURL;
-    }
-
-    iframe = `<iframe
+      iframe = `<iframe
                   id="ikitable-widget-${this.props.component.id}"
                   name="editable-dataset-${timestamp}"
                   src="${iframeSrc}"
@@ -485,6 +425,9 @@ class IkiTable extends React.PureComponent {
                   className="ikitable-widget"
                   style="height:100%;"
                 />`;
+    } else {
+      iframe = '';
+    }
     return <SafeMarkdown source={hasError ? MARKDOWN_ERROR_MESSAGE : iframe} />;
   }
 

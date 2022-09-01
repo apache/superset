@@ -41,16 +41,7 @@ import {
   GRID_BASE_UNIT,
 } from 'src/dashboard/util/constants';
 
-// const dashURL = 'https://dev-ui.ikigailabs.io';
-// const dashURL = 'https://first-app.ikigailabs.io/widget/pipeline/run';
-// const dashURL = 'http://localhost:3000';
-const supersetUrl = new URL(window.location.href);
-const supersetHostname = supersetUrl.hostname;
-const clusterId = supersetHostname.split('-superset.ikigailabs.io')[0];
-const dashURL = `https://${clusterId}-app.ikigailabs.io`;
-// console.log('supersetUrl', supersetUrl, supersetHostname, clusterId, dashURL);
 const timestamp = new Date().getTime().toString();
-const iframeEmptyURL = `${dashURL}/widget/diagram/builder?v=1&mode=edit&run_flow_times=${timestamp}`;
 
 const propTypes = {
   id: PropTypes.string.isRequired,
@@ -60,6 +51,7 @@ const propTypes = {
   index: PropTypes.number.isRequired,
   depth: PropTypes.number.isRequired,
   editMode: PropTypes.bool.isRequired,
+  ikigaiOrigin: PropTypes.string,
 
   // from redux
   logEvent: PropTypes.func.isRequired,
@@ -127,17 +119,16 @@ class IkiProcessBuilder extends React.PureComponent {
       widgetUrl.searchParams.set('mode', 'preview');
       widgetUrl.searchParams.set('data', definitionData);
       widgetUrl.searchParams.set('scid', this.props.component.id);
+      const iframeSrc =
+        this.props.ikigaiOrigin + widgetUrl.pathname + widgetUrl.search;
       const tempIframe = `<iframe
                         id="ikiprocessdiagram-widget-${this.props.component.id}"
                         name="process-diagram-${timestamp}"
-                        src="${widgetUrl}"
+                        src="${iframeSrc}"
                         title="IkiProcessDiagram Component"
                         className="ikiprocessdiagram-widget"
                         data-definition="${definitionData}"
                       ></iframe>`;
-      document.getElementById(
-        `ikiprocessdiagram-widget-${this.props.component.id}`,
-      ).src = widgetUrl;
       this.handleIkiProcessBuilderChange(tempIframe);
       this.handleIncomingWindowMsg();
     }
@@ -212,13 +203,12 @@ class IkiProcessBuilder extends React.PureComponent {
         ).dataset.definition;
         widgetUrl.searchParams.set('mode', 'preview');
         widgetUrl.searchParams.set('data', definitionData);
-        document.getElementById(
-          `ikiprocessdiagram-widget-${this.props.component.id}`,
-        ).src = widgetUrl;
+        const iframeSrc =
+          this.props.ikigaiOrigin + widgetUrl.pathname + widgetUrl.search;
         const tempIframe = `<iframe
                             id="ikiprocessdiagram-widget-${this.props.component.id}"
                             name="process-diagram-${timestamp}"
-                            src="${widgetUrl}"
+                            src="${iframeSrc}"
                             title="IkiProcessDiagram Component"
                             className="ikiprocessdiagram-widget"
                             data-definition="${definitionData}"
@@ -242,13 +232,12 @@ class IkiProcessBuilder extends React.PureComponent {
         ).dataset.definition;
         widgetUrl.searchParams.set('mode', 'edit');
         widgetUrl.searchParams.set('data', definitionData);
-        document.getElementById(
-          `ikiprocessdiagram-widget-${this.props.component.id}`,
-        ).src = widgetUrl;
+        const iframeSrc =
+          this.props.ikigaiOrigin + widgetUrl.pathname + widgetUrl.search;
         const tempIframe = `<iframe
                             id="ikiprocessdiagram-widget-${this.props.component.id}"
                             name="process-diagram-${timestamp}"
-                            src="${widgetUrl}"
+                            src="${iframeSrc}"
                             title="IkiProcessDiagram Component"
                             className="ikiprocessdiagram-widget"
                             data-definition="${definitionData}"
@@ -271,7 +260,7 @@ class IkiProcessBuilder extends React.PureComponent {
   // eslint-disable-next-line class-methods-use-this
   handleIncomingWindowMsg() {
     window.addEventListener('message', event => {
-      if (event.origin === dashURL) {
+      if (event.origin === this.props.ikigaiOrigin) {
         // console.log('process diagram received 1: ', event.data);
         const messageObject = JSON.parse(event.data);
         if (messageObject.info && messageObject.dataType) {
@@ -301,10 +290,16 @@ class IkiProcessBuilder extends React.PureComponent {
                 const infoStringCompresed =
                   LZString.compressToEncodedURIComponent(infoString);
                 // widgetUrl.searchParams.set('data', infoStringCompresed);
+                // console.log('widgetUrl', widgetUrl);
+                const iframeSrc =
+                  this.props.ikigaiOrigin +
+                  widgetUrl.pathname +
+                  widgetUrl.search;
+                // console.log('iframeSrc', iframeSrc);
                 const tempIframe = `<iframe
                           id="ikiprocessdiagram-widget-${this.props.component.id}"
                           name="process-diagram-${timestamp}"
-                          src="${widgetUrl}"
+                          src="${iframeSrc}"
                           title="IkiProcessDiagram Component"
                           className="ikiprocessdiagram-widget"
                           data-definition="${infoStringCompresed}"
@@ -431,48 +426,53 @@ class IkiProcessBuilder extends React.PureComponent {
 
   renderIframe(mode) {
     const { markdownSource, hasError } = this.state;
+    const { ikigaiOrigin } = this.props;
     let iframe = '';
     let iframeSrc = '';
     let iframeData = '';
-    if (markdownSource) {
-      // iframe = markdownSource;
-      const iframeWrapper = document.createElement('div');
-      iframeWrapper.innerHTML = markdownSource;
-      const iframeHtml = iframeWrapper.firstChild;
-      const iframeSrcUrl = new URL(iframeHtml.src);
-      if (mode === 'preview') {
-        iframeSrcUrl.searchParams.set('mode', 'preview');
-      } else {
-        iframeSrcUrl.searchParams.set('mode', 'edit');
-      }
-      iframeData = iframeSrcUrl.searchParams.get('data');
-      const hostname = iframeSrcUrl.href.toString().split('ikigailabs.io')[0];
-      if (hostname.includes('localhost') || hostname.includes('dev')) {
-        // iframeHtml.src = iframeSrcUrl.href.toString();
-        iframeSrc = iframeSrcUrl.href.toString();
-      } else {
-        const srcUrl = `${dashURL}${
-          iframeSrcUrl.href.toString().split('.ikigailabs.io')[1]
-        }`;
-        // iframeHtml.src = srcUrl;
-        iframeSrc = srcUrl;
-      }
+    if (ikigaiOrigin) {
+      if (markdownSource) {
+        // iframe = markdownSource;
+        const iframeWrapper = document.createElement('div');
+        iframeWrapper.innerHTML = markdownSource;
+        const iframeHtml = iframeWrapper.firstChild;
+        const iframeSrcUrl = new URL(iframeHtml.src);
+        if (mode === 'preview') {
+          iframeSrcUrl.searchParams.set('mode', 'preview');
+        } else {
+          iframeSrcUrl.searchParams.set('mode', 'edit');
+        }
+        iframeData = iframeSrcUrl.searchParams.get('data');
+        /* const hostname = iframeSrcUrl.href.toString().split('ikigailabs.io')[0];
+        if (hostname.includes('localhost') || hostname.includes('dev')) {
+          // iframeHtml.src = iframeSrcUrl.href.toString();
+          iframeSrc = iframeSrcUrl.href.toString();
+        } else {
+          const srcUrl = `${dashURL}${
+            iframeSrcUrl.href.toString().split('.ikigailabs.io')[1]
+          }`;
+          // iframeHtml.src = srcUrl;
+          iframeSrc = srcUrl;
+        } */
 
-      // console.log('iframe', iframeSrcUrl, iframeHtml);
+        iframeSrc = ikigaiOrigin + iframeSrcUrl.pathname + iframeSrcUrl.search;
+
+        // console.log('iframe', iframeSrcUrl, iframeHtml);
+      } else {
+        iframeSrc = `${ikigaiOrigin}/widget/diagram/builder?v=1&run_flow_times=${timestamp}&mode=edit&scid=${this.props.component.id}`;
+      }
+      iframe = `<iframe
+                    id="ikiprocessdiagram-widget-${this.props.component.id}"
+                    name="ikiprocessdiagram-widget-${timestamp}"
+                    src="${iframeSrc}"
+                    data-definition="${iframeData}"
+                    title="IkiProcessDiagram Component"
+                    className="ikiprocessdiagram-widget"
+                    style="height: 100%;"
+                  />`;
     } else {
-      const iframeSrcUrl = new URL(iframeEmptyURL);
-      iframeSrcUrl.searchParams.set('scid', this.props.component.id);
-      iframeSrc = iframeSrcUrl.href.toString();
+      iframe = '';
     }
-    iframe = `<iframe
-                  id="ikiprocessdiagram-widget-${this.props.component.id}"
-                  name="ikiprocessdiagram-widget-${timestamp}"
-                  src="${iframeSrc}"
-                  data-definition="${iframeData}"
-                  title="IkiProcessDiagram Component"
-                  className="ikiprocessdiagram-widget"
-                  style="height: 100%;"
-                />`;
     return <SafeMarkdown source={hasError ? MARKDOWN_ERROR_MESSAGE : iframe} />;
   }
 
