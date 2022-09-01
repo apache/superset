@@ -22,7 +22,7 @@ import {
   SqlaFormData,
 } from '@superset-ui/core';
 
-describe('disable GENERIC_CHART_AXES', () => {
+describe('disabled GENERIC_CHART_AXES', () => {
   let windowSpy: any;
 
   beforeAll(() => {
@@ -66,7 +66,7 @@ describe('disable GENERIC_CHART_AXES', () => {
   });
 });
 
-describe('enable GENERIC_CHART_AXES', () => {
+describe('enabled GENERIC_CHART_AXES', () => {
   let windowSpy: any;
 
   beforeAll(() => {
@@ -211,5 +211,37 @@ describe('enable GENERIC_CHART_AXES', () => {
       ],
       metrics: ['count(*)'],
     });
+  });
+
+  it('fallback and invalid columns value', () => {
+    const formData: SqlaFormData = {
+      datasource: '5__table',
+      viz_type: 'table',
+      granularity: 'time_column',
+      time_grain_sqla: 'P1Y',
+      time_range: '1 year ago : 2013',
+      x_axis: {
+        expressionType: 'SQL',
+        label: 'Order Data + 1 year',
+        sqlExpression: '"Order Date" + interval \'1 year\'',
+      },
+      columns: ['col1'],
+      metrics: ['count(*)'],
+    };
+    const query: QueryObject = {
+      datasource: '5__table',
+      viz_type: 'table',
+      granularity: 'time_column',
+      extras: {
+        time_grain_sqla: 'P1Y',
+        where: '',
+        having: '',
+      },
+      time_range: '1 year ago : 2013',
+      orderby: [['count(*)', true]],
+      metrics: ['count(*)'],
+      is_timeseries: true,
+    };
+    expect(normalizeTimeColumn(formData, query)).toEqual(query);
   });
 });

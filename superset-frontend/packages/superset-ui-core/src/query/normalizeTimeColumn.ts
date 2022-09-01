@@ -40,7 +40,6 @@ export function normalizeTimeColumn(
   }
 
   const mutatedColumns: QueryFormColumn[] = [...(queryObject.columns || [])];
-
   const axisIdx = queryObject.columns?.findIndex(
     col =>
       (isPhysicalColumn(col) &&
@@ -54,7 +53,7 @@ export function normalizeTimeColumn(
     axisIdx !== undefined &&
     axisIdx > -1 &&
     formData.x_axis &&
-    queryObject.columns
+    Array.isArray(queryObject.columns)
   ) {
     if (isAdhocColumn(queryObject.columns[axisIdx])) {
       mutatedColumns[axisIdx] = {
@@ -71,13 +70,16 @@ export function normalizeTimeColumn(
         expressionType: 'SQL',
       };
     }
+
+    const newQueryObject = omit(queryObject, [
+      'extras.time_grain_sqla',
+      'is_timeseries',
+    ]);
+    newQueryObject.columns = mutatedColumns;
+
+    return newQueryObject;
   }
 
-  const newQueryObject = omit(queryObject, [
-    'extras.time_grain_sqla',
-    'is_timeseries',
-  ]);
-  newQueryObject.columns = mutatedColumns;
-
-  return newQueryObject;
+  // fallback, return original queryObject
+  return queryObject;
 }
