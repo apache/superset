@@ -41,7 +41,8 @@ import {
   CustomRangeKey,
   FrameComponentProps,
 } from 'src/explore/components/controls/DateFilterControl/types';
-import { locales } from 'antd/dist/antd-with-locales';
+// @ts-ignore
+import locales from 'antd/dist/antd-with-locales';
 import { bootstrapData } from 'src/preamble';
 
 const languages = {
