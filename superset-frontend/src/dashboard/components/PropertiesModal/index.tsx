@@ -133,8 +133,7 @@ const PropertiesModal = ({
         endpoint: `/api/v1/dashboard/related/${accessType}?q=${query}`,
       }).then(response => ({
         data: response.json.result
-          // @ts-ignore
-          .filter(item => item.extra.active)
+          .filter((item: { extra: { active: boolean } }) => item.extra.active)
           .map((item: { value: number; text: string }) => ({
             value: item.value,
             label: item.text,
