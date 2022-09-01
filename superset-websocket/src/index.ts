@@ -69,6 +69,7 @@ export interface SocketInstance {
 interface RedisConfig {
   port: number;
   host: string;
+  username?: string | null;
   password?: string | null;
   db: number;
   ssl: boolean;
@@ -105,7 +106,7 @@ if (startServer && opts.jwtSecret.length < 32)
 
 export const redisUrlFromConfig = (redisConfig: RedisConfig): string => {
   let url = redisConfig.ssl ? 'rediss://' : 'redis://';
-  if (redisConfig.password) url += `:${redisConfig.password}@`;
+  if (redisConfig.password) url += `${redisConfig.username}:${redisConfig.password}@`;
   url += `${redisConfig.host}:${redisConfig.port}/${redisConfig.db}`;
   return url;
 };

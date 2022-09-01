@@ -29,6 +29,7 @@ type ConfigType = {
   redis: {
     port: number;
     host: string;
+    username: string,
     password: string;
     db: number;
     ssl: boolean;
@@ -109,6 +110,7 @@ function applyEnvOverrides(config: ConfigType): ConfigType {
       (config.gcChannelsIntervalMs = toNumber(val)),
     REDIS_HOST: val => (config.redis.host = val),
     REDIS_PORT: val => (config.redis.port = toNumber(val)),
+    REDIS_USERNAME: val => (config.redis.username = val),
     REDIS_PASSWORD: val => (config.redis.password = val),
     REDIS_DB: val => (config.redis.db = toNumber(val)),
     REDIS_SSL: val => (config.redis.ssl = toBoolean(val)),
