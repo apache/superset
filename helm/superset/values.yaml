@@ -35,7 +35,7 @@ bootstrapScript: |
   rm -rf /var/lib/apt/lists/* && \
   pip install \
     psycopg2-binary==2.9.1 \
-    redis==3.5.3 && \
+    redis==4.3.4 && \
   if [ ! -f ~/bootstrap ]; then echo "Running Superset with uid {{ .Values.runAsUser }}" > ~/bootstrap; fi
 
 ## The name of the secret which we will use to generate a superset_config.py file
@@ -245,6 +245,7 @@ supersetNode:
     # redis_username: superset
     # redis_password: superset
     redis_port: "6379"
+    # redis_ssl: "True"
     # You need to change below configuration incase bringing own PostgresSQL instance and also set postgresql.enabled:false
     db_host: '{{ template "superset.fullname" . }}-postgresql'
     db_port: "5432"

@@ -235,6 +235,9 @@
                         "redis_port": {
                             "type": "string"
                         },
+                        "redis_ssl": {
+                            "type": "string"
+                        },
                         "db_host": {
                             "type": "string"
                         },
