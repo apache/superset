@@ -71,5 +71,5 @@ module.exports = results => {
   const result = {
     metrics: metricsByRule,
   };
-  return JSON.stringify(result, null, 2) + '\n';
+  return `${JSON.stringify(result, null, 2)}\n`;
 };
