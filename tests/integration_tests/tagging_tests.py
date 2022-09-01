@@ -17,6 +17,7 @@
 
 from sqlalchemy import func
 
+from superset.cli.update import sync_tags
 from superset.connectors.sqla.models import SqlaTable
 from superset.extensions import db
 from superset.models.core import FavStar
@@ -76,6 +77,9 @@ class TestTagging(SupersetTestCase):
         db.session.add(test_dataset)
         db.session.commit()
 
+        # Run the sync tags command so that the new dataset is tagged
+        sync_tags()
+
         # Test to make sure that a dataset tag was added to the tagged_object table
         tags = self.query_tagged_object_table()
         self.assertEqual(1, len(tags))
@@ -111,6 +115,9 @@ class TestTagging(SupersetTestCase):
         db.session.add(test_chart)
         db.session.commit()
 
+        # Run the sync tags command so that the new chart is tagged
+        sync_tags()
+
         # Test to make sure that a chart tag was added to the tagged_object table
         tags = self.query_tagged_object_table()
         self.assertEqual(1, len(tags))
@@ -145,6 +152,9 @@ class TestTagging(SupersetTestCase):
         db.session.add(test_dashboard)
         db.session.commit()
 
+        # Run the sync tags command so that the new dashboard is tagged
+        sync_tags()
+
         # Test to make sure that a dashboard tag was added to the tagged_object table
         tags = self.query_tagged_object_table()
         self.assertEqual(1, len(tags))
@@ -173,6 +183,9 @@ class TestTagging(SupersetTestCase):
         test_saved_query = FavStar(user_id=1, class_name="slice", obj_id=1)
         db.session.add(test_saved_query)
         db.session.commit()
+
+        # Run the sync tags command so that the new saved query is tagged
+        sync_tags()
 
         # Test to make sure that a saved query tag was added to the tagged_object table
         tags = self.query_tagged_object_table()
