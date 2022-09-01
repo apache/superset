@@ -26,6 +26,7 @@ import React, {
 import { SupersetClient, t, styled, FAST_DEBOUNCE } from '@superset-ui/core';
 import { Input } from 'src/components/Input';
 import { Form } from 'src/components/Form';
+import Icons from 'src/components/Icons';
 import { TableOption, Table } from 'src/components/TableSelector';
 import RefreshLabel from 'src/components/RefreshLabel';
 import Loading from 'src/components/Loading';
@@ -40,6 +41,10 @@ interface LeftPanelProps {
   schema?: string | undefined | null;
   dbId?: number;
 }
+
+const SearchIcon = styled(Icons.Search)`
+  color: ${({ theme }) => theme.colors.grayscale.light1};
+`;
 
 const LeftPanelStyle = styled.div`
   ${({ theme }) => `
@@ -82,7 +87,7 @@ const LeftPanelStyle = styled.div`
       border-radius: ${theme.borderRadius}px;
     }
   }
-  form > span {
+  form > span[aria-label="refresh"] {
     position: absolute;
     top: ${theme.gridUnit * 73}px;
     left: ${theme.gridUnit * 42.75}px;
@@ -91,15 +96,19 @@ const LeftPanelStyle = styled.div`
   .table-form {
     margin-bottom: ${theme.gridUnit * 8}px;
   }
-  .loading {
+  .loading-container {
     position: absolute;
-    bottom: ${theme.gridUnit * 95}px;
+    top: 359px;
+    left: 0;
+    right: 0;
+    text-align: center;
     img {
-      position: absolute;
-      top: -${theme.gridUnit * 13.25}px;
-      right: -${theme.gridUnit * 3.75}px;
-      width: ${theme.gridUnit * 17.75}px;
+      width: ${theme.gridUnit * 20}px;
+      margin-bottom: 10px;
     }
+    p {
+      color: ${theme.colors.grayscale.light1}
+    } 
   }
   }
 `}
@@ -188,21 +197,24 @@ export default function LeftPanel({
     [dbId, encodedSchema],
   );
 
+  const Loader = (inline: string) => (
+    <div className="loading-container">
+      <Loading position="inline" />
+      <p>{inline} </p>
+    </div>
+  );
+
   return (
     <LeftPanelStyle>
-      <p className="section-title db-schema">Select Database & Schema</p>
+      <p className="section-title db-schema">Select database & schema</p>
       <DatabaseSelector
         handleError={addDangerToast}
         onDbChange={setDatabase}
         onSchemaChange={setSchema}
       />
-      {loadTables && (
-        <div className="loading">
-          <Loading position="inline" />
-          <p>Tables loading ...</p>
-        </div>
-      )}
-      {!schema && !loadTables ? (
+      {loadTables && !refresh && Loader('Table loading')}
+
+      {schema && !loadTables && !tableOptions.length && !searchVal && (
         <div className="emptystate">
           <EmptyStateMedium
             image="empty-table.svg"
@@ -210,10 +222,12 @@ export default function LeftPanel({
             description={t('Try selecting a different schema')}
           />
         </div>
-      ) : (
+      )}
+
+      {schema && (tableOptions.length > 0 || searchVal.length > 0) && (
         <>
           <Form>
-            <p className="table-title">Select Database Table</p>
+            <p className="table-title">Select database table</p>
             <RefreshLabel
               onClick={() => {
                 setLoadTables(true);
@@ -221,22 +235,27 @@ export default function LeftPanel({
               }}
               tooltipContent={t('Refresh table list')}
             />
-            <Input
-              value={searchVal}
-              onChange={evt => {
-                search(evt.target.value);
-                setSearchVal(evt.target.value);
-              }}
-              className="table-form"
-              placeholder={t('Search Tables')}
-            />
+            {refresh && Loader('Refresh tables')}
+            {!refresh && (
+              <Input
+                value={searchVal}
+                prefix={<SearchIcon iconSize="l" />}
+                onChange={evt => {
+                  search(evt.target.value);
+                  setSearchVal(evt.target.value);
+                }}
+                className="table-form"
+                placeholder={t('Search tables')}
+              />
+            )}
           </Form>
           <div className="options-list" data-test="options-list">
-            {tableOptions.map((o, i) => (
-              <div className="options" key={i}>
-                {o.label}
-              </div>
-            ))}
+            {!refresh &&
+              tableOptions.map((o, i) => (
+                <div className="options" key={i}>
+                  {o.label}
+                </div>
+              ))}
           </div>
         </>
       )}
