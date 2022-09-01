@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useDrag } from 'react-dnd';
 import { css, Metric, styled } from '@superset-ui/core';
 import { ColumnMeta } from '@superset-ui/chart-controls';
@@ -50,6 +50,10 @@ const DatasourceItemContainer = styled.div`
   `}
 `;
 
+const style = (dragging: boolean) => ({
+  cursor: dragging ? 'grabbing' : 'pointer',
+});
+
 interface DatasourcePanelDragOptionProps extends DatasourcePanelDndItem {
   labelRef?: React.RefObject<any>;
   showTooltip?: boolean;
@@ -80,7 +84,11 @@ export default function DatasourcePanelDragOption(
   };
 
   return (
-    <DatasourceItemContainer data-test="DatasourcePanelDragOption" ref={drag}>
+    <DatasourceItemContainer
+      style={isDragging ? { cursor: 'grabbing' } : { cursor: 'pointer' }}
+      data-test="DatasourcePanelDragOption"
+      ref={drag}
+    >
       {type === DndItemType.Column ? (
         <StyledColumnOption column={value as ColumnMeta} {...optionProps} />
       ) : (
