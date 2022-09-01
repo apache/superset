@@ -64,7 +64,6 @@ const store = mockStore({
         allow_cvas: false,
         allow_dml: false,
         allow_file_upload: false,
-        allow_multi_schema_metadata_fetch: false,
         allow_run_async: false,
         backend: 'postgresql',
         database_name: 'examples',

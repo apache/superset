@@ -156,7 +156,7 @@ class TestCore(SupersetTestCase):
         example_db = superset.utils.database.get_example_database()
         schema_name = self.default_schema_backend_map[example_db.backend]
         self.login(username="gamma")
-        uri = f"superset/tables/{example_db.id}/{schema_name}/undefined/"
+        uri = f"superset/tables/{example_db.id}/{schema_name}/"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 404)
 
@@ -185,7 +185,7 @@ class TestCore(SupersetTestCase):
 
         example_db = utils.get_example_database()
         schema_name = self.default_schema_backend_map[example_db.backend]
-        uri = f"superset/tables/{example_db.id}/{schema_name}/{table_name}/"
+        uri = f"superset/tables/{example_db.id}/{schema_name}/"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 200)
 
@@ -197,7 +197,6 @@ class TestCore(SupersetTestCase):
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_get_superset_tables_not_allowed_with_out_permissions(self):
         session = db.session
-        table_name = "energy_usage"
         role_name = "dummy_role_no_table_access"
         self.logout()
         self.login(username="gamma")
@@ -210,7 +209,7 @@ class TestCore(SupersetTestCase):
 
         example_db = utils.get_example_database()
         schema_name = self.default_schema_backend_map[example_db.backend]
-        uri = f"superset/tables/{example_db.id}/{schema_name}/{table_name}/"
+        uri = f"superset/tables/{example_db.id}/{schema_name}/"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 404)
 
@@ -219,38 +218,18 @@ class TestCore(SupersetTestCase):
         gamma_user.roles.remove(security_manager.find_role(role_name))
         session.commit()
 
-    def test_get_superset_tables_substr(self):
-        example_db = superset.utils.database.get_example_database()
-        if example_db.backend in {"presto", "hive", "sqlite"}:
-            # TODO: change table to the real table that is in examples.
-            return
+    def test_get_superset_tables_database_not_found(self):
         self.login(username="admin")
-        schema_name = self.default_schema_backend_map[example_db.backend]
-        uri = f"superset/tables/{example_db.id}/{schema_name}/ab_role/"
-        rv = self.client.get(uri)
-        response = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(rv.status_code, 200)
-
-        expected_response = {
-            "options": [
-                {
-                    "label": "ab_role",
-                    "schema": schema_name,
-                    "title": "ab_role",
-                    "type": "table",
-                    "value": "ab_role",
-                    "extra": None,
-                }
-            ],
-            "tableLength": 1,
-        }
-        self.assertEqual(response, expected_response)
-
-    def test_get_superset_tables_not_found(self):
-        self.login(username="admin")
-        uri = f"superset/tables/invalid/public/undefined/"
+        uri = f"superset/tables/invalid/public/"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 404)
+
+    def test_get_superset_tables_schema_undefined(self):
+        example_db = superset.utils.database.get_example_database()
+        self.login(username="gamma")
+        uri = f"superset/tables/{example_db.id}/undefined/"
+        rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 422)
 
     def test_annotation_json_endpoint(self):
         # Set up an annotation layer and annotation

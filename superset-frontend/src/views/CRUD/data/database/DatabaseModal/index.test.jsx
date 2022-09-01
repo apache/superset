@@ -576,12 +576,6 @@ describe('DatabaseModal', () => {
         name: /allow dml/i,
       });
       const allowDMLText = screen.getByText(/allow dml/i);
-      const allowMultiSchemaMDFetchCheckbox = screen.getByRole('checkbox', {
-        name: /allow multi schema metadata fetch/i,
-      });
-      const allowMultiSchemaMDFetchText = screen.getByText(
-        /allow multi schema metadata fetch/i,
-      );
       const enableQueryCostEstimationCheckbox = screen.getByRole('checkbox', {
         name: /enable query cost estimation/i,
       });
@@ -638,7 +632,6 @@ describe('DatabaseModal', () => {
         CTASCVASInput,
         CTASCVASHelperText,
         allowDMLText,
-        allowMultiSchemaMDFetchText,
         enableQueryCostEstimationText,
         allowDbExplorationText,
         disableSQLLabDataPreviewQueriesText,
@@ -649,7 +642,6 @@ describe('DatabaseModal', () => {
         allowCTASCheckbox,
         allowCVASCheckbox,
         allowDMLCheckbox,
-        allowMultiSchemaMDFetchCheckbox,
         enableQueryCostEstimationCheckbox,
         allowDbExplorationCheckbox,
         disableSQLLabDataPreviewQueriesCheckbox,
