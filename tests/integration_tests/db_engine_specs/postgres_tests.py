@@ -506,7 +506,7 @@ def test_base_parameters_mixin():
     parameters_from_uri = PostgresEngineSpec.get_parameters_from_uri(sqlalchemy_uri)
     assert parameters_from_uri == {
         "username": "username",
-        "password": "XXXXXXXXXX",
+        "password": "password",
         "host": "localhost",
         "port": 5432,
         "database": "dbname",

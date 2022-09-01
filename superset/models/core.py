@@ -266,15 +266,15 @@ class Database(
             self.encrypted_extra
         )
         try:
-            config = json.loads(masked_encrypted_extra)
-        except json.JSONDecodeError:
-            config = {}
+            encrypted_config = json.loads(masked_encrypted_extra)
+        except (TypeError, json.JSONDecodeError):
+            encrypted_config = {}
 
         try:
             # pylint: disable=useless-suppression
             parameters = db_engine_spec.get_parameters_from_uri(  # type: ignore
                 masked_uri,
-                encrypted_extra=config,
+                encrypted_extra=encrypted_config,
             )
         except Exception:  # pylint: disable=broad-except
             parameters = {}

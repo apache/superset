@@ -205,44 +205,6 @@ def test_validate_parameters_catalog_and_credentials(
     )
 
 
-def test_get_parameters_from_uri() -> None:
-    """
-    Test that the private key in the credentials is properly masked.
-    """
-    from superset.db_engine_specs.gsheets import GSheetsEngineSpec
-
-    uri = "gsheets://"
-    encrypted_extra = {
-        "service_account_info": {
-            "type": "service_account",
-            "project_id": "black-sanctum-314419",
-            "private_key_id": "259b0d419a8f840056158763ff54d8b08f7b8173",
-            "private_key": "SECRET",
-            "client_email": "google-spreadsheets-demo-servi@black-sanctum-314419.iam.gserviceaccount.com",
-            "client_id": "114567578578109757129",
-            "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-            "token_uri": "https://oauth2.googleapis.com/token",
-            "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-            "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/google-spreadsheets-demo-servi%40black-sanctum-314419.iam.gserviceaccount.com",
-        },
-    }
-
-    assert GSheetsEngineSpec.get_parameters_from_uri(uri, encrypted_extra) == {
-        "service_account_info": {
-            "type": "service_account",
-            "project_id": "black-sanctum-314419",
-            "private_key_id": "259b0d419a8f840056158763ff54d8b08f7b8173",
-            "private_key": "XXXXXXXXXX",
-            "client_email": "google-spreadsheets-demo-servi@black-sanctum-314419.iam.gserviceaccount.com",
-            "client_id": "114567578578109757129",
-            "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-            "token_uri": "https://oauth2.googleapis.com/token",
-            "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-            "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/google-spreadsheets-demo-servi%40black-sanctum-314419.iam.gserviceaccount.com",
-        },
-    }
-
-
 def test_unmask_encrypted_extra() -> None:
     """
     Test that the private key can be reused from the previous ``encrypted_extra``.
