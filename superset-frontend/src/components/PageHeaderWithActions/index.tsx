@@ -70,10 +70,13 @@ const headerStyles = (theme: SupersetTheme) => css`
   }
 
   .title-panel {
-    display: none;
     align-items: center;
     min-width: 0;
-    margin-right: ${theme.gridUnit * 12}px;
+    margin-right: auto;
+  }
+
+  .title-panel div:nth-child(2) {
+    display: none;
   }
 
   .right-button-panel {
