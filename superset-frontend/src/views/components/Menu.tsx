@@ -344,6 +344,7 @@ export default function MenuWrapper({ data, ...rest }: MenuProps) {
   };
   // Menu items that should go into settings dropdown
   const settingsMenus = {
+    Data: true,
     Security: true,
     Manage: true,
   };
