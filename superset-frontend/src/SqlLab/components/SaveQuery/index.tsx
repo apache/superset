@@ -17,7 +17,6 @@
  * under the License.
  */
 import React, { useState, useEffect } from 'react';
-import { useSelector, shallowEqual } from 'react-redux';
 import { Row, Col } from 'src/components';
 import { Input, TextArea } from 'src/components/Input';
 import { t, styled } from '@superset-ui/core';
@@ -26,16 +25,12 @@ import { Menu } from 'src/components/Menu';
 import { Form, FormItem } from 'src/components/Form';
 import Modal from 'src/components/Modal';
 import SaveDatasetActionButton from 'src/SqlLab/components/SaveDatasetActionButton';
-import {
-  SaveDatasetModal,
-  ISaveableDatasource,
-} from 'src/SqlLab/components/SaveDatasetModal';
+import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { getDatasourceAsSaveableDataset } from 'src/utils/datasourceUtils';
-import { QueryEditor, SqlLabRootState } from 'src/SqlLab/types';
 
 interface SaveQueryProps {
-  queryEditor: QueryEditor;
-  columns: ISaveableDatasource['columns'];
+  query: QueryPayload;
+  defaultLabel: string;
   onSave: (arg0: QueryPayload) => void;
   onUpdate: (arg0: QueryPayload) => void;
   saveQueryWarning: string | null;
@@ -81,22 +76,13 @@ const Styles = styled.span`
 `;
 
 export default function SaveQuery({
-  queryEditor,
+  query,
+  defaultLabel = t('Undefined'),
   onSave = () => {},
   onUpdate,
   saveQueryWarning = null,
   database,
-  columns,
 }: SaveQueryProps) {
-  const query = useSelector<SqlLabRootState, QueryEditor>(
-    ({ sqlLab: { unsavedQueryEditor } }) => ({
-      ...queryEditor,
-      ...(queryEditor.id === unsavedQueryEditor.id && unsavedQueryEditor),
-      columns,
-    }),
-    shallowEqual,
-  );
-  const defaultLabel = query.name || query.description || t('Undefined');
   const [description, setDescription] = useState<string>(
     query.description || '',
   );
@@ -114,12 +100,11 @@ export default function SaveQuery({
     </Menu>
   );
 
-  const queryPayload = () =>
-    ({
-      ...query,
-      name: label,
-      description,
-    } as any as QueryPayload);
+  const queryPayload = () => ({
+    ...query,
+    name: label,
+    description,
+  });
 
   useEffect(() => {
     if (!isSaved) setLabel(defaultLabel);

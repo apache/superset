@@ -67,9 +67,6 @@ const sqlLabPersistStateConfig = {
             ...state[path],
             queries: emptyQueryResults(state[path].queries),
             queryEditors: clearQueryEditors(state[path].queryEditors),
-            unsavedQueryEditor: clearQueryEditors([
-              state[path].unsavedQueryEditor,
-            ])[0],
           };
         }
       });
@@ -94,12 +91,6 @@ const sqlLabPersistStateConfig = {
       const result = {
         ...initialState,
         ...persistedState,
-        sqlLab: {
-          ...(persistedState?.sqlLab || {}),
-          // Overwrite initialState over persistedState for sqlLab
-          // since a logic in getInitialState overrides the value from persistedState
-          ...initialState.sqlLab,
-        },
       };
       // Filter out any user data that may have been persisted in an older version.
       // Get user from bootstrap data instead, every time

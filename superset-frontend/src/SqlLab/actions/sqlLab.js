@@ -123,17 +123,6 @@ const fieldConverter = mapping => obj =>
 const convertQueryToServer = fieldConverter(queryServerMapping);
 const convertQueryToClient = fieldConverter(queryClientMapping);
 
-export function getUpToDateQuery(rootState, queryEditor, key) {
-  const {
-    sqlLab: { unsavedQueryEditor },
-  } = rootState;
-  const id = key ?? queryEditor.id;
-  return {
-    ...queryEditor,
-    ...(id === unsavedQueryEditor.id && unsavedQueryEditor),
-  };
-}
-
 export function resetState() {
   return { type: RESET_STATE };
 }
@@ -178,26 +167,24 @@ export function scheduleQuery(query) {
       );
 }
 
-export function estimateQueryCost(queryEditor) {
-  return (dispatch, getState) => {
-    const { dbId, schema, sql, selectedText, templateParams } =
-      getUpToDateQuery(getState(), queryEditor);
-    const requestSql = selectedText || sql;
-    const endpoint =
-      schema === null
-        ? `/superset/estimate_query_cost/${dbId}/`
-        : `/superset/estimate_query_cost/${dbId}/${schema}/`;
-    return Promise.all([
-      dispatch({ type: COST_ESTIMATE_STARTED, query: queryEditor }),
+export function estimateQueryCost(query) {
+  const { dbId, schema, sql, templateParams } = query;
+  const endpoint =
+    schema === null
+      ? `/superset/estimate_query_cost/${dbId}/`
+      : `/superset/estimate_query_cost/${dbId}/${schema}/`;
+  return dispatch =>
+    Promise.all([
+      dispatch({ type: COST_ESTIMATE_STARTED, query }),
       SupersetClient.post({
         endpoint,
         postPayload: {
-          sql: requestSql,
+          sql,
           templateParams: JSON.parse(templateParams || '{}'),
         },
       })
         .then(({ json }) =>
-          dispatch({ type: COST_ESTIMATE_RETURNED, query: queryEditor, json }),
+          dispatch({ type: COST_ESTIMATE_RETURNED, query, json }),
         )
         .catch(response =>
           getClientErrorObject(response).then(error => {
@@ -207,13 +194,12 @@ export function estimateQueryCost(queryEditor) {
               t('Failed at retrieving results');
             return dispatch({
               type: COST_ESTIMATE_FAILED,
-              query: queryEditor,
+              query,
               error: message,
             });
           }),
         ),
     ]);
-  };
 }
 
 export function startQuery(query) {
@@ -371,34 +357,6 @@ export function runQuery(query) {
   };
 }
 
-export function runQueryFromSqlEditor(
-  database,
-  queryEditor,
-  defaultQueryLimit,
-  tempTable,
-  ctas,
-  ctasMethod,
-) {
-  return function (dispatch, getState) {
-    const qe = getUpToDateQuery(getState(), queryEditor, queryEditor.id);
-    const query = {
-      dbId: qe.dbId,
-      sql: qe.selectedText || qe.sql,
-      sqlEditorId: qe.id,
-      tab: qe.name,
-      schema: qe.schema,
-      tempTable,
-      templateParams: qe.templateParams,
-      queryLimit: qe.queryLimit || defaultQueryLimit,
-      runAsync: database ? database.allow_run_async : false,
-      ctas,
-      ctas_method: ctasMethod,
-      updateTabState: !qe.selectedText,
-    };
-    dispatch(runQuery(query));
-  };
-}
-
 export function reRunQuery(query) {
   // run Query with a new id
   return function (dispatch) {
@@ -406,23 +364,8 @@ export function reRunQuery(query) {
   };
 }
 
-export function validateQuery(queryEditor, sql) {
-  return function (dispatch, getState) {
-    const {
-      sqlLab: { unsavedQueryEditor },
-    } = getState();
-    const qe = {
-      ...queryEditor,
-      ...(queryEditor.id === unsavedQueryEditor.id && unsavedQueryEditor),
-    };
-
-    const query = {
-      dbId: qe.dbId,
-      sql,
-      sqlEditorId: qe.id,
-      schema: qe.schema,
-      templateParams: qe.templateParams,
-    };
+export function validateQuery(query) {
+  return function (dispatch) {
     dispatch(startQueryValidation(query));
 
     const postPayload = {
@@ -677,7 +620,6 @@ export function switchQueryEditor(queryEditor, displayLimit) {
   return function (dispatch) {
     if (
       isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE) &&
-      queryEditor &&
       !queryEditor.loaded
     ) {
       SupersetClient.get({
@@ -778,17 +720,6 @@ export function removeQueryEditor(queryEditor) {
           ),
         ),
       );
-  };
-}
-
-export function removeAllOtherQueryEditors(queryEditor) {
-  return function (dispatch, getState) {
-    const { sqlLab } = getState();
-    sqlLab.queryEditors?.forEach(otherQueryEditor => {
-      if (otherQueryEditor.id !== queryEditor.id) {
-        dispatch(removeQueryEditor(otherQueryEditor));
-      }
-    });
   };
 }
 
@@ -990,9 +921,8 @@ export function queryEditorSetSql(queryEditor, sql) {
   return { type: QUERY_EDITOR_SET_SQL, queryEditor, sql };
 }
 
-export function queryEditorSetAndSaveSql(targetQueryEditor, sql) {
-  return function (dispatch, getState) {
-    const queryEditor = getUpToDateQuery(getState(), targetQueryEditor);
+export function queryEditorSetAndSaveSql(queryEditor, sql) {
+  return function (dispatch) {
     // saved query and set tab state use this action
     dispatch(queryEditorSetSql(queryEditor, sql));
     if (isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)) {

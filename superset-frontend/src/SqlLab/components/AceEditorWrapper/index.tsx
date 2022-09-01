@@ -17,7 +17,6 @@
  * under the License.
  */
 import React from 'react';
-import { connect } from 'react-redux';
 import { areArraysShallowEqual } from 'src/reduxUtils';
 import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
 import {
@@ -31,7 +30,7 @@ import {
   AceCompleterKeyword,
   FullSQLEditor as AceEditor,
 } from 'src/components/AsyncAceEditor';
-import { QueryEditor, SchemaOption, SqlLabRootState } from 'src/SqlLab/types';
+import { QueryEditor } from 'src/SqlLab/types';
 
 type HotKey = {
   key: string;
@@ -40,13 +39,7 @@ type HotKey = {
   func: () => void;
 };
 
-type OwnProps = {
-  queryEditor: QueryEditor;
-  extendedTables: Array<{ name: string; columns: any[] }>;
-  autocomplete: boolean;
-  onChange: (sql: string) => void;
-  onBlur: (sql: string) => void;
-  database: any;
+interface Props {
   actions: {
     queryEditorSetSelectedText: (edit: any, text: null | string) => void;
     queryEditorSetFunctionNames: (queryEditor: object, dbId: number) => void;
@@ -57,19 +50,19 @@ type OwnProps = {
       schema: any,
     ) => void;
   };
-  hotkeys: HotKey[];
-  height: string;
-};
-
-type ReduxProps = {
-  queryEditor: QueryEditor;
+  autocomplete: boolean;
+  onBlur: (sql: string) => void;
   sql: string;
-  schemas: SchemaOption[];
+  database: any;
+  schemas: any[];
   tables: any[];
   functionNames: string[];
-};
-
-type Props = ReduxProps & OwnProps;
+  extendedTables: Array<{ name: string; columns: any[] }>;
+  queryEditor: QueryEditor;
+  height: string;
+  hotkeys: HotKey[];
+  onChange: (sql: string) => void;
+}
 
 interface State {
   sql: string;
@@ -293,22 +286,4 @@ class AceEditorWrapper extends React.PureComponent<Props, State> {
   }
 }
 
-function mapStateToProps(
-  { sqlLab: { unsavedQueryEditor } }: SqlLabRootState,
-  { queryEditor }: OwnProps,
-) {
-  const currentQueryEditor = {
-    ...queryEditor,
-    ...(queryEditor.id === unsavedQueryEditor.id && unsavedQueryEditor),
-  };
-  return {
-    queryEditor: currentQueryEditor,
-    sql: currentQueryEditor.sql,
-    schemas: currentQueryEditor.schemaOptions || [],
-    tables: currentQueryEditor.tableOptions,
-    functionNames: currentQueryEditor.functionNames,
-  };
-}
-export default connect<ReduxProps, {}, OwnProps>(mapStateToProps)(
-  AceEditorWrapper,
-);
+export default AceEditorWrapper;
