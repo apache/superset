@@ -15,9 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from sqlalchemy import func
-
-from superset.cli.update import sync_tags
 from superset.connectors.sqla.models import SqlaTable
 from superset.extensions import db
 from superset.models.core import FavStar
@@ -35,9 +32,9 @@ class TestTagging(SupersetTestCase):
         query = db.session.query(TaggedObject).all()
         return query
 
-    def clear_tagged_object_table(self):
-        db.session.query(TaggedObject).delete()
-        db.session.commit()
+    # def clear_tagged_object_table(self):
+    #     db.session.query(TaggedObject).delete()
+    #     db.session.commit()
 
     @with_feature_flags(TAGGING_SYSTEM=False)
     def test_tag_view_disabled(self):
@@ -60,7 +57,7 @@ class TestTagging(SupersetTestCase):
         """
 
         # Remove all existing rows in the tagged_object table
-        self.clear_tagged_object_table()
+        # self.clear_tagged_object_table()
 
         # Test to make sure nothing is in the tagged_object table
         self.assertEqual([], self.query_tagged_object_table())
@@ -76,9 +73,6 @@ class TestTagging(SupersetTestCase):
         )
         db.session.add(test_dataset)
         db.session.commit()
-
-        # Run the sync tags command so that the new dataset is tagged
-        sync_tags()
 
         # Test to make sure that a dataset tag was added to the tagged_object table
         tags = self.query_tagged_object_table()
@@ -99,7 +93,7 @@ class TestTagging(SupersetTestCase):
         """
 
         # Remove all existing rows in the tagged_object table
-        self.clear_tagged_object_table()
+        # self.clear_tagged_object_table()
 
         # Test to make sure nothing is in the tagged_object table
         self.assertEqual([], self.query_tagged_object_table())
@@ -114,9 +108,6 @@ class TestTagging(SupersetTestCase):
         )
         db.session.add(test_chart)
         db.session.commit()
-
-        # Run the sync tags command so that the new chart is tagged
-        sync_tags()
 
         # Test to make sure that a chart tag was added to the tagged_object table
         tags = self.query_tagged_object_table()
@@ -137,7 +128,7 @@ class TestTagging(SupersetTestCase):
         """
 
         # Remove all existing rows in the tagged_object table
-        self.clear_tagged_object_table()
+        # self.clear_tagged_object_table()
 
         # Test to make sure nothing is in the tagged_object table
         self.assertEqual([], self.query_tagged_object_table())
@@ -151,9 +142,6 @@ class TestTagging(SupersetTestCase):
 
         db.session.add(test_dashboard)
         db.session.commit()
-
-        # Run the sync tags command so that the new dashboard is tagged
-        sync_tags()
 
         # Test to make sure that a dashboard tag was added to the tagged_object table
         tags = self.query_tagged_object_table()
@@ -174,7 +162,7 @@ class TestTagging(SupersetTestCase):
         """
 
         # Remove all existing rows in the tagged_object table
-        self.clear_tagged_object_table()
+        # self.clear_tagged_object_table()
 
         # Test to make sure nothing is in the tagged_object table
         self.assertEqual([], self.query_tagged_object_table())
@@ -183,9 +171,6 @@ class TestTagging(SupersetTestCase):
         test_saved_query = FavStar(user_id=1, class_name="slice", obj_id=1)
         db.session.add(test_saved_query)
         db.session.commit()
-
-        # Run the sync tags command so that the new saved query is tagged
-        sync_tags()
 
         # Test to make sure that a saved query tag was added to the tagged_object table
         tags = self.query_tagged_object_table()
