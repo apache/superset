@@ -396,35 +396,42 @@ class BigQueryEngineSpec(BaseEngineSpec):
         raise ValidationError("Invalid service credentials")
 
     @classmethod
-    def mask_encrypted_extra(cls, encrypted_extra: Dict[str, Any]) -> Dict[str, Any]:
+    def mask_encrypted_extra(cls, encrypted_extra: str) -> str:
         try:
-            encrypted_extra["credentials_info"]["private_key"] = PASSWORD_MASK
+            config = json.loads(encrypted_extra)
+        except json.JSONDecodeError:
+            return encrypted_extra
+
+        try:
+            config["credentials_info"]["private_key"] = PASSWORD_MASK
         except KeyError:
             pass
 
-        return encrypted_extra
+        return json.dumps(config)
 
     @classmethod
-    def unmask_encrypted_extra(
-        cls,
-        old: Dict[str, Any],
-        new: Dict[str, Any],
-    ) -> Dict[str, Any]:
+    def unmask_encrypted_extra(cls, old: str, new: str) -> str:
         """
         Reuse ``private_key`` if available and unchanged.
         """
-        if "credentials_info" not in new:
+        try:
+            old_config = json.loads(old)
+            new_config = json.loads(new)
+        except json.JSONDecodeError:
             return new
 
-        if "private_key" not in new["credentials_info"]:
+        if "credentials_info" not in new_config:
             return new
 
-        if new["credentials_info"]["private_key"] == PASSWORD_MASK:
-            new["credentials_info"]["private_key"] = old["credentials_info"][
-                "private_key"
-            ]
+        if "private_key" not in new_config["credentials_info"]:
+            return new
 
-        return new
+        if new_config["credentials_info"]["private_key"] == PASSWORD_MASK:
+            new_config["credentials_info"]["private_key"] = old_config[
+                "credentials_info"
+            ]["private_key"]
+
+        return json.dumps(new_config)
 
     @classmethod
     def get_dbapi_exception_mapping(cls) -> Dict[Type[Exception], Type[Exception]]:

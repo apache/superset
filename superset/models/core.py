@@ -252,14 +252,19 @@ class Database(
         return sqlalchemy_url.get_backend_name()
 
     @property
+    def masked_encrypted_extra(self) -> str:
+        return self.db_engine_spec.mask_encrypted_extra(self.encrypted_extra)
+
+    @property
     def parameters(self) -> Dict[str, Any]:
         db_engine_spec = self.db_engine_spec
 
         # When returning the parameters we should use the masked SQLAlchemy URI and the
         # masked ``encrypted_extra`` to prevent exposing sensitive credentials.
         masked_uri = make_url_safe(self.sqlalchemy_uri)
-        encrypted_extra = self.get_encrypted_extra()
-        masked_encrypted_extra = db_engine_spec.mask_encrypted_extra(encrypted_extra)
+        masked_encrypted_extra = db_engine_spec.mask_encrypted_extra(
+            self.encrypted_extra
+        )
 
         try:
             # pylint: disable=useless-suppression

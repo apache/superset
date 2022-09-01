@@ -17,6 +17,8 @@
 
 # pylint: disable=import-outside-toplevel, invalid-name, line-too-long
 
+import json
+
 from pytest_mock import MockFixture
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -247,20 +249,24 @@ def test_unmask_encrypted_extra() -> None:
     """
     from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 
-    old = {
-        "service_account_info": {
-            "project_id": "black-sanctum-314419",
-            "private_key": "SECRET",
-        },
-    }
-    new = {
-        "service_account_info": {
-            "project_id": "yellow-unicorn-314419",
-            "private_key": "XXXXXXXXXX",
-        },
-    }
+    old = json.dumps(
+        {
+            "service_account_info": {
+                "project_id": "black-sanctum-314419",
+                "private_key": "SECRET",
+            },
+        }
+    )
+    new = json.dumps(
+        {
+            "service_account_info": {
+                "project_id": "yellow-unicorn-314419",
+                "private_key": "XXXXXXXXXX",
+            },
+        }
+    )
 
-    assert GSheetsEngineSpec.unmask_encrypted_extra(old, new) == {
+    assert json.loads(GSheetsEngineSpec.unmask_encrypted_extra(old, new)) == {
         "service_account_info": {
             "project_id": "yellow-unicorn-314419",
             "private_key": "SECRET",

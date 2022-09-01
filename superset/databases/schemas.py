@@ -294,14 +294,15 @@ class DatabaseParametersSchemaMixin:  # pylint: disable=too-few-public-methods
             # validate parameters
             parameters = engine_spec.parameters_schema.load(parameters)  # type: ignore
 
-            serialized_encrypted_extra = data.get("encrypted_extra") or "{}"
+            serialized_encrypted_extra = data.get("masked_encrypted_extra") or "{}"
             try:
                 encrypted_extra = json.loads(serialized_encrypted_extra)
             except json.decoder.JSONDecodeError:
                 encrypted_extra = {}
 
             data["sqlalchemy_uri"] = engine_spec.build_sqlalchemy_uri(  # type: ignore
-                parameters, encrypted_extra
+                parameters,
+                encrypted_extra,
             )
 
         return data
@@ -326,7 +327,7 @@ class DatabaseValidateParametersSchema(Schema):
     )
     impersonate_user = fields.Boolean(description=impersonate_user_description)
     extra = fields.String(description=extra_description, validate=extra_validator)
-    encrypted_extra = fields.String(
+    masked_encrypted_extra = fields.String(
         description=encrypted_extra_description,
         validate=encrypted_extra_validator,
         allow_none=True,
@@ -371,7 +372,7 @@ class DatabasePostSchema(Schema, DatabaseParametersSchemaMixin):
         description=allow_multi_schema_metadata_fetch_description,
     )
     impersonate_user = fields.Boolean(description=impersonate_user_description)
-    encrypted_extra = fields.String(
+    masked_encrypted_extra = fields.String(
         description=encrypted_extra_description,
         validate=encrypted_extra_validator,
         allow_none=True,
@@ -418,7 +419,7 @@ class DatabasePutSchema(Schema, DatabaseParametersSchemaMixin):
         description=allow_multi_schema_metadata_fetch_description
     )
     impersonate_user = fields.Boolean(description=impersonate_user_description)
-    encrypted_extra = fields.String(
+    masked_encrypted_extra = fields.String(
         description=encrypted_extra_description,
         allow_none=True,
         validate=encrypted_extra_validator,
@@ -445,7 +446,7 @@ class DatabaseTestConnectionSchema(Schema, DatabaseParametersSchemaMixin):
     )
     impersonate_user = fields.Boolean(description=impersonate_user_description)
     extra = fields.String(description=extra_description, validate=extra_validator)
-    encrypted_extra = fields.String(
+    masked_encrypted_extra = fields.String(
         description=encrypted_extra_description,
         validate=encrypted_extra_validator,
         allow_none=True,

@@ -73,7 +73,15 @@ class ValidateDatabaseParametersCommand(BaseCommand):
             event_logger.log_with_context(action="validation_error", engine=engine)
             raise InvalidParametersError(errors)
 
-        serialized_encrypted_extra = self._properties.get("encrypted_extra", "{}")
+        serialized_encrypted_extra = self._properties.get(
+            "masked_encrypted_extra",
+            "{}",
+        )
+        if self._model:
+            serialized_encrypted_extra = engine_spec.unmask_encrypted_extra(
+                self._model.encrypted_extra,
+                serialized_encrypted_extra,
+            )
         try:
             encrypted_extra = json.loads(serialized_encrypted_extra)
         except json.decoder.JSONDecodeError:

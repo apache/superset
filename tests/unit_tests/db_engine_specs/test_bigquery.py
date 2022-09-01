@@ -208,20 +208,24 @@ def test_unmask_encrypted_extra() -> None:
     """
     from superset.db_engine_specs.bigquery import BigQueryEngineSpec
 
-    old = {
-        "credentials_info": {
-            "project_id": "black-sanctum-314419",
-            "private_key": "SECRET",
-        },
-    }
-    new = {
-        "credentials_info": {
-            "project_id": "yellow-unicorn-314419",
-            "private_key": "XXXXXXXXXX",
-        },
-    }
+    old = json.dumps(
+        {
+            "credentials_info": {
+                "project_id": "black-sanctum-314419",
+                "private_key": "SECRET",
+            },
+        }
+    )
+    new = json.dumps(
+        {
+            "credentials_info": {
+                "project_id": "yellow-unicorn-314419",
+                "private_key": "XXXXXXXXXX",
+            },
+        }
+    )
 
-    assert BigQueryEngineSpec.unmask_encrypted_extra(old, new) == {
+    assert json.loads(BigQueryEngineSpec.unmask_encrypted_extra(old, new)) == {
         "credentials_info": {
             "project_id": "yellow-unicorn-314419",
             "private_key": "SECRET",

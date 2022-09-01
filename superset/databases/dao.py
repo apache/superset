@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
 import logging
 from typing import Any, Dict, Optional
 
@@ -41,18 +40,20 @@ class DatabaseDAO(BaseDAO):
         properties: Dict[str, Any],
         commit: bool = True,
     ) -> Database:
+        """
+        Unmask ``encrypted_extra`` before updating.
+
+        When a database is edited the user sees a masked version of ``encrypted_extra``,
+        depending on the engine spec. Eg, BigQuery will mask the ``private_key`` attribute
+        of the credentials.
+
+        The masked values should be unmasked before the database is updated.
+        """
         if "encrypted_extra" in properties:
-            try:
-                new = json.loads(properties["encrypted_extra"])
-                old = json.loads(model.encrypted_extra)
-                properties["encrypted_extra"] = json.dumps(
-                    model.db_engine_spec.unmask_encrypted_extra(
-                        old,
-                        new,
-                    )
-                )
-            except json.JSONDecodeError:
-                pass
+            properties["encrypted_extra"] = model.db_engine_spec.unmask_encrypted_extra(
+                model.encrypted_extra,
+                properties["encrypted_extra"],
+            )
 
         return super().update(model, properties, commit)
 
