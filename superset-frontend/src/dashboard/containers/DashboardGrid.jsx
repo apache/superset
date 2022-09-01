@@ -27,7 +27,6 @@ import {
 import {
   setDirectPathToChild,
   setEditMode,
-  setIkigaiOrigin,
   setSupersetUrl,
 } from '../actions/dashboardState';
 
@@ -46,7 +45,6 @@ function mapDispatchToProps(dispatch) {
       resizeComponent,
       setDirectPathToChild,
       setEditMode,
-      setIkigaiOrigin,
       setSupersetUrl,
     },
     dispatch,

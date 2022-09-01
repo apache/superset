@@ -43,7 +43,6 @@ import {
   ON_FILTERS_REFRESH,
   ON_FILTERS_REFRESH_SUCCESS,
   SET_DATASETS_STATUS,
-  SET_IKIGAI_ORIGIN,
   SET_SUPERSET_URL,
 } from '../actions/dashboardState';
 import { HYDRATE_DASHBOARD } from '../actions/hydrate';
@@ -221,18 +220,29 @@ export default function dashboardStateReducer(state = {}, action) {
         datasetsStatus: action.status,
       };
     },
-    [SET_IKIGAI_ORIGIN]() {
-      // console.log('action', action);
-      return {
-        ...state,
-        ikigaiOrigin: action.ikigaiOrigin,
-      };
-    },
     [SET_SUPERSET_URL]() {
       console.log('SET_SUPERSET_URL', action);
+      const { supersetUrl } = action;
+      let ikigaiOrigin = '';
+      const iframeUrl = new URL(supersetUrl);
+      if (iframeUrl && iframeUrl.search) {
+        console.log('iframeUrl2', iframeUrl);
+        const iframeUrlParameters = new URLSearchParams(iframeUrl.search);
+        console.log('iframeUrlParameters', iframeUrlParameters);
+        if (iframeUrlParameters) {
+          const ikigaiURL = iframeUrlParameters.get('dash_url')
+            ? new URL(iframeUrlParameters.get('dash_url'))
+            : '';
+          console.log('ikigaiURL', ikigaiURL);
+          ikigaiOrigin = ikigaiURL ? ikigaiURL.origin : '';
+          console.log('ikigaiOrigin', ikigaiOrigin);
+        }
+      }
+      console.log('ikigaiOrigin2', ikigaiOrigin);
       return {
         ...state,
-        supersetUrl: action.supersetUrl,
+        supersetUrl,
+        ikigaiOrigin,
       };
     },
   };

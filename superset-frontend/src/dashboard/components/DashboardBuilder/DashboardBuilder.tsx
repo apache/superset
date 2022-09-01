@@ -44,7 +44,6 @@ import { DashboardLayout, RootState } from 'src/dashboard/types';
 import {
   setDirectPathToChild,
   setEditMode,
-  setIkigaiOrigin,
   setSupersetUrl,
 } from 'src/dashboard/actions/dashboardState';
 import { useElementOnScreen } from 'src/hooks/useElementOnScreen';
@@ -291,19 +290,7 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
     const iframeUrl: any = new URL(window.location.href);
     console.log('iframeUrl', iframeUrl);
     if (iframeUrl && iframeUrl.search) {
-      // console.log('iframeUrl', iframeUrl);
-      const iframeUrlParameters: any = new URLSearchParams(iframeUrl.search);
-      console.log('iframeUrlParameters', iframeUrlParameters);
-      if (iframeUrlParameters) {
-        const ikigaiURL: any = iframeUrlParameters.get('dash_url')
-          ? new URL(iframeUrlParameters.get('dash_url'))
-          : '';
-        // console.log('ikigaiURL', ikigaiURL);
-        const ikigaiURLOrigin = ikigaiURL ? ikigaiURL.origin : '';
-        console.log('ikigaiURLOrigin', ikigaiURLOrigin);
-        dispatch(setIkigaiOrigin(ikigaiURLOrigin));
-        dispatch(setSupersetUrl(iframeUrl.toString()));
-      }
+      dispatch(setSupersetUrl(iframeUrl.toString()));
     }
 
     return () => {
