@@ -535,7 +535,7 @@ test('triggers getPopupContainer if passed', async () => {
   expect(getPopupContainer).toHaveBeenCalled();
 });
 
-test('does not renders a helper text by default', async () => {
+test('does not render a helper text by default', async () => {
   render(<Select {...defaultProps} />);
   await open();
   expect(screen.queryByRole('note')).not.toBeInTheDocument();
