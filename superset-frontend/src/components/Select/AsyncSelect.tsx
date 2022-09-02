@@ -299,25 +299,21 @@ const AsyncSelect = forwardRef(
       [onError],
     );
 
-    const mergeData = useCallback(
-      (data: SelectOptionsType) => {
-        let mergedData: SelectOptionsType = [];
-        if (data && Array.isArray(data) && data.length) {
-          // unique option values should always be case sensitive so don't lowercase
-          const dataValues = new Set(data.map(opt => opt.value));
-          // merges with existing and creates unique options
-          setSelectOptions(prevOptions => {
-            mergedData = prevOptions
-              .filter(previousOption => !dataValues.has(previousOption.value))
-              .concat(data)
-              .sort(sortComparatorForNoSearch);
-            return mergedData;
-          });
-        }
-        return mergedData;
-      },
-      [sortComparatorForNoSearch],
-    );
+    const mergeData = useCallback((data: SelectOptionsType) => {
+      let mergedData: SelectOptionsType = [];
+      if (data && Array.isArray(data) && data.length) {
+        // unique option values should always be case sensitive so don't lowercase
+        const dataValues = new Set(data.map(opt => opt.value));
+        // merges with existing and creates unique options
+        setSelectOptions(prevOptions => {
+          mergedData = prevOptions
+            .filter(previousOption => !dataValues.has(previousOption.value))
+            .concat(data);
+          return mergedData;
+        });
+      }
+      return mergedData;
+    }, []);
 
     const fetchPage = useMemo(
       () => (search: string, page: number) => {
@@ -334,6 +330,7 @@ const AsyncSelect = forwardRef(
           return;
         }
         setIsLoading(true);
+
         const fetchOptions = options as SelectOptionsPagePromise;
         fetchOptions(search, page, pageSize)
           .then(({ data, totalCount }: SelectOptionsTypePage) => {
@@ -342,7 +339,7 @@ const AsyncSelect = forwardRef(
             setTotalCount(totalCount);
             if (
               !fetchOnlyOnSearch &&
-              value === '' &&
+              search === '' &&
               mergedData.length >= totalCount
             ) {
               setAllValuesLoaded(true);
@@ -360,7 +357,6 @@ const AsyncSelect = forwardRef(
         internalOnError,
         options,
         pageSize,
-        value,
       ],
     );
 
@@ -511,10 +507,6 @@ const AsyncSelect = forwardRef(
       }),
       [ref],
     );
-
-    useEffect(() => {
-      setSelectValue(value);
-    }, [value]);
 
     return (
       <StyledContainer>

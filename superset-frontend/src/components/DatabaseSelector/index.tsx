@@ -132,17 +132,7 @@ export default function DatabaseSelector({
 }: DatabaseSelectorProps) {
   const [loadingSchemas, setLoadingSchemas] = useState(false);
   const [schemaOptions, setSchemaOptions] = useState<SchemaValue[]>([]);
-  const [currentDb, setCurrentDb] = useState<DatabaseValue | undefined>(
-    db
-      ? {
-          label: (
-            <SelectLabel backend={db.backend} databaseName={db.database_name} />
-          ),
-          value: db.id,
-          ...db,
-        }
-      : undefined,
-  );
+  const [currentDb, setCurrentDb] = useState<DatabaseValue | undefined>();
   const [currentSchema, setCurrentSchema] = useState<SchemaValue | undefined>(
     schema ? { label: schema, value: schema } : undefined,
   );
@@ -207,6 +197,25 @@ export default function DatabaseSelector({
       },
     [formMode, getDbList, sqlLabMode],
   );
+
+  useEffect(() => {
+    setCurrentDb(current =>
+      current?.id !== db?.id
+        ? db
+          ? {
+              label: (
+                <SelectLabel
+                  backend={db.backend}
+                  databaseName={db.database_name}
+                />
+              ),
+              value: db.id,
+              ...db,
+            }
+          : undefined
+        : current,
+    );
+  }, [db]);
 
   useEffect(() => {
     if (currentDb) {
