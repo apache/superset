@@ -63,6 +63,7 @@ import InfoTooltip from 'src/components/InfoTooltip';
 import CertifiedBadge from 'src/components/CertifiedBadge';
 import { GenericLink } from 'src/components/GenericLink/GenericLink';
 import { bootstrapData } from 'src/preamble';
+import Owner from 'src/types/Owner';
 import ChartCard from './ChartCard';
 
 const FlexRowContainer = styled.div`
@@ -223,6 +224,12 @@ function ChartList(props: ChartListProps) {
     });
     setPreparingExport(true);
   };
+  const changedByName = (lastSavedBy: Owner) => {
+    // eslint-disable-next-line no-unused-expressions
+    return lastSavedBy?.first_name
+      ? `${lastSavedBy?.first_name} ${lastSavedBy?.last_name}`
+      : null;
+  };
 
   function handleBulkChartDelete(chartsToDelete: Chart[]) {
     SupersetClient.delete({
@@ -329,17 +336,9 @@ function ChartList(props: ChartListProps) {
           },
         }: any) =>
           enableBroadUserAccess ? (
-            <a href={changedByUrl}>
-              {lastSavedBy?.first_name
-                ? `${lastSavedBy?.first_name} ${lastSavedBy?.last_name}`
-                : null}
-            </a>
+            <a href={changedByUrl}>{changedByName(lastSavedBy)}</a>
           ) : (
-            <>
-              {lastSavedBy?.first_name
-                ? `${lastSavedBy?.first_name} ${lastSavedBy?.last_name}`
-                : null}
-            </>
+            <>{changedByName(lastSavedBy)}</>
           ),
         Header: t('Modified by'),
         accessor: 'last_saved_by.first_name',
