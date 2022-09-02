@@ -23,7 +23,7 @@ import { render } from 'spec/helpers/testing-library';
 import { fireEvent, within } from '@testing-library/react';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import DashboardBuilder from 'src/dashboard/components/DashboardBuilder/DashboardBuilder';
-import useStoredFilterBarWidth from 'src/dashboard/components/DashboardBuilder/useStoredFilterBarWidth';
+import useStoredSidebarWidth from 'src/components/ResizableSidebar/useStoredSidebarWidth';
 import {
   fetchFaveStar,
   setActiveTabs,
@@ -46,7 +46,7 @@ jest.mock('src/dashboard/actions/dashboardState', () => ({
   setDirectPathToChild: jest.fn(),
 }));
 jest.mock('src/featureFlags');
-jest.mock('src/dashboard/components/DashboardBuilder/useStoredFilterBarWidth');
+jest.mock('src/components/ResizableSidebar/useStoredSidebarWidth');
 
 // mock following dependant components to fix the prop warnings
 jest.mock('src/components/Icons/Icon', () => () => (
@@ -98,7 +98,7 @@ describe('DashboardBuilder', () => {
     activeTabsStub = (setActiveTabs as jest.Mock).mockReturnValue({
       type: 'mock-action',
     });
-    (useStoredFilterBarWidth as jest.Mock).mockImplementation(() => [
+    (useStoredSidebarWidth as jest.Mock).mockImplementation(() => [
       100,
       jest.fn(),
     ]);
@@ -108,7 +108,7 @@ describe('DashboardBuilder', () => {
   afterAll(() => {
     favStarStub.mockReset();
     activeTabsStub.mockReset();
-    (useStoredFilterBarWidth as jest.Mock).mockReset();
+    (useStoredSidebarWidth as jest.Mock).mockReset();
   });
 
   function setup(overrideState = {}, overrideStore?: Store) {
@@ -259,10 +259,10 @@ describe('DashboardBuilder', () => {
       (isFeatureEnabled as jest.Mock).mockReset();
     });
 
-    it('should set FilterBar width by useStoredFilterBarWidth', () => {
+    it('should set FilterBar width by useStoredSidebarWidth', () => {
       const expectedValue = 200;
       const setter = jest.fn();
-      (useStoredFilterBarWidth as jest.Mock).mockImplementation(() => [
+      (useStoredSidebarWidth as jest.Mock).mockImplementation(() => [
         expectedValue,
         setter,
       ]);

@@ -31,6 +31,7 @@ import StyledModal from 'src/components/Modal';
 import Mousetrap from 'mousetrap';
 import Button from 'src/components/Button';
 import Timer from 'src/components/Timer';
+import ResizableSidebar from 'src/components/ResizableSidebar';
 import { AntdDropdown, AntdSwitch } from 'src/components';
 import { Input } from 'src/components/Input';
 import { Menu } from 'src/components/Menu';
@@ -60,6 +61,7 @@ import {
   SQL_EDITOR_GUTTER_HEIGHT,
   SQL_EDITOR_GUTTER_MARGIN,
   SQL_TOOLBAR_HEIGHT,
+  SQL_EDITOR_LEFTBAR_WIDTH,
 } from 'src/SqlLab/constants';
 import {
   getItem,
@@ -125,6 +127,15 @@ const StyledToolbar = styled.div`
   .limitDropdown {
     white-space: nowrap;
   }
+`;
+
+const StyledSidebar = styled.div`
+  flex: 0 0 ${({ width }) => width}px;
+  width: ${({ width }) => width}px;
+  padding: ${({ hide }) => (hide ? 0 : 10)}px;
+  border-right: 1px solid
+    ${({ theme, hide }) =>
+      hide ? 'transparent' : theme.colors.grayscale.light2};
 `;
 
 const propTypes = {
@@ -674,7 +685,6 @@ class SqlEditor extends React.PureComponent {
       this.state.createAs === CtasEnum.VIEW
         ? 'Specify name to CREATE VIEW AS schema in: public'
         : 'Specify name to CREATE TABLE AS schema in: public';
-
     const leftBarStateClass = this.props.hideLeftBar
       ? 'schemaPane-exit-done'
       : 'schemaPane-enter-done';
@@ -685,15 +695,28 @@ class SqlEditor extends React.PureComponent {
           in={!this.props.hideLeftBar}
           timeout={300}
         >
-          <div className={`schemaPane ${leftBarStateClass}`}>
-            <SqlEditorLeftBar
-              database={this.props.database}
-              queryEditor={this.props.queryEditor}
-              tables={this.props.tables}
-              actions={this.props.actions}
-              setEmptyState={this.setEmptyState}
-            />
-          </div>
+          <ResizableSidebar
+            id={`sqllab:${this.props.queryEditor.id}`}
+            minWidth={SQL_EDITOR_LEFTBAR_WIDTH}
+            initialWidth={SQL_EDITOR_LEFTBAR_WIDTH}
+            enable={!this.props.hideLeftBar}
+          >
+            {adjustedWidth => (
+              <StyledSidebar
+                className={`schemaPane ${leftBarStateClass}`}
+                width={adjustedWidth}
+                hide={this.props.hideLeftBar}
+              >
+                <SqlEditorLeftBar
+                  database={this.props.database}
+                  queryEditor={this.props.queryEditor}
+                  tables={this.props.tables}
+                  actions={this.props.actions}
+                  setEmptyState={this.setEmptyState}
+                />
+              </StyledSidebar>
+            )}
+          </ResizableSidebar>
         </CSSTransition>
         {this.state.showEmptyState ? (
           <EmptyStateBig
@@ -754,17 +777,22 @@ SqlEditor.defaultProps = defaultProps;
 SqlEditor.propTypes = propTypes;
 
 function mapStateToProps({ sqlLab }, { queryEditor }) {
-  let { latestQueryId, dbId } = queryEditor;
+  let { latestQueryId, dbId, hideLeftBar } = queryEditor;
   if (sqlLab.unsavedQueryEditor.id === queryEditor.id) {
-    const { latestQueryId: unsavedQID, dbId: unsavedDBID } =
-      sqlLab.unsavedQueryEditor;
+    const {
+      latestQueryId: unsavedQID,
+      dbId: unsavedDBID,
+      hideLeftBar: unsavedHideLeftBar,
+    } = sqlLab.unsavedQueryEditor;
     latestQueryId = unsavedQID || latestQueryId;
     dbId = unsavedDBID || dbId;
+    hideLeftBar = unsavedHideLeftBar || hideLeftBar;
   }
   const database = sqlLab.databases[dbId];
   const latestQuery = sqlLab.queries[latestQueryId];
 
   return {
+    hideLeftBar,
     queryEditors: sqlLab.queryEditors,
     latestQuery,
     database,
