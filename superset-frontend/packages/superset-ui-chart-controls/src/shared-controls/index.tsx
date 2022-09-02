@@ -33,7 +33,6 @@
  * here's a list of the keys that are common to all controls, and as a result define the
  * control interface.
  */
-import React from 'react';
 import { isEmpty } from 'lodash';
 import {
   FeatureFlag,
@@ -43,10 +42,7 @@ import {
   isFeatureEnabled,
   SequentialScheme,
   legacyValidateInteger,
-  validateNonEmpty,
   ComparisionType,
-  QueryResponse,
-  QueryColumn,
   isAdhocColumn,
   isPhysicalColumn,
 } from '@superset-ui/core';
@@ -59,38 +55,29 @@ import {
   D3_TIME_FORMAT_DOCS,
   DEFAULT_TIME_FORMAT,
   DEFAULT_NUMBER_FORMAT,
-  defineSavedMetrics,
 } from '../utils';
-import { TIME_FILTER_LABELS, DATASET_TIME_COLUMN_OPTION } from '../constants';
-import {
-  Metric,
-  SharedControlConfig,
-  ColumnMeta,
-  ExtraControlProps,
-  SelectControlConfig,
-  Dataset,
-} from '../types';
-import { ColumnOption } from '../components/ColumnOption';
+import { TIME_FILTER_LABELS } from '../constants';
+import { SharedControlConfig, Dataset } from '../types';
 
 import {
-  dnd_adhoc_filters,
-  dnd_adhoc_metric,
-  dnd_adhoc_metrics,
-  dnd_granularity_sqla,
-  dnd_sort_by,
-  dnd_secondary_metric,
-  dnd_size,
-  dnd_x,
-  dnd_y,
+  dndAdhocFilterControl,
+  dndAdhocMetricControl,
+  dndAdhocMetricsControl,
+  dndGranularitySqlaControl,
+  dndSortByControl,
+  dndSecondaryMetricControl,
+  dndSizeControl,
+  dndXControl,
+  dndYControl,
   dndColumnsControl,
-  dndEntity,
+  dndEntityControl,
   dndGroupByControl,
-  dndSeries,
-  dnd_adhoc_metric_2,
-  dnd_x_axis,
+  dndSeriesControl,
+  dndAdhocMetricControl2,
+  dndXAxisControl,
 } from './dndControls';
-import { QUERY_TIME_COLUMN_OPTION } from '..';
-import { xAxisControlConfig } from './constants';
+
+export { withDndFallback } from './dndControls';
 
 const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
 const sequentialSchemeRegistry = getSequentialSchemeRegistry();
@@ -105,75 +92,9 @@ const { user } = JSON.parse(
   appContainer?.getAttribute('data-bootstrap') || '{}',
 );
 
-type Control = {
-  savedMetrics?: Metric[] | null;
-  default?: unknown;
-};
-
 type SelectDefaultOption = {
   label: string;
   value: string;
-};
-
-const groupByControl: SharedControlConfig<'SelectControl', ColumnMeta> = {
-  type: 'SelectControl',
-  label: t('Dimensions'),
-  multi: true,
-  freeForm: true,
-  clearable: true,
-  default: [],
-  includeTime: false,
-  description: t(
-    'One or many columns to group by. High cardinality groupings should include a sort by metric ' +
-      'and series limit to limit the number of fetched and rendered series.',
-  ),
-  optionRenderer: c => <ColumnOption showType column={c} />,
-  valueRenderer: c => <ColumnOption column={c} />,
-  valueKey: 'column_name',
-  allowAll: true,
-  filterOption: ({ data: opt }, text: string) =>
-    (opt.column_name &&
-      opt.column_name.toLowerCase().includes(text.toLowerCase())) ||
-    (opt.verbose_name &&
-      opt.verbose_name.toLowerCase().includes(text.toLowerCase())) ||
-    false,
-  promptTextCreator: (label: unknown) => label,
-  mapStateToProps(state, { includeTime }) {
-    const newState: ExtraControlProps = {};
-    const { datasource } = state;
-    if (datasource?.columns[0]?.hasOwnProperty('groupby')) {
-      const options = (datasource as Dataset).columns.filter(c => c.groupby);
-      if (includeTime) options.unshift(DATASET_TIME_COLUMN_OPTION);
-      newState.options = options;
-    } else {
-      const options = (datasource as QueryResponse).columns;
-      if (includeTime) options.unshift(QUERY_TIME_COLUMN_OPTION);
-      newState.options = options;
-    }
-    return newState;
-  },
-  commaChoosesOption: false,
-};
-
-const metrics: SharedControlConfig<'MetricsControl'> = {
-  type: 'MetricsControl',
-  multi: true,
-  label: t('Metrics'),
-  validators: [validateNonEmpty],
-  mapStateToProps: ({ datasource }) => ({
-    columns: datasource?.columns || [],
-    savedMetrics: defineSavedMetrics(datasource),
-    datasource,
-    datasourceType: datasource?.type,
-  }),
-  description: t('One or many metrics to display'),
-};
-
-const metric: SharedControlConfig<'MetricsControl'> = {
-  ...metrics,
-  multi: false,
-  label: t('Metric'),
-  description: t('Metric'),
 };
 
 const datasourceControl: SharedControlConfig<'DatasourceControl'> = {
@@ -203,13 +124,6 @@ const color_picker: SharedControlConfig<'ColorPickerControl'> = {
   renderTrigger: true,
 };
 
-const metric_2: SharedControlConfig<'MetricsControl'> = {
-  ...metric,
-  label: t('Right Axis Metric'),
-  clearable: true,
-  description: t('Choose a metric for right axis'),
-};
-
 const linear_color_scheme: SharedControlConfig<'ColorSchemeControl'> = {
   type: 'ColorSchemeControl',
   label: t('Linear Color Scheme'),
@@ -227,20 +141,6 @@ const linear_color_scheme: SharedControlConfig<'ColorSchemeControl'> = {
   mapStateToProps: state => ({
     dashboardId: state?.form_data?.dashboardId,
   }),
-};
-
-const secondary_metric: SharedControlConfig<'MetricsControl'> = {
-  ...metric,
-  label: t('Color Metric'),
-  default: null,
-  validators: [],
-  description: t('A metric to use for color'),
-};
-
-const columnsControl: typeof groupByControl = {
-  ...groupByControl,
-  label: t('Columns'),
-  description: t('One or many columns to pivot as columns'),
 };
 
 const granularity: SharedControlConfig<'SelectControl'> = {
@@ -271,44 +171,6 @@ const granularity: SharedControlConfig<'SelectControl'> = {
       'can type and use simple natural language as in `10 seconds`, ' +
       '`1 day` or `56 weeks`',
   ),
-};
-
-const granularity_sqla: SharedControlConfig<'SelectControl', ColumnMeta> = {
-  type: 'SelectControl',
-  label: TIME_FILTER_LABELS.granularity_sqla,
-  description: t(
-    'The time column for the visualization. Note that you ' +
-      'can define arbitrary expression that return a DATETIME ' +
-      'column in the table. Also note that the ' +
-      'filter below is applied against this column or ' +
-      'expression',
-  ),
-  default: (c: Control) => c.default,
-  clearable: false,
-  optionRenderer: c => <ColumnOption showType column={c} />,
-  valueRenderer: c => <ColumnOption column={c} />,
-  valueKey: 'column_name',
-  mapStateToProps: state => {
-    const props: Partial<SelectControlConfig<ColumnMeta | QueryColumn>> = {};
-    const { datasource } = state;
-    if (datasource?.hasOwnProperty('main_dttm_col')) {
-      const dataset = datasource as Dataset;
-      props.options = dataset.columns.filter((c: ColumnMeta) => c.is_dttm);
-      props.default = null;
-      if (dataset.main_dttm_col) {
-        props.default = dataset.main_dttm_col;
-      } else if (props?.options) {
-        props.default = (props.options[0] as ColumnMeta)?.column_name;
-      }
-    } else {
-      const sortedQueryColumns = (datasource as QueryResponse)?.columns?.sort(
-        query => (query?.is_dttm ? -1 : 1),
-      );
-      props.options = sortedQueryColumns;
-      if (props?.options) props.default = props.options[0]?.name;
-    }
-    return props;
-  },
 };
 
 const time_grain_sqla: SharedControlConfig<'SelectControl'> = {
@@ -411,64 +273,6 @@ const series_limit: SharedControlConfig<'SelectControl'> = {
   ),
 };
 
-const sort_by: SharedControlConfig<'MetricsControl'> = {
-  type: 'MetricsControl',
-  label: t('Sort by'),
-  default: null,
-  description: t(
-    'Metric used to define how the top series are sorted if a series or row limit is present. ' +
-      'If undefined reverts to the first metric (where appropriate).',
-  ),
-  mapStateToProps: ({ datasource }) => ({
-    columns: datasource?.columns || [],
-    savedMetrics: defineSavedMetrics(datasource),
-    datasource,
-    datasourceType: datasource?.type,
-  }),
-};
-
-const series: typeof groupByControl = {
-  ...groupByControl,
-  label: t('Dimensions'),
-  multi: false,
-  default: null,
-  description: t(
-    'Defines the grouping of entities. ' +
-      'Each series is shown as a specific color on the chart and ' +
-      'has a legend toggle',
-  ),
-};
-
-const entity: typeof groupByControl = {
-  ...groupByControl,
-  label: t('Entity'),
-  default: null,
-  multi: false,
-  validators: [validateNonEmpty],
-  description: t('This defines the element to be plotted on the chart'),
-};
-
-const x: SharedControlConfig<'MetricsControl'> = {
-  ...metric,
-  label: t('X Axis'),
-  description: t('Metric assigned to the [X] axis'),
-  default: null,
-};
-
-const y: SharedControlConfig<'MetricsControl'> = {
-  ...metric,
-  label: t('Y Axis'),
-  default: null,
-  description: t('Metric assigned to the [Y] axis'),
-};
-
-const size: SharedControlConfig<'MetricsControl'> = {
-  ...metric,
-  label: t('Bubble Size'),
-  description: t('Metric used to calculate bubble size'),
-  default: null,
-};
-
 const y_axis_format: SharedControlConfig<'SelectControl', SelectDefaultOption> =
   {
     type: 'SelectControl',
@@ -507,23 +311,6 @@ const x_axis_time_format: SharedControlConfig<
     option.label.includes(search) || option.value.includes(search),
 };
 
-const adhoc_filters: SharedControlConfig<'AdhocFilterControl'> = {
-  type: 'AdhocFilterControl',
-  label: t('Filters'),
-  default: [],
-  description: '',
-  mapStateToProps: ({ datasource, form_data }) => ({
-    columns: datasource?.columns[0]?.hasOwnProperty('filterable')
-      ? (datasource as Dataset)?.columns.filter(c => c.filterable)
-      : datasource?.columns || [],
-    savedMetrics: defineSavedMetrics(datasource),
-    // current active adhoc metrics
-    selectedMetrics:
-      form_data.metrics || (form_data.metric ? [form_data.metric] : []),
-    datasource,
-  }),
-};
-
 const color_scheme: SharedControlConfig<'ColorSchemeControl'> = {
   type: 'ColorSchemeControl',
   label: t('Color Scheme'),
@@ -551,51 +338,40 @@ const show_empty_columns: SharedControlConfig<'CheckboxControl'> = {
   description: t('Show empty columns'),
 };
 
-const x_axis: SharedControlConfig<'SelectControl', ColumnMeta> = {
-  ...groupByControl,
-  ...xAxisControlConfig,
-};
-
-const enableExploreDnd = isFeatureEnabled(
-  FeatureFlag.ENABLE_EXPLORE_DRAG_AND_DROP,
-);
-
-const sharedControls = {
-  metrics: enableExploreDnd ? dnd_adhoc_metrics : metrics,
-  metric: enableExploreDnd ? dnd_adhoc_metric : metric,
+export default {
+  metrics: dndAdhocMetricsControl,
+  metric: dndAdhocMetricControl,
   datasource: datasourceControl,
   viz_type,
   color_picker,
-  metric_2: enableExploreDnd ? dnd_adhoc_metric_2 : metric_2,
+  metric_2: dndAdhocMetricControl2,
   linear_color_scheme,
-  secondary_metric: enableExploreDnd ? dnd_secondary_metric : secondary_metric,
-  groupby: enableExploreDnd ? dndGroupByControl : groupByControl,
-  columns: enableExploreDnd ? dndColumnsControl : columnsControl,
+  secondary_metric: dndSecondaryMetricControl,
+  groupby: dndGroupByControl,
+  columns: dndColumnsControl,
   granularity,
-  granularity_sqla: enableExploreDnd ? dnd_granularity_sqla : granularity_sqla,
+  granularity_sqla: dndGranularitySqlaControl,
   time_grain_sqla,
   time_range,
   row_limit,
   limit,
-  timeseries_limit_metric: enableExploreDnd ? dnd_sort_by : sort_by,
-  orderby: enableExploreDnd ? dnd_sort_by : sort_by,
+  timeseries_limit_metric: dndSortByControl,
+  orderby: dndSortByControl,
   order_desc,
-  series: enableExploreDnd ? dndSeries : series,
-  entity: enableExploreDnd ? dndEntity : entity,
-  x: enableExploreDnd ? dnd_x : x,
-  y: enableExploreDnd ? dnd_y : y,
-  size: enableExploreDnd ? dnd_size : size,
+  series: dndSeriesControl,
+  entity: dndEntityControl,
+  x: dndXControl,
+  y: dndYControl,
+  size: dndSizeControl,
   y_axis_format,
   x_axis_time_format,
-  adhoc_filters: enableExploreDnd ? dnd_adhoc_filters : adhoc_filters,
+  adhoc_filters: dndAdhocFilterControl,
   color_scheme,
-  series_columns: enableExploreDnd ? dndColumnsControl : columnsControl,
+  series_columns: dndColumnsControl,
   series_limit,
-  series_limit_metric: enableExploreDnd ? dnd_sort_by : sort_by,
-  legacy_order_by: enableExploreDnd ? dnd_sort_by : sort_by,
+  series_limit_metric: dndSortByControl,
+  legacy_order_by: dndSortByControl,
   truncate_metric,
-  x_axis: enableExploreDnd ? dnd_x_axis : x_axis,
+  x_axis: dndXAxisControl,
   show_empty_columns,
 };
-
-export { sharedControls, dndEntity, dndColumnsControl };

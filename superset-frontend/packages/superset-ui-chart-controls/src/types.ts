@@ -29,7 +29,7 @@ import type {
   QueryFormMetric,
   QueryResponse,
 } from '@superset-ui/core';
-import { sharedControls } from './shared-controls';
+import sharedControls from './shared-controls';
 import sharedControlComponents from './shared-controls/components';
 
 export type { Metric } from '@superset-ui/core';
@@ -237,7 +237,7 @@ export interface BaseControlConfig<
   ) => boolean;
   mapStateToProps?: (
     state: ControlPanelState,
-    controlState: ControlState,
+    controlState?: ControlState,
     // TODO: add strict `chartState` typing (see superset-frontend/src/explore/types)
     chartState?: AnyDict,
   ) => ExtraControlProps;
