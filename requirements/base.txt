@@ -185,7 +185,7 @@ packaging==21.3
     # via
     #   bleach
     #   deprecation
-pandas==1.4.3
+pandas==1.4.4
     # via apache-superset
 parsedatetime==2.6
     # via apache-superset
