@@ -741,7 +741,7 @@ def test_time_column_with_time_grain(app_context, physical_dataset):
     adhoc_column: AdhocColumn = {
         "label": "I_AM_A_TRUNC_COLUMN",
         "sqlExpression": "col6",
-        "columnType": "AXIS",
+        "columnType": "BASE_AXIS",
         "timeGrain": "P1Y",
     }
     qc = QueryContextFactory().create(
@@ -787,7 +787,7 @@ def test_non_time_column_with_time_grain(app_context, physical_dataset):
                     {
                         "label": "COL2 ALIAS",
                         "sqlExpression": "col2",
-                        "columnType": "AXIS",
+                        "columnType": "BASE_AXIS",
                         "timeGrain": "P1Y",
                     },
                 ],
@@ -819,7 +819,7 @@ def test_special_chars_in_column_name(app_context, physical_dataset):
                     {
                         "label": "I_AM_A_TRUNC_COLUMN",
                         "sqlExpression": "time column with spaces",
-                        "columnType": "AXIS",
+                        "columnType": "BASE_AXIS",
                         "timeGrain": "P1Y",
                     },
                 ],
@@ -849,7 +849,7 @@ def test_date_adhoc_column(app_context, physical_dataset):
     column_on_axis: AdhocColumn = {
         "label": "ADHOC COLUMN",
         "sqlExpression": "col6 + interval '20 year'",
-        "columnType": "AXIS",
+        "columnType": "BASE_AXIS",
         "timeGrain": "P1Y",
     }
     qc = QueryContextFactory().create(
@@ -880,7 +880,7 @@ def test_non_date_adhoc_column(app_context, physical_dataset):
     column_on_axis: AdhocColumn = {
         "label": "ADHOC COLUMN",
         "sqlExpression": "col1 * 10",
-        "columnType": "AXIS",
+        "columnType": "BASE_AXIS",
         "timeGrain": "P1Y",
     }
     qc = QueryContextFactory().create(

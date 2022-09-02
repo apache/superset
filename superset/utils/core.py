@@ -1275,7 +1275,7 @@ def get_axis_column(columns: Optional[List[Column]]) -> Optional[AdhocColumn]:
     axis_cols = [
         col
         for col in columns
-        if is_adhoc_column(col) and col.get("columnType") == "AXIS"
+        if is_adhoc_column(col) and col.get("columnType") == "BASE_AXIS"
     ]
     return axis_cols[0] if axis_cols else None
 

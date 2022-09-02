@@ -144,7 +144,7 @@ describe('enabled GENERIC_CHART_AXES', () => {
       columns: [
         {
           timeGrain: 'P1Y',
-          columnType: 'AXIS',
+          columnType: 'BASE_AXIS',
           sqlExpression: 'time_column_in_x_axis',
           label: 'time_column_in_x_axis',
           expressionType: 'SQL',
@@ -202,7 +202,7 @@ describe('enabled GENERIC_CHART_AXES', () => {
       columns: [
         {
           timeGrain: 'P1Y',
-          columnType: 'AXIS',
+          columnType: 'BASE_AXIS',
           expressionType: 'SQL',
           label: 'Order Data + 1 year',
           sqlExpression: `"Order Date" + interval '1 year'`,

@@ -291,7 +291,7 @@ function createAdvancedAnalyticsSection(
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.echartsTimeseriesTime,
+    sections.genericTime,
     isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES)
       ? {
           label: t('Shared query fields'),

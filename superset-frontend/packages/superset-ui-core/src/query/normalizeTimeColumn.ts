@@ -55,13 +55,13 @@ export function normalizeTimeColumn(
     if (isAdhocColumn(queryObject.columns[axisIdx])) {
       mutatedColumns[axisIdx] = {
         timeGrain: queryObject?.extras?.time_grain_sqla,
-        columnType: 'AXIS',
+        columnType: 'BASE_AXIS',
         ...(queryObject.columns[axisIdx] as AdhocColumn),
       };
     } else {
       mutatedColumns[axisIdx] = {
         timeGrain: queryObject?.extras?.time_grain_sqla,
-        columnType: 'AXIS',
+        columnType: 'BASE_AXIS',
         sqlExpression: formData.x_axis,
         label: formData.x_axis,
         expressionType: 'SQL',

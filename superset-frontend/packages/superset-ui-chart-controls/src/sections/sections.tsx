@@ -38,7 +38,7 @@ export const legacyTimeseriesTime: ControlPanelSectionConfig = {
   ],
 };
 
-export const echartsTimeseriesTime: ControlPanelSectionConfig = {
+export const genericTime: ControlPanelSectionConfig = {
   ...baseTimeSection,
   controlSetRows: [
     ['granularity_sqla'],
