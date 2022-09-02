@@ -22,7 +22,6 @@ import { setFilter } from '../dashboard/utils';
 
 describe('Dashboards filters', () => {
   before(() => {
-    cy.login();
     cy.visit(DASHBOARD_LIST);
   });
 

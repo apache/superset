@@ -39,8 +39,10 @@ declare namespace Cypress {
     getBySel(selector: string): cy;
     getBySelLike(selector: string): cy;
     getSampleData(): void;
-    cleanCharts(): void;
-    cleanDashboards(): void;
+    cleanCharts(): cy;
+    cleanDashboards(): cy;
+    loadChartFixtures(): cy;
+    loadDashboardFixtures(): cy;
 
     visitChartByParams(params: string | Record<string, unknown>): cy;
     visitChartByName(name: string): cy;

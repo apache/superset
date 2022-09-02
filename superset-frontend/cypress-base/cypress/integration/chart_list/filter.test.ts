@@ -22,7 +22,6 @@
 
  describe('Charts filters', () => {
   before(() => {
-    cy.login();
     cy.visit(CHART_LIST);
   });
 

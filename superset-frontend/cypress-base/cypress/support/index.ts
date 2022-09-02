@@ -25,37 +25,91 @@ const BASE_EXPLORE_URL = '/explore/?form_data=';
 const TokenName = Cypress.env('TOKEN_NAME');
 let SAMPLE_DASHBOARDS: Record<string, any>[] = [];
 let SAMPLE_CHARTS: Record<string, any>[] = [];
+let DASHBOARD_FIXTURES: Record<string, any>[] = [];
+let CHART_FIXTURES: Record<string, any>[] = [];
 
-Cypress.Commands.add('getSampleData', () =>
-  cy.getCharts().then((slices: any) => {
-    SAMPLE_CHARTS = slices;
-    cy.getDashboards().then((dashboards: any) => {
-      SAMPLE_DASHBOARDS = dashboards;
-    });
-  })
-);
-
-Cypress.Commands.add('cleanDashboards', () =>
-  cy.fixture('dashboards.json').then(dashboards => {
-    for (let i = 0; i < dashboards.length; i += 1) {
-      cy.deleteDashboardByName(dashboards[i].dashboard_title, false)
-    }
-  })
-);
-
-Cypress.Commands.add('cleanCharts', () =>
+Cypress.Commands.add('loadChartFixtures', () =>
   cy.fixture('charts.json').then(charts => {
-    for (let i = 0; i < charts.length; i += 1) {
-      cy.deleteChartByName(charts[i].slice_name, false)
-    }
+    CHART_FIXTURES = charts
+  })
+);
+
+Cypress.Commands.add('loadDashboardFixtures', () =>
+  cy.fixture('dashboards.json').then(dashboards => {
+    DASHBOARD_FIXTURES = dashboards
   })
 );
 
 before(() => {
   cy.login();
+  cy.loadChartFixtures();
+  cy.loadDashboardFixtures();
+  cy.getSampleData();
   cy.cleanDashboards();
   cy.cleanCharts();
-  cy.getSampleData();
+});
+
+Cypress.Commands.add('getSampleData', () => {
+  cy.getCharts().then((slices: any) => {
+    SAMPLE_CHARTS = slices;
+  });
+  cy.getDashboards().then((dashboards: any) => {
+    SAMPLE_DASHBOARDS = dashboards;
+  });
+});
+
+Cypress.Commands.add('cleanDashboards', () =>
+{
+  const deletableDashboards = [];
+  for (let i = 0; i < DASHBOARD_FIXTURES.length; i += 1) {
+    const isInDb = SAMPLE_DASHBOARDS.find(d => d.dashboard_title === DASHBOARD_FIXTURES[i].dashboard_title);
+    if (isInDb) {
+      deletableDashboards.push(isInDb.id);
+    }
+  }
+  return cy
+    .request({
+      failOnStatusCode: false,
+      method: 'DELETE',
+      url: `api/v1/dashboard/?q=!(${deletableDashboards.join(',')})`,
+      headers: {
+        Cookie: `csrf_access_token=${window.localStorage.getItem(
+          'access_token',
+        )}`,
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${TokenName}`,
+        'X-CSRFToken': `${window.localStorage.getItem('access_token')}`,
+        Referer: `${Cypress.config().baseUrl}/`,
+      },
+    })
+    .then(resp => resp)
+});
+
+Cypress.Commands.add('cleanCharts', () =>
+{
+  const deletableCharts = [];
+  for (let i = 0; i < CHART_FIXTURES.length; i += 1) {
+    const isInDb = SAMPLE_CHARTS.find(c => c.slice_name === CHART_FIXTURES[i].slice_name);
+    if (isInDb) {
+      deletableCharts.push(isInDb.id);
+    }
+  }
+  return cy
+    .request({
+      failOnStatusCode: false,
+      method: 'DELETE',
+      url: `api/v1/chart/?q=!(${deletableCharts.join(',')})`,
+      headers: {
+        Cookie: `csrf_access_token=${window.localStorage.getItem(
+          'access_token',
+        )}`,
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${TokenName}`,
+        'X-CSRFToken': `${window.localStorage.getItem('access_token')}`,
+        Referer: `${Cypress.config().baseUrl}/`,
+      },
+    })
+    .then(resp => resp)
 });
 
 Cypress.Commands.add('getBySel', (selector, ...args) =>
@@ -197,6 +251,7 @@ Cypress.Commands.add('createSampleDashboards', () => {
           method: 'POST',
           url: `/api/v1/dashboard/`,
           body: dashboards[i],
+          failOnStatusCode: false,
           headers: {
             Cookie: `csrf_access_token=${window.localStorage.getItem(
               'access_token',
@@ -214,8 +269,8 @@ Cypress.Commands.add('createSampleDashboards', () => {
 });
 
 Cypress.Commands.add('createSampleCharts', () => {
-  cy.cleanCharts();
   const requests: any = [];
+  cy.cleanCharts();
   return cy.fixture('charts.json').then(charts => {
     for (let i = 0; i < charts.length; i += 1) {
       requests.push(
@@ -223,6 +278,7 @@ Cypress.Commands.add('createSampleCharts', () => {
           method: 'POST',
           url: `/api/v1/chart/`,
           body: charts[i],
+          failOnStatusCode: false,
           headers: {
             Cookie: `csrf_access_token=${window.localStorage.getItem(
               'access_token',
@@ -251,7 +307,7 @@ Cypress.Commands.add(
   },
 );
 
-Cypress.Commands.add('deleteDashboard', (id: number, failOnStatusCode = true) =>
+Cypress.Commands.add('deleteDashboard', (id: number, failOnStatusCode = false) =>
   cy
     .request({
       failOnStatusCode,
@@ -283,7 +339,7 @@ Cypress.Commands.add('getDashboards', () =>
     .then(resp => resp.body.result),
 );
 
-Cypress.Commands.add('deleteChart', (id: number, failOnStatusCode = true) =>
+Cypress.Commands.add('deleteChart', (id: number, failOnStatusCode = false) =>
   cy
     .request({
       failOnStatusCode,

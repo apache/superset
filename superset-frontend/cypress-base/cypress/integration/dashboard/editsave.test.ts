@@ -19,6 +19,7 @@
 import { SAMPLE_DASHBOARD_1 } from 'cypress/utils/urls';
 import { drag } from 'cypress/utils';
 import {
+  interceptGet,
   interceptUpdate,
 } from './utils';
 import * as ace from 'brace';
@@ -64,9 +65,13 @@ function discardChanges() {
 
 function visitEdit() {
   interceptCharts();
+  interceptGet();
+
   cy.visit(SAMPLE_DASHBOARD_1);
+  cy.wait('@get');
   editDashboard();
   cy.wait('@filtering');
+  cy.wait(500);
 }
 
 function selectColorScheme(color: string) {
@@ -98,7 +103,8 @@ function assertMetadata(text: string) {
     });
 }
 function clearAll(input: string) {
-  return cy.get(input).type('{selectall}{backspace}');
+  cy.get(input).type('{selectall}{backspace}');
+  return cy.wait(500);
 }
 
 describe('Dashboard edit', () => {
@@ -131,6 +137,13 @@ describe('Dashboard edit', () => {
       cy.wait('@filtering');
       cy.getBySel('chart-card').should('have.length', 1).contains('Unicode Cloud');
       cy.getBySel('dashboard-charts-filter-search-input').clear();
+    });
+
+    it('should disable the Save button when undoing', () => {
+      dragChart();
+      cy.getBySel('header-save-button').should('be.enabled');
+      discardChanges();
+      cy.getBySel('header-save-button').should('be.disabled');
     });
 
   });
@@ -245,20 +258,9 @@ describe('Dashboard edit', () => {
   });
 
   describe('Save', () => {
-    before(() => {
+    beforeEach(() => {
       cy.createSampleDashboards();
       visitEdit();
-    });
-
-    beforeEach(() => {
-      discardChanges();
-    })
-
-    it('should disable saving when undoing', () => {
-      dragChart();
-      cy.getBySel('header-save-button').should('be.enabled');
-      discardChanges();
-      cy.getBySel('header-save-button').should('be.disabled');
     });
 
     it('should save', () => {

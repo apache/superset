@@ -44,10 +44,6 @@ function confirmDelete() {
 }
 
 describe('Charts list', () => {
-  before(() => {
-    cy.login();
-  });
-
   beforeEach(() => {
     cy.preserveLogin();
   });

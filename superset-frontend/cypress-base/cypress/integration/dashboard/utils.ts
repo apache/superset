@@ -30,6 +30,10 @@
     { name: 'Box plot', viz: 'box_plot' },
   ] as const;
 
+export function interceptGet() {
+cy.intercept('/api/v1/dashboard/*').as('get');
+}
+
 export function interceptFiltering() {
   cy.intercept('GET', `/api/v1/dashboard/?q=*`).as('filtering');
 }
