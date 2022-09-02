@@ -198,6 +198,16 @@ export const StyledLoadingText = styled.div`
   `}
 `;
 
+const StyledHelperText = styled.div`
+  ${({ theme }) => `
+    padding: ${theme.gridUnit * 2}px ${theme.gridUnit * 3}px;
+    color: ${theme.colors.grayscale.base};
+    font-size: ${theme.typography.sizes.s}px;
+    cursor: default;
+    border-bottom: 1px solid ${theme.colors.grayscale.light2};
+  `}
+`;
+
 export const MAX_TAG_COUNT = 4;
 export const TOKEN_SEPARATORS = [',', '\n', '\t', ';'];
 export const EMPTY_OPTIONS: SelectOptionsType = [];
@@ -298,6 +308,7 @@ export const dropDownRenderHelper = (
   isDropdownVisible: boolean,
   isLoading: boolean | undefined,
   optionsLength: number,
+  helperText: string | undefined,
   errorComponent?: JSX.Element,
 ) => {
   if (!isDropdownVisible) {
@@ -309,7 +320,14 @@ export const dropDownRenderHelper = (
   if (errorComponent) {
     return errorComponent;
   }
-  return originNode;
+  return (
+    <>
+      {helperText && (
+        <StyledHelperText role="note">{helperText}</StyledHelperText>
+      )}
+      {originNode}
+    </>
+  );
 };
 
 export const handleFilterOptionHelper = (
@@ -364,6 +382,11 @@ export interface BaseSelectProps extends AntdExposedProps {
    * Can be any ReactNode.
    */
   header?: ReactNode;
+  /**
+   * It adds a helper text on top of the Select options
+   * with additional context to help with the interaction.
+   */
+  helperText?: string;
   /**
    * It allows to define which properties of the option object
    * should be looked for when searching.
