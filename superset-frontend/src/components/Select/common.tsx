@@ -26,14 +26,13 @@ import AntdSelect, {
 } from 'antd/lib/select';
 import { rankedSearchCompare } from 'src/utils/rankedSearchCompare';
 import React, {
-  forwardRef,
   ReactElement,
   ReactNode,
   RefObject,
   JSXElementConstructor,
 } from 'react';
-import { AsyncSelectProps } from './AsyncSelect';
-import { SelectProps } from './Select';
+import { hasOption } from './utils';
+import { DownOutlined, SearchOutlined } from '@ant-design/icons';
 
 const { Option } = AntdSelect;
 
@@ -68,10 +67,7 @@ export type AntdExposedProps = Pick<
   | 'menuItemSelectedIcon'
 >;
 
-export type SelectOptionsType = Exclude<
-  AntdProps['options'],
-  undefined
->;
+export type SelectOptionsType = Exclude<AntdProps['options'], undefined>;
 
 export type SelectOptionsTypePage = {
   data: SelectOptionsType;
@@ -111,25 +107,6 @@ export const StyledCheckOutlined = styled(Icons.CheckOutlined)`
   vertical-align: 0;
 `;
 
-export const StyledError = styled.div`
-  ${({ theme }) => `
-    display: flex;
-    justify-content: center;
-    align-items: flex-start;
-    width: 100%;
-    padding: ${theme.gridUnit * 2}px;
-    color: ${theme.colors.error.base};
-    & svg {
-      margin-right: ${theme.gridUnit * 2}px;
-    }
-  `}
-`;
-
-export const StyledErrorMessage = styled.div`
-  overflow: hidden;
-  text-overflow: ellipsis;
-`;
-
 export const StyledSpin = styled(Spin)`
   margin-top: ${({ theme }) => -theme.gridUnit}px;
 `;
@@ -144,7 +121,6 @@ export const StyledLoadingText = styled.div`
 
 export const MAX_TAG_COUNT = 4;
 export const TOKEN_SEPARATORS = [',', '\n', '\t', ';'];
-export const DEFAULT_PAGE_SIZE = 100;
 export const EMPTY_OPTIONS: SelectOptionsType = [];
 
 export const DEFAULT_SORT_COMPARATOR = (
@@ -183,6 +159,105 @@ export const propertyComparator =
     return (a[property] as number) - (b[property] as number);
   };
 
+export const sortSelectedFirstHelper = (
+  a: AntdLabeledValue,
+  b: AntdLabeledValue,
+  selectValue:
+    | string
+    | number
+    | RawValue[]
+    | AntdLabeledValue
+    | AntdLabeledValue[]
+    | undefined,
+) =>
+  selectValue && a.value !== undefined && b.value !== undefined
+    ? Number(hasOption(b.value, selectValue)) -
+      Number(hasOption(a.value, selectValue))
+    : 0;
+
+export const sortComparatorWithSearchHelper = (
+  a: AntdLabeledValue,
+  b: AntdLabeledValue,
+  inputValue: string,
+  sortCallback: (a: AntdLabeledValue, b: AntdLabeledValue) => number,
+  sortComparator: (
+    a: AntdLabeledValue,
+    b: AntdLabeledValue,
+    search?: string | undefined,
+  ) => number,
+) => sortCallback(a, b) || sortComparator(a, b, inputValue);
+
+export const sortComparatorForNoSearchHelper = (
+  a: AntdLabeledValue,
+  b: AntdLabeledValue,
+  sortCallback: (a: AntdLabeledValue, b: AntdLabeledValue) => number,
+  sortComparator: (
+    a: AntdLabeledValue,
+    b: AntdLabeledValue,
+    search?: string | undefined,
+  ) => number,
+) => sortCallback(a, b) || sortComparator(a, b, '');
+
+// use a function instead of component since every rerender of the
+// Select component will create a new component
+export const getSuffixIcon = (
+  isLoading: boolean | undefined,
+  showSearch: boolean,
+  isDropdownVisible: boolean,
+) => {
+  if (isLoading) {
+    return <StyledSpin size="small" />;
+  }
+  if (showSearch && isDropdownVisible) {
+    return <SearchOutlined />;
+  }
+  return <DownOutlined />;
+};
+
+export const dropDownRenderHelper = (
+  originNode: ReactElement & { ref?: RefObject<HTMLElement> },
+  isDropdownVisible: boolean,
+  isLoading: boolean | undefined,
+  optionsLength: number,
+  errorComponent?: JSX.Element,
+) => {
+  if (!isDropdownVisible) {
+    originNode.ref?.current?.scrollTo({ top: 0 });
+  }
+  if (isLoading && optionsLength === 0) {
+    return <StyledLoadingText>{t('Loading...')}</StyledLoadingText>;
+  }
+  return errorComponent ? errorComponent : originNode;
+};
+
+export const handleFilterOptionHelper = (
+  search: string,
+  option: AntdLabeledValue,
+  optionFilterProps: string[],
+  filterOption: boolean | Function,
+) => {
+  if (typeof filterOption === 'function') {
+    return filterOption(search, option);
+  }
+
+  if (filterOption) {
+    const searchValue = search.trim().toLowerCase();
+    if (optionFilterProps && optionFilterProps.length) {
+      return optionFilterProps.some(prop => {
+        const optionProp = option?.[prop]
+          ? String(option[prop]).trim().toLowerCase()
+          : '';
+        return optionProp.includes(searchValue);
+      });
+    }
+  }
+
+  return false;
+};
+
+export const hasCustomLabels = (options: SelectOptionsType) =>
+  options?.some(opt => !!opt?.customLabel);
+
 export interface BaseSelectProps extends AntdExposedProps {
   /**
    * It enables the user to create new options.
@@ -220,18 +295,6 @@ export interface BaseSelectProps extends AntdExposedProps {
    */
   optionFilterProps?: string[];
   /**
-   * It defines the options of the Select.
-   * The options are async, a promise that returns
-   * an array of options.
-   */
-  options: SelectOptionsType;
-  /**
-   * It defines how many results should be included
-   * in the query response.
-   * Works in async mode only (See the options property).
-   */
-  pageSize?: number;
-  /**
    * It shows a stop-outlined icon at the far right of a selected
    * option instead of the default checkmark.
    * Useful to better indicate to the user that by clicking on a selected
@@ -239,19 +302,6 @@ export interface BaseSelectProps extends AntdExposedProps {
    * False by default.
    */
   invertSelection?: boolean;
-  /**
-   * It fires a request against the server only after
-   * searching.
-   * Works in async mode only (See the options property).
-   * Undefined by default.
-   */
-  fetchOnlyOnSearch?: boolean;
-  /**
-   * It provides a callback function when an error
-   * is generated after a request is fired.
-   * Works in async mode only (See the options property).
-   */
-  onError?: (error: string) => void;
   /**
    * Customize how filtered options are sorted while users search.
    * Will not apply to predefined `options` array when users are not searching.
@@ -263,96 +313,16 @@ export interface BaseSelectProps extends AntdExposedProps {
   ref: RefObject<HTMLInputElement>;
 }
 
-export const BaseSelect = forwardRef(
-  ({
-    allowClear,
-    allowNewOptions = false,
-    ariaLabel,
-    dropdownRender,
-    fetchOnlyOnSearch,
-    filterOption = true,
-    filterSort,
-    header = null,
-    invertSelection = false,
-    lazyLoading = true,
-    labelInValue = false,
-    loading,
-    mappedMode,
-    notFoundContent,
-    onError,
-    onChange,
-    onClear,
-    onDeselect,
-    onSelect,
-    onDropdownVisibleChange,
-    onPopupScroll,
-    onSearch,
-    optionFilterProps = ['label', 'value'],
-    options,
-    pageSize = DEFAULT_PAGE_SIZE,
-    placeholder = t('Select ...'),
-    showSearch = true,
-    showArrow = true,
-    sortComparator = DEFAULT_SORT_COMPARATOR,
-    suffixIcon,
-    tokenSeparators,
-    value,
-    getPopupContainer,
-    menuItemSelectedIcon,
-    maxTagCount,
-    ref,
-    ...props
-  }: AsyncSelectProps | SelectProps) => {
-    const hasCustomLabels = options?.some(opt => !!opt?.customLabel);
-
+export const renderSelectOptions = (options: SelectOptionsType) => {
+  return options.map(opt => {
+    const isOptObject = typeof opt === 'object';
+    const label = isOptObject ? opt?.label || opt.value : opt;
+    const value = isOptObject ? opt.value : opt;
+    const { customLabel, ...optProps } = opt;
     return (
-      <StyledContainer>
-        {header}
-        <StyledSelect
-          allowClear={allowClear}
-          aria-label={ariaLabel}
-          dropdownRender={dropdownRender}
-          filterOption={filterOption}
-          filterSort={filterSort}
-          getPopupContainer={getPopupContainer}
-          labelInValue={labelInValue}
-          maxTagCount={maxTagCount}
-          mode={mappedMode}
-          notFoundContent={notFoundContent}
-          onDeselect={onDeselect}
-          onDropdownVisibleChange={onDropdownVisibleChange}
-          onPopupScroll={onPopupScroll}
-          onSearch={onSearch}
-          onSelect={onSelect}
-          onClear={onClear}
-          onChange={onChange}
-          options={hasCustomLabels ? undefined : options}
-          placeholder={placeholder}
-          showSearch={showSearch}
-          showArrow={showArrow}
-          tokenSeparators={tokenSeparators}
-          value={value}
-          suffixIcon={suffixIcon}
-          menuItemSelectedIcon={menuItemSelectedIcon}
-          ref={ref}
-          {...props}
-        >
-          {hasCustomLabels &&
-            options.map(opt => {
-              const isOptObject = typeof opt === 'object';
-              const label = isOptObject ? opt?.label || opt.value : opt;
-              const value = isOptObject ? opt.value : opt;
-              const { customLabel, ...optProps } = opt;
-              return (
-                <Option {...optProps} key={value} label={label} value={value}>
-                  {isOptObject && customLabel ? customLabel : label}
-                </Option>
-              );
-            })}
-        </StyledSelect>
-      </StyledContainer>
+      <Option {...optProps} key={value} label={label} value={value}>
+        {isOptObject && customLabel ? customLabel : label}
+      </Option>
     );
-  },
-);
-
-export default BaseSelect;
+  });
+};

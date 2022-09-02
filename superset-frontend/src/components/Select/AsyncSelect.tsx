@@ -29,9 +29,8 @@ import React, {
   useCallback,
   useImperativeHandle,
 } from 'react';
-import { ensureIsArray, t } from '@superset-ui/core';
+import { ensureIsArray, styled, t } from '@superset-ui/core';
 import { LabeledValue as AntdLabeledValue } from 'antd/lib/select';
-import { DownOutlined, SearchOutlined } from '@ant-design/icons';
 import debounce from 'lodash/debounce';
 import { isEqual } from 'lodash';
 import Icons from 'src/components/Icons';
@@ -39,27 +38,52 @@ import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { SLOW_DEBOUNCE } from 'src/constants';
 import { getValue, hasOption, isLabeledValue } from './utils';
 import {
-  BaseSelect,
-  DEFAULT_PAGE_SIZE,
   DEFAULT_SORT_COMPARATOR,
   EMPTY_OPTIONS,
   MAX_TAG_COUNT,
-  AntdExposedProps,
   SelectOptionsPagePromise,
   SelectOptionsType,
   SelectOptionsTypePage,
   StyledCheckOutlined,
-  StyledError,
-  StyledErrorMessage,
-  StyledLoadingText,
-  StyledSpin,
   StyledStopOutlined,
   TOKEN_SEPARATORS,
+  renderSelectOptions,
+  StyledContainer,
+  StyledSelect,
+  hasCustomLabels,
+  BaseSelectProps,
+  sortSelectedFirstHelper,
+  sortComparatorWithSearchHelper,
+  sortComparatorForNoSearchHelper,
+  getSuffixIcon,
+  dropDownRenderHelper,
+  handleFilterOptionHelper,
 } from './common';
+
+const StyledError = styled.div`
+  ${({ theme }) => `
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    width: 100%;
+    padding: ${theme.gridUnit * 2}px;
+    color: ${theme.colors.error.base};
+    & svg {
+      margin-right: ${theme.gridUnit * 2}px;
+    }
+  `}
+`;
+
+const StyledErrorMessage = styled.div`
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
+const DEFAULT_PAGE_SIZE = 100;
 
 export type AsyncSelectRef = HTMLInputElement & { clearCache: () => void };
 
-export interface AsyncSelectProps extends AntdExposedProps {
+export interface AsyncSelectProps extends BaseSelectProps {
   /**
    * It enables the user to create new options.
    * Can be used with standard or async select types.
@@ -216,23 +240,30 @@ const AsyncSelect = forwardRef(
 
     const sortSelectedFirst = useCallback(
       (a: AntdLabeledValue, b: AntdLabeledValue) =>
-        selectValue && a.value !== undefined && b.value !== undefined
-          ? Number(hasOption(b.value, selectValue)) -
-            Number(hasOption(a.value, selectValue))
-          : 0,
+        sortSelectedFirstHelper(a, b, selectValue),
       [selectValue],
     );
+
     const sortComparatorWithSearch = useCallback(
       (a: AntdLabeledValue, b: AntdLabeledValue) =>
-        sortSelectedFirst(a, b) || sortComparator(a, b, inputValue),
+        sortComparatorWithSearchHelper(
+          a,
+          b,
+          inputValue,
+          sortSelectedFirst,
+          sortComparator,
+        ),
       [inputValue, sortComparator, sortSelectedFirst],
     );
+
     const sortComparatorForNoSearch = useCallback(
       (a: AntdLabeledValue, b: AntdLabeledValue) =>
-        sortSelectedFirst(a, b) ||
-        // Only apply the custom sorter in async mode because we should
-        // preserve the options order as much as possible.
-        sortComparator(a, b, ''),
+        sortComparatorForNoSearchHelper(
+          a,
+          b,
+          sortSelectedFirst,
+          sortComparator,
+        ),
       [sortComparator, sortSelectedFirst],
     );
 
@@ -425,23 +456,12 @@ const AsyncSelect = forwardRef(
     };
 
     const handleFilterOption = (search: string, option: AntdLabeledValue) => {
-      if (typeof filterOption === 'function') {
-        return filterOption(search, option);
-      }
-
-      if (filterOption) {
-        const searchValue = search.trim().toLowerCase();
-        if (optionFilterProps && optionFilterProps.length) {
-          return optionFilterProps.some(prop => {
-            const optionProp = option?.[prop]
-              ? String(option[prop]).trim().toLowerCase()
-              : '';
-            return optionProp.includes(searchValue);
-          });
-        }
-      }
-
-      return false;
+      return handleFilterOptionHelper(
+        search,
+        option,
+        optionFilterProps,
+        filterOption,
+      );
     };
 
     const handleOnDropdownVisibleChange = (isDropdownVisible: boolean) => {
@@ -480,25 +500,13 @@ const AsyncSelect = forwardRef(
     const dropdownRender = (
       originNode: ReactElement & { ref?: RefObject<HTMLElement> },
     ) => {
-      if (!isDropdownVisible) {
-        originNode.ref?.current?.scrollTo({ top: 0 });
-      }
-      if (isLoading && fullSelectOptions.length === 0) {
-        return <StyledLoadingText>{t('Loading...')}</StyledLoadingText>;
-      }
-      return error ? <Error error={error} /> : originNode;
-    };
-
-    // use a function instead of component since every rerender of the
-    // Select component will create a new component
-    const getSuffixIcon = () => {
-      if (isLoading) {
-        return <StyledSpin size="small" />;
-      }
-      if (showSearch && isDropdownVisible) {
-        return <SearchOutlined />;
-      }
-      return <DownOutlined />;
+      return dropDownRenderHelper(
+        originNode,
+        isDropdownVisible,
+        isLoading,
+        fullSelectOptions.length,
+        error ? <Error error={error} /> : undefined,
+      );
     };
 
     const handleClear = () => {
@@ -560,44 +568,51 @@ const AsyncSelect = forwardRef(
     }, [value]);
 
     return (
-      <BaseSelect
-        header={header}
-        allowClear={!isLoading && allowClear}
-        ariaLabel={ariaLabel || name}
-        dropdownRender={dropdownRender}
-        filterOption={handleFilterOption}
-        filterSort={sortComparatorWithSearch}
-        getPopupContainer={
-          getPopupContainer || (triggerNode => triggerNode.parentNode)
-        }
-        labelInValue
-        maxTagCount={MAX_TAG_COUNT}
-        mappedMode={mappedMode}
-        notFoundContent={isLoading ? t('Loading...') : notFoundContent}
-        onDeselect={handleOnDeselect}
-        onDropdownVisibleChange={handleOnDropdownVisibleChange}
-        onPopupScroll={handlePagination}
-        onSearch={showSearch ? handleOnSearch : undefined}
-        onSelect={handleOnSelect}
-        onClear={handleClear}
-        onChange={onChange}
-        options={fullSelectOptions}
-        placeholder={placeholder}
-        showSearch={showSearch}
-        showArrow
-        tokenSeparators={tokenSeparators || TOKEN_SEPARATORS}
-        value={selectValue}
-        suffixIcon={getSuffixIcon()}
-        menuItemSelectedIcon={
-          invertSelection ? (
-            <StyledStopOutlined iconSize="m" />
-          ) : (
-            <StyledCheckOutlined iconSize="m" />
-          )
-        }
-        ref={ref}
-        {...props}
-      />
+      <StyledContainer>
+        {header}
+        <StyledSelect
+          allowClear={!isLoading && allowClear}
+          aria-label={ariaLabel || name}
+          dropdownRender={dropdownRender}
+          filterOption={handleFilterOption}
+          filterSort={sortComparatorWithSearch}
+          getPopupContainer={
+            getPopupContainer || (triggerNode => triggerNode.parentNode)
+          }
+          labelInValue
+          maxTagCount={MAX_TAG_COUNT}
+          mode={mappedMode}
+          notFoundContent={isLoading ? t('Loading...') : notFoundContent}
+          onDeselect={handleOnDeselect}
+          onDropdownVisibleChange={handleOnDropdownVisibleChange}
+          onPopupScroll={handlePagination}
+          onSearch={showSearch ? handleOnSearch : undefined}
+          onSelect={handleOnSelect}
+          onClear={handleClear}
+          onChange={onChange}
+          options={
+            hasCustomLabels(fullSelectOptions) ? undefined : fullSelectOptions
+          }
+          placeholder={placeholder}
+          showSearch={showSearch}
+          showArrow
+          tokenSeparators={tokenSeparators || TOKEN_SEPARATORS}
+          value={selectValue}
+          suffixIcon={getSuffixIcon(isLoading, showSearch, isDropdownVisible)}
+          menuItemSelectedIcon={
+            invertSelection ? (
+              <StyledStopOutlined iconSize="m" />
+            ) : (
+              <StyledCheckOutlined iconSize="m" />
+            )
+          }
+          ref={ref}
+          {...props}
+        >
+          {hasCustomLabels(fullSelectOptions) &&
+            renderSelectOptions(fullSelectOptions)}
+        </StyledSelect>
+      </StyledContainer>
     );
   },
 );
