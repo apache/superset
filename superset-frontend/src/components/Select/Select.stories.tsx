@@ -26,7 +26,7 @@ import React, {
 import Button from 'src/components/Button';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import AsyncSelect, { AsyncSelectProps, AsyncSelectRef } from './AsyncSelect';
-import { SelectOptionsType, SelectOptionsTypePage } from './common';
+import { SelectOptionsType, SelectOptionsTypePage } from './utils';
 
 import Select, { SelectProps } from './Select';
 

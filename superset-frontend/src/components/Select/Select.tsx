@@ -265,14 +265,8 @@ const Select = forwardRef(
       setInputValue(search);
     };
 
-    const handleFilterOption = (search: string, option: AntdLabeledValue) => {
-      return handleFilterOptionHelper(
-        search,
-        option,
-        optionFilterProps,
-        filterOption,
-      );
-    };
+    const handleFilterOption = (search: string, option: AntdLabeledValue) =>
+      handleFilterOptionHelper(search, option, optionFilterProps, filterOption);
 
     const handleOnDropdownVisibleChange = (isDropdownVisible: boolean) => {
       setIsDropdownVisible(isDropdownVisible);
@@ -291,14 +285,13 @@ const Select = forwardRef(
 
     const dropdownRender = (
       originNode: ReactElement & { ref?: RefObject<HTMLElement> },
-    ) => {
-      return dropDownRenderHelper(
+    ) =>
+      dropDownRenderHelper(
         originNode,
         isDropdownVisible,
         isLoading,
         fullSelectOptions.length,
       );
-    };
 
     const handleClear = () => {
       setSelectValue(undefined);
@@ -363,8 +356,8 @@ const Select = forwardRef(
               <StyledCheckOutlined iconSize="m" />
             )
           }
-          ref={ref}
           {...props}
+          ref={ref}
         >
           {hasCustomLabels(options) && renderSelectOptions(fullSelectOptions)}
         </StyledSelect>

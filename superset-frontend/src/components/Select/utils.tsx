@@ -38,6 +38,7 @@ import React, {
   JSXElementConstructor,
 } from 'react';
 import { DownOutlined, SearchOutlined } from '@ant-design/icons';
+
 declare type RawValue = string | number;
 
 const { Option } = AntdSelect;
@@ -305,7 +306,10 @@ export const dropDownRenderHelper = (
   if (isLoading && optionsLength === 0) {
     return <StyledLoadingText>{t('Loading...')}</StyledLoadingText>;
   }
-  return errorComponent ? errorComponent : originNode;
+  if (errorComponent) {
+    return errorComponent;
+  }
+  return originNode;
 };
 
 export const handleFilterOptionHelper = (
@@ -391,8 +395,8 @@ export interface BaseSelectProps extends AntdExposedProps {
   ref: RefObject<HTMLInputElement>;
 }
 
-export const renderSelectOptions = (options: SelectOptionsType) => {
-  return options.map(opt => {
+export const renderSelectOptions = (options: SelectOptionsType) =>
+  options.map(opt => {
     const isOptObject = typeof opt === 'object';
     const label = isOptObject ? opt?.label || opt.value : opt;
     const value = isOptObject ? opt.value : opt;
@@ -403,4 +407,3 @@ export const renderSelectOptions = (options: SelectOptionsType) => {
       </Option>
     );
   });
-};

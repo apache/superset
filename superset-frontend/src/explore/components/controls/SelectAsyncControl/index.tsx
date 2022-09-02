@@ -21,7 +21,7 @@ import { t, SupersetClient } from '@superset-ui/core';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import { Select } from 'src/components';
 import { SelectProps } from 'src/components/Select/Select';
-import { SelectOptionsType } from 'src/components/Select/common';
+import { SelectOptionsType } from 'src/components/Select/utils';
 import { SelectValue, LabeledValue } from 'antd/lib/select';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';

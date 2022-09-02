@@ -457,14 +457,8 @@ const AsyncSelect = forwardRef(
       }
     };
 
-    const handleFilterOption = (search: string, option: AntdLabeledValue) => {
-      return handleFilterOptionHelper(
-        search,
-        option,
-        optionFilterProps,
-        filterOption,
-      );
-    };
+    const handleFilterOption = (search: string, option: AntdLabeledValue) =>
+      handleFilterOptionHelper(search, option, optionFilterProps, filterOption);
 
     const handleOnDropdownVisibleChange = (isDropdownVisible: boolean) => {
       setIsDropdownVisible(isDropdownVisible);
@@ -501,15 +495,14 @@ const AsyncSelect = forwardRef(
 
     const dropdownRender = (
       originNode: ReactElement & { ref?: RefObject<HTMLElement> },
-    ) => {
-      return dropDownRenderHelper(
+    ) =>
+      dropDownRenderHelper(
         originNode,
         isDropdownVisible,
         isLoading,
         fullSelectOptions.length,
         error ? <Error error={error} /> : undefined,
       );
-    };
 
     const handleClear = () => {
       setSelectValue(undefined);
@@ -608,8 +601,8 @@ const AsyncSelect = forwardRef(
               <StyledCheckOutlined iconSize="m" />
             )
           }
-          ref={ref}
           {...props}
+          ref={ref}
         >
           {hasCustomLabels(fullSelectOptions) &&
             renderSelectOptions(fullSelectOptions)}
