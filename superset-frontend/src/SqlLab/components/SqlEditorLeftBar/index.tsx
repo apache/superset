@@ -25,6 +25,7 @@ import React, {
   Dispatch,
   SetStateAction,
 } from 'react';
+import { useSelector } from 'react-redux';
 import querystring from 'query-string';
 import Button from 'src/components/Button';
 import { t, styled, css, SupersetTheme } from '@superset-ui/core';
@@ -32,7 +33,7 @@ import Collapse from 'src/components/Collapse';
 import Icons from 'src/components/Icons';
 import { TableSelectorMultiple } from 'src/components/TableSelector';
 import { IconTooltip } from 'src/components/IconTooltip';
-import { QueryEditor, SchemaOption } from 'src/SqlLab/types';
+import { QueryEditor, SchemaOption, SqlLabRootState } from 'src/SqlLab/types';
 import { DatabaseObject } from 'src/components/DatabaseSelector';
 import { EmptyStateSmall } from 'src/components/EmptyState';
 import {
@@ -115,6 +116,15 @@ export default function SqlEditorLeftBar({
   const [emptyResultsWithSearch, setEmptyResultsWithSearch] = useState(false);
   const [userSelectedDb, setUserSelected] = useState<DatabaseObject | null>(
     null,
+  );
+  const schema = useSelector<SqlLabRootState, string>(
+    ({ sqlLab: { unsavedQueryEditor } }) => {
+      const updatedQueryEditor = {
+        ...queryEditor,
+        ...(unsavedQueryEditor.id === queryEditor.id && unsavedQueryEditor),
+      };
+      return updatedQueryEditor.schema;
+    },
   );
 
   useEffect(() => {
@@ -263,7 +273,7 @@ export default function SqlEditorLeftBar({
         onSchemasLoad={handleSchemasLoad}
         onTableSelectChange={onTablesChange}
         onTablesLoad={handleTablesLoad}
-        schema={queryEditor.schema}
+        schema={schema}
         tableValue={selectedTableNames}
         sqlLabMode
       />
