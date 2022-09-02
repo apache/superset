@@ -535,6 +535,20 @@ test('triggers getPopupContainer if passed', async () => {
   expect(getPopupContainer).toHaveBeenCalled();
 });
 
+test('does not render a helper text by default', async () => {
+  render(<Select {...defaultProps} />);
+  await open();
+  expect(screen.queryByRole('note')).not.toBeInTheDocument();
+});
+
+test('renders a helper text when one is provided', async () => {
+  const helperText = 'Helper text';
+  render(<Select {...defaultProps} helperText={helperText} />);
+  await open();
+  expect(screen.getByRole('note')).toBeInTheDocument();
+  expect(screen.queryByText(helperText)).toBeInTheDocument();
+});
+
 /*
  TODO: Add tests that require scroll interaction. Needs further investigation.
  - Fetches more data when scrolling and more data is available

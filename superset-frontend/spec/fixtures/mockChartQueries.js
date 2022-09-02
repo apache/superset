@@ -36,6 +36,7 @@ export default {
       datasource: datasourceId,
       viz_type: 'pie',
       slice_id: sliceId,
+      slice_name: 'Genders',
       granularity_sqla: null,
       time_grain_sqla: null,
       since: '100 years ago',

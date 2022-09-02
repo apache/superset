@@ -1570,6 +1570,11 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         defined in config. This enables charts embedded in other apps to
         leverage domain sharding if appropriately configured.
         """
+        logger.warning(
+            "%s.available_domains "
+            "This API endpoint is deprecated and will be removed in version 3.0.0",
+            self.__class__.__name__,
+        )
         return Response(
             json.dumps(conf.get("SUPERSET_WEBSERVER_DOMAINS")), mimetype="text/json"
         )
