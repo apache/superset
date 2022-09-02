@@ -100,7 +100,7 @@ setup(
         "markdown>=3.0",
         "msgpack>=1.0.0, <1.1",
         "numpy==1.22.1",
-        "pandas>=1.4.3, <1.5",
+        "pandas>=1.4.4, <1.5",
         "parsedatetime",
         "pgsanity",
         "polyline",
