@@ -32,10 +32,7 @@ export function normalizeTimeColumn(
   formData: QueryFormData,
   queryObject: QueryObject,
 ): QueryObject {
-  if (!isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES)) {
-    return queryObject;
-  }
-  if (isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES) && !formData.x_axis) {
+  if (!(isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES) && formData.x_axis)) {
     return queryObject;
   }
 

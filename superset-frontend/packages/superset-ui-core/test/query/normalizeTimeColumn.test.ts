@@ -108,7 +108,7 @@ describe('enabled GENERIC_CHART_AXES', () => {
     expect(normalizeTimeColumn(formData, query)).toEqual(query);
   });
 
-  it('should support x-axis and granularity to use different column', () => {
+  it('should support different columns for x-axis and granularity', () => {
     const formData: SqlaFormData = {
       datasource: '5__table',
       viz_type: 'table',

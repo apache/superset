@@ -330,13 +330,13 @@ const time_grain_sqla: SharedControlConfig<'SelectControl'> = {
       return true;
     }
 
-    const xAxisValue = controls?.x_axis?.value;
+    const xAxis = controls?.x_axis;
+    const xAxisValue = xAxis?.value;
     if (xAxisValue === undefined || isAdhocColumn(xAxisValue)) {
       return true;
     }
     if (isPhysicalColumn(xAxisValue)) {
-      const options = controls?.x_axis?.options ?? {};
-      return options[xAxisValue]?.is_dttm;
+      return !!xAxis?.options?.[xAxisValue]?.is_dttm;
     }
     return false;
   },
