@@ -26,11 +26,12 @@ from marshmallow_enum import EnumField
 from sqlalchemy import MetaData
 
 from superset import db
+from superset.constants import PASSWORD_MASK
 from superset.databases.commands.exceptions import DatabaseInvalidError
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs import get_engine_spec
 from superset.exceptions import CertificateException, SupersetSecurityException
-from superset.models.core import ConfigurationMethod, Database, PASSWORD_MASK
+from superset.models.core import ConfigurationMethod, Database
 from superset.security.analytics_db_safety import check_sqlalchemy_uri
 from superset.utils.core import markdown, parse_ssl_cert
 
@@ -293,14 +294,15 @@ class DatabaseParametersSchemaMixin:  # pylint: disable=too-few-public-methods
             # validate parameters
             parameters = engine_spec.parameters_schema.load(parameters)  # type: ignore
 
-            serialized_encrypted_extra = data.get("encrypted_extra") or "{}"
+            serialized_encrypted_extra = data.get("masked_encrypted_extra") or "{}"
             try:
                 encrypted_extra = json.loads(serialized_encrypted_extra)
             except json.decoder.JSONDecodeError:
                 encrypted_extra = {}
 
             data["sqlalchemy_uri"] = engine_spec.build_sqlalchemy_uri(  # type: ignore
-                parameters, encrypted_extra
+                parameters,
+                encrypted_extra,
             )
 
         return data
@@ -310,6 +312,7 @@ class DatabaseValidateParametersSchema(Schema):
     class Meta:  # pylint: disable=too-few-public-methods
         unknown = EXCLUDE
 
+    id = fields.Integer(allow_none=True, description="Database ID (for updates)")
     engine = fields.String(required=True, description="SQLAlchemy engine to use")
     driver = fields.String(allow_none=True, description="SQLAlchemy driver to use")
     parameters = fields.Dict(
@@ -324,7 +327,7 @@ class DatabaseValidateParametersSchema(Schema):
     )
     impersonate_user = fields.Boolean(description=impersonate_user_description)
     extra = fields.String(description=extra_description, validate=extra_validator)
-    encrypted_extra = fields.String(
+    masked_encrypted_extra = fields.String(
         description=encrypted_extra_description,
         validate=encrypted_extra_validator,
         allow_none=True,
@@ -369,7 +372,7 @@ class DatabasePostSchema(Schema, DatabaseParametersSchemaMixin):
         description=allow_multi_schema_metadata_fetch_description,
     )
     impersonate_user = fields.Boolean(description=impersonate_user_description)
-    encrypted_extra = fields.String(
+    masked_encrypted_extra = fields.String(
         description=encrypted_extra_description,
         validate=encrypted_extra_validator,
         allow_none=True,
@@ -416,7 +419,7 @@ class DatabasePutSchema(Schema, DatabaseParametersSchemaMixin):
         description=allow_multi_schema_metadata_fetch_description
     )
     impersonate_user = fields.Boolean(description=impersonate_user_description)
-    encrypted_extra = fields.String(
+    masked_encrypted_extra = fields.String(
         description=encrypted_extra_description,
         allow_none=True,
         validate=encrypted_extra_validator,
@@ -443,7 +446,7 @@ class DatabaseTestConnectionSchema(Schema, DatabaseParametersSchemaMixin):
     )
     impersonate_user = fields.Boolean(description=impersonate_user_description)
     extra = fields.String(description=extra_description, validate=extra_validator)
-    encrypted_extra = fields.String(
+    masked_encrypted_extra = fields.String(
         description=encrypted_extra_description,
         validate=encrypted_extra_validator,
         allow_none=True,

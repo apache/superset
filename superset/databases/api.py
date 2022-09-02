@@ -123,7 +123,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "force_ctas_schema",
         "allow_multi_schema_metadata_fetch",
         "impersonate_user",
-        "encrypted_extra",
+        "masked_encrypted_extra",
         "extra",
         "parameters",
         "parameters_schema",
