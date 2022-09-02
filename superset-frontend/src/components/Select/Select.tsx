@@ -297,7 +297,7 @@ const Select = forwardRef(
         isDropdownVisible,
         isLoading,
         fullSelectOptions.length,
-        helperText
+        helperText,
       );
 
     const handleClear = () => {

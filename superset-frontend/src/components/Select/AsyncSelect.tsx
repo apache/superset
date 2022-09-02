@@ -508,7 +508,7 @@ const AsyncSelect = forwardRef(
         isLoading,
         fullSelectOptions.length,
         helperText,
-        error ? <Error error={error} /> : undefined
+        error ? <Error error={error} /> : undefined,
       );
 
     const handleClear = () => {
