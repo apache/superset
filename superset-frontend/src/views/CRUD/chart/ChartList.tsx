@@ -224,12 +224,10 @@ function ChartList(props: ChartListProps) {
     });
     setPreparingExport(true);
   };
-  const changedByName = (lastSavedBy: Owner) => {
-    // eslint-disable-next-line no-unused-expressions
-    return lastSavedBy?.first_name
+  const changedByName = (lastSavedBy: Owner) =>
+    lastSavedBy?.first_name
       ? `${lastSavedBy?.first_name} ${lastSavedBy?.last_name}`
       : null;
-  };
 
   function handleBulkChartDelete(chartsToDelete: Chart[]) {
     SupersetClient.delete({
