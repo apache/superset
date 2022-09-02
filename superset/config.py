@@ -658,13 +658,13 @@ CSV_EXPORT = {"encoding": "utf-8"}
 # Time grain configurations
 # ---------------------------------------------------
 # List of time grains to disable in the application (see list of builtin
-# time grains in superset/db_engine_specs.builtin_time_grains).
+# time grains in superset/db_engine_specs/base.py).
 # For example: to disable 1 second time grain:
 # TIME_GRAIN_DENYLIST = ['PT1S']
 TIME_GRAIN_DENYLIST: List[str] = []
 
 # Additional time grains to be supported using similar definitions as in
-# superset/db_engine_specs.builtin_time_grains.
+# superset/db_engine_specs/base.py.
 # For example: To add a new 2 second time grain:
 # TIME_GRAIN_ADDONS = {'PT2S': '2 second'}
 TIME_GRAIN_ADDONS: Dict[str, str] = {}
