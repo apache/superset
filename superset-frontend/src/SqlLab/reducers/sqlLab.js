@@ -110,7 +110,12 @@ export default function sqlLabReducer(state = {}, action) {
       );
     },
     [actions.REMOVE_QUERY_EDITOR]() {
-      let newState = removeFromArr(state, 'queryEditors', action.queryEditor);
+      const queryEditor = {
+        ...action.queryEditor,
+        ...(action.queryEditor.id === state.unsavedQueryEditor.id &&
+          state.unsavedQueryEditor),
+      };
+      let newState = removeFromArr(state, 'queryEditors', queryEditor);
       // List of remaining queryEditor ids
       const qeIds = newState.queryEditors.map(qe => qe.id);
 
@@ -127,10 +132,19 @@ export default function sqlLabReducer(state = {}, action) {
 
       // Remove associated table schemas
       const tables = state.tables.filter(
-        table => table.queryEditorId !== action.queryEditor.id,
+        table => table.queryEditorId !== queryEditor.id,
       );
 
-      newState = { ...newState, tabHistory, tables, queries };
+      newState = {
+        ...newState,
+        tabHistory,
+        tables,
+        queries,
+        unsavedQueryEditor: {
+          ...(action.queryEditor.id !== state.unsavedQueryEditor.id &&
+            state.unsavedQueryEditor),
+        },
+      };
       return newState;
     },
     [actions.REMOVE_QUERY]() {
