@@ -42,7 +42,7 @@ import {
   FrameComponentProps,
 } from 'src/explore/components/controls/DateFilterControl/types';
 // @ts-ignore
-import locales from 'antd/dist/antd-with-locales';
+import { locales } from 'antd/dist/antd-with-locales';
 import { bootstrapData } from 'src/preamble';
 
 const languages = {
