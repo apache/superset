@@ -104,6 +104,11 @@ export interface AsyncSelectProps extends BaseSelectProps {
    */
   header?: ReactNode;
   /**
+   * It adds a helper text on top of the Select options
+   * with additional context to help with the interaction.
+   */
+  helperText?: string;
+  /**
    * It fires a request against the server after
    * the first interaction and not on render.
    * Works in async mode only (See the options property).
@@ -199,6 +204,7 @@ const AsyncSelect = forwardRef(
       fetchOnlyOnSearch,
       filterOption = true,
       header = null,
+      helperText,
       invertSelection = false,
       lazyLoading = true,
       loading,
@@ -501,7 +507,8 @@ const AsyncSelect = forwardRef(
         isDropdownVisible,
         isLoading,
         fullSelectOptions.length,
-        error ? <Error error={error} /> : undefined,
+        helperText,
+        error ? <Error error={error} /> : undefined
       );
 
     const handleClear = () => {

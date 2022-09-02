@@ -71,6 +71,11 @@ export interface SelectProps extends BaseSelectProps {
    */
   header?: ReactNode;
   /**
+   * It adds a helper text on top of the Select options
+   * with additional context to help with the interaction.
+   */
+  helperText?: string;
+  /**
    * It defines whether the Select should allow for the
    * selection of multiple options or single.
    * Single by default.
@@ -131,6 +136,7 @@ const Select = forwardRef(
       ariaLabel,
       filterOption = true,
       header = null,
+      helperText,
       invertSelection = false,
       labelInValue = false,
       loading,
@@ -291,6 +297,7 @@ const Select = forwardRef(
         isDropdownVisible,
         isLoading,
         fullSelectOptions.length,
+        helperText
       );
 
     const handleClear = () => {
