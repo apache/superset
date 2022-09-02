@@ -230,10 +230,10 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view(
             DatabaseView,
             "Databases",
-            label=__("Manage Connections"),
+            label=__("Database Connections"),
             icon="fa-database",
-            category="Manage",
-            category_label=__("Manage"),
+            category="Data",
+            category_label=__("Data"),
         )
 
         appbuilder.add_view(
