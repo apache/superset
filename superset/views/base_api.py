@@ -56,6 +56,7 @@ get_related_schema = {
 class RelatedResultResponseSchema(Schema):
     value = fields.Integer(description="The related item identifier")
     text = fields.String(description="The related item string representation")
+    extra = fields.Dict(description="The extra metadata for related item")
 
 
 class RelatedResponseSchema(Schema):
