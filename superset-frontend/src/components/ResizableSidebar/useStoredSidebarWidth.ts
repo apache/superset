@@ -22,30 +22,30 @@ import {
   setItem,
   getItem,
 } from 'src/utils/localStorageHelpers';
-import { OPEN_FILTER_BAR_WIDTH } from 'src/dashboard/constants';
 
-export default function useStoredFilterBarWidth(dashboardId: string) {
+export default function useStoredSidebarWidth(
+  id: string,
+  initialWidth: number,
+) {
   const widthsMapRef = useRef<Record<string, number>>();
-  const [filterBarWidth, setFilterBarWidth] = useState<number>(
-    OPEN_FILTER_BAR_WIDTH,
-  );
+  const [sidebarWidth, setSidebarWidth] = useState<number>(initialWidth);
 
   useEffect(() => {
     widthsMapRef.current =
       widthsMapRef.current ??
-      getItem(LocalStorageKeys.dashboard__custom_filter_bar_widths, {});
-    if (widthsMapRef.current[dashboardId]) {
-      setFilterBarWidth(widthsMapRef.current[dashboardId]);
+      getItem(LocalStorageKeys.common__resizable_sidebar_widths, {});
+    if (widthsMapRef.current[id]) {
+      setSidebarWidth(widthsMapRef.current[id]);
     }
-  }, [dashboardId]);
+  }, [id]);
 
-  function setStoredFilterBarWidth(updatedWidth: number) {
-    setFilterBarWidth(updatedWidth);
-    setItem(LocalStorageKeys.dashboard__custom_filter_bar_widths, {
+  function setStoredSidebarWidth(updatedWidth: number) {
+    setSidebarWidth(updatedWidth);
+    setItem(LocalStorageKeys.common__resizable_sidebar_widths, {
       ...widthsMapRef.current,
-      [dashboardId]: updatedWidth,
+      [id]: updatedWidth,
     });
   }
 
-  return [filterBarWidth, setStoredFilterBarWidth] as const;
+  return [sidebarWidth, setStoredSidebarWidth] as const;
 }
