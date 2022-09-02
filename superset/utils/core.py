@@ -1269,7 +1269,7 @@ def is_adhoc_column(column: Column) -> TypeGuard[AdhocColumn]:
     return isinstance(column, dict)
 
 
-def get_axis_column(columns: Optional[List[Column]]) -> Optional[AdhocColumn]:
+def get_base_axis_column(columns: Optional[List[Column]]) -> Optional[AdhocColumn]:
     if columns is None:
         return None
     axis_cols = [
