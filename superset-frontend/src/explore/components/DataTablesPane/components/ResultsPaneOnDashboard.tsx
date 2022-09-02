@@ -17,10 +17,33 @@
  * under the License.
  */
 import React from 'react';
-import { t, css } from '@superset-ui/core';
+import { t, styled } from '@superset-ui/core';
 import Tabs from 'src/components/Tabs';
 import { ResultTypes, ResultsPaneProps } from '../types';
 import { useResultsPane } from './useResultsPane';
+
+const Wrapper = styled.div`
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+
+  .ant-tabs {
+    height: 100%;
+  }
+
+  .ant-tabs-content {
+    height: 100%;
+  }
+
+  .ant-tabs-tabpane {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .table-condensed {
+    overflow: auto;
+  }
+`;
 
 export const ResultsPaneOnDashboard = ({
   isRequest,
@@ -43,58 +66,32 @@ export const ResultsPaneOnDashboard = ({
     isVisible,
   });
 
-  let resultsPane;
   if (resultsPanes.length === 1) {
-    resultsPane = resultsPanes[0];
-  } else {
-    const panes = resultsPanes.map((pane, idx) => {
-      if (idx === 0) {
-        return (
-          <Tabs.TabPane tab={t('Results')} key={ResultTypes.Results}>
-            {pane}
-          </Tabs.TabPane>
-        );
-      }
+    return <Wrapper>{resultsPanes[0]}</Wrapper>;
+  }
 
+  const panes = resultsPanes.map((pane, idx) => {
+    if (idx === 0) {
       return (
-        <Tabs.TabPane
-          tab={t('Results %s', idx + 1)}
-          key={`${ResultTypes.Results} ${idx + 1}`}
-        >
+        <Tabs.TabPane tab={t('Results')} key={ResultTypes.Results}>
           {pane}
         </Tabs.TabPane>
       );
-    });
+    }
 
-    resultsPane = <Tabs fullWidth={false}>{panes}</Tabs>;
-  }
+    return (
+      <Tabs.TabPane
+        tab={t('Results %s', idx + 1)}
+        key={`${ResultTypes.Results} ${idx + 1}`}
+      >
+        {pane}
+      </Tabs.TabPane>
+    );
+  });
 
   return (
-    <div
-      css={css`
-        display: flex;
-        flex-direction: column;
-        height: 100%;
-
-        .ant-tabs {
-          height: 100%;
-        }
-
-        .ant-tabs-content {
-          height: 100%;
-        }
-
-        .ant-tabs-tabpane {
-          display: flex;
-          flex-direction: column;
-        }
-
-        .table-condensed {
-          overflow: auto;
-        }
-      `}
-    >
-      {resultsPane}
-    </div>
+    <Wrapper>
+      <Tabs fullWidth={false}>{panes}</Tabs>
+    </Wrapper>
   );
 };
