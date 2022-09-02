@@ -39,12 +39,14 @@ import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { SchemaOption } from 'src/SqlLab/types';
 import { useTables, Table } from 'src/hooks/apiResources';
 
+const REFRESH_WIDTH = 30;
+
 const TableSelectorWrapper = styled.div`
   ${({ theme }) => `
     .refresh {
       display: flex;
       align-items: center;
-      width: 30px;
+      width: ${REFRESH_WIDTH}px;
       margin-left: ${theme.gridUnit}px;
       margin-top: ${theme.gridUnit * 5}px;
     }
@@ -66,6 +68,7 @@ const TableSelectorWrapper = styled.div`
 
     .select {
       flex: 1;
+      max-width: calc(100% - ${theme.gridUnit + REFRESH_WIDTH}px)
     }
   `}
 `;
