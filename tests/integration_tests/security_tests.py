@@ -213,6 +213,7 @@ GAMMA_ROLE_PERMISSIONS = {
         ["menu_access", "SQL Editor"],
         ["menu_access", "Saved Queries"],
         ["menu_access", "Query Search"],
+        ["menu_access", "Data"],
         ["menu_access", "Databases"],
         ["menu_access", "Datasets"],
         ["can_share_dashboard", "Superset"],
@@ -1511,6 +1512,7 @@ class TestRolePermission(SupersetTestCase):
         self.assertIn(("can_userinfo", "UserDBModelView"), perm_set)
         self.assert_can_menu("Databases", perm_set)
         self.assert_can_menu("Datasets", perm_set)
+        self.assert_can_menu("Data", perm_set)
         self.assert_can_menu("Charts", perm_set)
         self.assert_can_menu("Dashboards", perm_set)
 
