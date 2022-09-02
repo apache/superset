@@ -215,7 +215,7 @@ function ChartList(props: ChartListProps) {
     hasPerm('can_export') && isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT);
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
   const enableBroadUserAccess =
-    bootstrapData?.common.conf.ENABLE_BROAD_ACTIVITY_ACCESS || false;
+    bootstrapData?.common?.conf?.ENABLE_BROAD_ACTIVITY_ACCESS || false;
   const handleBulkChartExport = (chartsToExport: Chart[]) => {
     const ids = chartsToExport.map(({ id }) => id);
     handleResourceExport('chart', ids, () => {
