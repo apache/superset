@@ -53,6 +53,12 @@ class CreateDatabaseCommand(BaseCommand):
             )
             raise DatabaseConnectionFailedError() from ex
 
+        # when creating a new database we don't need to unmask encrypted extra
+        self._properties["encrypted_extra"] = self._properties.pop(
+            "masked_encrypted_extra",
+            "{}",
+        )
+
         try:
             database = DatabaseDAO.create(self._properties, commit=False)
             database.set_sqlalchemy_uri(database.sqlalchemy_uri)
