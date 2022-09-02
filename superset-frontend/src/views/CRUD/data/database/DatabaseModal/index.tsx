@@ -847,7 +847,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
   const renderModalFooter = () => {
     if (db) {
-      // if db show back + connenct
+      // if db show back + connect
       if (!hasConnectedDb || editNewDb) {
         return (
           <>
@@ -901,7 +901,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       );
     }
 
-    return [];
+    return <></>;
   };
 
   const renderEditModalFooter = (db: Partial<DatabaseObject> | null) => (
@@ -1302,7 +1302,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       </Modal>
     );
   }
-
+  const modalFooter = isEditMode
+    ? renderEditModalFooter(db)
+    : renderModalFooter();
   return useTabLayout ? (
     <Modal
       css={(theme: SupersetTheme) => [
@@ -1323,7 +1325,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       title={
         <h4>{isEditMode ? t('Edit database') : t('Connect a database')}</h4>
       }
-      footer={isEditMode ? renderEditModalFooter(db) : renderModalFooter()}
+      footer={modalFooter}
     >
       <StyledStickyHeader>
         <TabHeader>
