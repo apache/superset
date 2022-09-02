@@ -28,17 +28,16 @@ import React, {
 } from 'react';
 import { ensureIsArray, t } from '@superset-ui/core';
 import { LabeledValue as AntdLabeledValue } from 'antd/lib/select';
-import { DownOutlined, SearchOutlined } from '@ant-design/icons';
 import { isEqual } from 'lodash';
-import { getValue, hasOption, isLabeledValue } from './utils';
 import {
+  getValue,
+  hasOption,
+  isLabeledValue,
   DEFAULT_SORT_COMPARATOR,
   EMPTY_OPTIONS,
   MAX_TAG_COUNT,
   SelectOptionsType,
   StyledCheckOutlined,
-  StyledLoadingText,
-  StyledSpin,
   StyledStopOutlined,
   TOKEN_SEPARATORS,
   renderSelectOptions,
@@ -51,7 +50,7 @@ import {
   handleFilterOptionHelper,
   dropDownRenderHelper,
   getSuffixIcon,
-} from './common';
+} from './utils';
 
 export interface SelectProps extends BaseSelectProps {
   /**

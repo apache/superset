@@ -36,8 +36,10 @@ import { isEqual } from 'lodash';
 import Icons from 'src/components/Icons';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { SLOW_DEBOUNCE } from 'src/constants';
-import { getValue, hasOption, isLabeledValue } from './utils';
 import {
+  getValue,
+  hasOption,
+  isLabeledValue,
   DEFAULT_SORT_COMPARATOR,
   EMPTY_OPTIONS,
   MAX_TAG_COUNT,
@@ -58,7 +60,7 @@ import {
   getSuffixIcon,
   dropDownRenderHelper,
   handleFilterOptionHelper,
-} from './common';
+} from './utils';
 
 const StyledError = styled.div`
   ${({ theme }) => `
