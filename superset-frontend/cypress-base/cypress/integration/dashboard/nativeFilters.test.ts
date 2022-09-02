@@ -553,7 +553,7 @@ xdescribe('Nativefilters', () => {
     cy.get('[data-test="Treemap-list-chart-title"]')
       .should('be.visible', { timeout: 5000 })
       .click();
-    cy.get('[data-test="query-save-button"]').click();
+    cy.get('[data-test="edit-dashboard-button"]').click();
     cy.get('[data-test="save-chart-modal-select-dashboard-form"]')
       .find('input[aria-label="Select a dashboard"]')
       .type(`${dashboard}`, { force: true });

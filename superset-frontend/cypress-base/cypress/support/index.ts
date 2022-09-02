@@ -26,36 +26,36 @@ const TokenName = Cypress.env('TOKEN_NAME');
 let SAMPLE_DASHBOARDS: Record<string, any>[] = [];
 let SAMPLE_CHARTS: Record<string, any>[] = [];
 
-function resetSamples() {
-  cy.login();
-  cy.fixture('dashboards.json').then(dashboards => {
-    dashboards.forEach((d: { dashboard_title: string }) => {
-      cy.deleteDashboardByName(d.dashboard_title, false);
-    });
-  });
-  cy.fixture('charts.json').then(charts => {
-    charts.forEach((c: { slice_name: string }) => {
-      cy.deleteChartByName(c.slice_name, false);
-    });
-  });
-}
-
-function loadSampleData() {
-  cy.login();
+Cypress.Commands.add('getSampleData', () =>
   cy.getCharts().then((slices: any) => {
     SAMPLE_CHARTS = slices;
-  });
-  cy.getDashboards().then((dashboards: any) => {
-    SAMPLE_DASHBOARDS = dashboards;
-  });
-}
+    cy.getDashboards().then((dashboards: any) => {
+      SAMPLE_DASHBOARDS = dashboards;
+    });
+  })
+);
+
+Cypress.Commands.add('cleanDashboards', () =>
+  cy.fixture('dashboards.json').then(dashboards => {
+    for (let i = 0; i < dashboards.length; i += 1) {
+      cy.deleteDashboardByName(dashboards[i].dashboard_title, false)
+    }
+  })
+);
+
+Cypress.Commands.add('cleanCharts', () =>
+  cy.fixture('charts.json').then(charts => {
+    for (let i = 0; i < charts.length; i += 1) {
+      cy.deleteChartByName(charts[i].slice_name, false)
+    }
+  })
+);
 
 before(() => {
-  loadSampleData();
-});
-
-beforeEach(() => {
-  resetSamples();
+  cy.login();
+  cy.cleanDashboards();
+  cy.cleanCharts();
+  cy.getSampleData();
 });
 
 Cypress.Commands.add('getBySel', (selector, ...args) =>
@@ -189,6 +189,7 @@ Cypress.Commands.add(
 
 Cypress.Commands.add('createSampleDashboards', () => {
   const requests: any = [];
+  cy.cleanDashboards();
   cy.fixture('dashboards.json').then(dashboards => {
     for (let i = 0; i < dashboards.length; i += 1) {
       requests.push(
@@ -208,11 +209,12 @@ Cypress.Commands.add('createSampleDashboards', () => {
         }),
       );
     }
-    return Promise.all(requests).then(() => loadSampleData());
+    return Promise.all(requests).then(() => cy.getSampleData());
   });
 });
 
 Cypress.Commands.add('createSampleCharts', () => {
+  cy.cleanCharts();
   const requests: any = [];
   return cy.fixture('charts.json').then(charts => {
     for (let i = 0; i < charts.length; i += 1) {
@@ -233,7 +235,7 @@ Cypress.Commands.add('createSampleCharts', () => {
         }),
       );
     }
-    return Promise.all(requests).then(() => loadSampleData());
+    return Promise.all(requests).then(() => cy.getSampleData());
   });
 });
 

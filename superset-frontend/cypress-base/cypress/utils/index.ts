@@ -86,3 +86,26 @@ export function waitForChartLoad(chart: ChartSpec) {
     });
   }
 
+/**
+ * Drag an element and drop it to another element.
+ * Usage:
+ *    drag(source).to(target);
+ */
+ export function drag(selector: string, content: string | number | RegExp) {
+    const dataTransfer = { data: {} };
+    return {
+      to(target: string | Cypress.Chainable) {
+        cy.get('.dragdroppable')
+          .contains(selector, content)
+          .trigger('mousedown', { which: 1, force: true })
+          .trigger('dragstart', { dataTransfer, force: true })
+          .trigger('drag', {force: true});
+
+        (typeof target === 'string' ? cy.get(target) : target)
+          .trigger('dragover', { dataTransfer, force: true })
+          .trigger('drop', { dataTransfer, force: true })
+          .trigger('dragend', { dataTransfer, force: true })
+          .trigger('mouseup', { which: 1, force: true });
+      },
+    };
+  }

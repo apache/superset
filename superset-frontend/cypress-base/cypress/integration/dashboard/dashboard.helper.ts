@@ -67,30 +67,6 @@ export const ECHARTS_CHARTS = [
   { name: 'Energy Force Layout', viz: 'graph_chart' },
 ] as const;
 
-/**
- * Drag an element and drop it to another element.
- * Usage:
- *    drag(source).to(target);
- */
-export function drag(selector: string, content: string | number | RegExp) {
-  const dataTransfer = { data: {} };
-  return {
-    to(target: string | Cypress.Chainable) {
-      cy.get('.dragdroppable')
-        .contains(selector, content)
-        .trigger('mousedown', { which: 1 })
-        .trigger('dragstart', { dataTransfer })
-        .trigger('drag', {});
-
-      (typeof target === 'string' ? cy.get(target) : target)
-        .trigger('dragover', { dataTransfer })
-        .trigger('drop', { dataTransfer })
-        .trigger('dragend', { dataTransfer })
-        .trigger('mouseup', { which: 1 });
-    },
-  };
-}
-
 export function resize(selector: string) {
   return {
     to(cordX: number, cordY: number) {

@@ -538,6 +538,7 @@ const PropertiesModal = ({
             {t('Cancel')}
           </Button>
           <Button
+            data-test="properties-modal-apply-button"
             onClick={form.submit}
             buttonSize="small"
             buttonStyle="primary"

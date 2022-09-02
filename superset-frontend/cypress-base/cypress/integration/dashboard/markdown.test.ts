@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { TABBED_DASHBOARD, drag, resize } from './dashboard.helper';
-
+import { TABBED_DASHBOARD, resize } from './dashboard.helper';
+import { drag } from 'cypress/utils';
 describe('Dashboard edit markdown', () => {
   beforeEach(() => {
     cy.login();
