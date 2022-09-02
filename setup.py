@@ -124,7 +124,7 @@ setup(
         "wtforms-json",
     ],
     extras_require={
-        "athena": ["pyathena>=1.10.8, <1.11"],
+        "athena": ["pyathena>=1.11, <1.12"],
         "aurora-data-api": ["preset-sqlalchemy-aurora-data-api>=0.2.8,<0.3"],
         "bigquery": [
             "pandas_gbq>=0.10.0",

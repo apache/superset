@@ -86,3 +86,45 @@ class AthenaEngineSpec(BaseEngineSpec):
         :return: Conditionally mutated label
         """
         return label.lower()
+ 
+    @classmethod
+    def get_cancel_query_id(cls, cursor: Any, query: Query) -> Optional[str]:
+        """
+        Get Redshift PID that will be used to cancel all other running
+        queries in the same session.
+
+        :param cursor: Cursor instance in which the query will be executed
+        :param query: Query instance
+        :return: Redshift PID
+        """
+        id = cursor.query_id()
+        return id
+
+
+    @classmethod
+    def cancel_query(  # pylint: disable=unused-argument
+        cls,
+        cursor: Any,
+        query: Query,
+        cancel_query_id: str,
+    ) -> bool:
+
+        """
+        Cancel query in the underlying database.
+
+        :param cursor: New cursor instance to the db of the query
+        :param query: Query instance
+        :param cancel_query_id: Value returned by get_cancel_query_payload or set in
+        other life-cycle methods of the query
+        :return: True if query cancelled successfully, False otherwise
+        """
+
+        try:
+            cursor.cancel()
+            cursor.close()
+        except Exception:  # pylint: disable=broad-except
+            return False
+
+        return False
+
+
