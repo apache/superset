@@ -60,7 +60,6 @@ from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices,
     load_world_bank_data,
 )
-from .dashboard_utils import get_table
 
 NEW_SECURITY_CONVERGE_VIEWS = (
     "Annotation",
@@ -1756,54 +1755,6 @@ class TestRolePermission(SupersetTestCase):
         if unsecured_views:
             view_str = "\n".join([str(v) for v in unsecured_views])
             raise Exception(f"Some views are not secured:\n{view_str}")
-
-    @patch("superset.utils.core.g")
-    @patch("superset.security.manager.g")
-    def test_get_permissions_gamma_user(self, mock_sm_g, mock_g):
-        session = db.session
-        role_name = "dummy_role"
-        gamma_user = security_manager.find_user(username="gamma")
-        security_manager.add_role(role_name)
-        dummy_role = security_manager.find_role(role_name)
-        gamma_user.roles.append(dummy_role)
-
-        table = (
-            db.session.query(SqlaTable)
-            .filter_by(table_name="wb_health_population")
-            .one()
-        )
-        table_perm = table.perm
-        security_manager.add_permission_role(
-            dummy_role,
-            security_manager.find_permission_view_menu("datasource_access", table_perm),
-        )
-        security_manager.add_permission_role(
-            dummy_role,
-            security_manager.find_permission_view_menu(
-                "database_access", table.database.perm
-            ),
-        )
-
-        session.commit()
-
-        mock_g.user = mock_sm_g.user = security_manager.find_user("gamma")
-        with self.client.application.test_request_context():
-            roles, permissions = security_manager.get_permissions(mock_g.user)
-            assert "dummy_role" in roles
-            assert "Gamma" in roles
-            assert sorted(roles["Gamma"]) == sorted(GAMMA_ROLE_PERMISSIONS["Gamma"])
-            assert sorted(roles["schema_access_role"]) == sorted(
-                GAMMA_ROLE_PERMISSIONS["schema_access_role"]
-            )
-
-            assert len(permissions) == 2
-            assert "[examples].(id:" in permissions["database_access"][0]
-            assert "[examples].[" in permissions["datasource_access"][0]
-
-        # cleanup
-        gamma_user = security_manager.find_user(username="gamma")
-        gamma_user.roles.remove(security_manager.find_role(role_name))
-        session.commit()
 
 
 class TestSecurityManager(SupersetTestCase):
