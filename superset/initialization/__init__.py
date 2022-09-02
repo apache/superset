@@ -239,8 +239,8 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             "Annotation Layers",
             label=__("Annotation Layers"),
             icon="fa-comment",
-            category="Manage",
-            category_label=__("Manage"),
+            category="Data",
+            category_label=__("Data"),
             category_icon="",
         )
         appbuilder.add_view(
