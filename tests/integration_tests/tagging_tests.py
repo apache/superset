@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from unittest import mock
 from superset.connectors.sqla.models import SqlaTable
 from superset.extensions import db
 from superset.models.core import FavStar
@@ -48,7 +49,10 @@ class TestTagging(SupersetTestCase):
         response = self.client.get("/tagview/tags/suggestions/")
         self.assertNotEqual(404, response.status_code)
 
-    @with_feature_flags(TAGGING_SYSTEM=True)
+    @mock.patch.dict(
+        "superset.extensions.feature_flag_manager._feature_flags",
+        TAGGING_SYSTEM=True,
+    )
     def test_dataset_tagging(self):
         """
         Test to make sure that when a new dataset is created,
@@ -84,7 +88,10 @@ class TestTagging(SupersetTestCase):
         db.session.delete(test_dataset)
         db.session.commit()
 
-    @with_feature_flags(TAGGING_SYSTEM=True)
+    @mock.patch.dict(
+        "superset.extensions.feature_flag_manager._feature_flags",
+        TAGGING_SYSTEM=True,
+    )
     def test_chart_tagging(self):
         """
         Test to make sure that when a new chart is created,
@@ -119,7 +126,10 @@ class TestTagging(SupersetTestCase):
         db.session.delete(test_chart)
         db.session.commit()
 
-    @with_feature_flags(TAGGING_SYSTEM=True)
+    @mock.patch.dict(
+        "superset.extensions.feature_flag_manager._feature_flags",
+        TAGGING_SYSTEM=True,
+    )
     def test_dashboard_tagging(self):
         """
         Test to make sure that when a new dashboard is created,
@@ -153,7 +163,10 @@ class TestTagging(SupersetTestCase):
         db.session.delete(test_dashboard)
         db.session.commit()
 
-    @with_feature_flags(TAGGING_SYSTEM=True)
+    @mock.patch.dict(
+        "superset.extensions.feature_flag_manager._feature_flags",
+        TAGGING_SYSTEM=True,
+    )
     def test_saved_query_tagging(self):
         """
         Test to make sure that when a new saved query is
