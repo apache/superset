@@ -466,14 +466,15 @@ class TestDatabaseModel(SupersetTestCase):
         }
         cols: Dict[str, TableColumn] = {col.column_name: col for col in table.columns}
         # assert that the type for intcol has been updated (asserting CI types)
-        backend = get_example_database().backend
+        backend = table.database.backend
         assert VIRTUAL_TABLE_INT_TYPES[backend].match(cols["intcol"].type)
         # assert that the expression has been replaced with the new physical column
         assert cols["mycase"].expression == ""
         assert VIRTUAL_TABLE_STRING_TYPES[backend].match(cols["mycase"].type)
         assert cols["expr"].expression == "case when 1 then 1 else 0 end"
 
-        db.session.delete(table)
+        if "sqlite" not in backend:
+            db.session.delete(table)
 
     @patch("superset.models.core.Database.db_engine_spec", BigQueryEngineSpec)
     def test_labels_expected_on_mutated_query(self):
