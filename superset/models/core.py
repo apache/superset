@@ -54,6 +54,7 @@ from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import expression, Select
 
 from superset import app, db_engine_specs, is_feature_enabled
+from superset.constants import PASSWORD_MASK
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import MetricType, TimeGrain
 from superset.extensions import cache_manager, encrypted_field_factory, security_manager
@@ -71,7 +72,6 @@ log_query = config["QUERY_LOGGER"]
 metadata = Model.metadata  # pylint: disable=no-member
 logger = logging.getLogger(__name__)
 
-PASSWORD_MASK = "X" * 10
 DB_CONNECTION_MUTATOR = config["DB_CONNECTION_MUTATOR"]
 
 
@@ -252,13 +252,29 @@ class Database(
         return sqlalchemy_url.get_backend_name()
 
     @property
+    def masked_encrypted_extra(self) -> str:
+        return self.db_engine_spec.mask_encrypted_extra(self.encrypted_extra)
+
+    @property
     def parameters(self) -> Dict[str, Any]:
-        uri = make_url_safe(self.sqlalchemy_uri_decrypted)
-        encrypted_extra = self.get_encrypted_extra()
+        db_engine_spec = self.db_engine_spec
+
+        # When returning the parameters we should use the masked SQLAlchemy URI and the
+        # masked ``encrypted_extra`` to prevent exposing sensitive credentials.
+        masked_uri = make_url_safe(self.sqlalchemy_uri)
+        masked_encrypted_extra = db_engine_spec.mask_encrypted_extra(
+            self.encrypted_extra
+        )
+        try:
+            encrypted_config = json.loads(masked_encrypted_extra)
+        except (TypeError, json.JSONDecodeError):
+            encrypted_config = {}
+
         try:
             # pylint: disable=useless-suppression
-            parameters = self.db_engine_spec.get_parameters_from_uri(  # type: ignore
-                uri, encrypted_extra=encrypted_extra
+            parameters = db_engine_spec.get_parameters_from_uri(  # type: ignore
+                masked_uri,
+                encrypted_extra=encrypted_config,
             )
         except Exception:  # pylint: disable=broad-except
             parameters = {}
@@ -339,14 +355,6 @@ class Database(
             else None
         )
 
-    @memoized(
-        watch=(
-            "impersonate_user",
-            "sqlalchemy_uri_decrypted",
-            "extra",
-            "encrypted_extra",
-        )
-    )
     def get_sqla_engine(
         self,
         schema: Optional[str] = None,
@@ -380,7 +388,7 @@ class Database(
         if connect_args:
             params["connect_args"] = connect_args
 
-        self.update_encrypted_extra_params(params)
+        self.update_params_from_encrypted_extra(params)
 
         if DB_CONNECTION_MUTATOR:
             if not source and request and request.referrer:
@@ -639,7 +647,6 @@ class Database(
         return self.get_db_engine_spec(url)
 
     @classmethod
-    @memoized
     def get_db_engine_spec(cls, url: URL) -> Type[db_engine_specs.BaseEngineSpec]:
         backend = url.get_backend_name()
         try:
@@ -674,8 +681,9 @@ class Database(
                 raise ex
         return encrypted_extra
 
-    def update_encrypted_extra_params(self, params: Dict[str, Any]) -> None:
-        self.db_engine_spec.update_encrypted_extra_params(self, params)
+    # pylint: disable=invalid-name
+    def update_params_from_encrypted_extra(self, params: Dict[str, Any]) -> None:
+        self.db_engine_spec.update_params_from_encrypted_extra(self, params)
 
     def get_table(self, table_name: str, schema: Optional[str] = None) -> Table:
         extra = self.get_extra()

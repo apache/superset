@@ -47,7 +47,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
         self._properties = data.copy()
         self._model: Optional[Database] = None
 
-    def run(self) -> None:
+    def run(self) -> None:  # pylint: disable=too-many-statements
         self.validate()
         uri = self._properties.get("sqlalchemy_uri", "")
         if self._model and uri == self._model.safe_sqlalchemy_uri():
@@ -63,12 +63,24 @@ class TestConnectionDatabaseCommand(BaseCommand):
             "database": url.database,
         }
 
+        serialized_encrypted_extra = self._properties.get(
+            "masked_encrypted_extra",
+            "{}",
+        )
+        if self._model:
+            serialized_encrypted_extra = (
+                self._model.db_engine_spec.unmask_encrypted_extra(
+                    self._model.encrypted_extra,
+                    serialized_encrypted_extra,
+                )
+            )
+
         try:
             database = DatabaseDAO.build_db_for_connection_test(
                 server_cert=self._properties.get("server_cert", ""),
                 extra=self._properties.get("extra", "{}"),
                 impersonate_user=self._properties.get("impersonate_user", False),
-                encrypted_extra=self._properties.get("encrypted_extra", "{}"),
+                encrypted_extra=serialized_encrypted_extra,
             )
 
             database.set_sqlalchemy_uri(uri)

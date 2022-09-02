@@ -127,5 +127,6 @@ def full_api_access(mocker: MockFixture) -> Iterator[None]:
         return_value=True,
     )
     mocker.patch.object(security_manager, "has_access", return_value=True)
+    mocker.patch.object(security_manager, "can_access_all_databases", return_value=True)
 
     yield
