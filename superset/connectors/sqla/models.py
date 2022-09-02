@@ -1140,7 +1140,6 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
 
         if (
             is_dttm
-            and col.get("columnType")
             and col.get("columnType") == "AXIS"
             and (time_grain := col.get("timeGrain"))
         ):
