@@ -473,9 +473,6 @@ class TestDatabaseModel(SupersetTestCase):
         assert VIRTUAL_TABLE_STRING_TYPES[backend].match(cols["mycase"].type)
         assert cols["expr"].expression == "case when 1 then 1 else 0 end"
 
-        if "sqlite" not in backend:
-            db.session.delete(table)
-
     @patch("superset.models.core.Database.db_engine_spec", BigQueryEngineSpec)
     def test_labels_expected_on_mutated_query(self):
         query_obj = {
