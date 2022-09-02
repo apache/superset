@@ -50,10 +50,6 @@ const DatasourceItemContainer = styled.div`
   `}
 `;
 
-const style = (dragging: boolean) => ({
-  cursor: dragging ? 'grabbing' : 'pointer',
-});
-
 interface DatasourcePanelDragOptionProps extends DatasourcePanelDndItem {
   labelRef?: React.RefObject<any>;
   showTooltip?: boolean;
