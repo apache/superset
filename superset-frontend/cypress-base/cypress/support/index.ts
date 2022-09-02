@@ -23,8 +23,6 @@ require('cy-verify-downloads').addCustomCommand();
 
 const BASE_EXPLORE_URL = '/explore/?form_data=';
 const TokenName = Cypress.env('TOKEN_NAME');
-let SAMPLE_DASHBOARDS: Record<string, any>[] = [];
-let SAMPLE_CHARTS: Record<string, any>[] = [];
 let DASHBOARD_FIXTURES: Record<string, any>[] = [];
 let CHART_FIXTURES: Record<string, any>[] = [];
 
@@ -44,73 +42,69 @@ before(() => {
   cy.login();
   cy.loadChartFixtures();
   cy.loadDashboardFixtures();
-  cy.getSampleData();
   cy.cleanDashboards();
   cy.cleanCharts();
 });
 
-Cypress.Commands.add('getSampleData', () => {
-  cy.getCharts().then((slices: any) => {
-    SAMPLE_CHARTS = slices;
-  });
-  cy.getDashboards().then((dashboards: any) => {
-    SAMPLE_DASHBOARDS = dashboards;
-  });
-});
-
 Cypress.Commands.add('cleanDashboards', () =>
-{
-  const deletableDashboards = [];
-  for (let i = 0; i < DASHBOARD_FIXTURES.length; i += 1) {
-    const isInDb = SAMPLE_DASHBOARDS.find(d => d.dashboard_title === DASHBOARD_FIXTURES[i].dashboard_title);
-    if (isInDb) {
-      deletableDashboards.push(isInDb.id);
+  cy.getDashboards().then((sampleDashboards: any) => {
+    const deletableDashboards = [];
+    for (let i = 0; i < DASHBOARD_FIXTURES.length; i += 1) {
+      const isInDb = sampleDashboards.find((d: any) => d.dashboard_title === DASHBOARD_FIXTURES[i].dashboard_title);
+      if (isInDb) {
+        deletableDashboards.push(isInDb.id);
+      }
     }
-  }
-  return cy
-    .request({
-      failOnStatusCode: false,
-      method: 'DELETE',
-      url: `api/v1/dashboard/?q=!(${deletableDashboards.join(',')})`,
-      headers: {
-        Cookie: `csrf_access_token=${window.localStorage.getItem(
-          'access_token',
-        )}`,
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${TokenName}`,
-        'X-CSRFToken': `${window.localStorage.getItem('access_token')}`,
-        Referer: `${Cypress.config().baseUrl}/`,
-      },
-    })
-    .then(resp => resp)
-});
+    if (deletableDashboards.length) {
+      return cy
+      .request({
+        failOnStatusCode: false,
+        method: 'DELETE',
+        url: `api/v1/dashboard/?q=!(${deletableDashboards.join(',')})`,
+        headers: {
+          Cookie: `csrf_access_token=${window.localStorage.getItem(
+            'access_token',
+          )}`,
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${TokenName}`,
+          'X-CSRFToken': `${window.localStorage.getItem('access_token')}`,
+          Referer: `${Cypress.config().baseUrl}/`,
+        },
+      })
+      .then(resp => resp)
+    }
+  })
+);
 
 Cypress.Commands.add('cleanCharts', () =>
-{
-  const deletableCharts = [];
-  for (let i = 0; i < CHART_FIXTURES.length; i += 1) {
-    const isInDb = SAMPLE_CHARTS.find(c => c.slice_name === CHART_FIXTURES[i].slice_name);
-    if (isInDb) {
-      deletableCharts.push(isInDb.id);
+  cy.getCharts().then((sampleCharts: any) => {
+    const deletableCharts = [];
+    for (let i = 0; i < CHART_FIXTURES.length; i += 1) {
+      const isInDb = sampleCharts.find((c: any) => c.slice_name === CHART_FIXTURES[i].slice_name);
+      if (isInDb) {
+        deletableCharts.push(isInDb.id);
+      }
     }
-  }
-  return cy
-    .request({
-      failOnStatusCode: false,
-      method: 'DELETE',
-      url: `api/v1/chart/?q=!(${deletableCharts.join(',')})`,
-      headers: {
-        Cookie: `csrf_access_token=${window.localStorage.getItem(
-          'access_token',
-        )}`,
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${TokenName}`,
-        'X-CSRFToken': `${window.localStorage.getItem('access_token')}`,
-        Referer: `${Cypress.config().baseUrl}/`,
-      },
-    })
-    .then(resp => resp)
-});
+    if (deletableCharts) {
+      return cy
+      .request({
+        failOnStatusCode: false,
+        method: 'DELETE',
+        url: `api/v1/chart/?q=!(${deletableCharts.join(',')})`,
+        headers: {
+          Cookie: `csrf_access_token=${window.localStorage.getItem(
+            'access_token',
+          )}`,
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${TokenName}`,
+          'X-CSRFToken': `${window.localStorage.getItem('access_token')}`,
+          Referer: `${Cypress.config().baseUrl}/`,
+        },
+      })
+      .then(resp => resp)
+    }
+  })
+);
 
 Cypress.Commands.add('getBySel', (selector, ...args) =>
   cy.get(`[data-test=${selector}]`, ...args),
@@ -241,70 +235,61 @@ Cypress.Commands.add(
   },
 );
 
-Cypress.Commands.add('createSampleDashboards', () => {
-  const requests: any = [];
-  cy.cleanDashboards();
-  cy.fixture('dashboards.json').then(dashboards => {
-    for (let i = 0; i < dashboards.length; i += 1) {
-      requests.push(
-        cy.request({
-          method: 'POST',
-          url: `/api/v1/dashboard/`,
-          body: dashboards[i],
-          failOnStatusCode: false,
-          headers: {
-            Cookie: `csrf_access_token=${window.localStorage.getItem(
-              'access_token',
-            )}`,
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${TokenName}`,
-            'X-CSRFToken': `${window.localStorage.getItem('access_token')}`,
-            Referer: `${Cypress.config().baseUrl}/`,
-          },
-        }),
-      );
+Cypress.Commands.add('createSampleDashboards', () =>
+  cy.cleanDashboards().then(() => {
+    for (let i = 0; i < DASHBOARD_FIXTURES.length; i += 1) {
+      cy.request({
+        method: 'POST',
+        url: `/api/v1/dashboard/`,
+        body: DASHBOARD_FIXTURES[i],
+        failOnStatusCode: false,
+        headers: {
+          Cookie: `csrf_access_token=${window.localStorage.getItem(
+            'access_token',
+          )}`,
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${TokenName}`,
+          'X-CSRFToken': `${window.localStorage.getItem('access_token')}`,
+          Referer: `${Cypress.config().baseUrl}/`,
+        },
+      })
     }
-    return Promise.all(requests).then(() => cy.getSampleData());
-  });
-});
+  })
+);
 
-Cypress.Commands.add('createSampleCharts', () => {
-  const requests: any = [];
-  cy.cleanCharts();
-  return cy.fixture('charts.json').then(charts => {
-    for (let i = 0; i < charts.length; i += 1) {
-      requests.push(
-        cy.request({
-          method: 'POST',
-          url: `/api/v1/chart/`,
-          body: charts[i],
-          failOnStatusCode: false,
-          headers: {
-            Cookie: `csrf_access_token=${window.localStorage.getItem(
-              'access_token',
-            )}`,
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${TokenName}`,
-            'X-CSRFToken': `${window.localStorage.getItem('access_token')}`,
-            Referer: `${Cypress.config().baseUrl}/`,
-          },
-        }),
-      );
+Cypress.Commands.add('createSampleCharts', () =>
+  cy.cleanCharts().then(() => {
+    for (let i = 0; i < CHART_FIXTURES.length; i += 1) {
+      cy.request({
+        method: 'POST',
+        url: `/api/v1/chart/`,
+        body: CHART_FIXTURES[i],
+        failOnStatusCode: false,
+        headers: {
+          Cookie: `csrf_access_token=${window.localStorage.getItem(
+            'access_token',
+          )}`,
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${TokenName}`,
+          'X-CSRFToken': `${window.localStorage.getItem('access_token')}`,
+          Referer: `${Cypress.config().baseUrl}/`,
+        },
+      })
     }
-    return Promise.all(requests).then(() => cy.getSampleData());
-  });
-});
+  })
+);
 
 Cypress.Commands.add(
   'deleteDashboardByName',
-  (dashboardName: string, failOnStatusCode: boolean) => {
-    const dashboard = SAMPLE_DASHBOARDS.find(
-      d => d.dashboard_title === dashboardName,
-    );
-    if (dashboard) {
-      cy.deleteDashboard(dashboard.id, failOnStatusCode);
-    }
-  },
+  (dashboardName: string, failOnStatusCode: boolean) =>
+    cy.getDashboards().then((sampleDashboards: any) => {
+      const dashboard = sampleDashboards.find(
+        (d: any) => d.dashboard_title === dashboardName,
+      );
+      if (dashboard) {
+        cy.deleteDashboard(dashboard.id, failOnStatusCode);
+      }
+    })
 );
 
 Cypress.Commands.add('deleteDashboard', (id: number, failOnStatusCode = false) =>
@@ -373,10 +358,11 @@ Cypress.Commands.add('getCharts', () =>
 
 Cypress.Commands.add(
   'deleteChartByName',
-  (sliceName: string, failOnStatusCode: boolean) => {
-    const chart = SAMPLE_CHARTS.find(c => c.slice_name === sliceName);
-    if (chart) {
-      cy.deleteChart(chart.id, failOnStatusCode);
-    }
-  },
+  (sliceName: string, failOnStatusCode: boolean) =>
+    cy.getCharts().then((sampleCharts: any) => {
+      const chart = sampleCharts.find((c: any) => c.slice_name === sliceName);
+      if (chart) {
+        cy.deleteChart(chart.id, failOnStatusCode);
+      }
+    })
 );
