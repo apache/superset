@@ -165,24 +165,20 @@ const SqlEditor = ({
   const theme = useTheme();
   const dispatch = useDispatch();
 
-  const database = useSelector(
-    ({ sqlLab: { unsavedQueryEditor, databases } }) => {
-      const dbId = unsavedQueryEditor.dbId || queryEditor.dbId;
-      return databases[dbId];
+  const { database, latestQuery, hideLeftBar } = useSelector(
+    ({ sqlLab: { unsavedQueryEditor, databases, queries } }) => {
+      let { dbId, latestQueryId, hideLeftBar } = queryEditor;
+      if (unsavedQueryEditor.id === queryEditor.id) {
+        dbId = unsavedQueryEditor.dbId || dbId;
+        latestQueryId = unsavedQueryEditor.latestQueryId || latestQueryId;
+        hideLeftBar = unsavedQueryEditor.hideLeftBar || hideLeftBar;
+      }
+      return {
+        database: databases[dbId],
+        latestQuery: queries[latestQueryId],
+        hideLeftBar,
+      };
     },
-  );
-
-  const latestQuery = useSelector(
-    ({ sqlLab: { unsavedQueryEditor, queries } }) => {
-      const latestQueryId =
-        unsavedQueryEditor.latestQueryId || queryEditor.latestQueryId;
-      return queries[latestQueryId];
-    },
-  );
-
-  const hideLeftBar = useSelector(
-    ({ sqlLab: { unsavedQueryEditor } }) =>
-      unsavedQueryEditor.hideLeftBar || queryEditor.hideLeftBar,
   );
 
   const queryEditors = useSelector(({ sqlLab }) => sqlLab.queryEditors);
