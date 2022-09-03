@@ -99,7 +99,7 @@ export class Switchboard {
 
   debugMode: boolean;
 
-  private isInitialized: boolean;
+  private isInitialised: boolean;
 
   constructor(params?: Params) {
     if (!params) {
@@ -109,7 +109,7 @@ export class Switchboard {
   }
 
   init(params: Params) {
-    if (this.isInitialized) {
+    if (this.isInitialised) {
       this.logError('already initialized');
       return;
     }
@@ -139,7 +139,7 @@ export class Switchboard {
       }
     });
 
-    this.isInitialized = true;
+    this.isInitialised = true;
   }
 
   private async getMethodResult({
@@ -147,6 +147,13 @@ export class Switchboard {
     method,
     args,
   }: GetMessage): Promise<ReplyMessage | ErrorMessage> {
+    if (!this.isInitialised) {
+      return <ErrorMessage>{
+        switchboardAction: Actions.ERROR,
+        messageId,
+        error: `[${this.name}] Switchboard not initialised`,
+      };
+    }
     const executor = this.methods[method];
     if (executor == null) {
       return <ErrorMessage>{
@@ -196,6 +203,10 @@ export class Switchboard {
    */
   get<T = unknown>(method: string, args: unknown = undefined): Promise<T> {
     return new Promise((resolve, reject) => {
+      if (!this.isInitialised) {
+        reject(new Error('Switchboard not initialised'));
+        return;
+      }
       // In order to "call a method" on the other side of the port,
       // we will send a message with a unique id
       const messageId = this.getNewMessageId();
@@ -233,6 +244,10 @@ export class Switchboard {
    * @param args
    */
   emit(method: string, args: unknown = undefined) {
+    if (!this.isInitialised) {
+      this.logError('Switchboard not initialised');
+      return;
+    }
     const message: EmitMessage = {
       switchboardAction: Actions.EMIT,
       method,
@@ -242,6 +257,10 @@ export class Switchboard {
   }
 
   start() {
+    if (!this.isInitialised) {
+      this.logError('Switchboard not initialised');
+      return;
+    }
     this.port.start();
   }
 
