@@ -90,7 +90,7 @@ function isError(message: Message): message is ErrorMessage {
 export class Switchboard {
   port: MessagePort;
 
-  name: string;
+  name = '';
 
   methods: Record<string, Method<any, unknown>> = {};
 
@@ -147,13 +147,6 @@ export class Switchboard {
     method,
     args,
   }: GetMessage): Promise<ReplyMessage | ErrorMessage> {
-    if (!this.isInitialised) {
-      return <ErrorMessage>{
-        switchboardAction: Actions.ERROR,
-        messageId,
-        error: `[${this.name}] Switchboard not initialised`,
-      };
-    }
     const executor = this.methods[method];
     if (executor == null) {
       return <ErrorMessage>{

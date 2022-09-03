@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { Switchboard } from './switchboard';
+import SingletonSwitchboard, { Switchboard } from './switchboard';
 
 type EventHandler = (event: MessageEvent) => void;
 
@@ -112,6 +112,7 @@ describe('comms', () => {
 
   beforeEach(() => {
     console.debug = jest.fn(); // silencio bruno
+    console.error = jest.fn();
   });
 
   afterEach(() => {
@@ -127,6 +128,14 @@ describe('comms', () => {
   });
 
   describe('emit', () => {
+    it('no error if not initialised', () => {
+      SingletonSwitchboard.emit('someEvent', 42);
+      expect(console.error).toHaveBeenCalledWith(
+        '[]',
+        'Switchboard not initialised',
+      );
+    });
+
     it('triggers the method', async () => {
       const channel = new MessageChannel();
       const ours = new Switchboard({ port: channel.port1, name: 'ours' });
@@ -154,6 +163,12 @@ describe('comms', () => {
   });
 
   describe('get', () => {
+    it('returns error if not initialised', async () => {
+      await expect(SingletonSwitchboard.get('failing')).rejects.toThrow(
+        'Switchboard not initialised',
+      );
+    });
+
     it('returns the value', async () => {
       const channel = new MessageChannel();
       const ours = new Switchboard({ port: channel.port1, name: 'ours' });
