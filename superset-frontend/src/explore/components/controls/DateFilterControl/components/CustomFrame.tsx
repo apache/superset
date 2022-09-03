@@ -17,9 +17,12 @@
  * under the License.
  */
 import React from 'react';
+import { useSelector } from 'react-redux';
 import { t } from '@superset-ui/core';
 import { Moment } from 'moment';
 import { isInteger } from 'lodash';
+// @ts-ignore
+import { locales } from 'antd/dist/antd-with-locales';
 import { Col, Row } from 'src/components';
 import { InputNumber } from 'src/components/Input';
 import { DatePicker } from 'src/components/DatePicker';
@@ -36,39 +39,15 @@ import {
   customTimeRangeDecode,
   customTimeRangeEncode,
   dttmToMoment,
+  LOCALE_MAPPING,
 } from 'src/explore/components/controls/DateFilterControl/utils';
 import {
   CustomRangeKey,
   FrameComponentProps,
 } from 'src/explore/components/controls/DateFilterControl/types';
-// @ts-ignore
-import { locales } from 'antd/dist/antd-with-locales';
-import { bootstrapData } from 'src/preamble';
-
-const languages = {
-  en: 'en_US',
-  fr: 'fr_FR',
-  es: 'es_ES',
-  it: 'it_IT',
-  zh: 'zh_CN',
-  ja: 'ja_JP',
-  de: 'de_DE',
-  pt: 'pt_PT',
-  pt_BR: 'pt_BR',
-  ru: 'ru_RU',
-  ko: 'ko_KR',
-  sk: 'sk_SK',
-  sl: 'sl_SI',
-  nl: 'nl_NL',
-};
+import { ExplorePageState } from 'src/explore/types';
 
 export function CustomFrame(props: FrameComponentProps) {
-  let localLanguage = languages[bootstrapData.common.locale];
-  if (localLanguage == null) {
-    localLanguage = 'en_US';
-  }
-  const localeFiltrer = locales[localLanguage].DatePicker;
-
   const { customRange, matchedFlag } = customTimeRangeDecode(props.value);
   if (!matchedFlag) {
     props.onChange(customTimeRangeEncode(customRange));
@@ -131,6 +110,10 @@ export function CustomFrame(props: FrameComponentProps) {
     }
   }
 
+  const localFromFlaskBabel =
+    useSelector((state: ExplorePageState) => state.common.locale) || 'en';
+  const currentLocale = locales[LOCALE_MAPPING[localFromFlaskBabel]].DatePicker;
+
   return (
     <div data-test="custom-frame">
       <div className="section-title">{t('Configure custom time range')}</div>
@@ -158,7 +141,7 @@ export function CustomFrame(props: FrameComponentProps) {
                   onChange('sinceDatetime', datetime.format(MOMENT_FORMAT))
                 }
                 allowClear={false}
-                locale={localeFiltrer}
+                locale={currentLocale}
               />
             </Row>
           )}
@@ -211,7 +194,7 @@ export function CustomFrame(props: FrameComponentProps) {
                   onChange('untilDatetime', datetime.format(MOMENT_FORMAT))
                 }
                 allowClear={false}
-                locale={localeFiltrer}
+                locale={currentLocale}
               />
             </Row>
           )}
@@ -269,7 +252,7 @@ export function CustomFrame(props: FrameComponentProps) {
                   }
                   allowClear={false}
                   className="control-anchor-to-datetime"
-                  locale={localeFiltrer}
+                  locale={currentLocale}
                 />
               </Col>
             )}
