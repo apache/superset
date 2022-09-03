@@ -127,15 +127,31 @@ describe('comms', () => {
     expect(sb).toHaveProperty('debugMode');
   });
 
-  describe('emit', () => {
-    it('no error if not initialised', () => {
-      SingletonSwitchboard.emit('someEvent', 42);
-      expect(console.error).toHaveBeenCalledWith(
-        '[]',
-        'Switchboard not initialised',
-      );
-    });
+  it('singleton', async () => {
+    SingletonSwitchboard.start();
+    expect(console.error).toHaveBeenCalledWith(
+      '[]',
+      'Switchboard not initialised',
+    );
+    SingletonSwitchboard.emit('someEvent', 42);
+    expect(console.error).toHaveBeenCalledWith(
+      '[]',
+      'Switchboard not initialised',
+    );
+    await expect(SingletonSwitchboard.get('failing')).rejects.toThrow(
+      'Switchboard not initialised',
+    );
+    SingletonSwitchboard.init({ port: new MessageChannel().port1 });
+    expect(SingletonSwitchboard).toHaveProperty('name');
+    expect(SingletonSwitchboard).toHaveProperty('debugMode');
+    SingletonSwitchboard.init({ port: new MessageChannel().port1 });
+    expect(console.error).toHaveBeenCalledWith(
+      '[switchboard]',
+      'already initialized',
+    );
+  });
 
+  describe('emit', () => {
     it('triggers the method', async () => {
       const channel = new MessageChannel();
       const ours = new Switchboard({ port: channel.port1, name: 'ours' });
@@ -163,12 +179,6 @@ describe('comms', () => {
   });
 
   describe('get', () => {
-    it('returns error if not initialised', async () => {
-      await expect(SingletonSwitchboard.get('failing')).rejects.toThrow(
-        'Switchboard not initialised',
-      );
-    });
-
     it('returns the value', async () => {
       const channel = new MessageChannel();
       const ours = new Switchboard({ port: channel.port1, name: 'ours' });
