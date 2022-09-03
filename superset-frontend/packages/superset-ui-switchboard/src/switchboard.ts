@@ -99,7 +99,23 @@ export class Switchboard {
 
   debugMode: boolean;
 
-  constructor({ port, name = 'switchboard', debug = false }: Params) {
+  private isInitialized: boolean;
+
+  constructor(params?: Params) {
+    if (!params) {
+      return;
+    }
+    this.init(params);
+  }
+
+  init(params: Params) {
+    if (this.isInitialized) {
+      this.logError('already initialized');
+      return;
+    }
+
+    const { port, name = 'switchboard', debug = false } = params;
+
     this.port = port;
     this.name = name;
     this.debugMode = debug;
@@ -122,6 +138,8 @@ export class Switchboard {
         }
       }
     });
+
+    this.isInitialized = true;
   }
 
   private async getMethodResult({
@@ -242,3 +260,5 @@ export class Switchboard {
     return `m_${this.name}_${this.incrementor++}`;
   }
 }
+
+export default new Switchboard();

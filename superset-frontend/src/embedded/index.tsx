@@ -20,7 +20,7 @@ import React, { lazy, Suspense } from 'react';
 import ReactDOM from 'react-dom';
 import { BrowserRouter as Router, Route } from 'react-router-dom';
 import { makeApi, t, logging } from '@superset-ui/core';
-import { Switchboard } from '@superset-ui/switchboard';
+import Switchboard from '@superset-ui/switchboard';
 import { bootstrapData } from 'src/preamble';
 import setupClient from 'src/setup/setupClient';
 import { RootContextProviders } from 'src/views/RootContextProviders';
@@ -175,7 +175,7 @@ window.addEventListener('message', function embeddedPageInitializer(event) {
   if (event.data.handshake === 'port transfer' && port) {
     log('message port received', event);
 
-    const switchboard = new Switchboard({
+    Switchboard.init({
       port,
       name: 'superset',
       debug: debugMode,
@@ -183,7 +183,7 @@ window.addEventListener('message', function embeddedPageInitializer(event) {
 
     let started = false;
 
-    switchboard.defineMethod('guestToken', ({ guestToken }) => {
+    Switchboard.defineMethod('guestToken', ({ guestToken }) => {
       setupGuestClient(guestToken);
       if (!started) {
         start();
@@ -191,12 +191,12 @@ window.addEventListener('message', function embeddedPageInitializer(event) {
       }
     });
 
-    switchboard.defineMethod('getScrollSize', () => ({
+    Switchboard.defineMethod('getScrollSize', () => ({
       width: document.body.scrollWidth,
       height: document.body.scrollHeight,
     }));
 
-    switchboard.start();
+    Switchboard.start();
   }
 });
 
