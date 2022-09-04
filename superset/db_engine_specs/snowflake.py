@@ -16,6 +16,7 @@
 # under the License.
 import json
 import re
+import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Pattern, Tuple, TYPE_CHECKING
 from urllib import parse
@@ -50,6 +51,8 @@ SYNTAX_ERROR_REGEX = re.compile(
     "syntax error line (?P<line>.+?) at position (?P<position>.+?) "
     "unexpected '(?P<syntax_error>.+?)'."
 )
+
+logger = logging.getLogger(__name__)
 
 
 class SnowflakeParametersSchema(Schema):
