@@ -64,7 +64,6 @@ from superset.result_set import SupersetResultSet
 from superset.utils import cache as cache_util, core as utils
 from superset.utils.core import get_username
 from superset.utils.memoized import memoized
-from superset.db_engine_specs.snowflake_privatekey import create_snowflake_engine_with_privatekey
 
 config = app.config
 custom_password_store = config["SQLALCHEMY_CUSTOM_PASSWORD_STORE"]
@@ -405,12 +404,7 @@ class Database(
             )
 
         try:
-            engine = None
-            if "snowflake" in str(sqlalchemy_url) and "privatekey" in str(sqlalchemy_url):
-                engine = create_snowflake_engine_with_privatekey(str(sqlalchemy_url))
-            else:
-                engine = create_engine(sqlalchemy_url, **params)
-            return engine
+            return create_engine(sqlalchemy_url, **params)
         except Exception as ex:
             raise self.db_engine_spec.get_dbapi_mapped_exception(ex)
 

@@ -33,6 +33,11 @@ from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.models.sql_lab import Query
 from superset.utils import core as utils
 
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.primitives.asymmetric import dsa
+from cryptography.hazmat.primitives import serialization
+
 if TYPE_CHECKING:
     from superset.models.core import Database
 
@@ -279,3 +284,35 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
 
         spec.components.schema(cls.__name__, schema=cls.parameters_schema)
         return spec.to_dict()["components"]["schemas"][cls.__name__]
+
+    @staticmethod
+    def update_params_from_encrypted_extra(
+        database: "Database",
+        params: Dict[str, Any],
+    ) -> None:
+        if not database.encrypted_extra:
+            return
+        try:
+            encrypted_extra = json.loads(database.encrypted_extra)
+            auth_method = encrypted_extra.pop("auth_method", None)
+            auth_params = encrypted_extra.pop("auth_params", {})
+            if not auth_method:
+                    return
+            connect_args = params.setdefault("connect_args", {})
+            if auth_method == "keypair":
+                with open(auth_params['privatekey_path'], "rb") as key:
+                    p_key = serialization.load_pem_private_key(
+                        key.read(),
+                        password=auth_params['privatekey_pass'].encode(),
+                        backend=default_backend()
+                    )
+
+                pkb = p_key.private_bytes(
+                    encoding=serialization.Encoding.DER,
+                    format=serialization.PrivateFormat.PKCS8,
+                    encryption_algorithm=serialization.NoEncryption())
+                
+                connect_args["private_key"] = pkb
+        except json.JSONDecodeError as ex:
+            logger.error(ex, exc_info=True)
+            raise ex
