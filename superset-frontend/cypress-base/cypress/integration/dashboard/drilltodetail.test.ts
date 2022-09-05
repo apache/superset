@@ -103,7 +103,7 @@ describe('Drill to detail modal', () => {
     it('paginates', () => {
       openModalFromMenu('big_number_total');
       // checking the data
-      cy.get("[data-test='row-count-label']").should('contain', '36.4k rows');
+      cy.getBySel('row-count-label').should('contain', '36.4k rows');
       cy.get("[role='rowgroup'] [role='row']")
         .should('have.length', 50)
         .then($rows => {
@@ -144,11 +144,11 @@ describe('Drill to detail modal', () => {
         openModalFromChartContext('Drill to detail by East Asia & Pacific');
 
         // checking the filter
-        cy.get("[data-test='filter-val']").should(
+        cy.getBySel('filter-val').should(
           'contain',
           'East Asia & Pacific',
         );
-        cy.get("[data-test='row-count-label']").should('contain', '1.98k rows');
+        cy.getBySel('row-count-label').should('contain', '1.98k rows');
         cy.get(".pagination-container [role='navigation'] [role='button']")
           .should('have.length', 9)
           .then($pages => {
@@ -157,9 +157,9 @@ describe('Drill to detail modal', () => {
           });
 
         // close the filter and test that data was reloaded
-        cy.get("[data-test='filter-col']").find("[aria-label='close']").click();
+        cy.getBySel('filter-col').find("[aria-label='close']").click();
         cy.wait('@samples');
-        cy.get("[data-test='row-count-label']").should('contain', '11.8k rows');
+        cy.getBySel('row-count-label').should('contain', '11.8k rows');
         cy.get(".pagination-container [role='navigation'] li.active").should(
           'contain',
           '1',
@@ -197,7 +197,7 @@ describe('Drill to detail modal', () => {
             .click();
           cy.wait('@samples');
 
-          cy.get("[data-test='filter-val']").then($filters => {
+          cy.getBySel('filter-val').then($filters => {
             expect($filters).to.contain('1965');
             expect($filters).to.contain('boy');
           });
@@ -224,7 +224,7 @@ describe('Drill to detail modal', () => {
         openModalFromChartContext('Drill to detail by East Asia & Pacific');
 
         // checking the filter
-        cy.get("[data-test='filter-val']").should(
+        cy.getBySel('filter-val').should(
           'contain',
           'East Asia & Pacific',
         );
@@ -250,7 +250,7 @@ describe('Drill to detail modal', () => {
         openModalFromChartContext('Drill to detail by boy');
 
         // checking the filtered and paginated data
-        cy.get("[data-test='filter-val']").should('contain', 'boy');
+        cy.getBySel('filter-val').should('contain', 'boy');
       });
     });
   });
@@ -266,7 +266,7 @@ describe('Drill to detail modal', () => {
 
       openModalFromChartContext('Drill to detail');
 
-      cy.get("[data-test='filter-val']").should('not.exist');
+      cy.getBySel('filter-val').should('not.exist');
     });
   });
 
@@ -279,7 +279,7 @@ describe('Drill to detail modal', () => {
 
       openModalFromChartContext('Drill to detail');
 
-      cy.get("[data-test='filter-val']").should('not.exist');
+      cy.getBySel('filter-val').should('not.exist');
 
       // TODO: test clicking on a trendline
       // Cypress is refusing to rightclick on the dot
