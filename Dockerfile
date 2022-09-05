@@ -18,7 +18,7 @@
 ######################################################################
 # PY stage that simply does a pip install on our requirements
 ######################################################################
-ARG PY_VER=3.9.13-slim
+ARG PY_VER=3.8.13-slim
 FROM python:${PY_VER} AS superset-py
 
 RUN mkdir /app \
@@ -68,7 +68,7 @@ RUN cd /app/superset-frontend \
 ######################################################################
 # Final lean image...
 ######################################################################
-ARG PY_VER=3.9.13-slim
+ARG PY_VER=3.8.13-slim
 FROM python:${PY_VER} AS lean
 
 ENV LANG=C.UTF-8 \
@@ -90,7 +90,7 @@ RUN mkdir -p ${PYTHONPATH} \
             libecpg-dev \
         && rm -rf /var/lib/apt/lists/*
 
-COPY --from=superset-py /usr/local/lib/python3.9/site-packages/ /usr/local/lib/python3.9/site-packages/
+COPY --from=superset-py /usr/local/lib/python3.8/site-packages/ /usr/local/lib/python3.8/site-packages/
 # Copying site-packages doesn't move the CLIs, so let's copy them one by one
 COPY --from=superset-py /usr/local/bin/gunicorn /usr/local/bin/celery /usr/local/bin/flask /usr/bin/
 COPY --from=superset-node /app/superset/static/assets /app/superset/static/assets
