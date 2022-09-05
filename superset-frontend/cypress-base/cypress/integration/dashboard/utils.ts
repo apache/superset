@@ -30,6 +30,14 @@
     { name: 'Box plot', viz: 'box_plot' },
   ] as const;
 
+  export const ECHARTS_CHARTS = [
+    { name: 'Number of Girls', viz: 'big_number_total' },
+    { name: 'Participants', viz: 'big_number' },
+    { name: 'Box plot', viz: 'box_plot' },
+    { name: 'Genders', viz: 'pie' },
+    { name: 'Energy Force Layout', viz: 'graph_chart' },
+  ] as const;
+
 export function interceptGet() {
 cy.intercept('/api/v1/dashboard/*').as('get');
 }

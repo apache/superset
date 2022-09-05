@@ -21,7 +21,6 @@ import { dashboardView } from 'cypress/support/directories';
 export const USA_BIRTH_NAMES_DASHBOARD = '/superset/dashboard/births/';
 export const testDashboard = '/superset/dashboard/538/';
 export const TABBED_DASHBOARD = '/superset/dashboard/tabbed_dash/';
-export const ECHARTS_DASHBOARD = '/superset/dashboard/echarts_dash/';
 
 export const testItems = {
   dashboard: 'Cypress test Dashboard',
@@ -59,13 +58,7 @@ export const testItems = {
 export const CHECK_DASHBOARD_FAVORITE_ENDPOINT =
   '/superset/favstar/Dashboard/*/count';
 
-export const ECHARTS_CHARTS = [
-  { name: 'Number of Girls', viz: 'big_number_total' },
-  { name: 'Participants', viz: 'big_number' },
-  { name: 'Box plot', viz: 'box_plot' },
-  { name: 'Genders', viz: 'pie' },
-  { name: 'Energy Force Layout', viz: 'graph_chart' },
-] as const;
+
 
 export function resize(selector: string) {
   return {

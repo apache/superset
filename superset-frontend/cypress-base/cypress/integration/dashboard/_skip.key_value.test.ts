@@ -27,7 +27,7 @@ interface QueryString {
   native_filters_key: string;
 }
 
-xdescribe('nativefilter url param key', () => {
+describe.skip('nativefilter url param key', () => {
   // const urlParams = { param1: '123', param2: 'abc' };
   before(() => {
     cy.login();
