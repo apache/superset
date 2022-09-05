@@ -20,7 +20,6 @@ import { dashboardView } from 'cypress/support/directories';
  */
 export const USA_BIRTH_NAMES_DASHBOARD = '/superset/dashboard/births/';
 export const testDashboard = '/superset/dashboard/538/';
-export const TABBED_DASHBOARD = '/superset/dashboard/tabbed_dash/';
 
 export const testItems = {
   dashboard: 'Cypress test Dashboard',
