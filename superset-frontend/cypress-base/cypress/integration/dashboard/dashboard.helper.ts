@@ -55,9 +55,6 @@ export const testItems = {
   filterNumericalColumn: 'SP_RUR_TOTL_ZS',
 };
 
-export const CHECK_DASHBOARD_FAVORITE_ENDPOINT =
-  '/superset/favstar/Dashboard/*/count';
-
 export function cleanUp() {
   cy.deleteDashboardByName(testItems.dashboard);
   cy.deleteDashboardByName(testItems.defaultNameDashboard);

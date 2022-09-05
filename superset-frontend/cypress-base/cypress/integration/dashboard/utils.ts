@@ -66,6 +66,14 @@ export function interceptLog() {
   cy.intercept('/superset/log/?explode=events&dashboard_id=*').as('logs');
 }
 
+export function interceptFav() {
+    cy.intercept(`/superset/favstar/Dashboard/*/select/`).as('select');
+}
+
+export function interceptUnfav() {
+    cy.intercept(`/superset/favstar/Dashboard/*/unselect/`).as('unselect');
+}
+
 export function setFilter(filter: string, option: string) {
   interceptFiltering();
 

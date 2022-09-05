@@ -103,8 +103,7 @@ function assertMetadata(text: string) {
 }
 function clearMetadata() {
     cy.get('#json_metadata').then(($jsonmetadata) => {
-      cy.wait(1000);
-      cy.wrap($jsonmetadata).type('{selectall}{backspace}');
+      cy.wrap($jsonmetadata).type('{selectall} {backspace}');
     });
 }
 

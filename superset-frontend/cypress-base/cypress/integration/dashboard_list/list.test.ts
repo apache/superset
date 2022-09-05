@@ -23,6 +23,8 @@ import {
   interceptBulkDelete,
   interceptUpdate,
   interceptDelete,
+  interceptFav,
+  interceptUnfav,
 } from '../dashboard/utils';
 
 function orderAlphabetical() {
@@ -130,8 +132,8 @@ describe('Dashboards list', () => {
     });
 
     it('should allow to favorite/unfavorite dashboard', () => {
-      cy.intercept(`/superset/favstar/Dashboard/*/select/`).as('select');
-      cy.intercept(`/superset/favstar/Dashboard/*/unselect/`).as('unselect');
+      interceptFav();
+      interceptUnfav();
 
       setGridMode('card');
       orderAlphabetical();
