@@ -49,6 +49,7 @@ import ImportModelsModal from 'src/components/ImportModal/index';
 
 import Dashboard from 'src/dashboard/containers/Dashboard';
 import CertifiedBadge from 'src/components/CertifiedBadge';
+import { bootstrapData } from 'src/preamble';
 import DashboardCard from './DashboardCard';
 import { DashboardStatus } from './types';
 
@@ -132,6 +133,8 @@ function DashboardList(props: DashboardListProps) {
   const [importingDashboard, showImportModal] = useState<boolean>(false);
   const [passwordFields, setPasswordFields] = useState<string[]>([]);
   const [preparingExport, setPreparingExport] = useState<boolean>(false);
+  const enableBroadUserAccess =
+    bootstrapData?.common?.conf?.ENABLE_BROAD_ACTIVITY_ACCESS;
 
   const openDashboardImportModal = () => {
     showImportModal(true);
@@ -290,7 +293,12 @@ function DashboardList(props: DashboardListProps) {
               changed_by_url: changedByUrl,
             },
           },
-        }: any) => <a href={changedByUrl}>{changedByName}</a>,
+        }: any) =>
+          enableBroadUserAccess ? (
+            <a href={changedByUrl}>{changedByName}</a>
+          ) : (
+            <>{changedByName}</>
+          ),
         Header: t('Modified by'),
         accessor: 'changed_by.first_name',
         size: 'xl',
