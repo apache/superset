@@ -18,42 +18,39 @@
  */
 import { SAMPLE_DASHBOARD_1 } from 'cypress/utils/urls';
 import { drag, resize } from 'cypress/utils';
-import {
-  interceptGet,
-  interceptUpdate,
-} from './utils';
 import * as ace from 'brace';
-import {interceptFiltering as interceptCharts} from '../explore/utils';
+import { interceptGet, interceptUpdate } from './utils';
+import { interceptFiltering as interceptCharts } from '../explore/utils';
 
 function editDashboard() {
   cy.getBySel('edit-dashboard-button').click();
 }
 
 function closeModal() {
-  cy.getBySel('properties-modal-cancel-button').click({force: true});
+  cy.getBySel('properties-modal-cancel-button').click({ force: true });
 }
 
 function openProperties() {
-  cy.get('body')
-  .then($body => {
+  cy.get('body').then($body => {
     if ($body.find('[data-test="properties-modal-cancel-button"]').length) {
       closeModal();
     }
-    cy.getBySel('actions-trigger').click({ force: true} );
-    cy.getBySel('header-actions-menu').contains('Edit properties').click({ force: true} );
+    cy.getBySel('actions-trigger').click({ force: true });
+    cy.getBySel('header-actions-menu')
+      .contains('Edit properties')
+      .click({ force: true });
     cy.wait(500);
   });
 }
 
 function openAdvancedProperties() {
-  cy
-    .get('.ant-modal-body')
+  cy.get('.ant-modal-body')
     .contains('Advanced')
     .should('be.visible')
     .click({ force: true });
 }
 
-function dragComponent(component = 'Unicode Cloud', target='card-title') {
+function dragComponent(component = 'Unicode Cloud', target = 'card-title') {
   drag(`[data-test="${target}"]`, component).to(
     '[data-test="grid-content"] [data-test="dragdroppable-object"]',
   );
@@ -75,8 +72,12 @@ function visitEdit() {
 }
 
 function selectColorScheme(color: string) {
-    cy.get('[data-test="dashboard-edit-properties-form"] [aria-label="Select color scheme"]').first().click();
-    cy.getBySel(color).click();
+  cy.get(
+    '[data-test="dashboard-edit-properties-form"] [aria-label="Select color scheme"]',
+  )
+    .first()
+    .click();
+  cy.getBySel(color).click();
 }
 
 function applyChanges() {
@@ -102,14 +103,14 @@ function assertMetadata(text: string) {
     });
 }
 function clearMetadata() {
-    cy.get('#json_metadata').then(($jsonmetadata) => {
-      cy.wrap($jsonmetadata).type('{selectall} {backspace}');
-    });
+  cy.get('#json_metadata').then($jsonmetadata => {
+    cy.wrap($jsonmetadata).type('{selectall} {backspace}');
+  });
 }
 
 function writeMetadata(metadata: string) {
-  cy.get('#json_metadata').then(($jsonmetadata) => {
-    cy.wrap($jsonmetadata).type(metadata, {parseSpecialCharSequences: false});
+  cy.get('#json_metadata').then($jsonmetadata => {
+    cy.wrap($jsonmetadata).type(metadata, { parseSpecialCharSequences: false });
   });
 }
 
@@ -130,7 +131,7 @@ describe('Dashboard edit', () => {
 
     it('should accept a valid color scheme', () => {
       openAdvancedProperties();
-      clearMetadata()
+      clearMetadata();
       writeMetadata('{"color_scheme":"lyftColors"}');
       applyChanges();
       openProperties();
@@ -155,12 +156,12 @@ describe('Dashboard edit', () => {
 
     it('should not accept an invalid color scheme', () => {
       openAdvancedProperties();
-      clearMetadata()
-        writeMetadata('{"color_scheme":"wrongcolorscheme"}');
-        applyChanges();
-        cy.get('.ant-modal-body')
-          .contains('A valid color scheme is required')
-          .should('be.visible');
+      clearMetadata();
+      writeMetadata('{"color_scheme":"wrongcolorscheme"}');
+      applyChanges();
+      cy.get('.ant-modal-body')
+        .contains('A valid color scheme is required')
+        .should('be.visible');
     });
 
     it('should edit the title', () => {
@@ -193,7 +194,9 @@ describe('Dashboard edit', () => {
       interceptCharts();
       cy.getBySel('dashboard-charts-filter-search-input').type('Unicode');
       cy.wait('@filtering');
-      cy.getBySel('chart-card').should('have.length', 1).contains('Unicode Cloud');
+      cy.getBySel('chart-card')
+        .should('have.length', 1)
+        .contains('Unicode Cloud');
       cy.getBySel('dashboard-charts-filter-search-input').clear();
     });
 
@@ -203,7 +206,6 @@ describe('Dashboard edit', () => {
       discardChanges();
       cy.getBySel('header-save-button').should('be.disabled');
     });
-
   });
 
   describe('Components', () => {
@@ -242,12 +244,11 @@ describe('Dashboard edit', () => {
         )
         .click();
 
-      cy.getBySel('dashboard-component-chart-holder')
-        .contains('Click here to edit [markdown](https://bit.ly/1dQOfRK)');
+      cy.getBySel('dashboard-component-chart-holder').contains(
+        'Click here to edit [markdown](https://bit.ly/1dQOfRK)',
+      );
 
-      cy.getBySel('dashboard-markdown-editor')
-        .click()
-        .type('Test resize');
+      cy.getBySel('dashboard-markdown-editor').click().type('Test resize');
 
       resize(
         '[data-test="dashboard-markdown-editor"] .resizable-container span div:last-child',
@@ -278,13 +279,15 @@ describe('Dashboard edit', () => {
       dragComponent('Top 10 California Names Timeseries');
       openProperties();
       openAdvancedProperties();
-      clearMetadata()
-        writeMetadata('{"color_scheme":"lyftColors","label_colors":{"Anthony":"red"}}')
-        applyChanges();
-        saveChanges();
-        cy.get('.line .nv-legend-symbol')
-          .first()
-          .should('have.css', 'fill', 'rgb(255, 0, 0)');
+      clearMetadata();
+      writeMetadata(
+        '{"color_scheme":"lyftColors","label_colors":{"Anthony":"red"}}',
+      );
+      applyChanges();
+      saveChanges();
+      cy.get('.line .nv-legend-symbol')
+        .first()
+        .should('have.css', 'fill', 'rgb(255, 0, 0)');
     });
   });
 

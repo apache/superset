@@ -16,13 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { parsePostForm, JsonObject } from 'cypress/utils';
-import {
-  waitForChartLoad,
-} from 'cypress/utils';
-
-import { WORLD_HEALTH_CHARTS } from './utils';
+import { parsePostForm, JsonObject, waitForChartLoad } from 'cypress/utils';
 import { WORLD_HEALTH_DASHBOARD } from 'cypress/utils/urls';
+import { WORLD_HEALTH_CHARTS } from './utils';
 
 describe.skip('Dashboard form data', () => {
   const urlParams = { param1: '123', param2: 'abc' };

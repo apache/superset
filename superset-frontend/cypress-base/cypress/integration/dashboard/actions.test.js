@@ -41,4 +41,4 @@ describe('Dashboard actions', () => {
       .find("[aria-label='favorite-selected']")
       .should('not.exist');
   });
-})
+});

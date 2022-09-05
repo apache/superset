@@ -17,11 +17,9 @@
  * under the License.
  */
 import qs from 'querystringify';
-import {
-  waitForChartLoad,
-} from 'cypress/utils';
-import {WORLD_HEALTH_CHARTS} from './utils';
+import { waitForChartLoad } from 'cypress/utils';
 import { WORLD_HEALTH_DASHBOARD } from 'cypress/utils/urls';
+import { WORLD_HEALTH_CHARTS } from './utils';
 
 interface QueryString {
   native_filters_key: string;

@@ -28,14 +28,14 @@ let CHART_FIXTURES: Record<string, any>[] = [];
 
 Cypress.Commands.add('loadChartFixtures', () =>
   cy.fixture('charts.json').then(charts => {
-    CHART_FIXTURES = charts
-  })
+    CHART_FIXTURES = charts;
+  }),
 );
 
 Cypress.Commands.add('loadDashboardFixtures', () =>
   cy.fixture('dashboards.json').then(dashboards => {
-    DASHBOARD_FIXTURES = dashboards
-  })
+    DASHBOARD_FIXTURES = dashboards;
+  }),
 );
 
 before(() => {
@@ -50,14 +50,16 @@ Cypress.Commands.add('cleanDashboards', () =>
   cy.getDashboards().then((sampleDashboards: any) => {
     const deletableDashboards = [];
     for (let i = 0; i < DASHBOARD_FIXTURES.length; i += 1) {
-      const isInDb = sampleDashboards.find((d: any) => d.dashboard_title === DASHBOARD_FIXTURES[i].dashboard_title);
+      const fixture = DASHBOARD_FIXTURES[i];
+      const isInDb = sampleDashboards.find(
+        (d: any) => d.dashboard_title === fixture.dashboard_title,
+      );
       if (isInDb) {
         deletableDashboards.push(isInDb.id);
       }
     }
     if (deletableDashboards.length) {
-      return cy
-      .request({
+      cy.request({
         failOnStatusCode: false,
         method: 'DELETE',
         url: `api/v1/dashboard/?q=!(${deletableDashboards.join(',')})`,
@@ -70,24 +72,25 @@ Cypress.Commands.add('cleanDashboards', () =>
           'X-CSRFToken': `${window.localStorage.getItem('access_token')}`,
           Referer: `${Cypress.config().baseUrl}/`,
         },
-      })
-      .then(resp => resp)
+      }).then(resp => resp);
     }
-  })
+  }),
 );
 
 Cypress.Commands.add('cleanCharts', () =>
   cy.getCharts().then((sampleCharts: any) => {
     const deletableCharts = [];
     for (let i = 0; i < CHART_FIXTURES.length; i += 1) {
-      const isInDb = sampleCharts.find((c: any) => c.slice_name === CHART_FIXTURES[i].slice_name);
+      const fixture = CHART_FIXTURES[i];
+      const isInDb = sampleCharts.find(
+        (c: any) => c.slice_name === fixture.slice_name,
+      );
       if (isInDb) {
         deletableCharts.push(isInDb.id);
       }
     }
     if (deletableCharts) {
-      return cy
-      .request({
+      cy.request({
         failOnStatusCode: false,
         method: 'DELETE',
         url: `api/v1/chart/?q=!(${deletableCharts.join(',')})`,
@@ -100,10 +103,9 @@ Cypress.Commands.add('cleanCharts', () =>
           'X-CSRFToken': `${window.localStorage.getItem('access_token')}`,
           Referer: `${Cypress.config().baseUrl}/`,
         },
-      })
-      .then(resp => resp)
+      }).then(resp => resp);
     }
-  })
+  }),
 );
 
 Cypress.Commands.add('getBySel', (selector, ...args) =>
@@ -252,9 +254,9 @@ Cypress.Commands.add('createSampleDashboards', () =>
           'X-CSRFToken': `${window.localStorage.getItem('access_token')}`,
           Referer: `${Cypress.config().baseUrl}/`,
         },
-      })
+      });
     }
-  })
+  }),
 );
 
 Cypress.Commands.add('createSampleCharts', () =>
@@ -274,9 +276,9 @@ Cypress.Commands.add('createSampleCharts', () =>
           'X-CSRFToken': `${window.localStorage.getItem('access_token')}`,
           Referer: `${Cypress.config().baseUrl}/`,
         },
-      })
+      });
     }
-  })
+  }),
 );
 
 Cypress.Commands.add(
@@ -289,26 +291,28 @@ Cypress.Commands.add(
       if (dashboard) {
         cy.deleteDashboard(dashboard.id, failOnStatusCode);
       }
-    })
+    }),
 );
 
-Cypress.Commands.add('deleteDashboard', (id: number, failOnStatusCode = false) =>
-  cy
-    .request({
-      failOnStatusCode,
-      method: 'DELETE',
-      url: `api/v1/dashboard/${id}`,
-      headers: {
-        Cookie: `csrf_access_token=${window.localStorage.getItem(
-          'access_token',
-        )}`,
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${TokenName}`,
-        'X-CSRFToken': `${window.localStorage.getItem('access_token')}`,
-        Referer: `${Cypress.config().baseUrl}/`,
-      },
-    })
-    .then(resp => resp),
+Cypress.Commands.add(
+  'deleteDashboard',
+  (id: number, failOnStatusCode = false) =>
+    cy
+      .request({
+        failOnStatusCode,
+        method: 'DELETE',
+        url: `api/v1/dashboard/${id}`,
+        headers: {
+          Cookie: `csrf_access_token=${window.localStorage.getItem(
+            'access_token',
+          )}`,
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${TokenName}`,
+          'X-CSRFToken': `${window.localStorage.getItem('access_token')}`,
+          Referer: `${Cypress.config().baseUrl}/`,
+        },
+      })
+      .then(resp => resp),
 );
 
 Cypress.Commands.add('getDashboards', () =>
@@ -364,5 +368,5 @@ Cypress.Commands.add(
       if (chart) {
         cy.deleteChart(chart.id, failOnStatusCode);
       }
-    })
+    }),
 );

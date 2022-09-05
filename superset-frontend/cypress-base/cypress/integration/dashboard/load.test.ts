@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { WORLD_HEALTH_CHARTS, interceptLog } from './utils';
 import { WORLD_HEALTH_DASHBOARD } from 'cypress/utils/urls';
 import { waitForChartLoad } from 'cypress/utils';
+import { WORLD_HEALTH_CHARTS, interceptLog } from './utils';
 
 describe('Dashboard load', () => {
   before(() => {

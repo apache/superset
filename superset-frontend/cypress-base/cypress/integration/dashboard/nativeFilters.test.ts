@@ -23,14 +23,12 @@ import {
   exploreView,
   dataTestChartName,
 } from 'cypress/support/directories';
-import {
-  cleanUp,
-  copyTestDashboard,
-  testItems,
-} from './dashboard.helper';
 import { waitForChartLoad } from 'cypress/utils';
-import {WORLD_HEALTH_CHARTS} from './utils';
-import { WORLD_HEALTH_DASHBOARD } from 'cypress/utils/urls';
+import {
+  WORLD_HEALTH_DASHBOARD,
+  DASHBOARD_LIST,
+  CHART_LIST,
+} from 'cypress/utils/urls';
 
 import {
   addCountryCodeFilter,
@@ -57,8 +55,8 @@ import {
   valueNativeFilterOptions,
   validateFilterNameOnDashboard,
 } from './nativeFilter.helper';
-import { DASHBOARD_LIST } from 'cypress/utils/urls';
-import { CHART_LIST } from 'cypress/utils/urls';
+import { WORLD_HEALTH_CHARTS } from './utils';
+import { cleanUp, copyTestDashboard, testItems } from './dashboard.helper';
 
 // TODO: fix flaky init logic and re-enable
 const milliseconds = new Date().getTime();

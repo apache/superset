@@ -16,13 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { isLegacyResponse, parsePostForm } from 'cypress/utils';
 import {
+  isLegacyResponse,
+  parsePostForm,
   getChartAliasesBySpec,
   waitForChartLoad,
 } from 'cypress/utils';
-import {WORLD_HEALTH_CHARTS } from './utils';
 import { WORLD_HEALTH_DASHBOARD } from 'cypress/utils/urls';
+import { WORLD_HEALTH_CHARTS } from './utils';
 
 describe.skip('Dashboard filter', () => {
   before(() => {

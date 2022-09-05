@@ -21,8 +21,8 @@ import {
   ChartSpec,
   getChartAliasesBySpec,
 } from 'cypress/utils';
-import { WORLD_HEALTH_CHARTS } from './utils';
 import { WORLD_HEALTH_DASHBOARD } from 'cypress/utils/urls';
+import { WORLD_HEALTH_CHARTS } from './utils';
 import { isLegacyResponse } from '../../utils/vizPlugins';
 
 describe.skip('Dashboard top-level controls', () => {

@@ -16,11 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
- import { CHART_LIST } from 'cypress/utils/urls';
- import { setGridMode, clearAllInputs } from 'cypress/utils';
- import { setFilter } from '../explore/utils';
+import { CHART_LIST } from 'cypress/utils/urls';
+import { setGridMode, clearAllInputs } from 'cypress/utils';
+import { setFilter } from '../explore/utils';
 
- describe('Charts filters', () => {
+describe('Charts filters', () => {
   before(() => {
     cy.visit(CHART_LIST);
   });

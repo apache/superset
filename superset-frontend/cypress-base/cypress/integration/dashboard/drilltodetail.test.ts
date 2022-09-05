@@ -16,13 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  waitForChartLoad,
-} from 'cypress/utils';
-import {
-  ECHARTS_CHARTS,
-} from './utils';
-import {ECHARTS_DASHBOARD} from 'cypress/utils/urls';
+import { waitForChartLoad } from 'cypress/utils';
+import { ECHARTS_DASHBOARD } from 'cypress/utils/urls';
+import { ECHARTS_CHARTS } from './utils';
 
 function interceptSamples() {
   cy.intercept(`/datasource/samples*`).as('samples');
@@ -144,10 +140,7 @@ describe('Drill to detail modal', () => {
         openModalFromChartContext('Drill to detail by East Asia & Pacific');
 
         // checking the filter
-        cy.getBySel('filter-val').should(
-          'contain',
-          'East Asia & Pacific',
-        );
+        cy.getBySel('filter-val').should('contain', 'East Asia & Pacific');
         cy.getBySel('row-count-label').should('contain', '1.98k rows');
         cy.get(".pagination-container [role='navigation'] [role='button']")
           .should('have.length', 9)
@@ -172,7 +165,6 @@ describe('Drill to detail modal', () => {
           });
       });
     });
-
   });
 
   describe('Time-series Bar Chart V2', () => {
@@ -224,10 +216,7 @@ describe('Drill to detail modal', () => {
         openModalFromChartContext('Drill to detail by East Asia & Pacific');
 
         // checking the filter
-        cy.getBySel('filter-val').should(
-          'contain',
-          'East Asia & Pacific',
-        );
+        cy.getBySel('filter-val').should('contain', 'East Asia & Pacific');
       });
     });
   });
