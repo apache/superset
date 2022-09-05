@@ -326,4 +326,3 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
             connect_args["private_key"] = pkb
         else:
             return
-
