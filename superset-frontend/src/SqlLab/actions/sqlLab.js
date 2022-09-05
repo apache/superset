@@ -1137,8 +1137,9 @@ function getTableExtendedMetadata(table, query, dispatch) {
     );
 }
 
-export function addTable(query, database, tableName, schemaName) {
-  return function (dispatch) {
+export function addTable(queryEditor, database, tableName, schemaName) {
+  return function (dispatch, getState) {
+    const query = getUpToDateQuery(getState(), queryEditor, queryEditor.id);
     const table = {
       dbId: query.dbId,
       queryEditorId: query.id,
@@ -1425,7 +1426,10 @@ export function createDatasource(vizOptions) {
 
         return Promise.resolve(json);
       })
-      .catch(() => {
+      .catch(error => {
+        getClientErrorObject(error).then(e => {
+          dispatch(addDangerToast(e.error));
+        });
         dispatch(
           createDatasourceFailed(
             t('An error occurred while creating the data source'),

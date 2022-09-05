@@ -14,7 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=unused-argument, import-outside-toplevel, protected-access
+
+# pylint: disable=line-too-long, import-outside-toplevel, protected-access, invalid-name
 
 import json
 
@@ -148,7 +149,7 @@ LIMIT :param_1"""
     )
 
 
-def test_get_parameters_from_uri() -> None:
+def test_get_parameters_from_uri_serializable() -> None:
     """
     Test that the result from ``get_parameters_from_uri`` is JSON serializable.
     """
@@ -160,3 +161,34 @@ def test_get_parameters_from_uri() -> None:
     )
     assert parameters == {"access_token": "TOP_SECRET", "query": {}}
     assert json.loads(json.dumps(parameters)) == parameters
+
+
+def test_unmask_encrypted_extra() -> None:
+    """
+    Test that the private key can be reused from the previous ``encrypted_extra``.
+    """
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    old = json.dumps(
+        {
+            "credentials_info": {
+                "project_id": "black-sanctum-314419",
+                "private_key": "SECRET",
+            },
+        }
+    )
+    new = json.dumps(
+        {
+            "credentials_info": {
+                "project_id": "yellow-unicorn-314419",
+                "private_key": "XXXXXXXXXX",
+            },
+        }
+    )
+
+    assert json.loads(BigQueryEngineSpec.unmask_encrypted_extra(old, new)) == {
+        "credentials_info": {
+            "project_id": "yellow-unicorn-314419",
+            "private_key": "SECRET",
+        },
+    }
