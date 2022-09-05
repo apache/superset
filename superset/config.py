@@ -1335,6 +1335,7 @@ DATASET_HEALTH_CHECK: Optional[Callable[["SqlaTable"], str]] = None
 MENU_HIDE_USER_INFO = False
 
 # Set to False to only allow viewing own recent activity
+# or to disallow users from viewing other users profile page
 ENABLE_BROAD_ACTIVITY_ACCESS = True
 
 # the advanced data type key should correspond to that set in the column metadata
