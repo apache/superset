@@ -39,10 +39,10 @@ function openProperties() {
     if ($body.find('[data-test="properties-modal-cancel-button"]').length) {
       closeModal();
     }
+    cy.getBySel('actions-trigger').click({ force: true} );
+    cy.getBySel('header-actions-menu').contains('Edit properties').click({ force: true} );
+    cy.wait(500);
   });
-  cy.getBySel('actions-trigger').click({ force: true} );
-  cy.getBySel('header-actions-menu').contains('Edit properties').click({ force: true} );
-  cy.wait(500);
 }
 
 function openAdvancedProperties() {
@@ -85,14 +85,13 @@ function applyChanges() {
 
 function saveChanges() {
   interceptUpdate();
-  cy.getBySel('header-save-button').click();
+  cy.getBySel('header-save-button').click({ force: true });
   cy.wait('@update');
 }
 
 function assertMetadata(text: string) {
   const regex = new RegExp(text);
-  cy.get('.ant-modal-body')
-    .find('#json_metadata')
+  cy.get('#json_metadata')
     .should('be.visible')
     .then(() => {
       const metadata = cy.$$('#json_metadata')[0];
@@ -102,13 +101,74 @@ function assertMetadata(text: string) {
       expect(ace.edit(metadata).getValue()).to.match(regex);
     });
 }
-function clearAll(input: string) {
-  return cy.get(input).type('{selectall}{backspace}');
+function clearMetadata() {
+    cy.get('#json_metadata').then(($jsonmetadata) => {
+      cy.wait(1000);
+      cy.wrap($jsonmetadata).type('{selectall}{backspace}');
+    });
+}
+
+function writeMetadata(metadata: string) {
+  cy.get('#json_metadata').then(($jsonmetadata) => {
+    cy.wrap($jsonmetadata).type(metadata, {parseSpecialCharSequences: false});
+  });
 }
 
 describe('Dashboard edit', () => {
   beforeEach(() => {
     cy.preserveLogin();
+  });
+
+  describe('Edit properties', () => {
+    before(() => {
+      cy.createSampleDashboards();
+      visitEdit();
+    });
+
+    beforeEach(() => {
+      openProperties();
+    });
+
+    it('should accept a valid color scheme', () => {
+      openAdvancedProperties();
+      clearMetadata()
+      writeMetadata('{"color_scheme":"lyftColors"}');
+      applyChanges();
+      openProperties();
+      openAdvancedProperties();
+      assertMetadata('lyftColors');
+      applyChanges();
+    });
+
+    it('should overwrite the color scheme when advanced is closed', () => {
+      selectColorScheme('d3Category20b');
+      openAdvancedProperties();
+      assertMetadata('d3Category20b');
+      applyChanges();
+    });
+
+    it('should overwrite the color scheme when advanced is open', () => {
+      openAdvancedProperties();
+      selectColorScheme('googleCategory10c');
+      assertMetadata('googleCategory10c');
+      applyChanges();
+    });
+
+    it('should not accept an invalid color scheme', () => {
+      openAdvancedProperties();
+      clearMetadata()
+        writeMetadata('{"color_scheme":"wrongcolorscheme"}');
+        applyChanges();
+        cy.get('.ant-modal-body')
+          .contains('A valid color scheme is required')
+          .should('be.visible');
+    });
+
+    it('should edit the title', () => {
+      cy.getBySel('dashboard-title-input').clear().type('Edited title');
+      applyChanges();
+      cy.getBySel('editable-title-input').should('have.value', 'Edited title');
+    });
   });
 
   describe('Edit mode', () => {
@@ -198,61 +258,6 @@ describe('Dashboard edit', () => {
     });
   });
 
-  describe('Edit properties', () => {
-    before(() => {
-      cy.createSampleDashboards();
-      visitEdit();
-    });
-
-    beforeEach(() => {
-      openProperties();
-    });
-
-    it('should overwrite the color scheme when advanced is closed', () => {
-      selectColorScheme('d3Category20b');
-      openAdvancedProperties();
-      assertMetadata('d3Category20b');
-      applyChanges();
-    });
-
-    it('should overwrite the color scheme when advanced is open', () => {
-      openAdvancedProperties();
-      selectColorScheme('googleCategory10c');
-      assertMetadata('googleCategory10c');
-      applyChanges();
-    });
-
-    it('should accept a valid color scheme', () => {
-      openAdvancedProperties();
-      clearAll('#json_metadata').then(() => {
-        cy.get('#json_metadata').type('{"color_scheme":"lyftColors"}', { parseSpecialCharSequences: false })
-        applyChanges();
-        openProperties();
-        openAdvancedProperties();
-        assertMetadata('lyftColors');
-        applyChanges();
-      })
-
-    });
-
-    it('should not accept an invalid color scheme', () => {
-      openAdvancedProperties();
-      clearAll('#json_metadata').then(() => {
-        cy.get('#json_metadata').type('{"color_scheme":"wrongcolorscheme"}', { parseSpecialCharSequences: false })
-        applyChanges();
-        cy.get('.ant-modal-body')
-          .contains('A valid color scheme is required')
-          .should('be.visible');
-      })
-    });
-
-    it('should edit the title', () => {
-      cy.getBySel('dashboard-title-input').clear().type('Edited title');
-      applyChanges();
-      cy.getBySel('editable-title-input').should('have.value', 'Edited title');
-    });
-  });
-
   describe('Color schemes', () => {
     beforeEach(() => {
       cy.createSampleDashboards();
@@ -274,14 +279,13 @@ describe('Dashboard edit', () => {
       dragComponent('Top 10 California Names Timeseries');
       openProperties();
       openAdvancedProperties();
-      clearAll('#json_metadata').then(() => {
-        cy.get('#json_metadata').type('{"color_scheme":"lyftColors","label_colors":{"Anthony":"red"}}', { parseSpecialCharSequences: false })
+      clearMetadata()
+        writeMetadata('{"color_scheme":"lyftColors","label_colors":{"Anthony":"red"}}')
         applyChanges();
         saveChanges();
         cy.get('.line .nv-legend-symbol')
           .first()
           .should('have.css', 'fill', 'rgb(255, 0, 0)');
-      });
     });
   });
 
