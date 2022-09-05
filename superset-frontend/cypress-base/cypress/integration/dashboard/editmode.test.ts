@@ -17,7 +17,7 @@
  * under the License.
  */
 import { SAMPLE_DASHBOARD_1 } from 'cypress/utils/urls';
-import { drag } from 'cypress/utils';
+import { drag, resize } from 'cypress/utils';
 import {
   interceptGet,
   interceptUpdate,
@@ -46,15 +46,15 @@ function openProperties() {
 }
 
 function openAdvancedProperties() {
-  return cy
+  cy
     .get('.ant-modal-body')
     .contains('Advanced')
     .should('be.visible')
     .click({ force: true });
 }
 
-function dragChart(chart = 'Unicode Cloud') {
-  drag('[data-test="card-title"]', chart).to(
+function dragComponent(component = 'Unicode Cloud', target='card-title') {
+  drag(`[data-test="${target}"]`, component).to(
     '[data-test="grid-content"] [data-test="dragdroppable-object"]',
   );
 }
@@ -103,8 +103,7 @@ function assertMetadata(text: string) {
     });
 }
 function clearAll(input: string) {
-  cy.get(input).type('{selectall}{backspace}');
-  return cy.wait(500);
+  return cy.get(input).type('{selectall}{backspace}');
 }
 
 describe('Dashboard edit', () => {
@@ -140,7 +139,7 @@ describe('Dashboard edit', () => {
     });
 
     it('should disable the Save button when undoing', () => {
-      dragChart();
+      dragComponent();
       cy.getBySel('header-save-button').should('be.enabled');
       discardChanges();
       cy.getBySel('header-save-button').should('be.disabled');
@@ -158,15 +157,44 @@ describe('Dashboard edit', () => {
     });
 
     it('should add charts', () => {
-      dragChart();
+      dragComponent();
       cy.getBySel('dashboard-component-chart-holder').should('have.length', 1);
     });
 
     it('should remove added charts', () => {
-      dragChart('% Rural');
+      dragComponent('% Rural');
       cy.getBySel('dashboard-component-chart-holder').should('have.length', 1);
       cy.getBySel('dashboard-delete-component-button').click();
       cy.getBySel('dashboard-component-chart-holder').should('have.length', 0);
+    });
+
+    it('should add markdown component to dashboard', () => {
+      cy.getBySel('dashboard-builder-component-pane-tabs-navigation')
+        .find('#tabs-tab-2')
+        .click();
+
+      // add new markdown component
+      dragComponent('Markdown', 'new-component');
+
+      cy.get('[data-test="dashboard-markdown-editor"]')
+        .should(
+          'have.text',
+          '✨Markdown✨Markdown✨MarkdownClick here to edit markdown',
+        )
+        .click();
+
+      cy.getBySel('dashboard-component-chart-holder')
+        .contains('Click here to edit [markdown](https://bit.ly/1dQOfRK)');
+
+      cy.getBySel('dashboard-markdown-editor')
+        .click()
+        .type('Test resize');
+
+      resize(
+        '[data-test="dashboard-markdown-editor"] .resizable-container span div:last-child',
+      ).to(500, 600);
+
+      cy.getBySel('dashboard-markdown-editor').contains('Test resize');
     });
   });
 
@@ -232,7 +260,7 @@ describe('Dashboard edit', () => {
     });
 
     it('should apply a valid color scheme', () => {
-      dragChart('Top 10 California Names Timeseries');
+      dragComponent('Top 10 California Names Timeseries');
       openProperties();
       selectColorScheme('lyftColors');
       applyChanges();
@@ -243,7 +271,7 @@ describe('Dashboard edit', () => {
     });
 
     it('label colors should take the precedence', () => {
-      dragChart('Top 10 California Names Timeseries');
+      dragComponent('Top 10 California Names Timeseries');
       openProperties();
       openAdvancedProperties();
       clearAll('#json_metadata').then(() => {
@@ -264,7 +292,7 @@ describe('Dashboard edit', () => {
     });
 
     it('should save', () => {
-      dragChart();
+      dragComponent();
       cy.getBySel('header-save-button').should('be.enabled');
       saveChanges();
       cy.getBySel('dashboard-component-chart-holder').should('have.length', 1);

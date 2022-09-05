@@ -58,19 +58,6 @@ export const testItems = {
 export const CHECK_DASHBOARD_FAVORITE_ENDPOINT =
   '/superset/favstar/Dashboard/*/count';
 
-
-
-export function resize(selector: string) {
-  return {
-    to(cordX: number, cordY: number) {
-      cy.get(selector)
-        .trigger('mousedown', { which: 1, force: true })
-        .trigger('mousemove', { which: 1, cordX, cordY, force: true })
-        .trigger('mouseup', { which: 1, force: true });
-    },
-  };
-}
-
 export function cleanUp() {
   cy.deleteDashboardByName(testItems.dashboard);
   cy.deleteDashboardByName(testItems.defaultNameDashboard);
