@@ -41,6 +41,7 @@ const store = mockStore({});
 const datasetsInfoEndpoint = 'glob:*/api/v1/dataset/_info*';
 const datasetsOwnersEndpoint = 'glob:*/api/v1/dataset/related/owners*';
 const datasetsSchemaEndpoint = 'glob:*/api/v1/dataset/distinct/schema*';
+const datasetsDuplicateEndpoint = 'glob:*/api/v1/dataset/duplicate*';
 const databaseEndpoint = 'glob:*/api/v1/dataset/related/database*';
 const datasetsEndpoint = 'glob:*/api/v1/dataset/?*';
 
@@ -63,12 +64,15 @@ const mockUser = {
 };
 
 fetchMock.get(datasetsInfoEndpoint, {
-  permissions: ['can_read', 'can_write'],
+  permissions: ['can_read', 'can_write', 'can_duplicate'],
 });
 fetchMock.get(datasetsOwnersEndpoint, {
   result: [],
 });
 fetchMock.get(datasetsSchemaEndpoint, {
+  result: [],
+});
+fetchMock.post(datasetsDuplicateEndpoint, {
   result: [],
 });
 fetchMock.get(datasetsEndpoint, {
@@ -180,6 +184,44 @@ describe('DatasetList', () => {
     expect(
       wrapper.find('[data-test="bulk-select-copy"]').text(),
     ).toMatchInlineSnapshot(`"3 Selected (2 Physical, 1 Virtual)"`);
+  });
+
+  it('shows duplicate modal when duplicate action is clicked', async () => {
+    await waitForComponentToPaint(wrapper);
+    expect(
+      wrapper.find('[data-test="duplicate-modal-input"]').exists(),
+    ).toBeFalsy();
+    act(() => {
+      wrapper
+        .find('#duplicate-action-tooltop')
+        .at(0)
+        .find('.action-button')
+        .props()
+        .onClick();
+    });
+    await waitForComponentToPaint(wrapper);
+    expect(
+      wrapper.find('[data-test="duplicate-modal-input"]').exists(),
+    ).toBeTruthy();
+  });
+
+  it('calls the duplicate endpoint', async () => {
+    await waitForComponentToPaint(wrapper);
+    await act(async () => {
+      wrapper
+        .find('#duplicate-action-tooltop')
+        .at(0)
+        .find('.action-button')
+        .props()
+        .onClick();
+      await waitForComponentToPaint(wrapper);
+      wrapper
+        .find('[data-test="duplicate-modal-input"]')
+        .at(0)
+        .props()
+        .onPressEnter();
+    });
+    expect(fetchMock.calls(/dataset\/duplicate/)).toHaveLength(1);
   });
 });
 

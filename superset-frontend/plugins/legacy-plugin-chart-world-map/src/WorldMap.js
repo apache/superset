@@ -108,17 +108,16 @@ function WorldMap(element, props) {
   const handleContextMenu = source => {
     const pointerEvent = d3.event;
     pointerEvent.preventDefault();
-    const val = source.id || source.country;
-    const formattedVal = mapData[val].name;
+    const val = mapData[source.id || source.country].name;
     const filters = [
       {
         col: entity,
         op: '==',
         val,
-        formattedVal,
+        formattedVal: val,
       },
     ];
-    onContextMenu(filters, pointerEvent.offsetX, pointerEvent.offsetY);
+    onContextMenu(filters, pointerEvent.clientX, pointerEvent.clientY);
   };
 
   const map = new Datamap({

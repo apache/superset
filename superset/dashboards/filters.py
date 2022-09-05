@@ -156,7 +156,6 @@ class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-metho
         if is_feature_enabled("EMBEDDED_SUPERSET") and security_manager.is_guest_user(
             g.user
         ):
-
             guest_user: GuestUser = g.user
             embedded_dashboard_ids = [
                 r["id"]
@@ -232,4 +231,20 @@ class DashboardCertifiedFilter(BaseFilter):  # pylint: disable=too-few-public-me
                     Dashboard.certified_by == "",
                 )
             )
+        return query
+
+
+class DashboardHasCreatedByFilter(BaseFilter):  # pylint: disable=too-few-public-methods
+    """
+    Custom filter for the GET list that filters all dashboards created by user
+    """
+
+    name = _("Has created by")
+    arg_name = "dashboard_has_created_by"
+
+    def apply(self, query: Query, value: Any) -> Query:
+        if value is True:
+            return query.filter(and_(Dashboard.created_by_fk.isnot(None)))
+        if value is False:
+            return query.filter(and_(Dashboard.created_by_fk.is_(None)))
         return query

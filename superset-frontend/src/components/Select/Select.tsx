@@ -85,6 +85,11 @@ export interface SelectProps extends PickedSelectProps {
    */
   header?: ReactNode;
   /**
+   * It adds a helper text on top of the Select options
+   * with additional context to help with the interaction.
+   */
+  helperText?: string;
+  /**
    * It defines whether the Select should allow for the
    * selection of multiple options or single.
    * Single by default.
@@ -139,6 +144,9 @@ const StyledSelect = styled(AntdSelect)`
     .ant-select-arrow .anticon:not(.ant-select-suffix) {
       pointer-events: none;
     }
+    .ant-select-dropdown {
+      padding: 0;
+    }
   `}
 `;
 
@@ -159,6 +167,16 @@ const StyledLoadingText = styled.div`
     margin-left: ${theme.gridUnit * 3}px;
     line-height: ${theme.gridUnit * 8}px;
     color: ${theme.colors.grayscale.light1};
+  `}
+`;
+
+const StyledHelperText = styled.div`
+  ${({ theme }) => `
+    padding: ${theme.gridUnit * 2}px ${theme.gridUnit * 3}px;
+    color: ${theme.colors.grayscale.base};
+    font-size: ${theme.typography.sizes.s}px;
+    cursor: default;
+    border-bottom: 1px solid ${theme.colors.grayscale.light2};
   `}
 `;
 
@@ -224,6 +242,7 @@ const Select = forwardRef(
       ariaLabel,
       filterOption = true,
       header = null,
+      helperText,
       invertSelection = false,
       labelInValue = false,
       loading,
@@ -401,7 +420,14 @@ const Select = forwardRef(
       if (isLoading && fullSelectOptions.length === 0) {
         return <StyledLoadingText>{t('Loading...')}</StyledLoadingText>;
       }
-      return originNode;
+      return (
+        <>
+          {helperText && (
+            <StyledHelperText role="note">{helperText}</StyledHelperText>
+          )}
+          {originNode}
+        </>
+      );
     };
 
     // use a function instead of component since every rerender of the

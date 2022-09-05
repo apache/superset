@@ -31,6 +31,7 @@ import TabbedSqlEditors from 'src/SqlLab/components/TabbedSqlEditors';
 import SqlEditor from 'src/SqlLab/components/SqlEditor';
 import { table, initialState } from 'src/SqlLab/fixtures';
 import { newQueryTabName } from 'src/SqlLab/utils/newQueryTabName';
+import QueryProvider from 'src/views/QueryProvider';
 
 fetchMock.get('glob:*/api/v1/database/*', {});
 fetchMock.get('glob:*/savedqueryviewapi/api/get/*', {});
@@ -89,9 +90,11 @@ describe('TabbedSqlEditors', () => {
   const mountWithAct = async () =>
     act(async () => {
       mount(
-        <Provider store={store}>
-          <TabbedSqlEditors {...mockedProps} />
-        </Provider>,
+        <QueryProvider>
+          <Provider store={store}>
+            <TabbedSqlEditors {...mockedProps} />
+          </Provider>
+        </QueryProvider>,
         {
           wrappingComponent: ThemeProvider,
           wrappingComponentProps: { theme: supersetTheme },

@@ -21,6 +21,7 @@ from .birth_names import load_birth_names
 from .country_map import load_country_map_data
 from .css_templates import load_css_templates
 from .deck import load_deck_dash
+from .echarts_dashboard import load_echarts_dashboard
 from .energy import load_energy
 from .flights import load_flights
 from .long_lat import load_long_lat_data

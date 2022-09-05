@@ -60,6 +60,7 @@ from superset.dashboards.filters import (
     DashboardCertifiedFilter,
     DashboardCreatedByMeFilter,
     DashboardFavoriteFilter,
+    DashboardHasCreatedByFilter,
     DashboardTitleOrSlugFilter,
     FilterRelatedRoles,
 )
@@ -218,7 +219,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     search_filters = {
         "dashboard_title": [DashboardTitleOrSlugFilter],
         "id": [DashboardFavoriteFilter, DashboardCertifiedFilter],
-        "created_by": [DashboardCreatedByMeFilter],
+        "created_by": [DashboardCreatedByMeFilter, DashboardHasCreatedByFilter],
     }
     base_order = ("changed_on", "desc")
 
