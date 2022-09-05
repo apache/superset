@@ -294,23 +294,36 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
             return
         try:
             encrypted_extra = json.loads(database.encrypted_extra)
-            auth_method = encrypted_extra.pop("auth_method", None)
-            auth_params = encrypted_extra.pop("auth_params", {})
-            if not auth_method:
-                return
-            connect_args = params.setdefault("connect_args", {})
-            if auth_method == "keypair":
-                with open(auth_params['privatekey_path'], "rb") as key:
-                    p_key = serialization.load_pem_private_key(
-                        key.read(),
-                        password=auth_params['privatekey_pass'].encode(),
-                        backend=default_backend()
-                    )
-                pkb = p_key.private_bytes(
-                    encoding=serialization.Encoding.DER,
-                    format=serialization.PrivateFormat.PKCS8,
-                    encryption_algorithm=serialization.NoEncryption())
-                connect_args["private_key"] = pkb
         except json.JSONDecodeError as ex:
             logger.error(ex, exc_info=True)
             raise ex
+        auth_method = encrypted_extra.get("auth_method", None)
+        auth_params = encrypted_extra.get("auth_params", {})
+        if not auth_method:
+            return
+        connect_args = params.setdefault("connect_args", {})
+        if auth_method == "keypair":
+            privatekey_body = auth_params.get("privatekey_body", None)
+            key = None
+            if privatekey_body:
+                privatekey_body_container = []
+                for line in privatekey_body:
+                    privatekey_body_container.append(line)
+                    privatekey_body_container.append("\n")
+                key = str.encode("".join(privatekey_body_container))
+            else:
+                with open(auth_params["privatekey_path"], "rb") as key_temp:
+                    key = key_temp.read()
+            p_key = serialization.load_pem_private_key(
+                key,
+                password=auth_params["privatekey_pass"].encode(),
+                backend=default_backend()
+            )
+            pkb = p_key.private_bytes(
+                encoding=serialization.Encoding.DER,
+                format=serialization.PrivateFormat.PKCS8,
+                encryption_algorithm=serialization.NoEncryption())
+            connect_args["private_key"] = pkb
+        else:
+            return
+
