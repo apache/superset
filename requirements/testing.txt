@@ -136,10 +136,6 @@ websocket-client==1.2.0
     # via docker
 wrapt==1.12.1
     # via astroid
-snowflake-connector-python==2.7.9
-    # via snowflake
-snowflake-sqlalchemy==1.2.4
-    # via snowflake
 # The following packages are considered to be unsafe in a requirements file:
 # pip
 # setuptools
