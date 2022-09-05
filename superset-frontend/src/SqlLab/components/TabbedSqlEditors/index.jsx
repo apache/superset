@@ -262,6 +262,9 @@ class TabbedSqlEditors extends React.PureComponent {
     const qeid = this.props.tabHistory[this.props.tabHistory.length - 1];
     if (key !== qeid) {
       const queryEditor = this.props.queryEditors.find(qe => qe.id === key);
+      if (!queryEditor) {
+        return;
+      }
       this.props.actions.switchQueryEditor(
         queryEditor,
         this.props.displayLimit,
@@ -302,7 +305,6 @@ class TabbedSqlEditors extends React.PureComponent {
           editorQueries={this.state.queriesArray}
           dataPreviewQueries={this.state.dataPreviewQueries}
           actions={this.props.actions}
-          hideLeftBar={qe.hideLeftBar}
           defaultQueryLimit={this.props.defaultQueryLimit}
           maxRow={this.props.maxRow}
           displayLimit={this.props.displayLimit}

@@ -21,7 +21,7 @@ export default interface Database {
   id: number;
   allow_run_async: boolean;
   database_name: string;
-  encrypted_extra: string;
+  masked_encrypted_extra: string;
   extra: string;
   impersonate_user: boolean;
   server_cert: string;

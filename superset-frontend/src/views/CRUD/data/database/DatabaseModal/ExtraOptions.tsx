@@ -344,11 +344,11 @@ const ExtraOptions = ({
           <div className="control-label">{t('Secure extra')}</div>
           <div className="input-container">
             <StyledJsonEditor
-              name="encrypted_extra"
-              value={db?.encrypted_extra || ''}
+              name="masked_encrypted_extra"
+              value={db?.masked_encrypted_extra || ''}
               placeholder={t('Secure extra')}
               onChange={(json: string) =>
-                onEditorChange({ json, name: 'encrypted_extra' })
+                onEditorChange({ json, name: 'masked_encrypted_extra' })
               }
               width="100%"
               height="160px"

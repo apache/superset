@@ -394,7 +394,7 @@ describe('Nativefilters initial state not required', () => {
     validateFilterContentOnDashboard(testItems.filterTimeGrain);
   });
 
-  it('User can create a time range filter', () => {
+  xit('User can create a time range filter', () => {
     enterNativeFilterEditModal();
     fillNativeFilterForm(
       testItems.filterType.timeRange,
@@ -415,7 +415,7 @@ describe('Nativefilters initial state not required', () => {
       .should('be.visible');
   });
 
-  it('User can create a time column filter', () => {
+  xit('User can create a time column filter', () => {
     enterNativeFilterEditModal();
     fillNativeFilterForm(
       testItems.filterType.timeColumn,

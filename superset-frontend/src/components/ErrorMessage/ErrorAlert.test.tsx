@@ -31,7 +31,6 @@ const mockedProps = {
   subtitle: 'Error subtitle',
   title: 'Error title',
   source: 'dashboard' as ErrorSource,
-  description: 'we are unable to connect db.',
 };
 
 test('should render', () => {
@@ -62,11 +61,6 @@ test('should render the error title', () => {
   };
   render(<ErrorAlert {...titleProps} />);
   expect(screen.getByText('Error title')).toBeInTheDocument();
-});
-
-test('should render the error description', () => {
-  render(<ErrorAlert {...mockedProps} />, { useRedux: true });
-  expect(screen.getByText('we are unable to connect db.')).toBeInTheDocument();
 });
 
 test('should render the error subtitle', () => {

@@ -103,6 +103,11 @@ export interface AsyncSelectProps extends PickedSelectProps {
    */
   header?: ReactNode;
   /**
+   * It adds a helper text on top of the Select options
+   * with additional context to help with the interaction.
+   */
+  helperText?: string;
+  /**
    * It fires a request against the server after
    * the first interaction and not on render.
    * Works in async mode only (See the options property).
@@ -182,6 +187,9 @@ const StyledSelect = styled(AntdSelect)`
     .ant-select-arrow .anticon:not(.ant-select-suffix) {
       pointer-events: none;
     }
+    .ant-select-dropdown {
+      padding: 0;
+    }
   `}
 `;
 
@@ -221,6 +229,16 @@ const StyledLoadingText = styled.div`
     margin-left: ${theme.gridUnit * 3}px;
     line-height: ${theme.gridUnit * 8}px;
     color: ${theme.colors.grayscale.light1};
+  `}
+`;
+
+const StyledHelperText = styled.div`
+  ${({ theme }) => `
+    padding: ${theme.gridUnit * 2}px ${theme.gridUnit * 3}px;
+    color: ${theme.colors.grayscale.base};
+    font-size: ${theme.typography.sizes.s}px;
+    cursor: default;
+    border-bottom: 1px solid ${theme.colors.grayscale.light2};
   `}
 `;
 
@@ -297,6 +315,7 @@ const AsyncSelect = forwardRef(
       fetchOnlyOnSearch,
       filterOption = true,
       header = null,
+      helperText,
       invertSelection = false,
       lazyLoading = true,
       loading,
@@ -612,7 +631,16 @@ const AsyncSelect = forwardRef(
       if (isLoading && fullSelectOptions.length === 0) {
         return <StyledLoadingText>{t('Loading...')}</StyledLoadingText>;
       }
-      return error ? <Error error={error} /> : originNode;
+      return error ? (
+        <Error error={error} />
+      ) : (
+        <>
+          {helperText && (
+            <StyledHelperText role="note">{helperText}</StyledHelperText>
+          )}
+          {originNode}
+        </>
+      );
     };
 
     // use a function instead of component since every rerender of the

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useRef, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { isNil } from 'lodash';
 import { styled, t } from '@superset-ui/core';
 import { css } from '@emotion/react';
@@ -201,6 +201,24 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
     }
   `}
 `;
+const defaultResizableConfig = (hideFooter: boolean | undefined) => ({
+  maxHeight: RESIZABLE_MAX_HEIGHT,
+  maxWidth: RESIZABLE_MAX_WIDTH,
+  minHeight: hideFooter
+    ? RESIZABLE_MIN_HEIGHT
+    : RESIZABLE_MIN_HEIGHT + MODAL_FOOTER_HEIGHT,
+  minWidth: RESIZABLE_MIN_WIDTH,
+  enable: {
+    bottom: true,
+    bottomLeft: false,
+    bottomRight: true,
+    left: false,
+    top: false,
+    topLeft: false,
+    topRight: false,
+    right: true,
+  },
+});
 
 const CustomModal = ({
   children,
@@ -222,24 +240,7 @@ const CustomModal = ({
   wrapProps,
   draggable = false,
   resizable = false,
-  resizableConfig = {
-    maxHeight: RESIZABLE_MAX_HEIGHT,
-    maxWidth: RESIZABLE_MAX_WIDTH,
-    minHeight: hideFooter
-      ? RESIZABLE_MIN_HEIGHT
-      : RESIZABLE_MIN_HEIGHT + MODAL_FOOTER_HEIGHT,
-    minWidth: RESIZABLE_MIN_WIDTH,
-    enable: {
-      bottom: true,
-      bottomLeft: false,
-      bottomRight: true,
-      left: false,
-      top: false,
-      topLeft: false,
-      topRight: false,
-      right: true,
-    },
-  },
+  resizableConfig = defaultResizableConfig(hideFooter),
   draggableConfig,
   destroyOnClose,
   ...rest
@@ -289,6 +290,13 @@ const CustomModal = ({
     }
   };
 
+  const getResizableConfig = useMemo(() => {
+    if (Object.keys(resizableConfig).length === 0) {
+      return defaultResizableConfig(hideFooter);
+    }
+    return resizableConfig;
+  }, [hideFooter, resizableConfig]);
+
   const ModalTitle = () =>
     draggable ? (
       <div
@@ -329,7 +337,7 @@ const CustomModal = ({
             {...draggableConfig}
           >
             {resizable ? (
-              <Resizable className="resizable" {...resizableConfig}>
+              <Resizable className="resizable" {...getResizableConfig}>
                 <div className="resizable-wrapper" ref={draggableRef}>
                   {modal}
                 </div>

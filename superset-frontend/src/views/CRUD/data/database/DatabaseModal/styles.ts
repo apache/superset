@@ -24,6 +24,7 @@ import Button from 'src/components/Button';
 const CTAS_CVAS_SCHEMA_FORM_HEIGHT = 108;
 const EXPOSE_IN_SQLLAB_FORM_HEIGHT = CTAS_CVAS_SCHEMA_FORM_HEIGHT + 153;
 const EXPOSE_ALL_FORM_HEIGHT = EXPOSE_IN_SQLLAB_FORM_HEIGHT + 102;
+const MODAL_BODY_HEIGHT = 180.5;
 
 const anticonHeight = 12;
 
@@ -156,7 +157,7 @@ export const antDModalStyles = (theme: SupersetTheme) => css`
   }
 
   .ant-modal-body {
-    height: ${theme.gridUnit * 180.5}px;
+    height: ${theme.gridUnit * MODAL_BODY_HEIGHT}px;
   }
 
   .ant-modal-footer {
