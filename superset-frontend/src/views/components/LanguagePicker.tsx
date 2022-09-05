@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { MainNav as Menu } from 'src/components/Menu';
-import { styled } from '@superset-ui/core';
+import { styled, t } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 
 const { SubMenu } = Menu;
@@ -76,7 +76,7 @@ export default function LanguagePicker(props: LanguagePickerProps) {
         >
           <StyledLabel className="f16">
             <i className={`flag ${languages[langKey].flag}`} />
-            <a href={languages[langKey].url}>{languages[langKey].name}</a>
+            <a href={languages[langKey].url}>{t(languages[langKey].name)}</a>
           </StyledLabel>
         </Menu.Item>
       ))}

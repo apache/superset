@@ -777,7 +777,7 @@ const FiltersConfigForm = (
                     <Tooltip
                       title={t('Datasets do not contain a temporal column')}
                     >
-                      {mappedName || name}
+                      {t(mappedName || name)}
                     </Tooltip>
                   ) : undefined,
                   disabled: isDisabled,

@@ -318,7 +318,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
         {!validTimeRange && (
           <IconWrapper className="warning">
             <Icons.ErrorSolidSmall iconColor={theme.colors.error.base} />
-            <span className="text error">{evalResponse}</span>
+            <span className="text error">{t(evalResponse)}</span>
           </IconWrapper>
         )}
       </div>
@@ -373,7 +373,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
       >
         <Tooltip placement="top" title={tooltipTitle}>
           <Label className="pointer" data-test="time-range-trigger">
-            {actualTimeRange}
+            {t(actualTimeRange)}
           </Label>
         </Tooltip>
       </StyledPopover>
