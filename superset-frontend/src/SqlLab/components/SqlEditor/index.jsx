@@ -499,7 +499,7 @@ const SqlEditor = ({
       : t('You must run the query successfully first');
     return (
       <Menu css={{ width: theme.gridUnit * 44 }}>
-        <Menu.Item style={{ display: 'flex', justifyContent: 'space-between' }}>
+        <Menu.Item css={{ display: 'flex', justifyContent: 'space-between' }}>
           {' '}
           <span>{t('Autocomplete')}</span>{' '}
           <AntdSwitch
