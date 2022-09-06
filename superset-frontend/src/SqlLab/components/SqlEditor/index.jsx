@@ -61,6 +61,12 @@ import {
   SQL_EDITOR_GUTTER_MARGIN,
   SQL_TOOLBAR_HEIGHT,
   SQL_EDITOR_LEFTBAR_WIDTH,
+  SQL_EDITOR_PADDING,
+  INITIAL_NORTH_PERCENT,
+  INITIAL_SOUTH_PERCENT,
+  SET_QUERY_EDITOR_SQL_DEBOUNCE_MS,
+  VALIDATION_DEBOUNCE_MS,
+  WINDOW_RESIZE_THROTTLE_MS,
 } from 'src/SqlLab/constants';
 import {
   getItem,
@@ -81,13 +87,6 @@ import AceEditorWrapper from '../AceEditorWrapper';
 import RunQueryActionButton from '../RunQueryActionButton';
 import { newQueryTabName } from '../../utils/newQueryTabName';
 import QueryLimitSelect from '../QueryLimitSelect';
-
-const SQL_EDITOR_PADDING = 10;
-const INITIAL_NORTH_PERCENT = 30;
-const INITIAL_SOUTH_PERCENT = 70;
-const SET_QUERY_EDITOR_SQL_DEBOUNCE_MS = 2000;
-const VALIDATION_DEBOUNCE_MS = 600;
-const WINDOW_RESIZE_THROTTLE_MS = 100;
 
 const appContainer = document.getElementById('app');
 const bootstrapData = JSON.parse(
@@ -131,7 +130,7 @@ const StyledToolbar = styled.div`
 const StyledSidebar = styled.div`
   flex: 0 0 ${({ width }) => width}px;
   width: ${({ width }) => width}px;
-  padding: ${({ hide }) => (hide ? 0 : 10)}px;
+  padding: ${({ theme, hide }) => (hide ? 0 : theme.gridUnit * 2.5)}px;
   border-right: 1px solid
     ${({ theme, hide }) =>
       hide ? 'transparent' : theme.colors.grayscale.light2};
