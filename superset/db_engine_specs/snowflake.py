@@ -29,6 +29,7 @@ from sqlalchemy.engine.url import URL
 from typing_extensions import TypedDict
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
+from flask import current_app
 
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.postgres import PostgresBaseEngineSpec
@@ -325,4 +326,14 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
                 encryption_algorithm=serialization.NoEncryption())
             connect_args["private_key"] = pkb
         else:
-            return
+            allowed_extra_auths = current_app.config[
+                "ALLOWED_EXTRA_AUTHENTICATIONS"
+            ].get("snowflake", {})
+            if auth_method in allowed_extra_auths:
+                snowflake_auth = allowed_extra_auths.get(auth_method)
+            else:
+                raise ValueError(
+                    f"For security reason, custom authentication '{auth_method}' "
+                    f"must be listed in 'ALLOWED_EXTRA_AUTHENTICATIONS' config"
+                )
+            connect_args["auth"] = snowflake_auth(**auth_params)
