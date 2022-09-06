@@ -356,6 +356,35 @@ const SqlEditor = ({
     }
   };
 
+  const setQueryEditorAndSaveSql = sql => {
+    dispatch(queryEditorSetAndSaveSql(queryEditor, sql));
+  };
+
+  const setQueryEditorAndSaveSqlWithDebounce = useMemo(
+    () => debounce(setQueryEditorAndSaveSql, SET_QUERY_EDITOR_SQL_DEBOUNCE_MS),
+    [],
+  );
+
+  const canValidateQuery = () => {
+    // Check whether or not we can validate the current query based on whether
+    // or not the backend has a validator configured for it.
+    if (database) {
+      return validatorMap.hasOwnProperty(database.backend);
+    }
+    return false;
+  };
+
+  const requestValidation = sql => {
+    if (database) {
+      dispatch(validateQuery(queryEditor, sql));
+    }
+  };
+
+  const requestValidationWithDebounce = useMemo(
+    () => debounce(requestValidation, VALIDATION_DEBOUNCE_MS),
+    [],
+  );
+
   const onSqlChanged = sql => {
     dispatch(queryEditorSetSql(queryEditor, sql));
     setQueryEditorAndSaveSqlWithDebounce(sql);
@@ -382,15 +411,6 @@ const SqlEditor = ({
       (SQL_EDITOR_GUTTER_HEIGHT / 2 + SQL_EDITOR_GUTTER_MARGIN),
   });
 
-  const setQueryEditorAndSaveSql = sql => {
-    dispatch(queryEditorSetAndSaveSql(queryEditor, sql));
-  };
-
-  const setQueryEditorAndSaveSqlWithDebounce = useMemo(
-    () => debounce(setQueryEditorAndSaveSql, SET_QUERY_EDITOR_SQL_DEBOUNCE_MS),
-    [],
-  );
-
   const getQueryCostEstimate = () => {
     if (database) {
       dispatch(estimateQueryCost(queryEditor));
@@ -411,26 +431,6 @@ const SqlEditor = ({
     }px)`,
   });
 
-  const requestValidation = sql => {
-    if (database) {
-      dispatch(validateQuery(queryEditor, sql));
-    }
-  };
-
-  const requestValidationWithDebounce = useMemo(
-    () => debounce(requestValidation, VALIDATION_DEBOUNCE_MS),
-    [],
-  );
-
-  const canValidateQuery = () => {
-    // Check whether or not we can validate the current query based on whether
-    // or not the backend has a validator configured for it.
-    if (database) {
-      return validatorMap.hasOwnProperty(database.backend);
-    }
-    return false;
-  };
-
   const createTableAs = () => {
     startQuery(true, CtasEnum.TABLE);
     setShowCreateAsModal(false);
@@ -445,49 +445,6 @@ const SqlEditor = ({
 
   const ctasChanged = event => {
     setCtas(event.target.value);
-  };
-
-  const queryPane = () => {
-    const hotkeys = getHotkeyConfig();
-    const { aceEditorHeight, southPaneHeight } =
-      getAceEditorAndSouthPaneHeights(height, northPercent, southPercent);
-    return (
-      <Split
-        expandToMin
-        className="queryPane"
-        sizes={[northPercent, southPercent]}
-        elementStyle={elementStyle}
-        minSize={200}
-        direction="vertical"
-        gutterSize={SQL_EDITOR_GUTTER_HEIGHT}
-        onDragStart={onResizeStart}
-        onDragEnd={onResizeEnd}
-      >
-        <div ref={northPaneRef} className="north-pane">
-          <AceEditorWrapper
-            actions={actions}
-            autocomplete={autocompleteEnabled}
-            onBlur={setQueryEditorAndSaveSql}
-            onChange={onSqlChanged}
-            queryEditor={queryEditor}
-            database={database}
-            extendedTables={tables}
-            height={`${aceEditorHeight}px`}
-            hotkeys={hotkeys}
-          />
-          {renderEditorBottomBar(hotkeys)}
-        </div>
-        <ConnectedSouthPane
-          editorQueries={editorQueries}
-          latestQueryId={latestQuery?.id}
-          dataPreviewQueries={dataPreviewQueries}
-          actions={actions}
-          height={southPaneHeight}
-          displayLimit={displayLimit}
-          defaultQueryLimit={defaultQueryLimit}
-        />
-      </Split>
-    );
   };
 
   const renderDropdown = () => {
@@ -630,6 +587,49 @@ const SqlEditor = ({
           </AntdDropdown>
         </div>
       </StyledToolbar>
+    );
+  };
+
+  const queryPane = () => {
+    const hotkeys = getHotkeyConfig();
+    const { aceEditorHeight, southPaneHeight } =
+      getAceEditorAndSouthPaneHeights(height, northPercent, southPercent);
+    return (
+      <Split
+        expandToMin
+        className="queryPane"
+        sizes={[northPercent, southPercent]}
+        elementStyle={elementStyle}
+        minSize={200}
+        direction="vertical"
+        gutterSize={SQL_EDITOR_GUTTER_HEIGHT}
+        onDragStart={onResizeStart}
+        onDragEnd={onResizeEnd}
+      >
+        <div ref={northPaneRef} className="north-pane">
+          <AceEditorWrapper
+            actions={actions}
+            autocomplete={autocompleteEnabled}
+            onBlur={setQueryEditorAndSaveSql}
+            onChange={onSqlChanged}
+            queryEditor={queryEditor}
+            database={database}
+            extendedTables={tables}
+            height={`${aceEditorHeight}px`}
+            hotkeys={hotkeys}
+          />
+          {renderEditorBottomBar(hotkeys)}
+        </div>
+        <ConnectedSouthPane
+          editorQueries={editorQueries}
+          latestQueryId={latestQuery?.id}
+          dataPreviewQueries={dataPreviewQueries}
+          actions={actions}
+          height={southPaneHeight}
+          displayLimit={displayLimit}
+          defaultQueryLimit={defaultQueryLimit}
+        />
+      </Split>
     );
   };
 
