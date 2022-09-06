@@ -256,6 +256,7 @@ function ExploreViewContainer(props) {
   );
 
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [formDataChanged, setFormDataChanged] = useState(false);
   const [shouldForceUpdate, setShouldForceUpdate] = useState(-1);
   const tabId = useTabId();
 
@@ -269,16 +270,16 @@ function ExploreViewContainer(props) {
     }
   });
 
-  const formDataChanged = useMemo(
-    () =>
+  useEffect(() => {
+    setFormDataChanged(
       !isEmpty(
         getFormDataDiffs(
           { ...initialFormData.current, chartTitle: props.slice?.slice_name },
           { ...props.form_data, chartTitle: props.sliceName },
         ),
       ),
-    [props.form_data, props.slice?.slice_name, props.sliceName],
-  );
+    );
+  }, [props.form_data, props.slice?.slice_name, props.sliceName]);
 
   const allowNavigation = useCallback(
     location => location.state?.isChartSaveAction || !formDataChanged,
