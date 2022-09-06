@@ -8,13 +8,13 @@
     "superset",
     "yeoman-generator"
   ],
-  "homepage": "https://github.com/apache-superset/superset-ui#readme",
+  "homepage": "https://github.com/apache/superset.git#readme",
   "bugs": {
-    "url": "https://github.com/apache-superset/superset-ui/issues"
+    "url": "https://github.com/apache/superset.git/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/apache-superset/superset-ui.git"
+    "url": "git+https://github.com/apache/superset.git"
   },
   "license": "Apache-2.0",
   "author": "Superset",
