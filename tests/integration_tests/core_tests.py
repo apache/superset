@@ -894,6 +894,18 @@ class TestCore(SupersetTestCase):
             data = self.get_json_resp(endpoint)
             self.assertNotIn("message", data)
 
+    def test_user_profile_optional_access(self):
+        self.login(username="gamma")
+        resp = self.client.get(f"/superset/profile/admin/")
+        self.assertEqual(resp.status_code, 200)
+
+        app.config["ENABLE_BROAD_ACTIVITY_ACCESS"] = False
+        resp = self.client.get(f"/superset/profile/admin/")
+        self.assertEqual(resp.status_code, 403)
+
+        # Restore config
+        app.config["ENABLE_BROAD_ACTIVITY_ACCESS"] = True
+
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_user_activity_access(self, username="gamma"):
         self.login(username=username)
