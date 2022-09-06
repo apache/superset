@@ -72,6 +72,7 @@ const headerStyles = (theme: SupersetTheme) => css`
     align-items: center;
     min-width: 0;
     margin-right: auto;
+    order: 1;
   }
 
   .title-panel div:nth-child(2) {
