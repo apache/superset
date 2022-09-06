@@ -120,7 +120,7 @@ class AthenaEngineSpec(BaseEngineSpec):
         """
 
         try:
-            cursor.cancel()
+            cursor.cancel(cancel_query_id)
             cursor.close()
         except Exception:  # pylint: disable=broad-except
             return False
