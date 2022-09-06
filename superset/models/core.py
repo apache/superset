@@ -227,6 +227,7 @@ class Database(
             "id": self.id,
             "name": self.database_name,
             "backend": self.backend,
+            "driver": self.driver,
             "configuration_method": self.configuration_method,
             "allow_multi_schema_metadata_fetch": self.allow_multi_schema_metadata_fetch,
             "allows_subquery": self.allows_subquery,
@@ -249,6 +250,10 @@ class Database(
     @property
     def backend(self) -> str:
         return self.url_object.get_backend_name()
+
+    @property
+    def driver(self) -> str:
+        return self.url_object.get_driver_name()
 
     @property
     def masked_encrypted_extra(self) -> str:

@@ -79,13 +79,13 @@ export const httpPath = ({
   validationErrors,
   db,
 }: FieldPropTypes) => {
-  const engineParams = db?.extra_json?.engine_params;
+  const extraJson = JSON.parse(db?.extra || '{}');
   return (
     <ValidatedInput
       id="http_path"
       name="http_path"
       required={required}
-      value={engineParams?.connect_args?.http_path}
+      value={extraJson.engine_params?.connect_args?.http_path}
       validationMethods={{ onBlur: getValidation }}
       errorMessage={validationErrors?.http_path}
       placeholder={t('e.g. sql/protocolv1/o/12345')}

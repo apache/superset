@@ -20,6 +20,8 @@ import urllib
 from datetime import datetime
 from typing import Any, Dict, List, Optional, TYPE_CHECKING
 
+from apispec import APISpec
+from apispec.ext.marshmallow import MarshmallowPlugin
 from flask_babel import gettext as __
 from marshmallow import fields, Schema
 from marshmallow.validate import Range
@@ -59,10 +61,13 @@ time_grain_expressions = {
 }
 
 
+ma_plugin = MarshmallowPlugin()
+
+
 class DatabricksParametersSchema(Schema):
     """
-    This is the list of fields that are present
-    in the dynamic form
+    This is the list of fields that are expected
+    from the client in order to build the sqlalchemy string
     """
 
     access_token = fields.Str(required=True)
@@ -73,10 +78,18 @@ class DatabricksParametersSchema(Schema):
         validate=Range(min=0, max=2**16, max_inclusive=False),
     )
     database = fields.Str(required=True)
-    http_path = fields.Str(required=True)
     encryption = fields.Boolean(
         required=False, description=__("Use an encrypted connection to the database")
     )
+
+
+class DatabricksPropertiesSchema(DatabricksParametersSchema):
+    """
+    This is the list of fields expected
+    for successful database creation execution
+    """
+
+    http_path = fields.Str(required=True)
 
 
 class DatabricksParametersType(TypedDict):
@@ -143,6 +156,8 @@ class DatabricksNativeEngineSpec(DatabricksODBCEngineSpec, BasicParametersMixin)
     default_driver = "connector"
 
     parameters_schema = DatabricksParametersSchema()
+    properties_schema = DatabricksPropertiesSchema()
+
     sqlalchemy_uri_placeholder = (
         "databricks+connector://token:{access_token}@{host}:{port}/{database_name}"
     )
@@ -245,3 +260,20 @@ class DatabricksNativeEngineSpec(DatabricksODBCEngineSpec, BasicParametersMixin)
                 ),
             )
         return errors
+
+    @classmethod
+    def parameters_json_schema(cls) -> Any:
+        """
+        Return configuration parameters as OpenAPI.
+        """
+        if not cls.properties_schema:
+            return None
+
+        spec = APISpec(
+            title="Database Parameters",
+            version="1.0.0",
+            openapi_version="3.0.2",
+            plugins=[MarshmallowPlugin()],
+        )
+        spec.components.schema(cls.__name__, schema=cls.properties_schema)
+        return spec.to_dict()["components"]["schemas"][cls.__name__]

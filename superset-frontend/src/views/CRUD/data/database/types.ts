@@ -78,27 +78,7 @@ export type DatabaseObject = {
   impersonate_user?: boolean;
   parameters_schema?: Record<string, any>;
 
-  // Extra
-  extra_json?: {
-    engine_params?: {
-      catalog?: Record<any, any> | string;
-      connect_args: {
-        http_path?: string;
-      };
-    };
-    metadata_params?: {} | string;
-    metadata_cache_timeout?: {
-      schema_cache_timeout?: number; // in Performance
-      table_cache_timeout?: number; // in Performance
-    }; // No field, holds schema and table timeout
-    allows_virtual_table_explore?: boolean; // in SQL Lab
-    schemas_allowed_for_file_upload?: string[]; // in Security
-    cancel_query_on_windows_unload?: boolean; // in Performance
-
-    version?: string;
-    cost_estimate_enabled?: boolean; // in SQL Lab
-    disable_data_preview?: boolean; // in SQL Lab
-  };
+  extra?: string;
 
   // External management
   is_managed_externally: boolean;
@@ -106,7 +86,6 @@ export type DatabaseObject = {
   // Temporary storage
   catalog?: Array<CatalogObject>;
   query_input?: string;
-  extra?: string;
 };
 
 export type DatabaseForm = {
@@ -170,4 +149,25 @@ export enum CONFIGURATION_METHOD {
 export enum Engines {
   GSheet = 'gsheets',
   Snowflake = 'snowflake',
+}
+
+export interface ExtraJson {
+  engine_params?: {
+    catalog?: Record<any, any>;
+    connect_args: {
+      http_path?: string;
+    };
+  };
+  metadata_params?: {};
+  metadata_cache_timeout?: {
+    schema_cache_timeout?: number; // in Performance
+    table_cache_timeout?: number; // in Performance
+  }; // No field, holds schema and table timeout
+  allows_virtual_table_explore?: boolean; // in SQL Lab
+  schemas_allowed_for_file_upload?: string[]; // in Security
+  cancel_query_on_windows_unload?: boolean; // in Performance
+
+  version?: string;
+  cost_estimate_enabled?: boolean; // in SQL Lab
+  disable_data_preview?: boolean; // in SQL Lab
 }
