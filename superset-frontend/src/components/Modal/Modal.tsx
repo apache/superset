@@ -92,6 +92,9 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
       padding-right: ${theme.gridUnit * 3}px;
       padding-bottom: 0;
       top: 0;
+      top: 150px;
+      height: calc(100% - 200px);
+      overflow-y: auto;
     `}
 
   .ant-modal-content {
