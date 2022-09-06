@@ -394,7 +394,13 @@ class TableModelView(  # pylint: disable=too-many-ancestors
     add_title = _("Import a table definition")
     edit_title = _("Edit Table")
 
-    list_columns = ["link", "database_name", "changed_by_", "modified"]
+    list_columns = [
+        "changed_by_",
+        "database_id",
+        "database_name",
+        "link",
+        "modified",
+    ]
     order_columns = ["modified"]
     add_columns = ["database", "schema", "table_name"]
     edit_columns = [
