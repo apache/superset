@@ -19,7 +19,7 @@
 import React from 'react';
 import { SupersetClient } from '@superset-ui/core';
 import userEvent from '@testing-library/user-event';
-import { render, screen, fireEvent } from 'spec/helpers/testing-library';
+import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import LeftPanel from 'src/views/CRUD/data/dataset/AddDataset/LeftPanel';
 import { act } from 'react-dom/test-utils';
 
@@ -28,7 +28,6 @@ describe('LeftPanel', () => {
 
   const SupersetClientGet = jest.spyOn(SupersetClient, 'get');
 
-
   beforeEach(() => {
     jest.resetAllMocks();
     SupersetClientGet.mockImplementation(
@@ -36,11 +35,6 @@ describe('LeftPanel', () => {
         if (endpoint.includes('schemas')) {
           return {
             json: { result: ['information_schema', 'public'] },
-          } as any;
-        }
-        if (endpoint.includes('/function_names')) {
-          return {
-            json: { function_names: [] },
           } as any;
         }
         return {
@@ -153,12 +147,6 @@ describe('LeftPanel', () => {
       },
     );
   });
-  const getSchemaMockFunction = async () =>
-    ({
-      json: {
-        result: ['schema_a', 'schema_b'],
-      },
-    } as any);
 
   const getTableMockFunction = async () =>
     ({
@@ -197,13 +185,8 @@ describe('LeftPanel', () => {
     render(<LeftPanel setDataset={mockFun} />, { useRedux: true });
     const emptyState = screen.queryByRole('img', { name: /empty/i });
     expect(emptyState).not.toBeInTheDocument();
-    // expect(screen.getByText(/no database tables found/i)).toBeVisible();
-    // expect(screen.getByText(/try selecting a different schema/i)).toBeVisible();
   });
   it('renders list of options when user clicks on schema', async () => {
-    // Todo: (Phillip) finish testing for showing list of options once table is implemented
-    /* SupersetClientGet.mockImplementation(getSchemaMockFunction);
-    SupersetClientGet.mockImplementation(getTableMockFunction);
     render(<LeftPanel setDataset={mockFun} schema="schema_a" dbId={1} />, {
       useRedux: true,
     });
@@ -212,25 +195,34 @@ describe('LeftPanel', () => {
       name: 'Select database or type database name',
     });
     userEvent.click(databaseSelect);
+    expect(await screen.findByText('test-postgres')).toBeInTheDocument();
 
-    await act(async () => {
-      // console.log('click ---->', screen.getAllByText('test-mysql'));
-      const options = screen.queryAllByText('text-mysql');
-      console.log
-      // userEvent.click(screen.getAllByText('test-mysql')[0]);
+    act(() => {
+      userEvent.click(screen.getAllByText('test-postgres')[0]);
+    });
+    const tableSelect = screen.getByRole('combobox', {
+      name: /select schema or type schema name/i,
     });
 
     screen.logTestingPlaygroundURL();
-    const schemaSelect = screen.getByRole('combobox', {
-      name: 'Select schema or type schema name',
-    });
-    userEvent.click(schemaSelect);
-    await act(async () => {
-      console.log('click ---->', screen.getAllByText('schema_a'));
-      userEvent.click(screen.getAllByText('schema_a')[1]);
+    await waitFor(() => {
+      expect(tableSelect).toBeEnabled();
     });
 
-    expect(screen.getByTestId('options-list')).toBeInTheDocument(); */
-    expect.anything();
+    userEvent.click(tableSelect);
+    expect(
+      await screen.findByRole('option', { name: 'information_schema' }),
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByRole('option', { name: 'public' }),
+    ).toBeInTheDocument();
+
+    SupersetClientGet.mockImplementation(getTableMockFunction);
+    act(() => {
+      userEvent.click(screen.getAllByText('public')[1]);
+    });
+
+    // Todo: (Phillip) finish testing for showing list of options once table is implemented
+    // expect(screen.getByTestId('options-list')).toBeInTheDocument();
   });
 });
