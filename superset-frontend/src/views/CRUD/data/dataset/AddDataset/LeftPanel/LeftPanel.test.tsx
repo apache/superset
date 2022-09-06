@@ -204,7 +204,6 @@ describe('LeftPanel', () => {
       name: /select schema or type schema name/i,
     });
 
-    screen.logTestingPlaygroundURL();
     await waitFor(() => {
       expect(tableSelect).toBeEnabled();
     });
