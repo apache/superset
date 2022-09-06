@@ -93,7 +93,7 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
       padding-bottom: 0;
       top: 0;
       top: 150px;
-      height: calc(100% - 200px);
+      max-height: calc(100% - 200px);
       overflow-y: auto;
     `}
 
