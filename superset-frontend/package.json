@@ -313,7 +313,7 @@
     "jest-enzyme": "^7.1.2",
     "jest-websocket-mock": "^2.2.0",
     "jsdom": "^20.0.0",
-    "lerna": "^4.0.0",
+    "lerna": "^5.5.0",
     "less": "^3.12.2",
     "less-loader": "^10.2.0",
     "mini-css-extract-plugin": "^2.3.0",
