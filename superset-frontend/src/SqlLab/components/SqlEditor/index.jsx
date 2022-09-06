@@ -18,7 +18,6 @@
  */
 /* eslint-disable jsx-a11y/anchor-is-valid */
 /* eslint-disable jsx-a11y/no-static-element-interactions */
-/* eslint no-use-before-define: 0 */
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { CSSTransition } from 'react-transition-group';
 import { useDispatch, useSelector } from 'react-redux';
@@ -201,6 +200,30 @@ const SqlEditor = ({
   const sqlEditorRef = useRef(null);
   const northPaneRef = useRef(null);
 
+  const startQuery = (ctasArg = false, ctas_method = CtasEnum.TABLE) => {
+    if (!database) {
+      return;
+    }
+
+    dispatch(
+      runQueryFromSqlEditor(
+        database,
+        queryEditor,
+        defaultQueryLimit,
+        ctasArg ? ctas : '',
+        ctasArg,
+        ctas_method,
+      ),
+    );
+    dispatch(setActiveSouthPaneTab('Results'));
+  };
+
+  const stopQuery = () => {
+    if (latestQuery && ['running', 'pending'].indexOf(latestQuery.state) >= 0) {
+      dispatch(postStopQuery(latestQuery));
+    }
+  };
+
   useState(() => {
     if (autorun) {
       setAutorun(false);
@@ -209,85 +232,11 @@ const SqlEditor = ({
     }
   });
 
-  useEffect(() => {
-    // We need to measure the height of the sql editor post render to figure the height of
-    // the south pane so it gets rendered properly
-    setHeight(getSqlEditorHeight());
-    if (!database || isEmpty(database)) {
-      setShowEmptyState(true);
-    }
-
-    window.addEventListener('resize', handleWindowResizeWithThrottle);
-    window.addEventListener('beforeunload', onBeforeUnload);
-
-    // setup hotkeys
-    const hotkeys = getHotkeyConfig();
-    hotkeys.forEach(keyConfig => {
-      Mousetrap.bind([keyConfig.key], keyConfig.func);
-    });
-
-    return () => {
-      window.removeEventListener('resize', handleWindowResizeWithThrottle);
-      window.removeEventListener('beforeunload', onBeforeUnload);
-    };
-  }, []);
-
-  const onResizeStart = () => {
-    // Set the heights on the ace editor and the ace content area after drag starts
-    // to smooth out the visual transition to the new heights when drag ends
-    document.getElementsByClassName('ace_content')[0].style.height = '100%';
-  };
-
-  const onResizeEnd = ([northPercent, southPercent]) => {
-    setNorthPercent(northPercent);
-    setSouthPercent(southPercent);
-
-    if (northPaneRef.current?.clientHeight) {
-      dispatch(persistEditorHeight(queryEditor, northPercent, southPercent));
-    }
-  };
-
-  const onBeforeUnload = event => {
-    if (
-      database?.extra_json?.cancel_query_on_windows_unload &&
-      latestQuery?.state === 'running'
-    ) {
-      event.preventDefault();
-      stopQuery();
-    }
-  };
-
-  const onSqlChanged = sql => {
-    dispatch(queryEditorSetSql(queryEditor, sql));
-    setQueryEditorAndSaveSqlWithDebounce(sql);
-    // Request server-side validation of the query text
-    if (canValidateQuery()) {
-      // NB. requestValidation is debounced
-      requestValidationWithDebounce(sql);
-    }
-  };
-
   // One layer of abstraction for easy spying in unit tests
   const getSqlEditorHeight = () =>
     sqlEditorRef.current
       ? sqlEditorRef.current.clientHeight - SQL_EDITOR_PADDING * 2
       : 0;
-
-  // Return the heights for the ace editor and the south pane as an object
-  // given the height of the sql editor, north pane percent and south pane percent.
-  const getAceEditorAndSouthPaneHeights = (
-    height,
-    northPercent,
-    southPercent,
-  ) => ({
-    aceEditorHeight:
-      (height * northPercent) / (theme.gridUnit * 25) -
-      (SQL_EDITOR_GUTTER_HEIGHT / 2 + SQL_EDITOR_GUTTER_MARGIN) -
-      SQL_TOOLBAR_HEIGHT,
-    southPaneHeight:
-      (height * southPercent) / (theme.gridUnit * 25) -
-      (SQL_EDITOR_GUTTER_HEIGHT / 2 + SQL_EDITOR_GUTTER_MARGIN),
-  });
 
   const getHotkeyConfig = () => {
     // Get the user's OS
@@ -350,6 +299,80 @@ const SqlEditor = ({
     return base;
   };
 
+  useEffect(() => {
+    // We need to measure the height of the sql editor post render to figure the height of
+    // the south pane so it gets rendered properly
+    setHeight(getSqlEditorHeight());
+    if (!database || isEmpty(database)) {
+      setShowEmptyState(true);
+    }
+
+    window.addEventListener('resize', handleWindowResizeWithThrottle);
+    window.addEventListener('beforeunload', onBeforeUnload);
+
+    // setup hotkeys
+    const hotkeys = getHotkeyConfig();
+    hotkeys.forEach(keyConfig => {
+      Mousetrap.bind([keyConfig.key], keyConfig.func);
+    });
+
+    return () => {
+      window.removeEventListener('resize', handleWindowResizeWithThrottle);
+      window.removeEventListener('beforeunload', onBeforeUnload);
+    };
+  }, []);
+
+  const onResizeStart = () => {
+    // Set the heights on the ace editor and the ace content area after drag starts
+    // to smooth out the visual transition to the new heights when drag ends
+    document.getElementsByClassName('ace_content')[0].style.height = '100%';
+  };
+
+  const onResizeEnd = ([northPercent, southPercent]) => {
+    setNorthPercent(northPercent);
+    setSouthPercent(southPercent);
+
+    if (northPaneRef.current?.clientHeight) {
+      dispatch(persistEditorHeight(queryEditor, northPercent, southPercent));
+    }
+  };
+
+  const onBeforeUnload = event => {
+    if (
+      database?.extra_json?.cancel_query_on_windows_unload &&
+      latestQuery?.state === 'running'
+    ) {
+      event.preventDefault();
+      stopQuery();
+    }
+  };
+
+  const onSqlChanged = sql => {
+    dispatch(queryEditorSetSql(queryEditor, sql));
+    setQueryEditorAndSaveSqlWithDebounce(sql);
+    // Request server-side validation of the query text
+    if (canValidateQuery()) {
+      // NB. requestValidation is debounced
+      requestValidationWithDebounce(sql);
+    }
+  };
+
+  // Return the heights for the ace editor and the south pane as an object
+  // given the height of the sql editor, north pane percent and south pane percent.
+  const getAceEditorAndSouthPaneHeights = (
+    height,
+    northPercent,
+    southPercent,
+  ) => ({
+    aceEditorHeight:
+      (height * northPercent) / (theme.gridUnit * 25) -
+      (SQL_EDITOR_GUTTER_HEIGHT / 2 + SQL_EDITOR_GUTTER_MARGIN) -
+      SQL_TOOLBAR_HEIGHT,
+    southPaneHeight:
+      (height * southPercent) / (theme.gridUnit * 25) -
+      (SQL_EDITOR_GUTTER_HEIGHT / 2 + SQL_EDITOR_GUTTER_MARGIN),
+  });
+
   const setQueryEditorAndSaveSql = sql => {
     dispatch(queryEditorSetAndSaveSql(queryEditor, sql));
   };
@@ -406,30 +429,6 @@ const SqlEditor = ({
       return validatorMap.hasOwnProperty(database.backend);
     }
     return false;
-  };
-
-  const startQuery = (ctasArg = false, ctas_method = CtasEnum.TABLE) => {
-    if (!database) {
-      return;
-    }
-
-    dispatch(
-      runQueryFromSqlEditor(
-        database,
-        queryEditor,
-        defaultQueryLimit,
-        ctasArg ? ctas : '',
-        ctasArg,
-        ctas_method,
-      ),
-    );
-    dispatch(setActiveSouthPaneTab('Results'));
-  };
-
-  const stopQuery = () => {
-    if (latestQuery && ['running', 'pending'].indexOf(latestQuery.state) >= 0) {
-      dispatch(postStopQuery(latestQuery));
-    }
   };
 
   const createTableAs = () => {
