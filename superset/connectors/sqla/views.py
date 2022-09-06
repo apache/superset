@@ -93,14 +93,15 @@ class TableColumnInlineView(  # pylint: disable=too-many-ancestors
     ]
     add_columns = edit_columns
     list_columns = [
-        "column_name",
-        "verbose_name",
-        "type",
         "advanced_data_type",
-        "groupby",
-        "filterable",
-        "is_dttm",
+        "column_name",
         "extra",
+        "filterable",
+        "groupby",
+        "is_dttm",
+        "table_id",
+        "type",
+        "verbose_name",
     ]
     page_size = 500
     description_columns = {
@@ -210,7 +211,13 @@ class SqlMetricInlineView(  # pylint: disable=too-many-ancestors
     add_title = _("Add Metric")
     edit_title = _("Edit Metric")
 
-    list_columns = ["metric_name", "verbose_name", "metric_type", "extra"]
+    list_columns = [
+        "extra",
+        "metric_name",
+        "metric_type",
+        "table_id",
+        "verbose_name",
+    ]
     edit_columns = [
         "metric_name",
         "description",
