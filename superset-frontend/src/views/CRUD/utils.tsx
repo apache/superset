@@ -94,13 +94,14 @@ const createFetchResourceMethod =
     const data: { label: string; value: string | number }[] = [];
     json?.result?.forEach(
       ({ text, value }: { text: string; value: string | number }) => {
+        const isTextEmpty = text.replaceAll(' ', '').length === 0;
         if (
           loggedUser &&
           value === loggedUser.value &&
           text === loggedUser.label
         ) {
           fetchedLoggedUser = true;
-        } else {
+        } else if (!isTextEmpty) {
           data.push({
             label: text,
             value,
