@@ -19,7 +19,7 @@ under the License.
 
 ## Change Log
 
-### 1.5.2 (Fri Jul 1 13:16:17 2022 -0500)
+### 1.5.2 (Mon Sep 5 13:32:48 2022 +0100)
 
 **Database Migrations**
 
@@ -27,6 +27,9 @@ under the License.
 
 **Fixes**
 
+- [#21302](https://github.com/apache/superset/pull/21302) fix: disallow users from viewing other user's profile on config (@dpgaspar)
+- [#21272](https://github.com/apache/superset/pull/21272) fix: adds TLS certificate validation option for SMTP (@dpgaspar)
+- [#21076](https://github.com/apache/superset/pull/21076) fix(celery cache warmup): add auth and use warm_up_cache endpoint (@nytai)
 - [#20178](https://github.com/apache/superset/pull/20178) fix: While exporting CSV , only the entries on first page are getting downloaded even when user is on other pages #17861 (@LahmerIlyas)
 - [#20058](https://github.com/apache/superset/pull/20058) fix: Support the Clipboard API in modern browsers (@diegomedina248)
 - [#20434](https://github.com/apache/superset/pull/20434) fix(20428): Address-Presto/Trino-Poll-Issue-Refactor (@Thelin90)
@@ -39,11 +42,11 @@ under the License.
 
 **Others**
 
+- [#19703](https://github.com/apache/superset/pull/19703) chore(build): upgrade less-loader (@ktmud)
 - [#20550](https://github.com/apache/superset/pull/20550) chore: updating python docker image to 3.8.13 (@nisheldo)
 - [#21018](https://github.com/apache/superset/pull/21018) perf: Memoize the common_bootstrap_payload (@bkyryliuk)
 - [#20974](https://github.com/apache/superset/pull/20974) perf: Implement model specific lookups by id to improve performance (@bkyryliuk)
 - [#20273](https://github.com/apache/superset/pull/20273) chore: adjust the psycopg2 version of k8s installation guide (@ensky)
-- [#19703](https://github.com/apache/superset/pull/19703) chore(build): upgrade less-loader (@ktmud)
 
 ### 1.5.1 (Thu May 26 14:45:20 2022 +0300)
 
