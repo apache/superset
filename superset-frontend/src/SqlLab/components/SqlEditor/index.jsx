@@ -299,6 +299,25 @@ const SqlEditor = ({
     return base;
   };
 
+  const handleWindowResize = () => {
+    setHeight(getSqlEditorHeight());
+  };
+
+  const handleWindowResizeWithThrottle = useMemo(
+    () => throttle(handleWindowResize, WINDOW_RESIZE_THROTTLE_MS),
+    [],
+  );
+
+  const onBeforeUnload = event => {
+    if (
+      database?.extra_json?.cancel_query_on_windows_unload &&
+      latestQuery?.state === 'running'
+    ) {
+      event.preventDefault();
+      stopQuery();
+    }
+  };
+
   useEffect(() => {
     // We need to measure the height of the sql editor post render to figure the height of
     // the south pane so it gets rendered properly
@@ -334,16 +353,6 @@ const SqlEditor = ({
 
     if (northPaneRef.current?.clientHeight) {
       dispatch(persistEditorHeight(queryEditor, northPercent, southPercent));
-    }
-  };
-
-  const onBeforeUnload = event => {
-    if (
-      database?.extra_json?.cancel_query_on_windows_unload &&
-      latestQuery?.state === 'running'
-    ) {
-      event.preventDefault();
-      stopQuery();
     }
   };
 
@@ -395,15 +404,6 @@ const SqlEditor = ({
     );
     setAutocompleteEnabled(!autocompleteEnabled);
   };
-
-  const handleWindowResize = () => {
-    setHeight(getSqlEditorHeight());
-  };
-
-  const handleWindowResizeWithThrottle = useMemo(
-    () => throttle(handleWindowResize, WINDOW_RESIZE_THROTTLE_MS),
-    [],
-  );
 
   const elementStyle = (dimension, elementSize, gutterSize) => ({
     [dimension]: `calc(${elementSize}% - ${
