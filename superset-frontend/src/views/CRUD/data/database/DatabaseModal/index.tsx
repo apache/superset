@@ -1155,9 +1155,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       return (
         <ErrorMessageWithStackTrace
           title={t('Database Creation Error')}
-          description={t(alertErrors[0])}
-          subtitle={t(validationErrors?.description)}
-          copyText={t(validationErrors?.description)}
+          description={alertErrors[0]}
+          subtitle={validationErrors?.description}
+          copyText={validationErrors?.description}
         />
       );
     }
