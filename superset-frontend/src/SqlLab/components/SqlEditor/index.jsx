@@ -243,7 +243,7 @@ const SqlEditor = ({
     setNorthPercent(northPercent);
     setSouthPercent(southPercent);
 
-    if (northPaneRef.current && northPaneRef.current.clientHeight) {
+    if (northPaneRef.current?.clientHeight) {
       dispatch(persistEditorHeight(queryEditor, northPercent, southPercent));
     }
   };
@@ -282,11 +282,11 @@ const SqlEditor = ({
     southPercent,
   ) => ({
     aceEditorHeight:
-      (height * northPercent) / 100 -
+      (height * northPercent) / (theme.gridUnit * 25) -
       (SQL_EDITOR_GUTTER_HEIGHT / 2 + SQL_EDITOR_GUTTER_MARGIN) -
       SQL_TOOLBAR_HEIGHT,
     southPaneHeight:
-      (height * southPercent) / 100 -
+      (height * southPercent) / (theme.gridUnit * 25) -
       (SQL_EDITOR_GUTTER_HEIGHT / 2 + SQL_EDITOR_GUTTER_MARGIN),
   });
 
@@ -481,7 +481,7 @@ const SqlEditor = ({
         </div>
         <ConnectedSouthPane
           editorQueries={editorQueries}
-          latestQueryId={latestQuery && latestQuery.id}
+          latestQueryId={latestQuery?.id}
           dataPreviewQueries={dataPreviewQueries}
           actions={actions}
           height={southPaneHeight}
@@ -499,7 +499,7 @@ const SqlEditor = ({
       ? t('Schedule the query periodically')
       : t('You must run the query successfully first');
     return (
-      <Menu style={{ width: 176 }}>
+      <Menu css={{ width: theme.gridUnit * 44 }}>
         <Menu.Item style={{ display: 'flex', justifyContent: 'space-between' }}>
           {' '}
           <span>{t('Autocomplete')}</span>{' '}
@@ -689,14 +689,16 @@ const SqlEditor = ({
         onHide={() => setShowCreateAsModal(false)}
         footer={
           <>
-            <Button onClick={() => setShowCreateAsModal(false)}>Cancel</Button>
+            <Button onClick={() => setShowCreateAsModal(false)}>
+              {t('Cancel')}
+            </Button>
             {createAs === CtasEnum.TABLE && (
               <Button
                 buttonStyle="primary"
                 disabled={ctas.length === 0}
                 onClick={createTableAs}
               >
-                Create
+                {t('Create')}
               </Button>
             )}
             {createAs === CtasEnum.VIEW && (
@@ -705,13 +707,13 @@ const SqlEditor = ({
                 disabled={ctas.length === 0}
                 onClick={createViewAs}
               >
-                Create
+                {t('Create')}
               </Button>
             )}
           </>
         }
       >
-        <span>Name</span>
+        <span>{t('Name')}</span>
         <Input placeholder={createModalPlaceHolder} onChange={ctasChanged} />
       </Modal>
     </div>
