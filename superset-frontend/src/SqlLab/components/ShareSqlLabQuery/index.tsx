@@ -17,6 +17,7 @@
  * under the License.
  */
 import React from 'react';
+import { shallowEqual, useSelector } from 'react-redux';
 import { t, useTheme, styled } from '@superset-ui/core';
 import Button from 'src/components/Button';
 import Icons from 'src/components/Icons';
@@ -25,7 +26,7 @@ import CopyToClipboard from 'src/components/CopyToClipboard';
 import { storeQuery } from 'src/utils/common';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
-import { QueryEditor } from 'src/SqlLab/types';
+import { QueryEditor, SqlLabRootState } from 'src/SqlLab/types';
 
 interface ShareSqlLabQueryPropTypes {
   queryEditor: QueryEditor;
@@ -48,8 +49,18 @@ function ShareSqlLabQuery({
 }: ShareSqlLabQueryPropTypes) {
   const theme = useTheme();
 
+  const { dbId, name, schema, autorun, sql, remoteId } = useSelector<
+    SqlLabRootState,
+    Partial<QueryEditor>
+  >(({ sqlLab: { unsavedQueryEditor } }) => {
+    const { dbId, name, schema, autorun, sql, remoteId } = {
+      ...queryEditor,
+      ...(unsavedQueryEditor.id === queryEditor.id && unsavedQueryEditor),
+    };
+    return { dbId, name, schema, autorun, sql, remoteId };
+  }, shallowEqual);
+
   const getCopyUrlForKvStore = (callback: Function) => {
-    const { dbId, name, schema, autorun, sql } = queryEditor;
     const sharedQuery = { dbId, name, schema, autorun, sql };
 
     return storeQuery(sharedQuery)
@@ -66,10 +77,10 @@ function ShareSqlLabQuery({
   const getCopyUrlForSavedQuery = (callback: Function) => {
     let savedQueryToastContent;
 
-    if (queryEditor.remoteId) {
+    if (remoteId) {
       savedQueryToastContent = `${
         window.location.origin + window.location.pathname
-      }?savedQueryId=${queryEditor.remoteId}`;
+      }?savedQueryId=${remoteId}`;
       callback(savedQueryToastContent);
     } else {
       savedQueryToastContent = t('Please save the query to enable sharing');
@@ -101,8 +112,7 @@ function ShareSqlLabQuery({
   };
 
   const canShare =
-    !!queryEditor.remoteId ||
-    isFeatureEnabled(FeatureFlag.SHARE_QUERIES_VIA_KV_STORE);
+    !!remoteId || isFeatureEnabled(FeatureFlag.SHARE_QUERIES_VIA_KV_STORE);
 
   return (
     <>
