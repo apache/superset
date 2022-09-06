@@ -20,11 +20,9 @@
 import React, { useCallback, useEffect, useRef } from 'react';
 import type { Action, Location, History } from 'history';
 import { useHistory } from 'react-router-dom';
-import { useDispatch } from 'react-redux';
 import { t } from '@superset-ui/core';
 import { AntdModal } from 'src/components';
 import Icons from 'src/components/Icons';
-import { setSaveModalVisible } from 'src/explore/actions/saveModalActions';
 
 const handleNavigationAction = (
   history: History,
@@ -49,7 +47,6 @@ export const useRouteLeaveGuard = (
 ) => {
   const isBeforeUnloadActive = useRef(false);
   const history = useHistory();
-  const dispatch = useDispatch();
 
   const handleUnloadEvent = useCallback((e: BeforeUnloadEvent) => {
     e.preventDefault();
@@ -67,17 +64,14 @@ export const useRouteLeaveGuard = (
     }
     AntdModal.confirm({
       onOk: () => {
-        dispatch(setSaveModalVisible(true));
-      },
-      onCancel: () => {
         unblock();
         handleNavigationAction(history, nextLocation, action);
       },
-      title: t('Save changes to your chart?'),
+      title: t('Your chart is not saved'),
       icon: <Icons.WarningOutlined />,
-      content: t('If you don’t save, changes will be lost.'),
-      okText: t('Save'),
-      cancelText: t('Discard'),
+      content: t("If you don't save, changes will be lost."),
+      okText: t('Leave'),
+      cancelText: t('Cancel'),
     });
     return false;
   });

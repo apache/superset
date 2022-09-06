@@ -70,6 +70,7 @@ test('creates hydrate action from initial data', () => {
         saveModal: {
           dashboards: [],
           saveModalAlert: null,
+          isVisible: false,
         },
         explore: {
           can_add: false,
@@ -140,6 +141,7 @@ test('creates hydrate action with existing state', () => {
         saveModal: {
           dashboards: [],
           saveModalAlert: null,
+          isVisible: false,
         },
         explore: {
           can_add: false,
