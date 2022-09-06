@@ -23,8 +23,12 @@ import * as resizeDetector from 'react-resize-detector';
 import moment from 'moment';
 import { supersetTheme } from '@superset-ui/core';
 import { hexToRgb } from 'src/utils/colorUtils';
-import MetadataBar, { MIN_NUMBER_ITEMS, MAX_NUMBER_ITEMS } from '.';
-import { ContentType, MetadataType } from './ContentType';
+import MetadataBar, {
+  MIN_NUMBER_ITEMS,
+  MAX_NUMBER_ITEMS,
+  ContentType,
+  MetadataType,
+} from '.';
 
 const DASHBOARD_TITLE = 'Added to 452 dashboards';
 const DASHBOARD_DESCRIPTION =

@@ -19,7 +19,7 @@
 import React from 'react';
 import { css } from '@superset-ui/core';
 import { useResizeDetector } from 'react-resize-detector';
-import MetadataBar, { MetadataBarProps } from './index';
+import MetadataBar, { MetadataBarProps, MetadataType } from '.';
 
 export default {
   title: 'MetadataBar',
@@ -72,26 +72,26 @@ Component.story = {
 Component.args = {
   items: [
     {
-      type: 'sql',
+      type: MetadataType.SQL,
       title: 'Click to view query',
     },
     {
-      type: 'owner',
+      type: MetadataType.OWNER,
       createdBy: 'Jane Smith',
       owners: ['John Doe', 'Mary Wilson'],
       createdOn: A_WEEK_AGO,
     },
     {
-      type: 'lastModified',
+      type: MetadataType.LAST_MODIFIED,
       value: A_WEEK_AGO,
       modifiedBy: 'Jane Smith',
     },
     {
-      type: 'tags',
+      type: MetadataType.TAGS,
       values: ['management', 'research', 'poc'],
     },
     {
-      type: 'dashboards',
+      type: MetadataType.DASHBOARDS,
       title: 'Added to 452 dashboards',
       description:
         'To preview the list of dashboards go to "More" settings on the right.',

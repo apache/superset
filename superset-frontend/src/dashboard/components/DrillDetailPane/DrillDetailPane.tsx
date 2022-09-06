@@ -39,6 +39,12 @@ import { EmptyStateMedium } from 'src/components/EmptyState';
 import TableView, { EmptyWrapperType } from 'src/components/TableView';
 import { useTableColumns } from 'src/explore/components/DataTableControl';
 import { getDatasourceSamples } from 'src/components/Chart/chartAction';
+import MetadataBar, {
+  ContentType,
+  MetadataType,
+} from 'src/components/MetadataBar';
+import Alert from 'src/components/Alert';
+import { useApiV1Resource } from 'src/hooks/apiResources';
 import TableControls from './TableControls';
 import { getDrillPayload } from './utils';
 
@@ -47,6 +53,25 @@ type ResultsPage = {
   data: Record<string, any>[];
   colNames: string[];
   colTypes: GenericDataType[];
+};
+
+type Dataset = {
+  changed_by?: {
+    first_name: string;
+    last_name: string;
+  };
+  created_by?: {
+    first_name: string;
+    last_name: string;
+  };
+  changed_on: Date;
+  created_on: Date;
+  description: string;
+  table_name: string;
+  owners: {
+    first_name: string;
+    last_name: string;
+  }[];
 };
 
 const PAGE_SIZE = 50;
@@ -242,8 +267,77 @@ export default function DrillDetailPane({
     );
   }
 
+  // Get datasource metadata
+  const response = useApiV1Resource<Dataset>(`/api/v1/dataset/${datasourceId}`);
+
+  const metadata = useMemo(() => {
+    const { status, result } = response;
+    const items: ContentType[] = [];
+    if (result) {
+      const {
+        changed_on,
+        created_on,
+        description,
+        table_name,
+        changed_by,
+        created_by,
+        owners,
+      } = result;
+      const notAvailable = t('Not available');
+      const createdBy = created_by
+        ? `${created_by.first_name} ${created_by.last_name}`
+        : notAvailable;
+      const modifiedBy = changed_by
+        ? `${changed_by.first_name} ${changed_by.last_name}`
+        : notAvailable;
+      const formattedOwners =
+        owners.length > 0
+          ? owners.map(owner => `${owner.first_name} ${owner.last_name}`)
+          : [notAvailable];
+      items.push({
+        type: MetadataType.TABLE,
+        title: table_name,
+      });
+      items.push({
+        type: MetadataType.LAST_MODIFIED,
+        value: changed_on,
+        modifiedBy,
+      });
+      items.push({
+        type: MetadataType.OWNER,
+        createdBy,
+        owners: formattedOwners,
+        createdOn: created_on,
+      });
+      if (description) {
+        items.push({
+          type: MetadataType.DESCRIPTION,
+          value: description,
+        });
+      }
+    }
+    return (
+      <div
+        css={css`
+          display: flex;
+          margin-bottom: ${theme.gridUnit * 4}px;
+        `}
+      >
+        {status === 'loading' && <Loading position="inline-centered" />}
+        {status === 'complete' && <MetadataBar items={items} />}
+        {status === 'error' && (
+          <Alert
+            type="error"
+            message={t('There was an error loading the dataset metadata')}
+          />
+        )}
+      </div>
+    );
+  }, [response, theme.gridUnit]);
+
   return (
     <>
+      {metadata}
       <TableControls
         filters={filters}
         setFilters={setFilters}
