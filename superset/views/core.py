@@ -1570,6 +1570,11 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         defined in config. This enables charts embedded in other apps to
         leverage domain sharding if appropriately configured.
         """
+        logger.warning(
+            "%s.available_domains "
+            "This API endpoint is deprecated and will be removed in version 3.0.0",
+            self.__class__.__name__,
+        )
         return Response(
             json.dumps(conf.get("SUPERSET_WEBSERVER_DOMAINS")), mimetype="text/json"
         )
@@ -2744,8 +2749,13 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         user = (
             db.session.query(ab_models.User).filter_by(username=username).one_or_none()
         )
-        if not user:
-            abort(404, description=f"User: {username} does not exist.")
+        # Prevent returning 404 when user is not found to prevent username scanning
+        user_id = -1 if not user else user.id
+        # Prevent unauthorized access to other user's profiles,
+        # unless configured to do so on with ENABLE_BROAD_ACTIVITY_ACCESS
+        error_obj = self.get_user_activity_access_error(user_id)
+        if error_obj:
+            return error_obj
 
         payload = {
             "user": bootstrap_user_data(user, include_perms=True),

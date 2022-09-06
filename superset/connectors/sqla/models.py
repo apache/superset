@@ -2266,11 +2266,11 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
 
         For more context: https://github.com/apache/superset/issues/14909
         """
-        security_manager.set_perm(mapper, connection, sqla_table)
+        security_manager.dataset_after_insert(mapper, connection, sqla_table)
         sqla_table.write_shadow_dataset()
 
     @staticmethod
-    def after_delete(  # pylint: disable=unused-argument
+    def after_delete(
         mapper: Mapper,
         connection: Connection,
         sqla_table: "SqlaTable",
@@ -2287,6 +2287,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
 
         For more context: https://github.com/apache/superset/issues/14909
         """
+        security_manager.dataset_after_delete(mapper, connection, sqla_table)
         session = inspect(sqla_table).session
         dataset = (
             session.query(NewDataset).filter_by(uuid=sqla_table.uuid).one_or_none()
@@ -2313,7 +2314,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         For more context: https://github.com/apache/superset/issues/14909
         """
         # set permissions
-        security_manager.set_perm(mapper, connection, sqla_table)
+        security_manager.dataset_after_update(mapper, connection, sqla_table)
 
         inspector = inspect(sqla_table)
         session = inspector.session

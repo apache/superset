@@ -30,6 +30,7 @@ from sqlalchemy.engine.url import URL
 from typing_extensions import TypedDict
 
 from superset import security_manager
+from superset.constants import PASSWORD_MASK
 from superset.databases.schemas import encrypted_field_properties, EncryptedString
 from superset.db_engine_specs.sqlite import SqliteEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -128,13 +129,51 @@ class GSheetsEngineSpec(SqliteEngineSpec):
     def get_parameters_from_uri(
         cls,
         uri: str,  # pylint: disable=unused-argument
-        encrypted_extra: Optional[Dict[str, str]] = None,
+        encrypted_extra: Optional[Dict[str, Any]] = None,
     ) -> Any:
         # Building parameters from encrypted_extra and uri
         if encrypted_extra:
             return {**encrypted_extra}
 
         raise ValidationError("Invalid service credentials")
+
+    @classmethod
+    def mask_encrypted_extra(cls, encrypted_extra: str) -> str:
+        try:
+            config = json.loads(encrypted_extra)
+        except json.JSONDecodeError:
+            return encrypted_extra
+
+        try:
+            config["service_account_info"]["private_key"] = PASSWORD_MASK
+        except KeyError:
+            pass
+
+        return json.dumps(config)
+
+    @classmethod
+    def unmask_encrypted_extra(cls, old: str, new: str) -> str:
+        """
+        Reuse ``private_key`` if available and unchanged.
+        """
+        try:
+            old_config = json.loads(old)
+            new_config = json.loads(new)
+        except json.JSONDecodeError:
+            return new
+
+        if "service_account_info" not in new_config:
+            return new
+
+        if "private_key" not in new_config["service_account_info"]:
+            return new
+
+        if new_config["service_account_info"]["private_key"] == PASSWORD_MASK:
+            new_config["service_account_info"]["private_key"] = old_config[
+                "service_account_info"
+            ]["private_key"]
+
+        return json.dumps(new_config)
 
     @classmethod
     def parameters_json_schema(cls) -> Any:

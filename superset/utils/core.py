@@ -27,6 +27,7 @@ import platform
 import re
 import signal
 import smtplib
+import ssl
 import tempfile
 import threading
 import traceback
@@ -994,23 +995,28 @@ def send_mime_email(
     smtp_password = config["SMTP_PASSWORD"]
     smtp_starttls = config["SMTP_STARTTLS"]
     smtp_ssl = config["SMTP_SSL"]
+    smpt_ssl_server_auth = config["SMTP_SSL_SERVER_AUTH"]
 
-    if not dryrun:
-        smtp = (
-            smtplib.SMTP_SSL(smtp_host, smtp_port)
-            if smtp_ssl
-            else smtplib.SMTP(smtp_host, smtp_port)
-        )
-        if smtp_starttls:
-            smtp.starttls()
-        if smtp_user and smtp_password:
-            smtp.login(smtp_user, smtp_password)
-        logger.debug("Sent an email to %s", str(e_to))
-        smtp.sendmail(e_from, e_to, mime_msg.as_string())
-        smtp.quit()
-    else:
+    if dryrun:
         logger.info("Dryrun enabled, email notification content is below:")
         logger.info(mime_msg.as_string())
+        return
+
+    # Default ssl context is SERVER_AUTH using the default system
+    # root CA certificates
+    ssl_context = ssl.create_default_context() if smpt_ssl_server_auth else None
+    smtp = (
+        smtplib.SMTP_SSL(smtp_host, smtp_port, context=ssl_context)
+        if smtp_ssl
+        else smtplib.SMTP(smtp_host, smtp_port)
+    )
+    if smtp_starttls:
+        smtp.starttls(context=ssl_context)
+    if smtp_user and smtp_password:
+        smtp.login(smtp_user, smtp_password)
+    logger.debug("Sent an email to %s", str(e_to))
+    smtp.sendmail(e_from, e_to, mime_msg.as_string())
+    smtp.quit()
 
 
 def get_email_address_list(address_string: str) -> List[str]:

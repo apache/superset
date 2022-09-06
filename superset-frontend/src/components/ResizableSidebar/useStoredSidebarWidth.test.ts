@@ -22,10 +22,11 @@ import {
   setItem,
   getItem,
 } from 'src/utils/localStorageHelpers';
-import { OPEN_FILTER_BAR_WIDTH } from 'src/dashboard/constants';
-import useStoredFilterBarWidth from './useStoredFilterBarWidth';
+import useStoredSidebarWidth from './useStoredSidebarWidth';
 
-describe('useStoredFilterBarWidth', () => {
+const INITIAL_WIDTH = 300;
+
+describe('useStoredSidebarWidth', () => {
   beforeEach(() => {
     localStorage.clear();
   });
@@ -34,22 +35,26 @@ describe('useStoredFilterBarWidth', () => {
     localStorage.clear();
   });
 
-  it('returns a default filterBar width by OPEN_FILTER_BAR_WIDTH', () => {
-    const dashboardId = '123';
-    const { result } = renderHook(() => useStoredFilterBarWidth(dashboardId));
+  it('returns a default filterBar width by initialWidth', () => {
+    const id = '123';
+    const { result } = renderHook(() =>
+      useStoredSidebarWidth(id, INITIAL_WIDTH),
+    );
     const [actualWidth] = result.current;
 
-    expect(actualWidth).toEqual(OPEN_FILTER_BAR_WIDTH);
+    expect(actualWidth).toEqual(INITIAL_WIDTH);
   });
 
   it('returns a stored filterBar width from localStorage', () => {
-    const dashboardId = '123';
+    const id = '123';
     const expectedWidth = 378;
-    setItem(LocalStorageKeys.dashboard__custom_filter_bar_widths, {
-      [dashboardId]: expectedWidth,
+    setItem(LocalStorageKeys.common__resizable_sidebar_widths, {
+      [id]: expectedWidth,
       '456': 250,
     });
-    const { result } = renderHook(() => useStoredFilterBarWidth(dashboardId));
+    const { result } = renderHook(() =>
+      useStoredSidebarWidth(id, INITIAL_WIDTH),
+    );
     const [actualWidth] = result.current;
 
     expect(actualWidth).toEqual(expectedWidth);
@@ -57,15 +62,17 @@ describe('useStoredFilterBarWidth', () => {
   });
 
   it('returns a setter for filterBar width that stores the state in localStorage together', () => {
-    const dashboardId = '123';
+    const id = '123';
     const expectedWidth = 378;
     const otherDashboardId = '456';
     const otherDashboardWidth = 253;
-    setItem(LocalStorageKeys.dashboard__custom_filter_bar_widths, {
-      [dashboardId]: 300,
+    setItem(LocalStorageKeys.common__resizable_sidebar_widths, {
+      [id]: 300,
       [otherDashboardId]: otherDashboardWidth,
     });
-    const { result } = renderHook(() => useStoredFilterBarWidth(dashboardId));
+    const { result } = renderHook(() =>
+      useStoredSidebarWidth(id, INITIAL_WIDTH),
+    );
     const [prevWidth, setter] = result.current;
 
     expect(prevWidth).toEqual(300);
@@ -74,10 +81,10 @@ describe('useStoredFilterBarWidth', () => {
 
     const updatedWidth = result.current[0];
     const widthsMap = getItem(
-      LocalStorageKeys.dashboard__custom_filter_bar_widths,
+      LocalStorageKeys.common__resizable_sidebar_widths,
       {},
     );
-    expect(widthsMap[dashboardId]).toEqual(expectedWidth);
+    expect(widthsMap[id]).toEqual(expectedWidth);
     expect(widthsMap[otherDashboardId]).toEqual(otherDashboardWidth);
     expect(updatedWidth).toEqual(expectedWidth);
     expect(updatedWidth).not.toEqual(250);
