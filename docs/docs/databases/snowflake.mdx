@@ -34,30 +34,23 @@ And if you want connect Snowflake with [Key Pair Authentication](https://docs.sn
 Plase make sure you have the key pair and the public key is registered in Snowflake.
 To connect Snowflake with Key Pair Authentication, you need to add the following parameters to "SECURE EXTRA" field.
 
-***Please note that you need to split your private key content line by line before store it to privatekey_body*** 
+***Please note that you need to merge multi-line private key content to one line and insert `\n` between each line***
 
 ```
 {
-    "auth_method": "keypair", 
-    "auth_params": {
-        "privatekey_body":[
-            "-----BEGIN ENCRYPTED PRIVATE KEY-----",
-            "Key Body",
-            "Key Body",
-            "Key Body",
-            "Key Body",
-            "-----END ENCRYPTED PRIVATE KEY-----"
-        ],
-        "privatekey_pass":"Your Private Key Password"
-    }
-}
+     "auth_method": "keypair",
+     "auth_params": {
+         "privatekey_body": "-----BEGIN ENCRYPTED PRIVATE KEY-----\n...\n...\n-----END ENCRYPTED PRIVATE KEY-----",
+         "privatekey_pass":"Your Private Key Password"
+     }
+ }
 ```
 
 If your private key is stored on server, you can replace "privatekey_body" with “privatekey_path” in parameter.
 
 ```
 {
-    "auth_method": "keypair", 
+    "auth_method": "keypair",
     "auth_params": {
         "privatekey_path":"Your Private Key Path",
         "privatekey_pass":"Your Private Key Password"

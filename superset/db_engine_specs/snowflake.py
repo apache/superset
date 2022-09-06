@@ -307,11 +307,7 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
             privatekey_body = auth_params.get("privatekey_body", None)
             key = None
             if privatekey_body:
-                privatekey_body_container = []
-                for line in privatekey_body:
-                    privatekey_body_container.append(line)
-                    privatekey_body_container.append("\n")
-                key = str.encode("".join(privatekey_body_container))
+                key = privatekey_body.encode()
             else:
                 with open(auth_params["privatekey_path"], "rb") as key_temp:
                     key = key_temp.read()
