@@ -203,7 +203,7 @@ const RightMenu = ({
                       typeof item !== 'string' && item.name && item.perm ? (
                         <Fragment key={item.name}>
                           {idx === 2 && <Menu.Divider />}
-                          <Menu.Item>
+                          <Menu.Item key={item.name}>
                             {item.url ? (
                               <a href={item.url}> {item.label} </a>
                             ) : (
