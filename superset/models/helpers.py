@@ -1281,7 +1281,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if limit:
             qry = qry.limit(limit)
 
-        engine = self.database.get_sqla_engine()
+        engine = self.database.get_sqla_engine()  # type: ignore
         sql = qry.compile(engine, compile_kwargs={"literal_binds": True})
         sql = self._apply_cte(sql, cte)
         sql = self.mutate_query_from_config(sql)

@@ -31,6 +31,7 @@ import {
 import AceEditorWrapper from 'src/SqlLab/components/AceEditorWrapper';
 import ConnectedSouthPane from 'src/SqlLab/components/SouthPane/state';
 import SqlEditor from 'src/SqlLab/components/SqlEditor';
+import QueryProvider from 'src/views/QueryProvider';
 import SqlEditorLeftBar from 'src/SqlLab/components/SqlEditorLeftBar';
 import { AntdDropdown } from 'src/components';
 import {
@@ -101,9 +102,11 @@ describe('SqlEditor', () => {
 
   const buildWrapper = (props = {}) =>
     mount(
-      <Provider store={store}>
-        <SqlEditor {...mockedProps} {...props} />
-      </Provider>,
+      <QueryProvider>
+        <Provider store={store}>
+          <SqlEditor {...mockedProps} {...props} />
+        </Provider>
+      </QueryProvider>,
       {
         wrappingComponent: ThemeProvider,
         wrappingComponentProps: { theme: supersetTheme },

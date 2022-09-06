@@ -466,7 +466,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         cls,
         database: "Database",
         schema: Optional[str] = None,
-        source: Optional[str] = None,
+        source: Optional[utils.QuerySource] = None,
     ) -> Engine:
         return database.get_sqla_engine(schema=schema, source=source)
 
@@ -1279,7 +1279,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     @classmethod
     def estimate_query_cost(
-        cls, database: "Database", schema: str, sql: str, source: Optional[str] = None
+        cls,
+        database: "Database",
+        schema: str,
+        sql: str,
+        source: Optional[utils.QuerySource] = None,
     ) -> List[Dict[str, Any]]:
         """
         Estimate the cost of a multiple statement SQL query.
@@ -1525,7 +1529,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return extra
 
     @staticmethod
-    def update_encrypted_extra_params(
+    def update_params_from_encrypted_extra(  # pylint: disable=invalid-name
         database: "Database", params: Dict[str, Any]
     ) -> None:
         """
@@ -1651,6 +1655,30 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :returns: username if given user is not null
         """
         return user.username if user else None
+
+    @classmethod
+    def mask_encrypted_extra(cls, encrypted_extra: str) -> str:
+        """
+        Mask ``encrypted_extra``.
+
+        This is used to remove any sensitive data in ``encrypted_extra`` when presenting
+        it to the user. For example, a private key might be replaced with a masked value
+        "XXXXXXXXXX". If the masked value is changed the corresponding entry is updated,
+        otherwise the old value is used (see ``unmask_encrypted_extra`` below).
+        """
+        return encrypted_extra
+
+    # pylint: disable=unused-argument
+    @classmethod
+    def unmask_encrypted_extra(cls, old: str, new: str) -> str:
+        """
+        Remove masks from ``encrypted_extra``.
+
+        This method allows reusing existing values from the current encrypted extra on
+        updates. It's useful for reusing masked passwords, allowing keys to be updated
+        without having to provide sensitive data to the client.
+        """
+        return new
 
 
 # schema for adding a database by providing parameters instead of the
