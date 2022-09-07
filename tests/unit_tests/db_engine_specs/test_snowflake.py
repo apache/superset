@@ -140,7 +140,7 @@ def test_build_sqlalchemy_uri() -> None:
     }
     assert SnowflakeEngineSpec.build_sqlalchemy_uri(parameters) == (
         "snowflake://test-username:test-password@test-account/test-database?"
-        "role=test-role&warehouse=test-warehouse&application=superset"
+        "role=test-role&warehouse=test-warehouse&application=SUPERSET"
     )
     with mock.patch.dict("os.environ", SF_PARTNER="PARTNER"):
         assert SnowflakeEngineSpec.build_sqlalchemy_uri(parameters) == (
