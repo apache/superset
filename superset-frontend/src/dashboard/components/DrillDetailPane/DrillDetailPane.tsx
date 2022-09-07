@@ -28,7 +28,6 @@ import {
   BinaryQueryObjectFilterClause,
   css,
   ensureIsArray,
-  GenericDataType,
   t,
   useTheme,
   QueryFormData,
@@ -47,32 +46,7 @@ import Alert from 'src/components/Alert';
 import { useApiV1Resource } from 'src/hooks/apiResources';
 import TableControls from './TableControls';
 import { getDrillPayload } from './utils';
-
-type ResultsPage = {
-  total: number;
-  data: Record<string, any>[];
-  colNames: string[];
-  colTypes: GenericDataType[];
-};
-
-type Dataset = {
-  changed_by?: {
-    first_name: string;
-    last_name: string;
-  };
-  created_by?: {
-    first_name: string;
-    last_name: string;
-  };
-  changed_on: Date;
-  created_on: Date;
-  description: string;
-  table_name: string;
-  owners: {
-    first_name: string;
-    last_name: string;
-  }[];
-};
+import { Dataset, ResultsPage } from './types';
 
 const PAGE_SIZE = 50;
 
@@ -284,9 +258,10 @@ export default function DrillDetailPane({
         owners,
       } = result;
       const notAvailable = t('Not available');
-      const createdBy = created_by
-        ? `${created_by.first_name} ${created_by.last_name}`
-        : notAvailable;
+      const createdBy =
+        `${created_by?.first_name ?? ''} ${
+          created_by?.last_name ?? ''
+        }`.trim() || notAvailable;
       const modifiedBy = changed_by
         ? `${changed_by.first_name} ${changed_by.last_name}`
         : notAvailable;
