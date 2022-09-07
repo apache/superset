@@ -126,13 +126,13 @@ class IkiProcessBuilder extends React.PureComponent {
       const iframeSrc =
         this.props.ikigaiOrigin + widgetUrl.pathname + widgetUrl.search;
       const tempIframe = `<iframe
-                          id="ikiprocessdiagram-widget-${this.props.component.id}"
-                          name="process-diagram-${timestamp}"
-                          src="${iframeSrc}"
-                          title="IkiProcessDiagram Component"
-                          className="ikiprocessdiagram-widget"
-                          data-definition="${definitionData}"
-                        ></iframe>`;
+                            id="ikiprocessdiagram-widget-${this.props.component.id}"
+                            name="process-diagram-${timestamp}"
+                            src="${iframeSrc}"
+                            title="IkiProcessDiagram Component"
+                            className="ikiprocessdiagram-widget"
+                            data-definition="${definitionData}"
+                          ></iframe>`;
       this.handleIkiProcessBuilderChange(tempIframe);
       this.handleIncomingWindowMsg();
     }
