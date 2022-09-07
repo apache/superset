@@ -83,6 +83,7 @@ export interface ExplorePageState {
   common: {
     flash_messages: string[];
     conf: JsonObject;
+    locale: string;
   };
   charts: { [key: number]: ChartState };
   datasources: { [key: string]: Dataset };
