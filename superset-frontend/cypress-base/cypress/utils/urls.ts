@@ -25,3 +25,5 @@ export const ECHARTS_DASHBOARD = '/superset/dashboard/echarts_dash/';
 export const TABBED_DASHBOARD = '/superset/dashboard/tabbed_dash/';
 export const DATABASE_LIST = '/databaseview/list';
 export const DATASET_LIST_PATH = 'tablemodelview/list';
+export const ALERT_LIST = '/alert/list/';
+export const REPORT_LIST = '/report/list/';
