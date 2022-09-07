@@ -44,7 +44,6 @@ export const menuTriggerStyles = (theme: SupersetTheme) => css`
 
 const headerStyles = (theme: SupersetTheme) => css`
   display: flex;
-  flex-direction: row-reverse;
   align-items: center;
   flex-wrap: nowrap;
   justify-content: space-between;
@@ -70,15 +69,20 @@ const headerStyles = (theme: SupersetTheme) => css`
   }
 
   .title-panel {
-    display: none;
     align-items: center;
     min-width: 0;
-    margin-right: ${theme.gridUnit * 12}px;
+    margin-right: auto;
+    order: 1;
+
+    & > div:nth-child(2) {
+      display: none;
+    }
   }
 
   .right-button-panel {
     display: flex;
     align-items: center;
+    order: 2;
   }
 `;
 
