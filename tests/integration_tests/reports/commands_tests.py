@@ -57,6 +57,7 @@ from superset.reports.commands.exceptions import (
 from superset.reports.commands.execute import AsyncExecuteReportScheduleCommand
 from superset.reports.commands.log_prune import AsyncPruneReportScheduleLogCommand
 from superset.utils.database import get_example_database
+from superset.utils.urls import get_url_host
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
     load_birth_names_data,
@@ -1861,7 +1862,7 @@ def test_when_tabs_are_selected_it_takes_screenshots_for_every_tabs(
     assert dashboard_screenshot_mock.call_count == 2
     for index, tab in enumerate(tabs):
         assert dashboard_screenshot_mock.call_args_list[index].args == (
-            f"http://0.0.0.0:8080/superset/dashboard/{dashboard.id}/?standalone=3&force=false#{tab}",
+            f"{get_url_host()}superset/dashboard/{dashboard.id}/?standalone=3&force=false#{tab}",
             f"{dashboard.digest}",
         )
     assert send_email_smtp_mock.called is True
