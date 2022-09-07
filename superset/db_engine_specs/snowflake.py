@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import json
+import os
 import re
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Pattern, Tuple, TYPE_CHECKING
@@ -211,6 +212,7 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
                 query={
                     "role": parameters.get("role"),
                     "warehouse": parameters.get("warehouse"),
+                    "application": os.environ.get("SF_PARTNER", "SUPERSET"),
                 },
             )
         )

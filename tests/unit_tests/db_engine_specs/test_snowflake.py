@@ -122,3 +122,28 @@ def test_cancel_query_failed(engine_mock: mock.Mock) -> None:
     query = Query()
     cursor_mock = engine_mock.raiseError.side_effect = Exception()
     assert SnowflakeEngineSpec.cancel_query(cursor_mock, query, "123") is False
+
+
+def test_build_sqlalchemy_uri() -> None:
+    from superset.db_engine_specs.snowflake import (
+        SnowflakeEngineSpec,
+        SnowflakeParametersType,
+    )
+
+    parameters: SnowflakeParametersType = {
+        "username": "test-username",
+        "password": "test-password",
+        "account": "test-account",
+        "database": "test-database",
+        "role": "test-role",
+        "warehouse": "test-warehouse",
+    }
+    assert SnowflakeEngineSpec.build_sqlalchemy_uri(parameters) == (
+        "snowflake://test-username:test-password@test-account/test-database?"
+        "role=test-role&warehouse=test-warehouse&application=superset"
+    )
+    with mock.patch.dict("os.environ", SF_PARTNER="PARTNER"):
+        assert SnowflakeEngineSpec.build_sqlalchemy_uri(parameters) == (
+            "snowflake://test-username:test-password@test-account/test-database?"
+            "role=test-role&warehouse=test-warehouse&application=PARTNER"
+        )
