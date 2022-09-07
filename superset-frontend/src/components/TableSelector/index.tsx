@@ -105,13 +105,13 @@ interface TableSelectorProps {
   tableSelectMode?: 'single' | 'multiple';
 }
 
-interface TableOption {
+export interface TableOption {
   label: JSX.Element;
   text: string;
   value: string;
 }
 
-const TableOption = ({ table }: { table: Table }) => {
+export const TableOption = ({ table }: { table: Table }) => {
   const { label, type, extra } = table;
   return (
     <TableLabel title={label}>
