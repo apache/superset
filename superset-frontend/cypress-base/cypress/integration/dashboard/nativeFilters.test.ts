@@ -25,7 +25,6 @@ import {
 } from 'cypress/support/directories';
 import { waitForChartLoad } from 'cypress/utils';
 import {
-  WORLD_HEALTH_DASHBOARD,
   DASHBOARD_LIST,
   CHART_LIST,
 } from 'cypress/utils/urls';
@@ -54,24 +53,24 @@ import {
   validateFilterContentOnDashboard,
   valueNativeFilterOptions,
   validateFilterNameOnDashboard,
-} from './nativeFilter.helper';
+  testItems,
+} from './utils';
 import { WORLD_HEALTH_CHARTS } from './utils';
-import { cleanUp, copyTestDashboard, testItems } from './dashboard.helper';
 
 // TODO: fix flaky init logic and re-enable
 const milliseconds = new Date().getTime();
 const dashboard = `Test Dashboard${milliseconds}`;
 
+function setup() {
+  cy.preserveLogin();
+  cy.copyDashboard("World Bank's Data", "Cypress test Dashboard");
+  WORLD_HEALTH_CHARTS.forEach(waitForChartLoad);
+  closeDashboardToastMessage();
+}
+
 describe('Nativefilters tests initial state required', () => {
   beforeEach(() => {
-    cy.login();
-    cleanUp();
-    copyTestDashboard("World Bank's Data");
-    WORLD_HEALTH_CHARTS.forEach(waitForChartLoad);
-    closeDashboardToastMessage();
-  });
-  afterEach(() => {
-    cleanUp();
+    setup();
   });
 
   it('Verify that default value is respected after revisit', () => {
@@ -79,8 +78,7 @@ describe('Nativefilters tests initial state required', () => {
     enterNativeFilterEditModal();
     addCountryNameFilter();
     inputNativeFilterDefaultValue(testItems.filterDefaultValue);
-    saveNativeFilterSettings();
-    WORLD_HEALTH_CHARTS.forEach(waitForChartLoad);
+    saveNativeFilterSettings(WORLD_HEALTH_CHARTS);
     cy.get(nativeFilters.filterItem)
       .contains(testItems.filterDefaultValue)
       .should('be.visible');
@@ -88,16 +86,9 @@ describe('Nativefilters tests initial state required', () => {
       cy.contains(testItems.filterDefaultValue).should('be.visible');
       cy.contains(testItems.filterOtherCountry).should('not.exist');
     });
-    cy.request(
-      'api/v1/dashboard/?q=(order_column:changed_on_delta_humanized,order_direction:desc,page:0,page_size:100)',
-    ).then(xhr => {
-      const dashboards = xhr.body.result;
-      const testDashboard = dashboards.find(
-        (d: { dashboard_title: string }) =>
-          d.dashboard_title === testItems.dashboard,
-      );
-      cy.visit(testDashboard.url);
-    });
+
+    // reload dashboard
+    cy.reload()
     WORLD_HEALTH_CHARTS.forEach(waitForChartLoad);
     cy.get(dataTestChartName(testItems.topTenChart.name)).within(() => {
       cy.contains(testItems.filterDefaultValue).should('be.visible');
@@ -122,9 +113,6 @@ describe('Nativefilters tests initial state required', () => {
     );
     addParentFilterWithValue(0, testItems.topTenChart.filterColumnRegion);
     cy.wait(1000);
-    saveNativeFilterSettings();
-    // Validate both filter in dashboard view.
-    WORLD_HEALTH_CHARTS.forEach(waitForChartLoad);
     [
       testItems.topTenChart.filterColumnRegion,
       testItems.topTenChart.filterColumn,
@@ -200,9 +188,7 @@ describe('Nativefilters tests initial state required', () => {
     addParentFilterWithValue(0, testItems.topTenChart.filterColumnRegion);
     // add value to the second input
     addParentFilterWithValue(1, testItems.topTenChart.filterColumn);
-    saveNativeFilterSettings();
-    // wait for charts load
-    WORLD_HEALTH_CHARTS.forEach(waitForChartLoad);
+    saveNativeFilterSettings(WORLD_HEALTH_CHARTS);
     // filters should be displayed in the left panel
     [
       testItems.topTenChart.filterColumnRegion,
@@ -249,7 +235,7 @@ describe('Nativefilters tests initial state required', () => {
           .click();
       },
     );
-    saveNativeFilterSettings();
+    saveNativeFilterSettings(WORLD_HEALTH_CHARTS);
     enterNativeFilterEditModal();
     cy.get(nativeFilters.modal.tabsList.removeTab)
       .should('be.visible')
@@ -257,8 +243,7 @@ describe('Nativefilters tests initial state required', () => {
       .click({
         force: true,
       });
-    saveNativeFilterSettings();
-    WORLD_HEALTH_CHARTS.forEach(waitForChartLoad);
+    saveNativeFilterSettings(WORLD_HEALTH_CHARTS);
     cy.get(dataTestChartName(testItems.topTenChart.name)).within(() => {
       cy.contains(testItems.filterDefaultValue).should('be.visible');
       cy.contains(testItems.filterOtherCountry).should('be.visible');
@@ -268,13 +253,7 @@ describe('Nativefilters tests initial state required', () => {
 
 describe('Nativefilters initial state not required', () => {
   beforeEach(() => {
-    cy.login();
-    cy.visit(WORLD_HEALTH_DASHBOARD);
-  });
-
-  after(() => {
-    enterNativeFilterEditModal();
-    deleteNativeFilter();
+    setup();
   });
 
   it('User can expand / retract native filter sidebar on a dashboard', () => {
@@ -297,7 +276,7 @@ describe('Nativefilters initial state not required', () => {
     enterNativeFilterEditModal();
     cy.get(nativeFilters.filtersList.removeIcon).first().click();
     cy.contains('Restore Filter').should('not.exist', { timeout: 10000 });
-    saveNativeFilterSettings();
+    saveNativeFilterSettings(WORLD_HEALTH_CHARTS);
   });
 
   it('User can cancel creating a new filter', () => {
@@ -335,7 +314,6 @@ describe('Nativefilters initial state not required', () => {
     let filterKey: string;
     const removeFirstChar = (search: string) =>
       search.split('').slice(1, search.length).join('');
-    cy.wait(3000);
     cy.location().then(loc => {
       const queryParams = qs.parse(removeFirstChar(loc.search));
       filterKey = queryParams.native_filters_key as string;
@@ -343,8 +321,7 @@ describe('Nativefilters initial state not required', () => {
     });
     enterNativeFilterEditModal();
     addCountryNameFilter();
-    saveNativeFilterSettings();
-    cy.wait(3000);
+    saveNativeFilterSettings(WORLD_HEALTH_CHARTS);
     cy.location().then(loc => {
       const queryParams = qs.parse(removeFirstChar(loc.search));
       const newfilterKey = queryParams.native_filters_key;
@@ -357,8 +334,7 @@ describe('Nativefilters initial state not required', () => {
   it('User can undo deleting a native filter', () => {
     enterNativeFilterEditModal();
     addCountryCodeFilter();
-    saveNativeFilterSettings();
-    WORLD_HEALTH_CHARTS.forEach(waitForChartLoad);
+    saveNativeFilterSettings(WORLD_HEALTH_CHARTS);
     validateFilterNameOnDashboard(
       testItems.topTenChart.filterColumnCountryCode,
     );
@@ -381,7 +357,7 @@ describe('Nativefilters initial state not required', () => {
       testItems.filterType.timeGrain,
       testItems.datasetForNativeFilter,
     );
-    saveNativeFilterSettings();
+    saveNativeFilterSettings(WORLD_HEALTH_CHARTS);
     applyNativeFilterValueWithIndex(0, testItems.filterTimeGrain);
     cy.get(nativeFilters.applyFilter).click();
     cy.url().then(u => {
@@ -392,13 +368,13 @@ describe('Nativefilters initial state not required', () => {
     validateFilterContentOnDashboard(testItems.filterTimeGrain);
   });
 
-  xit('User can create a time range filter', () => {
+  it.skip('User can create a time range filter', () => {
     enterNativeFilterEditModal();
     fillNativeFilterForm(
       testItems.filterType.timeRange,
       testItems.filterType.timeRange,
     );
-    saveNativeFilterSettings();
+    saveNativeFilterSettings(WORLD_HEALTH_CHARTS);
     cy.get(dashboardView.salesDashboardSpecific.vehicleSalesFilterTimeRange)
       .should('be.visible')
       .click();
@@ -413,14 +389,14 @@ describe('Nativefilters initial state not required', () => {
       .should('be.visible');
   });
 
-  xit('User can create a time column filter', () => {
+  it.skip('User can create a time column filter', () => {
     enterNativeFilterEditModal();
     fillNativeFilterForm(
       testItems.filterType.timeColumn,
       testItems.filterType.timeColumn,
       testItems.datasetForNativeFilter,
     );
-    saveNativeFilterSettings();
+    saveNativeFilterSettings(WORLD_HEALTH_CHARTS);
     cy.intercept(`/api/v1/chart/data?form_data=**`).as('chart');
     cy.get(nativeFilters.modal.container).should('not.exist');
     // assert that native filter is created
@@ -439,7 +415,7 @@ describe('Nativefilters initial state not required', () => {
       testItems.datasetForNativeFilter,
       testItems.filterNumericalColumn,
     );
-    saveNativeFilterSettings();
+    saveNativeFilterSettings(WORLD_HEALTH_CHARTS);
     // assertions
     cy.get(nativeFilters.slider.slider).should('be.visible').click('center');
     // cy.get(sqlLabView.tooltip).should('be.visible');
@@ -466,8 +442,7 @@ describe('Nativefilters initial state not required', () => {
   it('User can undo deleting a native filter', () => {
     enterNativeFilterEditModal();
     addCountryNameFilter();
-    saveNativeFilterSettings();
-    WORLD_HEALTH_CHARTS.forEach(waitForChartLoad);
+    saveNativeFilterSettings(WORLD_HEALTH_CHARTS);
     validateFilterNameOnDashboard(testItems.topTenChart.filterColumn);
     enterNativeFilterEditModal();
     undoDeleteNativeFilter();
@@ -484,7 +459,7 @@ describe('Nativefilters initial state not required', () => {
     enterNativeFilterEditModal();
     cy.get(nativeFilters.filtersList.removeIcon).first().click();
     cy.contains('You have removed this filter.').should('be.visible');
-    saveNativeFilterSettings();
+    saveNativeFilterSettings(WORLD_HEALTH_CHARTS);
   });
 
   it('User can create a value filter', () => {
@@ -493,15 +468,14 @@ describe('Nativefilters initial state not required', () => {
     cy.get(nativeFilters.filtersPanel.filterTypeInput)
       .find(nativeFilters.filtersPanel.filterTypeItem)
       .should('have.text', testItems.filterType.value);
-    saveNativeFilterSettings();
+    saveNativeFilterSettings(WORLD_HEALTH_CHARTS);
     validateFilterNameOnDashboard(testItems.topTenChart.filterColumn);
   });
 
   it('User can apply value filter with selected values', () => {
     enterNativeFilterEditModal();
     addCountryNameFilter();
-    saveNativeFilterSettings();
-    WORLD_HEALTH_CHARTS.forEach(waitForChartLoad);
+    saveNativeFilterSettings(WORLD_HEALTH_CHARTS);
     applyNativeFilterValueWithIndex(0, testItems.filterDefaultValue);
     cy.get(nativeFilters.applyFilter).click();
     cy.get(dataTestChartName(testItems.topTenChart.name)).within(() => {
@@ -514,8 +488,7 @@ describe('Nativefilters initial state not required', () => {
     enterNativeFilterEditModal();
     addCountryNameFilter();
     inputNativeFilterDefaultValue(testItems.filterDefaultValue);
-    saveNativeFilterSettings();
-    WORLD_HEALTH_CHARTS.forEach(waitForChartLoad);
+    saveNativeFilterSettings(WORLD_HEALTH_CHARTS);
     cy.get(dataTestChartName(testItems.topTenChart.name)).within(() => {
       cy.contains(testItems.filterDefaultValue).should('be.visible');
       cy.contains(testItems.filterOtherCountry).should('not.exist');
@@ -526,8 +499,7 @@ describe('Nativefilters initial state not required', () => {
     validateFilterNameOnDashboard(testItems.topTenChart.filterColumn);
     enterNativeFilterEditModal();
     deleteNativeFilter();
-    saveNativeFilterSettings();
-    WORLD_HEALTH_CHARTS.forEach(waitForChartLoad);
+    saveNativeFilterSettings(WORLD_HEALTH_CHARTS);
     cy.get(dataTestChartName(testItems.topTenChart.name)).within(() => {
       cy.contains(testItems.filterDefaultValue).should('be.visible');
       cy.contains(testItems.filterOtherCountry).should('be.visible');
@@ -535,7 +507,7 @@ describe('Nativefilters initial state not required', () => {
   });
 });
 
-xdescribe('Nativefilters', () => {
+describe.skip('Nativefilters', () => {
   before(() => {
     cy.login();
     cy.visit(DASHBOARD_LIST);
@@ -612,7 +584,7 @@ xdescribe('Nativefilters', () => {
       cy.contains('USA').should('not.exist');
     });
   });
-  xit('default value is respected after revisit', () => {
+  it('default value is respected after revisit', () => {
     cy.get('[data-test="filter-bar__create-filter"]').click();
     cy.get('.ant-modal').should('be.visible');
     // TODO: replace with proper wait for filter to finish loading
@@ -744,7 +716,7 @@ xdescribe('Nativefilters', () => {
         .click();
       cy.get('[data-test="filter-icon"]').should('be.visible');
     });
-    xit('should parent filter be working', () => {
+    it('should parent filter be working', () => {
       cy.get('.treemap').within(() => {
         cy.contains('SMR').should('be.visible');
         cy.contains('Europe & Central Asia').should('be.visible');

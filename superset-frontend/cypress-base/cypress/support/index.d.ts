@@ -72,6 +72,7 @@ declare namespace Cypress {
      */
     createSampleDashboards(): void;
     createSampleCharts(): void;
+    copyDashboard(originalDashboardName: string, copyDashboardName: string): void;
 
     /**
      * Delete
