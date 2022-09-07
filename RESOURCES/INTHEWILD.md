@@ -129,7 +129,7 @@ Join our growing community!
 - [WikiMedia Foundation](https://wikimediafoundation.org) [@vg]
 
 ### Energy
-- [Airboxlab](https://foobot.io) [@antoine-galataud]
+- [Airboxlab](https://barbot.io) [@antoine-galataud]
 - [DouroECI](https://www.douroeci.com/) [@nunohelibeires]
 - [Safaricom](https://www.safaricom.co.ke/) [@mmutiso]
 - [Scoot](https://scoot.co/) [@haaspt]
