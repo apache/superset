@@ -49,6 +49,14 @@ class UpdateDatabaseCommand(BaseCommand):
             raise DatabaseNotFoundError()
         old_database_name = self._model.database_name
 
+        # unmask ``encrypted_extra``
+        self._properties[
+            "encrypted_extra"
+        ] = self._model.db_engine_spec.unmask_encrypted_extra(
+            self._model.encrypted_extra,
+            self._properties.pop("masked_encrypted_extra", "{}"),
+        )
+
         try:
             database = DatabaseDAO.update(self._model, self._properties, commit=False)
             database.set_sqlalchemy_uri(database.sqlalchemy_uri)

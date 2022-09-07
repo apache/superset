@@ -271,6 +271,7 @@ describe('DatabaseModal', () => {
         hidden: true,
       });
 
+      const footer = document.getElementsByClassName('ant-modal-footer');
       // ---------- TODO (lyndsiWilliams): Selector options, can't seem to get these to render properly.
 
       // renderAvailableSelector() => <Alert> - Supported databases alert
@@ -312,6 +313,8 @@ describe('DatabaseModal', () => {
       visibleComponents.forEach(component => {
         expect(component).toBeVisible();
       });
+      // there should be a footer but it should not have any buttons in it
+      expect(footer[0]).toBeEmptyDOMElement();
       // This is how many preferred databases are rendered
       expect(preferredDbIcon).toHaveLength(4);
     });

@@ -67,6 +67,11 @@ export type DashboardState = {
   hasUnsavedChanges: boolean;
   colorScheme: string;
   sliceIds: number[];
+  directPathLastUpdated: number;
+  focusedFilterField?: {
+    chartId: number;
+    column: string;
+  };
 };
 export type DashboardInfo = {
   id: number;
