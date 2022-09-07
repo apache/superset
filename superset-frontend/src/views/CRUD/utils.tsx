@@ -92,23 +92,22 @@ const createFetchResourceMethod =
       : undefined;
 
     const data: { label: string; value: string | number }[] = [];
-    json?.result?.forEach(
-      ({ text, value }: { text: string; value: string | number }) => {
-        const isTextEmpty = text.replaceAll(' ', '').length === 0;
+    json?.result
+      ?.filter(({ text }: { text: string }) => text.trim().length > 0)
+      .forEach(({ text, value }: { text: string; value: string | number }) => {
         if (
           loggedUser &&
           value === loggedUser.value &&
           text === loggedUser.label
         ) {
           fetchedLoggedUser = true;
-        } else if (!isTextEmpty) {
+        } else {
           data.push({
             label: text,
             value,
           });
         }
-      },
-    );
+      });
 
     if (loggedUser && (!filterValue || fetchedLoggedUser)) {
       data.unshift(loggedUser);
