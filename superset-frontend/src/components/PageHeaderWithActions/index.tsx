@@ -82,6 +82,7 @@ const headerStyles = (theme: SupersetTheme) => css`
   .right-button-panel {
     display: flex;
     align-items: center;
+    order: 2;
   }
 `;
 

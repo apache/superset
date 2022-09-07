@@ -92,9 +92,6 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
       padding-right: ${theme.gridUnit * 3}px;
       padding-bottom: 0;
       top: 0;
-      top: 150px;
-      max-height: calc(100% - 200px);
-      overflow-y: auto;
     `}
 
   .ant-modal-content {
@@ -102,7 +99,9 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
     flex-direction: column;
     max-height: ${({ theme }) => `calc(100vh - ${theme.gridUnit * 8}px)`};
     margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
-    margin-top: ${({ theme }) => theme.gridUnit * 4}px;
+    margin-top: 150px;
+    max-height: calc(100vh - 300px) !important;
+    overflow-y: auto !important;
   }
 
   .ant-modal-header {
