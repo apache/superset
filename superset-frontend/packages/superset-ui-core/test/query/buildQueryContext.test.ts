@@ -17,6 +17,7 @@
  * under the License.
  */
 import { buildQueryContext } from '@superset-ui/core';
+import * as queryModule from '../../src/query/normalizeTimeColumn';
 
 describe('buildQueryContext', () => {
   it('should build datasource for table sources and apply defaults', () => {
@@ -121,5 +122,51 @@ describe('buildQueryContext', () => {
         operation: 'flatten',
       },
     ]);
+  });
+  it('should call normalizeTimeColumn if GENERIC_CHART_AXES is enabled', () => {
+    // @ts-ignore
+    const spy = jest.spyOn(window, 'window', 'get').mockImplementation(() => ({
+      featureFlags: {
+        GENERIC_CHART_AXES: true,
+      },
+    }));
+    const spyNormalizeTimeColumn = jest.spyOn(
+      queryModule,
+      'normalizeTimeColumn',
+    );
+
+    buildQueryContext(
+      {
+        datasource: '5__table',
+        viz_type: 'table',
+      },
+      () => [{}],
+    );
+    expect(spyNormalizeTimeColumn).toBeCalled();
+    spy.mockRestore();
+    spyNormalizeTimeColumn.mockRestore();
+  });
+  it("shouldn't call normalizeTimeColumn if GENERIC_CHART_AXES is disabled", () => {
+    // @ts-ignore
+    const spy = jest.spyOn(window, 'window', 'get').mockImplementation(() => ({
+      featureFlags: {
+        GENERIC_CHART_AXES: false,
+      },
+    }));
+    const spyNormalizeTimeColumn = jest.spyOn(
+      queryModule,
+      'normalizeTimeColumn',
+    );
+
+    buildQueryContext(
+      {
+        datasource: '5__table',
+        viz_type: 'table',
+      },
+      () => [{}],
+    );
+    expect(spyNormalizeTimeColumn).not.toBeCalled();
+    spy.mockRestore();
+    spyNormalizeTimeColumn.mockRestore();
   });
 });

@@ -1269,6 +1269,17 @@ def is_adhoc_column(column: Column) -> TypeGuard[AdhocColumn]:
     return isinstance(column, dict)
 
 
+def get_base_axis_column(columns: Optional[List[Column]]) -> Optional[AdhocColumn]:
+    if columns is None:
+        return None
+    axis_cols = [
+        col
+        for col in columns
+        if is_adhoc_column(col) and col.get("columnType") == "BASE_AXIS"
+    ]
+    return axis_cols[0] if axis_cols else None
+
+
 def get_column_name(
     column: Column, verbose_map: Optional[Dict[str, Any]] = None
 ) -> str:
