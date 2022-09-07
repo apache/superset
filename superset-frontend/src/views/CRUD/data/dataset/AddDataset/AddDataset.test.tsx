@@ -22,7 +22,7 @@ import AddDataset from 'src/views/CRUD/data/dataset/AddDataset';
 
 describe('AddDataset', () => {
   it('renders a blank state AddDataset', () => {
-    render(<AddDataset />);
+    render(<AddDataset />, { useRedux: true });
 
     const blankeStateImgs = screen.getAllByRole('img', { name: /empty/i });
 
@@ -30,13 +30,9 @@ describe('AddDataset', () => {
     expect(screen.getByText(/header/i)).toBeVisible();
     // Left panel
     expect(blankeStateImgs[0]).toBeVisible();
-    expect(screen.getByText(/no database tables found/i)).toBeVisible();
-    // Database panel
-    expect(blankeStateImgs[1]).toBeVisible();
-    expect(screen.getByText(/select dataset source/i)).toBeVisible();
     // Footer
     expect(screen.getByText(/footer/i)).toBeVisible();
 
-    expect(blankeStateImgs.length).toBe(2);
+    expect(blankeStateImgs.length).toBe(1);
   });
 });
