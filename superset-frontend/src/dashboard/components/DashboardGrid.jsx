@@ -159,9 +159,6 @@ class DashboardGrid extends React.PureComponent {
     const dashboardEmptyState = editMode && (
       <EmptyStateBig
         title={t('Drag and drop components and charts to the dashboard')}
-        description=""
-        buttonText=""
-        buttonAction={() => {}}
         image="chart.svg"
       />
     );
@@ -169,9 +166,6 @@ class DashboardGrid extends React.PureComponent {
     const topLevelTabEmptyState = editMode ? (
       <EmptyStateBig
         title={t('Drag and drop components to this tab')}
-        description=""
-        buttonText=""
-        buttonAction={() => {}}
         image="chart.svg"
       />
     ) : (
