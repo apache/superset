@@ -15,21 +15,21 @@
 # specific language governing permissions and limitations
 # under the License.
 import json
-import re
 import logging
+import re
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Pattern, Tuple, TYPE_CHECKING
 from urllib import parse
 
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import serialization
+from flask import current_app
 from flask_babel import gettext as __
 from marshmallow import fields, Schema
 from sqlalchemy.engine.url import URL
 from typing_extensions import TypedDict
-from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives import serialization
-from flask import current_app
 
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.postgres import PostgresBaseEngineSpec
@@ -314,12 +314,13 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
             p_key = serialization.load_pem_private_key(
                 key,
                 password=auth_params["privatekey_pass"].encode(),
-                backend=default_backend()
+                backend=default_backend(),
             )
             pkb = p_key.private_bytes(
                 encoding=serialization.Encoding.DER,
                 format=serialization.PrivateFormat.PKCS8,
-                encryption_algorithm=serialization.NoEncryption())
+                encryption_algorithm=serialization.NoEncryption(),
+            )
             connect_args["private_key"] = pkb
         else:
             allowed_extra_auths = current_app.config[
