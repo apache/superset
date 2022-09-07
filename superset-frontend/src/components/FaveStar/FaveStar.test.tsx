@@ -26,7 +26,7 @@ jest.mock('src/components/Tooltip', () => ({
   Tooltip: (props: any) => <div data-test="tooltip" {...props} />,
 }));
 
-it('render right content', async () => {
+test('render right content', async () => {
   const props = {
     itemId: 3,
     saveFaveStar: jest.fn(),
@@ -54,7 +54,7 @@ it('render right content', async () => {
   expect(props.saveFaveStar).toBeCalledWith(props.itemId, false);
 });
 
-it('render content on tooltip', async () => {
+test('render content on tooltip', async () => {
   const props = {
     itemId: 3,
     showTooltip: true,
@@ -75,7 +75,7 @@ it('render content on tooltip', async () => {
   expect(screen.getByRole('button')).toBeInTheDocument();
 });
 
-it('Call fetchFaveStar only on the first render', async () => {
+test('Call fetchFaveStar only on the first render', async () => {
   const props = {
     itemId: 3,
     fetchFaveStar: jest.fn(),
