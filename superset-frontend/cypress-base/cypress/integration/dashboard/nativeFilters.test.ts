@@ -24,10 +24,7 @@ import {
   dataTestChartName,
 } from 'cypress/support/directories';
 import { waitForChartLoad } from 'cypress/utils';
-import {
-  DASHBOARD_LIST,
-  CHART_LIST,
-} from 'cypress/utils/urls';
+import { DASHBOARD_LIST, CHART_LIST } from 'cypress/utils/urls';
 
 import {
   addCountryCodeFilter,
@@ -54,8 +51,8 @@ import {
   valueNativeFilterOptions,
   validateFilterNameOnDashboard,
   testItems,
+  WORLD_HEALTH_CHARTS,
 } from './utils';
-import { WORLD_HEALTH_CHARTS } from './utils';
 
 // TODO: fix flaky init logic and re-enable
 const milliseconds = new Date().getTime();
@@ -63,7 +60,7 @@ const dashboard = `Test Dashboard${milliseconds}`;
 
 function setup() {
   cy.preserveLogin();
-  cy.copyDashboard("World Bank's Data", "Cypress test Dashboard");
+  cy.copyDashboard("World Bank's Data", 'Cypress test Dashboard');
   WORLD_HEALTH_CHARTS.forEach(waitForChartLoad);
   closeDashboardToastMessage();
 }
@@ -88,7 +85,7 @@ describe('Nativefilters tests initial state required', () => {
     });
 
     // reload dashboard
-    cy.reload()
+    cy.reload();
     WORLD_HEALTH_CHARTS.forEach(waitForChartLoad);
     cy.get(dataTestChartName(testItems.topTenChart.name)).within(() => {
       cy.contains(testItems.filterDefaultValue).should('be.visible');
@@ -112,7 +109,7 @@ describe('Nativefilters tests initial state required', () => {
       },
     );
     addParentFilterWithValue(0, testItems.topTenChart.filterColumnRegion);
-    cy.wait(1000);
+    saveNativeFilterSettings(WORLD_HEALTH_CHARTS);
     [
       testItems.topTenChart.filterColumnRegion,
       testItems.topTenChart.filterColumn,
