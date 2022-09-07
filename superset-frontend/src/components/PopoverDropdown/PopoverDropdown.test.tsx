@@ -36,19 +36,19 @@ const defaultProps: PopoverDropdownProps = {
   onChange: jest.fn(),
 };
 
-it('renders with default props', async () => {
+test('renders with default props', async () => {
   render(<PopoverDropdown {...defaultProps} />);
   expect(await screen.findByRole('button')).toBeInTheDocument();
   expect(screen.getByRole('button')).toHaveTextContent('Option 1');
 });
 
-it('renders the menu on click', async () => {
+test('renders the menu on click', async () => {
   render(<PopoverDropdown {...defaultProps} />);
   userEvent.click(screen.getByRole('button'));
   expect(await screen.findByRole('menu')).toBeInTheDocument();
 });
 
-it('renders with custom button', async () => {
+test('renders with custom button', async () => {
   render(
     <PopoverDropdown
       {...defaultProps}
@@ -62,7 +62,7 @@ it('renders with custom button', async () => {
   expect(await screen.findByText('Custom Option 1')).toBeInTheDocument();
 });
 
-it('renders with custom option', async () => {
+test('renders with custom option', async () => {
   render(
     <PopoverDropdown
       {...defaultProps}
@@ -77,7 +77,7 @@ it('renders with custom option', async () => {
   expect(await screen.findByText('Custom Option 1')).toBeInTheDocument();
 });
 
-it('triggers onChange', async () => {
+test('triggers onChange', async () => {
   render(<PopoverDropdown {...defaultProps} />);
   userEvent.click(screen.getByRole('button'));
   expect(await screen.findByText('Option 2')).toBeInTheDocument();
