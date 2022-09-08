@@ -80,8 +80,8 @@ try:
         def __init__(  # pylint: disable=super-init-not-called
             self,
             host: str = "localhost",
-            port: int = 8125,
-            prefix: str = "superset",
+            port: int = 9125,
+            prefix: str = "careem.insights",
             statsd_client: Optional[StatsClient] = None,
         ) -> None:
             """

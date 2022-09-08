@@ -30,6 +30,7 @@ RUN mkdir /app \
             libpq-dev \
             libsasl2-dev \
             libecpg-dev \
+            firefox-esr \
         && rm -rf /var/lib/apt/lists/*
 
 
