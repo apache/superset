@@ -51,6 +51,8 @@ from superset.utils.core import (
     DatasourceType,
     DTTM_ALIAS,
     error_msg_from_exception,
+    get_base_axis_label,
+    get_column_name,
     get_column_names_from_columns,
     get_column_names_from_metrics,
     get_metric_names,
@@ -245,11 +247,21 @@ class QueryContextProcessor:
             if dttm_col:
                 timestamp_format = dttm_col.python_date_format
 
+        base_axis_label = None
+        if (
+            (label := get_base_axis_label(query_object.columns))
+            and query_object.datasource is not None
+            and (base_column := query_object.datasource.get_column(label))
+            and base_column.is_dttm
+        ):
+            base_axis_label = label
+
         normalize_dttm_col(
             df=df,
             timestamp_format=timestamp_format,
             offset=datasource.offset,
             time_shift=query_object.time_shift,
+            dttm_alias=base_axis_label,
         )
 
         if self.enforce_numerical_metrics:
@@ -344,10 +356,8 @@ class QueryContextProcessor:
                 offset_metrics_df = offset_metrics_df.rename(columns=metrics_mapping)
 
                 # 3. set time offset for index
-                # TODO: add x-axis to QueryObject, potentially as an array for
-                #  multi-dimensional charts
-                granularity = query_object.granularity
-                index = granularity if granularity in df.columns else DTTM_ALIAS
+                base_axis_label = get_base_axis_label(query_object.columns)
+                index = base_axis_label if base_axis_label in df.columns else DTTM_ALIAS
                 if not dataframe_utils.is_datetime_series(offset_metrics_df.get(index)):
                     raise QueryObjectValidationError(
                         _(

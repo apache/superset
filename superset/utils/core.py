@@ -1271,15 +1271,15 @@ def is_adhoc_column(column: Column) -> TypeGuard[AdhocColumn]:
     return isinstance(column, dict)
 
 
-def get_base_axis_column(columns: Optional[List[Column]]) -> Optional[AdhocColumn]:
-    if columns is None:
-        return None
+def get_base_axis_label(columns: Optional[List[Column]]) -> Optional[str]:
     axis_cols = [
         col
-        for col in columns
+        for col in columns or []
         if is_adhoc_column(col) and col.get("columnType") == "BASE_AXIS"
     ]
-    return axis_cols[0] if axis_cols else None
+    if axis_cols:
+        return get_column_name(axis_cols[0])
+    return None
 
 
 def get_column_name(
@@ -1301,9 +1301,12 @@ def get_column_name(
         expr = column.get("sqlExpression")
         if expr:
             return expr
-        raise ValueError("Missing label")
-    verbose_map = verbose_map or {}
-    return verbose_map.get(column, column)
+
+    if isinstance(column, str):
+        verbose_map = verbose_map or {}
+        return verbose_map.get(column, column)
+
+    raise ValueError("Missing label")
 
 
 def get_metric_name(
@@ -1850,28 +1853,31 @@ def normalize_dttm_col(
     timestamp_format: Optional[str],
     offset: int,
     time_shift: Optional[timedelta],
+    dttm_alias: Optional[str] = DTTM_ALIAS,
 ) -> None:
-    if DTTM_ALIAS not in df.columns:
+    if dttm_alias is None:
+        dttm_alias = DTTM_ALIAS
+    if dttm_alias not in df.columns:
         return
     if timestamp_format in ("epoch_s", "epoch_ms"):
-        dttm_col = df[DTTM_ALIAS]
+        dttm_col = df[dttm_alias]
         if is_numeric_dtype(dttm_col):
             # Column is formatted as a numeric value
             unit = timestamp_format.replace("epoch_", "")
-            df[DTTM_ALIAS] = pd.to_datetime(
+            df[dttm_alias] = pd.to_datetime(
                 dttm_col, utc=False, unit=unit, origin="unix", errors="coerce"
             )
         else:
             # Column has already been formatted as a timestamp.
-            df[DTTM_ALIAS] = dttm_col.apply(pd.Timestamp)
+            df[dttm_alias] = dttm_col.apply(pd.Timestamp)
     else:
-        df[DTTM_ALIAS] = pd.to_datetime(
-            df[DTTM_ALIAS], utc=False, format=timestamp_format, errors="coerce"
+        df[dttm_alias] = pd.to_datetime(
+            df[dttm_alias], utc=False, format=timestamp_format, errors="coerce"
         )
     if offset:
-        df[DTTM_ALIAS] += timedelta(hours=offset)
+        df[dttm_alias] += timedelta(hours=offset)
     if time_shift is not None:
-        df[DTTM_ALIAS] += time_shift
+        df[dttm_alias] += time_shift
 
 
 def parse_boolean_string(bool_str: Optional[str]) -> bool:
