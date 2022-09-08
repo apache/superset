@@ -1,0 +1,44 @@
+name: Generate Technical Debt Metrics
+
+on:
+  pull_request:
+    types:
+      - opened
+    branches:
+      - 'master'
+
+jobs:
+
+  action:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+      
+      - name: Generate json
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16
+        run: npm run lint-stats
+      
+      - name: Generate csv from json
+        uses: actions/setup-python@v2
+        uses: jannekem/run-python-script-action@v1
+        with:
+          script: |
+            import json
+            import csv
+
+            with open("scripts/eslint-metrics-report.json") as json_file:
+              jsondata = json.load(json_file)
+
+            with open("scripts/eslint-metrics-report.csv", "a", encoding="utf-8") as fp:
+                writer = csv.writer(fp, quoting=csv.QUOTE_NONNUMERIC)
+
+                for i, data in enumerate(jsondata):
+                  if i == 0:
+                    header = data.keys()
+                    writer.writerow(header)
+                    count += 1
+                writer.writerow(data.values())
