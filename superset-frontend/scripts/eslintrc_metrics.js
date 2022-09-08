@@ -17,6 +17,16 @@
  * under the License.
  */
 
+/**
+ * TODO (Evan Rusackas)
+ * - SIP-61 content organization
+ * - Component/Design system rules
+ *   - Organization of folders in Storybook
+ *   - All components have a description page
+ *   - Props have controls
+ *   - Components have figma links
+ */
+
 const packageConfig = require('../package');
 
 const importCoreModules = [];
