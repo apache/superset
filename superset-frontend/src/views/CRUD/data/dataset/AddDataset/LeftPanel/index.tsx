@@ -60,7 +60,7 @@ const LeftPanelStyle = styled.div`
     }
     .refresh {
       position: absolute;
-      top: ${theme.gridUnit * 43.25}px;
+      top: ${theme.gridUnit * 37.25}px;
       left: ${theme.gridUnit * 16.75}px;
       span[role="button"]{
         font-size: ${theme.gridUnit * 4.25}px;
@@ -84,13 +84,24 @@ const LeftPanelStyle = styled.div`
       left: ${theme.gridUnit * 3.25}px;
       right: 0;
       .options {
+        cursor: pointer;
         padding: ${theme.gridUnit * 1.75}px;
         border-radius: ${theme.borderRadius}px;
+        :hover {
+          background-color: ${theme.colors.grayscale.light4}
+        }
+      }
+      .options-highlighted {
+        cursor: pointer;
+        padding: ${theme.gridUnit * 1.75}px;
+        border-radius: ${theme.borderRadius}px;
+        background-color: ${theme.colors.primary.dark1};
+        color: ${theme.colors.grayscale.light5};
       }
     }
     form > span[aria-label="refresh"] {
       position: absolute;
-      top: ${theme.gridUnit * 73}px;
+      top: ${theme.gridUnit * 67.5}px;
       left: ${theme.gridUnit * 42.75}px;
       font-size: ${theme.gridUnit * 4.25}px;
     }
@@ -108,10 +119,9 @@ const LeftPanelStyle = styled.div`
         margin-bottom: 10px;
       }
       p {
-        color: ${theme.colors.grayscale.light1}
+        color: ${theme.colors.grayscale.light1};
       }
     }
-  }
 `}
 `;
 
@@ -125,12 +135,22 @@ export default function LeftPanel({
   const [loadTables, setLoadTables] = useState(false);
   const [searchVal, setSearchVal] = useState('');
   const [refresh, setRefresh] = useState(false);
+  const [selectedTable, setSelectedTable] = useState<number | null>(null);
 
   const { addDangerToast } = useToasts();
 
   const setDatabase = (db: Partial<DatasetObject>) => {
     setDataset({ type: DatasetActionType.selectDatabase, payload: db });
+    setSelectedTable(null);
     setResetTables(true);
+  };
+
+  const setTable = (tableName: string, index: number) => {
+    setSelectedTable(index);
+    setDataset({
+      type: DatasetActionType.selectTable,
+      payload: { name: 'table_name', value: tableName },
+    });
   };
 
   const getTablesList = (url: string) => {
@@ -164,6 +184,7 @@ export default function LeftPanel({
       });
       setLoadTables(true);
     }
+    setSelectedTable(null);
     setResetTables(true);
   };
 
@@ -212,8 +233,7 @@ export default function LeftPanel({
         onSchemaChange={setSchema}
       />
       {loadTables && !refresh && Loader('Table loading')}
-
-      {schema && !loadTables && !tableOptions.length && !searchVal && (
+      {schema && loadTables && !tableOptions.length && !searchVal && (
         <div className="emptystate">
           <EmptyStateMedium
             image="empty-table.svg"
@@ -251,7 +271,15 @@ export default function LeftPanel({
           <div className="options-list" data-test="options-list">
             {!refresh &&
               tableOptions.map((o, i) => (
-                <div className="options" key={i}>
+                <div
+                  className={
+                    selectedTable === i ? 'options-highlighted' : 'options'
+                  }
+                  key={i}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setTable(o.value, i)}
+                >
                   {o.label}
                 </div>
               ))}

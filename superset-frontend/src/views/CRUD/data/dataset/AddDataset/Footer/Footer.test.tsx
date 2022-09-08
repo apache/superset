@@ -61,6 +61,6 @@ describe('Footer', () => {
       name: /Create/i,
     });
 
-    expect(createButton).not.toBeDisabled();
+    expect(createButton).toBeEnabled();
   });
 });

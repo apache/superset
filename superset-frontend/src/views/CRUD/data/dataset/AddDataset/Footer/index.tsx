@@ -20,20 +20,17 @@ import React from 'react';
 import Button from 'src/components/Button';
 import { t } from '@superset-ui/core';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
-import { addDangerToast } from 'src/components/MessageToasts/actions';
+import withToasts from 'src/components/MessageToasts/withToasts';
 import { DatasetObject } from '../types';
 
 interface FooterObject {
   url: string;
+  addDangerToast: () => void;
   datasetObject?: Partial<DatasetObject> | null;
   onDatasetAdd?: (dataset: DatasetObject) => void;
 }
 
-export default function Footer({
-  url,
-  datasetObject,
-  onDatasetAdd,
-}: FooterObject) {
+function Footer({ url, datasetObject, addDangerToast }: FooterObject) {
   const { createResource } = useSingleViewResource<Partial<DatasetObject>>(
     'dataset',
     t('dataset'),
@@ -49,15 +46,20 @@ export default function Footer({
 
   const onSave = () => {
     if (datasetObject) {
-      createResource(datasetObject).then(response => {
+      const data = {
+        database: datasetObject.id,
+        schema: datasetObject.schema,
+        table_name: datasetObject.table_name,
+      };
+      createResource(data).then(response => {
         if (!response) {
           return;
         }
-        if (onDatasetAdd) {
-          onDatasetAdd({ id: response.id, ...response });
+        if (typeof response === 'number') {
+          // When a dataset is created the response we get is its ID number
+          cancelButtonOnClick();
         }
       });
-      cancelButtonOnClick();
     }
   };
 
@@ -75,3 +77,5 @@ export default function Footer({
     </>
   );
 }
+
+export default withToasts(Footer);

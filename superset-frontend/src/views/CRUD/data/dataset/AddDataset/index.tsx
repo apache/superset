@@ -53,7 +53,7 @@ export function datasetReducer(
     case DatasetActionType.selectTable:
       return {
         ...trimmedState,
-        ...action.payload,
+        [action.payload.name]: action.payload.value,
       };
     case DatasetActionType.changeDataset:
       return {
@@ -80,7 +80,7 @@ export default function AddDataset() {
       schema={dataset?.schema}
       dbId={dataset?.id}
     />
-  )
+  );
   const prevUrl =
     '/tablemodelview/list/?pageIndex=0&sortColumn=changed_on_delta_humanized&sortOrder=desc';
 

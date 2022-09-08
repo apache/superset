@@ -43,10 +43,13 @@ export type Schema = {
 
 export type DSReducerActionType =
   | {
-      type: DatasetActionType.selectDatabase | DatasetActionType.selectTable;
+      type: DatasetActionType.selectDatabase;
       payload: Partial<DatasetObject>;
     }
   | {
-      type: DatasetActionType.changeDataset | DatasetActionType.selectSchema;
+      type:
+        | DatasetActionType.changeDataset
+        | DatasetActionType.selectSchema
+        | DatasetActionType.selectTable;
       payload: DatasetReducerPayloadType;
     };
