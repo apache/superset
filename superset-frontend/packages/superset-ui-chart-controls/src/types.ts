@@ -221,6 +221,7 @@ export interface BaseControlConfig<
         chartState?: AnyDict,
       ) => ReactNode);
   default?: V;
+  initialValue?: V;
   renderTrigger?: boolean;
   validators?: ControlValueValidator<T, O, V>[];
   warning?: ReactNode;
