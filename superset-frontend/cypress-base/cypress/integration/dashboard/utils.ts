@@ -18,7 +18,7 @@
  */
 
 import { dashboardView, nativeFilters } from 'cypress/support/directories';
-import { waitForChartLoad } from 'cypress/utils';
+import { ChartSpec, waitForChartLoad } from 'cypress/utils';
 
 export const WORLD_HEALTH_CHARTS = [
   { name: '% Rural', viz: 'world_map' },
@@ -31,7 +31,7 @@ export const WORLD_HEALTH_CHARTS = [
   { name: 'Life Expectancy VS Rural %', viz: 'bubble' },
   { name: 'Treemap', viz: 'treemap' },
   { name: 'Box plot', viz: 'box_plot' },
-] as const;
+] as ChartSpec[];
 
 export const ECHARTS_CHARTS = [
   { name: 'Number of Girls', viz: 'big_number_total' },
@@ -39,7 +39,7 @@ export const ECHARTS_CHARTS = [
   { name: 'Box plot', viz: 'box_plot' },
   { name: 'Genders', viz: 'pie' },
   { name: 'Energy Force Layout', viz: 'graph_chart' },
-] as const;
+] as ChartSpec[];
 
 export const testItems = {
   dashboard: 'Cypress test Dashboard',
@@ -144,6 +144,18 @@ export function interceptUnfav() {
   cy.intercept(`/superset/favstar/Dashboard/*/unselect/`).as('unselect');
 }
 
+export function interceptDataset() {
+  cy.intercept('GET', `/api/v1/dataset/*`).as('getDataset');
+}
+
+export function interceptCharts() {
+  cy.intercept('GET', `/api/v1/dashboard/*/charts`).as('getCharts');
+}
+
+export function interceptDatasets() {
+  cy.intercept('GET', `/api/v1/dashboard/*/datasets`).as('getDatasets');
+}
+
 export function setFilter(filter: string, option: string) {
   interceptFiltering();
 
@@ -184,11 +196,15 @@ export function collapseFilterOnLeftPanel() {
  * @returns {None}
  * @summary helper for enter native filter edit modal
  ************************************************************************* */
-export function enterNativeFilterEditModal() {
+export function enterNativeFilterEditModal(waitForDataset = true) {
+  interceptDataset();
   cy.get(nativeFilters.filterFromDashboardView.createFilterButton).click({
     force: true,
   });
   cy.get(nativeFilters.modal.container).should('be.visible');
+  if (waitForDataset) {
+    cy.wait('@getDataset');
+  }
 }
 
 /** ************************************************************************
@@ -308,7 +324,7 @@ export function addParentFilterWithValue(index: number, value: string) {
  * @returns {None}
  * @summary helper for save native filters settings
  ************************************************************************* */
-export function saveNativeFilterSettings(charts: any) {
+export function saveNativeFilterSettings(charts: ChartSpec[]) {
   cy.get(nativeFilters.modal.footer)
     .contains('Save')
     .should('be.visible')
@@ -333,32 +349,8 @@ export function cancelNativeFilterSettings() {
   cy.get(nativeFilters.modal.footer)
     .find(nativeFilters.modal.yesCancelButton)
     .contains('cancel')
-    .should('be.visible')
-    .click();
+    .click({ force: true });
   cy.get(nativeFilters.modal.container).should('not.exist');
-}
-
-/** ************************************************************************
- * Close dashboard toast message
- * @returns {None}
- * @summary helper for close dashboard toast message in order to make test stable
- ************************************************************************* */
-export function closeDashboardToastMessage() {
-  cy.get('body').then($body => {
-    if ($body.find(dashboardView.dashboardAlert.modal).length > 0) {
-      // evaluates as true if button exists at all
-      cy.get(dashboardView.dashboardAlert.modal).then($header => {
-        if ($header.is(':visible')) {
-          cy.get(dashboardView.dashboardAlert.closeButton).click({
-            force: true,
-          });
-          cy.get(dashboardView.dashboardAlert.closeButton).should('not.exist', {
-            timeout: 10000,
-          });
-        }
-      });
-    }
-  });
 }
 
 /** ************************************************************************
@@ -482,33 +474,5 @@ export function addCountryNameFilter() {
     testItems.topTenChart.filterColumn,
     testItems.datasetForNativeFilter,
     testItems.topTenChart.filterColumn,
-  );
-}
-
-/** ************************************************************************
- * add filter for test column 'Region'
- * @return {null}
- * @summary helper for add filter for test column 'Region'
- ************************************************************************* */
-export function addRegionFilter() {
-  fillNativeFilterForm(
-    testItems.filterType.value,
-    testItems.topTenChart.filterColumnRegion,
-    testItems.datasetForNativeFilter,
-    testItems.topTenChart.filterColumnRegion,
-  );
-}
-
-/** ************************************************************************
- * add filter for test column 'Country Code'
- * @return {null}
- * @summary helper for add filter for test column 'Country Code'
- ************************************************************************* */
-export function addCountryCodeFilter() {
-  fillNativeFilterForm(
-    testItems.filterType.value,
-    testItems.topTenChart.filterColumnCountryCode,
-    testItems.datasetForNativeFilter,
-    testItems.topTenChart.filterColumnCountryCode,
   );
 }
