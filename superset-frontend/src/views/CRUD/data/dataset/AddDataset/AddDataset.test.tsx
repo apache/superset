@@ -21,11 +21,12 @@ import { render, screen } from 'spec/helpers/testing-library';
 import AddDataset from 'src/views/CRUD/data/dataset/AddDataset';
 
 describe('AddDataset', () => {
-  it('renders a blank state AddDataset', () => {
+  it('renders a blank state AddDataset', async () => {
     render(<AddDataset />, { useRedux: true });
 
     const blankeStateImgs = screen.getAllByRole('img', { name: /empty/i });
 
+    expect(await screen.findByText(/header/i)).toBeInTheDocument();
     // Header
     expect(screen.getByText(/header/i)).toBeVisible();
     // Left panel
