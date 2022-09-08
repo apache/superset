@@ -25,7 +25,6 @@ import { Provider } from 'react-redux';
 import '@testing-library/jest-dom/extend-expect';
 import thunk from 'redux-thunk';
 import SqlEditorLeftBar from 'src/SqlLab/components/SqlEditorLeftBar';
-import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import {
   table,
   initialState,
@@ -59,7 +58,7 @@ fetchMock.get('glob:*/superset/tables/**', {
 });
 
 describe('Left Panel Expansion', () => {
-  it('is valid', () => {
+  test('is valid', () => {
     expect(
       React.isValidElement(
         <Provider store={store}>
@@ -69,61 +68,66 @@ describe('Left Panel Expansion', () => {
     ).toBe(true);
   });
 
-  it('renders a TableElement', () => {
-    const { queryAllByTestId } = render(
-      <ThemeProvider theme={supersetTheme}>
-        <Provider store={store}>
-          <SqlEditorLeftBar {...mockedProps} />
-        </Provider>
-      </ThemeProvider>,
-    );
-    expect(queryAllByTestId('table-element').length).toBeGreaterThanOrEqual(1);
+  test('renders a TableElement', async () => {
+    render(<SqlEditorLeftBar {...mockedProps} />, {
+      useRedux: true,
+      initialState,
+    });
+
+    expect(
+      await screen.findByText(/select database or type database name/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryAllByTestId('table-element').length,
+    ).toBeGreaterThanOrEqual(1);
   });
 
-  describe('Left Panel Expansion', () => {
-    it('table should be visible when expanded is true', () => {
-      const { container } = render(
-        <ThemeProvider theme={supersetTheme}>
-          <Provider store={store}>
-            <SqlEditorLeftBar {...mockedProps} />
-          </Provider>
-        </ThemeProvider>,
-      );
-      const dbSelect = screen.getByRole('combobox', {
-        name: 'Select database or type database name',
-      });
-      const schemaSelect = screen.getByRole('combobox', {
-        name: 'Select schema or type schema name',
-      });
-      const dropdown = screen.getByText(/Select table or type table name/i);
-      const abUser = screen.getByText(/ab_user/i);
-      expect(dbSelect).toBeInTheDocument();
-      expect(schemaSelect).toBeInTheDocument();
-      expect(dropdown).toBeInTheDocument();
-      expect(abUser).toBeInTheDocument();
-      expect(
-        container.querySelector('.ant-collapse-content-active'),
-      ).toBeInTheDocument();
+  test('table should be visible when expanded is true', async () => {
+    const { container } = render(<SqlEditorLeftBar {...mockedProps} />, {
+      useRedux: true,
+      initialState,
     });
 
-    it('should toggle the table when the header is clicked', async () => {
-      const collapseMock = jest.fn();
-      render(
-        <ThemeProvider theme={supersetTheme}>
-          <Provider store={store}>
-            <SqlEditorLeftBar
-              actions={{ ...mockedActions, collapseTable: collapseMock }}
-              tables={[table]}
-              queryEditor={defaultQueryEditor}
-              database={databases}
-              height={0}
-            />
-          </Provider>
-        </ThemeProvider>,
-      );
-      const header = screen.getByText(/ab_user/);
-      userEvent.click(header);
-      expect(collapseMock).toHaveBeenCalled();
+    const dbSelect = screen.getByRole('combobox', {
+      name: 'Select database or type database name',
     });
+    const schemaSelect = screen.getByRole('combobox', {
+      name: 'Select schema or type schema name',
+    });
+    const dropdown = screen.getByText(/Select table or type table name/i);
+    const abUser = screen.getByText(/ab_user/i);
+
+    expect(
+      await screen.findByText(/select database or type database name/i),
+    ).toBeInTheDocument();
+    expect(dbSelect).toBeInTheDocument();
+    expect(schemaSelect).toBeInTheDocument();
+    expect(dropdown).toBeInTheDocument();
+    expect(abUser).toBeInTheDocument();
+    expect(
+      container.querySelector('.ant-collapse-content-active'),
+    ).toBeInTheDocument();
+  });
+
+  test('should toggle the table when the header is clicked', async () => {
+    const collapseMock = jest.fn();
+    render(
+      <SqlEditorLeftBar
+        actions={{ ...mockedActions, collapseTable: collapseMock }}
+        tables={[table]}
+        queryEditor={defaultQueryEditor}
+        database={databases}
+        height={0}
+      />,
+      {
+        useRedux: true,
+        initialState,
+      },
+    );
+
+    expect(await screen.findByText(/ab_user/)).toBeInTheDocument();
+    const header = screen.getByText(/ab_user/);
+    userEvent.click(header);
+    expect(collapseMock).toHaveBeenCalled();
   });
 });

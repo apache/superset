@@ -26,11 +26,6 @@ import {
   cleanup,
   act,
 } from 'spec/helpers/testing-library';
-/* -- These imports are used for the mock functions that currently don't work
-import {
-  testDatabaseConnection,
-  useSingleViewResource,
-} from 'src/views/CRUD/hooks'; */
 import DatabaseModal from './index';
 
 const dbProps = {
@@ -40,7 +35,6 @@ const dbProps = {
 };
 
 const DATABASE_FETCH_ENDPOINT = 'glob:*/api/v1/database/10';
-// const DATABASE_POST_ENDPOINT = 'glob:*/api/v1/database/';
 const AVAILABLE_DB_ENDPOINT = 'glob:*/api/v1/database/available*';
 const VALIDATE_PARAMS_ENDPOINT = 'glob:*/api/v1/database/validate_parameters*';
 
@@ -218,7 +212,7 @@ describe('DatabaseModal', () => {
   afterEach(cleanup);
 
   describe('Visual: New database connection', () => {
-    it('renders the initial load of Step 1 correctly', async () => {
+    test('renders the initial load of Step 1 correctly', () => {
       // ---------- Components ----------
       // <TabHeader> - AntD header
       const closeButton = screen.getByLabelText('Close');
@@ -319,13 +313,14 @@ describe('DatabaseModal', () => {
       expect(preferredDbIcon).toHaveLength(4);
     });
 
-    it('renders the "Basic" tab of SQL Alchemy form (step 2 of 2) correctly', async () => {
+    test('renders the "Basic" tab of SQL Alchemy form (step 2 of 2) correctly', async () => {
       // On step 1, click dbButton to access SQL Alchemy form
       userEvent.click(
         screen.getByRole('button', {
           name: /sqlite/i,
         }),
       );
+      expect(await screen.findByText(/step 2 of 2/i)).toBeInTheDocument();
 
       // ---------- Components ----------
       // <TabHeader> - AntD header
@@ -404,13 +399,14 @@ describe('DatabaseModal', () => {
       });
     });
 
-    it('renders the unexpanded "Advanced" tab correctly', async () => {
+    test('renders the unexpanded "Advanced" tab correctly', async () => {
       // On step 1, click dbButton to access step 2
       userEvent.click(
         screen.getByRole('button', {
           name: /sqlite/i,
         }),
       );
+      expect(await screen.findByText(/step 2 of 2/i)).toBeInTheDocument();
       // Click the "Advanced" tab
       userEvent.click(screen.getByRole('tab', { name: /advanced/i }));
 
@@ -502,7 +498,7 @@ describe('DatabaseModal', () => {
       });
     });
 
-    it('renders the "Advanced" - SQL LAB tab correctly (unexpanded)', async () => {
+    test('renders the "Advanced" - SQL LAB tab correctly (unexpanded)', async () => {
       // ---------- Components ----------
       // On step 1, click dbButton to access step 2
       userEvent.click(
@@ -518,6 +514,7 @@ describe('DatabaseModal', () => {
           name: /right sql lab adjust how this database will interact with sql lab\./i,
         }),
       );
+      expect(await screen.findByText(/step 2 of 2/i)).toBeInTheDocument();
 
       // ----- BEGIN STEP 2 (ADVANCED - SQL LAB)
       // <TabHeader> - AntD header
@@ -665,7 +662,7 @@ describe('DatabaseModal', () => {
       expect(tooltipIcons).toHaveLength(8);
     });
 
-    it('renders the "Advanced" - PERFORMANCE tab correctly', async () => {
+    test('renders the "Advanced" - PERFORMANCE tab correctly', async () => {
       // ---------- Components ----------
       // On step 1, click dbButton to access step 2
       userEvent.click(
@@ -681,6 +678,7 @@ describe('DatabaseModal', () => {
           name: /right performance adjust performance settings of this database\./i,
         }),
       );
+      expect(await screen.findByText(/step 2 of 2/i)).toBeInTheDocument();
 
       // ----- BEGIN STEP 2 (ADVANCED - PERFORMANCE)
       // <TabHeader> - AntD header
@@ -727,7 +725,7 @@ describe('DatabaseModal', () => {
       });
     });
 
-    it('renders the "Advanced" - SECURITY tab correctly', async () => {
+    test('renders the "Advanced" - SECURITY tab correctly', async () => {
       // ---------- Components ----------
       // On step 1, click dbButton to access step 2
       userEvent.click(
@@ -743,6 +741,7 @@ describe('DatabaseModal', () => {
           name: /right security add extra connection information\./i,
         }),
       );
+      expect(await screen.findByText(/step 2 of 2/i)).toBeInTheDocument();
 
       // ----- BEGIN STEP 2 (ADVANCED - SECURITY)
       // <TabHeader> - AntD header
@@ -793,7 +792,7 @@ describe('DatabaseModal', () => {
       });
     });
 
-    it('renders the "Advanced" - OTHER tab correctly', async () => {
+    test('renders the "Advanced" - OTHER tab correctly', async () => {
       // ---------- Components ----------
       // On step 1, click dbButton to access step 2
       userEvent.click(
@@ -809,6 +808,7 @@ describe('DatabaseModal', () => {
           name: /right other additional settings\./i,
         }),
       );
+      expect(await screen.findByText(/step 2 of 2/i)).toBeInTheDocument();
 
       // ----- BEGIN STEP 2 (ADVANCED - OTHER)
       // <TabHeader> - AntD header
@@ -863,7 +863,7 @@ describe('DatabaseModal', () => {
       });
     });
 
-    it('Dynamic form', async () => {
+    test('Dynamic form', async () => {
       // ---------- Components ----------
       // On step 1, click dbButton to access step 2
       userEvent.click(
@@ -871,13 +871,14 @@ describe('DatabaseModal', () => {
           name: /postgresql/i,
         }),
       );
+      expect(await screen.findByText(/step 2 of 3/i)).toBeInTheDocument();
 
       expect.anything();
     });
   });
 
   describe('Functional: Create new database', () => {
-    it('directs databases to the appropriate form (dynamic vs. SQL Alchemy)', () => {
+    test('directs databases to the appropriate form (dynamic vs. SQL Alchemy)', async () => {
       // ---------- Dynamic example (3-step form)
       // Click the PostgreSQL button to enter the dynamic form
       const postgreSQLButton = screen.getByRole('button', {
@@ -902,26 +903,24 @@ describe('DatabaseModal', () => {
       userEvent.click(sqliteButton);
 
       // SQL Alchemy form has 2 steps, seeing this text means the SQL Alchemy form is present
+      expect(await screen.findByText(/step 2 of 2/i)).toBeInTheDocument();
       const sqlAlchemyFormStepText = screen.getByText(/step 2 of 2/i);
 
       expect(sqlAlchemyFormStepText).toBeVisible();
     });
 
     describe('SQL Alchemy form flow', () => {
-      beforeEach(() => {
+      test('enters step 2 of 2 when proper database is selected', async () => {
         userEvent.click(
           screen.getByRole('button', {
             name: /sqlite/i,
           }),
         );
+
+        expect(await screen.findByText(/step 2 of 2/i)).toBeInTheDocument();
       });
 
-      it('enters step 2 of 2 when proper database is selected', () => {
-        const step2text = screen.getByText(/step 2 of 2/i);
-        expect(step2text).toBeVisible();
-      });
-
-      it('runs fetchResource when "Connect" is clicked', () => {
+      test('runs fetchResource when "Connect" is clicked', () => {
         /* ---------- 🐞 TODO (lyndsiWilliams): function mock is not currently working 🐞 ----------
 
         // Mock useSingleViewResource
@@ -939,7 +938,14 @@ describe('DatabaseModal', () => {
       });
 
       describe('step 2 component interaction', () => {
-        it('properly interacts with textboxes', () => {
+        test('properly interacts with textboxes', async () => {
+          userEvent.click(
+            screen.getByRole('button', {
+              name: /sqlite/i,
+            }),
+          );
+
+          expect(await screen.findByText(/step 2 of 2/i)).toBeInTheDocument();
           const dbNametextBox = screen.getByTestId('database-name-input');
           expect(dbNametextBox).toHaveValue('SQLite');
 
@@ -955,7 +961,7 @@ describe('DatabaseModal', () => {
           expect(sqlAlchemyURItextBox).toHaveValue('Different text');
         });
 
-        it('runs testDatabaseConnection when "TEST CONNECTION" is clicked', () => {
+        test('runs testDatabaseConnection when "TEST CONNECTION" is clicked', () => {
           /* ---------- 🐞 TODO (lyndsiWilliams): function mock is not currently working 🐞 ----------
 
           // Mock testDatabaseConnection
@@ -977,20 +983,26 @@ describe('DatabaseModal', () => {
     });
 
     describe('Dynamic form flow', () => {
-      beforeEach(() => {
+      test('enters step 2 of 3 when proper database is selected', async () => {
+        expect(await screen.findByText(/step 1 of 3/i)).toBeInTheDocument();
         userEvent.click(
           screen.getByRole('button', {
             name: /postgresql/i,
           }),
         );
-      });
+        expect(await screen.findByText(/step 2 of 3/i)).toBeInTheDocument();
 
-      it('enters step 2 of 3 when proper database is selected', () => {
         const step2of3text = screen.getByText(/step 2 of 3/i);
         expect(step2of3text).toBeVisible();
       });
 
-      it('enters form credentials and runs fetchResource when "Connect" is clicked', () => {
+      test('enters form credentials and runs fetchResource when "Connect" is clicked', async () => {
+        userEvent.click(
+          screen.getByRole('button', {
+            name: /postgresql/i,
+          }),
+        );
+
         const textboxes = screen.getAllByRole('textbox');
         const hostField = textboxes[0];
         const portField = screen.getByRole('spinbutton');
@@ -1010,6 +1022,7 @@ describe('DatabaseModal', () => {
         userEvent.type(usernameField, 'testdb');
         userEvent.type(passwordField, 'demoPassword');
 
+        expect(await screen.findByDisplayValue(/5432/i)).toBeInTheDocument();
         expect(hostField).toHaveValue('localhost');
         expect(portField).toHaveValue(5432);
         expect(databaseNameField).toHaveValue('postgres');
@@ -1033,7 +1046,7 @@ describe('DatabaseModal', () => {
     });
 
     describe('Import database flow', () => {
-      it('imports a file', () => {
+      test('imports a file', async () => {
         const importDbButton = screen.getByTestId('import-database-btn');
         expect(importDbButton).toBeVisible();
 
@@ -1064,7 +1077,7 @@ describe('DatabaseModal', () => {
       await renderAndWait();
     });
 
-    it('enters step 2 of 3 when proper database is selected', () => {
+    test('enters step 2 of 3 when proper database is selected', () => {
       const step2of3text = screen.getByText(/step 2 of 3/i);
       expect(step2of3text).toBeVisible();
     });
