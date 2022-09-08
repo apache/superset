@@ -132,7 +132,6 @@ MODEL_API_RW_METHOD_PERMISSION_MAP = {
     "validate_sql": "read",
     "get_data": "read",
     "samples": "read",
-    "get_advanced_data_type": "read",
 }
 
 EXTRA_FORM_DATA_APPEND_KEYS = {
