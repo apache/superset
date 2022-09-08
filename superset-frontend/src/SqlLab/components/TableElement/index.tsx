@@ -270,6 +270,7 @@ const TableElement = ({ table, actions, ...props }: TableElementProps) => {
 
     const metadata = (
       <div
+        data-test="table-element"
         onMouseEnter={() => setHover(true)}
         onMouseLeave={() => setHover(false)}
         css={{ paddingTop: 6 }}

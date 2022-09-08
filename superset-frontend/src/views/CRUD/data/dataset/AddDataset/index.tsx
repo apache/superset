@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { useReducer, Reducer } from 'react';
 import Header from './Header';
 import DatasetPanel from './DatasetPanel';
 import LeftPanel from './LeftPanel';
@@ -24,13 +24,18 @@ import Footer from './Footer';
 import { DatasetActionType, DatasetObject, DSReducerActionType } from './types';
 import DatasetLayout from '../DatasetLayout';
 
+type Schema = {
+  schema: string;
+};
+
 export function datasetReducer(
-  state: Partial<DatasetObject> | null,
+  state: DatasetObject | null,
   action: DSReducerActionType,
-): Partial<DatasetObject> | null {
+): Partial<DatasetObject> | Schema | null {
   const trimmedState = {
     ...(state || {}),
   };
+
   switch (action.type) {
     case DatasetActionType.selectDatabase:
       return {
@@ -42,7 +47,7 @@ export function datasetReducer(
     case DatasetActionType.selectSchema:
       return {
         ...trimmedState,
-        ...action.payload,
+        [action.payload.name]: action.payload.value,
         table_name: null,
       };
     case DatasetActionType.selectTable:
@@ -61,16 +66,22 @@ export function datasetReducer(
 }
 
 export default function AddDataset() {
-  // this is commented out for now, but can be commented in as the component
-  // is built up. Uncomment the useReducer in imports too
-  // const [dataset, setDataset] = useReducer<
-  //   Reducer<Partial<DatasetObject> | null, DSReducerActionType>
-  // >(datasetReducer, null);
+  const [dataset, setDataset] = useReducer<
+    Reducer<Partial<DatasetObject> | null, DSReducerActionType>
+  >(datasetReducer, null);
+
+  const LeftPanelComponent = () => (
+    <LeftPanel
+      setDataset={setDataset}
+      schema={dataset?.schema}
+      dbId={dataset?.id}
+    />
+  );
 
   return (
     <DatasetLayout
       header={Header()}
-      leftPanel={LeftPanel()}
+      leftPanel={LeftPanelComponent()}
       datasetPanel={DatasetPanel()}
       footer={Footer()}
     />

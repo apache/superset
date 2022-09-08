@@ -674,9 +674,14 @@ class TestDatasetApi(SupersetTestCase):
 
     @patch("superset.models.core.Database.get_columns")
     @patch("superset.models.core.Database.has_table_by_name")
+    @patch("superset.models.core.Database.has_view_by_name")
     @patch("superset.models.core.Database.get_table")
     def test_create_dataset_validate_view_exists(
-        self, mock_get_table, mock_has_table_by_name, mock_get_columns
+        self,
+        mock_get_table,
+        mock_has_table_by_name,
+        mock_has_view_by_name,
+        mock_get_columns,
     ):
         """
         Dataset API: Test create dataset validate view exists
@@ -694,6 +699,7 @@ class TestDatasetApi(SupersetTestCase):
         ]
 
         mock_has_table_by_name.return_value = False
+        mock_has_view_by_name.return_value = True
         mock_get_table.return_value = None
 
         example_db = get_example_database()

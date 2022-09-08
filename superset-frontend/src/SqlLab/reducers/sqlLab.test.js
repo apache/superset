@@ -75,6 +75,28 @@ describe('sqlLabReducer', () => {
         initialState.queryEditors.length,
       );
     });
+    it('should remove a query editor including unsaved changes', () => {
+      expect(newState.queryEditors).toHaveLength(
+        initialState.queryEditors.length + 1,
+      );
+      let action = {
+        type: actions.QUERY_EDITOR_SETDB,
+        queryEditor: qe,
+        dbId: 123,
+      };
+      newState = sqlLabReducer(newState, action);
+      expect(newState.unsavedQueryEditor.dbId).toEqual(action.dbId);
+      action = {
+        type: actions.REMOVE_QUERY_EDITOR,
+        queryEditor: qe,
+      };
+      newState = sqlLabReducer(newState, action);
+      expect(newState.queryEditors).toHaveLength(
+        initialState.queryEditors.length,
+      );
+      expect(newState.unsavedQueryEditor.dbId).toBeUndefined();
+      expect(newState.unsavedQueryEditor.id).toBeUndefined();
+    });
     it('should set q query editor active', () => {
       const expectedTitle = 'new updated title';
       const addQueryEditorAction = {

@@ -32,6 +32,7 @@ import { DatasourceModal } from 'src/components/Datasource';
 import DatasourceEditor from 'src/components/Datasource/DatasourceEditor';
 import * as featureFlags from 'src/featureFlags';
 import mockDatasource from 'spec/fixtures/mockDatasource';
+import QueryProvider from 'src/views/QueryProvider';
 
 const mockStore = configureStore([thunk]);
 const store = mockStore({});
@@ -53,9 +54,11 @@ const mockedProps = {
 
 async function mountAndWait(props = mockedProps) {
   const mounted = mount(
-    <Provider store={store}>
-      <DatasourceModal {...props} />
-    </Provider>,
+    <QueryProvider>
+      <Provider store={store}>
+        <DatasourceModal {...props} />
+      </Provider>
+    </QueryProvider>,
     {
       wrappingComponent: ThemeProvider,
       wrappingComponentProps: { theme: supersetTheme },

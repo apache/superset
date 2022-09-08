@@ -30,6 +30,7 @@ from superset.common.query_object import QueryObject
 from superset.connectors.sqla.models import SqlMetric
 from superset.datasource.dao import DatasourceDAO
 from superset.extensions import cache_manager
+from superset.superset_typing import AdhocColumn
 from superset.utils.core import (
     AdhocMetricExpressionType,
     backend,
@@ -38,6 +39,7 @@ from superset.utils.core import (
 )
 from superset.utils.pandas_postprocessing.utils import FLAT_COLUMN_SEPARATOR
 from tests.integration_tests.base_tests import SupersetTestCase
+from tests.integration_tests.conftest import only_postgresql
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
     load_birth_names_data,
@@ -728,3 +730,183 @@ def test_get_label_map(app_context, virtual_dataset_comma_in_column_value):
         "count, col2, row2": ["count", "col2, row2"],
         "count, col2, row3": ["count", "col2, row3"],
     }
+
+
+def test_time_column_with_time_grain(app_context, physical_dataset):
+    column_on_axis: AdhocColumn = {
+        "label": "I_AM_AN_ORIGINAL_COLUMN",
+        "sqlExpression": "col5",
+        "timeGrain": "P1Y",
+    }
+    adhoc_column: AdhocColumn = {
+        "label": "I_AM_A_TRUNC_COLUMN",
+        "sqlExpression": "col6",
+        "columnType": "BASE_AXIS",
+        "timeGrain": "P1Y",
+    }
+    qc = QueryContextFactory().create(
+        datasource={
+            "type": physical_dataset.type,
+            "id": physical_dataset.id,
+        },
+        queries=[
+            {
+                "columns": ["col1", column_on_axis, adhoc_column],
+                "metrics": ["count"],
+                "orderby": [["col1", True]],
+            }
+        ],
+        result_type=ChartDataResultType.FULL,
+        force=True,
+    )
+    query_object = qc.queries[0]
+    df = qc.get_df_payload(query_object)["df"]
+    if query_object.datasource.database.backend == "sqlite":
+        # sqlite returns string as timestamp column
+        assert df["I_AM_AN_ORIGINAL_COLUMN"][0] == "2000-01-01 00:00:00"
+        assert df["I_AM_AN_ORIGINAL_COLUMN"][1] == "2000-01-02 00:00:00"
+        assert df["I_AM_A_TRUNC_COLUMN"][0] == "2002-01-01 00:00:00"
+        assert df["I_AM_A_TRUNC_COLUMN"][1] == "2002-01-01 00:00:00"
+    else:
+        assert df["I_AM_AN_ORIGINAL_COLUMN"][0].strftime("%Y-%m-%d") == "2000-01-01"
+        assert df["I_AM_AN_ORIGINAL_COLUMN"][1].strftime("%Y-%m-%d") == "2000-01-02"
+        assert df["I_AM_A_TRUNC_COLUMN"][0].strftime("%Y-%m-%d") == "2002-01-01"
+        assert df["I_AM_A_TRUNC_COLUMN"][1].strftime("%Y-%m-%d") == "2002-01-01"
+
+
+def test_non_time_column_with_time_grain(app_context, physical_dataset):
+    qc = QueryContextFactory().create(
+        datasource={
+            "type": physical_dataset.type,
+            "id": physical_dataset.id,
+        },
+        queries=[
+            {
+                "columns": [
+                    "col1",
+                    {
+                        "label": "COL2 ALIAS",
+                        "sqlExpression": "col2",
+                        "columnType": "BASE_AXIS",
+                        "timeGrain": "P1Y",
+                    },
+                ],
+                "metrics": ["count"],
+                "orderby": [["col1", True]],
+                "row_limit": 1,
+            }
+        ],
+        result_type=ChartDataResultType.FULL,
+        force=True,
+    )
+
+    query_object = qc.queries[0]
+    df = qc.get_df_payload(query_object)["df"]
+    assert df["COL2 ALIAS"][0] == "a"
+
+
+def test_special_chars_in_column_name(app_context, physical_dataset):
+    qc = QueryContextFactory().create(
+        datasource={
+            "type": physical_dataset.type,
+            "id": physical_dataset.id,
+        },
+        queries=[
+            {
+                "columns": [
+                    "col1",
+                    "time column with spaces",
+                    {
+                        "label": "I_AM_A_TRUNC_COLUMN",
+                        "sqlExpression": "time column with spaces",
+                        "columnType": "BASE_AXIS",
+                        "timeGrain": "P1Y",
+                    },
+                ],
+                "metrics": ["count"],
+                "orderby": [["col1", True]],
+                "row_limit": 1,
+            }
+        ],
+        result_type=ChartDataResultType.FULL,
+        force=True,
+    )
+
+    query_object = qc.queries[0]
+    df = qc.get_df_payload(query_object)["df"]
+    if query_object.datasource.database.backend == "sqlite":
+        # sqlite returns string as timestamp column
+        assert df["time column with spaces"][0] == "2002-01-03 00:00:00"
+        assert df["I_AM_A_TRUNC_COLUMN"][0] == "2002-01-01 00:00:00"
+    else:
+        assert df["time column with spaces"][0].strftime("%Y-%m-%d") == "2002-01-03"
+        assert df["I_AM_A_TRUNC_COLUMN"][0].strftime("%Y-%m-%d") == "2002-01-01"
+
+
+@only_postgresql
+def test_date_adhoc_column(app_context, physical_dataset):
+    # sql expression returns date type
+    column_on_axis: AdhocColumn = {
+        "label": "ADHOC COLUMN",
+        "sqlExpression": "col6 + interval '20 year'",
+        "columnType": "BASE_AXIS",
+        "timeGrain": "P1Y",
+    }
+    qc = QueryContextFactory().create(
+        datasource={
+            "type": physical_dataset.type,
+            "id": physical_dataset.id,
+        },
+        queries=[
+            {
+                "columns": [column_on_axis],
+                "metrics": ["count"],
+            }
+        ],
+        result_type=ChartDataResultType.FULL,
+        force=True,
+    )
+    query_object = qc.queries[0]
+    df = qc.get_df_payload(query_object)["df"]
+    #   ADHOC COLUMN  count
+    # 0   2022-01-01     10
+    assert df["ADHOC COLUMN"][0].strftime("%Y-%m-%d") == "2022-01-01"
+    assert df["count"][0] == 10
+
+
+@only_postgresql
+def test_non_date_adhoc_column(app_context, physical_dataset):
+    # sql expression returns non-date type
+    column_on_axis: AdhocColumn = {
+        "label": "ADHOC COLUMN",
+        "sqlExpression": "col1 * 10",
+        "columnType": "BASE_AXIS",
+        "timeGrain": "P1Y",
+    }
+    qc = QueryContextFactory().create(
+        datasource={
+            "type": physical_dataset.type,
+            "id": physical_dataset.id,
+        },
+        queries=[
+            {
+                "columns": [column_on_axis],
+                "metrics": ["count"],
+                "orderby": [
+                    [
+                        {
+                            "expressionType": "SQL",
+                            "sqlExpression": '"ADHOC COLUMN"',
+                        },
+                        True,
+                    ]
+                ],
+            }
+        ],
+        result_type=ChartDataResultType.FULL,
+        force=True,
+    )
+    query_object = qc.queries[0]
+    df = qc.get_df_payload(query_object)["df"]
+    assert df["ADHOC COLUMN"][0] == 0
+    assert df["ADHOC COLUMN"][1] == 10
