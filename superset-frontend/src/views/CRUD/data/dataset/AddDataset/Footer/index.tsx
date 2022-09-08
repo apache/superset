@@ -23,14 +23,14 @@ import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { DatasetObject } from '../types';
 
-interface FooterObject {
+interface FooterProps {
   url: string;
   addDangerToast: () => void;
   datasetObject?: Partial<DatasetObject> | null;
   onDatasetAdd?: (dataset: DatasetObject) => void;
 }
 
-function Footer({ url, datasetObject, addDangerToast }: FooterObject) {
+function Footer({ url, datasetObject, addDangerToast }: FooterProps) {
   const { createResource } = useSingleViewResource<Partial<DatasetObject>>(
     'dataset',
     t('dataset'),
