@@ -328,48 +328,6 @@ Cypress.Commands.add('getDashboards', () =>
     .then(resp => resp.body.result),
 );
 
-Cypress.Commands.add(
-  'copyDashboard',
-  (originalDashboardName, copyDashboardName) =>
-    cy.getDashboards().then((sampleDashboards: any) => {
-      cy.deleteDashboardByName(copyDashboardName, false).then(() => {
-        const dashboard = sampleDashboards.find(
-          (d: any) => d.dashboard_title === originalDashboardName,
-        );
-        const slugifiedTitle = copyDashboardName
-          .toLowerCase()
-          .replace(/ /g, '-');
-        const body = new FormData();
-        body.append(
-          'data',
-          JSON.stringify({
-            dashboard_title: copyDashboardName,
-            slug: slugifiedTitle,
-            duplicate_slices: false,
-          }),
-        );
-        if (dashboard) {
-          cy.request({
-            method: 'POST',
-            url: `superset/copy_dash/${dashboard.id}/`,
-            body,
-            headers: {
-              'content-type': 'multipart/form-data',
-              Authorization: `Bearer ${TokenName}`,
-            },
-          }).then(() =>
-            cy.getDashboards().then((sampleDashboards: any) => {
-              const newDashboard = sampleDashboards.find(
-                (d: any) => d.dashboard_title === copyDashboardName,
-              );
-              cy.visit(`/superset/dashboard/${newDashboard.id}/`);
-            }),
-          );
-        }
-      });
-    }),
-);
-
 Cypress.Commands.add('deleteChart', (id: number, failOnStatusCode = false) =>
   cy
     .request({
