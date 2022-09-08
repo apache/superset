@@ -80,6 +80,10 @@ module.exports = {
             message:
               'Please do not use AntD directly, but instead import through src/common/components',
           },
+          {
+            group: ['lodash/memoize'],
+            message: 'Lodash Memoize is unsafe! Please use memoize-one instead',
+          },
         ],
       },
     ],

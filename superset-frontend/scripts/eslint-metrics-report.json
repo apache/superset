@@ -4349,6 +4349,20 @@
     {
       "eslint rule": "no-restricted-imports",
       "issue": "This rule catches several things that shouldn't be used anymore. LESS, antD, enzyme, etc. See individual occurrence messages for details",
+      "message": "'lodash/memoize' import is restricted from being used by a pattern. Lodash Memoize is unsafe! Please use memoize-one instead",
+      "count": 1,
+      "occurrences": [
+        {
+          "file": "/Users/evan/GitHub/superset/superset-frontend/src/utils/getControlsForVizType.js",
+          "line": 20,
+          "column": 1,
+          "message": "'lodash/memoize' import is restricted from being used by a pattern. Lodash Memoize is unsafe! Please use memoize-one instead"
+        }
+      ]
+    },
+    {
+      "eslint rule": "no-restricted-imports",
+      "issue": "This rule catches several things that shouldn't be used anymore. LESS, antD, enzyme, etc. See individual occurrence messages for details",
       "message": "'antd/lib/input' import is restricted from being used by a pattern. Please do not use AntD directly, but instead import through src/common/components",
       "count": 1,
       "occurrences": [
