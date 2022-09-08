@@ -583,7 +583,38 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         encrypted_field_factory.init_app(self.superset_app)
 
     def setup_db(self) -> None:
+        with self.superset_app.app_context():
+            import sqlalchemy as sqla
+
+            from superset.connectors.sqla.models import SqlaTable
+            from superset.models.core import FavStar
+            from superset.models.dashboard import Dashboard
+            from superset.models.slice import Slice
+            from superset.models.tags import (
+                ChartUpdater,
+                DashboardUpdater,
+                DatasetUpdater,
+                FavStarUpdater,
+            )
+
         db.init_app(self.superset_app)
+
+        # events for updating tags
+        if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
+            sqla.event.listen(SqlaTable, "after_insert", DatasetUpdater.after_insert)
+            sqla.event.listen(SqlaTable, "after_update", DatasetUpdater.after_update)
+            sqla.event.listen(SqlaTable, "after_delete", DatasetUpdater.after_delete)
+
+            sqla.event.listen(Slice, "after_insert", ChartUpdater.after_insert)
+            sqla.event.listen(Slice, "after_update", ChartUpdater.after_update)
+            sqla.event.listen(Slice, "after_delete", ChartUpdater.after_delete)
+
+            sqla.event.listen(Dashboard, "after_insert", DashboardUpdater.after_insert)
+            sqla.event.listen(Dashboard, "after_update", DashboardUpdater.after_update)
+            sqla.event.listen(Dashboard, "after_delete", DashboardUpdater.after_delete)
+
+            sqla.event.listen(FavStar, "after_insert", FavStarUpdater.after_insert)
+            sqla.event.listen(FavStar, "after_delete", FavStarUpdater.after_delete)
 
         with self.superset_app.app_context():
             pessimistic_connection_handling(db.engine)
