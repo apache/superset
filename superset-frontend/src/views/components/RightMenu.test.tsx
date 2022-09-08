@@ -76,6 +76,10 @@ const createProps = (): RightMenuProps => ({
     },
   ],
   isFrontendRoute: () => true,
+  environmentTag: {
+    color: 'error.base',
+    text: 'Development',
+  },
 });
 
 const useSelectorMock = jest.spyOn(reactRedux, 'useSelector');
