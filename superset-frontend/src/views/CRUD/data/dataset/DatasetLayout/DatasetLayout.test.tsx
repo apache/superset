@@ -39,12 +39,15 @@ describe('DatasetLayout', () => {
     expect(screen.getByText(/header/i)).toBeVisible();
   });
 
-  it('renders a LeftPanel when passed in', () => {
+  it('renders a LeftPanel when passed in', async () => {
     render(
       <DatasetLayout leftPanel={<LeftPanel setDataset={() => null} />} />,
       { useRedux: true },
     );
 
+    expect(
+      await screen.findByText(/select database & schema/i),
+    ).toBeInTheDocument();
     expect(LeftPanel).toBeTruthy();
   });
 
