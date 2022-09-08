@@ -14,11 +14,14 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from typing import Any, cast, Optional
+
 from flask_babel import lazy_gettext as _
 from sqlalchemy import not_, or_
 from sqlalchemy.orm.query import Query
+from sqlalchemy.sql.functions import array_agg
 
-from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.views.base import BaseFilter
 
 
@@ -51,3 +54,16 @@ class DatasetCertifiedFilter(BaseFilter):  # pylint: disable=too-few-public-meth
                 )
             )
         return query
+
+
+class FilterAdvancedDataType(BaseFilter):
+    name = _("Advanced Data Type")
+    arg_name = "advanced_data_type"
+
+    def apply(self, query: Query, value: Optional[Any]) -> Query:
+        return (
+            query.add_columns(SqlaTable.id)
+            .join(TableColumn, TableColumn.table_id == SqlaTable.id)
+            .filter(TableColumn.advanced_data_type == cast(str, value))
+            # .group_by(SqlaTable.id)
+        )

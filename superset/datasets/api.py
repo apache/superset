@@ -18,11 +18,12 @@ import json
 import logging
 from datetime import datetime
 from io import BytesIO
-from typing import Any
+from typing import Any, Dict, List
 from zipfile import is_zipfile, ZipFile
 
 import yaml
 from flask import request, Response, send_file
+from flask_appbuilder import Model
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
@@ -52,9 +53,12 @@ from superset.datasets.commands.importers.dispatcher import ImportDatasetsComman
 from superset.datasets.commands.refresh import RefreshDatasetCommand
 from superset.datasets.commands.update import UpdateDatasetCommand
 from superset.datasets.dao import DatasetDAO
-from superset.datasets.filters import DatasetCertifiedFilter, DatasetIsNullOrEmptyFilter
+from superset.datasets.filters import (
+    DatasetCertifiedFilter,
+    DatasetIsNullOrEmptyFilter,
+    FilterAdvancedDataType,
+)
 from superset.datasets.schemas import (
-    dataset_advanced_data_type_schema,
     DatasetPostSchema,
     DatasetPutSchema,
     DatasetRelatedObjectsResponse,
@@ -91,7 +95,6 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "bulk_delete",
         "refresh",
         "related_objects",
-        "get_advanced_data_type",
     }
     list_columns = [
         "id",
@@ -209,6 +212,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     related_field_filters = {
         "owners": RelatedFieldFilter("first_name", FilterRelatedOwners),
         "database": "database_name",
+        "columns": RelatedFieldFilter("advanced_data_type", FilterAdvancedDataType),
     }
     search_filters = {
         "sql": [DatasetIsNullOrEmptyFilter],
@@ -216,14 +220,35 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     }
     search_columns = ["id", "database", "owners", "schema", "sql", "table_name"]
     filter_rel_fields = {"database": [["id", DatabaseFilter, lambda: []]]}
-    allowed_rel_fields = {"database", "owners"}
+    allowed_rel_fields = {"database", "owners", "columns"}
     allowed_distinct_fields = {"schema"}
 
     apispec_parameter_schemas = {
         "get_export_ids_schema": get_export_ids_schema,
-        "dataset_advanced_data_type_schema": dataset_advanced_data_type_schema,
     }
     openapi_spec_component_schemas = (DatasetRelatedObjectsResponse,)
+
+    def _get_result_from_rows(
+        self, datamodel: SQLAInterface, rows: List[Model], column_name: str
+    ) -> List[Dict[str, Any]]:
+        if column_name == "columns":
+            return [
+                {
+                    "value": {
+                        "column_id": datamodel.get_pk_value(row),
+                        "dataset_id": getattr(row, "table_id"),
+                    },
+                    "text": getattr(row, "verbose_name") or getattr(row, "column_name"),
+                }
+                for row in rows
+            ]
+        return [
+            {
+                "value": datamodel.get_pk_value(row),
+                "text": self._get_text_for_model(row, column_name),
+            }
+            for row in rows
+        ]
 
     @expose("/", methods=["POST"])
     @protect()
@@ -774,58 +799,3 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         )
         command.run()
         return self.response(200, message="OK")
-
-    @protect()
-    @safe
-    @expose("/advanced_data_type", methods=["GET"])
-    @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get",
-        log_to_statsd=False,  # pylint: disable-arguments-renamed
-    )
-    @rison(dataset_advanced_data_type_schema)
-    def get_advanced_data_type(self, **kwargs: Any) -> Response:
-        """Get all datasets with a column of the specified advanced type
-        ---
-        get:
-          description:
-            Get all datasets with a column of the specified advanced type
-          parameters:
-          - in: query
-            name: q
-            content:
-              application/json:
-                schema:
-                  $ref: '#/components/schemas/dataset_advanced_data_type_schema'
-          responses:
-            200:
-              description: Query result
-              content:
-                application/json:
-                  schema:
-                    type: object
-                    properties:
-                      result:
-                        type: object
-                        properties:
-                          table_id:
-                            type: object
-                            additionalProperties:
-                              type: string
-                            example:
-                              column_id1: column_name1
-                              column_id2: column_name2
-            401:
-              $ref: '#/components/responses/401'
-            404:
-              $ref: '#/components/responses/404'
-            500:
-              $ref: '#/components/responses/500'
-        """
-        item = kwargs["rison"]
-        advanced_data_type = item["type"]
-        result = DatasetDAO.find_with_advanced_data_type(advanced_data_type)
-
-        return self.response(
-            200,
-            result=result,
-        )

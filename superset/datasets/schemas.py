@@ -231,12 +231,3 @@ class DatasetSchema(SQLAlchemyAutoSchema):
         model = Dataset
         load_instance = True
         include_relationships = True
-
-
-dataset_advanced_data_type_schema = {
-    "type": "object",
-    "properties": {
-        "type": {"type": "string", "default": "port"},
-    },
-    "required": ["type"],
-}

@@ -2140,8 +2140,8 @@ class TestDatasetApi(SupersetTestCase):
     def test_get_advanced_data_type(self):
         if backend() == "sqlite":
             return
-        arguments = {"type": "port"}
-        uri = f"api/v1/dataset/advanced_data_type?q={prison.dumps(arguments)}"
+        arguments = {"filter": "port", "include_ids": [0], "page": 0, "page_size": 0}
+        uri = f"api/v1/dataset/related/columns?q={prison.dumps(arguments)}"
         self.login(username="admin")
         response_value = self.client.get(uri)
         assert response_value.status_code == 200
@@ -2160,4 +2160,12 @@ class TestDatasetApi(SupersetTestCase):
             )
             .one_or_none()
         )
-        assert data == {"result": {f"{dataset[0]}": {f"{dataset[1]}": f"{dataset[2]}"}}}
+        assert data == {
+            "count": 1,
+            "result": [
+                {
+                    "text": dataset[2],
+                    "value": {"column_id": dataset[1], "dataset_id": dataset[0]},
+                }
+            ],
+        }
