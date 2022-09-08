@@ -16,14 +16,30 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import MetadataBar, {
-  MetadataBarProps,
-  MIN_NUMBER_ITEMS,
-  MAX_NUMBER_ITEMS,
-} from './MetadataBar';
+import { GenericDataType } from '@superset-ui/core';
 
-export default MetadataBar;
+export type ResultsPage = {
+  total: number;
+  data: Record<string, any>[];
+  colNames: string[];
+  colTypes: GenericDataType[];
+};
 
-export { MetadataBarProps, MIN_NUMBER_ITEMS, MAX_NUMBER_ITEMS };
-
-export * from './ContentType';
+export type Dataset = {
+  changed_by?: {
+    first_name: string;
+    last_name: string;
+  };
+  created_by?: {
+    first_name: string;
+    last_name: string;
+  };
+  changed_on: Date;
+  created_on: Date;
+  description: string;
+  table_name: string;
+  owners: {
+    first_name: string;
+    last_name: string;
+  }[];
+};
