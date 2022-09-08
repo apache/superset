@@ -73,7 +73,6 @@ setup(
     },
     install_requires=[
         "gevent>=1.4",
-        "prophet>=1.0",
         "Authlib>=0.6",
         "statsd>=3.3.0",
         "backoff>=1.8.0",
