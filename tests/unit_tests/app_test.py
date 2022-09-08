@@ -14,23 +14,12 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import TYPE_CHECKING
-
-from superset.app import create_app
-
-if TYPE_CHECKING:
-    from typing import Any
-
-    from flask.testing import FlaskClient
-
-app = create_app()
+from typing import Any
 
 
-def login(
-    client: "FlaskClient[Any]", username: str = "admin", password: str = "general"
-):
+def test_login(client: Any):
     resp = client.post(
         "/login/",
-        data=dict(username=username, password=password),
+        data=dict(username="admin", password="general"),
     ).get_data(as_text=True)
     assert "User confirmation needed" not in resp
