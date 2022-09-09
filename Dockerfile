@@ -36,6 +36,15 @@ RUN mkdir /app \
 COPY ./requirements/*.txt  /app/requirements/
 COPY setup.py MANIFEST.in README.md /app/
 COPY superset-frontend/package.json /app/superset-frontend/
+
+## Install the pyocient sqlalchemy bindings
+## TODO publish package to pypi
+COPY ./sales/sqlalchemy-ocient-pyocient /app/sqlalchemy-ocient-pyocient
+
+## Install the Ocient database engine
+## TODO commit the engine to the superset repo
+COPY ./sales/superset-ocient/ocient.py /app/superset/db_engine_specs/ocient.py
+
 RUN cd /app \
     && mkdir -p superset/static \
     && touch superset/static/version_info.json \
@@ -101,6 +110,15 @@ COPY --from=superset-node /app/superset-frontend /app/superset-frontend
 
 ## Lastly, let's install superset itself
 COPY superset /app/superset
+
+## Install the pyocient sqlalchemy bindings
+## TODO publish package to pypi
+COPY --from=superset-py /app/sqlalchemy-ocient-pyocient /app/sqlalchemy-ocient-pyocient
+
+## Install the Ocient database engine
+## TODO commit the engine to the superset repo
+COPY --from=superset-py /app/superset/db_engine_specs/ocient.py /app/superset/db_engine_specs/ocient.py
+
 COPY setup.py MANIFEST.in README.md /app/
 RUN cd /app \
         && chown -R superset:superset * \
