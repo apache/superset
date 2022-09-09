@@ -1,15 +1,11 @@
 name: Generate Technical Debt Metrics
 
 on:
-  pull_request:
-    types:
-      - opened
-    branches:
-      - 'master'
+  push
 
 jobs:
 
-  action:
+  render-debt-metrics:
     runs-on: ubuntu-latest
 
     steps:
@@ -42,3 +38,8 @@ jobs:
                     writer.writerow(header)
                     count += 1
                 writer.writerow(data.values())
+      - name: Commit and push changes
+        uses: devops-infra/action-commit-push@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          commit_message: Updating tech debt metrics
