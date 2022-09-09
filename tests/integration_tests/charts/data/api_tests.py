@@ -210,6 +210,66 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         self.assert_row_count(rv, expected_row_count)
         assert "GROUP BY" not in rv.json["result"][0]["query"]
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @mock.patch(
+        "superset.common.query_context_processor.config",
+        {
+            **app.config,
+            "CACHE_DEFAULT_TIMEOUT": 1234,
+            "DATA_CACHE_CONFIG": {
+                **app.config["DATA_CACHE_CONFIG"],
+                "CACHE_DEFAULT_TIMEOUT": None,
+            },
+        },
+    )
+    def test_cache_default_timeout(self):
+        query_context = get_query_context("birth_names", force=True)
+        rv = self.post_assert_metric(
+            CHART_DATA_URI,
+            query_context,
+            "data",
+        )
+        data = json.loads(rv.data.decode("utf-8"))
+        assert data["result"][0]["cache_timeout"] == 1234
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @mock.patch(
+        "superset.common.query_context_processor.config",
+        {
+            **app.config,
+            "CACHE_DEFAULT_TIMEOUT": 100000,
+            "DATA_CACHE_CONFIG": {
+                **app.config["DATA_CACHE_CONFIG"],
+                "CACHE_DEFAULT_TIMEOUT": 3456,
+            },
+        },
+    )
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_data_cache_default_timeout(self):
+        query_context = get_query_context("birth_names", force=True)
+        rv = self.post_assert_metric(
+            CHART_DATA_URI,
+            query_context,
+            "data",
+        )
+        data = json.loads(rv.data.decode("utf-8"))
+        assert data["result"][0]["cache_timeout"] == 3456
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_custom_cache_timeout(self):
+        query_context = get_query_context(
+            "birth_names",
+            force=True,
+            custom_cache_timeout=5678,
+        )
+        rv = self.post_assert_metric(
+            CHART_DATA_URI,
+            query_context,
+            "data",
+        )
+        data = json.loads(rv.data.decode("utf-8"))
+        assert data["result"][0]["cache_timeout"] == 5678
+
     def test_with_incorrect_result_type__400(self):
         self.query_context_payload["result_type"] = "qwerty"
         rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
