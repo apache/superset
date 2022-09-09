@@ -1,4 +1,5 @@
 {
+  "total": 693,
   "metrics": [
     {
       "eslint rule": "no-restricted-imports",

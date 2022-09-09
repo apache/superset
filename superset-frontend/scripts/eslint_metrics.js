@@ -58,17 +58,23 @@ module.exports = results => {
     },
   };
 
+  let runningTotal = 0;
+
   const metricsByRule = Object.values(byRuleId)
     .filter(value => enforcedRules[value.rule] || false)
-    .map(value => ({
-      'eslint rule': value.rule,
-      issue: enforcedRules[value.rule].description,
-      message: value.message,
-      count: value.occurrences.length,
-      occurrences: value.occurrences,
-    }));
+    .map(value => {
+      runningTotal += value.occurrences.length;
+      return ({
+        'eslint rule': value.rule,
+        issue: enforcedRules[value.rule].description,
+        message: value.message,
+        count: value.occurrences.length,
+        occurrences: value.occurrences,
+      });
+    });
 
   const result = {
+    total: runningTotal,
     metrics: metricsByRule,
   };
   return `${JSON.stringify(result, null, 2)}\n`;
