@@ -20,7 +20,7 @@ import React from 'react';
 import moment from 'moment';
 import { ensureIsArray, styled, t } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
-import { ContentType, MetadataType } from './ContentType';
+import { ContentType, MetadataType } from '.';
 
 const Header = styled.div`
   font-weight: ${({ theme }) => theme.typography.weights.bold};

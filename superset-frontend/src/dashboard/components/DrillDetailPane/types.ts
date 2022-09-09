@@ -16,24 +16,30 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { render, screen } from 'spec/helpers/testing-library';
-import AddDataset from 'src/views/CRUD/data/dataset/AddDataset';
+import { GenericDataType } from '@superset-ui/core';
 
-describe('AddDataset', () => {
-  it('renders a blank state AddDataset', async () => {
-    render(<AddDataset />, { useRedux: true });
+export type ResultsPage = {
+  total: number;
+  data: Record<string, any>[];
+  colNames: string[];
+  colTypes: GenericDataType[];
+};
 
-    const blankeStateImgs = screen.getAllByRole('img', { name: /empty/i });
-
-    expect(await screen.findByText(/header/i)).toBeInTheDocument();
-    // Header
-    expect(screen.getByText(/header/i)).toBeVisible();
-    // Left panel
-    expect(blankeStateImgs[0]).toBeVisible();
-    // Footer
-    expect(screen.getByText(/footer/i)).toBeVisible();
-
-    expect(blankeStateImgs.length).toBe(1);
-  });
-});
+export type Dataset = {
+  changed_by?: {
+    first_name: string;
+    last_name: string;
+  };
+  created_by?: {
+    first_name: string;
+    last_name: string;
+  };
+  changed_on: Date;
+  created_on: Date;
+  description: string;
+  table_name: string;
+  owners: {
+    first_name: string;
+    last_name: string;
+  }[];
+};
