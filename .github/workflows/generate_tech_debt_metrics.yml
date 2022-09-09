@@ -18,8 +18,12 @@ jobs:
           node-version: 16
         run: npm run lint-stats
 
-      - name: Generate csv from json
+      - name: setup python
         uses: actions/setup-python@v2
+        with:
+          python-version: 3.8 #install the python needed
+
+      - name: Generate csv from json
         uses: jannekem/run-python-script-action@v1
         with:
           script: |
