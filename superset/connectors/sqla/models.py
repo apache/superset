@@ -110,7 +110,6 @@ from superset.models.helpers import (
     clone_model,
     QueryResult,
 )
-from superset.models.tags import DatasetUpdater
 from superset.sql_parse import (
     extract_table_references,
     ParsedQuery,
