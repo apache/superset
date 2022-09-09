@@ -14,8 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-x-superset-image: &superset-image apache/superset:${TAG:-latest-dev}
 x-superset-user: &superset-user root
+x-superset-build: &superset-build .
 x-superset-depends-on: &superset-depends-on
   - db
   - redis
@@ -50,7 +50,7 @@ services:
 
   superset:
     env_file: docker/.env
-    image: *superset-image
+    build: *superset-build
     container_name: superset_app
     command: ["/app/docker/docker-bootstrap.sh", "app"]
     restart: unless-stopped
@@ -91,7 +91,7 @@ services:
       - REDIS_SSL=false
 
   superset-init:
-    image: *superset-image
+    build: *superset-build
     container_name: superset_init
     command: ["/app/docker/docker-init.sh"]
     env_file: docker/.env
@@ -110,7 +110,7 @@ services:
     volumes: *superset-volumes
 
   superset-worker:
-    image: *superset-image
+    build: *superset-build
     container_name: superset_worker
     command: ["/app/docker/docker-bootstrap.sh", "worker"]
     env_file: docker/.env
@@ -123,7 +123,7 @@ services:
     # mem_reservation: 128M
 
   superset-worker-beat:
-    image: *superset-image
+    build: *superset-build
     container_name: superset_worker_beat
     command: ["/app/docker/docker-bootstrap.sh", "beat"]
     env_file: docker/.env
@@ -133,7 +133,7 @@ services:
     volumes: *superset-volumes
 
   superset-tests-worker:
-    image: *superset-image
+    build: *superset-build
     container_name: superset_tests_worker
     command: ["/app/docker/docker-bootstrap.sh", "worker"]
     env_file: docker/.env
