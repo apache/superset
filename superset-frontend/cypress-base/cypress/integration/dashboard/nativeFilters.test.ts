@@ -67,7 +67,9 @@ function visitDashboard() {
   cy.wait(500);
 }
 
-function prepareDashboardFilter(filters: { name: string; column: string }[]) {
+function prepareDashboardFilters(
+  filters: { name: string; column: string; datasetId: number }[],
+) {
   cy.request({
     method: 'GET',
     url: `api/v1/dashboard/1-sample-dashboard`,
@@ -89,7 +91,7 @@ function prepareDashboardFilter(filters: { name: string; column: string }[]) {
         filterType: 'filter_select',
         targets: [
           {
-            datasetId: 2,
+            datasetId: f.datasetId,
             column: { name: f.column },
           },
         ],
@@ -198,8 +200,8 @@ describe('Native filters', () => {
     });
 
     it('Verify that default value is respected after revisit', () => {
-      prepareDashboardFilter([
-        { name: 'country_name', column: 'country_name' },
+      prepareDashboardFilters([
+        { name: 'country_name', column: 'country_name', datasetId: 2 },
       ]);
       enterNativeFilterEditModal();
       inputNativeFilterDefaultValue(testItems.filterDefaultValue);
@@ -222,9 +224,9 @@ describe('Native filters', () => {
     });
 
     it('User can create parent filters using "Values are dependent on other filters"', () => {
-      prepareDashboardFilter([
-        { name: 'region', column: 'region' },
-        { name: 'country_name', column: 'country_name' },
+      prepareDashboardFilters([
+        { name: 'region', column: 'region', datasetId: 2 },
+        { name: 'country_name', column: 'country_name', datasetId: 2 },
       ]);
       enterNativeFilterEditModal();
       selectFilter(1);
@@ -256,9 +258,9 @@ describe('Native filters', () => {
     });
 
     it('user can delete dependent filter', () => {
-      prepareDashboardFilter([
-        { name: 'region', column: 'region' },
-        { name: 'country_name', column: 'country_name' },
+      prepareDashboardFilters([
+        { name: 'region', column: 'region', datasetId: 2 },
+        { name: 'country_name', column: 'country_name', datasetId: 2 },
       ]);
       enterNativeFilterEditModal();
       selectFilter(1);
@@ -292,10 +294,10 @@ describe('Native filters', () => {
     });
 
     it('User can create filter depend on 2 other filters', () => {
-      prepareDashboardFilter([
-        { name: 'region', column: 'region' },
-        { name: 'country_name', column: 'country_name' },
-        { name: 'country_code', column: 'country_code' },
+      prepareDashboardFilters([
+        { name: 'region', column: 'region', datasetId: 2 },
+        { name: 'country_name', column: 'country_name', datasetId: 2 },
+        { name: 'country_code', column: 'country_code', datasetId: 2 },
       ]);
       enterNativeFilterEditModal();
       selectFilter(2);
@@ -345,9 +347,9 @@ describe('Native filters', () => {
     });
 
     it('User can remove parent filters', () => {
-      prepareDashboardFilter([
-        { name: 'region', column: 'region' },
-        { name: 'country_name', column: 'country_name' },
+      prepareDashboardFilters([
+        { name: 'region', column: 'region', datasetId: 2 },
+        { name: 'country_name', column: 'country_name', datasetId: 2 },
       ]);
       enterNativeFilterEditModal();
       selectFilter(1);
@@ -439,15 +441,15 @@ describe('Native filters', () => {
     });
 
     it("User can check 'Filter has default value'", () => {
-      prepareDashboardFilter([
-        { name: 'country_name', column: 'country_name' },
+      prepareDashboardFilters([
+        { name: 'country_name', column: 'country_name', datasetId: 2 },
       ]);
       enterNativeFilterEditModal();
       inputNativeFilterDefaultValue(testItems.filterDefaultValue);
     });
 
     it('User can add a new native filter', () => {
-      prepareDashboardFilter([]);
+      prepareDashboardFilters([]);
 
       let filterKey: string;
       const removeFirstChar = (search: string) =>
@@ -469,8 +471,8 @@ describe('Native filters', () => {
     });
 
     it('User can restore a deleted native filter', () => {
-      prepareDashboardFilter([
-        { name: 'country_code', column: 'country_code' },
+      prepareDashboardFilters([
+        { name: 'country_code', column: 'country_code', datasetId: 2 },
       ]);
       enterNativeFilterEditModal();
       cy.get(nativeFilters.filtersList.removeIcon).first().click();
@@ -487,7 +489,7 @@ describe('Native filters', () => {
     });
 
     it('User can create a time grain filter', () => {
-      prepareDashboardFilter([]);
+      prepareDashboardFilters([]);
       enterNativeFilterEditModal();
       fillNativeFilterForm(
         testItems.filterType.timeGrain,
@@ -578,8 +580,8 @@ describe('Native filters', () => {
     });
 
     it('User can undo deleting a native filter', () => {
-      prepareDashboardFilter([
-        { name: 'country_name', column: 'country_name' },
+      prepareDashboardFilters([
+        { name: 'country_name', column: 'country_name', datasetId: 2 },
       ]);
       enterNativeFilterEditModal();
       undoDeleteNativeFilter();
@@ -614,8 +616,8 @@ describe('Native filters', () => {
     });
 
     it('User can apply value filter with selected values', () => {
-      prepareDashboardFilter([
-        { name: 'country_name', column: 'country_name' },
+      prepareDashboardFilters([
+        { name: 'country_name', column: 'country_name', datasetId: 2 },
       ]);
       applyNativeFilterValueWithIndex(0, testItems.filterDefaultValue);
       cy.get(nativeFilters.applyFilter).click();
@@ -626,8 +628,8 @@ describe('Native filters', () => {
     });
 
     it('User can stop filtering when filter is removed', () => {
-      prepareDashboardFilter([
-        { name: 'country_name', column: 'country_name' },
+      prepareDashboardFilters([
+        { name: 'country_name', column: 'country_name', datasetId: 2 },
       ]);
       enterNativeFilterEditModal();
       inputNativeFilterDefaultValue(testItems.filterDefaultValue);
