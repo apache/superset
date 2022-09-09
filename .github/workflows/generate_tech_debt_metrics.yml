@@ -15,13 +15,13 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v3
-      
+
       - name: Generate json
         uses: actions/setup-node@v3
         with:
           node-version: 16
         run: npm run lint-stats
-      
+
       - name: Generate csv from json
         uses: actions/setup-python@v2
         uses: jannekem/run-python-script-action@v1
