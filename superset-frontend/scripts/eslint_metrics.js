@@ -64,13 +64,13 @@ module.exports = results => {
     .filter(value => enforcedRules[value.rule] || false)
     .map(value => {
       runningTotal += value.occurrences.length;
-      return ({
+      return {
         'eslint rule': value.rule,
         issue: enforcedRules[value.rule].description,
         message: value.message,
         count: value.occurrences.length,
         occurrences: value.occurrences,
-      });
+      };
     });
 
   const result = {
