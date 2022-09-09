@@ -153,7 +153,7 @@ setup(
         "hana": ["hdbcli==2.4.162", "sqlalchemy_hana==0.4.0"],
         "hive": ["pyhive[hive]>=0.6.5", "tableschema", "thrift>=0.14.1, <1.0.0"],
         "impala": ["impyla>0.16.2, <0.17"],
-        "kusto": ["sqlalchemy-kusto>=1.0.1, <2"],
+        "kusto": ["sqlalchemy-kusto>=2.0.0, <3"],
         "kylin": ["kylinpy>=2.8.1, <2.9"],
         "mssql": ["pymssql>=2.1.4, <2.2"],
         "mysql": ["mysqlclient>=2.1.0, <3"],
