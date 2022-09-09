@@ -18,13 +18,17 @@
  */
 
 /**
- * TODO (Evan Rusackas)
+ * TODO (@rusackas)
  * - SIP-61 content organization
+ *   https://github.com/apache/superset/issues/13632
  * - Component/Design system rules
  *   - Organization of folders in Storybook
  *   - All components have a description page
  *   - Props have controls
  *   - Components have figma links
+ * - Anything from frontent style guidelines
+ *   https://github.com/apache/superset/wiki/Frontend-Style-Guidelines
+ * - Hex colors!
  */
 
 const packageConfig = require('../package');
