@@ -110,7 +110,6 @@ from superset.models.helpers import (
     clone_model,
     QueryResult,
 )
-from superset.models.tags import DatasetUpdater
 from superset.sql_parse import (
     extract_table_references,
     ParsedQuery,
@@ -2560,12 +2559,6 @@ sa.event.listen(SqlMetric, "after_update", SqlaTable.update_column)
 sa.event.listen(SqlMetric, "after_delete", SqlMetric.after_delete)
 sa.event.listen(TableColumn, "after_update", SqlaTable.update_column)
 sa.event.listen(TableColumn, "after_delete", TableColumn.after_delete)
-
-# events for updating tags
-if is_feature_enabled("TAGGING_SYSTEM"):
-    sa.event.listen(SqlaTable, "after_insert", DatasetUpdater.after_insert)
-    sa.event.listen(SqlaTable, "after_update", DatasetUpdater.after_update)
-    sa.event.listen(SqlaTable, "after_delete", DatasetUpdater.after_delete)
 
 RLSFilterRoles = Table(
     "rls_filter_roles",
