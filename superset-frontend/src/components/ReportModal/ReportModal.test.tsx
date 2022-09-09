@@ -20,7 +20,7 @@ import * as React from 'react';
 import userEvent from '@testing-library/user-event';
 import sinon from 'sinon';
 import fetchMock from 'fetch-mock';
-import { render, screen } from 'spec/helpers/testing-library';
+import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import * as featureFlags from 'src/featureFlags';
 import * as actions from 'src/reports/actions/reports';
 import { FeatureFlag } from '@superset-ui/core';
@@ -32,6 +32,8 @@ const REPORT_ENDPOINT = 'glob:*/api/v1/report*';
 fetchMock.get(REPORT_ENDPOINT, {});
 
 const NOOP = () => {};
+
+jest.mock('src/components/Icons/Icon', () => () => <span />);
 
 const defaultProps = {
   addDangerToast: NOOP,
@@ -156,7 +158,7 @@ describe('Email Report Modal', () => {
 
       // Click "Add" button to create a new email report
       const addButton = screen.getByRole('button', { name: /add/i });
-      userEvent.click(addButton);
+      await waitFor(() => userEvent.click(addButton));
 
       // Mock addReport from Redux
       const makeRequest = () => {
@@ -164,16 +166,15 @@ describe('Email Report Modal', () => {
         return request(dispatch);
       };
 
-      return makeRequest().then(() => {
-        // 🐞 ----- There are 2 POST calls at this point ----- 🐞
+      await makeRequest();
 
-        // addReport's mocked POST return should match the mocked values
-        expect(fetchMock.lastOptions()?.body).toEqual(stringyReportValues);
-        // Dispatch should be called once for addReport
-        expect(dispatch.callCount).toBe(2);
-        const reportCalls = fetchMock.calls(REPORT_ENDPOINT);
-        expect(reportCalls).toHaveLength(2);
-      });
+      // 🐞 ----- There are 2 POST calls at this point ----- 🐞
+
+      // addReport's mocked POST return should match the mocked values
+      expect(fetchMock.lastOptions()?.body).toEqual(stringyReportValues);
+      expect(dispatch.callCount).toBe(2);
+      const reportCalls = fetchMock.calls(REPORT_ENDPOINT);
+      expect(reportCalls).toHaveLength(2);
     });
   });
 });
