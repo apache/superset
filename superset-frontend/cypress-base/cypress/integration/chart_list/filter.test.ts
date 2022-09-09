@@ -39,14 +39,14 @@ describe('Charts filters', () => {
       setFilter('Owner', 'alpha user');
       cy.getBySel('styled-card').should('not.exist');
       setFilter('Owner', 'admin user');
-      cy.getBySel('styled-card').should('have.length', 20);
+      cy.getBySel('styled-card').should('exist');
     });
 
     it('should filter by created by correctly', () => {
       setFilter('Created by', 'alpha user');
       cy.getBySel('styled-card').should('not.exist');
       setFilter('Created by', 'admin user');
-      cy.getBySel('styled-card').should('have.length', 20);
+      cy.getBySel('styled-card').should('exist');
     });
 
     it('should filter by viz type correctly', () => {
@@ -73,14 +73,14 @@ describe('Charts filters', () => {
       setFilter('Owner', 'alpha user');
       cy.getBySel('table-row').should('not.exist');
       setFilter('Owner', 'admin user');
-      cy.getBySel('table-row').should('have.length', 20);
+      cy.getBySel('table-row').should('exist');
     });
 
     it('should filter by created by correctly', () => {
       setFilter('Created by', 'alpha user');
       cy.getBySel('table-row').should('not.exist');
       setFilter('Created by', 'admin user');
-      cy.getBySel('table-row').should('have.length', 20);
+      cy.getBySel('table-row').should('exist');
     });
 
     it('should filter by viz type correctly', () => {

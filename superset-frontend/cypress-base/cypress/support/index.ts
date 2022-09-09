@@ -47,12 +47,12 @@ before(() => {
 });
 
 Cypress.Commands.add('cleanDashboards', () =>
-  cy.getDashboards().then((sampleDashboards: any) => {
+  cy.getDashboards().then((sampleDashboards?: Record<string, any>[]) => {
     const deletableDashboards = [];
     for (let i = 0; i < DASHBOARD_FIXTURES.length; i += 1) {
       const fixture = DASHBOARD_FIXTURES[i];
-      const isInDb = sampleDashboards.find(
-        (d: any) => d.dashboard_title === fixture.dashboard_title,
+      const isInDb = sampleDashboards?.find(
+        d => d.dashboard_title === fixture.dashboard_title,
       );
       if (isInDb) {
         deletableDashboards.push(isInDb.id);
@@ -78,12 +78,12 @@ Cypress.Commands.add('cleanDashboards', () =>
 );
 
 Cypress.Commands.add('cleanCharts', () =>
-  cy.getCharts().then((sampleCharts: any) => {
+  cy.getCharts().then((sampleCharts?: Record<string, any>[]) => {
     const deletableCharts = [];
     for (let i = 0; i < CHART_FIXTURES.length; i += 1) {
       const fixture = CHART_FIXTURES[i];
-      const isInDb = sampleCharts.find(
-        (c: any) => c.slice_name === fixture.slice_name,
+      const isInDb = sampleCharts?.find(
+        c => c.slice_name === fixture.slice_name,
       );
       if (isInDb) {
         deletableCharts.push(isInDb.id);
@@ -237,46 +237,50 @@ Cypress.Commands.add(
   },
 );
 
-Cypress.Commands.add('createSampleDashboards', () =>
+Cypress.Commands.add('createSampleDashboards', (indexes?: number[]) =>
   cy.cleanDashboards().then(() => {
     for (let i = 0; i < DASHBOARD_FIXTURES.length; i += 1) {
-      cy.request({
-        method: 'POST',
-        url: `/api/v1/dashboard/`,
-        body: DASHBOARD_FIXTURES[i],
-        failOnStatusCode: false,
-        headers: {
-          Cookie: `csrf_access_token=${window.localStorage.getItem(
-            'access_token',
-          )}`,
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${TokenName}`,
-          'X-CSRFToken': `${window.localStorage.getItem('access_token')}`,
-          Referer: `${Cypress.config().baseUrl}/`,
-        },
-      });
+      if (indexes?.includes(i) || !indexes) {
+        cy.request({
+          method: 'POST',
+          url: `/api/v1/dashboard/`,
+          body: DASHBOARD_FIXTURES[i],
+          failOnStatusCode: false,
+          headers: {
+            Cookie: `csrf_access_token=${window.localStorage.getItem(
+              'access_token',
+            )}`,
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${TokenName}`,
+            'X-CSRFToken': `${window.localStorage.getItem('access_token')}`,
+            Referer: `${Cypress.config().baseUrl}/`,
+          },
+        });
+      }
     }
   }),
 );
 
-Cypress.Commands.add('createSampleCharts', () =>
+Cypress.Commands.add('createSampleCharts', (indexes?: number[]) =>
   cy.cleanCharts().then(() => {
     for (let i = 0; i < CHART_FIXTURES.length; i += 1) {
-      cy.request({
-        method: 'POST',
-        url: `/api/v1/chart/`,
-        body: CHART_FIXTURES[i],
-        failOnStatusCode: false,
-        headers: {
-          Cookie: `csrf_access_token=${window.localStorage.getItem(
-            'access_token',
-          )}`,
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${TokenName}`,
-          'X-CSRFToken': `${window.localStorage.getItem('access_token')}`,
-          Referer: `${Cypress.config().baseUrl}/`,
-        },
-      });
+      if (indexes?.includes(i) || !indexes) {
+        cy.request({
+          method: 'POST',
+          url: `/api/v1/chart/`,
+          body: CHART_FIXTURES[i],
+          failOnStatusCode: false,
+          headers: {
+            Cookie: `csrf_access_token=${window.localStorage.getItem(
+              'access_token',
+            )}`,
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${TokenName}`,
+            'X-CSRFToken': `${window.localStorage.getItem('access_token')}`,
+            Referer: `${Cypress.config().baseUrl}/`,
+          },
+        });
+      }
     }
   }),
 );
@@ -284,9 +288,9 @@ Cypress.Commands.add('createSampleCharts', () =>
 Cypress.Commands.add(
   'deleteDashboardByName',
   (dashboardName: string, failOnStatusCode = false) =>
-    cy.getDashboards().then((sampleDashboards: any) => {
-      const dashboard = sampleDashboards.find(
-        (d: any) => d.dashboard_title === dashboardName,
+    cy.getDashboards().then((sampleDashboards?: Record<string, any>[]) => {
+      const dashboard = sampleDashboards?.find(
+        d => d.dashboard_title === dashboardName,
       );
       if (dashboard) {
         cy.deleteDashboard(dashboard.id, failOnStatusCode);
@@ -363,8 +367,8 @@ Cypress.Commands.add('getCharts', () =>
 Cypress.Commands.add(
   'deleteChartByName',
   (sliceName: string, failOnStatusCode = false) =>
-    cy.getCharts().then((sampleCharts: any) => {
-      const chart = sampleCharts.find((c: any) => c.slice_name === sliceName);
+    cy.getCharts().then((sampleCharts?: Record<string, any>[]) => {
+      const chart = sampleCharts?.find(c => c.slice_name === sliceName);
       if (chart) {
         cy.deleteChart(chart.id, failOnStatusCode);
       }

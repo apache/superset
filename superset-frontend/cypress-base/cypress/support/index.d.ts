@@ -70,8 +70,8 @@ declare namespace Cypress {
     /**
      * Create
      */
-    createSampleDashboards(): void;
-    createSampleCharts(): void;
+    createSampleDashboards(indexes?: number[]): void;
+    createSampleCharts(indexes?: number[]): void;
 
     /**
      * Delete
