@@ -38,7 +38,11 @@ from superset.explore.form_data.commands.parameters import (
 )
 from superset.explore.permalink.commands.get import GetExplorePermalinkCommand
 from superset.explore.permalink.exceptions import ExplorePermalinkGetFailedError
-from superset.utils import core as utils
+from superset.utils.core import (
+    DatasourceType,
+    convert_legacy_filters_into_adhoc,
+    merge_extra_filters,
+)
 from superset.views.utils import (
     get_datasource_info,
     get_form_data,
@@ -79,7 +83,6 @@ class GetExploreCommand(BaseCommand, ABC):
             initial_form_data = json.loads(value) if value else {}
 
         message = None
-
         if not initial_form_data:
             if self._slice_id:
                 initial_form_data["slice_id"] = self._slice_id
@@ -90,7 +93,7 @@ class GetExploreCommand(BaseCommand, ABC):
             elif self._dataset_id:
                 initial_form_data[
                     "datasource"
-                ] = f"{self._dataset_id}__{self._dataset_type}"
+                ] = f"{self._dataset_id}__{self._dataset_type or DatasourceType.TABLE}"
                 if self._form_data_key:
                     message = _(
                         "Form data not found in cache, reverting to dataset metadata."
@@ -105,8 +108,8 @@ class GetExploreCommand(BaseCommand, ABC):
             )
         except SupersetException:
             self._dataset_id = None
-            # fallback unkonw datasource to table type
-            self._dataset_type = SqlaTable.type
+            # fallback unknown datasource to table type
+            self._dataset_type = DatasourceType.TABLE
 
         dataset: Optional[BaseDatasource] = None
         if self._dataset_id is not None:
@@ -138,8 +141,8 @@ class GetExploreCommand(BaseCommand, ABC):
         )
 
         # On explore, merge legacy and extra filters into the form data
-        utils.convert_legacy_filters_into_adhoc(form_data)
-        utils.merge_extra_filters(form_data)
+        convert_legacy_filters_into_adhoc(form_data)
+        merge_extra_filters(form_data)
 
         dummy_dataset_data: Dict[str, Any] = {
             "type": self._dataset_type,

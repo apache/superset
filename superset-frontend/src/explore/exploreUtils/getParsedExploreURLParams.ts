@@ -17,15 +17,29 @@
  * under the License.
  */
 
+import { URL_PARAMS } from 'src/constants';
+
 export interface Location {
   search: string;
   pathname: string;
 }
 
-// mapping { url_param: v1_explore_request_param }
 const EXPLORE_URL_SEARCH_PARAMS = {
+  // Current supported URL params
+  [URL_PARAMS.formDataKey.name]: {},
+  [URL_PARAMS.sliceId.name]: {},
+  [URL_PARAMS.vizType.name]: {},
+  [URL_PARAMS.datasetId.name]: {},
+  [URL_PARAMS.datasetType.name]: {},
+  [URL_PARAMS.datasourceId.name]: {
+    aliasOf: URL_PARAMS.datasetId.name,
+  },
+  [URL_PARAMS.datasourceType.name]: {
+    aliasOf: URL_PARAMS.datasetType.name,
+  },
+
+  // legacy URL params
   form_data: {
-    name: 'form_data',
     parser: (formData: string) => {
       const formDataObject = JSON.parse(formData);
       if (formDataObject.datasource) {
@@ -38,34 +52,16 @@ const EXPLORE_URL_SEARCH_PARAMS = {
       return formDataObject;
     },
   },
-  slice_id: {
-    name: 'slice_id',
-  },
-  dataset_id: {
-    name: 'dataset_id',
-  },
-  dataset_type: {
-    name: 'dataset_type',
-  },
   datasource: {
-    name: 'datasource',
     parser: (datasource: string) => {
       const [dataset_id, dataset_type] = datasource.split('__');
       return { dataset_id, dataset_type };
     },
   },
-  form_data_key: {
-    name: 'form_data_key',
-  },
-  permalink_key: {
-    name: 'permalink_key',
-  },
-  viz_type: {
-    name: 'viz_type',
-  },
-  dashboard_id: {
-    name: 'dashboard_id',
-  },
+
+  // URL path params
+  permalink_key: {},
+  dashboard_id: {},
 };
 
 const EXPLORE_URL_PATH_PARAMS = {
@@ -95,7 +91,8 @@ const getParsedExploreURLSearchParams = (search: string) => {
     }
     return {
       ...acc,
-      [EXPLORE_URL_SEARCH_PARAMS[currentParam].name]: parsedParamValue,
+      [EXPLORE_URL_SEARCH_PARAMS[currentParam].aliasOf || currentParam]:
+        parsedParamValue,
     };
   }, {});
 };

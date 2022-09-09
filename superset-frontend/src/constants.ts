@@ -69,14 +69,18 @@ export const URL_PARAMS = {
   },
   datasourceId: {
     name: 'datasource_id',
+    type: 'number',
+  },
+  datasourceType: {
+    name: 'datasource_type',
     type: 'string',
   },
   datasetId: {
     name: 'dataset_id',
-    type: 'string',
+    type: 'number',
   },
-  datasourceType: {
-    name: 'datasource_type',
+  datasetType: {
+    name: 'dataset_type',
     type: 'string',
   },
   dashboardId: {
@@ -115,6 +119,7 @@ export const RESERVED_CHART_URL_PARAMS: string[] = [
   URL_PARAMS.datasourceId.name,
   URL_PARAMS.datasourceType.name,
   URL_PARAMS.datasetId.name,
+  URL_PARAMS.datasetType.name,
 ];
 export const RESERVED_DASHBOARD_URL_PARAMS: string[] = [
   URL_PARAMS.nativeFilters.name,

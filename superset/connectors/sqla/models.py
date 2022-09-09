@@ -126,6 +126,7 @@ from superset.superset_typing import (
 from superset.tables.models import Table as NewTable
 from superset.utils import core as utils
 from superset.utils.core import (
+    DatasourceType,
     GenericDataType,
     get_column_name,
     get_username,
@@ -676,7 +677,7 @@ def _process_sql_expression(
 class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-methods
     """An ORM object for SqlAlchemy table references"""
 
-    type = "table"
+    type = DatasourceType.TABLE
     query_language = "sql"
     is_rls_supported = True
     columns: List[TableColumn] = []

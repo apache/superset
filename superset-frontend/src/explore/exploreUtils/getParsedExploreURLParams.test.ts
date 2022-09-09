@@ -31,7 +31,7 @@ test('get form_data_key and slice_id from search params - url when moving from d
     `${EXPLORE_BASE_URL}?form_data_key=yrLXmyE9fmhQ11lM1KgaD1PoPSBpuLZIJfqdyIdw9GoBwhPFRZHeIgeFiNZljbpd&slice_id=56`,
   );
   expect(getParsedExploreURLParams().toString()).toEqual(
-    'slice_id=56&form_data_key=yrLXmyE9fmhQ11lM1KgaD1PoPSBpuLZIJfqdyIdw9GoBwhPFRZHeIgeFiNZljbpd',
+    'form_data_key=yrLXmyE9fmhQ11lM1KgaD1PoPSBpuLZIJfqdyIdw9GoBwhPFRZHeIgeFiNZljbpd&slice_id=56',
   );
 });
 
@@ -46,6 +46,15 @@ test('get datasource and viz type from form_data search param - url when creatin
   );
   expect(getParsedExploreURLParams().toString()).toEqual(
     'viz_type=big_number&dataset_id=2&dataset_type=table',
+  );
+});
+
+test('parse legacy url where datasource_id instead of dataset_id is used', () => {
+  setupLocation(
+    `${EXPLORE_BASE_URL}?viz_type=big_number&datasource_id=2&datasource_type=query`,
+  );
+  expect(getParsedExploreURLParams().toString()).toEqual(
+    'viz_type=big_number&dataset_id=2&dataset_type=query',
   );
 });
 
