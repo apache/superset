@@ -62,7 +62,7 @@ from superset.connectors.sqla.models import SqlaTable
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.mssql import MssqlEngineSpec
 from superset.exceptions import SupersetException
-from superset.extensions import async_query_manager, cache_manager
+from superset.extensions import async_query_manager
 from superset.models import core as models
 from superset.models.annotations import Annotation, AnnotationLayer
 from superset.models.dashboard import Dashboard
@@ -1455,8 +1455,6 @@ class TestCore(SupersetTestCase):
         """
         Functions in feature flags don't break bootstrap data serialization.
         """
-        # feature flags are cached
-        cache_manager.cache.clear()
         self.login()
 
         encoded = json.dumps(
