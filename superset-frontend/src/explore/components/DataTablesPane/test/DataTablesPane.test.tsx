@@ -39,10 +39,10 @@ describe('DataTablesPane', () => {
     localStorage.clear();
   });
 
-  test('Rendering DataTablesPane correctly', () => {
+  test('Rendering DataTablesPane correctly', async () => {
     const props = createDataTablesPaneProps(0);
     render(<DataTablesPane {...props} />, { useRedux: true });
-    expect(screen.getByText('Results')).toBeVisible();
+    expect(await screen.findByText('Results')).toBeVisible();
     expect(screen.getByText('Samples')).toBeVisible();
     expect(screen.getByLabelText('Expand data panel')).toBeVisible();
   });

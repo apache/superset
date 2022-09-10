@@ -29,3 +29,31 @@ user/role rights during engine creation by default. However, when pressing the �
 button in the Create or Edit Database dialog, user/role credentials are validated by passing
 “validate_default_parameters”: True to the connect() method during engine creation. If the user/role
 is not authorized to access the database, an error is recorded in the Superset logs.
+
+And if you want connect Snowflake with [Key Pair Authentication](https://docs.snowflake.com/en/user-guide/key-pair-auth.html#step-6-configure-the-snowflake-client-to-use-key-pair-authentication).
+Plase make sure you have the key pair and the public key is registered in Snowflake.
+To connect Snowflake with Key Pair Authentication, you need to add the following parameters to "SECURE EXTRA" field.
+
+***Please note that you need to merge multi-line private key content to one line and insert `\n` between each line***
+
+```
+{
+     "auth_method": "keypair",
+     "auth_params": {
+         "privatekey_body": "-----BEGIN ENCRYPTED PRIVATE KEY-----\n...\n...\n-----END ENCRYPTED PRIVATE KEY-----",
+         "privatekey_pass":"Your Private Key Password"
+     }
+ }
+```
+
+If your private key is stored on server, you can replace "privatekey_body" with “privatekey_path” in parameter.
+
+```
+{
+    "auth_method": "keypair",
+    "auth_params": {
+        "privatekey_path":"Your Private Key Path",
+        "privatekey_pass":"Your Private Key Password"
+    }
+}
+```

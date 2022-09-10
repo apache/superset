@@ -28,9 +28,10 @@ import '@testing-library/jest-dom/extend-expect';
 import userEvent from '@testing-library/user-event';
 import * as utils from 'src/utils/common';
 import ShareSqlLabQuery from 'src/SqlLab/components/ShareSqlLabQuery';
+import { initialState } from 'src/SqlLab/fixtures';
 
 const mockStore = configureStore([thunk]);
-const store = mockStore({});
+const store = mockStore(initialState);
 let isFeatureEnabledMock;
 
 const standardProvider = ({ children }) => (
@@ -41,6 +42,7 @@ const standardProvider = ({ children }) => (
 
 const defaultProps = {
   queryEditor: {
+    id: 'qe1',
     dbId: 0,
     name: 'query title',
     schema: 'query_schema',
@@ -50,6 +52,31 @@ const defaultProps = {
   },
   addDangerToast: jest.fn(),
 };
+
+const unsavedQueryEditor = {
+  id: defaultProps.queryEditor.id,
+  dbId: 9888,
+  name: 'query title changed',
+  schema: 'query_schema_updated',
+  sql: 'SELECT * FROM Updated Limit 100',
+  autorun: true,
+};
+
+const standardProviderWithUnsaved = ({ children }) => (
+  <ThemeProvider theme={supersetTheme}>
+    <Provider
+      store={mockStore({
+        ...initialState,
+        sqlLab: {
+          ...initialState.sqlLab,
+          unsavedQueryEditor,
+        },
+      })}
+    >
+      {children}
+    </Provider>
+  </ThemeProvider>
+);
 
 describe('ShareSqlLabQuery', () => {
   const storeQueryUrl = 'glob:*/kv/store/';
@@ -83,9 +110,26 @@ describe('ShareSqlLabQuery', () => {
         });
       });
       const button = screen.getByRole('button');
+      const { id, remoteId, ...expected } = defaultProps.queryEditor;
       const storeQuerySpy = jest.spyOn(utils, 'storeQuery');
       userEvent.click(button);
       expect(storeQuerySpy.mock.calls).toHaveLength(1);
+      expect(storeQuerySpy).toBeCalledWith(expected);
+      storeQuerySpy.mockRestore();
+    });
+
+    it('calls storeQuery() with unsaved changes', async () => {
+      await act(async () => {
+        render(<ShareSqlLabQuery {...defaultProps} />, {
+          wrapper: standardProviderWithUnsaved,
+        });
+      });
+      const button = screen.getByRole('button');
+      const { id, ...expected } = unsavedQueryEditor;
+      const storeQuerySpy = jest.spyOn(utils, 'storeQuery');
+      userEvent.click(button);
+      expect(storeQuerySpy.mock.calls).toHaveLength(1);
+      expect(storeQuerySpy).toBeCalledWith(expected);
       storeQuerySpy.mockRestore();
     });
   });
