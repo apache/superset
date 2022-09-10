@@ -48,12 +48,14 @@ const baseFormData = {
   datasource: 'table__1',
 };
 
-test('renders with default props', () => {
+test('renders with default props', async () => {
   render(<DndFilterSelect {...defaultProps} />, { useDnd: true });
-  expect(screen.getByText('Drop columns or metrics here')).toBeInTheDocument();
+  expect(
+    await screen.findByText('Drop columns or metrics here'),
+  ).toBeInTheDocument();
 });
 
-test('renders with value', () => {
+test('renders with value', async () => {
   const value = new AdhocFilter({
     sqlExpression: 'COUNT(*)',
     expressionType: EXPRESSION_TYPES.SQL,
@@ -61,10 +63,10 @@ test('renders with value', () => {
   render(<DndFilterSelect {...defaultProps} value={[value]} />, {
     useDnd: true,
   });
-  expect(screen.getByText('COUNT(*)')).toBeInTheDocument();
+  expect(await screen.findByText('COUNT(*)')).toBeInTheDocument();
 });
 
-test('renders options with saved metric', () => {
+test('renders options with saved metric', async () => {
   render(
     <DndFilterSelect
       {...defaultProps}
@@ -78,10 +80,12 @@ test('renders options with saved metric', () => {
       useDnd: true,
     },
   );
-  expect(screen.getByText('Drop columns or metrics here')).toBeInTheDocument();
+  expect(
+    await screen.findByText('Drop columns or metrics here'),
+  ).toBeInTheDocument();
 });
 
-test('renders options with column', () => {
+test('renders options with column', async () => {
   render(
     <DndFilterSelect
       {...defaultProps}
@@ -98,10 +102,12 @@ test('renders options with column', () => {
       useDnd: true,
     },
   );
-  expect(screen.getByText('Drop columns or metrics here')).toBeInTheDocument();
+  expect(
+    await screen.findByText('Drop columns or metrics here'),
+  ).toBeInTheDocument();
 });
 
-test('renders options with adhoc metric', () => {
+test('renders options with adhoc metric', async () => {
   const adhocMetric = new AdhocMetric({
     expression: 'AVG(birth_names.num)',
     metric_name: 'avg__num',
@@ -119,5 +125,7 @@ test('renders options with adhoc metric', () => {
       useDnd: true,
     },
   );
-  expect(screen.getByText('Drop columns or metrics here')).toBeInTheDocument();
+  expect(
+    await screen.findByText('Drop columns or metrics here'),
+  ).toBeInTheDocument();
 });
