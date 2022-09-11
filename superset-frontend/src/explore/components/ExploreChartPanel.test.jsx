@@ -147,14 +147,15 @@ describe('ChartContainer', () => {
     expect(screen.queryByText('Cached')).not.toBeInTheDocument();
   });
 
-  it('hide gutter when collapse panel', async () => {
+  it('hides gutter when collapsing data panel', async () => {
     const props = createProps();
     setItem(LocalStorageKeys.is_datapanel_open, true);
     const { container } = render(<ChartContainer {...props} />, {
       useRedux: true,
     });
-    userEvent.click(screen.getByLabelText('Collapse data panel'));
     const gutter = container.querySelector('.gutter');
+    expect(window.getComputedStyle(gutter).display).toBe('block');
+    userEvent.click(screen.getByLabelText('Collapse data panel'));
     expect(window.getComputedStyle(gutter).display).toBe('none');
   });
 });
