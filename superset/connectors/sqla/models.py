@@ -1520,7 +1520,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                 )
 
                 col_advanced_data_type: str = col_obj.advanced_data_type if col_obj else ""
-
+                col_advanced_data_type = col_advanced_data_type.lower() if col_advanced_data_type else col_advanced_data_type
                 if col_spec and not col_advanced_data_type:
                     target_generic_type = col_spec.generic_type
                 else:
