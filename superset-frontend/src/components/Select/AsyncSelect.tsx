@@ -19,7 +19,6 @@
 import React, {
   forwardRef,
   ReactElement,
-  ReactNode,
   RefObject,
   UIEvent,
   useEffect,
@@ -87,51 +86,12 @@ export type AsyncSelectRef = HTMLInputElement & { clearCache: () => void };
 
 export interface AsyncSelectProps extends BaseSelectProps {
   /**
-   * It enables the user to create new options.
-   * Can be used with standard or async select types.
-   * Can be used with any mode, single or multiple.
-   * False by default.
-   * */
-  allowNewOptions?: boolean;
-  /**
-   * It adds the aria-label tag for accessibility standards.
-   * Must be plain English and localized.
-   */
-  ariaLabel: string;
-  /**
-   * It adds a header on top of the Select.
-   * Can be any ReactNode.
-   */
-  header?: ReactNode;
-  /**
-   * It adds a helper text on top of the Select options
-   * with additional context to help with the interaction.
-   */
-  helperText?: string;
-  /**
    * It fires a request against the server after
    * the first interaction and not on render.
    * Works in async mode only (See the options property).
    * True by default.
    */
   lazyLoading?: boolean;
-  /**
-   * It defines whether the Select should allow for the
-   * selection of multiple options or single.
-   * Single by default.
-   */
-  mode?: 'single' | 'multiple';
-  /**
-   * Deprecated.
-   * Prefer ariaLabel instead.
-   */
-  name?: string; // discourage usage
-  /**
-   * It allows to define which properties of the option object
-   * should be looked for when searching.
-   * By default label and value.
-   */
-  optionFilterProps?: string[];
   /**
    * It defines the options of the Select.
    * The options are async, a promise that returns
@@ -145,14 +105,6 @@ export interface AsyncSelectProps extends BaseSelectProps {
    */
   pageSize?: number;
   /**
-   * It shows a stop-outlined icon at the far right of a selected
-   * option instead of the default checkmark.
-   * Useful to better indicate to the user that by clicking on a selected
-   * option it will be de-selected.
-   * False by default.
-   */
-  invertSelection?: boolean;
-  /**
    * It fires a request against the server only after
    * searching.
    * Works in async mode only (See the options property).
@@ -165,11 +117,6 @@ export interface AsyncSelectProps extends BaseSelectProps {
    * Works in async mode only (See the options property).
    */
   onError?: (error: string) => void;
-  /**
-   * Customize how filtered options are sorted while users search.
-   * Will not apply to predefined `options` array when users are not searching.
-   */
-  sortComparator?: typeof DEFAULT_SORT_COMPARATOR;
 }
 
 const Error = ({ error }: { error: string }) => (

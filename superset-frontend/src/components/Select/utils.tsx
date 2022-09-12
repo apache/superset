@@ -394,6 +394,17 @@ export interface BaseSelectProps extends AntdExposedProps {
    */
   mappedMode?: 'multiple' | 'tags';
   /**
+   * It defines whether the Select should allow for the
+   * selection of multiple options or single.
+   * Single by default.
+   */
+  mode?: 'single' | 'multiple';
+  /**
+   * Deprecated.
+   * Prefer ariaLabel instead.
+   */
+  name?: string; // discourage usage
+  /**
    * It allows to define which properties of the option object
    * should be looked for when searching.
    * By default label and value.

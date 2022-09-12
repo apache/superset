@@ -19,7 +19,6 @@
 import React, {
   forwardRef,
   ReactElement,
-  ReactNode,
   RefObject,
   useEffect,
   useMemo,
@@ -54,64 +53,12 @@ import {
 
 export interface SelectProps extends BaseSelectProps {
   /**
-   * It enables the user to create new options.
-   * Can be used with standard or async select types.
-   * Can be used with any mode, single or multiple.
-   * False by default.
-   * */
-  allowNewOptions?: boolean;
-  /**
-   * It adds the aria-label tag for accessibility standards.
-   * Must be plain English and localized.
-   */
-  ariaLabel: string;
-  /**
-   * It adds a header on top of the Select.
-   * Can be any ReactNode.
-   */
-  header?: ReactNode;
-  /**
-   * It adds a helper text on top of the Select options
-   * with additional context to help with the interaction.
-   */
-  helperText?: string;
-  /**
-   * It defines whether the Select should allow for the
-   * selection of multiple options or single.
-   * Single by default.
-   */
-  mode?: 'single' | 'multiple';
-  /**
-   * Deprecated.
-   * Prefer ariaLabel instead.
-   */
-  name?: string; // discourage usage
-  /**
-   * It allows to define which properties of the option object
-   * should be looked for when searching.
-   * By default label and value.
-   */
-  optionFilterProps?: string[];
-  /**
    * It defines the options of the Select.
    * The options can be static, an array of options.
    * The options can also be async, a promise that returns
    * an array of options.
    */
   options: SelectOptionsType;
-  /**
-   * It shows a stop-outlined icon at the far right of a selected
-   * option instead of the default checkmark.
-   * Useful to better indicate to the user that by clicking on a selected
-   * option it will be de-selected.
-   * False by default.
-   */
-  invertSelection?: boolean;
-  /**
-   * Customize how filtered options are sorted while users search.
-   * Will not apply to predefined `options` array when users are not searching.
-   */
-  sortComparator?: typeof DEFAULT_SORT_COMPARATOR;
 }
 
 /**
