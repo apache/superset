@@ -286,7 +286,7 @@ class BaseSupersetView(BaseView):
     def render_app_template(self) -> FlaskResponse:
         payload = {
             "user": bootstrap_user_data(g.user, include_perms=True),
-            "common": common_bootstrap_payload(),
+            "common": common_bootstrap_payload(g.user),
         }
         return self.render_template(
             "superset/spa.html",
@@ -506,7 +506,7 @@ def show_unexpected_exception(ex: Exception) -> FlaskResponse:
 def get_common_bootstrap_data() -> Dict[str, Any]:
     def serialize_bootstrap_data() -> str:
         return json.dumps(
-            {"common": common_bootstrap_payload()},
+            {"common": common_bootstrap_payload(g.user)},
             default=utils.pessimistic_json_iso_dttm_ser,
         )
 
