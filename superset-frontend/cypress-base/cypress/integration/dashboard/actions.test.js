@@ -16,4 +16,29 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export const DATABASE_LIST = '/databaseview/list';
+import { SAMPLE_DASHBOARD_1 } from 'cypress/utils/urls';
+import { interceptFav, interceptUnfav } from './utils';
+
+describe('Dashboard actions', () => {
+  beforeEach(() => {
+    cy.createSampleDashboards();
+    cy.visit(SAMPLE_DASHBOARD_1);
+  });
+
+  it('should allow to favorite/unfavorite dashboard', () => {
+    interceptFav();
+    interceptUnfav();
+
+    cy.getBySel('dashboard-header-container')
+      .find("[aria-label='favorite-unselected']")
+      .click();
+    cy.wait('@select');
+    cy.getBySel('dashboard-header-container')
+      .find("[aria-label='favorite-selected']")
+      .click();
+    cy.wait('@unselect');
+    cy.getBySel('dashboard-header-container')
+      .find("[aria-label='favorite-selected']")
+      .should('not.exist');
+  });
+});

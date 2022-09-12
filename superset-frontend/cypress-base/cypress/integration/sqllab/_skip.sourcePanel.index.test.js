@@ -18,7 +18,7 @@
  */
 import { selectResultsTab } from './sqllab.helper';
 
-describe('SqlLab datasource panel', () => {
+describe.skip('SqlLab datasource panel', () => {
   beforeEach(() => {
     cy.login();
     cy.visit('/superset/sqllab');
@@ -26,7 +26,7 @@ describe('SqlLab datasource panel', () => {
 
   // TODO the test bellow is flaky, and has been disabled for the time being
   // (notice the `it.skip`)
-  it.skip('creates a table preview when a database, schema, and table are selected', () => {
+  it('creates a table preview when a database, schema, and table are selected', () => {
     cy.intercept('/superset/table/**').as('tableMetadata');
 
     // it should have dropdowns to select database, schema, and table

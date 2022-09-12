@@ -16,31 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { REPORT_LIST } from './alert_report.helper';
+import { REPORT_LIST } from 'cypress/utils/urls';
 
-describe('report list view', () => {
-  beforeEach(() => {
-    cy.login();
+describe('Report list view', () => {
+  before(() => {
+    cy.visit(REPORT_LIST);
   });
 
-  afterEach(() => {
-    cy.eyesClose();
+  beforeEach(() => {
+    cy.preserveLogin();
   });
 
   it('should load report lists', () => {
-    cy.visit(REPORT_LIST);
-
-    cy.get('[data-test="listview-table"]').should('be.visible');
-    // check report list view header
-    cy.get('[data-test="sort-header"]').eq(1).contains('Last run');
-    cy.get('[data-test="sort-header"]').eq(2).contains('Name');
-    cy.get('[data-test="sort-header"]').eq(3).contains('Schedule');
-    cy.get('[data-test="sort-header"]').eq(4).contains('Notification method');
-    cy.get('[data-test="sort-header"]').eq(5).contains('Created by');
-    cy.get('[data-test="sort-header"]').eq(6).contains('Owners');
-    cy.get('[data-test="sort-header"]').eq(7).contains('Modified');
-    // TODO: this assert is flaky, we need to find a way to make it work consistenly
-    // cy.get('[data-test="sort-header"]').eq(7).contains('Active');
-    // cy.get('[data-test="sort-header"]').eq(8).contains('Actions');
+    cy.getBySel('listview-table').should('be.visible');
+    cy.getBySel('sort-header').eq(1).contains('Last run');
+    cy.getBySel('sort-header').eq(2).contains('Name');
+    cy.getBySel('sort-header').eq(3).contains('Schedule');
+    cy.getBySel('sort-header').eq(4).contains('Notification method');
+    cy.getBySel('sort-header').eq(5).contains('Created by');
+    cy.getBySel('sort-header').eq(6).contains('Owners');
+    cy.getBySel('sort-header').eq(7).contains('Modified');
+    cy.getBySel('sort-header').eq(8).contains('Active');
+    // TODO Cypress won't recognize the Actions column
+    // cy.getBySel('sort-header').eq(9).contains('Actions');
   });
 });
