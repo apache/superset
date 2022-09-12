@@ -45,7 +45,7 @@ const mockedProps = {
   ],
   dropDownLinks: [
     {
-      label: 'test a upload',
+      label: 'test an upload',
       childs: [
         {
           label: 'Upload Test',
@@ -58,29 +58,31 @@ const mockedProps = {
   ],
 };
 
-test('should render', () => {
+test('should render', async () => {
   const { container } = render(<SubMenu {...mockedProps} />);
+  expect(await screen.findByText(/title/i)).toBeInTheDocument();
   expect(container).toBeInTheDocument();
 });
 
-test('should render the navigation', () => {
+test('should render the navigation', async () => {
   render(<SubMenu {...mockedProps} />);
-  expect(screen.getByRole('navigation')).toBeInTheDocument();
+  expect(await screen.findByRole('navigation')).toBeInTheDocument();
 });
 
-test('should render the brand', () => {
+test('should render the brand', async () => {
   render(<SubMenu {...mockedProps} />);
-  expect(screen.getByText('Title')).toBeInTheDocument();
+  expect(await screen.findByText('Title')).toBeInTheDocument();
 });
 
-test('should render the right number of tabs', () => {
+test('should render the right number of tabs', async () => {
   render(<SubMenu {...mockedProps} />);
-  expect(screen.getAllByRole('tab')).toHaveLength(3);
+  expect(await screen.findAllByRole('tab')).toHaveLength(3);
 });
 
-test('should render all the tabs links', () => {
+test('should render all the tabs links', async () => {
   const { tabs } = mockedProps;
   render(<SubMenu {...mockedProps} />);
+  expect(await screen.findAllByRole('tab')).toHaveLength(3);
   tabs.forEach(tab => {
     const tabItem = screen.getByText(tab.label);
     expect(tabItem).toHaveAttribute('href', tab.url);
@@ -89,12 +91,12 @@ test('should render all the tabs links', () => {
 
 test('should render dropdownlinks', async () => {
   render(<SubMenu {...mockedProps} />);
-  userEvent.hover(screen.getByText('test a upload'));
-  const label = await screen.findByText('test a upload');
+  userEvent.hover(screen.getByText('test an upload'));
+  const label = await screen.findByText('test an upload');
   expect(label).toBeInTheDocument();
 });
 
-test('should render the buttons', () => {
+test('should render the buttons', async () => {
   const mockFunc = jest.fn();
   const buttons = [
     {
@@ -114,7 +116,7 @@ test('should render the buttons', () => {
   };
   render(<SubMenu {...buttonsProps} />);
   const testButton = screen.getByText(buttons[0].name);
-  expect(screen.getAllByRole('button')).toHaveLength(3);
+  expect(await screen.findAllByRole('button')).toHaveLength(3);
   userEvent.click(testButton);
   expect(mockFunc).toHaveBeenCalled();
 });

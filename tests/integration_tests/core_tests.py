@@ -62,7 +62,7 @@ from superset.connectors.sqla.models import SqlaTable
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.mssql import MssqlEngineSpec
 from superset.exceptions import SupersetException
-from superset.extensions import async_query_manager, cache_manager
+from superset.extensions import async_query_manager
 from superset.models import core as models
 from superset.models.annotations import Annotation, AnnotationLayer
 from superset.models.dashboard import Dashboard
@@ -894,6 +894,18 @@ class TestCore(SupersetTestCase):
             data = self.get_json_resp(endpoint)
             self.assertNotIn("message", data)
 
+    def test_user_profile_optional_access(self):
+        self.login(username="gamma")
+        resp = self.client.get(f"/superset/profile/admin/")
+        self.assertEqual(resp.status_code, 200)
+
+        app.config["ENABLE_BROAD_ACTIVITY_ACCESS"] = False
+        resp = self.client.get(f"/superset/profile/admin/")
+        self.assertEqual(resp.status_code, 403)
+
+        # Restore config
+        app.config["ENABLE_BROAD_ACTIVITY_ACCESS"] = True
+
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_user_activity_access(self, username="gamma"):
         self.login(username=username)
@@ -1443,8 +1455,6 @@ class TestCore(SupersetTestCase):
         """
         Functions in feature flags don't break bootstrap data serialization.
         """
-        # feature flags are cached
-        cache_manager.cache.clear()
         self.login()
 
         encoded = json.dumps(

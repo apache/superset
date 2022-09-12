@@ -152,6 +152,7 @@ export const PageHeaderWithActions = ({
               css={menuTriggerStyles}
               buttonStyle="tertiary"
               aria-label={t('Menu actions trigger')}
+              data-test="actions-trigger"
             >
               <Icons.MoreHoriz
                 iconColor={theme.colors.primary.dark2}

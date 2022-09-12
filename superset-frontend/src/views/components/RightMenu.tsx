@@ -281,7 +281,7 @@ const RightMenu = ({
           onDatabaseAdd={handleDatabaseAdd}
         />
       )}
-      {environmentTag.text && (
+      {environmentTag && environmentTag.text && (
         <Label
           css={{ borderRadius: `${theme.gridUnit * 125}px` }}
           color={

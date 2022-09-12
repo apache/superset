@@ -39,6 +39,7 @@ import { commonMenuData } from 'src/views/CRUD/data/common';
 import handleResourceExport from 'src/utils/export';
 import { ExtentionConfigs } from 'src/views/components/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import type { MenuObjectProps } from 'src/views/components/Menu';
 import DatabaseModal from './DatabaseModal';
 
 import { DatabaseObject } from './types';
@@ -235,11 +236,13 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
 
   useEffect(() => hasFileUploadEnabled(), [databaseModalOpen]);
 
-  const filteredDropDown = uploadDropdownMenu.map(link => {
+  const filteredDropDown = uploadDropdownMenu.reduce((prev, cur) => {
     // eslint-disable-next-line no-param-reassign
-    link.childs = link.childs.filter(item => item.perm);
-    return link;
-  });
+    cur.childs = cur.childs.filter(item => item.perm);
+    if (!cur.childs.length) return prev;
+    prev.push(cur);
+    return prev;
+  }, [] as MenuObjectProps[]);
 
   const menuData: SubMenuProps = {
     activeChild: 'Databases',
