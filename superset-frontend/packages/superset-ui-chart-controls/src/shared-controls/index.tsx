@@ -302,21 +302,40 @@ const granularity_sqla: SharedControlConfig<'SelectControl', ColumnMeta> = {
   mapStateToProps: state => {
     const props: Partial<SelectControlConfig<ColumnMeta | QueryColumn>> = {};
     const { datasource } = state;
-    if (datasource?.columns[0]?.hasOwnProperty('main_dttm_col')) {
+
+    if (datasource?.hasOwnProperty('main_dttm_col')) {
       const dataset = datasource as Dataset;
       props.options = dataset.columns.filter((c: ColumnMeta) => c.is_dttm);
       props.default = null;
-      if (dataset.main_dttm_col) {
-        props.default = dataset.main_dttm_col;
-      } else if (props?.options) {
-        props.default = (props.options[0] as ColumnMeta).column_name;
+      if (dataset.main_dttm_col !== null) {
+        if (dataset.main_dttm_col) {
+          props.default = dataset.main_dttm_col;
+        } else if (props?.options.length > 0) {
+          props.default = (props.options[0] as ColumnMeta).column_name;
+        }
+      } else {
+        const sortedQueryColumns = (datasource as QueryResponse)?.columns
+          ?.filter(query => query?.is_dttm === true)
+          .sort();
+        props.options = sortedQueryColumns;
+        if (props?.options.length > 0) {
+          props.default =
+            'column_name' in props.options[0]
+              ? props.options[0]?.column_name
+              : props.options[0]?.name;
+        }
       }
     } else {
-      const sortedQueryColumns = (datasource as QueryResponse)?.columns?.sort(
-        query => (query?.is_dttm ? -1 : 1),
-      );
+      const sortedQueryColumns = (datasource as QueryResponse)?.columns
+        ?.filter(query => query?.is_dttm === true)
+        .sort();
       props.options = sortedQueryColumns;
-      if (props?.options) props.default = props.options[0]?.name;
+      if (props?.options.length > 0) {
+        props.default =
+          'column_name' in props.options[0]
+            ? props.options[0]?.column_name
+            : props.options[0]?.name;
+      }
     }
     return props;
   },
