@@ -37,5 +37,7 @@ describe('Alert list view', () => {
     cy.getBySel('sort-header').eq(6).contains('Owners');
     cy.getBySel('sort-header').eq(7).contains('Modified');
     cy.getBySel('sort-header').eq(8).contains('Active');
+    // TODO Cypress won't recognize the Actions column
+    // cy.getBySel('sort-header').eq(9).contains('Actions');
   });
 });
