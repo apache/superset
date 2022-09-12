@@ -205,6 +205,7 @@ const DashboardChartModalTrigger = ({
                 {t('Edit chart')}
               </Button>
               <Button
+                data-test="close-drilltodetail-modal"
                 buttonStyle="primary"
                 buttonSize="small"
                 onClick={closeModal}
