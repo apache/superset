@@ -40,6 +40,7 @@ import {
 } from 'react-sortable-hoc';
 import arrayMove from 'array-move';
 import { useTheme } from '@superset-ui/core';
+import { findValue } from './utils';
 import {
   WindowedSelectComponentType,
   WindowedSelectProps,
@@ -59,7 +60,6 @@ import {
   InputProps,
   defaultTheme,
 } from './styles';
-import { findValue } from './utils';
 
 type AnyReactSelect<OptionType extends OptionTypeBase> =
   | BasicSelect<OptionType>
