@@ -124,6 +124,11 @@ class Chart extends React.PureComponent {
     super(props);
     this.handleRenderContainerFailure =
       this.handleRenderContainerFailure.bind(this);
+
+    this.containerRef = React.createRef();
+    this.observer = null;
+
+    this.state = { isInView: false };
   }
 
   componentDidMount() {
@@ -133,6 +138,25 @@ class Chart extends React.PureComponent {
       this.props.filterboxMigrationState !== 'UNDECIDED'
     ) {
       this.runQuery();
+    }
+
+    if (isFeatureEnabled(FeatureFlag.DASHBOARD_VIRTUALIZATION)) {
+      this.observer = new IntersectionObserver(
+        ([entry]) => {
+          if (entry.isIntersecting && !this.state.isInView) {
+            this.setState({ isInView: true });
+          } else if (!entry.isIntersecting && this.state.isInView) {
+            this.setState({ isInView: false });
+          }
+        },
+        {
+          rootMargin: '100% 0px',
+        },
+      );
+      const element = this.containerRef.current;
+      if (element) {
+        this.observer.observe(element);
+      }
     }
   }
 
@@ -306,12 +330,21 @@ class Chart extends React.PureComponent {
           height={height}
           width={width}
         >
-          <div className="slice_container" data-test="slice-container">
-            <ChartRenderer
-              {...this.props}
-              source={this.props.dashboardId ? 'dashboard' : 'explore'}
-              data-test={this.props.vizType}
-            />
+          <div
+            className="slice_container"
+            data-test="slice-container"
+            ref={this.containerRef}
+          >
+            {this.state.isInView ||
+            !isFeatureEnabled(FeatureFlag.DASHBOARD_VIRTUALIZATION) ? (
+              <ChartRenderer
+                {...this.props}
+                source={this.props.dashboardId ? 'dashboard' : 'explore'}
+                data-test={this.props.vizType}
+              />
+            ) : (
+              <Loading />
+            )}
           </div>
           {isLoading && !isDeactivatedViz && <Loading />}
         </Styles>
