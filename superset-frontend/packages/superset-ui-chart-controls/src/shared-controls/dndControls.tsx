@@ -47,6 +47,16 @@ type Control = {
   default?: unknown;
 };
 
+/*
+ * Note: Previous to the commit that introduced this comment, the shared controls module
+ * would check feature flags at module execution time and expose a different control
+ * configuration (component + props) depending on the status of drag-and-drop feature
+ * flags.  This commit combines those configs, merging the required props for both the
+ * drag-and-drop and non-drag-and-drop components, and renders a wrapper component that
+ * checks feature flags at component render time to avoid race conditions between when
+ * feature flags are set and when they're checked.
+ */
+
 export const dndGroupByControl: SharedControlConfig<
   'DndColumnSelect' | 'SelectControl',
   ColumnMeta
