@@ -21,6 +21,7 @@ import userEvent from '@testing-library/user-event';
 import { render, screen } from 'spec/helpers/testing-library';
 import { getChartMetadataRegistry, ChartMetadata } from '@superset-ui/core';
 import ChartContainer from 'src/explore/components/ExploreChartPanel';
+import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 
 const createProps = (overrides = {}) => ({
   sliceName: 'Trend Line',
@@ -149,5 +150,17 @@ describe('ChartContainer', () => {
     render(<ChartContainer {...props} />, { useRedux: true });
     expect(await screen.findByRole('timer')).toBeInTheDocument();
     expect(screen.queryByText(/cached/i)).not.toBeInTheDocument();
+  });
+
+  it('hides gutter when collapsing data panel', async () => {
+    const props = createProps();
+    setItem(LocalStorageKeys.is_datapanel_open, true);
+    const { container } = render(<ChartContainer {...props} />, {
+      useRedux: true,
+    });
+    const gutter = container.querySelector('.gutter');
+    expect(window.getComputedStyle(gutter).display).toBe('block');
+    userEvent.click(screen.getByLabelText('Collapse data panel'));
+    expect(window.getComputedStyle(gutter).display).toBe('none');
   });
 });
