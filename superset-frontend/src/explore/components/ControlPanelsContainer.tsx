@@ -272,6 +272,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
   useEffect(() => {
     if (
       prevDatasource &&
+      prevDatasource.type !== DatasourceType.Query &&
       (props.exploreState.datasource?.id !== prevDatasource.id ||
         props.exploreState.datasource?.type !== prevDatasource.type)
     ) {
