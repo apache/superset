@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-describe('AdhocFilters', () => {
+describe.skip('AdhocFilters', () => {
   beforeEach(() => {
     cy.login();
     cy.intercept('GET', '/superset/filter/table/*/name').as('filterValues');
@@ -28,7 +28,7 @@ describe('AdhocFilters', () => {
 
   let numScripts = 0;
 
-  xit('Should load AceEditor scripts when needed', () => {
+  it('Should load AceEditor scripts when needed', () => {
     cy.get('script').then(nodes => {
       numScripts = nodes.length;
     });
@@ -51,7 +51,7 @@ describe('AdhocFilters', () => {
     });
   });
 
-  xit('Set simple adhoc filter', () => {
+  it('Set simple adhoc filter', () => {
     cy.get('[aria-label="Comparator option"] .Select__control').click();
     cy.get('[data-test=adhoc-filter-simple-value] input[type=text]')
       .focus()
@@ -70,7 +70,7 @@ describe('AdhocFilters', () => {
     });
   });
 
-  xit('Set custom adhoc filter', () => {
+  it('Set custom adhoc filter', () => {
     const filterType = 'name';
     const filterContent = "'Amy' OR name = 'Donald'";
 

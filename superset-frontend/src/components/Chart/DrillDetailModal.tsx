@@ -91,7 +91,12 @@ const DrillDetailModal: React.FC<{
           >
             {t('Edit chart')}
           </Button>
-          <Button buttonStyle="primary" buttonSize="small" onClick={closeModal}>
+          <Button
+            data-test="close-drilltodetail-modal"
+            buttonStyle="primary"
+            buttonSize="small"
+            onClick={closeModal}
+          >
             {t('Close')}
           </Button>
         </>
