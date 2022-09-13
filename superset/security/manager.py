@@ -1514,17 +1514,25 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             _ = connection.execute(
                 permission_table.insert().values(name=permission_name)
             )
-            permission = connection.execute(
+            permission_ = connection.execute(
                 permission_table.select().where(
                     permission_table.c.name == permission_name
                 )
             ).fetchone()
+            permission = Permission()
+            permission.metadata = None
+            permission.id = permission_.id
+            permission.name = permission_.name
             self.on_permission_after_insert(mapper, connection, permission)
         if not view_menu:
             _ = connection.execute(view_menu_table.insert().values(name=view_menu_name))
-            view_menu = connection.execute(
+            view_menu_ = connection.execute(
                 view_menu_table.select().where(view_menu_table.c.name == view_menu_name)
             ).fetchone()
+            view_menu = ViewMenu()
+            view_menu.metadata = None
+            view_menu.id = view_menu_.id
+            view_menu.name = view_menu_.name
             self.on_view_menu_after_insert(mapper, connection, view_menu)
         connection.execute(
             permission_view_table.insert().values(
