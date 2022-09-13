@@ -480,7 +480,7 @@ const SqlEditor = ({
             <ScheduleQueryButton
               defaultLabel={qe.name}
               sql={qe.sql}
-              onSchedule={dispatch(scheduleQuery)}
+              onSchedule={query => dispatch(scheduleQuery(query))}
               schema={qe.schema}
               dbId={qe.dbId}
               scheduleQueryWarning={scheduleQueryWarning}
@@ -574,7 +574,7 @@ const SqlEditor = ({
               queryEditor={queryEditor}
               columns={latestQuery?.results?.columns || []}
               onSave={onSaveQuery}
-              onUpdate={dispatch(updateSavedQuery)}
+              onUpdate={query => dispatch(updateSavedQuery(query))}
               saveQueryWarning={saveQueryWarning}
               database={database}
             />
