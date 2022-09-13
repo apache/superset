@@ -1548,7 +1548,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             self.on_permission_after_insert(mapper, connection, permission)
         if not view_menu:
             _ = connection.execute(view_menu_table.insert().values(name=view_menu_name))
-            self._find_view_menu_on_sqla_event(connection, view_menu_name)
+            view_menu = self._find_view_menu_on_sqla_event(connection, view_menu_name)
             self.on_view_menu_after_insert(mapper, connection, view_menu)
         connection.execute(
             permission_view_table.insert().values(
