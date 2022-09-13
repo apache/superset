@@ -179,7 +179,6 @@ DATABASE_KEYS = [
     "allow_ctas",
     "allow_cvas",
     "allow_dml",
-    "allow_multi_schema_metadata_fetch",
     "allow_run_async",
     "allows_subquery",
     "backend",
@@ -1103,34 +1102,40 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @api
     @has_access_api
     @event_logger.log_this
-    @expose("/tables/<int:db_id>/<schema>/<substr>/")
-    @expose("/tables/<int:db_id>/<schema>/<substr>/<force_refresh>/")
-    @expose("/tables/<int:db_id>/<schema>/<substr>/<force_refresh>/<exact_match>")
-    def tables(  # pylint: disable=too-many-locals,no-self-use,too-many-arguments
+    @expose("/tables/<int:db_id>/<schema>/")
+    @expose("/tables/<int:db_id>/<schema>/<force_refresh>/")
+    def tables(  # pylint: disable=no-self-use
         self,
         db_id: int,
         schema: str,
-        substr: str,
         force_refresh: str = "false",
-        exact_match: str = "false",
     ) -> FlaskResponse:
         """Endpoint to fetch the list of tables for given database"""
-        # Guarantees database filtering by security access
-        query = db.session.query(Database)
-        query = DatabaseFilter("id", SQLAInterface(Database, db.session)).apply(
-            query, None
-        )
-        database = query.filter_by(id=db_id).one_or_none()
-        if not database:
-            return json_error_response("Not found", 404)
 
         force_refresh_parsed = force_refresh.lower() == "true"
-        exact_match_parsed = exact_match.lower() == "true"
         schema_parsed = utils.parse_js_uri_path_item(schema, eval_undefined=True)
-        substr_parsed = utils.parse_js_uri_path_item(substr, eval_undefined=True)
 
-        if schema_parsed:
-            tables = [
+        if not schema_parsed:
+            return json_error_response(_("Schema undefined"), status=422)
+
+        # Guarantees database filtering by security access
+        database = (
+            DatabaseFilter("id", SQLAInterface(Database, db.session))
+            .apply(
+                db.session.query(Database),
+                None,
+            )
+            .filter_by(id=db_id)
+            .one_or_none()
+        )
+
+        if not database:
+            return json_error_response("Database not found", status=404)
+
+        tables = security_manager.get_datasources_accessible_by_user(
+            database=database,
+            schema=schema_parsed,
+            datasource_names=[
                 utils.DatasourceName(*datasource_name)
                 for datasource_name in database.get_all_table_names_in_schema(
                     schema=schema_parsed,
@@ -1138,8 +1143,13 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                     cache=database.table_cache_enabled,
                     cache_timeout=database.table_cache_timeout,
                 )
-            ] or []
-            views = [
+            ],
+        )
+
+        views = security_manager.get_datasources_accessible_by_user(
+            database=database,
+            schema=schema_parsed,
+            datasource_names=[
                 utils.DatasourceName(*datasource_name)
                 for datasource_name in database.get_all_view_names_in_schema(
                     schema=schema_parsed,
@@ -1147,95 +1157,36 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                     cache=database.table_cache_enabled,
                     cache_timeout=database.table_cache_timeout,
                 )
-            ] or []
-        else:
-            tables = [
-                utils.DatasourceName(*datasource_name)
-                for datasource_name in database.get_all_table_names_in_database(
-                    cache=True, force=False, cache_timeout=24 * 60 * 60
-                )
-            ]
-            views = [
-                utils.DatasourceName(*datasource_name)
-                for datasource_name in database.get_all_view_names_in_database(
-                    cache=True, force=False, cache_timeout=24 * 60 * 60
-                )
-            ]
-        tables = security_manager.get_datasources_accessible_by_user(
-            database, tables, schema_parsed
+            ],
         )
-        views = security_manager.get_datasources_accessible_by_user(
-            database, views, schema_parsed
-        )
-
-        def get_datasource_label(ds_name: utils.DatasourceName) -> str:
-            return (
-                ds_name.table if schema_parsed else f"{ds_name.schema}.{ds_name.table}"
-            )
-
-        def is_match(src: str, target: utils.DatasourceName) -> bool:
-            target_label = get_datasource_label(target)
-            if exact_match_parsed:
-                return src == target_label
-            return src in target_label
-
-        if substr_parsed:
-            tables = [tn for tn in tables if is_match(substr_parsed, tn)]
-            views = [vn for vn in views if is_match(substr_parsed, vn)]
-
-        if not schema_parsed and database.default_schemas:
-            user_schemas = (
-                [g.user.email.split("@")[0]] if hasattr(g.user, "email") else []
-            )
-            valid_schemas = set(database.default_schemas + user_schemas)
-
-            tables = [tn for tn in tables if tn.schema in valid_schemas]
-            views = [vn for vn in views if vn.schema in valid_schemas]
-
-        max_items = config["MAX_TABLE_NAMES"] or len(tables)
-        total_items = len(tables) + len(views)
-        max_tables = len(tables)
-        max_views = len(views)
-        if total_items and substr_parsed:
-            max_tables = max_items * len(tables) // total_items
-            max_views = max_items * len(views) // total_items
 
         extra_dict_by_name = {
             table.name: table.extra_dict
             for table in (
-                db.session.query(SqlaTable).filter(
-                    SqlaTable.name.in_(  # # pylint: disable=no-member
-                        f"{table.schema}.{table.table}" for table in tables
-                    )
-                )
+                db.session.query(SqlaTable).filter(SqlaTable.schema == schema_parsed)
             ).all()
         }
 
-        table_options = [
-            {
-                "value": tn.table,
-                "schema": tn.schema,
-                "label": get_datasource_label(tn),
-                "title": get_datasource_label(tn),
-                "type": "table",
-                "extra": extra_dict_by_name.get(f"{tn.schema}.{tn.table}", None),
-            }
-            for tn in tables[:max_tables]
-        ]
-        table_options.extend(
+        options = sorted(
             [
                 {
-                    "value": vn.table,
-                    "schema": vn.schema,
-                    "label": get_datasource_label(vn),
-                    "title": get_datasource_label(vn),
+                    "value": table.table,
+                    "type": "table",
+                    "extra": extra_dict_by_name.get(table.table, None),
+                }
+                for table in tables
+            ]
+            + [
+                {
+                    "value": view.table,
                     "type": "view",
                 }
-                for vn in views[:max_views]
-            ]
+                for view in views
+            ],
+            key=lambda item: item["value"],
         )
-        table_options.sort(key=lambda value: value["label"])
-        payload = {"tableLength": len(tables) + len(views), "options": table_options}
+
+        payload = {"tableLength": len(tables) + len(views), "options": options}
         return json_success(json.dumps(payload))
 
     @api
