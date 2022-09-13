@@ -136,6 +136,8 @@ JS_MAX_INTEGER = 9007199254740991  # Largest int Java Script can handle 2^53-1
 
 InputType = TypeVar("InputType")
 
+ADHOC_FILTERS_REGEX = re.compile("^adhoc_filters")
+
 
 class LenientEnum(Enum):
     """Enums with a `get` method that convert a enum value to `Enum` if it is a
@@ -1937,3 +1939,16 @@ def create_zip(files: Dict[str, Any]) -> BytesIO:
                 fp.write(contents)
     buf.seek(0)
     return buf
+
+
+def remove_extra_adhoc_filters(form_data: Dict[str, Any]) -> None:
+    """
+    Remove filters from slice data that originate from a filter box or native filter
+    """
+    adhoc_filters = {
+        key: value for key, value in form_data.items() if ADHOC_FILTERS_REGEX.match(key)
+    }
+    for key, value in adhoc_filters.items():
+        form_data[key] = [
+            filter_ for filter_ in value or [] if not filter_.get("isExtra")
+        ]

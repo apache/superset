@@ -987,14 +987,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         return json_success(payload)
 
     @staticmethod
-    def remove_extra_filters(filters: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """Extra filters are ones inherited from the dashboard's temporary context
-        Those should not be saved when saving the chart"""
-        return [f for f in filters if not f.get("isExtra")]
-
     def save_or_overwrite_slice(
         # pylint: disable=too-many-arguments,too-many-locals
-        self,
         slc: Optional[Slice],
         slice_add_perm: bool,
         slice_overwrite_perm: bool,
@@ -1014,9 +1008,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 form_data.pop("slice_id")  # don't save old slice_id
             slc = Slice(owners=[g.user] if g.user else [])
 
-        form_data["adhoc_filters"] = self.remove_extra_filters(
-            form_data.get("adhoc_filters") or []
-        )
+        utils.remove_extra_adhoc_filters(form_data)
 
         assert slc
         slc.params = json.dumps(form_data, indent=2, sort_keys=True)
@@ -1564,7 +1556,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access_api
     @event_logger.log_this
     @expose("/available_domains/", methods=["GET"])
-    def available_domains(self) -> FlaskResponse:  # pylint: disable=no-self-use
+    def available_domains(self) -> FlaskResponse:
         """
         Returns the list of available Superset Webserver domains (if any)
         defined in config. This enables charts embedded in other apps to
