@@ -71,6 +71,7 @@ from superset.exceptions import (
     SupersetException,
     SupersetSecurityException,
 )
+from superset.extensions import cache_manager
 from superset.models.helpers import ImportExportMixin
 from superset.models.reports import ReportRecipientType
 from superset.superset_typing import FlaskResponse
@@ -288,7 +289,7 @@ class BaseSupersetView(BaseView):
     def render_app_template(self) -> FlaskResponse:
         payload = {
             "user": bootstrap_user_data(g.user, include_perms=True),
-            "common": common_bootstrap_payload(),
+            "common": common_bootstrap_payload(g.user),
         }
         return self.render_template(
             "superset/spa.html",
@@ -299,7 +300,7 @@ class BaseSupersetView(BaseView):
         )
 
 
-def menu_data() -> Dict[str, Any]:
+def menu_data(user: User) -> Dict[str, Any]:
     menu = appbuilder.menu.get_data()
 
     languages = {}
@@ -332,22 +333,27 @@ def menu_data() -> Dict[str, Any]:
             "build_number": build_number,
             "languages": languages,
             "show_language_picker": len(languages.keys()) > 1,
-            "user_is_anonymous": g.user.is_anonymous,
+            "user_is_anonymous": user.is_anonymous,
             "user_info_url": None
             if appbuilder.app.config["MENU_HIDE_USER_INFO"]
             else appbuilder.get_url_for_userinfo,
             "user_logout_url": appbuilder.get_url_for_logout,
             "user_login_url": appbuilder.get_url_for_login,
             "user_profile_url": None
-            if g.user.is_anonymous or appbuilder.app.config["MENU_HIDE_USER_INFO"]
-            else f"/superset/profile/{g.user.username}",
+            if user.is_anonymous or appbuilder.app.config["MENU_HIDE_USER_INFO"]
+            else f"/superset/profile/{user.username}",
             "locale": session.get("locale", "en"),
         },
     }
 
 
-def common_bootstrap_payload() -> Dict[str, Any]:
-    """Common data always sent to the client"""
+@cache_manager.cache.memoize(timeout=60)
+def common_bootstrap_payload(user: User) -> Dict[str, Any]:
+    """Common data always sent to the client
+
+    The function is memoized as the return value only changes based
+    on configuration and feature flag values.
+    """
     messages = get_flashed_messages(with_categories=True)
     locale = str(get_locale())
 
@@ -380,7 +386,7 @@ def common_bootstrap_payload() -> Dict[str, Any]:
         "extra_sequential_color_schemes": conf["EXTRA_SEQUENTIAL_COLOR_SCHEMES"],
         "extra_categorical_color_schemes": conf["EXTRA_CATEGORICAL_COLOR_SCHEMES"],
         "theme_overrides": conf["THEME_OVERRIDES"],
-        "menu_data": menu_data(),
+        "menu_data": menu_data(user),
     }
     bootstrap_data.update(conf["COMMON_BOOTSTRAP_OVERRIDES_FUNC"](bootstrap_data))
     return bootstrap_data
@@ -491,7 +497,7 @@ def show_unexpected_exception(ex: Exception) -> FlaskResponse:
 def get_common_bootstrap_data() -> Dict[str, Any]:
     def serialize_bootstrap_data() -> str:
         return json.dumps(
-            {"common": common_bootstrap_payload()},
+            {"common": common_bootstrap_payload(g.user)},
             default=utils.pessimistic_json_iso_dttm_ser,
         )
 
@@ -509,7 +515,7 @@ class SupersetModelView(ModelView):
     def render_app_template(self) -> FlaskResponse:
         payload = {
             "user": bootstrap_user_data(g.user, include_perms=True),
-            "common": common_bootstrap_payload(),
+            "common": common_bootstrap_payload(g.user),
         }
         return self.render_template(
             "superset/spa.html",
