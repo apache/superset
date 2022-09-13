@@ -248,8 +248,6 @@ class QueryContextGenerator:
     def generate(
         self,
         query_name: str,
-        force: bool = False,
-        custom_cache_timeout: Optional[int] = None,
         add_postprocessing_operations: bool = False,
         add_time_offsets: bool = False,
         table_id=1,
@@ -261,8 +259,6 @@ class QueryContextGenerator:
         table = self.get_table(table_name, table_id, table_type)
         return {
             "datasource": {"id": table.id, "type": table.type},
-            "force": force,
-            "custom_cache_timeout": custom_cache_timeout,
             "queries": [
                 get_query_object(
                     query_name,

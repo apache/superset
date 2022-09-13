@@ -1261,7 +1261,7 @@ class ChartDataResponseResult(Schema):
     )
     cache_timeout = fields.Integer(
         description="Cache timeout in following order: custom timeout, datasource "
-        "timeout, default config timeout, cache config default timeout.",
+        "timeout, cache default timeout, config default cache timeout.",
         required=True,
         allow_none=True,
     )
