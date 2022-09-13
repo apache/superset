@@ -15,6 +15,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from typing import Any, Dict
+
 import pytest
 
 from superset.utils.core import QueryObjectFilterClause, remove_extra_adhoc_filters
@@ -25,6 +27,13 @@ ADHOC_FILTER: QueryObjectFilterClause = {
     "val": "bar",
 }
 
+EXTRA_FILTER: QueryObjectFilterClause = {
+    "col": "foo",
+    "op": "==",
+    "val": "bar",
+    "isExtra": True,
+}
+
 
 @pytest.mark.parametrize(
     "original,expected",
@@ -32,28 +41,46 @@ ADHOC_FILTER: QueryObjectFilterClause = {
         ({"foo": "bar"}, {"foo": "bar"}),
         (
             {"foo": "bar", "adhoc_filters": [ADHOC_FILTER]},
-            {"foo": "bar", "adhoc_filters": [ADHOC_FILTER]}
-        ),
-        (
-            {"foo": "bar", "adhoc_filters": [{**ADHOC_FILTER, "isExtra": True}]},
-            {"foo": "bar", "adhoc_filters": []},
-        ),
-        (
-            {"foo": "bar", "adhoc_filters": [ADHOC_FILTER, {**ADHOC_FILTER, "isExtra": True}]},
             {"foo": "bar", "adhoc_filters": [ADHOC_FILTER]},
         ),
         (
-            {"foo": "bar",
-             "adhoc_filters_b": [ADHOC_FILTER, {**ADHOC_FILTER, "isExtra": True}]},
+            {"foo": "bar", "adhoc_filters": [EXTRA_FILTER]},
+            {"foo": "bar", "adhoc_filters": []},
+        ),
+        (
+            {
+                "foo": "bar",
+                "adhoc_filters": [ADHOC_FILTER, EXTRA_FILTER],
+            },
+            {"foo": "bar", "adhoc_filters": [ADHOC_FILTER]},
+        ),
+        (
+            {
+                "foo": "bar",
+                "adhoc_filters_b": [ADHOC_FILTER, EXTRA_FILTER],
+            },
             {"foo": "bar", "adhoc_filters_b": [ADHOC_FILTER]},
         ),
         (
-            {"foo": "bar",
-             "custom_adhoc_filters": [ADHOC_FILTER, {**ADHOC_FILTER, "isExtra": True}]},
-            {"foo": "bar",  "custom_adhoc_filters": [ADHOC_FILTER, {**ADHOC_FILTER, "isExtra": True}]},
+            {
+                "foo": "bar",
+                "custom_adhoc_filters": [
+                    ADHOC_FILTER,
+                    EXTRA_FILTER,
+                ],
+            },
+            {
+                "foo": "bar",
+                "custom_adhoc_filters": [
+                    ADHOC_FILTER,
+                    EXTRA_FILTER,
+                ],
+            },
         ),
     ],
 )
-def test_remove_extra_adhoc_filters(original, expected):
+def test_remove_extra_adhoc_filters(
+    original: Dict[str, Any], expected: Dict[str, Any]
+) -> None:
     remove_extra_adhoc_filters(original)
     assert expected == original

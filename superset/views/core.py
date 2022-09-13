@@ -986,9 +986,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         )
         return json_success(payload)
 
+    @staticmethod
     def save_or_overwrite_slice(
         # pylint: disable=too-many-arguments,too-many-locals
-        self,
         slc: Optional[Slice],
         slice_add_perm: bool,
         slice_overwrite_perm: bool,
@@ -1556,7 +1556,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access_api
     @event_logger.log_this
     @expose("/available_domains/", methods=["GET"])
-    def available_domains(self) -> FlaskResponse:  # pylint: disable=no-self-use
+    def available_domains(self) -> FlaskResponse:
         """
         Returns the list of available Superset Webserver domains (if any)
         defined in config. This enables charts embedded in other apps to

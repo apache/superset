@@ -1946,8 +1946,9 @@ def remove_extra_adhoc_filters(form_data: Dict[str, Any]) -> None:
     Remove filters from slice data that originate from a filter box or native filter
     """
     adhoc_filters = {
-        key: value
-        for key, value in form_data.items() if ADHOC_FILTERS_REGEX.match(key)
+        key: value for key, value in form_data.items() if ADHOC_FILTERS_REGEX.match(key)
     }
     for key, value in adhoc_filters.items():
-        form_data[key] = [filter_ for filter_ in value or [] if not filter_.get("isExtra")]
+        form_data[key] = [
+            filter_ for filter_ in value or [] if not filter_.get("isExtra")
+        ]
