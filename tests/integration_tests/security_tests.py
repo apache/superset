@@ -289,9 +289,11 @@ class TestRolePermission(SupersetTestCase):
         # Assert the hook is called
         security_manager.on_permission_view_after_insert.assert_has_calls(
             [
-                call(ANY, ANY, tmp_db1_pvm),
+                call(ANY, ANY, ANY),
             ]
         )
+        args = security_manager.on_permission_view_after_insert.call_args
+        args[2].id = tmp_db1_pvm.id
         session.delete(tmp_db1)
         session.commit()
 
