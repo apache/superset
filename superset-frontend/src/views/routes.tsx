@@ -51,6 +51,12 @@ const ChartList = lazy(
       /* webpackChunkName: "ChartList" */ 'src/views/CRUD/chart/ChartList'
     ),
 );
+const FlashList = lazy(
+  () =>
+    import(
+      /* webpackChunkName: "FlashList" */ 'src/views/CRUD/flash/components/FlashGrid/FlashList'
+    ),
+);
 const CssTemplatesList = lazy(
   () =>
     import(
@@ -138,6 +144,10 @@ export const routes: Routes = [
   {
     path: '/chart/list/',
     Component: ChartList,
+  },
+  {
+    path: '/flash/list/',
+    Component: FlashList,
   },
   {
     path: '/tablemodelview/list/',
