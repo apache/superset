@@ -15,14 +15,14 @@
 # specific language governing permissions and limitations
 # under the License.
 from sqlalchemy import Metadata
-from sqlalchemy.engine import Engine
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql import and_, func, functions, join, literal, select
 
+from superset.extensions import db
 from superset.models.tags import ObjectTypes, TagTypes
 
 
-def add_types(engine: Engine, metadata: Metadata) -> None:
+def add_types(metadata: Metadata) -> None:
     """
     Tag every object according to its type:
 
@@ -81,7 +81,7 @@ def add_types(engine: Engine, metadata: Metadata) -> None:
     insert = tag.insert()
     for type_ in ObjectTypes.__members__:
         try:
-            engine.execute(insert, name=f"type:{type_}", type=TagTypes.type)
+            db.session.execute(insert, name=f"type:{type_}", type=TagTypes.type)
         except IntegrityError:
             pass  # already exists
 
@@ -109,7 +109,7 @@ def add_types(engine: Engine, metadata: Metadata) -> None:
         .where(tagged_object.c.tag_id.is_(None))
     )
     query = tagged_object.insert().from_select(columns, charts)
-    engine.execute(query)
+    db.session.execute(query)
 
     dashboards = (
         select(
@@ -135,7 +135,7 @@ def add_types(engine: Engine, metadata: Metadata) -> None:
         .where(tagged_object.c.tag_id.is_(None))
     )
     query = tagged_object.insert().from_select(columns, dashboards)
-    engine.execute(query)
+    db.session.execute(query)
 
     saved_queries = (
         select(
@@ -161,10 +161,10 @@ def add_types(engine: Engine, metadata: Metadata) -> None:
         .where(tagged_object.c.tag_id.is_(None))
     )
     query = tagged_object.insert().from_select(columns, saved_queries)
-    engine.execute(query)
+    db.session.execute(query)
 
 
-def add_owners(engine: Engine, metadata: Metadata) -> None:
+def add_owners(metadata: Metadata) -> None:
     """
     Tag every object according to its owner:
 
@@ -221,9 +221,9 @@ def add_owners(engine: Engine, metadata: Metadata) -> None:
     # create a custom tag for each user
     ids = select([users.c.id])
     insert = tag.insert()
-    for (id_,) in engine.execute(ids):
+    for (id_,) in db.session.execute(ids):
         try:
-            engine.execute(insert, name=f"owner:{id_}", type=TagTypes.owner)
+            db.session.execute(insert, name=f"owner:{id_}", type=TagTypes.owner)
         except IntegrityError:
             pass  # already exists
 
@@ -255,7 +255,7 @@ def add_owners(engine: Engine, metadata: Metadata) -> None:
         .where(tagged_object.c.tag_id.is_(None))
     )
     query = tagged_object.insert().from_select(columns, charts)
-    engine.execute(query)
+    db.session.execute(query)
 
     dashboards = (
         select(
@@ -286,7 +286,7 @@ def add_owners(engine: Engine, metadata: Metadata) -> None:
         .where(tagged_object.c.tag_id.is_(None))
     )
     query = tagged_object.insert().from_select(columns, dashboards)
-    engine.execute(query)
+    db.session.execute(query)
 
     saved_queries = (
         select(
@@ -317,10 +317,10 @@ def add_owners(engine: Engine, metadata: Metadata) -> None:
         .where(tagged_object.c.tag_id.is_(None))
     )
     query = tagged_object.insert().from_select(columns, saved_queries)
-    engine.execute(query)
+    db.session.execute(query)
 
 
-def add_favorites(engine: Engine, metadata: Metadata) -> None:
+def add_favorites(metadata: Metadata) -> None:
     """
     Tag every object that was favorited:
 
@@ -349,9 +349,9 @@ def add_favorites(engine: Engine, metadata: Metadata) -> None:
     # create a custom tag for each user
     ids = select([users.c.id])
     insert = tag.insert()
-    for (id_,) in engine.execute(ids):
+    for (id_,) in db.session.execute(ids):
         try:
-            engine.execute(insert, name=f"favorited_by:{id_}", type=TagTypes.type)
+            db.session.execute(insert, name=f"favorited_by:{id_}", type=TagTypes.type)
         except IntegrityError:
             pass  # already exists
 
@@ -383,4 +383,4 @@ def add_favorites(engine: Engine, metadata: Metadata) -> None:
         .where(tagged_object.c.tag_id.is_(None))
     )
     query = tagged_object.insert().from_select(columns, favstars)
-    engine.execute(query)
+    db.session.execute(query)
