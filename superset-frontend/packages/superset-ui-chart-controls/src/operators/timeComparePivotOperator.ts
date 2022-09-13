@@ -29,8 +29,9 @@ import { PostProcessingFactory } from './types';
 export const timeComparePivotOperator: PostProcessingFactory<PostProcessingPivot> =
   (formData, queryObject) => {
     const metricOffsetMap = getMetricOffsetsMap(formData, queryObject);
+    const xAxis = getAxis(formData);
 
-    if (isTimeComparison(formData, queryObject)) {
+    if (isTimeComparison(formData, queryObject) && xAxis) {
       const aggregates = Object.fromEntries(
         [...metricOffsetMap.values(), ...metricOffsetMap.keys()].map(metric => [
           metric,
@@ -38,7 +39,6 @@ export const timeComparePivotOperator: PostProcessingFactory<PostProcessingPivot
           { operator: 'mean' as NumpyFunction },
         ]),
       );
-      const xAxis = getAxis(formData);
 
       return {
         operation: 'pivot',

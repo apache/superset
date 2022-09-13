@@ -26,7 +26,7 @@ export const prophetOperator: PostProcessingFactory<PostProcessingProphet> = (
   queryObject,
 ) => {
   const xAxis = getAxis(formData);
-  if (formData.forecastEnabled) {
+  if (formData.forecastEnabled && xAxis) {
     return {
       operation: 'prophet',
       options: {
@@ -36,7 +36,7 @@ export const prophetOperator: PostProcessingFactory<PostProcessingProphet> = (
         yearly_seasonality: formData.forecastSeasonalityYearly,
         weekly_seasonality: formData.forecastSeasonalityWeekly,
         daily_seasonality: formData.forecastSeasonalityDaily,
-        xAxis,
+        index: xAxis,
       },
     };
   }
