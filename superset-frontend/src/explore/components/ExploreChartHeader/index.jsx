@@ -35,8 +35,8 @@ import Icons from 'src/components/Icons';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
 import { sliceUpdated } from 'src/explore/actions/exploreActions';
 import { PageHeaderWithActions } from 'src/components/PageHeaderWithActions';
-import { useExploreAdditionalActionsMenu } from '../useExploreAdditionalActionsMenu';
 import FlashCreationButton from 'src/views/CRUD/flash/components/FlashCreationButton/FlashCreationButton';
+import { useExploreAdditionalActionsMenu } from '../useExploreAdditionalActionsMenu';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -185,7 +185,7 @@ export const ExploreChartHeader = ({
         }
         rightPanelAdditionalItems={
           <>
-           {flashCreationConf && (
+            {flashCreationConf && (
               <div>
                 <FlashCreationButton
                   latestQueryFormData={latestQueryFormData}
@@ -193,27 +193,27 @@ export const ExploreChartHeader = ({
                 />
               </div>
             )}
-          <Tooltip
-            title={
-              saveDisabled
-                ? t('Add required control values to save chart')
-                : null
-            }
-          >
-            {/* needed to wrap button in a div - antd tooltip doesn't work with disabled button */}
-            <div>
-              <Button
-                buttonStyle="secondary"
-                onClick={onSaveChart}
-                disabled={saveDisabled}
-                data-test="query-save-button"
-                css={saveButtonStyles}
-              >
-                <Icons.SaveOutlined iconSize="l" />
-                {t('Save')}
-              </Button>
-            </div>
-          </Tooltip>
+            <Tooltip
+              title={
+                saveDisabled
+                  ? t('Add required control values to save chart')
+                  : null
+              }
+            >
+              {/* needed to wrap button in a div - antd tooltip doesn't work with disabled button */}
+              <div>
+                <Button
+                  buttonStyle="secondary"
+                  onClick={onSaveChart}
+                  disabled={saveDisabled}
+                  data-test="query-save-button"
+                  css={saveButtonStyles}
+                >
+                  <Icons.SaveOutlined iconSize="l" />
+                  {t('Save')}
+                </Button>
+              </div>
+            </Tooltip>
           </>
         }
         additionalActionsMenu={menu}

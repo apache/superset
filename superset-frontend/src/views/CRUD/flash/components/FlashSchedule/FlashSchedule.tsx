@@ -33,11 +33,11 @@ import {
   FormErrors,
 } from 'src/views/CRUD/flash/types';
 import Modal from 'src/components/Modal';
-import { updateFlash } from '../../services/flash.service';
 import { createErrorHandler } from 'src/views/CRUD/utils';
 import moment from 'moment';
-import { UPDATE_TYPES } from '../../constants';
 import withToasts from 'src/components/MessageToasts/withToasts';
+import { UPDATE_TYPES } from '../../constants';
+import { updateFlash } from '../../services/flash.service';
 
 const appContainer = document.getElementById('app');
 const bootstrapData = JSON.parse(
@@ -200,7 +200,7 @@ const FlashSchedule: FunctionComponent<FlashSchedulingButtonProps> = ({
   return (
     <div role="none">
       <StyledModal
-        draggable={true}
+        draggable
         onHide={onHide}
         show={show}
         title={t('Update Schedule')}

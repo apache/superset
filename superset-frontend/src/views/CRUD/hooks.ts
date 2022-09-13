@@ -284,15 +284,14 @@ export function useFlashListViewResource<D extends object = any>(
               : value,
         }));
 
-      let filtersConcatenated = filterExps.reduce((acc, val) => {
+      const filtersConcatenated = filterExps.reduce((acc, val) => {
         if (val.value) {
-          acc += '&' + val.col + '=' + val.value;
+          acc += `&${val.col}=${val.value}`;
         }
         return acc;
       }, '');
-      let offset = Number(pageIndex) + 1;
-      let queryParams =
-        'limit=' + pageSize + '&offset=' + offset + filtersConcatenated;
+      const offset = Number(pageIndex) + 1;
+      const queryParams = `limit=${pageSize}&offset=${offset}${filtersConcatenated}`;
       return fetchUsers(queryParams)
         .then(
           (json = {}) => {

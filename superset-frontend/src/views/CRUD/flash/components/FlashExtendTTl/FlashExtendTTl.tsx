@@ -33,10 +33,10 @@ import {
   FormErrors,
 } from 'src/views/CRUD/flash/types';
 import Modal from 'src/components/Modal';
-import { updateFlash } from '../../services/flash.service';
 import { createErrorHandler } from 'src/views/CRUD/utils';
-import { UPDATE_TYPES } from '../../constants';
 import withToasts from 'src/components/MessageToasts/withToasts';
+import { updateFlash } from '../../services/flash.service';
+import { UPDATE_TYPES } from '../../constants';
 
 const appContainer = document.getElementById('app');
 const bootstrapData = JSON.parse(

@@ -24,11 +24,11 @@ import {
   FlashUpdateQuery,
 } from 'src/views/CRUD/flash/types';
 import Modal from 'src/components/Modal';
-import { updateFlash } from '../../services/flash.service';
 import { createErrorHandler } from 'src/views/CRUD/utils';
 import Editor from '@monaco-editor/react';
-import { UPDATE_TYPES } from '../../constants';
 import withToasts from 'src/components/MessageToasts/withToasts';
+import { UPDATE_TYPES } from '../../constants';
+import { updateFlash } from '../../services/flash.service';
 
 interface FlashQueryButtonProps {
   flash: FlashServiceObject;
@@ -69,8 +69,8 @@ const FlashQuery: FunctionComponent<FlashQueryButtonProps> = ({
   });
 
   const handleEditorChange = (value: string) => {
-    let formValues = { ...formData };
-    formValues.sqlQuery = value ? value : flash?.sqlQuery;
+    const formValues = { ...formData };
+    formValues.sqlQuery = value || flash?.sqlQuery;
     setFormData(formValues);
   };
 

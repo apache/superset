@@ -33,10 +33,10 @@ import {
   FormErrors,
 } from 'src/views/CRUD/flash/types';
 import Modal from 'src/components/Modal';
-import { updateFlash } from '../../services/flash.service';
 import { createErrorHandler } from 'src/views/CRUD/utils';
-import { UPDATE_TYPES } from '../../constants';
 import withToasts from 'src/components/MessageToasts/withToasts';
+import { updateFlash } from '../../services/flash.service';
+import { UPDATE_TYPES } from '../../constants';
 
 const appContainer = document.getElementById('app');
 const bootstrapData = JSON.parse(
@@ -153,14 +153,12 @@ const FlashOwnership: FunctionComponent<FlashOwnershipButtonProps> = ({
 
   const onFieldChange = (formValues: any) => {
     const formData = { ...formValues };
-    let jsonSchema = { ...flashSchema };
+    const jsonSchema = { ...flashSchema };
     if (formData) {
       if (formData.ownershipType) {
         formData.owner = user?.email;
-      } else {
-        if (formData.owner == user?.email) {
-          formData.owner = '';
-        }
+      } else if (formData.owner == user?.email) {
+        formData.owner = '';
       }
       if (jsonSchema) {
         Object.entries(jsonSchema.properties).forEach(
@@ -240,7 +238,7 @@ const FlashOwnership: FunctionComponent<FlashOwnershipButtonProps> = ({
   return (
     <div role="none">
       <StyledModal
-        draggable={true}
+        draggable
         onHide={onHide}
         show={show}
         title={t('Update Ownership')}

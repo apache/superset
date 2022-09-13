@@ -31,8 +31,7 @@ const headers: Readonly<Record<string, string | boolean>> = {
   'Content-Type': 'application/json; charset=utf-8',
   'Access-Control-Allow-Credentials': true,
   'X-Requested-With': 'XMLHttpRequest',
-  'Access-Control-Allow-Origin' : "*"
-
+  'Access-Control-Allow-Origin': '*',
 };
 
 // 'Access-Control-Allow-Origin' : '*',

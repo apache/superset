@@ -216,19 +216,18 @@ const FlashCreationButton: FunctionComponent<FlashCreationButtonProps> = ({
       return newError;
     });
 
-  const fetchDatabaseDropdown = (): Promise<any> => {
-    return fetchDatabases().then(({ data }) => {
-      let dropdown = { ...dbDropdown };
+  const fetchDatabaseDropdown = (): Promise<any> =>
+    fetchDatabases().then(({ data }) => {
+      const dropdown = { ...dbDropdown };
       if (dropdown) {
         data.forEach((item: any) => {
-          dropdown['enum'].push(item.id);
-          dropdown['enumNames'] = dropdown['enumNames'] || ['Please Select'];
-          dropdown['enumNames'].push(item.datastore_name);
+          dropdown.enum.push(item.id);
+          dropdown.enumNames = dropdown.enumNames || ['Please Select'];
+          dropdown.enumNames.push(item.datastore_name);
         });
       }
       setDbDropdown(dropdown);
     });
-  };
 
   if (isLoading) {
     return <Loading />;

@@ -17,24 +17,24 @@
  * under the License.
  */
 
-import { FilterDropdown } from "./types";
+import { FilterDropdown } from './types';
 
 export const FLASH_TYPES: FilterDropdown[] = [
   { label: 'One Time', value: 'One Time' },
   { label: 'Short Term', value: 'Short Term' },
   { label: 'Long Term', value: 'Long Term' },
-]
+];
 
-export const SCHEDULE_TYPE : FilterDropdown[] =  [
+export const SCHEDULE_TYPE: FilterDropdown[] = [
   { label: 'Hourly', value: 'Hourly' },
   { label: 'Daily', value: 'Daily' },
   { label: 'Weekly', value: 'Weekly' },
   { label: 'Monthly', value: 'Monthly' },
-]
+];
 
-export const DATABASES : FilterDropdown[] =  [
+export const DATABASES: FilterDropdown[] = [
   { label: 'Pinot Flashes', value: 'Pinot Flashes' },
-]
+];
 
 export const FLASH_STATUS: FilterDropdown[] = [
   { label: 'New', value: 'New' },
@@ -42,13 +42,12 @@ export const FLASH_STATUS: FilterDropdown[] = [
   { label: 'Materialized', value: 'Materialized' },
   { label: 'Stale', value: 'Stale' },
   { label: 'Deleted', value: 'Deleted' },
-]
+];
 
-export const UPDATE_TYPES  = {
-  SQL : 'sql',
-  TTL : 'ttl',
-  SCHEDULE : 'schedule',
-  OWNER : 'owner',
-  CTAGS : 'ctags',
-
-}
+export const UPDATE_TYPES = {
+  SQL: 'sql',
+  TTL: 'ttl',
+  SCHEDULE: 'schedule',
+  OWNER: 'owner',
+  CTAGS: 'ctags',
+};

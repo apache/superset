@@ -17,7 +17,7 @@
  * under the License.
  */
 
- export const removeUnnecessaryProperties = (
+export const removeUnnecessaryProperties = (
   formObject: Object,
   properties: Array<string>,
 ) => {

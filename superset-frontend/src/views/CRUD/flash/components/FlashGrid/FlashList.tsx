@@ -35,6 +35,7 @@ import ListView, {
 import DeleteModal from 'src/components/DeleteModal';
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
 import { SavedQueryObject } from 'src/views/CRUD/types';
+import { TooltipPlacement } from 'antd/lib/tooltip';
 import { FLASH_STATUS, FLASH_TYPES, SCHEDULE_TYPE } from '../../constants';
 import { FlashServiceObject } from '../../types';
 import FlashOwnership from '../FlashOwnership/FlashOwnership';
@@ -42,7 +43,6 @@ import FlashExtendTTL from '../FlashExtendTTl/FlashExtendTTl';
 import FlashSchedule from '../FlashSchedule/FlashSchedule';
 import { fetchDatabases, removeFlash } from '../../services/flash.service';
 import FlashQuery from '../FlashQuery/FlashQuery';
-import { TooltipPlacement } from 'antd/lib/tooltip';
 
 const PAGE_SIZE = 25;
 
@@ -98,22 +98,19 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
   const subMenuButtons: Array<ButtonProps> = [];
   menuData.buttons = subMenuButtons;
 
-  const fetchDatabaseDropdown = (): Promise<any> => {
-    return fetchDatabases().then(
+  const fetchDatabaseDropdown = (): Promise<any> =>
+    fetchDatabases().then(
       ({ data }) => {
-        let dropdown = data.map((item: any) => {
-          return {
-            label: item.datastore_name,
-            value: item.id,
-          };
-        });
+        const dropdown = data.map((item: any) => ({
+          label: item.datastore_name,
+          value: item.id,
+        }));
         setDatabaseDropdown(dropdown);
       },
       createErrorHandler(errMsg =>
         addDangerToast(t('There was an issue getting Databases %s', errMsg)),
       ),
     );
-  };
 
   const changeOwnership = (flash: FlashServiceObject) => {
     setCurrentFlash(flash);
@@ -169,9 +166,8 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
         }: any) => {
           if (databaseDropdown && databaseDropdown.length > 0) {
             return databaseDropdown.find(item => item.value == id).label;
-          } else {
-            return id;
           }
+          return id;
         },
         Header: t('Database Name'),
         accessor: 'datastoreId',
@@ -187,9 +183,7 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
           row: {
             original: { flashType: flash_Type },
           },
-        }: any) => {
-          return flash_Type.replace(/([A-Z])/g, ' $1').trim();
-        },
+        }: any) => flash_Type.replace(/([A-Z])/g, ' $1').trim(),
         Header: t('Flash Type'),
         accessor: 'flashType',
         size: 'l',

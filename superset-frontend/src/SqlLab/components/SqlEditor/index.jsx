@@ -656,7 +656,7 @@ class SqlEditor extends React.PureComponent {
           )}
         </div>
         <div className="rightItems">
-        {flashCreationConf && (
+          {flashCreationConf && (
             <span>
               <FlashCreationButton
                 sql={this.props.queryEditor.sql}

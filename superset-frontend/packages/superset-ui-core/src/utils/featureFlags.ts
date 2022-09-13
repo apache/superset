@@ -27,8 +27,8 @@ export enum FeatureFlag {
   SCHEDULED_QUERIES = 'SCHEDULED_QUERIES',
   FLASH_CREATION = 'FLASH_CREATION',
   FLASH_OWNERSHIP = 'FLASH_OWNERSHIP',
-  FLASH_TTL = "FLASH_TTL",
-  FLASH_SCHEDULE = "FLASH_SCHEDULE",
+  FLASH_TTL = 'FLASH_TTL',
+  FLASH_SCHEDULE = 'FLASH_SCHEDULE',
   SQL_VALIDATORS_BY_ENGINE = 'SQL_VALIDATORS_BY_ENGINE',
   ESTIMATE_QUERY_COST = 'ESTIMATE_QUERY_COST',
   SHARE_QUERIES_VIA_KV_STORE = 'SHARE_QUERIES_VIA_KV_STORE',
@@ -75,14 +75,20 @@ export type ScheduleQueriesProps = {
   };
 };
 export type FeatureFlagMap = {
-  [key in Exclude<FeatureFlag, FeatureFlag.SCHEDULED_QUERIES & FeatureFlag.FLASH_CREATION & FeatureFlag.FLASH_OWNERSHIP & FeatureFlag.FLASH_TTL & FeatureFlag.FLASH_SCHEDULE
-    >]?: boolean;
+  [key in Exclude<
+    FeatureFlag,
+    FeatureFlag.SCHEDULED_QUERIES &
+      FeatureFlag.FLASH_CREATION &
+      FeatureFlag.FLASH_OWNERSHIP &
+      FeatureFlag.FLASH_TTL &
+      FeatureFlag.FLASH_SCHEDULE
+  >]?: boolean;
 } & {
   SCHEDULED_QUERIES?: ScheduleQueriesProps;
   FLASH_CREATION?: ScheduleQueriesProps;
-  FLASH_OWNERSHIP?:ScheduleQueriesProps;
-  FLASH_TTL?:ScheduleQueriesProps;
-  FLASH_SCHEDULE?:ScheduleQueriesProps;
+  FLASH_OWNERSHIP?: ScheduleQueriesProps;
+  FLASH_TTL?: ScheduleQueriesProps;
+  FLASH_SCHEDULE?: ScheduleQueriesProps;
 };
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars

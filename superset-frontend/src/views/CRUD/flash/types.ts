@@ -17,7 +17,7 @@
  * under the License.
  */
 
- export interface FlashObject {
+export interface FlashObject {
   id?: number;
   owner: string;
   datasetName: string;
@@ -43,11 +43,11 @@ export interface FlashUpdateOwnership {
 }
 
 export interface FlashExtendTtl {
-  ttl:string;
+  ttl: string;
 }
 
 export interface FlashUpdateQuery {
-  sqlQuery:string;
+  sqlQuery: string;
 }
 
 export interface FlashUpdateSchedule {
@@ -89,7 +89,7 @@ export interface FormErrors {
 }
 
 export interface Dropdown {
-  enum: Array<string> ;
+  enum: Array<string>;
   enumNames?: Array<string>;
 }
 
