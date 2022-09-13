@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { CHART_LIST } from './chart_list.helper';
+import { CHART_LIST } from 'cypress/utils/urls';
 
 describe('charts list view', () => {
   beforeEach(() => {

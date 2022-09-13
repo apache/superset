@@ -28,7 +28,7 @@ import { headerFontSize, subheaderFontSize } from '../sharedControls';
 
 export default {
   controlPanelSections: [
-    sections.legacyTimeseriesTime,
+    sections.legacyRegularTime,
     {
       label: t('Query'),
       expanded: true,

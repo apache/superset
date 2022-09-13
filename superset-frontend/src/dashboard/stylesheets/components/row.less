@@ -66,6 +66,12 @@
   }
 }
 
+/* gutters between rows within tab */
+.dashboard-component-tabs-content
+  > div:not(:only-child):not(:last-child):not(.empty-droptarget) {
+  margin-bottom: 16px;
+}
+
 .grid-row.grid-row--empty {
   /* this centers the empty note content */
   align-items: center;

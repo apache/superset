@@ -39,11 +39,16 @@ describe('DatasetLayout', () => {
     expect(screen.getByText(/header/i)).toBeVisible();
   });
 
-  it('renders a LeftPanel when passed in', () => {
-    render(<DatasetLayout leftPanel={LeftPanel()} />);
+  it('renders a LeftPanel when passed in', async () => {
+    render(
+      <DatasetLayout leftPanel={<LeftPanel setDataset={() => null} />} />,
+      { useRedux: true },
+    );
 
-    expect(screen.getByRole('img', { name: /empty/i })).toBeVisible();
-    expect(screen.getByText(/no database tables found/i)).toBeVisible();
+    expect(
+      await screen.findByText(/select database & schema/i),
+    ).toBeInTheDocument();
+    expect(LeftPanel).toBeTruthy();
   });
 
   it('renders a DatasetPanel when passed in', () => {

@@ -30,6 +30,11 @@ export const echartsTimeSeriesQuery: ControlPanelSectionConfig = {
   expanded: true,
   controlSetRows: [
     [isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES) ? 'x_axis' : null],
+    [
+      isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES)
+        ? 'time_grain_sqla'
+        : null,
+    ],
     ['metrics'],
     ['groupby'],
     [

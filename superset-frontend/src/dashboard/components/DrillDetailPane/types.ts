@@ -16,4 +16,30 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export const CHART_LIST = '/chart/list/';
+import { GenericDataType } from '@superset-ui/core';
+
+export type ResultsPage = {
+  total: number;
+  data: Record<string, any>[];
+  colNames: string[];
+  colTypes: GenericDataType[];
+};
+
+export type Dataset = {
+  changed_by?: {
+    first_name: string;
+    last_name: string;
+  };
+  created_by?: {
+    first_name: string;
+    last_name: string;
+  };
+  changed_on: Date;
+  created_on: Date;
+  description: string;
+  table_name: string;
+  owners: {
+    first_name: string;
+    last_name: string;
+  }[];
+};
