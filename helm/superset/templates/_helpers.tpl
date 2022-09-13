@@ -67,6 +67,7 @@ from cachelib.redis import RedisCache
 def env(key, default=None):
     return os.getenv(key, default)
 
+LOG_LEVEL = 'ERROR'
 MAPBOX_API_KEY = env('MAPBOX_API_KEY', '')
 CACHE_CONFIG = {
       'CACHE_TYPE': 'redis',
@@ -109,6 +110,32 @@ RESULTS_BACKEND = RedisCache(
       port=env('REDIS_PORT'),
       key_prefix='superset_results'
 )
+FILTER_STATE_CACHE_CONFIG = {
+        "CACHE_DEFAULT_TIMEOUT": 86400,
+        "REFRESH_TIMEOUT_ON_RETRIEVAL": True,
+        "CACHE_TYPE": 'RedisCache'
+}
+EXPLORE_FORM_DATA_CACHE_CONFIG = {
+        "CACHE_DEFAULT_TIMEOUT": 86400,
+        "REFRESH_TIMEOUT_ON_RETRIEVAL": True,
+        "CACHE_TYPE": 'RedisCache'
+}
+
+{{ if .Values.websocket.enabled }}
+GLOBAL_ASYNC_QUERIES_TRANSPORT = "ws"
+{{- with (first .Values.ingress.hosts) }}
+GLOBAL_ASYNC_QUERIES_WEBSOCKET_URL = "ws://{{ . }}{{ $.Values.ingress.websocket.path }}"
+{{- end }}
+GLOBAL_ASYNC_QUERIES_JWT_SECRET = "{{ .Values.extraSecretEnv.JWT_SECRET }}"
+GLOBAL_ASYNC_QUERIES_REDIS_CONFIG = {
+        "port": env('REDIS_PORT'),
+        "host": env('REDIS_HOST'),
+        "password": env('REDIS_PASSWORD'),
+        "db": 0,
+        "ssl": False,
+}
+FEATURE_FLAGS = {}
+{{- end}}
 
 {{ if .Values.configOverrides }}
 # Overrides
@@ -124,6 +151,9 @@ RESULTS_BACKEND = RedisCache(
 # {{ $key }}
 {{ $files.Get $value }}
 {{- end }}
+{{- end }}
+{{ if .Values.websocket.enabled }}
+FEATURE_FLAGS['GLOBAL_ASYNC_QUERIES'] = True,
 {{- end }}
 
 {{- end }}

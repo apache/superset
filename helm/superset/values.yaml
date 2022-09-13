@@ -200,7 +200,10 @@ ingress:
     # nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
     # nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
   path: /
-  pathType: ImplementationSpecific
+  pathType: Prefix
+  websocket:
+    path: /websocket
+    pathType: Prefix
   hosts:
     - chart-example.local
   tls: []
@@ -208,7 +211,7 @@ ingress:
   #    hosts:
   #      - chart-example.local
 
-resources: {}
+resources:
   # We usually recommend not to specify default resources and to leave this as a conscious
   # choice for the user. This also increases chances charts run on environments with little
   # resources, such as Minikube. If you do want to specify resources, uncomment the following
@@ -260,6 +263,13 @@ supersetNode:
         - secretRef:
             name: '{{ tpl .Values.envFromSecret . }}'
       command: [ "/bin/sh", "-c", "until nc -zv $DB_HOST $DB_PORT -w1; do echo 'waiting for db'; sleep 1; done" ]
+      resources:
+        limits:
+          cpu: 100m
+          memory: 100Mi
+        requests:
+          cpu: 100m
+          memory: 100Mi
   ## Annotations to be added to supersetNode deployment
   deploymentAnnotations: {}
   ## Annotations to be added to supersetNode pods
@@ -305,6 +315,13 @@ supersetWorker:
         - secretRef:
             name: '{{ tpl .Values.envFromSecret . }}'
       command: [ "/bin/sh", "-c", "until nc -zv $DB_HOST $DB_PORT -w1; do echo 'waiting for db'; sleep 1; done" ]
+      resources:
+        limits:
+          cpu: 100m
+          memory: 100Mi
+        requests:
+          cpu: 100m
+          memory: 100Mi
   ## Annotations to be added to supersetWorker deployment
   deploymentAnnotations: {}
   ## Annotations to be added to supersetWorker pods
@@ -339,6 +356,13 @@ supersetCeleryBeat:
         - secretRef:
             name: '{{ tpl .Values.envFromSecret . }}'
       command: [ "/bin/sh", "-c", "until nc -zv $DB_HOST $DB_PORT -w1; do echo 'waiting for db'; sleep 1; done" ]
+      resources:
+        limits:
+          cpu: 100m
+          memory: 100Mi
+        requests:
+          cpu: 100m
+          memory: 100Mi
   ## Annotations to be added to supersetCeleryBeat deployment
   deploymentAnnotations: {}
   ## Annotations to be added to supersetCeleryBeat pods
@@ -391,6 +415,13 @@ init:
         - secretRef:
             name: '{{ tpl .Values.envFromSecret . }}'
       command: [ "/bin/sh", "-c", "until nc -zv $DB_HOST $DB_PORT -w1; do echo 'waiting for db'; sleep 1; done" ]
+      resources:
+        limits:
+          cpu: 100m
+          memory: 100Mi
+        requests:
+          cpu: 100m
+          memory: 100Mi
   initscript: |-
     #!/bin/sh
     set -eu
@@ -418,6 +449,60 @@ init:
     fi
   ## Annotations to be added to init job pods
   podAnnotations: {}
+  podSecurityContext: {}
+  containerSecurityContext: {}
+##
+## Superset websocket configuration
+websocket:
+  enabled: false
+  image:
+    repository: apache/superset-websocket
+    tag: latest
+    pullPolicy: IfNotPresent
+  replicaCount: 1
+  env: {}
+  forceReload: false # If true, forces deployment to reload on each upgrade
+  initContainers:
+    - name: wait-for-redis
+      image: "{{ .Values.initImage.repository }}:{{ .Values.initImage.tag }}"
+      imagePullPolicy: "{{ .Values.initImage.pullPolicy }}"
+      envFrom:
+        - secretRef:
+            name: '{{ tpl .Values.envFromSecret . }}'
+      command: [ "/bin/sh", "-c", "until nc -zv $REDIS_HOST $REDIS_PORT -w1; do echo 'waiting for redis'; sleep 1; done" ]
+      resources:
+        limits:
+          cpu: 100m
+          memory: 100Mi
+        requests:
+          cpu: 100m
+          memory: 100Mi
+  ## Annotations to be added to websocket deployment
+  deploymentAnnotations: {}
+  ## Annotations to be added to websocket pods
+  podAnnotations: {}
+  ## Labels to be added to websocket pods
+  podLabels: {}
+  livenessProbe:
+    initialDelaySeconds: 15
+    timeoutSeconds: 1
+    failureThreshold: 3
+    periodSeconds: 15
+    successThreshold: 1
+  readinessProbe:
+    initialDelaySeconds: 15
+    timeoutSeconds: 1
+    failureThreshold: 3
+    periodSeconds: 15
+    successThreshold: 1
+  # Resource settings for the websocket pods - these settings overwrite might existing values from the global resources object defined above.
+  resources:
+    limits:
+      cpu: 500m
+      memory: 500Mi
+    requests:
+      cpu: 500m
+      memory: 500Mi
   podSecurityContext: {}
   containerSecurityContext: {}
 ##

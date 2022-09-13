@@ -14,47 +14,48 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+{{- if .Values.websocket.enabled }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ template "superset.fullname" . }}-worker
+  name: {{ template "superset.fullname" . }}-websocket
   labels:
-    app: {{ template "superset.name" . }}-worker
+    app: {{ template "superset.name" . }}-websocket
     chart: {{ template "superset.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
-{{- if .Values.supersetWorker.deploymentAnnotations }}
+{{- if .Values.websocket.deploymentAnnotations }}
   annotations:
-    {{ toYaml .Values.supersetWorker.deploymentAnnotations | nindent 4 }}
+    {{ toYaml .Values.websocket.deploymentAnnotations | nindent 4 }}
 {{- end }}
 spec:
-  replicas: {{ .Values.supersetWorker.replicaCount }}
+  replicas: {{ .Values.websocket.replicaCount }}
   selector:
     matchLabels:
-      app: {{ template "superset.name" . }}-worker
+      app: {{ template "superset.name" . }}-websocket
       release: {{ .Release.Name }}
   template:
     metadata:
       annotations:
-        checksum/superset_config.py: {{ include "superset-config" . | sha256sum }}
-        checksum/connections: {{ .Values.supersetNode.connections | toYaml | sha256sum }}
+        # Force reload on config changes
+        checksum/connections: {{ .Values.websocket.connections | toYaml | sha256sum }}
         checksum/extraConfigs: {{ .Values.extraConfigs | toYaml | sha256sum }}
         checksum/extraSecrets: {{ .Values.extraSecrets | toYaml | sha256sum }}
         checksum/extraSecretEnv: {{ .Values.extraSecretEnv | toYaml | sha256sum }}
         checksum/configOverrides: {{ .Values.configOverrides | toYaml | sha256sum }}
         checksum/configOverridesFiles: {{ .Values.configOverridesFiles | toYaml | sha256sum }}
-        {{ if .Values.supersetWorker.forceReload }}
+        {{- if .Values.websocket.forceReload }}
         # Optionally force the thing to reload
         force-reload: {{ randAlphaNum 5 | quote }}
-        {{ end }}
-      {{- if .Values.supersetWorker.podAnnotations }}
-        {{ toYaml .Values.supersetWorker.podAnnotations | nindent 8 }}
+        {{- end }}
+      {{- if .Values.websocket.podAnnotations }}
+        {{ toYaml .Values.websocket.podAnnotations | nindent 8 }}
       {{- end }}
       labels:
-        app: {{ template "superset.name" . }}-worker
+        app: {{ template "superset.name" . }}-websocket
         release: {{ .Release.Name }}
-      {{- if .Values.supersetWorker.podLabels }}
-        {{ toYaml .Values.supersetWorker.podLabels | nindent 8 }}
+      {{- if .Values.websocket.podLabels }}
+        {{ toYaml .Values.websocket.podLabels | nindent 8 }}
       {{- end }}
     spec:
       {{- if or (.Values.serviceAccount.create) (.Values.serviceAccountName) }}
@@ -62,30 +63,36 @@ spec:
       {{- end }}
       securityContext:
         runAsUser: {{ .Values.runAsUser }}
-      {{- if .Values.supersetWorker.podSecurityContext }}
-        {{ toYaml .Values.supersetWorker.podSecurityContext | nindent 8 }}
+      {{- if .Values.websocket.podSecurityContext }}
+        {{ toYaml .Values.websocket.podSecurityContext | nindent 8 }}
       {{- end }}
-      {{- if .Values.supersetWorker.initContainers }}
+      {{- if .Values.websocket.initContainers }}
       initContainers:
-      {{-  tpl (toYaml .Values.supersetWorker.initContainers) . | nindent 6 }}
+      {{-  tpl (toYaml .Values.websocket.initContainers) . | nindent 6 }}
       {{- end }}
       {{- with .Values.hostAliases }}
       hostAliases: {{ toYaml . | nindent 6 }}
       {{- end }}
       containers:
         - name: {{ .Chart.Name }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
-          {{- if .Values.supersetWorker.containerSecurityContext }}
-          securityContext: {{ toYaml .Values.supersetWorker.containerSecurityContext | nindent 12 }}
+          image: "{{ .Values.websocket.image.repository }}:{{ .Values.websocket.image.tag }}"
+          imagePullPolicy: {{ .Values.websocket.image.pullPolicy }}
+          {{- if .Values.websocket.containerSecurityContext }}
+          securityContext: {{ toYaml .Values.websocket.containerSecurityContext | nindent 12 }}
           {{- end }}
-          command: {{  tpl (toJson .Values.supersetWorker.command) . }}
+          command: {{  tpl (toJson .Values.websocket.command) . }}
           env:
-            - name: "FLASK_ENV"
-              value: "production"
-            - name: "SUPERSET_PORT"
+            - name: "PORT"
               value: {{ .Values.service.port | quote}}
+            - name: "BASE_PATH"
+              value: {{ .Values.ingress.websocket.path }}
+            - name: "LOG_LEVEL"
+              value: 'error'
             {{- range $key, $value := .Values.extraEnv }}
+            - name: {{ $key | quote}}
+              value: {{ $value | quote }}
+            {{- end }}
+            {{- range $key, $value := .Values.websocket.env }}
             - name: {{ $key | quote}}
               value: {{ $value | quote }}
             {{- end }}
@@ -99,21 +106,34 @@ spec:
             - secretRef:
                 name: {{ tpl . $ | quote }}
             {{- end }}
-          volumeMounts:
-            - name: superset-config
-              mountPath: {{ .Values.configMountPath | quote }}
-              readOnly: true
-          {{- if .Values.extraConfigs }}
-            - name: superset-extra-config
-              mountPath: {{ .Values.extraConfigMountPath | quote }}
-              readOnly: true
-          {{- end }}
           {{- with .Values.extraVolumeMounts }}
           {{- tpl (toYaml .) $ | nindent 12 -}}
           {{- end }}
+          ports:
+            - name: websocket
+              containerPort: {{ .Values.service.port }}
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.ingress.websocket.path }}/health
+              port: websocket
+            initialDelaySeconds: {{ .Values.websocket.livenessProbe.initialDelaySeconds }}
+            timeoutSeconds: {{ .Values.websocket.livenessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.websocket.livenessProbe.failureThreshold }}
+            periodSeconds: {{ .Values.websocket.livenessProbe.periodSeconds }}
+            successThreshold: {{ .Values.websocket.livenessProbe.successThreshold }}
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.ingress.websocket.path }}/health
+              port: websocket
+            initialDelaySeconds: {{ .Values.websocket.readinessProbe.initialDelaySeconds }}
+            timeoutSeconds: {{ .Values.websocket.readinessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.websocket.readinessProbe.failureThreshold }}
+            periodSeconds: {{ .Values.websocket.readinessProbe.periodSeconds }}
+            successThreshold: {{ .Values.websocket.readinessProbe.successThreshold }}
           resources:
-          {{- if .Values.supersetWorker.resources }}
-{{ toYaml .Values.supersetWorker.resources | indent 12 }}
+          {{- if .Values.websocket.resources }}
+{{ toYaml .Values.websocket.resources | indent 12 }}
           {{- else }}
 {{ toYaml .Values.resources | indent 12 }}
           {{- end }}
@@ -133,15 +153,9 @@ spec:
       imagePullSecrets:
 {{ toYaml .Values.imagePullSecrets | indent 8 }}
       {{- end }}
+
       volumes:
-        - name: superset-config
-          secret:
-            secretName: {{ tpl .Values.configFromSecret . }}
-        {{- if .Values.extraConfigs }}
-        - name: superset-extra-config
-          configMap:
-            name: {{ template "superset.fullname" . }}-extra-config
-        {{- end }}
         {{- with .Values.extraVolumes }}
         {{- tpl (toYaml .) $ | nindent 8 -}}
         {{- end }}
+{{- end }}

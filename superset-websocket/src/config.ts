@@ -18,6 +18,7 @@
  */
 type ConfigType = {
   port: number;
+  basePath: string;
   logLevel: string;
   logToFile: boolean;
   logFilename: string;
@@ -46,6 +47,7 @@ type ConfigType = {
 function defaultConfig(): ConfigType {
   return {
     port: 8080,
+    basePath: '/',
     logLevel: 'info',
     logToFile: false,
     logFilename: 'app.log',
@@ -94,6 +96,7 @@ function applyEnvOverrides(config: ConfigType): ConfigType {
     LOG_LEVEL: val => (config.logLevel = val),
     LOG_TO_FILE: val => (config.logToFile = toBoolean(val)),
     LOG_FILENAME: val => (config.logFilename = val),
+    BASE_PATH: val => (config.basePath = val),
     REDIS_STREAM_PREFIX: val => (config.redisStreamPrefix = val),
     REDIS_STREAM_READ_COUNT: val =>
       (config.redisStreamReadCount = toNumber(val)),

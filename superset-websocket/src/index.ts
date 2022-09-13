@@ -114,6 +114,7 @@ export const redisUrlFromConfig = (redisConfig: RedisConfig): string => {
 const redis = new Redis(redisUrlFromConfig(opts.redis));
 const httpServer = http.createServer();
 export const wss = new WebSocket.Server({
+  path: opts.basePath,
   noServer: true,
   clientTracking: false,
 });
@@ -332,7 +333,7 @@ export const httpRequest = (
   const method = request.method as string;
   const headers = request.headers || {};
   const url = new URL(rawUrl as string, `http://${headers.host}`);
-  if (url.pathname === '/health' && ['GET', 'HEAD'].includes(method)) {
+  if (url.pathname === `${opts.basePath}/health` && ['GET', 'HEAD'].includes(method)) {
     response.writeHead(200);
     response.end('OK');
   } else {
@@ -436,6 +437,7 @@ if (startServer) {
   httpServer.on('upgrade', httpUpgrade);
   httpServer.listen(opts.port);
   logger.info(`Server started on port ${opts.port}`);
+  logger.info(`Server started on base path ${opts.basePath}`);
 
   // start reading from event stream
   subscribeToGlobalStream(GLOBAL_EVENT_STREAM_NAME, processStreamResults);

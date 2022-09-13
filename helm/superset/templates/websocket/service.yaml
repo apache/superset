@@ -14,21 +14,31 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-apiVersion: v2
-appVersion: "1.0"
-description: Apache Superset is a modern, enterprise-ready business intelligence web application
-name: superset
-maintainers:
-  - name: craig-rueda
-    email: craig@craigrueda.com
-    url: https://github.com/craig-rueda
-version: 0.8.0
-dependencies:
-- name: postgresql
-  version: 11.1.22
-  repository: https://charts.bitnami.com/bitnami
-  condition: postgresql.enabled
-- name: redis
-  version: 16.3.1
-  repository: https://charts.bitnami.com/bitnami
-  condition: redis.enabled
+{{- if .Values.websocket.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "superset.fullname" . }}-websocket
+  labels:
+    app: {{ template "superset.name" . }}-websocket
+    chart: {{ template "superset.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+{{- with .Values.service.annotations }}
+  annotations:
+{{- toYaml . | nindent 4 }}
+{{- end }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: websocket
+      protocol: TCP
+      name: http
+  selector:
+    app: {{ template "superset.name" . }}-websocket
+    release: {{ .Release.Name }}
+  {{- if .Values.service.loadBalancerIP }}
+  loadBalancerIP: {{ .Values.service.loadBalancerIP }}
+  {{- end }}
+{{- end }}

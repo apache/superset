@@ -166,6 +166,18 @@
                 "pathType": {
                     "type": "string"
                 },
+                "websocket": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "path": {
+                            "type": "string"
+                        },
+                        "pathType": {
+                            "type": "string"
+                        }
+                    }
+                },
                 "ingressClassName": {
                     "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.api.networking.v1.IngressSpec/properties/ingressClassName"
                 },
@@ -503,6 +515,127 @@
                 "createAdmin",
                 "adminUser",
                 "initscript"
+            ]
+        },
+        "websocket": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "enabled": {
+                    "type": "boolean"
+                },
+                "image": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "repository": {
+                            "type": "string"
+                        },
+                        "tag": {
+                            "type": "string"
+                        },
+                        "pullPolicy": {
+                            "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.api.core.v1.Container/properties/imagePullPolicy"
+                        }
+                    },
+                    "required": [
+                        "repository",
+                        "tag",
+                        "pullPolicy"
+                    ]
+                },
+                "replicaCount": {
+                    "type": "integer"
+                },
+                "command": {
+                    "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.api.core.v1.Container/properties/command"
+                },
+                "env": {
+                    "type": "object"
+                },
+                "forceReload": {
+                    "type": "boolean"
+                },
+                "initContainers": {
+                    "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.api.core.v1.PodSpec/properties/initContainers"
+                },
+                "deploymentAnnotations": {
+                    "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta/properties/annotations"
+                },
+                "podAnnotations": {
+                    "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta/properties/annotations"
+                },
+                "podLabels": {
+                    "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta/properties/labels"
+                },
+                "livenessProbe": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "initialDelaySeconds": {
+                            "type": "integer"
+                        },
+                        "timeoutSeconds": {
+                            "type": "integer"
+                        },
+                        "failureThreshold": {
+                            "type": "integer"
+                        },
+                        "periodSeconds": {
+                            "type": "integer"
+                        },
+                        "successThreshold": {
+                            "type": "integer"
+                        }
+                    },
+                    "required": [
+                        "initialDelaySeconds",
+                        "timeoutSeconds",
+                        "failureThreshold",
+                        "periodSeconds",
+                        "successThreshold"
+                    ]
+                },
+                "readinessProbe": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "initialDelaySeconds": {
+                            "type": "integer"
+                        },
+                        "timeoutSeconds": {
+                            "type": "integer"
+                        },
+                        "failureThreshold": {
+                            "type": "integer"
+                        },
+                        "periodSeconds": {
+                            "type": "integer"
+                        },
+                        "successThreshold": {
+                            "type": "integer"
+                        }
+                    },
+                    "required": [
+                        "initialDelaySeconds",
+                        "timeoutSeconds",
+                        "failureThreshold",
+                        "periodSeconds",
+                        "successThreshold"
+                    ]
+                },
+                "resources": {
+                    "type": "object"
+                },
+                "podSecurityContext": {
+                    "type": "object"
+                },
+                "containerSecurityContext": {
+                    "type": "object"
+                }
+            },
+            "required": [
+                "enabled"
             ]
         },
         "postgresql": {

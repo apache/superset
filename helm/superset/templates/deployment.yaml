@@ -84,6 +84,8 @@ spec:
           {{- end }}
           command: {{  tpl (toJson .Values.supersetNode.command) . }}
           env:
+            - name: "FLASK_ENV"
+              value: "production"
             - name: "SUPERSET_PORT"
               value: {{ .Values.service.port | quote}}
             {{- range $key, $value := .Values.extraEnv }}

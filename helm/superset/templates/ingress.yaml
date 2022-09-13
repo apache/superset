@@ -48,6 +48,15 @@ spec:
     - host: {{ . }}
       http:
         paths:
+          {{- if $.Values.websocket.enabled }}
+          - path: {{ $.Values.ingress.websocket.path }}
+            pathType: {{ $.Values.ingress.websocket.pathType }}
+            backend:
+              service:
+                name: {{ $fullName }}-websocket
+                port:
+                  name: http
+          {{- end }}
           - path: {{ $.Values.ingress.path }}
             pathType: {{ $.Values.ingress.pathType }}
             backend:
