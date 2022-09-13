@@ -18,6 +18,7 @@
  */
 import PropTypes from 'prop-types';
 import React from 'react';
+import { connect } from 'react-redux';
 import { styled, logging, t, ensureIsArray } from '@superset-ui/core';
 
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
@@ -29,6 +30,7 @@ import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
+import { isDashboardVirtualizationEnabled } from 'src/utils/isDashboardVirtualizationEnabled';
 import ChartRenderer from './ChartRenderer';
 import { ChartErrorMessage } from './ChartErrorMessage';
 import { getChartRequiredFieldsMissingMessage } from '../../utils/getChartRequiredFieldsMissingMessage';
@@ -74,6 +76,12 @@ const propTypes = {
   ownState: PropTypes.object,
   postTransformProps: PropTypes.func,
   datasetsStatus: PropTypes.oneOf(['loading', 'error', 'complete']),
+  isInView: PropTypes.bool,
+  dashboardVirtualizationMode: PropTypes.oneOf([
+    'NONE',
+    'VIEWPORT',
+    'PAGINATED',
+  ]),
 };
 
 const BLANK = {};
@@ -92,6 +100,7 @@ const defaultProps = {
   chartStackTrace: null,
   isDeactivatedViz: false,
   force: false,
+  isInView: true,
 };
 
 const Styles = styled.div`
@@ -124,11 +133,6 @@ class Chart extends React.PureComponent {
     super(props);
     this.handleRenderContainerFailure =
       this.handleRenderContainerFailure.bind(this);
-
-    this.containerRef = React.createRef();
-    this.observer = null;
-
-    this.state = { isInView: false };
   }
 
   componentDidMount() {
@@ -138,25 +142,6 @@ class Chart extends React.PureComponent {
       this.props.filterboxMigrationState !== 'UNDECIDED'
     ) {
       this.runQuery();
-    }
-
-    if (isFeatureEnabled(FeatureFlag.DASHBOARD_VIRTUALIZATION)) {
-      this.observer = new IntersectionObserver(
-        ([entry]) => {
-          if (entry.isIntersecting && !this.state.isInView) {
-            this.setState({ isInView: true });
-          } else if (!entry.isIntersecting && this.state.isInView) {
-            this.setState({ isInView: false });
-          }
-        },
-        {
-          rootMargin: '100% 0px',
-        },
-      );
-      const element = this.containerRef.current;
-      if (element) {
-        this.observer.observe(element);
-      }
     }
   }
 
@@ -330,13 +315,11 @@ class Chart extends React.PureComponent {
           height={height}
           width={width}
         >
-          <div
-            className="slice_container"
-            data-test="slice-container"
-            ref={this.containerRef}
-          >
-            {this.state.isInView ||
-            !isFeatureEnabled(FeatureFlag.DASHBOARD_VIRTUALIZATION) ? (
+          <div className="slice_container" data-test="slice-container">
+            {this.props.isInView ||
+            !isDashboardVirtualizationEnabled(
+              this.props.dashboardVirtualizationMode,
+            ) ? (
               <ChartRenderer
                 {...this.props}
                 source={this.props.dashboardId ? 'dashboard' : 'explore'}
@@ -356,4 +339,10 @@ class Chart extends React.PureComponent {
 Chart.propTypes = propTypes;
 Chart.defaultProps = defaultProps;
 
-export default Chart;
+function mapStateToProps({ common }) {
+  const dashboardVirtualizationMode = common.conf?.DASHBOARD_VIRTUALIZATION;
+  return {
+    dashboardVirtualizationMode,
+  };
+}
+export default connect(mapStateToProps)(Chart);

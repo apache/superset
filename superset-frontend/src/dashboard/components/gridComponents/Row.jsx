@@ -19,6 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import cx from 'classnames';
+import { connect } from 'react-redux';
 
 import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
 import DragHandle from 'src/dashboard/components/dnd/DragHandle';
@@ -32,6 +33,10 @@ import WithPopoverMenu from 'src/dashboard/components/menu/WithPopoverMenu';
 import { componentShape } from 'src/dashboard/util/propShapes';
 import backgroundStyleOptions from 'src/dashboard/util/backgroundStyleOptions';
 import { BACKGROUND_TRANSPARENT } from 'src/dashboard/util/constants';
+import {
+  DASHBOARD_VIRTUALIZATION_MODE,
+  isDashboardVirtualizationEnabled,
+} from 'src/utils/isDashboardVirtualizationEnabled';
 
 const propTypes = {
   id: PropTypes.string.isRequired,
@@ -54,6 +59,12 @@ const propTypes = {
   handleComponentDrop: PropTypes.func.isRequired,
   deleteComponent: PropTypes.func.isRequired,
   updateComponents: PropTypes.func.isRequired,
+
+  dashboardVirtualizationMode: PropTypes.oneOf([
+    'NONE',
+    'VIEWPORT',
+    'PAGINATED',
+  ]),
 };
 
 class Row extends React.PureComponent {
@@ -61,6 +72,7 @@ class Row extends React.PureComponent {
     super(props);
     this.state = {
       isFocused: false,
+      isInView: false,
     };
     this.handleDeleteComponent = this.handleDeleteComponent.bind(this);
     this.handleUpdateMeta = this.handleUpdateMeta.bind(this);
@@ -69,6 +81,37 @@ class Row extends React.PureComponent {
       'background',
     );
     this.handleChangeFocus = this.handleChangeFocus.bind(this);
+
+    this.containerRef = React.createRef();
+    this.observer = null;
+  }
+
+  componentDidMount() {
+    if (
+      isDashboardVirtualizationEnabled(this.props.dashboardVirtualizationMode)
+    ) {
+      this.observer = new IntersectionObserver(
+        ([entry]) => {
+          if (entry.isIntersecting && !this.state.isInView) {
+            this.setState({ isInView: true });
+          } else if (
+            !entry.isIntersecting &&
+            this.state.isInView &&
+            this.props.dashboardVirtualizationMode ===
+              DASHBOARD_VIRTUALIZATION_MODE.VIEWPORT
+          ) {
+            this.setState({ isInView: false });
+          }
+        },
+        {
+          rootMargin: '100% 0px',
+        },
+      );
+      const element = this.containerRef.current;
+      if (element) {
+        this.observer.observe(element);
+      }
+    }
   }
 
   handleChangeFocus(nextFocus) {
@@ -161,6 +204,7 @@ class Row extends React.PureComponent {
                 backgroundStyle.className,
               )}
               data-test={`grid-row-${backgroundStyle.className}`}
+              ref={this.containerRef}
             >
               {rowItems.map((componentId, itemIndex) => (
                 <DashboardComponent
@@ -178,6 +222,7 @@ class Row extends React.PureComponent {
                   onResizeStop={onResizeStop}
                   isComponentVisible={isComponentVisible}
                   onChangeTab={onChangeTab}
+                  isInView={this.state.isInView}
                 />
               ))}
 
@@ -192,4 +237,10 @@ class Row extends React.PureComponent {
 
 Row.propTypes = propTypes;
 
-export default Row;
+function mapStateToProps({ common }) {
+  const dashboardVirtualizationMode = common.conf?.DASHBOARD_VIRTUALIZATION;
+  return {
+    dashboardVirtualizationMode,
+  };
+}
+export default connect(mapStateToProps)(Row);
