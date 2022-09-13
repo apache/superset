@@ -1511,20 +1511,40 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         permission = self.find_permission(permission_name)
         view_menu = self.find_view_menu(view_menu_name)
         if not permission:
-            connection.execute(permission_table.insert().values(name=permission_name))
-            permission = self.find_permission(permission_name)
+            _ = connection.execute(
+                permission_table.insert().values(name=permission_name)
+            )
+            permission = connection.execute(
+                permission_table.select().where(
+                    permission_table.c.name == permission_name
+                )
+            ).fetchone()
             self.on_permission_after_insert(mapper, connection, permission)
         if not view_menu:
-            connection.execute(view_menu_table.insert().values(name=view_menu_name))
-            view_menu = self.find_view_menu(view_menu_name)
+            _ = connection.execute(view_menu_table.insert().values(name=view_menu_name))
+            view_menu = connection.execute(
+                view_menu_table.select().where(view_menu_table.c.name == view_menu_name)
+            ).fetchone()
             self.on_view_menu_after_insert(mapper, connection, view_menu)
         connection.execute(
             permission_view_table.insert().values(
                 permission_id=permission.id, view_menu_id=view_menu.id
             )
         )
-        permission = self.find_permission_view_menu(permission_name, view_menu_name)
-        self.on_permission_view_after_insert(mapper, connection, permission)
+        permission_view = connection.execute(
+            permission_view_table.select().where(
+                permission_view_table.c.permission_id == permission.id,
+                permission_view_table.c.view_menu_id == view_menu.id,
+            )
+        ).fetchone()
+        permission_view_model = PermissionView()
+        permission_view_model.metadata = None
+        permission_view_model.id = permission_view.id
+        permission_view_model.permission_id = permission.id
+        permission_view_model.view_menu_id = view_menu.id
+        permission_view_model.permission = permission
+        permission_view_model.view_menu = view_menu
+        self.on_permission_view_after_insert(mapper, connection, permission_view_model)
 
     def on_role_after_update(
         self, mapper: Mapper, connection: Connection, target: Role
