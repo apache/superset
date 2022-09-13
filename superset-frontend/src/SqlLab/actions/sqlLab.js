@@ -32,6 +32,7 @@ import {
 } from 'src/components/MessageToasts/actions';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import COMMON_ERR_MESSAGES from 'src/utils/errorMessages';
+import { createFlash } from 'src/views/CRUD/flash/services/flash.service';
 
 export const RESET_STATE = 'RESET_STATE';
 export const ADD_QUERY_EDITOR = 'ADD_QUERY_EDITOR';
@@ -175,6 +176,23 @@ export function scheduleQuery(query) {
       )
       .catch(() =>
         dispatch(addDangerToast(t('Your query could not be scheduled'))),
+      );
+}
+
+export function createFlashObject(flash) {
+  return dispatch =>
+    createFlash(flash)
+      .then(() =>
+        dispatch(
+          addSuccessToast(
+            t(
+              'Your flash object has been created. To see details of your flash, navigate to Flash Management',
+            ),
+          ),
+        ),
+      )
+      .catch(() =>
+        dispatch(addDangerToast(t('Your flash object could not be created'))),
       );
 }
 

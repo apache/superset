@@ -36,6 +36,7 @@ import PropertiesModal from 'src/explore/components/PropertiesModal';
 import { sliceUpdated } from 'src/explore/actions/exploreActions';
 import { PageHeaderWithActions } from 'src/components/PageHeaderWithActions';
 import { useExploreAdditionalActionsMenu } from '../useExploreAdditionalActionsMenu';
+import FlashCreationButton from 'src/views/CRUD/flash/components/FlashCreationButton/FlashCreationButton';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -53,11 +54,14 @@ const propTypes = {
   saveDisabled: PropTypes.bool,
 };
 
+const flashCreationConf = bootstrapData?.common?.conf?.FLASH_CREATION;
+
 const saveButtonStyles = theme => css`
   color: ${theme.colors.primary.dark2};
   & > span[role='img'] {
     margin-right: 0;
   }
+  margin-left: 10px;
 `;
 
 export const ExploreChartHeader = ({
@@ -180,6 +184,15 @@ export const ExploreChartHeader = ({
           ) : null
         }
         rightPanelAdditionalItems={
+          <>
+           {flashCreationConf && (
+              <div>
+                <FlashCreationButton
+                  latestQueryFormData={latestQueryFormData}
+                  onCreate={actions.createFlashObject}
+                />
+              </div>
+            )}
           <Tooltip
             title={
               saveDisabled
@@ -201,6 +214,7 @@ export const ExploreChartHeader = ({
               </Button>
             </div>
           </Tooltip>
+          </>
         }
         additionalActionsMenu={menu}
         menuDropdownProps={{

@@ -48,7 +48,8 @@ export interface Filter {
     | 'select'
     | 'checkbox'
     | 'search'
-    | 'datetime_range';
+    | 'datetime_range'
+    | 'date';
   unfilteredLabel?: string;
   selects?: SelectOption[];
   onFilterOpen?: () => void;
