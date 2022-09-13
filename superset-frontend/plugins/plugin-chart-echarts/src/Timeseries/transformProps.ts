@@ -28,6 +28,7 @@ import {
   isTimeseriesAnnotationLayer,
   TimeseriesChartDataResponseResult,
   t,
+  DTTM_ALIAS,
 } from '@superset-ui/core';
 import { getAxis, isDerivedSeries } from '@superset-ui/chart-controls';
 import { EChartsCoreOption, SeriesOption } from 'echarts';
@@ -147,7 +148,9 @@ export default function transformProps(
 
   const colorScale = CategoricalColorNamespace.getScale(colorScheme as string);
   const rebasedData = rebaseForecastDatum(data, verboseMap);
-  const xAxisCol = verboseMap[xAxisOrig] || getAxis(chartProps.rawFormData);
+  // todo: if the both granularity_sqla and x_axis are `null`, should throw an error
+  const xAxisCol =
+    verboseMap[xAxisOrig] || getAxis(chartProps.rawFormData) || DTTM_ALIAS;
   const isHorizontal = orientation === OrientationType.horizontal;
   const { totalStackedValues, thresholdValues } = extractDataTotalValues(
     rebasedData,
