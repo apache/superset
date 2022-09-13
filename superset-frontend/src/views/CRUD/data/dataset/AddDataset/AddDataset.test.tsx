@@ -17,21 +17,18 @@
  * under the License.
  */
 import React from 'react';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import { render, screen } from 'spec/helpers/testing-library';
 import AddDataset from 'src/views/CRUD/data/dataset/AddDataset';
 
 describe('AddDataset', () => {
-  const waitForRender = () => waitFor(() => render(<AddDataset />));
-
   it('renders a blank state AddDataset', async () => {
-    await waitForRender();
+    render(<AddDataset />, { useRedux: true });
 
     const blankeStateImgs = screen.getAllByRole('img', { name: /empty/i });
 
-    expect(await screen.findByText(/header/i)).toBeInTheDocument();
     // Header
     expect(
-      screen.getByRole('textbox', {
+      await screen.findByRole('textbox', {
         name: /dataset name/i,
       }),
     ).toBeVisible();
