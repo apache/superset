@@ -949,15 +949,13 @@ def physical_query_context(physical_dataset) -> Dict[str, Any]:
 )
 def test_cache_default_timeout(test_client, login_as_admin, physical_query_context):
     rv = test_client.post(CHART_DATA_URI, json=physical_query_context)
-    data = json.loads(rv.data.decode("utf-8"))
-    assert data["result"][0]["cache_timeout"] == 1234
+    assert rv.json["result"][0]["cache_timeout"] == 1234
 
 
 def test_custom_cache_timeout(test_client, login_as_admin, physical_query_context):
     physical_query_context["custom_cache_timeout"] = 5678
     rv = test_client.post(CHART_DATA_URI, json=physical_query_context)
-    data = json.loads(rv.data.decode("utf-8"))
-    assert data["result"][0]["cache_timeout"] == 5678
+    assert rv.json["result"][0]["cache_timeout"] == 5678
 
 
 @mock.patch(
@@ -977,5 +975,4 @@ def test_data_cache_default_timeout(
     physical_query_context,
 ):
     rv = test_client.post(CHART_DATA_URI, json=physical_query_context)
-    data = json.loads(rv.data.decode("utf-8"))
-    assert data["result"][0]["cache_timeout"] == 3456
+    assert rv.json["result"][0]["cache_timeout"] == 3456
