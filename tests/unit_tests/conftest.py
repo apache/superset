@@ -68,7 +68,7 @@ def session(get_session) -> Iterator[Session]:
 
 
 @pytest.fixture(scope="module")
-def app() -> Iterator[SupersetApp]:
+def app(request) -> Iterator[SupersetApp]:
     """
     A fixture that generates a Superset app.
     """
@@ -81,6 +81,11 @@ def app() -> Iterator[SupersetApp]:
     app.config["WTF_CSRF_ENABLED"] = False
     app.config["PREVENT_UNSAFE_DB_CONNECTIONS"] = False
     app.config["TESTING"] = True
+
+    # loop over extra configs passed in by tests
+    if request and hasattr(request, "param"):
+        for key, val in request.param.items():
+            app.config[key] = val
 
     # ``superset.extensions.appbuilder`` is a singleton, and won't rebuild the
     # routes when this fixture is called multiple times; we need to clear the
