@@ -20,9 +20,7 @@
 import {
   AnnotationLayer,
   CategoricalColorNamespace,
-  DTTM_ALIAS,
   GenericDataType,
-  getColumnLabel,
   getNumberFormatter,
   isEventAnnotationLayer,
   isFormulaAnnotationLayer,
@@ -31,7 +29,7 @@ import {
   TimeseriesChartDataResponseResult,
   t,
 } from '@superset-ui/core';
-import { isDerivedSeries } from '@superset-ui/chart-controls';
+import { getAxis, isDerivedSeries } from '@superset-ui/chart-controls';
 import { EChartsCoreOption, SeriesOption } from 'echarts';
 import { ZRLineType } from 'echarts/types/src/util/types';
 import {
@@ -149,8 +147,7 @@ export default function transformProps(
 
   const colorScale = CategoricalColorNamespace.getScale(colorScheme as string);
   const rebasedData = rebaseForecastDatum(data, verboseMap);
-  const xAxisCol =
-    verboseMap[xAxisOrig] || getColumnLabel(xAxisOrig || DTTM_ALIAS);
+  const xAxisCol = verboseMap[xAxisOrig] || getAxis(chartProps.rawFormData);
   const isHorizontal = orientation === OrientationType.horizontal;
   const { totalStackedValues, thresholdValues } = extractDataTotalValues(
     rebasedData,

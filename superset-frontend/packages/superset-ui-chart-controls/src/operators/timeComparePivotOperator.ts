@@ -18,13 +18,12 @@
  * under the License.
  */
 import {
-  DTTM_ALIAS,
   ensureIsArray,
   getColumnLabel,
   NumpyFunction,
   PostProcessingPivot,
 } from '@superset-ui/core';
-import { getMetricOffsetsMap, isTimeComparison } from './utils';
+import { getMetricOffsetsMap, isTimeComparison, getAxis } from './utils';
 import { PostProcessingFactory } from './types';
 
 export const timeComparePivotOperator: PostProcessingFactory<PostProcessingPivot> =
@@ -39,12 +38,12 @@ export const timeComparePivotOperator: PostProcessingFactory<PostProcessingPivot
           { operator: 'mean' as NumpyFunction },
         ]),
       );
-      const index = [getColumnLabel(formData.x_axis || DTTM_ALIAS)];
+      const xAxis = getAxis(formData);
 
       return {
         operation: 'pivot',
         options: {
-          index,
+          index: [xAxis],
           columns: ensureIsArray(queryObject.columns).map(getColumnLabel),
           drop_missing_columns: !formData?.show_empty_columns,
           aggregates,
