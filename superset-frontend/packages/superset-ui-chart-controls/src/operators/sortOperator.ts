@@ -17,24 +17,30 @@
  * specific language governing permissions and limitationsxw
  * under the License.
  */
-import { DTTM_ALIAS, PostProcessingSort, RollingType } from '@superset-ui/core';
+import {
+  ensureIsArray,
+  getColumnLabel,
+  getMetricLabel,
+  PostProcessingSort,
+} from '@superset-ui/core';
 import { PostProcessingFactory } from './types';
 
 export const sortOperator: PostProcessingFactory<PostProcessingSort> = (
   formData,
   queryObject,
 ) => {
-  const { x_axis: xAxis } = formData;
-  if (
-    (xAxis || queryObject.is_timeseries) &&
-    Object.values(RollingType).includes(formData.rolling_type)
-  ) {
-    const index = xAxis || DTTM_ALIAS;
+  const { columns, metrics, timeseries_limit_metric, order_desc } = queryObject;
+  const metricLabels = ensureIsArray(metrics).map(getMetricLabel);
+  const columnLabels = ensureIsArray(columns).map(getColumnLabel);
+  const column: string[] = ensureIsArray(timeseries_limit_metric).map(
+    getMetricLabel,
+  );
+  if (metricLabels.includes(column[0]) || columnLabels.includes(column[0])) {
     return {
       operation: 'sort',
       options: {
         columns: {
-          [index]: true,
+          [column[0]]: !order_desc,
         },
       },
     };
