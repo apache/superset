@@ -19,7 +19,7 @@ under the License.
 
 ## Change Log
 
-### 1.5.2 (Mon Sep 5 13:32:48 2022 +0100)
+### 1.5.2 (Wed Sep 14 17:11:51 2022 +0530)
 
 **Database Migrations**
 
@@ -27,6 +27,8 @@ under the License.
 
 **Fixes**
 
+- [#21461](https://github.com/apache/superset/pull/21461) fix: dashboard filter value is cleared when 2 similar dashboards opened in succession (@mayurnewase)
+- [#21419](https://github.com/apache/superset/pull/21419) fix: cached common bootstrap Revert (#21018) (@dpgaspar)
 - [#21302](https://github.com/apache/superset/pull/21302) fix: disallow users from viewing other user's profile on config (@dpgaspar)
 - [#21272](https://github.com/apache/superset/pull/21272) fix: adds TLS certificate validation option for SMTP (@dpgaspar)
 - [#21076](https://github.com/apache/superset/pull/21076) fix(celery cache warmup): add auth and use warm_up_cache endpoint (@nytai)
@@ -42,6 +44,7 @@ under the License.
 
 **Others**
 
+- [#21439](https://github.com/apache/superset/pull/21439) perf: Memoize the common_bootstrap_payload and include user param (#21018) (@bkyryliuk)
 - [#19703](https://github.com/apache/superset/pull/19703) chore(build): upgrade less-loader (@ktmud)
 - [#20550](https://github.com/apache/superset/pull/20550) chore: updating python docker image to 3.8.13 (@nisheldo)
 - [#21018](https://github.com/apache/superset/pull/21018) perf: Memoize the common_bootstrap_payload (@bkyryliuk)
