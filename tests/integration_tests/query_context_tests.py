@@ -914,7 +914,6 @@ def test_non_date_adhoc_column(app_context, physical_dataset):
     assert df["ADHOC COLUMN"][1] == 10
 
 
-@only_postgresql
 @only_sqlite
 def test_time_grain_and_time_offset_with_base_axis(app_context, physical_dataset):
     column_on_axis: AdhocColumn = {

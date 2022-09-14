@@ -1271,15 +1271,13 @@ def is_adhoc_column(column: Column) -> TypeGuard[AdhocColumn]:
     return isinstance(column, dict)
 
 
-def get_base_axis_label(columns: Optional[List[Column]]) -> Optional[str]:
+def get_base_axis_labels(columns: Optional[List[Column]]) -> Tuple[str, ...]:
     axis_cols = [
         col
         for col in columns or []
         if is_adhoc_column(col) and col.get("columnType") == "BASE_AXIS"
     ]
-    if axis_cols:
-        return get_column_name(axis_cols[0])
-    return None
+    return tuple(get_column_name(col) for col in axis_cols)
 
 
 def get_column_name(
@@ -1853,31 +1851,34 @@ def normalize_dttm_col(
     timestamp_format: Optional[str],
     offset: int,
     time_shift: Optional[timedelta],
-    dttm_alias: Optional[str] = DTTM_ALIAS,
+    dttm_cols: Optional[Tuple[str, ...]] = None,
 ) -> None:
-    if dttm_alias is None:
-        dttm_alias = DTTM_ALIAS
-    if dttm_alias not in df.columns:
-        return
-    if timestamp_format in ("epoch_s", "epoch_ms"):
-        dttm_col = df[dttm_alias]
-        if is_numeric_dtype(dttm_col):
-            # Column is formatted as a numeric value
-            unit = timestamp_format.replace("epoch_", "")
-            df[dttm_alias] = pd.to_datetime(
-                dttm_col, utc=False, unit=unit, origin="unix", errors="coerce"
-            )
-        else:
-            # Column has already been formatted as a timestamp.
-            df[dttm_alias] = dttm_col.apply(pd.Timestamp)
+    if not dttm_cols:
+        _dttm_cols = tuple(DTTM_ALIAS)
     else:
-        df[dttm_alias] = pd.to_datetime(
-            df[dttm_alias], utc=False, format=timestamp_format, errors="coerce"
-        )
-    if offset:
-        df[dttm_alias] += timedelta(hours=offset)
-    if time_shift is not None:
-        df[dttm_alias] += time_shift
+        _dttm_cols = dttm_cols
+    for _dttm_col in _dttm_cols:
+        if _dttm_col not in df.columns:
+            continue
+        if timestamp_format in ("epoch_s", "epoch_ms"):
+            dttm_col = df[_dttm_col]
+            if is_numeric_dtype(dttm_col):
+                # Column is formatted as a numeric value
+                unit = timestamp_format.replace("epoch_", "")
+                df[_dttm_col] = pd.to_datetime(
+                    dttm_col, utc=False, unit=unit, origin="unix", errors="coerce"
+                )
+            else:
+                # Column has already been formatted as a timestamp.
+                df[_dttm_col] = dttm_col.apply(pd.Timestamp)
+        else:
+            df[_dttm_col] = pd.to_datetime(
+                df[_dttm_col], utc=False, format=timestamp_format, errors="coerce"
+            )
+        if offset:
+            df[_dttm_col] += timedelta(hours=offset)
+        if time_shift is not None:
+            df[_dttm_col] += time_shift
 
 
 def parse_boolean_string(bool_str: Optional[str]) -> bool:
