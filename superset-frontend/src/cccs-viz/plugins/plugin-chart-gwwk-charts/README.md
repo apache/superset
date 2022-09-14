@@ -11,9 +11,7 @@ Configure `key`, which can be any `string`, and register the plugin. This `key` 
 ```js
 import GWWKChartPlugin from '@superset-ui/plugin-chart-gwwk-charts';
 
-new GWWKChartPlugin()
-  .configure({ key: 'gwwk-charts' })
-  .register();
+new GWWKChartPlugin().configure({ key: 'gwwk-charts' }).register();
 ```
 
 Then use it via `SuperChart`. See [storybook](https://apache-superset.github.io/superset-ui/?selectedKind=plugin-chart-gwwk-charts) for more details.
@@ -29,4 +27,3 @@ Then use it via `SuperChart`. See [storybook](https://apache-superset.github.io/
   }]}
 />
 ```
-

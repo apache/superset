@@ -40,6 +40,7 @@ from pyparsing import (
     Suppress,
 )
 
+from superset import app
 from superset.charts.commands.exceptions import (
     TimeDeltaAmbiguousError,
     TimeRangeAmbiguousError,
@@ -47,7 +48,6 @@ from superset.charts.commands.exceptions import (
 )
 from superset.utils.core import NO_TIME_RANGE
 from superset.utils.memoized import memoized
-from superset import app
 
 ParserElement.enablePackrat()
 

@@ -31,21 +31,23 @@ from io import StringIO
 from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
 
 import pandas as pd
+
 from superset import app
 from superset.common.chart_data import ChartDataResultFormat
+from superset.common.query_context import QueryContext
 from superset.utils.core import (
     DTTM_ALIAS,
     extract_dataframe_dtypes,
     get_column_names,
     get_metric_names,
 )
-from superset.common.query_context import QueryContext
 
 if TYPE_CHECKING:
     from superset.connectors.base.models import BaseDatasource
 
 config = app.config
 logger = logging.getLogger(__name__)
+
 
 def get_column_key(label: Tuple[str, ...], metrics: List[str]) -> Tuple[Any, ...]:
     """
@@ -318,7 +320,10 @@ def AgGrid(result: Dict[Any, Any], form_data: Dict[str, Any]) -> Dict[Any, Any]:
 
     return result
 
-def AtAGlanceUserIDCore(result: Dict[Any, Any], form_data: Dict[str, Any]) -> Dict[Any, Any]:
+
+def AtAGlanceUserIDCore(
+    result: Dict[Any, Any], form_data: Dict[str, Any]
+) -> Dict[Any, Any]:
     """
     AAG User ID.
     """
@@ -338,10 +343,17 @@ post_processors = {
     "at_a_glance_user_id": AgGrid,
     "at_a_glance_ip": AgGrid,
     "at_a_glance_dns": AgGrid,
-    "at_a_glance_user_id_sas": AgGrid
+    "at_a_glance_user_id_sas": AgGrid,
 }
 
-rawPostProcess = ["cccs_grid", "at_a_glance_user_id", "at_a_glance_ip", "at_a_glance_dns", "at_a_glance_user_id_sas"]
+rawPostProcess = [
+    "cccs_grid",
+    "at_a_glance_user_id",
+    "at_a_glance_ip",
+    "at_a_glance_dns",
+    "at_a_glance_user_id_sas",
+]
+
 
 def apply_post_process(
     result: Dict[Any, Any],
@@ -352,14 +364,18 @@ def apply_post_process(
 
     viz_type = form_data.get("viz_type", "")
     if not viz_type:
-        viz_type = result.get("query_context", QueryContext).viz_type if result.get("query_context", QueryContext).viz_type else ""
+        viz_type = (
+            result.get("query_context", QueryContext).viz_type
+            if result.get("query_context", QueryContext).viz_type
+            else ""
+        )
 
     if viz_type not in post_processors:
         return result
 
     post_processor = post_processors[viz_type]
 
-    if (result["query_context"].result_format == ChartDataResultFormat.CSV):
+    if result["query_context"].result_format == ChartDataResultFormat.CSV:
         for query in result["queries"]:
             df = pd.read_csv(StringIO(query["data"]))
             processed_df = post_processor(df, form_data)

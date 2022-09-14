@@ -100,8 +100,6 @@ const validateAggControlValues = (
     : [];
 };
 
-
-
 const validateAggColumnValues = (
   controls: ControlStateMapping,
   values: any[],
@@ -191,10 +189,7 @@ const validateAggColumnValues = (
 //   return false;
 // }
 
-
-const defineSavedMetrics = (
-  datasource: Dataset | QueryResponse | null,
-) =>
+const defineSavedMetrics = (datasource: Dataset | QueryResponse | null) =>
   datasource?.hasOwnProperty('metrics')
     ? (datasource as Dataset)?.metrics || []
     : DEFAULT_METRICS;

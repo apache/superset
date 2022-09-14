@@ -62,7 +62,8 @@ const buildQuery: BuildQuery<CccsGridQueryFormData> = (
     ...formData,
     ...DEFAULT_FORM_DATA,
   };
-  const { percent_metrics: percentMetrics, order_desc: orderDesc = false } = formData;
+  const { percent_metrics: percentMetrics, order_desc: orderDesc = false } =
+    formData;
   // never include time in raw records mode
   if (queryMode === QueryMode.raw) {
     formDataCopy = {
@@ -86,17 +87,20 @@ const buildQuery: BuildQuery<CccsGridQueryFormData> = (
       }
       // add postprocessing for percent metrics only when in aggregation mode
       if (percentMetrics && percentMetrics.length > 0) {
-        const percentMetricLabels = removeDuplicates(percentMetrics.map(getMetricLabel));
-        metrics = removeDuplicates(metrics.concat(percentMetrics), getMetricLabel);
-        postProcessing.push(
-          {
-            operation: 'contribution',
-            options: {
-              columns: percentMetricLabels as string[],
-              rename_columns: percentMetricLabels.map(x => `%${x}`),
-            },
-          },
+        const percentMetricLabels = removeDuplicates(
+          percentMetrics.map(getMetricLabel),
         );
+        metrics = removeDuplicates(
+          metrics.concat(percentMetrics),
+          getMetricLabel,
+        );
+        postProcessing.push({
+          operation: 'contribution',
+          options: {
+            columns: percentMetricLabels as string[],
+            rename_columns: percentMetricLabels.map(x => `%${x}`),
+          },
+        });
       }
     }
 
