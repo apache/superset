@@ -35,7 +35,8 @@ import DatabaseSelector from 'src/components/DatabaseSelector';
 import { debounce } from 'lodash';
 import { EmptyStateMedium } from 'src/components/EmptyState';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
-import { DatasetActionType, DatasetObject } from '../types';
+import { DatabaseObject } from 'src/components/DatabaseSelector';
+import { DatasetActionType } from '../types';
 
 interface LeftPanelProps {
   setDataset: Dispatch<SetStateAction<object>>;
@@ -139,8 +140,8 @@ export default function LeftPanel({
 
   const { addDangerToast } = useToasts();
 
-  const setDatabase = (db: Partial<DatasetObject>) => {
-    setDataset({ type: DatasetActionType.selectDatabase, payload: db });
+  const setDatabase = (db: Partial<DatabaseObject>) => {
+    setDataset({ type: DatasetActionType.selectDatabase, payload: { db: db } });
     setSelectedTable(null);
     setResetTables(true);
   };

@@ -78,7 +78,7 @@ export default function AddDataset() {
     <LeftPanel
       setDataset={setDataset}
       schema={dataset?.schema}
-      dbId={dataset?.id}
+      dbId={dataset?.db?.id}
     />
   );
   const prevUrl =
