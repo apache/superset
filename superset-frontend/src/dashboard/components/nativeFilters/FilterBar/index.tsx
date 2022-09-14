@@ -246,6 +246,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   const dashboardId = useSelector<any, string>(
     ({ dashboardInfo }) => dashboardInfo?.id,
   );
+  const previousDashboardId = usePrevious(dashboardId);
   const canEdit = useSelector<RootState, boolean>(
     ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
   );
@@ -279,7 +280,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   );
 
   useEffect(() => {
-    if (previousFilters) {
+    if (previousFilters && dashboardId === previousDashboardId) {
       const updates = {};
       Object.values(filters).forEach(currentFilter => {
         const previousFilter = previousFilters?.[currentFilter.id];
@@ -306,7 +307,11 @@ const FilterBar: React.FC<FiltersBarProps> = ({
         Object.keys(updates).forEach(key => dispatch(clearDataMask(key)));
       }
     }
-  }, [JSON.stringify(filters), JSON.stringify(previousFilters)]);
+  }, [
+    JSON.stringify(filters),
+    JSON.stringify(previousFilters),
+    previousDashboardId,
+  ]);
 
   const dataMaskAppliedText = JSON.stringify(dataMaskApplied);
 
