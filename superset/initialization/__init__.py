@@ -419,6 +419,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         self.configure_data_sources()
         self.configure_auth_provider()
         self.configure_async_queries()
+        self.configure_event_listeners()
 
         # Hook that provides administrators a handle on the Flask APP
         # after initialization
@@ -583,6 +584,25 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         encrypted_field_factory.init_app(self.superset_app)
 
     def setup_db(self) -> None:
+        db.init_app(self.superset_app)
+
+        with self.superset_app.app_context():
+            pessimistic_connection_handling(db.engine)
+
+        migrate.init_app(self.superset_app, db=db, directory=APP_DIR + "/migrations")
+
+    def configure_wtf(self) -> None:
+        if self.config["WTF_CSRF_ENABLED"]:
+            csrf.init_app(self.superset_app)
+            csrf_exempt_list = self.config["WTF_CSRF_EXEMPT_LIST"]
+            for ex in csrf_exempt_list:
+                csrf.exempt(ex)
+
+    def configure_async_queries(self) -> None:
+        if feature_flag_manager.is_feature_enabled("GLOBAL_ASYNC_QUERIES"):
+            async_query_manager.init_app(self.superset_app)
+
+    def configure_event_listeners(self) -> None:
         with self.superset_app.app_context():
             import sqlalchemy as sqla
 
@@ -596,8 +616,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                 DatasetUpdater,
                 FavStarUpdater,
             )
-
-        db.init_app(self.superset_app)
 
         # events for updating tags
         if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
@@ -615,22 +633,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
             sqla.event.listen(FavStar, "after_insert", FavStarUpdater.after_insert)
             sqla.event.listen(FavStar, "after_delete", FavStarUpdater.after_delete)
-
-        with self.superset_app.app_context():
-            pessimistic_connection_handling(db.engine)
-
-        migrate.init_app(self.superset_app, db=db, directory=APP_DIR + "/migrations")
-
-    def configure_wtf(self) -> None:
-        if self.config["WTF_CSRF_ENABLED"]:
-            csrf.init_app(self.superset_app)
-            csrf_exempt_list = self.config["WTF_CSRF_EXEMPT_LIST"]
-            for ex in csrf_exempt_list:
-                csrf.exempt(ex)
-
-    def configure_async_queries(self) -> None:
-        if feature_flag_manager.is_feature_enabled("GLOBAL_ASYNC_QUERIES"):
-            async_query_manager.init_app(self.superset_app)
 
     def register_blueprints(self) -> None:
         for bp in self.config["BLUEPRINTS"]:
