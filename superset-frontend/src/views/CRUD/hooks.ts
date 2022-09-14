@@ -285,10 +285,11 @@ export function useFlashListViewResource<D extends object = any>(
         }));
 
       const filtersConcatenated = filterExps.reduce((acc, val) => {
+        let currentValue = acc
         if (val.value) {
-          acc += `&${val.col}=${val.value}`;
+          currentValue += `&${val.col}=${val.value}`;
         }
-        return acc;
+        return currentValue;
       }, '');
       const offset = Number(pageIndex) + 1;
       const queryParams = `limit=${pageSize}&offset=${offset}${filtersConcatenated}`;
