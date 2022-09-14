@@ -31,11 +31,7 @@ export * from './components/ColumnTypeLabel/ColumnTypeLabel';
 export * from './components/MetricOption';
 
 // React control components
-export {
-  sharedControls,
-  dndEntity,
-  dndColumnsControl,
-} from './shared-controls';
+export { default as sharedControls, withDndFallback } from './shared-controls';
 export { default as sharedControlComponents } from './shared-controls/components';
 export { legacySortBy } from './shared-controls/legacySortBy';
 export * from './shared-controls/emitFilterControl';
