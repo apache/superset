@@ -332,7 +332,7 @@ const time_grain_sqla: SharedControlConfig<'SelectControl'> = {
 
     const xAxis = controls?.x_axis;
     const xAxisValue = xAxis?.value;
-    if (xAxisValue === undefined || isAdhocColumn(xAxisValue)) {
+    if (isAdhocColumn(xAxisValue)) {
       return true;
     }
     if (isPhysicalColumn(xAxisValue)) {
