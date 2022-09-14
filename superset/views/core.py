@@ -753,9 +753,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             )
             datasource = parsed_form_data.get("datasource")
             if datasource:
-                parts = datasource.split("__")
-                datasource_id = parts[0]
-                datasource_type = parts[1]
+                datasource_id, datasource_type = datasource.split("__")
                 parameters = CommandParameters(
                     datasource_id=datasource_id,
                     datasource_type=datasource_type,
