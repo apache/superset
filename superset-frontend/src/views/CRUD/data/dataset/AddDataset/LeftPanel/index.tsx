@@ -31,11 +31,12 @@ import { TableOption } from 'src/components/TableSelector';
 import RefreshLabel from 'src/components/RefreshLabel';
 import { Table } from 'src/hooks/apiResources';
 import Loading from 'src/components/Loading';
-import DatabaseSelector from 'src/components/DatabaseSelector';
+import DatabaseSelector, {
+  DatabaseObject,
+} from 'src/components/DatabaseSelector';
 import { debounce } from 'lodash';
 import { EmptyStateMedium } from 'src/components/EmptyState';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
-import { DatabaseObject } from 'src/components/DatabaseSelector';
 import { DatasetActionType } from '../types';
 
 interface LeftPanelProps {
@@ -141,7 +142,7 @@ export default function LeftPanel({
   const { addDangerToast } = useToasts();
 
   const setDatabase = (db: Partial<DatabaseObject>) => {
-    setDataset({ type: DatasetActionType.selectDatabase, payload: { db: db } });
+    setDataset({ type: DatasetActionType.selectDatabase, payload: { db } });
     setSelectedTable(null);
     setResetTables(true);
   };
@@ -234,7 +235,7 @@ export default function LeftPanel({
         onSchemaChange={setSchema}
       />
       {loadTables && !refresh && Loader('Table loading')}
-      {schema && loadTables && !tableOptions.length && !searchVal && (
+      {schema && !loadTables && !tableOptions.length && !searchVal && (
         <div className="emptystate">
           <EmptyStateMedium
             image="empty-table.svg"

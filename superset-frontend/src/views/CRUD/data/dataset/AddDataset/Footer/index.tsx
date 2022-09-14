@@ -22,7 +22,6 @@ import { t } from '@superset-ui/core';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import { logEvent } from 'src/logger/actions';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import { DatasetObject } from '../types';
 import {
   LOG_ACTIONS_DATASET_CREATION_EMPTY_CANCELLATION,
   LOG_ACTIONS_DATASET_CREATION_DATABASE_CANCELLATION,
@@ -30,6 +29,7 @@ import {
   LOG_ACTIONS_DATASET_CREATION_TABLE_CANCELLATION,
   LOG_ACTIONS_DATASET_CREATION_SUCCESS,
 } from 'src/logger/LogUtils';
+import { DatasetObject } from '../types';
 
 const INPUT_FIELDS = ['db', 'schema', 'table_name'];
 const LOG_ACTIONS = [
@@ -53,12 +53,14 @@ function Footer({ url, datasetObject, addDangerToast }: FooterProps) {
   );
 
   const createLogAction = (dataset: Partial<DatasetObject>) => {
+    let totalCount = 0;
     const value = Object.keys(dataset).reduce((total, key) => {
       if (INPUT_FIELDS.includes(key) && dataset[key]) {
-        total++;
+        totalCount += 1;
       }
-      return total;
+      return totalCount;
     }, 0);
+
     return LOG_ACTIONS[value];
   };
   const goToPreviousUrl = () => {
@@ -68,9 +70,10 @@ function Footer({ url, datasetObject, addDangerToast }: FooterProps) {
   };
 
   const cancelButtonOnClick = () => {
-    if (datasetObject) {
+    if (!datasetObject) {
+      logEvent(LOG_ACTIONS_DATASET_CREATION_EMPTY_CANCELLATION, {});
+    } else {
       const logAction = createLogAction(datasetObject);
-      console.log(logAction);
       logEvent(logAction, datasetObject);
     }
     goToPreviousUrl();
