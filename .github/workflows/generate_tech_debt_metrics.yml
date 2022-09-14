@@ -1,7 +1,8 @@
 name: Generate Technical Debt Metrics
 
 on:
-  push
+  pull_request:
+    types: [synchronize, opened, reopened, ready_for_review]
 
 jobs:
 
@@ -15,11 +16,11 @@ jobs:
     - name: Generate json
       uses: actions/setup-node@v3
       with:
-        node-version: 16
-      run: run: npm run lint-stats
+        node-version: 12
+        command: npm run lint-stats
 
-    - name: Commit and push changes
-        uses: devops-infra/action-commit-push@master
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          commit_message: AUTOMATED - committting JSON tech debt report
+    # - name: Commit and push changes
+    #     uses: devops-infra/action-commit-push@master
+    #     with:
+    #       github_token: ${{ secrets.GITHUB_TOKEN }}
+    #       commit_message: AUTOMATED - committting JSON tech debt report
