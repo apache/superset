@@ -41,7 +41,7 @@ from superset.utils.core import (
 )
 from superset.utils.pandas_postprocessing.utils import FLAT_COLUMN_SEPARATOR
 from tests.integration_tests.base_tests import SupersetTestCase
-from tests.integration_tests.conftest import only_postgresql
+from tests.integration_tests.conftest import only_postgresql, only_sqlite
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
     load_birth_names_data,
@@ -914,6 +914,8 @@ def test_non_date_adhoc_column(app_context, physical_dataset):
     assert df["ADHOC COLUMN"][1] == 10
 
 
+@only_postgresql
+@only_sqlite
 def test_time_grain_and_time_offset_with_base_axis(app_context, physical_dataset):
     column_on_axis: AdhocColumn = {
         "label": "col6",
@@ -946,6 +948,7 @@ def test_time_grain_and_time_offset_with_base_axis(app_context, physical_dataset
     )
     query_object = qc.queries[0]
     df = qc.get_df_payload(query_object)["df"]
+    # todo: MySQL returns integer and float column as object type
     """
         col6  SUM(col1)  SUM(col1)__3 month ago
 0 2002-01-01          3                     NaN
