@@ -1854,7 +1854,7 @@ def normalize_dttm_col(
     dttm_cols: Optional[Tuple[str, ...]] = None,
 ) -> None:
     if not dttm_cols:
-        _dttm_cols = tuple(DTTM_ALIAS)
+        _dttm_cols = tuple([DTTM_ALIAS])
     else:
         _dttm_cols = dttm_cols
     for _dttm_col in _dttm_cols:
