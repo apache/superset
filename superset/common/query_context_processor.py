@@ -52,7 +52,6 @@ from superset.utils.core import (
     DTTM_ALIAS,
     error_msg_from_exception,
     get_base_axis_label,
-    get_column_name,
     get_column_names_from_columns,
     get_column_names_from_metrics,
     get_metric_names,
