@@ -27,18 +27,16 @@ import {
   FlashUpdateSchedule,
 } from '../types';
 
-export const fetchDatabases = async (): Promise<any> =>
-  await FlashClient.get<any>('v1/datastore');
+export const fetchDatabases = (): Promise<any> =>
+  FlashClient.get<any>('v1/datastore');
 
-export const fetchUsers = async (queryParams: any): Promise<any> =>
-  await FlashClient.get<FlashServiceObject[]>(
-    `${'v1/flash/' + '?'}${queryParams}`,
-  );
+export const fetchUsers = (queryParams: any): Promise<any> =>
+  FlashClient.get<FlashServiceObject[]>(`${'v1/flash/?'}${queryParams}`);
 
 export const createFlash = (payload: FlashObject): Promise<any> =>
   FlashClient.post<FlashServiceObject>('v1/flash/', payload);
 
-export const updateFlash = async (
+export const updateFlash = (
   id: number,
   type: string,
   payload:
@@ -46,8 +44,7 @@ export const updateFlash = async (
     | FlashExtendTtl
     | FlashUpdateSchedule
     | FlashUpdateQuery,
-): Promise<any> =>
-  await FlashClient.post<any>(`v1/flash/${id}/${type}`, payload);
+): Promise<any> => FlashClient.post<any>(`v1/flash/${id}/${type}`, payload);
 
-export const removeFlash = async (id: number): Promise<any> =>
-  await FlashClient.delete<FlashServiceObject>(`v1/flash/${id}`);
+export const removeFlash = (id: number): Promise<any> =>
+  FlashClient.delete<FlashServiceObject>(`v1/flash/${id}`);

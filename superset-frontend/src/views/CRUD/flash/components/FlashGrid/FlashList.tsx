@@ -165,7 +165,7 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
           },
         }: any) => {
           if (databaseDropdown && databaseDropdown.length > 0) {
-            return databaseDropdown.find(item => item.value == id).label;
+            return databaseDropdown.find(item => item.value === id).label;
           }
           return id;
         },
@@ -278,7 +278,15 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
               },
             ].filter(item => !!item);
           } else {
-            actions = [];
+            actions = [
+              {
+                label: 'ownership-action',
+                tooltip: t('Change Ownership'),
+                placement: 'bottom' as TooltipPlacement,
+                icon: 'SwitchUser',
+                onClick: handleChangeOwnership,
+              },
+            ];
           }
 
           return <ActionsBar actions={actions as ActionProps[]} />;

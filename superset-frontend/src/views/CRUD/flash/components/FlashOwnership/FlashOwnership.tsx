@@ -157,7 +157,7 @@ const FlashOwnership: FunctionComponent<FlashOwnershipButtonProps> = ({
     if (formData) {
       if (formData.ownershipType) {
         formData.owner = user?.email;
-      } else if (formData.owner == user?.email) {
+      } else if (formData.owner === user?.email) {
         formData.owner = '';
       }
       if (jsonSchema) {

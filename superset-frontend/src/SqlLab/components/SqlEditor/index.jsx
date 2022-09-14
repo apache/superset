@@ -55,6 +55,7 @@ import {
   setActiveSouthPaneTab,
   updateSavedQuery,
   validateQuery,
+  createFlashObject
 } from 'src/SqlLab/actions/sqlLab';
 import {
   STATE_TYPE_MAP,

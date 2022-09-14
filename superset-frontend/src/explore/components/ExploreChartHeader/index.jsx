@@ -54,6 +54,10 @@ const propTypes = {
   saveDisabled: PropTypes.bool,
 };
 
+const appContainer = document.getElementById('app');
+const bootstrapData = JSON.parse(
+  appContainer?.getAttribute('data-bootstrap') || '{}',
+);
 const flashCreationConf = bootstrapData?.common?.conf?.FLASH_CREATION;
 
 const saveButtonStyles = theme => css`
