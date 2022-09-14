@@ -738,7 +738,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             "superset/import_dashboards.html", databases=databases
         )
 
-    def get_redirect_url(self) -> str:
+    @staticmethod
+    def get_redirect_url() -> str:
         """Assembles the redirect URL to the new endpoint. It also replaces
         the form_data param with a form_data_key by saving the original content
         to the cache layer.
@@ -787,7 +788,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             self.__class__.__name__,
         )
         if request.method == "GET":
-            return redirect(self.get_redirect_url())
+            return redirect(Superset.get_redirect_url())
 
         initial_form_data = {}
 
