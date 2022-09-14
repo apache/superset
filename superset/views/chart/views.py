@@ -63,7 +63,7 @@ class SliceModelView(
     @has_access
     def add(self) -> FlaskResponse:
         payload = {
-            "common": common_bootstrap_payload(),
+            "common": common_bootstrap_payload(g.user),
             "user": bootstrap_user_data(g.user),
         }
         return self.render_template(
