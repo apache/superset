@@ -17,8 +17,8 @@
  * under the License.
  */
 
-import { SupersetClient, t } from '@superset-ui/core';
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import { t } from '@superset-ui/core';
+import React, { useState, useMemo, useEffect } from 'react';
 import { createErrorHandler } from 'src/views/CRUD/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { useFlashListViewResource } from 'src/views/CRUD/hooks';
@@ -64,7 +64,7 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
       resourceCollection: flashes,
       bulkSelectEnabled,
     },
-    hasPerm,
+
     fetchData,
     toggleBulkSelect,
     refreshData,
@@ -84,8 +84,7 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
   const [showFlashTtl, setShowFlashTtl] = useState<boolean>(false);
   const [showFlashSchedule, setShowFlashSchedule] = useState<boolean>(false);
   const [showFlashQuery, setShowFlashQuery] = useState<boolean>(false);
-  const [savedQueryCurrentlyPreviewing, setSavedQueryCurrentlyPreviewing] =
-    useState<SavedQueryObject | null>(null);
+  const savedQueryCurrentlyPreviewing: SavedQueryObject | undefined = undefined;
 
   useEffect(() => {
     fetchDatabaseDropdown();
@@ -438,7 +437,7 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
               bulkActions={bulkActions}
               bulkSelectEnabled={bulkSelectEnabled}
               disableBulkSelect={toggleBulkSelect}
-              highlightRowId={savedQueryCurrentlyPreviewing?.id}
+              highlightRowId={savedQueryCurrentlyPreviewing}
             />
           );
         }}

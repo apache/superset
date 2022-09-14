@@ -247,14 +247,6 @@ export function useFlashListViewResource<D extends object = any>(
     updateState({ bulkSelectEnabled: !state.bulkSelectEnabled });
   }
 
-  function hasPerm(perm: string) {
-    if (!state.permissions.length) {
-      return false;
-    }
-
-    return Boolean(state.permissions.find(p => p === perm));
-  }
-
   const fetchData = useCallback(
     ({
       pageIndex,
@@ -285,7 +277,7 @@ export function useFlashListViewResource<D extends object = any>(
         }));
 
       const filtersConcatenated = filterExps.reduce((acc, val) => {
-        let currentValue = acc
+        let currentValue = acc;
         if (val.value) {
           currentValue += `&${val.col}=${val.value}`;
         }
@@ -337,7 +329,6 @@ export function useFlashListViewResource<D extends object = any>(
       updateState({
         collection: update,
       }),
-    hasPerm,
     fetchData,
     toggleBulkSelect,
     refreshData: (provideConfig?: FetchDataConfig) => {

@@ -112,7 +112,7 @@ const FlashSchedule: FunctionComponent<FlashSchedulingButtonProps> = ({
   addDangerToast,
   addSuccessToast,
 }) => {
-  const [flashSchema, setFlashSchema] = useState(getJSONSchema());
+  const flashSchema = getJSONSchema();
   const [formData, setFormData] = useState<FlashUpdateSchedule>({
     scheduleType: '',
     scheduleStartTime: '',

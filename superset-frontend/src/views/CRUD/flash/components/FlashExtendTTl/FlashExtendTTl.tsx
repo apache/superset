@@ -111,7 +111,7 @@ const FlashExtendTTL: FunctionComponent<FlashExtendTTLButtonProps> = ({
   addDangerToast,
   addSuccessToast,
 }) => {
-  const [flashSchema, setFlashSchema] = useState(getJSONSchema());
+  const flashSchema = getJSONSchema();
 
   const [formData, setFormData] = useState<FlashExtendTtl>({
     ttl: '',
