@@ -51,7 +51,7 @@ const DefaultValue: FC<DefaultValueProps> = ({
   const formFilter = (form.getFieldValue('filters') || {})[filterId];
   const queriesData = formFilter?.defaultValueQueriesData;
   const loading = hasDataset && queriesData === null;
-  const value = formFilter.defaultDataMask?.filterState?.value;
+  const value = formFilter?.defaultDataMask?.filterState?.value;
   const isMissingRequiredValue =
     hasDefaultValue && (value === null || value === undefined);
   return loading ? (
@@ -71,7 +71,7 @@ const DefaultValue: FC<DefaultValueProps> = ({
       hooks={{ setDataMask }}
       enableNoResults={enableNoResults}
       filterState={{
-        ...formFilter.defaultDataMask?.filterState,
+        ...formFilter?.defaultDataMask?.filterState,
         validateMessage: isMissingRequiredValue && t('Value is required'),
         validateStatus: isMissingRequiredValue && 'error',
       }}

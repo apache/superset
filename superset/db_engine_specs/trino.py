@@ -180,8 +180,9 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         return extra
 
     @staticmethod
-    def update_encrypted_extra_params(
-        database: Database, params: Dict[str, Any]
+    def update_params_from_encrypted_extra(
+        database: Database,
+        params: Dict[str, Any],
     ) -> None:
         if not database.encrypted_extra:
             return

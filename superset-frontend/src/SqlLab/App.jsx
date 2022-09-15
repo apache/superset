@@ -23,6 +23,7 @@ import thunkMiddleware from 'redux-thunk';
 import { hot } from 'react-hot-loader/root';
 import { ThemeProvider } from '@superset-ui/core';
 import { GlobalStyles } from 'src/GlobalStyles';
+import QueryProvider from 'src/views/QueryProvider';
 import {
   initFeatureFlags,
   isFeatureEnabled,
@@ -134,12 +135,14 @@ if (sqlLabMenu) {
 }
 
 const Application = () => (
-  <Provider store={store}>
-    <ThemeProvider theme={theme}>
-      <GlobalStyles />
-      <App />
-    </ThemeProvider>
-  </Provider>
+  <QueryProvider>
+    <Provider store={store}>
+      <ThemeProvider theme={theme}>
+        <GlobalStyles />
+        <App />
+      </ThemeProvider>
+    </Provider>
+  </QueryProvider>
 );
 
 export default hot(Application);

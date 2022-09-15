@@ -178,6 +178,12 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "url",
         "extra",
         "kind",
+        "created_on",
+        "created_by.first_name",
+        "created_by.last_name",
+        "changed_on",
+        "changed_by.first_name",
+        "changed_by.last_name",
     ]
     show_columns = show_select_columns + [
         "columns.type_generic",
