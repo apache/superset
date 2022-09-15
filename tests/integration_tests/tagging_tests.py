@@ -17,16 +17,20 @@
 
 from unittest import mock
 
+import pytest
+
 from superset.connectors.sqla.models import SqlaTable
 from superset.extensions import db
 from superset.models.core import FavStar
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from superset.models.tags import Tag, TaggedObject
+from superset.models.sql_lab import SavedQuery
+from superset.models.tags import TaggedObject
 from superset.utils.core import DatasourceType
 from superset.utils.database import get_main_database
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.conftest import with_feature_flags
+from tests.integration_tests.fixtures.tags import tag_sqla_event_listeners
 
 
 class TestTagging(SupersetTestCase):
@@ -50,7 +54,7 @@ class TestTagging(SupersetTestCase):
         response = self.client.get("/tagview/tags/suggestions/")
         self.assertNotEqual(404, response.status_code)
 
-    @with_feature_flags(TAGGING_SYSTEM=True)
+    @pytest.mark.usefixtures("tag_sqla_event_listeners")
     def test_dataset_tagging(self):
         """
         Test to make sure that when a new dataset is created,
@@ -86,7 +90,7 @@ class TestTagging(SupersetTestCase):
         db.session.delete(test_dataset)
         db.session.commit()
 
-    @with_feature_flags(TAGGING_SYSTEM=True)
+    @pytest.mark.usefixtures("tag_sqla_event_listeners")
     def test_chart_tagging(self):
         """
         Test to make sure that when a new chart is created,
@@ -121,7 +125,7 @@ class TestTagging(SupersetTestCase):
         db.session.delete(test_chart)
         db.session.commit()
 
-    @with_feature_flags(TAGGING_SYSTEM=True)
+    @pytest.mark.usefixtures("tag_sqla_event_listeners")
     def test_dashboard_tagging(self):
         """
         Test to make sure that when a new dashboard is created,
@@ -155,7 +159,7 @@ class TestTagging(SupersetTestCase):
         db.session.delete(test_dashboard)
         db.session.commit()
 
-    @with_feature_flags(TAGGING_SYSTEM=True)
+    @pytest.mark.usefixtures("tag_sqla_event_listeners")
     def test_saved_query_tagging(self):
         """
         Test to make sure that when a new saved query is
@@ -170,11 +174,49 @@ class TestTagging(SupersetTestCase):
         self.assertEqual([], self.query_tagged_object_table())
 
         # Create a saved query and add it to the db
-        test_saved_query = FavStar(user_id=1, class_name="slice", obj_id=1)
+        test_saved_query = SavedQuery(id=1, label="test saved query")
         db.session.add(test_saved_query)
         db.session.commit()
 
         # Test to make sure that a saved query tag was added to the tagged_object table
+        tags = self.query_tagged_object_table()
+
+        self.assertEqual(2, len(tags))
+
+        self.assertEqual("ObjectTypes.query", str(tags[0].object_type))
+        self.assertEqual("owner:None", str(tags[0].tag.name))
+        self.assertEqual("TagTypes.owner", str(tags[0].tag.type))
+        self.assertEqual(test_saved_query.id, tags[0].object_id)
+
+        self.assertEqual("ObjectTypes.query", str(tags[1].object_type))
+        self.assertEqual("type:query", str(tags[1].tag.name))
+        self.assertEqual("TagTypes.type", str(tags[1].tag.type))
+        self.assertEqual(test_saved_query.id, tags[1].object_id)
+
+        # Cleanup the db
+        db.session.delete(test_saved_query)
+        db.session.commit()
+
+    @with_feature_flags(TAGGING_SYSTEM=True)
+    def test_favorite_tagging(self):
+        """
+        Test to make sure that when a new favorite object is
+        created, a corresponding tag in the tagged_objects
+        table is created
+        """
+
+        # Remove all existing rows in the tagged_object table
+        self.clear_tagged_object_table()
+
+        # Test to make sure nothing is in the tagged_object table
+        self.assertEqual([], self.query_tagged_object_table())
+
+        # Create a favorited object and add it to the db
+        test_saved_query = FavStar(user_id=1, class_name="slice", obj_id=1)
+        db.session.add(test_saved_query)
+        db.session.commit()
+
+        # Test to make sure that a favorited object tag was added to the tagged_object table
         tags = self.query_tagged_object_table()
         self.assertEqual(1, len(tags))
         self.assertEqual("ObjectTypes.chart", str(tags[0].object_type))

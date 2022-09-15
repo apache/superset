@@ -419,7 +419,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         self.configure_data_sources()
         self.configure_auth_provider()
         self.configure_async_queries()
-        self.configure_event_listeners()
 
         # Hook that provides administrators a handle on the Flask APP
         # after initialization
@@ -601,38 +600,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
     def configure_async_queries(self) -> None:
         if feature_flag_manager.is_feature_enabled("GLOBAL_ASYNC_QUERIES"):
             async_query_manager.init_app(self.superset_app)
-
-    def configure_event_listeners(self) -> None:
-        with self.superset_app.app_context():
-            import sqlalchemy as sqla
-
-            from superset.connectors.sqla.models import SqlaTable
-            from superset.models.core import FavStar
-            from superset.models.dashboard import Dashboard
-            from superset.models.slice import Slice
-            from superset.models.tags import (
-                ChartUpdater,
-                DashboardUpdater,
-                DatasetUpdater,
-                FavStarUpdater,
-            )
-
-        # events for updating tags
-        if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
-            sqla.event.listen(SqlaTable, "after_insert", DatasetUpdater.after_insert)
-            sqla.event.listen(SqlaTable, "after_update", DatasetUpdater.after_update)
-            sqla.event.listen(SqlaTable, "after_delete", DatasetUpdater.after_delete)
-
-            sqla.event.listen(Slice, "after_insert", ChartUpdater.after_insert)
-            sqla.event.listen(Slice, "after_update", ChartUpdater.after_update)
-            sqla.event.listen(Slice, "after_delete", ChartUpdater.after_delete)
-
-            sqla.event.listen(Dashboard, "after_insert", DashboardUpdater.after_insert)
-            sqla.event.listen(Dashboard, "after_update", DashboardUpdater.after_update)
-            sqla.event.listen(Dashboard, "after_delete", DashboardUpdater.after_delete)
-
-            sqla.event.listen(FavStar, "after_insert", FavStarUpdater.after_insert)
-            sqla.event.listen(FavStar, "after_delete", FavStarUpdater.after_delete)
 
     def register_blueprints(self) -> None:
         for bp in self.config["BLUEPRINTS"]:
