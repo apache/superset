@@ -58,6 +58,10 @@ class GSheetsParametersType(TypedDict):
     catalog: Dict[str, str]
 
 
+class GSheetsPropertiesType(TypedDict):
+    parameters: GSheetsParametersType
+
+
 class GSheetsEngineSpec(SqliteEngineSpec):
     """Engine for Google spreadsheets"""
 
@@ -208,9 +212,10 @@ class GSheetsEngineSpec(SqliteEngineSpec):
     @classmethod
     def validate_parameters(
         cls,
-        parameters: GSheetsParametersType,
+        properties: GSheetsPropertiesType,
     ) -> List[SupersetError]:
         errors: List[SupersetError] = []
+        parameters = properties.get("parameters", {})
         encrypted_credentials = parameters.get("service_account_info") or "{}"
 
         # On create the encrypted credentials are a string,
