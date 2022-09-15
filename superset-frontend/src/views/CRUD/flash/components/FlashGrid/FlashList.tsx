@@ -229,7 +229,7 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
           const handleChangeTtl = () => changeTtl(original);
           const handleDelete = () => setDeleteFlash(original);
 
-          let actions: ActionProps[] | [] = [
+          const actions: ActionProps[] | [] = [
             (original?.owner === user?.email || user?.roles?.Admin) && {
               label: 'export-action',
               tooltip: t('Extend TTL'),

@@ -202,7 +202,6 @@ const FlashCreationButton: FunctionComponent<FlashCreationButtonProps> = ({
         errors.scheduleStartTime.addError(
           'Schedule Start Time can be tomorrow or onwards',
         );
-      } else {
       }
     return errors;
   };
