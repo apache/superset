@@ -197,8 +197,12 @@ const time_grain_sqla: SharedControlConfig<'SelectControl'> = {
     if (isAdhocColumn(xAxisValue)) {
       return true;
     }
-    if (isPhysicalColumn(xAxisValue)) {
-      return !!xAxis?.options?.[xAxisValue]?.is_dttm;
+    if (isPhysicalColumn(xAxisValue) && Array.isArray(xAxis?.options)) {
+      for (let i = 0; i < xAxis.options.length; i += 1) {
+        if (xAxis.options[i].column_name === xAxisValue) {
+          return !!xAxis.options[i].is_dttm;
+        }
+      }
     }
     return false;
   },
