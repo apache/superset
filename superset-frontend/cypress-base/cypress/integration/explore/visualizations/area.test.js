@@ -92,7 +92,8 @@ describe('Visualization > Area', () => {
     });
 
     cy.wait('@getJson').then(async ({ response }) => {
-      const responseBody = response?.body;
+      console.log('response', response);
+      const responseBody = JSON.parse(response?.body);
       // Make sure data is sorted correctly
       const firstRow = responseBody.data[0].values;
       const secondRow = responseBody.data[1].values;
