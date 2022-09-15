@@ -18,13 +18,9 @@ from flask_appbuilder import expose
 from flask_appbuilder.security.decorators import has_access
 from flask_babel import lazy_gettext as _
 
-from superset import app
 from superset.constants import MODEL_VIEW_RW_METHOD_PERMISSION_MAP
 from superset.superset_typing import FlaskResponse
 from superset.views.base import BaseSupersetView
-
-config = app.config
-stats_logger = config["STATS_LOGGER"]
 
 
 class Flash(BaseSupersetView):  # pylint: disable=too-many-ancestors
