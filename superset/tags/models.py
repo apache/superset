@@ -119,7 +119,7 @@ class ObjectUpdater:
 
     @classmethod
     def get_owners_ids(
-        cls, target: Union["Dashboard", "FavStar", "Slice", "SqlaTable"]
+        cls, target: Union["Dashboard", "FavStar", "Slice", "Query", "SqlaTable"]
     ) -> List[int]:
         raise NotImplementedError("Subclass should implement `get_owners_ids`")
 
@@ -127,7 +127,7 @@ class ObjectUpdater:
     def _add_owners(
         cls,
         session: Session,
-        target: Union["Dashboard", "FavStar", "Slice", "SqlaTable"],
+        target: Union["Dashboard", "FavStar", "Slice", "Query", "SqlaTable"],
     ) -> None:
         for owner_id in cls.get_owners_ids(target):
             name = "owner:{0}".format(owner_id)
@@ -142,7 +142,7 @@ class ObjectUpdater:
         cls,
         _mapper: Mapper,
         connection: Connection,
-        target: Union["Dashboard", "FavStar", "Slice", "SqlaTable"],
+        target: Union["Dashboard", "FavStar", "Slice", "Query", "SqlaTable"],
     ) -> None:
         session = Session(bind=connection)
 
@@ -163,7 +163,7 @@ class ObjectUpdater:
         cls,
         _mapper: Mapper,
         connection: Connection,
-        target: Union["Dashboard", "FavStar", "Slice", "SqlaTable"],
+        target: Union["Dashboard", "FavStar", "Slice", "Query", "SqlaTable"],
     ) -> None:
         session = Session(bind=connection)
 
@@ -192,7 +192,7 @@ class ObjectUpdater:
         cls,
         _mapper: Mapper,
         connection: Connection,
-        target: Union["Dashboard", "FavStar", "Slice", "SqlaTable"],
+        target: Union["Dashboard", "FavStar", "Slice", "Query", "SqlaTable"],
     ) -> None:
         session = Session(bind=connection)
 
