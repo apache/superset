@@ -431,6 +431,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             text-align: ${sharedStyle.textAlign};
             white-space: ${value instanceof Date ? 'nowrap' : undefined};
             position: relative;
+            background: ${backgroundColor || undefined};
           `;
 
           const cellBarStyles = css`
