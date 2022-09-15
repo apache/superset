@@ -39,9 +39,11 @@
   },
   "peerDependencies": {
     "@types/react": "*",
+    "@types/classnames": "*",
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
     "react": "^16.13.1",
     "react-dom": "^16.13.1"
+    
   }
 }
