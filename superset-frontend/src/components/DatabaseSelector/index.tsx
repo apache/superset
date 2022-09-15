@@ -299,9 +299,8 @@ export default function DatabaseSelector({
     if (currentDb && currentCatalog) fetchSchemas(currentDb);
   }, [currentCatalog, catalogRefresh]);
 
-  const showSchema = (db: DatabaseObject | undefined | null) => {
-    return db?.has_catalogs ? !!currentCatalog : true;
-  };
+  const showSchema = (db: DatabaseObject | undefined | null) =>
+    db?.has_catalogs ? !!currentCatalog : true;
 
   function changeDataBase(
     value: { label: string; value: number },

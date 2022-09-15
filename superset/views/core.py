@@ -188,7 +188,7 @@ DATABASE_KEYS = [
     "force_ctas_schema",
     "id",
     "disable_data_preview",
-    "has_catalogs"
+    "has_catalogs",
 ]
 
 DATASOURCE_MISSING_ERR = __("The data source seems to have been deleted")
