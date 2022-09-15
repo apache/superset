@@ -244,12 +244,13 @@ class QueryContextProcessor:
             source: BaseDatasource, column: Optional[str]
         ) -> Optional[str]:
             column_obj = source.get_column(column)
-            try:
-                if column_obj and (formatter := column_obj.python_date_format):
-                    return str(formatter)
-            except NotImplemented:  # type: ignore
-                # The `python_date_format` might raise NotImplemented
-                pass
+            if (
+                column_obj
+                and hasattr(column_obj, "python_date_format")
+                and (formatter := column_obj.python_date_format)
+            ):
+                return str(formatter)
+
             return None
 
         datasource = self._qc_datasource
