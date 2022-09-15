@@ -34,23 +34,23 @@ class ProxyRestAPI(BaseSupersetModelRestApi):
 
     openapi_spec_tag = "Proxy"
 
-    def __init__(self):
+    def __init__(self) -> None:
         """
         This is the init function for the ProxyRestAPI class
         """
         super().__init__()
 
-        self.ALFRED_SCOPE = os.environ.get("ALFRED_SCOPE")
+        self.ALFRED_SCOPE = str(os.environ.get("ALFRED_SCOPE"))
 
-        self.ALFRED_URL = os.environ.get("ALFRED_URL")
+        self.ALFRED_URL = str(os.environ.get("ALFRED_URL"))
 
         if os.environ.get("FLASK_ENV") == "development":
-            self.SSL_CERT = os.environ.get("REQUESTS_CA_BUNDLE_DEV")
+            self.SSL_CERT = str(os.environ.get("REQUESTS_CA_BUNDLE_DEV"))
         else:
-            self.SSL_CERT = os.environ.get("REQUESTS_CA_BUNDLE")
+            self.SSL_CERT = str(os.environ.get("REQUESTS_CA_BUNDLE"))
 
     def attach_url(
-        self, response_code: int, app_url: str, err: bool, payload
+        self, response_code: int, app_url: str, err: bool, payload: str
     ) -> Response:
         """
         This is a function that will attach the app URL with the response that is
@@ -133,18 +133,18 @@ class ProxyRestAPI(BaseSupersetModelRestApi):
         except (requests.exceptions.HTTPError, Exception) as err:
             return self.error_obtaining_token("Alfred", err)
         else:
-            headers = CaseInsensitiveDict()
+            headers = CaseInsensitiveDict()  # type: ignore
             headers["Accept"] = "application/json"
             headers["Authorization"] = f"Bearer { alfred_token }"
             alfred_resp = ""
 
             try:
-                alfred_resp = requests.get(url, headers=headers, verify=self.SSL_CERT)
+                alfred_resp = requests.get(url, headers=headers, verify=self.SSL_CERT)  # type: ignore
             except requests.exceptions.ConnectionError as err:
                 return self.error_obtaining_response("Alfred", err)
 
             refresh_resp_json = json.loads(
-                alfred_resp.content.decode("utf8", "replace")
+                alfred_resp.content.decode("utf8", "replace")  # type: ignore
             )
             return self.attach_url(200, self.ALFRED_URL, False, refresh_resp_json)
 

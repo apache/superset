@@ -175,7 +175,7 @@ def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-m
         - Next X seconds/minutes/hours/days/weeks/months/years
 
     """
-    config = app.config
+    config = app.config  # type: ignore
     default_relative_start = config["DEFAULT_RELATIVE_START_TIME"]
     default_relative_end = config["DEFAULT_RELATIVE_END_TIME"]
 

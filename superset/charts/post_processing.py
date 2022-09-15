@@ -378,7 +378,7 @@ def apply_post_process(
     if result["query_context"].result_format == ChartDataResultFormat.CSV:
         for query in result["queries"]:
             df = pd.read_csv(StringIO(query["data"]))
-            processed_df = post_processor(df, form_data)
+            processed_df = post_processor(df, form_data)  # type: ignore
 
             buf = StringIO()
             processed_df.to_csv(buf)
@@ -389,9 +389,9 @@ def apply_post_process(
             query["coltypes"] = extract_dataframe_dtypes(processed_df)
             query["rowcount"] = len(processed_df.index)
     else:
-        result = post_processor(result, form_data)
+        result = post_processor(result, form_data)  # type: ignore
     if viz_type in rawPostProcess:
-        result = post_processor(result, form_data)
+        result = post_processor(result, form_data)  # type: ignore
     else:
         for query in result["queries"]:
             if query["result_format"] == ChartDataResultFormat.JSON:
@@ -401,7 +401,7 @@ def apply_post_process(
             else:
                 raise Exception(f"Result format {query['result_format']} not supported")
 
-            processed_df = post_processor(df, form_data, datasource)
+            processed_df = post_processor(df, form_data, datasource)  # type: ignore
 
             query["colnames"] = list(processed_df.columns)
             query["indexnames"] = list(processed_df.index)
