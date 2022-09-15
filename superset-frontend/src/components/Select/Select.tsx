@@ -27,7 +27,8 @@ import React, {
 } from 'react';
 import { ensureIsArray, t } from '@superset-ui/core';
 import { LabeledValue as AntdLabeledValue } from 'antd/lib/select';
-import { isEqual } from 'lodash';
+import { debounce, isEqual } from 'lodash';
+import { FAST_DEBOUNCE } from 'src/constants';
 import {
   getValue,
   hasOption,
@@ -198,25 +199,33 @@ const Select = forwardRef(
       setInputValue('');
     };
 
-    const handleOnSearch = (search: string) => {
-      const searchValue = search.trim();
-      if (allowNewOptions && isSingleMode) {
-        const newOption = searchValue &&
-          !hasOption(searchValue, fullSelectOptions, true) && {
-            label: searchValue,
-            value: searchValue,
-            isNewOption: true,
-          };
-        const cleanSelectOptions = fullSelectOptions.filter(
-          opt => !opt.isNewOption || hasOption(opt.value, selectValue),
-        );
-        const newOptions = newOption
-          ? [newOption, ...cleanSelectOptions]
-          : cleanSelectOptions;
-        setSelectOptions(newOptions);
-      }
-      setInputValue(search);
-    };
+    const handleOnSearch = useCallback(
+      (search: string) => {
+        const searchValue = search.trim();
+        if (allowNewOptions && isSingleMode) {
+          const newOption = searchValue &&
+            !hasOption(searchValue, fullSelectOptions, true) && {
+              label: searchValue,
+              value: searchValue,
+              isNewOption: true,
+            };
+          const cleanSelectOptions = fullSelectOptions.filter(
+            opt => !opt.isNewOption || hasOption(opt.value, selectValue),
+          );
+          const newOptions = newOption
+            ? [newOption, ...cleanSelectOptions]
+            : cleanSelectOptions;
+          setSelectOptions(newOptions);
+        }
+        setInputValue(search);
+      },
+      [allowNewOptions, fullSelectOptions, isSingleMode, selectValue],
+    );
+
+    const debouncedOnSearch = useMemo(
+      () => debounce(handleOnSearch, FAST_DEBOUNCE),
+      [handleOnSearch],
+    );
 
     const handleFilterOption = (search: string, option: AntdLabeledValue) =>
       handleFilterOptionHelper(search, option, optionFilterProps, filterOption);
@@ -288,7 +297,7 @@ const Select = forwardRef(
           onDeselect={handleOnDeselect}
           onDropdownVisibleChange={handleOnDropdownVisibleChange}
           onPopupScroll={undefined}
-          onSearch={shouldShowSearch ? handleOnSearch : undefined}
+          onSearch={shouldShowSearch ? debouncedOnSearch : undefined}
           onSelect={handleOnSelect}
           onClear={handleClear}
           onChange={onChange}

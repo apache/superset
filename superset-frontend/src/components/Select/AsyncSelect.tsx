@@ -34,7 +34,7 @@ import debounce from 'lodash/debounce';
 import { isEqual } from 'lodash';
 import Icons from 'src/components/Icons';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
-import { SLOW_DEBOUNCE } from 'src/constants';
+import { FAST_DEBOUNCE, SLOW_DEBOUNCE } from 'src/constants';
 import {
   getValue,
   hasOption,
@@ -369,34 +369,53 @@ const AsyncSelect = forwardRef(
       [fetchPage],
     );
 
-    const handleOnSearch = (search: string) => {
-      const searchValue = search.trim();
-      if (allowNewOptions && isSingleMode) {
-        const newOption = searchValue &&
-          !hasOption(searchValue, fullSelectOptions, true) && {
-            label: searchValue,
-            value: searchValue,
-            isNewOption: true,
-          };
-        const cleanSelectOptions = fullSelectOptions.filter(
-          opt => !opt.isNewOption || hasOption(opt.value, selectValue),
-        );
-        const newOptions = newOption
-          ? [newOption, ...cleanSelectOptions]
-          : cleanSelectOptions;
-        setSelectOptions(newOptions);
-      }
-      if (
-        !allValuesLoaded &&
-        loadingEnabled &&
-        !fetchedQueries.current.has(getQueryCacheKey(searchValue, 0, pageSize))
-      ) {
-        // if fetch only on search but search value is empty, then should not be
-        // in loading state
-        setIsLoading(!(fetchOnlyOnSearch && !searchValue));
-      }
-      setInputValue(search);
-    };
+    const handleOnSearch = useCallback(
+      (search: string) => {
+        const searchValue = search.trim();
+        if (allowNewOptions && isSingleMode) {
+          const newOption = searchValue &&
+            !hasOption(searchValue, fullSelectOptions, true) && {
+              label: searchValue,
+              value: searchValue,
+              isNewOption: true,
+            };
+          const cleanSelectOptions = fullSelectOptions.filter(
+            opt => !opt.isNewOption || hasOption(opt.value, selectValue),
+          );
+          const newOptions = newOption
+            ? [newOption, ...cleanSelectOptions]
+            : cleanSelectOptions;
+          setSelectOptions(newOptions);
+        }
+        if (
+          !allValuesLoaded &&
+          loadingEnabled &&
+          !fetchedQueries.current.has(
+            getQueryCacheKey(searchValue, 0, pageSize),
+          )
+        ) {
+          // if fetch only on search but search value is empty, then should not be
+          // in loading state
+          setIsLoading(!(fetchOnlyOnSearch && !searchValue));
+        }
+        setInputValue(search);
+      },
+      [
+        allValuesLoaded,
+        allowNewOptions,
+        fetchOnlyOnSearch,
+        fullSelectOptions,
+        isSingleMode,
+        loadingEnabled,
+        pageSize,
+        selectValue,
+      ],
+    );
+
+    const debouncedOnSearch = useMemo(
+      () => debounce(handleOnSearch, FAST_DEBOUNCE),
+      [handleOnSearch],
+    );
 
     const handlePagination = (e: UIEvent<HTMLElement>) => {
       const vScroll = e.currentTarget;
@@ -535,7 +554,7 @@ const AsyncSelect = forwardRef(
           onDeselect={handleOnDeselect}
           onDropdownVisibleChange={handleOnDropdownVisibleChange}
           onPopupScroll={handlePagination}
-          onSearch={showSearch ? handleOnSearch : undefined}
+          onSearch={showSearch ? debouncedOnSearch : undefined}
           onSelect={handleOnSelect}
           onClear={handleClear}
           onChange={onChange}
