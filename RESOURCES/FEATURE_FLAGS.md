@@ -72,7 +72,7 @@ These features flags currently default to True and **will be removed in a future
 - DISPLAY_MARKDOWN_HTML
 - FORCE_DATABASE_CONNECTIONS_SSL
 
-## In need of categorization (and folks who might know best where to place them)
+## In need of categorization
 - DRUID_JOINS
 - DISABLE_LEGACY_DATASOURCE_EDITOR
 - DASHBOARD_FILTERS_EXPERIMENTAL
