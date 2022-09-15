@@ -16,7 +16,6 @@
 # under the License.
 from flask_appbuilder import expose
 from flask_appbuilder.security.decorators import has_access
-from flask_babel import lazy_gettext as _
 
 from superset.constants import MODEL_VIEW_RW_METHOD_PERMISSION_MAP
 from superset.superset_typing import FlaskResponse
