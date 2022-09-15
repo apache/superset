@@ -180,6 +180,7 @@ class DatabaseSchema(Schema):
     allows_virtual_table_explore = fields.Bool()
     disable_data_preview = fields.Bool()
     explore_database_id = fields.Int()
+    has_catalogs = fields.Bool()
 
 
 class DashboardDatasetSchema(Schema):
