@@ -40,6 +40,7 @@ import handleResourceExport from 'src/utils/export';
 import { ExtentionConfigs } from 'src/views/components/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import type { MenuObjectProps } from 'src/views/components/Menu';
+import moment from 'moment';
 import DatabaseModal from './DatabaseModal';
 
 import { DatabaseObject } from './types';
@@ -366,9 +367,9 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
       {
         Cell: ({
           row: {
-            original: { changed_on_delta_humanized: changedOn },
+            original: { changed_on_utc: changedOn },
           },
-        }: any) => changedOn,
+        }: any) => moment(changedOn).fromNow(),
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
         size: 'xl',
@@ -453,10 +454,10 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
         id: 'expose_in_sqllab',
         input: 'select',
         operator: FilterOperator.equals,
-        unfilteredLabel: 'All',
+        unfilteredLabel: t('All'),
         selects: [
-          { label: 'Yes', value: true },
-          { label: 'No', value: false },
+          { label: t('Yes'), value: true },
+          { label: t('No'), value: false },
         ],
       },
       {
@@ -472,10 +473,10 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
         id: 'allow_run_async',
         input: 'select',
         operator: FilterOperator.equals,
-        unfilteredLabel: 'All',
+        unfilteredLabel: t('All'),
         selects: [
-          { label: 'Yes', value: true },
-          { label: 'No', value: false },
+          { label: t('Yes'), value: true },
+          { label: t('No'), value: false },
         ],
       },
       {

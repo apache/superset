@@ -66,9 +66,9 @@ const TableLoader = (props: TableLoaderProps) => {
       tableColumns = Object.keys(data[0]).filter(col => col[0] !== '_');
     }
     return tableColumns
-      ? tableColumns.map((column: string) => ({
-          accessor: column,
-          Header: column,
+      ? tableColumns.map((column: string[] | string) => ({
+        accessor: column[0],
+        Header: column[1],
         }))
       : [];
   }, [columns, data]);

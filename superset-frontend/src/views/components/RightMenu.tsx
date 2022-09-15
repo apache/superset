@@ -350,7 +350,7 @@ const RightMenu = ({
                           data-test={`menu-item-${menu.label}`}
                           className={`fa ${menu.icon}`}
                         />{' '}
-                        {menu.label}
+                        {t(menu.label)}
                       </Link>
                     ) : (
                       <a href={menu.url}>
@@ -358,7 +358,7 @@ const RightMenu = ({
                           data-test={`menu-item-${menu.label}`}
                           className={`fa ${menu.icon}`}
                         />{' '}
-                        {menu.label}
+                        {t(menu.label)}
                       </a>
                     )}
                   </Menu.Item>

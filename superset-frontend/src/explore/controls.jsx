@@ -322,7 +322,7 @@ export const controls = {
   time_range: {
     type: 'DateFilterControl',
     freeForm: true,
-    label: TIME_FILTER_LABELS.time_range,
+    label: t(TIME_FILTER_LABELS.time_range),
     default: t('No filter'), // this value is translated, but the backend wouldn't understand a translated value?
     description: t(
       'The time range for the visualization. All relative times, e.g. "Last month", ' +

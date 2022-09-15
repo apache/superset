@@ -61,6 +61,7 @@ import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import { GenericLink } from 'src/components/GenericLink/GenericLink';
+import moment from 'moment';
 import AddDatasetModal from './AddDatasetModal';
 
 import {
@@ -363,9 +364,11 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       {
         Cell: ({
           row: {
-            original: { changed_on_delta_humanized: changedOn },
+            original: { changed_on_utc: changedOn },
           },
-        }: any) => <span className="no-wrap">{changedOn}</span>,
+        }: any) => (
+          <span className="no-wrap">{moment(changedOn).fromNow()}</span>
+        ),
         Header: t('Modified'),
         accessor: 'changed_on_delta_humanized',
         size: 'xl',

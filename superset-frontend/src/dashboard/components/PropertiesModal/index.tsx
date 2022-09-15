@@ -116,7 +116,7 @@ const PropertiesModal = ({
     }
 
     Modal.error({
-      title: 'Error',
+      title: t('Error'),
       content: errorText,
       okButtonProps: { danger: true, className: 'btn-danger' },
     });
@@ -275,7 +275,7 @@ const PropertiesModal = ({
     // only fire if the color_scheme is present and invalid
     if (colorScheme && !colorChoices.includes(colorScheme)) {
       Modal.error({
-        title: 'Error',
+        title: t('Error'),
         content: t('A valid color scheme is required'),
         okButtonProps: { danger: true, className: 'btn-danger' },
       });

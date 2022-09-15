@@ -511,7 +511,7 @@ const Select = forwardRef(
               const value = isOptObject ? opt.value : opt;
               const { customLabel, ...optProps } = opt;
               return (
-                <Option {...optProps} key={value} label={label} value={value}>
+                <Option {...optProps} key={value} label={t(label)} value={value}>
                   {isOptObject && customLabel ? customLabel : label}
                 </Option>
               );

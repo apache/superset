@@ -122,10 +122,10 @@ export default function EmptyState({ tableName, tab }: EmptyStateProps) {
                 <i className="fa fa-plus" />
                 {tableName === 'SAVED_QUERIES'
                   ? t('SQL query')
-                  : tableName
+                  : t(tableName
                       .split('')
                       .slice(0, tableName.length - 1)
-                      .join('')}
+                    .join(''))}
               </Button>
             </ButtonContainer>
           )}

@@ -72,10 +72,10 @@ const defaultProps = {
 
 const KEYS_TO_FILTERS = ['slice_name', 'viz_type', 'datasource_name'];
 const KEYS_TO_SORT = {
-  slice_name: 'name',
-  viz_type: 'viz type',
-  datasource_name: 'dataset',
-  changed_on: 'recent',
+  slice_name: t('name'),
+  viz_type: t('viz type'),
+  datasource_name: t('dataset'),
+  changed_on: t('recent'),
 };
 
 const DEFAULT_SORT_KEY = 'changed_on';

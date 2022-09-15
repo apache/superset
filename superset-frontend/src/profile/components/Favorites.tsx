@@ -42,7 +42,11 @@ export default class Favorites extends React.PureComponent<FavoritesProps> {
       <TableLoader
         dataEndpoint={`/superset/fave_slices/${this.props.user.userId}/`}
         className="table-condensed"
-        columns={['slice', 'creator', 'favorited']}
+        columns={[
+          ['slice', t('Chart')],
+          ['creator', t('Creator')],
+          ['favorited', t('Favorited')],
+        ]}
         mutator={mutator}
         noDataText={t('No favorite charts yet, go click on stars!')}
         sortable
@@ -54,7 +58,7 @@ export default class Favorites extends React.PureComponent<FavoritesProps> {
     const search = [{ col: 'id', opr: 'dashboard_is_favorite', value: true }];
     const query = rison.encode({
       keys: ['none'],
-      columns: ['created_on_delta_humanized', 'dashboard_title', 'url'],
+      columns: ['changed_on_utc', 'dashboard_title', 'url'],
       filters: search,
       order_column: 'changed_on',
       order_direction: 'desc',
@@ -64,8 +68,8 @@ export default class Favorites extends React.PureComponent<FavoritesProps> {
     const mutator = (data: DashboardResponse) =>
       data.result.map(dash => ({
         dashboard: <a href={dash.url}>{dash.dashboard_title}</a>,
-        created: dash.created_on_delta_humanized,
-        _created: dash.created_on_delta_humanized,
+        created: moment.utc(dash.changed_on_utc).fromNow(),
+        _created: moment.utc(dash.changed_on_utc).fromNow(),
       }));
     return (
       <TableLoader
@@ -73,7 +77,10 @@ export default class Favorites extends React.PureComponent<FavoritesProps> {
         mutator={mutator}
         dataEndpoint={`/api/v1/dashboard/?q=${query}`}
         noDataText={t('No favorite dashboards yet, go click on stars!')}
-        columns={['dashboard', 'creator', 'created']}
+        columns={[
+          ['dashboard', t('Dashboard')],
+          ['created', t('Created')],
+        ]}
         sortable
       />
     );

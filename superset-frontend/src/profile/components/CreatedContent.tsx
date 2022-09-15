@@ -41,7 +41,10 @@ class CreatedContent extends React.PureComponent<CreatedContentProps> {
       <TableLoader
         dataEndpoint={`/superset/created_slices/${this.props.user.userId}/`}
         className="table-condensed"
-        columns={['slice', 'created']}
+        columns={[
+          ['slice', t('Slice')],
+          ['created', t('Created')],
+        ]}
         mutator={mutator}
         noDataText={t('No charts')}
         sortable
@@ -53,7 +56,7 @@ class CreatedContent extends React.PureComponent<CreatedContentProps> {
     const search = [{ col: 'created_by', opr: 'created_by_me', value: 'me' }];
     const query = rison.encode({
       keys: ['none'],
-      columns: ['created_on_delta_humanized', 'dashboard_title', 'url'],
+      columns: ['changed_on_utc', 'dashboard_title', 'url'],
       filters: search,
       order_column: 'changed_on',
       order_direction: 'desc',
@@ -63,8 +66,8 @@ class CreatedContent extends React.PureComponent<CreatedContentProps> {
     const mutator = (data: DashboardResponse) =>
       data.result.map(dash => ({
         dashboard: <a href={dash.url}>{dash.dashboard_title}</a>,
-        created: dash.created_on_delta_humanized,
-        _created: dash.created_on_delta_humanized,
+        created: moment.utc(dash.changed_on_utc).fromNow(),
+        _created: moment.utc(dash.changed_on_utc).fromNow(),
       }));
     return (
       <TableLoader

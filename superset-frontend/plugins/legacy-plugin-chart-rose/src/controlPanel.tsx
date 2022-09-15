@@ -133,11 +133,11 @@ const config: ControlPanelConfig = {
               label: t('Rolling Function'),
               default: 'None',
               choices: formatSelectOptions([
-                'None',
-                'mean',
-                'sum',
-                'std',
-                'cumsum',
+                ['None', t('None')],
+                ['mean', t('mean')],
+                ['sum', t('sum')],
+                ['std', t('std')],
+                ['cumsum', t('cumsum')],
               ]),
               description: t(
                 'Defines a rolling window function to apply, works along ' +
@@ -186,16 +186,16 @@ const config: ControlPanelConfig = {
               freeForm: true,
               label: t('Time Shift'),
               choices: formatSelectOptions([
-                '1 day',
-                '1 week',
-                '28 days',
-                '30 days',
-                '52 weeks',
-                '1 year',
-                '104 weeks',
-                '2 years',
-                '156 weeks',
-                '3 years',
+                ['1 day', t('1 day')],
+                ['1 week', t('1 week')],
+                ['28 days', t('28 days')],
+                ['30 days', t('30 days')],
+                ['52 weeks', t('52 weeks')],
+                ['1 year', t('1 year')],
+                ['104 weeks', t('104 weeks')],
+                ['2 years', t('2 years')],
+                ['156 weeks', t('156 weeks')],
+                ['3 years', t('3 years')],
               ]),
               description: t(
                 'Overlay one or more timeseries from a ' +
@@ -212,10 +212,10 @@ const config: ControlPanelConfig = {
               label: t('Calculation type'),
               default: 'values',
               choices: [
-                ['values', 'Actual Values'],
-                ['absolute', 'Difference'],
-                ['percentage', 'Percentage change'],
-                ['ratio', 'Ratio'],
+                ['values', t('Actual Values')],
+                ['absolute', t('Difference')],
+                ['percentage', t('Percentage change')],
+                ['ratio', t('Ratio')],
               ],
               description: t(
                 'How to display time shifts: as individual lines; as the ' +

@@ -19,6 +19,7 @@
 import React from 'react';
 import moment from 'moment';
 
+import { t } from '@superset-ui/core';
 import TableLoader from '../../components/TableLoader';
 import { Activity } from '../types';
 import { User } from '../../types/bootstrapTypes';
@@ -45,6 +46,11 @@ export default function RecentActivity({ user }: RecentActivityProps) {
         className="table-condensed"
         mutator={mutator}
         sortable
+        columns={[
+          ['name', t('Name')],
+          ['type', t('Type')],
+          ['time', t('Time')],
+        ]}
         dataEndpoint={`/superset/recent_activity/${user.userId}/?limit=${rowLimit}`}
       />
     </div>

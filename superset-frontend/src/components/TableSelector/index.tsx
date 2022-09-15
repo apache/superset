@@ -184,7 +184,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
     onSuccess: (data: { options: Table[] }) => {
       onTablesLoad?.(data.options);
       if (isFetched) {
-        addSuccessToast('List updated');
+        addSuccessToast(t('List updated'));
       }
     },
     onError: () => handleError(t('There was an error loading the tables')),

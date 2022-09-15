@@ -297,7 +297,7 @@ class FilterBox extends React.PureComponent {
           >
             <DateFilterControl
               name={TIME_RANGE}
-              label={label}
+              label={t(label)}
               description={t('Select start and end date')}
               onChange={newValue => {
                 this.changeFilter(TIME_RANGE, newValue);

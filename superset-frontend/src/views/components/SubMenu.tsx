@@ -262,7 +262,7 @@ const SubMenuComponent: React.FunctionComponent<SubMenuProps> = props => {
                     className={tab.name === props.activeChild ? 'active' : ''}
                   >
                     <div>
-                      <Link to={tab.url || ''}>{tab.label}</Link>
+                      <Link to={tab.url || ''}>{t(tab.label)}</Link>
                     </div>
                   </div>
                 </Menu.Item>
@@ -278,7 +278,7 @@ const SubMenuComponent: React.FunctionComponent<SubMenuProps> = props => {
                   role="tab"
                 >
                   <a href={tab.url} onClick={tab.onClick}>
-                    {tab.label}
+                    {t(tab.label)}
                   </a>
                 </div>
               </Menu.Item>
@@ -290,7 +290,7 @@ const SubMenuComponent: React.FunctionComponent<SubMenuProps> = props => {
             {props.dropDownLinks?.map((link, i) => (
               <SubMenu
                 key={i}
-                title={link.label}
+                title={t(link.label)}
                 icon={<Icons.TriangleDown />}
                 popupOffset={[10, 20]}
                 className="dropdown-menu-links"
@@ -305,12 +305,12 @@ const SubMenuComponent: React.FunctionComponent<SubMenuProps> = props => {
                             "Enable 'Allow data upload' in any database's settings",
                           )}
                         >
-                          {item.label}
+                          {t(item.label)}
                         </Tooltip>
                       </DropdownMenu.Item>
                     ) : (
                       <DropdownMenu.Item key={item.label}>
-                        <a href={item.url}>{item.label}</a>
+                        <a href={item.url}>{t(item.label)}</a>
                       </DropdownMenu.Item>
                     );
                   }
@@ -326,7 +326,7 @@ const SubMenuComponent: React.FunctionComponent<SubMenuProps> = props => {
               onClick={btn.onClick}
               data-test={btn['data-test']}
             >
-              {btn.name}
+              {t(String(btn.name))}
             </Button>
           ))}
         </div>

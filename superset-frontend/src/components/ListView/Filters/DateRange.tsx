@@ -23,7 +23,7 @@ import React, {
   useImperativeHandle,
 } from 'react';
 import moment, { Moment } from 'moment';
-import { styled } from '@superset-ui/core';
+import { styled, t } from '@superset-ui/core';
 import { RangePicker } from 'src/components/DatePicker';
 import { FormLabel } from 'src/components/Form';
 import { BaseFilter, FilterHandler } from './Base';
@@ -62,7 +62,7 @@ function DateRangeFilter(
 
   return (
     <RangeFilterContainer>
-      <FormLabel>{Header}</FormLabel>
+      <FormLabel>{t(Header as string)}</FormLabel>
       <RangePicker
         showTime
         value={momentValue}

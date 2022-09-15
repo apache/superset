@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { useState, useEffect } from 'react';
-import { styled, css, useTheme, SupersetTheme } from '@superset-ui/core';
+import { styled, css, useTheme, SupersetTheme, t } from '@superset-ui/core';
 import { debounce } from 'lodash';
 import { Global } from '@emotion/react';
 import { getUrlParam } from 'src/utils/urlUtils';
@@ -244,7 +244,7 @@ export function Menu({
       return (
         <DropdownMenu.Item key={label} role="presentation">
           <Link role="button" to={url}>
-            {label}
+          {t(label)}
           </Link>
         </DropdownMenu.Item>
       );
@@ -252,14 +252,14 @@ export function Menu({
     if (url) {
       return (
         <DropdownMenu.Item key={label}>
-          <a href={url}>{label}</a>
+          <a href={url}>{t(label)}</a>
         </DropdownMenu.Item>
       );
     }
     return (
       <SubMenu
         key={index}
-        title={label}
+        title={t(label)}
         icon={showMenu === 'inline' ? <></> : <Icons.TriangleDown />}
       >
         {childs?.map((child: MenuObjectChildProps | string, index1: number) => {
@@ -270,9 +270,9 @@ export function Menu({
             return (
               <DropdownMenu.Item key={`${child.label}`}>
                 {child.isFrontendRoute ? (
-                  <Link to={child.url || ''}>{child.label}</Link>
+                  <Link to={child.url || ''}>{t(child.label)}</Link>
                 ) : (
-                  <a href={child.url}>{child.label}</a>
+                  <a href={child.url}>{t(child.label)}</a>
                 )}
               </DropdownMenu.Item>
             );

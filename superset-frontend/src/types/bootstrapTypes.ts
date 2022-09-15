@@ -56,7 +56,7 @@ export type Dashboard = {
 
 export type DashboardData = {
   dashboard_title?: string;
-  created_on_delta_humanized?: string;
+  changed_on_utc?: string;
   url: string;
 };
 
