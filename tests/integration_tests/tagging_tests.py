@@ -197,7 +197,7 @@ class TestTagging(SupersetTestCase):
         db.session.delete(test_saved_query)
         db.session.commit()
 
-    @with_feature_flags(TAGGING_SYSTEM=True)
+    @pytest.mark.usefixtures("tag_sqla_event_listeners")
     def test_favorite_tagging(self):
         """
         Test to make sure that when a new favorite object is
@@ -224,4 +224,64 @@ class TestTagging(SupersetTestCase):
 
         # Cleanup the db
         db.session.delete(test_saved_query)
+        db.session.commit()
+
+    @with_feature_flags(TAGGING_SYSTEM=False)
+    def test_tagging_system(self):
+        """
+        Test to make sure that when the TAGGING_SYSTEM
+        feature flag is false, that no tags are created
+        """
+
+        # Remove all existing rows in the tagged_object table
+        self.clear_tagged_object_table()
+
+        # Test to make sure nothing is in the tagged_object table
+        self.assertEqual([], self.query_tagged_object_table())
+
+        # Create a dataset and add it to the db
+        test_dataset = SqlaTable(
+            table_name="foo",
+            schema=None,
+            owners=[],
+            database=get_main_database(),
+            sql=None,
+            extra='{"certification": 1}',
+        )
+
+        # Create a chart and add it to the db
+        test_chart = Slice(
+            slice_name="test_chart",
+            datasource_type=DatasourceType.TABLE,
+            viz_type="bubble",
+            datasource_id=1,
+            id=1,
+        )
+
+        # Create a dashboard and add it to the db
+        test_dashboard = Dashboard()
+        test_dashboard.dashboard_title = "test_dashboard"
+        test_dashboard.slug = "test_slug"
+        test_dashboard.slices = []
+        test_dashboard.published = True
+
+        # Create a saved query and add it to the db
+        test_saved_query = SavedQuery(id=1, label="test saved query")
+
+        # Create a favorited object and add it to the db
+        test_saved_query = FavStar(user_id=1, class_name="slice", obj_id=1)
+
+        db.session.add(test_dataset)
+        db.session.add(test_chart)
+        db.session.add(test_dashboard)
+        db.session.add(test_saved_query)
+        db.session.add(test_saved_query)
+        db.session.commit()
+
+        # Test to make sure that no tags were added to the tagged_object table
+        tags = self.query_tagged_object_table()
+        self.assertEqual(0, len(tags))
+
+        # Cleanup the db
+        db.session.delete(test_dashboard)
         db.session.commit()
