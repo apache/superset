@@ -142,9 +142,7 @@ function cellBackground({
   colorPositiveNegative: boolean;
 }) {
   const r = colorPositiveNegative && value < 0 ? 150 : 0;
-  return (
-    `rgba(${r},0,0,0.2)`
-  );
+  return `rgba(${r},0,0,0.2)`;
 }
 
 function SortIcon<D extends object>({ column }: { column: ColumnInstance<D> }) {
@@ -440,29 +438,23 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             height: 100%;
             display: block;
             top: 0;
-            ${
-              valueRange && `
-                width: ${
-                  cellWidth({
-                      value: value as number,
-                      valueRange,
-                      alignPositiveNegative,
-                    }) + '%'};
-                left: ${
-                  cellOffset({
-                      value: value as number,
-                      valueRange,
-                      alignPositiveNegative,
-                    }) + '%'
-                  };
-                background-color: ${
-                  cellBackground({
-                      value: value as number,
-                      colorPositiveNegative,
-                    })
-                  };
-              `
-            }
+            ${valueRange &&
+            `
+                width: ${`${cellWidth({
+                  value: value as number,
+                  valueRange,
+                  alignPositiveNegative,
+                })}%`};
+                left: ${`${cellOffset({
+                  value: value as number,
+                  valueRange,
+                  alignPositiveNegative,
+                })}%`};
+                background-color: ${cellBackground({
+                  value: value as number,
+                  colorPositiveNegative,
+                })};
+              `}
           `;
 
           const cellProps = {
@@ -509,12 +501,13 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                 text
               )}
               {valueRange && (
-                <div className={
-                  cx(
+                <div
+                  className={cx(
                     'cell-bar',
                     value && value < 0 ? 'negative' : 'positive',
-                  )
-                }  css={cellBarStyles} />
+                  )}
+                  css={cellBarStyles}
+                />
               )}
             </StyledCell>
           );
