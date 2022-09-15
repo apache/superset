@@ -241,9 +241,9 @@ class QueryContextProcessor:
 
     def normalize_df(self, df: pd.DataFrame, query_object: QueryObject) -> pd.DataFrame:
         def _get_timestamp_format(
-            ds: BaseDatasource, column: Optional[str]
+            source: BaseDatasource, column: Optional[str]
         ) -> Optional[str]:
-            column_obj = ds.get_column(column)
+            column_obj = source.get_column(column)
             if column_obj and (formatter := column_obj.python_date_format):
                 return str(formatter)
             return None
