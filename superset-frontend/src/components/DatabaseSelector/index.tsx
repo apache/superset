@@ -352,7 +352,7 @@ export default function DatabaseSelector({
         lazyLoading={false}
         notFoundContent={emptyState}
         onChange={changeDataBase}
-        value={currentDb ? currentDb : undefined}
+        value={currentDb || undefined}
         placeholder={t('Select database or type database name')}
         disabled={!isDatabaseSelectEnabled || readOnly}
         options={loadDatabases}
