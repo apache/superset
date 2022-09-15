@@ -491,6 +491,15 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           // render `Cell`. This saves some time for large tables.
           return (
             <StyledCell {...cellProps}>
+              {valueRange && (
+                <div
+                  className={cx(
+                    'cell-bar',
+                    value && value < 0 ? 'negative' : 'positive',
+                  )}
+                  css={cellBarStyles}
+                />
+              )}
               {truncateLongCells ? (
                 <div
                   className="dt-truncate-cell"
@@ -500,15 +509,6 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                 </div>
               ) : (
                 text
-              )}
-              {valueRange && (
-                <div
-                  className={cx(
-                    'cell-bar',
-                    value && value < 0 ? 'negative' : 'positive',
-                  )}
-                  css={cellBarStyles}
-                />
               )}
             </StyledCell>
           );
