@@ -32,6 +32,7 @@ import { extent as d3Extent, max as d3Max } from 'd3-array';
 import { FaSort } from '@react-icons/all-files/fa/FaSort';
 import { FaSortDown as FaSortDesc } from '@react-icons/all-files/fa/FaSortDown';
 import { FaSortUp as FaSortAsc } from '@react-icons/all-files/fa/FaSortUp';
+import cx from 'classnames';
 import {
   DataRecord,
   DataRecordValue,
@@ -41,6 +42,7 @@ import {
   getTimeFormatterForGranularity,
   QueryObjectFilterClause,
   styled,
+  css,
   t,
   tn,
 } from '@superset-ui/core';
@@ -431,32 +433,35 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             text-align: ${sharedStyle.textAlign};
             white-space: ${value instanceof Date ? 'nowrap' : undefined};
             position: relative;
-            &::after {
-              content: '';
-              position: absolute;
-              width: ${valueRange
-                ? cellWidth({
-                    value: value as number,
-                    valueRange,
-                    alignPositiveNegative,
-                  }) + '%'
-                : undefined};
-              height: 100%;
-              display: ${valueRange ? 'block' : 'none'};
-              top: 0;
-              left: ${valueRange
-                ? cellOffset({
-                    value: value as number,
-                    valueRange,
-                    alignPositiveNegative,
-                  }) + '%'
-                : undefined};
-              background-color: ${valueRange
-                ? cellBackground({
-                    value: value as number,
-                    colorPositiveNegative,
-                  })
-                : undefined};
+          `;
+
+          const cellBarStyles = css`
+            position: absolute;
+            height: 100%;
+            display: block;
+            top: 0;
+            ${
+              valueRange && `
+                width: ${
+                  cellWidth({
+                      value: value as number,
+                      valueRange,
+                      alignPositiveNegative,
+                    }) + '%'};
+                left: ${
+                  cellOffset({
+                      value: value as number,
+                      valueRange,
+                      alignPositiveNegative,
+                    }) + '%'
+                  };
+                background-color: ${
+                  cellBackground({
+                      value: value as number,
+                      colorPositiveNegative,
+                    })
+                  };
+              `
             }
           `;
 
@@ -502,6 +507,14 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                 </div>
               ) : (
                 text
+              )}
+              {valueRange && (
+                <div className={
+                  cx(
+                    'cell-bar',
+                    value && value < 0 ? 'negative' : 'positive',
+                  )
+                }  css={cellBarStyles} />
               )}
             </StyledCell>
           );
