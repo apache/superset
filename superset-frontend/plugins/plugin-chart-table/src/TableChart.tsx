@@ -99,11 +99,8 @@ function cellWidth({
   const posExtent = Math.abs(Math.max(maxValue, 0));
   const negExtent = Math.abs(Math.min(minValue, 0));
   const tot = posExtent + negExtent;
-  const perc1 = Math.round(
-    (Math.min(negExtent + value, negExtent) / tot) * 100,
-  );
   const perc2 = Math.round((Math.abs(value) / tot) * 100);
-  return perc2 - perc1;
+  return perc2;
 }
 
 /**
@@ -145,47 +142,6 @@ function cellBackground({
   const r = colorPositiveNegative && value < 0 ? 150 : 0;
   return (
     `rgba(${r},0,0,0.2)`
-  );
-}
-
-/**
- * Cell background to render columns as horizontal bar chart
- */
-function cellBar({
-  value,
-  valueRange,
-  colorPositiveNegative = false,
-  alignPositiveNegative,
-}: {
-  value: number;
-  valueRange: ValueRange;
-  colorPositiveNegative: boolean;
-  alignPositiveNegative: boolean;
-}) {
-  const [minValue, maxValue] = valueRange;
-  const r = colorPositiveNegative && value < 0 ? 150 : 0;
-  if (alignPositiveNegative) {
-    const perc = Math.abs(Math.round((value / maxValue) * 100));
-    // The 0.01 to 0.001 is a workaround for what appears to be a
-    // CSS rendering bug on flat, transparent colors
-    return (
-      `linear-gradient(to right, rgba(${r},0,0,0.2), rgba(${r},0,0,0.2) ${perc}%, ` +
-      `rgba(0,0,0,0.01) ${perc}%, rgba(0,0,0,0.001) 100%)`
-    );
-  }
-  const posExtent = Math.abs(Math.max(maxValue, 0));
-  const negExtent = Math.abs(Math.min(minValue, 0));
-  const tot = posExtent + negExtent;
-  const perc1 = Math.round(
-    (Math.min(negExtent + value, negExtent) / tot) * 100,
-  );
-  const perc2 = Math.round((Math.abs(value) / tot) * 100);
-  // The 0.01 to 0.001 is a workaround for what appears to be a
-  // CSS rendering bug on flat, transparent colors
-  return (
-    `linear-gradient(to right, rgba(0,0,0,0.01), rgba(0,0,0,0.001) ${perc1}%, ` +
-    `rgba(${r},0,0,0.2) ${perc1}%, rgba(${r},0,0,0.2) ${perc1 + perc2}%, ` +
-    `rgba(0,0,0,0.01) ${perc1 + perc2}%, rgba(0,0,0,0.001) 100%)`
   );
 }
 
@@ -473,15 +429,6 @@ export default function TableChart<D extends DataRecord = DataRecord>(
 
           const StyledCell = styled.td`
             text-align: ${sharedStyle.textAlign};
-            background: ${backgroundColor ||
-            (valueRange
-              ? cellBar({
-                  value: value as number,
-                  valueRange,
-                  alignPositiveNegative,
-                  colorPositiveNegative,
-                })
-              : undefined)};
             white-space: ${value instanceof Date ? 'nowrap' : undefined};
             position: relative;
             &::after {
