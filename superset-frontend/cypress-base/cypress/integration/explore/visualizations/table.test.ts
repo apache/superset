@@ -117,7 +117,7 @@ describe('Visualization > Table', () => {
     });
     cy.wait('@chartData').then(({ response }) => {
       cy.verifySliceContainer('table');
-      const records = response?.body.result[0].data;
+      const records = response?.body.result[1].data;
       // should sort by first metric when no sort by metric is set
       expect(records[0][NUM_METRIC.label]).greaterThan(
         records[1][NUM_METRIC.label],
@@ -177,7 +177,7 @@ describe('Visualization > Table', () => {
     cy.visitChartByParams(formData);
     cy.wait('@chartData').then(({ response }) => {
       cy.verifySliceContainer('table');
-      expect(response?.body.result[0].data.length).to.eq(limit);
+      expect(response?.body.result[1].data.length).to.eq(limit);
     });
     cy.get('[data-test="row-count-label"]').contains('10 rows');
   });
@@ -222,7 +222,7 @@ describe('Visualization > Table', () => {
     cy.visitChartByParams(formData);
     cy.wait('@chartData').then(({ response }) => {
       cy.verifySliceContainer('table');
-      const records = response?.body.result[0].data;
+      const records = response?.body.result[1].data;
       expect(records[0].num).greaterThan(records[records.length - 1].num);
     });
   });
