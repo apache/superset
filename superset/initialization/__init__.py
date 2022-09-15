@@ -153,7 +153,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             AnnotationModelView,
         )
         from superset.views.api import Api
-        from superset.views.flash.views import Flash
         from superset.views.chart.views import SliceAsync, SliceModelView
         from superset.views.core import Superset
         from superset.views.css_templates import (
@@ -174,6 +173,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.views.datasource.views import DatasetEditor, Datasource
         from superset.views.dynamic_plugins import DynamicPluginsView
         from superset.views.explore import ExplorePermalinkView, ExploreView
+        from superset.views.flash.views import Flash
         from superset.views.key_value import KV
         from superset.views.log.api import LogRestApi
         from superset.views.log.views import LogModelView
