@@ -37,7 +37,7 @@ export function fetchTags(
   if (objectType === undefined || objectId === undefined) {
     throw new Error('Need to specify objectType and objectId');
   }
-  SupersetClient.get({ endpoint: `/tagview/tags/${objectType}/${objectId}/` })
+  SupersetClient.get({ endpoint: `/taggedobjectview/tags/${objectType}/${objectId}/` })
     .then(({ json }) =>
       callback(
         json.filter((tag: Tag) => tag.name.indexOf(':') === -1 || includeTypes),
@@ -51,7 +51,7 @@ export function fetchSuggestions(
   callback: (json: JsonObject) => void,
   error: (response: Response) => void,
 ) {
-  SupersetClient.get({ endpoint: '/tagview/tags/suggestions/' })
+  SupersetClient.get({ endpoint: '/taggedobjectview/tags/suggestions/' })
     .then(({ json }) =>
       callback(
         json.filter((tag: Tag) => tag.name.indexOf(':') === -1 || includeTypes),
@@ -70,7 +70,7 @@ export function deleteTag(
     throw new Error('Need to specify objectType and objectId');
   }
   SupersetClient.delete({
-    endpoint: `/tagview/tags/${objectType}/${objectId}/`,
+    endpoint: `/taggedobjectview/tags/${objectType}/${objectId}/`,
     body: JSON.stringify([tag.name]),
     parseMethod: 'text',
   })
@@ -95,7 +95,7 @@ export function addTag(
     return;
   }
   SupersetClient.post({
-    endpoint: `/tagview/tags/${objectType}/${objectId}/`,
+    endpoint: `/taggedobjectview/tags/${objectType}/${objectId}/`,
     body: JSON.stringify([tag]),
     parseMethod: 'text',
   })
@@ -108,7 +108,7 @@ export function fetchObjects(
   callback: (json: JsonObject) => void,
   error: (response: Response) => void,
 ) {
-  let url = `/tagview/tagged_objects/?tags=${tags}`;
+  let url = `/taggedobjectview/tagged_objects/?tags=${tags}`;
   if (types) {
     url += `&types=${types}`;
   }

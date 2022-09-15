@@ -16,16 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { styled } from '@superset-ui/core';
-import Tag from 'src/types/TagType';
+import Tag, { TagType } from 'src/types/TagType';
 import { StringParam, useQueryParam } from 'use-query-params';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import SelectControl from 'src/explore/components/controls/SelectControl';
 import { fetchSuggestions } from 'src/tags';
-import TagsTable from './TagsTable';
+import AllEntitiesTable from './AllEntitiesTable';
+import { loadTags } from 'src/components/ObjectTags';
+import { AsyncSelect, Select } from 'src/components';
+import { LabeledValue } from 'antd/lib/select';
 
-const TagsContainer = styled.div`
+const AllEntitiesContainer = styled.div`
   background-color: ${({ theme }) => theme.colors.grayscale.light4};
   .select-control {
     margin-left: ${({ theme }) => theme.gridUnit * 4}px;
@@ -40,7 +43,7 @@ const TagsContainer = styled.div`
   }
 `;
 
-const TagsNav = styled.div`
+const AllEntitiesNav = styled.div`
   height: 50px;
   background-color: ${({ theme }) => theme.colors.grayscale.light5};
   margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
@@ -50,7 +53,8 @@ const TagsNav = styled.div`
   }
 `;
 
-function Tags() {
+function AllEntities() {
+  
   const [tagSuggestions, setTagSuggestions] = useState<string[]>();
   const [tagsQuery, setTagsQuery] = useQueryParam('tags', StringParam);
 
@@ -73,12 +77,12 @@ function Tags() {
   };
 
   return (
-    <TagsContainer>
-      <TagsNav>
-        <span className="navbar-brand">Tags</span>
-      </TagsNav>
+    <AllEntitiesContainer>
+      <AllEntitiesNav>
+        <span className="navbar-brand">All Entities</span>
+      </AllEntitiesNav>
       <div className="select-control">
-        <div className="select-control-label">Search tags</div>
+        <div className="select-control-label">search by tags</div>
         <SelectControl
           name="tags"
           value={tagsQuery ? tagsQuery.split(',') : ''}
@@ -87,9 +91,9 @@ function Tags() {
           multi
         />
       </div>
-      <TagsTable search={tagsQuery || ''} />
-    </TagsContainer>
+      <AllEntitiesTable search={tagsQuery || ''} />
+    </AllEntitiesContainer>
   );
 }
 
-export default withToasts(Tags);
+export default withToasts(AllEntities);

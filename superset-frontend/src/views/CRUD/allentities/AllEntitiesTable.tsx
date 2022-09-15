@@ -20,10 +20,12 @@ import React, { useState, useEffect } from 'react';
 import moment from 'moment';
 import { t, styled } from '@superset-ui/core';
 import TableView, { EmptyWrapperType } from 'src/components/TableView';
-import { fetchObjects } from '../../../tags';
+import { fetchObjects, fetchTags } from '../../../tags';
 import Loading from '../../../components/Loading';
+import { Tag, TagsList } from 'src/components/Tags';
+import { loadTags } from 'src/components/ObjectTags';
 
-const TagsTableContainer = styled.div`
+const AllEntitiesTableContainer = styled.div`
   text-align: left;
   border-radius: ${({ theme }) => theme.gridUnit * 1}px 0;
   margin: 0 ${({ theme }) => theme.gridUnit * 4}px;
@@ -51,11 +53,11 @@ interface TaggedObjects {
   query: TaggedObject[];
 }
 
-interface TagsTableProps {
+interface AllEntitiesTableProps {
   search?: string;
 }
 
-export default function TagsTable({ search = '' }: TagsTableProps) {
+export default function AllEntitiesTable({ search = '' }: AllEntitiesTableProps) {
   const [objects, setObjects] = useState<TaggedObjects>({
     dashboard: [],
     chart: [],
@@ -63,22 +65,20 @@ export default function TagsTable({ search = '' }: TagsTableProps) {
   });
 
   useEffect(() => {
-    const fetchResults = (search: string) => {
-      fetchObjects(
-        { tags: search, types: null },
-        (data: TaggedObject[]) => {
-          const objects = { dashboard: [], chart: [], query: [] };
-          data.forEach(object => {
-            objects[object.type].push(object);
-          });
-          setObjects(objects);
-        },
-        (error: Response) => {
-          console.log(error.json());
-        },
-      );
-    };
-    fetchResults(search);
+    fetchObjects(
+      { tags: search, types: null },
+      (data: TaggedObject[]) => {
+        const objects = { dashboard: [], chart: [], query: [] };
+        data.forEach(object => {
+          objects[object.type].push(object);
+        });
+        setObjects(objects);
+      },
+      (error: Response) => {
+        console.log(error.json());
+      },
+    );
+
   }, [search]);
 
   const renderTable = (type: any) => {
@@ -108,7 +108,7 @@ export default function TagsTable({ search = '' }: TagsTableProps) {
 
   if (objects) {
     return (
-      <TagsTableContainer>
+      <AllEntitiesTableContainer>
         <h3>{t('Dashboards')}</h3>
         {renderTable('dashboard')}
         <hr />
@@ -117,7 +117,7 @@ export default function TagsTable({ search = '' }: TagsTableProps) {
         <hr />
         <h3>{t('Queries')}</h3>
         {renderTable('query')}
-      </TagsTableContainer>
+      </AllEntitiesTableContainer>
     );
   }
   return <Loading />;

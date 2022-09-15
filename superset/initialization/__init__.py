@@ -184,8 +184,9 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             TableSchemaView,
             TabStateView,
         )
-        from superset.views.tags import TagModelView, TagView
         from superset.views.users.api import CurrentUserRestApi
+        from superset.views.all_entities import TaggedObjectsModelView, TaggedObjectView
+
 
         #
         # Setup API views
@@ -307,7 +308,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view_no_menu(TableModelView)
         appbuilder.add_view_no_menu(TableSchemaView)
         appbuilder.add_view_no_menu(TabStateView)
-        appbuilder.add_view_no_menu(TagView)
+        appbuilder.add_view_no_menu(TaggedObjectView)
         appbuilder.add_view_no_menu(ReportView)
 
         #
@@ -369,9 +370,9 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         )
         appbuilder.add_separator("Data")
         appbuilder.add_view(
-            TagModelView,
-            "Tags",
-            label=__("Tags"),
+            TaggedObjectsModelView,
+            "All Entities",
+            label=__("All Entities"),
             icon="",
             category="",
             category_icon="",
