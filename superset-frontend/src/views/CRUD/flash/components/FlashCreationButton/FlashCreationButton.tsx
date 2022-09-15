@@ -192,13 +192,18 @@ const FlashCreationButton: FunctionComponent<FlashCreationButtonProps> = ({
 
   const validate = (formData: any, errors: any) => {
     if (
-      Date.parse(formData.scheduleStartTime) <
-      Date.parse(new Date().toISOString())
-    ) {
-      errors.scheduleStartTime.addError(
-        'Schedule Start Time can be tomorrow or onwards',
-      );
-    }
+      formData.flashType === FlashTypes.SHORT_TERM ||
+      formData.flashType === FlashTypes.LONG_TERM
+    )
+      if (
+        Date.parse(formData.scheduleStartTime) <
+        Date.parse(new Date().toISOString())
+      ) {
+        errors.scheduleStartTime.addError(
+          'Schedule Start Time can be tomorrow or onwards',
+        );
+      } else {
+      }
     return errors;
   };
 

@@ -22,3 +22,9 @@ export enum FlashTypes {
   SHORT_TERM = 'Short Term',
   LONG_TERM = 'Long Term',
 }
+
+export enum FlashEnumTypes {
+  ONE_TIME = 'OneTime',
+  SHORT_TERM = 'ShortTerm',
+  LONG_TERM = 'LongTerm',
+}
