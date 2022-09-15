@@ -80,6 +80,75 @@ function getSortTypeByDataType(dataType: GenericDataType): DefaultSortTypes {
 }
 
 /**
+ * Cell background width calculation for horizontal bar chart
+ */
+function cellWidth({
+  value,
+  valueRange,
+  alignPositiveNegative,
+}: {
+  value: number;
+  valueRange: ValueRange;
+  alignPositiveNegative: boolean;
+}) {
+  const [minValue, maxValue] = valueRange;
+  if (alignPositiveNegative) {
+    const perc = Math.abs(Math.round((value / maxValue) * 100));
+    return perc;
+  }
+  const posExtent = Math.abs(Math.max(maxValue, 0));
+  const negExtent = Math.abs(Math.min(minValue, 0));
+  const tot = posExtent + negExtent;
+  const perc1 = Math.round(
+    (Math.min(negExtent + value, negExtent) / tot) * 100,
+  );
+  const perc2 = Math.round((Math.abs(value) / tot) * 100);
+  return perc2 - perc1;
+}
+
+/**
+ * Cell left margin (offset) calculation for horizontal bar chart elements
+ * when alignPositiveNegative is not set
+ */
+function cellOffset({
+  value,
+  valueRange,
+  alignPositiveNegative,
+}: {
+  value: number;
+  valueRange: ValueRange;
+  alignPositiveNegative: boolean;
+}) {
+  if (alignPositiveNegative) {
+    return 0;
+  }
+  const [minValue, maxValue] = valueRange;
+  const posExtent = Math.abs(Math.max(maxValue, 0));
+  const negExtent = Math.abs(Math.min(minValue, 0));
+  const tot = posExtent + negExtent;
+  const perc1 = Math.round(
+    (Math.min(negExtent + value, negExtent) / tot) * 100,
+  );
+  return perc1;
+}
+
+/**
+ * Cell background color calculation for horizontal bar chart
+ */
+function cellBackground({
+  value,
+  colorPositiveNegative = false,
+}: {
+  value: number;
+  colorPositiveNegative: boolean;
+}) {
+  const r = colorPositiveNegative && value < 0 ? 150 : 0;
+  return (
+    `rgba(${r},0,0,0.2)`
+  );
+}
+
+/**
  * Cell background to render columns as horizontal bar chart
  */
 function cellBar({
@@ -414,6 +483,34 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                 })
               : undefined)};
             white-space: ${value instanceof Date ? 'nowrap' : undefined};
+            position: relative;
+            &::after {
+              content: '';
+              position: absolute;
+              width: ${valueRange
+                ? cellWidth({
+                    value: value as number,
+                    valueRange,
+                    alignPositiveNegative,
+                  }) + '%'
+                : undefined};
+              height: 100%;
+              display: ${valueRange ? 'block' : 'none'};
+              top: 0;
+              left: ${valueRange
+                ? cellOffset({
+                    value: value as number,
+                    valueRange,
+                    alignPositiveNegative,
+                  }) + '%'
+                : undefined};
+              background-color: ${valueRange
+                ? cellBackground({
+                    value: value as number,
+                    colorPositiveNegative,
+                  })
+                : undefined};
+            }
           `;
 
           const cellProps = {
