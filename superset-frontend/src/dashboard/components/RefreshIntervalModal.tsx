@@ -17,13 +17,14 @@
  * under the License.
  */
 import React from 'react';
-import Select, { propertyComparator } from 'src/components/Select/Select';
+import Select from 'src/components/Select/Select';
 import { t, styled } from '@superset-ui/core';
 import Alert from 'src/components/Alert';
 import Button from 'src/components/Button';
 
 import ModalTrigger, { ModalTriggerRef } from 'src/components/ModalTrigger';
 import { FormLabel } from 'src/components/Form';
+import { propertyComparator } from 'src/components/Select/utils';
 
 export const options = [
   [0, t("Don't refresh")],
