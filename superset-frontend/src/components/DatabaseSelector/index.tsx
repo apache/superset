@@ -136,16 +136,16 @@ export default function DatabaseSelector({
   onSchemasLoad,
   readOnly = false,
   schema,
+  sqlLabMode = false,
   catalog,
   onCatalogLoad,
   onCatalogChange,
-  sqlLabMode = false,
 }: DatabaseSelectorProps) {
   const [loadingSchemas, setLoadingSchemas] = useState(false);
   const [loadingCatalogs, setLoadingCatalogs] = useState(false);
   const [schemaOptions, setSchemaOptions] = useState<SchemaValue[]>([]);
   const [catalogOptions, setCatalogOptions] = useState<CatalogValue[]>([]);
-  const [currentDb, setCurrentDb] = useState<DatabaseValue | null | undefined>(
+  const [currentDb, setCurrentDb] = useState<DatabaseValue | undefined>(
     db
       ? {
           label: (
@@ -299,8 +299,9 @@ export default function DatabaseSelector({
     if (currentDb && currentCatalog) fetchSchemas(currentDb);
   }, [currentCatalog, catalogRefresh]);
 
-  const showSchema = (db: DatabaseObject | undefined | null) =>
-    db?.has_catalogs ? !!currentCatalog : true;
+  const showSchema = (db: DatabaseObject | undefined | null) => {
+    return db?.has_catalogs ? !!currentCatalog : true;
+  };
 
   function changeDataBase(
     value: { label: string; value: number },
@@ -328,6 +329,7 @@ export default function DatabaseSelector({
 
   function changeCatalog(catalog: CatalogValue) {
     setCurrentCatalog(catalog);
+    setCurrentSchema(undefined);
     if (onCatalogChange) {
       onCatalogChange(catalog.value);
     }
@@ -352,7 +354,7 @@ export default function DatabaseSelector({
         lazyLoading={false}
         notFoundContent={emptyState}
         onChange={changeDataBase}
-        value={currentDb || undefined}
+        value={currentDb}
         placeholder={t('Select database or type database name')}
         disabled={!isDatabaseSelectEnabled || readOnly}
         options={loadDatabases}
