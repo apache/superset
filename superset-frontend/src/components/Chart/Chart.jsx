@@ -18,6 +18,7 @@
  */
 import PropTypes from 'prop-types';
 import React from 'react';
+import { InView, defaultFallbackInView } from 'react-intersection-observer';
 import { styled, logging, t, ensureIsArray } from '@superset-ui/core';
 
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
@@ -119,11 +120,18 @@ const MonospaceDiv = styled.div`
   white-space: pre-wrap;
 `;
 
+defaultFallbackInView(true);
+
 class Chart extends React.PureComponent {
   constructor(props) {
     super(props);
+    this.state = {
+      inView: false,
+    };
     this.handleRenderContainerFailure =
       this.handleRenderContainerFailure.bind(this);
+    this.runQuery = this.runQuery.bind(this);
+    this.handleChartInView = this.handleChartInView.bind(this);
   }
 
   componentDidMount() {
@@ -151,6 +159,9 @@ class Chart extends React.PureComponent {
   }
 
   runQuery() {
+    if (!this.state.inView) {
+      return;
+    }
     if (this.props.chartId > 0 && isFeatureEnabled(FeatureFlag.CLIENT_CACHE)) {
       // Load saved chart with a GET request
       this.props.actions.getSavedChart(
@@ -191,6 +202,10 @@ class Chart extends React.PureComponent {
       ts: new Date().getTime(),
       duration: Logger.getTimestamp() - this.renderStartTime,
     });
+  }
+
+  handleChartInView(inView) {
+    this.setState({ inView });
   }
 
   renderErrorMessage(queryResponse) {
@@ -299,22 +314,24 @@ class Chart extends React.PureComponent {
         onError={this.handleRenderContainerFailure}
         showMessage={false}
       >
-        <Styles
-          data-ui-anchor="chart"
-          className="chart-container"
-          data-test="chart-container"
-          height={height}
-          width={width}
-        >
-          <div className="slice_container" data-test="slice-container">
-            <ChartRenderer
-              {...this.props}
-              source={this.props.dashboardId ? 'dashboard' : 'explore'}
-              data-test={this.props.vizType}
-            />
-          </div>
-          {isLoading && !isDeactivatedViz && <Loading />}
-        </Styles>
+        <InView triggerOnce onChange={this.handleChartInView}>
+          <Styles
+            data-ui-anchor="chart"
+            className="chart-container"
+            data-test="chart-container"
+            height={height}
+            width={width}
+          >
+            <div className="slice_container" data-test="slice-container">
+              <ChartRenderer
+                {...this.props}
+                source={this.props.dashboardId ? 'dashboard' : 'explore'}
+                data-test={this.props.vizType}
+              />
+            </div>
+            {isLoading && !isDeactivatedViz && <Loading />}
+          </Styles>
+        </InView>
       </ErrorBoundary>
     );
   }
