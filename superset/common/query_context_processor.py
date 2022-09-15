@@ -255,9 +255,7 @@ class QueryContextProcessor:
                 *get_base_axis_labels(query_object.columns),
                 query_object.granularity,
             ]
-            if query_object.datasource
-            and (col := query_object.datasource.get_column(label))
-            and col.is_dttm
+            if datasource and (col := datasource.get_column(label)) and col.is_dttm
         )
         dttm_cols = [
             DateColumn(
