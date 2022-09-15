@@ -16,40 +16,38 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-const mockFlashClient = () => {
-  return {
-    data: {
-      totalCount: 1,
-      results: [
-        {
-          id: 4,
-          domainName: 'test',
-          serviceName: 'test',
-          datasetName: 'test_bookings',
-          datastoreId: 1,
-          tableName: 'trip__bookings__test_bookings_3',
-          owner: 'testuser@test.com',
-          sqlQuery: 'SELECT * from test',
-          flashType: 'ShortTerm',
-          status: 'New',
-          ttl: '2022-10-11',
-          scheduleType: 'Daily',
-          scheduleStartTime: '2022-08-01 12:00:00',
-          teamSlackChannel: '#chat_test',
-          teamSlackHandle: '@test_platform',
-          cdomain: 'test',
-          cservice: 'test',
-        },
-      ],
-    },
-  };
-};
+const mockFlashClient = () => ({
+  data: {
+    totalCount: 1,
+    results: [
+      {
+        id: 4,
+        domainName: 'test',
+        serviceName: 'test',
+        datasetName: 'test_bookings',
+        datastoreId: 1,
+        tableName: 'trip__bookings__test_bookings_3',
+        owner: 'testuser@test.com',
+        sqlQuery: 'SELECT * from test',
+        flashType: 'ShortTerm',
+        status: 'New',
+        ttl: '2022-10-11',
+        scheduleType: 'Daily',
+        scheduleStartTime: '2022-08-01 12:00:00',
+        teamSlackChannel: '#chat_test',
+        teamSlackHandle: '@test_platform',
+        cdomain: 'test',
+        cservice: 'test',
+      },
+    ],
+  },
+});
 
 describe('FlashClient', () => {
-  it('It will fetch flash objects', () => {
+  it('will fetch flash objects', () => {
     const flashObjects = mockFlashClient();
     expect(flashObjects.data).toBeDefined();
-    expect(flashObjects.data['totalCount']).toBeDefined();
-    expect(flashObjects.data['results']).toBeDefined();
+    expect(flashObjects.data.totalCount).toBeDefined();
+    expect(flashObjects.data.results).toBeDefined();
   });
 });
