@@ -49,6 +49,7 @@ from superset.utils import csv
 from superset.utils.cache import generate_cache_key, set_and_log_cache
 from superset.utils.core import (
     DatasourceType,
+    DateColumn,
     DTTM_ALIAS,
     error_msg_from_exception,
     get_base_axis_labels,
@@ -239,27 +240,48 @@ class QueryContextProcessor:
         return result
 
     def normalize_df(self, df: pd.DataFrame, query_object: QueryObject) -> pd.DataFrame:
-        datasource = self._qc_datasource
-        timestamp_format = None
-        if datasource.type == "table":
-            dttm_col = datasource.get_column(query_object.granularity)
-            if dttm_col:
-                timestamp_format = dttm_col.python_date_format
+        def _get_timestamp_format(
+            ds: BaseDatasource, column: Optional[str]
+        ) -> Optional[str]:
+            column_obj = ds.get_column(column)
+            if column_obj and (formatter := column_obj.python_date_format):
+                return str(formatter)
+            return None
 
-        dttm_cols = tuple(
+        datasource = self._qc_datasource
+        labels = tuple(
             label
-            for label in get_base_axis_labels(query_object.columns)
+            for label in [
+                *get_base_axis_labels(query_object.columns),
+                query_object.granularity,
+            ]
             if query_object.datasource
             and (col := query_object.datasource.get_column(label))
             and col.is_dttm
         )
-
+        dttm_cols = [
+            DateColumn(
+                timestamp_format=_get_timestamp_format(datasource, label),
+                offset=datasource.offset,
+                time_shift=query_object.time_shift,
+                col_label=label,
+            )
+            for label in labels
+            if label
+        ]
+        if DTTM_ALIAS in df:
+            dttm_cols.append(
+                DateColumn.get_legacy_time_column(
+                    timestamp_format=_get_timestamp_format(
+                        datasource, query_object.granularity
+                    ),
+                    offset=datasource.offset,
+                    time_shift=query_object.time_shift,
+                )
+            )
         normalize_dttm_col(
             df=df,
-            timestamp_format=timestamp_format,
-            offset=datasource.offset,
-            time_shift=query_object.time_shift,
-            dttm_cols=dttm_cols,
+            dttm_cols=tuple(dttm_cols),
         )
 
         if self.enforce_numerical_metrics:
