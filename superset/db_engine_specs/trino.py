@@ -23,6 +23,7 @@ import simplejson as json
 from flask import current_app
 from sqlalchemy.engine.url import URL
 from sqlalchemy.orm import Session
+from sqlalchemy.engine.reflection import Inspector
 
 from superset.constants import USER_AGENT
 from superset.databases.utils import make_url_safe
@@ -30,8 +31,6 @@ from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.presto import PrestoBaseEngineSpec
 from superset.models.sql_lab import Query
 from superset.utils import core as utils
-
-from sqlalchemy.engine.reflection import Inspector
 
 if TYPE_CHECKING:
     from superset.models.core import Database
