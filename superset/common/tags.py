@@ -21,7 +21,7 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql import and_, func, join, literal, select
 
-from superset.models.tags import ObjectTypes, TagTypes
+from superset.tags.models import ObjectTypes, TagTypes
 
 
 def add_types_to_charts(

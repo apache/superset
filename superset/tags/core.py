@@ -23,13 +23,14 @@ from superset.models.core import FavStar
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import SavedQuery
-from superset.models.tags import (
+from superset.tags.models import (
     ChartUpdater,
     DashboardUpdater,
     DatasetUpdater,
     FavStarUpdater,
     QueryUpdater,
 )
+
 
 def register_sqla_event_listeners() -> None:
     if is_feature_enabled("TAGGING_SYSTEM"):
@@ -51,6 +52,7 @@ def register_sqla_event_listeners() -> None:
         sqla.event.listen(SavedQuery, "after_insert", QueryUpdater.after_insert)
         sqla.event.listen(SavedQuery, "after_update", QueryUpdater.after_update)
         sqla.event.listen(SavedQuery, "after_delete", QueryUpdater.after_delete)
+
 
 def clear_sqla_event_listeners() -> None:
     if is_feature_enabled("TAGGING_SYSTEM"):

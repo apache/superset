@@ -25,7 +25,7 @@ from superset.models.core import FavStar
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import SavedQuery
-from superset.models.tags import TaggedObject
+from superset.tags.models import TaggedObject
 from superset.utils.core import DatasourceType
 from superset.utils.database import get_main_database
 from tests.integration_tests.base_tests import SupersetTestCase

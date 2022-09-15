@@ -16,8 +16,10 @@
 # under the License.
 
 import pytest
+
 from superset.tags.core import clear_sqla_event_listeners, register_sqla_event_listeners
 from tests.integration_tests.test_app import app
+
 
 @pytest.fixture
 def tag_sqla_event_listeners():
