@@ -1860,7 +1860,7 @@ class DateColumn:
         return hash(self.col_label)
 
     def __eq__(self, other: object) -> bool:
-        return hash(self) == hash(other)
+        return isinstance(other, DateColumn) and hash(self) == hash(other)
 
     @classmethod
     def get_legacy_time_column(
