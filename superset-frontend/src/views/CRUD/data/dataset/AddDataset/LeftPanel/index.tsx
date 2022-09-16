@@ -172,7 +172,7 @@ export default function LeftPanel({
   useEffect(() => {
     if (loadTables) {
       const endpoint = encodeURI(
-        `/superset/tables/${dbId}/${encodedSchema}/undefined/${refresh}/`,
+        `/superset/tables/${dbId}/${encodedSchema}/${refresh}/`,
       );
       getTablesList(endpoint);
     }
@@ -188,10 +188,8 @@ export default function LeftPanel({
   const search = useMemo(
     () =>
       debounce((value: string) => {
-        const encodeTableName =
-          value === '' ? undefined : encodeURIComponent(value);
         const endpoint = encodeURI(
-          `/superset/tables/${dbId}/${encodedSchema}/${encodeTableName}/`,
+          `/superset/tables/${dbId}/${encodedSchema}/`,
         );
         getTablesList(endpoint);
       }, FAST_DEBOUNCE),
