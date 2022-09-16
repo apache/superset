@@ -167,6 +167,7 @@ from superset.views.utils import (
     sanitize_datasource_data,
 )
 from superset.viz import BaseViz
+from superset.views.explore_response import ExploreResponse
 
 config = app.config
 SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT = config["SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT"]
@@ -735,6 +736,22 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         databases = db.session.query(Database).all()
         return self.render_template(
             "superset/import_dashboards.html", databases=databases
+        )
+
+    @api
+    @handle_api_exception
+    @event_logger.log_this
+    @expose("/multidataset/", methods=["POST"])
+    def multidataset(self) -> FlaskResponse:
+
+        initial_form_data = {}
+        form_data, slc = get_form_data(use_slice_data=True, initial_form_data=initial_form_data)
+
+        explore_response = ExploreResponse(form_data)
+        datasource, datasource_name = explore_response.multiple_dataset()
+
+        return json_success(
+            json.dumps({"datasource" : datasource.data})
         )
 
     @has_access
