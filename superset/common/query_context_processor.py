@@ -240,7 +240,7 @@ class QueryContextProcessor:
         return result
 
     def normalize_df(self, df: pd.DataFrame, query_object: QueryObject) -> pd.DataFrame:
-        # todo: should support "python_date_format" and "get_column" in each datasouce
+        # todo: should support "python_date_format" and "get_column" in each datasource
         def _get_timestamp_format(
             source: BaseDatasource, column: Optional[str]
         ) -> Optional[str]:
@@ -263,7 +263,7 @@ class QueryContextProcessor:
                 query_object.granularity,
             ]
             if datasource
-            # Query datasource didn't supported `get_column`
+            # Query datasource didn't support `get_column`
             and hasattr(datasource, "get_column")
             and (col := datasource.get_column(label))
             and col.is_dttm
