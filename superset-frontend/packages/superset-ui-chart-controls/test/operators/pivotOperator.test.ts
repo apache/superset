@@ -57,12 +57,8 @@ const queryObject: QueryObject = {
 test('skip pivot', () => {
   expect(pivotOperator(formData, queryObject)).toEqual(undefined);
   expect(
-    pivotOperator(formData, { ...queryObject, is_timeseries: false }),
-  ).toEqual(undefined);
-  expect(
     pivotOperator(formData, {
       ...queryObject,
-      is_timeseries: true,
       metrics: [],
     }),
   ).toEqual(undefined);
@@ -70,7 +66,10 @@ test('skip pivot', () => {
 
 test('pivot by __timestamp without groupby', () => {
   expect(
-    pivotOperator(formData, { ...queryObject, is_timeseries: true }),
+    pivotOperator(
+      { ...formData, granularity_sqla: 'time_column' },
+      queryObject,
+    ),
   ).toEqual({
     operation: 'pivot',
     options: {
@@ -87,11 +86,13 @@ test('pivot by __timestamp without groupby', () => {
 
 test('pivot by __timestamp with groupby', () => {
   expect(
-    pivotOperator(formData, {
-      ...queryObject,
-      columns: ['foo', 'bar'],
-      is_timeseries: true,
-    }),
+    pivotOperator(
+      { ...formData, granularity_sqla: 'time_column' },
+      {
+        ...queryObject,
+        columns: ['foo', 'bar'],
+      },
+    ),
   ).toEqual({
     operation: 'pivot',
     options: {
