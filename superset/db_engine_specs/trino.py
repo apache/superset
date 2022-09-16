@@ -17,12 +17,13 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, Optional, TYPE_CHECKING
+from typing import Any, Dict, List, Optional, TYPE_CHECKING
 
 import simplejson as json
 from flask import current_app
 from sqlalchemy.engine.url import URL
 from sqlalchemy.orm import Session
+from sqlalchemy.engine.reflection import Inspector
 
 from superset.constants import USER_AGENT
 from superset.databases.utils import make_url_safe
@@ -45,6 +46,27 @@ logger = logging.getLogger(__name__)
 class TrinoEngineSpec(PrestoBaseEngineSpec):
     engine = "trino"
     engine_name = "Trino"
+    has_catalogs = True
+
+    @classmethod
+    def get_catalog_names(cls, inspector: Inspector) -> List[str]:
+        catalogs = [
+            row[0]
+            for row in inspector.engine.execute("SHOW CATALOGS")
+            if not row[0].startswith("_")
+        ]
+        return catalogs
+
+    @classmethod
+    def get_all_catalog_schema_names(
+        cls, inspector: Inspector, catalog_name: str
+    ) -> List[str]:
+        schemas = [
+            row[0]
+            for row in inspector.engine.execute("SHOW SCHEMAS FROM " + catalog_name)
+            if not row[0].startswith("_")
+        ]
+        return schemas
 
     @classmethod
     def extra_table_metadata(
