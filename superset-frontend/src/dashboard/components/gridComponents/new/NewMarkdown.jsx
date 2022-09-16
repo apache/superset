@@ -28,7 +28,7 @@ export default function DraggableNewDivider() {
     <DraggableNewComponent
       id={NEW_MARKDOWN_ID}
       type={MARKDOWN_TYPE}
-      label={t("Markdown")}
+      label={t('Markdown')}
       className="fa fa-code"
     />
   );
