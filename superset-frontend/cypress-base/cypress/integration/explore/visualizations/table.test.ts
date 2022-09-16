@@ -117,8 +117,6 @@ describe('Visualization > Table', () => {
     });
     cy.wait('@chartData').then(({ response }) => {
       cy.verifySliceContainer('table');
-      console.log('Printing DATA');
-      console.log(response?.body.result);
       const records = response?.body.result[0].data;
       // should sort by first metric when no sort by metric is set
       expect(records[0][NUM_METRIC.label]).greaterThan(
