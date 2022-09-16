@@ -96,20 +96,26 @@ export function getValue(
   return isLabeledValue(option) ? option.value : option;
 }
 
-type LabeledValue<V> = { label?: ReactNode; value?: V };
+type V = string | number | null | undefined;
 
-export function hasOption<V>(
+type LabeledValue = { label?: ReactNode; value?: V };
+
+export function hasOption(
   value: V,
-  options?: V | LabeledValue<V> | (V | LabeledValue<V>)[],
+  options?: V | LabeledValue | (V | LabeledValue)[],
   checkLabel = false,
 ): boolean {
   const optionsArray = ensureIsArray(options);
+  // When comparing the values we use the equality
+  // operator to automatically convert different types
   return (
     optionsArray.find(
       x =>
-        x === value ||
+        // eslint-disable-next-line eqeqeq
+        x == value ||
         (isObject(x) &&
-          (('value' in x && x.value === value) ||
+          // eslint-disable-next-line eqeqeq
+          (('value' in x && x.value == value) ||
             (checkLabel && 'label' in x && x.label === value))),
     ) !== undefined
   );
