@@ -53,7 +53,7 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
         result_format: Optional[ChartDataResultFormat] = None,
         force: bool = False,
         custom_cache_timeout: Optional[int] = None,
-        viz_type: Optional[str] = None
+        viz_type: Optional[str] = None,
     ) -> QueryContext:
         datasource_model_instance = None
         if datasource:

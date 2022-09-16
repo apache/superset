@@ -210,7 +210,6 @@ class Database(
 
         return bool(extra.get("allows_virtual_table_explore", True))
 
-
     @property
     def explore_database_id(self) -> int:
         return self.get_extra().get("explore_database_id", self.id)

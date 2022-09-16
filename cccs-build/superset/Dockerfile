@@ -25,4 +25,3 @@ ENV BUILD_NUMBER_VAR=${BUILD_NUMBER}
 
 
 USER superset
-

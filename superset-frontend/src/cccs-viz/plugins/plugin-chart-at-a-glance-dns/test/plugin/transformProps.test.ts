@@ -21,7 +21,7 @@ describe('AtAGlance tranformProps', () => {
         data: [{ name: 'Hulk', sum__num: 1 }],
       },
     ],
-    theme: supersetTheme
+    theme: supersetTheme,
   });
 
   it('should tranform chart props for viz', () => {

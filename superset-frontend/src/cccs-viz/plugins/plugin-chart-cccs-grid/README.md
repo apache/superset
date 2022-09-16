@@ -11,9 +11,7 @@ Configure `key`, which can be any `string`, and register the plugin. This `key` 
 ```js
 import CccsGridChartPlugin from '@superset-ui/plugin-chart-cccs-grid';
 
-new CccsGridChartPlugin()
-  .configure({ key: 'cccs-grid' })
-  .register();
+new CccsGridChartPlugin().configure({ key: 'cccs-grid' }).register();
 ```
 
 Then use it via `SuperChart`. See [storybook](https://apache-superset.github.io/superset-ui/?selectedKind=plugin-chart-cccs-grid) for more details.
