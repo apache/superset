@@ -1144,9 +1144,10 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             and (time_grain := col.get("timeGrain"))
         ):
             sqla_column = self.db_engine_spec.get_timestamp_expr(
-                sqla_column,
-                None,
-                time_grain,
+                col=sqla_column,
+                pdf=None,
+                time_grain=time_grain,
+                type_=str(getattr(sqla_column, "type", "")),
             )
         return self.make_sqla_column_compatible(sqla_column, label)
 
