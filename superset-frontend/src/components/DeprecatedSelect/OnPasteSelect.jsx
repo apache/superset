@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Select } from 'src/components/Select';
+import { Select } from 'src/components/DeprecatedSelect';
 
 export default class OnPasteSelect extends React.Component {
   constructor(props) {
