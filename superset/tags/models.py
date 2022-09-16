@@ -14,7 +14,13 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from __future__ import absolute_import, division, print_function, unicode_literals
+from __future__ import (
+    absolute_import,
+    annotations,
+    division,
+    print_function,
+    unicode_literals,
+)
 
 import enum
 from typing import List, Optional, TYPE_CHECKING, Union
@@ -119,7 +125,7 @@ class ObjectUpdater:
 
     @classmethod
     def get_owners_ids(
-        cls, target: Union["Dashboard", "FavStar", "Slice", "Query", "SqlaTable"]
+        cls, target: Union[Dashboard, FavStar, Slice, Query, SqlaTable]
     ) -> List[int]:
         raise NotImplementedError("Subclass should implement `get_owners_ids`")
 
@@ -127,7 +133,7 @@ class ObjectUpdater:
     def _add_owners(
         cls,
         session: Session,
-        target: Union["Dashboard", "FavStar", "Slice", "Query", "SqlaTable"],
+        target: Union[Dashboard, FavStar, Slice, Query, SqlaTable],
     ) -> None:
         for owner_id in cls.get_owners_ids(target):
             name = "owner:{0}".format(owner_id)
@@ -142,7 +148,7 @@ class ObjectUpdater:
         cls,
         _mapper: Mapper,
         connection: Connection,
-        target: Union["Dashboard", "FavStar", "Slice", "Query", "SqlaTable"],
+        target: Union[Dashboard, FavStar, Slice, Query, SqlaTable],
     ) -> None:
         session = Session(bind=connection)
 
@@ -163,7 +169,7 @@ class ObjectUpdater:
         cls,
         _mapper: Mapper,
         connection: Connection,
-        target: Union["Dashboard", "FavStar", "Slice", "Query", "SqlaTable"],
+        target: Union[Dashboard, FavStar, Slice, Query, SqlaTable],
     ) -> None:
         session = Session(bind=connection)
 
@@ -192,7 +198,7 @@ class ObjectUpdater:
         cls,
         _mapper: Mapper,
         connection: Connection,
-        target: Union["Dashboard", "FavStar", "Slice", "Query", "SqlaTable"],
+        target: Union[Dashboard, FavStar, Slice, Query, SqlaTable],
     ) -> None:
         session = Session(bind=connection)
 
@@ -210,7 +216,7 @@ class ChartUpdater(ObjectUpdater):
     object_type = "chart"
 
     @classmethod
-    def get_owners_ids(cls, target: "Slice") -> List[int]:
+    def get_owners_ids(cls, target: Slice) -> List[int]:
         return [owner.id for owner in target.owners]
 
 
@@ -219,7 +225,7 @@ class DashboardUpdater(ObjectUpdater):
     object_type = "dashboard"
 
     @classmethod
-    def get_owners_ids(cls, target: "Dashboard") -> List[int]:
+    def get_owners_ids(cls, target: Dashboard) -> List[int]:
         return [owner.id for owner in target.owners]
 
 
@@ -228,7 +234,7 @@ class QueryUpdater(ObjectUpdater):
     object_type = "query"
 
     @classmethod
-    def get_owners_ids(cls, target: "Query") -> List[int]:
+    def get_owners_ids(cls, target: Query) -> List[int]:
         return [target.user_id]
 
 
@@ -237,14 +243,14 @@ class DatasetUpdater(ObjectUpdater):
     object_type = "dataset"
 
     @classmethod
-    def get_owners_ids(cls, target: "SqlaTable") -> List[int]:
+    def get_owners_ids(cls, target: SqlaTable) -> List[int]:
         return [owner.id for owner in target.owners]
 
 
 class FavStarUpdater:
     @classmethod
     def after_insert(
-        cls, _mapper: Mapper, connection: Connection, target: "FavStar"
+        cls, _mapper: Mapper, connection: Connection, target: FavStar
     ) -> None:
         session = Session(bind=connection)
         name = "favorited_by:{0}".format(target.user_id)
@@ -260,7 +266,7 @@ class FavStarUpdater:
 
     @classmethod
     def after_delete(
-        cls, _mapper: Mapper, connection: Connection, target: "FavStar"
+        cls, _mapper: Mapper, connection: Connection, target: FavStar
     ) -> None:
         session = Session(bind=connection)
         name = "favorited_by:{0}".format(target.user_id)
