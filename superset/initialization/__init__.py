@@ -373,8 +373,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category="SQL Lab",
             category_label=__("SQL"),
         )
-        appbuilder.add_view(
-            Flash,
+        appbuilder.add_link(
             "Flash",
             label=__("Flash"),
             href="/flash/list/",
