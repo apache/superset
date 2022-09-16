@@ -144,10 +144,7 @@ TUPLE_QUERY_INDEX = 2
 ADVANCED_DATA_TYPES = config["ADVANCED_DATA_TYPES"]
 VIRTUAL_TABLE_ALIAS = "virtual_table"
 
-SQL_CLAUSES = {
-    "order_by": "ORDER BY",
-    "group_by": "GROUP BY"
-}
+SQL_CLAUSES = {"order_by": "ORDER BY", "group_by": "GROUP BY"}
 
 # a non-exhaustive set of additive metrics
 ADDITIVE_METRIC_TYPES = {
@@ -999,29 +996,36 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         sql_filters = sql.partition(VIRTUAL_TABLE_ALIAS)[TUPLE_QUERY_INDEX]
         sql_filters_list = sql_filters.split("\n")
         for filter_value in sql_filters_list[1::]:
-            if(not(filter_value.startswith(SQL_CLAUSES["group_by"])
+            if not (
+                filter_value.startswith(SQL_CLAUSES["group_by"])
                 or filter_value.startswith(SQL_CLAUSES["order_by"])
-            )):
+            ):
                 filtered_list.append(filter_value)
                 changed_sql = changed_sql.replace("{}".format(filter_value), "")
                 changed_sql = changed_sql.replace("{}{}".format(filter_value, "\n"), "")
 
         final_filters_string = "\n".join(filtered_list)
         start_of_query = changed_sql.partition("FROM\n  (SELECT")[TUPLE_QUERY_INDEX]
-        index_of_end = start_of_query.index('FROM')
-        table_expressions_list = start_of_query[:index_of_end].split(',\n')
+        index_of_end = start_of_query.index("FROM")
+        table_expressions_list = start_of_query[:index_of_end].split(",\n")
 
         for expression in table_expressions_list:
             format_exp = expression.strip()
-            column = format_exp.split(' ')
+            column = format_exp.split(" ")
             colum_expressions[column[1]] = column[0]
 
         for column_name in colum_expressions.keys():
             expr = colum_expressions[column_name]
-            final_filters_string = final_filters_string.replace('"{}"'.format(column_name), expr)
+            final_filters_string = final_filters_string.replace(
+                '"{}"'.format(column_name), expr
+            )
 
         index = changed_sql.find(') AS "virtual_table"')
-        final_sql = changed_sql[:index]  + ' {} '.format(final_filters_string) + changed_sql[index:]
+        final_sql = (
+            changed_sql[:index]
+            + " {} ".format(final_filters_string)
+            + changed_sql[index:]
+        )
         return sqlparse.format(final_sql, reindent=True)
 
     def get_query_str_extended(self, query_obj: QueryObjectDict) -> QueryStringExtended:
