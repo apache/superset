@@ -18,7 +18,7 @@ import logging
 import re
 from dataclasses import dataclass
 from enum import Enum
-from typing import List, Optional, Set
+from typing import List, Optional, Set, Tuple, NamedTuple
 from urllib import parse
 
 import sqlparse
@@ -26,6 +26,7 @@ from sqlparse.sql import (
     Identifier,
     IdentifierList,
     Parenthesis,
+    Function,
     remove_quotes,
     Token,
     TokenList,
@@ -40,7 +41,6 @@ ON_KEYWORD = "ON"
 PRECEDES_TABLE_NAME = {"FROM", "JOIN", "DESCRIBE", "WITH", "LEFT JOIN", "RIGHT JOIN"}
 CTE_PREFIX = "CTE__"
 logger = logging.getLogger(__name__)
-
 
 # TODO: Workaround for https://github.com/andialbrecht/sqlparse/issues/652.
 sqlparse.keywords.SQL_REGEX.insert(
@@ -114,6 +114,14 @@ class Table:
 
 
 class ParsedQuery:
+    class TableTuple(NamedTuple):
+        table: Table
+        level: int
+
+    class AliasTuple(NamedTuple):
+        name: str
+        level: int
+
     def __init__(self, sql_statement: str, strip_comments: bool = False):
         if strip_comments:
             sql_statement = sqlparse.format(sql_statement, strip_comments=True)
@@ -132,10 +140,26 @@ class ParsedQuery:
     def tables(self) -> Set[Table]:
         if not self._tables:
             for statement in self._parsed:
-                self._extract_from_token(statement)
+                result = self._extract_from_token(statement)
+                if result:
+                    [tables, alias_names] = result
+                    self._tables = self._tables.union(tables)
+                    self._alias_names = self._alias_names.union(alias_names)
+
+            alias_names: Set[str] = set([alias.name for alias in self._alias_names])
+
+            def deepest_alias_level(alias_name: str) -> int:
+                alias_entries = [a for a in self._alias_names if a.name == alias_name]
+                if len(alias_entries) > 0:
+                    return max(alias_entries, key=lambda a: a.level).level
+                return -1
 
             self._tables = {
-                table for table in self._tables if str(table) not in self._alias_names
+                t.table for t in self._tables
+                if (
+                       t.table.table not in alias_names or
+                       deepest_alias_level(t.table.table) < t.level
+                   )
             }
         return self._tables
 
@@ -253,7 +277,26 @@ class ParsedQuery:
     def _is_identifier(token: Token) -> bool:
         return isinstance(token, (IdentifierList, Identifier))
 
-    def _process_tokenlist(self, token_list: TokenList) -> None:
+    @staticmethod
+    def _join_result(
+        result: Optional[Tuple[Set[TableTuple], Set[AliasTuple]]],
+        current_tables: Set[TableTuple],
+        current_alias_names: Set[AliasTuple]
+    ) -> Optional[Tuple[Set[TableTuple], Set[AliasTuple]]]:
+        if result:
+            [new_tables, new_alias_names] = result or [set(), set()]
+        return [
+            current_tables.union(new_tables),
+            current_alias_names.union(new_alias_names)
+        ]
+
+    def _process_tokenlist(
+        self,
+        token_list: TokenList,
+        level: int,
+        tables: Set[TableTuple],
+        alias_names: Set[AliasTuple]
+    ) -> Tuple[Set[TableTuple], Set[AliasTuple]]:
         """
         Add table names to table set
 
@@ -263,17 +306,30 @@ class ParsedQuery:
         if "(" not in str(token_list):
             table = self._get_table(token_list)
             if table and not table.table.startswith(CTE_PREFIX):
-                self._tables.add(table)
-            return
+                tables.add(self.TableTuple(table, level))
+            return [tables, alias_names]
 
         # store aliases
         if token_list.has_alias():
-            self._alias_names.add(token_list.get_alias())
+            alias = token_list.get_alias()
+            alias_names.add(self.AliasTuple(
+                alias,
+                level + 1
+            ))
 
         # some aliases are not parsed properly
         if token_list.tokens[0].ttype == Name:
-            self._alias_names.add(token_list.tokens[0].value)
-        self._extract_from_token(token_list)
+            alias_name = token_list.tokens[0].value
+
+            alias_names.add(self.AliasTuple(
+                alias_name,
+                level + 1
+            ))
+        return ParsedQuery._join_result(
+            self._extract_from_token(token_list),
+            tables,
+            alias_names
+        )
 
     def as_create_table(
         self,
@@ -301,7 +357,115 @@ class ParsedQuery:
         exec_sql += f"CREATE {method} {full_table_name} AS \n{sql}"
         return exec_sql
 
-    def _extract_from_token(self, token: Token) -> None:
+    @staticmethod
+    def _extract_with_identifiers(
+        tokens: List[Token]
+    ) -> List[Token]:
+        non_empty_tokens = list(filter(lambda t: not t.is_whitespace, tokens))
+        with_identifiers = list()
+        i = 0
+        while i < len(non_empty_tokens):
+            # Foo(a, b) as (select a,b from bar)
+            if i + 2 <= len(non_empty_tokens) and \
+                isinstance(non_empty_tokens[i], Function) and \
+                non_empty_tokens[i + 1].value.lower() == 'as' and \
+                    isinstance(non_empty_tokens[i + 2], Parenthesis):
+                with_identifiers.append(TokenList(non_empty_tokens[i:i+3]))
+                i = i + 2
+            # q as (select * from foo)
+            elif isinstance(non_empty_tokens[i], Identifier):
+                with_identifiers.append(non_empty_tokens[i])
+            i = i + 1
+        return with_identifiers
+
+    def _extract_from_token_with_with_block(
+        self,
+        token: Token,
+        level: int,
+    ) -> Optional[Tuple[Set[TableTuple], Set[AliasTuple]]]:
+        with_identifiers_token = token.token_next(0, skip_ws=True)[1]
+        with_token_position = token.token_index(with_identifiers_token) + 1
+        select_token = TokenList(token.tokens[with_token_position:])
+
+        with_identifiers = self._extract_with_identifiers(with_identifiers_token.tokens)
+
+        [tables, alias_names] = [set(), set()]
+        for with_identifier in with_identifiers:
+            if with_identifier.is_group:
+                [with_tables, with_alias_names] = self._process_tokenlist(
+                    TokenList(with_identifier.tokens),
+                    level,
+                    tables,
+                    alias_names
+                )
+                with_alias_names = self._alias_names_that_are_not_tables(tables,
+                                                                         with_alias_names)
+                with_tables = self._tables_that_are_not_alias_names(with_tables,
+                                                                    alias_names)
+                [tables, alias_names] = self._join_result(
+                    [with_tables, with_alias_names],
+                    tables,
+                    alias_names
+                )
+
+        [select_tables, select_alias_names] = self._extract_from_token(
+            select_token,
+            level
+        )
+        select_tables = self._tables_that_are_not_alias_names(select_tables,
+                                                              alias_names)
+        alias_names = {
+            a for a in alias_names.union(select_alias_names)
+            if a.name not in {str(t.table) for t in tables}
+        }
+
+        tables = tables.union(
+            self._tables_that_are_not_alias_names(select_tables, alias_names)
+        )
+
+        return [tables, alias_names]
+
+    @staticmethod
+    def _alias_names_that_are_not_tables(
+        tables: Set[TableTuple],
+        alias_names: Set[AliasTuple]
+    ) -> Set[AliasTuple]:
+        def is_alias_not_a_table(
+            alias
+        ) -> bool:
+            return not any([
+                t for t in tables
+                if alias.name == str(t.table) and alias.level > t.level
+            ])
+
+        return {
+            a for a in alias_names
+            if is_alias_not_a_table(a)
+        }
+
+    @staticmethod
+    def _tables_that_are_not_alias_names(
+        tables: Set[TableTuple],
+        alias_names: Set[AliasTuple]
+    ) -> Set[TableTuple]:
+        def is_table_an_alias_name(
+            table
+        ) -> bool:
+            return any([
+                a for a in alias_names
+                if str(table.table) == a.name
+            ])
+
+        return {
+            t for t in tables
+            if not is_table_an_alias_name(t)
+        }
+
+    def _extract_from_token(
+        self,
+        token: Token,
+        level: int = 0
+    ) -> Optional[Tuple[Set[TableTuple], Set[AliasTuple]]]:
         """
         <Identifier> store a list of subtokens and <IdentifierList> store lists of
         subtoken list.
@@ -316,13 +480,23 @@ class ParsedQuery:
         if not hasattr(token, "tokens"):
             return
 
+        tables = set()
+        alias_names = set()
+
         table_name_preceding_token = False
+
+        if token.tokens[0].value.lower() == 'with':
+            return self._extract_from_token_with_with_block(token, level)
 
         for item in token.tokens:
             if item.is_group and (
                 not self._is_identifier(item) or isinstance(item.tokens[0], Parenthesis)
             ):
-                self._extract_from_token(item)
+                [tables, alias_names] = ParsedQuery._join_result(
+                    self._extract_from_token(item, level + 1),
+                    tables,
+                    alias_names
+                )
 
             if item.ttype in Keyword and (
                 item.normalized in PRECEDES_TABLE_NAME
@@ -336,14 +510,23 @@ class ParsedQuery:
                 continue
             if table_name_preceding_token:
                 if isinstance(item, Identifier):
-                    self._process_tokenlist(item)
+                    [tables, alias_names] = self._process_tokenlist(item, level, tables,
+                                                                    alias_names)
                 elif isinstance(item, IdentifierList):
                     for token2 in item.get_identifiers():
                         if isinstance(token2, TokenList):
-                            self._process_tokenlist(token2)
+                            [tables, alias_names] = self._process_tokenlist(token2,
+                                                                            level,
+                                                                            tables,
+                                                                            alias_names)
             elif isinstance(item, IdentifierList):
                 if any(not self._is_identifier(token2) for token2 in item.tokens):
-                    self._extract_from_token(item)
+                    [tables, alias_names] = ParsedQuery._join_result(
+                        self._extract_from_token(item, level + 1),
+                        tables,
+                        alias_names
+                    )
+        return [tables, alias_names]
 
     def set_or_update_query_limit(self, new_limit: int, force: bool = False) -> str:
         """Returns the query with the specified limit.

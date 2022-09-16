@@ -144,6 +144,37 @@ WHERE s11 > ANY (
         == {Table("t1"), Table("t2"), Table("t3"), Table("t4")}
     )
 
+def test_extract_tables_subselect_with_table_names_as_aliases() -> None:
+    assert (
+        extract_tables(
+            """SELECT t1.*
+FROM (
+    SELECT *
+        FROM t1
+        WHERE day_of_week = 'Friday'
+    ) t1
+WHERE t1.resolution = 'NONE'
+            """
+        )
+        == {Table("t1")}
+    )
+
+    assert (
+        extract_tables(
+            """SELECT t1.*
+FROM (
+    SELECT *
+        FROM t2
+        WHERE day_of_week = 'Friday'
+    ) t1
+UNION (
+    SELECT *
+    FROM t1) t2
+WHERE t1.resolution = 'NONE'
+            """
+        )
+        == {Table("t2"), Table("t1")}
+    )
 
 def test_extract_tables_select_in_expression() -> None:
     """
@@ -511,11 +542,21 @@ def test_extract_tables_reusing_aliases() -> None:
     """
     Test that the parser follows aliases.
     """
+#     assert (
+#         extract_tables(
+#             """
+# with q1 as ( select key from q2 where key = '5'),
+# q2 as ( select key from src where key = '5')
+# select * from (select key from q1) a
+# """
+#         )
+#         == {Table("src")}
+#     )
     assert (
         extract_tables(
             """
-with q1 as ( select key from q2 where key = '5'),
-q2 as ( select key from src where key = '5')
+with q1 as ( select key from src where key = '5'),
+src as ( select key from src where key = '5')
 select * from (select key from q1) a
 """
         )
