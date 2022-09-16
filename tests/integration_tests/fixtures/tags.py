@@ -22,7 +22,7 @@ from tests.integration_tests.test_app import app
 
 
 @pytest.fixture
-def tag_sqla_event_listeners():
+def with_tagging_system_feature():
     with app.app_context():
         app.config["DEFAULT_FEATURE_FLAGS"]["TAGGING_SYSTEM"] = True
         register_sqla_event_listeners()

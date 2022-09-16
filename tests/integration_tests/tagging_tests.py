@@ -30,7 +30,7 @@ from superset.utils.core import DatasourceType
 from superset.utils.database import get_main_database
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.conftest import with_feature_flags
-from tests.integration_tests.fixtures.tags import tag_sqla_event_listeners
+from tests.integration_tests.fixtures.tags import with_tagging_system_feature
 
 
 class TestTagging(SupersetTestCase):
@@ -54,7 +54,7 @@ class TestTagging(SupersetTestCase):
         response = self.client.get("/tagview/tags/suggestions/")
         self.assertNotEqual(404, response.status_code)
 
-    @pytest.mark.usefixtures("tag_sqla_event_listeners")
+    @pytest.mark.usefixtures("with_tagging_system_feature")
     def test_dataset_tagging(self):
         """
         Test to make sure that when a new dataset is created,
@@ -90,7 +90,7 @@ class TestTagging(SupersetTestCase):
         db.session.delete(test_dataset)
         db.session.commit()
 
-    @pytest.mark.usefixtures("tag_sqla_event_listeners")
+    @pytest.mark.usefixtures("with_tagging_system_feature")
     def test_chart_tagging(self):
         """
         Test to make sure that when a new chart is created,
@@ -125,7 +125,7 @@ class TestTagging(SupersetTestCase):
         db.session.delete(test_chart)
         db.session.commit()
 
-    @pytest.mark.usefixtures("tag_sqla_event_listeners")
+    @pytest.mark.usefixtures("with_tagging_system_feature")
     def test_dashboard_tagging(self):
         """
         Test to make sure that when a new dashboard is created,
@@ -159,7 +159,7 @@ class TestTagging(SupersetTestCase):
         db.session.delete(test_dashboard)
         db.session.commit()
 
-    @pytest.mark.usefixtures("tag_sqla_event_listeners")
+    @pytest.mark.usefixtures("with_tagging_system_feature")
     def test_saved_query_tagging(self):
         """
         Test to make sure that when a new saved query is
@@ -197,7 +197,7 @@ class TestTagging(SupersetTestCase):
         db.session.delete(test_saved_query)
         db.session.commit()
 
-    @pytest.mark.usefixtures("tag_sqla_event_listeners")
+    @pytest.mark.usefixtures("with_tagging_system_feature")
     def test_favorite_tagging(self):
         """
         Test to make sure that when a new favorite object is
