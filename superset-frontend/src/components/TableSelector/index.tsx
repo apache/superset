@@ -196,7 +196,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
         ? data.options.map(table => ({
             value: table.value,
             label: <TableOption table={table} />,
-            text: table.label,
+            text: table.value,
           }))
         : [],
     [data],
