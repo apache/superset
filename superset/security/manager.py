@@ -1198,7 +1198,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :param target: The changed dataset object
         :return:
         """
-        from superset.models.core import Database  # pylint disable=import-outside-toplevel
+        from superset.models.core import (  # pylint disable=import-outside-toplevel
+            Database,
+        )
 
         try:
             dataset_perm = target.get_perm()
