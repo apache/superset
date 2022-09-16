@@ -49,8 +49,10 @@ from superset.utils import csv
 from superset.utils.cache import generate_cache_key, set_and_log_cache
 from superset.utils.core import (
     DatasourceType,
+    DateColumn,
     DTTM_ALIAS,
     error_msg_from_exception,
+    get_base_axis_labels,
     get_column_names_from_columns,
     get_column_names_from_metrics,
     get_metric_names,
@@ -238,18 +240,57 @@ class QueryContextProcessor:
         return result
 
     def normalize_df(self, df: pd.DataFrame, query_object: QueryObject) -> pd.DataFrame:
-        datasource = self._qc_datasource
-        timestamp_format = None
-        if datasource.type == "table":
-            dttm_col = datasource.get_column(query_object.granularity)
-            if dttm_col:
-                timestamp_format = dttm_col.python_date_format
+        # todo: should support "python_date_format" and "get_column" in each datasource
+        def _get_timestamp_format(
+            source: BaseDatasource, column: Optional[str]
+        ) -> Optional[str]:
+            column_obj = source.get_column(column)
+            if (
+                column_obj
+                # only sqla column was supported
+                and hasattr(column_obj, "python_date_format")
+                and (formatter := column_obj.python_date_format)
+            ):
+                return str(formatter)
 
+            return None
+
+        datasource = self._qc_datasource
+        labels = tuple(
+            label
+            for label in [
+                *get_base_axis_labels(query_object.columns),
+                query_object.granularity,
+            ]
+            if datasource
+            # Query datasource didn't support `get_column`
+            and hasattr(datasource, "get_column")
+            and (col := datasource.get_column(label))
+            and col.is_dttm
+        )
+        dttm_cols = [
+            DateColumn(
+                timestamp_format=_get_timestamp_format(datasource, label),
+                offset=datasource.offset,
+                time_shift=query_object.time_shift,
+                col_label=label,
+            )
+            for label in labels
+            if label
+        ]
+        if DTTM_ALIAS in df:
+            dttm_cols.append(
+                DateColumn.get_legacy_time_column(
+                    timestamp_format=_get_timestamp_format(
+                        datasource, query_object.granularity
+                    ),
+                    offset=datasource.offset,
+                    time_shift=query_object.time_shift,
+                )
+            )
         normalize_dttm_col(
             df=df,
-            timestamp_format=timestamp_format,
-            offset=datasource.offset,
-            time_shift=query_object.time_shift,
+            dttm_cols=tuple(dttm_cols),
         )
 
         if self.enforce_numerical_metrics:
@@ -344,10 +385,7 @@ class QueryContextProcessor:
                 offset_metrics_df = offset_metrics_df.rename(columns=metrics_mapping)
 
                 # 3. set time offset for index
-                # TODO: add x-axis to QueryObject, potentially as an array for
-                #  multi-dimensional charts
-                granularity = query_object.granularity
-                index = granularity if granularity in df.columns else DTTM_ALIAS
+                index = (get_base_axis_labels(query_object.columns) or [DTTM_ALIAS])[0]
                 if not dataframe_utils.is_datetime_series(offset_metrics_df.get(index)):
                     raise QueryObjectValidationError(
                         _(
