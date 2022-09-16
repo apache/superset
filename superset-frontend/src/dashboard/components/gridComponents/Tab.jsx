@@ -182,15 +182,16 @@ class Tab extends React.PureComponent {
               canEdit &&
               (editMode ? (
                 <span>
-                  {t('You can')}{' '}
-                  <a
+                  {t(
+                    'You can create a new chart or use existing ones from the panel on the right',
+                  )}{' '}
+                  {/* <a
                     href={`/chart/add?dashboard_id=${dashboardId}`}
                     rel="noopener noreferrer"
                     target="_blank"
                   >
                     {t('create a new chart')}
-                  </a>{' '}
-                  {t('or use existing ones from the panel on the right')}
+                  </a>{' '} */}
                 </span>
               ) : (
                 <span>
