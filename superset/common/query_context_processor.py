@@ -240,12 +240,14 @@ class QueryContextProcessor:
         return result
 
     def normalize_df(self, df: pd.DataFrame, query_object: QueryObject) -> pd.DataFrame:
+        # todo: should support "python_date_format" and "get_column" in each datasouce
         def _get_timestamp_format(
             source: BaseDatasource, column: Optional[str]
         ) -> Optional[str]:
             column_obj = source.get_column(column)
             if (
                 column_obj
+                # only sqla column was supported
                 and hasattr(column_obj, "python_date_format")
                 and (formatter := column_obj.python_date_format)
             ):
@@ -260,7 +262,11 @@ class QueryContextProcessor:
                 *get_base_axis_labels(query_object.columns),
                 query_object.granularity,
             ]
-            if datasource and (col := datasource.get_column(label)) and col.is_dttm
+            if datasource
+            # Query datasource didn't supported `get_column`
+            and hasattr(datasource, "get_column")
+            and (col := datasource.get_column(label))
+            and col.is_dttm
         )
         dttm_cols = [
             DateColumn(
