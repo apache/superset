@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
+
 def register_sqla_event_listeners() -> None:
     import sqlalchemy as sqla
 
@@ -66,7 +67,7 @@ def clear_sqla_event_listeners() -> None:
         FavStarUpdater,
         QueryUpdater,
     )
-    
+
     sqla.event.remove(SqlaTable, "after_insert", DatasetUpdater.after_insert)
     sqla.event.remove(SqlaTable, "after_update", DatasetUpdater.after_update)
     sqla.event.remove(SqlaTable, "after_delete", DatasetUpdater.after_delete)
