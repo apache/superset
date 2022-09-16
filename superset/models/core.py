@@ -53,7 +53,7 @@ from sqlalchemy.pool import NullPool
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import expression, Select
 
-from superset import app, db_engine_specs, is_feature_enabled
+from superset import app, db_engine_specs
 from superset.constants import PASSWORD_MASK
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import MetricType, TimeGrain
