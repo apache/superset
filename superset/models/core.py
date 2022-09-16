@@ -647,7 +647,7 @@ class Database(
         return self.db_engine_spec.get_schema_names(self.inspector)
 
     @cache_util.memoized_func(
-        key=lambda self, *args, **kwargs: f"db:{self.id}:schema_list",
+        key="db:{self.id}:catalogs_schema_list",
         cache=cache_manager.cache,
     )
     def get_all_catalog_schema_names(  # pylint: disable=unused-argument
@@ -671,7 +671,7 @@ class Database(
         )
 
     @cache_util.memoized_func(
-        key=lambda self, *args, **kwargs: f"db:{self.id}:catalog_list",
+        key="db:{self.id}:catalogs_list",
         cache=cache_manager.cache,
     )
     def get_all_catalog_names(  # pylint: disable=unused-argument
