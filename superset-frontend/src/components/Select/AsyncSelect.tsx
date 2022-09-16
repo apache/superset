@@ -185,6 +185,7 @@ const AsyncSelect = forwardRef(
     const [totalCount, setTotalCount] = useState(0);
     const [loadingEnabled, setLoadingEnabled] = useState(!lazyLoading);
     const [allValuesLoaded, setAllValuesLoaded] = useState(false);
+    const selectValueRef = useRef(selectValue);
     const fetchedQueries = useRef(new Map<string, number>());
     const mappedMode = isSingleMode
       ? undefined
@@ -193,10 +194,14 @@ const AsyncSelect = forwardRef(
       : 'multiple';
     const allowFetch = !fetchOnlyOnSearch || inputValue;
 
+    useEffect(() => {
+      selectValueRef.current = selectValue;
+    }, [selectValue]);
+
     const sortSelectedFirst = useCallback(
       (a: AntdLabeledValue, b: AntdLabeledValue) =>
-        sortSelectedFirstHelper(a, b, selectValue),
-      [selectValue],
+        sortSelectedFirstHelper(a, b, selectValueRef.current),
+      [],
     );
 
     const sortComparatorWithSearch = useCallback(
@@ -299,21 +304,25 @@ const AsyncSelect = forwardRef(
       [onError],
     );
 
-    const mergeData = useCallback((data: SelectOptionsType) => {
-      let mergedData: SelectOptionsType = [];
-      if (data && Array.isArray(data) && data.length) {
-        // unique option values should always be case sensitive so don't lowercase
-        const dataValues = new Set(data.map(opt => opt.value));
-        // merges with existing and creates unique options
-        setSelectOptions(prevOptions => {
-          mergedData = prevOptions
-            .filter(previousOption => !dataValues.has(previousOption.value))
-            .concat(data);
-          return mergedData;
-        });
-      }
-      return mergedData;
-    }, []);
+    const mergeData = useCallback(
+      (data: SelectOptionsType) => {
+        let mergedData: SelectOptionsType = [];
+        if (data && Array.isArray(data) && data.length) {
+          // unique option values should always be case sensitive so don't lowercase
+          const dataValues = new Set(data.map(opt => opt.value));
+          // merges with existing and creates unique options
+          setSelectOptions(prevOptions => {
+            mergedData = prevOptions
+              .filter(previousOption => !dataValues.has(previousOption.value))
+              .concat(data)
+              .sort(sortComparatorForNoSearch);
+            return mergedData;
+          });
+        }
+        return mergedData;
+      },
+      [sortComparatorForNoSearch],
+    );
 
     const fetchPage = useMemo(
       () => (search: string, page: number) => {
