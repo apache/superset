@@ -48,6 +48,7 @@ class ExploreFormDataCache(Cache):
 
         return cache
 
+
 logger = logging.getLogger(__name__)
 
 CACHE_IMPORT_PATH = "superset.extensions.metastore_cache.SupersetMetastoreCache"
@@ -74,33 +75,6 @@ class CacheManager:
                 logger.warning(
                     "Falling back to the built-in cache, that stores data in the "
                     "metadata database, for the following cache: `%s`. "
-                    "It is recommended to use `RedisCache`, `MemcachedCache` or "
-                    "another dedicated caching backend for production deployments",
-                    cache_config_key,
-                )
-            cache_type = CACHE_IMPORT_PATH
-            cache_key_prefix = cache_config.get("CACHE_KEY_PREFIX", cache_config_key)
-            cache_config.update(
-                {"CACHE_TYPE": cache_type, "CACHE_KEY_PREFIX": cache_key_prefix}
-            )
-
-        if cache_type is not None and "CACHE_DEFAULT_TIMEOUT" not in cache_config:
-            default_timeout = app.config.get("CACHE_DEFAULT_TIMEOUT")
-            cache_config["CACHE_DEFAULT_TIMEOUT"] = default_timeout
-
-        cache.init_app(app, cache_config)
-
-    @staticmethod
-    def _init_cache(
-        app: Flask, cache: Cache, cache_config_key: str, required: bool = False
-    ) -> None:
-        cache_config = app.config[cache_config_key]
-        cache_type = cache_config.get("CACHE_TYPE")
-        if (required and cache_type is None) or cache_type == "SupersetMetastoreCache":
-            if cache_type is None and not app.debug:
-                logger.warning(
-                    "Falling back to the built-in cache, that stores data in the "
-                    "metadata database, for the followinng cache: `%s`. "
                     "It is recommended to use `RedisCache`, `MemcachedCache` or "
                     "another dedicated caching backend for production deployments",
                     cache_config_key,

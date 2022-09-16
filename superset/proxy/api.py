@@ -34,23 +34,23 @@ class ProxyRestAPI(BaseSupersetModelRestApi):
 
     openapi_spec_tag = "Proxy"
 
-    def __init__(self):
+    def __init__(self) -> None:
         """
         This is the init function for the ProxyRestAPI class
         """
         super().__init__()
 
-        self.ALFRED_SCOPE = os.environ.get("ALFRED_SCOPE")
+        self.ALFRED_SCOPE = str(os.environ.get("ALFRED_SCOPE"))
 
-        self.ALFRED_URL = os.environ.get("ALFRED_URL")
+        self.ALFRED_URL = str(os.environ.get("ALFRED_URL"))
 
         if os.environ.get("FLASK_ENV") == "development":
-            self.SSL_CERT = os.environ.get("REQUESTS_CA_BUNDLE_DEV")
+            self.SSL_CERT = str(os.environ.get("REQUESTS_CA_BUNDLE_DEV"))
         else:
-            self.SSL_CERT = os.environ.get("REQUESTS_CA_BUNDLE")
+            self.SSL_CERT = str(os.environ.get("REQUESTS_CA_BUNDLE"))
 
     def attach_url(
-        self, response_code: int, app_url: str, err: bool, payload
+        self, response_code: int, app_url: str, err: bool, payload: str
     ) -> Response:
         """
         This is a function that will attach the app URL with the response that is
@@ -96,7 +96,7 @@ class ProxyRestAPI(BaseSupersetModelRestApi):
         and exception that was caught when trying to get a response from an application
 
         :param token_name: String value representing which app we are linking to
-        :param raised_exception: Exception value representing the error that occurred 
+        :param raised_exception: Exception value representing the error that occurred
         :returns: Response generated from passing values to the attach_url function
         """
         logger.error("Error obtaining %s response: %s", token_name, raised_exception)
@@ -115,35 +115,36 @@ class ProxyRestAPI(BaseSupersetModelRestApi):
         :param url: String value representing the URL we will send an API call to
         :returns: Response generated from passing values to the attach_url function
         """
-        if (self.ALFRED_SCOPE is None and self.ALFRED_URL is None):
-            return self.error_obtaining_response("Alfred", "No Alfred Scope and No Alfred URL")
-        if (self.ALFRED_SCOPE is None):
+        if self.ALFRED_SCOPE is None and self.ALFRED_URL is None:
+            return self.error_obtaining_response(
+                "Alfred", "No Alfred Scope and No Alfred URL"
+            )
+        if self.ALFRED_SCOPE is None:
             return self.error_obtaining_response("Alfred", "No Alfred Scope")
-        if (self.ALFRED_URL is None):
+        if self.ALFRED_URL is None:
             return self.error_obtaining_response("Alfred", "No Alfred URL")
 
         try:
-            alfred_token = security_manager.get_on_behalf_of_access_token_with_cache(current_user.username,
-                                                                                    self.ALFRED_SCOPE,
-                                                                                    'alfred',
-                                                                                    cache_result=True)
+            alfred_token = security_manager.get_on_behalf_of_access_token_with_cache(
+                current_user.username, self.ALFRED_SCOPE, "alfred", cache_result=True
+            )
             if not alfred_token:
                 raise Exception("Unable to fetch Alfred token")
         except (requests.exceptions.HTTPError, Exception) as err:
             return self.error_obtaining_token("Alfred", err)
         else:
-            headers = CaseInsensitiveDict()
+            headers = CaseInsensitiveDict()  # type: ignore
             headers["Accept"] = "application/json"
             headers["Authorization"] = f"Bearer { alfred_token }"
             alfred_resp = ""
 
             try:
-                alfred_resp = requests.get(url, headers=headers, verify=self.SSL_CERT)
+                alfred_resp = requests.get(url, headers=headers, verify=self.SSL_CERT)  # type: ignore
             except requests.exceptions.ConnectionError as err:
                 return self.error_obtaining_response("Alfred", err)
 
             refresh_resp_json = json.loads(
-                alfred_resp.content.decode("utf8", "replace")
+                alfred_resp.content.decode("utf8", "replace")  # type: ignore
             )
             return self.attach_url(200, self.ALFRED_URL, False, refresh_resp_json)
 
@@ -163,7 +164,7 @@ class ProxyRestAPI(BaseSupersetModelRestApi):
         :returns: Response generated from passing values to the make_alfred_connection function
         """
         user_emails = user_id.split(",")
-        user_email_string = ''
+        user_email_string = ""
 
         if len(user_emails) > 0:
             user_email_string = user_emails[0]
@@ -171,11 +172,11 @@ class ProxyRestAPI(BaseSupersetModelRestApi):
                 user_email_string += "%22%2C%20%22" + user_emails[index]
 
         url = (
-                self.ALFRED_URL
-                + "/rest/search/cypher?expression=MATCH%20(email%3AEMAIL_ADDRESS)%20WHERE%20email.value%20IN%20%5B%22"
-                + user_email_string
-                + "%22%5D%20RETURN%20email.value%2C%20email.maliciousness%2C%20email.uri"
-            )
+            self.ALFRED_URL
+            + "/rest/search/cypher?expression=MATCH%20(email%3AEMAIL_ADDRESS)%20WHERE%20email.value%20IN%20%5B%22"
+            + user_email_string
+            + "%22%5D%20RETURN%20email.value%2C%20email.maliciousness%2C%20email.uri"
+        )
 
         return self.make_alfred_connection(url)
 
@@ -195,13 +196,13 @@ class ProxyRestAPI(BaseSupersetModelRestApi):
         :returns: Response generated from passing values to the make_alfred_connection function
         """
         user_ips = ip_string.split(",")
-        user_ip_string = ''
+        user_ip_string = ""
 
         if len(user_ips) > 0:
             user_ip_string = user_ips[0]
             for index in range(1, len(user_ips)):
                 user_ip_string += "%22%2C%20%22" + user_ips[index]
-            
+
         url = (
             self.ALFRED_URL
             + "/rest/search/cypher?expression=MATCH%20(ip%3AIP_ADDRESS)%20WHERE%20ip.value%20IN%20%5B%22"

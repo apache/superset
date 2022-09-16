@@ -29,7 +29,9 @@ def test_extract_table_references(mocker: MockerFixture, app_context: None) -> N
     """
     Test the ``extract_table_references`` helper function.
     """
-    from superset.migrations.shared.utils import extract_table_references
+    from superset.migrations.shared.utils import (  # type: ignore
+        extract_table_references,
+    )
 
     assert extract_table_references("SELECT 1", "trino") == set()
     assert extract_table_references("SELECT 1 FROM some_table", "trino") == {

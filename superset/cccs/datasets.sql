@@ -98,7 +98,7 @@ select
     MOD(end_ip_num/256, 256), '.',
     MOD(end_ip_num, 256)
     ) as end_ip_string,
-    case 
+    case
       when  MOD(end_ip_num, 256) % 5 = 0 then 'Canada'
       when  MOD(end_ip_num, 256) % 5 = 1 then 'Austria'
       when  MOD(end_ip_num, 256) % 5 = 2 then 'Belarus'
@@ -123,11 +123,11 @@ select
 
 
 
- 
- 
- 
- 
- 
+
+
+
+
+
 
 
 CREATE TABLE employees (
@@ -188,15 +188,15 @@ VALUES
 	(3, 'Failed Login'),
 	(4, 'Wrong Password');
 
- 
 
 
-create table cccs_aad as ( 	
+
+create table cccs_aad as (
 select
-    event_time, 
-    ip_num, 
-    domain, 
-    action_name, 
+    event_time,
+    ip_num,
+    domain,
+    action_name,
     full_name,
     CONCAT(
     MOD(ip_num/16777216, 256) , '.',
@@ -225,15 +225,15 @@ where
 
 
 create table cccs_virus_total as (
-select 
+select
   src_ip_string as ip_string,
   src_ip_num as ip_num,
   src_ip_num % 5 as malicious_level
   from (
-  select distinct 
+  select distinct
     src_ip_string,
-    src_ip_num 
-  from cccs_flow 
+    src_ip_num
+  from cccs_flow
   ) t
 );
 
@@ -358,17 +358,17 @@ VALUES
 
 
 create table cccs_domains_lookup as (
-  select 
+  select
     f.src_ip_string as ip_string,
     f.src_ip_num as ip_num,
-    d.domain_name as domain_name 
+    d.domain_name as domain_name
   from (select distinct src_ip_string, src_ip_num from cccs_flow) f
   inner join domains d
   on (f.src_ip_num % 100) = d.id
   );
 
 create table cccs_blocked_domains as (
-  select 
+  select
   domain_name,
   random() > 0.5 as quad_nine_block,
   random() > 0.5 as google_block,
@@ -377,16 +377,3 @@ create table cccs_blocked_domains as (
   random() > 0.5 as cira_block
   from (select distinct domain_name from cccs_domains_lookup) t
 );
-
-
-
-
-
-
-
-
-
-
-
-
-

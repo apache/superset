@@ -17,14 +17,12 @@ specific language governing permissions and limitations
 under the License.
 -->
 
-CCCS-VIZ for Superset
-=====================
+# CCCS-VIZ for Superset
 
 <br>
 <br>
 
-Creating a custom viz
-=====================
+# Creating a custom viz
 
 Modified instructions from
 https://superset.apache.org/docs/installation/building-custom-viz-plugins
@@ -36,8 +34,8 @@ cd plugin-chart-data-grid
 yo @superset-ui/superset
 ```
 
-
 Edit `superset/superset-frontend/src/visualizations/presets/MainPreset.js`
+
 ```diff
 
 + import { DataGridChartPlugin } from 'src/cccs-viz/plugins/';
@@ -53,6 +51,7 @@ Edit `superset/superset-frontend/src/visualizations/presets/MainPreset.js`
 ```
 
 Run dev-server
+
 ```
 
 cd superset/superset-frontend
@@ -66,13 +65,10 @@ Develop the custom viz. You can connect to port 9000 to test your modifications.
 <br>
 <br>
 
-
-
-Test your code changes inside the docker container
-==================
-
+# Test your code changes inside the docker container
 
 Now ready to test docker build
+
 ```bash
 
 cd superset
@@ -81,6 +77,7 @@ docker build -t 'apache/superset:latest-dev' .
 ```
 
 You can test your docker image using docker-compose, the docker-compose.yaml uses the image we just built.
+
 ```bash
 
 cd superset
@@ -90,20 +87,16 @@ docker-compose up
 
 You can connect to superset on port 8088 to test the superset server running inside the docker container.
 
-
-
 <br>
 <br>
 <br>
 
-
-
-Commiting your code
-==================
+# Commiting your code
 
 When it works locally from your own docker container you can commit your changes
 
 Add custom viz files and the config files that reference it
+
 ```bash
 
 cd superset
