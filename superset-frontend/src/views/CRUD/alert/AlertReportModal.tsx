@@ -38,7 +38,7 @@ import { Switch } from 'src/components/Switch';
 import Modal from 'src/components/Modal';
 import TimezoneSelector from 'src/components/TimezoneSelector';
 import { Radio } from 'src/components/Radio';
-import { propertyComparator } from 'src/components/Select/Select';
+import { propertyComparator } from 'src/components/Select/utils';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import Owner from 'src/types/Owner';

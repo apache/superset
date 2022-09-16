@@ -36,7 +36,7 @@ import { Select } from 'src/components';
 import debounce from 'lodash/debounce';
 import { SLOW_DEBOUNCE } from 'src/constants';
 import { useImmerReducer } from 'use-immer';
-import { propertyComparator } from 'src/components/Select/Select';
+import { propertyComparator } from 'src/components/Select/utils';
 import { PluginFilterSelectProps, SelectValue } from './types';
 import { StyledFormItem, FilterPluginStyle, StatusMessage } from '../common';
 import { getDataRecordFormatter, getSelectExtraFormData } from '../../utils';

@@ -188,20 +188,13 @@ class TestRolePermission(SupersetTestCase):
         self.assertIsNotNone(pvm_schema)
 
         # assert on permission hooks
-        view_menu_dataset = security_manager.find_view_menu(
-            f"[tmp_db1].[tmp_perm_table](id:{table.id})"
-        )
-        view_menu_schema = security_manager.find_view_menu(f"[tmp_db1].[tmp_schema]")
-        security_manager.on_view_menu_after_insert.assert_has_calls(
-            [
-                call(ANY, ANY, view_menu_dataset),
-                call(ANY, ANY, view_menu_schema),
-            ]
-        )
+        call_args = security_manager.on_permission_view_after_insert.call_args
+        assert call_args.args[2].id == pvm_schema.id
+
         security_manager.on_permission_view_after_insert.assert_has_calls(
             [
-                call(ANY, ANY, pvm_dataset),
-                call(ANY, ANY, pvm_schema),
+                call(ANY, ANY, ANY),
+                call(ANY, ANY, ANY),
             ]
         )
 
@@ -289,9 +282,11 @@ class TestRolePermission(SupersetTestCase):
         # Assert the hook is called
         security_manager.on_permission_view_after_insert.assert_has_calls(
             [
-                call(ANY, ANY, tmp_db1_pvm),
+                call(ANY, ANY, ANY),
             ]
         )
+        call_args = security_manager.on_permission_view_after_insert.call_args
+        assert call_args.args[2].id == tmp_db1_pvm.id
         session.delete(tmp_db1)
         session.commit()
 

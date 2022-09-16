@@ -1,4 +1,3 @@
-/* eslint-disable camelcase */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -14,30 +13,23 @@
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
  * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitationsxw
+ * specific language governing permissions and limitations
  * under the License.
  */
-import { DTTM_ALIAS, PostProcessingSort, RollingType } from '@superset-ui/core';
-import { PostProcessingFactory } from './types';
+import {
+  DTTM_ALIAS,
+  getColumnLabel,
+  isDefined,
+  QueryFormData,
+} from '@superset-ui/core';
 
-export const sortOperator: PostProcessingFactory<PostProcessingSort> = (
-  formData,
-  queryObject,
-) => {
-  const { x_axis: xAxis } = formData;
-  if (
-    (xAxis || queryObject.is_timeseries) &&
-    Object.values(RollingType).includes(formData.rolling_type)
-  ) {
-    const index = xAxis || DTTM_ALIAS;
-    return {
-      operation: 'sort',
-      options: {
-        columns: {
-          [index]: true,
-        },
-      },
-    };
+export const getAxis = (formData: QueryFormData): string | undefined => {
+  // The formData should be "raw form_data" -- the snake_case version of formData rather than camelCase.
+  if (!(formData.granularity_sqla || formData.x_axis)) {
+    return undefined;
   }
-  return undefined;
+
+  return isDefined(formData.x_axis)
+    ? getColumnLabel(formData.x_axis)
+    : DTTM_ALIAS;
 };
