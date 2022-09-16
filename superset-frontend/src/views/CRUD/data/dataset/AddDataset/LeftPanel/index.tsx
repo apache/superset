@@ -188,8 +188,6 @@ export default function LeftPanel({
   const search = useMemo(
     () =>
       debounce((value: string) => {
-        const encodeTableName =
-          value === '' ? undefined : encodeURIComponent(value);
         const endpoint = encodeURI(
           `/superset/tables/${dbId}/${encodedSchema}/`,
         );
