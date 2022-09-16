@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -17,10 +17,19 @@
  * under the License.
  */
 
-export { default as callApi } from './callApi';
-export { default as SupersetClient } from './SupersetClient';
-export { default as SupersetClientClass } from './SupersetClientClass';
-export { default as FlashClient } from './FlashClient';
+export const removeUnnecessaryProperties = (
+  formObject: Object,
+  properties: Array<string>,
+) => {
+  const formObjLocalRef = formObject;
+  Object.keys(formObject).forEach(key => {
+    if (properties.includes(key)) {
+      delete formObjLocalRef[key];
+    }
+  });
+};
 
-export * from './types';
-export { default as __hack_reexport_connection } from './types';
+export const convertToLocalDateTime = (date?: Date) => {
+  const newDate = date;
+  return newDate ? new Date(newDate).toISOString() : new Date().toISOString();
+};

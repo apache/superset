@@ -173,6 +173,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.views.datasource.views import DatasetEditor, Datasource
         from superset.views.dynamic_plugins import DynamicPluginsView
         from superset.views.explore import ExplorePermalinkView, ExploreView
+        from superset.views.flash.views import Flash
         from superset.views.key_value import KV
         from superset.views.log.api import LogRestApi
         from superset.views.log.views import LogModelView
@@ -330,6 +331,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view_no_menu(TabStateView)
         appbuilder.add_view_no_menu(TagView)
         appbuilder.add_view_no_menu(ReportView)
+        appbuilder.add_view_no_menu(Flash)
 
         #
         # Add links
@@ -370,6 +372,13 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category_icon="fa-flask",
             category="SQL Lab",
             category_label=__("SQL"),
+        )
+        appbuilder.add_view(
+            Flash,
+            "Flash",
+            label=__("Flash"),
+            href="/flash/list/",
+            icon="fa-table",
         )
 
         appbuilder.add_api(LogRestApi)

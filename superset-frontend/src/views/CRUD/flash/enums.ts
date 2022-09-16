@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -17,10 +17,14 @@
  * under the License.
  */
 
-export { default as callApi } from './callApi';
-export { default as SupersetClient } from './SupersetClient';
-export { default as SupersetClientClass } from './SupersetClientClass';
-export { default as FlashClient } from './FlashClient';
+export enum FlashTypes {
+  ONE_TIME = 'One Time',
+  SHORT_TERM = 'Short Term',
+  LONG_TERM = 'Long Term',
+}
 
-export * from './types';
-export { default as __hack_reexport_connection } from './types';
+export enum FlashTypesEnum {
+  ONE_TIME = 'OneTime',
+  SHORT_TERM = 'ShortTerm',
+  LONG_TERM = 'LongTerm',
+}

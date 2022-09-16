@@ -32,7 +32,7 @@ const commonArgs = {
   disabled: false,
   inputReadOnly: false,
   size: 'middle',
-  format: 'YYYY-MM-DD hh:mm a',
+  format: 'YYYY-MM-DD hh:mm a' || 'YYYY-MM-DD',
   showTime: { format: 'hh:mm a' },
 };
 
