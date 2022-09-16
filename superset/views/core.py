@@ -746,14 +746,14 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     def multidataset(self) -> FlaskResponse:
 
         initial_form_data = {}
-        form_data, slc = get_form_data(use_slice_data=True, initial_form_data=initial_form_data)
+        form_data, slc = get_form_data(
+            use_slice_data=True, initial_form_data=initial_form_data
+        )
 
         explore_response = ExploreResponse(form_data)
         datasource, datasource_name = explore_response.multiple_dataset()
 
-        return json_success(
-            json.dumps({"datasource" : datasource.data})
-        )
+        return json_success(json.dumps({"datasource": datasource.data}))
 
     @has_access
     @event_logger.log_this

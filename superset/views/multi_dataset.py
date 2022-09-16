@@ -9,7 +9,12 @@ from flask_appbuilder.security.sqla.models import User
 
 from marshmallow import ValidationError
 from superset.commands.base import BaseCommand, CreateMixin
-from superset.connectors.sqla.models import MetadataResult, SqlMetric, SqlaTable, TableColumn
+from superset.connectors.sqla.models import (
+    MetadataResult,
+    SqlMetric,
+    SqlaTable,
+    TableColumn,
+)
 
 from superset.datasets.commands.exceptions import (
     DatasetInvalidError,
@@ -60,7 +65,7 @@ class CreateMultiDatasetCommand(CreateMixin, BaseCommand):
             raise exception
 
     def external_metadata(self, dataset: SqlaTable) -> List[Dict[str, Any]]:
-        """ Returns column information from the external system """
+        """Returns column information from the external system"""
         if not dataset.sql:
             raise SupersetGenericDBErrorException(
                 message=_("Virtual dataset query cannot be empty"),
