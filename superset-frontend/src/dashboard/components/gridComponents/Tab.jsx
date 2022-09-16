@@ -150,7 +150,7 @@ class Tab extends React.PureComponent {
       isComponentVisible,
       canEdit,
       setEditMode,
-      dashboardId,
+      // dashboardId,
     } = this.props;
 
     const shouldDisplayEmptyState = tabComponent.children.length === 0;

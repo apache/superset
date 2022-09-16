@@ -23,8 +23,8 @@ import {
   DynamicEditableTitle,
   DynamicEditableTitleProps,
 } from '../DynamicEditableTitle';
-import CertifiedBadge, { CertifiedBadgeProps } from '../CertifiedBadge';
-import FaveStar, { FaveStarProps } from '../FaveStar';
+// import CertifiedBadge, { CertifiedBadgeProps } from '../CertifiedBadge';
+// import FaveStar, { FaveStarProps } from '../FaveStar';
 import IkiLogo from '../../assets/images/ikigai.png';
 
 export const menuTriggerStyles = (theme: SupersetTheme) => css`
@@ -90,7 +90,7 @@ const headerStyles = (theme: SupersetTheme) => css`
   }
 `;
 
-const buttonsStyles = (theme: SupersetTheme) => css`
+/* const buttonsStyles = (theme: SupersetTheme) => css`
   display: flex;
   align-items: center;
   padding-left: ${theme.gridUnit * 2}px;
@@ -102,7 +102,7 @@ const buttonsStyles = (theme: SupersetTheme) => css`
       padding-left: 0;
     }
   }
-`;
+`; */
 
 // const additionalActionsContainerStyles = (theme: SupersetTheme) => css`
 //   margin-left: ${theme.gridUnit * 2}px;
@@ -111,9 +111,9 @@ const buttonsStyles = (theme: SupersetTheme) => css`
 export type PageHeaderWithActionsProps = {
   editableTitleProps: DynamicEditableTitleProps;
   showTitlePanelItems: boolean;
-  certificatiedBadgeProps?: CertifiedBadgeProps;
+  // certificatiedBadgeProps?: CertifiedBadgeProps;
   showFaveStar: boolean;
-  faveStarProps: FaveStarProps;
+  // faveStarProps: FaveStarProps;
   titlePanelAdditionalItems: ReactNode;
   rightPanelAdditionalItems: ReactNode;
   additionalActionsMenu: ReactElement;
@@ -122,14 +122,14 @@ export type PageHeaderWithActionsProps = {
 
 export const PageHeaderWithActions = ({
   editableTitleProps,
-  showTitlePanelItems,
-  certificatiedBadgeProps,
-  showFaveStar,
-  faveStarProps,
-  titlePanelAdditionalItems,
+  // showTitlePanelItems,
+  // certificatiedBadgeProps,
+  // showFaveStar,
+  // faveStarProps,
+  // titlePanelAdditionalItems,
+  // additionalActionsMenu,
+  // menuDropdownProps,
   rightPanelAdditionalItems,
-  additionalActionsMenu,
-  menuDropdownProps,
 }: PageHeaderWithActionsProps) => (
   <div css={headerStyles} className="header-with-actions">
     <div className="title-panel">
