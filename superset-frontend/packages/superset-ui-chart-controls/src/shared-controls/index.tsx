@@ -57,7 +57,7 @@ import {
   DEFAULT_NUMBER_FORMAT,
 } from '../utils';
 import { TIME_FILTER_LABELS } from '../constants';
-import { SharedControlConfig, Dataset } from '../types';
+import { SharedControlConfig, Dataset, ColumnMeta } from '../types';
 
 import {
   dndAdhocFilterControl,
@@ -197,12 +197,10 @@ const time_grain_sqla: SharedControlConfig<'SelectControl'> = {
     if (isAdhocColumn(xAxisValue)) {
       return true;
     }
-    if (isPhysicalColumn(xAxisValue) && Array.isArray(xAxis?.options)) {
-      for (let i = 0; i < xAxis.options.length; i += 1) {
-        if (xAxis.options[i].column_name === xAxisValue) {
-          return !!xAxis.options[i].is_dttm;
-        }
-      }
+    if (isPhysicalColumn(xAxisValue)) {
+      return !!(xAxis?.options ?? []).find(
+        (col: ColumnMeta) => col?.column_name === xAxisValue,
+      )?.is_dttm;
     }
     return false;
   },
