@@ -18,9 +18,12 @@
  */
 import React from 'react';
 import * as reactRedux from 'react-redux';
+import { Provider } from 'react-redux';
 import fetchMock from 'fetch-mock';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import { styledMount as mount } from 'spec/helpers/theming';
+import configureStore from 'redux-mock-store';
+import thunk from 'redux-thunk';
 import RightMenu from './RightMenu';
 import { RightMenuProps } from './types';
 
@@ -28,6 +31,14 @@ jest.mock('react-redux', () => ({
   ...jest.requireActual('react-redux'),
   useSelector: jest.fn(),
 }));
+
+jest.mock('src/views/CRUD/data/database/DatabaseModal', () => () => <span />);
+jest.mock('src/views/CRUD/data/dataset/AddDatasetModal.tsx', () => () => (
+  <span />
+));
+
+const mockStore = configureStore([thunk]);
+const store = mockStore({});
 
 const createProps = (): RightMenuProps => ({
   align: 'flex-end',
@@ -82,14 +93,7 @@ const createProps = (): RightMenuProps => ({
   },
 });
 
-const useSelectorMock = jest.spyOn(reactRedux, 'useSelector');
-const useStateMock = jest.spyOn(React, 'useState');
-
-let setShowModal: any;
-let setEngine: any;
-let setAllowUploads: any;
-
-const mockNonGSheetsDBs = [...new Array(2)].map((_, i) => ({
+const mockNonExamplesDB = [...new Array(2)].map((_, i) => ({
   changed_by: {
     first_name: `user`,
     last_name: `${i}`,
@@ -103,29 +107,16 @@ const mockNonGSheetsDBs = [...new Array(2)].map((_, i) => ({
   changed_on_delta_humanized: `${i} day(s) ago`,
   changed_on: new Date().toISOString,
   id: i,
-  engine_information: {
-    supports_file_upload: true,
-  },
 }));
 
-const mockGsheetsDbs = [...new Array(2)].map((_, i) => ({
-  changed_by: {
-    first_name: `user`,
-    last_name: `${i}`,
-  },
-  database_name: `db ${i}`,
-  backend: 'gsheets',
-  allow_run_async: true,
-  allow_dml: false,
-  allow_file_upload: true,
-  expose_in_sqllab: false,
-  changed_on_delta_humanized: `${i} day(s) ago`,
-  changed_on: new Date().toISOString,
-  id: i,
-  engine_information: {
-    supports_file_upload: false,
-  },
-}));
+const useSelectorMock = jest.spyOn(reactRedux, 'useSelector');
+const useStateMock = jest.spyOn(React, 'useState');
+
+let setShowDatabaseModal: any;
+let setShowDatasetModal: any;
+let setEngine: any;
+let setAllowUploads: any;
+let setNonExamplesDBConnected: any;
 
 describe('RightMenu', () => {
   const mockedProps = createProps();
@@ -135,7 +126,11 @@ describe('RightMenu', () => {
     useStateMock.mockReset();
     fetchMock.get(
       'glob:*api/v1/database/?q=(filters:!((col:allow_file_upload,opr:upload_is_enabled,value:!t)))',
-      { result: [], database_count: 0 },
+      { result: [], count: 0 },
+    );
+    fetchMock.get(
+      'glob:*api/v1/database/?q=(filters:!((col:database_name,opr:neq,value:examples)))',
+      { result: [], count: 0 },
     );
     // By default we get file extensions to be uploaded
     useSelectorMock.mockReturnValue({
@@ -144,23 +139,73 @@ describe('RightMenu', () => {
       COLUMNAR_EXTENSIONS: ['parquet', 'zip'],
       ALLOWED_EXTENSIONS: ['parquet', 'zip', 'xls', 'xlsx', 'csv'],
     });
-    setShowModal = jest.fn();
+    setShowDatabaseModal = jest.fn();
+    setShowDatasetModal = jest.fn();
     setEngine = jest.fn();
     setAllowUploads = jest.fn();
-    const mockSetStateModal: any = (x: any) => [x, setShowModal];
+    setNonExamplesDBConnected = jest.fn();
+    const mockSetStateDatabaseModal: any = (x: any) => [
+      x,
+      setShowDatabaseModal,
+    ];
+    const mockSetStateDatasetModal: any = (x: any) => [x, setShowDatasetModal];
     const mockSetStateEngine: any = (x: any) => [x, setEngine];
     const mockSetStateAllow: any = (x: any) => [x, setAllowUploads];
-    useStateMock.mockImplementationOnce(mockSetStateModal);
+    const mockSetNonExamplesDBConnected: any = (x: any) => [
+      x,
+      setNonExamplesDBConnected,
+    ];
+    useStateMock.mockImplementationOnce(mockSetStateDatabaseModal);
+    useStateMock.mockImplementationOnce(mockSetStateDatasetModal);
     useStateMock.mockImplementationOnce(mockSetStateEngine);
     useStateMock.mockImplementationOnce(mockSetStateAllow);
+    useStateMock.mockImplementationOnce(mockSetNonExamplesDBConnected);
   });
   afterEach(fetchMock.restore);
   it('renders', async () => {
-    const wrapper = mount(<RightMenu {...mockedProps} />);
+    const wrapper = mount(
+      <Provider store={store}>
+        <RightMenu {...mockedProps} />
+      </Provider>,
+    );
     await waitForComponentToPaint(wrapper);
     expect(wrapper.find(RightMenu)).toExist();
   });
-  it('If user has permission to upload files we query the existing DBs that has allow_file_upload as True', async () => {
+  it('If user has permission to upload files AND connect DBs we query existing DBs that has allow_file_upload as True and DBs that are not examples', async () => {
+    useSelectorMock.mockReturnValueOnce({
+      createdOn: '2021-04-27T18:12:38.952304',
+      email: 'admin',
+      firstName: 'admin',
+      isActive: true,
+      lastName: 'admin',
+      permissions: {},
+      roles: {
+        Admin: [
+          ['can_this_form_get', 'CsvToDatabaseView'], // So we can upload CSV
+          ['can_write', 'Database'], // So we can write DBs
+        ],
+      },
+      userId: 1,
+      username: 'admin',
+    });
+    // Second call we get the dashboardId
+    useSelectorMock.mockReturnValueOnce('1');
+    const wrapper = mount(
+      <Provider store={store}>
+        <RightMenu {...mockedProps} />
+      </Provider>,
+    );
+    await waitForComponentToPaint(wrapper);
+    const callsD = fetchMock.calls(/database\/\?q/);
+    expect(callsD).toHaveLength(2);
+    expect(callsD[0][0]).toMatchInlineSnapshot(
+      `"http://localhost/api/v1/database/?q=(filters:!((col:allow_file_upload,opr:upload_is_enabled,value:!t)))"`,
+    );
+    expect(callsD[1][0]).toMatchInlineSnapshot(
+      `"http://localhost/api/v1/database/?q=(filters:!((col:database_name,opr:neq,value:examples)))"`,
+    );
+  });
+  it('If user has permission to upload files but NOT to connect DBs we query existing DBs that has allow_file_upload as True only', async () => {
     useSelectorMock.mockReturnValueOnce({
       createdOn: '2021-04-27T18:12:38.952304',
       email: 'admin',
@@ -178,7 +223,11 @@ describe('RightMenu', () => {
     });
     // Second call we get the dashboardId
     useSelectorMock.mockReturnValueOnce('1');
-    const wrapper = mount(<RightMenu {...mockedProps} />);
+    const wrapper = mount(
+      <Provider store={store}>
+        <RightMenu {...mockedProps} />
+      </Provider>,
+    );
     await waitForComponentToPaint(wrapper);
     const callsD = fetchMock.calls(/database\/\?q/);
     expect(callsD).toHaveLength(1);
@@ -186,7 +235,7 @@ describe('RightMenu', () => {
       `"http://localhost/api/v1/database/?q=(filters:!((col:allow_file_upload,opr:upload_is_enabled,value:!t)))"`,
     );
   });
-  it('If user has no permission to upload files the query API should not be called', async () => {
+  it('If user has NO permission to upload files But it DOES have to connect DBs we query DBs that are not examples only', async () => {
     useSelectorMock.mockReturnValueOnce({
       createdOn: '2021-04-27T18:12:38.952304',
       email: 'admin',
@@ -195,22 +244,36 @@ describe('RightMenu', () => {
       lastName: 'admin',
       permissions: {},
       roles: {
-        Admin: [['can_write', 'Chart']], // no file permissions
+        Admin: [
+          ['can_write', 'Database'], // So we can write DBs
+        ],
       },
       userId: 1,
       username: 'admin',
     });
     // Second call we get the dashboardId
     useSelectorMock.mockReturnValueOnce('1');
-    const wrapper = mount(<RightMenu {...mockedProps} />);
+    const wrapper = mount(
+      <Provider store={store}>
+        <RightMenu {...mockedProps} />
+      </Provider>,
+    );
     await waitForComponentToPaint(wrapper);
     const callsD = fetchMock.calls(/database\/\?q/);
-    expect(callsD).toHaveLength(0);
+    expect(callsD).toHaveLength(1);
+    expect(callsD[0][0]).toMatchInlineSnapshot(
+      `"http://localhost/api/v1/database/?q=(filters:!((col:database_name,opr:neq,value:examples)))"`,
+    );
   });
-  it('If user has permission to upload files but there are only gsheets and clickhouse DBs', async () => {
+  it('If only examples DB exist we must show the Connect Database option', async () => {
     fetchMock.get(
       'glob:*api/v1/database/?q=(filters:!((col:allow_file_upload,opr:upload_is_enabled,value:!t)))',
-      { result: [...mockGsheetsDbs], database_count: 2 },
+      { result: [...mockNonExamplesDB], count: 2 },
+      { overwriteRoutes: true },
+    );
+    fetchMock.get(
+      'glob:*api/v1/database/?q=(filters:!((col:database_name,opr:neq,value:examples)))',
+      { result: [], count: 0 },
       { overwriteRoutes: true },
     );
     useSelectorMock.mockReturnValueOnce({
@@ -223,6 +286,8 @@ describe('RightMenu', () => {
       roles: {
         Admin: [
           ['can_this_form_get', 'CsvToDatabaseView'], // So we can upload CSV
+          ['can_write', 'Database'], // So we can write DBs
+          ['can_write', 'Dataset'], // So we can write Datasets
         ],
       },
       userId: 1,
@@ -230,39 +295,56 @@ describe('RightMenu', () => {
     });
     // Second call we get the dashboardId
     useSelectorMock.mockReturnValueOnce('1');
-    const wrapper = mount(<RightMenu {...mockedProps} />);
-    await waitForComponentToPaint(wrapper);
-    const callsD = fetchMock.calls(/database\/\?q/);
-    expect(callsD).toHaveLength(1);
-    expect(setAllowUploads).toHaveBeenCalledWith(false);
-  });
-  it('If user has permission to upload files and some DBs with allow_file_upload are not gsheets nor clickhouse', async () => {
-    fetchMock.get(
-      'glob:*api/v1/database/?q=(filters:!((col:allow_file_upload,opr:upload_is_enabled,value:!t)))',
-      { result: [...mockNonGSheetsDBs, ...mockGsheetsDbs], database_count: 2 },
-      { overwriteRoutes: true },
+    const wrapper = mount(
+      <Provider store={store}>
+        <RightMenu {...mockedProps} />
+      </Provider>,
     );
-    useSelectorMock.mockReturnValueOnce({
-      createdOn: '2021-04-27T18:12:38.952304',
-      email: 'admin',
-      firstName: 'admin',
-      isActive: true,
-      lastName: 'admin',
-      permissions: {},
-      roles: {
-        Admin: [
-          ['can_this_form_get', 'CsvToDatabaseView'], // So we can upload CSV
-        ],
-      },
-      userId: 1,
-      username: 'admin',
-    });
-    // Second call we get the dashboardId
-    useSelectorMock.mockReturnValueOnce('1');
-    const wrapper = mount(<RightMenu {...mockedProps} />);
     await waitForComponentToPaint(wrapper);
     const callsD = fetchMock.calls(/database\/\?q/);
-    expect(callsD).toHaveLength(1);
+    expect(callsD).toHaveLength(2);
     expect(setAllowUploads).toHaveBeenCalledWith(true);
+    expect(setNonExamplesDBConnected).toHaveBeenCalledWith(false);
+  });
+  it('If there is more DBs connected and not just examples we must show the Connect Dataset option', async () => {
+    fetchMock.get(
+      'glob:*api/v1/database/?q=(filters:!((col:allow_file_upload,opr:upload_is_enabled,value:!t)))',
+      { result: [...mockNonExamplesDB], count: 2 },
+      { overwriteRoutes: true },
+    );
+    fetchMock.get(
+      'glob:*api/v1/database/?q=(filters:!((col:database_name,opr:neq,value:examples)))',
+      { result: [...mockNonExamplesDB], count: 2 },
+      { overwriteRoutes: true },
+    );
+    useSelectorMock.mockReturnValueOnce({
+      createdOn: '2021-04-27T18:12:38.952304',
+      email: 'admin',
+      firstName: 'admin',
+      isActive: true,
+      lastName: 'admin',
+      permissions: {},
+      roles: {
+        Admin: [
+          ['can_this_form_get', 'CsvToDatabaseView'], // So we can upload CSV
+          ['can_write', 'Database'], // So we can write DBs
+          ['can_write', 'Dataset'], // So we can write Datasets
+        ],
+      },
+      userId: 1,
+      username: 'admin',
+    });
+    // Second call we get the dashboardId
+    useSelectorMock.mockReturnValueOnce('1');
+    const wrapper = mount(
+      <Provider store={store}>
+        <RightMenu {...mockedProps} />
+      </Provider>,
+    );
+    await waitForComponentToPaint(wrapper);
+    const callsD = fetchMock.calls(/database\/\?q/);
+    expect(callsD).toHaveLength(2);
+    expect(setAllowUploads).toHaveBeenCalledWith(true);
+    expect(setNonExamplesDBConnected).toHaveBeenCalledWith(true);
   });
 });

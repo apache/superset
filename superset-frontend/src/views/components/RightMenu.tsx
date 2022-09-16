@@ -48,6 +48,7 @@ import {
   RightMenuProps,
 } from './types';
 import { MenuObjectProps } from './Menu';
+import AddDatasetModal from '../CRUD/data/dataset/AddDatasetModal';
 
 const extensionsRegistry = getExtensionsRegistry();
 
@@ -101,7 +102,13 @@ const RightMenu = ({
   environmentTag,
   setQuery,
 }: RightMenuProps & {
-  setQuery: ({ databaseAdded }: { databaseAdded: boolean }) => void;
+  setQuery: ({
+    databaseAdded,
+    datasetAdded,
+  }: {
+    databaseAdded?: boolean;
+    datasetAdded?: boolean;
+  }) => void;
 }) => {
   const user = useSelector<any, UserWithPermissionsAndRoles>(
     state => state.user,
@@ -118,12 +125,16 @@ const RightMenu = ({
     ALLOWED_EXTENSIONS,
     HAS_GSHEETS_INSTALLED,
   } = useSelector<any, ExtentionConfigs>(state => state.common.conf);
-  const [showModal, setShowModal] = React.useState<boolean>(false);
+  const [showDatabaseModal, setShowDatabaseModal] =
+    React.useState<boolean>(false);
+  const [showDatasetModal, setShowDatasetModal] =
+    React.useState<boolean>(false);
   const [engine, setEngine] = React.useState<string>('');
   const canSql = findPermission('can_sqllab', 'Superset', roles);
   const canDashboard = findPermission('can_write', 'Dashboard', roles);
   const canChart = findPermission('can_write', 'Chart', roles);
   const canDatabase = findPermission('can_write', 'Database', roles);
+  const canDataset = findPermission('can_write', 'Dataset', roles);
 
   const { canUploadData, canUploadCSV, canUploadColumnar, canUploadExcel } =
     uploadUserPerms(
@@ -136,6 +147,8 @@ const RightMenu = ({
 
   const showActionDropdown = canSql || canChart || canDashboard;
   const [allowUploads, setAllowUploads] = React.useState<boolean>(false);
+  const [nonExamplesDBConnected, setNonExamplesDBConnected] =
+    React.useState<boolean>(false);
   const isAdmin = isUserAdmin(user);
   const showUploads = allowUploads || isAdmin;
   const dropdownItems: MenuObjectProps[] = [
@@ -146,7 +159,12 @@ const RightMenu = ({
         {
           label: t('Connect database'),
           name: GlobalMenuDataOptions.DB_CONNECTION,
-          perm: canDatabase,
+          perm: canDatabase && !nonExamplesDBConnected,
+        },
+        {
+          label: t('Create dataset'),
+          name: GlobalMenuDataOptions.DATASET_CREATION,
+          perm: canDataset && nonExamplesDBConnected,
         },
         {
           label: t('Connect Google Sheet'),
@@ -217,11 +235,28 @@ const RightMenu = ({
     });
   };
 
+  const existsNonExamplesDatabases = () => {
+    const payload = {
+      filters: [{ col: 'database_name', opr: 'neq', value: 'examples' }],
+    };
+    SupersetClient.get({
+      endpoint: `/api/v1/database/?q=${rison.encode(payload)}`,
+    }).then(({ json }: Record<string, any>) => {
+      setNonExamplesDBConnected(json.count >= 1);
+    });
+  };
+
   useEffect(() => {
     if (canUploadData) {
       checkAllowUploads();
     }
   }, [canUploadData]);
+
+  useEffect(() => {
+    if (canDatabase) {
+      existsNonExamplesDatabases();
+    }
+  }, [canDatabase]);
 
   const menuIconAndLabel = (menu: MenuObjectProps) => (
     <>
@@ -232,16 +267,22 @@ const RightMenu = ({
 
   const handleMenuSelection = (itemChose: any) => {
     if (itemChose.key === GlobalMenuDataOptions.DB_CONNECTION) {
-      setShowModal(true);
+      setShowDatabaseModal(true);
     } else if (itemChose.key === GlobalMenuDataOptions.GOOGLE_SHEETS) {
-      setShowModal(true);
+      setShowDatabaseModal(true);
       setEngine('Google Sheets');
+    } else if (itemChose.key === GlobalMenuDataOptions.DATASET_CREATION) {
+      setShowDatasetModal(true);
     }
   };
 
   const handleOnHideModal = () => {
     setEngine('');
-    setShowModal(false);
+    setShowDatabaseModal(false);
+  };
+
+  const handleOnHideDatasetModalModal = () => {
+    setShowDatasetModal(false);
   };
 
   const isDisabled = isAdmin && !allowUploads;
@@ -266,14 +307,16 @@ const RightMenu = ({
   };
 
   const onMenuOpen = (openKeys: string[]) => {
-    if (openKeys.length && canUploadData) {
-      return checkAllowUploads();
+    if (openKeys.length) {
+      if (canUploadData) checkAllowUploads();
+      if (canDatabase) existsNonExamplesDatabases();
     }
     return null;
   };
   const RightMenuExtension = extensionsRegistry.get('navbar.right');
 
   const handleDatabaseAdd = () => setQuery({ databaseAdded: true });
+  const handleDatasetAdd = () => setQuery({ datasetAdded: true });
 
   const theme = useTheme();
 
@@ -282,9 +325,16 @@ const RightMenu = ({
       {canDatabase && (
         <DatabaseModal
           onHide={handleOnHideModal}
-          show={showModal}
+          show={showDatabaseModal}
           dbEngine={engine}
           onDatabaseAdd={handleDatabaseAdd}
+        />
+      )}
+      {canDataset && (
+        <AddDatasetModal
+          onHide={handleOnHideDatasetModalModal}
+          show={showDatasetModal}
+          onDatasetAdd={handleDatasetAdd}
         />
       )}
       {environmentTag?.text && (
@@ -486,6 +536,7 @@ const RightMenu = ({
 const RightMenuWithQueryWrapper: React.FC<RightMenuProps> = props => {
   const [, setQuery] = useQueryParams({
     databaseAdded: BooleanParam,
+    datasetAdded: BooleanParam,
   });
 
   return <RightMenu setQuery={setQuery} {...props} />;
