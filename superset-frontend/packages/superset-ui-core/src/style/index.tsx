@@ -60,7 +60,7 @@ const defaultTheme = {
     },
     primary: {
       base: '#20A7C9',
-      dark1: '#1A85A0',
+      dark1: '#824ef0',
       dark2: '#156378',
       light1: '#79CADE',
       light2: '#A5DAE9',

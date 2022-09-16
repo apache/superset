@@ -26,7 +26,7 @@
 }
 
 body {
-  font-family: 'Axiforma', sans-serif;
+  font-family: 'Axiforma', sans-serif !important;
 }
 
 /*!
@@ -2246,10 +2246,13 @@ a[role='menuitem'] .dot {
 /* Buttons */
 
 .button-container .ant-btn {
-  height: auto;
+  /* height: auto;
   max-height: 50px;
   font-size: 16px;
+  font-weight: 400 !important; */
+  padding: 12px 16px !important;
   font-weight: 400 !important;
+  font-size: 16px !important;
 }
 
 .button-container .ant-btn:nth-child(1),
