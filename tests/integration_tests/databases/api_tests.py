@@ -201,7 +201,7 @@ class TestDatabaseApi(SupersetTestCase):
             "extra",
             "force_ctas_schema",
             "id",
-            "has_catalogs"
+            "has_catalogs",
         ]
 
         self.assertGreater(response["count"], 0)

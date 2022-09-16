@@ -145,7 +145,7 @@ export default function DatabaseSelector({
   const [loadingCatalogs, setLoadingCatalogs] = useState(false);
   const [schemaOptions, setSchemaOptions] = useState<SchemaValue[]>([]);
   const [catalogOptions, setCatalogOptions] = useState<CatalogValue[]>([]);
-  const [currentDb, setCurrentDb] = useState<DatabaseValue | undefined>(
+  const [currentDb, setCurrentDb] = useState<DatabaseValue | null | undefined>(
     db
       ? {
           label: (
@@ -299,7 +299,7 @@ export default function DatabaseSelector({
     if (currentDb && currentCatalog) fetchSchemas(currentDb);
   }, [currentCatalog, catalogRefresh]);
 
-  const showSchema = (db: DatabaseObject | undefined) =>
+  const showSchema = (db: DatabaseObject | null | undefined) =>
     db?.has_catalogs ? !!currentCatalog : true;
 
   function changeDataBase(
