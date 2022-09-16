@@ -29,9 +29,6 @@ enum StatusCode {
 const headers: Readonly<Record<string, string | boolean>> = {
   Accept: 'application/json',
   'Content-Type': 'application/json; charset=utf-8',
-  // 'Access-Control-Allow-Credentials': true,
-  // 'X-Requested-With': 'XMLHttpRequest',
-  // 'Access-Control-Allow-Origin': '*',
 };
 
 // We can use the following function to inject the JWT token through an interceptor
@@ -71,10 +68,14 @@ class FlashClientClass {
   }
 
   initHttp() {
+    const appContainer = document.getElementById('app');
+    const bootstrapData = JSON.parse(
+      appContainer?.getAttribute('data-bootstrap') || '{}',
+    );
+    const flashUrl = bootstrapData?.common?.conf?.FLASH_URL;
     const http = axios.create({
-      baseURL: 'https://flash-api.dev.careem-rh.com/',
+      baseURL: flashUrl,
       headers,
-      // withCredentials: true,
     });
 
     // http.interceptors.request.use(injectToken, (error:any) => Promise.reject(error));
