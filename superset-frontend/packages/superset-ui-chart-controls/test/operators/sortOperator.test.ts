@@ -34,7 +34,6 @@ const queryObject: QueryObject = {
     'count(*)',
     { label: 'sum(val)', expressionType: 'SQL', sqlExpression: 'sum(val)' },
   ],
-  columns: ['state'],
   time_range: '2015 : 2016',
   granularity: 'month',
   post_processing: [
@@ -56,89 +55,88 @@ const queryObject: QueryObject = {
 test('skip sort', () => {
   expect(sortOperator(formData, queryObject)).toEqual(undefined);
   expect(
-    sortOperator(formData, { ...queryObject, timeseries_limit_metric: 'bar' }),
+    sortOperator(formData, { ...queryObject, is_timeseries: false }),
+  ).toEqual(undefined);
+  expect(
+    sortOperator(
+      { ...formData, rolling_type: 'xxxx' },
+      { ...queryObject, is_timeseries: true },
+    ),
+  ).toEqual(undefined);
+  expect(
+    sortOperator(formData, { ...queryObject, is_timeseries: true }),
   ).toEqual(undefined);
 });
 
-test('sort by metric', () => {
+test('sort by __timestamp', () => {
   expect(
-    sortOperator(formData, {
-      ...queryObject,
-      timeseries_limit_metric: 'count(*)',
-    }),
+    sortOperator(
+      { ...formData, rolling_type: 'cumsum' },
+      { ...queryObject, is_timeseries: true },
+    ),
   ).toEqual({
     operation: 'sort',
     options: {
       columns: {
-        'count(*)': true,
+        __timestamp: true,
       },
     },
   });
 
   expect(
-    sortOperator(formData, {
-      ...queryObject,
-      timeseries_limit_metric: 'count(*)',
-      order_desc: true,
-    }),
+    sortOperator(
+      { ...formData, rolling_type: 'sum' },
+      { ...queryObject, is_timeseries: true },
+    ),
   ).toEqual({
     operation: 'sort',
     options: {
       columns: {
-        'count(*)': false,
+        __timestamp: true,
       },
     },
   });
 
   expect(
-    sortOperator(formData, {
-      ...queryObject,
-      timeseries_limit_metric: {
-        label: 'sum(val)',
-        expressionType: 'SQL',
-        sqlExpression: 'sum(val)',
-      },
-    }),
+    sortOperator(
+      { ...formData, rolling_type: 'mean' },
+      { ...queryObject, is_timeseries: true },
+    ),
   ).toEqual({
     operation: 'sort',
     options: {
       columns: {
-        'sum(val)': true,
+        __timestamp: true,
       },
     },
   });
 
   expect(
-    sortOperator(formData, {
-      ...queryObject,
-      timeseries_limit_metric: {
-        label: 'sum(val)',
-        expressionType: 'SQL',
-        sqlExpression: 'sum(val)',
-      },
-      order_desc: false,
-    }),
+    sortOperator(
+      { ...formData, rolling_type: 'std' },
+      { ...queryObject, is_timeseries: true },
+    ),
   ).toEqual({
     operation: 'sort',
     options: {
       columns: {
-        'sum(val)': true,
+        __timestamp: true,
       },
     },
   });
 });
 
-test('sort by column', () => {
+test('sort by named x-axis', () => {
   expect(
-    sortOperator(formData, {
-      ...queryObject,
-      timeseries_limit_metric: 'state',
-    }),
+    sortOperator(
+      { ...formData, x_axis: 'ds', rolling_type: 'cumsum' },
+      { ...queryObject },
+    ),
   ).toEqual({
     operation: 'sort',
     options: {
       columns: {
-        state: true,
+        ds: true,
       },
     },
   });
