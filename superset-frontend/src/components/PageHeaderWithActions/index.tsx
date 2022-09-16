@@ -23,8 +23,8 @@ import {
   DynamicEditableTitle,
   DynamicEditableTitleProps,
 } from '../DynamicEditableTitle';
-// import CertifiedBadge, { CertifiedBadgeProps } from '../CertifiedBadge';
-// import FaveStar, { FaveStarProps } from '../FaveStar';
+import { CertifiedBadgeProps } from '../CertifiedBadge';
+import { FaveStarProps } from '../FaveStar';
 import IkiLogo from '../../assets/images/ikigai.png';
 
 export const menuTriggerStyles = (theme: SupersetTheme) => css`
@@ -111,9 +111,9 @@ const headerStyles = (theme: SupersetTheme) => css`
 export type PageHeaderWithActionsProps = {
   editableTitleProps: DynamicEditableTitleProps;
   showTitlePanelItems: boolean;
-  // certificatiedBadgeProps?: CertifiedBadgeProps;
+  certificatiedBadgeProps?: CertifiedBadgeProps;
   showFaveStar: boolean;
-  // faveStarProps: FaveStarProps;
+  faveStarProps: FaveStarProps;
   titlePanelAdditionalItems: ReactNode;
   rightPanelAdditionalItems: ReactNode;
   additionalActionsMenu: ReactElement;
