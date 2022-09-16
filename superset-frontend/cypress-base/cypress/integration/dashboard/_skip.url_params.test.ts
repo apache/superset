@@ -16,14 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { parsePostForm, JsonObject } from 'cypress/utils';
-import {
-  WORLD_HEALTH_DASHBOARD,
-  WORLD_HEALTH_CHARTS,
-  waitForChartLoad,
-} from './dashboard.helper';
+import { parsePostForm, JsonObject, waitForChartLoad } from 'cypress/utils';
+import { WORLD_HEALTH_DASHBOARD } from 'cypress/utils/urls';
+import { WORLD_HEALTH_CHARTS } from './utils';
 
-describe('Dashboard form data', () => {
+describe.skip('Dashboard form data', () => {
   const urlParams = { param1: '123', param2: 'abc' };
   before(() => {
     cy.login();
@@ -31,7 +28,7 @@ describe('Dashboard form data', () => {
     cy.visit(WORLD_HEALTH_DASHBOARD, { qs: urlParams });
   });
 
-  xit('should apply url params to slice requests', () => {
+  it('should apply url params to slice requests', () => {
     cy.intercept('/api/v1/chart/data?*', request => {
       // TODO: export url params to chart data API
       request.body.queries.forEach((query: { url_params: JsonObject }) => {

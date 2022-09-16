@@ -19,48 +19,35 @@
 import {
   FeatureFlag,
   isFeatureEnabled,
+  QueryFormData,
   t,
   validateNonEmpty,
 } from '@superset-ui/core';
 import { ControlPanelState, ControlState } from '../types';
 
+const getAxisLabel = (
+  formData: QueryFormData,
+): Record<'label' | 'description', string> =>
+  formData?.orientation === 'horizontal'
+    ? { label: t('Y-axis'), description: t('Dimension to use on y-axis.') }
+    : { label: t('X-axis'), description: t('Dimension to use on x-axis.') };
+
 export const xAxisControlConfig = {
-  label: (state: ControlPanelState) => {
-    if (
-      isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES) &&
-      state?.form_data?.orientation === 'horizontal'
-    ) {
-      return t('Y-axis');
-    }
-
-    return t('X-axis');
-  },
-  default: (
-    control: ControlState,
-    controlPanel: Partial<ControlPanelState>,
-  ) => {
-    // default to the chosen time column if x-axis is unset and the
-    // GENERIC_CHART_AXES feature flag is enabled
-    const { value } = control;
-    if (value) {
-      return value;
-    }
-    const timeColumn = controlPanel?.form_data?.granularity_sqla;
-    if (isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES) && timeColumn) {
-      return timeColumn;
-    }
-    return null;
-  },
+  label: (state: ControlPanelState) => getAxisLabel(state?.form_data).label,
   multi: false,
-  description: (state: ControlPanelState) => {
+  description: (state: ControlPanelState) =>
+    getAxisLabel(state?.form_data).description,
+  validators: [validateNonEmpty],
+  initialValue: (control: ControlState, state: ControlPanelState) => {
     if (
       isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES) &&
-      state?.form_data?.orientation === 'horizontal'
+      state?.form_data?.granularity_sqla &&
+      !state.form_data?.x_axis &&
+      !control?.value
     ) {
-      return t('Dimension to use on y-axis.');
+      return state.form_data.granularity_sqla;
     }
-
-    return t('Dimension to use on x-axis.');
+    return undefined;
   },
-  validators: [validateNonEmpty],
+  default: undefined,
 };

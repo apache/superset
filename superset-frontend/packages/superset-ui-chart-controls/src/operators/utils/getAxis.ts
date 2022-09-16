@@ -16,4 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export const DATABASE_LIST = '/databaseview/list';
+import {
+  DTTM_ALIAS,
+  getColumnLabel,
+  isDefined,
+  QueryFormData,
+} from '@superset-ui/core';
+
+export const getAxis = (formData: QueryFormData): string | undefined => {
+  // The formData should be "raw form_data" -- the snake_case version of formData rather than camelCase.
+  if (!(formData.granularity_sqla || formData.x_axis)) {
+    return undefined;
+  }
+
+  return isDefined(formData.x_axis)
+    ? getColumnLabel(formData.x_axis)
+    : DTTM_ALIAS;
+};

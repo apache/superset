@@ -16,23 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactNode } from 'react';
-import { ensureIsArray } from '@superset-ui/core';
 import {
   OptionTypeBase,
   ValueType,
   OptionsType,
   GroupedOptionsType,
 } from 'react-select';
-import { LabeledValue as AntdLabeledValue } from 'antd/lib/select';
-
-export function isObject(value: unknown): value is Record<string, unknown> {
-  return (
-    value !== null &&
-    typeof value === 'object' &&
-    Array.isArray(value) === false
-  );
-}
 
 /**
  * Find Option value that matches a possibly string value.
@@ -67,33 +56,4 @@ export function findValue<OptionType extends OptionTypeBase>(
   // If value is a single string, must return an Array so `cleanValue` won't be
   // empty: https://github.com/JedWatson/react-select/blob/32ad5c040bdd96cd1ca71010c2558842d684629c/packages/react-select/src/utils.js#L64
   return (Array.isArray(value) ? value : [value]).map(find);
-}
-
-export function isLabeledValue(value: unknown): value is AntdLabeledValue {
-  return isObject(value) && 'value' in value && 'label' in value;
-}
-
-export function getValue(
-  option: string | number | AntdLabeledValue | null | undefined,
-) {
-  return isLabeledValue(option) ? option.value : option;
-}
-
-type LabeledValue<V> = { label?: ReactNode; value?: V };
-
-export function hasOption<V>(
-  value: V,
-  options?: V | LabeledValue<V> | (V | LabeledValue<V>)[],
-  checkLabel = false,
-): boolean {
-  const optionsArray = ensureIsArray(options);
-  return (
-    optionsArray.find(
-      x =>
-        x === value ||
-        (isObject(x) &&
-          (('value' in x && x.value === value) ||
-            (checkLabel && 'label' in x && x.label === value))),
-    ) !== undefined
-  );
 }

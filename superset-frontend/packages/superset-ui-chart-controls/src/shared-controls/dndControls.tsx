@@ -17,6 +17,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import React, { useMemo } from 'react';
 import {
   FeatureFlag,
   isFeatureEnabled,
@@ -25,43 +26,83 @@ import {
   t,
   validateNonEmpty,
 } from '@superset-ui/core';
-import { ExtraControlProps, SharedControlConfig, Dataset } from '../types';
+import {
+  ExtraControlProps,
+  SharedControlConfig,
+  Dataset,
+  Metric,
+} from '../types';
 import { DATASET_TIME_COLUMN_OPTION, TIME_FILTER_LABELS } from '../constants';
-import { QUERY_TIME_COLUMN_OPTION, defineSavedMetrics } from '..';
+import {
+  QUERY_TIME_COLUMN_OPTION,
+  defineSavedMetrics,
+  ColumnOption,
+  ColumnMeta,
+  FilterOption,
+} from '..';
 import { xAxisControlConfig } from './constants';
 
-export const dndGroupByControl: SharedControlConfig<'DndColumnSelect'> = {
+type Control = {
+  savedMetrics?: Metric[] | null;
+  default?: unknown;
+};
+
+/*
+ * Note: Previous to the commit that introduced this comment, the shared controls module
+ * would check feature flags at module execution time and expose a different control
+ * configuration (component + props) depending on the status of drag-and-drop feature
+ * flags.  This commit combines those configs, merging the required props for both the
+ * drag-and-drop and non-drag-and-drop components, and renders a wrapper component that
+ * checks feature flags at component render time to avoid race conditions between when
+ * feature flags are set and when they're checked.
+ */
+
+export const dndGroupByControl: SharedControlConfig<
+  'DndColumnSelect' | 'SelectControl',
+  ColumnMeta
+> = {
   type: 'DndColumnSelect',
   label: t('Dimensions'),
+  multi: true,
+  freeForm: true,
+  clearable: true,
   default: [],
+  includeTime: false,
   description: t(
-    'One or many columns to group by. High cardinality groupings should include a series limit ' +
-      'to limit the number of fetched and rendered series.',
+    'One or many columns to group by. High cardinality groupings should include a sort by metric ' +
+      'and series limit to limit the number of fetched and rendered series.',
   ),
-  mapStateToProps(state, { includeTime }) {
+  optionRenderer: (c: ColumnMeta) => <ColumnOption showType column={c} />,
+  valueRenderer: (c: ColumnMeta) => <ColumnOption column={c} />,
+  valueKey: 'column_name',
+  allowAll: true,
+  filterOption: ({ data: opt }: FilterOption<ColumnMeta>, text: string) =>
+    (opt.column_name &&
+      opt.column_name.toLowerCase().includes(text.toLowerCase())) ||
+    (opt.verbose_name &&
+      opt.verbose_name.toLowerCase().includes(text.toLowerCase())) ||
+    false,
+  promptTextCreator: (label: unknown) => label,
+  mapStateToProps(state, controlState) {
     const newState: ExtraControlProps = {};
     const { datasource } = state;
     if (datasource?.columns[0]?.hasOwnProperty('groupby')) {
       const options = (datasource as Dataset).columns.filter(c => c.groupby);
-      if (includeTime) {
+      if (controlState?.includeTime) {
         options.unshift(DATASET_TIME_COLUMN_OPTION);
       }
-      newState.options = Object.fromEntries(
-        options.map(option => [option.column_name, option]),
-      );
+      newState.options = options;
       newState.savedMetrics = (datasource as Dataset).metrics || [];
     } else {
-      const options = datasource?.columns;
-      if (includeTime) {
-        (options as QueryColumn[])?.unshift(QUERY_TIME_COLUMN_OPTION);
+      const options = (datasource?.columns as QueryColumn[]) || [];
+      if (controlState?.includeTime) {
+        options.unshift(QUERY_TIME_COLUMN_OPTION);
       }
-      newState.options = Object.fromEntries(
-        (options as QueryColumn[])?.map(option => [option.name, option]),
-      );
-      newState.options = datasource?.columns;
+      newState.options = options;
     }
     return newState;
   },
+  commaChoosesOption: false,
 };
 
 export const dndColumnsControl: typeof dndGroupByControl = {
@@ -70,7 +111,7 @@ export const dndColumnsControl: typeof dndGroupByControl = {
   description: t('One or many columns to pivot as columns'),
 };
 
-export const dndSeries: typeof dndGroupByControl = {
+export const dndSeriesControl: typeof dndGroupByControl = {
   ...dndGroupByControl,
   label: t('Dimension'),
   multi: false,
@@ -82,7 +123,7 @@ export const dndSeries: typeof dndGroupByControl = {
   ),
 };
 
-export const dndEntity: typeof dndGroupByControl = {
+export const dndEntityControl: typeof dndGroupByControl = {
   ...dndGroupByControl,
   label: t('Entity'),
   default: null,
@@ -91,7 +132,9 @@ export const dndEntity: typeof dndGroupByControl = {
   description: t('This defines the element to be plotted on the chart'),
 };
 
-export const dnd_adhoc_filters: SharedControlConfig<'DndFilterSelect'> = {
+export const dndAdhocFilterControl: SharedControlConfig<
+  'DndFilterSelect' | 'AdhocFilterControl'
+> = {
   type: 'DndFilterSelect',
   label: t('Filters'),
   default: [],
@@ -109,7 +152,9 @@ export const dnd_adhoc_filters: SharedControlConfig<'DndFilterSelect'> = {
   provideFormDataToProps: true,
 };
 
-export const dnd_adhoc_metrics: SharedControlConfig<'DndMetricSelect'> = {
+export const dndAdhocMetricsControl: SharedControlConfig<
+  'DndMetricSelect' | 'MetricsControl'
+> = {
   type: 'DndMetricSelect',
   multi: true,
   label: t('Metrics'),
@@ -123,20 +168,23 @@ export const dnd_adhoc_metrics: SharedControlConfig<'DndMetricSelect'> = {
   description: t('One or many metrics to display'),
 };
 
-export const dnd_adhoc_metric: SharedControlConfig<'DndMetricSelect'> = {
-  ...dnd_adhoc_metrics,
+export const dndAdhocMetricControl: typeof dndAdhocMetricsControl = {
+  ...dndAdhocMetricsControl,
   multi: false,
   label: t('Metric'),
   description: t('Metric'),
 };
 
-export const dnd_adhoc_metric_2: SharedControlConfig<'DndMetricSelect'> = {
-  ...dnd_adhoc_metric,
+export const dndAdhocMetricControl2: typeof dndAdhocMetricControl = {
+  ...dndAdhocMetricControl,
   label: t('Right Axis Metric'),
+  clearable: true,
   description: t('Choose a metric for right axis'),
 };
 
-export const dnd_sort_by: SharedControlConfig<'DndMetricSelect'> = {
+export const dndSortByControl: SharedControlConfig<
+  'DndMetricSelect' | 'MetricsControl'
+> = {
   type: 'DndMetricSelect',
   label: t('Sort by'),
   default: null,
@@ -152,33 +200,37 @@ export const dnd_sort_by: SharedControlConfig<'DndMetricSelect'> = {
   }),
 };
 
-export const dnd_size: SharedControlConfig<'DndMetricSelect'> = {
-  ...dnd_adhoc_metric,
+export const dndSizeControl: typeof dndAdhocMetricControl = {
+  ...dndAdhocMetricControl,
   label: t('Bubble Size'),
   description: t('Metric used to calculate bubble size'),
+  default: null,
 };
 
-export const dnd_x: SharedControlConfig<'DndMetricSelect'> = {
-  ...dnd_adhoc_metric,
+export const dndXControl: typeof dndAdhocMetricControl = {
+  ...dndAdhocMetricControl,
   label: t('X Axis'),
   description: t('Metric assigned to the [X] axis'),
+  default: null,
 };
 
-export const dnd_y: SharedControlConfig<'DndMetricSelect'> = {
-  ...dnd_adhoc_metric,
+export const dndYControl: typeof dndAdhocMetricControl = {
+  ...dndAdhocMetricControl,
   label: t('Y Axis'),
   description: t('Metric assigned to the [Y] axis'),
+  default: null,
 };
 
-export const dnd_secondary_metric: SharedControlConfig<'DndMetricSelect'> = {
-  ...dnd_adhoc_metric,
+export const dndSecondaryMetricControl: typeof dndAdhocMetricControl = {
+  ...dndAdhocMetricControl,
   label: t('Color Metric'),
+  default: null,
   validators: [],
   description: t('A metric to use for color'),
 };
 
-export const dnd_granularity_sqla: typeof dndGroupByControl = {
-  ...dndSeries,
+export const dndGranularitySqlaControl: typeof dndSeriesControl = {
+  ...dndSeriesControl,
   label: TIME_FILTER_LABELS.granularity_sqla,
   description: t(
     'The time column for the visualization. Note that you ' +
@@ -187,21 +239,20 @@ export const dnd_granularity_sqla: typeof dndGroupByControl = {
       'filter below is applied against this column or ' +
       'expression',
   ),
+  default: (c: Control) => c.default,
+  clearable: false,
   canDelete: false,
-  ghostButtonText: t(
-    isFeatureEnabled(FeatureFlag.ENABLE_DND_WITH_CLICK_UX)
-      ? 'Drop a temporal column here or click'
-      : 'Drop temporal column here',
-  ),
+  ghostButtonText: t('Drop temporal column here'),
+  clickEnabledGhostButtonText: t('Drop a temporal column here or click'),
+  optionRenderer: (c: ColumnMeta) => <ColumnOption showType column={c} />,
+  valueRenderer: (c: ColumnMeta) => <ColumnOption column={c} />,
+  valueKey: 'column_name',
   mapStateToProps: ({ datasource }) => {
     if (datasource?.columns[0]?.hasOwnProperty('column_name')) {
       const temporalColumns =
         (datasource as Dataset)?.columns?.filter(c => c.is_dttm) ?? [];
-      const options = Object.fromEntries(
-        temporalColumns.map(option => [option.column_name, option]),
-      );
       return {
-        options,
+        options: temporalColumns,
         default:
           (datasource as Dataset)?.main_dttm_col ||
           temporalColumns[0]?.column_name ||
@@ -209,22 +260,36 @@ export const dnd_granularity_sqla: typeof dndGroupByControl = {
         isTemporal: true,
       };
     }
-
     const sortedQueryColumns = (datasource as QueryResponse)?.columns?.sort(
       query => (query?.is_dttm ? -1 : 1),
     );
-    const options = Object.fromEntries(
-      sortedQueryColumns.map(option => [option.name, option]),
-    );
     return {
-      options,
+      options: sortedQueryColumns,
       default: sortedQueryColumns[0]?.name || null,
       isTemporal: true,
     };
   },
 };
 
-export const dnd_x_axis: SharedControlConfig<'DndColumnSelect'> = {
+export const dndXAxisControl: typeof dndGroupByControl = {
   ...dndGroupByControl,
   ...xAxisControlConfig,
 };
+
+export function withDndFallback(
+  DndComponent: React.ComponentType<any>,
+  FallbackComponent: React.ComponentType<any>,
+) {
+  return function DndControl(props: any) {
+    const enableExploreDnd = useMemo(
+      () => isFeatureEnabled(FeatureFlag.ENABLE_EXPLORE_DRAG_AND_DROP),
+      [],
+    );
+
+    return enableExploreDnd ? (
+      <DndComponent {...props} />
+    ) : (
+      <FallbackComponent {...props} />
+    );
+  };
+}

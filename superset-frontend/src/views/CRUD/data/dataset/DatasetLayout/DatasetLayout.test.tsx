@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { render, screen } from 'spec/helpers/testing-library';
+import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import DatasetLayout from 'src/views/CRUD/data/dataset/DatasetLayout';
 import Header from 'src/views/CRUD/data/dataset/AddDataset/Header';
 import LeftPanel from 'src/views/CRUD/data/dataset/AddDataset/LeftPanel';
@@ -33,18 +33,32 @@ describe('DatasetLayout', () => {
     expect(layoutWrapper).toHaveTextContent('');
   });
 
-  it('renders a Header when passed in', () => {
-    render(<DatasetLayout header={Header()} />);
+  const mockSetDataset = jest.fn();
 
-    expect(screen.getByText(/header/i)).toBeVisible();
+  const waitForRender = () =>
+    waitFor(() =>
+      render(<Header setDataset={mockSetDataset} datasetName="" />),
+    );
+
+  it('renders a Header when passed in', async () => {
+    await waitForRender();
+
+    expect(
+      screen.getByRole('textbox', {
+        name: /dataset name/i,
+      }),
+    ).toBeVisible();
   });
 
-  it('renders a LeftPanel when passed in', () => {
+  it('renders a LeftPanel when passed in', async () => {
     render(
       <DatasetLayout leftPanel={<LeftPanel setDataset={() => null} />} />,
       { useRedux: true },
     );
 
+    expect(
+      await screen.findByText(/select database & schema/i),
+    ).toBeInTheDocument();
     expect(LeftPanel).toBeTruthy();
   });
 

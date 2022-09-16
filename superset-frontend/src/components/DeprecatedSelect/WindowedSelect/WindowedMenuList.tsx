@@ -55,7 +55,7 @@ export type WindowedMenuListProps = {
  * grouped options just yet.
  */
 
-type MenuListPropsChildren<OptionType> =
+type MenuListPropsChildren<OptionType extends OptionTypeBase> =
   | Component<OptionProps<OptionType>>[]
   | ReactElement[];
 

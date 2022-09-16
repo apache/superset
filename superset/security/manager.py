@@ -1481,6 +1481,34 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             view_menu_table.delete().where(view_menu_table.c.id == pvm.view_menu_id)
         )
 
+    def _find_permission_on_sqla_event(
+        self, connection: Connection, name: str
+    ) -> Permission:
+        permission_table = self.permission_model.__table__  # pylint: disable=no-member
+
+        permission_ = connection.execute(
+            permission_table.select().where(permission_table.c.name == name)
+        ).fetchone()
+        permission = Permission()
+        permission.metadata = None
+        permission.id = permission_.id
+        permission.name = permission_.name
+        return permission
+
+    def _find_view_menu_on_sqla_event(
+        self, connection: Connection, name: str
+    ) -> ViewMenu:
+        view_menu_table = self.viewmenu_model.__table__  # pylint: disable=no-member
+
+        view_menu_ = connection.execute(
+            view_menu_table.select().where(view_menu_table.c.name == name)
+        ).fetchone()
+        view_menu = ViewMenu()
+        view_menu.metadata = None
+        view_menu.id = view_menu_.id
+        view_menu.name = view_menu_.name
+        return view_menu
+
     def _insert_pvm_on_sqla_event(
         self,
         mapper: Mapper,
@@ -1511,20 +1539,36 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         permission = self.find_permission(permission_name)
         view_menu = self.find_view_menu(view_menu_name)
         if not permission:
-            connection.execute(permission_table.insert().values(name=permission_name))
-            permission = self.find_permission(permission_name)
+            _ = connection.execute(
+                permission_table.insert().values(name=permission_name)
+            )
+            permission = self._find_permission_on_sqla_event(
+                connection, permission_name
+            )
             self.on_permission_after_insert(mapper, connection, permission)
         if not view_menu:
-            connection.execute(view_menu_table.insert().values(name=view_menu_name))
-            view_menu = self.find_view_menu(view_menu_name)
+            _ = connection.execute(view_menu_table.insert().values(name=view_menu_name))
+            view_menu = self._find_view_menu_on_sqla_event(connection, view_menu_name)
             self.on_view_menu_after_insert(mapper, connection, view_menu)
         connection.execute(
             permission_view_table.insert().values(
                 permission_id=permission.id, view_menu_id=view_menu.id
             )
         )
-        permission = self.find_permission_view_menu(permission_name, view_menu_name)
-        self.on_permission_view_after_insert(mapper, connection, permission)
+        permission_view = connection.execute(
+            permission_view_table.select().where(
+                permission_view_table.c.permission_id == permission.id,
+                permission_view_table.c.view_menu_id == view_menu.id,
+            )
+        ).fetchone()
+        permission_view_model = PermissionView()
+        permission_view_model.metadata = None
+        permission_view_model.id = permission_view.id
+        permission_view_model.permission_id = permission.id
+        permission_view_model.view_menu_id = view_menu.id
+        permission_view_model.permission = permission
+        permission_view_model.view_menu = view_menu
+        self.on_permission_view_after_insert(mapper, connection, permission_view_model)
 
     def on_role_after_update(
         self, mapper: Mapper, connection: Connection, target: Role

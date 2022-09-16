@@ -70,6 +70,10 @@ export default function AddDataset() {
     Reducer<Partial<DatasetObject> | null, DSReducerActionType>
   >(datasetReducer, null);
 
+  const HeaderComponent = () => (
+    <Header setDataset={setDataset} datasetName={dataset?.dataset_name ?? ''} />
+  );
+
   const LeftPanelComponent = () => (
     <LeftPanel
       setDataset={setDataset}
@@ -80,7 +84,7 @@ export default function AddDataset() {
 
   return (
     <DatasetLayout
-      header={Header()}
+      header={HeaderComponent()}
       leftPanel={LeftPanelComponent()}
       datasetPanel={DatasetPanel()}
       footer={Footer()}

@@ -17,22 +17,22 @@
  * under the License.
  */
 import {
-  WORLD_HEALTH_CHARTS,
-  WORLD_HEALTH_DASHBOARD,
   waitForChartLoad,
   ChartSpec,
   getChartAliasesBySpec,
-} from './dashboard.helper';
+} from 'cypress/utils';
+import { WORLD_HEALTH_DASHBOARD } from 'cypress/utils/urls';
+import { WORLD_HEALTH_CHARTS } from './utils';
 import { isLegacyResponse } from '../../utils/vizPlugins';
 
-describe('Dashboard top-level controls', () => {
+describe.skip('Dashboard top-level controls', () => {
   beforeEach(() => {
     cy.login();
     cy.visit(WORLD_HEALTH_DASHBOARD);
   });
 
   // flaky test
-  xit('should allow chart level refresh', () => {
+  it('should allow chart level refresh', () => {
     const mapSpec = WORLD_HEALTH_CHARTS.find(
       ({ viz }) => viz === 'world_map',
     ) as ChartSpec;
@@ -58,7 +58,7 @@ describe('Dashboard top-level controls', () => {
     });
   });
 
-  xit('should allow dashboard level force refresh', () => {
+  it('should allow dashboard level force refresh', () => {
     // when charts are not start loading, for example, under a secondary tab,
     // should allow force refresh
     WORLD_HEALTH_CHARTS.forEach(waitForChartLoad);
