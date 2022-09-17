@@ -22,7 +22,8 @@ import TableChart from '../src/TableChart';
 import transformProps from '../src/transformProps';
 import DateWithFormatter from '../src/utils/DateWithFormatter';
 import testData from './testData';
-import { mount } from './enzyme';
+import { mount, ProviderWrapper } from './enzyme';
+import { render, screen } from '@testing-library/react';
 
 describe('plugin-chart-table', () => {
   describe('transformProps', () => {
@@ -104,6 +105,82 @@ describe('plugin-chart-table', () => {
       wrap.setProps({ ...transformProps(testData.empty), sticky: false });
       tree = wrap.render();
       expect(tree.text()).toContain('No records found');
+    });
+
+    it('render color with column color formatter', async () => {
+      render(
+        ProviderWrapper({
+          children: (
+            <TableChart
+              {...transformProps({
+                ...testData.advanced,
+                rawFormData: {
+                  ...testData.advanced.rawFormData,
+                  conditional_formatting: [
+                    {
+                      colorScheme: '#ACE1C4',
+                      column: 'sum__num',
+                      operator: '>',
+                      targetValue: 2467,
+                    },
+                  ],
+                },
+              })}
+            />
+          ),
+        }),
+      );
+
+      expect(
+        getComputedStyle(await screen.getByTitle('2467063')).background,
+      ).toBe('rgba(172, 225, 196, 1)');
+      expect(getComputedStyle(await screen.getByTitle('2467')).background).toBe(
+        '',
+      );
+    });
+
+    it('render cell without color', async () => {
+      const dataWithEmptyCell = testData.advanced.queriesData[0];
+      dataWithEmptyCell.data.push({
+        __timestamp: null,
+        name: 'Noah',
+        sum__num: null,
+        '%pct_nice': 0.643,
+        'abc.com': 'bazzinga',
+      });
+
+      render(
+        ProviderWrapper({
+          children: (
+            <TableChart
+              {...transformProps({
+                ...testData.advanced,
+                queriesData: [dataWithEmptyCell],
+                rawFormData: {
+                  ...testData.advanced.rawFormData,
+                  conditional_formatting: [
+                    {
+                      colorScheme: '#ACE1C4',
+                      column: 'sum__num',
+                      operator: '<',
+                      targetValue: 12342,
+                    },
+                  ],
+                },
+              })}
+            />
+          ),
+        }),
+      );
+      expect(getComputedStyle(await screen.getByTitle('2467')).background).toBe(
+        'rgba(172, 225, 196, 0.812)',
+      );
+      expect(
+        getComputedStyle(await screen.getByTitle('2467063')).background,
+      ).toBe('');
+      expect(getComputedStyle(await screen.getByText('N/A')).background).toBe(
+        '',
+      );
     });
   });
 });
