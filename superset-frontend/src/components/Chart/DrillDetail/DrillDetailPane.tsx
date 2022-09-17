@@ -44,7 +44,7 @@ import MetadataBar, {
 } from 'src/components/MetadataBar';
 import Alert from 'src/components/Alert';
 import { useApiV1Resource } from 'src/hooks/apiResources';
-import TableControls from './TableControls';
+import TableControls from './DrillDetailTableControls';
 import { getDrillPayload } from './utils';
 import { Dataset, ResultsPage } from './types';
 

@@ -102,7 +102,9 @@ export default function EchartsTreemap({
               formattedVal: path,
             }),
           );
-          onContextMenu(filters, pointerEvent.clientX, pointerEvent.clientY);
+          onContextMenu(pointerEvent.clientX, pointerEvent.clientY, {
+            filters,
+          });
         }
       }
     },

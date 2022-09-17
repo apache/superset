@@ -88,8 +88,8 @@ export type tooltipFormatParams = {
 export type GraphChartTransformedProps = EchartsProps & {
   formData: PlainObject;
   onContextMenu?: (
-    filters: QueryObjectFilterClause[],
     clientX: number,
     clientY: number,
+    payload: { filters: QueryObjectFilterClause[] },
   ) => void;
 };

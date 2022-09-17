@@ -399,7 +399,7 @@ export default function PivotTableChart(props: PivotTableProps) {
             });
           });
         }
-        onContextMenu(filters, e.clientX, e.clientY);
+        onContextMenu(e.clientX, e.clientY, { filters });
       }
     },
     [cols, dateFormatters, onContextMenu, rows],

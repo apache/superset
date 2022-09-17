@@ -642,7 +642,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
               });
             }
           });
-          onContextMenu(filters, clientX, clientY);
+          onContextMenu(clientX, clientY, { filters });
         }
       : undefined;
 

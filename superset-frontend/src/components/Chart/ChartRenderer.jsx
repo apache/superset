@@ -30,7 +30,6 @@ import {
 import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
 import { EmptyStateBig, EmptyStateSmall } from 'src/components/EmptyState';
 import ChartContextMenu from './ChartContextMenu';
-import DrillDetailModal from './DrillDetailModal';
 
 const propTypes = {
   annotationData: PropTypes.object,
@@ -83,8 +82,10 @@ class ChartRenderer extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
+      showContextMenu:
+        props.source === 'dashboard' &&
+        isFeatureEnabled(FeatureFlag.DRILL_TO_DETAIL),
       inContextMenu: false,
-      drillDetailFilters: null,
     };
     this.hasQueryResponseChange = false;
 
@@ -97,14 +98,13 @@ class ChartRenderer extends React.Component {
     this.handleOnContextMenu = this.handleOnContextMenu.bind(this);
     this.handleContextMenuSelected = this.handleContextMenuSelected.bind(this);
     this.handleContextMenuClosed = this.handleContextMenuClosed.bind(this);
-
-    const showContextMenu =
-      props.source === 'dashboard' &&
-      isFeatureEnabled(FeatureFlag.DRILL_TO_DETAIL);
+    this.onContextMenuFallback = this.onContextMenuFallback.bind(this);
 
     this.hooks = {
       onAddFilter: this.handleAddFilter,
-      onContextMenu: showContextMenu ? this.handleOnContextMenu : undefined,
+      onContextMenu: this.state.showContextMenu
+        ? this.handleOnContextMenu
+        : undefined,
       onError: this.handleRenderFailure,
       setControlValue: this.handleSetControlValue,
       onFilterMenuOpen: this.props.onFilterMenuOpen,
@@ -198,17 +198,29 @@ class ChartRenderer extends React.Component {
     }
   }
 
-  handleOnContextMenu(filters, offsetX, offsetY) {
-    this.contextMenuRef.current.open(filters, offsetX, offsetY);
-    this.setState({ inContextMenu: true });
+  handleOnContextMenu(offsetX, offsetY, payload) {
+    this.contextMenuRef.current.open(offsetX, offsetY, payload);
+
+    //  Don't update chart state if payload is undefined; that means viz plugin
+    //  didn't handle `contextmenu` event and may react badly to state update
+    if (payload) {
+      this.setState({ inContextMenu: true });
+    }
   }
 
-  handleContextMenuSelected(filters) {
-    this.setState({ inContextMenu: false, drillDetailFilters: filters });
+  handleContextMenuSelected() {
+    this.setState({ inContextMenu: false });
   }
 
   handleContextMenuClosed() {
     this.setState({ inContextMenu: false });
+  }
+
+  //  When viz plugins don't handle `contextmenu` event, fallback handler
+  //  calls `handleOnContextMenu` without a `payload` param
+  onContextMenuFallback(event) {
+    event.preventDefault();
+    this.handleOnContextMenu(event.clientX, event.clientY);
   }
 
   render() {
@@ -286,21 +298,19 @@ class ChartRenderer extends React.Component {
     }
 
     return (
-      <div>
+      <div
+        onContextMenu={
+          this.state.showContextMenu ? this.onContextMenuFallback : undefined
+        }
+      >
         {this.props.source === 'dashboard' && (
-          <>
-            <ChartContextMenu
-              ref={this.contextMenuRef}
-              id={chartId}
-              onSelection={this.handleContextMenuSelected}
-              onClose={this.handleContextMenuClosed}
-            />
-            <DrillDetailModal
-              chartId={chartId}
-              initialFilters={this.state.drillDetailFilters}
-              formData={currentFormData}
-            />
-          </>
+          <ChartContextMenu
+            ref={this.contextMenuRef}
+            id={chartId}
+            formData={currentFormData}
+            onSelection={this.handleContextMenuSelected}
+            onClose={this.handleContextMenuClosed}
+          />
         )}
         <SuperChart
           disableErrorBoundary

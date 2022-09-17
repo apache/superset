@@ -65,9 +65,11 @@ type BigNumberVisProps = {
   mainColor: string;
   echartOptions: EChartsCoreOption;
   onContextMenu?: (
-    filters: QueryObjectFilterClause[],
     clientX: number,
     clientY: number,
+    payload: {
+      filters: QueryObjectFilterClause[];
+    },
   ) => void;
   xValueFormatter?: TimeFormatter;
   formData?: BigNumberWithTrendlineFormData;
@@ -171,11 +173,9 @@ class BigNumberVis extends React.PureComponent<BigNumberVisProps> {
     const onContextMenu = (e: MouseEvent<HTMLDivElement>) => {
       if (this.props.onContextMenu) {
         e.preventDefault();
-        this.props.onContextMenu(
-          [],
-          e.nativeEvent.clientX,
-          e.nativeEvent.clientY,
-        );
+        this.props.onContextMenu(e.nativeEvent.clientX, e.nativeEvent.clientY, {
+          filters: [],
+        });
       }
     };
 
@@ -258,9 +258,9 @@ class BigNumberVis extends React.PureComponent<BigNumberVisProps> {
               formattedVal: this.props.xValueFormatter?.(data[0]),
             });
             this.props.onContextMenu(
-              filters,
               pointerEvent.clientX,
               pointerEvent.clientY,
+              { filters },
             );
           }
         }

@@ -23,82 +23,78 @@ import React, {
   useImperativeHandle,
   useState,
 } from 'react';
-import { QueryObjectFilterClause, t, styled } from '@superset-ui/core';
+import { FeatureFlag, isFeatureEnabled, SqlaFormData } from '@superset-ui/core';
 import { Menu } from 'src/components/Menu';
 import { AntdDropdown as Dropdown } from 'src/components';
 import ReactDOM from 'react-dom';
+import {
+  DrillDetailMenuItems,
+  DrillDetailPayload,
+  getDrillDetailMenuItemsCount,
+} from './DrillDetail';
 
 const MENU_ITEM_HEIGHT = 32;
 const MENU_VERTICAL_SPACING = 32;
 
+type ContextMenuPayload = DrillDetailPayload;
+
 export interface ChartContextMenuProps {
   id: string;
-  onSelection: (filters: QueryObjectFilterClause[]) => void;
+  formData: SqlaFormData;
+  onSelection: () => void;
   onClose: () => void;
 }
 
 export interface Ref {
   open: (
-    filters: QueryObjectFilterClause[],
     clientX: number,
     clientY: number,
+    payload?: ContextMenuPayload,
   ) => void;
 }
 
-const Filter = styled.span`
-  ${({ theme }) => `
-    font-weight: ${theme.typography.weights.bold};
-    color: ${theme.colors.primary.base};
-  `}
-`;
-
 const ChartContextMenu = (
-  { id, onSelection, onClose }: ChartContextMenuProps,
+  { id, formData, onSelection, onClose }: ChartContextMenuProps,
   ref: RefObject<Ref>,
 ) => {
-  const [state, setState] = useState<{
-    filters: QueryObjectFilterClause[];
+  const [{ clientX, clientY, payload }, setState] = useState<{
     clientX: number;
     clientY: number;
-  }>({ filters: [], clientX: 0, clientY: 0 });
+    payload?: ContextMenuPayload;
+  }>({ clientX: 0, clientY: 0 });
 
   const menu = (
     <Menu>
-      {state.filters.map((filter, i) => (
-        <Menu.Item key={i} onClick={() => onSelection([filter])}>
-          {`${t('Drill to detail by')} `}
-          <Filter>{filter.formattedVal}</Filter>
-        </Menu.Item>
-      ))}
-      {state.filters.length === 0 && (
-        <Menu.Item key="none" onClick={() => onSelection([])}>
-          {t('Drill to detail')}
-        </Menu.Item>
+      {isFeatureEnabled(FeatureFlag.DRILL_TO_DETAIL) && (
+        <DrillDetailMenuItems
+          chartId={id}
+          formData={formData}
+          contextPayload={payload}
+          onSelection={onSelection}
+        />
       )}
-      {state.filters.length > 1 && (
-        <Menu.Item key="all" onClick={() => onSelection(state.filters)}>
-          {`${t('Drill to detail by')} `}
-          <Filter>{t('all')}</Filter>
-        </Menu.Item>
-      )}
+      {/* Include additional menu content here */}
     </Menu>
   );
 
   const open = useCallback(
-    (filters: QueryObjectFilterClause[], clientX: number, clientY: number) => {
+    (clientX: number, clientY: number, payload?: ContextMenuPayload) => {
       // Viewport height
       const vh = Math.max(
         document.documentElement.clientHeight || 0,
         window.innerHeight || 0,
       );
 
-      // +1 for automatically added options such as 'All' and 'Drill to detail'
-      const itemsCount = filters.length + 1;
+      const itemsCount = [
+        getDrillDetailMenuItemsCount(payload),
+        // Include additional menu item counts here
+      ].reduce((a, b) => a + b, 0);
+
       const menuHeight = MENU_ITEM_HEIGHT * itemsCount + MENU_VERTICAL_SPACING;
       // Always show the context menu inside the viewport
       const adjustedY = vh - clientY < menuHeight ? vh - menuHeight : clientY;
 
-      setState({ filters, clientX, clientY: adjustedY });
+      setState({ clientX, clientY: adjustedY, payload });
 
       // Since Ant Design's Dropdown does not offer an imperative API
       // and we can't attach event triggers to charts SVG elements, we
@@ -128,8 +124,8 @@ const ChartContextMenu = (
         css={{
           visibility: 'hidden',
           position: 'fixed',
-          top: state.clientY,
-          left: state.clientX,
+          top: clientY,
+          left: clientX,
           width: 1,
           height: 1,
         }}

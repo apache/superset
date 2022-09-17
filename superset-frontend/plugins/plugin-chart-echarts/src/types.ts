@@ -116,9 +116,11 @@ export interface EChartTransformedProps<F> {
   selectedValues: Record<number, string>;
   legendData?: OptionName[];
   onContextMenu?: (
-    filters: QueryObjectFilterClause[],
     clientX: number,
     clientY: number,
+    payload: {
+      filters: QueryObjectFilterClause[];
+    },
   ) => void;
 }
 

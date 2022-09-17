@@ -16,31 +16,35 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { omit } from 'lodash';
-import {
-  ensureIsArray,
-  QueryFormData,
-  BinaryQueryObjectFilterClause,
-  buildQueryObject,
-} from '@superset-ui/core';
+import { GenericDataType, QueryObjectFilterClause } from '@superset-ui/core';
 
-export function getDrillPayload(
-  queryFormData?: QueryFormData,
-  drillFilters?: BinaryQueryObjectFilterClause[],
-) {
-  if (!queryFormData) {
-    return undefined;
-  }
-  const queryObject = buildQueryObject(queryFormData);
-  const extras = omit(queryObject.extras, 'having');
-  const filters = [
-    ...ensureIsArray(queryObject.filters),
-    ...ensureIsArray(drillFilters).map(f => omit(f, 'formattedVal')),
-  ];
-  return {
-    granularity: queryObject.granularity,
-    time_range: queryObject.time_range,
-    filters,
-    extras,
+export type ResultsPage = {
+  total: number;
+  data: Record<string, any>[];
+  colNames: string[];
+  colTypes: GenericDataType[];
+};
+
+export type Dataset = {
+  changed_by?: {
+    first_name: string;
+    last_name: string;
   };
+  created_by?: {
+    first_name: string;
+    last_name: string;
+  };
+  changed_on_humanized: string;
+  created_on_humanized: string;
+  description: string;
+  table_name: string;
+  owners: {
+    first_name: string;
+    last_name: string;
+  }[];
+};
+
+export interface DrillDetailPayload {
+  noAggregation: boolean;
+  filters: QueryObjectFilterClause[];
 }
