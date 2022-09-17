@@ -18,12 +18,12 @@
  */
 import React from 'react';
 import { CommonWrapper } from 'enzyme';
+import { render, screen } from '@testing-library/react';
 import TableChart from '../src/TableChart';
 import transformProps from '../src/transformProps';
 import DateWithFormatter from '../src/utils/DateWithFormatter';
 import testData from './testData';
 import { mount, ProviderWrapper } from './enzyme';
-import { render, screen } from '@testing-library/react';
 
 describe('plugin-chart-table', () => {
   describe('transformProps', () => {
@@ -107,7 +107,7 @@ describe('plugin-chart-table', () => {
       expect(tree.text()).toContain('No records found');
     });
 
-    it('render color with column color formatter', async () => {
+    it('render color with column color formatter', () => {
       render(
         ProviderWrapper({
           children: (
@@ -131,15 +131,13 @@ describe('plugin-chart-table', () => {
         }),
       );
 
-      expect(
-        getComputedStyle(await screen.getByTitle('2467063')).background,
-      ).toBe('rgba(172, 225, 196, 1)');
-      expect(getComputedStyle(await screen.getByTitle('2467')).background).toBe(
-        '',
+      expect(getComputedStyle(screen.getByTitle('2467063')).background).toBe(
+        'rgba(172, 225, 196, 1)',
       );
+      expect(getComputedStyle(screen.getByTitle('2467')).background).toBe('');
     });
 
-    it('render cell without color', async () => {
+    it('render cell without color', () => {
       const dataWithEmptyCell = testData.advanced.queriesData[0];
       dataWithEmptyCell.data.push({
         __timestamp: null,
@@ -172,15 +170,13 @@ describe('plugin-chart-table', () => {
           ),
         }),
       );
-      expect(getComputedStyle(await screen.getByTitle('2467')).background).toBe(
+      expect(getComputedStyle(screen.getByTitle('2467')).background).toBe(
         'rgba(172, 225, 196, 0.812)',
       );
-      expect(
-        getComputedStyle(await screen.getByTitle('2467063')).background,
-      ).toBe('');
-      expect(getComputedStyle(await screen.getByText('N/A')).background).toBe(
+      expect(getComputedStyle(screen.getByTitle('2467063')).background).toBe(
         '',
       );
+      expect(getComputedStyle(screen.getByText('N/A')).background).toBe('');
     });
   });
 });
