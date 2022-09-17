@@ -21,7 +21,6 @@
 
 {% block head_css %}
   {{ super() }}
-  <!-- <link rel="icon" type="image/png" href="{{ assets_prefix }}/static/assets/images/favicon.png"> -->
   {% set favicons = appbuilder.app.config['FAVICONS'] %}
   {% for favicon in favicons %}
     <link
