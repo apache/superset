@@ -248,8 +248,8 @@ class TestRolePermission(SupersetTestCase):
         stored_table = (
             session.query(SqlaTable).filter_by(table_name="tmp_perm_table").one()
         )
-        # Assert no permission is created
-        self.assertIsNone(
+        # Assert permission is created
+        self.assertIsNotNone(
             security_manager.find_permission_view_menu(
                 "datasource_access", stored_table.perm
             )
