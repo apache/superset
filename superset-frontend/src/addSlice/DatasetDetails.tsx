@@ -3,11 +3,13 @@ import React from 'react';
 import _ from 'lodash';
 import { t } from '@superset-ui/core';
 
-import { Select } from 'src/components';
+import { Select, AsyncSelect } from 'src/components';
 import { Button, Col, Row, Tooltip } from 'antd';
 import { FormLabel } from 'src/components/Form';
 
-import { AsyncSelect } from 'src/components';
+import { OptionsType } from 'src/components/Select/Select';
+import { MinusCircleOutlined } from '@ant-design/icons';
+import { OptionsPagePromise } from 'src/components/Select/AsyncSelect';
 import {
   StyledLabel,
   StyledStepDescription,
@@ -22,10 +24,6 @@ import {
 } from './types';
 
 import DatasetJoins from './DatasetJoins';
-import { OptionsType } from 'src/components/Select/Select';
-
-import { MinusCircleOutlined } from '@ant-design/icons';
-import { OptionsPagePromise } from 'src/components/Select/AsyncSelect';
 
 interface DatasetDetailsProps {
   index: number;

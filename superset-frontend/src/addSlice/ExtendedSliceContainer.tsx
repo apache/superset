@@ -1,3 +1,21 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import React from 'react';
 
 import _ from 'lodash';
@@ -9,25 +27,28 @@ import { withRouter, RouteComponentProps } from 'react-router-dom';
 import withToasts from 'src/components/MessageToasts/withToasts';
 
 import { PlusCircleOutlined } from '@ant-design/icons';
-import { Button as DefaultButton, Row, Col } from 'antd';
+import { Button as DefaultButton, Row, Col, notification } from 'antd';
 
-import { Steps } from 'src/components';
+import { Steps, AsyncSelect } from 'src/components';
 import Button from 'src/components/Button';
 import { FormLabel } from 'src/components/Form';
 import { Tooltip } from 'src/components/Tooltip';
-import { AsyncSelect } from 'src/components';
 
+import VizTypeGallery from 'src/explore/components/controls/VizTypeControl/VizTypeGallery';
+
+import { findPermission } from 'src/utils/findPermission';
+import { getClientErrorObject } from 'src/utils/getClientErrorObject';
+import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import { getUrlParam } from 'src/utils/urlUtils';
+import { URL_PARAMS } from 'src/constants';
+import { isNullish } from 'src/utils/common';
+import DatasetDetails from './DatasetDetails';
 import {
   StyledLabel,
   StyledContainer,
   TooltipContent,
   StyledStepDescription,
 } from './AddSliceContainer';
-
-import { notification } from 'antd';
-
-import VizTypeGallery from 'src/explore/components/controls/VizTypeControl/VizTypeGallery';
-
 import {
   List,
   Column,
@@ -37,14 +58,6 @@ import {
   DatasourceJoins,
   AdditionalStateDataset,
 } from './types';
-
-import DatasetDetails from './DatasetDetails';
-import { findPermission } from 'src/utils/findPermission';
-import { getClientErrorObject } from 'src/utils/getClientErrorObject';
-import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
-import { getUrlParam } from 'src/utils/urlUtils';
-import { URL_PARAMS } from 'src/constants';
-import { isNullish } from 'src/utils/common';
 
 const JOINS = Object.freeze({
   'LEFT JOIN': 'left join',
@@ -82,6 +95,7 @@ export class ExtendedSliceContainer extends React.PureComponent<
   ExtendedSliceContainerState
 > {
   sqlEditorRef = React.createRef();
+
   constructor(props: ExtendedSliceContainerProps) {
     super(props);
     this.state = {
@@ -134,7 +148,7 @@ export class ExtendedSliceContainer extends React.PureComponent<
   }
 
   openNotificationWithIcon(message: string) {
-    notification['error']({
+    notification.error({
       message,
     });
   }
@@ -147,7 +161,7 @@ export class ExtendedSliceContainer extends React.PureComponent<
       SupersetClient.post({ endpoint })
         .then((response: JsonResponse) =>
           this.props.history.push(
-            `/explore/?viz_type=${this.state.visType}&datasource=${response.json['datasource']['uid']}`,
+            `/explore/?viz_type=${this.state.visType}&datasource=${response.json.datasource.uid}`,
           ),
         )
         .catch((response: JsonResponse) =>
@@ -351,7 +365,8 @@ export class ExtendedSliceContainer extends React.PureComponent<
           ? second_datasource.value && first_column && second_column
           : true
         : true;
-    } else return true;
+    }
+    return true;
   }
 
   getTitle() {
@@ -362,7 +377,7 @@ export class ExtendedSliceContainer extends React.PureComponent<
         second_datasource
         ? DOUBLE_DATABASE_TITLE
         : SINGLE_DATABASE_TITLE;
-    else return SINGLE_DATABASE_TITLE;
+    return SINGLE_DATABASE_TITLE;
   }
 
   isJoinComplete() {
