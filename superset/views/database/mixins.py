@@ -63,7 +63,6 @@ class DatabaseMixin:
         "allow_dml",
         "force_ctas_schema",
         "impersonate_user",
-        "allow_multi_schema_metadata_fetch",
         "extra",
         "encrypted_extra",
         "server_cert",
@@ -170,11 +169,6 @@ class DatabaseMixin:
             "service account, but impersonate the currently logged on user "
             "via hive.server2.proxy.user property."
         ),
-        "allow_multi_schema_metadata_fetch": _(
-            "Allow SQL Lab to fetch a list of all tables and all views across "
-            "all database schemas. For large data warehouse with thousands of "
-            "tables, this can be expensive and put strain on the system."
-        ),
         "cache_timeout": _(
             "Duration (in seconds) of the caching timeout for charts of this database. "
             "A timeout of 0 indicates that the cache never expires. "
@@ -203,7 +197,6 @@ class DatabaseMixin:
         "impersonate_user": _("Impersonate the logged on user"),
         "allow_file_upload": _("Allow Csv Upload"),
         "modified": _("Modified"),
-        "allow_multi_schema_metadata_fetch": _("Allow Multi Schema Metadata Fetch"),
         "backend": _("Backend"),
     }
 

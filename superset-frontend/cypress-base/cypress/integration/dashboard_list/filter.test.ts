@@ -16,86 +16,71 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DASHBOARD_LIST } from './dashboard_list.helper';
+import { DASHBOARD_LIST } from 'cypress/utils/urls';
+import { setGridMode, clearAllInputs } from 'cypress/utils';
+import { setFilter } from '../dashboard/utils';
 
-describe('dashboard filters card view', () => {
-  beforeEach(() => {
-    cy.login();
+describe('Dashboards filters', () => {
+  before(() => {
     cy.visit(DASHBOARD_LIST);
-    cy.get('[aria-label="card-view"]').click();
   });
 
-  it('should filter by owners correctly', () => {
-    // filter by owners
-    cy.get('[data-test="filters-select"]').first().click();
-    cy.get('.rc-virtual-list').contains('alpha user').click();
-    cy.get('[data-test="styled-card"]').should('not.exist');
-    cy.get('[data-test="filters-select"]').first().click();
-    cy.get('.rc-virtual-list').contains('gamma user').click();
-    cy.get('[data-test="styled-card"]').should('not.exist');
-  });
-
-  it('should filter by created by correctly', () => {
-    // filter by created by
-    cy.get('[data-test="filters-select"]').eq(1).click();
-    cy.get('.rc-virtual-list').contains('alpha user').click();
-    cy.get('.ant-card').should('not.exist');
-    cy.get('[data-test="filters-select"]').eq(1).click();
-    cy.get('.rc-virtual-list').contains('gamma user').click();
-    cy.get('.ant-card').should('not.exist');
-  });
-
-  it('should filter by published correctly', () => {
-    // filter by published
-    cy.get('[data-test="filters-select"]').eq(2).click();
-    cy.get('.rc-virtual-list').contains('Published').click({ timeout: 5000 });
-    cy.get('[data-test="styled-card"]').should('have.length', 3);
-    cy.get('[data-test="styled-card"]')
-      .contains('USA Births Names')
-      .should('be.visible');
-    cy.get('[data-test="filters-select"]').eq(1).click();
-    cy.get('[data-test="filters-select"]').eq(1).type('unpub{enter}');
-    cy.get('[data-test="styled-card"]').should('have.length', 3);
-  });
-});
-
-describe('dashboard filters list view', () => {
   beforeEach(() => {
-    cy.login();
-    cy.visit(DASHBOARD_LIST);
-    cy.get('[aria-label="list-view"]').click();
+    cy.preserveLogin();
+    clearAllInputs();
   });
 
-  it('should filter by owners correctly', () => {
-    // filter by owners
-    cy.get('[data-test="filters-select"]').first().click();
-    cy.get('.rc-virtual-list').contains('alpha user').click();
-    cy.get('[data-test="table-row"]').should('not.exist');
-    cy.get('[data-test="filters-select"]').first().click();
-    cy.get('.rc-virtual-list').contains('gamma user').click();
-    cy.get('[data-test="table-row"]').should('not.exist');
+  describe('card-view', () => {
+    before(() => {
+      setGridMode('card');
+    });
+
+    it('should filter by owners correctly', () => {
+      setFilter('Owner', 'alpha user');
+      cy.getBySel('styled-card').should('not.exist');
+      setFilter('Owner', 'admin user');
+      cy.getBySel('styled-card').should('exist');
+    });
+
+    it('should filter by created by correctly', () => {
+      setFilter('Created by', 'alpha user');
+      cy.getBySel('styled-card').should('not.exist');
+      setFilter('Created by', 'admin user');
+      cy.getBySel('styled-card').should('exist');
+    });
+
+    it('should filter by published correctly', () => {
+      setFilter('Status', 'Published');
+      cy.getBySel('styled-card').should('have.length', 3);
+      setFilter('Status', 'Draft');
+      cy.getBySel('styled-card').should('have.length', 2);
+    });
   });
 
-  it('should filter by created by correctly', () => {
-    // filter by created by
-    cy.get('[data-test="filters-select"]').eq(1).click();
-    cy.get('.rc-virtual-list').contains('alpha user').click();
-    cy.get('[data-test="table-row"]').should('not.exist');
-    cy.get('[data-test="filters-select"]').eq(1).click();
-    cy.get('.rc-virtual-list').contains('gamma user').click();
-    cy.get('[data-test="table-row"]').should('not.exist');
-  });
+  describe('list-view', () => {
+    before(() => {
+      setGridMode('list');
+    });
 
-  it('should filter by published correctly', () => {
-    // filter by published
-    cy.get('[data-test="filters-select"]').eq(2).click();
-    cy.get('.rc-virtual-list').contains('Published').click();
-    cy.get('[data-test="table-row"]').should('have.length', 3);
-    cy.get('[data-test="table-row"]')
-      .contains('USA Births Names')
-      .should('be.visible');
-    cy.get('[data-test="filters-select"]').eq(2).click();
-    cy.get('[data-test="filters-select"]').eq(2).type('unpub{enter}');
-    cy.get('[data-test="table-row"]').should('have.length', 3);
+    it('should filter by created by correctly', () => {
+      setFilter('Owner', 'alpha user');
+      cy.getBySel('table-row').should('not.exist');
+      setFilter('Owner', 'admin user');
+      cy.getBySel('table-row').should('exist');
+    });
+
+    it('should filter by created by correctly', () => {
+      setFilter('Created by', 'alpha user');
+      cy.getBySel('table-row').should('not.exist');
+      setFilter('Created by', 'admin user');
+      cy.getBySel('table-row').should('exist');
+    });
+
+    it('should filter by published correctly', () => {
+      setFilter('Status', 'Published');
+      cy.getBySel('table-row').should('have.length', 3);
+      setFilter('Status', 'Draft');
+      cy.getBySel('table-row').should('have.length', 2);
+    });
   });
 });

@@ -120,16 +120,19 @@ fetchMock.post(
   },
 );
 
-test('Cancelling changes to the properties should reset previous properties', () => {
+test('Cancelling changes to the properties should reset previous properties', async () => {
   const props = createProps();
   render(<ExploreHeader {...props} />, { useRedux: true });
   const newChartName = 'New chart name';
   const prevChartName = props.slice_name;
+  expect(
+    await screen.findByText(/add the name of the chart/i),
+  ).toBeInTheDocument();
 
   userEvent.click(screen.getByLabelText('Menu actions trigger'));
   userEvent.click(screen.getByText('Edit chart properties'));
 
-  const nameInput = screen.getByRole('textbox', { name: 'Name' });
+  const nameInput = await screen.findByRole('textbox', { name: 'Name' });
 
   userEvent.clear(nameInput);
   userEvent.type(nameInput, newChartName);
@@ -141,31 +144,35 @@ test('Cancelling changes to the properties should reset previous properties', ()
   userEvent.click(screen.getByLabelText('Menu actions trigger'));
   userEvent.click(screen.getByText('Edit chart properties'));
 
-  expect(screen.getByDisplayValue(prevChartName)).toBeInTheDocument();
+  expect(await screen.findByDisplayValue(prevChartName)).toBeInTheDocument();
 });
 
-test('Save chart', () => {
+test('Save chart', async () => {
   const props = createProps();
   render(<ExploreHeader {...props} />, { useRedux: true });
+  expect(await screen.findByText('Save')).toBeInTheDocument();
   userEvent.click(screen.getByText('Save'));
   expect(props.onSaveChart).toHaveBeenCalled();
 });
 
-test('Save disabled', () => {
+test('Save disabled', async () => {
   const props = createProps();
   render(<ExploreHeader {...props} saveDisabled />, { useRedux: true });
+  expect(await screen.findByText('Save')).toBeInTheDocument();
   userEvent.click(screen.getByText('Save'));
   expect(props.onSaveChart).not.toHaveBeenCalled();
 });
 
 describe('Additional actions tests', () => {
-  test('Should render a button', () => {
+  test('Should render a button', async () => {
     const props = createProps();
     render(<ExploreHeader {...props} />, { useRedux: true });
-    expect(screen.getByLabelText('Menu actions trigger')).toBeInTheDocument();
+    expect(
+      await screen.findByLabelText('Menu actions trigger'),
+    ).toBeInTheDocument();
   });
 
-  test('Should open a menu', () => {
+  test('Should open a menu', async () => {
     const props = createProps();
     render(<ExploreHeader {...props} />, {
       useRedux: true,
@@ -173,7 +180,9 @@ describe('Additional actions tests', () => {
 
     userEvent.click(screen.getByLabelText('Menu actions trigger'));
 
-    expect(screen.getByText('Edit chart properties')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Edit chart properties'),
+    ).toBeInTheDocument();
     expect(screen.getByText('Download')).toBeInTheDocument();
     expect(screen.getByText('Share')).toBeInTheDocument();
     expect(screen.getByText('View query')).toBeInTheDocument();
@@ -257,11 +266,12 @@ describe('Additional actions tests', () => {
     await waitFor(() => expect(getChartDataRequest).toBeCalledTimes(1));
   });
 
-  test('Should call onOpenInEditor when click on "Run in SQL Lab"', () => {
+  test('Should call onOpenInEditor when click on "Run in SQL Lab"', async () => {
     const props = createProps();
     render(<ExploreHeader {...props} />, {
       useRedux: true,
     });
+    expect(await screen.findByText('Save')).toBeInTheDocument();
 
     expect(props.actions.redirectSQLLab).toBeCalledTimes(0);
     userEvent.click(screen.getByLabelText('Menu actions trigger'));
@@ -283,6 +293,7 @@ describe('Additional actions tests', () => {
       spyDownloadAsImage.restore();
       spyExportChart.restore();
     });
+
     test('Should call downloadAsImage when click on "Download as image"', async () => {
       const props = createProps();
       const spy = jest.spyOn(downloadAsImage, 'default');

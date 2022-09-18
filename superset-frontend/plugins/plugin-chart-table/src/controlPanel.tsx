@@ -40,7 +40,6 @@ import {
   sections,
   sharedControls,
   ControlPanelState,
-  ExtraControlProps,
   ControlState,
   emitFilterControl,
   Dataset,
@@ -96,15 +95,14 @@ const queryMode: ControlConfig<'RadioButtonControl'> = {
   rerender: ['all_columns', 'groupby', 'metrics', 'percent_metrics'],
 };
 
-const all_columns: typeof sharedControls.groupby = {
-  type: 'SelectControl',
+const allColumnsControl: typeof sharedControls.groupby = {
+  ...sharedControls.groupby,
   label: t('Columns'),
   description: t('Columns to display'),
   multi: true,
   freeForm: true,
   allowAll: true,
   commaChoosesOption: false,
-  default: [],
   optionRenderer: c => <ColumnOption showType column={c} />,
   valueRenderer: c => <ColumnOption column={c} />,
   valueKey: 'column_name',
@@ -112,7 +110,7 @@ const all_columns: typeof sharedControls.groupby = {
     options: datasource?.columns || [],
     queryMode: getQueryMode(controls),
     externalValidationErrors:
-      isRawMode({ controls }) && ensureIsArray(controlState.value).length === 0
+      isRawMode({ controls }) && ensureIsArray(controlState?.value).length === 0
         ? [t('must have a value')]
         : [],
   }),
@@ -120,37 +118,12 @@ const all_columns: typeof sharedControls.groupby = {
   resetOnHide: false,
 };
 
-const dnd_all_columns: typeof sharedControls.groupby = {
-  type: 'DndColumnSelect',
-  label: t('Columns'),
-  description: t('Columns to display'),
-  default: [],
-  mapStateToProps({ datasource, controls }, controlState) {
-    const newState: ExtraControlProps = {};
-    if (datasource?.columns[0]?.hasOwnProperty('column_name')) {
-      const options = (datasource as Dataset).columns;
-      newState.options = Object.fromEntries(
-        options.map((option: ColumnMeta) => [option.column_name, option]),
-      );
-    } else newState.options = datasource?.columns;
-    newState.queryMode = getQueryMode(controls);
-    newState.externalValidationErrors =
-      isRawMode({ controls }) && ensureIsArray(controlState.value).length === 0
-        ? [t('must have a value')]
-        : [];
-    return newState;
-  },
-  visibility: isRawMode,
-  resetOnHide: false,
-};
-
-const percent_metrics: typeof sharedControls.metrics = {
-  type: 'MetricsControl',
+const percentMetricsControl: typeof sharedControls.metrics = {
+  ...sharedControls.metrics,
   label: t('Percentage metrics'),
   description: t(
     'Metrics for which percentage of total are to be displayed. Calculated from only data within the row limit.',
   ),
-  multi: true,
   visibility: isAggMode,
   resetOnHide: false,
   mapStateToProps: ({ datasource, controls }, controlState) => ({
@@ -162,17 +135,12 @@ const percent_metrics: typeof sharedControls.metrics = {
     externalValidationErrors: validateAggControlValues(controls, [
       controls.groupby?.value,
       controls.metrics?.value,
-      controlState.value,
+      controlState?.value,
     ]),
   }),
   rerender: ['groupby', 'metrics'],
   default: [],
   validators: [],
-};
-
-const dnd_percent_metrics = {
-  ...percent_metrics,
-  type: 'DndMetricSelect',
 };
 
 const config: ControlPanelConfig = {
@@ -251,19 +219,13 @@ const config: ControlPanelConfig = {
           },
           {
             name: 'all_columns',
-            config: isFeatureEnabled(FeatureFlag.ENABLE_EXPLORE_DRAG_AND_DROP)
-              ? dnd_all_columns
-              : all_columns,
+            config: allColumnsControl,
           },
         ],
         [
           {
             name: 'percent_metrics',
-            config: {
-              ...(isFeatureEnabled(FeatureFlag.ENABLE_EXPLORE_DRAG_AND_DROP)
-                ? dnd_percent_metrics
-                : percent_metrics),
-            },
+            config: percentMetricsControl,
           },
         ],
         ['adhoc_filters'],

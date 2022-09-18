@@ -72,10 +72,10 @@ test('should pivot on any type of timeCompare', () => {
           ...formData,
           comparison_type: cType,
           time_compare: ['1 year ago', '1 year later'],
+          granularity_sqla: 'time_column',
         },
         {
           ...queryObject,
-          is_timeseries: true,
         },
       ),
     ).toEqual({

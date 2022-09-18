@@ -23,7 +23,7 @@ import {
   ControlPanelState,
   formatSelectOptions,
   sections,
-  dndEntity,
+  sharedControls,
   getStandardizedControls,
 } from '@superset-ui/chart-controls';
 
@@ -36,7 +36,7 @@ const allColumns = {
 };
 
 const columnsConfig = isFeatureEnabled(FeatureFlag.ENABLE_EXPLORE_DRAG_AND_DROP)
-  ? dndEntity
+  ? sharedControls.entity
   : allColumns;
 
 const colorChoices = [

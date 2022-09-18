@@ -563,6 +563,7 @@ const FilterableTable = ({
   };
 
   const renderGrid = () => {
+    totalTableHeight.current = height;
     if (
       container.current &&
       totalTableWidth.current > container.current.clientWidth
@@ -577,7 +578,7 @@ const FilterableTable = ({
 
     // fix height of filterable table
     return (
-      <StyledFilterableTable>
+      <StyledFilterableTable data-test="grid-container">
         <ScrollSync>
           {({ onScroll, scrollLeft }) => (
             <>
@@ -643,6 +644,7 @@ const FilterableTable = ({
       );
     }
 
+    totalTableHeight.current = height;
     if (
       container.current &&
       totalTableWidth.current > container.current.clientWidth
@@ -657,6 +659,7 @@ const FilterableTable = ({
     return (
       <StyledFilterableTable
         className="filterable-table-container"
+        data-test="table-container"
         ref={container}
       >
         {fitted && (

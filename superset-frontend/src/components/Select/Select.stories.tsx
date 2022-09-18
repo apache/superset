@@ -25,13 +25,10 @@ import React, {
 } from 'react';
 import Button from 'src/components/Button';
 import ControlHeader from 'src/explore/components/ControlHeader';
-import AsyncSelect, {
-  AsyncSelectProps,
-  AsyncSelectRef,
-  OptionsTypePage,
-} from './AsyncSelect';
+import AsyncSelect, { AsyncSelectProps, AsyncSelectRef } from './AsyncSelect';
+import { SelectOptionsType, SelectOptionsTypePage } from './utils';
 
-import Select, { SelectProps, OptionsType } from './Select';
+import Select, { SelectProps } from './Select';
 
 export default {
   title: 'Select',
@@ -40,7 +37,7 @@ export default {
 
 const DEFAULT_WIDTH = 200;
 
-const options: OptionsType = [
+const options: SelectOptionsType = [
   {
     label: 'Such an incredibly awesome long long label',
     value: 'Such an incredibly awesome long long label',
@@ -160,7 +157,7 @@ const mountHeader = (type: String) => {
   return header;
 };
 
-const generateOptions = (opts: OptionsType, count: number) => {
+const generateOptions = (opts: SelectOptionsType, count: number) => {
   let generated = opts.slice();
   let iteration = 0;
   while (generated.length < count) {
@@ -440,7 +437,7 @@ export const AsynchronousSelect = ({
       search: string,
       page: number,
       pageSize: number,
-    ): Promise<OptionsTypePage> => {
+    ): Promise<SelectOptionsTypePage> => {
       const username = search.trim().toLowerCase();
       return new Promise(resolve => {
         let results = getResults(username);
@@ -458,7 +455,7 @@ export const AsynchronousSelect = ({
     [responseTime],
   );
 
-  const fetchUserListError = async (): Promise<OptionsTypePage> =>
+  const fetchUserListError = async (): Promise<SelectOptionsTypePage> =>
     new Promise((_, reject) => {
       reject(new Error('Error while fetching the names from the server'));
     });
