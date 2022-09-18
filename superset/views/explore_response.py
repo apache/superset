@@ -133,11 +133,9 @@ class ExploreResponse:
         mapped_columns: list[str] = []  # pylint: disable=unsubscriptable-object
         for index, datasource in enumerate(datasources):
             table_name = datasource.data["table_name"]
-            columns: list[
+            columns: list[  # pylint: disable=unsubscriptable-object
                 Dict[str, Any]
-            ] = datasource.data[  # pylint: disable=unsubscriptable-object
-                "columns"
-            ]
+            ] = datasource.data["columns"]
             renamed_columns, expression_columns = ExploreResponse.get_column_aliases(
                 columns, chr(smallcase_a_ascii_code + index)
             )
