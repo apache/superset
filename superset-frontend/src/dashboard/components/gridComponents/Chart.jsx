@@ -199,6 +199,11 @@ class Chart extends React.Component {
           return true;
         }
       }
+    } else if (
+      // chart should re-render if color scheme was changed
+      nextProps.formData?.color_scheme !== this.props.formData?.color_scheme
+    ) {
+      return true;
     }
 
     // `cacheBusterProp` is jected by react-hot-loader

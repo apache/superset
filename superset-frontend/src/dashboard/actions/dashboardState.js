@@ -512,12 +512,14 @@ export function postAddSliceFromDashboard() {
       dashboardInfo: { metadata },
       dashboardState,
     } = getState();
+    const sharedLabelColor = getSharedLabelColor();
 
     if (dashboardState?.updateSlice && dashboardState?.editMode) {
-      metadata.shared_label_colors = getSharedLabelColor().getColorMap(
+      sharedLabelColor.updateColorMap(
         metadata?.color_namespace,
         metadata?.color_scheme,
       );
+      metadata.shared_label_colors = sharedLabelColor.getColorMap();
       dispatch(
         dashboardInfoChanged({
           metadata,
@@ -537,20 +539,7 @@ export function removeSliceFromDashboard(id) {
 
     dispatch(removeSlice(id));
     dispatch(removeChart(id));
-
-    const {
-      dashboardInfo: { metadata },
-    } = getState();
     getSharedLabelColor().removeSlice(id);
-    metadata.shared_label_colors = getSharedLabelColor().getColorMap(
-      metadata?.color_namespace,
-      metadata?.color_scheme,
-    );
-    dispatch(
-      dashboardInfoChanged({
-        metadata,
-      }),
-    );
   };
 }
 

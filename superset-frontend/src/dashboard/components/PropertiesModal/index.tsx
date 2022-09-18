@@ -181,9 +181,7 @@ const PropertiesModal = ({
       }
       const metaDataCopy = { ...metadata };
 
-      if (metaDataCopy?.shared_label_colors) {
-        delete metaDataCopy.shared_label_colors;
-      }
+      delete metaDataCopy.shared_label_colors;
 
       delete metaDataCopy.color_scheme_domain;
 
@@ -329,11 +327,9 @@ const PropertiesModal = ({
       delete metadata.color_scheme_domain;
     }
 
-    metadata.shared_label_colors = getSharedLabelColor().getColorMap(
-      colorNamespace,
-      currentColorScheme,
-      true,
-    );
+    const sharedLabelColor = getSharedLabelColor();
+    sharedLabelColor.updateColorMap(colorNamespace, currentColorScheme);
+    metadata.shared_label_colors = sharedLabelColor.getColorMap();
 
     if (metadata?.color_scheme) {
       metadata.color_scheme_domain =

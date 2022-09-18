@@ -18,8 +18,7 @@
  */
 
 import { CategoricalColorNamespace } from '.';
-import { FeatureFlag, isFeatureEnabled, makeSingleton } from '../utils';
-import { getAnalogousColors } from './utils';
+import { makeSingleton } from '../utils';
 
 export class SharedLabelColor {
   sliceLabelColorMap: Record<number, Record<string, string | undefined>>;
@@ -29,70 +28,36 @@ export class SharedLabelColor {
     this.sliceLabelColorMap = {};
   }
 
-  getColorMap(
-    colorNamespace?: string,
-    colorScheme?: string,
-    updateColorScheme?: boolean,
-  ) {
-    if (colorScheme) {
-      const categoricalNamespace =
-        CategoricalColorNamespace.getNamespace(colorNamespace);
-      const sharedLabels = this.getSharedLabels();
-      let generatedColors: string[] = [];
-      let sharedLabelMap;
+  updateColorMap(colorNamespace?: string, colorScheme?: string) {
+    const categoricalNamespace =
+      CategoricalColorNamespace.getNamespace(colorNamespace);
+    const colorScale = categoricalNamespace.getScale(colorScheme);
+    const newSliceLabelColorMap = {};
+    Object.keys(this.sliceLabelColorMap).forEach(sliceId => {
+      Object.keys(this.sliceLabelColorMap[sliceId]).forEach(label => {
+        newSliceLabelColorMap[sliceId] = {
+          ...newSliceLabelColorMap[sliceId],
+          [label]: colorScale(label),
+        };
+      });
+    });
+    this.sliceLabelColorMap = newSliceLabelColorMap;
+  }
 
-      if (sharedLabels.length) {
-        const colorScale = categoricalNamespace.getScale(colorScheme);
-        const colors = colorScale.range();
-        if (isFeatureEnabled(FeatureFlag.USE_ANALAGOUS_COLORS)) {
-          const multiple = Math.ceil(sharedLabels.length / colors.length);
-          generatedColors = getAnalogousColors(colors, multiple);
-          sharedLabelMap = sharedLabels.reduce(
-            (res, label, index) => ({
-              ...res,
-              [label.toString()]: generatedColors[index],
-            }),
-            {},
-          );
-        } else {
-          // reverse colors to reduce color conflicts
-          colorScale.range(colors.reverse());
-          sharedLabelMap = sharedLabels.reduce(
-            (res, label) => ({
-              ...res,
-              [label.toString()]: colorScale(label),
-            }),
-            {},
-          );
-        }
-      }
-
-      const labelMap = Object.keys(this.sliceLabelColorMap).reduce(
-        (res, sliceId) => {
-          // get new color scale instance
-          const colorScale = categoricalNamespace.getScale(colorScheme);
-          return {
+  getColorMap() {
+    return Object.keys(this.sliceLabelColorMap).reduce(
+      (res, sliceId) => ({
+        ...res,
+        ...Object.keys(this.sliceLabelColorMap[sliceId]).reduce(
+          (res, label) => ({
             ...res,
-            ...Object.keys(this.sliceLabelColorMap[sliceId]).reduce(
-              (res, label) => ({
-                ...res,
-                [label]: updateColorScheme
-                  ? colorScale(label)
-                  : this.sliceLabelColorMap[sliceId][label],
-              }),
-              {},
-            ),
-          };
-        },
-        {},
-      );
-
-      return {
-        ...labelMap,
-        ...sharedLabelMap,
-      };
-    }
-    return undefined;
+            [label]: this.sliceLabelColorMap[sliceId][label],
+          }),
+          {},
+        ),
+      }),
+      {} as Record<string, string>,
+    );
   }
 
   addSlice(label: string, color: string, sliceId?: number) {
@@ -109,22 +74,6 @@ export class SharedLabelColor {
 
   clear() {
     this.sliceLabelColorMap = {};
-  }
-
-  getSharedLabels() {
-    const tempLabels = new Set<string>();
-    const result = new Set<string>();
-    Object.keys(this.sliceLabelColorMap).forEach(sliceId => {
-      const colorMap = this.sliceLabelColorMap[sliceId];
-      Object.keys(colorMap).forEach(label => {
-        if (tempLabels.has(label) && !result.has(label)) {
-          result.add(label);
-        } else {
-          tempLabels.add(label);
-        }
-      });
-    });
-    return [...result];
   }
 }
 
