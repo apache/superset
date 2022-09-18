@@ -743,7 +743,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @handle_api_exception
     @event_logger.log_this
     @expose("/multidataset/", methods=["POST"])
-    def multidataset(self) -> FlaskResponse:
+    def multidataset(self) -> FlaskResponse: # pylint: disable=no-self-use
 
         initial_form_data = {}
         form_data, slc = get_form_data( # pylint: disable=unused-variable
@@ -1582,7 +1582,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access_api
     @event_logger.log_this
     @expose("/available_domains/", methods=["GET"])
-    def available_domains(self) -> FlaskResponse:  # pylint: disable=no-self-use
+    def available_domains(self) -> FlaskResponse:
         """
         Returns the list of available Superset Webserver domains (if any)
         defined in config. This enables charts embedded in other apps to
