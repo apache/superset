@@ -51,7 +51,7 @@ interface DatasetDetailsProps {
   datasets: AdditionalStateDataset[];
   datasourceJoins: DatasourceJoins[];
   firstDatasourceColumns: OptionsType;
-  datasetOptions: OptionsType | OptionsPagePromise;
+  datasetOptions: OptionsPagePromise;
   changeDatasourceJoins: (datasourceJoins: DatasourceJoins[]) => void;
   changeAdditionalDatasource: (datasets: AdditionalStateDataset[]) => void;
 }

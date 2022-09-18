@@ -98,6 +98,10 @@ function DatasetJoins({
     );
   }
 
+  function getHeaderName(datasetName: string) {
+    return `${datasetName} Column`;
+  }
+
   return (
     <Row gutter={16} style={{ marginBottom: 8 }} align="middle">
       <Col offset={1} className="gutter-row" span={5}>
@@ -109,7 +113,7 @@ function DatasetJoins({
           name="select-first-column"
           options={firstColumnOptions}
           placeholder={`Choose ${firstDatasetName} column`}
-          header={<FormLabel>{t(`${firstDatasetName} Column`)}</FormLabel>}
+          header={<FormLabel>{getHeaderName(firstDatasetName)}</FormLabel>}
           onChange={value => {
             setColumnFirst(value.toString());
             handleSelectChange(value.toString(), SelectTypes.FIRST_COLUMN);
@@ -124,7 +128,7 @@ function DatasetJoins({
           name="select-second-column"
           options={secondColumnOptions}
           placeholder={`Choose ${secondDatasetName} column`}
-          header={<FormLabel>{t(`${secondDatasetName} Column`)}</FormLabel>}
+          header={<FormLabel>{getHeaderName(secondDatasetName)}</FormLabel>}
           onChange={value => {
             setColumnSecond(value.toString());
             handleSelectChange(value.toString(), SelectTypes.SECOND_COLUMN);
