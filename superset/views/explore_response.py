@@ -14,21 +14,20 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from typing import Any, cast, Dict, List, Optional
 from uuid import uuid4
-from typing import Any, Dict, List, Optional, cast
 
 from flask import g
-from superset import db
-from superset.datasource.dao import DatasourceDAO
-from superset.databases.dao import DatabaseDAO
 from flask_babel import gettext as __, lazy_gettext as _
+
+from superset import db
 from superset.connectors.base.models import BaseDatasource
-
 from superset.connectors.sqla.models import SqlaTable
-from superset.views.multi_dataset import CreateMultiDatasetCommand
+from superset.databases.dao import DatabaseDAO
 from superset.datasets.commands.update import UpdateDatasetCommand
+from superset.datasource.dao import DatasourceDAO
 from superset.exceptions import SupersetException, SupersetGenericDBErrorException
-
+from superset.views.multi_dataset import CreateMultiDatasetCommand
 
 TMP_TABLE_NAME_PREFIX = "tmp__"
 

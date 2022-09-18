@@ -54,6 +54,8 @@ from superset.databases.dao import DatabaseDAO
 from superset.databases.decorators import check_datasource_access
 from superset.databases.filters import DatabaseFilter, DatabaseUploadEnabledFilter
 from superset.databases.schemas import (
+    CatalogsResponseSchema,
+    database_catalogs_query_schema,
     database_schemas_query_schema,
     DatabaseFunctionNamesResponse,
     DatabasePostSchema,
@@ -66,8 +68,6 @@ from superset.databases.schemas import (
     SelectStarResponseSchema,
     TableExtraMetadataResponseSchema,
     TableMetadataResponseSchema,
-    database_catalogs_query_schema,
-    CatalogsResponseSchema,
     ValidateSQLRequest,
     ValidateSQLResponse,
 )

@@ -18,31 +18,28 @@ import logging
 from contextlib import closing
 from typing import Any, Dict, List, Optional
 
-from flask_babel import lazy_gettext as _
 from flask_appbuilder.models.sqla import Model
 from flask_appbuilder.security.sqla.models import User
-
-
+from flask_babel import lazy_gettext as _
 from marshmallow import ValidationError
+
+from superset import app
 from superset.commands.base import BaseCommand, CreateMixin
 from superset.connectors.sqla.models import (
     MetadataResult,
-    SqlMetric,
     SqlaTable,
+    SqlMetric,
     TableColumn,
 )
-
 from superset.datasets.commands.exceptions import (
-    DatasetInvalidError,
-    DatasetExistsValidationError,
     DatabaseNotFoundValidationError,
+    DatasetExistsValidationError,
+    DatasetInvalidError,
 )
-
-from superset import app
-from superset.sql_parse import ParsedQuery
 from superset.datasets.dao import DatasetDAO
-from superset.extensions import db, security_manager
 from superset.exceptions import SupersetGenericDBErrorException
+from superset.extensions import db, security_manager
+from superset.sql_parse import ParsedQuery
 
 config = app.config
 logger = logging.getLogger(__name__)
