@@ -743,7 +743,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @handle_api_exception
     @event_logger.log_this
     @expose("/multidataset/", methods=["POST"])
-    def multidataset(self) -> FlaskResponse:
+    def multidataset() -> FlaskResponse:
 
         initial_form_data = {}
         form_data, slc = get_form_data(

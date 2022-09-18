@@ -143,7 +143,7 @@ class ExploreResponse:
         return mapped_columns, table_column_expressions
 
     @staticmethod
-    def column_Joinfunc(table_expressions: Dict, column_join: str, table: str) -> str:
+    def column_joinfunc(table_expressions: Dict, column_join: str, table: str) -> str:
         return (
             table_expressions[column_join]
             if column_join in table_expressions
@@ -161,10 +161,10 @@ class ExploreResponse:
         join = column_joins.pop()
         first_column_join = join["first_column"]
         second_column_join = join["second_column"]
-        left_join = ExploreResponse.column_Joinfunc(
+        left_join = ExploreResponse.column_joinfunc(
             first_table_expressions, first_column_join, first_table
         )
-        right_join = ExploreResponse.column_Joinfunc(
+        right_join = ExploreResponse.column_joinfunc(
             second_table_expressions, second_column_join, second_table
         )
         return "{}={}".format(left_join, right_join)
@@ -181,20 +181,20 @@ class ExploreResponse:
         last_join = column_joins.pop()
         last_join_first_column = last_join["first_column"]
         last_join_second_column = last_join["second_column"]
-        last_left_join = ExploreResponse.column_Joinfunc(
+        last_left_join = ExploreResponse.column_joinfunc(
             first_table_expressions, last_join_first_column, first_table
         )
-        last_right_join = ExploreResponse.column_Joinfunc(
+        last_right_join = ExploreResponse.column_joinfunc(
             second_table_expressions, last_join_second_column, second_table
         )
 
         for count, join in enumerate(column_joins):
             first_column_join = join["first_column"]
             second_column_join = join["second_column"]
-            left_join = ExploreResponse.column_Joinfunc(
+            left_join = ExploreResponse.column_joinfunc(
                 first_table_expressions, first_column_join, first_table
             )
-            right_join = ExploreResponse.column_Joinfunc(
+            right_join = ExploreResponse.column_joinfunc(
                 second_table_expressions, second_column_join, second_table
             )
             join_string = (
@@ -217,7 +217,7 @@ class ExploreResponse:
         join_statement = ""
         for index, column_joins in enumerate(dataset_joins):
             table_join = ""
-            first_Dataset = datasources[index]
+            first_dataset = datasources[index]
             second_dataset = datasources[index + 1]
             first_table_name_alias = chr(smallcase_a_ascii_code + index)
             second_table_name_alias = chr(smallcase_a_ascii_code + index + 1)
@@ -245,7 +245,7 @@ class ExploreResponse:
                 )
             if index == 0:
                 join_statement += "{} {} {} {} {} ON {} ".format(
-                    first_Dataset.name,
+                    first_dataset.name,
                     first_table_name_alias,
                     joins[index],
                     second_dataset.name,
@@ -301,7 +301,7 @@ class ExploreResponse:
                 },
             ).run()
         except Exception as ex:
-            raise SupersetGenericDBErrorException(message=ex.message)
+            raise SupersetGenericDBErrorException(message=str(ex))
 
         changed_model = UpdateDatasetCommand(new_model.id, {"sql": sql_query}).run()
 
