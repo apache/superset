@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, cast, Dict, List, Optional
+from typing import Any, Tuple, cast, Dict, List
 from uuid import uuid4
 
 from flask import g
@@ -40,7 +40,7 @@ class ExploreResponse:
         self.form_data = form_data
 
     @staticmethod
-    def get_datasources_data(datasources: List):
+    def get_datasources_data(datasources: list) -> None:
         """
         Returns Datasource IDs and Types in seperate Lists
         """
@@ -61,7 +61,7 @@ class ExploreResponse:
         """
         Gets a List of Datasets given ID's
         """
-        datasources: Optional[List[BaseDatasource]] = []
+        datasources: List[BaseDatasource] = []
         for index, value in enumerate(datasource_ids):
             new_datasource = DatasourceDAO.get_datasource(
                 db.session, cast(str, datasource_types[index]), value
@@ -100,7 +100,7 @@ class ExploreResponse:
         return changed_expression
 
     @staticmethod
-    def get_column_aliases(columns: List[Dict[str, Any]], alias: str) -> List[str]:
+    def get_column_aliases(columns: List[Dict[str, Any]], alias: str) ->Tuple[List[str], Dict[Any, str]]:
         """
         Returns a list of Column names as Aliases for a SELECT Query
         """

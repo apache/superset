@@ -106,7 +106,7 @@ class CreateMultiDatasetCommand(CreateMixin, BaseCommand):
         result_description = results.cursor.description
         return [{"name": column[0], "type": column[1]} for column in result_description]
 
-    def fetch_metadata(self, dataset: SqlaTable, commit: bool = True):
+    def fetch_metadata(self, dataset: SqlaTable, commit: bool = True) -> None:
         """
         Fetches the metadata for the table and merges it in
         """
@@ -197,5 +197,5 @@ class CreateMultiDatasetCommand(CreateMixin, BaseCommand):
         except Exception as ex:
             logger.warning(ex, exc_info=True)
             db.session.rollback()
-            raise SupersetGenericDBErrorException(message=ex.message) from ex
+            raise SupersetGenericDBErrorException(message=str(ex)) from ex
         return dataset
