@@ -36,7 +36,7 @@ import RefreshLabel from 'src/components/RefreshLabel';
 import CertifiedBadge from 'src/components/CertifiedBadge';
 import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
-import { CatalogOption, SchemaOption } from 'src/SqlLab/types';
+import { SchemaOption } from 'src/SqlLab/types';
 import { useTables, Table } from 'src/hooks/apiResources';
 
 const REFRESH_WIDTH = 30;
@@ -96,7 +96,7 @@ interface TableSelectorProps {
   onSchemaChange?: (schema?: string) => void;
   onSchemasLoad?: (schemaOptions: SchemaOption[]) => void;
   onCatalogChange?: (catalog?: string) => void;
-  onCatalogsLoad?: (catalogOptions?: CatalogOption[]) => void;
+  onCatalogsLoad?: (catalogOptions?: object[]) => void;
   onTablesLoad?: (options: Array<any>) => void;
   readOnly?: boolean;
   schema?: string;

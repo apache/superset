@@ -35,7 +35,6 @@ import {
 } from './AddSliceContainer';
 
 import {
-  DatasetValue,
   DatasourceJoins,
   DatasourceJoin,
   AdditionalStateDataset,
@@ -70,15 +69,15 @@ function DatasetDetails({
 }: DatasetDetailsProps) {
   function changeDatasource(
     { value, label }: { value: string; label: string },
-    { schema, table_name, column_names, database_name }: DatasetValue,
+    database: any,
   ) {
     const updatedDataset = {
       value,
       label,
-      schema,
-      table_name,
-      database_name,
-      column_names,
+      schema: database.schema,
+      table_name: database.table_name,
+      database_name: database.database_name,
+      column_names: database.column_names,
       join_type: dataset.join_type,
     };
     const additional_datasources = [...datasets];

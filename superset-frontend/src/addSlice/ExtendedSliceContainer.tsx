@@ -53,7 +53,6 @@ import {
   List,
   Column,
   Dataset,
-  DatasetValue,
   StateDataset,
   DatasourceJoins,
   AdditionalStateDataset,
@@ -233,16 +232,16 @@ export class ExtendedSliceContainer extends React.PureComponent<
 
   changeFirstDatasource(
     { value, label }: { value: string; label: string },
-    { schema, table_name, column_names, database_name }: DatasetValue,
+    database: any,
   ) {
     this.setState({
       first_datasource: {
         value,
         label,
-        schema,
-        table_name,
-        column_names,
-        database_name,
+        schema: database.schema,
+        table_name: database.table_name,
+        column_names: database.column_names,
+        database_name: database.database_name,
       },
     });
   }
@@ -492,14 +491,18 @@ export class ExtendedSliceContainer extends React.PureComponent<
                         value: join,
                         customLabel: this.customLabel(join),
                       }))}
-                      firstDatasetName={this.state.first_datasource?.table_name}
-                      firstDatasourceColumns={this.state.first_datasource?.column_names.map(
-                        column => ({
-                          label: column,
-                          value: column,
-                          customLabel: this.customLabel(column),
-                        }),
-                      )}
+                      firstDatasetName={
+                        this.state.first_datasource?.table_name || ''
+                      }
+                      firstDatasourceColumns={
+                        this.state.first_datasource?.column_names.map(
+                          column => ({
+                            label: column,
+                            value: column,
+                            customLabel: this.customLabel(column),
+                          }),
+                        ) || []
+                      }
                       changeAdditionalDatasource={
                         this.changeAdditionalDatasource
                       }
