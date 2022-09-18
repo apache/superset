@@ -743,15 +743,18 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @handle_api_exception
     @event_logger.log_this
     @expose("/multidataset/", methods=["POST"])
-    def multidataset(self) -> FlaskResponse: # pylint: disable=no-self-use
+    def multidataset(self) -> FlaskResponse:  # pylint: disable=no-self-use
 
         initial_form_data = {}
-        form_data, slc = get_form_data( # pylint: disable=unused-variable
+        form_data, slc = get_form_data(  # pylint: disable=unused-variable
             use_slice_data=True, initial_form_data=initial_form_data
         )
 
         explore_response = ExploreResponse(form_data)
-        datasource, datasource_name = explore_response.multiple_dataset() # pylint: disable=unused-variable
+        (
+            datasource,
+            datasource_name,
+        ) = explore_response.multiple_dataset()  # pylint: disable=unused-variable
 
         return json_success(json.dumps({"datasource": datasource.data}))
 
