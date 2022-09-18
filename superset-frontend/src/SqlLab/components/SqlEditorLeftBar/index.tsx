@@ -148,10 +148,11 @@ export default function SqlEditorLeftBar({
     setEmptyResultsWithSearch(!!searchText);
   };
 
-  const onDbChange = ({ id: dbId }: { id: number }) => {
+  const onDbChange = (db: DatabaseObject) => {
     setEmptyState(false);
-    actions.queryEditorSetDb(queryEditor, dbId);
-    actions.queryEditorSetFunctionNames(queryEditor, dbId);
+    setUserSelected(db);
+    actions.queryEditorSetDb(queryEditor, db.id);
+    actions.queryEditorSetFunctionNames(queryEditor, db.id);
   };
 
   const selectedTableNames = useMemo(

@@ -132,6 +132,12 @@ export interface SchemaOption {
   title: string;
 }
 
+export interface CatalogOption {
+  value: string;
+  label: string;
+  title: string;
+}
+
 export interface QueryCostEstimate {
   completed: string;
   cost: Record<string, any>[];

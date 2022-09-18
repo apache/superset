@@ -105,7 +105,7 @@ export interface DatabaseSelectorProps {
   sqlLabMode?: boolean;
   catalog?: string;
   onCatalogChange?: (catalog?: string) => void;
-  onCatalogLoad?: (catalog: Array<object>) => void;
+  onCatalogLoad?: (catalogs: Array<object>) => void;
 }
 
 const SelectLabel = ({
@@ -136,16 +136,17 @@ export default function DatabaseSelector({
   onSchemasLoad,
   readOnly = false,
   schema,
+  sqlLabMode = false,
   catalog,
   onCatalogLoad,
   onCatalogChange,
-  sqlLabMode = false,
 }: DatabaseSelectorProps) {
   const [loadingSchemas, setLoadingSchemas] = useState(false);
   const [loadingCatalogs, setLoadingCatalogs] = useState(false);
   const [schemaOptions, setSchemaOptions] = useState<SchemaValue[]>([]);
   const [catalogOptions, setCatalogOptions] = useState<CatalogValue[]>([]);
-  const [currentDb, setCurrentDb] = useState<DatabaseValue | null | undefined>(
+
+  const [currentDb, setCurrentDb] = useState<DatabaseValue | undefined>(
     db
       ? {
           label: (
@@ -159,6 +160,7 @@ export default function DatabaseSelector({
   const [currentSchema, setCurrentSchema] = useState<SchemaValue | undefined>(
     schema ? { label: schema, value: schema } : undefined,
   );
+
   const [currentCatalog, setCurrentCatalog] = useState<
     CatalogValue | undefined
   >(catalog ? { label: catalog, value: catalog } : undefined);
@@ -288,6 +290,7 @@ export default function DatabaseSelector({
       });
   };
 
+  // Todo: Test UseEffets
   useEffect(() => {
     if (currentDb) {
       if (currentDb.has_catalogs) fetchCatalogs();
@@ -299,14 +302,15 @@ export default function DatabaseSelector({
     if (currentDb && currentCatalog) fetchSchemas(currentDb);
   }, [currentCatalog, catalogRefresh]);
 
-  const showSchema = (db: DatabaseObject | null | undefined) =>
-    db?.has_catalogs ? !!currentCatalog : true;
+  const showSchema = (currentDb: DatabaseObject | null | undefined) =>
+    currentDb?.has_catalogs ? !!currentCatalog : true;
 
   function changeDataBase(
     value: { label: string; value: number },
     database: DatabaseValue,
   ) {
     setCurrentDb(database);
+    setCurrentCatalog(undefined);
     setCurrentSchema(undefined);
     if (onDbChange) {
       onDbChange(database);
@@ -327,6 +331,7 @@ export default function DatabaseSelector({
   }
 
   function changeCatalog(catalog: CatalogValue) {
+    setCurrentSchema(undefined);
     setCurrentCatalog(catalog);
     if (onCatalogChange) {
       onCatalogChange(catalog.value);
@@ -401,6 +406,7 @@ export default function DatabaseSelector({
         value={currentCatalog}
         options={catalogOptions}
         loading={loadingCatalogs}
+        disabled={!currentDb || readOnly}
         header={<FormLabel>{t('Catalog')}</FormLabel>}
         placeholder={t('Select catalog or type catalog name')}
         ariaLabel={t('Select catalog or type catalog name')}
@@ -413,8 +419,8 @@ export default function DatabaseSelector({
   return (
     <DatabaseSelectorWrapper data-test="DatabaseSelector">
       {renderDatabaseSelect()}
-      {db?.has_catalogs && renderCatalogSelect()}
-      {showSchema(db) && renderSchemaSelect()}
+      {currentDb?.has_catalogs && renderCatalogSelect()}
+      {showSchema(currentDb) && renderSchemaSelect()}
     </DatabaseSelectorWrapper>
   );
 }
