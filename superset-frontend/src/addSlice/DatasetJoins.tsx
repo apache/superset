@@ -111,8 +111,8 @@ function DatasetJoins({
           placeholder={`Choose ${firstDatasetName} column`}
           header={<FormLabel>{t(`${firstDatasetName} Column`)}</FormLabel>}
           onChange={value => {
-            setColumnFirst(value);
-            handleSelectChange(value, SelectTypes.FIRST_COLUMN);
+            setColumnFirst(value.toString());
+            handleSelectChange(value.toString(), SelectTypes.FIRST_COLUMN);
           }}
         />
       </Col>
@@ -126,8 +126,8 @@ function DatasetJoins({
           placeholder={`Choose ${secondDatasetName} column`}
           header={<FormLabel>{t(`${secondDatasetName} Column`)}</FormLabel>}
           onChange={value => {
-            setColumnSecond(value);
-            handleSelectChange(value, SelectTypes.SECOND_COLUMN);
+            setColumnSecond(value.toString());
+            handleSelectChange(value.toString(), SelectTypes.SECOND_COLUMN);
           }}
         />
       </Col>
