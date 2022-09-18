@@ -753,8 +753,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         explore_response = ExploreResponse(form_data)
         (
             datasource,
-            datasource_name,
-        ) = explore_response.multiple_dataset()  # pylint: disable=unused-variable
+            datasource_name,  # pylint: disable=unused-variable
+        ) = explore_response.multiple_dataset()
 
         return json_success(json.dumps({"datasource": datasource.data}))
 

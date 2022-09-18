@@ -133,9 +133,11 @@ class ExploreResponse:
         mapped_columns: list[str] = []  # pylint: disable=unsubscriptable-object
         for index, datasource in enumerate(datasources):
             table_name = datasource.data["table_name"]
-            columns: list[Dict[str, Any]] = datasource.data[
+            columns: list[
+                Dict[str, Any]
+            ] = datasource.data[  # pylint: disable=unsubscriptable-object
                 "columns"
-            ]  # pylint: disable=unsubscriptable-object
+            ]
             renamed_columns, expression_columns = ExploreResponse.get_column_aliases(
                 columns, chr(smallcase_a_ascii_code + index)
             )
@@ -303,9 +305,9 @@ class ExploreResponse:
                 },
             ).run()
         except Exception as ex:
-            raise SupersetGenericDBErrorException(
+            raise SupersetGenericDBErrorException(  # pylint: disable=raise-missing-from
                 message=str(ex)
-            )  # pylint: disable=raise-missing-from
+            )
 
         changed_model = UpdateDatasetCommand(new_model.id, {"sql": sql_query}).run()
 
