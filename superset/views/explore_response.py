@@ -1,3 +1,19 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
 from uuid import uuid4
 from typing import Any, Dict, List, Optional, cast
 
@@ -29,31 +45,31 @@ class ExploreResponse():
         self.form_data = form_data
 
     @staticmethod
-    def get_datasource_data(datasources: List):
+    def get_datasources_data(datasources: List):
         """
         Returns Datasource IDs and Types in seperate Lists
         """
-        datasource_ids: List[int] = []
-        datasource_types: List[str] = []
+        datasourceIds: List[int] = []
+        datasourceTypes: List[str] = []
 
         for datasource in datasources:
-                datasource_id, datasource_type = datasource.split("__")
-                datasource_ids.append(int(datasource_id))
-                datasource_types.append(datasource_type)
+                datasourceId, datasourceType = datasource.split("__")
+                datasourceIds.append(int(datasourceId))
+                datasourceTypes.append(datasourceType)
 
-        return datasource_ids, datasource_types
+        return datasourceIds, datasourceTypes
 
     @staticmethod
-    def get_base_datasources(datasource_ids: List[int], datasource_types: List[str]) -> List[BaseDatasource]:
+    def get_base_datasources(datasourceIds: List[int], datasourceTypes: List[str]) -> List[BaseDatasource]:
         """
         Gets a List of Datasets given ID's
         """
         datasources: Optional[List[BaseDatasource]] = []
-        for index, value in enumerate(datasource_ids):
-            new_datasource = DatasourceDAO.get_datasource(
-                db.session, cast(str, datasource_types[index]), value
+        for index, value in enumerate(datasourceIds):
+            newDatasource = DatasourceDAO.get_datasource(
+                db.session, cast(str, datasourceTypes[index]), value
             )
-            datasources.append(new_datasource)
+            datasources.append(newDatasource)
         return datasources
 
     @staticmethod
@@ -63,15 +79,15 @@ class ExploreResponse():
         """
         TMP_TABLE_NAME = TMP_TABLE_NAME_PREFIX
         for datasource in datasources:
-            table_name =  datasource.data["table_name"]
-            TMP_TABLE_NAME += table_name + "__"
+            tableName =  datasource.data["table_name"]
+            TMP_TABLE_NAME += tableName + "__"
         TMP_TABLE_NAME += str(uuid4())[:4]
         return TMP_TABLE_NAME
 
     @staticmethod
     def replace_special_characters(column: str) -> str:
-        for char, replaced_char in SPECIAL_CHARACTERS.items():
-            column.replace(char, replaced_char )
+        for char, replacedChar in SPECIAL_CHARACTERS.items():
+            column.replace(char, replacedChar )
         return column
 
     @staticmethod
@@ -87,102 +103,102 @@ class ExploreResponse():
         """
         Returns a list of Column names as Aliases for a SELECT Query
         """
-        renamed_columns = []
-        column_expressions = {}
+        renamedColumns = []
+        columnExpressions = {}
         for column in columns:
             column_name = column["column_name"]
             expression = column["expression"]
             if expression:
-                column_name = ExploreResponse.get_calculated_column_expression(columns, expression, alias)
-                column_expressions[column_name] = column_name
+                columnName = ExploreResponse.get_calculated_column_expression(columns, expression, alias)
+                columnExpressions[column_name] = columnName
             else:
-                column_name = "{}.{}".format(alias, column_name)
-            column_alias = "{}_{}".format(alias, ExploreResponse.replace_special_characters(column_name))
-            renamed_columns.append("{} {}".format(column_name, column_alias))
-        return renamed_columns, column_expressions
+                columnName = "{}.{}".format(alias, column_name)
+            columnAlias = "{}_{}".format(alias, ExploreResponse.replace_special_characters(column_name))
+            renamedColumns.append("{} {}".format(columnName, columnAlias))
+        return renamedColumns, columnExpressions
 
     @staticmethod
     def map_and_get_column_names(datasources: List[BaseDatasource]) -> List[str]:
         """
         Iterates through Datasets and returns Column Aliases for each Dataset
         """
-        table_column_expressions: Dict = {}
-        mapped_columns: list[str] = []
+        tableColumnExpressions: Dict = {}
+        mappedColumns: list[str] = []
         for index, datasource in enumerate(datasources):
-            table_name = datasource.data["table_name"]
+            tableName = datasource.data["table_name"]
             columns: list[Dict[str, Any]] = datasource.data["columns"]
-            renamed_columns, expression_columns  = ExploreResponse.get_column_aliases(
+            renamedColumns, expressionColumns  = ExploreResponse.get_column_aliases(
                 columns, chr(SMALLCASE_A_ASCII_CODE + index)
             )
-            column_aliases = ",".join(renamed_columns)
-            mapped_columns.append(column_aliases)
-            table_column_expressions[table_name] = expression_columns
-        return mapped_columns, table_column_expressions
+            columnAliases = ",".join(renamedColumns)
+            mappedColumns.append(columnAliases)
+            tableColumnExpressions[tableName] = expressionColumns
+        return mappedColumns, tableColumnExpressions
 
     @staticmethod
-    def column_join(table_expressions: Dict, column_join: str, table: str) -> str:
-        return table_expressions[column_join] if column_join in table_expressions else "{}.{}".format(table, column_join)
+    def column_Join(tableExpressions: Dict, columnJoin: str, table: str) -> str:
+        return tableExpressions[columnJoin] if columnJoin in tableExpressions else "{}.{}".format(table, columnJoin)
 
     @staticmethod
-    def get_single_column_join(first_table: str, second_table: str, column_joins: List,
-        first_table_expressions: Dict, second_table_expressions:Dict
+    def get_single_column_join(firstTable: str, secondTable: str, columnJoins: List,
+        firstTableExpressions: Dict, secondTableExpressions:Dict
     ) -> str:
-        join = column_joins.pop()
-        first_column_join = join["first_column"]
-        second_column_join = join["second_column"]
-        left_join = ExploreResponse.column_join(first_table_expressions, first_column_join, first_table)
-        right_join = ExploreResponse.column_join(second_table_expressions, second_column_join, second_table)
-        return "{}={}".format(left_join, right_join)
+        join = columnJoins.pop()
+        firstColumnJoin = join["first_column"]
+        secondColumnJoin = join["second_column"]
+        leftJoin = ExploreResponse.column_Join(firstTableExpressions, firstColumnJoin, firstTable)
+        rightJoin = ExploreResponse.column_Join(secondTableExpressions, secondColumnJoin, secondTable)
+        return "{}={}".format(leftJoin, rightJoin)
 
     @staticmethod
-    def get_multiple_column_join(first_table: str, second_table: str, column_joins: List,
-        first_table_expressions: Dict, second_table_expressions:Dict) -> str:
-        join_statement = ''
-        last_join = column_joins.pop()
-        last_join_first_column = last_join["first_column"]
-        last_join_second_column = last_join["second_column"]
-        last_left_join = ExploreResponse.column_join(first_table_expressions, last_join_first_column, first_table)
-        last_right_join = ExploreResponse.column_join(second_table_expressions, last_join_second_column, second_table)
+    def get_multiple_column_join(firstTable: str, secondTable: str, columnJoins: List,
+        firstTableExpressions: Dict, secondTableExpressions:Dict) -> str:
+        joinStatement = ''
+        lastJoin = columnJoins.pop()
+        lastJoinFirstColumn = lastJoin["first_column"]
+        lastJoinSecondColumn = lastJoin["second_column"]
+        lastLeftJoin = ExploreResponse.column_Join(firstTableExpressions, lastJoinFirstColumn, firstTable)
+        lastRightJoin = ExploreResponse.column_Join(secondTableExpressions, lastJoinSecondColumn, secondTable)
 
-        for count, join in enumerate(column_joins):
-            first_column_join = join["first_column"]
-            second_column_join = join["second_column"]
-            left_join = ExploreResponse.column_join(first_table_expressions, first_column_join, first_table)
-            right_join = ExploreResponse.column_join(second_table_expressions, second_column_join, second_table)
-            join_string = "{}={}".format(
-                left_join, right_join
-            ) if count == len(column_joins) - 1 else "{}={}, ".format(left_join, right_join)
-            join_statement += join_string
-        join_statement += ' AND ' + "{}={}".format(last_left_join, last_right_join)
+        for count, join in enumerate(columnJoins):
+            firstColumnJoin = join["first_column"]
+            secondColumnJoin = join["second_column"]
+            leftJoin = ExploreResponse.column_Join(firstTableExpressions, firstColumnJoin, firstTable)
+            rightJoin = ExploreResponse.column_Join(secondTableExpressions, secondColumnJoin, secondTable)
+            joinString = "{}={}".format(
+                leftJoin, rightJoin
+            ) if count == len(columnJoins) - 1 else "{}={}, ".format(leftJoin, rightJoin)
+            joinStatement += joinString
+        joinStatement += ' AND ' + "{}={}".format(lastLeftJoin, lastRightJoin)
 
-        return join_statement
+        return joinStatement
 
     @staticmethod
-    def get_join_query(dataset_joins: List, joins: List,
-        datasources: List[BaseDatasource], table_column_expressions: Dict) -> str:
+    def get_join_query(datasetJoins: List, joins: List,
+        datasources: List[BaseDatasource], tableColumnExpressions: Dict) -> str:
         JOIN_STATEMENT = ""
-        for index, column_joins in enumerate(dataset_joins):
-            table_join = ''
-            first_dataset = datasources[index]
-            second_dataset = datasources[index + 1]
-            first_table_name_alias = chr(SMALLCASE_A_ASCII_CODE + index)
-            second_table_name_alias = chr(SMALLCASE_A_ASCII_CODE + index + 1)
-            first_table_expressions = table_column_expressions[datasources[index].data["table_name"]]
-            second_table_expressions = table_column_expressions[datasources[index].data["table_name"]]
-            if len(column_joins) == 1:
-                table_join += ExploreResponse.get_single_column_join(first_table_name_alias,
-                    second_table_name_alias, column_joins, first_table_expressions, second_table_expressions)
+        for index, columnJoins in enumerate(datasetJoins):
+            tableJoin = ''
+            firstDataset = datasources[index]
+            secondDataset = datasources[index + 1]
+            firstTableNameAlias = chr(SMALLCASE_A_ASCII_CODE + index)
+            secondTableNameAlias = chr(SMALLCASE_A_ASCII_CODE + index + 1)
+            firstTableExpressions = tableColumnExpressions[datasources[index].data["table_name"]]
+            secondTableExpressions = tableColumnExpressions[datasources[index].data["table_name"]]
+            if len(columnJoins) == 1:
+                tableJoin += ExploreResponse.get_single_column_join(firstTableNameAlias,
+                    secondTableNameAlias, columnJoins, firstTableExpressions, secondTableExpressions)
             else:
-                table_join += ExploreResponse.get_multiple_column_join(first_table_name_alias,
-                    second_table_name_alias, column_joins, first_table_expressions, second_table_expressions)
+                tableJoin += ExploreResponse.get_multiple_column_join(firstTableNameAlias,
+                    secondTableNameAlias, columnJoins, firstTableExpressions, secondTableExpressions)
             if index == 0:
                 JOIN_STATEMENT += "{} {} {} {} {} ON {} ".format(
-                    first_dataset.name, first_table_name_alias, joins[index],
-                    second_dataset.name, second_table_name_alias, table_join
+                    firstDataset.name, firstTableNameAlias, joins[index],
+                    secondDataset.name, secondTableNameAlias, tableJoin
                 )
             else:
                 JOIN_STATEMENT += "{} {} {} ON {} ".format(
-                    joins[index], second_dataset.name, second_table_name_alias, table_join
+                    joins[index], secondDataset.name, secondTableNameAlias, tableJoin
                 )
         return JOIN_STATEMENT
 
@@ -193,7 +209,7 @@ class ExploreResponse():
         additional_datasources:list = self.form_data.get("additional_datasources")
 
         additional_datasources.insert(0, first_datasource)
-        datasource_ids, datasource_types  = self.get_datasource_data(additional_datasources)
+        datasource_ids, datasource_types  = self.get_datasources_data(additional_datasources)
 
         datasources = self.get_base_datasources(datasource_ids, datasource_types)
 
