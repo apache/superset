@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, Tuple, cast, Dict, List
+from typing import Any, cast, Dict, List, Tuple
 from uuid import uuid4
 
 from flask import g
@@ -100,7 +100,9 @@ class ExploreResponse:
         return changed_expression
 
     @staticmethod
-    def get_column_aliases(columns: List[Dict[str, Any]], alias: str) ->Tuple[List[str], Dict[Any, str]]:
+    def get_column_aliases(
+        columns: List[Dict[str, Any]], alias: str
+    ) -> Tuple[List[str], Dict[Any, str]]:
         """
         Returns a list of Column names as Aliases for a SELECT Query
         """
