@@ -1,45 +1,27 @@
-# Licensed to the Apache Software Foundation (ASF) under one
-# or more contributor license agreements.  See the NOTICE file
-# distributed with this work for additional information
-# regarding copyright ownership.  The ASF licenses this file
-# to you under the Apache License, Version 2.0 (the
-# "License"); you may not use this file except in compliance
-# with the License.  You may obtain a copy of the License at
-#
-#   http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing,
-# software distributed under the License is distributed on an
-# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-# KIND, either express or implied.  See the License for the
-# specific language governing permissions and limitations
-# under the License.
 import logging
 from contextlib import closing
 from typing import Any, Dict, List, Optional
 
+from flask_babel import lazy_gettext as _
 from flask_appbuilder.models.sqla import Model
 from flask_appbuilder.security.sqla.models import User
-from flask_babel import lazy_gettext as _
+
+
 from marshmallow import ValidationError
+from superset.commands.base import BaseCommand, CreateMixin
+from superset.connectors.sqla.models import MetadataResult, SqlMetric, SqlaTable, TableColumn
+
+from superset.datasets.commands.exceptions import (
+    DatasetInvalidError,
+    DatasetExistsValidationError,
+    DatabaseNotFoundValidationError,
+)
 
 from superset import app
-from superset.commands.base import BaseCommand, CreateMixin
-from superset.connectors.sqla.models import (
-    MetadataResult,
-    SqlaTable,
-    SqlMetric,
-    TableColumn,
-)
-from superset.datasets.commands.exceptions import (
-    DatabaseNotFoundValidationError,
-    DatasetExistsValidationError,
-    DatasetInvalidError,
-)
-from superset.datasets.dao import DatasetDAO
-from superset.exceptions import SupersetGenericDBErrorException
-from superset.extensions import db, security_manager
 from superset.sql_parse import ParsedQuery
+from superset.datasets.dao import DatasetDAO
+from superset.extensions import db, security_manager
+from superset.exceptions import SupersetGenericDBErrorException
 
 config = app.config
 logger = logging.getLogger(__name__)
@@ -50,7 +32,6 @@ class CreateMultiDatasetCommand(CreateMixin, BaseCommand):
         self._actor = user
         self._properties = data.copy()
 
-    @staticmethod
     def validate(self) -> None:
         exceptions: List[ValidationError] = []
         table_name = self._properties["table_name"]
@@ -78,9 +59,8 @@ class CreateMultiDatasetCommand(CreateMixin, BaseCommand):
             exception.add_list(exceptions)
             raise exception
 
-    @staticmethod
     def external_metadata(self, dataset: SqlaTable) -> List[Dict[str, Any]]:
-        """Returns column information from the external system"""
+        """ Returns column information from the external system """
         if not dataset.sql:
             raise SupersetGenericDBErrorException(
                 message=_("Virtual dataset query cannot be empty"),
@@ -108,7 +88,6 @@ class CreateMultiDatasetCommand(CreateMixin, BaseCommand):
         result_description = results.cursor.description
         return [{"name": column[0], "type": column[1]} for column in result_description]
 
-    @staticmethod
     def fetch_metadata(self, dataset: SqlaTable, commit: bool = True):
         """
         Fetches the metadata for the table and merges it in
@@ -200,5 +179,5 @@ class CreateMultiDatasetCommand(CreateMixin, BaseCommand):
         except Exception as ex:
             logger.warning(ex, exc_info=True)
             db.session.rollback()
-            raise SupersetGenericDBErrorException(message=str(ex)) from ex
+            raise SupersetGenericDBErrorException(message=ex.message) from ex
         return dataset
