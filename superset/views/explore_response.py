@@ -40,55 +40,38 @@ SQL_POSTFIX_SCHEMA = "WHERE 1=2"
 class ExploreResponse:
     def __init__(self, form_data: Dict[str, Any]):
         self.form_data = form_data
-
-    def single_dataset(self, datasource_id: int, datasource_type: str):
-        datasource: Optional[BaseDatasource] = None
-
-        if datasource_id is not None:
-            try:
-                datasource = DatasourceDAO.get_datasource(
-                    db.session, cast(str, datasource_type), datasource_id
-                )
-            except SupersetException:
-                datasource_id = None
-                datasource_type = SqlaTable.type
-
-        datasource_name = datasource.name if datasource else _("[Missing Dataset]")
-
-        return datasource, datasource_name
-
     @staticmethod
-    def __getDatasourcesData(datasources: List):
+    def get_datasources_data(datasources: List):
         """
         Returns Datasource IDs and Types in seperate Lists
         """
-        datasourceIds: List[int] = []
-        datasourceTypes: List[str] = []
+        datasource_ids: List[int] = []
+        datasource_typrs: List[str] = []
 
         for datasource in datasources:
-            datasourceId, datasourceType = datasource.split("__")
-            datasourceIds.append(int(datasourceId))
-            datasourceTypes.append(datasourceType)
+            datasource_id, datasourceType = datasource.split("__")
+            datasource_ids.append(int(datasource_id))
+            datasource_typrs.append(datasourceType)
 
-        return datasourceIds, datasourceTypes
+        return datasource_ids, datasource_typrs
 
     @staticmethod
-    def __getBaseDatasources(
-        datasourceIds: List[int], datasourceTypes: List[str]
+    def get_base_datasources(
+        datasource_ids: List[int], datasource_typrs: List[str]
     ) -> List[BaseDatasource]:
         """
         Gets a List of Datasets given ID's
         """
         datasources: Optional[List[BaseDatasource]] = []
-        for index, value in enumerate(datasourceIds):
+        for index, value in enumerate(datasource_ids):
             newDatasource = DatasourceDAO.get_datasource(
-                db.session, cast(str, datasourceTypes[index]), value
+                db.session, cast(str, datasource_typrs[index]), value
             )
             datasources.append(newDatasource)
         return datasources
 
     @staticmethod
-    def __getTableName(datasources: List[BaseDatasource]) -> str:
+    def get_table_name(datasources: List[BaseDatasource]) -> str:
         """
         Creates a Table name by combining all dataset names along with a Unique ID
         """
@@ -100,13 +83,13 @@ class ExploreResponse:
         return TMP_TABLE_NAME
 
     @staticmethod
-    def __replaceSpecialCharacters(column: str) -> str:
+    def replace_special_characters(column: str) -> str:
         for char, replacedChar in SPECIAL_CHARACTERS.items():
             column.replace(char, replacedChar)
         return column
 
     @staticmethod
-    def __getCalculatedColumnExpression(
+    def get_calculated_column_expression(
         columns: List[Dict[str, Any]], column_expression: str, alias: str
     ) -> str:
         changed_expression = column_expression
@@ -118,7 +101,7 @@ class ExploreResponse:
         return changed_expression
 
     @staticmethod
-    def __getColumnAliases(columns: List[Dict[str, Any]], alias: str) -> List[str]:
+    def get_column_aliases(columns: List[Dict[str, Any]], alias: str) -> List[str]:
         """
         Returns a list of Column names as Aliases for a SELECT Query
         """
@@ -128,20 +111,20 @@ class ExploreResponse:
             column_name = column["column_name"]
             expression = column["expression"]
             if expression:
-                columnName = ExploreResponse.__getCalculatedColumnExpression(
+                columnName = ExploreResponse.get_calculated_column_expression(
                     columns, expression, alias
                 )
                 columnExpressions[column_name] = columnName
             else:
                 columnName = "{}.{}".format(alias, column_name)
             columnAlias = "{}_{}".format(
-                alias, ExploreResponse.__replaceSpecialCharacters(column_name)
+                alias, ExploreResponse.replace_special_characters(column_name)
             )
             renamedColumns.append("{} {}".format(columnName, columnAlias))
         return renamedColumns, columnExpressions
 
     @staticmethod
-    def __mapAndGetColumnNames(datasources: List[BaseDatasource]) -> List[str]:
+    def map_and_get_column_names(datasources: List[BaseDatasource]) -> List[str]:
         """
         Iterates through Datasets and returns Column Aliases for each Dataset
         """
@@ -150,7 +133,7 @@ class ExploreResponse:
         for index, datasource in enumerate(datasources):
             tableName = datasource.data["table_name"]
             columns: list[Dict[str, Any]] = datasource.data["columns"]
-            renamedColumns, expressionColumns = ExploreResponse.__getColumnAliases(
+            renamedColumns, expressionColumns = ExploreResponse.get_column_aliases(
                 columns, chr(SMALLCASE_A_ASCII_CODE + index)
             )
             columnAliases = ",".join(renamedColumns)
@@ -159,7 +142,7 @@ class ExploreResponse:
         return mappedColumns, tableColumnExpressions
 
     @staticmethod
-    def __columnJoin(tableExpressions: Dict, columnJoin: str, table: str) -> str:
+    def column_join(tableExpressions: Dict, columnJoin: str, table: str) -> str:
         return (
             tableExpressions[columnJoin]
             if columnJoin in tableExpressions
@@ -167,7 +150,7 @@ class ExploreResponse:
         )
 
     @staticmethod
-    def __getSingleColumnJoin(
+    def get_single_column_join(
         firstTable: str,
         secondTable: str,
         columnJoins: List,
@@ -177,10 +160,10 @@ class ExploreResponse:
         join = columnJoins.pop()
         firstColumnJoin = join["first_column"]
         secondColumnJoin = join["second_column"]
-        leftJoin = ExploreResponse.__columnJoin(
+        leftJoin = ExploreResponse.column_join(
             firstTableExpressions, firstColumnJoin, firstTable
         )
-        rightJoin = ExploreResponse.__columnJoin(
+        rightJoin = ExploreResponse.column_join(
             secondTableExpressions, secondColumnJoin, secondTable
         )
         return "{}={}".format(leftJoin, rightJoin)
@@ -197,20 +180,20 @@ class ExploreResponse:
         lastJoin = columnJoins.pop()
         lastJoinFirstColumn = lastJoin["first_column"]
         lastJoinSecondColumn = lastJoin["second_column"]
-        lastLeftJoin = ExploreResponse.__columnJoin(
+        lastLeftJoin = ExploreResponse.column_join(
             firstTableExpressions, lastJoinFirstColumn, firstTable
         )
-        lastRightJoin = ExploreResponse.__columnJoin(
+        lastRightJoin = ExploreResponse.column_join(
             secondTableExpressions, lastJoinSecondColumn, secondTable
         )
 
         for count, join in enumerate(columnJoins):
             firstColumnJoin = join["first_column"]
             secondColumnJoin = join["second_column"]
-            leftJoin = ExploreResponse.__columnJoin(
+            leftJoin = ExploreResponse.column_join(
                 firstTableExpressions, firstColumnJoin, firstTable
             )
-            rightJoin = ExploreResponse.__columnJoin(
+            rightJoin = ExploreResponse.column_join(
                 secondTableExpressions, secondColumnJoin, secondTable
             )
             joinString = (
@@ -244,7 +227,7 @@ class ExploreResponse:
                 datasources[index].data["table_name"]
             ]
             if len(columnJoins) == 1:
-                tableJoin += ExploreResponse.__getSingleColumnJoin(
+                tableJoin += ExploreResponse.get_single_column_join(
                     firstTableNameAlias,
                     secondTableNameAlias,
                     columnJoins,
@@ -281,14 +264,14 @@ class ExploreResponse:
         additional_datasources: list = self.form_data.get("additional_datasources")
 
         additional_datasources.insert(0, first_datasource)
-        datasource_ids, datasource_types = self.__getDatasourcesData(
+        datasource_ids, datasource_types = self.get_datasources_data(
             additional_datasources
         )
 
-        datasources = self.__getBaseDatasources(datasource_ids, datasource_types)
+        datasources = self.get_base_datasources(datasource_ids, datasource_types)
 
-        table_name = self.__getTableName(datasources)
-        mapped_columns, table_column_expressions = self.__mapAndGetColumnNames(
+        table_name = self.get_table_name(datasources)
+        mapped_columns, table_column_expressions = self.map_and_get_column_names(
             datasources
         )
 
