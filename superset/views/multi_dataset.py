@@ -18,26 +18,28 @@ import logging
 from contextlib import closing
 from typing import Any, Dict, List, Optional
 
-from flask_babel import lazy_gettext as _
 from flask_appbuilder.models.sqla import Model
 from flask_appbuilder.security.sqla.models import User
-
-
+from flask_babel import lazy_gettext as _
 from marshmallow import ValidationError
-from superset.commands.base import BaseCommand, CreateMixin
-from superset.connectors.sqla.models import MetadataResult, SqlMetric, SqlaTable, TableColumn
-
-from superset.datasets.commands.exceptions import (
-    DatasetInvalidError,
-    DatasetExistsValidationError,
-    DatabaseNotFoundValidationError,
-)
 
 from superset import app
-from superset.sql_parse import ParsedQuery
+from superset.commands.base import BaseCommand, CreateMixin
+from superset.connectors.sqla.models import (
+    MetadataResult,
+    SqlaTable,
+    SqlMetric,
+    TableColumn,
+)
+from superset.datasets.commands.exceptions import (
+    DatabaseNotFoundValidationError,
+    DatasetExistsValidationError,
+    DatasetInvalidError,
+)
 from superset.datasets.dao import DatasetDAO
-from superset.extensions import db, security_manager
 from superset.exceptions import SupersetGenericDBErrorException
+from superset.extensions import db, security_manager
+from superset.sql_parse import ParsedQuery
 
 config = app.config
 logger = logging.getLogger(__name__)
@@ -76,7 +78,7 @@ class CreateMultiDatasetCommand(CreateMixin, BaseCommand):
             raise exception
 
     def external_metadata(self, dataset: SqlaTable) -> List[Dict[str, Any]]:
-        """ Returns column information from the external system """
+        """Returns column information from the external system"""
         if not dataset.sql:
             raise SupersetGenericDBErrorException(
                 message=_("Virtual dataset query cannot be empty"),
