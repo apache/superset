@@ -84,51 +84,54 @@ describe('SharedLabelColor', () => {
     });
   });
 
-  describe('.getColorMap(namespace, scheme, updateColorScheme)', () => {
-    it('should be undefined when scheme is undefined', () => {
+  describe('.updateColorMap(namespace, scheme)', () => {
+    it('should update color map', () => {
       const sharedLabelColor = getSharedLabelColor();
+      sharedLabelColor.addSlice('a', 'red', 1);
+      sharedLabelColor.addSlice('b', 'green', 2);
+      sharedLabelColor.updateColorMap('', 'testColors2');
       const colorMap = sharedLabelColor.getColorMap();
-      expect(colorMap).toBeUndefined();
+      expect(colorMap).toEqual({ a: 'yellow', b: 'green' });
     });
 
-    it('should update color value if passing updateColorScheme', () => {
-      const sharedLabelColor = getSharedLabelColor();
-      sharedLabelColor.addSlice('a', 'red', 1);
-      sharedLabelColor.addSlice('b', 'blue', 2);
-      const colorMap = sharedLabelColor.getColorMap('', 'testColors2', true);
-      expect(colorMap).toEqual({ a: 'yellow', b: 'yellow' });
-    });
-
-    it('should get origin color value if not pass updateColorScheme', () => {
-      const sharedLabelColor = getSharedLabelColor();
-      sharedLabelColor.addSlice('a', 'red', 1);
-      sharedLabelColor.addSlice('b', 'blue', 2);
-      const colorMap = sharedLabelColor.getColorMap('', 'testColors');
-      expect(colorMap).toEqual({ a: 'red', b: 'blue' });
-    });
-
-    it('should use recycle colors if shared label exit', () => {
+    it('should use recycle colors', () => {
       window.featureFlags = {
         [FeatureFlag.USE_ANALAGOUS_COLORS]: false,
       };
       const sharedLabelColor = getSharedLabelColor();
       sharedLabelColor.addSlice('a', 'red', 1);
-      sharedLabelColor.addSlice('a', 'blue', 2);
-      const colorMap = sharedLabelColor.getColorMap('', 'testColors');
+      sharedLabelColor.addSlice('b', 'blue', 2);
+      sharedLabelColor.addSlice('c', 'green', 3);
+      sharedLabelColor.addSlice('d', 'red', 4);
+      sharedLabelColor.updateColorMap('', 'testColors');
+      const colorMap = sharedLabelColor.getColorMap();
       expect(colorMap).not.toEqual({});
       expect(getAnalogousColors).not.toBeCalled();
     });
 
-    it('should use analagous colors if shared label exit', () => {
+    it('should use analagous colors', () => {
       window.featureFlags = {
         [FeatureFlag.USE_ANALAGOUS_COLORS]: true,
       };
       const sharedLabelColor = getSharedLabelColor();
       sharedLabelColor.addSlice('a', 'red', 1);
-      sharedLabelColor.addSlice('a', 'blue', 2);
-      const colorMap = sharedLabelColor.getColorMap('', 'testColors');
+      sharedLabelColor.addSlice('b', 'blue', 2);
+      sharedLabelColor.addSlice('c', 'green', 3);
+      sharedLabelColor.addSlice('d', 'red', 4);
+      sharedLabelColor.updateColorMap('', 'testColors');
+      const colorMap = sharedLabelColor.getColorMap();
       expect(colorMap).not.toEqual({});
       expect(getAnalogousColors).toBeCalled();
+    });
+  });
+
+  describe('.getColorMap()', () => {
+    it('should get color map', () => {
+      const sharedLabelColor = getSharedLabelColor();
+      sharedLabelColor.addSlice('a', 'red', 1);
+      sharedLabelColor.addSlice('b', 'blue', 2);
+      const colorMap = sharedLabelColor.getColorMap();
+      expect(colorMap).toEqual({ a: 'red', b: 'blue' });
     });
   });
 });
