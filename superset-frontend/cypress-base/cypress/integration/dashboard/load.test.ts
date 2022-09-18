@@ -16,15 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  waitForChartLoad,
-  WORLD_HEALTH_CHARTS,
-  WORLD_HEALTH_DASHBOARD,
-} from './dashboard.helper';
+import { WORLD_HEALTH_DASHBOARD } from 'cypress/utils/urls';
+import { waitForChartLoad } from 'cypress/utils';
+import { WORLD_HEALTH_CHARTS, interceptLog } from './utils';
 
 describe('Dashboard load', () => {
-  beforeEach(() => {
+  before(() => {
     cy.login();
+  });
+
+  beforeEach(() => {
+    cy.preserveLogin();
   });
 
   it('should load dashboard', () => {
@@ -34,7 +36,7 @@ describe('Dashboard load', () => {
 
   it('should load in edit mode', () => {
     cy.visit(`${WORLD_HEALTH_DASHBOARD}?edit=true&standalone=true`);
-    cy.get('[data-test="discard-changes-button"]').should('be.visible');
+    cy.getBySel('discard-changes-button').should('be.visible');
   });
 
   it('should load in standalone mode', () => {
@@ -44,12 +46,13 @@ describe('Dashboard load', () => {
 
   it('should load in edit/standalone mode', () => {
     cy.visit(`${WORLD_HEALTH_DASHBOARD}?edit=true&standalone=true`);
-    cy.get('[data-test="discard-changes-button"]').should('be.visible');
+    cy.getBySel('discard-changes-button').should('be.visible');
     cy.get('#app-menu').should('not.exist');
   });
 
   it('should send log data', () => {
+    interceptLog();
     cy.visit(WORLD_HEALTH_DASHBOARD);
-    cy.intercept('/superset/log/?explode=events&dashboard_id=*');
+    cy.wait('@logs');
   });
 });

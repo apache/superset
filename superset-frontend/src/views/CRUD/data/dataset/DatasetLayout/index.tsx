@@ -24,11 +24,11 @@ import {
   OuterRow,
   PanelRow,
   FooterRow,
-  StyledHeader,
-  StyledLeftPanel,
-  StyledDatasetPanel,
-  StyledRightPanel,
-  StyledFooter,
+  StyledLayoutHeader,
+  StyledLayoutLeftPanel,
+  StyledLayoutDatasetPanel,
+  StyledLayoutRightPanel,
+  StyledLayoutFooter,
 } from 'src/views/CRUD/data/dataset/styles';
 
 interface DatasetLayoutProps {
@@ -48,22 +48,28 @@ export default function DatasetLayout({
 }: DatasetLayoutProps) {
   return (
     <StyledLayoutWrapper data-test="dataset-layout-wrapper">
-      {header && <StyledHeader>{header}</StyledHeader>}
+      {header && <StyledLayoutHeader>{header}</StyledLayoutHeader>}
       <OuterRow>
         <LeftColumn>
-          {leftPanel && <StyledLeftPanel>{leftPanel}</StyledLeftPanel>}
+          {leftPanel && (
+            <StyledLayoutLeftPanel>{leftPanel}</StyledLayoutLeftPanel>
+          )}
         </LeftColumn>
 
         <RightColumn>
           <PanelRow>
             {datasetPanel && (
-              <StyledDatasetPanel>{datasetPanel}</StyledDatasetPanel>
+              <StyledLayoutDatasetPanel>
+                {datasetPanel}
+              </StyledLayoutDatasetPanel>
             )}
-            {rightPanel && <StyledRightPanel>{rightPanel}</StyledRightPanel>}
+            {rightPanel && (
+              <StyledLayoutRightPanel>{rightPanel}</StyledLayoutRightPanel>
+            )}
           </PanelRow>
 
           <FooterRow>
-            {footer && <StyledFooter>{footer}</StyledFooter>}
+            {footer && <StyledLayoutFooter>{footer}</StyledLayoutFooter>}
           </FooterRow>
         </RightColumn>
       </OuterRow>

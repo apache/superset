@@ -402,3 +402,13 @@ only_postgresql = pytest.mark.skipif(
     "postgresql" not in os.environ.get("SUPERSET__SQLALCHEMY_DATABASE_URI", ""),
     reason="Only run test case in Postgresql",
 )
+
+only_sqlite = pytest.mark.skipif(
+    "sqlite" not in os.environ.get("SUPERSET__SQLALCHEMY_DATABASE_URI", ""),
+    reason="Only run test case in SQLite",
+)
+
+only_mysql = pytest.mark.skipif(
+    "mysql" not in os.environ.get("SUPERSET__SQLALCHEMY_DATABASE_URI", ""),
+    reason="Only run test case in MySQL",
+)

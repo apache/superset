@@ -24,6 +24,8 @@ import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { CustomFrame } from '.';
 
+jest.useFakeTimers();
+
 const emptyValue = '';
 const nowValue = 'now : now';
 const todayValue = 'today : today';
@@ -137,7 +139,7 @@ test('triggers onChange when the value changes', () => {
   expect(onChange).toHaveBeenCalled();
 });
 
-test('triggers onChange when the mode changes', () => {
+test('triggers onChange when the mode changes', async () => {
   const onChange = jest.fn();
   render(
     <Provider store={store}>
@@ -145,8 +147,12 @@ test('triggers onChange when the mode changes', () => {
     </Provider>,
   );
   userEvent.click(screen.getByTitle('Midnight'));
+  expect(await screen.findByTitle('Relative Date/Time')).toBeInTheDocument();
   userEvent.click(screen.getByTitle('Relative Date/Time'));
   userEvent.click(screen.getAllByTitle('Now')[1]);
+  expect(
+    await screen.findByText('Configure custom time range'),
+  ).toBeInTheDocument();
   userEvent.click(screen.getAllByTitle('Specific Date/Time')[1]);
   expect(onChange).toHaveBeenCalledTimes(2);
 });
@@ -159,8 +165,10 @@ test('triggers onChange when the grain changes', async () => {
     </Provider>,
   );
   userEvent.click(screen.getByText('Days Before'));
+  expect(await screen.findByText('Weeks Before')).toBeInTheDocument();
   userEvent.click(screen.getByText('Weeks Before'));
   userEvent.click(screen.getByText('Days After'));
+  expect(await screen.findByText('Weeks After')).toBeInTheDocument();
   userEvent.click(screen.getByText('Weeks After'));
   expect(onChange).toHaveBeenCalledTimes(2);
 });

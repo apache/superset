@@ -17,17 +17,15 @@
  * under the License.
  */
 import qs from 'querystringify';
-import {
-  WORLD_HEALTH_DASHBOARD,
-  WORLD_HEALTH_CHARTS,
-  waitForChartLoad,
-} from './dashboard.helper';
+import { waitForChartLoad } from 'cypress/utils';
+import { WORLD_HEALTH_DASHBOARD } from 'cypress/utils/urls';
+import { WORLD_HEALTH_CHARTS } from './utils';
 
 interface QueryString {
   native_filters_key: string;
 }
 
-xdescribe('nativefilter url param key', () => {
+describe.skip('nativefilter url param key', () => {
   // const urlParams = { param1: '123', param2: 'abc' };
   before(() => {
     cy.login();
