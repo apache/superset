@@ -343,7 +343,9 @@ export class ExtendedSliceContainer extends React.PureComponent<
   }
 
   isPrestoDatabse(database_name: string | undefined) {
-    return _.isEqual(database_name, 'Presto');
+    return (
+      _.isEqual(database_name, 'Presto') || _.isEqual(database_name, 'Trino')
+    );
   }
 
   isBtnDisabled() {
