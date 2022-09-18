@@ -22,7 +22,7 @@ from superset.superset_typing import FlaskResponse
 from superset.views.base import BaseSupersetView
 
 
-class Flash(BaseSupersetView):  # pylint: disable=too-many-ancestors
+class Flash(BaseSupersetView):
     class_permission_name = "SavedQuery"
     method_permission_name = MODEL_VIEW_RW_METHOD_PERMISSION_MAP
 

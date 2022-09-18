@@ -989,7 +989,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
     def get_template_processor(self, **kwargs: Any) -> BaseTemplateProcessor:
         return get_template_processor(table=self, database=self.database, **kwargs)
 
-    def get_multi_dataset_query(self, sql: str) -> str:
+    def get_multi_dataset_query(self, sql: str) -> str: # pylint: disable=too-many-locals,no-self-use
         changed_sql = sql
         filtered_list = []
         colum_expressions = {}
@@ -1014,7 +1014,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             column = format_exp.split(" ")
             colum_expressions[column[1]] = column[0]
 
-        for column_name in colum_expressions.keys():
+        for column_name in colum_expressions.keys(): # pylint: disable=consider-using-dict-items,consider-iterating-dictionary
             expr = colum_expressions[column_name]
             final_filters_string = final_filters_string.replace(
                 '"{}"'.format(column_name), expr

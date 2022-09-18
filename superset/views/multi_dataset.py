@@ -77,7 +77,7 @@ class CreateMultiDatasetCommand(CreateMixin, BaseCommand):
             exception.add_list(exceptions)
             raise exception
 
-    def external_metadata(dataset: SqlaTable) -> List[Dict[str, Any]]:
+    def external_metadata(self, dataset: SqlaTable) -> List[Dict[str, Any]]:
         """Returns column information from the external system"""
         if not dataset.sql:
             raise SupersetGenericDBErrorException(
