@@ -99,19 +99,6 @@ const FlashCreationButton: FunctionComponent<FlashCreationButtonProps> = ({
     enum: [''],
     enumNames: ['Please Select'],
   });
-  // owner: '',
-  // datasetName: '',
-  // domainName: '',
-  // flashType: '',
-  // scheduleStartTime: '',
-  // scheduleType: '',
-  // serviceName: '',
-  // sqlQuery: '',
-  // datastoreId: '',
-  // tableName: '',
-  // teamSlackChannel: '',
-  // teamSlackHandle: '',
-  // ttl: '',
   const [formData, setFormData] = useState<FlashObject | null>(null);
   const [sqlQuery, setSqlQuery] = useState<Query>({});
   const [isLoading, setIsLoading] = useState(false);
