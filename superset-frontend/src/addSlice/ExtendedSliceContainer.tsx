@@ -242,6 +242,7 @@ export class ExtendedSliceContainer extends React.PureComponent<
         table_name: database.table_name,
         column_names: database.column_names,
         database_name: database.database_name,
+        sqlalchemy_uri: database.sqlalchemy_uri,
       },
     });
   }
@@ -301,11 +302,11 @@ export class ExtendedSliceContainer extends React.PureComponent<
       columns: [
         'id',
         'schema',
+        'database',
         'table_name',
         'description',
         'datasource_type',
         'columns.column_name',
-        'database.database_name',
       ],
       filters: [{ col: 'table_name', opr: 'ct', value: search }],
       order_direction: 'asc',
@@ -320,6 +321,7 @@ export class ExtendedSliceContainer extends React.PureComponent<
         table_name: item.table_name,
         customLabel: this.newLabel(item),
         database_name: item.database.database_name,
+        sqlalchemy_uri: item.database.sqlalchemy_uri,
         value: `${item.id}__${item.datasource_type}`,
         column_names: item.columns.map((column: Column) => column.column_name),
       }));
@@ -334,16 +336,17 @@ export class ExtendedSliceContainer extends React.PureComponent<
     return this.loadDatasources(search, page, pageSize).then(result => ({
       data: result.data.filter(
         dataset =>
-          this.isPrestoDatabse(dataset.database_name) &&
+          this.isPrestoDatabse(dataset.sqlalchemy_uri) &&
           dataset.value !== this.state.first_datasource?.value,
       ),
       totalCount: result.totalCount,
     }));
   }
 
-  isPrestoDatabse(database_name: string | undefined) {
+  isPrestoDatabse(sqlalchemy_uri: string | undefined) {
     return (
-      _.isEqual(database_name, 'Presto') || _.isEqual(database_name, 'Trino')
+      _.startsWith(sqlalchemy_uri, 'presto') ||
+      _.startsWith(sqlalchemy_uri, 'trino')
     );
   }
 
@@ -362,7 +365,7 @@ export class ExtendedSliceContainer extends React.PureComponent<
       const second_datasource = additional_datasources[0];
       const { first_column, second_column } = datasources_joins[0][0];
       return second_datasource.value
-        ? this.isPrestoDatabse(first_datasource?.database_name)
+        ? this.isPrestoDatabse(first_datasource?.sqlalchemy_uri)
           ? second_datasource.value && first_column && second_column
           : true
         : true;
@@ -374,7 +377,7 @@ export class ExtendedSliceContainer extends React.PureComponent<
     const { first_datasource, additional_datasources } = this.state;
     const second_datasource = additional_datasources[0];
     if (first_datasource)
-      return this.isPrestoDatabse(first_datasource.database_name) &&
+      return this.isPrestoDatabse(first_datasource.sqlalchemy_uri) &&
         second_datasource
         ? DOUBLE_DATABASE_TITLE
         : SINGLE_DATABASE_TITLE;
@@ -468,7 +471,7 @@ export class ExtendedSliceContainer extends React.PureComponent<
               </Row>
             }
           />
-          {this.isPrestoDatabse(first_datasource?.database_name) &&
+          {this.isPrestoDatabse(first_datasource?.sqlalchemy_uri) &&
             additional_datasources.length > 0 && (
               <Steps.Step
                 status={this.isJoinComplete()}

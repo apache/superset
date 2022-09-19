@@ -37,6 +37,7 @@ export type Dataset = {
   datasource_type: string;
   database: {
     database_name: string;
+    sqlalchemy_uri: string;
   };
   columns: Column[];
 };
@@ -48,6 +49,7 @@ export type StateDataset = {
   table_name: string;
   database_name: string;
   column_names: string[];
+  sqlalchemy_uri: string;
 };
 
 export type AdditionalStateDataset = {
@@ -57,6 +59,7 @@ export type AdditionalStateDataset = {
   join_type?: string;
   table_name?: string;
   database_name?: string;
+  sqlalchemy_uri?: string;
   column_names?: string[];
 };
 
@@ -67,6 +70,7 @@ export type List = {
   schema: string;
   table_name: string;
   database_name: string;
+  sqlalchemy_uri: string;
   customLabel: ReactNode;
   column_names: string[];
 };
