@@ -1,6 +1,4 @@
-import React, { useState } from 'react';
-import { Table as AntTable } from 'antd';
-// import { css } from '@emotion/react';
+import React from 'react';
 import { useTheme, styled } from '@superset-ui/core';
 import Table, { TableProps } from 'src/components/Table';
 
@@ -13,7 +11,7 @@ const Wrapper = styled('div')`
   border: 2px solid #ffcc00;
 `;
 
-export function TableCard(props: TableCardProps) {
+export function TableScreen(props: TableCardProps) {
   const { tableProps, title, ...rest } = props;
 
   const theme = useTheme();
@@ -26,4 +24,4 @@ export function TableCard(props: TableCardProps) {
   );
 }
 
-export default TableCard;
+export default TableScreen;

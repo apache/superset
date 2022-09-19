@@ -7,7 +7,7 @@ import type { ColumnsType } from 'antd/es/table';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import { TableDataType, TableSize } from 'src/components/Table';
 import ButtonCell from 'src/components/Table/cell-renderers/ButtonCell';
-import TableCard from './index';
+import TableScreen from './index';
 
 const themeDecorator = Story => (
   <ThemeProvider theme={supersetTheme}>
@@ -20,7 +20,7 @@ export default {
    * See https://storybook.js.org/docs/react/configure/overview#configure-story-loading
    * to learn how to generate automatic titles
    */
-  title: 'Design System/Pattterns/Table Card',
+  title: 'Design System/Pattterns/Table Screen',
   component: TableCard,
   parameters: {
     backgrounds: {
@@ -136,9 +136,7 @@ for (let i = 0; i < recordCount; i += 1) {
 export const Examples: ComponentStory<typeof TableCard> = args => (
   <ThemeProvider theme={supersetTheme}>
     <div>
-      {/* <div style={{ width: '500px', height: '400px', overflow: 'scroll' }}> */}
-      <TableCard {...args} />
-      {/* </div> */}
+      <TableScreen {...args} />
     </div>
   </ThemeProvider>
 );

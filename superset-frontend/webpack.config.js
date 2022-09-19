@@ -444,7 +444,7 @@ const config = {
         type: 'asset/resource',
       },
       {
-        test: /\.(stories|story)\.mdx$/,
+        test: /\.mdx$/,
         use: [
           {
             loader: 'babel-loader',

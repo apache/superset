@@ -1,8 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Table as AntTable } from 'antd';
-import type { ColumnsType } from 'antd/es/table';
+import React, { useState, useEffect, useRef, ReactElement } from 'react';
+import { Table as AntTable, ConfigProvider } from 'antd';
+import type { ColumnsType, TableProps as AntTableProps } from 'antd/es/table';
+import Loading from 'src/components/Loading';
 // import { css } from '@emotion/react';
-import { useTheme, styled } from '@superset-ui/core';
+import { useTheme, styled, t } from '@superset-ui/core';
+
+import InteractiveTableUtils from './InteractiveTableUtils';
 
 export interface TableDataType {
   key: React.Key;
@@ -14,35 +17,76 @@ export enum SelectionType {
   'MULTI' = 'multi',
 }
 
-export interface TableProps {
+export interface Column extends ColumnsType {
+  title: string | JSX.Element;
+  tooltip?: string;
+}
+
+export interface TableProps extends AntTableProps<TableProps> {
   /**
    * Data that will populate the each row and map to the column key
    */
   data: TableDataType[];
-  columns: ColumnsType[];
+  /**
+   * Table column definitions
+   */
+  columns: Column[];
+  /**
+   * Array of row keys to represent list of selected rows
+   */
   selectedRows?: React.Key[];
+  /**
+   * Callback function invoked when a row is selected by user
+   */
   handleRowSelection?: Function;
   /**
    * Controls the size of the table
    */
   size: TableSize;
+  /**
+   * Adjusts the padding around elements for different amounts of spacing between elements
+   */
   selectionType?: SelectionType;
+  /*
+   * Places table in visual loading state.  Use while waiting to retrieve data or perform an async operation that will update the table
+   */
+  loading?: boolean;
+  /**
+   * Uses a sticky header which always displays when vertically scrolling the table.  Default: true
+   */
   sticky?: boolean;
   /**
-   * Controls if columns are resizeable by user
+   * Controls if columns are re-sizeable by user
    */
-  resizeable?: boolean;
+  resizable?: boolean;
   /**
-   * Controls if columns are reorderable by user
+   * EXPERIMENTAL: Controls if columns are re-orderable by user drag drop
    */
   reorderable?: boolean;
+  /**
+   * Default number of rows table will display per page of data
+   */
+  defaultPageSize?: number;
+  /**
+   * Array of numeric options for the number of rows table will display per page of data.
+   * The user can select from these options in the page size drop down menu
+   */
+  pageSizeOptions?: number[];
+  /**
+   * Set table to display no data even if data has been provided
+   */
+  hideData?: boolean;
+  /**
+   * emptyComponent
+   */
+  emptyComponent?: ReactElement;
+  /**
+   * Enables setting the text displayed in various components and tooltips within the Table UI
+   */
+  locale?: object;
 }
 
 export interface StyledTableProps extends TableProps {
-  /**
-   * Data that will populate the each row and map to the column key
-   */
-  height?: number;
   theme: object;
 }
 
@@ -51,26 +95,14 @@ export enum TableSize {
   MIDDLE = 'middle',
 }
 
-// This accounts for the tables header and pagnication, this is a temp solution
-const HEIGHT_OFFSET = 108;
-
 const defaultRowSelection: React.Key[] = [];
-/*
-  thead > tr > th {
-    border-bottom: 1px solid ${theme?.colors?.error};
-    color: ${theme?.colors?.error?.base};
-  }
 
-  tbody > tr > td  {
-    color: #3366ff;
-  }
-*/
 export const StyledTable = styled(AntTable)<StyledTableProps>`
-  ${({ theme, height }) => `
+  ${({ theme }) => `
   .ant-table-body {
     overflow: scroll;
-    height: ${height ? `${height - HEIGHT_OFFSET}px` : undefined};
   }
+
   th.ant-table-cell {
     font-weight: 600;
     color: ${theme.colors.grayscale.dark1};
@@ -80,15 +112,38 @@ export const StyledTable = styled(AntTable)<StyledTableProps>`
     user-select: none;
   }
 
-  th > .anticon {
-    color: red;
-  }
-
   .ant-pagination-item-active {
-    border-color: #20a7c9;
+    border-color: ${theme.colors.primary.base};
 }
   `}
 `;
+
+function wrapHandler(ref);
+
+const defaultLocale = {
+  filterTitle: t('Filter menu'),
+  filterConfirm: t('OK'),
+  filterReset: t('Reset'),
+  filterEmptyText: t('No filters'),
+  filterCheckall: t('Select all items'),
+  filterSearchPlaceholder: t('Search in filters'),
+  emptyText: t('No data'),
+  selectAll: t('Select current page'),
+  selectInvert: t('Invert current page'),
+  selectNone: t('Clear all data'),
+  selectionAll: t('Select all data'),
+  sortTitle: t('Sort'),
+  expand: t('Expand row'),
+  collapse: t('Collapse row'),
+  triggerDesc: t('Click to sort descending'),
+  triggerAsc: t('Click to sort ascending'),
+  cancelSort: t('Click to cancel sorting'),
+};
+
+const selectionMap = {};
+selectionMap[SelectionType.MULTI] = 'checkbox';
+selectionMap[SelectionType.SINGLE] = 'radio';
+selectionMap[SelectionType.DISABLED] = null;
 
 export function Table(props: TableProps) {
   const {
@@ -99,29 +154,31 @@ export function Table(props: TableProps) {
     size,
     selectionType = SelectionType.DISABLED,
     sticky = true,
-    resizeable = true,
+    loading = false,
+    resizable = true,
+    reorderable = true,
+    defaultPageSize = 15,
+    pageSizeOptions = [5, 15, 25, 50, 100],
+    hideData = false,
+    emptyComponent,
+    locale,
     ...rest
   } = props;
 
   const theme = useTheme();
-  const wrapperRef: HTMLDivElement = useRef<HTMLDivElement>(null);
-  const tableRef: HTMLTableElement = useRef<HTMLTableElement>(null);
-  const columnRef: HTMLTableRowElement = useRef<HTMLTableRowElement>(null);
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
+  const tableRef = useRef<HTMLTableElement | null>(null);
   const [derivedColumns, setDerivedColumns] = useState(columns);
-
+  const [pageSize, setPageSize] = useState(defaultPageSize);
+  const [mergedLocale, setMergedLocale] = useState({ ...defaultLocale });
   const [selectedRowKeys, setSelectedRowKeys] =
     useState<React.Key[]>(selectedRows);
+  const interactiveTableUtils = useRef<InteractiveTableUtils | null>(null);
 
   const onSelectChange = (newSelectedRowKeys: React.Key[]) => {
-    console.log('selectedRowKeys changed: ', newSelectedRowKeys);
     setSelectedRowKeys(newSelectedRowKeys);
     handleRowSelection?.(newSelectedRowKeys);
   };
-
-  const selectionMap = {};
-  selectionMap[SelectionType.MULTI] = 'checkbox';
-  selectionMap[SelectionType.SINGLE] = 'radio';
-  selectionMap[SelectionType.DISABLED] = null;
 
   const selectionTypeValue = selectionMap[selectionType];
   const rowSelection = {
@@ -130,137 +187,93 @@ export function Table(props: TableProps) {
     onChange: onSelectChange,
   };
 
-  const getColumnIndex = () => {
-    const parent = columnRef.current.parentNode;
-    const index = Array.prototype.indexOf.call(
-      parent.children,
-      columnRef.current,
-    );
-    return index;
-  };
+  const renderEmpty = () =>
+    emptyComponent ?? <div>{mergedLocale.emptyText}</div>;
 
-  const handleColumnDragStart = (e: DragEvent) => {
-    console.log('handleColumnDragStart');
-    const index = getColumnIndex();
-    const columnnData = derivedColumns[index];
-    // const dragData = { index, columnnData };
-    e.dataTransfer.setData('text', e.target.id);
-    // e?.dataTransfer?.setData('string/json', JSON.stringify(dragData));
-    console.log('drag start');
-  };
-
-  const handleDragDrop = (ev: DragEvent) => {
-    ev.preventDefault();
-    console.log('handle drop');
-    const data = ev.dataTransfer.getData('text', ev.target.id);
-    alert(data);
-  };
-
-  const allowDrop = ev => {
-    console.log('allow drop');
-    ev.preventDefault();
-  };
-
-  const handleMousedown = event => {
-    const target = event.currentTarget;
-    if (target) {
-      columnRef.current = target;
-      if (event && event.offsetX > target.offsetWidth - 16) {
-        target.mouseDown = true;
-        target.oldX = event.x;
-        target.oldWidth = target?.offsetWidth;
-      } else {
-        target.draggable = true;
+  const intializeInteractiveTable = () => {
+    if (interactiveTableUtils.current) {
+      interactiveTableUtils.current?.clearListeners();
+    }
+    const table = wrapperRef.current?.getElementsByTagName('table')[0];
+    if (table) {
+      interactiveTableUtils.current = new InteractiveTableUtils(
+        table,
+        derivedColumns,
+        setDerivedColumns,
+      );
+      if (reorderable) {
+        interactiveTableUtils?.current?.initializeDragDropColumns(
+          reorderable,
+          table,
+        );
+      }
+      if (resizable) {
+        interactiveTableUtils?.current?.initializeResizeableColumns(
+          resizable,
+          table,
+        );
       }
     }
   };
 
-  const handleMousemove = event => {
-    if (resizeable === true) {
-      const target = event.currentTarget;
-
-      if (event.offsetX > target.offsetWidth - 16) {
-        target.style.cursor = 'col-resize';
-      } else {
-        target.style.cursor = 'default';
-      }
-
-      const column = columnRef.current;
-      if (column && column.mouseDown) {
-        let width = column.oldWidth;
-        const diff = event.x - column.oldX;
-        if (column.oldWidth + (event.x - column.oldX) > 0) {
-          width = column.oldWidth + diff;
-        }
-        const colIndex = getColumnIndex();
-
-        const columnDef = { ...derivedColumns[colIndex] };
-        console.log(columnDef.width);
-        columnDef.width = width;
-        console.log(columnDef.width);
-        derivedColumns[colIndex] = columnDef;
-        setDerivedColumns([...derivedColumns]);
-      }
+  // Log use of experimental features
+  useEffect(() => {
+    if (reorderable === true) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        'EXPERIMENTAL FEATURE ENABLED: The "reorderable" prop of Table is experimental and NOT recommended for use in production deployments.',
+      );
     }
-  };
-
-  const handleMouseup = event => {
-    if (columnRef.current) {
-      columnRef.current.mouseDown = false;
-      columnRef.current.style.cursor = 'default';
-      columnRef.current.draggable = false;
+    if (resizable === true) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        'EXPERIMENTAL FEATURE ENABLED: The "resizeable" prop of Table is experimental and NOT recommended for use in production deployments.',
+      );
     }
-  };
-
-  const initializeResizeable = () => {
-    const header = tableRef.current.rows[0];
-    const { cells } = header;
-    const len = cells.length;
-
-    for (let i = 0; i < len; i += 1) {
-      const cell = cells[i];
-      cell.addEventListener('mousedown', handleMousedown);
-      cell.addEventListener('mousemove', handleMousemove, true);
-      cell.addEventListener('dragstart', handleColumnDragStart);
-      cell.addEventListener('ondrop', handleDragDrop);
-      cell.addEventListener('ondragover', allowDrop);
-      cell.id = `column_${i}`;
-    }
-    tableRef.current.addEventListener('mouseup', handleMouseup);
-  };
+  }, [reorderable, resizable]);
 
   useEffect(() => {
-    if (
-      resizeable === true &&
-      wrapperRef &&
-      wrapperRef.current &&
-      !tableRef?.current
-    ) {
-      tableRef.current = wrapperRef.current.getElementsByTagName('table')[0];
-      tableRef.current.setAttribute('data-table-resizable', 'true');
-      const id = 'rs_tb';
-      tableRef.current.id = id;
-      initializeResizeable();
+    let updatedLocale;
+    if (locale) {
+      // This spread allows for locale to only contain a subset of locale overrides on props
+      updatedLocale = { ...defaultLocale, ...locale };
+    } else {
+      updatedLocale = { ...defaultLocale };
     }
+    setMergedLocale(updatedLocale);
+  }, [locale]);
+
+  useEffect(() => {
+    intializeInteractiveTable();
+    return () => {
+      interactiveTableUtils?.current?.clearListeners?.();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  });
+  }, [wrapperRef, reorderable, resizable]);
 
   return (
-    <div ref={wrapperRef}>
-      <StyledTable
-        id=""
-        {...rest}
-        theme={theme}
-        rowSelection={selectionTypeValue ? rowSelection : undefined}
-        columns={derivedColumns}
-        dataSource={data}
-        size={size}
-        sticky={sticky}
-        pagination={{
-          hideOnSinglePage: true,
-        }}
-      />
-    </div>
+    <ConfigProvider renderEmpty={renderEmpty}>
+      <div ref={wrapperRef}>
+        <StyledTable
+          {...rest}
+          loading={{ spinning: loading, indicator: <Loading /> }}
+          hasData={hideData ? false : data}
+          theme={theme}
+          rowSelection={selectionTypeValue ? rowSelection : undefined}
+          columns={derivedColumns}
+          dataSource={hideData ? null : data}
+          size={size}
+          sticky={sticky}
+          pagination={{
+            hideOnSinglePage: true,
+            pageSize,
+            pageSizeOptions,
+            onShowSizeChange: (page: number, size: number) => setPageSize(size),
+          }}
+          locale={mergedLocale}
+        />
+      </div>
+    </ConfigProvider>
   );
 }
 

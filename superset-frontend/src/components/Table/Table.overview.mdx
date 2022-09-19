@@ -1,19 +1,35 @@
-import { Meta, Source } from '@storybook/addon-docs';
+import { Meta, Source, Story, ArgsTable } from '@storybook/addon-docs';
 
 <Meta title="Design System/Components/Table/Overview" />
 
-# Usage
+# Table
 
 A table is UI that allows the user to explore data in a tabular format.
+
+## Usage
 
 Common table applications in Superset:
 
 - Display lists of user-generated entities (e.g. dashboard, charts, queries) for further exploration and use
 - Display data that can help the user make a decision (e.g. query results)
 
-# Variations
+This component wraps an instance of the Andt Design table and provides some convenience features, style alignement, and customizations.
+
+The documentation at: <a href="https://ant.design/components/table" target="_blank">https://ant.design/components/table</a> Provides
+the complete set of capabilities for this component. This documentation will only cover basic use cases, or customizations
+provided by the Superset Table component
+
+### [Basic example](./?path=/docs/design-system-components-table-examples--basic)
+
+<Story id="design-system-components-table-examples--basic" />
+
+## Variations
 
 The table component has several variations.
+
+## Column Sort Functions
+
+To ensure consitency for column sorting and avoid redudnant definitions cor columne sorters reusable soirt functions are provided
 
 ### Size
 
@@ -82,3 +98,18 @@ The following specifications are required every time a table is used. These choi
     - [ ] Labels
     - [ ] Actions
   - [ ] Has search
+
+## Experimental features
+
+The Table component has features that are still experimental and can be used at your own risk.
+These features are inteded to be made fully stable in future releases
+
+## Drag Drop
+
+The prop `reorderable` can enable column drag drop reordering. IF you want to accept the drop event of a Table Column
+you can register a dragOVer event that chacks for
+
+```
+    const data = ev.dataTransfer?.getData?.(SUPERSET_TABLE_COLUMN);
+    console.log(data);
+```
