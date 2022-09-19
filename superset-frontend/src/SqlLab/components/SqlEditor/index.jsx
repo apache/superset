@@ -214,7 +214,7 @@ class SqlEditor extends React.PureComponent {
 
     this.onBeforeUnload = this.onBeforeUnload.bind(this);
     this.renderDropdown = this.renderDropdown.bind(this);
-    console.log('query editor props==', this.props)
+    console.log('query editor props==', this.props);
   }
 
   UNSAFE_componentWillMount() {

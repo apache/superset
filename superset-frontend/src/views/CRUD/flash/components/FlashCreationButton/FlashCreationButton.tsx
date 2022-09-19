@@ -313,7 +313,7 @@ const FlashCreationButton: FunctionComponent<FlashCreationButtonProps> = ({
         'scheduleStartTime',
       ]);
     }
-    let flash = {
+    const flash = {
       owner: user?.email,
       sqlQuery: sqlQuery?.query ? sqlQuery?.query : sqlEditor,
       ...payload,
