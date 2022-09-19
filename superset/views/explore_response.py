@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from ctypes import Union
 from typing import Any, cast, Dict, List, Tuple
 from uuid import uuid4
 
@@ -23,8 +24,9 @@ from superset import db
 from superset.connectors.base.models import BaseDatasource
 from superset.databases.dao import DatabaseDAO
 from superset.datasets.commands.update import UpdateDatasetCommand
-from superset.datasource.dao import DatasourceDAO
+from superset.datasource.dao import Datasource, DatasourceDAO
 from superset.exceptions import SupersetGenericDBErrorException
+from superset.superset_typing import Column
 from superset.views.multi_dataset import CreateMultiDatasetCommand
 
 tmp_table_name_prefix = "tmp__"
@@ -102,12 +104,12 @@ class ExploreResponse:
     @staticmethod
     def get_column_aliases(
         columns: List[Dict[str, Any]], alias: str
-    ) -> Tuple[List[str], Dict[Any, str]]:
+    ) -> Tuple[List[str], Dict[str, str]]:
         """
         Returns a list of Column names as Aliases for a SELECT Query
         """
-        renamed_columns = []
-        column_expressions = {}
+        renamed_columns: List[str] = []
+        column_expressions: Dict[str, str] = {}
         for column in columns:
             column_name = column["column_name"]
             expression = column["expression"]
@@ -125,11 +127,13 @@ class ExploreResponse:
         return renamed_columns, column_expressions
 
     @staticmethod
-    def map_and_get_column_names(datasources: List[BaseDatasource]) -> List[str]:
+    def map_and_get_column_names(
+        datasources: List[BaseDatasource],
+    ) -> Tuple[List[str], Dict[str, Dict[str, str]]]:
         """
         Iterates through Datasets and returns Column Aliases for each Dataset
         """
-        table_column_expressions: Dict = {}
+        table_column_expressions: Dict[str, Dict[str, str]] = {}
         mapped_columns: List[str] = []  # pylint: disable=unsubscriptable-object
         for index, datasource in enumerate(datasources):
             table_name = datasource.data["table_name"]
@@ -156,9 +160,9 @@ class ExploreResponse:
     def get_single_column_join(
         first_table: str,
         second_table: str,
-        column_joins: List,
-        first_table_expressions: Dict,
-        second_table_expressions: Dict,
+        column_joins: List[Dict[str, str]],
+        first_table_expressions: Dict[str, str],
+        second_table_expressions: Dict[str, str],
     ) -> str:
         join = column_joins.pop()
         first_column_join = join["first_column"]
@@ -175,9 +179,9 @@ class ExploreResponse:
     def get_multiple_column_join(  # pylint: disable=too-many-locals
         first_table: str,
         second_table: str,
-        column_joins: List,
-        first_table_expressions: Dict,
-        second_table_expressions: Dict,
+        column_joins: List[Dict[str, str]],
+        first_table_expressions: Dict[str, str],
+        second_table_expressions: Dict[str, str],
     ) -> str:
         join_statement = ""
         last_join = column_joins.pop()
@@ -211,10 +215,10 @@ class ExploreResponse:
 
     @staticmethod
     def get_join_query(
-        dataset_joins: List,
-        joins: List,
+        dataset_joins: List[List[Dict[str, str]]],
+        joins: List[str],
         datasources: List[BaseDatasource],
-        table_column_expressions: Dict,
+        table_column_expressions: Dict[str, Dict[str, str]],
     ) -> str:
         join_statement = ""
         for index, column_joins in enumerate(dataset_joins):
@@ -263,7 +267,9 @@ class ExploreResponse:
                 )
         return join_statement
 
-    def multiple_dataset(self):  # pylint: disable=too-many-locals
+    def multiple_dataset(   # pylint: disable=too-many-locals
+        self,
+    ) -> Tuple[Datasource, Union[Column, Any, str]]:
         joins: List[str] = self.form_data.get("joins")
         dataset_joins: List[List[Dict[str, str]]] = self.form_data.get("column_joins")
         first_datasource: str = self.form_data.get("first_datasource")

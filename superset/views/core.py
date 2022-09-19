@@ -745,7 +745,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @expose("/multidataset/", methods=["POST"])
     def multidataset(self) -> FlaskResponse:  # pylint: disable=no-self-use
 
-        initial_form_data = {}
+        initial_form_data: Dict[str, Any] = {}
         form_data, slc = get_form_data(  # pylint: disable=unused-variable
             use_slice_data=True, initial_form_data=initial_form_data
         )
