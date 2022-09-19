@@ -1099,6 +1099,11 @@ def EMAIL_HEADER_MUTATOR(  # pylint: disable=invalid-name,unused-argument
     return msg
 
 
+# Define a list of usernames to be excluded from all dropdown lists of users
+# Owners, filters for created_by, etc.
+EXCLUDE_USER_USERNAMES: List[str] = []
+
+
 # This auth provider is used by background (offline) tasks that need to access
 # protected resources. Can be overridden by end users in order to support
 # custom auth mechanisms

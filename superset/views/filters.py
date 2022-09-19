@@ -14,14 +14,18 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import logging
 from typing import Any, cast, Optional
 
+from flask import current_app
 from flask_appbuilder.models.filters import BaseFilter
 from flask_babel import lazy_gettext
-from sqlalchemy import or_
+from sqlalchemy import and_, or_
 from sqlalchemy.orm import Query
 
 from superset import security_manager
+
+logger = logging.getLogger(__name__)
 
 
 class FilterRelatedOwners(BaseFilter):  # pylint: disable=too-few-public-methods
@@ -48,3 +52,30 @@ class FilterRelatedOwners(BaseFilter):  # pylint: disable=too-few-public-methods
                 user_model.username.ilike(like_value),
             )
         )
+
+
+class BaseFilterRelatedUsers(BaseFilter):  # pylint: disable=too-few-public-methods
+
+    """
+    Filter to apply on related users. Will exclude users in EXCLUDE_USER_USERNAMES
+
+    Use in the api by adding something like:
+    ```
+    filter_rel_fields = {
+        "owners": [["id", BaseFilterRelatedUsers, lambda: []]],
+        "created_by": [["id", BaseFilterRelatedUsers, lambda: []]],
+    }
+    ```
+    """
+
+    name = lazy_gettext("username")
+    arg_name = "username"
+
+    def apply(self, query: Query, value: Optional[Any]) -> Query:
+        user_model = security_manager.user_model
+        query_ = query.filter(
+            and_(
+                user_model.username.not_in(current_app.config["EXCLUDE_USER_USERNAMES"])
+            )
+        )
+        return query_
