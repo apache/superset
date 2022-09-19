@@ -27,7 +27,6 @@ from superset.databases.dao import DatabaseDAO
 from superset.datasets.commands.update import UpdateDatasetCommand
 from superset.datasource.dao import Datasource, DatasourceDAO
 from superset.exceptions import SupersetGenericDBErrorException
-from superset.superset_typing import Column
 from superset.views.multi_dataset import CreateMultiDatasetCommand
 
 tmp_table_name_prefix = "tmp__"

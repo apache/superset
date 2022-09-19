@@ -152,7 +152,7 @@ from superset.views.base import (
     json_success,
     validate_sqlatable,
 )
-from superset.views.explore_response import ExploreResponse
+from superset.views.explore_response import ExploreResponse # type: ignore
 from superset.views.sql_lab.schemas import SqlJsonPayloadSchema
 from superset.views.utils import (
     _deserialize_results_payload,
