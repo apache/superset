@@ -148,7 +148,7 @@ export default function transformProps(
 
   const colorScale = CategoricalColorNamespace.getScale(colorScheme as string);
   const rebasedData = rebaseForecastDatum(data, verboseMap);
-  const xAxisCol = getAxis(chartProps.rawFormData);
+  const xAxisCol = getAxis(chartProps.rawFormData) as string;
   const isHorizontal = orientation === OrientationType.horizontal;
   const { totalStackedValues, thresholdValues } = extractDataTotalValues(
     rebasedData,

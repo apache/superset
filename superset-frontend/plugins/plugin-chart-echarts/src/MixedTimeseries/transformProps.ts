@@ -152,7 +152,7 @@ export default function transformProps(
 
   const colorScale = CategoricalColorNamespace.getScale(colorScheme as string);
 
-  const xAxisCol = getAxis(chartProps.rawFormData as QueryFormData);
+  const xAxisCol = getAxis(chartProps.rawFormData as QueryFormData) as string;
 
   const rebasedDataA = rebaseForecastDatum(data1, verboseMap);
   const rawSeriesA = extractSeries(rebasedDataA, {

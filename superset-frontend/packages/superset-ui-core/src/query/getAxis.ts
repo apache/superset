@@ -28,8 +28,12 @@ export const isEnabledAxes = (formData: QueryFormData) =>
   // return `true` when x_axis in formData but FeatureFlag.GENERIC_CHART_AXES is false
   isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES) || formData.x_axis;
 
-export const getAxis = (formData: QueryFormData): string => {
+export const getAxis = (formData: QueryFormData): string | undefined => {
   // The formData should be "raw form_data" -- the snake_case version of formData rather than camelCase.
+  if (!(formData.granularity_sqla || formData.x_axis)) {
+    return undefined;
+  }
+
   if (isEnabledAxes(formData) && formData.x_axis) {
     return getColumnLabel(formData.x_axis);
   }
